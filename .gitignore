@@ -103,3 +103,6 @@ cmake-build-debug/
 
 # JetBrains
 .idea/
+
+# V8
+v8/

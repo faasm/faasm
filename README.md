@@ -44,9 +44,5 @@ ninja -C out.gn/x64.release
 tools/run-tests.py --gn
 ```
 
-This will build V8 binaries suitable for embedding. We can then copy the relevant files into place in this repo:
-
-```
-rm -rf /usr/local/code/faasm/v8
-mv out.gn/x64.release /usr/local/code/faasm/v8
-```
+This will build V8 binaries suitable for embedding. The CMake config in this repo assumes the v8 directory is at
+`/usr/local/code/v8`.
