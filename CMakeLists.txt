@@ -1,22 +1,21 @@
 cmake_minimum_required(VERSION 3.10)
 project(faasm)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 set(V8_DIR /usr/local/code/v8)
 set(V8_BUILD_DIR ${V8_DIR}/out.gn/x64.release)
 set(V8_OBJ_DIR ${V8_BUILD_DIR}/obj)
 
-
 add_executable(main main.cpp)
 
 target_include_directories(main PUBLIC ${V8_DIR} ${V8_DIR}/include)
 
-#link_directories(
-#        ${V8_OBJ_DIR}
-#        ${V8_OBJ_DIR}/third_party/icu
-#        ${V8_OBJ_DIR}/src/inspector
-#)
+link_directories(
+        ${V8_OBJ_DIR}
+        ${V8_OBJ_DIR}/third_party/icu
+        ${V8_OBJ_DIR}/src/inspector
+)
 
 set(V8_LIBS
         ${V8_OBJ_DIR}/libv8_base.a
