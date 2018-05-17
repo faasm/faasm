@@ -22,6 +22,10 @@ gclient
 fetch v8
 cd v8
 
+# CRUCIAL - DOES NOT WORK WITH LATEST MASTER
+# Switch to 5.8
+git checkout -b 5.8 -t origin/5.8-lkgr
+
 # Download deps
 gclient sync
 
@@ -35,6 +39,8 @@ gclient sync
 #
 #   is_component_build = false
 #   v8_static_library = true
+#
+# Also make sure target build is x64
 gn args out.gn/x64.release
 
 # Compile
