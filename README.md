@@ -24,7 +24,8 @@ cd v8
 
 # CRUCIAL - DOES NOT WORK WITH LATEST MASTER
 # Switch to 5.8
-git checkout -b 5.8 -t origin/5.8-lkgr
+# git checkout -b 5.8 -t origin/5.8-lkgr
+git checkout -b 6.7 -t origin/6.7-lkgr
 
 # Download deps
 gclient sync
