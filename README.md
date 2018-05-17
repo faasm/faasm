@@ -33,6 +33,7 @@ gclient sync
 ./build/install-build-deps.sh
 
 # Generate build files
+rm -rf out.gn
 ./tools/dev/v8gen.py x64.release
 
 # Edit the default build configuration and add two lines for embedding:
