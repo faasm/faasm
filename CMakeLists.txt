@@ -32,12 +32,13 @@ set(V8_LIBS
         ${V8_OBJ_DIR}/libv8_external_snapshot.a
         ${V8_OBJ_DIR}/libv8_libsampler.a
         # Prebuilt ICU
-        ${V8_OBJ_DIR}/third_party/icu/libicuuc.a
-        ${V8_OBJ_DIR}/third_party/icu/libicui18n.a
+#        ${V8_OBJ_DIR}/third_party/icu/libicuuc.a
+#        ${V8_OBJ_DIR}/third_party/icu/libicui18n.a
         # System ICU
-#        -licui18n
-#        -licuuc
-#        -licudata
+        -licui18n
+        -licuuc
+        -licudata
+#        -licu_60
         ${V8_OBJ_DIR}/src/inspector/libinspector.a
 )
 
