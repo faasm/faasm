@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 project(faasm)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 
 set(CMAKE_CXX_COMPILER /usr/bin/clang++)
 set(CMAKE_C_COMPILER /usr/bin/clang)
@@ -25,8 +25,8 @@ set(V8_BUILD_DIR ${V8_DIR}/out.gn/x64.release)
 set(V8_OBJ_DIR ${V8_BUILD_DIR}/obj)
 set(V8_LIBS
         ${V8_OBJ_DIR}/libv8_base.a
-#        ${V8_OBJ_DIR}/libv8_init.a
-#        ${V8_OBJ_DIR}/libv8_initializers.a
+        ${V8_OBJ_DIR}/libv8_init.a
+        ${V8_OBJ_DIR}/libv8_initializers.a
         ${V8_OBJ_DIR}/libv8_libbase.a
         ${V8_OBJ_DIR}/libv8_libplatform.a
         ${V8_OBJ_DIR}/libv8_external_snapshot.a
@@ -35,9 +35,9 @@ set(V8_LIBS
 #        ${V8_OBJ_DIR}/third_party/icu/libicuuc.a
 #        ${V8_OBJ_DIR}/third_party/icu/libicui18n.a
         # System ICU
-        -licui18n
-        -licuuc
-        -licudata
+#        -licui18n
+#        -licuuc
+#        -licudata
 #        -licu_60
         ${V8_OBJ_DIR}/src/inspector/libinspector.a
 )
@@ -52,7 +52,7 @@ target_link_libraries(main PUBLIC ${V8_LIBS} -stdlib=libc++ -lrt -ldl -lpthread)
 set(V8_FILES
         ${V8_BUILD_DIR}/natives_blob.bin
         ${V8_BUILD_DIR}/snapshot_blob.bin
-        ${V8_BUILD_DIR}/icudtl.dat
+#        ${V8_BUILD_DIR}/icudtl.dat
 )
 
 foreach(f ${V8_FILES})

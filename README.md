@@ -87,19 +87,32 @@ gclient sync
 rm -rf out.gn
 ./tools/dev/v8gen.py x64.release
 
-# Edit the default build configuration and add two lines for embedding:
-#
-#   is_component_build = false
-#   v8_static_library = true
-#
-# Also double check that the target build is "x64"
+# Edit the default build configuration
 gn args out.gn/x64.release
 
+```
+
+Note that to see the full list of `gn` args you can run `gn args --list out.gn/x64.release`
+
+You need to set your build to use:
+
+```
+is_debug = false
+target_cpu = "x64"
+
+is_component_build = false
+is_clang = true
+
+v8_enable_i18n_support = false
+v8_untrusted_code_mitigations = true
+v8_static_library = true
+```
+
+Now continue with the build:
+
+```
 # Compile
 ninja -C out.gn/x64.release
-
-# To check it's working you can compile the hello-world example
-clang++
 ```
 
 You should then be able to build this project.
