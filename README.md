@@ -4,7 +4,7 @@
 
 To build V8 for embedding we need to mix the instructions from:
 
-- [Getting Started with Embedding](https://github.com/v8/v8/wiki/Getting-Started-with-Embedding)
+- [Getting Started with Embedding](https://github.com/v8/v8/wiki/Getting-Started-with-Embedding) - **very** out of date
 - [Building from source](https://github.com/v8/v8/wiki/Building-from-Source)
 - [Version numbers](https://github.com/v8/v8/wiki/Version-numbers)
 
@@ -46,7 +46,8 @@ LINK_host=/usr/bin/clang++
 GYP_DEFINES="clang=1"
 ```
 
-Note the crucial `-stdlib=libc++` argument when building the project.
+Note the crucial `-stdlib=libc++` argument when building the project. This ensures we compile and execute against
+`libc`.
 
 And restart your machine.
 
@@ -100,7 +101,7 @@ You need to set your build to use:
 is_debug = false
 target_cpu = "x64"
 
-is_component_build = false
+is_component_build = true
 is_clang = true
 
 v8_enable_i18n_support = false
