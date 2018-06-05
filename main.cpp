@@ -1,7 +1,3 @@
-// Copyright 2015 the V8 project authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,7 +7,7 @@
 
 int main(int argc, char* argv[]) {
     // Initialize V8.
-    v8::V8::InitializeICUDefaultLocation(argv[0]);
+    //  v8::V8::InitializeICUDefaultLocation(argv[0]);
     v8::V8::InitializeExternalStartupData(argv[0]);
     std::unique_ptr<v8::Platform> platform = v8::platform::NewDefaultPlatform();
     v8::V8::InitializePlatform(platform.get());
@@ -39,7 +35,6 @@ int main(int argc, char* argv[]) {
                 v8::String::NewFromUtf8(isolate, "'Hello' + ', World!'",
                                         v8::NewStringType::kNormal)
                         .ToLocalChecked();
-
         // Compile the source code.
         v8::Local<v8::Script> script =
                 v8::Script::Compile(context, source).ToLocalChecked();

@@ -23,7 +23,78 @@ For example:
 
 Note, if changing version, make sure you check `samples/hello-world.cc` in the V8 repo to check for obvious changes.
 
-### Clang
+### CLion
+
+You need to set CLion to use the correct toolchain for C/C++ compilation. To do this you need to edit
+the "Toolchains" settings, changing both the C and C++ compilers (i.e /usr/bin/gcc and /usr/bin/g++).
+
+### Build
+
+The build steps are as follows:
+
+```
+# Clone depot_tools
+cd /usr/local/code/
+git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+
+# Add following to bashrc
+export PATH=$PATH:/usr/local/code/depot_tools
+
+# Update 
+gclient
+
+# Create a new directory for v8
+fetch v8
+cd v8
+
+# CRUCIAL - see notes on version numbers above
+git checkout branch-heads/6.8
+
+# Download deps
+gclient sync
+
+# Install build deps
+./build/install-build-deps.sh
+
+# Generate build files
+rm -rf out.gn
+./tools/dev/v8gen.py x64.release
+
+# Edit the default build configuration
+gn args out.gn/x64.release
+
+```
+
+Note that to see the full list of `gn` args you can run `gn args --list out.gn/x64.release`
+
+You need to set your build to use:
+
+```
+is_debug = false
+target_cpu = "x64"
+
+is_component_build = false
+v8_static_library = true
+v8_enable_i18n_support = false
+
+use_custom_libcxx = false
+use_custom_libcxx_for_host = false
+```
+
+Now continue with the build:
+
+```
+# Compile
+ninja -C out.gn/x64.release
+```
+
+You should then be able to build this project.
+
+# Old notes
+
+## Clang
+
+At the time of writing g++ was working but if you want to try clang you need to:
 
 Also note that V8 version 6+ uses **`clang` and not `g++`**. This means you need to make
 sure you have your machine set up to use clang and libc++, i.e.:
@@ -51,69 +122,9 @@ Note the crucial `-stdlib=libc++` argument when building the project. This ensur
 
 And restart your machine.
 
-### CLion
-
-You need to set CLion to use clang for C/C++ compilation. To do this you need to edit
-the "Toolchains" settings, changing both the C and C++ compilers.
-
-### Build
-
-The build steps are as follows:
+Then when building V8 you need to set the build arg:
 
 ```
-# Clone depot_tools
-cd /usr/local/code/
-git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
-
-# Add following to bashrc
-export PATH=$PATH:/usr/local/code/depot_tools
-
-# Update 
-gclient
-
-# Create a new directory for v8
-fetch v8
-cd v8
-
-# CRUCIAL - see notes on version numbers above
-git checkout branch-heads/6.6
-
-# Download deps
-gclient sync
-
-# Install build deps
-./build/install-build-deps.sh
-
-# Generate build files
-rm -rf out.gn
-./tools/dev/v8gen.py x64.release
-
-# Edit the default build configuration
-gn args out.gn/x64.release
-
+is_clang=true
 ```
 
-Note that to see the full list of `gn` args you can run `gn args --list out.gn/x64.release`
-
-You need to set your build to use:
-
-```
-is_debug = false
-target_cpu = "x64"
-
-is_component_build = true
-is_clang = true
-
-v8_enable_i18n_support = false
-v8_untrusted_code_mitigations = true
-v8_static_library = true
-```
-
-Now continue with the build:
-
-```
-# Compile
-ninja -C out.gn/x64.release
-```
-
-You should then be able to build this project.
