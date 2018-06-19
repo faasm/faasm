@@ -1,20 +1,14 @@
 const wasm = require('./js/wasm/loader');
 
-const lib = wasm.loadFromFile('./program.wasm').then(lib => {
-    // Construct the state
-    var stateStart = wasmInstance.exports.getState();
+const funcFile = 'doubler';
 
-    // Read in the current state
-    var stateMemory = new Uint32Array(wasmInstance.exports.memory.buffer, stateStart, 10);
+const lib = wasm.loadFromFile('functions/' + funcFile).then(lib => {
+    let exports = instance.exports;
+    let execFunc = exports._execute;
 
-    // Modify
-    wasmInstance.exports.modifyState(10);
-
-    // Print modified state
-    for (var i = 0; i < linearMemory.length; i++) {
-        log(linearMemory[i]);
-    }
-})
+    let result = execFunc(10);
+    console.log('Result: ' + result);
+});
 
 
 
