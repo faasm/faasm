@@ -24,13 +24,21 @@ source /usr/local/code/emsdk/emsdk_env.sh
 
 ## Compiling
 
-Once Emscripten is installed, you can compile a simple source file as a stand-alone dynamic library like this:
+Emscripten can either compile stand-alone wasm or can create an executable JS file which allows integration with the host. The process is documented [here](https://github.com/kripken/emscripten/wiki/WebAssembly-Standalone).
+
+You can either explicitly say you want to compile it as a wasm module (which supports relocating memory and pointers etc.), or you can let the optimiser remove some of the runtime.
+
+Compiling a module:
 
 ```
 emcc source.c -Os -s WASM=1 -s SIDE_MODULE=1 -o target.wasm
 ```
 
-Docs on [stand-alone wasm](https://gist.github.com/kripken/59c67556dc03bb6d57052fedef1e61ab).
+Compiling with an optimised JS file:
+
+```
+emcc source.c -Os -s WASM=1
+```
 
 ## WABT
 
@@ -45,5 +53,8 @@ cd wabt
 make
 ```
 
-You can then run the binaries generated in `/usr/local/code/wabt/out` such as `wasm2wat` which converts `.wasm` files
-to text format and prints them.
+To make things easier you can add `/usr/local/code/wabt/out/` to your path, then do things like:
+
+```
+wasm2wat my_wasm_file.wasm
+```
