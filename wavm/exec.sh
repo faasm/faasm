@@ -4,6 +4,7 @@ set -e
 
 pushd work > /dev/null
 
-/usr/local/code/WAVM/cmake-build-release/bin/wavm --disable-emscripten function.wasm
+# Can switch off emscripten support with --disable-emscripten
+/usr/local/code/WAVM/cmake-build-release/bin/wavm function.wasm
 
 popd > /dev/null
