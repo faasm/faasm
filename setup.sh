@@ -61,4 +61,11 @@ pushd wabt
 make
 popd
 
+# ----------------------
+# musl
+# ----------------------
+echo "Checking out musl"
+git clone git@github.com:Shillaker/musl.git
+
+
 popd
