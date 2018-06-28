@@ -67,5 +67,4 @@ popd
 echo "Checking out musl"
 git clone git@github.com:Shillaker/musl.git
 
-
 popd
