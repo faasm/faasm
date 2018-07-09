@@ -2,6 +2,26 @@
 
 - hosts: localhost
   gather_facts: no
-  roles:
-    - base
-    - llvm
+  tasks:
+    - name: "Clone LLVM tools"
+      git:
+        repo: "http://llvm.org/git/{{ item.name }}.git"
+        dest: "/usr/local/code/{{ item.dest }}"
+      with_items:
+        - {name: "llvm", dest: "llvm"}
+        - {name: "clang", dest: "llvm/tools/clang"}
+        - {name: "compiler-rt", dest: "llvm/projects/compiler-rt"}
+
+    - name: "Create LLVM build dir"
+      file:
+        path: "/usr/local/code/llvm/build"
+        state: directory
+        mode: 0755
+
+    - name: "Build LLVM projects"
+      shell: "{{ item }}"
+      args:
+        chdir: "/usr/local/code/llvm/build"
+      with_items:
+        - "cmake -G Ninja -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=WebAssembly -DLLVM_TARGETS_TO_BUILD= -DCMAKE_BUILD_TYPE=Release .."
+        - "ninja"

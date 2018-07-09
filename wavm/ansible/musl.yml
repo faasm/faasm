@@ -1,0 +1,20 @@
+---
+
+- hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: "Clone musl"
+      git:
+        repo: "git@github.com:Shillaker/musl.git"
+        dest: "/usr/local/code/musl"
+
+    - name: "Compile musl"
+      shell: "python libc.py --clang_dir /usr/local/code/llvm/build/bin --binaryen_dir /usr/local/code/binaryen/bin --musl /usr/local/code/musl --sexpr_wasm /usr/local/code/wabt/bin/wat2wasm --out /usr/local/code/faasm/wavm/work/musl.wast"
+      args:
+        chdir: "/usr/local/code/musl"
+
+    - name: "Converting from wast to wasm"
+      shell: "/usr/local/code/binaryen/bin/wasm-as -o musl.wasm musl.wast"
+      args:
+        chdir: "/usr/local/code/faasm/wavm/work/"
+
