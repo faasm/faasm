@@ -1,0 +1,30 @@
+---
+
+- name: "Clone binaryen and wabt"
+  git:
+    repo: "https://github.com/Webassembly/{{ item }}"
+    dest: "/usr/local/code/faasm/tools/{{ item }}"
+  with_items:
+    - binaryen
+    - wabt
+
+- name: "Clone musl"
+  git:
+    repo: "git@github.com:Shillaker/musl.git"
+    dest: "/usr/local/code/faasm/tools/musl"
+
+- name: "Build binaryen"
+  shell: "{{ item }}"
+  args:
+    chdir: "/usr/local/code/faasm/tools/binaryen"
+  with_items:
+    - "cmake ."
+    - "make"
+
+- name: "Build wabt"
+  shell: "{{ item }}"
+  args:
+    chdir: "/usr/local/code/faasm/tools/wabt"
+  with_items:
+    - "make"
+
