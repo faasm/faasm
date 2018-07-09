@@ -2,12 +2,13 @@
 
 set -e
 
+echo "Cleaning build dir"
+rm -rf work/*
+
 echo "Sourcing emsdk env"
 source /usr/local/code/emsdk/emsdk_env.sh > /dev/null
 
+echo "Building with emscripten"
 pushd work > /dev/null
-
-echo "Building with emcc"
-emcc ../function.c -Os -g -s WASM=1
-
+emcc ../function.c -Os -g -s WASM=1 -o function.js
 popd > /dev/null

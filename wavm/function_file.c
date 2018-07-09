@@ -1,17 +1,23 @@
 #include <stdio.h>
 
 int main() {
-   printf("FOOBAR");
+    printf("Opening file");
 
-   int num;
-   FILE *fptr;
-   fptr = fopen("/tmp/foobar.txt","w");
+    int num;
+    FILE *fptr;
+    fptr = fopen("/tmp/foobar.txt", "w");
 
-   if(fptr == NULL)
-   {
-      printf("Error!");   
-   }
+    printf("File opened");
 
-   fprintf(fptr,"Hello world!");
-   fclose(fptr);
+    if (fptr == NULL) {
+        printf("Error!");
+    }
+
+    fprintf(fptr, "Hello world!");
+
+    printf("File written");
+
+    fclose(fptr);
+
+    printf("File closed");
 }
