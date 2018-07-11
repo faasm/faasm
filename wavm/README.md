@@ -8,7 +8,7 @@ To run with Emscripten you need to do:
 
 ```
 cd ansible
-ansible-playbook clang.yml emscripten.yml wavm.yml
+ansible-playbook clang.yml emscripten.yml wavm.yml --ask-become-pass
 ```
 
 Running with Binaryen is currently **broken** but requires the `llvm.yml`, `binaryen.yml` and potentially `musl.yml`
