@@ -10,7 +10,13 @@ RUN apt-get install -y build-essential \
     clang-format-3.6 \
     ninja-build \
     wget \
-    git
+    git \
+    software-properties-common
+
+RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+RUN sudo apt-add-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main"
+RUN apt-get update
+RUN apt-get install -y clang-6.0
 
 # Set up cmake
 WORKDIR /tmp/cmake
@@ -26,14 +32,23 @@ RUN make install
 # Install cpp_redis (see https://github.com/Cylix/cpp_redis/wiki/Mac-&-Linux-Install)
 WORKDIR /faasm/lib
 RUN git clone https://github.com/Cylix/cpp_redis.git
-RUN cd cpp_redis
+WORKDIR /faasm/lib/cpp_redis
 RUN git submodule init && git submodule update
-RUN mkdir build && cd build
+WORKDIR /faasm/lib/cpp_redis/build
 RUN cmake .. -DCMAKE_BUILD_TYPE=Release
 RUN make
 RUN make install
 
 # Build code
+ENV CXX=/usr/bin/clang++
+ENV CC=/usr/bin/clang
+ENV CPP=/usr/bin/clang
+ENV LINK=/usr/bin/clang++
+ENV CXX_host=/usr/bin/clang++
+ENV CC_host=/usr/bin/clang
+ENV CPP_host=/usr/bin/clang
+ENV LINK_host=/usr/bin/clang++
+
 WORKDIR /faasm/src
 COPY . .
 
