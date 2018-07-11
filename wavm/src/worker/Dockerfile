@@ -39,21 +39,30 @@ RUN cmake .. -DCMAKE_BUILD_TYPE=Release
 RUN make
 RUN make install
 
+# Install WAVM
+WORKDIR /faasm/lib
+RUN git clone https://github.com/AndrewScheidecker/WAVM
+WORKDIR /faasm/lib/WAVM
+RUN mkdir build
+WORKDIR /faasm/lib/WAVM/build
+RUN cmake -DCMAKE_BUILD_TYPE=Debug ..
+RUN cmake --build . --target all
+
 # Build code
-ENV CXX=/usr/bin/clang++
-ENV CC=/usr/bin/clang
-ENV CPP=/usr/bin/clang
-ENV LINK=/usr/bin/clang++
-ENV CXX_host=/usr/bin/clang++
-ENV CC_host=/usr/bin/clang
-ENV CPP_host=/usr/bin/clang
-ENV LINK_host=/usr/bin/clang++
+RUN export CXX=/usr/bin/clang++
+RUN export CC=/usr/bin/clang
+RUN export CPP=/usr/bin/clang
+RUN export LINK=/usr/bin/clang++
+RUN export CXX_host=/usr/bin/clang++
+RUN export CC_host=/usr/bin/clang
+RUN export CPP_host=/usr/bin/clang
+RUN export LINK_host=/usr/bin/clang++
 
 WORKDIR /faasm/src
 COPY . .
 
 WORKDIR /faasm/src/build
-RUN cmake -DCMAKE_BUILD_TYPE=Release ..
+RUN cmake -DCMAKE_BUILD_TYPE=Debug ..
 RUN make
 
 CMD ./bin/worker
