@@ -10,5 +10,9 @@ source /usr/local/code/emsdk/emsdk_env.sh > /dev/null
 
 echo "Building with emscripten"
 pushd work > /dev/null
-emcc ../function.c -Os -g -s WASM=1 -o function.js
+
+# Options
+# -s USE_PTHREADS=1
+emcc ../function_$1.c -Os -g -s WASM=1 -o function.js
+
 popd > /dev/null
