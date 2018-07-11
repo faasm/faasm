@@ -1,0 +1,5 @@
+---
+
+- include_tasks: kubectl.yml
+
+- include_tasks: minikube.yml
