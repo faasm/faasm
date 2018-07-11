@@ -1,0 +1,29 @@
+---
+
+- name: "Clone cpp_redis"
+  git:
+    repo: "https://github.com/Cylix/cpp_redis.git"
+    dest: "/usr/local/code/lib/cpp_redis"
+    update: yes
+
+- name: "Build cpp_redis"
+  shell: "{{ item }}"
+  args:
+      chdir: "/usr/local/code/lib/cpp_redis"
+  with_items:
+    - "git submodule init && git submodule update"
+    - "mkdir -p build"
+
+- name: "Build cpp_redis pt 2"
+  shell: "{{ item }}"
+  args:
+      chdir: "/usr/local/code/lib/cpp_redis/build"
+  with_items:
+    - "cmake -DCMAKE_BUILD_TYPE=Release .."
+    - "make"
+
+- name: "Install cpp_redis"
+  become: yes
+  shell: "make install"
+  args:
+      chdir: "/usr/local/code/lib/cpp_redis/build"
