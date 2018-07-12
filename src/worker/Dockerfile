@@ -17,24 +17,12 @@ RUN sudo apt-add-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xeni
 RUN apt-get update
 RUN apt-get install -y clang-6.0
 
-# RUN apt-get remove --purge cmake
-
 RUN apt-get clean autoclean
 RUN apt-get autoremove -y
 
 RUN ln -s /usr/bin/clang-6.0 /usr/bin/clang
 RUN ln -s /usr/bin/clang++-6.0 /usr/bin/clang++
 RUN ln -s /usr/bin/llvm-6.0 /usr/bin/llvm
-
-# Set up cmake
-# WORKDIR /tmp/cmake
-# RUN wget https://cmake.org/files/v3.10/cmake-3.10.3.tar.gz
-# RUN tar -xvf cmake-3.10.3.tar.gz
-
-# WORKDIR cmake-3.10.3
-# RUN ./bootstrap
-# RUN make
-# RUN make install
 
 # Install WAVM
 WORKDIR /faasm/lib
@@ -65,11 +53,5 @@ RUN cmake .. -DCMAKE_BUILD_TYPE=Release
 RUN make
 RUN make install
 
-WORKDIR /faasm/src
-COPY . .
-
-WORKDIR build
-RUN cmake -DCMAKE_BUILD_TYPE=Debug ..
-RUN make
-
-CMD ./bin/worker
+# Put source code in place
+WORKDIR /faasm/code

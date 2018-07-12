@@ -5,7 +5,7 @@ int main()
 {
     cpp_redis::client client;
 
-    client.connect();
+    client.connect("redis", 6379);
 
     client.set("hello", "42");
     client.get("hello", [](cpp_redis::reply& reply) {

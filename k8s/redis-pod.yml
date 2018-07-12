@@ -2,8 +2,9 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: redis-master
+  namespace: faasm
   labels:
-    app: redis
+    app: faasm
 spec:
   containers:
     - name: master

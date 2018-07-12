@@ -23,3 +23,12 @@
   with_items:
     - "sudo usermod -a -G {{ libvirt_group }} $(whoami)"
     - "newgrp {{ libvirt_group }}"
+
+- name: "Install driver"
+  become: yes
+  shell: "{{ item }}"
+  args:
+    chdir: "/usr/local/bin"
+  with_items:
+    - "curl -LO https://storage.googleapis.com/minikube/releases/latest/docker-machine-driver-kvm2"
+    - "chmod +x docker-machine-driver-kvm2"

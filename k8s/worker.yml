@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker
+  namespace: faasm
+  labels:
+    app: faasm
+spec:
+  containers:
+    - name: master
+      image: shillaker/faasm-worker
+      ports:
+        - containerPort: 8001
