@@ -18,6 +18,10 @@ RUN sudo apt-add-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xeni
 RUN apt-get update
 RUN apt-get install -y clang-6.0
 
+RUN ln -s /usr/bin/clang-6.0 /usr/bin/clang
+RUN ln -s /usr/bin/clang++-6.0 /usr/bin/clang++
+RUN ln -s /usr/bin/llvm-6.0 /usr/bin/llvm
+
 # Set up cmake
 WORKDIR /tmp/cmake
 RUN apt-get remove --purge cmake
