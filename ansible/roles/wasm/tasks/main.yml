@@ -1,0 +1,5 @@
+---
+
+- include_tasks: emscripten.yml
+
+- include_tasks: wavm.yml

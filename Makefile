@@ -9,11 +9,11 @@ build-export: build-base
 
 .PHONY: build-worker
 build-worker:
-	docker build -t shillaker/faasm-worker worker.dockerfile
+	docker build -t shillaker/faasm-worker -f worker.dockerfile .
 
 .PHONY: build-edge
 build-edge:
-	docker build -t shillaker/faasm-edge edge.dockerfile
+	docker build -t shillaker/faasm-edge -f edge.dockerfile .
 
 # DOCKER COMPOSE
 start-all:
@@ -21,6 +21,9 @@ start-all:
 
 bash-worker:
 	docker-compose run worker bash -l
+
+bash-edge:
+	docker-compose run edge bash -l
 
 # KUBERNETES
 start-local:

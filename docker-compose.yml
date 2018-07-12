@@ -5,7 +5,9 @@ services:
     image: redis
 
   edge:
-    build: edge.dockerfile
+    build:
+      context: .
+      dockerfile: edge.dockerfile
     environment:
       - REDIS_HOST = "redis"
     volumes:
@@ -16,7 +18,9 @@ services:
       - redis
 
   worker:
-    build: worker.dockerfile
+    build:
+      context: .
+      dockerfile: worker.dockerfile
     environment:
       - REDIS_HOST = "redis"
     volumes:

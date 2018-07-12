@@ -31,7 +31,6 @@ WORKDIR /faasm/code
 COPY ansible /faasm/code/ansible
 WORKDIR ansible
 RUN ansible-playbook libs.yml
-RUN ansible-playbook dev.yml
 
 # Build code
 RUN export CXX=/usr/bin/clang++

@@ -1,7 +1,3 @@
 ---
 
 - include_tasks: clang.yml
-
-- include_tasks: emscripten.yml
-
-- include_tasks: wavm.yml
