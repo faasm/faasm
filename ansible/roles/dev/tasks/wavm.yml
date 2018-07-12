@@ -2,7 +2,7 @@
 
 - name: "Clone wavm"
   git:
-    repo: "git@github.com:Shillaker/WAVM.git"
+    repo: "https://github.com/Shillaker/WAVM"
     dest: "/usr/local/code/WAVM"
     update: yes
 

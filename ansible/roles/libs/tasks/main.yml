@@ -1,3 +1,5 @@
 ---
 
-- include_tasks: cpp_redis.yml
+- include_tasks: pistache.yml
+
+#- include_tasks: cpp_redis.yml

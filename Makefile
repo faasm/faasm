@@ -1,6 +1,6 @@
 # DOCKER
-build-worker:
-	cd src/worker && docker build -t shillaker/faasm-worker .
+build-base:
+	docker build -t shillaker/faasm-base .
 
 push-worker:
 	docker push shillaker/faasm-worker
