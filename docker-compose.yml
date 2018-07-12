@@ -8,6 +8,8 @@ services:
     build: src/worker
     command: /faasm/code/cmake-build-debug/bin/worker
     stdin_open: true
+    environment:
+      - REDIS_HOST = "redis"
     tty: true
     volumes:
       - /usr/local/code/faasm/:/faasm/code/

@@ -7,17 +7,22 @@
 
 #include <iostream>
 #include <cpp_redis/cpp_redis>
+#include <string>
+#include "../util/env.h"
 
 class RedisClient {
-    public:
-        cpp_redis::client client;
+public:
+    cpp_redis::client client;
 
-        RedisClient() {
-            this->client.connect("redis", 6379);
+    RedisClient() {
+        std::string hostname = getEnvVar("REDIS_HOSTNAME", "localhost");
 
-        }
+        std::cout << "Connection to Redis at " << hostname;
 
-        void check();
+        this->client.connect(hostname, 6379);
+    }
+
+    void check();
 };
 
 #endif //FAASM_REDIS_H
