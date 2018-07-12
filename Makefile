@@ -1,9 +1,19 @@
 # DOCKER
+.PHONY: build-base
 build-base:
 	docker build -t shillaker/faasm-base .
 
-push-worker:
-	docker push shillaker/faasm-worker
+.PHONY: build-export
+build-export: build-base
+	docker build -t shillaker/faasm-export export.dockerfile
+
+.PHONY: build-worker
+build-worker:
+	docker build -t shillaker/faasm-worker worker.dockerfile
+
+.PHONY: build-edge
+build-edge:
+	docker build -t shillaker/faasm-edge edge.dockerfile
 
 # DOCKER COMPOSE
 start-all:
@@ -16,7 +26,7 @@ bash-worker:
 start-local:
 	minikube start --vm-driver kvm2
 
-deploy-local:
+deploy:
 	kubectl apply -f k8s
 
 # REDIS

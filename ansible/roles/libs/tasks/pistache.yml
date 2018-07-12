@@ -12,7 +12,7 @@
     chdir: "/usr/local/code/lib/pistache"
   with_items:
     - "git submodule update --init"
-    - "mkdir build"
+    - "mkdir -p build"
 
 - name: "Build"
   shell: "{{ item }}"

@@ -1,5 +1,6 @@
 # Faasm
 work/
+build/
 
 # Jetbrains
 .idea/
