@@ -1,5 +1,7 @@
 ---
 
+- include_tasks: kvm.yml
+
 - include_tasks: kubectl.yml
 
 - include_tasks: minikube.yml

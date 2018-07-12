@@ -1,0 +1,25 @@
+---
+
+- name: "Install apt packages"
+  apt:
+    name: "{{ item }}"
+  with_items:
+    - libvirt-bin
+    - qemu-kvm
+
+# >16 group name changed
+- name: "Set up group var"
+  set_fact:
+    libvirt_group: "libvirtd"
+  when: '"16" in ansible_distribution_version'
+
+- name: "Set up group var"
+  set_fact:
+    libvirt_group: "libvirt"
+  when: '"16" not in ansible_distribution_version'
+
+- name: "Set up group"
+  shell: "{{ item }}"
+  with_items:
+    - "sudo usermod -a -G {{ libvirt_group }} $(whoami)"
+    - "newgrp {{ libvirt_group }}"

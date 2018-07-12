@@ -10,4 +10,4 @@
     - "chmod +x minikube"
 
 - name: "Start minikube"
-  shell: "minikube start"
+  shell: "minikube start --vm-driver kvm2"

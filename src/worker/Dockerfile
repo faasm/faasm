@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
 RUN apt-get update
 RUN apt-get install -y build-essential \
@@ -6,8 +6,7 @@ RUN apt-get install -y build-essential \
     libboost-all-dev \
     libprotobuf-dev \
     protobuf-compiler \
-    clang-3.6 \
-    clang-format-3.6 \
+    cmake \
     ninja-build \
     wget \
     git \
@@ -18,37 +17,31 @@ RUN sudo apt-add-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xeni
 RUN apt-get update
 RUN apt-get install -y clang-6.0
 
+# RUN apt-get remove --purge cmake
+
+RUN apt-get clean autoclean
+RUN apt-get autoremove -y
+
 RUN ln -s /usr/bin/clang-6.0 /usr/bin/clang
 RUN ln -s /usr/bin/clang++-6.0 /usr/bin/clang++
 RUN ln -s /usr/bin/llvm-6.0 /usr/bin/llvm
 
 # Set up cmake
-WORKDIR /tmp/cmake
-RUN apt-get remove --purge cmake
-RUN wget https://cmake.org/files/v3.10/cmake-3.10.3.tar.gz
-RUN tar -xvf cmake-3.10.3.tar.gz
+# WORKDIR /tmp/cmake
+# RUN wget https://cmake.org/files/v3.10/cmake-3.10.3.tar.gz
+# RUN tar -xvf cmake-3.10.3.tar.gz
 
-WORKDIR /tmp/cmake/cmake-3.10.3
-RUN ./bootstrap
-RUN make
-RUN make install
-
-# Install cpp_redis (see https://github.com/Cylix/cpp_redis/wiki/Mac-&-Linux-Install)
-WORKDIR /faasm/lib
-RUN git clone https://github.com/Cylix/cpp_redis.git
-WORKDIR /faasm/lib/cpp_redis
-RUN git submodule init && git submodule update
-WORKDIR /faasm/lib/cpp_redis/build
-RUN cmake .. -DCMAKE_BUILD_TYPE=Release
-RUN make
-RUN make install
+# WORKDIR cmake-3.10.3
+# RUN ./bootstrap
+# RUN make
+# RUN make install
 
 # Install WAVM
 WORKDIR /faasm/lib
 RUN git clone https://github.com/AndrewScheidecker/WAVM
-WORKDIR /faasm/lib/WAVM
+WORKDIR WAVM
 RUN mkdir build
-WORKDIR /faasm/lib/WAVM/build
+WORKDIR build
 RUN cmake -DCMAKE_BUILD_TYPE=Debug ..
 RUN cmake --build . --target all
 
@@ -62,10 +55,20 @@ RUN export CC_host=/usr/bin/clang
 RUN export CPP_host=/usr/bin/clang
 RUN export LINK_host=/usr/bin/clang++
 
+# Install cpp_redis (see https://github.com/Cylix/cpp_redis/wiki/Mac-&-Linux-Install)
+WORKDIR /faasm/lib
+RUN git clone https://github.com/Cylix/cpp_redis.git
+WORKDIR cpp_redis
+RUN git submodule init && git submodule update
+WORKDIR build
+RUN cmake .. -DCMAKE_BUILD_TYPE=Release
+RUN make
+RUN make install
+
 WORKDIR /faasm/src
 COPY . .
 
-WORKDIR /faasm/src/build
+WORKDIR build
 RUN cmake -DCMAKE_BUILD_TYPE=Debug ..
 RUN make
 
