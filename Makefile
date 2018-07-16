@@ -3,10 +3,6 @@
 build-base:
 	docker build -t shillaker/faasm-base .
 
-.PHONY: build-export
-build-export: build-base
-	docker build -t shillaker/faasm-export export.dockerfile
-
 .PHONY: build-worker
 build-worker:
 	docker build -t shillaker/faasm-worker -f worker.dockerfile .
@@ -18,6 +14,18 @@ build-edge:
 # DOCKER COMPOSE
 start-all:
 	docker-compose up -d
+
+stop-all:
+	docker-compose stop
+
+restart-all:
+	docker-compose stop; docker-compose up -d
+
+restart-worker:
+	docker-compose stop worker; docker-compose up -d worker
+
+restart-edge:
+	docker-compose stop edge; docker-compose up -d edge
 
 bash-worker:
 	docker-compose run worker bash -l

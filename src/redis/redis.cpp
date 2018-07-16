@@ -4,7 +4,7 @@
 namespace redis {
     RedisClient::RedisClient() {
         {
-            std::string hostname = util::getEnvVar("REDIS_HOSTNAME", "localhost");
+            std::string hostname = util::getEnvVar("REDIS_HOST", "localhost");
 
             std::cout << "Connection to Redis at " << hostname << "\n";
 

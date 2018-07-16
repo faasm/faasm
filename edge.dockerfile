@@ -6,4 +6,4 @@ WORKDIR /faasm/code/build
 RUN cmake -DCMAKE_BUILD_TYPE=Release ..
 RUN cmake --build . --target all
 
-CMD ./build/bin/edge
+CMD ./bin/edge

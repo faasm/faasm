@@ -8,12 +8,13 @@ services:
     build:
       context: .
       dockerfile: edge.dockerfile
+    command: ./bin/edge
     environment:
-      - REDIS_HOST = "redis"
+      - REDIS_HOST=redis
     volumes:
       - /usr/local/code/faasm/:/faasm/code/
     ports:
-      - "8002:8002"
+      - "8080:8080"
     depends_on:
       - redis
 
@@ -21,13 +22,14 @@ services:
     build:
       context: .
       dockerfile: worker.dockerfile
+    command: ../cmake-build-debug/bin/worker
     environment:
-      - REDIS_HOST = "redis"
+      - REDIS_HOST=redis
     volumes:
       - /usr/local/code/faasm/:/faasm/code/
     ports:
       - "8001:8001"
     depends_on:
-      - edge
+      - redis
 
 

@@ -2,7 +2,7 @@ FROM shillaker/faasm-base
 
 # Set up wasm execution stuff
 WORKDIR /faasm/code/ansible
-RUN ansible-playbook wasm.yml
+RUN ansible-playbook wavm.yml
 
 COPY . /faasm/code
 WORKDIR /faasm/code/build
@@ -10,4 +10,4 @@ WORKDIR /faasm/code/build
 RUN cmake -DCMAKE_BUILD_TYPE=Release ..
 RUN cmake --build . --target all
 
-CMD ./build/bin/worker
+CMD ./bin/worker
