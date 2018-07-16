@@ -7,10 +7,12 @@
 namespace redis {
     class RedisClient {
     public:
-        cpp_redis::client client;
-
         RedisClient();
 
-        void check();
+        std::string check(std::string value);
+
+    private:
+        cpp_redis::client client;
+
     };
 }

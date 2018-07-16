@@ -1,6 +1,8 @@
 #include <pistache/http.h>
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
+#include <redis/redis.h>
+#include <string>
 
 using namespace Pistache;
 
@@ -38,6 +40,7 @@ public:
 private:
     std::shared_ptr<Http::Endpoint> httpEndpoint;
     Rest::Router router;
+    redis::RedisClient redis;
 
     void setupRoutes() {
         using namespace Rest;
@@ -64,7 +67,8 @@ private:
     }
 
     void status(const Rest::Request &request, Http::ResponseWriter response) {
-        response.send(Http::Code::Ok, "Healthy \n");
+        std::string redisCheck = redis.check("Ok");
+        response.send(Http::Code::Ok, redisCheck);
     }
 };
 

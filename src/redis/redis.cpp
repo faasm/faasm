@@ -8,17 +8,28 @@ namespace redis {
 
             std::cout << "Connection to Redis at " << hostname << "\n";
 
-            this->client.connect(hostname, 6379);
+            client.connect(hostname, 6379);
         }
     }
 
-    void RedisClient::check() {
-        this->client.set("hello", "42");
-        this->client.get("hello", [](cpp_redis::reply &reply) {
-            std::cout << reply << std::endl;
+    /**
+     * Function used to check writing/ reading
+     */
+    std::string RedisClient::check(std::string value) {
+        const char *key = "check_key";
+        std::string result;
+
+        client.set(key, value, [](cpp_redis::reply& reply) {
+            // Do nothing
         });
 
-        this->client.sync_commit();
+        client.get(key, [&result](cpp_redis::reply& reply) {
+            result = reply.as_string();
+        });
+
+        client.sync_commit();
+
+        return result;
     }
 }
 
