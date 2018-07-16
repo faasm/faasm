@@ -1,8 +1,8 @@
-#include "../redis/redis.h"
+#include <redis/redis.h>
 
 int main()
 {
-    RedisClient client;
+    redis::RedisClient client;
 
     client.check();
 }
