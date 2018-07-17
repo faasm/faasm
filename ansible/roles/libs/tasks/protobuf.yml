@@ -1,13 +1,5 @@
 ---
 
-#- name: "Install protobuf apt packages"
-#  become: yes
-#  apt:
-#    name: "{{ item }}"
-#  with_items:
-#    - "protobuf-dev"
-#    - "protobuf-compiler"
-
 - name: "Download source"
   shell: "{{ item }}"
   args:
