@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-package faasm;
+package message;
 
 message FunctionCall {
     required string user = 1;

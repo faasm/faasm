@@ -1,9 +1,7 @@
-# Set up catch library
 add_library(catch INTERFACE)
 
-# Make test executable
-add_executable(tests main.cpp util/test_util.cpp redis/test_redis.cpp util/test_messaging.cpp)
+add_executable(tests main.cpp util/test_util.cpp redis/test_redis.cpp proto/test_proto.cpp)
 
-target_link_libraries(tests catch redis cpp_redis tacopie util)
+target_link_libraries(tests proto catch redis util)
 
 add_test(NAME tests COMMAND "test/tests")
