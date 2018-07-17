@@ -7,3 +7,5 @@
   with_items:
     - "libprotobuf-dev"
     - "protobuf-compiler"
+
+- name: "Hack to get protobuf shared object in the right place"

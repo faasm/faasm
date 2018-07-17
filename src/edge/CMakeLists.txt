@@ -6,4 +6,4 @@ target_link_libraries(edge proto redis pistache pthread)
 
 add_executable(edge_server server.cpp)
 
-target_link_libraries(edge_server edge redis pistache pthread)
+target_link_libraries(edge_server edge proto redis pistache pthread)
