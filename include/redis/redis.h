@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cpp_redis/cpp_redis>
 #include <string>
+#include <proto/faasm.pb.h>
 
 namespace redis {
     class RedisClient : public cpp_redis::client {
@@ -17,5 +18,11 @@ namespace redis {
 
         /** Enqueue on FIFO */
         void dequeue(const std::string &queueName, std::function<void(const std::string &)>);
+
+        /** Adds a function call */
+        void callFunction(message::FunctionCall &call);
+
+        /** Gets next function call */
+        void nextFunctionCall(std::function<void(message::FunctionCall &)>);
     };
 }

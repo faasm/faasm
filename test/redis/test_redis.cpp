@@ -1,6 +1,7 @@
 #include <catch/catch.hpp>
 #include <redis/redis.h>
 #include <string>
+#include <proto/faasm.pb.h>
 
 namespace tests {
 
@@ -44,6 +45,35 @@ namespace tests {
         // Dequeue again
         cli.dequeue(queueName, [valueB](const std::string &res){
             REQUIRE(valueB == res);
+        });
+
+        cli.sync_commit();
+    }
+    
+    TEST_CASE("Test redis function call", "[redis]") {
+        redis::RedisClient cli;
+
+        // Clear queue initially
+        cli.flushall();
+
+        // Request function
+        message::FunctionCall call;
+        std::string funcName = "my func";
+        std::string userName = "some user";
+        call.set_function(funcName);
+        call.set_user(userName);
+
+        cli.callFunction(call);
+
+        // Check one function call on there
+        cli.llen("function_calls", [](cpp_redis::reply &result) {
+            REQUIRE(1 == result.as_integer());
+        });
+
+        // Get the next call
+        cli.nextFunctionCall([funcName, userName](message::FunctionCall &call) {
+            REQUIRE(funcName == call.function());
+            REQUIRE(userName == call.user());
         });
 
         cli.sync_commit();

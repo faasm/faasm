@@ -44,5 +44,21 @@ namespace redis {
 
         this->commit();
     }
+
+    void RedisClient::callFunction(message::FunctionCall &call) {
+        std::string serialised = call.SerializeAsString();
+
+        this->enqueue("function_calls", serialised);
+    }
+
+    void RedisClient::nextFunctionCall(std::function<void(message::FunctionCall &)> callback) {
+        std::string queueName = "function_calls";
+        this->dequeue(queueName, [callback](const std::string &serialised) {
+            message::FunctionCall call;
+            call.ParseFromString(serialised);
+
+            callback(call);
+        });
+    }
 }
 
