@@ -1,0 +1,9 @@
+syntax = "proto2";
+
+package faasm;
+
+message FunctionCall {
+    required string user = 1;
+    required string function = 2;
+}
+

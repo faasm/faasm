@@ -41,7 +41,7 @@ namespace tests {
             REQUIRE(valueA == res);
         });
 
-        // Now dequeue
+        // Dequeue again
         cli.dequeue(queueName, [valueB](const std::string &res){
             REQUIRE(valueB == res);
         });
