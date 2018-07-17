@@ -42,5 +42,11 @@ RUN export CC_host=/usr/bin/clang
 RUN export CPP_host=/usr/bin/clang
 RUN export LINK_host=/usr/bin/clang++
 
+# Add strange install paths
+RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/x86_64-linux-gnu/
+
+# Update library cache
+RUN ldconfig
+
 # Work on source
 WORKDIR /faasm/code
