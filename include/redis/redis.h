@@ -5,14 +5,17 @@
 #include <string>
 
 namespace redis {
-    class RedisClient {
+    class RedisClient : public cpp_redis::client {
     public:
         RedisClient();
 
-        std::string check(std::string value);
+        /** Check writing/ reading */
+        std::string check(const std::string &value);
 
-    private:
-        cpp_redis::client client;
+        /** Enqueue on FIFO */
+        void enqueue(const std::string &queueName, const std::string &value);
 
+        /** Enqueue on FIFO */
+        void dequeue(const std::string &queueName, std::function<void(const std::string &)>);
     };
 }

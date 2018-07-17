@@ -2,7 +2,6 @@
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
 #include <redis/redis.h>
-#include <string>
 
 using namespace Pistache;
 
@@ -13,7 +12,8 @@ class FunctionEndpoint {
 
 public:
     FunctionEndpoint(Address addr) :
-            httpEndpoint(std::make_shared<Http::Endpoint>(addr)) {}
+            httpEndpoint(std::make_shared<Http::Endpoint>(addr)),
+            redis(std::make_shared<redis::RedisClient>()) {}
 
     /**
      * Configures the endpoint (including threading) and its routing
@@ -39,8 +39,8 @@ public:
 
 private:
     std::shared_ptr<Http::Endpoint> httpEndpoint;
+    std::shared_ptr<redis::RedisClient> redis;
     Rest::Router router;
-    redis::RedisClient redis;
 
     void setupRoutes() {
         using namespace Rest;
@@ -59,6 +59,7 @@ private:
 
         //TODO Wait for response
 
+        // Note, send is async
         if (success) {
             response.send(Http::Code::Ok, "Success");
         } else {
@@ -67,7 +68,8 @@ private:
     }
 
     void status(const Rest::Request &request, Http::ResponseWriter response) {
-        std::string redisCheck = redis.check("Ok");
+        std::string statusString = "Ok";
+        std::string redisCheck = redis->check(statusString);
         response.send(Http::Code::Ok, redisCheck);
     }
 };
