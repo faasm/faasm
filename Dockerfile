@@ -17,12 +17,14 @@ RUN apt-get install -y build-essential \
     ninja-build \
     git \
     clang-6.0 \
+    curl \
     ansible
 
 RUN apt-get clean autoclean
 RUN apt-get autoremove -y
 
 RUN ln -s /usr/bin/clang-6.0 /usr/bin/clang
+RUN ln -s /usr/bin/clang-cpp-6.0 /usr/bin/clang-cpp
 RUN ln -s /usr/bin/clang++-6.0 /usr/bin/clang++
 RUN ln -s /usr/bin/llvm-6.0 /usr/bin/llvm
 
@@ -35,12 +37,8 @@ RUN ansible-playbook libs.yml
 # Build code
 RUN export CXX=/usr/bin/clang++
 RUN export CC=/usr/bin/clang
-RUN export CPP=/usr/bin/clang
+RUN export CPP=/usr/bin/clang-cpp
 RUN export LINK=/usr/bin/clang++
-RUN export CXX_host=/usr/bin/clang++
-RUN export CC_host=/usr/bin/clang
-RUN export CPP_host=/usr/bin/clang
-RUN export LINK_host=/usr/bin/clang++
 
 # Work on source
 WORKDIR /faasm/code

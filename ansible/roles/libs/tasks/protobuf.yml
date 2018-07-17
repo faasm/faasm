@@ -1,11 +1,30 @@
 ---
 
-- name: "Install protobuf apt packages"
-  become: yes
-  apt:
-    name: "{{ item }}"
-  with_items:
-    - "libprotobuf-dev"
-    - "protobuf-compiler"
+#- name: "Install protobuf apt packages"
+#  become: yes
+#  apt:
+#    name: "{{ item }}"
+#  with_items:
+#    - "protobuf-dev"
+#    - "protobuf-compiler"
 
-- name: "Hack to get protobuf shared object in the right place"
+- name: "Download source"
+  shell: "{{ item }}"
+  args:
+    chdir: "/tmp/"
+  with_items:
+    - "curl -O -L https://github.com/google/protobuf/releases/download/v3.6.0/protobuf-cpp-3.6.0.tar.gz"
+    - "tar xvf protobuf-cpp-3.6.0.tar.gz"
+
+- name: "Build and install"
+  become: yes
+  shell: "{{ item }}"
+  args:
+    chdir: "/tmp/protobuf-3.6.0"
+  with_items:
+    - "./configure --prefix=/usr CC=/usr/bin/clang CPP=/usr/bin/clang-cpp CXX=/usr/bin/clang++"
+    - "make"
+    # - "make check"
+    - "make install"
+    - "ldconfig"
+
