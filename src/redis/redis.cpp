@@ -4,12 +4,16 @@
 namespace redis {
     RedisClient::RedisClient() : cpp_redis::client() {
         {
-            std::string hostname = util::getEnvVar("REDIS_HOST", "localhost");
 
-            std::cout << "Connection to Redis at " << hostname << "\n";
-
-            this->connect(hostname, 6379);
         }
+    }
+
+    void RedisClient::connect() {
+        std::string hostname = util::getEnvVar("REDIS_HOST", "localhost");
+
+        std::cout << "Connection to Redis at " << hostname << "\n";
+
+        cpp_redis::client::connect(hostname, 6379);
     }
 
     std::string RedisClient::check(const std::string &value) {
@@ -24,8 +28,6 @@ namespace redis {
             result = reply.as_string();
         });
 
-        this->sync_commit();
-
         return result;
     }
 
@@ -34,15 +36,26 @@ namespace redis {
 
         // Async call, ignore result
         this->rpush(queueName, values);
-        this->commit();
     }
 
-    void RedisClient::dequeue(const std::string &queueName, std::function<void(const std::string &)> callback) {
-        this->lpop(queueName, [callback](cpp_redis::reply &reply) {
-            callback(reply.as_string());
-        });
-
+    /**
+     * Note that this function is blocking
+     */
+    std::vector<std::string> RedisClient::blockingDequeue(const std::string &queueName) {
+        // Note, blpop takes a list of keys on which to block. It then returns an array
+        // with the key that yielded a result along with the result itself.
+        // This means we need to do a bit of fiddling with arrays.
+        std::future<cpp_redis::reply> popFuture = this->blpop({queueName}, 0);
         this->commit();
+
+        cpp_redis::reply popReply = popFuture.get();
+
+        const std::vector<cpp_redis::reply> &result = popReply.as_array();
+
+        const std::string &keyName = result[0].as_string();
+        const std::string &value = result[1].as_string();
+
+        return {keyName, value};
     }
 
     void RedisClient::callFunction(message::FunctionCall &call) {
@@ -51,14 +64,16 @@ namespace redis {
         this->enqueue("function_calls", serialised);
     }
 
-    void RedisClient::nextFunctionCall(std::function<void(message::FunctionCall &)> callback) {
+    /**
+     * Note that this function is blocking
+     */
+    message::FunctionCall RedisClient::nextFunctionCall() {
         std::string queueName = "function_calls";
-        this->dequeue(queueName, [callback](const std::string &serialised) {
-            message::FunctionCall call;
-            call.ParseFromString(serialised);
+        std::vector<std::string> dequeueResult = this->blockingDequeue(queueName);
 
-            callback(call);
-        });
+        message::FunctionCall call;
+        call.ParseFromString(dequeueResult[1]);
+        return call;
     }
 }
 

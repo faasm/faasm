@@ -10,6 +10,8 @@ namespace redis {
     public:
         RedisClient();
 
+        void connect();
+
         /** Check writing/ reading */
         std::string check(const std::string &value);
 
@@ -17,12 +19,12 @@ namespace redis {
         void enqueue(const std::string &queueName, const std::string &value);
 
         /** Enqueue on FIFO */
-        void dequeue(const std::string &queueName, std::function<void(const std::string &)>);
+        std::vector<std::string> blockingDequeue(const std::string &queueName);
 
         /** Adds a function call */
         void callFunction(message::FunctionCall &call);
 
         /** Gets next function call */
-        void nextFunctionCall(std::function<void(message::FunctionCall &)>);
+        message::FunctionCall nextFunctionCall();
     };
 }

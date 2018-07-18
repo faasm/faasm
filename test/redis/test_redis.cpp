@@ -1,24 +1,26 @@
 #include <catch/catch.hpp>
 #include <redis/redis.h>
-#include <string>
-#include <proto/faasm.pb.h>
 
 namespace tests {
 
     TEST_CASE("Test redis connection", "[redis]") {
         redis::RedisClient cli;
+        cli.connect();
 
         std::string expected = "foobar";
         std::string actual = cli.check(expected);
 
+        cli.sync_commit();
         REQUIRE(expected == actual);
     }
 
     TEST_CASE("Test redis enqueue/ dequeue", "[redis]") {
         redis::RedisClient cli;
+        cli.connect();
 
         // Clear queue initially
         cli.flushall();
+        cli.sync_commit();
 
         // Enqueue some values
         std::string queueName = "my_queue";
@@ -37,24 +39,30 @@ namespace tests {
             REQUIRE(3 == actual);
         });
 
+        cli.sync_commit();
+
         // Now dequeue
-        cli.dequeue(queueName, [valueA](const std::string &res){
-            REQUIRE(valueA == res);
-        });
+        std::vector<std::string> actual = cli.blockingDequeue(queueName);
+
+        REQUIRE("my_queue" == actual[0]);
+        REQUIRE(valueA == actual[1]);
 
         // Dequeue again
-        cli.dequeue(queueName, [valueB](const std::string &res){
-            REQUIRE(valueB == res);
-        });
+        std::vector<std::string> actual2 = cli.blockingDequeue(queueName);
+
+        REQUIRE("my_queue" == actual2[0]);
+        REQUIRE(valueB == actual2[1]);
 
         cli.sync_commit();
     }
-    
+
     TEST_CASE("Test redis function call", "[redis]") {
         redis::RedisClient cli;
+        cli.connect();
 
         // Clear queue initially
         cli.flushall();
+        cli.sync_commit();
 
         // Request function
         message::FunctionCall call;
@@ -70,11 +78,13 @@ namespace tests {
             REQUIRE(1 == result.as_integer());
         });
 
+        cli.sync_commit();
+
         // Get the next call
-        cli.nextFunctionCall([funcName, userName](message::FunctionCall &call) {
-            REQUIRE(funcName == call.function());
-            REQUIRE(userName == call.user());
-        });
+        message::FunctionCall actual = cli.nextFunctionCall();
+
+        REQUIRE(funcName == actual.function());
+        REQUIRE(userName == actual.user());
 
         cli.sync_commit();
     }

@@ -7,10 +7,15 @@ namespace worker {
     }
 
     void Worker::start() {
-        //TODO listen for function calls
-    }
+        redis.connect();
 
-    void Worker::executeFunction(message::FunctionCall &func) {
+        for(int i=0; i<50; i++) {
+            std::cout << "Worker waiting...\n";
+
+            message::FunctionCall call = redis.nextFunctionCall();
+
+            std::cout << "Received call:  " << call.user() << " - " << call.function() << "\n";
+        }
 
     }
 }

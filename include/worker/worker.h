@@ -13,7 +13,5 @@ namespace worker {
 
     private:
         redis::RedisClient redis;
-
-        void executeFunction(message::FunctionCall &func);
     };
 }

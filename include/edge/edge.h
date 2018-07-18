@@ -11,7 +11,7 @@ namespace edge {
 
     class FunctionEndpoint {
     public:
-        FunctionEndpoint(Address addr);
+        explicit FunctionEndpoint(Address addr);
 
         void init(int threadCount);
 

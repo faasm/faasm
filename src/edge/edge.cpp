@@ -26,6 +26,9 @@ namespace edge {
 
         httpEndpoint->init(opts);
         setupRoutes();
+
+        // Connect to redis
+        redis->connect();
     }
 
     void FunctionEndpoint::start() {

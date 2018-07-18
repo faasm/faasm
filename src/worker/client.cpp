@@ -1,10 +1,10 @@
 #include <redis/redis.h>
 #include <string>
+#include <worker/worker.h>
 
 int main()
 {
-    redis::RedisClient client;
+    worker::Worker worker;
 
-    std::string checkResult = client.check("Redis worker ok");
-    std::cout << checkResult;
+    worker.start();
 }
