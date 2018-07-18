@@ -36,6 +36,7 @@ namespace redis {
 
         // Async call, ignore result
         this->rpush(queueName, values);
+        this->sync_commit();
     }
 
     /**

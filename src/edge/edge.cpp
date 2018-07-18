@@ -57,6 +57,8 @@ namespace edge {
         call.set_user(user);
         call.set_function(function);
 
+        std::cout << "Calling function " << user << " - " << function << "\n";
+
         redis->callFunction(call);
 
         //TODO wait for/ handle response

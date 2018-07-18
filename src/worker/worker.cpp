@@ -16,6 +16,5 @@ namespace worker {
 
             std::cout << "Received call:  " << call.user() << " - " << call.function() << "\n";
         }
-
     }
 }
