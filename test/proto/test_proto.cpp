@@ -9,12 +9,15 @@ namespace tests {
 
         std::string user = "foobar user";
         std::string func = "foobar func";
+        std::string resultKey = "dummy result";
 
         funcCall.set_user(user);
         funcCall.set_function(func);
+        funcCall.set_resultkey(resultKey);
 
         REQUIRE(user == funcCall.user());
         REQUIRE(func == funcCall.function());
+        REQUIRE(resultKey == funcCall.resultkey());
 
         // Check serialisation round trip
         std::string serialised = funcCall.SerializeAsString();
@@ -24,5 +27,7 @@ namespace tests {
 
         REQUIRE(user == newFuncCall.user());
         REQUIRE(func == newFuncCall.function());
+        REQUIRE(resultKey == newFuncCall.resultkey());
+
     }
 }

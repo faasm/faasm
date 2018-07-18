@@ -22,9 +22,13 @@ namespace redis {
         std::vector<std::string> blockingDequeue(const std::string &queueName);
 
         /** Adds a function call */
-        void callFunction(message::FunctionCall &call);
+        void callFunction(const message::FunctionCall &call);
 
         /** Gets next function call */
         message::FunctionCall nextFunctionCall();
+
+        void setFunctionResult(message::FunctionCall &call, bool success);
+
+        message::FunctionCall blockingGetFunctionResult(const message::FunctionCall &call);
     };
 }

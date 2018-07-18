@@ -17,10 +17,7 @@ namespace tests {
     TEST_CASE("Test redis enqueue/ dequeue", "[redis]") {
         redis::RedisClient cli;
         cli.connect();
-
-        // Clear queue initially
         cli.flushall();
-        cli.sync_commit();
 
         // Enqueue some values
         std::string queueName = "my_queue";
@@ -56,20 +53,19 @@ namespace tests {
         cli.sync_commit();
     }
 
-    TEST_CASE("Test redis function call", "[redis]") {
+    TEST_CASE("Test redis calling/ retrieving function call", "[redis]") {
         redis::RedisClient cli;
         cli.connect();
-
-        // Clear queue initially
         cli.flushall();
-        cli.sync_commit();
 
         // Request function
         message::FunctionCall call;
         std::string funcName = "my func";
         std::string userName = "some user";
+        std::string resultKey = "some result";
         call.set_function(funcName);
         call.set_user(userName);
+        call.set_resultkey(resultKey);
 
         cli.callFunction(call);
 
@@ -85,6 +81,46 @@ namespace tests {
 
         REQUIRE(funcName == actual.function());
         REQUIRE(userName == actual.user());
+        REQUIRE(resultKey == actual.resultkey());
+
+        cli.sync_commit();
+    }
+
+    TEST_CASE("Test redis reading and writing function results", "[redis]") {
+        redis::RedisClient cli;
+        cli.connect();
+        cli.flushall();
+
+        // Write some function result
+        message::FunctionCall call;
+        call.set_function("my func");
+        call.set_user("some user");
+        call.set_resultkey("function 123");
+
+        cli.setFunctionResult(call, true);
+
+        cli.sync_commit();
+
+        // Check result has been written to the right key
+        cli.get("function 123", [](cpp_redis::reply &reply) {
+            // Manually deserialise the result
+            const std::string &serialised = reply.as_string();
+
+            message::FunctionCall actualCall;
+            actualCall.ParseFromString(serialised);
+
+            REQUIRE("my func" == actualCall.function());
+            REQUIRE("some user" == actualCall.user());
+            REQUIRE("function 123" == actualCall.resultkey());
+            REQUIRE(actualCall.success());
+        });
+
+        // Check retrieval method does the same thing
+        message::FunctionCall actualCall2 = cli.blockingGetFunctionResult(call);
+        REQUIRE("my func" == actualCall2.function());
+        REQUIRE("some user" == actualCall2.user());
+        REQUIRE("function 123" == actualCall2.resultkey());
+        REQUIRE(actualCall2.success());
 
         cli.sync_commit();
     }

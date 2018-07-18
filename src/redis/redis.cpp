@@ -59,7 +59,7 @@ namespace redis {
         return {keyName, value};
     }
 
-    void RedisClient::callFunction(message::FunctionCall &call) {
+    void RedisClient::callFunction(const message::FunctionCall &call) {
         std::string serialised = call.SerializeAsString();
 
         this->enqueue("function_calls", serialised);
@@ -76,5 +76,27 @@ namespace redis {
         call.ParseFromString(dequeueResult[1]);
         return call;
     }
+
+    void RedisClient::setFunctionResult(message::FunctionCall &call, bool success) {
+        call.set_success(success);
+
+        std::string key = call.resultkey();
+
+        // Write the successful result
+        this->set(key, call.SerializeAsString());
+        this->commit();
+    }
+
+    message::FunctionCall RedisClient::blockingGetFunctionResult(const message::FunctionCall &call) {
+        std::future<cpp_redis::reply> getFuture = this->get(call.resultkey());
+        this->commit();
+
+        cpp_redis::reply getReply = getFuture.get();
+        const std::string &serialised = getReply.as_string();
+
+        message::FunctionCall result;
+        result.ParseFromString(serialised);
+        return result;
+    };
 }
 

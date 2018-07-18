@@ -4,6 +4,7 @@
 #include <redis/redis.h>
 #include "edge/edge.h"
 #include <proto/faasm.pb.h>
+#include <util/util.h>
 
 using namespace Pistache;
 
@@ -43,7 +44,7 @@ namespace edge {
     void FunctionEndpoint::setupRoutes() {
         using namespace Rest;
 
-        Routes::Post(router, "/f/:user/:function", Routes::bind(&FunctionEndpoint::handleFunction, this));
+        Routes::Get(router, "/f/:user/:function", Routes::bind(&FunctionEndpoint::handleFunction, this));
         Routes::Get(router, "/status/", Routes::bind(&FunctionEndpoint::status, this));
     }
 
@@ -51,20 +52,27 @@ namespace edge {
         auto user = request.param(":user").as<std::string>();
         auto function = request.param(":function").as<std::string>();
 
-        bool success = true;
-
         message::FunctionCall call;
         call.set_user(user);
         call.set_function(function);
 
-        std::cout << "Calling function " << user << " - " << function << "\n";
+        // Generate a random result key
+        int randomNumber = util::randomInteger();
+        std::string resultKey = "Result_";
+        resultKey += std::to_string(randomNumber);
+        call.set_resultkey(resultKey);
 
+        // Send the function call
+        std::cout << "Calling function " << user << " - " << function << " - " << randomNumber << "\n";
         redis->callFunction(call);
 
-        //TODO wait for/ handle response
+        // Send the function call
+        std::cout << "Awaiting result " << user << " - " << function << "\n";
+        message::FunctionCall result = redis->blockingGetFunctionResult(call);
 
-        // Note, send is async
-        if (success) {
+        std::cout << "Result " << user << " - " << function << " = " << result.success() << "\n";
+
+        if (result.success()) {
             response.send(Http::Code::Ok, "Success");
         } else {
             response.send(Http::Code::Internal_Server_Error, "Error");

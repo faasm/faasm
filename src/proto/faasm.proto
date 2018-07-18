@@ -5,5 +5,8 @@ package message;
 message FunctionCall {
     required string user = 1;
     required string function = 2;
+    required string resultKey = 3;
+
+    optional bool success = 4;
 }
 
