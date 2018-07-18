@@ -1,10 +1,8 @@
 cmake_minimum_required(VERSION 3.0)
 project(faasm)
 
-include(FindProtobuf)
-find_package(Protobuf REQUIRED)
-
-SET(CMAKE_CXX_FLAGS "-g -Wall -Werror")
+SET(CMAKE_CXX_FLAGS "-Wall")
+SET(CMAKE_CXX_FLAGS_DEBUG  "-g")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)

@@ -11,8 +11,6 @@ RUN apt-get update
 RUN apt-get install -y build-essential \
     sudo \
     libboost-all-dev \
-    libprotobuf-dev \
-    protobuf-compiler \
     cmake \
     ninja-build \
     git \
@@ -33,12 +31,6 @@ WORKDIR /faasm/code
 COPY ansible /faasm/code/ansible
 WORKDIR ansible
 RUN ansible-playbook libs.yml
-
-# Build code
-RUN export CXX=/usr/bin/clang++
-RUN export CC=/usr/bin/clang
-RUN export CPP=/usr/bin/clang-cpp
-RUN export LINK=/usr/bin/clang++
 
 # Work on source
 WORKDIR /faasm/code
