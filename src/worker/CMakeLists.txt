@@ -1,3 +1,9 @@
-add_executable(worker worker.cpp)
+include_directories(${FAASM_INCLUDE_DIR}/worker)
 
-target_link_libraries(worker redis proto)
+add_library(worker STATIC worker.cpp ${FAASM_INCLUDE_DIR}/worker/worker.h)
+
+target_link_libraries(worker proto redis)
+
+add_executable(worker_client client.cpp)
+
+target_link_libraries(worker_client worker redis proto)

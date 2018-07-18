@@ -22,7 +22,7 @@ services:
     build:
       context: .
       dockerfile: worker.dockerfile
-    command: ../cmake-build-debug/bin/worker
+    command: ../cmake-build-debug/bin/worker_client
     environment:
       - REDIS_HOST=redis
     volumes:

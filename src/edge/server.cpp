@@ -1,14 +1,12 @@
 #include <pistache/http.h>
 #include <edge/edge.h>
 
-using namespace Pistache;
-
 int main() {
-    Port port(8080);
+    Pistache::Port port(8080);
 
     int threadCount = 4;
 
-    Address addr(Ipv4::any(), port);
+    Pistache::Address addr(Ipv4::any(), port);
 
     edge::FunctionEndpoint endpoint(addr);
 

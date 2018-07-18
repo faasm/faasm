@@ -1,10 +1,16 @@
 #include <redis/redis.h>
-#include <string>
+#include "worker/worker.h"
 
-int main()
-{
-    redis::RedisClient client;
+namespace worker {
+    Worker::Worker() {
 
-    std::string checkResult = client.check("Redis worker ok");
-    std::cout << checkResult;
+    }
+
+    void Worker::start() {
+        //TODO listen for function calls
+    }
+
+    void Worker::executeFunction(message::FunctionCall &func) {
+
+    }
 }
