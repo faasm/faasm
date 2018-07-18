@@ -68,7 +68,7 @@ namespace edge {
 
         // Send the function call
         std::cout << "Awaiting result " << user << " - " << function << "\n";
-        message::FunctionCall result = redis->blockingGetFunctionResult(call);
+        message::FunctionCall result = redis->getFunctionResult(call);
 
         std::cout << "Result " << user << " - " << function << " = " << result.success() << "\n";
 

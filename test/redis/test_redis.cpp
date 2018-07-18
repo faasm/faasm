@@ -102,21 +102,12 @@ namespace tests {
         cli.sync_commit();
 
         // Check result has been written to the right key
-        cli.get("function 123", [](cpp_redis::reply &reply) {
-            // Manually deserialise the result
-            const std::string &serialised = reply.as_string();
-
-            message::FunctionCall actualCall;
-            actualCall.ParseFromString(serialised);
-
-            REQUIRE("my func" == actualCall.function());
-            REQUIRE("some user" == actualCall.user());
-            REQUIRE("function 123" == actualCall.resultkey());
-            REQUIRE(actualCall.success());
+        cli.llen("function 123", [](cpp_redis::reply &reply) {
+            REQUIRE(1 == reply.as_integer());
         });
 
-        // Check retrieval method does the same thing
-        message::FunctionCall actualCall2 = cli.blockingGetFunctionResult(call);
+        // Check retrieval method gets the same call out again
+        message::FunctionCall actualCall2 = cli.getFunctionResult(call);
         REQUIRE("my func" == actualCall2.function());
         REQUIRE("some user" == actualCall2.user());
         REQUIRE("function 123" == actualCall2.resultkey());

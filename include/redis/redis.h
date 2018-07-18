@@ -29,6 +29,6 @@ namespace redis {
 
         void setFunctionResult(message::FunctionCall &call, bool success);
 
-        message::FunctionCall blockingGetFunctionResult(const message::FunctionCall &call);
+        message::FunctionCall getFunctionResult(const message::FunctionCall &call);
     };
 }
