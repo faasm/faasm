@@ -1,5 +1,3 @@
 ---
 
-- include_tasks: catch.yml
-
 - include_tasks: clang.yml

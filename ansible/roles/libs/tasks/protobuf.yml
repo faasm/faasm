@@ -1,5 +1,17 @@
 ---
 
+- name: "System deps"
+  become: yes
+  apt:
+    name: "{{ item }}"
+  with_items:
+    - autoconf
+    - automake
+    - libtool
+    - curl
+    - make
+    - unzip
+
 - name: "Download source"
   shell: "{{ item }}"
   args:
