@@ -1,5 +1,13 @@
 ---
 
+- name: "System deps"
+  become: yes
+  apt:
+    name: "{{ item }}"
+    state: "installed"
+  with_items:
+    - "libz-dev"
+
 - name: "Clone wavm"
   git:
     repo: "https://github.com/Shillaker/WAVM"
@@ -21,7 +29,13 @@
 - name: "Build wavm"
   shell: "{{ item }}"
   args:
-      chdir: "/usr/local/code/WAVM/build"
+    chdir: "/usr/local/code/WAVM/build"
   with_items:
-    - "cmake -DCMAKE_BUILD_TYPE=Release .."
+    - "cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_C_COMPILER=/usr/bin/clang .."
     - "cmake --build . --target all"
+
+- name: "Install wavm"
+  become: yes
+  shell: "make install"
+  args:
+    chdir: "/usr/local/code/WAVM/build"

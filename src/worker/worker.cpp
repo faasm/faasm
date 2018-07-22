@@ -1,5 +1,6 @@
 #include <redis/redis.h>
 #include "worker/worker.h"
+#include <wavm/wavme.h>
 
 namespace worker {
     Worker::Worker() {
@@ -17,7 +18,8 @@ namespace worker {
 
             std::cout << "Received call:  " << call.user() << " - " << call.function() << "\n";
 
-            //TODO execute function
+            std::string wavmResult = wavme::hello();
+            std::cout << "WAVM result:  " << wavmResult << "\n";
 
             // Set function success
             std::cout << "Finished call:  " << call.user() << " - " << call.function() << "\n";
