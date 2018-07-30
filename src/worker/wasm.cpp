@@ -1,12 +1,7 @@
 #include "worker.h"
 #include "resolver.h"
-#include <infra/infra.h>
 
 #include "Programs/CLI.h"
-#include <IR/Module.h>
-#include <Runtime/Linker.h>
-#include <Inline/HashMap.h>
-#include <Emscripten/Emscripten.h>
 
 using namespace IR;
 using namespace Runtime;
@@ -20,9 +15,10 @@ namespace worker {
         std::cout << "Received call:  " << call.user() << " - " << call.function() << "\n";
 
         std::string filePath = infra::getFunctionFile(call);
+        std::cout << "Executing function at:  " << filePath << "\n";
 
         Module module;
-        loadModule(filePath.c_str(), module);
+        if (!loadModule(filePath.c_str(), module)) { return EXIT_FAILURE; }
 
         // Link the module with the intrinsic modules.
         Compartment *compartment = Runtime::createCompartment();
@@ -32,7 +28,7 @@ namespace worker {
         // Emscripten set-up
         Emscripten::Instance *emscriptenInstance = Emscripten::instantiate(compartment, module);
 
-        if(emscriptenInstance) {
+        if (emscriptenInstance) {
             rootResolver.moduleNameToInstanceMap.set("env", emscriptenInstance->env);
             rootResolver.moduleNameToInstanceMap.set("asm2wasm", emscriptenInstance->asm2wasm);
             rootResolver.moduleNameToInstanceMap.set("global", emscriptenInstance->global);
@@ -40,6 +36,17 @@ namespace worker {
 
         // Linking
         LinkResult linkResult = linkModule(module, rootResolver);
+        if(!linkResult.success)
+        {
+            std::cerr << "Failed to link module:" << std::endl;
+            for(auto& missingImport : linkResult.missingImports)
+            {
+                std::cerr << "Missing import: module=\"" << missingImport.moduleName
+                          << "\" export=\"" << missingImport.exportName
+                          << "\" type=\"" << asString(missingImport.type) << "\"" << std::endl;
+            }
+            return EXIT_FAILURE;
+        }
 
         // Instantiate the module.
         ModuleInstance *moduleInstance = instantiateModule(
@@ -47,6 +54,7 @@ namespace worker {
                 module,
                 std::move(linkResult.resolvedImports),
                 filePath.c_str());
+        if(!moduleInstance) { return EXIT_FAILURE; }
 
         // Call the module start function, if it has one.
         FunctionInstance *startFunction = getStartFunction(moduleInstance);
@@ -57,9 +65,12 @@ namespace worker {
         // Call the Emscripten global initalizers.
         Emscripten::initializeGlobals(context, module, moduleInstance);
 
-        // Call the module's main function
+        // Extract the module's main function
+        // Note that emscripten can add an underscore before main
         FunctionInstance *functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, "main"));
+        if(!functionInstance) { functionInstance = asFunctionNullable(getInstanceExport(moduleInstance,"_main")); }
 
+        // Make the call
         std::vector<Value> invokeArgs;
         IR::ValueTuple functionResults = invokeFunctionChecked(context, functionInstance, invokeArgs);
 

@@ -8,7 +8,7 @@
 
 namespace infra {
     /** Function utilities */
-    std::string getFunctionFile(message::FunctionCall);
+    std::string getFunctionFile(message::FunctionCall &call);
 
     /** Low-level Redis interaction */
     class RedisClient : public cpp_redis::client {
