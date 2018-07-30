@@ -7,4 +7,4 @@ add_library(
         ${FAASM_INCLUDE_DIR}/infra/infra.h
 )
 
-target_link_libraries(infra util proto cpp_redis tacopie pthread wavm)
+target_link_libraries(infra util proto cpp_redis tacopie pthread)

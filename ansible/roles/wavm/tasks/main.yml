@@ -1,6 +1,0 @@
----
-
-- include_tasks: setup.yml
-
-- include_tasks: build.yml
-  tags: build

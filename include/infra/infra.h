@@ -5,7 +5,6 @@
 #include <string>
 #include <proto/faasm.pb.h>
 
-#include <wavm/wavm.h>
 
 namespace infra {
     /** Function utilities */

@@ -1,5 +1,13 @@
 ---
 
+- name: "System deps"
+  become: yes
+  apt:
+    name: "{{ item }}"
+    state: "installed"
+  with_items:
+    - "libz-dev"
+
 - include_tasks: protobuf.yml
 
 - include_tasks: pistache.yml

@@ -1,0 +1,3 @@
+[submodule "WAVM"]
+	path = WAVM
+	url = git@github.com:Shillaker/WAVM.git
