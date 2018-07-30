@@ -6,12 +6,16 @@
 
 namespace worker {
 
+    class WasmModule {
+    public:
+        WasmModule();
+        int execute(message::FunctionCall &call);
+    };
+
     class Worker {
     public:
         Worker();
         void start();
-
-        void invokeFunction(message::FunctionCall &call);
 
     private:
         infra::RedisClient redis;

@@ -3,11 +3,11 @@
 
 int main()
 {
-    worker::Worker worker;
+    worker::WasmModule module;
 
     message::FunctionCall call;
 
-    worker.invokeFunction(call);
+    module.execute(call);
 
     return 0;
 }
