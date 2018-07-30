@@ -3,7 +3,7 @@
 #include <pistache/http.h>
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
-#include <redis/redis.h>
+#include <infra/infra.h>
 
 using namespace Pistache;
 
@@ -20,7 +20,7 @@ namespace edge {
         void shutdown();
     private:
         std::shared_ptr<Http::Endpoint> httpEndpoint;
-        std::shared_ptr<redis::RedisClient> redis;
+        std::shared_ptr<infra::RedisClient> redis;
         Rest::Router router;
 
         void setupRoutes();

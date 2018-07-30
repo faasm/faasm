@@ -1,6 +1,6 @@
 #pragma once
 
-#include <redis/redis.h>
+#include <infra/infra.h>
 #include <string>
 #include <proto/faasm.pb.h>
 
@@ -12,6 +12,6 @@ namespace worker {
         void start();
 
     private:
-        redis::RedisClient redis;
+        infra::RedisClient redis;
     };
 }

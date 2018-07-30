@@ -1,41 +1,6 @@
 ---
 
-- name: "System deps"
-  become: yes
-  apt:
-    name: "{{ item }}"
-    state: "installed"
-  with_items:
-    - "libz-dev"
+- include_tasks: setup.yml
 
-- name: "Clone wavm"
-  git:
-    repo: "https://github.com/Shillaker/WAVM"
-    dest: "/usr/local/code/WAVM"
-    update: yes
-
-- name: "Set up remote"
-  shell: "git remote add upstream https://github.com/AndrewScheidecker/WAVM"
-  args:
-    chdir: "/usr/local/code/WAVM"
-  ignore_errors: yes
-
-- name: "Create build directory"
-  file:
-    path: "/usr/local/code/WAVM/build"
-    state: directory
-    mode: 0755
-
-- name: "Build wavm"
-  shell: "{{ item }}"
-  args:
-    chdir: "/usr/local/code/WAVM/build"
-  with_items:
-    - "cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_C_COMPILER=/usr/bin/clang .."
-    - "cmake --build . --target all"
-
-- name: "Install wavm"
-  become: yes
-  shell: "make install"
-  args:
-    chdir: "/usr/local/code/WAVM/build"
+- include_tasks: build.yml
+  tags: build

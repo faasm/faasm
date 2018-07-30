@@ -1,7 +1,7 @@
 #include <pistache/http.h>
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
-#include <redis/redis.h>
+#include <infra/infra.h>
 #include "edge/edge.h"
 #include <proto/faasm.pb.h>
 #include <util/util.h>
@@ -14,7 +14,7 @@ using namespace Pistache;
 namespace edge {
     FunctionEndpoint::FunctionEndpoint(Address addr) :
             httpEndpoint(std::make_shared<Http::Endpoint>(addr)),
-            redis(std::make_shared<redis::RedisClient>()) {}
+            redis(std::make_shared<infra::RedisClient>()) {}
 
     /**
      * Configures the endpoint (including threading) and its routing

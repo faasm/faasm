@@ -21,7 +21,7 @@ set(CMAKE_CXX_STANDARD 11)
 add_subdirectory(src/worker)
 add_subdirectory(src/edge)
 add_subdirectory(src/proto)
-add_subdirectory(src/redis)
+add_subdirectory(src/infra)
 add_subdirectory(src/util)
 
 add_subdirectory(test)

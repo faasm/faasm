@@ -1,10 +1,10 @@
 #include <catch/catch.hpp>
-#include <redis/redis.h>
+#include <infra/infra.h>
 
 namespace tests {
 
     TEST_CASE("Test redis connection", "[redis]") {
-        redis::RedisClient cli;
+        infra::RedisClient cli;
         cli.connect();
 
         std::string expected = "foobar";
@@ -15,7 +15,7 @@ namespace tests {
     }
 
     TEST_CASE("Test redis enqueue/ dequeue", "[redis]") {
-        redis::RedisClient cli;
+        infra::RedisClient cli;
         cli.connect();
         cli.flushall();
 
@@ -54,7 +54,7 @@ namespace tests {
     }
 
     TEST_CASE("Test redis calling/ retrieving function call", "[redis]") {
-        redis::RedisClient cli;
+        infra::RedisClient cli;
         cli.connect();
         cli.flushall();
 
@@ -87,7 +87,7 @@ namespace tests {
     }
 
     TEST_CASE("Test redis reading and writing function results", "[redis]") {
-        redis::RedisClient cli;
+        infra::RedisClient cli;
         cli.connect();
         cli.flushall();
 

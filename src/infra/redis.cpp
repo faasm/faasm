@@ -1,7 +1,7 @@
-#include "redis.h"
+#include "infra.h"
 #include <util/util.h>
 
-namespace redis {
+namespace infra {
     RedisClient::RedisClient() : cpp_redis::client() {
         {
 

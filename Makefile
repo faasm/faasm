@@ -34,6 +34,7 @@ bash-edge:
 	docker-compose run edge bash -l
 
 # KUBERNETES
+
 start-local:
 	minikube start --vm-driver kvm2
 
@@ -49,3 +50,8 @@ redis:
 
 proto-compile:
 	protoc -proto_path=src --cpp_out=src/util src/util/faasm.proto
+
+# WAVM
+
+wavm:
+	cd ansible && ansible-playbook wavm.yml --tags "build" --ask-become-pass

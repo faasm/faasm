@@ -1,0 +1,24 @@
+---
+
+- name: "Create build directory"
+  file:
+    path: "/usr/local/code/WAVM/build"
+    state: directory
+    mode: 0755
+  tags: build
+
+- name: "Build wavm"
+  shell: "{{ item }}"
+  args:
+    chdir: "/usr/local/code/WAVM/build"
+  with_items:
+    - "cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_C_COMPILER=/usr/bin/clang .."
+    - "cmake --build . --target all"
+  tags: build
+
+- name: "Install wavm"
+  become: yes
+  shell: "make install"
+  args:
+    chdir: "/usr/local/code/WAVM/build"
+  tags: build

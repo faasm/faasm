@@ -1,0 +1,21 @@
+---
+
+- name: "System deps"
+  become: yes
+  apt:
+    name: "{{ item }}"
+    state: "installed"
+  with_items:
+  - "libz-dev"
+
+- name: "Clone wavm"
+  git:
+    repo: "https://github.com/Shillaker/WAVM"
+    dest: "/usr/local/code/WAVM"
+    update: yes
+
+- name: "Set up remote"
+  shell: "git remote add upstream https://github.com/AndrewScheidecker/WAVM"
+  args:
+    chdir: "/usr/local/code/WAVM"
+  ignore_errors: yes

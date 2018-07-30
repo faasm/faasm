@@ -5,7 +5,7 @@
 #include <string>
 #include <proto/faasm.pb.h>
 
-namespace redis {
+namespace infra {
     class RedisClient : public cpp_redis::client {
     public:
         RedisClient();
