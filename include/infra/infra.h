@@ -5,8 +5,15 @@
 #include <string>
 #include <proto/faasm.pb.h>
 
+#include <wavm/wavm.h>
+
 namespace infra {
+    /** Function utilities */
+    std::string getFunctionFile(message::FunctionCall);
+
+    /** Low-level Redis interaction */
     class RedisClient : public cpp_redis::client {
+
     public:
         RedisClient();
 

@@ -1,6 +1,5 @@
 #include <infra/infra.h>
-#include "worker/worker.h"
-#include <wavm/wavme.h>
+#include "worker.h"
 
 namespace worker {
     Worker::Worker() {
@@ -18,11 +17,13 @@ namespace worker {
 
             std::cout << "Received call:  " << call.user() << " - " << call.function() << "\n";
 
-            std::string wavmResult = wavme::hello();
-            std::cout << "WAVM result:  " << wavmResult << "\n";
+            std::string filePath = infra::getFunctionFile(call);
+            int returnCode = wavm::executeModule(filePath.c_str());
 
             // Set function success
             std::cout << "Finished call:  " << call.user() << " - " << call.function() << "\n";
+            std::cout << "Return code: " << returnCode << "\n";
+
             redis.setFunctionResult(call, true);
         }
     }
