@@ -15,13 +15,17 @@ if (CMAKE_BUILD_TYPE MATCHES "Debug")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 endif ()
 
+# Stops WAVM compilation complaining
+add_definitions(-DDLL_EXPORT=)
+add_definitions(-DDLL_IMPORT=)
+
 set(FAASM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
 
 include_directories(
         ${FAASM_INCLUDE_DIR}
-        ${CMAKE_CURRENT_BINARY_DIR}/src
-        ${CMAKE_CURRENT_BINARY_DIR}/WAVM/Source/Include
+        ${CMAKE_CURRENT_LIST_DIR}/WAVM/Include # Required for using WAVM elsewhere
+        ${CMAKE_CURRENT_BINARY_DIR}/src # Required for protobuf
 )
 
 set(CMAKE_CXX_STANDARD 11)
