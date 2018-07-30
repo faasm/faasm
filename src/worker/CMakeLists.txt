@@ -1,4 +1,4 @@
-include_directories(${FAASM_INCLUDE_DIR}/worker)
+include_directories(${FAASM_INCLUDE_DIR}/worker ${FAASM_WAVM_SOURCE_DIR})
 
 add_library(worker STATIC worker.cpp ${FAASM_INCLUDE_DIR}/worker/worker.h)
 

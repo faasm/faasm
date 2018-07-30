@@ -11,6 +11,8 @@ namespace worker {
         Worker();
         void start();
 
+        void invokeFunction(message::FunctionCall &call);
+
     private:
         infra::RedisClient redis;
     };
