@@ -58,7 +58,7 @@ namespace infra {
     /**
      * NON-BLOCKING version of dequeue
      */
-    void RedisClient::dequeue(const std::string &queueName, const reply_callback_t& callback) {
+    void RedisClient::dequeue(const std::string &queueName, const reply_callback_t &callback) {
         this->blpop({queueName}, MAX_TIMEOUT, callback);
         this->commit();
     }
@@ -100,15 +100,24 @@ namespace infra {
         this->commit();
     }
 
-    void RedisClient::getFunctionResult(const message::FunctionCall &call, const std::function<void(message::FunctionCall&)> &callback) {
+    void RedisClient::getFunctionResult(const message::FunctionCall &call,
+                                        const std::function<void(message::FunctionCall &)> &callback) {
         this->dequeue(call.resultkey(), [callback](cpp_redis::reply &reply) {
             std::vector<std::string> keyValue = RedisClient::getKeyValueFromReply(reply);
             message::FunctionCall callResult;
             callResult.ParseFromString(keyValue[1]);
 
             callback(callResult);
-    });
+        });
+    }
 
+    message::FunctionCall RedisClient::blockingGetFunctionResult(const message::FunctionCall &call) {
+        std::vector<std::string> result = this->blockingDequeue(call.resultkey());
+
+        message::FunctionCall callResult;
+        callResult.ParseFromString(result[1]);
+
+        return callResult;
     };
 }
 

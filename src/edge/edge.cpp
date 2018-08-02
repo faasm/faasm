@@ -66,18 +66,17 @@ namespace edge {
         std::cout << "Calling function " << user << " - " << function << " - " << randomNumber << "\n";
         redis->callFunction(call);
 
-        // Send the function call
+        // Wait for the result`
         std::cout << "Awaiting result " << user << " - " << function << "\n";
+        message::FunctionCall result = redis->blockingGetFunctionResult(call);
 
-        redis->getFunctionResult(call, [&response](message::FunctionCall &result) -> void {
-            std::cout << "Result " << result.user() << " - " << result.function() << " = " << result.success() << "\n";
+        std::cout << "Result " << result.user() << " - " << result.function() << " = " << result.success() << "\n";
 
-            if (result.success()) {
-                response.send(Http::Code::Ok, "Success");
-            } else {
-                response.send(Http::Code::Internal_Server_Error, "Error");
-            }
-        });
+        if (result.success()) {
+            response.send(Http::Code::Ok, "Success");
+        } else {
+            response.send(Http::Code::Internal_Server_Error, "Error");
+        }
     }
 
     void FunctionEndpoint::status(const Rest::Request &request, Http::ResponseWriter response) {

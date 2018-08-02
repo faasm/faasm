@@ -42,6 +42,9 @@ namespace infra {
 
         void setFunctionResult(message::FunctionCall &call, bool success);
 
-        void getFunctionResult(const message::FunctionCall &call, const std::function<void(message::FunctionCall&)> &callback);
+        void getFunctionResult(const message::FunctionCall &call,
+                               const std::function<void(message::FunctionCall &)> &callback);
+
+        message::FunctionCall blockingGetFunctionResult(const message::FunctionCall &call);
     };
 }

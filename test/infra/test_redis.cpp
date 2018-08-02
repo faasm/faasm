@@ -24,6 +24,9 @@ namespace tests {
     }
 
     void doEnqueue(RedisClient &cli) {
+        cli.connect();
+        cli.flushall();
+
         // Enqueue some values
         cli.enqueue(vars::QUEUE_NAME, vars::VALUE_A);
         cli.enqueue(vars::QUEUE_NAME, vars::VALUE_B);
@@ -41,8 +44,6 @@ namespace tests {
 
     TEST_CASE("Test blocking enqueue/ dequeue", "[redis]") {
         RedisClient cli;
-        cli.connect();
-        cli.flushall();
 
         // Enqueue
         doEnqueue(cli);
@@ -64,8 +65,6 @@ namespace tests {
 
     TEST_CASE("Test non-blocking enqueue/ dequeue", "[redis]") {
         RedisClient cli;
-        cli.connect();
-        cli.flushall();
 
         // Enqueue
         doEnqueue(cli);
@@ -121,8 +120,7 @@ namespace tests {
         cli.sync_commit();
     }
 
-    TEST_CASE("Test redis reading and writing function results", "[redis]") {
-        RedisClient cli;
+    message::FunctionCall callFunction(RedisClient &cli) {
         cli.connect();
         cli.flushall();
 
@@ -141,6 +139,13 @@ namespace tests {
             REQUIRE(1 == reply.as_integer());
         });
 
+        return call;
+    }
+
+    TEST_CASE("Test redis reading and writing function results", "[redis]") {
+        RedisClient cli;
+        message::FunctionCall call = callFunction(cli);
+
         // Check retrieval method gets the same call out again
         cli.getFunctionResult(call, [](message::FunctionCall &actualCall2) {
             REQUIRE("my func" == actualCall2.function());
@@ -150,6 +155,20 @@ namespace tests {
         });
 
         cli.sync_commit();
+    }
+
+    TEST_CASE("Test blocking redis reading and writing function results", "[redis]") {
+        RedisClient cli;
+        message::FunctionCall call = callFunction(cli);
+
+        // Check retrieval method gets the same call out again
+        message::FunctionCall actualCall2 = cli.blockingGetFunctionResult(call);
+        cli.sync_commit();
+
+        REQUIRE("my func" == actualCall2.function());
+        REQUIRE("some user" == actualCall2.user());
+        REQUIRE("function 123" == actualCall2.resultkey());
+        REQUIRE(actualCall2.success());
     }
 
 }
