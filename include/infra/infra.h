@@ -16,6 +16,8 @@ namespace infra {
     class RedisClient : public cpp_redis::client {
 
     public:
+        static std::vector<std::string> getKeyValueFromReply(cpp_redis::reply &reply);
+
         RedisClient();
 
         void connect();
@@ -26,8 +28,11 @@ namespace infra {
         /** Enqueue on FIFO */
         void enqueue(const std::string &queueName, const std::string &value);
 
-        /** Enqueue on FIFO */
+        /** Blocking dequeue on FIFO */
         std::vector<std::string> blockingDequeue(const std::string &queueName);
+
+        /** Non-blocking dequeue on FIFO */
+        void dequeue(const std::string &queueName, const reply_callback_t &callback);
 
         /** Adds a function call */
         void callFunction(const message::FunctionCall &call);
@@ -37,6 +42,6 @@ namespace infra {
 
         void setFunctionResult(message::FunctionCall &call, bool success);
 
-        message::FunctionCall getFunctionResult(const message::FunctionCall &call);
+        void getFunctionResult(const message::FunctionCall &call, const std::function<void(message::FunctionCall&)> &callback);
     };
 }

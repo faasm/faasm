@@ -1,10 +1,19 @@
 #include <catch/catch.hpp>
 #include <infra/infra.h>
 
+using namespace infra;
+
 namespace tests {
 
+    namespace vars {
+        const std::string QUEUE_NAME = "my queue";
+        const std::string VALUE_A = "val a";
+        const std::string VALUE_B = "val b";
+        const std::string VALUE_C = "val c";
+    }
+
     TEST_CASE("Test redis connection", "[redis]") {
-        infra::RedisClient cli;
+        RedisClient cli;
         cli.connect();
 
         std::string expected = "foobar";
@@ -14,47 +23,73 @@ namespace tests {
         REQUIRE(expected == actual);
     }
 
-    TEST_CASE("Test redis enqueue/ dequeue", "[redis]") {
-        infra::RedisClient cli;
-        cli.connect();
-        cli.flushall();
-
+    void doEnqueue(RedisClient &cli) {
         // Enqueue some values
-        std::string queueName = "my_queue";
-        std::string valueA = "val a";
-        std::string valueB = "val b";
-        std::string valueC = "val c";
-
-        cli.enqueue("my_queue", valueA);
-        cli.enqueue("my_queue", valueB);
-        cli.enqueue("my_queue", valueC);
+        cli.enqueue(vars::QUEUE_NAME, vars::VALUE_A);
+        cli.enqueue(vars::QUEUE_NAME, vars::VALUE_B);
+        cli.enqueue(vars::QUEUE_NAME, vars::VALUE_C);
 
         // Check expected length
-        cli.llen(queueName, [](cpp_redis::reply &r) {
+        cli.llen(vars::QUEUE_NAME, [](cpp_redis::reply &r) {
             int64_t actual = r.as_integer();
 
             REQUIRE(3 == actual);
         });
 
         cli.sync_commit();
+    }
 
-        // Now dequeue
-        std::vector<std::string> actual = cli.blockingDequeue(queueName);
+    TEST_CASE("Test blocking enqueue/ dequeue", "[redis]") {
+        RedisClient cli;
+        cli.connect();
+        cli.flushall();
 
-        REQUIRE("my_queue" == actual[0]);
-        REQUIRE(valueA == actual[1]);
+        // Enqueue
+        doEnqueue(cli);
+
+        // Blocking dequeue
+        std::vector<std::string> actual = cli.blockingDequeue(vars::QUEUE_NAME);
+
+        REQUIRE(vars::QUEUE_NAME == actual[0]);
+        REQUIRE(vars::VALUE_A == actual[1]);
 
         // Dequeue again
-        std::vector<std::string> actual2 = cli.blockingDequeue(queueName);
+        std::vector<std::string> actual2 = cli.blockingDequeue(vars::QUEUE_NAME);
 
-        REQUIRE("my_queue" == actual2[0]);
-        REQUIRE(valueB == actual2[1]);
+        REQUIRE(vars::QUEUE_NAME == actual2[0]);
+        REQUIRE(vars::VALUE_B == actual2[1]);
+
+        cli.sync_commit();
+    }
+
+    TEST_CASE("Test non-blocking enqueue/ dequeue", "[redis]") {
+        RedisClient cli;
+        cli.connect();
+        cli.flushall();
+
+        // Enqueue
+        doEnqueue(cli);
+
+        // Non-blocking dequeue
+        cli.dequeue(vars::QUEUE_NAME, [](cpp_redis::reply &reply) {
+            std::vector<std::string> keyValue = RedisClient::getKeyValueFromReply(reply);
+
+            REQUIRE(vars::QUEUE_NAME == keyValue[0]);
+            REQUIRE(vars::VALUE_A == keyValue[1]);
+        });
+
+        cli.dequeue(vars::QUEUE_NAME, [](cpp_redis::reply &reply) {
+            std::vector<std::string> keyValue = RedisClient::getKeyValueFromReply(reply);
+
+            REQUIRE(vars::QUEUE_NAME == keyValue[0]);
+            REQUIRE(vars::VALUE_B == keyValue[1]);
+        });
 
         cli.sync_commit();
     }
 
     TEST_CASE("Test redis calling/ retrieving function call", "[redis]") {
-        infra::RedisClient cli;
+        RedisClient cli;
         cli.connect();
         cli.flushall();
 
@@ -87,7 +122,7 @@ namespace tests {
     }
 
     TEST_CASE("Test redis reading and writing function results", "[redis]") {
-        infra::RedisClient cli;
+        RedisClient cli;
         cli.connect();
         cli.flushall();
 
@@ -107,11 +142,12 @@ namespace tests {
         });
 
         // Check retrieval method gets the same call out again
-        message::FunctionCall actualCall2 = cli.getFunctionResult(call);
-        REQUIRE("my func" == actualCall2.function());
-        REQUIRE("some user" == actualCall2.user());
-        REQUIRE("function 123" == actualCall2.resultkey());
-        REQUIRE(actualCall2.success());
+        cli.getFunctionResult(call, [](message::FunctionCall &actualCall2) {
+            REQUIRE("my func" == actualCall2.function());
+            REQUIRE("some user" == actualCall2.user());
+            REQUIRE("function 123" == actualCall2.resultkey());
+            REQUIRE(actualCall2.success());
+        });
 
         cli.sync_commit();
     }

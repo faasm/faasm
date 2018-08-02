@@ -1,7 +1,9 @@
 #include "infra.h"
-#include <util/util.h>
+#include "util/util.h"
 
 namespace infra {
+    const int MAX_TIMEOUT = 1000;
+
     RedisClient::RedisClient() : cpp_redis::client() {
         {
 
@@ -36,11 +38,11 @@ namespace infra {
 
         // Async call, ignore result
         this->rpush(queueName, values);
-        this->sync_commit();
+        this->commit();
     }
 
     /**
-     * Note that this function is blocking
+     * BLOCKING version of dequeue
      */
     std::vector<std::string> RedisClient::blockingDequeue(const std::string &queueName) {
         // Note, blpop takes a list of keys on which to block. It then returns an array
@@ -50,8 +52,19 @@ namespace infra {
         this->commit();
 
         cpp_redis::reply popReply = popFuture.get();
+        return getKeyValueFromReply(popReply);
+    }
 
-        const std::vector<cpp_redis::reply> &result = popReply.as_array();
+    /**
+     * NON-BLOCKING version of dequeue
+     */
+    void RedisClient::dequeue(const std::string &queueName, const reply_callback_t& callback) {
+        this->blpop({queueName}, MAX_TIMEOUT, callback);
+        this->commit();
+    }
+
+    std::vector<std::string> RedisClient::getKeyValueFromReply(cpp_redis::reply &reply) {
+        const std::vector<cpp_redis::reply> &result = reply.as_array();
 
         const std::string &keyName = result[0].as_string();
         const std::string &value = result[1].as_string();
@@ -87,12 +100,15 @@ namespace infra {
         this->commit();
     }
 
-    message::FunctionCall RedisClient::getFunctionResult(const message::FunctionCall &call) {
-        std::vector<std::string> dequeueResult = this->blockingDequeue(call.resultkey());
+    void RedisClient::getFunctionResult(const message::FunctionCall &call, const std::function<void(message::FunctionCall&)> &callback) {
+        this->dequeue(call.resultkey(), [callback](cpp_redis::reply &reply) {
+            std::vector<std::string> keyValue = RedisClient::getKeyValueFromReply(reply);
+            message::FunctionCall callResult;
+            callResult.ParseFromString(keyValue[1]);
 
-        message::FunctionCall callResult;
-        callResult.ParseFromString(dequeueResult[1]);
-        return callResult;
+            callback(callResult);
+    });
+
     };
 }
 
