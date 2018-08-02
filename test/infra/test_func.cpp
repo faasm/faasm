@@ -1,7 +1,6 @@
 #include <catch/catch.hpp>
-#include <infra/infra.h>
-#include <proto/faasm.pb.h>
 
+#include <infra/infra.h>
 
 namespace tests {
 
@@ -11,7 +10,14 @@ namespace tests {
         call.set_user("jimmy");
         call.set_function("myfun");
 
-        std::string expected = "/usr/local/code/faasm/wasm/jimmy/myfun/function.wasm";
+        char dummyRoot[] = "PROJ_ROOT=/foo/bar";
+        putenv(dummyRoot);
+
+        std::string expected = "/foo/bar/wasm/jimmy/myfun/function.wasm";
         REQUIRE(expected == infra::getFunctionFile(call));
+
+        // Clear up afterwards
+        char cleanRoot[] = "PROJ_ROOT";
+        unsetenv(cleanRoot);
     }
 }

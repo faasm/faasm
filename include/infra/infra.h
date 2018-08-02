@@ -7,8 +7,6 @@
 
 
 namespace infra {
-    const std::string FUNCTION_DIR = "/usr/local/code/faasm/wasm/";
-
     /** Function utilities */
     std::string getFunctionFile(message::FunctionCall &call);
 

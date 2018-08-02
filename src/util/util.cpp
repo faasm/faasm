@@ -5,7 +5,19 @@
 namespace util {
     std::string getEnvVar(std::string const &key, std::string const &dflt) {
         char const *val = getenv(key.c_str());
-        return val == nullptr ? dflt : std::string(val);
+
+        if(val == nullptr) {
+            return dflt;
+        }
+
+        std::string retVal(val);
+
+        if (retVal.length() == 0) {
+            return dflt;
+        }
+        else {
+            return val;
+        }
     }
 
     int randomInteger() {

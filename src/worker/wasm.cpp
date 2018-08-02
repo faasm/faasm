@@ -23,7 +23,11 @@ namespace worker {
         std::cout << "Executing function at:  " << filePath << "\n";
 
         Module module;
-        if (!loadModule(filePath.c_str(), module)) { return EXIT_FAILURE; }
+        if (!loadModule(filePath.c_str(), module)) {
+            std::cerr << "Could not load module at:  " << filePath << "\n";
+
+            return 1;
+        }
 
         // Link the module with the intrinsic modules.
         Compartment *compartment = Runtime::createCompartment();
@@ -50,7 +54,7 @@ namespace worker {
                           << "\" export=\"" << missingImport.exportName
                           << "\" type=\"" << asString(missingImport.type) << "\"" << std::endl;
             }
-            return EXIT_FAILURE;
+            return 1;
         }
 
         // Instantiate the module.
@@ -59,7 +63,7 @@ namespace worker {
                 module,
                 std::move(linkResult.resolvedImports),
                 filePath.c_str());
-        if(!moduleInstance) { return EXIT_FAILURE; }
+        if(!moduleInstance) { return 1; }
 
         // Call the module start function, if it has one.
         FunctionInstance *startFunction = getStartFunction(moduleInstance);

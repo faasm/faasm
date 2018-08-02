@@ -5,6 +5,7 @@ metadata:
   namespace: faasm
   labels:
     app: faasm
+    role: edge
 spec:
   containers:
     - name: edge

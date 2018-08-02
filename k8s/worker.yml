@@ -15,3 +15,5 @@ spec:
       env:
         - name: REDIS_HOST
           value: redis
+        - name: PROJ_ROOT
+          value: /faasm/code

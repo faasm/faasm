@@ -1,11 +1,34 @@
 #include <catch/catch.hpp>
 #include <util/util.h>
 
+using namespace util;
+
 namespace tests {
 
-    TEST_CASE("Test environment variables", "[util]") {
-        REQUIRE(util::getEnvVar("JUNK_VAR", "blah") == "blah");
-        REQUIRE(util::getEnvVar("LANGUAGE", "blah") == "en_GB:en");
+    TEST_CASE("Test default environment variables", "[util]") {
+        std::string key = "JUNK_VAR";
+
+        // Sanity check for null pointer when env var not set
+        char const *val = getenv(key.c_str());
+        REQUIRE(val == nullptr);
+
+        REQUIRE(getEnvVar(key, "blah") == "blah");
+    }
+
+    TEST_CASE("Test valid environment variables", "[util]") {
+        REQUIRE(getEnvVar("LANGUAGE", "blah") == "en_GB:en");
+    }
+
+    TEST_CASE("Test empty environment variables", "[util]") {
+        char dummyEnv[] = "MY_VAR=";
+        putenv(dummyEnv);
+
+        // Sanity check for empty string when env var set to empty
+        char key[] = "MY_VAR";
+        std::string realValue(getenv(key));
+        REQUIRE(realValue.empty());
+
+        REQUIRE(getEnvVar("MY_VAR", "alpha") == "alpha");
     }
 
 }

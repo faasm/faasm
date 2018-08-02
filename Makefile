@@ -28,11 +28,26 @@ minikube-reset:
 minikube-start:
 	minikube start --vm-driver kvm2 --logtostderr --disk-size 10g
 
+minikube-ping:
+	curl http://$$(minikube ip):30036/f/simon/dummy/
+
+minikube-edge:
+	minikube service edge --namespace=faasm --url
+
 k8-deploy:
 	kubectl apply -f k8s/namespace.yml && kubectl apply -f k8s
 
 k8-clean:
 	kubectl delete --all pods --namespace=faasm
+
+k8-pods:
+	kubectl get pods --namespace=faasm
+
+k8-logs-edge:
+	kubectl logs --tail=20 -f --namespace=faasm edge
+
+k8-logs-worker:
+	kubectl logs --tail=20 -f --namespace=faasm worker
 
 # REDIS
 
