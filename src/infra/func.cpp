@@ -2,7 +2,7 @@
 
 namespace infra {
     std::string getFunctionFile(message::FunctionCall &call) {
-        std::string filePath = "/usr/local/code/faasm/wasm/" + call.user() + "/" + call.function() + "/function.wasm";
+        std::string filePath = FUNCTION_DIR + call.user() + "/" + call.function() + "/function.wasm";
         return filePath;
     }
 }

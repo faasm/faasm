@@ -35,3 +35,10 @@ namespace worker {
         }
     }
 }
+
+int main()
+{
+    worker::Worker worker;
+
+    worker.start();
+}

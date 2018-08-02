@@ -8,6 +8,11 @@
 #include <Logging/Logging.h>
 #include <Inline/Serialization.h>
 
+/**
+ * NOTE: THIS CLASS WAS ORIGINALLY COPIED FROM THE WAVM REPO
+ * https://github.com/AndrewScheidecker/WAVM/blob/master/Source/Programs/wavm.cpp
+ */
+
 using namespace IR;
 using namespace Runtime;
 

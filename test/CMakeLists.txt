@@ -1,13 +1,13 @@
 add_library(catch INTERFACE)
 
+file(GLOB_RECURSE TEST_FILES ${CMAKE_CURRENT_LIST_DIR} test_*.cpp)
+
 add_executable(
         tests
         main.cpp
-        util/test_util.cpp
-        infra/test_redis.cpp
-        proto/test_proto.cpp
+        ${TEST_FILES}
 )
 
-target_link_libraries(tests proto catch infra util)
+target_link_libraries(tests proto catch infra util worker_lib)
 
 add_test(NAME tests COMMAND "test/tests")

@@ -6,6 +6,11 @@
 using namespace IR;
 using namespace Runtime;
 
+/**
+ * NOTE: This is heavily based on the existing wavm application
+ * https://github.com/AndrewScheidecker/WAVM/blob/master/Source/Programs/wavm.cpp
+ */
+
 namespace worker {
     WasmModule::WasmModule() {
 
