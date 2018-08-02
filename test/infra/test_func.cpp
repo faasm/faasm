@@ -5,7 +5,7 @@
 
 namespace tests {
 
-    TEST_CASE("Test retrieving function path", "[infa]") {
+    TEST_CASE("Test retrieving function path", "[infra]") {
         message::FunctionCall call;
 
         call.set_user("jimmy");

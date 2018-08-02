@@ -8,6 +8,6 @@ COPY . /faasm/code
 WORKDIR /faasm/code/build
 
 RUN cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_BUILD_TYPE=Debug ..
-RUN cmake --build . --target worker_client
+RUN cmake --build . --target worker
 
-CMD ./bin/worker_client
+CMD ./bin/worker

@@ -1,9 +1,10 @@
+#include "edge/edge.h"
+
 #include <pistache/http.h>
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
+
 #include <infra/infra.h>
-#include "edge/edge.h"
-#include <proto/faasm.pb.h>
 #include <util/util.h>
 
 using namespace Pistache;
@@ -49,29 +50,24 @@ namespace edge {
     }
 
     void FunctionEndpoint::handleFunction(const Rest::Request &request, Http::ResponseWriter response) {
+        // Parse request params
         auto user = request.param(":user").as<std::string>();
         auto function = request.param(":function").as<std::string>();
 
+        // Build function call
         message::FunctionCall call;
         call.set_user(user);
         call.set_function(function);
 
-        // Generate a random result key
-        int randomNumber = util::randomInteger();
-        std::string resultKey = "Result_";
-        resultKey += std::to_string(randomNumber);
-        call.set_resultkey(resultKey);
+        // Make the call
+        this->callFunction(call);
 
-        // Send the function call
-        std::cout << "Calling function " << user << " - " << function << " - " << randomNumber << "\n";
-        redis->callFunction(call);
-
-        // Wait for the result`
-        std::cout << "Awaiting result " << user << " - " << function << "\n";
+        // Wait for the result
+        std::cout << "Awaiting result " << call.user() << " - " << call.function() << "\n";
         message::FunctionCall result = redis->blockingGetFunctionResult(call);
 
+        // Handle result
         std::cout << "Result " << result.user() << " - " << result.function() << " = " << result.success() << "\n";
-
         if (result.success()) {
             response.send(Http::Code::Ok, "Success");
         } else {
@@ -79,10 +75,23 @@ namespace edge {
         }
     }
 
+    void FunctionEndpoint::callFunction(message::FunctionCall &call) {
+        // Generate a random result key
+        int randomNumber = util::randomInteger();
+        std::string resultKey = "Result_";
+        resultKey += std::to_string(randomNumber);
+        call.set_resultkey(resultKey);
+
+        // Send the function call
+        std::cout << "Calling function " << call.user() << " - " << call.function() << " - " << randomNumber << "\n";
+        redis->callFunction(call);
+    }
+
     void FunctionEndpoint::status(const Rest::Request &request, Http::ResponseWriter response) {
         std::string statusString = "Ok";
         std::string redisCheck = redis->check(statusString);
         response.send(Http::Code::Ok, redisCheck);
     }
+
 };
 
