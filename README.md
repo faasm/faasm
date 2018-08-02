@@ -15,4 +15,4 @@ It can be a bit of a hassle to get Minikube running. Steps are:
 - Start minikube with `make minikube-start`
 - Wait for ages as it does its thing
 
-If there are errors, run `make minikube-clean`
+If there are errors, run `make minikube-reset`.

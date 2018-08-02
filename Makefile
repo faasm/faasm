@@ -1,48 +1,38 @@
 # DOCKER
+
+.PHONY: minikube-env
+minikube-env:
+	eval $$(minikube docker-env)
+
 .PHONY: build-base
-build-base:
-	docker build -t shillaker/faasm-base .
+build-base: minikube-env
+	docker build -t shillaker/faasm-base:0.0.1 -f base.dockerfile .
+
+.PHONY: build-core
+build-core: minikube-env
+	docker build -t shillaker/faasm-core:0.0.1 .
 
 .PHONY: build-worker
-build-worker:
-	docker build -t shillaker/faasm-worker -f worker.dockerfile .
+build-worker: build-core
+	docker build -t shillaker/faasm-worker:0.0.1 -f worker.dockerfile .
 
 .PHONY: build-edge
-build-edge:
-	docker build -t shillaker/faasm-edge -f edge.dockerfile .
-
-# DOCKER COMPOSE
-start-all:
-	docker-compose up -d
-
-stop-all:
-	docker-compose stop
-
-restart-all:
-	docker-compose stop; docker-compose up -d
-
-restart-worker:
-	docker-compose stop worker; docker-compose up -d worker
-
-restart-edge:
-	docker-compose stop edge; docker-compose up -d edge
-
-bash-worker:
-	docker-compose run worker bash -l
-
-bash-edge:
-	docker-compose run edge bash -l
+build-edge: build-core
+	docker build -t shillaker/faasm-edge:0.0.1 -f edge.dockerfile .
 
 # KUBERNETES
 
-minikube-clean:
+minikube-reset:
 	minikube delete && rm -rf ~/.minikube
 
 minikube-start:
-	minikube start --vm-driver kvm2 --logtostderr
+	minikube start --vm-driver kvm2 --logtostderr --disk-size 10g
 
-minikube-deploy:
-	kubectl apply -f k8s
+k8-deploy:
+	kubectl apply -f k8s/namespace.yml && kubectl apply -f k8s
+
+k8-clean:
+	kubectl delete --all pods --namespace=faasm
 
 # REDIS
 

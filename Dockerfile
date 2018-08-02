@@ -1,36 +1,6 @@
-FROM ubuntu:18.04
+FROM shillaker/faasm-base:0.0.1
 
-RUN apt-get update
-RUN apt-get install -y software-properties-common wget
-
-RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
-RUN apt-add-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main"
-RUN apt-add-repository ppa:ansible/ansible
-
-RUN apt-get update
-RUN apt-get install -y build-essential \
-    sudo \
-    libboost-all-dev \
-    cmake \
-    ninja-build \
-    git \
-    clang-6.0 \
-    curl \
-    ansible
-
-RUN apt-get clean autoclean
-RUN apt-get autoremove -y
-
-RUN ln -s /usr/bin/clang-6.0 /usr/bin/clang
-RUN ln -s /usr/bin/clang-cpp-6.0 /usr/bin/clang-cpp
-RUN ln -s /usr/bin/clang++-6.0 /usr/bin/clang++
-RUN ln -s /usr/bin/llvm-6.0 /usr/bin/llvm
-
-# Run Ansible set-up
-WORKDIR /faasm/code
-COPY ansible /faasm/code/ansible
-WORKDIR ansible
-RUN ansible-playbook libs.yml
-
-# Work on source
-WORKDIR /faasm/code
+# Build code
+WORKDIR /faasm/code/build
+RUN cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_BUILD_TYPE=Debug ..
+RUN cmake --build . --target all
