@@ -35,10 +35,13 @@ bash-edge:
 
 # KUBERNETES
 
-start-local:
-	minikube start --vm-driver kvm2
+minikube-clean:
+	minikube delete && rm -rf ~/.minikube
 
-deploy:
+minikube-start:
+	minikube start --vm-driver kvm2 --logtostderr
+
+minikube-deploy:
 	kubectl apply -f k8s
 
 # REDIS

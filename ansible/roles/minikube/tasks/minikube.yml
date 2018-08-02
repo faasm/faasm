@@ -8,6 +8,3 @@
   with_items:
     - "curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.28.0/minikube-linux-amd64"
     - "chmod +x minikube"
-
-- name: "Start minikube"
-  shell: "minikube start --vm-driver kvm2"
