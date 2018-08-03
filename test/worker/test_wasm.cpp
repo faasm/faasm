@@ -10,6 +10,8 @@ namespace tests {
         call.set_function("dummy");
 
         worker::WasmModule module;
+
+        // Here we know returnValue is a pointer
         int returnValue = module.execute(call);
 
         std::cout << "Ret val: " << returnValue << "\n";

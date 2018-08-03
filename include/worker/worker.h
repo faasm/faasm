@@ -7,7 +7,6 @@
 
 #include <proto/faasm.pb.h>
 #include <Runtime/Linker.h>
-#include <Emscripten/Emscripten.h>
 
 namespace worker {
     /** Wrapper for wasm code */
@@ -17,12 +16,11 @@ namespace worker {
 
         int execute(message::FunctionCall &call);
 
-        void printMemory(int ptr);
+        void printMemory(Uptr offset);
         void clean();
 
     private:
         Runtime::ModuleInstance *moduleInstance;
-        Emscripten::Instance *emscriptenInstance;
     };
 
     /** Worker wrapper */

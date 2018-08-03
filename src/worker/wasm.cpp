@@ -1,5 +1,8 @@
+#include <stdio.h>
+
 #include <Runtime/RuntimePrivate.h>
 #include "Programs/CLI.h"
+#include <Emscripten/Emscripten.h>
 
 #include "worker.h"
 #include "resolver.h"
@@ -44,7 +47,7 @@ namespace worker {
         RootResolver rootResolver(compartment);
 
         // Emscripten set-up
-        emscriptenInstance = Emscripten::instantiate(compartment, module);
+        Emscripten::Instance *emscriptenInstance = Emscripten::instantiate(compartment, module);
 
         if (emscriptenInstance) {
             rootResolver.moduleNameToInstanceMap.set("env", emscriptenInstance->env);
@@ -97,12 +100,20 @@ namespace worker {
         return functionResults[0].i32;
     }
 
-    void WasmModule::printMemory(int ptr) {
-        MemoryInstance *mem = emscriptenInstance->emscriptenMemory;
+    void WasmModule::printMemory(Uptr offset) {
+        MemoryInstance *mem = moduleInstance->defaultMemory;
 
         U8 *baseAddr = mem->baseAddress;
+        U8 *endAddr = mem->baseAddress + mem->endOffset;
 
-        std::cout << "BASE: " << baseAddr << "\n";
+        printf("START %p\n", (void*) baseAddr);
+        printf("END %p\n",(void*) endAddr);
+
+        U8 *valueAddr = mem->baseAddress + offset;
+
+        char* value = (char*) valueAddr;
+
+        printf("VALUE PTR: %p\n",(void*) valueAddr);
+        printf("VALUE: %s\n", (char*) value);
     }
-
 }
