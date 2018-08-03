@@ -11,8 +11,8 @@ namespace tests {
         call.set_function("dummy");
 
         worker::WasmModule module;
-        int returnValue = module.execute(call);
+        std::string returnValue = module.execute(call);
 
-        REQUIRE(0 == returnValue);
+        REQUIRE("4" == returnValue);
     }
 }

@@ -16,7 +16,7 @@ namespace worker {
 
     }
 
-    int WasmModule::execute(message::FunctionCall &call) {
+    std::string WasmModule::execute(message::FunctionCall &call) {
         std::cout << "Received call:  " << call.user() << " - " << call.function() << "\n";
 
         std::string filePath = infra::getFunctionFile(call);
@@ -26,7 +26,7 @@ namespace worker {
         if (!loadModule(filePath.c_str(), module)) {
             std::cerr << "Could not load module at:  " << filePath << "\n";
 
-            return 1;
+            return nullptr;
         }
 
         // Link the module with the intrinsic modules.
@@ -54,7 +54,7 @@ namespace worker {
                           << "\" export=\"" << missingImport.exportName
                           << "\" type=\"" << asString(missingImport.type) << "\"" << std::endl;
             }
-            return 1;
+            return nullptr;
         }
 
         // Instantiate the module.
@@ -63,7 +63,9 @@ namespace worker {
                 module,
                 std::move(linkResult.resolvedImports),
                 filePath.c_str());
-        if(!moduleInstance) { return 1; }
+        if(!moduleInstance) {
+            return nullptr;
+        }
 
         // Call the module start function, if it has one.
         FunctionInstance *startFunction = getStartFunction(moduleInstance);
@@ -83,9 +85,13 @@ namespace worker {
         std::vector<Value> invokeArgs;
         IR::ValueTuple functionResults = invokeFunctionChecked(context, functionInstance, invokeArgs);
 
+        const std::string result = asString(functionResults);
+
+        std::cout << "Result:  " << result << "\n";
+
         // Clear up
         Runtime::collectGarbage();
 
-        return 0;
+        return result;
     }
 }

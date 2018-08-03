@@ -11,7 +11,7 @@ namespace worker {
     public:
         WasmModule();
 
-        int execute(message::FunctionCall &call);
+        std::string execute(message::FunctionCall &call);
     };
 
     class Worker {
