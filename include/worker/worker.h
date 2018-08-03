@@ -14,13 +14,18 @@ namespace worker {
     public:
         WasmModule();
 
-        int execute(message::FunctionCall &call);
+        /** Executes the function and stores the result */
+        void execute(message::FunctionCall &call);
 
-        void printMemory(Uptr offset);
+        /** Retrieves the result as a char pointer */
+        char* resultToCharPtr();
+
+        /** Cleans up */
         void clean();
 
     private:
         Runtime::ModuleInstance *moduleInstance;
+        IR::ValueTuple functionResults;
     };
 
     /** Worker wrapper */

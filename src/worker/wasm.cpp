@@ -28,7 +28,7 @@ namespace worker {
         Runtime::collectGarbage();
     }
 
-    int WasmModule::execute(message::FunctionCall &call) {
+    void WasmModule::execute(message::FunctionCall &call) {
         std::cout << "Received call:  " << call.user() << " - " << call.function() << "\n";
 
         std::string filePath = infra::getFunctionFile(call);
@@ -95,25 +95,21 @@ namespace worker {
 
         // Make the call
         std::vector<Value> invokeArgs;
-        IR::ValueTuple functionResults = invokeFunctionChecked(context, functionInstance, invokeArgs);
-
-        return functionResults[0].i32;
+        functionResults = invokeFunctionChecked(context, functionInstance, invokeArgs);
     }
 
-    void WasmModule::printMemory(Uptr offset) {
+    char* WasmModule::resultToCharPtr() {
+        // Assume return value is a pointer from the function
+        // i.e. an offset from the base of the default memory
+        I32 offset = functionResults[0].i32;
+
+        // Get the address held at this offset in the default memory
         MemoryInstance *mem = moduleInstance->defaultMemory;
-
-        U8 *baseAddr = mem->baseAddress;
-        U8 *endAddr = mem->baseAddress + mem->endOffset;
-
-        printf("START %p\n", (void*) baseAddr);
-        printf("END %p\n",(void*) endAddr);
-
         U8 *valueAddr = mem->baseAddress + offset;
 
+        // Cast to a char ptr
         char* value = (char*) valueAddr;
 
-        printf("VALUE PTR: %p\n",(void*) valueAddr);
-        printf("VALUE: %s\n", (char*) value);
+        return value;
     }
 }

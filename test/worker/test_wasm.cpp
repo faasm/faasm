@@ -11,20 +11,11 @@ namespace tests {
 
         worker::WasmModule module;
 
-        // Here we know returnValue is a pointer
-        int returnValue = module.execute(call);
+        // Execute the function
+        module.execute(call);
+        const char *result = module.resultToCharPtr();
 
-        std::cout << "Ret val: " << returnValue << "\n";
-
-        module.printMemory(returnValue);
-
-        const char *ptr = (char *) &returnValue;
-
-        std::cout << "PTR: " << ptr << "\n";
-
-        std::string strVal(ptr);
-
-        REQUIRE("foobar" == strVal);
+        REQUIRE(strcmp("THIS IS MY DATA", result) == 0);
 
         module.clean();
     }
