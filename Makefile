@@ -1,24 +1,20 @@
 # DOCKER
 
-.PHONY: minikube-env
-minikube-env:
-	eval $$(minikube docker-env)
-
 .PHONY: build-base
-build-base: minikube-env
-	docker build -t shillaker/faasm-base:0.0.1 -f base.dockerfile .
+build-base:
+	eval $$(minikube docker-env) && docker build -t shillaker/faasm-base:0.0.1 -f base.dockerfile .
 
 .PHONY: build-core
-build-core: minikube-env
-	docker build -t shillaker/faasm-core:0.0.1 .
+build-core:
+	eval $$(minikube docker-env) && docker build -t shillaker/faasm-core:0.0.1 .
 
 .PHONY: build-worker
 build-worker: build-core
-	docker build -t shillaker/faasm-worker:0.0.1 -f worker.dockerfile .
+	eval $$(minikube docker-env) && docker build -t shillaker/faasm-worker:0.0.1 -f worker.dockerfile .
 
 .PHONY: build-edge
 build-edge: build-core
-	docker build -t shillaker/faasm-edge:0.0.1 -f edge.dockerfile .
+	eval $$(minikube docker-env) && docker build -t shillaker/faasm-edge:0.0.1 -f edge.dockerfile .
 
 # KUBERNETES
 

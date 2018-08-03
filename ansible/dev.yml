@@ -4,3 +4,4 @@
   gather_facts: no
   roles:
     - dev
+    - protobuf
