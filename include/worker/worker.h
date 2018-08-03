@@ -16,6 +16,12 @@ namespace worker {
         WasmModule();
 
         int execute(message::FunctionCall &call);
+
+        void printMemory(int ptr);
+        void clean();
+
+    private:
+        Runtime::ModuleInstance *moduleInstance;
     };
 
     /** Worker wrapper */

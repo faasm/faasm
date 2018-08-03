@@ -1,6 +1,5 @@
 #include <catch/catch.hpp>
 #include <worker/worker.h>
-#include <proto/faasm.pb.h>
 
 namespace tests {
 
@@ -13,6 +12,18 @@ namespace tests {
         worker::WasmModule module;
         int returnValue = module.execute(call);
 
-        REQUIRE(4 == returnValue);
+        std::cout << "Ret val: " << returnValue << "\n";
+
+        module.printMemory(returnValue);
+
+        const char *ptr = (char *) &returnValue;
+
+        std::cout << "PTR: " << ptr << "\n";
+
+        std::string strVal(ptr);
+
+        REQUIRE("foobar" == strVal);
+
+        module.clean();
     }
 }

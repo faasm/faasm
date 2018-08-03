@@ -28,6 +28,8 @@ namespace worker {
             WasmModule module;
             module.execute(call);
 
+            module.clean();
+
             // Set function success
             std::cout << "Finished call:  " << call.user() << " - " << call.function() << "\n";
 

@@ -1,3 +1,4 @@
+#include <Runtime/RuntimePrivate.h>
 #include "worker.h"
 #include "resolver.h"
 
@@ -12,10 +13,15 @@ using namespace Runtime;
  */
 
 namespace worker {
-    const std::string ENTRYPOINT_FUNC = "main";
+    const std::string ENTRYPOINT_FUNC = "run";
 
     WasmModule::WasmModule() {
 
+    }
+
+    void WasmModule::clean() {
+        // Clear up
+        Runtime::collectGarbage();
     }
 
     int WasmModule::execute(message::FunctionCall &call) {
@@ -47,11 +53,9 @@ namespace worker {
 
         // Linking
         LinkResult linkResult = linkModule(module, rootResolver);
-        if(!linkResult.success)
-        {
+        if (!linkResult.success) {
             std::cerr << "Failed to link module:" << std::endl;
-            for(auto& missingImport : linkResult.missingImports)
-            {
+            for (auto &missingImport : linkResult.missingImports) {
                 std::cerr << "Missing import: module=\"" << missingImport.moduleName
                           << "\" export=\"" << missingImport.exportName
                           << "\" type=\"" << asString(missingImport.type) << "\"" << std::endl;
@@ -60,12 +64,12 @@ namespace worker {
         }
 
         // Instantiate the module.
-        ModuleInstance *moduleInstance = instantiateModule(
+        moduleInstance = instantiateModule(
                 compartment,
                 module,
                 std::move(linkResult.resolvedImports),
                 filePath.c_str());
-        if(!moduleInstance) {
+        if (!moduleInstance) {
             throw WasmException();
         }
 
@@ -81,17 +85,26 @@ namespace worker {
         // Extract the module's exported function
         // Note that emscripten can add an underscore before the function name
         FunctionInstance *functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, ENTRYPOINT_FUNC));
-        if(!functionInstance) {
-            functionInstance = asFunctionNullable(getInstanceExport(moduleInstance,"_" + ENTRYPOINT_FUNC));
+        if (!functionInstance) {
+            functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, "_" + ENTRYPOINT_FUNC));
         }
 
         // Make the call
         std::vector<Value> invokeArgs;
         IR::ValueTuple functionResults = invokeFunctionChecked(context, functionInstance, invokeArgs);
 
-        // Clear up
-        Runtime::collectGarbage();
-
         return functionResults[0].i32;
     }
+
+    void WasmModule::printMemory(int ptr) {
+        std::vector<MemoryInstance *> memories = moduleInstance->compartment->memories;
+        std::cout << "NUM MEMS " << memories.size() << "\n";
+
+        MemoryInstance *mem = memories[0];
+
+        U8 *baseAddr = mem->baseAddress;
+
+        std::cout << "BASE: " << baseAddr << "\n";
+    }
+
 }
