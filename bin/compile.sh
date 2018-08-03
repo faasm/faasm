@@ -12,11 +12,12 @@ echo "Sourcing emsdk env"
 source /usr/local/code/emsdk/emsdk_env.sh > /dev/null
 
 echo "Building with emscripten"
+# NOTE: can include -g here to generate .wast
 pushd work
-emcc ../func/function_$2.c -Os -g -s WASM=1 -o function.js
+emcc ../func/function_$2.c -Oz -s WASM=1 -o function.js
 popd
 
 echo "Recreating function in output dir"
 rm -rf wasm/$1/$2
 mkdir -p wasm/$1/$2
-cp work/function.wasm work/function.wast wasm/$1/$2/
+cp work/function.* wasm/$1/$2/

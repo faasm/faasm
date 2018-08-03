@@ -1,19 +1,24 @@
 #pragma once
 
 #include <infra/infra.h>
+
 #include <string>
+#include <exception>
+
 #include <proto/faasm.pb.h>
 #include <Runtime/Linker.h>
 
 
 namespace worker {
+    /** Wrapper for wasm code */
     class WasmModule {
     public:
         WasmModule();
 
-        std::string execute(message::FunctionCall &call);
+        int execute(message::FunctionCall &call);
     };
 
+    /** Worker wrapper */
     class Worker {
     public:
         Worker();
@@ -23,4 +28,7 @@ namespace worker {
     private:
         infra::RedisClient redis;
     };
+
+    /** Exception for wasm failure */
+    class WasmException: public std::exception {};
 }

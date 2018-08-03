@@ -12,11 +12,13 @@ using namespace Runtime;
  */
 
 namespace worker {
+    const std::string ENTRYPOINT_FUNC = "main";
+
     WasmModule::WasmModule() {
 
     }
 
-    std::string WasmModule::execute(message::FunctionCall &call) {
+    int WasmModule::execute(message::FunctionCall &call) {
         std::cout << "Received call:  " << call.user() << " - " << call.function() << "\n";
 
         std::string filePath = infra::getFunctionFile(call);
@@ -26,7 +28,7 @@ namespace worker {
         if (!loadModule(filePath.c_str(), module)) {
             std::cerr << "Could not load module at:  " << filePath << "\n";
 
-            return nullptr;
+            throw WasmException();
         }
 
         // Link the module with the intrinsic modules.
@@ -54,7 +56,7 @@ namespace worker {
                           << "\" export=\"" << missingImport.exportName
                           << "\" type=\"" << asString(missingImport.type) << "\"" << std::endl;
             }
-            return nullptr;
+            throw WasmException();
         }
 
         // Instantiate the module.
@@ -64,7 +66,7 @@ namespace worker {
                 std::move(linkResult.resolvedImports),
                 filePath.c_str());
         if(!moduleInstance) {
-            return nullptr;
+            throw WasmException();
         }
 
         // Call the module start function, if it has one.
@@ -76,22 +78,20 @@ namespace worker {
         // Call the Emscripten global initalizers.
         Emscripten::initializeGlobals(context, module, moduleInstance);
 
-        // Extract the module's main function
-        // Note that emscripten can add an underscore before main
-        FunctionInstance *functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, "main"));
-        if(!functionInstance) { functionInstance = asFunctionNullable(getInstanceExport(moduleInstance,"_main")); }
+        // Extract the module's exported function
+        // Note that emscripten can add an underscore before the function name
+        FunctionInstance *functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, ENTRYPOINT_FUNC));
+        if(!functionInstance) {
+            functionInstance = asFunctionNullable(getInstanceExport(moduleInstance,"_" + ENTRYPOINT_FUNC));
+        }
 
         // Make the call
         std::vector<Value> invokeArgs;
         IR::ValueTuple functionResults = invokeFunctionChecked(context, functionInstance, invokeArgs);
 
-        const std::string result = asString(functionResults);
-
-        std::cout << "Result:  " << result << "\n";
-
         // Clear up
         Runtime::collectGarbage();
 
-        return result;
+        return functionResults[0].i32;
     }
 }
