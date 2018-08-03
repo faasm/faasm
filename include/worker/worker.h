@@ -18,7 +18,7 @@ namespace worker {
         void execute(message::FunctionCall &call);
 
         /** Retrieves the result as a char pointer */
-        char* resultToCharPtr();
+        char *resultToCharPtr();
 
         /** Cleans up */
         void clean();
@@ -39,6 +39,10 @@ namespace worker {
         infra::RedisClient redis;
     };
 
-    /** Exception for wasm failure */
-    class WasmException: public std::exception {};
+    /** Exceptions */
+    class WasmException : public std::exception {
+    };
+
+    class InvalidResultException : public std::exception {
+    };
 }

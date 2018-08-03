@@ -93,8 +93,14 @@ namespace worker {
             functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, "_" + ENTRYPOINT_FUNC));
         }
 
-        // Make the call
+        // Construct the arguments
         std::vector<Value> invokeArgs;
+
+        // Inject args
+        std::vector<const char*> argStrings;
+        Emscripten::injectCommandArgs(emscriptenInstance,argStrings,invokeArgs);
+
+        // Make the call
         functionResults = invokeFunctionChecked(context, functionInstance, invokeArgs);
     }
 
@@ -106,6 +112,13 @@ namespace worker {
         // Get the address held at this offset in the default memory
         MemoryInstance *mem = moduleInstance->defaultMemory;
         U8 *valueAddr = mem->baseAddress + offset;
+
+        // Check this belongs to the module
+        U8 *memoryEnd = mem->baseAddress + mem->endOffset;
+        U8 *maxValueAddr = valueAddr + sizeof(char*);
+        if (maxValueAddr >= memoryEnd) {
+            throw InvalidResultException();
+        }
 
         // Cast to a char ptr
         char* value = (char*) valueAddr;
