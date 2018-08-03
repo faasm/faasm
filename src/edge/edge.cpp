@@ -46,18 +46,12 @@ namespace edge {
         using namespace Rest;
 
         Routes::Get(router, "/f/:user/:function", Routes::bind(&FunctionEndpoint::handleFunction, this));
+        Routes::Get(router, "/fa/:user/:function", Routes::bind(&FunctionEndpoint::handleAsyncFunction, this));
         Routes::Get(router, "/status/", Routes::bind(&FunctionEndpoint::status, this));
     }
 
     void FunctionEndpoint::handleFunction(const Rest::Request &request, Http::ResponseWriter response) {
-        // Parse request params
-        auto user = request.param(":user").as<std::string>();
-        auto function = request.param(":function").as<std::string>();
-
-        // Build function call
-        message::FunctionCall call;
-        call.set_user(user);
-        call.set_function(function);
+        message::FunctionCall call = this->buildCallFromRequest(request);
 
         // Make the call
         this->callFunction(call);
@@ -73,6 +67,29 @@ namespace edge {
         } else {
             response.send(Http::Code::Internal_Server_Error, "Error");
         }
+    }
+
+    void FunctionEndpoint::handleAsyncFunction(const Rest::Request &request, Http::ResponseWriter response) {
+        message::FunctionCall call = this->buildCallFromRequest(request);
+
+        // Make the call
+        this->callFunction(call);
+
+        // Don't wait for a result
+        response.send(Http::Code::Ok, "Success");
+    }
+
+    message::FunctionCall FunctionEndpoint::buildCallFromRequest(const Rest::Request &request) {
+        // Parse request params
+        auto user = request.param(":user").as<std::string>();
+        auto function = request.param(":function").as<std::string>();
+
+        // Build function call
+        message::FunctionCall call;
+        call.set_user(user);
+        call.set_function(function);
+
+        return call;
     }
 
     void FunctionEndpoint::callFunction(message::FunctionCall &call) {

@@ -33,5 +33,9 @@ namespace edge {
         void status(const Rest::Request &request, Http::ResponseWriter response);
 
         void handleFunction(const Rest::Request &request, Http::ResponseWriter response);
+
+        void handleAsyncFunction(const Rest::Request &request, Http::ResponseWriter response);
+
+        message::FunctionCall buildCallFromRequest(const Rest::Request &request);
     };
 }

@@ -24,10 +24,7 @@ minikube-reset:
 minikube-start:
 	minikube start --vm-driver kvm2 --logtostderr --disk-size 10g
 
-minikube-ping:
-	curl http://$$(minikube ip):30036/f/simon/dummy/
-
-minikube-edge:
+minikube-url:
 	minikube service edge --namespace=faasm --url
 
 k8-deploy:

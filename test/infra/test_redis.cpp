@@ -19,7 +19,6 @@ namespace tests {
         std::string expected = "foobar";
         std::string actual = cli.check(expected);
 
-        cli.sync_commit();
         REQUIRE(expected == actual);
     }
 

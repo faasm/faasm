@@ -30,6 +30,8 @@ namespace infra {
             result = reply.as_string();
         });
 
+        this->sync_commit();
+
         return result;
     }
 
