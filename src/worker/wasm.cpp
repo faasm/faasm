@@ -1,8 +1,9 @@
 #include <Runtime/RuntimePrivate.h>
+#include "Programs/CLI.h"
+
 #include "worker.h"
 #include "resolver.h"
 
-#include "Programs/CLI.h"
 
 using namespace IR;
 using namespace Runtime;
@@ -43,7 +44,7 @@ namespace worker {
         RootResolver rootResolver(compartment);
 
         // Emscripten set-up
-        Emscripten::Instance *emscriptenInstance = Emscripten::instantiate(compartment, module);
+        emscriptenInstance = Emscripten::instantiate(compartment, module);
 
         if (emscriptenInstance) {
             rootResolver.moduleNameToInstanceMap.set("env", emscriptenInstance->env);
@@ -97,10 +98,7 @@ namespace worker {
     }
 
     void WasmModule::printMemory(int ptr) {
-        std::vector<MemoryInstance *> memories = moduleInstance->compartment->memories;
-        std::cout << "NUM MEMS " << memories.size() << "\n";
-
-        MemoryInstance *mem = memories[0];
+        MemoryInstance *mem = emscriptenInstance->emscriptenMemory;
 
         U8 *baseAddr = mem->baseAddress;
 

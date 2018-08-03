@@ -7,7 +7,7 @@
 
 #include <proto/faasm.pb.h>
 #include <Runtime/Linker.h>
-
+#include <Emscripten/Emscripten.h>
 
 namespace worker {
     /** Wrapper for wasm code */
@@ -22,6 +22,7 @@ namespace worker {
 
     private:
         Runtime::ModuleInstance *moduleInstance;
+        Emscripten::Instance *emscriptenInstance;
     };
 
     /** Worker wrapper */
