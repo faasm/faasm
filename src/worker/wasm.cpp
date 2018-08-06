@@ -28,9 +28,7 @@ namespace worker {
         Runtime::collectGarbage();
     }
 
-    void WasmModule::execute(message::FunctionCall &call) {
-        std::cout << "Received call:  " << call.user() << " - " << call.function() << "\n";
-
+    void WasmModule::initModule(message::FunctionCall &call) {
         std::string filePath = infra::getFunctionFile(call);
         std::cout << "Executing function at:  " << filePath << "\n";
 
@@ -41,9 +39,16 @@ namespace worker {
             throw WasmException();
         }
 
+        // Add a data section to the module
+        // TODO - work out how to declare how big this should be etc.
+        // Clearly we want an upper limit but nothing too big
+        DataSegment dataSegment;
+        dataSegment.baseOffset = ;
+        module.dataSegments = {dataSegment};
+
         // Link the module with the intrinsic modules.
         Compartment *compartment = Runtime::createCompartment();
-        Context *context = Runtime::createContext(compartment);
+        context = Runtime::createContext(compartment);
         RootResolver rootResolver(compartment);
 
         // Emscripten set-up
@@ -86,6 +91,13 @@ namespace worker {
         // Call the Emscripten global initalizers.
         Emscripten::initializeGlobals(context, module, moduleInstance);
 
+    }
+
+    void WasmModule::execute(message::FunctionCall &call) {
+        std::cout << "Received call:  " << call.user() << " - " << call.function() << "\n";
+
+        this->initModule(call);
+
         // Extract the module's exported function
         // Note that emscripten can add an underscore before the function name
         FunctionInstance *functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, ENTRYPOINT_FUNC));
@@ -96,12 +108,17 @@ namespace worker {
         // Construct the arguments
         std::vector<Value> invokeArgs;
 
-        // Inject args
-        std::vector<const char*> argStrings;
-        Emscripten::injectCommandArgs(emscriptenInstance,argStrings,invokeArgs);
-
         // Make the call
         functionResults = invokeFunctionChecked(context, functionInstance, invokeArgs);
+    }
+
+    void WasmModule::allocIntArray(int arrayLen) {
+        MemoryInstance* mem = moduleInstance->defaultMemory;
+
+        U32 numBytes = (sizeof(U32)) * arrayLen;
+
+        // TODO - what do I need to do here? How do I pass data into the function's memory
+        Runtime::growMemory(mem, );
     }
 
     char* WasmModule::resultToCharPtr() {

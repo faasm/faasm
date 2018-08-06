@@ -26,6 +26,11 @@ namespace worker {
     private:
         Runtime::ModuleInstance *moduleInstance;
         IR::ValueTuple functionResults;
+        Runtime::Context *context;
+
+        void initModule(message::FunctionCall &call);
+
+        void allocIntArray(int arrayLen);
     };
 
     /** Worker wrapper */
