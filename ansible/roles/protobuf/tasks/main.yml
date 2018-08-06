@@ -28,6 +28,5 @@
   with_items:
   - "./configure --prefix=/usr CC=/usr/bin/clang CPP=/usr/bin/clang-cpp CXX=/usr/bin/clang++"
   - "make"
-  # - "make check"
   - "make install"
   - "ldconfig"
