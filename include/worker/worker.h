@@ -8,6 +8,9 @@
 #include <proto/faasm.pb.h>
 #include <Runtime/Linker.h>
 
+using namespace IR;
+using namespace Runtime;
+
 namespace worker {
     /** Wrapper for wasm code */
     class WasmModule {
@@ -24,11 +27,13 @@ namespace worker {
         void clean();
 
     private:
-        Runtime::ModuleInstance *moduleInstance;
-        IR::ValueTuple functionResults;
-        Runtime::Context *context;
+        ModuleInstance *moduleInstance;
+        ValueTuple functionResults;
+        Context *context;
 
         void initModule(message::FunctionCall &call);
+
+        void addDataSegment(Module module, std::vector<U8> &inputData);
     };
 
     /** Worker wrapper */

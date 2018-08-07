@@ -39,14 +39,9 @@ namespace worker {
             throw WasmException();
         }
 
-        // Add a data segment to the default memory
-        DataSegment dataSegment;
-        InitializerExpression baseOffset((I32) 0);
-        dataSegment.memoryIndex = (Uptr) 0;
-        dataSegment.baseOffset = baseOffset;
-        dataSegment.data = {1, 2, 3, 4};
-
-        module.dataSegments = {dataSegment};
+        // Add input data
+        std::vector<U8> inputData = {1, 2, 3, 4};
+        addDataSegment(module, inputData);
 
         // Link the module with the intrinsic modules.
         Compartment *compartment = Runtime::createCompartment();
@@ -112,6 +107,16 @@ namespace worker {
 
         // Make the call
         functionResults = invokeFunctionChecked(context, functionInstance, invokeArgs);
+    }
+
+    void WasmModule::addDataSegment(Module module, std::vector<U8> &inputData) {
+        DataSegment dataSegment;
+        InitializerExpression baseOffset((I32) 0);
+        dataSegment.memoryIndex = (Uptr) 0;
+        dataSegment.baseOffset = baseOffset;
+        dataSegment.data = inputData;
+
+        module.dataSegments.push_back(dataSegment);
     }
 
     char* WasmModule::resultToCharPtr() {
