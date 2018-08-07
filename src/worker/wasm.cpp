@@ -17,8 +17,6 @@ using namespace Runtime;
  */
 
 namespace worker {
-    const std::string ENTRYPOINT_FUNC = "run";
-
     WasmModule::WasmModule() {
 
     }
@@ -28,9 +26,8 @@ namespace worker {
         Runtime::collectGarbage();
     }
 
-    void WasmModule::initModule(message::FunctionCall &call) {
+    int WasmModule::execute(message::FunctionCall &call) {
         std::string filePath = infra::getFunctionFile(call);
-        std::cout << "Executing function at:  " << filePath << "\n";
 
         Module module;
         if (!loadModule(filePath.c_str(), module)) {
@@ -39,9 +36,20 @@ namespace worker {
             throw WasmException();
         }
 
-        // Add input data
-        std::vector<U8> inputData = {1, 2, 3, 4};
-        addDataSegment(module, inputData);
+        // Define input and output data segments
+        DataSegment inputDataSegment;
+        inputDataSegment.memoryIndex = (Uptr) 0;
+        inputDataSegment.baseOffset = InitializerExpression((I32) 0);
+        inputDataSegment.data = inputData;
+
+        DataSegment outputDataSegment;
+        outputDataSegment.memoryIndex = (Uptr) 0;
+        outputDataSegment.baseOffset = InitializerExpression((I32) INPUT_MAX_BYTES);
+        outputData.reserve(OUTPUT_MAX_BYTES);
+        outputDataSegment.data = outputData;
+
+        module.dataSegments.push_back(inputDataSegment);
+        module.dataSegments.push_back(outputDataSegment);
 
         // Link the module with the intrinsic modules.
         Compartment *compartment = Runtime::createCompartment();
@@ -88,13 +96,6 @@ namespace worker {
         // Call the Emscripten global initalizers.
         Emscripten::initializeGlobals(context, module, moduleInstance);
 
-    }
-
-    void WasmModule::execute(message::FunctionCall &call) {
-        std::cout << "Received call:  " << call.user() << " - " << call.function() << "\n";
-
-        this->initModule(call);
-
         // Extract the module's exported function
         // Note that emscripten can add an underscore before the function name
         FunctionInstance *functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, ENTRYPOINT_FUNC));
@@ -104,29 +105,32 @@ namespace worker {
 
         // Construct the arguments
         std::vector<Value> invokeArgs;
+        inputStart = (I32) 0;
+        inputLength = (I32) INPUT_MAX_BYTES;
+        outputStart = (I32) INPUT_MAX_BYTES;
+        outputLength = (I32) OUTPUT_MAX_BYTES;
+
+        invokeArgs.emplace_back(inputStart);
+        invokeArgs.emplace_back(inputLength);
+        invokeArgs.emplace_back(outputStart);
+        invokeArgs.emplace_back(outputLength);
 
         // Make the call
         functionResults = invokeFunctionChecked(context, functionInstance, invokeArgs);
+
+        return functionResults[0].u32;
     }
 
-    void WasmModule::addDataSegment(Module module, std::vector<U8> &inputData) {
-        DataSegment dataSegment;
-        InitializerExpression baseOffset((I32) 0);
-        dataSegment.memoryIndex = (Uptr) 0;
-        dataSegment.baseOffset = baseOffset;
-        dataSegment.data = inputData;
+    std::vector<U8> WasmModule::getOutputData() {
+        U8* rawOutput = &memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) outputStart);
 
-        module.dataSegments.push_back(dataSegment);
-    }
+        std::vector<U8> output;
+        output.reserve(outputLength);
 
-    char* WasmModule::resultToCharPtr() {
-        // Assume return value is a pointer from the function
-        // i.e. an offset from the base of the default memory
-        Uptr offset = functionResults[0].u32;
-        MemoryInstance *mem = moduleInstance->defaultMemory;
+        for(int i = 0; i < outputLength; i++) {
+            output.emplace_back(rawOutput[i]);
+        }
 
-        char* value = &memoryRef<char>(mem, offset);
-
-        return value;
-    }
+        return output;
+    };
 }

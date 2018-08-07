@@ -12,10 +12,14 @@ namespace tests {
         worker::WasmModule module;
 
         // Execute the function
-        module.execute(call);
-        const char *result = module.resultToCharPtr();
+        int result = module.execute(call);
+        REQUIRE(result == 0);
 
-        REQUIRE(strcmp("THIS IS MY DATA", result) == 0);
+        std::vector<U8> outputData = module.getOutputData();
+        REQUIRE(outputData[0] == 0);
+        REQUIRE(outputData[1] == 1);
+        REQUIRE(outputData[2] == 2);
+        REQUIRE(outputData[3] == 3);
 
         module.clean();
     }

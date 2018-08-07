@@ -1,7 +1,11 @@
 #include "emscripten.h"
 
-char* EMSCRIPTEN_KEEPALIVE run() {
-   char* data = "THIS IS MY DATA";
+EMSCRIPTEN_KEEPALIVE
+int run(int* input, int inputLength, int* output, int outputLength) {
 
-   return data;
+   for(int i=0; i < 5; i++) {
+      output[i] = i;
+   }
+
+   return 0;
 }
