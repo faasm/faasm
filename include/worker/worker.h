@@ -29,8 +29,6 @@ namespace worker {
         Runtime::Context *context;
 
         void initModule(message::FunctionCall &call);
-
-        void allocIntArray(int arrayLen);
     };
 
     /** Worker wrapper */

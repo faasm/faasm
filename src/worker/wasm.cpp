@@ -40,10 +40,12 @@ namespace worker {
         }
 
         // Add a data section to the module
-        // TODO - work out how to declare how big this should be etc.
-        // Clearly we want an upper limit but nothing too big
         DataSegment dataSegment;
-        dataSegment.baseOffset = ;
+        InitializerExpression baseOffset((I32) 0);
+        dataSegment.memoryIndex = (Uptr) 1;
+        dataSegment.baseOffset = baseOffset;
+        dataSegment.data = {1, 2, 3, 4};
+
         module.dataSegments = {dataSegment};
 
         // Link the module with the intrinsic modules.
@@ -110,15 +112,6 @@ namespace worker {
 
         // Make the call
         functionResults = invokeFunctionChecked(context, functionInstance, invokeArgs);
-    }
-
-    void WasmModule::allocIntArray(int arrayLen) {
-        MemoryInstance* mem = moduleInstance->defaultMemory;
-
-        U32 numBytes = (sizeof(U32)) * arrayLen;
-
-        // TODO - what do I need to do here? How do I pass data into the function's memory
-        Runtime::growMemory(mem, );
     }
 
     char* WasmModule::resultToCharPtr() {
