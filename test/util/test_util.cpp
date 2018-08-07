@@ -33,5 +33,27 @@ namespace tests {
 
         REQUIRE(getEnvVar("MY_VAR", "alpha") == "alpha");
     }
+    
+    TEST_CASE("Test converting integers to bytes", "[util]") {
+        int ints[3] = {1, 2, 3};
+        uint8_t bytes[12];
+
+        intToBytes(ints, 3, bytes);
+
+        REQUIRE(bytes[0] == 1);
+        REQUIRE(bytes[1] == 0);
+        REQUIRE(bytes[2] == 0);
+        REQUIRE(bytes[3] == 0);
+
+        REQUIRE(bytes[4] == 2);
+        REQUIRE(bytes[5] == 0);
+        REQUIRE(bytes[6] == 0);
+        REQUIRE(bytes[7] == 0);
+
+        REQUIRE(bytes[8] == 3);
+        REQUIRE(bytes[9] == 0);
+        REQUIRE(bytes[10] == 0);
+        REQUIRE(bytes[11] == 0);
+    }
 
 }

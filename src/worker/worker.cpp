@@ -26,7 +26,8 @@ namespace worker {
             message::FunctionCall call = redis.nextFunctionCall();
 
             WasmModule module;
-            module.execute(call);
+            std::vector<U8> inputData;
+            module.execute(call, inputData);
 
             module.clean();
 

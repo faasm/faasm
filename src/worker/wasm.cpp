@@ -26,7 +26,7 @@ namespace worker {
         Runtime::collectGarbage();
     }
 
-    int WasmModule::execute(message::FunctionCall &call) {
+    int WasmModule::execute(message::FunctionCall &call, std::vector<U8> &input) {
         std::string filePath = infra::getFunctionFile(call);
 
         Module module;
@@ -40,6 +40,7 @@ namespace worker {
         DataSegment inputDataSegment;
         inputDataSegment.memoryIndex = (Uptr) 0;
         inputDataSegment.baseOffset = InitializerExpression((I32) 0);
+        inputData = input;
         inputDataSegment.data = inputData;
 
         DataSegment outputDataSegment;
@@ -105,9 +106,9 @@ namespace worker {
 
         // Construct the arguments
         std::vector<Value> invokeArgs;
-        inputStart = (I32) 0;
+        inputStart = (Uptr) 0;
         inputLength = (I32) INPUT_MAX_BYTES;
-        outputStart = (I32) INPUT_MAX_BYTES;
+        outputStart = (Uptr) INPUT_MAX_BYTES;
         outputLength = (I32) OUTPUT_MAX_BYTES;
 
         invokeArgs.emplace_back(inputStart);
@@ -121,13 +122,14 @@ namespace worker {
         return functionResults[0].u32;
     }
 
-    std::vector<U8> WasmModule::getOutputData() {
-        U8* rawOutput = &memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) outputStart);
+    std::vector<I32> WasmModule::getOutputData() {
+        I32* rawOutput = &memoryRef<I32>(moduleInstance->defaultMemory, (Uptr) outputStart);
 
-        std::vector<U8> output;
-        output.reserve(outputLength);
+        std::vector<I32> output;
+        const I32 nOutputInts = outputLength / 4;
+        output.reserve((unsigned long) nOutputInts);
 
-        for(int i = 0; i < outputLength; i++) {
+        for(int i = 0; i < nOutputInts; i++) {
             output.emplace_back(rawOutput[i]);
         }
 

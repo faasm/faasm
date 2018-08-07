@@ -9,7 +9,8 @@ int main()
     call.set_user("simon");
     call.set_function("dummy");
 
-    module.execute(call);
+    std::vector<U8> inputData;
+    module.execute(call, inputData);
 
     return 0;
 }

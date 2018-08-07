@@ -6,4 +6,7 @@ namespace util {
     std::string getEnvVar(std::string const &key, std::string const &dflt);
 
     int randomInteger();
+
+    void intToBytes(const int *ints, int length, uint8_t *bytes);
+
 }
