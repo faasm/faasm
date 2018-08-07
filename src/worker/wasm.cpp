@@ -39,10 +39,10 @@ namespace worker {
             throw WasmException();
         }
 
-        // Add a data section to the module
+        // Add a data segment to the default memory
         DataSegment dataSegment;
         InitializerExpression baseOffset((I32) 0);
-        dataSegment.memoryIndex = (Uptr) 1;
+        dataSegment.memoryIndex = (Uptr) 0;
         dataSegment.baseOffset = baseOffset;
         dataSegment.data = {1, 2, 3, 4};
 
@@ -117,21 +117,10 @@ namespace worker {
     char* WasmModule::resultToCharPtr() {
         // Assume return value is a pointer from the function
         // i.e. an offset from the base of the default memory
-        I32 offset = functionResults[0].i32;
-
-        // Get the address held at this offset in the default memory
+        Uptr offset = functionResults[0].u32;
         MemoryInstance *mem = moduleInstance->defaultMemory;
-        U8 *valueAddr = mem->baseAddress + offset;
 
-        // Check this belongs to the module
-        U8 *memoryEnd = mem->baseAddress + mem->endOffset;
-        U8 *maxValueAddr = valueAddr + sizeof(char*);
-        if (maxValueAddr >= memoryEnd) {
-            throw InvalidResultException();
-        }
-
-        // Cast to a char ptr
-        char* value = (char*) valueAddr;
+        char* value = &memoryRef<char>(mem, offset);
 
         return value;
     }
