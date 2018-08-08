@@ -1,5 +1,6 @@
 #include <catch/catch.hpp>
 #include <worker/worker.h>
+#include <util/util.h>
 
 namespace tests {
 
@@ -14,11 +15,14 @@ namespace tests {
         int result = module.execute(call);
         REQUIRE(result == 0);
 
+        std::string outputData = call.outputdata();
+        const std::vector<uint8_t> outputBytes = util::stringToBytes(outputData);
+        
         // Check output data
-        REQUIRE(module.outputData[0] == 0);
-        REQUIRE(module.outputData[1] == 1);
-        REQUIRE(module.outputData[2] == 2);
-        REQUIRE(module.outputData[3] == 3);
+        REQUIRE(outputBytes[0] == 0);
+        REQUIRE(outputBytes[1] == 1);
+        REQUIRE(outputBytes[2] == 2);
+        REQUIRE(outputBytes[3] == 3);
 
         module.clean();
     }
@@ -38,17 +42,20 @@ namespace tests {
         int result = module.execute(call);
         REQUIRE(result == 0);
 
+        std::string outputData = call.outputdata();
+        const std::vector<uint8_t> outputBytes = util::stringToBytes(outputData);
+
         // Check the results
-        REQUIRE(module.outputData[0] == 0);
-        REQUIRE(module.outputData[1] == 2);
-        REQUIRE(module.outputData[2] == 4);
-        REQUIRE(module.outputData[3] == 6);
-        REQUIRE(module.outputData[4] == 8);
-        REQUIRE(module.outputData[5] == 10);
-        REQUIRE(module.outputData[6] == 12);
-        REQUIRE(module.outputData[7] == 14);
-        REQUIRE(module.outputData[8] == 16);
-        REQUIRE(module.outputData[9] == 18);
+        REQUIRE(outputData[0] == 0);
+        REQUIRE(outputData[1] == 2);
+        REQUIRE(outputData[2] == 4);
+        REQUIRE(outputData[3] == 6);
+        REQUIRE(outputData[4] == 8);
+        REQUIRE(outputData[5] == 10);
+        REQUIRE(outputData[6] == 12);
+        REQUIRE(outputData[7] == 14);
+        REQUIRE(outputData[8] == 16);
+        REQUIRE(outputData[9] == 18);
 
         module.clean();
     }

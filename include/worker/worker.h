@@ -27,9 +27,6 @@ namespace worker {
         /** Cleans up */
         void clean();
 
-        std::vector<U8> outputData;
-        std::vector<U8> inputData;
-
     private:
         ModuleInstance *moduleInstance;
         ValueTuple functionResults;

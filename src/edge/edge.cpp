@@ -61,9 +61,9 @@ namespace edge {
         message::FunctionCall result = redis->blockingGetFunctionResult(call);
 
         // Handle result
-        std::cout << "Result " << result.user() << " - " << result.function() << " = " << result.success() << "\n";
+        std::cout << "Result " << result.user() << " - " << result.function() << " = " << result.outputdata() << "\n";
         if (result.success()) {
-            response.send(Http::Code::Ok, "Success");
+            response.send(Http::Code::Ok, result.outputdata());
         } else {
             response.send(Http::Code::Internal_Server_Error, "Error");
         }
@@ -76,7 +76,7 @@ namespace edge {
         this->callFunction(call);
 
         // Don't wait for a result
-        response.send(Http::Code::Ok, "Success");
+        response.send(Http::Code::Ok, "Async success");
     }
 
     message::FunctionCall FunctionEndpoint::buildCallFromRequest(const Rest::Request &request) {

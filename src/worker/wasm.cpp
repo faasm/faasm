@@ -39,17 +39,18 @@ namespace worker {
         }
 
         std::string input = call.inputdata();
-        inputData = util::stringToBytes(input);
 
         // Define input and output data segments
         DataSegment inputDataSegment;
         inputDataSegment.memoryIndex = (Uptr) 0;
         inputDataSegment.baseOffset = InitializerExpression((I32) 0);
-        inputDataSegment.data = inputData;
+        inputDataSegment.data = util::stringToBytes(input);
 
         DataSegment outputDataSegment;
         outputDataSegment.memoryIndex = (Uptr) 0;
         outputDataSegment.baseOffset = InitializerExpression((I32) INPUT_MAX_BYTES);
+
+        std::vector<U8> outputData;
         outputData.reserve(OUTPUT_MAX_BYTES);
         outputDataSegment.data = outputData;
 
@@ -123,10 +124,9 @@ namespace worker {
         // Make the call
         functionResults = invokeFunctionChecked(context, functionInstance, invokeArgs);
 
-        // Set up output data
+        // Set up output data on function
         U8 *rawOutput = &memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) outputStart);
-        std::vector<U8> output(rawOutput, rawOutput + OUTPUT_MAX_BYTES);
-        outputData = output;
+        call.set_outputdata(rawOutput, OUTPUT_MAX_BYTES);
 
         return functionResults[0].u32;
     }
