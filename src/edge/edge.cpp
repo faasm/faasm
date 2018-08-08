@@ -83,11 +83,15 @@ namespace edge {
         // Parse request params
         auto user = request.param(":user").as<std::string>();
         auto function = request.param(":function").as<std::string>();
+        
+        // Get the request body
+        const std::string requestData = request.body();
 
         // Build function call
         message::FunctionCall call;
         call.set_user(user);
         call.set_function(function);
+        call.set_inputdata(requestData);
 
         return call;
     }

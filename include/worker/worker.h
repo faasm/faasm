@@ -22,7 +22,7 @@ namespace worker {
         WasmModule();
 
         /** Executes the function and stores the result */
-        int execute(message::FunctionCall &call, std::vector<U8> &input);
+        int execute(message::FunctionCall &call);
 
         /** Cleans up */
         void clean();

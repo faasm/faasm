@@ -35,25 +35,15 @@ namespace tests {
     }
     
     TEST_CASE("Test converting integers to bytes", "[util]") {
-        int ints[3] = {1, 2, 3};
-        uint8_t bytes[12];
+        std::string input = "abcde";
 
-        intToBytes(ints, 3, bytes);
+        std::vector<uint8_t> actual = stringToBytes(input);
 
-        REQUIRE(bytes[0] == 1);
-        REQUIRE(bytes[1] == 0);
-        REQUIRE(bytes[2] == 0);
-        REQUIRE(bytes[3] == 0);
-
-        REQUIRE(bytes[4] == 2);
-        REQUIRE(bytes[5] == 0);
-        REQUIRE(bytes[6] == 0);
-        REQUIRE(bytes[7] == 0);
-
-        REQUIRE(bytes[8] == 3);
-        REQUIRE(bytes[9] == 0);
-        REQUIRE(bytes[10] == 0);
-        REQUIRE(bytes[11] == 0);
+        // Check cast back to char
+        REQUIRE('a' == (char)actual[0]);
+        REQUIRE('b' == (char)actual[1]);
+        REQUIRE('c' == (char)actual[2]);
+        REQUIRE('d' == (char)actual[3]);
     }
 
 }

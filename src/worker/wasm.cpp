@@ -1,11 +1,13 @@
+#include "worker.h"
+
 #include <stdio.h>
 
 #include <Runtime/RuntimePrivate.h>
 #include "Programs/CLI.h"
 #include <Emscripten/Emscripten.h>
-
-#include "worker.h"
 #include "resolver.h"
+
+#include <util/util.h>
 
 
 using namespace IR;
@@ -26,7 +28,7 @@ namespace worker {
         Runtime::collectGarbage();
     }
 
-    int WasmModule::execute(message::FunctionCall &call, std::vector<U8> &input) {
+    int WasmModule::execute(message::FunctionCall &call) {
         std::string filePath = infra::getFunctionFile(call);
 
         Module module;
@@ -36,11 +38,13 @@ namespace worker {
             throw WasmException();
         }
 
+        std::string input = call.inputdata();
+        inputData = util::stringToBytes(input);
+
         // Define input and output data segments
         DataSegment inputDataSegment;
         inputDataSegment.memoryIndex = (Uptr) 0;
         inputDataSegment.baseOffset = InitializerExpression((I32) 0);
-        inputData = input;
         inputDataSegment.data = inputData;
 
         DataSegment outputDataSegment;

@@ -1,6 +1,8 @@
 #include <catch/catch.hpp>
-#include <proto/faasm.pb.h>
 #include <iostream>
+
+#include <proto/faasm.pb.h>
+#include <util/util.h>
 
 namespace tests {
 
@@ -13,16 +15,6 @@ namespace tests {
         }
 
         return result;
-    }
-
-    void checkBytesVsString(const std::vector<uint8_t> &bytes,const std::string &str) {
-        const char *cstr = str.c_str();
-
-        auto *rawBytes = reinterpret_cast<const uint8_t*>(cstr);
-
-        std::vector<uint8_t> actual(rawBytes, rawBytes + str.length());
-
-        REQUIRE(bytes == actual);
     }
 
     TEST_CASE("Test protobuf classes", "[proto]") {
@@ -57,10 +49,13 @@ namespace tests {
         REQUIRE(resultKey == newFuncCall.resultkey());
 
         // Check input/ output data
-        const std::string actualInput = newFuncCall.inputdata();
-        const std::string actualOutput = newFuncCall.outputdata();
+        const std::string actualStrInput = newFuncCall.inputdata();
+        const std::string actualStrOutput = newFuncCall.outputdata();
 
-        checkBytesVsString(inputData, actualInput);
-        checkBytesVsString(outputData, actualOutput);
+        const std::vector<uint8_t> actualBytesInput = util::stringToBytes(actualStrInput);
+        const std::vector<uint8_t> actualBytesOutput = util::stringToBytes(actualStrOutput);
+
+        REQUIRE(inputData == actualBytesInput);
+        REQUIRE(outputData == actualBytesOutput);
     }
 }

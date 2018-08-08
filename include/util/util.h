@@ -1,12 +1,13 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 namespace util {
     std::string getEnvVar(std::string const &key, std::string const &dflt);
 
     int randomInteger();
 
-    void intToBytes(const int *ints, int length, uint8_t *bytes);
+    std::vector<uint8_t> stringToBytes(const std::string &str);
 
 }

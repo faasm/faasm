@@ -1,12 +1,17 @@
 #include "util.h"
 
+#include <vector>
+
 namespace util {
-    void intToBytes(const int* ints, int length, uint8_t* bytes) {
-        for (int i = 0; i < length; i++) {
-            for(int j = 0; j < 4; j++) {
-                int byteIdx = (i * 4) + j;
-                bytes[byteIdx] = uint8_t(ints[i] >> j * 8);
-            }
-        }
+
+    std::vector<uint8_t> stringToBytes(const std::string &str) {
+        // Get raw data as byte pointer
+        const char *cstr = str.c_str();
+        auto *rawBytes = reinterpret_cast<const uint8_t*>(cstr);
+
+        // Put into a vector
+        std::vector<uint8_t> actual(rawBytes, rawBytes + str.length());
+
+        return actual;
     }
 }

@@ -7,10 +7,13 @@ int main()
 
     message::FunctionCall call;
     call.set_user("simon");
-    call.set_function("dummy");
+    call.set_function("print");
 
-    std::vector<U8> inputData;
-    module.execute(call, inputData);
+    std::string inputData = "THIS IS MY INPUT";
+
+    call.set_inputdata(inputData);
+
+    module.execute(call);
 
     return 0;
 }

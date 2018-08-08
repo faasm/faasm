@@ -23,6 +23,7 @@ namespace tests {
         message::FunctionCall call;
         call.set_user("jimmy");
         call.set_function("myfun");
+        call.set_inputdata("foobar data");
 
         // Check resultkey not set initially
         REQUIRE(!call.has_resultkey());
@@ -37,6 +38,7 @@ namespace tests {
 
         REQUIRE("jimmy" == actual.user());
         REQUIRE("myfun" == actual.function());
+        REQUIRE("foobar data" == actual.inputdata());
 
         // Check result key has now been set
         REQUIRE(actual.has_resultkey());

@@ -11,8 +11,7 @@ namespace tests {
         worker::WasmModule module;
 
         // Execute the function
-        std::vector<U8> inputData;
-        int result = module.execute(call, inputData);
+        int result = module.execute(call);
         REQUIRE(result == 0);
 
         // Check output data
@@ -32,10 +31,11 @@ namespace tests {
         worker::WasmModule module;
 
         // Build input as byte stream
-        std::vector<U8> inputValues = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+        U8 inputValues[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+        call.set_inputdata(inputValues, 10);
 
         // Make the call
-        int result = module.execute(call, inputValues);
+        int result = module.execute(call);
         REQUIRE(result == 0);
 
         // Check the results
