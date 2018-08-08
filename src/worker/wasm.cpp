@@ -106,9 +106,9 @@ namespace worker {
 
         // Construct the arguments
         std::vector<Value> invokeArgs;
-        inputStart = (Uptr) 0;
+        inputStart = (I32) 0;
         inputLength = (I32) INPUT_MAX_BYTES;
-        outputStart = (Uptr) INPUT_MAX_BYTES;
+        outputStart = (I32) INPUT_MAX_BYTES;
         outputLength = (I32) OUTPUT_MAX_BYTES;
 
         invokeArgs.emplace_back(inputStart);
@@ -119,20 +119,10 @@ namespace worker {
         // Make the call
         functionResults = invokeFunctionChecked(context, functionInstance, invokeArgs);
 
+        // Set up output data
+        U8 *rawOutput = &memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) outputStart);
+        std::vector<U8> output(rawOutput, rawOutput + OUTPUT_MAX_BYTES);
+
         return functionResults[0].u32;
     }
-
-    std::vector<I32> WasmModule::getOutputData() {
-        I32* rawOutput = &memoryRef<I32>(moduleInstance->defaultMemory, (Uptr) outputStart);
-
-        std::vector<I32> output;
-        const I32 nOutputInts = outputLength / 4;
-        output.reserve((unsigned long) nOutputInts);
-
-        for(int i = 0; i < nOutputInts; i++) {
-            output.emplace_back(rawOutput[i]);
-        }
-
-        return output;
-    };
 }

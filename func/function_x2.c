@@ -1,10 +1,11 @@
 #include "emscripten.h"
+#include <stdint.h>
 
 /**
  * Multiplies its array input by two and returns
  */
 EMSCRIPTEN_KEEPALIVE
-int run(int *input, int inputLength, int *output, int maxOutputLength) {
+int run(uint8_t *input, int inputLength, uint8_t *output, int maxOutputLength) {
     for (int i = 0; i < inputLength; i++) {
         output[i] = input[i] * 2;
     }

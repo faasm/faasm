@@ -27,16 +27,14 @@ namespace worker {
         /** Cleans up */
         void clean();
 
-        std::vector<I32> getOutputData();
+        std::vector<U8> outputData;
+        std::vector<U8> inputData;
 
     private:
         ModuleInstance *moduleInstance;
         ValueTuple functionResults;
 
         Context *context;
-
-        std::vector<U8> inputData;
-        std::vector<U8> outputData;
 
         I32 inputStart;
         I32 inputLength;

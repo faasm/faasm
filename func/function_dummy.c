@@ -1,11 +1,12 @@
 #include "emscripten.h"
+#include <stdint.h>
 
 EMSCRIPTEN_KEEPALIVE
-int run(int* input, int inputLength, int* output, int outputLength) {
+int run(uint8_t *input, int inputLength, uint8_t *output, int outputLength) {
 
-   for(int i=0; i < 5; i++) {
-      output[i] = i;
-   }
+    for (int i = 0; i < 5; i++) {
+        output[i] = (uint8_t) i;
+    }
 
-   return 0;
+    return 0;
 }
