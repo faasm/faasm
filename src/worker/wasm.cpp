@@ -122,6 +122,7 @@ namespace worker {
         // Set up output data
         U8 *rawOutput = &memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) outputStart);
         std::vector<U8> output(rawOutput, rawOutput + OUTPUT_MAX_BYTES);
+        outputData = output;
 
         return functionResults[0].u32;
     }
