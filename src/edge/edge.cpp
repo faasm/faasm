@@ -45,8 +45,8 @@ namespace edge {
     void FunctionEndpoint::setupRoutes() {
         using namespace Rest;
 
-        Routes::Get(router, "/f/:user/:function", Routes::bind(&FunctionEndpoint::handleFunction, this));
-        Routes::Get(router, "/fa/:user/:function", Routes::bind(&FunctionEndpoint::handleAsyncFunction, this));
+        Routes::Post(router, "/f/:user/:function", Routes::bind(&FunctionEndpoint::handleFunction, this));
+        Routes::Post(router, "/fa/:user/:function", Routes::bind(&FunctionEndpoint::handleAsyncFunction, this));
         Routes::Get(router, "/status/", Routes::bind(&FunctionEndpoint::status, this));
     }
 
