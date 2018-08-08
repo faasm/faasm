@@ -14,7 +14,7 @@ source /usr/local/code/emsdk/emsdk_env.sh > /dev/null
 echo "Building with emscripten"
 # NOTE: can include -g here to generate .wast
 pushd work
-emcc ../func/function_$2.c -Oz -s WASM=1 -o function.js -I ../include/faasm
+emcc ../func/function_$2.c -g -Oz -s WASM=1 -o function.js -I ../include/faasm
 popd
 
 echo "Recreating function in output dir"

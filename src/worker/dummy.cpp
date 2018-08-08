@@ -7,7 +7,7 @@ int main()
 
     message::FunctionCall call;
     call.set_user("simon");
-    call.set_function("print");
+    call.set_function("chain");
 
     std::string inputData = "THIS IS MY INPUT";
 

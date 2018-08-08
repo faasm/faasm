@@ -61,7 +61,7 @@ namespace edge {
         message::FunctionCall result = redis->blockingGetFunctionResult(call);
 
         // Handle result
-        std::cout << "Result " << result.user() << " - " << result.function() << " = " << result.outputdata() << "\n";
+        std::cout << "Result " << result.user() << " - " << result.function() << "\n";
         if (result.success()) {
             response.send(Http::Code::Ok, result.outputdata());
         } else {
