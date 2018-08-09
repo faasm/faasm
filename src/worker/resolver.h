@@ -27,6 +27,7 @@ namespace worker {
         bool resolve(const std::string &moduleName, const std::string &exportName, ObjectType type,
                      Object *&outObject) override {
             auto namedInstance = moduleNameToInstanceMap.get(moduleName);
+
             if (namedInstance) {
                 outObject = getInstanceExport(*namedInstance, exportName);
                 if (outObject) {
@@ -39,6 +40,12 @@ namespace worker {
                                     asString(type).c_str());
                         return false;
                     }
+                }
+                else if(moduleName != "faasm") {
+                    Log::printf(Log::Category::error, "Attempting lookup in faasm for %s.%s : %s\n",
+                                moduleName.c_str(),
+                                exportName.c_str(), asString(type).c_str());
+                    return resolve("faasm", exportName, type, outObject);
                 }
             }
 

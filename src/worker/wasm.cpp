@@ -19,6 +19,19 @@ using namespace Runtime;
  */
 
 namespace worker {
+    // Create module for faasm-specific functions
+    DEFINE_INTRINSIC_MODULE(faasm)
+
+    DEFINE_INTRINSIC_FUNCTION_WITH_MEM_AND_TABLE(faasm, "_faasmCall", void, faasmCall, I32 namePtr, I32 inputPtr, I32 inputLength) {
+        // Get the module's default memory
+        MemoryInstance* memory = Runtime::getMemoryFromRuntimeData(contextRuntimeData, 0);
+
+        U8 *funcName = &memoryRef<U8>(memory, (Uptr)namePtr);
+        U8 *funcData = &memoryRef<U8>(memory, (Uptr)inputPtr);
+
+        std::cout << funcName << " | " << funcData << " | " << asString(inputLength) << std::endl;
+    }
+
     WasmModule::WasmModule() {
 
     }
@@ -65,7 +78,11 @@ namespace worker {
         // Emscripten set-up
         Emscripten::Instance *emscriptenInstance = Emscripten::instantiate(compartment, module);
 
+        // Faasm module set-up
+        ModuleInstance *faasmModule = Intrinsics::instantiateModule(compartment, INTRINSIC_MODULE_REF(faasm), "faasm");
+        
         if (emscriptenInstance) {
+            rootResolver.moduleNameToInstanceMap.set("faasm", faasmModule);
             rootResolver.moduleNameToInstanceMap.set("env", emscriptenInstance->env);
             rootResolver.moduleNameToInstanceMap.set("asm2wasm", emscriptenInstance->asm2wasm);
             rootResolver.moduleNameToInstanceMap.set("global", emscriptenInstance->global);
