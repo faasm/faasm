@@ -5,12 +5,12 @@
 #ifndef FAASM_FAASM_H
 #define FAASM_FAASM_H
 
-const int MAX_CHAINS = 100;
+const int MAX_CHAINS = 50;
 
 const int MAX_NAME_LENGTH = 32;
-const int MAX_INPUT_BYTES = 1024 * 1024;
+const int MAX_INPUT_BYTES = 1024;
 
-const int MAX_OUTPUT_BYTES = 1024 * 1024;
+const int MAX_OUTPUT_BYTES = 1024;
 
 /**
  * Main faasm memory abstraction
@@ -68,7 +68,7 @@ void chainFunction(
 
     // Get the memory offsets for name and data
     uint8_t *namePtr = memory->chainFunctions + (chainIdx * MAX_NAME_LENGTH);
-    uint8_t *dataPtr = memory->chainInputs + (chainIdx * (MAX_INPUT_BYTES/32));
+    uint8_t *dataPtr = memory->chainInputs + (chainIdx * MAX_INPUT_BYTES);
 
     // Make sure we copy the data into place
     memcpy(namePtr, (uint8_t*) name, strlen(name));

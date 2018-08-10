@@ -11,7 +11,7 @@ int exec(struct FaasmMemory *memory) {
 
         uint8_t funcData[10];
         for (int j = 0; j < 10; j++) {
-            funcData[j] = (uint8_t) ('a' + j);
+            funcData[j] = (uint8_t) ('a' + (i + j));
         }
 
         chainFunction(memory, funcName, funcData, 10);

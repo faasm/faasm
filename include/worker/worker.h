@@ -14,18 +14,20 @@ using namespace Runtime;
 namespace worker {
     const std::string ENTRYPOINT_FUNC = "run";
 
-    const int MAX_NAME_LENGTH = 20;
+    const int MAX_NAME_LENGTH = 32;
 
     // Input memory
-    const int INPUT_START = 0;
-    const int MAX_INPUT_BYTES = 1024 * 1024;
+    // Need to make sure this starts high enough to avoid
+    // other bits of the default memory
+    const int INPUT_START = 1024 * 20;
+    const int MAX_INPUT_BYTES = 1024;
 
     // Output memory
     const int OUTPUT_START = INPUT_START + MAX_INPUT_BYTES;
-    const int MAX_OUTPUT_BYTES = 1024 * 1024;
+    const int MAX_OUTPUT_BYTES = 1024;
 
     // Chaining memory
-    const int MAX_CHAINS = 100;
+    const int MAX_CHAINS = 50;
     const int CHAIN_NAMES_START = OUTPUT_START + MAX_OUTPUT_BYTES;
     const int MAX_CHAIN_NAME_BYTES = MAX_NAME_LENGTH * MAX_CHAINS;
 

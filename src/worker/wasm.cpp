@@ -24,7 +24,7 @@ namespace worker {
      * Allows functions to call others by specifying the function name and input data
      */
     DEFINE_INTRINSIC_FUNCTION_WITH_MEM_AND_TABLE(faasm, "_faasmCall", void, faasmCall,
-            I32 userPtr, I32 funcPtr, I32 inputPtr, I32 inputLength) {
+                                                 I32 userPtr, I32 funcPtr, I32 inputPtr, I32 inputLength) {
         // Assume default memory
         MemoryInstance *memory = Runtime::getMemoryFromRuntimeData(contextRuntimeData, 0);
 
@@ -169,15 +169,17 @@ namespace worker {
         // Check for chained calls. Note that we reserve chunks for each and can iterate
         // through them checking where the names are set
         U8 *rawChainNames = &memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) CHAIN_NAMES_START);
-
-        std::vector<U8> chainNamesData(rawChainNames, rawChainNames + MAX_CHAIN_NAME_BYTES);
+        U8 *rawChaininputs = &memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) CHAIN_DATA_START);
 
         // Print out the first three
-        for(int i = 0; i < 10; i++) {
+        for (int i = 0; i < 10; i++) {
             int nameStart = (i * MAX_NAME_LENGTH);
-            U8* chainName = &rawChainNames[nameStart];
+            int dataStart = (i * MAX_INPUT_BYTES);
 
-            std::cout << "NAME: " << chainName << "\n";
+            U8 *chainName = &rawChainNames[nameStart];
+            U8 *chainData = &rawChaininputs[dataStart];
+
+            std::cout << "N: " << chainName << " D: " << chainData << "\n";
         }
 
         return functionResults[0].u32;
