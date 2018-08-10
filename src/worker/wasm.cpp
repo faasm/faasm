@@ -33,7 +33,6 @@ namespace worker {
         U8 *funcData = &memoryRef<U8>(memory, (Uptr) inputPtr);
 
         std::cout << user << " - " << funcName << " | " << funcData << " | " << asString(inputLength) << std::endl;
-        Worker::chainFunction(user, funcName, funcData, inputLength);
     }
 
     WasmModule::WasmModule() {
@@ -153,6 +152,7 @@ namespace worker {
             functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, "_" + ENTRYPOINT_FUNC));
         }
 
+        // Set up regions
         std::vector<Value> invokeArgs;
         invokeArgs.emplace_back((I32) INPUT_START);
         invokeArgs.emplace_back((I32) OUTPUT_START);
@@ -165,6 +165,20 @@ namespace worker {
         // Set up output data on function
         U8 *rawOutput = &memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) OUTPUT_START);
         call.set_outputdata(rawOutput, MAX_OUTPUT_BYTES);
+
+        // Check for chained calls. Note that we reserve chunks for each and can iterate
+        // through them checking where the names are set
+        U8 *rawChainNames = &memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) CHAIN_NAMES_START);
+
+        std::vector<U8> chainNamesData(rawChainNames, rawChainNames + MAX_CHAIN_NAME_BYTES);
+
+        // Print out the first three
+        for(int i = 0; i < 10; i++) {
+            int nameStart = (i * MAX_NAME_LENGTH);
+            U8* chainName = &rawChainNames[nameStart];
+
+            std::cout << "NAME: " << chainName << "\n";
+        }
 
         return functionResults[0].u32;
     }

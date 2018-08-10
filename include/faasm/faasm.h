@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <string.h>
 #include <emscripten.h>
 
 #ifndef FAASM_FAASM_H
@@ -6,11 +7,14 @@
 
 const int MAX_CHAINS = 100;
 
-const int MAX_NAME_LENGTH = 20;
+const int MAX_NAME_LENGTH = 32;
 const int MAX_INPUT_BYTES = 1024 * 1024;
 
 const int MAX_OUTPUT_BYTES = 1024 * 1024;
 
+/**
+ * Main faasm memory abstraction
+ */
 struct FaasmMemory {
     // Input data
     uint8_t *input;
@@ -19,22 +23,62 @@ struct FaasmMemory {
     uint8_t *output;
 
     // Allows chaining of functions
-    uint8_t **chainFunctions;
-    uint8_t **chainInputs;
+    uint8_t *chainFunctions;
+    uint8_t *chainInputs;
+    int32_t chainCount;
 };
 
-int exec(struct FaasmMemory memory);
+/**
+ * Function for faasm functions to implement
+ */
+int exec(struct FaasmMemory *memory);
 
-int EMSCRIPTEN_KEEPALIVE run(uint8_t *input, uint8_t *output,
-        uint8_t **chainFunctions, uint8_t **chainInputs
-        ) {
+/**
+ * Wrapper function used to abstract away the faasm memory management
+ */
+int EMSCRIPTEN_KEEPALIVE run(
+        uint8_t *in,
+        uint8_t *out,
+        uint8_t *cFuncs,
+        uint8_t *cIn
+    ) {
+
     struct FaasmMemory memory;
-    memory.input = input;
-    memory.output = output;
-    memory.chainFunctions = chainFunctions;
-    memory.chainInputs = chainInputs;
+    memory.input = in;
+    memory.output = out;
 
-    return exec(memory);
+    memory.chainFunctions = cFuncs;
+    memory.chainInputs = cIn;
+    memory.chainCount = 0;
+
+    return exec(&memory);
+}
+
+/**
+ * Adds a chain call to the given function
+ */
+void chainFunction(
+        struct FaasmMemory *memory,
+        char *name,
+        uint8_t *inputData,
+        int inputDataSize
+    ) {
+    // Work out how many chained functions we already have
+    int32_t chainIdx = memory->chainCount;
+
+    // Get the memory offsets for name and data
+    uint8_t *namePtr = memory->chainFunctions + (chainIdx * MAX_NAME_LENGTH);
+    uint8_t *dataPtr = memory->chainInputs + (chainIdx * (MAX_INPUT_BYTES/32));
+
+    // Make sure we copy the data into place
+    memcpy(namePtr, (uint8_t*) name, strlen(name));
+    memcpy(dataPtr, inputData, inputDataSize);
+
+    printf("F: %i %p = %s\n", chainIdx, namePtr, namePtr);
+    printf("I: %i %p = %s\n", chainIdx, dataPtr, dataPtr);
+
+    // Increment the count
+    memory->chainCount = chainIdx + 1;
 }
 
 #endif
