@@ -33,7 +33,7 @@ namespace infra {
         void dequeue(const std::string &queueName, const reply_callback_t &callback);
 
         /** Adds a function call */
-        void callFunction(const message::FunctionCall &call);
+        void callFunction(message::FunctionCall &call);
 
         /** Gets next function call */
         message::FunctionCall nextFunctionCall();

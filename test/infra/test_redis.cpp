@@ -95,10 +95,12 @@ namespace tests {
         message::FunctionCall call;
         std::string funcName = "my func";
         std::string userName = "some user";
-        std::string resultKey = "some result";
+
         call.set_function(funcName);
         call.set_user(userName);
-        call.set_resultkey(resultKey);
+
+        // Check resultkey not set initially
+        REQUIRE(!call.has_resultkey());
 
         cli.callFunction(call);
 
@@ -114,7 +116,9 @@ namespace tests {
 
         REQUIRE(funcName == actual.function());
         REQUIRE(userName == actual.user());
-        REQUIRE(resultKey == actual.resultkey());
+
+        // Check result key has now been set
+        REQUIRE(actual.has_resultkey());
 
         cli.sync_commit();
     }

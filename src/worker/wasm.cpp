@@ -33,6 +33,7 @@ namespace worker {
         U8 *funcData = &memoryRef<U8>(memory, (Uptr) inputPtr);
 
         std::cout << user << " - " << funcName << " | " << funcData << " | " << asString(inputLength) << std::endl;
+        Worker::chainFunction(user, funcName, funcData, inputLength);
     }
 
     WasmModule::WasmModule() {

@@ -21,8 +21,6 @@ namespace edge {
 
         void shutdown();
 
-        void callFunction(message::FunctionCall &call);
-
     private:
         std::shared_ptr<Http::Endpoint> httpEndpoint;
         std::shared_ptr<infra::RedisClient> redis;

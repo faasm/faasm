@@ -16,31 +16,9 @@ namespace tests {
         return endpoint;
     }
 
-    TEST_CASE("Test edge calling a function", "[edge]") {
+    TEST_CASE("Nothing yet", "[edge]") {
         edge::FunctionEndpoint endpoint = prepareEndpoint();
 
-        // Prepare the call
-        message::FunctionCall call;
-        call.set_user("jimmy");
-        call.set_function("myfun");
-        call.set_inputdata("foobar data");
-
-        // Check resultkey not set initially
-        REQUIRE(!call.has_resultkey());
-
-        // Make the call
-        endpoint.callFunction(call);
-
-        // Get the call from the queue
-        infra::RedisClient cli;
-        cli.connect();
-        message::FunctionCall actual = cli.nextFunctionCall();
-
-        REQUIRE("jimmy" == actual.user());
-        REQUIRE("myfun" == actual.function());
-        REQUIRE("foobar data" == actual.inputdata());
-
-        // Check result key has now been set
-        REQUIRE(actual.has_resultkey());
+        REQUIRE(2 + 2 == 4);
     }
 }

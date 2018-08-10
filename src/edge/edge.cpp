@@ -54,7 +54,7 @@ namespace edge {
         message::FunctionCall call = this->buildCallFromRequest(request);
 
         // Make the call
-        this->callFunction(call);
+        redis->callFunction(call);
 
         // Wait for the result
         std::cout << "Awaiting result " << call.user() << " - " << call.function() << "\n";
@@ -73,7 +73,7 @@ namespace edge {
         message::FunctionCall call = this->buildCallFromRequest(request);
 
         // Make the call
-        this->callFunction(call);
+        redis->callFunction(call);
 
         // Don't wait for a result
         response.send(Http::Code::Ok, "Async success");
@@ -94,18 +94,6 @@ namespace edge {
         call.set_inputdata(requestData);
 
         return call;
-    }
-
-    void FunctionEndpoint::callFunction(message::FunctionCall &call) {
-        // Generate a random result key
-        int randomNumber = util::randomInteger();
-        std::string resultKey = "Result_";
-        resultKey += std::to_string(randomNumber);
-        call.set_resultkey(resultKey);
-
-        // Send the function call
-        std::cout << "Calling function " << call.user() << " - " << call.function() << " - " << randomNumber << "\n";
-        redis->callFunction(call);
     }
 
     void FunctionEndpoint::status(const Rest::Request &request, Http::ResponseWriter response) {

@@ -74,7 +74,16 @@ namespace infra {
         return {keyName, value};
     }
 
-    void RedisClient::callFunction(const message::FunctionCall &call) {
+    void RedisClient::callFunction(message::FunctionCall &call) {
+        // Generate a random result key
+        int randomNumber = util::randomInteger();
+        std::string resultKey = "Result_";
+        resultKey += std::to_string(randomNumber);
+        call.set_resultkey(resultKey);
+
+        // Send the function call
+        std::cout << "Calling function " << call.user() << " - " << call.function() << " - " << randomNumber << "\n";
+
         std::string serialised = call.SerializeAsString();
 
         this->enqueue("function_calls", serialised);

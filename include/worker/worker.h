@@ -44,8 +44,10 @@ namespace worker {
 
         void start();
 
+        /** Called when one function wants to make call into another */
+        static void chainFunction(U8 *userName,  U8 *funcName, U8* inputData, I32 inputLength) ;
     private:
-        infra::RedisClient redis;
+        static infra::RedisClient redis;
     };
 
     /** Exceptions */

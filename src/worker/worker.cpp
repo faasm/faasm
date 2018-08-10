@@ -36,6 +36,19 @@ namespace worker {
             redis.setFunctionResult(call, true);
         }
     }
+
+    void Worker::chainFunction(U8 *userName,  U8 *funcName, U8* inputData, I32 inputLength) {
+        std::string userStr((char*) userName);
+        std::string funcStr((char*) funcName);
+
+        message::FunctionCall call;
+        call.set_user((char* )userName);
+        call.set_function((char*) funcName);
+        call.set_inputdata(inputData, (size_t)inputLength);
+
+        Worker::redis.callFunction(call);
+    }
+
 }
 
 int main()
