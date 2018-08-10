@@ -3,10 +3,11 @@
 
 EMSCRIPTEN_KEEPALIVE
 int run(uint8_t *input, int inputLength, uint8_t *output, int outputLength) {
-    const char* name = "dummy";
+    const char* user = "jimmy";
+    const char* func = "dummy";
 
     // Call into other function
-    faasmCall(name, input, inputLength);
+    faasmCall(user, func, input, inputLength);
 
     return 0;
 }

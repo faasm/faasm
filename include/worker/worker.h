@@ -6,7 +6,7 @@
 #include <exception>
 
 #include <proto/faasm.pb.h>
-#include <Runtime/Linker.h>
+#include <Runtime/Runtime.h>
 
 using namespace IR;
 using namespace Runtime;
@@ -30,8 +30,6 @@ namespace worker {
     private:
         ModuleInstance *moduleInstance;
         ValueTuple functionResults;
-
-        Context *context;
 
         I32 inputStart;
         I32 inputLength;

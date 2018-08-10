@@ -1,7 +1,5 @@
 #include "worker.h"
 
-#include <stdio.h>
-
 #include <Runtime/RuntimePrivate.h>
 #include "Programs/CLI.h"
 #include <Emscripten/Emscripten.h>
@@ -22,14 +20,19 @@ namespace worker {
     // Create module for faasm-specific functions
     DEFINE_INTRINSIC_MODULE(faasm)
 
-    DEFINE_INTRINSIC_FUNCTION_WITH_MEM_AND_TABLE(faasm, "_faasmCall", void, faasmCall, I32 namePtr, I32 inputPtr, I32 inputLength) {
-        // Get the module's default memory
-        MemoryInstance* memory = Runtime::getMemoryFromRuntimeData(contextRuntimeData, 0);
+    /**
+     * Allows functions to call others by specifying the function name and input data
+     */
+    DEFINE_INTRINSIC_FUNCTION_WITH_MEM_AND_TABLE(faasm, "_faasmCall", void, faasmCall,
+            I32 userPtr, I32 funcPtr, I32 inputPtr, I32 inputLength) {
+        // Assume default memory
+        MemoryInstance *memory = Runtime::getMemoryFromRuntimeData(contextRuntimeData, 0);
 
-        U8 *funcName = &memoryRef<U8>(memory, (Uptr)namePtr);
-        U8 *funcData = &memoryRef<U8>(memory, (Uptr)inputPtr);
+        U8 *user = &memoryRef<U8>(memory, (Uptr) userPtr);
+        U8 *funcName = &memoryRef<U8>(memory, (Uptr) funcPtr);
+        U8 *funcData = &memoryRef<U8>(memory, (Uptr) inputPtr);
 
-        std::cout << funcName << " | " << funcData << " | " << asString(inputLength) << std::endl;
+        std::cout << user << " - " << funcName << " | " << funcData << " | " << asString(inputLength) << std::endl;
     }
 
     WasmModule::WasmModule() {
@@ -72,7 +75,7 @@ namespace worker {
 
         // Link the module with the intrinsic modules.
         Compartment *compartment = Runtime::createCompartment();
-        context = Runtime::createContext(compartment);
+        Context *context = Runtime::createContext(compartment);
         RootResolver rootResolver(compartment);
 
         // Emscripten set-up
@@ -80,7 +83,7 @@ namespace worker {
 
         // Faasm module set-up
         ModuleInstance *faasmModule = Intrinsics::instantiateModule(compartment, INTRINSIC_MODULE_REF(faasm), "faasm");
-        
+
         if (emscriptenInstance) {
             rootResolver.moduleNameToInstanceMap.set("faasm", faasmModule);
             rootResolver.moduleNameToInstanceMap.set("env", emscriptenInstance->env);
@@ -105,7 +108,8 @@ namespace worker {
                 compartment,
                 module,
                 std::move(linkResult.resolvedImports),
-                filePath.c_str());
+                filePath.c_str()
+        );
         if (!moduleInstance) {
             throw WasmException();
         }
