@@ -1,13 +1,12 @@
-#include "emscripten.h"
-#include <stdint.h>
+#include "faasm.h"
 
 /**
- * Multiplies its array input by two and returns
+ * Multiplies its array input by two
  */
 EMSCRIPTEN_KEEPALIVE
-int run(uint8_t *input, int inputLength, uint8_t *output, int maxOutputLength) {
-    for (int i = 0; i < inputLength; i++) {
-        output[i] = input[i] * 2;
+int exec(struct FaasmMemory memory) {
+    for (int i = 0; i < MAX_INPUT_BYTES; i++) {
+        memory.output[i] = memory.input[i] * 2;
     }
 
     return 0;

@@ -57,22 +57,44 @@ namespace worker {
 
         std::string input = call.inputdata();
 
-        // Define input and output data segments
+        // Define input data segment
         DataSegment inputDataSegment;
         inputDataSegment.memoryIndex = (Uptr) 0;
-        inputDataSegment.baseOffset = InitializerExpression((I32) 0);
+        inputDataSegment.baseOffset = InitializerExpression((I32) INPUT_START);
         inputDataSegment.data = util::stringToBytes(input);
 
+        // Define output data segment
         DataSegment outputDataSegment;
         outputDataSegment.memoryIndex = (Uptr) 0;
-        outputDataSegment.baseOffset = InitializerExpression((I32) INPUT_MAX_BYTES);
+        outputDataSegment.baseOffset = InitializerExpression((I32) OUTPUT_START);
 
         std::vector<U8> outputData;
-        outputData.reserve(OUTPUT_MAX_BYTES);
+        outputData.reserve(MAX_OUTPUT_BYTES);
         outputDataSegment.data = outputData;
 
+        // Define chaining names segment
+        DataSegment chainingNamesSegment;
+        chainingNamesSegment.memoryIndex = (Uptr) 0;
+        chainingNamesSegment.baseOffset = InitializerExpression((I32) CHAIN_NAMES_START);
+
+        std::vector<U8> chainingNamesData;
+        chainingNamesData.reserve(MAX_CHAIN_NAME_BYTES);
+        chainingNamesSegment.data = chainingNamesData;
+
+        // Define chaining segment
+        DataSegment chainingDataSegment;
+        chainingDataSegment.memoryIndex = (Uptr) 0;
+        chainingDataSegment.baseOffset = InitializerExpression((I32) CHAIN_DATA_START);
+
+        std::vector<U8> chainingData;
+        chainingData.reserve(MAX_CHAIN_DATA_BYTES);
+        chainingDataSegment.data = chainingData;
+
+        // Add segments to module
         module.dataSegments.push_back(inputDataSegment);
         module.dataSegments.push_back(outputDataSegment);
+        module.dataSegments.push_back(chainingNamesSegment);
+        module.dataSegments.push_back(chainingDataSegment);
 
         // Link the module with the intrinsic modules.
         Compartment *compartment = Runtime::createCompartment();
@@ -131,24 +153,18 @@ namespace worker {
             functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, "_" + ENTRYPOINT_FUNC));
         }
 
-        // Construct the arguments
         std::vector<Value> invokeArgs;
-        inputStart = (I32) 0;
-        inputLength = (I32) INPUT_MAX_BYTES;
-        outputStart = (I32) INPUT_MAX_BYTES;
-        outputLength = (I32) OUTPUT_MAX_BYTES;
-
-        invokeArgs.emplace_back(inputStart);
-        invokeArgs.emplace_back(inputLength);
-        invokeArgs.emplace_back(outputStart);
-        invokeArgs.emplace_back(outputLength);
+        invokeArgs.emplace_back((I32) INPUT_START);
+        invokeArgs.emplace_back((I32) OUTPUT_START);
+        invokeArgs.emplace_back((I32) CHAIN_NAMES_START);
+        invokeArgs.emplace_back((I32) CHAIN_DATA_START);
 
         // Make the call
         functionResults = invokeFunctionChecked(context, functionInstance, invokeArgs);
 
         // Set up output data on function
-        U8 *rawOutput = &memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) outputStart);
-        call.set_outputdata(rawOutput, OUTPUT_MAX_BYTES);
+        U8 *rawOutput = &memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) OUTPUT_START);
+        call.set_outputdata(rawOutput, MAX_OUTPUT_BYTES);
 
         return functionResults[0].u32;
     }
