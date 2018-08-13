@@ -5,16 +5,14 @@
  */
 EMSCRIPTEN_KEEPALIVE
 int exec(struct FaasmMemory *memory) {
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < 3; i++) {
         char funcName[12];
         sprintf(funcName, "Function %i", i);
 
-        uint8_t funcData[10];
-        for (int j = 0; j < 10; j++) {
-            funcData[j] = (uint8_t) ('a' + (i + j));
-        }
+        uint8_t funcData[] = {i, i + 1, i + 2};
+        int dataLength = 3;
 
-        chainFunction(memory, funcName, funcData, 10);
+        chainFunction(memory, funcName, funcData, dataLength);
     }
 
     return 0;

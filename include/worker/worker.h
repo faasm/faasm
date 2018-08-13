@@ -46,9 +46,16 @@ namespace worker {
         /** Cleans up */
         void clean();
 
+        size_t getChainCount();
+        std::string getChainName(size_t idx);
+        std::vector<U8> getChainData(size_t idx);
+
     private:
         ModuleInstance *moduleInstance;
         ValueTuple functionResults;
+
+        std::vector<std::string> chainNames;
+        std::vector<std::vector<U8>> chainData;
     };
 
     /** Worker wrapper */

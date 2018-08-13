@@ -46,4 +46,21 @@ namespace tests {
         REQUIRE('d' == (char)actual[3]);
     }
 
+    TEST_CASE("Test removing trailing zeros", "[util]") {
+        std::vector<uint8_t> input = {0, 2, 10, 0, 32, 0, 0, 0, 0};
+
+        util::trimTrailingZeros(&input);
+
+        REQUIRE(input.size() == 5);
+        std::vector<uint8_t> expected = {0, 2, 10, 0, 32};
+        REQUIRE(input == expected);
+    }
+
+    TEST_CASE("Test removing trailing zeros on all zeros", "[util]") {
+        std::vector<uint8_t> input = {0, 0, 0, 0, 0};
+
+        util::trimTrailingZeros(&input);
+
+        REQUIRE(input.empty());
+    }
 }

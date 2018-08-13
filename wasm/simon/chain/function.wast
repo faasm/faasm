@@ -211,26 +211,33 @@
   (local $5 i32)
   (local $6 i32)
   (local $7 i32)
-  (local $8 i32)
-  (set_local $1
+  (set_local $2
    (get_global $STACKTOP)
   )
   (set_global $STACKTOP
    (i32.add
     (get_global $STACKTOP)
-    (i32.const 32)
+    (i32.const 16)
+   )
+  )
+  (set_local $4
+   (i32.add
+    (get_local $2)
+    (i32.const 4)
    )
   )
   (set_local $5
    (i32.add
-    (get_local $1)
-    (i32.const 16)
+    (tee_local $3
+     (get_local $2)
+    )
+    (i32.const 1)
    )
   )
   (set_local $6
    (i32.add
-    (get_local $1)
-    (i32.const 4)
+    (get_local $3)
+    (i32.const 2)
    )
   )
   (loop $while-in
@@ -238,94 +245,82 @@
     ;;@ ../func/function_chain.c:8:0
     (br_if $while-out
      (i32.eq
-      (get_local $2)
-      (i32.const 20)
+      (get_local $1)
+      (i32.const 3)
      )
     )
     ;;@ ../func/function_chain.c:10:0
     (i32.store
+     (get_local $3)
      (get_local $1)
-     (get_local $2)
     )
     (drop
      (call $_sprintf
-      (get_local $5)
+      (get_local $4)
       (i32.const 3923)
+      (get_local $3)
+     )
+    )
+    ;;@ ../func/function_chain.c:12:0
+    (set_local $2
+     (i32.and
       (get_local $1)
+      (i32.const 255)
+     )
+    )
+    (i32.store8
+     (get_local $3)
+     (get_local $2)
+    )
+    (set_local $2
+     (i32.add
+      (get_local $1)
+      (i32.const 1)
      )
     )
     (set_local $7
-     (i32.add
+     (i32.and
       (get_local $2)
-      (i32.const 97)
+      (i32.const 255)
      )
     )
-    (set_local $3
-     (i32.const 0)
+    (i32.store8
+     (get_local $5)
+     (get_local $7)
     )
-    (loop $while-in1
-     (block $while-out0
-      ;;@ ../func/function_chain.c:13:0
-      (br_if $while-out0
-       (i32.eq
-        (get_local $3)
-        (i32.const 10)
-       )
-      )
-      ;;@ ../func/function_chain.c:14:0
-      (set_local $4
-       (i32.add
-        (get_local $7)
-        (get_local $3)
-       )
-      )
-      (set_local $4
-       (i32.and
-        (get_local $4)
-        (i32.const 255)
-       )
-      )
-      (set_local $8
-       (i32.add
-        (get_local $6)
-        (get_local $3)
-       )
-      )
-      (i32.store8
-       (get_local $8)
-       (get_local $4)
-      )
-      ;;@ ../func/function_chain.c:13:0
-      (set_local $3
-       (i32.add
-        (get_local $3)
-        (i32.const 1)
-       )
-      )
-      (br $while-in1)
+    (set_local $1
+     (i32.add
+      (get_local $1)
+      (i32.const 2)
      )
     )
-    ;;@ ../func/function_chain.c:17:0
+    (set_local $1
+     (i32.and
+      (get_local $1)
+      (i32.const 255)
+     )
+    )
+    (i32.store8
+     (get_local $6)
+     (get_local $1)
+    )
+    ;;@ ../func/function_chain.c:15:0
     (call $_chainFunction
      (get_local $0)
-     (get_local $5)
-     (get_local $6)
-     (i32.const 10)
+     (get_local $4)
+     (get_local $3)
+     (i32.const 3)
     )
-    ;;@ ../func/function_chain.c:8:0
-    (set_local $2
-     (i32.add
-      (get_local $2)
-      (i32.const 1)
-     )
+    (set_local $1
+     (get_local $2)
     )
     (br $while-in)
    )
   )
   (set_global $STACKTOP
-   (get_local $1)
+   (get_local $3)
   )
-  ;;@ ../func/function_chain.c:20:0
+  ;;@ ../func/function_chain.c:18:0
   (i32.const 0)
  )
  (func $_chainFunction (; 19 ;) (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32)

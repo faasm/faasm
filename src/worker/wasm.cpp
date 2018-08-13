@@ -44,6 +44,19 @@ namespace worker {
         Runtime::collectGarbage();
     }
 
+    size_t WasmModule::getChainCount() {
+        return chainNames.size();
+    }
+
+    std::string WasmModule::getChainName(size_t idx) {
+        return chainNames.at(idx);
+    }
+
+    std::vector<U8> WasmModule::getChainData(size_t idx) {
+        return chainData.at(idx);
+    }
+
+
     int WasmModule::execute(message::FunctionCall &call) {
         std::string filePath = infra::getFunctionFile(call);
 
@@ -67,9 +80,9 @@ namespace worker {
         outputDataSegment.memoryIndex = (Uptr) 0;
         outputDataSegment.baseOffset = InitializerExpression((I32) OUTPUT_START);
 
-        std::vector<U8> outputData;
-        outputData.reserve(MAX_OUTPUT_BYTES);
-        outputDataSegment.data = outputData;
+        std::vector<U8> outputPlaceholder;
+        outputPlaceholder.reserve(MAX_OUTPUT_BYTES);
+        outputDataSegment.data = outputPlaceholder;
 
         // Define chaining names segment
         DataSegment chainingNamesSegment;
@@ -162,9 +175,11 @@ namespace worker {
         // Make the call
         functionResults = invokeFunctionChecked(context, functionInstance, invokeArgs);
 
-        // Set up output data on function
+        // Get output data
         U8 *rawOutput = &memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) OUTPUT_START);
-        call.set_outputdata(rawOutput, MAX_OUTPUT_BYTES);
+        std::vector<U8> outputData(rawOutput, rawOutput + MAX_OUTPUT_BYTES);
+        util::trimTrailingZeros(&outputData);
+        call.set_outputdata(outputData.data(), outputData.size());
 
         // Check for chained calls. Note that we reserve chunks for each and can iterate
         // through them checking where the names are set
@@ -172,17 +187,24 @@ namespace worker {
         U8 *rawChaininputs = &memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) CHAIN_DATA_START);
 
         // Extract the chaining requests
-        std::vector<std::tuple<char*, U8*>> chains;
         for (int i = 0; i < MAX_CHAINS; i++) {
+            // Get the function name
             int nameStart = (i * MAX_NAME_LENGTH);
+            std::string thisName((char*)&rawChainNames[nameStart]);
+
+            // Extract data without trailing zeros
             int dataStart = (i * MAX_INPUT_BYTES);
+            std::vector<U8> thisData(&rawChaininputs[dataStart],
+                                     &rawChaininputs[dataStart + MAX_INPUT_BYTES]);
+            util::trimTrailingZeros(&thisData);
 
-            char *chainName = (char*)&rawChainNames[nameStart];
-            U8 *chainData = &rawChaininputs[dataStart];
+            // Stop if we have an empty name
+            if(thisName.empty()) {
+                break;
+            }
 
-            std::tuple<char*, U8*> thisTuple(chainName, chainData);
-
-            chains.push_back(thisTuple);
+            chainNames.push_back(thisName);
+            chainData.push_back(thisData);
         }
 
         return functionResults[0].u32;

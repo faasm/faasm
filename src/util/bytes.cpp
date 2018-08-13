@@ -14,4 +14,20 @@ namespace util {
 
         return actual;
     }
+
+    void trimTrailingZeros(std::vector<uint8_t> *vectorIn) {
+        long i = vectorIn->size() - 1;
+
+        while(i >= 0 && vectorIn->at((unsigned long) i) == 0) {
+            i--;
+        }
+
+        if(i < 0) {
+            vectorIn->clear();
+        }
+        else {
+            vectorIn->resize((unsigned long) i + 1);
+        }
+    }
+
 }

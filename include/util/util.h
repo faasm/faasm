@@ -10,4 +10,5 @@ namespace util {
 
     std::vector<uint8_t> stringToBytes(const std::string &str);
 
+    void trimTrailingZeros(std::vector<uint8_t> *vectorIn);
 }
