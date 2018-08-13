@@ -56,8 +56,7 @@ namespace worker {
     }
 }
 
-int main()
-{
+int main() {
     worker::Worker worker;
 
     worker.start();

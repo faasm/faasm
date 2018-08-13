@@ -28,3 +28,10 @@ spec:
               value: redis
             - name: PROJ_ROOT
               value: /faasm/code
+          volumeMounts:
+            - mountPath: "/usr/share/faasm"
+              name: func-vol
+      volumes:
+      - name: func-vol
+        persistentVolumeClaim:
+          claimName: func-storage-claim

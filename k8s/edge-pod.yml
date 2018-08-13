@@ -16,3 +16,10 @@ spec:
       env:
         - name: REDIS_HOST
           value: redis
+      volumeMounts:
+        - mountPath: "/usr/share/faasm"
+          name: func-vol
+  volumes:
+  - name: func-vol
+    persistentVolumeClaim:
+      claimName: func-storage-claim

@@ -45,6 +45,7 @@ namespace edge {
     void FunctionEndpoint::setupRoutes() {
         using namespace Rest;
 
+        Routes::Put(router, "/f/:user/:function", Routes::bind(&FunctionEndpoint::uploadFunction, this));
         Routes::Post(router, "/f/:user/:function", Routes::bind(&FunctionEndpoint::handleFunction, this));
         Routes::Post(router, "/fa/:user/:function", Routes::bind(&FunctionEndpoint::handleAsyncFunction, this));
         Routes::Get(router, "/status/", Routes::bind(&FunctionEndpoint::status, this));
@@ -70,6 +71,16 @@ namespace edge {
     }
 
     void FunctionEndpoint::handleAsyncFunction(const Rest::Request &request, Http::ResponseWriter response) {
+        message::FunctionCall call = this->buildCallFromRequest(request);
+
+        // Make the call
+        redis->callFunction(call);
+
+        // Don't wait for a result
+        response.send(Http::Code::Ok, "Async success");
+    }
+
+    void FunctionEndpoint::uploadFunction(const Rest::Request &request, Http::ResponseWriter response) {
         message::FunctionCall call = this->buildCallFromRequest(request);
 
         // Make the call
