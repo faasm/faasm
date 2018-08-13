@@ -1,0 +1,9 @@
+---
+
+- name: "System deps"
+  become: yes
+  apt:
+    name: "{{ item }}"
+    state: "installed"
+  with_items:
+  - "nfs-common"

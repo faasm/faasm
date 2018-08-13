@@ -1,0 +1,1 @@
+/usr/share/faasm    *(rw,sync,no_root_squash)
