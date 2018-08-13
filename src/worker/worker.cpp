@@ -19,7 +19,8 @@ namespace worker {
     void Worker::start() {
         redis.connect();
 
-        for (int i = 0; i < 50; i++) {
+        // Arbitrary loop to stop linting complaining
+        for (int i = 0; i < 1000; i++) {
             std::cout << "Worker waiting...\n";
 
             // Get next call (blocking)
@@ -27,6 +28,23 @@ namespace worker {
 
             WasmModule module;
             module.execute(call);
+
+            // Check for chained calls
+            if(module.getChainCount() > 0) {
+                for(size_t c = 0; c < module.getChainCount(); c++) {
+                    std::string funcName = module.getChainName(c);
+                    std::vector<U8> chainData = module.getChainData(c);
+
+                    // Build chained function object
+                    message::FunctionCall chainCall;
+                    chainCall.set_user(call.user());
+                    chainCall.set_function(funcName);
+                    chainCall.set_outputdata(chainData.data(), chainData.size());
+
+                    // Call the chained function
+                    redis.callFunction(chainCall);
+                }
+            }
 
             module.clean();
 
