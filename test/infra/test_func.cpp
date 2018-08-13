@@ -10,14 +10,14 @@ namespace tests {
         call.set_user("jimmy");
         call.set_function("myfun");
 
-        char dummyRoot[] = "PROJ_ROOT=/foo/bar";
+        char dummyRoot[] = "FUNC_ROOT=/foo/bar";
         putenv(dummyRoot);
 
         std::string expected = "/foo/bar/wasm/jimmy/myfun/function.wasm";
         REQUIRE(expected == infra::getFunctionFile(call));
 
         // Clear up afterwards
-        char cleanRoot[] = "PROJ_ROOT";
+        char cleanRoot[] = "FUNC_ROOT";
         unsetenv(cleanRoot);
     }
 }

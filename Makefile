@@ -1,20 +1,59 @@
 # DOCKER
 
+.PHONY: build-base-minikube
+build-base-minikube:
+	eval $$(minikube docker-env) && docker build -t shillaker/faasm-base:0.0.1 -f base.dockerfile .
+
+.PHONY: build-core-minikube
+build-core-minikube:
+	eval $$(minikube docker-env) && docker build -t shillaker/faasm-core:0.0.1 .
+
+.PHONY: build-worker-minikube
+build-worker-minikube: build-core-minikube
+	eval $$(minikube docker-env) && docker build -t shillaker/faasm-worker:0.0.1 -f worker.dockerfile .
+
+.PHONY: build-edge-minikube
+build-edge-minikube: build-core-minikube
+	eval $$(minikube docker-env) && docker build -t shillaker/faasm-edge:0.0.1 -f edge.dockerfile .
+
 .PHONY: build-base
 build-base:
-	eval $$(minikube docker-env) && docker build -t shillaker/faasm-base:0.0.1 -f base.dockerfile .
+	docker build -t shillaker/faasm-base -f base.dockerfile .
 
 .PHONY: build-core
 build-core:
-	eval $$(minikube docker-env) && docker build -t shillaker/faasm-core:0.0.1 .
+	docker build -t shillaker/faasm-core .
 
 .PHONY: build-worker
 build-worker: build-core
-	eval $$(minikube docker-env) && docker build -t shillaker/faasm-worker:0.0.1 -f worker.dockerfile .
+	docker build -t shillaker/faasm-worker -f worker.dockerfile .
 
 .PHONY: build-edge
 build-edge: build-core
-	eval $$(minikube docker-env) && docker build -t shillaker/faasm-edge:0.0.1 -f edge.dockerfile .
+	docker build -t shillaker/faasm-edge:0.0.1 -f edge.dockerfile .
+
+
+# DOCKER COMPOSE
+start-all:
+	docker-compose up -d
+
+stop-all:
+	docker-compose stop
+
+restart-all:
+	docker-compose stop; docker-compose up -d
+
+restart-worker:
+	docker-compose stop worker; docker-compose up -d worker
+
+restart-edge:
+	docker-compose stop edge; docker-compose up -d edge
+
+bash-worker:
+	docker-compose run worker bash -l
+
+bash-edge:
+	docker-compose run edge bash -l
 
 # KUBERNETES
 
@@ -31,7 +70,7 @@ k8-deploy:
 	kubectl apply -f k8s/namespace.yml && kubectl apply -f k8s
 
 k8-clean:
-	kubectl delete --all pods --namespace=faasm
+	kubectl delete --all deployments,pods --namespace=faasm
 
 k8-pods:
 	kubectl get pods --namespace=faasm

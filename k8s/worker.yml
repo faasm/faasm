@@ -26,8 +26,8 @@ spec:
           env:
             - name: REDIS_HOST
               value: redis
-            - name: PROJ_ROOT
-              value: /faasm/code
+            - name: FUNC_ROOT
+              value: /usr/share/faasm
           volumeMounts:
             - mountPath: "/usr/share/faasm"
               name: func-vol

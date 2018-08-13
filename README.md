@@ -17,6 +17,9 @@ It can be a bit of a hassle to get Minikube running. Steps are:
 
 If there are errors, run `make minikube-reset`.
 
+Remember that you need to build the Docker images **on your local minikube VM**. This is done via the Makefile
+commands in this project. Importantly the minikube Docker repo is not the same as your local machine's.
+
 ## Protobuf
 
 If there are any issue with installing protobuf you need to remove every trace of protobuf on your system before

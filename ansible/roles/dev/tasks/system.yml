@@ -4,6 +4,6 @@
   become: yes
   apt:
     name: "{{ item }}"
-    state: "installed"
+    state: "present"
   with_items:
   - "nfs-common"

@@ -4,7 +4,7 @@
 
 namespace infra {
     std::string getFunctionFile(message::FunctionCall &call) {
-        std::string projRoot = util::getEnvVar("PROJ_ROOT", "/usr/local/code/faasm");
+        std::string projRoot = util::getEnvVar("FUNC_ROOT", "/usr/local/code/faasm");
         std::string filePath = projRoot + "/wasm/" + call.user() + "/" + call.function() + "/function.wasm";
 
         return filePath;
