@@ -1,0 +1,32 @@
+---
+
+- name: "System deps"
+  become: yes
+  apt:
+    name: "{{ item }}"
+    state: "installed"
+  with_items:
+    - nfs-kernel-server
+    - nfs-common
+
+- name: "Create directory if not exists"
+  become: yes
+  file:
+    path: "/usr/share/faasm"
+    state: directory
+    mode: 0775
+    recurse: yes
+
+- name: "NFS config"
+  become: yes
+  copy:
+    src: exports
+    dest: "/etc/exports"
+    mode: 0644
+
+- name: "Restart service"
+  become: yes
+  service:
+    name: nfs-kernel-server
+    state: restarted
+
