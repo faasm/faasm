@@ -4,6 +4,7 @@
 
 #include <string>
 #include <exception>
+#include <tuple>
 
 #include <proto/faasm.pb.h>
 #include <Runtime/Runtime.h>

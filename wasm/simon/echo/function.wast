@@ -107,12 +107,12 @@
     (i32.const 32)
    )
   )
-  ;;@ ../include/faasm/faasm.h:41:0
+  ;;@ ../include/faasm/faasm.h:44:0
   (i32.store
    (get_local $4)
    (get_local $0)
   )
-  ;;@ ../include/faasm/faasm.h:42:0
+  ;;@ ../include/faasm/faasm.h:45:0
   (set_local $0
    (i32.add
     (get_local $4)
@@ -123,7 +123,7 @@
    (get_local $0)
    (get_local $1)
   )
-  ;;@ ../include/faasm/faasm.h:43:0
+  ;;@ ../include/faasm/faasm.h:47:0
   (set_local $0
    (i32.add
     (get_local $4)
@@ -134,7 +134,7 @@
    (get_local $0)
    (get_local $2)
   )
-  ;;@ ../include/faasm/faasm.h:44:0
+  ;;@ ../include/faasm/faasm.h:48:0
   (set_local $0
    (i32.add
     (get_local $4)
@@ -145,7 +145,7 @@
    (get_local $0)
    (get_local $3)
   )
-  ;;@ ../include/faasm/faasm.h:45:0
+  ;;@ ../include/faasm/faasm.h:49:0
   (set_local $0
    (i32.add
     (get_local $4)
@@ -156,7 +156,7 @@
    (get_local $0)
    (i32.const 0)
   )
-  ;;@ ../include/faasm/faasm.h:47:0
+  ;;@ ../include/faasm/faasm.h:51:0
   (drop
    (call $_exec
     (get_local $4)
@@ -184,7 +184,7 @@
     (br_if $while-out
      (i32.eq
       (get_local $1)
-      (i32.const 1048576)
+      (i32.const 1024)
      )
     )
     ;;@ ../func/function_echo.c:9:0

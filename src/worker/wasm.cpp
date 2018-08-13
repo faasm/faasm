@@ -171,15 +171,18 @@ namespace worker {
         U8 *rawChainNames = &memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) CHAIN_NAMES_START);
         U8 *rawChaininputs = &memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) CHAIN_DATA_START);
 
-        // Print out the first three
-        for (int i = 0; i < 10; i++) {
+        // Extract the chaining requests
+        std::vector<std::tuple<char*, U8*>> chains;
+        for (int i = 0; i < MAX_CHAINS; i++) {
             int nameStart = (i * MAX_NAME_LENGTH);
             int dataStart = (i * MAX_INPUT_BYTES);
 
-            U8 *chainName = &rawChainNames[nameStart];
+            char *chainName = (char*)&rawChainNames[nameStart];
             U8 *chainData = &rawChaininputs[dataStart];
 
-            std::cout << "N: " << chainName << " D: " << chainData << "\n";
+            std::tuple<char*, U8*> thisTuple(chainName, chainData);
+
+            chains.push_back(thisTuple);
         }
 
         return functionResults[0].u32;

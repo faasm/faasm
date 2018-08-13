@@ -6,11 +6,8 @@
 #define FAASM_FAASM_H
 
 const int MAX_CHAINS = 50;
-
 const int MAX_NAME_LENGTH = 32;
 const int MAX_INPUT_BYTES = 1024;
-
-const int MAX_OUTPUT_BYTES = 1024;
 
 /**
  * Main faasm memory abstraction
@@ -66,16 +63,18 @@ void chainFunction(
     // Work out how many chained functions we already have
     int32_t chainIdx = memory->chainCount;
 
+    if(chainIdx > MAX_CHAINS) {
+        fprintf(stderr, "%s", "Reached max chains");
+        return;
+    }
+
     // Get the memory offsets for name and data
     uint8_t *namePtr = memory->chainFunctions + (chainIdx * MAX_NAME_LENGTH);
     uint8_t *dataPtr = memory->chainInputs + (chainIdx * MAX_INPUT_BYTES);
 
-    // Make sure we copy the data into place
-    memcpy(namePtr, (uint8_t*) name, strlen(name));
+    // Copy the data into place
+    strcpy((char*) namePtr, name);
     memcpy(dataPtr, inputData, inputDataSize);
-
-    printf("F: %i %p = %s\n", chainIdx, namePtr, namePtr);
-    printf("I: %i %p = %s\n", chainIdx, dataPtr, dataPtr);
 
     // Increment the count
     memory->chainCount = chainIdx + 1;
