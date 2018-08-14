@@ -8,8 +8,9 @@ message FunctionCall {
     required string resultKey = 3;
 
     optional bool success = 4;
+    optional bool isAsync = 5;
 
-    optional bytes inputData = 5;
-    optional bytes outputData = 6;
+    optional bytes inputData = 6;
+    optional bytes outputData = 7;
 }
 

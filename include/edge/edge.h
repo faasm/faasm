@@ -18,7 +18,6 @@ namespace edge {
     class FunctionEndpoint {
     public:
         explicit FunctionEndpoint(Address addr);
-
         void init(int threadCount);
 
         void start();
@@ -48,10 +47,18 @@ namespace edge {
         void listen(const std::string &port);
 
         void handleGet(http_request request);
+        void handlePost(http_request request);
+        void handlePut(http_request request);
 
     private:
-        std::string port;
         http_listener *listener;
+        std::shared_ptr<infra::RedisClient> redis;
+
+        message::FunctionCall buildCallFromRequest(http_request *request);
+    };
+
+
+    class InvalidPathException : public std::exception {
     };
 
 }
