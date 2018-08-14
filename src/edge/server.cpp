@@ -2,16 +2,10 @@
 #include <edge/edge.h>
 
 int main() {
-    Pistache::Port port(8080);
+    std::string port = "8080";
 
-    int threadCount = 4;
+    edge::RestServer server;
+    server.listen(port);
 
-    Pistache::Address addr(Ipv4::any(), port);
-
-    edge::FunctionEndpoint endpoint(addr);
-
-    endpoint.init(threadCount);
-    endpoint.start();
-
-    endpoint.shutdown();
+    return 0;
 }

@@ -1,12 +1,6 @@
 ---
 
-- name: "System deps"
-  become: yes
-  apt:
-    name: "{{ item }}"
-    state: "present"
-  with_items:
-    - "libz-dev"
+- include_tasks: system.yml
 
 - include_tasks: pistache.yml
 

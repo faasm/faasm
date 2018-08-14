@@ -102,5 +102,34 @@ namespace edge {
         response.send(Http::Code::Ok, redisCheck);
     }
 
+    /**
+     * New implementation
+     */
+     RestServer::RestServer() {
+
+     }
+
+     void RestServer::listen(const std::string &port) {
+         this->port = port;
+
+         std::string addr = "http://localhost:" + port;
+
+         listener = new http_listener(addr);
+         listener->support(methods::GET, [this](http_request req) {
+             this->handleGet(req);
+         });
+
+         listener->open().then([port]() {
+             std::cout << "Listening for requests on localhost:" << port << "\n";
+         }).wait();
+
+         // Continuous loop...
+         while (true);
+     }
+
+     void RestServer::handleGet(http_request request) {
+         request.reply(status_codes::OK, "GET OK");
+     }
+
 };
 
