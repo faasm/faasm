@@ -48,11 +48,11 @@ namespace worker {
         return chainNames.size();
     }
 
-    std::string WasmModule::getChainName(size_t idx) {
+    std::string WasmModule::getChainName(const size_t &idx) {
         return chainNames.at(idx);
     }
 
-    std::vector<U8> WasmModule::getChainData(size_t idx) {
+    std::vector<U8> WasmModule::getChainData(const size_t &idx) {
         return chainData.at(idx);
     }
 
@@ -178,7 +178,7 @@ namespace worker {
         // Get output data
         U8 *rawOutput = &memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) OUTPUT_START);
         std::vector<U8> outputData(rawOutput, rawOutput + MAX_OUTPUT_BYTES);
-        util::trimTrailingZeros(&outputData);
+        util::trimTrailingZeros(outputData);
         call.set_outputdata(outputData.data(), outputData.size());
 
         // Check for chained calls. Note that we reserve chunks for each and can iterate
@@ -196,7 +196,7 @@ namespace worker {
             int dataStart = (i * MAX_INPUT_BYTES);
             std::vector<U8> thisData(&rawChaininputs[dataStart],
                                      &rawChaininputs[dataStart + MAX_INPUT_BYTES]);
-            util::trimTrailingZeros(&thisData);
+            util::trimTrailingZeros(thisData);
 
             // Stop if we have an empty name
             if(thisName.empty()) {

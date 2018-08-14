@@ -16,15 +16,12 @@ namespace edge {
 
         void listen(const std::string &port);
 
-        void handleGet(http_request request);
-        void handlePost(http_request request);
-        void handlePut(http_request request);
+        static void handleGet(http_request request);
+        static void handlePost(http_request request);
+        static void handlePut(http_request request);
 
     private:
-        http_listener *listener;
-        infra::Redis *redis;
-
-        message::FunctionCall buildCallFromRequest(http_request *request);
+        static message::FunctionCall buildCallFromRequest(http_request &request);
     };
 
 

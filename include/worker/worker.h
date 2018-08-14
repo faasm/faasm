@@ -47,8 +47,8 @@ namespace worker {
         void clean();
 
         size_t getChainCount();
-        std::string getChainName(size_t idx);
-        std::vector<U8> getChainData(size_t idx);
+        std::string getChainName(const size_t &idx);
+        std::vector<U8> getChainData(const size_t &idx);
 
     private:
         ModuleInstance *moduleInstance;

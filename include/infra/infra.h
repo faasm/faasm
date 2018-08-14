@@ -2,13 +2,14 @@
 
 #include <iostream>
 #include <string>
+#include <thread>
+
 #include <proto/faasm.pb.h>
 #include <hiredis/hiredis.h>
 
-
 namespace infra {
     /** Function utilities */
-    std::string getFunctionFile(message::FunctionCall &call);
+    std::string getFunctionFile(const message::FunctionCall &call);
 
     /** Redis client */
     class Redis {
@@ -16,6 +17,8 @@ namespace infra {
     public:
 
         Redis();
+
+        static Redis getForThread(std::thread::id threadId);
 
         void connect();
 

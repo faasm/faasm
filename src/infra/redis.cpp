@@ -3,6 +3,8 @@
 
 namespace infra {
 
+    const int BLOCKING_TIMEOUT = 1000;
+
     Redis::Redis() {
 
     }
@@ -18,8 +20,17 @@ namespace infra {
     }
 
     std::string Redis::dequeue(const std::string &queueName) {
-        auto reply = (redisReply *) redisCommand(context, "LPOP %s", queueName.c_str());
-        return std::string(reply->str);
+        auto reply = (redisReply *) redisCommand(context, "BLPOP %s %d", queueName.c_str(), BLOCKING_TIMEOUT);
+
+        size_t nResults = reply->elements;
+
+        if(nResults > 2) {
+            throw std::runtime_error("Returned more than one pair of dequeued values");
+        }
+
+        // Note, BLPOP will return the queue name and the value returned (elements 0 and 1)
+        redisReply *r = reply->element[1];
+        return std::string(r->str);
     }
 
     void Redis::flushAll() {
