@@ -9,3 +9,4 @@
     - "libz-dev"
     - "libboost-dev"
     - "libcpprest-dev"
+    - "libhiredis-dev"

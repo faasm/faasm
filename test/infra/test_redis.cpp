@@ -11,17 +11,7 @@ namespace tests {
         const std::string VALUE_B = "val b";
         const std::string VALUE_C = "val c";
     }
-
-    TEST_CASE("Test redis connection", "[redis]") {
-        RedisClient cli;
-        cli.connect();
-
-        std::string expected = "foobar";
-        std::string actual = cli.check(expected);
-
-        REQUIRE(expected == actual);
-    }
-
+    
     void doEnqueue(RedisClient &cli) {
         cli.connect();
         cli.flushall();

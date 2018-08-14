@@ -12,8 +12,23 @@
     repo: deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main
     state: present
 
-- name: "Install clang"
+- name: "Install clang and other deps"
   become: yes
   apt:
-    name: clang-6.0
+    name: "{{ item }}"
     update_cache: yes
+  with_items:
+    - "clang-6.0"
+    - "build-essential"
+
+- name: "Symlinks"
+  become: yes
+  file:
+    state: link
+    src: "/usr/bin/{{ item }}-6.0"
+    dest: "/usr/bin/{{ item }}"
+  with_items:
+  - "clang"
+  - "clang++"
+  - "clang-cpp"
+

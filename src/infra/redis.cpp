@@ -18,23 +18,6 @@ namespace infra {
         cpp_redis::client::connect(hostname, 6379);
     }
 
-    std::string RedisClient::check(const std::string &value) {
-        const char *key = "check_key";
-        std::string result;
-
-        this->set(key, value, [](cpp_redis::reply &reply) {
-            // Do nothing
-        });
-
-        this->get(key, [&result](cpp_redis::reply &reply) {
-            result = reply.as_string();
-        });
-
-        this->sync_commit();
-
-        return result;
-    }
-
     void RedisClient::enqueue(const std::string &queueName, const std::string &value) {
         std::vector<std::string> values = {value};
 

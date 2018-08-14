@@ -34,6 +34,8 @@ namespace tests {
         funcCall.set_inputdata(inputData.data(), 100);
         funcCall.set_outputdata(outputData.data(), 50);
 
+        funcCall.set_isasync(true);
+
         REQUIRE(user == funcCall.user());
         REQUIRE(func == funcCall.function());
         REQUIRE(resultKey == funcCall.resultkey());
@@ -47,6 +49,7 @@ namespace tests {
         REQUIRE(user == newFuncCall.user());
         REQUIRE(func == newFuncCall.function());
         REQUIRE(resultKey == newFuncCall.resultkey());
+        REQUIRE(newFuncCall.isasync());
 
         // Check input/ output data
         const std::string actualStrInput = newFuncCall.inputdata();

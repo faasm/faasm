@@ -20,9 +20,6 @@ namespace infra {
 
         void connect();
 
-        /** Check writing/ reading */
-        std::string check(const std::string &value);
-
         /** Enqueue on FIFO */
         void enqueue(const std::string &queueName, const std::string &value);
 
