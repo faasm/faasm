@@ -22,7 +22,7 @@ namespace edge {
 
     private:
         http_listener *listener;
-        std::shared_ptr<infra::Redis> redis;
+        infra::Redis *redis;
 
         message::FunctionCall buildCallFromRequest(http_request *request);
     };

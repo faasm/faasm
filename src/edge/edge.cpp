@@ -12,6 +12,9 @@ namespace edge {
     }
 
     void RestServer::listen(const std::string &port) {
+        redis = new infra::Redis();
+        redis->connect();
+
         std::string addr = "http://localhost:" + port;
 
         listener = new http_listener(addr);
