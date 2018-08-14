@@ -1,15 +1,10 @@
 #pragma once
 
-#include <pistache/http.h>
-#include <pistache/router.h>
-#include <pistache/endpoint.h>
-
 #include <proto/faasm.pb.h>
 #include <infra/infra.h>
 
 #include <cpprest/http_listener.h>
 
-using namespace Pistache;
 using namespace web::http::experimental::listener;
 using namespace web::http;
 
@@ -27,7 +22,7 @@ namespace edge {
 
     private:
         http_listener *listener;
-        std::shared_ptr<infra::RedisClient> redis;
+        std::shared_ptr<infra::Redis> redis;
 
         message::FunctionCall buildCallFromRequest(http_request *request);
     };

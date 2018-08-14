@@ -1,45 +1,41 @@
 #pragma once
 
 #include <iostream>
-#include <cpp_redis/cpp_redis>
 #include <string>
 #include <proto/faasm.pb.h>
+#include <hiredis/hiredis.h>
 
 
 namespace infra {
     /** Function utilities */
     std::string getFunctionFile(message::FunctionCall &call);
 
-    /** Low-level Redis interaction */
-    class RedisClient : public cpp_redis::client {
+    /** Redis client */
+    class Redis {
 
     public:
-        static std::vector<std::string> getKeyValueFromReply(cpp_redis::reply &reply);
 
-        RedisClient();
+        Redis();
 
         void connect();
 
-        /** Enqueue on FIFO */
         void enqueue(const std::string &queueName, const std::string &value);
 
-        /** Blocking dequeue on FIFO */
-        std::vector<std::string> blockingDequeue(const std::string &queueName);
+        std::string dequeue(const std::string &queueName);
 
-        /** Non-blocking dequeue on FIFO */
-        void dequeue(const std::string &queueName, const reply_callback_t &callback);
+        void flushAll();
 
-        /** Adds a function call */
+        long listLength(const std::string &queueName);
+
         void callFunction(message::FunctionCall &call);
 
-        /** Gets next function call */
         message::FunctionCall nextFunctionCall();
 
         void setFunctionResult(message::FunctionCall &call, bool success);
 
-        void getFunctionResult(const message::FunctionCall &call,
-                               const std::function<void(message::FunctionCall &)> &callback);
+        message::FunctionCall getFunctionResult(const message::FunctionCall &call);
 
-        message::FunctionCall blockingGetFunctionResult(const message::FunctionCall &call);
+    private:
+        redisContext *context;
     };
 }

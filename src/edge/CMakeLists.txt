@@ -5,7 +5,6 @@ add_library(edge_lib STATIC edge.cpp ${FAASM_INCLUDE_DIR}/edge/edge.h)
 target_link_libraries(edge_lib
         proto
         infra
-        pistache
         boost_system boost_filesystem
         ssl crypto
         cpprest

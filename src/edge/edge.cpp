@@ -1,21 +1,12 @@
 #include "edge/edge.h"
 
-#include <pistache/http.h>
-#include <pistache/router.h>
-#include <pistache/endpoint.h>
-
 #include <infra/infra.h>
 #include <util/util.h>
-
-using namespace Pistache;
 
 /**
  * HTTP endpoint for managing function calls.
  */
 namespace edge {
-    /**
-     * New implementation
-     */
     RestServer::RestServer() {
 
     }
@@ -60,7 +51,7 @@ namespace edge {
             std::cout << "Submitted async " << call.user() << " - " << call.function() << "\n";
             request.reply(status_codes::Created, "Async request submitted");
         } else {
-            message::FunctionCall result = redis->blockingGetFunctionResult(call);
+            message::FunctionCall result = redis->getFunctionResult(call);
 
             if (result.success()) {
                 request.reply(status_codes::OK, result.outputdata());
@@ -88,7 +79,7 @@ namespace edge {
             request->extract_string().then([&](pplx::task<std::string> task) {
                 auto requestData = task.get();
 
-                if(requestData.size() > 0) {
+                if(requestData.empty()) {
                     call.set_inputdata(requestData);
                 }
 

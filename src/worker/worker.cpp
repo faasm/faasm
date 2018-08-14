@@ -23,7 +23,7 @@ namespace worker {
         for (int i = 0; i < 1000; i++) {
             std::cout << "Worker waiting...\n";
 
-            // Get next call (blocking)
+            // Get next call
             message::FunctionCall call = redis.nextFunctionCall();
 
             WasmModule module;

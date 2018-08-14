@@ -65,7 +65,7 @@ namespace worker {
 
         void start();
     private:
-        infra::RedisClient redis;
+        infra::Redis redis;
     };
 
     /** Exceptions */

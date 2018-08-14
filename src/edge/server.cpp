@@ -1,4 +1,3 @@
-#include <pistache/http.h>
 #include <edge/edge.h>
 
 int main() {
