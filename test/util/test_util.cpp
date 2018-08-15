@@ -18,8 +18,11 @@ namespace tests {
     TEST_CASE("Test valid environment variables", "[util]") {
         std::string actual = getEnvVar("LANGUAGE", "blah");
 
-        bool check = (actual == "en_GB:en") || (actual == "en_GB.utf8");
-        REQUIRE(check);
+        std::string expectedA("en_GB:en");
+        std::string expectedB("en_GB:utf8");
+
+        bool isEqual = (actual == expectedA) || (actual == expectedB);
+        REQUIRE(isEqual);
     }
 
     TEST_CASE("Test empty environment variables", "[util]") {

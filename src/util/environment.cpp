@@ -16,7 +16,7 @@ namespace util {
             return dflt;
         }
         else {
-            return val;
+            return retVal;
         }
     }
 }

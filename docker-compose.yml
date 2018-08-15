@@ -6,29 +6,29 @@ services:
       - "6378:6379"
 
   worker:
-    build:
-      context: .
-      dockerfile: worker.dockerfile
+    image: shillaker/faasm-core:latest
+    command: "/faasm/code/build/bin/worker"
     ports:
       - "8001:8001"
     depends_on:
       - redis
     environment:
       - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - FUNC_ROOT=/usr/share/faasm
     volumes:
-      - ./wasm:/usr/share/faasm
+      - /usr/share/faasm:/usr/share/faasm
 
   edge:
-    build:
-      context: .
-      dockerfile: edge.dockerfile
+    image: shillaker/faasm-core:latest
+    command: "/faasm/code/build/bin/edge"
     ports:
       - "8080:8080"
     environment:
       - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - FUNC_ROOT=/usr/share/faasm
     volumes:
-      - ./wasm:/usr/share/faasm
+      - /usr/share/faasm:/usr/share/faasm
     depends_on:
       - redis
