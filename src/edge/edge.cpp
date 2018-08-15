@@ -14,7 +14,7 @@ namespace edge {
     }
 
     void RestServer::listen(const std::string &port) {
-        std::string addr = "http://localhost:" + port;
+        std::string addr = "http://0.0.0.0:" + port;
         http_listener listener(addr);
 
         listener.support(methods::GET, RestServer::handleGet);
