@@ -43,7 +43,7 @@ namespace edge {
         if (call.isasync()) {
             // Don't wait for result
             std::cout << "Submitted async " << call.user() << " - " << call.function() << std::endl;
-            request.reply(status_codes::Created, "Async request submitted");
+            request.reply(status_codes::Created, "Async request submitted\n");
         } else {
             std::cout << "Awaiting result for " << call.user() << " - " << call.function() << std::endl;
 
@@ -52,13 +52,29 @@ namespace edge {
             if (result.success()) {
                 request.reply(status_codes::OK, result.outputdata() + "\n");
             } else {
-                request.reply(status_codes::InternalError, "Error");
+                request.reply(status_codes::InternalError, "Error\n");
             }
         }
     }
 
     void RestServer::handlePut(http_request request) {
-        request.reply(status_codes::OK, "Put OK");
+        message::FunctionCall call = RestServer::buildCallFromRequest(request);
+        std::string outputFile = infra::getFunctionFile(call);
+
+        std::cout << "Uploading " << call.user() << " - " << call.function() << " to " << outputFile << std::endl;
+
+        const concurrency::streams::istream bodyStream = request.body();
+        concurrency::streams::stringstreambuf inputStream;
+
+        auto t = bodyStream.read_to_end(inputStream);
+
+        t.then([&inputStream, &outputFile](size_t size) {
+            auto s = inputStream.collection();
+            std::ofstream out(outputFile);
+            out.write(s.c_str(), s.size());
+        }).wait();
+
+        request.reply(status_codes::OK, "Upload complete\n");
     }
 
     message::FunctionCall RestServer::buildCallFromRequest(http_request &request) {
@@ -75,7 +91,7 @@ namespace edge {
             request.extract_string().then([&](pplx::task<std::string> task) {
                 auto requestData = task.get();
 
-                if(requestData.empty()) {
+                if (requestData.empty()) {
                     call.set_inputdata(requestData);
                 }
 

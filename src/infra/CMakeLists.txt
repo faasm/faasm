@@ -7,4 +7,10 @@ add_library(
         ${FAASM_INCLUDE_DIR}/infra/infra.h
 )
 
-target_link_libraries(infra util proto pthread hiredis)
+target_link_libraries(
+        infra util
+        proto
+        pthread
+        hiredis
+        boost_system boost_filesystem
+)
