@@ -199,9 +199,6 @@ namespace worker {
     void WasmModule::clean() {
         // Clear up
         Runtime::collectGarbage();
-
-        delete module;
-        delete moduleInstance;
     }
 
     size_t WasmModule::getChainCount() {
