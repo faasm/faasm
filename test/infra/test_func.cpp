@@ -1,6 +1,7 @@
 #include <catch/catch.hpp>
 
 #include <infra/infra.h>
+#include <boost/filesystem.hpp>
 
 namespace tests {
 
@@ -10,10 +11,14 @@ namespace tests {
         call.set_user("jimmy");
         call.set_function("myfun");
 
-        char dummyRoot[] = "FUNC_ROOT=/foo/bar";
-        putenv(dummyRoot);
+        std::string dummyRoot = "/tmp/foo/bar";
+        boost::filesystem::create_directories(dummyRoot + "/wasm");
 
-        std::string expected = "/foo/bar/wasm/jimmy/myfun/function.wasm";
+        char envVarBuf[30];
+        sprintf(envVarBuf, "FUNC_ROOT=%s", dummyRoot.c_str());
+        putenv(envVarBuf);
+
+        std::string expected = "/tmp/foo/bar/wasm/jimmy/myfun/function.wasm";
         REQUIRE(expected == infra::getFunctionFile(call));
 
         // Clear up afterwards

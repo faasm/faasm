@@ -51,11 +51,29 @@ namespace worker {
         std::vector<U8> getChainData(const size_t &idx);
 
     private:
+        std::string filePath;
+
+        Module *module;
         ModuleInstance *moduleInstance;
+
+        Context *context;
+        FunctionInstance *functionInstance;
+
         ValueTuple functionResults;
 
         std::vector<std::string> chainNames;
         std::vector<std::vector<U8>> chainData;
+
+        void load(message::FunctionCall &call);
+
+        std::vector<Value> buildInvokeArgs();
+
+        void addDataSegment(int offset);
+        void addDataSegment(int offset, std::vector<U8> &initialData);
+
+        void buildModule(message::FunctionCall &call);
+        void setOutputData(message::FunctionCall &call);
+        void setUpChainingData();
     };
 
     /** Worker wrapper */
