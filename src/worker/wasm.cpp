@@ -62,7 +62,7 @@ namespace worker {
 
         Module module;
         if (!loadModule(filePath.c_str(), module)) {
-            std::cerr << "Could not load module at:  " << filePath << "\n";
+            std::cerr << "Could not load module at:  " << filePath << std::endl;
 
             throw WasmException();
         }

@@ -17,11 +17,9 @@ namespace worker {
     }
 
     void Worker::start() {
-        redis.connect();
-
         // Arbitrary loop to stop linting complaining
         for (int i = 0; i < 1000; i++) {
-            std::cout << "Worker waiting...\n";
+            std::cout << "Worker waiting..." << std::endl;
 
             // Get next call
             message::FunctionCall call = redis.nextFunctionCall();
@@ -49,7 +47,7 @@ namespace worker {
             module.clean();
 
             // Set function success
-            std::cout << "Finished call:  " << call.user() << " - " << call.function() << "\n";
+            std::cout << "Finished call:  " << call.user() << " - " << call.function() << std::endl;
 
             redis.setFunctionResult(call, true);
         }

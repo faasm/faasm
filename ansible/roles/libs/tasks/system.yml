@@ -1,6 +1,6 @@
 ---
 
-- name: "Install boost"
+- name: "Install deps with apt"
   become: yes
   apt:
     name: "{{ item }}"

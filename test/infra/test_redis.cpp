@@ -13,7 +13,6 @@ namespace tests {
     }
 
     void doEnqueue(Redis *cli) {
-        cli->connect();
         cli->flushAll();
 
         // Enqueue some values
@@ -44,7 +43,6 @@ namespace tests {
 
     TEST_CASE("Test redis calling/ retrieving function call", "[redis]") {
         Redis cli;
-        cli.connect();
         cli.flushAll();
 
         // Request function
@@ -74,7 +72,6 @@ namespace tests {
     }
 
     message::FunctionCall callFunction(Redis *cli) {
-        cli->connect();
         cli->flushAll();
 
         // Write some function result

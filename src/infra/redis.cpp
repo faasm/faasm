@@ -1,16 +1,18 @@
 #include "infra.h"
 #include "util/util.h"
 
+#include <thread>
+
 namespace infra {
 
     const int BLOCKING_TIMEOUT = 1000;
 
     Redis::Redis() {
-
-    }
-
-    void Redis::connect() {
         std::string hostname = util::getEnvVar("REDIS_HOST", "localhost");
+
+        std::thread::id threadId = std::this_thread::get_id();
+
+        std::cout << "Instantiating redis in thread " << threadId << std::endl;
 
         context = redisConnect(hostname.c_str(), 6379);
     }
@@ -50,7 +52,7 @@ namespace infra {
         call.set_resultkey(resultKey);
 
         // Send the function call
-        std::cout << "Calling function " << call.user() << " - " << call.function() << " - " << randomNumber << "\n";
+        std::cout << "Function " << call.user() << " - " << call.function() << " - " << randomNumber << std::endl;
 
         std::string serialised = call.SerializeAsString();
 

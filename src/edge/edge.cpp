@@ -1,11 +1,14 @@
 #include "edge/edge.h"
 
-#include <thread>
-
 #include <infra/infra.h>
 #include <util/util.h>
 
 namespace edge {
+
+    // Note - hiredis redis contexts are suitable only for single threads
+    // therefore we need to ensure that each thread has its own instance
+    static thread_local infra::Redis redis;
+
     RestServer::RestServer() {
 
     }
@@ -21,7 +24,7 @@ namespace edge {
         listener.support(methods::PUT, RestServer::handlePut);
 
         listener.open().then([port]() {
-            std::cout << "Listening for requests on localhost:" << port << "\n";
+            std::cout << "Listening for requests on localhost:" << port << std::endl;
         }).wait();
 
         // Continuous loop...
@@ -35,22 +38,14 @@ namespace edge {
     void RestServer::handlePost(http_request request) {
         message::FunctionCall call = RestServer::buildCallFromRequest(request);
 
-        std::thread::id threadId = std::this_thread::get_id();
-
-        std::cout << "Request handled by thread " << threadId;
-
-        //TODO - avoid creating a Redis connection per request
-        infra::Redis redis;
-        redis.connect();
-
         redis.callFunction(call);
 
         if (call.isasync()) {
             // Don't wait for result
-            std::cout << "Submitted async " << call.user() << " - " << call.function() << "\n";
+            std::cout << "Submitted async " << call.user() << " - " << call.function() << std::endl;
             request.reply(status_codes::Created, "Async request submitted");
         } else {
-            std::cout << "Awaiting result for " << call.user() << " - " << call.function() << "\n";
+            std::cout << "Awaiting result for " << call.user() << " - " << call.function() << std::endl;
 
             message::FunctionCall result = redis.getFunctionResult(call);
 
