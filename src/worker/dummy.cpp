@@ -17,6 +17,8 @@ int main()
     if(child == 0) {
         worker::WasmModule module;
         module.execute(call);
+
+        std::cout << "In process" << std::endl;
     }
     else {
         sleep(5);

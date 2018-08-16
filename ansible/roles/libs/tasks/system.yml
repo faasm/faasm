@@ -10,3 +10,5 @@
     - "libboost-dev"
     - "libcpprest-dev"
     - "libhiredis-dev"
+    - "libcgroup-dev"
+    - "cgroup-tools"
