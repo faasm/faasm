@@ -33,7 +33,6 @@ namespace worker {
     const int MAX_CHAIN_NAME_BYTES = MAX_NAME_LENGTH * MAX_CHAINS;
 
     const int CHAIN_DATA_START = CHAIN_NAMES_START + MAX_CHAIN_NAME_BYTES;
-    const int MAX_CHAIN_DATA_BYTES = MAX_INPUT_BYTES * MAX_CHAINS;
 
     /** Wrapper for wasm code */
     class WasmModule {
@@ -82,14 +81,9 @@ namespace worker {
         Worker();
 
         void start();
-    private:
-        infra::Redis redis;
     };
 
     /** Exceptions */
     class WasmException : public std::exception {
-    };
-
-    class InvalidResultException : public std::exception {
     };
 }

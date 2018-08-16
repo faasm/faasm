@@ -1,19 +1,26 @@
 #include <string>
 #include <worker/worker.h>
 
+#include <unistd.h>
+
 int main()
 {
-    worker::WasmModule module;
+    std::string inputData = "THIS IS MY INPUT";
 
     message::FunctionCall call;
     call.set_user("simon");
-    call.set_function("chain");
-
-    std::string inputData = "THIS IS MY INPUT";
-
+    call.set_function("dummy");
     call.set_inputdata(inputData);
 
-    module.execute(call);
+    // Execute in new process
+    pid_t child = fork();
+    if(child == 0) {
+        worker::WasmModule module;
+        module.execute(call);
+    }
+    else {
+        sleep(5);
+    }
 
     return 0;
 }

@@ -180,16 +180,16 @@ namespace worker {
             int nameStart = (i * MAX_NAME_LENGTH);
             std::string thisName((char *) &rawChainNames[nameStart]);
 
+            // Stop if we have an empty name
+            if (thisName.empty()) {
+                break;
+            }
+
             // Extract data without trailing zeros
             int dataStart = (i * MAX_INPUT_BYTES);
             std::vector<U8> thisData(&rawChaininputs[dataStart],
                                      &rawChaininputs[dataStart + MAX_INPUT_BYTES]);
             util::trimTrailingZeros(thisData);
-
-            // Stop if we have an empty name
-            if (thisName.empty()) {
-                break;
-            }
 
             chainNames.push_back(thisName);
             chainData.push_back(thisData);
