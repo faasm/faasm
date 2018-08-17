@@ -63,13 +63,15 @@ namespace edge {
 
         std::cout << "Uploading " << call.user() << " - " << call.function() << " to " << outputFile << std::endl;
 
-        request.extract_string().then([&outputFile](pplx::task<std::string> task) {
-            std::string result = task.get();
+        const concurrency::streams::istream bodyStream = request.body();
+        concurrency::streams::stringstreambuf inputStream;
 
-            std::cout << "Request body - " << result << " TO " << outputFile << std::endl;
+        auto t = bodyStream.read_to_end(inputStream);
+
+        t.then([&inputStream, &outputFile](size_t size) {
+            auto s = inputStream.collection();
             std::ofstream out(outputFile);
-
-            out.write(result.c_str(), result.size());
+            out.write(s.c_str(), s.size());
             out.flush();
             out.close();
         }).wait();
