@@ -69,4 +69,23 @@ namespace tests {
         // Tidy up
         util::unsetEnvVar("FUNC_ROOT");
     }
+    
+    TEST_CASE("Test invoking a function", "[edge]") {
+        infra::Redis cli;
+        cli.flushAll();
+
+        // Note - must be async to avoid needing a result
+        std::string path = "/fa/foo/bar";
+        std::string inputData = "Some data";
+
+        http_request request = createRequest(path, inputData);
+        request.set_method(methods::POST);
+        edge::RestServer::handlePost(request);
+
+        const message::FunctionCall actual = cli.nextFunctionCall();
+
+        REQUIRE(actual.user() == "foo");
+        REQUIRE(actual.function() == "bar");
+        REQUIRE(actual.inputdata() == "Some data");
+    }
 }
