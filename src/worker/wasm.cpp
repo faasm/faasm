@@ -32,7 +32,7 @@ namespace worker {
 
         std::cout << "Message - " << message << std::endl;
     }
-
+sa
     WasmModule::WasmModule() {
 
     }

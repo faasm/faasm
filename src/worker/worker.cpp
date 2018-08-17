@@ -21,17 +21,15 @@ namespace worker {
     }
 
     void Worker::start() {
+        // Create main CGroup with CPU limiting
+        CGroup mainGroup("faasm");
+        mainGroup.limitCpu();
+
         // Arbitrary loop to stop linting complaining
         for (int i = 0; i < 1000; i++) {
             // Get next call (blocking)
             std::cout << "Worker waiting..." << std::endl;
             message::FunctionCall call = redis.nextFunctionCall();
-
-            // Get cgroup for worker processes
-            CGroup mainGroup("faasm");
-
-            // Turn on CPU limiting
-            mainGroup.limitCpu();
 
             // Create child process
             pid_t child = fork();
@@ -43,19 +41,22 @@ namespace worker {
                 WasmModule module;
                 module.execute(call);
 
+                // TODO - unfortunately redis client isn't possible to share between processes
+                // therefore need to create yet another connection for the child process
+                infra::Redis loopRedis;
+
                 // Dispatch chained calls
                 for(auto chainedCall : module.chainedCalls) {
-                    redis.callFunction(chainedCall);
+                    loopRedis.callFunction(chainedCall);
                 }
-
-                module.clean();
 
                 // Set function success
                 std::cout << "Finished call:  " << call.user() << " - " << call.function() << std::endl;
+                loopRedis.setFunctionResult(call, true);
 
-                redis.setFunctionResult(call, true);
+                module.clean();
 
-                break;
+                return;
             }
         }
     }
