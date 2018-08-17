@@ -6,6 +6,8 @@
 #include <exception>
 #include <tuple>
 
+#include <boost/filesystem.hpp>
+
 #include <proto/faasm.pb.h>
 #include <Runtime/Runtime.h>
 
@@ -16,8 +18,6 @@ namespace worker {
     const std::string ENTRYPOINT_FUNC = "run";
 
     const int MAX_NAME_LENGTH = 32;
-
-    const int N_PROCESSES = 10;
 
     // Input memory
     // Need to make sure this starts high enough to avoid
@@ -47,9 +47,7 @@ namespace worker {
         /** Cleans up */
         void clean();
 
-        size_t getChainCount();
-        std::string getChainName(const size_t &idx);
-        std::vector<U8> getChainData(const size_t &idx);
+        std::vector<message::FunctionCall> chainedCalls;
 
     private:
         Module *module;
@@ -60,9 +58,6 @@ namespace worker {
 
         ValueTuple functionResults;
 
-        std::vector<std::string> chainNames;
-        std::vector<std::vector<U8>> chainData;
-
         void load(message::FunctionCall &call);
 
         std::vector<Value> buildInvokeArgs();
@@ -71,7 +66,7 @@ namespace worker {
         void addDataSegment(int offset, std::vector<U8> &initialData);
 
         void setOutputData(message::FunctionCall &call);
-        void setUpChainingData();
+        void setUpChainingData(const message::FunctionCall &call);
     };
 
     /** Worker wrapper */
@@ -80,6 +75,23 @@ namespace worker {
         Worker();
 
         void start();
+    };
+
+    /** Abstraction around cgroups */
+    class CGroup {
+    public:
+        CGroup(const std::string &name);
+
+        void limitCpu();
+        void addCurrentPid();
+
+    private:
+        std::string name;
+        std::vector<std::string> controllers;
+
+        boost::filesystem::path getPathToController(const std::string &controller);
+        boost::filesystem::path getPathToFile(const std::string &controller, const std::string &file);
+        void mkdirForController(const std::string &controller);
     };
 
     /** Exceptions */

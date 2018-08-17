@@ -6,12 +6,12 @@
     path: "/etc/cgconfig.d/"
     state: directory
 
-- name: "Put cgroup config file in place"
+- name: "Put cgroup config files in place"
   become: yes
   template:
-    src: cgroupconfig-faasm.j2
+    src: cgconfig-faasm.j2
     dest: "/etc/cgconfig.d/faasm.conf"
 
-- name: "Set up the cgroups from the file"
+- name: "Set up cgroups"
   become: yes
   shell: "cgconfigparser -a {{ ansible_user }}:{{ ansible_user }} -L /etc/cgconfig.d"

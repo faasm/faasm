@@ -64,19 +64,24 @@ namespace tests {
         REQUIRE(result == 0);
 
         // Check the chaining
-        REQUIRE(3 == module.getChainCount());
+        REQUIRE(3 == module.chainedCalls.size());
+
+        // Check all are set with the right user
+        REQUIRE(module.chainedCalls[0].user() == "simon");
+        REQUIRE(module.chainedCalls[1].user() == "simon");
+        REQUIRE(module.chainedCalls[2].user() == "simon");
 
         // Check function names
-        REQUIRE(module.getChainName(0) == "Function 0");
-        REQUIRE(module.getChainName(1) == "Function 1");
-        REQUIRE(module.getChainName(2) == "Function 2");
+        REQUIRE(module.chainedCalls[0].function() == "Function 0");
+        REQUIRE(module.chainedCalls[1].function() == "Function 1");
+        REQUIRE(module.chainedCalls[2].function() == "Function 2");
 
         // Check function data
-        std::vector<U8> expected0 = {0, 1, 2};
-        std::vector<U8> expected1 = {1, 2, 3};
-        std::vector<U8> expected2 = {2, 3, 4};
-        REQUIRE(module.getChainData(0) == expected0);
-        REQUIRE(module.getChainData(1) == expected1);
-        REQUIRE(module.getChainData(2) == expected2);
+        std::vector<uint8_t> expected0 = {0, 1, 2};
+        std::vector<uint8_t> expected1 = {1, 2, 3};
+        std::vector<uint8_t> expected2 = {2, 3, 4};
+        REQUIRE(util::stringToBytes(module.chainedCalls[0].inputdata()) == expected0);
+        REQUIRE(util::stringToBytes(module.chainedCalls[1].inputdata()) == expected1);
+        REQUIRE(util::stringToBytes(module.chainedCalls[2].inputdata()) == expected2);
     }
 }

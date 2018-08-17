@@ -1,0 +1,31 @@
+# Top-level faasm group
+group faasm {
+    # Set permissions to allow system to create cgroups on the fly
+    perm {
+        task {
+            uid = {{ ansible_user }};
+            gid = {{ ansible_user }};
+        }
+        admin {
+           uid = {{ ansible_user }};
+           gid = {{ ansible_user }};
+        }
+    }
+
+    # Controllers
+    cpu {
+
+    }
+
+    memory {
+
+    }
+
+    net_prio {
+
+    }
+
+    blkio {
+
+    }
+}

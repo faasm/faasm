@@ -15,6 +15,7 @@ namespace util {
 
     // Files
     std::string readFileToString(const std::string &path);
+    void appendToFile(const std::string &filePath, const std::string &data);
 
     // Misc
     int randomInteger();

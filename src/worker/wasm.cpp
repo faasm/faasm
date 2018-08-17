@@ -51,7 +51,7 @@ namespace worker {
         this->setOutputData(call);
 
         // Retrieve chaining data
-        this->setUpChainingData();
+        this->setUpChainingData(call);
 
         return functionResults[0].u32;
     }
@@ -185,7 +185,7 @@ namespace worker {
     /**
      * Extracts chaining data form module and performs the necessary chained calls
      */
-    void WasmModule::setUpChainingData() {
+    void WasmModule::setUpChainingData(const message::FunctionCall &originalCall) {
         // Check for chained calls. Note that we reserve chunks for each and can iterate
         // through them checking where the names are set
         U8 *rawChainNames = &memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) CHAIN_NAMES_START);
@@ -208,21 +208,14 @@ namespace worker {
                                      &rawChaininputs[dataStart + MAX_INPUT_BYTES]);
             util::trimTrailingZeros(thisData);
 
-            chainNames.push_back(thisName);
-            chainData.push_back(thisData);
+            // Create call and add to list
+            message::FunctionCall chainedCall;
+            chainedCall.set_user(originalCall.user());
+            chainedCall.set_function(thisName);
+            chainedCall.set_inputdata(thisData.data(), thisData.size());
+
+            chainedCalls.push_back(chainedCall);
         }
-    }
-
-    size_t WasmModule::getChainCount() {
-        return chainNames.size();
-    }
-
-    std::string WasmModule::getChainName(const size_t &idx) {
-        return chainNames.at(idx);
-    }
-
-    std::vector<U8> WasmModule::getChainData(const size_t &idx) {
-        return chainData.at(idx);
     }
 
     void WasmModule::clean() {
