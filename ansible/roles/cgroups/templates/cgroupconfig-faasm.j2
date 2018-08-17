@@ -1,0 +1,19 @@
+# Top-level faasm group
+group faasm {
+    cpu {
+        cpu.shares = 200;
+    }
+    memory {
+        memory.limit_in_bytes = 128m;
+    }
+}
+
+# Groups for individual workers
+
+{% for i in range(10) %}
+group faasm/worker{{ i }} {
+  cpu {
+          cpu.shares = 100;
+  }
+}
+{% endfor %}

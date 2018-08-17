@@ -1,0 +1,11 @@
+---
+
+- name: "Put cgroup config file in place"
+  become: yes
+  template:
+    src: cgroupconfig-faasm.j2
+    dest: /etc/cgroup-faasm.conf
+
+- name: "Set up the cgroups from the file"
+  become: yes
+  shell: "cgconfigparser -a {{ ansible_user }}:{{ ansible_user }} -l /etc/cgroup-faasm.conf"
