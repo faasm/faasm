@@ -20,7 +20,6 @@ namespace edge {
         static void handlePost(http_request request);
         static void handlePut(http_request request);
 
-    private:
         static message::FunctionCall buildCallFromRequest(http_request &request);
     };
 

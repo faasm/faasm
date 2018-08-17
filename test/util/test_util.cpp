@@ -26,13 +26,11 @@ namespace tests {
     }
 
     TEST_CASE("Test empty environment variables", "[util]") {
-        char dummyEnv[] = "MY_VAR=";
-        putenv(dummyEnv);
+        util::unsetEnvVar("MY_VAR");
 
         // Sanity check for empty string when env var set to empty
-        char key[] = "MY_VAR";
-        std::string realValue(getenv(key));
-        REQUIRE(realValue.empty());
+        char *currentValue = getenv("MY_VAR");
+        REQUIRE(currentValue == nullptr);
 
         REQUIRE(getEnvVar("MY_VAR", "alpha") == "alpha");
     }

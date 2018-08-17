@@ -12,7 +12,7 @@ using namespace IR;
 using namespace Runtime;
 
 /**
- * NOTE: This is heavily based on the existing wavm application
+ * NOTE: This was derived from the existing wavm CLI at
  * https://github.com/AndrewScheidecker/WAVM/blob/master/Source/Programs/wavm.cpp
  */
 
@@ -22,6 +22,7 @@ namespace worker {
 
     /**
      * Dummy function to allow printing a message from a wasm function
+     * Unused for now just here for illustration
      */
     DEFINE_INTRINSIC_FUNCTION_WITH_MEM_AND_TABLE(faasm, "_faasmPrint", void, faasmPrint, I32 messagePtr) {
         // Assume default memory
@@ -36,6 +37,9 @@ namespace worker {
 
     }
 
+    /**
+     * Executes the given function call
+     */
     int WasmModule::execute(message::FunctionCall &call) {
         this->load(call);
 
@@ -52,7 +56,9 @@ namespace worker {
         return functionResults[0].u32;
     }
 
-
+    /**
+     * Sets up the module ready for execution
+     */
     void WasmModule::load(message::FunctionCall &call) {
         std::string filePath = infra::getFunctionFile(call);
 
@@ -64,11 +70,6 @@ namespace worker {
             throw WasmException();
         }
 
-        // Construct the module
-        this->buildModule(call);
-    }
-
-    void WasmModule::buildModule(message::FunctionCall &call) {
         // Define input data segment
         const std::string &inputStr = call.inputdata();
         std::vector<U8> inputBytes = util::stringToBytes(inputStr);
@@ -133,15 +134,32 @@ namespace worker {
         }
     }
 
+    /**
+     * Adds a data segment to the module
+     */
     void WasmModule::addDataSegment(int offset) {
-        // Define the data segment
         DataSegment segment;
+
+        // Note - using default memory
         segment.memoryIndex = (Uptr) 0;
         segment.baseOffset = InitializerExpression((I32) offset);
 
         module->dataSegments.push_back(segment);
     }
 
+    /**
+     * Adds a data segment with initial data
+     */
+    void WasmModule::addDataSegment(int offset, std::vector<U8> &initialData) {
+        this->addDataSegment(offset);
+
+        // Set the initial data
+        module->dataSegments.back().data = initialData;
+    }
+
+    /**
+     * Sets up arguments to be passed to the invocation of the function
+     */
     std::vector<Value> WasmModule::buildInvokeArgs() {
         // Set up regions
         std::vector<Value> invokeArgs;
@@ -153,21 +171,20 @@ namespace worker {
         return invokeArgs;
     }
 
-    void WasmModule::addDataSegment(int offset, std::vector<U8> &initialData) {
-        this->addDataSegment(offset);
-
-        // Set the initial data
-        module->dataSegments.back().data = initialData;
-    }
-
+    /**
+     * Extracts output data from module and sets it on the function call
+     */
     void WasmModule::setOutputData(message::FunctionCall &call) {
-        // Get output data
         U8 *rawOutput = &memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) OUTPUT_START);
         std::vector<U8> outputData(rawOutput, rawOutput + MAX_OUTPUT_BYTES);
         util::trimTrailingZeros(outputData);
+
         call.set_outputdata(outputData.data(), outputData.size());
     }
 
+    /**
+     * Extracts chaining data form module and performs the necessary chained calls
+     */
     void WasmModule::setUpChainingData() {
         // Check for chained calls. Note that we reserve chunks for each and can iterate
         // through them checking where the names are set
@@ -196,11 +213,6 @@ namespace worker {
         }
     }
 
-    void WasmModule::clean() {
-        // Clear up
-        Runtime::collectGarbage();
-    }
-
     size_t WasmModule::getChainCount() {
         return chainNames.size();
     }
@@ -213,5 +225,8 @@ namespace worker {
         return chainData.at(idx);
     }
 
-
+    void WasmModule::clean() {
+        // Clear up
+        Runtime::collectGarbage();
+    }
 }

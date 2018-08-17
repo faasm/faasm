@@ -14,4 +14,4 @@
 
 - name: "Set up the cgroups from the file"
   become: yes
-  shell: "cgconfigparser -a {{ ansible_user }}:{{ ansible_user }} -l /etc/cgconfig.d/faasm.conf"
+  shell: "cgconfigparser -a {{ ansible_user }}:{{ ansible_user }} -L /etc/cgconfig.d"

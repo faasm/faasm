@@ -63,15 +63,15 @@ namespace edge {
 
         std::cout << "Uploading " << call.user() << " - " << call.function() << " to " << outputFile << std::endl;
 
-        const concurrency::streams::istream bodyStream = request.body();
-        concurrency::streams::stringstreambuf inputStream;
+        request.extract_string().then([&outputFile](pplx::task<std::string> task) {
+            std::string result = task.get();
 
-        auto t = bodyStream.read_to_end(inputStream);
-
-        t.then([&inputStream, &outputFile](size_t size) {
-            auto s = inputStream.collection();
+            std::cout << "Request body - " << result << " TO " << outputFile << std::endl;
             std::ofstream out(outputFile);
-            out.write(s.c_str(), s.size());
+
+            out.write(result.c_str(), result.size());
+            out.flush();
+            out.close();
         }).wait();
 
         request.reply(status_codes::OK, "Upload complete\n");
@@ -88,10 +88,10 @@ namespace edge {
             call.set_function(pathParts[2]);
 
             // Read in request body
-            request.extract_string().then([&](pplx::task<std::string> task) {
-                auto requestData = task.get();
+            request.extract_string().then([&call](pplx::task<std::string> task) {
+                std::string requestData = task.get();
 
-                if (requestData.empty()) {
+                if (!requestData.empty()) {
                     call.set_inputdata(requestData);
                 }
 

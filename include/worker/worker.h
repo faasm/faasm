@@ -17,6 +17,8 @@ namespace worker {
 
     const int MAX_NAME_LENGTH = 32;
 
+    const int N_PROCESSES = 10;
+
     // Input memory
     // Need to make sure this starts high enough to avoid
     // other bits of the default memory
@@ -33,8 +35,8 @@ namespace worker {
     const int MAX_CHAIN_NAME_BYTES = MAX_NAME_LENGTH * MAX_CHAINS;
 
     const int CHAIN_DATA_START = CHAIN_NAMES_START + MAX_CHAIN_NAME_BYTES;
-
-    /** Wrapper for wasm code */
+    
+    /** Defines everything to do with a Wasm module */
     class WasmModule {
     public:
         WasmModule();
@@ -50,8 +52,6 @@ namespace worker {
         std::vector<U8> getChainData(const size_t &idx);
 
     private:
-        std::string filePath;
-
         Module *module;
         ModuleInstance *moduleInstance;
 
@@ -70,7 +70,6 @@ namespace worker {
         void addDataSegment(int offset);
         void addDataSegment(int offset, std::vector<U8> &initialData);
 
-        void buildModule(message::FunctionCall &call);
         void setOutputData(message::FunctionCall &call);
         void setUpChainingData();
     };
