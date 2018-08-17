@@ -63,12 +63,10 @@ namespace edge {
 
         std::cout << "Uploading " << call.user() << " - " << call.function() << " to " << outputFile << std::endl;
 
+        // Write request body to file
         const concurrency::streams::istream bodyStream = request.body();
         concurrency::streams::stringstreambuf inputStream;
-
-        auto t = bodyStream.read_to_end(inputStream);
-
-        t.then([&inputStream, &outputFile](size_t size) {
+        bodyStream.read_to_end(inputStream).then([&inputStream, &outputFile](size_t size) {
             auto s = inputStream.collection();
             std::ofstream out(outputFile);
             out.write(s.c_str(), s.size());
@@ -88,24 +86,23 @@ namespace edge {
             message::FunctionCall call;
             call.set_user(pathParts[1]);
             call.set_function(pathParts[2]);
+            call.set_isasync(pathParts[0] == "fa");
 
-            // Read in request body
-            request.extract_string().then([&call](pplx::task<std::string> task) {
-                std::string requestData = task.get();
-
-                if (!requestData.empty()) {
-                    call.set_inputdata(requestData);
+            // Read request into call input data
+            const concurrency::streams::istream bodyStream = request.body();
+            concurrency::streams::stringstreambuf inputStream;
+            bodyStream.read_to_end(inputStream).then([&inputStream, &call](size_t size) {
+                if(size > 0) {
+                    std::string s = inputStream.collection();
+                    call.set_inputdata(s);
                 }
 
             }).wait();
-
-            call.set_isasync(pathParts[0] == "fa");
 
             return call;
         }
 
         throw InvalidPathException();
     }
-
 };
 
