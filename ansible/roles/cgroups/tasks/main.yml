@@ -15,3 +15,5 @@
 - name: "Set up cgroups"
   become: yes
   shell: "cgconfigparser -a {{ ansible_user }}:{{ ansible_user }} -L /etc/cgconfig.d"
+
+- include_tasks: "network.yml"
