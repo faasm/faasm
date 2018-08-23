@@ -2,5 +2,16 @@
 
 - hosts: localhost
   gather_facts: no
-  roles:
-    - emscripten
+  tasks:
+    - name: "Clone emscripten"
+      git:
+        repo: "https://github.com/juj/emsdk.git"
+        dest: "/usr/local/code/emsdk"
+
+    - name: "Set up emcripten"
+      shell: "{{ item }}"
+      args:
+        chdir: "/usr/local/code/emsdk"
+      with_items:
+      - "./emsdk install latest"
+      - "./emsdk activate latest"

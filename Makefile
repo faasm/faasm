@@ -101,5 +101,14 @@ wavm:
 
 # ANSIBLE
 
+setup-libs:
+	cd ansible && ansible-playbook libs.yml --ask-become-pass
+
+setup-protobuf:
+	cd ansible && ansible-playbook protobuf.yml --ask-become-pass
+
+setup-clang:
+	cd ansible && ansible-playbook clang.yml --ask-become-pass
+
 setup-k8:
 	cd ansible && ansible-playbook kubernetes.yml -i inventory/lsds.ini

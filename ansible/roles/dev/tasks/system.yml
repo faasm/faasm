@@ -1,9 +1,0 @@
----
-
-- name: "System deps"
-  become: yes
-  apt:
-    name: "{{ item }}"
-    state: "present"
-  with_items:
-  - "nfs-common"

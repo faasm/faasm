@@ -2,5 +2,31 @@
 
 - hosts: localhost
   gather_facts: no
-  roles:
-    - libs
+  tasks:
+    # System deps
+    - name: "Install deps with apt"
+      become: yes
+      apt:
+        name: "{{ item }}"
+        state: "present"
+      with_items:
+        - "libz-dev"
+        - "libboost-dev"
+        - "libcpprest-dev"
+        - "libhiredis-dev"
+        - "libcgroup-dev"
+        - "cgroup-tools"
+
+    # Catch
+    - name: "Create directory"
+      become: yes
+      file:
+        path: "/usr/local/include/catch"
+        state: directory
+        mode: 0755
+
+    - name: "Download"
+      become: yes
+      shell: "wget https://raw.githubusercontent.com/catchorg/Catch2/master/single_include/catch2/catch.hpp"
+      args:
+        chdir: "/usr/local/include/catch"
