@@ -1,41 +1,10 @@
 ---
 
-- name: "System dependencies"
-  apt:
-    name: "{{ item }}"
-  with_items:
-    - vim
-    - apt-transport-https
-    - ca-certificates
-    - curl
-    - software-properties-common
+- include_tasks: "tools.yml"
 
-- name: "Add apt keys"
-  apt_key:
-    url: "{{ item }}"
-    state: present
-  with_items:
-    - "https://download.docker.com/linux/ubuntu/gpg"
-    - "https://packages.cloud.google.com/apt/doc/apt-key.gpg"
+- include_tasks: "kubeadm.yml"
 
-# Note, there's no kubernetes bionic repo yet
-- name: "Add repos"
-  apt_repository:
-    repo: "{{ item }}"
-    state: present
-  with_items:
-    - "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
-    - "deb http://apt.kubernetes.io/ kubernetes-xenial main"
+- include_tasks: "start.yml"
 
-- name: "Install docker"
-  apt:
-    name: "{{ item }}"
-    update_cache: yes
-  with_items:
-    - docker-ce
-    - kubelet
-    - kubeadm
-    - kubectl
+- include_tasks: "network.yml"
 
-- name: "Turn off swap"
-  shell: "swapoff -a"
