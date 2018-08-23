@@ -21,7 +21,7 @@ spec:
         - name: worker
           image: shillaker/faasm-core:latest
           imagePullPolicy: IfNotPresent
-          command: "/faasm/code/build/bin/worker"
+          command: ["/faasm/code/build/bin/worker"]
           ports:
             - containerPort: 8001
           env:
@@ -29,6 +29,8 @@ spec:
               value: redis
             - name: FUNC_ROOT
               value: /usr/share/faasm
+            - name: REDIS_PORT
+              value: "6379"
           volumeMounts:
             - mountPath: "/usr/share/faasm"
               name: func-vol

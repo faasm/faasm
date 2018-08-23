@@ -10,13 +10,17 @@ spec:
   containers:
     - name: edge
       image: shillaker/faasm-core:latest
-      command: "/faasm/code/build/bin/edge"
+      command: ["/faasm/code/build/bin/edge"]
       imagePullPolicy: IfNotPresent
       ports:
         - containerPort: 8080
       env:
         - name: REDIS_HOST
           value: redis
+        - name: REDIS_PORT
+          value: "6379"
+        - name: FUNC_ROOT
+          value: /usr/share/faasm  
       volumeMounts:
         - mountPath: "/usr/share/faasm"
           name: func-vol
