@@ -10,6 +10,9 @@ namespace worker {
 
     CGroup::CGroup(const std::string &name) :
             name(name) {
+
+        // Get which cgroup mode we're operating in
+        mode = util::getEnvVar("CGROUP_MODE", "off");
     }
 
     boost::filesystem::path CGroup::getPathToController(const std::string &controller) {
@@ -34,12 +37,22 @@ namespace worker {
     }
 
     void CGroup::limitCpu() {
+        if(mode == "off") {
+            std::cout << "Not limiting CPU, cgroup support off" << std::endl;
+            return;
+        }
+
         this->mkdirForController("cpu");
         this->controllers.emplace_back("cpu");
     }
 
     void CGroup::addCurrentPid() {
         pid_t thisPid = getpid();
+
+        if(mode == "off") {
+            std::cout << "Not adding pid " << thisPid << " cgroup support off" << std::endl;
+            return;
+        }
 
         // Add the pid to the tasks file for this group
         for(auto &ctrl : this->controllers) {

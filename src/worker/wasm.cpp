@@ -72,6 +72,7 @@ namespace worker {
 
         // Define input data segment
         const std::string &inputStr = call.inputdata();
+        std::cout << "Received input: " << call.inputdata() << std::endl;
         std::vector<U8> inputBytes = util::stringToBytes(inputStr);
         this->addDataSegment(INPUT_START, inputBytes);
 

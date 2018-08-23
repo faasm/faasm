@@ -24,14 +24,17 @@ build-base:
 build-core:
 	docker build -t shillaker/faasm-core .
 
-.PHONY: build-worker
 build-worker: build-core
 	docker build -t shillaker/faasm-worker -f worker.dockerfile .
 
-.PHONY: build-edge
 build-edge: build-core
-	docker build -t shillaker/faasm-edge:0.0.1 -f edge.dockerfile .
+	docker build -t shillaker/faasm-edge -f edge.dockerfile .
 
+push-worker:
+	push shillaker/faasm-worker
+
+push-edge:
+	push shillaker/faasm-edge
 
 # DOCKER COMPOSE
 start-all:
@@ -99,4 +102,4 @@ wavm:
 # ANSIBLE
 
 setup-k8:
-	cd ansible && ansible-playbook kubernetes.yml -i inventory/maru.ini
+	cd ansible && ansible-playbook kubernetes.yml -i inventory/lsds.ini

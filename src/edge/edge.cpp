@@ -42,10 +42,10 @@ namespace edge {
 
         if (call.isasync()) {
             // Don't wait for result
-            std::cout << "Submitted async " << call.user() << " - " << call.function() << std::endl;
+            std::cout << "Submitted async " << call.user() << " - " << call.function() << " - " << call.inputdata() << std::endl;
             request.reply(status_codes::Created, "Async request submitted\n");
         } else {
-            std::cout << "Awaiting result for " << call.user() << " - " << call.function() << std::endl;
+            std::cout << "Awaiting result for " << call.user() << " - " << call.function() << " - " << call.inputdata() << std::endl;
 
             message::FunctionCall result = redis.getFunctionResult(call);
 

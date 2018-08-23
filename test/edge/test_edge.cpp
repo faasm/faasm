@@ -5,7 +5,7 @@
 
 
 namespace tests {
-    
+
     http_request createRequest(const std::string &path, const std::string &inputData) {
         uri_builder builder;
 
@@ -29,7 +29,7 @@ namespace tests {
 
         return actual;
     }
-    
+
     TEST_CASE("Test building call from request", "[edge]") {
         std::string path = "/f/alpha/beta";
         message::FunctionCall actual = checkBuildingRequest(path);
@@ -69,7 +69,7 @@ namespace tests {
         // Tidy up
         util::unsetEnvVar("FUNC_ROOT");
     }
-    
+
     TEST_CASE("Test invoking a function", "[edge]") {
         infra::Redis cli;
         cli.flushAll();

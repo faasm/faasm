@@ -20,4 +20,14 @@ namespace infra {
 
         return filePath;
     }
+
+    std::vector<uint8_t> callToBytes(const message::FunctionCall &call) {
+        size_t byteSize = call.ByteSizeLong();
+        uint8_t buffer[byteSize];
+        call.SerializeToArray(buffer, (int) byteSize);
+
+        std::vector<uint8_t> inputData(buffer, buffer + byteSize);
+
+        return inputData;
+    }
 }

@@ -9,5 +9,8 @@ int exec(struct FaasmMemory *memory) {
         memory->output[i] = memory->input[i];
     }
 
+    printf("MEMORY IN: %s \n", memory->input);
+    printf("MEMORY OUT: %s \n", memory->output);
+
     return 0;
 }

@@ -1,5 +1,6 @@
 #include <catch/catch.hpp>
 #include <infra/infra.h>
+#include <util/util.h>
 
 using namespace infra;
 
@@ -7,18 +8,24 @@ namespace tests {
 
     namespace vars {
         const std::string QUEUE_NAME = "my queue";
+
         const std::string VALUE_A = "val a";
         const std::string VALUE_B = "val b";
         const std::string VALUE_C = "val c";
+
+        const std::vector<uint8_t> BYTES_A = util::stringToBytes(VALUE_A);
+        const std::vector<uint8_t> BYTES_B = util::stringToBytes(VALUE_B);
+        const std::vector<uint8_t> BYTES_C = util::stringToBytes(VALUE_C);
     }
 
     void doEnqueue(Redis *cli) {
         cli->flushAll();
 
         // Enqueue some values
-        cli->enqueue(vars::QUEUE_NAME, vars::VALUE_A);
-        cli->enqueue(vars::QUEUE_NAME, vars::VALUE_B);
-        cli->enqueue(vars::QUEUE_NAME, vars::VALUE_C);
+        std::vector<uint8_t> bytesA = util::stringToBytes(vars::VALUE_A);
+        cli->enqueue(vars::QUEUE_NAME, vars::BYTES_A);
+        cli->enqueue(vars::QUEUE_NAME, vars::BYTES_B);
+        cli->enqueue(vars::QUEUE_NAME, vars::BYTES_C);
 
         // Check expected length
         REQUIRE(3 == cli->listLength(vars::QUEUE_NAME));
@@ -31,17 +38,17 @@ namespace tests {
         doEnqueue(&cli);
 
         // Blocking dequeue
-        std::string actual = cli.dequeue(vars::QUEUE_NAME);
+        std::vector<uint8_t> actual = cli.dequeue(vars::QUEUE_NAME);
 
-        REQUIRE(vars::VALUE_A == actual);
+        REQUIRE(vars::BYTES_A == actual);
 
         // Dequeue again
-        std::string actual2 = cli.dequeue(vars::QUEUE_NAME);
+        std::vector<uint8_t> actual2 = cli.dequeue(vars::QUEUE_NAME);
 
-        REQUIRE(vars::VALUE_B == actual2);
+        REQUIRE(vars::BYTES_B == actual2);
     }
 
-    TEST_CASE("Test redis calling/ retrieving function call", "[redis]") {
+    void checkCallRoundTrip(bool isAsync, bool isSuccess) {
         Redis cli;
         cli.flushAll();
 
@@ -49,9 +56,13 @@ namespace tests {
         message::FunctionCall call;
         std::string funcName = "my func";
         std::string userName = "some user";
+        std::string inputData = "blahblah";
 
         call.set_function(funcName);
         call.set_user(userName);
+        call.set_inputdata(inputData);
+        call.set_isasync(isAsync);
+        call.set_success(isSuccess);
 
         // Check resultkey not set initially
         REQUIRE(!call.has_resultkey());
@@ -66,9 +77,28 @@ namespace tests {
 
         REQUIRE(funcName == actual.function());
         REQUIRE(userName == actual.user());
+        REQUIRE(inputData == actual.inputdata());
+        REQUIRE(isAsync == actual.isasync());
+        REQUIRE(isSuccess == actual.success());
 
         // Check result key has now been set
         REQUIRE(actual.has_resultkey());
+    }
+
+    TEST_CASE("Test redis round trip sync fail", "[redis]") {
+        checkCallRoundTrip(false, false);
+    }
+
+    TEST_CASE("Test redis round trip sync success", "[redis]") {
+        checkCallRoundTrip(false, true);
+    }
+
+    TEST_CASE("Test redis round trip async fail", "[redis]") {
+        checkCallRoundTrip(true, false);
+    }
+
+    TEST_CASE("Test redis round trip async success", "[redis]") {
+        checkCallRoundTrip(true, true);
     }
 
     message::FunctionCall callFunction(Redis *cli) {

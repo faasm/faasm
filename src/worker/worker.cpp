@@ -41,7 +41,7 @@ namespace worker {
                 WasmModule module;
                 module.execute(call);
 
-                // TODO - unfortunately redis client isn't possible to share between processes
+                // TODO - unfortunately redis client can't be shared between processes
                 // therefore need to create yet another connection for the child process
                 infra::Redis loopRedis;
 

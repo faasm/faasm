@@ -16,7 +16,7 @@ spec:
     - nfsvers=4.1
   nfs:
     path: /usr/share/faasm
-    server: 192.168.0.13
+    server: 146.179.131.224 # This has to be the kubernetes master
 
 ---
 

@@ -10,6 +10,8 @@ namespace infra {
     /** Function utilities */
     std::string getFunctionFile(const message::FunctionCall &call);
 
+    std::vector<uint8_t> callToBytes(const message::FunctionCall &call);
+
     /** Redis client */
     class Redis {
 
@@ -17,9 +19,9 @@ namespace infra {
 
         Redis();
 
-        void enqueue(const std::string &queueName, const std::string &value);
+        void enqueue(const std::string &queueName, const std::vector<uint8_t> &value);
 
-        std::string dequeue(const std::string &queueName);
+        std::vector<uint8_t> dequeue(const std::string &queueName);
 
         void flushAll();
 

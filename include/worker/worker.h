@@ -1,6 +1,7 @@
 #pragma once
 
 #include <infra/infra.h>
+#include <util/util.h>
 
 #include <string>
 #include <exception>
@@ -87,6 +88,7 @@ namespace worker {
 
     private:
         std::string name;
+        std::string mode;
         std::vector<std::string> controllers;
 
         boost::filesystem::path getPathToController(const std::string &controller);

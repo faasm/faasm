@@ -7,6 +7,8 @@ namespace infra {
 
     const int BLOCKING_TIMEOUT = 1000;
 
+    const std::string CALLS_QUEUE = "function_calls";
+
     Redis::Redis() {
         std::string hostname = util::getEnvVar("REDIS_HOST", "localhost");
         std::string port = util::getEnvVar("REDIS_PORT", "6379");
@@ -19,11 +21,13 @@ namespace infra {
         context = redisConnect(hostname.c_str(), portInt);
     }
 
-    void Redis::enqueue(const std::string &queueName, const std::string &value) {
-        redisCommand(context, "RPUSH %s %s", queueName.c_str(), value.c_str());
+    void Redis::enqueue(const std::string &queueName, const std::vector<uint8_t> &value) {
+        // NOTE: Here we must be careful with the input and specify bytes rather than a string
+        // otherwise an encoded false boolean can be treated as a string terminator
+        redisCommand(context, "RPUSH %s %b", queueName.c_str(), value.data(), value.size());
     }
 
-    std::string Redis::dequeue(const std::string &queueName) {
+    std::vector<uint8_t> Redis::dequeue(const std::string &queueName) {
         auto reply = (redisReply *) redisCommand(context, "BLPOP %s %d", queueName.c_str(), BLOCKING_TIMEOUT);
 
         size_t nResults = reply->elements;
@@ -34,7 +38,13 @@ namespace infra {
 
         // Note, BLPOP will return the queue name and the value returned (elements 0 and 1)
         redisReply *r = reply->element[1];
-        return std::string(r->str);
+
+        // We have to be careful here to handle the bytes properly
+        char *resultArray = r->str;
+        int resultLen = r->len;
+        std::vector<uint8_t> resultData(resultArray, resultArray + resultLen);
+
+        return resultData;
     }
 
     void Redis::flushAll() {
@@ -56,17 +66,17 @@ namespace infra {
         // Send the function call
         std::cout << "Function " << call.user() << " - " << call.function() << " - " << randomNumber << std::endl;
 
-        std::string serialised = call.SerializeAsString();
+        std::vector<uint8_t> inputData = infra::callToBytes(call);
 
-        this->enqueue("function_calls", serialised);
+        this->enqueue(CALLS_QUEUE, inputData);
     }
 
     message::FunctionCall Redis::nextFunctionCall() {
-        std::string queueName = "function_calls";
-        std::string dequeueResult = this->dequeue(queueName);
+        std::vector<uint8_t> dequeueResult = this->dequeue(CALLS_QUEUE);
 
         message::FunctionCall call;
-        call.ParseFromString(dequeueResult);
+        call.ParseFromArray(dequeueResult.data(), (int) dequeueResult.size());
+
         return call;
     }
 
@@ -76,14 +86,15 @@ namespace infra {
         std::string key = call.resultkey();
 
         // Write the successful result to the result queue
-        this->enqueue(key, call.SerializeAsString());
+        std::vector<uint8_t> inputData = infra::callToBytes(call);
+        this->enqueue(key, inputData);
     }
 
     message::FunctionCall Redis::getFunctionResult(const message::FunctionCall &call) {
-        std::string result = this->dequeue(call.resultkey());
+        std::vector<uint8_t> result = this->dequeue(call.resultkey());
 
         message::FunctionCall callResult;
-        callResult.ParseFromString(result);
+        callResult.ParseFromArray(result.data(), (int) result.size());
 
         return callResult;
     }
