@@ -1,0 +1,7 @@
+---
+
+- name: "System dependencies"
+  apt:
+    name: "{{ item }}"
+  with_items:
+    - vim

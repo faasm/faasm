@@ -95,3 +95,8 @@ proto-compile:
 
 wavm:
 	cd ansible && ansible-playbook wavm.yml --tags "build" --ask-become-pass
+
+# ANSIBLE
+
+setup-k8:
+	cd ansible && ansible-playbook kubernetes.yml -i inventory/maru.ini
