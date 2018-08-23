@@ -81,7 +81,7 @@ For example:
 I can execute:
 
 ```
-curl http://myhost:8080/f/simon/cool_func/ -X PUT -T /tmp/do_something.wasm
+curl http://localhost:8080/f/simon/cool_func/ -X PUT -T /tmp/do_something.wasm
 ```
 
 # Kubernetes

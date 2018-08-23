@@ -24,17 +24,8 @@ build-base:
 build-core:
 	docker build -t shillaker/faasm-core .
 
-build-worker: build-core
-	docker build -t shillaker/faasm-worker -f worker.dockerfile .
-
-build-edge: build-core
-	docker build -t shillaker/faasm-edge -f edge.dockerfile .
-
-push-worker:
-	push shillaker/faasm-worker
-
-push-edge:
-	push shillaker/faasm-edge
+push-core:
+	docker push shillaker/faasm-core
 
 # DOCKER COMPOSE
 start-all:
