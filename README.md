@@ -1,27 +1,27 @@
 # Usage
 
-## Invoking Functions
+## Functions
 
 Each function is associated with a user and has a function name. It will have two URLs:
 
 - Synchronous - `<faasm_host>/f/<user>/<function>/`
 - Asynchronous - `<faasm_host>/fa/<user>/<function>/`
 
-By `POST`ing to these URLs we can invoke the function.
+By `POST`ing to these URLs we can invoke the function. POSTed data forms the input data for the function call.
 
-For example with the faasm endpoint at `localhost:8080`, to test the `echo` function owned by user `simon` we can run:
+For example, with the faasm endpoint at `localhost:8080`, the `echo` function owned by `simon` can be run with:
 
 ```
 curl -X POST http://localhost:8080/f/simon/echo -d "hello faasm"
 ```
 
-We should then see a response containing our input data (i.e. `hello faasm`).
+This function just returns its input so should give a response containing our input data (i.e. `hello faasm`).
+The code can be found in `func/function_echo.c`.
 
 ## Writing Functions
 
-The function API is a little verbose as it passes a number of pointers around to handle memory management.
-A convenience header is provided in this repo at `include/faasm/faasm.h`. If compiling with Emscripten, your functions
-will look something like this:
+The function API passes a number of pointers to functions to allocate memory regions. A convenience header is
+provided in at `include/faasm/faasm.h`. If compiling with Emscripten, your functions will look something like this:
 
 ```
 #include "faasm.h"
@@ -38,41 +38,47 @@ int exec(struct FaasmMemory *memory) {
 
 `faasm.h` contains some useful wrappers to make it easier to interact with the Faasm system.
 
-The `FaasmMemory` struct is a convenience wrapper to make memory management easier. It has the following properties:
+The `FaasmMemory` struct represents the memory available to Faasm functions. It has the following fields:
 
 - `input` - this is an array containing the input data to the function
 - `output` - this is where the function can write its output data
-- `chainFunctions`, `chainInputs`, `chainCount` - these are internal values used to handle function "chaining"
+- `chainFunctions`, `chainInputs`, `chainCount` - these are internal values used to handle function "chaining" (see below)
 
 ### Chaining
 
 "Chaining" is when one function makes a call to another function (which must be owned by the same user).
 
-To do this, the `chainFunction` function in `faasm.h` can be called.
-
-My function can invoke the function `foo`, passing some input data as follows:
+To do this, `chainFunction()` in `faasm.h` can be called. For my function to invoke the function `foo`,
+(also owned by me), it can do the following:
 
 ```
 #include "faasm.h"
 
 EMSCRIPTEN_KEEPALIVE
 int exec(struct FaasmMemory *memory) {
-    chainFunction(memory, "foo", funcData, dataLength);
+    uint8_t funcData[] = {1, 2, 3, 4};
+    int dataLength = 4;
+    char* funcName = "foo";
+
+    chainFunction(memory, funcName, funcData, dataLength);
 
     return 0;
 }
 ```
 
+`chainFunction` can be called multiple times in one function. Once the original function has completed, these
+calls will go back through the main scheduler and be executed.
+
 ## Uploading Functions
 
 To upload a function you can use `curl` to send a PUT request to the synchronous URL for the given function.
-For example, if I:
+For example:
 
-- Have a faasm endpoint running at `localhost:8080`
-- Have a compiled function file at `/tmp/do_something.wasm`
-- Want to upload this function to user `simon` and function name `cool_func`
+- I have a Faasm endpoint running at `localhost:8080`
+- I've compiled my WebAssembly function file to `/tmp/do_something.wasm`
+- I want to upload this function to user `simon` and function name `cool_func`
 
-I would execute:
+I can execute:
 
 ```
 curl http://myhost:8080/f/simon/cool_func/ -X PUT -T /tmp/do_something.wasm
@@ -81,7 +87,12 @@ curl http://myhost:8080/f/simon/cool_func/ -X PUT -T /tmp/do_something.wasm
 # Kubernetes
 
 Faasm can be deployed to Kubernetes to create a distributed set-up. The configuration files are found in the `k8s`
-directory.
+directory. This has the following components:
+
+- A load balancer handling incoming calls
+- A single `edge` pod which parses the calls and input data
+- A `redis` pod which holds the function calls in a queue
+- Multiple `worker` pods which pull calls off the queue, execute them (and any chained calls), then put the results into another Redis queue.
 
 ## Deploying to Kubernetes
 
@@ -91,13 +102,22 @@ Deployment to Kubernetes is handled via the make target:
 make setup-k8
 ```
 
+## Function storage
+
+Clearly all worker pods need access to the WASM function files. For now these are held on an NFS share hosted on the
+master Kubernetes node. This could be replaced by an object store in future.
+
 # Installation, Configuration and Development
+
+Below are instructions for building, testing and developing.
 
 ## Local Development
 
+The local development process is a bit rough around the edges at the moment but can be improved in future.
+
 ### Submodules
 
-Faasm relies on WAVM which needs to be updated via a Git submodule
+Faasm relies on WAVM which needs to be updated via a Git submodule (once after original checkout of this repo).
 
 ```
 # Update submodules
@@ -132,7 +152,8 @@ Avoid trying to do this with `apt` as it can accidentally delete a whole load of
 
 ### Clang
 
-I've only used clang to build faasm so far. There's a make target for it:
+So far Faasm has only been built with clang (although there's no reason not to use something else).
+There's a make target for installing clang at:
 
 ```
 make setup-clang
@@ -141,7 +162,7 @@ make setup-clang
 ### Redis
 
 At the moment Faasm uses Redis for messaging between the edge and worker nodes. For running locally you'll need to
-install it:
+install it on your machine:
 
 ```
 sudo apt install redis-server redis-tools
@@ -159,27 +180,38 @@ cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_C_COMPILER=/usr/bin/clang -D
 cmake --build . --target all
 ```
 
-I usually develop through CLion which does a lot of this stuff for you.
+I usually develop through CLion which makes it a lot easier.
 
 ### Running Locally
 
-Once things are built, you can run a simple local set-up by running:
+Once things are built, you can run a simple local set-up with:
 
 ```
-export FUNC_ROOT=<your path to the root of this project>
+# Set up function storage path (see below)
+export FUNC_ROOT=<path to the root of this project>
 
-# Edge node listening on 8080
+# Edge node listening on localhost:8080
 ./build/bin/edge
 
 # Worker
 ./build/bin/worker
 ```
 
-Note that the FUNC_ROOT is where Faasm will look for function files. For a function called `dummy` owned by user
-`simon` the `.wasm` file will be at `$FUNC_ROOT/wasm/simon/dummy/function.wasm`. Likewise, when you upload a function
-it will get written here.
+The `FUNC_ROOT` is where Faasm will look for function files. For a function called `dummy` owned by user
+`simon` the `.wasm` file should be found at `$FUNC_ROOT/wasm/simon/dummy/function.wasm`. When you upload a function
+this is where it will get placed too.
 
 ### Dummy functions
 
 Currently there are some dummy functions held in the `func` directory. Their compiled WASM is also stored in the
 `wasm` directory.
+
+### Tests
+
+The tests can be found in the `test` directory and executed by running:
+
+```
+./build/bin/tests
+```
+
+They require a local Redis instance to pass and cover most of the codebase.
