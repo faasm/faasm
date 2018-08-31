@@ -10,12 +10,12 @@
         state: "directory"
         mode: 0777
 
-#    - name: "Ensure code is updated"
-#      git:
-#        repo: "ssh://git@gitlab.ibr.cs.tu-bs.de:shillake/faasm.git"
-#        dest: "/usr/local/code/faasm"
-#        clone: yes
-#        update: yes
+    - name: "Ensure code is updated"
+      git:
+        repo: "git@gitlab.ibr.cs.tu-bs.de:shillake/faasm.git"
+        dest: "/usr/local/code/faasm"
+        clone: yes
+        update: yes
 
     - name: "Deploy to kubernetes"
       shell: "{{ item }}"
