@@ -63,17 +63,13 @@ namespace edge {
 
         std::cout << "Uploading " << call.user() << " - " << call.function() << " to " << outputFile << std::endl;
 
-        // Write request body to file
-        const concurrency::streams::istream bodyStream = request.body();
-        concurrency::streams::stringstreambuf inputStream;
-        bodyStream.read_to_end(inputStream).then([&inputStream, &outputFile](size_t size) {
-            auto s = inputStream.collection();
-            std::ofstream out(outputFile);
-            out.write(s.c_str(), s.size());
-            out.flush();
-            out.close();
-        }).wait();
-
+        // Here the call input data is actually the file
+        std::ofstream out(outputFile);
+        const std::string fileBody = call.inputdata();
+        out.write(fileBody.c_str(), fileBody.size());
+        out.flush();
+        out.close();
+        
         request.reply(status_codes::OK, "Upload complete\n");
     }
 
