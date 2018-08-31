@@ -130,6 +130,26 @@ Below are instructions for building, testing and developing.
 
 The local development process is a bit rough around the edges at the moment but can be improved in future.
 
+### CGroup V2
+
+To enable cgroup thread-based isolation you need to enable cgroup v2. To do this, you need to add the following kernel parameters:
+
+```
+# Switch off cgroup v1
+cgroup_no_v1=all
+
+# Mount cgroupv2 filesystem at /sys/fs/cgroup (instead of /sys/fs/cgroup/unified)
+systemd.unified_cgroup_hierarchy=1
+```
+
+It's best to do this by editing `/etc/default/grub` and adding these values (separated by spaces) to the line starting `GRUB_CMDLINE_LINUX_DEFAULT` then restarting. 
+
+To check it's worked, the file `/sys/fs/cgroup/cgroup.controllers` should exist and contain something like:
+
+```
+cpu io memory pids rdma
+```
+
 ### Submodules
 
 Faasm relies on WAVM which needs to be updated via a Git submodule (once after original checkout of this repo).
