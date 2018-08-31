@@ -1,21 +1,5 @@
 # DOCKER
 
-.PHONY: build-base-minikube
-build-base-minikube:
-	eval $$(minikube docker-env) && docker build -t shillaker/faasm-base:0.0.1 -f base.dockerfile .
-
-.PHONY: build-core-minikube
-build-core-minikube:
-	eval $$(minikube docker-env) && docker build -t shillaker/faasm-core:0.0.1 .
-
-.PHONY: build-worker-minikube
-build-worker-minikube: build-core-minikube
-	eval $$(minikube docker-env) && docker build -t shillaker/faasm-worker:0.0.1 -f worker.dockerfile .
-
-.PHONY: build-edge-minikube
-build-edge-minikube: build-core-minikube
-	eval $$(minikube docker-env) && docker build -t shillaker/faasm-edge:0.0.1 -f edge.dockerfile .
-
 .PHONY: build-base
 build-base:
 	docker build -t shillaker/faasm-base -f base.dockerfile .
@@ -51,29 +35,11 @@ bash-edge:
 
 # KUBERNETES
 
-minikube-reset:
-	minikube delete && rm -rf ~/.minikube
-
-minikube-start:
-	minikube start --vm-driver kvm2 --logtostderr --disk-size 10g
-
-minikube-url:
-	minikube service edge --namespace=faasm --url
-
 k8-deploy:
-	kubectl apply -f k8s/namespace.yml && kubectl apply -f k8s
+	cd ansible && ansible-playbook -i inventory/lsds.ini deploy.yml
 
 k8-clean:
-	kubectl delete --all deployments,pods --namespace=faasm
-
-k8-pods:
-	kubectl get pods --namespace=faasm
-
-k8-logs-edge:
-	kubectl logs --tail=20 -f --namespace=faasm edge
-
-k8-logs-worker:
-	kubectl logs --tail=20 -f --namespace=faasm worker
+	cd ansible && ansible-playbook -i inventory/lsds.ini clean.yml
 
 # REDIS
 

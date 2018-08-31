@@ -9,10 +9,6 @@ namespace edge {
     // therefore we need to ensure that each thread has its own instance
     static thread_local infra::Redis redis;
 
-    RestServer::RestServer() {
-
-    }
-
     void RestServer::listen(const std::string &port) {
         std::string addr = "http://0.0.0.0:" + port;
         http_listener listener(addr);
@@ -65,7 +61,7 @@ namespace edge {
 
         // Here the call input data is actually the file
         std::ofstream out(outputFile);
-        const std::string fileBody = call.inputdata();
+        const std::string &fileBody = call.inputdata();
         out.write(fileBody.c_str(), fileBody.size());
         out.flush();
         out.close();

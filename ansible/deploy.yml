@@ -1,0 +1,26 @@
+---
+
+- hosts: kubernetes-master
+  gather_facts: yes
+  tasks:
+    - name: "Ensure code directory exists"
+      become: yes
+      file:
+        path: "/usr/local/code"
+        state: "directory"
+        mode: 0777
+
+#    - name: "Ensure code is updated"
+#      git:
+#        repo: "ssh://git@gitlab.ibr.cs.tu-bs.de:shillake/faasm.git"
+#        dest: "/usr/local/code/faasm"
+#        clone: yes
+#        update: yes
+
+    - name: "Deploy to kubernetes"
+      shell: "{{ item }}"
+      args:
+        chdir: "/usr/local/code/faasm"
+      with_items:
+        - "kubectl apply -f k8s/namespace.yml"
+        - "kubectl apply -f k8s"

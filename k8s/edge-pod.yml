@@ -10,8 +10,8 @@ spec:
   containers:
     - name: edge
       image: shillaker/faasm-core:latest
+      imagePullPolicy: Always
       command: ["/faasm/code/build/bin/edge"]
-      imagePullPolicy: IfNotPresent
       ports:
         - containerPort: 8080
       env:

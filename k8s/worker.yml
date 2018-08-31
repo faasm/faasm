@@ -20,7 +20,7 @@ spec:
       containers:
         - name: worker
           image: shillaker/faasm-core:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command: ["/faasm/code/build/bin/worker"]
           ports:
             - containerPort: 8001
