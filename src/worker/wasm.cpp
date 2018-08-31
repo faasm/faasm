@@ -33,9 +33,7 @@ namespace worker {
         std::cout << "Message - " << message << std::endl;
     }
 
-    WasmModule::WasmModule() {
-
-    }
+    WasmModule::WasmModule() = default;
 
     /**
      * Executes the given function call

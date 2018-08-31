@@ -9,6 +9,8 @@ namespace edge {
     // therefore we need to ensure that each thread has its own instance
     static thread_local infra::Redis redis;
 
+    RestServer::RestServer() = default;
+
     void RestServer::listen(const std::string &port) {
         std::string addr = "http://0.0.0.0:" + port;
         http_listener listener(addr);

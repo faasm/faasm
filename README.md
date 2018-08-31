@@ -206,6 +206,17 @@ this is where it will get placed too.
 Currently there are some dummy functions held in the `func` directory. Their compiled WASM is also stored in the
 `wasm` directory.
 
+### Docker images
+
+There are a few Docker images used to make build times quicker:
+
+- `shillaker/cpp-base` - from [this repo](https://github.com/Shillaker/cpp-base), just a base image that includes clang and protobuf (as they're a pain to install)
+- `shillaker/faasm-base` - image extending `cpp-base` with the extra faasm-specific libraries installed
+- `shillaker/faasm-core` - image extending `faasm-base` with the faasm code in place
+
+If you're just changing code, all you need to rebuild is `faasm-core`. If you change libraries you'll need to rebuild
+`faasm-base` too.
+
 ### Tests
 
 The tests can be found in the `test` directory and executed by running:

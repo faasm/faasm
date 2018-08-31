@@ -16,9 +16,7 @@ namespace worker {
 
     static thread_local infra::Redis redis;
 
-    Worker::Worker() {
-
-    }
+    Worker::Worker() = default;
 
     void Worker::start() {
         // Create main CGroup with CPU limiting
