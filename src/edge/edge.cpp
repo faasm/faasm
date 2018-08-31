@@ -1,8 +1,5 @@
 #include "edge/edge.h"
 
-#include <infra/infra.h>
-#include <util/util.h>
-
 namespace edge {
 
     // Note - hiredis redis contexts are suitable only for single threads
@@ -21,12 +18,13 @@ namespace edge {
 
         listener.support(methods::PUT, RestServer::handlePut);
 
-        listener.open().then([port]() {
-            std::cout << "Listening for requests on localhost:" << port << std::endl;
-        }).wait();
+        listener.open().wait();
 
-        // Continuous loop...
-        while (true);
+        // Continuous loop required to allow listening apparently
+        while (true) {
+            std::cout << "Listening for requests on localhost:" << port << std::endl;
+            usleep(60 * 1000 * 1000);
+        }
     }
 
     void RestServer::handleGet(http_request request) {
@@ -40,10 +38,12 @@ namespace edge {
 
         if (call.isasync()) {
             // Don't wait for result
-            std::cout << "Submitted async " << call.user() << " - " << call.function() << " - " << call.inputdata() << std::endl;
+            std::cout << "Submitted async " << call.user() << " - " << call.function() << " - " << call.inputdata()
+                      << std::endl;
             request.reply(status_codes::Created, "Async request submitted\n");
         } else {
-            std::cout << "Awaiting result for " << call.user() << " - " << call.function() << " - " << call.inputdata() << std::endl;
+            std::cout << "Awaiting result for " << call.user() << " - " << call.function() << " - " << call.inputdata()
+                      << std::endl;
 
             message::FunctionCall result = redis.getFunctionResult(call);
 
@@ -67,7 +67,7 @@ namespace edge {
         out.write(fileBody.c_str(), fileBody.size());
         out.flush();
         out.close();
-        
+
         request.reply(status_codes::OK, "Upload complete\n");
     }
 
@@ -86,7 +86,7 @@ namespace edge {
             const concurrency::streams::istream bodyStream = request.body();
             concurrency::streams::stringstreambuf inputStream;
             bodyStream.read_to_end(inputStream).then([&inputStream, &call](size_t size) {
-                if(size > 0) {
+                if (size > 0) {
                     std::string s = inputStream.collection();
                     call.set_inputdata(s);
                 }
