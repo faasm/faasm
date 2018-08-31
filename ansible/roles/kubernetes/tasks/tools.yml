@@ -44,3 +44,10 @@
 - name: "Turn off swap"
   become: yes
   shell: "swapoff -a"
+
+- name: "Ensure swap off permanently"
+  become: yes
+  lineinfile:
+    path: /etc/fstab
+    state: absent
+    regexp: "swapfile"

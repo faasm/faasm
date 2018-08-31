@@ -2,9 +2,8 @@
 
 - include_tasks: "tools.yml"
 
-- include_tasks: "kubeadm.yml"
+- include_tasks: "network.yml"
 
 - include_tasks: "start.yml"
 
-- include_tasks: "network.yml"
-
+- include_tasks: "kubeadm.yml"

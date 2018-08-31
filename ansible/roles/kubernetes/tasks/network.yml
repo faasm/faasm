@@ -3,9 +3,16 @@
 # Kubernetes networking is a pain.
 # Here we're using flannel but there are lots of seemingly similar options
 
-- name: "Set up bridged IPV4 traffic"
+- name: "Set up bridged traffic"
   become: yes
   shell: "sysctl net.bridge.bridge-nf-call-iptables=1"
+
+- name: "Persist bridged traffic config"
+  become: yes
+  copy:
+    src: sysctl.conf
+    dest: "/etc/sysctl.d/60-kubernetes.conf"
+    mode: 0644
 
 - name: "Set up Flannel"
   shell: "kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
