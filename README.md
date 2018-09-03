@@ -1,3 +1,40 @@
+# Faasm
+
+Faasm is a serverless system focused on performance and security. By trusting users' code we can reduce
+isolation, hence achieving good performance while simultaneously enabling features not possible in a 
+strongly isolated environment.
+
+The project is still a work in progress with many aspects yet to be developed.
+
+# Isolation
+
+## Memory
+
+By accepting only functions that can be compiled to WebAssembly, we can rule out a large class of security 
+issues related to memory. The specifics of the WebAssembly memory model and its security implications
+can be found in [the WebAssembly docs](https://webassembly.org/docs/security/).
+
+## CPU
+
+Linux cgroups support process-level and thread-level CPU isolation and accounting and can be enlisted to 
+establish isolation between users' functions in Faasm. 
+
+Thread-level support is only available in `cgroupv2` which is currently incompatible with Docker. How this
+interaction will work is TBC.
+
+## Network
+
+TBC
+
+## Filesystem
+
+A filesystem doesn't make much sense in a serverless environment given that functions may run on any machine 
+in the system. As a result the role of the filesystem is greatly diminished.
+
+## Other I/O
+
+I/O other than that concerned with the filesystem and network is not supported in a serverless environment thus can be excluded. 
+
 # Usage
 
 ## Functions
@@ -132,23 +169,19 @@ The local development process is a bit rough around the edges at the moment but 
 
 ### CGroup V2
 
-To enable cgroup thread-based isolation you need to enable cgroup v2. To do this, you need to add the following kernel parameters:
+To enable `cgroupv2` you need to do the following:
 
-```
-# Switch off cgroup v1
-cgroup_no_v1=all
-
-# Mount cgroupv2 filesystem at /sys/fs/cgroup (instead of /sys/fs/cgroup/unified)
-systemd.unified_cgroup_hierarchy=1
-```
-
-It's best to do this by editing `/etc/default/grub` and adding these values (separated by spaces) to the line starting `GRUB_CMDLINE_LINUX_DEFAULT` then restarting. 
+- Add `cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1` to the line starting `GRUB_CMDLINE_LINUX_DEFAULT` in `/etc/default/grub`(separated by spaces)
+- Run `sudo update-grub`
+- Restart the machine 
 
 To check it's worked, the file `/sys/fs/cgroup/cgroup.controllers` should exist and contain something like:
 
 ```
 cpu io memory pids rdma
 ```
+
+Note that currently **Docker does not work with cgroupv2** so this is only applicable to machines running Faasm outside of Docker.
 
 ### Submodules
 
