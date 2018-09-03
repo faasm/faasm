@@ -54,27 +54,25 @@ namespace worker {
         this->controllers.emplace_back("cpu");
     }
 
-    void CGroup::addCurrentThread() {
-        std::thread::id thisThreadId = std::this_thread::get_id();
-
+    void CGroup::addThread(pid_t threadId) {
         if (mode == CgroupMode::off) {
-            std::cout << "Not adding thread id " << thisThreadId << " cgroup support off" << std::endl;
+            std::cout << "Not adding thread id " << threadId << " cgroup support off" << std::endl;
             return;
         }
 
-        // Add the thread id to the tasks files for this group
+        // Add for each controller
         for (auto &ctrl : this->controllers) {
             boost::filesystem::path tasksPath = this->getPathToFile(ctrl, "tasks");
 
-            // Convert ID to string
-            std::stringstream ss;
-            ss << thisThreadId;
-
             // Get lock and write to file
             std::lock_guard<std::mutex> guard(this->tasksMutex);
-            util::appendToFile(tasksPath.string(), ss.str());
 
-            std::cout << "Added thread id " << thisThreadId << " to cgroup " << ctrl << ":" << this->name << std::endl;
+            std::ofstream outfile;
+            outfile.open(tasksPath.string(), std::ios_base::app);
+            outfile << threadId << std::endl;
+            outfile.flush();
+
+            std::cout << "Added thread id " << threadId << " to " << ctrl << ":" << this->name << " at " << tasksPath << std::endl;
         }
     }
 }

@@ -6,6 +6,7 @@
 #include <string>
 #include <exception>
 #include <tuple>
+#include <thread>
 
 #include <boost/filesystem.hpp>
 
@@ -78,7 +79,7 @@ namespace worker {
         explicit CGroup(const std::string &name);
 
         void limitCpu();
-        void addCurrentThread();
+        void addThread(int threadId);
 
     private:
         std::mutex tasksMutex;

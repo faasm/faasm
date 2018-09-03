@@ -2,6 +2,9 @@
 #include <infra/infra.h>
 
 #include <thread>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/syscall.h>
 
 #include "Programs/CLI.h"
 #include <IR/Module.h>
@@ -14,30 +17,29 @@ using namespace Runtime;
 
 namespace worker {
 
+    // TODO - unfortunately redis client can't be shared between threads
     static thread_local infra::Redis redis;
 
-    void execFunction(std::shared_ptr<CGroup> cgroup, message::FunctionCall call) {
-        // Add this thread to the cgroup
-        cgroup->addCurrentThread();
+    void execFunction(message::FunctionCall call, std::shared_ptr<CGroup> cgroup) {
+        // Add to cgroup
+        auto tid = (pid_t) syscall(SYS_gettid);
+        cgroup->addThread(tid);
 
         // Create and execute the module
         WasmModule module;
         module.execute(call);
 
-        // TODO - unfortunately redis client can't be shared between threads
-        // therefore need to create yet another connection
-        infra::Redis loopRedis;
-
         // Dispatch any chained calls
         for (auto chainedCall : module.chainedCalls) {
-            loopRedis.callFunction(chainedCall);
+            redis.callFunction(chainedCall);
         }
 
         // Set function success
         std::cout << "Finished call:  " << call.user() << " - " << call.function() << std::endl;
-        loopRedis.setFunctionResult(call, true);
+        redis.setFunctionResult(call, true);
 
-        module.clean();
+        // TODO running this clean kills the WAVM execution in other threads
+        //module.clean();
     }
 
     Worker::Worker() = default;
@@ -53,8 +55,10 @@ namespace worker {
             std::cout << "Worker waiting..." << std::endl;
             message::FunctionCall call = redis.nextFunctionCall();
 
-            // Create new thread for this call
-            std::thread funcThread(execFunction, cgroup, std::move(call));
+            // New thread to execute function
+            std::thread funcThread(execFunction, std::move(call), cgroup);
+
+            // Execute
             funcThread.detach();
         }
     }

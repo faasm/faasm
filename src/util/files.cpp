@@ -11,11 +11,4 @@ namespace util {
 
         return buffer.str();
     }
-
-    void appendToFile(const std::string &filePath, const std::string &data) {
-        std::ofstream outfile;
-
-        outfile.open(filePath);
-        outfile << data;
-    }
 }
