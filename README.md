@@ -16,8 +16,10 @@ can be found in [the WebAssembly docs](https://webassembly.org/docs/security/).
 
 ## CPU
 
-Linux cgroups support process-level and thread-level CPU isolation and accounting and can be enlisted to 
-establish isolation between users' functions in Faasm. 
+Linux cgroups support process-level and thread-level CPU control and accounting. They can be enlisted to
+ensure fair access to CPU resource between functions sharing a Faasm node. Basic cgroup CPU limiting can ensure
+that _all user functions get a fair share of the CPU resource on the machine_. This means that if a box is
+resource constrained, all functions running there will be restricted equally.
 
 Thread-level support for CPU isolation is available in both V1 and V2 of cgroup although V2 achieves
 it differently and is arguably a bit cleaner. Unfortunately Docker doesn't work with V2 at the time of

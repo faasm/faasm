@@ -20,8 +20,9 @@ namespace worker {
     // TODO - unfortunately redis client can't be shared between threads
     static thread_local infra::Redis redis;
 
+    /** Handles the execution of the function */
     void execFunction(message::FunctionCall call, std::shared_ptr<CGroup> cgroup) {
-        // Add to cgroup
+        // Add this thread to the cgroup
         auto tid = (pid_t) syscall(SYS_gettid);
         cgroup->addThread(tid);
 
@@ -38,14 +39,14 @@ namespace worker {
         std::cout << "Finished call:  " << call.user() << " - " << call.function() << std::endl;
         redis.setFunctionResult(call, true);
 
-        // TODO running this clean kills the WAVM execution in other threads
+        // TODO running this clean() seems to kill the WAVM execution in all threads
         //module.clean();
     }
 
     Worker::Worker() = default;
 
     void Worker::start() {
-        // Create main CGroup with CPU limiting
+        // Create main cgroup with CPU limiting
         cgroup = std::make_shared<CGroup>("faasm");
         cgroup->limitCpu();
 
