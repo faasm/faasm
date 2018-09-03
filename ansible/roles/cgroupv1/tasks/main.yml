@@ -6,6 +6,13 @@
     path: "/etc/cgconfig.d/"
     state: directory
 
+- name: "Get current user ID"
+  shell: "id -u"
+  register: "uid"
+
+- debug:
+    var: uid
+
 - name: "Put cgroup config files in place"
   become: yes
   template:
@@ -15,5 +22,3 @@
 - name: "Set up cgroups"
   become: yes
   shell: "cgconfigparser -a {{ ansible_user }}:{{ ansible_user }} -L /etc/cgconfig.d"
-
-#- include_tasks: "network.yml"

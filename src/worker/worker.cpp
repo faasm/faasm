@@ -1,7 +1,7 @@
 #include "worker.h"
 #include <infra/infra.h>
 
-#include <unistd.h>
+#include <thread>
 
 #include "Programs/CLI.h"
 #include <IR/Module.h>
@@ -16,12 +16,36 @@ namespace worker {
 
     static thread_local infra::Redis redis;
 
+    void execFunction(std::shared_ptr<CGroup> cgroup, message::FunctionCall call) {
+        // Add this thread to the cgroup
+        cgroup->addCurrentThread();
+
+        // Create and execute the module
+        WasmModule module;
+        module.execute(call);
+
+        // TODO - unfortunately redis client can't be shared between threads
+        // therefore need to create yet another connection
+        infra::Redis loopRedis;
+
+        // Dispatch any chained calls
+        for (auto chainedCall : module.chainedCalls) {
+            loopRedis.callFunction(chainedCall);
+        }
+
+        // Set function success
+        std::cout << "Finished call:  " << call.user() << " - " << call.function() << std::endl;
+        loopRedis.setFunctionResult(call, true);
+
+        module.clean();
+    }
+
     Worker::Worker() = default;
 
     void Worker::start() {
         // Create main CGroup with CPU limiting
-        CGroup mainGroup("faasm");
-        mainGroup.limitCpu();
+        cgroup = std::make_shared<CGroup>("faasm");
+        cgroup->limitCpu();
 
         // Arbitrary loop to stop linting complaining
         for (int i = 0; i < 1000; i++) {
@@ -29,33 +53,9 @@ namespace worker {
             std::cout << "Worker waiting..." << std::endl;
             message::FunctionCall call = redis.nextFunctionCall();
 
-            // Create child process
-            pid_t child = fork();
-            if(child == 0) {
-                // Add this child to the cgroup
-                mainGroup.addCurrentPid();
-
-                // Create and execute the module
-                WasmModule module;
-                module.execute(call);
-
-                // TODO - unfortunately redis client can't be shared between processes
-                // therefore need to create yet another connection for the child process
-                infra::Redis loopRedis;
-
-                // Dispatch chained calls
-                for(auto chainedCall : module.chainedCalls) {
-                    loopRedis.callFunction(chainedCall);
-                }
-
-                // Set function success
-                std::cout << "Finished call:  " << call.user() << " - " << call.function() << std::endl;
-                loopRedis.setFunctionResult(call, true);
-
-                module.clean();
-
-                return;
-            }
+            // Create new thread for this call
+            std::thread funcThread(execFunction, cgroup, std::move(call));
+            funcThread.detach();
         }
     }
 }

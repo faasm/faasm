@@ -69,3 +69,6 @@ setup-clang:
 
 setup-k8:
 	cd ansible && ansible-playbook kubernetes.yml -i inventory/lsds.ini
+
+setup-cgroup:
+	cd ansible && ansible-playbook cgroupv1.yml --ask-become-pass

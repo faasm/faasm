@@ -1,8 +1,8 @@
 #include "worker/worker.h"
 
 #include <sys/stat.h>
-#include <unistd.h>
-
+#include <thread>
+#include <sstream>
 #include <util/util.h>
 
 namespace worker {
@@ -12,7 +12,15 @@ namespace worker {
             name(name) {
 
         // Get which cgroup mode we're operating in
-        mode = util::getEnvVar("CGROUP_MODE", "off");
+        std::string modeEnv = util::getEnvVar("CGROUP_MODE", "v1");
+
+        if (modeEnv == "v1") {
+            mode = CgroupMode::v1;
+        } else if (modeEnv == "v2") {
+            mode = CgroupMode::v2;
+        } else {
+            mode = CgroupMode::off;
+        }
     }
 
     boost::filesystem::path CGroup::getPathToController(const std::string &controller) {
@@ -37,7 +45,7 @@ namespace worker {
     }
 
     void CGroup::limitCpu() {
-        if(mode == "off") {
+        if (mode == CgroupMode::off) {
             std::cout << "Not limiting CPU, cgroup support off" << std::endl;
             return;
         }
@@ -46,20 +54,27 @@ namespace worker {
         this->controllers.emplace_back("cpu");
     }
 
-    void CGroup::addCurrentPid() {
-        pid_t thisPid = getpid();
+    void CGroup::addCurrentThread() {
+        std::thread::id thisThreadId = std::this_thread::get_id();
 
-        if(mode == "off") {
-            std::cout << "Not adding pid " << thisPid << " cgroup support off" << std::endl;
+        if (mode == CgroupMode::off) {
+            std::cout << "Not adding thread id " << thisThreadId << " cgroup support off" << std::endl;
             return;
         }
 
-        // Add the pid to the tasks file for this group
-        for(auto &ctrl : this->controllers) {
+        // Add the thread id to the tasks files for this group
+        for (auto &ctrl : this->controllers) {
             boost::filesystem::path tasksPath = this->getPathToFile(ctrl, "tasks");
-            util::appendToFile(tasksPath.string(), std::to_string(thisPid));
 
-            std::cout << "Added PID " << thisPid << " to cgroup " << ctrl << ":" << this->name << std::endl;
+            // Convert ID to string
+            std::stringstream ss;
+            ss << thisThreadId;
+
+            // Get lock and write to file
+            std::lock_guard<std::mutex> guard(this->tasksMutex);
+            util::appendToFile(tasksPath.string(), ss.str());
+
+            std::cout << "Added thread id " << thisThreadId << " to cgroup " << ctrl << ":" << this->name << std::endl;
         }
     }
 }

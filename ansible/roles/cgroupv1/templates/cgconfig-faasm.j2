@@ -1,0 +1,31 @@
+# Top-level faasm group
+group faasm {
+    # Set permissions to allow creating cgroups on the fly
+    perm {
+        task {
+            uid = {{ uid.stdout }};
+            gid = {{ uid.stdout }};
+        }
+        admin {
+           uid = {{ uid.stdout }};
+           gid = {{ uid.stdout }};
+        }
+    }
+
+    # Controllers
+    cpu {
+
+    }
+
+    memory {
+
+    }
+
+    net_prio {
+
+    }
+
+    blkio {
+
+    }
+}

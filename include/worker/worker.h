@@ -70,30 +70,36 @@ namespace worker {
         void setUpChainingData(const message::FunctionCall &call);
     };
 
+    /** Abstraction around cgroups */
+    enum CgroupMode {off, v1, v2};
+
+    class CGroup {
+    public:
+        explicit CGroup(const std::string &name);
+
+        void limitCpu();
+        void addCurrentThread();
+
+    private:
+        std::mutex tasksMutex;
+
+        std::string name;
+        CgroupMode mode;
+        std::vector<std::string> controllers;
+
+        boost::filesystem::path getPathToController(const std::string &controller);
+        boost::filesystem::path getPathToFile(const std::string &controller, const std::string &file);
+        void mkdirForController(const std::string &controller);
+    };
+
     /** Worker wrapper */
     class Worker {
     public:
         Worker();
 
         void start();
-    };
-
-    /** Abstraction around cgroups */
-    class CGroup {
-    public:
-        CGroup(const std::string &name);
-
-        void limitCpu();
-        void addCurrentPid();
-
     private:
-        std::string name;
-        std::string mode;
-        std::vector<std::string> controllers;
-
-        boost::filesystem::path getPathToController(const std::string &controller);
-        boost::filesystem::path getPathToFile(const std::string &controller, const std::string &file);
-        void mkdirForController(const std::string &controller);
+        std::shared_ptr<CGroup> cgroup;
     };
 
     /** Exceptions */

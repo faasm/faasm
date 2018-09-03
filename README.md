@@ -19,8 +19,9 @@ can be found in [the WebAssembly docs](https://webassembly.org/docs/security/).
 Linux cgroups support process-level and thread-level CPU isolation and accounting and can be enlisted to 
 establish isolation between users' functions in Faasm. 
 
-Thread-level support is only available in `cgroupv2` which is currently incompatible with Docker. How this
-interaction will work is TBC.
+Thread-level support for CPU isolation is available in both V1 and V2 of cgroup although V2 achieves
+it differently and is arguably a bit cleaner. Unfortunately Docker doesn't work with V2 at the time of
+writing.
 
 ## Network
 

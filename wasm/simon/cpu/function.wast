@@ -97,157 +97,65 @@
   (get_global $tempRet0)
  )
  (func $_run (; 13 ;) (param $0 i32) (param $1 i32) (param $2 i32) (param $3 i32) (result i32)
-  (local $4 i32)
-  (set_local $4
+  ;;@ ../include/faasm/faasm.h:51:0
+  (drop
+   (call $_exec
+    (i32.const 0)
+   )
+  )
+  (i32.const 0)
+ )
+ (func $_exec (; 14 ;) (param $0 i32) (result i32)
+  (local $1 i64)
+  (set_local $0
    (get_global $STACKTOP)
   )
   (set_global $STACKTOP
    (i32.add
     (get_global $STACKTOP)
-    (i32.const 32)
-   )
-  )
-  ;;@ ../include/faasm/faasm.h:44:0
-  (i32.store
-   (get_local $4)
-   (get_local $0)
-  )
-  ;;@ ../include/faasm/faasm.h:45:0
-  (set_local $0
-   (i32.add
-    (get_local $4)
-    (i32.const 4)
-   )
-  )
-  (i32.store
-   (get_local $0)
-   (get_local $1)
-  )
-  ;;@ ../include/faasm/faasm.h:47:0
-  (set_local $0
-   (i32.add
-    (get_local $4)
-    (i32.const 8)
-   )
-  )
-  (i32.store
-   (get_local $0)
-   (get_local $2)
-  )
-  ;;@ ../include/faasm/faasm.h:48:0
-  (set_local $0
-   (i32.add
-    (get_local $4)
-    (i32.const 12)
-   )
-  )
-  (i32.store
-   (get_local $0)
-   (get_local $3)
-  )
-  ;;@ ../include/faasm/faasm.h:49:0
-  (set_local $0
-   (i32.add
-    (get_local $4)
     (i32.const 16)
    )
   )
-  (i32.store
+  ;;@ ../func/function_cpu.c:9:0
+  (i64.store
    (get_local $0)
-   (i32.const 0)
-  )
-  ;;@ ../include/faasm/faasm.h:51:0
-  (drop
-   (call $_exec
-    (get_local $4)
-   )
-  )
-  (set_global $STACKTOP
-   (get_local $4)
-  )
-  (i32.const 0)
- )
- (func $_exec (; 14 ;) (param $0 i32) (result i32)
-  (local $1 i32)
-  (local $2 i32)
-  (local $3 i32)
-  (local $4 i32)
-  (set_local $4
-   (i32.add
-    (get_local $0)
-    (i32.const 4)
-   )
+   (i64.const 0)
   )
   (loop $while-in
    (block $while-out
-    ;;@ ../func/function_x2.c:8:0
-    (br_if $while-out
-     (i32.eq
-      (get_local $2)
-      (i32.const 1024)
+    (set_local $1
+     (i64.load
+      (get_local $0)
      )
     )
-    ;;@ ../func/function_x2.c:9:0
+    (br_if $while-out
+     (i64.ge_u
+      (get_local $1)
+      (i64.const 5000000000)
+     )
+    )
     (set_local $1
-     (i32.load
+     (i64.load
       (get_local $0)
      )
     )
     (set_local $1
-     (i32.add
+     (i64.add
       (get_local $1)
-      (get_local $2)
+      (i64.const 1)
      )
     )
-    (set_local $1
-     (i32.load8_u
-      (get_local $1)
-     )
-    )
-    (set_local $1
-     (i32.and
-      (get_local $1)
-      (i32.const 255)
-     )
-    )
-    (set_local $1
-     (i32.shl
-      (get_local $1)
-      (i32.const 1)
-     )
-    )
-    (set_local $1
-     (i32.and
-      (get_local $1)
-      (i32.const 255)
-     )
-    )
-    (set_local $3
-     (i32.load
-      (get_local $4)
-     )
-    )
-    (set_local $3
-     (i32.add
-      (get_local $3)
-      (get_local $2)
-     )
-    )
-    (i32.store8
-     (get_local $3)
+    (i64.store
+     (get_local $0)
      (get_local $1)
-    )
-    ;;@ ../func/function_x2.c:8:0
-    (set_local $2
-     (i32.add
-      (get_local $2)
-      (i32.const 1)
-     )
     )
     (br $while-in)
    )
   )
-  ;;@ ../func/function_x2.c:12:0
+  (set_global $STACKTOP
+   (get_local $0)
+  )
+  ;;@ ../func/function_cpu.c:11:0
   (i32.const 0)
  )
  (func $_malloc (; 15 ;) (param $0 i32) (result i32)

@@ -34,7 +34,9 @@ spec:
           volumeMounts:
             - mountPath: "/usr/share/faasm"
               name: func-vol
+      securityContext:
+        privileged: yes
       volumes:
-      - name: func-vol
-        persistentVolumeClaim:
-          claimName: func-storage-claim
+        - name: func-vol
+          persistentVolumeClaim:
+            claimName: func-storage-claim
