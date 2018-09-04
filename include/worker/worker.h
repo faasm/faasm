@@ -22,9 +22,8 @@ namespace worker {
     const int MAX_NAME_LENGTH = 32;
 
     // Input memory
-    // Need to make sure this starts high enough to avoid
-    // other bits of the default memory
-    const int INPUT_START = 1024 * 20;
+    // Need to make sure this starts high enough to avoid other regions of the default memory
+    const int INPUT_START = 1024 * 1024;
     const int MAX_INPUT_BYTES = 1024;
 
     // Output memory
