@@ -2,8 +2,9 @@
 
 set -e
 
-./bin/compile.sh simon chain
-./bin/compile.sh simon cpu
-./bin/compile.sh simon dummy
-./bin/compile.sh simon echo
-./bin/compile.sh simon x2
+python3 bin/compile.py simon chain
+python3 bin/compile.py simon cpu
+python3 bin/compile.py simon dummy
+python3 bin/compile.py simon echo
+python3 bin/compile.py simon x2
+python3 bin/compile.py simon curl --libcurl
