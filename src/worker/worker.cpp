@@ -50,6 +50,9 @@ namespace worker {
         cgroup = std::make_shared<CGroup>("faasm");
         cgroup->limitCpu();
 
+        // Turn on debug logging
+        Log::setCategoryEnabled(Log::Category::debug,true);
+
         // Arbitrary loop to stop linting complaining
         for (int i = 0; i < 1000; i++) {
             // Get next call (blocking)

@@ -24,31 +24,57 @@ namespace worker {
 
         RootResolver(Compartment *inCompartment) : compartment(inCompartment) {}
 
+        bool resolveFaasm(const std::string &exportName, ObjectType type, Object *&outObject) {
+
+            auto faasmModule = moduleNameToInstanceMap.get("faasm");
+            outObject = getInstanceExport(*faasmModule, exportName);
+
+            // Unsuccessful lookup
+            if (!outObject) {
+                return false;
+            }
+
+            // Successful lookup of correct type
+            if (isA(outObject, type)) {
+                Log::printf(Log::Category::debug, "Using Faasm version of %s \n", exportName.c_str());
+                return true;
+            }
+
+            Log::printf(Log::Category::error, "Faasm version of import %s wrong type (%s), was expecting %s\n",
+                        exportName.c_str(),
+                        asString(getObjectType(outObject)).c_str(),
+                        asString(type).c_str());
+
+            return false;
+        }
+
         bool resolve(const std::string &moduleName, const std::string &exportName, ObjectType type,
                      Object *&outObject) override {
             auto namedInstance = moduleNameToInstanceMap.get(moduleName);
 
             if (namedInstance) {
+                // Try looking up normally
                 outObject = getInstanceExport(*namedInstance, exportName);
-                if (outObject) {
-                    if (isA(outObject, type)) { return true; }
-                    else {
-                        Log::printf(Log::Category::error, "Resolved import %s.%s to a %s, but was expecting %s\n",
-                                    moduleName.c_str(),
-                                    exportName.c_str(),
-                                    asString(getObjectType(outObject)).c_str(),
-                                    asString(type).c_str());
-                        return false;
-                    }
-                }
-                else if(moduleName != "faasm") {
-                    Log::printf(Log::Category::error, "Attempting lookup in faasm for %s.%s : %s\n",
+
+                if (outObject && isA(outObject, type)) {
+                    // Successful lookup of correct type
+                    return true;
+                } else if (outObject) {
+                    // Successful lookup of wrong type
+                    Log::printf(Log::Category::error, "Resolved import %s.%s to a %s, but was expecting %s\n",
                                 moduleName.c_str(),
-                                exportName.c_str(), asString(type).c_str());
-                    return resolve("faasm", exportName, type, outObject);
+                                exportName.c_str(),
+                                asString(getObjectType(outObject)).c_str(),
+                                asString(type).c_str());
+
+                    return false;
+                } else if (resolveFaasm(exportName, type, outObject)) {
+                    // Found alternative in faasm module
+                    return true;
                 }
             }
 
+            // Lookup totally failed, generate stub
             Log::printf(Log::Category::error, "Generated stub for missing import %s.%s : %s\n", moduleName.c_str(),
                         exportName.c_str(), asString(type).c_str());
             outObject = getStubObject(exportName, type);

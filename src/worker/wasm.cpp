@@ -33,6 +33,58 @@ namespace worker {
         std::cout << "Message - " << message << std::endl;
     }
 
+    DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall102", I32, ___syscall102, I32 a, I32 b) {
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall122", I32, ___syscall122, I32 a, I32 b) {
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall142", I32, ___syscall142, I32 a, I32 b) {
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall195", I32, ___syscall195, I32 a, I32 b) {
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall197", I32, ___syscall197, I32 a, I32 b) {
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall201", I32, ___syscall201, I32 a, I32 b) {
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall221", I32, ___syscall221, I32 a, I32 b) {
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall3", I32, ___syscall3, I32 a, I32 b) {
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall33", I32, ___syscall33, I32 a, I32 b) {
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall4", I32, ___syscall4, I32 a, I32 b) {
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall5", I32, ___syscall5, I32 a, I32 b) {
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(faasm, "_clock_gettime", I32, _clock_gettime, I32 a, I32 b) {
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(faasm, "_getaddrinfo", I32, _getaddrinfo, I32 a, I32 b, I32 c, I32 d) {
+        return 0;
+    }
+
     WasmModule::WasmModule() = default;
 
     /**
