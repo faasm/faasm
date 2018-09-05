@@ -296,8 +296,11 @@ They require a local Redis instance to pass and cover most of the codebase.
 
 ## Syscalls
 
-Emscripten compiles with musl for i386. As a result, the syscall table can be found in the musl repo at
-[arch/i386/bits/syscall.h](https://github.com/esmil/musl/blob/master/arch/i386/bits/syscall.h).
+Emscripten compiles with a modified musl libc. Note that the version of this is fixed and checked into the
+Emscripten repo. Important files are:
+
+- [syscall table](https://github.com/kripken/emscripten/blob/master/system/lib/libc/musl/arch/emscripten/bits/syscall.h) - same as i386?
+- [socketcall mapping](https://github.com/kripken/emscripten/blob/master/system/lib/libc/musl/src/internal/syscall.h) - found lower down this file
 
 # CGroup V2
 

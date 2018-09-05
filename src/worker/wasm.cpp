@@ -8,6 +8,7 @@
 #include <time.h>
 #include <sys/types.h>
 #include <sys/syscall.h>
+#include <sys/socket.h>
 
 #include <util/util.h>
 
@@ -25,79 +26,86 @@ namespace worker {
     DEFINE_INTRINSIC_MODULE(faasm)
 
     /**
-     * Dummy function to allow printing a message from a wasm function
-     * Unused for now just here for illustration
+     * socketcall
      */
-    DEFINE_INTRINSIC_FUNCTION_WITH_MEM_AND_TABLE(faasm, "_faasmPrint", void, faasmPrint, I32 messagePtr) {
-        // Assume default memory
-        MemoryInstance *memory = Runtime::getMemoryFromRuntimeData(contextRuntimeData, 0);
+    DEFINE_INTRINSIC_FUNCTION_WITH_MEM_AND_TABLE(faasm, "___syscall102", I32, ___syscall102, I32 syscallNo, I32 argsPtr) {
+        MemoryInstance* memory = getMemoryFromRuntimeData(contextRuntimeData,defaultMemoryId.id);
+        U32* args = memoryArrayPtr<U32>(memory, argsPtr, 2);
+        U32 call = args[0];
+        U32 callArgsPtr = args[1];
 
-        U8 *message = &memoryRef<U8>(memory, (Uptr) messagePtr);
+        // See mapping in Emscripten repo to see socketcall codes
+        // https://github.com/kripken/emscripten/blob/master/system/lib/libc/musl/src/internal/syscall.h#L227
+        switch(call) {
+            case(1): { // socket
+                U32* subCallArgs = memoryArrayPtr<U32>(memory, callArgsPtr, 3);
+                U32 domain = subCallArgs[0];
+                U32 type = subCallArgs[1];
+                U32 protocol = subCallArgs[2];
 
-        std::cout << "Message - " << message << std::endl;
-    }
+                printf("SYSCALL - socket %i %i %i\n", domain, type, protocol);
+                long sock = syscall(SYS_socket, domain, type, protocol);
+                printf("Opened system socket %li\n", sock);
 
-    DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall102", I32, ___syscall102, I32 a, I32 b) {
-        printf("SYSCALL - socketcall\n");
+                return (I32) sock;
+            }
+            default: {
+                printf("Unrecognised socketcall %i\n", call);
+            }
+        }
+
         return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall122", I32, ___syscall122, I32 a, I32 b) {
-        printf("SYSCALL - 122\n");
         return 0;
     }
 
-    struct wasm_sched_param {
-        I32 sched_priority;
-    };
+    DEFINE_INTRINSIC_FUNCTION_WITH_MEM_AND_TABLE(faasm, "___syscall142", I32, ___syscall142, I32 syscallNo, I32 argsPtr) {
+//        MemoryInstance* memory = getMemoryFromRuntimeData(contextRuntimeData,defaultMemoryId.id);
+//        U32* args = memoryArrayPtr<U32>(memory, argsPtr, 2);
 
-    DEFINE_INTRINSIC_FUNCTION_WITH_MEM_AND_TABLE(faasm, "___syscall142", I32, ___syscall142, I32 pidArg, I32 schedParamArg) {
-        printf("SYSCALL - 142 (sched_setparam) \n");
+        return 0;
+    }
 
+    DEFINE_INTRINSIC_FUNCTION_WITH_MEM_AND_TABLE(faasm, "_gethostbyname", I32, _gethostbyname, I32 hostnamePtr) {
         MemoryInstance* memory = getMemoryFromRuntimeData(contextRuntimeData,defaultMemoryId.id);
-        auto schedParam = memoryRef<wasm_sched_param>(memory, (Uptr) schedParamArg);
+        auto hostname = &memoryRef<char>(memory, (Uptr) hostnamePtr);
 
-        printf("PID = %d PRIORITY = %d\n", pidArg, schedParam.sched_priority);
+        printf("INTRINSIC - gethostbyname %s\n", hostname);
+
         return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall195", I32, ___syscall195, I32 a, I32 b) {
-        printf("SYSCALL - 195\n");
         return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall197", I32, ___syscall197, I32 a, I32 b) {
-        printf("SYSCALL - 197\n");
         return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall201", I32, ___syscall201, I32 a, I32 b) {
-        printf("SYSCALL - 201\n");
         return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall221", I32, ___syscall221, I32 a, I32 b) {
-        printf("SYSCALL - 221\n");
         return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall3", I32, ___syscall3, I32 a, I32 b) {
-        printf("SYSCALL - 3\n");
         return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall33", I32, ___syscall33, I32 a, I32 b) {
-        printf("SYSCALL - 33\n");
         return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall4", I32, ___syscall4, I32 a, I32 b) {
-        printf("SYSCALL - 4\n");
         return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall5", I32, ___syscall5, I32 a, I32 b) {
-        printf("SYSCALL - 5\n");
         return 0;
     }
 
@@ -127,22 +135,18 @@ namespace worker {
     }
 
     DEFINE_INTRINSIC_FUNCTION(faasm, "_getaddrinfo", I32, _getaddrinfo, I32 a, I32 b, I32 c, I32 d) {
-        printf("INTRINSIC - _getaddrinfo\n");
         return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(faasm, "_getpwuid", I32, _getpwuid, I32 a) {
-        printf("INTRINSIC - _getpwuid\n");
         return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(faasm, "_gettimeofday", I32, _gettimeofday, I32 a, I32 b) {
-        printf("INTRINSIC - _gettimeofday\n");
         return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(faasm, "_gmtime_r", I32, _gmtime_r, I32 a, I32 b) {
-        printf("INTRINSIC - _gmtime_r\n");
         return 0;
     }
 
