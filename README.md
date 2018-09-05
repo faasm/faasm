@@ -162,31 +162,14 @@ make setup-k8
 Clearly all worker pods need access to the WASM function files. For now these are held on an NFS share hosted on the
 master Kubernetes node. This could be replaced by an object store in future.
 
+
 # Installation, Configuration and Development
 
 Below are instructions for building, testing and developing.
 
-## Local Development
-
 The local development process is a bit rough around the edges at the moment but can be improved in future.
 
-### CGroup V2
-
-To enable `cgroupv2` you need to do the following:
-
-- Add `cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1` to the line starting `GRUB_CMDLINE_LINUX_DEFAULT` in `/etc/default/grub`(separated by spaces)
-- Run `sudo update-grub`
-- Restart the machine 
-
-To check it's worked, the file `/sys/fs/cgroup/cgroup.controllers` should exist and contain something like:
-
-```
-cpu io memory pids rdma
-```
-
-Note that currently **Docker does not work with cgroupv2** so this is only applicable to machines running Faasm outside of Docker.
-
-### Submodules
+## Submodules
 
 Faasm relies on WAVM which needs to be updated via a Git submodule (once after original checkout of this repo).
 
@@ -195,7 +178,7 @@ Faasm relies on WAVM which needs to be updated via a Git submodule (once after o
 git submodule update --remote --init
 ```
 
-### Libraries
+## Libraries
 
 Faasm has various library dependencies that can be installed with Ansible using the relevant `make` target:
 
@@ -203,7 +186,7 @@ Faasm has various library dependencies that can be installed with Ansible using 
 make setup-libs
 ```
 
-### Protobuf
+## Protobuf
 
 Faasm depends on protobuf which can be a bit of a hassle to install. First of all you can try the make target:
 
@@ -221,7 +204,7 @@ You can look in the following folders and remove any reference to `libprotobuf` 
 
 Avoid trying to do this with `apt` as it can accidentally delete a whole load of other stuff.
 
-### Clang
+## Clang
 
 So far Faasm has only been built with clang (although there's no reason not to use something else).
 There's a make target for installing clang at:
@@ -230,7 +213,7 @@ There's a make target for installing clang at:
 make setup-clang
 ```
 
-### Redis
+## Redis
 
 At the moment Faasm uses Redis for messaging between the edge and worker nodes. For running locally you'll need to
 install it on your machine:
@@ -239,7 +222,7 @@ install it on your machine:
 sudo apt install redis-server redis-tools
 ```
 
-### Building with CMake
+## Building with CMake
 
 Faasm also requires an up-to-date version of CMake. Once you have this you can run the following from the root of
 your project:
@@ -253,7 +236,7 @@ cmake --build . --target all
 
 I usually develop through CLion which makes it a lot easier.
 
-### Running Locally
+## Running Locally
 
 Once things are built, you can run a simple local set-up with:
 
@@ -272,12 +255,25 @@ The `FUNC_ROOT` is where Faasm will look for function files. For a function call
 `simon` the `.wasm` file should be found at `$FUNC_ROOT/wasm/simon/dummy/function.wasm`. When you upload a function
 this is where it will get placed too.
 
-### Dummy functions
+## Running Faasm Functions Natively
+
+To aid debugging, it's easiest to run functions outside of Faasm, i.e. compile the C code on your machine
+and execute it natively. By doing this you can make sure your function works in a normal environment before
+compiling it to wasm.
+
+To do this you can use the `native_func` CMake target. The steps are:
+
+- Put your function file into the `func` directory
+- Set `FAASM_FUNCTION` to your function file in `func/CMakeLists.txt`
+- Add any required libraries to `func/CMakeLists.txt` in `target_link_libraries`
+- Build and run the `native_func` target
+
+## Dummy functions
 
 Currently there are some dummy functions held in the `func` directory. Their compiled WASM is also stored in the
 `wasm` directory.
 
-### Docker images
+## Docker images
 
 There are a few Docker images used to make build times quicker:
 
@@ -288,7 +284,7 @@ There are a few Docker images used to make build times quicker:
 If you're just changing code, all you need to rebuild is `faasm-core`. If you change libraries you'll need to rebuild
 `faasm-base` too.
 
-### Tests
+## Tests
 
 The tests can be found in the `test` directory and executed by running:
 
@@ -297,3 +293,19 @@ The tests can be found in the `test` directory and executed by running:
 ```
 
 They require a local Redis instance to pass and cover most of the codebase.
+
+# CGroup V2
+
+To enable `cgroupv2` you need to do the following:
+
+- Add `cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1` to the line starting `GRUB_CMDLINE_LINUX_DEFAULT` in `/etc/default/grub`(separated by spaces)
+- Run `sudo update-grub`
+- Restart the machine
+
+To check it's worked, the file `/sys/fs/cgroup/cgroup.controllers` should exist and contain something like:
+
+```
+cpu io memory pids rdma
+```
+
+Note that currently **Docker does not work with cgroupv2** so this is only applicable to machines running Faasm outside of Docker.

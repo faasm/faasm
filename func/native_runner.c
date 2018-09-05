@@ -5,11 +5,11 @@
  */
 
 int main() {
-    uint8_t in[1024];
-    uint8_t out[1024];
-    uint8_t cFuncs[1024];
-    uint8_t cIn[1024];
+    uint8_t inputData[MAX_INPUT_BYTES];
+    uint8_t outputData[MAX_INPUT_BYTES];
+    uint8_t chainFuncs[MAX_CHAINS];
+    uint8_t chainInputData[MAX_CHAINS * MAX_INPUT_BYTES];
 
     // Call the actual function
-    run(in, out, cFuncs, cIn);
+    run(inputData, outputData, chainFuncs, chainInputData);
 }

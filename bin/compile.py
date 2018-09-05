@@ -38,9 +38,11 @@ if __name__ == "__main__":
         # Native compiler along with fake emscripten header
         compile_cmd = [
             "clang",
-            func_path,
             join(PROJ_ROOT, "func", "native_runner.c"),
-            "-I", join(PROJ_ROOT, "include", "emscripten")
+            func_path,
+            "-I", join(PROJ_ROOT, "include", "emscripten"),
+            "-Wall",
+            "-v"
         ]
     else:
         compile_cmd = [

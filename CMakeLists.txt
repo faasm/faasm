@@ -33,6 +33,7 @@ include_directories(
 set(CMAKE_CXX_STANDARD 11)
 
 add_subdirectory(WAVM)
+add_subdirectory(func)
 add_subdirectory(src/proto)
 add_subdirectory(src/util)
 add_subdirectory(src/infra)

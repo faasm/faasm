@@ -10,7 +10,7 @@
 
 size_t write_data(void *buffer, size_t size, size_t nmemb, char *data)
 {
-    printf("DATA - %s", data);
+    printf("DATA - %s\n", data);
     return size * nmemb;
 }
 

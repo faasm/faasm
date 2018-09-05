@@ -1,20 +1,19 @@
 #ifndef _FAASM_H
 #define _FAASM_H 1
 
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+
 #include <emscripten.h>
 
 // Work out if we're in an emscripten environment
 #ifdef EM_LOG_CONSOLE
 #define FAASM_INLINE
 #else
-// Emscripten doesn't play well with inline functions so we only
-// want to actually put "inline" if we're in a native environment
-#define FAASM_INLINE inline
+// Emscripten doesn't play well with inline functions so we only modify when running natively
+#define FAASM_INLINE static inline
 #endif
-
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
 
 #define MAX_CHAINS 50
 #define MAX_NAME_LENGTH 32
@@ -87,7 +86,7 @@ void chainFunction(
 
     // Copy the data into place
     strcpy((char*) namePtr, name);
-    memcpy(dataPtr, inputData, inputDataSize);
+    memcpy(dataPtr, inputData, (size_t) inputDataSize);
 
     // Increment the count
     memory->chainCount = chainIdx + 1;
