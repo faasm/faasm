@@ -6,6 +6,8 @@
 #include "resolver.h"
 
 #include <time.h>
+#include <sys/types.h>
+#include <sys/syscall.h>
 
 #include <util/util.h>
 
@@ -45,8 +47,17 @@ namespace worker {
         return 0;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall142", I32, ___syscall142, I32 a, I32 b) {
-        printf("SYSCALL - 142\n");
+    struct wasm_sched_param {
+        I32 sched_priority;
+    };
+
+    DEFINE_INTRINSIC_FUNCTION_WITH_MEM_AND_TABLE(faasm, "___syscall142", I32, ___syscall142, I32 pidArg, I32 schedParamArg) {
+        printf("SYSCALL - 142 (sched_setparam) \n");
+
+        MemoryInstance* memory = getMemoryFromRuntimeData(contextRuntimeData,defaultMemoryId.id);
+        auto schedParam = memoryRef<wasm_sched_param>(memory, (Uptr) schedParamArg);
+
+        printf("PID = %d PRIORITY = %d\n", pidArg, schedParam.sched_priority);
         return 0;
     }
 
@@ -104,9 +115,13 @@ namespace worker {
         MemoryInstance* memory = getMemoryFromRuntimeData(contextRuntimeData,defaultMemoryId.id);
         auto result = memoryRef<wasm_timespec>(memory, (Uptr) resultAddress);
 
-        // Set time to zero for now
-        result.tv_sec = I32(0);
-        result.tv_nsec = I32(0);
+        // Fake a clock incrementing by 1 with each call
+        static std::atomic<U64> fakeClock;
+        const U64 currentClock = fakeClock;
+
+        result.tv_sec = I32(currentClock / 1000000000);
+        result.tv_nsec = I32(currentClock % 1000000000);
+        ++fakeClock;
 
         return 0;
     }

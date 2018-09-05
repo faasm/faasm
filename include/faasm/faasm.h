@@ -1,13 +1,24 @@
-#include <stdint.h>
-#include <string.h>
+#ifndef _FAASM_H
+#define _FAASM_H 1
+
 #include <emscripten.h>
 
-#ifndef FAASM_FAASM_H
-#define FAASM_FAASM_H
+// Work out if we're in an emscripten environment
+#ifdef EM_LOG_CONSOLE
+#define FAASM_INLINE
+#else
+// Emscripten doesn't play well with inline functions so we only
+// want to actually put "inline" if we're in a native environment
+#define FAASM_INLINE inline
+#endif
 
-const int MAX_CHAINS = 50;
-const int MAX_NAME_LENGTH = 32;
-const int MAX_INPUT_BYTES = 1024;
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_CHAINS 50
+#define MAX_NAME_LENGTH 32
+#define MAX_INPUT_BYTES 1024
 
 /**
  * Main faasm memory abstraction
@@ -33,6 +44,7 @@ int exec(struct FaasmMemory *memory);
 /**
  * Wrapper function used to abstract away the faasm memory management
  */
+FAASM_INLINE
 int EMSCRIPTEN_KEEPALIVE run(
         uint8_t *in,
         uint8_t *out,
@@ -54,6 +66,7 @@ int EMSCRIPTEN_KEEPALIVE run(
 /**
  * Adds a chain call to the given function
  */
+FAASM_INLINE
 void chainFunction(
         struct FaasmMemory *memory,
         char *name,

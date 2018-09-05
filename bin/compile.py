@@ -17,7 +17,8 @@ if __name__ == "__main__":
     parser.add_argument("function", help="Function name")
     parser.add_argument("--libcurl", help="Link with libcurl", action="store_true")
     parser.add_argument("--noopt", help="Turn off Emscripten optimizations", action="store_true")
-    parser.add_argument("--wast", help="Output wast", action="store_true")
+    parser.add_argument("--debug", help="Include debug info", action="store_true")
+    parser.add_argument("--native", help="Compile for local machine", action="store_true")
 
     args = parser.parse_args()
 
@@ -32,31 +33,49 @@ if __name__ == "__main__":
         print("Could not find function at {}".format(func_path))
         exit(1)
 
-    build_cmd = [
-        EMCC,
-        func_path,
-        "-s", "WASM=1",
-        "-o", "function.js",
-        "-I", join(PROJ_ROOT, "include", "faasm")
-    ]
+    # Build basic compile command
+    if args.native:
+        # Native compiler along with fake emscripten header
+        compile_cmd = [
+            "clang",
+            func_path,
+            join(PROJ_ROOT, "func", "native_runner.c"),
+            "-I", join(PROJ_ROOT, "include", "emscripten")
+        ]
+    else:
+        compile_cmd = [
+            EMCC,
+            func_path,
+            "-s", "WASM=1",
+            "-o", "function.js",
+        ]
+
+        # Add optimisations if necessary
+        if not args.noopt:
+            compile_cmd.append("-Oz")
+
+    # Faasm header
+    compile_cmd.extend(["-I", join(PROJ_ROOT, "include", "faasm")])
 
     # Debug
-    if args.wast:
-        build_cmd.append("-g")
-
-    # Add optimisations if necessary
-    if not args.noopt:
-        build_cmd.append("-Oz")
+    if args.debug:
+        compile_cmd.append("-g")
 
     # Add libcurl
-    if args.libcurl:
-        build_cmd.extend([
+    if args.libcurl and args.native:
+        compile_cmd.append("-lcurl")
+    elif args.libcurl:
+        compile_cmd.extend([
             "-I", join(PROJ_ROOT, "lib", "libcurl", "include"),
             join(PROJ_ROOT, "lib", "libcurl", "libcurl.so")
         ])
 
-    print("Calling: {}".format(" ".join(build_cmd)))
-    call(build_cmd, cwd=BUILD_DIR)
+    print("Calling: {}".format(" ".join(compile_cmd)))
+    call(compile_cmd, cwd=BUILD_DIR)
+
+    # Finished with native build now
+    if args.native:
+        exit(0)
 
     # Set up function directory
     user_dir = join(PROJ_ROOT, "wasm", args.user)
@@ -68,5 +87,5 @@ if __name__ == "__main__":
 
     # Put function file in place
     call(["cp", join(BUILD_DIR, "function.wasm"), func_dir])
-    if args.wast:
+    if args.debug:
         call(["cp", join(BUILD_DIR, "function.wast"), func_dir])
