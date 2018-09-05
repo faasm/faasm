@@ -294,6 +294,11 @@ The tests can be found in the `test` directory and executed by running:
 
 They require a local Redis instance to pass and cover most of the codebase.
 
+## Syscalls
+
+Emscripten compiles with musl for i386. As a result, the syscall table can be found in the musl repo at
+[arch/i386/bits/syscall.h](https://github.com/esmil/musl/blob/master/arch/i386/bits/syscall.h).
+
 # CGroup V2
 
 To enable `cgroupv2` you need to do the following:

@@ -18,7 +18,6 @@ if __name__ == "__main__":
     parser.add_argument("--libcurl", help="Link with libcurl", action="store_true")
     parser.add_argument("--noopt", help="Turn off Emscripten optimizations", action="store_true")
     parser.add_argument("--debug", help="Include debug info", action="store_true")
-    parser.add_argument("--native", help="Compile for local machine", action="store_true")
 
     args = parser.parse_args()
 
@@ -33,40 +32,24 @@ if __name__ == "__main__":
         print("Could not find function at {}".format(func_path))
         exit(1)
 
-    # Build basic compile command
-    if args.native:
-        # Native compiler along with fake emscripten header
-        compile_cmd = [
-            "clang",
-            join(PROJ_ROOT, "func", "native_runner.c"),
-            func_path,
-            "-I", join(PROJ_ROOT, "include", "emscripten"),
-            "-Wall",
-            "-v"
-        ]
-    else:
-        compile_cmd = [
-            EMCC,
-            func_path,
-            "-s", "WASM=1",
-            "-o", "function.js",
-        ]
+    compile_cmd = [
+        EMCC,
+        func_path,
+        "-s", "WASM=1",
+        "-o", "function.js",
+        "-I", join(PROJ_ROOT, "include", "faasm")
+    ]
 
-        # Add optimisations if necessary
-        if not args.noopt:
-            compile_cmd.append("-Oz")
-
-    # Faasm header
-    compile_cmd.extend(["-I", join(PROJ_ROOT, "include", "faasm")])
+    # Add optimisations if necessary
+    if not args.noopt:
+        compile_cmd.append("-Oz")
 
     # Debug
     if args.debug:
         compile_cmd.append("-g")
 
     # Add libcurl
-    if args.libcurl and args.native:
-        compile_cmd.append("-lcurl")
-    elif args.libcurl:
+    if args.libcurl:
         compile_cmd.extend([
             "-I", join(PROJ_ROOT, "lib", "libcurl", "include"),
             join(PROJ_ROOT, "lib", "libcurl", "libcurl.so")
@@ -74,10 +57,6 @@ if __name__ == "__main__":
 
     print("Calling: {}".format(" ".join(compile_cmd)))
     call(compile_cmd, cwd=BUILD_DIR)
-
-    # Finished with native build now
-    if args.native:
-        exit(0)
 
     # Set up function directory
     user_dir = join(PROJ_ROOT, "wasm", args.user)

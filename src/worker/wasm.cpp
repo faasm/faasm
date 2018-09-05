@@ -38,7 +38,7 @@ namespace worker {
     }
 
     DEFINE_INTRINSIC_FUNCTION(faasm, "___syscall102", I32, ___syscall102, I32 a, I32 b) {
-        printf("SYSCALL - 102\n");
+        printf("SYSCALL - socketcall\n");
         return 0;
     }
 

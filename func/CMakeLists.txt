@@ -1,6 +1,6 @@
 include_directories(${FAASM_INCLUDE_DIR}/faasm ${FAASM_INCLUDE_DIR}/emscripten)
 
-set(FAASM_FUNCTION function_curl.c)
+set(FAASM_FUNCTION function_sock.c)
 
 add_executable(native_func native_runner.c ${FAASM_FUNCTION})
 
