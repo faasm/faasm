@@ -1,7 +1,5 @@
 #pragma once
 
-#include "intrinsics.h"
-
 #include <infra/infra.h>
 #include <util/util.h>
 
@@ -14,27 +12,8 @@
 
 #include <proto/faasm.pb.h>
 
-#include "Emscripten/Emscripten.h"
-#include "IR/Module.h"
-#include "IR/Operators.h"
-#include "IR/Types.h"
-#include "IR/Validate.h"
-#include "IR/Value.h"
-#include "Inline/BasicTypes.h"
-#include "Inline/CLI.h"
-#include "Inline/Errors.h"
-#include "Inline/Hash.h"
-#include "Inline/HashMap.h"
-#include "Inline/Serialization.h"
-#include "Inline/Timing.h"
-#include "Logging/Logging.h"
-#include "Runtime/Linker.h"
-#include "Runtime/Runtime.h"
-#include "ThreadTest/ThreadTest.h"
-#include "WASTParse/WASTParse.h"
+#include "Runtime/Intrinsics.h"
 
-using namespace IR;
-using namespace Runtime;
 
 namespace worker {
     const std::string ENTRYPOINT_FUNC = "run";
@@ -72,10 +51,10 @@ namespace worker {
 
     private:
         IR::Module *module;
-        ModuleInstance *moduleInstance;
+        Runtime::ModuleInstance *moduleInstance;
 
-        Context *context;
-        FunctionInstance *functionInstance;
+        Runtime::Context *context;
+        Runtime::FunctionInstance *functionInstance;
 
         IR::ValueTuple functionResults;
 

@@ -1,9 +1,14 @@
 #include "worker.h"
-#include "intrinsics.h"
+#include "intrinsic.h"
 #include "resolver.h"
+
 #include <syscall.h>
 
-#include "Runtime/RuntimeData.h"
+#include "Emscripten/Emscripten.h"
+#include "Inline/CLI.h"
+#include "Runtime/Linker.h"
+#include "Runtime/Runtime.h"
+#include "Runtime/RuntimePrivate.h"
 
 
 /**
@@ -31,16 +36,6 @@ namespace worker {
         this->setUpChainingData(call);
 
         return functionResults[0].u32;
-    }
-
-    static bool loadModule(const char* filename, IR::Module& outModule)
-    {
-        std::vector<U8> fileBytes;
-        if(!loadFile(filename, fileBytes)) {
-            return false;
-        }
-
-        return loadBinaryModule(fileBytes.data(), fileBytes.size(), outModule);
     }
 
     /**
@@ -71,7 +66,7 @@ namespace worker {
         this->addDataSegment(CHAIN_DATA_START);
 
         // Link the module with the intrinsic modules.
-        Compartment *compartment = Runtime::createCompartment();
+        Runtime::Compartment *compartment = Runtime::createCompartment();
         context = Runtime::createContext(compartment);
         RootResolver rootResolver(compartment);
 
@@ -79,7 +74,7 @@ namespace worker {
         Emscripten::Instance *emscriptenInstance = Emscripten::instantiate(compartment, *module);
 
         // Faasm module set-up
-        ModuleInstance *faasmModule = Intrinsics::instantiateModule(compartment, intrinsics::getIntrinsicModule_faasm(), "faasm");
+        Runtime::ModuleInstance *faasmModule = Intrinsics::instantiateModule(compartment, INTRINSIC_MODULE_REF(faasm), "faasm");
 
         if (emscriptenInstance) {
             rootResolver.moduleNameToInstanceMap.set("faasm", faasmModule);
@@ -89,7 +84,7 @@ namespace worker {
         }
 
         // Linking
-        LinkResult linkResult = linkModule(*module, rootResolver);
+        Runtime::LinkResult linkResult = linkModule(*module, rootResolver);
         if (!linkResult.success) {
             std::cerr << "Failed to link module:" << std::endl;
             for (auto &missingImport : linkResult.missingImports) {
@@ -103,7 +98,7 @@ namespace worker {
         // Instantiate the module.
         moduleInstance = instantiateModule(
                 compartment,
-                compileModule(*module),
+                Runtime::compileModule(*module),
                 std::move(linkResult.resolvedImports),
                 filePath.c_str()
         );
@@ -163,7 +158,7 @@ namespace worker {
      * Extracts output data from module and sets it on the function call
      */
     void WasmModule::setOutputData(message::FunctionCall &call) {
-        U8 *rawOutput = &memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) OUTPUT_START);
+        U8 *rawOutput = &Runtime::memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) OUTPUT_START);
         std::vector<U8> outputData(rawOutput, rawOutput + MAX_OUTPUT_BYTES);
         util::trimTrailingZeros(outputData);
 
@@ -176,8 +171,8 @@ namespace worker {
     void WasmModule::setUpChainingData(const message::FunctionCall &originalCall) {
         // Check for chained calls. Note that we reserve chunks for each and can iterate
         // through them checking where the names are set
-        U8 *rawChainNames = &memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) CHAIN_NAMES_START);
-        U8 *rawChaininputs = &memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) CHAIN_DATA_START);
+        U8 *rawChainNames = &Runtime::memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) CHAIN_NAMES_START);
+        U8 *rawChaininputs = &Runtime::memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) CHAIN_DATA_START);
 
         // Extract the chaining requests
         for (int i = 0; i < MAX_CHAINS; i++) {

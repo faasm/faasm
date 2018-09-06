@@ -5,14 +5,14 @@ include_directories(
 
 add_library(worker_lib STATIC
         wasm.cpp
-        intrinsics.cpp
+        intrinsic.cpp
         cgroup.cpp
         resolver.h
-        ${FAASM_INCLUDE_DIR}/worker/intrinsics.h
+        ${FAASM_INCLUDE_DIR}/worker/intrinsic.h
         ${FAASM_INCLUDE_DIR}/worker/worker.h
     )
 
-target_link_libraries(worker_lib IR WAST WASM Runtime Emscripten ThreadTest Logging infra)
+target_link_libraries(worker_lib infra Logging IR WASTParse WASM Runtime Emscripten ThreadTest)
 
 add_executable(worker worker.cpp)
 target_link_libraries(worker worker_lib)

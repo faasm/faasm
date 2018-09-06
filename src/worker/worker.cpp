@@ -1,5 +1,4 @@
 #include "worker.h"
-#include "intrinsics.h"
 
 #include <infra/infra.h>
 
@@ -8,13 +7,8 @@
 #include <sys/types.h>
 #include <sys/syscall.h>
 
-#include <IR/Module.h>
-#include <Runtime/Linker.h>
-#include <Inline/HashMap.h>
-#include <Emscripten/Emscripten.h>
+#include "Logging/Logging.h"
 
-using namespace IR;
-using namespace Runtime;
 
 namespace worker {
 

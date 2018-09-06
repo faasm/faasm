@@ -1,4 +1,4 @@
-#include "intrinsics.h"
+#include "intrinsic.h"
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -9,9 +9,10 @@
 #include "Runtime/RuntimeData.h"
 #include "Runtime/Intrinsics.h"
 
+using namespace IR;
 using namespace Runtime;
 
-namespace intrinsics {
+namespace intrinsic {
     /**
      * socketcall
      */

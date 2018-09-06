@@ -1,24 +1,20 @@
-#include <IR/Module.h>
-#include <IR/Operators.h>
-#include <IR/Validate.h>
+#include "Logging/Logging.h"
+#include "Runtime/Runtime.h"
+#include "Runtime/Linker.h"
+#include "Inline/Serialization.h"
+#include "IR/Operators.h"
+#include "IR/Validate.h"
 
-#include <Inline/HashMap.h>
-#include <Emscripten/Emscripten.h>
-#include <Runtime/Linker.h>
-#include <Logging/Logging.h>
-#include <Inline/Serialization.h>
-
-using namespace Runtime;
 
 namespace worker {
 
     struct RootResolver : Runtime::Resolver {
-        Compartment *compartment;
-        HashMap<std::string, ModuleInstance *> moduleNameToInstanceMap;
+        Runtime::Compartment *compartment;
+        HashMap<std::string, Runtime::ModuleInstance *> moduleNameToInstanceMap;
 
-        RootResolver(Compartment *inCompartment) : compartment(inCompartment) {}
+        RootResolver(Runtime::Compartment *inCompartment) : compartment(inCompartment) {}
 
-        bool resolveFaasm(const std::string &exportName, IR::ObjectType type, Object *&outObject) {
+        bool resolveFaasm(const std::string &exportName, IR::ObjectType type, Runtime::Object *&outObject) {
 
             auto faasmModule = moduleNameToInstanceMap.get("faasm");
             outObject = getInstanceExport(*faasmModule, exportName);
@@ -43,7 +39,7 @@ namespace worker {
         }
 
         bool resolve(const std::string &moduleName, const std::string &exportName, IR::ObjectType type,
-                     Object *&outObject) override {
+                     Runtime::Object *&outObject) override {
             auto namedInstance = moduleNameToInstanceMap.get(moduleName);
 
             if (namedInstance) {
@@ -75,7 +71,7 @@ namespace worker {
             return true;
         }
 
-        Object *getStubObject(const std::string &exportName, IR::ObjectType type) const {
+        Runtime::Object *getStubObject(const std::string &exportName, IR::ObjectType type) const {
             // If the import couldn't be resolved, stub it in.
             switch (type.kind) {
                 case IR::ObjectKind::function: {
@@ -97,7 +93,7 @@ namespace worker {
                     IR::validateDefinitions(stubModule);
 
                     // Instantiate the module and return the stub function instance.
-                    auto stubModuleInstance = instantiateModule(compartment, compileModule(stubModule), {}, "importStub");
+                    auto stubModuleInstance = instantiateModule(compartment, Runtime::compileModule(stubModule), {}, "importStub");
                     return getInstanceExport(stubModuleInstance, "importStub");
                 }
                 case IR::ObjectKind::memory: {
