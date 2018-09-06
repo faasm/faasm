@@ -8,12 +8,6 @@
 #include <Logging/Logging.h>
 #include <Inline/Serialization.h>
 
-/**
- * NOTE: THIS CLASS WAS ORIGINALLY COPIED FROM THE WAVM REPO
- * https://github.com/AndrewScheidecker/WAVM/blob/master/Source/Programs/wavm.cpp
- */
-
-using namespace IR;
 using namespace Runtime;
 
 namespace worker {
@@ -24,7 +18,7 @@ namespace worker {
 
         RootResolver(Compartment *inCompartment) : compartment(inCompartment) {}
 
-        bool resolveFaasm(const std::string &exportName, ObjectType type, Object *&outObject) {
+        bool resolveFaasm(const std::string &exportName, IR::ObjectType type, Object *&outObject) {
 
             auto faasmModule = moduleNameToInstanceMap.get("faasm");
             outObject = getInstanceExport(*faasmModule, exportName);
@@ -48,7 +42,7 @@ namespace worker {
             return false;
         }
 
-        bool resolve(const std::string &moduleName, const std::string &exportName, ObjectType type,
+        bool resolve(const std::string &moduleName, const std::string &exportName, IR::ObjectType type,
                      Object *&outObject) override {
             auto namedInstance = moduleNameToInstanceMap.get(moduleName);
 
@@ -81,19 +75,19 @@ namespace worker {
             return true;
         }
 
-        Object *getStubObject(const std::string &exportName, ObjectType type) const {
+        Object *getStubObject(const std::string &exportName, IR::ObjectType type) const {
             // If the import couldn't be resolved, stub it in.
             switch (type.kind) {
                 case IR::ObjectKind::function: {
                     // Generate a function body that just uses the unreachable op to fault if called.
                     Serialization::ArrayOutputStream codeStream;
-                    OperatorEncoderStream encoder(codeStream);
+                    IR::OperatorEncoderStream encoder(codeStream);
                     encoder.unreachable();
                     encoder.end();
 
                     // Generate a module for the stub function.
-                    Module stubModule;
-                    DisassemblyNames stubModuleNames;
+                    IR::Module stubModule;
+                    IR::DisassemblyNames stubModuleNames;
                     stubModule.types.push_back(asFunctionType(type));
                     stubModule.functions.defs.push_back({{0}, {}, std::move(codeStream.getBytes()), {}});
                     stubModule.exports.push_back({"importStub", IR::ObjectKind::function, 0});
@@ -103,7 +97,7 @@ namespace worker {
                     IR::validateDefinitions(stubModule);
 
                     // Instantiate the module and return the stub function instance.
-                    auto stubModuleInstance = instantiateModule(compartment, stubModule, {}, "importStub");
+                    auto stubModuleInstance = instantiateModule(compartment, compileModule(stubModule), {}, "importStub");
                     return getInstanceExport(stubModuleInstance, "importStub");
                 }
                 case IR::ObjectKind::memory: {

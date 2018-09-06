@@ -5,8 +5,10 @@ include_directories(
 
 add_library(worker_lib STATIC
         wasm.cpp
+        intrinsics.cpp
         cgroup.cpp
         resolver.h
+        ${FAASM_INCLUDE_DIR}/worker/intrinsics.h
         ${FAASM_INCLUDE_DIR}/worker/worker.h
     )
 

@@ -1,4 +1,6 @@
 #include "worker.h"
+#include "intrinsics.h"
+
 #include <infra/infra.h>
 
 #include <thread>
@@ -6,7 +8,6 @@
 #include <sys/types.h>
 #include <sys/syscall.h>
 
-#include "Programs/CLI.h"
 #include <IR/Module.h>
 #include <Runtime/Linker.h>
 #include <Inline/HashMap.h>
