@@ -61,11 +61,12 @@ namespace worker {
         Runtime::Module *compiledModule = Runtime::compileModule(module);
 
         // Instantiate the module, i.e. create memory, tables etc.
+        std::string moduleName = call.user() + " - " + call.function();
         Runtime::ModuleInstance *moduleInstance = instantiateModule(
                 compartment,
                 compiledModule,
                 std::move(linkResult.resolvedImports),
-                "Function call"
+                moduleName.c_str()
         );
 
         return moduleInstance;
