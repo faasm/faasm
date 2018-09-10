@@ -93,7 +93,8 @@ namespace worker {
                     IR::validateDefinitions(stubModule);
 
                     // Instantiate the module and return the stub function instance.
-                    auto stubModuleInstance = instantiateModule(compartment, Runtime::compileModule(stubModule), {}, "importStub");
+                    Runtime::Module *compiledModule = Runtime::compileModule(stubModule);
+                    auto stubModuleInstance = instantiateModule(compartment, compiledModule, {}, "importStub");
                     return getInstanceExport(stubModuleInstance, "importStub");
                 }
                 case IR::ObjectKind::memory: {

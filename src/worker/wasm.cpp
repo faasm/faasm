@@ -11,11 +11,6 @@
 #include "Runtime/RuntimePrivate.h"
 
 
-/**
- * NOTE: This was derived from the existing wavm CLI at
- * https://github.com/AndrewScheidecker/WAVM/blob/master/Source/Programs/wavm.cpp
- */
-
 namespace worker {
     WasmModule::WasmModule() = default;
 
@@ -50,6 +45,7 @@ namespace worker {
             std::cerr << "Could not load module at:  " << filePath << std::endl;
         }
 
+        // Load in the wasm binary file
         loadBinaryModule(fileBytes.data(), fileBytes.size(), *module);
 
         // Define input data segment
@@ -65,23 +61,22 @@ namespace worker {
         this->addDataSegment(CHAIN_NAMES_START);
         this->addDataSegment(CHAIN_DATA_START);
 
-        // Link the module with the intrinsic modules.
+        // Create context for module execution
         Runtime::Compartment *compartment = Runtime::createCompartment();
         context = Runtime::createContext(compartment);
         RootResolver rootResolver(compartment);
 
-        // Emscripten set-up
+        // Set up the Emscripten module
         Emscripten::Instance *emscriptenInstance = Emscripten::instantiate(compartment, *module);
 
-        // Faasm module set-up
+        // Set up the Faasm module
         Runtime::ModuleInstance *faasmModule = Intrinsics::instantiateModule(compartment, INTRINSIC_MODULE_REF(faasm), "faasm");
 
-        if (emscriptenInstance) {
-            rootResolver.moduleNameToInstanceMap.set("faasm", faasmModule);
-            rootResolver.moduleNameToInstanceMap.set("env", emscriptenInstance->env);
-            rootResolver.moduleNameToInstanceMap.set("asm2wasm", emscriptenInstance->asm2wasm);
-            rootResolver.moduleNameToInstanceMap.set("global", emscriptenInstance->global);
-        }
+        // Prepare name resolution
+        rootResolver.moduleNameToInstanceMap.set("faasm", faasmModule);
+        rootResolver.moduleNameToInstanceMap.set("env", emscriptenInstance->env);
+        rootResolver.moduleNameToInstanceMap.set("asm2wasm", emscriptenInstance->asm2wasm);
+        rootResolver.moduleNameToInstanceMap.set("global", emscriptenInstance->global);
 
         // Linking
         Runtime::LinkResult linkResult = linkModule(*module, rootResolver);
@@ -95,10 +90,13 @@ namespace worker {
             throw WasmException();
         }
 
+        // Compile the module
+        Runtime::Module *compiledModule = Runtime::compileModule(*module);
+
         // Instantiate the module.
         moduleInstance = instantiateModule(
                 compartment,
-                Runtime::compileModule(*module),
+                compiledModule,
                 std::move(linkResult.resolvedImports),
                 filePath.c_str()
         );
