@@ -64,10 +64,10 @@ namespace worker {
         std::vector<IR::Value> buildInvokeArgs();
 
         void addDataSegment(int offset);
-        void addDataSegment(int offset, std::vector<U8> &initialData);
+        void addInputData(Runtime::ModuleInstance *moduleInstance, message::FunctionCall &call);
 
-        void setOutputData(Runtime::ModuleInstance* moduleInstance, message::FunctionCall &call);
-        void setUpChainingData(Runtime::ModuleInstance* moduleInstance, const message::FunctionCall &call);
+        void extractOutputData(Runtime::ModuleInstance* moduleInstance, message::FunctionCall &call);
+        void extractChainingData(Runtime::ModuleInstance* moduleInstance, const message::FunctionCall &call);
     };
 
     /** Abstraction around cgroups */

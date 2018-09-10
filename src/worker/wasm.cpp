@@ -30,15 +30,18 @@ namespace worker {
             functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, "_" + ENTRYPOINT_FUNC));
         }
 
+        // Set up input data in module memory
+        this->addInputData(moduleInstance, call);
+
         // Make the call
         std::vector<IR::Value> invokeArgs = buildInvokeArgs();
         functionResults = invokeFunctionChecked(context, functionInstance, invokeArgs);
 
         // Retrieve output data
-        this->setOutputData(moduleInstance, call);
+        this->extractOutputData(moduleInstance, call);
 
         // Retrieve chaining data
-        this->setUpChainingData(moduleInstance, call);
+        this->extractChainingData(moduleInstance, call);
 
         return functionResults[0].u32;
     }
@@ -86,10 +89,7 @@ namespace worker {
      */
     void WasmModule::setUpMemory(message::FunctionCall &call) {
         // Define input data segment
-        const std::string &inputStr = call.inputdata();
-        std::cout << "Received input: " << inputStr << std::endl;
-        std::vector<U8> inputBytes = util::stringToBytes(inputStr);
-        this->addDataSegment(INPUT_START, inputBytes);
+        this->addDataSegment(INPUT_START);
 
         // Define output data segment
         this->addDataSegment(OUTPUT_START);
@@ -146,16 +146,6 @@ namespace worker {
     }
 
     /**
-     * Adds a data segment with initial data
-     */
-    void WasmModule::addDataSegment(int offset, std::vector<U8> &initialData) {
-        this->addDataSegment(offset);
-
-        // Set the initial data
-        module.dataSegments.back().data = initialData;
-    }
-
-    /**
      * Sets up arguments to be passed to the invocation of the function
      */
     std::vector<IR::Value> WasmModule::buildInvokeArgs() {
@@ -169,10 +159,25 @@ namespace worker {
         return invokeArgs;
     }
 
+    void WasmModule::addInputData(Runtime::ModuleInstance *moduleInstance, message::FunctionCall &call) {
+        const std::string &inputString = call.inputdata();
+        std::cout << "Received input: " << inputString << std::endl;
+
+        if(inputString.size() > MAX_INPUT_BYTES) {
+            throw(WasmException());
+        }
+
+        const std::vector<uint8_t> &inputBytes = util::stringToBytes(inputString);
+
+        // Copy input data into place
+        U8 *inputStart = &Runtime::memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) INPUT_START);
+        std::copy(inputBytes.begin(), inputBytes.end(), inputStart);
+    }
+
     /**
      * Extracts output data from module and sets it on the function call
      */
-    void WasmModule::setOutputData(Runtime::ModuleInstance *moduleInstance, message::FunctionCall &call) {
+    void WasmModule::extractOutputData(Runtime::ModuleInstance *moduleInstance, message::FunctionCall &call) {
         U8 *rawOutput = &Runtime::memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) OUTPUT_START);
         std::vector<U8> outputData(rawOutput, rawOutput + MAX_OUTPUT_BYTES);
         util::trimTrailingZeros(outputData);
@@ -183,7 +188,7 @@ namespace worker {
     /**
      * Extracts chaining data form module and performs the necessary chained calls
      */
-    void WasmModule::setUpChainingData(Runtime::ModuleInstance *moduleInstance, const message::FunctionCall &originalCall) {
+    void WasmModule::extractChainingData(Runtime::ModuleInstance *moduleInstance, const message::FunctionCall &originalCall) {
         // Check for chained calls. Note that we reserve chunks for each and can iterate
         // through them checking where the names are set
         U8 *rawChainNames = &Runtime::memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) CHAIN_NAMES_START);
