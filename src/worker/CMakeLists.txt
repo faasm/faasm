@@ -7,7 +7,7 @@ add_library(worker_lib STATIC
         wasm.cpp
         intrinsic.cpp
         cgroup.cpp
-        resolver.h
+        ${FAASM_INCLUDE_DIR}/worker/resolver.h
         ${FAASM_INCLUDE_DIR}/worker/intrinsic.h
         ${FAASM_INCLUDE_DIR}/worker/worker.h
     )

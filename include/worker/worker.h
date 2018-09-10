@@ -13,6 +13,8 @@
 #include <proto/faasm.pb.h>
 
 #include "Runtime/Intrinsics.h"
+#include "Runtime/Linker.h"
+#include "Runtime/Runtime.h"
 
 
 namespace worker {
@@ -50,23 +52,22 @@ namespace worker {
         std::vector<message::FunctionCall> chainedCalls;
 
     private:
-        IR::Module *module;
-        Runtime::ModuleInstance *moduleInstance;
-
-        Runtime::Context *context;
-        Runtime::FunctionInstance *functionInstance;
+        IR::Module module;
 
         IR::ValueTuple functionResults;
 
-        void load(message::FunctionCall &call);
+        Runtime::ModuleInstance* load(message::FunctionCall &call);
+        void loadWasm(message::FunctionCall &call);
+        void setUpMemory(message::FunctionCall &call);
+        Runtime::LinkResult link(Runtime::Compartment *compartment);
 
         std::vector<IR::Value> buildInvokeArgs();
 
         void addDataSegment(int offset);
         void addDataSegment(int offset, std::vector<U8> &initialData);
 
-        void setOutputData(message::FunctionCall &call);
-        void setUpChainingData(const message::FunctionCall &call);
+        void setOutputData(Runtime::ModuleInstance* moduleInstance, message::FunctionCall &call);
+        void setUpChainingData(Runtime::ModuleInstance* moduleInstance, const message::FunctionCall &call);
     };
 
     /** Abstraction around cgroups */

@@ -6,8 +6,7 @@
 
 #include "Emscripten/Emscripten.h"
 #include "Inline/CLI.h"
-#include "Runtime/Linker.h"
-#include "Runtime/Runtime.h"
+
 #include "Runtime/RuntimePrivate.h"
 
 
@@ -18,39 +17,77 @@ namespace worker {
      * Executes the given function call
      */
     int WasmModule::execute(message::FunctionCall &call) {
-        this->load(call);
+        Runtime::ModuleInstance *moduleInstance = this->load(call);
+
+        // Call the Emscripten global initializers.
+        Runtime::Context* context = Runtime::createContext(moduleInstance->compartment);
+        Emscripten::initializeGlobals(context, module, moduleInstance);
+
+        // Extract the module's exported function
+        // Note that emscripten can add an underscore before the function name
+        Runtime::FunctionInstance *functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, ENTRYPOINT_FUNC));
+        if (!functionInstance) {
+            functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, "_" + ENTRYPOINT_FUNC));
+        }
 
         // Make the call
         std::vector<IR::Value> invokeArgs = buildInvokeArgs();
         functionResults = invokeFunctionChecked(context, functionInstance, invokeArgs);
 
         // Retrieve output data
-        this->setOutputData(call);
+        this->setOutputData(moduleInstance, call);
 
         // Retrieve chaining data
-        this->setUpChainingData(call);
+        this->setUpChainingData(moduleInstance, call);
 
         return functionResults[0].u32;
     }
 
-    /**
-     * Sets up the module ready for execution
-     */
-    void WasmModule::load(message::FunctionCall &call) {
-        std::string filePath = infra::getFunctionFile(call);
+    Runtime::ModuleInstance* WasmModule::load(message::FunctionCall &call) {
+        // Load the wasm file
+        this->loadWasm(call);
 
-        module = new IR::Module();
+        // Set up module's memory
+        this->setUpMemory(call);
+
+        // Link
+        Runtime::Compartment *compartment = Runtime::createCompartment();
+        Runtime::LinkResult linkResult = this->link(compartment);
+
+        // Compile the module
+        Runtime::Module *compiledModule = Runtime::compileModule(module);
+
+        // Instantiate the module, i.e. create memory, tables etc.
+        Runtime::ModuleInstance *moduleInstance = instantiateModule(
+                compartment,
+                compiledModule,
+                std::move(linkResult.resolvedImports),
+                "Function call"
+        );
+
+        return moduleInstance;
+    }
+
+    /**
+     * Load in the wasm binary file
+     */
+    void WasmModule::loadWasm(message::FunctionCall &call) {
         std::vector<U8> fileBytes;
-        if(!loadFile(filePath.c_str(), fileBytes)) {
+        std::string filePath = infra::getFunctionFile(call);
+        if (!loadFile(filePath.c_str(), fileBytes)) {
             std::cerr << "Could not load module at:  " << filePath << std::endl;
         }
 
-        // Load in the wasm binary file
-        loadBinaryModule(fileBytes.data(), fileBytes.size(), *module);
+        loadBinaryModule(fileBytes.data(), fileBytes.size(), module);
+    }
 
+    /**
+     * Generic module set-up
+     */
+    void WasmModule::setUpMemory(message::FunctionCall &call) {
         // Define input data segment
         const std::string &inputStr = call.inputdata();
-        std::cout << "Received input: " << call.inputdata() << std::endl;
+        std::cout << "Received input: " << inputStr << std::endl;
         std::vector<U8> inputBytes = util::stringToBytes(inputStr);
         this->addDataSegment(INPUT_START, inputBytes);
 
@@ -60,26 +97,28 @@ namespace worker {
         // Define chaining segments
         this->addDataSegment(CHAIN_NAMES_START);
         this->addDataSegment(CHAIN_DATA_START);
+    }
 
-        // Create context for module execution
-        Runtime::Compartment *compartment = Runtime::createCompartment();
-        context = Runtime::createContext(compartment);
-        RootResolver rootResolver(compartment);
+    /**
+     * Link the module with the environment
+     */
+    Runtime::LinkResult WasmModule::link(Runtime::Compartment *compartment) {
+        RootResolver resolver(compartment);
 
         // Set up the Emscripten module
-        Emscripten::Instance *emscriptenInstance = Emscripten::instantiate(compartment, *module);
+        Emscripten::Instance *emscriptenInstance = Emscripten::instantiate(compartment, module);
 
         // Set up the Faasm module
-        Runtime::ModuleInstance *faasmModule = Intrinsics::instantiateModule(compartment, INTRINSIC_MODULE_REF(faasm), "faasm");
-
+        Runtime::ModuleInstance *faasmModule = Intrinsics::instantiateModule(compartment, INTRINSIC_MODULE_REF(faasm),
+                                                                             "faasm");
         // Prepare name resolution
-        rootResolver.moduleNameToInstanceMap.set("faasm", faasmModule);
-        rootResolver.moduleNameToInstanceMap.set("env", emscriptenInstance->env);
-        rootResolver.moduleNameToInstanceMap.set("asm2wasm", emscriptenInstance->asm2wasm);
-        rootResolver.moduleNameToInstanceMap.set("global", emscriptenInstance->global);
+        resolver.moduleNameToInstanceMap.set("faasm", faasmModule);
+        resolver.moduleNameToInstanceMap.set("env", emscriptenInstance->env);
+        resolver.moduleNameToInstanceMap.set("asm2wasm", emscriptenInstance->asm2wasm);
+        resolver.moduleNameToInstanceMap.set("global", emscriptenInstance->global);
 
         // Linking
-        Runtime::LinkResult linkResult = linkModule(*module, rootResolver);
+        Runtime::LinkResult linkResult = linkModule(module, resolver);
         if (!linkResult.success) {
             std::cerr << "Failed to link module:" << std::endl;
             for (auto &missingImport : linkResult.missingImports) {
@@ -90,29 +129,7 @@ namespace worker {
             throw WasmException();
         }
 
-        // Compile the module
-        Runtime::Module *compiledModule = Runtime::compileModule(*module);
-
-        // Instantiate the module.
-        moduleInstance = instantiateModule(
-                compartment,
-                compiledModule,
-                std::move(linkResult.resolvedImports),
-                filePath.c_str()
-        );
-        if (!moduleInstance) {
-            throw WasmException();
-        }
-
-        // Call the Emscripten global initalizers.
-        Emscripten::initializeGlobals(context, *module, moduleInstance);
-
-        // Extract the module's exported function
-        // Note that emscripten can add an underscore before the function name
-        functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, ENTRYPOINT_FUNC));
-        if (!functionInstance) {
-            functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, "_" + ENTRYPOINT_FUNC));
-        }
+        return linkResult;
     }
 
     /**
@@ -125,7 +142,7 @@ namespace worker {
         segment.memoryIndex = (Uptr) 0;
         segment.baseOffset = IR::InitializerExpression((I32) offset);
 
-        module->dataSegments.push_back(segment);
+        module.dataSegments.push_back(segment);
     }
 
     /**
@@ -135,7 +152,7 @@ namespace worker {
         this->addDataSegment(offset);
 
         // Set the initial data
-        module->dataSegments.back().data = initialData;
+        module.dataSegments.back().data = initialData;
     }
 
     /**
@@ -155,7 +172,7 @@ namespace worker {
     /**
      * Extracts output data from module and sets it on the function call
      */
-    void WasmModule::setOutputData(message::FunctionCall &call) {
+    void WasmModule::setOutputData(Runtime::ModuleInstance *moduleInstance, message::FunctionCall &call) {
         U8 *rawOutput = &Runtime::memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) OUTPUT_START);
         std::vector<U8> outputData(rawOutput, rawOutput + MAX_OUTPUT_BYTES);
         util::trimTrailingZeros(outputData);
@@ -166,7 +183,7 @@ namespace worker {
     /**
      * Extracts chaining data form module and performs the necessary chained calls
      */
-    void WasmModule::setUpChainingData(const message::FunctionCall &originalCall) {
+    void WasmModule::setUpChainingData(Runtime::ModuleInstance *moduleInstance, const message::FunctionCall &originalCall) {
         // Check for chained calls. Note that we reserve chunks for each and can iterate
         // through them checking where the names are set
         U8 *rawChainNames = &Runtime::memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) CHAIN_NAMES_START);
