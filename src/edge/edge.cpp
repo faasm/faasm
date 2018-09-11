@@ -67,7 +67,7 @@ namespace edge {
         out.write(fileBody.c_str(), fileBody.size());
         out.flush();
         out.close();
-
+        
         request.reply(status_codes::OK, "Upload complete\n");
     }
 

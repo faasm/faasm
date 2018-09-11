@@ -46,6 +46,21 @@ namespace worker {
         return functionResults[0].u32;
     }
 
+    void WasmModule::compile(message::FunctionCall &call) {
+        WasmModule tempModule;
+
+        // Parse the wasm file to work out imports, function signatures etc.
+        tempModule.parseWasm(call);
+
+        // Define module's memory segments
+        tempModule.setUpMemory(call);
+
+        // Compile the module to object code
+        Runtime::Module *compiledModule = Runtime::compileModule(tempModule.module);
+
+        std::vector<uint8_t> bytes = compiledModule->objectFileBytes;
+    }
+
     Runtime::ModuleInstance* WasmModule::load(message::FunctionCall &call) {
         // Parse the wasm file to work out imports, function signatures etc.
         this->parseWasm(call);
@@ -59,8 +74,6 @@ namespace worker {
 
         // Compile the module to object code
         Runtime::Module *compiledModule = Runtime::compileModule(module);
-
-        // ------ Stop here and cache the object file bytes ------ //
 
         // Instantiate the module, i.e. create memory, tables etc.
         std::string moduleName = call.user() + " - " + call.function();

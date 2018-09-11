@@ -56,6 +56,8 @@ namespace worker {
 
         IR::ValueTuple functionResults;
 
+        static void compile(message::FunctionCall &call);
+
         Runtime::ModuleInstance* load(message::FunctionCall &call);
         void parseWasm(message::FunctionCall &call);
         void setUpMemory(message::FunctionCall &call);
