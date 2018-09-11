@@ -4,11 +4,8 @@
 #include <util/util.h>
 
 #include <string>
-#include <exception>
 #include <tuple>
 #include <thread>
-
-#include <boost/filesystem.hpp>
 
 #include <proto/faasm.pb.h>
 
@@ -38,7 +35,6 @@ namespace wasm {
 
     const int CHAIN_DATA_START = CHAIN_NAMES_START + MAX_CHAIN_NAME_BYTES;
 
-    /** Defines everything to do with a Wasm module */
     class WasmModule {
     public:
         WasmModule();
@@ -49,14 +45,16 @@ namespace wasm {
         /** Cleans up */
         void clean();
 
+        /** Compiles the function to an object file */
+        static std::vector<uint8_t> compile(message::FunctionCall &call);
+
+        /** List of chained function calls */
         std::vector<message::FunctionCall> chainedCalls;
 
     private:
         IR::Module module;
 
         IR::ValueTuple functionResults;
-
-        static void compile(message::FunctionCall &call);
 
         Runtime::ModuleInstance* load(message::FunctionCall &call);
         void parseWasm(message::FunctionCall &call);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <wasm/wasm.h>
 #include <proto/faasm.pb.h>
 #include <infra/infra.h>
 #include <util/util.h>

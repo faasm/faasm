@@ -21,11 +21,16 @@ namespace infra {
         return filePath;
     }
 
-    std::vector<uint8_t> getFunctionObjectBytes(const message::FunctionCall &call) {
+    std::string getFunctionObjectFile(const message::FunctionCall &call) {
         std::string dirPath = getFunctionDir(call);
         std::string filePath = dirPath + "/function.o";
 
-        std::vector<uint8_t> bytes = util::readFileToBytes(filePath);
+        return filePath;
+    }
+
+    std::vector<uint8_t> getFunctionObjectBytes(const message::FunctionCall &call) {
+        std::string objectFilePath = getFunctionObjectFile(call);
+        std::vector<uint8_t> bytes = util::readFileToBytes(objectFilePath);
         return bytes;
     }
 

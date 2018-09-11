@@ -6,7 +6,6 @@
 
 #include "Emscripten/Emscripten.h"
 #include "Inline/CLI.h"
-
 #include "Runtime/RuntimePrivate.h"
 
 
@@ -46,7 +45,7 @@ namespace wasm {
         return functionResults[0].u32;
     }
 
-    void WasmModule::compile(message::FunctionCall &call) {
+    std::vector<uint8_t> WasmModule::compile(message::FunctionCall &call) {
         WasmModule tempModule;
 
         // Parse the wasm file to work out imports, function signatures etc.
@@ -58,7 +57,7 @@ namespace wasm {
         // Compile the module to object code
         Runtime::Module *compiledModule = Runtime::compileModule(tempModule.module);
 
-        std::vector<uint8_t> bytes = compiledModule->objectFileBytes;
+        return compiledModule->objectFileBytes;
     }
 
     Runtime::ModuleInstance* WasmModule::load(message::FunctionCall &call) {
@@ -71,9 +70,10 @@ namespace wasm {
         // Link with Emscripten, Faasm intrinsics etc.
         Runtime::Compartment *compartment = Runtime::createCompartment();
         Runtime::LinkResult linkResult = this->link(compartment);
-
-        // Compile the module to object code
-        Runtime::Module *compiledModule = Runtime::compileModule(module);
+        
+        // Load the object file
+        std::vector<uint8_t> objectFileBytes = infra::getFunctionObjectBytes(call);
+        Runtime::Module *compiledModule = Runtime::compileModule(module, &objectFileBytes);
 
         // Instantiate the module, i.e. create memory, tables etc.
         std::string moduleName = call.user() + " - " + call.function();

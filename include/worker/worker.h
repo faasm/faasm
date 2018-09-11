@@ -12,10 +12,6 @@
 
 #include <proto/faasm.pb.h>
 
-#include "Runtime/Intrinsics.h"
-#include "Runtime/Linker.h"
-#include "Runtime/Runtime.h"
-
 
 namespace worker {
     /** Abstraction around cgroups */

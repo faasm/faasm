@@ -1,14 +1,11 @@
 #include "worker.h"
-#include <wasm/wasm.h>
 
-#include <infra/infra.h>
+#include <wasm/wasm.h>
 
 #include <thread>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/syscall.h>
-
-#include "Logging/Logging.h"
 
 
 namespace worker {
@@ -45,9 +42,6 @@ namespace worker {
         // Create main cgroup with CPU limiting
         cgroup = std::make_shared<CGroup>("faasm");
         cgroup->limitCpu();
-
-        // Turn on debug logging
-        Log::setCategoryEnabled(Log::Category::debug,true);
 
         // Arbitrary loop to stop linting complaining
         for (int i = 0; i < 1000; i++) {

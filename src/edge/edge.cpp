@@ -1,5 +1,6 @@
 #include "edge/edge.h"
 
+
 namespace edge {
 
     // Note - hiredis redis contexts are suitable only for single threads
@@ -69,7 +70,9 @@ namespace edge {
         out.close();
 
         // Build the object file
-
+        std::vector<uint8_t> objBytes = wasm::WasmModule::compile(call);
+        std::string objFilePath = infra::getFunctionObjectFile(call);
+        util::writeBytesToFile(objFilePath, objBytes);
 
         request.reply(status_codes::OK, "Upload complete\n");
     }
