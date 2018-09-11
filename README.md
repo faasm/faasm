@@ -38,6 +38,36 @@ in the system. As a result the role of the filesystem is greatly diminished.
 
 I/O other than that concerned with the filesystem and network is not supported in a serverless environment thus can be excluded. 
 
+# Code Generation
+
+Under the hood WAVM uses the following approach for executing wasm:
+
+- Take in wasm binary or text format
+- Translate into LLVM IR
+- Use LLVM back-end to generate machine code
+
+In a FaaS environment we have the luxury of knowing about the code up front, so can generate much of the machine code offline. This means upload looks like:
+
+- User uploads wasm binary
+- This is converted to LLVM IR
+- LLVM IR is used to generate object files
+- Object files are stored for future use
+
+When a function is invoked:
+
+- wasm is parsed again (to get all the function definitions, memory regions etc.)
+- Object files are loaded (avoids needing to do the IR -> machine code step again)
+- Memory is instantiated, object files are linked
+- Code is executed
+
+## Unresolved Imports and Stubs
+
+Sometimes wasm code contains calls to functions that don't exist (i.e. unresolved imports). In this scenario we generate a "stub" which bombs out if it's called. To hook this into the pipeline outlined above we need to generate object files that can be linked at runtime. 
+
+Generating these files can take a while if there are lots of them, so we store the generated object files for these stubs.
+
+Each stub function still needs to have the correct signature to be linked properly, so there will be an object file generated for each different combination of return/ parameter types.
+
 # Usage
 
 ## Functions
