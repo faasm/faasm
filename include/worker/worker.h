@@ -57,7 +57,7 @@ namespace worker {
         IR::ValueTuple functionResults;
 
         Runtime::ModuleInstance* load(message::FunctionCall &call);
-        void loadWasm(message::FunctionCall &call);
+        void parseWasm(message::FunctionCall &call);
         void setUpMemory(message::FunctionCall &call);
         Runtime::LinkResult link(Runtime::Compartment *compartment);
 

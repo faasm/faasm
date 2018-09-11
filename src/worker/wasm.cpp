@@ -47,18 +47,20 @@ namespace worker {
     }
 
     Runtime::ModuleInstance* WasmModule::load(message::FunctionCall &call) {
-        // Load the wasm file
-        this->loadWasm(call);
+        // Parse the wasm file to work out imports, function signatures etc.
+        this->parseWasm(call);
 
-        // Set up module's memory
+        // Define module's memory segments
         this->setUpMemory(call);
 
-        // Link
+        // Link with Emscripten, Faasm intrinsics etc.
         Runtime::Compartment *compartment = Runtime::createCompartment();
         Runtime::LinkResult linkResult = this->link(compartment);
 
-        // Compile the module
+        // Compile the module to object code
         Runtime::Module *compiledModule = Runtime::compileModule(module);
+
+        // ------ Stop here and cache the object file bytes ------ //
 
         // Instantiate the module, i.e. create memory, tables etc.
         std::string moduleName = call.user() + " - " + call.function();
@@ -73,9 +75,9 @@ namespace worker {
     }
 
     /**
-     * Load in the wasm binary file
+     * Parse the WASM file to work out functions, exports, imports etc.
      */
-    void WasmModule::loadWasm(message::FunctionCall &call) {
+    void WasmModule::parseWasm(message::FunctionCall &call) {
         std::vector<U8> fileBytes;
         std::string filePath = infra::getFunctionFile(call);
         if (!loadFile(filePath.c_str(), fileBytes)) {
@@ -106,7 +108,7 @@ namespace worker {
     Runtime::LinkResult WasmModule::link(Runtime::Compartment *compartment) {
         RootResolver resolver(compartment);
 
-        // Set up the Emscripten module
+        // Set up the Emscripten module (module only needed here as a reference)
         Emscripten::Instance *emscriptenInstance = Emscripten::instantiate(compartment, module);
 
         // Set up the Faasm module
