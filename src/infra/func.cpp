@@ -4,6 +4,15 @@
 #include <boost/filesystem.hpp>
 
 namespace infra {
+    std::string getFunctionStubDir() {
+        std::string projRoot = util::getEnvVar("FUNC_ROOT", "/usr/local/code/faasm");
+        std::string dirStr = projRoot + "/wasm/stubs";
+
+        boost::filesystem::create_directories(dirStr);
+
+        return dirStr;
+    }
+
     std::string getFunctionDir(const message::FunctionCall &call) {
         std::string projRoot = util::getEnvVar("FUNC_ROOT", "/usr/local/code/faasm");
         std::string dirStr = projRoot + "/wasm/" + call.user() + "/" + call.function();
