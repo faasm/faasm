@@ -1,15 +1,15 @@
 #include <catch/catch.hpp>
-#include <worker/worker.h>
+#include <wasm/wasm.h>
 #include <util/util.h>
 
 namespace tests {
 
-    TEST_CASE("Test executing WASM module with no input", "[worker]") {
+    TEST_CASE("Test executing WASM module with no input", "[wasm]") {
         message::FunctionCall call;
         call.set_user("simon");
         call.set_function("dummy");
 
-        worker::WasmModule module;
+        wasm::WasmModule module;
 
         // Execute the function
         int result = module.execute(call);
@@ -27,12 +27,12 @@ namespace tests {
         module.clean();
     }
 
-    TEST_CASE("Test executing WASM module with input and output", "[worker]") {
+    TEST_CASE("Test executing WASM module with input and output", "[wasm]") {
         message::FunctionCall call;
         call.set_user("simon");
         call.set_function("x2");
 
-        worker::WasmModule module;
+        wasm::WasmModule module;
 
         // Build input as byte stream
         U8 inputValues[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
@@ -52,12 +52,12 @@ namespace tests {
         module.clean();
     }
 
-    TEST_CASE("Test function chaining others", "[worker]") {
+    TEST_CASE("Test function chaining others", "[wasm]") {
         message::FunctionCall call;
         call.set_user("simon");
         call.set_function("chain");
 
-        worker::WasmModule module;
+        wasm::WasmModule module;
 
         // Make the call
         int result = module.execute(call);

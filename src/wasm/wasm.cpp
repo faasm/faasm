@@ -1,4 +1,4 @@
-#include "worker.h"
+#include "wasm.h"
 #include "intrinsic.h"
 #include "resolver.h"
 
@@ -10,7 +10,7 @@
 #include "Runtime/RuntimePrivate.h"
 
 
-namespace worker {
+namespace wasm {
     WasmModule::WasmModule() = default;
 
     /**
@@ -142,7 +142,7 @@ namespace worker {
                           << "\" export=\"" << missingImport.exportName
                           << "\" type=\"" << asString(missingImport.type) << "\"" << std::endl;
             }
-            throw WasmException();
+            throw std::runtime_error("Failed linking module");
         }
 
         return linkResult;
@@ -180,7 +180,7 @@ namespace worker {
         std::cout << "Received input: " << inputString << std::endl;
 
         if(inputString.size() > MAX_INPUT_BYTES) {
-            throw(WasmException());
+            throw(std::runtime_error("Input data too large"));
         }
 
         const std::vector<uint8_t> &inputBytes = util::stringToBytes(inputString);

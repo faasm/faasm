@@ -1,4 +1,5 @@
 #include "worker.h"
+#include <wasm/wasm.h>
 
 #include <infra/infra.h>
 
@@ -22,7 +23,7 @@ namespace worker {
         cgroup->addThread(tid);
 
         // Create and execute the module
-        WasmModule module;
+        wasm::WasmModule module;
         module.execute(call);
 
         // Dispatch any chained calls

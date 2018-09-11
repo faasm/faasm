@@ -37,6 +37,7 @@ add_subdirectory(func)
 add_subdirectory(src/proto)
 add_subdirectory(src/util)
 add_subdirectory(src/infra)
+add_subdirectory(src/wasm)
 add_subdirectory(src/worker)
 add_subdirectory(src/edge)
 

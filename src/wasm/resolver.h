@@ -6,7 +6,7 @@
 #include "IR/Validate.h"
 
 
-namespace worker {
+namespace wasm {
 
     struct RootResolver : Runtime::Resolver {
         Runtime::Compartment *compartment;

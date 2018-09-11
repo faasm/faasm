@@ -8,6 +8,6 @@ add_executable(
         ${TEST_FILES}
 )
 
-target_link_libraries(tests proto catch infra util worker_lib edge_lib)
+target_link_libraries(tests proto catch infra util wasm edge_lib)
 
 add_test(NAME tests COMMAND "test/tests")
