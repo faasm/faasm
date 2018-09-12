@@ -164,10 +164,9 @@ directory. This has the following components:
 - A `redis` pod which holds the function calls in a queue
 - Multiple `worker` pods which pull calls off the queue, execute them (and any chained calls), then put the results into another Redis queue.
 
-## Using the Kubernetes deployment
+## Using a Kubernetes deployment
 
-Currently we have a cluster running on several Imperial machines with the master at `maru17.doc.res.ic.ac.uk`. To use
-this deployment you can SSH onto this machine, then get the URL for the Faasm service by running:
+The quickest way to play with a Kubernetes deployment is to SSH onto the master node and get the URL for the Faasm edge service:
 
 ```
 kubectl get service edge --namespace=faasm
