@@ -5,13 +5,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <emscripten.h>
-
-// Work out if we're in an emscripten environment
-#ifdef EM_LOG_CONSOLE
+// Work out if we're in a wasm cross-compile environment
+#if __clang_major__ == 8
 #define FAASM_INLINE
 #else
-// Emscripten doesn't play well with inline functions so we only modify when running natively
+// Wasm cross-compilation doesn't like static inline
 #define FAASM_INLINE static inline
 #endif
 
@@ -44,7 +42,7 @@ int exec(struct FaasmMemory *memory);
  * Wrapper function used to abstract away the faasm memory management
  */
 FAASM_INLINE
-int EMSCRIPTEN_KEEPALIVE run(
+int run(
         uint8_t *in,
         uint8_t *out,
         uint8_t *cFuncs,
@@ -90,6 +88,10 @@ void chainFunction(
 
     // Increment the count
     memory->chainCount = chainIdx + 1;
+}
+
+int main() {
+    // Compiler is expecting main function
 }
 
 #endif

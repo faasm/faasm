@@ -1,4 +1,4 @@
-include_directories(${FAASM_INCLUDE_DIR}/faasm ${FAASM_INCLUDE_DIR}/emscripten)
+include_directories(${FAASM_INCLUDE_DIR}/faasm)
 
 set(FAASM_FUNCTION function_sock.c)
 

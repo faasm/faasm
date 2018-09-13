@@ -96,7 +96,6 @@ provided in at `include/faasm/faasm.h`. If compiling with Emscripten, your funct
 ```
 #include "faasm.h"
 
-EMSCRIPTEN_KEEPALIVE
 int exec(struct FaasmMemory *memory) {
     // Do something
 
@@ -124,7 +123,6 @@ To do this, `chainFunction()` in `faasm.h` can be called. For my function to inv
 ```
 #include "faasm.h"
 
-EMSCRIPTEN_KEEPALIVE
 int exec(struct FaasmMemory *memory) {
     uint8_t funcData[] = {1, 2, 3, 4};
     int dataLength = 4;

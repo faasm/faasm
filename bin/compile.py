@@ -15,7 +15,7 @@ EMCC = "/usr/local/code/emsdk/emscripten/1.38.10/emcc"
 
 WAVIX_BUILD = "/usr/local/code/WavixBuild"
 WAVIX_SYS = join(WAVIX_BUILD, "sys")
-WAVIX_CLANG = join(WAVIX_BUILD, "bootstrap/bin/clang++")
+WAVIX_CLANG = join(WAVIX_BUILD, "bootstrap/bin/clang")
 
 
 if __name__ == "__main__":
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     if args.wavix:
         compile_cmd = [
             WAVIX_CLANG,
-            "--target", "wasm32-unknown-wavix",
+            "--target=wasm32-unknown-wavix",
             "--sysroot", WAVIX_SYS
         ]
     else:
@@ -85,8 +85,16 @@ if __name__ == "__main__":
         mkdir(func_dir)
 
     # Put function file in place
-    wasm_file = join(BUILD_DIR, "function.wasm")
-    call(["cp", wasm_file, func_dir])
+    if args.wavix:
+        object_filename = "a.out"
+    else:
+        object_filename = "function.wasm"
+
+    wasm_file = join(BUILD_DIR, object_filename)
+    dest_file = join(func_dir, "function.wasm")
+
+    print("Putting {} in place at {}.".format(wasm_file, dest_file))
+    call(["cp", wasm_file, dest_file])
 
     # Upload to Faasm
     url = "http://localhost:8080/f/{}/{}/".format(args.user, args.function)
