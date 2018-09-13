@@ -126,14 +126,15 @@ namespace wasm {
 
                         // Compile stub from scratch and persist the compiled bytes
                         compiledModule = Runtime::compileModule(stubModule);
-                        persistStubObjectBytes(funcType, compiledModule->objectFileBytes);
+                        std::vector<U8> objectFileBytes = Runtime::getObjectCode(compiledModule);
+                        persistStubObjectBytes(funcType, objectFileBytes);
                     }
                     else {
                         // Use existing bytes
                         std::vector<U8> emptyBytes;
                         stubModule.functions.defs.push_back({{0}, {}, emptyBytes, {}});
 
-                        compiledModule = Runtime::compileModule(stubModule, &stubBytes);
+                        compiledModule = Runtime::loadPrecompiledModule(stubModule, stubBytes);
                     }
 
                     // Instantiate the module within the compartment

@@ -10,7 +10,13 @@ from subprocess import call
 
 PROJ_ROOT = dirname(dirname(realpath(__file__)))
 BUILD_DIR = "/tmp/faasm"
+
 EMCC = "/usr/local/code/emsdk/emscripten/1.38.10/emcc"
+
+WAVIX_BUILD = "/usr/local/code/WavixBuild"
+WAVIX_SYS = join(WAVIX_BUILD, "sys")
+WAVIX_CLANG = join(WAVIX_BUILD, "bootstrap/bin/clang++")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -19,6 +25,7 @@ if __name__ == "__main__":
     parser.add_argument("--libcurl", help="Link with libcurl", action="store_true")
     parser.add_argument("--noopt", help="Turn off Emscripten optimizations", action="store_true")
     parser.add_argument("--debug", help="Include debug info", action="store_true")
+    parser.add_argument("--wavix", help="Build with wavix", action="store_true")
 
     args = parser.parse_args()
 
@@ -33,13 +40,23 @@ if __name__ == "__main__":
         print("Could not find function at {}".format(func_path))
         exit(1)
 
-    compile_cmd = [
-        EMCC,
+    if args.wavix:
+        compile_cmd = [
+            WAVIX_CLANG,
+            "--target", "wasm32-unknown-wavix",
+            "--sysroot", WAVIX_SYS
+        ]
+    else:
+        compile_cmd = [
+            EMCC,
+            "-s", "WASM=1",
+            "-o", "function.js"
+        ]
+
+    compile_cmd.extend([
         func_path,
-        "-s", "WASM=1",
-        "-o", "function.js",
         "-I", join(PROJ_ROOT, "include", "faasm")
-    ]
+    ])
 
     # Add optimisations if necessary
     if not args.noopt:
@@ -70,8 +87,6 @@ if __name__ == "__main__":
     # Put function file in place
     wasm_file = join(BUILD_DIR, "function.wasm")
     call(["cp", wasm_file, func_dir])
-    if args.debug:
-        call(["cp", join(BUILD_DIR, "function.wast"), func_dir])
 
     # Upload to Faasm
     url = "http://localhost:8080/f/{}/{}/".format(args.user, args.function)

@@ -1,0 +1,45 @@
+---
+
+- hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: "System deps"
+      become: yes
+      apt:
+        name: "{{ item }}"
+        state: "present"
+      with_items:
+        - build-essential
+        - python
+        - gcc
+        - g++
+        - ninja-build
+
+    - name: "Clone wavix"
+      git:
+        repo: "https://github.com/WAVM/Wavix.git"
+        dest: "/usr/local/code/Wavix"
+
+    - name: "Set up subtrees"
+      shell: "git subtree pull --squash --prefix {{ item }}"
+      args:
+        chdir: "/usr/local/code/Wavix"
+      with_items:
+        - "clang https://llvm.org/git/clang.git master"
+        - "compiler-rt https://llvm.org/git/compiler-rt.git master"
+        - "libcxx https://llvm.org/git/libcxx.git master"
+        - "libcxxabi https://llvm.org/git/libcxxabi.git master"
+        - "lld https://llvm.org/git/lld.git master"
+        - "llvm https://llvm.org/git/llvm.git master"
+        - "musl https://github.com/jfbastien/musl wasm-prototype-1"
+        - "WAVM https://github.com/WAVM/WAVM master"
+
+    - name: "Create build dir"
+      file:
+        path: "/usr/local/code/WavixBuild"
+        state: directory
+
+    - name: "Run build"
+      shell: "python /usr/local/code/Wavix/bootstrap/build.py"
+      args:
+        chdir: "/usr/local/code/WavixBuild"

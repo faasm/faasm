@@ -55,9 +55,9 @@ namespace wasm {
         tempModule.setUpMemory(call);
 
         // Compile the module to object code
-        Runtime::Module *compiledModule = Runtime::compileModule(tempModule.module);
+        const std::vector<U8> objectFileBytes = LLVMJIT::compileModule(tempModule.module);
 
-        return compiledModule->objectFileBytes;
+        return objectFileBytes;
     }
 
     Runtime::ModuleInstance *WasmModule::load(message::FunctionCall &call) {
@@ -73,7 +73,7 @@ namespace wasm {
 
         // Load the object file
         std::vector<uint8_t> objectFileBytes = infra::getFunctionObjectBytes(call);
-        Runtime::Module *compiledModule = Runtime::compileModule(module, &objectFileBytes);
+        Runtime::Module *compiledModule = Runtime::loadPrecompiledModule(module, objectFileBytes);
 
         // Instantiate the module, i.e. create memory, tables etc.
         std::string moduleName = call.user() + " - " + call.function();
