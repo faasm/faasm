@@ -7,7 +7,6 @@ add_library(wasm STATIC
         wasm.cpp
         intrinsic.cpp
         resolver.h
-        ${FAASM_INCLUDE_DIR}/wasm/intrinsic.h
         ${FAASM_INCLUDE_DIR}/wasm/wasm.h
         )
 

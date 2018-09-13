@@ -1,5 +1,4 @@
 #include "wasm.h"
-#include "intrinsic.h"
 #include "resolver.h"
 
 #include <syscall.h>
@@ -19,12 +18,13 @@ namespace wasm {
         Runtime::ModuleInstance *moduleInstance = this->load(call);
 
         // Call the Emscripten global initializers.
-        Runtime::Context* context = Runtime::createContext(moduleInstance->compartment);
+        Runtime::Context *context = Runtime::createContext(moduleInstance->compartment);
         Emscripten::initializeGlobals(context, module, moduleInstance);
 
         // Extract the module's exported function
         // Note that emscripten can add an underscore before the function name
-        Runtime::FunctionInstance *functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, ENTRYPOINT_FUNC));
+        Runtime::FunctionInstance *functionInstance = asFunctionNullable(
+                getInstanceExport(moduleInstance, ENTRYPOINT_FUNC));
         if (!functionInstance) {
             functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, "_" + ENTRYPOINT_FUNC));
         }
@@ -60,7 +60,7 @@ namespace wasm {
         return compiledModule->objectFileBytes;
     }
 
-    Runtime::ModuleInstance* WasmModule::load(message::FunctionCall &call) {
+    Runtime::ModuleInstance *WasmModule::load(message::FunctionCall &call) {
         // Parse the wasm file to work out imports, function signatures etc.
         this->parseWasm(call);
 
@@ -70,7 +70,7 @@ namespace wasm {
         // Link with Emscripten, Faasm intrinsics etc.
         Runtime::Compartment *compartment = Runtime::createCompartment();
         Runtime::LinkResult linkResult = this->link(compartment);
-        
+
         // Load the object file
         std::vector<uint8_t> objectFileBytes = infra::getFunctionObjectBytes(call);
         Runtime::Module *compiledModule = Runtime::compileModule(module, &objectFileBytes);
@@ -125,8 +125,12 @@ namespace wasm {
         Emscripten::Instance *emscriptenInstance = Emscripten::instantiate(compartment, module);
 
         // Set up the Faasm module
-        Runtime::ModuleInstance *faasmModule = Intrinsics::instantiateModule(compartment, INTRINSIC_MODULE_REF(faasm),
-                                                                             "faasm");
+        Runtime::ModuleInstance *faasmModule = Intrinsics::instantiateModule(
+                compartment,
+                INTRINSIC_MODULE_REF(faasm),
+                "faasm"
+        );
+
         // Prepare name resolution
         resolver.moduleNameToInstanceMap.set("faasm", faasmModule);
         resolver.moduleNameToInstanceMap.set("env", emscriptenInstance->env);
@@ -179,8 +183,8 @@ namespace wasm {
         const std::string &inputString = call.inputdata();
         std::cout << "Received input: " << inputString << std::endl;
 
-        if(inputString.size() > MAX_INPUT_BYTES) {
-            throw(std::runtime_error("Input data too large"));
+        if (inputString.size() > MAX_INPUT_BYTES) {
+            throw (std::runtime_error("Input data too large"));
         }
 
         const std::vector<uint8_t> &inputBytes = util::stringToBytes(inputString);
@@ -204,7 +208,8 @@ namespace wasm {
     /**
      * Extracts chaining data form module and performs the necessary chained calls
      */
-    void WasmModule::extractChainingData(Runtime::ModuleInstance *moduleInstance, const message::FunctionCall &originalCall) {
+    void WasmModule::extractChainingData(Runtime::ModuleInstance *moduleInstance,
+                                         const message::FunctionCall &originalCall) {
         // Check for chained calls. Note that we reserve chunks for each and can iterate
         // through them checking where the names are set
         U8 *rawChainNames = &Runtime::memoryRef<U8>(moduleInstance->defaultMemory, (Uptr) CHAIN_NAMES_START);

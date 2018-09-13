@@ -15,6 +15,8 @@
 
 
 namespace wasm {
+    DECLARE_INTRINSIC_MODULE(faasm);
+
     const std::string ENTRYPOINT_FUNC = "run";
 
     const int MAX_NAME_LENGTH = 32;

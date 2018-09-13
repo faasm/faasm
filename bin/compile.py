@@ -5,6 +5,7 @@
 import argparse
 from os import mkdir
 from os.path import exists, dirname, realpath, join
+import requests
 from subprocess import call
 
 PROJ_ROOT = dirname(dirname(realpath(__file__)))
@@ -67,6 +68,18 @@ if __name__ == "__main__":
         mkdir(func_dir)
 
     # Put function file in place
-    call(["cp", join(BUILD_DIR, "function.wasm"), func_dir])
+    wasm_file = join(BUILD_DIR, "function.wasm")
+    call(["cp", wasm_file, func_dir])
     if args.debug:
         call(["cp", join(BUILD_DIR, "function.wast"), func_dir])
+
+    # Upload to Faasm
+    url = "http://localhost:8080/f/{}/{}/".format(args.user, args.function)
+
+    print("Uploading file to {}".format(url))
+    with open(wasm_file, "rb") as fh:
+        # Read in the whole file
+        data = fh.read()
+        response = requests.put(url, data=data, headers={'Content-Type': 'application/octet-stream'})
+
+    print(response.content)

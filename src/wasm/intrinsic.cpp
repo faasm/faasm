@@ -1,6 +1,7 @@
-#include "intrinsic.h"
+#include "wasm.h"
 
 #include <unistd.h>
+#include <iostream>
 #include <sys/types.h>
 #include <sys/syscall.h>
 
@@ -12,7 +13,10 @@
 using namespace IR;
 using namespace Runtime;
 
-namespace intrinsic {
+
+namespace wasm {
+    DEFINE_INTRINSIC_MODULE(faasm)
+
     /**
      * socketcall
      */
@@ -99,7 +103,7 @@ namespace intrinsic {
         return 0;
     }
 
-/** Struct to fake 32-bit time in wasm modules */
+    /** Struct to fake 32-bit time in wasm modules */
     struct wasm_timespec {
         I32 tv_sec;
         I32 tv_nsec;
