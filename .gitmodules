@@ -1,3 +1,9 @@
 [submodule "WAVM"]
     path = WAVM
     url = git@github.com:WAVM/WAVM.git
+[submodule "musl"]
+	path = musl
+	url = git@github.com:Shillaker/musl
+[submodule "wasmception"]
+	path = wasmception
+	url = git@github.com:Shillaker/wasmception

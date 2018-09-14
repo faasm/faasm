@@ -202,12 +202,19 @@ The local development process is a bit rough around the edges at the moment but 
 
 ## Submodules
 
-Faasm relies on WAVM which needs to be updated via a Git submodule (once after original checkout of this repo).
+Faasm relies on some submodule which may need to be updated or cloned
 
 ```
 # Update submodules
 git submodule update --remote --init
 ```
+
+If you want to make changes to submodules and push, you need to do the following:
+
+- Make the changes in the submodule
+- Change to the submodule directory, commit and push (as if it were a normal repo)
+- Run `git submodule update --remote --merge` in the root of this project
+- Commit and push the root repo
 
 ## Libraries
 
