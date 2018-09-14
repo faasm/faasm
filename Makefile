@@ -72,3 +72,8 @@ setup-k8:
 
 setup-cgroup:
 	cd ansible && ansible-playbook cgroupv1.yml --ask-become-pass
+
+# WASM toolchain
+
+setup-tools:
+	cd wasmception && make

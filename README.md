@@ -139,7 +139,15 @@ calls will go back through the main scheduler and be executed.
 
 ### Compilation
 
-Faasm does not support Emscripten, instead we focus on the LLVM/ clang toolchain. A good place to start with this is [wasmception](https://github.com/yurydelendik/wasmception).
+Faasm does not support Emscripten, instead we focus on the LLVM/ clang toolchain. A good place to start with this is [wasmception](https://github.com/yurydelendik/wasmception) which is a submodule of this repo.
+
+To build the full toolchain (LLVM, Clang, compile-rt, musl), you can use the make target. Note that this takes **ages** as it's compiling everything from scratch:
+
+```
+make setup-tools
+```
+
+This is currently required as LLVM wasm support is only experimental. In future it may be bundled with LLVM/ clang normally.
 
 ## Uploading Functions
 
@@ -338,13 +346,11 @@ I've found the easiest non-Emscripten toolchain to use is [wasmception](https://
 
 There's also some Python scripts in the `bin` directory that may prove useful.
 
-## Emscripten Syscalls
+## Syscalls
 
-Although we don't use Emscripten it's useful to note its approach to syscalls. They have their own version of musl
-that's checked into the Emscripten repo. The important files are:
+Syscall support is determined by the musl port that we use to compile our code. Currently we're using [my fork](https://github.com/Shillaker/musl) of an experimental (but popular).
 
-- [syscall table](https://github.com/kripken/emscripten/blob/master/system/lib/libc/musl/arch/emscripten/bits/syscall.h) - same as i386?
-- [socketcall mapping](https://github.com/kripken/emscripten/blob/master/system/lib/libc/musl/src/internal/syscall.h) - found lower down this file
+The mapping of syscalls is done in [this file](https://github.com/Shillaker/musl/blob/wasm-prototype-1/arch/wasm32/syscall_arch.h) in that repo.
 
 # CGroup V2
 
