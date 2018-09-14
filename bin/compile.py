@@ -13,9 +13,7 @@ from subprocess import call
 PROJ_ROOT = dirname(dirname(realpath(__file__)))
 BUILD_DIR = "/tmp/faasm"
 
-EMCC = "/usr/local/code/emsdk/emscripten/1.38.10/emcc"
-
-LLVM_ROOT = "/usr/local/code/wasmception"
+LLVM_ROOT = join(PROJ_ROOT, "wasmception")
 
 SYSROOT = join(LLVM_ROOT, "sysroot")
 CC = join(LLVM_ROOT, "dist", "bin", "clang")
