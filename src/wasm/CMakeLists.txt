@@ -5,9 +5,9 @@ include_directories(
 
 add_library(wasm STATIC
         wasm.cpp
-        intrinsic.cpp
+        syscalls.cpp
         resolver.h
         ${FAASM_INCLUDE_DIR}/wasm/wasm.h
         )
 
-target_link_libraries(wasm infra Logging IR WASTParse WASM Runtime Emscripten ThreadTest)
+target_link_libraries(wasm infra Logging IR WASTParse WASM Runtime ThreadTest)

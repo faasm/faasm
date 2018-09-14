@@ -15,7 +15,7 @@
 
 
 namespace wasm {
-    DECLARE_INTRINSIC_MODULE(faasm);
+    DECLARE_INTRINSIC_MODULE(env);
 
     const std::string ENTRYPOINT_FUNC = "run";
 
@@ -23,7 +23,7 @@ namespace wasm {
 
     // Input memory
     // Need to make sure this starts high enough to avoid other regions of the default memory
-    const int INPUT_START = 1024 * 1024;
+    const int INPUT_START = 1024;
     const int MAX_INPUT_BYTES = 1024;
 
     // Output memory
@@ -36,6 +36,8 @@ namespace wasm {
     const int MAX_CHAIN_NAME_BYTES = MAX_NAME_LENGTH * MAX_CHAINS;
 
     const int CHAIN_DATA_START = CHAIN_NAMES_START + MAX_CHAIN_NAME_BYTES;
+
+    const int MIN_MEMORY_SIZE = CHAIN_DATA_START + 1024;
 
     class WasmModule {
     public:

@@ -7,7 +7,6 @@
 /**
  * Tries to open a socket connection
  */
-EMSCRIPTEN_KEEPALIVE
 int exec(struct FaasmMemory *memory) {
     int sock = socket(AF_INET , SOCK_STREAM , 0);
 

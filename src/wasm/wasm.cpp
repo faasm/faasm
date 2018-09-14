@@ -3,7 +3,6 @@
 
 #include <syscall.h>
 
-#include "Emscripten/Emscripten.h"
 #include "Inline/CLI.h"
 #include "Runtime/RuntimePrivate.h"
 
@@ -17,12 +16,10 @@ namespace wasm {
     int WasmModule::execute(message::FunctionCall &call) {
         Runtime::ModuleInstance *moduleInstance = this->load(call);
 
-        // Call the Emscripten global initializers.
         Runtime::Context *context = Runtime::createContext(moduleInstance->compartment);
-        Emscripten::initializeGlobals(context, module, moduleInstance);
 
         // Extract the module's exported function
-        // Note that emscripten can add an underscore before the function name
+        // Note that an underscore may be added before the function name by the compiler
         Runtime::FunctionInstance *functionInstance = asFunctionNullable(
                 getInstanceExport(moduleInstance, ENTRYPOINT_FUNC));
         if (!functionInstance) {
@@ -46,16 +43,12 @@ namespace wasm {
     }
 
     std::vector<uint8_t> WasmModule::compile(message::FunctionCall &call) {
-        WasmModule tempModule;
-
         // Parse the wasm file to work out imports, function signatures etc.
+        WasmModule tempModule;
         tempModule.parseWasm(call);
 
-        // Define module's memory segments
-        tempModule.setUpMemory(call);
-
         // Compile the module to object code
-        const std::vector<U8> objectFileBytes = LLVMJIT::compileModule(tempModule.module);
+        std::vector<U8> objectFileBytes = LLVMJIT::compileModule(tempModule.module);
 
         return objectFileBytes;
     }
@@ -67,7 +60,7 @@ namespace wasm {
         // Define module's memory segments
         this->setUpMemory(call);
 
-        // Link with Emscripten, Faasm intrinsics etc.
+        // Link with intrinsics
         Runtime::Compartment *compartment = Runtime::createCompartment();
         Runtime::LinkResult linkResult = this->link(compartment);
 
@@ -97,13 +90,16 @@ namespace wasm {
             std::cerr << "Could not load module at:  " << filePath << std::endl;
         }
 
-        loadBinaryModule(fileBytes.data(), fileBytes.size(), module);
+        loadBinaryModule(fileBytes.data(), fileBytes.size(), this->module);
     }
 
     /**
      * Generic module set-up
      */
     void WasmModule::setUpMemory(message::FunctionCall &call) {
+        // Make sure we have a big enough minimum memory size
+        this->module.memories.defs[0].type.size.min = MIN_MEMORY_SIZE;
+
         // Define input data segment
         this->addDataSegment(INPUT_START);
 
@@ -121,31 +117,19 @@ namespace wasm {
     Runtime::LinkResult WasmModule::link(Runtime::Compartment *compartment) {
         RootResolver resolver(compartment);
 
-        // Set up the Emscripten module (module only needed here as a reference)
-        Emscripten::Instance *emscriptenInstance = Emscripten::instantiate(compartment, module);
-
-        // Set up the Faasm module
-        Runtime::ModuleInstance *faasmModule = Intrinsics::instantiateModule(
+        Runtime::ModuleInstance *envModule = Intrinsics::instantiateModule(
                 compartment,
-                INTRINSIC_MODULE_REF(faasm),
-                "faasm"
+                INTRINSIC_MODULE_REF(env),
+                "env"
         );
 
         // Prepare name resolution
-        resolver.moduleNameToInstanceMap.set("faasm", faasmModule);
-        resolver.moduleNameToInstanceMap.set("env", emscriptenInstance->env);
-        resolver.moduleNameToInstanceMap.set("asm2wasm", emscriptenInstance->asm2wasm);
-        resolver.moduleNameToInstanceMap.set("global", emscriptenInstance->global);
+        resolver.moduleNameToInstanceMap.set("env", envModule);
 
         // Linking
         Runtime::LinkResult linkResult = linkModule(module, resolver);
         if (!linkResult.success) {
             std::cerr << "Failed to link module:" << std::endl;
-            for (auto &missingImport : linkResult.missingImports) {
-                std::cerr << "Missing import: module=\"" << missingImport.moduleName
-                          << "\" export=\"" << missingImport.exportName
-                          << "\" type=\"" << asString(missingImport.type) << "\"" << std::endl;
-            }
             throw std::runtime_error("Failed linking module");
         }
 

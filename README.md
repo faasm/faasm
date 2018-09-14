@@ -91,7 +91,7 @@ The code can be found in `func/function_echo.c`.
 ## Writing Functions
 
 The function API passes a number of pointers to functions to allocate memory regions. A convenience header is
-provided in at `include/faasm/faasm.h`. If compiling with Emscripten, your functions will look something like this:
+provided in at `include/faasm/faasm.h`. Functions will look something like this:
 
 ```
 #include "faasm.h"
@@ -321,10 +321,10 @@ The tests can be found in the `test` directory and executed by running:
 
 They require a local Redis instance to pass and cover most of the codebase.
 
-## Syscalls
+## Emscripten Syscalls
 
-Emscripten compiles with a modified musl libc. Note that the version of this is fixed and checked into the
-Emscripten repo. Important files are:
+Although we don't use Emscripten it's useful to note its approach to syscalls. They have their own version of musl
+that's checked into the Emscripten repo. The important files are:
 
 - [syscall table](https://github.com/kripken/emscripten/blob/master/system/lib/libc/musl/arch/emscripten/bits/syscall.h) - same as i386?
 - [socketcall mapping](https://github.com/kripken/emscripten/blob/master/system/lib/libc/musl/src/internal/syscall.h) - found lower down this file

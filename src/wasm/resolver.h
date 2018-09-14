@@ -83,15 +83,6 @@ namespace wasm {
                 }
             }
 
-            // Try looking up function in faasm module
-            auto faasmModule = moduleNameToInstanceMap.get("faasm");
-            outObject = getInstanceExport(*faasmModule, exportName);
-
-            if(outObject && isA(outObject, type)) {
-                Log::printf(Log::Category::debug, "Using Faasm version of %s \n", exportName.c_str());
-                return true;
-            }
-
             // Lookup totally failed, use stub
             Log::printf(Log::Category::error, "Stubbing missing import %s.%s : %s\n", moduleName.c_str(),
                         exportName.c_str(), asString(type).c_str());

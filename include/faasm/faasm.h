@@ -5,6 +5,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#define MAX_CHAINS 50
+#define MAX_NAME_LENGTH 32
+#define MAX_INPUT_BYTES 1024
+
 // Work out if we're in a wasm cross-compile environment
 #if __clang_major__ == 8
 #define FAASM_INLINE
@@ -12,10 +16,6 @@
 // Wasm cross-compilation doesn't like static inline
 #define FAASM_INLINE static inline
 #endif
-
-#define MAX_CHAINS 50
-#define MAX_NAME_LENGTH 32
-#define MAX_INPUT_BYTES 1024
 
 /**
  * Main faasm memory abstraction
@@ -90,8 +90,17 @@ void chainFunction(
     memory->chainCount = chainIdx + 1;
 }
 
+#if __clang_major__ == 8
+// Cross-compiler needs a main function
 int main() {
-    // Compiler is expecting main function
+    uint8_t inputData[MAX_INPUT_BYTES];
+    uint8_t outputData[MAX_INPUT_BYTES];
+    uint8_t chainFuncs[MAX_CHAINS];
+    uint8_t chainInputData[MAX_CHAINS * MAX_INPUT_BYTES];
+
+    // Call the actual function
+    run(inputData, outputData, chainFuncs, chainInputData);
 }
+#endif
 
 #endif
