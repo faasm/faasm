@@ -23,7 +23,8 @@ namespace wasm {
         Runtime::FunctionInstance *functionInstance = asFunctionNullable(
                 getInstanceExport(moduleInstance, ENTRYPOINT_FUNC));
         if (!functionInstance) {
-            functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, "_" + ENTRYPOINT_FUNC));
+            std::string errorMsg = "No function named " + ENTRYPOINT_FUNC + " found";
+            throw std::runtime_error(errorMsg);
         }
 
         // Set up input data in module memory

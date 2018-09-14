@@ -137,6 +137,10 @@ int exec(struct FaasmMemory *memory) {
 `chainFunction` can be called multiple times in one function. Once the original function has completed, these
 calls will go back through the main scheduler and be executed.
 
+### Compilation
+
+Faasm does not support Emscripten, instead we focus on the LLVM/ clang toolchain. A good place to start with this is [wasmception](https://github.com/yurydelendik/wasmception).
+
 ## Uploading Functions
 
 To upload a function you can use `curl` to send a PUT request to the synchronous URL for the given function.
@@ -320,6 +324,12 @@ The tests can be found in the `test` directory and executed by running:
 ```
 
 They require a local Redis instance to pass and cover most of the codebase.
+
+## Compilation
+
+I've found the easiest non-Emscripten toolchain to use is [wasmception](https://github.com/yurydelendik/wasmception). 
+
+There's also some Python scripts in the `bin` directory that may prove useful.
 
 ## Emscripten Syscalls
 

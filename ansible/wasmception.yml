@@ -1,0 +1,22 @@
+---
+
+- hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: "System deps"
+      become: yes
+      apt:
+        name: "{{ item }}"
+        state: "present"
+      with_items:
+        - subversion
+
+    - name: "Clone repo"
+      git:
+        repo: "git@github.com:yurydelendik/wasmception"
+        dest: "/usr/local/code/wasmception"
+
+    - name: "Make"
+      shell: "make"
+      args:
+        chdir: "/usr/local/code/wasmception"

@@ -36,4 +36,4 @@ if __name__ == "__main__":
     ]
 
     print("Calling: {}".format(" ".join(cmd)))
-    call(cmd)
+    call(cmd, cwd=func_dir)

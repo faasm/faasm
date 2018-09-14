@@ -10,10 +10,10 @@
 #define MAX_INPUT_BYTES 1024
 
 // Work out if we're in a wasm cross-compile environment
+// Only need inline if in native env
 #if __clang_major__ == 8
-#define FAASM_INLINE
+#define FAASM_INLINE __attribute__ ((visibility ("default")))
 #else
-// Wasm cross-compilation doesn't like static inline
 #define FAASM_INLINE static inline
 #endif
 
@@ -69,11 +69,11 @@ void chainFunction(
         char *name,
         uint8_t *inputData,
         int inputDataSize
-    ) {
+) {
     // Work out how many chained functions we already have
     int32_t chainIdx = memory->chainCount;
 
-    if(chainIdx > MAX_CHAINS) {
+    if (chainIdx > MAX_CHAINS) {
         fprintf(stderr, "%s", "Reached max chains");
         return;
     }
@@ -83,7 +83,7 @@ void chainFunction(
     uint8_t *dataPtr = memory->chainInputs + (chainIdx * MAX_INPUT_BYTES);
 
     // Copy the data into place
-    strcpy((char*) namePtr, name);
+    strcpy((char *) namePtr, name);
     memcpy(dataPtr, inputData, (size_t) inputDataSize);
 
     // Increment the count
@@ -91,15 +91,9 @@ void chainFunction(
 }
 
 #if __clang_major__ == 8
-// Cross-compiler needs a main function
-int main() {
-    uint8_t inputData[MAX_INPUT_BYTES];
-    uint8_t outputData[MAX_INPUT_BYTES];
-    uint8_t chainFuncs[MAX_CHAINS];
-    uint8_t chainInputData[MAX_CHAINS * MAX_INPUT_BYTES];
+// Cross-compiler needs a main function (which will never be called)
+int main(int argc,char** argv) {
 
-    // Call the actual function
-    run(inputData, outputData, chainFuncs, chainInputData);
 }
 #endif
 

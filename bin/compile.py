@@ -5,6 +5,8 @@
 import argparse
 from os import mkdir
 from os.path import exists, dirname, realpath, join
+from shutil import rmtree
+
 import requests
 from subprocess import call
 
@@ -13,9 +15,11 @@ BUILD_DIR = "/tmp/faasm"
 
 EMCC = "/usr/local/code/emsdk/emscripten/1.38.10/emcc"
 
-WAVIX_BUILD = "/usr/local/code/WavixBuild"
-WAVIX_SYS = join(WAVIX_BUILD, "sys")
-WAVIX_CLANG = join(WAVIX_BUILD, "bootstrap/bin/clang")
+LLVM_ROOT = "/usr/local/code/wasmception"
+
+SYSROOT = join(LLVM_ROOT, "sysroot")
+CC = join(LLVM_ROOT, "dist", "bin", "clang")
+CXX = join(LLVM_ROOT, "dist", "bin", "clang++")
 
 
 if __name__ == "__main__":
@@ -23,44 +27,36 @@ if __name__ == "__main__":
     parser.add_argument("user", help="Owner of the function")
     parser.add_argument("function", help="Function name")
     parser.add_argument("--libcurl", help="Link with libcurl", action="store_true")
-    parser.add_argument("--noopt", help="Turn off Emscripten optimizations", action="store_true")
     parser.add_argument("--debug", help="Include debug info", action="store_true")
-    parser.add_argument("--wavix", help="Build with wavix", action="store_true")
+    parser.add_argument("--cxx", help="Compile C++", action="store_true")
 
     args = parser.parse_args()
 
     print("Compiling {} for user {}".format(args.function, args.user))
 
     if exists(BUILD_DIR):
-        call(["rm", "-rf", BUILD_DIR])
+        rmtree(BUILD_DIR)
     mkdir(BUILD_DIR)
+
+    func_dir = join(PROJ_ROOT, "wasm", args.user, args.function)
+    if exists(func_dir):
+        rmtree(func_dir)
+    mkdir(func_dir)
 
     func_path = join(PROJ_ROOT, "func", "function_{}.c".format(args.function))
     if not exists(func_path):
         print("Could not find function at {}".format(func_path))
         exit(1)
 
-    if args.wavix:
-        compile_cmd = [
-            WAVIX_CLANG,
-            "--target=wasm32-unknown-wavix",
-            "--sysroot", WAVIX_SYS
-        ]
-    else:
-        compile_cmd = [
-            EMCC,
-            "-s", "WASM=1",
-            "-o", "function.js"
-        ]
-
-    compile_cmd.extend([
+    compile_cmd = [
+        CXX if args.cxx else CC,
+        "--target=wasm32-unknown-unknown-wasm",
+        "--sysroot={}".format(SYSROOT),
+        "-O3",
+        "-fvisibility=hidden",
         func_path,
         "-I", join(PROJ_ROOT, "include", "faasm")
-    ])
-
-    # Add optimisations if necessary
-    if not args.noopt:
-        compile_cmd.append("-Oz")
+    ]
 
     # Debug
     if args.debug:
@@ -78,19 +74,13 @@ if __name__ == "__main__":
 
     # Set up function directory
     user_dir = join(PROJ_ROOT, "wasm", args.user)
-    func_dir = join(PROJ_ROOT, "wasm", args.user, args.function)
     if not exists(user_dir):
         mkdir(user_dir)
     if not exists(func_dir):
         mkdir(func_dir)
 
     # Put function file in place
-    if args.wavix:
-        object_filename = "a.out"
-    else:
-        object_filename = "function.wasm"
-
-    wasm_file = join(BUILD_DIR, object_filename)
+    wasm_file = join(BUILD_DIR, "a.out")
     dest_file = join(func_dir, "function.wasm")
 
     print("Putting {} in place at {}.".format(wasm_file, dest_file))
