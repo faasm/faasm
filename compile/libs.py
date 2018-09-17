@@ -5,9 +5,11 @@ from subprocess import call
 
 from requests import get
 
-from compile.env import WASM_LIB_DIR, ENV
+from compile.env import WASM_LIB_DIR, ENV, TARGET_TRIPLE
 
 CONFIG_FLAGS = [
+    "--target={}".format(TARGET_TRIPLE),
+    "--host=wasm32",
     "--without-ssl",
     "--disable-ares",
     "--disable-cookies",
@@ -39,12 +41,15 @@ def compile_libcurl():
     """
     Compiles libcurl to wasm
     """
-    with open("/tmp/libcurl.tar.gz", "wb") as fh:
-        response = get(LIBCURL_URL)
-        fh.write(response.content)
 
-    # Extract
-    call(["tar", "-xvf", "libcurl.tar.gz"], cwd="/tmp")
+    if not exists(CURL_EXTRACT_DIR):
+        # Download the file
+        with open("/tmp/libcurl.tar.gz", "wb") as fh:
+            response = get(LIBCURL_URL)
+            fh.write(response.content)
+
+        # Extract
+        call(["tar", "-xvf", "libcurl.tar.gz"], cwd="/tmp")
 
     # Configure
     call(["./buildconf"], cwd=CURL_EXTRACT_DIR, env=ENV, shell=True)
@@ -52,7 +57,9 @@ def compile_libcurl():
         "./configure",
         *CONFIG_FLAGS
     ]
-    call(" ".join(config_cmd), cwd=CURL_EXTRACT_DIR, env=ENV, shell=True)
+    config_cmd = " ".join(config_cmd)
+    print("Calling: {}".format(config_cmd))
+    call(config_cmd, cwd=CURL_EXTRACT_DIR, env=ENV, shell=True)
 
     # Make
     call("make", cwd=CURL_EXTRACT_DIR, env=ENV, shell=True)

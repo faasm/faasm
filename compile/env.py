@@ -8,8 +8,10 @@ WASM_LIB_DIR = join(PROJ_ROOT, "wasm", "lib")
 
 SYSROOT = join(LLVM_ROOT, "sysroot")
 
+TARGET_TRIPLE="wasm32-unknown-unknown-wasm"
+
 _FLAGS = [
-    "--target=wasm32-unknown-unknown-wasm",
+    "--target={}".format(TARGET_TRIPLE),
     "--sysroot={}".format(SYSROOT),
     "-O3",
     "-fvisibility=hidden",
