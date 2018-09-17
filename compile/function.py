@@ -1,34 +1,19 @@
-# ----------------------------------
-# Script to build faasm functions
-# ----------------------------------
-
-import argparse
 from os import mkdir
-from os.path import exists, dirname, realpath, join
+from os.path import exists, join
 from shutil import rmtree
-
-import requests
 from subprocess import call
 
-PROJ_ROOT = dirname(dirname(realpath(__file__)))
+import requests
+
+from compile.env import PROJ_ROOT, CXX, CC, CXXFLAGS, CFLAGS
+
 BUILD_DIR = "/tmp/faasm"
 
-LLVM_ROOT = join(PROJ_ROOT, "wasmception")
 
-SYSROOT = join(LLVM_ROOT, "sysroot")
-CC = join(LLVM_ROOT, "dist", "bin", "clang")
-CXX = join(LLVM_ROOT, "dist", "bin", "clang++")
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("user", help="Owner of the function")
-    parser.add_argument("function", help="Function name")
-    parser.add_argument("--libcurl", help="Link with libcurl", action="store_true")
-    parser.add_argument("--debug", help="Include debug info", action="store_true")
-    parser.add_argument("--cxx", help="Compile C++", action="store_true")
-
-    args = parser.parse_args()
+def compile_function(args):
+    """
+    Compiles a user's function
+    """
 
     print("Compiling {} for user {}".format(args.function, args.user))
 
@@ -48,10 +33,7 @@ if __name__ == "__main__":
 
     compile_cmd = [
         CXX if args.cxx else CC,
-        "--target=wasm32-unknown-unknown-wasm",
-        "--sysroot={}".format(SYSROOT),
-        "-O3",
-        "-fvisibility=hidden",
+        CXXFLAGS if args.cxx else CFLAGS,
         func_path,
         "-I", join(PROJ_ROOT, "include", "faasm")
     ]
@@ -67,8 +49,11 @@ if __name__ == "__main__":
             join(PROJ_ROOT, "lib", "libcurl", "libcurl.so")
         ])
 
-    print("Calling: {}".format(" ".join(compile_cmd)))
-    call(compile_cmd, cwd=BUILD_DIR)
+    compile_cmd_str = " ".join(compile_cmd)
+    print("Calling: {}".format(compile_cmd_str))
+    res = call(compile_cmd_str, shell=True, cwd=BUILD_DIR)
+    if res != 0:
+        raise RuntimeError("Compile call failed")
 
     # Set up function directory
     user_dir = join(PROJ_ROOT, "wasm", args.user)

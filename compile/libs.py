@@ -1,12 +1,11 @@
-# ------------------------------------------------
-# Script to download and compile libcurl to WASM
-# ------------------------------------------------
-
 from os import mkdir
-from os.path import join, dirname, realpath, exists
+from os.path import exists, join
+from shutil import rmtree
+from subprocess import call
 
 from requests import get
-from subprocess import call
+
+from compile.env import WASM_LIB_DIR, ENV
 
 CONFIG_FLAGS = [
     "--without-ssl",
@@ -24,17 +23,22 @@ CONFIG_FLAGS = [
     "--without-zlib"
 ]
 
-PROJ_ROOT = dirname(dirname(realpath(__file__)))
-
-EMSCRIPTEN_DIR = "/usr/local/code/emsdk/emscripten/1.38.10/"
-EMCONFIGURE = join(EMSCRIPTEN_DIR, "emconfigure")
-EMMAKE = join(EMSCRIPTEN_DIR, "emmake")
-
 CURL_EXTRACT_DIR = "/tmp/curl-curl-7_61_0"
 LIBCURL_URL = "https://github.com/curl/curl/archive/curl-7_61_0.tar.gz"
-WASM_DIR = join(PROJ_ROOT, "lib", "libcurl")
+WASM_DIR = join(WASM_LIB_DIR, "libcurl")
 
-if __name__ == "__main__":
+
+def compile_lib(args):
+    if args.name == "curl":
+        compile_libcurl()
+    else:
+        raise RuntimeError("Unrecognised lib name: {}".format(args.name))
+
+
+def compile_libcurl():
+    """
+    Compiles libcurl to wasm
+    """
     with open("/tmp/libcurl.tar.gz", "wb") as fh:
         response = get(LIBCURL_URL)
         fh.write(response.content)
@@ -43,16 +47,19 @@ if __name__ == "__main__":
     call(["tar", "-xvf", "libcurl.tar.gz"], cwd="/tmp")
 
     # Configure
-    call(["./buildconf"], cwd=CURL_EXTRACT_DIR)
-    config_cmd = [EMCONFIGURE, "./configure"]
-    config_cmd.extend(CONFIG_FLAGS)
-    call(config_cmd, cwd=CURL_EXTRACT_DIR)
+    call(["./buildconf"], cwd=CURL_EXTRACT_DIR, env=ENV, shell=True)
+    config_cmd = [
+        "./configure",
+        *CONFIG_FLAGS
+    ]
+    call(" ".join(config_cmd), cwd=CURL_EXTRACT_DIR, env=ENV, shell=True)
 
     # Make
-    call([EMMAKE, "make"], cwd=CURL_EXTRACT_DIR)
+    call("make", cwd=CURL_EXTRACT_DIR, env=ENV, shell=True)
 
-    if not exists(WASM_DIR):
-        mkdir(WASM_DIR)
+    if exists(WASM_LIB_DIR):
+        rmtree(WASM_LIB_DIR)
+    mkdir(WASM_LIB_DIR)
 
     # Copy output into place
     call(["cp", "-r", join(CURL_EXTRACT_DIR, "include"), WASM_DIR])

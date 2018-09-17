@@ -1,1 +1,0 @@
-This directory contains libraries compiled with WebAssembly

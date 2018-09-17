@@ -1,20 +1,14 @@
-# ----------------------------------
-# Script to convert wasm to wast
-# ----------------------------------
-
-import argparse
 from os import remove
-from os.path import exists, dirname, realpath, join
+from os.path import exists, join
 from subprocess import call
 
-PROJ_ROOT = dirname(dirname(realpath(__file__)))
+from compile.env import PROJ_ROOT
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("user", help="Owner of the function")
-    parser.add_argument("function", help="Function name")
 
-    args = parser.parse_args()
+def wasm_to_wast(args):
+    """
+    Converts a function's wasm file to wast
+    """
 
     func_dir = join(PROJ_ROOT, "wasm", args.user, args.function)
     wasm_path = join(func_dir, "function.wasm")

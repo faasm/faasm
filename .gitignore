@@ -106,5 +106,5 @@ cmake-build-release/
 # JetBrains
 .idea/
 
-# V8
-v8/
+# Python
+__pycache__/
