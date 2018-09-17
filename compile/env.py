@@ -25,13 +25,13 @@ CFLAGS = COMPILER_FLAGS_STRING
 CXX = join(_CLANG_BIN, "clang++")
 CXXFLAGS = COMPILER_FLAGS_STRING
 CROSS_COMPILE = join(LLVM_ROOT, "llvm-")
+LD=join(_CLANG_BIN, "wasm-ld")
 
 CPP = join(_CLANG_BIN, "clang-cpp")
 
 _ENV_TUPLES = [
     ("CC", CC),
-    ("LDSHARED", CC),
-    ("LD", CC),
+    ("LD", LD),
     ("CFLAGS", CFLAGS),
     ("CPP", CPP),
     ("CXX", CXX),
