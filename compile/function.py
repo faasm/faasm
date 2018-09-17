@@ -5,7 +5,7 @@ from subprocess import call
 
 import requests
 
-from compile.env import PROJ_ROOT, CXX, CC, CXXFLAGS, CFLAGS
+from compile.env import PROJ_ROOT, CXX, CC, CXXFLAGS, CFLAGS, WASM_LIB_DIR
 
 BUILD_DIR = "/tmp/faasm"
 
@@ -45,8 +45,8 @@ def compile_function(args):
     # Add libcurl
     if args.libcurl:
         compile_cmd.extend([
-            "-I", join(PROJ_ROOT, "lib", "libcurl", "include"),
-            join(PROJ_ROOT, "lib", "libcurl", "libcurl.so")
+            "-I", join(WASM_LIB_DIR, "libcurl", "include"),
+            join(WASM_LIB_DIR, "libcurl", "lib", "libcurl.a")
         ])
 
     compile_cmd_str = " ".join(compile_cmd)

@@ -14,7 +14,6 @@ size_t write_data(void *buffer, size_t size, size_t nmemb, char *data)
     return size * nmemb;
 }
 
-EMSCRIPTEN_KEEPALIVE
 int exec(struct FaasmMemory *memory) {
     printf("Before curl init\n");
 

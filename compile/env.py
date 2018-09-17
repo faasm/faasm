@@ -23,6 +23,7 @@ CC = join(_CLANG_BIN, "clang")
 CFLAGS = _FLAGS
 CXX = join(_CLANG_BIN, "clang++")
 CXXFLAGS = _FLAGS
+CROSS_COMPILE = join(LLVM_ROOT, "llvm-")
 
 CPP = join(_CLANG_BIN, "clang-cpp")
 
@@ -32,4 +33,5 @@ ENV = {
     "CPP": CPP,
     "CXX": CXX,
     "CXXFLAGS": CXXFLAGS,
+    "CROSS_COMPILE": CROSS_COMPILE,
 }

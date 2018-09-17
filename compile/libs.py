@@ -1,15 +1,15 @@
-from os import mkdir
 from os.path import exists, join
 from shutil import rmtree
 from subprocess import call
 
 from requests import get
 
-from compile.env import WASM_LIB_DIR, ENV, TARGET_TRIPLE
+from compile.env import WASM_LIB_DIR, ENV
 
 CONFIG_FLAGS = [
-    "--target={}".format(TARGET_TRIPLE),
+    "--target=wasm32",
     "--host=wasm32",
+    "--prefix={}".format(WASM_LIB_DIR),
     "--without-ssl",
     "--disable-ares",
     "--disable-cookies",
@@ -51,6 +51,10 @@ def compile_libcurl():
         # Extract
         call(["tar", "-xvf", "libcurl.tar.gz"], cwd="/tmp")
 
+    # Clear output directory
+    if exists(WASM_DIR):
+        rmtree(WASM_DIR)
+
     # Configure
     call(["./buildconf"], cwd=CURL_EXTRACT_DIR, env=ENV, shell=True)
     config_cmd = [
@@ -59,17 +63,17 @@ def compile_libcurl():
     ]
     config_cmd = " ".join(config_cmd)
     print("Calling: {}".format(config_cmd))
-    call(config_cmd, cwd=CURL_EXTRACT_DIR, env=ENV, shell=True)
+    res = call(config_cmd, cwd=CURL_EXTRACT_DIR, env=ENV, shell=True)
+    if res != 0:
+        raise RuntimeError("Configure command failed")
 
     # Make
-    call("make", cwd=CURL_EXTRACT_DIR, env=ENV, shell=True)
+    res = call("make", cwd=CURL_EXTRACT_DIR, env=ENV, shell=True)
+    if res != 0:
+        raise RuntimeError("Make failed")
 
-    if exists(WASM_LIB_DIR):
-        rmtree(WASM_LIB_DIR)
-    mkdir(WASM_LIB_DIR)
-
-    # Copy output into place
-    call(["cp", "-r", join(CURL_EXTRACT_DIR, "include"), WASM_DIR])
-    call(["cp", join(CURL_EXTRACT_DIR, "lib", ".libs", "libcurl.so"), WASM_DIR])
+    res = call("make install", cwd=CURL_EXTRACT_DIR, env=ENV, shell=True)
+    if res != 0:
+        raise RuntimeError("Make install failed")
 
     print("Output at {}".format(WASM_DIR))
