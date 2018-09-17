@@ -4,11 +4,12 @@ from subprocess import call
 
 from requests import get
 
-from compile.env import WASM_LIB_DIR, ENV
+from compile.env import WASM_LIB_DIR, CONFIG_TARGET, ENV_STR, ENV_DICT
 
 CONFIG_FLAGS = [
-    "--target=wasm32",
-    "--host=wasm32",
+    ENV_STR,
+    "--target={}".format(CONFIG_TARGET),
+    "--host={}".format(CONFIG_TARGET),
     "--prefix={}".format(WASM_LIB_DIR),
     "--without-ssl",
     "--disable-ares",
@@ -56,23 +57,24 @@ def compile_libcurl():
         rmtree(WASM_DIR)
 
     # Configure
-    call(["./buildconf"], cwd=CURL_EXTRACT_DIR, env=ENV, shell=True)
+    #call(["./buildconf"], cwd=CURL_EXTRACT_DIR, env=ENV, shell=True)
     config_cmd = [
         "./configure",
         *CONFIG_FLAGS
     ]
     config_cmd = " ".join(config_cmd)
-    print("Calling: {}".format(config_cmd))
-    res = call(config_cmd, cwd=CURL_EXTRACT_DIR, env=ENV, shell=True)
-    if res != 0:
-        raise RuntimeError("Configure command failed")
+    print(config_cmd)
+    # res = call(config_cmd, cwd=CURL_EXTRACT_DIR, env=ENV, shell=True)
+    # if res != 0:
+    #     raise RuntimeError("Configure command failed")
+    exit(0)
 
     # Make
-    res = call("make", cwd=CURL_EXTRACT_DIR, env=ENV, shell=True)
+    res = call("make", cwd=CURL_EXTRACT_DIR, env=ENV_DICT, shell=True)
     if res != 0:
         raise RuntimeError("Make failed")
 
-    res = call("make install", cwd=CURL_EXTRACT_DIR, env=ENV, shell=True)
+    res = call("make install", cwd=CURL_EXTRACT_DIR, env=ENV_DICT, shell=True)
     if res != 0:
         raise RuntimeError("Make install failed")
 

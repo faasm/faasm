@@ -5,7 +5,7 @@ from subprocess import call
 
 import requests
 
-from compile.env import PROJ_ROOT, CXX, CC, CXXFLAGS, CFLAGS, WASM_LIB_DIR
+from compile.env import PROJ_ROOT, CXX, CC, CXXFLAGS, CFLAGS, WASM_LIB_DIR, COMPILER_FLAGS
 
 BUILD_DIR = "/tmp/faasm"
 
@@ -33,7 +33,9 @@ def compile_function(args):
 
     compile_cmd = [
         CXX if args.cxx else CC,
-        CXXFLAGS if args.cxx else CFLAGS,
+        *COMPILER_FLAGS,
+        "-O3",
+        "-fvisibility=hidden",
         func_path,
         "-I", join(PROJ_ROOT, "include", "faasm")
     ]
