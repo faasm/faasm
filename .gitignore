@@ -1,6 +1,7 @@
 # Faasm
 work/
 build/
+toolchain/
 
 # Jetbrains
 .idea/

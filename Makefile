@@ -75,8 +75,22 @@ setup-cgroup:
 
 # WASM toolchain
 
-setup-tools:
+build-tools:
 	python wasm-waterfall/src/build.py --build-include llvm,musl,compiler-rt,libcxx,libcxxabi --sync-include llvm,lld,musl,compiler-rt,libcxx,libcxxabi,clang,host-toolchain,cmake --no-tool-tests --no-test 
 
+untar-tools:
+	mkdir -p toolchain && tar -xf toolchain.tar.gz -C toolchain
+
+tar-tools:
+	cd wasm-waterfall/src/work/ && tar -cf toolchain.tar.gz wasm-install && mv toolchain.tar.gz ../../../
+
+#build-musl:
+#	python wasm-waterfall/src/build.py --no-sync --build-include musl --no-test --no-tool-tests
+
 build-musl:
-	python wasm-waterfall/src/build.py --no-sync --build-include musl --no-test --no-tool-tests
+	cd musl && python libc.py \
+		--clang_dir=/usr/local/code/faasm/toolchain/wasm-install/bin \
+		--binaryen_dir=/usr/local/code/faasm/toolchain/wasm-install/bin \
+		--compile-to-wasm \
+		--musl=/usr/local/code/faasm/musl \
+		--out=/usr/local/code/faasm/libc.a

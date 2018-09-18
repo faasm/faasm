@@ -137,7 +137,7 @@ int exec(struct FaasmMemory *memory) {
 `chainFunction` can be called multiple times in one function. Once the original function has completed, these
 calls will go back through the main scheduler and be executed.
 
-### Compilation
+### Toolchain
 
 Faasm does not support Emscripten, instead we focus on the LLVM/ clang toolchain. This is all built as part of the [WebAssembly waterfall](https://github.com/WebAssembly/waterfall). This will build things like clang, lld, musl etc. and is a submodule of this project.
 
@@ -149,6 +149,18 @@ make setup-tools
 ```
 
 This is currently required as LLVM wasm support is only experimental. In future it may be bundled with LLVM/ clang normally.
+
+The repo also contains a tarball of the compiled toolchain. To put this in place you can just run:
+
+```
+make untar-tools
+```
+
+If you want to update the checked-in toolchain with a newly build one, you can run:
+
+```
+make tar-tools
+```
 
 ## Uploading Functions
 
