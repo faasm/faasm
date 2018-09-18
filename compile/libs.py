@@ -57,17 +57,16 @@ def compile_libcurl():
         rmtree(WASM_DIR)
 
     # Configure
-    #call(["./buildconf"], cwd=CURL_EXTRACT_DIR, env=ENV, shell=True)
+    call(["./buildconf"], cwd=CURL_EXTRACT_DIR, env=ENV_DICT, shell=True)
     config_cmd = [
         "./configure",
         *CONFIG_FLAGS
     ]
     config_cmd = " ".join(config_cmd)
     print(config_cmd)
-    # res = call(config_cmd, cwd=CURL_EXTRACT_DIR, env=ENV, shell=True)
-    # if res != 0:
-    #     raise RuntimeError("Configure command failed")
-    exit(0)
+    res = call(config_cmd, cwd=CURL_EXTRACT_DIR, env=ENV_DICT, shell=True)
+    if res != 0:
+        raise RuntimeError("Configure command failed")
 
     # Make
     res = call("make", cwd=CURL_EXTRACT_DIR, env=ENV_DICT, shell=True)

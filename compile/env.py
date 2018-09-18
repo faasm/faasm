@@ -2,11 +2,11 @@ from os.path import dirname, realpath, join
 
 PROJ_ROOT = dirname(dirname(realpath(__file__)))
 
-LLVM_ROOT = join(PROJ_ROOT, "wasmception")
+TOOLCHAIN_ROOT = join(PROJ_ROOT, "wasm-waterfall", "src", "work", "wasm-install")
 
 WASM_LIB_DIR = join(PROJ_ROOT, "wasm", "lib")
 
-SYSROOT = join(LLVM_ROOT, "sysroot")
+SYSROOT = join(TOOLCHAIN_ROOT, "sysroot")
 
 TARGET_TRIPLE = "wasm32-unknown-unknown-wasm"
 CONFIG_TARGET = "wasm32"
@@ -19,14 +19,13 @@ COMPILER_FLAGS = [
 COMPILER_FLAGS_STRING = " ".join(COMPILER_FLAGS)
 COMPILER_FLAGS_STRING = "\"{}\"".format(COMPILER_FLAGS_STRING)
 
-_CLANG_BIN = join(LLVM_ROOT, "dist", "bin")
-CC = join(_CLANG_BIN, "clang")
+CC = join(TOOLCHAIN_ROOT, "bin", "clang")
 CFLAGS = COMPILER_FLAGS_STRING
-CXX = join(_CLANG_BIN, "clang++")
+CXX = join(TOOLCHAIN_ROOT, "bin", "clang++")
 CXXFLAGS = COMPILER_FLAGS_STRING
-CROSS_COMPILE = join(LLVM_ROOT, "llvm-")
+CROSS_COMPILE = join(TOOLCHAIN_ROOT, "llvm-")
 
-CPP = join(_CLANG_BIN, "clang-cpp")
+CPP = join(TOOLCHAIN_ROOT, "bin", "clang-cpp")
 
 _ENV_TUPLES = [
     ("CC", CC),

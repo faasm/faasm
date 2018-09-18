@@ -5,7 +5,7 @@ from subprocess import call
 
 import requests
 
-from compile.env import PROJ_ROOT, CXX, CC, CXXFLAGS, CFLAGS, WASM_LIB_DIR, COMPILER_FLAGS
+from compile.env import PROJ_ROOT, CXX, CC, WASM_LIB_DIR, COMPILER_FLAGS
 
 BUILD_DIR = "/tmp/faasm"
 
