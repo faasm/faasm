@@ -77,3 +77,6 @@ setup-cgroup:
 
 setup-tools:
 	python wasm-waterfall/src/build.py --build-include llvm,musl,compiler-rt,libcxx,libcxxabi --sync-include llvm,lld,musl,compiler-rt,libcxx,libcxxabi,clang,host-toolchain,cmake --no-tool-tests --no-test 
+
+build-musl:
+	python wasm-waterfall/src/build.py --no-sync --build-include musl --no-test --no-tool-tests

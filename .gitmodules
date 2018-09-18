@@ -6,4 +6,4 @@
 	url = git@github.com:Shillaker/musl
 [submodule "wasm-waterfall"]
 	path = wasm-waterfall
-	url = https://github.com/WebAssembly/waterfall
+	url = git@github.com:Shillaker/waterfall

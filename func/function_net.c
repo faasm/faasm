@@ -4,6 +4,8 @@
 #include <netdb.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
+
 
 /**
  * Tries to open a socket connection
@@ -15,10 +17,7 @@ int exec(struct FaasmMemory *memory) {
 
     struct hostent *lh = gethostbyname("localhost");
 
-    if (lh)
-        printf(lh->h_name);
-    else
-        herror("gethostbyname");
+    printf(lh->h_name);
 
     return 0;
 }
