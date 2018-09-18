@@ -139,7 +139,7 @@ calls will go back through the main scheduler and be executed.
 
 ### Compilation
 
-Faasm does not support Emscripten, instead we focus on the LLVM/ clang toolchain. A good place to start with this is [wasmception](https://github.com/yurydelendik/wasmception) which is a submodule of this repo.
+Faasm does not support Emscripten, instead we focus on the LLVM/ clang toolchain. This is all built as part of the [WebAssembly waterfall](https://github.com/WebAssembly/waterfall). This will build things like clang, lld, musl etc. and is a submodule of this project.
 
 To build the full toolchain (LLVM, Clang, compile-rt, musl), you can use the make target.
 Note that this takes **ages** as it's compiling everything from scratch (it also requires subversion to be installed):

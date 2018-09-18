@@ -7,3 +7,6 @@
 [submodule "wasmception"]
 	path = wasmception
 	url = git@github.com:Shillaker/wasmception
+[submodule "wasm-waterfall"]
+	path = wasm-waterfall
+	url = https://github.com/WebAssembly/waterfall

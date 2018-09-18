@@ -76,4 +76,4 @@ setup-cgroup:
 # WASM toolchain
 
 setup-tools:
-	cd wasmception && make
+	python wasm-waterfall/src/build.py --build-include llvm,musl,compiler-rt,libcxx,libcxxabi --sync-include llvm,lld,musl,compiler-rt,libcxx,libcxxabi,clang,host-toolchain,cmake
