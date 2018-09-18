@@ -2,6 +2,7 @@
 work/
 build/
 toolchain/
+toolchain.tar.gz
 
 # Jetbrains
 .idea/

@@ -1,30 +1,33 @@
 from os import mkdir
 from os.path import join, exists
 from shutil import rmtree
+from subprocess import call
 
 from requests import get
 
-from compile.env import PROJ_ROOT
+from compile.env import PROJ_ROOT, TOOLCHAIN_DIR
 
-# Note, this URL can be obtained from the waterfall at https://wasm-stat.us/console.
-# You need to find a build with green on the first lozenge (i.e. the Linux build), click on
-# it then in the pop-up that appears, find "archive binaries" and copy the URL of the "download"
-# link
-BINARY_URL = "https://storage.googleapis.com/wasm-llvm/builds/linux/35721/wasm-binaries.tbz2"
-DEST_DIR = join(PROJ_ROOT, "toolchain")
+TAR_URL = "https://s3-eu-west-1.amazonaws.com/wasm-toolchain/toolchain.tar.gz"
 
 if __name__ == "__main__":
+    tar_file = join(PROJ_ROOT, "toolchain.tar.gz")
 
-    # Clear the download dir
-    if exists(DEST_DIR):
-        rmtree(DEST_DIR)
-    mkdir(DEST_DIR)
+    if exists(tar_file):
+        print("Tar already exists at {}. Manually delete first.".format(tar_file))
+        exit(1)
 
     # Download the file
-    tar_name = join(PROJ_ROOT, "toolchain.tar.gz")
     print("Downloading toolchain binaries")
-    with open(tar_name, "wb") as fh:
-        response = get(BINARY_URL)
+    with open(tar_file, "wb") as fh:
+        response = get(TAR_URL)
         fh.write(response.content)
 
-    print("Downloaded toolchain {}".format(DEST_DIR))
+    print("Extracting toolchain binaries")
+
+    # Clear the toolchain dir
+    if exists(TOOLCHAIN_DIR):
+        rmtree(TOOLCHAIN_DIR)
+    mkdir(TOOLCHAIN_DIR)
+
+    # Untar the toolchain to the relevant location
+    call(["make", "untar-tools"], cwd=PROJ_ROOT)

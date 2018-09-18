@@ -2,7 +2,8 @@ from os.path import dirname, realpath, join
 
 PROJ_ROOT = dirname(dirname(realpath(__file__)))
 
-TOOLCHAIN_ROOT = join(PROJ_ROOT, "toolchain", "wasm-install")
+TOOLCHAIN_DIR = join(PROJ_ROOT, "toolchain")
+TOOLCHAIN_ROOT = join(TOOLCHAIN_DIR, "wasm-install")
 
 WASM_LIB_DIR = join(PROJ_ROOT, "wasm", "lib")
 

@@ -141,6 +141,8 @@ calls will go back through the main scheduler and be executed.
 
 Faasm does not support Emscripten, instead we focus on the LLVM/ clang toolchain. This is all built as part of the [WebAssembly waterfall](https://github.com/WebAssembly/waterfall). This will build things like clang, lld, musl etc. and is a submodule of this project.
 
+A tarball of the toolchain is held on S3 and can be downloaded with the `download_toolchain.py` script.
+
 To build the full toolchain (LLVM, Clang, compile-rt, musl), you can use the make target.
 Note that this takes **ages** as it's compiling everything from scratch (it also requires subversion to be installed):
 
@@ -150,13 +152,7 @@ make setup-tools
 
 This is currently required as LLVM wasm support is only experimental. In future it may be bundled with LLVM/ clang normally.
 
-The repo also contains a tarball of the compiled toolchain. To put this in place you can just run:
-
-```
-make untar-tools
-```
-
-If you want to update the checked-in toolchain with a newly build one, you can run:
+If you want to update the tarball of the toolchain once it's built, you can run the following, then upload to S3:
 
 ```
 make tar-tools
