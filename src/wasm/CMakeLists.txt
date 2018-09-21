@@ -10,4 +10,4 @@ add_library(wasm STATIC
         ${FAASM_INCLUDE_DIR}/wasm/wasm.h
         )
 
-target_link_libraries(wasm infra Logging IR WASTParse WASM Runtime ThreadTest)
+target_link_libraries(wasm infra Logging IR WASTParse WASM Runtime)

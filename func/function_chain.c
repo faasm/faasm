@@ -3,7 +3,6 @@
 /**
  * Passes some inputs onto other functions
  */
-EMSCRIPTEN_KEEPALIVE
 int exec(struct FaasmMemory *memory) {
     for (int i = 0; i < 3; i++) {
         char funcName[12];

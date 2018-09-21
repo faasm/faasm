@@ -1,12 +1,13 @@
-#include "Logging/Logging.h"
-#include "Runtime/Runtime.h"
-#include "Runtime/Linker.h"
-#include "Inline/Serialization.h"
-#include "IR/Operators.h"
-#include "IR/Validate.h"
+#include <WAVM/Logging/Logging.h>
+#include <WAVM/Runtime/Runtime.h>
+#include <WAVM/Runtime/Linker.h>
+#include <WAVM/Inline/Serialization.h>
+#include <WAVM/IR/Operators.h>
+#include <WAVM/IR/Validate.h>
 
 #include <boost/filesystem.hpp>
-#include <Runtime/RuntimePrivate.h>
+
+using namespace WAVM;
 
 namespace wasm {
 
