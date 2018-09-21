@@ -85,13 +85,8 @@ namespace wasm {
      * Parse the WASM file to work out functions, exports, imports etc.
      */
     void WasmModule::parseWasm(message::FunctionCall &call) {
-        std::vector<U8> fileBytes;
         std::string filePath = infra::getFunctionFile(call);
-        if (!loadFile(filePath.c_str(), fileBytes)) {
-            std::cerr << "Could not load module at:  " << filePath << std::endl;
-        }
-
-        loadBinaryModule(fileBytes.data(), fileBytes.size(), this->module);
+        loadBinaryModuleFromFile(filePath.c_str(), this->module);
     }
 
     /**

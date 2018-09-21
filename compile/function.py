@@ -63,10 +63,6 @@ def compile_function(args):
 
     # Put function file in place
     wasm_file = join(BUILD_DIR, "a.out")
-    dest_file = join(func_dir, "function.wasm")
-
-    print("Putting {} in place at {}.".format(wasm_file, dest_file))
-    call(["cp", wasm_file, dest_file])
 
     # Upload to Faasm
     url = "http://localhost:8080/f/{}/{}/".format(args.user, args.function)

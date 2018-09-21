@@ -550,7 +550,7 @@
       loop $loop
         get_local $0
         i32.load
-        call_indirect (type $0)
+        call_indirect $31 (type $0)
         get_local $0
         i32.const 4
         i32.add
@@ -586,7 +586,7 @@
     get_local $2
     get_local $5
     get_local $0
-    call_indirect (type $1)
+    call_indirect $31 (type $1)
     call $exit
     unreachable
     )
@@ -606,7 +606,7 @@
         i32.add
         tee_local $0
         i32.load
-        call_indirect (type $0)
+        call_indirect $31 (type $0)
         get_local $0
         i32.const 0
         i32.gt_u
@@ -816,7 +816,7 @@
         i32.const 0
         get_local $0
         i32.load offset=36
-        call_indirect (type $1)
+        call_indirect $31 (type $1)
         drop
       end ;; $block_1
       get_local $0
@@ -835,7 +835,7 @@
       i32.const 1
       get_local $0
       i32.load offset=40
-      call_indirect (type $2)
+      call_indirect $31 (type $2)
       drop
     end ;; $block
     )
@@ -930,7 +930,7 @@
         get_local $1
         get_local $2
         i32.load offset=36
-        call_indirect (type $1)
+        call_indirect $31 (type $1)
         return
       end ;; $block_1
       i32.const 0
@@ -983,7 +983,7 @@
         tee_local $5
         get_local $2
         i32.load offset=36
-        call_indirect (type $1)
+        call_indirect $31 (type $1)
         tee_local $6
         get_local $5
         i32.lt_u
@@ -3008,7 +3008,7 @@
       i32.const 0
       get_local $0
       i32.load offset=36
-      call_indirect (type $1)
+      call_indirect $31 (type $1)
       drop
     end ;; $block
     get_local $0
@@ -3075,7 +3075,7 @@
       i32.const 1
       get_local $0
       i32.load offset=32
-      call_indirect (type $1)
+      call_indirect $31 (type $1)
       i32.const 1
       i32.ne
       br_if $block
@@ -3305,7 +3305,7 @@
     get_local $0
     get_local $0
     i32.load offset=12
-    call_indirect (type $3)
+    call_indirect $31 (type $3)
     )
   
   (func $sccp (type $8)
@@ -3786,7 +3786,7 @@
         get_local $9
         get_local $0
         get_local $2
-        call_indirect (type $4)
+        call_indirect $31 (type $4)
         i32.const 0
         i32.lt_s
         br_if $block
@@ -10544,14 +10544,14 @@
           i32.sub
           tee_local $9
           get_local $2
-          call_indirect (type $5)
+          call_indirect $31 (type $5)
           i32.const 0
           i32.lt_s
           br_if $block_0
           get_local $0
           get_local $11
           get_local $2
-          call_indirect (type $5)
+          call_indirect $31 (type $5)
           i32.const -1
           i32.gt_s
           br_if $block
@@ -10561,7 +10561,7 @@
             get_local $9
             get_local $11
             get_local $2
-            call_indirect (type $5)
+            call_indirect $31 (type $5)
             i32.const 0
             i32.lt_s
             br_if $block_2
@@ -10673,7 +10673,7 @@
               tee_local $10
               get_local $0
               get_local $2
-              call_indirect (type $5)
+              call_indirect $31 (type $5)
               i32.const 1
               i32.lt_s
               br_if $block_3
@@ -10725,7 +10725,7 @@
                 tee_local $13
                 get_local $14
                 get_local $2
-                call_indirect (type $5)
+                call_indirect $31 (type $5)
                 i32.const -1
                 i32.gt_s
                 br_if $block_5
@@ -10734,7 +10734,7 @@
                 i32.sub
                 get_local $14
                 get_local $2
-                call_indirect (type $5)
+                call_indirect $31 (type $5)
                 i32.const -1
                 i32.gt_s
                 br_if $block_5
@@ -10864,7 +10864,7 @@
               get_local $7
               i32.load
               get_local $2
-              call_indirect (type $5)
+              call_indirect $31 (type $5)
               i32.const 0
               i32.gt_s
               br_if $loop
@@ -11337,7 +11337,7 @@
       i32.load offset=4
       get_local $0
       i32.load
-      call_indirect (type $6)
+      call_indirect $31 (type $6)
     end ;; $block
     )
   
@@ -16249,7 +16249,7 @@
         i32.const 0
         get_local $0
         i32.load offset=36
-        call_indirect (type $1)
+        call_indirect $31 (type $1)
         drop
         get_local $0
         i32.const 44
