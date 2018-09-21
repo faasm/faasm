@@ -46,10 +46,7 @@ def compile_function(args):
 
     # Add libcurl
     if args.libcurl:
-        compile_cmd.extend([
-            "-I", join(WASM_LIB_DIR, "libcurl", "include"),
-            join(WASM_LIB_DIR, "libcurl", "lib", "libcurl.a")
-        ])
+        compile_cmd.append("-lcurl")
 
     compile_cmd_str = " ".join(compile_cmd)
     print("Calling: {}".format(compile_cmd_str))
