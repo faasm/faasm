@@ -1,9 +1,12 @@
 #include "wasm.h"
 
 #include <unistd.h>
+#include <stdio.h>
+#include <string.h>
 #include <iostream>
 #include <sys/types.h>
 #include <sys/syscall.h>
+#include <sys/uio.h>
 
 #include <atomic>
 
@@ -21,14 +24,27 @@ namespace wasm {
     // I/O
     // ------------------------
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_writev", I32, __syscall_writev, I32 a, I32 b, I32 c) {
-        printf("SYSCALL - writev %i %i %i\n", a, b, c);
-        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_writev", I32, __syscall_writev, I32 fd, I32 iov, I32 iovcnt) {
+        printf("SYSCALL - writev %i %i %i\n", fd, iov, iovcnt);
+
+        struct iovec* native_iovec = new(alloca(sizeof(iovec) * iovcnt)) struct iovec[iovcnt];
+        for(U32 i = 0; i < iovcnt; i++)
+        {
+            U32 base = memoryRef<U32>(moduleMemory, iov + i * 8);
+            U32 len = memoryRef<U32>(moduleMemory, iov + i * 8 + 4);
+
+            native_iovec[i].iov_base = memoryArrayPtr<U8>(moduleMemory, base, len);
+            native_iovec[i].iov_len = len;
+        }
+        Iptr count = writev(fileno(stdout), native_iovec, iovcnt);
+
+        return (I32) count;
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_ioctl", I32, __syscall_ioctl,
                                                  I32 a, I32 b, I32 c, I32 d, I32 e, I32 f) {
         printf("SYSCALL - ioctl %i %i %i %i %i %i\n", a, b, c, d, e, f);
+
         return 0;
     }
 
@@ -42,8 +58,7 @@ namespace wasm {
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_llseek", I32, __syscall_llseek, I32 a, I32 b, I32 c, I32 d, I32 e,
-            Iptr memoryId) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_llseek", I32, __syscall_llseek, I32 a, I32 b, I32 c, I32 d, I32 e) {
         printf("SYSCALL - llseek %i %i %i %i %i\n", a, b, c, d, e);
         return 0;
     }
@@ -148,8 +163,7 @@ namespace wasm {
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_rt_sigprocmask", I32, __syscall_rt_sigprocmask, I32 a, I32 b, I32 c,
-            Iptr memoryId) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_rt_sigprocmask", I32, __syscall_rt_sigprocmask, I32 a, I32 b, I32 c) {
         printf("SYSCALL - rt_sigprocmask) %i %i %i\n", a, b, c);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }

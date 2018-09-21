@@ -16,7 +16,7 @@
 using namespace WAVM;
 
 namespace wasm {
-    static thread_local Runtime::MemoryInstance* moduleMemory = nullptr;
+    thread_local Runtime::MemoryInstance* moduleMemory = nullptr;
 
     DECLARE_INTRINSIC_MODULE(env);
 
