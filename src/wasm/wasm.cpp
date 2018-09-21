@@ -31,9 +31,8 @@ namespace wasm {
         }
 
         // Set up input data in module memory
-        this->addInputData(call);
-
         moduleMemory = getDefaultMemory(moduleInstance);
+        this->addInputData(call);
 
         // Make the call
         std::vector<IR::Value> invokeArgs = buildInvokeArgs();
@@ -102,7 +101,7 @@ namespace wasm {
      */
     void WasmModule::setUpMemory(message::FunctionCall &call) {
         // Make sure we have a big enough minimum memory size
-        //this->module.memories.defs[0].type.size.min = MIN_MEMORY_SIZE;
+        this->module.memories.defs[0].type.size.min = MIN_MEMORY_SIZE;
 
         // Define input data segment
         this->addDataSegment(INPUT_START);
