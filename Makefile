@@ -84,8 +84,8 @@ untar-tools:
 tar-tools:
 	cd wasm-waterfall/src/work/ && tar -cf toolchain.tar.gz wasm-install && mv toolchain.tar.gz ../../../
 
-#build-musl:
-#	python wasm-waterfall/src/build.py --no-sync --build-include musl --no-test --no-tool-tests
+build-musl-waterfall:
+	python wasm-waterfall/src/build.py --sync-include musl --build-include musl --no-test --no-tool-tests
 
 build-musl:
 	cd musl && python libc.py \
