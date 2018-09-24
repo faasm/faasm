@@ -41,9 +41,36 @@ namespace wasm {
         return (I32) count;
     }
 
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_readv", I32, __syscall_readv,
+                              I32 a, I32 b, I32 c) {
+        printf("SYSCALL - readv %i %i %i \n", a, b, c);
+        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_read", I32, __syscall_read,
+                              I32 a, I32 b, I32 c) {
+        printf("SYSCALL - read %i %i %i \n", a, b, c);
+        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "puts", I32, puts, I32 strPtr) {
+        Runtime::MemoryInstance *memoryPtr = getModuleMemory();
+        char* string = &Runtime::memoryRef<char>(memoryPtr, (Uptr)strPtr);
+
+        printf("puts - %s\n", string);
+
+        return 0;
+    }
+
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_ioctl", I32, __syscall_ioctl,
                                                  I32 a, I32 b, I32 c, I32 d, I32 e, I32 f) {
         printf("SYSCALL - ioctl %i %i %i %i %i %i\n", a, b, c, d, e, f);
+
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "ioctl", I32, ioctl, I32 a, I32 b, I32 c) {
+        printf("INTRINSIC - ioctl %i %i %i\n", a, b, c);
 
         return 0;
     }
@@ -60,7 +87,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_llseek", I32, __syscall_llseek, I32 a, I32 b, I32 c, I32 d, I32 e) {
         printf("SYSCALL - llseek %i %i %i %i %i\n", a, b, c, d, e);
-        return 0;
+        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_close", I32, __syscall_close, I32 a) {
@@ -71,6 +98,27 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_futex", I32, __syscall_futex,
                               I32 a, I32 b, I32 c, I32 d, I32 e, I32 f) {
         printf("SYSCALL - futex %i %i %i %i %i %i\n", a, b, c, d, e, f);
+        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_fcntl64", I32, __syscall_fcntl64,
+                              I32 a, I32 b, I32 c) {
+        printf("SYSCALL - fcntl64 %i %i %i\n", a, b, c);
+        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_fstat64", I32, __syscall_fstat64, I32 a, I32 b) {
+        printf("SYSCALL - fstat64 %i %i \n", a, b);
+        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_stat64", I32, __syscall_stat64, I32 a, I32 b) {
+        printf("SYSCALL - stat64 %i %i \n", a, b);
+        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_access", I32, __syscall_access, I32 a, I32 b) {
+        printf("SYSCALL - access %i %i \n", a, b);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
@@ -124,8 +172,9 @@ namespace wasm {
         I32 tv_nsec;
     };
 
-    DEFINE_INTRINSIC_FUNCTION(env, "_clock_gettime", I32, _clock_gettime, I32 clockId, I32 resultAddress) {
-        printf("INTRINSIC - _clock_gettime\n");
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_clock_gettime", I32, __syscall_clock_gettime,
+            I32 clockId, I32 resultAddress) {
+        printf("INTRINSIC - clock_gettime %i %i\n", clockId, resultAddress);
 
         auto result =  Runtime::memoryRef<wasm_timespec>(getModuleMemory(), (Uptr) resultAddress);
 
@@ -140,9 +189,26 @@ namespace wasm {
         return 0;
     }
 
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_gettimeofday", I32, __syscall_gettimeofday,
+                              I32 a, I32 b) {
+        printf("SYSCALL - gettimeofday %i %i\n", a, b);
+        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+    }
+
     // ------------------------
     // Misc
     // ------------------------
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__unsupported_syscall", I32, __unsupported_syscall,
+            I32 a, I32 b, I32 c, I32 d, I32 e, I32 f, I32 g) {
+        printf("SYSCALL - UNSUPPORTED %i %i %i %i %i %i %i \n", a, b, c, d, e, f, g);
+        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall", I32, __syscall, I32 a, I32 b) {
+        printf("SYSCALL - generic (syscall) %i %i\n", a, b);
+        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+    }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_exit_group", I32, __syscall_exit_group, I32 a) {
         printf("SYSCALL - exit_group %i\n", a);
@@ -165,26 +231,33 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_rt_sigprocmask", I32, __syscall_rt_sigprocmask, I32 a, I32 b, I32 c) {
-        printf("SYSCALL - rt_sigprocmask) %i %i %i\n", a, b, c);
+        printf("SYSCALL - rt_sigprocmask %i %i %i\n", a, b, c);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     // ------------------------
-    // Wavix
+    // Memory
     // ------------------------
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__wavix_get_num_args", I32, __wavix_get_num_args) {
-        printf("WAVIX - get_num_args\n");
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_mmap", I32, __syscall_mmap,
+            I32 a, I32 b, I32 c, I32 d, I32 e, I32 f) {
+        printf("SYSYCALL - mmap %i %i %i %i %i %i\n", a, b, c, d, e, f);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__wavix_get_arg_length", I32, __wavix_get_arg_length, I32 a) {
-        printf("WAVIX - get_arg_length\n");
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_mremap", I32, __syscall_mremap,
+                              I32 a, I32 b, I32 c, I32 d, I32 e) {
+        printf("SYSYCALL - mremap %i %i %i %i %i\n", a, b, c, d, e);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__wavix_get_arg", void, __wavix_get_arg, I32 a, I32 b, I32 c) {
-        printf("WAVIX - get_arg\n");
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_madvise", I32, __syscall_madvise, I32 a, I32 b, I32 c) {
+        printf("SYSYCALL - madvise %i %i %i\n", a, b, c);
+        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_munmap", I32, __syscall_munmap, I32 a, I32 b) {
+        printf("SYSYCALL - munmap %i %i\n", a, b);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 }
