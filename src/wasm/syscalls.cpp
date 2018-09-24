@@ -282,19 +282,30 @@ namespace wasm {
             case(SocketCalls::recv): {
                 printf("SYSCALL - recv %i %i\n", call, argsPtr);
 
-                U32 *subCallArgs =  Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 4);
-                U32 sockfd = subCallArgs[0];
-                U32 bufPtr = subCallArgs[1];
-                U32 length = subCallArgs[2];
-                U32 flags = subCallArgs[3];
-
-                printf("SYSCALL - recv %i %i %i %i\n", sockfd, bufPtr, length, flags);
                 return 0;
             }
 
             case(SocketCalls::sendto): {
-                printf("SYSCALL - sendto %i %i\n", call, argsPtr);
-                return 0;
+                U32 *subCallArgs =  Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 6);
+                I32 sockfd = subCallArgs[0];
+
+                I32 msgPtr = subCallArgs[1];
+                I32 msgLen = subCallArgs[2];
+                U8 *msgArray = Runtime::memoryArrayPtr<U8>(memoryPtr, msgPtr, msgLen);
+
+                I32 flags = subCallArgs[3];
+
+                I32 sockAddrPtr = subCallArgs[4];
+                auto sockAddr =  Runtime::memoryRef<wasm_sockaddr>(getModuleMemory(), sockAddrPtr);
+
+                I32 sockAddrLen = subCallArgs[5];
+
+                printf("SYSCALL - sendto - %i %i %i %i %i %i\n", sockfd, msgPtr, msgLen, flags, sockAddrPtr, sockAddrLen);
+                printf("SYSCALL - sendto message: %i %i %i\n", msgArray[0], msgArray[1], msgArray[2]);
+                printf("SYSCALL - sendto sockAddr.sa_family: %i\n", sockAddr.sa_family);
+                printf("SYSCALL - sendto sockAddr: %i %i %i\n", sockAddr.sa_data[0], sockAddr.sa_data[1], sockAddr.sa_data[2]);
+
+                return msgLen;
             }
 
             case(SocketCalls::recvfrom): {
