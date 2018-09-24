@@ -12,6 +12,12 @@ using namespace WAVM;
 namespace wasm {
     WasmModule::WasmModule() = default;
 
+    thread_local Runtime::MemoryInstance* moduleMemory = nullptr;
+
+    Runtime::MemoryInstance* getModuleMemory() {
+        return moduleMemory;
+    }
+
     /**
      * Executes the given function call
      */
@@ -30,8 +36,10 @@ namespace wasm {
             throw std::runtime_error(errorMsg);
         }
 
-        // Set up input data in module memory
+        // Get reference to module memory
         moduleMemory = getDefaultMemory(moduleInstance);
+
+        // Set up input data in module memory
         this->addInputData(call);
 
         // Make the call

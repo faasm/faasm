@@ -16,8 +16,6 @@
 using namespace WAVM;
 
 namespace wasm {
-    thread_local Runtime::MemoryInstance* moduleMemory = nullptr;
-
     DECLARE_INTRINSIC_MODULE(env);
 
     const std::string ENTRYPOINT_FUNC = "run";
@@ -41,6 +39,8 @@ namespace wasm {
     const int CHAIN_DATA_START = CHAIN_NAMES_START + MAX_CHAIN_NAME_BYTES;
 
     const int MIN_MEMORY_SIZE = CHAIN_DATA_START + (10 * 1024);
+
+    Runtime::MemoryInstance* getModuleMemory();
 
     class WasmModule {
     public:

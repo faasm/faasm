@@ -10,12 +10,11 @@
 
 #include <atomic>
 
+#include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/RuntimeData.h>
 #include <WAVM/Runtime/Intrinsics.h>
 
-using namespace WAVM::IR;
-using namespace WAVM::Runtime;
-
+using namespace WAVM;
 
 namespace wasm {
     DEFINE_INTRINSIC_MODULE(env)
@@ -30,10 +29,11 @@ namespace wasm {
         struct iovec* native_iovec = new(alloca(sizeof(iovec) * iovcnt)) struct iovec[iovcnt];
         for(U32 i = 0; i < iovcnt; i++)
         {
-            U32 base = memoryRef<U32>(moduleMemory, iov + i * 8);
-            U32 len = memoryRef<U32>(moduleMemory, iov + i * 8 + 4);
+            Runtime::MemoryInstance *memoryPtr = getModuleMemory();
+            U32 base = Runtime::memoryRef<U32>(memoryPtr, iov + i * 8);
+            U32 len = Runtime::memoryRef<U32>(memoryPtr, iov + i * 8 + 4);
 
-            native_iovec[i].iov_base = memoryArrayPtr<U8>(moduleMemory, base, len);
+            native_iovec[i].iov_base = Runtime::memoryArrayPtr<U8>(memoryPtr, base, len);
             native_iovec[i].iov_len = len;
         }
         Iptr count = writev(fileno(stdout), native_iovec, iovcnt);
@@ -80,13 +80,14 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_socketcall", I32, __syscall_socketcall, I32 syscallNo, I32 argsPtr) {
 
-        U32 *args = memoryArrayPtr<U32>(moduleMemory, argsPtr, 2);
+        Runtime::MemoryInstance *memoryPtr = getModuleMemory();
+        U32 *args = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 2);
         U32 call = args[0];
         U32 callArgsPtr = args[1];
 
         switch (call) {
             case (1): { // socket
-                U32 *subCallArgs = memoryArrayPtr<U32>(moduleMemory, callArgsPtr, 3);
+                U32 *subCallArgs =  Runtime::memoryArrayPtr<U32>(memoryPtr, callArgsPtr, 3);
                 U32 domain = subCallArgs[0];
                 U32 type = subCallArgs[1];
                 U32 protocol = subCallArgs[2];
@@ -106,7 +107,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "_gethostbyname", I32, _gethostbyname, I32 hostnamePtr) {
-        auto hostname = &memoryRef<char>(moduleMemory, (Uptr) hostnamePtr);
+        auto hostname = & Runtime::memoryRef<char>(getModuleMemory(), (Uptr) hostnamePtr);
 
         printf("INTRINSIC - gethostbyname %s\n", hostname);
 
@@ -126,7 +127,7 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "_clock_gettime", I32, _clock_gettime, I32 clockId, I32 resultAddress) {
         printf("INTRINSIC - _clock_gettime\n");
 
-        auto result = memoryRef<wasm_timespec>(moduleMemory, (Uptr) resultAddress);
+        auto result =  Runtime::memoryRef<wasm_timespec>(getModuleMemory(), (Uptr) resultAddress);
 
         // Fake a clock incrementing by 1 with each call
         static std::atomic<U64> fakeClock;
