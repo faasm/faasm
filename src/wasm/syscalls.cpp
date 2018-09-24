@@ -33,7 +33,9 @@ using namespace WAVM;
  * long = I32/U32
  * int = I32/U32
  * char = U8
- * 
+ * pointers = Uptr
+ * size_t = I32
+ *
  */
 
 namespace wasm {
@@ -190,8 +192,14 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_socketcall", I32, __syscall_socketcall, I32 call, I32 argsPtr) {
         Runtime::MemoryInstance *memoryPtr = getModuleMemory();
 
+        // NOTE
+        // We don't want to support server-side socket syscalls as we expect functions
+        // only to be clients
+
         switch (call) {
             case (SocketCalls::socket): {
+                // TODO: limit/ track which sockets are in use?
+
                 U32 *subCallArgs =  Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 3);
                 U32 domain = subCallArgs[0];
                 U32 type = subCallArgs[1];
@@ -203,7 +211,20 @@ namespace wasm {
 
                 return (I32) sock;
             }
-            case(SocketCalls::bind): {
+
+            case(SocketCalls::bind):
+                // Server-side
+                printf("SYSCALL - bind %i %i\n", call, argsPtr);
+
+                throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+
+            case(SocketCalls::accept):
+                // Server-side
+                printf("SYSCALL - accept %i %i\n", call, argsPtr);
+
+                throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+
+            case(SocketCalls::connect): {
                 U32 *subCallArgs =  Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 3);
                 I32 sockfd = subCallArgs[0];
 
@@ -212,40 +233,52 @@ namespace wasm {
 
                 I32 addrLen = subCallArgs[2];
 
-                printf("SYSCALL - bind %i %i %i\n", sockfd, addrPtr, addrLen);
-                printf("SYSCALL - bind sa_family: %i\n", addr.sa_family);
-                printf("SYSCALL - bind data: %i %i %i\n", addr.sa_data[0], addr.sa_data[1], addr.sa_data[2]);
+                printf("SYSCALL - connect - %i %i %i\n", sockfd, addrPtr, addrLen);
+                printf("SYSCALL - connect sa_family: %i\n", addr.sa_family);
+                printf("SYSCALL - connect data: %i %i %i\n", addr.sa_data[0], addr.sa_data[1], addr.sa_data[2]);
 
                 return 0;
             }
-            case(SocketCalls::connect): {
-                printf("SYSCALL - connect %i %i\n", call, argsPtr);
-                return 0;
-            }
+
             case(SocketCalls::listen): {
+                // Server-side
                 printf("SYSCALL - listen %i %i\n", call, argsPtr);
-                return 0;
+
+                throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
             }
-            case(SocketCalls::accept): {
-                printf("SYSCALL - accept %i %i\n", call, argsPtr);
-                return 0;
-            }
+
             case(SocketCalls::getsockname): {
                 printf("SYSCALL - getsockname %i %i\n", call, argsPtr);
                 return 0;
             }
+
             case(SocketCalls::getpeername): {
                 printf("SYSCALL - getpeername %i %i\n", call, argsPtr);
                 return 0;
             }
+
             case(SocketCalls::socketpair): {
                 printf("SYSCALL - socketpair %i %i\n", call, argsPtr);
                 return 0;
             }
+
             case(SocketCalls::send): {
-                printf("SYSCALL - send %i %i\n", call, argsPtr);
-                return 0;
+                U32 *subCallArgs =  Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 4);
+                I32 sockfd = subCallArgs[0];
+
+                I32 msgPtr = subCallArgs[1];
+                I32 len = subCallArgs[2];
+                U8 *msgArray = Runtime::memoryArrayPtr<U8>(memoryPtr, msgPtr, len);
+
+                I32 flags = subCallArgs[3];
+
+                printf("SYSCALL - send %i %i %i %i \n", sockfd, msgPtr, len, flags);
+                printf("SYSCALL - send message: %i %i %i \n", msgArray[0], msgArray[1], msgArray[2]);
+
+                // Assume all bytes sent
+                return len;
             }
+
             case(SocketCalls::recv): {
                 printf("SYSCALL - recv %i %i\n", call, argsPtr);
 
@@ -258,10 +291,12 @@ namespace wasm {
                 printf("SYSCALL - recv %i %i %i %i\n", sockfd, bufPtr, length, flags);
                 return 0;
             }
+
             case(SocketCalls::sendto): {
                 printf("SYSCALL - sendto %i %i\n", call, argsPtr);
                 return 0;
             }
+
             case(SocketCalls::recvfrom): {
                 printf("SYSCALL - recvfrom %i %i\n", call, argsPtr);
                 return 0;
@@ -270,6 +305,7 @@ namespace wasm {
                 printf("SYSCALL - shutdown %i %i\n", call, argsPtr);
                 return 0;
             }
+
             case(SocketCalls::setsockopt): {
                 printf("SYSCALL - setsockopt %i %i\n", call, argsPtr);
                 return 0;
@@ -278,26 +314,32 @@ namespace wasm {
                 printf("SYSCALL - getsockopt %i %i\n", call, argsPtr);
                 return 0;
             }
+
             case(SocketCalls::sendmsg): {
                 printf("SYSCALL - sendmsg %i %i\n", call, argsPtr);
                 return 0;
             }
+
             case(SocketCalls::recvmsg): {
                 printf("SYSCALL - recvmsg %i %i\n", call, argsPtr);
                 return 0;
             }
+
             case(SocketCalls::accept4): {
                 printf("SYSCALL - accept4 %i %i\n", call, argsPtr);
                 return 0;
             }
+
             case(SocketCalls::recvmmsg): {
                 printf("SYSCALL - recvmmsg %i %i\n", call, argsPtr);
                 return 0;
             }
+
             case(SocketCalls::sendmmsg): {
                 printf("SYSCALL - sendmmsg %i %i\n", call, argsPtr);
                 return 0;
             }
+
             default: {
                 printf("Unrecognised socketcall %i\n", call);
                 return 0;
