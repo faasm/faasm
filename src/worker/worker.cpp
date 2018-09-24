@@ -19,6 +19,8 @@ namespace worker {
         auto tid = (pid_t) syscall(SYS_gettid);
         cgroup->addThread(tid);
 
+        std::cout << "Starting call:  " << call.user() << " - " << call.function() << std::endl;
+
         // Create and execute the module
         wasm::WasmModule module;
         module.execute(call);

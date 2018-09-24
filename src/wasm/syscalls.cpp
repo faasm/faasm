@@ -1,20 +1,40 @@
 #include "wasm.h"
 
-#include <unistd.h>
+#include <atomic>
+#include <iostream>
 #include <stdio.h>
 #include <string.h>
-#include <iostream>
-#include <sys/types.h>
+#include <unistd.h>
+#include <sys/socket.h>
 #include <sys/syscall.h>
+#include <sys/types.h>
 #include <sys/uio.h>
-
-#include <atomic>
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/RuntimeData.h>
 #include <WAVM/Runtime/Intrinsics.h>
 
 using namespace WAVM;
+
+/**
+ * USEFUL NOTES
+ *
+ * Any syscalls here must be included in the musl port at:
+ *   - musl/arch/wasm32/syscall_arch.h and
+ *   - musl/arch/wasm32/libc.imports
+ *
+ * Once implemented there, they will be referenced in the wasm files, and stubbed at runtime if they
+ * don't exist in here.
+ *
+ * Any structs passed as arguments must be re-implemented here with the following mappings
+ * (respecting signed/ unsigned):
+ *
+ * short = I16/U16
+ * long = I32/U32
+ * int = I32/U32
+ * char = U8
+ * 
+ */
 
 namespace wasm {
     DEFINE_INTRINSIC_MODULE(env)
@@ -150,17 +170,29 @@ namespace wasm {
         sendmmsg,
     };
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_socketcall", I32, __syscall_socketcall, I32 a, I32 b) {
+    /** Socket-related structs (see https://beej.us/guide/bgnet/html/multi/sockaddr_inman.html) */
+    struct wasm_sockaddr {
+        U16 sa_family;
+        U8 sa_data[14];
+    };
 
+    struct wasm_in_addr {
+        U32 s_addr;
+    };
+
+    struct wasm_sockaddr_in {
+        U8 sin_family;
+        U8 sin_port;
+        struct  wasm_in_addr sin_addr;
+        U8 sin_zero[8];
+    };
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_socketcall", I32, __syscall_socketcall, I32 call, I32 argsPtr) {
         Runtime::MemoryInstance *memoryPtr = getModuleMemory();
-
-        U32 *args = Runtime::memoryArrayPtr<U32>(memoryPtr, b, 2);
-        U32 call = args[0];
-        U32 callArgsPtr = args[1];
 
         switch (call) {
             case (SocketCalls::socket): {
-                U32 *subCallArgs =  Runtime::memoryArrayPtr<U32>(memoryPtr, callArgsPtr, 3);
+                U32 *subCallArgs =  Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 3);
                 U32 domain = subCallArgs[0];
                 U32 type = subCallArgs[1];
                 U32 protocol = subCallArgs[2];
@@ -172,41 +204,52 @@ namespace wasm {
                 return (I32) sock;
             }
             case(SocketCalls::bind): {
-                printf("SYSCALL - bind %i %i\n", a, b);
+                U32 *subCallArgs =  Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 3);
+                I32 sockfd = subCallArgs[0];
+
+                I32 addrPtr = subCallArgs[1];
+                auto addr =  Runtime::memoryRef<wasm_sockaddr>(getModuleMemory(), addrPtr);
+
+                I32 addrLen = subCallArgs[2];
+
+                printf("SYSCALL - bind %i %i %i\n", sockfd, addrPtr, addrLen);
+                printf("SYSCALL - bind sa_family: %i\n", addr.sa_family);
+                printf("SYSCALL - bind data: %i %i %i\n", addr.sa_data[0], addr.sa_data[1], addr.sa_data[2]);
+
                 return 0;
             }
             case(SocketCalls::connect): {
-                printf("SYSCALL - connect %i %i\n", a, b);
+                printf("SYSCALL - connect %i %i\n", call, argsPtr);
                 return 0;
             }
             case(SocketCalls::listen): {
-                printf("SYSCALL - listen %i %i\n", a, b);
+                printf("SYSCALL - listen %i %i\n", call, argsPtr);
                 return 0;
             }
             case(SocketCalls::accept): {
-                printf("SYSCALL - accept %i %i\n", a, b);
+                printf("SYSCALL - accept %i %i\n", call, argsPtr);
                 return 0;
             }
             case(SocketCalls::getsockname): {
-                printf("SYSCALL - getsockname %i %i\n", a, b);
+                printf("SYSCALL - getsockname %i %i\n", call, argsPtr);
                 return 0;
             }
             case(SocketCalls::getpeername): {
-                printf("SYSCALL - getpeername %i %i\n", a, b);
+                printf("SYSCALL - getpeername %i %i\n", call, argsPtr);
                 return 0;
             }
             case(SocketCalls::socketpair): {
-                printf("SYSCALL - socketpair %i %i\n", a, b);
+                printf("SYSCALL - socketpair %i %i\n", call, argsPtr);
                 return 0;
             }
             case(SocketCalls::send): {
-                printf("SYSCALL - send %i %i\n", a, b);
+                printf("SYSCALL - send %i %i\n", call, argsPtr);
                 return 0;
             }
             case(SocketCalls::recv): {
-                printf("SYSCALL - recv %i %i\n", a, b);
+                printf("SYSCALL - recv %i %i\n", call, argsPtr);
 
-                U32 *subCallArgs =  Runtime::memoryArrayPtr<U32>(memoryPtr, callArgsPtr, 4);
+                U32 *subCallArgs =  Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 4);
                 U32 sockfd = subCallArgs[0];
                 U32 bufPtr = subCallArgs[1];
                 U32 length = subCallArgs[2];
@@ -216,43 +259,43 @@ namespace wasm {
                 return 0;
             }
             case(SocketCalls::sendto): {
-                printf("SYSCALL - sendto %i %i\n", a, b);
+                printf("SYSCALL - sendto %i %i\n", call, argsPtr);
                 return 0;
             }
             case(SocketCalls::recvfrom): {
-                printf("SYSCALL - recvfrom %i %i\n", a, b);
+                printf("SYSCALL - recvfrom %i %i\n", call, argsPtr);
                 return 0;
             }
             case(SocketCalls::shutdown): {
-                printf("SYSCALL - shutdown %i %i\n", a, b);
+                printf("SYSCALL - shutdown %i %i\n", call, argsPtr);
                 return 0;
             }
             case(SocketCalls::setsockopt): {
-                printf("SYSCALL - setsockopt %i %i\n", a, b);
+                printf("SYSCALL - setsockopt %i %i\n", call, argsPtr);
                 return 0;
             }
             case(SocketCalls::getsockopt): {
-                printf("SYSCALL - getsockopt %i %i\n", a, b);
+                printf("SYSCALL - getsockopt %i %i\n", call, argsPtr);
                 return 0;
             }
             case(SocketCalls::sendmsg): {
-                printf("SYSCALL - sendmsg %i %i\n", a, b);
+                printf("SYSCALL - sendmsg %i %i\n", call, argsPtr);
                 return 0;
             }
             case(SocketCalls::recvmsg): {
-                printf("SYSCALL - recvmsg %i %i\n", a, b);
+                printf("SYSCALL - recvmsg %i %i\n", call, argsPtr);
                 return 0;
             }
             case(SocketCalls::accept4): {
-                printf("SYSCALL - accept4 %i %i\n", a, b);
+                printf("SYSCALL - accept4 %i %i\n", call, argsPtr);
                 return 0;
             }
             case(SocketCalls::recvmmsg): {
-                printf("SYSCALL - recvmmsg %i %i\n", a, b);
+                printf("SYSCALL - recvmmsg %i %i\n", call, argsPtr);
                 return 0;
             }
             case(SocketCalls::sendmmsg): {
-                printf("SYSCALL - sendmmsg %i %i\n", a, b);
+                printf("SYSCALL - sendmmsg %i %i\n", call, argsPtr);
                 return 0;
             }
             default: {
