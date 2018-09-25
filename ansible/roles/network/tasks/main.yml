@@ -7,6 +7,7 @@
     state: present
   with_items:
     - "bridge-utils"
+    - "net-tools"
 
 # Note, dest file must not have a dot in it
 - name: "Put interface config in place"
@@ -14,6 +15,13 @@
   template:
     src: "faasm-interfaces.conf"
     dest: "/etc/network/interfaces.d/faasm"
+
+- name: "Make sure interfaces.d is included"
+  become: yes
+  lineinfile:
+    path: /etc/network/interfaces
+    line: "source-directory /etc/network/interfaces.d"
+    create: yes
 
 - name: "Restart networking"
   become: yes

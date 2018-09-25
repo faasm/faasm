@@ -220,8 +220,6 @@ The local development process is a bit rough around the edges at the moment but 
 
 ### Set-up
 
-(See the note re. 18.04 below if you're using that).
-
 First of all we want't to ensure consistent interface naming (`eth0` etc.) so you need to:
 
 - Edit `/etc/default/grub` and add `net.ifnames=0 biosdevname=0` to `GRUB_CMDLINE_LINUX_DEFAULT`
