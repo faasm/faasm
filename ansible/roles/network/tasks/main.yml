@@ -8,8 +8,15 @@
   with_items:
     - "bridge-utils"
 
+# Note, dest file must not have a dot in it
 - name: "Put interface config in place"
   become: yes
   template:
-    src: "faasm-interfaces.yml"
-    dest: "/etc/network/interfaces.d/faasm.yaml"
+    src: "faasm-interfaces.conf"
+    dest: "/etc/network/interfaces.d/faasm"
+
+- name: "Restart networking"
+  become: yes
+  service:
+    name: networking
+    state: restarted
