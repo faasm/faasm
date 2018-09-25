@@ -1,0 +1,15 @@
+
+
+- name: "Install packages"
+  become: yes
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - "bridge-utils"
+
+- name: "Put interface config in place"
+  become: yes
+  template:
+    src: "faasm-interfaces.yml"
+    dest: "/etc/network/interfaces.d/faasm.yaml"

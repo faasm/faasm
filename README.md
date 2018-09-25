@@ -27,7 +27,6 @@ writing.
 
 ## Network
 
-TBC
 
 ## Filesystem
 
@@ -216,6 +215,44 @@ master Kubernetes node. This could be replaced by an object store in future.
 Below are instructions for building, testing and developing.
 
 The local development process is a bit rough around the edges at the moment but can be improved in future.
+
+## Networking
+
+### Set-up
+
+(See the note re. 18.04 below if you're using that).
+
+First of all we want't to ensure consistent interface naming (`eth0` etc.) so you need to:
+
+- Edit `/etc/default/grub` and add `net.ifnames=0 biosdevname=0` to `GRUB_CMDLINE_LINUX_DEFAULT`
+- Run `sudo update-grub`
+
+We then need to configure some network interfaces. This is done via a make target:
+
+```
+make setup-network
+```
+
+### Ubuntu 18.04 and `netplan`
+
+If you're using Ubuntu 18.04, I've not yet configured the project for `netplan` so we revert back to `ifupdown`:
+
+- Edit `/etc/default/grub` and add `netcfg/do_not_use_netplan=true` to `GRUB_CMDLINE_LINUX` (not `GRUB_CMDLINE_LINUX_DEFAULT`)
+- Run `sudo update-grub`
+- Run `apt install ifupdown`
+- Reboot
+
+### Ubuntu desktop and NetworkManager
+
+To avoid conflicts you may need to edit your `/etc/NetworkManager/NetworkManager.conf` to include:
+
+```
+[main]
+plugins=ifupdown,keyfile
+
+[ifupdown]
+managed=false
+```
 
 ## Submodules
 

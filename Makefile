@@ -73,6 +73,9 @@ setup-k8:
 setup-cgroup:
 	cd ansible && ansible-playbook cgroupv1.yml --ask-become-pass
 
+setup-network:
+	cd ansible && ansible-playbook network.yml --ask-become-pass
+
 # WASM toolchain
 
 build-tools:

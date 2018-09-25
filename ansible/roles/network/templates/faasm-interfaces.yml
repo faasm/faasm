@@ -1,0 +1,5 @@
+
+auto faasm0
+iface faasm0 inet static
+  bridge_ports eth0
+  bridge_stp off
