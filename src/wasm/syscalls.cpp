@@ -290,8 +290,8 @@ namespace wasm {
                         result = sendto(sockfd, buf, bufLen, flags, &sockAddr, sizeof(sockAddr));
                     }
                     else {
-                        // TODO - work out what's going wrong here
-                        //result = recvfrom(sockfd, buf, bufLen, flags, &sockAddr, sizeof(sockAddr));
+                        socklen_t addrLen = sizeof(sockAddr);
+                        result = recvfrom(sockfd, buf, bufLen, flags, &sockAddr, &addrLen);
                     }
                 }
 
