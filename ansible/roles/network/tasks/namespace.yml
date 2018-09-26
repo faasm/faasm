@@ -1,0 +1,79 @@
+---
+
+# Blog post: https://blogs.igalia.com/dpino/2016/04/10/network-namespaces/
+
+- set_fact:
+    ns_name: "faasm{{ ns_idx }}"
+    vif_name: "faasm{{ ns_idx }}"
+    vif_peer: "faasmp{{ ns_idx }}"
+    ip_addr: "10.200.{{ ns_idx }}.1"
+
+- set_fact:
+    ip_range: "{{ ip_addr }}/24"
+    ip_range_long: "{{ ip_addr }}/255.255.255.0"
+
+# ----------------------------
+# Namespace
+# ----------------------------
+
+- name: "Remove namespace {{ ns_name }} if exists"
+  become: yes
+  shell: "ip netns del {{ ns_name }} || true"
+
+- name: "Create namespace {{ ns_name }}"
+  become: yes
+  shell: "ip netns add {{ ns_name }}"
+
+# ----------------------------
+# Virtual interface pair
+# ----------------------------
+
+- name: "Create veth link ({{ vif_name }} <-> {{ vif_peer }}"
+  become: yes
+  shell: "ip link add {{ vif_name }} type veth peer name {{ vif_peer }}"
+
+- name: "Add {{ vif_peer }} to namespace {{ ns_name }}"
+  become: yes
+  shell: "ip link set {{ vif_peer }} netns {{ ns_name }}"
+
+- name: "Set up IP range {{ ip_range }} for {{ vif_name }}"
+  become: yes
+  shell: "ip addr add {{ ip_range }} dev {{ vif_name }}"
+
+- name: "Set up IP range {{ ip_range }} for {{ vif_peer }}"
+  become: yes
+  shell: "ip netns exec {{ ns_name }} ip addr add {{ ip_range }} dev {{ vif_peer }}"
+
+- name: "Bring up {{ vif_name }}"
+  become: yes
+  shell: "ip link set {{ vif_name }} up"
+
+- name: "Bring up {{ vif_peer }} and lo"
+  become: yes
+  shell: "ip netns exec {{ ns_name }} ip link set {{ item }} up"
+  with_items:
+    - "{{ vif_peer }}"
+    - "lo"
+
+- name: "Set up default route through {{ vif_peer }} in {{ ns_name }}"
+  become: yes
+  shell: "ip netns exec {{ ns_name }} ip route add default via {{ ip_addr }}"
+
+# ----------------------------
+# iptables
+# ----------------------------
+
+- name: "Remove masquerading of {{ ip_range_long }} if present"
+  become: yes
+  shell: "iptables -t nat -D POSTROUTING -s {{ ip_range }} -o eth0 -j MASQUERADE | true"
+
+- name: "Enable masquerading of {{ ip_range_long }} on eth0"
+  become: yes
+  shell: "iptables -t nat -A POSTROUTING -s {{ ip_range }} -o eth0 -j MASQUERADE"
+
+- name: "Allow forwarding between eth0 and {{ vif_name }}"
+  become: yes
+  shell: "{{ item }}"
+  with_items:
+    - "iptables -A FAASM -i eth0 -o {{ vif_name }} -j ACCEPT"
+    - "iptables -A FAASM -o eth0 -i {{ vif_name }} -j ACCEPT"

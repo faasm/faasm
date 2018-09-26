@@ -1,4 +1,4 @@
-
+---
 
 - name: "Install packages"
   become: yes
@@ -7,24 +7,37 @@
     state: present
   with_items:
     - "bridge-utils"
-    - "net-tools"
+    - "iproute2"
 
-# Note, dest file must not have a dot in it
-- name: "Put interface config in place"
+- name: "Enable IP forwarding on host"
   become: yes
-  template:
-    src: "faasm-interfaces.conf"
-    dest: "/etc/network/interfaces.d/faasm"
+  shell: "echo 1 > /proc/sys/net/ipv4/ip_forward"
 
-- name: "Make sure interfaces.d is included"
+- name: "Remove existing iptables chain"
   become: yes
-  lineinfile:
-    path: /etc/network/interfaces
-    line: "source-directory /etc/network/interfaces.d"
-    create: yes
+  shell: "{{ item }}"
+  with_items:
+    - "iptables -F FAASM || true"
+    - "iptables -D FORWARD -j FAASM || true"
+    - "iptables -X FAASM || true"
 
-- name: "Restart networking"
+# Note, prepending the rule with -I, not appending with -A
+- name: "Set up custom iptables chain"
   become: yes
-  service:
-    name: networking
-    state: restarted
+  shell: "{{ item }}"
+  with_items:
+    - "iptables -N FAASM"
+    - "iptables -t filter -I FORWARD -j FAASM"
+
+# Repeat namespace creation as many times as necessary
+- name: "Set up namespaces"
+  include_tasks: namespace.yml
+  loop: "{{ range(0, 2) | list }}"
+  loop_control:
+    loop_var: ns_idx
+
+# Add final RETURN at end of faasm chain to avoid breaking any
+# other forwarding (e.g. Docker)
+- name: "Add RETURN to chain"
+  become: yes
+  shell: "iptables -A FAASM -j RETURN"
