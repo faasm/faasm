@@ -6,11 +6,9 @@
     ns_name: "faasm{{ ns_idx }}"
     vif_name: "faasm{{ ns_idx }}"
     vif_peer: "faasmp{{ ns_idx }}"
-    ip_addr: "10.200.{{ ns_idx }}.1"
-
-- set_fact:
-    ip_range: "{{ ip_addr }}/24"
-    ip_range_long: "{{ ip_addr }}/255.255.255.0"
+    base_ip: "10.200.{{ ns_idx }}.0"
+    vif_ip: "10.200.{{ ns_idx }}.1"
+    vif_peer_ip: "10.200.{{ ns_idx }}.2"
 
 # ----------------------------
 # Namespace
@@ -36,17 +34,17 @@
   become: yes
   shell: "ip link set {{ vif_peer }} netns {{ ns_name }}"
 
-- name: "Set up IP range {{ ip_range }} for {{ vif_name }}"
+- name: "Set up IP {{ vif_ip_range }} for {{ vif_name }}"
   become: yes
-  shell: "ip addr add {{ ip_range }} dev {{ vif_name }}"
-
-- name: "Set up IP range {{ ip_range }} for {{ vif_peer }}"
-  become: yes
-  shell: "ip netns exec {{ ns_name }} ip addr add {{ ip_range }} dev {{ vif_peer }}"
+  shell: "ip addr add {{ vif_ip }}/24 dev {{ vif_name }}"
 
 - name: "Bring up {{ vif_name }}"
   become: yes
   shell: "ip link set {{ vif_name }} up"
+
+- name: "Set up IP {{ vif_peer_ip }} for {{ vif_peer }}"
+  become: yes
+  shell: "ip netns exec {{ ns_name }} ip addr add {{ vif_peer_ip }}/24 dev {{ vif_peer }}"
 
 - name: "Bring up {{ vif_peer }} and lo"
   become: yes
@@ -57,19 +55,20 @@
 
 - name: "Set up default route through {{ vif_peer }} in {{ ns_name }}"
   become: yes
-  shell: "ip netns exec {{ ns_name }} ip route add default via {{ ip_addr }}"
+  shell: "ip netns exec {{ ns_name }} ip route add default via {{ vif_ip }}"
 
 # ----------------------------
 # iptables
 # ----------------------------
 
-- name: "Remove masquerading of {{ ip_range_long }} if present"
+- name: "Remove masquerading of {{ base_ip }} if present"
   become: yes
-  shell: "iptables -t nat -D POSTROUTING -s {{ ip_range }} -o eth0 -j MASQUERADE | true"
+  shell: "iptables -t nat -D POSTROUTING -s {{ base_ip }}/24 -o eth0 -j MASQUERADE | true"
 
-- name: "Enable masquerading of {{ ip_range_long }} on eth0"
+# Note use of -I to prepend rather than -A to append
+- name: "Enable masquerading of {{ base_ip }} on eth0"
   become: yes
-  shell: "iptables -t nat -A POSTROUTING -s {{ ip_range }} -o eth0 -j MASQUERADE"
+  shell: "iptables -t nat -I POSTROUTING -s {{ base_ip }}/24 -o eth0 -j MASQUERADE"
 
 - name: "Allow forwarding between eth0 and {{ vif_name }}"
   become: yes
