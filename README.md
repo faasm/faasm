@@ -226,7 +226,7 @@ First of all we want't to ensure consistent interface naming (`eth0` etc.) so yo
 - Edit `/etc/default/grub` and add `net.ifnames=0 biosdevname=0` to `GRUB_CMDLINE_LINUX_DEFAULT`
 - Run `sudo update-grub`
 
-We then need to configure some network interfaces. This is done via a make target:
+We then need to configure some network interfaces and namespaces. This is done via a make target:
 
 ```
 make setup-network
