@@ -1,6 +1,10 @@
 ---
 
+# NOTE: ns_count here determines how many network namespaces/ interfaces we support.
+
 - hosts: localhost
   gather_facts: yes
+  vars:
+    ns_count: 10
   roles:
     - network

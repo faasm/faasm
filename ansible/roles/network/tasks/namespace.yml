@@ -34,7 +34,7 @@
   become: yes
   shell: "ip link set {{ vif_peer }} netns {{ ns_name }}"
 
-- name: "Set up IP {{ vif_ip_range }} for {{ vif_name }}"
+- name: "Set up IP {{ vif_ip }} for {{ vif_name }}"
   become: yes
   shell: "ip addr add {{ vif_ip }}/24 dev {{ vif_name }}"
 

@@ -30,9 +30,9 @@
     - "iptables -t filter -I FORWARD -j FAASM"
 
 # Repeat namespace creation as many times as necessary
-- name: "Set up namespaces"
+- name: "Set up {{ ns_count }} namespaces"
   include_tasks: namespace.yml
-  loop: "{{ range(0, 2) | list }}"
+  loop: "{{ range(0, ns_count) | list }}"
   loop_control:
     loop_var: ns_idx
 
