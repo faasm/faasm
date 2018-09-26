@@ -27,6 +27,7 @@ writing.
 
 ## Network
 
+To isolate networking we can take an approach similar to that used in LXC to isolate containers. Each function has its own virtual network interface and operates in its own network namespace. 
 
 ## Filesystem
 
