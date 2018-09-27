@@ -9,8 +9,6 @@
 
 
 namespace worker {
-    static std::string TOP_LEVEL_CGROUP = "faasm";
-    static std::string TOP_LEVEL_NETNS = "faasm";
     static int WORKER_THREADS = 10;
 
     static util::TokenPool tokenPool(WORKER_THREADS);
@@ -20,16 +18,14 @@ namespace worker {
 
     /** Handles the execution of the function */
     void execFunction(int index, message::FunctionCall call) {
-        auto tid = (pid_t) syscall(SYS_gettid);
-
         // Add this thread to the cgroup
-        CGroup cgroup(TOP_LEVEL_CGROUP);
-        cgroup.addThread(tid);
+        CGroup cgroup;
+        auto tid = (pid_t) syscall(SYS_gettid);
+        cgroup.addThread(tid, CG_CPU);
 
         // Set up network namespace
-        std::string netNsName = TOP_LEVEL_NETNS + std::to_string(index);
-        NetworkNamespace ns(netNsName);
-        ns.addThread(tid);
+        NetworkNamespace ns(index);
+        ns.addCurrentThread();
 
         std::cout << "Starting call:  " << call.user() << " - " << call.function() << std::endl;
 
@@ -38,6 +34,7 @@ namespace worker {
         module.execute(call);
 
         // Release the token
+        std::cout << "Worker releasing slot " << index << std::endl;
         tokenPool.releaseToken(index);
 
         // Dispatch any chained calls
@@ -57,8 +54,8 @@ namespace worker {
 
     void Worker::start() {
         // Create main cgroup with CPU limiting
-        CGroup cgroup(TOP_LEVEL_CGROUP);
-        cgroup.limitCpu();
+        CGroup cgroup;
+        cgroup.addController(CG_CPU);
 
         // Arbitrary loop to stop linting complaining
         for (int i = 0; i < 1000; i++) {
@@ -66,7 +63,7 @@ namespace worker {
             int threadIdx = tokenPool.getToken();
 
             // Get next call (blocking)
-            std::cout << "Worker waiting..." << std::endl;
+            std::cout << "Worker waiting on slot " << threadIdx << "..." << std::endl;
             message::FunctionCall call = redis.nextFunctionCall();
 
             // New thread to execute function

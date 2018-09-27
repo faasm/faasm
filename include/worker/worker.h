@@ -21,17 +21,18 @@ namespace worker {
     /** CGroup management */
     enum CgroupMode {cg_off, cg_on};
 
+    const std::string CG_CPU = "cpu";
+
     class CGroup {
     public:
-        explicit CGroup(const std::string &name);
+        explicit CGroup();
 
-        void limitCpu();
-        void addThread(int threadId);
+        void addController(const std::string &controller);
+        void addThread(int threadId, const std::string &controller);
 
     private:
         std::string name;
         CgroupMode mode;
-        std::vector<std::string> controllers;
 
         boost::filesystem::path getPathToController(const std::string &controller);
         boost::filesystem::path getPathToFile(const std::string &controller, const std::string &file);
@@ -43,11 +44,12 @@ namespace worker {
 
     class NetworkNamespace {
     public:
-        explicit NetworkNamespace(const std::string &name);
-        void addThread(int threadId);
+        explicit NetworkNamespace(int index);
+        void addCurrentThread();
 
     private:
         std::string name;
+        NetworkIsolationMode mode;
     };
 
     /** Worker wrapper */

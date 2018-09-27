@@ -7,11 +7,12 @@
 
 namespace worker {
     static const std::string BASE_DIR = "/sys/fs/cgroup/";
+    static std::string TOP_LEVEL_CGROUP = "faasm";
 
     static std::mutex tasksMutex;
 
-    CGroup::CGroup(const std::string &name) :
-            name(name) {
+    CGroup::CGroup() {
+        name = TOP_LEVEL_CGROUP;
 
         // Get which cgroup mode we're operating in
         std::string modeEnv = util::getEnvVar("CGROUP_MODE", "on");
@@ -44,35 +45,31 @@ namespace worker {
         boost::filesystem::create_directory(controllerPath);
     }
 
-    void CGroup::limitCpu() {
+    void CGroup::addController(const std::string &controller) {
         if (mode == CgroupMode::cg_off) {
-            std::cout << "Not limiting CPU, cgroup support off" << std::endl;
+            std::cout << "Not limiting " << controller << " cgroup support off" << std::endl;
             return;
         }
 
-        this->mkdirForController("cpu");
-        this->controllers.emplace_back("cpu");
+        this->mkdirForController(controller);
     }
 
-    void CGroup::addThread(pid_t threadId) {
+    void CGroup::addThread(pid_t threadId, const std::string &controller) {
         if (mode == CgroupMode::cg_off) {
             std::cout << "Not adding thread id " << threadId << " cgroup support off" << std::endl;
             return;
         }
 
-        // Add for each controller
-        for (auto &ctrl : this->controllers) {
-            boost::filesystem::path tasksPath = this->getPathToFile(ctrl, "tasks");
+        boost::filesystem::path tasksPath = this->getPathToFile(controller, "tasks");
 
-            // Get lock and write to file
-            std::lock_guard<std::mutex> guard(tasksMutex);
+        // Get lock and write to file
+        std::lock_guard<std::mutex> guard(tasksMutex);
 
-            std::ofstream outfile;
-            outfile.open(tasksPath.string(), std::ios_base::app);
-            outfile << threadId << std::endl;
-            outfile.flush();
+        std::ofstream outfile;
+        outfile.open(tasksPath.string(), std::ios_base::app);
+        outfile << threadId << std::endl;
+        outfile.flush();
 
-            std::cout << "Added thread id " << threadId << " to " << ctrl << ":" << this->name << " at " << tasksPath << std::endl;
-        }
+        std::cout << "Added thread id " << threadId << " to " << controller << ":" << this->name << " at " << tasksPath << std::endl;
     }
 }
