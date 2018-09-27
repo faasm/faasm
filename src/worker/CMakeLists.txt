@@ -5,7 +5,9 @@ include_directories(
 
 add_executable(worker
         cgroup.cpp
+        network.cpp
         worker.cpp
+        threads.cpp
         ${FAASM_INCLUDE_DIR}/worker/worker.h
     )
 

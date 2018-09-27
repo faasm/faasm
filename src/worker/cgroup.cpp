@@ -8,18 +8,18 @@
 namespace worker {
     static const std::string BASE_DIR = "/sys/fs/cgroup/";
 
+    static std::mutex tasksMutex;
+
     CGroup::CGroup(const std::string &name) :
             name(name) {
 
         // Get which cgroup mode we're operating in
-        std::string modeEnv = util::getEnvVar("CGROUP_MODE", "v1");
+        std::string modeEnv = util::getEnvVar("CGROUP_MODE", "on");
 
-        if (modeEnv == "v1") {
-            mode = CgroupMode::v1;
-        } else if (modeEnv == "v2") {
-            mode = CgroupMode::v2;
+        if (modeEnv == "on") {
+            mode = CgroupMode::cg_on;
         } else {
-            mode = CgroupMode::off;
+            mode = CgroupMode::cg_off;
         }
     }
 
@@ -45,7 +45,7 @@ namespace worker {
     }
 
     void CGroup::limitCpu() {
-        if (mode == CgroupMode::off) {
+        if (mode == CgroupMode::cg_off) {
             std::cout << "Not limiting CPU, cgroup support off" << std::endl;
             return;
         }
@@ -55,7 +55,7 @@ namespace worker {
     }
 
     void CGroup::addThread(pid_t threadId) {
-        if (mode == CgroupMode::off) {
+        if (mode == CgroupMode::cg_off) {
             std::cout << "Not adding thread id " << threadId << " cgroup support off" << std::endl;
             return;
         }
@@ -65,7 +65,7 @@ namespace worker {
             boost::filesystem::path tasksPath = this->getPathToFile(ctrl, "tasks");
 
             // Get lock and write to file
-            std::lock_guard<std::mutex> guard(this->tasksMutex);
+            std::lock_guard<std::mutex> guard(tasksMutex);
 
             std::ofstream outfile;
             outfile.open(tasksPath.string(), std::ios_base::app);
