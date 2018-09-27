@@ -217,6 +217,16 @@ Below are instructions for building, testing and developing.
 
 The local development process is a bit rough around the edges at the moment but can be improved in future.
 
+## Ansible 
+
+[Ansible](https://www.ansible.com/) is required to deploy and set up the project. The easiest way to install is to use the Python package manager, `pip`:
+
+```
+sudo pip install -U ansible
+```
+
+Make sure you have version >2.6
+
 ## Networking
 
 ### Set-up
