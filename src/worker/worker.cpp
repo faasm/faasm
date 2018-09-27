@@ -9,7 +9,6 @@
 
 
 namespace worker {
-
     static std::string TOP_LEVEL_CGROUP = "faasm";
     static std::string TOP_LEVEL_NETNS = "faasm";
     static int WORKER_THREADS = 10;
@@ -50,7 +49,7 @@ namespace worker {
         std::cout << "Finished call:  " << call.user() << " - " << call.function() << std::endl;
         redis.setFunctionResult(call, true);
 
-        // TODO running this clean() seems to kill the WAVM execution in all threads
+        // TODO running this clean() seems to kill the WAVM execution in all threads. Memory leak if not called?
         //module.clean();
     }
 

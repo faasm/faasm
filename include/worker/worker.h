@@ -15,6 +15,9 @@
 
 
 namespace worker {
+    /** Funciton called in multithreaded execution to actually do the work */
+    void execFunction(int index, message::FunctionCall call);
+
     /** CGroup management */
     enum CgroupMode {cg_off, cg_on};
 
@@ -42,6 +45,9 @@ namespace worker {
     public:
         explicit NetworkNamespace(const std::string &name);
         void addThread(int threadId);
+
+    private:
+        std::string name;
     };
 
     /** Worker wrapper */

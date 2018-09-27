@@ -1,46 +1,40 @@
 # Faasm
 
-Faasm is a serverless system focused on performance and security. By trusting users' code we can reduce
-isolation, hence achieving good performance while simultaneously enabling features not possible in a 
-strongly isolated environment.
+Faasm is a serverless system focused on performance and security. By trusting users' code we are able to maintain the same level of security with much more lightweight isolation mechanisms than in other platforms.
+
+More lightweight isolation enables better performance and opens the doors to new features not possible in a strongly isolated environment (inter-function communication, shared state etc.).
 
 The project is still a work in progress with many aspects yet to be developed.
 
 # Isolation
 
+## System Calls
+
+Integration between users' functions and the underlying hosts happens at the syscall level, hence we are able to whitelist and virtualise the syscalls we wish to support. This gives fine-grained control over what functions can do, and makes the job of isolating them much easier.
+
 ## Memory
 
-By accepting only functions that can be compiled to WebAssembly, we can rule out a large class of security 
-issues related to memory. The specifics of the WebAssembly memory model and its security implications
-can be found in [the WebAssembly docs](https://webassembly.org/docs/security/).
+By accepting only functions that can be compiled to WebAssembly, we can rule out a large class of security issues related to memory. The specifics of the WebAssembly memory model and its security implications can be found in [the WebAssembly docs](https://webassembly.org/docs/security/).
 
 ## CPU
 
-Linux cgroups support process-level and thread-level CPU control and accounting. They can be enlisted to
-ensure fair access to CPU resource between functions sharing a Faasm node. Basic cgroup CPU limiting can ensure
-that _all user functions get a fair share of the CPU resource on the machine_. This means that if a box is
-resource constrained, all functions running there will be restricted equally.
+Linux cgroup supports process-level and thread-level CPU control and accounting. They can be enlisted to ensure fair access to CPU resource between functions sharing a Faasm node. Basic cgroup CPU limiting can ensure that _all user functions get a fair share of the CPU resource on the machine_. This means that if a box is resource constrained, all functions running there will be restricted equally.
 
-Thread-level support for CPU isolation is available in both V1 and V2 of cgroup although V2 achieves
-it differently and is arguably a bit cleaner. Unfortunately Docker doesn't work with V2 at the time of
-writing.
+Thread-level support for CPU isolation is available in both V1 and V2 of cgroup although V2 achieves it differently and is arguably a bit cleaner. Unfortunately Docker doesn't work with V2 at the time of writing.
 
 ## Network
 
-To isolate networking we can take an approach similar to that used in LXC to isolate containers. Each function has its own virtual network interface and operates in its own network namespace. 
-
-## Filesystem
-
-A filesystem doesn't make much sense in a serverless environment given that functions may run on any machine 
-in the system. As a result the role of the filesystem is greatly diminished.
+To isolate networking we can take an approach similar to that used in LXC to isolate containers. Each function has its own virtual network interface and operates in its own network namespace. These namespaces can be reused across different function invocations if necessary. 
 
 ## Other I/O
 
-I/O other than that concerned with the filesystem and network is not supported in a serverless environment thus can be excluded. 
+A filesystem doesn't make much sense in a serverless environment given that functions may run on different machines on every invocation. Hence the role of a filesystem in a serverless environment is undefined. The need for other types of I/O in a serverless environment is also relatively undefined. 
+
+For now we just don't implement many I/O-related syscalls, but this may change in future.
 
 # Code Generation
 
-Under the hood WAVM uses the following approach for executing wasm:
+Under the hood we use [WAVM](https://github.com/WAVM/WAVM) to execute WebAssembly. WAVM uses the following approach for executing wasm:
 
 - Take in wasm binary or text format
 - Translate into LLVM IR
@@ -64,9 +58,9 @@ When a function is invoked:
 
 Sometimes wasm code contains calls to functions that don't exist (i.e. unresolved imports). In this scenario we generate a "stub" which bombs out if it's called. To hook this into the pipeline outlined above we need to generate object files that can be linked at runtime. 
 
-Generating these files can take a while if there are lots of them, so we store the generated object files for these stubs.
+Generating these files can take a while if there are lots of them, so we store the generated object files for these stubs. Each stub function still needs to have the correct signature to be linked properly, so there will be an object file generated for each different combination of return/ parameter types.
 
-Each stub function still needs to have the correct signature to be linked properly, so there will be an object file generated for each different combination of return/ parameter types.
+This is just a slightly adapted version of the approach WAVM takes by default.
 
 # Usage
 
@@ -139,20 +133,20 @@ calls will go back through the main scheduler and be executed.
 
 ### Toolchain
 
-Faasm does not support Emscripten, instead we focus on the LLVM/ clang toolchain. This is all built as part of the [WebAssembly waterfall](https://github.com/WebAssembly/waterfall). This will build things like clang, lld, musl etc. and is a submodule of this project.
+Faasm currently does not support wasm compiled with Emscripten. Instead we focus on the LLVM/ clang toolchain. This is all built as part of the [WebAssembly waterfall](https://github.com/WebAssembly/waterfall). This will build things like clang, lld, musl etc. and is a submodule of this project.
 
 A tarball of the toolchain is held on S3 and can be downloaded with the `download_toolchain.py` script.
 
 To build the full toolchain (LLVM, Clang, compile-rt, musl), you can use the make target.
-Note that this takes **ages** as it's compiling everything from scratch (it also requires subversion to be installed):
+Note that this takes **ages** as it's compiling everything from scratch (it also requires subversion to be installed amongst other things):
 
 ```
 make setup-tools
 ```
 
-This is currently required as LLVM wasm support is only experimental. In future it may be bundled with LLVM/ clang normally.
+This compilation from scratch is required as LLVM wasm support is only experimental. In future it may be bundled with LLVM/ clang normally.
 
-If you want to update the tarball of the toolchain once it's built, you can run the following, then upload to S3:
+If you want to update the tarball of the toolchain once it's built, you can run the following:
 
 ```
 make tar-tools
@@ -207,9 +201,7 @@ make setup-k8
 
 ## Function storage
 
-Clearly all worker pods need access to the WASM function files. For now these are held on an NFS share hosted on the
-master Kubernetes node. This could be replaced by an object store in future.
-
+Clearly all worker pods need access to the WASM function files. For now these are held on an NFS share hosted on the master Kubernetes node. This could be replaced by an object store in future.
 
 # Installation, Configuration and Development
 
@@ -240,27 +232,6 @@ We then need to configure some network interfaces and namespaces. This is done v
 
 ```
 make setup-network
-```
-
-### Ubuntu 18.04 and `netplan`
-
-If you're using Ubuntu 18.04, I've not yet configured the project for `netplan` so we revert back to `ifupdown`:
-
-- Edit `/etc/default/grub` and add `netcfg/do_not_use_netplan=true` to `GRUB_CMDLINE_LINUX` (not `GRUB_CMDLINE_LINUX_DEFAULT`)
-- Run `sudo update-grub`
-- Run `apt install ifupdown`
-- Reboot
-
-### Ubuntu desktop and NetworkManager
-
-To avoid conflicts you may need to edit your `/etc/NetworkManager/NetworkManager.conf` to include:
-
-```
-[main]
-plugins=ifupdown,keyfile
-
-[ifupdown]
-managed=false
 ```
 
 ## Submodules
@@ -395,30 +366,9 @@ The tests can be found in the `test` directory and executed by running:
 
 They require a local Redis instance to pass and cover most of the codebase.
 
-## Compilation
-
-I've found the easiest non-Emscripten toolchain to use is [wasmception](https://github.com/yurydelendik/wasmception). 
-
-There's also some Python scripts in the `bin` directory that may prove useful.
-
 ## Syscalls
 
 Syscall support is determined by the musl port that we use to compile our code. Currently we're using [my fork](https://github.com/Shillaker/musl) of an experimental (but popular).
 
 The mapping of syscalls is done in [this file](https://github.com/Shillaker/musl/blob/wasm-prototype-1/arch/wasm32/syscall_arch.h) in that repo.
 
-# CGroup V2
-
-To enable `cgroupv2` you need to do the following:
-
-- Add `cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1` to the line starting `GRUB_CMDLINE_LINUX_DEFAULT` in `/etc/default/grub`(separated by spaces)
-- Run `sudo update-grub`
-- Restart the machine
-
-To check it's worked, the file `/sys/fs/cgroup/cgroup.controllers` should exist and contain something like:
-
-```
-cpu io memory pids rdma
-```
-
-Note that currently **Docker does not work with cgroupv2** so this is only applicable to machines running Faasm outside of Docker.
