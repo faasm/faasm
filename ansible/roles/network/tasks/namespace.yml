@@ -53,7 +53,7 @@
     - "{{ vif_peer }}"
     - "lo"
 
-- name: "Set up default route through {{ vif_peer }} in {{ ns_name }}"
+- name: "Set up default route through {{ vif_ip }} in {{ ns_name }}"
   become: yes
   shell: "ip netns exec {{ ns_name }} ip route add default via {{ vif_ip }}"
 
@@ -63,16 +63,9 @@
 
 - name: "Remove masquerading of {{ base_ip }} if present"
   become: yes
-  shell: "iptables -t nat -D POSTROUTING -s {{ base_ip }}/24 -o eth0 -j MASQUERADE | true"
+  shell: "iptables -t nat -D POSTROUTING -s {{ base_ip }}/24 -j MASQUERADE | true"
 
 # Note use of -I to prepend rather than -A to append
 - name: "Enable masquerading of {{ base_ip }} on eth0"
   become: yes
-  shell: "iptables -t nat -I POSTROUTING -s {{ base_ip }}/24 -o eth0 -j MASQUERADE"
-
-- name: "Allow forwarding between eth0 and {{ vif_name }}"
-  become: yes
-  shell: "{{ item }}"
-  with_items:
-    - "iptables -A FAASM -i eth0 -o {{ vif_name }} -j ACCEPT"
-    - "iptables -A FAASM -o eth0 -i {{ vif_name }} -j ACCEPT"
+  shell: "iptables -t nat -I POSTROUTING -s {{ base_ip }}/24 -j MASQUERADE"

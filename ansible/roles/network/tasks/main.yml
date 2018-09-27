@@ -13,31 +13,9 @@
   become: yes
   shell: "echo 1 > /proc/sys/net/ipv4/ip_forward"
 
-- name: "Remove existing iptables chain"
-  become: yes
-  shell: "{{ item }}"
-  with_items:
-    - "iptables -F FAASM || true"
-    - "iptables -D FORWARD -j FAASM || true"
-    - "iptables -X FAASM || true"
-
-# Note, prepending the rule with -I, not appending with -A
-- name: "Set up custom iptables chain"
-  become: yes
-  shell: "{{ item }}"
-  with_items:
-    - "iptables -N FAASM"
-    - "iptables -t filter -I FORWARD -j FAASM"
-
 # Repeat namespace creation as many times as necessary
 - name: "Set up {{ ns_count }} namespaces"
   include_tasks: namespace.yml
   loop: "{{ range(0, ns_count) | list }}"
   loop_control:
     loop_var: ns_idx
-
-# Add final RETURN at end of faasm chain to avoid breaking any
-# other forwarding (e.g. Docker)
-- name: "Add RETURN to chain"
-  become: yes
-  shell: "iptables -A FAASM -j RETURN"
