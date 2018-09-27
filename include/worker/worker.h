@@ -11,28 +11,10 @@
 #include <boost/filesystem.hpp>
 
 #include <proto/faasm.pb.h>
+#include <queue>
 
 
 namespace worker {
-    /** Thread pool */
-    class ThreadPool {
-    public:
-        explicit ThreadPool(int nThreads);
-
-        int getSetExecuting();
-        void setFinished(int threadIdx);
-
-    private:
-        // Variables for keeping track of threads
-        int nThreads;
-        std::set<int> allThreads;
-        std::set<int> executingThreads;
-
-        int getAvailable();
-    };
-
-    class NoThreadsException: public std::exception { };
-
     /** CGroup management */
     enum CgroupMode {cg_off, cg_on};
 

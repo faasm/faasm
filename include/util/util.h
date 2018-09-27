@@ -2,6 +2,10 @@
 
 #include <string>
 #include <vector>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
+
 
 namespace util {
     // Environment manipulation
@@ -20,4 +24,18 @@ namespace util {
 
     // Misc
     int randomInteger();
+
+    // Token pool
+    class TokenPool {
+    public:
+        explicit TokenPool(int nTokens);
+
+        int getToken();
+        void releaseToken(int token);
+
+    private:
+        std::queue<int> tokenQueue;
+        std::mutex queueMutex;
+        std::condition_variable tokenCondition;
+    };
 }
