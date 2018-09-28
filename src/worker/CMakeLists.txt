@@ -3,11 +3,15 @@ include_directories(
         ${FAASM_WAVM_SOURCE_DIR}
 )
 
-add_executable(worker
+add_library(worker_lib
         cgroup.cpp
         network.cpp
-        worker.cpp
+        execution.cpp
         ${FAASM_INCLUDE_DIR}/worker/worker.h
-    )
+)
 
-target_link_libraries(worker wasm)
+target_link_libraries(worker_lib wasm)
+
+add_executable(worker worker.cpp)
+
+target_link_libraries(worker worker_lib)

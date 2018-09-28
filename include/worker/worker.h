@@ -15,28 +15,30 @@
 
 
 namespace worker {
-    /** Funciton called in multithreaded execution to actually do the work */
+    const std::string CGROUP_NAME = "faasm";
+    const std::string BASE_NETNS_NAME = "faasm";
+
+    void execNextFunction();
     void execFunction(int index, message::FunctionCall call);
 
     /** CGroup management */
     enum CgroupMode {cg_off, cg_on};
 
-    const std::string CG_CPU = "cpu";
-
     class CGroup {
     public:
-        explicit CGroup();
+        explicit CGroup(const std::string &name);
 
-        void addController(const std::string &controller);
-        void addThread(int threadId, const std::string &controller);
+        void addCurrentThreadCpu();
 
+        const std::string getName();
+        const CgroupMode getMode();
     private:
         std::string name;
         CgroupMode mode;
 
-        boost::filesystem::path getPathToController(const std::string &controller);
+        void addThread(int threadId, const std::string &controller);
+
         boost::filesystem::path getPathToFile(const std::string &controller, const std::string &file);
-        void mkdirForController(const std::string &controller);
     };
 
     /** Network isolation */
@@ -44,9 +46,11 @@ namespace worker {
 
     class NetworkNamespace {
     public:
-        explicit NetworkNamespace(int index);
+        explicit NetworkNamespace(const std::string &name);
         void addCurrentThread();
 
+        const std::string getName();
+        const NetworkIsolationMode getMode();
     private:
         std::string name;
         NetworkIsolationMode mode;

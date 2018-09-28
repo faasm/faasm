@@ -5,11 +5,7 @@
 
 namespace worker {
 
-    static std::string BASE_NS = "faasm";
-
-    NetworkNamespace::NetworkNamespace(int index) {
-        name = BASE_NS + std::to_string(index);
-
+    NetworkNamespace::NetworkNamespace(const std::string &name) : name(name) {
         // Get which mode we're operating in
         std::string modeEnv = util::getEnvVar("NETNS_MODE", "on");
 
@@ -19,6 +15,14 @@ namespace worker {
             mode = NetworkIsolationMode::ns_off;
         }
     };
+
+    const std::string NetworkNamespace::getName() {
+        return this->name;
+    }
+
+    const NetworkIsolationMode NetworkNamespace::getMode() {
+        return this->mode;
+    }
 
     void NetworkNamespace::addCurrentThread() {
         if(mode == NetworkIsolationMode::ns_off) {

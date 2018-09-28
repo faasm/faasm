@@ -1,19 +1,15 @@
 #include "worker/worker.h"
 
-#include <sys/stat.h>
-#include <thread>
-#include <sstream>
-#include <util/util.h>
+#include <syscall.h>
+#include <sys/types.h>
 
 namespace worker {
     static const std::string BASE_DIR = "/sys/fs/cgroup/";
-    static std::string TOP_LEVEL_CGROUP = "faasm";
+    static const std::string CG_CPU = "cpu";
 
-    static std::mutex tasksMutex;
+    static std::mutex groupMutex;
 
-    CGroup::CGroup() {
-        name = TOP_LEVEL_CGROUP;
-
+    CGroup::CGroup(const std::string &name) : name(name) {
         // Get which cgroup mode we're operating in
         std::string modeEnv = util::getEnvVar("CGROUP_MODE", "on");
 
@@ -24,34 +20,27 @@ namespace worker {
         }
     }
 
-    boost::filesystem::path CGroup::getPathToController(const std::string &controller) {
-        boost::filesystem::path controllerPath(BASE_DIR);
-        controllerPath.append(controller);
-        controllerPath.append(this->name);
+    const std::string CGroup::getName() {
+        return this->name;
+    }
 
-        return controllerPath;
+    const CgroupMode CGroup::getMode() {
+        return this->mode;
     }
 
     boost::filesystem::path CGroup::getPathToFile(const std::string &controller, const std::string &file) {
-        boost::filesystem::path filePath = this->getPathToController(controller);
-        filePath.append(file);
+        boost::filesystem::path path(BASE_DIR);
+        path.append(controller);
+        path.append(this->name);
 
-        return filePath;
+        path.append(file);
+
+        return path;
     }
 
-    /** Creates directory for controller if doesn't exist */
-    void CGroup::mkdirForController(const std::string &controller) {
-        boost::filesystem::path controllerPath = this->getPathToController(controller);
-        boost::filesystem::create_directory(controllerPath);
-    }
-
-    void CGroup::addController(const std::string &controller) {
-        if (mode == CgroupMode::cg_off) {
-            std::cout << "Not limiting " << controller << " cgroup support off" << std::endl;
-            return;
-        }
-
-        this->mkdirForController(controller);
+    void CGroup::addCurrentThreadCpu() {
+        auto tid = (pid_t) syscall(SYS_gettid);
+        this->addThread(tid, CG_CPU);
     }
 
     void CGroup::addThread(pid_t threadId, const std::string &controller) {
@@ -63,13 +52,14 @@ namespace worker {
         boost::filesystem::path tasksPath = this->getPathToFile(controller, "tasks");
 
         // Get lock and write to file
-        std::lock_guard<std::mutex> guard(tasksMutex);
+        std::lock_guard<std::mutex> guard(groupMutex);
 
         std::ofstream outfile;
         outfile.open(tasksPath.string(), std::ios_base::app);
         outfile << threadId << std::endl;
         outfile.flush();
 
-        std::cout << "Added thread id " << threadId << " to " << controller << ":" << this->name << " at " << tasksPath << std::endl;
+        std::cout << "Added thread id " << threadId << " to " << controller << ":" << this->name << " at " << tasksPath
+                  << std::endl;
     }
 }
