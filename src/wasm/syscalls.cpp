@@ -62,7 +62,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "puts", I32, puts, I32 strPtr) {
         Runtime::MemoryInstance *memoryPtr = getModuleMemory();
-        char* string = &Runtime::memoryRef<char>(memoryPtr, (Uptr)strPtr);
+        char *string = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
 
         printf("puts - %s\n", string);
 
@@ -79,9 +79,8 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_writev", I32, __syscall_writev, I32 fd, I32 iov, I32 iovcnt) {
         printf("SYSCALL - writev %i %i %i\n", fd, iov, iovcnt);
 
-        struct iovec* native_iovec = new(alloca(sizeof(iovec) * iovcnt)) struct iovec[iovcnt];
-        for(U32 i = 0; i < iovcnt; i++)
-        {
+        struct iovec *native_iovec = new(alloca(sizeof(iovec) * iovcnt)) struct iovec[iovcnt];
+        for (U32 i = 0; i < iovcnt; i++) {
             Runtime::MemoryInstance *memoryPtr = getModuleMemory();
             U32 base = Runtime::memoryRef<U32>(memoryPtr, iov + i * 8);
             U32 len = Runtime::memoryRef<U32>(memoryPtr, iov + i * 8 + 4);
@@ -187,7 +186,7 @@ namespace wasm {
     };
 
     sockaddr getSockAddr(I32 addrPtr) {
-        auto addr =  Runtime::memoryRef<wasm_sockaddr>(getModuleMemory(), addrPtr);
+        auto addr = Runtime::memoryRef<wasm_sockaddr>(getModuleMemory(), addrPtr);
 
         sockaddr sa = {
                 .sa_family = addr.sa_family
@@ -204,7 +203,7 @@ namespace wasm {
     struct wasm_sockaddr_in {
         U8 sin_family;
         U8 sin_port;
-        struct  wasm_in_addr sin_addr;
+        struct wasm_in_addr sin_addr;
         U8 sin_zero[8];
     };
 
@@ -220,10 +219,10 @@ namespace wasm {
             // Suppported
             // ----------------------------
 
-            case(SocketCalls::sc_socket): {
+            case (SocketCalls::sc_socket): {
                 // TODO: limit/ track which sockets are in use?
 
-                U32 *subCallArgs =  Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 3);
+                U32 *subCallArgs = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 3);
                 U32 domain = subCallArgs[0];
                 U32 type = subCallArgs[1];
                 U32 protocol = subCallArgs[2];
@@ -235,8 +234,8 @@ namespace wasm {
                 return (I32) sock;
             }
 
-            case(SocketCalls::sc_connect): {
-                U32 *subCallArgs =  Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 3);
+            case (SocketCalls::sc_connect): {
+                U32 *subCallArgs = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 3);
                 I32 sockfd = subCallArgs[0];
 
                 I32 addrPtr = subCallArgs[1];
@@ -251,17 +250,17 @@ namespace wasm {
                 return 0;
             }
 
-            case(SocketCalls::sc_recv):
-            case(SocketCalls::sc_recvfrom):
-            case(SocketCalls::sc_sendto):
-            case(SocketCalls::sc_send): {
+            case (SocketCalls::sc_recv):
+            case (SocketCalls::sc_recvfrom):
+            case (SocketCalls::sc_sendto):
+            case (SocketCalls::sc_send): {
                 int argCount = 4;
 
-                if(call == SocketCalls::sc_sendto || call == SocketCalls::sc_recvfrom) {
+                if (call == SocketCalls::sc_sendto || call == SocketCalls::sc_recvfrom) {
                     argCount = 6;
                 }
 
-                U32 *subCallArgs =  Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argCount);
+                U32 *subCallArgs = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argCount);
                 I32 sockfd = subCallArgs[0];
 
                 Uptr bufPtr = subCallArgs[1];
@@ -272,31 +271,28 @@ namespace wasm {
 
                 ssize_t result = 0;
 
-                if(call == SocketCalls::sc_send) {
+                if (call == SocketCalls::sc_send) {
                     printf("SYSCALL - send %i %li %li %i \n", sockfd, bufPtr, bufLen, flags);
                     printf("SYSCALL - send: %i %i %i \n", buf[0], buf[1], buf[2]);
 
                     result = send(sockfd, buf, bufLen, flags);
-                }
-                else if (call == SocketCalls::sc_recv) {
+                } else if (call == SocketCalls::sc_recv) {
                     printf("SYSCALL - recv %i %li %li %i \n", sockfd, bufPtr, bufLen, flags);
 
                     result = recv(sockfd, buf, bufLen, flags);
-                }
-
-                else {
+                } else {
                     I32 sockAddrPtr = subCallArgs[4];
                     I32 sockAddrLen = subCallArgs[5];
                     sockaddr sockAddr = getSockAddr(sockAddrPtr);
 
                     printf("SYSCALL - sockAddr.sa_family: %i\n", sockAddr.sa_family);
-                    printf("SYSCALL - sockAddr: %i %i %i\n", sockAddr.sa_data[0], sockAddr.sa_data[1], sockAddr.sa_data[2]);
+                    printf("SYSCALL - sockAddr: %i %i %i\n", sockAddr.sa_data[0], sockAddr.sa_data[1],
+                           sockAddr.sa_data[2]);
                     printf("SYSCALL - sockAddrLen: %i\n", sockAddrLen);
 
-                    if(call == SocketCalls::sc_sendto) {
+                    if (call == SocketCalls::sc_sendto) {
                         result = sendto(sockfd, buf, bufLen, flags, &sockAddr, sizeof(sockAddr));
-                    }
-                    else {
+                    } else {
                         socklen_t addrLen = sizeof(sockAddr);
                         result = recvfrom(sockfd, buf, bufLen, flags, &sockAddr, &addrLen);
                     }
@@ -305,8 +301,8 @@ namespace wasm {
                 return (I32) result;
             }
 
-            case(SocketCalls::sc_getsockname): {
-                U32 *subCallArgs =  Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 3);
+            case (SocketCalls::sc_getsockname): {
+                U32 *subCallArgs = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 3);
                 I32 sockfd = subCallArgs[0];
 
                 I32 addrPtr = subCallArgs[1];
@@ -318,76 +314,76 @@ namespace wasm {
                 return 0;
             }
 
-            // ----------------------------
-            // Unfinished
-            // ----------------------------
+                // ----------------------------
+                // Unfinished
+                // ----------------------------
 
-            case(SocketCalls::sc_getpeername): {
+            case (SocketCalls::sc_getpeername): {
                 printf("SYSCALL - getpeername %i %i\n", call, argsPtr);
                 return 0;
             }
 
-            case(SocketCalls::sc_socketpair): {
+            case (SocketCalls::sc_socketpair): {
                 printf("SYSCALL - socketpair %i %i\n", call, argsPtr);
                 return 0;
             }
 
-            case(SocketCalls::sc_shutdown): {
+            case (SocketCalls::sc_shutdown): {
                 printf("SYSCALL - shutdown %i %i\n", call, argsPtr);
                 return 0;
             }
 
-            case(SocketCalls::sc_setsockopt): {
+            case (SocketCalls::sc_setsockopt): {
                 printf("SYSCALL - setsockopt %i %i\n", call, argsPtr);
                 return 0;
             }
-            case(SocketCalls::sc_getsockopt): {
+            case (SocketCalls::sc_getsockopt): {
                 printf("SYSCALL - getsockopt %i %i\n", call, argsPtr);
                 return 0;
             }
 
-            case(SocketCalls::sc_sendmsg): {
+            case (SocketCalls::sc_sendmsg): {
                 printf("SYSCALL - sendmsg %i %i\n", call, argsPtr);
                 return 0;
             }
 
-            case(SocketCalls::sc_recvmsg): {
+            case (SocketCalls::sc_recvmsg): {
                 printf("SYSCALL - recvmsg %i %i\n", call, argsPtr);
                 return 0;
             }
 
-            case(SocketCalls::sc_accept4): {
+            case (SocketCalls::sc_accept4): {
                 printf("SYSCALL - accept4 %i %i\n", call, argsPtr);
                 return 0;
             }
 
-            case(SocketCalls::sc_recvmmsg): {
+            case (SocketCalls::sc_recvmmsg): {
                 printf("SYSCALL - recvmmsg %i %i\n", call, argsPtr);
                 return 0;
             }
 
-            case(SocketCalls::sc_sendmmsg): {
+            case (SocketCalls::sc_sendmmsg): {
                 printf("SYSCALL - sendmmsg %i %i\n", call, argsPtr);
                 return 0;
             }
 
-            // ----------------------------
-            // Not supported
-            // ----------------------------
+                // ----------------------------
+                // Not supported
+                // ----------------------------
 
-            case(SocketCalls::sc_bind):
+            case (SocketCalls::sc_bind):
                 // Server-side
                 printf("SYSCALL - bind %i %i\n", call, argsPtr);
 
                 throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
 
-            case(SocketCalls::sc_accept):
+            case (SocketCalls::sc_accept):
                 // Server-side
                 printf("SYSCALL - accept %i %i\n", call, argsPtr);
 
                 throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
 
-            case(SocketCalls::sc_listen): {
+            case (SocketCalls::sc_listen): {
                 // Server-side
                 printf("SYSCALL - listen %i %i\n", call, argsPtr);
 
@@ -404,13 +400,13 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "_gethostbyname", I32, _gethostbyname, I32 hostnamePtr) {
-        auto hostname = & Runtime::memoryRef<char>(getModuleMemory(), (Uptr) hostnamePtr);
+        auto hostname = &Runtime::memoryRef<char>(getModuleMemory(), (Uptr) hostnamePtr);
 
         printf("INTRINSIC - gethostbyname %s\n", hostname);
 
         return 0;
     }
-    
+
     // ------------------------
     // Timing
     // ------------------------
@@ -422,10 +418,10 @@ namespace wasm {
     };
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_clock_gettime", I32, __syscall_clock_gettime,
-            I32 clockId, I32 resultAddress) {
+                              I32 clockId, I32 resultAddress) {
         printf("INTRINSIC - clock_gettime %i %i\n", clockId, resultAddress);
 
-        auto result =  Runtime::memoryRef<wasm_timespec>(getModuleMemory(), (Uptr) resultAddress);
+        auto result = Runtime::memoryRef<wasm_timespec>(getModuleMemory(), (Uptr) resultAddress);
 
         // Fake a clock incrementing by 1 with each call
         static std::atomic<U64> fakeClock;
@@ -449,7 +445,7 @@ namespace wasm {
     // ------------------------
 
     DEFINE_INTRINSIC_FUNCTION(env, "__unsupported_syscall", I32, __unsupported_syscall,
-            I32 a, I32 b, I32 c, I32 d, I32 e, I32 f, I32 g) {
+                              I32 a, I32 b, I32 c, I32 d, I32 e, I32 f, I32 g) {
         printf("SYSCALL - UNSUPPORTED %i %i %i %i %i %i %i \n", a, b, c, d, e, f, g);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
@@ -480,28 +476,61 @@ namespace wasm {
     }
 
     // ------------------------
-    // Memory
+    // Memory - supported
     // ------------------------
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_mmap", I32, __syscall_mmap,
-            I32 a, I32 b, I32 c, I32 d, I32 e, I32 f) {
-        printf("SYSYCALL - mmap %i %i %i %i %i %i\n", a, b, c, d, e, f);
+                              U32 addr, U32 length, U32 prot, U32 flags, I32 fd, U32 offset) {
+        printf("SYSCALL - mmap %i %i %i %i %i %i\n", addr, length, prot, flags, fd, offset);
+
+        const Uptr numPages = (Uptr(length) + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
+
+        // Check call is valid
+        if (addr != 0 || fd != -1) {
+            throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+        }
+
+        Iptr basePageIndex = growMemory(getModuleMemory(), numPages);
+
+        return (I32) (Uptr(basePageIndex) * IR::numBytesPerPage);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_munmap", I32, __syscall_munmap,
+                              U32 addr, U32 length) {
+        printf("SYSCALL - munmap %i %i\n", addr, length);
+
+        const Uptr basePageIndex = addr / IR::numBytesPerPage;
+        const Uptr numPages = (length + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
+
+        Runtime::MemoryInstance *memory = getModuleMemory();
+
+        unmapMemoryPages(memory, basePageIndex, numPages);
+
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_brk", I32, __syscall_brk, U32 address) {
+        printf("SYSCALL - brk %i\n", address);
+
+        Runtime::MemoryInstance *memory = getModuleMemory();
+        return I32(getMemoryNumPages(memory));
+    }
+
+    // ------------------------
+    // Memory - unsupported
+    // ------------------------
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_madvise", I32, __syscall_madvise,
+                              U32 address, U32 numBytes, U32 advice) {
+        printf("SYSCALL - madvise %i %i %i", address, numBytes, advice);
+
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_mremap", I32, __syscall_mremap,
-                              I32 a, I32 b, I32 c, I32 d, I32 e) {
-        printf("SYSYCALL - mremap %i %i %i %i %i\n", a, b, c, d, e);
-        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
-    }
+                              U32 oldAddress, U32 oldNumBytes, U32 newNumBytes, U32 flags, U32 newAddress) {
+        printf("SYSCALL - mremap %i %i %i %i %i\n", oldAddress, oldNumBytes, newNumBytes, flags, newAddress);
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_madvise", I32, __syscall_madvise, I32 a, I32 b, I32 c) {
-        printf("SYSYCALL - madvise %i %i %i\n", a, b, c);
-        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_munmap", I32, __syscall_munmap, I32 a, I32 b) {
-        printf("SYSYCALL - munmap %i %i\n", a, b);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 }

@@ -82,7 +82,7 @@ build-tools:
 	python wasm-waterfall/src/build.py --build-include llvm,musl,compiler-rt,libcxx,libcxxabi --sync-include llvm,lld,musl,compiler-rt,libcxx,libcxxabi,clang,host-toolchain,cmake --no-tool-tests --no-test 
 
 untar-tools:
-	mkdir -p toolchain && tar -xf toolchain.tar.gz -C toolchain
+	rm -rf toolchain; mkdir toolchain && tar -xf toolchain.tar.gz -C toolchain
 
 tar-tools:
 	cd wasm-waterfall/src/work/ && tar -cf toolchain.tar.gz wasm-install && mv toolchain.tar.gz ../../../
@@ -96,4 +96,4 @@ build-musl:
 		--binaryen_dir=/usr/local/code/faasm/toolchain/wasm-install/bin \
 		--compile-to-wasm \
 		--musl=/usr/local/code/faasm/musl \
-		--out=/usr/local/code/faasm/libc.a
+		--out=/tmp/muslwasmlibc.a
