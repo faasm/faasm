@@ -34,7 +34,7 @@ def compile_function(args):
     compile_cmd = [
         CXX if args.cxx else CC,
         *COMPILER_FLAGS,
-        "-O3",
+        "-Oz",
         "-fvisibility=hidden",
         func_path,
         "-I", join(PROJ_ROOT, "include", "faasm")

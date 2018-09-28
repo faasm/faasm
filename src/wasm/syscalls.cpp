@@ -43,8 +43,38 @@ namespace wasm {
     DEFINE_INTRINSIC_MODULE(env)
 
     // ------------------------
-    // I/O
+    // I/O - supported
     // ------------------------
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_close", I32, __syscall_close, I32 a) {
+        printf("SYSCALL - close %i\n", a);
+
+        close(a);
+
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "ioctl", I32, ioctl, I32 a, I32 b, I32 c) {
+        printf("INTRINSIC - ioctl %i %i %i\n", a, b, c);
+
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "puts", I32, puts, I32 strPtr) {
+        Runtime::MemoryInstance *memoryPtr = getModuleMemory();
+        char* string = &Runtime::memoryRef<char>(memoryPtr, (Uptr)strPtr);
+
+        printf("puts - %s\n", string);
+
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_ioctl", I32, __syscall_ioctl,
+                              I32 a, I32 b, I32 c, I32 d, I32 e, I32 f) {
+        printf("SYSCALL - ioctl %i %i %i %i %i %i\n", a, b, c, d, e, f);
+
+        return 0;
+    }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_writev", I32, __syscall_writev, I32 fd, I32 iov, I32 iovcnt) {
         printf("SYSCALL - writev %i %i %i\n", fd, iov, iovcnt);
@@ -65,6 +95,10 @@ namespace wasm {
         return (I32) count;
     }
 
+    // ------------------------
+    // I/O - unsupported
+    // ------------------------
+
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_readv", I32, __syscall_readv,
                               I32 a, I32 b, I32 c) {
         printf("SYSCALL - readv %i %i %i \n", a, b, c);
@@ -75,28 +109,6 @@ namespace wasm {
                               I32 a, I32 b, I32 c) {
         printf("SYSCALL - read %i %i %i \n", a, b, c);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "puts", I32, puts, I32 strPtr) {
-        Runtime::MemoryInstance *memoryPtr = getModuleMemory();
-        char* string = &Runtime::memoryRef<char>(memoryPtr, (Uptr)strPtr);
-
-        printf("puts - %s\n", string);
-
-        return 0;
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_ioctl", I32, __syscall_ioctl,
-                                                 I32 a, I32 b, I32 c, I32 d, I32 e, I32 f) {
-        printf("SYSCALL - ioctl %i %i %i %i %i %i\n", a, b, c, d, e, f);
-
-        return 0;
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "ioctl", I32, ioctl, I32 a, I32 b, I32 c) {
-        printf("INTRINSIC - ioctl %i %i %i\n", a, b, c);
-
-        return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_poll", I32, __syscall_poll, I32 a, I32 b, I32 c) {
@@ -111,11 +123,6 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_llseek", I32, __syscall_llseek, I32 a, I32 b, I32 c, I32 d, I32 e) {
         printf("SYSCALL - llseek %i %i %i %i %i\n", a, b, c, d, e);
-        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_close", I32, __syscall_close, I32 a) {
-        printf("SYSCALL - close %i\n", a);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
@@ -444,23 +451,6 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__unsupported_syscall", I32, __unsupported_syscall,
             I32 a, I32 b, I32 c, I32 d, I32 e, I32 f, I32 g) {
         printf("SYSCALL - UNSUPPORTED %i %i %i %i %i %i %i \n", a, b, c, d, e, f, g);
-        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall", I32, __syscall, I32 a, I32 b) {
-        // Dumping ground for unimplemented calls
-        // See wasm.js file in toolchain (toolchain/wasm-install/lib/wasm.js)
-        switch(a) {
-            case(6): {
-                printf("SYSCALL - close %i %i\n", a, b);
-                break;
-            }
-            default: {
-                printf("SYSCALL - generic (syscall) %i %i\n", a, b);
-                break;
-            }
-        }
-
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 

@@ -54,7 +54,6 @@ namespace wasm {
 
             if(boost::filesystem::exists(stubPath)) {
                 // Load bytes if they exist
-                std::cout << "Using existing stub at " << stubPath << std::endl;
                 return util::readFileToBytes(stubPath);
             }
             else {
