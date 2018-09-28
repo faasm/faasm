@@ -49,6 +49,7 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_close", I32, __syscall_close, I32 a) {
         printf("SYSCALL - close %i\n", a);
 
+        // TODO - keep track of who owns what to avoid closing other functions' stuff
         close(a);
 
         return 0;
@@ -60,18 +61,18 @@ namespace wasm {
         return 0;
     }
 
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_ioctl", I32, __syscall_ioctl,
+                              I32 a, I32 b, I32 c, I32 d, I32 e, I32 f) {
+        printf("SYSCALL - ioctl %i %i %i %i %i %i\n", a, b, c, d, e, f);
+
+        return 0;
+    }
+
     DEFINE_INTRINSIC_FUNCTION(env, "puts", I32, puts, I32 strPtr) {
         Runtime::MemoryInstance *memoryPtr = getModuleMemory();
         char *string = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
 
         printf("puts - %s\n", string);
-
-        return 0;
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_ioctl", I32, __syscall_ioctl,
-                              I32 a, I32 b, I32 c, I32 d, I32 e, I32 f) {
-        printf("SYSCALL - ioctl %i %i %i %i %i %i\n", a, b, c, d, e, f);
 
         return 0;
     }
@@ -207,6 +208,11 @@ namespace wasm {
         U8 sin_zero[8];
     };
 
+    /**
+     * When properly isolated, functions will run in their own network namespace,
+     * therefore we can be relatively comfortable passing some of the syscalls
+     * straight through.
+     */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_socketcall", I32, __syscall_socketcall, I32 call, I32 argsPtr) {
         Runtime::MemoryInstance *memoryPtr = getModuleMemory();
 
@@ -479,22 +485,29 @@ namespace wasm {
     // Memory - supported
     // ------------------------
 
+    /**
+     * With mmap we will ignore the start address and not support file mapping
+     */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_mmap", I32, __syscall_mmap,
                               U32 addr, U32 length, U32 prot, U32 flags, I32 fd, U32 offset) {
         printf("SYSCALL - mmap %i %i %i %i %i %i\n", addr, length, prot, flags, fd, offset);
 
-        const Uptr numPages = (Uptr(length) + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
-
-        // Check call is valid
-        if (addr != 0 || fd != -1) {
+        if (fd != -1) {
             throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
         }
 
+        // Grow the module's memory accordingly
+        const Uptr numPages = (Uptr(length) + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
+
+        printf("SYSCALL - mmap adding %li pages\n", numPages);
         Iptr basePageIndex = growMemory(getModuleMemory(), numPages);
 
-        return (I32) (Uptr(basePageIndex) * IR::numBytesPerPage);
+        return (U32) (Uptr(basePageIndex) * IR::numBytesPerPage);
     }
 
+    /**
+     * munmap is fairly straightforward, just unmap the relevant pages
+     */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_munmap", I32, __syscall_munmap,
                               U32 addr, U32 length) {
         printf("SYSCALL - munmap %i %i\n", addr, length);
@@ -504,16 +517,43 @@ namespace wasm {
 
         Runtime::MemoryInstance *memory = getModuleMemory();
 
+        printf("SYSCALL - munmap %li pages\n", numPages);
         unmapMemoryPages(memory, basePageIndex, numPages);
 
         return 0;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_brk", I32, __syscall_brk, U32 address) {
-        printf("SYSCALL - brk %i\n", address);
+    /**
+     * brk should be fine to run in most cases, need to check limits on the process' memory
+     */
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_brk", I32, __syscall_brk, U32 addr) {
+        printf("SYSCALL - brk %i\n", addr);
+
+        // Work out how many pages needed to hit the target address
+        const Uptr targetPageCount = addr / IR::numBytesPerPage;
 
         Runtime::MemoryInstance *memory = getModuleMemory();
-        return I32(getMemoryNumPages(memory));
+
+        const Uptr currentPageCount = getMemoryNumPages(memory);
+        const U32 currentBreak = (U32) (currentPageCount * IR::numBytesPerPage);
+
+        Uptr maxPages = getMemoryMaxPages(memory);
+        if(targetPageCount > maxPages) {
+            printf("SYSCALL - brk requesting %lu pages (max %lu)\n", targetPageCount, maxPages);
+        }
+        
+        if(targetPageCount <= currentPageCount) {
+            printf("SYSCALL - brk with no effect\n");
+            return currentBreak;
+        }
+
+        Uptr expansion = targetPageCount - currentPageCount;
+        printf("SYSCALL - brk adding %lu pages\n", expansion);
+
+        // Grow memory as required
+        growMemory(memory, expansion);
+
+        return currentBreak;
     }
 
     // ------------------------
@@ -522,7 +562,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_madvise", I32, __syscall_madvise,
                               U32 address, U32 numBytes, U32 advice) {
-        printf("SYSCALL - madvise %i %i %i", address, numBytes, advice);
+        printf("SYSCALL - madvise %i %i %i\n", address, numBytes, advice);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
