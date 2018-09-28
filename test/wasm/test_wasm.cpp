@@ -51,37 +51,4 @@ namespace tests {
 
         module.clean();
     }
-
-    TEST_CASE("Test function chaining others", "[wasm]") {
-        message::FunctionCall call;
-        call.set_user("simon");
-        call.set_function("chain");
-
-        wasm::WasmModule module;
-
-        // Make the call
-        int result = module.execute(call);
-        REQUIRE(result == 0);
-
-        // Check the chaining
-        REQUIRE(3 == module.chainedCalls.size());
-
-        // Check all are set with the right user
-        REQUIRE(module.chainedCalls[0].user() == "simon");
-        REQUIRE(module.chainedCalls[1].user() == "simon");
-        REQUIRE(module.chainedCalls[2].user() == "simon");
-
-        // Check function names
-        REQUIRE(module.chainedCalls[0].function() == "Function 0");
-        REQUIRE(module.chainedCalls[1].function() == "Function 1");
-        REQUIRE(module.chainedCalls[2].function() == "Function 2");
-
-        // Check function data
-        std::vector<uint8_t> expected0 = {0, 1, 2};
-        std::vector<uint8_t> expected1 = {1, 2, 3};
-        std::vector<uint8_t> expected2 = {2, 3, 4};
-        REQUIRE(util::stringToBytes(module.chainedCalls[0].inputdata()) == expected0);
-        REQUIRE(util::stringToBytes(module.chainedCalls[1].inputdata()) == expected1);
-        REQUIRE(util::stringToBytes(module.chainedCalls[2].inputdata()) == expected2);
-    }
 }
