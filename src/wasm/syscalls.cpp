@@ -2,6 +2,7 @@
 
 #include <fcntl.h>
 #include <netdb.h>
+#include <poll.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -50,6 +51,13 @@ namespace wasm {
     // I/O - supported
     // ------------------------
 
+    void checkThreadOwnsFd(int fd) {
+        if (openFds.find(fd) == openFds.end()) {
+            printf("Fd not owned by this thread (%i)", fd);
+            throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+        }
+    }
+
     /** Whitelist specific files to allow open and read-only */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_open", I32, __syscall_open, I32 pathPtr, I32 flags, I32 mode) {
         printf("SYSCALL - open %i %i %i\n", pathPtr, flags, mode);
@@ -89,6 +97,8 @@ namespace wasm {
                               I32 fd, I32 cmd, I32 c) {
         printf("SYSCALL - fcntl64 %i %i %i\n", fd, cmd, c);
 
+        checkThreadOwnsFd(fd);
+
         return 0;
     }
 
@@ -97,10 +107,7 @@ namespace wasm {
         printf("SYSCALL - read %i %i %i\n", fd, bufPtr, count);
 
         // Provided the thread owns the fd, we allow reading.
-        if (openFds.find(fd) == openFds.end()) {
-            printf("Reading fd not owned by this thread (%i)", fd);
-            throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
-        }
+        checkThreadOwnsFd(fd);
 
         // Get the buffer etc.
         Runtime::MemoryInstance *memoryPtr = getModuleMemory();
@@ -108,8 +115,6 @@ namespace wasm {
 
         // Do the actual read
         ssize_t bytesRead = read(fd, buf, (size_t) count);
-        printf("Read %li bytes\n", bytesRead);
-
         return (I32) bytesRead;
     }
 
@@ -117,15 +122,39 @@ namespace wasm {
         printf("SYSCALL - close %i\n", fd);
 
         // Provided the thread owns the fd, we allow closing.
-        if (openFds.find(fd) == openFds.end()) {
-            printf("Closing fd not owned by this thread (%i)", fd);
-            throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
-        }
+        checkThreadOwnsFd(fd);
 
         openFds.erase(fd);
         close(fd);
 
         return 0;
+    }
+
+    struct wasm_pollfd {
+        I32 fd;
+        I16 events;
+        I16 revents;
+    };
+
+    /** Poll is annoying as it passes an array of structs. */
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_poll", I32, __syscall_poll, I32 fdsPtr, I32 nfds, I32 timeout) {
+        printf("SYSCALL - poll %i %i %i\n", fdsPtr, nfds, timeout);
+
+        if(nfds != 1) {
+            printf("Trying to poll %i fds. Only single fd supported", nfds);
+            throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+        }
+
+        pollfd *fds = &Runtime::memoryRef<pollfd>(getModuleMemory(), (Uptr) fdsPtr);
+
+        // Check this thread has permission to poll
+        int fd = fds[0].fd;
+        checkThreadOwnsFd(fd);
+        printf("Polling fd %i for events\n", fd);
+
+        int pollRes = poll(fds, (size_t) nfds, timeout);
+        printf("Poll result %i\n", pollRes);
+        return pollRes;
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "ioctl", I32, ioctl, I32 a, I32 b, I32 c) {
@@ -175,11 +204,6 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_readv", I32, __syscall_readv,
                               I32 a, I32 b, I32 c) {
         printf("SYSCALL - readv %i %i %i \n", a, b, c);
-        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_poll", I32, __syscall_poll, I32 a, I32 b, I32 c) {
-        printf("SYSCALL - poll %i %i %i\n", a, b, c);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
@@ -282,18 +306,17 @@ namespace wasm {
             // ----------------------------
 
             case (SocketCalls::sc_socket): {
-                // TODO: limit/ track which sockets are in use?
-
                 U32 *subCallArgs = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 3);
                 U32 domain = subCallArgs[0];
                 U32 type = subCallArgs[1];
                 U32 protocol = subCallArgs[2];
 
                 printf("SYSCALL - socket %i %i %i\n", domain, type, protocol);
-                long sock = syscall(SYS_socket, domain, type, protocol);
-                printf("Opened system socket %li\n", sock);
+                int sock = (int) syscall(SYS_socket, domain, type, protocol);
 
-                return (I32) sock;
+                openFds.insert(sock);
+
+                return sock;
             }
 
             case (SocketCalls::sc_connect): {
@@ -344,23 +367,37 @@ namespace wasm {
                     result = recv(sockfd, buf, bufLen, flags);
                 } else {
                     I32 sockAddrPtr = subCallArgs[4];
-                    I32 sockAddrLen = subCallArgs[5];
                     sockaddr sockAddr = getSockAddr(sockAddrPtr);
-
-                    printf("SYSCALL - sockAddr.sa_family: %i\n", sockAddr.sa_family);
-                    printf("SYSCALL - sockAddr: %i %i %i\n", sockAddr.sa_data[0], sockAddr.sa_data[1],
-                           sockAddr.sa_data[2]);
-                    printf("SYSCALL - sockAddrLen: %i\n", sockAddrLen);
+                    socklen_t addrLen = sizeof(sockAddr);
 
                     if (call == SocketCalls::sc_sendto) {
-                        result = sendto(sockfd, buf, bufLen, flags, &sockAddr, sizeof(sockAddr));
+                        printf("SYSCALL - sendto %i %li %li %i \n", sockfd, bufPtr, bufLen, flags);
+                        result = sendto(sockfd, buf, bufLen, flags, &sockAddr, addrLen);
                     } else {
-                        socklen_t addrLen = sizeof(sockAddr);
+                        printf("SYSCALL - recvfrom %i %li %li %i \n", sockfd, bufPtr, bufLen, flags);
                         result = recvfrom(sockfd, buf, bufLen, flags, &sockAddr, &addrLen);
                     }
                 }
 
                 return (I32) result;
+            }
+
+            case (SocketCalls::sc_bind): {
+                U32 *subCallArgs = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 3);
+                I32 sockfd = subCallArgs[0];
+
+                I32 addrPtr = subCallArgs[1];
+                sockaddr addr = getSockAddr(addrPtr);
+
+                I32 addrLen = subCallArgs[2];
+
+                printf("SYSCALL - bind %i %i %i \n", sockfd, addrPtr, addrLen);
+
+                // If thread owns fd, we can bind
+                checkThreadOwnsFd(sockfd);
+                int bindResult = bind(sockfd, &addr, sizeof(addr));
+
+                return (I32) bindResult;
             }
 
             case (SocketCalls::sc_getsockname): {
@@ -432,12 +469,6 @@ namespace wasm {
                 // ----------------------------
                 // Not supported
                 // ----------------------------
-
-            case (SocketCalls::sc_bind):
-                // Server-side
-                printf("SYSCALL - bind %i %i\n", call, argsPtr);
-
-                throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
 
             case (SocketCalls::sc_accept):
                 // Server-side
