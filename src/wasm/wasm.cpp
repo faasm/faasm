@@ -5,6 +5,7 @@
 
 #include <WAVM/WASM/WASM.h>
 #include <WAVM/Inline/CLI.h>
+#include <WAVM/IR/Types.h>
 
 
 using namespace WAVM;
@@ -70,7 +71,7 @@ namespace wasm {
         this->parseWasm(call);
 
         // Define module's memory segments
-        this->setUpMemory(call);
+        this->setUpMemoryDefinitions(call);
 
         // Link with intrinsics
         Runtime::LinkResult linkResult = this->link(compartment);
@@ -107,9 +108,9 @@ namespace wasm {
     /**
      * Generic module set-up
      */
-    void WasmModule::setUpMemory(message::FunctionCall &call) {
+    void WasmModule::setUpMemoryDefinitions(message::FunctionCall &call) {
         // Make sure we have a big enough minimum memory size
-        this->module.memories.defs[0].type.size.min = MIN_MEMORY_SIZE;
+        this->module.memories.defs[0].type.size.min = (U64) MIN_MEMORY_PAGES;
 
         // Define input data segment
         this->addDataSegment(INPUT_START);

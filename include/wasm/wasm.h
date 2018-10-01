@@ -22,9 +22,12 @@ namespace wasm {
 
     const int MAX_NAME_LENGTH = 32;
 
-    // Input memory
-    // Need to make sure this starts high enough to avoid other regions of the default memory
-    const int INPUT_START = 30 * 1024;
+    // Note that the max memory per module is 8GiB, i.e. > 100k pages
+    // Page size in wasm is 64kiB so 1000 pages ~ 60MiB of memory
+    const int MIN_MEMORY_PAGES = 1000;
+
+    // Input memory. Put this at the end of the defined range to avoid stuff trampling on it
+    const int INPUT_START = (MIN_MEMORY_PAGES - 2) * IR::numBytesPerPage;
     const int MAX_INPUT_BYTES = 1024;
 
     // Output memory
@@ -37,8 +40,6 @@ namespace wasm {
     const int MAX_CHAIN_NAME_BYTES = MAX_NAME_LENGTH * MAX_CHAINS;
 
     const int CHAIN_DATA_START = CHAIN_NAMES_START + MAX_CHAIN_NAME_BYTES;
-
-    const int MIN_MEMORY_SIZE = CHAIN_DATA_START + (10 * 1024);
 
     Runtime::MemoryInstance* getModuleMemory();
 
@@ -67,7 +68,7 @@ namespace wasm {
 
         void parseWasm(message::FunctionCall &call);
 
-        void setUpMemory(message::FunctionCall &call);
+        void setUpMemoryDefinitions(message::FunctionCall &call);
 
         Runtime::LinkResult link(Runtime::Compartment *compartment);
 
