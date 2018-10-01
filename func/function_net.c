@@ -14,6 +14,8 @@ int exec(struct FaasmMemory *memory) {
     struct addrinfo *hostInfo, hints;
     char* url = "www.google.com";
 
+    hints.ai_family = AF_INET;
+
     printf("Calling addrinfo for %s\n", url);
     getaddrinfo(url, "80", &hints, &hostInfo);
 

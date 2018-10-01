@@ -120,6 +120,7 @@ namespace wasm {
 
         // Do the actual read
         ssize_t bytesRead = read(fd, buf, (size_t) count);
+
         return (I32) bytesRead;
     }
 
@@ -351,7 +352,7 @@ namespace wasm {
                     argCount = 6;
                 }
 
-                U32 *subCallArgs = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argCount);
+                U32 *subCallArgs = Runtime::memoryArrayPtr<U32>(memoryPtr, (Uptr) argsPtr, (Uptr) argCount);
                 I32 sockfd = subCallArgs[0];
 
                 Uptr bufPtr = subCallArgs[1];
@@ -376,15 +377,13 @@ namespace wasm {
                     socklen_t addrLen = sizeof(sockAddr);
 
                     if (call == SocketCalls::sc_sendto) {
-                        printf("SYSCALL - sendto %i %li %li %i \n", sockfd, bufPtr, bufLen, flags);
+                        printf("SYSCALL - sendto %i %li %li %i %i %i \n", sockfd, bufPtr, bufLen, flags, sockAddrPtr, addrLen);
                         result = sendto(sockfd, buf, bufLen, flags, &sockAddr, addrLen);
                     } else {
-                        printf("SYSCALL - recvfrom %i %li %li %i \n", sockfd, bufPtr, bufLen, flags);
+                        printf("SYSCALL - recvfrom %i %li %li %i %i %i \n", sockfd, bufPtr, bufLen, flags, sockAddrPtr, addrLen);
                         result = recvfrom(sockfd, buf, bufLen, flags, &sockAddr, &addrLen);
                     }
                 }
-
-                util::printBytes(buf, bufLen);
 
                 return (I32) result;
             }
