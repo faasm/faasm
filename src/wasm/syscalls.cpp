@@ -24,6 +24,9 @@ using namespace WAVM;
  *   - musl/arch/wasm32/syscall_arch.h and
  *   - musl/arch/wasm32/libc.imports
  *
+ * Any standard library functions can be found in files appropriately named
+ * in musl/src. E.g. getaddrinfo is defined in musl/src/network/getaddinfo.c
+ *
  * Once implemented there, they will be referenced in the wasm files, and stubbed at runtime if they
  * don't exist in here.
  *
@@ -45,6 +48,8 @@ namespace wasm {
     static const char *HOSTS_FILE = "/usr/share/faasm/net/hosts";
     static const char *RESOLV_FILE = "/usr/share/faasm/net/resolv.conf";
 
+    // Thread-local variables to isolate bits of environment
+    static thread_local I32 dummyClock = 0;
     static thread_local std::set<int> openFds;
 
     // ------------------------
@@ -145,7 +150,7 @@ namespace wasm {
             throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
         }
 
-        pollfd *fds = &Runtime::memoryRef<pollfd>(getModuleMemory(), (Uptr) fdsPtr);
+        auto *fds = Runtime::memoryArrayPtr<pollfd>(getModuleMemory(), (Uptr) fdsPtr, 1);
 
         // Check this thread has permission to poll
         int fd = fds[0].fd;
@@ -154,6 +159,7 @@ namespace wasm {
 
         int pollRes = poll(fds, (size_t) nfds, timeout);
         printf("Poll result %i\n", pollRes);
+
         return pollRes;
     }
 
@@ -358,7 +364,6 @@ namespace wasm {
 
                 if (call == SocketCalls::sc_send) {
                     printf("SYSCALL - send %i %li %li %i \n", sockfd, bufPtr, bufLen, flags);
-                    printf("SYSCALL - send: %i %i %i \n", buf[0], buf[1], buf[2]);
 
                     result = send(sockfd, buf, bufLen, flags);
                 } else if (call == SocketCalls::sc_recv) {
@@ -378,6 +383,8 @@ namespace wasm {
                         result = recvfrom(sockfd, buf, bufLen, flags, &sockAddr, &addrLen);
                     }
                 }
+
+                util::printBytes(buf, bufLen);
 
                 return (I32) result;
             }
@@ -516,13 +523,9 @@ namespace wasm {
 
         auto result = Runtime::memoryRef<wasm_timespec>(getModuleMemory(), (Uptr) resultAddress);
 
-        // Fake a clock incrementing by 1 with each call
-        static std::atomic<U64> fakeClock;
-        const U64 currentClock = fakeClock;
-
-        result.tv_sec = I32(currentClock / 1000000000);
-        result.tv_nsec = I32(currentClock % 1000000000);
-        ++fakeClock;
+        result.tv_sec = dummyClock;
+        result.tv_nsec = dummyClock * 1000000000;
+        dummyClock++;
 
         return 0;
     }
