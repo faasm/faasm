@@ -1,36 +1,39 @@
 #include "faasm.h"
 
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+
 #include <stdio.h>
 #include <netdb.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-
 
 /**
- * Tries to open a socket connection
+ * Socket connection and HTTP request
  */
 int exec(struct FaasmMemory *memory) {
-    int sock = socket(AF_UNIX, SOCK_STREAM, 0);
-    
-//    struct sockaddr s;
-//    s.sa_data[0] = 25;
-//    s.sa_data[1] = 4;
-//    s.sa_data[2] = 16;
-//
-//    bind(sock, &s, sizeof(s));
+    struct addrinfo *hostInfo, hints;
+    char* url = "www.google.com";
 
-    uint8_t buf[] = {12, 10, 4, 22, 10, 8};
-    
-    send(sock, buf, 6, 0);
+    printf("Calling addrinfo for %s\n", url);
+    getaddrinfo(url, "80", &hints, &hostInfo);
 
-    //    int sock = socket(AF_INET , SOCK_STREAM , 0);
-//
-//    printf("Function sees socket %i\n", sock);
-//
-//    struct hostent *lh = gethostbyname("localhost");
-//
-//    printf(lh->h_name);
+    printf("Opening socket\n");
+    int sockfd = socket(hostInfo->ai_family, hostInfo->ai_socktype, hostInfo->ai_protocol);
+
+    printf("Connecting\n");
+    connect(sockfd, hostInfo->ai_addr, hostInfo->ai_addrlen);
+
+    printf("Sending request\n");
+    char *header = "GET /index.html HTTP/1.1\r\nHost: www.google.com\r\n\r\n";
+    send(sockfd, header, strlen(header), 0);
+
+    // Receive data into buffer and add null terminator
+    printf("Receiving\n");
+    char buffer[2056];
+    ssize_t byte_count = recv(sockfd, buffer, 2056, 0);
+
+    printf("Received %li bytes of data\n", byte_count);
+    printf("%.*s", (int) byte_count, buffer);
 
     return 0;
 }

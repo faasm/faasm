@@ -30,14 +30,14 @@ int exec(struct FaasmMemory *memory) {
 
     CURLcode res = curl_easy_perform(curl);
 
-    if(CURLE_OK == res) {
-        long http_code = 0;
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+    long http_code = 0;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
 
+    if(CURLE_OK == res) {
         printf("%s response = %ld\n", url, http_code);
     }
     else {
-        printf("%s response failed\n", url);
+        printf("%s response failed %ld\n", url, http_code);
     }
 
     curl_easy_cleanup(curl);

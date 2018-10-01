@@ -1,7 +1,6 @@
 #include "wasm.h"
 
-#include <atomic>
-#include <iostream>
+#include <fcntl.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <string.h>
@@ -42,15 +41,89 @@ using namespace WAVM;
 namespace wasm {
     DEFINE_INTRINSIC_MODULE(env)
 
+    static const char *HOSTS_FILE = "/usr/share/faasm/net/hosts";
+    static const char *RESOLV_FILE = "/usr/share/faasm/net/resolv.conf";
+
+    static thread_local std::set<int> openFds;
+
     // ------------------------
     // I/O - supported
     // ------------------------
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_close", I32, __syscall_close, I32 a) {
-        printf("SYSCALL - close %i\n", a);
+    /** Whitelist specific files to allow open and read-only */
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_open", I32, __syscall_open, I32 pathPtr, I32 flags, I32 mode) {
+        printf("SYSCALL - open %i %i %i\n", pathPtr, flags, mode);
 
-        // TODO - keep track of who owns what to avoid closing other functions' stuff
-        close(a);
+        if (mode != 0) {
+            printf("Attempt to open in non-read-only mode (%i)", mode);
+            throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+        }
+
+        // Get the path
+        Runtime::MemoryInstance *memoryPtr = getModuleMemory();
+        char *path = &Runtime::memoryRef<char>(memoryPtr, (Uptr) pathPtr);
+
+        // Check if this is a valid path
+        int fd = -1;
+        if (strcmp(path, "/etc/hosts") == 0) {
+            printf("Opening dummy /etc/hosts\n");
+            fd = open(HOSTS_FILE, 0, 0);
+        }
+        else if (strcmp(path, "/etc/resolv.conf") == 0) {
+            printf("Opening dummy /etc/resolv.conf\n");
+            fd = open(RESOLV_FILE, 0, 0);
+        }
+
+        if (fd > 0) {
+            openFds.insert(fd);
+            return (I32) fd;
+        }
+
+        // Bomb out if not successful
+        printf("Trying to open blocked path (%s) \n", path);
+        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+    }
+
+    /** Dummy fcntl implementation, many operations are irrelevant */
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_fcntl64", I32, __syscall_fcntl64,
+                              I32 fd, I32 cmd, I32 c) {
+        printf("SYSCALL - fcntl64 %i %i %i\n", fd, cmd, c);
+
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_read", I32, __syscall_read,
+                              I32 fd, I32 bufPtr, I32 count) {
+        printf("SYSCALL - read %i %i %i\n", fd, bufPtr, count);
+
+        // Provided the thread owns the fd, we allow reading.
+        if (openFds.find(fd) == openFds.end()) {
+            printf("Reading fd not owned by this thread (%i)", fd);
+            throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+        }
+
+        // Get the buffer etc.
+        Runtime::MemoryInstance *memoryPtr = getModuleMemory();
+        U8 *buf = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufPtr, (Uptr) count);
+
+        // Do the actual read
+        ssize_t bytesRead = read(fd, buf, (size_t) count);
+        printf("Read %li bytes\n", bytesRead);
+
+        return (I32) bytesRead;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_close", I32, __syscall_close, I32 fd) {
+        printf("SYSCALL - close %i\n", fd);
+
+        // Provided the thread owns the fd, we allow closing.
+        if (openFds.find(fd) == openFds.end()) {
+            printf("Closing fd not owned by this thread (%i)", fd);
+            throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+        }
+
+        openFds.erase(fd);
+        close(fd);
 
         return 0;
     }
@@ -62,8 +135,8 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_ioctl", I32, __syscall_ioctl,
-                              I32 a, I32 b, I32 c, I32 d, I32 e, I32 f) {
-        printf("SYSCALL - ioctl %i %i %i %i %i %i\n", a, b, c, d, e, f);
+                              I32 fd, I32 request, I32 argPtr, I32 d, I32 e, I32 f) {
+        printf("SYSCALL - ioctl %i %i %i %i %i %i\n", fd, request, argPtr, d, e, f);
 
         return 0;
     }
@@ -105,19 +178,8 @@ namespace wasm {
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_read", I32, __syscall_read,
-                              I32 a, I32 b, I32 c) {
-        printf("SYSCALL - read %i %i %i \n", a, b, c);
-        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
-    }
-
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_poll", I32, __syscall_poll, I32 a, I32 b, I32 c) {
         printf("SYSCALL - poll %i %i %i\n", a, b, c);
-        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_open", I32, __syscall_open, I32 a, I32 b, I32 c) {
-        printf("SYSCALL - open %i %i %i\n", a, b, c);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
@@ -129,12 +191,6 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_futex", I32, __syscall_futex,
                               I32 a, I32 b, I32 c, I32 d, I32 e, I32 f) {
         printf("SYSCALL - futex %i %i %i %i %i %i\n", a, b, c, d, e, f);
-        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_fcntl64", I32, __syscall_fcntl64,
-                              I32 a, I32 b, I32 c) {
-        printf("SYSCALL - fcntl64 %i %i %i\n", a, b, c);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
@@ -538,11 +594,11 @@ namespace wasm {
         const U32 currentBreak = (U32) (currentPageCount * IR::numBytesPerPage);
 
         Uptr maxPages = getMemoryMaxPages(memory);
-        if(targetPageCount > maxPages) {
+        if (targetPageCount > maxPages) {
             printf("SYSCALL - brk requesting %lu pages (max %lu)\n", targetPageCount, maxPages);
         }
-        
-        if(targetPageCount <= currentPageCount) {
+
+        if (targetPageCount <= currentPageCount) {
             printf("SYSCALL - brk with no effect\n");
             return currentBreak;
         }
