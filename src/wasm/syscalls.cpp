@@ -154,9 +154,9 @@ namespace wasm {
         auto *fds = Runtime::memoryArrayPtr<pollfd>(getModuleMemory(), (Uptr) fdsPtr, 1);
 
         // Check this thread has permission to poll
-        int fd = fds[0].fd;
-        checkThreadOwnsFd(fd);
-        printf("Polling fd %i for events\n", fd);
+        pollfd fd = fds[0];
+        checkThreadOwnsFd(fd.fd);
+        printf("Polling fd %i for events %i / revents %i\n", fd.fd, fd.events, fd.revents);
 
         int pollRes = poll(fds, (size_t) nfds, timeout);
         printf("Poll result %i\n", pollRes);
