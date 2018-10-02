@@ -293,7 +293,7 @@ namespace wasm {
     void setSockLen(socklen_t nativeValue, I32 wasmPtr) {
         // Get native pointer to wasm address
         I32 *wasmAddrPtr = &Runtime::memoryRef<I32>(getModuleMemory(), (Uptr) wasmPtr);
-        std::copy(&nativeValue, &nativeValue + sizeof(I32), wasmAddrPtr);
+        std::copy(&nativeValue, &nativeValue + 1, wasmAddrPtr);
     }
 
     struct wasm_in_addr {
@@ -442,15 +442,20 @@ namespace wasm {
                 U32 *subCallArgs = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 3);
                 I32 sockfd = subCallArgs[0];
                 I32 addrPtr = subCallArgs[1];
-                I32 addrLen = subCallArgs[2];
+                I32 addrLenPtr = subCallArgs[2];
+
+                printf("SYSCALL - getsockname %i %i %i\n", sockfd, addrPtr, addrLenPtr);
 
                 checkThreadOwnsFd(sockfd);
 
-                sockaddr addr = getSockAddr(addrPtr);
+                sockaddr nativeAddr = getSockAddr(addrPtr);
+                socklen_t nativeAddrLen = sizeof(nativeAddr);
 
-                printf("SYSCALL - getsockname %i %i %i\n", sockfd, addrPtr, addrLen);
+                int result = getsockname(sockfd, &nativeAddr, &nativeAddrLen);
 
-                int result = getsockname(sockfd, addr, sizeof(addr));
+                // Make sure we write any results back to the wasm objects
+                setSockAddr(nativeAddr, addrPtr);
+                setSockLen(nativeAddrLen, addrLenPtr);
 
                 return result;
             }

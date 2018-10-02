@@ -7,7 +7,7 @@
 
 #define MAX_CHAINS 50
 #define MAX_NAME_LENGTH 32
-#define MAX_INPUT_BYTES 1024
+#define MAX_INPUT_BYTES 65536
 
 // Work out if we're in a wasm cross-compile environment
 // Only need inline if in native env

@@ -26,19 +26,27 @@ namespace wasm {
     // Page size in wasm is 64kiB so 1000 pages ~ 60MiB of memory
     const int MIN_MEMORY_PAGES = 1000;
 
-    // Input memory. Put this at the end of the defined range to avoid stuff trampling on it
-    const int INPUT_START = (MIN_MEMORY_PAGES - 2) * IR::numBytesPerPage;
-    const int MAX_INPUT_BYTES = 1024;
+    //
+    // Put all faasm-related memory at the end of the defined range to minimise risk of things
+    // trampling on it
+    // TODO: do a better job of protecting this
+    //
+    const int FAASM_MEMORY_START = (MIN_MEMORY_PAGES - 4) * IR::numBytesPerPage;
 
-    // Output memory
+    // Input memory (one page)
+    const int INPUT_START = FAASM_MEMORY_START;
+    const int MAX_INPUT_BYTES = IR::numBytesPerPage;
+
+    // Output memory (one page after input memory)
     const int OUTPUT_START = INPUT_START + MAX_INPUT_BYTES;
-    const int MAX_OUTPUT_BYTES = 1024;
+    const int MAX_OUTPUT_BYTES = IR::numBytesPerPage;
 
-    // Chaining memory
-    const int MAX_CHAINS = 50;
+    // Chaining memory (one page after output memory)
+    // Chaining memory contains list of function names and list of their inputs
+    const int MAX_CHAINS = 20;
     const int CHAIN_NAMES_START = OUTPUT_START + MAX_OUTPUT_BYTES;
-    const int MAX_CHAIN_NAME_BYTES = MAX_NAME_LENGTH * MAX_CHAINS;
 
+    const int MAX_CHAIN_NAME_BYTES = MAX_NAME_LENGTH * MAX_CHAINS;
     const int CHAIN_DATA_START = CHAIN_NAMES_START + MAX_CHAIN_NAME_BYTES;
 
     Runtime::MemoryInstance* getModuleMemory();
