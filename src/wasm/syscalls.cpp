@@ -81,8 +81,7 @@ namespace wasm {
         if (strcmp(path, "/etc/hosts") == 0) {
             printf("Opening dummy /etc/hosts\n");
             fd = open(HOSTS_FILE, 0, 0);
-        }
-        else if (strcmp(path, "/etc/resolv.conf") == 0) {
+        } else if (strcmp(path, "/etc/resolv.conf") == 0) {
             printf("Opening dummy /etc/resolv.conf\n");
             fd = open(RESOLV_FILE, 0, 0);
         }
@@ -146,7 +145,7 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_poll", I32, __syscall_poll, I32 fdsPtr, I32 nfds, I32 timeout) {
         printf("SYSCALL - poll %i %i %i\n", fdsPtr, nfds, timeout);
 
-        if(nfds != 1) {
+        if (nfds != 1) {
             printf("Trying to poll %i fds. Only single fd supported", nfds);
             throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
         }
@@ -156,11 +155,8 @@ namespace wasm {
         // Check this thread has permission to poll
         pollfd fd = fds[0];
         checkThreadOwnsFd(fd.fd);
-        printf("Polling fd %i for events %i / revents %i\n", fd.fd, fd.events, fd.revents);
 
         int pollRes = poll(fds, (size_t) nfds, timeout);
-        printf("Poll result %i\n", pollRes);
-
         return pollRes;
     }
 
@@ -181,7 +177,7 @@ namespace wasm {
         Runtime::MemoryInstance *memoryPtr = getModuleMemory();
         char *string = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
 
-        printf("puts - %s\n", string);
+        printf("INTRINSIC - puts %s\n", string);
 
         return 0;
     }
@@ -273,15 +269,31 @@ namespace wasm {
         U8 sa_data[14];
     };
 
+    /** Translates a wasm sockaddr into a native sockaddr */
     sockaddr getSockAddr(I32 addrPtr) {
-        auto addr = Runtime::memoryRef<wasm_sockaddr>(getModuleMemory(), addrPtr);
+        auto addr = &Runtime::memoryRef<wasm_sockaddr>(getModuleMemory(), (Uptr) addrPtr);
 
-        sockaddr sa = {
-                .sa_family = addr.sa_family
-        };
+        sockaddr sa = {.sa_family = addr->sa_family};
 
-        std::copy(addr.sa_data, addr.sa_data + 14, sa.sa_data);
+        std::copy(addr->sa_data, addr->sa_data + 14, sa.sa_data);
         return sa;
+    }
+
+    /** Writes changes to a native sockaddr back to a wasm sockaddr. This is important in several
+     * networking syscalls that receive responses and modify arguments in place */
+    void setSockAddr(sockaddr nativeSockAddr, I32 addrPtr) {
+        // Get native pointer to wasm address
+        wasm_sockaddr *wasmAddrPtr = &Runtime::memoryRef<wasm_sockaddr>(getModuleMemory(), (Uptr) addrPtr);
+
+        // Modify in place
+        wasmAddrPtr->sa_family = nativeSockAddr.sa_family;
+        std::copy(nativeSockAddr.sa_data, nativeSockAddr.sa_data + 14, wasmAddrPtr->sa_data);
+    }
+
+    void setSockLen(socklen_t nativeValue, I32 wasmPtr) {
+        // Get native pointer to wasm address
+        I32 *wasmAddrPtr = &Runtime::memoryRef<I32>(getModuleMemory(), (Uptr) wasmPtr);
+        std::copy(&nativeValue, &nativeValue + sizeof(I32), wasmAddrPtr);
     }
 
     struct wasm_in_addr {
@@ -328,18 +340,20 @@ namespace wasm {
 
             case (SocketCalls::sc_connect): {
                 U32 *subCallArgs = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 3);
+
                 I32 sockfd = subCallArgs[0];
-
                 I32 addrPtr = subCallArgs[1];
-                sockaddr addr = getSockAddr(addrPtr);
-
                 I32 addrLen = subCallArgs[2];
 
                 printf("SYSCALL - connect - %i %i %i\n", sockfd, addrPtr, addrLen);
-                printf("SYSCALL - connect sa_family: %i\n", addr.sa_family);
-                printf("SYSCALL - connect data: %i %i %i\n", addr.sa_data[0], addr.sa_data[1], addr.sa_data[2]);
 
-                return 0;
+                // Allow connecting if thread owns socket
+                checkThreadOwnsFd(sockfd);
+
+                sockaddr addr = getSockAddr(addrPtr);
+                int result = connect(sockfd, &addr, sizeof(sockaddr));
+
+                return result;
             }
 
             case (SocketCalls::sc_recv):
@@ -352,36 +366,54 @@ namespace wasm {
                     argCount = 6;
                 }
 
+                // Pull out arguments
                 U32 *subCallArgs = Runtime::memoryArrayPtr<U32>(memoryPtr, (Uptr) argsPtr, (Uptr) argCount);
                 I32 sockfd = subCallArgs[0];
-
                 Uptr bufPtr = subCallArgs[1];
                 size_t bufLen = subCallArgs[2];
-                U8 *buf = Runtime::memoryArrayPtr<U8>(memoryPtr, bufPtr, bufLen);
-
                 I32 flags = subCallArgs[3];
 
-                ssize_t result = 0;
+                // Make sure thread owns this socket
+                checkThreadOwnsFd(sockfd);
 
+                // Set up buffer
+                U8 *buf = Runtime::memoryArrayPtr<U8>(memoryPtr, bufPtr, bufLen);
+
+                ssize_t result = 0;
                 if (call == SocketCalls::sc_send) {
                     printf("SYSCALL - send %i %li %li %i \n", sockfd, bufPtr, bufLen, flags);
 
                     result = send(sockfd, buf, bufLen, flags);
+
                 } else if (call == SocketCalls::sc_recv) {
                     printf("SYSCALL - recv %i %li %li %i \n", sockfd, bufPtr, bufLen, flags);
 
                     result = recv(sockfd, buf, bufLen, flags);
+
                 } else {
                     I32 sockAddrPtr = subCallArgs[4];
                     sockaddr sockAddr = getSockAddr(sockAddrPtr);
-                    socklen_t addrLen = sizeof(sockAddr);
+                    socklen_t nativeAddrLen = sizeof(sockAddr);
+                    socklen_t addrLen = subCallArgs[5];
 
                     if (call == SocketCalls::sc_sendto) {
-                        printf("SYSCALL - sendto %i %li %li %i %i %i \n", sockfd, bufPtr, bufLen, flags, sockAddrPtr, addrLen);
-                        result = sendto(sockfd, buf, bufLen, flags, &sockAddr, addrLen);
+                        printf("SYSCALL - sendto %i %li %li %i %i %i \n", sockfd, bufPtr, bufLen, flags, sockAddrPtr,
+                               addrLen);
+
+                        result = sendto(sockfd, buf, bufLen, flags, &sockAddr, nativeAddrLen);
+
                     } else {
-                        printf("SYSCALL - recvfrom %i %li %li %i %i %i \n", sockfd, bufPtr, bufLen, flags, sockAddrPtr, addrLen);
-                        result = recvfrom(sockfd, buf, bufLen, flags, &sockAddr, &addrLen);
+                        // Note, addrLen here is actually a pointer
+                        printf("SYSCALL - recvfrom %i %li %li %i %i %i \n", sockfd, bufPtr, bufLen, flags, sockAddrPtr,
+                               addrLen);
+
+                        // Make the native call
+                        result = recvfrom(sockfd, buf, bufLen, flags, &sockAddr, &nativeAddrLen);
+
+                        // Note, recvfrom will modify the sockaddr and addrlen in place with the details returned
+                        // from the host, therefore we must also modify the original wasm object
+                        setSockAddr(sockAddr, sockAddrPtr);
+                        setSockLen(nativeAddrLen, addrLen);
                     }
                 }
 
@@ -409,14 +441,18 @@ namespace wasm {
             case (SocketCalls::sc_getsockname): {
                 U32 *subCallArgs = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 3);
                 I32 sockfd = subCallArgs[0];
-
                 I32 addrPtr = subCallArgs[1];
                 I32 addrLen = subCallArgs[2];
+
+                checkThreadOwnsFd(sockfd);
+
                 sockaddr addr = getSockAddr(addrPtr);
 
                 printf("SYSCALL - getsockname %i %i %i\n", sockfd, addrPtr, addrLen);
-                printf("SYSCALL - addr data %i %i \n", addr.sa_data[0], addr.sa_data[1]);
-                return 0;
+
+                int result = getsockname(sockfd, addr, sizeof(addr));
+
+                return result;
             }
 
                 // ----------------------------
@@ -520,10 +556,17 @@ namespace wasm {
                               I32 clockId, I32 resultAddress) {
         printf("INTRINSIC - clock_gettime %i %i\n", clockId, resultAddress);
 
-        auto result = Runtime::memoryRef<wasm_timespec>(getModuleMemory(), (Uptr) resultAddress);
+        auto result = &Runtime::memoryRef<wasm_timespec>(getModuleMemory(), (Uptr) resultAddress);
 
-        result.tv_sec = dummyClock;
-        result.tv_nsec = dummyClock * 1000000000;
+        timespec actual;
+        int res = clock_gettime(clockId, &actual);
+        if (res != 0) {
+            printf("Failed clock %i", res);
+        }
+
+        result->tv_sec = (I32) actual.tv_sec;
+        result->tv_nsec = (I32) actual.tv_nsec;
+
         dummyClock++;
 
         return 0;
