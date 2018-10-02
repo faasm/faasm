@@ -69,3 +69,23 @@
 - name: "Enable masquerading of {{ base_ip }} on eth0"
   become: yes
   shell: "iptables -t nat -I POSTROUTING -s {{ base_ip }}/24 -j MASQUERADE"
+
+# ----------------------------
+# Traffic shaping
+# ----------------------------
+
+- set_fact:
+    rate_limit: "1024kbps"
+    buffer: "32kbit"
+    max_latency: "100ms"
+
+- name: "Shape outgoing on virtual interface (egress == incoming from network)"
+  become: yes
+  shell: "tc qdisc add dev {{ vif_name }} root tbf rate {{ rate_limit }} burst {{ buffer }} latency {{ max_latency }}"
+
+- name: "Shape outgoing on virtual peer (egress == outgoing from application"
+  become: yes
+  shell: "{{ item.prefix }} tc qdisc add dev {{ item.device }} root tbf rate {{ rate_limit }} burst {{ buffer }} latency {{ max_latency }}"
+  with_items:
+    - {prefix: "", device: "{{ vif_name }}"}
+    - {prefix: "ip netns exec {{ ns_name }}", device: "{{ vif_peer }}"}

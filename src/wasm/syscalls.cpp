@@ -81,18 +81,28 @@ namespace wasm {
         if (strcmp(path, "/etc/hosts") == 0) {
             printf("Opening dummy /etc/hosts\n");
             fd = open(HOSTS_FILE, 0, 0);
+
         } else if (strcmp(path, "/etc/resolv.conf") == 0) {
             printf("Opening dummy /etc/resolv.conf\n");
             fd = open(RESOLV_FILE, 0, 0);
+
+        } else {
+            // Bomb out if not valid path
+            printf("Trying to open blocked path (%s) \n", path);
+            throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
         }
 
         if (fd > 0) {
             openFds.insert(fd);
             return (I32) fd;
         }
+        else if (fd == -ENOENT) {
+            printf("File does not exist %s\n", path);
+        }
+        else {
+            printf("Error opening file %s (code %d) \n", path, fd);
+        }
 
-        // Bomb out if not successful
-        printf("Trying to open blocked path (%s) \n", path);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 

@@ -15,6 +15,7 @@
         - "libcpprest-dev"
         - "libhiredis-dev"
         - "libcgroup-dev"
+        - "libcurl4-openssl-dev"
         - "cgroup-tools"
 
     # Catch

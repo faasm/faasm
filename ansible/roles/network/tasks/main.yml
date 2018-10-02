@@ -1,23 +1,23 @@
 ---
-#
-#- name: "Install packages"
-#  become: yes
-#  apt:
-#    name: "{{ item }}"
-#    state: present
-#  with_items:
-#    - "bridge-utils"
-#    - "iproute2"
-#
-#- name: "Enable IP forwarding on host"
-#  become: yes
-#  shell: "echo 1 > /proc/sys/net/ipv4/ip_forward"
-#
-## Repeat namespace creation as many times as necessary
-#- name: "Set up {{ ns_count }} namespaces"
-#  include_tasks: namespace.yml
-#  loop: "{{ range(0, ns_count) | list }}"
-#  loop_control:
-#    loop_var: ns_idx
+
+- name: "Install packages"
+  become: yes
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - "bridge-utils"
+    - "iproute2"
+
+- name: "Enable IP forwarding on host"
+  become: yes
+  shell: "echo 1 > /proc/sys/net/ipv4/ip_forward"
+
+# Repeat namespace creation as many times as necessary
+- name: "Set up {{ ns_count }} namespaces"
+  include_tasks: namespace.yml
+  loop: "{{ range(0, ns_count) | list }}"
+  loop_control:
+    loop_var: ns_idx
 
 - include_tasks: files.yml
