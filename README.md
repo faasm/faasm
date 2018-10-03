@@ -8,6 +8,10 @@ The underlying WebAssembly execution is handled by [WAVM](https://github.com/WAV
 
 More detail on the internals, development and deployment is held in the [wiki](https://github.com/lsds/faasm/wiki).
 
+## Wasm toolchain
+
+It's highly recommended you use the [Dockerised WASM toolchain](https://github.com/Shillaker/wasm-toolchain). This vastly simplifies the process of compiling WebAssembly.
+
 # Usage
 
 ## Functions
@@ -91,5 +95,4 @@ I can execute:
 ```
 curl http://localhost:8080/f/simon/cool_func/ -X PUT -T /tmp/do_something.wasm
 ```
-
 

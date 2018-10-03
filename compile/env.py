@@ -32,7 +32,7 @@ CXXFLAGS = COMPILER_FLAGS_STRING
 LD = join(TOOLCHAIN_ROOT, "bin", "wasm-ld")
 CROSS_COMPILE = join(TOOLCHAIN_ROOT, "llvm-")
 AR = join(TOOLCHAIN_ROOT, "bin", "llvm-ar")
-AS = join(TOOLCHAIN_ROOT, "bin", "llvm-ar")
+AS = join(TOOLCHAIN_ROOT, "bin", "llvm-as")
 RANLIB = join(TOOLCHAIN_ROOT, "bin", "llvm-ranlib")
 
 _ENV_TUPLES = [
