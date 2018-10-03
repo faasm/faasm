@@ -10,9 +10,9 @@
 #define MAX_INPUT_BYTES 65536
 
 // Work out if we're in a wasm cross-compile environment
-// Only need inline if in native env
+// This can be used to avoid functions being removed by DCE
 #if __clang_major__ == 8
-#define FAASM_INLINE __attribute__ ((visibility ("default")))
+#define FAASM_INLINE __attribute__((used)) __attribute__ ((visibility ("default")))
 #else
 #define FAASM_INLINE static inline
 #endif
@@ -91,9 +91,9 @@ void chainFunction(
 }
 
 #if __clang_major__ == 8
-// Cross-compiler needs a main function (which will never be called)
-int main(int argc,char** argv) {
-
+// Cross-compiler needs an entry point function (which will never be called)
+int main() {
+    return 0;
 }
 #endif
 

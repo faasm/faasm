@@ -3,7 +3,7 @@ from os.path import exists, join
 from shutil import rmtree
 from subprocess import call
 
-from compile.env import PROJ_ROOT, CXX, CC, COMPILER_FLAGS
+from compile.env import PROJ_ROOT, CXX, CC, COMPILER_FLAGS, ENV_DICT
 
 BUILD_DIR = join(PROJ_ROOT, "work")
 
