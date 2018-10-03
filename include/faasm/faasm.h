@@ -92,7 +92,7 @@ void chainFunction(
 
 #if __clang_major__ == 8
 // Cross-compiler needs an entry point function (which will never be called)
-int main() {
+int main(int a, char* args[]) {
     return 0;
 }
 #endif

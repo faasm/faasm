@@ -10,6 +10,9 @@ int main() {
     uint8_t chainFuncs[MAX_CHAINS];
     uint8_t chainInputData[MAX_CHAINS * MAX_INPUT_BYTES];
 
+    // Set up some input data
+    strcpy((char*) inputData, "www.facebook.com");
+
     // Call the actual function
     run(inputData, outputData, chainFuncs, chainInputData);
 }
