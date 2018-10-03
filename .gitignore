@@ -1,8 +1,7 @@
 # Faasm
 work/
+download/
 build/
-toolchain/
-toolchain.tar.gz
 
 # Jetbrains
 .idea/

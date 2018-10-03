@@ -1,3 +1,8 @@
+# TOOLCHAIN
+
+bash:
+	docker run -v $$(pwd):/work -w /work -it shillaker/wasm-toolchain /bin/bash
+
 # DOCKER
 
 .PHONY: build-base
@@ -12,6 +17,7 @@ push-core:
 	docker push shillaker/faasm-core
 
 # DOCKER COMPOSE
+
 start-all:
 	docker-compose up -d
 

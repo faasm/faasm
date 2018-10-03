@@ -4,6 +4,8 @@ from compile.function import compile_function
 from compile.libs import compile_lib
 from compile.wasm2wast import wasm_to_wast
 
+# Note: this should be run inside the wasm toolchain container
+
 if __name__ == "__main__":
     top_parser = argparse.ArgumentParser()
 

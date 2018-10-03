@@ -8,9 +8,31 @@ The underlying WebAssembly execution is handled by [WAVM](https://github.com/WAV
 
 More detail on the internals, development and deployment is held in the [wiki](https://github.com/lsds/faasm/wiki).
 
-## Wasm toolchain
+For compiling WebAssembly it is highly recommended you use the [Dockerised WASM toolchain](https://github.com/Shillaker/wasm-toolchain). This vastly simplifies the process of compiling WebAssembly.
 
-It's highly recommended you use the [Dockerised WASM toolchain](https://github.com/Shillaker/wasm-toolchain). This vastly simplifies the process of compiling WebAssembly.
+# Quick Start
+
+The `hello.c` file in the root of this directory shows a basic faasm function. To compile this to WebAssembly you can run the following (assuming you have Docker installed) from the project root:
+
+```
+# Start the wasm toolchain container
+docker run -v $(pwd):/work -w /work -it shillaker/wasm-toolchain
+
+# From inside the container, compile the hello.c file
+/toolchain/clang --target=wasm32-unknown-unknown-wasm --sysroot=/toolchain/sysroot -o hello.wasm -I include/faasm hello.c
+
+# Drop out of the container
+logout
+
+# Run the dockerised environment
+make start-all
+
+# Upload the function
+curl -X PUT http://localhost:8080/f/dummy/hello -T hello.wasm
+
+# Invoke the function
+curl -X POST http://localhost:8080/f/dummy/hello
+```
 
 # Usage
 
