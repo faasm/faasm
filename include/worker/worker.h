@@ -15,8 +15,8 @@
 
 
 namespace worker {
-    const std::string CGROUP_NAME = "faasm";
     const std::string BASE_NETNS_NAME = "faasm";
+    const std::string BASE_CGROUP_NAME = "faasm";
 
     void execNextFunction();
     void execFunction(int index, message::FunctionCall call);
@@ -28,7 +28,7 @@ namespace worker {
     public:
         explicit CGroup(const std::string &name);
 
-        void addCurrentThreadCpu();
+        void addCurrentThread();
 
         const std::string getName();
         const CgroupMode getMode();
@@ -62,7 +62,5 @@ namespace worker {
         Worker();
 
         void start();
-    private:
-        std::shared_ptr<CGroup> cgroup;
     };
 }

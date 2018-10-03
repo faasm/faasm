@@ -66,7 +66,7 @@ setup-k8:
 	cd ansible && ansible-playbook kubernetes.yml -i inventory/lsds.ini
 
 setup-cgroup:
-	cd ansible && ansible-playbook cgroupv1.yml --ask-become-pass
+	cd ansible && ansible-playbook cgroup.yml --ask-become-pass
 
 setup-network:
 	cd ansible && ansible-playbook network.yml --ask-become-pass

@@ -1,0 +1,28 @@
+---
+
+- set_fact:
+    controllers: "cpu,net_cls"
+
+- name: "System deps"
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - cgroup-bin
+    - cgroup-tools
+
+- name: "Delete top-level group if exists"
+  become: yes
+  shell: "cgdelete net_cls:/faasm | true"
+
+- name: "Create top-level group"
+  become: yes
+  shell: "cgcreate -t {{ ansible_user }}:{{ ansible_user }} -a {{ ansible_user }}:{{ ansible_user }} -g {{ controllers }}:/faasm"
+
+# Repeat cgroup creation as many times as necessary
+- name: "Set up {{ ns_count }} cgroups"
+  include_tasks: group.yml
+  loop: "{{ range(0, cg_count) | list }}"
+  loop_control:
+    loop_var: cg_idx
+

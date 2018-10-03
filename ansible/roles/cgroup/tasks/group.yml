@@ -1,0 +1,17 @@
+---
+
+- set_fact:
+    cg_name: "faasm{{ cg_idx + 1 }}"
+
+- name: "Create group"
+  become: yes
+  shell: "cgcreate -t {{ ansible_user }}:{{ ansible_user }} -a {{ ansible_user }}:{{ ansible_user }} -g {{ controllers }}:/faasm/{{ cg_name }}"
+
+# Note, network handles need to be expressed in an odd format. 10:8 is 100008 and 10:11 is 100011
+- name: "Format network class handle"
+  shell: 'printf "10%04d" {{ cg_idx + 1 }}'
+  register: "cls_handle"
+
+- name: "Set the network class handle"
+  become: yes
+  shell: "echo {{ cls_handle.stdout }} > /sys/fs/cgroup/net_cls/faasm/{{ cg_name }}/net_cls.classid"

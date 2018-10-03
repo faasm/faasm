@@ -27,8 +27,9 @@ namespace worker {
     /** Handles the execution of the function */
     void execFunction(int index, message::FunctionCall call) {
         // Add this thread to the cgroup
-        CGroup cgroup(CGROUP_NAME);
-        cgroup.addCurrentThreadCpu();
+        std::string cgName = BASE_CGROUP_NAME + std::to_string(index);
+        CGroup cgroup(cgName);
+        cgroup.addCurrentThread();
 
         // Set up network namespace
         std::string netnsName = BASE_NETNS_NAME + std::to_string(index);

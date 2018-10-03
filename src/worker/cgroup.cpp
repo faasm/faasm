@@ -6,6 +6,7 @@
 namespace worker {
     static const std::string BASE_DIR = "/sys/fs/cgroup/";
     static const std::string CG_CPU = "cpu";
+    static const std::string CG_NET_CLS = "net_cls";
 
     static std::mutex groupMutex;
 
@@ -28,31 +29,23 @@ namespace worker {
         return this->mode;
     }
 
-    boost::filesystem::path CGroup::getPathToFile(const std::string &controller, const std::string &file) {
-        boost::filesystem::path path(BASE_DIR);
-        path.append(controller);
-        path.append(this->name);
-
-        path.append(file);
-
-        return path;
-    }
-
-    void CGroup::addCurrentThreadCpu() {
+    void CGroup::addCurrentThread() {
         auto tid = (pid_t) syscall(SYS_gettid);
-        this->addThread(tid, CG_CPU);
-    }
 
-    void CGroup::addThread(pid_t threadId, const std::string &controller) {
         if (mode == CgroupMode::cg_off) {
-            std::cout << "Not adding thread id " << threadId << " cgroup support off" << std::endl;
+            std::cout << "Not adding thread id " << tid << " cgroup support off" << std::endl;
             return;
         }
 
-        boost::filesystem::path tasksPath = this->getPathToFile(controller, "tasks");
-
-        // Get lock and write to file
+        // Get lock and add to controllers
         std::lock_guard<std::mutex> guard(groupMutex);
+
+        this->addThread(tid, CG_CPU);
+        this->addThread(tid, CG_NET_CLS);
+    }
+
+    void CGroup::addThread(pid_t threadId, const std::string &controller) {
+        boost::filesystem::path tasksPath = this->getPathToFile(controller, "tasks");
 
         std::ofstream outfile;
         outfile.open(tasksPath.string(), std::ios_base::app);
@@ -61,5 +54,16 @@ namespace worker {
 
         std::cout << "Added thread id " << threadId << " to " << controller << ":" << this->name << " at " << tasksPath
                   << std::endl;
+    }
+
+    boost::filesystem::path CGroup::getPathToFile(const std::string &controller, const std::string &file) {
+        boost::filesystem::path path(BASE_DIR);
+        path.append(controller);
+        path.append(BASE_CGROUP_NAME);
+        path.append(this->name);
+
+        path.append(file);
+
+        return path;
     }
 }

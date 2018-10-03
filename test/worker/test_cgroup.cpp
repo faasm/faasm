@@ -31,14 +31,14 @@ namespace tests {
     }
 
     TEST_CASE("Test adding thread to cpu", "[worker]") {
-        CGroup cg("faasm");
+        CGroup cg("faasm1");
 
-        boost::filesystem::path cpuPath("/sys/fs/cgroup/cpu/faasm/tasks");
+        boost::filesystem::path cpuPath("/sys/fs/cgroup/cpu/faasm/faasm1/tasks");
         std::string fileContents = util::readFileToString(cpuPath.string());
 
         REQUIRE(fileContents.empty());
 
-        cg.addCurrentThreadCpu();
+        cg.addCurrentThread();
 
         std::string fileContentAfter = util::readFileToString(cpuPath.string());
         std::string trimmedContentAfter = boost::trim_copy(fileContentAfter);

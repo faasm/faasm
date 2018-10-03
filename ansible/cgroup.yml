@@ -2,5 +2,7 @@
 
 - hosts: localhost
   gather_facts: yes
+  vars:
+    cg_count: 10
   roles:
-    - cgroupv1
+    - cgroup
