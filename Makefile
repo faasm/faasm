@@ -71,20 +71,7 @@ setup-cgroup:
 setup-network:
 	cd ansible && ansible-playbook network.yml --ask-become-pass
 
-# WASM toolchain
-
-build-tools:
-	python wasm-waterfall/src/build.py --build-include llvm,musl,compiler-rt,libcxx,libcxxabi --sync-include llvm,lld,musl,compiler-rt,libcxx,libcxxabi,clang,host-toolchain,cmake --no-tool-tests --no-test 
-
-untar-tools:
-	rm -rf toolchain; mkdir toolchain && tar -xf toolchain.tar.gz -C toolchain
-
-tar-tools:
-	cd wasm-waterfall/src/work/ && tar -cf toolchain.tar.gz wasm-install && mv toolchain.tar.gz ../../../
-
-build-musl-waterfall:
-	python wasm-waterfall/src/build.py --sync-include musl --build-include musl --no-test --no-tool-tests
-
+# Musl
 build-musl:
 	cd musl && python libc.py \
 		--clang_dir=/usr/local/code/faasm/toolchain/wasm-install/bin \
