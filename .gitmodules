@@ -1,9 +1,3 @@
 [submodule "WAVM"]
     path = WAVM
     url = git@github.com:WAVM/WAVM.git
-[submodule "musl"]
-	path = musl
-	url = git@github.com:Shillaker/musl
-[submodule "wasm-waterfall"]
-	path = wasm-waterfall
-	url = git@github.com:Shillaker/waterfall
