@@ -18,7 +18,7 @@
   shell: 'printf "0x3%04x" {{ cg_idx }}'
   register: "cls_handle"
 
-- name: "Set class ID {{ cls_handle }} on cgroup {{ cg_name }}"
+- name: "Set class ID {{ cls_handle.stdout }} on cgroup {{ cg_name }}"
   become: yes
   shell: "echo {{ cls_handle.stdout }} > /sys/fs/cgroup/net_cls/faasm/{{ cg_name }}/net_cls.classid"
 
@@ -32,10 +32,18 @@
     buffer: "32kbit"
     max_latency: "100ms"
 
+- name: "Delete top-level queueing discipline if exists"
+  become: yes
+  shell: "tc qdisc del dev eth0 root handle {{ cg_idx }}: htb | true"
+
+- name: "Create top-level queueing discipline"
+  become: yes
+  shell: "tc qdisc add dev eth0 root handle {{ cg_idx }}: htb"
+
 - name: "Create a tc class to handle these packets"
   become: yes
-  shell: "tc class add dev eth0 parent 3: classid 3:{{ cg_idx }} htb rate {{ rate_limit }} ceil {{ rate_ceil }}"
+  shell: "tc class add dev eth0 parent {{ cg_idx }}: classid {{ cg_idx }}:1 htb rate {{ rate_limit }} ceil {{ rate_ceil }}"
 
 - name: "Create a tc filter to assign packets to this group"
   become: yes
-  shell: "tc filter add dev eth0 parent 3: protocol ip prio 10 handle 3:{{ cg_idx }} cgroup"
+  shell: "tc filter add dev eth0 parent {{ cg_idx }}: protocol ip prio 10 handle 1: cgroup"
