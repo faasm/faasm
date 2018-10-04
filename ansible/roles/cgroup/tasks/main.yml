@@ -19,10 +19,15 @@
   become: yes
   shell: "cgcreate -t {{ ansible_user }}:{{ ansible_user }} -a {{ ansible_user }}:{{ ansible_user }} -g {{ controllers }}:/faasm"
 
+- name: "Create top-level queueing discipline"
+  become: yes
+  shell: "tc qdisc add dev eth0 root handle 3: htb"
+
 # Repeat cgroup creation as many times as necessary
+# Note, we start cgroup indexing from 1
 - name: "Set up {{ ns_count }} cgroups"
   include_tasks: group.yml
-  loop: "{{ range(0, cg_count) | list }}"
+  loop: "{{ range(1, cg_count + 1) | list }}"
   loop_control:
     loop_var: cg_idx
 

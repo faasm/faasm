@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MAX_CHAINS 50
+#define MAX_CHAINS 20
 #define MAX_NAME_LENGTH 32
 #define MAX_INPUT_BYTES 65536
 

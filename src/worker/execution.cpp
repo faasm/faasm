@@ -26,13 +26,16 @@ namespace worker {
 
     /** Handles the execution of the function */
     void execFunction(int index, message::FunctionCall call) {
+        // Note, we index cgroups from 1
+        int cg_index = index + 1;
+
         // Add this thread to the cgroup
-        std::string cgName = BASE_CGROUP_NAME + std::to_string(index);
+        std::string cgName = BASE_CGROUP_NAME + std::to_string(cg_index);
         CGroup cgroup(cgName);
         cgroup.addCurrentThread();
 
         // Set up network namespace
-        std::string netnsName = BASE_NETNS_NAME + std::to_string(index);
+        std::string netnsName = BASE_NETNS_NAME + std::to_string(cg_index);
         NetworkNamespace ns(netnsName);
         ns.addCurrentThread();
 

@@ -13,9 +13,9 @@ using namespace WAVM;
 namespace wasm {
     WasmModule::WasmModule() = default;
 
-    thread_local Runtime::MemoryInstance* moduleMemory = nullptr;
+    thread_local Runtime::MemoryInstance *moduleMemory = nullptr;
 
-    Runtime::MemoryInstance* getModuleMemory() {
+    Runtime::MemoryInstance *getModuleMemory() {
         return moduleMemory;
     }
 
@@ -207,31 +207,37 @@ namespace wasm {
     void WasmModule::extractChainingData(const message::FunctionCall &originalCall) {
         // Check for chained calls. Note that we reserve chunks for each and can iterate
         // through them checking where the names are set
-        U8 *rawChainNames = &Runtime::memoryRef<U8>(moduleMemory, (Uptr) CHAIN_NAMES_START);
-        U8 *rawChaininputs = &Runtime::memoryRef<U8>(moduleMemory, (Uptr) CHAIN_DATA_START);
+        U8 *rawChainNames = Runtime::memoryArrayPtr<U8>(moduleMemory, (Uptr) CHAIN_NAMES_START,
+                                                        (Uptr) MAX_CHAIN_NAME_BYTES);
+        U8 *rawChainInputs = Runtime::memoryArrayPtr<U8>(moduleMemory, (Uptr) CHAIN_DATA_START,
+                                                         (Uptr) MAX_CHAIN_DATA_BYTES);
 
         // Extract the chaining requests
         for (int i = 0; i < MAX_CHAINS; i++) {
-            // Get the function name
-            int nameStart = (i * MAX_NAME_LENGTH);
-            std::string thisName((char *) &rawChainNames[nameStart]);
+            int nameStart = i * MAX_NAME_LENGTH;
+            int nameEnd = nameStart + MAX_NAME_LENGTH;
+
+            int inputStart = i * MAX_INPUT_BYTES;
+            int inputEnd = inputStart + MAX_INPUT_BYTES;
+
+            std::vector<U8> thisChainName(rawChainNames + nameStart, rawChainNames + nameEnd);
+            std::vector<U8> thisChainData(rawChainInputs + inputStart, rawChainInputs + inputEnd);
+
+            // Trim zeroes
+            util::trimTrailingZeros(thisChainName);
 
             // Stop if we have an empty name
-            if (thisName.empty()) {
+            if (thisChainName.empty()) {
                 break;
             }
 
-            // Extract data without trailing zeros
-            int dataStart = (i * MAX_INPUT_BYTES);
-            std::vector<U8> thisData(&rawChaininputs[dataStart],
-                                     &rawChaininputs[dataStart + MAX_INPUT_BYTES]);
-            util::trimTrailingZeros(thisData);
+            util::trimTrailingZeros(thisChainData);
 
             // Create call and add to list
             message::FunctionCall chainedCall;
             chainedCall.set_user(originalCall.user());
-            chainedCall.set_function(thisName);
-            chainedCall.set_inputdata(thisData.data(), thisData.size());
+            chainedCall.set_function((char *) thisChainName.data());
+            chainedCall.set_inputdata(thisChainData.data(), thisChainData.size());
 
             chainedCalls.push_back(chainedCall);
         }

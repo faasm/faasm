@@ -48,6 +48,7 @@ namespace wasm {
 
     const int MAX_CHAIN_NAME_BYTES = MAX_NAME_LENGTH * MAX_CHAINS;
     const int CHAIN_DATA_START = CHAIN_NAMES_START + MAX_CHAIN_NAME_BYTES;
+    const int MAX_CHAIN_DATA_BYTES = MAX_CHAINS * MAX_INPUT_BYTES;
 
     Runtime::MemoryInstance* getModuleMemory();
 
