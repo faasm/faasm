@@ -1,0 +1,8 @@
+---
+
+worker_count: 10
+
+# Networking
+egress_rate: 1mbit
+egress_ceil: 2mbit
+ingress_rate: 1mbit

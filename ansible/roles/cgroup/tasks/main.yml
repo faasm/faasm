@@ -14,19 +14,22 @@
 
 - name: "Delete top-level cgroup if exists"
   become: yes
-  shell: "cgdelete net_cls:/faasm | true"
+  shell: "cgdelete {{ item }}:/faasm | true"
+  with_items:
+    - "net_cls"
+    - "cpu"
 
 - name: "Create top-level cgroup"
   become: yes
   shell: "cgcreate -t {{ ansible_user }}:{{ ansible_user }} -a {{ ansible_user }}:{{ ansible_user }} -g {{ controllers }}:/faasm"
 
-- name: "Delete top-level queueing discipline if exists"
-  become: yes
-  shell: "tc qdisc del dev eth0 root handle 3: htb | true"
-
-- name: "Create top-level queueing discipline"
-  become: yes
-  shell: "tc qdisc add dev eth0 root handle 3: htb"
+#- name: "Delete top-level queueing discipline if exists"
+#  become: yes
+#  shell: "tc qdisc del dev eth0 root handle 3: htb | true"
+#
+#- name: "Create top-level queueing discipline"
+#  become: yes
+#  shell: "tc qdisc add dev eth0 root handle 3: htb"
 
 # Repeat cgroup creation as many times as necessary
 # Note, we start cgroup indexing from 1
@@ -36,6 +39,6 @@
   loop_control:
     loop_var: cg_idx
 
-- name: "Create a filter to assign packets to this group"
-  become: yes
-  shell: "tc filter add dev eth0 parent 3: protocol all handle 1: cgroup"
+#- name: "Create a filter to assign packets to this group"
+#  become: yes
+#  shell: "tc filter add dev eth0 parent 3: protocol all handle 1: cgroup"
