@@ -30,26 +30,25 @@ namespace tests {
         util::unsetEnvVar("CGROUP_MODE");
     }
 
-    TEST_CASE("Test adding thread to cpu", "[worker]") {
+    void checkAddingToController(const std::string &controllerName) {
         CGroup cg("faasm1");
 
-        boost::filesystem::path cpuTasksPath("/sys/fs/cgroup/cpu/faasm/faasm1/tasks");
-        boost::filesystem::path netClsTasksPath("/sys/fs/net_cls/cpu/faasm/faasm1/tasks");
+        boost::filesystem::path tasksPath("/sys/fs/cgroup");
+        tasksPath.append(controllerName);
+        tasksPath.append("faasm/faasm1/tasks");
 
-        std::string cpuFileBefore = util::readFileToString(cpuTasksPath.string());
-        std::string netClsFileBefore = util::readFileToString(netClsTasksPath.string());
+        std::string fileBefore = util::readFileToString(tasksPath.string());
 
-        REQUIRE(cpuFileBefore.empty());
-        REQUIRE(netClsFileBefore.empty());
+        REQUIRE(fileBefore.empty());
 
         cg.addCurrentThread();
-
         auto tid = (pid_t) syscall(SYS_gettid);
 
-        std::string cpuFileAfter = util::readFileToString(cpuTasksPath.string());
-        std::string netClsFileAfter = util::readFileToString(netClsTasksPath.string());
+        std::string fileAfter = util::readFileToString(tasksPath.string());
+        REQUIRE(boost::trim_copy(fileAfter) == std::to_string(tid));
+    }
 
-        REQUIRE(boost::trim_copy(cpuFileAfter) == std::to_string(tid));
-        REQUIRE(boost::trim_copy(netClsFileAfter) == std::to_string(tid));
+    TEST_CASE("Test adding thread to cpu controller", "[worker]") {
+        checkAddingToController("cpu");
     }
 }

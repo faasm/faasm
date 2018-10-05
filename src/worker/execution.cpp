@@ -42,8 +42,19 @@ namespace worker {
         std::cout << "Starting call:  " << call.user() << " - " << call.function() << std::endl;
 
         // Create and execute the module
+        std::string errorMessage = "";
         wasm::WasmModule module;
-        module.execute(call);
+        try {
+            module.execute(call);
+        }
+        catch(const std::exception &e) {
+            std::cout << "Error in wasm execution:\n" << e.what() << "\n" << std::endl;
+            errorMessage = "Error in execution";
+        }
+        catch(...) {
+            std::cout << "Unknown error in wasm execution" << std::endl;
+            errorMessage = "Error in execution";
+        }
 
         // Release the token
         std::cout << "Worker releasing slot " << index << std::endl;
@@ -51,12 +62,15 @@ namespace worker {
 
         // Dispatch any chained calls
         for (auto chainedCall : module.chainedCalls) {
+            // TODO: check that this call exists. Create function to run the check
             redis.callFunction(chainedCall);
         }
 
         // Set function success
         std::cout << "Finished call:  " << call.user() << " - " << call.function() << std::endl;
-        redis.setFunctionResult(call, true);
+
+        bool isSuccess = errorMessage.empty();
+        redis.setFunctionResult(call, isSuccess);
 
         // TODO running this clean() seems to kill the WAVM execution in all threads. Memory leak if not called?
         //module.clean();

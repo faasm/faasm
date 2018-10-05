@@ -41,7 +41,9 @@ namespace worker {
         std::lock_guard<std::mutex> guard(groupMutex);
 
         this->addThread(tid, CG_CPU);
-        this->addThread(tid, CG_NET_CLS);
+
+        // Not currently supporting net_cls but can do
+        // this->addThread(tid, CG_NET_CLS);
     }
 
     void CGroup::addThread(pid_t threadId, const std::string &controller) {
