@@ -23,9 +23,9 @@ services:
     volumes:
       - /usr/share/faasm:/usr/share/faasm
       - /sys/fs/cgroup:/sys/fs/cgroup  # For cgroup management
-      - /var/run/netns:/var/run/netns
     networks:
       - faasm
+    privileged: true
 
   edge:
     image: shillaker/faasm-core:latest
