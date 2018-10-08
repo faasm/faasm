@@ -3,6 +3,7 @@
 #include <edge/edge.h>
 #include <util/util.h>
 
+#include <boost/filesystem.hpp>
 
 namespace tests {
 
@@ -52,6 +53,12 @@ namespace tests {
         // Override the function directory with junk
         util::setEnvVar("FUNC_ROOT", "/tmp/faasm-test");
 
+        // Ensure environment is clean before running
+        std::string expectedFile = "/tmp/faasm-test/wasm/gamma/delta/function.wasm";
+        std::string expectedObjFile = "/tmp/faasm-test/wasm/gamma/delta/function.o";
+        boost::filesystem::remove(expectedFile);
+        boost::filesystem::remove(expectedObjFile);
+
         std::string path = "/f/gamma/delta";
         std::string inputData = "This is my dummy file data";
 
@@ -59,13 +66,15 @@ namespace tests {
         request.set_method(methods::PUT);
         edge::RestServer::handlePut(request);
 
-        std::string expectedFile = "/tmp/faasm-test/wasm/gamma/delta/function.wasm";
         std::string actualOutput = util::readFileToString(expectedFile);
 
         // Check file is written properly
         REQUIRE(actualOutput == inputData);
 
-        // Tidy up
+        // Check object file is generated
+        bool isObjFilePresent = boost::filesystem::exists(expectedObjFile);
+        REQUIRE(isObjFilePresent);
+
         util::unsetEnvVar("FUNC_ROOT");
     }
 

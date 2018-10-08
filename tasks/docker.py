@@ -18,7 +18,7 @@ def tools(context):
     ]
     cmd = " ".join(cmd)
 
-    call(cmd, cwd=PROJ_ROOT)
+    call(cmd, shell=True, cwd=PROJ_ROOT)
 
 
 @task
