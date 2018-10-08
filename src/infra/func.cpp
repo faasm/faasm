@@ -4,42 +4,67 @@
 #include <boost/filesystem.hpp>
 
 namespace infra {
-    std::string getFunctionStubDir() {
-        std::string projRoot = util::getEnvVar("FUNC_ROOT", "/usr/local/code/faasm");
-        std::string dirStr = projRoot + "/wasm/stubs";
+    const static std::string funcFile = "function.wasm";
+    const static std::string objFile = "function.o";
 
-        boost::filesystem::create_directories(dirStr);
+    boost::filesystem::path getFuncRootPath() {
+        std::string funcRoot = util::getEnvVar("FUNC_ROOT", "/usr/local/code/faasm");
 
-        return dirStr;
+        boost::filesystem::path path(funcRoot);
+        return path;
     }
 
-    std::string getFunctionDir(const message::FunctionCall &call) {
-        std::string projRoot = util::getEnvVar("FUNC_ROOT", "/usr/local/code/faasm");
-        std::string dirStr = projRoot + "/wasm/" + call.user() + "/" + call.function();
+    std::string getFunctionStubDir() {
+        auto path = getFuncRootPath();
+        path.append("wasm/stubs");
+        boost::filesystem::create_directories(path);
+
+        return path.string();
+    }
+
+    boost::filesystem::path getFunctionDir(const message::FunctionCall &call, bool create=true) {
+        auto path = getFuncRootPath();
+
+        path.append("wasm");
+        path.append(call.user());
+        path.append(call.function());
 
         // Create directory if doesn't exist
-        boost::filesystem::create_directories(dirStr);
+        if(create) {
+            boost::filesystem::create_directories(path);
+        }
 
-        return dirStr;
+        return path;
+    }
+
+    bool isValidFunction(const message::FunctionCall &call) {
+        auto path = getFunctionDir(call, false);
+
+        // Check object file exists
+        path.append(objFile);
+        bool isValid = boost::filesystem::exists(path);
+
+        return isValid;
     }
 
     std::string getFunctionFile(const message::FunctionCall &call) {
-        std::string dirPath = getFunctionDir(call);
-        std::string filePath = dirPath + "/function.wasm";
+        auto path = getFunctionDir(call);
+        path.append(funcFile);
 
-        return filePath;
+        return path.string();
     }
 
     std::string getFunctionObjectFile(const message::FunctionCall &call) {
-        std::string dirPath = getFunctionDir(call);
-        std::string filePath = dirPath + "/function.o";
+        auto path = getFunctionDir(call);
+        path.append(objFile);
 
-        return filePath;
+        return path.string();
     }
 
     std::vector<uint8_t> getFunctionObjectBytes(const message::FunctionCall &call) {
         std::string objectFilePath = getFunctionObjectFile(call);
         std::vector<uint8_t> bytes = util::readFileToBytes(objectFilePath);
+
         return bytes;
     }
 

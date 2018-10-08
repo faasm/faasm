@@ -62,7 +62,16 @@ namespace worker {
 
         // Dispatch any chained calls
         for (auto chainedCall : module.chainedCalls) {
-            // TODO: check that this call exists. Create function to run the check
+            // Check if call is valid
+            if(!infra::isValidFunction(chainedCall)) {
+                errorMessage = "Invalid chained function call: ";
+                errorMessage.append(call.user());
+                errorMessage.append(" - ");
+                errorMessage.append(call.function());
+
+                break;
+            }
+
             redis.callFunction(chainedCall);
         }
 

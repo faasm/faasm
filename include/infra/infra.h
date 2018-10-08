@@ -12,6 +12,7 @@ namespace infra {
     std::string getFunctionFile(const message::FunctionCall &call);
     std::string getFunctionObjectFile(const message::FunctionCall &call);
     std::vector<uint8_t> getFunctionObjectBytes(const message::FunctionCall &call);
+    bool isValidFunction(const message::FunctionCall &call);
 
     std::vector<uint8_t> callToBytes(const message::FunctionCall &call);
 

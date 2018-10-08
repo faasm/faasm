@@ -58,9 +58,9 @@ namespace tests {
         REQUIRE(chainC.user() == "simon");
 
         // Check function names
-        REQUIRE(chainA.function() == "Function 0");
-        REQUIRE(chainB.function() == "Function 1");
-        REQUIRE(chainC.function() == "Function 2");
+        REQUIRE(chainA.function() == "echo");
+        REQUIRE(chainB.function() == "x2");
+        REQUIRE(chainC.function() == "dummy");
 
         // Check function data
         std::vector<uint8_t> expected0 = {0, 1, 2};

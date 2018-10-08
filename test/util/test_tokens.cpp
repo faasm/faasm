@@ -40,18 +40,30 @@ namespace tests {
         vars::acquiredTokens.push_back(token);
     }
 
-    TEST_CASE("Test multithreaded token pool operation", "[util]") {
-        // Set off threads to get tokens
+    TEST_CASE("Test token pool operation with some threads", "[util]") {
+        std::vector<int> expected;
+        REQUIRE(vars::acquiredTokens.empty());
+
         std::thread t1(getTokenTask);
-        std::thread t2(getTokenTask);
-        std::thread t3(getTokenTask);
-
         t1.join();
-        t2.join();
-        t3.join();
+        expected.push_back(0);
+        REQUIRE(vars::acquiredTokens == expected);
 
-        REQUIRE(vars::acquiredTokens.size() == 3);
-        std::vector<int> expected = {0, 1, 2};
+        std::thread t2(getTokenTask);
+        t2.join();
+        expected.push_back(1);
+        REQUIRE(vars::acquiredTokens == expected);
+
+        std::thread t3(getTokenTask);
+        t3.join();
+        expected.push_back(2);
+        REQUIRE(vars::acquiredTokens == expected);
+
+        vars::sharedPool.releaseToken(1);
+
+        std::thread t4(getTokenTask);
+        t4.join();
+        expected.push_back(1);
         REQUIRE(vars::acquiredTokens == expected);
 
         //TODO: come up with a better test here to check blocking?
