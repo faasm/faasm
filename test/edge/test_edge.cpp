@@ -1,13 +1,13 @@
 #include <catch/catch.hpp>
 
 #include <edge/edge.h>
-#include <util/util.h>
 
 #include <boost/filesystem.hpp>
+#include <unistd.h>
 
 namespace tests {
 
-    http_request createRequest(const std::string &path, const std::string &inputData) {
+    http_request createRequest(const std::string &path, const std::vector<uint8_t> &inputData) {
         uri_builder builder;
 
         builder.set_path(path, false);
@@ -21,12 +21,13 @@ namespace tests {
     }
 
     message::FunctionCall checkBuildingRequest(const std::string &path) {
-        std::string inputData = "This is input data";
+        std::vector<uint8_t> inputData = {'a', 'b', 'c'};
 
         http_request request = createRequest(path, inputData);
 
         const message::FunctionCall actual = edge::RestServer::buildCallFromRequest(request);
-        REQUIRE(actual.inputdata() == inputData);
+        const std::vector<uint8_t> actualBytes = util::stringToBytes(actual.inputdata());
+        REQUIRE(actualBytes == inputData);
 
         return actual;
     }
@@ -60,16 +61,22 @@ namespace tests {
         boost::filesystem::remove(expectedObjFile);
 
         std::string path = "/f/gamma/delta";
-        std::string inputData = "This is my dummy file data";
+        
+        // Load some valid dummy wasm bytes
+        boost::filesystem::path currentPath = boost::filesystem::current_path();
+        //TODO: getting the path like this is a bit of a hack
+        currentPath.append("../../test/edge/dummy.wasm");
+        std::vector<uint8_t> wasmBytes = util::readFileToBytes(currentPath.string());
 
-        http_request request = createRequest(path, inputData);
+        // Submit PUT request
+        http_request request = createRequest(path, wasmBytes);
         request.set_method(methods::PUT);
         edge::RestServer::handlePut(request);
 
-        std::string actualOutput = util::readFileToString(expectedFile);
+        std::vector<uint8_t> actualBytes = util::readFileToBytes(expectedFile);
 
         // Check file is written properly
-        REQUIRE(actualOutput == inputData);
+        REQUIRE(actualBytes == wasmBytes);
 
         // Check object file is generated
         bool isObjFilePresent = boost::filesystem::exists(expectedObjFile);
@@ -84,7 +91,7 @@ namespace tests {
 
         // Note - must be async to avoid needing a result
         std::string path = "/fa/foo/bar";
-        std::string inputData = "Some data";
+        std::vector<uint8_t> inputData = {'a', 'b', 'c'};
 
         http_request request = createRequest(path, inputData);
         request.set_method(methods::POST);
@@ -94,6 +101,6 @@ namespace tests {
 
         REQUIRE(actual.user() == "foo");
         REQUIRE(actual.function() == "bar");
-        REQUIRE(actual.inputdata() == "Some data");
+        REQUIRE(actual.inputdata() == "abc");
     }
 }

@@ -1,6 +1,6 @@
 include_directories(${FAASM_INCLUDE_DIR}/faasm)
 
-set(FAASM_FUNCTION function_net.c)
+set(FAASM_FUNCTION function_chain.c)
 
 add_executable(native_func native_runner.c ${FAASM_FUNCTION})
 

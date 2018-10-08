@@ -32,5 +32,6 @@ def wast(context, user, func_name):
         wast_path
     ]
 
-    print("Calling: {}".format(" ".join(cmd)))
-    call(cmd, cwd=func_dir)
+    cmd = " ".join(cmd)
+    print(cmd)
+    call(cmd, shell=True, cwd=func_dir)

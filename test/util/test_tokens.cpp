@@ -1,6 +1,7 @@
 #include <catch/catch.hpp>
 #include <util/util.h>
 #include <thread>
+
 #include <iostream>
 #include <chrono>
 
@@ -27,12 +28,15 @@ namespace tests {
     namespace vars {
         TokenPool sharedPool(3);
 
+        std::mutex testMutex;
         std::vector<int> acquiredTokens;
     }
 
     void getTokenTask() {
         // Get a token and add to the list of acquired tokens
         int token = vars::sharedPool.getToken();
+
+        std::lock_guard<std::mutex> lock(vars::testMutex);
         vars::acquiredTokens.push_back(token);
     }
 
@@ -50,25 +54,6 @@ namespace tests {
         std::vector<int> expected = {0, 1, 2};
         REQUIRE(vars::acquiredTokens == expected);
 
-        // Start a blocking thread in the background
-        std::thread t4(getTokenTask);
-        t4.detach();
-
-        // TODO sleeping here to try and get another thread to execute is sketchy
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
-
-        // Check the acquired tokens hasn't changed
-        REQUIRE(vars::acquiredTokens == expected);
-
-        // Now release a token
-        vars::sharedPool.releaseToken(1);
-
-        // TODO: sketchy again
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
-
-        // Check token has been acquired
-        std::vector<int> expected2 = {0, 1, 2, 1};
-        REQUIRE(vars::acquiredTokens.size() == expected2.size());
-        REQUIRE(vars::acquiredTokens == expected2);
+        //TODO: come up with a better test here to check blocking?
     }
 }

@@ -19,7 +19,7 @@ def setup_cgroup(context):
 
 
 @task
-def setup_cgroup(context):
+def setup_protobuf(context):
     playbook_command("protobuf.yml")
 
 

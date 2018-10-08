@@ -1,13 +1,13 @@
 from os import mkdir
 from os.path import exists
 from os.path import join
-from shutil import rmtree
+from shutil import rmtree, copyfile
 from subprocess import call
 
 from invoke import task
 from requests import get
 
-from tasks.env import PROJ_ROOT
+from tasks.env import PROJ_ROOT, get_wasm_func_path
 
 # Note, most of the time this will be run inside the toolchain container
 TOOLCHAIN_ROOT = "/toolchain"
@@ -83,6 +83,8 @@ def compile(context, user, func_name, libcurl=False, debug=False, cxx=False):
 
     func_path = join("func", "function_{}.c".format(func_name))
 
+    output_file = join("work", "out.wasm")
+
     compile_cmd = [
         CXX if cxx else CC,
         *COMPILER_FLAGS,
@@ -90,7 +92,7 @@ def compile(context, user, func_name, libcurl=False, debug=False, cxx=False):
         "-fvisibility=hidden",
         func_path,
         "-I", join("include", "faasm"),
-        "-o", join("work", "out.wasm")
+        "-o", output_file
     ]
 
     # Debug
@@ -105,7 +107,6 @@ def compile(context, user, func_name, libcurl=False, debug=False, cxx=False):
     res = call(compile_cmd_str, shell=True, cwd=PROJ_ROOT)
     if res != 0:
         raise RuntimeError("Compile call failed")
-
 
 @task
 def lib(context, lib_name):

@@ -4,6 +4,9 @@
  * Passes some inputs onto other functions
  */
 int exec(struct FaasmMemory *memory) {
+    printf("Chain names: %p\n", memory->chainFunctions);
+    printf("Chain inputs: %p\n", memory->chainInputs);
+
     for (int i = 0; i < 3; i++) {
         char funcName[12];
         sprintf(funcName, "Function %i", i);
