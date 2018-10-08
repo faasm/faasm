@@ -2,7 +2,26 @@
 
 - hosts: localhost
   gather_facts: yes
-  vars:
-    cg_count: 10
-  roles:
-    - cgroup
+  tasks:
+    - set_fact:
+        controllers: "cpu"
+
+    - name: "System deps"
+      become: yes
+      apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+      - cgroup-bin
+      - cgroup-tools
+
+    - name: "Delete top-level cgroup if exists"
+      become: yes
+      shell: "cgdelete {{ item }}:/faasm | true"
+      with_items:
+      - "cpu"
+
+    - name: "Create top-level cgroup"
+      become: yes
+      shell: "cgcreate -t {{ ansible_user }}:{{ ansible_user }} -a {{ ansible_user }}:{{ ansible_user }} -g {{ controllers }}:/faasm"
+

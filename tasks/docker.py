@@ -23,14 +23,14 @@ def tools(context):
 
 @task
 def build_base(context):
-    call("docker build -t shillaker/faasm-base -f base.dockerfile .", cwd=PROJ_ROOT)
+    call("docker build -t shillaker/faasm-base -f base.dockerfile .", shell=True, cwd=PROJ_ROOT)
 
 
 @task
 def build_core(context):
-    call("docker build -t shillaker/faasm-core .", cwd=PROJ_ROOT)
+    call("docker build -t shillaker/faasm-core .", shell=True, cwd=PROJ_ROOT)
 
 
 @task
 def push_core(context):
-    call("docker push shillaker/faasm-core", cwd=PROJ_ROOT)
+    call("docker push shillaker/faasm-core", shell=True, cwd=PROJ_ROOT)
