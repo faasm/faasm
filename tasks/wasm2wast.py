@@ -2,15 +2,18 @@ from os import remove
 from os.path import exists, join
 from subprocess import call
 
-from compile.env import PROJ_ROOT
+from invoke import task
+
+from tasks.env import PROJ_ROOT
 
 
-def wasm_to_wast(args):
+@task
+def wast(context, user, func_name):
     """
     Converts a function's wasm file to wast
     """
 
-    func_dir = join(PROJ_ROOT, "wasm", args.user, args.function)
+    func_dir = join(PROJ_ROOT, "wasm", user, func_name)
     wasm_path = join(func_dir, "function.wasm")
     wast_path = join(func_dir, "function.wast")
 

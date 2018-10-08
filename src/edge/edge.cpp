@@ -70,9 +70,7 @@ namespace edge {
         out.close();
 
         // Build the object file from the file we've just received
-        std::vector<uint8_t> objBytes = wasm::WasmModule::compile(call);
-        std::string objFilePath = infra::getFunctionObjectFile(call);
-        util::writeBytesToFile(objFilePath, objBytes);
+        wasm::WasmModule::compileToObjectFile(call);
 
         request.reply(status_codes::OK, "Upload complete\n");
     }

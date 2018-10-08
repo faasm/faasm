@@ -25,7 +25,7 @@ docker run -v $(pwd):/work -w /work -it shillaker/wasm-toolchain
 logout
 
 # Run the dockerised environment
-make start-all
+inv start-all
 
 # Upload the function
 curl -X PUT http://localhost:8080/f/dummy/hello -T hello.wasm

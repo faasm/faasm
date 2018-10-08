@@ -11,7 +11,6 @@ using namespace web::http::experimental::listener;
 using namespace web::http;
 
 namespace edge {
-
     class RestServer {
     public:
         RestServer();

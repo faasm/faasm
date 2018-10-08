@@ -66,6 +66,12 @@ namespace wasm {
         return Runtime::getObjectCode(module);
     }
 
+    void WasmModule::compileToObjectFile(message::FunctionCall &call) {
+        std::vector<uint8_t> objBytes = wasm::WasmModule::compile(call);
+        std::string objFilePath = infra::getFunctionObjectFile(call);
+        util::writeBytesToFile(objFilePath, objBytes);
+    }
+
     Runtime::ModuleInstance *WasmModule::load(message::FunctionCall &call, Runtime::Compartment *compartment) {
         // Parse the wasm file to work out imports, function signatures etc.
         this->parseWasm(call);

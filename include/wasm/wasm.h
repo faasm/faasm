@@ -62,8 +62,9 @@ namespace wasm {
         /** Cleans up */
         void clean();
 
-        /** Compiles the function to an object file */
+        /** Compiles the function to a vector of bytes */
         static std::vector<uint8_t> compile(message::FunctionCall &call);
+        static void compileToObjectFile(message::FunctionCall &call);
 
         /** List of chained function calls */
         std::vector<message::FunctionCall> chainedCalls;
