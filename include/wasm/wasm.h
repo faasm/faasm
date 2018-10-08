@@ -31,7 +31,7 @@ namespace wasm {
     // trampling on it
     // TODO: do a better job of protecting this
     //
-    const int FAASM_MEMORY_START = (MIN_MEMORY_PAGES - 4) * IR::numBytesPerPage;
+    const int FAASM_MEMORY_START = (MIN_MEMORY_PAGES - 30) * IR::numBytesPerPage;
 
     // Input memory (one page)
     const int INPUT_START = FAASM_MEMORY_START;
