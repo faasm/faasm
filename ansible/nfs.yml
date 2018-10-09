@@ -1,6 +1,0 @@
----
-
-- hosts: kubernetes-master
-  gather_facts: no
-  roles:
-    - nfs

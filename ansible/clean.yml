@@ -1,9 +1,0 @@
----
-
-- hosts: kubernetes-master
-  gather_facts: yes
-  tasks:
-    - name: "Remove faasm deployment from Kubernetes"
-      shell: "kubectl delete --all deployments,pods --namespace=faasm"
-      args:
-        chdir: "/usr/local/code/faasm"

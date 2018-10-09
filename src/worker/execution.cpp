@@ -8,6 +8,7 @@ namespace worker {
 
     // TODO - how to choose an appropriate value for this?
     static int WORKER_THREADS = 10;
+
     static util::TokenPool tokenPool(WORKER_THREADS);
 
     void execNextFunction() {

@@ -1,7 +1,0 @@
----
-
-- hosts: kubernetes
-  become: yes
-  gather_facts: yes
-  roles:
-    - kubernetes

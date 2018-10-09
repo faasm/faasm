@@ -1,7 +1,0 @@
----
-
-- name: "Initialise master"
-  become: yes
-  shell: "kubeadm init --pod-network-cidr=10.244.0.0/16 "
-  when : "'kubernetes-master' in group_names"
-  ignore_errors: yes

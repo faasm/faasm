@@ -7,9 +7,13 @@ RUN apt-get install -y ansible \
     iproute2 \
     iptables
 
-# Run Ansible set-up
 COPY . /faasm/code
+
+# Install required libraries
 WORKDIR /faasm/code/ansible
 RUN ansible-playbook libs.yml
+
+# Set up dummy networking files
+RUN ansible-playbook net_files.yml
 
 CMD /bin/bash

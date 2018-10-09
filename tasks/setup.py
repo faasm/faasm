@@ -9,8 +9,13 @@ def setup_libs(context):
 
 
 @task
-def setup_network(context):
-    playbook_command("network.yml")
+def setup_namespaces(context):
+    playbook_command("namespaces.yml")
+
+
+@task
+def setup_net_files(context):
+    playbook_command("net_files.yml")
 
 
 @task

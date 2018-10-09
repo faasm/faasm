@@ -1,6 +1,6 @@
 ---
 
-worker_count: 10
+ns_count: 10
 
 # Networking
 egress_rate: 1mbit

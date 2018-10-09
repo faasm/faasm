@@ -3,4 +3,4 @@
 - hosts: localhost
   gather_facts: yes
   roles:
-    - minikube
+    - net_files

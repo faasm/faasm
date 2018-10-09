@@ -27,5 +27,3 @@
   loop: "{{ range(1, ns_count + 1) | list }}"
   loop_control:
     loop_var: ns_idx
-
-- include_tasks: files.yml

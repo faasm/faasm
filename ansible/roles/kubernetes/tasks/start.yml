@@ -1,9 +1,0 @@
----
-
-- name: "Start up kubernetes"
-  shell: "{{ item }}"
-  when: "'kubernetes-master' in group_names"
-  with_items:
-    - "mkdir -p {{ ansible_env.HOME }}/.kube"
-    - "sudo cp -i /etc/kubernetes/admin.conf {{ ansible_env.HOME }}/.kube/config"
-    - "sudo chown {{ ansible_user }}:{{ ansible_user }} {{ ansible_env.HOME }}/.kube/config"
