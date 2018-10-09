@@ -9,9 +9,8 @@ metadata:
 spec:
   containers:
     - name: edge
-      image: shillaker/faasm-core:latest
+      image: shillaker/faasm-edge:latest
       imagePullPolicy: Always
-      command: ["/faasm/code/build/bin/edge"]
       ports:
         - containerPort: 8080
       env:

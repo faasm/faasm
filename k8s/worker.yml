@@ -19,9 +19,8 @@ spec:
     spec:
       containers:
         - name: worker
-          image: shillaker/faasm-core:latest
+          image: shillaker/faasm-worker:latest
           imagePullPolicy: Always
-          command: ["/faasm/code/build/bin/worker"]
           ports:
             - containerPort: 8001
           env:
@@ -31,11 +30,15 @@ spec:
               value: /usr/share/faasm
             - name: REDIS_PORT
               value: "6379"
+            - name: CGROUP_MODE
+              value: "on"
+            - name: NETNS_MODE
+              value: "on"
           volumeMounts:
             - mountPath: "/usr/share/faasm"
               name: func-vol
-      securityContext:
-        privileged: yes
+          securityContext:
+            privileged: yes
       volumes:
         - name: func-vol
           persistentVolumeClaim:

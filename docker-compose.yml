@@ -20,12 +20,12 @@ services:
       - REDIS_PORT=6379
       - FUNC_ROOT=/usr/share/faasm
       - CGROUP_MODE=on
-      - NETNS_MODE=one
+      - NETNS_MODE=on
     volumes:
       - ./wasm:/usr/share/faasm/wasm
     networks:
       - faasm
-    privileged: true
+    privileged: yes
 
   edge:
     image: shillaker/faasm-edge:latest
