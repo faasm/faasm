@@ -21,9 +21,6 @@
       with_items:
       - "cpu"
 
-    - name: "Create cgroups"
+    - name: "Create cgroup"
       become: yes
-      shell: "cgcreate -t {{ ansible_user }}:{{ ansible_user }} -a {{ ansible_user }}:{{ ansible_user }} -g {{ controllers }}:{{ item }}"
-      with_items:
-        - "/faasm"
-        - "/faasm/{{ ansible_hostname }}"
+      shell: "cgcreate -t {{ ansible_user }}:{{ ansible_user }} -a {{ ansible_user }}:{{ ansible_user }} -g {{ controllers }}:faasm"

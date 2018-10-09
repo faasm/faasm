@@ -69,7 +69,6 @@ namespace worker {
     boost::filesystem::path CGroup::getBaseDir(const std::string &controller) {
         boost::filesystem::path path(BASE_DIR);
         path.append(controller);
-        path.append(BASE_CGROUP_NAME);
         path.append(this->name);
 
         return path;

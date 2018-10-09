@@ -22,7 +22,6 @@ services:
       - FUNC_ROOT=/usr/share/faasm
     volumes:
       - /usr/share/faasm:/usr/share/faasm
-      - /sys/fs/cgroup:/sys/fs/cgroup  # For cgroup management
     networks:
       - faasm
     privileged: true

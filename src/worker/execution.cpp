@@ -32,8 +32,7 @@ namespace worker {
         int cg_index = index + 1;
 
         // Add this thread to the cgroup
-        std::string cgName = util::getCurrentHostname();
-        CGroup cgroup(cgName);
+        CGroup cgroup(BASE_CGROUP_NAME);
         cgroup.addCurrentThread();
 
         // Set up network namespace

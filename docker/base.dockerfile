@@ -16,4 +16,9 @@ RUN ansible-playbook libs.yml
 # Set up dummy networking files
 RUN ansible-playbook net_files.yml
 
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+
 CMD /bin/bash
