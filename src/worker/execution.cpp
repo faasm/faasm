@@ -6,12 +6,11 @@ namespace worker {
     // TODO - how to choose an appropriate value for this?
     static int WORKER_THREADS = 10;
 
+    static thread_local infra::Redis redis;
+
     static util::TokenPool tokenPool(WORKER_THREADS);
 
     void execNextFunction() {
-        // Be careful not to share redis between threads
-        static infra::Redis redis;
-
         // Try to get an available slot
         int threadIdx = tokenPool.getToken();
 
@@ -57,16 +56,12 @@ namespace worker {
             errorMessage = "Error in execution";
         }
 
-        // Revert to original network namespace and cgroup
-        cgroup.removeCurrentThread();
+        // Revert to original network namespace to allow communication
         ns.removeCurrentThread();
 
         // Release the token
         std::cout << "Worker releasing slot " << index << std::endl;
         tokenPool.releaseToken(index);
-
-        // Create redis client in this thread
-        static infra::Redis redis;
 
         // Dispatch any chained calls
         for (auto chainedCall : module.chainedCalls) {

@@ -23,6 +23,8 @@ namespace infra {
 
         Redis();
 
+        void reconnect();
+
         void enqueue(const std::string &queueName, const std::vector<uint8_t> &value);
 
         std::vector<uint8_t> dequeue(const std::string &queueName);

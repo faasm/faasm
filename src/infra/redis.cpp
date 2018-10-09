@@ -17,6 +17,10 @@ namespace infra {
         context = redisConnect(hostname.c_str(), portInt);
     }
 
+    void Redis::reconnect() {
+        redisReconnect(context);
+    }
+
     void Redis::enqueue(const std::string &queueName, const std::vector<uint8_t> &value) {
         // NOTE: Here we must be careful with the input and specify bytes rather than a string
         // otherwise an encoded false boolean can be treated as a string terminator

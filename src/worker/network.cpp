@@ -10,7 +10,7 @@ namespace worker {
 
     NetworkNamespace::NetworkNamespace(const std::string &name) : name(name) {
         // Get which mode we're operating in
-        std::string modeEnv = util::getEnvVar("NETNS_MODE", "on");
+        std::string modeEnv = util::getEnvVar("NETNS_MODE", "off");
 
         if (modeEnv == "on") {
             mode = NetworkIsolationMode::ns_on;
@@ -29,21 +29,17 @@ namespace worker {
 
     /** Joins the namespace at the given path */
     void joinNamespace(const boost::filesystem::path &nsPath) {
-        std::cout << "Opening fd at " << nsPath << std::endl;
         int fd = open(nsPath.c_str(), O_RDONLY, 0);
 
-        std::cout << "Setting ns" << std::endl;
+        std::cout << "Setting network ns to " << nsPath << std::endl;
         int result = setns(fd, CLONE_NEWNET);
-
-        std::cout << "Closing fd " << nsPath << std::endl;
         close(fd);
 
-        if(result == 0) {
-            std::cout << "Setns succeeded" << std::endl;
-            return;
+        if(result != 0) {
+            std::cout << "Setns failed: " << errno << std::endl;
         }
 
-        std::cout << "Setns failed: " << errno << std::endl;
+        return;
     }
 
     void NetworkNamespace::addCurrentThread() {
@@ -72,7 +68,7 @@ namespace worker {
 
         boost::filesystem::path nsPath("/proc");
         nsPath.append(std::to_string(parentPid));
-        nsPath.append("net/ns");
+        nsPath.append("ns/net");
 
         joinNamespace(nsPath);
     }
