@@ -6,7 +6,6 @@
 namespace worker {
     static const std::string BASE_DIR = "/sys/fs/cgroup/";
     static const std::string CG_CPU = "cpu";
-    static const std::string CG_NET_CLS = "net_cls";
 
     static std::mutex groupMutex;
 
@@ -19,6 +18,18 @@ namespace worker {
         } else {
             mode = CgroupMode::cg_off;
         }
+    }
+
+    void CGroup::createIfNotExists() {
+        boost::filesystem::path baseDirPath = this->getBaseDir(CG_CPU);
+
+        // Drop out if already exists
+        if(boost::filesystem::exists(baseDirPath)) {
+            return;
+        }
+
+        // Create the base directory (i.e. create the group)
+        boost::filesystem::create_directories(baseDirPath);
     }
 
     const std::string CGroup::getName() {
@@ -41,9 +52,6 @@ namespace worker {
         std::lock_guard<std::mutex> guard(groupMutex);
 
         this->addThread(tid, CG_CPU);
-
-        // Not currently supporting net_cls but can do
-        // this->addThread(tid, CG_NET_CLS);
     }
 
     void CGroup::addThread(pid_t threadId, const std::string &controller) {
@@ -58,12 +66,18 @@ namespace worker {
                   << std::endl;
     }
 
-    boost::filesystem::path CGroup::getPathToFile(const std::string &controller, const std::string &file) {
+    boost::filesystem::path CGroup::getBaseDir(const std::string &controller) {
         boost::filesystem::path path(BASE_DIR);
         path.append(controller);
         path.append(BASE_CGROUP_NAME);
         path.append(this->name);
 
+        return path;
+    }
+
+    /** As we have a top-level cgroup this will be something like /sys/fs/cgroup/cpu/faasm/<this_group> */
+    boost::filesystem::path CGroup::getPathToFile(const std::string &controller, const std::string &file) {
+        boost::filesystem::path path = this->getBaseDir(controller);
         path.append(file);
 
         return path;

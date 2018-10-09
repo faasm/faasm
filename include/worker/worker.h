@@ -28,6 +28,8 @@ namespace worker {
     public:
         explicit CGroup(const std::string &name);
 
+        void createIfNotExists();
+
         void addCurrentThread();
 
         const std::string getName();
@@ -38,6 +40,7 @@ namespace worker {
 
         void addThread(int threadId, const std::string &controller);
 
+        boost::filesystem::path getBaseDir(const std::string &controller);
         boost::filesystem::path getPathToFile(const std::string &controller, const std::string &file);
     };
 

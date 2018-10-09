@@ -3,10 +3,11 @@
 #include <wasm/wasm.h>
 
 namespace worker {
-    // TODO - unfortunately redis client can't be shared between threads
+    // Redis client can't be shared between threads
     static thread_local infra::Redis redis;
-    static int WORKER_THREADS = 10;
 
+    // TODO - how to choose an appropriate value for this?
+    static int WORKER_THREADS = 10;
     static util::TokenPool tokenPool(WORKER_THREADS);
 
     void execNextFunction() {
@@ -30,7 +31,7 @@ namespace worker {
         int cg_index = index + 1;
 
         // Add this thread to the cgroup
-        std::string cgName = BASE_CGROUP_NAME + std::to_string(cg_index);
+        std::string cgName = util::getCurrentHostname();
         CGroup cgroup(cgName);
         cgroup.addCurrentThread();
 

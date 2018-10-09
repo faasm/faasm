@@ -31,20 +31,30 @@ namespace tests {
     }
 
     void checkAddingToController(const std::string &controllerName) {
-        CGroup cg("faasm1");
+        // Delete the cgroup if it exists already
+        boost::filesystem::path cgroupPath("/sys/fs/cgroup");
+        cgroupPath.append(controllerName);
+        cgroupPath.append("faasm/tester");
 
-        boost::filesystem::path tasksPath("/sys/fs/cgroup");
-        tasksPath.append(controllerName);
-        tasksPath.append("faasm/faasm1/tasks");
+        boost::filesystem::remove_all(cgroupPath);
+        REQUIRE(!boost::filesystem::exists(cgroupPath));
 
-        std::string fileBefore = util::readFileToString(tasksPath.string());
+        // Create the group
+        CGroup cg("tester");
+        cg.createIfNotExists();
+        REQUIRE(boost::filesystem::exists(cgroupPath));
+
+        // Check tasks file is empty
+        cgroupPath.append("tasks");
+
+        std::string fileBefore = util::readFileToString(cgroupPath.string());
 
         REQUIRE(fileBefore.empty());
 
         cg.addCurrentThread();
         auto tid = (pid_t) syscall(SYS_gettid);
 
-        std::string fileAfter = util::readFileToString(tasksPath.string());
+        std::string fileAfter = util::readFileToString(cgroupPath.string());
         REQUIRE(boost::trim_copy(fileAfter) == std::to_string(tid));
     }
 
