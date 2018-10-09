@@ -2,15 +2,13 @@
 
 set -e;
 
-# Move to right directory
-ANSIBLE_DIR=/faasm/code/ansible
-pushd ${ANSIBLE_DIR} >> /dev/null
+pushd /faasm/code >> /dev/null
 
 echo "Setting up cgroup";
-ansible-playbook cgroup.yml
+./bin/cgroup.sh
 
 echo "Setting up namespaces"
-ansible-playbook namespaces.yml
+./bin/netns.sh
 
 popd >> /dev/null
 

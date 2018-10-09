@@ -17,6 +17,8 @@
         - "libcgroup-dev"
         - "libcurl4-openssl-dev"
         - "cgroup-tools"
+        - "cgroup-bin"
+        - "iproute2"
 
     # Catch
     - name: "Create directory"
