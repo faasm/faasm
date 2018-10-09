@@ -13,13 +13,6 @@
   become: yes
   shell: "echo 1 > /proc/sys/net/ipv4/ip_forward"
 
-- name: "Ensure at least one public DNS server configured (for local testing of namespaces)"
-  become: yes
-  lineinfile:
-    path: /etc/resolv.conf
-    regexp: "^nameserver.*8.8.8.8"
-    line: "nameserver   8.8.8.8"
-
 # Repeat namespace creation as many times as necessary
 # Note, we index cgroups from 1
 - name: "Set up {{ ns_count }} namespaces"
