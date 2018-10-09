@@ -57,6 +57,10 @@ namespace worker {
             errorMessage = "Error in execution";
         }
 
+        // Revert to original network namespace and cgroup
+        cgroup.removeCurrentThread();
+        ns.removeCurrentThread();
+
         // Release the token
         std::cout << "Worker releasing slot " << index << std::endl;
         tokenPool.releaseToken(index);

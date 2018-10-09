@@ -13,10 +13,6 @@ namespace infra {
         std::string hostname = util::getEnvVar("REDIS_HOST", "localhost");
         std::string port = util::getEnvVar("REDIS_PORT", "6379");
 
-        std::thread::id threadId = std::this_thread::get_id();
-
-        std::cout << "Instantiating redis in thread " << threadId << std::endl;
-
         int portInt = std::stoi(port);
         context = redisConnect(hostname.c_str(), portInt);
     }

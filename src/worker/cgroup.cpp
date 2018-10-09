@@ -2,12 +2,18 @@
 
 #include <syscall.h>
 #include <sys/types.h>
+#include <boost/filesystem.hpp>
+
+using namespace boost::filesystem;
 
 namespace worker {
     static const std::string BASE_DIR = "/sys/fs/cgroup/";
     static const std::string CG_CPU = "cpu";
 
+    static const std::vector<std::string> controllers = {CG_CPU};
+
     static std::mutex groupMutex;
+    static std::mutex rootMutex;
 
     CGroup::CGroup(const std::string &name) : name(name) {
         // Get which cgroup mode we're operating in
@@ -28,45 +34,58 @@ namespace worker {
         return this->mode;
     }
 
-    void CGroup::addCurrentThread() {
+    pid_t getCurrentTid() {
         auto tid = (pid_t) syscall(SYS_gettid);
-
-        if (mode == CgroupMode::cg_off) {
-            std::cout << "Not adding thread id " << tid << " cgroup support off" << std::endl;
-            return;
-        }
-
-        // Get lock and add to controllers
-        std::lock_guard<std::mutex> guard(groupMutex);
-
-        this->addThread(tid, CG_CPU);
+        return tid;
     }
 
-    void CGroup::addThread(pid_t threadId, const std::string &controller) {
-        boost::filesystem::path tasksPath = this->getPathToFile(controller, "tasks");
+    void addCurrentThreadToTasks(const path &tasksPath) {
+        pid_t threadId = getCurrentTid();
 
         std::ofstream outfile;
         outfile.open(tasksPath.string(), std::ios_base::app);
         outfile << threadId << std::endl;
         outfile.flush();
 
-        std::cout << "Added thread id " << threadId << " to " << controller << ":" << this->name << " at " << tasksPath
-                  << std::endl;
+        std::cout << "Added thread id " << threadId << " to " << tasksPath << std::endl;
     }
 
-    boost::filesystem::path CGroup::getBaseDir(const std::string &controller) {
-        boost::filesystem::path path(BASE_DIR);
-        path.append(controller);
-        path.append(this->name);
+    void CGroup::addCurrentThread() {
 
-        return path;
+        if (mode == CgroupMode::cg_off) {
+            std::cout << "Not adding thread. cgroup support off" << std::endl;
+            return;
+        }
+
+        // Get lock and add to controllers
+        std::lock_guard<std::mutex> guard(groupMutex);
+
+        for (const std::string &controller : controllers) {
+            path tasksPath(BASE_DIR);
+            tasksPath.append(controller);
+            tasksPath.append(this->name);
+            tasksPath.append("tasks");
+
+            addCurrentThreadToTasks(tasksPath);
+        }
     }
 
-    /** As we have a top-level cgroup this will be something like /sys/fs/cgroup/cpu/faasm/<this_group> */
-    boost::filesystem::path CGroup::getPathToFile(const std::string &controller, const std::string &file) {
-        boost::filesystem::path path = this->getBaseDir(controller);
-        path.append(file);
+    /** Note, to remove a thread from a given cgroup, you must add it to the tasks file in the root */
+    void CGroup::removeCurrentThread() {
+        if (mode == CgroupMode::cg_off) {
+            std::cout << "Not removing thread. cgroup support off" << std::endl;
+            return;
+        }
 
-        return path;
+        std::lock_guard<std::mutex> guard(rootMutex);
+
+        for (const std::string &controller: controllers) {
+            path tasksPath(BASE_DIR);
+            tasksPath.append(controller);
+            tasksPath.append("tasks");
+
+            addCurrentThreadToTasks(tasksPath);
+        }
     }
+
 }

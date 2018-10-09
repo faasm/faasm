@@ -8,8 +8,6 @@
 #include <tuple>
 #include <thread>
 
-#include <boost/filesystem.hpp>
-
 #include <proto/faasm.pb.h>
 #include <queue>
 
@@ -29,17 +27,13 @@ namespace worker {
         explicit CGroup(const std::string &name);
 
         void addCurrentThread();
+        void removeCurrentThread();
 
         const std::string getName();
         const CgroupMode getMode();
     private:
         std::string name;
         CgroupMode mode;
-
-        void addThread(int threadId, const std::string &controller);
-
-        boost::filesystem::path getBaseDir(const std::string &controller);
-        boost::filesystem::path getPathToFile(const std::string &controller, const std::string &file);
     };
 
     /** Network isolation */
@@ -49,6 +43,7 @@ namespace worker {
     public:
         explicit NetworkNamespace(const std::string &name);
         void addCurrentThread();
+        void removeCurrentThread();
 
         const std::string getName();
         const NetworkIsolationMode getMode();

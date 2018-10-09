@@ -20,7 +20,7 @@ services:
       - REDIS_PORT=6379
       - FUNC_ROOT=/usr/share/faasm
       - CGROUP_MODE=on
-      - NETNS_MODE=off
+      - NETNS_MODE=on
     volumes:
       - ./wasm:/usr/share/faasm/wasm
     networks:
