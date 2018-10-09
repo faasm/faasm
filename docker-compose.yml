@@ -12,23 +12,23 @@ services:
       - faasm
 
   worker:
-    image: shillaker/faasm-core:latest
-    command: "/faasm/code/build/bin/worker"
+    image: shillaker/faasm-worker:latest
     depends_on:
       - redis
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - FUNC_ROOT=/usr/share/faasm
+      - CGROUP_MODE=on
+      - NETNS_MODE=one
     volumes:
-      - /usr/share/faasm:/usr/share/faasm
+      - ./wasm:/usr/share/faasm/wasm
     networks:
       - faasm
     privileged: true
 
   edge:
-    image: shillaker/faasm-core:latest
-    command: "/faasm/code/build/bin/edge"
+    image: shillaker/faasm-edge:latest
     ports:
       - "8001:8080"
     environment:

@@ -1,7 +1,8 @@
 FROM shillaker/faasm-base
 
-# Build code
-COPY . /faasm/code
+# Build the edge binary
 WORKDIR /faasm/code/build
 RUN cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_BUILD_TYPE=Release ..
-RUN cmake --build . --target all
+RUN cmake --build . --target edge
+
+CMD "/faasm/code/build/bin/edge"

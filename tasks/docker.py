@@ -27,10 +27,20 @@ def build_base(context):
 
 
 @task
-def build_core(context):
-    call("docker build -t shillaker/faasm-core .", shell=True, cwd=PROJ_ROOT)
+def build_worker(context):
+    call("docker build -t shillaker/faasm-worker  -f docker/worker.dockerfile .", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def push_core(context):
-    call("docker push shillaker/faasm-core", shell=True, cwd=PROJ_ROOT)
+def push_worker(context):
+    call("docker push shillaker/faasm-worker", shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def build_edge(context):
+    call("docker build -t shillaker/faasm-edge -f docker/edge.dockerfile .", shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def push_edge(context):
+    call("docker push shillaker/faasm-edge", shell=True, cwd=PROJ_ROOT)
