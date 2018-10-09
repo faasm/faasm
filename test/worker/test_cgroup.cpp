@@ -34,14 +34,8 @@ namespace tests {
         // Delete the cgroup if it exists already
         boost::filesystem::path cgroupPath("/sys/fs/cgroup");
         cgroupPath.append(controllerName);
-        cgroupPath.append("faasm/tester");
+        cgroupPath.append(BASE_CGROUP_NAME);
 
-        boost::filesystem::remove_all(cgroupPath);
-        REQUIRE(!boost::filesystem::exists(cgroupPath));
-
-        // Create the group
-        CGroup cg("tester");
-        cg.createIfNotExists();
         REQUIRE(boost::filesystem::exists(cgroupPath));
 
         // Check tasks file is empty
@@ -51,6 +45,8 @@ namespace tests {
 
         REQUIRE(fileBefore.empty());
 
+        // Add the current thread
+        CGroup cg(BASE_CGROUP_NAME);
         cg.addCurrentThread();
         auto tid = (pid_t) syscall(SYS_gettid);
 

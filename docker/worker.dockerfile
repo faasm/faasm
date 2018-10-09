@@ -5,6 +5,7 @@ WORKDIR /faasm/code/ansible
 RUN ansible-playbook net_files.yml
 
 # Build the worker binary
+COPY . /faasm/code
 WORKDIR /faasm/code/build
 RUN cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_BUILD_TYPE=Release ..
 RUN cmake --build . --target worker

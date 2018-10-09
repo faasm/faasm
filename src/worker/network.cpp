@@ -32,14 +32,20 @@ namespace worker {
 
         std::cout << "Adding thread to network ns " << name << std::endl;
 
+        // Open path to the namespace
         std::string ns_path = "/var/run/netns/" + name;
-        int fd = open(ns_path.c_str(), O_RDONLY);
+        std::cout << "Opening fd at " << ns_path << std::endl;
 
+        int fd = open(ns_path.c_str(), O_RDONLY, 0);
+
+        std::cout << "Setting ns" << std::endl;
         int result = setns(fd, CLONE_NEWNET);
 
+        std::cout << "Closing fd " << ns_path << std::endl;
+        close(fd);
+
         if(result == 0) {
-            std::cout << "Setns succeeded";
-            sleep(300);
+            std::cout << "Setns succeeded" << std::endl;
             return;
         }
 

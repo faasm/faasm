@@ -28,8 +28,6 @@ namespace worker {
     public:
         explicit CGroup(const std::string &name);
 
-        void createIfNotExists();
-
         void addCurrentThread();
 
         const std::string getName();

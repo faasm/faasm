@@ -3,15 +3,15 @@
 #include <wasm/wasm.h>
 
 namespace worker {
-    // Redis client can't be shared between threads
-    static thread_local infra::Redis redis;
-
     // TODO - how to choose an appropriate value for this?
     static int WORKER_THREADS = 10;
 
     static util::TokenPool tokenPool(WORKER_THREADS);
 
     void execNextFunction() {
+        // Be careful not to share redis between threads
+        static infra::Redis redis;
+
         // Try to get an available slot
         int threadIdx = tokenPool.getToken();
 
@@ -60,6 +60,9 @@ namespace worker {
         // Release the token
         std::cout << "Worker releasing slot " << index << std::endl;
         tokenPool.releaseToken(index);
+
+        // Create redis client in this thread
+        static infra::Redis redis;
 
         // Dispatch any chained calls
         for (auto chainedCall : module.chainedCalls) {

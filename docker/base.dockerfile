@@ -7,7 +7,7 @@ RUN apt-get install -y ansible \
     iproute2 \
     iptables
 
-COPY . /faasm/code
+COPY ./ansible /faasm/code/ansible
 
 # Install required libraries
 WORKDIR /faasm/code/ansible

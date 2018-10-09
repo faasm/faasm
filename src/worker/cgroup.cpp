@@ -20,18 +20,6 @@ namespace worker {
         }
     }
 
-    void CGroup::createIfNotExists() {
-        boost::filesystem::path baseDirPath = this->getBaseDir(CG_CPU);
-
-        // Drop out if already exists
-        if(boost::filesystem::exists(baseDirPath)) {
-            return;
-        }
-
-        // Create the base directory (i.e. create the group)
-        boost::filesystem::create_directories(baseDirPath);
-    }
-
     const std::string CGroup::getName() {
         return this->name;
     }
