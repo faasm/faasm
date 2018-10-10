@@ -96,11 +96,9 @@ namespace wasm {
         if (fd > 0) {
             openFds.insert(fd);
             return (I32) fd;
-        }
-        else if (fd == -ENOENT) {
+        } else if (fd == -ENOENT) {
             printf("File does not exist %s\n", path);
-        }
-        else {
+        } else {
             printf("Error opening file %s (code %d) \n", path, fd);
         }
 
@@ -633,6 +631,19 @@ namespace wasm {
     // Memory - supported
     // ------------------------
 
+    Uptr getNumberPagesAtOffset(U32 offset) {
+        // Work out how many pages needed to hit the target address
+        Uptr pageCount = ((Uptr) offset) / IR::numBytesPerPage;
+
+        // Check we're on a page boundary, if not bump up number of pages
+        if (offset % IR::numBytesPerPage != 0) {
+            printf("Warning, requesting address off page boundary (%u)", offset);
+            pageCount++;
+        }
+
+        return pageCount;
+    }
+
     /**
      * With mmap we will ignore the start address and not support file mapping
      */
@@ -640,7 +651,7 @@ namespace wasm {
                               U32 addr, U32 length, U32 prot, U32 flags, I32 fd, U32 offset) {
         printf("SYSCALL - mmap %i %i %i %i %i %i\n", addr, length, prot, flags, fd, offset);
 
-        if(addr != 0) {
+        if (addr != 0) {
             printf("Ignoring mmap hint at %i\n", addr);
         }
 
@@ -649,18 +660,18 @@ namespace wasm {
         }
 
         // Work out how many pages need to be added
-        const Uptr pagesRequested = (Uptr(length) + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
+        Uptr pagesRequested = getNumberPagesAtOffset(length);
 
         printf("SYSCALL - mmap adding %li pages\n", pagesRequested);
-        Iptr basePageIndex = growMemory(getModuleMemory(), pagesRequested);
+        Iptr previousPageCount = growMemory(getModuleMemory(), pagesRequested);
 
-        if(basePageIndex == -1) {
+        if (previousPageCount == -1) {
             printf("mmap no memory\n");
             return -ENOMEM;
         }
 
         // Get pointer to mapped range
-        auto mappedRangePtr = (U32) (Uptr(basePageIndex) * IR::numBytesPerPage);
+        auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);
 
         return mappedRangePtr;
     }
@@ -684,38 +695,37 @@ namespace wasm {
     }
 
     /**
-     * brk should be fine to run in most cases, need to check limits on the process' memory
+     * brk should be fine to run in most cases, need to check limits on the process' memory.
      */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_brk", I32, __syscall_brk, U32 addr) {
         printf("SYSCALL - brk %i\n", addr);
 
-        // Work out how many pages needed to hit the target address
-        const Uptr targetPageCount = (Uptr(addr) + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
+        Uptr targetPageCount = getNumberPagesAtOffset(addr);
 
+        // Work out current page count and break
         Runtime::MemoryInstance *memory = getModuleMemory();
-
         const Uptr currentPageCount = getMemoryNumPages(memory);
-        const U32 currentBreak = (U32) ((currentPageCount + 1) * IR::numBytesPerPage);
-        printf("brk current break %u -> new break %u\n", currentBreak, addr);
+        const U32 currentBreak = (U32) ((currentPageCount * IR::numBytesPerPage));
+        printf("brk current break %lu (%u) -> new break %lu (%u) \n", currentPageCount, currentBreak, targetPageCount, addr);
 
         Uptr maxPages = getMemoryMaxPages(memory);
         if (targetPageCount > maxPages) {
-            printf("SYSCALL - brk requesting %lu pages (max %lu)\n", targetPageCount, maxPages);
+            printf("brk requesting %lu pages (max %lu)\n", targetPageCount, maxPages);
             return currentBreak;
         }
 
         if (targetPageCount <= currentPageCount || addr == 0) {
-            printf("SYSCALL - brk with no effect\n");
+            printf("brk with no effect\n");
             return currentBreak;
         }
 
         Uptr expansion = targetPageCount - currentPageCount;
-        printf("SYSCALL - brk adding %lu pages\n", expansion);
+        printf("brk adding %lu pages\n", expansion);
 
         // Grow memory as required
         growMemory(memory, expansion);
 
-        return currentBreak;
+        return (U32) currentBreak;
     }
 
     // ------------------------
