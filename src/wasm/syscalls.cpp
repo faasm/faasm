@@ -50,7 +50,6 @@ namespace wasm {
     static const char *RESOLV_FILE = "/usr/local/faasm/net/resolv.conf";
 
     // Thread-local variables to isolate bits of environment
-    static thread_local I32 dummyClock = 0;
     static thread_local std::set<int> openFds;
 
     // ------------------------
@@ -155,7 +154,7 @@ namespace wasm {
         printf("SYSCALL - poll %i %i %i\n", fdsPtr, nfds, timeout);
 
         if (nfds != 1) {
-            printf("Trying to poll %i fds. Only single fd supported", nfds);
+            printf("Trying to poll %i fds. Only single fd supported\n", nfds);
             throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
         }
 
@@ -357,7 +356,7 @@ namespace wasm {
                         break;
                     }
                     default: {
-                        printf("Unrecognised type (%u)\n", type);
+                        printf("Unrecognised socket type (%u)\n", type);
                         break;
                     }
                 }
@@ -610,20 +609,14 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_clock_gettime", I32, __syscall_clock_gettime,
                               I32 clockId, I32 resultAddress) {
-        printf("INTRINSIC - clock_gettime %i %i\n", clockId, resultAddress);
+        printf("SYSCALL - clock_gettime %i %i\n", clockId, resultAddress);
+
+        timespec ts{};
+        clock_gettime(clockId, &ts);
 
         auto result = &Runtime::memoryRef<wasm_timespec>(getModuleMemory(), (Uptr) resultAddress);
-
-        timespec actual;
-        int res = clock_gettime(clockId, &actual);
-        if (res != 0) {
-            printf("Failed clock %i", res);
-        }
-
-        result->tv_sec = (I32) actual.tv_sec;
-        result->tv_nsec = (I32) actual.tv_nsec;
-
-        dummyClock++;
+        result->tv_sec = I32(ts.tv_sec);
+        result->tv_nsec = I32(ts.tv_nsec);
 
         return 0;
     }
@@ -641,6 +634,11 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__unsupported_syscall", I32, __unsupported_syscall,
                               I32 a, I32 b, I32 c, I32 d, I32 e, I32 f, I32 g) {
         printf("SYSCALL - UNSUPPORTED %i %i %i %i %i %i %i \n", a, b, c, d, e, f, g);
+        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_rt_sigaction", I32, __syscall_rt_sigaction, I32 a, I32 b, I32 c) {
+        printf("SYSCALL - rt_sigaction %i %i %i\n", a, b, c);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 

@@ -146,6 +146,7 @@ def compile_libcurl():
     config_cmd = [
         "./configure",
         ENV_STR,
+        "--enable-debug",
         "--disable-threaded-resolver",
         "--without-winssl",
         "--without-darwinssl",
