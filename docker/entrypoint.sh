@@ -1,10 +1,10 @@
 #!/bin/bash
 
-set -e;
+set -e
 
 pushd /faasm/code >> /dev/null
 
-echo "Setting up cgroup";
+echo "Setting up cgroup"
 ./bin/cgroup.sh
 
 echo "Setting up namespaces"

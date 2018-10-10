@@ -30,3 +30,16 @@ def playbook_command(playbook_name, sudo=True, inventory=None):
 
     print(cmd)
     call(cmd, shell=True, cwd=ANSIBLE_DIR)
+
+
+def sudo_script(script_name):
+    script_path = join("bin", script_name)
+
+    cmd = [
+        "sudo",
+        "./{}".format(script_path),
+    ]
+    cmd = " ".join(cmd)
+
+    print(cmd)
+    call(cmd, shell=True, cwd=PROJ_ROOT)

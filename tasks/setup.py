@@ -1,6 +1,6 @@
 from invoke import task
 
-from tasks.env import playbook_command
+from tasks.env import playbook_command, sudo_script
 
 
 # -------------------------------
@@ -16,7 +16,7 @@ def setup_local(context):
 
 @task
 def setup_namespaces(context):
-    playbook_command("namespaces.yml")
+    sudo_script("netns.sh")
 
 
 @task
@@ -26,7 +26,7 @@ def setup_net_files(context):
 
 @task
 def setup_cgroup(context):
-    playbook_command("cgroup.yml")
+    sudo_script("cgroup.sh")
 
 
 # -------------------------------

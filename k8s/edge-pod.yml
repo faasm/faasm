@@ -9,7 +9,7 @@ metadata:
 spec:
   containers:
     - name: edge
-      image: shillaker/faasm-edge:latest
+      image: shillaker/faasm-edge
       imagePullPolicy: Always
       ports:
         - containerPort: 8080
