@@ -3,7 +3,7 @@
 - name: "Ensure directory exists"
   become: yes
   file:
-    path: "/usr/share/faasm/net"
+    path: "/usr/local/faasm/net"
     state: directory
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
@@ -13,7 +13,7 @@
 - name: "Put network-related files in place"
   copy:
     src: "{{ item }}"
-    dest: "/usr/share/faasm/net/{{ item }}"
+    dest: "/usr/local/faasm/net/{{ item }}"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     mode: 0644

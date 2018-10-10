@@ -45,8 +45,8 @@ using namespace WAVM;
 namespace wasm {
     DEFINE_INTRINSIC_MODULE(env)
 
-    static const char *HOSTS_FILE = "/usr/share/faasm/net/hosts";
-    static const char *RESOLV_FILE = "/usr/share/faasm/net/resolv.conf";
+    static const char *HOSTS_FILE = "/usr/local/faasm/net/hosts";
+    static const char *RESOLV_FILE = "/usr/local/faasm/net/resolv.conf";
 
     // Thread-local variables to isolate bits of environment
     static thread_local I32 dummyClock = 0;
@@ -643,7 +643,7 @@ namespace wasm {
             throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
         }
 
-        // Grow the module's memory accordingly
+        // Work out how many pages need to be added
         const Uptr numPages = (Uptr(length) + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
 
         printf("SYSCALL - mmap adding %li pages\n", numPages);

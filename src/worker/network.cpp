@@ -10,7 +10,7 @@ namespace worker {
 
     NetworkNamespace::NetworkNamespace(const std::string &name) : name(name) {
         // Get which mode we're operating in
-        std::string modeEnv = util::getEnvVar("NETNS_MODE", "off");
+        std::string modeEnv = util::getEnvVar("NETNS_MODE", "on");
 
         if (modeEnv == "on") {
             mode = NetworkIsolationMode::ns_on;

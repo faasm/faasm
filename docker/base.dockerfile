@@ -14,8 +14,8 @@ WORKDIR /faasm/code/ansible
 RUN ansible-playbook libs.yml
 
 # Build WAVM to avoid repetition in other dockerfiles
-WORKDIR /faasm/code/build
-RUN cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_BUILD_TYPE=Release ..
+WORKDIR /faasm/build
+RUN cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_BUILD_TYPE=Release /faasm/code
 RUN cmake --build . --target wavm-run
 
 

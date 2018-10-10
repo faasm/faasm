@@ -1,7 +1,8 @@
 FROM shillaker/faasm-base
 
 # Build the edge binary
-WORKDIR /faasm/code/build
+COPY . /faasm/code
+WORKDIR /faasm/build
 RUN cmake --build . --target edge
 
-CMD "/faasm/code/build/bin/edge"
+CMD "/faasm/build/bin/edge"
