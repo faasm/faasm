@@ -13,7 +13,6 @@ namespace worker {
     static const std::vector<std::string> controllers = {CG_CPU};
 
     static std::mutex groupMutex;
-    static std::mutex rootMutex;
 
     CGroup::CGroup(const std::string &name) : name(name) {
         // Get which cgroup mode we're operating in
@@ -69,23 +68,4 @@ namespace worker {
             addCurrentThreadToTasks(tasksPath);
         }
     }
-
-    /** Note, to remove a thread from a given cgroup, you must add it to the tasks file in the root */
-    void CGroup::removeCurrentThread() {
-        if (mode == CgroupMode::cg_off) {
-            std::cout << "Not removing thread. cgroup support off" << std::endl;
-            return;
-        }
-
-        std::lock_guard<std::mutex> guard(rootMutex);
-
-        for (const std::string &controller: controllers) {
-            path tasksPath(BASE_DIR);
-            tasksPath.append(controller);
-            tasksPath.append("tasks");
-
-            addCurrentThreadToTasks(tasksPath);
-        }
-    }
-
 }

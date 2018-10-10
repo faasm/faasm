@@ -1,6 +1,7 @@
 #include "wasm.h"
 
 #include <fcntl.h>
+#include <math.h>
 #include <netdb.h>
 #include <poll.h>
 #include <stdio.h>
@@ -639,17 +640,29 @@ namespace wasm {
                               U32 addr, U32 length, U32 prot, U32 flags, I32 fd, U32 offset) {
         printf("SYSCALL - mmap %i %i %i %i %i %i\n", addr, length, prot, flags, fd, offset);
 
+        if(addr != 0) {
+            printf("Ignoring mmap hint at %i\n", addr);
+        }
+
         if (fd != -1) {
             throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
         }
 
         // Work out how many pages need to be added
-        const Uptr numPages = (Uptr(length) + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
+        const Uptr pagesRequested = (Uptr(length) + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
 
-        printf("SYSCALL - mmap adding %li pages\n", numPages);
-        Iptr basePageIndex = growMemory(getModuleMemory(), numPages);
+        printf("SYSCALL - mmap adding %li pages\n", pagesRequested);
+        Iptr basePageIndex = growMemory(getModuleMemory(), pagesRequested);
 
-        return (U32) (Uptr(basePageIndex) * IR::numBytesPerPage);
+        if(basePageIndex == -1) {
+            printf("mmap no memory\n");
+            return -ENOMEM;
+        }
+
+        // Get pointer to mapped range
+        auto mappedRangePtr = (U32) (Uptr(basePageIndex) * IR::numBytesPerPage);
+
+        return mappedRangePtr;
     }
 
     /**
@@ -677,19 +690,21 @@ namespace wasm {
         printf("SYSCALL - brk %i\n", addr);
 
         // Work out how many pages needed to hit the target address
-        const Uptr targetPageCount = addr / IR::numBytesPerPage;
+        const Uptr targetPageCount = (Uptr(addr) + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
 
         Runtime::MemoryInstance *memory = getModuleMemory();
 
         const Uptr currentPageCount = getMemoryNumPages(memory);
-        const U32 currentBreak = (U32) (currentPageCount * IR::numBytesPerPage);
+        const U32 currentBreak = (U32) ((currentPageCount + 1) * IR::numBytesPerPage);
+        printf("brk current break %u -> new break %u\n", currentBreak, addr);
 
         Uptr maxPages = getMemoryMaxPages(memory);
         if (targetPageCount > maxPages) {
             printf("SYSCALL - brk requesting %lu pages (max %lu)\n", targetPageCount, maxPages);
+            return currentBreak;
         }
 
-        if (targetPageCount <= currentPageCount) {
+        if (targetPageCount <= currentPageCount || addr == 0) {
             printf("SYSCALL - brk with no effect\n");
             return currentBreak;
         }

@@ -52,11 +52,6 @@ namespace tests {
 
         std::string fileAfter = util::readFileToString(cgroupPath.string());
         REQUIRE(boost::trim_copy(fileAfter) == std::to_string(tid));
-
-        // Check removal
-        cg.removeCurrentThread();
-        std::string fileAfterRemoval = util::readFileToString(cgroupPath.string());
-        REQUIRE(fileAfterRemoval.empty());
     }
 
     TEST_CASE("Test adding thread to cpu controller", "[worker]") {

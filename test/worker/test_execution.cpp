@@ -5,10 +5,21 @@
 using namespace worker;
 
 namespace tests {
+    static infra::Redis redis;
+
+    void setUp() {
+        redis.flushAll();
+
+        // Network ns requires root
+        util::setEnvVar("NETNS_MODE", "off");
+    }
+
+    void tearDown() {
+        util::unsetEnvVar("NETNS_MODE");
+    }
 
     TEST_CASE("Test full execution of WASM module", "[worker]") {
-        infra::Redis redis;
-        redis.flushAll();
+        setUp();
 
         message::FunctionCall call;
         call.set_user("simon");
@@ -16,24 +27,36 @@ namespace tests {
         call.set_inputdata("this is input");
         call.set_resultkey("test_echo");
 
-        // Network ns requires root
-        util::setEnvVar("NETNS_MODE", "off");
-
         // Run the execution
         execFunction(1, call);
-
-        // Get the result
         message::FunctionCall result = redis.getFunctionResult(call);
 
         // Check output
         REQUIRE(result.outputdata() == "this is input");
+        REQUIRE(result.success());
 
-        util::unsetEnvVar("NETNS_MODE");
+        tearDown();
+    }
+
+    TEST_CASE("Test executing non-existent function", "[worker]") {
+        setUp();
+
+        message::FunctionCall call;
+        call.set_user("foobar");
+        call.set_function("baz");
+        call.set_resultkey("test_invalid");
+
+        execFunction(1, call);
+        message::FunctionCall result = redis.getFunctionResult(call);
+
+        REQUIRE(!result.success());
+        REQUIRE(result.outputdata() == "foobar - baz is not a valid function");
+
+        tearDown();
     }
 
     TEST_CASE("Test function chaining", "[worker]") {
-        infra::Redis redis;
-        redis.flushAll();
+        setUp();
 
         message::FunctionCall call;
         call.set_user("simon");
@@ -69,5 +92,7 @@ namespace tests {
         REQUIRE(util::stringToBytes(chainA.inputdata()) == expected0);
         REQUIRE(util::stringToBytes(chainB.inputdata()) == expected1);
         REQUIRE(util::stringToBytes(chainC.inputdata()) == expected2);
+
+        tearDown();
     }
 }

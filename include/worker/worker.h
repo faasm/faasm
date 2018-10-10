@@ -27,7 +27,6 @@ namespace worker {
         explicit CGroup(const std::string &name);
 
         void addCurrentThread();
-        void removeCurrentThread();
 
         const std::string getName();
         const CgroupMode getMode();
