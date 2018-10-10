@@ -13,7 +13,7 @@
 
 
 namespace worker {
-    const std::string BASE_NETNS_NAME = "faasm";
+    const std::string BASE_NETNS_NAME = "faasmns";
     const std::string BASE_CGROUP_NAME = "faasm";
 
     void execNextFunction();
