@@ -305,17 +305,6 @@ namespace wasm {
         std::copy(&nativeValue, &nativeValue + 1, wasmAddrPtr);
     }
 
-    struct wasm_in_addr {
-        U32 s_addr;
-    };
-
-    struct wasm_sockaddr_in {
-        U8 sin_family;
-        U8 sin_port;
-        struct wasm_in_addr sin_addr;
-        U8 sin_zero[8];
-    };
-
     /**
      * When properly isolated, functions will run in their own network namespace,
      * therefore we can be relatively comfortable passing some of the syscalls
@@ -334,13 +323,66 @@ namespace wasm {
             // ----------------------------
 
             case (SocketCalls::sc_socket): {
+                // Socket constants:
+                // https://github.com/Shillaker/musl/blob/wasm-prototype-1/include/sys/socket.h
+                // https://github.com/Shillaker/musl/blob/wasm-prototype-1/include/netinet/in.h
+
                 U32 *subCallArgs = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 3);
                 U32 domain = subCallArgs[0];
                 U32 type = subCallArgs[1];
                 U32 protocol = subCallArgs[2];
 
+                switch(domain) {
+                    case(2): {
+                        domain = AF_INET;
+                        break;
+                    }
+                    case(10): {
+                        domain = AF_INET6;
+                        break;
+                    }
+                    default: {
+                        printf("Unrecognised domain (%u)\n", domain);
+                        break;
+                    }
+                }
+
+                switch(type) {
+                    case(1): {
+                        type = SOCK_STREAM;
+                        break;
+                    }
+                    case(2): {
+                        type = SOCK_DGRAM;
+                        break;
+                    }
+                    default: {
+                        printf("Unrecognised type (%u)\n", type);
+                        break;
+                    }
+                }
+
+                switch(protocol) {
+                    case(0): {
+                        protocol = IPPROTO_IP;
+                        break;
+                    }
+                    case(6): {
+                        protocol = IPPROTO_TCP;
+                        break;
+                    }
+                    default: {
+                        printf("Unrecognised protocol (%u)\n", protocol);
+                        break;
+                    }
+                }
+
                 printf("SYSCALL - socket %i %i %i\n", domain, type, protocol);
-                int sock = (int) syscall(SYS_socket, domain, type, protocol);
+                I32 sock = (int) syscall(SYS_socket, domain, type, protocol);
+
+                if(sock < 0) {
+                    printf("Socket error: %i\n", sock);
+                }
 
                 openFds.insert(sock);
 
@@ -672,7 +714,7 @@ namespace wasm {
 
         // Get pointer to mapped range
         auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);
-
+        printf("mmapped %u at %u\n", length, mappedRangePtr);
         return mappedRangePtr;
     }
 
@@ -696,6 +738,13 @@ namespace wasm {
 
     /**
      * brk should be fine to run in most cases, need to check limits on the process' memory.
+     *
+     * Details of the return value aren't particularly clear. I took info from https://linux.die.net/man/2/brk
+     * i.e.
+     *
+     *   - on addr == 0 return current break
+     *   - on error return current break
+     *   - on success return NEW break
      */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_brk", I32, __syscall_brk, U32 addr) {
         printf("SYSCALL - brk %i\n", addr);
@@ -711,11 +760,13 @@ namespace wasm {
         Uptr maxPages = getMemoryMaxPages(memory);
         if (targetPageCount > maxPages) {
             printf("brk requesting %lu pages (max %lu)\n", targetPageCount, maxPages);
+            // Return old break if there's an error
             return currentBreak;
         }
 
         if (targetPageCount <= currentPageCount || addr == 0) {
             printf("brk with no effect\n");
+            // Return old break if nothing changes or called with zero
             return currentBreak;
         }
 
@@ -725,7 +776,8 @@ namespace wasm {
         // Grow memory as required
         growMemory(memory, expansion);
 
-        return (U32) currentBreak;
+        // Return NEW break if successful
+        return (U32) addr;
     }
 
     // ------------------------
