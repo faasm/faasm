@@ -28,7 +28,7 @@ And you should see your message echoed back.
 
 ## Compiling a simple function
 
-The `hello.c` file in the root of this directory shows a basic faasm function. To compile this to WebAssembly you can run the following (assuming you have Docker installed) from the project root:
+The `hello.c` file in the root of this directory shows a basic faasm function. To compile this to WebAssembly you can run the following from the project root:
 
 ```
 # Start the wasm toolchain container
@@ -58,14 +58,13 @@ Each function is associated with a user and has a function name. It will have tw
 
 By `POST`ing to these URLs we can invoke the function. POSTed data forms the input data for the function call.
 
-For example, with the faasm endpoint at `localhost:8080`, the `echo` function owned by `simon` can be run with:
+For example, with the faasm endpoint at `localhost:8001`, the `echo` function owned by `simon` can be run with:
 
 ```
-curl -X POST http://localhost:8080/f/simon/echo -d "hello faasm"
+curl -X POST http://localhost:8001/f/simon/echo -d "hello faasm"
 ```
 
-This function just returns its input so should give a response containing our input data (i.e. `hello faasm`).
-The code can be found in `func/function_echo.c`.
+The code for this function can be found in `func/function_echo.c`.
 
 ## Writing Functions
 
@@ -121,13 +120,13 @@ calls will go back through the main scheduler and be executed.
 To upload a function you can use `curl` to send a PUT request to the synchronous URL for the given function.
 For example:
 
-- I have a Faasm endpoint running at `localhost:8080`
+- I have a Faasm endpoint running at `localhost:8001`
 - I've compiled my WebAssembly function file to `/tmp/do_something.wasm`
 - I want to upload this function to user `simon` and function name `cool_func`
 
 I can execute:
 
 ```
-curl http://localhost:8080/f/simon/cool_func/ -X PUT -T /tmp/do_something.wasm
+curl http://localhost:8001/f/simon/cool_func/ -X PUT -T /tmp/do_something.wasm
 ```
 
