@@ -1,16 +1,32 @@
 # Faasm
 
-Faasm is a serverless system focused on performance and security. By trusting users' code we are able to maintain the same level of security with much more lightweight isolation mechanisms than in other platforms.
+Faasm is a serverless system focused on performance and security, using WebAssembly to run users' code. The features of WebAssmebly mean we can trust users' code and maintain good security and isolation with very lightweight mechanisms. For more details on the isolation approach, see the [wiki page](https://github.com/lsds/faasm/wiki/isolation).
 
-More lightweight isolation enables better performance and opens the doors to new features not possible in a strongly isolated environment (inter-function communication, shared state etc.).
+This lightweight isolation enables excellent performance and opens the doors to features not possible in a more strongly isolated environments (e.g. inter-function communication, shared state etc.).
 
 The underlying WebAssembly execution is handled by [WAVM](https://github.com/WAVM/WAVM), which is well worth checking out.
 
 More detail on the internals, development and deployment is held in the [wiki](https://github.com/lsds/faasm/wiki).
 
-For compiling WebAssembly it is highly recommended you use the [Dockerised WASM toolchain](https://github.com/Shillaker/wasm-toolchain). This vastly simplifies the process of compiling WebAssembly.
+For compiling WebAssembly it is highly recommended you use the [Dockerised WASM toolchain](https://github.com/Shillaker/wasm-toolchain). This vastly simplifies the process.
 
 # Quick Start
+
+To run the project you can use the `docker-compose.yml` file in the root of the project, i.e. 
+
+```
+docker-compose up -d
+```
+
+Then curl one of the example functions:
+
+```
+curl -X POST http://localhost:8001/f/simon/echo -d "Hello!"
+```
+
+And you should see your message echoed back.
+
+## Compiling a simple function
 
 The `hello.c` file in the root of this directory shows a basic faasm function. To compile this to WebAssembly you can run the following (assuming you have Docker installed) from the project root:
 
@@ -19,19 +35,16 @@ The `hello.c` file in the root of this directory shows a basic faasm function. T
 docker run -v $(pwd):/work -w /work -it shillaker/wasm-toolchain
 
 # From inside the container, compile the hello.c file
-/toolchain/clang --target=wasm32-unknown-unknown-wasm --sysroot=/toolchain/sysroot -o hello.wasm -I include/faasm hello.c
+/toolchain/bin/clang --target=wasm32-unknown-unknown-wasm --sysroot=/toolchain/sysroot -o hello.wasm -I include/faasm hello.c
 
 # Drop out of the container
-logout
-
-# Run the dockerised environment
-inv start-all
+exit
 
 # Upload the function
-curl -X PUT http://localhost:8080/f/dummy/hello -T hello.wasm
+curl -X PUT http://localhost:8001/f/dummy/hello -T hello.wasm
 
 # Invoke the function
-curl -X POST http://localhost:8080/f/dummy/hello
+curl -X POST http://localhost:8001/f/dummy/hello
 ```
 
 # Usage
