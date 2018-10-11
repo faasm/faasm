@@ -13,6 +13,7 @@ services:
 
   worker:
     image: shillaker/faasm-worker:latest
+    restart: always
     depends_on:
       - redis
     environment:
@@ -36,7 +37,7 @@ services:
       - REDIS_PORT=6379
       - FUNC_ROOT=/usr/share/faasm
     volumes:
-      - /usr/share/faasm:/usr/share/faasm
+      - ./wasm:/usr/share/faasm/wasm
     depends_on:
       - redis
     networks:

@@ -38,7 +38,7 @@ int main() {
     run(inputData, outputData, chainFuncs, chainInputData);
 
     // Print the output data
-    printf("Output :");
+    printf("Output: ");
     printBytes(outputData, MAX_INPUT_BYTES);
     printf("Chains: ");
     printBytes(chainFuncs, MAX_CHAINS * MAX_NAME_LENGTH);
