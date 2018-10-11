@@ -2,7 +2,7 @@
 
 Faasm is a serverless system focused on performance and security, using WebAssembly to run users' code. The features of WebAssmebly mean we can trust users' code and maintain good security and isolation with very lightweight mechanisms. For more details on the isolation approach, see the [wiki page](https://github.com/lsds/faasm/wiki/isolation).
 
-This lightweight isolation enables excellent performance and opens the doors to features not possible in a more strongly isolated environments (e.g. inter-function communication, shared state etc.).
+This lightweight isolation enables excellent performance and opens the door to features not possible in a more strongly isolated environment (e.g. inter-function communication, shared state etc.).
 
 The underlying WebAssembly execution is handled by [WAVM](https://github.com/WAVM/WAVM), which is well worth checking out.
 
