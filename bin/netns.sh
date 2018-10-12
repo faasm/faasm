@@ -19,7 +19,7 @@ function setup_ns() {
     vif_peer_ip=10.200.$1.2
 
     ns_file="/var/run/netns/${ns_name}"
-    if [ -f "ns_file" ]
+    if [ -f "$ns_file" ]
     then
         echo "Namespace ${ns_name} already exists"
         return
