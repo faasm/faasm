@@ -1,4 +1,4 @@
-FROM shillaker/faasm-base
+FROM faasm/base
 
 # Set up dummy networking files
 WORKDIR /faasm/code/ansible

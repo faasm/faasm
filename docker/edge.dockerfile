@@ -1,4 +1,4 @@
-FROM shillaker/faasm-base
+FROM faasm/base
 
 # Build the edge binary
 COPY . /faasm/code

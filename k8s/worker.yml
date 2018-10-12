@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: worker
-          image: shillaker/faasm-worker
+          image: faasm/worker
           imagePullPolicy: Always
           ports:
             - containerPort: 8001
