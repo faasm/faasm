@@ -69,7 +69,7 @@ CONFIG_FLAGS = [
 
 
 @task
-def compile(context, user, func_name, libcurl=False, debug=False, cxx=False):
+def compile(context, user, func_name, libcurl=False, debug=False):
     """
     Compiles the given function
     """
@@ -81,14 +81,13 @@ def compile(context, user, func_name, libcurl=False, debug=False, cxx=False):
         rmtree(BUILD_DIR)
     mkdir(BUILD_DIR)
 
-    func_extension = ".cpp" if cxx else ".c"
-    func_file = "function_{}{}".format(func_name, func_extension)
+    func_file = "function_{}.cpp".format(func_name)
     func_path = join("func", func_file)
 
     output_file = join("work", "out.wasm")
 
     compile_cmd = [
-        CXX if cxx else CC,
+        CXX,
         *COMPILER_FLAGS,
         "-Oz",
         "-fvisibility=hidden",

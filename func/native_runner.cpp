@@ -32,7 +32,7 @@ int main() {
     uint8_t chainInputData[MAX_CHAINS * MAX_INPUT_BYTES];
 
     // Set up some input data
-    strcpy((char*) inputData, "www.facebook.com");
+    strcpy((char*) inputData, "www.google.com");
 
     // Call the actual function
     run(inputData, outputData, chainFuncs, chainInputData);
