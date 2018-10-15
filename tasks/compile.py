@@ -126,8 +126,8 @@ def compile_libcurl():
     Compiles libcurl to wasm
     """
 
-    LIBCURL_URL = "https://github.com/curl/curl/archive/curl-7_61_0.tar.gz"
-    CURL_EXTRACT_DIR = join(DOWNLOAD_DIR, "curl-curl-7_61_0")
+    LIBCURL_URL = "https://github.com/curl/curl/archive/curl-7_61_1.tar.gz"
+    CURL_EXTRACT_DIR = join(DOWNLOAD_DIR, "curl-curl-7_61_1")
 
     if not exists(CURL_EXTRACT_DIR):
         # Download the file
