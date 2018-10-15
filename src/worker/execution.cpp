@@ -68,8 +68,9 @@ namespace worker {
             module.execute(call);
         }
         catch (const std::exception &e) {
-            std::cout << "Error in wasm execution:\n" << e.what() << "\n" << std::endl;
-            return finishCall(call, "Error in execution");
+            std::string errorMessage = "Error: " + std::string(e.what());
+            std::cout << errorMessage << std::endl;
+            return finishCall(call, errorMessage);
         }
         catch (...) {
             std::cout << "Unknown error in wasm execution" << std::endl;

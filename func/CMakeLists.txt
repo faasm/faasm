@@ -1,6 +1,6 @@
 include_directories(${FAASM_INCLUDE_DIR}/faasm)
 
-set(FAASM_FUNCTION function_echo.c)
-add_executable(native_func native_runner.c ${FAASM_FUNCTION})
+set(FAASM_FUNCTION function_echopp.cpp)
+add_executable(native_func native_runner.cpp ${FAASM_FUNCTION})
 
 target_link_libraries(native_func curl)

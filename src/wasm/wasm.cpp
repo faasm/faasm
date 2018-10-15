@@ -32,9 +32,15 @@ namespace wasm {
         // Note that an underscore may be added before the function name by the compiler
         Runtime::FunctionInstance *functionInstance = asFunctionNullable(
                 getInstanceExport(moduleInstance, ENTRYPOINT_FUNC));
+
         if (!functionInstance) {
-            std::string errorMsg = "No function named " + ENTRYPOINT_FUNC + " found";
-            throw std::runtime_error(errorMsg);
+            // Try CPP compiler name instead
+            functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, CPP_ENTRYPOINT_FUNC));
+
+            if (!functionInstance) {
+                std::string errorMsg = "No function named " + ENTRYPOINT_FUNC + " found";
+                throw std::runtime_error(errorMsg);
+            }
         }
 
         // Get reference to module memory

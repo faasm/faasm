@@ -29,7 +29,7 @@ namespace edge {
     }
 
     void RestServer::handleGet(http_request request) {
-        request.reply(status_codes::OK, "Get OK");
+        request.reply(status_codes::OK, "Get OK\n");
     }
 
     void RestServer::handlePost(http_request request) {
@@ -39,20 +39,13 @@ namespace edge {
 
         if (call.isasync()) {
             // Don't wait for result
-            std::cout << "Submitted async " << call.user() << " - " << call.function() << " - " << call.inputdata()
-                      << std::endl;
+            std::cout << "Submitted async " << call.user() << " - " << call.function() << std::endl;
             request.reply(status_codes::Created, "Async request submitted\n");
         } else {
-            std::cout << "Awaiting result for " << call.user() << " - " << call.function() << " - " << call.inputdata()
-                      << std::endl;
+            std::cout << "Awaiting result for " << call.user() << " - " << call.function() << std::endl;
 
             message::FunctionCall result = redis.getFunctionResult(call);
-
-            if (result.success()) {
-                request.reply(status_codes::OK, result.outputdata() + "\n");
-            } else {
-                request.reply(status_codes::InternalError, "Error\n");
-            }
+            request.reply(status_codes::OK, result.outputdata() + "\n");
         }
     }
 

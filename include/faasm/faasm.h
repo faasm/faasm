@@ -33,10 +33,18 @@ struct FaasmMemory {
     int32_t chainCount;
 };
 
+#ifdef __cplusplus
+namespace faasm {
+#endif
+
 /**
- * Function for faasm functions to implement
- */
+* Function for faasm functions to implement
+*/
 int exec(struct FaasmMemory *memory);
+
+#ifdef __cplusplus   // Close namespace
+}
+#endif
 
 /**
  * Wrapper function used to abstract away the faasm memory management
@@ -47,7 +55,7 @@ int run(
         uint8_t *out,
         uint8_t *cFuncs,
         uint8_t *cIn
-    ) {
+) {
 
     struct FaasmMemory memory;
     memory.input = in;
@@ -57,7 +65,11 @@ int run(
     memory.chainInputs = cIn;
     memory.chainCount = 0;
 
+#ifdef __cplusplus
+    return faasm::exec(&memory);
+#else
     return exec(&memory);
+#endif
 }
 
 /**
@@ -97,4 +109,4 @@ int main(int a, char* args[]) {
 }
 #endif
 
-#endif
+#endif   // FAASM_H

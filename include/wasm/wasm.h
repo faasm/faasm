@@ -18,7 +18,10 @@ using namespace WAVM;
 namespace wasm {
     DECLARE_INTRINSIC_MODULE(env);
 
+    // TODO: pass some compiler flag to fix this?
+    // The CPP compiler seems to mangle the run function export name
     const std::string ENTRYPOINT_FUNC = "run";
+    const std::string CPP_ENTRYPOINT_FUNC = "_Z3runPhS_S_S_";
 
     const int MAX_NAME_LENGTH = 32;
 

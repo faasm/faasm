@@ -81,7 +81,9 @@ def compile(context, user, func_name, libcurl=False, debug=False, cxx=False):
         rmtree(BUILD_DIR)
     mkdir(BUILD_DIR)
 
-    func_path = join("func", "function_{}.c".format(func_name))
+    func_extension = ".cpp" if cxx else ".c"
+    func_file = "function_{}{}".format(func_name, func_extension)
+    func_path = join("func", func_file)
 
     output_file = join("work", "out.wasm")
 
