@@ -31,15 +31,15 @@ namespace faasm {
             chainCount = 0;
         }
 
-        uint8_t *getInput() {
+        const uint8_t *getInput() {
             return input;
         };
 
-        void setOutput(uint8_t *newOutput, size_t outputLen) {
+        void setOutput(const uint8_t *newOutput, size_t outputLen) {
             memcpy(this->output, newOutput, outputLen);
         }
 
-        void chainFunction(char *name, uint8_t *inputData, int inputDataSize) {
+        void chainFunction(const char *name, const uint8_t *inputData, int inputDataSize) {
             // Work out how many chained functions we already have
             int32_t chainIdx = this->chainCount;
 

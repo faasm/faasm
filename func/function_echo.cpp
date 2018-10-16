@@ -5,7 +5,7 @@
  */
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        uint8_t *input = memory->getInput();
+        const uint8_t *input = memory->getInput();
         printf("MEMORY IN: %s \n", input);
 
         memory->setOutput(input, MAX_OUTPUT_BYTES);

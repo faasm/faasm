@@ -69,12 +69,12 @@ CONFIG_FLAGS = [
 
 
 @task
-def compile(context, user, func_name, libcurl=False, debug=False):
+def compile(context, func_name, libcurl=False, debug=False):
     """
     Compiles the given function
     """
 
-    print("Compiling {} for user {}".format(func_name, user))
+    print("Compiling {}".format(func_name))
 
     # Recreate the build dir
     if exists(BUILD_DIR):
