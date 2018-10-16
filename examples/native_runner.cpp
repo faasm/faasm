@@ -25,6 +25,12 @@ void printBytes(uint8_t *ptr, int count) {
     printf("]\n");
 }
 
+uint8_t* __faasm_read_state(const char* key) {
+    auto *state = new uint8_t[5];
+
+    return state;
+}
+
 int main() {
     uint8_t inputData[MAX_INPUT_BYTES];
     uint8_t outputData[MAX_INPUT_BYTES];

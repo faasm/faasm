@@ -13,7 +13,7 @@ services:
 
   worker:
     image: faasm/worker:latest
-    restart: always
+    restart: on-failure:5
     depends_on:
       - redis
     environment:

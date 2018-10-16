@@ -9,14 +9,18 @@
 #define MAX_NAME_LENGTH 32
 #define MAX_INPUT_BYTES 65536
 #define MAX_OUTPUT_BYTES 65536
+#define MAX_STATE_BYTES 65536
 
 // Work out if we're in a wasm cross-compile environment
 // This can be used to avoid functions being removed by DCE
 #if __clang_major__ == 8
-#define FAASM_INLINE __attribute__((used)) __attribute__ ((visibility ("default")))
+#define FAASM_EXPORT __attribute__((used)) __attribute__ ((visibility ("default")))
+#define FAASM_INLINE
 #else
+#define FAASM_EXPORT
 #define FAASM_INLINE static inline
 #endif
+
 
 namespace faasm {
 
@@ -76,6 +80,7 @@ namespace faasm {
     int exec(FaasmMemory *memory);
 }
 
+FAASM_EXPORT
 FAASM_INLINE
 int run(uint8_t *in, uint8_t *out, uint8_t *cFuncs, uint8_t *cIn) {
     faasm::FaasmMemory memory(in, out, cFuncs, cIn);

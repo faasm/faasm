@@ -3,6 +3,7 @@
 #include <infra/infra.h>
 #include <util/util.h>
 
+#include <exception>
 #include <string>
 #include <tuple>
 #include <thread>
@@ -18,7 +19,7 @@ using namespace WAVM;
 namespace wasm {
     DECLARE_INTRINSIC_MODULE(env);
 
-    // TODO: pass some compiler flag to fix this?
+    // TODO: avoid the dodgy funciton naming?
     // The CPP compiler seems to mangle the run function export name
     const std::string ENTRYPOINT_FUNC = "run";
     const std::string CPP_ENTRYPOINT_FUNC = "_Z3runPhS_S_S_";

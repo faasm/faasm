@@ -58,8 +58,8 @@ namespace wasm {
 
     void checkThreadOwnsFd(int fd) {
         if (openFds.find(fd) == openFds.end()) {
-            printf("Fd not owned by this thread (%i)", fd);
-            throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+            printf("fd not owned by this thread (%i)\n", fd);
+            throw std::runtime_error("fd not owned by this function");
         }
     }
 
@@ -67,14 +67,14 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_open", I32, __syscall_open, I32 pathPtr, I32 flags, I32 mode) {
         printf("SYSCALL - open %i %i %i\n", pathPtr, flags, mode);
 
-        if (mode != 0) {
-            printf("Attempt to open in non-read-only mode (%i)", mode);
-            throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
-        }
-
         // Get the path
         Runtime::MemoryInstance *memoryPtr = getModuleMemory();
         char *path = &Runtime::memoryRef<char>(memoryPtr, (Uptr) pathPtr);
+
+        if (mode != 0) {
+            printf("Attempt to open path in non-read-only mode (%s)\n", path);
+            throw std::runtime_error("Attempt to open fd in non read-only mode");
+        }
 
         // Check if this is a valid path
         int fd = -1;

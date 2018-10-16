@@ -69,20 +69,17 @@ CONFIG_FLAGS = [
 
 
 @task
-def compile(context, func_name, libcurl=False, debug=False):
+def compile(context, path, libcurl=False, debug=False):
     """
     Compiles the given function
     """
 
-    print("Compiling {}".format(func_name))
+    print("Compiling {}".format(path))
 
     # Recreate the build dir
     if exists(BUILD_DIR):
         rmtree(BUILD_DIR)
     mkdir(BUILD_DIR)
-
-    func_file = "{}.cpp".format(func_name)
-    func_path = join("examples", func_file)
 
     output_file = join("work", "out.wasm")
 
@@ -91,9 +88,9 @@ def compile(context, func_name, libcurl=False, debug=False):
         *COMPILER_FLAGS,
         "-Oz",
         "-fvisibility=hidden",
-        func_path,
+        path,
         "-I", join("include", "faasm"),
-        "-o", output_file
+        "-o", output_file,
     ]
 
     # Debug
@@ -105,9 +102,12 @@ def compile(context, func_name, libcurl=False, debug=False):
         compile_cmd.append("-lcurl")
 
     compile_cmd_str = " ".join(compile_cmd)
+    print(compile_cmd_str)
+
     res = call(compile_cmd_str, shell=True, cwd=PROJ_ROOT)
     if res != 0:
         raise RuntimeError("Compile call failed")
+
 
 @task
 def lib(context, lib_name):
