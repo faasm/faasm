@@ -92,11 +92,12 @@ namespace wasm {
             return (I32) fd;
         } else if (fd == -ENOENT) {
             printf("File does not exist %s\n", path);
+            throw std::runtime_error("File does not exist");
         } else {
             printf("Error opening file %s (code %d) \n", path, fd);
         }
 
-        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+        throw std::runtime_error("Unknown error opening file");
     }
 
     /** Dummy fcntl implementation, many operations are irrelevant */
@@ -138,19 +139,13 @@ namespace wasm {
         return 0;
     }
 
-    struct wasm_pollfd {
-        I32 fd;
-        I16 events;
-        I16 revents;
-    };
-
     /** Poll is annoying as it passes an array of structs. */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_poll", I32, __syscall_poll, I32 fdsPtr, I32 nfds, I32 timeout) {
         printf("SYSCALL - poll %i %i %i\n", fdsPtr, nfds, timeout);
 
         if (nfds != 1) {
-            printf("Trying to poll %i fds. Only single fd supported\n", nfds);
-            throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+            printf("Trying to poll %i fds\n", nfds);
+            throw std::runtime_error("Trying to poll multiple fds. Only single supported");
         }
 
         auto *fds = Runtime::memoryArrayPtr<pollfd>(getModuleMemory(), (Uptr) fdsPtr, 1);
