@@ -81,7 +81,7 @@ def compile(context, func_name, libcurl=False, debug=False):
         rmtree(BUILD_DIR)
     mkdir(BUILD_DIR)
 
-    func_file = "function_{}.cpp".format(func_name)
+    func_file = "{}.cpp".format(func_name)
     func_path = join("examples", func_file)
 
     output_file = join("work", "out.wasm")

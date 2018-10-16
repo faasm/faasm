@@ -64,7 +64,7 @@ For example, with the faasm endpoint at `localhost:8001`, the `echo` function ow
 curl -X POST http://localhost:8001/f/demo/echo -d "hello faasm"
 ```
 
-The code for this function can be found in `examples/function_echo.cpp`.
+The code for this function can be found in `examples/echo.cpp`.
 
 ## Writing Functions
 
