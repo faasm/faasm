@@ -38,7 +38,8 @@ namespace wasm {
             functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, CPP_ENTRYPOINT_FUNC));
 
             if (!functionInstance) {
-                std::string errorMsg = "No function named " + ENTRYPOINT_FUNC + " found";
+                std::string errorMsg = "No exported function \"" + ENTRYPOINT_FUNC + "\"";
+                errorMsg += " (or \"" + CPP_ENTRYPOINT_FUNC + "\") found";
                 throw std::runtime_error(errorMsg);
             }
         }

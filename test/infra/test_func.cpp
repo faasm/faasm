@@ -52,7 +52,7 @@ namespace tests {
         REQUIRE(!infra::isValidFunction(invalidCall));
 
         // Check false for call with valid user but invalid function
-        invalidCall.set_user("simon");
+        invalidCall.set_user("demo");
         invalidCall.set_function("bar");
         REQUIRE(!infra::isValidFunction(invalidCall));
     }
@@ -60,7 +60,7 @@ namespace tests {
     TEST_CASE("Test valid function check returns true for valid function", "[infra]") {
         // Check true for valid call
         message::FunctionCall validCall;
-        validCall.set_user("simon");
+        validCall.set_user("demo");
         validCall.set_function("echo");
 
         REQUIRE(infra::isValidFunction(validCall));

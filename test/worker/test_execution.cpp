@@ -22,7 +22,7 @@ namespace tests {
         setUp();
 
         message::FunctionCall call;
-        call.set_user("simon");
+        call.set_user("demo");
         call.set_function("echo");
         call.set_inputdata("this is input");
         call.set_resultkey("test_echo");
@@ -59,7 +59,7 @@ namespace tests {
         setUp();
 
         message::FunctionCall call;
-        call.set_user("simon");
+        call.set_user("demo");
         call.set_function("chain");
         call.set_resultkey("test_chain");
 
@@ -76,9 +76,9 @@ namespace tests {
         message::FunctionCall chainC = redis.nextFunctionCall();
 
         // Check all are set with the right user
-        REQUIRE(chainA.user() == "simon");
-        REQUIRE(chainB.user() == "simon");
-        REQUIRE(chainC.user() == "simon");
+        REQUIRE(chainA.user() == "demo");
+        REQUIRE(chainB.user() == "demo");
+        REQUIRE(chainC.user() == "demo");
 
         // Check function names
         REQUIRE(chainA.function() == "echo");

@@ -21,21 +21,21 @@ docker-compose up -d
 Then curl one of the example functions:
 
 ```
-curl -X POST http://localhost:8001/f/simon/echo -d "Hello!"
+curl -X POST http://localhost:8001/f/demo/echo -d "Hello!"
 ```
 
 And you should see your message echoed back.
 
 ## Compiling a simple function
 
-The `hello.c` file in the root of this directory shows a basic faasm function. To compile this to WebAssembly you can run the following from the project root:
+The `hello.cpp` file in the root of this directory shows a basic faasm function. To compile this to WebAssembly you can run the following from the project root:
 
 ```
 # Start the wasm toolchain container
 docker run -v $(pwd):/work -w /work -it shillaker/wasm-toolchain
 
 # From inside the container, compile the hello.c file
-/toolchain/bin/clang --target=wasm32-unknown-unknown-wasm --sysroot=/toolchain/sysroot -o hello.wasm -I include/faasm hello.c
+/toolchain/bin/clang++ --target=wasm32-unknown-unknown-wasm --sysroot=/toolchain/sysroot -o hello.wasm -I include/faasm hello.cpp
 
 # Drop out of the container
 exit
@@ -58,13 +58,13 @@ Each function is associated with a user and has a function name. It will have tw
 
 By `POST`ing to these URLs we can invoke the function. POSTed data forms the input data for the function call.
 
-For example, with the faasm endpoint at `localhost:8001`, the `echo` function owned by `simon` can be run with:
+For example, with the faasm endpoint at `localhost:8001`, the `echo` function owned by `demo` can be run with:
 
 ```
-curl -X POST http://localhost:8001/f/simon/echo -d "hello faasm"
+curl -X POST http://localhost:8001/f/demo/echo -d "hello faasm"
 ```
 
-The code for this function can be found in `func/function_echo.c`.
+The code for this function can be found in `examples/function_echo.cpp`.
 
 ## Writing Functions
 
@@ -74,45 +74,51 @@ provided in at `include/faasm/faasm.h`. Functions will look something like this:
 ```
 #include "faasm.h"
 
-int exec(struct FaasmMemory *memory) {
-    // Do something
+namespace faasm {
+    int exec(FaasmMemory *memory) {
+        // Do something
 
-    return 0;
+        return 0;
+    }
 }
 ```
+
+Some example functions can be found in the `examples` directory.
 
 ### `faasm.h`
 
 `faasm.h` contains some useful wrappers to make it easier to interact with the Faasm system.
 
-The `FaasmMemory` struct represents the memory available to Faasm functions. It has the following fields:
+The `FaasmMemory` class allows Faasm functions to interact with the system. It has the following methods:
 
-- `input` - this is an array containing the input data to the function
-- `output` - this is where the function can write its output data
-- `chainFunctions`, `chainInputs`, `chainCount` - these are internal values used to handle function "chaining" (see below)
+- `getInput()` - this returns an array containing the input data to the function
+- `setOutput()` - this allows functions to return output data to the caller
+- `chainFunction()` - this allows one function to invoke others (see below)
 
 ### Chaining
 
 "Chaining" is when one function makes a call to another function (which must be owned by the same user).
 
-To do this, `chainFunction()` in `faasm.h` can be called. For my function to invoke the function `foo`,
-(also owned by me), it can do the following:
+To do this, the `chainFunction()` method on the `FaasmMemory` instance can be called. For my function to invoke
+the function `foo`, (also owned by me), it can do the following:
 
 ```
 #include "faasm.h"
 
-int exec(struct FaasmMemory *memory) {
-    uint8_t funcData[] = {1, 2, 3, 4};
-    int dataLength = 4;
-    char* funcName = "foo";
+namespace faasm {
+    int exec(FaasmMemory *memory) {
+        uint8_t funcData[] = {1, 2, 3, 4};
+        int dataLength = 4;
+        const char* funcName = "foo";
 
-    chainFunction(memory, funcName, funcData, dataLength);
+        memory->chainFunction(funcName, funcData, dataLength);
 
-    return 0;
+        return 0;
+    }
 }
 ```
 
-`chainFunction` can be called multiple times in one function. Once the original function has completed, these
+`chainFunction()` can be called multiple times in one function. Once the original function has completed, these
 calls will go back through the main scheduler and be executed.
 
 ## Uploading Functions
@@ -122,11 +128,10 @@ For example:
 
 - I have a Faasm endpoint running at `localhost:8001`
 - I've compiled my WebAssembly function file to `/tmp/do_something.wasm`
-- I want to upload this function to user `simon` and function name `cool_func`
+- I want to upload this function to user `demo` and function name `cool_func`
 
 I can execute:
 
 ```
-curl http://localhost:8001/f/simon/cool_func/ -X PUT -T /tmp/do_something.wasm
+curl http://localhost:8001/f/demo/cool_func/ -X PUT -T /tmp/do_something.wasm
 ```
-

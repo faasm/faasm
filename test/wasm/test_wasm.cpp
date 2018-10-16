@@ -6,7 +6,7 @@ namespace tests {
 
     TEST_CASE("Test executing WASM module with no input", "[wasm]") {
         message::FunctionCall call;
-        call.set_user("simon");
+        call.set_user("demo");
         call.set_function("dummy");
 
         wasm::WasmModule module;
@@ -29,7 +29,7 @@ namespace tests {
 
     TEST_CASE("Test executing WASM module with input and output", "[wasm]") {
         message::FunctionCall call;
-        call.set_user("simon");
+        call.set_user("demo");
         call.set_function("x2");
 
         wasm::WasmModule module;

@@ -82,7 +82,7 @@ def compile(context, func_name, libcurl=False, debug=False):
     mkdir(BUILD_DIR)
 
     func_file = "function_{}.cpp".format(func_name)
-    func_path = join("func", func_file)
+    func_path = join("examples", func_file)
 
     output_file = join("work", "out.wasm")
 
