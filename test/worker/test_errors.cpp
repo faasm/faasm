@@ -21,16 +21,20 @@ namespace tests {
         REQUIRE(!result.success());
 
         const std::string &actualOutput = result.outputdata();
-        bool isFound = false;
+        bool messageIsFound = false;
         if (actualOutput.find(expectedMsg) != std::string::npos) {
-            isFound = true;
+            messageIsFound = true;
         }
 
-        REQUIRE(isFound);
+        if(!messageIsFound) {
+            std::cout<< expectedMsg << " not found in " << actualOutput.c_str() << std::endl;
+        }
+
+        REQUIRE(messageIsFound);
     }
 
-    TEST_CASE("Test opening path in write mode", "[wasm]") {
-        checkError("open_write", "open fd in non read-only");
+    TEST_CASE("Test opening blocked path", "[wasm]") {
+        checkError("open_blocked", "Attempt to open invalid file");
     }
 
     TEST_CASE("Test connecting to socket not owned by function", "[wasm]") {

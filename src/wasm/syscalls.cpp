@@ -71,12 +71,7 @@ namespace wasm {
         Runtime::MemoryInstance *memoryPtr = getModuleMemory();
         char *path = &Runtime::memoryRef<char>(memoryPtr, (Uptr) pathPtr);
 
-        if (mode != 0) {
-            printf("Attempt to open path in non-read-only mode (%s)\n", path);
-            throw std::runtime_error("Attempt to open fd in non read-only mode");
-        }
-
-        // Check if this is a valid path
+        // Check if this is a valid path. Return a read-only handle to the file if so
         int fd = -1;
         if (strcmp(path, "/etc/hosts") == 0) {
             printf("Opening dummy /etc/hosts\n");
@@ -89,7 +84,7 @@ namespace wasm {
         } else {
             // Bomb out if not valid path
             printf("Trying to open blocked path (%s) \n", path);
-            throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+            throw std::runtime_error("Attempt to open invalid file");
         }
 
         if (fd > 0) {
