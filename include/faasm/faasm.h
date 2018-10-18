@@ -21,6 +21,13 @@
 #define FAASM_INLINE static inline
 #endif
 
+// Intrinsic functions implemented by the runtime
+size_t __faasm_init_state(const char *key, const char *url);
+
+void __faasm_read_state(const char *key, size_t offset, uint8_t *buffer, size_t dataLen);
+
+void __faasm_write_state(const char *key, size_t offset, uint8_t *data, size_t dataLen);
+
 
 namespace faasm {
 
@@ -33,16 +40,48 @@ namespace faasm {
             chainFunctions = cFuncs;
             chainInputs = cIn;
             chainCount = 0;
-        }
+        };
 
+        /**
+         * Initialises the state by pulling the binary from the given URL.
+         * Returns the total number of bytes written
+         */
+        size_t initState(const char *key, const char *url) {
+            return __faasm_init_state(key, url);
+        };
+
+        /**
+         * Reads a chunk of state from the given key into the buffer.
+         */
+        void readState(const char *key, size_t offset, uint8_t *buffer, size_t bufferLen) {
+            __faasm_read_state(key, offset, buffer, bufferLen);
+        };
+
+        /**
+         * Writes a chunk of state at the given key with the given offset and length.
+         */
+        void writeState(const char *key, size_t offset, uint8_t *data, size_t dataLen) {
+            __faasm_write_state(key, offset, data, dataLen);
+        };
+
+        /**
+         * Returns a pointer to the input data for this function
+         */
         const uint8_t *getInput() {
             return input;
         };
 
+        /**
+         * Sets the given array as the output data for this function
+         */
         void setOutput(const uint8_t *newOutput, size_t outputLen) {
             memcpy(this->output, newOutput, outputLen);
         }
 
+        /**
+         * Creates a "chained" function call to another function owned by
+         * the same user with the given input data
+         */
         void chainFunction(const char *name, const uint8_t *inputData, int inputDataSize) {
             // Work out how many chained functions we already have
             int32_t chainIdx = this->chainCount;

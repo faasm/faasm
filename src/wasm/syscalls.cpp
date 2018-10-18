@@ -53,6 +53,26 @@ namespace wasm {
     static thread_local std::set<int> openFds;
 
     // ------------------------
+    // FAASM-specific
+    // ------------------------
+    DEFINE_INTRINSIC_FUNCTION(env, "_Z19__faasm_write_statePKcmPhm", void, _Z19__faasm_write_statePKcmPhm,
+            I32 keyPtr, I32 offset, I32 dataPtr, I32 dataLen) {
+        printf("FAASM - write_state - %i %i %i %i\n", keyPtr, offset, dataPtr, dataLen);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "_Z18__faasm_read_statePKcmPhm", void, _Z18__faasm_read_statePKcmPhm,
+                              I32 keyPtr, I32 offset, I32 dataPtr, I32 dataLen) {
+        printf("FAASM - read_state - %i %i %i %i\n", keyPtr, offset, dataPtr, dataLen);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "_Z19__faasm_init_statePKcmPhm", I32, _Z19__faasm_init_statePKcmPhm,
+                              I32 keyPtr, I32 url) {
+        printf("FAASM - init - %i %i\n", keyPtr, url);
+
+        return 0;
+    }
+
+    // ------------------------
     // I/O - supported
     // ------------------------
 

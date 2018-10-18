@@ -8,13 +8,13 @@ void printBytes(uint8_t *ptr, int count) {
     printf("[");
 
     int gapCount = 0;
-    for(int i = 0; i < count; i++) {
-        if(ptr[i] == 0) {
+    for (int i = 0; i < count; i++) {
+        if (ptr[i] == 0) {
             gapCount++;
             continue;
         }
 
-        if(gapCount != 0) {
+        if (gapCount != 0) {
             printf(" 00x%i ", gapCount);
             gapCount = 0;
         }
@@ -25,10 +25,19 @@ void printBytes(uint8_t *ptr, int count) {
     printf("]\n");
 }
 
-uint8_t* __faasm_read_state(const char* key) {
-    auto *state = new uint8_t[5];
+size_t __faasm_init_state(const char *key, const char *url) {
+    // Dummy implementation to set up state
+    return (size_t) 10;
+}
 
-    return state;
+void __faasm_read_state(const char *key, size_t offset, uint8_t *buffer, size_t bufferLen) {
+    for (int i = 0; i < bufferLen; i++) {
+        buffer[i] = (uint8_t) (i + offset);
+    }
+}
+
+void __faasm_write_state(const char *key, size_t offset, uint8_t *data, size_t dataLen) {
+
 }
 
 int main() {
@@ -38,7 +47,7 @@ int main() {
     uint8_t chainInputData[MAX_CHAINS * MAX_INPUT_BYTES];
 
     // Set up some input data
-    strcpy((char*) inputData, "www.google.com");
+    strcpy((char *) inputData, "www.google.com");
 
     // Call the actual function
     run(inputData, outputData, chainFuncs, chainInputData);

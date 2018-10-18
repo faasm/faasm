@@ -9,7 +9,7 @@ namespace faasm {
         char buffer[100];
 
         // Read in
-        fread(buffer, 300, 1, fp);
+        fread(buffer, 10, 1, fp);
         printf("%s\n", buffer);
 
         fclose(fp);

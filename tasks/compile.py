@@ -88,6 +88,7 @@ def compile(context, path, libcurl=False, debug=False):
         *COMPILER_FLAGS,
         "-Oz",
         "-fvisibility=hidden",
+        "-Wl,--allow-undefined",
         path,
         "-I", join("include", "faasm"),
         "-o", output_file,
