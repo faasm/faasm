@@ -13,12 +13,22 @@ def tools(context):
         "-v {}:/work".format(PROJ_ROOT),
         "-w /work",
         "-it",
-        "shillaker/wasm-toolchain",
+        "faasm/toolchain",
         "/bin/bash"
     ]
     cmd = " ".join(cmd)
 
     call(cmd, shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def build_toolchain(context):
+    call("docker build -t faasm/toolchain -f docker/toolchain.dockerfile .", shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def push_toolchain(context):
+    call("docker push faasm/toolchain", shell=True, cwd=PROJ_ROOT)
 
 
 @task
