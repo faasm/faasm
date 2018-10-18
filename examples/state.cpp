@@ -1,5 +1,4 @@
 #include "faasm.h"
-#include <string>
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
@@ -16,7 +15,7 @@ namespace faasm {
         memory->readState(key, newState, oldStateSize);
 
         // Add a new value to the end of the new state
-        newState[newStateSize - 1] = oldStateSize;
+        newState[newStateSize - 1] = (uint8_t) oldStateSize;
 
         // Write the new state
         memory->writeState(key, newState, newStateSize);

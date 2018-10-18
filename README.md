@@ -94,6 +94,7 @@ The `FaasmMemory` class allows Faasm functions to interact with the system. It h
 - `getInput()` - this returns an array containing the input data to the function
 - `setOutput()` - this allows functions to return output data to the caller
 - `chainFunction()` - this allows one function to invoke others (see below)
+- `getStateSize()` - returns the size (in bytes) of the current state associated with the given key (see below)
 - `readState()` and `writeState()` - allows functions to manage shared state (see below)
 
 ## Chaining
@@ -140,5 +141,51 @@ curl http://localhost:8001/f/demo/cool_func/ -X PUT -T /tmp/do_something.wasm
 ## State
 
 All of a users' functions have access to shared state. This state is implemented as a simple key-value store
-and accessed by the functions `readState` and `writeState` on the `FaasmMemory` object.
+and accessed by the functions `readState` and `writeState` on the `FaasmMemory` object. Values read and written
+to this state must be byte arrays.
+
+A function accessing state will look something like:
+
+```
+#include "faasm.h"
+
+namespace faasm {
+    int exec(FaasmMemory *memory) {
+        const char *key = "my_state_key";
+
+        // Get initial state size (if not known)
+        size_t stateSize = memory->getStateSize(key);
+
+        // Read the state into a buffer
+        uint8_t myState[stateSize];
+        memory->readState(key, newState, stateSize);
+
+        // Do something useful
+
+        // Write the updated state
+        memory->writeState(key, myState, stateSize);
+
+        return 0;
+    }
+}
+```
+
+### Counter example
+
+An example implementing a counter can be found in `examples/increment.cpp`. It can be called with:
+
+```
+curl http://localhost:8001/f/demo/increment/ -X POST
+```
+
+On successive calls this will return something like:
+
+```
+Counter: 1
+Counter: 2
+Counter: 3
+...
+```
+
+
 

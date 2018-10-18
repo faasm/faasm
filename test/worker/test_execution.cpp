@@ -129,4 +129,28 @@ namespace tests {
         std::vector<uint8_t> expectedB = {0, 1};
         REQUIRE(stateB == expectedB);
     }
+
+    TEST_CASE("Test state increment", "[worker]") {
+        setUp();
+
+        const char* stateKey = "incr_example";
+
+        // Set up the function call
+        message::FunctionCall call;
+        call.set_user("demo");
+        call.set_function("increment");
+        call.set_resultkey("test_state_incr");
+
+        // Execute and check
+        execFunction(1, call);
+        message::FunctionCall resultA = redis.getFunctionResult(call);
+        REQUIRE(resultA.success());
+        REQUIRE(resultA.outputdata() == "Counter: 1");
+
+        // Call the function a second time, the state should have been incremented
+        execFunction(1, call);
+        message::FunctionCall resultB = redis.getFunctionResult(call);
+        REQUIRE(resultB.success());
+        REQUIRE(resultB.outputdata() == "Counter: 2");
+    }
 }
