@@ -2,11 +2,6 @@
 
 
 namespace edge {
-
-    // Note - hiredis redis contexts are suitable only for single threads
-    // therefore we need to ensure that each thread has its own instance
-    static thread_local infra::Redis redis;
-
     RestServer::RestServer() = default;
 
     void RestServer::listen(const std::string &port) {
@@ -35,7 +30,9 @@ namespace edge {
     void RestServer::handlePost(http_request request) {
         message::FunctionCall call = RestServer::buildCallFromRequest(request);
 
-        redis.callFunction(call);
+        infra::Redis *redis = infra::Redis::getThreadConnection();
+
+        redis->callFunction(call);
 
         if (call.isasync()) {
             // Don't wait for result
@@ -44,7 +41,7 @@ namespace edge {
         } else {
             std::cout << "Awaiting result for " << call.user() << " - " << call.function() << std::endl;
 
-            message::FunctionCall result = redis.getFunctionResult(call);
+            message::FunctionCall result = redis->getFunctionResult(call);
             request.reply(status_codes::OK, result.outputdata() + "\n");
         }
     }

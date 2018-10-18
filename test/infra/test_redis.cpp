@@ -48,6 +48,36 @@ namespace tests {
         REQUIRE(vars::BYTES_B == actual2);
     }
 
+    TEST_CASE("Test set/ get", "[redis]") {
+        Redis cli;
+        cli.flushAll();
+
+        std::string keyA = "key a";
+        std::string keyB = "key b";
+
+        cli.set(keyA, vars::BYTES_A);
+        cli.set(keyB, vars::BYTES_B);
+
+        // Test multiple gets on the same key
+        std::vector<uint8_t> actualA1 = cli.get(keyA);
+        std::vector<uint8_t> actualA2 = cli.get(keyA);
+        std::vector<uint8_t> actualB = cli.get(keyB);
+
+        REQUIRE(vars::BYTES_A == actualA1);
+        REQUIRE(vars::BYTES_A == actualA2);
+
+        REQUIRE(vars::BYTES_B == actualB);
+    }
+
+    TEST_CASE("Test get empty key", "[redis]") {
+        Redis cli;
+        cli.flushAll();
+
+        std::string nonExistKey = "blahblah";
+        std::vector<uint8_t> actual = cli.get(nonExistKey);
+        REQUIRE(actual.empty());
+    }
+
     void checkCallRoundTrip(bool isAsync, bool isSuccess) {
         Redis cli;
         cli.flushAll();

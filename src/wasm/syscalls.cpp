@@ -58,11 +58,41 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "_Z19__faasm_write_statePKcmPhm", void, _Z19__faasm_write_statePKcmPhm,
             I32 keyPtr, I32 offset, I32 dataPtr, I32 dataLen) {
         printf("FAASM - write_state - %i %i %i %i\n", keyPtr, offset, dataPtr, dataLen);
+
+        Runtime::MemoryInstance *memoryPtr = getModuleMemory();
+        U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
+        char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
+
+        // Set just this subsection of the data
+        infra::Redis *redis = infra::Redis::getThreadConnection();
+        std::vector<uint8_t> fullState = redis->get(key);
+
+        // Make sure there's enough space
+        long overshoot = (offset + dataLen) - (long) fullState.size();
+        if(overshoot > 0) {
+            std::vector<uint8_t> extension(overshoot);
+            fullState.insert(fullState.end(), extension.begin(), extension.end());
+        }
+
+        // Insert the data
+        std::copy(data, data + dataLen, fullState.data() + offset);
+
+        // Set the whole state in redis
+        redis->set(key, fullState);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "_Z18__faasm_read_statePKcmPhm", void, _Z18__faasm_read_statePKcmPhm,
-                              I32 keyPtr, I32 offset, I32 dataPtr, I32 dataLen) {
-        printf("FAASM - read_state - %i %i %i %i\n", keyPtr, offset, dataPtr, dataLen);
+                              I32 keyPtr, I32 offset, I32 bufferPtr, I32 bufferLen) {
+        printf("FAASM - read_state - %i %i %i %i\n", keyPtr, offset, bufferPtr, bufferLen);
+
+        Runtime::MemoryInstance *memoryPtr = getModuleMemory();
+        U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
+        char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
+
+        // Read just a subsection of the data
+        infra::Redis *redis = infra::Redis::getThreadConnection();
+        std::vector<uint8_t> fullState = redis->get(key);
+        std::copy(fullState.data() + offset, fullState.data() + offset + bufferLen, buffer);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "_Z19__faasm_init_statePKcmPhm", I32, _Z19__faasm_init_statePKcmPhm,

@@ -4,6 +4,9 @@
 #include <thread>
 
 namespace infra {
+    // Note - hiredis redis contexts are suitable only for single threads
+    // therefore we need to ensure that each thread has its own instance
+    static thread_local infra::Redis redis;
 
     const int BLOCKING_TIMEOUT = 1000;
 
@@ -17,8 +20,31 @@ namespace infra {
         context = redisConnect(hostname.c_str(), portInt);
     }
 
+    Redis *Redis::getThreadConnection() {
+        return &redis;
+    }
+
     void Redis::reconnect() {
         redisReconnect(context);
+    }
+
+    std::vector<uint8_t> getBytesFromReply(redisReply *reply) {
+        // We have to be careful here to handle the bytes properly
+        char *resultArray = reply->str;
+        int resultLen = reply->len;
+
+        std::vector<uint8_t> resultData(resultArray, resultArray + resultLen);
+
+        return resultData;
+    }
+
+    std::vector<uint8_t> Redis::get(const std::string &key) {
+        auto reply = (redisReply *) redisCommand(context, "GET %s", key.c_str());
+        return getBytesFromReply(reply);
+    }
+
+    void Redis::set(const std::string &key, const std::vector<uint8_t> &value) {
+        redisCommand(context, "SET %s %b", key.c_str(), value.data(), value.size());
     }
 
     void Redis::enqueue(const std::string &queueName, const std::vector<uint8_t> &value) {
@@ -38,14 +64,9 @@ namespace infra {
 
         // Note, BLPOP will return the queue name and the value returned (elements 0 and 1)
         redisReply *r = reply->element[1];
-
-        // We have to be careful here to handle the bytes properly
-        char *resultArray = r->str;
-        int resultLen = r->len;
-        std::vector<uint8_t> resultData(resultArray, resultArray + resultLen);
-
-        return resultData;
+        return getBytesFromReply(r);
     }
+
 
     void Redis::flushAll() {
         redisCommand(context, "FLUSHALL");

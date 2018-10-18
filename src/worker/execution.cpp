@@ -6,8 +6,6 @@ namespace worker {
     // TODO - how to choose an appropriate value for this?
     static int WORKER_THREADS = 10;
 
-    static thread_local infra::Redis redis;
-
     static util::TokenPool tokenPool(WORKER_THREADS);
 
     void execNextFunction() {
@@ -16,7 +14,8 @@ namespace worker {
 
         // Get next call (blocking)
         std::cout << "Worker waiting on slot " << threadIdx << "..." << std::endl;
-        message::FunctionCall call = redis.nextFunctionCall();
+        infra::Redis *redis = infra::Redis::getThreadConnection();
+        message::FunctionCall call = redis->nextFunctionCall();
 
         // New thread to execute function
         std::thread funcThread(execFunction, threadIdx, std::move(call));
@@ -34,7 +33,8 @@ namespace worker {
             call.set_outputdata(errorMessage);
         }
 
-        redis.setFunctionResult(call, isSuccess);
+        infra::Redis *redis = infra::Redis::getThreadConnection();
+        redis->setFunctionResult(call, isSuccess);
     }
 
     /** Handles the execution of the function */
@@ -85,6 +85,7 @@ namespace worker {
         tokenPool.releaseToken(index);
 
         // Dispatch any chained calls
+        infra::Redis *redis = infra::Redis::getThreadConnection();
         for (auto chainedCall : module.chainedCalls) {
             // Check if call is valid
             if (!infra::isValidFunction(chainedCall)) {
@@ -96,7 +97,7 @@ namespace worker {
                 return finishCall(call, errorMessage);
             }
 
-            redis.callFunction(chainedCall);
+            redis->callFunction(chainedCall);
         }
 
         finishCall(call, "");
