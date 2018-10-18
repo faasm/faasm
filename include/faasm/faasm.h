@@ -22,9 +22,7 @@
 #endif
 
 // Intrinsic functions implemented by the runtime
-size_t __faasm_init_state(const char *key, const char *url);
-
-void __faasm_read_state(const char *key, size_t offset, uint8_t *buffer, size_t dataLen);
+size_t __faasm_read_state(const char *key, size_t offset, uint8_t *buffer, size_t dataLen);
 
 void __faasm_write_state(const char *key, size_t offset, uint8_t *data, size_t dataLen);
 
@@ -42,26 +40,26 @@ namespace faasm {
             chainCount = 0;
         };
 
-        /**
-         * Initialises the state by pulling the binary from the given URL.
-         * Returns the total number of bytes written
-         */
-        size_t initState(const char *key, const char *url) {
-            return __faasm_init_state(key, url);
-        };
+        /** Returns the size of the state in bytes. Returns zero if not set. */
+        size_t getStateSize(const char *key) {
+            uint8_t buf[1];
+
+            // Passing zero buffer len returns total size
+            return __faasm_read_state(key, 0, buf, 0);
+        }
 
         /**
          * Reads a chunk of state from the given key into the buffer.
          */
-        void readState(const char *key, size_t offset, uint8_t *buffer, size_t bufferLen) {
-            __faasm_read_state(key, offset, buffer, bufferLen);
+        void readState(const char *key, uint8_t *buffer, size_t bufferLen) {
+            __faasm_read_state(key, 0, buffer, bufferLen);
         };
 
         /**
          * Writes a chunk of state at the given key with the given offset and length.
          */
-        void writeState(const char *key, size_t offset, uint8_t *data, size_t dataLen) {
-            __faasm_write_state(key, offset, data, dataLen);
+        void writeState(const char *key, uint8_t *data, size_t dataLen) {
+            __faasm_write_state(key, 0, data, dataLen);
         };
 
         /**

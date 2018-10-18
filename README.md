@@ -94,8 +94,9 @@ The `FaasmMemory` class allows Faasm functions to interact with the system. It h
 - `getInput()` - this returns an array containing the input data to the function
 - `setOutput()` - this allows functions to return output data to the caller
 - `chainFunction()` - this allows one function to invoke others (see below)
+- `readState()` and `writeState()` - allows functions to manage shared state (see below)
 
-### Chaining
+## Chaining
 
 "Chaining" is when one function makes a call to another function (which must be owned by the same user).
 
@@ -135,3 +136,9 @@ I can execute:
 ```
 curl http://localhost:8001/f/demo/cool_func/ -X PUT -T /tmp/do_something.wasm
 ```
+
+## State
+
+All of a users' functions have access to shared state. This state is implemented as a simple key-value store
+and accessed by the functions `readState` and `writeState` on the `FaasmMemory` object.
+

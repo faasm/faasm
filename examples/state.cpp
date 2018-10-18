@@ -1,17 +1,25 @@
 #include "faasm.h"
+#include <string>
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        const char* key = "foo";
+        const char* key = "state_example";
 
-        uint8_t dummyState[5] = {0, 1, 2, 3, 4};
+        // Check initial state size (zero when new state is created)
+        size_t oldStateSize = memory->getStateSize(key);
+        size_t newStateSize = oldStateSize + 1;
 
-        memory->writeState(key, 0, dummyState, 5);
+        // Create array with one extra element
+        uint8_t newState[newStateSize];
 
-        uint8_t buffer[3];
-        memory->readState(key, 2, buffer, 3);
+        // Read existing state into this array
+        memory->readState(key, newState, oldStateSize);
 
-        printf("Read: %02x %02x %02x\n", buffer[0], buffer[1], buffer[2]);
+        // Add a new value to the end of the new state
+        newState[newStateSize - 1] = oldStateSize;
+
+        // Write the new state
+        memory->writeState(key, newState, newStateSize);
 
         return 0;
     }

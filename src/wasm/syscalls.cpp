@@ -63,12 +63,13 @@ namespace wasm {
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
 
-        // Set just this subsection of the data
+        // Load the full state
         infra::Redis *redis = infra::Redis::getThreadConnection();
         std::vector<uint8_t> fullState = redis->get(key);
 
         // Make sure there's enough space
-        long overshoot = (offset + dataLen) - (long) fullState.size();
+        I32 totalSize = offset + dataLen;
+        long overshoot = totalSize - (long) fullState.size();
         if(overshoot > 0) {
             std::vector<uint8_t> extension(overshoot);
             fullState.insert(fullState.end(), extension.begin(), extension.end());
@@ -81,7 +82,7 @@ namespace wasm {
         redis->set(key, fullState);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "_Z18__faasm_read_statePKcmPhm", void, _Z18__faasm_read_statePKcmPhm,
+    DEFINE_INTRINSIC_FUNCTION(env, "_Z18__faasm_read_statePKcmPhm", I32, _Z18__faasm_read_statePKcmPhm,
                               I32 keyPtr, I32 offset, I32 bufferPtr, I32 bufferLen) {
         printf("FAASM - read_state - %i %i %i %i\n", keyPtr, offset, bufferPtr, bufferLen);
 
@@ -92,14 +93,13 @@ namespace wasm {
         // Read just a subsection of the data
         infra::Redis *redis = infra::Redis::getThreadConnection();
         std::vector<uint8_t> fullState = redis->get(key);
-        std::copy(fullState.data() + offset, fullState.data() + offset + bufferLen, buffer);
-    }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "_Z19__faasm_init_statePKcmPhm", I32, _Z19__faasm_init_statePKcmPhm,
-                              I32 keyPtr, I32 url) {
-        printf("FAASM - init - %i %i\n", keyPtr, url);
+        if(bufferLen > 0) {
+            std::copy(fullState.data() + offset, fullState.data() + offset + bufferLen, buffer);
+        }
 
-        return 0;
+        // Return the total number of bytes in the whole state
+        return (I32) fullState.size();
     }
 
     // ------------------------

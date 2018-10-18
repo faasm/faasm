@@ -25,15 +25,8 @@ void printBytes(uint8_t *ptr, int count) {
     printf("]\n");
 }
 
-size_t __faasm_init_state(const char *key, const char *url) {
-    // Dummy implementation to set up state
-    return (size_t) 10;
-}
-
-void __faasm_read_state(const char *key, size_t offset, uint8_t *buffer, size_t bufferLen) {
-    for (int i = 0; i < bufferLen; i++) {
-        buffer[i] = (uint8_t) (i + offset);
-    }
+size_t __faasm_read_state(const char *key, size_t offset, uint8_t *buffer, size_t bufferLen) {
+    return 10;
 }
 
 void __faasm_write_state(const char *key, size_t offset, uint8_t *data, size_t dataLen) {

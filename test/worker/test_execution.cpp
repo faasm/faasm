@@ -95,4 +95,38 @@ namespace tests {
 
         tearDown();
     }
+
+    TEST_CASE("Test state", "[worker]") {
+        setUp();
+
+        // Initially function's state should be an empty array
+        const char* stateKey = "state_example";
+        std::vector<uint8_t> initialState = redis.get(stateKey);
+        REQUIRE(initialState.empty());
+
+        // Set up the function call
+        message::FunctionCall call;
+        call.set_user("demo");
+        call.set_function("state");
+        call.set_resultkey("test_state");
+
+        // Execute and check
+        execFunction(1, call);
+        message::FunctionCall resultA = redis.getFunctionResult(call);
+        REQUIRE(resultA.success());
+
+        // Load the state again, it should have a new element
+        std::vector<uint8_t> stateA = redis.get(stateKey);
+        std::vector<uint8_t> expectedA = {0};
+        REQUIRE(stateA == expectedA);
+
+        // Call the function a second time, the state should have another element added
+        execFunction(1, call);
+        message::FunctionCall resultB = redis.getFunctionResult(call);
+        REQUIRE(resultB.success());
+
+        std::vector<uint8_t> stateB = redis.get(stateKey);
+        std::vector<uint8_t> expectedB = {0, 1};
+        REQUIRE(stateB == expectedB);
+    }
 }
