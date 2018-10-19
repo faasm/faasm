@@ -1,13 +1,13 @@
 from os import mkdir
 from os.path import exists
 from os.path import join
-from shutil import rmtree, copyfile
+from shutil import rmtree
 from subprocess import call
 
 from invoke import task
 from requests import get
 
-from tasks.env import PROJ_ROOT, get_wasm_func_path
+from tasks.env import PROJ_ROOT
 
 # Note, most of the time this will be run inside the toolchain container
 TOOLCHAIN_ROOT = "/toolchain"
@@ -117,30 +117,74 @@ def lib(context, lib_name):
 
     if lib_name == "curl":
         compile_libcurl()
+    elif lib_name == "mlpack":
+        compile_mlpack()
     else:
         raise RuntimeError("Unrecognised lib name: {}".format(lib_name))
 
 
+def download_lib_source(url, filename, extension="tar.gz", tar_args="-xvf", extract_file=None):
+    extract_dir = join(DOWNLOAD_DIR, extract_file) if extract_file else join(DOWNLOAD_DIR, filename)
+    tar_filename = "{}.{}".format(filename, extension)
+    tar_file = join(DOWNLOAD_DIR, tar_filename)
+
+    # Ignore if already exists
+    if exists(extract_dir):
+        return extract_dir
+
+    # Download the file
+    with open(tar_file, "wb") as fh:
+        response = get(url)
+        fh.write(response.content)
+
+    # Extract
+    cmd = "tar {} {}".format(tar_args, tar_filename)
+    call(cmd, cwd=DOWNLOAD_DIR, shell=True)
+
+    return extract_dir
+
+
+def compile_mlpack():
+    extract_dir = download_lib_source(
+        "https://github.com/mlpack/mlpack/archive/mlpack-3.0.3.tar.gz",
+        "mlpack-3.0.3",
+        extract_file="mlpack-mlpack-3.0.3"
+    )
+
+    # Create build dir
+    build_dir = join(extract_dir, "build")
+    if not exists(build_dir):
+        mkdir(build_dir)
+
+    # Cmake
+    cmake_cmd = [
+        "cmake",
+        "-D", "DEBUG=OFF",
+        "-D", "PROFILE=OFF",
+        "-D", "ARMA_EXTRA_DEBUG=OFF",
+        "-D", "BOOST_ROOT=/usr/include/boost",
+        "-D", "BUILD_CLI_EXECUTABLES=OFF",
+        "-D", "BUILD_PYTHON_BINDINGS=OFF",
+        "-D", "BUILD_TESTS=OFF",
+        "-D", "USE_OPENMP=OFF",
+        ".."
+    ]
+    cmake_cmd = " ".join(cmake_cmd)
+
+    # TODO mlpack depends on armadillo which in turn depends on blas, lapack etc.
+    # Obviously all the transitive dependencies need to be compiled to wasm which is a big project
+    call(cmake_cmd, cwd=build_dir, shell=True)
+
+
 def compile_libcurl():
-    """
-    Compiles libcurl to wasm
-    """
-
-    LIBCURL_URL = "https://github.com/curl/curl/archive/curl-7_61_1.tar.gz"
-    CURL_EXTRACT_DIR = join(DOWNLOAD_DIR, "curl-curl-7_61_1")
-
-    if not exists(CURL_EXTRACT_DIR):
-        # Download the file
-        with open(join(DOWNLOAD_DIR, "libcurl.tar.gz"), "wb") as fh:
-            response = get(LIBCURL_URL)
-            fh.write(response.content)
-
-        # Extract
-        call(["tar", "-xvf", "libcurl.tar.gz"], cwd=DOWNLOAD_DIR)
+    extract_dir = download_lib_source(
+        "https://github.com/curl/curl/archive/curl-7_61_1.tar.gz",
+        "curl-curl-7_61_1"
+    )
 
     # Buildconf
     buildconf_cmd = ["./buildconf"]
-    res = call(buildconf_cmd, shell=True, cwd=CURL_EXTRACT_DIR)
+    res = call(buildconf_cmd, shell=True, cwd=extract_dir)
     if res != 0:
         raise RuntimeError("Buildconf command failed")
 
@@ -155,16 +199,16 @@ def compile_libcurl():
         *CONFIG_FLAGS
     ]
     config_cmd_str = " ".join(config_cmd)
-    res = call(config_cmd_str, shell=True, cwd=CURL_EXTRACT_DIR)
+    res = call(config_cmd_str, shell=True, cwd=extract_dir)
     if res != 0:
         raise RuntimeError("Configure command failed")
 
     # Make
     make_cmd = ["make"]
-    res = call(make_cmd, shell=True, cwd=CURL_EXTRACT_DIR)
+    res = call(make_cmd, shell=True, cwd=extract_dir)
     if res != 0:
         raise RuntimeError("Make failed")
 
-    res = call("make install", shell=True, cwd=CURL_EXTRACT_DIR)
+    res = call("make install", shell=True, cwd=extract_dir)
     if res != 0:
         raise RuntimeError("Make install failed")
