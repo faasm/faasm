@@ -119,6 +119,8 @@ def lib(context, lib_name):
         compile_libcurl()
     elif lib_name == "mlpack":
         compile_mlpack()
+    elif lib_name == "dlib":
+        compile_dlib()
     else:
         raise RuntimeError("Unrecognised lib name: {}".format(lib_name))
 
@@ -141,20 +143,27 @@ def download_lib_source(url, filename, extension="tar.gz", tar_args="-xvf", extr
     cmd = "tar {} {}".format(tar_args, tar_filename)
     call(cmd, cwd=DOWNLOAD_DIR, shell=True)
 
-    return extract_dir
-
-
-def compile_mlpack():
-    extract_dir = download_lib_source(
-        "https://github.com/mlpack/mlpack/archive/mlpack-3.0.3.tar.gz",
-        "mlpack-3.0.3",
-        extract_file="mlpack-mlpack-3.0.3"
-    )
-
     # Create build dir
     build_dir = join(extract_dir, "build")
     if not exists(build_dir):
         mkdir(build_dir)
+
+    return extract_dir, build_dir
+
+def compile_dlib():
+    extract_dir, build_dir = download_lib_source(
+        "http://dlib.net/files/dlib-19.16.tar.bz2",
+        "dlib-19.16"
+    )
+
+
+
+def compile_mlpack():
+    extract_dir, build_dir = download_lib_source(
+        "https://github.com/mlpack/mlpack/archive/mlpack-3.0.3.tar.gz",
+        "mlpack-3.0.3",
+        extract_file="mlpack-mlpack-3.0.3"
+    )
 
     # Cmake
     cmake_cmd = [
@@ -177,7 +186,7 @@ def compile_mlpack():
 
 
 def compile_libcurl():
-    extract_dir = download_lib_source(
+    extract_dir, build_dir = download_lib_source(
         "https://github.com/curl/curl/archive/curl-7_61_1.tar.gz",
         "curl-curl-7_61_1"
     )
