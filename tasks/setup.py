@@ -46,3 +46,8 @@ def setup_protobuf(context):
 @task
 def setup_clang(context):
     playbook_command("clang.yml")
+
+
+@task
+def setup_eigen(context):
+    playbook_command("eigen.yml")

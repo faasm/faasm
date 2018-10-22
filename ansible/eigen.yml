@@ -1,0 +1,26 @@
+---
+
+- hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: "Download source"
+      shell: "wget http://bitbucket.org/eigen/eigen/get/3.3.5.tar.gz"
+      args:
+        chdir: "/tmp"
+
+    - name: "Extract"
+      shell: "tar -xf 3.3.5.tar.gz"
+      args:
+        chdir: "/tmp"
+
+    - name: "Create build dir"
+      shell: "mkdir /tmp/eigen-eigen-b3f3d4950030/build"
+
+    - name: "Make and install"
+      become: yes
+      shell: "{{ item }}"
+      args:
+        chdir: "/tmp/eigen-eigen-b3f3d4950030/build"
+      with_items:
+        - "cmake .."
+        - "make install"

@@ -7,6 +7,9 @@ WORKDIR /faasm/code
 RUN apt-get install -y vim \
     libboost-dev
 
+# Install eigen
+RUN inv lib eigen
+
 # Build libcurl
 RUN inv lib curl
 
