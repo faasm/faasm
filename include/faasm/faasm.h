@@ -22,9 +22,9 @@
 #endif
 
 // Intrinsic functions implemented by the runtime
-size_t __faasm_read_state(const char *key, size_t offset, uint8_t *buffer, size_t dataLen);
+size_t __faasm_read_state(const char *key, uint8_t *buffer, size_t bufferLen);
 
-void __faasm_write_state(const char *key, size_t offset, uint8_t *data, size_t dataLen);
+void __faasm_write_state(const char *key, uint8_t *data, size_t dataLen);
 
 
 namespace faasm {
@@ -45,21 +45,21 @@ namespace faasm {
             uint8_t buf[1];
 
             // Passing zero buffer len returns total size
-            return __faasm_read_state(key, 0, buf, 0);
+            return __faasm_read_state(key, buf, 0);
         }
 
         /**
          * Reads a chunk of state from the given key into the buffer.
          */
         void readState(const char *key, uint8_t *buffer, size_t bufferLen) {
-            __faasm_read_state(key, 0, buffer, bufferLen);
+            __faasm_read_state(key, buffer, bufferLen);
         };
 
         /**
          * Writes a chunk of state at the given key with the given offset and length.
          */
         void writeState(const char *key, uint8_t *data, size_t dataLen) {
-            __faasm_write_state(key, 0, data, dataLen);
+            __faasm_write_state(key, data, dataLen);
         };
 
         /**

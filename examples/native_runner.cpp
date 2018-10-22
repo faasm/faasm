@@ -25,11 +25,11 @@ void printBytes(uint8_t *ptr, int count) {
     printf("]\n");
 }
 
-size_t __faasm_read_state(const char *key, size_t offset, uint8_t *buffer, size_t bufferLen) {
+size_t __faasm_read_state(const char *key, uint8_t *buffer, size_t bufferLen) {
     return 10;
 }
 
-void __faasm_write_state(const char *key, size_t offset, uint8_t *data, size_t dataLen) {
+void __faasm_write_state(const char *key, uint8_t *data, size_t dataLen) {
 
 }
 
@@ -46,7 +46,7 @@ int main() {
     run(inputData, outputData, chainFuncs, chainInputData);
 
     // Print the output data
-    printf("Output: ");
+    printf("\nOutput: ");
     printBytes(outputData, MAX_INPUT_BYTES);
     printf("Chains: ");
     printBytes(chainFuncs, MAX_CHAINS * MAX_NAME_LENGTH);

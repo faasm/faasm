@@ -55,9 +55,9 @@ namespace wasm {
     // ------------------------
     // FAASM-specific
     // ------------------------
-    DEFINE_INTRINSIC_FUNCTION(env, "_Z19__faasm_write_statePKcmPhm", void, _Z19__faasm_write_statePKcmPhm,
-            I32 keyPtr, I32 offset, I32 dataPtr, I32 dataLen) {
-        printf("FAASM - write_state - %i %i %i %i\n", keyPtr, offset, dataPtr, dataLen);
+    DEFINE_INTRINSIC_FUNCTION(env, "_Z19__faasm_write_statePKcPhm", void, _Z19__faasm_write_statePKcPhm,
+            I32 keyPtr, I32 dataPtr, I32 dataLen) {
+        printf("FAASM - write_state - %i %i %i\n", keyPtr, dataPtr, dataLen);
 
         Runtime::MemoryInstance *memoryPtr = getModuleMemory();
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
@@ -65,26 +65,15 @@ namespace wasm {
 
         // Load the full state
         infra::Redis *redis = infra::Redis::getThreadConnection();
-        std::vector<uint8_t> fullState = redis->get(key);
-
-        // Make sure there's enough space
-        I32 totalSize = offset + dataLen;
-        long overshoot = totalSize - (long) fullState.size();
-        if(overshoot > 0) {
-            std::vector<uint8_t> extension(overshoot);
-            fullState.insert(fullState.end(), extension.begin(), extension.end());
-        }
-
-        // Insert the data
-        std::copy(data, data + dataLen, fullState.data() + offset);
+        std::vector<uint8_t> newState(data, data + dataLen);
 
         // Set the whole state in redis
-        redis->set(key, fullState);
+        redis->set(key, newState);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "_Z18__faasm_read_statePKcmPhm", I32, _Z18__faasm_read_statePKcmPhm,
-                              I32 keyPtr, I32 offset, I32 bufferPtr, I32 bufferLen) {
-        printf("FAASM - read_state - %i %i %i %i\n", keyPtr, offset, bufferPtr, bufferLen);
+    DEFINE_INTRINSIC_FUNCTION(env, "_Z18__faasm_read_statePKcPhm", I32, _Z18__faasm_read_statePKcPhm,
+                              I32 keyPtr, I32 bufferPtr, I32 bufferLen) {
+        printf("FAASM - read_state - %i %i %i \n", keyPtr, bufferPtr, bufferLen);
 
         Runtime::MemoryInstance *memoryPtr = getModuleMemory();
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
@@ -95,7 +84,12 @@ namespace wasm {
         std::vector<uint8_t> fullState = redis->get(key);
 
         if(bufferLen > 0) {
-            std::copy(fullState.data() + offset, fullState.data() + offset + bufferLen, buffer);
+            int offset = bufferLen;
+            if(fullState.size() < bufferLen) {
+                offset = (int) fullState.size();
+            }
+
+            std::copy(fullState.data(), fullState.data() + offset, buffer);
         }
 
         // Return the total number of bytes in the whole state

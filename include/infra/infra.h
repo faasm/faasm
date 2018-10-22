@@ -52,7 +52,6 @@ namespace infra {
         void setFunctionResult(message::FunctionCall &call, bool success);
 
         message::FunctionCall getFunctionResult(const message::FunctionCall &call);
-
     private:
         redisContext *context;
     };
