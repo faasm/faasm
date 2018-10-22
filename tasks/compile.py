@@ -117,6 +117,8 @@ def lib(context, lib_name):
 
     if lib_name == "curl":
         compile_libcurl()
+    elif lib_name == "eigen":
+        compile_eigen()
     elif lib_name == "mlpack":
         compile_mlpack()
     elif lib_name == "dlib":
@@ -130,9 +132,11 @@ def download_lib_source(url, filename, extension="tar.gz", tar_args="-xvf", extr
     tar_filename = "{}.{}".format(filename, extension)
     tar_file = join(DOWNLOAD_DIR, tar_filename)
 
+    build_dir = join(extract_dir, "build")
+
     # Ignore if already exists
     if exists(extract_dir):
-        return extract_dir
+        return extract_dir, build_dir
 
     # Download the file
     with open(tar_file, "wb") as fh:
@@ -144,18 +148,30 @@ def download_lib_source(url, filename, extension="tar.gz", tar_args="-xvf", extr
     call(cmd, cwd=DOWNLOAD_DIR, shell=True)
 
     # Create build dir
-    build_dir = join(extract_dir, "build")
     if not exists(build_dir):
         mkdir(build_dir)
 
     return extract_dir, build_dir
 
+
+def compile_eigen():
+    extract_dir, build_dir = download_lib_source(
+        "http://bitbucket.org/eigen/eigen/get/3.3.5.tar.gz",
+        "3.3.5",
+        extract_file="eigen-eigen-b3f3d4950030"
+    )
+
+    call("cmake -DCMAKE_INSTALL_PREFIX={} ..".format(SYSROOT), shell=True, cwd=build_dir)
+
+    call("make install", shell=True, cwd=build_dir)
+
+
 def compile_dlib():
+    # TODO dlib requires pthread support
     extract_dir, build_dir = download_lib_source(
         "http://dlib.net/files/dlib-19.16.tar.bz2",
         "dlib-19.16"
     )
-
 
 
 def compile_mlpack():
