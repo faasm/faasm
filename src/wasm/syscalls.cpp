@@ -56,19 +56,34 @@ namespace wasm {
     // FAASM-specific
     // ------------------------
     DEFINE_INTRINSIC_FUNCTION(env, "_Z19__faasm_write_statePKcPhm", void, _Z19__faasm_write_statePKcPhm,
-            I32 keyPtr, I32 dataPtr, I32 dataLen) {
+                              I32 keyPtr, I32 dataPtr, I32 dataLen) {
         printf("FAASM - write_state - %i %i %i\n", keyPtr, dataPtr, dataLen);
 
         Runtime::MemoryInstance *memoryPtr = getModuleMemory();
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
 
-        // Load the full state
-        infra::Redis *redis = infra::Redis::getThreadConnection();
+        // Build the new state
         std::vector<uint8_t> newState(data, data + dataLen);
 
         // Set the whole state in redis
+        infra::Redis *redis = infra::Redis::getThreadConnection();
         redis->set(key, newState);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "_Z26__faasm_write_state_offsetPKcmPhm", void, _Z26__faasm_write_state_offsetPKcmPhm,
+                              I32 keyPtr, I32 offset, I32 dataPtr, I32 dataLen) {
+        printf("FAASM - write_state_offset - %i %i %i %i\n", keyPtr, offset, dataPtr, dataLen);
+
+        Runtime::MemoryInstance *memoryPtr = getModuleMemory();
+        U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
+        char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
+
+        std::vector<uint8_t> newState(data, data + dataLen);
+
+        // Set the state at the given offset
+        infra::Redis *redis = infra::Redis::getThreadConnection();
+        redis->setRange(key, offset, newState);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "_Z18__faasm_read_statePKcPhm", I32, _Z18__faasm_read_statePKcPhm,
@@ -79,21 +94,24 @@ namespace wasm {
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
 
-        // Read just a subsection of the data
+        // Read the state in
         infra::Redis *redis = infra::Redis::getThreadConnection();
-        std::vector<uint8_t> fullState = redis->get(key);
+        std::vector<uint8_t> state = redis->get(key);
+        int stateSize = (int) state.size();
 
-        if(bufferLen > 0) {
-            int offset = bufferLen;
-            if(fullState.size() < bufferLen) {
-                offset = (int) fullState.size();
+        // Zero-size buffer implies caller just wants state size
+        if (bufferLen > 0) {
+            // Handle buffer longer than state size
+            int dataLen = bufferLen;
+            if (stateSize < bufferLen) {
+                dataLen = stateSize;
             }
 
-            std::copy(fullState.data(), fullState.data() + offset, buffer);
+            std::copy(state.data(), state.data() + dataLen, buffer);
         }
 
         // Return the total number of bytes in the whole state
-        return (I32) fullState.size();
+        return stateSize;
     }
 
     // ------------------------
@@ -365,12 +383,12 @@ namespace wasm {
                 U32 type = subCallArgs[1];
                 U32 protocol = subCallArgs[2];
 
-                switch(domain) {
-                    case(2): {
+                switch (domain) {
+                    case (2): {
                         domain = AF_INET;
                         break;
                     }
-                    case(10): {
+                    case (10): {
                         domain = AF_INET6;
                         break;
                     }
@@ -380,12 +398,12 @@ namespace wasm {
                     }
                 }
 
-                switch(type) {
-                    case(1): {
+                switch (type) {
+                    case (1): {
                         type = SOCK_STREAM;
                         break;
                     }
-                    case(2): {
+                    case (2): {
                         type = SOCK_DGRAM;
                         break;
                     }
@@ -395,12 +413,12 @@ namespace wasm {
                     }
                 }
 
-                switch(protocol) {
-                    case(0): {
+                switch (protocol) {
+                    case (0): {
                         protocol = IPPROTO_IP;
                         break;
                     }
-                    case(6): {
+                    case (6): {
                         protocol = IPPROTO_TCP;
                         break;
                     }
@@ -413,7 +431,7 @@ namespace wasm {
                 printf("SYSCALL - socket %i %i %i\n", domain, type, protocol);
                 I32 sock = (int) syscall(SYS_socket, domain, type, protocol);
 
-                if(sock < 0) {
+                if (sock < 0) {
                     printf("Socket error: %i\n", sock);
                 }
 
@@ -787,7 +805,8 @@ namespace wasm {
         Runtime::MemoryInstance *memory = getModuleMemory();
         const Uptr currentPageCount = getMemoryNumPages(memory);
         const U32 currentBreak = (U32) ((currentPageCount * IR::numBytesPerPage));
-        printf("brk current break %lu (%u) -> new break %lu (%u) \n", currentPageCount, currentBreak, targetPageCount, addr);
+        printf("brk current break %lu (%u) -> new break %lu (%u) \n", currentPageCount, currentBreak, targetPageCount,
+               addr);
 
         Uptr maxPages = getMemoryMaxPages(memory);
         if (targetPageCount > maxPages) {

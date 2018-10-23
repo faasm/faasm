@@ -39,6 +39,11 @@ void __faasm_write_state(const char *key, uint8_t *data, size_t dataLen) {
     std::copy(data, data + dataLen, _state);
 }
 
+void __faasm_write_state_offset(const char *key, size_t offset, uint8_t *data, size_t dataLen) {
+    std::copy(data, data + dataLen, _state + offset);
+}
+
+
 int main() {
     uint8_t inputData[MAX_INPUT_BYTES];
     uint8_t outputData[MAX_INPUT_BYTES];

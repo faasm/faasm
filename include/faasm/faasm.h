@@ -26,6 +26,7 @@ size_t __faasm_read_state(const char *key, uint8_t *buffer, size_t bufferLen);
 
 void __faasm_write_state(const char *key, uint8_t *data, size_t dataLen);
 
+void __faasm_write_state_offset(const char *key, size_t offset, uint8_t *data, size_t dataLen);
 
 namespace faasm {
 
@@ -49,17 +50,24 @@ namespace faasm {
         }
 
         /**
-         * Reads a chunk of state from the given key into the buffer.
+         * Reads the full state at the given key
          */
         void readState(const char *key, uint8_t *buffer, size_t bufferLen) {
             __faasm_read_state(key, buffer, bufferLen);
         };
 
         /**
-         * Writes a chunk of state at the given key with the given offset and length.
+         * Overwrites the state at the given key
          */
         void writeState(const char *key, uint8_t *data, size_t dataLen) {
             __faasm_write_state(key, data, dataLen);
+        };
+
+        /**
+         * Writes a chunk of state at the given key and offset
+         */
+        void writeStateOffset(const char *key, size_t offset, uint8_t *data, size_t dataLen) {
+            __faasm_write_state_offset(key, offset, data, dataLen);
         };
 
         /**

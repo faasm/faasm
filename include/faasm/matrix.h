@@ -83,6 +83,8 @@ namespace faasm {
         uint8_t *serialisedData = matrixToBytes(matrix);
 
         memory->writeState(key, serialisedData, nBytes);
+
+        delete[] serialisedData;
     }
 
     /**
@@ -94,8 +96,23 @@ namespace faasm {
         uint8_t buffer[nBytes];
         memory->readState(key, buffer, nBytes);
 
-        Eigen::MatrixXd deserialised = bytesToMatrix(buffer, rows, 1);
+        Eigen::MatrixXd deserialised = bytesToMatrix(buffer, rows, cols);
         return deserialised;
+    }
+    
+    /** 
+     * Updates a specific element in state 
+     */
+    void writeMatrixStateElement(FaasmMemory* memory, const char* key, const MatrixXd &matrix, long row, long col) {
+        // Work out the position of this element
+        // Note that matrices are stored in column-major order by default
+        long byteIdx = (col * matrix.cols() * matrix.rows()) + row;
+        
+        double value = matrix(row, col);
+        auto byteValue = reinterpret_cast<uint8_t *>(&value);
+        size_t nBytes = sizeof(double);
+
+        memory->writeStateOffset(key, (size_t) byteIdx, byteValue, nBytes);
     }
 }
 

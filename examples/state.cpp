@@ -2,7 +2,7 @@
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        const char* key = "state_example";
+        const char *key = "state_example";
 
         // Check initial state size (zero when new state is created)
         size_t oldStateSize = memory->getStateSize(key);

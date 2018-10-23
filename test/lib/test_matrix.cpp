@@ -19,7 +19,7 @@ namespace tests {
         REQUIRE(expected == actual);
     }
 
-    TEST_CASE("Test check matrix to bytes round trip", "[matrix]") {
+    TEST_CASE("Test matrix to bytes round trip", "[matrix]") {
         infra::Redis redis;
         redis.flushAll();
 
@@ -44,19 +44,36 @@ namespace tests {
         checkDoubleBytes(3, &byteArray[32]);
         checkDoubleBytes(6, &byteArray[40]);
 
-        // Redis round trip
-        const char* key = "matrix_test";
-        std::vector<uint8_t> byteData(byteArray, byteArray + nBytes);
-        redis.set(key, byteData);
-
-        std::vector<uint8_t> afterRedisData = redis.get(key);
-
         // Rebuild matrix from array and check it has survived round trip
-        MatrixXd matrixOut = faasm::bytesToMatrix(afterRedisData.data(), 2, 3);
+        MatrixXd matrixOut = faasm::bytesToMatrix(byteArray, 2, 3);
         REQUIRE(matrixOut.rows() == 2);
         REQUIRE(matrixOut.cols() == 3);
         REQUIRE(matrixOut == initial);
 
         delete[] byteArray;
+    }
+
+    TEST_CASE("Test matrix to redis round trip", "[matrix]") {
+        infra::Redis redis;
+        redis.flushAll();
+        
+        MatrixXd initial(2, 3);
+        initial<< 1, 2, 3,
+                4, 5, 6;
+
+        // Initialise dummy faasm memory
+        uint8_t dummy[2];
+        faasm::FaasmMemory mem(dummy, dummy, dummy, dummy);
+        
+        // Write to a dummy key
+        const char* stateKey = "test_matrix_state";
+        faasm::writeMatrixState(&mem, stateKey, initial);
+
+        // Retrieve from redis and check it's still the same
+        const MatrixXd afterState = faasm::readMatrixFromState(&mem, stateKey, 2, 3);
+
+        REQUIRE(afterState.rows() == 2);
+        REQUIRE(afterState.cols() == 3);
+        REQUIRE(afterState == initial);
     }
 }
