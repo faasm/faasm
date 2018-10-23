@@ -75,7 +75,9 @@ namespace faasm {
         return mat;
     }
 
-    /** Writes a matrix to state */
+    /**
+     * Writes a matrix to state
+     */
     void writeMatrixState(FaasmMemory* memory, const char* key, const MatrixXd &matrix) {
         size_t nBytes = matrix.rows() * matrix.cols() * sizeof(double);
         uint8_t *serialisedData = matrixToBytes(matrix);
@@ -83,7 +85,9 @@ namespace faasm {
         memory->writeState(key, serialisedData, nBytes);
     }
 
-    /** Reads a matrix from state */
+    /**
+     * Reads a matrix from state
+     */
     MatrixXd readMatrixFromState(FaasmMemory* memory, const char* key, long rows, long cols) {
         size_t nBytes = rows * cols * sizeof(double);
 

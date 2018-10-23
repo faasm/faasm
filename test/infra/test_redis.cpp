@@ -68,6 +68,27 @@ namespace tests {
 
         REQUIRE(vars::BYTES_B == actualB);
     }
+    
+    TEST_CASE("Test set range", "[redis]") {
+        Redis cli;
+        cli.flushAll();
+        
+        std::string key = "setrange_test";
+        
+        std::string initialValue = "hello there world!";
+        std::vector<uint8_t> bytesValue = util::stringToBytes(initialValue);
+        cli.set(key, bytesValue);
+        
+        REQUIRE(cli.get(key) == bytesValue);
+
+        std::string replacement = "hello";
+        std::vector<uint8_t> replacementBytes = util::stringToBytes(replacement);
+        cli.setRange(key, 6, replacementBytes);
+
+        std::string expected = "hello hello world!";
+        std::vector<uint8_t> expectedBytes = util::stringToBytes(expected);
+        REQUIRE(cli.get(key) == expectedBytes);
+    }
 
     TEST_CASE("Test get empty key", "[redis]") {
         Redis cli;

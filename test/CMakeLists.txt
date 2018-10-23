@@ -5,6 +5,7 @@ file(GLOB_RECURSE TEST_FILES ${CMAKE_CURRENT_LIST_DIR} test_*.cpp)
 add_executable(
         tests
         main.cpp
+        state.cpp
         ${TEST_FILES}
 )
 
