@@ -1,11 +1,15 @@
 FROM shillaker/wasm-toolchain
 
+# Install system deps
+RUN apt-get update && apt-get install -y \
+    libboost-dev \
+    python3-dev \
+    python3-pip
+    
+RUN pip3 install invoke requests
+
 COPY . /faasm/code
 WORKDIR /faasm/code
-
-# Install system deps
-RUN apt-get install -y vim \
-    libboost-dev
 
 # Install eigen
 RUN inv lib eigen

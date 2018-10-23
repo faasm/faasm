@@ -163,6 +163,7 @@ def compile_eigen():
 
     call("cmake -DCMAKE_INSTALL_PREFIX={} ..".format(SYSROOT), shell=True, cwd=build_dir)
 
+    call("make", shell=True, cwd=build_dir)
     call("make install", shell=True, cwd=build_dir)
 
 

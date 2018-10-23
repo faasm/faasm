@@ -11,13 +11,10 @@ using namespace Eigen;
 
 namespace faasm {
 
-    double *byteArrayToDoubles(uint8_t *byteArray, long byteArrayLen) {
-        size_t nDoubles = byteArrayLen / sizeof(double);
-        auto *doubleArray = new double[nDoubles];
+    MatrixXd randomDenseMatrix(int rows, int cols) {
+        MatrixXd mat = MatrixXd::Random(rows, cols);
 
-        std::copy(doubleArray, doubleArray + nDoubles, byteArray);
-
-        return doubleArray;
+        return mat;
     }
 
     MatrixXd randomSparseMatrix(int rows, int cols) {
@@ -78,7 +75,7 @@ namespace faasm {
     /**
      * Writes a matrix to state
      */
-    void writeMatrixState(FaasmMemory* memory, const char* key, const MatrixXd &matrix) {
+    void writeMatrixState(FaasmMemory *memory, const char *key, const MatrixXd &matrix) {
         size_t nBytes = matrix.rows() * matrix.cols() * sizeof(double);
         uint8_t *serialisedData = matrixToBytes(matrix);
 
@@ -90,7 +87,7 @@ namespace faasm {
     /**
      * Reads a matrix from state
      */
-    MatrixXd readMatrixFromState(FaasmMemory* memory, const char* key, long rows, long cols) {
+    MatrixXd readMatrixFromState(FaasmMemory *memory, const char *key, long rows, long cols) {
         size_t nBytes = rows * cols * sizeof(double);
 
         uint8_t buffer[nBytes];
@@ -99,7 +96,7 @@ namespace faasm {
         Eigen::MatrixXd deserialised = bytesToMatrix(buffer, rows, cols);
         return deserialised;
     }
-    
+
     long matrixByteIndex(long row, long col, long nRows) {
         // Work out the position of this element
         // Note that matrices are stored in column-major order by default
@@ -107,42 +104,42 @@ namespace faasm {
 
         return byteIdx;
     }
-    
+
     /** 
      * Updates a specific element in state 
      */
-    void writeMatrixStateElement(FaasmMemory* memory, const char* key, const MatrixXd &matrix, long row, long col) {
+    void writeMatrixStateElement(FaasmMemory *memory, const char *key, const MatrixXd &matrix, long row, long col) {
         // Work out the position of this element
         // Note that matrices are stored in column-major order by default
         long byteIdx = matrixByteIndex(row, col, matrix.rows());
-        
+
         double value = matrix(row, col);
         auto byteValue = reinterpret_cast<uint8_t *>(&value);
         size_t nBytes = sizeof(double);
 
         memory->writeStateOffset(key, (size_t) byteIdx, byteValue, nBytes);
     }
-    
+
     /**
      * Reads a subset of full columns from state (note that column numbers are inclusive
      */
-     MatrixXd readMatrixColumnsFromState(FaasmMemory* memory, const char* key, long colStart, long colEnd, long nRows) {
+    MatrixXd readMatrixColumnsFromState(FaasmMemory *memory, const char *key, long colStart, long colEnd, long nRows) {
         // Note, inclusive
         long nCols = colEnd - colStart + 1;
 
         long startIdx = matrixByteIndex(0, colStart, nRows);
         long endIdx = matrixByteIndex(nRows, colEnd, nRows);
-        
+
         long bufferLen = endIdx - startIdx;
         uint8_t buffer[bufferLen];
-        
+
         memory->readStateOffset(key, startIdx, buffer, bufferLen);
 
         MatrixXd result = bytesToMatrix(buffer, nRows, nCols);
 
         return result;
     }
-    
+
 }
 
 #endif

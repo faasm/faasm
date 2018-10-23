@@ -4,51 +4,46 @@
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        char *name = (char *) memory->getInput();
-        printf("Running SGD %s\n", name);
+        printf("Running SGD\n");
 
-        size_t nameLen = strlen(name);
-        char trainingKey[nameLen + 8];
-        char weightsKey[nameLen + 8];
-        char factorsKey[nameLen + 8];
+        const char *weightsKey = "weights";
+        const char *inputsKey = "inputs";
+        const char *outputsKey = "outputs";
 
-        sprintf(trainingKey, "%s_train", name);
-        sprintf(weightsKey, "%s_weights", name);
-        sprintf(factorsKey, "%s_factors", name);
+        const char *realWeightsKey = "realWeights";
 
-        int nTrain = 100; // Number of columns
-        int nFactors = 10; // Number of rows
+        int nTrain = 100; // Number of training examples
+        int nWeights = 10; // Number of weight factors
 
-        // Create fake training data as dot product of matrix and weight vector
-        const Eigen::MatrixXd &weights = randomSparseMatrix(1, nFactors);
-        const Eigen::MatrixXd &factor = randomSparseMatrix(nFactors, nTrain);
+        // Create fake training data as dot product of the matrix of
+        // training input data and the real weight vector
+        Eigen::MatrixXd realWeights = randomDenseMatrix(1, nWeights);
+        Eigen::MatrixXd inputs = randomSparseMatrix(nWeights, nTrain);
+        Eigen::MatrixXd outputs = realWeights * inputs;
 
-        const Eigen::MatrixXd training = weights * factor;
-        
+        // Initialise a random set of weights that we'll train (i.e. these should get close to the real weights)
+        Eigen::MatrixXd weights = randomDenseMatrix(1, nWeights);
+
         // Write all data to memory
-        writeMatrixState(memory, trainingKey, training);
+        writeMatrixState(memory, outputsKey, outputs);
+        writeMatrixState(memory, inputsKey, inputs);
         writeMatrixState(memory, weightsKey, weights);
-        writeMatrixState(memory, factorsKey, factor);
 
-        // Get indices of training examples
-        long trainIdx[nTrain];
-        for(long i = 0; i < nTrain; i++) {
-            trainIdx[i] = i;
-        }
+        // Also right real weights for safe keeping
+        writeMatrixState(memory, realWeightsKey, realWeights);
 
-        // Shuffle
-        faasm::shuffle(trainIdx, nTrain);
-
+        // Chain new calls to perform the work
         int nWorkers = 10;
         int batchSize = 10;
-        for(int w = 0; w < nWorkers; w++) {
-            long batch[batchSize];
-            std::copy(&trainIdx[w*batchSize], &trainIdx[w*batchSize + batchSize], batch);
+        for (int w = 0; w < nWorkers; w++) {
+            int startIdx = (w * batchSize);
+            int endIdx = startIdx + batchSize -1;
 
-            int nBytes = batchSize * sizeof(int);
-            uint8_t *batchBytes = reinterpret_cast<uint8_t *>(&batch[0]);
+            int inputData[3] = {startIdx, endIdx, nWeights};
+            int nBytes = 3 * sizeof(int);
+            auto inputBytes = reinterpret_cast<uint8_t *>(&inputData[0]);
 
-            memory->chainFunction("sgd_epoch", batchBytes, nBytes);
+            memory->chainFunction("sgd_update", inputBytes, nBytes);
         }
 
         return 0;
