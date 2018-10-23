@@ -42,7 +42,7 @@ namespace faasm {
             chainInputs = cIn;
             chainCount = 0;
         };
-
+        
         /** Returns the size of the state in bytes. Returns zero if not set. */
         size_t getStateSize(const char *key) {
             uint8_t buf[1];

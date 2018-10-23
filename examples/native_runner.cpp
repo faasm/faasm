@@ -43,7 +43,7 @@ void __faasm_write_state_offset(const char *key, size_t offset, uint8_t *data, s
     std::copy(data, data + dataLen, _state + offset);
 }
 
-void _faasm_read_state_offset(const char *key, size_t offset, uint8_t *buffer, size_t bufferLen) {
+void __faasm_read_state_offset(const char *key, size_t offset, uint8_t *buffer, size_t bufferLen) {
     std::copy(_state + offset, _state + offset + bufferLen, buffer);
 }
 
