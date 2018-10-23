@@ -12,7 +12,7 @@ namespace faasm {
 
         const char *realWeightsKey = "realWeights";
 
-        int nTrain = 100; // Number of training examples
+        int nTrain = 1000; // Number of training examples
         int nWeights = 10; // Number of weight factors
 
         // Create fake training data as dot product of the matrix of

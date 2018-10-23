@@ -33,7 +33,7 @@ int main() {
     uint8_t chainInputData[MAX_CHAINS * MAX_INPUT_BYTES];
 
     // Set up some input data
-    int inputData[3] = {0, 9, 10};
+    int inputData[3] = {0, 900, 10};
     auto inputBytes = reinterpret_cast<uint8_t *>(inputData);
 
     // Call the actual function
