@@ -20,11 +20,11 @@ namespace tests {
     }
 
     MatrixXd buildDummyMatrix() {
-        MatrixXd initial(2, 3);
-        initial << 1, 2, 3,
+        MatrixXd mat(2, 3);
+        mat << 1, 2, 3,
                 4, 5, 6;
 
-        return initial;
+        return mat;
     }
 
     faasm::FaasmMemory buildDummyMemory() {
@@ -38,13 +38,13 @@ namespace tests {
         infra::Redis redis;
         redis.flushAll();
 
-        MatrixXd initial = buildDummyMatrix();
+        MatrixXd mat = buildDummyMatrix();
 
-        REQUIRE(initial.rows() == 2);
-        REQUIRE(initial.cols() == 3);
+        REQUIRE(mat.rows() == 2);
+        REQUIRE(mat.cols() == 3);
 
         long nBytes = 2 * 3 * sizeof(double);
-        uint8_t *byteArray = faasm::matrixToBytes(initial);
+        uint8_t *byteArray = faasm::matrixToBytes(mat);
 
         // Double check size assumption
         REQUIRE(sizeof(double) == 8);
@@ -61,7 +61,7 @@ namespace tests {
         MatrixXd matrixOut = faasm::bytesToMatrix(byteArray, 2, 3);
         REQUIRE(matrixOut.rows() == 2);
         REQUIRE(matrixOut.cols() == 3);
-        REQUIRE(matrixOut == initial);
+        REQUIRE(matrixOut == mat);
 
         delete[] byteArray;
     }
@@ -70,53 +70,88 @@ namespace tests {
         infra::Redis redis;
         redis.flushAll();
 
-        MatrixXd initial = buildDummyMatrix();
+        MatrixXd mat = buildDummyMatrix();
 
         // Initialise dummy faasm memory
         faasm::FaasmMemory mem = buildDummyMemory();
 
         // Write to a dummy key
         const char *stateKey = "test_matrix_state";
-        faasm::writeMatrixState(&mem, stateKey, initial);
+        faasm::writeMatrixState(&mem, stateKey, mat);
 
         // Retrieve from redis and check it's still the same
         const MatrixXd afterState = faasm::readMatrixFromState(&mem, stateKey, 2, 3);
 
         REQUIRE(afterState.rows() == 2);
         REQUIRE(afterState.cols() == 3);
-        REQUIRE(afterState == initial);
+        REQUIRE(afterState == mat);
     }
 
     TEST_CASE("Test updating matrix element in state", "[matrix]") {
         infra::Redis redis;
         redis.flushAll();
 
-        MatrixXd initial = buildDummyMatrix();
+        MatrixXd mat = buildDummyMatrix();
 
         // Initialise dummy faasm memory
         faasm::FaasmMemory mem = buildDummyMemory();
 
         // Write full state to a dummy key
         const char *stateKey = "test_matrix_elem_state";
-        faasm::writeMatrixState(&mem, stateKey, initial);
+        faasm::writeMatrixState(&mem, stateKey, mat);
 
         // Update the matrix in memory
-        initial(0, 2) = 3.3;
-        initial(1, 1) = 10.5;
+        mat(0, 2) = 3.3;
+        mat(1, 1) = 10.5;
 
         // Update a single element
-        faasm::writeMatrixStateElement(&mem, stateKey, initial, 0, 2);
-        faasm::writeMatrixStateElement(&mem, stateKey, initial, 1, 1);
+        faasm::writeMatrixStateElement(&mem, stateKey, mat, 0, 2);
+        faasm::writeMatrixStateElement(&mem, stateKey, mat, 1, 1);
 
         // Retrieve from redis and check it matches the one in memory
         const MatrixXd afterState = faasm::readMatrixFromState(&mem, stateKey, 2, 3);
 
         REQUIRE(afterState.rows() == 2);
         REQUIRE(afterState.cols() == 3);
-        REQUIRE(afterState == initial);
+        REQUIRE(afterState == mat);
 
         // Explicitly check set values
         REQUIRE(afterState(0, 2) == 3.3);
         REQUIRE(afterState(1, 1) == 10.5);
+    }
+
+    TEST_CASE("Test reading columns from state", "[matrix]") {
+        infra::Redis redis;
+        redis.flushAll();
+
+        long nRows = 4;
+        MatrixXd mat(nRows, 5);
+        mat << 1, 2, 3, 4, 5,
+                6, 7, 8, 9, 10,
+                11, 12, 13, 14, 15,
+                16, 17, 18, 19, 20;
+
+        // Initialise dummy faasm memory
+        faasm::FaasmMemory mem = buildDummyMemory();
+
+        // Write full state to a dummy key
+        const char *stateKey = "test_matrix_cols_state";
+        faasm::writeMatrixState(&mem, stateKey, mat);
+
+        // Read a subset of columns
+        long startCol = 1;
+        long endCol = 3;
+        MatrixXd actual = faasm::readMatrixColumnsFromState(&mem, stateKey, startCol, endCol, nRows);
+
+        REQUIRE(actual.rows() == nRows);
+        REQUIRE(actual.cols() == 3);
+
+        MatrixXd expected(nRows, 3);
+        expected << 2, 3, 4,
+                7, 8, 9,
+                12, 13, 14,
+                17, 18, 19;
+
+        REQUIRE(actual == expected);
     }
 }

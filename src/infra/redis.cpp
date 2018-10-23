@@ -51,6 +51,11 @@ namespace infra {
         redisCommand(context, "SETRANGE %s %li %b", key.c_str(), offset, value.data(), value.size());
     }
 
+    std::vector<uint8_t> Redis::getRange(const std::string &key, long start, long end) {
+        auto reply = (redisReply *) redisCommand(context, "GETRANGE %s %li %li", key.c_str(), start, end);
+        return getBytesFromReply(reply);
+    }
+
     void Redis::enqueue(const std::string &queueName, const std::vector<uint8_t> &value) {
         // NOTE: Here we must be careful with the input and specify bytes rather than a string
         // otherwise an encoded false boolean can be treated as a string terminator

@@ -90,6 +90,25 @@ namespace tests {
         REQUIRE(cli.get(key) == expectedBytes);
     }
 
+    TEST_CASE("Test get range", "[redis]") {
+        Redis cli;
+        cli.flushAll();
+
+        std::string key = "getrange_test";
+
+        std::string initialValue = "get this string!";
+        std::vector<uint8_t> bytesValue = util::stringToBytes(initialValue);
+        cli.set(key, bytesValue);
+
+        REQUIRE(cli.get(key) == bytesValue);
+
+        std::vector<uint8_t> actualBytes = cli.getRange(key, 4, 7);
+
+        std::string expected = "this";
+        std::vector<uint8_t> expectedBytes = util::stringToBytes(expected);
+        REQUIRE(actualBytes == expectedBytes);
+    }
+
     TEST_CASE("Test get empty key", "[redis]") {
         Redis cli;
         cli.flushAll();

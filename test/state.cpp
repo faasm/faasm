@@ -23,3 +23,8 @@ void __faasm_write_state_offset(const char *key, size_t offset, uint8_t *data, s
     redis.setRange(key, offset, newState);
 }
 
+void __faasm_read_state_offset(const char *key, size_t offset, uint8_t *buffer, size_t bufferLen) {
+    std::vector<uint8_t> state = redis.getRange(key, offset, offset + bufferLen);
+    std::copy(state.data(), state.data() + bufferLen, buffer);
+}
+

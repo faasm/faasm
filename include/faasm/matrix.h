@@ -100,13 +100,21 @@ namespace faasm {
         return deserialised;
     }
     
+    long matrixByteIndex(long row, long col, long nRows) {
+        // Work out the position of this element
+        // Note that matrices are stored in column-major order by default
+        long byteIdx = ((col * nRows) + row) * sizeof(double);
+
+        return byteIdx;
+    }
+    
     /** 
      * Updates a specific element in state 
      */
     void writeMatrixStateElement(FaasmMemory* memory, const char* key, const MatrixXd &matrix, long row, long col) {
         // Work out the position of this element
         // Note that matrices are stored in column-major order by default
-        long byteIdx = ((col * matrix.rows()) + row) * sizeof(double);
+        long byteIdx = matrixByteIndex(row, col, matrix.rows());
         
         double value = matrix(row, col);
         auto byteValue = reinterpret_cast<uint8_t *>(&value);
@@ -114,6 +122,27 @@ namespace faasm {
 
         memory->writeStateOffset(key, (size_t) byteIdx, byteValue, nBytes);
     }
+    
+    /**
+     * Reads a subset of full columns from state (note that column numbers are inclusive
+     */
+     MatrixXd readMatrixColumnsFromState(FaasmMemory* memory, const char* key, long colStart, long colEnd, long nRows) {
+        // Note, inclusive
+        long nCols = colEnd - colStart + 1;
+
+        long startIdx = matrixByteIndex(0, colStart, nRows);
+        long endIdx = matrixByteIndex(nRows, colEnd, nRows);
+        
+        long bufferLen = endIdx - startIdx;
+        uint8_t buffer[bufferLen];
+        
+        memory->readStateOffset(key, startIdx, buffer, bufferLen);
+
+        MatrixXd result = bytesToMatrix(buffer, nRows, nCols);
+
+        return result;
+    }
+    
 }
 
 #endif
