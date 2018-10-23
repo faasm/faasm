@@ -1,5 +1,7 @@
 #include "faasm.h"
 
+#include <algorithm>
+
 /**
  * Script to execute faasm functions natively
  */
@@ -25,12 +27,16 @@ void printBytes(uint8_t *ptr, int count) {
     printf("]\n");
 }
 
+static uint8_t _state[1024 * 1024];
+
 size_t __faasm_read_state(const char *key, uint8_t *buffer, size_t bufferLen) {
-    return 10;
+    std::copy(_state, _state + bufferLen, buffer);
+
+    return bufferLen;
 }
 
 void __faasm_write_state(const char *key, uint8_t *data, size_t dataLen) {
-
+    std::copy(data, data + dataLen, _state);
 }
 
 int main() {

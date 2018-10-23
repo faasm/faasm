@@ -1,6 +1,7 @@
 #include <catch/catch.hpp>
 
 #include <faasm/matrix.h>
+#include <infra/infra.h>
 
 using namespace Eigen;
 
@@ -19,6 +20,9 @@ namespace tests {
     }
 
     TEST_CASE("Test check matrix to bytes round trip", "[matrix]") {
+        infra::Redis redis;
+        redis.flushAll();
+
         MatrixXd initial(2, 3);
         initial<< 1, 2, 3,
             4, 5, 6;
@@ -26,6 +30,7 @@ namespace tests {
         REQUIRE(initial.rows() == 2);
         REQUIRE(initial.cols() == 3);
 
+        long nBytes = 2 * 3 * sizeof(double);
         uint8_t *byteArray = faasm::matrixToBytes(initial);
 
         // Double check size assumption
@@ -39,8 +44,17 @@ namespace tests {
         checkDoubleBytes(3, &byteArray[32]);
         checkDoubleBytes(6, &byteArray[40]);
 
+        // Redis round trip
+        const char* key = "matrix_test";
+        std::vector<uint8_t> byteData(byteArray, byteArray + nBytes);
+        redis.set(key, byteData);
+
+        std::vector<uint8_t> afterRedisData = redis.get(key);
+
         // Rebuild matrix from array and check it has survived round trip
-        MatrixXd matrixOut = faasm::bytesToMatrix(byteArray, 2, 3);
+        MatrixXd matrixOut = faasm::bytesToMatrix(afterRedisData.data(), 2, 3);
+        REQUIRE(matrixOut.rows() == 2);
+        REQUIRE(matrixOut.cols() == 3);
         REQUIRE(matrixOut == initial);
 
         delete[] byteArray;

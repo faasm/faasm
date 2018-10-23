@@ -1,6 +1,8 @@
 #ifndef FAASM_MATRIX_H
 #define FAASM_MATRIX_H
 
+#include "faasm.h"
+
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/SparseCore>
 #include <random>
@@ -71,6 +73,25 @@ namespace faasm {
         Map<MatrixXd> mat(&doubleArray[0], rows, columns);
 
         return mat;
+    }
+
+    /** Writes a matrix to state */
+    void writeMatrixState(FaasmMemory* memory, const char* key, const MatrixXd &matrix) {
+        size_t nBytes = matrix.rows() * matrix.cols() * sizeof(double);
+        uint8_t *serialisedData = matrixToBytes(matrix);
+
+        memory->writeState(key, serialisedData, nBytes);
+    }
+
+    /** Reads a matrix from state */
+    MatrixXd readMatrixFromState(FaasmMemory* memory, const char* key, long rows, long cols) {
+        size_t nBytes = rows * cols * sizeof(double);
+
+        uint8_t buffer[nBytes];
+        memory->readState(key, buffer, nBytes);
+
+        Eigen::MatrixXd deserialised = bytesToMatrix(buffer, rows, 1);
+        return deserialised;
     }
 }
 
