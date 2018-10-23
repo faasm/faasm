@@ -14,18 +14,31 @@ namespace tests {
         REQUIRE(actual.cols() == 5);
     }
 
-    void checkDoubleBytes(double expected, uint8_t* byteArrayStart) {
-        double actual = *reinterpret_cast<double*>(&byteArrayStart[0]);
+    void checkDoubleBytes(double expected, uint8_t *byteArrayStart) {
+        double actual = *reinterpret_cast<double *>(&byteArrayStart[0]);
         REQUIRE(expected == actual);
+    }
+
+    MatrixXd buildDummyMatrix() {
+        MatrixXd initial(2, 3);
+        initial << 1, 2, 3,
+                4, 5, 6;
+
+        return initial;
+    }
+
+    faasm::FaasmMemory buildDummyMemory() {
+        uint8_t dummy[2];
+        faasm::FaasmMemory mem(dummy, dummy, dummy, dummy);
+
+        return mem;
     }
 
     TEST_CASE("Test matrix to bytes round trip", "[matrix]") {
         infra::Redis redis;
         redis.flushAll();
 
-        MatrixXd initial(2, 3);
-        initial<< 1, 2, 3,
-            4, 5, 6;
+        MatrixXd initial = buildDummyMatrix();
 
         REQUIRE(initial.rows() == 2);
         REQUIRE(initial.cols() == 3);
@@ -56,17 +69,14 @@ namespace tests {
     TEST_CASE("Test matrix to redis round trip", "[matrix]") {
         infra::Redis redis;
         redis.flushAll();
-        
-        MatrixXd initial(2, 3);
-        initial<< 1, 2, 3,
-                4, 5, 6;
+
+        MatrixXd initial = buildDummyMatrix();
 
         // Initialise dummy faasm memory
-        uint8_t dummy[2];
-        faasm::FaasmMemory mem(dummy, dummy, dummy, dummy);
-        
+        faasm::FaasmMemory mem = buildDummyMemory();
+
         // Write to a dummy key
-        const char* stateKey = "test_matrix_state";
+        const char *stateKey = "test_matrix_state";
         faasm::writeMatrixState(&mem, stateKey, initial);
 
         // Retrieve from redis and check it's still the same
@@ -75,5 +85,38 @@ namespace tests {
         REQUIRE(afterState.rows() == 2);
         REQUIRE(afterState.cols() == 3);
         REQUIRE(afterState == initial);
+    }
+
+    TEST_CASE("Test updating matrix element in state", "[matrix]") {
+        infra::Redis redis;
+        redis.flushAll();
+
+        MatrixXd initial = buildDummyMatrix();
+
+        // Initialise dummy faasm memory
+        faasm::FaasmMemory mem = buildDummyMemory();
+
+        // Write full state to a dummy key
+        const char *stateKey = "test_matrix_elem_state";
+        faasm::writeMatrixState(&mem, stateKey, initial);
+
+        // Update the matrix in memory
+        initial(0, 2) = 3.3;
+        initial(1, 1) = 10.5;
+
+        // Update a single element
+        faasm::writeMatrixStateElement(&mem, stateKey, initial, 0, 2);
+        faasm::writeMatrixStateElement(&mem, stateKey, initial, 1, 1);
+
+        // Retrieve from redis and check it matches the one in memory
+        const MatrixXd afterState = faasm::readMatrixFromState(&mem, stateKey, 2, 3);
+
+        REQUIRE(afterState.rows() == 2);
+        REQUIRE(afterState.cols() == 3);
+        REQUIRE(afterState == initial);
+
+        // Explicitly check set values
+        REQUIRE(afterState(0, 2) == 3.3);
+        REQUIRE(afterState(1, 1) == 10.5);
     }
 }

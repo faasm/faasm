@@ -106,7 +106,7 @@ namespace faasm {
     void writeMatrixStateElement(FaasmMemory* memory, const char* key, const MatrixXd &matrix, long row, long col) {
         // Work out the position of this element
         // Note that matrices are stored in column-major order by default
-        long byteIdx = (col * matrix.cols() * matrix.rows()) + row;
+        long byteIdx = ((col * matrix.rows()) + row) * sizeof(double);
         
         double value = matrix(row, col);
         auto byteValue = reinterpret_cast<uint8_t *>(&value);
