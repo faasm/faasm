@@ -101,8 +101,5 @@ namespace worker {
         }
 
         finishCall(call, "");
-
-        // TODO running this clean() seems to kill the WAVM execution in all threads. Memory leak if not called?
-        //module.clean();
     }
 }

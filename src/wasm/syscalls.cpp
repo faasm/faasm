@@ -59,7 +59,7 @@ namespace wasm {
                               I32 keyPtr, I32 dataPtr, I32 dataLen) {
         printf("FAASM - write_state - %i %i %i\n", keyPtr, dataPtr, dataLen);
 
-        Runtime::MemoryInstance *memoryPtr = getModuleMemory();
+        Runtime::Memory *memoryPtr = getModuleMemory();
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
 
@@ -75,7 +75,7 @@ namespace wasm {
                               I32 keyPtr, I32 offset, I32 dataPtr, I32 dataLen) {
         printf("FAASM - write_state_offset - %i %i %i %i\n", keyPtr, offset, dataPtr, dataLen);
 
-        Runtime::MemoryInstance *memoryPtr = getModuleMemory();
+        Runtime::Memory *memoryPtr = getModuleMemory();
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
 
@@ -108,7 +108,7 @@ namespace wasm {
                               I32 keyPtr, I32 bufferPtr, I32 bufferLen) {
         printf("FAASM - read_state - %i %i %i \n", keyPtr, bufferPtr, bufferLen);
 
-        Runtime::MemoryInstance *memoryPtr = getModuleMemory();
+        Runtime::Memory *memoryPtr = getModuleMemory();
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
 
@@ -125,7 +125,7 @@ namespace wasm {
                               I32 keyPtr, I32 offset, I32 bufferPtr, I32 bufferLen) {
         printf("FAASM - read_state_offset - %i %i %i %i \n", keyPtr, offset, bufferPtr, bufferLen);
 
-        Runtime::MemoryInstance *memoryPtr = getModuleMemory();
+        Runtime::Memory *memoryPtr = getModuleMemory();
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
 
@@ -151,7 +151,7 @@ namespace wasm {
         printf("SYSCALL - open %i %i %i\n", pathPtr, flags, mode);
 
         // Get the path
-        Runtime::MemoryInstance *memoryPtr = getModuleMemory();
+        Runtime::Memory *memoryPtr = getModuleMemory();
         char *path = &Runtime::memoryRef<char>(memoryPtr, (Uptr) pathPtr);
 
         // Check if this is a valid path. Return a read-only handle to the file if so
@@ -201,7 +201,7 @@ namespace wasm {
         checkThreadOwnsFd(fd);
 
         // Get the buffer etc.
-        Runtime::MemoryInstance *memoryPtr = getModuleMemory();
+        Runtime::Memory *memoryPtr = getModuleMemory();
         U8 *buf = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufPtr, (Uptr) count);
 
         // Do the actual read
@@ -255,7 +255,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "puts", I32, puts, I32 strPtr) {
-        Runtime::MemoryInstance *memoryPtr = getModuleMemory();
+        Runtime::Memory *memoryPtr = getModuleMemory();
         char *string = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
 
         printf("INTRINSIC - puts %s\n", string);
@@ -270,7 +270,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_writev", I32, __syscall_writev, I32 fd, I32 iov, I32 iovcnt) {
         printf("SYSCALL - writev %i %i %i\n", fd, iov, iovcnt);
-        Runtime::MemoryInstance *memoryPtr = getModuleMemory();
+        Runtime::Memory *memoryPtr = getModuleMemory();
 
         // Get array of iovecs from memory
         wasm_iovec * iovecs = Runtime::memoryArrayPtr<wasm_iovec>(memoryPtr, iov, iovcnt);
@@ -399,7 +399,7 @@ namespace wasm {
      * straight through.
      */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_socketcall", I32, __syscall_socketcall, I32 call, I32 argsPtr) {
-        Runtime::MemoryInstance *memoryPtr = getModuleMemory();
+        Runtime::Memory *memoryPtr = getModuleMemory();
 
         // NOTE
         // We don't want to support server-side socket syscalls as we expect functions
@@ -815,7 +815,7 @@ namespace wasm {
         const Uptr basePageIndex = addr / IR::numBytesPerPage;
         const Uptr numPages = (length + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
 
-        Runtime::MemoryInstance *memory = getModuleMemory();
+        Runtime::Memory *memory = getModuleMemory();
 
         printf("SYSCALL - munmap %li pages\n", numPages);
         unmapMemoryPages(memory, basePageIndex, numPages);
@@ -839,7 +839,7 @@ namespace wasm {
         Uptr targetPageCount = getNumberPagesAtOffset(addr);
 
         // Work out current page count and break
-        Runtime::MemoryInstance *memory = getModuleMemory();
+        Runtime::Memory *memory = getModuleMemory();
         const Uptr currentPageCount = getMemoryNumPages(memory);
         const U32 currentBreak = (U32) ((currentPageCount * IR::numBytesPerPage));
         printf("brk current break %lu (%u) -> new break %lu (%u) \n", currentPageCount, currentBreak, targetPageCount,

@@ -13,9 +13,9 @@ using namespace WAVM;
 namespace wasm {
     WasmModule::WasmModule() = default;
 
-    thread_local Runtime::MemoryInstance *moduleMemory = nullptr;
+    thread_local Runtime::Memory *moduleMemory = nullptr;
 
-    Runtime::MemoryInstance *getModuleMemory() {
+    Runtime::Memory *getModuleMemory() {
         return moduleMemory;
     }
 
@@ -35,7 +35,7 @@ namespace wasm {
 
         // Extract the module's exported function
         // Note that an underscore may be added before the function name by the compiler
-        Runtime::FunctionInstance *functionInstance = asFunctionNullable(
+        Runtime::Function *functionInstance = asFunctionNullable(
                 getInstanceExport(moduleInstance, ENTRYPOINT_FUNC));
 
         if (!functionInstance) {
@@ -65,6 +65,9 @@ namespace wasm {
         // Retrieve chaining data
         this->extractChainingData(call);
 
+        // Tidy up
+        Runtime::collectCompartmentGarbage(compartment);
+
         return functionResults[0].u32;
     }
 
@@ -74,7 +77,7 @@ namespace wasm {
         tempModule.parseWasm(call);
 
         // Compile the module to object code
-        Runtime::Module *module = Runtime::compileModule(tempModule.module);
+        Runtime::ModuleRef module = Runtime::compileModule(tempModule.module);
         return Runtime::getObjectCode(module);
     }
 
@@ -96,7 +99,7 @@ namespace wasm {
 
         // Load the object file
         std::vector<uint8_t> objectFileBytes = infra::getFunctionObjectBytes(call);
-        Runtime::Module *compiledModule = Runtime::loadPrecompiledModule(module, objectFileBytes);
+        Runtime::ModuleRef compiledModule = Runtime::loadPrecompiledModule(module, objectFileBytes);
 
         // Instantiate the module, i.e. create memory, tables etc.
         std::string moduleName = call.user() + " - " + call.function();
@@ -259,10 +262,5 @@ namespace wasm {
 
             chainedCalls.push_back(chainedCall);
         }
-    }
-
-    void WasmModule::clean() {
-        // Clear up
-        Runtime::collectGarbage();
     }
 }

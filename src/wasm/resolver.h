@@ -14,7 +14,7 @@ namespace wasm {
     struct RootResolver : Runtime::Resolver {
         Runtime::Compartment *compartment;
         HashMap<std::string, Runtime::ModuleInstance *> moduleNameToInstanceMap;
-        
+
         RootResolver(Runtime::Compartment *inCompartment) : compartment(inCompartment) {
         }
 
@@ -27,17 +27,16 @@ namespace wasm {
             // i.e. for functions that take in two i32s and return one i32, it would be
             // stub_i32i32_i32
             std::string funcSignature = "stub_";
-            for(int i = 0; i < funcType.params().size(); i++) {
+            for (int i = 0; i < funcType.params().size(); i++) {
                 IR::ValueType resultType = funcType.params()[i];
                 funcSignature.append(asString(resultType));
             }
 
             funcSignature.append("_");
-            if(funcType.results().size() == 0) {
+            if (funcType.results().size() == 0) {
                 funcSignature.append("void");
-            }
-            else {
-                for(int i = 0; i < funcType.results().size(); i++) {
+            } else {
+                for (int i = 0; i < funcType.results().size(); i++) {
                     IR::ValueType resultType = funcType.results()[i];
                     funcSignature.append(asString(resultType));
                 }
@@ -52,11 +51,10 @@ namespace wasm {
         std::vector<uint8_t> getStubObjectBytes(const IR::FunctionType &funcType) const {
             std::string stubPath = getStubObjectFilePath(funcType);
 
-            if(boost::filesystem::exists(stubPath)) {
+            if (boost::filesystem::exists(stubPath)) {
                 // Load bytes if they exist
                 return util::readFileToBytes(stubPath);
-            }
-            else {
+            } else {
                 std::vector<uint8_t> stubBytes;
                 return stubBytes;
             }
@@ -70,7 +68,7 @@ namespace wasm {
             util::writeBytesToFile(stubPath, bytes);
         }
 
-        bool resolve(const std::string &moduleName, const std::string &exportName, IR::ObjectType type,
+        bool resolve(const std::string &moduleName, const std::string &exportName, IR::ExternType type,
                      Runtime::Object *&outObject) override {
 
             // Attempt lookup in specified module
@@ -91,65 +89,43 @@ namespace wasm {
             return true;
         }
 
-        Runtime::Object* getStubObject(const std::string &exportName, IR::ObjectType type) const {
-            switch (type.kind) {
-                case IR::ObjectKind::function: {
-                    const IR::FunctionType &funcType = asFunctionType(type);
+        Runtime::Object *getStubObject(const std::string &exportName, IR::ExternType type) const {
+            const IR::FunctionType &funcType = asFunctionType(type);
 
-                    // Generate a module for the stub function.
-                    IR::Module stubModule;
-                    stubModule.types.push_back(funcType);
-                    stubModule.exports.push_back({"importStub", IR::ObjectKind::function, 0});
+            // Generate a module for the stub function.
+            IR::Module stubModule;
+            stubModule.types.push_back(funcType);
+            stubModule.exports.push_back({"importStub", IR::ExternKind::function, 0});
 
-                    // Try and load existing object bytes for this stub
-                    std::vector<uint8_t> stubBytes = getStubObjectBytes(funcType);
+            // Try and load existing object bytes for this stub
+            std::vector<uint8_t> stubBytes = getStubObjectBytes(funcType);
 
-                    Runtime::Module *compiledModule;
-                    if(stubBytes.empty()) {
-                        // Add function body to the module (just calling "unreachable"
-                        Serialization::ArrayOutputStream codeStream;
-                        IR::OperatorEncoderStream encoder(codeStream);
-                        encoder.unreachable();
-                        encoder.end();
-                        const std::vector<U8> &stubCodeBytes = codeStream.getBytes();
+            Runtime::ModuleRef compiledModule;
+            if (stubBytes.empty()) {
+                // Add function body to the module (just calling "unreachable"
+                Serialization::ArrayOutputStream codeStream;
+                IR::OperatorEncoderStream encoder(codeStream);
+                encoder.unreachable();
+                encoder.end();
+                const std::vector<U8> &stubCodeBytes = codeStream.getBytes();
 
-                        stubModule.functions.defs.push_back({{0}, {}, std::move(stubCodeBytes), {}});
+                stubModule.functions.defs.push_back({{0}, {}, std::move(stubCodeBytes), {}});
 
-                        // Compile stub from scratch and persist the compiled bytes
-                        compiledModule = Runtime::compileModule(stubModule);
-                        std::vector<U8> objectFileBytes = Runtime::getObjectCode(compiledModule);
-                        persistStubObjectBytes(funcType, objectFileBytes);
-                    }
-                    else {
-                        // Use existing bytes
-                        std::vector<U8> emptyBytes;
-                        stubModule.functions.defs.push_back({{0}, {}, emptyBytes, {}});
+                // Compile stub from scratch and persist the compiled bytes
+                compiledModule = Runtime::compileModule(stubModule);
+                std::vector<U8> objectFileBytes = Runtime::getObjectCode(compiledModule);
+                persistStubObjectBytes(funcType, objectFileBytes);
+            } else {
+                // Use existing bytes
+                std::vector<U8> emptyBytes;
+                stubModule.functions.defs.push_back({{0}, {}, emptyBytes, {}});
 
-                        compiledModule = Runtime::loadPrecompiledModule(stubModule, stubBytes);
-                    }
+                compiledModule = Runtime::loadPrecompiledModule(stubModule, stubBytes);
+            }
 
-                    // Instantiate the module within the compartment
-                    auto stubModuleInstance = instantiateModule(compartment, compiledModule, {}, "importStub");
-                    return getInstanceExport(stubModuleInstance, "importStub");
-                }
-                case IR::ObjectKind::memory: {
-                    return asObject(Runtime::createMemory(compartment, asMemoryType(type)));
-                }
-                case IR::ObjectKind::table: {
-                    return asObject(Runtime::createTable(compartment, asTableType(type)));
-                }
-                case IR::ObjectKind::global: {
-                    return asObject(Runtime::createGlobal(
-                            compartment,
-                            asGlobalType(type),
-                            IR::Value(asGlobalType(type).valueType, IR::UntaggedValue())));
-                }
-                case IR::ObjectKind::exceptionType: {
-                    return asObject(Runtime::createExceptionTypeInstance(asExceptionType(type), "importStub"));
-                }
-                default:
-                    Errors::unreachable();
-            };
+            // Instantiate the module within the compartment
+            auto stubModuleInstance = instantiateModule(compartment, compiledModule, {}, "importStub");
+            return getInstanceExport(stubModuleInstance, "importStub");
         }
     };
 }

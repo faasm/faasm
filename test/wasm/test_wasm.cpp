@@ -23,8 +23,6 @@ namespace tests {
         REQUIRE(outputBytes[1] == 1);
         REQUIRE(outputBytes[2] == 2);
         REQUIRE(outputBytes[3] == 3);
-
-        module.clean();
     }
 
     TEST_CASE("Test executing WASM module with input and output", "[wasm]") {
@@ -48,7 +46,5 @@ namespace tests {
         // Check the results
         std::vector<uint8_t > expected = {0, 2, 4, 6, 8, 10, 12, 14, 16, 18};
         REQUIRE(outputBytes == expected);
-
-        module.clean();
     }
 }

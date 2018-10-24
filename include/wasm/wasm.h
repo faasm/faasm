@@ -54,7 +54,7 @@ namespace wasm {
     const int CHAIN_DATA_START = CHAIN_NAMES_START + MAX_CHAIN_NAME_BYTES;
     const int MAX_CHAIN_DATA_BYTES = MAX_CHAINS * MAX_INPUT_BYTES;
 
-    Runtime::MemoryInstance* getModuleMemory();
+    Runtime::Memory* getModuleMemory();
 
     class WasmModule {
     public:
@@ -62,9 +62,6 @@ namespace wasm {
 
         /** Executes the function and stores the result */
         int execute(message::FunctionCall &call);
-
-        /** Cleans up */
-        void clean();
 
         /** Compiles the function to a vector of bytes */
         static std::vector<uint8_t> compile(message::FunctionCall &call);
