@@ -89,7 +89,7 @@ namespace wasm {
     int safeCopyToBuffer(std::vector<uint8_t> &state, U8 *buffer, I32 bufferLen) {
         int stateSize = (int) state.size();
 
-        if(bufferLen <= 0) {
+        if (bufferLen <= 0) {
             return stateSize;
         }
 
@@ -267,8 +267,9 @@ namespace wasm {
         printf("SYSCALL - writev %i %i %i\n", fd, iov, iovcnt);
 
         struct iovec *native_iovec = new(alloca(sizeof(iovec) * iovcnt)) struct iovec[iovcnt];
+
+        Runtime::MemoryInstance *memoryPtr = getModuleMemory();
         for (U32 i = 0; i < iovcnt; i++) {
-            Runtime::MemoryInstance *memoryPtr = getModuleMemory();
             U32 base = Runtime::memoryRef<U32>(memoryPtr, iov + i * 8);
             U32 len = Runtime::memoryRef<U32>(memoryPtr, iov + i * 8 + 4);
 

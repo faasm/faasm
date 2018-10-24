@@ -123,6 +123,8 @@ def lib(context, lib_name):
         compile_mlpack()
     elif lib_name == "dlib":
         compile_dlib()
+    elif lib_name == "gsl":
+        compile_gsl()
     else:
         raise RuntimeError("Unrecognised lib name: {}".format(lib_name))
 
@@ -165,6 +167,24 @@ def compile_eigen():
 
     call("make", shell=True, cwd=build_dir)
     call("make install", shell=True, cwd=build_dir)
+
+
+def compile_gsl():
+    # TODO gsl doesn't like --host=wasm32
+    extract_dir, build_dir = download_lib_source(
+        "ftp://ftp.gnu.org/gnu/gsl/gsl-2.5.tar.gz",
+        "gsl-2.5",
+    )
+
+    config_cmd = [
+        "./configure",
+        ENV_STR,
+        *CONFIG_FLAGS
+    ]
+    config_cmd_str = " ".join(config_cmd)
+
+    print(config_cmd_str)
+    call(config_cmd_str, shell=True, cwd=extract_dir)
 
 
 def compile_dlib():
