@@ -31,10 +31,10 @@ COMPILER_FLAGS_STRING = "\"{}\"".format(COMPILER_FLAGS_STRING)
 # using system defaults we can get some errors that are *very* hard
 # to debug
 
-CC = join(TOOLCHAIN_ROOT, "bin", "clang")
+CC = join(TOOLCHAIN_ROOT, "bin", "wasm32-clang")
 CPP = join(TOOLCHAIN_ROOT, "bin", "clang-cpp")
 CFLAGS = COMPILER_FLAGS_STRING
-CXX = join(TOOLCHAIN_ROOT, "bin", "clang++")
+CXX = join(TOOLCHAIN_ROOT, "bin", "wasm32-clang++")
 CXXFLAGS = COMPILER_FLAGS_STRING
 LD = join(TOOLCHAIN_ROOT, "bin", "wasm-ld")
 CROSS_COMPILE = join(TOOLCHAIN_ROOT, "llvm-")
@@ -88,6 +88,8 @@ def compile(context, path, libcurl=False, debug=False):
         *COMPILER_FLAGS,
         "-Oz",
         "-fvisibility=hidden",
+        "-fno-strict-float-cast-overflow",
+        "-mfloat-abi=hard",
         "-Wl,--allow-undefined",
         path,
         "-I", join("include", "faasm"),

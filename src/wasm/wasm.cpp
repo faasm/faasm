@@ -23,6 +23,11 @@ namespace wasm {
      * Executes the given function call
      */
     int WasmModule::execute(message::FunctionCall &call) {
+        // Treat any unhandled exception (e.g. in a thread) as a fatal error.
+        Runtime::setUnhandledExceptionHandler([](Runtime::Exception&& exception) {
+            Errors::fatalf("Runtime exception: %s\n", describeException(exception).c_str());
+        });
+
         Runtime::Compartment *compartment = Runtime::createCompartment();
         Runtime::Context *context = Runtime::createContext(compartment);
 
