@@ -90,42 +90,49 @@ namespace wasm {
         }
 
         Runtime::Object *getStubObject(const std::string &exportName, IR::ExternType type) const {
-            const IR::FunctionType &funcType = asFunctionType(type);
+            switch (type.kind) {
+                case IR::ExternKind::function: {
+                    // Generate a module for the stub function.
+                    IR::Module stubModule;
+                    const IR::FunctionType &funcType = asFunctionType(type);
+                    stubModule.types.push_back(funcType);
 
-            // Generate a module for the stub function.
-            IR::Module stubModule;
-            stubModule.types.push_back(funcType);
-            stubModule.exports.push_back({"importStub", IR::ExternKind::function, 0});
+                    stubModule.exports.push_back({"importStub", IR::ExternKind::function, 0});
 
-            // Try and load existing object bytes for this stub
-            std::vector<uint8_t> stubBytes = getStubObjectBytes(funcType);
+                    // Try and load existing object bytes for this stub
+                    std::vector<uint8_t> stubBytes = getStubObjectBytes(funcType);
 
-            Runtime::ModuleRef compiledModule;
-            if (stubBytes.empty()) {
-                // Add function body to the module (just calling "unreachable"
-                Serialization::ArrayOutputStream codeStream;
-                IR::OperatorEncoderStream encoder(codeStream);
-                encoder.unreachable();
-                encoder.end();
-                const std::vector<U8> &stubCodeBytes = codeStream.getBytes();
+                    Runtime::ModuleRef compiledModule;
+                    if (stubBytes.empty()) {
+                        // Add function body to the module (just calling "unreachable"
+                        Serialization::ArrayOutputStream codeStream;
+                        IR::OperatorEncoderStream encoder(codeStream);
+                        encoder.unreachable();
+                        encoder.end();
+                        const std::vector<U8> &stubCodeBytes = codeStream.getBytes();
+                        stubModule.functions.defs.push_back({{0}, {}, std::move(stubCodeBytes), {}});
 
-                stubModule.functions.defs.push_back({{0}, {}, std::move(stubCodeBytes), {}});
+                        // Compile stub from scratch and persist the compiled bytes
+                        compiledModule = Runtime::compileModule(stubModule);
+                        std::vector<U8> objectFileBytes = Runtime::getObjectCode(compiledModule);
+                        persistStubObjectBytes(funcType, objectFileBytes);
 
-                // Compile stub from scratch and persist the compiled bytes
-                compiledModule = Runtime::compileModule(stubModule);
-                std::vector<U8> objectFileBytes = Runtime::getObjectCode(compiledModule);
-                persistStubObjectBytes(funcType, objectFileBytes);
-            } else {
-                // Use existing bytes
-                std::vector<U8> emptyBytes;
-                stubModule.functions.defs.push_back({{0}, {}, emptyBytes, {}});
+                    } else {
+                        // Use existing bytes
+                        std::vector<U8> emptyBytes;
+                        stubModule.functions.defs.push_back({{0}, {}, emptyBytes, {}});
 
-                compiledModule = Runtime::loadPrecompiledModule(stubModule, stubBytes);
-            }
+                        compiledModule = Runtime::loadPrecompiledModule(stubModule, stubBytes);
+                    }
 
-            // Instantiate the module within the compartment
-            auto stubModuleInstance = instantiateModule(compartment, compiledModule, {}, "importStub");
-            return getInstanceExport(stubModuleInstance, "importStub");
+                    // Instantiate the module within the compartment
+                    auto stubModuleInstance = instantiateModule(compartment, compiledModule, {}, "importStub");
+                    return getInstanceExport(stubModuleInstance, "importStub");
+                }
+                default: {
+                    Errors::unreachable();
+                }
+            };
         }
     };
 }
