@@ -7,6 +7,8 @@
 #include <eigen3/Eigen/SparseCore>
 #include <random>
 
+#include <iostream>
+
 using namespace Eigen;
 
 namespace faasm {
@@ -140,6 +142,19 @@ namespace faasm {
         return result;
     }
 
+    /**
+     * Shuffles the columns of a matrix
+     */
+    MatrixXd shuffleMatrixColumns(MatrixXd &matrix) {
+        // Create permutation matrix
+        PermutationMatrix<Dynamic,Dynamic> perm(matrix.cols());
+        perm.setIdentity();
+        std::random_shuffle(perm.indices().data(), perm.indices().data()+perm.indices().size());
+
+        MatrixXd shuffled = matrix * perm;
+        
+        return shuffled;
+    }
 }
 
 #endif

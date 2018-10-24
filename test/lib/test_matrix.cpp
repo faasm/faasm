@@ -177,4 +177,15 @@ namespace tests {
         REQUIRE(zeroCount > 5);
     }
 
+    TEST_CASE("Test shuffling matrix", "[matrix]") {
+        MatrixXd mat = faasm::randomSparseMatrix(10, 20);
+        MatrixXd shuffled = faasm::shuffleMatrixColumns(mat);
+
+        REQUIRE(shuffled.rows() == mat.rows());
+        REQUIRE(shuffled.cols() == mat.cols());
+
+        // Not technically always correct, but unlikely when the matrix is large enough
+        REQUIRE(mat != shuffled);
+    }
+
 }
