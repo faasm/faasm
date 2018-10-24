@@ -1,5 +1,5 @@
 #include "faasm.h"
-
+#include <util/util.h>
 #include <algorithm>
 
 /**
@@ -32,8 +32,8 @@ int main() {
     uint8_t chainFuncs[MAX_CHAINS * MAX_NAME_LENGTH];
     uint8_t chainInputData[MAX_CHAINS * MAX_INPUT_BYTES];
 
-    // Set up some input data
-    int inputData[3] = {0, 900, 10};
+    int i = util::randomInteger(0, 900);
+    int inputData[3] = {i, i+100, 10};
     auto inputBytes = reinterpret_cast<uint8_t *>(inputData);
 
     // Call the actual function

@@ -34,31 +34,26 @@ namespace faasm {
         // Get the error
         MatrixXd error = actual - outputs;
 
-        // Calculate total squared error
-        double squaredError = 0;
-        for(int e = 0; e < error.cols(); e++) {
-            squaredError += e^2;
-        }
-        printf("SQUARED ERROR: %.2f\n", squaredError);
+        // Calculate MSE
+        ArrayXd squaredError = error.transpose().array().pow(2.0);
+        double mse = squaredError.sum();
+        printf("MSE: %.4f\n", mse);
 
-        MatrixXd gradient = error * inputs.transpose();
-        gradient *= (-2.0/nFactors);
+        // Work out the step size
+        MatrixXd gradient = (2.0 * learningRate) * error * inputs.transpose();
+
+        // Perform updates to weights
         for(int i = 0; i < nFactors; i++) {
-            double grad = gradient(0, i);
+            double stepSize = gradient(0, i);
 
-            // Ignore very small
-            if(abs(grad) <= 0.0001) {
+            // Ignore (effectively) zero gradients
+            if(abs(stepSize) <= 0.00001) {
                 continue;
             }
 
             // Make the update
-            double before = weights(0, i);
-            weights(0, i) -= learningRate * grad;
-
+            weights(0, i) -= stepSize;
             writeMatrixStateElement(memory, weightsKey, weights, 0, i);
-
-            double after = weights(0, i);
-            printf("UPDATE: %.2f -> %.2f (%.8f)\n", before, after, grad);
         }
 
         // Print out updated weights

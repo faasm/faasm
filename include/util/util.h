@@ -25,7 +25,7 @@ namespace util {
     void writeBytesToFile(const std::string &path, const std::vector<uint8_t> &data);
 
     // Misc
-    int randomInteger();
+    int randomInteger(int iStart=0, int iEnd=1000000);
 
     // Token pool
     class TokenPool {

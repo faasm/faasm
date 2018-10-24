@@ -154,4 +154,27 @@ namespace tests {
 
         REQUIRE(actual == expected);
     }
+
+    TEST_CASE("Test generating sparse random matrix", "[matrix]") {
+        int rows = 2;
+        int cols = 5;
+        const MatrixXd &actual = faasm::randomSparseMatrix(rows, cols);
+
+        REQUIRE(actual.rows() == rows);
+        REQUIRE(actual.cols() == cols);
+
+        // At least half of the values should be zero
+        int zeroCount = 0;
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                double thisVal = actual(r, c);
+                if (thisVal == 0) {
+                    zeroCount++;
+                }
+            }
+        }
+
+        REQUIRE(zeroCount > 5);
+    }
+
 }
