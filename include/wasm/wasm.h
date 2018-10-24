@@ -28,14 +28,14 @@ namespace wasm {
 
     // Note that the max memory per module is 8GiB, i.e. > 100k pages
     // Page size in wasm is 64kiB so 1000 pages ~ 60MiB of memory
-    const int MIN_MEMORY_PAGES = 1000;
+    const int MIN_MEMORY_PAGES = 4000;
 
     //
     // Put all faasm-related memory at the end of the defined range to minimise risk of things
     // trampling on it
     // TODO: do a better job of protecting this
     //
-    const int FAASM_MEMORY_START = (MIN_MEMORY_PAGES - 30) * IR::numBytesPerPage;
+    const int FAASM_MEMORY_START = (MIN_MEMORY_PAGES - 100) * IR::numBytesPerPage;
 
     // Input memory (one page)
     const int INPUT_START = FAASM_MEMORY_START;

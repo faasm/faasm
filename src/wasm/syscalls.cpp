@@ -852,16 +852,16 @@ namespace wasm {
         return (U32) addr;
     }
 
-    // ------------------------
-    // Memory - unsupported
-    // ------------------------
-
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_madvise", I32, __syscall_madvise,
                               U32 address, U32 numBytes, U32 advice) {
         printf("SYSCALL - madvise %i %i %i\n", address, numBytes, advice);
 
-        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+        return 0;
     }
+
+    // ------------------------
+    // Memory - unsupported
+    // ------------------------
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_mremap", I32, __syscall_mremap,
                               U32 oldAddress, U32 oldNumBytes, U32 newNumBytes, U32 flags, U32 newAddress) {

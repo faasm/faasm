@@ -29,12 +29,12 @@ namespace faasm {
         writeMatrixState(memory, inputsKey, inputs);
         writeMatrixState(memory, weightsKey, weights);
 
-        // Also right real weights for safe keeping
+        // Also write real weights for safe keeping
         writeMatrixState(memory, realWeightsKey, realWeights);
 
         // Chain new calls to perform the work
-        int nWorkers = 10;
-        int batchSize = 10;
+        int nWorkers = 1;
+        int batchSize = 100;
         for (int w = 0; w < nWorkers; w++) {
             int startIdx = (w * batchSize);
             int endIdx = startIdx + batchSize -1;

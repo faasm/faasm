@@ -7,8 +7,6 @@
 #include <eigen3/Eigen/SparseCore>
 #include <random>
 
-#include <iostream>
-
 using namespace Eigen;
 
 namespace faasm {
@@ -152,8 +150,22 @@ namespace faasm {
         std::random_shuffle(perm.indices().data(), perm.indices().data()+perm.indices().size());
 
         MatrixXd shuffled = matrix * perm;
-        
+
         return shuffled;
+    }
+
+    /**
+     * Prints the given matrix
+     */
+    void printMatrix(MatrixXd &mat) {
+        for(int r = 0; r < mat.rows(); r++) {
+            for(int c = 0; c < mat.cols(); c++) {
+                double val = mat.coeff(r, c);
+                printf("%.2f, ", val);
+            }
+
+            printf("\n");
+        }
     }
 }
 
