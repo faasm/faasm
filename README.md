@@ -93,9 +93,10 @@ The `FaasmMemory` class allows Faasm functions to interact with the system. It h
 
 - `getInput()` - this returns an array containing the input data to the function
 - `setOutput()` - this allows functions to return output data to the caller
-- `chainFunction()` - this allows one function to invoke others (see below)
-- `getStateSize()` - returns the size (in bytes) of the current state associated with the given key (see below)
-- `readState()` and `writeState()` - allows functions to manage shared state (see below)
+- `chainFunction()` - this allows one function to invoke others
+- `getStateSize()` - returns the size (in bytes) of the current state associated with the given key 
+- `readState()` and `writeState()` - allows functions to read/ write key/value state
+- `readStateOffset()` and `writeStateOffset()` - allows functions to read/ write at specific points in existing state (e.g. updating a subsection of an array)
 
 ## Chaining
 
@@ -122,21 +123,6 @@ namespace faasm {
 
 `chainFunction()` can be called multiple times in one function. Once the original function has completed, these
 calls will go back through the main scheduler and be executed.
-
-## Uploading Functions
-
-To upload a function you can use `curl` to send a PUT request to the synchronous URL for the given function.
-For example:
-
-- I have a Faasm endpoint running at `localhost:8001`
-- I've compiled my WebAssembly function file to `/tmp/do_something.wasm`
-- I want to upload this function to user `demo` and function name `cool_func`
-
-I can execute:
-
-```
-curl http://localhost:8001/f/demo/cool_func/ -X PUT -T /tmp/do_something.wasm
-```
 
 ## State
 
@@ -170,6 +156,14 @@ namespace faasm {
 }
 ```
 
+### Offset state
+
+`FaasmMemory` also exposes the `readStateOffset` and `writeStateOffset` functions, which allow reading and writing subsections of byte arrays stored against keys in the key-value store.
+
+For example, if I have an array of 100 bytes stored in memory, I can read bytes 15-20, then update them separately.
+
+This can be useful for implementing distributed iterative algorithms.
+
 ### Counter example
 
 An example implementing a counter can be found in `examples/increment.cpp`. It can be called with:
@@ -187,5 +181,19 @@ Counter: 3
 ...
 ```
 
+## Uploading Functions
+
+To upload a function you can use `curl` to send a PUT request to the synchronous URL for the given function.
+For example:
+
+- I have a Faasm endpoint running at `localhost:8001`
+- I've compiled my WebAssembly function file to `/tmp/do_something.wasm`
+- I want to upload this function to user `demo` and function name `cool_func`
+
+I can execute:
+
+```
+curl http://localhost:8001/f/demo/cool_func/ -X PUT -T /tmp/do_something.wasm
+```
 
 
