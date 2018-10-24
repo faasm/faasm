@@ -263,21 +263,36 @@ namespace wasm {
         return 0;
     }
 
+    struct wasm_iovec {
+        U32 iov_base;
+        U32 iov_len;
+    };
+
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_writev", I32, __syscall_writev, I32 fd, I32 iov, I32 iovcnt) {
         printf("SYSCALL - writev %i %i %i\n", fd, iov, iovcnt);
-
-        struct iovec *native_iovec = new(alloca(sizeof(iovec) * iovcnt)) struct iovec[iovcnt];
-
         Runtime::MemoryInstance *memoryPtr = getModuleMemory();
-        for (U32 i = 0; i < iovcnt; i++) {
-            U32 base = Runtime::memoryRef<U32>(memoryPtr, iov + i * 8);
-            U32 len = Runtime::memoryRef<U32>(memoryPtr, iov + i * 8 + 4);
 
-            native_iovec[i].iov_base = Runtime::memoryArrayPtr<U8>(memoryPtr, base, len);
-            native_iovec[i].iov_len = len;
+        // Get array of iovecs from memory
+        wasm_iovec * iovecs = Runtime::memoryArrayPtr<wasm_iovec>(memoryPtr, iov, iovcnt);
+
+        // Build vector of native iovecs
+        iovec nativeIovecs[iovcnt];
+        for (U32 i = 0; i < iovcnt; i++) {
+            wasm_iovec thisIovec = iovecs[i];
+
+            // Get pointer to data
+            U8* ioData = Runtime::memoryArrayPtr<U8>(memoryPtr, thisIovec.iov_base, thisIovec.iov_len);
+
+            // Create native iovec and add to list
+            iovec nativeIovec {
+                .iov_base = ioData,
+                .iov_len = thisIovec.iov_len,
+            };
+
+            nativeIovecs[i] = nativeIovec;
         }
 
-        Iptr count = writev(fileno(stdout), native_iovec, iovcnt);
+        Iptr count = writev(fileno(stdout), nativeIovecs, iovcnt);
 
         return (I32) count;
     }
