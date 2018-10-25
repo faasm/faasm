@@ -134,8 +134,8 @@ namespace faasm {
     int exec(FaasmMemory *memory);
 }
 
-FAASM_EXPORT
 FAASM_INLINE
+FAASM_EXPORT
 int run(uint8_t *in, uint8_t *out, uint8_t *cFuncs, uint8_t *cIn) {
     faasm::FaasmMemory memory(in, out, cFuncs, cIn);
 

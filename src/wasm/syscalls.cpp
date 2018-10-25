@@ -911,6 +911,16 @@ namespace wasm {
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
+    DEFINE_INTRINSIC_FUNCTION(env, "_Unwind_RaiseException", I32, _Unwind_RaiseException, I32 a) {
+        printf("SYSCALL - Unwind_RaiseException %i \n", a);
+        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "_Unwind_DeleteException", void, _Unwind_DeleteException, I32 a) {
+        printf("SYSCALL - Unwind_DeleteException %i \n", a);
+        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+    }
+
     // ------------------------
     // Memory - supported
     // ------------------------

@@ -44,7 +44,7 @@
   (elem $23 (i32.const 1)
     $main $dummy $_fini $__stdio_write $__stdio_close $__stdout_write $__stdio_seek)
   (data $24 (i32.const 1024)
-    "f: %f\n\00d: %f\n\00i: %i\n\00s: %i\n\00\00\00\00\00\00\00\00\00\00\00\00\00\01\00\00\00\00\00\00\00\02\00\00\00\00\00\00\00/dev/nul"
+    "d: %.2f\n\00i: %i\n\00s: %i\n\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\01\00\00\00\00\00\00\00\02\00\00\00\00\00\00\00/dev/nul"
     "l\00\00\00X\12\00\00\00\00\00\00\00\00\00\00T!\"\19\0d\01\02\03\11K\1c\0c\10\04\0b\1d\12\1e'hnopqb \05\06\0f\13\14\15\1a\08\16\07($\17\18\09\n\0e\1b\1f%#\83"
     "\82}&*+<=>?CGJMXYZ[\\]^_`acdefgijklrstyz{|\00\00\00\00\00\00\00\00\00Illegal byte seq"
     "uence\00Domain error\00Result not representable\00Not a tty\00Permission"
@@ -161,23 +161,14 @@
     (result i32)
     (local $1 i32)
     get_global $25
-    i32.const 64
+    i32.const 48
     i32.sub
     tee_local $1
     set_global $25
     get_local $1
-    i64.const 4608218246800211968
-    i64.store offset=48
-    i32.const 1024
-    get_local $1
-    i32.const 48
-    i32.add
-    call $printf
-    drop
-    get_local $1
     i64.const 4616820122002590269
     i64.store offset=32
-    i32.const 1031
+    i32.const 1024
     get_local $1
     i32.const 32
     i32.add
@@ -186,7 +177,7 @@
     get_local $1
     i32.const 7
     i32.store offset=16
-    i32.const 1038
+    i32.const 1033
     get_local $1
     i32.const 16
     i32.add
@@ -195,12 +186,12 @@
     get_local $1
     i32.const 8
     i32.store
-    i32.const 1045
+    i32.const 1040
     get_local $1
     call $printf
     drop
     get_local $1
-    i32.const 64
+    i32.const 48
     i32.add
     set_global $25
     i32.const 0
@@ -335,7 +326,7 @@
     get_local $1
     select
     tee_local $0
-    i32.const 1052
+    i32.const 1047
     get_local $0
     select
     tee_local $0
