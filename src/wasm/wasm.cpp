@@ -148,7 +148,7 @@ namespace wasm {
      * Link the module with the environment
      */
     Runtime::LinkResult WasmModule::link(Runtime::Compartment *compartment) {
-        RootResolver resolver(compartment);
+        RootResolver resolver;
 
         Runtime::ModuleInstance *envModule = Intrinsics::instantiateModule(
                 compartment,
