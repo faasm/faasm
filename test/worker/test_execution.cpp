@@ -133,8 +133,6 @@ namespace tests {
     TEST_CASE("Test state increment", "[worker]") {
         setUp();
 
-        const char* stateKey = "incr_example";
-
         // Set up the function call
         message::FunctionCall call;
         call.set_user("demo");

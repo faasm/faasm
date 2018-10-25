@@ -69,6 +69,11 @@ namespace edge {
         const uri uri = request.relative_uri();
         const std::vector<std::string> pathParts = uri::split_path(uri::decode(uri.path()));
 
+        if(pathParts.size() != 3) {
+            request.reply(status_codes::OK, "Invalid path (must be /f|fa/<user>/<func>/ \n");
+            throw InvalidPathException();
+        }
+
         // Check URI
         if (pathParts[0] == "f" || pathParts[0] == "fa") {
             message::FunctionCall call;

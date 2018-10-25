@@ -43,7 +43,6 @@ namespace tests {
         REQUIRE(mat.rows() == 2);
         REQUIRE(mat.cols() == 3);
 
-        long nBytes = 2 * 3 * sizeof(double);
         uint8_t *byteArray = faasm::matrixToBytes(mat);
 
         // Double check size assumption

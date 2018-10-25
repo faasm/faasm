@@ -88,8 +88,6 @@ def compile(context, path, libcurl=False, debug=False):
         *COMPILER_FLAGS,
         "-Oz",
         "-fvisibility=hidden",
-        "-fno-strict-float-cast-overflow",
-        "-mfloat-abi=hard",
         "-Wl,--allow-undefined",
         path,
         "-I", join("include", "faasm"),
