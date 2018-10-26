@@ -32,6 +32,9 @@ RUN pip install multiprocessing
 # Custom musl
 # ----------------------
 
+# Note, the steps here are the same as those done in the "musl" step of the
+# wasm waterfall build, the script for which can be found here:
+# https://github.com/WebAssembly/waterfall/blob/master/src/build.py
 WORKDIR /faasm
 RUN git clone https://github.com/Shillaker/musl.git
 RUN mkdir /faasm/musl-out

@@ -25,6 +25,17 @@ namespace tests {
         REQUIRE(outputBytes[3] == 3);
     }
 
+    TEST_CASE("Test printinf doesn't fail", "[wasm]") {
+        message::FunctionCall call;
+        call.set_user("demo");
+        call.set_function("print");
+
+        wasm::WasmModule module;
+
+        int result = module.execute(call);
+        REQUIRE(result == 0);
+    }
+
     TEST_CASE("Test executing WASM module with input and output", "[wasm]") {
         message::FunctionCall call;
         call.set_user("demo");
