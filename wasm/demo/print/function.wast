@@ -44,7 +44,7 @@
   (elem $23 (i32.const 1)
     $main $dummy $_fini $__stdio_write $__stdio_close $__stdout_write $__stdio_seek)
   (data $24 (i32.const 1024)
-    "f: %f\n\00i: %i\n\00\00\00\00\00\00\00\00\00\00\00\01\00\00\00\00\00\00\00\02\00\00\00\00\00\00\00/dev/null\00\00\00H\12\00\00\00\00\00\00\00\00\00\00"
+    "f: %f\n\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\01\00\00\00\00\00\00\00\02\00\00\00\00\00\00\00/dev/null\00\00\00H\12\00\00\00\00\00\00\00\00\00\00"
     "T!\"\19\0d\01\02\03\11K\1c\0c\10\04\0b\1d\12\1e'hnopqb \05\06\0f\13\14\15\1a\08\16\07($\17\18\09\n\0e\1b\1f%#\83\82}&*+<=>?CGJMXYZ"
     "[\\]^_`acdefgijklrstyz{|\00\00\00\00\00\00\00\00\00Illegal byte sequence\00Domain err"
     "or\00Result not representable\00Not a tty\00Permission denied\00Operatio"
@@ -161,28 +161,19 @@
     (result i32)
     (local $1 i32)
     get_global $25
-    i32.const 32
+    i32.const 16
     i32.sub
     tee_local $1
     set_global $25
     get_local $1
     i64.const 4630060705100333056
-    i64.store offset=16
+    i64.store
     i32.const 1024
     get_local $1
+    call $printf
+    drop
+    get_local $1
     i32.const 16
-    i32.add
-    call $printf
-    drop
-    get_local $1
-    i32.const 34
-    i32.store
-    i32.const 1031
-    get_local $1
-    call $printf
-    drop
-    get_local $1
-    i32.const 32
     i32.add
     set_global $25
     i32.const 0
@@ -317,7 +308,7 @@
     get_local $1
     select
     tee_local $0
-    i32.const 1038
+    i32.const 1031
     get_local $0
     select
     tee_local $0
@@ -2397,62 +2388,54 @@
     (param $1 i64)
     (result i32)
     get_local $1
+    i64.const 63
+    i64.shr_u
     i32.wrap/i64
-    i32.const 15
-    i32.shr_u
-    i32.const 1
-    i32.and
     )
   
   (func $__fpclassifyl (type $11)
     (param $0 i64)
     (param $1 i64)
     (result i32)
-    (local $2 i32)
+    (local $2 i64)
+    (local $3 i32)
+    (local $4 i32)
     get_local $1
-    i32.wrap/i64
-    i32.const 32767
-    i32.and
+    i64.const 281474976710655
+    i64.and
     set_local $2
     block $block
-      get_local $0
-      i64.const 0
-      i64.lt_s
-      br_if $block
-      get_local $2
-      br_if $block
-      i32.const 2
-      i32.const 3
-      get_local $0
-      i64.eqz
-      select
-      return
-    end ;; $block
-    block $block_0
-      block $block_1
-        get_local $2
+      block $block_0
+        get_local $1
+        i64.const 48
+        i64.shr_u
+        i32.wrap/i64
         i32.const 32767
-        i32.ne
-        br_if $block_1
-        get_local $0
-        i64.const -1
-        i64.le_s
+        i32.and
+        tee_local $3
+        i32.const 32767
+        i32.eq
         br_if $block_0
-        i32.const 0
+        i32.const 4
+        set_local $4
+        get_local $3
+        br_if $block
+        i32.const 2
+        i32.const 3
+        get_local $2
+        get_local $0
+        i64.or
+        i64.eqz
+        select
         return
-      end ;; $block_1
+      end ;; $block_0
+      get_local $2
       get_local $0
-      i64.const 61
-      i64.shr_u
-      i32.wrap/i64
-      i32.const 4
-      i32.and
-      return
-    end ;; $block_0
-    get_local $0
-    i64.const 9223372036854775807
-    i64.and
-    i64.eqz
+      i64.or
+      i64.eqz
+      set_local $4
+    end ;; $block
+    get_local $4
     )
   
   (func $frexpl (type $12)
@@ -2470,6 +2453,8 @@
     set_global $25
     block $block
       get_local $2
+      i64.const 48
+      i64.shr_u
       i32.wrap/i64
       tee_local $5
       i32.const 32767
@@ -2528,13 +2513,15 @@
           i32.add
           i32.store
           get_local $5
+          i32.const 32768
+          i32.and
           i32.const 16382
           i32.or
           i64.extend_u/i32
-          i64.const 49150
-          i64.and
+          i64.const 48
+          i64.shl
           get_local $2
-          i64.const -65536
+          i64.const 281474976710655
           i64.and
           i64.or
           set_local $2
@@ -3073,52 +3060,50 @@
     (local $36 i32)
     (local $37 i32)
     get_global $25
-    i32.const 7712
+    i32.const 7776
     i32.sub
     tee_local $5
     set_global $25
     i32.const 0
     get_local $5
-    i32.const 336
+    i32.const 352
     i32.add
     i32.sub
     set_local $6
     get_local $5
-    i32.const 336
+    i32.const 352
     i32.add
     i32.const 8
     i32.or
     set_local $7
     get_local $5
-    i32.const 336
+    i32.const 352
     i32.add
     i32.const 9
     i32.or
     set_local $8
     get_local $5
-    i32.const 324
+    i32.const 340
     i32.add
     i32.const 11
     i32.add
     set_local $9
     get_local $5
-    i32.const 7448
+    i32.const 7312
     i32.add
     set_local $10
     get_local $5
-    i32.const 336
+    i32.const 352
     i32.add
     set_local $11
     get_local $5
     i32.const 256
     i32.add
-    i32.const 42
+    i32.const 54
     i32.add
     set_local $12
     get_local $5
-    i32.const 256
-    i32.add
-    i32.const 43
+    i32.const 311
     i32.add
     set_local $13
     i32.const 0
@@ -3729,11 +3714,11 @@
                           i32.const 8
                           i32.add
                           i64.load
-                          i64.store offset=312
+                          i64.store offset=328
                           get_local $5
                           get_local $16
                           i64.load
-                          i64.store offset=304
+                          i64.store offset=320
                         end ;; $block_31
                         i32.const 0
                         set_local $16
@@ -3746,7 +3731,7 @@
                       i32.eqz
                       br_if $block_3
                       get_local $5
-                      i32.const 304
+                      i32.const 320
                       i32.add
                       get_local $16
                       get_local $2
@@ -3839,7 +3824,7 @@
                                                                                                         $block_70 ;; default
                                                                                                     end ;; $block_73
                                                                                                     get_local $5
-                                                                                                    i64.load offset=304
+                                                                                                    i64.load offset=320
                                                                                                     tee_local $28
                                                                                                     i64.const -1
                                                                                                     i64.le_s
@@ -3881,13 +3866,13 @@
                                                                                                   i32.store
                                                                                                   get_local $5
                                                                                                   get_local $5
-                                                                                                  i64.load offset=304
+                                                                                                  i64.load offset=320
                                                                                                   i64.store32 offset=248
                                                                                                   get_local $5
                                                                                                   get_local $5
                                                                                                   i32.const 248
                                                                                                   i32.add
-                                                                                                  i32.store offset=304
+                                                                                                  i32.store offset=320
                                                                                                   i32.const -1
                                                                                                   set_local $20
                                                                                                   get_local $5
@@ -3905,14 +3890,14 @@
                                                                                                   br_if $block_5
                                                                                                 end ;; $block_74
                                                                                                 get_local $5
-                                                                                                i64.load offset=312
+                                                                                                i64.load offset=328
                                                                                                 set_local $28
                                                                                                 get_local $5
-                                                                                                i64.load offset=304
+                                                                                                i64.load offset=320
                                                                                                 set_local $29
                                                                                                 get_local $5
                                                                                                 i32.const 0
-                                                                                                i32.store offset=364
+                                                                                                i32.store offset=396
                                                                                                 block $block_75
                                                                                                   block $block_76
                                                                                                     get_local $29
@@ -3964,7 +3949,7 @@
                                                                                                     get_local $29
                                                                                                     get_local $28
                                                                                                     get_local $5
-                                                                                                    i32.const 364
+                                                                                                    i32.const 396
                                                                                                     i32.add
                                                                                                     call $frexpl
                                                                                                     get_local $5
@@ -3997,10 +3982,10 @@
                                                                                                       br_if $block_80
                                                                                                       get_local $5
                                                                                                       get_local $5
-                                                                                                      i32.load offset=364
+                                                                                                      i32.load offset=396
                                                                                                       i32.const -1
                                                                                                       i32.add
-                                                                                                      i32.store offset=364
+                                                                                                      i32.store offset=396
                                                                                                     end ;; $block_80
                                                                                                     get_local $27
                                                                                                     i32.const 32
@@ -4020,16 +4005,16 @@
                                                                                                     select
                                                                                                     set_local $25
                                                                                                     get_local $20
-                                                                                                    i32.const 14
+                                                                                                    i32.const 26
                                                                                                     i32.gt_u
                                                                                                     br_if $block_44
-                                                                                                    i32.const 15
+                                                                                                    i32.const 27
                                                                                                     get_local $20
                                                                                                     i32.sub
                                                                                                     i32.eqz
                                                                                                     br_if $block_44
                                                                                                     get_local $20
-                                                                                                    i32.const -15
+                                                                                                    i32.const -27
                                                                                                     i32.add
                                                                                                     set_local $16
                                                                                                     i64.const 4612248968380809216
@@ -4188,7 +4173,7 @@
                                                                                                 i32.lt_s
                                                                                                 set_local $18
                                                                                                 get_local $5
-                                                                                                i32.load offset=364
+                                                                                                i32.load offset=396
                                                                                                 set_local $17
                                                                                                 block $block_83
                                                                                                   get_local $16
@@ -4207,7 +4192,7 @@
                                                                                                   i32.const -28
                                                                                                   i32.add
                                                                                                   tee_local $17
-                                                                                                  i32.store offset=364
+                                                                                                  i32.store offset=396
                                                                                                   get_local $5
                                                                                                   i32.const 192
                                                                                                   i32.add
@@ -4225,7 +4210,7 @@
                                                                                                 select
                                                                                                 set_local $35
                                                                                                 get_local $5
-                                                                                                i32.const 368
+                                                                                                i32.const 400
                                                                                                 i32.add
                                                                                                 get_local $10
                                                                                                 get_local $17
@@ -4377,11 +4362,11 @@
                                                                                                   end ;; $block_85
                                                                                                   get_local $5
                                                                                                   get_local $5
-                                                                                                  i32.load offset=364
+                                                                                                  i32.load offset=396
                                                                                                   get_local $17
                                                                                                   i32.sub
                                                                                                   tee_local $17
-                                                                                                  i32.store offset=364
+                                                                                                  i32.store offset=396
                                                                                                   get_local $16
                                                                                                   set_local $19
                                                                                                   get_local $17
@@ -4395,7 +4380,7 @@
                                                                                               i32.eqz
                                                                                               br_if $block_43
                                                                                               get_local $5
-                                                                                              i32.load offset=304
+                                                                                              i32.load offset=320
                                                                                               set_local $17
                                                                                             end ;; $block_69
                                                                                             i32.const 0
@@ -4441,10 +4426,10 @@
                                                                                           get_local $5
                                                                                           i32.const 256
                                                                                           i32.add
-                                                                                          i32.const 42
+                                                                                          i32.const 54
                                                                                           i32.add
                                                                                           get_local $5
-                                                                                          i64.load offset=304
+                                                                                          i64.load offset=320
                                                                                           i64.store8
                                                                                           i32.const 0
                                                                                           set_local $23
@@ -4482,7 +4467,7 @@
                                                                                           $block_86 ;; default
                                                                                       end ;; $block_86
                                                                                       get_local $5
-                                                                                      i32.load offset=304
+                                                                                      i32.load offset=320
                                                                                       get_local $15
                                                                                       i32.store
                                                                                       br $loop
@@ -4491,7 +4476,7 @@
                                                                                     set_local $17
                                                                                     block $block_87
                                                                                       get_local $5
-                                                                                      i64.load offset=304
+                                                                                      i64.load offset=320
                                                                                       tee_local $28
                                                                                       i64.eqz
                                                                                       br_if $block_87
@@ -4563,7 +4548,7 @@
                                                                                 set_local $26
                                                                                 block $block_88
                                                                                   get_local $5
-                                                                                  i64.load offset=304
+                                                                                  i64.load offset=320
                                                                                   tee_local $28
                                                                                   i64.eqz
                                                                                   br_if $block_88
@@ -4602,7 +4587,7 @@
                                                                                   i32.eqz
                                                                                   br_if $block_52
                                                                                   get_local $5
-                                                                                  i64.load offset=304
+                                                                                  i64.load offset=320
                                                                                   i64.eqz
                                                                                   br_if $block_52
                                                                                   get_local $27
@@ -4624,7 +4609,7 @@
                                                                                 br $block_50
                                                                               end ;; $block_62
                                                                               get_local $5
-                                                                              i32.load offset=304
+                                                                              i32.load offset=320
                                                                               tee_local $16
                                                                               i32.const 2998
                                                                               get_local $16
@@ -4662,7 +4647,7 @@
                                                                           i32.const 2988
                                                                           set_local $26
                                                                           get_local $5
-                                                                          i64.load offset=304
+                                                                          i64.load offset=320
                                                                           set_local $28
                                                                           br $block_53
                                                                         end ;; $block_59
@@ -4677,7 +4662,7 @@
                                                                       get_local $28
                                                                       i64.sub
                                                                       tee_local $28
-                                                                      i64.store offset=304
+                                                                      i64.store offset=320
                                                                       i32.const 1
                                                                       set_local $23
                                                                       i32.const 2988
@@ -4705,7 +4690,7 @@
                                                                   i32.gt_s
                                                                   br_if $block_89
                                                                   get_local $35
-                                                                  i32.const 29
+                                                                  i32.const 45
                                                                   i32.add
                                                                   i32.const 9
                                                                   i32.div_u
@@ -4798,11 +4783,11 @@
                                                                     end ;; $block_90
                                                                     get_local $5
                                                                     get_local $5
-                                                                    i32.load offset=364
+                                                                    i32.load offset=396
                                                                     get_local $23
                                                                     i32.add
                                                                     tee_local $17
-                                                                    i32.store offset=364
+                                                                    i32.store offset=396
                                                                     get_local $36
                                                                     get_local $18
                                                                     get_local $32
@@ -4983,9 +4968,9 @@
                                                                         i32.const 1
                                                                         i32.and
                                                                         br_if $block_98
-                                                                        i64.const 4626322717216342015
+                                                                        i64.const 4643211215818981376
                                                                         set_local $28
-                                                                        i64.const -12798843684340
+                                                                        i64.const 0
                                                                         set_local $29
                                                                         get_local $23
                                                                         get_local $18
@@ -5004,9 +4989,9 @@
                                                                         i32.eqz
                                                                         br_if $block_97
                                                                       end ;; $block_98
-                                                                      i64.const 4626322717216342016
+                                                                      i64.const 4643211215818981376
                                                                       set_local $28
-                                                                      i64.const 1152915105185004806
+                                                                      i64.const 1
                                                                       set_local $29
                                                                     end ;; $block_97
                                                                     i64.const 4611123068473966592
@@ -5333,7 +5318,7 @@
                                                       select
                                                       set_local $22
                                                       get_local $5
-                                                      i64.load offset=304
+                                                      i64.load offset=320
                                                       set_local $28
                                                       block $block_106
                                                         get_local $20
@@ -5550,7 +5535,7 @@
                                           end ;; $block_44
                                           block $block_111
                                             get_local $5
-                                            i32.load offset=364
+                                            i32.load offset=396
                                             tee_local $18
                                             get_local $18
                                             i32.const 31
@@ -5567,7 +5552,7 @@
                                             i32.ne
                                             br_if $block_111
                                             get_local $5
-                                            i32.const 324
+                                            i32.const 340
                                             i32.add
                                             i32.const 11
                                             i32.add
@@ -5603,7 +5588,7 @@
                                           i32.and
                                           set_local $23
                                           get_local $5
-                                          i32.const 336
+                                          i32.const 352
                                           i32.add
                                           set_local $18
                                           loop $loop_23
@@ -5664,7 +5649,7 @@
                                               i32.add
                                               tee_local $18
                                               get_local $5
-                                              i32.const 336
+                                              i32.const 352
                                               i32.add
                                               i32.sub
                                               i32.const 1
@@ -5726,7 +5711,7 @@
                                           i32.add
                                           get_local $18
                                           get_local $5
-                                          i32.const 336
+                                          i32.const 352
                                           i32.add
                                           i32.sub
                                           tee_local $18
@@ -5771,7 +5756,7 @@
                                             i32.and
                                             br_if $block_115
                                             get_local $5
-                                            i32.const 336
+                                            i32.const 352
                                             i32.add
                                             get_local $18
                                             get_local $0
@@ -6045,17 +6030,17 @@
                                             br_if $block_124
                                             get_local $16
                                             get_local $5
-                                            i32.const 336
+                                            i32.const 352
                                             i32.add
                                             i32.le_u
                                             br_if $block_123
                                             get_local $5
-                                            i32.const 336
+                                            i32.const 352
                                             i32.add
                                             i32.const 48
                                             get_local $16
                                             get_local $5
-                                            i32.const 336
+                                            i32.const 352
                                             i32.add
                                             i32.sub
                                             call $memset
@@ -6066,7 +6051,7 @@
                                               i32.add
                                               tee_local $16
                                               get_local $5
-                                              i32.const 336
+                                              i32.const 352
                                               i32.add
                                               i32.gt_u
                                               br_if $loop_26
@@ -6079,7 +6064,7 @@
                                           br_if $block_123
                                           get_local $5
                                           i32.const 48
-                                          i32.store8 offset=344
+                                          i32.store8 offset=360
                                           get_local $7
                                           set_local $16
                                         end ;; $block_123
@@ -6137,17 +6122,17 @@
                                             call $fmt_u
                                             tee_local $16
                                             get_local $5
-                                            i32.const 336
+                                            i32.const 352
                                             i32.add
                                             i32.le_u
                                             br_if $block_128
                                             get_local $5
-                                            i32.const 336
+                                            i32.const 352
                                             i32.add
                                             i32.const 48
                                             get_local $16
                                             get_local $5
-                                            i32.const 336
+                                            i32.const 352
                                             i32.add
                                             i32.sub
                                             call $memset
@@ -6158,7 +6143,7 @@
                                               i32.add
                                               tee_local $16
                                               get_local $5
-                                              i32.const 336
+                                              i32.const 352
                                               i32.add
                                               i32.gt_u
                                               br_if $loop_28
@@ -6233,7 +6218,7 @@
                                           br_if $block_131
                                           get_local $5
                                           i32.const 48
-                                          i32.store8 offset=344
+                                          i32.store8 offset=360
                                           get_local $7
                                           set_local $16
                                         end ;; $block_131
@@ -6245,12 +6230,12 @@
                                             br_if $block_133
                                             get_local $16
                                             get_local $5
-                                            i32.const 336
+                                            i32.const 352
                                             i32.add
                                             i32.le_u
                                             br_if $block_132
                                             get_local $5
-                                            i32.const 336
+                                            i32.const 352
                                             i32.add
                                             i32.const 48
                                             get_local $16
@@ -6264,7 +6249,7 @@
                                               i32.add
                                               tee_local $16
                                               get_local $5
-                                              i32.const 336
+                                              i32.const 352
                                               i32.add
                                               i32.gt_u
                                               br_if $loop_30
@@ -6388,38 +6373,38 @@
                                 br $block_5
                               end ;; $block_38
                               get_local $5
-                              i32.load offset=304
+                              i32.load offset=320
                               get_local $15
                               i32.store
                               br $loop
                             end ;; $block_37
                             get_local $5
-                            i32.load offset=304
+                            i32.load offset=320
                             get_local $15
                             i64.extend_s/i32
                             i64.store
                             br $loop
                           end ;; $block_36
                           get_local $5
-                          i32.load offset=304
+                          i32.load offset=320
                           get_local $15
                           i32.store16
                           br $loop
                         end ;; $block_35
                         get_local $5
-                        i32.load offset=304
+                        i32.load offset=320
                         get_local $15
                         i32.store8
                         br $loop
                       end ;; $block_34
                       get_local $5
-                      i32.load offset=304
+                      i32.load offset=320
                       get_local $15
                       i32.store
                       br $loop
                     end ;; $block_33
                     get_local $5
-                    i32.load offset=304
+                    i32.load offset=320
                     get_local $15
                     i64.extend_s/i32
                     i64.store
@@ -6508,7 +6493,7 @@
       set_local $15
     end ;; $block
     get_local $5
-    i32.const 7712
+    i32.const 7776
     i32.add
     set_global $25
     get_local $15
