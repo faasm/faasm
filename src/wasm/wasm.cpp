@@ -197,12 +197,15 @@ namespace wasm {
     }
 
     void WasmModule::addInputData(message::FunctionCall &call) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::string &inputString = call.inputdata();
-        std::cout << "Received input: " << inputString << std::endl;
 
         if (inputString.size() > MAX_INPUT_BYTES) {
+            logger->error("Input data too large");
             throw (std::runtime_error("Input data too large"));
         }
+
+        logger->debug("Received input {}", call.inputdata());
 
         const std::vector<uint8_t> &inputBytes = util::stringToBytes(inputString);
 

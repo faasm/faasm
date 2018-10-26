@@ -26,8 +26,8 @@ namespace tests {
             messageIsFound = true;
         }
 
-        if(!messageIsFound) {
-            std::cout<< expectedMsg << " not found in " << actualOutput.c_str() << std::endl;
+        if (!messageIsFound) {
+            std::cout << expectedMsg << " not found in " << actualOutput.c_str() << std::endl;
         }
 
         REQUIRE(messageIsFound);

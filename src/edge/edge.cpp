@@ -5,6 +5,8 @@ namespace edge {
     RestServer::RestServer() = default;
 
     void RestServer::listen(const std::string &port) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         std::string addr = "http://0.0.0.0:" + port;
         http_listener listener(addr);
 
@@ -17,8 +19,8 @@ namespace edge {
         listener.open().wait();
 
         // Continuous loop required to allow listening apparently
+        logger->info("Listening for requests on localhost:{}", port);
         while (true) {
-            std::cout << "Listening for requests on localhost:" << port << std::endl;
             usleep(60 * 1000 * 1000);
         }
     }
@@ -28,6 +30,8 @@ namespace edge {
     }
 
     void RestServer::handlePost(http_request request) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         message::FunctionCall call = RestServer::buildCallFromRequest(request);
 
         infra::Redis *redis = infra::Redis::getThreadConnection();
@@ -36,21 +40,23 @@ namespace edge {
 
         if (call.isasync()) {
             // Don't wait for result
-            std::cout << "Submitted async " << call.user() << " - " << call.function() << std::endl;
+            logger->info("Async request ({}/{})", call.user(), call.function());
             request.reply(status_codes::Created, "Async request submitted\n");
         } else {
-            std::cout << "Awaiting result for " << call.user() << " - " << call.function() << std::endl;
-
+            logger->info("Sync request ({}/{})", call.user(), call.function());
             message::FunctionCall result = redis->getFunctionResult(call);
             request.reply(status_codes::OK, result.outputdata() + "\n");
+            logger->info("Finished request ({}/{})", call.user(), call.function());
         }
     }
 
     void RestServer::handlePut(http_request request) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         message::FunctionCall call = RestServer::buildCallFromRequest(request);
         std::string outputFile = infra::getFunctionFile(call);
 
-        std::cout << "Uploading " << call.user() << " - " << call.function() << " to " << outputFile << std::endl;
+        logger->info("Uploading ({}/{})", call.user(), call.function());
 
         // Here the call input data is actually the file
         std::ofstream out(outputFile);

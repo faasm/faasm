@@ -5,6 +5,7 @@
 #include <queue>
 #include <mutex>
 #include <condition_variable>
+#include <spdlog/spdlog.h>
 
 
 namespace util {
@@ -40,4 +41,8 @@ namespace util {
         std::mutex queueMutex;
         std::condition_variable tokenCondition;
     };
+
+    // Logging
+    void initLogging();
+    std::shared_ptr<spdlog::logger> getLogger();
 }

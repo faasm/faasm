@@ -93,9 +93,6 @@ namespace infra {
         resultKey += std::to_string(randomNumber);
         call.set_resultkey(resultKey);
 
-        // Send the function call
-        std::cout << "Function " << call.user() << " - " << call.function() << " - " << randomNumber << std::endl;
-
         std::vector<uint8_t> inputData = infra::callToBytes(call);
 
         this->enqueue(CALLS_QUEUE, inputData);

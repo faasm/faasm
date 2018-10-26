@@ -49,5 +49,10 @@ def setup_clang(context):
 
 
 @task
+def setup_spdlog(context):
+    playbook_command("spdlog.yml")
+
+
+@task
 def setup_eigen(context):
     playbook_command("eigen.yml")

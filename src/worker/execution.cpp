@@ -9,11 +9,13 @@ namespace worker {
     static util::TokenPool tokenPool(WORKER_THREADS);
 
     void execNextFunction() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         // Try to get an available slot
         int threadIdx = tokenPool.getToken();
 
         // Get next call (blocking)
-        std::cout << "Worker waiting on slot " << threadIdx << "..." << std::endl;
+        logger->debug("Worker waiting on slot {}", threadIdx);
         infra::Redis *redis = infra::Redis::getThreadConnection();
         message::FunctionCall call = redis->nextFunctionCall();
 
@@ -25,7 +27,8 @@ namespace worker {
     }
 
     void finishCall(message::FunctionCall &call, const std::string &errorMessage) {
-        std::cout << "Finished call:  " << call.user() << " - " << call.function() << std::endl;
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->info("Finished ({}/{})", call.user(), call.function());
 
         bool isSuccess = errorMessage.empty();
 
@@ -39,6 +42,8 @@ namespace worker {
 
     /** Handles the execution of the function */
     void execFunction(int index, message::FunctionCall call) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         if (!infra::isValidFunction(call)) {
             std::string errorMessage = call.user();
             errorMessage.append(" - ");
@@ -60,7 +65,7 @@ namespace worker {
         NetworkNamespace ns(netnsName);
         ns.addCurrentThread();
 
-        std::cout << "Starting call:  " << call.user() << " - " << call.function() << std::endl;
+        logger->info("Starting ({}/{})", call.user(), call.function());
 
         // Create and execute the module
         wasm::WasmModule module;
@@ -69,11 +74,13 @@ namespace worker {
         }
         catch (const std::exception &e) {
             std::string errorMessage = "Error: " + std::string(e.what());
-            std::cout << errorMessage << std::endl;
+            logger->error(errorMessage);
+
             return finishCall(call, errorMessage);
         }
         catch (...) {
-            std::cout << "Unknown error in wasm execution" << std::endl;
+            logger->error("Unknown error in wasm execution");
+
             return finishCall(call, "Error in execution");
         }
 
@@ -81,7 +88,8 @@ namespace worker {
         ns.removeCurrentThread();
 
         // Release the token
-        std::cout << "Worker releasing slot " << index << std::endl;
+        logger->debug("Worker releasing slot {}", index);
+
         tokenPool.releaseToken(index);
 
         // Dispatch any chained calls

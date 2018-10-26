@@ -39,6 +39,8 @@ namespace worker {
     }
 
     void addCurrentThreadToTasks(const path &tasksPath) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         pid_t threadId = getCurrentTid();
 
         std::ofstream outfile;
@@ -46,13 +48,14 @@ namespace worker {
         outfile << threadId << std::endl;
         outfile.flush();
 
-        std::cout << "Added thread id " << threadId << " to " << tasksPath << std::endl;
+        logger->debug("Added thread id {} to {}", threadId, tasksPath.string());
     }
 
     void CGroup::addCurrentThread() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         if (mode == CgroupMode::cg_off) {
-            std::cout << "Not adding thread. cgroup support off" << std::endl;
+            logger->debug("Not adding thread. cgroup support off");
             return;
         }
 

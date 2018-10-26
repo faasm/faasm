@@ -7,7 +7,6 @@
 
 
 namespace worker {
-
     NetworkNamespace::NetworkNamespace(const std::string &name) : name(name) {
         // Get which mode we're operating in
         std::string modeEnv = util::getEnvVar("NETNS_MODE", "off");
@@ -31,24 +30,29 @@ namespace worker {
     void joinNamespace(const boost::filesystem::path &nsPath) {
         int fd = open(nsPath.c_str(), O_RDONLY, 0);
 
-        std::cout << "Setting network ns to " << nsPath << std::endl;
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        logger->debug("Setting network ns to {}", nsPath.string());
+
         int result = setns(fd, CLONE_NEWNET);
         close(fd);
 
-        if(result != 0) {
-            std::cout << "Setns failed: " << errno << std::endl;
+        if (result != 0) {
+            logger->error("Setns failed: {}", errno);
         }
 
         return;
     }
 
     void NetworkNamespace::addCurrentThread() {
-        if(mode == NetworkIsolationMode::ns_off) {
-            std::cout << "Not using network ns, support off" << std::endl;
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        if (mode == NetworkIsolationMode::ns_off) {
+            logger->debug("Not using network ns, support off");
             return;
         }
 
-        std::cout << "Adding thread to network ns " << name << std::endl;
+        logger->debug("Adding thread to network ns: {}", name);
 
         // Open path to the namespace
         boost::filesystem::path nsPath("/var/run/netns");
@@ -58,8 +62,10 @@ namespace worker {
     };
 
     void NetworkNamespace::removeCurrentThread() {
-        if(mode == NetworkIsolationMode::ns_off) {
-            std::cout << "Not using network ns, support off" << std::endl;
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        if (mode == NetworkIsolationMode::ns_off) {
+            logger->debug("Not using network ns, support off");
             return;
         }
 

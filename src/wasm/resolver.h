@@ -21,7 +21,8 @@ namespace wasm {
                 };
             }
 
-            std::cout << "Missing import " << moduleName << "." << exportName << " - " << asString(type).c_str() << std::endl;
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->error("Missing import {}.{} {}", moduleName, exportName, asString(type).c_str());
 
             return false;
         }
