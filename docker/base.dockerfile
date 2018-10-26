@@ -15,6 +15,7 @@ COPY . /faasm/code
 # Install required libraries
 WORKDIR /faasm/code/ansible
 RUN ansible-playbook libs.yml
+RUN ansible-playbook spdlog.yml
 
 # Build WAVM to avoid repetition in other dockerfiles
 WORKDIR /faasm/build
