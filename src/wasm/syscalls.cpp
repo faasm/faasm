@@ -15,6 +15,7 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/RuntimeData.h>
 #include <WAVM/Runtime/Intrinsics.h>
+#include<stdarg.h>
 
 using namespace WAVM;
 
@@ -46,18 +47,36 @@ using namespace WAVM;
 namespace wasm {
     DEFINE_INTRINSIC_MODULE(env)
 
+    //TODO - come up with a configurable way to do this
+    static bool isTracingSyscalls = false;
+
     static const char *HOSTS_FILE = "/usr/local/faasm/net/hosts";
     static const char *RESOLV_FILE = "/usr/local/faasm/net/resolv.conf";
 
     // Thread-local variables to isolate bits of environment
     static thread_local std::set<int> openFds;
 
+    void logSyscall(const char *syscallName, const char *fmt, ...) {
+        if (!isTracingSyscalls) {
+            return;
+        }
+
+        va_list args;
+        va_start(args, fmt);
+
+        printf("SYSCALL - %s", syscallName);
+        printf(fmt, args);
+        printf("\n");
+
+        va_end(args);
+    }
+
     // ------------------------
     // FAASM-specific
     // ------------------------
     DEFINE_INTRINSIC_FUNCTION(env, "_Z19__faasm_write_statePKcPhm", void, _Z19__faasm_write_statePKcPhm,
                               I32 keyPtr, I32 dataPtr, I32 dataLen) {
-        printf("FAASM - write_state - %i %i %i\n", keyPtr, dataPtr, dataLen);
+        logSyscall("write_state", "%i %i %i", keyPtr, dataPtr, dataLen);
 
         Runtime::Memory *memoryPtr = getModuleMemory();
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
@@ -73,7 +92,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "_Z26__faasm_write_state_offsetPKcmPhm", void, _Z26__faasm_write_state_offsetPKcmPhm,
                               I32 keyPtr, I32 offset, I32 dataPtr, I32 dataLen) {
-        printf("FAASM - write_state_offset - %i %i %i %i\n", keyPtr, offset, dataPtr, dataLen);
+        logSyscall("write_state_offset", "%i %i %i %i", keyPtr, offset, dataPtr, dataLen);
 
         Runtime::Memory *memoryPtr = getModuleMemory();
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
@@ -106,7 +125,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "_Z18__faasm_read_statePKcPhm", I32, _Z18__faasm_read_statePKcPhm,
                               I32 keyPtr, I32 bufferPtr, I32 bufferLen) {
-        printf("FAASM - read_state - %i %i %i \n", keyPtr, bufferPtr, bufferLen);
+        logSyscall("read_state", "%i %i %i", keyPtr, bufferPtr, bufferLen);
 
         Runtime::Memory *memoryPtr = getModuleMemory();
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
@@ -123,7 +142,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "_Z25__faasm_read_state_offsetPKcmPhm", void, _Z25__faasm_read_state_offsetPKcmPhm,
                               I32 keyPtr, I32 offset, I32 bufferPtr, I32 bufferLen) {
-        printf("FAASM - read_state_offset - %i %i %i %i \n", keyPtr, offset, bufferPtr, bufferLen);
+        logSyscall("read_state_offset", "%i %i %i %i", keyPtr, offset, bufferPtr, bufferLen);
 
         Runtime::Memory *memoryPtr = getModuleMemory();
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
@@ -148,7 +167,7 @@ namespace wasm {
 
     /** Whitelist specific files to allow open and read-only */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_open", I32, __syscall_open, I32 pathPtr, I32 flags, I32 mode) {
-        printf("SYSCALL - open %i %i %i\n", pathPtr, flags, mode);
+        logSyscall("open", "%i %i %i", pathPtr, flags, mode);
 
         // Get the path
         Runtime::Memory *memoryPtr = getModuleMemory();
@@ -186,7 +205,7 @@ namespace wasm {
     /** Dummy fcntl implementation, many operations are irrelevant */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_fcntl64", I32, __syscall_fcntl64,
                               I32 fd, I32 cmd, I32 c) {
-        printf("SYSCALL - fcntl64 %i %i %i\n", fd, cmd, c);
+        logSyscall("fcntl64", "%i %i %i", fd, cmd, c);
 
         checkThreadOwnsFd(fd);
 
@@ -195,7 +214,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_read", I32, __syscall_read,
                               I32 fd, I32 bufPtr, I32 count) {
-        printf("SYSCALL - read %i %i %i\n", fd, bufPtr, count);
+        logSyscall("read", "%i %i %i", fd, bufPtr, count);
 
         // Provided the thread owns the fd, we allow reading.
         checkThreadOwnsFd(fd);
@@ -211,7 +230,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_close", I32, __syscall_close, I32 fd) {
-        printf("SYSCALL - close %i\n", fd);
+        logSyscall("close", "%i", fd);
 
         // Provided the thread owns the fd, we allow closing.
         checkThreadOwnsFd(fd);
@@ -224,7 +243,7 @@ namespace wasm {
 
     /** Poll is annoying as it passes an array of structs. */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_poll", I32, __syscall_poll, I32 fdsPtr, I32 nfds, I32 timeout) {
-        printf("SYSCALL - poll %i %i %i\n", fdsPtr, nfds, timeout);
+        logSyscall("poll", "%i %i %i", fdsPtr, nfds, timeout);
 
         if (nfds != 1) {
             printf("Trying to poll %i fds\n", nfds);
@@ -242,14 +261,14 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "ioctl", I32, ioctl, I32 a, I32 b, I32 c) {
-        printf("INTRINSIC - ioctl %i %i %i\n", a, b, c);
+        logSyscall("ioctl", "%i %i %i", a, b, c);
 
         return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_ioctl", I32, __syscall_ioctl,
                               I32 fd, I32 request, I32 argPtr, I32 d, I32 e, I32 f) {
-        printf("SYSCALL - ioctl %i %i %i %i %i %i\n", fd, request, argPtr, d, e, f);
+        logSyscall("ioctl", "%i %i %i %i %i %i", fd, request, argPtr, d, e, f);
 
         return 0;
     }
@@ -258,7 +277,7 @@ namespace wasm {
         Runtime::Memory *memoryPtr = getModuleMemory();
         char *string = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
 
-        printf("INTRINSIC - puts %s\n", string);
+        logSyscall("puts", "%s", string);
 
         return 0;
     }
@@ -269,7 +288,7 @@ namespace wasm {
     };
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_writev", I32, __syscall_writev, I32 fd, I32 iov, I32 iovcnt) {
-        printf("SYSCALL - writev %i %i %i\n", fd, iov, iovcnt);
+        logSyscall("writev", "%i %i %i", fd, iov, iovcnt);
         Runtime::Memory *memoryPtr = getModuleMemory();
 
         // Get array of iovecs from memory
@@ -303,80 +322,80 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_readv", I32, __syscall_readv,
                               I32 a, I32 b, I32 c) {
-        printf("SYSCALL - readv %i %i %i \n", a, b, c);
+        logSyscall("readv", "%i %i %i", a, b, c);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_llseek", I32, __syscall_llseek, I32 a, I32 b, I32 c, I32 d, I32 e) {
-        printf("SYSCALL - llseek %i %i %i %i %i\n", a, b, c, d, e);
+        logSyscall("llseek", "%i %i %i %i %i", a, b, c, d, e);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_futex", I32, __syscall_futex,
                               I32 a, I32 b, I32 c, I32 d, I32 e, I32 f) {
-        printf("SYSCALL - futex %i %i %i %i %i %i\n", a, b, c, d, e, f);
+        logSyscall("futex", "%i %i %i %i %i %i", a, b, c, d, e, f);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_fstat64", I32, __syscall_fstat64, I32 a, I32 b) {
-        printf("SYSCALL - fstat64 %i %i \n", a, b);
+        logSyscall("fstat64", "%i %i", a, b);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_stat64", I32, __syscall_stat64, I32 a, I32 b) {
-        printf("SYSCALL - stat64 %i %i \n", a, b);
+        logSyscall("stat64", "%i %i", a, b);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_access", I32, __syscall_access, I32 a, I32 b) {
-        printf("SYSCALL - access %i %i \n", a, b);
+        logSyscall("access", "%i %i", a, b);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_chown32", I32, __syscall_chown32, I32 a, I32 b, I32 c) {
-        printf("SYSCALL - chown32 %i %i %i \n", a, b, c);
+        logSyscall("chown32", "%i %i %i", a, b, c);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_openat", I32, __syscall_openat, I32 a, I32 b, I32 c, I32 d) {
-        printf("SYSCALL - getrlimit %i %i %i %i\n", a, b, c, d);
+        logSyscall("openat", "%i %i %i %i", a, b, c, d);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_fsync", I32, __syscall_fsync, I32 a) {
-        printf("SYSCALL - fsync %i\n", a);
+        logSyscall("fsync", "%i", a);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_dup2", I32, __syscall_dup2, I32 a, I32 b) {
-        printf("SYSCALL - dup2 %i %i\n", a, b);
+        logSyscall("dup2", "%i %i", a, b);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_dup", I32, __syscall_dup, I32 a) {
-        printf("SYSCALL - dup %i\n", a);
+        logSyscall("dup", "%i", a);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_pipe", I32, __syscall_pipe, I32 a) {
-        printf("SYSCALL - pipe %i\n", a);
+        logSyscall("pipe", "%i", a);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall__newselect", I32, __syscall__newselect, I32 a, I32 b, I32 c, I32 d,
                               I32 e) {
-        printf("SYSCALL - newselect %i %i %i %i %i\n", a, b, c, d, e);
+        logSyscall("newselect", "%i %i %i %i %i", a, b, c, d, e);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_fdatasync", I32, __syscall_fdatasync, I32 a) {
-        printf("SYSCALL - fdatasync %i \n", a);
+        logSyscall("fdatasync", "%i", a);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
@@ -386,49 +405,49 @@ namespace wasm {
     // ------------------------
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_creat", I32, __syscall_creat, I32 a, I32 b) {
-        printf("SYSCALL - creat %i %i\n", a, b);
+        logSyscall("creat", "%i %i", a, b);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_unlink", I32, __syscall_unlink, I32 a) {
-        printf("SYSCALL - unlink %i \n", a);
+        logSyscall("unlink", "%i", a);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_readlink", I32, __syscall_readlink, I32 a, I32 b, I32 c) {
-        printf("SYSCALL - readlink %i %i %i\n", a, b, c);
+        logSyscall("readlink", "%i %i %i", a, b, c);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_chdir", I32, __syscall_chdir, I32 a) {
-        printf("SYSCALL - chdir %i \n", a);
+        logSyscall("chdir", "%i", a);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_umask", I32, __syscall_umask, I32 a) {
-        printf("SYSCALL - umask %i \n", a);
+        logSyscall("umask", "%i", a);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_getdents64", I32, __syscall_getdents64, I32 a, I32 b, I32 c) {
-        printf("SYSCALL - getdents64 %i %i %i\n", a, b, c);
+        logSyscall("getdents64", "%i %i %i", a, b, c);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_lstat64", I32, __syscall_lstat64, I32 a, I32 b) {
-        printf("SYSCALL - lstat64 %i %i\n", a, b);
+        logSyscall("lstat64", "%i %i", a, b);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_rename", I32, __syscall_rename, I32 a, I32 b) {
-        printf("SYSCALL - rename %i %i\n", a, b);
+        logSyscall("rename", "%i %i", a, b);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
@@ -565,7 +584,7 @@ namespace wasm {
                     }
                 }
 
-                printf("SYSCALL - socket %i %i %i\n", domain, type, protocol);
+                logSyscall("socket", "%i %i %i", domain, type, protocol);
                 I32 sock = (int) syscall(SYS_socket, domain, type, protocol);
 
                 if (sock < 0) {
@@ -584,7 +603,7 @@ namespace wasm {
                 I32 addrPtr = subCallArgs[1];
                 I32 addrLen = subCallArgs[2];
 
-                printf("SYSCALL - connect - %i %i %i\n", sockfd, addrPtr, addrLen);
+                logSyscall("connect", "%i %i %i", sockfd, addrPtr, addrLen);
 
                 // Allow connecting if thread owns socket
                 checkThreadOwnsFd(sockfd);
@@ -620,12 +639,12 @@ namespace wasm {
 
                 ssize_t result = 0;
                 if (call == SocketCalls::sc_send) {
-                    printf("SYSCALL - send %i %li %li %i \n", sockfd, bufPtr, bufLen, flags);
+                    logSyscall("send", "%i %li %li %i", sockfd, bufPtr, bufLen, flags);
 
                     result = send(sockfd, buf, bufLen, flags);
 
                 } else if (call == SocketCalls::sc_recv) {
-                    printf("SYSCALL - recv %i %li %li %i \n", sockfd, bufPtr, bufLen, flags);
+                    logSyscall("recv", "%i %li %li %i", sockfd, bufPtr, bufLen, flags);
 
                     result = recv(sockfd, buf, bufLen, flags);
 
@@ -636,15 +655,15 @@ namespace wasm {
                     socklen_t addrLen = subCallArgs[5];
 
                     if (call == SocketCalls::sc_sendto) {
-                        printf("SYSCALL - sendto %i %li %li %i %i %i \n", sockfd, bufPtr, bufLen, flags, sockAddrPtr,
-                               addrLen);
+                        logSyscall("sendto", "%i %li %li %i %i %i", sockfd, bufPtr, bufLen, flags, sockAddrPtr,
+                                     addrLen);
 
                         result = sendto(sockfd, buf, bufLen, flags, &sockAddr, nativeAddrLen);
 
                     } else {
                         // Note, addrLen here is actually a pointer
-                        printf("SYSCALL - recvfrom %i %li %li %i %i %i \n", sockfd, bufPtr, bufLen, flags, sockAddrPtr,
-                               addrLen);
+                        logSyscall("recvfrom", "%i %li %li %i %i %i", sockfd, bufPtr, bufLen, flags, sockAddrPtr,
+                                     addrLen);
 
                         // Make the native call
                         result = recvfrom(sockfd, buf, bufLen, flags, &sockAddr, &nativeAddrLen);
@@ -668,7 +687,7 @@ namespace wasm {
 
                 I32 addrLen = subCallArgs[2];
 
-                printf("SYSCALL - bind %i %i %i \n", sockfd, addrPtr, addrLen);
+                logSyscall("bind", "%i %i %i", sockfd, addrPtr, addrLen);
 
                 // If thread owns fd, we can bind
                 checkThreadOwnsFd(sockfd);
@@ -683,7 +702,7 @@ namespace wasm {
                 I32 addrPtr = subCallArgs[1];
                 I32 addrLenPtr = subCallArgs[2];
 
-                printf("SYSCALL - getsockname %i %i %i\n", sockfd, addrPtr, addrLenPtr);
+                logSyscall("getsockname", "%i %i %i", sockfd, addrPtr, addrLenPtr);
 
                 checkThreadOwnsFd(sockfd);
 
@@ -704,51 +723,51 @@ namespace wasm {
                 // ----------------------------
 
             case (SocketCalls::sc_getpeername): {
-                printf("SYSCALL - getpeername %i %i\n", call, argsPtr);
+                logSyscall("getpeername", "%i %i", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_socketpair): {
-                printf("SYSCALL - socketpair %i %i\n", call, argsPtr);
+                logSyscall("socketpair", "%i %i", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_shutdown): {
-                printf("SYSCALL - shutdown %i %i\n", call, argsPtr);
+                logSyscall("shutdown", "%i %i", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_setsockopt): {
-                printf("SYSCALL - setsockopt %i %i\n", call, argsPtr);
+                logSyscall("setsockopt", "%i %i", call, argsPtr);
                 return 0;
             }
             case (SocketCalls::sc_getsockopt): {
-                printf("SYSCALL - getsockopt %i %i\n", call, argsPtr);
+                logSyscall("getsockopt", "%i %i", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_sendmsg): {
-                printf("SYSCALL - sendmsg %i %i\n", call, argsPtr);
+                logSyscall("sendmsg", "%i %i", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_recvmsg): {
-                printf("SYSCALL - recvmsg %i %i\n", call, argsPtr);
+                logSyscall("recvmsg", "%i %i", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_accept4): {
-                printf("SYSCALL - accept4 %i %i\n", call, argsPtr);
+                logSyscall("accept4", "%i %i", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_recvmmsg): {
-                printf("SYSCALL - recvmmsg %i %i\n", call, argsPtr);
+                logSyscall("recvmmsg", "%i %i", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_sendmmsg): {
-                printf("SYSCALL - sendmmsg %i %i\n", call, argsPtr);
+                logSyscall("sendmmsg", "%i %i", call, argsPtr);
                 return 0;
             }
 
@@ -758,13 +777,13 @@ namespace wasm {
 
             case (SocketCalls::sc_accept):
                 // Server-side
-                printf("SYSCALL - accept %i %i\n", call, argsPtr);
+                logSyscall("accept", "%i %i", call, argsPtr);
 
                 throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
 
             case (SocketCalls::sc_listen): {
                 // Server-side
-                printf("SYSCALL - listen %i %i\n", call, argsPtr);
+                logSyscall("listen", "%i %i", call, argsPtr);
 
                 throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
             }
@@ -781,7 +800,7 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "_gethostbyname", I32, _gethostbyname, I32 hostnamePtr) {
         auto hostname = &Runtime::memoryRef<char>(getModuleMemory(), (Uptr) hostnamePtr);
 
-        printf("INTRINSIC - gethostbyname %s\n", hostname);
+        logSyscall("gethostbyname", "%s", hostname);
 
         return 0;
     }
@@ -799,7 +818,7 @@ namespace wasm {
     //TODO - make this more secure
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_clock_gettime", I32, __syscall_clock_gettime,
                               I32 clockId, I32 resultAddress) {
-        printf("SYSCALL - clock_gettime %i %i\n", clockId, resultAddress);
+        logSyscall("clock_gettime", "%i %i", clockId, resultAddress);
 
         timespec ts{};
         clock_gettime(clockId, &ts);
@@ -816,17 +835,17 @@ namespace wasm {
     // ------------------------
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_gettimeofday", I32, __syscall_gettimeofday, I32 a, I32 b) {
-        printf("SYSCALL - gettimeofday %i %i\n", a, b);
+        logSyscall("gettimeofday", "%i %i", a, b);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_setitimer", I32, __syscall_setitimer, I32 a, I32 b, I32 c) {
-        printf("SYSCALL - setitimer %i %i %i\n", a, b, c);
+        logSyscall("setitimer", "%i %i %i", a, b, c);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_wait4", I32, __syscall_wait4, I32 a, I32 b, I32 c, I32 d) {
-        printf("SYSCALL - wait4 %i %i %i %i\n", a, b, c, d);
+        logSyscall("wait4", "%i %i %i %i", a, b, c, d);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
@@ -835,89 +854,91 @@ namespace wasm {
     // ------------------------
 
     DEFINE_INTRINSIC_FUNCTION(env, "abort", void, abort) {
-        printf("SYSCALL - ABORT \n");
+        logSyscall("abort", "%s", "");
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "_Exit", void, _Exit, I32 a) {
-        printf("SYSCALL - Exit %i\n", a);
+        logSyscall("Exit", "%i", a);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__unsupported_syscall", I32, __unsupported_syscall,
                               I32 a, I32 b, I32 c, I32 d, I32 e, I32 f, I32 g) {
-        printf("SYSCALL - UNSUPPORTED %i %i %i %i %i %i %i \n", a, b, c, d, e, f, g);
+        logSyscall("UNSUPPORTED", "%i %i %i %i %i %i %i", a, b, c, d, e, f, g);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_rt_sigaction", I32, __syscall_rt_sigaction, I32 a, I32 b, I32 c) {
-        printf("SYSCALL - rt_sigaction %i %i %i\n", a, b, c);
+        logSyscall("rt_sigaction", "%i %i %i", a, b, c);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_exit_group", I32, __syscall_exit_group, I32 a) {
-        printf("SYSCALL - exit_group %i\n", a);
+        logSyscall("exit_group", "%i", a);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_exit", I32, __syscall_exit, I32 a) {
-        printf("SYSCALL - exit %i\n", a);
+        logSyscall("exit", "%i", a);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_gettid", I32, __syscall_gettid, I32 a) {
-        printf("SYSCALL - gettid %i\n", a);
+        logSyscall("gettid", "%i", a);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_getgroups32", I32, __syscall_getgroups32, I32 a, I32 b) {
-        printf("SYSCALL - getgroups32 %i %i\n", a, b);
+        logSyscall("getgroups32", "%i %i", a, b);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_tkill", I32, __syscall_tkill, I32 a, I32 b) {
-        printf("SYSCALL - tkill %i %i\n", a, b);
+        logSyscall("tkill", "%i %i", a, b);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_kill", I32, __syscall_kill, I32 a, I32 b) {
-        printf("SYSCALL - kill %i %i\n", a, b);
+        logSyscall("kill", "%i %i", a, b);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_tgkill", I32, __syscall_tgkill, I32 a, I32 b, I32 c) {
-        printf("SYSCALL - tgkill %i %i %i\n", a, b, c);
+        logSyscall("tgkill", "%i %i %i", a, b, c);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_sched_getaffinity", I32, __syscall_sched_getaffinity, I32 a, I32 b, I32 c) {
-        printf("SYSCALL - sched_getaffinity %i %i %i\n", a, b, c);
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_sched_getaffinity", I32, __syscall_sched_getaffinity, I32 a, I32 b,
+                              I32 c) {
+        logSyscall("sched_getaffinity", "%i %i %i", a, b, c);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_faccessat", I32, __syscall_faccessat, I32 a, I32 b, I32 c, I32 d) {
-        printf("SYSCALL - sched_getaffinity %i %i %i %i\n", a, b, c, d);
+        logSyscall("sched_faccessat", "%i %i %i %i", a, b, c, d);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_pselect6", I32, __syscall_pselect6, I32 a, I32 b, I32 c, I32 d, I32 e, I32 f) {
-        printf("SYSCALL - __syscall_pselect6 %i %i %i %i %i %i\n", a, b, c, d, e, f);
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_pselect6", I32, __syscall_pselect6, I32 a, I32 b, I32 c, I32 d, I32 e,
+                              I32 f) {
+        logSyscall("pselect6", "%i %i %i %i %i %i", a, b, c, d, e, f);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_rt_sigprocmask", I32, __syscall_rt_sigprocmask, I32 a, I32 b, I32 c) {
-        printf("SYSCALL - rt_sigprocmask %i %i %i\n", a, b, c);
+        logSyscall("rt_sigprocmask", "%i %i %i", a, b, c);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "_Unwind_RaiseException", I32, _Unwind_RaiseException, I32 a) {
-        printf("SYSCALL - Unwind_RaiseException %i \n", a);
+        logSyscall("Unwind_RaiseException", "%i", a);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "_Unwind_DeleteException", void, _Unwind_DeleteException, I32 a) {
-        printf("SYSCALL - Unwind_DeleteException %i \n", a);
+        logSyscall("Unwind_DeleteException", "%i", a);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
@@ -943,7 +964,7 @@ namespace wasm {
      */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_mmap", I32, __syscall_mmap,
                               U32 addr, U32 length, U32 prot, U32 flags, I32 fd, U32 offset) {
-        printf("SYSCALL - mmap %i %i %i %i %i %i\n", addr, length, prot, flags, fd, offset);
+        logSyscall("mmap", "%i %i %i %i %i %i", addr, length, prot, flags, fd, offset);
 
         if (addr != 0) {
             printf("Ignoring mmap hint at %i\n", addr);
@@ -956,7 +977,6 @@ namespace wasm {
         // Work out how many pages need to be added
         Uptr pagesRequested = getNumberPagesAtOffset(length);
 
-        printf("SYSCALL - mmap adding %li pages\n", pagesRequested);
         Iptr previousPageCount = growMemory(getModuleMemory(), pagesRequested);
 
         if (previousPageCount == -1) {
@@ -966,7 +986,6 @@ namespace wasm {
 
         // Get pointer to mapped range
         auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);
-        printf("mmapped %u at %u\n", length, mappedRangePtr);
         return mappedRangePtr;
     }
 
@@ -975,14 +994,13 @@ namespace wasm {
      */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_munmap", I32, __syscall_munmap,
                               U32 addr, U32 length) {
-        printf("SYSCALL - munmap %i %i\n", addr, length);
+        logSyscall("munmap", "%i %i", addr, length);
 
         const Uptr basePageIndex = addr / IR::numBytesPerPage;
         const Uptr numPages = (length + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
 
         Runtime::Memory *memory = getModuleMemory();
 
-        printf("SYSCALL - munmap %li pages\n", numPages);
         unmapMemoryPages(memory, basePageIndex, numPages);
 
         return 0;
@@ -999,7 +1017,7 @@ namespace wasm {
      *   - on success return NEW break
      */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_brk", I32, __syscall_brk, U32 addr) {
-        printf("SYSCALL - brk %i\n", addr);
+        logSyscall("brk", "%i", addr);
 
         Uptr targetPageCount = getNumberPagesAtOffset(addr);
 
@@ -1007,24 +1025,19 @@ namespace wasm {
         Runtime::Memory *memory = getModuleMemory();
         const Uptr currentPageCount = getMemoryNumPages(memory);
         const U32 currentBreak = (U32) ((currentPageCount * IR::numBytesPerPage));
-        printf("brk current break %lu (%u) -> new break %lu (%u) \n", currentPageCount, currentBreak, targetPageCount,
-               addr);
 
         Uptr maxPages = getMemoryMaxPages(memory);
         if (targetPageCount > maxPages) {
-            printf("brk requesting %lu pages (max %lu)\n", targetPageCount, maxPages);
             // Return old break if there's an error
             return currentBreak;
         }
 
         if (targetPageCount <= currentPageCount || addr == 0) {
-            printf("brk with no effect\n");
             // Return old break if nothing changes or called with zero
             return currentBreak;
         }
 
         Uptr expansion = targetPageCount - currentPageCount;
-        printf("brk adding %lu pages\n", expansion);
 
         // Grow memory as required
         growMemory(memory, expansion);
@@ -1035,7 +1048,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_madvise", I32, __syscall_madvise,
                               U32 address, U32 numBytes, U32 advice) {
-        printf("SYSCALL - madvise %i %i %i\n", address, numBytes, advice);
+        logSyscall("madvise", "%i %i %i", address, numBytes, advice);
 
         return 0;
     }
@@ -1046,7 +1059,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_mremap", I32, __syscall_mremap,
                               U32 oldAddress, U32 oldNumBytes, U32 newNumBytes, U32 flags, U32 newAddress) {
-        printf("SYSCALL - mremap %i %i %i %i %i\n", oldAddress, oldNumBytes, newNumBytes, flags, newAddress);
+        logSyscall("mremap", "%i %i %i %i %i", oldAddress, oldNumBytes, newNumBytes, flags, newAddress);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
@@ -1056,31 +1069,31 @@ namespace wasm {
     // ------------------------
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_setrlimit", I32, __syscall_setrlimit, I32 a, I32 b) {
-        printf("SYSCALL - setrlimit %i %i\n", a, b);
+        logSyscall("setrlimit", "%i %i", a, b);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_getrlimit", I32, __syscall_getrlimit, I32 a, I32 b) {
-        printf("SYSCALL - getrlimit %i %i\n", a, b);
+        logSyscall("getrlimit", "%i %i", a, b);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_getrusage", I32, __syscall_getrusage, I32 a, I32 b) {
-        printf("SYSCALL - getrusage %i %i\n", a, b);
+        logSyscall("getrusage", "%i %i", a, b);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_ugetrlimit", I32, __syscall_ugetrlimit, I32 a, I32 b) {
-        printf("SYSCALL - getrlimit %i %i\n", a, b);
+        logSyscall("ugetrlimit", "%i %i", a, b);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_prlimit64", I32, __syscall_prlimit64, I32 a, I32 b, I32 c, I32 d) {
-        printf("SYSCALL - prlimit64 %i %i %i, %i\n", a, b, c, d);
+        logSyscall("prlimit64", "%i %i %i %i", a, b, c, d);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
