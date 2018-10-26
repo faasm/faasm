@@ -38,53 +38,53 @@
   (export "_Z3runPhS_S_S_" (func $run_lparen_unsigned_char*_2c__unsigned_char*_2c__unsigned_char*_2c__unsigned_char*_rparen_))
   (memory $24  2)
   (table $23  8 8 anyfunc)
-  (global $25  (mut i32) (i32.const 70384))
-  (global $26  i32 (i32.const 70384))
-  (global $27  i32 (i32.const 4844))
+  (global $25  (mut i32) (i32.const 70368))
+  (global $26  i32 (i32.const 70368))
+  (global $27  i32 (i32.const 4828))
   (elem $23 (i32.const 1)
     $main $dummy $_fini $__stdio_write $__stdio_close $__stdout_write $__stdio_seek)
   (data $24 (i32.const 1024)
-    "d: %.2f\n\00i: %i\n\00s: %i\n\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\01\00\00\00\00\00\00\00\02\00\00\00\00\00\00\00/dev/nul"
-    "l\00\00\00X\12\00\00\00\00\00\00\00\00\00\00T!\"\19\0d\01\02\03\11K\1c\0c\10\04\0b\1d\12\1e'hnopqb \05\06\0f\13\14\15\1a\08\16\07($\17\18\09\n\0e\1b\1f%#\83"
-    "\82}&*+<=>?CGJMXYZ[\\]^_`acdefgijklrstyz{|\00\00\00\00\00\00\00\00\00Illegal byte seq"
-    "uence\00Domain error\00Result not representable\00Not a tty\00Permission"
-    " denied\00Operation not permitted\00No such file or directory\00No suc"
-    "h process\00File exists\00Value too large for data type\00No space lef"
-    "t on device\00Out of memory\00Resource busy\00Interrupted system call\00"
-    "Resource temporarily unavailable\00Invalid seek\00Cross-device link\00"
-    "Read-only file system\00Directory not empty\00Connection reset by pe"
-    "er\00Operation timed out\00Connection refused\00Host is down\00Host is u"
-    "nreachable\00Address in use\00Broken pipe\00I/O error\00No such device o"
-    "r address\00Block device required\00No such device\00Not a directory\00I"
-    "s a directory\00Text file busy\00Exec format error\00Invalid argument\00"
-    "Argument list too long\00Symbolic link loop\00Filename too long\00Too "
-    "many open files in system\00No file descriptors available\00Bad file"
-    " descriptor\00No child process\00Bad address\00File too large\00Too many"
-    " links\00No locks available\00Resource deadlock would occur\00State no"
-    "t recoverable\00Previous owner died\00Operation canceled\00Function no"
-    "t implemented\00No message of desired type\00Identifier removed\00Devi"
-    "ce not a stream\00No data available\00Device timeout\00Out of streams "
-    "resources\00Link has been severed\00Protocol error\00Bad message\00File "
-    "descriptor in bad state\00Not a socket\00Destination address require"
-    "d\00Message too large\00Protocol wrong type for socket\00Protocol not "
-    "available\00Protocol not supported\00Socket type not supported\00Not s"
-    "upported\00Protocol family not supported\00Address family not suppor"
-    "ted by protocol\00Address not available\00Network is down\00Network un"
-    "reachable\00Connection reset by network\00Connection aborted\00No buff"
-    "er space available\00Socket is connected\00Socket not connected\00Cann"
-    "ot send after socket shutdown\00Operation already in progress\00Oper"
-    "ation in progress\00Stale file handle\00Remote I/O error\00Quota excee"
-    "ded\00No medium found\00Wrong medium type\00No error information\00\00-+  "
-    " 0X0x\00(null)\00\00\00\00\19\00\n\00\19\19\19\00\00\00\00\05\00\00\00\00\00\00\09\00\00\00\00\0b\00\00\00\00\00\00\00\00\19\00\11\n\19\19\19\03\n\07\00\01\1b\09\0b\18"
-    "\00\00\09\06\0b\00\00\0b\00\06\19\00\00\00\19\19\19\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\0e\00\00\00\00\00\00\00\00\19\00\n\0d\19\19\19\00\0d\00\00\02\00\09\0e\00\00\00\09\00\0e\00"
-    "\00\0e\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\0c\00\00\00\00\00\00\00\00\00\00\00\13\00\00\00\00\13\00\00\00\00\09\0c\00\00\00\00\00\0c\00\00\0c\00\00\00\00"
-    "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\10\00\00\00\00\00\00\00\00\00\00\00\0f\00\00\00\04\0f\00\00\00\00\09\10\00\00\00\00\00\10\00\00\10\00\00\00\00\00\00\00\00\00\00"
-    "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\12\00\00\00\00\00\00\00\00\00\00\00\11\00\00\00\00\11\00\00\00\00\09\12\00\00\00\00\00\12\00\00\12\00\00\1a\00\00\00\1a\1a\1a\00\00\00\00\00\00\00"
-    "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\1a\00\00\00\1a\1a\1a\00\00\00\00\00\00\09\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00"
-    "\00\00\00\14\00\00\00\00\00\00\00\00\00\00\00\17\00\00\00\00\17\00\00\00\00\09\14\00\00\00\00\00\14\00\00\14\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\16\00\00"
-    "\00\00\00\00\00\00\00\00\00\15\00\00\00\00\15\00\00\00\00\09\16\00\00\00\00\00\16\00\00\16\00\000123456789ABCDEF-0X+0X 0X-0x+0x "
-    "0x\00inf\00INF\00nan\00NAN\00.\00")
-  (data $24 (i32.const 3552)
+    "f: %f\n\00i: %i\n\00\00\00\00\00\00\00\00\00\00\00\01\00\00\00\00\00\00\00\02\00\00\00\00\00\00\00/dev/null\00\00\00H\12\00\00\00\00\00\00\00\00\00\00"
+    "T!\"\19\0d\01\02\03\11K\1c\0c\10\04\0b\1d\12\1e'hnopqb \05\06\0f\13\14\15\1a\08\16\07($\17\18\09\n\0e\1b\1f%#\83\82}&*+<=>?CGJMXYZ"
+    "[\\]^_`acdefgijklrstyz{|\00\00\00\00\00\00\00\00\00Illegal byte sequence\00Domain err"
+    "or\00Result not representable\00Not a tty\00Permission denied\00Operatio"
+    "n not permitted\00No such file or directory\00No such process\00File e"
+    "xists\00Value too large for data type\00No space left on device\00Out "
+    "of memory\00Resource busy\00Interrupted system call\00Resource tempora"
+    "rily unavailable\00Invalid seek\00Cross-device link\00Read-only file s"
+    "ystem\00Directory not empty\00Connection reset by peer\00Operation tim"
+    "ed out\00Connection refused\00Host is down\00Host is unreachable\00Addre"
+    "ss in use\00Broken pipe\00I/O error\00No such device or address\00Block "
+    "device required\00No such device\00Not a directory\00Is a directory\00Te"
+    "xt file busy\00Exec format error\00Invalid argument\00Argument list to"
+    "o long\00Symbolic link loop\00Filename too long\00Too many open files "
+    "in system\00No file descriptors available\00Bad file descriptor\00No c"
+    "hild process\00Bad address\00File too large\00Too many links\00No locks "
+    "available\00Resource deadlock would occur\00State not recoverable\00Pr"
+    "evious owner died\00Operation canceled\00Function not implemented\00No"
+    " message of desired type\00Identifier removed\00Device not a stream\00"
+    "No data available\00Device timeout\00Out of streams resources\00Link h"
+    "as been severed\00Protocol error\00Bad message\00File descriptor in ba"
+    "d state\00Not a socket\00Destination address required\00Message too la"
+    "rge\00Protocol wrong type for socket\00Protocol not available\00Protoc"
+    "ol not supported\00Socket type not supported\00Not supported\00Protoco"
+    "l family not supported\00Address family not supported by protocol\00"
+    "Address not available\00Network is down\00Network unreachable\00Connec"
+    "tion reset by network\00Connection aborted\00No buffer space availab"
+    "le\00Socket is connected\00Socket not connected\00Cannot send after so"
+    "cket shutdown\00Operation already in progress\00Operation in progres"
+    "s\00Stale file handle\00Remote I/O error\00Quota exceeded\00No medium fo"
+    "und\00Wrong medium type\00No error information\00\00-+   0X0x\00(null)\00\00\00\00"
+    "\19\00\n\00\19\19\19\00\00\00\00\05\00\00\00\00\00\00\09\00\00\00\00\0b\00\00\00\00\00\00\00\00\19\00\11\n\19\19\19\03\n\07\00\01\1b\09\0b\18\00\00\09\06\0b\00\00\0b\00\06\19\00\00\00\19\19"
+    "\19\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\0e\00\00\00\00\00\00\00\00\19\00\n\0d\19\19\19\00\0d\00\00\02\00\09\0e\00\00\00\09\00\0e\00\00\0e\00\00\00\00\00\00\00\00\00\00\00\00\00\00"
+    "\00\00\00\00\00\00\00\00\00\00\00\0c\00\00\00\00\00\00\00\00\00\00\00\13\00\00\00\00\13\00\00\00\00\09\0c\00\00\00\00\00\0c\00\00\0c\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00"
+    "\00\00\00\00\00\10\00\00\00\00\00\00\00\00\00\00\00\0f\00\00\00\04\0f\00\00\00\00\09\10\00\00\00\00\00\10\00\00\10\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\12"
+    "\00\00\00\00\00\00\00\00\00\00\00\11\00\00\00\00\11\00\00\00\00\09\12\00\00\00\00\00\12\00\00\12\00\00\1a\00\00\00\1a\1a\1a\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00"
+    "\00\00\1a\00\00\00\1a\1a\1a\00\00\00\00\00\00\09\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\14\00\00\00\00\00\00\00\00\00\00\00\17"
+    "\00\00\00\00\17\00\00\00\00\09\14\00\00\00\00\00\14\00\00\14\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\16\00\00\00\00\00\00\00\00\00\00\00\15\00\00\00\00\15\00"
+    "\00\00\00\09\16\00\00\00\00\00\16\00\00\16\00\000123456789ABCDEF-0X+0X 0X-0x+0x 0x\00inf\00INF\00nan\00N"
+    "AN\00.\00")
+  (data $24 (i32.const 3536)
     "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00"
     "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00"
     "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00"
@@ -103,10 +103,10 @@
     "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00"
     "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00"
     "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00")
-  (data $24 (i32.const 4696)
-    "\05\00\00\00\00\00\00\00\00\00\00\00\05\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\06\00\00\00\07\00\00\00H\0e\00\00\00\04\00\00\00\00\00\00\00\00\00\00\01\00\00\00"
+  (data $24 (i32.const 4680)
+    "\05\00\00\00\00\00\00\00\00\00\00\00\05\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\06\00\00\00\07\00\00\008\0e\00\00\00\04\00\00\00\00\00\00\00\00\00\00\01\00\00\00"
     "\00\00\00\00\00\00\00\00\00\00\00\n\ff\ff\ff\ff\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00"
-    "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00X\12\00\00")
+    "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00H\12\00\00")
   
   (func $__wasm_call_ctors (type $0)
     )
@@ -161,37 +161,28 @@
     (result i32)
     (local $1 i32)
     get_global $25
-    i32.const 48
+    i32.const 32
     i32.sub
     tee_local $1
     set_global $25
     get_local $1
-    i64.const 4616820122002590269
-    i64.store offset=32
+    i64.const 4630060705100333056
+    i64.store offset=16
     i32.const 1024
-    get_local $1
-    i32.const 32
-    i32.add
-    call $printf
-    drop
-    get_local $1
-    i32.const 7
-    i32.store offset=16
-    i32.const 1033
     get_local $1
     i32.const 16
     i32.add
     call $printf
     drop
     get_local $1
-    i32.const 8
+    i32.const 34
     i32.store
-    i32.const 1040
+    i32.const 1031
     get_local $1
     call $printf
     drop
     get_local $1
-    i32.const 48
+    i32.const 32
     i32.add
     set_global $25
     i32.const 0
@@ -232,7 +223,7 @@
     drop
     i32.const 0
     get_local $0
-    i32.store offset=3552
+    i32.store offset=3536
     loop $loop
       get_local $0
       i32.load
@@ -247,7 +238,7 @@
     end ;; $loop
     i32.const 0
     get_local $4
-    i32.store offset=3580
+    i32.store offset=3564
     block $block
       block $block_0
         get_local $4
@@ -313,27 +304,27 @@
     end ;; $block
     i32.const 0
     get_local $4
-    i32.store offset=3632
+    i32.store offset=3616
     i32.const 0
     get_local $5
-    i32.store offset=3628
+    i32.store offset=3612
     i32.const 0
     get_local $3
-    i32.store offset=3600
+    i32.store offset=3584
     i32.const 0
     get_local $1
     get_local $0
     get_local $1
     select
     tee_local $0
-    i32.const 1047
+    i32.const 1038
     get_local $0
     select
     tee_local $0
-    i32.store offset=3560
+    i32.store offset=3544
     i32.const 0
     get_local $0
-    i32.store offset=3556
+    i32.store offset=3540
     block $block_2
       loop $loop_1
         block $block_3
@@ -348,7 +339,7 @@
             get_local $0
             i32.const 1
             i32.add
-            i32.store offset=3556
+            i32.store offset=3540
             br $block_3
           end ;; $block_4
           get_local $3
@@ -386,15 +377,15 @@
         i32.const 16
         i32.add
         i32.const 0
-        i64.load offset=1072
+        i64.load offset=1056
         i64.store
         get_local $2
         i32.const 0
-        i64.load offset=1064
+        i64.load offset=1048
         i64.store offset=8
         get_local $2
         i32.const 0
-        i64.load offset=1056
+        i64.load offset=1040
         i64.store
         get_local $2
         i32.const 3
@@ -417,7 +408,7 @@
             i32.and
             i32.eqz
             br_if $block_8
-            i32.const 1080
+            i32.const 1064
             i32.const 32770
             i32.const 0
             call $__syscall_open
@@ -439,7 +430,7 @@
         end ;; $loop_2
         i32.const 0
         i32.const 1
-        i32.store offset=3572
+        i32.store offset=3556
       end ;; $block_6
       get_local $2
       i32.const 192
@@ -761,7 +752,7 @@
     get_local $1
     i32.store offset=12
     i32.const 0
-    i32.load offset=1092
+    i32.load offset=1076
     get_local $0
     get_local $1
     call $vfprintf
@@ -1217,7 +1208,7 @@
     (local $3 i32)
     block $block
       i32.const 0
-      i32.load offset=3576
+      i32.load offset=3560
       i32.eqz
       br_if $block
       block $block_0
@@ -1334,9 +1325,9 @@
   
   (func $__ofl_lock (type $10)
     (result i32)
-    i32.const 4680
+    i32.const 4664
     call $__lock
-    i32.const 4684
+    i32.const 4668
     )
   
   (func $__stdio_exit (type $0)
@@ -1357,10 +1348,10 @@
       end ;; $loop
     end ;; $block
     i32.const 0
-    i32.load offset=4688
+    i32.load offset=4672
     call $close_file
     i32.const 0
-    i32.load offset=4840
+    i32.load offset=4824
     call $close_file
     )
   
@@ -2599,7 +2590,7 @@
           block $block_2
             loop $loop
               get_local $2
-              i32.const 1104
+              i32.const 1088
               i32.add
               i32.load8_u
               get_local $0
@@ -2623,7 +2614,7 @@
           i32.eqz
           br_if $block_0
         end ;; $block_1
-        i32.const 1200
+        i32.const 1184
         set_local $2
         loop $loop_0
           get_local $2
@@ -2646,7 +2637,7 @@
           br $block
         end ;; $loop_0
       end ;; $block_0
-      i32.const 1200
+      i32.const 1184
       set_local $4
     end ;; $block
     get_local $4
@@ -3690,7 +3681,7 @@
                       i32.mul
                       get_local $16
                       i32.add
-                      i32.const 3024
+                      i32.const 3008
                       i32.add
                       i32.load8_u
                       tee_local $16
@@ -3857,8 +3848,8 @@
                                                                                                     i32.const 2048
                                                                                                     i32.and
                                                                                                     br_if $block_54
-                                                                                                    i32.const 3006
-                                                                                                    i32.const 3004
+                                                                                                    i32.const 2990
+                                                                                                    i32.const 2988
                                                                                                     get_local $22
                                                                                                     i32.const 1
                                                                                                     i32.and
@@ -3935,7 +3926,7 @@
                                                                                                     set_local $28
                                                                                                     i32.const 1
                                                                                                     set_local $30
-                                                                                                    i32.const 3504
+                                                                                                    i32.const 3488
                                                                                                     set_local $31
                                                                                                     br $block_75
                                                                                                   end ;; $block_76
@@ -3944,8 +3935,8 @@
                                                                                                     i32.const 2048
                                                                                                     i32.and
                                                                                                     br_if $block_77
-                                                                                                    i32.const 3510
-                                                                                                    i32.const 3505
+                                                                                                    i32.const 3494
+                                                                                                    i32.const 3489
                                                                                                     get_local $22
                                                                                                     i32.const 1
                                                                                                     i32.and
@@ -3956,7 +3947,7 @@
                                                                                                   end ;; $block_77
                                                                                                   i32.const 1
                                                                                                   set_local $30
-                                                                                                  i32.const 3507
+                                                                                                  i32.const 3491
                                                                                                   set_local $31
                                                                                                 end ;; $block_75
                                                                                                 block $block_78
@@ -4149,8 +4140,8 @@
                                                                                                     i32.const 32
                                                                                                     i32.and
                                                                                                     br_if $block_82
-                                                                                                    i32.const 3531
-                                                                                                    i32.const 3535
+                                                                                                    i32.const 3515
+                                                                                                    i32.const 3519
                                                                                                     get_local $27
                                                                                                     i32.const 32
                                                                                                     i32.and
@@ -4158,8 +4149,8 @@
                                                                                                     i32.shr_u
                                                                                                     tee_local $18
                                                                                                     select
-                                                                                                    i32.const 3523
-                                                                                                    i32.const 3527
+                                                                                                    i32.const 3507
+                                                                                                    i32.const 3511
                                                                                                     get_local $18
                                                                                                     select
                                                                                                     get_local $19
@@ -4457,7 +4448,7 @@
                                                                                           i64.store8
                                                                                           i32.const 0
                                                                                           set_local $23
-                                                                                          i32.const 3004
+                                                                                          i32.const 2988
                                                                                           set_local $26
                                                                                           i32.const 1
                                                                                           set_local $20
@@ -4529,7 +4520,7 @@
                                                                                     end ;; $block_87
                                                                                     i32.const 0
                                                                                     set_local $23
-                                                                                    i32.const 3004
+                                                                                    i32.const 2988
                                                                                     set_local $26
                                                                                     get_local $22
                                                                                     i32.const 8
@@ -4568,7 +4559,7 @@
                                                                                 end ;; $block_63
                                                                                 i32.const 0
                                                                                 set_local $23
-                                                                                i32.const 3004
+                                                                                i32.const 2988
                                                                                 set_local $26
                                                                                 block $block_88
                                                                                   get_local $5
@@ -4591,7 +4582,7 @@
                                                                                     i32.wrap/i64
                                                                                     i32.const 15
                                                                                     i32.and
-                                                                                    i32.const 3488
+                                                                                    i32.const 3472
                                                                                     i32.add
                                                                                     i32.load8_u
                                                                                     get_local $16
@@ -4617,7 +4608,7 @@
                                                                                   get_local $27
                                                                                   i32.const 4
                                                                                   i32.shr_s
-                                                                                  i32.const 3004
+                                                                                  i32.const 2988
                                                                                   i32.add
                                                                                   set_local $26
                                                                                   i32.const 2
@@ -4635,7 +4626,7 @@
                                                                               get_local $5
                                                                               i32.load offset=304
                                                                               tee_local $16
-                                                                              i32.const 3014
+                                                                              i32.const 2998
                                                                               get_local $16
                                                                               select
                                                                               set_local $17
@@ -4654,7 +4645,7 @@
                                                                             tee_local $19
                                                                             i32.add
                                                                             set_local $16
-                                                                            i32.const 3004
+                                                                            i32.const 2988
                                                                             set_local $26
                                                                             get_local $20
                                                                             i32.const -1
@@ -4668,7 +4659,7 @@
                                                                           end ;; $block_60
                                                                           i32.const 0
                                                                           set_local $23
-                                                                          i32.const 3004
+                                                                          i32.const 2988
                                                                           set_local $26
                                                                           get_local $5
                                                                           i64.load offset=304
@@ -4677,7 +4668,7 @@
                                                                         end ;; $block_59
                                                                         i32.const 0
                                                                         set_local $23
-                                                                        i32.const 3004
+                                                                        i32.const 2988
                                                                         set_local $26
                                                                         br $block_49
                                                                       end ;; $block_58
@@ -4689,7 +4680,7 @@
                                                                       i64.store offset=304
                                                                       i32.const 1
                                                                       set_local $23
-                                                                      i32.const 3004
+                                                                      i32.const 2988
                                                                       set_local $26
                                                                       br $block_53
                                                                     end ;; $block_57
@@ -5317,7 +5308,7 @@
                                                               end ;; $block_54
                                                               i32.const 1
                                                               set_local $23
-                                                              i32.const 3005
+                                                              i32.const 2989
                                                               set_local $26
                                                             end ;; $block_53
                                                             get_local $28
@@ -5653,7 +5644,7 @@
                                             get_local $18
                                             tee_local $16
                                             get_local $19
-                                            i32.const 3488
+                                            i32.const 3472
                                             i32.add
                                             i32.load8_u
                                             get_local $17
@@ -6123,7 +6114,7 @@
                                         i32.const 32
                                         i32.and
                                         br_if $block_126
-                                        i32.const 3539
+                                        i32.const 3523
                                         i32.const 1
                                         get_local $0
                                         call $__fwritex
@@ -6309,7 +6300,7 @@
                                           i32.const 32
                                           i32.and
                                           br_if $block_132
-                                          i32.const 3539
+                                          i32.const 3523
                                           i32.const 1
                                           get_local $0
                                           call $__fwritex

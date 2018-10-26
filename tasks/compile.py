@@ -69,7 +69,7 @@ CONFIG_FLAGS = [
 
 
 @task
-def compile(context, path, libcurl=False, debug=False):
+def compile(context, path, libcurl=False, debug=False, undef=False):
     """
     Compiles the given function
     """
@@ -88,7 +88,7 @@ def compile(context, path, libcurl=False, debug=False):
         *COMPILER_FLAGS,
         "-Oz",
         "-fvisibility=hidden",
-        "-Wl,--allow-undefined",
+        "-Wl,--allow-undefined" if undef else "",
         path,
         "-I", join("include", "faasm"),
         "-o", output_file,
