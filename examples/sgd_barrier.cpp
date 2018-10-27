@@ -1,12 +1,11 @@
 #include "faasm.h"
 #include "matrix.h"
 #include "counter.h"
-#include "random.h"
 
 namespace faasm {
-    int nWorkers = 10;
-
     bool checkWorkers(FaasmMemory *memory) {
+        int nWorkers = 10;
+
         // Check state for each worker
         for (int i = 0; i < nWorkers; i++) {
             char workerKey[10];
@@ -21,38 +20,22 @@ namespace faasm {
         return true;
     }
 
-    void resetWorkerCounts(FaasmMemory *memory) {
-        // Reset for each worker
-        for (int i = 0; i < nWorkers; i++) {
-            char workerKey[10];
-            sprintf(workerKey, "worker-%i", i);
-            initCounter(memory, workerKey);
-        }
-    }
-
     int exec(FaasmMemory *memory) {
-        // See how many attempts we've had
+        // Get current epoch count
         const char *epochCountKey = "epochCount";
-        uint8_t epochCount = getCounter(memory, epochCountKey);
+        uint8_t thisEpoch = getCounter(memory, epochCountKey);
 
         // Drop out if over max
         uint8_t maxEpochs = 10;
-        if (epochCount >= maxEpochs) {
-            printf("Workers not finished after %i attempts\n", epochCount);
+        if (thisEpoch >= maxEpochs) {
+            printf("Finished %i epochs\n", thisEpoch);
             return 0;
         }
 
-        // Increment number of attempts
-        epochCount++;
-        incrementCounter(memory, epochCountKey);
-
-        // Check if workers have finished
-        printf("Checking workers on attempt %i\n", epochCount);
-        bool workersFinished = checkWorkers(memory);
-
         // Resubmit if not yet finished
+        bool workersFinished = checkWorkers(memory);
         if (!workersFinished) {
-            printf("Workers not finished, on attempt %i\n", epochCount);
+            printf("Workers not finished for epoch %i\n", thisEpoch);
 
             // Recursive call
             uint8_t barrierInput[1] = {0};
@@ -60,10 +43,26 @@ namespace faasm {
             return 0;
         }
 
-        printf("Workers finished\n");
+        // Increment epoch counter
+        incrementCounter(memory, epochCountKey);
+        int nextEpoch = thisEpoch + 1;
+        printf("Starting epoch %i", nextEpoch);
 
-        // Reset all worker counts
-        resetWorkerCounts(memory);
+        // Load inputs
+        const char *inputsKey = "inputs";
+        int nWeights = 10;
+        int nTrain = 1000;
+        MatrixXd inputs = faasm::readMatrixFromState(memory, inputsKey, nWeights, nTrain);
+
+        // Shuffle and update
+        printf("Shuffling inputs for epoch %i", nextEpoch);
+        faasm::shuffleMatrixColumns(inputs);
+        writeMatrixState(memory, inputsKey, inputs);
+
+        // Kick off next epoch
+        printf("Kicking off epoch %i", nextEpoch);
+        uint8_t epochInput[1] = {0};
+        memory->chainFunction("sgd_epoch", epochInput, 1);
 
         return 0;
     }

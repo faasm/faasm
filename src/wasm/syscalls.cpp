@@ -99,24 +99,6 @@ namespace wasm {
         redis->setRange(key, offset, newState);
     }
 
-    int safeCopyToBuffer(std::vector<uint8_t> &state, U8 *buffer, I32 bufferLen) {
-        int stateSize = (int) state.size();
-
-        if (bufferLen <= 0) {
-            return stateSize;
-        }
-
-        // Handle buffer longer than state size
-        int dataLen = bufferLen;
-        if (stateSize < bufferLen) {
-            dataLen = stateSize;
-        }
-
-        std::copy(state.data(), state.data() + dataLen, buffer);
-
-        return stateSize;
-    }
-
     DEFINE_INTRINSIC_FUNCTION(env, "_Z18__faasm_read_statePKcPhm", I32, _Z18__faasm_read_statePKcPhm,
                               I32 keyPtr, I32 bufferPtr, I32 bufferLen) {
         logSyscall("read_state", "%i %i %i", keyPtr, bufferPtr, bufferLen);
@@ -128,7 +110,7 @@ namespace wasm {
         // Read the state in
         infra::Redis *redis = infra::Redis::getThreadConnection();
         std::vector<uint8_t> state = redis->get(key);
-        int stateSize = safeCopyToBuffer(state, buffer, bufferLen);
+        int stateSize = util::safeCopyToBuffer(state, buffer, bufferLen);
 
         // Return the total number of bytes in the whole state
         return stateSize;
@@ -145,7 +127,7 @@ namespace wasm {
         // Read the state in
         infra::Redis *redis = infra::Redis::getThreadConnection();
         std::vector<uint8_t> state = redis->getRange(key, offset, offset + bufferLen);
-        safeCopyToBuffer(state, buffer, bufferLen);
+        util::safeCopyToBuffer(state, buffer, bufferLen);
     }
 
     // ------------------------

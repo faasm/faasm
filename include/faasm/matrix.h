@@ -2,10 +2,12 @@
 #define FAASM_MATRIX_H
 
 #include "faasm.h"
+#include "random.h"
 
+#include <random>
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/SparseCore>
-#include <random>
+
 
 using namespace Eigen;
 
@@ -143,23 +145,21 @@ namespace faasm {
     /**
      * Shuffles the columns of a matrix
      */
-    MatrixXd shuffleMatrixColumns(MatrixXd &matrix) {
-        // Create permutation matrix
-        PermutationMatrix<Dynamic,Dynamic> perm(matrix.cols());
-        perm.setIdentity();
-        std::random_shuffle(perm.indices().data(), perm.indices().data()+perm.indices().size());
+    void shuffleMatrixColumns(MatrixXd &matrix) {
+        int nCols = (int) matrix.cols();
 
-        MatrixXd shuffled = matrix * perm;
-
-        return shuffled;
+        for (int i = nCols - 1; i > 0; i--) {
+            int r = randomInteger(0, nCols - 1);
+            matrix.col(i).swap(matrix.col(r));
+        }
     }
 
     /**
      * Prints the given matrix
      */
     void printMatrix(MatrixXd &mat) {
-        for(int r = 0; r < mat.rows(); r++) {
-            for(int c = 0; c < mat.cols(); c++) {
+        for (int r = 0; r < mat.rows(); r++) {
+            for (int c = 0; c < mat.cols(); c++) {
                 double val = mat.coeff(r, c);
                 printf("%.2f, ", val);
             }

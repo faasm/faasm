@@ -64,4 +64,26 @@ namespace tests {
 
         REQUIRE(input.empty());
     }
+
+    TEST_CASE("Test safe copy to small buffer", "[util]") {
+        std::vector<uint8_t> buffer = {0, 1, 2, 3, 4, 5, 6};
+
+        uint8_t smallBuff[3];
+        safeCopyToBuffer(buffer, smallBuff, 3);
+
+        REQUIRE(smallBuff[0] == 0);
+        REQUIRE(smallBuff[1] == 1);
+        REQUIRE(smallBuff[2] == 2);
+    }
+
+    TEST_CASE("Test safe copy to big buffer", "[util]") {
+        std::vector<uint8_t> buffer = {0, 1, 2, 3, 4, 5, 6};
+
+        uint8_t bigBuff[20];
+        safeCopyToBuffer(buffer, bigBuff, 20);
+
+        std::vector<uint8_t> actual(bigBuff, bigBuff + 7);
+        REQUIRE(actual == buffer);
+    }
+
 }

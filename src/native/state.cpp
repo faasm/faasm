@@ -1,4 +1,5 @@
 #include <faasm/faasm.h>
+#include <util/util.h>
 #include <infra/infra.h>
 
 /**
@@ -9,8 +10,8 @@ static thread_local infra::Redis redis;
 
 size_t __faasm_read_state(const char *key, uint8_t *buffer, size_t bufferLen) {
     std::vector<uint8_t> state = redis.get(key);
-    std::copy(state.data(), state.data() + bufferLen, buffer);
-    return state.size();
+    int stateSize = util::safeCopyToBuffer(state, buffer, bufferLen);
+    return stateSize;
 }
 
 void __faasm_write_state(const char *key, uint8_t *data, size_t dataLen) {
@@ -25,6 +26,6 @@ void __faasm_write_state_offset(const char *key, size_t offset, uint8_t *data, s
 
 void __faasm_read_state_offset(const char *key, size_t offset, uint8_t *buffer, size_t bufferLen) {
     std::vector<uint8_t> state = redis.getRange(key, offset, offset + bufferLen);
-    std::copy(state.data(), state.data() + bufferLen, buffer);
+    util::safeCopyToBuffer(state, buffer, bufferLen);
 }
 

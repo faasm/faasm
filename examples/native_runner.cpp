@@ -33,7 +33,7 @@ int main() {
     uint8_t chainInputData[MAX_CHAINS * MAX_INPUT_BYTES];
 
     int i = util::randomInteger(0, 900);
-    int inputData[3] = {i, i+100, 10};
+    int inputData[4] = {0, i, i+100, 10};
     auto inputBytes = reinterpret_cast<uint8_t *>(inputData);
 
     // Call the actual function

@@ -178,13 +178,15 @@ namespace tests {
 
     TEST_CASE("Test shuffling matrix", "[matrix]") {
         MatrixXd mat = faasm::randomSparseMatrix(10, 20);
-        MatrixXd shuffled = faasm::shuffleMatrixColumns(mat);
+        MatrixXd copy = mat;
 
-        REQUIRE(shuffled.rows() == mat.rows());
-        REQUIRE(shuffled.cols() == mat.cols());
+        faasm::shuffleMatrixColumns(mat);
 
-        // Not technically always correct, but unlikely when the matrix is large enough
-        REQUIRE(mat != shuffled);
+        REQUIRE(mat.rows() == 10);
+        REQUIRE(mat.cols() == 20);
+
+        // Not technically true but high probability
+        REQUIRE(copy != mat);
     }
 
 }

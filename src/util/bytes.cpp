@@ -43,4 +43,22 @@ namespace util {
 
         printf("]\n");
     }
+
+    int safeCopyToBuffer(std::vector<uint8_t> &state, uint8_t *buffer, int bufferLen) {
+        int stateSize = (int) state.size();
+
+        if (bufferLen <= 0) {
+            return stateSize;
+        }
+
+        // Handle buffer longer than state size
+        int dataLen = bufferLen;
+        if (stateSize < bufferLen) {
+            dataLen = stateSize;
+        }
+
+        std::copy(state.data(), state.data() + dataLen, buffer);
+
+        return stateSize;
+    }
 }

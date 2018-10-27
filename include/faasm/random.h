@@ -1,18 +1,17 @@
 #ifndef FAASM_RANDOM_H
 #define FAASM_RANDOM_H
 
-#include <stdlib.h>
+#include <random>
 
 namespace faasm {
-    void shuffle(long *array, size_t nElems) {
-        for (size_t i = 0; i < nElems - 1; i++) {
-            size_t j = i + rand() / (RAND_MAX / (nElems - i) + 1);
+    int randomInteger(int iStart, int iEnd) {
+        std::random_device rd;
+        std::mt19937 rng(rd());
+        std::uniform_int_distribution<int> uni(iStart, iEnd);
 
-            // Shuffle the elements
-            long t = array[j];
-            array[j] = array[i];
-            array[i] = t;
-        }
+        int random_integer = uni(rng);
+
+        return random_integer;
     }
 }
 
