@@ -13,8 +13,8 @@ namespace infra {
     const std::string CALLS_QUEUE = "function_calls";
 
     Redis::Redis() {
-        std::string hostname = util::getEnvVar("REDIS_HOST", "localhost");
-        std::string port = util::getEnvVar("REDIS_PORT", "6379");
+        hostname = util::getEnvVar("REDIS_HOST", "localhost");
+        port = util::getEnvVar("REDIS_PORT", "6379");
 
         int portInt = std::stoi(port);
         context = redisConnect(hostname.c_str(), portInt);
@@ -22,10 +22,6 @@ namespace infra {
 
     Redis *Redis::getThreadConnection() {
         return &redis;
-    }
-
-    void Redis::reconnect() {
-        redisReconnect(context);
     }
 
     std::vector<uint8_t> getBytesFromReply(redisReply *reply) {
@@ -40,11 +36,23 @@ namespace infra {
 
     std::vector<uint8_t> Redis::get(const std::string &key) {
         auto reply = (redisReply *) redisCommand(context, "GET %s", key.c_str());
-        return getBytesFromReply(reply);
+
+        const std::vector<uint8_t> &replyBytes = getBytesFromReply(reply);
+        freeReplyObject(reply);
+
+        return replyBytes;
     }
 
     void Redis::set(const std::string &key, const std::vector<uint8_t> &value) {
-        redisCommand(context, "SET %s %b", key.c_str(), value.data(), value.size());
+        auto reply = (redisReply *) redisCommand(context, "SET %s %b", key.c_str(), value.data(), value.size());
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        
+        if(reply->type == REDIS_REPLY_ERROR) {
+            logger->error("Failed to SET {} - {}", key.c_str(), reply->str);
+        }
+
+        freeReplyObject(reply);
     }
 
     void Redis::setRange(const std::string &key, long offset, const std::vector<uint8_t> &value) {
@@ -53,7 +61,11 @@ namespace infra {
 
     std::vector<uint8_t> Redis::getRange(const std::string &key, long start, long end) {
         auto reply = (redisReply *) redisCommand(context, "GETRANGE %s %li %li", key.c_str(), start, end);
-        return getBytesFromReply(reply);
+
+        const std::vector<uint8_t> &replyBytes = getBytesFromReply(reply);
+        freeReplyObject(reply);
+        
+        return replyBytes;
     }
 
     void Redis::enqueue(const std::string &queueName, const std::vector<uint8_t> &value) {
@@ -67,13 +79,16 @@ namespace infra {
 
         size_t nResults = reply->elements;
 
-        if(nResults > 2) {
+        if (nResults > 2) {
             throw std::runtime_error("Returned more than one pair of dequeued values");
         }
 
         // Note, BLPOP will return the queue name and the value returned (elements 0 and 1)
         redisReply *r = reply->element[1];
-        return getBytesFromReply(r);
+        const std::vector<uint8_t> &replyBytes = getBytesFromReply(r);
+        freeReplyObject(reply);
+        
+        return replyBytes;
     }
 
 
@@ -83,7 +98,10 @@ namespace infra {
 
     long Redis::listLength(const std::string &queueName) {
         auto reply = (redisReply *) redisCommand(context, "LLEN %s", queueName.c_str());
-        return reply->integer;
+        long result = reply->integer;
+        freeReplyObject(reply);
+        
+        return result;
     }
 
     void Redis::callFunction(message::FunctionCall &call) {
@@ -95,6 +113,9 @@ namespace infra {
 
         std::vector<uint8_t> inputData = infra::callToBytes(call);
 
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Redis enqueued ({}/{})", call.user(), call.function());
+
         this->enqueue(CALLS_QUEUE, inputData);
     }
 
@@ -104,6 +125,8 @@ namespace infra {
         message::FunctionCall call;
         call.ParseFromArray(dequeueResult.data(), (int) dequeueResult.size());
 
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Redis dequeued ({}/{})", call.user(), call.function());
         return call;
     }
 

@@ -46,10 +46,7 @@ using namespace WAVM;
 
 namespace wasm {
     DEFINE_INTRINSIC_MODULE(env)
-
-    //TODO - come up with a configurable way to do this
-    static bool isTracingSyscalls = false;
-
+    
     static const char *HOSTS_FILE = "/usr/local/faasm/net/hosts";
     static const char *RESOLV_FILE = "/usr/local/faasm/net/resolv.conf";
 
@@ -57,16 +54,13 @@ namespace wasm {
     static thread_local std::set<int> openFds;
 
     void logSyscall(const char *syscallName, const char *fmt, ...) {
-        if (!isTracingSyscalls) {
-            return;
-        }
-
         va_list args;
         va_start(args, fmt);
+        char argBuffer[10];
+        sprintf(argBuffer, fmt, args);
 
-        printf("SYSCALL - %s", syscallName);
-        printf(fmt, args);
-        printf("\n");
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("syscall - {}({})", syscallName, argBuffer);
 
         va_end(args);
     }

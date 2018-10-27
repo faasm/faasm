@@ -8,7 +8,7 @@ namespace  util {
     void initLogging() {
         logger = spdlog::stderr_color_mt("console");
 
-        //TODO make log level configurable
+        //TODO make configurable
         spdlog::set_level(spdlog::level::debug);
     }
 

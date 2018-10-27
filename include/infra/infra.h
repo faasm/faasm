@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <string>
+#include <spdlog/spdlog.h>
 
 #include <proto/faasm.pb.h>
 #include <hiredis/hiredis.h>
@@ -31,8 +32,6 @@ namespace infra {
         /** Returns the instance for the current thread */
         static Redis *getThreadConnection();
 
-        void reconnect();
-
         std::vector<uint8_t> get(const std::string &key);
 
         void set(const std::string &key, const std::vector<uint8_t> &value);
@@ -58,5 +57,7 @@ namespace infra {
         message::FunctionCall getFunctionResult(const message::FunctionCall &call);
     private:
         redisContext *context;
+        std::string hostname;
+        std::string port;
     };
 }

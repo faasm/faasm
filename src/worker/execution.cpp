@@ -105,6 +105,7 @@ namespace worker {
                 return finishCall(call, errorMessage);
             }
 
+            logger->debug("Chaining ({}/{})", chainedCall.user(), chainedCall.function());
             redis->callFunction(chainedCall);
         }
 
