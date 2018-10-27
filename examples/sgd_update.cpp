@@ -1,17 +1,20 @@
 #include "faasm.h"
 #include "matrix.h"
+#include "counter.h"
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
         const uint8_t *input = memory->getInput();
         const int *inputParams = reinterpret_cast<const int *>(input);
 
-        int startIdx = inputParams[0];
-        int endIdx = inputParams[1];
-        int nFactors = inputParams[2];
+        int workerIdx = inputParams[0];
+        int startIdx = inputParams[1];
+        int endIdx = inputParams[2];
+        int nWeights = inputParams[3];
+
         int batchSize = endIdx - startIdx + 1;
 
-        printf("Epoch for %d to %d with %d factors (batch %d) \n", startIdx, endIdx, nFactors, batchSize);
+        printf("Training %d to %d with %d factors (batch %d) \n", startIdx, endIdx, nWeights, batchSize);
 
         const double learningRate = 1.0;
 
@@ -22,11 +25,11 @@ namespace faasm {
         const char *realWeightsKey = "realWeights";
 
         // Load the current weights
-        MatrixXd weights = readMatrixFromState(memory, weightsKey, 1, nFactors);
-        MatrixXd realWeights = readMatrixFromState(memory, realWeightsKey, 1, nFactors);
+        MatrixXd weights = readMatrixFromState(memory, weightsKey, 1, nWeights);
+        MatrixXd realWeights = readMatrixFromState(memory, realWeightsKey, 1, nWeights);
 
         // Get matching inputs and outputs
-        MatrixXd inputs = readMatrixColumnsFromState(memory, inputsKey, startIdx, endIdx, nFactors);
+        MatrixXd inputs = readMatrixColumnsFromState(memory, inputsKey, startIdx, endIdx, nWeights);
         MatrixXd outputs = readMatrixColumnsFromState(memory, outputsKey, startIdx, endIdx, 1);
 
         // Work out what these weights would actually give us
@@ -50,7 +53,7 @@ namespace faasm {
         MatrixXd gradient = (2.0 * learningRate) * error * inputs.transpose();
 
         // Perform updates to weights
-        for(int i = 0; i < nFactors; i++) {
+        for(int i = 0; i < nWeights; i++) {
             double stepSize = gradient(0, i);
 
             // Ignore (effectively) zero gradients
@@ -62,6 +65,11 @@ namespace faasm {
             weights(0, i) -= stepSize;
             writeMatrixStateElement(memory, weightsKey, weights, 0, i);
         }
+
+        // Record that this worker has finished
+        char workerKey[10];
+        sprintf(workerKey, "worker-%i", workerIdx);
+        incrementCounter(memory, workerKey);
 
         return 0;
     }

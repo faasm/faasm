@@ -1,6 +1,8 @@
 #include "faasm.h"
 #include "matrix.h"
 #include "random.h"
+#include "counter.h"
+
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
@@ -33,18 +35,33 @@ namespace faasm {
         writeMatrixState(memory, realWeightsKey, realWeights);
 
         // Chain new calls to perform the work
-        int nWorkers = 1;
+        int nWorkers = 10;
         int batchSize = 100;
+        uint8_t workerStatus[] = {0};
         for (int w = 0; w < nWorkers; w++) {
             int startIdx = (w * batchSize);
             int endIdx = startIdx + batchSize -1;
 
-            int inputData[3] = {startIdx, endIdx, nWeights};
-            int nBytes = 3 * sizeof(int);
+            // Prepare input data for the worker
+            int inputData[4] = {w, startIdx, endIdx, nWeights};
+            int nBytes = 4 * sizeof(int);
             auto inputBytes = reinterpret_cast<uint8_t *>(&inputData[0]);
 
+            // Mark this worker as having started
+            char workerKey[10];
+            sprintf(workerKey, "worker-%i", w);
+            initCounter(memory, workerKey);
+
+            // Call the chained function
             memory->chainFunction("sgd_update", inputBytes, nBytes);
         }
+
+        // Record how many epochs have been
+        initCounter(memory, "epochCount");
+
+        // Dispatch the barrier function
+        uint8_t barrierInput[1] = {0};
+        memory->chainFunction("sgd_barrier", barrierInput, 1);
 
         return 0;
     }

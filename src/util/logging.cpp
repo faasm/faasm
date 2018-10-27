@@ -9,7 +9,7 @@ namespace  util {
         logger = spdlog::stderr_color_mt("console");
 
         //TODO make configurable
-        spdlog::set_level(spdlog::level::debug);
+        spdlog::set_level(spdlog::level::info);
     }
 
     std::shared_ptr<spdlog::logger> getLogger() {

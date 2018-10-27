@@ -98,9 +98,9 @@ namespace worker {
             // Check if call is valid
             if (!infra::isValidFunction(chainedCall)) {
                 std::string errorMessage = "Invalid chained function call: ";
-                errorMessage.append(call.user());
+                errorMessage.append(chainedCall.user());
                 errorMessage.append(" - ");
-                errorMessage.append(call.function());
+                errorMessage.append(chainedCall.function());
 
                 return finishCall(call, errorMessage);
             }
