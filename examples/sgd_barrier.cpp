@@ -46,7 +46,7 @@ namespace faasm {
         // Increment epoch counter
         incrementCounter(memory, epochCountKey);
         int nextEpoch = thisEpoch + 1;
-        printf("Starting epoch %i", nextEpoch);
+        printf("Starting epoch %i\n", nextEpoch);
 
         // Load inputs
         const char *inputsKey = "inputs";
@@ -55,12 +55,12 @@ namespace faasm {
         MatrixXd inputs = faasm::readMatrixFromState(memory, inputsKey, nWeights, nTrain);
 
         // Shuffle and update
-        printf("Shuffling inputs for epoch %i", nextEpoch);
+        printf("Shuffling inputs for epoch %i\n", nextEpoch);
         faasm::shuffleMatrixColumns(inputs);
         writeMatrixState(memory, inputsKey, inputs);
 
         // Kick off next epoch
-        printf("Kicking off epoch %i", nextEpoch);
+        printf("Kicking off epoch %i\n", nextEpoch);
         uint8_t epochInput[1] = {0};
         memory->chainFunction("sgd_epoch", epochInput, 1);
 

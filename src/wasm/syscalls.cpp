@@ -26,6 +26,8 @@ using namespace WAVM;
  *   - musl/arch/wasm32/syscall_arch.h and
  *   - musl/arch/wasm32/libc.imports
  *
+ * The syscall numbers can be found in musl/arch/wasm32/bits/syscall.h.in
+ *
  * Any standard library functions can be found in files appropriately named
  * in musl/src. E.g. getaddrinfo is defined in musl/src/network/getaddinfo.c
  *
@@ -1027,6 +1029,12 @@ namespace wasm {
         logSyscall("madvise", "%i %i %i", address, numBytes, advice);
 
         return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_membarrier", I32, __syscall_membarrier, I32 a, I32 b) {
+        logSyscall("membarrier", "%i %i",  a, b);
+
+        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     // ------------------------
