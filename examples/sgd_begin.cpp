@@ -30,7 +30,6 @@ namespace faasm {
         writeMatrixState(memory, realWeightsKey, realWeights);
 
         // Begin first epoch
-        printf("Starting first epoch\n");
         initCounter(memory, "epochCount");
         uint8_t epochInput[1] = {0};
         memory->chainFunction("sgd_epoch", epochInput, 1);
