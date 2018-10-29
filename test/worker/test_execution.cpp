@@ -100,7 +100,8 @@ namespace tests {
         setUp();
 
         // Initially function's state should be an empty array
-        const char* stateKey = "state_example";
+        // Note, we need to prepend the user to the actual key used in the code
+        const char* stateKey = "demo_state_example";
         std::vector<uint8_t> initialState = redis.get(stateKey);
         REQUIRE(initialState.empty());
 

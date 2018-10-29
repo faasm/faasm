@@ -55,6 +55,7 @@ namespace wasm {
     const int MAX_CHAIN_DATA_BYTES = MAX_CHAINS * MAX_INPUT_BYTES;
 
     Runtime::Memory* getModuleMemory();
+    const message::FunctionCall* getModuleCall();
 
     class WasmModule {
     public:

@@ -13,10 +13,15 @@ using namespace WAVM;
 namespace wasm {
     WasmModule::WasmModule() = default;
 
-    thread_local Runtime::Memory *moduleMemory = nullptr;
+    thread_local static Runtime::Memory *moduleMemory = nullptr;
+    thread_local message::FunctionCall *moduleCall;
 
     Runtime::Memory *getModuleMemory() {
         return moduleMemory;
+    }
+
+    const message::FunctionCall* getModuleCall() {
+        return moduleCall;
     }
 
     /**
@@ -49,8 +54,9 @@ namespace wasm {
             }
         }
 
-        // Get reference to module memory
+        // Set up module-specific values
         moduleMemory = getDefaultMemory(moduleInstance);
+        moduleCall = &call;
 
         // Set up input data in module memory
         this->addInputData(call);

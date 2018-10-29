@@ -15,7 +15,7 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/RuntimeData.h>
 #include <WAVM/Runtime/Intrinsics.h>
-#include<stdarg.h>
+#include <stdarg.h>
 
 using namespace WAVM;
 
@@ -69,6 +69,12 @@ namespace wasm {
         return logger;
     }
 
+    std::string prependUserToKey(const char* key) {
+        const message::FunctionCall *call = getModuleCall();
+        std::string newKey = call->user() + "_" + key;
+        return newKey;
+    }
+
     // ------------------------
     // FAASM-specific
     // ------------------------
@@ -85,7 +91,9 @@ namespace wasm {
 
         // Set the whole state in redis
         infra::Redis *redis = infra::Redis::getThreadConnection();
-        redis->set(key, newState);
+
+        std::string prefixedKey = prependUserToKey(key);
+        redis->set(prefixedKey, newState);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "_Z26__faasm_write_state_offsetPKcmPhm", void, _Z26__faasm_write_state_offsetPKcmPhm,
@@ -100,7 +108,8 @@ namespace wasm {
 
         // Set the state at the given offset
         infra::Redis *redis = infra::Redis::getThreadConnection();
-        redis->setRange(key, offset, newState);
+        std::string prefixedKey = prependUserToKey(key);
+        redis->setRange(prefixedKey, offset, newState);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "_Z18__faasm_read_statePKcPhm", I32, _Z18__faasm_read_statePKcPhm,
@@ -113,7 +122,8 @@ namespace wasm {
 
         // Read the state in
         infra::Redis *redis = infra::Redis::getThreadConnection();
-        std::vector<uint8_t> state = redis->get(key);
+        std::string prefixedKey = prependUserToKey(key);
+        std::vector<uint8_t> state = redis->get(prefixedKey);
         int stateSize = util::safeCopyToBuffer(state, buffer, bufferLen);
 
         // Return the total number of bytes in the whole state
@@ -130,7 +140,8 @@ namespace wasm {
 
         // Read the state in
         infra::Redis *redis = infra::Redis::getThreadConnection();
-        std::vector<uint8_t> state = redis->getRange(key, offset, offset + bufferLen);
+        std::string prefixedKey = prependUserToKey(key);
+        std::vector<uint8_t> state = redis->getRange(prefixedKey, offset, offset + bufferLen);
         util::safeCopyToBuffer(state, buffer, bufferLen);
     }
 
