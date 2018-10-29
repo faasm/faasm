@@ -1,11 +1,3 @@
-# Faasm
-work/
-download/
-build/
-
-# Jetbrains
-.idea/
-
 # Ansible
 *.retry
 
@@ -99,14 +91,19 @@ dkms.conf
 *.out
 *.app
 
-# CMake
-
-cmake-build-debug/
-cmake-build-release/
-
-# JetBrains
-.idea/
-
 # Python
 __pycache__/
 *.pyc
+
+# Faasm
+work/
+download/
+build/
+
+# Ignore all compiled wasm except a few important folders
+wasm/
+!wasm/demo/*/*.o
+!wasm/demo/*/*.wasm
+!wasm/errors/*/*.o
+!wasm/errors/*/*.wasm
+

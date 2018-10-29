@@ -32,12 +32,11 @@ int main() {
     uint8_t chainFuncs[MAX_CHAINS * MAX_NAME_LENGTH];
     uint8_t chainInputData[MAX_CHAINS * MAX_INPUT_BYTES];
 
-    int i = util::randomInteger(0, 900);
-    int inputData[4] = {0, i, i+100, 10};
-    auto inputBytes = reinterpret_cast<uint8_t *>(inputData);
+    const char* url = "www.google.com";
+    std::vector<uint8_t> bytes = util::stringToBytes(url);
 
     // Call the actual function
-    run(inputBytes, outputData, chainFuncs, chainInputData);
+    run(bytes.data(), outputData, chainFuncs, chainInputData);
 
     // Print the output data
     printf("\nOutput: ");
