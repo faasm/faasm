@@ -92,10 +92,11 @@ namespace faasm {
     MatrixXd readMatrixFromState(FaasmMemory *memory, const char *key, long rows, long cols) {
         size_t nBytes = rows * cols * sizeof(double);
 
-        uint8_t buffer[nBytes];
+        auto buffer = new uint8_t[nBytes];
         memory->readState(key, buffer, nBytes);
 
         Eigen::MatrixXd deserialised = bytesToMatrix(buffer, rows, cols);
+        delete[] buffer;
         return deserialised;
     }
 
@@ -133,12 +134,12 @@ namespace faasm {
         long endIdx = matrixByteIndex(nRows, colEnd, nRows);
 
         long bufferLen = endIdx - startIdx;
-        uint8_t buffer[bufferLen];
+        auto buffer = new uint8_t[bufferLen];
 
         memory->readStateOffset(key, startIdx, buffer, bufferLen);
 
         MatrixXd result = bytesToMatrix(buffer, nRows, nCols);
-
+        delete[] buffer;
         return result;
     }
 
