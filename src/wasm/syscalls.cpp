@@ -55,7 +55,7 @@ namespace wasm {
     // Thread-local variables to isolate bits of environment
     static thread_local std::set<int> openFds;
 
-    void logSyscall(const char *syscallName, const char *fmt, ...) {
+    const std::shared_ptr<spdlog::logger> logSyscall(const char *syscallName, const char *fmt, ...) {
         va_list args;
         va_start(args, fmt);
         char argBuffer[10];
@@ -65,6 +65,8 @@ namespace wasm {
         logger->debug("syscall - {}({})", syscallName, argBuffer);
 
         va_end(args);
+
+        return logger;
     }
 
     // ------------------------
@@ -145,7 +147,7 @@ namespace wasm {
 
     /** Whitelist specific files to allow open and read-only */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_open", I32, __syscall_open, I32 pathPtr, I32 flags, I32 mode) {
-        logSyscall("open", "%i %i %i", pathPtr, flags, mode);
+        const std::shared_ptr<spdlog::logger> logger = logSyscall("open", "%i %i %i", pathPtr, flags, mode);
 
         // Get the path
         Runtime::Memory *memoryPtr = getModuleMemory();
@@ -154,12 +156,17 @@ namespace wasm {
         // Check if this is a valid path. Return a read-only handle to the file if so
         int fd = -1;
         if (strcmp(path, "/etc/hosts") == 0) {
-            printf("Opening dummy /etc/hosts\n");
+            logger->debug("Opening dummy /etc/hosts");
             fd = open(HOSTS_FILE, 0, 0);
 
         } else if (strcmp(path, "/etc/resolv.conf") == 0) {
-            printf("Opening dummy /etc/resolv.conf\n");
+            logger->debug("Opening dummy /etc/resolv.conf");
             fd = open(RESOLV_FILE, 0, 0);
+
+        } else if (strcmp(path, "/dev/urandom") == 0) {
+            //TODO avoid use of system-wide urandom
+            logger->debug("Opening /dev/urandom");
+            fd = open("/dev/urandom", 0, 0);
 
         } else {
             // Bomb out if not valid path
