@@ -25,13 +25,6 @@ namespace faasm {
         const char *epochCountKey = "epochCount";
         uint8_t thisEpoch = getCounter(memory, epochCountKey);
 
-        // Drop out if over max
-        uint8_t maxEpochs = 10;
-        if (thisEpoch >= maxEpochs) {
-            printf("SGD complete over %i epochs\n", thisEpoch);
-            return 0;
-        }
-
         // Resubmit if not yet finished
         bool workersFinished = checkWorkers(memory);
         if (!workersFinished) {
@@ -59,6 +52,13 @@ namespace faasm {
             }
         }
         mse /= nWeights;
+
+        // Drop out if over max
+        uint8_t maxEpochs = 10;
+        if (thisEpoch >= maxEpochs) {
+            printf("SGD complete over %i epochs (MSE = %f)\n", thisEpoch, mse);
+            return 0;
+        }
 
         // Increment epoch counter
         incrementCounter(memory, epochCountKey);
