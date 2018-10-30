@@ -42,18 +42,9 @@ namespace faasm {
         const char *realWeightsKey = "realWeights";
         MatrixXd realWeights = faasm::readMatrixFromState(memory, realWeightsKey, 1, nWeights);
 
-        // Calculate MSE
-        MatrixXd diff = realWeights - weights;
-        double mse = 0;
-        for(int r = 0; r < diff.rows(); r++) {
-            for(int c = 0; c < diff.cols(); c++) {
-                double e = diff.coeff(r, c);
-                mse += pow(e, 2);
-            }
-        }
-        mse /= nWeights;
+        double mse = faasm::calculateMse(realWeights, weights);
 
-        // Drop out if over max
+        // Drop out if finished
         uint8_t maxEpochs = 10;
         if (thisEpoch >= maxEpochs) {
             printf("SGD complete over %i epochs (MSE = %f)\n", thisEpoch, mse);

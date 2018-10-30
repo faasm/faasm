@@ -12,7 +12,7 @@ spec:
       image: faasm/edge
       imagePullPolicy: Always
       ports:
-        - containerPort: 8080
+        - containerPort: 8001
       env:
         - name: REDIS_HOST
           value: redis

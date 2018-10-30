@@ -31,7 +31,7 @@ services:
   edge:
     image: faasm/edge:latest
     ports:
-      - "8001:8080"
+      - "8001:8001"
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379

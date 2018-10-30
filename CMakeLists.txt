@@ -37,9 +37,14 @@ include_directories(
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_subdirectory(WAVM)
+# Faasm functions
 add_subdirectory(examples)
 add_subdirectory(errors)
+add_subdirectory(sgd)
+
+# Faasm runtime
+add_subdirectory(WAVM)
+
 add_subdirectory(src/proto)
 add_subdirectory(src/util)
 add_subdirectory(src/infra)

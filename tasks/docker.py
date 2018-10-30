@@ -13,6 +13,7 @@ def tools(context):
         "-v {}:/work".format(PROJ_ROOT),
         "-w /work",
         "-it",
+        "--net=host",
         "faasm/toolchain",
         "/bin/bash"
     ]

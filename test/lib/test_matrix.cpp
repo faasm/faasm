@@ -189,4 +189,22 @@ namespace tests {
         REQUIRE(copy != mat);
     }
 
+    TEST_CASE("Test mean squared error", "[matrix]") {
+        MatrixXd matA(1, 3);
+        matA << 8.5, 10.1, 15.5;
+
+        MatrixXd matB(1, 3);
+        matB << 2.5, 1.3, 12.2;
+
+        double a = std::pow(8.5 - 2.5, 2);
+        double b = std::pow(10.1 - 1.3, 2);
+        double c = std::pow(15.5 - 12.2, 2);
+
+        double expected = (a + b + c) / 3.0;
+
+        double actual = faasm::calculateMse(matA, matB);
+
+        REQUIRE(actual == expected);
+    }
+
 }

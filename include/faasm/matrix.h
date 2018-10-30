@@ -168,6 +168,26 @@ namespace faasm {
             printf("\n");
         }
     }
+
+    /**
+     * Calculates the mean squared error between two vectors
+     */
+    double calculateMse(const MatrixXd &a, const MatrixXd &b) {
+        MatrixXd diff = a - b;
+        
+        double mse = 0;
+        long totalValues = 0;
+        for (long r = 0; r < diff.rows(); r++) {
+            for (long c = 0; c < diff.cols(); c++) {
+                double e = diff.coeff(r, c);
+                mse += pow(e, 2);
+                totalValues++;
+            }
+        }
+
+        double result = mse /= totalValues;
+        return result;
+    }
 }
 
 #endif
