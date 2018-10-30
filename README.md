@@ -1,14 +1,20 @@
 # Faasm
 
-Faasm is a serverless system focused on performance and security, using WebAssembly to run users' code. The features of WebAssmebly mean we can trust users' code and maintain good security and isolation with very lightweight mechanisms. For more details on the isolation approach, see the [wiki page](https://github.com/lsds/faasm/wiki/isolation).
+Faasm is a serverless system focused on performance and security, using WebAssembly to run users' code.
+The features of WebAssmebly mean we can trust users' code and maintain good isolation with very lightweight mechanisms.
+For more details on the isolation approach, see the [wiki page](https://github.com/lsds/faasm/wiki/isolation).
 
-This lightweight isolation enables excellent performance and opens the door to features not possible in a more strongly isolated environment (e.g. inter-function communication, shared state etc.).
+This lightweight isolation enables excellent performance and opens the door to features not possible in a more strongly
+isolated environment (e.g. inter-function communication, shared state).
 
-The underlying WebAssembly execution is handled by [WAVM](https://github.com/WAVM/WAVM), which is well worth checking out.
+The underlying WebAssembly execution is handled by [WAVM](https://github.com/WAVM/WAVM), which is well worth
+checking out.
 
 More detail on the internals, development and deployment is held in the [wiki](https://github.com/lsds/faasm/wiki).
 
-For compiling WebAssembly it is highly recommended you use the [Dockerised WASM toolchain](https://github.com/Shillaker/wasm-toolchain). This vastly simplifies the process.
+A preconfigured, Dockerised toolchain is provided for compiling Faasm functions. Details are given below.
+This is based on a basic [Dockerised WASM toolchain](https://github.com/Shillaker/wasm-toolchain) with a customised
+libc to implement syscalls and hooks into the Faasm runtime.
 
 # Quick Start
 
@@ -28,11 +34,12 @@ And you should see your message echoed back.
 
 ## Compiling a simple function
 
-The `hello.cpp` file in the root of this directory shows a basic faasm function. To compile this to WebAssembly you can run the following from the project root:
+The `hello.cpp` file in the root of this directory shows a basic faasm function.
+To compile this to WebAssembly you can run the following from the project root:
 
 ```
 # Start the wasm toolchain container
-docker run -v $(pwd):/work -w /work -it shillaker/wasm-toolchain
+docker run -v $(pwd):/work -w /work -it faasm/toolchain
 
 # From inside the container, compile the hello.c file
 /toolchain/bin/clang++ --target=wasm32-unknown-unknown-wasm --sysroot=/toolchain/sysroot -o hello.wasm -I include/faasm hello.cpp
@@ -143,10 +150,10 @@ namespace faasm {
         size_t stateSize = memory->getStateSize(key);
 
         // Read the state into a buffer
-        uint8_t myState[stateSize];
+        uint8_t *myState = new uint8_t[stateSize];
         memory->readState(key, newState, stateSize);
 
-        // Do something useful
+        // Do something useful, modify state
 
         // Write the updated state
         memory->writeState(key, myState, stateSize);
@@ -158,21 +165,22 @@ namespace faasm {
 
 ### Offset state
 
-`FaasmMemory` also exposes the `readStateOffset` and `writeStateOffset` functions, which allow reading and writing subsections of byte arrays stored against keys in the key-value store.
+`FaasmMemory` also exposes the `readStateOffset` and `writeStateOffset` functions, which allow reading and writing
+subsections of byte arrays stored against keys in the key-value store.
 
 For example, if I have an array of 100 bytes stored in memory, I can read bytes 15-20, then update them separately.
 
 This can be useful for implementing distributed iterative algorithms.
 
-### Counter example
+### State example
 
-An example implementing a counter can be found in `examples/increment.cpp`. It can be called with:
+An example implementing a simple counter can be found in `examples/increment.cpp`. It can be called with:
 
 ```
 curl http://localhost:8001/f/demo/increment/ -X POST
 ```
 
-On successive calls this will return something like:
+On successive calls this will add 1 to a value stored in shared state, returning something like:
 
 ```
 Counter: 1
