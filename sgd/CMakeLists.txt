@@ -22,13 +22,10 @@ if (CMAKE_BUILD_TYPE MATCHES "wasm")
 
         # Upload URL
         set(UPLOAD_URL http://${FAASM_HOST}:8001/f/${FAASM_USER}/${exec_name})
-
         # Path to build module
         set(EXECUTABLE_PATH ${CMAKE_BINARY_DIR}/${exec_name})
-
         # Use CURL to upload
-        add_custom_command(TARGET ${exec_name}
-            POST_BUILD
+        add_custom_command(TARGET ${exec_name} POST_BUILD
             COMMAND curl -X PUT ${UPLOAD_URL} -T ${EXECUTABLE_PATH}
         )
     endfunction(faasm_func)

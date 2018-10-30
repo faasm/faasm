@@ -1,7 +1,6 @@
 #include "faasm.h"
-#include "matrix.h"
-#include "counter.h"
 #include "sgd_constants.h"
+#include "counter.h"
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
@@ -29,8 +28,7 @@ namespace faasm {
         }
 
         // Dispatch the barrier function
-        uint8_t barrierInput[1] = {0};
-        memory->chainFunction("sgd_barrier", barrierInput, 1);
+        memory->chainFunction("sgd_barrier");
 
         return 0;
     }

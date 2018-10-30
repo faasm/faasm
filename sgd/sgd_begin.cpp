@@ -4,7 +4,7 @@
 #include "sgd_constants.h"
 
 namespace faasm {
-    int exec(FaasmMemory *memory) {
+    void setUpTrainingData(FaasmMemory *memory) {
         // Create fake training data as dot product of the matrix of
         // training input data and the real weight vector
         Eigen::MatrixXd realWeights = randomDenseMatrix(1, N_WEIGHTS);
@@ -21,11 +21,14 @@ namespace faasm {
 
         // Also write real weights for safe keeping
         writeMatrixState(memory, REAL_WEIGHTS_KEY, realWeights);
+    }
+
+    int exec(FaasmMemory *memory) {
+        setUpTrainingData(memory);
 
         // Begin first epoch
         initCounter(memory, EPOCH_COUNT_KEY);
-        uint8_t epochInput[1] = {0};
-        memory->chainFunction("sgd_epoch", epochInput, 1);
+        memory->chainFunction("sgd_epoch");
 
         return 0;
     }

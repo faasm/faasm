@@ -3,7 +3,6 @@
 #include "counter.h"
 #include "sgd_constants.h"
 
-
 namespace faasm {
     bool checkWorkers(FaasmMemory *memory) {
         int nWorkers = 10;
@@ -30,8 +29,7 @@ namespace faasm {
         bool workersFinished = checkWorkers(memory);
         if (!workersFinished) {
             // Recursive call
-            uint8_t barrierInput[1] = {0};
-            memory->chainFunction("sgd_barrier", barrierInput, 1);
+            memory->chainFunction("sgd_barrier");
             return 0;
         }
 
@@ -64,8 +62,7 @@ namespace faasm {
         writeMatrixState(memory, INPUTS_KEY, inputs);
 
         // Kick off next epoch
-        uint8_t epochInput[1] = {0};
-        memory->chainFunction("sgd_epoch", epochInput, 1);
+        memory->chainFunction("sgd_epoch");
 
         return 0;
     }

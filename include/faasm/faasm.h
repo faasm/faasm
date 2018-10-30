@@ -42,7 +42,7 @@ namespace faasm {
             chainInputs = cIn;
             chainCount = 0;
         };
-        
+
         /** Returns the size of the state in bytes. Returns zero if not set. */
         size_t getStateSize(const char *key) {
             uint8_t buf[1];
@@ -94,8 +94,14 @@ namespace faasm {
         }
 
         /**
-         * Creates a "chained" function call to another function owned by
-         * the same user with the given input data
+         * Creates a "chained" function call to another function owned by the same user
+         */
+        void chainFunction(const char *name) {
+            this->chainFunction(name, nullptr, 0);
+        }
+
+        /**
+         * Chains a function with the given input data
          */
         void chainFunction(const char *name, const uint8_t *inputData, int inputDataSize) {
             // Work out how many chained functions we already have
@@ -112,7 +118,10 @@ namespace faasm {
 
             // Copy the data into place
             strcpy((char *) namePtr, name);
-            memcpy(dataPtr, inputData, (size_t) inputDataSize);
+
+            if (inputData != nullptr) {
+                memcpy(dataPtr, inputData, (size_t) inputDataSize);
+            }
 
             // Increment the count
             this->chainCount = chainIdx + 1;

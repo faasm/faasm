@@ -1,7 +1,7 @@
 #include "faasm.h"
-#include "matrix.h"
-#include "counter.h"
 #include "sgd_constants.h"
+#include "counter.h"
+#include "matrix.h"
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
