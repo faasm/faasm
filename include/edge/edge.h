@@ -17,11 +17,15 @@ namespace edge {
 
         void listen(const std::string &port);
 
-        static void handleGet(http_request request);
-        static void handlePost(http_request request);
-        static void handlePut(http_request request);
+        static void handleGet(const http_request &request);
+        static void handlePost(const http_request &request);
+        static void handlePut(const http_request &request);
 
-        static message::FunctionCall buildCallFromRequest(http_request &request);
+        static message::FunctionCall buildCallFromRequest(const http_request &request);
+        static std::vector<std::string> getPathParts(const http_request &request);
+    private:
+        static void handleFunctionUpload(const http_request &request);
+        static void handleStateUpload(const http_request &request);
     };
 
 

@@ -7,7 +7,7 @@
 
 namespace tests {
 
-    http_request createRequest(const std::string &path, const std::vector<uint8_t> &inputData) {
+    http_request createRequest(const std::string &path, const std::vector<uint8_t> &inputData={}) {
         uri_builder builder;
 
         builder.set_path(path, false);
@@ -48,6 +48,38 @@ namespace tests {
         REQUIRE(actual.user() == "gamma");
         REQUIRE(actual.function() == "delta");
         REQUIRE(actual.isasync());
+    }
+
+    TEST_CASE("Test uploading state", "[edge]") {
+        infra::Redis cli;
+        cli.flushAll();
+
+        // Create multiple upload requests for different users
+        std::string pathA1 = "/s/foo/bar";
+        std::string pathA2 = "/s/foo/baz";
+        std::string pathB = "/s/bat/qux";
+        
+        std::vector<uint8_t> stateA1 = {0, 1, 2, 3, 4, 5};
+        std::vector<uint8_t> stateA2 = {9, 10, 11};
+        std::vector<uint8_t> stateB = {6, 7, 8};
+
+        const http_request &requestA1 = createRequest(pathA1, stateA1);
+        const http_request &requestA2 = createRequest(pathA2, stateA2);
+        const http_request &requestB = createRequest(pathB, stateB);
+
+        // Submit requests
+        edge::RestServer::handlePut(requestA1);
+        edge::RestServer::handlePut(requestA2);
+        edge::RestServer::handlePut(requestB);
+
+        // Check states uploaded with usernames prefixed
+        std::string realKeyA1 = "foo_bar";
+        std::string realKeyA2 = "foo_baz";
+        std::string realKeyB = "bat_qux";
+
+        REQUIRE(cli.get(realKeyA1) == stateA1);
+        REQUIRE(cli.get(realKeyA2) == stateA2);
+        REQUIRE(cli.get(realKeyB) == stateB);
     }
 
     TEST_CASE("Test uploading a file", "[edge]") {
@@ -102,5 +134,37 @@ namespace tests {
         REQUIRE(actual.user() == "foo");
         REQUIRE(actual.function() == "bar");
         REQUIRE(actual.inputdata() == "abc");
+    }
+
+    void checkInvalidPath(const std::string &path) {
+        http_request request = createRequest(path);
+        REQUIRE_THROWS(edge::RestServer::getPathParts(request));
+    }
+
+    void checkValidPath(const std::string &path, 
+            const std::string &partA, const std::string &partB, const std::string &partC) {
+        http_request request = createRequest(path);
+        const std::vector<std::string> &actual = edge::RestServer::getPathParts(request);
+
+        REQUIRE(actual.size() == 3);
+        REQUIRE(actual[0] == partA);
+        REQUIRE(actual[1] == partB);
+        REQUIRE(actual[2] == partC);
+    }
+
+    TEST_CASE("Check path parts for valid request", "[edge]") {
+        checkValidPath("/f/foo/bar", "f", "foo", "bar");
+        checkValidPath("/fa/baz/qux", "fa", "baz", "qux");
+        checkValidPath("/s/bat/foo", "s", "bat", "foo");
+    }
+    
+    TEST_CASE("Check invalid paths are indeed invalid", "[edge]") {
+        checkInvalidPath("/x/foo/bar");
+        checkInvalidPath("/f/foo");
+        checkInvalidPath("/fa/foo");
+        checkInvalidPath("/s/foo");
+        checkInvalidPath("/f/");
+        checkInvalidPath("/fa/");
+        checkInvalidPath("/s/");
     }
 }

@@ -189,6 +189,24 @@ Counter: 3
 ...
 ```
 
+### Uploading state
+
+If you need to prepopulate state for your functions you can use the state upload endpoint. This can be called
+with:
+
+```
+# Format /s/<username>/<key>
+curl http://localhost:8001/s/user123/my_key -X PUT -d "your data"
+```
+
+This state can then be accessed in your functions using the specified key. For larger state, you can also use:
+
+```
+curl http://localhost:8001/s/user123/my_key -X PUT -T /tmp/my_state_file
+```
+
+Where `/tmp/my_state_file` contains binary data you wish to be inserted at your specified key.
+
 ## Uploading Functions
 
 To upload a function you can use `curl` to send a PUT request to the synchronous URL for the given function.
