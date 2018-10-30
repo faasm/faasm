@@ -18,15 +18,17 @@ namespace faasm {
         // Load the current weights
         MatrixXd weights = readMatrixFromState(memory, WEIGHTS_KEY, 1, nWeights);
 
-        // Get matching inputs and outputs
+        // Get corresponding training data for inputs and outputs
         MatrixXd inputs = readMatrixColumnsFromState(memory, INPUTS_KEY, startIdx, endIdx, nWeights);
         MatrixXd outputs = readMatrixColumnsFromState(memory, OUTPUTS_KEY, startIdx, endIdx, 1);
 
-        // Work out what these weights would actually give us
+        // Work out what the current weights would actually give us
         MatrixXd actual = weights * inputs;
 
-        // Work out the step size
+        // Work out the error
         MatrixXd error = actual - outputs;
+
+        // Work out the step size
         MatrixXd steps = (2.0 * learningRate) * error * inputs.transpose();
 
         // Perform updates to weights
@@ -43,10 +45,13 @@ namespace faasm {
             writeMatrixStateElement(memory, WEIGHTS_KEY, weights, 0, i);
         }
 
-        // Record that this worker has finished
-        char workerKey[10];
-        sprintf(workerKey, "worker-%i", workerIdx);
-        incrementCounter(memory, workerKey);
+        // Persist the overall squared error
+        char batchKey[10];
+        sprintf(batchKey, "batch-%i", workerIdx);
+
+        double squaredError = calculateSquaredError(actual, outputs);
+        auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&squaredError);
+        memory->writeState(batchKey, squaredErrorBytes, sizeof(double));
 
         return 0;
     }

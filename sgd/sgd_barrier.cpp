@@ -4,42 +4,32 @@
 #include "sgd_constants.h"
 
 namespace faasm {
-    bool checkWorkers(FaasmMemory *memory) {
-        int nWorkers = 10;
-
-        // Check state for each worker
-        for (int i = 0; i < nWorkers; i++) {
-            char workerKey[10];
-            sprintf(workerKey, "worker-%i", i);
-
-            uint8_t count = getCounter(memory, workerKey);
-            if (count < 1) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     int exec(FaasmMemory *memory) {
         // Get current epoch count
         uint8_t thisEpoch = getCounter(memory, EPOCH_COUNT_KEY);
 
-        // Resubmit if not yet finished
-        bool workersFinished = checkWorkers(memory);
-        if (!workersFinished) {
-            // Recursive call
-            memory->chainFunction("sgd_barrier");
-            return 0;
+        // Iterate through batches and check their errors
+        double totalError = 0.0;
+        for (int i = 0; i < N_BATCHES; i++) {
+            char batchKey[10];
+            sprintf(batchKey, "batch-%i", i);
+
+            double error = 0.0;
+            auto errorBytes = reinterpret_cast<uint8_t *>(&error);
+            memory->readState(batchKey, errorBytes, sizeof(double));
+
+            // If error is still zero, we've not yet finished
+            if (error == 0.0) {
+                // Recursive call to barrier
+                memory->chainFunction("sgd_barrier");
+                return 0;
+            }
+
+            totalError += error;
         }
 
-        // Work out difference between weights
-        int nWeights = 10;
-        MatrixXd weights = faasm::readMatrixFromState(memory, WEIGHTS_KEY, 1, nWeights);
-
-        MatrixXd realWeights = faasm::readMatrixFromState(memory, REAL_WEIGHTS_KEY, 1, nWeights);
-
-        double mse = faasm::calculateMse(realWeights, weights);
+        // Calculate the mean squared error across all batches
+        double mse = totalError / N_TRAIN;
 
         // Drop out if finished
         uint8_t maxEpochs = 10;
@@ -54,8 +44,7 @@ namespace faasm {
         printf("Starting epoch %i (MSE = %f)\n", nextEpoch, mse);
 
         // Load inputs
-        int nTrain = 1000;
-        MatrixXd inputs = faasm::readMatrixFromState(memory, INPUTS_KEY, nWeights, nTrain);
+        MatrixXd inputs = faasm::readMatrixFromState(memory, INPUTS_KEY, N_WEIGHTS, N_TRAIN);
 
         // Shuffle and update
         faasm::shuffleMatrixColumns(inputs);

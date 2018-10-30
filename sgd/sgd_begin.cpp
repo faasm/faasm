@@ -18,9 +18,6 @@ namespace faasm {
         writeMatrixState(memory, OUTPUTS_KEY, outputs);
         writeMatrixState(memory, INPUTS_KEY, inputs);
         writeMatrixState(memory, WEIGHTS_KEY, weights);
-
-        // Also write real weights for safe keeping
-        writeMatrixState(memory, REAL_WEIGHTS_KEY, realWeights);
     }
 
     int exec(FaasmMemory *memory) {

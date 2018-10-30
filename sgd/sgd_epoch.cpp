@@ -6,11 +6,12 @@ namespace faasm {
     int exec(FaasmMemory *memory) {
         int batchSize = N_TRAIN / N_BATCHES;
 
-        // Set all worker counts to zero
+        // Set all batch errors to zero
         for (int i = 0; i < N_BATCHES; i++) {
-            char workerKey[10];
-            sprintf(workerKey, "worker-%i", i);
-            initCounter(memory, workerKey);
+            char batchKey[10];
+            sprintf(batchKey, "batch-%i", i);
+            uint8_t batchError[1] = {0};
+            memory->writeState(batchKey, batchError, 1);
         }
 
         // Chain new calls to perform the work

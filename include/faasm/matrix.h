@@ -170,6 +170,27 @@ namespace faasm {
     }
 
     /**
+     * Sums the squared error between two vectors when the value in the first is non-zero
+     */
+    double calculateSquaredError(const MatrixXd &a, const MatrixXd &b) {
+        MatrixXd diff = a - b;
+
+        double squaredError = 0;
+        for (long r = 0; r < diff.rows(); r++) {
+            for (long c = 0; c < diff.cols(); c++) {
+                if(a.coeff(r, c) == 0) {
+                    continue;
+                }
+
+                double e = diff.coeff(r, c);
+                squaredError += pow(e, 2);
+            }
+        }
+
+        return squaredError;
+    }
+
+    /**
      * Calculates the mean squared error between two vectors
      */
     double calculateMse(const MatrixXd &a, const MatrixXd &b) {
