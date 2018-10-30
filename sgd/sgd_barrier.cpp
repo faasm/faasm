@@ -1,6 +1,8 @@
 #include "faasm.h"
 #include "matrix.h"
 #include "counter.h"
+#include "sgd_constants.h"
+
 
 namespace faasm {
     bool checkWorkers(FaasmMemory *memory) {
@@ -22,8 +24,7 @@ namespace faasm {
 
     int exec(FaasmMemory *memory) {
         // Get current epoch count
-        const char *epochCountKey = "epochCount";
-        uint8_t thisEpoch = getCounter(memory, epochCountKey);
+        uint8_t thisEpoch = getCounter(memory, EPOCH_COUNT_KEY);
 
         // Resubmit if not yet finished
         bool workersFinished = checkWorkers(memory);
@@ -36,11 +37,9 @@ namespace faasm {
 
         // Work out difference between weights
         int nWeights = 10;
-        const char *weightsKey = "weights";
-        MatrixXd weights = faasm::readMatrixFromState(memory, weightsKey, 1, nWeights);
+        MatrixXd weights = faasm::readMatrixFromState(memory, WEIGHTS_KEY, 1, nWeights);
 
-        const char *realWeightsKey = "realWeights";
-        MatrixXd realWeights = faasm::readMatrixFromState(memory, realWeightsKey, 1, nWeights);
+        MatrixXd realWeights = faasm::readMatrixFromState(memory, REAL_WEIGHTS_KEY, 1, nWeights);
 
         double mse = faasm::calculateMse(realWeights, weights);
 
@@ -52,18 +51,17 @@ namespace faasm {
         }
 
         // Increment epoch counter
-        incrementCounter(memory, epochCountKey);
+        incrementCounter(memory, EPOCH_COUNT_KEY);
         int nextEpoch = thisEpoch + 1;
         printf("Starting epoch %i (MSE = %f)\n", nextEpoch, mse);
 
         // Load inputs
-        const char *inputsKey = "inputs";
         int nTrain = 1000;
-        MatrixXd inputs = faasm::readMatrixFromState(memory, inputsKey, nWeights, nTrain);
+        MatrixXd inputs = faasm::readMatrixFromState(memory, INPUTS_KEY, nWeights, nTrain);
 
         // Shuffle and update
         faasm::shuffleMatrixColumns(inputs);
-        writeMatrixState(memory, inputsKey, inputs);
+        writeMatrixState(memory, INPUTS_KEY, inputs);
 
         // Kick off next epoch
         uint8_t epochInput[1] = {0};

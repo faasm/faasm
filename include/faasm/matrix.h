@@ -185,7 +185,7 @@ namespace faasm {
             }
         }
 
-        double result = mse /= totalValues;
+        double result = mse / totalValues;
         return result;
     }
 }

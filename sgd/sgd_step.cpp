@@ -1,6 +1,7 @@
 #include "faasm.h"
 #include "matrix.h"
 #include "counter.h"
+#include "sgd_constants.h"
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
@@ -14,37 +15,32 @@ namespace faasm {
 
         const double learningRate = 0.1;
 
-        // Read in the state
-        const char *inputsKey = "inputs";
-        const char *outputsKey = "outputs";
-        const char *weightsKey = "weights";
-
         // Load the current weights
-        MatrixXd weights = readMatrixFromState(memory, weightsKey, 1, nWeights);
+        MatrixXd weights = readMatrixFromState(memory, WEIGHTS_KEY, 1, nWeights);
 
         // Get matching inputs and outputs
-        MatrixXd inputs = readMatrixColumnsFromState(memory, inputsKey, startIdx, endIdx, nWeights);
-        MatrixXd outputs = readMatrixColumnsFromState(memory, outputsKey, startIdx, endIdx, 1);
+        MatrixXd inputs = readMatrixColumnsFromState(memory, INPUTS_KEY, startIdx, endIdx, nWeights);
+        MatrixXd outputs = readMatrixColumnsFromState(memory, OUTPUTS_KEY, startIdx, endIdx, 1);
 
         // Work out what these weights would actually give us
         MatrixXd actual = weights * inputs;
 
         // Work out the step size
         MatrixXd error = actual - outputs;
-        MatrixXd gradient = (2.0 * learningRate) * error * inputs.transpose();
+        MatrixXd steps = (2.0 * learningRate) * error * inputs.transpose();
 
         // Perform updates to weights
-        for(int i = 0; i < nWeights; i++) {
-            double stepSize = gradient(0, i);
+        for (int i = 0; i < nWeights; i++) {
+            double stepSize = steps(0, i);
 
             // Ignore (effectively) zero gradients
-            if(abs(stepSize) <= 0.00001) {
+            if (abs(stepSize) <= 0.00001) {
                 continue;
             }
 
             // Make the update
             weights(0, i) -= stepSize;
-            writeMatrixStateElement(memory, weightsKey, weights, 0, i);
+            writeMatrixStateElement(memory, WEIGHTS_KEY, weights, 0, i);
         }
 
         // Record that this worker has finished

@@ -2,7 +2,10 @@ cmake_minimum_required(VERSION 3.0)
 project(faasm-sgd)
 
 # Include Faasm headers
-include_directories(${CMAKE_CURRENT_LIST_DIR}/../include/faasm)
+include_directories(
+        ${CMAKE_CURRENT_LIST_DIR}
+        ${CMAKE_CURRENT_LIST_DIR}/../include/faasm
+)
 
 # Faasm vars
 set(FAASM_USER sgd)

@@ -1,36 +1,29 @@
 #include "faasm.h"
 #include "matrix.h"
 #include "counter.h"
+#include "sgd_constants.h"
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        const char *weightsKey = "weights";
-        const char *inputsKey = "inputs";
-        const char *outputsKey = "outputs";
-        const char *realWeightsKey = "realWeights";
-
-        int nTrain = 1000; // Number of training examples
-        int nWeights = 10; // Number of weight factors
-
         // Create fake training data as dot product of the matrix of
         // training input data and the real weight vector
-        Eigen::MatrixXd realWeights = randomDenseMatrix(1, nWeights);
-        Eigen::MatrixXd inputs = randomSparseMatrix(nWeights, nTrain);
+        Eigen::MatrixXd realWeights = randomDenseMatrix(1, N_WEIGHTS);
+        Eigen::MatrixXd inputs = randomSparseMatrix(N_WEIGHTS, N_TRAIN);
         Eigen::MatrixXd outputs = realWeights * inputs;
 
         // Initialise a random set of weights that we'll train (i.e. these should get close to the real weights)
-        Eigen::MatrixXd weights = randomDenseMatrix(1, nWeights);
+        Eigen::MatrixXd weights = randomDenseMatrix(1, N_WEIGHTS);
 
         // Write all data to memory
-        writeMatrixState(memory, outputsKey, outputs);
-        writeMatrixState(memory, inputsKey, inputs);
-        writeMatrixState(memory, weightsKey, weights);
+        writeMatrixState(memory, OUTPUTS_KEY, outputs);
+        writeMatrixState(memory, INPUTS_KEY, inputs);
+        writeMatrixState(memory, WEIGHTS_KEY, weights);
 
         // Also write real weights for safe keeping
-        writeMatrixState(memory, realWeightsKey, realWeights);
+        writeMatrixState(memory, REAL_WEIGHTS_KEY, realWeights);
 
         // Begin first epoch
-        initCounter(memory, "epochCount");
+        initCounter(memory, EPOCH_COUNT_KEY);
         uint8_t epochInput[1] = {0};
         memory->chainFunction("sgd_epoch", epochInput, 1);
 
