@@ -7,7 +7,7 @@
 
 namespace tests {
 
-    http_request createRequest(const std::string &path, const std::vector<uint8_t> &inputData={}) {
+    http_request createRequest(const std::string &path, const std::vector<uint8_t> &inputData = {}) {
         uri_builder builder;
 
         builder.set_path(path, false);
@@ -58,7 +58,7 @@ namespace tests {
         std::string pathA1 = "/s/foo/bar";
         std::string pathA2 = "/s/foo/baz";
         std::string pathB = "/s/bat/qux";
-        
+
         std::vector<uint8_t> stateA1 = {0, 1, 2, 3, 4, 5};
         std::vector<uint8_t> stateA2 = {9, 10, 11};
         std::vector<uint8_t> stateB = {6, 7, 8};
@@ -82,6 +82,25 @@ namespace tests {
         REQUIRE(cli.get(realKeyB) == stateB);
     }
 
+    TEST_CASE("Test uploading and downloading state", "[edge]") {
+        infra::Redis cli;
+        cli.flushAll();
+
+        std::string path = "/s/foo/bar";
+        std::vector<uint8_t> state = {0, 1, 2, 3, 4, 5};
+        const http_request &request = createRequest(path, state);
+
+        // Submit request
+        edge::RestServer::handlePut(request);
+
+        // Check state uploaded
+        std::string realKey = "foo_bar";
+
+        // Retrieve the state
+        const std::vector<uint8_t> &actual = edge::RestServer::getState(request);
+        REQUIRE(actual == state);
+    }
+
     TEST_CASE("Test uploading a file", "[edge]") {
         // Override the function directory with junk
         util::setEnvVar("FUNC_ROOT", "/tmp/faasm-test");
@@ -93,7 +112,7 @@ namespace tests {
         boost::filesystem::remove(expectedObjFile);
 
         std::string path = "/f/gamma/delta";
-        
+
         // Load some valid dummy wasm bytes
         boost::filesystem::path currentPath = boost::filesystem::current_path();
         //TODO: getting the path like this is a bit of a hack
@@ -141,8 +160,8 @@ namespace tests {
         REQUIRE_THROWS(edge::RestServer::getPathParts(request));
     }
 
-    void checkValidPath(const std::string &path, 
-            const std::string &partA, const std::string &partB, const std::string &partC) {
+    void checkValidPath(const std::string &path,
+                        const std::string &partA, const std::string &partB, const std::string &partC) {
         http_request request = createRequest(path);
         const std::vector<std::string> &actual = edge::RestServer::getPathParts(request);
 
@@ -157,7 +176,7 @@ namespace tests {
         checkValidPath("/fa/baz/qux", "fa", "baz", "qux");
         checkValidPath("/s/bat/foo", "s", "bat", "foo");
     }
-    
+
     TEST_CASE("Check invalid paths are indeed invalid", "[edge]") {
         checkInvalidPath("/x/foo/bar");
         checkInvalidPath("/f/foo");

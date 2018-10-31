@@ -47,7 +47,18 @@ namespace edge {
     }
 
     void RestServer::handleGet(const http_request &request) {
-        request.reply(status_codes::OK, "Get OK\n");
+        const std::vector<std::string> &pathParts = RestServer::getPathParts(request);
+        if(pathParts[0] == "s") {
+            const std::vector<uint8_t> &stateBytes = getState(request);
+
+            http_response response(status_codes::OK);
+            response.set_body(stateBytes);
+            request.reply(response);
+        }
+        else {
+            request.reply(status_codes::OK, "Invalid path. Can only GET state at /s/<user>/<key/ \n");
+            throw InvalidPathException();
+        }
     }
 
     void RestServer::handlePost(const http_request &request) {
@@ -79,6 +90,22 @@ namespace edge {
         else {
             handleFunctionUpload(request);
         }
+    }
+
+    std::vector<uint8_t> RestServer::getState(const http_request &request) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        const std::vector<std::string> &pathParts = RestServer::getPathParts(request);
+        std::string user = pathParts[1];
+        std::string key = pathParts[2];
+        std::string realKey = user + "_" + key;
+
+        logger->info("Downloading state from ({}/{})", user, key);
+
+        infra::Redis *redis = infra::Redis::getThreadConnection();
+        const std::vector<uint8_t> &value = redis->get(realKey);
+
+        return value;
     }
 
     void RestServer::handleStateUpload(const http_request &request) {

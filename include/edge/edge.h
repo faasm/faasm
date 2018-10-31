@@ -18,16 +18,22 @@ namespace edge {
         void listen(const std::string &port);
 
         static void handleGet(const http_request &request);
+
         static void handlePost(const http_request &request);
+
         static void handlePut(const http_request &request);
 
         static message::FunctionCall buildCallFromRequest(const http_request &request);
+
         static std::vector<std::string> getPathParts(const http_request &request);
+
+        static std::vector<uint8_t> getState(const http_request &request);
+
     private:
         static void handleFunctionUpload(const http_request &request);
+
         static void handleStateUpload(const http_request &request);
     };
-
 
     class InvalidPathException : public std::exception {
     };
