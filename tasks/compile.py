@@ -5,8 +5,8 @@ from shutil import rmtree
 from subprocess import call
 
 from invoke import task
-from requests import get
 
+from tasks.download import download_proj, DOWNLOAD_DIR
 from tasks.env import PROJ_ROOT
 
 # Note, most of the time this will be run inside the toolchain container
@@ -59,7 +59,6 @@ ENV_DICT = {e[0]: e[1] for e in _ENV_TUPLES}
 ENV_STR = " ".join(["{}={}".format(e[0], e[1]) for e in _ENV_TUPLES])
 
 BUILD_DIR = join(PROJ_ROOT, "work")
-DOWNLOAD_DIR = join(PROJ_ROOT, "download")
 
 CONFIG_FLAGS = [
     "--target={}".format(CONFIG_TARGET),
@@ -129,35 +128,8 @@ def lib(context, lib_name):
         raise RuntimeError("Unrecognised lib name: {}".format(lib_name))
 
 
-def download_lib_source(url, filename, extension="tar.gz", tar_args="-xvf", extract_file=None):
-    extract_dir = join(DOWNLOAD_DIR, extract_file) if extract_file else join(DOWNLOAD_DIR, filename)
-    tar_filename = "{}.{}".format(filename, extension)
-    tar_file = join(DOWNLOAD_DIR, tar_filename)
-
-    build_dir = join(extract_dir, "build")
-
-    # Ignore if already exists
-    if exists(extract_dir):
-        return extract_dir, build_dir
-
-    # Download the file
-    with open(tar_file, "wb") as fh:
-        response = get(url)
-        fh.write(response.content)
-
-    # Extract
-    cmd = "tar {} {}".format(tar_args, tar_filename)
-    call(cmd, cwd=DOWNLOAD_DIR, shell=True)
-
-    # Create build dir
-    if not exists(build_dir):
-        mkdir(build_dir)
-
-    return extract_dir, build_dir
-
-
 def compile_eigen():
-    extract_dir, build_dir = download_lib_source(
+    extract_dir, build_dir = download_proj(
         "http://bitbucket.org/eigen/eigen/get/3.3.5.tar.gz",
         "3.3.5",
         extract_file="eigen-eigen-b3f3d4950030"
@@ -171,7 +143,7 @@ def compile_eigen():
 
 def compile_gsl():
     # TODO gsl doesn't like --host=wasm32
-    extract_dir, build_dir = download_lib_source(
+    extract_dir, build_dir = download_proj(
         "ftp://ftp.gnu.org/gnu/gsl/gsl-2.5.tar.gz",
         "gsl-2.5",
     )
@@ -189,14 +161,14 @@ def compile_gsl():
 
 def compile_dlib():
     # TODO dlib requires pthread support
-    extract_dir, build_dir = download_lib_source(
+    extract_dir, build_dir = download_proj(
         "http://dlib.net/files/dlib-19.16.tar.bz2",
         "dlib-19.16"
     )
 
 
 def compile_mlpack():
-    extract_dir, build_dir = download_lib_source(
+    extract_dir, build_dir = download_proj(
         "https://github.com/mlpack/mlpack/archive/mlpack-3.0.3.tar.gz",
         "mlpack-3.0.3",
         extract_file="mlpack-mlpack-3.0.3"
@@ -223,7 +195,7 @@ def compile_mlpack():
 
 
 def compile_libcurl():
-    extract_dir, build_dir = download_lib_source(
+    extract_dir, build_dir = download_proj(
         "https://github.com/curl/curl/archive/curl-7_61_1.tar.gz",
         "curl-curl-7_61_1"
     )
