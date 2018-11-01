@@ -37,7 +37,7 @@ else()
 
     function(faasm_func exec_name file_name)
         add_executable(${exec_name} sgd_native.cpp ${file_name})
-        target_link_libraries(${exec_name} native)
+        target_link_libraries(${exec_name} emulator)
     endfunction(faasm_func)
 
 endif()

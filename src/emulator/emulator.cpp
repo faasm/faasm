@@ -1,3 +1,5 @@
+#include "emulator/emulator.h"
+
 #include <faasm/faasm.h>
 #include <util/util.h>
 #include <infra/infra.h>

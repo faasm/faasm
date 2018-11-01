@@ -8,6 +8,6 @@ add_executable(
         ${TEST_FILES}
 )
 
-target_link_libraries(tests proto catch edge_lib worker_lib native)
+target_link_libraries(tests proto catch edge_lib worker_lib emulator)
 
 add_test(NAME tests COMMAND "test/tests")

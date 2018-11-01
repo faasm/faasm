@@ -24,7 +24,9 @@ def tools(context):
 
 @task
 def build_toolchain(context):
-    call("docker build -t faasm/toolchain -f docker/toolchain.dockerfile .", shell=True, cwd=PROJ_ROOT)
+    cmd = "docker build -t faasm/toolchain -f docker/toolchain.dockerfile ."
+    print(cmd)
+    call(cmd, shell=True, cwd=PROJ_ROOT)
 
 
 @task

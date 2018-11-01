@@ -108,7 +108,7 @@ namespace wasm {
     // ------------------------
     // FAASM-specific
     // ------------------------
-    DEFINE_INTRINSIC_FUNCTION(env, "_Z19__faasm_write_statePKcPhm", void, _Z19__faasm_write_statePKcPhm,
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state", void, __faasm_write_state,
                               I32 keyPtr, I32 dataPtr, I32 dataLen) {
         logSyscall("write_state", "%i %i %i", keyPtr, dataPtr, dataLen);
 
@@ -120,7 +120,7 @@ namespace wasm {
         redis->set(key, newState);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "_Z26__faasm_write_state_offsetPKcmPhm", void, _Z26__faasm_write_state_offsetPKcmPhm,
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_offset", void, __faasm_write_state_offset,
                               I32 keyPtr, I32 offset, I32 dataPtr, I32 dataLen) {
         logSyscall("write_state_offset", "%i %i %i %i", keyPtr, offset, dataPtr, dataLen);
 
@@ -132,7 +132,7 @@ namespace wasm {
         redis->setRange(key, offset, newState);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "_Z18__faasm_read_statePKcPhm", I32, _Z18__faasm_read_statePKcPhm,
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state", I32, __faasm_read_state,
                               I32 keyPtr, I32 bufferPtr, I32 bufferLen) {
         logSyscall("read_state", "%i %i %i", keyPtr, bufferPtr, bufferLen);
 
@@ -148,7 +148,7 @@ namespace wasm {
         return stateSize;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "_Z25__faasm_read_state_offsetPKcmPhm", void, _Z25__faasm_read_state_offsetPKcmPhm,
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset", void, __faasm_read_state_offset,
                               I32 keyPtr, I32 offset, I32 bufferPtr, I32 bufferLen) {
         logSyscall("read_state_offset", "%i %i %i %i", keyPtr, offset, bufferPtr, bufferLen);
 
@@ -161,8 +161,8 @@ namespace wasm {
         copyToWasmBuffer(state, bufferPtr, bufferLen);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_input", I32, __faasm_get_input, I32 bufferPtr, I32 bufferLen) {
-        logSyscall("get_input", "%i %i", bufferPtr, bufferLen);
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_input", I32, __faasm_read_input, I32 bufferPtr, I32 bufferLen) {
+        logSyscall("read_input", "%i %i", bufferPtr, bufferLen);
 
         // Get the input
         message::FunctionCall &call = getExecutingModule()->functionCall;
@@ -174,8 +174,8 @@ namespace wasm {
         return inputSize;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_set_output", void, __faasm_set_output, I32 outputPtr, I32 outputLen) {
-        logSyscall("set_output", "%i %i", outputPtr, outputLen);
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_output", void, __faasm_write_output, I32 outputPtr, I32 outputLen) {
+        logSyscall("write_output", "%i %i", outputPtr, outputLen);
 
         std::vector<uint8_t> outputData = getBytesFromWasm(outputPtr, outputLen);
         message::FunctionCall &call = getExecutingModule()->functionCall;
@@ -339,7 +339,7 @@ namespace wasm {
         // Get array of iovecs from memory
         wasm_iovec *iovecs = Runtime::memoryArrayPtr<wasm_iovec>(memoryPtr, iov, iovcnt);
 
-        // Build vector of native iovecs
+        // Build vector of emulator iovecs
         iovec nativeIovecs[iovcnt];
         for (U32 i = 0; i < iovcnt; i++) {
             wasm_iovec thisIovec = iovecs[i];
@@ -347,7 +347,7 @@ namespace wasm {
             // Get pointer to data
             U8 *ioData = Runtime::memoryArrayPtr<U8>(memoryPtr, thisIovec.iov_base, thisIovec.iov_len);
 
-            // Create native iovec and add to list
+            // Create emulator iovec and add to list
             iovec nativeIovec{
                     .iov_base = ioData,
                     .iov_len = thisIovec.iov_len,
@@ -543,7 +543,7 @@ namespace wasm {
     /** Writes changes to a native sockaddr back to a wasm sockaddr. This is important in several
      * networking syscalls that receive responses and modify arguments in place */
     void setSockAddr(sockaddr nativeSockAddr, I32 addrPtr) {
-        // Get native pointer to wasm address
+        // Get emulator pointer to wasm address
         wasm_sockaddr *wasmAddrPtr = &Runtime::memoryRef<wasm_sockaddr>(getExecutingModule()->defaultMemory,
                                                                         (Uptr) addrPtr);
 
@@ -553,7 +553,7 @@ namespace wasm {
     }
 
     void setSockLen(socklen_t nativeValue, I32 wasmPtr) {
-        // Get native pointer to wasm address
+        // Get emulator pointer to wasm address
         I32 *wasmAddrPtr = &Runtime::memoryRef<I32>(getExecutingModule()->defaultMemory, (Uptr) wasmPtr);
         std::copy(&nativeValue, &nativeValue + 1, wasmAddrPtr);
     }
@@ -711,7 +711,7 @@ namespace wasm {
                         logSyscall("recvfrom", "%i %li %li %i %i %i", sockfd, bufPtr, bufLen, flags, sockAddrPtr,
                                    addrLen);
 
-                        // Make the native call
+                        // Make the emulator call
                         result = recvfrom(sockfd, buf, bufLen, flags, &sockAddr, &nativeAddrLen);
 
                         // Note, recvfrom will modify the sockaddr and addrlen in place with the details returned

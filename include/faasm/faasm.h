@@ -11,27 +11,18 @@
 // Work out if we're in a wasm cross-compile environment
 // This can be used to avoid functions being removed by DCE
 #if __clang_major__ == 8
+
+#include <sys/syscall.h>
+
 #define FAASM_EXPORT __attribute__((used)) __attribute__ ((visibility ("default")))
 #define FAASM_INLINE
 #else
+
+#include <emulator/emulator.h>
+
 #define FAASM_EXPORT
 #define FAASM_INLINE static inline
 #endif
-
-// Intrinsic functions implemented by the runtime
-size_t __faasm_read_state(const char *key, uint8_t *buffer, size_t bufferLen);
-
-void __faasm_write_state(const char *key, uint8_t *data, size_t dataLen);
-
-void __faasm_write_state_offset(const char *key, size_t offset, uint8_t *data, size_t dataLen);
-
-void __faasm_read_state_offset(const char *key, size_t offset, uint8_t *buffer, size_t bufferLen);
-
-size_t __faasm_get_input(uint8_t *buffer, size_t bufferLen);
-
-void __faasm_set_output(const uint8_t *output, size_t outputLen);
-
-void __faasm_chain_function(const char *name, const uint8_t *inputData, size_t inputDataSize);
 
 
 namespace faasm {
@@ -134,8 +125,7 @@ int run() {
 #if __clang_major__ == 8
 // Dummy main function to keep compiler happy
 int main(int a, char* args[]) {
-    uint8_t foo = 42;
-    run(&foo, &foo, &foo, &foo);
+    run();
 
     return 0;
 }
