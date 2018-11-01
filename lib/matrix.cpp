@@ -1,13 +1,4 @@
-#ifndef FAASM_MATRIX_H
-#define FAASM_MATRIX_H
-
-#include "faasm.h"
-#include "random.h"
-
-#include <random>
-#include <eigen3/Eigen/Core>
-#include <eigen3/Eigen/SparseCore>
-
+#include "faasm/matrix.h"
 
 using namespace Eigen;
 
@@ -210,5 +201,3 @@ namespace faasm {
         return result;
     }
 }
-
-#endif

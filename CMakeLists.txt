@@ -26,11 +26,13 @@ add_definitions(-DDLL_IMPORT=)
 
 set(FAASM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
+set(FAASM_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lib)
 set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/WAVM/Lib)
 set(FAASM_WAVM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/WAVM/Include)
 
 include_directories(
         ${FAASM_INCLUDE_DIR}
+        ${FAASM_LIB_DIR}
         ${FAASM_WAVM_INCLUDE_DIR} # Required for using WAVM elsewhere
         ${CMAKE_CURRENT_BINARY_DIR}/src # Required for protobuf
 )
@@ -41,6 +43,9 @@ set(CMAKE_CXX_STANDARD 11)
 add_subdirectory(examples)
 add_subdirectory(errors)
 add_subdirectory(sgd)
+
+# Faasm library
+add_subdirectory(lib)
 
 # Faasm runtime
 add_subdirectory(WAVM)

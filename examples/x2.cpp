@@ -1,4 +1,4 @@
-#include "faasm.h"
+#include "faasm/faasm.h"
 
 /**
  * Multiplies its array input by two

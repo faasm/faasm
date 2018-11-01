@@ -1,7 +1,4 @@
-#ifndef FAASM_RANDOM_H
-#define FAASM_RANDOM_H
-
-#include <random>
+#include "faasm/random.h"
 
 namespace faasm {
     int randomInteger(int iStart, int iEnd) {
@@ -14,5 +11,3 @@ namespace faasm {
         return random_integer;
     }
 }
-
-#endif

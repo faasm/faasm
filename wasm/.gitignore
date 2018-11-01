@@ -1,0 +1,6 @@
+# Ignore all compiled wasm except a few important folders
+*
+!wasm/demo/*/*.o
+!wasm/demo/*/*.wasm
+!wasm/errors/*/*.o
+!wasm/errors/*/*.wasm

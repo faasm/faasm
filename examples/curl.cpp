@@ -1,4 +1,4 @@
-#include "faasm.h"
+#include "faasm/faasm.h"
 
 #include <stdio.h>
 #include <curl/curl.h>

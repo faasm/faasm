@@ -1,4 +1,4 @@
-#include "faasm.h"
+#include "faasm/faasm.h"
 
 #include <sys/ioctl.h>
 #include <sys/socket.h>

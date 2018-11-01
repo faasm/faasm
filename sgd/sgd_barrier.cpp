@@ -1,6 +1,6 @@
-#include "faasm.h"
-#include "matrix.h"
-#include "counter.h"
+#include "faasm/faasm.h"
+#include "faasm/matrix.h"
+#include "faasm/counter.h"
 #include "sgd_constants.h"
 
 namespace faasm {

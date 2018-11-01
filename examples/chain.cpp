@@ -1,4 +1,4 @@
-#include "faasm.h"
+#include "faasm/faasm.h"
 
 /**
  * Passes some inputs onto other functions

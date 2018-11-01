@@ -4,7 +4,7 @@ project(faasm-sgd)
 # Include Faasm headers
 include_directories(
         ${CMAKE_CURRENT_LIST_DIR}
-        ${CMAKE_CURRENT_LIST_DIR}/../include/faasm
+        ${CMAKE_CURRENT_LIST_DIR}/../lib
 )
 
 # Faasm vars
@@ -18,7 +18,7 @@ if (CMAKE_BUILD_TYPE MATCHES "wasm")
 
     function(faasm_func exec_name file_name)
         add_executable(${exec_name} ${file_name})
-        target_link_libraries(${exec_name} -Wl,--allow-undefined)
+        target_link_libraries(${exec_name} faasm)
 
         # Upload URL
         set(UPLOAD_URL http://${FAASM_HOST}:8001/f/${FAASM_USER}/${exec_name})
@@ -37,7 +37,7 @@ else()
 
     function(faasm_func exec_name file_name)
         add_executable(${exec_name} sgd_native.cpp ${file_name})
-        target_link_libraries(${exec_name} emulator)
+        target_link_libraries(${exec_name} faasm emulator)
     endfunction(faasm_func)
 
 endif()

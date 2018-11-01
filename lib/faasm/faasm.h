@@ -18,11 +18,23 @@
 #define FAASM_INLINE
 #else
 
-#include <emulator/emulator.h>
-
 #define FAASM_EXPORT
 #define FAASM_INLINE static inline
 #endif
+
+long __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen);
+
+void __faasm_write_state(const char *key, unsigned char *data, long dataLen);
+
+void __faasm_write_state_offset(const char *key, long offset, unsigned char *data, long dataLen);
+
+void __faasm_read_state_offset(const char *key, long offset, unsigned char *buffer, long bufferLen);
+
+long __faasm_read_input(unsigned char *buffer, long bufferLen);
+
+void __faasm_write_output(const unsigned char *output, long outputLen);
+
+void __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize);
 
 
 namespace faasm {
@@ -69,11 +81,11 @@ namespace faasm {
         };
 
         /** Returns the size of the input in bytes. Returns zero if none. */
-        size_t getInputSize() {
+        long getInputSize() {
             uint8_t buf[1];
 
             // Passing zero buffer len returns total size
-            return __faasm_get_input(buf, 0);
+            return __faasm_read_input(buf, 0);
         }
 
         /**
@@ -81,7 +93,7 @@ namespace faasm {
          */
         const uint8_t *getInput() {
             auto inputArray = new uint8_t[MAX_INPUT_BYTES];
-            __faasm_get_input(inputArray, MAX_INPUT_BYTES);
+            __faasm_read_input(inputArray, MAX_INPUT_BYTES);
 
             return inputArray;
         };
@@ -90,7 +102,7 @@ namespace faasm {
          * Sets the given array as the output data for this function
          */
         void setOutput(const uint8_t *newOutput, size_t outputLen) {
-            __faasm_set_output(newOutput, outputLen);
+            __faasm_write_output(newOutput, outputLen);
         }
 
         /**

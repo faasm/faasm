@@ -1,5 +1,5 @@
-#include "faasm.h"
-#include "counter.h"
+#include "faasm/faasm.h"
+#include "faasm/counter.h"
 
 namespace faasm {
     int exec(FaasmMemory *memory) {

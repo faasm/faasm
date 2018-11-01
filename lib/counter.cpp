@@ -1,7 +1,4 @@
-#ifndef FAASM_COUNTER_H
-#define FAASM_COUNTER_H
-
-#include "faasm.h"
+#include "faasm/counter.h"
 
 namespace faasm {
 
@@ -28,4 +25,3 @@ namespace faasm {
 
 }
 
-#endif

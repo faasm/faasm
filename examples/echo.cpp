@@ -1,4 +1,4 @@
-#include "faasm.h"
+#include "faasm/faasm.h"
 
 /**
  * Writes the input to the output

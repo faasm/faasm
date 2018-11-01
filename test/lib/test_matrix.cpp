@@ -1,6 +1,6 @@
 #include <catch/catch.hpp>
 
-#include <faasm/matrix.h>
+#include "faasm/matrix.h"
 #include <infra/infra.h>
 
 using namespace Eigen;

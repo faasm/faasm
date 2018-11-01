@@ -76,10 +76,10 @@ The code for this function can be found in `examples/echo.cpp`.
 ## Writing Functions
 
 The function API passes a number of pointers to functions to allocate memory regions. A convenience header is
-provided in at `include/faasm/faasm.h`. Functions will look something like this:
+provided in at `lib/faasm/faasm.h`. Functions will look something like this:
 
 ```
-#include "faasm.h"
+#include "faasm/faasm.h"
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
@@ -113,7 +113,7 @@ To do this, the `chainFunction()` method on the `FaasmMemory` instance can be ca
 the function `foo`, (also owned by me), it can do the following:
 
 ```
-#include "faasm.h"
+#include "faasm/faasm.h"
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
@@ -140,7 +140,7 @@ to this state must be byte arrays.
 A function accessing state will look something like:
 
 ```
-#include "faasm.h"
+#include "faasm/faasm.h"
 
 namespace faasm {
     int exec(FaasmMemory *memory) {

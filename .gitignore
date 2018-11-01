@@ -100,10 +100,4 @@ work/
 download/
 build/
 
-# Ignore all compiled wasm except a few important folders
-wasm/
-!wasm/demo/*/*.o
-!wasm/demo/*/*.wasm
-!wasm/errors/*/*.o
-!wasm/errors/*/*.wasm
 

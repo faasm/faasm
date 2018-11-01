@@ -1,4 +1,4 @@
-#include "faasm.h"
+#include "faasm/faasm.h"
 
 /** Attempts to open a blocked file */
 namespace faasm {
