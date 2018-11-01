@@ -18,7 +18,7 @@ namespace util {
     std::vector<uint8_t> stringToBytes(const std::string &str);
     void trimTrailingZeros(std::vector<uint8_t> &vectorIn);
     void printBytes(uint8_t *ptr, size_t count, bool asChar = false);
-    int safeCopyToBuffer(std::vector<uint8_t> &state, uint8_t *buffer, int bufferLen);
+    int safeCopyToBuffer(const std::vector<uint8_t> &dataIn, uint8_t *buffer, int bufferLen);
 
     // Files
     std::string readFileToString(const std::string &path);

@@ -30,17 +30,18 @@ void __faasm_write_state_offset(const char *key, size_t offset, uint8_t *data, s
 
 void __faasm_read_state_offset(const char *key, size_t offset, uint8_t *buffer, size_t bufferLen);
 
+size_t __faasm_get_input(const uint8_t *buffer, size_t bufferLen);
+
+size_t __faasm_set_output(const uint8_t *output, size_t outputLen);
+
+size_t __faasm_chain_function(const char *name, const uint8_t *inputData, size_t inputDataSize);
+
+
 namespace faasm {
 
     class FaasmMemory {
     public:
-        FaasmMemory(uint8_t *in, uint8_t *out, uint8_t *cFuncs, uint8_t *cIn) {
-            input = in;
-            output = out;
-
-            chainFunctions = cFuncs;
-            chainInputs = cIn;
-            chainCount = 0;
+        FaasmMemory() {
         };
 
         /** Returns the size of the state in bytes. Returns zero if not set. */
@@ -79,18 +80,29 @@ namespace faasm {
             __faasm_read_state_offset(key, offset, buffer, bufferLen);
         };
 
+        /** Returns the size of the input in bytes. Returns zero if none. */
+        size_t getInputSize() {
+            uint8_t buf[1];
+
+            // Passing zero buffer len returns total size
+            return __faasm_get_input(buf, 0);
+        }
+
         /**
          * Returns a pointer to the input data for this function
          */
         const uint8_t *getInput() {
-            return input;
+            auto inputArray = new uint8_t[MAX_INPUT_BYTES];
+            __faasm_get_input(inputArray, MAX_INPUT_BYTES);
+
+            return inputArray;
         };
 
         /**
          * Sets the given array as the output data for this function
          */
         void setOutput(const uint8_t *newOutput, size_t outputLen) {
-            memcpy(this->output, newOutput, outputLen);
+            __faasm_set_output(newOutput, outputLen);
         }
 
         /**
@@ -103,38 +115,9 @@ namespace faasm {
         /**
          * Chains a function with the given input data
          */
-        void chainFunction(const char *name, const uint8_t *inputData, int inputDataSize) {
-            // Work out how many chained functions we already have
-            int32_t chainIdx = this->chainCount;
-
-            if (chainIdx > MAX_CHAINS) {
-                fprintf(stderr, "%s", "Reached max chains");
-                return;
-            }
-
-            // Get the memory offsets for name and data
-            uint8_t *namePtr = this->chainFunctions + (chainIdx * MAX_NAME_LENGTH);
-            uint8_t *dataPtr = this->chainInputs + (chainIdx * MAX_INPUT_BYTES);
-
-            // Copy the data into place
-            strcpy((char *) namePtr, name);
-
-            if (inputData != nullptr) {
-                memcpy(dataPtr, inputData, (size_t) inputDataSize);
-            }
-
-            // Increment the count
-            this->chainCount = chainIdx + 1;
+        void chainFunction(const char *name, const uint8_t *inputData, size_t inputDataSize) {
+            __faasm_chain_function(name, inputData, inputDataSize);
         }
-
-    private:
-        uint8_t *input;
-
-        uint8_t *output;
-
-        uint8_t *chainFunctions;
-        uint8_t *chainInputs;
-        int32_t chainCount;
     };
 
     /**
@@ -145,8 +128,8 @@ namespace faasm {
 
 FAASM_INLINE
 FAASM_EXPORT
-int run(uint8_t *in, uint8_t *out, uint8_t *cFuncs, uint8_t *cIn) {
-    faasm::FaasmMemory memory(in, out, cFuncs, cIn);
+int run() {
+    faasm::FaasmMemory memory;
 
     return faasm::exec(&memory);
 }

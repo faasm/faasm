@@ -20,7 +20,7 @@ namespace wasm {
         return moduleMemory;
     }
 
-    const message::FunctionCall* getModuleCall() {
+    message::FunctionCall* getModuleCall() {
         return moduleCall;
     }
 

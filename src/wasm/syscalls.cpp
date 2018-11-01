@@ -48,7 +48,7 @@ using namespace WAVM;
 
 namespace wasm {
     DEFINE_INTRINSIC_MODULE(env)
-    
+
     static const char *HOSTS_FILE = "/usr/local/faasm/net/hosts";
     static const char *RESOLV_FILE = "/usr/local/faasm/net/resolv.conf";
 
@@ -69,10 +69,32 @@ namespace wasm {
         return logger;
     }
 
-    std::string prependUserToKey(const char* key) {
+    std::vector<uint8_t> getBytesFromWasm(I32 dataPtr, I32 dataLen) {
+        Runtime::Memory *memoryPtr = getModuleMemory();
+        U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
+
+        std::vector<uint8_t> bytes(data, data + dataLen);
+
+        return bytes;
+    }
+
+    std::string getKeyFromWasm(I32 keyPtr) {
+        Runtime::Memory *memoryPtr = getModuleMemory();
+        char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
+
         const message::FunctionCall *call = getModuleCall();
-        std::string newKey = call->user() + "_" + key;
-        return newKey;
+        std::string prefixedKey = call->user() + "_" + key;
+
+        return prefixedKey;
+    }
+
+    int copyToWasmBuffer(const std::vector<uint8_t> &dataIn, I32 bufferPtr, I32 bufferLen) {
+        Runtime::Memory *memoryPtr = getModuleMemory();
+        U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
+
+        int dataSize = util::safeCopyToBuffer(dataIn, buffer, bufferLen);
+
+        return dataSize;
     }
 
     // ------------------------
@@ -82,49 +104,37 @@ namespace wasm {
                               I32 keyPtr, I32 dataPtr, I32 dataLen) {
         logSyscall("write_state", "%i %i %i", keyPtr, dataPtr, dataLen);
 
-        Runtime::Memory *memoryPtr = getModuleMemory();
-        U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
-        char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
-
-        // Build the new state
-        std::vector<uint8_t> newState(data, data + dataLen);
+        const std::vector<uint8_t> &newState = getBytesFromWasm(dataPtr, dataLen);
+        std::string key = getKeyFromWasm(keyPtr);
 
         // Set the whole state in redis
         infra::Redis *redis = infra::Redis::getThreadConnection();
-
-        std::string prefixedKey = prependUserToKey(key);
-        redis->set(prefixedKey, newState);
+        redis->set(key, newState);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "_Z26__faasm_write_state_offsetPKcmPhm", void, _Z26__faasm_write_state_offsetPKcmPhm,
                               I32 keyPtr, I32 offset, I32 dataPtr, I32 dataLen) {
         logSyscall("write_state_offset", "%i %i %i %i", keyPtr, offset, dataPtr, dataLen);
 
-        Runtime::Memory *memoryPtr = getModuleMemory();
-        U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
-        char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
-
-        std::vector<uint8_t> newState(data, data + dataLen);
+        const std::vector<uint8_t> &newState = getBytesFromWasm(dataPtr, dataLen);
+        std::string key = getKeyFromWasm(keyPtr);
 
         // Set the state at the given offset
         infra::Redis *redis = infra::Redis::getThreadConnection();
-        std::string prefixedKey = prependUserToKey(key);
-        redis->setRange(prefixedKey, offset, newState);
+        redis->setRange(key, offset, newState);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "_Z18__faasm_read_statePKcPhm", I32, _Z18__faasm_read_statePKcPhm,
                               I32 keyPtr, I32 bufferPtr, I32 bufferLen) {
         logSyscall("read_state", "%i %i %i", keyPtr, bufferPtr, bufferLen);
 
-        Runtime::Memory *memoryPtr = getModuleMemory();
-        U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
-        char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
+        std::string key = getKeyFromWasm(keyPtr);
 
         // Read the state in
         infra::Redis *redis = infra::Redis::getThreadConnection();
-        std::string prefixedKey = prependUserToKey(key);
-        std::vector<uint8_t> state = redis->get(prefixedKey);
-        int stateSize = util::safeCopyToBuffer(state, buffer, bufferLen);
+        std::vector<uint8_t> state = redis->get(key);
+
+        int stateSize = copyToWasmBuffer(state, bufferPtr, bufferLen);
 
         // Return the total number of bytes in the whole state
         return stateSize;
@@ -134,15 +144,61 @@ namespace wasm {
                               I32 keyPtr, I32 offset, I32 bufferPtr, I32 bufferLen) {
         logSyscall("read_state_offset", "%i %i %i %i", keyPtr, offset, bufferPtr, bufferLen);
 
-        Runtime::Memory *memoryPtr = getModuleMemory();
-        U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
-        char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
+        std::string key = getKeyFromWasm(keyPtr);
 
         // Read the state in
         infra::Redis *redis = infra::Redis::getThreadConnection();
-        std::string prefixedKey = prependUserToKey(key);
-        std::vector<uint8_t> state = redis->getRange(prefixedKey, offset, offset + bufferLen);
-        util::safeCopyToBuffer(state, buffer, bufferLen);
+        std::vector<uint8_t> state = redis->getRange(key, offset, offset + bufferLen);
+
+        copyToWasmBuffer(state, bufferPtr, bufferLen);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_input", I32, __faasm_get_input, I32 bufferPtr, I32 bufferLen) {
+        logSyscall("get_input", "%i %i", bufferPtr, bufferLen);
+
+        // Get the input
+        const message::FunctionCall *call = getModuleCall();
+        std::vector<uint8_t> inputBytes = util::stringToBytes(call->inputdata());
+
+        // Write to the wasm buffer
+        int inputSize = copyToWasmBuffer(inputBytes, bufferPtr, bufferLen);
+
+        return inputSize;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_set_output", void, __faasm_set_output, I32 outputPtr, I32 outputLen) {
+        logSyscall("set_output", "%i %i", outputPtr, outputLen);
+
+        std::vector<uint8_t > outputData = getBytesFromWasm(outputPtr, outputLen);
+        message::FunctionCall *call = getModuleCall();
+        call->set_outputdata(outputData.data(), outputData.size());
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_function", void, __faasm_chain_function,
+                              I32 namePtr, I32 inputDataPtr, I32 inputDataLen) {
+        logSyscall("chain_function", "%i %i %i", namePtr, inputDataPtr, inputDataLen);
+
+        // Work out how many chained functions we already have
+//        int32_t chainIdx = this->chainCount;
+//
+//        if (chainIdx > MAX_CHAINS) {
+//            fprintf(stderr, "%s", "Reached max chains");
+//            return;
+//        }
+//
+//        // Get the memory offsets for name and data
+//        uint8_t *namePtr = this->chainFunctions + (chainIdx * MAX_NAME_LENGTH);
+//        uint8_t *dataPtr = this->chainInputs + (chainIdx * MAX_INPUT_BYTES);
+//
+//        // Copy the data into place
+//        strcpy((char *) namePtr, name);
+//
+//        if (inputData != nullptr) {
+//            memcpy(dataPtr, inputData, (size_t) inputDataSize);
+//        }
+//
+//        // Increment the count
+//        this->chainCount = chainIdx + 1;
     }
 
     // ------------------------
@@ -652,14 +708,14 @@ namespace wasm {
 
                     if (call == SocketCalls::sc_sendto) {
                         logSyscall("sendto", "%i %li %li %i %i %i", sockfd, bufPtr, bufLen, flags, sockAddrPtr,
-                                     addrLen);
+                                   addrLen);
 
                         result = sendto(sockfd, buf, bufLen, flags, &sockAddr, nativeAddrLen);
 
                     } else {
                         // Note, addrLen here is actually a pointer
                         logSyscall("recvfrom", "%i %li %li %i %i %i", sockfd, bufPtr, bufLen, flags, sockAddrPtr,
-                                     addrLen);
+                                   addrLen);
 
                         // Make the native call
                         result = recvfrom(sockfd, buf, bufLen, flags, &sockAddr, &nativeAddrLen);
@@ -1050,7 +1106,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_membarrier", I32, __syscall_membarrier, I32 a, I32 b) {
-        logSyscall("membarrier", "%i %i",  a, b);
+        logSyscall("membarrier", "%i %i", a, b);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
