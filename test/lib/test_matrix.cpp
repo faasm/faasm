@@ -27,13 +27,6 @@ namespace tests {
         return mat;
     }
 
-    faasm::FaasmMemory buildDummyMemory() {
-        uint8_t dummy[2];
-        faasm::FaasmMemory mem(dummy, dummy, dummy, dummy);
-
-        return mem;
-    }
-
     TEST_CASE("Test matrix to bytes round trip", "[matrix]") {
         infra::Redis redis;
         redis.flushAll();
@@ -72,7 +65,7 @@ namespace tests {
         MatrixXd mat = buildDummyMatrix();
 
         // Initialise dummy faasm memory
-        faasm::FaasmMemory mem = buildDummyMemory();
+        faasm::FaasmMemory mem;
 
         // Write to a dummy key
         const char *stateKey = "test_matrix_state";
@@ -93,7 +86,7 @@ namespace tests {
         MatrixXd mat = buildDummyMatrix();
 
         // Initialise dummy faasm memory
-        faasm::FaasmMemory mem = buildDummyMemory();
+        faasm::FaasmMemory mem;
 
         // Write full state to a dummy key
         const char *stateKey = "test_matrix_elem_state";
@@ -131,7 +124,7 @@ namespace tests {
                 16, 17, 18, 19, 20;
 
         // Initialise dummy faasm memory
-        faasm::FaasmMemory mem = buildDummyMemory();
+        faasm::FaasmMemory mem;
 
         // Write full state to a dummy key
         const char *stateKey = "test_matrix_cols_state";

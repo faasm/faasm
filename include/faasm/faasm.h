@@ -5,11 +5,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MAX_CHAINS 20
-#define MAX_NAME_LENGTH 32
 #define MAX_INPUT_BYTES 65536
 #define MAX_OUTPUT_BYTES 65536
-#define MAX_STATE_BYTES 65536
 
 // Work out if we're in a wasm cross-compile environment
 // This can be used to avoid functions being removed by DCE
@@ -30,11 +27,11 @@ void __faasm_write_state_offset(const char *key, size_t offset, uint8_t *data, s
 
 void __faasm_read_state_offset(const char *key, size_t offset, uint8_t *buffer, size_t bufferLen);
 
-size_t __faasm_get_input(const uint8_t *buffer, size_t bufferLen);
+size_t __faasm_get_input(uint8_t *buffer, size_t bufferLen);
 
-size_t __faasm_set_output(const uint8_t *output, size_t outputLen);
+void __faasm_set_output(const uint8_t *output, size_t outputLen);
 
-size_t __faasm_chain_function(const char *name, const uint8_t *inputData, size_t inputDataSize);
+void __faasm_chain_function(const char *name, const uint8_t *inputData, size_t inputDataSize);
 
 
 namespace faasm {

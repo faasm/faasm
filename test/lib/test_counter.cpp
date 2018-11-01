@@ -12,8 +12,7 @@ namespace tests {
         infra::Redis redis;
         redis.flushAll();
 
-        uint8_t dummy[2];
-        FaasmMemory mem(dummy, dummy, dummy, dummy);
+        FaasmMemory mem;
 
         const char* key = "test_counter";
         initCounter(&mem, key);
@@ -37,8 +36,7 @@ namespace tests {
         infra::Redis redis;
         redis.flushAll();
 
-        uint8_t dummy[2];
-        FaasmMemory mem(dummy, dummy, dummy, dummy);
+        FaasmMemory mem;
 
         const char* key = "test_uninit_key";
         REQUIRE(getCounter(&mem, key) == 0);

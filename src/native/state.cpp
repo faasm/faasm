@@ -29,3 +29,17 @@ void __faasm_read_state_offset(const char *key, size_t offset, uint8_t *buffer, 
     util::safeCopyToBuffer(state, buffer, bufferLen);
 }
 
+size_t __faasm_get_input(uint8_t *buffer, size_t bufferLen) {
+    std::vector<uint8_t> inputData = {1, 2, 3, 4, 5};
+    std::copy(inputData.begin(), inputData.end(), buffer);
+
+    return 14;
+}
+
+void __faasm_set_output(const uint8_t *output, size_t outputLen) {
+
+}
+
+void __faasm_chain_function(const char *name, const uint8_t *inputData, size_t inputDataSize) {
+
+}

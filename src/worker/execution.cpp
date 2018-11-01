@@ -68,9 +68,9 @@ namespace worker {
         logger->info("Starting ({}/{})", call.user(), call.function());
 
         // Create and execute the module
-        wasm::WasmModule module;
+        wasm::WasmModule module(call);
         try {
-            module.execute(call);
+            module.execute();
         }
         catch (const std::exception &e) {
             std::string errorMessage = "Error: " + std::string(e.what());
@@ -89,24 +89,12 @@ namespace worker {
 
         // Release the token
         logger->debug("Worker releasing slot {}", index);
-
         tokenPool.releaseToken(index);
 
-        // Dispatch any chained calls
-        infra::Redis *redis = infra::Redis::getThreadConnection();
-        for (auto chainedCall : module.chainedCalls) {
-            // Check if call is valid
-            if (!infra::isValidFunction(chainedCall)) {
-                std::string errorMessage = "Invalid chained function call: ";
-                errorMessage.append(chainedCall.user());
-                errorMessage.append(" - ");
-                errorMessage.append(chainedCall.function());
-
-                return finishCall(call, errorMessage);
-            }
-
-            logger->debug("Chaining ({}/{})", chainedCall.user(), chainedCall.function());
-            redis->callFunction(chainedCall);
+        // Process any chained calls
+        std::string chainErrorMessage = module.callChain.execute();
+        if(!chainErrorMessage.empty()) {
+            return finishCall(call, chainErrorMessage);
         }
 
         finishCall(call, "");

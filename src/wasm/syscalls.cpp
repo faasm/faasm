@@ -70,7 +70,7 @@ namespace wasm {
     }
 
     std::vector<uint8_t> getBytesFromWasm(I32 dataPtr, I32 dataLen) {
-        Runtime::Memory *memoryPtr = getModuleMemory();
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
 
         std::vector<uint8_t> bytes(data, data + dataLen);
@@ -78,18 +78,26 @@ namespace wasm {
         return bytes;
     }
 
+    std::string getStringFromWasm(I32 strPtr) {
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
+        std::string str(key);
+
+        return str;
+    }
+
     std::string getKeyFromWasm(I32 keyPtr) {
-        Runtime::Memory *memoryPtr = getModuleMemory();
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
 
-        const message::FunctionCall *call = getModuleCall();
-        std::string prefixedKey = call->user() + "_" + key;
+        message::FunctionCall &call = getExecutingModule()->functionCall;
+        std::string prefixedKey = call.user() + "_" + key;
 
         return prefixedKey;
     }
 
     int copyToWasmBuffer(const std::vector<uint8_t> &dataIn, I32 bufferPtr, I32 bufferLen) {
-        Runtime::Memory *memoryPtr = getModuleMemory();
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
 
         int dataSize = util::safeCopyToBuffer(dataIn, buffer, bufferLen);
@@ -157,8 +165,8 @@ namespace wasm {
         logSyscall("get_input", "%i %i", bufferPtr, bufferLen);
 
         // Get the input
-        const message::FunctionCall *call = getModuleCall();
-        std::vector<uint8_t> inputBytes = util::stringToBytes(call->inputdata());
+        message::FunctionCall &call = getExecutingModule()->functionCall;
+        std::vector<uint8_t> inputBytes = util::stringToBytes(call.inputdata());
 
         // Write to the wasm buffer
         int inputSize = copyToWasmBuffer(inputBytes, bufferPtr, bufferLen);
@@ -169,36 +177,21 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_set_output", void, __faasm_set_output, I32 outputPtr, I32 outputLen) {
         logSyscall("set_output", "%i %i", outputPtr, outputLen);
 
-        std::vector<uint8_t > outputData = getBytesFromWasm(outputPtr, outputLen);
-        message::FunctionCall *call = getModuleCall();
-        call->set_outputdata(outputData.data(), outputData.size());
+        std::vector<uint8_t> outputData = getBytesFromWasm(outputPtr, outputLen);
+        message::FunctionCall &call = getExecutingModule()->functionCall;
+        call.set_outputdata(outputData.data(), outputData.size());
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_function", void, __faasm_chain_function,
                               I32 namePtr, I32 inputDataPtr, I32 inputDataLen) {
         logSyscall("chain_function", "%i %i %i", namePtr, inputDataPtr, inputDataLen);
 
-        // Work out how many chained functions we already have
-//        int32_t chainIdx = this->chainCount;
-//
-//        if (chainIdx > MAX_CHAINS) {
-//            fprintf(stderr, "%s", "Reached max chains");
-//            return;
-//        }
-//
-//        // Get the memory offsets for name and data
-//        uint8_t *namePtr = this->chainFunctions + (chainIdx * MAX_NAME_LENGTH);
-//        uint8_t *dataPtr = this->chainInputs + (chainIdx * MAX_INPUT_BYTES);
-//
-//        // Copy the data into place
-//        strcpy((char *) namePtr, name);
-//
-//        if (inputData != nullptr) {
-//            memcpy(dataPtr, inputData, (size_t) inputDataSize);
-//        }
-//
-//        // Increment the count
-//        this->chainCount = chainIdx + 1;
+        message::FunctionCall &call = getExecutingModule()->functionCall;
+        std::string funcName = getStringFromWasm(namePtr);
+        const std::vector<uint8_t> &inputData = getBytesFromWasm(inputDataPtr, inputDataLen);
+
+        // Add this to the chain of calls
+        getExecutingModule()->callChain.addCall(call.user(), funcName, inputData);
     }
 
     // ------------------------
@@ -217,7 +210,7 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> logger = logSyscall("open", "%i %i %i", pathPtr, flags, mode);
 
         // Get the path
-        Runtime::Memory *memoryPtr = getModuleMemory();
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         char *path = &Runtime::memoryRef<char>(memoryPtr, (Uptr) pathPtr);
 
         // Check if this is a valid path. Return a read-only handle to the file if so
@@ -272,7 +265,7 @@ namespace wasm {
         checkThreadOwnsFd(fd);
 
         // Get the buffer etc.
-        Runtime::Memory *memoryPtr = getModuleMemory();
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *buf = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufPtr, (Uptr) count);
 
         // Do the actual read
@@ -302,7 +295,7 @@ namespace wasm {
             throw std::runtime_error("Trying to poll multiple fds. Only single supported");
         }
 
-        auto *fds = Runtime::memoryArrayPtr<pollfd>(getModuleMemory(), (Uptr) fdsPtr, 1);
+        auto *fds = Runtime::memoryArrayPtr<pollfd>(getExecutingModule()->defaultMemory, (Uptr) fdsPtr, 1);
 
         // Check this thread has permission to poll
         pollfd fd = fds[0];
@@ -326,7 +319,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "puts", I32, puts, I32 strPtr) {
-        Runtime::Memory *memoryPtr = getModuleMemory();
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         char *string = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
 
         logSyscall("puts", "%s", string);
@@ -341,7 +334,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_writev", I32, __syscall_writev, I32 fd, I32 iov, I32 iovcnt) {
         logSyscall("writev", "%i %i %i", fd, iov, iovcnt);
-        Runtime::Memory *memoryPtr = getModuleMemory();
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
 
         // Get array of iovecs from memory
         wasm_iovec *iovecs = Runtime::memoryArrayPtr<wasm_iovec>(memoryPtr, iov, iovcnt);
@@ -539,7 +532,7 @@ namespace wasm {
 
     /** Translates a wasm sockaddr into a native sockaddr */
     sockaddr getSockAddr(I32 addrPtr) {
-        auto addr = &Runtime::memoryRef<wasm_sockaddr>(getModuleMemory(), (Uptr) addrPtr);
+        auto addr = &Runtime::memoryRef<wasm_sockaddr>(getExecutingModule()->defaultMemory, (Uptr) addrPtr);
 
         sockaddr sa = {.sa_family = addr->sa_family};
 
@@ -551,7 +544,8 @@ namespace wasm {
      * networking syscalls that receive responses and modify arguments in place */
     void setSockAddr(sockaddr nativeSockAddr, I32 addrPtr) {
         // Get native pointer to wasm address
-        wasm_sockaddr *wasmAddrPtr = &Runtime::memoryRef<wasm_sockaddr>(getModuleMemory(), (Uptr) addrPtr);
+        wasm_sockaddr *wasmAddrPtr = &Runtime::memoryRef<wasm_sockaddr>(getExecutingModule()->defaultMemory,
+                                                                        (Uptr) addrPtr);
 
         // Modify in place
         wasmAddrPtr->sa_family = nativeSockAddr.sa_family;
@@ -560,7 +554,7 @@ namespace wasm {
 
     void setSockLen(socklen_t nativeValue, I32 wasmPtr) {
         // Get native pointer to wasm address
-        I32 *wasmAddrPtr = &Runtime::memoryRef<I32>(getModuleMemory(), (Uptr) wasmPtr);
+        I32 *wasmAddrPtr = &Runtime::memoryRef<I32>(getExecutingModule()->defaultMemory, (Uptr) wasmPtr);
         std::copy(&nativeValue, &nativeValue + 1, wasmAddrPtr);
     }
 
@@ -570,7 +564,7 @@ namespace wasm {
      * straight through.
      */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_socketcall", I32, __syscall_socketcall, I32 call, I32 argsPtr) {
-        Runtime::Memory *memoryPtr = getModuleMemory();
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
 
         // NOTE
         // We don't want to support server-side socket syscalls as we expect functions
@@ -850,7 +844,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "_gethostbyname", I32, _gethostbyname, I32 hostnamePtr) {
-        auto hostname = &Runtime::memoryRef<char>(getModuleMemory(), (Uptr) hostnamePtr);
+        auto hostname = &Runtime::memoryRef<char>(getExecutingModule()->defaultMemory, (Uptr) hostnamePtr);
 
         logSyscall("gethostbyname", "%s", hostname);
 
@@ -875,7 +869,7 @@ namespace wasm {
         timespec ts{};
         clock_gettime(clockId, &ts);
 
-        auto result = &Runtime::memoryRef<wasm_timespec>(getModuleMemory(), (Uptr) resultAddress);
+        auto result = &Runtime::memoryRef<wasm_timespec>(getExecutingModule()->defaultMemory, (Uptr) resultAddress);
         result->tv_sec = I32(ts.tv_sec);
         result->tv_nsec = I32(ts.tv_nsec);
 
@@ -1029,7 +1023,7 @@ namespace wasm {
         // Work out how many pages need to be added
         Uptr pagesRequested = getNumberPagesAtOffset(length);
 
-        Iptr previousPageCount = growMemory(getModuleMemory(), pagesRequested);
+        Iptr previousPageCount = growMemory(getExecutingModule()->defaultMemory, pagesRequested);
 
         if (previousPageCount == -1) {
             printf("mmap no memory\n");
@@ -1051,7 +1045,7 @@ namespace wasm {
         const Uptr basePageIndex = addr / IR::numBytesPerPage;
         const Uptr numPages = (length + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
 
-        Runtime::Memory *memory = getModuleMemory();
+        Runtime::Memory *memory = getExecutingModule()->defaultMemory;
 
         unmapMemoryPages(memory, basePageIndex, numPages);
 
@@ -1074,7 +1068,7 @@ namespace wasm {
         Uptr targetPageCount = getNumberPagesAtOffset(addr);
 
         // Work out current page count and break
-        Runtime::Memory *memory = getModuleMemory();
+        Runtime::Memory *memory = getExecutingModule()->defaultMemory;
         const Uptr currentPageCount = getMemoryNumPages(memory);
         const U32 currentBreak = (U32) ((currentPageCount * IR::numBytesPerPage));
 
