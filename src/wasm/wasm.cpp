@@ -45,14 +45,8 @@ namespace wasm {
                 getInstanceExport(moduleInstance, ENTRYPOINT_FUNC));
 
         if (!functionInstance) {
-            // Try CPP compiler name instead
-            functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, CPP_ENTRYPOINT_FUNC));
-
-            if (!functionInstance) {
-                std::string errorMsg = "No exported function \"" + ENTRYPOINT_FUNC + "\"";
-                errorMsg += " (or \"" + CPP_ENTRYPOINT_FUNC + "\") found";
-                throw std::runtime_error(errorMsg);
-            }
+            std::string errorMsg = "No exported function \"" + ENTRYPOINT_FUNC + "\"";
+            throw std::runtime_error(errorMsg);
         }
 
         // Set up public properties
@@ -63,12 +57,12 @@ namespace wasm {
 
         // Make the call
         std::vector<IR::Value> invokeArgs;
-        functionResults = invokeFunctionChecked(context, functionInstance, invokeArgs);
+        invokeFunctionChecked(context, functionInstance, invokeArgs);
 
         // Tidy up
         Runtime::collectCompartmentGarbage(compartment);
 
-        return functionResults[0].u32;
+        return 0;
     }
 
     std::vector<uint8_t> WasmModule::compile(message::FunctionCall &call) {

@@ -22,22 +22,12 @@ namespace faasm {
     int exec(FaasmMemory *memory);
 }
 
-// Things to keep the compiler happy
-FAASM_INLINE
-FAASM_EXPORT
-int run() {
+// Entrypoint
+int main(int argc, char* argv[], char **envp) {
     faasm::FaasmMemory memory;
-
-    return faasm::exec(&memory);
-}
-
-#if __clang_major__ == 8
-// Dummy main function to keep compiler happy
-int main(int a, char* args[]) {
-    run();
+    faasm::exec(&memory);
 
     return 0;
 }
-#endif
 
 #endif

@@ -21,8 +21,7 @@ namespace wasm {
 
     // TODO: avoid the dodgy funciton naming?
     // The CPP compiler seems to mangle the run function export name
-    const std::string ENTRYPOINT_FUNC = "run";
-    const std::string CPP_ENTRYPOINT_FUNC = "_Z3runPhS_S_S_";
+    const std::string ENTRYPOINT_FUNC = "_start";
 
     // Note that the max memory per module is 8GiB, i.e. > 100k pages
     // Page size in wasm is 64kiB so 1000 pages ~ 60MiB of memory

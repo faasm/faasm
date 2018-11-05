@@ -895,17 +895,24 @@ namespace wasm {
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
+    DEFINE_INTRINSIC_FUNCTION(env, "_Exit", void, _Exit, I32 a) {
+        logSyscall("_Exit", "%i", a);
+        // Ignore
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_exit", I32, __syscall_exit, I32 a) {
+        logSyscall("exit", "%i", a);
+
+        // Ignore
+        return 0;
+    }
+
     // ------------------------
     // Misc
     // ------------------------
 
     DEFINE_INTRINSIC_FUNCTION(env, "abort", void, abort) {
         logSyscall("abort", "%s", "");
-        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "_Exit", void, _Exit, I32 a) {
-        logSyscall("Exit", "%i", a);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
@@ -922,11 +929,6 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_exit_group", I32, __syscall_exit_group, I32 a) {
         logSyscall("exit_group", "%i", a);
-        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_exit", I32, __syscall_exit, I32 a) {
-        logSyscall("exit", "%i", a);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
