@@ -147,7 +147,7 @@ namespace faasm {
         const char *key = "my_state_key";
 
         // Get initial state size (if not known)
-        size_t stateSize = memory->getStateSize(key);
+        long stateSize = memory->getStateSize(key);
 
         // Read the state into a buffer
         uint8_t *myState = new uint8_t[stateSize];

@@ -88,9 +88,10 @@ def compile(context, path, libcurl=False, debug=False, undef=False):
         "-Oz",
         "-fvisibility=hidden",
         "-Wl,--allow-undefined" if undef else "",
+        "-lfaasm",
         path,
-        "-I", join("include", "faasm"),
         "-o", output_file,
+        "-v"
     ]
 
     # Debug
@@ -118,6 +119,8 @@ def lib(context, lib_name):
         compile_libcurl()
     elif lib_name == "eigen":
         compile_eigen()
+    elif lib_name == "faasm":
+        compile_libfaasm()
     elif lib_name == "mlpack":
         compile_mlpack()
     elif lib_name == "dlib":
@@ -126,6 +129,18 @@ def lib(context, lib_name):
         compile_gsl()
     else:
         raise RuntimeError("Unrecognised lib name: {}".format(lib_name))
+
+
+def compile_libfaasm():
+    work_dir = join(PROJ_ROOT, "lib")
+    build_dir = join(work_dir, "build")
+
+    if not exists(build_dir):
+        mkdir(build_dir)
+
+    call("cmake ..", shell=True, cwd=build_dir)
+    call("make", shell=True, cwd=build_dir)
+    call("make install", shell=True, cwd=build_dir)
 
 
 def compile_eigen():

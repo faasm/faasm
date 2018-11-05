@@ -8,38 +8,38 @@
 
 static thread_local infra::Redis redis;
 
-long __faasm_read_state(const char *key, uint8_t *buffer, size_t bufferLen) {
+long __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) {
     std::vector<uint8_t> state = redis.get(key);
     int stateSize = util::safeCopyToBuffer(state, buffer, bufferLen);
     return stateSize;
 }
 
-void __faasm_write_state(const char *key, uint8_t *data, size_t dataLen) {
+void __faasm_write_state(const char *key, unsigned char *data, long dataLen) {
     std::vector<uint8_t> newState(data, data + dataLen);
     redis.set(key, newState);
 }
 
-void __faasm_write_state_offset(const char *key, size_t offset, uint8_t *data, size_t dataLen) {
+void __faasm_write_state_offset(const char *key, long offset, unsigned char *data, long dataLen) {
     std::vector<uint8_t> newState(data, data + dataLen);
     redis.setRange(key, offset, newState);
 }
 
-void __faasm_read_state_offset(const char *key, size_t offset, uint8_t *buffer, size_t bufferLen) {
+void __faasm_read_state_offset(const char *key, long offset, unsigned char *buffer, long bufferLen) {
     std::vector<uint8_t> state = redis.getRange(key, offset, offset + bufferLen);
     util::safeCopyToBuffer(state, buffer, bufferLen);
 }
 
-long __faasm_get_input(uint8_t *buffer, size_t bufferLen) {
+long __faasm_read_input(unsigned char *buffer, long bufferLen) {
     std::vector<uint8_t> inputData = {1, 2, 3, 4, 5};
     std::copy(inputData.begin(), inputData.end(), buffer);
 
     return 14;
 }
 
-void __faasm_set_output(const uint8_t *output, size_t outputLen) {
+void __faasm_write_output(const unsigned char *output, long outputLen) {
 
 }
 
-void __faasm_chain_function(const char *name, const uint8_t *inputData, size_t inputDataSize) {
+void __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize) {
 
 }
