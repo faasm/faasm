@@ -78,11 +78,7 @@ namespace worker {
 
             return finishCall(call, errorMessage);
         }
-        catch (...) {
-            logger->error("Unknown error in wasm execution");
 
-            return finishCall(call, "Error in execution");
-        }
 
         // Revert to original network namespace to allow communication
         ns.removeCurrentThread();

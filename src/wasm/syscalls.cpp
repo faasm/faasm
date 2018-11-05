@@ -58,7 +58,7 @@ namespace wasm {
     const std::shared_ptr<spdlog::logger> logSyscall(const char *syscallName, const char *fmt, ...) {
         va_list args;
         va_start(args, fmt);
-        char argBuffer[10];
+        char argBuffer[100];
         sprintf(argBuffer, fmt, args);
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
@@ -895,13 +895,46 @@ namespace wasm {
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
+    // ------------------------
+    // Process control - supported
+    // ------------------------
+
     DEFINE_INTRINSIC_FUNCTION(env, "_Exit", void, _Exit, I32 a) {
         logSyscall("_Exit", "%i", a);
         // Ignore
     }
 
+    DEFINE_INTRINSIC_FUNCTION(env, "__funcs_on_exit", void, __funcs_on_exit) {
+        logSyscall("funcs_on_exit", "");
+        // Ignore
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__libc_exit_fini", void, __libc_exit_fini) {
+        logSyscall("libc_exit_fini", "");
+        // Ignore
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__stdio_exit", void, __stdio_exit) {
+        logSyscall("stdio_exit", "");
+        // Ignore
+    }
+
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_exit", I32, __syscall_exit, I32 a) {
         logSyscall("exit", "%i", a);
+
+        // Ignore
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_exit_group", I32, __syscall_exit_group, I32 a) {
+        logSyscall("exit_group", "%i", a);
+
+        // Ignore
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_rt_sigaction", I32, __syscall_rt_sigaction, I32 a, I32 b, I32 c) {
+        logSyscall("rt_sigaction", "%i %i %i", a, b, c);
 
         // Ignore
         return 0;
@@ -919,16 +952,6 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__unsupported_syscall", I32, __unsupported_syscall,
                               I32 a, I32 b, I32 c, I32 d, I32 e, I32 f, I32 g) {
         logSyscall("UNSUPPORTED", "%i %i %i %i %i %i %i", a, b, c, d, e, f, g);
-        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_rt_sigaction", I32, __syscall_rt_sigaction, I32 a, I32 b, I32 c) {
-        logSyscall("rt_sigaction", "%i %i %i", a, b, c);
-        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_exit_group", I32, __syscall_exit_group, I32 a) {
-        logSyscall("exit_group", "%i", a);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
