@@ -1,7 +1,7 @@
 #ifndef FAASM_MATRIX_H
 #define FAASM_MATRIX_H
 
-#include "faasm/faasm.h"
+#include "faasm/memory.h"
 #include "faasm/random.h"
 
 #include <random>

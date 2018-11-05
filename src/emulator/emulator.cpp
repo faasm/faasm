@@ -1,4 +1,4 @@
-#include "faasm/faasm.h"
+#include <faasm/memory.h>
 #include <util/util.h>
 #include <infra/infra.h>
 
@@ -7,6 +7,8 @@
  */
 
 static thread_local infra::Redis redis;
+
+extern "C" {
 
 long __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) {
     std::vector<uint8_t> state = redis.get(key);
@@ -43,3 +45,6 @@ void __faasm_write_output(const unsigned char *output, long outputLen) {
 void __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize) {
 
 }
+
+}
+

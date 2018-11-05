@@ -75,8 +75,8 @@ The code for this function can be found in `examples/echo.cpp`.
 
 ## Writing Functions
 
-The function API passes a number of pointers to functions to allocate memory regions. A convenience header is
-provided in at `lib/faasm/faasm.h`. Functions will look something like this:
+Functions consist of an `exec` entrypoint which takes a pointer to a `FaasmMemory` object. This object is the
+interface for interacting with the Faasm runtime.
 
 ```
 #include "faasm/faasm.h"
@@ -92,9 +92,7 @@ namespace faasm {
 
 Some example functions can be found in the `examples` directory.
 
-### `faasm.h`
-
-`faasm.h` contains some useful wrappers to make it easier to interact with the Faasm system.
+### `FaasmMemory`
 
 The `FaasmMemory` class allows Faasm functions to interact with the system. It has the following methods:
 

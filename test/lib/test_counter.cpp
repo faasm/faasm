@@ -2,7 +2,7 @@
 
 #include <infra/infra.h>
 
-#include "faasm/faasm.h"
+#include "faasm/memory.h"
 #include "faasm/counter.h"
 
 using namespace faasm;

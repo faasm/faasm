@@ -68,7 +68,7 @@ CONFIG_FLAGS = [
 
 
 @task
-def compile(context, path, libcurl=False, debug=False, undef=False):
+def compile(context, path, libcurl=False, debug=False):
     """
     Compiles the given function
     """
@@ -87,11 +87,9 @@ def compile(context, path, libcurl=False, debug=False, undef=False):
         *COMPILER_FLAGS,
         "-Oz",
         "-fvisibility=hidden",
-        "-Wl,--allow-undefined" if undef else "",
         "-lfaasm",
         path,
         "-o", output_file,
-        "-v"
     ]
 
     # Debug
@@ -135,10 +133,15 @@ def compile_libfaasm():
     work_dir = join(PROJ_ROOT, "lib")
     build_dir = join(work_dir, "build")
 
-    if not exists(build_dir):
-        mkdir(build_dir)
+    if exists(build_dir):
+        rmtree(build_dir)
 
-    call("cmake ..", shell=True, cwd=build_dir)
+    mkdir(build_dir)
+
+    build_cmd = "{} cmake -DCMAKE_BUILD_TYPE=wasm ..".format(ENV_STR)
+    print(build_cmd)
+    call(build_cmd, shell=True, cwd=build_dir)
+
     call("make", shell=True, cwd=build_dir)
     call("make install", shell=True, cwd=build_dir)
 
