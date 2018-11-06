@@ -17,7 +17,9 @@ More detail on the internals, development and deployment is held in the
 [wiki](https://github.com/lsds/faasm/wiki).
 
 A preconfigured, Dockerised toolchain is provided for compiling Faasm functions. 
-Details are given below. This is based on a basic [Dockerised WASM toolchain](https://github.com/Shillaker/wasm-toolchain) with a customised libc to implement the required syscalls.
+Details are given below. This is based on a basic
+[Dockerised WASM toolchain](https://github.com/Shillaker/wasm-toolchain)
+with a customised libc to implement the required syscalls.
 
 # Quick Start
 
@@ -76,7 +78,7 @@ For example, with the faasm endpoint at `localhost:8001`, the `echo` function ow
 curl -X POST http://localhost:8001/f/demo/echo -d "hello faasm"
 ```
 
-The code for this function can be found in `examples/echo.cpp`.
+The code for this function can be found in `func/demo/echo.cpp`.
 
 ## Writing Functions
 
@@ -95,7 +97,7 @@ namespace faasm {
 }
 ```
 
-Some example functions can be found in the `examples` directory.
+Some example functions can be found in the `func/demo` directory.
 
 ### `FaasmMemory`
 
@@ -180,7 +182,7 @@ This can be useful for implementing distributed iterative algorithms.
 
 ### State example
 
-An example implementing a simple counter can be found in `examples/increment.cpp`. It 
+An example implementing a simple counter can be found in `func/demo/increment.cpp`. It 
 can be called with:
 
 ```
