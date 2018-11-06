@@ -41,13 +41,12 @@ namespace tests {
         call.set_user("demo");
         call.set_function("x2");
 
-        wasm::WasmModule module(call);
-
         // Build input as byte stream
         U8 inputValues[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
         call.set_inputdata(inputValues, 10);
 
         // Make the call
+        wasm::WasmModule module(call);
         int result = module.execute();
         REQUIRE(result == 0);
 

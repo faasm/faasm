@@ -13,7 +13,7 @@ namespace faasm {
 
         // Return message
         char output[12];
-        sprintf(output, "Counter: %i", count);
+        sprintf(output, "Counter: %03i", count);
         memory->setOutput((uint8_t *) output, 12);
 
         return 0;

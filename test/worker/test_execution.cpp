@@ -144,12 +144,12 @@ namespace tests {
         execFunction(1, call);
         message::FunctionCall resultA = redis.getFunctionResult(call);
         REQUIRE(resultA.success());
-        REQUIRE(resultA.outputdata() == "Counter: 1");
+        REQUIRE(resultA.outputdata() == "Counter: 001");
 
         // Call the function a second time, the state should have been incremented
         execFunction(1, call);
         message::FunctionCall resultB = redis.getFunctionResult(call);
         REQUIRE(resultB.success());
-        REQUIRE(resultB.outputdata() == "Counter: 2");
+        REQUIRE(resultB.outputdata() == "Counter: 002");
     }
 }

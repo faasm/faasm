@@ -1,6 +1,7 @@
 set(FAASM_USER demo)
 
 # faasm_func(curl curl.cpp)
+faasm_func(chain chain.cpp)
 faasm_func(dummy dummy.cpp)
 faasm_func(echo echo.cpp)
 faasm_func(increment increment.cpp)

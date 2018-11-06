@@ -8,7 +8,7 @@ namespace faasm {
     }
 
     uint8_t getCounter(FaasmMemory *memory, const char* counterKey) {
-        uint8_t counterBuffer[1];
+        uint8_t counterBuffer[1] = {0};
         memory->readState(counterKey, counterBuffer, 1);
 
         uint8_t count = counterBuffer[0];

@@ -45,20 +45,20 @@ namespace util {
     }
 
     int safeCopyToBuffer(const std::vector<uint8_t> &dataIn, uint8_t *buffer, int bufferLen) {
-        int stateSize = (int) dataIn.size();
+        int dataInSize = (int) dataIn.size();
 
         if (bufferLen <= 0) {
-            return stateSize;
+            return dataInSize;
         }
 
         // Handle buffer longer than actual data
         int dataLen = bufferLen;
-        if (stateSize < bufferLen) {
-            dataLen = stateSize;
+        if (dataInSize < bufferLen) {
+            dataLen = dataInSize;
         }
 
         std::copy(dataIn.data(), dataIn.data() + dataLen, buffer);
 
-        return stateSize;
+        return dataInSize;
     }
 }
