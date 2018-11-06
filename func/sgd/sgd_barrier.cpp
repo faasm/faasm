@@ -32,8 +32,7 @@ namespace faasm {
         double mse = totalError / N_TRAIN;
 
         // Drop out if finished
-        uint8_t maxEpochs = 10;
-        if (thisEpoch >= maxEpochs) {
+        if (thisEpoch >= MAX_EPOCHS) {
             printf("SGD complete over %i epochs (MSE = %f)\n", thisEpoch, mse);
             return 0;
         }

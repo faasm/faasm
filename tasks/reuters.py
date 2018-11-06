@@ -8,6 +8,7 @@ URL = "https://archive.ics.uci.edu/ml/machine-learning-databases/00259/rcv1rcv2a
 
 # Vocabulary size
 N_FEATURES = 21531
+TARGET_CATEGORY = "CCAT"
 
 
 @task
@@ -33,9 +34,11 @@ def reuters_download(ctx):
         # Remove gaps
         line_parts = [l.strip() for l in line_parts if l.strip()]
 
-        # Write category as bytes
+        # Work out if this is in our target category (1) or not (-1) and write the result
+        # to the relevant file
         this_category = line_parts[0]
-        categories_fh.write(this_category.encode())
+        this_class = 1 if this_category == TARGET_CATEGORY else -1
+        categories_fh.write("{}".format(this_class).encode())
         categories_fh.write("\n".encode())
 
         # Build array of inputs with zeroes for gaps
@@ -64,6 +67,11 @@ def reuters_download(ctx):
         if line_count > 0 and line_count % 100 == 0:
             print("Processed {} lines".format(line_count))
 
+    categories_fh.flush()
+    inputs_fh.flush()
+
     raw_fh.close()
     categories_fh.close()
     inputs_fh.close()
+
+    print("Finished processing a total of {} lines".format(line_count))

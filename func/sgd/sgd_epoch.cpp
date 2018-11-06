@@ -27,9 +27,9 @@ namespace faasm {
             int endIdx = startIdx + batchSize - 1;
 
             // Prepare input data for the worker
-            int inputData[4] = {w, startIdx, endIdx, N_WEIGHTS};
+            int inputData[3] = {w, startIdx, endIdx};
             auto inputBytes = reinterpret_cast<uint8_t *>(&inputData[0]);
-            int nBytes = 4 * sizeof(int);
+            int nBytes = 3 * sizeof(int);
 
             // Call the chained function
             memory->chainFunction("sgd_step", inputBytes, nBytes);
