@@ -25,7 +25,7 @@ namespace wasm {
      * Executes the given function call
      */
     int WasmModule::execute() {
-        //TODO this could be done better
+        //TODO this referencing could be done better
         // Set reference to self
         executingModule = this;
 
@@ -56,13 +56,19 @@ namespace wasm {
         this->validateInputData();
 
         // Make the call
+        int exitCode = 0;
         std::vector<IR::Value> invokeArgs;
-        invokeFunctionChecked(context, functionInstance, invokeArgs);
+        try {
+            invokeFunctionChecked(context, functionInstance, invokeArgs);
+        }
+        catch(wasm::WasmExitException &e) {
+            exitCode = e.exitCode;
+        }
 
         // Tidy up
         Runtime::collectCompartmentGarbage(compartment);
 
-        return 0;
+        return exitCode;
     }
 
     std::vector<uint8_t> WasmModule::compile(message::FunctionCall &call) {

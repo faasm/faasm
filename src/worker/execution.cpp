@@ -79,7 +79,6 @@ namespace worker {
             return finishCall(call, errorMessage);
         }
 
-
         // Revert to original network namespace to allow communication
         ns.removeCurrentThread();
 

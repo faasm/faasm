@@ -69,4 +69,13 @@ namespace wasm {
     };
 
     WasmModule * getExecutingModule();
+
+    class WasmExitException : public std::exception {
+    public:
+        explicit WasmExitException(int exitCode): exitCode(exitCode) {
+
+        }
+
+        int exitCode;
+    };
 }
