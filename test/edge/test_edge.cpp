@@ -63,9 +63,9 @@ namespace tests {
         std::vector<uint8_t> stateA2 = {9, 10, 11};
         std::vector<uint8_t> stateB = {6, 7, 8};
 
-        const http_request &requestA1 = createRequest(pathA1, stateA1);
-        const http_request &requestA2 = createRequest(pathA2, stateA2);
-        const http_request &requestB = createRequest(pathB, stateB);
+        const http_request requestA1 = createRequest(pathA1, stateA1);
+        const http_request requestA2 = createRequest(pathA2, stateA2);
+        const http_request requestB = createRequest(pathB, stateB);
 
         // Submit requests
         edge::RestServer::handlePut(requestA1);
@@ -88,7 +88,7 @@ namespace tests {
 
         std::string path = "/s/foo/bar";
         std::vector<uint8_t> state = {0, 1, 2, 3, 4, 5};
-        const http_request &request = createRequest(path, state);
+        const http_request request = createRequest(path, state);
 
         // Submit request
         edge::RestServer::handlePut(request);
@@ -97,7 +97,7 @@ namespace tests {
         std::string realKey = "foo_bar";
 
         // Retrieve the state
-        const std::vector<uint8_t> &actual = edge::RestServer::getState(request);
+        const std::vector<uint8_t> actual = edge::RestServer::getState(request);
         REQUIRE(actual == state);
     }
 
@@ -163,7 +163,7 @@ namespace tests {
     void checkValidPath(const std::string &path,
                         const std::string &partA, const std::string &partB, const std::string &partC) {
         http_request request = createRequest(path);
-        const std::vector<std::string> &actual = edge::RestServer::getPathParts(request);
+        const std::vector<std::string> actual = edge::RestServer::getPathParts(request);
 
         REQUIRE(actual.size() == 3);
         REQUIRE(actual[0] == partA);

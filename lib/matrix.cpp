@@ -1,4 +1,5 @@
 #include "faasm/matrix.h"
+#include <iostream>
 
 using namespace Eigen;
 
@@ -10,7 +11,7 @@ namespace faasm {
         return mat;
     }
 
-    MatrixXd randomSparseMatrix(int rows, int cols) {
+    SparseMatrix<double> randomSparseMatrix(int rows, int cols) {
         // Random distribution
         std::default_random_engine gen;
         std::uniform_real_distribution<double> dist(0.0, 1.0);
@@ -55,6 +56,14 @@ namespace faasm {
     }
 
     /**
+     * Serialises a sparse matrix to a byte array
+     */
+    uint8_t *sparseMatrixToBytes(const SparseMatrix<double> &sparse) {
+        // TODO is this sparse -> dense conversion costly?
+        return matrixToBytes(sparse);
+    }
+
+    /**
      * Deserialises a byte array to a matrix
      */
     MatrixXd bytesToMatrix(uint8_t *byteArray, long rows, long columns) {
@@ -63,6 +72,19 @@ namespace faasm {
         Map<MatrixXd> mat(&doubleArray[0], rows, columns);
 
         return mat;
+    }
+
+    /**
+     * Deserialises a byte array to a sparse matrix
+     */
+    SparseMatrix<double> bytesToSparseMatrix(uint8_t *byteArray, long rows, long columns) {
+        // TODO is this dense -> sparse conversion costly?
+        MatrixXd dense = bytesToMatrix(byteArray, rows, columns);
+
+        SparseMatrix<double> sparse;
+        sparse = dense.sparseView(0.01, 0.001);
+
+        return sparse;
     }
 
     /**

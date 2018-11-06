@@ -20,7 +20,7 @@ namespace tests {
         message::FunctionCall result = redis.getFunctionResult(call);
         REQUIRE(!result.success());
 
-        const std::string &actualOutput = result.outputdata();
+        const std::string actualOutput = result.outputdata();
         bool messageIsFound = false;
         if (actualOutput.find(expectedMsg) != std::string::npos) {
             messageIsFound = true;

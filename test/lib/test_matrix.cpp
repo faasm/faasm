@@ -8,10 +8,13 @@ using namespace Eigen;
 namespace tests {
 
     TEST_CASE("Test sparse matrix generation", "[matrix]") {
-        const MatrixXd &actual = faasm::randomSparseMatrix(10, 5);
+        const SparseMatrix<double> actual = faasm::randomSparseMatrix(10, 5);
 
         REQUIRE(actual.rows() == 10);
         REQUIRE(actual.cols() == 5);
+
+        // Number of non-zero elements should be much lower than the max
+        REQUIRE(actual.nonZeros() < 40);
     }
 
     void checkDoubleBytes(double expected, uint8_t *byteArrayStart) {
@@ -28,9 +31,6 @@ namespace tests {
     }
 
     TEST_CASE("Test matrix to bytes round trip", "[matrix]") {
-        infra::Redis redis;
-        redis.flushAll();
-
         MatrixXd mat = buildDummyMatrix();
 
         REQUIRE(mat.rows() == 2);
@@ -54,6 +54,19 @@ namespace tests {
         REQUIRE(matrixOut.rows() == 2);
         REQUIRE(matrixOut.cols() == 3);
         REQUIRE(matrixOut == mat);
+
+        delete[] byteArray;
+    }
+
+    TEST_CASE("Test sparse matrix to bytes round trip", "[matrix]") {
+        SparseMatrix<double> mat = faasm::randomSparseMatrix(10, 5);
+        uint8_t *byteArray = faasm::sparseMatrixToBytes(mat);
+
+        SparseMatrix<double> matrixOut = faasm::bytesToSparseMatrix(byteArray, 10, 5);
+
+        REQUIRE(matrixOut.nonZeros() == mat.nonZeros());
+        REQUIRE(matrixOut.cols() == mat.cols());
+        REQUIRE(matrixOut.rows() == mat.rows());
 
         delete[] byteArray;
     }
@@ -145,28 +158,6 @@ namespace tests {
                 17, 18, 19;
 
         REQUIRE(actual == expected);
-    }
-
-    TEST_CASE("Test generating sparse random matrix", "[matrix]") {
-        int rows = 2;
-        int cols = 5;
-        const MatrixXd &actual = faasm::randomSparseMatrix(rows, cols);
-
-        REQUIRE(actual.rows() == rows);
-        REQUIRE(actual.cols() == cols);
-
-        // At least half of the values should be zero
-        int zeroCount = 0;
-        for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < cols; c++) {
-                double thisVal = actual(r, c);
-                if (thisVal == 0) {
-                    zeroCount++;
-                }
-            }
-        }
-
-        REQUIRE(zeroCount > 5);
     }
 
     TEST_CASE("Test shuffling matrix", "[matrix]") {

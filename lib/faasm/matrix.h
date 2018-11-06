@@ -13,11 +13,15 @@ using namespace Eigen;
 namespace faasm {
     MatrixXd randomDenseMatrix(int rows, int cols);
 
-    MatrixXd randomSparseMatrix(int rows, int cols);
+    SparseMatrix<double> randomSparseMatrix(int rows, int cols);
 
     uint8_t *matrixToBytes(const MatrixXd &mat);
 
+    uint8_t *sparseMatrixToBytes(const SparseMatrix<double> &sparse);
+
     MatrixXd bytesToMatrix(uint8_t *byteArray, long rows, long columns);
+
+    SparseMatrix<double> bytesToSparseMatrix(uint8_t *byteArray, long rows, long columns);
 
     void writeMatrixState(FaasmMemory *memory, const char *key, const MatrixXd &matrix);
 
