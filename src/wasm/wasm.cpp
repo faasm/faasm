@@ -11,32 +11,33 @@
 using namespace WAVM;
 
 namespace wasm {
-    WasmModule::WasmModule() = default;
-
-    thread_local static Runtime::Memory *moduleMemory = nullptr;
-    thread_local message::FunctionCall *moduleCall;
-
-    Runtime::Memory *getModuleMemory() {
-        return moduleMemory;
+    WasmModule::WasmModule(message::FunctionCall &call) :
+            functionCall(call), callChain(CallChain(call)) {
     }
 
-    const message::FunctionCall* getModuleCall() {
-        return moduleCall;
+    static thread_local WasmModule *executingModule;
+
+    WasmModule *getExecutingModule() {
+        return executingModule;
     }
 
     /**
      * Executes the given function call
      */
-    int WasmModule::execute(message::FunctionCall &call) {
+    int WasmModule::execute() {
+        //TODO this referencing could be done better
+        // Set reference to self
+        executingModule = this;
+
         // Treat any unhandled exception (e.g. in a thread) as a fatal error.
-        Runtime::setUnhandledExceptionHandler([](Runtime::Exception&& exception) {
+        Runtime::setUnhandledExceptionHandler([](Runtime::Exception &&exception) {
             Errors::fatalf("Runtime exception: %s\n", describeException(exception).c_str());
         });
 
         Runtime::Compartment *compartment = Runtime::createCompartment();
         Runtime::Context *context = Runtime::createContext(compartment);
 
-        Runtime::ModuleInstance *moduleInstance = this->load(call, compartment);
+        Runtime::ModuleInstance *moduleInstance = this->load(compartment);
 
         // Extract the module's exported function
         // Note that an underscore may be added before the function name by the compiler
@@ -44,43 +45,36 @@ namespace wasm {
                 getInstanceExport(moduleInstance, ENTRYPOINT_FUNC));
 
         if (!functionInstance) {
-            // Try CPP compiler name instead
-            functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, CPP_ENTRYPOINT_FUNC));
-
-            if (!functionInstance) {
-                std::string errorMsg = "No exported function \"" + ENTRYPOINT_FUNC + "\"";
-                errorMsg += " (or \"" + CPP_ENTRYPOINT_FUNC + "\") found";
-                throw std::runtime_error(errorMsg);
-            }
+            std::string errorMsg = "No exported function \"" + ENTRYPOINT_FUNC + "\"";
+            throw std::runtime_error(errorMsg);
         }
 
-        // Set up module-specific values
-        moduleMemory = getDefaultMemory(moduleInstance);
-        moduleCall = &call;
+        // Set up public properties
+        this->defaultMemory = getDefaultMemory(moduleInstance);
 
         // Set up input data in module memory
-        this->addInputData(call);
+        this->validateInputData();
 
         // Make the call
-        std::vector<IR::Value> invokeArgs = buildInvokeArgs();
-        functionResults = invokeFunctionChecked(context, functionInstance, invokeArgs);
-
-        // Retrieve output data
-        this->extractOutputData(call);
-
-        // Retrieve chaining data
-        this->extractChainingData(call);
+        int exitCode = 0;
+        std::vector<IR::Value> invokeArgs;
+        try {
+            invokeFunctionChecked(context, functionInstance, invokeArgs);
+        }
+        catch (wasm::WasmExitException &e) {
+            exitCode = e.exitCode;
+        }
 
         // Tidy up
         Runtime::collectCompartmentGarbage(compartment);
 
-        return functionResults[0].u32;
+        return exitCode;
     }
 
     std::vector<uint8_t> WasmModule::compile(message::FunctionCall &call) {
         // Parse the wasm file to work out imports, function signatures etc.
-        WasmModule tempModule;
-        tempModule.parseWasm(call);
+        WasmModule tempModule(call);
+        tempModule.parseWasm();
 
         // Compile the module to object code
         Runtime::ModuleRef module = Runtime::compileModule(tempModule.module);
@@ -93,22 +87,22 @@ namespace wasm {
         util::writeBytesToFile(objFilePath, objBytes);
     }
 
-    Runtime::ModuleInstance *WasmModule::load(message::FunctionCall &call, Runtime::Compartment *compartment) {
+    Runtime::ModuleInstance *WasmModule::load(Runtime::Compartment *compartment) {
         // Parse the wasm file to work out imports, function signatures etc.
-        this->parseWasm(call);
+        this->parseWasm();
 
-        // Define module's memory segments
-        this->setUpMemoryDefinitions(call);
+        // Set up minimum memory size
+        this->module.memories.defs[0].type.size.min = (U64) MIN_MEMORY_PAGES;
 
         // Link with intrinsics
         Runtime::LinkResult linkResult = this->link(compartment);
 
         // Load the object file
-        std::vector<uint8_t> objectFileBytes = infra::getFunctionObjectBytes(call);
+        std::vector<uint8_t> objectFileBytes = infra::getFunctionObjectBytes(functionCall);
         Runtime::ModuleRef compiledModule = Runtime::loadPrecompiledModule(module, objectFileBytes);
 
         // Instantiate the module, i.e. create memory, tables etc.
-        std::string moduleName = call.user() + " - " + call.function();
+        std::string moduleName = functionCall.user() + " - " + functionCall.function();
         Runtime::ModuleInstance *moduleInstance = instantiateModule(
                 compartment,
                 compiledModule,
@@ -122,32 +116,14 @@ namespace wasm {
     /**
      * Parse the WASM file to work out functions, exports, imports etc.
      */
-    void WasmModule::parseWasm(message::FunctionCall &call) {
+    void WasmModule::parseWasm() {
         std::vector<U8> fileBytes;
-        std::string filePath = infra::getFunctionFile(call);
+        std::string filePath = infra::getFunctionFile(functionCall);
         if (!loadFile(filePath.c_str(), fileBytes)) {
             std::cerr << "Could not load module at:  " << filePath << std::endl;
         }
 
         WASM::loadBinaryModule(fileBytes.data(), fileBytes.size(), this->module);
-    }
-
-    /**
-     * Generic module set-up
-     */
-    void WasmModule::setUpMemoryDefinitions(message::FunctionCall &call) {
-        // Make sure we have a big enough minimum memory size
-        this->module.memories.defs[0].type.size.min = (U64) MIN_MEMORY_PAGES;
-
-        // Define input data segment
-        this->addDataSegment(INPUT_START);
-
-        // Define output data segment
-        this->addDataSegment(OUTPUT_START);
-
-        // Define chaining segments
-        this->addDataSegment(CHAIN_NAMES_START);
-        this->addDataSegment(CHAIN_DATA_START);
     }
 
     /**
@@ -175,101 +151,15 @@ namespace wasm {
         return linkResult;
     }
 
-    /**
-     * Adds a data segment to the module
-     */
-    void WasmModule::addDataSegment(int offset) {
-        IR::DataSegment segment;
-
-        // Note - using default memory
-        segment.memoryIndex = (Uptr) 0;
-        segment.baseOffset = IR::InitializerExpression((I32) offset);
-
-        module.dataSegments.push_back(segment);
-    }
-
-    /**
-     * Sets up arguments to be passed to the invocation of the function
-     */
-    std::vector<IR::Value> WasmModule::buildInvokeArgs() {
-        // Set up regions
-        std::vector<IR::Value> invokeArgs;
-        invokeArgs.emplace_back((I32) INPUT_START);
-        invokeArgs.emplace_back((I32) OUTPUT_START);
-        invokeArgs.emplace_back((I32) CHAIN_NAMES_START);
-        invokeArgs.emplace_back((I32) CHAIN_DATA_START);
-
-        return invokeArgs;
-    }
-
-    void WasmModule::addInputData(message::FunctionCall &call) {
+    void WasmModule::validateInputData() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        const std::string &inputString = call.inputdata();
+        const std::string &inputString = functionCall.inputdata();
 
         if (inputString.size() > MAX_INPUT_BYTES) {
             logger->error("Input data too large");
             throw (std::runtime_error("Input data too large"));
         }
 
-        logger->debug("Received input {}", call.inputdata());
-
-        const std::vector<uint8_t> &inputBytes = util::stringToBytes(inputString);
-
-        // Copy input data into place
-        U8 *inputStart = &Runtime::memoryRef<U8>(moduleMemory, (Uptr) INPUT_START);
-        std::copy(inputBytes.begin(), inputBytes.end(), inputStart);
-    }
-
-    /**
-     * Extracts output data from module and sets it on the function call
-     */
-    void WasmModule::extractOutputData(message::FunctionCall &call) {
-        U8 *rawOutput = &Runtime::memoryRef<U8>(moduleMemory, (Uptr) OUTPUT_START);
-        std::vector<U8> outputData(rawOutput, rawOutput + MAX_OUTPUT_BYTES);
-        util::trimTrailingZeros(outputData);
-
-        call.set_outputdata(outputData.data(), outputData.size());
-    }
-
-    /**
-     * Extracts chaining data form module and performs the necessary chained calls
-     */
-    void WasmModule::extractChainingData(const message::FunctionCall &originalCall) {
-        // Check for chained calls. Note that we reserve chunks for each and can iterate
-        // through them checking where the names are set
-        U8 *rawChainNames = Runtime::memoryArrayPtr<U8>(moduleMemory, (Uptr) CHAIN_NAMES_START,
-                                                        (Uptr) MAX_CHAIN_NAME_BYTES);
-        U8 *rawChainInputs = Runtime::memoryArrayPtr<U8>(moduleMemory, (Uptr) CHAIN_DATA_START,
-                                                         (Uptr) MAX_CHAIN_DATA_BYTES);
-
-        // Extract the chaining requests
-        for (int i = 0; i < MAX_CHAINS; i++) {
-            int nameStart = i * MAX_NAME_LENGTH;
-            int nameEnd = nameStart + MAX_NAME_LENGTH;
-
-            int inputStart = i * MAX_INPUT_BYTES;
-            int inputEnd = inputStart + MAX_INPUT_BYTES;
-
-            std::vector<U8> thisChainName(rawChainNames + nameStart, rawChainNames + nameEnd);
-            std::vector<U8> thisChainData(rawChainInputs + inputStart, rawChainInputs + inputEnd);
-
-            // Trim zeroes
-            util::trimTrailingZeros(thisChainName);
-
-            // Stop if we have an empty name
-            if (thisChainName.empty()) {
-                break;
-            }
-
-            util::trimTrailingZeros(thisChainData);
-
-            // Create call and add to list
-            message::FunctionCall chainedCall;
-            chainedCall.set_user(originalCall.user());
-            chainedCall.set_function((char *) thisChainName.data());
-            chainedCall.set_inputdata(thisChainData.data(), thisChainData.size());
-
-            chainedCalls.push_back(chainedCall);
-        }
+        logger->debug("Received input {}", functionCall.inputdata());
     }
 }

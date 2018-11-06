@@ -35,6 +35,7 @@ RUN pip install multiprocessing
 # Note, the steps here are the same as those done in the "musl" step of the
 # wasm waterfall build, the script for which can be found here:
 # https://github.com/WebAssembly/waterfall/blob/master/src/build.py
+RUN echo "foossa"
 WORKDIR /faasm
 RUN git clone https://github.com/Shillaker/musl.git
 RUN mkdir /faasm/musl-out
@@ -85,7 +86,10 @@ ENV RANLINB /toolchain/bin/llvm-ranlib
 RUN inv lib eigen
 
 # Build libcurl
-RUN inv lib curl
+# RUN inv lib curl
+
+# Install libfaasm
+RUN inv lib faasm
 
 # Remove code
 RUN rm -rf /faasm

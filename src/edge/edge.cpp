@@ -9,15 +9,15 @@ namespace edge {
         const std::vector<std::string> pathParts = uri::split_path(uri::decode(uri.path()));
 
         bool isValid = true;
-        if(pathParts.size() != 3) {
+        if (pathParts.size() != 3) {
             isValid = false;
         }
 
-        if(isValid && !(pathParts[0] == "f" || pathParts[0] == "fa" || pathParts[0] == "s")) {
+        if (isValid && !(pathParts[0] == "f" || pathParts[0] == "fa" || pathParts[0] == "s")) {
             isValid = false;
         }
 
-        if(!isValid) {
+        if (!isValid) {
             request.reply(status_codes::OK, "Invalid path. Must be /f|fa/<user>/<func>/ or /s/<user>/<key>/\n");
             throw InvalidPathException();
         }
@@ -47,15 +47,14 @@ namespace edge {
     }
 
     void RestServer::handleGet(const http_request &request) {
-        const std::vector<std::string> &pathParts = RestServer::getPathParts(request);
-        if(pathParts[0] == "s") {
-            const std::vector<uint8_t> &stateBytes = getState(request);
+        const std::vector<std::string> pathParts = RestServer::getPathParts(request);
+        if (pathParts[0] == "s") {
+            const std::vector<uint8_t> stateBytes = getState(request);
 
             http_response response(status_codes::OK);
             response.set_body(stateBytes);
             request.reply(response);
-        }
-        else {
+        } else {
             request.reply(status_codes::OK, "Invalid path. Can only GET state at /s/<user>/<key/ \n");
             throw InvalidPathException();
         }
@@ -83,11 +82,10 @@ namespace edge {
     }
 
     void RestServer::handlePut(const http_request &request) {
-        const std::vector<std::string> &pathParts = RestServer::getPathParts(request);
-        if(pathParts[0] == "s") {
+        const std::vector<std::string> pathParts = RestServer::getPathParts(request);
+        if (pathParts[0] == "s") {
             handleStateUpload(request);
-        }
-        else {
+        } else {
             handleFunctionUpload(request);
         }
     }
@@ -95,7 +93,7 @@ namespace edge {
     std::vector<uint8_t> RestServer::getState(const http_request &request) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        const std::vector<std::string> &pathParts = RestServer::getPathParts(request);
+        const std::vector<std::string> pathParts = RestServer::getPathParts(request);
         std::string user = pathParts[1];
         std::string key = pathParts[2];
         std::string realKey = user + "_" + key;
@@ -103,19 +101,19 @@ namespace edge {
         logger->info("Downloading state from ({}/{})", user, key);
 
         infra::Redis *redis = infra::Redis::getThreadConnection();
-        const std::vector<uint8_t> &value = redis->get(realKey);
+        const std::vector<uint8_t> value = redis->get(realKey);
 
         return value;
     }
 
     void RestServer::handleStateUpload(const http_request &request) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        
-        const std::vector<std::string> &pathParts = RestServer::getPathParts(request);
+
+        const std::vector<std::string> pathParts = RestServer::getPathParts(request);
         std::string user = pathParts[1];
         std::string key = pathParts[2];
         std::string realKey = user + "_" + key;
-        
+
         logger->info("Upload state to ({}/{})", user, key);
 
         infra::Redis *redis = infra::Redis::getThreadConnection();
@@ -126,7 +124,7 @@ namespace edge {
         bodyStream.read_to_end(inputStream).then([&inputStream, &redis, &realKey](size_t size) {
             if (size > 0) {
                 std::string s = inputStream.collection();
-                const std::vector<uint8_t> &bytesData = util::stringToBytes(s);
+                const std::vector<uint8_t> bytesData = util::stringToBytes(s);
                 redis->set(realKey, bytesData);
             }
 
@@ -159,7 +157,7 @@ namespace edge {
     message::FunctionCall RestServer::buildCallFromRequest(const http_request &request) {
         const std::vector<std::string> pathParts = RestServer::getPathParts(request);
 
-        if(pathParts.size() != 3) {
+        if (pathParts.size() != 3) {
             request.reply(status_codes::OK, "Invalid path (must be /f|fa/<user>/<func>/ \n");
             throw InvalidPathException();
         }

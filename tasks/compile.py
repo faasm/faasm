@@ -68,7 +68,20 @@ CONFIG_FLAGS = [
 
 
 @task
-def compile(context, path, libcurl=False, debug=False, undef=False):
+def funcs(context):
+    """
+    Compiles all the functions in this project
+    """
+    func_build_dir = join(PROJ_ROOT, "func", "build")
+    if not exists(func_build_dir):
+        mkdir(func_build_dir)
+
+    call("cmake -DCMAKE_BUILD_TYPE=wasm ..", shell=True, cwd=func_build_dir)
+    call("make", shell=True, cwd=func_build_dir)
+
+
+@task
+def compile(context, path, libcurl=False, debug=False):
     """
     Compiles the given function
     """
@@ -87,9 +100,8 @@ def compile(context, path, libcurl=False, debug=False, undef=False):
         *COMPILER_FLAGS,
         "-Oz",
         "-fvisibility=hidden",
-        "-Wl,--allow-undefined" if undef else "",
+        "-lfaasm",
         path,
-        "-I", join("include", "faasm"),
         "-o", output_file,
     ]
 
@@ -118,6 +130,8 @@ def lib(context, lib_name):
         compile_libcurl()
     elif lib_name == "eigen":
         compile_eigen()
+    elif lib_name == "faasm":
+        compile_libfaasm()
     elif lib_name == "mlpack":
         compile_mlpack()
     elif lib_name == "dlib":
@@ -126,6 +140,23 @@ def lib(context, lib_name):
         compile_gsl()
     else:
         raise RuntimeError("Unrecognised lib name: {}".format(lib_name))
+
+
+def compile_libfaasm():
+    work_dir = join(PROJ_ROOT, "lib")
+    build_dir = join(work_dir, "build")
+
+    if exists(build_dir):
+        rmtree(build_dir)
+
+    mkdir(build_dir)
+
+    build_cmd = "{} cmake -DCMAKE_BUILD_TYPE=wasm ..".format(ENV_STR)
+    print(build_cmd)
+    call(build_cmd, shell=True, cwd=build_dir)
+
+    call("make", shell=True, cwd=build_dir)
+    call("make install", shell=True, cwd=build_dir)
 
 
 def compile_eigen():

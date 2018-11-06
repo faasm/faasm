@@ -4,6 +4,7 @@ include_directories(
 )
 
 add_library(wasm STATIC
+        chaining.cpp
         wasm.cpp
         syscalls.cpp
         resolver.h

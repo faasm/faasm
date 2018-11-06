@@ -1,0 +1,11 @@
+set(FAASM_USER demo)
+
+# faasm_func(curl curl.cpp)
+faasm_func(chain chain.cpp)
+faasm_func(dummy dummy.cpp)
+faasm_func(echo echo.cpp)
+faasm_func(increment increment.cpp)
+faasm_func(net net.cpp)
+faasm_func(print print.cpp)
+faasm_func(state state.cpp)
+faasm_func(x2 x2.cpp)

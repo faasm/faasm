@@ -9,8 +9,6 @@
 
 namespace infra {
     /** Function utilities */
-    std::string getFunctionStubDir();
-
     std::string getFunctionFile(const message::FunctionCall &call);
 
     std::string getFunctionObjectFile(const message::FunctionCall &call);
@@ -55,6 +53,7 @@ namespace infra {
         void setFunctionResult(message::FunctionCall &call, bool success);
 
         message::FunctionCall getFunctionResult(const message::FunctionCall &call);
+
     private:
         redisContext *context;
         std::string hostname;
