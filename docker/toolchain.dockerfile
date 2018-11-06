@@ -88,6 +88,9 @@ RUN inv lib eigen
 # Build libcurl
 # RUN inv lib curl
 
+# Install libfaasm
+RUN inv lib faasm
+
 # Remove code
 RUN rm -rf /faasm
 
