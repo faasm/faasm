@@ -5,6 +5,8 @@ set(FAASM_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/../lib)
 
 set(FAASM_HOST localhost)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Oz -fvisibility=hidden")
+
 include_directories(${FAASM_LIB_DIR})
 
 # Define functions for building

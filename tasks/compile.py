@@ -66,12 +66,19 @@ CONFIG_FLAGS = [
     "--prefix={}".format(SYSROOT),
 ]
 
+
 @task
-def funcs(context, path, libcurl=False, debug=False):
+def funcs(context):
     """
     Compiles all the functions in this project
     """
-    func_build_dir = join(PROJ_ROOT)
+    func_build_dir = join(PROJ_ROOT, "func", "build")
+    if not exists(func_build_dir):
+        mkdir(func_build_dir)
+
+    call("cmake -DCMAKE_BUILD_TYPE=wasm ..", shell=True, cwd=func_build_dir)
+    call("make", shell=True, cwd=func_build_dir)
+
 
 @task
 def compile(context, path, libcurl=False, debug=False):
