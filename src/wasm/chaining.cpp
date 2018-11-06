@@ -2,11 +2,10 @@
 
 namespace wasm {
     CallChain::CallChain(const message::FunctionCall &call) :
-        originalCall(call){
+            originalCall(call) {
     }
-    
 
-    void CallChain::addCall(const std::string &user, const std::string &functionName, const std::vector<uint8_t> &inputData) {
+    void CallChain::addCall(std::string user, std::string functionName, const std::vector<uint8_t> &inputData) {
         message::FunctionCall call;
         call.set_user(user);
         call.set_function(functionName);
@@ -14,7 +13,7 @@ namespace wasm {
 
         calls.push_back(call);
     }
-    
+
     std::string CallChain::execute() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -31,9 +30,9 @@ namespace wasm {
                 return errorMessage;
             }
 
-            logger->debug("Chaining {}/{} -> {}/{}", 
-                    originalCall.user(), originalCall.function(),
-                    chainedCall.user(), chainedCall.function());
+            logger->debug("Chaining {}/{} -> {}/{}",
+                          originalCall.user(), originalCall.function(),
+                          chainedCall.user(), chainedCall.function());
             redis->callFunction(chainedCall);
         }
 

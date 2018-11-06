@@ -90,7 +90,7 @@ namespace wasm {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
 
-        message::FunctionCall &call = getExecutingModule()->functionCall;
+        const message::FunctionCall &call = getExecutingModule()->functionCall;
         std::string prefixedKey = call.user() + "_" + key;
 
         return prefixedKey;
@@ -112,7 +112,7 @@ namespace wasm {
                               I32 keyPtr, I32 dataPtr, I32 dataLen) {
         logSyscall("write_state", "%i %i %i", keyPtr, dataPtr, dataLen);
 
-        const std::vector<uint8_t> &newState = getBytesFromWasm(dataPtr, dataLen);
+        const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
         std::string key = getKeyFromWasm(keyPtr);
 
         // Set the whole state in redis
@@ -124,7 +124,7 @@ namespace wasm {
                               I32 keyPtr, I32 offset, I32 dataPtr, I32 dataLen) {
         logSyscall("write_state_offset", "%i %i %i %i", keyPtr, offset, dataPtr, dataLen);
 
-        const std::vector<uint8_t> &newState = getBytesFromWasm(dataPtr, dataLen);
+        const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
         std::string key = getKeyFromWasm(keyPtr);
 
         // Set the state at the given offset
@@ -188,7 +188,7 @@ namespace wasm {
 
         message::FunctionCall &call = getExecutingModule()->functionCall;
         std::string funcName = getStringFromWasm(namePtr);
-        const std::vector<uint8_t> &inputData = getBytesFromWasm(inputDataPtr, inputDataLen);
+        const std::vector<uint8_t> inputData = getBytesFromWasm(inputDataPtr, inputDataLen);
 
         // Add this to the chain of calls
         getExecutingModule()->callChain.addCall(call.user(), funcName, inputData);

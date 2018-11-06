@@ -14,15 +14,7 @@ namespace infra {
         return path;
     }
 
-    std::string getFunctionStubDir() {
-        auto path = getFuncRootPath();
-        path.append("wasm/stubs");
-        boost::filesystem::create_directories(path);
-
-        return path.string();
-    }
-
-    boost::filesystem::path getFunctionDir(const message::FunctionCall &call, bool create=true) {
+    boost::filesystem::path getFunctionDir(const message::FunctionCall &call, bool create = true) {
         auto path = getFuncRootPath();
 
         path.append("wasm");
@@ -30,7 +22,7 @@ namespace infra {
         path.append(call.function());
 
         // Create directory if doesn't exist
-        if(create) {
+        if (create) {
             boost::filesystem::create_directories(path);
         }
 

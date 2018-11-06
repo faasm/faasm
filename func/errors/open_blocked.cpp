@@ -1,5 +1,8 @@
 #include "faasm/faasm.h"
 
+#include <stdint.h>
+#include <stdio.h>
+
 /** Attempts to open a blocked file */
 namespace faasm {
     int exec(FaasmMemory *memory) {

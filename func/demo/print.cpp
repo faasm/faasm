@@ -1,5 +1,7 @@
 #include "faasm/faasm.h"
 
+#include <stdio.h>
+
 namespace faasm {
     int exec(FaasmMemory *memory) {
         float f = 7.89;

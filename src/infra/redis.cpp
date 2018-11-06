@@ -37,7 +37,7 @@ namespace infra {
     std::vector<uint8_t> Redis::get(const std::string &key) {
         auto reply = (redisReply *) redisCommand(context, "GET %s", key.c_str());
 
-        const std::vector<uint8_t> &replyBytes = getBytesFromReply(reply);
+        const std::vector<uint8_t> replyBytes = getBytesFromReply(reply);
         freeReplyObject(reply);
 
         return replyBytes;
@@ -62,7 +62,7 @@ namespace infra {
     std::vector<uint8_t> Redis::getRange(const std::string &key, long start, long end) {
         auto reply = (redisReply *) redisCommand(context, "GETRANGE %s %li %li", key.c_str(), start, end);
 
-        const std::vector<uint8_t> &replyBytes = getBytesFromReply(reply);
+        const std::vector<uint8_t> replyBytes = getBytesFromReply(reply);
         freeReplyObject(reply);
         
         return replyBytes;
@@ -85,7 +85,7 @@ namespace infra {
 
         // Note, BLPOP will return the queue name and the value returned (elements 0 and 1)
         redisReply *r = reply->element[1];
-        const std::vector<uint8_t> &replyBytes = getBytesFromReply(r);
+        const std::vector<uint8_t> replyBytes = getBytesFromReply(r);
         freeReplyObject(reply);
         
         return replyBytes;

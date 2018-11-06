@@ -1,6 +1,8 @@
 #include "faasm/faasm.h"
 #include "faasm/counter.h"
 
+#include <stdio.h>
+
 namespace faasm {
     int exec(FaasmMemory *memory) {
         const char *key = "incr_example";

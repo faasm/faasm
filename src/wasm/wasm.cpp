@@ -11,13 +11,13 @@
 using namespace WAVM;
 
 namespace wasm {
-    WasmModule::WasmModule(message::FunctionCall &call):
-        functionCall(call), callChain(CallChain(call)) {
+    WasmModule::WasmModule(message::FunctionCall &call) :
+            functionCall(call), callChain(CallChain(call)) {
     }
 
     static thread_local WasmModule *executingModule;
 
-    WasmModule * getExecutingModule() {
+    WasmModule *getExecutingModule() {
         return executingModule;
     }
 
@@ -30,7 +30,7 @@ namespace wasm {
         executingModule = this;
 
         // Treat any unhandled exception (e.g. in a thread) as a fatal error.
-        Runtime::setUnhandledExceptionHandler([](Runtime::Exception&& exception) {
+        Runtime::setUnhandledExceptionHandler([](Runtime::Exception &&exception) {
             Errors::fatalf("Runtime exception: %s\n", describeException(exception).c_str());
         });
 
@@ -61,7 +61,7 @@ namespace wasm {
         try {
             invokeFunctionChecked(context, functionInstance, invokeArgs);
         }
-        catch(wasm::WasmExitException &e) {
+        catch (wasm::WasmExitException &e) {
             exitCode = e.exitCode;
         }
 

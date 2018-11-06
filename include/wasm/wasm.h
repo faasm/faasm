@@ -19,8 +19,6 @@ using namespace WAVM;
 namespace wasm {
     DECLARE_INTRINSIC_MODULE(env);
 
-    // TODO: avoid the dodgy funciton naming?
-    // The CPP compiler seems to mangle the run function export name
     const std::string ENTRYPOINT_FUNC = "_start";
 
     // Note that the max memory per module is 8GiB, i.e. > 100k pages
@@ -32,9 +30,10 @@ namespace wasm {
 
     class CallChain {
     public:
-        CallChain(const message::FunctionCall &call);
+        explicit CallChain(const message::FunctionCall &call);
 
-        void addCall(const std::string &user, const std::string &functionName, const std::vector<uint8_t> &inputData);
+        void addCall(std::string user, std::string functionName, const std::vector<uint8_t> &inputData);
+
         std::string execute();
 
         std::vector<message::FunctionCall> calls;
@@ -44,20 +43,19 @@ namespace wasm {
 
     class WasmModule {
     public:
-        WasmModule(message::FunctionCall &call);
+        explicit WasmModule(message::FunctionCall &call);
 
         static std::vector<uint8_t> compile(message::FunctionCall &call);
+
         static void compileToObjectFile(message::FunctionCall &call);
 
         int execute();
 
-        Runtime::Memory* defaultMemory;
-        message::FunctionCall functionCall;
+        Runtime::Memory *defaultMemory;
+        message::FunctionCall &functionCall;
         CallChain callChain;
     private:
         IR::Module module;
-
-        IR::ValueTuple functionResults;
 
         Runtime::ModuleInstance *load(Runtime::Compartment *compartment);
 
@@ -68,11 +66,11 @@ namespace wasm {
         void validateInputData();
     };
 
-    WasmModule * getExecutingModule();
+    WasmModule *getExecutingModule();
 
     class WasmExitException : public std::exception {
     public:
-        explicit WasmExitException(int exitCode): exitCode(exitCode) {
+        explicit WasmExitException(int exitCode) : exitCode(exitCode) {
 
         }
 

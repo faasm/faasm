@@ -66,6 +66,12 @@ CONFIG_FLAGS = [
     "--prefix={}".format(SYSROOT),
 ]
 
+@task
+def funcs(context, path, libcurl=False, debug=False):
+    """
+    Compiles all the functions in this project
+    """
+    func_build_dir = join(PROJ_ROOT)
 
 @task
 def compile(context, path, libcurl=False, debug=False):

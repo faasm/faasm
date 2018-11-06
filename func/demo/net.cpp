@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <netdb.h>
+#include <string.h>
 
 /**
  * Takes in url as argument and returns content as output
