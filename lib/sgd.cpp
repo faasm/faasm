@@ -26,24 +26,26 @@ namespace faasm {
 
     MatrixXd leastSquaresWeightUpdate(FaasmMemory *memory, SgdParams &sgdParams, MatrixXd &weights,
                                       const MatrixXd &inputs, const MatrixXd &outputs) {
-        // Work out gradient
+        // Work out error
+        long batchSize = inputs.cols();
         MatrixXd actual = weights * inputs;
-        MatrixXd gradient = -2.0 * (actual - outputs);
+        MatrixXd error = actual - outputs;
 
-        // Perform updates to weights for each input example in the batch
-        for(int i = 0; i < inputs.cols(); i++) {
-            double thisGradient = gradient(0, i);
+        // Calculate gradient
+        MatrixXd gradient = (-2.0 / batchSize) * (error * inputs.transpose());
 
-            for (int w = 0; w < sgdParams.nWeights; w++) {
-                // Skip if input is (effectively) zero for this
-                if(inputs.coeff(w, i) < 0.00000001) {
-                    continue;
-                }
+        // Update weights based on gradient
+        for(int w = 0; w < sgdParams.nWeights; w++) {
+            double thisGradient = gradient(0, w);
 
-                // Make the update
-                weights(0, w) -= sgdParams.learningRate * thisGradient;
-                writeMatrixStateElement(memory, WEIGHTS_KEY, weights, 0, w);
+            // Zero gradient here means none of the inputs in the batch contributed
+            if(abs(thisGradient) < 0.00000001) {
+                continue;
             }
+
+            // Make the update
+            weights(0, w) -= sgdParams.learningRate * thisGradient;
+            writeMatrixStateElement(memory, WEIGHTS_KEY, weights, 0, w);
         }
 
         return actual;

@@ -35,11 +35,13 @@ namespace faasm {
 
     void shuffleMatrixColumns(MatrixXd &matrix);
 
+    void shufflePairedMatrixColumns(MatrixXd &a, MatrixXd &b);
+
     void printMatrix(MatrixXd &mat);
 
     double calculateSquaredError(const MatrixXd &a, const MatrixXd &b);
 
-    double calculateMeanSquaredError(const MatrixXd &a, const MatrixXd &b);
+    double calculateRootMeanSquaredError(const MatrixXd &a, const MatrixXd &b);
 }
 
 #endif

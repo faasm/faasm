@@ -8,10 +8,12 @@ namespace faasm {
         // Load inputs and params
         SgdParams p = readParamsFromState(memory, PARAMS_KEY);
         MatrixXd inputs = readMatrixFromState(memory, INPUTS_KEY, p.nWeights, p.nTrain);
+        MatrixXd outputs = readMatrixFromState(memory, OUTPUTS_KEY, p.nWeights, p.nTrain);
 
-        // Shuffle and write
-        faasm::shuffleMatrixColumns(inputs);
+        // Shuffle inputs and outputs
+        faasm::shufflePairedMatrixColumns(inputs, outputs);
         writeMatrixState(memory, INPUTS_KEY, inputs);
+        writeMatrixState(memory, OUTPUTS_KEY, outputs);
 
         // Set all batch errors to zero
         for (int i = 0; i < p.nBatches; i++) {

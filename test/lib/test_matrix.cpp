@@ -173,7 +173,41 @@ namespace tests {
         REQUIRE(copy != mat);
     }
 
-    TEST_CASE("Test mean squared error", "[matrix]") {
+    TEST_CASE("Test shuffling paired matrices", "[matrix]") {
+        MatrixXd matA(2, 10);
+        MatrixXd matB(1, 10);
+
+        matA << 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+        11, 12, 13, 14, 15, 16, 17, 18, 19, 20;
+
+        matB << 111, 222, 333, 444, 555, 666, 777, 888, 999, 1111;
+
+        MatrixXd copyA = matA;
+        MatrixXd copyB = matB;
+
+        faasm::shufflePairedMatrixColumns(matA, matB);
+
+        // First check shuffling has done its job (small chance this will fail)
+        REQUIRE(copyA != matA);
+        REQUIRE(copyB != matB);
+        
+        // Compare known columns in both to check that they still match up
+        double valA = 5;
+        double valB = 555;
+
+        int idxA = 0;
+        for(int i = 0; i < 10; i++) {
+            double thisVal = matA.coeff(0, i);
+            if(thisVal == valA) {
+                idxA = i;
+                break;
+            }
+        }
+
+        REQUIRE(matB.coeff(0, idxA) == valB);
+    }
+
+    TEST_CASE("Test root mean squared error", "[matrix]") {
         MatrixXd matA(1, 3);
         matA << 8.5, 10.1, 15.5;
 
@@ -184,9 +218,9 @@ namespace tests {
         double b = std::pow(10.1 - 1.3, 2);
         double c = std::pow(15.5 - 16.6, 2);
 
-        double expected = (a + b + c) / 3.0;
+        double expected = sqrt((a + b + c) / 3.0);
 
-        double actual = faasm::calculateMeanSquaredError(matA, matB);
+        double actual = faasm::calculateRootMeanSquaredError(matA, matB);
 
         REQUIRE(actual == expected);
     }

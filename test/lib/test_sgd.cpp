@@ -124,7 +124,7 @@ namespace tests {
 
     double doSgdStep(FaasmMemory *mem, SgdParams &params, MatrixXd &inputs, MatrixXd &outputs) {
         // Shuffle inputs
-        faasm::shuffleMatrixColumns(inputs);
+        faasm::shufflePairedMatrixColumns(inputs, outputs);
 
         // Prepare update loop
         int batchSize = params.nTrain / params.nBatches;
@@ -147,19 +147,21 @@ namespace tests {
         // Calculate the actual values
         MatrixXd actual = weights * inputs;
 
-        double mse = calculateMeanSquaredError(actual, outputs);
-        return mse;
+        double rmse = calculateRootMeanSquaredError(actual, outputs);
+        return rmse;
     }
 
-    TEST_CASE("Test least squares converges", "[sgd]") {
+    TEST_CASE("Test SGD with least squares converges", "[sgd]") {
         infra::Redis r;
         r.flushAll();
 
+        // Perform "proper" SGD with batch size of 1
         SgdParams params;
-        params.nBatches = 50;
+        params.nBatches = 10000;
         params.nWeights = 4;
-        params.nTrain = 1000;
-        params.learningRate = 0.1;
+        params.nTrain = 10000;
+        params.learningRate = 0.001;
+        params.maxEpochs = 30;
 
         // Set up the problem
         FaasmMemory mem;
@@ -168,14 +170,18 @@ namespace tests {
         MatrixXd inputs = readMatrixFromState(&mem, INPUTS_KEY, params.nWeights, params.nTrain);
         MatrixXd outputs = readMatrixFromState(&mem, OUTPUTS_KEY, 1, params.nTrain);
 
-        // Run multiple updates
-        double firstError = doSgdStep(&mem, params, inputs, outputs);
-        doSgdStep(&mem, params, inputs, outputs);
-        doSgdStep(&mem, params, inputs, outputs);
-        doSgdStep(&mem, params, inputs, outputs);
-        double lastError = doSgdStep(&mem, params, inputs, outputs);
+        // Work out the error before we start
+        MatrixXd weights = readMatrixFromState(&mem, WEIGHTS_KEY, 1, params.nWeights);
+        MatrixXd initialOutput = weights * inputs;
+        double startingLoss = calculateRootMeanSquaredError(initialOutput, outputs);
 
-        REQUIRE(lastError < firstError);
+        // Run multiple updates
+        double finalLoss = 0;
+        for(int e = 0; e < params.maxEpochs; e++ ) {
+            finalLoss = doSgdStep(&mem, params, inputs, outputs);
+        }
+
+        REQUIRE(finalLoss < startingLoss);
     }
 
 }

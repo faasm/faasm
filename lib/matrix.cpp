@@ -170,6 +170,19 @@ namespace faasm {
     }
 
     /**
+     * Shuffles the columns of two matrices in the same order
+     */
+    void shufflePairedMatrixColumns(MatrixXd &a, MatrixXd &b) {
+        int nCols = (int) a.cols();
+
+        for (int i = nCols - 1; i > 0; i--) {
+            int r = randomInteger(0, nCols - 1);
+            a.col(i).swap(a.col(r));
+            b.col(i).swap(b.col(r));
+        }
+    }
+
+    /**
      * Prints the given matrix
      */
     void printMatrix(MatrixXd &mat) {
@@ -203,10 +216,11 @@ namespace faasm {
     /**
      * Finds the mean squared error between two matrices
      */
-     double calculateMeanSquaredError(const MatrixXd &a, const MatrixXd &b) {
+     double calculateRootMeanSquaredError(const MatrixXd &a, const MatrixXd &b) {
         double squaredError = calculateSquaredError(a, b);
 
         long nElements = a.cols() * a.rows();
-        return squaredError / nElements;
+        double rmse = sqrt(squaredError / nElements);
+        return rmse;
      }
 }
