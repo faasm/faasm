@@ -157,11 +157,11 @@ namespace tests {
 
         // Perform "proper" SGD with batch size of 1
         SgdParams params;
-        params.nBatches = 10000;
+        params.nBatches = 5000;
         params.nWeights = 4;
-        params.nTrain = 10000;
-        params.learningRate = 0.001;
-        params.maxEpochs = 30;
+        params.nTrain = 5000;
+        params.learningRate = 0.01;
+        params.maxEpochs = 10;
 
         // Set up the problem
         FaasmMemory mem;

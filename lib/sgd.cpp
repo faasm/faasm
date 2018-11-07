@@ -32,7 +32,7 @@ namespace faasm {
         MatrixXd error = actual - outputs;
 
         // Calculate gradient
-        MatrixXd gradient = (-2.0 / batchSize) * (error * inputs.transpose());
+        MatrixXd gradient = (2.0 / batchSize) * (error * inputs.transpose());
 
         // Update weights based on gradient
         for(int w = 0; w < sgdParams.nWeights; w++) {
