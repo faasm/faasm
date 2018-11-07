@@ -39,7 +39,7 @@ namespace faasm {
 
     double calculateSquaredError(const MatrixXd &a, const MatrixXd &b);
 
-    double calculateMse(const MatrixXd &a, const MatrixXd &b);
+    double calculateMeanSquaredError(const MatrixXd &a, const MatrixXd &b);
 }
 
 #endif

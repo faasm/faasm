@@ -1,16 +1,18 @@
 #include "faasm/faasm.h"
 #include "faasm/matrix.h"
 #include "faasm/counter.h"
-#include "sgd_constants.h"
+#include "faasm/sgd.h"
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
+        SgdParams p = readParamsFromState(memory, PARAMS_KEY);
+
         // Get current epoch count
         uint8_t thisEpoch = getCounter(memory, EPOCH_COUNT_KEY);
 
         // Iterate through batches and check their errors
         double totalError = 0.0;
-        for (int i = 0; i < N_BATCHES; i++) {
+        for (int i = 0; i < p.nBatches; i++) {
             char batchKey[10];
             sprintf(batchKey, "batch-%i", i);
 
@@ -29,10 +31,10 @@ namespace faasm {
         }
 
         // Calculate the mean squared error across all batches
-        double mse = totalError / N_TRAIN;
+        double mse = totalError / p.nTrain;
 
         // Drop out if finished
-        if (thisEpoch >= MAX_EPOCHS) {
+        if (thisEpoch >= p.maxEpochs) {
             printf("SGD complete over %i epochs (MSE = %f)\n", thisEpoch, mse);
             return 0;
         }

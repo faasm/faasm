@@ -1,4 +1,5 @@
 #include "faasm/matrix.h"
+
 #include <iostream>
 
 using namespace Eigen;
@@ -191,10 +192,6 @@ namespace faasm {
         double squaredError = 0;
         for (long r = 0; r < diff.rows(); r++) {
             for (long c = 0; c < diff.cols(); c++) {
-                if(a.coeff(r, c) == 0) {
-                    continue;
-                }
-
                 double e = diff.coeff(r, c);
                 squaredError += pow(e, 2);
             }
@@ -204,22 +201,12 @@ namespace faasm {
     }
 
     /**
-     * Calculates the mean squared error between two vectors
+     * Finds the mean squared error between two matrices
      */
-    double calculateMse(const MatrixXd &a, const MatrixXd &b) {
-        MatrixXd diff = a - b;
-        
-        double mse = 0;
-        long totalValues = 0;
-        for (long r = 0; r < diff.rows(); r++) {
-            for (long c = 0; c < diff.cols(); c++) {
-                double e = diff.coeff(r, c);
-                mse += pow(e, 2);
-                totalValues++;
-            }
-        }
+     double calculateMeanSquaredError(const MatrixXd &a, const MatrixXd &b) {
+        double squaredError = calculateSquaredError(a, b);
 
-        double result = mse / totalValues;
-        return result;
-    }
+        long nElements = a.cols() * a.rows();
+        return squaredError / nElements;
+     }
 }

@@ -1,19 +1,20 @@
 #include "faasm/faasm.h"
-#include "sgd_constants.h"
 #include "faasm/matrix.h"
 #include "faasm/counter.h"
+#include "faasm/sgd.h"
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        // Load inputs
-        MatrixXd inputs = faasm::readMatrixFromState(memory, INPUTS_KEY, N_WEIGHTS, N_TRAIN);
+        // Load inputs and params
+        SgdParams p = readParamsFromState(memory, PARAMS_KEY);
+        MatrixXd inputs = readMatrixFromState(memory, INPUTS_KEY, p.nWeights, p.nTrain);
 
         // Shuffle and write
         faasm::shuffleMatrixColumns(inputs);
         writeMatrixState(memory, INPUTS_KEY, inputs);
 
         // Set all batch errors to zero
-        for (int i = 0; i < N_BATCHES; i++) {
+        for (int i = 0; i < p.nBatches; i++) {
             char batchKey[10];
             sprintf(batchKey, "batch-%i", i);
             uint8_t batchError[1] = {0};
@@ -21,8 +22,8 @@ namespace faasm {
         }
 
         // Chain new calls to perform the work
-        int batchSize = N_TRAIN / N_BATCHES;
-        for (int w = 0; w < N_BATCHES; w++) {
+        int batchSize = p.nTrain / p.nBatches;
+        for (int w = 0; w < p.nBatches; w++) {
             int startIdx = (w * batchSize);
             int endIdx = startIdx + batchSize - 1;
 

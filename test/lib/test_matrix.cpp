@@ -186,13 +186,12 @@ namespace tests {
 
         double expected = (a + b + c) / 3.0;
 
-        double actual = faasm::calculateMse(matA, matB);
+        double actual = faasm::calculateMeanSquaredError(matA, matB);
 
         REQUIRE(actual == expected);
     }
 
-    TEST_CASE("Test calculating sum of squared error", "[matrix]") {
-        // Should ignore when zero in first matrix but not second
+    TEST_CASE("Test calculating squared error", "[matrix]") {
         MatrixXd matA(1, 4);
         matA << 11.1, 0.0, 12.2, 13.3;
 
@@ -200,11 +199,12 @@ namespace tests {
         matB << 0.0, 21.1, 20.0, 19.9;
 
         double a = std::pow(11.1 - 0.0, 2);
+        double b = std::pow(0.0 - 21.1, 2);
         double c = std::pow(12.2 - 20.0, 2);
         double d = std::pow(13.3 - 19.9, 2);
 
         double actual = faasm::calculateSquaredError(matA, matB);
-        REQUIRE(actual == a + c + d);
+        REQUIRE(actual == a + b + c + d);
     }
 
 }
