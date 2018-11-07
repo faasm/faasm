@@ -9,6 +9,9 @@ ingress_rate=1mbit
 # Enable IP forwarding on host
 echo 1 > /proc/sys/net/ipv4/ip_forward
 
+# Ensure there's a public nameserver in /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+
 function setup_ns() {
     ns_name=faasmns$1
     vif_name=faasm$1

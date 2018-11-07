@@ -76,6 +76,9 @@ namespace worker {
             std::string errorMessage = "Error: " + std::string(e.what());
             logger->error(errorMessage);
 
+            // Revert to original network namespace to allow communication
+            ns.removeCurrentThread();
+
             return finishCall(call, errorMessage);
         }
 

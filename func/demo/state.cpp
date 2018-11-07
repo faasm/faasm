@@ -9,7 +9,7 @@ namespace faasm {
         long newStateSize = oldStateSize + 1;
 
         // Create array with one extra element
-        uint8_t newState[newStateSize];
+        auto newState = new uint8_t[newStateSize];
 
         // Read existing state into this array
         memory->readState(key, newState, oldStateSize);
