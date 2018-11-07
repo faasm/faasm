@@ -7,10 +7,10 @@ namespace faasm {
         // Initialise params
         SgdParams p;
         p.nWeights = 10;
-        p.nTrain = 1000;
-        p.nBatches = 10;
+        p.nTrain = 10000;
+        p.nBatches = 1000;
         p.maxEpochs = 20;
-        p.learningRate = 0.1;
+        p.learningRate = 0.01;
 
         // Set up dummy data
         setUpDummyProblem(memory, p);
