@@ -26,7 +26,7 @@ with a customised libc to implement the required syscalls.
 To run the project you can use the `docker-compose.yml` file in the root of the project, i.e. 
 
 ```
-docker-compose up -d
+docker-compose up -d --scale worker=2
 ```
 
 Then curl one of the example functions:

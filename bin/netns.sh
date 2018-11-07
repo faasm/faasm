@@ -21,8 +21,8 @@ function setup_ns() {
     ns_file="/var/run/netns/${ns_name}"
     if [ -f "$ns_file" ]
     then
-        echo "Namespace ${ns_name} already exists"
-        return
+        echo "Namespace ${ns_name} already exists. Removing"
+        ip netns delete ${ns_name}
     fi
 
     echo "Setting up namespace ${ns_name}"

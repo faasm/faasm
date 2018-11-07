@@ -9,7 +9,7 @@
 namespace worker {
     NetworkNamespace::NetworkNamespace(const std::string &name) : name(name) {
         // Get which mode we're operating in
-        std::string modeEnv = util::getEnvVar("NETNS_MODE", "off");
+        std::string modeEnv = util::getEnvVar("NETNS_MODE", "on");
 
         if (modeEnv == "on") {
             mode = NetworkIsolationMode::ns_on;
@@ -28,17 +28,21 @@ namespace worker {
 
     /** Joins the namespace at the given path */
     void joinNamespace(const boost::filesystem::path &nsPath) {
-        int fd = open(nsPath.c_str(), O_RDONLY, 0);
-
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         logger->debug("Setting network ns to {}", nsPath.string());
 
-        int result = setns(fd, CLONE_NEWNET);
+        int fd;
+        fd = open(nsPath.c_str(), O_RDONLY, 0);
+        if(fd == -1) {
+            logger->error("Failed to open fd at {}", nsPath.string());
+        }
+
+        int result = setns(fd, 0);
         close(fd);
 
         if (result != 0) {
-            logger->error("Setns failed: {}", errno);
+            logger->error("setns failed: {}", errno);
         }
 
         return;
@@ -78,6 +82,4 @@ namespace worker {
 
         joinNamespace(nsPath);
     }
-
-
 }
