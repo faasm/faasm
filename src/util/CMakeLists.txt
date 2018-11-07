@@ -5,6 +5,7 @@ add_library(util STATIC
         environment.cpp
         files.cpp
         logging.cpp
+        network.cpp
         random.cpp
         tokens.cpp
         ${FAASM_INCLUDE_DIR}/util/util.h)

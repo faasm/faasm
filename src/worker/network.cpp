@@ -9,7 +9,7 @@
 namespace worker {
     NetworkNamespace::NetworkNamespace(const std::string &name) : name(name) {
         // Get which mode we're operating in
-        std::string modeEnv = util::getEnvVar("NETNS_MODE", "on");
+        std::string modeEnv = util::getEnvVar("NETNS_MODE", "off");
 
         if (modeEnv == "on") {
             mode = NetworkIsolationMode::ns_on;
@@ -35,17 +35,17 @@ namespace worker {
         int fd;
         fd = open(nsPath.c_str(), O_RDONLY, 0);
         if(fd == -1) {
-            logger->error("Failed to open fd at {}", nsPath.string());
+            std::string errorMsg = "Failed to open fd at " + nsPath.string();
+            throw std::runtime_error(errorMsg);
         }
 
         int result = setns(fd, 0);
         close(fd);
 
         if (result != 0) {
-            logger->error("setns failed: {}", errno);
+            std::string errorMsg = "setns failed " + std::to_string(errno);
+            throw std::runtime_error(errorMsg);
         }
-
-        return;
     }
 
     void NetworkNamespace::addCurrentThread() {

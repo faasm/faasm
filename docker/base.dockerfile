@@ -8,7 +8,8 @@ RUN apt-get update
 RUN apt-get install -y ansible \
     cgroup-bin \
     iproute2 \
-    iptables
+    iptables \
+    redis-tools
 
 COPY . /faasm/code
 

@@ -53,4 +53,7 @@ namespace util {
     void initLogging();
 
     std::shared_ptr<spdlog::logger> getLogger();
+
+    // Networking
+    std::string getIPFromHostname(const std::string &hostname);
 }

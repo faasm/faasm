@@ -8,6 +8,10 @@ namespace infra {
     // therefore we need to ensure that each thread has its own instance
     static thread_local infra::Redis redis;
 
+    // Once we have resolved the IP of the redis instance, we need to keep using it
+    // This allows things operating within the network namespace to resolve it properly
+    static std::string redisIp = "not_set";
+
     const int BLOCKING_TIMEOUT = 1000;
 
     const std::string CALLS_QUEUE = "function_calls";
@@ -16,8 +20,13 @@ namespace infra {
         hostname = util::getEnvVar("REDIS_HOST", "localhost");
         port = util::getEnvVar("REDIS_PORT", "6379");
 
+        if(redisIp == "not_set") {
+            redisIp = util::getIPFromHostname(hostname);
+        }
+
+        // Note, connect with IP, not with hostname
         int portInt = std::stoi(port);
-        context = redisConnect(hostname.c_str(), portInt);
+        context = redisConnect(redisIp.c_str(), portInt);
     }
 
     Redis *Redis::getThreadConnection() {
