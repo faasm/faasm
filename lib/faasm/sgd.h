@@ -12,6 +12,8 @@ using namespace Eigen;
 #define OUTPUTS_KEY "outputs"
 #define PARAMS_KEY "params"
 #define ERRORS_KEY "errors"
+#define LOSSES_KEY "losses"
+
 
 namespace faasm {
     struct SgdParams {
@@ -31,6 +33,8 @@ namespace faasm {
                                         const MatrixXd &outputs);
 
     void zeroErrors(FaasmMemory *memory, SgdParams sgdParams);
+
+    void zeroLosses(FaasmMemory *memory, SgdParams sgdParams);
 
     void writeSquaredError(FaasmMemory *memory, int workerIdx, const MatrixXd &outputs, const MatrixXd &actual);
 

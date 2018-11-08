@@ -15,6 +15,9 @@ namespace faasm {
         // Set up dummy data
         setUpDummyProblem(memory, p);
 
+        // Zero the losses
+        zeroLosses(memory, p);
+
         // Begin first epoch
         initCounter(memory, EPOCH_COUNT_KEY);
         memory->chainFunction("sgd_epoch");

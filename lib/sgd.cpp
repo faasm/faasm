@@ -51,17 +51,25 @@ namespace faasm {
         return actual;
     }
 
-    void zeroErrors(FaasmMemory *memory, SgdParams sgdParams) {
-        // Set all batch errors to zero
-        auto errors = new double[sgdParams.nBatches];
-        for (int i = 0; i < sgdParams.nBatches; i++) {
+    void zeroArray(FaasmMemory *memory, const char *key, long len) {
+        // Set buffer to zero
+        auto errors = new double[len];
+            for (int i = 0; i < len; i++) {
             errors[i] = 0;
         }
 
-        // Write zero errors to state
+        // Write zeroed buffer to state
         auto errorsBytes = reinterpret_cast<uint8_t *>(errors);
-        memory->writeState(ERRORS_KEY, errorsBytes, sgdParams.nBatches * sizeof(double));
+        memory->writeState(ERRORS_KEY, errorsBytes, len * sizeof(double));
         delete[] errors;
+    }
+
+    void zeroErrors(FaasmMemory *memory, SgdParams sgdParams) {
+        zeroArray(memory, ERRORS_KEY, sgdParams.nBatches);
+    }
+
+    void zeroLosses(FaasmMemory *memory, SgdParams sgdParams) {
+        zeroArray(memory, LOSSES_KEY, sgdParams.nBatches);
     }
 
     void writeSquaredError(FaasmMemory *memory, int workerIdx, const MatrixXd &outputs, const MatrixXd &actual) {
