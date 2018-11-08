@@ -6,8 +6,7 @@
     - name: "System deps"
       become: yes
       apt:
-        name: "{{ item }}"
-      with_items:
+        name:
         - autoconf
         - automake
         - libtool

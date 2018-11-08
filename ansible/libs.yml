@@ -7,9 +7,7 @@
     - name: "Install deps with apt"
       become: yes
       apt:
-        name: "{{ item }}"
-        state: "present"
-      with_items:
+        name:
         - "libz-dev"
         - "libboost-dev"
         - "libcpprest-dev"
@@ -19,3 +17,5 @@
         - "cgroup-tools"
         - "cgroup-bin"
         - "iproute2"
+        state: "present"
+
