@@ -3,9 +3,9 @@
 extern "C" {
 long __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen);
 
-void __faasm_write_state(const char *key, unsigned char *data, long dataLen);
+void __faasm_write_state(const char *key, const unsigned char *data, long dataLen);
 
-void __faasm_write_state_offset(const char *key, long offset, unsigned char *data, long dataLen);
+void __faasm_write_state_offset(const char *key, long offset, const unsigned char *data, long dataLen);
 
 void __faasm_read_state_offset(const char *key, long offset, unsigned char *buffer, long bufferLen);
 
@@ -35,11 +35,11 @@ namespace faasm {
         return __faasm_read_state(key, buffer, bufferLen);
     };
 
-    void FaasmMemory::writeState(const char *key, uint8_t *data, long dataLen) {
+    void FaasmMemory::writeState(const char *key, const uint8_t *data, long dataLen) {
         __faasm_write_state(key, data, dataLen);
     };
 
-    void FaasmMemory::writeStateOffset(const char *key, long offset, uint8_t *data, long dataLen) {
+    void FaasmMemory::writeStateOffset(const char *key, long offset, const uint8_t *data, long dataLen) {
         __faasm_write_state_offset(key, offset, data, dataLen);
     };
 

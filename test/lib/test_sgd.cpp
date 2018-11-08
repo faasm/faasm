@@ -1,6 +1,7 @@
 #include <catch/catch.hpp>
 
 #include <faasm/sgd.h>
+#include <faasm/matrix.h>
 
 #include <infra/infra.h>
 
@@ -10,7 +11,7 @@ namespace tests {
 
     SgdParams getDummySgdParams() {
         SgdParams params;
-        params.nBatches = 1;
+        params.nBatches = 4;
         params.nWeights = 3;
         params.nTrain = 10;
         params.learningRate = 0.1;
@@ -184,4 +185,84 @@ namespace tests {
         REQUIRE(finalLoss < startingLoss);
     }
 
+    void checkErrorsInState(infra::Redis &r, std::vector<double> expected) {
+        std::vector<uint8_t> actualBytes = r.get(ERRORS_KEY);
+
+        auto actualPtr = reinterpret_cast<double *>(actualBytes.data());
+        std::vector<double> actual(actualPtr, actualPtr + expected.size());
+
+        REQUIRE(actual == expected);
+    }
+
+    TEST_CASE("Test writing errors to state", "[sgd]") {
+        infra::Redis r;
+        r.flushAll();
+
+        MatrixXd a = randomDenseMatrix(1, 5);
+        MatrixXd b = randomDenseMatrix(1, 5);
+        MatrixXd c = randomDenseMatrix(1, 5);
+        MatrixXd d = randomDenseMatrix(1, 5);
+
+        // Check no errors set initially
+        const std::vector<uint8_t> initial = r.get(ERRORS_KEY);
+        REQUIRE(initial.empty());
+        
+        FaasmMemory memory;
+        SgdParams params = getDummySgdParams();
+        params.nBatches = 4;
+
+        // Check zeroing out errors
+        zeroErrors(&memory, params);
+        checkErrorsInState(r, {0, 0, 0, 0});
+
+        // Work out expectation
+        double expected1 = calculateSquaredError(a, b);
+        double expected2 = calculateSquaredError(a, b);
+
+        // Write errors to memory
+        writeSquaredError(&memory, 0, a, b);
+        writeSquaredError(&memory, 2, a, b);
+
+        checkErrorsInState(r, {expected1, 0, expected2, 0});
+    }
+    
+    TEST_CASE("Test reading errors from state", "[sgd]") {
+        infra::Redis r;
+        r.flushAll();
+
+        FaasmMemory memory;
+        SgdParams p = getDummySgdParams();
+        p.nBatches = 3;
+        p.nTrain = 20;
+
+        // With nothing set up, error should be zero
+        zeroErrors(&memory, p);
+        double initial = faasm::readRootMeanSquaredError(&memory, p);
+        REQUIRE(initial == 0);
+
+        // Write the error for two of the three batches
+        MatrixXd a = randomDenseMatrix(1, 5);
+        MatrixXd b = randomDenseMatrix(1, 5);
+        double expected = calculateSquaredError(a, b);
+
+        writeSquaredError(&memory, 0, a, b);
+        writeSquaredError(&memory, 1, a, b);
+
+        // Check these have been written
+        checkErrorsInState(r, {expected, expected, 0});
+
+        // Overall error should still be zero
+        double actual1 = faasm::readRootMeanSquaredError(&memory, p);
+        REQUIRE(actual1 == 0);
+
+        // Now write error for a third batch
+        writeSquaredError(&memory, 2, a, b);
+        checkErrorsInState(r, {expected, expected, expected});
+
+        // Work out what the result should be (note that we're writing the same error for each one)
+        double expectedRmse = sqrt((3*expected) / p.nTrain);
+
+        double actual2 = faasm::readRootMeanSquaredError(&memory, p);
+        REQUIRE(abs(actual2 - expectedRmse) < 0.0000001);
+    }
 }

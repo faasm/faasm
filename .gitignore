@@ -94,6 +94,7 @@ dkms.conf
 # Python
 __pycache__/
 *.pyc
+venv/
 
 # Faasm
 work/

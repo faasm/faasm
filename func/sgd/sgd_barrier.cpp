@@ -10,30 +10,16 @@ namespace faasm {
         // Get current epoch count
         uint8_t thisEpoch = getCounter(memory, EPOCH_COUNT_KEY);
 
-        // Iterate through batches and check their errors
-        double totalError = 0.0;
-        for (int i = 0; i < p.nBatches; i++) {
-            char batchKey[10];
-            sprintf(batchKey, "batch-%i", i);
+        double mse = faasm::readRootMeanSquaredError(memory, p);
 
-            double error = 0.0;
-            auto errorBytes = reinterpret_cast<uint8_t *>(&error);
-            memory->readState(batchKey, errorBytes, sizeof(double));
-
-            // If error is still zero, we've not yet finished
-            if (error == 0.0) {
-                // Recursive call to barrier
-                memory->chainFunction("sgd_barrier");
-                return 0;
-            }
-
-            totalError += error;
+        // If error is still zero, we've not yet finished
+        if (mse == 0.0) {
+            // Recursive call to barrier
+            memory->chainFunction("sgd_barrier");
+            return 0;
         }
 
-        // Calculate the mean squared error across all batches
-        double mse = totalError / p.nTrain;
-
-        // Drop out if finished
+        // Drop out if finished all epochs
         if (thisEpoch >= p.maxEpochs) {
             printf("SGD complete over %i epochs (MSE = %f)\n", thisEpoch, mse);
             return 0;

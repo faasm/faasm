@@ -22,12 +22,12 @@ namespace faasm {
         /**
          * Overwrites the state at the given key
          */
-        void writeState(const char *key, uint8_t *data, long dataLen);
+        void writeState(const char *key, const uint8_t *data, long dataLen);
 
         /**
          * Writes a chunk of state at the given key and offset
          */
-        void writeStateOffset(const char *key, long offset, uint8_t *data, long dataLen);
+        void writeStateOffset(const char *key, long offset, const uint8_t *data, long dataLen);
 
         /**
          * Reads a chunk of state at the given key and offset

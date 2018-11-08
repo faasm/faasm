@@ -16,12 +16,12 @@ long __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) 
     return stateSize;
 }
 
-void __faasm_write_state(const char *key, unsigned char *data, long dataLen) {
+void __faasm_write_state(const char *key, const unsigned char *data, long dataLen) {
     std::vector<uint8_t> newState(data, data + dataLen);
     redis.set(key, newState);
 }
 
-void __faasm_write_state_offset(const char *key, long offset, unsigned char *data, long dataLen) {
+void __faasm_write_state_offset(const char *key, long offset, const unsigned char *data, long dataLen) {
     std::vector<uint8_t> newState(data, data + dataLen);
     redis.setRange(key, offset, newState);
 }

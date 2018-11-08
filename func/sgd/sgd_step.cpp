@@ -24,11 +24,7 @@ namespace faasm {
         MatrixXd actual = leastSquaresWeightUpdate(memory, sgdParams, weights, inputs, outputs);
 
         // Persist error for these examples
-        char batchKey[10];
-        sprintf(batchKey, "batch-%i", workerIdx);
-        double squaredError = calculateSquaredError(actual, outputs);
-        auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&squaredError);
-        memory->writeState(batchKey, squaredErrorBytes, sizeof(double));
+        writeSquaredError(memory, workerIdx, outputs, actual);
 
         return 0;
     }

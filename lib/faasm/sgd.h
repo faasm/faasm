@@ -11,6 +11,7 @@ using namespace Eigen;
 #define INPUTS_KEY "inputs"
 #define OUTPUTS_KEY "outputs"
 #define PARAMS_KEY "params"
+#define ERRORS_KEY "errors"
 
 namespace faasm {
     struct SgdParams {
@@ -21,15 +22,21 @@ namespace faasm {
         int maxEpochs = 10;
     };
 
-    void writeParamsToState(FaasmMemory *memory, const char *keyName, SgdParams &params);
+    void writeParamsToState(FaasmMemory *memory, const char *keyName, const SgdParams &params);
 
     SgdParams readParamsFromState(FaasmMemory *memory, const char *keyName);
 
-    MatrixXd leastSquaresWeightUpdate(FaasmMemory *memory, SgdParams &sgdParams, MatrixXd &weights,
+    MatrixXd leastSquaresWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, MatrixXd &weights,
                                         const MatrixXd &inputs,
                                         const MatrixXd &outputs);
 
-    void setUpDummyProblem(FaasmMemory *memory, SgdParams &params);
+    void zeroErrors(FaasmMemory *memory, SgdParams sgdParams);
+
+    void writeSquaredError(FaasmMemory *memory, int workerIdx, const MatrixXd &outputs, const MatrixXd &actual);
+
+    double readRootMeanSquaredError(FaasmMemory *memory, const SgdParams &sgdParams);
+
+    void setUpDummyProblem(FaasmMemory *memory, const SgdParams &params);
 }
 
 #endif

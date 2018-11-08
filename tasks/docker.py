@@ -6,6 +6,25 @@ from tasks.env import PROJ_ROOT
 
 
 @task
+def pull(context):
+    images = [
+        "faasm/worker",
+        "faasm/edge",
+        "faasm/toolchain",
+    ]
+
+    for image in images:
+        cmd = [
+            "docker",
+            "pull",
+            image
+        ]
+
+        cmd = " ".join(cmd)
+        call(cmd, shell=True, cwd=PROJ_ROOT)
+
+
+@task
 def tools(context):
     cmd = [
         "docker",

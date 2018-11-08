@@ -16,12 +16,7 @@ namespace faasm {
         writeMatrixState(memory, OUTPUTS_KEY, outputs);
 
         // Set all batch errors to zero
-        for (int i = 0; i < p.nBatches; i++) {
-            char batchKey[10];
-            sprintf(batchKey, "batch-%i", i);
-            uint8_t batchError[1] = {0};
-            memory->writeState(batchKey, batchError, 1);
-        }
+        faasm::zeroErrors(memory, p);
 
         // Chain new calls to perform the work
         int batchSize = p.nTrain / p.nBatches;
