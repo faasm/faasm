@@ -22,6 +22,7 @@ services:
       - FUNC_ROOT=/usr/share/faasm
       - CGROUP_MODE=on
       - NETNS_MODE=on
+      - LOG_LEVEL=debug
     volumes:
       - ./wasm:/usr/share/faasm/wasm
     networks:

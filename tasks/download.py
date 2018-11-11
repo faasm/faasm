@@ -5,12 +5,13 @@ from subprocess import call
 
 from requests import get
 
-from tasks.env import PROJ_ROOT
-
-DOWNLOAD_DIR = join(PROJ_ROOT, "download")
+from tasks.env import DOWNLOAD_DIR
 
 
 def download_proj(url, filename, extension="tar.gz", tar_args="-xvf", extract_file=None):
+    if not exists(DOWNLOAD_DIR):
+        mkdir(DOWNLOAD_DIR)
+
     extract_dir = join(DOWNLOAD_DIR, extract_file) if extract_file else join(DOWNLOAD_DIR, filename)
     tar_filename = "{}.{}".format(filename, extension)
     tar_file = join(DOWNLOAD_DIR, tar_filename)

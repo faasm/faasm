@@ -1,3 +1,4 @@
 *.wasm binary
+*.wast binary
 *.o binary
 *.tar.gz binary
