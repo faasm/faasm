@@ -284,4 +284,28 @@ namespace tests {
         checkSparseMatrixEquality(mat, actual);
     }
 
+    TEST_CASE("Test sparse matrix offset round trip", "[matrix]") {
+        infra::Redis redis;
+        redis.flushAll();
+
+        SparseMatrix<double> mat = faasm::randomSparseMatrix(4, 10);
+        SparseMatrix<double> expected = mat.block(0, 3, 4, 5);
+
+        std::cout << "FULL: \n" << mat << std::endl;
+        std::cout << "SUBSET: \n" << expected << std::endl;
+
+        faasm::FaasmMemory mem;
+
+        const char *key = "sparse_trip_offset_test";
+
+        faasm::writeSparseMatrixToState(&mem, mat, key);
+
+        // Read a subsection
+        SparseMatrix<double> actual = faasm::readSparseMatrixColumnsFromState(&mem, key, 3, 8);
+
+        std::cout << "ACTUAL: \n" << actual << std::endl;
+
+
+        checkSparseMatrixEquality(actual, expected);
+    }
 }

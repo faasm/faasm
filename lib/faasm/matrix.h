@@ -35,7 +35,7 @@ namespace faasm {
     MatrixXd readMatrixColumnsFromState(FaasmMemory *memory, const char *key, long colStart, long colEnd, long nRows);
 
     SparseMatrix<double> readSparseMatrixColumnsFromState(FaasmMemory *memory, const char *key, long colStart,
-            long colEnd, long nRows);
+            long colEnd);
 
     void shuffleMatrixColumns(MatrixXd &matrix);
 
