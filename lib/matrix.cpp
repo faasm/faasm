@@ -1,7 +1,5 @@
 #include "faasm/matrix.h"
 
-#include <iostream>
-
 using namespace Eigen;
 
 namespace faasm {

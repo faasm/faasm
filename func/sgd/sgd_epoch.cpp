@@ -5,23 +5,21 @@
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        // Load inputs and params
+        // Load params
         SgdParams p = readParamsFromState(memory, PARAMS_KEY);
-        MatrixXd inputs = readMatrixFromState(memory, INPUTS_KEY, p.nWeights, p.nTrain);
-        MatrixXd outputs = readMatrixFromState(memory, OUTPUTS_KEY, p.nWeights, p.nTrain);
-
-        // Shuffle inputs and outputs
-        faasm::shufflePairedMatrixColumns(inputs, outputs);
-        writeMatrixState(memory, INPUTS_KEY, inputs);
-        writeMatrixState(memory, OUTPUTS_KEY, outputs);
 
         // Set all batch errors to zero
         faasm::zeroErrors(memory, p);
 
+        // Shuffle start indices for each batch
+        // Note that the batch size must be small compared to the total number of
+        // training examples for this to provide enough shuffling
+        int* batchStartIndices = faasm::randomIntRange(p.nBatches);
+
         // Chain new calls to perform the work
         int batchSize = p.nTrain / p.nBatches;
         for (int w = 0; w < p.nBatches; w++) {
-            int startIdx = (w * batchSize);
+            int startIdx = batchStartIndices[w];
             int endIdx = startIdx + batchSize - 1;
 
             // Prepare input data for the worker
@@ -32,6 +30,8 @@ namespace faasm {
             // Call the chained function
             memory->chainFunction("sgd_step", inputBytes, nBytes);
         }
+
+        delete[] batchStartIndices;
 
         // Dispatch the barrier function
         memory->chainFunction("sgd_barrier");
