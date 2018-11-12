@@ -11,6 +11,11 @@
 using namespace Eigen;
 
 namespace faasm {
+
+    void serialiseSparseMatrix(const SparseMatrix<double> &mat, int *def, int* data);
+
+    SparseMatrix<double> deserialiseSparseMatrix(int *def, int *data);
+
     MatrixXd randomDenseMatrix(int rows, int cols);
 
     SparseMatrix<double> randomSparseMatrix(int rows, int cols);

@@ -124,16 +124,17 @@ namespace tests {
     }
 
     double doSgdStep(FaasmMemory *mem, SgdParams &params, MatrixXd &inputs, MatrixXd &outputs) {
-        // Shuffle inputs
-        faasm::shufflePairedMatrixColumns(inputs, outputs);
-
+        // Shuffle indices
+        int *batchStartIndices = randomIntRange(params.nBatches);
+        
         // Prepare update loop
         int batchSize = params.nTrain / params.nBatches;
-        long startCol = 0;
         MatrixXd weights = readMatrixFromState(mem, WEIGHTS_KEY, 1, params.nWeights);
 
         // Perform batch updates to weights
         for (int b = 0; b < params.nBatches; b++) {
+            int startCol = batchStartIndices[b];
+
             MatrixXd inputBatch = inputs.block(0, startCol, params.nWeights, batchSize);
             MatrixXd outputBatch = outputs.block(0, startCol, 1, batchSize);
 
@@ -141,7 +142,6 @@ namespace tests {
             leastSquaresWeightUpdate(mem, params, weights, inputBatch, outputBatch);
 
             // Update parameters
-            startCol += batchSize;
             weights = readMatrixFromState(mem, WEIGHTS_KEY, 1, params.nWeights);
         }
 
@@ -156,9 +156,9 @@ namespace tests {
         infra::Redis r;
         r.flushAll();
 
-        // Perform "proper" SGD with batch size of 1
+        // Perform minibatch
         SgdParams params;
-        params.nBatches = 5000;
+        params.nBatches = 2500;
         params.nWeights = 4;
         params.nTrain = 5000;
         params.learningRate = 0.01;

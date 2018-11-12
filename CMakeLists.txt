@@ -1,10 +1,13 @@
 cmake_minimum_required(VERSION 3.0)
 project(faasm)
 
-set(CMAKE_CXX_FLAGS "-Wall -Werror")
+set(CMAKE_CXX_FLAGS "-Wall -Werror -fpic")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic")
+# Address sanitizer
+# set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -O0")
+
+# set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Oz")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -12,13 +15,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 enable_testing()
 
-# Switch off sanitizers permanently for now
-if (CMAKE_BUILD_TYPE MATCHES "Foobar")
-    set(WAVM_ENABLE_ASAN ON)
-    set(WAVM_ENABLE_UBSAN ON)
-    set(WAVM_ENABLE_TSAN ON)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
-endif ()
+#set(WAVM_ENABLE_ASAN OFF)
+#set(WAVM_ENABLE_UBSAN OFF)
+#set(WAVM_ENABLE_TSAN OFF)
 
 # Stops WAVM compilation complaining
 add_definitions(-DDLL_EXPORT=)
