@@ -3,9 +3,48 @@
 #include "faasm/matrix.h"
 #include <infra/infra.h>
 
+#include <iostream>
+
 using namespace Eigen;
 
 namespace tests {
+
+    void checkSparseMatrixEquality(const SparseMatrix<double> &a, const SparseMatrix<double> &b) {
+        // As we can't use a simple equality operator, we need to iterate through both
+        // matrices and check the contents in detail
+
+        REQUIRE(a.nonZeros() == b.nonZeros());
+        REQUIRE(a.cols() == b.cols());
+        REQUIRE(a.rows() == b.rows());
+
+        std::vector<int> rowsA;
+        std::vector<int> colsA;
+        std::vector<double> valuesA;
+
+        for (int k = 0; k < a.outerSize(); ++k) {
+            for (SparseMatrix<double>::InnerIterator it(a, k); it; ++it) {
+                valuesA.push_back(it.value());
+                rowsA.push_back(it.row());
+                colsA.push_back(it.col());
+            }
+        }
+
+        std::vector<int> rowsB;
+        std::vector<int> colsB;
+        std::vector<double> valuesB;
+
+        for (int k = 0; k < b.outerSize(); ++k) {
+            for (SparseMatrix<double>::InnerIterator it(b, k); it; ++it) {
+                valuesB.push_back(it.value());
+                rowsB.push_back(it.row());
+                colsB.push_back(it.col());
+            }
+        }
+
+        REQUIRE(rowsA == rowsB);
+        REQUIRE(colsA == colsB);
+        REQUIRE(valuesA == valuesB);
+    }
 
     TEST_CASE("Test sparse matrix generation", "[matrix]") {
         const SparseMatrix<double> actual = faasm::randomSparseMatrix(10, 5);
@@ -64,9 +103,7 @@ namespace tests {
 
         SparseMatrix<double> matrixOut = faasm::bytesToSparseMatrix(byteArray, 10, 5);
 
-        REQUIRE(matrixOut.nonZeros() == mat.nonZeros());
-        REQUIRE(matrixOut.cols() == mat.cols());
-        REQUIRE(matrixOut.rows() == mat.rows());
+        checkSparseMatrixEquality(mat, matrixOut);
 
         delete[] byteArray;
     }
@@ -178,7 +215,7 @@ namespace tests {
         MatrixXd matB(1, 10);
 
         matA << 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-        11, 12, 13, 14, 15, 16, 17, 18, 19, 20;
+                11, 12, 13, 14, 15, 16, 17, 18, 19, 20;
 
         matB << 111, 222, 333, 444, 555, 666, 777, 888, 999, 1111;
 
@@ -190,15 +227,15 @@ namespace tests {
         // First check shuffling has done its job (small chance this will fail)
         REQUIRE(copyA != matA);
         REQUIRE(copyB != matB);
-        
+
         // Compare known columns in both to check that they still match up
         double valA = 5;
         double valB = 555;
 
         int idxA = 0;
-        for(int i = 0; i < 10; i++) {
+        for (int i = 0; i < 10; i++) {
             double thisVal = matA.coeff(0, i);
-            if(thisVal == valA) {
+            if (thisVal == valA) {
                 idxA = i;
                 break;
             }
@@ -239,6 +276,23 @@ namespace tests {
 
         double actual = faasm::calculateSquaredError(matA, matB);
         REQUIRE(actual == a + b + c + d);
+    }
+
+    TEST_CASE("Test sparse matrix round trip", "[matrix]") {
+        infra::Redis redis;
+        redis.flushAll();
+
+        SparseMatrix<double> mat = faasm::randomSparseMatrix(5, 10);
+
+        faasm::FaasmMemory mem;
+
+        const char *key = "sparse_trip_test";
+
+        faasm::writeSparseMatrixToState(&mem, mat, key);
+
+        SparseMatrix<double> actual = faasm::readSparseMatrixFromState(&mem, key);
+
+        checkSparseMatrixEquality(mat, actual);
     }
 
 }

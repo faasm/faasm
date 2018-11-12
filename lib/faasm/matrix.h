@@ -12,9 +12,9 @@ using namespace Eigen;
 
 namespace faasm {
 
-    void serialiseSparseMatrix(const SparseMatrix<double> &mat, int *def, int* data);
+    void writeSparseMatrixToState(FaasmMemory *memory, const SparseMatrix<double> &mat, const char* key);
 
-    SparseMatrix<double> deserialiseSparseMatrix(int *def, int *data);
+    SparseMatrix<double> readSparseMatrixFromState(FaasmMemory *memory, const char* key);
 
     MatrixXd randomDenseMatrix(int rows, int cols);
 

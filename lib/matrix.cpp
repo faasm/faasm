@@ -157,7 +157,7 @@ namespace faasm {
         memory->writeState(keys.sizeKey, sizeBytes, sizeof(SparseSizes));
     }
 
-    SparseMatrix<double> deserialiseSparseMatrix(FaasmMemory *memory, const char* key) {
+    SparseMatrix<double> readSparseMatrixFromState(FaasmMemory *memory, const char* key) {
         SparseKeys keys = getSparseKeys(key);
         
         // Read sizes in first
