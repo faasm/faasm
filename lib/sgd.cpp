@@ -45,7 +45,7 @@ namespace faasm {
 
             // Make the update
             weights(0, w) -= sgdParams.learningRate * thisGradient;
-            writeMatrixStateElement(memory, WEIGHTS_KEY, weights, 0, w);
+            writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, w);
         }
 
         return actual;
@@ -121,9 +121,9 @@ namespace faasm {
         Eigen::MatrixXd weights = randomDenseMatrix(1, params.nWeights);
 
         // Write all data to memory
-        writeMatrixState(memory, OUTPUTS_KEY, outputs);
-        writeMatrixState(memory, INPUTS_KEY, inputs);
-        writeMatrixState(memory, WEIGHTS_KEY, weights);
+        writeMatrixToState(memory, OUTPUTS_KEY, outputs);
+        writeMatrixToState(memory, INPUTS_KEY, inputs);
+        writeMatrixToState(memory, WEIGHTS_KEY, weights);
     }
 }
 

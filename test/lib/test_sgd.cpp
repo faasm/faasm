@@ -85,7 +85,7 @@ namespace tests {
         weights << 1, 2, 3, 4;
 
         // Persist weights to allow updates
-        writeMatrixState(&mem, WEIGHTS_KEY, weights);
+        writeMatrixToState(&mem, WEIGHTS_KEY, weights);
 
         // Copy of weights for testing
         MatrixXd weightsCopy = weights;

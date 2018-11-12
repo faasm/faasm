@@ -97,17 +97,6 @@ namespace tests {
         delete[] byteArray;
     }
 
-    TEST_CASE("Test sparse matrix to bytes round trip", "[matrix]") {
-        SparseMatrix<double> mat = faasm::randomSparseMatrix(10, 5);
-        uint8_t *byteArray = faasm::sparseMatrixToBytes(mat);
-
-        SparseMatrix<double> matrixOut = faasm::bytesToSparseMatrix(byteArray, 10, 5);
-
-        checkSparseMatrixEquality(mat, matrixOut);
-
-        delete[] byteArray;
-    }
-
     TEST_CASE("Test matrix to redis round trip", "[matrix]") {
         infra::Redis redis;
         redis.flushAll();
@@ -119,7 +108,7 @@ namespace tests {
 
         // Write to a dummy key
         const char *stateKey = "test_matrix_state";
-        faasm::writeMatrixState(&mem, stateKey, mat);
+        faasm::writeMatrixToState(&mem, stateKey, mat);
 
         // Retrieve from redis and check it's still the same
         const MatrixXd afterState = faasm::readMatrixFromState(&mem, stateKey, 2, 3);
@@ -140,15 +129,15 @@ namespace tests {
 
         // Write full state to a dummy key
         const char *stateKey = "test_matrix_elem_state";
-        faasm::writeMatrixState(&mem, stateKey, mat);
+        faasm::writeMatrixToState(&mem, stateKey, mat);
 
         // Update the matrix in memory
         mat(0, 2) = 3.3;
         mat(1, 1) = 10.5;
 
         // Update a single element
-        faasm::writeMatrixStateElement(&mem, stateKey, mat, 0, 2);
-        faasm::writeMatrixStateElement(&mem, stateKey, mat, 1, 1);
+        faasm::writeMatrixToStateElement(&mem, stateKey, mat, 0, 2);
+        faasm::writeMatrixToStateElement(&mem, stateKey, mat, 1, 1);
 
         // Retrieve from redis and check it matches the one in memory
         const MatrixXd afterState = faasm::readMatrixFromState(&mem, stateKey, 2, 3);
@@ -178,7 +167,7 @@ namespace tests {
 
         // Write full state to a dummy key
         const char *stateKey = "test_matrix_cols_state";
-        faasm::writeMatrixState(&mem, stateKey, mat);
+        faasm::writeMatrixToState(&mem, stateKey, mat);
 
         // Read a subset of columns
         long startCol = 1;

@@ -56,14 +56,6 @@ namespace faasm {
     }
 
     /**
-     * Serialises a sparse matrix to a byte array
-     */
-    uint8_t *sparseMatrixToBytes(const SparseMatrix<double> &sparse) {
-        // TODO is this sparse -> dense conversion costly?
-        return matrixToBytes(sparse);
-    }
-
-    /**
      * Deserialises a byte array to a matrix
      */
     MatrixXd bytesToMatrix(uint8_t *byteArray, long rows, long columns) {
@@ -74,25 +66,18 @@ namespace faasm {
         return mat;
     }
 
-    /**
-     * Deserialises a byte array to a sparse matrix
-     */
-    SparseMatrix<double> bytesToSparseMatrix(uint8_t *byteArray, long rows, long columns) {
-        // TODO is this dense -> sparse conversion costly?
-        MatrixXd dense = bytesToMatrix(byteArray, rows, columns);
-
-        SparseMatrix<double> sparse;
-        sparse = dense.sparseView(0.01, 0.001);
-
-        return sparse;
-    }
-
     struct SparseKeys {
-        char* valueKey;
-        char* innerKey;
-        char* outerKey;
-        
-        char* sizeKey;
+        char *valueKey;
+        char *innerKey;
+        char *outerKey;
+        char *sizeKey;
+
+        ~SparseKeys() {
+            delete[] valueKey;
+            delete[] innerKey;
+            delete[] outerKey;
+            delete[] sizeKey;
+        }
     };
 
     struct SparseSizes {
@@ -105,10 +90,10 @@ namespace faasm {
         size_t outerLen;
     };
 
-    SparseKeys getSparseKeys(const char* key) {
+    SparseKeys getSparseKeys(const char *key) {
         size_t keyLen = strlen(key);
 
-        SparseKeys keys;
+        SparseKeys keys{};
         keys.valueKey = new char[keyLen + 6];
         keys.innerKey = new char[keyLen + 6];
         keys.outerKey = new char[keyLen + 6];
@@ -122,8 +107,8 @@ namespace faasm {
         return keys;
     }
 
-    void writeSparseMatrixToState(FaasmMemory *memory, const SparseMatrix<double> &mat, const char* key) {
-        if(!mat.isCompressed()) {
+    void writeSparseMatrixToState(FaasmMemory *memory, const SparseMatrix<double> &mat, const char *key) {
+        if (!mat.isCompressed()) {
             throw std::runtime_error("Sparse matrices must be compressed before serializing");
         }
 
@@ -139,7 +124,7 @@ namespace faasm {
         size_t nOuterBytes = mat.outerSize() * sizeof(int);
 
         // Build array to specify sizes
-        SparseSizes sizes;
+        SparseSizes sizes{};
         sizes.cols = mat.cols();
         sizes.rows = (size_t) mat.rows();
         sizes.nNonZeros = mat.nonZeros();
@@ -157,33 +142,74 @@ namespace faasm {
         memory->writeState(keys.sizeKey, sizeBytes, sizeof(SparseSizes));
     }
 
-    SparseMatrix<double> readSparseMatrixFromState(FaasmMemory *memory, const char* key) {
-        SparseKeys keys = getSparseKeys(key);
-        
-        // Read sizes in first
+    SparseSizes readSparseSizes(FaasmMemory *memory, const SparseKeys &keys) {
         uint8_t sizeBuffer[sizeof(SparseSizes)];
         memory->readState(keys.sizeKey, sizeBuffer, sizeof(SparseSizes));
         auto sizes = reinterpret_cast<SparseSizes *>(sizeBuffer);
 
+        return *sizes;
+    }
+
+    SparseMatrix<double> readSparseMatrixFromState(FaasmMemory *memory, const char *key) {
+        SparseKeys keys = getSparseKeys(key);
+        SparseSizes sizes = readSparseSizes(memory, keys);
+
         // Create new matrix and copy data in
-        SparseMatrix<double> mat(sizes->rows, sizes->cols);
+        SparseMatrix<double> mat(sizes.rows, sizes.cols);
         mat.makeCompressed();
-        mat.resizeNonZeros(sizes->nNonZeros);
+        mat.resizeNonZeros(sizes.nNonZeros);
 
         // Read data from state straight into matrix
-        memory->readState(keys.valueKey, (uint8_t *) mat.valuePtr(), sizes->valuesLen);
-        memory->readState(keys.innerKey, (uint8_t *)mat.innerIndexPtr(), sizes->innerLen);
-        memory->readState(keys.outerKey, (uint8_t *)mat.outerIndexPtr(), sizes->outerLen);
+        memory->readState(keys.valueKey, (uint8_t *) mat.valuePtr(), sizes.valuesLen);
+        memory->readState(keys.innerKey, (uint8_t *) mat.innerIndexPtr(), sizes.innerLen);
+        memory->readState(keys.outerKey, (uint8_t *) mat.outerIndexPtr(), sizes.outerLen);
 
         mat.finalize();
 
         return mat;
     }
 
+    SparseMatrix<double> readSparseMatrixColumnsFromState(FaasmMemory *memory, const char *key,
+            long colStart, long colEnd, long nRows) {
+
+        // Read in the full matrix properties
+        SparseKeys keys = getSparseKeys(key);
+        SparseSizes sizes = readSparseSizes(memory, keys);
+
+        // Read in the outer indices, this gives the sizes of each column and thus the elements we want
+        long nCols = colEnd - colStart;
+        auto outerBuffer = new uint8_t[nCols];
+        memory->readStateOffset(keys.outerKey, colStart, outerBuffer, nCols);
+        int * outerIndices = reinterpret_cast<int*>(outerBuffer);
+        
+        // Work out which values and inner indices correspond to our columns
+        int startIdx = outerIndices[0];
+        int endIdx = outerIndices[nCols - 1];
+        int nValues = endIdx - startIdx;
+        size_t nValueBytes = nValues * sizeof(double);
+        size_t nInnerBytes = nValues * sizeof(int);
+
+        SparseMatrix<double> mat(sizes.rows, nCols);
+        mat.makeCompressed();
+        mat.resizeNonZeros(nValues);
+
+        // We already have the outer indices in memory, just need a subset
+        memcpy(mat.outerIndexPtr(), outerIndices + colStart, nCols);
+        memory->readStateOffset(keys.valueKey, startIdx, (uint8_t *) mat.valuePtr(), nValueBytes);
+        memory->readStateOffset(keys.innerKey, startIdx, (uint8_t *) mat.innerIndexPtr(), nInnerBytes);
+
+        mat.finalize();
+
+        delete[] outerBuffer;
+
+        return mat;
+    }
+
+
     /**
      * Writes a matrix to state
      */
-    void writeMatrixState(FaasmMemory *memory, const char *key, const MatrixXd &matrix) {
+    void writeMatrixToState(FaasmMemory *memory, const char *key, const MatrixXd &matrix) {
         size_t nBytes = matrix.rows() * matrix.cols() * sizeof(double);
         uint8_t *serialisedData = matrixToBytes(matrix);
 
@@ -217,7 +243,7 @@ namespace faasm {
     /** 
      * Updates a specific element in state 
      */
-    void writeMatrixStateElement(FaasmMemory *memory, const char *key, const MatrixXd &matrix, long row, long col) {
+    void writeMatrixToStateElement(FaasmMemory *memory, const char *key, const MatrixXd &matrix, long row, long col) {
         // Work out the position of this element
         // Note that matrices are stored in column-major order by default
         long byteIdx = matrixByteIndex(row, col, matrix.rows());
@@ -308,11 +334,11 @@ namespace faasm {
     /**
      * Finds the mean squared error between two matrices
      */
-     double calculateRootMeanSquaredError(const MatrixXd &a, const MatrixXd &b) {
+    double calculateRootMeanSquaredError(const MatrixXd &a, const MatrixXd &b) {
         double squaredError = calculateSquaredError(a, b);
 
         long nElements = a.cols() * a.rows();
         double rmse = sqrt(squaredError / nElements);
         return rmse;
-     }
+    }
 }
