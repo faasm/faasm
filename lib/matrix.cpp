@@ -1,5 +1,6 @@
 #include "faasm/matrix.h"
 #include <stdio.h>
+#include <random>
 
 using namespace Eigen;
 
@@ -13,7 +14,8 @@ namespace faasm {
 
     SparseMatrix<double> randomSparseMatrix(int rows, int cols, double threshold) {
         // Random distribution
-        std::default_random_engine gen;
+        std::random_device rd;
+        std::mt19937 gen(rd());
         std::uniform_real_distribution<double> dist(0.0, 1.0);
 
         // Create a list of triplets
@@ -71,12 +73,14 @@ namespace faasm {
         char *innerKey;
         char *outerKey;
         char *sizeKey;
+        char *nonZeroKey;
 
         ~SparseKeys() {
             delete[] valueKey;
             delete[] innerKey;
             delete[] outerKey;
             delete[] sizeKey;
+            delete[] nonZeroKey;
         }
     };
 
@@ -98,11 +102,13 @@ namespace faasm {
         keys.innerKey = new char[keyLen + 6];
         keys.outerKey = new char[keyLen + 6];
         keys.sizeKey = new char[keyLen + 6];
+        keys.nonZeroKey = new char[keyLen + 6];
 
         sprintf(keys.valueKey, "%s_vals", key);
         sprintf(keys.innerKey, "%s_innr", key);
         sprintf(keys.outerKey, "%s_outr", key);
         sprintf(keys.sizeKey, "%s_size", key);
+        sprintf(keys.nonZeroKey, "%s_nonz", key);
 
         return keys;
     }
@@ -112,25 +118,39 @@ namespace faasm {
             throw std::runtime_error("Sparse matrices must be compressed before serializing");
         }
 
-        // Eigen docs are useful
+        // Eigen docs are useful in understanding the approach here
         // https://eigen.tuxfamily.org/dox/group__TutorialSparse.html
-
-        // Need to store three arrays: values, inner indices and outer starts
+        // We need to store three arrays: values, inner indices and outer starts
+        //
         // Values = the actual values (doubles)
         // Inner index = index of each value in its respective column (ints)
-        // Outer index = position of the first value for that column in the other 2 arrays (ints)
+        // Outer index = number of non-zero entries in the columns _before_ this one (has length cols + 1)
+        //
+        // To make partial deserialisation easier, we also store a fourther array:
+        //
+        // Non-zero count = the number of non-zero entries in _this_ column
         //
         // Both the values and inner arrays will have one entry for each value in the matrix
-        // Outer index will have one entry for each column
-        size_t nValueBytes = mat.nonZeros() * sizeof(double);
-        size_t nInnerBytes = mat.nonZeros() * sizeof(int);
-        size_t nOuterBytes = mat.outerSize() * sizeof(int);
+        // Outer index and non-zero count will have one entry for each column
+        long totalNonZeros = mat.nonZeros();
+        long nCols = mat.cols();
+        size_t nValueBytes = totalNonZeros * sizeof(double);
+        size_t nInnerBytes = totalNonZeros * sizeof(int);
+        size_t nOuterBytes = (mat.outerSize() + 1) * sizeof(int);
+        size_t nNonZeroBytes = mat.outerSize() * sizeof(int);
+
+        // The non-zero counts can worked out with the outer indices by subtracting the ith value from the (i+1)th
+        int *nonZeroCounts = new int[nCols];
+        const int *outerIndices = mat.outerIndexPtr();
+        for (int i = 0; i < nCols; i++) {
+            nonZeroCounts[i] = outerIndices[i + 1] - outerIndices[i];
+        }
 
         // Build array to specify sizes
         SparseSizes sizes{};
-        sizes.cols = mat.cols();
+        sizes.cols = nCols;
         sizes.rows = mat.rows();
-        sizes.nNonZeros = mat.nonZeros();
+        sizes.nNonZeros = totalNonZeros;
         sizes.valuesLen = nValueBytes;
         sizes.innerLen = nInnerBytes;
         sizes.outerLen = nOuterBytes;
@@ -139,10 +159,13 @@ namespace faasm {
 
         // Write everything
         SparseKeys keys = getSparseKeys(key);
-        memory->writeState(keys.valueKey, (uint8_t *) mat.valuePtr(), nValueBytes);
-        memory->writeState(keys.innerKey, (uint8_t *) mat.innerIndexPtr(), nInnerBytes);
-        memory->writeState(keys.outerKey, (uint8_t *) mat.outerIndexPtr(), nOuterBytes);
+        memory->writeState(keys.valueKey, reinterpret_cast<const uint8_t*>(mat.valuePtr()), nValueBytes);
+        memory->writeState(keys.innerKey, reinterpret_cast<const uint8_t*>(mat.innerIndexPtr()), nInnerBytes);
+        memory->writeState(keys.outerKey, reinterpret_cast<const uint8_t*>(mat.outerIndexPtr()), nOuterBytes);
+        memory->writeState(keys.nonZeroKey, reinterpret_cast<const uint8_t*>(nonZeroCounts), nNonZeroBytes);
         memory->writeState(keys.sizeKey, sizeBytes, sizeof(SparseSizes));
+
+        delete[] nonZeroCounts;
     }
 
     SparseSizes readSparseSizes(FaasmMemory *memory, const SparseKeys &keys) {
@@ -157,17 +180,28 @@ namespace faasm {
         SparseKeys keys = getSparseKeys(key);
         SparseSizes sizes = readSparseSizes(memory, keys);
 
-        // Create new matrix and copy data in
-        SparseMatrix<double> mat(sizes.rows, sizes.cols);
-        mat.makeCompressed();
-        mat.resizeNonZeros(sizes.nNonZeros);
+        auto outerBytes = new uint8_t[sizes.outerLen];
+        auto innerBytes = new uint8_t[sizes.innerLen];
+        auto valuesBytes = new uint8_t[sizes.valuesLen];
 
-        // Read data from state straight into matrix
-        memory->readState(keys.valueKey, (uint8_t *) mat.valuePtr(), sizes.valuesLen);
-        memory->readState(keys.innerKey, (uint8_t *) mat.innerIndexPtr(), sizes.innerLen);
-        memory->readState(keys.outerKey, (uint8_t *) mat.outerIndexPtr(), sizes.outerLen);
+        // Read data into buffers
+        memory->readState(keys.outerKey, outerBytes, sizes.outerLen);
+        memory->readState(keys.innerKey, innerBytes, sizes.innerLen);
+        memory->readState(keys.valueKey, valuesBytes, sizes.valuesLen);
 
-        mat.finalize();
+        auto outerPtr = reinterpret_cast<int*>(outerBytes);
+        auto innerPtr = reinterpret_cast<int*>(innerBytes);
+        auto valuePtr = reinterpret_cast<double*>(valuesBytes);
+
+        // Use eigen to import from the buffers
+        Map<SparseMatrix<double>> mat(
+                sizes.rows,
+                sizes.cols,
+                sizes.nNonZeros,
+                outerPtr,
+                innerPtr,
+                valuePtr
+        );
 
         return mat;
     }
@@ -185,71 +219,61 @@ namespace faasm {
         SparseSizes sizes = readSparseSizes(memory, keys);
 
         long nCols = colEnd - colStart;
-        bool isLastColumn = colEnd == sizes.cols;
+        size_t colBytes = nCols * sizeof(int);
+        size_t colOffset = colStart * sizeof(int);
 
-        // Create the matrix
-        SparseMatrix<double> mat(sizes.rows, nCols);
-        mat.makeCompressed();
+        // Load the number of non-zeros in each column
+        auto nonZeroBuffer = new uint8_t[colBytes];
+        memory->readStateOffset(keys.nonZeroKey, colOffset, nonZeroBuffer, colBytes);
+        int *nonZeroCounts = reinterpret_cast<int *>(nonZeroBuffer);
 
-        // Read in the outer indices. These tell us how many non-zero values appear in a column. The number of
-        // non-zero values in a given column can be found by subtracting the value for that column from the value
-        // for the _next_ column. As a result we need to read one ahead (unless we're in the last column which we
-        // handle differently
-        long nOuter;
-        if(isLastColumn) {
-            nOuter = nCols;
-        }
-        else {
-            nOuter = nCols + 1;
+        // Work out how many values we have in total
+        int nValues = 0;
+        for (int i = 0; i < nCols; i++) {
+            nValues += nonZeroCounts[i];
         }
 
-        long nOuterBytes = nOuter * sizeof(int);
-        auto outerBuffer = new uint8_t[nOuterBytes];
-        size_t outerOffsetBytes = colStart * sizeof(int);
-        memory->readStateOffset(keys.outerKey, outerOffsetBytes, outerBuffer, nOuterBytes);
+        // Load the outer indices (one longer than the number of columns)
+        size_t outerBytes = colBytes + sizeof(int);
+        auto outerBuffer = new uint8_t[outerBytes];
+        memory->readStateOffset(keys.outerKey, colOffset, outerBuffer, outerBytes);
         int *outerIndices = reinterpret_cast<int *>(outerBuffer);
 
-        // Work out the base number of non-zeros
+        // We need to rebase the outer indices to fit our newly created matrix
         int startIdx = outerIndices[0];
-
-        // Work out how many non-zeros occur by subtracting this from the (end + 1)th value
-        int nValues;
-        if (isLastColumn) {
-            nValues = (int) (sizes.nNonZeros - startIdx);
-        } else {
-            int endIdx = outerIndices[nOuter - 1];
-            nValues = endIdx - startIdx;
-        }
-
-        // Drop out if nothing to do
-        if (nValues == 0) {
-            return mat;
-        }
-
-        // We now need tp rebase the outer indices to fit our newly created matrix
-        for (int i = 0; i < nOuter; i++) {
+        for (int i = 0; i <= nCols; i++) {
             outerIndices[i] -= startIdx;
         }
 
-        // Reserve matrix memory properly
-        mat.resizeNonZeros(nValues);
-
-        // Write the outer indices to the matrix (note that we may have one extra element in the
-        // outer indices array which gets ignored)
-        memcpy(mat.outerIndexPtr(), outerIndices, nCols * sizeof(int));
-
-        delete[] outerBuffer;
-
-        // Read the values and inner indices from state
+        // Read in the values and inner indices
         size_t nValueBytes = nValues * sizeof(double);
-        size_t nInnerBytes = nValues * sizeof(int);
         size_t offsetValueBytes = startIdx * sizeof(double);
+        size_t nInnerBytes = nValues * sizeof(int);
         size_t offsetInnerBytes = startIdx * sizeof(int);
-        memory->readStateOffset(keys.valueKey, offsetValueBytes, (uint8_t *) mat.valuePtr(), nValueBytes);
-        memory->readStateOffset(keys.innerKey, offsetInnerBytes, (uint8_t *) mat.innerIndexPtr(), nInnerBytes);
 
-        // Finish off and return
-        mat.finalize();
+        // Read into buffers
+        auto valueBytes = new uint8_t[nValueBytes];
+        auto innerBytes = new uint8_t[nInnerBytes];
+
+        // Do the reading from state
+        memory->readStateOffset(keys.valueKey, offsetValueBytes, valueBytes, nValueBytes);
+        memory->readStateOffset(keys.innerKey, offsetInnerBytes, innerBytes, nInnerBytes);
+
+        auto valuePtr = reinterpret_cast<double *>(valueBytes);
+        auto innerPtr = reinterpret_cast<int *>(innerBytes);
+
+        // Use eigen to import from the buffers
+        Map<SparseMatrix<double>> mat(
+                sizes.rows,
+                nCols,
+                nValues,
+                outerIndices,
+                innerPtr,
+                valuePtr
+        );
+
+        delete[] nonZeroBuffer;
+
         return mat;
     }
 

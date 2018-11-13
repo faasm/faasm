@@ -276,11 +276,9 @@ namespace tests {
         faasm::FaasmMemory mem;
 
         const char *key = "sparse_trip_test";
-
         faasm::writeSparseMatrixToState(&mem, mat, key);
 
         SparseMatrix<double> actual = faasm::readSparseMatrixFromState(&mem, key);
-
         checkSparseMatrixEquality(mat, actual);
     }
 
@@ -296,12 +294,8 @@ namespace tests {
 
         SparseMatrix<double> expected = mat.block(0, colStart, rows, colEnd - colStart);
 
-        std::cout << "FULL: \n" << mat << std::endl;
-        std::cout << "SUBSET: \n" << expected << std::endl;
-
         // Read a subsection
         SparseMatrix<double> actual = faasm::readSparseMatrixColumnsFromState(&mem, key, colStart, colEnd);
-        std::cout << "ACTUAL: \n" << actual << std::endl;
         checkSparseMatrixEquality(actual, expected);
     }
 

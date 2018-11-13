@@ -4,7 +4,6 @@
 #include "faasm/memory.h"
 #include "faasm/random.h"
 
-#include <random>
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/SparseCore>
 
