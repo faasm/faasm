@@ -169,9 +169,9 @@ namespace tests {
         const char *stateKey = "test_matrix_cols_state";
         faasm::writeMatrixToState(&mem, stateKey, mat);
 
-        // Read a subset of columns
+        // Read a subset of columns (exclusive)
         long startCol = 1;
-        long endCol = 3;
+        long endCol = 4;
         MatrixXd actual = faasm::readMatrixColumnsFromState(&mem, stateKey, startCol, endCol, nRows);
 
         REQUIRE(actual.rows() == nRows);

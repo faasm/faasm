@@ -20,7 +20,7 @@ namespace faasm {
         int batchSize = p.nTrain / p.nBatches;
         for (int w = 0; w < p.nBatches; w++) {
             int startIdx = batchStartIndices[w];
-            int endIdx = startIdx + batchSize - 1;
+            int endIdx = startIdx + batchSize;
 
             // Prepare input data for the worker
             int inputData[3] = {w, startIdx, endIdx};

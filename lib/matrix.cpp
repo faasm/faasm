@@ -328,11 +328,10 @@ namespace faasm {
     }
 
     /**
-     * Reads a subset of full columns from state (note that column numbers are inclusive
+     * Reads a subset of full columns from state. Columns are *exclusive*
      */
     MatrixXd readMatrixColumnsFromState(FaasmMemory *memory, const char *key, long colStart, long colEnd, long nRows) {
-        // Note, inclusive
-        long nCols = colEnd - colStart + 1;
+        long nCols = colEnd - colStart;
 
         long startIdx = matrixByteIndex(0, colStart, nRows);
         long endIdx = matrixByteIndex(nRows, colEnd, nRows);

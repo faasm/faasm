@@ -12,7 +12,7 @@ namespace faasm {
         int startIdx = inputParams[1];
         int endIdx = inputParams[2];
 
-        // Load params
+        // Load paramss
         SgdParams sgdParams = readParamsFromState(memory, PARAMS_KEY);
 
         // Load the data
