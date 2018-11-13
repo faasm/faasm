@@ -47,7 +47,7 @@ namespace tests {
     }
 
     TEST_CASE("Test sparse matrix generation", "[matrix]") {
-        const SparseMatrix<double> actual = faasm::randomSparseMatrix(10, 5);
+        const SparseMatrix<double> actual = faasm::randomSparseMatrix(10, 5, 0.4);
 
         REQUIRE(actual.rows() == 10);
         REQUIRE(actual.cols() == 5);
@@ -187,7 +187,7 @@ namespace tests {
     }
 
     TEST_CASE("Test shuffling matrix", "[matrix]") {
-        MatrixXd mat = faasm::randomSparseMatrix(10, 20);
+        MatrixXd mat = faasm::randomSparseMatrix(10, 20, 0.4);
         MatrixXd copy = mat;
 
         faasm::shuffleMatrixColumns(mat);
@@ -271,7 +271,7 @@ namespace tests {
         infra::Redis redis;
         redis.flushAll();
 
-        SparseMatrix<double> mat = faasm::randomSparseMatrix(5, 10);
+        SparseMatrix<double> mat = faasm::randomSparseMatrix(5, 10, 0.4);
 
         faasm::FaasmMemory mem;
 
@@ -290,7 +290,7 @@ namespace tests {
 
         const char *key = "sparse_trip_offset_test";
 
-        SparseMatrix<double> mat = faasm::randomSparseMatrix(rows, cols);
+        SparseMatrix<double> mat = faasm::randomSparseMatrix(rows, cols, 0.4);
         faasm::FaasmMemory mem;
         faasm::writeSparseMatrixToState(&mem, mat, key);
 
@@ -306,18 +306,18 @@ namespace tests {
     }
 
     TEST_CASE("Test sparse matrix offset multiple columns", "[matrix]") {
-        checkSparseMatrixRoundTrip(5, 15, 3, 10);
+        checkSparseMatrixRoundTrip(10, 15, 3, 10);
     }
 
     TEST_CASE("Test sparse matrix offset single column", "[matrix]") {
-        checkSparseMatrixRoundTrip(5, 15, 10, 11);
+        checkSparseMatrixRoundTrip(10, 15, 10, 11);
     }
 
     TEST_CASE("Test sparse matrix offset last column", "[matrix]") {
-        checkSparseMatrixRoundTrip(5, 15, 13, 14);
+        checkSparseMatrixRoundTrip(10, 15, 14, 15);
     }
 
     TEST_CASE("Test sparse matrix offset first column", "[matrix]") {
-        checkSparseMatrixRoundTrip(5, 15, 0, 1);
+        checkSparseMatrixRoundTrip(10, 15, 0, 1);
     }
 }

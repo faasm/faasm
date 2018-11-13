@@ -18,7 +18,7 @@ namespace faasm {
 
     MatrixXd randomDenseMatrix(int rows, int cols);
 
-    SparseMatrix<double> randomSparseMatrix(int rows, int cols);
+    SparseMatrix<double> randomSparseMatrix(int rows, int cols, double threshold);
 
     uint8_t *matrixToBytes(const MatrixXd &mat);
 

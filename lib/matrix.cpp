@@ -11,7 +11,7 @@ namespace faasm {
         return mat;
     }
 
-    SparseMatrix<double> randomSparseMatrix(int rows, int cols) {
+    SparseMatrix<double> randomSparseMatrix(int rows, int cols, double threshold) {
         // Random distribution
         std::default_random_engine gen;
         std::uniform_real_distribution<double> dist(0.0, 1.0);
@@ -25,7 +25,7 @@ namespace faasm {
                 auto v_ij = dist(gen);
 
                 // If below threshold, add the triplet to the list
-                if (v_ij < 0.1) {
+                if (v_ij < threshold) {
                     const Triplet<double, int> &triplet = Triplet<double>(i, j, v_ij);
                     triplets.push_back(triplet);
                 }
@@ -112,6 +112,9 @@ namespace faasm {
             throw std::runtime_error("Sparse matrices must be compressed before serializing");
         }
 
+        // Eigen docs are useful
+        // https://eigen.tuxfamily.org/dox/group__TutorialSparse.html
+
         // Need to store three arrays: values, inner indices and outer starts
         // Values = the actual values (doubles)
         // Inner index = index of each value in its respective column (ints)
@@ -174,6 +177,9 @@ namespace faasm {
      */
     SparseMatrix<double> readSparseMatrixColumnsFromState(FaasmMemory *memory, const char *key,
                                                           long colStart, long colEnd) {
+        // This depends heavily on the Eigen sparse matrix representation which is documented here:
+        // https://eigen.tuxfamily.org/dox/group__TutorialSparse.html
+
         // Read in the full matrix properties
         SparseKeys keys = getSparseKeys(key);
         SparseSizes sizes = readSparseSizes(memory, keys);
@@ -181,47 +187,60 @@ namespace faasm {
         long nCols = colEnd - colStart;
         bool isLastColumn = colEnd == sizes.cols;
 
-        // Read in the outer indices. These tell us how many of the values have gone into the matrix _before_
-        // the given column.
-        size_t nOuterBytes = nCols * sizeof(int);
+        // Create the matrix
+        SparseMatrix<double> mat(sizes.rows, nCols);
+        mat.makeCompressed();
+
+        // Read in the outer indices. These tell us how many non-zero values appear in a column. The number of
+        // non-zero values in a given column can be found by subtracting the value for that column from the value
+        // for the _next_ column. As a result we need to read one ahead (unless we're in the last column which we
+        // handle differently
+        long nOuter;
+        if(isLastColumn) {
+            nOuter = nCols;
+        }
+        else {
+            nOuter = nCols + 1;
+        }
+
+        long nOuterBytes = nOuter * sizeof(int);
         auto outerBuffer = new uint8_t[nOuterBytes];
         size_t outerOffsetBytes = colStart * sizeof(int);
         memory->readStateOffset(keys.outerKey, outerOffsetBytes, outerBuffer, nOuterBytes);
         int *outerIndices = reinterpret_cast<int *>(outerBuffer);
 
-        // Work out which values correspond to our columns. We need to read the value for the
-        // _next_ column to work out which values to read in.
+        // Work out the base number of non-zeros
         int startIdx = outerIndices[0];
-        int endIdx;
-        if(isLastColumn) {
-            endIdx = (int) (sizes.nNonZeros - 1);
-        }
-        else {
-            endIdx = outerIndices[nCols + 1];
-        }
 
-        // Create the matrix
-        SparseMatrix<double> mat(sizes.rows, nCols);
-        mat.makeCompressed();
+        // Work out how many non-zeros occur by subtracting this from the (end + 1)th value
+        int nValues;
+        if (isLastColumn) {
+            nValues = (int) (sizes.nNonZeros - startIdx);
+        } else {
+            int endIdx = outerIndices[nOuter - 1];
+            nValues = endIdx - startIdx;
+        }
 
         // Drop out if nothing to do
-        if (endIdx == startIdx) {
+        if (nValues == 0) {
             return mat;
         }
 
+        // We now need tp rebase the outer indices to fit our newly created matrix
+        for (int i = 0; i < nOuter; i++) {
+            outerIndices[i] -= startIdx;
+        }
+
         // Reserve matrix memory properly
-        int nValues = endIdx - startIdx + 1;
         mat.resizeNonZeros(nValues);
 
-        // We already have the outer indices in memory, just need to rebase them relative to our new index
-        int *relativeOuterIndices = new int[nCols];
-        for (int i = 0; i < nCols; i++) {
-            relativeOuterIndices[i] = outerIndices[i] - outerIndices[0];
-        }
-        memcpy(mat.outerIndexPtr(), relativeOuterIndices, nOuterBytes);
+        // Write the outer indices to the matrix (note that we may have one extra element in the
+        // outer indices array which gets ignored)
+        memcpy(mat.outerIndexPtr(), outerIndices, nCols * sizeof(int));
+
         delete[] outerBuffer;
 
-        // Read the others into memory
+        // Read the values and inner indices from state
         size_t nValueBytes = nValues * sizeof(double);
         size_t nInnerBytes = nValues * sizeof(int);
         size_t offsetValueBytes = startIdx * sizeof(double);
