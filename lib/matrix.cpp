@@ -170,7 +170,7 @@ namespace faasm {
     }
 
     SparseMatrix<double> readSparseMatrixColumnsFromState(FaasmMemory *memory, const char *key,
-            long colStart, long colEnd) {
+                                                          long colStart, long colEnd) {
 
         // Read in the full matrix properties
         SparseKeys keys = getSparseKeys(key);
@@ -182,42 +182,41 @@ namespace faasm {
         size_t offsetOuterBytes = colStart * sizeof(int);
         auto outerBuffer = new uint8_t[nOuterBytes];
         memory->readStateOffset(keys.outerKey, offsetOuterBytes, outerBuffer, nOuterBytes);
-        int * outerIndices = reinterpret_cast<int*>(outerBuffer);
-        
+        int *outerIndices = reinterpret_cast<int *>(outerBuffer);
+
         // Work out which values and inner indices correspond to our columns
-        // Note, these are held as offsets into the _full_ matrix so need to be
-        // offset when dealing with the real matrix
+        // Note, these are held as offsets into the _full_ matrix
         int startIdx = outerIndices[0];
         int endIdx = outerIndices[nCols - 1];
         int nValues = endIdx - startIdx;
         size_t nValueBytes = nValues * sizeof(double);
         size_t nInnerBytes = nValues * sizeof(int);
-
+        size_t offsetValueBytes = startIdx * sizeof(double);
+        size_t offsetInnerBytes = startIdx * sizeof(int);
+        
         SparseMatrix<double> mat(sizes.rows, nCols);
         mat.makeCompressed();
 
         // Drop out if nothing to do
-        if(nValues == 0) {
+        if (nValues == 0) {
             return mat;
         }
 
         mat.resizeNonZeros(nValues);
 
-        // We already have the outer indices in memory, just need to rebase them relative
-        // to our new index
-        int* relativeOuterIndices = new int[nCols];
-        for(int i = 0; i < nCols; i++) {
+        // We already have the outer indices in memory, just need to rebase them relative to our new index
+        int *relativeOuterIndices = new int[nCols];
+        for (int i = 0; i < nCols; i++) {
             relativeOuterIndices[i] = outerIndices[i] - outerIndices[0];
         }
         memcpy(mat.outerIndexPtr(), relativeOuterIndices, nOuterBytes);
+        delete[] outerBuffer;
 
         // Read the others into memory
-        memory->readStateOffset(keys.valueKey, startIdx, (uint8_t *) mat.valuePtr(), nValueBytes);
-        memory->readStateOffset(keys.innerKey, startIdx, (uint8_t *) mat.innerIndexPtr(), nInnerBytes);
+        memory->readStateOffset(keys.valueKey, offsetValueBytes, (uint8_t *) mat.valuePtr(), nValueBytes);
+        memory->readStateOffset(keys.innerKey, offsetInnerBytes, (uint8_t *) mat.innerIndexPtr(), nInnerBytes);
 
         mat.finalize();
-
-        delete[] outerBuffer;
 
         return mat;
     }
