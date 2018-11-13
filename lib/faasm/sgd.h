@@ -12,6 +12,7 @@ using namespace Eigen;
 #define OUTPUTS_KEY "outputs"
 #define PARAMS_KEY "params"
 #define ERRORS_KEY "errors"
+#define FINISHED_KEY "finished"
 #define LOSSES_KEY "losses"
 
 
@@ -36,9 +37,15 @@ namespace faasm {
 
     void zeroLosses(FaasmMemory *memory, SgdParams sgdParams);
 
+    void zeroFinished(FaasmMemory *memory, SgdParams sgdParams);
+
+    void writeFinishedFlag(FaasmMemory *memory, int workerIdx);
+
     void writeSquaredError(FaasmMemory *memory, int workerIdx, const MatrixXd &outputs, const MatrixXd &actual);
 
     double readRootMeanSquaredError(FaasmMemory *memory, const SgdParams &sgdParams);
+
+    bool readEpochFinished(FaasmMemory *memory, const SgdParams &sgdParams);
 
     void setUpDummyProblem(FaasmMemory *memory, const SgdParams &params);
 }

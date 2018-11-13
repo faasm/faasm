@@ -8,8 +8,9 @@ namespace faasm {
         // Load params
         SgdParams p = readParamsFromState(memory, PARAMS_KEY);
 
-        // Set all batch errors to zero
+        // Set per-epoch memory to zero
         faasm::zeroErrors(memory, p);
+        faasm::zeroFinished(memory, p);
 
         // Shuffle start indices for each batch
         // Note that the batch size must be small compared to the total number of

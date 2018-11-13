@@ -12,7 +12,7 @@ namespace faasm {
         int startIdx = inputParams[1];
         int endIdx = inputParams[2];
 
-        // Load paramss
+        // Load params
         SgdParams sgdParams = readParamsFromState(memory, PARAMS_KEY);
 
         // Load the data
@@ -25,6 +25,9 @@ namespace faasm {
 
         // Persist error for these examples
         writeSquaredError(memory, workerIdx, outputs, actual);
+
+        // Flag that this worker has finished
+        writeFinishedFlag(memory, workerIdx);
 
         return 0;
     }

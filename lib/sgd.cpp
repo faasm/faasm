@@ -35,11 +35,11 @@ namespace faasm {
         MatrixXd gradient = (2.0 / batchSize) * (error * inputs.transpose());
 
         // Update weights based on gradient
-        for(int w = 0; w < sgdParams.nWeights; w++) {
+        for (int w = 0; w < sgdParams.nWeights; w++) {
             double thisGradient = gradient(0, w);
 
             // Zero gradient here means none of the inputs in the batch contributed
-            if(abs(thisGradient) < 0.00000001) {
+            if (abs(thisGradient) < 0.00000001) {
                 continue;
             }
 
@@ -54,7 +54,7 @@ namespace faasm {
     void zeroArray(FaasmMemory *memory, const char *key, long len) {
         // Set buffer to zero
         auto errors = new double[len];
-            for (int i = 0; i < len; i++) {
+        for (int i = 0; i < len; i++) {
             errors[i] = 0;
         }
 
@@ -62,6 +62,17 @@ namespace faasm {
         auto errorsBytes = reinterpret_cast<uint8_t *>(errors);
         memory->writeState(key, errorsBytes, len * sizeof(double));
         delete[] errors;
+    }
+
+    void writeFinishedFlag(FaasmMemory *memory, int workerIdx) {
+        double success = 1.0;
+        auto successBytes = reinterpret_cast<uint8_t *>(&success);
+        long offset = workerIdx * sizeof(double);
+        memory->writeStateOffset(FINISHED_KEY, offset, successBytes, sizeof(double));
+    }
+
+    void zeroFinished(FaasmMemory *memory, SgdParams sgdParams) {
+        zeroArray(memory, FINISHED_KEY, sgdParams.nBatches);
     }
 
     void zeroErrors(FaasmMemory *memory, SgdParams sgdParams) {
@@ -75,9 +86,30 @@ namespace faasm {
     void writeSquaredError(FaasmMemory *memory, int workerIdx, const MatrixXd &outputs, const MatrixXd &actual) {
         double squaredError = calculateSquaredError(actual, outputs);
         auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&squaredError);
-        
+
         long offset = workerIdx * sizeof(double);
         memory->writeStateOffset(ERRORS_KEY, offset, squaredErrorBytes, sizeof(double));
+    }
+
+    bool readEpochFinished(FaasmMemory *memory, const SgdParams &sgdParams) {
+        // Load finished flags from state
+        const size_t nBytes = sgdParams.nBatches * sizeof(double);
+        auto buffer = new uint8_t[nBytes];
+        memory->readState(FINISHED_KEY, buffer, nBytes);
+
+        auto flags = reinterpret_cast<double *>(buffer);
+
+        // Iterate through
+        for (int i = 0; i < sgdParams.nBatches; i++) {
+            double flag = flags[i];
+
+            // If error is still zero, we've not yet finished
+            if (flag == 0.0) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     double readRootMeanSquaredError(FaasmMemory *memory, const SgdParams &sgdParams) {
@@ -86,18 +118,12 @@ namespace faasm {
         auto buffer = new uint8_t[nBytes];
         memory->readState(ERRORS_KEY, buffer, nBytes);
 
-        auto errors = reinterpret_cast<double*>(buffer);
+        auto errors = reinterpret_cast<double *>(buffer);
 
         // Iterate through and sum up
         double totalError = 0;
         for (int i = 0; i < sgdParams.nBatches; i++) {
             double error = errors[i];
-
-            // If error is still zero, we've not yet finished
-            if (error == 0.0) {
-                return 0;
-            }
-
             totalError += error;
         }
 

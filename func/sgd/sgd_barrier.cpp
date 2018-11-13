@@ -10,15 +10,16 @@ namespace faasm {
         // Get current epoch count
         uint8_t thisEpoch = getCounter(memory, EPOCH_COUNT_KEY);
 
-        // Calculate the error
-        double rmse = faasm::readRootMeanSquaredError(memory, p);
-
-        // If error is still zero, we've not yet finished
-        if (rmse == 0.0) {
-            // Recursive call to barrier
+        // See if we've finished the epoch
+        bool isFinished = readEpochFinished(memory, p);
+        if (!isFinished) {
+            // Try again
             memory->chainFunction("sgd_barrier");
             return 0;
         }
+
+        // Calculate the error
+        double rmse = faasm::readRootMeanSquaredError(memory, p);
 
         // Record the loss for this epoch
         long offset = thisEpoch * sizeof(double);

@@ -203,14 +203,6 @@ namespace tests {
         REQUIRE(actual == expected);
     }
 
-    void checkErrorsInState(infra::Redis &r, std::vector<double> expected) {
-        checkArrayInState(r, ERRORS_KEY, expected);
-    }
-
-    void checkLossesInState(infra::Redis &r, std::vector<double> expected) {
-        checkArrayInState(r, LOSSES_KEY, expected);
-    }
-
     TEST_CASE("Test writing errors to state", "[sgd]") {
         infra::Redis r;
         r.flushAll();
@@ -230,7 +222,7 @@ namespace tests {
 
         // Check zeroing out errors
         zeroErrors(&memory, params);
-        checkErrorsInState(r, {0, 0, 0, 0});
+        checkArrayInState(r, ERRORS_KEY, {0, 0, 0, 0});
 
         // Work out expectation
         double expected1 = calculateSquaredError(a, b);
@@ -240,7 +232,7 @@ namespace tests {
         writeSquaredError(&memory, 0, a, b);
         writeSquaredError(&memory, 2, a, b);
 
-        checkErrorsInState(r, {expected1, 0, expected2, 0});
+        checkArrayInState(r, ERRORS_KEY, {expected1, 0, expected2, 0});
     }
 
     TEST_CASE("Test reading errors from state", "[sgd]") {
@@ -266,21 +258,21 @@ namespace tests {
         writeSquaredError(&memory, 1, a, b);
 
         // Check these have been written
-        checkErrorsInState(r, {expected, expected, 0});
+        checkArrayInState(r, ERRORS_KEY,{expected, expected, 0});
 
-        // Overall error should still be zero
+        // Error should just include the 2 written
+        double expectedRmse1 = sqrt((2 * expected) / p.nTrain);
         double actual1 = faasm::readRootMeanSquaredError(&memory, p);
-        REQUIRE(actual1 == 0);
+        REQUIRE(actual1 == expectedRmse1);
 
         // Now write error for a third batch
         writeSquaredError(&memory, 2, a, b);
-        checkErrorsInState(r, {expected, expected, expected});
+        checkArrayInState(r, ERRORS_KEY,{expected, expected, expected});
 
-        // Work out what the result should be (note that we're writing the same error for each one)
-        double expectedRmse = sqrt((3 * expected) / p.nTrain);
-
+        // Work out what the result should be
+        double expectedRmse2 = sqrt((3 * expected) / p.nTrain);
         double actual2 = faasm::readRootMeanSquaredError(&memory, p);
-        REQUIRE(abs(actual2 - expectedRmse) < 0.0000001);
+        REQUIRE(abs(actual2 - expectedRmse2) < 0.0000001);
     }
 
     TEST_CASE("Test zeroing losses", "[sgd]") {
@@ -294,18 +286,65 @@ namespace tests {
 
         // Zero and check it's worked
         zeroLosses(&mem, p);
-        checkLossesInState(r, {0, 0, 0, 0, 0});
+        checkArrayInState(r, LOSSES_KEY, {0, 0, 0, 0, 0});
 
         // Update with some other values
-        std::vector<double> losses = {2.2, 3.3, 4.4, 5.5, 6.6};
+        std::vector<double> losses = {2.2, 3.3, 4.4, 5.5, 0.0};
         auto lossBytes = reinterpret_cast<uint8_t *>(losses.data());
         mem.writeState(LOSSES_KEY, lossBytes, 5 * sizeof(double));
 
-        checkLossesInState(r, losses);
+        checkArrayInState(r, LOSSES_KEY, losses);
 
-        // Zero again and check it's worker
+        // Zero again and check it's worked
         zeroLosses(&mem, p);
-        checkLossesInState(r, {0, 0, 0, 0, 0});
+        checkArrayInState(r, LOSSES_KEY, {0, 0, 0, 0, 0});
+    }
+
+    TEST_CASE("Test setting finished flags", "[sgd]") {
+        infra::Redis r;
+        r.flushAll();
+
+        SgdParams p = getDummySgdParams();
+        p.nBatches = 3;
+
+        FaasmMemory mem;
+
+        zeroFinished(&mem, p);
+        REQUIRE(!readEpochFinished(&mem, p));
+
+        writeFinishedFlag(&mem, 0);
+        writeFinishedFlag(&mem, 2);
+        REQUIRE(!readEpochFinished(&mem, p));
+        checkArrayInState(r, FINISHED_KEY, {1.0, 0, 1.0});
+
+        writeFinishedFlag(&mem, 1);
+        checkArrayInState(r, FINISHED_KEY, {1.0, 1.0, 1.0});
+        REQUIRE(readEpochFinished(&mem, p));
+    }
+
+    TEST_CASE("Test zeroing finished flags", "[sgd]") {
+        infra::Redis r;
+        r.flushAll();
+
+        SgdParams p = getDummySgdParams();
+        p.nBatches = 3;
+
+        FaasmMemory mem;
+
+        // Zero and check it's worked
+        zeroFinished(&mem, p);
+        checkArrayInState(r, FINISHED_KEY, {0, 0, 0});
+
+        // Update with some other values
+        std::vector<double> finished = {1.0, 0, 1.0};
+        auto lossBytes = reinterpret_cast<uint8_t *>(finished.data());
+        mem.writeState(FINISHED_KEY, lossBytes, 5 * sizeof(double));
+
+        checkArrayInState(r, FINISHED_KEY, finished);
+
+        // Zero again and check it's worked
+        zeroFinished(&mem, p);
+        checkArrayInState(r, FINISHED_KEY, {0, 0, 0});
     }
 
 }
