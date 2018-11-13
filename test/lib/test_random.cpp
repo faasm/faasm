@@ -7,18 +7,18 @@ using namespace faasm;
 namespace tests {
     TEST_CASE("Test random integer", "[random]") {
         // Slightly sketch to be testing a random number like this but probably a necessary evil.
-        int a = randomInteger(10, 50);
-        int b = randomInteger(10, 50);
-        int c = randomInteger(10, 50);
+        int a = randomInteger(10, 200);
+        int b = randomInteger(10, 200);
+        int c = randomInteger(10, 200);
 
         REQUIRE(a >= 10);
-        REQUIRE(a < 50);
+        REQUIRE(a < 200);
 
         REQUIRE(b >= 10);
-        REQUIRE(b < 50);
+        REQUIRE(b < 200);
 
         REQUIRE(c >= 10);
-        REQUIRE(c < 50);
+        REQUIRE(c < 200);
 
         bool allUnequal = (a != b) & (b != c);
         REQUIRE(allUnequal);

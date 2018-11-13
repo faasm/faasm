@@ -25,7 +25,7 @@ namespace faasm {
     }
 
     MatrixXd leastSquaresWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, MatrixXd &weights,
-                                      const MatrixXd &inputs, const MatrixXd &outputs) {
+                                      const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
         // Work out error
         long batchSize = inputs.cols();
         MatrixXd actual = weights * inputs;
@@ -35,17 +35,17 @@ namespace faasm {
         MatrixXd gradient = (2.0 / batchSize) * (error * inputs.transpose());
 
         // Update weights based on gradient
-        for(int w = 0; w < sgdParams.nWeights; w++) {
+        for (int w = 0; w < sgdParams.nWeights; w++) {
             double thisGradient = gradient(0, w);
 
             // Zero gradient here means none of the inputs in the batch contributed
-            if(abs(thisGradient) < 0.00000001) {
+            if (abs(thisGradient) < 0.00000001) {
                 continue;
             }
 
             // Make the update
             weights(0, w) -= sgdParams.learningRate * thisGradient;
-            writeMatrixStateElement(memory, WEIGHTS_KEY, weights, 0, w);
+            writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, w);
         }
 
         return actual;
@@ -54,14 +54,25 @@ namespace faasm {
     void zeroArray(FaasmMemory *memory, const char *key, long len) {
         // Set buffer to zero
         auto errors = new double[len];
-            for (int i = 0; i < len; i++) {
+        for (int i = 0; i < len; i++) {
             errors[i] = 0;
         }
 
         // Write zeroed buffer to state
         auto errorsBytes = reinterpret_cast<uint8_t *>(errors);
-        memory->writeState(ERRORS_KEY, errorsBytes, len * sizeof(double));
+        memory->writeState(key, errorsBytes, len * sizeof(double));
         delete[] errors;
+    }
+
+    void writeFinishedFlag(FaasmMemory *memory, int workerIdx) {
+        double success = 1.0;
+        auto successBytes = reinterpret_cast<uint8_t *>(&success);
+        long offset = workerIdx * sizeof(double);
+        memory->writeStateOffset(FINISHED_KEY, offset, successBytes, sizeof(double));
+    }
+
+    void zeroFinished(FaasmMemory *memory, SgdParams sgdParams) {
+        zeroArray(memory, FINISHED_KEY, sgdParams.nBatches);
     }
 
     void zeroErrors(FaasmMemory *memory, SgdParams sgdParams) {
@@ -75,9 +86,30 @@ namespace faasm {
     void writeSquaredError(FaasmMemory *memory, int workerIdx, const MatrixXd &outputs, const MatrixXd &actual) {
         double squaredError = calculateSquaredError(actual, outputs);
         auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&squaredError);
-        
+
         long offset = workerIdx * sizeof(double);
         memory->writeStateOffset(ERRORS_KEY, offset, squaredErrorBytes, sizeof(double));
+    }
+
+    bool readEpochFinished(FaasmMemory *memory, const SgdParams &sgdParams) {
+        // Load finished flags from state
+        const size_t nBytes = sgdParams.nBatches * sizeof(double);
+        auto buffer = new uint8_t[nBytes];
+        memory->readState(FINISHED_KEY, buffer, nBytes);
+
+        auto flags = reinterpret_cast<double *>(buffer);
+
+        // Iterate through
+        for (int i = 0; i < sgdParams.nBatches; i++) {
+            double flag = flags[i];
+
+            // If error is still zero, we've not yet finished
+            if (flag == 0.0) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     double readRootMeanSquaredError(FaasmMemory *memory, const SgdParams &sgdParams) {
@@ -86,18 +118,12 @@ namespace faasm {
         auto buffer = new uint8_t[nBytes];
         memory->readState(ERRORS_KEY, buffer, nBytes);
 
-        auto errors = reinterpret_cast<double*>(buffer);
+        auto errors = reinterpret_cast<double *>(buffer);
 
         // Iterate through and sum up
         double totalError = 0;
         for (int i = 0; i < sgdParams.nBatches; i++) {
             double error = errors[i];
-
-            // If error is still zero, we've not yet finished
-            if (error == 0.0) {
-                return 0;
-            }
-
             totalError += error;
         }
 
@@ -114,16 +140,16 @@ namespace faasm {
 
         // Create fake training data as dot product of the matrix of training input data and the real weight vector
         Eigen::MatrixXd realWeights = randomDenseMatrix(1, params.nWeights);
-        Eigen::MatrixXd inputs = randomSparseMatrix(params.nWeights, params.nTrain);
+        Eigen::SparseMatrix<double> inputs = randomSparseMatrix(params.nWeights, params.nTrain, 0.1);
         Eigen::MatrixXd outputs = realWeights * inputs;
 
         // Initialise a random set of weights that we'll train (i.e. these should get close to the real weights)
         Eigen::MatrixXd weights = randomDenseMatrix(1, params.nWeights);
 
         // Write all data to memory
-        writeMatrixState(memory, OUTPUTS_KEY, outputs);
-        writeMatrixState(memory, INPUTS_KEY, inputs);
-        writeMatrixState(memory, WEIGHTS_KEY, weights);
+        writeMatrixToState(memory, OUTPUTS_KEY, outputs);
+        writeSparseMatrixToState(memory, INPUTS_KEY, inputs);
+        writeMatrixToState(memory, WEIGHTS_KEY, weights);
     }
 }
 

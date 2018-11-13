@@ -8,8 +8,9 @@ namespace faasm {
         // Load params
         SgdParams p = readParamsFromState(memory, PARAMS_KEY);
 
-        // Set all batch errors to zero
+        // Set per-epoch memory to zero
         faasm::zeroErrors(memory, p);
+        faasm::zeroFinished(memory, p);
 
         // Shuffle start indices for each batch
         // Note that the batch size must be small compared to the total number of
@@ -20,7 +21,7 @@ namespace faasm {
         int batchSize = p.nTrain / p.nBatches;
         for (int w = 0; w < p.nBatches; w++) {
             int startIdx = batchStartIndices[w];
-            int endIdx = startIdx + batchSize - 1;
+            int endIdx = startIdx + batchSize;
 
             // Prepare input data for the worker
             int inputData[3] = {w, startIdx, endIdx};
