@@ -113,7 +113,7 @@ namespace faasm {
         return keys;
     }
 
-    void writeSparseMatrixToState(FaasmMemory *memory, const SparseMatrix<double> &mat, const char *key) {
+    void writeSparseMatrixToState(FaasmMemory *memory, const char *key, const SparseMatrix<double> &mat) {
         if (!mat.isCompressed()) {
             throw std::runtime_error("Sparse matrices must be compressed before serializing");
         }
@@ -159,10 +159,10 @@ namespace faasm {
 
         // Write everything
         SparseKeys keys = getSparseKeys(key);
-        memory->writeState(keys.valueKey, reinterpret_cast<const uint8_t*>(mat.valuePtr()), nValueBytes);
-        memory->writeState(keys.innerKey, reinterpret_cast<const uint8_t*>(mat.innerIndexPtr()), nInnerBytes);
-        memory->writeState(keys.outerKey, reinterpret_cast<const uint8_t*>(mat.outerIndexPtr()), nOuterBytes);
-        memory->writeState(keys.nonZeroKey, reinterpret_cast<const uint8_t*>(nonZeroCounts), nNonZeroBytes);
+        memory->writeState(keys.valueKey, reinterpret_cast<const uint8_t *>(mat.valuePtr()), nValueBytes);
+        memory->writeState(keys.innerKey, reinterpret_cast<const uint8_t *>(mat.innerIndexPtr()), nInnerBytes);
+        memory->writeState(keys.outerKey, reinterpret_cast<const uint8_t *>(mat.outerIndexPtr()), nOuterBytes);
+        memory->writeState(keys.nonZeroKey, reinterpret_cast<const uint8_t *>(nonZeroCounts), nNonZeroBytes);
         memory->writeState(keys.sizeKey, sizeBytes, sizeof(SparseSizes));
 
         delete[] nonZeroCounts;
@@ -189,9 +189,9 @@ namespace faasm {
         memory->readState(keys.innerKey, innerBytes, sizes.innerLen);
         memory->readState(keys.valueKey, valuesBytes, sizes.valuesLen);
 
-        auto outerPtr = reinterpret_cast<int*>(outerBytes);
-        auto innerPtr = reinterpret_cast<int*>(innerBytes);
-        auto valuePtr = reinterpret_cast<double*>(valuesBytes);
+        auto outerPtr = reinterpret_cast<int *>(outerBytes);
+        auto innerPtr = reinterpret_cast<int *>(innerBytes);
+        auto valuePtr = reinterpret_cast<double *>(valuesBytes);
 
         // Use eigen to import from the buffers
         Map<SparseMatrix<double>> mat(

@@ -29,7 +29,7 @@ namespace faasm {
     SgdParams readParamsFromState(FaasmMemory *memory, const char *keyName);
 
     MatrixXd leastSquaresWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, MatrixXd &weights,
-                                        const MatrixXd &inputs,
+                                        const SparseMatrix<double> &inputs,
                                         const MatrixXd &outputs);
 
     void zeroErrors(FaasmMemory *memory, SgdParams sgdParams);

@@ -25,7 +25,7 @@ namespace faasm {
     }
 
     MatrixXd leastSquaresWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, MatrixXd &weights,
-                                      const MatrixXd &inputs, const MatrixXd &outputs) {
+                                      const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
         // Work out error
         long batchSize = inputs.cols();
         MatrixXd actual = weights * inputs;
@@ -60,7 +60,7 @@ namespace faasm {
 
         // Write zeroed buffer to state
         auto errorsBytes = reinterpret_cast<uint8_t *>(errors);
-        memory->writeState(ERRORS_KEY, errorsBytes, len * sizeof(double));
+        memory->writeState(key, errorsBytes, len * sizeof(double));
         delete[] errors;
     }
 
@@ -114,7 +114,7 @@ namespace faasm {
 
         // Create fake training data as dot product of the matrix of training input data and the real weight vector
         Eigen::MatrixXd realWeights = randomDenseMatrix(1, params.nWeights);
-        Eigen::MatrixXd inputs = randomSparseMatrix(params.nWeights, params.nTrain, 0.1);
+        Eigen::SparseMatrix<double> inputs = randomSparseMatrix(params.nWeights, params.nTrain, 0.1);
         Eigen::MatrixXd outputs = realWeights * inputs;
 
         // Initialise a random set of weights that we'll train (i.e. these should get close to the real weights)
@@ -122,7 +122,7 @@ namespace faasm {
 
         // Write all data to memory
         writeMatrixToState(memory, OUTPUTS_KEY, outputs);
-        writeMatrixToState(memory, INPUTS_KEY, inputs);
+        writeSparseMatrixToState(memory, INPUTS_KEY, inputs);
         writeMatrixToState(memory, WEIGHTS_KEY, weights);
     }
 }

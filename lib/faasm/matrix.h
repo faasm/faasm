@@ -11,7 +11,7 @@ using namespace Eigen;
 
 namespace faasm {
 
-    void writeSparseMatrixToState(FaasmMemory *memory, const SparseMatrix<double> &mat, const char* key);
+    void writeSparseMatrixToState(FaasmMemory *memory, const char *key, const SparseMatrix<double> &mat);
 
     SparseMatrix<double> readSparseMatrixFromState(FaasmMemory *memory, const char* key);
 

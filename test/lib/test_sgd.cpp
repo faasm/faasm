@@ -91,11 +91,20 @@ namespace tests {
         MatrixXd weightsCopy = weights;
 
         // Fake up sparse inputs with all permutations
-        MatrixXd inputs(nWeights, 2);
-        inputs << 3, 3,
-                0, 1,
-                2, 0,
-                0, 0;
+        SparseMatrix<double> inputs(nWeights, 2);
+        std::vector<Triplet<double>> tripletList;
+        tripletList.reserve(4);
+
+        tripletList.push_back(Triplet<double>(0, 0, 3));
+        tripletList.push_back(Triplet<double>(0, 1, 3));
+        tripletList.push_back(Triplet<double>(1, 0, 0));
+        tripletList.push_back(Triplet<double>(1, 1, 1));
+        tripletList.push_back(Triplet<double>(2, 0, 2));
+        tripletList.push_back(Triplet<double>(2, 1, 0));
+        tripletList.push_back(Triplet<double>(3, 0, 0));
+        tripletList.push_back(Triplet<double>(3, 1, 0));
+
+        inputs.setFromTriplets(tripletList.begin(), tripletList.end());
 
         // Outputs
         MatrixXd outputs(1, 2);
@@ -123,10 +132,10 @@ namespace tests {
         REQUIRE(actualWeights(0, 3) == weightsCopy(0, 3));
     }
 
-    double doSgdStep(FaasmMemory *mem, SgdParams &params, MatrixXd &inputs, MatrixXd &outputs) {
+    double doSgdStep(FaasmMemory *mem, SgdParams &params, SparseMatrix<double> &inputs, MatrixXd &outputs) {
         // Shuffle indices
         int *batchStartIndices = randomIntRange(params.nBatches);
-        
+
         // Prepare update loop
         int batchSize = params.nTrain / params.nBatches;
         MatrixXd weights = readMatrixFromState(mem, WEIGHTS_KEY, 1, params.nWeights);
@@ -135,7 +144,7 @@ namespace tests {
         for (int b = 0; b < params.nBatches; b++) {
             int startCol = batchStartIndices[b];
 
-            MatrixXd inputBatch = inputs.block(0, startCol, params.nWeights, batchSize);
+            SparseMatrix<double> inputBatch = inputs.block(0, startCol, params.nWeights, batchSize);
             MatrixXd outputBatch = outputs.block(0, startCol, 1, batchSize);
 
             // Perform the update
@@ -168,7 +177,7 @@ namespace tests {
         FaasmMemory mem;
         setUpDummyProblem(&mem, params);
 
-        MatrixXd inputs = readMatrixFromState(&mem, INPUTS_KEY, params.nWeights, params.nTrain);
+        SparseMatrix<double> inputs = readSparseMatrixFromState(&mem, INPUTS_KEY);
         MatrixXd outputs = readMatrixFromState(&mem, OUTPUTS_KEY, 1, params.nTrain);
 
         // Work out the error before we start
@@ -178,20 +187,28 @@ namespace tests {
 
         // Run multiple updates
         double finalLoss = 0;
-        for(int e = 0; e < params.maxEpochs; e++ ) {
+        for (int e = 0; e < params.maxEpochs; e++) {
             finalLoss = doSgdStep(&mem, params, inputs, outputs);
         }
 
         REQUIRE(finalLoss < startingLoss);
     }
 
-    void checkErrorsInState(infra::Redis &r, std::vector<double> expected) {
-        std::vector<uint8_t> actualBytes = r.get(ERRORS_KEY);
+    void checkArrayInState(infra::Redis &r, const char *key, std::vector<double> expected) {
+        std::vector<uint8_t> actualBytes = r.get(key);
 
         auto actualPtr = reinterpret_cast<double *>(actualBytes.data());
         std::vector<double> actual(actualPtr, actualPtr + expected.size());
 
         REQUIRE(actual == expected);
+    }
+
+    void checkErrorsInState(infra::Redis &r, std::vector<double> expected) {
+        checkArrayInState(r, ERRORS_KEY, expected);
+    }
+
+    void checkLossesInState(infra::Redis &r, std::vector<double> expected) {
+        checkArrayInState(r, LOSSES_KEY, expected);
     }
 
     TEST_CASE("Test writing errors to state", "[sgd]") {
@@ -206,7 +223,7 @@ namespace tests {
         // Check no errors set initially
         const std::vector<uint8_t> initial = r.get(ERRORS_KEY);
         REQUIRE(initial.empty());
-        
+
         FaasmMemory memory;
         SgdParams params = getDummySgdParams();
         params.nBatches = 4;
@@ -225,7 +242,7 @@ namespace tests {
 
         checkErrorsInState(r, {expected1, 0, expected2, 0});
     }
-    
+
     TEST_CASE("Test reading errors from state", "[sgd]") {
         infra::Redis r;
         r.flushAll();
@@ -260,9 +277,35 @@ namespace tests {
         checkErrorsInState(r, {expected, expected, expected});
 
         // Work out what the result should be (note that we're writing the same error for each one)
-        double expectedRmse = sqrt((3*expected) / p.nTrain);
+        double expectedRmse = sqrt((3 * expected) / p.nTrain);
 
         double actual2 = faasm::readRootMeanSquaredError(&memory, p);
         REQUIRE(abs(actual2 - expectedRmse) < 0.0000001);
     }
+
+    TEST_CASE("Test zeroing losses", "[sgd]") {
+        infra::Redis r;
+        r.flushAll();
+
+        SgdParams p = getDummySgdParams();
+        p.nBatches = 5;
+
+        FaasmMemory mem;
+
+        // Zero and check it's worked
+        zeroLosses(&mem, p);
+        checkLossesInState(r, {0, 0, 0, 0, 0});
+
+        // Update with some other values
+        std::vector<double> losses = {2.2, 3.3, 4.4, 5.5, 6.6};
+        auto lossBytes = reinterpret_cast<uint8_t *>(losses.data());
+        mem.writeState(LOSSES_KEY, lossBytes, 5 * sizeof(double));
+
+        checkLossesInState(r, losses);
+
+        // Zero again and check it's worker
+        zeroLosses(&mem, p);
+        checkLossesInState(r, {0, 0, 0, 0, 0});
+    }
+
 }

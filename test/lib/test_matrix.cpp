@@ -276,7 +276,7 @@ namespace tests {
         faasm::FaasmMemory mem;
 
         const char *key = "sparse_trip_test";
-        faasm::writeSparseMatrixToState(&mem, mat, key);
+        faasm::writeSparseMatrixToState(&mem, key, mat);
 
         SparseMatrix<double> actual = faasm::readSparseMatrixFromState(&mem, key);
         checkSparseMatrixEquality(mat, actual);
@@ -290,7 +290,7 @@ namespace tests {
 
         SparseMatrix<double> mat = faasm::randomSparseMatrix(rows, cols, 0.4);
         faasm::FaasmMemory mem;
-        faasm::writeSparseMatrixToState(&mem, mat, key);
+        faasm::writeSparseMatrixToState(&mem, key, mat);
 
         SparseMatrix<double> expected = mat.block(0, colStart, rows, colEnd - colStart);
 
