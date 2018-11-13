@@ -284,28 +284,40 @@ namespace tests {
         checkSparseMatrixEquality(mat, actual);
     }
 
-    TEST_CASE("Test sparse matrix offset round trip", "[matrix]") {
+    void checkSparseMatrixRoundTrip(int rows, int cols, int colStart, int colEnd) {
         infra::Redis redis;
         redis.flushAll();
 
-        SparseMatrix<double> mat = faasm::randomSparseMatrix(4, 10);
-        SparseMatrix<double> expected = mat.block(0, 3, 4, 5);
+        const char *key = "sparse_trip_offset_test";
+
+        SparseMatrix<double> mat = faasm::randomSparseMatrix(rows, cols);
+        faasm::FaasmMemory mem;
+        faasm::writeSparseMatrixToState(&mem, mat, key);
+
+        SparseMatrix<double> expected = mat.block(0, colStart, rows, colEnd - colStart);
 
         std::cout << "FULL: \n" << mat << std::endl;
         std::cout << "SUBSET: \n" << expected << std::endl;
 
-        faasm::FaasmMemory mem;
-
-        const char *key = "sparse_trip_offset_test";
-
-        faasm::writeSparseMatrixToState(&mem, mat, key);
-
         // Read a subsection
-        SparseMatrix<double> actual = faasm::readSparseMatrixColumnsFromState(&mem, key, 3, 8);
-
+        SparseMatrix<double> actual = faasm::readSparseMatrixColumnsFromState(&mem, key, colStart, colEnd);
         std::cout << "ACTUAL: \n" << actual << std::endl;
-
-
         checkSparseMatrixEquality(actual, expected);
+    }
+
+    TEST_CASE("Test sparse matrix offset multiple columns", "[matrix]") {
+        checkSparseMatrixRoundTrip(5, 15, 3, 10);
+    }
+
+    TEST_CASE("Test sparse matrix offset single column", "[matrix]") {
+        checkSparseMatrixRoundTrip(5, 15, 10, 11);
+    }
+
+    TEST_CASE("Test sparse matrix offset last column", "[matrix]") {
+        checkSparseMatrixRoundTrip(5, 15, 13, 14);
+    }
+
+    TEST_CASE("Test sparse matrix offset first column", "[matrix]") {
+        checkSparseMatrixRoundTrip(5, 15, 0, 1);
     }
 }

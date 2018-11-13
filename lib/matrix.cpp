@@ -126,7 +126,7 @@ namespace faasm {
         // Build array to specify sizes
         SparseSizes sizes{};
         sizes.cols = mat.cols();
-        sizes.rows = (size_t) mat.rows();
+        sizes.rows = mat.rows();
         sizes.nNonZeros = mat.nonZeros();
         sizes.valuesLen = nValueBytes;
         sizes.innerLen = nInnerBytes;
@@ -169,39 +169,48 @@ namespace faasm {
         return mat;
     }
 
+    /**
+     *  Reads a subset of a sparse matrix from state. The start/ end columns are *exclusive*
+     */
     SparseMatrix<double> readSparseMatrixColumnsFromState(FaasmMemory *memory, const char *key,
                                                           long colStart, long colEnd) {
-
         // Read in the full matrix properties
         SparseKeys keys = getSparseKeys(key);
         SparseSizes sizes = readSparseSizes(memory, keys);
 
-        // Read in the outer indices, this gives the sizes of each column and thus the elements we want
         long nCols = colEnd - colStart;
+        bool isLastColumn = colEnd == sizes.cols;
+
+        // Read in the outer indices. These tell us how many of the values have gone into the matrix _before_
+        // the given column.
         size_t nOuterBytes = nCols * sizeof(int);
-        size_t offsetOuterBytes = colStart * sizeof(int);
         auto outerBuffer = new uint8_t[nOuterBytes];
-        memory->readStateOffset(keys.outerKey, offsetOuterBytes, outerBuffer, nOuterBytes);
+        size_t outerOffsetBytes = colStart * sizeof(int);
+        memory->readStateOffset(keys.outerKey, outerOffsetBytes, outerBuffer, nOuterBytes);
         int *outerIndices = reinterpret_cast<int *>(outerBuffer);
 
-        // Work out which values and inner indices correspond to our columns
-        // Note, these are held as offsets into the _full_ matrix
+        // Work out which values correspond to our columns. We need to read the value for the
+        // _next_ column to work out which values to read in.
         int startIdx = outerIndices[0];
-        int endIdx = outerIndices[nCols - 1];
-        int nValues = endIdx - startIdx;
-        size_t nValueBytes = nValues * sizeof(double);
-        size_t nInnerBytes = nValues * sizeof(int);
-        size_t offsetValueBytes = startIdx * sizeof(double);
-        size_t offsetInnerBytes = startIdx * sizeof(int);
-        
+        int endIdx;
+        if(isLastColumn) {
+            endIdx = (int) (sizes.nNonZeros - 1);
+        }
+        else {
+            endIdx = outerIndices[nCols + 1];
+        }
+
+        // Create the matrix
         SparseMatrix<double> mat(sizes.rows, nCols);
         mat.makeCompressed();
 
         // Drop out if nothing to do
-        if (nValues == 0) {
+        if (endIdx == startIdx) {
             return mat;
         }
 
+        // Reserve matrix memory properly
+        int nValues = endIdx - startIdx + 1;
         mat.resizeNonZeros(nValues);
 
         // We already have the outer indices in memory, just need to rebase them relative to our new index
@@ -213,11 +222,15 @@ namespace faasm {
         delete[] outerBuffer;
 
         // Read the others into memory
+        size_t nValueBytes = nValues * sizeof(double);
+        size_t nInnerBytes = nValues * sizeof(int);
+        size_t offsetValueBytes = startIdx * sizeof(double);
+        size_t offsetInnerBytes = startIdx * sizeof(int);
         memory->readStateOffset(keys.valueKey, offsetValueBytes, (uint8_t *) mat.valuePtr(), nValueBytes);
         memory->readStateOffset(keys.innerKey, offsetInnerBytes, (uint8_t *) mat.innerIndexPtr(), nInnerBytes);
 
+        // Finish off and return
         mat.finalize();
-
         return mat;
     }
 
