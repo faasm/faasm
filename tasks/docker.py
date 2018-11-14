@@ -59,6 +59,11 @@ def build_base(context):
 
 
 @task
+def push_base(context):
+    call("docker push faasm/base", shell=True, cwd=PROJ_ROOT)
+
+
+@task
 def build_worker(context):
     call("docker build -t faasm/worker  -f docker/worker.dockerfile .", shell=True, cwd=PROJ_ROOT)
 
