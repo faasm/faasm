@@ -48,7 +48,7 @@ namespace tests {
         REQUIRE(vars::BYTES_B == actual2);
     }
 
-    TEST_CASE("Test set/ get", "[redis]") {
+    TEST_CASE("Test set/ get/ del", "[redis]") {
         Redis cli;
         cli.flushAll();
 
@@ -67,6 +67,19 @@ namespace tests {
         REQUIRE(vars::BYTES_A == actualA2);
 
         REQUIRE(vars::BYTES_B == actualB);
+
+        // Check deleting
+        cli.del(keyA);
+        std::vector<uint8_t> actualDel = cli.get(keyA);
+        REQUIRE(actualDel.empty());
+
+        // Check other still there
+        REQUIRE(cli.get(keyB) == vars::BYTES_B);
+
+        // Check deleting non-existent key
+        cli.del("blahblah");
+        std::vector<uint8_t> actualDel2 = cli.get("blahblah");
+        REQUIRE(actualDel2.empty());
     }
     
     TEST_CASE("Test set range", "[redis]") {

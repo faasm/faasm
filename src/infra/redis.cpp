@@ -69,6 +69,10 @@ namespace infra {
         freeReplyObject(reply);
     }
 
+    void Redis::del(const std::string &key) {
+        redisCommand(context, "DEL %s", key.c_str());
+    }
+
     void Redis::setRange(const std::string &key, long offset, const std::vector<uint8_t> &value) {
         redisCommand(context, "SETRANGE %s %li %b", key.c_str(), offset, value.data(), value.size());
     }
