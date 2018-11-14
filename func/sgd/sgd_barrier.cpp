@@ -7,7 +7,7 @@ namespace faasm {
     int exec(FaasmMemory *memory) {
         SgdParams p = readParamsFromState(memory, PARAMS_KEY);
 
-        // Get current epoch count
+        // Get current epoch count (starts at zero)
         uint8_t thisEpoch = getCounter(memory, EPOCH_COUNT_KEY);
 
         // See if we've finished the epoch
@@ -27,7 +27,7 @@ namespace faasm {
         memory->writeStateOffset(LOSSES_KEY, offset, rmseBytes, sizeof(double));
 
         // Drop out if finished all epochs
-        if (thisEpoch >= p.maxEpochs) {
+        if (thisEpoch >= p.nEpochs - 1) {
             printf("SGD complete over %i epochs (MSE = %f)\n", thisEpoch, rmse);
             return 0;
         }

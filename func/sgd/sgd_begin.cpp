@@ -9,7 +9,7 @@ namespace faasm {
         p.nWeights = 10;
         p.nTrain = 1000;
         p.nBatches = 500;
-        p.maxEpochs = 20;
+        p.nEpochs = 20;
         p.learningRate = 0.001;
 
         // Set up dummy data

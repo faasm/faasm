@@ -5,19 +5,19 @@
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        long lossSize = memory->getStateSize(LOSSES_KEY);
+        SgdParams p = readParamsFromState(memory, PARAMS_KEY);
 
-        auto buffer = new uint8_t[lossSize];
-        memory->readState(LOSSES_KEY, buffer, lossSize);
+        size_t nBytes = p.nEpochs * sizeof(double);
+        auto buffer = new uint8_t[nBytes];
+        memory->readState(LOSSES_KEY, buffer, nBytes);
 
         auto losses = reinterpret_cast<double *>(buffer);
-        long nLosses = lossSize / sizeof(double);
 
         std::string lossString;
-        for (long l = 0; l < nLosses; l++) {
+        for (long l = 0; l < p.nEpochs; l++) {
             lossString += std::to_string(losses[l]);
 
-            if (l < nLosses - 1) {
+            if (l < p.nEpochs - 1) {
                 lossString += ", ";
             }
         }

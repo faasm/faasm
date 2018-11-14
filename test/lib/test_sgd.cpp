@@ -15,7 +15,7 @@ namespace tests {
         params.nWeights = 3;
         params.nTrain = 10;
         params.learningRate = 0.1;
-        params.maxEpochs = 2;
+        params.nEpochs = 2;
 
         return params;
     }
@@ -25,7 +25,7 @@ namespace tests {
         REQUIRE(a.nWeights == b.nWeights);
         REQUIRE(a.nTrain == b.nTrain);
         REQUIRE(a.learningRate == b.learningRate);
-        REQUIRE(a.maxEpochs == b.maxEpochs);
+        REQUIRE(a.nEpochs == b.nEpochs);
     }
 
     TEST_CASE("Test serialising params round trip", "[sgd]") {
@@ -171,7 +171,7 @@ namespace tests {
         params.nWeights = 4;
         params.nTrain = 5000;
         params.learningRate = 0.01;
-        params.maxEpochs = 10;
+        params.nEpochs = 10;
 
         // Set up the problem
         FaasmMemory mem;
@@ -187,7 +187,7 @@ namespace tests {
 
         // Run multiple updates
         double finalLoss = 0;
-        for (int e = 0; e < params.maxEpochs; e++) {
+        for (int e = 0; e < params.nEpochs; e++) {
             finalLoss = doSgdStep(&mem, params, inputs, outputs);
         }
 
@@ -280,7 +280,8 @@ namespace tests {
         r.flushAll();
 
         SgdParams p = getDummySgdParams();
-        p.nBatches = 5;
+        p.nBatches = 10;
+        p.nEpochs = 5;
 
         FaasmMemory mem;
 

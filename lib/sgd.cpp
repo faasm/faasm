@@ -80,7 +80,7 @@ namespace faasm {
     }
 
     void zeroLosses(FaasmMemory *memory, SgdParams sgdParams) {
-        zeroArray(memory, LOSSES_KEY, sgdParams.nBatches);
+        zeroArray(memory, LOSSES_KEY, sgdParams.nEpochs);
     }
 
     void writeSquaredError(FaasmMemory *memory, int workerIdx, const MatrixXd &outputs, const MatrixXd &actual) {

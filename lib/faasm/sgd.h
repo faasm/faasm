@@ -22,7 +22,7 @@ namespace faasm {
         int nWeights = 10; // Number of weights
         int nTrain = 1000; // Number of training examples
         double learningRate = 0.1;
-        int maxEpochs = 10;
+        int nEpochs = 10;
     };
 
     void writeParamsToState(FaasmMemory *memory, const char *keyName, const SgdParams &params);
