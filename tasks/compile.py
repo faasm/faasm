@@ -68,11 +68,15 @@ CONFIG_FLAGS = [
 
 
 @task
-def funcs(context):
+def funcs(context, clean=False):
     """
     Compiles all the functions in this project
     """
     func_build_dir = join(PROJ_ROOT, "func", "build")
+
+    if clean:
+        rmtree(func_build_dir)
+
     if not exists(func_build_dir):
         mkdir(func_build_dir)
 

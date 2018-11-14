@@ -24,6 +24,7 @@ namespace worker {
         }
         catch(infra::RedisNoResponseException &e) {
             logger->debug("No calls made in timeout");
+            tokenPool.releaseToken(threadIdx);
             return false;
         }
 
