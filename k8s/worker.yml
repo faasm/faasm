@@ -32,6 +32,8 @@ spec:
               value: "6379"
             - name: CGROUP_MODE
               value: "on"
+            - name: LOG_LEVEL
+              value: "debug"
             - name: NETNS_MODE
               value: "on"
           volumeMounts:
