@@ -185,6 +185,10 @@ namespace tests {
         // Check result has been written to the right key
         REQUIRE(cli->listLength("function 123") == 1);
 
+        // Check that some expiry has been set
+        long ttl = cli->getTtl(call.resultkey());
+        REQUIRE(ttl > 10);
+
         return call;
     }
 

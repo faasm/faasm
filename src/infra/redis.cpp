@@ -13,6 +13,7 @@ namespace infra {
     static std::string redisIp = "not_set";
 
     static const int BLOCKING_TIMEOUT_SECONDS = 60;
+    static const int RESULT_KEY_EXPIRY_SECONDS = 30;
 
     static const std::string CALLS_QUEUE = "function_calls";
 
@@ -20,7 +21,7 @@ namespace infra {
         hostname = util::getEnvVar("REDIS_HOST", "localhost");
         port = util::getEnvVar("REDIS_PORT", "6379");
 
-        if(redisIp == "not_set") {
+        if (redisIp == "not_set") {
             redisIp = util::getIPFromHostname(hostname);
         }
 
@@ -60,8 +61,8 @@ namespace infra {
         auto reply = (redisReply *) redisCommand(context, "SET %s %b", key.c_str(), value.data(), value.size());
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        
-        if(reply->type == REDIS_REPLY_ERROR) {
+
+        if (reply->type == REDIS_REPLY_ERROR) {
             logger->error("Failed to SET {} - {}", key.c_str(), reply->str);
         }
 
@@ -77,7 +78,7 @@ namespace infra {
 
         const std::vector<uint8_t> replyBytes = getBytesFromReply(reply);
         freeReplyObject(reply);
-        
+
         return replyBytes;
     }
 
@@ -90,7 +91,7 @@ namespace infra {
     std::vector<uint8_t> Redis::dequeue(const std::string &queueName) {
         auto reply = (redisReply *) redisCommand(context, "BLPOP %s %d", queueName.c_str(), BLOCKING_TIMEOUT_SECONDS);
 
-        if(reply == nullptr || reply->type == REDIS_REPLY_NIL) {
+        if (reply == nullptr || reply->type == REDIS_REPLY_NIL) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->debug("No response from Redis");
             throw RedisNoResponseException();
@@ -106,7 +107,7 @@ namespace infra {
         redisReply *r = reply->element[1];
         const std::vector<uint8_t> replyBytes = getBytesFromReply(r);
         freeReplyObject(reply);
-        
+
         return replyBytes;
     }
 
@@ -119,7 +120,7 @@ namespace infra {
         auto reply = (redisReply *) redisCommand(context, "LLEN %s", queueName.c_str());
         long result = reply->integer;
         freeReplyObject(reply);
-        
+
         return result;
     }
 
@@ -157,6 +158,16 @@ namespace infra {
         // Write the successful result to the result queue
         std::vector<uint8_t> inputData = infra::callToBytes(call);
         this->enqueue(key, inputData);
+
+        // Set the result key to expire
+        redisCommand(context, "EXPIRE %s %d", key.c_str(), RESULT_KEY_EXPIRY_SECONDS);
+    }
+
+    long Redis::getTtl(const std::string &key) {
+        auto reply = (redisReply *) redisCommand(context, "TTL %s", key.c_str());
+
+        long ttl = reply->integer;
+        return ttl;
     }
 
     message::FunctionCall Redis::getFunctionResult(const message::FunctionCall &call) {
@@ -166,6 +177,13 @@ namespace infra {
         callResult.ParseFromArray(result.data(), (int) result.size());
 
         return callResult;
+    }
+
+    void Redis::refresh() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Redis reconnecting");
+
+        redisReconnect(context);
     }
 }
 

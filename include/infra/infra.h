@@ -55,6 +55,10 @@ namespace infra {
 
         message::FunctionCall getFunctionResult(const message::FunctionCall &call);
 
+        long getTtl(const std::string &key);
+
+        void refresh();
+
     private:
         redisContext *context;
         std::string hostname;

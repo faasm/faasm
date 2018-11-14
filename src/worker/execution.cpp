@@ -8,7 +8,7 @@ namespace worker {
 
     static util::TokenPool tokenPool(WORKER_THREADS);
 
-    void execNextFunction() {
+    bool execNextFunction() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Try to get an available slot
@@ -24,7 +24,7 @@ namespace worker {
         }
         catch(infra::RedisNoResponseException &e) {
             logger->debug("No calls made in timeout");
-            return;
+            return false;
         }
 
         // New thread to execute function
@@ -32,6 +32,8 @@ namespace worker {
 
         // Execute
         funcThread.detach();
+
+        return true;
     }
 
     void finishCall(message::FunctionCall &call, const std::string &errorMessage) {

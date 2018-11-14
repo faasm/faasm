@@ -1,5 +1,6 @@
 #include "worker.h"
 
+#include <infra/infra.h>
 #include <wasm/wasm.h>
 #include <spdlog/spdlog.h>
 
@@ -12,9 +13,15 @@ namespace worker {
     void Worker::start() {
         util::initLogging();
 
-        // Arbitrary loop to stop linting complaining
-        for (int i = 0; i < INT32_MAX; i++) {
-            execNextFunction();
+        while(true) {
+            infra::Redis *redis = infra::Redis::getThreadConnection();
+
+            bool wasFuncExecd = execNextFunction();
+
+            // If we've timed out, reconnect
+            if(!wasFuncExecd) {
+                redis->refresh();
+            }
         }
     }
 }
