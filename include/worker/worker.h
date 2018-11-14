@@ -16,9 +16,6 @@ namespace worker {
     const std::string BASE_NETNS_NAME = "faasmns";
     const std::string BASE_CGROUP_NAME = "faasm";
 
-    bool execNextFunction();
-    void execFunction(int index, message::FunctionCall call);
-
     /** CGroup management */
     enum CgroupMode {cg_off, cg_on};
 
@@ -52,10 +49,22 @@ namespace worker {
     };
 
     /** Worker wrapper */
+    void startWorkerPool();
+
     class Worker {
     public:
-        Worker();
+        explicit Worker(int workerIdx);
+        ~Worker();
+        void run();
+    private:
+        message::FunctionCall call;
+        int isolationIdx;
+        int workerIdx;
+        NetworkNamespace *ns;
 
-        void start();
+        infra::Redis *redis;
+
+        void finish();
+        void finishCall(const std::string &errorMsg);
     };
 }

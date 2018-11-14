@@ -2,9 +2,17 @@
 
 #include <worker/worker.h>
 
+using namespace worker;
 
 namespace tests {
     static infra::Redis redis;
+
+    void execErrorFunction(message::FunctionCall &call) {
+        redis.callFunction(call);
+
+        Worker w(1);
+        w.run();
+    }
 
     void checkError(const std::string &funcName, const std::string &expectedMsg) {
         redis.flushAll();
@@ -14,7 +22,7 @@ namespace tests {
         call.set_function(funcName);
         call.set_resultkey("error_test");
 
-        worker::execFunction(1, call);
+        execErrorFunction(call);
 
         // Get result
         message::FunctionCall result = redis.getFunctionResult(call);
