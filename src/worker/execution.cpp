@@ -20,7 +20,7 @@ namespace worker {
             int workerIdx = tokenPool.getToken();
 
             // Spawn thread to execute function
-            std::thread funcThread([&workerIdx]{
+            std::thread funcThread([workerIdx]{
                 Worker w(workerIdx);
                 w.run();
             });
