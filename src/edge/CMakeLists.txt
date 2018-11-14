@@ -10,10 +10,6 @@ target_link_libraries(edge_lib
         cpprest
         )
 
-# Executable for adding functions offline
-add_executable(offline offline.cpp)
-target_link_libraries(offline edge_lib)
-
 # Executable for running the server
 add_executable(edge server.cpp)
 target_link_libraries(edge edge_lib)

@@ -3,7 +3,11 @@ project(faasm-func)
 
 set(FAASM_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/../lib)
 
-set(FAASM_HOST localhost)
+if (DEFINED ENV{FAASM_HOST})
+    set(FAASM_HOST $ENV{FAASM_HOST})
+else()
+    set(FAASM_HOST localhost)
+endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Oz -fvisibility=hidden")
 

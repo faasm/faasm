@@ -7,19 +7,21 @@ from tasks.env import PROJ_ROOT
 
 
 @task
-def upload(context, user, func_name):
+def upload(context, user, func_name, host="localhost"):
     print("Uploading {} for user {}".format(func_name, user))
 
-    # Put function file in place
-    wasm_file = join(PROJ_ROOT, "work", "out.wasm")
+    wasm_file = join(PROJ_ROOT, "wasm", user, func_name, "function.wasm")
 
-    # Run upload script
-    upload_script = join(PROJ_ROOT, "cmake-build-debug", "bin", "offline")
-    upload_cmd = [
-        upload_script, wasm_file, user, func_name
+    cmd = [
+        "curl",
+        "-X", "PUT",
+        "http://{}:8001/f/{}/{}".format(host, user, func_name),
+        "-T", wasm_file
     ]
 
-    res = call(" ".join(upload_cmd), shell=True, cwd=PROJ_ROOT)
+    cmd = " ".join(cmd)
+
+    res = call(cmd, shell=True)
 
     if res == 0:
         print("Upload finished")
