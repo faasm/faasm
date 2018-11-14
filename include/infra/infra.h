@@ -26,6 +26,8 @@ namespace infra {
 
         Redis();
 
+        ~Redis();
+
         /** Returns the instance for the current thread */
         static Redis *getThreadConnection();
 
@@ -58,4 +60,7 @@ namespace infra {
         std::string hostname;
         std::string port;
     };
-}
+
+    class RedisNoResponseException : public std::exception {
+    };
+};

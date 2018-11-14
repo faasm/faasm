@@ -12,9 +12,9 @@ namespace infra {
     // This allows things operating within the network namespace to resolve it properly
     static std::string redisIp = "not_set";
 
-    const int BLOCKING_TIMEOUT = 1000;
+    static const int BLOCKING_TIMEOUT_SECONDS = 60;
 
-    const std::string CALLS_QUEUE = "function_calls";
+    static const std::string CALLS_QUEUE = "function_calls";
 
     Redis::Redis() {
         hostname = util::getEnvVar("REDIS_HOST", "localhost");
@@ -27,6 +27,10 @@ namespace infra {
         // Note, connect with IP, not with hostname
         int portInt = std::stoi(port);
         context = redisConnect(redisIp.c_str(), portInt);
+    }
+
+    Redis::~Redis() {
+        redisFree(context);
     }
 
     Redis *Redis::getThreadConnection() {
@@ -84,7 +88,13 @@ namespace infra {
     }
 
     std::vector<uint8_t> Redis::dequeue(const std::string &queueName) {
-        auto reply = (redisReply *) redisCommand(context, "BLPOP %s %d", queueName.c_str(), BLOCKING_TIMEOUT);
+        auto reply = (redisReply *) redisCommand(context, "BLPOP %s %d", queueName.c_str(), BLOCKING_TIMEOUT_SECONDS);
+
+        if(reply == nullptr || reply->type == REDIS_REPLY_NIL) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->debug("No response from Redis");
+            throw RedisNoResponseException();
+        }
 
         size_t nResults = reply->elements;
 

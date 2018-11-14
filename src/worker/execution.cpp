@@ -17,7 +17,15 @@ namespace worker {
         // Get next call (blocking)
         logger->debug("Worker waiting on slot {}", threadIdx);
         infra::Redis *redis = infra::Redis::getThreadConnection();
-        message::FunctionCall call = redis->nextFunctionCall();
+
+        message::FunctionCall call;
+        try {
+            call = redis->nextFunctionCall();
+        }
+        catch(infra::RedisNoResponseException &e) {
+            logger->debug("No calls made in timeout");
+            return;
+        }
 
         // New thread to execute function
         std::thread funcThread(execFunction, threadIdx, std::move(call));
