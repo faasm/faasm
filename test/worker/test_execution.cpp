@@ -18,6 +18,13 @@ namespace tests {
         util::unsetEnvVar("NETNS_MODE");
     }
 
+    void execFunction(message::FunctionCall &call) {
+        redis.callFunction(call);
+
+        Worker w(1);
+        w.run();
+    }
+
     TEST_CASE("Test full execution of WASM module", "[worker]") {
         setUp();
 
@@ -28,7 +35,7 @@ namespace tests {
         call.set_resultkey("test_echo");
 
         // Run the execution
-        execFunction(1, call);
+        execFunction(call);
         message::FunctionCall result = redis.getFunctionResult(call);
 
         // Check output
@@ -46,7 +53,7 @@ namespace tests {
         call.set_function("baz");
         call.set_resultkey("test_invalid");
 
-        execFunction(1, call);
+        execFunction(call);
         message::FunctionCall result = redis.getFunctionResult(call);
 
         REQUIRE(!result.success());
@@ -64,7 +71,7 @@ namespace tests {
         call.set_resultkey("test_chain");
 
         // Run the execution
-        execFunction(1, call);
+        execFunction(call);
 
         // Check the call executed successfully
         message::FunctionCall result = redis.getFunctionResult(call);
@@ -112,7 +119,7 @@ namespace tests {
         call.set_resultkey("test_state");
 
         // Execute and check
-        execFunction(1, call);
+        execFunction(call);
         message::FunctionCall resultA = redis.getFunctionResult(call);
         REQUIRE(resultA.success());
 
@@ -122,7 +129,7 @@ namespace tests {
         REQUIRE(stateA == expectedA);
 
         // Call the function a second time, the state should have another element added
-        execFunction(1, call);
+        execFunction(call);
         message::FunctionCall resultB = redis.getFunctionResult(call);
         REQUIRE(resultB.success());
 
@@ -141,13 +148,13 @@ namespace tests {
         call.set_resultkey("test_state_incr");
 
         // Execute and check
-        execFunction(1, call);
+        execFunction(call);
         message::FunctionCall resultA = redis.getFunctionResult(call);
         REQUIRE(resultA.success());
         REQUIRE(resultA.outputdata() == "Counter: 001");
 
         // Call the function a second time, the state should have been incremented
-        execFunction(1, call);
+        execFunction(call);
         message::FunctionCall resultB = redis.getFunctionResult(call);
         REQUIRE(resultB.success());
         REQUIRE(resultB.outputdata() == "Counter: 002");

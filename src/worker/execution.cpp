@@ -1,80 +1,98 @@
 #include "worker.h"
 
+#include <infra/infra.h>
 #include <wasm/wasm.h>
 
+#include <spdlog/spdlog.h>
+#include <thread>
+
+
 namespace worker {
-    // TODO - how to choose an appropriate value for this?
-    static int WORKER_THREADS = 10;
+    // TODO - must match the underlying number of available namespaces. Good to decouple?
+    static int N_THREADS = 10;
 
-    static util::TokenPool tokenPool(WORKER_THREADS);
+    static util::TokenPool tokenPool(N_THREADS);
 
-    bool execNextFunction() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+    void startWorkerPool() {
+        // Spawn threads until we've hit the limit (effectively creating a thread pool)
+        while (true) {
+            // Try to get an available slot (blocks if none available)
+            int workerIdx = tokenPool.getToken();
 
-        // Try to get an available slot
-        int threadIdx = tokenPool.getToken();
+            // Spawn thread to execute function
+            std::thread funcThread([workerIdx]{
+                Worker w(workerIdx);
+                w.run();
+            });
 
-        // Get next call (blocking)
-        logger->debug("Worker waiting on slot {}", threadIdx);
-        infra::Redis *redis = infra::Redis::getThreadConnection();
-
-        message::FunctionCall call;
-        try {
-            call = redis->nextFunctionCall();
+            funcThread.detach();
         }
-        catch(infra::RedisNoResponseException &e) {
-            logger->debug("No calls made in timeout");
-            tokenPool.releaseToken(threadIdx);
-            return false;
-        }
-
-        // New thread to execute function
-        std::thread funcThread(execFunction, threadIdx, std::move(call));
-
-        // Execute
-        funcThread.detach();
-
-        return true;
     }
 
-    void finishCall(message::FunctionCall &call, const std::string &errorMessage) {
+    Worker::Worker(int workerIdx) : workerIdx(workerIdx) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Starting worker {}", workerIdx);
+
+        // Get Redis connection before we isolate ourselves
+        redis = infra::Redis::getThreadConnection();
+
+        // Set up network namespace
+        isolationIdx = workerIdx + 1;
+        std::string netnsName = BASE_NETNS_NAME + std::to_string(isolationIdx);
+        ns = new NetworkNamespace(netnsName);
+        ns->addCurrentThread();
+
+        // Add this thread to the cgroup
+        CGroup cgroup(BASE_CGROUP_NAME);
+        cgroup.addCurrentThread();
+    }
+
+    Worker::~Worker() {
+        delete ns;
+    }
+
+    void Worker::finish() {
+        ns->removeCurrentThread();
+        tokenPool.releaseToken(workerIdx);
+    }
+
+    void Worker::finishCall(const std::string &errorMsg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->info("Finished ({}/{})", call.user(), call.function());
 
-        bool isSuccess = errorMessage.empty();
-
+        bool isSuccess = errorMsg.empty();
         if (!isSuccess) {
-            call.set_outputdata(errorMessage);
+            call.set_outputdata(errorMsg);
         }
 
-        infra::Redis *redis = infra::Redis::getThreadConnection();
+        // Set result
         redis->setFunctionResult(call, isSuccess);
     }
 
-    /** Handles the execution of the function */
-    void execFunction(int index, message::FunctionCall call) {
+    void Worker::run() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
+        // Wait for next function call
+        try {
+            call = redis->nextFunctionCall();
+        }
+        catch (infra::RedisNoResponseException &e) {
+            logger->debug("No calls made in timeout");
+            this->finish();
+            return;
+        }
+
+        // Bomb out if call isn't valid
         if (!infra::isValidFunction(call)) {
             std::string errorMessage = call.user();
             errorMessage.append(" - ");
             errorMessage.append(call.function());
             errorMessage.append(" is not a valid function");
 
-            return finishCall(call, errorMessage);
+            this->finish();
+            this->finishCall(errorMessage);
+            return;
         }
-
-        // Note, we index cgroups from 1
-        int cg_index = index + 1;
-
-        // Add this thread to the cgroup
-        CGroup cgroup(BASE_CGROUP_NAME);
-        cgroup.addCurrentThread();
-
-        // Set up network namespace
-        std::string netnsName = BASE_NETNS_NAME + std::to_string(cg_index);
-        NetworkNamespace ns(netnsName);
-        ns.addCurrentThread();
 
         logger->info("Starting ({}/{})", call.user(), call.function());
 
@@ -87,25 +105,19 @@ namespace worker {
             std::string errorMessage = "Error: " + std::string(e.what());
             logger->error(errorMessage);
 
-            // Revert to original network namespace to allow communication
-            ns.removeCurrentThread();
-
-            return finishCall(call, errorMessage);
+            this->finish();
+            this->finishCall(errorMessage);
+            return;
         }
-
-        // Revert to original network namespace to allow communication
-        ns.removeCurrentThread();
-
-        // Release the token
-        logger->debug("Worker releasing slot {}", index);
-        tokenPool.releaseToken(index);
 
         // Process any chained calls
         std::string chainErrorMessage = module.callChain.execute();
-        if(!chainErrorMessage.empty()) {
-            return finishCall(call, chainErrorMessage);
+        if (!chainErrorMessage.empty()) {
+            this->finish();
+            this->finishCall(chainErrorMessage);
         }
 
-        finishCall(call, "");
+        this->finish();
+        this->finishCall("");
     }
 }
