@@ -28,6 +28,31 @@ namespace wasm {
     const int MAX_INPUT_BYTES = IR::numBytesPerPage;
     const int MAX_OUTPUT_BYTES = IR::numBytesPerPage;
 
+    struct RootResolver : Runtime::Resolver {
+        HashMap<std::string, Runtime::ModuleInstance*> moduleNameToInstanceMap;
+
+        bool resolve(const std::string& moduleName,
+                     const std::string& exportName,
+                     IR::ExternType type,
+                     Runtime::Object*& outObject) override
+        {
+            auto namedInstance = moduleNameToInstanceMap.get(moduleName);
+
+            if(namedInstance) {
+                outObject = getInstanceExport(*namedInstance, exportName);
+
+                if(outObject && isA(outObject, type)) {
+                    return true;
+                };
+            }
+
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->error("Missing import {}.{} {}", moduleName, exportName, asString(type).c_str());
+
+            return false;
+        }
+    };
+
     class CallChain {
     public:
         explicit CallChain(const message::FunctionCall &call);
@@ -43,25 +68,26 @@ namespace wasm {
 
     class WasmModule {
     public:
-        explicit WasmModule(message::FunctionCall &call);
+        WasmModule();
+
+        ~WasmModule();
 
         static std::vector<uint8_t> compile(message::FunctionCall &call);
 
         static void compileToObjectFile(message::FunctionCall &call);
 
-        int execute();
+        int execute(message::FunctionCall &call, CallChain &callChain);
 
         Runtime::Memory *defaultMemory;
-        message::FunctionCall &functionCall;
-        CallChain callChain;
     private:
         IR::Module module;
 
-        Runtime::ModuleInstance *load(Runtime::Compartment *compartment);
+        Runtime::ModuleInstance *load(message::FunctionCall &call, Runtime::Compartment *compartment);
 
-        void parseWasm();
+        void parseWasm(message::FunctionCall &call);
 
-        Runtime::LinkResult link(Runtime::Compartment *compartment);
+        RootResolver linkIntrinsics(Runtime::Compartment *compartment);
+        Runtime::LinkResult linkFunction(RootResolver &resolver);
     };
 
     WasmModule *getExecutingModule();
