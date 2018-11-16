@@ -1,6 +1,7 @@
 #include "worker.h"
 
 #include <infra/infra.h>
+#include <prof/prof.h>
 #include <wasm/wasm.h>
 
 #include <spdlog/spdlog.h>
@@ -86,6 +87,8 @@ namespace worker {
             return;
         }
 
+        const std::chrono::steady_clock::time_point &t = prof::startTimer();
+
         // Bomb out if call isn't valid
         if (!infra::isValidFunction(call)) {
             std::string errorMessage = call.user();
@@ -123,5 +126,7 @@ namespace worker {
 
         this->finish();
         this->finishCall("");
+
+        prof::logEndTimer("func-total", t);
     }
 }
