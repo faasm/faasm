@@ -1,4 +1,5 @@
 #include "edge/edge.h"
+#include "prof/prof.h"
 
 
 namespace edge {
@@ -61,6 +62,8 @@ namespace edge {
     }
 
     void RestServer::handlePost(const http_request &request) {
+        const std::chrono::steady_clock::time_point &t = prof::startTimer();
+
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         message::FunctionCall call = RestServer::buildCallFromRequest(request);
@@ -69,6 +72,8 @@ namespace edge {
 
         redis->callFunction(call);
 
+        prof::logEndTimer("edge-submit", t);
+
         if (call.isasync()) {
             // Don't wait for result
             logger->info("Async request ({}/{})", call.user(), call.function());
@@ -76,8 +81,13 @@ namespace edge {
         } else {
             logger->info("Sync request ({}/{})", call.user(), call.function());
             message::FunctionCall result = redis->getFunctionResult(call);
+
+            const std::chrono::steady_clock::time_point &t2 = prof::startTimer();
+
             request.reply(status_codes::OK, result.outputdata() + "\n");
             logger->info("Finished request ({}/{})", call.user(), call.function());
+
+            prof::logEndTimer("edge-reply", t2);
         }
     }
 
