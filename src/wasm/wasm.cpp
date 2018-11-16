@@ -13,30 +13,69 @@ using namespace WAVM;
 
 namespace wasm {
     static thread_local WasmModule *executingModule;
+    static thread_local message::FunctionCall *executingCall;
+    static thread_local CallChain *executingCallChain;
 
     WasmModule *getExecutingModule() {
         return executingModule;
     }
 
+    message::FunctionCall *getExecutingCall() {
+        return executingCall;
+    }
+
+    CallChain *getExecutingCallChain() {
+        return executingCallChain;
+    }
+
     WasmModule::WasmModule() = default;
 
-    /**
-     * Executes the given function call
-     */
-    int WasmModule::execute(message::FunctionCall &call, CallChain &callChain) {
-        //TODO this referencing could be done better
-        // Set reference to self
-        executingModule = this;
+    WasmModule::~WasmModule() {
+//        delete compartment;
+//        delete context;
+    }
+
+    void WasmModule::initialise() {
+        const auto &t = prof::startTimer();
 
         // Treat any unhandled exception (e.g. in a thread) as a fatal error.
         Runtime::setUnhandledExceptionHandler([](Runtime::Exception &&exception) {
             Errors::fatalf("Runtime exception: %s\n", describeException(exception).c_str());
         });
 
-        Runtime::Compartment *compartment = Runtime::createCompartment();
-        Runtime::Context *context = Runtime::createContext(compartment);
+        compartment = Runtime::createCompartment();
+        context = Runtime::createContext(compartment);
+        resolver = new RootResolver();
 
-        Runtime::ModuleInstance *moduleInstance = this->load(compartment);
+        // Link with intrinsics (independent of module)
+        Intrinsics::Module &moduleRef = INTRINSIC_MODULE_REF(env);
+
+        Runtime::ModuleInstance *envModule = Intrinsics::instantiateModule(
+                compartment,
+                moduleRef,
+                "env"
+        );
+
+        // Prepare name resolution
+        resolver->moduleNameToInstanceMap.set("env", envModule);
+        prof::logEndTimer("pre-init", t);
+    }
+
+    /**
+     * Executes the given function call
+     */
+    int WasmModule::execute(message::FunctionCall &call, CallChain &callChain) {
+        if(compartment == nullptr) {
+            throw std::runtime_error("Must initialise module before executing");
+        }
+
+        //TODO this referencing could be done better
+        // Set reference to self
+        executingModule = this;
+        executingCall = &call;
+        executingCallChain = &callChain;
+
+        Runtime::ModuleInstance *moduleInstance = this->load(call);
 
         // Extract the module's exported function
         // Note that an underscore may be added before the function name by the compiler
@@ -85,26 +124,34 @@ namespace wasm {
         util::writeBytesToFile(objFilePath, objBytes);
     }
 
-    Runtime::ModuleInstance *WasmModule::load( message::FunctionCall &call, Runtime::Compartment *compartment) {
-        // Link with intrinsics (independent of module)
-        RootResolver resolver = this->linkIntrinsics(compartment);
-
+    Runtime::ModuleInstance *WasmModule::load(message::FunctionCall &call) {
         // Parse the wasm file to work out imports, function signatures etc.
-        this->parseWasm();
+        this->parseWasm(call);
 
         // Set up minimum memory size
         this->module.memories.defs[0].type.size.min = (U64) MIN_MEMORY_PAGES;
 
-        Runtime::LinkResult linkResult = this->linkFunction(resolver);
+        // Linking
+        const auto &t1 = prof::startTimer();
+        Runtime::LinkResult linkResult = linkModule(module, *resolver);
+        if (!linkResult.success) {
+            std::cerr << "Failed to link module:" << std::endl;
+            throw std::runtime_error("Failed linking module");
+        }
+
+        prof::logEndTimer("link", t1);
 
         // Load the object file
-        const auto &t = prof::startTimer();
+        const auto &t2 = prof::startTimer();
         std::vector<uint8_t> objectFileBytes = infra::getFunctionObjectBytes(call);
+        prof::logEndTimer("load-bytes", t2);
+
+        const auto &t3 = prof::startTimer();
         Runtime::ModuleRef compiledModule = Runtime::loadPrecompiledModule(module, objectFileBytes);
-        prof::logEndTimer("load-obj", t);
+        prof::logEndTimer("load-obj", t3);
 
         // Instantiate the module, i.e. create memory, tables etc.
-        const auto &t2 = prof::startTimer();
+        const auto &t4 = prof::startTimer();
         std::string moduleName = call.user() + " - " + call.function();
         Runtime::ModuleInstance *moduleInstance = instantiateModule(
                 compartment,
@@ -112,7 +159,7 @@ namespace wasm {
                 std::move(linkResult.resolvedImports),
                 moduleName.c_str()
         );
-        prof::logEndTimer("instantiate", t2);
+        prof::logEndTimer("instantiate", t4);
 
         return moduleInstance;
     }
@@ -134,42 +181,4 @@ namespace wasm {
         prof::logEndTimer("parse-wasm", t);
     }
 
-    /**
-     * Link the module with the environment
-     */
-    RootResolver WasmModule::linkIntrinsics(Runtime::Compartment *compartment) {
-        const auto &t = prof::startTimer();
-
-        RootResolver resolver;
-        Intrinsics::Module &moduleRef = INTRINSIC_MODULE_REF(env);
-        prof::logEndTimer("env-ref", t);
-
-        const auto &t2 = prof::startTimer();
-        Runtime::ModuleInstance *envModule = Intrinsics::instantiateModule(
-                compartment,
-                moduleRef,
-                "env"
-        );
-        prof::logEndTimer("env", t2);
-
-        // Prepare name resolution
-        resolver.moduleNameToInstanceMap.set("env", envModule);
-
-        return resolver;
-    }
-
-    Runtime::LinkResult WasmModule::linkFunction(RootResolver &resolver) {
-        const auto &t3 = prof::startTimer();
-
-        // Linking
-        Runtime::LinkResult linkResult = linkModule(module, resolver);
-        if (!linkResult.success) {
-            std::cerr << "Failed to link module:" << std::endl;
-            throw std::runtime_error("Failed linking module");
-        }
-
-        prof::logEndTimer("link", t3);
-
-        return linkResult;
-    }
 }

@@ -9,10 +9,13 @@ namespace tests {
         call.set_user("demo");
         call.set_function("dummy");
 
-        wasm::WasmModule module(call);
+        wasm::CallChain callChain(call);
+
+        wasm::WasmModule module;
+        module.initialise();
 
         // Execute the function
-        int result = module.execute();
+        int result = module.execute(call, callChain);
         REQUIRE(result == 0);
 
         std::string outputData = call.outputdata();
@@ -30,9 +33,12 @@ namespace tests {
         call.set_user("demo");
         call.set_function("print");
 
-        wasm::WasmModule module(call);
+        wasm::CallChain callChain(call);
 
-        int result = module.execute();
+        wasm::WasmModule module;
+        module.initialise();
+
+        int result = module.execute(call, callChain);
         REQUIRE(result == 0);
     }
 
@@ -41,13 +47,16 @@ namespace tests {
         call.set_user("demo");
         call.set_function("x2");
 
+        wasm::CallChain callChain(call);
+
         // Build input as byte stream
         U8 inputValues[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
         call.set_inputdata(inputValues, 10);
 
         // Make the call
-        wasm::WasmModule module(call);
-        int result = module.execute();
+        wasm::WasmModule module;
+        module.initialise();
+        int result = module.execute(call, callChain);
         REQUIRE(result == 0);
 
         std::string outputData = call.outputdata();

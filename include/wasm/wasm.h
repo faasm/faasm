@@ -76,21 +76,28 @@ namespace wasm {
 
         static void compileToObjectFile(message::FunctionCall &call);
 
+        void initialise();
+
         int execute(message::FunctionCall &call, CallChain &callChain);
 
         Runtime::Memory *defaultMemory;
     private:
         IR::Module module;
 
-        Runtime::ModuleInstance *load(message::FunctionCall &call, Runtime::Compartment *compartment);
+        Runtime::Context * context = nullptr;
+        Runtime::Compartment * compartment = nullptr;
+        RootResolver *resolver = nullptr;
+
+        Runtime::ModuleInstance *load(message::FunctionCall &call);
 
         void parseWasm(message::FunctionCall &call);
-
-        RootResolver linkIntrinsics(Runtime::Compartment *compartment);
-        Runtime::LinkResult linkFunction(RootResolver &resolver);
     };
 
     WasmModule *getExecutingModule();
+
+    message::FunctionCall *getExecutingCall();
+
+    CallChain *getExecutingCallChain();
 
     class WasmExitException : public std::exception {
     public:
