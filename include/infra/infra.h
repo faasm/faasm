@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <string>
 #include <spdlog/spdlog.h>
 
@@ -69,4 +70,9 @@ namespace infra {
 
     class RedisNoResponseException : public std::exception {
     };
+
+    // Timing
+    std::chrono::steady_clock::time_point startTimer();
+
+    void logEndTimer(const std::string &label, const std::chrono::steady_clock::time_point &begin);
 };

@@ -8,7 +8,8 @@ add_library(
 )
 
 target_link_libraries(
-        infra util
+        infra
+        prof
         proto
         pthread
         hiredis

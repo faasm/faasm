@@ -1,6 +1,8 @@
 #include "wasm.h"
 #include "resolver.h"
 
+#include <prof/prof.h>
+
 #include <syscall.h>
 
 #include <WAVM/WASM/WASM.h>
@@ -52,10 +54,8 @@ namespace wasm {
         // Set up public properties
         this->defaultMemory = getDefaultMemory(moduleInstance);
 
-        // Set up input data in module memory
-        this->validateInputData();
-
         // Make the call
+        const auto &t = prof::startTimer();
         int exitCode = 0;
         std::vector<IR::Value> invokeArgs;
         try {
@@ -64,6 +64,7 @@ namespace wasm {
         catch (wasm::WasmExitException &e) {
             exitCode = e.exitCode;
         }
+        prof::logEndTimer("exec", t);
 
         // Tidy up
         Runtime::collectCompartmentGarbage(compartment);
@@ -98,10 +99,13 @@ namespace wasm {
         Runtime::LinkResult linkResult = this->link(compartment);
 
         // Load the object file
+        const auto &t = prof::startTimer();
         std::vector<uint8_t> objectFileBytes = infra::getFunctionObjectBytes(functionCall);
         Runtime::ModuleRef compiledModule = Runtime::loadPrecompiledModule(module, objectFileBytes);
+        prof::logEndTimer("load-obj", t);
 
         // Instantiate the module, i.e. create memory, tables etc.
+        const auto &t2 = prof::startTimer();
         std::string moduleName = functionCall.user() + " - " + functionCall.function();
         Runtime::ModuleInstance *moduleInstance = instantiateModule(
                 compartment,
@@ -109,6 +113,7 @@ namespace wasm {
                 std::move(linkResult.resolvedImports),
                 moduleName.c_str()
         );
+        prof::logEndTimer("instantiate", t2);
 
         return moduleInstance;
     }
@@ -117,6 +122,8 @@ namespace wasm {
      * Parse the WASM file to work out functions, exports, imports etc.
      */
     void WasmModule::parseWasm() {
+        const auto &t = prof::startTimer();
+
         std::vector<U8> fileBytes;
         std::string filePath = infra::getFunctionFile(functionCall);
         if (!loadFile(filePath.c_str(), fileBytes)) {
@@ -124,19 +131,29 @@ namespace wasm {
         }
 
         WASM::loadBinaryModule(fileBytes.data(), fileBytes.size(), this->module);
+
+        prof::logEndTimer("parse-wasm", t);
     }
 
     /**
      * Link the module with the environment
      */
     Runtime::LinkResult WasmModule::link(Runtime::Compartment *compartment) {
-        RootResolver resolver;
+        const auto &t = prof::startTimer();
 
+        RootResolver resolver;
+        Intrinsics::Module &moduleRef = INTRINSIC_MODULE_REF(env);
+        prof::logEndTimer("env-ref", t);
+
+        const auto &t2 = prof::startTimer();
         Runtime::ModuleInstance *envModule = Intrinsics::instantiateModule(
                 compartment,
-                INTRINSIC_MODULE_REF(env),
+                moduleRef,
                 "env"
         );
+        prof::logEndTimer("env", t2);
+
+        const auto &t3 = prof::startTimer();
 
         // Prepare name resolution
         resolver.moduleNameToInstanceMap.set("env", envModule);
@@ -148,18 +165,8 @@ namespace wasm {
             throw std::runtime_error("Failed linking module");
         }
 
+        prof::logEndTimer("link", t3);
+
         return linkResult;
-    }
-
-    void WasmModule::validateInputData() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        const std::string &inputString = functionCall.inputdata();
-
-        if (inputString.size() > MAX_INPUT_BYTES) {
-            logger->error("Input data too large");
-            throw (std::runtime_error("Input data too large"));
-        }
-
-        logger->debug("Received input {}", functionCall.inputdata());
     }
 }

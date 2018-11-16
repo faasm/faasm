@@ -1,5 +1,6 @@
 #include "infra.h"
 #include "util/util.h"
+#include "prof/prof.h"
 
 #include <thread>
 
@@ -27,6 +28,7 @@ namespace infra {
 
         // Note, connect with IP, not with hostname
         int portInt = std::stoi(port);
+
         context = redisConnect(redisIp.c_str(), portInt);
     }
 
@@ -72,7 +74,6 @@ namespace infra {
     void Redis::del(const std::string &key) {
         auto reply = (redisReply *) redisCommand(context, "DEL %s", key.c_str());
         freeReplyObject(reply);
-
     }
 
     void Redis::setRange(const std::string &key, long offset, const std::vector<uint8_t> &value) {
@@ -134,6 +135,8 @@ namespace infra {
     }
 
     void Redis::callFunction(message::FunctionCall &call) {
+        const auto &t = prof::startTimer();
+
         // Generate a random result key
         int randomNumber = util::randomInteger();
         std::string resultKey = "Result_";
@@ -146,21 +149,29 @@ namespace infra {
         logger->debug("Redis enqueued ({}/{})", call.user(), call.function());
 
         this->enqueue(CALLS_QUEUE, inputData);
+
+        prof::logEndTimer("call-function", t);
     }
 
     message::FunctionCall Redis::nextFunctionCall() {
         std::vector<uint8_t> dequeueResult = this->dequeue(CALLS_QUEUE);
+
+        const auto &t = prof::startTimer();
 
         message::FunctionCall call;
         call.ParseFromArray(dequeueResult.data(), (int) dequeueResult.size());
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Redis dequeued ({}/{})", call.user(), call.function());
+
+        prof::logEndTimer("next-function", t);
         return call;
     }
 
     void Redis::setFunctionResult(message::FunctionCall &call, bool success) {
         call.set_success(success);
+
+        const auto &t = prof::startTimer();
 
         std::string key = call.resultkey();
 
@@ -171,6 +182,8 @@ namespace infra {
         // Set the result key to expire
         auto reply = (redisReply *) redisCommand(context, "EXPIRE %s %d", key.c_str(), RESULT_KEY_EXPIRY_SECONDS);
         freeReplyObject(reply);
+
+        prof::logEndTimer("function-result", t);
     }
 
     long Redis::getTtl(const std::string &key) {

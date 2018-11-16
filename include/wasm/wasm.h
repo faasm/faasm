@@ -62,8 +62,6 @@ namespace wasm {
         void parseWasm();
 
         Runtime::LinkResult link(Runtime::Compartment *compartment);
-
-        void validateInputData();
     };
 
     WasmModule *getExecutingModule();

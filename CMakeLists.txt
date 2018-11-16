@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 project(faasm)
 
-set(CMAKE_CXX_FLAGS "-Wall -Werror -fpic")
+set(CMAKE_CXX_FLAGS "-Wall -Werror")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 
 # Address sanitizer
@@ -48,12 +48,13 @@ add_subdirectory(func)
 add_subdirectory(lib)
 
 # Faasm runtime
+add_subdirectory(src/edge)
+add_subdirectory(src/emulator)
+add_subdirectory(src/infra)
+add_subdirectory(src/prof)
 add_subdirectory(src/proto)
 add_subdirectory(src/util)
-add_subdirectory(src/infra)
-add_subdirectory(src/emulator)
 add_subdirectory(src/wasm)
 add_subdirectory(src/worker)
-add_subdirectory(src/edge)
 
 add_subdirectory(test)

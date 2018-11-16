@@ -19,7 +19,6 @@ namespace  util {
     }
 
     std::shared_ptr<spdlog::logger> getLogger() {
-
         return logger;
     }
 }
