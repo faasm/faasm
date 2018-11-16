@@ -7,7 +7,6 @@ add_library(wasm STATIC
         chaining.cpp
         wasm.cpp
         syscalls.cpp
-        resolver.h
         ${FAASM_INCLUDE_DIR}/wasm/wasm.h
         )
 

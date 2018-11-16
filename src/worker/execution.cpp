@@ -72,6 +72,10 @@ namespace worker {
     void Worker::run() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
+        // Initialise wasm module
+        wasm::WasmModule module;
+        module.initialise();
+
         // Wait for next function call
         try {
             call = redis->nextFunctionCall();
@@ -97,9 +101,9 @@ namespace worker {
         logger->info("Starting ({}/{})", call.user(), call.function());
 
         // Create and execute the module
-        wasm::WasmModule module(call);
+        wasm::CallChain callChain(call);
         try {
-            module.execute();
+            module.execute(call, callChain);
         }
         catch (const std::exception &e) {
             std::string errorMessage = "Error: " + std::string(e.what());
@@ -111,7 +115,7 @@ namespace worker {
         }
 
         // Process any chained calls
-        std::string chainErrorMessage = module.callChain.execute();
+        std::string chainErrorMessage = callChain.execute();
         if (!chainErrorMessage.empty()) {
             this->finish();
             this->finishCall(chainErrorMessage);

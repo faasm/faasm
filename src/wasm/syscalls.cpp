@@ -90,8 +90,8 @@ namespace wasm {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
 
-        const message::FunctionCall &call = getExecutingModule()->functionCall;
-        std::string prefixedKey = call.user() + "_" + key;
+        const message::FunctionCall *call = getExecutingCall();
+        std::string prefixedKey = call->user() + "_" + key;
 
         return prefixedKey;
     }
@@ -165,8 +165,8 @@ namespace wasm {
         logSyscall("read_input", "%i %i", bufferPtr, bufferLen);
 
         // Get the input
-        message::FunctionCall &call = getExecutingModule()->functionCall;
-        std::vector<uint8_t> inputBytes = util::stringToBytes(call.inputdata());
+        message::FunctionCall *call = getExecutingCall();
+        std::vector<uint8_t> inputBytes = util::stringToBytes(call->inputdata());
 
         // Write to the wasm buffer
         int inputSize = copyToWasmBuffer(inputBytes, bufferPtr, bufferLen);
@@ -178,20 +178,21 @@ namespace wasm {
         logSyscall("write_output", "%i %i", outputPtr, outputLen);
 
         std::vector<uint8_t> outputData = getBytesFromWasm(outputPtr, outputLen);
-        message::FunctionCall &call = getExecutingModule()->functionCall;
-        call.set_outputdata(outputData.data(), outputData.size());
+        message::FunctionCall *call = getExecutingCall();
+        call->set_outputdata(outputData.data(), outputData.size());
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_function", void, __faasm_chain_function,
                               I32 namePtr, I32 inputDataPtr, I32 inputDataLen) {
         logSyscall("chain_function", "%i %i %i", namePtr, inputDataPtr, inputDataLen);
 
-        message::FunctionCall &call = getExecutingModule()->functionCall;
+        message::FunctionCall *call = getExecutingCall();
+        CallChain *callChain = getExecutingCallChain();
         std::string funcName = getStringFromWasm(namePtr);
         const std::vector<uint8_t> inputData = getBytesFromWasm(inputDataPtr, inputDataLen);
 
         // Add this to the chain of calls
-        getExecutingModule()->callChain.addCall(call.user(), funcName, inputData);
+        callChain->addCall(call->user(), funcName, inputData);
     }
 
     // ------------------------
