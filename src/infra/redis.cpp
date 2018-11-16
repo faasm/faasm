@@ -70,11 +70,14 @@ namespace infra {
     }
 
     void Redis::del(const std::string &key) {
-        redisCommand(context, "DEL %s", key.c_str());
+        auto reply = (redisReply *) redisCommand(context, "DEL %s", key.c_str());
+        freeReplyObject(reply);
+
     }
 
     void Redis::setRange(const std::string &key, long offset, const std::vector<uint8_t> &value) {
-        redisCommand(context, "SETRANGE %s %li %b", key.c_str(), offset, value.data(), value.size());
+        auto reply = (redisReply *) redisCommand(context, "SETRANGE %s %li %b", key.c_str(), offset, value.data(), value.size());
+        freeReplyObject(reply);
     }
 
     std::vector<uint8_t> Redis::getRange(const std::string &key, long start, long end) {
@@ -89,7 +92,8 @@ namespace infra {
     void Redis::enqueue(const std::string &queueName, const std::vector<uint8_t> &value) {
         // NOTE: Here we must be careful with the input and specify bytes rather than a string
         // otherwise an encoded false boolean can be treated as a string terminator
-        redisCommand(context, "RPUSH %s %b", queueName.c_str(), value.data(), value.size());
+        auto reply = (redisReply *) redisCommand(context, "RPUSH %s %b", queueName.c_str(), value.data(), value.size());
+        freeReplyObject(reply);
     }
 
     std::vector<uint8_t> Redis::dequeue(const std::string &queueName) {
@@ -117,7 +121,8 @@ namespace infra {
 
 
     void Redis::flushAll() {
-        redisCommand(context, "FLUSHALL");
+        auto reply = (redisReply *) redisCommand(context, "FLUSHALL");
+        freeReplyObject(reply);
     }
 
     long Redis::listLength(const std::string &queueName) {
@@ -164,13 +169,16 @@ namespace infra {
         this->enqueue(key, inputData);
 
         // Set the result key to expire
-        redisCommand(context, "EXPIRE %s %d", key.c_str(), RESULT_KEY_EXPIRY_SECONDS);
+        auto reply = (redisReply *) redisCommand(context, "EXPIRE %s %d", key.c_str(), RESULT_KEY_EXPIRY_SECONDS);
+        freeReplyObject(reply);
     }
 
     long Redis::getTtl(const std::string &key) {
         auto reply = (redisReply *) redisCommand(context, "TTL %s", key.c_str());
 
         long ttl = reply->integer;
+        freeReplyObject(reply);
+
         return ttl;
     }
 

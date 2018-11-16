@@ -1,0 +1,22 @@
+---
+
+- hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: "Install deps with apt"
+      become: yes
+      apt:
+        name:
+        - libz-dev
+        - libboost-dev
+        - libcpprest-dev
+        - libhiredis-dev
+        - libcgroup-dev
+        - libcurl4-openssl-dev
+        - cgroup-tools
+        - cgroup-bin
+        - iproute2
+        - valgrind
+        - kcachegrind
+        state: present
+
