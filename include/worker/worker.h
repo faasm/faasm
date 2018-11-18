@@ -2,6 +2,7 @@
 
 #include <infra/infra.h>
 #include <util/util.h>
+#include <wasm/wasm.h>
 
 #include <string>
 #include <exception>
@@ -56,13 +57,14 @@ namespace worker {
         explicit Worker(int workerIdx);
         ~Worker();
         void run();
+
+        std::string queueName;
     private:
         message::FunctionCall call;
         int isolationIdx;
         int workerIdx;
         NetworkNamespace *ns;
-
-        std::string queueName;
+        wasm::WasmModule module;
 
         infra::Redis *redis;
 

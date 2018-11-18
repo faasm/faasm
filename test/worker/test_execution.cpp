@@ -19,9 +19,10 @@ namespace tests {
     }
 
     void execFunction(message::FunctionCall &call) {
+        Worker w(1);
+
         redis.callFunction(call);
 
-        Worker w(1);
         w.run();
     }
 
@@ -70,14 +71,22 @@ namespace tests {
         call.set_function("chain");
         call.set_resultkey("test_chain");
 
-        // Make sure enough available workers on unassigned
-        redis.addToUnassignedSet("worker 1");
+        // Set up a real worker to execute this function. Remove it from the
+        // unassigned set and add to handle this function
+        Worker w(1);
+        redis.removeFromUnassignedSet(w.queueName);
+        redis.addToFunctionSet(call, w.queueName);
+
+        // Set up some unassigned fake workers
         redis.addToUnassignedSet("worker 2");
         redis.addToUnassignedSet("worker 3");
         redis.addToUnassignedSet("worker 4");
 
-        // Run the execution
-        execFunction(call);
+        // Make the call
+        redis.callFunction(call);
+
+        // Execute the worker
+        w.run();
 
         // Check the call executed successfully
         message::FunctionCall result = redis.getFunctionResult(call);

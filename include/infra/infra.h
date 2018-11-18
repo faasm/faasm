@@ -70,6 +70,8 @@ namespace infra {
 
         void addToUnassignedSet(const std::string &queueName);
 
+        void removeFromUnassignedSet(const std::string &queueName);
+
         std::string getQueueForFunc(const message::FunctionCall &call);
 
         long getTtl(const std::string &key);

@@ -2,7 +2,6 @@
 
 #include <infra/infra.h>
 #include <prof/prof.h>
-#include <wasm/wasm.h>
 
 #include <spdlog/spdlog.h>
 #include <thread>
@@ -49,6 +48,12 @@ namespace worker {
         // Add this thread to the cgroup
         CGroup cgroup(BASE_CGROUP_NAME);
         cgroup.addCurrentThread();
+
+        // Initialise wasm module
+        module.initialise();
+
+        // Add to unassigned set to request work
+        redis->addToUnassignedSet(queueName);
     }
 
     Worker::~Worker() {
@@ -75,10 +80,6 @@ namespace worker {
 
     void Worker::run() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        // Initialise wasm module
-        wasm::WasmModule module;
-        module.initialise();
 
         // Wait for next function call on this thread's queue
         try {

@@ -178,6 +178,10 @@ namespace infra {
     void Redis::addToUnassignedSet(const std::string &queueName) {
         this->sadd(UNASSIGNED_SET, queueName);
     }
+
+    void Redis::removeFromUnassignedSet(const std::string &queueName) {
+        this->srem(UNASSIGNED_SET, queueName);
+    }
     
     std::string Redis::getQueueForFunc(const message::FunctionCall &call) {
         // See if we can get something in the function's set

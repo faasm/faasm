@@ -88,17 +88,16 @@ namespace tests {
         
         std::string queueNameA = "flahblah";
         std::string queueNameB = "clahdlah";
+        std::set<std::string> expected = {queueNameA, queueNameB};
+
         cli.addToUnassignedSet(queueNameA);
         cli.addToUnassignedSet(queueNameB);
 
-        const std::vector<uint8_t> &bytesA = cli.dequeue("unassigned");
-        const std::vector<uint8_t> &bytesB = cli.dequeue("unassigned");
+        const std::string actualA = cli.spop("unassigned");
+        const std::string actualB = cli.spop("unassigned");
 
-        std::string actualA(bytesA.data(), bytesA.data() + bytesA.size());
-        std::string actualB(bytesB.data(), bytesB.data() + bytesB.size());
-
-        REQUIRE(actualA == queueNameA);
-        REQUIRE(actualB == queueNameB);
+        REQUIRE(expected.find(actualA) != expected.end());
+        REQUIRE(expected.find(actualB) != expected.end());
     }
 
     TEST_CASE("Test adding to/ removing from function set", "[redis]") {
@@ -197,21 +196,23 @@ namespace tests {
         
         // Get queue for the function with no assigned queue and check it's one
         // from the unassigned set
-        const std::string &actualUnassigned = cli.getQueueForFunc(callB);
-        REQUIRE(unassignedQueues.find(actualUnassigned) != unassignedQueues.end());
+        const std::string actualUnassigned = cli.getQueueForFunc(callB);
+        bool isFound = unassignedQueues.find(actualUnassigned) != unassignedQueues.end();
+        REQUIRE(isFound);
         unassignedQueues.erase(actualUnassigned);
 
         // Get queue for function with an assigned queue and check it's the expected
-        const std::string &actualAssigned = cli.getQueueForFunc(callA);
+        const std::string actualAssigned = cli.getQueueForFunc(callA);
         REQUIRE(actualAssigned == queueNameD);
 
         // Get another for this function, and check it draws from unassigned
-        const std::string &actualAssigned2 = cli.getQueueForFunc(callA);
-        REQUIRE(unassignedQueues.find(actualUnassigned) != unassignedQueues.end());
-        unassignedQueues.erase(actualUnassigned);
+        const std::string actualAssigned2 = cli.getQueueForFunc(callA);
+        bool isFound2 = unassignedQueues.find(actualAssigned2) != unassignedQueues.end();
+        REQUIRE(isFound2);
+        unassignedQueues.erase(actualAssigned2);
 
         // Get another for the unassigned function and check it's the last unassigned value
-        const std::string &actualUnassigned2 = cli.getQueueForFunc(callB);
+        const std::string actualUnassigned2 = cli.getQueueForFunc(callB);
         REQUIRE(actualUnassigned2 == *unassignedQueues.begin());
 
         // Now try getting another for the assigned funciton and check we get an exception
