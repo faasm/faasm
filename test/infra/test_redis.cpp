@@ -82,6 +82,142 @@ namespace tests {
         REQUIRE(actualDel2.empty());
     }
     
+    TEST_CASE("Test adding to unassigned set", "[redis]") {
+        Redis cli;
+        cli.flushAll();
+        
+        std::string queueNameA = "flahblah";
+        std::string queueNameB = "clahdlah";
+        cli.addToUnassignedSet(queueNameA);
+        cli.addToUnassignedSet(queueNameB);
+
+        const std::vector<uint8_t> &bytesA = cli.dequeue("unassigned");
+        const std::vector<uint8_t> &bytesB = cli.dequeue("unassigned");
+
+        std::string actualA(bytesA.data(), bytesA.data() + bytesA.size());
+        std::string actualB(bytesB.data(), bytesB.data() + bytesB.size());
+
+        REQUIRE(actualA == queueNameA);
+        REQUIRE(actualB == queueNameB);
+    }
+
+    TEST_CASE("Test adding to/ removing from function set", "[redis]") {
+        Redis cli;
+        cli.flushAll();
+
+        std::string queueNameA = "flahblah";
+        std::string queueNameB = "clahdlah";
+
+        message::FunctionCall callA;
+        callA.set_user("user_a");
+        callA.set_function("func_a");
+
+        message::FunctionCall callB;
+        callB.set_user("user_b");
+        callB.set_function("func_b");
+
+        std::string funcSetA = "f_user_a_func_a";
+        std::string funcSetB = "f_user_b_func_b";
+
+        // Check empty to start with
+        REQUIRE(cli.spop(funcSetA).empty());
+        REQUIRE(cli.spop(funcSetB).empty());
+
+        // Add to sets
+        cli.addToFunctionSet(callA, queueNameA);
+        cli.addToFunctionSet(callB, queueNameB);
+
+        // Check only these values are popped off
+        REQUIRE(cli.spop(funcSetA) == queueNameA);
+        REQUIRE(cli.spop(funcSetB) == queueNameB);
+
+        REQUIRE(cli.spop(funcSetA).empty());
+        REQUIRE(cli.spop(funcSetB).empty());
+    }
+
+    TEST_CASE("Test adding and removing from set", "[redis]") {
+        Redis cli;
+        cli.flushAll();
+
+        std::string setName = "test_set";
+
+        // Check set empty initially
+        REQUIRE(cli.spop(setName).empty());
+
+        // Add a few values
+        std::string valA = "valA";
+        std::string valB = "valB";
+        std::string valC = "valC";
+        cli.sadd(setName, valA);
+        cli.sadd(setName, valB);
+        cli.sadd(setName, valC);
+
+        // Explicitly remove one
+        cli.srem(setName, valB);
+
+        // Get two randoms
+        std::string actualA = cli.spop(setName);
+        std::string actualC = cli.spop(setName);
+
+        std::set<std::string> actuals = {actualA, actualC};
+
+        // Check both are present in the actuals
+        REQUIRE(actuals.find(valA) != actuals.end());
+        REQUIRE(actuals.find(valC) != actuals.end());
+
+        // Check set is now empty
+        REQUIRE(cli.spop(setName).empty());
+    }
+
+    TEST_CASE("Test getting queue for function", "[redis]") {
+        Redis cli;
+        cli.flushAll();
+
+        std::string queueNameA = "aaa";
+        std::string queueNameB = "bbb";
+        std::string queueNameC = "ccc";
+        std::string queueNameD = "ddd";
+
+        message::FunctionCall callA;
+        callA.set_user("user_a");
+        callA.set_function("func_a");
+
+        message::FunctionCall callB;
+        callB.set_user("user_b");
+        callB.set_function("func_b");
+
+        // Add a the rest to assigned
+        cli.addToUnassignedSet(queueNameA);
+        cli.addToUnassignedSet(queueNameB);
+        cli.addToUnassignedSet(queueNameC);
+        std::set<std::string> unassignedQueues = {queueNameA, queueNameB, queueNameC};
+
+        // Add one to the function set for one of the functions
+        cli.addToFunctionSet(callA, queueNameD);
+        
+        // Get queue for the function with no assigned queue and check it's one
+        // from the unassigned set
+        const std::string &actualUnassigned = cli.getQueueForFunc(callB);
+        REQUIRE(unassignedQueues.find(actualUnassigned) != unassignedQueues.end());
+        unassignedQueues.erase(actualUnassigned);
+
+        // Get queue for function with an assigned queue and check it's the expected
+        const std::string &actualAssigned = cli.getQueueForFunc(callA);
+        REQUIRE(actualAssigned == queueNameD);
+
+        // Get another for this function, and check it draws from unassigned
+        const std::string &actualAssigned2 = cli.getQueueForFunc(callA);
+        REQUIRE(unassignedQueues.find(actualUnassigned) != unassignedQueues.end());
+        unassignedQueues.erase(actualUnassigned);
+
+        // Get another for the unassigned function and check it's the last unassigned value
+        const std::string &actualUnassigned2 = cli.getQueueForFunc(callB);
+        REQUIRE(actualUnassigned2 == *unassignedQueues.begin());
+
+        // Now try getting another for the assigned funciton and check we get an exception
+        REQUIRE_THROWS(cli.getQueueForFunc(callA));
+    }
+
     TEST_CASE("Test set range", "[redis]") {
         Redis cli;
         cli.flushAll();
@@ -150,13 +286,17 @@ namespace tests {
         // Check resultkey not set initially
         REQUIRE(!call.has_resultkey());
 
+        // Make sure there's a worker available
+        const std::string workerQueue = "dummyQ";
+        cli.addToUnassignedSet(workerQueue);
+
         cli.callFunction(call);
 
         // Check one function call on there
-        REQUIRE(cli.listLength("function_calls") == 1);
+        REQUIRE(cli.listLength(workerQueue) == 1);
 
         // Get the next call
-        message::FunctionCall actual = cli.nextFunctionCall();
+        message::FunctionCall actual = cli.nextFunctionCall(workerQueue);
 
         REQUIRE(funcName == actual.function());
         REQUIRE(userName == actual.user());

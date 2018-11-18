@@ -70,6 +70,12 @@ namespace tests {
         call.set_function("chain");
         call.set_resultkey("test_chain");
 
+        // Make sure enough available workers on unassigned
+        redis.addToUnassignedSet("worker 1");
+        redis.addToUnassignedSet("worker 2");
+        redis.addToUnassignedSet("worker 3");
+        redis.addToUnassignedSet("worker 4");
+
         // Run the execution
         execFunction(call);
 
@@ -78,9 +84,9 @@ namespace tests {
         REQUIRE(result.success());
 
         // Check the chained calls have been set up
-        message::FunctionCall chainA = redis.nextFunctionCall();
-        message::FunctionCall chainB = redis.nextFunctionCall();
-        message::FunctionCall chainC = redis.nextFunctionCall();
+        message::FunctionCall chainA = redis.nextFunctionCall("worker 2");
+        message::FunctionCall chainB = redis.nextFunctionCall("worker 3");
+        message::FunctionCall chainC = redis.nextFunctionCall("worker 4");
 
         // Check all are set with the right user
         REQUIRE(chainA.user() == "demo");
@@ -88,17 +94,35 @@ namespace tests {
         REQUIRE(chainC.user() == "demo");
 
         // Check function names
-        REQUIRE(chainA.function() == "echo");
-        REQUIRE(chainB.function() == "x2");
-        REQUIRE(chainC.function() == "dummy");
+        std::vector<message::FunctionCall> calls(3);
+        calls.push_back(chainA);
+        calls.push_back(chainB);
+        calls.push_back(chainC);
 
-        // Check function data
-        std::vector<uint8_t> expected0 = {0, 1, 2};
-        std::vector<uint8_t> expected1 = {1, 2, 3};
-        std::vector<uint8_t> expected2 = {2, 3, 4};
-        REQUIRE(util::stringToBytes(chainA.inputdata()) == expected0);
-        REQUIRE(util::stringToBytes(chainB.inputdata()) == expected1);
-        REQUIRE(util::stringToBytes(chainC.inputdata()) == expected2);
+        bool aFound = false;
+        bool bFound = false;
+        bool cFound = false;
+
+        for(const auto c : calls) {
+            if(c.function() == "echo") {
+                std::vector<uint8_t> expected = {0, 1, 2};
+                REQUIRE(util::stringToBytes(c.inputdata()) == expected);
+                aFound = true;
+            }
+            if(c.function() == "x2") {
+                std::vector<uint8_t> expected = {1, 2, 3};
+                REQUIRE(util::stringToBytes(c.inputdata()) == expected);
+                bFound = true;
+            }
+            if(c.function() == "dummy") {
+                std::vector<uint8_t> expected = {2, 3, 4};
+                REQUIRE(util::stringToBytes(c.inputdata()) == expected);
+                cFound = true;
+            }
+        }
+
+        bool allFound = aFound && bFound && cFound;
+        REQUIRE(allFound);
 
         tearDown();
     }

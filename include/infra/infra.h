@@ -38,6 +38,12 @@ namespace infra {
 
         void del(const std::string &key);
 
+        void sadd(const std::string &key, const std::string &value);
+
+        void srem(const std::string &key, const std::string &value);
+
+        std::string spop(const std::string &key);
+
         void setRange(const std::string &key, long offset, const std::vector<uint8_t> &value);
 
         std::vector<uint8_t> getRange(const std::string &key, long start, long end);
@@ -52,11 +58,19 @@ namespace infra {
 
         void callFunction(message::FunctionCall &call);
 
-        message::FunctionCall nextFunctionCall();
+        message::FunctionCall nextFunctionCall(const std::string &queueName);
 
         void setFunctionResult(message::FunctionCall &call, bool success);
 
         message::FunctionCall getFunctionResult(const message::FunctionCall &call);
+
+        void addToFunctionSet(const message::FunctionCall &call, const std::string &queueName);
+
+        void removeFromFunctionSet(const message::FunctionCall &call, const std::string &queueName);
+
+        void addToUnassignedSet(const std::string &queueName);
+
+        std::string getQueueForFunc(const message::FunctionCall &call);
 
         long getTtl(const std::string &key);
 

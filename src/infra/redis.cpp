@@ -59,6 +59,16 @@ namespace infra {
         return replyBytes;
     }
 
+    void Redis::sadd(const std::string &key, const std::string &value) {
+        auto reply = (redisReply *) redisCommand(context, "SADD %s %s", key.c_str(), value.c_str());
+        freeReplyObject(reply);
+    }
+
+    void Redis::srem(const std::string &key, const std::string &value) {
+        auto reply = (redisReply *) redisCommand(context, "SREM %s %s", key.c_str(), value.c_str());
+        freeReplyObject(reply);
+    }
+
     std::string Redis::spop(const std::string &key) {
         auto reply = (redisReply *) redisCommand(context, "SPOP %s", key.c_str());
 
@@ -157,19 +167,16 @@ namespace infra {
 
     void Redis::addToFunctionSet(const message::FunctionCall &call, const std::string &queueName) {
         std::string funcSet = getFunctionSetName(call);
-        auto reply = (redisReply *) redisCommand(context, "SADD %s %s", funcSet.c_str(), queueName.c_str());
-        freeReplyObject(reply);
+        this->sadd(funcSet, queueName);
     }
 
     void Redis::removeFromFunctionSet(const message::FunctionCall &call, const std::string &queueName) {
         std::string funcSet = getFunctionSetName(call);
-        auto reply = (redisReply *) redisCommand(context, "SREM %s %s", funcSet.c_str(), queueName.c_str());
-        freeReplyObject(reply);
+        this->srem(funcSet, queueName);
     }
 
     void Redis::addToUnassignedSet(const std::string &queueName) {
-        auto reply = (redisReply *) redisCommand(context, "SADD %s %s", UNASSIGNED_SET.c_str(), queueName.c_str());
-        freeReplyObject(reply);
+        this->sadd(UNASSIGNED_SET, queueName);
     }
     
     std::string Redis::getQueueForFunc(const message::FunctionCall &call) {

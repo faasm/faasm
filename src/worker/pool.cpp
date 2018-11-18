@@ -21,7 +21,7 @@ namespace worker {
             int workerIdx = tokenPool.getToken();
 
             // Spawn thread to execute function
-            std::thread funcThread([workerIdx]{
+            std::thread funcThread([workerIdx] {
                 Worker w(workerIdx);
                 w.run();
             });
@@ -33,7 +33,7 @@ namespace worker {
     Worker::Worker(int workerIdx) : workerIdx(workerIdx) {
         const std::string hostname = util::getEnvVar("HOSTNAME", "");
         queueName = hostname + "_" + std::to_string(workerIdx);
-        
+
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Starting worker {} on queue {}", workerIdx, queueName);
 
@@ -80,9 +80,9 @@ namespace worker {
         wasm::WasmModule module;
         module.initialise();
 
-        // Wait for next function call
+        // Wait for next function call on this thread's queue
         try {
-            call = redis->nextFunctionCall();
+            call = redis->nextFunctionCall(queueName);
         }
         catch (infra::RedisNoResponseException &e) {
             logger->debug("No calls made in timeout");
