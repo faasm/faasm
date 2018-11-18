@@ -31,8 +31,11 @@ namespace worker {
     }
 
     Worker::Worker(int workerIdx) : workerIdx(workerIdx) {
+        const std::string hostname = util::getEnvVar("HOSTNAME", "");
+        queueName = hostname + "_" + std::to_string(workerIdx);
+        
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Starting worker {}", workerIdx);
+        logger->debug("Starting worker {} on queue {}", workerIdx, queueName);
 
         // Get Redis connection before we isolate ourselves
         redis = infra::Redis::getThreadConnection();

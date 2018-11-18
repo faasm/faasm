@@ -62,6 +62,8 @@ namespace worker {
         int workerIdx;
         NetworkNamespace *ns;
 
+        std::string queueName;
+
         infra::Redis *redis;
 
         void finish();

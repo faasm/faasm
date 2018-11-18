@@ -6,7 +6,7 @@ include_directories(
 add_library(worker_lib
         cgroup.cpp
         network.cpp
-        execution.cpp
+        pool.cpp
         ${FAASM_INCLUDE_DIR}/worker/worker.h
 )
 
