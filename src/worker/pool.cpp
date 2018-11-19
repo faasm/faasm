@@ -103,12 +103,14 @@ namespace worker {
     }
 
     void Worker::runSingle() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         message::FunctionCall call = redis->nextFunctionCall(queueName);
         std::string errorMessage = this->executeCall(call);
 
         // Drop out if there's some issue
         if (!errorMessage.empty()) {
-            throw std::runtime_error(errorMessage);
+            logger->error("Call failed with error: {}", errorMessage);
         }
 
         this->finish();

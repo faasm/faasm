@@ -91,6 +91,9 @@ namespace wasm {
         Runtime::Function *functionInstance = nullptr;
 
         bool isBound = false;
+        std::string boundUser;
+        std::string boundFunction;
+
         bool isExecuted = false;
 
         void bindToFunction(message::FunctionCall &call, CallChain &callChain);

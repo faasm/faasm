@@ -46,6 +46,45 @@ namespace tests {
         tearDown();
     }
 
+    TEST_CASE("Test executing different functions with same worker fails", "[worker]") {
+        setUp();
+
+        message::FunctionCall callA;
+        callA.set_user("demo");
+        callA.set_function("echo");
+        callA.set_resultkey("test_echo");
+
+        message::FunctionCall callB;
+        callB.set_user("demo");
+        callB.set_function("dummy");
+        callB.set_resultkey("test_dummy");
+
+        // Set same worker to execute different functions
+        Worker w(1);
+        redis.addToFunctionSet(callA, w.queueName);
+        redis.addToFunctionSet(callB, w.queueName);
+
+        // Add the calls
+        redis.callFunction(callA);
+        redis.callFunction(callB);
+
+        // Execute both
+        w.runSingle();
+        w.runSingle();
+
+        // First should succeed, second should fail
+        const message::FunctionCall resultA = redis.getFunctionResult(callA);
+        const message::FunctionCall resultB = redis.getFunctionResult(callB);
+
+        REQUIRE(resultA.success());
+        REQUIRE(!resultB.success());
+
+        const std::string errorMsg = resultB.outputdata();
+        REQUIRE(errorMsg == "Error: Cannot perform repeat execution on different function");
+
+        tearDown();
+    }
+
     TEST_CASE("Test executing non-existent function", "[worker]") {
         setUp();
 

@@ -130,6 +130,8 @@ namespace wasm {
 
         // Record that this module is now bound
         isBound = true;
+        boundUser = call.user();
+        boundFunction = call.function();
     }
 
     /**
@@ -137,11 +139,12 @@ namespace wasm {
      */
     int WasmModule::execute(message::FunctionCall &call, CallChain &callChain) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         if(!isBound) {
             logger->debug("Binding to function {} - {}", call.user(), call.function());
             this->bindToFunction(call, callChain);
         }
-        else if(call.user() != executingCall->user() || call.function() != executingCall->function()) {
+        else if(call.user() != boundUser || call.function() != boundFunction) {
             logger->debug("Repeat call to function {} - {}", call.user(), call.function());
             throw std::runtime_error("Cannot perform repeat execution on different function");
         }
