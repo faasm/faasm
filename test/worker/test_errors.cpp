@@ -8,10 +8,11 @@ namespace tests {
     static infra::Redis redis;
 
     void execErrorFunction(message::FunctionCall &call) {
+        Worker w(1);
+
         redis.callFunction(call);
 
-        Worker w(1);
-        w.run();
+        w.runSingle();
     }
 
     void checkError(const std::string &funcName, const std::string &expectedMsg) {

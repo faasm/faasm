@@ -13,10 +13,8 @@ namespace infra {
     // This allows things operating within the network namespace to resolve it properly
     static std::string redisIp = "not_set";
 
-    static const int BLOCKING_TIMEOUT_SECONDS = 60;
+    static const int BLOCKING_TIMEOUT_SECONDS = 120;
     static const int RESULT_KEY_EXPIRY_SECONDS = 30;
-
-    static const std::string CALLS_QUEUE = "function_calls";
 
     Redis::Redis() {
         hostname = util::getEnvVar("REDIS_HOST", "localhost");
@@ -57,6 +55,50 @@ namespace infra {
         freeReplyObject(reply);
 
         return replyBytes;
+    }
+
+    bool Redis::sismember(const std::string &key, const std::string &value) {
+        auto reply = (redisReply *) redisCommand(context, "SISMEMBER %s %s", key.c_str(), value.c_str());
+
+        bool isMember = reply->integer > 0;
+
+        freeReplyObject(reply);
+
+        return isMember;
+    }
+
+    long Redis::scard(const std::string &key) {
+        auto reply = (redisReply *) redisCommand(context, "SCARD %s", key.c_str());
+
+        long count = reply->integer;
+        freeReplyObject(reply);
+
+        return count;
+    }
+
+    void Redis::sadd(const std::string &key, const std::string &value) {
+        auto reply = (redisReply *) redisCommand(context, "SADD %s %s", key.c_str(), value.c_str());
+        freeReplyObject(reply);
+    }
+
+    void Redis::srem(const std::string &key, const std::string &value) {
+        auto reply = (redisReply *) redisCommand(context, "SREM %s %s", key.c_str(), value.c_str());
+        freeReplyObject(reply);
+    }
+
+    std::string Redis::spop(const std::string &key) {
+        auto reply = (redisReply *) redisCommand(context, "SPOP %s", key.c_str());
+
+        std::string result;
+        if (reply->type == REDIS_REPLY_NIL) {
+            result = "";
+        }
+        else {
+            result = reply-> str;
+        }
+
+        freeReplyObject(reply);
+        return result;
     }
 
     void Redis::set(const std::string &key, const std::vector<uint8_t> &value) {
@@ -101,8 +143,6 @@ namespace infra {
         auto reply = (redisReply *) redisCommand(context, "BLPOP %s %d", queueName.c_str(), BLOCKING_TIMEOUT_SECONDS);
 
         if (reply == nullptr || reply->type == REDIS_REPLY_NIL) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            logger->debug("No response from Redis");
             throw RedisNoResponseException();
         }
 
@@ -134,8 +174,58 @@ namespace infra {
         return result;
     }
 
+    std::string getFunctionSetName(const message::FunctionCall &call) {
+        std::string funcSetName = "f_" + infra::funcToString(call);
+
+        return funcSetName;
+    }
+
+    void Redis::addToFunctionSet(const message::FunctionCall &call, const std::string &queueName) {
+        std::string funcSet = getFunctionSetName(call);
+        this->sadd(funcSet, queueName);
+    }
+
+    void Redis::removeFromFunctionSet(const message::FunctionCall &call, const std::string &queueName) {
+        std::string funcSet = getFunctionSetName(call);
+        this->srem(funcSet, queueName);
+    }
+
+    void Redis::addToUnassignedSet(const std::string &queueName) {
+        this->sadd(UNASSIGNED_SET, queueName);
+    }
+
+    void Redis::removeFromUnassignedSet(const std::string &queueName) {
+        this->srem(UNASSIGNED_SET, queueName);
+    }
+    
+    std::string Redis::getQueueForFunc(const message::FunctionCall &call) {
+        const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+        
+        // See if we can get something in the function's set
+        const std::string funcSet = getFunctionSetName(call);
+        std::string queueName = this->spop(funcSet);
+
+        if(!queueName.empty()) {
+            logger->debug("Warm start {}", funcToString(call));
+            return queueName;
+        }
+
+        // Try unassigned set if nothing from the func's set
+        queueName = this->spop(UNASSIGNED_SET);
+
+        if(queueName.empty()) {
+            throw std::runtime_error("Unable to find any available queues to take call");
+        }
+
+        logger->debug("Cold start {}", funcToString(call));
+
+        return queueName;
+    }
+    
     void Redis::callFunction(message::FunctionCall &call) {
         const auto &t = prof::startTimer();
+
+        std::string queueName = this->getQueueForFunc(call);
 
         // Generate a random result key
         int randomNumber = util::randomInteger();
@@ -146,15 +236,15 @@ namespace infra {
         std::vector<uint8_t> inputData = infra::callToBytes(call);
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Redis enqueued ({}/{})", call.user(), call.function());
+        logger->debug("Redis enqueued {}", infra::funcToString(call));
 
-        this->enqueue(CALLS_QUEUE, inputData);
+        this->enqueue(queueName, inputData);
 
         prof::logEndTimer("call-function", t);
     }
 
-    message::FunctionCall Redis::nextFunctionCall() {
-        std::vector<uint8_t> dequeueResult = this->dequeue(CALLS_QUEUE);
+    message::FunctionCall Redis::nextFunctionCall(const std::string &queueName) {
+        std::vector<uint8_t> dequeueResult = this->dequeue(queueName);
 
         const auto &t = prof::startTimer();
 
@@ -162,7 +252,7 @@ namespace infra {
         call.ParseFromArray(dequeueResult.data(), (int) dequeueResult.size());
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Redis dequeued ({}/{})", call.user(), call.function());
+        logger->debug("Redis dequeued {}", infra::funcToString(call));
 
         prof::logEndTimer("next-function", t);
         return call;

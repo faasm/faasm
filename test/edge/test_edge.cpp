@@ -140,6 +140,10 @@ namespace tests {
         infra::Redis cli;
         cli.flushAll();
 
+        // Make sure there's a worker queue in the unassigned queue
+        const std::string workerQueue = "dummyQ";
+        cli.addToUnassignedSet(workerQueue);
+
         // Note - must be async to avoid needing a result
         std::string path = "/fa/foo/bar";
         std::vector<uint8_t> inputData = {'a', 'b', 'c'};
@@ -148,7 +152,7 @@ namespace tests {
         request.set_method(methods::POST);
         edge::RestServer::handlePost(request);
 
-        const message::FunctionCall actual = cli.nextFunctionCall();
+        const message::FunctionCall actual = cli.nextFunctionCall(workerQueue);
 
         REQUIRE(actual.user() == "foo");
         REQUIRE(actual.function() == "bar");

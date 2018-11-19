@@ -15,12 +15,18 @@ namespace infra {
 
     std::vector<uint8_t> getFunctionObjectBytes(const message::FunctionCall &call);
 
+    std::string getFunctionSetName(const message::FunctionCall &call);
+
     bool isValidFunction(const message::FunctionCall &call);
+
+    std::string funcToString(const message::FunctionCall &call);
 
     /** Serialisation */
     std::vector<uint8_t> callToBytes(const message::FunctionCall &call);
 
     /** Redis client */
+    static const std::string UNASSIGNED_SET = "unassigned";
+
     class Redis {
 
     public:
@@ -38,6 +44,16 @@ namespace infra {
 
         void del(const std::string &key);
 
+        void sadd(const std::string &key, const std::string &value);
+
+        void srem(const std::string &key, const std::string &value);
+
+        bool sismember(const std::string &key, const std::string &value);
+
+        long scard(const std::string &key);
+
+        std::string spop(const std::string &key);
+
         void setRange(const std::string &key, long offset, const std::vector<uint8_t> &value);
 
         std::vector<uint8_t> getRange(const std::string &key, long start, long end);
@@ -52,11 +68,21 @@ namespace infra {
 
         void callFunction(message::FunctionCall &call);
 
-        message::FunctionCall nextFunctionCall();
+        message::FunctionCall nextFunctionCall(const std::string &queueName);
 
         void setFunctionResult(message::FunctionCall &call, bool success);
 
         message::FunctionCall getFunctionResult(const message::FunctionCall &call);
+
+        void addToFunctionSet(const message::FunctionCall &call, const std::string &queueName);
+
+        void removeFromFunctionSet(const message::FunctionCall &call, const std::string &queueName);
+
+        void addToUnassignedSet(const std::string &queueName);
+
+        void removeFromUnassignedSet(const std::string &queueName);
+
+        std::string getQueueForFunc(const message::FunctionCall &call);
 
         long getTtl(const std::string &key);
 

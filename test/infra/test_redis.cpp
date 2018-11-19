@@ -82,6 +82,151 @@ namespace tests {
         REQUIRE(actualDel2.empty());
     }
     
+    TEST_CASE("Test adding to unassigned set", "[redis]") {
+        Redis cli;
+        cli.flushAll();
+        
+        std::string queueNameA = "flahblah";
+        std::string queueNameB = "clahdlah";
+        std::set<std::string> expected = {queueNameA, queueNameB};
+
+        cli.addToUnassignedSet(queueNameA);
+
+        REQUIRE(cli.scard(UNASSIGNED_SET) == 1);
+        REQUIRE(cli.sismember(UNASSIGNED_SET, queueNameA));
+        REQUIRE(!cli.sismember(UNASSIGNED_SET, queueNameB));
+
+        cli.addToUnassignedSet(queueNameB);
+
+        REQUIRE(cli.scard(UNASSIGNED_SET) == 2);
+        REQUIRE(cli.sismember(UNASSIGNED_SET, queueNameA));
+        REQUIRE(cli.sismember(UNASSIGNED_SET, queueNameB));
+
+        cli.removeFromUnassignedSet(queueNameA);
+        REQUIRE(!cli.sismember(UNASSIGNED_SET, queueNameA));
+        REQUIRE(cli.sismember(UNASSIGNED_SET, queueNameB));
+        REQUIRE(cli.scard(UNASSIGNED_SET) == 1);
+    }
+
+    TEST_CASE("Test adding to/ removing from function set", "[redis]") {
+        Redis cli;
+        cli.flushAll();
+
+        std::string queueNameA = "flahblah";
+        std::string queueNameB = "clahdlah";
+
+        message::FunctionCall callA;
+        callA.set_user("user_a");
+        callA.set_function("func_a");
+
+        std::string funcSetA = getFunctionSetName(callA);
+
+        // Check empty to start with
+        REQUIRE(cli.scard(funcSetA) == 0);
+
+        // Add to sets and check
+        cli.addToFunctionSet(callA, queueNameA);
+        REQUIRE(cli.sismember(funcSetA, queueNameA));
+        REQUIRE(!cli.sismember(funcSetA, queueNameB));
+        REQUIRE(cli.scard(funcSetA) == 1);
+
+        cli.addToFunctionSet(callA, queueNameB);
+        REQUIRE(cli.sismember(funcSetA, queueNameA));
+        REQUIRE(cli.sismember(funcSetA, queueNameB));
+        REQUIRE(cli.scard(funcSetA) == 2);
+
+        // Remove and check
+        cli.removeFromFunctionSet(callA, queueNameA);
+        REQUIRE(!cli.sismember(funcSetA, queueNameA));
+        REQUIRE(cli.sismember(funcSetA, queueNameB));
+        REQUIRE(cli.scard(funcSetA) == 1);
+    }
+
+    TEST_CASE("Test adding and removing from set", "[redis]") {
+        Redis cli;
+        cli.flushAll();
+
+        std::string setName = "test_set";
+
+        // Check set empty initially
+        REQUIRE(cli.spop(setName).empty());
+
+        // Add a few values
+        std::string valA = "valA";
+        std::string valB = "valB";
+        std::string valC = "valC";
+        cli.sadd(setName, valA);
+        cli.sadd(setName, valB);
+        cli.sadd(setName, valC);
+
+        // Explicitly remove one
+        cli.srem(setName, valB);
+
+        // Get two randoms
+        std::string actualA = cli.spop(setName);
+        std::string actualC = cli.spop(setName);
+
+        std::set<std::string> actuals = {actualA, actualC};
+
+        // Check both are present in the actuals
+        REQUIRE(actuals.find(valA) != actuals.end());
+        REQUIRE(actuals.find(valC) != actuals.end());
+
+        // Check set is now empty
+        REQUIRE(cli.spop(setName).empty());
+    }
+
+    TEST_CASE("Test getting queue for function", "[redis]") {
+        Redis cli;
+        cli.flushAll();
+
+        std::string queueNameA = "aaa";
+        std::string queueNameB = "bbb";
+        std::string queueNameC = "ccc";
+        std::string queueNameD = "ddd";
+
+        message::FunctionCall callA;
+        callA.set_user("user_a");
+        callA.set_function("func_a");
+
+        message::FunctionCall callB;
+        callB.set_user("user_b");
+        callB.set_function("func_b");
+
+        // Add a the rest to assigned
+        cli.addToUnassignedSet(queueNameA);
+        cli.addToUnassignedSet(queueNameB);
+        cli.addToUnassignedSet(queueNameC);
+        std::set<std::string> unassignedQueues = {queueNameA, queueNameB, queueNameC};
+
+        // Add one to the function set for one of the functions
+        cli.addToFunctionSet(callA, queueNameD);
+        
+        // Get queue for the function with no assigned queue and check it's one
+        // from the unassigned set
+        const std::string actualUnassigned = cli.getQueueForFunc(callB);
+        bool isFound = unassignedQueues.find(actualUnassigned) != unassignedQueues.end();
+        REQUIRE(isFound);
+        unassignedQueues.erase(actualUnassigned);
+
+        // Get queue for function with an assigned queue and check it's the expected
+        const std::string actualAssigned = cli.getQueueForFunc(callA);
+        REQUIRE(actualAssigned == queueNameD);
+
+        // Get another for this function, and check it draws from unassigned
+        const std::string actualAssigned2 = cli.getQueueForFunc(callA);
+        bool isFound2 = unassignedQueues.find(actualAssigned2) != unassignedQueues.end();
+        REQUIRE(isFound2);
+        unassignedQueues.erase(actualAssigned2);
+
+        // Get another for the unassigned function and check it's the last unassigned value
+        const std::string actualUnassigned2 = cli.getQueueForFunc(callB);
+        REQUIRE(actualUnassigned2 == *unassignedQueues.begin());
+
+        // Now try getting another for the assigned funciton and check we get an exception
+        REQUIRE_THROWS(cli.getQueueForFunc(callA));
+    }
+
     TEST_CASE("Test set range", "[redis]") {
         Redis cli;
         cli.flushAll();
@@ -150,13 +295,17 @@ namespace tests {
         // Check resultkey not set initially
         REQUIRE(!call.has_resultkey());
 
+        // Make sure there's a worker available
+        const std::string workerQueue = "dummyQ";
+        cli.addToUnassignedSet(workerQueue);
+
         cli.callFunction(call);
 
         // Check one function call on there
-        REQUIRE(cli.listLength("function_calls") == 1);
+        REQUIRE(cli.listLength(workerQueue) == 1);
 
         // Get the next call
-        message::FunctionCall actual = cli.nextFunctionCall();
+        message::FunctionCall actual = cli.nextFunctionCall(workerQueue);
 
         REQUIRE(funcName == actual.function());
         REQUIRE(userName == actual.user());

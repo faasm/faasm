@@ -19,10 +19,12 @@ namespace tests {
     }
 
     void execFunction(message::FunctionCall &call) {
-        redis.callFunction(call);
-
         Worker w(1);
-        w.run();
+        redis.callFunction(call);
+        w.runSingle();
+
+        // Check worker is now in the function's set
+        redis.sismember(infra::getFunctionSetName(call), w.queueName);
     }
 
     TEST_CASE("Test full execution of WASM module", "[worker]") {
@@ -45,6 +47,45 @@ namespace tests {
         tearDown();
     }
 
+    TEST_CASE("Test executing different functions with same worker fails", "[worker]") {
+        setUp();
+
+        message::FunctionCall callA;
+        callA.set_user("demo");
+        callA.set_function("echo");
+        callA.set_resultkey("test_echo");
+
+        message::FunctionCall callB;
+        callB.set_user("demo");
+        callB.set_function("dummy");
+        callB.set_resultkey("test_dummy");
+
+        // Set same worker to execute different functions
+        Worker w(1);
+        redis.addToFunctionSet(callA, w.queueName);
+        redis.addToFunctionSet(callB, w.queueName);
+
+        // Add the calls
+        redis.callFunction(callA);
+        redis.callFunction(callB);
+
+        // Execute both
+        w.runSingle();
+        w.runSingle();
+
+        // First should succeed, second should fail
+        const message::FunctionCall resultA = redis.getFunctionResult(callA);
+        const message::FunctionCall resultB = redis.getFunctionResult(callB);
+
+        REQUIRE(resultA.success());
+        REQUIRE(!resultB.success());
+
+        const std::string errorMsg = resultB.outputdata();
+        REQUIRE(errorMsg == "Error: Cannot perform repeat execution on different function");
+
+        tearDown();
+    }
+
     TEST_CASE("Test executing non-existent function", "[worker]") {
         setUp();
 
@@ -57,7 +98,7 @@ namespace tests {
         message::FunctionCall result = redis.getFunctionResult(call);
 
         REQUIRE(!result.success());
-        REQUIRE(result.outputdata() == "foobar - baz is not a valid function");
+        REQUIRE(result.outputdata() == "foobar/baz is not a valid function");
 
         tearDown();
     }
@@ -70,17 +111,31 @@ namespace tests {
         call.set_function("chain");
         call.set_resultkey("test_chain");
 
-        // Run the execution
-        execFunction(call);
+        // Set up a real worker to execute this function. Remove it from the
+        // unassigned set and add to handle this function
+        Worker w(1);
+        redis.removeFromUnassignedSet(w.queueName);
+        redis.addToFunctionSet(call, w.queueName);
+
+        // Set up some unassigned fake workers
+        redis.addToUnassignedSet("worker 2");
+        redis.addToUnassignedSet("worker 3");
+        redis.addToUnassignedSet("worker 4");
+
+        // Make the call
+        redis.callFunction(call);
+
+        // Execute the worker
+        w.runSingle();
 
         // Check the call executed successfully
         message::FunctionCall result = redis.getFunctionResult(call);
         REQUIRE(result.success());
 
         // Check the chained calls have been set up
-        message::FunctionCall chainA = redis.nextFunctionCall();
-        message::FunctionCall chainB = redis.nextFunctionCall();
-        message::FunctionCall chainC = redis.nextFunctionCall();
+        message::FunctionCall chainA = redis.nextFunctionCall("worker 2");
+        message::FunctionCall chainB = redis.nextFunctionCall("worker 3");
+        message::FunctionCall chainC = redis.nextFunctionCall("worker 4");
 
         // Check all are set with the right user
         REQUIRE(chainA.user() == "demo");
@@ -88,17 +143,35 @@ namespace tests {
         REQUIRE(chainC.user() == "demo");
 
         // Check function names
-        REQUIRE(chainA.function() == "echo");
-        REQUIRE(chainB.function() == "x2");
-        REQUIRE(chainC.function() == "dummy");
+        std::vector<message::FunctionCall> calls(3);
+        calls.push_back(chainA);
+        calls.push_back(chainB);
+        calls.push_back(chainC);
 
-        // Check function data
-        std::vector<uint8_t> expected0 = {0, 1, 2};
-        std::vector<uint8_t> expected1 = {1, 2, 3};
-        std::vector<uint8_t> expected2 = {2, 3, 4};
-        REQUIRE(util::stringToBytes(chainA.inputdata()) == expected0);
-        REQUIRE(util::stringToBytes(chainB.inputdata()) == expected1);
-        REQUIRE(util::stringToBytes(chainC.inputdata()) == expected2);
+        bool aFound = false;
+        bool bFound = false;
+        bool cFound = false;
+
+        for(const auto c : calls) {
+            if(c.function() == "echo") {
+                std::vector<uint8_t> expected = {0, 1, 2};
+                REQUIRE(util::stringToBytes(c.inputdata()) == expected);
+                aFound = true;
+            }
+            if(c.function() == "x2") {
+                std::vector<uint8_t> expected = {1, 2, 3};
+                REQUIRE(util::stringToBytes(c.inputdata()) == expected);
+                bFound = true;
+            }
+            if(c.function() == "dummy") {
+                std::vector<uint8_t> expected = {2, 3, 4};
+                REQUIRE(util::stringToBytes(c.inputdata()) == expected);
+                cFound = true;
+            }
+        }
+
+        bool allFound = aFound && bFound && cFound;
+        REQUIRE(allFound);
 
         tearDown();
     }

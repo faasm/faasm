@@ -33,6 +33,11 @@ namespace wasm {
     WasmModule::~WasmModule() {
 //        delete compartment;
 //        delete context;
+
+        // Tidy up
+        if(isExecuted) {
+            Runtime::collectCompartmentGarbage(compartment);
+        }
     }
 
     void WasmModule::initialise() {
@@ -61,12 +66,9 @@ namespace wasm {
         prof::logEndTimer("pre-init", t);
     }
 
-    /**
-     * Executes the given function call
-     */
-    int WasmModule::execute(message::FunctionCall &call, CallChain &callChain) {
+    void WasmModule::bindToFunction(message::FunctionCall &call, CallChain &callChain) {
         if(compartment == nullptr) {
-            throw std::runtime_error("Must initialise module before executing");
+            throw std::runtime_error("Must initialise module before binding");
         }
 
         //TODO this referencing could be done better
@@ -75,56 +77,6 @@ namespace wasm {
         executingCall = &call;
         executingCallChain = &callChain;
 
-        Runtime::ModuleInstance *moduleInstance = this->load(call);
-
-        // Extract the module's exported function
-        // Note that an underscore may be added before the function name by the compiler
-        Runtime::Function *functionInstance = asFunctionNullable(
-                getInstanceExport(moduleInstance, ENTRYPOINT_FUNC));
-
-        if (!functionInstance) {
-            std::string errorMsg = "No exported function \"" + ENTRYPOINT_FUNC + "\"";
-            throw std::runtime_error(errorMsg);
-        }
-
-        // Set up public properties
-        this->defaultMemory = getDefaultMemory(moduleInstance);
-
-        // Make the call
-        const auto &t = prof::startTimer();
-        int exitCode = 0;
-        std::vector<IR::Value> invokeArgs;
-        try {
-            invokeFunctionChecked(context, functionInstance, invokeArgs);
-        }
-        catch (wasm::WasmExitException &e) {
-            exitCode = e.exitCode;
-        }
-        prof::logEndTimer("exec", t);
-
-        // Tidy up
-        Runtime::collectCompartmentGarbage(compartment);
-
-        return exitCode;
-    }
-
-    std::vector<uint8_t> WasmModule::compile(message::FunctionCall &call) {
-        // Parse the wasm file to work out imports, function signatures etc.
-        WasmModule tempModule;
-        tempModule.parseWasm(call);
-
-        // Compile the module to object code
-        Runtime::ModuleRef module = Runtime::compileModule(tempModule.module);
-        return Runtime::getObjectCode(module);
-    }
-
-    void WasmModule::compileToObjectFile(message::FunctionCall &call) {
-        std::vector<uint8_t> objBytes = wasm::WasmModule::compile(call);
-        std::string objFilePath = infra::getFunctionObjectFile(call);
-        util::writeBytesToFile(objFilePath, objBytes);
-    }
-
-    Runtime::ModuleInstance *WasmModule::load(message::FunctionCall &call) {
         // Parse the wasm file to work out imports, function signatures etc.
         this->parseWasm(call);
 
@@ -152,16 +104,81 @@ namespace wasm {
 
         // Instantiate the module, i.e. create memory, tables etc.
         const auto &t4 = prof::startTimer();
-        std::string moduleName = call.user() + " - " + call.function();
-        Runtime::ModuleInstance *moduleInstance = instantiateModule(
+
+        moduleInstance = instantiateModule(
                 compartment,
                 compiledModule,
                 std::move(linkResult.resolvedImports),
-                moduleName.c_str()
+                infra::funcToString(call)
         );
+
         prof::logEndTimer("instantiate", t4);
 
-        return moduleInstance;
+        // Extract the module's exported function
+        // Note that an underscore may be added before the function name by the compiler
+        functionInstance = asFunctionNullable(
+                getInstanceExport(moduleInstance, ENTRYPOINT_FUNC));
+
+        if (!functionInstance) {
+            std::string errorMsg = "No exported function \"" + ENTRYPOINT_FUNC + "\"";
+            throw std::runtime_error(errorMsg);
+        }
+
+        // Set up public properties
+        this->defaultMemory = getDefaultMemory(moduleInstance);
+
+        // Record that this module is now bound
+        isBound = true;
+        boundUser = call.user();
+        boundFunction = call.function();
+    }
+
+    /**
+     * Executes the given function call
+     */
+    int WasmModule::execute(message::FunctionCall &call, CallChain &callChain) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        if(!isBound) {
+            logger->debug("Binding to function {}", infra::funcToString(call));
+            this->bindToFunction(call, callChain);
+        }
+        else if(call.user() != boundUser || call.function() != boundFunction) {
+            logger->debug("Repeat call to function {}", infra::funcToString(call));
+            throw std::runtime_error("Cannot perform repeat execution on different function");
+        }
+
+        // Make the call
+        const auto &t = prof::startTimer();
+        int exitCode = 0;
+        std::vector<IR::Value> invokeArgs;
+        try {
+            invokeFunctionChecked(context, functionInstance, invokeArgs);
+        }
+        catch (wasm::WasmExitException &e) {
+            exitCode = e.exitCode;
+        }
+        prof::logEndTimer("exec", t);
+
+        isExecuted = true;
+
+        return exitCode;
+    }
+
+    std::vector<uint8_t> WasmModule::compile(message::FunctionCall &call) {
+        // Parse the wasm file to work out imports, function signatures etc.
+        WasmModule tempModule;
+        tempModule.parseWasm(call);
+
+        // Compile the module to object code
+        Runtime::ModuleRef module = Runtime::compileModule(tempModule.module);
+        return Runtime::getObjectCode(module);
+    }
+
+    void WasmModule::compileToObjectFile(message::FunctionCall &call) {
+        std::vector<uint8_t> objBytes = wasm::WasmModule::compile(call);
+        std::string objFilePath = infra::getFunctionObjectFile(call);
+        util::writeBytesToFile(objFilePath, objBytes);
     }
 
     /**

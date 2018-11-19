@@ -12,6 +12,6 @@ namespace prof {
         long time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
         const std::shared_ptr<spdlog::logger> &l = util::getLogger();
-        l->debug("{} - {}", label, time);
+        l->trace("{} - {}", label, time);
     }
 }

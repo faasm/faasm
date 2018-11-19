@@ -22,17 +22,12 @@ namespace wasm {
         for (auto chainedCall : calls) {
             // Check if call is valid
             if (!infra::isValidFunction(chainedCall)) {
-                std::string errorMessage = "Invalid chained function call: ";
-                errorMessage.append(chainedCall.user());
-                errorMessage.append(" - ");
-                errorMessage.append(chainedCall.function());
+                std::string errorMessage = "Invalid chained function call: " + infra::funcToString(chainedCall);
 
                 return errorMessage;
             }
 
-            logger->debug("Chaining {}/{} -> {}/{}",
-                          originalCall.user(), originalCall.function(),
-                          chainedCall.user(), chainedCall.function());
+            logger->debug("Chaining {} -> {}", infra::funcToString(originalCall), infra::funcToString(chainedCall));
             redis->callFunction(chainedCall);
         }
 

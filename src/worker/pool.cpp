@@ -2,7 +2,6 @@
 
 #include <infra/infra.h>
 #include <prof/prof.h>
-#include <wasm/wasm.h>
 
 #include <spdlog/spdlog.h>
 #include <thread>
@@ -21,7 +20,7 @@ namespace worker {
             int workerIdx = tokenPool.getToken();
 
             // Spawn thread to execute function
-            std::thread funcThread([workerIdx]{
+            std::thread funcThread([workerIdx] {
                 Worker w(workerIdx);
                 w.run();
             });
@@ -31,8 +30,11 @@ namespace worker {
     }
 
     Worker::Worker(int workerIdx) : workerIdx(workerIdx) {
+        const std::string hostname = util::getEnvVar("HOSTNAME", "");
+        queueName = hostname + "_" + std::to_string(workerIdx);
+
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Starting worker {}", workerIdx);
+        logger->debug("Starting worker {} on queue {}", workerIdx, queueName);
 
         // Get Redis connection before we isolate ourselves
         redis = infra::Redis::getThreadConnection();
@@ -46,6 +48,12 @@ namespace worker {
         // Add this thread to the cgroup
         CGroup cgroup(BASE_CGROUP_NAME);
         cgroup.addCurrentThread();
+
+        // Initialise wasm module
+        module.initialise();
+
+        // Add to unassigned set to request work
+        redis->addToUnassignedSet(queueName);
     }
 
     Worker::~Worker() {
@@ -57,9 +65,9 @@ namespace worker {
         tokenPool.releaseToken(workerIdx);
     }
 
-    void Worker::finishCall(const std::string &errorMsg) {
+    void Worker::finishCall(message::FunctionCall &call, const std::string &errorMsg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->info("Finished ({}/{})", call.user(), call.function());
+        logger->info("Finished {}", infra::funcToString(call));
 
         bool isSuccess = errorMsg.empty();
         if (!isSuccess) {
@@ -73,35 +81,55 @@ namespace worker {
     void Worker::run() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Initialise wasm module
-        wasm::WasmModule module;
-        module.initialise();
+        // Wait for next function call on this thread's queue
+        while (true) {
+            try {
+                message::FunctionCall call = redis->nextFunctionCall(queueName);
+                std::string errorMessage = this->executeCall(call);
 
-        // Wait for next function call
-        try {
-            call = redis->nextFunctionCall();
+                // Drop out if there's some issue
+                if (!errorMessage.empty()) {
+                    break;
+                }
+            }
+            catch (infra::RedisNoResponseException &e) {
+                logger->debug("No calls made in timeout");
+                this->finish();
+                return;
+            }
         }
-        catch (infra::RedisNoResponseException &e) {
-            logger->debug("No calls made in timeout");
-            this->finish();
-            return;
+
+        this->finish();
+    }
+
+    void Worker::runSingle() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        message::FunctionCall call = redis->nextFunctionCall(queueName);
+        std::string errorMessage = this->executeCall(call);
+
+        // Drop out if there's some issue
+        if (!errorMessage.empty()) {
+            logger->error("Call failed with error: {}", errorMessage);
         }
+
+        this->finish();
+    }
+
+    const std::string Worker::executeCall(message::FunctionCall &call) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         const std::chrono::steady_clock::time_point &t = prof::startTimer();
 
         // Bomb out if call isn't valid
         if (!infra::isValidFunction(call)) {
-            std::string errorMessage = call.user();
-            errorMessage.append(" - ");
-            errorMessage.append(call.function());
-            errorMessage.append(" is not a valid function");
+            std::string errorMessage = infra::funcToString(call) + " is not a valid function";
 
-            this->finish();
-            this->finishCall(errorMessage);
-            return;
+            this->finishCall(call, errorMessage);
+            return errorMessage;
         }
 
-        logger->info("Starting ({}/{})", call.user(), call.function());
+        logger->info("Starting {}", infra::funcToString(call));
 
         // Create and execute the module
         wasm::CallChain callChain(call);
@@ -112,21 +140,24 @@ namespace worker {
             std::string errorMessage = "Error: " + std::string(e.what());
             logger->error(errorMessage);
 
-            this->finish();
-            this->finishCall(errorMessage);
-            return;
+            this->finishCall(call, errorMessage);
+            return errorMessage;
         }
 
         // Process any chained calls
         std::string chainErrorMessage = callChain.execute();
         if (!chainErrorMessage.empty()) {
-            this->finish();
-            this->finishCall(chainErrorMessage);
+            this->finishCall(call, chainErrorMessage);
+            return chainErrorMessage;
         }
 
-        this->finish();
-        this->finishCall("");
+        const std::string empty;
+        this->finishCall(call, empty);
+
+        logger->debug("Adding worker to function set for {}", infra::funcToString(call));
+        redis->addToFunctionSet(call, queueName);
 
         prof::logEndTimer("func-total", t);
+        return empty;
     }
 }

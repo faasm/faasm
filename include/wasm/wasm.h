@@ -81,14 +81,23 @@ namespace wasm {
         int execute(message::FunctionCall &call, CallChain &callChain);
 
         Runtime::Memory *defaultMemory;
+
+        bool isBound = false;
     private:
         IR::Module module;
 
+        Runtime::ModuleInstance * moduleInstance = nullptr;
         Runtime::Context * context = nullptr;
         Runtime::Compartment * compartment = nullptr;
         RootResolver *resolver = nullptr;
+        Runtime::Function *functionInstance = nullptr;
 
-        Runtime::ModuleInstance *load(message::FunctionCall &call);
+        std::string boundUser;
+        std::string boundFunction;
+
+        bool isExecuted = false;
+
+        void bindToFunction(message::FunctionCall &call, CallChain &callChain);
 
         void parseWasm(message::FunctionCall &call);
     };
