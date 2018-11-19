@@ -13,7 +13,7 @@ namespace infra {
     // This allows things operating within the network namespace to resolve it properly
     static std::string redisIp = "not_set";
 
-    static const int BLOCKING_TIMEOUT_SECONDS = 60;
+    static const int BLOCKING_TIMEOUT_SECONDS = 120;
     static const int RESULT_KEY_EXPIRY_SECONDS = 30;
 
     Redis::Redis() {
@@ -143,8 +143,6 @@ namespace infra {
         auto reply = (redisReply *) redisCommand(context, "BLPOP %s %d", queueName.c_str(), BLOCKING_TIMEOUT_SECONDS);
 
         if (reply == nullptr || reply->type == REDIS_REPLY_NIL) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            logger->debug("No values on queue {}", queueName);
             throw RedisNoResponseException();
         }
 
@@ -201,11 +199,14 @@ namespace infra {
     }
     
     std::string Redis::getQueueForFunc(const message::FunctionCall &call) {
+        const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+        
         // See if we can get something in the function's set
         const std::string funcSet = getFunctionSetName(call);
         std::string queueName = this->spop(funcSet);
 
         if(!queueName.empty()) {
+            logger->debug("Warm start {}", funcToString(call));
             return queueName;
         }
 
@@ -215,6 +216,8 @@ namespace infra {
         if(queueName.empty()) {
             throw std::runtime_error("Unable to find any available queues to take call");
         }
+
+        logger->debug("Cold start {}", funcToString(call));
 
         return queueName;
     }
