@@ -11,6 +11,9 @@ namespace worker {
     // TODO - must match the underlying number of available namespaces. Good to decouple?
     static int N_THREADS = 10;
 
+    static int UNBOUND_TIMEOUT = 120;
+    static int BOUND_TIMEOUT = 30;
+
     static util::TokenPool tokenPool(N_THREADS);
 
     void startWorkerPool() {
@@ -84,7 +87,16 @@ namespace worker {
         // Wait for next function call on this thread's queue
         while (true) {
             try {
-                message::FunctionCall call = redis->nextFunctionCall(queueName);
+                int timeout;
+                if(module.isBound) {
+                    timeout = BOUND_TIMEOUT;
+                }
+                else {
+                    timeout = UNBOUND_TIMEOUT;
+                }
+
+                message::FunctionCall call = redis->nextFunctionCall(queueName, timeout);
+
                 std::string errorMessage = this->executeCall(call);
 
                 // Drop out if there's some issue

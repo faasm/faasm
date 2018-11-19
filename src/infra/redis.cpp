@@ -13,7 +13,6 @@ namespace infra {
     // This allows things operating within the network namespace to resolve it properly
     static std::string redisIp = "not_set";
 
-    static const int BLOCKING_TIMEOUT_SECONDS = 120;
     static const int RESULT_KEY_EXPIRY_SECONDS = 30;
 
     Redis::Redis() {
@@ -139,8 +138,8 @@ namespace infra {
         freeReplyObject(reply);
     }
 
-    std::vector<uint8_t> Redis::dequeue(const std::string &queueName) {
-        auto reply = (redisReply *) redisCommand(context, "BLPOP %s %d", queueName.c_str(), BLOCKING_TIMEOUT_SECONDS);
+    std::vector<uint8_t> Redis::dequeue(const std::string &queueName, int timeout) {
+        auto reply = (redisReply *) redisCommand(context, "BLPOP %s %d", queueName.c_str(), timeout);
 
         if (reply == nullptr || reply->type == REDIS_REPLY_NIL) {
             throw RedisNoResponseException();
@@ -243,8 +242,8 @@ namespace infra {
         prof::logEndTimer("call-function", t);
     }
 
-    message::FunctionCall Redis::nextFunctionCall(const std::string &queueName) {
-        std::vector<uint8_t> dequeueResult = this->dequeue(queueName);
+    message::FunctionCall Redis::nextFunctionCall(const std::string &queueName, int timeout) {
+        std::vector<uint8_t> dequeueResult = this->dequeue(queueName, timeout);
 
         const auto &t = prof::startTimer();
 

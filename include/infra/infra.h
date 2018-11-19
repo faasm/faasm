@@ -26,6 +26,7 @@ namespace infra {
 
     /** Redis client */
     static const std::string UNASSIGNED_SET = "unassigned";
+    static const int DEFAULT_TIMEOUT_SECONDS = 60;
 
     class Redis {
 
@@ -60,7 +61,7 @@ namespace infra {
 
         void enqueue(const std::string &queueName, const std::vector<uint8_t> &value);
 
-        std::vector<uint8_t> dequeue(const std::string &queueName);
+        std::vector<uint8_t> dequeue(const std::string &queueName, int timeout=DEFAULT_TIMEOUT_SECONDS);
 
         void flushAll();
 
@@ -68,7 +69,7 @@ namespace infra {
 
         void callFunction(message::FunctionCall &call);
 
-        message::FunctionCall nextFunctionCall(const std::string &queueName);
+        message::FunctionCall nextFunctionCall(const std::string &queueName, int timeout=DEFAULT_TIMEOUT_SECONDS);
 
         void setFunctionResult(message::FunctionCall &call, bool success);
 
