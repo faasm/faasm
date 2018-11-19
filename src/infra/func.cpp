@@ -69,4 +69,9 @@ namespace infra {
 
         return inputData;
     }
+
+    std::string funcToString(const message::FunctionCall &call) {
+        std::string str = call.user() + "/" + call.function();
+        return str;
+    }
 }

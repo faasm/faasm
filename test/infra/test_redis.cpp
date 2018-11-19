@@ -119,7 +119,7 @@ namespace tests {
         callA.set_user("user_a");
         callA.set_function("func_a");
 
-        std::string funcSetA = "f_user_a_func_a";
+        std::string funcSetA = getFunctionSetName(callA);
 
         // Check empty to start with
         REQUIRE(cli.scard(funcSetA) == 0);

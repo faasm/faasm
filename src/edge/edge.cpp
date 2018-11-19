@@ -76,16 +76,16 @@ namespace edge {
 
         if (call.isasync()) {
             // Don't wait for result
-            logger->info("Async request ({}/{})", call.user(), call.function());
+            logger->info("Async request {}", infra::funcToString(call));
             request.reply(status_codes::Created, "Async request submitted\n");
         } else {
-            logger->info("Sync request ({}/{})", call.user(), call.function());
+            logger->info("Sync request {}", infra::funcToString(call));
             message::FunctionCall result = redis->getFunctionResult(call);
 
             const std::chrono::steady_clock::time_point &t2 = prof::startTimer();
 
             request.reply(status_codes::OK, result.outputdata() + "\n");
-            logger->info("Finished request ({}/{})", call.user(), call.function());
+            logger->info("Finished request {}", infra::funcToString(call));
 
             prof::logEndTimer("edge-reply", t2);
         }
@@ -149,7 +149,7 @@ namespace edge {
         message::FunctionCall call = RestServer::buildCallFromRequest(request);
         std::string outputFile = infra::getFunctionFile(call);
 
-        logger->info("Uploading ({}/{})", call.user(), call.function());
+        logger->info("Uploading {}", infra::funcToString(call));
 
         // Here the call input data is actually the file
         std::ofstream out(outputFile);

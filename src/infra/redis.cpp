@@ -177,7 +177,7 @@ namespace infra {
     }
 
     std::string getFunctionSetName(const message::FunctionCall &call) {
-        std::string funcSetName = "f_" + call.user() + "_" + call.function();
+        std::string funcSetName = "f_" + infra::funcToString(call);
 
         return funcSetName;
     }
@@ -233,7 +233,7 @@ namespace infra {
         std::vector<uint8_t> inputData = infra::callToBytes(call);
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Redis enqueued ({}/{})", call.user(), call.function());
+        logger->debug("Redis enqueued {}", infra::funcToString(call));
 
         this->enqueue(queueName, inputData);
 
@@ -249,7 +249,7 @@ namespace infra {
         call.ParseFromArray(dequeueResult.data(), (int) dequeueResult.size());
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Redis dequeued ({}/{})", call.user(), call.function());
+        logger->debug("Redis dequeued {}", infra::funcToString(call));
 
         prof::logEndTimer("next-function", t);
         return call;

@@ -20,10 +20,11 @@ namespace tests {
 
     void execFunction(message::FunctionCall &call) {
         Worker w(1);
-
         redis.callFunction(call);
-
         w.runSingle();
+
+        // Check worker is now in the function's set
+        redis.sismember(infra::getFunctionSetName(call), w.queueName);
     }
 
     TEST_CASE("Test full execution of WASM module", "[worker]") {
@@ -97,7 +98,7 @@ namespace tests {
         message::FunctionCall result = redis.getFunctionResult(call);
 
         REQUIRE(!result.success());
-        REQUIRE(result.outputdata() == "foobar - baz is not a valid function");
+        REQUIRE(result.outputdata() == "foobar/baz is not a valid function");
 
         tearDown();
     }

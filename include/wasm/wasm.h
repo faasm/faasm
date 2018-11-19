@@ -81,6 +81,8 @@ namespace wasm {
         int execute(message::FunctionCall &call, CallChain &callChain);
 
         Runtime::Memory *defaultMemory;
+
+        bool isBound = false;
     private:
         IR::Module module;
 
@@ -90,7 +92,6 @@ namespace wasm {
         RootResolver *resolver = nullptr;
         Runtime::Function *functionInstance = nullptr;
 
-        bool isBound = false;
         std::string boundUser;
         std::string boundFunction;
 

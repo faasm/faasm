@@ -67,7 +67,7 @@ namespace worker {
 
     void Worker::finishCall(message::FunctionCall &call, const std::string &errorMsg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->info("Finished ({}/{})", call.user(), call.function());
+        logger->info("Finished {}", infra::funcToString(call));
 
         bool isSuccess = errorMsg.empty();
         if (!isSuccess) {
@@ -123,16 +123,13 @@ namespace worker {
 
         // Bomb out if call isn't valid
         if (!infra::isValidFunction(call)) {
-            std::string errorMessage = call.user();
-            errorMessage.append(" - ");
-            errorMessage.append(call.function());
-            errorMessage.append(" is not a valid function");
+            std::string errorMessage = infra::funcToString(call) + " is not a valid function";
 
             this->finishCall(call, errorMessage);
             return errorMessage;
         }
 
-        logger->info("Starting ({}/{})", call.user(), call.function());
+        logger->info("Starting {}", infra::funcToString(call));
 
         // Create and execute the module
         wasm::CallChain callChain(call);
@@ -156,6 +153,9 @@ namespace worker {
 
         const std::string empty;
         this->finishCall(call, empty);
+
+        logger->debug("Adding worker to function set for {}", infra::funcToString(call));
+        redis->addToFunctionSet(call, queueName);
 
         prof::logEndTimer("func-total", t);
         return empty;

@@ -104,13 +104,12 @@ namespace wasm {
 
         // Instantiate the module, i.e. create memory, tables etc.
         const auto &t4 = prof::startTimer();
-        std::string moduleName = call.user() + " - " + call.function();
 
         moduleInstance = instantiateModule(
                 compartment,
                 compiledModule,
                 std::move(linkResult.resolvedImports),
-                moduleName.c_str()
+                infra::funcToString(call)
         );
 
         prof::logEndTimer("instantiate", t4);
@@ -141,11 +140,11 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         if(!isBound) {
-            logger->debug("Binding to function {} - {}", call.user(), call.function());
+            logger->debug("Binding to function {}", infra::funcToString(call));
             this->bindToFunction(call, callChain);
         }
         else if(call.user() != boundUser || call.function() != boundFunction) {
-            logger->debug("Repeat call to function {} - {}", call.user(), call.function());
+            logger->debug("Repeat call to function {}", infra::funcToString(call));
             throw std::runtime_error("Cannot perform repeat execution on different function");
         }
 
