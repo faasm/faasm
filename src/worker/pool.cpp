@@ -65,7 +65,7 @@ namespace worker {
         tokenPool.releaseToken(workerIdx);
     }
 
-    void Worker::finishCall(const std::string &errorMsg) {
+    void Worker::finishCall(message::FunctionCall &call, const std::string &errorMsg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->info("Finished ({}/{})", call.user(), call.function());
 
@@ -82,14 +82,40 @@ namespace worker {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Wait for next function call on this thread's queue
-        try {
-            call = redis->nextFunctionCall(queueName);
+        while (true) {
+            try {
+                message::FunctionCall call = redis->nextFunctionCall(queueName);
+                std::string errorMessage = this->executeCall(call);
+
+                // Drop out if there's some issue
+                if (!errorMessage.empty()) {
+                    break;
+                }
+            }
+            catch (infra::RedisNoResponseException &e) {
+                logger->debug("No calls made in timeout");
+                this->finish();
+                return;
+            }
         }
-        catch (infra::RedisNoResponseException &e) {
-            logger->debug("No calls made in timeout");
-            this->finish();
-            return;
+
+        this->finish();
+    }
+
+    void Worker::runSingle() {
+        message::FunctionCall call = redis->nextFunctionCall(queueName);
+        std::string errorMessage = this->executeCall(call);
+
+        // Drop out if there's some issue
+        if (!errorMessage.empty()) {
+            throw std::runtime_error(errorMessage);
         }
+
+        this->finish();
+    }
+
+    const std::string Worker::executeCall(message::FunctionCall &call) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         const std::chrono::steady_clock::time_point &t = prof::startTimer();
 
@@ -100,9 +126,8 @@ namespace worker {
             errorMessage.append(call.function());
             errorMessage.append(" is not a valid function");
 
-            this->finish();
-            this->finishCall(errorMessage);
-            return;
+            this->finishCall(call, errorMessage);
+            return errorMessage;
         }
 
         logger->info("Starting ({}/{})", call.user(), call.function());
@@ -116,21 +141,21 @@ namespace worker {
             std::string errorMessage = "Error: " + std::string(e.what());
             logger->error(errorMessage);
 
-            this->finish();
-            this->finishCall(errorMessage);
-            return;
+            this->finishCall(call, errorMessage);
+            return errorMessage;
         }
 
         // Process any chained calls
         std::string chainErrorMessage = callChain.execute();
         if (!chainErrorMessage.empty()) {
-            this->finish();
-            this->finishCall(chainErrorMessage);
+            this->finishCall(call, chainErrorMessage);
+            return chainErrorMessage;
         }
 
-        this->finish();
-        this->finishCall("");
+        const std::string empty;
+        this->finishCall(call, empty);
 
         prof::logEndTimer("func-total", t);
+        return empty;
     }
 }

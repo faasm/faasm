@@ -12,7 +12,7 @@ namespace tests {
 
         redis.callFunction(call);
 
-        w.run();
+        w.runSingle();
     }
 
     void checkError(const std::string &funcName, const std::string &expectedMsg) {

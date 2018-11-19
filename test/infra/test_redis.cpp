@@ -91,13 +91,21 @@ namespace tests {
         std::set<std::string> expected = {queueNameA, queueNameB};
 
         cli.addToUnassignedSet(queueNameA);
+
+        REQUIRE(cli.scard(UNASSIGNED_SET) == 1);
+        REQUIRE(cli.sismember(UNASSIGNED_SET, queueNameA));
+        REQUIRE(!cli.sismember(UNASSIGNED_SET, queueNameB));
+
         cli.addToUnassignedSet(queueNameB);
 
-        const std::string actualA = cli.spop("unassigned");
-        const std::string actualB = cli.spop("unassigned");
+        REQUIRE(cli.scard(UNASSIGNED_SET) == 2);
+        REQUIRE(cli.sismember(UNASSIGNED_SET, queueNameA));
+        REQUIRE(cli.sismember(UNASSIGNED_SET, queueNameB));
 
-        REQUIRE(expected.find(actualA) != expected.end());
-        REQUIRE(expected.find(actualB) != expected.end());
+        cli.removeFromUnassignedSet(queueNameA);
+        REQUIRE(!cli.sismember(UNASSIGNED_SET, queueNameA));
+        REQUIRE(cli.sismember(UNASSIGNED_SET, queueNameB));
+        REQUIRE(cli.scard(UNASSIGNED_SET) == 1);
     }
 
     TEST_CASE("Test adding to/ removing from function set", "[redis]") {
@@ -111,27 +119,27 @@ namespace tests {
         callA.set_user("user_a");
         callA.set_function("func_a");
 
-        message::FunctionCall callB;
-        callB.set_user("user_b");
-        callB.set_function("func_b");
-
         std::string funcSetA = "f_user_a_func_a";
-        std::string funcSetB = "f_user_b_func_b";
 
         // Check empty to start with
-        REQUIRE(cli.spop(funcSetA).empty());
-        REQUIRE(cli.spop(funcSetB).empty());
+        REQUIRE(cli.scard(funcSetA) == 0);
 
-        // Add to sets
+        // Add to sets and check
         cli.addToFunctionSet(callA, queueNameA);
-        cli.addToFunctionSet(callB, queueNameB);
+        REQUIRE(cli.sismember(funcSetA, queueNameA));
+        REQUIRE(!cli.sismember(funcSetA, queueNameB));
+        REQUIRE(cli.scard(funcSetA) == 1);
 
-        // Check only these values are popped off
-        REQUIRE(cli.spop(funcSetA) == queueNameA);
-        REQUIRE(cli.spop(funcSetB) == queueNameB);
+        cli.addToFunctionSet(callA, queueNameB);
+        REQUIRE(cli.sismember(funcSetA, queueNameA));
+        REQUIRE(cli.sismember(funcSetA, queueNameB));
+        REQUIRE(cli.scard(funcSetA) == 2);
 
-        REQUIRE(cli.spop(funcSetA).empty());
-        REQUIRE(cli.spop(funcSetB).empty());
+        // Remove and check
+        cli.removeFromFunctionSet(callA, queueNameA);
+        REQUIRE(!cli.sismember(funcSetA, queueNameA));
+        REQUIRE(cli.sismember(funcSetA, queueNameB));
+        REQUIRE(cli.scard(funcSetA) == 1);
     }
 
     TEST_CASE("Test adding and removing from set", "[redis]") {

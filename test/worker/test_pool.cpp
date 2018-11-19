@@ -23,7 +23,7 @@ namespace tests {
 
         redis.callFunction(call);
 
-        w.run();
+        w.runSingle();
     }
 
     TEST_CASE("Test full execution of WASM module", "[worker]") {
@@ -86,7 +86,7 @@ namespace tests {
         redis.callFunction(call);
 
         // Execute the worker
-        w.run();
+        w.runSingle();
 
         // Check the call executed successfully
         message::FunctionCall result = redis.getFunctionResult(call);

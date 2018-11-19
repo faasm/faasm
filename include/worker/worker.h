@@ -57,10 +57,10 @@ namespace worker {
         explicit Worker(int workerIdx);
         ~Worker();
         void run();
+        void runSingle();
 
         std::string queueName;
     private:
-        message::FunctionCall call;
         int isolationIdx;
         int workerIdx;
         NetworkNamespace *ns;
@@ -68,7 +68,9 @@ namespace worker {
 
         infra::Redis *redis;
 
+        const std::string executeCall(message::FunctionCall &call);
+
         void finish();
-        void finishCall(const std::string &errorMsg);
+        void finishCall(message::FunctionCall &call, const std::string &errorMsg);
     };
 }

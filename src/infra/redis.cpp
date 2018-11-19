@@ -16,8 +16,6 @@ namespace infra {
     static const int BLOCKING_TIMEOUT_SECONDS = 60;
     static const int RESULT_KEY_EXPIRY_SECONDS = 30;
 
-    static const std::string UNASSIGNED_SET = "unassigned";
-
     Redis::Redis() {
         hostname = util::getEnvVar("REDIS_HOST", "localhost");
         port = util::getEnvVar("REDIS_PORT", "6379");
@@ -57,6 +55,25 @@ namespace infra {
         freeReplyObject(reply);
 
         return replyBytes;
+    }
+
+    bool Redis::sismember(const std::string &key, const std::string &value) {
+        auto reply = (redisReply *) redisCommand(context, "SISMEMBER %s %s", key.c_str(), value.c_str());
+
+        bool isMember = reply->integer > 0;
+
+        freeReplyObject(reply);
+
+        return isMember;
+    }
+
+    long Redis::scard(const std::string &key) {
+        auto reply = (redisReply *) redisCommand(context, "SCARD %s", key.c_str());
+
+        long count = reply->integer;
+        freeReplyObject(reply);
+
+        return count;
     }
 
     void Redis::sadd(const std::string &key, const std::string &value) {

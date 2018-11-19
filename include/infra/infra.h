@@ -21,6 +21,8 @@ namespace infra {
     std::vector<uint8_t> callToBytes(const message::FunctionCall &call);
 
     /** Redis client */
+    static const std::string UNASSIGNED_SET = "unassigned";
+
     class Redis {
 
     public:
@@ -41,6 +43,10 @@ namespace infra {
         void sadd(const std::string &key, const std::string &value);
 
         void srem(const std::string &key, const std::string &value);
+
+        bool sismember(const std::string &key, const std::string &value);
+
+        long scard(const std::string &key);
 
         std::string spop(const std::string &key);
 

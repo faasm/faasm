@@ -5,5 +5,5 @@ int main() {
     util::initLogging();
 
     worker::Worker w(1);
-    w.run();
+    w.runSingle();
 }

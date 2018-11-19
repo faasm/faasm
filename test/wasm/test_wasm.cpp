@@ -20,7 +20,7 @@ namespace tests {
 
         std::string outputData = call.outputdata();
         const std::vector<uint8_t> outputBytes = util::stringToBytes(outputData);
-        
+
         // Check output data
         REQUIRE(outputBytes[0] == 0);
         REQUIRE(outputBytes[1] == 1);
@@ -42,7 +42,7 @@ namespace tests {
         REQUIRE(result == 0);
     }
 
-    TEST_CASE("Test executing WASM module with input and output", "[wasm]") {
+    void executeX2(wasm::WasmModule &module) {
         message::FunctionCall call;
         call.set_user("demo");
         call.set_function("x2");
@@ -54,8 +54,6 @@ namespace tests {
         call.set_inputdata(inputValues, 10);
 
         // Make the call
-        wasm::WasmModule module;
-        module.initialise();
         int result = module.execute(call, callChain);
         REQUIRE(result == 0);
 
@@ -63,7 +61,37 @@ namespace tests {
         const std::vector<uint8_t> outputBytes = util::stringToBytes(outputData);
 
         // Check the results
-        std::vector<uint8_t > expected = {0, 2, 4, 6, 8, 10, 12, 14, 16, 18};
+        std::vector<uint8_t> expected = {0, 2, 4, 6, 8, 10, 12, 14, 16, 18};
         REQUIRE(outputBytes == expected);
+    }
+
+    TEST_CASE("Test executing WASM module with input and output", "[wasm]") {
+        wasm::WasmModule module;
+        module.initialise();
+
+        // Perform first execution
+        executeX2(module);
+
+        // Perform repeat executions on same module
+        executeX2(module);
+        executeX2(module);
+    }
+
+    TEST_CASE("Test repeat execution with different function fails", "[wasm]") {
+        message::FunctionCall callA;
+        callA.set_user("demo");
+        callA.set_function("dummy");
+        wasm::CallChain callChainA(callA);
+
+        message::FunctionCall callB;
+        callB.set_user("demo");
+        callB.set_function("x2");
+        wasm::CallChain callChainB(callB);
+
+        wasm::WasmModule module;
+        module.initialise();
+        module.execute(callA, callChainA);
+
+        REQUIRE_THROWS(module.execute(callB, callChainB));
     }
 }
