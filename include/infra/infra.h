@@ -75,7 +75,7 @@ namespace infra {
 
         message::FunctionCall getFunctionResult(const message::FunctionCall &call);
 
-        void addToFunctionSet(const message::FunctionCall &call, const std::string &queueName);
+        std::string addToFunctionSet(const message::FunctionCall &call, const std::string &queueName);
 
         void removeFromFunctionSet(const message::FunctionCall &call, const std::string &queueName);
 

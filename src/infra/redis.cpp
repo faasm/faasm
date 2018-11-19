@@ -179,9 +179,11 @@ namespace infra {
         return funcSetName;
     }
 
-    void Redis::addToFunctionSet(const message::FunctionCall &call, const std::string &queueName) {
+    std::string Redis::addToFunctionSet(const message::FunctionCall &call, const std::string &queueName) {
         std::string funcSet = getFunctionSetName(call);
         this->sadd(funcSet, queueName);
+
+        return funcSet;
     }
 
     void Redis::removeFromFunctionSet(const message::FunctionCall &call, const std::string &queueName) {

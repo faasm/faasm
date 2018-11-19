@@ -60,6 +60,8 @@ namespace worker {
         void runSingle();
 
         std::string queueName;
+        std::string functionSetName;
+
     private:
         int isolationIdx;
         int workerIdx;

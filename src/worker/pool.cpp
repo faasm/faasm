@@ -66,6 +66,13 @@ namespace worker {
     void Worker::finish() {
         ns->removeCurrentThread();
         tokenPool.releaseToken(workerIdx);
+
+        // Remove from sets to avoid more work
+        if (functionSetName.empty()) {
+            redis->removeFromUnassignedSet(queueName);
+        } else {
+            redis->srem(functionSetName, queueName);
+        }
     }
 
     void Worker::finishCall(message::FunctionCall &call, const std::string &errorMsg) {
@@ -84,15 +91,14 @@ namespace worker {
     void Worker::run() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Wait for next function call on this thread's queue
+        // Wait for next function call on this thread's queue.
         while (true) {
             try {
                 int timeout;
-                if(module.isBound) {
-                    timeout = BOUND_TIMEOUT;
-                }
-                else {
+                if (functionSetName.empty()) {
                     timeout = UNBOUND_TIMEOUT;
+                } else {
+                    timeout = BOUND_TIMEOUT;
                 }
 
                 message::FunctionCall call = redis->nextFunctionCall(queueName, timeout);
@@ -105,7 +111,11 @@ namespace worker {
                 }
             }
             catch (infra::RedisNoResponseException &e) {
+                // If exeucting a call, the thread will have been taken out of
+                // sets waiting for work already. If it times out, it needs to remove
+                // itself from whichever set it's in
                 logger->debug("No calls made in timeout");
+
                 this->finish();
                 return;
             }
@@ -167,7 +177,7 @@ namespace worker {
         this->finishCall(call, empty);
 
         logger->debug("Adding worker to function set for {}", infra::funcToString(call));
-        redis->addToFunctionSet(call, queueName);
+        functionSetName = redis->addToFunctionSet(call, queueName);
 
         prof::logEndTimer("func-total", t);
         return empty;
