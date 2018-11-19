@@ -86,7 +86,8 @@ function setup_ns() {
 
 
 # Note - hard-coded ns count here
-for i in 1 2 3 4 5 6 7 8 9 10
+N_THREADS=40
+for (( i=1; i<=N_THREADS; i++ ))
 do
     setup_ns ${i}
 done
