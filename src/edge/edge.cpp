@@ -13,7 +13,7 @@ using namespace Pistache;
 namespace edge {
     FunctionEndpoint::FunctionEndpoint() {
         int port = 8001;
-        int threadCount = 20;
+        int threadCount = 40;
 
         Address addr(Ipv4::any(), Port(port));
 
