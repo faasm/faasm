@@ -53,7 +53,7 @@ docker run -v $(pwd):/work -w /work -it faasm/toolchain
 exit
 
 # Upload the function
-curl -X PUT http://localhost:8001/f/dummy/hello -T hello.wasm
+curl -X PUT http://localhost:8002/f/dummy/hello -T hello.wasm
 
 # Invoke the function
 curl -X POST http://localhost:8001/f/dummy/hello
@@ -186,7 +186,7 @@ An example implementing a simple counter can be found in `func/demo/increment.cp
 can be called with:
 
 ```
-curl http://localhost:8001/f/demo/increment/ -X POST
+curl -X POST http://localhost:8001/f/demo/increment/
 ```
 
 On successive calls this will add 1 to a value stored in shared state, returning something 
@@ -206,14 +206,14 @@ This can be called with:
 
 ```
 # Format /s/<username>/<key>
-curl http://localhost:8001/s/user123/my_key -X PUT -d "your data"
+curl http://localhost:8002/s/user123/my_key -X PUT -d "your data"
 ```
 
 This state can then be accessed in your functions using the specified key. For larger state, 
 you can also upload a file:
 
 ```
-curl http://localhost:8001/s/user123/my_key -X PUT -T /tmp/my_state_file
+curl http://localhost:8002/s/user123/my_key -X PUT -T /tmp/my_state_file
 ```
 
 Where `/tmp/my_state_file` contains binary data you wish to be inserted at your specified key.
@@ -223,13 +223,13 @@ Where `/tmp/my_state_file` contains binary data you wish to be inserted at your 
 To upload a function you can use `curl` to send a PUT request to the synchronous URL for the 
 given function. For example:
 
-- I have a Faasm endpoint running at `localhost:8001`
+- I have a Faasm endpoint running at `localhost:8002`
 - I've compiled my WebAssembly function file to `/tmp/do_something.wasm`
 - I want to upload this function to user `demo` and function name `cool_func`
 
 I can execute:
 
 ```
-curl http://localhost:8001/f/demo/cool_func/ -X PUT -T /tmp/do_something.wasm
+curl -X PUT http://localhost:8002/f/demo/cool_func/ -T /tmp/do_something.wasm
 ```
 

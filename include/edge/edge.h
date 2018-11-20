@@ -1,41 +1,35 @@
 #pragma once
 
-#include <wasm/wasm.h>
 #include <proto/faasm.pb.h>
 #include <infra/infra.h>
 #include <util/util.h>
 
-#include <cpprest/http_listener.h>
+#include <pistache/http.h>
+#include <pistache/router.h>
+#include <pistache/endpoint.h>
 
-using namespace web::http::experimental::listener;
-using namespace web::http;
+using namespace Pistache;
 
 namespace edge {
-    class RestServer {
+    class FunctionEndpoint {
     public:
-        RestServer();
+        FunctionEndpoint();
 
-        void listen(const std::string &port);
+        void start();
 
-        static void handleGet(const http_request &request);
+        void shutdown();
 
-        static void handlePost(const http_request &request);
-
-        static void handlePut(const http_request &request);
-
-        static message::FunctionCall buildCallFromRequest(const http_request &request);
-
-        static std::vector<std::string> getPathParts(const http_request &request);
-
-        static std::vector<uint8_t> getState(const http_request &request);
-
+        std::string handleFunction(message::FunctionCall &call);
     private:
-        static void handleFunctionUpload(const http_request &request);
+        std::shared_ptr<Http::Endpoint> httpEndpoint;
+        Rest::Router router;
 
-        static void handleStateUpload(const http_request &request);
+        void setupRoutes();
+
+        void handleFunctionWrapper(const Rest::Request &request, Http::ResponseWriter response);
+
+        void handleAsyncFunctionWrapper(const Rest::Request &request, Http::ResponseWriter response);
+
+        message::FunctionCall buildCallFromRequest(const Rest::Request &request);
     };
-
-    class InvalidPathException : public std::exception {
-    };
-
 }

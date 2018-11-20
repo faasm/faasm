@@ -67,7 +67,6 @@ def push_base(context):
 def build_worker(context):
     call("docker build -t faasm/worker  -f docker/worker.dockerfile .", shell=True, cwd=PROJ_ROOT)
 
-
 @task
 def push_worker(context):
     call("docker push faasm/worker", shell=True, cwd=PROJ_ROOT)
@@ -81,3 +80,13 @@ def build_edge(context):
 @task
 def push_edge(context):
     call("docker push faasm/edge", shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def build_upload(context):
+    call("docker build -t faasm/upload  -f docker/upload.dockerfile .", shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def push_upload(context):
+    call("docker push faasm/upload", shell=True, cwd=PROJ_ROOT)

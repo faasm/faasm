@@ -24,7 +24,7 @@ if (CMAKE_BUILD_TYPE MATCHES "wasm")
         target_link_libraries(${exec_name} faasm)
 
         # Upload URL
-        set(UPLOAD_URL http://${FAASM_HOST}:8001/f/${FAASM_USER}/${exec_name})
+        set(UPLOAD_URL http://${FAASM_HOST}:8002/f/${FAASM_USER}/${exec_name})
         # Path to build module
         set(EXECUTABLE_PATH ${CMAKE_BINARY_DIR}/${FAASM_USER}/${exec_name})
         # Use CURL to upload

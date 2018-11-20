@@ -15,7 +15,7 @@ def upload(context, user, func_name, host="localhost"):
     cmd = [
         "curl",
         "-X", "PUT",
-        "http://{}:8001/f/{}/{}".format(host, user, func_name),
+        "http://{}:8002/f/{}/{}".format(host, user, func_name),
         "-T", wasm_file
     ]
 
