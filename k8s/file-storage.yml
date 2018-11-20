@@ -8,12 +8,12 @@ spec:
     storage: 1Gi
   volumeMode: Filesystem
   accessModes:
-    - ReadWriteMany
+  - ReadWriteMany
   persistentVolumeReclaimPolicy: Recycle
   storageClassName: slow
   mountOptions:
-    - hard
-    - nfsvers=4.1
+  - hard
+  - nfsvers=4.1
   nfs:
     path: /usr/share/faasm
     server: 146.179.131.224 # This has to be the kubernetes master
@@ -27,7 +27,7 @@ metadata:
   namespace: faasm
 spec:
   accessModes:
-    - ReadWriteMany
+  - ReadWriteMany
   volumeMode: Filesystem
   resources:
     requests:

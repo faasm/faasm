@@ -8,10 +8,10 @@ metadata:
     role: redis
 spec:
   containers:
-    - name: master
-      image: redis
-      env:
-        - name: MASTER
-          value: "true"
-      ports:
-        - containerPort: 6379
+  - name: master
+    image: redis
+    env:
+    - name: MASTER
+      value: "true"
+    ports:
+    - containerPort: 6379

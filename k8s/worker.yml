@@ -18,28 +18,28 @@ spec:
         role: worker
     spec:
       containers:
-        - name: worker
-          image: faasm/worker
-          imagePullPolicy: Always
-          env:
-            - name: REDIS_HOST
-              value: redis
-            - name: FUNC_ROOT
-              value: /usr/share/faasm
-            - name: REDIS_PORT
-              value: "6379"
-            - name: CGROUP_MODE
-              value: "on"
-            - name: LOG_LEVEL
-              value: "info"
-            - name: NETNS_MODE
-              value: "on"
-          volumeMounts:
-            - mountPath: "/usr/share/faasm"
-              name: func-vol
-          securityContext:
-            privileged: yes
+      - name: worker
+        image: faasm/worker
+        imagePullPolicy: Always
+        env:
+        - name: REDIS_HOST
+          value: redis
+        - name: FUNC_ROOT
+          value: /usr/share/faasm
+        - name: REDIS_PORT
+          value: "6379"
+        - name: CGROUP_MODE
+          value: "on"
+        - name: LOG_LEVEL
+          value: "info"
+        - name: NETNS_MODE
+          value: "on"
+        volumeMounts:
+        - mountPath: "/usr/share/faasm"
+          name: func-vol
+        securityContext:
+          privileged: yes
       volumes:
-        - name: func-vol
-          persistentVolumeClaim:
-            claimName: func-storage-claim
+      - name: func-vol
+        persistentVolumeClaim:
+          claimName: func-storage-claim
