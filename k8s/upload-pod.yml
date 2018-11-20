@@ -26,7 +26,7 @@ spec:
         - mountPath: "/usr/share/faasm"
           name: func-vol
     volumes:
-    - name: func-vol
-      persistentVolumeClaim:
-        claimName: func-storage-claim
+      - name: func-vol
+        persistentVolumeClaim:
+          claimName: func-storage-claim
 
