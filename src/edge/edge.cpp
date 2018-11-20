@@ -68,11 +68,10 @@ namespace edge {
         redis->callFunction(call);
         prof::logEndTimer("edge-submit", t);
 
-        if(call.isasync()) {
+        if (call.isasync()) {
             logger->info("Async request {}", infra::funcToString(call));
             return "Async request submitted";
-        }
-        else {
+        } else {
             logger->info("Sync request {}", infra::funcToString(call));
             message::FunctionCall result = redis->getFunctionResult(call);
 
@@ -82,7 +81,7 @@ namespace edge {
 
             prof::logEndTimer("edge-reply", t2);
 
-            return result.outputdata();
+            return result.outputdata() + "\n";
         }
     }
 

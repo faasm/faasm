@@ -88,7 +88,7 @@ namespace tests {
         // Load some valid dummy wasm bytes
         boost::filesystem::path currentPath = boost::filesystem::current_path();
         //TODO: getting the path like this is a bit of a hack
-        currentPath.append("../../test/edge/dummy.wasm");
+        currentPath.append("../../test/upload/dummy.wasm");
         std::vector<uint8_t> wasmBytes = util::readFileToBytes(currentPath.string());
 
         // Submit PUT request
