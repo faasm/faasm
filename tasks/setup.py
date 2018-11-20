@@ -44,6 +44,11 @@ def setup_protobuf(context):
 
 
 @task
+def setup_pistache(context):
+    playbook_command("pistache.yml")
+
+
+@task
 def setup_clang(context):
     playbook_command("clang.yml")
 

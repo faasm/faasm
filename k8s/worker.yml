@@ -21,8 +21,6 @@ spec:
         - name: worker
           image: faasm/worker
           imagePullPolicy: Always
-          ports:
-            - containerPort: 8001
           env:
             - name: REDIS_HOST
               value: redis

@@ -43,3 +43,18 @@ services:
       - redis
     networks:
       - faasm
+
+  upload:
+    image: faasm/upload:latest
+    ports:
+      - "8002:8002"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - FUNC_ROOT=/usr/share/faasm
+    volumes:
+    - ./wasm:/usr/share/faasm/wasm
+    depends_on:
+      - redis
+    networks:
+      - faasm

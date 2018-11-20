@@ -1,17 +1,13 @@
-#include <pistache/http.h>
 #include <edge/edge.h>
+#include <pistache/http.h>
 
 int main() {
-    Pistache::Port port(8001);
+    util::initLogging();
 
-    int threadCount = 20;
-
-    Pistache::Address addr(Ipv4::any(), port);
-
-    edge::FunctionEndpoint endpoint(addr);
-
-    endpoint.init(threadCount);
+    edge::FunctionEndpoint endpoint;
     endpoint.start();
 
     endpoint.shutdown();
+
+    return 0;
 }

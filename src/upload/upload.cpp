@@ -1,4 +1,4 @@
-#include "edge/edge.h"
+#include "upload/upload.h"
 #include "prof/prof.h"
 
 
@@ -19,7 +19,7 @@ namespace edge {
         }
 
         if (!isValid) {
-            request.reply(status_codes::OK, "Invalid path. Must be /f|fa/<user>/<func>/ or /s/<user>/<key>/\n");
+            request.reply(status_codes::OK, "Invalid path. Must be /s/<user>/<key>/\n");
             throw InvalidPathException();
         }
 
@@ -47,16 +47,12 @@ namespace edge {
 
     void RestServer::handleGet(const http_request &request) {
         const std::vector<std::string> pathParts = RestServer::getPathParts(request);
-        if (pathParts[0] == "s") {
-            const std::vector<uint8_t> stateBytes = getState(request);
 
-            http_response response(status_codes::OK);
-            response.set_body(stateBytes);
-            request.reply(response);
-        } else {
-            request.reply(status_codes::OK, "Invalid path. Can only GET state at /s/<user>/<key/ \n");
-            throw InvalidPathException();
-        }
+        const std::vector<uint8_t> stateBytes = getState(request);
+
+        http_response response(status_codes::OK);
+        response.set_body(stateBytes);
+        request.reply(response);
     }
 
     void RestServer::handlePut(const http_request &request) {

@@ -11,17 +11,18 @@
 using namespace Pistache;
 
 namespace edge {
-    FunctionEndpoint::FunctionEndpoint(Address addr) :
-            httpEndpoint(std::make_shared<Http::Endpoint>(addr)) {
+    FunctionEndpoint::FunctionEndpoint() {
+        int port = 8001;
+        int threadCount = 20;
 
-    }
+        Address addr(Ipv4::any(), Port(port));
 
-    void FunctionEndpoint::init(int threadCount) {
         // Configure endpoint
         auto opts = Http::Endpoint::options()
                 .threads(threadCount)
                 .flags(Tcp::Options::InstallSignalHandler);
 
+        httpEndpoint = std::make_shared<Http::Endpoint>(addr);
         httpEndpoint->init(opts);
         setupRoutes();
     }
@@ -38,50 +39,51 @@ namespace edge {
     void FunctionEndpoint::setupRoutes() {
         using namespace Rest;
 
-        Routes::Post(router, "/f/:user/:function", Routes::bind(&FunctionEndpoint::handleFunction, this));
-        Routes::Post(router, "/fa/:user/:function", Routes::bind(&FunctionEndpoint::handleAsyncFunction, this));
+        Routes::Post(router, "/f/:user/:function", Routes::bind(&FunctionEndpoint::handleFunctionWrapper, this));
+        Routes::Post(router, "/fa/:user/:function", Routes::bind(&FunctionEndpoint::handleAsyncFunctionWrapper, this));
     }
 
-    void FunctionEndpoint::handleFunction(const Rest::Request &request, Http::ResponseWriter response) {
-        const std::chrono::steady_clock::time_point &t = prof::startTimer();
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
+    void FunctionEndpoint::handleFunctionWrapper(const Rest::Request &request, Http::ResponseWriter response) {
         message::FunctionCall call = this->buildCallFromRequest(request);
         call.set_isasync(false);
 
-        // Make the call
-        infra::Redis *redis = infra::Redis::getThreadConnection();
-        redis->callFunction(call);
-        prof::logEndTimer("edge-submit", t);
-
-        logger->info("Sync request {}", infra::funcToString(call));
-        message::FunctionCall result = redis->getFunctionResult(call);
-
-        const std::chrono::steady_clock::time_point &t2 = prof::startTimer();
-
-        response.send(Http::Code::Ok, result.outputdata());
-
-        logger->info("Finished request {}", infra::funcToString(call));
-
-        prof::logEndTimer("edge-reply", t2);
+        const std::string result = this->handleFunction(call);
+        response.send(Http::Code::Ok, result);
     }
 
-    void FunctionEndpoint::handleAsyncFunction(const Rest::Request &request, Http::ResponseWriter response) {
-        const std::chrono::steady_clock::time_point &t = prof::startTimer();
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
+    void FunctionEndpoint::handleAsyncFunctionWrapper(const Rest::Request &request, Http::ResponseWriter response) {
         message::FunctionCall call = this->buildCallFromRequest(request);
         call.set_isasync(true);
 
+        const std::string result = this->handleFunction(call);
+        response.send(Http::Code::Ok, result);
+    }
+
+    std::string FunctionEndpoint::handleFunction(message::FunctionCall &call) {
+        const std::chrono::steady_clock::time_point &t = prof::startTimer();
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         // Make the call
         infra::Redis *redis = infra::Redis::getThreadConnection();
         redis->callFunction(call);
-
         prof::logEndTimer("edge-submit", t);
 
-        // Don't wait for a result
-        logger->info("Async request {}", infra::funcToString(call));
-        response.send(Http::Code::Ok, "Async request submitted");
+        if(call.isasync()) {
+            logger->info("Async request {}", infra::funcToString(call));
+            return "Async request submitted";
+        }
+        else {
+            logger->info("Sync request {}", infra::funcToString(call));
+            message::FunctionCall result = redis->getFunctionResult(call);
+
+            const std::chrono::steady_clock::time_point &t2 = prof::startTimer();
+
+            logger->info("Finished request {}", infra::funcToString(call));
+
+            prof::logEndTimer("edge-reply", t2);
+
+            return result.outputdata();
+        }
     }
 
     message::FunctionCall FunctionEndpoint::buildCallFromRequest(const Rest::Request &request) {
