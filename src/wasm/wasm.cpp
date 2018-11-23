@@ -30,11 +30,16 @@ namespace wasm {
 
     WasmModule::WasmModule() = default;
 
-    WasmModule::~WasmModule() {
-        // Tidy up
-        if (isExecuted) {
-            Runtime::collectCompartmentGarbage(compartment);
-        }
+    void cleanUpWasmThread() {
+        executingModule->cleanUp();
+
+        delete executingModule;
+        delete executingCall;
+        delete executingCallChain;
+    }
+
+    void WasmModule::cleanUp() {
+        Runtime::collectCompartmentGarbage(compartment);
     }
 
     void WasmModule::initialise() {

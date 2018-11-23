@@ -70,8 +70,6 @@ namespace wasm {
     public:
         WasmModule();
 
-        ~WasmModule();
-
         static std::vector<uint8_t> compile(message::FunctionCall &call);
 
         static void compileToObjectFile(message::FunctionCall &call);
@@ -83,6 +81,8 @@ namespace wasm {
         Runtime::GCPointer<Runtime::Memory> defaultMemory;
 
         bool isBound = false;
+
+        void cleanUp();
     private:
         IR::Module module;
 
@@ -108,6 +108,8 @@ namespace wasm {
     message::FunctionCall *getExecutingCall();
 
     CallChain *getExecutingCallChain();
+
+    void cleanUpWasmThread();
 
     class WasmExitException : public std::exception {
     public:

@@ -73,6 +73,9 @@ namespace worker {
         } else {
             redis->srem(functionSetName, queueName);
         }
+
+        // Final clean-up of wasm-related objects
+        wasm::cleanUpWasmThread();
     }
 
     void Worker::finishCall(message::FunctionCall &call, const std::string &errorMsg) {
