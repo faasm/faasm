@@ -31,11 +31,8 @@ namespace wasm {
     WasmModule::WasmModule() = default;
 
     WasmModule::~WasmModule() {
-//        delete compartment;
-//        delete context;
-
         // Tidy up
-        if(isExecuted) {
+        if (isExecuted) {
             Runtime::collectCompartmentGarbage(compartment);
         }
     }
@@ -55,7 +52,7 @@ namespace wasm {
         // Link with intrinsics (independent of module)
         Intrinsics::Module &moduleRef = INTRINSIC_MODULE_REF(env);
 
-        Runtime::ModuleInstance *envModule = Intrinsics::instantiateModule(
+        Runtime::GCPointer<Runtime::ModuleInstance> envModule = Intrinsics::instantiateModule(
                 compartment,
                 moduleRef,
                 "env"
@@ -67,7 +64,7 @@ namespace wasm {
     }
 
     void WasmModule::bindToFunction(message::FunctionCall &call, CallChain &callChain) {
-        if(compartment == nullptr) {
+        if (compartment == nullptr) {
             throw std::runtime_error("Must initialise module before binding");
         }
 
@@ -139,11 +136,10 @@ namespace wasm {
     int WasmModule::execute(message::FunctionCall &call, CallChain &callChain) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        if(!isBound) {
+        if (!isBound) {
             logger->debug("Binding to function {}", infra::funcToString(call));
             this->bindToFunction(call, callChain);
-        }
-        else if(call.user() != boundUser || call.function() != boundFunction) {
+        } else if (call.user() != boundUser || call.function() != boundFunction) {
             logger->debug("Repeat call to function {}", infra::funcToString(call));
             throw std::runtime_error("Cannot perform repeat execution on different function");
         }

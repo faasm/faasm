@@ -80,17 +80,18 @@ namespace wasm {
 
         int execute(message::FunctionCall &call, CallChain &callChain);
 
-        Runtime::Memory *defaultMemory;
+        Runtime::GCPointer<Runtime::Memory> defaultMemory;
 
         bool isBound = false;
     private:
         IR::Module module;
 
-        Runtime::ModuleInstance * moduleInstance = nullptr;
-        Runtime::Context * context = nullptr;
-        Runtime::Compartment * compartment = nullptr;
+        Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance = nullptr;
+        Runtime::GCPointer<Runtime::Context> context = nullptr;
+        Runtime::GCPointer<Runtime::Compartment> compartment = nullptr;
+        Runtime::GCPointer<Runtime::Function> functionInstance = nullptr;
+
         RootResolver *resolver = nullptr;
-        Runtime::Function *functionInstance = nullptr;
 
         std::string boundUser;
         std::string boundFunction;
