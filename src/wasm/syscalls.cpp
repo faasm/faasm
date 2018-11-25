@@ -47,7 +47,7 @@ using namespace WAVM;
  */
 
 namespace wasm {
-    static thread_local Intrinsics::Module envModule;
+    static Intrinsics::Module envModule;
 
     Intrinsics::Module &getIntrinsicModule_env() {
         return envModule;
