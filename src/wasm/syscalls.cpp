@@ -891,6 +891,11 @@ namespace wasm {
     // Program control - supported
     // ------------------------
 
+    DEFINE_INTRINSIC_FUNCTION(env, "exit", void, exit, I32 a) {
+        util::getLogger()->debug("S - exit - {}", a);
+        throw (wasm::WasmExitException(a));
+    }
+
     DEFINE_INTRINSIC_FUNCTION(env, "_Exit", void, _Exit, I32 a) {
         util::getLogger()->debug("S - _Exit - {}", a);
         throw (wasm::WasmExitException(a));

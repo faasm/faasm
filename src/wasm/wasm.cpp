@@ -36,9 +36,9 @@ namespace wasm {
         moduleInstance = nullptr;
         functionInstance = nullptr;
 
-        resolver->cleanUp();
-
         if (compartment != nullptr) {
+            resolver->cleanUp();
+
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
             bool compartmentCleared = Runtime::tryCollectCompartment(std::move(compartment));

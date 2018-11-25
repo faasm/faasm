@@ -88,17 +88,17 @@ namespace wasm {
 
         int execute(message::FunctionCall &call, CallChain &callChain);
 
-        Runtime::GCPointer<Runtime::Memory> defaultMemory = nullptr;
+        Runtime::GCPointer<Runtime::Memory> defaultMemory;
 
         bool isBound = false;
 
     private:
         IR::Module module;
 
-        Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance = nullptr;
-        Runtime::GCPointer<Runtime::Context> context = nullptr;
-        Runtime::GCPointer<Runtime::Compartment> compartment = nullptr;
-        Runtime::GCPointer<Runtime::Function> functionInstance = nullptr;
+        Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
+        Runtime::GCPointer<Runtime::Context> context;
+        Runtime::GCPointer<Runtime::Compartment> compartment;
+        Runtime::GCPointer<Runtime::Function> functionInstance;
 
         RootResolver *resolver = nullptr;
 
