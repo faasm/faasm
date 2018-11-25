@@ -72,11 +72,6 @@ namespace wasm {
             throw std::runtime_error("Must initialise module before binding");
         }
 
-        // Set references to be shared by everything in this thread of execution.
-        executingModule = this;
-        executingCall = &call;
-        executingCallChain = &callChain;
-
         // Parse the wasm file to work out imports, function signatures etc.
         this->parseWasm(call);
 
@@ -146,6 +141,11 @@ namespace wasm {
             logger->debug("Repeat call to function {}", infra::funcToString(call));
             throw std::runtime_error("Cannot perform repeat execution on different function");
         }
+
+        // Set up shared references
+        executingModule = this;
+        executingCall = &call;
+        executingCallChain = &callChain;
 
         // Make the call
         const auto &t = prof::startTimer();

@@ -1,5 +1,5 @@
 #include "faasm/matrix.h"
-#include <stdio.h>
+
 #include <random>
 
 using namespace Eigen;
@@ -368,20 +368,6 @@ namespace faasm {
             int r = randomInteger(0, nCols - 1);
             a.col(i).swap(a.col(r));
             b.col(i).swap(b.col(r));
-        }
-    }
-
-    /**
-     * Prints the given matrix
-     */
-    void printMatrix(MatrixXd &mat) {
-        for (int r = 0; r < mat.rows(); r++) {
-            for (int c = 0; c < mat.cols(); c++) {
-                double val = mat.coeff(r, c);
-                printf("%.2f, ", val);
-            }
-
-            printf("\n");
         }
     }
 

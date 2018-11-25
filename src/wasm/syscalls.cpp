@@ -59,20 +59,6 @@ namespace wasm {
     // Thread-local variables to isolate bits of environment
     static thread_local std::set<int> openFds;
 
-    const std::shared_ptr<spdlog::logger> logSyscall(const char *syscallName, const char *fmt, ...) {
-        va_list args;
-        va_start(args, fmt);
-        char argBuffer[100];
-        sprintf(argBuffer, fmt, args);
-
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("syscall - {}({})", syscallName, argBuffer);
-
-        va_end(args);
-
-        return logger;
-    }
-
     std::vector<uint8_t> getBytesFromWasm(I32 dataPtr, I32 dataLen) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
@@ -114,7 +100,7 @@ namespace wasm {
     // ------------------------
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state", void, __faasm_write_state,
                               I32 keyPtr, I32 dataPtr, I32 dataLen) {
-        logSyscall("write_state", "%i %i %i", keyPtr, dataPtr, dataLen);
+        util::getLogger()->debug("S - write_state - {} {} {}", keyPtr, dataPtr, dataLen);
 
         const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
         std::string key = getKeyFromWasm(keyPtr);
@@ -126,7 +112,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_offset", void, __faasm_write_state_offset,
                               I32 keyPtr, I32 offset, I32 dataPtr, I32 dataLen) {
-        logSyscall("write_state_offset", "%i %i %i %i", keyPtr, offset, dataPtr, dataLen);
+        util::getLogger()->debug("S - write_state_offset - {} {} {} {}", keyPtr, offset, dataPtr, dataLen);
 
         const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
         std::string key = getKeyFromWasm(keyPtr);
@@ -138,7 +124,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state", I32, __faasm_read_state,
                               I32 keyPtr, I32 bufferPtr, I32 bufferLen) {
-        logSyscall("read_state", "%i %i %i", keyPtr, bufferPtr, bufferLen);
+        util::getLogger()->debug("S - read_state - {} {} {}", keyPtr, bufferPtr, bufferLen);
 
         std::string key = getKeyFromWasm(keyPtr);
 
@@ -154,7 +140,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset", void, __faasm_read_state_offset,
                               I32 keyPtr, I32 offset, I32 bufferPtr, I32 bufferLen) {
-        logSyscall("read_state_offset", "%i %i %i %i", keyPtr, offset, bufferPtr, bufferLen);
+        util::getLogger()->debug("S - read_state_offset - {} {} {} {}", keyPtr, offset, bufferPtr, bufferLen);
 
         std::string key = getKeyFromWasm(keyPtr);
 
@@ -166,7 +152,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_input", I32, __faasm_read_input, I32 bufferPtr, I32 bufferLen) {
-        logSyscall("read_input", "%i %i", bufferPtr, bufferLen);
+        util::getLogger()->debug("S - read_input - {} {}", bufferPtr, bufferLen);
 
         // Get the input
         message::FunctionCall *call = getExecutingCall();
@@ -179,7 +165,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_output", void, __faasm_write_output, I32 outputPtr, I32 outputLen) {
-        logSyscall("write_output", "%i %i", outputPtr, outputLen);
+        util::getLogger()->debug("S - write_output - {} {}", outputPtr, outputLen);
 
         std::vector<uint8_t> outputData = getBytesFromWasm(outputPtr, outputLen);
         message::FunctionCall *call = getExecutingCall();
@@ -188,7 +174,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_function", void, __faasm_chain_function,
                               I32 namePtr, I32 inputDataPtr, I32 inputDataLen) {
-        logSyscall("chain_function", "%i %i %i", namePtr, inputDataPtr, inputDataLen);
+        util::getLogger()->debug("S - chain_function - {} {} {}", namePtr, inputDataPtr, inputDataLen);
 
         message::FunctionCall *call = getExecutingCall();
         CallChain *callChain = getExecutingCallChain();
@@ -212,7 +198,8 @@ namespace wasm {
 
     /** Whitelist specific files to allow open and read-only */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_open", I32, __syscall_open, I32 pathPtr, I32 flags, I32 mode) {
-        const std::shared_ptr<spdlog::logger> logger = logSyscall("open", "%i %i %i", pathPtr, flags, mode);
+        const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+        logger->debug("S - open - {} {} {}", pathPtr, flags, mode);
 
         // Get the path
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
@@ -255,7 +242,7 @@ namespace wasm {
     /** Dummy fcntl implementation, many operations are irrelevant */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_fcntl64", I32, __syscall_fcntl64,
                               I32 fd, I32 cmd, I32 c) {
-        logSyscall("fcntl64", "%i %i %i", fd, cmd, c);
+        util::getLogger()->debug("S - fcntl64 - {} {} {}", fd, cmd, c);
 
         checkThreadOwnsFd(fd);
 
@@ -264,7 +251,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_read", I32, __syscall_read,
                               I32 fd, I32 bufPtr, I32 count) {
-        logSyscall("read", "%i %i %i", fd, bufPtr, count);
+        util::getLogger()->debug("S - read - {} {} {}", fd, bufPtr, count);
 
         // Provided the thread owns the fd, we allow reading.
         checkThreadOwnsFd(fd);
@@ -280,7 +267,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_close", I32, __syscall_close, I32 fd) {
-        logSyscall("close", "%i", fd);
+        util::getLogger()->debug("S - close - {}", fd);
 
         // Provided the thread owns the fd, we allow closing.
         checkThreadOwnsFd(fd);
@@ -293,7 +280,7 @@ namespace wasm {
 
     /** Poll is annoying as it passes an array of structs. */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_poll", I32, __syscall_poll, I32 fdsPtr, I32 nfds, I32 timeout) {
-        logSyscall("poll", "%i %i %i", fdsPtr, nfds, timeout);
+        util::getLogger()->debug("S - poll - {} {} {}", fdsPtr, nfds, timeout);
 
         if (nfds != 1) {
             printf("Trying to poll %i fds\n", nfds);
@@ -311,14 +298,14 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "ioctl", I32, ioctl, I32 a, I32 b, I32 c) {
-        logSyscall("ioctl", "%i %i %i", a, b, c);
+        util::getLogger()->debug("S - ioctl - {} {} {}", a, b, c);
 
         return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_ioctl", I32, __syscall_ioctl,
                               I32 fd, I32 request, I32 argPtr, I32 d, I32 e, I32 f) {
-        logSyscall("ioctl", "%i %i %i %i %i %i", fd, request, argPtr, d, e, f);
+        util::getLogger()->debug("S - ioctl - {} {} {} {} {} {}", fd, request, argPtr, d, e, f);
 
         return 0;
     }
@@ -327,7 +314,7 @@ namespace wasm {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         char *string = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
 
-        logSyscall("puts", "%s", string);
+        util::getLogger()->debug("S - puts", "%s", string);
 
         return 0;
     }
@@ -338,7 +325,7 @@ namespace wasm {
     };
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_writev", I32, __syscall_writev, I32 fd, I32 iov, I32 iovcnt) {
-        logSyscall("writev", "%i %i %i", fd, iov, iovcnt);
+        util::getLogger()->debug("S - writev - {} {} {}", fd, iov, iovcnt);
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
 
         // Get array of iovecs from memory
@@ -372,80 +359,80 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_readv", I32, __syscall_readv,
                               I32 a, I32 b, I32 c) {
-        logSyscall("readv", "%i %i %i", a, b, c);
+        util::getLogger()->debug("S - readv - {} {} {}", a, b, c);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_llseek", I32, __syscall_llseek, I32 a, I32 b, I32 c, I32 d, I32 e) {
-        logSyscall("llseek", "%i %i %i %i %i", a, b, c, d, e);
+        util::getLogger()->debug("S - llseek - {} {} {} {} {}", a, b, c, d, e);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_futex", I32, __syscall_futex,
                               I32 a, I32 b, I32 c, I32 d, I32 e, I32 f) {
-        logSyscall("futex", "%i %i %i %i %i %i", a, b, c, d, e, f);
+        util::getLogger()->debug("S - futex - {} {} {} {} {} {}", a, b, c, d, e, f);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_fstat64", I32, __syscall_fstat64, I32 a, I32 b) {
-        logSyscall("fstat64", "%i %i", a, b);
+        util::getLogger()->debug("S - fstat64 - {} {}", a, b);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_stat64", I32, __syscall_stat64, I32 a, I32 b) {
-        logSyscall("stat64", "%i %i", a, b);
+        util::getLogger()->debug("S - stat64 - {} {}", a, b);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_access", I32, __syscall_access, I32 a, I32 b) {
-        logSyscall("access", "%i %i", a, b);
+        util::getLogger()->debug("S - access - {} {}", a, b);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_chown32", I32, __syscall_chown32, I32 a, I32 b, I32 c) {
-        logSyscall("chown32", "%i %i %i", a, b, c);
+        util::getLogger()->debug("S - chown32 - {} {} {}", a, b, c);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_openat", I32, __syscall_openat, I32 a, I32 b, I32 c, I32 d) {
-        logSyscall("openat", "%i %i %i %i", a, b, c, d);
+        util::getLogger()->debug("S - openat - {} {} {} {}", a, b, c, d);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_fsync", I32, __syscall_fsync, I32 a) {
-        logSyscall("fsync", "%i", a);
+        util::getLogger()->debug("S - fsync - {}", a);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_dup2", I32, __syscall_dup2, I32 a, I32 b) {
-        logSyscall("dup2", "%i %i", a, b);
+        util::getLogger()->debug("S - dup2 - {} {}", a, b);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_dup", I32, __syscall_dup, I32 a) {
-        logSyscall("dup", "%i", a);
+        util::getLogger()->debug("S - dup - {}", a);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_pipe", I32, __syscall_pipe, I32 a) {
-        logSyscall("pipe", "%i", a);
+        util::getLogger()->debug("S - pipe - {}", a);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall__newselect", I32, __syscall__newselect, I32 a, I32 b, I32 c, I32 d,
                               I32 e) {
-        logSyscall("newselect", "%i %i %i %i %i", a, b, c, d, e);
+        util::getLogger()->debug("S - newselect - {} {} {} {} {}", a, b, c, d, e);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_fdatasync", I32, __syscall_fdatasync, I32 a) {
-        logSyscall("fdatasync", "%i", a);
+        util::getLogger()->debug("S - fdatasync - {}", a);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
@@ -455,49 +442,49 @@ namespace wasm {
     // ------------------------
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_creat", I32, __syscall_creat, I32 a, I32 b) {
-        logSyscall("creat", "%i %i", a, b);
+        util::getLogger()->debug("S - creat - {} {}", a, b);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_unlink", I32, __syscall_unlink, I32 a) {
-        logSyscall("unlink", "%i", a);
+        util::getLogger()->debug("S - unlink - {}", a);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_readlink", I32, __syscall_readlink, I32 a, I32 b, I32 c) {
-        logSyscall("readlink", "%i %i %i", a, b, c);
+        util::getLogger()->debug("S - readlink - {} {} {}", a, b, c);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_chdir", I32, __syscall_chdir, I32 a) {
-        logSyscall("chdir", "%i", a);
+        util::getLogger()->debug("S - chdir - {}", a);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_umask", I32, __syscall_umask, I32 a) {
-        logSyscall("umask", "%i", a);
+        util::getLogger()->debug("S - umask - {}", a);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_getdents64", I32, __syscall_getdents64, I32 a, I32 b, I32 c) {
-        logSyscall("getdents64", "%i %i %i", a, b, c);
+        util::getLogger()->debug("S - getdents64 - {} {} {}", a, b, c);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_lstat64", I32, __syscall_lstat64, I32 a, I32 b) {
-        logSyscall("lstat64", "%i %i", a, b);
+        util::getLogger()->debug("S - lstat64 - {} {}", a, b);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_rename", I32, __syscall_rename, I32 a, I32 b) {
-        logSyscall("rename", "%i %i", a, b);
+        util::getLogger()->debug("S - rename - {} {}", a, b);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
@@ -635,7 +622,7 @@ namespace wasm {
                     }
                 }
 
-                logSyscall("socket", "%i %i %i", domain, type, protocol);
+                util::getLogger()->debug("S - socket - {} {} {}", domain, type, protocol);
                 I32 sock = (int) syscall(SYS_socket, domain, type, protocol);
 
                 if (sock < 0) {
@@ -654,7 +641,7 @@ namespace wasm {
                 I32 addrPtr = subCallArgs[1];
                 I32 addrLen = subCallArgs[2];
 
-                logSyscall("connect", "%i %i %i", sockfd, addrPtr, addrLen);
+                util::getLogger()->debug("S - connect - {} {} {}", sockfd, addrPtr, addrLen);
 
                 // Allow connecting if thread owns socket
                 checkThreadOwnsFd(sockfd);
@@ -690,12 +677,12 @@ namespace wasm {
 
                 ssize_t result = 0;
                 if (call == SocketCalls::sc_send) {
-                    logSyscall("send", "%i %li %li %i", sockfd, bufPtr, bufLen, flags);
+                    util::getLogger()->debug("S - send - {} {} {} {}", sockfd, bufPtr, bufLen, flags);
 
                     result = send(sockfd, buf, bufLen, flags);
 
                 } else if (call == SocketCalls::sc_recv) {
-                    logSyscall("recv", "%i %li %li %i", sockfd, bufPtr, bufLen, flags);
+                    util::getLogger()->debug("S - recv - {} {} {} {}", sockfd, bufPtr, bufLen, flags);
 
                     result = recv(sockfd, buf, bufLen, flags);
 
@@ -706,14 +693,14 @@ namespace wasm {
                     socklen_t addrLen = subCallArgs[5];
 
                     if (call == SocketCalls::sc_sendto) {
-                        logSyscall("sendto", "%i %li %li %i %i %i", sockfd, bufPtr, bufLen, flags, sockAddrPtr,
+                        util::getLogger()->debug("S - sendto - {} {} {} {} {} {}", sockfd, bufPtr, bufLen, flags, sockAddrPtr,
                                    addrLen);
 
                         result = sendto(sockfd, buf, bufLen, flags, &sockAddr, nativeAddrLen);
 
                     } else {
                         // Note, addrLen here is actually a pointer
-                        logSyscall("recvfrom", "%i %li %li %i %i %i", sockfd, bufPtr, bufLen, flags, sockAddrPtr,
+                        util::getLogger()->debug("S - recvfrom - {} {} {} {} {} {}", sockfd, bufPtr, bufLen, flags, sockAddrPtr,
                                    addrLen);
 
                         // Make the emulator call
@@ -738,7 +725,7 @@ namespace wasm {
 
                 I32 addrLen = subCallArgs[2];
 
-                logSyscall("bind", "%i %i %i", sockfd, addrPtr, addrLen);
+                util::getLogger()->debug("S - bind - {} {} {}", sockfd, addrPtr, addrLen);
 
                 // If thread owns fd, we can bind
                 checkThreadOwnsFd(sockfd);
@@ -753,7 +740,7 @@ namespace wasm {
                 I32 addrPtr = subCallArgs[1];
                 I32 addrLenPtr = subCallArgs[2];
 
-                logSyscall("getsockname", "%i %i %i", sockfd, addrPtr, addrLenPtr);
+                util::getLogger()->debug("S - getsockname - {} {} {}", sockfd, addrPtr, addrLenPtr);
 
                 checkThreadOwnsFd(sockfd);
 
@@ -774,51 +761,51 @@ namespace wasm {
                 // ----------------------------
 
             case (SocketCalls::sc_getpeername): {
-                logSyscall("getpeername", "%i %i", call, argsPtr);
+                util::getLogger()->debug("S - getpeername - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_socketpair): {
-                logSyscall("socketpair", "%i %i", call, argsPtr);
+                util::getLogger()->debug("S - socketpair - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_shutdown): {
-                logSyscall("shutdown", "%i %i", call, argsPtr);
+                util::getLogger()->debug("S - shutdown - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_setsockopt): {
-                logSyscall("setsockopt", "%i %i", call, argsPtr);
+                util::getLogger()->debug("S - setsockopt - {} {}", call, argsPtr);
                 return 0;
             }
             case (SocketCalls::sc_getsockopt): {
-                logSyscall("getsockopt", "%i %i", call, argsPtr);
+                util::getLogger()->debug("S - getsockopt - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_sendmsg): {
-                logSyscall("sendmsg", "%i %i", call, argsPtr);
+                util::getLogger()->debug("S - sendmsg - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_recvmsg): {
-                logSyscall("recvmsg", "%i %i", call, argsPtr);
+                util::getLogger()->debug("S - recvmsg - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_accept4): {
-                logSyscall("accept4", "%i %i", call, argsPtr);
+                util::getLogger()->debug("S - accept4 - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_recvmmsg): {
-                logSyscall("recvmmsg", "%i %i", call, argsPtr);
+                util::getLogger()->debug("S - recvmmsg - {} {}", call, argsPtr);
                 return 0;
             }
 
             case (SocketCalls::sc_sendmmsg): {
-                logSyscall("sendmmsg", "%i %i", call, argsPtr);
+                util::getLogger()->debug("S - sendmmsg - {} {}", call, argsPtr);
                 return 0;
             }
 
@@ -828,13 +815,13 @@ namespace wasm {
 
             case (SocketCalls::sc_accept):
                 // Server-side
-                logSyscall("accept", "%i %i", call, argsPtr);
+                util::getLogger()->debug("S - accept - {} {}", call, argsPtr);
 
                 throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
 
             case (SocketCalls::sc_listen): {
                 // Server-side
-                logSyscall("listen", "%i %i", call, argsPtr);
+                util::getLogger()->debug("S - listen - {} {}", call, argsPtr);
 
                 throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
             }
@@ -851,7 +838,7 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "_gethostbyname", I32, _gethostbyname, I32 hostnamePtr) {
         auto hostname = &Runtime::memoryRef<char>(getExecutingModule()->defaultMemory, (Uptr) hostnamePtr);
 
-        logSyscall("gethostbyname", "%s", hostname);
+        util::getLogger()->debug("S - gethostbyname {}", hostname);
 
         return 0;
     }
@@ -869,7 +856,7 @@ namespace wasm {
     //TODO - make this more secure
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_clock_gettime", I32, __syscall_clock_gettime,
                               I32 clockId, I32 resultAddress) {
-        logSyscall("clock_gettime", "%i %i", clockId, resultAddress);
+        util::getLogger()->debug("S - clock_gettime - {} {}", clockId, resultAddress);
 
         timespec ts{};
         clock_gettime(clockId, &ts);
@@ -886,17 +873,17 @@ namespace wasm {
     // ------------------------
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_gettimeofday", I32, __syscall_gettimeofday, I32 a, I32 b) {
-        logSyscall("gettimeofday", "%i %i", a, b);
+        util::getLogger()->debug("S - gettimeofday - {} {}", a, b);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_setitimer", I32, __syscall_setitimer, I32 a, I32 b, I32 c) {
-        logSyscall("setitimer", "%i %i %i", a, b, c);
+        util::getLogger()->debug("S - setitimer - {} {} {}", a, b, c);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_wait4", I32, __syscall_wait4, I32 a, I32 b, I32 c, I32 d) {
-        logSyscall("wait4", "%i %i %i %i", a, b, c, d);
+        util::getLogger()->debug("S - wait4 - {} {} {} {}", a, b, c, d);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
@@ -905,17 +892,17 @@ namespace wasm {
     // ------------------------
 
     DEFINE_INTRINSIC_FUNCTION(env, "_Exit", void, _Exit, I32 a) {
-        logSyscall("_Exit", "%i", a);
+        util::getLogger()->debug("S - _Exit - {}", a);
         throw (wasm::WasmExitException(a));
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_exit", I32, __syscall_exit, I32 a) {
-        logSyscall("exit", "%i", a);
+        util::getLogger()->debug("S - exit - {}", a);
         throw (wasm::WasmExitException(a));
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_exit_group", I32, __syscall_exit_group, I32 a) {
-        logSyscall("exit_group", "%i", a);
+        util::getLogger()->debug("S - exit_group - {}", a);
         throw (wasm::WasmExitException(a));
     }
 
@@ -924,91 +911,91 @@ namespace wasm {
     // ------------------------
 
     DEFINE_INTRINSIC_FUNCTION(env, "abort", void, abort) {
-        logSyscall("abort", "%s", "");
+        util::getLogger()->debug("S - abort");
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_rt_sigaction", I32, __syscall_rt_sigaction, I32 a, I32 b, I32 c) {
-        logSyscall("rt_sigaction", "%i %i %i", a, b, c);
+        util::getLogger()->debug("S - rt_sigaction - {} {} {}", a, b, c);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__funcs_on_exit", void, __funcs_on_exit) {
-        logSyscall("funcs_on_exit", "");
+        util::getLogger()->debug("S - funcs_on_exit", "");
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__libc_exit_fini", void, __libc_exit_fini) {
-        logSyscall("libc_exit_fini", "");
+        util::getLogger()->debug("S - libc_exit_fini", "");
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__stdio_exit", void, __stdio_exit) {
-        logSyscall("stdio_exit", "");
+        util::getLogger()->debug("S - stdio_exit", "");
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__unsupported_syscall", I32, __unsupported_syscall,
                               I32 a, I32 b, I32 c, I32 d, I32 e, I32 f, I32 g) {
-        logSyscall("UNSUPPORTED", "%i %i %i %i %i %i %i", a, b, c, d, e, f, g);
+        util::getLogger()->debug("S - UNSUPPORTED - {} {} {} {} {} {} {}", a, b, c, d, e, f, g);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_gettid", I32, __syscall_gettid, I32 a) {
-        logSyscall("gettid", "%i", a);
+        util::getLogger()->debug("S - gettid - {}", a);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_getgroups32", I32, __syscall_getgroups32, I32 a, I32 b) {
-        logSyscall("getgroups32", "%i %i", a, b);
+        util::getLogger()->debug("S - getgroups32 - {} {}", a, b);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_tkill", I32, __syscall_tkill, I32 a, I32 b) {
-        logSyscall("tkill", "%i %i", a, b);
+        util::getLogger()->debug("S - tkill - {} {}", a, b);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_kill", I32, __syscall_kill, I32 a, I32 b) {
-        logSyscall("kill", "%i %i", a, b);
+        util::getLogger()->debug("S - kill - {} {}", a, b);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_tgkill", I32, __syscall_tgkill, I32 a, I32 b, I32 c) {
-        logSyscall("tgkill", "%i %i %i", a, b, c);
+        util::getLogger()->debug("S - tgkill - {} {} {}", a, b, c);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_sched_getaffinity", I32, __syscall_sched_getaffinity, I32 a, I32 b,
                               I32 c) {
-        logSyscall("sched_getaffinity", "%i %i %i", a, b, c);
+        util::getLogger()->debug("S - sched_getaffinity - {} {} {}", a, b, c);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_faccessat", I32, __syscall_faccessat, I32 a, I32 b, I32 c, I32 d) {
-        logSyscall("sched_faccessat", "%i %i %i %i", a, b, c, d);
+        util::getLogger()->debug("S - sched_faccessat - {} {} {} {}", a, b, c, d);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_pselect6", I32, __syscall_pselect6, I32 a, I32 b, I32 c, I32 d, I32 e,
                               I32 f) {
-        logSyscall("pselect6", "%i %i %i %i %i %i", a, b, c, d, e, f);
+        util::getLogger()->debug("S - pselect6 - {} {} {} {} {} {}", a, b, c, d, e, f);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_rt_sigprocmask", I32, __syscall_rt_sigprocmask, I32 a, I32 b, I32 c) {
-        logSyscall("rt_sigprocmask", "%i %i %i", a, b, c);
+        util::getLogger()->debug("S - rt_sigprocmask - {} {} {}", a, b, c);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "_Unwind_RaiseException", I32, _Unwind_RaiseException, I32 a) {
-        logSyscall("Unwind_RaiseException", "%i", a);
+        util::getLogger()->debug("S - Unwind_RaiseException - {}", a);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "_Unwind_DeleteException", void, _Unwind_DeleteException, I32 a) {
-        logSyscall("Unwind_DeleteException", "%i", a);
+        util::getLogger()->debug("S - Unwind_DeleteException - {}", a);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
@@ -1034,7 +1021,7 @@ namespace wasm {
      */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_mmap", I32, __syscall_mmap,
                               U32 addr, U32 length, U32 prot, U32 flags, I32 fd, U32 offset) {
-        logSyscall("mmap", "%i %i %i %i %i %i", addr, length, prot, flags, fd, offset);
+        util::getLogger()->debug("S - mmap - {} {} {} {} {} {}", addr, length, prot, flags, fd, offset);
 
         if (addr != 0) {
             printf("Ignoring mmap hint at %i\n", addr);
@@ -1064,7 +1051,7 @@ namespace wasm {
      */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_munmap", I32, __syscall_munmap,
                               U32 addr, U32 length) {
-        logSyscall("munmap", "%i %i", addr, length);
+        util::getLogger()->debug("S - munmap - {} {}", addr, length);
 
         const Uptr basePageIndex = addr / IR::numBytesPerPage;
         const Uptr numPages = (length + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
@@ -1087,7 +1074,7 @@ namespace wasm {
      *   - on success return NEW break
      */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_brk", I32, __syscall_brk, U32 addr) {
-        logSyscall("brk", "%i", addr);
+        util::getLogger()->debug("S - brk - {}", addr);
 
         Uptr targetPageCount = getNumberPagesAtOffset(addr);
 
@@ -1118,13 +1105,13 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_madvise", I32, __syscall_madvise,
                               U32 address, U32 numBytes, U32 advice) {
-        logSyscall("madvise", "%i %i %i", address, numBytes, advice);
+        util::getLogger()->debug("S - madvise - {} {} {}", address, numBytes, advice);
 
         return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_membarrier", I32, __syscall_membarrier, I32 a, I32 b) {
-        logSyscall("membarrier", "%i %i", a, b);
+        util::getLogger()->debug("S - membarrier - {} {}", a, b);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
@@ -1135,7 +1122,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_mremap", I32, __syscall_mremap,
                               U32 oldAddress, U32 oldNumBytes, U32 newNumBytes, U32 flags, U32 newAddress) {
-        logSyscall("mremap", "%i %i %i %i %i", oldAddress, oldNumBytes, newNumBytes, flags, newAddress);
+        util::getLogger()->debug("S - mremap - {} {} {} {} {}", oldAddress, oldNumBytes, newNumBytes, flags, newAddress);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
@@ -1145,31 +1132,31 @@ namespace wasm {
     // ------------------------
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_setrlimit", I32, __syscall_setrlimit, I32 a, I32 b) {
-        logSyscall("setrlimit", "%i %i", a, b);
+        util::getLogger()->debug("S - setrlimit - {} {}", a, b);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_getrlimit", I32, __syscall_getrlimit, I32 a, I32 b) {
-        logSyscall("getrlimit", "%i %i", a, b);
+        util::getLogger()->debug("S - getrlimit - {} {}", a, b);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_getrusage", I32, __syscall_getrusage, I32 a, I32 b) {
-        logSyscall("getrusage", "%i %i", a, b);
+        util::getLogger()->debug("S - getrusage - {} {}", a, b);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_ugetrlimit", I32, __syscall_ugetrlimit, I32 a, I32 b) {
-        logSyscall("ugetrlimit", "%i %i", a, b);
+        util::getLogger()->debug("S - ugetrlimit - {} {}", a, b);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_prlimit64", I32, __syscall_prlimit64, I32 a, I32 b, I32 c, I32 d) {
-        logSyscall("prlimit64", "%i %i %i %i", a, b, c, d);
+        util::getLogger()->debug("S - prlimit64 - {} {} {} {}", a, b, c, d);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
