@@ -31,14 +31,25 @@ namespace wasm {
     WasmModule::WasmModule() = default;
 
     WasmModule::~WasmModule() {
-//        delete compartment;
-//        delete context;
+        defaultMemory = nullptr;
+        context = nullptr;
+        moduleInstance = nullptr;
+        functionInstance = nullptr;
 
-        // Tidy up
-        if(isExecuted) {
-            Runtime::collectCompartmentGarbage(compartment);
+        resolver->cleanUp();
+
+        if (compartment != nullptr) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+            bool compartmentCleared = Runtime::tryCollectCompartment(std::move(compartment));
+            if(!compartmentCleared) {
+                logger->debug("Failed GC for compartment");
+            }
+            else {
+                logger->debug("Successful GC for compartment");
+            }
         }
-    }
+    };
 
     void WasmModule::initialise() {
         const auto &t = prof::startTimer();
@@ -50,32 +61,16 @@ namespace wasm {
 
         compartment = Runtime::createCompartment();
         context = Runtime::createContext(compartment);
-        resolver = new RootResolver();
-
-        // Link with intrinsics (independent of module)
-        Intrinsics::Module &moduleRef = INTRINSIC_MODULE_REF(env);
-
-        Runtime::ModuleInstance *envModule = Intrinsics::instantiateModule(
-                compartment,
-                moduleRef,
-                "env"
-        );
 
         // Prepare name resolution
-        resolver->moduleNameToInstanceMap.set("env", envModule);
+        resolver = new RootResolver(compartment);
         prof::logEndTimer("pre-init", t);
     }
 
     void WasmModule::bindToFunction(message::FunctionCall &call, CallChain &callChain) {
-        if(compartment == nullptr) {
+        if (compartment == nullptr) {
             throw std::runtime_error("Must initialise module before binding");
         }
-
-        //TODO this referencing could be done better
-        // Set reference to self
-        executingModule = this;
-        executingCall = &call;
-        executingCallChain = &callChain;
 
         // Parse the wasm file to work out imports, function signatures etc.
         this->parseWasm(call);
@@ -139,14 +134,18 @@ namespace wasm {
     int WasmModule::execute(message::FunctionCall &call, CallChain &callChain) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        if(!isBound) {
+        if (!isBound) {
             logger->debug("Binding to function {}", infra::funcToString(call));
             this->bindToFunction(call, callChain);
-        }
-        else if(call.user() != boundUser || call.function() != boundFunction) {
+        } else if (call.user() != boundUser || call.function() != boundFunction) {
             logger->debug("Repeat call to function {}", infra::funcToString(call));
             throw std::runtime_error("Cannot perform repeat execution on different function");
         }
+
+        // Set up shared references
+        executingModule = this;
+        executingCall = &call;
+        executingCallChain = &callChain;
 
         // Make the call
         const auto &t = prof::startTimer();
@@ -159,8 +158,6 @@ namespace wasm {
             exitCode = e.exitCode;
         }
         prof::logEndTimer("exec", t);
-
-        isExecuted = true;
 
         return exitCode;
     }

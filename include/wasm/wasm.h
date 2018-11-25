@@ -17,7 +17,7 @@
 using namespace WAVM;
 
 namespace wasm {
-    DECLARE_INTRINSIC_MODULE(env);
+    extern Intrinsics::Module &getIntrinsicModule_env();
 
     const std::string ENTRYPOINT_FUNC = "_start";
 
@@ -25,32 +25,40 @@ namespace wasm {
     // Page size in wasm is 64kiB so 1000 pages ~ 60MiB of memory
     const int MIN_MEMORY_PAGES = 1000;
 
-    const int MAX_INPUT_BYTES = IR::numBytesPerPage;
-    const int MAX_OUTPUT_BYTES = IR::numBytesPerPage;
-
     struct RootResolver : Runtime::Resolver {
-        HashMap<std::string, Runtime::ModuleInstance*> moduleNameToInstanceMap;
+        explicit RootResolver(Runtime::Compartment *compartment) {
+            Intrinsics::Module &moduleRef = getIntrinsicModule_env();
 
-        bool resolve(const std::string& moduleName,
-                     const std::string& exportName,
+            moduleInstance = Intrinsics::instantiateModule(
+                    compartment,
+                    moduleRef,
+                    "env"
+            );
+        }
+
+        void cleanUp() {
+            moduleInstance = nullptr;
+        }
+
+        bool resolve(const std::string &moduleName,
+                     const std::string &exportName,
                      IR::ExternType type,
-                     Runtime::Object*& outObject) override
-        {
-            auto namedInstance = moduleNameToInstanceMap.get(moduleName);
+                     Runtime::Object *&resolved) override {
 
-            if(namedInstance) {
-                outObject = getInstanceExport(*namedInstance, exportName);
+            resolved = getInstanceExport(moduleInstance, exportName);
 
-                if(outObject && isA(outObject, type)) {
-                    return true;
-                };
-            }
+            if (resolved && isA(resolved, type)) {
+                return true;
+            };
 
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Missing import {}.{} {}", moduleName, exportName, asString(type).c_str());
 
             return false;
         }
+
+    private:
+        Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
     };
 
     class CallChain {
@@ -80,22 +88,22 @@ namespace wasm {
 
         int execute(message::FunctionCall &call, CallChain &callChain);
 
-        Runtime::Memory *defaultMemory;
+        Runtime::GCPointer<Runtime::Memory> defaultMemory = nullptr;
 
         bool isBound = false;
+
     private:
         IR::Module module;
 
-        Runtime::ModuleInstance * moduleInstance = nullptr;
-        Runtime::Context * context = nullptr;
-        Runtime::Compartment * compartment = nullptr;
+        Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance = nullptr;
+        Runtime::GCPointer<Runtime::Context> context = nullptr;
+        Runtime::GCPointer<Runtime::Compartment> compartment = nullptr;
+        Runtime::GCPointer<Runtime::Function> functionInstance = nullptr;
+
         RootResolver *resolver = nullptr;
-        Runtime::Function *functionInstance = nullptr;
 
         std::string boundUser;
         std::string boundFunction;
-
-        bool isExecuted = false;
 
         void bindToFunction(message::FunctionCall &call, CallChain &callChain);
 

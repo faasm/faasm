@@ -11,7 +11,7 @@ namespace worker {
     // TODO - must match the underlying number of available namespaces. Good to decouple?
     static int N_THREADS = 40;
 
-    static int UNBOUND_TIMEOUT = 120;
+    static int UNBOUND_TIMEOUT = 180;
     static int BOUND_TIMEOUT = 30;
 
     static util::TokenPool tokenPool(N_THREADS);
