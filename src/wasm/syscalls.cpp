@@ -282,16 +282,13 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_poll", I32, __syscall_poll, I32 fdsPtr, I32 nfds, I32 timeout) {
         util::getLogger()->debug("S - poll - {} {} {}", fdsPtr, nfds, timeout);
 
-        if (nfds != 1) {
-            printf("Trying to poll %i fds\n", nfds);
-            throw std::runtime_error("Trying to poll multiple fds. Only single supported");
+        auto *fds = Runtime::memoryArrayPtr<pollfd>(getExecutingModule()->defaultMemory, (Uptr) fdsPtr, (Uptr) nfds);
+
+        // Check this thread has permission to poll the relevant fds
+        for (int i = 0; i < nfds; i++) {
+            pollfd fd = fds[i];
+            checkThreadOwnsFd(fd.fd);
         }
-
-        auto *fds = Runtime::memoryArrayPtr<pollfd>(getExecutingModule()->defaultMemory, (Uptr) fdsPtr, 1);
-
-        // Check this thread has permission to poll
-        pollfd fd = fds[0];
-        checkThreadOwnsFd(fd.fd);
 
         int pollRes = poll(fds, (size_t) nfds, timeout);
         return pollRes;
@@ -693,15 +690,17 @@ namespace wasm {
                     socklen_t addrLen = subCallArgs[5];
 
                     if (call == SocketCalls::sc_sendto) {
-                        util::getLogger()->debug("S - sendto - {} {} {} {} {} {}", sockfd, bufPtr, bufLen, flags, sockAddrPtr,
-                                   addrLen);
+                        util::getLogger()->debug("S - sendto - {} {} {} {} {} {}", sockfd, bufPtr, bufLen, flags,
+                                                 sockAddrPtr,
+                                                 addrLen);
 
                         result = sendto(sockfd, buf, bufLen, flags, &sockAddr, nativeAddrLen);
 
                     } else {
                         // Note, addrLen here is actually a pointer
-                        util::getLogger()->debug("S - recvfrom - {} {} {} {} {} {}", sockfd, bufPtr, bufLen, flags, sockAddrPtr,
-                                   addrLen);
+                        util::getLogger()->debug("S - recvfrom - {} {} {} {} {} {}", sockfd, bufPtr, bufLen, flags,
+                                                 sockAddrPtr,
+                                                 addrLen);
 
                         // Make the emulator call
                         result = recvfrom(sockfd, buf, bufLen, flags, &sockAddr, &nativeAddrLen);
@@ -1127,7 +1126,8 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_mremap", I32, __syscall_mremap,
                               U32 oldAddress, U32 oldNumBytes, U32 newNumBytes, U32 flags, U32 newAddress) {
-        util::getLogger()->debug("S - mremap - {} {} {} {} {}", oldAddress, oldNumBytes, newNumBytes, flags, newAddress);
+        util::getLogger()->debug("S - mremap - {} {} {} {} {}", oldAddress, oldNumBytes, newNumBytes, flags,
+                                 newAddress);
 
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }

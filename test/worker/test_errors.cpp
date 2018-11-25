@@ -50,7 +50,7 @@ namespace tests {
         checkError("socket", "fd not owned by this function");
     }
 
-    TEST_CASE("Test polling multiple fds", "[wasm]") {
+    TEST_CASE("Test polling multiple fds not owned by function", "[wasm]") {
         checkError("multi_poll", "Trying to poll multiple fds");
     }
 }
