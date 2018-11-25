@@ -31,12 +31,23 @@ namespace wasm {
     WasmModule::WasmModule() = default;
 
     WasmModule::~WasmModule() {
+        defaultMemory = nullptr;
         context = nullptr;
         moduleInstance = nullptr;
         functionInstance = nullptr;
 
+        resolver->cleanUp();
+
         if (compartment != nullptr) {
-            Runtime::tryCollectCompartment(std::move(compartment));
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+            bool compartmentCleared = Runtime::tryCollectCompartment(std::move(compartment));
+            if(!compartmentCleared) {
+                logger->debug("Failed GC for compartment");
+            }
+            else {
+                logger->debug("Successful GC for compartment");
+            }
         }
     };
 
@@ -51,17 +62,8 @@ namespace wasm {
         compartment = Runtime::createCompartment();
         context = Runtime::createContext(compartment);
 
-        // Link with intrinsics (independent of module)
-        Intrinsics::Module &moduleRef = getIntrinsicModule_env();
-
-        Runtime::GCPointer<Runtime::ModuleInstance> envModuleInstance = Intrinsics::instantiateModule(
-                compartment,
-                moduleRef,
-                "env"
-        );
-
         // Prepare name resolution
-        resolver = new RootResolver(envModuleInstance);
+        resolver = new RootResolver(compartment);
         prof::logEndTimer("pre-init", t);
     }
 

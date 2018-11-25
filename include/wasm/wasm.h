@@ -25,21 +25,29 @@ namespace wasm {
     // Page size in wasm is 64kiB so 1000 pages ~ 60MiB of memory
     const int MIN_MEMORY_PAGES = 1000;
 
-    const int MAX_INPUT_BYTES = IR::numBytesPerPage;
-    const int MAX_OUTPUT_BYTES = IR::numBytesPerPage;
-
     struct RootResolver : Runtime::Resolver {
-        explicit RootResolver(Runtime::ModuleInstance *inModuleInstance) : moduleInstance(inModuleInstance) {
+        explicit RootResolver(Runtime::Compartment *compartment) {
+            Intrinsics::Module &moduleRef = getIntrinsicModule_env();
+
+            moduleInstance = Intrinsics::instantiateModule(
+                    compartment,
+                    moduleRef,
+                    "env"
+            );
+        }
+
+        void cleanUp() {
+            moduleInstance = nullptr;
         }
 
         bool resolve(const std::string &moduleName,
                      const std::string &exportName,
                      IR::ExternType type,
-                     Runtime::Object *&reolved) override {
+                     Runtime::Object *&resolved) override {
 
-            reolved = getInstanceExport(moduleInstance, exportName);
+            resolved = getInstanceExport(moduleInstance, exportName);
 
-            if (reolved && isA(reolved, type)) {
+            if (resolved && isA(resolved, type)) {
                 return true;
             };
 
@@ -50,7 +58,7 @@ namespace wasm {
         }
 
     private:
-        Runtime::ModuleInstance *moduleInstance;
+        Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
     };
 
     class CallChain {
@@ -80,7 +88,7 @@ namespace wasm {
 
         int execute(message::FunctionCall &call, CallChain &callChain);
 
-        Runtime::GCPointer<Runtime::Memory> defaultMemory;
+        Runtime::GCPointer<Runtime::Memory> defaultMemory = nullptr;
 
         bool isBound = false;
 

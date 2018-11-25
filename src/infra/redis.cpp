@@ -215,7 +215,7 @@ namespace infra {
         queueName = this->spop(UNASSIGNED_SET);
 
         if(queueName.empty()) {
-            throw std::runtime_error("Unable to find any available queues to take call");
+            throw std::runtime_error("Unable to find any available queues to take call\n");
         }
 
         logger->debug("Cold start {}", funcToString(call));
