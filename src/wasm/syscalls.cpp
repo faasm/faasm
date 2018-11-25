@@ -47,7 +47,11 @@ using namespace WAVM;
  */
 
 namespace wasm {
-    DEFINE_INTRINSIC_MODULE(env)
+    static thread_local Intrinsics::Module envModule;
+
+    Intrinsics::Module &getIntrinsicModule_env() {
+        return envModule;
+    }
 
     static const char *HOSTS_FILE = "/usr/local/faasm/net/hosts";
     static const char *RESOLV_FILE = "/usr/local/faasm/net/resolv.conf";
@@ -902,17 +906,17 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "_Exit", void, _Exit, I32 a) {
         logSyscall("_Exit", "%i", a);
-        throw(wasm::WasmExitException(a));
+        throw (wasm::WasmExitException(a));
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_exit", I32, __syscall_exit, I32 a) {
         logSyscall("exit", "%i", a);
-        throw(wasm::WasmExitException(a));
+        throw (wasm::WasmExitException(a));
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_exit_group", I32, __syscall_exit_group, I32 a) {
         logSyscall("exit_group", "%i", a);
-        throw(wasm::WasmExitException(a));
+        throw (wasm::WasmExitException(a));
     }
 
     // ------------------------

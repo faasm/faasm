@@ -17,7 +17,7 @@
 using namespace WAVM;
 
 namespace wasm {
-    DECLARE_INTRINSIC_MODULE(env);
+    extern Intrinsics::Module &getIntrinsicModule_env();
 
     const std::string ENTRYPOINT_FUNC = "_start";
 
@@ -29,28 +29,28 @@ namespace wasm {
     const int MAX_OUTPUT_BYTES = IR::numBytesPerPage;
 
     struct RootResolver : Runtime::Resolver {
-        HashMap<std::string, Runtime::ModuleInstance*> moduleNameToInstanceMap;
+        explicit RootResolver(Runtime::ModuleInstance *inModuleInstance) : moduleInstance(inModuleInstance) {
+        }
 
-        bool resolve(const std::string& moduleName,
-                     const std::string& exportName,
+        bool resolve(const std::string &moduleName,
+                     const std::string &exportName,
                      IR::ExternType type,
-                     Runtime::Object*& outObject) override
-        {
-            auto namedInstance = moduleNameToInstanceMap.get(moduleName);
+                     Runtime::Object *&reolved) override {
 
-            if(namedInstance) {
-                outObject = getInstanceExport(*namedInstance, exportName);
+            reolved = getInstanceExport(moduleInstance, exportName);
 
-                if(outObject && isA(outObject, type)) {
-                    return true;
-                };
-            }
+            if (reolved && isA(reolved, type)) {
+                return true;
+            };
 
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Missing import {}.{} {}", moduleName, exportName, asString(type).c_str());
 
             return false;
         }
+
+    private:
+        Runtime::ModuleInstance *moduleInstance;
     };
 
     class CallChain {
@@ -70,6 +70,8 @@ namespace wasm {
     public:
         WasmModule();
 
+        ~WasmModule();
+
         static std::vector<uint8_t> compile(message::FunctionCall &call);
 
         static void compileToObjectFile(message::FunctionCall &call);
@@ -82,7 +84,6 @@ namespace wasm {
 
         bool isBound = false;
 
-        void cleanUp();
     private:
         IR::Module module;
 
@@ -96,8 +97,6 @@ namespace wasm {
         std::string boundUser;
         std::string boundFunction;
 
-        bool isExecuted = false;
-
         void bindToFunction(message::FunctionCall &call, CallChain &callChain);
 
         void parseWasm(message::FunctionCall &call);
@@ -108,8 +107,6 @@ namespace wasm {
     message::FunctionCall *getExecutingCall();
 
     CallChain *getExecutingCallChain();
-
-    void cleanUpWasmThread();
 
     class WasmExitException : public std::exception {
     public:

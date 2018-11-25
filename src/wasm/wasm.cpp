@@ -30,17 +30,15 @@ namespace wasm {
 
     WasmModule::WasmModule() = default;
 
-    void cleanUpWasmThread() {
-        executingModule->cleanUp();
+    WasmModule::~WasmModule() {
+        context = nullptr;
+        moduleInstance = nullptr;
+        functionInstance = nullptr;
 
-        delete executingModule;
-        delete executingCall;
-        delete executingCallChain;
-    }
-
-    void WasmModule::cleanUp() {
-        Runtime::collectCompartmentGarbage(compartment);
-    }
+        if (compartment != nullptr) {
+            Runtime::tryCollectCompartment(std::move(compartment));
+        }
+    };
 
     void WasmModule::initialise() {
         const auto &t = prof::startTimer();
@@ -52,19 +50,18 @@ namespace wasm {
 
         compartment = Runtime::createCompartment();
         context = Runtime::createContext(compartment);
-        resolver = new RootResolver();
 
         // Link with intrinsics (independent of module)
-        Intrinsics::Module &moduleRef = INTRINSIC_MODULE_REF(env);
+        Intrinsics::Module &moduleRef = getIntrinsicModule_env();
 
-        Runtime::GCPointer<Runtime::ModuleInstance> envModule = Intrinsics::instantiateModule(
+        Runtime::GCPointer<Runtime::ModuleInstance> envModuleInstance = Intrinsics::instantiateModule(
                 compartment,
                 moduleRef,
                 "env"
         );
 
         // Prepare name resolution
-        resolver->moduleNameToInstanceMap.set("env", envModule);
+        resolver = new RootResolver(envModuleInstance);
         prof::logEndTimer("pre-init", t);
     }
 
@@ -73,8 +70,7 @@ namespace wasm {
             throw std::runtime_error("Must initialise module before binding");
         }
 
-        //TODO this referencing could be done better
-        // Set reference to self
+        // Set references to be shared by everything in this thread of execution.
         executingModule = this;
         executingCall = &call;
         executingCallChain = &callChain;
@@ -160,8 +156,6 @@ namespace wasm {
             exitCode = e.exitCode;
         }
         prof::logEndTimer("exec", t);
-
-        isExecuted = true;
 
         return exitCode;
     }
