@@ -42,10 +42,9 @@ namespace wasm {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
             bool compartmentCleared = Runtime::tryCollectCompartment(std::move(compartment));
-            if(!compartmentCleared) {
+            if (!compartmentCleared) {
                 logger->debug("Failed GC for compartment");
-            }
-            else {
+            } else {
                 logger->debug("Successful GC for compartment");
             }
         }

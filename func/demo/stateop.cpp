@@ -2,7 +2,7 @@
 #include "faasm/counter.h"
 
 /**
- * Function for load-testing with state
+ * Function for load-testing with a state operation
  */
 namespace faasm {
     int exec(FaasmMemory *memory) {

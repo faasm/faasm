@@ -25,7 +25,7 @@ namespace faasm {
     }
 
     long FaasmMemory::getStateSize(const char *key) {
-        uint8_t buf[1];
+        auto buf = new uint8_t[1];
 
         // Passing zero buffer len returns total size
         return __faasm_read_state(key, buf, 0);
@@ -48,7 +48,7 @@ namespace faasm {
     };
 
     long FaasmMemory::getInputSize() {
-        uint8_t buf[1];
+        auto buf = new uint8_t[1];
 
         // Passing zero buffer len returns total size
         return __faasm_read_input(buf, 0);

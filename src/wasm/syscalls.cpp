@@ -376,8 +376,8 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_futex", I32, __syscall_futex,
-                              I32 a, I32 b, I32 c, I32 d, I32 e, I32 f) {
-        util::getLogger()->debug("S - futex - {} {} {} {} {} {}", a, b, c, d, e, f);
+                              I32 uaddr, I32 futexOp, I32 val, I32 timeoutPtr, I32 uaddr2, I32 val2) {
+        util::getLogger()->debug("S - futex - {} {} {} {} {} {}", uaddr, futexOp, val, timeoutPtr, uaddr2, val2);
         throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
@@ -1067,10 +1067,14 @@ namespace wasm {
                               U32 addr, U32 length) {
         util::getLogger()->debug("S - munmap - {} {}", addr, length);
 
+        Runtime::Memory *memory = getExecutingModule()->defaultMemory;
+
+        if(addr & (IR::numBytesPerPage - 1) || length == 0) { return -EINVAL; }
+
         const Uptr basePageIndex = addr / IR::numBytesPerPage;
         const Uptr numPages = (length + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
 
-        Runtime::Memory *memory = getExecutingModule()->defaultMemory;
+        if(basePageIndex + numPages > getMemoryMaxPages(memory)) { return -EINVAL; }
 
         unmapMemoryPages(memory, basePageIndex, numPages);
 
@@ -1127,7 +1131,7 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_membarrier", I32, __syscall_membarrier, I32 a, I32 b) {
         util::getLogger()->debug("S - membarrier - {} {}", a, b);
 
-        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+        return 0;
     }
 
     // ------------------------
