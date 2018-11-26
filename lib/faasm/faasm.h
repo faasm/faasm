@@ -10,7 +10,7 @@ namespace faasm {
     int exec(FaasmMemory *memory);
 }
 
-int main(int argc, char* argv[], char **envp) {
+int main(int argc, char* argv[]) {
     faasm::FaasmMemory memory;
     faasm::exec(&memory);
 

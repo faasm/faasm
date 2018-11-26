@@ -190,7 +190,17 @@ namespace wasm {
     // ------------------------
 
     void checkThreadOwnsFd(int fd) {
-        if (openFds.find(fd) == openFds.end()) {
+        const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+        bool isNotOwned = openFds.find(fd) == openFds.end();
+
+        if (fd == STDIN_FILENO) {
+            logger->error("Process interacting with stdin");
+            throw std::runtime_error("Attempt to interact with stdin");
+        } else if (fd == STDOUT_FILENO) {
+            logger->debug("Process interacting with stdout", fd);
+        } else if (fd == STDERR_FILENO) {
+            logger->debug("Process interacting with stderr", fd);
+        } else if (isNotOwned) {
             printf("fd not owned by this thread (%i)\n", fd);
             throw std::runtime_error("fd not owned by this function");
         }
