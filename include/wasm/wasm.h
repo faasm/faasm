@@ -96,14 +96,21 @@ namespace wasm {
         IR::Module module;
 
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
-        Runtime::GCPointer<Runtime::Context> context;
         Runtime::GCPointer<Runtime::Compartment> compartment;
         Runtime::GCPointer<Runtime::Function> functionInstance;
+
+        U8 *cleanMemory;
+        Uptr cleanMemoryPages;
+        size_t cleanMemorySize;
 
         RootResolver *resolver = nullptr;
 
         std::string boundUser;
         std::string boundFunction;
+
+        void snapshotCleanMemory();
+
+        void restoreCleanMemory();
 
         void bindToFunction(message::FunctionCall &call, CallChain &callChain);
 

@@ -7,6 +7,7 @@
 #include <WAVM/WASM/WASM.h>
 #include <WAVM/Inline/CLI.h>
 #include <WAVM/IR/Types.h>
+#include <WAVM/Runtime/RuntimeData.h>
 
 
 using namespace WAVM;
@@ -31,8 +32,9 @@ namespace wasm {
     WasmModule::WasmModule() = default;
 
     WasmModule::~WasmModule() {
+        delete[] cleanMemory;
+
         defaultMemory = nullptr;
-        context = nullptr;
         moduleInstance = nullptr;
         functionInstance = nullptr;
 
@@ -59,7 +61,6 @@ namespace wasm {
         });
 
         compartment = Runtime::createCompartment();
-        context = Runtime::createContext(compartment);
 
         // Prepare name resolution
         resolver = new RootResolver(compartment);
@@ -118,13 +119,50 @@ namespace wasm {
             throw std::runtime_error(errorMsg);
         }
 
-        // Set up public properties
+        // Keep reference to memory and snapshot initial state
         this->defaultMemory = getDefaultMemory(moduleInstance);
+        this->snapshotCleanMemory();
 
         // Record that this module is now bound
         isBound = true;
         boundUser = call.user();
         boundFunction = call.function();
+    }
+
+    void WasmModule::snapshotCleanMemory() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
+
+        cleanMemoryPages = Runtime::getMemoryNumPages(this->defaultMemory);
+        cleanMemorySize = cleanMemoryPages * IR::numBytesPerPage;
+        cleanMemory = new uint8_t[cleanMemorySize];
+
+        logger->debug("Snapshotting memory with {} pages", cleanMemoryPages);
+
+        std::copy(baseAddr, baseAddr + cleanMemorySize, cleanMemory);
+    }
+
+    void WasmModule::restoreCleanMemory() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        Uptr currentPages = Runtime::getMemoryNumPages(this->defaultMemory);
+
+        if(currentPages > cleanMemoryPages) {
+            Uptr shrinkSize = currentPages - cleanMemoryPages;
+            logger->debug("Restoring memory and shrinking {} pages", shrinkSize);
+            Runtime::shrinkMemory(this->defaultMemory, shrinkSize);
+        }
+        if(cleanMemoryPages > currentPages) {
+            Uptr growSize = cleanMemoryPages - currentPages;
+            logger->debug("Restoring memory and growing {} pages", growSize);
+            Runtime::growMemory(this->defaultMemory, growSize);
+        }
+        else {
+            logger->debug("Restoring memory wioth equal size");
+        }
+
+        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
+        std::copy(cleanMemory, cleanMemory + cleanMemorySize, baseAddr);
     }
 
     /**
@@ -137,8 +175,10 @@ namespace wasm {
             logger->debug("Binding to function {}", infra::funcToString(call));
             this->bindToFunction(call, callChain);
         } else if (call.user() != boundUser || call.function() != boundFunction) {
-            logger->debug("Repeat call to function {}", infra::funcToString(call));
+            logger->debug("Invalid repeat call to function {}", infra::funcToString(call));
             throw std::runtime_error("Cannot perform repeat execution on different function");
+        } else {
+            logger->debug("Repeat call to function {}", infra::funcToString(call));
         }
 
         // Set up shared references
@@ -151,12 +191,25 @@ namespace wasm {
         int exitCode = 0;
         std::vector<IR::Value> invokeArgs;
         try {
+            // Create the runtime context
+            Runtime::Context *context = Runtime::createContext(compartment);
+
+            // Record the initial heap base
+//            auto heapBase = asGlobalNullable(getInstanceExport(moduleInstance, "__heap_base"));
+//            const IR::Value &heapBaseInitial = Runtime::getGlobalValue(context, heapBase);
+
+            // Call the function
             invokeFunctionChecked(context, functionInstance, invokeArgs);
+
+            // Reset the heap base
+            // sRuntime::setGlobalValue(context, heapBase, heapBaseInitial);
         }
         catch (wasm::WasmExitException &e) {
             exitCode = e.exitCode;
         }
         prof::logEndTimer("exec", t);
+
+        this->restoreCleanMemory();
 
         return exitCode;
     }
