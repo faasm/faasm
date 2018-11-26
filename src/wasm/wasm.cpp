@@ -163,7 +163,7 @@ namespace wasm {
             logger->debug("Restoring memory and growing {} pages", growSize);
             Runtime::growMemory(this->defaultMemory, growSize);
         } else {
-            logger->debug("Restoring memory with {} pages", cleanMefmoryPages);
+            logger->debug("Restoring memory with {} pages", cleanMemoryPages);
         }
 
         // Restore initial memory state
@@ -210,8 +210,6 @@ namespace wasm {
             exitCode = e.exitCode;
         }
         prof::logEndTimer("exec", t);
-
-        this->restoreCleanMemory();
 
         return exitCode;
     }

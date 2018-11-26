@@ -86,6 +86,10 @@ namespace wasm {
 
         void initialise();
 
+        void snapshotCleanMemory();
+
+        void restoreCleanMemory();
+
         int execute(message::FunctionCall &call, CallChain &callChain);
 
         Runtime::GCPointer<Runtime::Memory> defaultMemory;
@@ -106,10 +110,6 @@ namespace wasm {
 
         std::string boundUser;
         std::string boundFunction;
-
-        void snapshotCleanMemory();
-
-        void restoreCleanMemory();
 
         void bindToFunction(message::FunctionCall &call, CallChain &callChain);
 

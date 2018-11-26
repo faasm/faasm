@@ -86,6 +86,9 @@ namespace worker {
 
         // Set result
         redis->setFunctionResult(call, isSuccess);
+
+        // Restore the module memory after the execution
+        module.restoreCleanMemory();
     }
 
     void Worker::run() {
