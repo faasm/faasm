@@ -288,7 +288,7 @@ namespace wasm {
         return 0;
     }
 
-    /** Poll is annoying as it passes an array of structs. */
+    /** Poll is ok but can pass in an array of structs. */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_poll", I32, __syscall_poll, I32 fdsPtr, I32 nfds, I32 timeout) {
         util::getLogger()->debug("S - poll - {} {} {}", fdsPtr, nfds, timeout);
 

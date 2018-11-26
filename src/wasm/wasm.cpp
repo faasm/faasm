@@ -134,7 +134,7 @@ namespace wasm {
         U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
 
         cleanMemoryPages = Runtime::getMemoryNumPages(this->defaultMemory);
-        cleanMemorySize = cleanMemoryPages * IR::numBytesPerPage;
+        size_t cleanMemorySize = cleanMemoryPages * IR::numBytesPerPage;
         cleanMemory = new uint8_t[cleanMemorySize];
 
         logger->debug("Snapshotting memory with {} pages", cleanMemoryPages);
@@ -147,21 +147,22 @@ namespace wasm {
 
         Uptr currentPages = Runtime::getMemoryNumPages(this->defaultMemory);
 
-        if(currentPages > cleanMemoryPages) {
+        // Grow/ shrink memory as required
+        if (currentPages > cleanMemoryPages) {
             Uptr shrinkSize = currentPages - cleanMemoryPages;
             logger->debug("Restoring memory and shrinking {} pages", shrinkSize);
             Runtime::shrinkMemory(this->defaultMemory, shrinkSize);
-        }
-        if(cleanMemoryPages > currentPages) {
+        } else if (cleanMemoryPages > currentPages) {
             Uptr growSize = cleanMemoryPages - currentPages;
             logger->debug("Restoring memory and growing {} pages", growSize);
             Runtime::growMemory(this->defaultMemory, growSize);
-        }
-        else {
-            logger->debug("Restoring memory wioth equal size");
+        } else {
+            logger->debug("Restoring memory with equal size");
         }
 
+        // Restore initial memory state
         U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
+        size_t cleanMemorySize = cleanMemoryPages * IR::numBytesPerPage;
         std::copy(cleanMemory, cleanMemory + cleanMemorySize, baseAddr);
     }
 

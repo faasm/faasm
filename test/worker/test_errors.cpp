@@ -51,6 +51,10 @@ namespace tests {
     }
 
     TEST_CASE("Test polling multiple fds not owned by function", "[wasm]") {
-        checkError("multi_poll", "Trying to poll multiple fds");
+        checkError("multi_poll", "fd not owned by this function");
+    }
+
+    TEST_CASE("Test polling stdin", "[wasm]") {
+        checkError("stdin_poll", "Attempt to interact with stdin");
     }
 }

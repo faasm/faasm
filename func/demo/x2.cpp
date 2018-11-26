@@ -6,11 +6,13 @@
 namespace faasm {
     int exec(FaasmMemory *memory) {
         long inputSize = memory->getInputSize();
-        const uint8_t *input = memory->getInput();
-        uint8_t output[inputSize];
+        auto inputBuffer = new uint8_t[inputSize];
+        memory->getInput(inputBuffer, inputSize);
+
+        auto output = new uint8_t[inputSize];
 
         for (int i = 0; i < inputSize; i++) {
-            output[i] = input[i] * 2;
+            output[i] = inputBuffer[i] * 2;
         }
 
         memory->setOutput(output, inputSize);

@@ -5,8 +5,11 @@
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        const uint8_t *input = memory->getInput();
-        const int *inputParams = reinterpret_cast<const int *>(input);
+        size_t nBytes = sizeof(int) * 3;
+        auto inputBuffer = new uint8_t[nBytes];
+        memory->getInput(inputBuffer, nBytes);
+
+        const int *inputParams = reinterpret_cast<const int *>(inputBuffer);
 
         int workerIdx = inputParams[0];
         int startIdx = inputParams[1];

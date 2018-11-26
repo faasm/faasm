@@ -14,7 +14,12 @@
 namespace faasm {
     int exec(FaasmMemory *memory) {
         struct addrinfo *hostInfo, hints;
-        const char *url = (char *) memory->getInput();
+
+        long inputSize = memory->getInputSize();
+        auto inputBuffer = new uint8_t[inputSize];
+        memory->getInput(inputBuffer, inputSize);
+
+        char* url = reinterpret_cast<char*>(inputBuffer);
 
         hints.ai_family = AF_INET;
 

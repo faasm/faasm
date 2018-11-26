@@ -99,9 +99,8 @@ namespace wasm {
         Runtime::GCPointer<Runtime::Compartment> compartment;
         Runtime::GCPointer<Runtime::Function> functionInstance;
 
-        U8 *cleanMemory;
+        U8 *cleanMemory = nullptr;
         Uptr cleanMemoryPages;
-        size_t cleanMemorySize;
 
         RootResolver *resolver = nullptr;
 

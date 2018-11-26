@@ -104,7 +104,7 @@ Some example functions can be found in the `func/demo` directory.
 The `FaasmMemory` class allows Faasm functions to interact with the system. 
 It has the following methods:
 
-- `getInput()` - this returns an array containing the input data to the function
+- `getInput()` - allows functions to retrieve their input data
 - `setOutput()` - this allows functions to return output data to the caller
 - `chainFunction()` - this allows one function to invoke others
 - `getStateSize()` - returns the size (in bytes) of the current state associated with the given key 

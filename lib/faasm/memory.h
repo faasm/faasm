@@ -42,7 +42,7 @@ namespace faasm {
         /**
          * Returns a pointer to the input data for this function
          */
-        const uint8_t *getInput();
+        void getInput(uint8_t *buffer, long bufferLen);
 
         /**
          * Sets the given array as the output data for this function

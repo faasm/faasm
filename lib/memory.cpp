@@ -18,14 +18,12 @@ void __faasm_chain_function(const char *name, const unsigned char *inputData, lo
 
 namespace faasm {
 
-    static const int MAX_INPUT_BYTES = 65536;
-
     FaasmMemory::FaasmMemory() {
 
     }
 
     long FaasmMemory::getStateSize(const char *key) {
-        auto buf = new uint8_t[1];
+        uint8_t buf[1];
 
         // Passing zero buffer len returns total size
         return __faasm_read_state(key, buf, 0);
@@ -48,17 +46,14 @@ namespace faasm {
     };
 
     long FaasmMemory::getInputSize() {
-        auto buf = new uint8_t[1];
+        uint8_t buf[1];
 
         // Passing zero buffer len returns total size
         return __faasm_read_input(buf, 0);
     }
 
-    const uint8_t *FaasmMemory::getInput() {
-        auto inputArray = new uint8_t[MAX_INPUT_BYTES];
-        __faasm_read_input(inputArray, MAX_INPUT_BYTES);
-
-        return inputArray;
+    void FaasmMemory::getInput(uint8_t *buffer, long bufferLen) {
+        __faasm_read_input(buffer, bufferLen);
     };
 
     void FaasmMemory::setOutput(const uint8_t *newOutput, long outputLen) {
