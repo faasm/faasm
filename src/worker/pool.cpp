@@ -53,7 +53,8 @@ namespace worker {
         cgroup.addCurrentThread();
 
         // Initialise wasm module
-        module.initialise();
+        module = new wasm::WasmModule();
+        module->initialise();
 
         // Add to unassigned set to request work
         redis->addToUnassignedSet(queueName);
@@ -61,6 +62,8 @@ namespace worker {
 
     Worker::~Worker() {
         delete ns;
+
+        delete module;
     }
 
     void Worker::finish() {
@@ -88,7 +91,7 @@ namespace worker {
         redis->setFunctionResult(call, isSuccess);
 
         // Restore the module memory after the execution
-        module.restoreCleanMemory();
+        // module->restoreCleanMemory();
     }
 
     void Worker::run() {
@@ -159,7 +162,7 @@ namespace worker {
         // Create and execute the module
         wasm::CallChain callChain(call);
         try {
-            module.execute(call, callChain);
+            module->execute(call, callChain);
         }
         catch (const std::exception &e) {
             std::string errorMessage = "Error: " + std::string(e.what());

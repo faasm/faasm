@@ -119,9 +119,11 @@ namespace wasm {
             throw std::runtime_error(errorMsg);
         }
 
-        // Keep reference to memory and snapshot initial state
+        // Keep reference to memory
         this->defaultMemory = getDefaultMemory(moduleInstance);
-        this->snapshotCleanMemory();
+
+        // Snapshot initial state
+        // this->snapshotCleanMemory();
 
         // Record that this module is now bound
         isBound = true;

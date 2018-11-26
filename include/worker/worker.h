@@ -66,7 +66,7 @@ namespace worker {
         int isolationIdx;
         int workerIdx;
         NetworkNamespace *ns;
-        wasm::WasmModule module;
+        wasm::WasmModule *module;
 
         infra::Redis *redis;
 
