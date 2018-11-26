@@ -130,6 +130,8 @@ namespace wasm {
     }
 
     void WasmModule::snapshotCleanMemory() {
+        const auto &t = prof::startTimer();
+
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
 
@@ -140,9 +142,13 @@ namespace wasm {
         logger->debug("Snapshotting memory with {} pages", cleanMemoryPages);
 
         std::copy(baseAddr, baseAddr + cleanMemorySize, cleanMemory);
+
+        prof::logEndTimer("snapshot-mem", t);
     }
 
     void WasmModule::restoreCleanMemory() {
+        const auto &t = prof::startTimer();
+
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         Uptr currentPages = Runtime::getMemoryNumPages(this->defaultMemory);
@@ -157,13 +163,15 @@ namespace wasm {
             logger->debug("Restoring memory and growing {} pages", growSize);
             Runtime::growMemory(this->defaultMemory, growSize);
         } else {
-            logger->debug("Restoring memory with equal size");
+            logger->debug("Restoring memory with {} pages", cleanMefmoryPages);
         }
 
         // Restore initial memory state
         U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
         size_t cleanMemorySize = cleanMemoryPages * IR::numBytesPerPage;
         std::copy(cleanMemory, cleanMemory + cleanMemorySize, baseAddr);
+
+        prof::logEndTimer("restore-mem", t);
     }
 
     /**
@@ -195,15 +203,8 @@ namespace wasm {
             // Create the runtime context
             Runtime::Context *context = Runtime::createContext(compartment);
 
-            // Record the initial heap base
-//            auto heapBase = asGlobalNullable(getInstanceExport(moduleInstance, "__heap_base"));
-//            const IR::Value &heapBaseInitial = Runtime::getGlobalValue(context, heapBase);
-
             // Call the function
             invokeFunctionChecked(context, functionInstance, invokeArgs);
-
-            // Reset the heap base
-            // sRuntime::setGlobalValue(context, heapBase, heapBaseInitial);
         }
         catch (wasm::WasmExitException &e) {
             exitCode = e.exitCode;

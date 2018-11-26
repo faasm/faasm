@@ -13,6 +13,9 @@ namespace  util {
         if(logLevelEnv == "debug") {
             spdlog::set_level(spdlog::level::debug);
         }
+        else if(logLevelEnv == "trace") {
+            spdlog::set_level(spdlog::level::trace);
+        }
         else {
             spdlog::set_level(spdlog::level::info);
         }
