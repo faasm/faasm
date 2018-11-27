@@ -19,7 +19,7 @@ namespace edge {
 
         void shutdown();
 
-        std::string handleFunction(message::FunctionCall &call);
+        std::string handleFunction(message::Message &call);
     private:
         std::shared_ptr<Http::Endpoint> httpEndpoint;
         Rest::Router router;
@@ -30,6 +30,6 @@ namespace edge {
 
         void handleAsyncFunctionWrapper(const Rest::Request &request, Http::ResponseWriter response);
 
-        message::FunctionCall buildCallFromRequest(const Rest::Request &request);
+        message::Message buildCallFromRequest(const Rest::Request &request);
     };
 }

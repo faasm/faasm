@@ -15,6 +15,8 @@ namespace infra {
 
     static const int RESULT_KEY_EXPIRY_SECONDS = 30;
 
+    static const double MAX_QUEUE_RATIO = 5.0;
+
     Redis::Redis() {
         hostname = util::getEnvVar("REDIS_HOST", "localhost");
         port = util::getEnvVar("REDIS_PORT", "6379");
@@ -130,7 +132,7 @@ namespace infra {
 
         return replyBytes;
     }
-
+    
     void Redis::enqueue(const std::string &queueName, const std::vector<uint8_t> &value) {
         // NOTE: Here we must be careful with the input and specify bytes rather than a string
         // otherwise an encoded false boolean can be treated as a string terminator
@@ -173,57 +175,38 @@ namespace infra {
         return result;
     }
 
-    std::string getFunctionSetName(const message::FunctionCall &call) {
+    std::string getFunctionQueueName(const message::Message &call) {
+        std::string funcQueueName = infra::funcToString(call);
+
+        return funcQueueName;
+    }
+
+    std::string getFunctionSetName(const message::Message &call) {
         std::string funcSetName = "f_" + infra::funcToString(call);
 
         return funcSetName;
     }
 
-    std::string Redis::addToFunctionSet(const message::FunctionCall &call, const std::string &queueName) {
-        std::string funcSet = getFunctionSetName(call);
-        this->sadd(funcSet, queueName);
-
-        return funcSet;
-    }
-
-    void Redis::removeFromFunctionSet(const message::FunctionCall &call, const std::string &queueName) {
-        std::string funcSet = getFunctionSetName(call);
-        this->srem(funcSet, queueName);
-    }
-
-    void Redis::addToUnassignedSet(const std::string &queueName) {
-        this->sadd(UNASSIGNED_SET, queueName);
-    }
-
-    void Redis::removeFromUnassignedSet(const std::string &queueName) {
-        this->srem(UNASSIGNED_SET, queueName);
-    }
-    
-    std::string Redis::getQueueForFunc(const message::FunctionCall &call) {
+    std::string Redis::getQueueForFunc(const message::Message &call) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
         
-        // See if we can get something in the function's set
-        const std::string funcSet = getFunctionSetName(call);
-        std::string queueName = this->spop(funcSet);
+        // TODO SCH - rewrite this (the guts of the scheduling)
+        
+        // Get queue length and set membership
+        const std::string setName = getFunctionSetName(call);
+        const std::string queueName = getFunctionQueueName(call);
+        long queueLength = this->listLength(queueName);
+        long setSize = this->scard(setName);
 
-        if(!queueName.empty()) {
-            logger->debug("Warm start {}", funcToString(call));
-            return queueName;
+        double queueRatio = double(queueLength) / setSize;
+        if(queueRatio > MAX_QUEUE_RATIO) {
+            // TODO SCH - send bind message
         }
-
-        // Try unassigned set if nothing from the func's set
-        queueName = this->spop(UNASSIGNED_SET);
-
-        if(queueName.empty()) {
-            throw std::runtime_error("Unable to find any available queues to take call\n");
-        }
-
-        logger->debug("Cold start {}", funcToString(call));
 
         return queueName;
     }
     
-    void Redis::callFunction(message::FunctionCall &call) {
+    void Redis::callFunction(message::Message &call) {
         const auto &t = prof::startTimer();
 
         std::string queueName = this->getQueueForFunc(call);
@@ -244,12 +227,12 @@ namespace infra {
         prof::logEndTimer("call-function", t);
     }
 
-    message::FunctionCall Redis::nextFunctionCall(const std::string &queueName, int timeout) {
+    message::Message Redis::nextMessage(const std::string &queueName, int timeout) {
         std::vector<uint8_t> dequeueResult = this->dequeue(queueName, timeout);
 
         const auto &t = prof::startTimer();
 
-        message::FunctionCall call;
+        message::Message call;
         call.ParseFromArray(dequeueResult.data(), (int) dequeueResult.size());
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
@@ -259,7 +242,7 @@ namespace infra {
         return call;
     }
 
-    void Redis::setFunctionResult(message::FunctionCall &call, bool success) {
+    void Redis::setFunctionResult(message::Message &call, bool success) {
         call.set_success(success);
 
         const auto &t = prof::startTimer();
@@ -286,10 +269,10 @@ namespace infra {
         return ttl;
     }
 
-    message::FunctionCall Redis::getFunctionResult(const message::FunctionCall &call) {
+    message::Message Redis::getFunctionResult(const message::Message &call) {
         std::vector<uint8_t> result = this->dequeue(call.resultkey());
 
-        message::FunctionCall callResult;
+        message::Message callResult;
         callResult.ParseFromArray(result.data(), (int) result.size());
 
         return callResult;

@@ -14,7 +14,7 @@ namespace infra {
         return path;
     }
 
-    boost::filesystem::path getFunctionDir(const message::FunctionCall &call, bool create = true) {
+    boost::filesystem::path getFunctionDir(const message::Message &call, bool create = true) {
         auto path = getFuncRootPath();
 
         path.append("wasm");
@@ -29,7 +29,7 @@ namespace infra {
         return path;
     }
 
-    bool isValidFunction(const message::FunctionCall &call) {
+    bool isValidFunction(const message::Message &call) {
         auto path = getFunctionDir(call, false);
 
         // Check object file exists
@@ -39,28 +39,28 @@ namespace infra {
         return isValid;
     }
 
-    std::string getFunctionFile(const message::FunctionCall &call) {
+    std::string getFunctionFile(const message::Message &call) {
         auto path = getFunctionDir(call);
         path.append(funcFile);
 
         return path.string();
     }
 
-    std::string getFunctionObjectFile(const message::FunctionCall &call) {
+    std::string getFunctionObjectFile(const message::Message &call) {
         auto path = getFunctionDir(call);
         path.append(objFile);
 
         return path.string();
     }
 
-    std::vector<uint8_t> getFunctionObjectBytes(const message::FunctionCall &call) {
+    std::vector<uint8_t> getFunctionObjectBytes(const message::Message &call) {
         std::string objectFilePath = getFunctionObjectFile(call);
         std::vector<uint8_t> bytes = util::readFileToBytes(objectFilePath);
 
         return bytes;
     }
 
-    std::vector<uint8_t> callToBytes(const message::FunctionCall &call) {
+    std::vector<uint8_t> callToBytes(const message::Message &call) {
         size_t byteSize = call.ByteSizeLong();
         uint8_t buffer[byteSize];
         call.SerializeToArray(buffer, (int) byteSize);
@@ -70,7 +70,7 @@ namespace infra {
         return inputData;
     }
 
-    std::string funcToString(const message::FunctionCall &call) {
+    std::string funcToString(const message::Message &call) {
         std::string str = call.user() + "/" + call.function();
         return str;
     }

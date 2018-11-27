@@ -18,7 +18,7 @@ namespace tests {
         util::unsetEnvVar("NETNS_MODE");
     }
 
-    void execFunction(message::FunctionCall &call) {
+    void execFunction(message::Message &call) {
         Worker w(1);
         redis.callFunction(call);
         w.runSingle();
@@ -30,7 +30,7 @@ namespace tests {
     TEST_CASE("Test full execution of WASM module", "[worker]") {
         setUp();
 
-        message::FunctionCall call;
+        message::Message call;
         call.set_user("demo");
         call.set_function("echo");
         call.set_inputdata("this is input");
@@ -38,7 +38,7 @@ namespace tests {
 
         // Run the execution
         execFunction(call);
-        message::FunctionCall result = redis.getFunctionResult(call);
+        message::Message result = redis.getFunctionResult(call);
 
         // Check output
         REQUIRE(result.outputdata() == "this is input");
@@ -50,12 +50,12 @@ namespace tests {
     TEST_CASE("Test executing different functions with same worker fails", "[worker]") {
         setUp();
 
-        message::FunctionCall callA;
+        message::Message callA;
         callA.set_user("demo");
         callA.set_function("echo");
         callA.set_resultkey("test_echo");
 
-        message::FunctionCall callB;
+        message::Message callB;
         callB.set_user("demo");
         callB.set_function("dummy");
         callB.set_resultkey("test_dummy");
@@ -74,8 +74,8 @@ namespace tests {
         w.runSingle();
 
         // First should succeed, second should fail
-        const message::FunctionCall resultA = redis.getFunctionResult(callA);
-        const message::FunctionCall resultB = redis.getFunctionResult(callB);
+        const message::Message resultA = redis.getFunctionResult(callA);
+        const message::Message resultB = redis.getFunctionResult(callB);
 
         REQUIRE(resultA.success());
         REQUIRE(!resultB.success());
@@ -89,13 +89,13 @@ namespace tests {
     TEST_CASE("Test executing non-existent function", "[worker]") {
         setUp();
 
-        message::FunctionCall call;
+        message::Message call;
         call.set_user("foobar");
         call.set_function("baz");
         call.set_resultkey("test_invalid");
 
         execFunction(call);
-        message::FunctionCall result = redis.getFunctionResult(call);
+        message::Message result = redis.getFunctionResult(call);
 
         REQUIRE(!result.success());
         REQUIRE(result.outputdata() == "foobar/baz is not a valid function");
@@ -106,7 +106,7 @@ namespace tests {
     TEST_CASE("Test function chaining", "[worker]") {
         setUp();
 
-        message::FunctionCall call;
+        message::Message call;
         call.set_user("demo");
         call.set_function("chain");
         call.set_resultkey("test_chain");
@@ -129,13 +129,13 @@ namespace tests {
         w.runSingle();
 
         // Check the call executed successfully
-        message::FunctionCall result = redis.getFunctionResult(call);
+        message::Message result = redis.getFunctionResult(call);
         REQUIRE(result.success());
 
         // Check the chained calls have been set up
-        message::FunctionCall chainA = redis.nextFunctionCall("worker 2");
-        message::FunctionCall chainB = redis.nextFunctionCall("worker 3");
-        message::FunctionCall chainC = redis.nextFunctionCall("worker 4");
+        message::Message chainA = redis.nextMessage("worker 2");
+        message::Message chainB = redis.nextMessage("worker 3");
+        message::Message chainC = redis.nextMessage("worker 4");
 
         // Check all are set with the right user
         REQUIRE(chainA.user() == "demo");
@@ -143,7 +143,7 @@ namespace tests {
         REQUIRE(chainC.user() == "demo");
 
         // Check function names
-        std::vector<message::FunctionCall> calls(3);
+        std::vector<message::Message> calls(3);
         calls.push_back(chainA);
         calls.push_back(chainB);
         calls.push_back(chainC);
@@ -186,14 +186,14 @@ namespace tests {
         REQUIRE(initialState.empty());
 
         // Set up the function call
-        message::FunctionCall call;
+        message::Message call;
         call.set_user("demo");
         call.set_function("state");
         call.set_resultkey("test_state");
 
         // Execute and check
         execFunction(call);
-        message::FunctionCall resultA = redis.getFunctionResult(call);
+        message::Message resultA = redis.getFunctionResult(call);
         REQUIRE(resultA.success());
 
         // Load the state again, it should have a new element
@@ -203,7 +203,7 @@ namespace tests {
 
         // Call the function a second time, the state should have another element added
         execFunction(call);
-        message::FunctionCall resultB = redis.getFunctionResult(call);
+        message::Message resultB = redis.getFunctionResult(call);
         REQUIRE(resultB.success());
 
         std::vector<uint8_t> stateB = redis.get(stateKey);
@@ -215,20 +215,20 @@ namespace tests {
         setUp();
 
         // Set up the function call
-        message::FunctionCall call;
+        message::Message call;
         call.set_user("demo");
         call.set_function("increment");
         call.set_resultkey("test_state_incr");
 
         // Execute and check
         execFunction(call);
-        message::FunctionCall resultA = redis.getFunctionResult(call);
+        message::Message resultA = redis.getFunctionResult(call);
         REQUIRE(resultA.success());
         REQUIRE(resultA.outputdata() == "Counter: 001");
 
         // Call the function a second time, the state should have been incremented
         execFunction(call);
-        message::FunctionCall resultB = redis.getFunctionResult(call);
+        message::Message resultB = redis.getFunctionResult(call);
         REQUIRE(resultB.success());
         REQUIRE(resultB.outputdata() == "Counter: 002");
     }

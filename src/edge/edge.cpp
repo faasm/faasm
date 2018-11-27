@@ -44,7 +44,7 @@ namespace edge {
     }
 
     void FunctionEndpoint::handleFunctionWrapper(const Rest::Request &request, Http::ResponseWriter response) {
-        message::FunctionCall call = this->buildCallFromRequest(request);
+        message::Message call = this->buildCallFromRequest(request);
         call.set_isasync(false);
 
         const std::string result = this->handleFunction(call);
@@ -52,14 +52,14 @@ namespace edge {
     }
 
     void FunctionEndpoint::handleAsyncFunctionWrapper(const Rest::Request &request, Http::ResponseWriter response) {
-        message::FunctionCall call = this->buildCallFromRequest(request);
+        message::Message call = this->buildCallFromRequest(request);
         call.set_isasync(true);
 
         const std::string result = this->handleFunction(call);
         response.send(Http::Code::Ok, result);
     }
 
-    std::string FunctionEndpoint::handleFunction(message::FunctionCall &call) {
+    std::string FunctionEndpoint::handleFunction(message::Message &call) {
         const std::chrono::steady_clock::time_point &t = prof::startTimer();
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -73,7 +73,7 @@ namespace edge {
             return "Async request submitted";
         } else {
             logger->info("Sync request {}", infra::funcToString(call));
-            message::FunctionCall result = redis->getFunctionResult(call);
+            message::Message result = redis->getFunctionResult(call);
 
             const std::chrono::steady_clock::time_point &t2 = prof::startTimer();
 
@@ -85,7 +85,7 @@ namespace edge {
         }
     }
 
-    message::FunctionCall FunctionEndpoint::buildCallFromRequest(const Rest::Request &request) {
+    message::Message FunctionEndpoint::buildCallFromRequest(const Rest::Request &request) {
         // Parse request params
         auto user = request.param(":user").as<std::string>();
         auto function = request.param(":function").as<std::string>();
@@ -94,7 +94,7 @@ namespace edge {
         const std::string requestData = request.body();
 
         // Build function call
-        message::FunctionCall call;
+        message::Message call;
         call.set_user(user);
         call.set_function(function);
         call.set_inputdata(requestData);

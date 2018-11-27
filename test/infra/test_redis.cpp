@@ -115,7 +115,7 @@ namespace tests {
         std::string queueNameA = "flahblah";
         std::string queueNameB = "clahdlah";
 
-        message::FunctionCall callA;
+        message::Message callA;
         callA.set_user("user_a");
         callA.set_function("func_a");
 
@@ -185,11 +185,11 @@ namespace tests {
         std::string queueNameC = "ccc";
         std::string queueNameD = "ddd";
 
-        message::FunctionCall callA;
+        message::Message callA;
         callA.set_user("user_a");
         callA.set_function("func_a");
 
-        message::FunctionCall callB;
+        message::Message callB;
         callB.set_user("user_b");
         callB.set_function("func_b");
 
@@ -281,7 +281,7 @@ namespace tests {
         cli.flushAll();
 
         // Request function
-        message::FunctionCall call;
+        message::Message call;
         std::string funcName = "my func";
         std::string userName = "some user";
         std::string inputData = "blahblah";
@@ -305,7 +305,7 @@ namespace tests {
         REQUIRE(cli.listLength(workerQueue) == 1);
 
         // Get the next call
-        message::FunctionCall actual = cli.nextFunctionCall(workerQueue);
+        message::Message actual = cli.nextMessage(workerQueue);
 
         REQUIRE(funcName == actual.function());
         REQUIRE(userName == actual.user());
@@ -333,11 +333,11 @@ namespace tests {
         checkCallRoundTrip(true, true);
     }
 
-    message::FunctionCall callFunction(Redis *cli) {
+    message::Message callFunction(Redis *cli) {
         cli->flushAll();
 
         // Write some function result
-        message::FunctionCall call;
+        message::Message call;
         call.set_function("my func");
         call.set_user("some user");
         call.set_resultkey("function 123");
@@ -356,10 +356,10 @@ namespace tests {
 
     TEST_CASE("Test redis reading and writing function results", "[redis]") {
         Redis cli;
-        message::FunctionCall call = callFunction(&cli);
+        message::Message call = callFunction(&cli);
 
         // Check retrieval method gets the same call out again
-        message::FunctionCall actualCall2 = cli.getFunctionResult(call);
+        message::Message actualCall2 = cli.getFunctionResult(call);
 
         REQUIRE("my func" == actualCall2.function());
         REQUIRE("some user" == actualCall2.user());

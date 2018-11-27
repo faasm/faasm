@@ -5,7 +5,7 @@
 namespace tests {
 
     TEST_CASE("Test executing WASM module with no input", "[wasm]") {
-        message::FunctionCall call;
+        message::Message call;
         call.set_user("demo");
         call.set_function("dummy");
 
@@ -29,7 +29,7 @@ namespace tests {
     }
 
     TEST_CASE("Test printinf doesn't fail", "[wasm]") {
-        message::FunctionCall call;
+        message::Message call;
         call.set_user("demo");
         call.set_function("print");
 
@@ -43,7 +43,7 @@ namespace tests {
     }
 
     void executeX2(wasm::WasmModule &module) {
-        message::FunctionCall call;
+        message::Message call;
         call.set_user("demo");
         call.set_function("x2");
 
@@ -78,12 +78,12 @@ namespace tests {
     }
 
     TEST_CASE("Test repeat execution with different function fails", "[wasm]") {
-        message::FunctionCall callA;
+        message::Message callA;
         callA.set_user("demo");
         callA.set_function("dummy");
         wasm::CallChain callChainA(callA);
 
-        message::FunctionCall callB;
+        message::Message callB;
         callB.set_user("demo");
         callB.set_function("x2");
         wasm::CallChain callChainB(callB);

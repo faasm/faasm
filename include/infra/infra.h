@@ -9,23 +9,30 @@
 
 namespace infra {
     /** Function utilities */
-    std::string getFunctionFile(const message::FunctionCall &call);
+    std::string getFunctionFile(const message::Message &call);
 
-    std::string getFunctionObjectFile(const message::FunctionCall &call);
+    std::string getFunctionObjectFile(const message::Message &call);
 
-    std::vector<uint8_t> getFunctionObjectBytes(const message::FunctionCall &call);
+    std::vector<uint8_t> getFunctionObjectBytes(const message::Message &call);
 
-    std::string getFunctionSetName(const message::FunctionCall &call);
+    std::string getFunctionQueueName(const message::Message &call);
 
-    bool isValidFunction(const message::FunctionCall &call);
+    std::string getFunctionSetName(const message::Message &call);
 
-    std::string funcToString(const message::FunctionCall &call);
+    bool isValidFunction(const message::Message &call);
+
+    std::string funcToString(const message::Message &call);
 
     /** Serialisation */
-    std::vector<uint8_t> callToBytes(const message::FunctionCall &call);
+    std::vector<uint8_t> callToBytes(const message::Message &call);
 
     /** Redis client */
-    static const std::string UNASSIGNED_SET = "unassigned";
+    const std::string SET_PREFIX = "s_";
+    const std::string PREWARM_QUEUE = "prewarm";
+    const std::string PREWARM_SET = "s_prewarm";
+    const std::string COLD_QUEUE = "cold";
+    const std::string COLD_SET = "s_cold";
+
     static const int DEFAULT_TIMEOUT_SECONDS = 60;
 
     class Redis {
@@ -67,23 +74,23 @@ namespace infra {
 
         long listLength(const std::string &queueName);
 
-        void callFunction(message::FunctionCall &call);
+        void callFunction(message::Message &call);
 
-        message::FunctionCall nextFunctionCall(const std::string &queueName, int timeout=DEFAULT_TIMEOUT_SECONDS);
+        message::Message nextMessage(const std::string &queueName, int timeout=DEFAULT_TIMEOUT_SECONDS);
 
-        void setFunctionResult(message::FunctionCall &call, bool success);
+        void setFunctionResult(message::Message &call, bool success);
 
-        message::FunctionCall getFunctionResult(const message::FunctionCall &call);
+        message::Message getFunctionResult(const message::Message &call);
 
-        std::string addToFunctionSet(const message::FunctionCall &call, const std::string &queueName);
+        std::string addToFunctionSet(const message::Message &call, const std::string &queueName);
 
-        void removeFromFunctionSet(const message::FunctionCall &call, const std::string &queueName);
+        void removeFromFunctionSet(const message::Message &call, const std::string &queueName);
 
         void addToUnassignedSet(const std::string &queueName);
 
         void removeFromUnassignedSet(const std::string &queueName);
 
-        std::string getQueueForFunc(const message::FunctionCall &call);
+        std::string getQueueForFunc(const message::Message &call);
 
         long getTtl(const std::string &key);
 

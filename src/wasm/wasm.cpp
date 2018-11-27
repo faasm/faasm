@@ -14,14 +14,14 @@ using namespace WAVM;
 
 namespace wasm {
     static thread_local WasmModule *executingModule;
-    static thread_local message::FunctionCall *executingCall;
+    static thread_local message::Message *executingCall;
     static thread_local CallChain *executingCallChain;
 
     WasmModule *getExecutingModule() {
         return executingModule;
     }
 
-    message::FunctionCall *getExecutingCall() {
+    message::Message *getExecutingCall() {
         return executingCall;
     }
 
@@ -67,7 +67,7 @@ namespace wasm {
         prof::logEndTimer("pre-init", t);
     }
 
-    void WasmModule::bindToFunction(message::FunctionCall &call, CallChain &callChain) {
+    void WasmModule::bindToFunction(message::Message &call) {
         if (compartment == nullptr) {
             throw std::runtime_error("Must initialise module before binding");
         }
@@ -179,12 +179,12 @@ namespace wasm {
     /**
      * Executes the given function call
      */
-    int WasmModule::execute(message::FunctionCall &call, CallChain &callChain) {
+    int WasmModule::execute(message::Message &call, CallChain &callChain) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         if (!isBound) {
             logger->debug("Binding to function {}", infra::funcToString(call));
-            this->bindToFunction(call, callChain);
+            this->bindToFunction(call);
         } else if (call.user() != boundUser || call.function() != boundFunction) {
             logger->debug("Invalid repeat call to function {}", infra::funcToString(call));
             throw std::runtime_error("Cannot perform repeat execution on different function");
@@ -216,7 +216,7 @@ namespace wasm {
         return exitCode;
     }
 
-    std::vector<uint8_t> WasmModule::compile(message::FunctionCall &call) {
+    std::vector<uint8_t> WasmModule::compile(message::Message &call) {
         // Parse the wasm file to work out imports, function signatures etc.
         WasmModule tempModule;
         tempModule.parseWasm(call);
@@ -226,7 +226,7 @@ namespace wasm {
         return Runtime::getObjectCode(module);
     }
 
-    void WasmModule::compileToObjectFile(message::FunctionCall &call) {
+    void WasmModule::compileToObjectFile(message::Message &call) {
         std::vector<uint8_t> objBytes = wasm::WasmModule::compile(call);
         std::string objFilePath = infra::getFunctionObjectFile(call);
         util::writeBytesToFile(objFilePath, objBytes);
@@ -235,7 +235,7 @@ namespace wasm {
     /**
      * Parse the WASM file to work out functions, exports, imports etc.
      */
-    void WasmModule::parseWasm(message::FunctionCall &call) {
+    void WasmModule::parseWasm(message::Message &call) {
         const auto &t = prof::startTimer();
 
         std::vector<U8> fileBytes;

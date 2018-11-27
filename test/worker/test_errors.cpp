@@ -7,7 +7,7 @@ using namespace worker;
 namespace tests {
     static infra::Redis redis;
 
-    void execErrorFunction(message::FunctionCall &call) {
+    void execErrorFunction(message::Message &call) {
         Worker w(1);
 
         redis.callFunction(call);
@@ -18,7 +18,7 @@ namespace tests {
     void checkError(const std::string &funcName, const std::string &expectedMsg) {
         redis.flushAll();
 
-        message::FunctionCall call;
+        message::Message call;
         call.set_user("errors");
         call.set_function(funcName);
         call.set_resultkey("error_test");
@@ -26,7 +26,7 @@ namespace tests {
         execErrorFunction(call);
 
         // Get result
-        message::FunctionCall result = redis.getFunctionResult(call);
+        message::Message result = redis.getFunctionResult(call);
         REQUIRE(!result.success());
 
         const std::string actualOutput = result.outputdata();

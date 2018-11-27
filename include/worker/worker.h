@@ -59,8 +59,9 @@ namespace worker {
         void run();
         void runSingle();
 
-        std::string queueName;
-        std::string functionSetName;
+        std::string id;
+        std::string currentSet;
+        std::string currentQueue;
 
     private:
         int isolationIdx;
@@ -70,9 +71,9 @@ namespace worker {
 
         infra::Redis *redis;
 
-        const std::string executeCall(message::FunctionCall &call);
+        const std::string executeCall(message::Message &call);
 
         void finish();
-        void finishCall(message::FunctionCall &call, const std::string &errorMsg);
+        void finishCall(message::Message &call, const std::string &errorMsg);
     };
 }

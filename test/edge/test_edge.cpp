@@ -14,7 +14,7 @@ namespace tests {
         cli.addToUnassignedSet(workerQueue);
 
         // Note - must be async to avoid needing a result
-        message::FunctionCall call;
+        message::Message call;
         call.set_isasync(true);
         call.set_user("foo");
         call.set_function("bar");
@@ -23,7 +23,7 @@ namespace tests {
         edge::FunctionEndpoint endpoint;
         endpoint.handleFunction(call);
 
-        const message::FunctionCall actual = cli.nextFunctionCall(workerQueue);
+        const message::Message actual = cli.nextMessage(workerQueue);
 
         REQUIRE(actual.user() == "foo");
         REQUIRE(actual.function() == "bar");

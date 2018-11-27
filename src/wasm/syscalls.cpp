@@ -80,7 +80,7 @@ namespace wasm {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
 
-        const message::FunctionCall *call = getExecutingCall();
+        const message::Message *call = getExecutingCall();
         std::string prefixedKey = call->user() + "_" + key;
 
         return prefixedKey;
@@ -155,7 +155,7 @@ namespace wasm {
         util::getLogger()->debug("S - read_input - {} {}", bufferPtr, bufferLen);
 
         // Get the input
-        message::FunctionCall *call = getExecutingCall();
+        message::Message *call = getExecutingCall();
         std::vector<uint8_t> inputBytes = util::stringToBytes(call->inputdata());
 
         // Write to the wasm buffer
@@ -168,7 +168,7 @@ namespace wasm {
         util::getLogger()->debug("S - write_output - {} {}", outputPtr, outputLen);
 
         std::vector<uint8_t> outputData = getBytesFromWasm(outputPtr, outputLen);
-        message::FunctionCall *call = getExecutingCall();
+        message::Message *call = getExecutingCall();
         call->set_outputdata(outputData.data(), outputData.size());
     }
 
@@ -176,7 +176,7 @@ namespace wasm {
                               I32 namePtr, I32 inputDataPtr, I32 inputDataLen) {
         util::getLogger()->debug("S - chain_function - {} {} {}", namePtr, inputDataPtr, inputDataLen);
 
-        message::FunctionCall *call = getExecutingCall();
+        message::Message *call = getExecutingCall();
         CallChain *callChain = getExecutingCallChain();
         std::string funcName = getStringFromWasm(namePtr);
         const std::vector<uint8_t> inputData = getBytesFromWasm(inputDataPtr, inputDataLen);

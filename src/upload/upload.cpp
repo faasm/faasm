@@ -110,7 +110,7 @@ namespace edge {
     void RestServer::handleFunctionUpload(const http_request &request) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        message::FunctionCall call = RestServer::buildCallFromRequest(request);
+        message::Message call = RestServer::buildCallFromRequest(request);
         std::string outputFile = infra::getFunctionFile(call);
 
         logger->info("Uploading {}", infra::funcToString(call));
@@ -128,7 +128,7 @@ namespace edge {
         request.reply(status_codes::OK, "Function upload complete\n");
     }
 
-    message::FunctionCall RestServer::buildCallFromRequest(const http_request &request) {
+    message::Message RestServer::buildCallFromRequest(const http_request &request) {
         const std::vector<std::string> pathParts = RestServer::getPathParts(request);
 
         if (pathParts.size() != 3) {
@@ -138,7 +138,7 @@ namespace edge {
 
         // Check URI
         if (pathParts[0] == "f" || pathParts[0] == "fa") {
-            message::FunctionCall call;
+            message::Message call;
             call.set_user(pathParts[1]);
             call.set_function(pathParts[2]);
             call.set_isasync(pathParts[0] == "fa");
