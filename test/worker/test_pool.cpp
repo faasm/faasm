@@ -48,6 +48,18 @@ namespace tests {
         return expected;
     }
 
+    TEST_CASE("Test worker initially in pre-warm set", "[worker]") {
+        setUp();
+
+        REQUIRE(redis.scard(infra::PREWARM_SET) == 0);
+
+        Worker w(2);
+        REQUIRE(!w.isBound());
+
+        REQUIRE(redis.scard(infra::PREWARM_SET) == 1);
+        const std::string actual = redis.spop(infra::PREWARM_SET);
+        REQUIRE(actual == w.id);
+    }
 
     TEST_CASE("Test full execution of WASM module", "[worker]") {
         setUp();
@@ -66,30 +78,36 @@ namespace tests {
         REQUIRE(result.outputdata() == "this is input");
         REQUIRE(result.success());
 
-        // Check bind requested
-        checkBindMessage(call);
-
         tearDown();
     }
 
     TEST_CASE("Test bind message causes worker to listen for invocations", "[worker]") {
         setUp();
 
+        // Check prewarm empty to begin with
+        REQUIRE(redis.scard(infra::PREWARM_SET) == 0);
+
+        // Create worker and check it's in prewarm set
+        Worker w(2);
+        REQUIRE(!w.isBound());
+        REQUIRE(redis.scard(infra::PREWARM_SET) == 1);
+
+        // Request a prewarm worker
         message::Message call;
         call.set_user("demo");
         call.set_function("echo");
-        call.set_type(message::Message_MessageType_BIND);
-
-        // Worker will be listening on prewarm
-        Worker w(2);
-        REQUIRE(!w.isBound());
-
-        // Make request
         redis.requestPrewarm(call);
 
+        // Check message on prewarm queue
+        REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 1);
+
+        // Process next message
         w.runSingle();
 
+        // Check message has been consumed and that worker is now bound
         REQUIRE(w.isBound());
+        REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 0);
+        REQUIRE(redis.scard(infra::PREWARM_SET) == 0);
     }
 
 
@@ -122,7 +140,6 @@ namespace tests {
         message::Message chainC = checkChainCall("demo", "dummy", {2, 3, 4});
 
         // Check bind messages also sent
-        checkBindMessage(call);
         checkBindMessage(chainA);
         checkBindMessage(chainB);
         checkBindMessage(chainC);

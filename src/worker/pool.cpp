@@ -93,11 +93,20 @@ namespace worker {
     }
 
     void Worker::bindToFunction(const message::Message &msg) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->info("Worker binding to {}", infra::funcToString(msg));
+
+        // Remove worker from current set
+        redis->srem(currentSet, id);
+
         // Bind this worker to the given function
         currentQueue = infra::getFunctionQueueName(msg);
         currentSet = infra::getFunctionSetName(msg);
 
         module->bindToFunction(msg);
+
+        // Add to new set
+        redis->sadd(currentSet, id);
 
         _isBound = true;
     }
@@ -166,7 +175,7 @@ namespace worker {
 
         const std::chrono::steady_clock::time_point &t = prof::startTimer();
 
-        logger->info("Starting {}", infra::funcToString(call));
+        logger->info("Worker executing {}", infra::funcToString(call));
 
         // Create and execute the module
         wasm::CallChain callChain(call);
