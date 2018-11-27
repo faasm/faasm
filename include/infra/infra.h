@@ -9,22 +9,22 @@
 
 namespace infra {
     /** Function utilities */
-    std::string getFunctionFile(const message::Message &call);
+    std::string getFunctionFile(const message::Message &msg);
 
-    std::string getFunctionObjectFile(const message::Message &call);
+    std::string getFunctionObjectFile(const message::Message &msg);
 
-    std::vector<uint8_t> getFunctionObjectBytes(const message::Message &call);
+    std::vector<uint8_t> getFunctionObjectBytes(const message::Message &msg);
 
-    std::string getFunctionQueueName(const message::Message &call);
+    std::string getFunctionQueueName(const message::Message &msg);
 
-    std::string getFunctionSetName(const message::Message &call);
+    std::string getFunctionSetName(const message::Message &msg);
 
-    bool isValidFunction(const message::Message &call);
+    bool isValidFunction(const message::Message &msg);
 
-    std::string funcToString(const message::Message &call);
+    std::string funcToString(const message::Message &msg);
 
     /** Serialisation */
-    std::vector<uint8_t> messageToBytes(const message::Message &call);
+    std::vector<uint8_t> messageToBytes(const message::Message &msg);
 
     /** Redis client */
     const std::string SET_PREFIX = "s_";
@@ -74,13 +74,15 @@ namespace infra {
 
         long listLength(const std::string &queueName);
 
-        void callFunction(message::Message &call);
+        void callFunction(message::Message &msg);
+
+        void requestPrewarm(message::Message &originalMsg);
 
         message::Message nextMessage(const std::string &queueName, int timeout=DEFAULT_TIMEOUT_SECONDS);
 
-        void setFunctionResult(message::Message &call, bool success);
+        void setFunctionResult(message::Message &msg, bool success);
 
-        message::Message getFunctionResult(const message::Message &call);
+        message::Message getFunctionResult(const message::Message &msg);
 
         long getTtl(const std::string &key);
 

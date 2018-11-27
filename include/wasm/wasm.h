@@ -63,7 +63,7 @@ namespace wasm {
 
     class CallChain {
     public:
-        explicit CallChain(const message::Message &call);
+        explicit CallChain(const message::Message &msg);
 
         void addCall(std::string user, std::string functionName, const std::vector<uint8_t> &inputData);
 
@@ -80,9 +80,9 @@ namespace wasm {
 
         ~WasmModule();
 
-        static std::vector<uint8_t> compile(message::Message &call);
+        static std::vector<uint8_t> compile(message::Message &msg);
 
-        static void compileToObjectFile(message::Message &call);
+        static void compileToObjectFile(message::Message &msg);
 
         void initialise();
 
@@ -90,9 +90,9 @@ namespace wasm {
 
         void restoreCleanMemory();
 
-        void bindToFunction(message::Message &call);
+        void bindToFunction(const message::Message &msg);
 
-        int execute(message::Message &call, CallChain &callChain);
+        int execute(message::Message &msg, CallChain &callChain);
 
         Runtime::GCPointer<Runtime::Memory> defaultMemory;
 
@@ -113,8 +113,7 @@ namespace wasm {
         std::string boundUser;
         std::string boundFunction;
 
-
-        void parseWasm(message::Message &call);
+        void parseWasm(const message::Message &msg);
     };
 
     WasmModule *getExecutingModule();

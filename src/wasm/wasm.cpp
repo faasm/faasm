@@ -53,6 +53,10 @@ namespace wasm {
     };
 
     void WasmModule::initialise() {
+        if(compartment != nullptr) {
+            throw std::runtime_error("Cannot initialise already initialised module");
+        }
+
         const auto &t = prof::startTimer();
 
         // Treat any unhandled exception (e.g. in a thread) as a fatal error.
@@ -67,13 +71,16 @@ namespace wasm {
         prof::logEndTimer("pre-init", t);
     }
 
-    void WasmModule::bindToFunction(message::Message &call) {
+    void WasmModule::bindToFunction(const message::Message &msg) {
         if (compartment == nullptr) {
             throw std::runtime_error("Must initialise module before binding");
         }
+        else if(isBound) {
+            throw std::runtime_error("Cannot bind a module twice");
+        }
 
         // Parse the wasm file to work out imports, function signatures etc.
-        this->parseWasm(call);
+        this->parseWasm(msg);
 
         // Set up minimum memory size
         this->module.memories.defs[0].type.size.min = (U64) MIN_MEMORY_PAGES;
@@ -90,7 +97,7 @@ namespace wasm {
 
         // Load the object file
         const auto &t2 = prof::startTimer();
-        std::vector<uint8_t> objectFileBytes = infra::getFunctionObjectBytes(call);
+        std::vector<uint8_t> objectFileBytes = infra::getFunctionObjectBytes(msg);
         prof::logEndTimer("load-bytes", t2);
 
         const auto &t3 = prof::startTimer();
@@ -104,7 +111,7 @@ namespace wasm {
                 compartment,
                 compiledModule,
                 std::move(linkResult.resolvedImports),
-                infra::funcToString(call)
+                infra::funcToString(msg)
         );
 
         prof::logEndTimer("instantiate", t4);
@@ -127,8 +134,8 @@ namespace wasm {
 
         // Record that this module is now bound
         isBound = true;
-        boundUser = call.user();
-        boundFunction = call.function();
+        boundUser = msg.user();
+        boundFunction = msg.function();
     }
 
     void WasmModule::snapshotCleanMemory() {
@@ -179,22 +186,21 @@ namespace wasm {
     /**
      * Executes the given function call
      */
-    int WasmModule::execute(message::Message &call, CallChain &callChain) {
+    int WasmModule::execute(message::Message &msg, CallChain &callChain) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         if (!isBound) {
-            logger->debug("Binding to function {}", infra::funcToString(call));
-            this->bindToFunction(call);
-        } else if (call.user() != boundUser || call.function() != boundFunction) {
-            logger->debug("Invalid repeat call to function {}", infra::funcToString(call));
-            throw std::runtime_error("Cannot perform repeat execution on different function");
-        } else {
-            logger->debug("Repeat call to function {}", infra::funcToString(call));
+            throw std::runtime_error("Worker must be bound before executing function");
+        }
+        else if(boundUser != msg.user() || boundFunction != msg.function()) {
+            logger->error("Cannot execute {} on module bound to {}/{}",
+                    infra::funcToString(msg), boundUser, boundFunction);
+            throw std::runtime_error("Cannot execute function on module bound to another");
         }
 
         // Set up shared references
         executingModule = this;
-        executingCall = &call;
+        executingCall = &msg;
         executingCallChain = &callChain;
 
         // Make the call
@@ -216,32 +222,35 @@ namespace wasm {
         return exitCode;
     }
 
-    std::vector<uint8_t> WasmModule::compile(message::Message &call) {
+    std::vector<uint8_t> WasmModule::compile(message::Message &msg) {
         // Parse the wasm file to work out imports, function signatures etc.
         WasmModule tempModule;
-        tempModule.parseWasm(call);
+        tempModule.parseWasm(msg);
 
         // Compile the module to object code
         Runtime::ModuleRef module = Runtime::compileModule(tempModule.module);
         return Runtime::getObjectCode(module);
     }
 
-    void WasmModule::compileToObjectFile(message::Message &call) {
-        std::vector<uint8_t> objBytes = wasm::WasmModule::compile(call);
-        std::string objFilePath = infra::getFunctionObjectFile(call);
+    void WasmModule::compileToObjectFile(message::Message &msg) {
+        std::vector<uint8_t> objBytes = wasm::WasmModule::compile(msg);
+        std::string objFilePath = infra::getFunctionObjectFile(msg);
         util::writeBytesToFile(objFilePath, objBytes);
     }
 
     /**
      * Parse the WASM file to work out functions, exports, imports etc.
      */
-    void WasmModule::parseWasm(message::Message &call) {
+    void WasmModule::parseWasm(const message::Message &msg) {
         const auto &t = prof::startTimer();
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         std::vector<U8> fileBytes;
-        std::string filePath = infra::getFunctionFile(call);
-        if (!loadFile(filePath.c_str(), fileBytes)) {
-            std::cerr << "Could not load module at:  " << filePath << std::endl;
+        std::string filePath = infra::getFunctionFile(msg);
+
+        if(!loadFile(filePath.c_str(), fileBytes)) {
+            logger->error("Could not read data from {}", filePath);
+            throw std::runtime_error("Could not read binary data from file");
         }
 
         WASM::loadBinaryModule(fileBytes.data(), fileBytes.size(), this->module);

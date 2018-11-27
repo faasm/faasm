@@ -110,25 +110,25 @@ namespace edge {
     void RestServer::handleFunctionUpload(const http_request &request) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        message::Message call = RestServer::buildCallFromRequest(request);
-        std::string outputFile = infra::getFunctionFile(call);
+        message::Message msg = RestServer::buildMessageFromRequest(request);
+        std::string outputFile = infra::getFunctionFile(msg);
 
-        logger->info("Uploading {}", infra::funcToString(call));
+        logger->info("Uploading {}", infra::funcToString(msg));
 
-        // Here the call input data is actually the file
+        // Here the msg input data is actually the file
         std::ofstream out(outputFile);
-        const std::string &fileBody = call.inputdata();
+        const std::string &fileBody = msg.inputdata();
         out.write(fileBody.c_str(), fileBody.size());
         out.flush();
         out.close();
 
         // Build the object file from the file we've just received
-        wasm::WasmModule::compileToObjectFile(call);
+        wasm::WasmModule::compileToObjectFile(msg);
 
         request.reply(status_codes::OK, "Function upload complete\n");
     }
 
-    message::Message RestServer::buildCallFromRequest(const http_request &request) {
+    message::Message RestServer::buildMessageFromRequest(const http_request &request) {
         const std::vector<std::string> pathParts = RestServer::getPathParts(request);
 
         if (pathParts.size() != 3) {
@@ -138,23 +138,23 @@ namespace edge {
 
         // Check URI
         if (pathParts[0] == "f" || pathParts[0] == "fa") {
-            message::Message call;
-            call.set_user(pathParts[1]);
-            call.set_function(pathParts[2]);
-            call.set_isasync(pathParts[0] == "fa");
+            message::Message msg;
+            msg.set_user(pathParts[1]);
+            msg.set_function(pathParts[2]);
+            msg.set_isasync(pathParts[0] == "fa");
 
-            // Read request into call input data
+            // Read request into msg input data
             const concurrency::streams::istream bodyStream = request.body();
             concurrency::streams::stringstreambuf inputStream;
-            bodyStream.read_to_end(inputStream).then([&inputStream, &call](size_t size) {
+            bodyStream.read_to_end(inputStream).then([&inputStream, &msg](size_t size) {
                 if (size > 0) {
                     std::string s = inputStream.collection();
-                    call.set_inputdata(s);
+                    msg.set_inputdata(s);
                 }
 
             }).wait();
 
-            return call;
+            return msg;
         }
 
         throw InvalidPathException();

@@ -94,6 +94,14 @@ namespace worker {
         // module->restoreCleanMemory();
     }
 
+    void Worker::bindToFunction(const message::Message &msg) {
+        // Bind this worker to the given function
+        currentQueue = infra::getFunctionQueueName(msg);
+        currentSet = infra::getFunctionSetName(msg);
+
+        module->bindToFunction(msg);
+    }
+
     void Worker::run() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -114,11 +122,7 @@ namespace worker {
                 // Handle the message
                 std::string errorMessage;
                 if (msg.type() == message::Message_MessageType_BIND) {
-                    // Bind this worker to the given function
-                    currentQueue = infra::getFunctionQueueName(msg);
-                    currentSet = infra::getFunctionSetName(msg);
-
-                    module->bindToFunction(msg);
+                   this->bindToFunction(msg);
                 } else {
                     errorMessage = this->executeCall(msg);
                 }
@@ -142,8 +146,8 @@ namespace worker {
     void Worker::runSingle() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        message::Message call = redis->nextMessage(currentQueue);
-        std::string errorMessage = this->executeCall(call);
+        message::Message msg = redis->nextMessage(currentQueue);
+        std::string errorMessage = this->executeCall(msg);
 
         // Drop out if there's some issue
         if (!errorMessage.empty()) {
@@ -157,14 +161,6 @@ namespace worker {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         const std::chrono::steady_clock::time_point &t = prof::startTimer();
-
-        // Bomb out if call isn't valid
-        if (!infra::isValidFunction(call)) {
-            std::string errorMessage = infra::funcToString(call) + " is not a valid function";
-
-            this->finishCall(call, errorMessage);
-            return errorMessage;
-        }
 
         logger->info("Starting {}", infra::funcToString(call));
 

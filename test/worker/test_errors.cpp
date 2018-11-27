@@ -9,6 +9,7 @@ namespace tests {
 
     void execErrorFunction(message::Message &call) {
         Worker w(1);
+        w.bindToFunction(call);
 
         redis.callFunction(call);
 

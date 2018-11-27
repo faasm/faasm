@@ -19,12 +19,12 @@ namespace tests {
     }
 
     void execFunction(message::Message &call) {
+        // Set up worker to listen for relevant function
         Worker w(1);
+        w.bindToFunction(call);
+
         redis.callFunction(call);
         w.runSingle();
-
-        // Check worker is now in the function's set
-        redis.sismember(infra::getFunctionSetName(call), w.queueName);
     }
 
     TEST_CASE("Test full execution of WASM module", "[worker]") {
@@ -47,62 +47,6 @@ namespace tests {
         tearDown();
     }
 
-    TEST_CASE("Test executing different functions with same worker fails", "[worker]") {
-        setUp();
-
-        message::Message callA;
-        callA.set_user("demo");
-        callA.set_function("echo");
-        callA.set_resultkey("test_echo");
-
-        message::Message callB;
-        callB.set_user("demo");
-        callB.set_function("dummy");
-        callB.set_resultkey("test_dummy");
-
-        // Set same worker to execute different functions
-        Worker w(1);
-        redis.addToFunctionSet(callA, w.queueName);
-        redis.addToFunctionSet(callB, w.queueName);
-
-        // Add the calls
-        redis.callFunction(callA);
-        redis.callFunction(callB);
-
-        // Execute both
-        w.runSingle();
-        w.runSingle();
-
-        // First should succeed, second should fail
-        const message::Message resultA = redis.getFunctionResult(callA);
-        const message::Message resultB = redis.getFunctionResult(callB);
-
-        REQUIRE(resultA.success());
-        REQUIRE(!resultB.success());
-
-        const std::string errorMsg = resultB.outputdata();
-        REQUIRE(errorMsg == "Error: Cannot perform repeat execution on different function");
-
-        tearDown();
-    }
-
-    TEST_CASE("Test executing non-existent function", "[worker]") {
-        setUp();
-
-        message::Message call;
-        call.set_user("foobar");
-        call.set_function("baz");
-        call.set_resultkey("test_invalid");
-
-        execFunction(call);
-        message::Message result = redis.getFunctionResult(call);
-
-        REQUIRE(!result.success());
-        REQUIRE(result.outputdata() == "foobar/baz is not a valid function");
-
-        tearDown();
-    }
-
     TEST_CASE("Test function chaining", "[worker]") {
         setUp();
 
@@ -114,13 +58,7 @@ namespace tests {
         // Set up a real worker to execute this function. Remove it from the
         // unassigned set and add to handle this function
         Worker w(1);
-        redis.removeFromUnassignedSet(w.queueName);
-        redis.addToFunctionSet(call, w.queueName);
-
-        // Set up some unassigned fake workers
-        redis.addToUnassignedSet("worker 2");
-        redis.addToUnassignedSet("worker 3");
-        redis.addToUnassignedSet("worker 4");
+        w.bindToFunction(call);
 
         // Make the call
         redis.callFunction(call);
@@ -133,45 +71,51 @@ namespace tests {
         REQUIRE(result.success());
 
         // Check the chained calls have been set up
-        message::Message chainA = redis.nextMessage("worker 2");
-        message::Message chainB = redis.nextMessage("worker 3");
-        message::Message chainC = redis.nextMessage("worker 4");
+        message::Message expectedChainA;
+        expectedChainA.set_user("demo");
+        expectedChainA.set_user("echo");
+        expectedChainA.set_inputdata({0, 1, 2});
 
-        // Check all are set with the right user
-        REQUIRE(chainA.user() == "demo");
-        REQUIRE(chainB.user() == "demo");
-        REQUIRE(chainC.user() == "demo");
+        message::Message expectedChainB;
+        expectedChainB.set_user("demo");
+        expectedChainB.set_user("x2");
+        expectedChainB.set_inputdata({1, 2, 3});
 
-        // Check function names
-        std::vector<message::Message> calls(3);
-        calls.push_back(chainA);
-        calls.push_back(chainB);
-        calls.push_back(chainC);
+        message::Message expectedChainC;
+        expectedChainC.set_user("demo");
+        expectedChainC.set_user("dummy");
+        expectedChainC.set_inputdata({2, 3, 4});
 
-        bool aFound = false;
-        bool bFound = false;
-        bool cFound = false;
+        message::Message chainA = redis.nextMessage(infra::getFunctionQueueName(expectedChainA));
+        message::Message chainB = redis.nextMessage(infra::getFunctionQueueName(expectedChainB));
+        message::Message chainC = redis.nextMessage(infra::getFunctionQueueName(expectedChainC));
 
-        for(const auto c : calls) {
-            if(c.function() == "echo") {
-                std::vector<uint8_t> expected = {0, 1, 2};
-                REQUIRE(util::stringToBytes(c.inputdata()) == expected);
-                aFound = true;
-            }
-            if(c.function() == "x2") {
-                std::vector<uint8_t> expected = {1, 2, 3};
-                REQUIRE(util::stringToBytes(c.inputdata()) == expected);
-                bFound = true;
-            }
-            if(c.function() == "dummy") {
-                std::vector<uint8_t> expected = {2, 3, 4};
-                REQUIRE(util::stringToBytes(c.inputdata()) == expected);
-                cFound = true;
-            }
-        }
+        // Check correct data is set
+        REQUIRE(chainA.user() == expectedChainA.user());
+        REQUIRE(chainA.function() == expectedChainA.function());
+        REQUIRE(chainA.inputdata() == expectedChainA.inputdata());
 
-        bool allFound = aFound && bFound && cFound;
-        REQUIRE(allFound);
+        REQUIRE(chainB.user() == expectedChainB.user());
+        REQUIRE(chainB.function() == expectedChainB.function());
+        REQUIRE(chainB.inputdata() == expectedChainB.inputdata());
+
+        REQUIRE(chainC.user() == expectedChainC.user());
+        REQUIRE(chainC.function() == expectedChainC.function());
+        REQUIRE(chainC.inputdata() == expectedChainC.inputdata());
+        
+        // Check bind messages also sent
+        const message::Message bindMessageA = redis.nextMessage(infra::PREWARM_QUEUE);
+        const message::Message bindMessageB = redis.nextMessage(infra::PREWARM_QUEUE);
+        const message::Message bindMessageC = redis.nextMessage(infra::PREWARM_QUEUE);
+
+        REQUIRE(bindMessageA.user() == expectedChainA.user());
+        REQUIRE(bindMessageA.function() == expectedChainA.function());
+
+        REQUIRE(bindMessageB.user() == expectedChainB.user());
+        REQUIRE(bindMessageB.function() == expectedChainB.function());
+
+        REQUIRE(bindMessageC.user() == expectedChainC.user());
+        REQUIRE(bindMessageC.function() == expectedChainC.function());
 
         tearDown();
     }
