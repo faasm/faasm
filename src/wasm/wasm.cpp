@@ -52,6 +52,10 @@ namespace wasm {
         }
     };
 
+    bool WasmModule::isBound() {
+        return _isBound;
+    }
+
     void WasmModule::initialise() {
         if(compartment != nullptr) {
             throw std::runtime_error("Cannot initialise already initialised module");
@@ -75,7 +79,7 @@ namespace wasm {
         if (compartment == nullptr) {
             throw std::runtime_error("Must initialise module before binding");
         }
-        else if(isBound) {
+        else if(_isBound) {
             throw std::runtime_error("Cannot bind a module twice");
         }
 
@@ -133,7 +137,7 @@ namespace wasm {
         // this->snapshotCleanMemory();
 
         // Record that this module is now bound
-        isBound = true;
+        _isBound = true;
         boundUser = msg.user();
         boundFunction = msg.function();
     }
@@ -189,7 +193,7 @@ namespace wasm {
     int WasmModule::execute(message::Message &msg, CallChain &callChain) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        if (!isBound) {
+        if (!_isBound) {
             throw std::runtime_error("Worker must be bound before executing function");
         }
         else if(boundUser != msg.user() || boundFunction != msg.function()) {

@@ -8,6 +8,21 @@
 #include <hiredis/hiredis.h>
 
 namespace infra {
+    const std::string SET_PREFIX = "s_";
+    const std::string PREWARM_QUEUE = "prewarm";
+    const std::string PREWARM_SET = "s_prewarm";
+    const std::string COLD_QUEUE = "cold";
+    const std::string COLD_SET = "s_cold";
+
+    // Parameters for scheduling
+    // TODO - must match the underlying number of available namespaces. Good to decouple?
+    const int N_THREADS = 40;
+    const int UNBOUND_TIMEOUT = 180;
+    const int BOUND_TIMEOUT = 30;
+    const int MAX_QUEUE_RATIO = 5;
+    const int MAX_SET_SIZE = 20;
+    const int DEFAULT_TIMEOUT_SECONDS = 60;
+
     /** Function utilities */
     std::string getFunctionFile(const message::Message &msg);
 
@@ -25,15 +40,6 @@ namespace infra {
 
     /** Serialisation */
     std::vector<uint8_t> messageToBytes(const message::Message &msg);
-
-    /** Redis client */
-    const std::string SET_PREFIX = "s_";
-    const std::string PREWARM_QUEUE = "prewarm";
-    const std::string PREWARM_SET = "s_prewarm";
-    const std::string COLD_QUEUE = "cold";
-    const std::string COLD_SET = "s_cold";
-
-    static const int DEFAULT_TIMEOUT_SECONDS = 60;
 
     class Redis {
 

@@ -8,13 +8,7 @@
 
 
 namespace worker {
-    // TODO - must match the underlying number of available namespaces. Good to decouple?
-    static int N_THREADS = 40;
-
-    static int UNBOUND_TIMEOUT = 180;
-    static int BOUND_TIMEOUT = 30;
-
-    static util::TokenPool tokenPool(N_THREADS);
+    static util::TokenPool tokenPool(infra::N_THREADS);
 
     void startWorkerPool() {
         // Spawn worker threads until we've hit the limit (thus creating a pool that will replenish
@@ -70,6 +64,10 @@ namespace worker {
         delete module;
     }
 
+    bool Worker::isBound() {
+        return _isBound;
+    }
+
     void Worker::finish() {
         ns->removeCurrentThread();
         tokenPool.releaseToken(workerIdx);
@@ -100,6 +98,8 @@ namespace worker {
         currentSet = infra::getFunctionSetName(msg);
 
         module->bindToFunction(msg);
+
+        _isBound = true;
     }
 
     void Worker::run() {
@@ -108,24 +108,7 @@ namespace worker {
         // Wait for next message
         while (true) {
             try {
-                // Work out which timeout
-                int timeout;
-                if (currentQueue == infra::COLD_QUEUE || currentQueue == infra::PREWARM_QUEUE) {
-                    timeout = UNBOUND_TIMEOUT;
-                } else {
-                    timeout = BOUND_TIMEOUT;
-                }
-
-                // Wait for next message
-                message::Message msg = redis->nextMessage(currentQueue, timeout);
-
-                // Handle the message
-                std::string errorMessage;
-                if (msg.type() == message::Message_MessageType_BIND) {
-                   this->bindToFunction(msg);
-                } else {
-                    errorMessage = this->executeCall(msg);
-                }
+                std::string errorMessage = this->processNextMessage();
 
                 // Drop out if there's some issue
                 if (!errorMessage.empty()) {
@@ -143,15 +126,36 @@ namespace worker {
         this->finish();
     }
 
+    const std::string Worker::processNextMessage() {
+        // Work out which timeout
+        int timeout;
+        if (currentQueue == infra::COLD_QUEUE || currentQueue == infra::PREWARM_QUEUE) {
+            timeout = infra::UNBOUND_TIMEOUT;
+        } else {
+            timeout = infra::BOUND_TIMEOUT;
+        }
+
+        // Wait for next message
+        message::Message msg = redis->nextMessage(currentQueue, timeout);
+
+        // Handle the message
+        std::string errorMessage;
+        if (msg.type() == message::Message_MessageType_BIND) {
+            this->bindToFunction(msg);
+        } else {
+            errorMessage = this->executeCall(msg);
+        }
+
+        return errorMessage;
+    }
+
     void Worker::runSingle() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        message::Message msg = redis->nextMessage(currentQueue);
-        std::string errorMessage = this->executeCall(msg);
+        std::string errorMessage = this->processNextMessage();
 
-        // Drop out if there's some issue
         if (!errorMessage.empty()) {
-            logger->error("Call failed with error: {}", errorMessage);
+            logger->error("Worker failed with error: {}", errorMessage);
         }
 
         this->finish();

@@ -3,6 +3,9 @@ syntax = "proto2";
 package message;
 
 message Message {
+    required string user = 2;
+    required string function = 3;
+
     enum MessageType {
         BIND = 0;
         CALL = 1;
@@ -11,10 +14,7 @@ message Message {
 
     optional MessageType type = 1 [default = CALL];
 
-    required string user = 2;
-    required string function = 3;
-    required string resultKey = 4;
-
+    optional string resultKey = 4;
     optional bool success = 5;
     optional bool isAsync = 6;
 

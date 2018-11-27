@@ -59,12 +59,14 @@ namespace worker {
         void bindToFunction(const message::Message &msg);
         void run();
         void runSingle();
+        bool isBound();
 
         std::string id;
         std::string currentSet;
         std::string currentQueue;
 
     private:
+        bool _isBound;
         int isolationIdx;
         int workerIdx;
         NetworkNamespace *ns;
@@ -72,6 +74,7 @@ namespace worker {
 
         infra::Redis *redis;
 
+        const std::string processNextMessage();
         const std::string executeCall(message::Message &msg);
 
         void finish();

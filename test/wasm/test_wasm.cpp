@@ -75,10 +75,10 @@ namespace tests {
         wasm::WasmModule module;
         module.initialise();
 
-        REQUIRE(!module.isBound);
+        REQUIRE(!module.isBound());
 
         module.bindToFunction(call);
-        REQUIRE(module.isBound);
+        REQUIRE(module.isBound());
     }
 
     TEST_CASE("Test binding without initialisation fails", "[wasm]") {

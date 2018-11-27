@@ -219,8 +219,9 @@ namespace tests {
         checkCallRoundTrip(true, true);
     }
 
-    message::Message callFunction(Redis *cli) {
-        cli->flushAll();
+    TEST_CASE("Test redis reading and writing function results", "[redis]") {
+        Redis cli;
+        cli.flushAll();
 
         // Write some function result
         message::Message call;
@@ -228,21 +229,14 @@ namespace tests {
         call.set_user("some user");
         call.set_resultkey("function 123");
 
-        cli->setFunctionResult(call, true);
+        cli.setFunctionResult(call, true);
 
         // Check result has been written to the right key
-        REQUIRE(cli->listLength("function 123") == 1);
+        REQUIRE(cli.listLength("function 123") == 1);
 
         // Check that some expiry has been set
-        long ttl = cli->getTtl(call.resultkey());
+        long ttl = cli.getTtl(call.resultkey());
         REQUIRE(ttl > 10);
-
-        return call;
-    }
-
-    TEST_CASE("Test redis reading and writing function results", "[redis]") {
-        Redis cli;
-        message::Message call = callFunction(&cli);
 
         // Check retrieval method gets the same call out again
         message::Message actualCall2 = cli.getFunctionResult(call);
@@ -253,4 +247,79 @@ namespace tests {
         REQUIRE(actualCall2.success());
     }
 
+    void checkBindMessageDispatched(Redis &cli, const message::Message &expected) {
+        const message::Message actual = cli.nextMessage(infra::PREWARM_QUEUE);
+        REQUIRE(actual.user() == expected.user());
+        REQUIRE(actual.function() == expected.function());
+        REQUIRE(actual.type() == message::Message_MessageType_BIND);
+    }
+
+    TEST_CASE("Test calling function with no workers sends bind message", "[redis]") {
+        Redis cli;
+        cli.flushAll();
+
+        message::Message call;
+        call.set_function("my func");
+        call.set_user("some user");
+
+        cli.callFunction(call);
+
+        checkBindMessageDispatched(cli, call);
+    }
+
+    TEST_CASE("Test calling function with existing workers does not send bind message", "[redis]") {
+        Redis cli;
+        cli.flushAll();
+
+        message::Message call;
+        call.set_function("my func");
+        call.set_user("some user");
+
+        std::string queueName = getFunctionQueueName(call);
+        std::string setName = getFunctionSetName(call);
+
+        // Add 2 fake workers
+        cli.sadd(setName, "worker 1");
+        cli.sadd(setName, "worker 2");
+
+        // Call the function
+        cli.callFunction(call);
+
+        // Check function call has been added, but no bind messages
+        REQUIRE(cli.listLength(PREWARM_QUEUE) == 0);
+        REQUIRE(cli.listLength(queueName) == 1);
+    }
+
+    TEST_CASE("Test calling function which breaches queue ratio sends bind message", "[redis]") {
+        Redis cli;
+        cli.flushAll();
+
+        message::Message call;
+        call.set_function("my func");
+        call.set_user("some user");
+
+        std::string queueName = getFunctionQueueName(call);
+        std::string setName = getFunctionSetName(call);
+
+        // Add 2 fake workers
+        cli.sadd(setName, "worker 1");
+        cli.sadd(setName, "worker 2");
+
+        // Saturate up to the number of max queued calls
+        int nCalls = infra::MAX_QUEUE_RATIO * 2;
+        for(int i =0; i < nCalls; i++) {
+            cli.callFunction(call);
+        }
+
+        // Check no bind messages
+        REQUIRE(cli.listLength(PREWARM_QUEUE) == 0);
+
+        // Check all calls have been added to queue
+        REQUIRE(cli.listLength(queueName) == nCalls);
+
+        // Dispatch another and check that a bind message is sent
+        cli.callFunction(call);
+        REQUIRE(cli.listLength(PREWARM_QUEUE) == 1);
+        REQUIRE(cli.listLength(queueName) == nCalls + 1);
+    }
 }

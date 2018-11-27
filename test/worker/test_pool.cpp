@@ -27,26 +27,6 @@ namespace tests {
         w.runSingle();
     }
 
-    TEST_CASE("Test full execution of WASM module", "[worker]") {
-        setUp();
-
-        message::Message call;
-        call.set_user("demo");
-        call.set_function("echo");
-        call.set_inputdata("this is input");
-        call.set_resultkey("test_echo");
-
-        // Run the execution
-        execFunction(call);
-        message::Message result = redis.getFunctionResult(call);
-
-        // Check output
-        REQUIRE(result.outputdata() == "this is input");
-        REQUIRE(result.success());
-
-        tearDown();
-    }
-
     void checkBindMessage(const message::Message &expected) {
         const message::Message actual = redis.nextMessage(infra::PREWARM_QUEUE);
         REQUIRE(actual.user() == expected.user());
@@ -66,6 +46,50 @@ namespace tests {
         REQUIRE(actual.inputdata() == expected.inputdata());
 
         return expected;
+    }
+
+
+    TEST_CASE("Test full execution of WASM module", "[worker]") {
+        setUp();
+
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("echo");
+        call.set_inputdata("this is input");
+        call.set_resultkey("test_echo");
+
+        // Run the execution
+        execFunction(call);
+        message::Message result = redis.getFunctionResult(call);
+
+        // Check output
+        REQUIRE(result.outputdata() == "this is input");
+        REQUIRE(result.success());
+
+        // Check bind requested
+        checkBindMessage(call);
+
+        tearDown();
+    }
+
+    TEST_CASE("Test bind message causes worker to listen for invocations", "[worker]") {
+        setUp();
+
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("echo");
+        call.set_type(message::Message_MessageType_BIND);
+
+        // Worker will be listening on prewarm
+        Worker w(2);
+        REQUIRE(!w.isBound());
+
+        // Make request
+        redis.requestPrewarm(call);
+
+        w.runSingle();
+
+        REQUIRE(w.isBound());
     }
 
 
@@ -111,7 +135,7 @@ namespace tests {
 
         // Initially function's state should be an empty array
         // Note, we need to prepend the user to the actual key used in the code
-        const char* stateKey = "demo_state_example";
+        const char *stateKey = "demo_state_example";
         std::vector<uint8_t> initialState = redis.get(stateKey);
         REQUIRE(initialState.empty());
 

@@ -15,10 +15,6 @@ namespace infra {
 
     static const int RESULT_KEY_EXPIRY_SECONDS = 30;
 
-    // Parameters for scheduling
-    static const double MAX_QUEUE_RATIO = 5.0;
-    static const int MAX_SET_SIZE = 20;
-
     Redis::Redis() {
         hostname = util::getEnvVar("REDIS_HOST", "localhost");
         port = util::getEnvVar("REDIS_PORT", "6379");
@@ -217,14 +213,14 @@ namespace infra {
         long queueLength = this->listLength(queueName);
         long setSize = this->scard(setName);
 
-        // Check whether we need more workerd
+        // Check whether we need more workers
         bool needsMoreWorkers;
         if(setSize == 0) {
             needsMoreWorkers = true;
         }
         else {
             double queueRatio = double(queueLength) / setSize;
-            needsMoreWorkers = queueRatio > MAX_QUEUE_RATIO && setSize < MAX_SET_SIZE;
+            needsMoreWorkers = queueRatio >= MAX_QUEUE_RATIO && setSize < MAX_SET_SIZE;
         }
 
         // Send bind message to pre-warm queue to enlist help of other workers
