@@ -1,17 +1,17 @@
 #include "wasm.h"
 
 namespace wasm {
-    CallChain::CallChain(const message::FunctionCall &call) :
-            originalCall(call) {
+    CallChain::CallChain(const message::Message &msg) :
+            originalCall(msg) {
     }
 
     void CallChain::addCall(std::string user, std::string functionName, const std::vector<uint8_t> &inputData) {
-        message::FunctionCall call;
-        call.set_user(user);
-        call.set_function(functionName);
-        call.set_inputdata(inputData.data(), inputData.size());
+        message::Message msg;
+        msg.set_user(user);
+        msg.set_function(functionName);
+        msg.set_inputdata(inputData.data(), inputData.size());
 
-        calls.push_back(call);
+        calls.push_back(msg);
     }
 
     std::string CallChain::execute() {

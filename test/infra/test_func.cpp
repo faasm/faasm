@@ -9,7 +9,7 @@ using namespace boost::filesystem;
 namespace tests {
 
     TEST_CASE("Test retrieving function paths", "[infra]") {
-        message::FunctionCall call;
+        message::Message call;
         call.set_user("alpha");
         call.set_function("beta");
 
@@ -43,7 +43,7 @@ namespace tests {
 
     TEST_CASE("Test valid function check returns false for invalid function", "[infra]") {
         // Check false for uninitialised call
-        message::FunctionCall invalidCall;
+        message::Message invalidCall;
         REQUIRE(!infra::isValidFunction(invalidCall));
 
         // Check false for call initialised with invalid values
@@ -59,7 +59,7 @@ namespace tests {
 
     TEST_CASE("Test valid function check returns true for valid function", "[infra]") {
         // Check true for valid call
-        message::FunctionCall validCall;
+        message::Message validCall;
         validCall.set_user("demo");
         validCall.set_function("echo");
 

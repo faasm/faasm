@@ -18,19 +18,84 @@ namespace tests {
         util::unsetEnvVar("NETNS_MODE");
     }
 
-    void execFunction(message::FunctionCall &call) {
+    void execFunction(message::Message &call) {
+        // Set up worker to listen for relevant function
         Worker w(1);
+        w.bindToFunction(call);
+
         redis.callFunction(call);
         w.runSingle();
+    }
 
-        // Check worker is now in the function's set
-        redis.sismember(infra::getFunctionSetName(call), w.queueName);
+    void checkBindMessage(const message::Message &expected, int expectedTarget) {
+        const message::Message actual = redis.nextMessage(infra::PREWARM_QUEUE);
+        REQUIRE(actual.user() == expected.user());
+        REQUIRE(actual.function() == expected.function());
+        REQUIRE(actual.target() == expectedTarget);
+    }
+
+    message::Message checkChainCall(const std::string &user, const std::string &func, const std::string &inputData) {
+        message::Message expected;
+        expected.set_user(user);
+        expected.set_function(func);
+        expected.set_inputdata(inputData);
+
+        message::Message actual = redis.nextMessage(infra::getFunctionQueueName(expected));
+
+        REQUIRE(actual.user() == expected.user());
+        REQUIRE(actual.function() == expected.function());
+        REQUIRE(actual.inputdata() == expected.inputdata());
+
+        return expected;
+    }
+
+    TEST_CASE("Test worker initially in pre-warm set", "[worker]") {
+        setUp();
+
+        REQUIRE(redis.scard(infra::PREWARM_SET) == 0);
+
+        Worker w(2);
+        REQUIRE(!w.isBound());
+
+        REQUIRE(redis.scard(infra::PREWARM_SET) == 1);
+        const std::string actual = redis.spop(infra::PREWARM_SET);
+        REQUIRE(actual == w.id);
+    }
+
+    void checkBound(Worker &w, message::Message &msg, bool isBound) {
+        std::string setName = infra::getFunctionSetName(msg);
+
+        REQUIRE(w.isBound() == isBound);
+        REQUIRE(w.module->isBound() == isBound);
+        REQUIRE(redis.sismember(setName, w.id) == isBound);
+        REQUIRE(redis.sismember(infra::PREWARM_SET, w.id) == !isBound);
+    }
+
+    TEST_CASE("Test binding to function", "[worker]") {
+        setUp();
+
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("chain");
+        call.set_target(1);
+
+        Worker w(1);
+        checkBound(w, call, false);
+        w.bindToFunction(call);
+        checkBound(w, call, true);
+
+        // Check that binding another worker does nothing as the target has already been reached
+        Worker w2(2);
+        checkBound(w2, call, false);
+        w2.bindToFunction(call);
+
+        checkBound(w2, call, false);
     }
 
     TEST_CASE("Test full execution of WASM module", "[worker]") {
         setUp();
 
-        message::FunctionCall call;
+        message::Message call;
         call.set_user("demo");
         call.set_function("echo");
         call.set_inputdata("this is input");
@@ -38,7 +103,7 @@ namespace tests {
 
         // Run the execution
         execFunction(call);
-        message::FunctionCall result = redis.getFunctionResult(call);
+        message::Message result = redis.getFunctionResult(call);
 
         // Check output
         REQUIRE(result.outputdata() == "this is input");
@@ -47,66 +112,40 @@ namespace tests {
         tearDown();
     }
 
-    TEST_CASE("Test executing different functions with same worker fails", "[worker]") {
+    TEST_CASE("Test bind message causes worker to listen for invocations", "[worker]") {
         setUp();
 
-        message::FunctionCall callA;
-        callA.set_user("demo");
-        callA.set_function("echo");
-        callA.set_resultkey("test_echo");
+        // Check prewarm empty to begin with
+        REQUIRE(redis.scard(infra::PREWARM_SET) == 0);
 
-        message::FunctionCall callB;
-        callB.set_user("demo");
-        callB.set_function("dummy");
-        callB.set_resultkey("test_dummy");
+        // Create worker and check it's in prewarm set
+        Worker w(2);
+        REQUIRE(!w.isBound());
+        REQUIRE(redis.scard(infra::PREWARM_SET) == 1);
 
-        // Set same worker to execute different functions
-        Worker w(1);
-        redis.addToFunctionSet(callA, w.queueName);
-        redis.addToFunctionSet(callB, w.queueName);
+        // Request a prewarm worker
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("echo");
+        redis.requestPrewarm(call, 1);
 
-        // Add the calls
-        redis.callFunction(callA);
-        redis.callFunction(callB);
+        // Check message on prewarm queue
+        REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 1);
 
-        // Execute both
-        w.runSingle();
+        // Process next message
         w.runSingle();
 
-        // First should succeed, second should fail
-        const message::FunctionCall resultA = redis.getFunctionResult(callA);
-        const message::FunctionCall resultB = redis.getFunctionResult(callB);
-
-        REQUIRE(resultA.success());
-        REQUIRE(!resultB.success());
-
-        const std::string errorMsg = resultB.outputdata();
-        REQUIRE(errorMsg == "Error: Cannot perform repeat execution on different function");
-
-        tearDown();
+        // Check message has been consumed and that worker is now bound
+        REQUIRE(w.isBound());
+        REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 0);
+        REQUIRE(redis.scard(infra::PREWARM_SET) == 0);
     }
 
-    TEST_CASE("Test executing non-existent function", "[worker]") {
-        setUp();
-
-        message::FunctionCall call;
-        call.set_user("foobar");
-        call.set_function("baz");
-        call.set_resultkey("test_invalid");
-
-        execFunction(call);
-        message::FunctionCall result = redis.getFunctionResult(call);
-
-        REQUIRE(!result.success());
-        REQUIRE(result.outputdata() == "foobar/baz is not a valid function");
-
-        tearDown();
-    }
 
     TEST_CASE("Test function chaining", "[worker]") {
         setUp();
 
-        message::FunctionCall call;
+        message::Message call;
         call.set_user("demo");
         call.set_function("chain");
         call.set_resultkey("test_chain");
@@ -114,13 +153,7 @@ namespace tests {
         // Set up a real worker to execute this function. Remove it from the
         // unassigned set and add to handle this function
         Worker w(1);
-        redis.removeFromUnassignedSet(w.queueName);
-        redis.addToFunctionSet(call, w.queueName);
-
-        // Set up some unassigned fake workers
-        redis.addToUnassignedSet("worker 2");
-        redis.addToUnassignedSet("worker 3");
-        redis.addToUnassignedSet("worker 4");
+        w.bindToFunction(call);
 
         // Make the call
         redis.callFunction(call);
@@ -129,49 +162,18 @@ namespace tests {
         w.runSingle();
 
         // Check the call executed successfully
-        message::FunctionCall result = redis.getFunctionResult(call);
+        message::Message result = redis.getFunctionResult(call);
         REQUIRE(result.success());
 
         // Check the chained calls have been set up
-        message::FunctionCall chainA = redis.nextFunctionCall("worker 2");
-        message::FunctionCall chainB = redis.nextFunctionCall("worker 3");
-        message::FunctionCall chainC = redis.nextFunctionCall("worker 4");
+        message::Message chainA = checkChainCall("demo", "echo", {0, 1, 2});
+        message::Message chainB = checkChainCall("demo", "x2", {1, 2, 3});
+        message::Message chainC = checkChainCall("demo", "dummy", {2, 3, 4});
 
-        // Check all are set with the right user
-        REQUIRE(chainA.user() == "demo");
-        REQUIRE(chainB.user() == "demo");
-        REQUIRE(chainC.user() == "demo");
-
-        // Check function names
-        std::vector<message::FunctionCall> calls(3);
-        calls.push_back(chainA);
-        calls.push_back(chainB);
-        calls.push_back(chainC);
-
-        bool aFound = false;
-        bool bFound = false;
-        bool cFound = false;
-
-        for(const auto c : calls) {
-            if(c.function() == "echo") {
-                std::vector<uint8_t> expected = {0, 1, 2};
-                REQUIRE(util::stringToBytes(c.inputdata()) == expected);
-                aFound = true;
-            }
-            if(c.function() == "x2") {
-                std::vector<uint8_t> expected = {1, 2, 3};
-                REQUIRE(util::stringToBytes(c.inputdata()) == expected);
-                bFound = true;
-            }
-            if(c.function() == "dummy") {
-                std::vector<uint8_t> expected = {2, 3, 4};
-                REQUIRE(util::stringToBytes(c.inputdata()) == expected);
-                cFound = true;
-            }
-        }
-
-        bool allFound = aFound && bFound && cFound;
-        REQUIRE(allFound);
+        // Check bind messages also sent
+        checkBindMessage(chainA, 1);
+        checkBindMessage(chainB, 1);
+        checkBindMessage(chainC, 1);
 
         tearDown();
     }
@@ -181,19 +183,19 @@ namespace tests {
 
         // Initially function's state should be an empty array
         // Note, we need to prepend the user to the actual key used in the code
-        const char* stateKey = "demo_state_example";
+        const char *stateKey = "demo_state_example";
         std::vector<uint8_t> initialState = redis.get(stateKey);
         REQUIRE(initialState.empty());
 
         // Set up the function call
-        message::FunctionCall call;
+        message::Message call;
         call.set_user("demo");
         call.set_function("state");
         call.set_resultkey("test_state");
 
         // Execute and check
         execFunction(call);
-        message::FunctionCall resultA = redis.getFunctionResult(call);
+        message::Message resultA = redis.getFunctionResult(call);
         REQUIRE(resultA.success());
 
         // Load the state again, it should have a new element
@@ -203,7 +205,7 @@ namespace tests {
 
         // Call the function a second time, the state should have another element added
         execFunction(call);
-        message::FunctionCall resultB = redis.getFunctionResult(call);
+        message::Message resultB = redis.getFunctionResult(call);
         REQUIRE(resultB.success());
 
         std::vector<uint8_t> stateB = redis.get(stateKey);
@@ -215,20 +217,20 @@ namespace tests {
         setUp();
 
         // Set up the function call
-        message::FunctionCall call;
+        message::Message call;
         call.set_user("demo");
         call.set_function("increment");
         call.set_resultkey("test_state_incr");
 
         // Execute and check
         execFunction(call);
-        message::FunctionCall resultA = redis.getFunctionResult(call);
+        message::Message resultA = redis.getFunctionResult(call);
         REQUIRE(resultA.success());
         REQUIRE(resultA.outputdata() == "Counter: 001");
 
         // Call the function a second time, the state should have been incremented
         execFunction(call);
-        message::FunctionCall resultB = redis.getFunctionResult(call);
+        message::Message resultB = redis.getFunctionResult(call);
         REQUIRE(resultB.success());
         REQUIRE(resultB.outputdata() == "Counter: 002");
     }

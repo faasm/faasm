@@ -2,15 +2,25 @@ syntax = "proto2";
 
 package message;
 
-message FunctionCall {
-    required string user = 1;
-    required string function = 2;
-    required string resultKey = 3;
+message Message {
+    required string user = 2;
+    required string function = 3;
 
-    optional bool success = 4;
-    optional bool isAsync = 5;
+    enum MessageType {
+        BIND = 0;
+        CALL = 1;
+        KILL = 2;
+    }
 
-    optional bytes inputData = 6;
-    optional bytes outputData = 7;
+    optional MessageType type = 1 [default = CALL];
+
+    optional string resultKey = 4;
+    optional bool success = 5;
+    optional bool isAsync = 6;
+
+    optional bytes inputData = 7;
+    optional bytes outputData = 8;
+
+    optional int32 target = 9 [default = 1];
 }
 

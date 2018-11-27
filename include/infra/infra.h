@@ -8,25 +8,38 @@
 #include <hiredis/hiredis.h>
 
 namespace infra {
+    const std::string SET_PREFIX = "s_";
+    const std::string PREWARM_QUEUE = "prewarm";
+    const std::string PREWARM_SET = "s_prewarm";
+    const std::string COLD_QUEUE = "cold";
+    const std::string COLD_SET = "s_cold";
+
+    // Parameters for scheduling
+    // TODO - must match the underlying number of available namespaces. Good to decouple?
+    const int N_THREADS = 40;
+    const int UNBOUND_TIMEOUT = 180;
+    const int BOUND_TIMEOUT = 30;
+    const int MAX_QUEUE_RATIO = 5;
+    const int MAX_SET_SIZE = 20;
+    const int DEFAULT_TIMEOUT_SECONDS = 60;
+
     /** Function utilities */
-    std::string getFunctionFile(const message::FunctionCall &call);
+    std::string getFunctionFile(const message::Message &msg);
 
-    std::string getFunctionObjectFile(const message::FunctionCall &call);
+    std::string getFunctionObjectFile(const message::Message &msg);
 
-    std::vector<uint8_t> getFunctionObjectBytes(const message::FunctionCall &call);
+    std::vector<uint8_t> getFunctionObjectBytes(const message::Message &msg);
 
-    std::string getFunctionSetName(const message::FunctionCall &call);
+    std::string getFunctionQueueName(const message::Message &msg);
 
-    bool isValidFunction(const message::FunctionCall &call);
+    std::string getFunctionSetName(const message::Message &msg);
 
-    std::string funcToString(const message::FunctionCall &call);
+    bool isValidFunction(const message::Message &msg);
+
+    std::string funcToString(const message::Message &msg);
 
     /** Serialisation */
-    std::vector<uint8_t> callToBytes(const message::FunctionCall &call);
-
-    /** Redis client */
-    static const std::string UNASSIGNED_SET = "unassigned";
-    static const int DEFAULT_TIMEOUT_SECONDS = 60;
+    std::vector<uint8_t> messageToBytes(const message::Message &msg);
 
     class Redis {
 
@@ -67,23 +80,15 @@ namespace infra {
 
         long listLength(const std::string &queueName);
 
-        void callFunction(message::FunctionCall &call);
+        void callFunction(message::Message &msg);
 
-        message::FunctionCall nextFunctionCall(const std::string &queueName, int timeout=DEFAULT_TIMEOUT_SECONDS);
+        void requestPrewarm(message::Message &originalMsg, int targetCount);
 
-        void setFunctionResult(message::FunctionCall &call, bool success);
+        message::Message nextMessage(const std::string &queueName, int timeout=DEFAULT_TIMEOUT_SECONDS);
 
-        message::FunctionCall getFunctionResult(const message::FunctionCall &call);
+        void setFunctionResult(message::Message &msg, bool success);
 
-        std::string addToFunctionSet(const message::FunctionCall &call, const std::string &queueName);
-
-        void removeFromFunctionSet(const message::FunctionCall &call, const std::string &queueName);
-
-        void addToUnassignedSet(const std::string &queueName);
-
-        void removeFromUnassignedSet(const std::string &queueName);
-
-        std::string getQueueForFunc(const message::FunctionCall &call);
+        message::Message getFunctionResult(const message::Message &msg);
 
         long getTtl(const std::string &key);
 

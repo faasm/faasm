@@ -14,12 +14,12 @@ namespace infra {
         return path;
     }
 
-    boost::filesystem::path getFunctionDir(const message::FunctionCall &call, bool create = true) {
+    boost::filesystem::path getFunctionDir(const message::Message &msg, bool create = true) {
         auto path = getFuncRootPath();
 
         path.append("wasm");
-        path.append(call.user());
-        path.append(call.function());
+        path.append(msg.user());
+        path.append(msg.function());
 
         // Create directory if doesn't exist
         if (create) {
@@ -29,8 +29,8 @@ namespace infra {
         return path;
     }
 
-    bool isValidFunction(const message::FunctionCall &call) {
-        auto path = getFunctionDir(call, false);
+    bool isValidFunction(const message::Message &msg) {
+        auto path = getFunctionDir(msg, false);
 
         // Check object file exists
         path.append(objFile);
@@ -39,39 +39,39 @@ namespace infra {
         return isValid;
     }
 
-    std::string getFunctionFile(const message::FunctionCall &call) {
-        auto path = getFunctionDir(call);
+    std::string getFunctionFile(const message::Message &msg) {
+        auto path = getFunctionDir(msg);
         path.append(funcFile);
 
         return path.string();
     }
 
-    std::string getFunctionObjectFile(const message::FunctionCall &call) {
-        auto path = getFunctionDir(call);
+    std::string getFunctionObjectFile(const message::Message &msg) {
+        auto path = getFunctionDir(msg);
         path.append(objFile);
 
         return path.string();
     }
 
-    std::vector<uint8_t> getFunctionObjectBytes(const message::FunctionCall &call) {
-        std::string objectFilePath = getFunctionObjectFile(call);
+    std::vector<uint8_t> getFunctionObjectBytes(const message::Message &msg) {
+        std::string objectFilePath = getFunctionObjectFile(msg);
         std::vector<uint8_t> bytes = util::readFileToBytes(objectFilePath);
 
         return bytes;
     }
 
-    std::vector<uint8_t> callToBytes(const message::FunctionCall &call) {
-        size_t byteSize = call.ByteSizeLong();
+    std::vector<uint8_t> messageToBytes(const message::Message &msg) {
+        size_t byteSize = msg.ByteSizeLong();
         uint8_t buffer[byteSize];
-        call.SerializeToArray(buffer, (int) byteSize);
+        msg.SerializeToArray(buffer, (int) byteSize);
 
         std::vector<uint8_t> inputData(buffer, buffer + byteSize);
 
         return inputData;
     }
 
-    std::string funcToString(const message::FunctionCall &call) {
-        std::string str = call.user() + "/" + call.function();
+    std::string funcToString(const message::Message &msg) {
+        std::string str = msg.user() + "/" + msg.function();
         return str;
     }
 }

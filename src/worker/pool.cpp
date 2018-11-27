@@ -8,16 +8,11 @@
 
 
 namespace worker {
-    // TODO - must match the underlying number of available namespaces. Good to decouple?
-    static int N_THREADS = 40;
-
-    static int UNBOUND_TIMEOUT = 180;
-    static int BOUND_TIMEOUT = 30;
-
-    static util::TokenPool tokenPool(N_THREADS);
+    static util::TokenPool tokenPool(infra::N_THREADS);
 
     void startWorkerPool() {
-        // Spawn threads until we've hit the limit (effectively creating a thread pool)
+        // Spawn worker threads until we've hit the limit (thus creating a pool that will replenish
+        // when one releases its token)
         while (true) {
             // Try to get an available slot (blocks if none available)
             int workerIdx = tokenPool.getToken();
@@ -34,10 +29,10 @@ namespace worker {
 
     Worker::Worker(int workerIdx) : workerIdx(workerIdx) {
         const std::string hostname = util::getEnvVar("HOSTNAME", "");
-        queueName = hostname + "_" + std::to_string(workerIdx);
+        id = hostname + "_" + std::to_string(workerIdx);
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Starting worker {} on queue {}", workerIdx, queueName);
+        logger->debug("Starting worker {}", workerIdx);
 
         // Get Redis connection before we isolate ourselves
         redis = infra::Redis::getThreadConnection();
@@ -56,8 +51,11 @@ namespace worker {
         module = new wasm::WasmModule();
         module->initialise();
 
-        // Add to unassigned set to request work
-        redis->addToUnassignedSet(queueName);
+        // TODO SCH work out whether to add to prewarm/ cold
+        // Work out which queue and set
+        currentQueue = infra::PREWARM_QUEUE;
+        currentSet = infra::PREWARM_SET;
+        redis->sadd(currentSet, id);
     }
 
     Worker::~Worker() {
@@ -66,19 +64,19 @@ namespace worker {
         delete module;
     }
 
+    const bool Worker::isBound() {
+        return _isBound;
+    }
+
     void Worker::finish() {
         ns->removeCurrentThread();
         tokenPool.releaseToken(workerIdx);
 
-        // Remove from sets to avoid more work
-        if (functionSetName.empty()) {
-            redis->removeFromUnassignedSet(queueName);
-        } else {
-            redis->srem(functionSetName, queueName);
-        }
+        // Remove from set
+        redis->srem(currentSet, id);
     }
 
-    void Worker::finishCall(message::FunctionCall &call, const std::string &errorMsg) {
+    void Worker::finishCall(message::Message &call, const std::string &errorMsg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->info("Finished {}", infra::funcToString(call));
 
@@ -94,22 +92,35 @@ namespace worker {
         // module->restoreCleanMemory();
     }
 
+    void Worker::bindToFunction(const message::Message &msg) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->info("Worker binding to {}", infra::funcToString(msg));
+
+        // Check if the target has already been reached, in which case ignore
+        const std::string &newSet = infra::getFunctionSetName(msg);
+        long currentCount = redis->scard(newSet);
+        if(currentCount >= msg.target()) {
+            return;
+        }
+
+        // Remove worker from current set and add to new set
+        redis->srem(currentSet, id);
+        redis->sadd(newSet, id);
+
+        // Bind to new function
+        currentQueue = infra::getFunctionQueueName(msg);
+        currentSet = newSet;
+        module->bindToFunction(msg);
+        _isBound = true;
+    }
+
     void Worker::run() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Wait for next function call on this thread's queue.
+        // Wait for next message
         while (true) {
             try {
-                int timeout;
-                if (functionSetName.empty()) {
-                    timeout = UNBOUND_TIMEOUT;
-                } else {
-                    timeout = BOUND_TIMEOUT;
-                }
-
-                message::FunctionCall call = redis->nextFunctionCall(queueName, timeout);
-
-                std::string errorMessage = this->executeCall(call);
+                std::string errorMessage = this->processNextMessage();
 
                 // Drop out if there's some issue
                 if (!errorMessage.empty()) {
@@ -117,10 +128,7 @@ namespace worker {
                 }
             }
             catch (infra::RedisNoResponseException &e) {
-                // If exeucting a call, the thread will have been taken out of
-                // sets waiting for work already. If it times out, it needs to remove
-                // itself from whichever set it's in
-                logger->debug("No calls made in timeout");
+                logger->debug("No messages received in timeout");
 
                 this->finish();
                 return;
@@ -130,34 +138,47 @@ namespace worker {
         this->finish();
     }
 
+    const std::string Worker::processNextMessage() {
+        // Work out which timeout
+        int timeout;
+        if (currentQueue == infra::COLD_QUEUE || currentQueue == infra::PREWARM_QUEUE) {
+            timeout = infra::UNBOUND_TIMEOUT;
+        } else {
+            timeout = infra::BOUND_TIMEOUT;
+        }
+
+        // Wait for next message
+        message::Message msg = redis->nextMessage(currentQueue, timeout);
+
+        // Handle the message
+        std::string errorMessage;
+        if (msg.type() == message::Message_MessageType_BIND) {
+            this->bindToFunction(msg);
+        } else {
+            errorMessage = this->executeCall(msg);
+        }
+
+        return errorMessage;
+    }
+
     void Worker::runSingle() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        message::FunctionCall call = redis->nextFunctionCall(queueName);
-        std::string errorMessage = this->executeCall(call);
+        std::string errorMessage = this->processNextMessage();
 
-        // Drop out if there's some issue
         if (!errorMessage.empty()) {
-            logger->error("Call failed with error: {}", errorMessage);
+            logger->error("Worker failed with error: {}", errorMessage);
         }
 
         this->finish();
     }
 
-    const std::string Worker::executeCall(message::FunctionCall &call) {
+    const std::string Worker::executeCall(message::Message &call) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         const std::chrono::steady_clock::time_point &t = prof::startTimer();
 
-        // Bomb out if call isn't valid
-        if (!infra::isValidFunction(call)) {
-            std::string errorMessage = infra::funcToString(call) + " is not a valid function";
-
-            this->finishCall(call, errorMessage);
-            return errorMessage;
-        }
-
-        logger->info("Starting {}", infra::funcToString(call));
+        logger->info("Worker executing {}", infra::funcToString(call));
 
         // Create and execute the module
         wasm::CallChain callChain(call);
@@ -181,9 +202,6 @@ namespace worker {
 
         const std::string empty;
         this->finishCall(call, empty);
-
-        logger->debug("Adding worker to function set for {}", infra::funcToString(call));
-        functionSetName = redis->addToFunctionSet(call, queueName);
 
         prof::logEndTimer("func-total", t);
         return empty;

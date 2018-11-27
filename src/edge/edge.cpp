@@ -44,40 +44,46 @@ namespace edge {
     }
 
     void FunctionEndpoint::handleFunctionWrapper(const Rest::Request &request, Http::ResponseWriter response) {
-        message::FunctionCall call = this->buildCallFromRequest(request);
-        call.set_isasync(false);
+        message::Message msg = this->buildMessageFromRequest(request);
+        msg.set_isasync(false);
 
-        const std::string result = this->handleFunction(call);
+        const std::string result = this->handleFunction(msg);
         response.send(Http::Code::Ok, result);
     }
 
     void FunctionEndpoint::handleAsyncFunctionWrapper(const Rest::Request &request, Http::ResponseWriter response) {
-        message::FunctionCall call = this->buildCallFromRequest(request);
-        call.set_isasync(true);
+        message::Message msg = this->buildMessageFromRequest(request);
+        msg.set_isasync(true);
 
-        const std::string result = this->handleFunction(call);
+        const std::string result = this->handleFunction(msg);
         response.send(Http::Code::Ok, result);
     }
 
-    std::string FunctionEndpoint::handleFunction(message::FunctionCall &call) {
+    std::string FunctionEndpoint::handleFunction(message::Message &msg) {
         const std::chrono::steady_clock::time_point &t = prof::startTimer();
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
+        // Bomb out if call isn't valid
+        if (!infra::isValidFunction(msg)) {
+            std::string errorMessage = infra::funcToString(msg) + " is not a valid function";
+            return errorMessage;
+        }
+
         // Make the call
         infra::Redis *redis = infra::Redis::getThreadConnection();
-        redis->callFunction(call);
+        redis->callFunction(msg);
         prof::logEndTimer("edge-submit", t);
 
-        if (call.isasync()) {
-            logger->info("Async request {}", infra::funcToString(call));
+        if (msg.isasync()) {
+            logger->info("Async request {}", infra::funcToString(msg));
             return "Async request submitted";
         } else {
-            logger->info("Sync request {}", infra::funcToString(call));
-            message::FunctionCall result = redis->getFunctionResult(call);
+            logger->info("Sync request {}", infra::funcToString(msg));
+            message::Message result = redis->getFunctionResult(msg);
 
             const std::chrono::steady_clock::time_point &t2 = prof::startTimer();
 
-            logger->info("Finished request {}", infra::funcToString(call));
+            logger->info("Finished request {}", infra::funcToString(msg));
 
             prof::logEndTimer("edge-reply", t2);
 
@@ -85,7 +91,7 @@ namespace edge {
         }
     }
 
-    message::FunctionCall FunctionEndpoint::buildCallFromRequest(const Rest::Request &request) {
+    message::Message FunctionEndpoint::buildMessageFromRequest(const Rest::Request &request) {
         // Parse request params
         auto user = request.param(":user").as<std::string>();
         auto function = request.param(":function").as<std::string>();
@@ -93,13 +99,13 @@ namespace edge {
         // Get the request body
         const std::string requestData = request.body();
 
-        // Build function call
-        message::FunctionCall call;
-        call.set_user(user);
-        call.set_function(function);
-        call.set_inputdata(requestData);
+        // Build message
+        message::Message msg;
+        msg.set_user(user);
+        msg.set_function(function);
+        msg.set_inputdata(requestData);
 
-        return call;
+        return msg;
     }
 };
 

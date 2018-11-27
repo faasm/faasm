@@ -56,23 +56,28 @@ namespace worker {
     public:
         explicit Worker(int workerIdx);
         ~Worker();
+        void bindToFunction(const message::Message &msg);
         void run();
         void runSingle();
+        const bool isBound();
 
-        std::string queueName;
-        std::string functionSetName;
+        std::string id;
+        std::string currentSet;
+        std::string currentQueue;
 
+        wasm::WasmModule *module;
     private:
+        bool _isBound;
         int isolationIdx;
         int workerIdx;
         NetworkNamespace *ns;
-        wasm::WasmModule *module;
 
         infra::Redis *redis;
 
-        const std::string executeCall(message::FunctionCall &call);
+        const std::string processNextMessage();
+        const std::string executeCall(message::Message &msg);
 
         void finish();
-        void finishCall(message::FunctionCall &call, const std::string &errorMsg);
+        void finishCall(message::Message &msg, const std::string &errorMsg);
     };
 }

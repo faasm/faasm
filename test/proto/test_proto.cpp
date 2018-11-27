@@ -18,7 +18,7 @@ namespace tests {
     }
 
     TEST_CASE("Test protobuf classes", "[proto]") {
-        message::FunctionCall funcCall;
+        message::Message funcCall;
 
         std::string user = "foobar user";
         std::string func = "foobar func";
@@ -36,6 +36,7 @@ namespace tests {
 
         funcCall.set_isasync(true);
 
+        REQUIRE(funcCall.type() == message::Message_MessageType_CALL);
         REQUIRE(user == funcCall.user());
         REQUIRE(func == funcCall.function());
         REQUIRE(resultKey == funcCall.resultkey());
@@ -43,7 +44,7 @@ namespace tests {
         // Check serialisation round trip
         std::string serialised = funcCall.SerializeAsString();
 
-        message::FunctionCall newFuncCall;
+        message::Message newFuncCall;
         newFuncCall.ParseFromString(serialised);
 
         REQUIRE(user == newFuncCall.user());

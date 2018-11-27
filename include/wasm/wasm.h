@@ -63,15 +63,15 @@ namespace wasm {
 
     class CallChain {
     public:
-        explicit CallChain(const message::FunctionCall &call);
+        explicit CallChain(const message::Message &msg);
 
         void addCall(std::string user, std::string functionName, const std::vector<uint8_t> &inputData);
 
         std::string execute();
 
-        std::vector<message::FunctionCall> calls;
+        std::vector<message::Message> calls;
     private:
-        const message::FunctionCall &originalCall;
+        const message::Message &originalCall;
     };
 
     class WasmModule {
@@ -80,9 +80,9 @@ namespace wasm {
 
         ~WasmModule();
 
-        static std::vector<uint8_t> compile(message::FunctionCall &call);
+        static std::vector<uint8_t> compile(message::Message &msg);
 
-        static void compileToObjectFile(message::FunctionCall &call);
+        static void compileToObjectFile(message::Message &msg);
 
         void initialise();
 
@@ -90,12 +90,13 @@ namespace wasm {
 
         void restoreCleanMemory();
 
-        int execute(message::FunctionCall &call, CallChain &callChain);
+        void bindToFunction(const message::Message &msg);
+
+        int execute(message::Message &msg, CallChain &callChain);
 
         Runtime::GCPointer<Runtime::Memory> defaultMemory;
 
-        bool isBound = false;
-
+        bool isBound();
     private:
         IR::Module module;
 
@@ -108,17 +109,16 @@ namespace wasm {
 
         RootResolver *resolver = nullptr;
 
+        bool _isBound = false;
         std::string boundUser;
         std::string boundFunction;
 
-        void bindToFunction(message::FunctionCall &call, CallChain &callChain);
-
-        void parseWasm(message::FunctionCall &call);
+        void parseWasm(const message::Message &msg);
     };
 
     WasmModule *getExecutingModule();
 
-    message::FunctionCall *getExecutingCall();
+    message::Message *getExecutingCall();
 
     CallChain *getExecutingCallChain();
 
