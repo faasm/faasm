@@ -97,7 +97,7 @@ namespace worker {
     void Worker::run() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Wait for next function call on this thread's queue.
+        // Wait for next message
         while (true) {
             try {
                 // Work out which timeout

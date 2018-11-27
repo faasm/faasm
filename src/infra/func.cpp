@@ -60,7 +60,7 @@ namespace infra {
         return bytes;
     }
 
-    std::vector<uint8_t> callToBytes(const message::Message &call) {
+    std::vector<uint8_t> messageToBytes(const message::Message &call) {
         size_t byteSize = call.ByteSizeLong();
         uint8_t buffer[byteSize];
         call.SerializeToArray(buffer, (int) byteSize);

@@ -24,7 +24,7 @@ namespace infra {
     std::string funcToString(const message::Message &call);
 
     /** Serialisation */
-    std::vector<uint8_t> callToBytes(const message::Message &call);
+    std::vector<uint8_t> messageToBytes(const message::Message &call);
 
     /** Redis client */
     const std::string SET_PREFIX = "s_";
@@ -81,16 +81,6 @@ namespace infra {
         void setFunctionResult(message::Message &call, bool success);
 
         message::Message getFunctionResult(const message::Message &call);
-
-        std::string addToFunctionSet(const message::Message &call, const std::string &queueName);
-
-        void removeFromFunctionSet(const message::Message &call, const std::string &queueName);
-
-        void addToUnassignedSet(const std::string &queueName);
-
-        void removeFromUnassignedSet(const std::string &queueName);
-
-        std::string getQueueForFunc(const message::Message &call);
 
         long getTtl(const std::string &key);
 
