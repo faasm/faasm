@@ -193,11 +193,12 @@ namespace infra {
         msg.set_resultkey(resultKey);
     }
 
-    void Redis::requestPrewarm(message::Message &originalMsg) {
+    void Redis::requestPrewarm(message::Message &originalMsg, int targetCount) {
         message::Message bindMsg;
         bindMsg.set_type(message::Message_MessageType_BIND);
         bindMsg.set_user(originalMsg.user());
         bindMsg.set_function(originalMsg.function());
+        bindMsg.set_target(targetCount);
 
         std::vector<uint8_t> bindData = infra::messageToBytes(bindMsg);
         this->enqueue(PREWARM_QUEUE, bindData);
@@ -226,7 +227,7 @@ namespace infra {
         // Send bind message to pre-warm queue to enlist help of other workers
         if(needsMoreWorkers) {
             logger->debug("Requesting prewarm for {}", infra::funcToString(msg));
-            this->requestPrewarm(msg);
+            this->requestPrewarm(msg, setSize + 1);
         }
 
         // Add the msg for the function

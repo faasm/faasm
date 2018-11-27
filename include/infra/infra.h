@@ -82,7 +82,7 @@ namespace infra {
 
         void callFunction(message::Message &msg);
 
-        void requestPrewarm(message::Message &originalMsg);
+        void requestPrewarm(message::Message &originalMsg, int targetCount);
 
         message::Message nextMessage(const std::string &queueName, int timeout=DEFAULT_TIMEOUT_SECONDS);
 

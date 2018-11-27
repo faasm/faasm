@@ -27,10 +27,11 @@ namespace tests {
         w.runSingle();
     }
 
-    void checkBindMessage(const message::Message &expected) {
+    void checkBindMessage(const message::Message &expected, int expectedTarget) {
         const message::Message actual = redis.nextMessage(infra::PREWARM_QUEUE);
         REQUIRE(actual.user() == expected.user());
         REQUIRE(actual.function() == expected.function());
+        REQUIRE(actual.target() == expectedTarget);
     }
 
     message::Message checkChainCall(const std::string &user, const std::string &func, const std::string &inputData) {
@@ -59,6 +60,36 @@ namespace tests {
         REQUIRE(redis.scard(infra::PREWARM_SET) == 1);
         const std::string actual = redis.spop(infra::PREWARM_SET);
         REQUIRE(actual == w.id);
+    }
+
+    void checkBound(Worker &w, message::Message &msg, bool isBound) {
+        std::string setName = infra::getFunctionSetName(msg);
+
+        REQUIRE(w.isBound() == isBound);
+        REQUIRE(w.module->isBound() == isBound);
+        REQUIRE(redis.sismember(setName, w.id) == isBound);
+        REQUIRE(redis.sismember(infra::PREWARM_SET, w.id) == !isBound);
+    }
+
+    TEST_CASE("Test binding to function", "[worker]") {
+        setUp();
+
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("chain");
+        call.set_target(1);
+
+        Worker w(1);
+        checkBound(w, call, false);
+        w.bindToFunction(call);
+        checkBound(w, call, true);
+
+        // Check that binding another worker does nothing as the target has already been reached
+        Worker w2(2);
+        checkBound(w2, call, false);
+        w2.bindToFunction(call);
+
+        checkBound(w2, call, false);
     }
 
     TEST_CASE("Test full execution of WASM module", "[worker]") {
@@ -96,7 +127,7 @@ namespace tests {
         message::Message call;
         call.set_user("demo");
         call.set_function("echo");
-        redis.requestPrewarm(call);
+        redis.requestPrewarm(call, 1);
 
         // Check message on prewarm queue
         REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 1);
@@ -140,9 +171,9 @@ namespace tests {
         message::Message chainC = checkChainCall("demo", "dummy", {2, 3, 4});
 
         // Check bind messages also sent
-        checkBindMessage(chainA);
-        checkBindMessage(chainB);
-        checkBindMessage(chainC);
+        checkBindMessage(chainA, 1);
+        checkBindMessage(chainB, 1);
+        checkBindMessage(chainC, 1);
 
         tearDown();
     }

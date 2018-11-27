@@ -64,7 +64,7 @@ namespace worker {
         delete module;
     }
 
-    bool Worker::isBound() {
+    const bool Worker::isBound() {
         return _isBound;
     }
 
@@ -96,18 +96,21 @@ namespace worker {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->info("Worker binding to {}", infra::funcToString(msg));
 
-        // Remove worker from current set
+        // Check if the target has already been reached, in which case ignore
+        const std::string &newSet = infra::getFunctionSetName(msg);
+        long currentCount = redis->scard(newSet);
+        if(currentCount >= msg.target()) {
+            return;
+        }
+
+        // Remove worker from current set and add to new set
         redis->srem(currentSet, id);
+        redis->sadd(newSet, id);
 
-        // Bind this worker to the given function
+        // Bind to new function
         currentQueue = infra::getFunctionQueueName(msg);
-        currentSet = infra::getFunctionSetName(msg);
-
+        currentSet = newSet;
         module->bindToFunction(msg);
-
-        // Add to new set
-        redis->sadd(currentSet, id);
-
         _isBound = true;
     }
 

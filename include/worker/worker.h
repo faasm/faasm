@@ -59,18 +59,18 @@ namespace worker {
         void bindToFunction(const message::Message &msg);
         void run();
         void runSingle();
-        bool isBound();
+        const bool isBound();
 
         std::string id;
         std::string currentSet;
         std::string currentQueue;
 
+        wasm::WasmModule *module;
     private:
         bool _isBound;
         int isolationIdx;
         int workerIdx;
         NetworkNamespace *ns;
-        wasm::WasmModule *module;
 
         infra::Redis *redis;
 

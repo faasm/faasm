@@ -247,11 +247,12 @@ namespace tests {
         REQUIRE(actualCall2.success());
     }
 
-    void checkBindMessageDispatched(Redis &cli, const message::Message &expected) {
+    void checkBindMessageDispatched(Redis &cli, const message::Message &expected, int expectedTarget) {
         const message::Message actual = cli.nextMessage(infra::PREWARM_QUEUE);
         REQUIRE(actual.user() == expected.user());
         REQUIRE(actual.function() == expected.function());
         REQUIRE(actual.type() == message::Message_MessageType_BIND);
+        REQUIRE(actual.target() == expectedTarget);
     }
 
     TEST_CASE("Test calling function with no workers sends bind message", "[redis]") {
@@ -264,7 +265,7 @@ namespace tests {
 
         cli.callFunction(call);
 
-        checkBindMessageDispatched(cli, call);
+        checkBindMessageDispatched(cli, call, 1);
     }
 
     TEST_CASE("Test calling function with existing workers does not send bind message", "[redis]") {
@@ -317,9 +318,11 @@ namespace tests {
         // Check all calls have been added to queue
         REQUIRE(cli.listLength(queueName) == nCalls);
 
-        // Dispatch another and check that a bind message is sent
+        // Dispatch another and check that a bind message is sent with correct target
         cli.callFunction(call);
         REQUIRE(cli.listLength(PREWARM_QUEUE) == 1);
         REQUIRE(cli.listLength(queueName) == nCalls + 1);
+
+        checkBindMessageDispatched(cli, call, 3);
     }
 }
