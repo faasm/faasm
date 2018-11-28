@@ -92,7 +92,11 @@ namespace tests {
 
     TEST_CASE("Test initialising twice fails", "[wasm]") {
         wasm::WasmModule module;
+        REQUIRE(!module.isInitialised());
+
         module.initialise();
+        REQUIRE(module.isInitialised());
+
         REQUIRE_THROWS(module.initialise());
     }
 

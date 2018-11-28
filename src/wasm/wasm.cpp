@@ -56,6 +56,10 @@ namespace wasm {
         return _isBound;
     }
 
+    bool WasmModule::isInitialised() {
+        return _isInitialised;
+    }
+
     void WasmModule::initialise() {
         if(compartment != nullptr) {
             throw std::runtime_error("Cannot initialise already initialised module");
@@ -73,10 +77,12 @@ namespace wasm {
         // Prepare name resolution
         resolver = new RootResolver(compartment);
         prof::logEndTimer("pre-init", t);
+
+        _isInitialised = true;
     }
 
     void WasmModule::bindToFunction(const message::Message &msg) {
-        if (compartment == nullptr) {
+        if (!_isInitialised) {
             throw std::runtime_error("Must initialise module before binding");
         }
         else if(_isBound) {

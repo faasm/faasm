@@ -238,10 +238,6 @@ namespace infra {
             // Ask a prewarm worker to bind to the function
             message::Message bindMsg = infra::buildBindMessage(msg, funcSetSize + 1);
             this->enqueueMessage(PREWARM_QUEUE, bindMsg);
-
-            // Ask a cold worker to restore the prewarm pool
-            message::Message prewarmMsg = infra::buildPrewarmMessage(msg);
-            this->enqueueMessage(COLD_QUEUE, bindMsg);
         }
     }
 

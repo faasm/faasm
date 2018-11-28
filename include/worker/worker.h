@@ -78,6 +78,8 @@ namespace worker {
 
         void runSingle();
 
+        const bool isInitialised();
+        
         const bool isBound();
 
         std::string id;
@@ -86,6 +88,7 @@ namespace worker {
 
         wasm::WasmModule *module;
     private:
+        bool _isInitialised;
         bool _isBound;
         int isolationIdx;
         int workerIdx;

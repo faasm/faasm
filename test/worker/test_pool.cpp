@@ -71,6 +71,31 @@ namespace tests {
         REQUIRE(redis.sismember(infra::PREWARM_SET, w.id) == !isBound);
     }
 
+    TEST_CASE("Test initialising", "[worker]") {
+        setUp();
+
+        WorkerThread w(1);
+        REQUIRE(!w.isInitialised());
+        REQUIRE(!w.module->isInitialised());
+
+        w.initialise();
+
+        REQUIRE(w.isInitialised());
+        REQUIRE(w.module->isInitialised());
+    }
+
+    TEST_CASE("Test binding to function raises if not initialised", "[worker]") {
+        setUp();
+
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("chain");
+        call.set_target(1);
+
+        WorkerThread w(1);
+        REQUIRE_THROWS(w.bindToFunction(call));
+    }
+
     TEST_CASE("Test binding to function", "[worker]") {
         setUp();
 
@@ -80,6 +105,7 @@ namespace tests {
         call.set_target(1);
 
         WorkerThread w(1);
+        w.initialise();
         checkBound(w, call, false);
         w.bindToFunction(call);
         checkBound(w, call, true);
@@ -112,7 +138,7 @@ namespace tests {
         tearDown();
     }
 
-    TEST_CASE("Test bind message causes worker to listen for invocations", "[worker]") {
+    TEST_CASE("Test bind message causes worker to bind", "[worker]") {
         setUp();
 
         // Check prewarm empty to begin with
@@ -123,13 +149,14 @@ namespace tests {
         REQUIRE(!w.isBound());
         REQUIRE(redis.scard(infra::PREWARM_SET) == 1);
 
-        // Request a prewarm worker
+        // Request a worker to bind
         message::Message call;
         call.set_user("demo");
         call.set_function("echo");
-        redis.requestPrewarm(call, 1);
+        message::Message bindMessage = infra::buildBindMessage(call, 1);
+        redis.enqueueMessage(infra::PREWARM_QUEUE, bindMessage);
 
-        // Check message on prewarm queue
+        // Check message is on the prewarm queue
         REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 1);
 
         // Process next message
@@ -139,8 +166,12 @@ namespace tests {
         REQUIRE(w.isBound());
         REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 0);
         REQUIRE(redis.scard(infra::PREWARM_SET) == 0);
-    }
 
+        // Check that the corresponding pre-warm message has been added to the cold queue
+        REQUIRE(redis.listLength(infra::COLD_QUEUE) == 1);
+        const message::Message actual = redis.nextMessage(infra::COLD_QUEUE);
+        REQUIRE(actual.type() == message::Message_MessageType_PREWARM);
+    }
 
     TEST_CASE("Test function chaining", "[worker]") {
         setUp();

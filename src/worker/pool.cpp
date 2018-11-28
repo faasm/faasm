@@ -29,10 +29,11 @@ namespace worker {
 
     WorkerThread::WorkerThread(int workerIdx) : workerIdx(workerIdx) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Cold starting worker {}", workerIdx);
 
         const std::string hostname = util::getEnvVar("HOSTNAME", "");
         id = hostname + "_" + std::to_string(workerIdx);
+
+        logger->debug("Cold starting worker {}", id);
 
         // Get Redis connection
         redis = infra::Redis::getThreadConnection();
@@ -70,7 +71,16 @@ namespace worker {
 
     void WorkerThread::initialise() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Prewarming worker {}", workerIdx);
+
+        // Check there is still space in the pre-warm set
+        long prewarmCount = redis->scard(infra::PREWARM_SET);
+        if(prewarmCount >= infra::PREWARM_TARGET) {
+            logger->debug("Ignoring pre-warm for worker {}, already {}", id, prewarmCount);
+        }
+
+        // Add to prewarm
+        logger->debug("Prewarming worker {}", id);
+        this->updateQueue(infra::PREWARM_QUEUE, infra::PREWARM_SET);
 
         // Set up network namespace
         isolationIdx = workerIdx + 1;
@@ -86,8 +96,11 @@ namespace worker {
         module = new wasm::WasmModule();
         module->initialise();
 
-        // Add to prewarm
-        this->updateQueue(infra::PREWARM_QUEUE, infra::PREWARM_SET);
+        _isInitialised = true;
+    }
+
+    const bool WorkerThread::isInitialised() {
+        return _isInitialised;
     }
 
     const bool WorkerThread::isBound() {
@@ -120,17 +133,32 @@ namespace worker {
 
     void WorkerThread::bindToFunction(const message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->info("WorkerThread binding to {}", infra::funcToString(msg));
+
+        if(!_isInitialised) {
+            throw std::runtime_error("Cannot bind without initialising");
+        }
+
+        if(_isBound) {
+            throw std::runtime_error("Cannot bind worker thread again");
+        }
 
         // Check if the target has already been reached, in which case ignore
         const std::string newSet = infra::getFunctionSetName(msg);
         long currentCount = redis->scard(newSet);
         if (currentCount >= msg.target()) {
+            logger->info("Worker {} ignoring bind to {}, already {}", id, infra::funcToString(msg), currentCount);
             return;
         }
 
         // Bind to new function
+        logger->info("Worker {} binding to {}", id, infra::funcToString(msg));
         this->updateQueue(infra::getFunctionQueueName(msg), newSet);
+
+        // Ask a cold worker to take place in the pre-warm pool
+        message::Message prewarmMsg = infra::buildPrewarmMessage(msg);
+        redis->enqueueMessage(infra::COLD_QUEUE, prewarmMsg);
+
+        // Perform the actual wasm initialisation
         module->bindToFunction(msg);
 
         _isBound = true;
@@ -175,13 +203,11 @@ namespace worker {
         // Handle the message
         std::string errorMessage;
         if (msg.type() == message::Message_MessageType_BIND) {
+            // Binding
             this->bindToFunction(msg);
         }
         else if (msg.type() == message::Message_MessageType_PREWARM) {
-            // Remove from current set
-            redis->srem(currentSet, id);
-
-            // Become prewarm
+            // Pre-warm
             this->initialise();
         } else {
             errorMessage = this->executeCall(msg);
