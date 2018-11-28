@@ -32,7 +32,7 @@ namespace wasm {
     WasmModule::WasmModule() = default;
 
     WasmModule::~WasmModule() {
-        delete[] cleanMemory;
+        // delete[] cleanMemory;
 
         defaultMemory = nullptr;
         moduleInstance = nullptr;

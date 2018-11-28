@@ -71,29 +71,29 @@ namespace tests {
         REQUIRE(redis.sismember(infra::PREWARM_SET, w.id) == !isBound);
     }
 
-    TEST_CASE("Test initialising", "[worker]") {
+    TEST_CASE("Test worker initialises by default when few workers in system", "[worker]") {
         setUp();
+
+        WorkerThread w(1);
+        REQUIRE(w.isInitialised());
+        REQUIRE(redis.sismember(infra::PREWARM_SET, w.id));
+        REQUIRE(!redis.sismember(infra::COLD_SET, w.id));
+    }
+
+    TEST_CASE("Test worker doesn't initialise by default when enough workers in system", "[worker]") {
+        setUp();
+
+        // Set up enough fake workers to meet our prewarm target
+        int nWorkers = infra::PREWARM_TARGET;
+        for (int i = 0; i < nWorkers; i++) {
+            std::string workerName = "worker " + std::to_string(i);
+            redis.sadd(infra::PREWARM_SET, workerName);
+        }
 
         WorkerThread w(1);
         REQUIRE(!w.isInitialised());
-        REQUIRE(!w.module->isInitialised());
-
-        w.initialise();
-
-        REQUIRE(w.isInitialised());
-        REQUIRE(w.module->isInitialised());
-    }
-
-    TEST_CASE("Test binding to function raises if not initialised", "[worker]") {
-        setUp();
-
-        message::Message call;
-        call.set_user("demo");
-        call.set_function("chain");
-        call.set_target(1);
-
-        WorkerThread w(1);
-        REQUIRE_THROWS(w.bindToFunction(call));
+        REQUIRE(!redis.sismember(infra::PREWARM_SET, w.id));
+        REQUIRE(redis.sismember(infra::COLD_SET, w.id));
     }
 
     TEST_CASE("Test binding to function", "[worker]") {

@@ -51,8 +51,12 @@ namespace worker {
     }
 
     WorkerThread::~WorkerThread() {
-        delete ns;
+        // Nothing to do if not initialised
+        if(!_isInitialised) {
+            return;
+        }
 
+        delete ns;
         delete module;
     }
 

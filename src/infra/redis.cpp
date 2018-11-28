@@ -228,7 +228,7 @@ namespace infra {
         }
         else {
             double queueRatio = double(queueLength) / funcSetSize;
-            needsMoreWorkerThreads = queueRatio >= MAX_QUEUE_RATIO && funcSetSize < MAX_SET_SIZE;
+            needsMoreWorkerThreads = queueRatio > MAX_QUEUE_RATIO && funcSetSize < MAX_SET_SIZE;
         }
 
         // Send bind message to pre-warm queue to enlist help of other workers
