@@ -147,7 +147,7 @@ namespace tests {
         // Create worker and check it's in prewarm set
         WorkerThread w(2);
         REQUIRE(!w.isBound());
-        REQUIRE(redis.scard(infra::PREWARM_SET) == 1);
+        REQUIRE(redis.sismember(infra::PREWARM_SET, w.id));
 
         // Request a worker to bind
         message::Message call;
@@ -163,6 +163,7 @@ namespace tests {
         w.runSingle();
 
         // Check message has been consumed and that worker is now bound
+        std::string setName = infra::getFunctionSetName(call);
         REQUIRE(w.isBound());
         REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 0);
         REQUIRE(redis.scard(infra::PREWARM_SET) == 0);
@@ -171,6 +172,40 @@ namespace tests {
         REQUIRE(redis.listLength(infra::COLD_QUEUE) == 1);
         const message::Message actual = redis.nextMessage(infra::COLD_QUEUE);
         REQUIRE(actual.type() == message::Message_MessageType_PREWARM);
+    }
+
+    TEST_CASE("Test worker does not bind if maximum functions already bound", "[worker]") {
+        setUp();
+
+        // Create worker and check it's in prewarm set
+        WorkerThread w(2);
+        REQUIRE(!w.isBound());
+        REQUIRE(redis.sismember(infra::PREWARM_SET, w.id));
+
+        // Request to bind
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("echo");
+        std::string setName = infra::getFunctionSetName(call);
+
+        // Add target number of fake workers to set
+        int targetWorkers = 2;
+        redis.sadd(setName, "worker a");
+        redis.sadd(setName, "worker b");
+
+        // Request to bind
+        message::Message bindMessage = infra::buildBindMessage(call, targetWorkers);
+        redis.enqueueMessage(infra::PREWARM_QUEUE, bindMessage);
+
+        // Process next message
+        w.runSingle();
+
+        // Check message has been consumed but worker is not bound
+        REQUIRE(!w.isBound());
+        REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 0);
+
+        // Check that pre-warm message has not been sent
+        REQUIRE(redis.listLength(infra::COLD_QUEUE) == 0);
     }
 
     TEST_CASE("Test function chaining", "[worker]") {

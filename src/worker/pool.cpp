@@ -112,11 +112,14 @@ namespace worker {
     }
 
     void WorkerThread::finish() {
-        ns->removeCurrentThread();
-        tokenPool.releaseToken(workerIdx);
+        if(_isInitialised) {
+            ns->removeCurrentThread();
+        }
 
         // Remove from set
         redis->srem(currentSet, id);
+
+        tokenPool.releaseToken(workerIdx);
     }
 
     void WorkerThread::finishCall(message::Message &call, const std::string &errorMsg) {

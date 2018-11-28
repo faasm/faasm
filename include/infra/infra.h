@@ -17,13 +17,15 @@ namespace infra {
     // Parameters for scheduling
     // TODO - must match the underlying number of available namespaces. Good to decouple?
     const int N_THREADS_PER_WORKER = 40;
-    const int UNBOUND_TIMEOUT = 300;
-    const int BOUND_TIMEOUT = 30;
-    const int MAX_QUEUE_RATIO = 5;
-    const int MAX_SET_SIZE = 20;
+
+    const int PREWARM_TARGET = 20;
+    const int MAX_QUEUE_RATIO = 4;
+    const int MAX_SET_SIZE = 10;
+
     const int DEFAULT_TIMEOUT_SECONDS = 60;
+    const int UNBOUND_TIMEOUT = 30;
+    const int BOUND_TIMEOUT = 30;
     const int RESULT_KEY_EXPIRY_SECONDS = 30;
-    const int PREWARM_TARGET = 120;
 
     /** Function utilities */
     std::string getFunctionFile(const message::Message &msg);
