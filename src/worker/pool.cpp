@@ -8,7 +8,7 @@
 
 
 namespace worker {
-    static util::TokenPool tokenPool(infra::N_THREADS_PER_WORKER);
+    static util::TokenPool tokenPool(util::N_THREADS_PER_WORKER);
 
     void startWorkerThreadPool() {
         // Spawn worker threads until we've hit the limit (thus creating a pool that will replenish
@@ -40,8 +40,9 @@ namespace worker {
 
         // If we need more prewarm containers, set this worker to be prewarm.
         // If not, sit in cold queue
+        util::SystemConfig conf = util::getSystemConfig();
         long prewarmCount = redis->scard(infra::PREWARM_SET);
-        if(prewarmCount < infra::PREWARM_TARGET) {
+        if(prewarmCount < conf.prewarm_target) {
             this->initialise();
         }
         else {
@@ -78,7 +79,8 @@ namespace worker {
 
         // Check there is still space in the pre-warm set
         long prewarmCount = redis->scard(infra::PREWARM_SET);
-        if(prewarmCount >= infra::PREWARM_TARGET) {
+        util::SystemConfig conf = util::getSystemConfig();
+        if(prewarmCount >= conf.prewarm_target) {
             logger->debug("Ignoring pre-warm for worker {}, already {}", id, prewarmCount);
         }
 
@@ -198,10 +200,11 @@ namespace worker {
     const std::string WorkerThread::processNextMessage() {
         // Work out which timeout
         int timeout;
+        util::SystemConfig conf = util::getSystemConfig();
         if (currentQueue == infra::COLD_QUEUE || currentQueue == infra::PREWARM_QUEUE) {
-            timeout = infra::UNBOUND_TIMEOUT;
+            timeout = conf.unbound_timeout;
         } else {
-            timeout = infra::BOUND_TIMEOUT;
+            timeout = conf.bound_timeout;
         }
 
         // Wait for next message

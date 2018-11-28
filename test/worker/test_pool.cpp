@@ -84,7 +84,8 @@ namespace tests {
         setUp();
 
         // Set up enough fake workers to meet our prewarm target
-        int nWorkers = infra::PREWARM_TARGET;
+        util::SystemConfig conf = util::getSystemConfig();
+        int nWorkers = conf.prewarm_target;
         for (int i = 0; i < nWorkers; i++) {
             std::string workerName = "worker " + std::to_string(i);
             redis.sadd(infra::PREWARM_SET, workerName);

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <util/util.h>
+
 #include <chrono>
 #include <string>
 #include <spdlog/spdlog.h>
@@ -13,19 +15,6 @@ namespace infra {
     const std::string PREWARM_SET = "s_prewarm";
     const std::string COLD_QUEUE = "cold";
     const std::string COLD_SET = "s_cold";
-
-    // Parameters for scheduling
-    // TODO - must match the underlying number of available namespaces. Good to decouple?
-    const int N_THREADS_PER_WORKER = 40;
-
-    const int PREWARM_TARGET = 20;
-    const int MAX_QUEUE_RATIO = 4;
-    const int MAX_SET_SIZE = 10;
-
-    const int DEFAULT_TIMEOUT_SECONDS = 60;
-    const int UNBOUND_TIMEOUT = 240;
-    const int BOUND_TIMEOUT = 30;
-    const int RESULT_KEY_EXPIRY_SECONDS = 30;
 
     /** Function utilities */
     std::string getFunctionFile(const message::Message &msg);
@@ -84,7 +73,7 @@ namespace infra {
 
         void enqueueMessage(const std::string &queueName, const message::Message &msg);
 
-        std::vector<uint8_t> dequeue(const std::string &queueName, int timeout=DEFAULT_TIMEOUT_SECONDS);
+        std::vector<uint8_t> dequeue(const std::string &queueName, int timeout=util::DEFAULT_TIMEOUT);
 
         void flushAll();
 
@@ -94,7 +83,7 @@ namespace infra {
 
         void addMoreWorkers(message::Message &msg, const std::string &queueName);
 
-        message::Message nextMessage(const std::string &queueName, int timeout=DEFAULT_TIMEOUT_SECONDS);
+        message::Message nextMessage(const std::string &queueName, int timeout=util::DEFAULT_TIMEOUT);
 
         void setFunctionResult(message::Message &msg, bool success);
 

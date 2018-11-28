@@ -307,7 +307,8 @@ namespace tests {
         cli.sadd(setName, "worker 2");
 
         // Saturate up to the number of max queued calls
-        int nCalls = infra::MAX_QUEUE_RATIO * 2;
+        util::SystemConfig conf = util::getSystemConfig();
+        int nCalls = conf.max_queue_ratio * 2;
         for(int i =0; i < nCalls; i++) {
             cli.callFunction(call);
         }

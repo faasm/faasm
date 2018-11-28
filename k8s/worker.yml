@@ -34,6 +34,12 @@ spec:
           value: "info"
         - name: NETNS_MODE
           value: "on"
+        - name: PREWARM_TARGET
+          value: "80"
+        - name: MAX_QUEUE_RATIO
+          value: "3"
+        - name: MAX_WORKERS_PER_FUNCTION
+          value: "40"
         volumeMounts:
         - mountPath: "/usr/share/faasm"
           name: func-vol

@@ -15,6 +15,46 @@ namespace util {
 
     void unsetEnvVar(const std::string &varName);
 
+    // System configuration
+
+    // TODO - must match the underlying number of available namespaces. Good to decouple?
+    const int N_THREADS_PER_WORKER = 40;
+
+    const int DEFAULT_TIMEOUT = 60;
+    const int RESULT_KEY_EXPIRY = 30;
+
+    class SystemConfig {
+
+    public:
+        // Default values
+        int prewarm_target;
+        int max_queue_ratio;
+        int max_workers_per_function;
+
+        // Worker-related timeouts
+        int unbound_timeout;
+        int bound_timeout;
+
+        SystemConfig() {
+            printf("Initial system config:\n");
+
+            prewarm_target = this->getSystemConfParam("PREWARM_TARGET", "20");
+            max_queue_ratio = this->getSystemConfParam("MAX_QUEUE_RATIO", "4");
+            max_workers_per_function = this->getSystemConfParam("MAX_WORKERS_PER_FUNCTION", "10");
+            bound_timeout = this->getSystemConfParam("BOUND_TIMEOUT", "30");
+            unbound_timeout = this->getSystemConfParam("UNBOUND_TIMEOUT", "240");
+        }
+
+        int getSystemConfParam(const char* name, const char* defaultValue) {
+            int value = stoi(getEnvVar(name, defaultValue));
+            printf("%-25s= %-3i (%s) \n", name, value, defaultValue);
+
+            return value;
+        };
+    };
+
+    SystemConfig getSystemConfig();
+
     // Byte handling
     std::vector<uint8_t> stringToBytes(const std::string &str);
 

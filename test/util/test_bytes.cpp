@@ -5,36 +5,6 @@ using namespace util;
 
 namespace tests {
 
-    TEST_CASE("Test default environment variables", "[util]") {
-        std::string key = "JUNK_VAR";
-
-        // Sanity check for null pointer when env var not set
-        char const *val = getenv(key.c_str());
-        REQUIRE(val == nullptr);
-
-        REQUIRE(getEnvVar(key, "blah") == "blah");
-    }
-
-    TEST_CASE("Test valid environment variables", "[util]") {
-        std::string actual = getEnvVar("LANGUAGE", "blah");
-
-        std::string expectedA("en_GB:en");
-        std::string expectedB("en_GB:utf8");
-
-        bool isEqual = (actual == expectedA) || (actual == expectedB);
-        REQUIRE(isEqual);
-    }
-
-    TEST_CASE("Test empty environment variables", "[util]") {
-        util::unsetEnvVar("MY_VAR");
-
-        // Sanity check for empty string when env var set to empty
-        char *currentValue = getenv("MY_VAR");
-        REQUIRE(currentValue == nullptr);
-
-        REQUIRE(getEnvVar("MY_VAR", "alpha") == "alpha");
-    }
-    
     TEST_CASE("Test converting integers to bytes", "[util]") {
         std::string input = "abcde";
 

@@ -215,6 +215,8 @@ namespace infra {
     void Redis::addMoreWorkers(message::Message &msg, const std::string &queueName) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
+        util::SystemConfig conf = util::getSystemConfig();
+
         // Get queue length and set membership
         const std::string setName = getFunctionSetName(msg);
 
@@ -228,7 +230,7 @@ namespace infra {
         }
         else {
             double queueRatio = double(queueLength) / funcSetSize;
-            needsMoreWorkerThreads = queueRatio > MAX_QUEUE_RATIO && funcSetSize < MAX_SET_SIZE;
+            needsMoreWorkerThreads = queueRatio > conf.max_queue_ratio && funcSetSize < conf.max_workers_per_function;
         }
 
         // Send bind message to pre-warm queue to enlist help of other workers
@@ -268,7 +270,7 @@ namespace infra {
         this->enqueue(key, inputData);
 
         // Set the result key to expire
-        auto reply = (redisReply *) redisCommand(context, "EXPIRE %s %d", key.c_str(), RESULT_KEY_EXPIRY_SECONDS);
+        auto reply = (redisReply *) redisCommand(context, "EXPIRE %s %d", key.c_str(), util::RESULT_KEY_EXPIRY);
         freeReplyObject(reply);
 
         prof::logEndTimer("function-result", t);
