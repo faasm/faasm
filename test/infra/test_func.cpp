@@ -65,4 +65,38 @@ namespace tests {
 
         REQUIRE(infra::isValidFunction(validCall));
     }
+
+    TEST_CASE("Test building bind message", "[infra]") {
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("echo");
+        call.set_inputdata("blah blah");
+        call.set_resultkey("foobar");
+
+        REQUIRE(call.type() == message::Message_MessageType_CALL);
+
+        message::Message bindMessage = infra::buildBindMessage(call, 10);
+        REQUIRE(bindMessage.user() == call.user());
+        REQUIRE(bindMessage.function() == call.function());
+        REQUIRE(bindMessage.type() == message::Message_MessageType_BIND);
+        REQUIRE(bindMessage.inputdata().empty());
+        REQUIRE(bindMessage.resultkey().empty());
+    }
+
+    TEST_CASE("Test building prewarm message", "[infra]") {
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("echo");
+        call.set_inputdata("blah blah");
+        call.set_resultkey("foobar");
+
+        REQUIRE(call.type() == message::Message_MessageType_CALL);
+
+        message::Message prewarmMessage = infra::buildPrewarmMessage(call);
+        REQUIRE(prewarmMessage.user().empty());
+        REQUIRE(prewarmMessage.function().empty());
+        REQUIRE(prewarmMessage.type() == message::Message_MessageType_PREWARM);
+        REQUIRE(prewarmMessage.inputdata().empty());
+        REQUIRE(prewarmMessage.resultkey().empty());
+    }
 }

@@ -23,7 +23,7 @@ namespace infra {
     const int MAX_SET_SIZE = 10;
 
     const int DEFAULT_TIMEOUT_SECONDS = 60;
-    const int UNBOUND_TIMEOUT = 30;
+    const int UNBOUND_TIMEOUT = 240;
     const int BOUND_TIMEOUT = 30;
     const int RESULT_KEY_EXPIRY_SECONDS = 30;
 
