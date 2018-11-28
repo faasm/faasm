@@ -8,7 +8,7 @@ namespace tests {
     static infra::Redis redis;
 
     void execErrorFunction(message::Message &call) {
-        Worker w(1);
+        WorkerThread w(1);
         w.bindToFunction(call);
 
         redis.callFunction(call);

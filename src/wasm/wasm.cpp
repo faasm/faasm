@@ -32,7 +32,7 @@ namespace wasm {
     WasmModule::WasmModule() = default;
 
     WasmModule::~WasmModule() {
-        delete[] cleanMemory;
+        // delete[] cleanMemory;
 
         defaultMemory = nullptr;
         moduleInstance = nullptr;
@@ -56,6 +56,10 @@ namespace wasm {
         return _isBound;
     }
 
+    bool WasmModule::isInitialised() {
+        return _isInitialised;
+    }
+
     void WasmModule::initialise() {
         if(compartment != nullptr) {
             throw std::runtime_error("Cannot initialise already initialised module");
@@ -73,10 +77,12 @@ namespace wasm {
         // Prepare name resolution
         resolver = new RootResolver(compartment);
         prof::logEndTimer("pre-init", t);
+
+        _isInitialised = true;
     }
 
     void WasmModule::bindToFunction(const message::Message &msg) {
-        if (compartment == nullptr) {
+        if (!_isInitialised) {
             throw std::runtime_error("Must initialise module before binding");
         }
         else if(_isBound) {
@@ -194,7 +200,7 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         if (!_isBound) {
-            throw std::runtime_error("Worker must be bound before executing function");
+            throw std::runtime_error("WorkerThread must be bound before executing function");
         }
         else if(boundUser != msg.user() || boundFunction != msg.function()) {
             logger->error("Cannot execute {} on module bound to {}/{}",

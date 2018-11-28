@@ -3,16 +3,17 @@ syntax = "proto2";
 package message;
 
 message Message {
-    required string user = 2;
-    required string function = 3;
+    optional string user = 1;
+    optional string function = 2;
 
     enum MessageType {
-        BIND = 0;
-        CALL = 1;
-        KILL = 2;
+        PREWARM = 0;
+        BIND = 1;
+        CALL = 2;
+        KILL = 3;
     }
 
-    optional MessageType type = 1 [default = CALL];
+    optional MessageType type = 3 [default = CALL];
 
     optional string resultKey = 4;
     optional bool success = 5;

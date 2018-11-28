@@ -13,8 +13,6 @@ namespace infra {
     // This allows things operating within the network namespace to resolve it properly
     static std::string redisIp = "not_set";
 
-    static const int RESULT_KEY_EXPIRY_SECONDS = 30;
-
     Redis::Redis() {
         hostname = util::getEnvVar("REDIS_HOST", "localhost");
         port = util::getEnvVar("REDIS_PORT", "6379");
@@ -193,50 +191,54 @@ namespace infra {
         msg.set_resultkey(resultKey);
     }
 
-    void Redis::requestPrewarm(message::Message &originalMsg, int targetCount) {
-        message::Message bindMsg;
-        bindMsg.set_type(message::Message_MessageType_BIND);
-        bindMsg.set_user(originalMsg.user());
-        bindMsg.set_function(originalMsg.function());
-        bindMsg.set_target(targetCount);
-
-        std::vector<uint8_t> bindData = infra::messageToBytes(bindMsg);
-        this->enqueue(PREWARM_QUEUE, bindData);
+    void Redis::enqueueMessage(const std::string &queueName, const message::Message &msg) {
+        std::vector<uint8_t> msgBytes = infra::messageToBytes(msg);
+        this->enqueue(queueName, msgBytes);
     }
 
     void Redis::callFunction(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const auto &t = prof::startTimer();
 
+        // First of all, send the message to execute the function
+        const std::string queueName = getFunctionQueueName(msg);
+        logger->debug("Adding call {} to {}", infra::funcToString(msg), queueName);
+        addResultKeyToMessage(msg);
+        this->enqueueMessage(queueName, msg);
+
+        // Then add more workers if necessary
+        this->addMoreWorkers(msg, queueName);
+
+        prof::logEndTimer("call-function", t);
+    }
+
+    void Redis::addMoreWorkers(message::Message &msg, const std::string &queueName) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         // Get queue length and set membership
         const std::string setName = getFunctionSetName(msg);
-        const std::string queueName = getFunctionQueueName(msg);
+
         long queueLength = this->listLength(queueName);
-        long setSize = this->scard(setName);
+        long funcSetSize = this->scard(setName);
 
         // Check whether we need more workers
-        bool needsMoreWorkers;
-        if(setSize == 0) {
-            needsMoreWorkers = true;
+        bool needsMoreWorkerThreads;
+        if(funcSetSize == 0) {
+            needsMoreWorkerThreads = true;
         }
         else {
-            double queueRatio = double(queueLength) / setSize;
-            needsMoreWorkers = queueRatio >= MAX_QUEUE_RATIO && setSize < MAX_SET_SIZE;
+            double queueRatio = double(queueLength) / funcSetSize;
+            needsMoreWorkerThreads = queueRatio > MAX_QUEUE_RATIO && funcSetSize < MAX_SET_SIZE;
         }
 
         // Send bind message to pre-warm queue to enlist help of other workers
-        if(needsMoreWorkers) {
-            logger->debug("Requesting prewarm for {}", infra::funcToString(msg));
-            this->requestPrewarm(msg, setSize + 1);
+        if(needsMoreWorkerThreads) {
+            logger->debug("Requesting more workers for {}", infra::funcToString(msg));
+
+            // Ask a prewarm worker to bind to the function
+            message::Message bindMsg = infra::buildBindMessage(msg, funcSetSize + 1);
+            this->enqueueMessage(PREWARM_QUEUE, bindMsg);
         }
-
-        // Add the msg for the function
-        logger->debug("Adding call {} to {}", infra::funcToString(msg), queueName);
-        addResultKeyToMessage(msg);
-        std::vector<uint8_t> callData = infra::messageToBytes(msg);
-        this->enqueue(queueName, callData);
-
-        prof::logEndTimer("call-function", t);
     }
 
     message::Message Redis::nextMessage(const std::string &queueName, int timeout) {

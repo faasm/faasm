@@ -96,7 +96,10 @@ namespace wasm {
 
         Runtime::GCPointer<Runtime::Memory> defaultMemory;
 
+        bool isInitialised();
+
         bool isBound();
+
     private:
         IR::Module module;
 
@@ -109,6 +112,7 @@ namespace wasm {
 
         RootResolver *resolver = nullptr;
 
+        bool _isInitialised = false;
         bool _isBound = false;
         std::string boundUser;
         std::string boundFunction;

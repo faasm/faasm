@@ -29,7 +29,7 @@ namespace tests {
         REQUIRE(outputBytes[3] == 3);
     }
 
-    TEST_CASE("Test printinf doesn't fail", "[wasm]") {
+    TEST_CASE("Test printf doesn't fail", "[wasm]") {
         message::Message call;
         call.set_user("demo");
         call.set_function("print");
@@ -92,7 +92,11 @@ namespace tests {
 
     TEST_CASE("Test initialising twice fails", "[wasm]") {
         wasm::WasmModule module;
+        REQUIRE(!module.isInitialised());
+
         module.initialise();
+        REQUIRE(module.isInitialised());
+
         REQUIRE_THROWS(module.initialise());
     }
 

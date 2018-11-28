@@ -8,9 +8,9 @@
 
 
 namespace worker {
-    static util::TokenPool tokenPool(infra::N_THREADS);
+    static util::TokenPool tokenPool(infra::N_THREADS_PER_WORKER);
 
-    void startWorkerPool() {
+    void startWorkerThreadPool() {
         // Spawn worker threads until we've hit the limit (thus creating a pool that will replenish
         // when one releases its token)
         while (true) {
@@ -19,7 +19,7 @@ namespace worker {
 
             // Spawn thread to execute function
             std::thread funcThread([workerIdx] {
-                Worker w(workerIdx);
+                WorkerThread w(workerIdx);
                 w.run();
             });
 
@@ -27,15 +27,64 @@ namespace worker {
         }
     }
 
-    Worker::Worker(int workerIdx) : workerIdx(workerIdx) {
+    WorkerThread::WorkerThread(int workerIdx) : workerIdx(workerIdx) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         const std::string hostname = util::getEnvVar("HOSTNAME", "");
         id = hostname + "_" + std::to_string(workerIdx);
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Starting worker {}", workerIdx);
+        logger->debug("Cold starting worker {}", id);
 
-        // Get Redis connection before we isolate ourselves
+        // Get Redis connection
         redis = infra::Redis::getThreadConnection();
+
+        // If we need more prewarm containers, set this worker to be prewarm.
+        // If not, sit in cold queue
+        long prewarmCount = redis->scard(infra::PREWARM_SET);
+        if(prewarmCount < infra::PREWARM_TARGET) {
+            this->initialise();
+        }
+        else {
+            // Add to cold
+            this->updateQueue(infra::COLD_QUEUE, infra::COLD_SET);
+        }
+    }
+
+    WorkerThread::~WorkerThread() {
+        // Nothing to do if not initialised
+        if(!_isInitialised) {
+            return;
+        }
+
+        delete ns;
+        delete module;
+    }
+
+    void WorkerThread::updateQueue(const std::string &queueName, const std::string &setName) {
+        // Remove from current queue if necessary
+        if(!currentQueue.empty()) {
+            redis->srem(currentSet, id);
+        }
+
+        currentQueue = queueName;
+        currentSet = setName;
+
+        // Add to new queue
+        redis->sadd(currentSet, id);
+    }
+
+    void WorkerThread::initialise() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        // Check there is still space in the pre-warm set
+        long prewarmCount = redis->scard(infra::PREWARM_SET);
+        if(prewarmCount >= infra::PREWARM_TARGET) {
+            logger->debug("Ignoring pre-warm for worker {}, already {}", id, prewarmCount);
+        }
+
+        // Add to prewarm
+        logger->debug("Prewarming worker {}", id);
+        this->updateQueue(infra::PREWARM_QUEUE, infra::PREWARM_SET);
 
         // Set up network namespace
         isolationIdx = workerIdx + 1;
@@ -51,32 +100,29 @@ namespace worker {
         module = new wasm::WasmModule();
         module->initialise();
 
-        // TODO SCH work out whether to add to prewarm/ cold
-        // Work out which queue and set
-        currentQueue = infra::PREWARM_QUEUE;
-        currentSet = infra::PREWARM_SET;
-        redis->sadd(currentSet, id);
+        _isInitialised = true;
     }
 
-    Worker::~Worker() {
-        delete ns;
-
-        delete module;
+    const bool WorkerThread::isInitialised() {
+        return _isInitialised;
     }
 
-    const bool Worker::isBound() {
+    const bool WorkerThread::isBound() {
         return _isBound;
     }
 
-    void Worker::finish() {
-        ns->removeCurrentThread();
-        tokenPool.releaseToken(workerIdx);
+    void WorkerThread::finish() {
+        if(_isInitialised) {
+            ns->removeCurrentThread();
+        }
 
         // Remove from set
         redis->srem(currentSet, id);
+
+        tokenPool.releaseToken(workerIdx);
     }
 
-    void Worker::finishCall(message::Message &call, const std::string &errorMsg) {
+    void WorkerThread::finishCall(message::Message &call, const std::string &errorMsg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->info("Finished {}", infra::funcToString(call));
 
@@ -92,29 +138,40 @@ namespace worker {
         // module->restoreCleanMemory();
     }
 
-    void Worker::bindToFunction(const message::Message &msg) {
+    void WorkerThread::bindToFunction(const message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->info("Worker binding to {}", infra::funcToString(msg));
+
+        if(!_isInitialised) {
+            throw std::runtime_error("Cannot bind without initialising");
+        }
+
+        if(_isBound) {
+            throw std::runtime_error("Cannot bind worker thread again");
+        }
 
         // Check if the target has already been reached, in which case ignore
-        const std::string &newSet = infra::getFunctionSetName(msg);
+        const std::string newSet = infra::getFunctionSetName(msg);
         long currentCount = redis->scard(newSet);
-        if(currentCount >= msg.target()) {
+        if (currentCount >= msg.target()) {
+            logger->info("Worker {} ignoring bind to {}, already {}", id, infra::funcToString(msg), currentCount);
             return;
         }
 
-        // Remove worker from current set and add to new set
-        redis->srem(currentSet, id);
-        redis->sadd(newSet, id);
-
         // Bind to new function
-        currentQueue = infra::getFunctionQueueName(msg);
-        currentSet = newSet;
+        logger->info("Worker {} binding to {}", id, infra::funcToString(msg));
+        this->updateQueue(infra::getFunctionQueueName(msg), newSet);
+
+        // Ask a cold worker to take place in the pre-warm pool
+        message::Message prewarmMsg = infra::buildPrewarmMessage(msg);
+        redis->enqueueMessage(infra::COLD_QUEUE, prewarmMsg);
+
+        // Perform the actual wasm initialisation
         module->bindToFunction(msg);
+
         _isBound = true;
     }
 
-    void Worker::run() {
+    void WorkerThread::run() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Wait for next message
@@ -138,7 +195,7 @@ namespace worker {
         this->finish();
     }
 
-    const std::string Worker::processNextMessage() {
+    const std::string WorkerThread::processNextMessage() {
         // Work out which timeout
         int timeout;
         if (currentQueue == infra::COLD_QUEUE || currentQueue == infra::PREWARM_QUEUE) {
@@ -153,7 +210,12 @@ namespace worker {
         // Handle the message
         std::string errorMessage;
         if (msg.type() == message::Message_MessageType_BIND) {
+            // Binding
             this->bindToFunction(msg);
+        }
+        else if (msg.type() == message::Message_MessageType_PREWARM) {
+            // Pre-warm
+            this->initialise();
         } else {
             errorMessage = this->executeCall(msg);
         }
@@ -161,24 +223,24 @@ namespace worker {
         return errorMessage;
     }
 
-    void Worker::runSingle() {
+    void WorkerThread::runSingle() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         std::string errorMessage = this->processNextMessage();
 
         if (!errorMessage.empty()) {
-            logger->error("Worker failed with error: {}", errorMessage);
+            logger->error("WorkerThread failed with error: {}", errorMessage);
         }
 
         this->finish();
     }
 
-    const std::string Worker::executeCall(message::Message &call) {
+    const std::string WorkerThread::executeCall(message::Message &call) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         const std::chrono::steady_clock::time_point &t = prof::startTimer();
 
-        logger->info("Worker executing {}", infra::funcToString(call));
+        logger->info("WorkerThread executing {}", infra::funcToString(call));
 
         // Create and execute the module
         wasm::CallChain callChain(call);

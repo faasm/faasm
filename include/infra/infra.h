@@ -16,12 +16,16 @@ namespace infra {
 
     // Parameters for scheduling
     // TODO - must match the underlying number of available namespaces. Good to decouple?
-    const int N_THREADS = 40;
-    const int UNBOUND_TIMEOUT = 180;
-    const int BOUND_TIMEOUT = 30;
-    const int MAX_QUEUE_RATIO = 5;
-    const int MAX_SET_SIZE = 20;
+    const int N_THREADS_PER_WORKER = 40;
+
+    const int PREWARM_TARGET = 20;
+    const int MAX_QUEUE_RATIO = 4;
+    const int MAX_SET_SIZE = 10;
+
     const int DEFAULT_TIMEOUT_SECONDS = 60;
+    const int UNBOUND_TIMEOUT = 240;
+    const int BOUND_TIMEOUT = 30;
+    const int RESULT_KEY_EXPIRY_SECONDS = 30;
 
     /** Function utilities */
     std::string getFunctionFile(const message::Message &msg);
@@ -37,6 +41,10 @@ namespace infra {
     bool isValidFunction(const message::Message &msg);
 
     std::string funcToString(const message::Message &msg);
+
+    message::Message buildPrewarmMessage(const message::Message &original);
+
+    message::Message buildBindMessage(const message::Message &original, int target);
 
     /** Serialisation */
     std::vector<uint8_t> messageToBytes(const message::Message &msg);
@@ -74,6 +82,8 @@ namespace infra {
 
         void enqueue(const std::string &queueName, const std::vector<uint8_t> &value);
 
+        void enqueueMessage(const std::string &queueName, const message::Message &msg);
+
         std::vector<uint8_t> dequeue(const std::string &queueName, int timeout=DEFAULT_TIMEOUT_SECONDS);
 
         void flushAll();
@@ -82,7 +92,7 @@ namespace infra {
 
         void callFunction(message::Message &msg);
 
-        void requestPrewarm(message::Message &originalMsg, int targetCount);
+        void addMoreWorkers(message::Message &msg, const std::string &queueName);
 
         message::Message nextMessage(const std::string &queueName, int timeout=DEFAULT_TIMEOUT_SECONDS);
 
