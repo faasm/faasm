@@ -20,7 +20,7 @@ namespace tests {
 
     void execFunction(message::Message &call) {
         // Set up worker to listen for relevant function
-        Worker w(1);
+        WorkerThread w(1);
         w.bindToFunction(call);
 
         redis.callFunction(call);
@@ -54,7 +54,7 @@ namespace tests {
 
         REQUIRE(redis.scard(infra::PREWARM_SET) == 0);
 
-        Worker w(2);
+        WorkerThread w(2);
         REQUIRE(!w.isBound());
 
         REQUIRE(redis.scard(infra::PREWARM_SET) == 1);
@@ -62,7 +62,7 @@ namespace tests {
         REQUIRE(actual == w.id);
     }
 
-    void checkBound(Worker &w, message::Message &msg, bool isBound) {
+    void checkBound(WorkerThread &w, message::Message &msg, bool isBound) {
         std::string setName = infra::getFunctionSetName(msg);
 
         REQUIRE(w.isBound() == isBound);
@@ -79,13 +79,13 @@ namespace tests {
         call.set_function("chain");
         call.set_target(1);
 
-        Worker w(1);
+        WorkerThread w(1);
         checkBound(w, call, false);
         w.bindToFunction(call);
         checkBound(w, call, true);
 
         // Check that binding another worker does nothing as the target has already been reached
-        Worker w2(2);
+        WorkerThread w2(2);
         checkBound(w2, call, false);
         w2.bindToFunction(call);
 
@@ -119,7 +119,7 @@ namespace tests {
         REQUIRE(redis.scard(infra::PREWARM_SET) == 0);
 
         // Create worker and check it's in prewarm set
-        Worker w(2);
+        WorkerThread w(2);
         REQUIRE(!w.isBound());
         REQUIRE(redis.scard(infra::PREWARM_SET) == 1);
 
@@ -152,7 +152,7 @@ namespace tests {
 
         // Set up a real worker to execute this function. Remove it from the
         // unassigned set and add to handle this function
-        Worker w(1);
+        WorkerThread w(1);
         w.bindToFunction(call);
 
         // Make the call

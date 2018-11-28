@@ -194,7 +194,7 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         if (!_isBound) {
-            throw std::runtime_error("Worker must be bound before executing function");
+            throw std::runtime_error("WorkerThread must be bound before executing function");
         }
         else if(boundUser != msg.user() || boundFunction != msg.function()) {
             logger->error("Cannot execute {} on module bound to {}/{}",

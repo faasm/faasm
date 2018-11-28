@@ -2,5 +2,5 @@
 
 int main() {
     util::initLogging();
-    worker::startWorkerPool();
+    worker::startWorkerThreadPool();
 }

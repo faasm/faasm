@@ -18,7 +18,9 @@ namespace worker {
     const std::string BASE_CGROUP_NAME = "faasm";
 
     /** CGroup management */
-    enum CgroupMode {cg_off, cg_on};
+    enum CgroupMode {
+        cg_off, cg_on
+    };
 
     class CGroup {
     public:
@@ -27,38 +29,55 @@ namespace worker {
         void addCurrentThread();
 
         const std::string getName();
+
         const CgroupMode getMode();
+
     private:
         std::string name;
         CgroupMode mode;
     };
 
     /** Network isolation */
-    enum NetworkIsolationMode {ns_off, ns_on};
+    enum NetworkIsolationMode {
+        ns_off, ns_on
+    };
 
     class NetworkNamespace {
     public:
         explicit NetworkNamespace(const std::string &name);
+
         void addCurrentThread();
+
         void removeCurrentThread();
 
         const std::string getName();
+
         const NetworkIsolationMode getMode();
+
     private:
         std::string name;
         NetworkIsolationMode mode;
     };
 
-    /** Worker wrapper */
-    void startWorkerPool();
+    /** WorkerThread wrapper */
+    void startWorkerThreadPool();
 
-    class Worker {
+    class WorkerThread {
     public:
-        explicit Worker(int workerIdx);
-        ~Worker();
+        explicit WorkerThread(int workerIdx);
+
+        ~WorkerThread();
+
+        void initialise();
+
+        void updateQueue(const std::string &queueName, const std::string &setName);
+
         void bindToFunction(const message::Message &msg);
+
         void run();
+
         void runSingle();
+
         const bool isBound();
 
         std::string id;
@@ -75,9 +94,11 @@ namespace worker {
         infra::Redis *redis;
 
         const std::string processNextMessage();
+
         const std::string executeCall(message::Message &msg);
 
         void finish();
+
         void finishCall(message::Message &msg, const std::string &errorMsg);
     };
 }
