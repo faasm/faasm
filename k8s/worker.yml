@@ -37,7 +37,7 @@ spec:
         - name: PREWARM_TARGET
           value: "80"
         - name: MAX_QUEUE_RATIO
-          value: "5"
+          value: "7"
         - name: MAX_WORKERS_PER_FUNCTION
           value: "40"
         volumeMounts:
