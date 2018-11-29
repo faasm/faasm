@@ -5,7 +5,33 @@
 using namespace infra;
 
 namespace tests {
-    TEST_CASE("Test calling function with no workers sends bind message", "[redis]") {
+    TEST_CASE("Test getting prewarm/ cold count", "[scheduler]") {
+        REQUIRE(Scheduler::getPrewarmCount() == 0);
+        REQUIRE(Scheduler::getColdCount() == 0);
+
+        Scheduler::workerInitialisedPrewarm();
+        Scheduler::workerInitialisedPrewarm();
+
+        REQUIRE(Scheduler::getPrewarmCount() == 2);
+        REQUIRE(Scheduler::getColdCount() == 0);
+
+        Scheduler::workerInitialisedCold();
+        Scheduler::workerInitialisedCold();
+        Scheduler::workerInitialisedCold();
+
+        REQUIRE(Scheduler::getPrewarmCount() == 2);
+        REQUIRE(Scheduler::getColdCount() == 3);
+    }
+
+    TEST_CASE("Test getting timeout", "[scheduler]") {
+        util::SystemConfig conf = util::getSystemConfig();
+
+        REQUIRE(Scheduler::getWorkerTimeout("blah") == conf.bound_timeout);
+        REQUIRE(Scheduler::getWorkerTimeout(PREWARM_QUEUE) == conf.unbound_timeout);
+        REQUIRE(Scheduler::getWorkerTimeout(COLD_QUEUE) == conf.unbound_timeout);
+    }
+
+    TEST_CASE("Test calling function with no workers sends bind message", "[scheduler]") {
         Redis cli;
         cli.flushAll();
 
@@ -18,7 +44,7 @@ namespace tests {
         REQUIRE(cli.listLength(PREWARM_QUEUE) == 1);
     }
 
-    TEST_CASE("Test calling function with existing workers does not send bind message", "[redis]") {
+    TEST_CASE("Test calling function with existing workers does not send bind message", "[scheduler]") {
         Redis cli;
         cli.flushAll();
 
@@ -46,7 +72,7 @@ namespace tests {
         REQUIRE(cli.listLength(queueName) == 1);
     }
 
-    TEST_CASE("Test calling function which breaches queue ratio sends bind message", "[redis]") {
+    TEST_CASE("Test calling function which breaches queue ratio sends bind message", "[scheduler]") {
         Redis cli;
         cli.flushAll();
 
