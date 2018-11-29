@@ -11,7 +11,7 @@ namespace infra {
 
     Scheduler::Scheduler() = default;
 
-    long Scheduler::getPrewarmCount(){
+    long Scheduler::getPrewarmCount() {
         Redis *redis = Redis::getThreadConnection();
         return redis->getCounter(infra::PREWARM_COUNTER);
     }
@@ -76,7 +76,7 @@ namespace infra {
 
         // Get queue details
         Redis *redis = Redis::getThreadConnection();
-        const std::string &queueName = Scheduler::getFunctionQueueName(msg);
+        const std::string queueName = Scheduler::getFunctionQueueName(msg);
         const std::string counter = Scheduler::getFunctionCounterName(msg);
         long queueLength = redis->listLength(queueName);
         long workerCount = redis->getCounter(counter);
@@ -85,17 +85,24 @@ namespace infra {
         double queueRatio = 0;
         bool needsMoreWorkerThreads;
         if (workerCount == 0) {
-            logger->debug("Requesting first worker for {}", queueRatio);
+            logger->debug("SCALE-UP first worker for {}", queueName);
             needsMoreWorkerThreads = true;
         } else {
             queueRatio = double(queueLength) / workerCount;
             needsMoreWorkerThreads = queueRatio > conf.max_queue_ratio && workerCount < conf.max_workers_per_function;
 
             if (needsMoreWorkerThreads) {
-                logger->debug("Requesting more workers for {} (queue ratio {})", infra::funcToString(msg), queueRatio);
+                logger->debug(
+                        "SCALE-UP {} - qr = {}/{} = {}, max = {}",
+                        infra::funcToString(msg),
+                        queueLength, workerCount, queueRatio, conf.max_queue_ratio
+                );
             } else {
-                logger->debug("Not requesting more workers for {} (queue ratio {})", infra::funcToString(msg),
-                              queueRatio);
+                logger->debug(
+                        "MAINTAIN {} - qr = {}/{} = {}, max = {}",
+                        infra::funcToString(msg),
+                        queueLength, workerCount, queueRatio, conf.max_queue_ratio
+                );
             }
         }
 
