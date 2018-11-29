@@ -97,6 +97,8 @@ namespace infra {
 
         static long getColdCount();
 
+        static long getFunctionCount(const message::Message &msg);
+
         static int getWorkerTimeout(const std::string &currentQueue);
 
         static std::string workerInitialisedCold();

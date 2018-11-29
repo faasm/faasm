@@ -21,6 +21,11 @@ namespace infra {
         return redis->getCounter(infra::COLD_COUNTER);
     }
 
+    long Scheduler::getFunctionCount(const message::Message &msg) {
+        Redis *redis = Redis::getThreadConnection();
+        return redis->getCounter(Scheduler::getFunctionCounterName(msg));
+    }
+
     void addResultKeyToMessage(message::Message &msg) {
         // Generate a random result key
         int randomNumber = util::randomInteger();
@@ -72,7 +77,7 @@ namespace infra {
         // Get queue details
         Redis *redis = Redis::getThreadConnection();
         const std::string &queueName = Scheduler::getFunctionQueueName(msg);
-        const std::string counter = getFunctionCounterName(msg);
+        const std::string counter = Scheduler::getFunctionCounterName(msg);
         long queueLength = redis->listLength(queueName);
         long workerCount = redis->getCounter(counter);
 
@@ -102,9 +107,12 @@ namespace infra {
 
     void Scheduler::sendBindMessage(const message::Message &msg) {
         // Increment counter for this function
-        const std::string counter = getFunctionCounterName(msg);
+        const std::string counter = Scheduler::getFunctionCounterName(msg);
         Redis *redis = Redis::getThreadConnection();
         redis->incr(counter);
+
+        // Decrease prewarm counter
+        redis->decr(infra::PREWARM_COUNTER);
 
         // Send the bind message
         message::Message bindMsg;
@@ -113,13 +121,18 @@ namespace infra {
         bindMsg.set_function(msg.function());
 
         redis->enqueueMessage(PREWARM_QUEUE, bindMsg);
+
+        // Send prewarm message to cold queue to replenish prewarm pool
+        message::Message prewarmMsg;
+        prewarmMsg.set_type(message::Message_MessageType_PREWARM);
+        redis->enqueueMessage(infra::COLD_QUEUE, prewarmMsg);
     }
 
     std::string Scheduler::workerInitialisedCold() {
         Redis *redis = Redis::getThreadConnection();
         redis->incr(infra::COLD_COUNTER);
 
-        return infra::COLD_COUNTER;
+        return infra::COLD_QUEUE;
     }
 
     std::string Scheduler::workerInitialisedPrewarm() {
@@ -138,17 +151,7 @@ namespace infra {
     }
 
     std::string Scheduler::workerPrewarmToBound(const message::Message &msg) {
-        Redis *redis = Redis::getThreadConnection();
-
-        // Function counter will have already been incremented when bind message was sent
-
-        // Decrease prewarm counter
-        redis->decr(infra::PREWARM_COUNTER);
-
-        // Send prewarm message to cold queue to replenish prewarm pool
-        message::Message prewarmMsg;
-        prewarmMsg.set_type(message::Message_MessageType_PREWARM);
-        redis->enqueueMessage(infra::COLD_QUEUE, prewarmMsg);
+        // Counters have already been updated and messages sent
 
         std::string queueName = Scheduler::getFunctionQueueName(msg);
         return queueName;
