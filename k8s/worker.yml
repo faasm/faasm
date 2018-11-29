@@ -39,7 +39,7 @@ spec:
         - name: MAX_QUEUE_RATIO
           value: "7"
         - name: MAX_WORKERS_PER_FUNCTION
-          value: "40"
+          value: "10"
         volumeMounts:
         - mountPath: "/usr/share/faasm"
           name: func-vol
