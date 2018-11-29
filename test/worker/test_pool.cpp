@@ -97,15 +97,9 @@ namespace tests {
         WorkerThread w(1);
         w.initialise();
         checkBound(w, call, false);
+
         w.bindToFunction(call);
         checkBound(w, call, true);
-
-        // Check that binding another worker does nothing as the target has already been reached
-        WorkerThread w2(2);
-        checkBound(w2, call, false);
-        w2.bindToFunction(call);
-
-        checkBound(w2, call, false);
     }
 
     TEST_CASE("Test full execution of WASM module", "[worker]") {
@@ -193,6 +187,7 @@ namespace tests {
         message::Message chainC = checkChainCall("demo", "dummy", {2, 3, 4});
 
         // Check bind messages also sent
+        checkBindMessage(call);
         checkBindMessage(chainA);
         checkBindMessage(chainB);
         checkBindMessage(chainC);

@@ -5,13 +5,6 @@
 using namespace infra;
 
 namespace tests {
-    void checkBindMessageDispatched(Redis &cli, const message::Message &expected) {
-        const message::Message actual = cli.nextMessage(infra::PREWARM_QUEUE);
-        REQUIRE(actual.user() == expected.user());
-        REQUIRE(actual.function() == expected.function());
-        REQUIRE(actual.type() == message::Message_MessageType_BIND);
-    }
-
     TEST_CASE("Test calling function with no workers sends bind message", "[redis]") {
         Redis cli;
         cli.flushAll();
@@ -22,7 +15,7 @@ namespace tests {
 
         Scheduler::callFunction(call);
 
-        checkBindMessageDispatched(cli, call);
+        REQUIRE(cli.listLength(PREWARM_QUEUE) == 1);
     }
 
     TEST_CASE("Test calling function with existing workers does not send bind message", "[redis]") {
@@ -35,18 +28,21 @@ namespace tests {
 
         std::string queueName = Scheduler::getFunctionQueueName(call);
 
-        // Fake 2 workers initialising and binding
+        // Fake 2 workers initialising
         Scheduler::workerInitialisedPrewarm();
         Scheduler::workerInitialisedPrewarm();
 
-        Scheduler::workerPrewarmToBound(call);
-        Scheduler::workerPrewarmToBound(call);
+        // Fake asking two workers to bind
+        Scheduler::sendBindMessage(call);
+        Scheduler::sendBindMessage(call);
+        REQUIRE(cli.listLength(PREWARM_QUEUE) == 2);
+        REQUIRE(cli.listLength(queueName) == 0);
 
         // Call the function
         Scheduler::callFunction(call);
 
-        // Check function call has been added, but no bind messages
-        REQUIRE(cli.listLength(PREWARM_QUEUE) == 0);
+        // Check function call has been added, but no new bind messages
+        REQUIRE(cli.listLength(PREWARM_QUEUE) == 2);
         REQUIRE(cli.listLength(queueName) == 1);
     }
 
@@ -60,12 +56,14 @@ namespace tests {
 
         std::string queueName = Scheduler::getFunctionQueueName(call);
 
-        // Fake 2 workers initialising and binding
+        // Fake 2 workers initialising
         Scheduler::workerInitialisedPrewarm();
         Scheduler::workerInitialisedPrewarm();
 
-        Scheduler::workerPrewarmToBound(call);
-        Scheduler::workerPrewarmToBound(call);
+        // Fake requesting 2 binds
+        Scheduler::sendBindMessage(call);
+        Scheduler::sendBindMessage(call);
+        REQUIRE(cli.listLength(PREWARM_QUEUE) == 2);
 
         // Saturate up to the number of max queued calls
         util::SystemConfig conf = util::getSystemConfig();
@@ -74,17 +72,15 @@ namespace tests {
             Scheduler::callFunction(call);
         }
 
-        // Check no bind messages
-        REQUIRE(cli.listLength(PREWARM_QUEUE) == 0);
+        // Check no new bind messages
+        REQUIRE(cli.listLength(PREWARM_QUEUE) == 2);
 
         // Check all calls have been added to queue
         REQUIRE(cli.listLength(queueName) == nCalls);
 
         // Dispatch another and check that a bind message is sent
         Scheduler::callFunction(call);
-        REQUIRE(cli.listLength(PREWARM_QUEUE) == 1);
+        REQUIRE(cli.listLength(PREWARM_QUEUE) == 3);
         REQUIRE(cli.listLength(queueName) == nCalls + 1);
-
-        checkBindMessageDispatched(cli, call);
     }
 }
