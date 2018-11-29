@@ -54,46 +54,26 @@ namespace infra {
         return replyBytes;
     }
 
-    bool Redis::sismember(const std::string &key, const std::string &value) {
-        auto reply = (redisReply *) redisCommand(context, "SISMEMBER %s %s", key.c_str(), value.c_str());
+    long Redis::getCounter(const std::string &key) {
+        auto reply = (redisReply *) redisCommand(context, "GET %s", key.c_str());
 
-        bool isMember = reply->integer > 0;
-
-        freeReplyObject(reply);
-
-        return isMember;
-    }
-
-    long Redis::scard(const std::string &key) {
-        auto reply = (redisReply *) redisCommand(context, "SCARD %s", key.c_str());
-
-        long count = reply->integer;
-        freeReplyObject(reply);
-
-        return count;
-    }
-
-    void Redis::sadd(const std::string &key, const std::string &value) {
-        auto reply = (redisReply *) redisCommand(context, "SADD %s %s", key.c_str(), value.c_str());
-        freeReplyObject(reply);
-    }
-
-    void Redis::srem(const std::string &key, const std::string &value) {
-        auto reply = (redisReply *) redisCommand(context, "SREM %s %s", key.c_str(), value.c_str());
-        freeReplyObject(reply);
-    }
-
-    std::string Redis::spop(const std::string &key) {
-        auto reply = (redisReply *) redisCommand(context, "SPOP %s", key.c_str());
-
-        std::string result;
-        if (reply->type == REDIS_REPLY_NIL) {
-            result = "";
-        }
-        else {
-            result = reply-> str;
+        if (reply->len == 0) {
+            return 0;
         }
 
+        return std::stol(reply->str);
+    }
+
+    long Redis::incr(const std::string &key) {
+        auto reply = (redisReply *) redisCommand(context, "INCR %s", key.c_str());
+        long result = reply->integer;
+        freeReplyObject(reply);
+        return result;
+    }
+
+    long Redis::decr(const std::string &key) {
+        auto reply = (redisReply *) redisCommand(context, "DECR %s", key.c_str());
+        long result = reply->integer;
         freeReplyObject(reply);
         return result;
     }
@@ -116,7 +96,8 @@ namespace infra {
     }
 
     void Redis::setRange(const std::string &key, long offset, const std::vector<uint8_t> &value) {
-        auto reply = (redisReply *) redisCommand(context, "SETRANGE %s %li %b", key.c_str(), offset, value.data(), value.size());
+        auto reply = (redisReply *) redisCommand(context, "SETRANGE %s %li %b", key.c_str(), offset, value.data(),
+                                                 value.size());
         freeReplyObject(reply);
     }
 
@@ -128,7 +109,7 @@ namespace infra {
 
         return replyBytes;
     }
-    
+
     void Redis::enqueue(const std::string &queueName, const std::vector<uint8_t> &value) {
         // NOTE: Here we must be careful with the input and specify bytes rather than a string
         // otherwise an encoded false boolean can be treated as a string terminator
@@ -177,8 +158,8 @@ namespace infra {
         return funcQueueName;
     }
 
-    std::string getFunctionSetName(const message::Message &msg) {
-        std::string funcSetName = SET_PREFIX + infra::funcToString(msg);
+    std::string getFunctionCounterName(const message::Message &msg) {
+        std::string funcSetName = COUNTER_PREFIX + infra::funcToString(msg);
 
         return funcSetName;
     }
@@ -218,27 +199,33 @@ namespace infra {
         util::SystemConfig conf = util::getSystemConfig();
 
         // Get queue length and set membership
-        const std::string setName = getFunctionSetName(msg);
+        const std::string counter = getFunctionCounterName(msg);
 
         long queueLength = this->listLength(queueName);
-        long funcSetSize = this->scard(setName);
+        long workerCount = this->getCounter(counter);
 
         // Check whether we need more workers
+        double queueRatio = 0;
         bool needsMoreWorkerThreads;
-        if(funcSetSize == 0) {
+        if (workerCount == 0) {
+            logger->debug("Requesting first worker for {}", queueRatio);
             needsMoreWorkerThreads = true;
-        }
-        else {
-            double queueRatio = double(queueLength) / funcSetSize;
-            needsMoreWorkerThreads = queueRatio > conf.max_queue_ratio && funcSetSize < conf.max_workers_per_function;
+        } else {
+            queueRatio = double(queueLength) / workerCount;
+            needsMoreWorkerThreads = queueRatio > conf.max_queue_ratio && workerCount < conf.max_workers_per_function;
+
+            if (needsMoreWorkerThreads) {
+                logger->debug("Requesting more workers for {} (queue ratio {})", infra::funcToString(msg), queueRatio);
+            } else {
+                logger->debug("Not requesting more workers for {} (queue ratio {})", infra::funcToString(msg),
+                              queueRatio);
+            }
         }
 
         // Send bind message to pre-warm queue to enlist help of other workers
-        if(needsMoreWorkerThreads) {
-            logger->debug("Requesting more workers for {}", infra::funcToString(msg));
-
-            // Ask a prewarm worker to bind to the function
-            message::Message bindMsg = infra::buildBindMessage(msg, funcSetSize + 1);
+        if (needsMoreWorkerThreads) {
+            this->incr(counter);
+            message::Message bindMsg = infra::buildBindMessage(msg);
             this->enqueueMessage(PREWARM_QUEUE, bindMsg);
         }
     }

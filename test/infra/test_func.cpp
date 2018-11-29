@@ -75,7 +75,7 @@ namespace tests {
 
         REQUIRE(call.type() == message::Message_MessageType_CALL);
 
-        message::Message bindMessage = infra::buildBindMessage(call, 10);
+        message::Message bindMessage = infra::buildBindMessage(call);
         REQUIRE(bindMessage.user() == call.user());
         REQUIRE(bindMessage.function() == call.function());
         REQUIRE(bindMessage.type() == message::Message_MessageType_BIND);

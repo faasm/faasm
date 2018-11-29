@@ -82,12 +82,11 @@ namespace infra {
         return prewarmMsg;
     }
 
-    message::Message buildBindMessage(const message::Message &original, int target) {
+    message::Message buildBindMessage(const message::Message &original) {
         message::Message bindMsg;
         bindMsg.set_type(message::Message_MessageType_BIND);
         bindMsg.set_user(original.user());
         bindMsg.set_function(original.function());
-        bindMsg.set_target(target);
 
         return bindMsg;
     }

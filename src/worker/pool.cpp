@@ -38,16 +38,22 @@ namespace worker {
         // Get Redis connection
         redis = infra::Redis::getThreadConnection();
 
-        // If we need more prewarm containers, set this worker to be prewarm.
-        // If not, sit in cold queue
+        // If we need more prewarm containers, set this worker to be prewarm. If not, sit in cold queue
         util::SystemConfig conf = util::getSystemConfig();
-        long prewarmCount = redis->scard(infra::PREWARM_SET);
+        long prewarmCount = redis->getCounter(infra::PREWARM_COUNTER);
         if(prewarmCount < conf.prewarm_target) {
+            // Add to prewarm
+            redis->incr(infra::PREWARM_COUNTER);
+            currentCounter = infra::PREWARM_COUNTER;
+            currentQueue = infra::PREWARM_QUEUE;
+
             this->initialise();
         }
         else {
             // Add to cold
-            this->updateQueue(infra::COLD_QUEUE, infra::COLD_SET);
+            redis->incr(infra::COLD_COUNTER);
+            currentCounter = infra::COLD_COUNTER;
+            currentQueue = infra::COLD_QUEUE;
         }
     }
 
@@ -61,32 +67,11 @@ namespace worker {
         delete module;
     }
 
-    void WorkerThread::updateQueue(const std::string &queueName, const std::string &setName) {
-        // Remove from current queue if necessary
-        if(!currentQueue.empty()) {
-            redis->srem(currentSet, id);
-        }
-
-        currentQueue = queueName;
-        currentSet = setName;
-
-        // Add to new queue
-        redis->sadd(currentSet, id);
-    }
-
     void WorkerThread::initialise() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Check there is still space in the pre-warm set
-        long prewarmCount = redis->scard(infra::PREWARM_SET);
-        util::SystemConfig conf = util::getSystemConfig();
-        if(prewarmCount >= conf.prewarm_target) {
-            logger->debug("Ignoring pre-warm for worker {}, already {}", id, prewarmCount);
-        }
-
         // Add to prewarm
         logger->debug("Prewarming worker {}", id);
-        this->updateQueue(infra::PREWARM_QUEUE, infra::PREWARM_SET);
 
         // Set up network namespace
         isolationIdx = workerIdx + 1;
@@ -118,9 +103,10 @@ namespace worker {
             ns->removeCurrentThread();
         }
 
-        // Remove from set
-        redis->srem(currentSet, id);
+        // Decrement counter
+        redis->decr(currentCounter);
 
+        // Release token
         tokenPool.releaseToken(workerIdx);
     }
 
@@ -141,8 +127,6 @@ namespace worker {
     }
 
     void WorkerThread::bindToFunction(const message::Message &msg) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
         if(!_isInitialised) {
             throw std::runtime_error("Cannot bind without initialising");
         }
@@ -151,19 +135,7 @@ namespace worker {
             throw std::runtime_error("Cannot bind worker thread again");
         }
 
-        // Check if the target has already been reached, in which case ignore
-        const std::string newSet = infra::getFunctionSetName(msg);
-        long currentCount = redis->scard(newSet);
-        if (currentCount >= msg.target()) {
-            logger->info("Worker {} ignoring bind to {}, already {}", id, infra::funcToString(msg), currentCount);
-            return;
-        }
-
-        // Bind to new function
-        logger->info("Worker {} binding to {}", id, infra::funcToString(msg));
-        this->updateQueue(infra::getFunctionQueueName(msg), newSet);
-
-        // Ask a cold worker to take place in the pre-warm pool
+        // Ask a cold worker to fill gap in pre-warm pool
         message::Message prewarmMsg = infra::buildPrewarmMessage(msg);
         redis->enqueueMessage(infra::COLD_QUEUE, prewarmMsg);
 
@@ -198,6 +170,8 @@ namespace worker {
     }
 
     const std::string WorkerThread::processNextMessage() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         // Work out which timeout
         int timeout;
         util::SystemConfig conf = util::getSystemConfig();
@@ -213,11 +187,23 @@ namespace worker {
         // Handle the message
         std::string errorMessage;
         if (msg.type() == message::Message_MessageType_BIND) {
-            // Binding
+            // Bind to new function (counters will have already been updated)
+            logger->info("Worker {} binding to {}", id, infra::funcToString(msg));
+            currentQueue = infra::getFunctionQueueName(msg);
+            currentCounter = infra::getFunctionCounterName(msg);
+
             this->bindToFunction(msg);
         }
         else if (msg.type() == message::Message_MessageType_PREWARM) {
-            // Pre-warm
+            // Prewarm
+            logger->info("Worker {} prewarming", id);
+            currentQueue = infra::PREWARM_QUEUE;
+            currentCounter = infra::PREWARM_COUNTER;
+
+            // Update counters
+            redis->decr(infra::COLD_COUNTER);
+            redis->incr(infra::PREWARM_COUNTER);
+
             this->initialise();
         } else {
             errorMessage = this->executeCall(msg);

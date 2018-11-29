@@ -70,8 +70,6 @@ namespace worker {
 
         void initialise();
 
-        void updateQueue(const std::string &queueName, const std::string &setName);
-
         void bindToFunction(const message::Message &msg);
 
         void run();
@@ -83,8 +81,8 @@ namespace worker {
         const bool isBound();
 
         std::string id;
-        std::string currentSet;
         std::string currentQueue;
+        std::string currentCounter;
 
         wasm::WasmModule *module;
     private:

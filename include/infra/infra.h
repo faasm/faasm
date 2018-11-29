@@ -10,11 +10,11 @@
 #include <hiredis/hiredis.h>
 
 namespace infra {
-    const std::string SET_PREFIX = "s_";
+    const std::string COUNTER_PREFIX = "n_";
     const std::string PREWARM_QUEUE = "prewarm";
-    const std::string PREWARM_SET = "s_prewarm";
+    const std::string PREWARM_COUNTER = "n_prewarm";
     const std::string COLD_QUEUE = "cold";
-    const std::string COLD_SET = "s_cold";
+    const std::string COLD_COUNTER = "n_cold";
 
     /** Function utilities */
     std::string getFunctionFile(const message::Message &msg);
@@ -25,7 +25,7 @@ namespace infra {
 
     std::string getFunctionQueueName(const message::Message &msg);
 
-    std::string getFunctionSetName(const message::Message &msg);
+    std::string getFunctionCounterName(const message::Message &msg);
 
     bool isValidFunction(const message::Message &msg);
 
@@ -33,7 +33,7 @@ namespace infra {
 
     message::Message buildPrewarmMessage(const message::Message &original);
 
-    message::Message buildBindMessage(const message::Message &original, int target);
+    message::Message buildBindMessage(const message::Message &original);
 
     /** Serialisation */
     std::vector<uint8_t> messageToBytes(const message::Message &msg);
@@ -55,15 +55,11 @@ namespace infra {
 
         void del(const std::string &key);
 
-        void sadd(const std::string &key, const std::string &value);
+        long getCounter(const std::string &key);
 
-        void srem(const std::string &key, const std::string &value);
+        long incr(const std::string &key);
 
-        bool sismember(const std::string &key, const std::string &value);
-
-        long scard(const std::string &key);
-
-        std::string spop(const std::string &key);
+        long decr(const std::string &key);
 
         void setRange(const std::string &key, long offset, const std::vector<uint8_t> &value);
 
