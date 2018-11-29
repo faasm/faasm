@@ -11,7 +11,7 @@ namespace tests {
         WorkerThread w(1);
         w.bindToFunction(call);
 
-        redis.callFunction(call);
+        infra::Scheduler::callFunction(call);
 
         w.runSingle();
     }

@@ -23,15 +23,14 @@ namespace tests {
         WorkerThread w(1);
         w.bindToFunction(call);
 
-        redis.callFunction(call);
+        infra::Scheduler::callFunction(call);
         w.runSingle();
     }
 
-    void checkBindMessage(const message::Message &expected, int expectedTarget) {
+    void checkBindMessage(const message::Message &expected) {
         const message::Message actual = redis.nextMessage(infra::PREWARM_QUEUE);
         REQUIRE(actual.user() == expected.user());
         REQUIRE(actual.function() == expected.function());
-        REQUIRE(actual.target() == expectedTarget);
     }
 
     message::Message checkChainCall(const std::string &user, const std::string &func, const std::string &inputData) {
@@ -40,7 +39,7 @@ namespace tests {
         expected.set_function(func);
         expected.set_inputdata(inputData);
 
-        message::Message actual = redis.nextMessage(infra::getFunctionQueueName(expected));
+        message::Message actual = redis.nextMessage(infra::Scheduler::getFunctionQueueName(expected));
 
         REQUIRE(actual.user() == expected.user());
         REQUIRE(actual.function() == expected.function());
@@ -49,52 +48,43 @@ namespace tests {
         return expected;
     }
 
-    TEST_CASE("Test worker initially in pre-warm set", "[worker]") {
+    TEST_CASE("Test worker initially pre-warmed", "[worker]") {
         setUp();
 
-        REQUIRE(redis.scard(infra::PREWARM_SET) == 0);
+        REQUIRE(infra::Scheduler::getPrewarmCount() == 0);
+        REQUIRE(infra::Scheduler::getColdCount() == 0);
 
         WorkerThread w(2);
         REQUIRE(!w.isBound());
+        REQUIRE(w.isInitialised());
 
-        REQUIRE(redis.scard(infra::PREWARM_SET) == 1);
-        const std::string actual = redis.spop(infra::PREWARM_SET);
-        REQUIRE(actual == w.id);
+        REQUIRE(infra::Scheduler::getPrewarmCount() == 1);
+        REQUIRE(infra::Scheduler::getColdCount() == 0);
     }
 
     void checkBound(WorkerThread &w, message::Message &msg, bool isBound) {
-        std::string setName = infra::getFunctionSetName(msg);
-
         REQUIRE(w.isBound() == isBound);
         REQUIRE(w.module->isBound() == isBound);
-        REQUIRE(redis.sismember(setName, w.id) == isBound);
-        REQUIRE(redis.sismember(infra::PREWARM_SET, w.id) == !isBound);
-    }
-
-    TEST_CASE("Test worker initialises by default when few workers in system", "[worker]") {
-        setUp();
-
-        WorkerThread w(1);
-        REQUIRE(w.isInitialised());
-        REQUIRE(redis.sismember(infra::PREWARM_SET, w.id));
-        REQUIRE(!redis.sismember(infra::COLD_SET, w.id));
     }
 
     TEST_CASE("Test worker doesn't initialise by default when enough workers in system", "[worker]") {
         setUp();
 
+        REQUIRE(infra::Scheduler::getPrewarmCount() == 0);
+        REQUIRE(infra::Scheduler::getColdCount() == 0);
+
         // Set up enough fake workers to meet our prewarm target
         util::SystemConfig conf = util::getSystemConfig();
         int nWorkers = conf.prewarm_target;
         for (int i = 0; i < nWorkers; i++) {
-            std::string workerName = "worker " + std::to_string(i);
-            redis.sadd(infra::PREWARM_SET, workerName);
+            infra::Scheduler::workerInitialisedPrewarm();
         }
 
         WorkerThread w(1);
+        REQUIRE(!w.isBound());
         REQUIRE(!w.isInitialised());
-        REQUIRE(!redis.sismember(infra::PREWARM_SET, w.id));
-        REQUIRE(redis.sismember(infra::COLD_SET, w.id));
+        REQUIRE(infra::Scheduler::getPrewarmCount() == nWorkers);
+        REQUIRE(infra::Scheduler::getColdCount() == 1);
     }
 
     TEST_CASE("Test binding to function", "[worker]") {
@@ -103,20 +93,13 @@ namespace tests {
         message::Message call;
         call.set_user("demo");
         call.set_function("chain");
-        call.set_target(1);
 
         WorkerThread w(1);
         w.initialise();
         checkBound(w, call, false);
+
         w.bindToFunction(call);
         checkBound(w, call, true);
-
-        // Check that binding another worker does nothing as the target has already been reached
-        WorkerThread w2(2);
-        checkBound(w2, call, false);
-        w2.bindToFunction(call);
-
-        checkBound(w2, call, false);
     }
 
     TEST_CASE("Test full execution of WASM module", "[worker]") {
@@ -143,19 +126,21 @@ namespace tests {
         setUp();
 
         // Check prewarm empty to begin with
-        REQUIRE(redis.scard(infra::PREWARM_SET) == 0);
+        REQUIRE(infra::Scheduler::getPrewarmCount() == 0);
+        REQUIRE(infra::Scheduler::getColdCount() == 0);
 
         // Create worker and check it's in prewarm set
         WorkerThread w(2);
         REQUIRE(!w.isBound());
-        REQUIRE(redis.sismember(infra::PREWARM_SET, w.id));
+        REQUIRE(w.isInitialised());
+        REQUIRE(infra::Scheduler::getPrewarmCount() == 1);
+        REQUIRE(infra::Scheduler::getColdCount() == 0);
 
         // Request a worker to bind
         message::Message call;
         call.set_user("demo");
         call.set_function("echo");
-        message::Message bindMessage = infra::buildBindMessage(call, 1);
-        redis.enqueueMessage(infra::PREWARM_QUEUE, bindMessage);
+        infra::Scheduler::sendBindMessage(call);
 
         // Check message is on the prewarm queue
         REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 1);
@@ -164,49 +149,13 @@ namespace tests {
         w.runSingle();
 
         // Check message has been consumed and that worker is now bound
-        std::string setName = infra::getFunctionSetName(call);
         REQUIRE(w.isBound());
-        REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 0);
-        REQUIRE(redis.scard(infra::PREWARM_SET) == 0);
+        REQUIRE(infra::Scheduler::getPrewarmCount() == 0);
 
         // Check that the corresponding pre-warm message has been added to the cold queue
         REQUIRE(redis.listLength(infra::COLD_QUEUE) == 1);
         const message::Message actual = redis.nextMessage(infra::COLD_QUEUE);
         REQUIRE(actual.type() == message::Message_MessageType_PREWARM);
-    }
-
-    TEST_CASE("Test worker does not bind if maximum functions already bound", "[worker]") {
-        setUp();
-
-        // Create worker and check it's in prewarm set
-        WorkerThread w(2);
-        REQUIRE(!w.isBound());
-        REQUIRE(redis.sismember(infra::PREWARM_SET, w.id));
-
-        // Request to bind
-        message::Message call;
-        call.set_user("demo");
-        call.set_function("echo");
-        std::string setName = infra::getFunctionSetName(call);
-
-        // Add target number of fake workers to set
-        int targetWorkers = 2;
-        redis.sadd(setName, "worker a");
-        redis.sadd(setName, "worker b");
-
-        // Request to bind
-        message::Message bindMessage = infra::buildBindMessage(call, targetWorkers);
-        redis.enqueueMessage(infra::PREWARM_QUEUE, bindMessage);
-
-        // Process next message
-        w.runSingle();
-
-        // Check message has been consumed but worker is not bound
-        REQUIRE(!w.isBound());
-        REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 0);
-
-        // Check that pre-warm message has not been sent
-        REQUIRE(redis.listLength(infra::COLD_QUEUE) == 0);
     }
 
     TEST_CASE("Test function chaining", "[worker]") {
@@ -223,7 +172,7 @@ namespace tests {
         w.bindToFunction(call);
 
         // Make the call
-        redis.callFunction(call);
+        infra::Scheduler::callFunction(call);
 
         // Execute the worker
         w.runSingle();
@@ -238,9 +187,10 @@ namespace tests {
         message::Message chainC = checkChainCall("demo", "dummy", {2, 3, 4});
 
         // Check bind messages also sent
-        checkBindMessage(chainA, 1);
-        checkBindMessage(chainB, 1);
-        checkBindMessage(chainC, 1);
+        checkBindMessage(call);
+        checkBindMessage(chainA);
+        checkBindMessage(chainB);
+        checkBindMessage(chainC);
 
         tearDown();
     }

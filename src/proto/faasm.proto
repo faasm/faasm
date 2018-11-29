@@ -21,7 +21,5 @@ message Message {
 
     optional bytes inputData = 7;
     optional bytes outputData = 8;
-
-    optional int32 target = 9 [default = 1];
 }
 

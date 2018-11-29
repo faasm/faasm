@@ -18,7 +18,6 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Dispatch any chained calls
-        infra::Redis *redis = infra::Redis::getThreadConnection();
         for (auto chainedCall : calls) {
             // Check if call is valid
             if (!infra::isValidFunction(chainedCall)) {
@@ -28,7 +27,7 @@ namespace wasm {
             }
 
             logger->debug("Chaining {} -> {}", infra::funcToString(originalCall), infra::funcToString(chainedCall));
-            redis->callFunction(chainedCall);
+            infra::Scheduler::callFunction(chainedCall);
         }
 
         std::string empty;
