@@ -32,6 +32,12 @@ spec:
           value: /usr/share/faasm
         - name: LOG_LEVEL
           value: "info"
+        - name: PREWARM_TARGET
+          value: "80"
+        - name: MAX_QUEUE_RATIO
+          value: "5"
+        - name: MAX_WORKERS_PER_FUNCTION
+          value: "40"
         volumeMounts:
         - mountPath: "/usr/share/faasm"
           name: func-vol
