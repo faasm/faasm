@@ -74,11 +74,11 @@ namespace worker {
 
         void run();
 
-        void runSingle();
-
         const bool isInitialised();
 
         const bool isBound();
+
+        const std::string processNextMessage();
 
         std::string id;
         std::string currentQueue;
@@ -91,8 +91,6 @@ namespace worker {
         NetworkNamespace *ns;
 
         infra::Redis *redis;
-
-        const std::string processNextMessage();
 
         const std::string executeCall(message::Message &msg);
 

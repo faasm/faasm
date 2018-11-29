@@ -186,18 +186,6 @@ namespace worker {
         return errorMessage;
     }
 
-    void WorkerThread::runSingle() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        std::string errorMessage = this->processNextMessage();
-
-        if (!errorMessage.empty()) {
-            logger->error("WorkerThread failed with error: {}", errorMessage);
-        }
-
-        this->finish();
-    }
-
     const std::string WorkerThread::executeCall(message::Message &call) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 

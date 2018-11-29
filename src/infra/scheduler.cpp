@@ -152,7 +152,6 @@ namespace infra {
 
     std::string Scheduler::workerPrewarmToBound(const message::Message &msg) {
         // Counters have already been updated and messages sent
-
         std::string queueName = Scheduler::getFunctionQueueName(msg);
         return queueName;
     }
@@ -166,20 +165,16 @@ namespace infra {
             redis->decr(COLD_COUNTER);
         } else {
             std::string counterName = COUNTER_PREFIX + currentQueue;
-            redis->decr(currentQueue);
+            redis->decr(counterName);
         }
     }
 
 
     std::string Scheduler::getFunctionQueueName(const message::Message &msg) {
-        std::string funcQueueName = infra::funcToString(msg);
-
-        return funcQueueName;
+        return infra::funcToString(msg);
     }
 
     std::string Scheduler::getFunctionCounterName(const message::Message &msg) {
-        std::string funcSetName = COUNTER_PREFIX + infra::funcToString(msg);
-
-        return funcSetName;
+        return COUNTER_PREFIX + Scheduler::getFunctionQueueName(msg);
     }
 }

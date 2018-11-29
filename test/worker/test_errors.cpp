@@ -13,7 +13,7 @@ namespace tests {
 
         infra::Scheduler::callFunction(call);
 
-        w.runSingle();
+        w.processNextMessage();
     }
 
     void checkError(const std::string &funcName, const std::string &expectedMsg) {

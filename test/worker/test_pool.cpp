@@ -21,10 +21,18 @@ namespace tests {
     void execFunction(message::Message &call) {
         // Set up worker to listen for relevant function
         WorkerThread w(1);
-        w.bindToFunction(call);
 
+        // Tell the worker to bind to the function
+        infra::Scheduler::sendBindMessage(call);
+        w.processNextMessage();
+
+        // Check the worker is bound
+        REQUIRE(w.isBound());
+        REQUIRE(infra::Scheduler::getFunctionCount(call) == 1);
+
+        // Call the function
         infra::Scheduler::callFunction(call);
-        w.runSingle();
+        w.processNextMessage();
     }
 
     void checkBindMessage(const message::Message &expected) {
@@ -146,7 +154,7 @@ namespace tests {
         REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 1);
 
         // Process next message
-        w.runSingle();
+        w.processNextMessage();
 
         // Check message has been consumed and that worker is now bound
         REQUIRE(w.isBound());
@@ -175,7 +183,7 @@ namespace tests {
         infra::Scheduler::callFunction(call);
 
         // Execute the worker
-        w.runSingle();
+        w.processNextMessage();
 
         // Check the call executed successfully
         message::Message result = redis.getFunctionResult(call);
@@ -210,8 +218,16 @@ namespace tests {
         call.set_function("state");
         call.set_resultkey("test_state");
 
-        // Execute and check
-        execFunction(call);
+        WorkerThread w(1);
+
+        // Tell the worker to bind to the function
+        infra::Scheduler::sendBindMessage(call);
+        w.processNextMessage();
+
+        // Call the function
+        infra::Scheduler::callFunction(call);
+        w.processNextMessage();
+
         message::Message resultA = redis.getFunctionResult(call);
         REQUIRE(resultA.success());
 
@@ -221,7 +237,8 @@ namespace tests {
         REQUIRE(stateA == expectedA);
 
         // Call the function a second time, the state should have another element added
-        execFunction(call);
+        infra::Scheduler::callFunction(call);
+        w.processNextMessage();
         message::Message resultB = redis.getFunctionResult(call);
         REQUIRE(resultB.success());
 
@@ -239,14 +256,24 @@ namespace tests {
         call.set_function("increment");
         call.set_resultkey("test_state_incr");
 
-        // Execute and check
-        execFunction(call);
+        // Set up worker to listen for relevant function
+        WorkerThread w(1);
+        infra::Scheduler::sendBindMessage(call);
+        w.processNextMessage();
+
+        // Call the function
+        infra::Scheduler::callFunction(call);
+        w.processNextMessage();
+
+        // Check result
         message::Message resultA = redis.getFunctionResult(call);
         REQUIRE(resultA.success());
         REQUIRE(resultA.outputdata() == "Counter: 001");
 
         // Call the function a second time, the state should have been incremented
-        execFunction(call);
+        infra::Scheduler::callFunction(call);
+        w.processNextMessage();
+
         message::Message resultB = redis.getFunctionResult(call);
         REQUIRE(resultB.success());
         REQUIRE(resultB.outputdata() == "Counter: 002");

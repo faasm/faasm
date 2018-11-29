@@ -14,6 +14,3 @@ target_link_libraries(worker_lib wasm)
 
 add_executable(worker worker.cpp)
 target_link_libraries(worker worker_lib)
-
-add_executable(worker_prof worker_prof.cpp)
-target_link_libraries(worker_prof worker_lib)
