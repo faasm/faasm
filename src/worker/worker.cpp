@@ -2,5 +2,9 @@
 
 int main() {
     util::initLogging();
+
+    util::SystemConfig config = util::getSystemConfig();
+    config.print();
+
     worker::startWorkerThreadPool();
 }

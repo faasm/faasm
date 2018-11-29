@@ -35,22 +35,11 @@ namespace util {
         int unbound_timeout;
         int bound_timeout;
 
-        SystemConfig() {
-            printf("Initial system config:\n");
+        SystemConfig();
 
-            prewarm_target = this->getSystemConfParam("PREWARM_TARGET", "20");
-            max_queue_ratio = this->getSystemConfParam("MAX_QUEUE_RATIO", "4");
-            max_workers_per_function = this->getSystemConfParam("MAX_WORKERS_PER_FUNCTION", "10");
-            bound_timeout = this->getSystemConfParam("BOUND_TIMEOUT", "30");
-            unbound_timeout = this->getSystemConfParam("UNBOUND_TIMEOUT", "240");
-        }
+        int getSystemConfParam(const char* name, const char* defaultValue);
 
-        int getSystemConfParam(const char* name, const char* defaultValue) {
-            int value = stoi(getEnvVar(name, defaultValue));
-            printf("%-25s= %-3i (%s) \n", name, value, defaultValue);
-
-            return value;
-        };
+        void print();
     };
 
     SystemConfig getSystemConfig();

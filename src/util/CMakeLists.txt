@@ -2,6 +2,7 @@ include_directories(${FAASM_INCLUDE_DIR}/util)
 
 add_library(util STATIC
         bytes.cpp
+        config.cpp
         environment.cpp
         files.cpp
         logging.cpp
