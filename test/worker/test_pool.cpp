@@ -23,7 +23,7 @@ namespace tests {
         WorkerThread w(1);
         w.bindToFunction(call);
 
-        redis.callFunction(call);
+        infra::Scheduler::callFunction(call);
         w.runSingle();
     }
 
@@ -39,7 +39,7 @@ namespace tests {
         expected.set_function(func);
         expected.set_inputdata(inputData);
 
-        message::Message actual = redis.nextMessage(infra::getFunctionQueueName(expected));
+        message::Message actual = redis.nextMessage(infra::Scheduler::getFunctionQueueName(expected));
 
         REQUIRE(actual.user() == expected.user());
         REQUIRE(actual.function() == expected.function());
@@ -51,15 +51,15 @@ namespace tests {
     TEST_CASE("Test worker initially pre-warmed", "[worker]") {
         setUp();
 
-        REQUIRE(redis.getCounter(infra::PREWARM_COUNTER) == 0);
-        REQUIRE(redis.getCounter(infra::COLD_COUNTER) == 0);
+        REQUIRE(infra::Scheduler::getPrewarmCount() == 0);
+        REQUIRE(infra::Scheduler::getColdCount() == 0);
 
         WorkerThread w(2);
         REQUIRE(!w.isBound());
         REQUIRE(w.isInitialised());
 
-        REQUIRE(redis.getCounter(infra::PREWARM_COUNTER) == 1);
-        REQUIRE(redis.getCounter(infra::COLD_COUNTER) == 0);
+        REQUIRE(infra::Scheduler::getPrewarmCount() == 1);
+        REQUIRE(infra::Scheduler::getColdCount() == 0);
     }
 
     void checkBound(WorkerThread &w, message::Message &msg, bool isBound) {
@@ -70,21 +70,21 @@ namespace tests {
     TEST_CASE("Test worker doesn't initialise by default when enough workers in system", "[worker]") {
         setUp();
 
-        REQUIRE(redis.getCounter(infra::PREWARM_COUNTER) == 0);
-        REQUIRE(redis.getCounter(infra::COLD_COUNTER) == 0);
+        REQUIRE(infra::Scheduler::getPrewarmCount() == 0);
+        REQUIRE(infra::Scheduler::getColdCount() == 0);
 
         // Set up enough fake workers to meet our prewarm target
         util::SystemConfig conf = util::getSystemConfig();
         int nWorkers = conf.prewarm_target;
         for (int i = 0; i < nWorkers; i++) {
-            redis.incr(infra::PREWARM_COUNTER);
+            infra::Scheduler::workerInitialisedPrewarm();
         }
 
         WorkerThread w(1);
         REQUIRE(!w.isBound());
         REQUIRE(!w.isInitialised());
-        REQUIRE(redis.getCounter(infra::PREWARM_COUNTER) == nWorkers);
-        REQUIRE(redis.getCounter(infra::COLD_COUNTER) == 1);
+        REQUIRE(infra::Scheduler::getPrewarmCount() == nWorkers);
+        REQUIRE(infra::Scheduler::getColdCount() == 1);
     }
 
     TEST_CASE("Test binding to function", "[worker]") {
@@ -132,22 +132,21 @@ namespace tests {
         setUp();
 
         // Check prewarm empty to begin with
-        REQUIRE(redis.getCounter(infra::PREWARM_COUNTER) == 0);
-        REQUIRE(redis.getCounter(infra::COLD_COUNTER) == 0);
+        REQUIRE(infra::Scheduler::getPrewarmCount() == 0);
+        REQUIRE(infra::Scheduler::getColdCount() == 0);
 
         // Create worker and check it's in prewarm set
         WorkerThread w(2);
         REQUIRE(!w.isBound());
         REQUIRE(w.isInitialised());
-        REQUIRE(redis.getCounter(infra::PREWARM_COUNTER) == 1);
-        REQUIRE(redis.getCounter(infra::COLD_COUNTER) == 0);
+        REQUIRE(infra::Scheduler::getPrewarmCount() == 1);
+        REQUIRE(infra::Scheduler::getColdCount() == 0);
 
         // Request a worker to bind
         message::Message call;
         call.set_user("demo");
         call.set_function("echo");
-        message::Message bindMessage = infra::buildBindMessage(call);
-        redis.enqueueMessage(infra::PREWARM_QUEUE, bindMessage);
+        infra::Scheduler::sendBindMessage(call);
 
         // Check message is on the prewarm queue
         REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 1);
@@ -157,9 +156,7 @@ namespace tests {
 
         // Check message has been consumed and that worker is now bound
         REQUIRE(w.isBound());
-        REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 0);
-        REQUIRE(redis.getCounter(infra::PREWARM_COUNTER) == 0);
-        REQUIRE(redis.getCounter(infra::COLD_COUNTER) == 0);
+        REQUIRE(infra::Scheduler::getPrewarmCount() == 0);
 
         // Check that the corresponding pre-warm message has been added to the cold queue
         REQUIRE(redis.listLength(infra::COLD_QUEUE) == 1);
@@ -181,7 +178,7 @@ namespace tests {
         w.bindToFunction(call);
 
         // Make the call
-        redis.callFunction(call);
+        infra::Scheduler::callFunction(call);
 
         // Execute the worker
         w.runSingle();

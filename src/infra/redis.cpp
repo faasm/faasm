@@ -75,6 +75,7 @@ namespace infra {
         auto reply = (redisReply *) redisCommand(context, "DECR %s", key.c_str());
         long result = reply->integer;
         freeReplyObject(reply);
+
         return result;
     }
 
@@ -152,82 +153,9 @@ namespace infra {
         return result;
     }
 
-    std::string getFunctionQueueName(const message::Message &msg) {
-        std::string funcQueueName = infra::funcToString(msg);
-
-        return funcQueueName;
-    }
-
-    std::string getFunctionCounterName(const message::Message &msg) {
-        std::string funcSetName = COUNTER_PREFIX + infra::funcToString(msg);
-
-        return funcSetName;
-    }
-
-    void addResultKeyToMessage(message::Message &msg) {
-        // Generate a random result key
-        int randomNumber = util::randomInteger();
-        std::string resultKey = "Result_";
-        resultKey += std::to_string(randomNumber);
-        msg.set_resultkey(resultKey);
-    }
-
     void Redis::enqueueMessage(const std::string &queueName, const message::Message &msg) {
         std::vector<uint8_t> msgBytes = infra::messageToBytes(msg);
         this->enqueue(queueName, msgBytes);
-    }
-
-    void Redis::callFunction(message::Message &msg) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        const auto &t = prof::startTimer();
-
-        // First of all, send the message to execute the function
-        const std::string queueName = getFunctionQueueName(msg);
-        logger->debug("Adding call {} to {}", infra::funcToString(msg), queueName);
-        addResultKeyToMessage(msg);
-        this->enqueueMessage(queueName, msg);
-
-        // Then add more workers if necessary
-        this->addMoreWorkers(msg, queueName);
-
-        prof::logEndTimer("call-function", t);
-    }
-
-    void Redis::addMoreWorkers(message::Message &msg, const std::string &queueName) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        util::SystemConfig conf = util::getSystemConfig();
-
-        // Get queue length and set membership
-        const std::string counter = getFunctionCounterName(msg);
-
-        long queueLength = this->listLength(queueName);
-        long workerCount = this->getCounter(counter);
-
-        // Check whether we need more workers
-        double queueRatio = 0;
-        bool needsMoreWorkerThreads;
-        if (workerCount == 0) {
-            logger->debug("Requesting first worker for {}", queueRatio);
-            needsMoreWorkerThreads = true;
-        } else {
-            queueRatio = double(queueLength) / workerCount;
-            needsMoreWorkerThreads = queueRatio > conf.max_queue_ratio && workerCount < conf.max_workers_per_function;
-
-            if (needsMoreWorkerThreads) {
-                logger->debug("Requesting more workers for {} (queue ratio {})", infra::funcToString(msg), queueRatio);
-            } else {
-                logger->debug("Not requesting more workers for {} (queue ratio {})", infra::funcToString(msg),
-                              queueRatio);
-            }
-        }
-
-        // Send bind message to pre-warm queue to enlist help of other workers
-        if (needsMoreWorkerThreads) {
-            this->incr(counter);
-            message::Message bindMsg = infra::buildBindMessage(msg);
-            this->enqueueMessage(PREWARM_QUEUE, bindMsg);
-        }
     }
 
     message::Message Redis::nextMessage(const std::string &queueName, int timeout) {

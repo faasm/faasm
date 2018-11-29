@@ -82,8 +82,6 @@ namespace worker {
 
         std::string id;
         std::string currentQueue;
-        std::string currentCounter;
-
         wasm::WasmModule *module;
     private:
         bool _isInitialised = false;

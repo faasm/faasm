@@ -74,20 +74,4 @@ namespace infra {
         std::string str = msg.user() + "/" + msg.function();
         return str;
     }
-
-    message::Message buildPrewarmMessage(const message::Message &original) {
-        message::Message prewarmMsg;
-        prewarmMsg.set_type(message::Message_MessageType_PREWARM);
-
-        return prewarmMsg;
-    }
-
-    message::Message buildBindMessage(const message::Message &original) {
-        message::Message bindMsg;
-        bindMsg.set_type(message::Message_MessageType_BIND);
-        bindMsg.set_user(original.user());
-        bindMsg.set_function(original.function());
-
-        return bindMsg;
-    }
 }

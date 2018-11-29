@@ -10,33 +10,19 @@
 #include <hiredis/hiredis.h>
 
 namespace infra {
-    const std::string COUNTER_PREFIX = "n_";
-    const std::string PREWARM_QUEUE = "prewarm";
-    const std::string PREWARM_COUNTER = "n_prewarm";
-    const std::string COLD_QUEUE = "cold";
-    const std::string COLD_COUNTER = "n_cold";
 
-    /** Function utilities */
     std::string getFunctionFile(const message::Message &msg);
 
     std::string getFunctionObjectFile(const message::Message &msg);
 
     std::vector<uint8_t> getFunctionObjectBytes(const message::Message &msg);
 
-    std::string getFunctionQueueName(const message::Message &msg);
-
-    std::string getFunctionCounterName(const message::Message &msg);
-
     bool isValidFunction(const message::Message &msg);
 
     std::string funcToString(const message::Message &msg);
 
-    message::Message buildPrewarmMessage(const message::Message &original);
-
-    message::Message buildBindMessage(const message::Message &original);
-
-    /** Serialisation */
     std::vector<uint8_t> messageToBytes(const message::Message &msg);
+
 
     class Redis {
 
@@ -75,10 +61,6 @@ namespace infra {
 
         long listLength(const std::string &queueName);
 
-        void callFunction(message::Message &msg);
-
-        void addMoreWorkers(message::Message &msg, const std::string &queueName);
-
         message::Message nextMessage(const std::string &queueName, int timeout=util::DEFAULT_TIMEOUT);
 
         void setFunctionResult(message::Message &msg, bool success);
@@ -102,4 +84,42 @@ namespace infra {
     std::chrono::steady_clock::time_point startTimer();
 
     void logEndTimer(const std::string &label, const std::chrono::steady_clock::time_point &begin);
+
+    // Scheduling
+    const std::string PREWARM_QUEUE = "prewarm";
+    const std::string COLD_QUEUE = "cold";
+
+    class Scheduler {
+    public:
+        Scheduler();
+
+        static long getPrewarmCount();
+
+        static long getColdCount();
+
+        static int getWorkerTimeout(const std::string &currentQueue);
+
+        static std::string workerInitialisedCold();
+
+        static std::string workerInitialisedPrewarm();
+
+        static std::string workerColdToPrewarm();
+
+        static std::string workerPrewarmToBound(const message::Message &msg);
+
+        static void workerFinished(const std::string &currentQueue);
+
+        static std::string callFunction(message::Message &msg);
+
+        static bool isNeedToPrewarm();
+
+        static std::string getFunctionQueueName(const message::Message &msg);
+
+        static void sendBindMessage(const message::Message &msg);
+    private:
+        static void updateWorkerAllocs(const message::Message &msg);
+
+        static std::string getFunctionCounterName(const message::Message &msg);
+    };
+
 };

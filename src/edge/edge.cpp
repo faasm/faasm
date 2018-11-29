@@ -70,8 +70,7 @@ namespace edge {
         }
 
         // Make the call
-        infra::Redis *redis = infra::Redis::getThreadConnection();
-        redis->callFunction(msg);
+        infra::Scheduler::callFunction(msg);
         prof::logEndTimer("edge-submit", t);
 
         if (msg.isasync()) {
@@ -79,6 +78,7 @@ namespace edge {
             return "Async request submitted";
         } else {
             logger->info("Sync request {}", infra::funcToString(msg));
+            infra::Redis *redis = infra::Redis::getThreadConnection();
             message::Message result = redis->getFunctionResult(msg);
 
             const std::chrono::steady_clock::time_point &t2 = prof::startTimer();

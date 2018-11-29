@@ -17,7 +17,7 @@ namespace tests {
         call.set_inputdata("abc");
 
         // Get expected queue
-        std::string queueName = infra::getFunctionQueueName(call);
+        std::string queueName = infra::Scheduler::getFunctionQueueName(call);
 
         edge::FunctionEndpoint endpoint;
         endpoint.handleFunction(call);
@@ -44,7 +44,7 @@ namespace tests {
         REQUIRE(msg == "foobar/baz is not a valid function");
 
         // Check nothing added to queue
-        const std::string queueName = infra::getFunctionQueueName(call);
+        const std::string queueName = infra::Scheduler::getFunctionQueueName(call);
         REQUIRE(cli.listLength(queueName) == 0);
     }
 }
