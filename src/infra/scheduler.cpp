@@ -84,31 +84,43 @@ namespace infra {
         // Check whether we need more workers
         double queueRatio = 0;
         bool needsMoreWorkerThreads;
+        bool hasCapacity = true;
         if (workerCount == 0) {
-            logger->debug("SCALE-UP first worker for {}", queueName);
             needsMoreWorkerThreads = true;
         } else {
             queueRatio = double(queueLength) / workerCount;
-            needsMoreWorkerThreads = queueRatio > conf.max_queue_ratio && workerCount < conf.max_workers_per_function;
-
-            if (needsMoreWorkerThreads) {
-                logger->debug(
-                        "SCALE-UP {} - qr = {}/{} = {}, max = {}",
-                        infra::funcToString(msg),
-                        queueLength, workerCount, queueRatio, conf.max_queue_ratio
-                );
-            } else {
-                logger->debug(
-                        "MAINTAIN {} - qr = {}/{} = {}, max = {}",
-                        infra::funcToString(msg),
-                        queueLength, workerCount, queueRatio, conf.max_queue_ratio
-                );
-            }
+            needsMoreWorkerThreads = queueRatio > conf.max_queue_ratio;
+            hasCapacity = workerCount < conf.max_workers_per_function;
         }
 
         // Send bind message to pre-warm queue to enlist help of other workers
         if (needsMoreWorkerThreads) {
-            Scheduler::sendBindMessage(msg);
+            if(hasCapacity) {
+                logger->debug(
+                        "SCALE-UP {} - qr = {}/{} = {}, max_qr = {}, max_workers = {}",
+                        infra::funcToString(msg),
+                        queueLength, workerCount, queueRatio, conf.max_queue_ratio,
+                        conf.max_workers_per_function
+                );
+
+                Scheduler::sendBindMessage(msg);
+            }
+            else {
+                logger->debug(
+                        "BLOCKED {} - qr = {}/{} = {}, max_qr = {}, max_workers = {}",
+                        infra::funcToString(msg),
+                        queueLength, workerCount, queueRatio, conf.max_queue_ratio,
+                        conf.max_workers_per_function
+                );
+            }
+        }
+        else {
+            logger->debug(
+                    "MAINTAIN {} - qr = {}/{} = {}, max_qr = {}, max_workers = {}",
+                    infra::funcToString(msg),
+                    queueLength, workerCount, queueRatio, conf.max_queue_ratio,
+                    conf.max_workers_per_function
+            );
         }
     }
 

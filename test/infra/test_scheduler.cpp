@@ -278,4 +278,42 @@ namespace tests {
         REQUIRE(cli.listLength(PREWARM_QUEUE) == 3);
         REQUIRE(cli.listLength(queueName) == nCalls + 1);
     }
+
+    TEST_CASE("Test function which breaches queue ratio but has no capacity does not scale up", "[scheduler]") {
+        Redis cli;
+        cli.flushAll();
+
+        message::Message call;
+        call.set_user("userA");
+        call.set_function("funcA");
+
+        std::string queueName = Scheduler::getFunctionQueueName(call);
+
+        // Set up as though the max workers are already listening
+        util::SystemConfig conf = util::getSystemConfig();
+        for(int i = 0; i < conf.max_workers_per_function; i++) {
+            Scheduler::workerInitialisedPrewarm();
+            Scheduler::sendBindMessage(call);
+        }
+
+        // Call the function the max numbet of times
+        int nCalls = conf.max_workers_per_function * conf.max_queue_ratio;
+        for(int i = 0; i < nCalls; i++) {
+            Scheduler::callFunction(call);
+        }
+
+        // Check set-up
+        REQUIRE(cli.listLength(PREWARM_QUEUE) == conf.max_workers_per_function);
+        REQUIRE(Scheduler::getFunctionCount(call) == conf.max_workers_per_function);
+        REQUIRE(cli.listLength(Scheduler::getFunctionQueueName(call)) == nCalls);
+
+        // Now call the function a few more times and check calls are queued but no new bind messages sent
+        Scheduler::callFunction(call);
+        Scheduler::callFunction(call);
+        Scheduler::callFunction(call);
+
+        REQUIRE(cli.listLength(PREWARM_QUEUE) == conf.max_workers_per_function);
+        REQUIRE(Scheduler::getFunctionCount(call) == conf.max_workers_per_function);
+        REQUIRE(cli.listLength(Scheduler::getFunctionQueueName(call)) == nCalls + 3);
+    }
 }
