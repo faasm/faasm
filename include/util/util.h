@@ -37,9 +37,10 @@ namespace util {
 
         SystemConfig();
 
-        int getSystemConfParam(const char* name, const char* defaultValue);
-
         void print();
+
+    private:
+        int getSystemConfParam(const char *name, const char *defaultValue);
     };
 
     SystemConfig getSystemConfig();
