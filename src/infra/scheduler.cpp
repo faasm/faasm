@@ -166,7 +166,7 @@ namespace infra {
             redis->decr(COLD_COUNTER);
         } else {
             std::string counterName = COUNTER_PREFIX + currentQueue;
-            redis->decr(COLD_COUNTER);
+            redis->decr(currentQueue);
         }
     }
 

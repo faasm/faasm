@@ -1,5 +1,6 @@
 #include "worker.h"
 
+#include <unistd.h>
 #include <infra/infra.h>
 #include <prof/prof.h>
 
@@ -29,6 +30,11 @@ namespace worker {
 
     WorkerThread::WorkerThread(int workerIdx) : workerIdx(workerIdx) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        // TODO do this without delaying start
+        // Introduce a small delay to avoid race condition
+        uint microseconds = (uint) workerIdx * 50 * 1000;
+        usleep(microseconds);
 
         const std::string hostname = util::getEnvVar("HOSTNAME", "");
         id = hostname + "_" + std::to_string(workerIdx);

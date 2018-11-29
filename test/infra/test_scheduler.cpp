@@ -128,11 +128,12 @@ namespace tests {
         call.set_user("userA");
         call.set_function("funcA");
 
+        // Set up a worker on the given function
         Scheduler::workerInitialisedPrewarm();
-        Scheduler::workerPrewarmToBound(call);
-
+        Scheduler::sendBindMessage(call);
         REQUIRE(Scheduler::getFunctionCount(call) == 1);
 
+        // Mark it as finished
         Scheduler::workerFinished(Scheduler::getFunctionQueueName(call));
         REQUIRE(Scheduler::getFunctionCount(call) == 0);
     }
