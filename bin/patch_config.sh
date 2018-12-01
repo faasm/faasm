@@ -2,4 +2,6 @@
 
 set -e
 
-kubectl --namespace=faasm patch configmap faasm-config -p'{"data": {"$1":"$2"} }'
+DATA_STR="{\"data\": { \"$1\" : \"$2\" } }"
+
+kubectl --namespace=faasm patch configmap faasm-config -p"'"$DATA_STR"'"
