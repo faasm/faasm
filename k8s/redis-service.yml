@@ -5,7 +5,7 @@ metadata:
   namespace: faasm
 spec:
   ports:
-  - port: 6379
-    targetPort: 6379
+    - port: 6379
+      targetPort: 6379
   selector:
     role: redis

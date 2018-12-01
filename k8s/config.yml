@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: faasm-config
+  namespace: faasm
+data:
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  FUNC_ROOT: "/usr/share/faasm"
+  LOG_LEVEL: "info"
+  PREWARM_TARGET: "80"
+  MAX_QUEUE_RATIO: "5"
+  MAX_WORKERS_PER_FUNCTION: "40"
+  CGROUP_MODE: "on"
+  NETNS_MODE: "on"
