@@ -18,30 +18,18 @@ spec:
         role: edge
     spec:
       containers:
-      - name: edge
-        image: faasm/edge
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 8001
-        env:
-        - name: REDIS_HOST
-          value: redis
-        - name: REDIS_PORT
-          value: "6379"
-        - name: FUNC_ROOT
-          value: /usr/share/faasm
-        - name: LOG_LEVEL
-          value: "info"
-        - name: PREWARM_TARGET
-          value: "80"
-        - name: MAX_QUEUE_RATIO
-          value: "5"
-        - name: MAX_WORKERS_PER_FUNCTION
-          value: "40"
-        volumeMounts:
-        - mountPath: "/usr/share/faasm"
-          name: func-vol
+        - name: edge
+          image: faasm/edge
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8001
+          envFrom:
+            - configMapRef:
+                name: faasm-config
+          volumeMounts:
+            - mountPath: "/usr/share/faasm"
+              name: func-vol
       volumes:
-      - name: func-vol
-        persistentVolumeClaim:
-          claimName: func-storage-claim
+        - name: func-vol
+          persistentVolumeClaim:
+            claimName: func-storage-claim

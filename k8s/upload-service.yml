@@ -8,7 +8,7 @@ spec:
     role: upload
   type: LoadBalancer
   externalIPs:
-  - 192.168.10.46   # NOTE: this must be changed if the master node is changed
+    - 192.168.10.46   # NOTE: this must be changed if the master node is changed
   ports:
-  - port: 8002
-    targetPort: 8002
+    - port: 8002
+      targetPort: 8002

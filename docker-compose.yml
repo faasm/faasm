@@ -23,6 +23,11 @@ services:
       - CGROUP_MODE=on
       - NETNS_MODE=on
       - LOG_LEVEL=debug
+      - PREWARM_TARGET=20
+      - MAX_QUEUE_RATIO=4
+      - MAX_WORKERS_PER_FUNCTION=10
+      - BOUND_TIMEOUT=30
+      - UNBOUND_TIMEOUT=240
     volumes:
       - ./wasm:/usr/share/faasm/wasm
     networks:
@@ -37,6 +42,11 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - FUNC_ROOT=/usr/share/faasm
+      - PREWARM_TARGET=20
+      - MAX_QUEUE_RATIO=4
+      - MAX_WORKERS_PER_FUNCTION=10
+      - BOUND_TIMEOUT=30
+      - UNBOUND_TIMEOUT=240
     volumes:
       - ./wasm:/usr/share/faasm/wasm
     depends_on:

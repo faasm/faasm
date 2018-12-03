@@ -96,14 +96,14 @@ namespace infra {
         // Send bind message to pre-warm queue to enlist help of other workers
         if (needsMoreWorkerThreads) {
             if(hasCapacity) {
+                Scheduler::sendBindMessage(msg);
+
                 logger->debug(
                         "SCALE-UP {} - qr = {}/{} = {}, max_qr = {}, max_workers = {}",
                         infra::funcToString(msg),
                         queueLength, workerCount, queueRatio, conf.max_queue_ratio,
                         conf.max_workers_per_function
                 );
-
-                Scheduler::sendBindMessage(msg);
             }
             else {
                 logger->debug(
