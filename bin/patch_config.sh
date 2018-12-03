@@ -2,6 +2,9 @@
 
 set -e
 
-DATA_STR="{\"data\": { \"$1\" : \"$2\" } }"
+KEY=$1
+VALUE=$2
 
-kubectl --namespace=faasm patch configmap faasm-config -p"'"$DATA_STR"'"
+echo "Updating ${KEY} = ${VALUE}"
+
+kubectl --namespace=faasm patch configmap faasm-config -p '{"data":{"'${KEY}'":"'${VALUE}'"}}"'
