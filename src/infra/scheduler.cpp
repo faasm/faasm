@@ -43,10 +43,17 @@ namespace infra {
         }
     }
 
-    bool Scheduler::isNeedToPrewarm() {
-        long prewarmCount = Scheduler::getPrewarmCount();
+    bool Scheduler::prewarmWorker() {
+        Redis *redis = Redis::getThreadConnection();
+
         util::SystemConfig conf = util::getSystemConfig();
-        return prewarmCount < conf.prewarm_target;
+        bool isPrewarm = redis->incrIfBelowTarget(PREWARM_COUNTER, conf.prewarm_target);
+
+        if(!isPrewarm) {
+            redis->incr(COLD_COUNTER);
+        }
+
+        return isPrewarm;
     }
 
     std::string Scheduler::callFunction(message::Message &msg) {
@@ -80,10 +87,10 @@ namespace infra {
         const std::string queueName = Scheduler::getFunctionQueueName(msg);
 
         // Add more workers if necessary
-        long workerRes = redis->addWorker(counter, queueName, conf.max_queue_ratio, conf.max_workers_per_function);
+        bool shouldAddWorker = redis->addWorker(counter, queueName, conf.max_queue_ratio, conf.max_workers_per_function);
 
         // Send bind message to pre-warm queue to enlist help of other workers
-        if (workerRes == 1) {
+        if (shouldAddWorker) {
             Scheduler::sendBindMessage(msg);
 
             logger->debug(
@@ -117,20 +124,6 @@ namespace infra {
         message::Message prewarmMsg;
         prewarmMsg.set_type(message::Message_MessageType_PREWARM);
         redis->enqueueMessage(infra::COLD_QUEUE, prewarmMsg);
-    }
-
-    std::string Scheduler::workerInitialisedCold() {
-        Redis *redis = Redis::getThreadConnection();
-        redis->incr(infra::COLD_COUNTER);
-
-        return infra::COLD_QUEUE;
-    }
-
-    std::string Scheduler::workerInitialisedPrewarm() {
-        Redis *redis = Redis::getThreadConnection();
-        redis->incr(infra::PREWARM_COUNTER);
-
-        return infra::PREWARM_QUEUE;
     }
 
     std::string Scheduler::workerColdToPrewarm() {

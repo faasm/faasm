@@ -47,7 +47,9 @@ namespace infra {
 
         long decr(const std::string &key);
 
-        long addWorker(const std::string &counterName, const std::string &queueName, long maxRatio, long maxWorkers);
+        bool addWorker(const std::string &counterName, const std::string &queueName, long maxRatio, long maxWorkers);
+
+        bool incrIfBelowTarget(const std::string &key, int target);
 
         void setRange(const std::string &key, long offset, const std::vector<uint8_t> &value);
 
@@ -57,13 +59,13 @@ namespace infra {
 
         void enqueueMessage(const std::string &queueName, const message::Message &msg);
 
-        std::vector<uint8_t> dequeue(const std::string &queueName, int timeout=util::DEFAULT_TIMEOUT);
+        std::vector<uint8_t> dequeue(const std::string &queueName, int timeout = util::DEFAULT_TIMEOUT);
 
         void flushAll();
 
         long listLength(const std::string &queueName);
 
-        message::Message nextMessage(const std::string &queueName, int timeout=util::DEFAULT_TIMEOUT);
+        message::Message nextMessage(const std::string &queueName, int timeout = util::DEFAULT_TIMEOUT);
 
         void setFunctionResult(message::Message &msg, bool success);
 
@@ -77,7 +79,8 @@ namespace infra {
         redisContext *context;
         std::string hostname;
         std::string port;
-        std::string addWorkerSha;
+
+        std::string loadScript(const std::string &scriptBody);
     };
 
     class RedisNoResponseException : public std::exception {
@@ -104,10 +107,6 @@ namespace infra {
 
         static int getWorkerTimeout(const std::string &currentQueue);
 
-        static std::string workerInitialisedCold();
-
-        static std::string workerInitialisedPrewarm();
-
         static std::string workerColdToPrewarm();
 
         static std::string workerPrewarmToBound(const message::Message &msg);
@@ -116,7 +115,7 @@ namespace infra {
 
         static std::string callFunction(message::Message &msg);
 
-        static bool isNeedToPrewarm();
+        static bool prewarmWorker();
 
         static std::string getFunctionQueueName(const message::Message &msg);
 

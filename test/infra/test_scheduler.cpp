@@ -5,27 +5,6 @@
 using namespace infra;
 
 namespace tests {
-    TEST_CASE("Test getting prewarm/ cold count", "[scheduler]") {
-        Redis cli;
-        cli.flushAll();
-
-        REQUIRE(Scheduler::getPrewarmCount() == 0);
-        REQUIRE(Scheduler::getColdCount() == 0);
-
-        REQUIRE(Scheduler::workerInitialisedPrewarm() == PREWARM_QUEUE);
-        REQUIRE(Scheduler::workerInitialisedPrewarm() == PREWARM_QUEUE);
-
-        REQUIRE(Scheduler::getPrewarmCount() == 2);
-        REQUIRE(Scheduler::getColdCount() == 0);
-
-        REQUIRE(Scheduler::workerInitialisedCold() == COLD_QUEUE);
-        REQUIRE(Scheduler::workerInitialisedCold() == COLD_QUEUE);
-        REQUIRE(Scheduler::workerInitialisedCold() == COLD_QUEUE);
-
-        REQUIRE(Scheduler::getPrewarmCount() == 2);
-        REQUIRE(Scheduler::getColdCount() == 3);
-    }
-
     TEST_CASE("Test getting timeout", "[scheduler]") {
         util::SystemConfig conf = util::getSystemConfig();
 
@@ -34,50 +13,13 @@ namespace tests {
         REQUIRE(Scheduler::getWorkerTimeout(COLD_QUEUE) == conf.unbound_timeout);
     }
 
-    TEST_CASE("Test need to prewarm", "[scheduler]") {
-        Redis cli;
-        cli.flushAll();
-
-        REQUIRE(Scheduler::isNeedToPrewarm());
-
-        // Add target number of prewarm workers, check at before each that we still need to add more
-        util::SystemConfig conf = util::getSystemConfig();
-        for (int i = 0; i < conf.prewarm_target; i++) {
-            REQUIRE(Scheduler::isNeedToPrewarm());
-            Scheduler::workerInitialisedPrewarm();
-        }
-
-        // Check no longer need to prewarm
-        REQUIRE(!Scheduler::isNeedToPrewarm());
-    }
-
-    TEST_CASE("Test worker cold to prewarm", "[scheduler]") {
-        Redis cli;
-        cli.flushAll();
-
-        // Set up some fake cold
-        Scheduler::workerInitialisedCold();
-        Scheduler::workerInitialisedCold();
-        Scheduler::workerInitialisedCold();
-        REQUIRE(Scheduler::getPrewarmCount() == 0);
-        REQUIRE(Scheduler::getColdCount() == 3);
-
-        Scheduler::workerColdToPrewarm();
-        REQUIRE(Scheduler::getPrewarmCount() == 1);
-        REQUIRE(Scheduler::getColdCount() == 2);
-
-        Scheduler::workerColdToPrewarm();
-        REQUIRE(Scheduler::getPrewarmCount() == 2);
-        REQUIRE(Scheduler::getColdCount() == 1);
-    }
-
     TEST_CASE("Test worker prewarm to bound", "[scheduler]") {
         Redis cli;
         cli.flushAll();
 
         // Set up some fake prewarms
-        Scheduler::workerInitialisedPrewarm();
-        Scheduler::workerInitialisedPrewarm();
+        Scheduler::prewarmWorker();
+        Scheduler::prewarmWorker();
         REQUIRE(Scheduler::getPrewarmCount() == 2);
 
         // Set up call
@@ -100,7 +42,7 @@ namespace tests {
         Redis cli;
         cli.flushAll();
 
-        Scheduler::workerInitialisedPrewarm();
+        Scheduler::prewarmWorker();
         REQUIRE(Scheduler::getPrewarmCount() == 1);
 
         Scheduler::workerFinished(PREWARM_QUEUE);
@@ -112,7 +54,14 @@ namespace tests {
         Redis cli;
         cli.flushAll();
 
-        Scheduler::workerInitialisedCold();
+        // Fill up all prewarm
+        util::SystemConfig conf = util::getSystemConfig();
+        for(int i = 0; i < conf.prewarm_target; i++) {
+            Scheduler::prewarmWorker();
+        }
+
+        // Add a cold init
+        Scheduler::prewarmWorker();
         REQUIRE(Scheduler::getColdCount() == 1);
 
         Scheduler::workerFinished(COLD_QUEUE);
@@ -148,7 +97,7 @@ namespace tests {
         call.set_user("some user");
 
         // Set up a dummy prewarm
-        Scheduler::workerInitialisedPrewarm();
+        Scheduler::prewarmWorker();
         REQUIRE(Scheduler::getFunctionCount(call) == 0);
         REQUIRE(Scheduler::getPrewarmCount() == 1);
 
@@ -221,8 +170,8 @@ namespace tests {
         std::string queueName = Scheduler::getFunctionQueueName(call);
 
         // Fake 2 workers initialising to prewarm
-        Scheduler::workerInitialisedPrewarm();
-        Scheduler::workerInitialisedPrewarm();
+        Scheduler::prewarmWorker();
+        Scheduler::prewarmWorker();
 
         // Fake calling the function first, should cause a bind message and set up the function queue
         Scheduler::callFunction(call);
@@ -300,5 +249,25 @@ namespace tests {
         REQUIRE(cli.listLength(PREWARM_QUEUE) == conf.max_workers_per_function);
         REQUIRE(Scheduler::getFunctionCount(call) == conf.max_workers_per_function);
         REQUIRE(cli.listLength(Scheduler::getFunctionQueueName(call)) == nCalls + 3);
+    }
+
+    TEST_CASE("Test is need to prewarm", "[scheduler]") {
+        Redis cli;
+        cli.flushAll();
+
+        // Check should prewarm up to limit
+        const util::SystemConfig conf = util::getSystemConfig();
+        for(int i =0; i < conf.prewarm_target; i++) {
+            REQUIRE(Scheduler::prewarmWorker());
+            REQUIRE(Scheduler::getPrewarmCount() == i + 1);
+            REQUIRE(Scheduler::getColdCount() == 0);
+        }
+
+        // Should be false once we've hit the target
+        for(int i = 0; i < 5; i++) {
+            REQUIRE(!Scheduler::prewarmWorker());
+            REQUIRE(Scheduler::getPrewarmCount() == conf.prewarm_target);
+            REQUIRE(Scheduler::getColdCount() == i + 1);
+        }
     }
 }

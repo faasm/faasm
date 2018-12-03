@@ -94,7 +94,7 @@ namespace tests {
         util::SystemConfig conf = util::getSystemConfig();
         int nWorkers = conf.prewarm_target;
         for (int i = 0; i < nWorkers; i++) {
-            infra::Scheduler::workerInitialisedPrewarm();
+            infra::Scheduler::prewarmWorker();
         }
 
         WorkerThread w(1);
