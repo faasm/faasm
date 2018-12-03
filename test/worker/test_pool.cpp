@@ -21,18 +21,27 @@ namespace tests {
     void execFunction(message::Message &call) {
         // Set up worker to listen for relevant function
         WorkerThread w(1);
+        REQUIRE(w.isInitialised());
+        REQUIRE(!w.isBound());
 
-        // Tell the worker to bind to the function
-        infra::Scheduler::sendBindMessage(call);
-        w.processNextMessage();
-
-        // Check the worker is bound
-        REQUIRE(w.isBound());
-        REQUIRE(infra::Scheduler::getFunctionCount(call) == 1);
-
-        // Call the function
+        // Call the function, checking that everything is set up
         infra::Scheduler::callFunction(call);
+        REQUIRE(redis.listLength(infra::Scheduler::getFunctionQueueName(call)) == 1);
+        REQUIRE(infra::Scheduler::getFunctionCount(call) == 1);
+        REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 1);
+
+        // Process the bind message
         w.processNextMessage();
+        REQUIRE(w.isBound());
+        REQUIRE(redis.listLength(infra::Scheduler::getFunctionQueueName(call)) == 1);
+        REQUIRE(infra::Scheduler::getFunctionCount(call) == 1);
+        REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 0);
+
+        // Now execute the function
+        w.processNextMessage();
+        REQUIRE(redis.listLength(infra::Scheduler::getFunctionQueueName(call)) == 0);
+        REQUIRE(infra::Scheduler::getFunctionCount(call) == 1);
+        REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 0);
     }
 
     void checkBindMessage(const message::Message &expected) {
@@ -85,7 +94,7 @@ namespace tests {
         util::SystemConfig conf = util::getSystemConfig();
         int nWorkers = conf.prewarm_target;
         for (int i = 0; i < nWorkers; i++) {
-            infra::Scheduler::workerInitialisedPrewarm();
+            infra::Scheduler::prewarmWorker();
         }
 
         WorkerThread w(1);
@@ -144,11 +153,11 @@ namespace tests {
         REQUIRE(infra::Scheduler::getPrewarmCount() == 1);
         REQUIRE(infra::Scheduler::getColdCount() == 0);
 
-        // Request a worker to bind
+        // Invoke a new call which will require a worker to bind
         message::Message call;
         call.set_user("demo");
         call.set_function("echo");
-        infra::Scheduler::sendBindMessage(call);
+        infra::Scheduler::callFunction(call);
 
         // Check message is on the prewarm queue
         REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 1);
@@ -221,11 +230,10 @@ namespace tests {
         WorkerThread w(1);
 
         // Tell the worker to bind to the function
-        infra::Scheduler::sendBindMessage(call);
+        infra::Scheduler::callFunction(call);
         w.processNextMessage();
 
-        // Call the function
-        infra::Scheduler::callFunction(call);
+        // Exec the function
         w.processNextMessage();
 
         message::Message resultA = redis.getFunctionResult(call);
@@ -256,13 +264,14 @@ namespace tests {
         call.set_function("increment");
         call.set_resultkey("test_state_incr");
 
-        // Set up worker to listen for relevant function
+        // Call function
         WorkerThread w(1);
-        infra::Scheduler::sendBindMessage(call);
+        infra::Scheduler::callFunction(call);
+
+        // Process bind
         w.processNextMessage();
 
-        // Call the function
-        infra::Scheduler::callFunction(call);
+        // Exec the function
         w.processNextMessage();
 
         // Check result

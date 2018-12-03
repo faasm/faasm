@@ -43,10 +43,17 @@ namespace infra {
         }
     }
 
-    bool Scheduler::isNeedToPrewarm() {
-        long prewarmCount = Scheduler::getPrewarmCount();
+    bool Scheduler::prewarmWorker() {
+        Redis *redis = Redis::getThreadConnection();
+
         util::SystemConfig conf = util::getSystemConfig();
-        return prewarmCount < conf.prewarm_target;
+        bool isPrewarm = redis->incrIfBelowTarget(PREWARM_COUNTER, conf.prewarm_target);
+
+        if(!isPrewarm) {
+            redis->incr(COLD_COUNTER);
+        }
+
+        return isPrewarm;
     }
 
     std::string Scheduler::callFunction(message::Message &msg) {
@@ -76,61 +83,33 @@ namespace infra {
 
         // Get queue details
         Redis *redis = Redis::getThreadConnection();
-        const std::string queueName = Scheduler::getFunctionQueueName(msg);
         const std::string counter = Scheduler::getFunctionCounterName(msg);
-        long queueLength = redis->listLength(queueName);
-        long workerCount = redis->getCounter(counter);
+        const std::string queueName = Scheduler::getFunctionQueueName(msg);
 
-        // Check whether we need more workers
-        double queueRatio = 0;
-        bool needsMoreWorkerThreads;
-        bool hasCapacity = true;
-        if (workerCount == 0) {
-            needsMoreWorkerThreads = true;
-        } else {
-            queueRatio = double(queueLength) / workerCount;
-            needsMoreWorkerThreads = queueRatio > conf.max_queue_ratio;
-            hasCapacity = workerCount < conf.max_workers_per_function;
-        }
+        // Add more workers if necessary
+        bool shouldAddWorker = redis->addWorker(counter, queueName, conf.max_queue_ratio, conf.max_workers_per_function);
 
         // Send bind message to pre-warm queue to enlist help of other workers
-        if (needsMoreWorkerThreads) {
-            if(hasCapacity) {
-                Scheduler::sendBindMessage(msg);
+        if (shouldAddWorker) {
+            Scheduler::sendBindMessage(msg);
 
-                logger->debug(
-                        "SCALE-UP {} - qr = {}/{} = {}, max_qr = {}, max_workers = {}",
-                        infra::funcToString(msg),
-                        queueLength, workerCount, queueRatio, conf.max_queue_ratio,
-                        conf.max_workers_per_function
-                );
-            }
-            else {
-                logger->debug(
-                        "BLOCKED {} - qr = {}/{} = {}, max_qr = {}, max_workers = {}",
-                        infra::funcToString(msg),
-                        queueLength, workerCount, queueRatio, conf.max_queue_ratio,
-                        conf.max_workers_per_function
-                );
-            }
-        }
-        else {
             logger->debug(
-                    "MAINTAIN {} - qr = {}/{} = {}, max_qr = {}, max_workers = {}",
-                    infra::funcToString(msg),
-                    queueLength, workerCount, queueRatio, conf.max_queue_ratio,
-                    conf.max_workers_per_function
+                    "SCALE-UP {}, max_qr = {}, max_workers = {}",
+                    infra::funcToString(msg), conf.max_queue_ratio, conf.max_workers_per_function
+            );
+        } else {
+            logger->debug(
+                    "MAINTAIN {}, max_qr = {}, max_workers = {}",
+                    infra::funcToString(msg), conf.max_queue_ratio, conf.max_workers_per_function
             );
         }
     }
 
     void Scheduler::sendBindMessage(const message::Message &msg) {
-        // Increment counter for this function
-        const std::string counter = Scheduler::getFunctionCounterName(msg);
-        Redis *redis = Redis::getThreadConnection();
-        redis->incr(counter);
+        // Function counter will already have been updated
 
         // Decrease prewarm counter
+        Redis *redis = Redis::getThreadConnection();
         redis->decr(infra::PREWARM_COUNTER);
 
         // Send the bind message
@@ -145,20 +124,6 @@ namespace infra {
         message::Message prewarmMsg;
         prewarmMsg.set_type(message::Message_MessageType_PREWARM);
         redis->enqueueMessage(infra::COLD_QUEUE, prewarmMsg);
-    }
-
-    std::string Scheduler::workerInitialisedCold() {
-        Redis *redis = Redis::getThreadConnection();
-        redis->incr(infra::COLD_COUNTER);
-
-        return infra::COLD_QUEUE;
-    }
-
-    std::string Scheduler::workerInitialisedPrewarm() {
-        Redis *redis = Redis::getThreadConnection();
-        redis->incr(infra::PREWARM_COUNTER);
-
-        return infra::PREWARM_QUEUE;
     }
 
     std::string Scheduler::workerColdToPrewarm() {

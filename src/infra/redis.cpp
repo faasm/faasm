@@ -2,6 +2,7 @@
 #include "util/util.h"
 #include "prof/prof.h"
 
+
 #include <thread>
 
 namespace infra {
@@ -12,6 +13,58 @@ namespace infra {
     // Once we have resolved the IP of the redis instance, we need to keep using it
     // This allows things operating within the network namespace to resolve it properly
     static std::string redisIp = "not_set";
+
+    // Script to atomically scale up a worker.  The logic is:
+    //
+    // 0. Get the current count and length of the queue
+    // 1. Check if we've exceeded the ratio
+    // 2a. If no workers at all, increment and return 1
+    // 2b. If ratio not exceeded, return 0
+    // 2c. If ratio exceeded, increment and return 1
+    // 2d. If ratio exceeded and at max workers, return 0
+    //
+    // See Redis docs for more info: https://redis.io/commands/eval
+    //
+    // Arguments are: counterName, queueName, maxQueueRatio, maxWorkers
+    static std::string addWorkerSha;
+    static std::string addWorkerCmd = "local workerCount = redis.call(\"GET\", KEYS[1]) \n"
+                                      "if not workerCount then \n"
+                                      "    redis.call(\"INCR\", KEYS[1]) \n"
+                                      "    return 1 \n"
+                                      "end \n"
+                                      ""
+                                      "workerCount = tonumber(workerCount) \n"
+                                      "local queueLen = redis.call(\"LLEN\", KEYS[2]) \n"
+                                      "local queueRatio = queueLen / workerCount \n"
+                                      "local maxQueueRatio = tonumber(ARGV[1]) \n"
+                                      "local maxCount = tonumber(ARGV[2])"
+                                      ""
+                                      "if queueRatio >= maxQueueRatio and workerCount < maxCount then \n"
+                                      "    redis.call(\"INCR\", KEYS[1]) \n"
+                                      "    return 1 \n"
+                                      "end \n"
+                                      ""
+                                      "return 0 \n";
+
+    // Script to atomically get whether a container should prewarm. Logic is:
+    //
+    // 0. Get the current prewarm count
+    // 1a. If it's less than the target
+    static std::string incrIfBelowTargetSha;
+    static std::string incrIfBelowTargetCmd = "local prewarmCount = redis.call(\"GET\", KEYS[1]) \n"
+                                          "if prewarmCount then \n"
+                                          "    prewarmCount = tonumber(prewarmCount) \n"
+                                          "else \n"
+                                          "    prewarmCount = 0 \n"
+                                          "end \n"
+                                          ""
+                                          "local prewarmTarget = tonumber(ARGV[1]) \n"
+                                          "if prewarmCount < prewarmTarget then \n"
+                                          "    redis.call(\"INCR\", KEYS[1]) \n"
+                                          "    return 1 \n"
+                                          "end \n"
+                                          ""
+                                          "return 0";
 
     Redis::Redis() {
         hostname = util::getEnvVar("REDIS_HOST", "localhost");
@@ -78,6 +131,63 @@ namespace infra {
 
         return result;
     }
+
+    std::string Redis::loadScript(const std::string &scriptBody) {
+        auto reply = (redisReply *) redisCommand(context, "SCRIPT LOAD %s", scriptBody.c_str());
+        if (reply->type == REDIS_REPLY_ERROR) {
+            throw (std::runtime_error(reply->str));
+        }
+
+        std::string scriptSha = reply->str;
+        freeReplyObject(reply);
+
+        return scriptSha;
+    }
+
+    long extractScriptResult(redisReply *reply) {
+        if (reply->type == REDIS_REPLY_ERROR) {
+            throw (std::runtime_error(reply->str));
+        }
+
+        long result = reply->integer;
+        freeReplyObject(reply);
+
+        return result;
+    }
+
+    bool Redis::addWorker(const std::string &counterName, const std::string &queueName,
+                          long maxRatio, long maxWorkers) {
+        // Create the script if not exists
+        if (addWorkerSha.empty()) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            addWorkerSha = this->loadScript(addWorkerCmd);
+            logger->debug("Loaded worker script with SHA {}", addWorkerSha);
+        };
+
+        // Invoke the script (number 2 says how many keys there are at the start of the argument list)
+        auto reply = (redisReply *) redisCommand(context, "EVALSHA %s 2 %s %s %li %li", addWorkerSha.c_str(),
+                                                 counterName.c_str(), queueName.c_str(), maxRatio, maxWorkers);
+
+        long result = extractScriptResult(reply);
+        return result == 1;
+    }
+
+    bool Redis::incrIfBelowTarget(const std::string &key, int target) {
+        // Create the script if not exists
+        if (incrIfBelowTargetSha.empty()) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            incrIfBelowTargetSha = this->loadScript(incrIfBelowTargetCmd);
+            logger->debug("Loaded incr below target script with SHA {}", incrIfBelowTargetSha);
+        };
+
+        // Invoke the script
+        auto reply = (redisReply *) redisCommand(context, "EVALSHA %s 1 %s %i", incrIfBelowTargetSha.c_str(),
+                                                 key.c_str(), target);
+
+        long result = extractScriptResult(reply);
+        return result == 1;
+    }
+
 
     void Redis::set(const std::string &key, const std::vector<uint8_t> &value) {
         auto reply = (redisReply *) redisCommand(context, "SET %s %b", key.c_str(), value.data(), value.size());

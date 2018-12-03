@@ -43,16 +43,16 @@ namespace worker {
         redis = infra::Redis::getThreadConnection();
 
         // If we need more prewarm containers, set this worker to be prewarm. If not, sit in cold queue
-        bool shouldPrewarm = infra::Scheduler::isNeedToPrewarm();
+        bool shouldPrewarm = infra::Scheduler::prewarmWorker();
         if (shouldPrewarm) {
             logger->debug("Prewarming worker {}", id);
 
-            currentQueue = infra::Scheduler::workerInitialisedPrewarm();
+            currentQueue = infra::PREWARM_QUEUE;
             this->initialise();
         } else {
             logger->debug("Cold starting worker {}", id);
 
-            currentQueue = infra::Scheduler::workerInitialisedCold();
+            currentQueue = infra::COLD_QUEUE;
         }
     }
 

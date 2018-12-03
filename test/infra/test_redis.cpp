@@ -106,13 +106,13 @@ namespace tests {
     TEST_CASE("Test set range", "[redis]") {
         Redis cli;
         cli.flushAll();
-        
+
         std::string key = "setrange_test";
-        
+
         std::string initialValue = "hello there world!";
         std::vector<uint8_t> bytesValue = util::stringToBytes(initialValue);
         cli.set(key, bytesValue);
-        
+
         REQUIRE(cli.get(key) == bytesValue);
 
         std::string replacement = "hello";
@@ -228,5 +228,119 @@ namespace tests {
         REQUIRE("some user" == actualCall2.user());
         REQUIRE("function 123" == actualCall2.resultkey());
         REQUIRE(actualCall2.success());
+    }
+
+    void _validateAddWorker(int nWorkers, int queueLengh, int maxRatio, int maxWorkers, bool expectIncrement) {
+        Redis cli;
+        cli.flushAll();
+
+        std::string counter = "dummyCount";
+        std::string queueName = "dummyQueue";
+
+        // Set up number of workers
+        for (int w = 0; w < nWorkers; w++) {
+            cli.incr(counter);
+        }
+
+        // Set up queue
+        for (int q = 0; q < queueLengh; q++) {
+            cli.enqueue(queueName, {0, 1});
+        }
+
+        // Call addWorker
+        bool shouldAddWorker = cli.addWorker(counter, queueName, maxRatio, maxWorkers);
+
+        // Check queue length hasn't changed
+        REQUIRE(cli.listLength(queueName) == queueLengh);
+
+        if (expectIncrement) {
+            // Check result indicates increment
+            REQUIRE(shouldAddWorker);
+
+            // Check worker count has been incremented
+            REQUIRE(cli.getCounter(counter) == nWorkers + 1);
+        } else {
+            // Check no change
+            REQUIRE(!shouldAddWorker);
+            REQUIRE(cli.getCounter(counter) == nWorkers);
+        }
+    }
+
+
+    TEST_CASE("Test add worker with zero counter causes addition", "[redis]") {
+        int nWorkers = 0;
+        int queueLength = 1;
+        int maxRatio = 5;
+        int maxWorkers = 10;
+        bool expectIncrement = true;
+
+        _validateAddWorker(nWorkers, queueLength, maxRatio, maxWorkers, expectIncrement);
+    }
+
+    TEST_CASE("Test add worker with queue but below threshold causes no addition", "[redis]") {
+        int nWorkers = 1;
+        int queueLength = 1;
+        int maxRatio = 5;
+        int maxWorkers = 10;
+        bool expectIncrement = false;
+
+        _validateAddWorker(nWorkers, queueLength, maxRatio, maxWorkers, expectIncrement);
+    }
+
+    TEST_CASE("Test add worker above threshold causes addition", "[redis]") {
+        int nWorkers = 1;
+        int queueLength = 6;
+        int maxRatio = 5;
+        int maxWorkers = 10;
+        bool expectIncrement = true;
+
+        _validateAddWorker(nWorkers, queueLength, maxRatio, maxWorkers, expectIncrement);
+    }
+
+    TEST_CASE("Test add worker above threshold but above worker limit causes no addition", "[redis]") {
+        int nWorkers = 6;
+        int queueLength = 100;
+        int maxRatio = 5;
+        int maxWorkers = 5;
+        bool expectIncrement = false;
+
+        _validateAddWorker(nWorkers, queueLength, maxRatio, maxWorkers, expectIncrement);
+    }
+
+    void _validateIncrIfBelowTarget(int currentValue, int target, bool expectIncr) {
+        Redis cli;
+        cli.flushAll();
+
+        std::string key = "incr_test";
+
+        for (int i = 0; i < currentValue; i++) {
+            cli.incr(key);
+        }
+
+        bool res = cli.incrIfBelowTarget(key, target);
+
+        if (expectIncr) {
+            REQUIRE(res);
+            REQUIRE(cli.getCounter(key) == currentValue + 1);
+        } else {
+            REQUIRE(!res);
+            REQUIRE(cli.getCounter(key) == currentValue);
+        }
+    }
+
+    TEST_CASE("Test incr below target increases if uninitialised", "[redis]") {
+        _validateIncrIfBelowTarget(0, 1, true);
+    }
+
+    TEST_CASE("Test incr below target increases if below target", "[redis]") {
+        _validateIncrIfBelowTarget(10, 12, true);
+    }
+
+    TEST_CASE("Test incr below target doesn't increase if equal", "[redis]") {
+        _validateIncrIfBelowTarget(10, 10, false);
+    }
+
+    TEST_CASE("Test incr below target doesn't increase if above", "[redis]") {
+        _validateIncrIfBelowTarget(15, 10, false);
     }
 }
