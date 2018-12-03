@@ -78,59 +78,29 @@ namespace infra {
         Redis *redis = Redis::getThreadConnection();
         const std::string queueName = Scheduler::getFunctionQueueName(msg);
         const std::string counter = Scheduler::getFunctionCounterName(msg);
-        long queueLength = redis->listLength(queueName);
-        long workerCount = redis->getCounter(counter);
 
-        // Check whether we need more workers
-        double queueRatio = 0;
-        bool needsMoreWorkerThreads;
-        bool hasCapacity = true;
-        if (workerCount == 0) {
-            needsMoreWorkerThreads = true;
-        } else {
-            queueRatio = double(queueLength) / workerCount;
-            needsMoreWorkerThreads = queueRatio > conf.max_queue_ratio;
-            hasCapacity = workerCount < conf.max_workers_per_function;
-        }
+        // Add more workers if necessary
+        long workerRes = redis->addWorker(queueName, counter, conf.max_queue_ratio, conf.max_workers_per_function);
 
         // Send bind message to pre-warm queue to enlist help of other workers
-        if (needsMoreWorkerThreads) {
-            if(hasCapacity) {
-                Scheduler::sendBindMessage(msg);
+        if (workerRes == 1) {
+            Scheduler::sendBindMessage(msg);
 
-                logger->debug(
-                        "SCALE-UP {} - qr = {}/{} = {}, max_qr = {}, max_workers = {}",
-                        infra::funcToString(msg),
-                        queueLength, workerCount, queueRatio, conf.max_queue_ratio,
-                        conf.max_workers_per_function
-                );
-            }
-            else {
-                logger->debug(
-                        "BLOCKED {} - qr = {}/{} = {}, max_qr = {}, max_workers = {}",
-                        infra::funcToString(msg),
-                        queueLength, workerCount, queueRatio, conf.max_queue_ratio,
-                        conf.max_workers_per_function
-                );
-            }
-        }
-        else {
             logger->debug(
-                    "MAINTAIN {} - qr = {}/{} = {}, max_qr = {}, max_workers = {}",
-                    infra::funcToString(msg),
-                    queueLength, workerCount, queueRatio, conf.max_queue_ratio,
-                    conf.max_workers_per_function
+                    "SCALE-UP {}, max_qr = {}, max_workers = {}",
+                    infra::funcToString(msg), conf.max_queue_ratio, conf.max_workers_per_function
+            );
+        } else {
+            logger->debug(
+                    "MAINTAIN {}, max_qr = {}, max_workers = {}",
+                    infra::funcToString(msg), conf.max_queue_ratio, conf.max_workers_per_function
             );
         }
     }
 
     void Scheduler::sendBindMessage(const message::Message &msg) {
-        // Increment counter for this function
-        const std::string counter = Scheduler::getFunctionCounterName(msg);
-        Redis *redis = Redis::getThreadConnection();
-        redis->incr(counter);
-
         // Decrease prewarm counter
+        Redis *redis = Redis::getThreadConnection();
         redis->decr(infra::PREWARM_COUNTER);
 
         // Send the bind message

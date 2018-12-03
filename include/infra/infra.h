@@ -47,6 +47,8 @@ namespace infra {
 
         long decr(const std::string &key);
 
+        long addWorker(const std::string &queueName, const std::string &counterName, long maxRatio, long maxWorkers);
+
         void setRange(const std::string &key, long offset, const std::vector<uint8_t> &value);
 
         std::vector<uint8_t> getRange(const std::string &key, long start, long end);
@@ -75,6 +77,7 @@ namespace infra {
         redisContext *context;
         std::string hostname;
         std::string port;
+        std::string addWorkerSha;
     };
 
     class RedisNoResponseException : public std::exception {

@@ -86,4 +86,7 @@ namespace util {
 
     // Networking
     std::string getIPFromHostname(const std::string &hostname);
+
+    // Hashing
+    std::string stringToSHA1(const std::string &strIn);
 }

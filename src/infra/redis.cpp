@@ -2,6 +2,7 @@
 #include "util/util.h"
 #include "prof/prof.h"
 
+
 #include <thread>
 
 namespace infra {
@@ -12,6 +13,29 @@ namespace infra {
     // Once we have resolved the IP of the redis instance, we need to keep using it
     // This allows things operating within the network namespace to resolve it properly
     static std::string redisIp = "not_set";
+
+    // We need to do a few operations atomically when scaling up a worker, so this is a Lua script.
+    // The logic is:
+    // 0. Get the current count and length of the queue
+    // 1. Check if we've exceeded the ratio
+    // 2a. If no workers at all, increment and return 1
+    // 2b. If ratio not exceeded, return 0
+    // 2c. If ratio exceeded, increment and return 1
+    // 2d. If ratio exceeded and at max workers, return 0
+    //
+    // See Redis docs for more info: https://redis.io/commands/eval
+    static std::string addWorkerCmd = "local count = redis.call(\"GET\", KEYS[1])"
+        "local queueLen = redis.call(\"LLEN\", KEYS[2])"
+        "if count == 0 then"
+        "    redis.call(\"INCR\", KEYS[1])"
+        "    return 1"
+        ""
+        "local queueRatio = queueLen / count"
+        "if queueRatio < ARGV[1] and count < ARGV[2]"
+        "    redis.call(\"INCR\", KEYS[1])"
+        "    return 1"
+        ""
+        "return 0";
 
     Redis::Redis() {
         hostname = util::getEnvVar("REDIS_HOST", "localhost");
@@ -78,6 +102,24 @@ namespace infra {
 
         return result;
     }
+
+    long Redis::addWorker(const std::string &queueName, const std::string &counterName, long maxRatio, long maxWorkers) {
+        // Create the script if not exists
+        if(addWorkerSha.empty()) {
+            addWorkerSha = util::stringToSHA1(addWorkerCmd);
+            auto reply = redisCommand(context, "SCRIPT LOAD %s", addWorkerCmd.c_str());
+            freeReplyObject(reply);
+        };
+
+        // Invoke the script
+        auto reply = (redisReply *) redisCommand(context, "EVALSHA addWorker 2 %s %s %li %li",
+                queueName.c_str(), counterName.c_str(), maxRatio, maxWorkers);
+        long result = reply->integer;
+        freeReplyObject(reply);
+
+        return result;
+    }
+
 
     void Redis::set(const std::string &key, const std::vector<uint8_t> &value) {
         auto reply = (redisReply *) redisCommand(context, "SET %s %b", key.c_str(), value.data(), value.size());
