@@ -21,18 +21,27 @@ namespace tests {
     void execFunction(message::Message &call) {
         // Set up worker to listen for relevant function
         WorkerThread w(1);
+        REQUIRE(w.isInitialised());
+        REQUIRE(!w.isBound());
 
-        // Tell the worker to bind to the function
-        infra::Scheduler::sendBindMessage(call);
-        w.processNextMessage();
-
-        // Check the worker is bound
-        REQUIRE(w.isBound());
-        REQUIRE(infra::Scheduler::getFunctionCount(call) == 1);
-
-        // Call the function
+        // Call the function, checking that everything is set up
         infra::Scheduler::callFunction(call);
+        REQUIRE(redis.listLength(infra::Scheduler::getFunctionQueueName(call)) == 1);
+        REQUIRE(infra::Scheduler::getFunctionCount(call) == 1);
+        REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 1);
+
+        // Process the bind message
         w.processNextMessage();
+        REQUIRE(w.isBound());
+        REQUIRE(redis.listLength(infra::Scheduler::getFunctionQueueName(call)) == 1);
+        REQUIRE(infra::Scheduler::getFunctionCount(call) == 1);
+        REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 0);
+
+        // Now execute the function
+        w.processNextMessage();
+        REQUIRE(redis.listLength(infra::Scheduler::getFunctionQueueName(call)) == 0);
+        REQUIRE(infra::Scheduler::getFunctionCount(call) == 1);
+        REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 0);
     }
 
     void checkBindMessage(const message::Message &expected) {

@@ -76,11 +76,11 @@ namespace infra {
 
         // Get queue details
         Redis *redis = Redis::getThreadConnection();
-        const std::string queueName = Scheduler::getFunctionQueueName(msg);
         const std::string counter = Scheduler::getFunctionCounterName(msg);
+        const std::string queueName = Scheduler::getFunctionQueueName(msg);
 
         // Add more workers if necessary
-        long workerRes = redis->addWorker(queueName, counter, conf.max_queue_ratio, conf.max_workers_per_function);
+        long workerRes = redis->addWorker(counter, queueName, conf.max_queue_ratio, conf.max_workers_per_function);
 
         // Send bind message to pre-warm queue to enlist help of other workers
         if (workerRes == 1) {
@@ -99,6 +99,8 @@ namespace infra {
     }
 
     void Scheduler::sendBindMessage(const message::Message &msg) {
+        // Function counter will already have been updated
+
         // Decrease prewarm counter
         Redis *redis = Redis::getThreadConnection();
         redis->decr(infra::PREWARM_COUNTER);

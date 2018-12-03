@@ -24,18 +24,26 @@ namespace infra {
     // 2d. If ratio exceeded and at max workers, return 0
     //
     // See Redis docs for more info: https://redis.io/commands/eval
-    static std::string addWorkerCmd = "local count = redis.call(\"GET\", KEYS[1])"
-        "local queueLen = redis.call(\"LLEN\", KEYS[2])"
-        "if count == 0 then"
-        "    redis.call(\"INCR\", KEYS[1])"
-        "    return 1"
-        ""
-        "local queueRatio = queueLen / count"
-        "if queueRatio < ARGV[1] and count < ARGV[2]"
-        "    redis.call(\"INCR\", KEYS[1])"
-        "    return 1"
-        ""
-        "return 0";
+    //
+    // Arguments are: counterName, queueName, maxQueueRatio, maxWorkers
+    static std::string addWorkerCmd = "local workerCount = redis.call(\"GET\", KEYS[1]) \n"
+                                      "if not workerCount then \n"
+                                      "    redis.call(\"INCR\", KEYS[1]) \n"
+                                      "    return 1 \n"
+                                      "end \n"
+                                      ""
+                                      "workerCount = tonumber(workerCount) \n"
+                                      "local queueLen = redis.call(\"LLEN\", KEYS[2]) \n"
+                                      "local queueRatio = queueLen / workerCount \n"
+                                      "local maxQueueRatio = tonumber(ARGV[1]) \n"
+                                      "local maxCount = tonumber(ARGV[2])"
+                                      ""
+                                      "if queueRatio >= maxQueueRatio and workerCount < maxCount then \n"
+                                      "    redis.call(\"INCR\", KEYS[1]) \n"
+                                      "    return 1 \n"
+                                      "end \n"
+                                      ""
+                                      "return 0 \n";
 
     Redis::Redis() {
         hostname = util::getEnvVar("REDIS_HOST", "localhost");
@@ -103,17 +111,31 @@ namespace infra {
         return result;
     }
 
-    long Redis::addWorker(const std::string &queueName, const std::string &counterName, long maxRatio, long maxWorkers) {
+    long Redis::addWorker(const std::string &counterName, const std::string &queueName,
+                          long maxRatio, long maxWorkers) {
         // Create the script if not exists
-        if(addWorkerSha.empty()) {
-            addWorkerSha = util::stringToSHA1(addWorkerCmd);
-            auto reply = redisCommand(context, "SCRIPT LOAD %s", addWorkerCmd.c_str());
+        if (addWorkerSha.empty()) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+            auto reply = (redisReply *) redisCommand(context, "SCRIPT LOAD %s", addWorkerCmd.c_str());
+            if (reply->type == REDIS_REPLY_ERROR) {
+                throw (std::runtime_error(reply->str));
+            }
+
+            addWorkerSha = reply->str;
+            logger->debug("Loaded addWorker function with SHA {}", addWorkerSha);
+
             freeReplyObject(reply);
         };
 
-        // Invoke the script
-        auto reply = (redisReply *) redisCommand(context, "EVALSHA addWorker 2 %s %s %li %li",
-                queueName.c_str(), counterName.c_str(), maxRatio, maxWorkers);
+        // Invoke the script (number 2 says how many keys there are at the start of the argument list)
+        auto reply = (redisReply *) redisCommand(context, "EVALSHA %s 2 %s %s %li %li", addWorkerSha.c_str(),
+                                                 counterName.c_str(), queueName.c_str(), maxRatio, maxWorkers);
+
+        if (reply->type == REDIS_REPLY_ERROR) {
+            throw (std::runtime_error(reply->str));
+        }
+
         long result = reply->integer;
         freeReplyObject(reply);
 

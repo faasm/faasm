@@ -47,7 +47,7 @@ namespace infra {
 
         long decr(const std::string &key);
 
-        long addWorker(const std::string &queueName, const std::string &counterName, long maxRatio, long maxWorkers);
+        long addWorker(const std::string &counterName, const std::string &queueName, long maxRatio, long maxWorkers);
 
         void setRange(const std::string &key, long offset, const std::vector<uint8_t> &value);
 
