@@ -9,10 +9,13 @@ namespace tests {
 
     void execErrorFunction(message::Message &call) {
         WorkerThread w(1);
-        w.bindToFunction(call);
 
         infra::Scheduler::callFunction(call);
 
+        // Bind message
+        w.processNextMessage();
+
+        // Execution message
         w.processNextMessage();
     }
 

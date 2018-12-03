@@ -168,11 +168,7 @@ namespace tests {
         Redis cli;
         cli.flushAll();
 
-        // Fake a couple of prewarms
-        Scheduler::workerInitialisedPrewarm();
-        Scheduler::workerInitialisedPrewarm();
-
-        // Bind to a couple of functions
+        // Set up calls
         message::Message callA;
         callA.set_user("userA");
         callA.set_function("funcA");
@@ -181,13 +177,13 @@ namespace tests {
         callB.set_user("userB");
         callB.set_function("funcB");
 
-        Scheduler::sendBindMessage(callA);
-        Scheduler::sendBindMessage(callB);
+        // Call each function
+        Scheduler::callFunction(callA);
+        Scheduler::callFunction(callB);
 
-        // Check that counters are not updated (should be done before bind is dispatched)
-        REQUIRE(Scheduler::getFunctionCount(callA) == 0);
-        REQUIRE(Scheduler::getFunctionCount(callB) == 0);
-        REQUIRE(Scheduler::getPrewarmCount() == 0);
+        // Check that counters are updated (should be done before bind is dispatched)
+        REQUIRE(Scheduler::getFunctionCount(callA) == 1);
+        REQUIRE(Scheduler::getFunctionCount(callB) == 1);
 
         // Check that bind messages have been sent
         const message::Message bindA = cli.nextMessage(PREWARM_QUEUE);

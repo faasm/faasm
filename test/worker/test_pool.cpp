@@ -153,11 +153,11 @@ namespace tests {
         REQUIRE(infra::Scheduler::getPrewarmCount() == 1);
         REQUIRE(infra::Scheduler::getColdCount() == 0);
 
-        // Request a worker to bind
+        // Invoke a new call which will require a worker to bind
         message::Message call;
         call.set_user("demo");
         call.set_function("echo");
-        infra::Scheduler::sendBindMessage(call);
+        infra::Scheduler::callFunction(call);
 
         // Check message is on the prewarm queue
         REQUIRE(redis.listLength(infra::PREWARM_QUEUE) == 1);
@@ -230,11 +230,10 @@ namespace tests {
         WorkerThread w(1);
 
         // Tell the worker to bind to the function
-        infra::Scheduler::sendBindMessage(call);
+        infra::Scheduler::callFunction(call);
         w.processNextMessage();
 
-        // Call the function
-        infra::Scheduler::callFunction(call);
+        // Exec the function
         w.processNextMessage();
 
         message::Message resultA = redis.getFunctionResult(call);
@@ -265,13 +264,14 @@ namespace tests {
         call.set_function("increment");
         call.set_resultkey("test_state_incr");
 
-        // Set up worker to listen for relevant function
+        // Call function
         WorkerThread w(1);
-        infra::Scheduler::sendBindMessage(call);
+        infra::Scheduler::callFunction(call);
+
+        // Process bind
         w.processNextMessage();
 
-        // Call the function
-        infra::Scheduler::callFunction(call);
+        // Exec the function
         w.processNextMessage();
 
         // Check result

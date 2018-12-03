@@ -120,8 +120,9 @@ namespace infra {
 
         static std::string getFunctionQueueName(const message::Message &msg);
 
-        static void sendBindMessage(const message::Message &msg);
     private:
+        static void sendBindMessage(const message::Message &msg);
+
         static void updateWorkerAllocs(const message::Message &msg);
 
         static std::string getFunctionCounterName(const message::Message &msg);
