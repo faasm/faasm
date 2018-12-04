@@ -9,7 +9,7 @@ namespace faasm {
         SgdParams p = readParamsFromState(memory, PARAMS_KEY);
 
         // Get current epoch count (starts at zero)
-        uint8_t thisEpoch = getCounter(memory, EPOCH_COUNT_KEY);
+        int thisEpoch = getCounter(memory, EPOCH_COUNT_KEY);
 
         // See if we've finished the epoch
         bool isFinished = readEpochFinished(memory, p);
