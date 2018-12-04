@@ -6,7 +6,7 @@
 
 using namespace Eigen;
 
-#define EPOCH_COUNT_KEY "epochCount"
+#define EPOCH_COUNT_KEY "epoch_count"
 #define WEIGHTS_KEY "weights"
 #define INPUTS_KEY "inputs"
 #define OUTPUTS_KEY "outputs"

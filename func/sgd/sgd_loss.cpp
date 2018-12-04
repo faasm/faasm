@@ -19,9 +19,11 @@ namespace faasm {
         memory->readState(LOSS_TIMESTAMPS_KEY, tsBuffer, tsBytes);
         auto ts = reinterpret_cast<long *>(tsBuffer);
 
+        long baseTs = ts[0];
         std::string lossString;
         for (long l = 0; l < p.nEpochs; l++) {
-            lossString += std::to_string(ts[l]) + " - " + std::to_string(losses[l]);
+            long relativeTs = ts[l] - baseTs;
+            lossString += std::to_string(relativeTs) + " - " + std::to_string(losses[l]);
 
             if (l < p.nEpochs - 1) {
                 lossString += ", ";
