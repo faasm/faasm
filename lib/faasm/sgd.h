@@ -14,6 +14,7 @@ using namespace Eigen;
 #define ERRORS_KEY "errors"
 #define FINISHED_KEY "finished"
 #define LOSSES_KEY "losses"
+#define LOSS_TIMESTAMPS_KEY "loss_ts"
 
 
 namespace faasm {

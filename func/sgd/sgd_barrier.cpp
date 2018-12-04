@@ -1,3 +1,4 @@
+#include "faasm/time.h"
 #include "faasm/faasm.h"
 #include "faasm/matrix.h"
 #include "faasm/counter.h"
@@ -21,10 +22,16 @@ namespace faasm {
         // Calculate the error
         double rmse = faasm::readRootMeanSquaredError(memory, p);
 
+        // Record the time for this epoch
+        long ts = faasm::getMillisSinceEpoch();
+        long tsOffset = thisEpoch * sizeof(long);
+        auto tsBytes = reinterpret_cast<uint8_t *>(&ts);
+        memory->writeStateOffset(LOSS_TIMESTAMPS_KEY, tsOffset, tsBytes, sizeof(long));
+
         // Record the loss for this epoch
-        long offset = thisEpoch * sizeof(double);
+        long lossOffset = thisEpoch * sizeof(double);
         auto rmseBytes = reinterpret_cast<uint8_t *>(&rmse);
-        memory->writeStateOffset(LOSSES_KEY, offset, rmseBytes, sizeof(double));
+        memory->writeStateOffset(LOSSES_KEY, lossOffset, rmseBytes, sizeof(double));
 
         // Drop out if finished all epochs
         if (thisEpoch >= p.nEpochs - 1) {
