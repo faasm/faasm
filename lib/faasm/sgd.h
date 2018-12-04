@@ -6,7 +6,7 @@
 
 using namespace Eigen;
 
-#define EPOCH_COUNT_KEY "epochCount"
+#define EPOCH_COUNT_KEY "epoch_count"
 #define WEIGHTS_KEY "weights"
 #define INPUTS_KEY "inputs"
 #define OUTPUTS_KEY "outputs"
@@ -14,6 +14,7 @@ using namespace Eigen;
 #define ERRORS_KEY "errors"
 #define FINISHED_KEY "finished"
 #define LOSSES_KEY "losses"
+#define LOSS_TIMESTAMPS_KEY "loss_ts"
 
 
 namespace faasm {

@@ -20,6 +20,7 @@ add_library(faasm STATIC
         memory.cpp
         random.cpp
         sgd.cpp
+        time.cpp
         )
 
 set(PUBLIC_HEADERS
@@ -29,6 +30,7 @@ set(PUBLIC_HEADERS
         faasm/memory.h
         faasm/random.h
         faasm/sgd.h
+        faasm/time.h
         )
 
 set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
