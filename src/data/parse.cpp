@@ -26,21 +26,19 @@ int main() {
 
     std::string line;
 
-    Eigen::SparseMatrix<double> mat(rowCount, colCount);
     std::vector<Eigen::Triplet<double>> triplets;
 
     int count = 0;
+    int maxCol = 0;
     while (getline(input, line)) {
-        printf("%i: %s\n", count, line.c_str());
-        count ++;
-
+        // Split up the line
         const std::vector<std::string> lineTokens = util::tokeniseString(line, ' ');
         std::string cat = lineTokens[0];
 
-        for(int i = 1; i < lineTokens.size(); i++) {
+        for (int i = 1; i < lineTokens.size(); i++) {
             // Ignore empty token
             std::basic_string<char> thisToken = lineTokens[i];
-            if(util::isAllWhitespace(thisToken)) {
+            if (util::isAllWhitespace(thisToken)) {
                 continue;
             }
 
@@ -49,16 +47,24 @@ int main() {
             int col = std::stoi(valueTokens[0]);
             double weight = std::stof(valueTokens[1]);
 
-            // Add to matrix
-            triplets.emplace_back(Eigen::Triplet<double>(i, col, weight));
+            // Add to matrix.
+            // NOTE: the file is 1-based. With triplets, eigen is zero-based (although when
+            // indexing an array it's 1-based)
+            triplets.emplace_back(Eigen::Triplet<double>(count, col - 1, weight));
+
+            maxCol = std::max(maxCol, col);
         };
 
-        if(count > 10) {
-            break;
-        }
+        // Move onto next row
+        count++;
     }
-    
+
+    // Close off the file
     input.close();
+
+    // Build a sparse matrix
+    Eigen::SparseMatrix<double> mat(rowCount, colCount);
+    mat.setFromTriplets(triplets.begin(), triplets.end());
 
     return 0;
 }
