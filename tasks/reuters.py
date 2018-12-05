@@ -3,6 +3,7 @@ from os.path import join
 from invoke import task
 
 from tasks.download import download_proj
+from tasks.env import DOWNLOAD_DIR
 
 URL = "https://archive.ics.uci.edu/ml/machine-learning-databases/00259/rcv1rcv2aminigoutte.tar.bz2"
 
@@ -13,18 +14,25 @@ TARGET_CATEGORY = "CCAT"
 
 @task
 def reuters_download(ctx):
-    extract_dir, build_dir = download_proj(
+    download_proj(
         URL,
         "rcv1rcv2aminigoutte",
         extension="tar.bz2"
     )
 
+
+@task
+def reuters_parse(ctx):
+    extract_dir = join(DOWNLOAD_DIR, "rcv1rcv2aminigoutte")
+
     raw_fh = open(join(extract_dir, "EN", "Index_EN-EN"), "r")
     inputs_fh = open(join(extract_dir, "inputs.txt"), "wb")
     categories_fh = open(join(extract_dir, "categories.txt"), "wb")
 
-    # Each line has format of:
+    # Process inputs. Each line has format of:
     # <cat> <idx>:<count> <idx>:<count> <idx>:<count> ...
+    # Where cat is the category of the article and the idx:count pairs are the weight of given words
+    #
     # E.g.
     # ECAT 1:-4.267123 3:1.233134 4:1.313571 5:1.644876 10:2.773822 21:3.362793 ...
     line_count = 0
