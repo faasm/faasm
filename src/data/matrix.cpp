@@ -1,0 +1,60 @@
+#include "data.h"
+
+#include <util/util.h>
+#include <faasm/matrix.h>
+
+#include <boost/filesystem.hpp>
+
+using namespace boost::filesystem;
+
+namespace data {
+    struct SparseFiles {
+        path valuesPath;
+        path innersPath;
+        path outerPath;
+        path sizePath;
+        path nonZeroPath;
+    };
+
+    SparseFiles getSparseFiles(const path &basePath) {
+        SparseFiles files{};
+
+        files.valuesPath = basePath;
+        files.valuesPath.append("values");
+
+        files.innersPath = basePath;
+        files.innersPath.append("inner");
+
+        files.outerPath = basePath;
+        files.outerPath.append("outer");
+
+        files.sizePath = basePath;
+        files.sizePath.append("size");
+
+        files.nonZeroPath = basePath;
+        files.nonZeroPath.append("nonzero");
+
+        return files;
+    }
+
+    void _doWriteToFile(const path &filePath, const uint8_t* bytesPtr, size_t bytesLen) {
+        const std::vector<uint8_t> bytes = std::vector<uint8_t>(bytesPtr, bytesPtr + bytesLen);
+
+        printf("Writing %li bytes to %s\n", bytes.size(), filePath.c_str());
+
+        util::writeBytesToFile(filePath.string(), bytes);
+    }
+
+    void SparseMatrixFileSerialiser::writeToFile(const std::string &directory) {
+        path dir(directory);
+        SparseFiles files = getSparseFiles(dir);
+
+        _doWriteToFile(files.valuesPath, valueBytes, nValueBytes);
+        _doWriteToFile(files.innersPath, innerBytes, nInnerBytes);
+        _doWriteToFile(files.outerPath, outerBytes, nOuterBytes);
+        _doWriteToFile(files.sizePath, sizeBytes, nSizeBytes);
+        _doWriteToFile(files.nonZeroPath, nonZeroBytes, nNonZeroBytes);
+    }
+}
+
+

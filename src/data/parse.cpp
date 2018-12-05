@@ -1,3 +1,5 @@
+#include "data/data.h"
+
 #include <string>
 #include <iostream>
 #include <boost/filesystem.hpp>
@@ -8,7 +10,7 @@
 
 using namespace boost::filesystem;
 
-int main() {
+const Eigen::SparseMatrix<double> readReutersToMatrix() {
     std::string targetCategory = "CCAT";
     path outputDir("/home/scs17/faasm/reuters");
     path downloadDir("/home/scs17/faasm/rcv1rcv2aminigoutte");
@@ -66,8 +68,14 @@ int main() {
     Eigen::SparseMatrix<double> mat(rowCount, colCount);
     mat.setFromTriplets(triplets.begin(), triplets.end());
 
-    // Convert to bytes
-    faasm::
+    return mat;
+}
+
+int main() {
+    const Eigen::SparseMatrix<double> mat = readReutersToMatrix();
+
+    data::SparseMatrixFileSerialiser s(mat);
+    s.writeToFile("/tmp/reuters_out/");
 
     return 0;
 }

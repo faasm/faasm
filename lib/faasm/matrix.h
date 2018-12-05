@@ -11,9 +11,67 @@ using namespace Eigen;
 
 namespace faasm {
 
+    struct SparseSizes {
+        long cols;
+        long rows;
+        long nNonZeros;
+
+        size_t valuesLen;
+        size_t innerLen;
+        size_t outerLen;
+    };
+
+    struct SparseKeys {
+        char *valueKey;
+        char *innerKey;
+        char *outerKey;
+        char *sizeKey;
+        char *nonZeroKey;
+
+        ~SparseKeys() {
+            delete[] valueKey;
+            delete[] innerKey;
+            delete[] outerKey;
+            delete[] sizeKey;
+            delete[] nonZeroKey;
+        }
+    };
+
+    SparseKeys getSparseKeys(const char *key);
+
+    class SparseMatrixSerialiser {
+    public:
+        explicit SparseMatrixSerialiser(const SparseMatrix<double> &matIn);
+
+        void writeToState(FaasmMemory *memory, const char *key);
+
+        ~SparseMatrixSerialiser();
+
+        const SparseMatrix<double> &mat;
+
+        const uint8_t *valueBytes;
+        size_t nValueBytes;
+
+        const uint8_t *innerBytes;
+        size_t nInnerBytes;
+
+        const uint8_t *outerBytes;
+        size_t nOuterBytes;
+
+        const uint8_t *nonZeroBytes;
+        size_t nNonZeroBytes;
+
+        const uint8_t *sizeBytes;
+        size_t nSizeBytes;
+
+    private:
+        int *nonZeroCounts;
+        SparseSizes sizes{};
+    };
+
     void writeSparseMatrixToState(FaasmMemory *memory, const char *key, const SparseMatrix<double> &mat);
 
-    SparseMatrix<double> readSparseMatrixFromState(FaasmMemory *memory, const char* key);
+    SparseMatrix<double> readSparseMatrixFromState(FaasmMemory *memory, const char *key);
 
     MatrixXd randomDenseMatrix(int rows, int cols);
 
@@ -34,7 +92,7 @@ namespace faasm {
     MatrixXd readMatrixColumnsFromState(FaasmMemory *memory, const char *key, long colStart, long colEnd, long nRows);
 
     SparseMatrix<double> readSparseMatrixColumnsFromState(FaasmMemory *memory, const char *key, long colStart,
-            long colEnd);
+                                                          long colEnd);
 
     void shuffleMatrixColumns(MatrixXd &matrix);
 
