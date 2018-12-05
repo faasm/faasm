@@ -49,6 +49,8 @@ namespace data {
         path dir(directory);
         SparseFiles files = getSparseFiles(dir);
 
+        boost::filesystem::create_directories(dir);
+
         _doWriteToFile(files.valuesPath, valueBytes, nValueBytes);
         _doWriteToFile(files.innersPath, innerBytes, nInnerBytes);
         _doWriteToFile(files.outerPath, outerBytes, nOuterBytes);

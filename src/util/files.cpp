@@ -38,7 +38,15 @@ namespace util {
     }
 
     void writeBytesToFile(const std::string &path, const std::vector<uint8_t> &data) {
-        std::ofstream outfile(path, std::ios::out | std::ios::binary);
+        std::ofstream outfile;
+        outfile.open(path, std::ios::out | std::ios::binary);
+
+        if (!outfile.is_open()) {
+            throw std::runtime_error("Could not write to file");
+        }
+
         outfile.write((char*) data.data(), data.size());
+
+        outfile.close();
     }
 }
