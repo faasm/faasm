@@ -12,6 +12,6 @@ target_link_libraries(
         util
 )
 
-add_executable(reuters parse.cpp)
+add_executable(reuters reuters.cpp)
 
 target_link_libraries(reuters data)

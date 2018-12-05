@@ -1,4 +1,5 @@
 from tasks.compile import lib, compile, funcs
+
 from tasks.docker import (
     build_base,
     build_edge,
@@ -13,10 +14,11 @@ from tasks.docker import (
     pull,
     push_base
 )
+
 from tasks.docker_compose import start_all, stop_all, restart_all
+
 from tasks.reuters import reuters_download
-from tasks.upload import upload
-from tasks.wasm2wast import wast
+
 from tasks.setup import (
     setup_namespaces,
     setup_net_files,
@@ -28,3 +30,10 @@ from tasks.setup import (
     setup_spdlog,
     setup_pistache
 )
+
+from tasks.state import upload_sparse_matrix
+
+from tasks.upload import upload
+
+from tasks.wasm2wast import wast
+

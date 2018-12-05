@@ -16,23 +16,25 @@ namespace data {
         path nonZeroPath;
     };
 
+    // These filenames should match with the SparseKeys structs to make
+    // transferring more simple
     SparseFiles getSparseFiles(const path &basePath) {
         SparseFiles files{};
 
         files.valuesPath = basePath;
-        files.valuesPath.append("values");
+        files.valuesPath.append("vals");
 
         files.innersPath = basePath;
-        files.innersPath.append("inner");
+        files.innersPath.append("innr");
 
         files.outerPath = basePath;
-        files.outerPath.append("outer");
+        files.outerPath.append("outr");
 
         files.sizePath = basePath;
         files.sizePath.append("size");
 
         files.nonZeroPath = basePath;
-        files.nonZeroPath.append("nonzero");
+        files.nonZeroPath.append("nonz");
 
         return files;
     }

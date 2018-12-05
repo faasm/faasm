@@ -74,6 +74,11 @@ const Eigen::SparseMatrix<double> readReutersToMatrix() {
 int main() {
     const Eigen::SparseMatrix<double> mat = readReutersToMatrix();
 
+    path dir("/tmp/reuters_out");
+    if(exists(dir)) {
+        remove_all(dir);
+    }
+
     data::SparseMatrixFileSerialiser s(mat);
     s.writeToFile("/tmp/reuters_out/");
 
