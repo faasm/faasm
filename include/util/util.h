@@ -89,4 +89,8 @@ namespace util {
 
     // Hashing
     std::string stringToSHA1(const std::string &strIn);
+
+    // Strings
+    std::vector<std::string> tokeniseString(const std::string &input, char delimiter);
+    bool isAllWhitespace(const std::string &input);
 }

@@ -9,6 +9,7 @@ add_library(util STATIC
         logging.cpp
         network.cpp
         random.cpp
+        strings.cpp
         tokens.cpp
         ${FAASM_INCLUDE_DIR}/util/util.h)
 
@@ -16,4 +17,6 @@ target_link_libraries(
         util
         ssl
         crypto
+        boost_system
+        boost_filesystem
 )
