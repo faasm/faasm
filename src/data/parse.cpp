@@ -66,5 +66,8 @@ int main() {
     Eigen::SparseMatrix<double> mat(rowCount, colCount);
     mat.setFromTriplets(triplets.begin(), triplets.end());
 
+    // Convert to bytes
+    faasm::
+
     return 0;
 }
