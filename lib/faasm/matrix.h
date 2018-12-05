@@ -45,6 +45,11 @@ namespace faasm {
 
         void writeToState(FaasmMemory *memory, const char *key);
 
+        static SparseMatrix<double> readFromBytes(const SparseSizes &sizes,
+                                                  uint8_t * outerBytes,
+                                                  uint8_t * innerBytes,
+                                                  uint8_t * valuesBytes);
+
         ~SparseMatrixSerialiser();
 
         const SparseMatrix<double> &mat;

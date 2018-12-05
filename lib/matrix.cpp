@@ -19,7 +19,8 @@ namespace faasm {
         std::uniform_real_distribution<double> dist(0.0, 1.0);
 
         // Create a list of triplets
-        std::vector<Triplet<double>> triplets;
+        std::vector<Triplet < double>>
+        triplets;
 
         for (int i = 0; i < rows; ++i) {
             for (int j = 0; j < cols; ++j) {
@@ -63,7 +64,7 @@ namespace faasm {
     MatrixXd bytesToMatrix(uint8_t *byteArray, long rows, long columns) {
         auto doubleArray = reinterpret_cast<double *>(&byteArray[0]);
 
-        Map<MatrixXd> mat(&doubleArray[0], rows, columns);
+        Map <MatrixXd> mat(&doubleArray[0], rows, columns);
 
         return mat;
     }
@@ -148,6 +149,30 @@ namespace faasm {
         memory->writeState(keys.sizeKey, sizeBytes, nSizeBytes);
     }
 
+    SparseMatrix<double> SparseMatrixSerialiser::readFromBytes(
+            const SparseSizes &sizes,
+            uint8_t *outerBytes,
+            uint8_t *innerBytes,
+            uint8_t *valuesBytes
+    ) {
+
+        auto outerPtr = reinterpret_cast<int *>(outerBytes);
+        auto innerPtr = reinterpret_cast<int *>(innerBytes);
+        auto valuePtr = reinterpret_cast<double *>(valuesBytes);
+
+        // Use eigen to import from the buffers
+        Map <SparseMatrix<double>> mat(
+                sizes.rows,
+                sizes.cols,
+                sizes.nNonZeros,
+                outerPtr,
+                innerPtr,
+                valuePtr
+        );
+
+        return mat;
+    }
+
     SparseMatrixSerialiser::~SparseMatrixSerialiser() {
         delete[] nonZeroCounts;
     }
@@ -178,21 +203,12 @@ namespace faasm {
         memory->readState(keys.innerKey, innerBytes, sizes.innerLen);
         memory->readState(keys.valueKey, valuesBytes, sizes.valuesLen);
 
-        auto outerPtr = reinterpret_cast<int *>(outerBytes);
-        auto innerPtr = reinterpret_cast<int *>(innerBytes);
-        auto valuePtr = reinterpret_cast<double *>(valuesBytes);
-
-        // Use eigen to import from the buffers
-        Map<SparseMatrix<double>> mat(
-                sizes.rows,
-                sizes.cols,
-                sizes.nNonZeros,
-                outerPtr,
-                innerPtr,
-                valuePtr
+        return SparseMatrixSerialiser::readFromBytes(
+                sizes,
+                outerBytes,
+                innerBytes,
+                valuesBytes
         );
-
-        return mat;
     }
 
     /**
@@ -252,7 +268,7 @@ namespace faasm {
         auto innerPtr = reinterpret_cast<int *>(innerBytes);
 
         // Use eigen to import from the buffers
-        Map<SparseMatrix<double>> mat(
+        Map <SparseMatrix<double>> mat(
                 sizes.rows,
                 nCols,
                 nValues,

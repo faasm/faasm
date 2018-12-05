@@ -1,14 +1,17 @@
 include_directories(${FAASM_INCLUDE_DIR}/data)
 
-add_executable(
-        reuters
+add_library(data STATIC
         matrix.cpp
-        parse.cpp
-)
+        ${FAASM_INCLUDE_DIR}/data/data.h
+        )
 
 target_link_libraries(
-        reuters
+        data
         faasm
         emulator
         util
 )
+
+add_executable(reuters parse.cpp)
+
+target_link_libraries(reuters data)

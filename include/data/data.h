@@ -9,6 +9,7 @@ namespace data {
         using SparseMatrixSerialiser::SparseMatrixSerialiser;
 
         void writeToFile(const std::string &directory);
-    };
 
+        static SparseMatrix<double> readFromFiles(const std::string &directory);
+    };
 }

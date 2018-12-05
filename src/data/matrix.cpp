@@ -37,7 +37,7 @@ namespace data {
         return files;
     }
 
-    void _doWriteToFile(const path &filePath, const uint8_t* bytesPtr, size_t bytesLen) {
+    void _doWriteToFile(const path &filePath, const uint8_t *bytesPtr, size_t bytesLen) {
         const std::vector<uint8_t> bytes = std::vector<uint8_t>(bytesPtr, bytesPtr + bytesLen);
 
         printf("Writing %li bytes to %s\n", bytes.size(), filePath.c_str());
@@ -56,6 +56,25 @@ namespace data {
         _doWriteToFile(files.outerPath, outerBytes, nOuterBytes);
         _doWriteToFile(files.sizePath, sizeBytes, nSizeBytes);
         _doWriteToFile(files.nonZeroPath, nonZeroBytes, nNonZeroBytes);
+    }
+
+    SparseMatrix<double> SparseMatrixFileSerialiser::readFromFiles(const std::string &directory) {
+        path dir(directory);
+        SparseFiles files = getSparseFiles(dir);
+
+        std::vector<uint8_t> sizeBytes = util::readFileToBytes(files.sizePath.string());
+        auto sizes = reinterpret_cast<faasm::SparseSizes *>(sizeBytes.data());
+
+        std::vector<uint8_t> valueBytes = util::readFileToBytes(files.valuesPath.string());
+        std::vector<uint8_t> innerBytes = util::readFileToBytes(files.innersPath.string());
+        std::vector<uint8_t> outerBytes = util::readFileToBytes(files.outerPath.string());
+
+        return SparseMatrixSerialiser::readFromBytes(
+                *sizes,
+                outerBytes.data(),
+                innerBytes.data(),
+                valueBytes.data()
+        );
     }
 }
 
