@@ -19,8 +19,8 @@ namespace faasm {
         std::uniform_real_distribution<double> dist(0.0, 1.0);
 
         // Create a list of triplets
-        std::vector<Triplet < double>>
-        triplets;
+        std::vector<Triplet<double>>
+                triplets;
 
         for (int i = 0; i < rows; ++i) {
             for (int j = 0; j < cols; ++j) {
@@ -64,7 +64,7 @@ namespace faasm {
     MatrixXd bytesToMatrix(uint8_t *byteArray, long rows, long columns) {
         auto doubleArray = reinterpret_cast<double *>(&byteArray[0]);
 
-        Map <MatrixXd> mat(&doubleArray[0], rows, columns);
+        Map<MatrixXd> mat(&doubleArray[0], rows, columns);
 
         return mat;
     }
@@ -161,7 +161,7 @@ namespace faasm {
         auto valuePtr = reinterpret_cast<double *>(valuesBytes);
 
         // Use eigen to import from the buffers
-        Map <SparseMatrix<double>> mat(
+        Map<SparseMatrix<double>> mat(
                 sizes.rows,
                 sizes.cols,
                 sizes.nNonZeros,
@@ -268,7 +268,7 @@ namespace faasm {
         auto innerPtr = reinterpret_cast<int *>(innerBytes);
 
         // Use eigen to import from the buffers
-        Map <SparseMatrix<double>> mat(
+        Map<SparseMatrix<double>> mat(
                 sizes.rows,
                 nCols,
                 nValues,
@@ -377,7 +377,7 @@ namespace faasm {
     }
 
     /**
-     * Sums the squared error between two vectors when the value in the first is non-zero
+     * Sums the squared error between two vectors
      */
     double calculateSquaredError(const MatrixXd &a, const MatrixXd &b) {
         MatrixXd diff = a - b;
@@ -392,6 +392,26 @@ namespace faasm {
 
         return squaredError;
     }
+
+    /**
+     * Calculates the hinge error between two vectors
+     */
+    double calculateHingeError(const MatrixXd &a, const MatrixXd &b) {
+        MatrixXd actual = a * b;
+
+        double err = 0;
+        for (long r = 0; r < actual.rows(); r++) {
+            for (long c = 0; c < actual.cols(); c++) {
+                double e = actual.coeff(r, c);
+                if(e < 0) {
+                    err += e;
+                }
+            }
+        }
+
+        return err;
+    }
+
 
     /**
      * Finds the mean squared error between two matrices

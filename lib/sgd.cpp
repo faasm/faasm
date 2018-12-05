@@ -24,14 +24,42 @@ namespace faasm {
         return s;
     }
 
+    MatrixXd hingeLossWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int epoch, MatrixXd &weights,
+                               const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
+        // Work out the first term in the hinge loss
+        MatrixXd actual = weights * inputs;
+        MatrixXd wxy = actual * outputs;
+
+        // Work out step sizes that can be vectorised
+        MatrixXd steps = (sgdParams.learningRate * outputs) * inputs;
+
+        for (int w = 0; w < sgdParams.nWeights; w++) {
+            double thisWxy = wxy(0, w);
+
+            if (abs(thisWxy) < 0.00000001) {
+                continue;
+            }
+
+            // Extra update for misclassification
+            if (thisWxy < 1) {
+                weights(0, w) += steps(w);
+            }
+
+            // Update regardless of hinge status
+            weights(0, w) -= (sgdParams.learningRate * weights(0, w)) / epoch;
+        }
+
+        return actual;
+    }
+
     MatrixXd leastSquaresWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, MatrixXd &weights,
                                       const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
         // Work out error
-        long batchSize = inputs.cols();
         MatrixXd actual = weights * inputs;
         MatrixXd error = actual - outputs;
 
         // Calculate gradient
+        long batchSize = inputs.cols();
         MatrixXd gradient = (2.0 / batchSize) * (error * inputs.transpose());
 
         // Update weights based on gradient
@@ -83,12 +111,21 @@ namespace faasm {
         zeroArray(memory, LOSSES_KEY, sgdParams.nEpochs);
     }
 
-    void writeSquaredError(FaasmMemory *memory, int workerIdx, const MatrixXd &outputs, const MatrixXd &actual) {
-        double squaredError = calculateSquaredError(actual, outputs);
-        auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&squaredError);
+    void _writeError(FaasmMemory *memory, int workerIdx,double error) {
+        auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&error);
 
         long offset = workerIdx * sizeof(double);
         memory->writeStateOffset(ERRORS_KEY, offset, squaredErrorBytes, sizeof(double));
+    }
+
+    void writeHingeError(FaasmMemory *memory, int workerIdx, const MatrixXd &outputs, const MatrixXd &actual) {
+        double err = calculateHingeError(actual, outputs);
+        _writeError(memory, workerIdx, err);
+    }
+
+    void writeSquaredError(FaasmMemory *memory, int workerIdx, const MatrixXd &outputs, const MatrixXd &actual) {
+        double err = calculateSquaredError(actual, outputs);
+        _writeError(memory, workerIdx, err);
     }
 
     bool readEpochFinished(FaasmMemory *memory, const SgdParams &sgdParams) {

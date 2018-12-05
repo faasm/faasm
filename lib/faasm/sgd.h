@@ -18,21 +18,40 @@ using namespace Eigen;
 
 
 namespace faasm {
+    enum LossType : char {
+        RMSE = 1,
+        HINGE = 2
+    };
+
     struct SgdParams {
-        int nBatches = 10; // Number of batches in each epoch
-        int nWeights = 10; // Number of weights
-        int nTrain = 1000; // Number of training examples
-        double learningRate = 0.1;
-        int nEpochs = 10;
+        LossType lossType;
+        int nBatches;
+        int nWeights;
+        int nTrain;
+        double learningRate;
+        int nEpochs;
     };
 
     void writeParamsToState(FaasmMemory *memory, const char *keyName, const SgdParams &params);
 
     SgdParams readParamsFromState(FaasmMemory *memory, const char *keyName);
 
-    MatrixXd leastSquaresWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, MatrixXd &weights,
-                                        const SparseMatrix<double> &inputs,
-                                        const MatrixXd &outputs);
+    MatrixXd hingeLossWeightUpdate(
+            FaasmMemory *memory,
+            const SgdParams &sgdParams,
+            int epoch,
+            MatrixXd &weights,
+            const SparseMatrix<double> &inputs,
+            const MatrixXd &outputs
+    );
+
+    MatrixXd leastSquaresWeightUpdate(
+            FaasmMemory *memory,
+            const SgdParams &sgdParams,
+            MatrixXd &weights,
+            const SparseMatrix<double> &inputs,
+            const MatrixXd &outputs
+    );
 
     void zeroErrors(FaasmMemory *memory, SgdParams sgdParams);
 
@@ -41,6 +60,8 @@ namespace faasm {
     void zeroFinished(FaasmMemory *memory, SgdParams sgdParams);
 
     void writeFinishedFlag(FaasmMemory *memory, int workerIdx);
+
+    void writeHingeError(FaasmMemory *memory, int workerIdx, const MatrixXd &outputs, const MatrixXd &actual);
 
     void writeSquaredError(FaasmMemory *memory, int workerIdx, const MatrixXd &outputs, const MatrixXd &actual);
 

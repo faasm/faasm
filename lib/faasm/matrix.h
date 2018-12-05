@@ -105,6 +105,8 @@ namespace faasm {
 
     double calculateSquaredError(const MatrixXd &a, const MatrixXd &b);
 
+    double calculateHingeError(const MatrixXd &a, const MatrixXd &b);
+
     double calculateRootMeanSquaredError(const MatrixXd &a, const MatrixXd &b);
 }
 

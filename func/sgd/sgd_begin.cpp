@@ -6,6 +6,7 @@ namespace faasm {
     int exec(FaasmMemory *memory) {
         // Initialise params
         SgdParams p;
+        p.lossType = RMSE;
         p.nWeights = 10;
         p.nTrain = 10000;
         p.nBatches = 5000;
