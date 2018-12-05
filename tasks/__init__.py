@@ -31,7 +31,11 @@ from tasks.setup import (
     setup_pistache
 )
 
-from tasks.state import upload_sparse_matrix
+from tasks.state import (
+    reuters_upload,
+    upload_binary_file,
+    upload_sparse_matrix,
+)
 
 from tasks.upload import upload
 

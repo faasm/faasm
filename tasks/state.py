@@ -6,7 +6,10 @@ from invoke import task
 from tasks.env import PROJ_ROOT
 
 
-def _upload_binary_file(host, user, key, binary_file):
+@task
+def upload_binary_file(ctx, host, user, key, binary_file):
+    print("Uploading binary file at {} for user {}".format(binary_file, user))
+
     cmd = [
         "curl",
         "-X", "PUT",
@@ -25,13 +28,20 @@ def _upload_binary_file(host, user, key, binary_file):
 
 
 @task
-def upload_sparse_matrix(ctx, user, directory):
-    print("Uploading matrix binaries at {} for user {}".format(directory, user))
-    host = "localhost"
-
+def upload_sparse_matrix(ctx, host, user, directory):
     files = ["vals", "innr", "outr", "size", "nonz"]
 
     for f in files:
         file_path = join(directory, f)
         print("Uploading matrix binary at {}".format(file_path))
-        _upload_binary_file(host, user, f, file_path)
+        upload_binary_file(ctx, host, user, f, file_path)
+
+
+@task
+def reuters_upload(ctx, host, user, directory):
+    # Upload the matrix data
+    upload_sparse_matrix(ctx, host, user, directory)
+
+    # Upload the categories data
+    cat_path = join(directory, "cat")
+    upload_binary_file(ctx, host, user, "cat", cat_path)

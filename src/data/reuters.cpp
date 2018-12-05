@@ -10,7 +10,7 @@
 
 using namespace boost::filesystem;
 
-const Eigen::SparseMatrix<double> readReutersToMatrix() {
+void parseReutersData(const path &dir) {
     std::string targetCategory = "CCAT";
     path outputDir("/home/scs17/faasm/reuters");
     path downloadDir("/home/scs17/faasm/rcv1rcv2aminigoutte");
@@ -28,6 +28,7 @@ const Eigen::SparseMatrix<double> readReutersToMatrix() {
 
     std::string line;
 
+    std::vector<char> categories;
     std::vector<Eigen::Triplet<double>> triplets;
 
     int count = 0;
@@ -36,6 +37,12 @@ const Eigen::SparseMatrix<double> readReutersToMatrix() {
         // Split up the line
         const std::vector<std::string> lineTokens = util::tokeniseString(line, ' ');
         std::string cat = lineTokens[0];
+
+        if(cat == targetCategory) {
+            categories.push_back(1);
+        } else {
+            categories.push_back(-1);
+        }
 
         for (int i = 1; i < lineTokens.size(); i++) {
             // Ignore empty token
@@ -68,19 +75,28 @@ const Eigen::SparseMatrix<double> readReutersToMatrix() {
     Eigen::SparseMatrix<double> mat(rowCount, colCount);
     mat.setFromTriplets(triplets.begin(), triplets.end());
 
-    return mat;
+    // Write matrix to files
+    data::SparseMatrixFileSerialiser s(mat);
+    s.writeToFile("/tmp/reuters_out/");
+    
+    // Write categories to files
+    long nCatBytes = categories.size() * sizeof(char);
+    auto catPtr = reinterpret_cast<uint8_t *>(categories.data());
+
+    path catFile = dir;
+    catFile.append("cat");
+
+    printf("Writing %li bytes to %s\n", nCatBytes, catFile.c_str());
+    util::writeBytesToFile(catFile.string(), std::vector<uint8_t>(catPtr, catPtr + nCatBytes));
 }
 
 int main() {
-    const Eigen::SparseMatrix<double> mat = readReutersToMatrix();
-
     path dir("/tmp/reuters_out");
     if(exists(dir)) {
         remove_all(dir);
     }
 
-    data::SparseMatrixFileSerialiser s(mat);
-    s.writeToFile("/tmp/reuters_out/");
+    parseReutersData(dir);
 
     return 0;
 }
