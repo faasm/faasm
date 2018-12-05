@@ -86,7 +86,7 @@ function setup_ns() {
 
 
 # Note - hard-coded ns count here
-N_THREADS_PER_WORKER=40
+N_THREADS_PER_WORKER=80
 for (( i=1; i<=N_THREADS_PER_WORKER; i++ ))
 do
     setup_ns ${i}

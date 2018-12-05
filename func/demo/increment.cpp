@@ -9,7 +9,7 @@ namespace faasm {
 
         incrementCounter(memory, key);
 
-        uint8_t count = getCounter(memory, key);
+        int count = getCounter(memory, key);
 
         // Return message
         char output[12];

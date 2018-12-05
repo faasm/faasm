@@ -18,7 +18,7 @@ namespace util {
     // System configuration
 
     // TODO - must match the underlying number of available namespaces. Good to decouple?
-    const int N_THREADS_PER_WORKER = 40;
+    const int N_THREADS_PER_WORKER = 80;
 
     const int DEFAULT_TIMEOUT = 60;
     const int RESULT_KEY_EXPIRY = 30;
