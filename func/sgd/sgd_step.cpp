@@ -5,7 +5,7 @@
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        size_t nBytes = sizeof(int) * 3;
+        size_t nBytes = sizeof(int) * 4;
         auto inputBuffer = new uint8_t[nBytes];
         memory->getInput(inputBuffer, nBytes);
 

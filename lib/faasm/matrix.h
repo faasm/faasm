@@ -11,14 +11,15 @@ using namespace Eigen;
 
 namespace faasm {
 
+    // Use ints here as longs are equivalent in wasm world
     struct SparseSizes {
-        long cols;
-        long rows;
-        long nNonZeros;
+        int cols;
+        int rows;
+        int nNonZeros;
 
-        size_t valuesLen;
-        size_t innerLen;
-        size_t outerLen;
+        int valuesLen;
+        int innerLen;
+        int outerLen;
     };
 
     struct SparseKeys {

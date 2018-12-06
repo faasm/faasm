@@ -23,7 +23,6 @@ namespace tests {
         s.writeToFile(dummyDir.string());
 
         SparseMatrix<double> actual = SparseMatrixFileSerialiser::readFromFiles(dummyDir.string());
-
         checkSparseMatrixEquality(mat, actual);
     }
 }
