@@ -28,20 +28,24 @@ def upload_binary_file(ctx, host, user, key, binary_file):
 
 
 @task
-def upload_sparse_matrix(ctx, host, user, directory):
+def upload_sparse_matrix(ctx, host, user, key, directory):
     files = ["vals", "innr", "outr", "size", "nonz"]
 
     for f in files:
+        this_key = "{}_{}".format(key, f)
         file_path = join(directory, f)
-        print("Uploading matrix binary at {}".format(file_path))
-        upload_binary_file(ctx, host, user, f, file_path)
+        print("Uploading matrix binary to {} from {}".format(this_key, file_path))
+        upload_binary_file(ctx, host, user, this_key, file_path)
 
 
 @task
-def reuters_upload(ctx, host, user, directory):
+def reuters_upload(ctx, host, user):
+    directory = "/tmp/reuters_out/"
+    user = "sgd"
+
     # Upload the matrix data
-    upload_sparse_matrix(ctx, host, user, directory)
+    upload_sparse_matrix(ctx, host, user, "inputs", directory)
 
     # Upload the categories data
-    cat_path = join(directory, "cat")
-    upload_binary_file(ctx, host, user, "cat", cat_path)
+    cat_path = join(directory, "outputs")
+    upload_binary_file(ctx, host, user, "outputs", cat_path)

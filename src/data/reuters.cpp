@@ -13,78 +13,86 @@ using namespace boost::filesystem;
 void parseReutersData(const path &dir) {
     std::string targetCategory = "CCAT";
     path outputDir("/home/scs17/faasm/reuters");
-    path downloadDir("/home/scs17/faasm/rcv1rcv2aminigoutte");
+    path downloadDir("/home/scs17/faasm/rcv1rcv2aminigoutte/EN");
 
-    int rowCount = 18758;
-    int colCount = 21531;
 
-    path enFile = downloadDir;
-    enFile.append("EN");
-    enFile.append("Index_EN-EN");
+    std::vector<std::string> files = {
+            "Index_EN-EN",
+            "Index_FR-EN",
+            "Index_GR-EN",
+            "Index_IT-EN",
+            "Index_SP-EN",
+    };
 
-    std::cout << "Reading from " << enFile << std::endl;
-
-    std::ifstream input(enFile.c_str());
-
-    std::string line;
+    int exampleCount = 0;
+    int maxFeature = 0;
 
     std::vector<char> categories;
     std::vector<Eigen::Triplet<double>> triplets;
 
-    int count = 0;
-    int maxCol = 0;
-    while (getline(input, line)) {
-        // Split up the line
-        const std::vector<std::string> lineTokens = util::tokeniseString(line, ' ');
-        std::string cat = lineTokens[0];
+    for (const auto &f : files) {
+        path thisFile = downloadDir;
+        thisFile.append(f);
+        printf("Reading from %s \n", thisFile.c_str());
 
-        if(cat == targetCategory) {
-            categories.push_back(1);
-        } else {
-            categories.push_back(-1);
-        }
+        std::ifstream input(thisFile.c_str());
 
-        for (int i = 1; i < lineTokens.size(); i++) {
-            // Ignore empty token
-            std::basic_string<char> thisToken = lineTokens[i];
-            if (util::isAllWhitespace(thisToken)) {
-                continue;
+        std::string line;
+        while (getline(input, line)) {
+            // Split up the line
+            const std::vector<std::string> lineTokens = util::tokeniseString(line, ' ');
+            std::string cat = lineTokens[0];
+
+            if (cat == targetCategory) {
+                categories.push_back(1);
+            } else {
+                categories.push_back(-1);
             }
 
-            // Split up index:value part
-            const std::vector<std::string> valueTokens = util::tokeniseString(thisToken, ':');
-            int col = std::stoi(valueTokens[0]);
-            double weight = std::stof(valueTokens[1]);
+            for (int i = 1; i < lineTokens.size(); i++) {
+                // Ignore empty token
+                std::basic_string<char> thisToken = lineTokens[i];
+                if (util::isAllWhitespace(thisToken)) {
+                    continue;
+                }
 
-            // Add to matrix.
-            // NOTE: the file is 1-based. With triplets, eigen is zero-based (although when
-            // indexing an array it's 1-based)
-            triplets.emplace_back(Eigen::Triplet<double>(count, col - 1, weight));
+                // Split up index:value part
+                const std::vector<std::string> valueTokens = util::tokeniseString(thisToken, ':');
+                int feature = std::stoi(valueTokens[0]);
+                double weight = std::stof(valueTokens[1]);
 
-            maxCol = std::max(maxCol, col);
-        };
+                // Add to matrix.
+                // NOTE: the file is 1-based. With triplets, eigen is zero-based (although when
+                // indexing an array it's 1-based)
+                triplets.emplace_back(Eigen::Triplet<double>(feature - 1, exampleCount, weight));
 
-        // Move onto next row
-        count++;
+                maxFeature = std::max(maxFeature, feature);
+            };
+
+            // Move onto next example
+            exampleCount++;
+        }
+
+        // Close off the file
+        input.close();
     }
 
-    // Close off the file
-    input.close();
+    printf("Totals: %i features and %i examples \n", maxFeature, exampleCount);
 
-    // Build a sparse matrix
-    Eigen::SparseMatrix<double> mat(rowCount, colCount);
+    // Build the sparse matrix (row for each feature, col for each example)
+    Eigen::SparseMatrix<double> mat(maxFeature, exampleCount);
     mat.setFromTriplets(triplets.begin(), triplets.end());
 
     // Write matrix to files
     data::SparseMatrixFileSerialiser s(mat);
     s.writeToFile("/tmp/reuters_out/");
-    
+
     // Write categories to files
     long nCatBytes = categories.size() * sizeof(char);
     auto catPtr = reinterpret_cast<uint8_t *>(categories.data());
 
     path catFile = dir;
-    catFile.append("cat");
+    catFile.append("outputs");
 
     printf("Writing %li bytes to %s\n", nCatBytes, catFile.c_str());
     util::writeBytesToFile(catFile.string(), std::vector<uint8_t>(catPtr, catPtr + nCatBytes));
@@ -92,7 +100,7 @@ void parseReutersData(const path &dir) {
 
 int main() {
     path dir("/tmp/reuters_out");
-    if(exists(dir)) {
+    if (exists(dir)) {
         remove_all(dir);
     }
 
