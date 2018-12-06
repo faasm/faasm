@@ -165,7 +165,7 @@ namespace faasm {
         return true;
     }
 
-    double readRootMeanSquaredError(FaasmMemory *memory, const SgdParams &sgdParams) {
+    double readTotalError(FaasmMemory *memory, const SgdParams &sgdParams) {
         // Load errors from state
         const size_t nBytes = sgdParams.nBatches * sizeof(double);
         auto buffer = new uint8_t[nBytes];
@@ -181,6 +181,12 @@ namespace faasm {
         }
 
         delete[] buffer;
+
+        return totalError;
+    }
+
+    double readRootMeanSquaredError(FaasmMemory *memory, const SgdParams &sgdParams) {
+        double totalError = readTotalError(memory, sgdParams);
 
         // Calculate the mean squared error across all batches
         double rmse = sqrt(totalError / sgdParams.nTrain);

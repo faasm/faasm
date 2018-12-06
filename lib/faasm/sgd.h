@@ -70,6 +70,8 @@ namespace faasm {
 
     void writeSquaredError(FaasmMemory *memory, int workerIdx, const MatrixXd &outputs, const MatrixXd &actual);
 
+    double readTotalError(FaasmMemory *memory, const SgdParams &sgdParams);
+
     double readRootMeanSquaredError(FaasmMemory *memory, const SgdParams &sgdParams);
 
     bool readEpochFinished(FaasmMemory *memory, const SgdParams &sgdParams);
