@@ -51,7 +51,7 @@ namespace faasm {
                 if (thisProduct < 1) {
                     thisWeight += (sgdParams.learningRate * thisOutput * thisInput);
                 }
-                thisWeight -= ((sgdParams.learningRate/epoch) * thisWeight);
+                thisWeight -= ((sgdParams.learningRate/(1+epoch)) * thisWeight);
 
                 // Update in memory and state
                 weights(0, w) = thisWeight;

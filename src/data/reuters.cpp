@@ -11,6 +11,8 @@
 using namespace boost::filesystem;
 
 void parseReutersData(const path &dir) {
+    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+    
     std::string targetCategory = "CCAT";
     path outputDir("/home/scs17/faasm/reuters");
     path downloadDir("/home/scs17/faasm/rcv1rcv2aminigoutte/EN");
@@ -33,7 +35,7 @@ void parseReutersData(const path &dir) {
     for (const auto &f : files) {
         path thisFile = downloadDir;
         thisFile.append(f);
-        printf("Reading from %s \n", thisFile.c_str());
+        logger->info("Reading from {} ", thisFile.c_str());
 
         std::ifstream input(thisFile.c_str());
 
@@ -77,7 +79,7 @@ void parseReutersData(const path &dir) {
         input.close();
     }
 
-    printf("Totals: %i features and %i examples \n", maxFeature, exampleCount);
+    logger->info("Totals: {} features and {} examples", maxFeature, exampleCount);
 
     // Build the sparse matrix (row for each feature, col for each example)
     Eigen::SparseMatrix<double> mat(maxFeature, exampleCount);
@@ -94,7 +96,7 @@ void parseReutersData(const path &dir) {
     path catFile = dir;
     catFile.append("outputs");
 
-    printf("Writing %li bytes to %s\n", nCatBytes, catFile.c_str());
+    logger->info("Writing {} bytes to {}", nCatBytes, catFile.c_str());
     util::writeBytesToFile(catFile.string(), std::vector<uint8_t>(catPtr, catPtr + nCatBytes));
 }
 

@@ -43,7 +43,7 @@ namespace data {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::vector<uint8_t> bytes = std::vector<uint8_t>(bytesPtr, bytesPtr + bytesLen);
 
-        logger->debug("Writing %li bytes to %s\n", bytes.size(), filePath.c_str());
+        logger->info("Writing {} bytes to {}", bytes.size(), filePath.c_str());
 
         util::writeBytesToFile(filePath.string(), bytes);
     }

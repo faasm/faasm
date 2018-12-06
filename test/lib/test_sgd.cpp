@@ -1,5 +1,7 @@
 #include <catch/catch.hpp>
 
+#include "utils.h"
+
 #include <faasm/sgd.h>
 #include <faasm/matrix.h>
 
@@ -175,41 +177,13 @@ namespace tests {
         checkLossUpdates(HINGE);
     }
 
-    double doSgdStep(FaasmMemory *mem, SgdParams &params, SparseMatrix<double> &inputs, MatrixXd &outputs) {
-        // Shuffle indices
-        int *batchStartIndices = randomIntRange(params.nBatches);
-
-        // Prepare update loop
-        int batchSize = params.nTrain / params.nBatches;
-        MatrixXd weights = readMatrixFromState(mem, WEIGHTS_KEY, 1, params.nWeights);
-
-        // Perform batch updates to weights
-        for (int b = 0; b < params.nBatches; b++) {
-            int startCol = batchStartIndices[b];
-
-            SparseMatrix<double> inputBatch = inputs.block(0, startCol, params.nWeights, batchSize);
-            MatrixXd outputBatch = outputs.block(0, startCol, 1, batchSize);
-
-            // Perform the update
-            leastSquaresWeightUpdate(mem, params, weights, inputBatch, outputBatch);
-
-            // Update parameters
-            weights = readMatrixFromState(mem, WEIGHTS_KEY, 1, params.nWeights);
-        }
-
-        // Calculate the actual values
-        MatrixXd actual = weights * inputs;
-
-        double rmse = calculateRootMeanSquaredError(actual, outputs);
-        return rmse;
-    }
-
     TEST_CASE("Test SGD with least squares converges", "[sgd]") {
         infra::Redis r;
         r.flushAll();
 
         // Perform minibatch
         SgdParams params;
+        params.lossType = RMSE;
         params.nBatches = 2500;
         params.nWeights = 4;
         params.nTrain = 5000;
@@ -231,7 +205,7 @@ namespace tests {
         // Run multiple updates
         double finalLoss = 0;
         for (int e = 0; e < params.nEpochs; e++) {
-            finalLoss = doSgdStep(&mem, params, inputs, outputs);
+            finalLoss = doSgdStep(&mem, params, e, inputs, outputs);
         }
 
         REQUIRE(finalLoss < startingLoss);

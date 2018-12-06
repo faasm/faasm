@@ -1,6 +1,8 @@
 #include <catch/catch.hpp>
 
-#include "faasm/matrix.h"
+#include "utils.h"
+
+using namespace faasm;
 
 namespace tests {
 
@@ -40,4 +42,46 @@ namespace tests {
         REQUIRE(colsA == colsB);
         REQUIRE(valuesA == valuesB);
     }
+
+    double doSgdStep(FaasmMemory *mem, SgdParams &params, int epoch, SparseMatrix<double> &inputs, MatrixXd &outputs) {
+        // Shuffle indices
+        int *batchStartIndices = randomIntRange(params.nBatches);
+
+        // Prepare update loop
+        int batchSize = params.nTrain / params.nBatches;
+        MatrixXd weights = readMatrixFromState(mem, WEIGHTS_KEY, 1, params.nWeights);
+
+        // Perform batch updates to weights
+        for (int b = 0; b < params.nBatches; b++) {
+            int startCol = batchStartIndices[b];
+
+            SparseMatrix<double> inputBatch = inputs.block(0, startCol, params.nWeights, batchSize);
+            MatrixXd outputBatch = outputs.block(0, startCol, 1, batchSize);
+
+            // Perform the update
+            if(params.lossType == RMSE) {
+                leastSquaresWeightUpdate(mem, params, weights, inputBatch, outputBatch);
+            }
+            else if(params.lossType == HINGE) {
+                hingeLossWeightUpdate(mem, params, epoch, weights, inputBatch, outputBatch);
+            }
+
+            // Update parameters
+            weights = readMatrixFromState(mem, WEIGHTS_KEY, 1, params.nWeights);
+        }
+
+        // Calculate the actual values
+        MatrixXd actual = weights * inputs;
+
+        double loss = 0;
+        if(params.lossType == RMSE) {
+            loss = calculateRootMeanSquaredError(actual, outputs);
+        }
+        else if(params.lossType == HINGE) {
+            loss = calculateHingeError(actual, outputs);
+        }
+
+        return loss;
+    }
+
 }

@@ -7,11 +7,14 @@ namespace faasm {
         // Set up reuters params
         SgdParams p;
         p.lossType = HINGE;
-        p.nWeights = 21531;
-        p.nTrain = 111740;
+        p.nWeights = REUTERS_N_FEATURES;
+        p.nTrain = REUTERS_N_EXAMPLES;
+        p.learningRate = REUTERS_LEARNING_RATE;
+
         p.nBatches = p.nTrain / 2;
         p.nEpochs = 60;
-        p.learningRate = 0.1;
+
+        writeParamsToState(memory, PARAMS_KEY, p);
 
         // Initialise weights
         Eigen::MatrixXd weights = randomDenseMatrix(1, p.nWeights);

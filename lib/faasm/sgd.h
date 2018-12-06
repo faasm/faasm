@@ -16,6 +16,11 @@ using namespace Eigen;
 #define LOSSES_KEY "losses"
 #define LOSS_TIMESTAMPS_KEY "loss_ts"
 
+// Reuters-specific
+#define REUTERS_N_FEATURES 21531
+#define REUTERS_N_EXAMPLES 111740
+#define REUTERS_LEARNING_RATE 0.1
+
 
 namespace faasm {
     enum LossType : char {

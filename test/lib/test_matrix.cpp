@@ -247,7 +247,6 @@ namespace tests {
         REQUIRE(actual == expected);
     }
 
-
     TEST_CASE("Test sparse matrix round trip", "[matrix]") {
         infra::Redis redis;
         redis.flushAll();
