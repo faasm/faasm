@@ -27,29 +27,33 @@ namespace faasm {
     MatrixXd hingeLossWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int epoch, MatrixXd &weights,
                                const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
         // Work out the first term in the hinge loss
-        MatrixXd actual = weights * inputs;
-        MatrixXd wxy = actual * outputs;
+        MatrixXd wx = weights * inputs;
+        MatrixXd product = wx.cwiseProduct(outputs);
 
         // Work out step sizes that can be vectorised
         MatrixXd steps = (sgdParams.learningRate * outputs) * inputs;
 
         for (int w = 0; w < sgdParams.nWeights; w++) {
-            double thisWxy = wxy(0, w);
+            double thisProduct = product(0, w);
 
-            if (abs(thisWxy) < 0.00000001) {
+            // Skip if this weight has not contributed
+            if (abs(thisProduct) < 0.00000001) {
                 continue;
             }
 
-            // Extra update for misclassification
-            if (thisWxy < 1) {
+            // Do the update. Note that if the product is less than 1, it's a
+            // misclassification, so we include this first part of the update
+            if (thisProduct < 1) {
                 weights(0, w) += steps(w);
             }
-
-            // Update regardless of hinge status
             weights(0, w) -= (sgdParams.learningRate * weights(0, w)) / epoch;
+
+            writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, w);
         }
 
-        return actual;
+        // Recalculate the result and return
+        MatrixXd postUpdate = weights * inputs;
+        return postUpdate;
     }
 
     MatrixXd leastSquaresWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, MatrixXd &weights,
@@ -66,7 +70,7 @@ namespace faasm {
         for (int w = 0; w < sgdParams.nWeights; w++) {
             double thisGradient = gradient(0, w);
 
-            // Zero gradient here means none of the inputs in the batch contributed
+            // Skip if this weight has not contributed
             if (abs(thisGradient) < 0.00000001) {
                 continue;
             }
@@ -76,7 +80,9 @@ namespace faasm {
             writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, w);
         }
 
-        return actual;
+        // Recalculate the result and return
+        MatrixXd postUpdate = weights * inputs;
+        return postUpdate;
     }
 
     void zeroArray(FaasmMemory *memory, const char *key, long len) {

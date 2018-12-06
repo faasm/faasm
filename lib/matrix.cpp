@@ -1,5 +1,6 @@
 #include "faasm/matrix.h"
 
+#include <algorithm>
 #include <random>
 
 using namespace Eigen;
@@ -379,8 +380,8 @@ namespace faasm {
     /**
      * Sums the squared error between two vectors
      */
-    double calculateSquaredError(const MatrixXd &a, const MatrixXd &b) {
-        MatrixXd diff = a - b;
+    double calculateSquaredError(const MatrixXd &prediction, const MatrixXd &actual) {
+        MatrixXd diff = prediction - actual;
 
         double squaredError = 0;
         for (long r = 0; r < diff.rows(); r++) {
@@ -394,22 +395,25 @@ namespace faasm {
     }
 
     /**
-     * Calculates the hinge error between two vectors
+     * Calculates the hinge error. This is used in classification problems.
+     * The error will be zero if the classification is correct (i.e. the
+     * prediction and the actual have the same sign), but will be non-zero
+     * if they are different sign.
      */
-    double calculateHingeError(const MatrixXd &a, const MatrixXd &b) {
-        MatrixXd actual = a * b;
+    double calculateHingeError(const MatrixXd &prediction, const MatrixXd &actual) {
+        MatrixXd product = prediction * actual;
 
-        double err = 0;
-        for (long r = 0; r < actual.rows(); r++) {
-            for (long c = 0; c < actual.cols(); c++) {
-                double e = actual.coeff(r, c);
-                if(e < 0) {
-                    err += e;
-                }
+        double totalErr = 0;
+        for (long r = 0; r < product.rows(); r++) {
+            for (long c = 0; c < product.cols(); c++) {
+                double thisProduct = product.coeff(r, c);
+
+                // Product will be negative if prediction and actual have different sign
+                totalErr += std::max(1.0 - thisProduct, 0.0);
             }
         }
 
-        return err;
+        return totalErr;
     }
 
 

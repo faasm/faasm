@@ -103,7 +103,7 @@ namespace faasm {
 
     void shufflePairedMatrixColumns(MatrixXd &a, MatrixXd &b);
 
-    double calculateSquaredError(const MatrixXd &a, const MatrixXd &b);
+    double calculateSquaredError(const MatrixXd &prediction, const MatrixXd &b);
 
     double calculateHingeError(const MatrixXd &a, const MatrixXd &b);
 
