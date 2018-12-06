@@ -25,30 +25,38 @@ namespace faasm {
     }
 
     MatrixXd hingeLossWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int epoch, MatrixXd &weights,
-                               const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
-        // Work out the first term in the hinge loss
-        MatrixXd wx = weights * inputs;
-        MatrixXd product = wx.cwiseProduct(outputs);
+                                   const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
+        // Create the prediction
+        MatrixXd prediction = weights * inputs;
 
-        // Work out step sizes that can be vectorised
-        MatrixXd steps = (sgdParams.learningRate * outputs) * inputs;
+        // Go through each example in the batch
+        long batchSize = inputs.cols();
+        for (int b = 0; b < batchSize; b++) {
+            double thisOutput = outputs(0, b);
+            SparseMatrix<double> inputCol = inputs.col(b);
 
-        for (int w = 0; w < sgdParams.nWeights; w++) {
-            double thisProduct = product(0, w);
+            // Update weights accordingly
+            for (int w = 0; w < sgdParams.nWeights; w++) {
+                double thisInput = inputCol.coeff(w, 0);
 
-            // Skip if this weight has not contributed
-            if (abs(thisProduct) < 0.00000001) {
-                continue;
+                // Skip if no input here
+                if (abs(thisInput) < 0.00000000001) continue;
+
+                double thisWeight = weights.coeff(0, w);
+
+                double thisProduct = thisWeight * thisInput * thisOutput;
+
+                // Do the update. Note that if the product is less than 1, it's a
+                // misclassification, so we include this first part of the update
+                if (thisProduct < 1) {
+                    thisWeight += (sgdParams.learningRate * thisOutput * thisInput);
+                }
+                thisWeight -= ((sgdParams.learningRate/epoch) * thisWeight);
+
+                // Update in memory and state
+                weights(0, w) = thisWeight;
+                writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, w);
             }
-
-            // Do the update. Note that if the product is less than 1, it's a
-            // misclassification, so we include this first part of the update
-            if (thisProduct < 1) {
-                weights(0, w) += steps(w);
-            }
-            weights(0, w) -= (sgdParams.learningRate * weights(0, w)) / epoch;
-
-            writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, w);
         }
 
         // Recalculate the result and return
@@ -117,7 +125,7 @@ namespace faasm {
         zeroArray(memory, LOSSES_KEY, sgdParams.nEpochs);
     }
 
-    void _writeError(FaasmMemory *memory, int workerIdx,double error) {
+    void _writeError(FaasmMemory *memory, int workerIdx, double error) {
         auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&error);
 
         long offset = workerIdx * sizeof(double);

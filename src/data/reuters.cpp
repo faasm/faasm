@@ -99,6 +99,8 @@ void parseReutersData(const path &dir) {
 }
 
 int main() {
+    util::initLogging();
+
     path dir("/tmp/reuters_out");
     if (exists(dir)) {
         remove_all(dir);

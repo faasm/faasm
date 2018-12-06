@@ -40,9 +40,10 @@ namespace data {
     }
 
     void _doWriteToFile(const path &filePath, const uint8_t *bytesPtr, size_t bytesLen) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::vector<uint8_t> bytes = std::vector<uint8_t>(bytesPtr, bytesPtr + bytesLen);
 
-        printf("Writing %li bytes to %s\n", bytes.size(), filePath.c_str());
+        logger->debug("Writing %li bytes to %s\n", bytes.size(), filePath.c_str());
 
         util::writeBytesToFile(filePath.string(), bytes);
     }

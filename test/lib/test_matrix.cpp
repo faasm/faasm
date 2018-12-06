@@ -231,6 +231,23 @@ namespace tests {
         REQUIRE(actual == a + b + c + d);
     }
 
+    TEST_CASE("Test calculating hinge loss", "[matrix]") {
+        // Some correctly classified (i.e. correct sign), some not
+        MatrixXd matA(1, 4);
+        matA << -2.3, 1.1, -3.3, 0.0;
+
+        MatrixXd matB(1, 4);
+        matB << 1.0, -1.0, -1.0, 1.0;
+
+        // Error will be zero unless the signs are wrong, or the product of the
+        // two is less than 1, so the first, second and fourth elements contribute
+        double expected = (1 - (1.0 * -2.3)) + (1 - (-1.0 * 1.1)) + (1 - (0.0 * 1.0));
+        double actual = faasm::calculateHingeError(matA, matB);
+
+        REQUIRE(actual == expected);
+    }
+
+
     TEST_CASE("Test sparse matrix round trip", "[matrix]") {
         infra::Redis redis;
         redis.flushAll();
