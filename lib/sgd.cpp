@@ -33,25 +33,27 @@ namespace faasm {
         long batchSize = inputs.cols();
         for (int b = 0; b < batchSize; b++) {
             double thisOutput = outputs(0, b);
+            double thisPrediction = prediction.coeff(0, b);
+
+            double thisProduct = thisPrediction * thisOutput;
+
             SparseMatrix<double> inputCol = inputs.col(b);
 
             // Update weights accordingly
             for (int w = 0; w < sgdParams.nWeights; w++) {
                 double thisInput = inputCol.coeff(w, 0);
 
-                // Skip if no input here
+                // Skip if no input here (i.e. this weight played no part)
                 if (abs(thisInput) < 0.00000000001) continue;
 
+                // Do the update
                 double thisWeight = weights.coeff(0, w);
-
-                double thisProduct = thisWeight * thisInput * thisOutput;
-
-                // Do the update. Note that if the product is less than 1, it's a
-                // misclassification, so we include this first part of the update
                 if (thisProduct < 1) {
+                    // If the product is less than 1, it's a misclassification, so we include this part
                     thisWeight += (sgdParams.learningRate * thisOutput * thisInput);
                 }
-                thisWeight -= ((sgdParams.learningRate/(1+epoch)) * thisWeight);
+
+                thisWeight *= (1 - (sgdParams.learningRate/(1+epoch)));
 
                 // Update in memory and state
                 weights(0, w) = thisWeight;
