@@ -2,8 +2,7 @@ from subprocess import call
 
 from invoke import task
 
-from tasks.env import PROJ_ROOT
-
+from tasks.env import PROJ_ROOT, HOME_DIR
 
 @task
 def pull(context):
@@ -47,6 +46,7 @@ def data(context):
     cmd = [
         "docker",
         "run",
+        "-v {}:/root".format(HOME_DIR),
         "-v {}:/work".format(PROJ_ROOT),
         "-w /work",
         "-it",

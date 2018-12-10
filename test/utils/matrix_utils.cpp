@@ -59,27 +59,25 @@ namespace tests {
             MatrixXd outputBatch = outputs.block(0, startCol, 1, batchSize);
 
             // Perform the update
-            if(params.lossType == RMSE) {
-                leastSquaresWeightUpdate(mem, params, weights, inputBatch, outputBatch);
+            MatrixXd actual;
+            if (params.lossType == RMSE) {
+                actual = leastSquaresWeightUpdate(mem, params, weights, inputBatch, outputBatch);
+
+                // Persist error for these examples
+                writeSquaredError(mem, b, outputBatch, actual);
+            } else if (params.lossType == HINGE) {
+                actual = hingeLossWeightUpdate(mem, params, epoch, weights, inputBatch, outputBatch);
+
+                // Persist error
+                writeHingeError(mem, b, outputBatch, actual);
             }
-            else if(params.lossType == HINGE) {
-                hingeLossWeightUpdate(mem, params, epoch, weights, inputBatch, outputBatch);
-            }
 
-            // Update parameters
-            weights = readMatrixFromState(mem, WEIGHTS_KEY, 1, params.nWeights);
+            // Flag that this worker has finished
+            writeFinishedFlag(mem, b);
         }
 
-        // Calculate the actual values
-        MatrixXd actual = weights * inputs;
-
-        double loss = 0;
-        if(params.lossType == RMSE) {
-            loss = calculateRootMeanSquaredError(actual, outputs);
-        }
-        else if(params.lossType == HINGE) {
-            loss = calculateHingeError(actual, outputs);
-        }
+        // Get the loss
+        double loss = faasm::readRootMeanSquaredError(mem, params);
 
         return loss;
     }

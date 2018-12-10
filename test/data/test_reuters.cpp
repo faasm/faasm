@@ -53,8 +53,8 @@ namespace tests {
         // Use small subset of data
         p.nTrain = 150;
 
-        // Do each epoch in a single loop
-        p.nBatches = 1;
+        // Do each epoch in a couple of loops
+        p.nBatches = 2;
 
         // Initialise weights
         Eigen::MatrixXd weights = faasm::randomDenseMatrix(1, p.nWeights);
