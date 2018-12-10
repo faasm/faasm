@@ -10,13 +10,10 @@
 
 using namespace boost::filesystem;
 
-void parseReutersData(const path &dir) {
+void parseReutersData(const path &downloadDir, const path &outputDir) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-    
-    std::string targetCategory = "CCAT";
-    path outputDir("/home/scs17/faasm/reuters");
-    path downloadDir("/home/scs17/faasm/rcv1rcv2aminigoutte/EN");
 
+    std::string targetCategory = "CCAT";
 
     std::vector<std::string> files = {
             "Index_EN-EN",
@@ -87,13 +84,13 @@ void parseReutersData(const path &dir) {
 
     // Write matrix to files
     data::SparseMatrixFileSerialiser s(mat);
-    s.writeToFile("/tmp/reuters_out/");
+    s.writeToFile(outputDir.string());
 
     // Write categories to files
     long nCatBytes = categories.size() * sizeof(char);
     auto catPtr = reinterpret_cast<uint8_t *>(categories.data());
 
-    path catFile = dir;
+    path catFile = outputDir;
     catFile.append("outputs");
 
     logger->info("Writing {} bytes to {}", nCatBytes, catFile.c_str());
@@ -103,12 +100,22 @@ void parseReutersData(const path &dir) {
 int main() {
     util::initLogging();
 
-    path dir("/tmp/reuters_out");
-    if (exists(dir)) {
-        remove_all(dir);
+    path faasmDir(util::getEnvVar("HOME", ""));
+    faasmDir.append("faasm");
+
+    path downloadDir = faasmDir;
+    downloadDir.append("rcv1rcv2aminigoutte/EN");
+
+    path outputDir = faasmDir;
+    outputDir.append("data/reuters");
+
+    if (exists(outputDir)) {
+        remove_all(outputDir);
     }
 
-    parseReutersData(dir);
+    create_directories(outputDir);
+
+    parseReutersData(downloadDir, outputDir);
 
     return 0;
 }

@@ -1,9 +1,9 @@
-from os.path import join, exists
+from os.path import join
 from subprocess import call
 
 from invoke import task
 
-from tasks.env import PROJ_ROOT
+from tasks.env import HOME_DIR
 
 
 @task
@@ -40,7 +40,7 @@ def upload_sparse_matrix(ctx, host, user, key, directory):
 
 @task
 def reuters_upload(ctx, host, user):
-    directory = "/tmp/reuters_out/"
+    directory = join(HOME_DIR, "faasm", "data", "reuters")
     user = "sgd"
 
     # Upload the matrix data
