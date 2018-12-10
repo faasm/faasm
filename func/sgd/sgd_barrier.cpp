@@ -15,9 +15,7 @@ namespace faasm {
         // See if we've finished the epoch
         bool isFinished = readEpochFinished(memory, p);
         if (!isFinished) {
-            // Wait, then try again
-//            uint microseconds = (uint) 20 * 1000;
-//            usleep(microseconds);
+            // Try again
             memory->chainFunction("sgd_barrier");
             return 0;
         }
