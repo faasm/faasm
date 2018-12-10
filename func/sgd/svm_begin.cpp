@@ -11,7 +11,9 @@ namespace faasm {
         p.nTrain = REUTERS_N_EXAMPLES;
         p.learningRate = REUTERS_LEARNING_RATE;
 
-        p.nBatches = p.nTrain / 2;
+        // Largest factors of number of training examples: 1, 2, 4, 5, 10, 20, 37, 74, 148, 151, 185, 302, 370, 604,
+        // 740, 755, 1510, 3020, 5587, 11174, 22348, 27935, 55870, 111740
+        p.nBatches = p.nTrain / 148;
         p.nEpochs = 60;
 
         writeParamsToState(memory, PARAMS_KEY, p);
