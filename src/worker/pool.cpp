@@ -116,7 +116,7 @@ namespace worker {
         redis->setFunctionResult(call, isSuccess);
 
         // Restore the module memory after the execution
-        // module->restoreCleanMemory();
+        module->restoreMemory();
     }
 
     void WorkerThread::bindToFunction(const message::Message &msg) {

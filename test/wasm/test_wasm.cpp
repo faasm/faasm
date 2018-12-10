@@ -156,4 +156,27 @@ namespace tests {
 
         REQUIRE_THROWS(module.execute(callB, callChainB));
     }
+
+    TEST_CASE("Test reclaiming memory", "[wasm]") {
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("heap");
+
+        wasm::WasmModule module;
+        module.initialise();
+        module.bindToFunction(call);
+        wasm::CallChain callChain(call);
+
+        Uptr initialPages = Runtime::getMemoryNumPages(module.defaultMemory);
+
+        // Run it and check memory has grown
+        module.execute(call, callChain);
+        Uptr pagesAfter = Runtime::getMemoryNumPages(module.defaultMemory);
+        REQUIRE(pagesAfter > initialPages);
+
+        // Reset memory and check now equal
+        module.restoreMemory();
+        Uptr pagesRestored = Runtime::getMemoryNumPages(module.defaultMemory);
+        REQUIRE(pagesRestored == initialPages);
+    }
 }

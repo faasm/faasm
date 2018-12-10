@@ -3,6 +3,7 @@
 #include "faasm/matrix.h"
 #include "faasm/counter.h"
 #include "faasm/sgd.h"
+#include <unistd.h>
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
@@ -14,7 +15,9 @@ namespace faasm {
         // See if we've finished the epoch
         bool isFinished = readEpochFinished(memory, p);
         if (!isFinished) {
-            // Try again
+            // Wait, then try again
+//            uint microseconds = (uint) 20 * 1000;
+//            usleep(microseconds);
             memory->chainFunction("sgd_barrier");
             return 0;
         }

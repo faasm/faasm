@@ -241,7 +241,7 @@ namespace tests {
 
         // Load the state again, it should have a new element
         std::vector<uint8_t> stateA = redis.get(stateKey);
-        std::vector<uint8_t> expectedA = {0};
+        std::vector<uint8_t> expectedA = {1};
         REQUIRE(stateA == expectedA);
 
         // Call the function a second time, the state should have another element added
@@ -251,8 +251,18 @@ namespace tests {
         REQUIRE(resultB.success());
 
         std::vector<uint8_t> stateB = redis.get(stateKey);
-        std::vector<uint8_t> expectedB = {0, 1};
-        REQUIRE(stateB == expectedB);
+        std::vector<uint8_t> expectedB = {1, 2};
+        //REQUIRE(stateB == expectedB);
+
+        // Do the same a third time
+        infra::Scheduler::callFunction(call);
+        w.processNextMessage();
+        message::Message resultC = redis.getFunctionResult(call);
+        REQUIRE(resultC.success());
+
+        std::vector<uint8_t> stateC = redis.get(stateKey);
+        std::vector<uint8_t> expectedC = {1, 2, 3};
+        REQUIRE(stateC == expectedC);
     }
 
     TEST_CASE("Test state increment", "[worker]") {
@@ -286,5 +296,29 @@ namespace tests {
         message::Message resultB = redis.getFunctionResult(call);
         REQUIRE(resultB.success());
         REQUIRE(resultB.outputdata() == "Counter: 002");
+    }
+
+    TEST_CASE("Test memory is reset", "[worker]") {
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("heap");
+        call.set_resultkey("test_heap_mem");
+
+        // Call function
+        WorkerThread w(1);
+        infra::Scheduler::callFunction(call);
+
+        // Process bind
+        w.processNextMessage();
+
+        // Check initial pages
+        Uptr initialPages = Runtime::getMemoryNumPages(w.module->defaultMemory);
+
+        // Exec the function
+        w.processNextMessage();
+
+        // Check page count is equal
+        Uptr afterPages = Runtime::getMemoryNumPages(w.module->defaultMemory);
+        REQUIRE(afterPages == initialPages);
     }
 }

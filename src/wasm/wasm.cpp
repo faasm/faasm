@@ -61,7 +61,7 @@ namespace wasm {
     }
 
     void WasmModule::initialise() {
-        if(compartment != nullptr) {
+        if (compartment != nullptr) {
             throw std::runtime_error("Cannot initialise already initialised module");
         }
 
@@ -84,8 +84,7 @@ namespace wasm {
     void WasmModule::bindToFunction(const message::Message &msg) {
         if (!_isInitialised) {
             throw std::runtime_error("Must initialise module before binding");
-        }
-        else if(_isBound) {
+        } else if (_isBound) {
             throw std::runtime_error("Cannot bind a module twice");
         }
 
@@ -140,7 +139,7 @@ namespace wasm {
         this->defaultMemory = getDefaultMemory(moduleInstance);
 
         // Snapshot initial state
-        // this->snapshotCleanMemory();
+        this->snapshotMemory();
 
         // Record that this module is now bound
         _isBound = true;
@@ -148,11 +147,10 @@ namespace wasm {
         boundFunction = msg.function();
     }
 
-    void WasmModule::snapshotCleanMemory() {
+    void WasmModule::snapshotMemory(bool fullCopy) {
         const auto &t = prof::startTimer();
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
 
         cleanMemoryPages = Runtime::getMemoryNumPages(this->defaultMemory);
         size_t cleanMemorySize = cleanMemoryPages * IR::numBytesPerPage;
@@ -160,12 +158,15 @@ namespace wasm {
 
         logger->debug("Snapshotting memory with {} pages", cleanMemoryPages);
 
-        std::copy(baseAddr, baseAddr + cleanMemorySize, cleanMemory);
+        if (fullCopy) {
+            U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
+            std::copy(baseAddr, baseAddr + cleanMemorySize, cleanMemory);
+        }
 
         prof::logEndTimer("snapshot-mem", t);
     }
 
-    void WasmModule::restoreCleanMemory() {
+    void WasmModule::restoreMemory(bool fullCopy) {
         const auto &t = prof::startTimer();
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
@@ -186,9 +187,11 @@ namespace wasm {
         }
 
         // Restore initial memory state
-        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
-        size_t cleanMemorySize = cleanMemoryPages * IR::numBytesPerPage;
-        std::copy(cleanMemory, cleanMemory + cleanMemorySize, baseAddr);
+        if (fullCopy) {
+            U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
+            size_t cleanMemorySize = cleanMemoryPages * IR::numBytesPerPage;
+            std::copy(cleanMemory, cleanMemory + cleanMemorySize, baseAddr);
+        }
 
         prof::logEndTimer("restore-mem", t);
     }
@@ -201,10 +204,9 @@ namespace wasm {
 
         if (!_isBound) {
             throw std::runtime_error("WorkerThread must be bound before executing function");
-        }
-        else if(boundUser != msg.user() || boundFunction != msg.function()) {
+        } else if (boundUser != msg.user() || boundFunction != msg.function()) {
             logger->error("Cannot execute {} on module bound to {}/{}",
-                    infra::funcToString(msg), boundUser, boundFunction);
+                          infra::funcToString(msg), boundUser, boundFunction);
             throw std::runtime_error("Cannot execute function on module bound to another");
         }
 
@@ -258,7 +260,7 @@ namespace wasm {
         std::vector<U8> fileBytes;
         std::string filePath = infra::getFunctionFile(msg);
 
-        if(!loadFile(filePath.c_str(), fileBytes)) {
+        if (!loadFile(filePath.c_str(), fileBytes)) {
             logger->error("Could not read data from {}", filePath);
             throw std::runtime_error("Could not read binary data from file");
         }

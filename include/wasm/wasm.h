@@ -22,8 +22,8 @@ namespace wasm {
     const std::string ENTRYPOINT_FUNC = "_start";
 
     // Note that the max memory per module is 8GiB, i.e. > 100k pages
-    // Page size in wasm is 64kiB so 1000 pages ~ 60MiB of memory
-    const int MIN_MEMORY_PAGES = 1000;
+    // Page size in wasm is 64kiB so 100 pages ~ 6MiB of memory
+    const int MIN_MEMORY_PAGES = 100;
 
     struct RootResolver : Runtime::Resolver {
         explicit RootResolver(Runtime::Compartment *compartment) {
@@ -86,9 +86,9 @@ namespace wasm {
 
         void initialise();
 
-        void snapshotCleanMemory();
+        void snapshotMemory(bool fullCopy=true);
 
-        void restoreCleanMemory();
+        void restoreMemory(bool fullCopy=true);
 
         void bindToFunction(const message::Message &msg);
 

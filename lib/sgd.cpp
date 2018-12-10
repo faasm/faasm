@@ -21,6 +21,8 @@ namespace faasm {
 
         SgdParams s{};
         memcpy(&s, buffer, nBytes);
+
+        delete[] buffer;
         return s;
     }
 
@@ -153,16 +155,19 @@ namespace faasm {
         auto flags = reinterpret_cast<double *>(buffer);
 
         // Iterate through
+        bool isFinished = true;
         for (int i = 0; i < sgdParams.nBatches; i++) {
             double flag = flags[i];
 
             // If error is still zero, we've not yet finished
             if (flag == 0.0) {
-                return false;
+                isFinished = false;
+                break;
             }
         }
 
-        return true;
+        delete[] buffer;
+        return isFinished;
     }
 
     double readTotalError(FaasmMemory *memory, const SgdParams &sgdParams) {
