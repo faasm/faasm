@@ -21,24 +21,68 @@ namespace faasm {
 
         SgdParams s{};
         memcpy(&s, buffer, nBytes);
+
+        delete[] buffer;
         return s;
+    }
+
+    MatrixXd hingeLossWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int epoch, MatrixXd &weights,
+                                   const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
+        // Create the prediction
+        MatrixXd prediction = weights * inputs;
+
+        // Go through each example in the batch
+        long batchSize = inputs.cols();
+        for (int b = 0; b < batchSize; b++) {
+            double thisOutput = outputs(0, b);
+            double thisPrediction = prediction.coeff(0, b);
+
+            double thisProduct = thisPrediction * thisOutput;
+
+            SparseMatrix<double> inputCol = inputs.col(b);
+
+            // Update weights accordingly
+            for (int w = 0; w < sgdParams.nWeights; w++) {
+                double thisInput = inputCol.coeff(w, 0);
+
+                // Skip if no input here (i.e. this weight played no part)
+                if (abs(thisInput) < 0.00000000001) continue;
+
+                // Do the update
+                double thisWeight = weights.coeff(0, w);
+                if (thisProduct < 1) {
+                    // If the product is less than 1, it's a misclassification, so we include this part
+                    thisWeight += (sgdParams.learningRate * thisOutput * thisInput);
+                }
+
+                thisWeight *= (1 - (sgdParams.learningRate/(1+epoch)));
+
+                // Update in memory and state
+                weights(0, w) = thisWeight;
+                writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, w);
+            }
+        }
+
+        // Recalculate the result and return
+        MatrixXd postUpdate = weights * inputs;
+        return postUpdate;
     }
 
     MatrixXd leastSquaresWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, MatrixXd &weights,
                                       const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
         // Work out error
-        long batchSize = inputs.cols();
         MatrixXd actual = weights * inputs;
         MatrixXd error = actual - outputs;
 
         // Calculate gradient
+        long batchSize = inputs.cols();
         MatrixXd gradient = (2.0 / batchSize) * (error * inputs.transpose());
 
         // Update weights based on gradient
         for (int w = 0; w < sgdParams.nWeights; w++) {
             double thisGradient = gradient(0, w);
 
-            // Zero gradient here means none of the inputs in the batch contributed
+            // Skip if this weight has not contributed
             if (abs(thisGradient) < 0.00000001) {
                 continue;
             }
@@ -48,7 +92,9 @@ namespace faasm {
             writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, w);
         }
 
-        return actual;
+        // Recalculate the result and return
+        MatrixXd postUpdate = weights * inputs;
+        return postUpdate;
     }
 
     void zeroArray(FaasmMemory *memory, const char *key, long len) {
@@ -83,12 +129,21 @@ namespace faasm {
         zeroArray(memory, LOSSES_KEY, sgdParams.nEpochs);
     }
 
-    void writeSquaredError(FaasmMemory *memory, int workerIdx, const MatrixXd &outputs, const MatrixXd &actual) {
-        double squaredError = calculateSquaredError(actual, outputs);
-        auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&squaredError);
+    void _writeError(FaasmMemory *memory, int workerIdx, double error) {
+        auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&error);
 
         long offset = workerIdx * sizeof(double);
         memory->writeStateOffset(ERRORS_KEY, offset, squaredErrorBytes, sizeof(double));
+    }
+
+    void writeHingeError(FaasmMemory *memory, int workerIdx, const MatrixXd &outputs, const MatrixXd &actual) {
+        double err = calculateHingeError(actual, outputs);
+        _writeError(memory, workerIdx, err);
+    }
+
+    void writeSquaredError(FaasmMemory *memory, int workerIdx, const MatrixXd &outputs, const MatrixXd &actual) {
+        double err = calculateSquaredError(actual, outputs);
+        _writeError(memory, workerIdx, err);
     }
 
     bool readEpochFinished(FaasmMemory *memory, const SgdParams &sgdParams) {
@@ -100,19 +155,22 @@ namespace faasm {
         auto flags = reinterpret_cast<double *>(buffer);
 
         // Iterate through
+        bool isFinished = true;
         for (int i = 0; i < sgdParams.nBatches; i++) {
             double flag = flags[i];
 
             // If error is still zero, we've not yet finished
             if (flag == 0.0) {
-                return false;
+                isFinished = false;
+                break;
             }
         }
 
-        return true;
+        delete[] buffer;
+        return isFinished;
     }
 
-    double readRootMeanSquaredError(FaasmMemory *memory, const SgdParams &sgdParams) {
+    double readTotalError(FaasmMemory *memory, const SgdParams &sgdParams) {
         // Load errors from state
         const size_t nBytes = sgdParams.nBatches * sizeof(double);
         auto buffer = new uint8_t[nBytes];
@@ -128,6 +186,12 @@ namespace faasm {
         }
 
         delete[] buffer;
+
+        return totalError;
+    }
+
+    double readRootMeanSquaredError(FaasmMemory *memory, const SgdParams &sgdParams) {
+        double totalError = readTotalError(memory, sgdParams);
 
         // Calculate the mean squared error across all batches
         double rmse = sqrt(totalError / sgdParams.nTrain);

@@ -5,7 +5,7 @@
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        size_t nBytes = sizeof(int) * 3;
+        size_t nBytes = sizeof(int) * 4;
         auto inputBuffer = new uint8_t[nBytes];
         memory->getInput(inputBuffer, nBytes);
 
@@ -14,6 +14,7 @@ namespace faasm {
         int workerIdx = inputParams[0];
         int startIdx = inputParams[1];
         int endIdx = inputParams[2];
+        int epoch = inputParams[3];
 
         // Load params
         SgdParams sgdParams = readParamsFromState(memory, PARAMS_KEY);
@@ -24,10 +25,18 @@ namespace faasm {
         MatrixXd outputs = readMatrixColumnsFromState(memory, OUTPUTS_KEY, startIdx, endIdx, 1);
 
         // Perform updates
-        MatrixXd actual = leastSquaresWeightUpdate(memory, sgdParams, weights, inputs, outputs);
+        MatrixXd actual;
+        if (sgdParams.lossType == HINGE) {
+            actual = hingeLossWeightUpdate(memory, sgdParams, epoch, weights, inputs, outputs);
 
-        // Persist error for these examples
-        writeSquaredError(memory, workerIdx, outputs, actual);
+            // Persist error
+            writeHingeError(memory, workerIdx, outputs, actual);
+        } else {
+            actual = leastSquaresWeightUpdate(memory, sgdParams, weights, inputs, outputs);
+
+            // Persist error for these examples
+            writeSquaredError(memory, workerIdx, outputs, actual);
+        }
 
         // Flag that this worker has finished
         writeFinishedFlag(memory, workerIdx);

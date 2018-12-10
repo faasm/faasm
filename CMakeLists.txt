@@ -48,6 +48,7 @@ add_subdirectory(func)
 add_subdirectory(lib)
 
 # Faasm runtime
+add_subdirectory(src/data)
 add_subdirectory(src/edge)
 add_subdirectory(src/emulator)
 add_subdirectory(src/infra)

@@ -1,5 +1,6 @@
 #include "faasm/matrix.h"
 
+#include <algorithm>
 #include <random>
 
 using namespace Eigen;
@@ -19,7 +20,8 @@ namespace faasm {
         std::uniform_real_distribution<double> dist(0.0, 1.0);
 
         // Create a list of triplets
-        std::vector<Triplet<double>> triplets;
+        std::vector<Triplet<double>>
+                triplets;
 
         for (int i = 0; i < rows; ++i) {
             for (int j = 0; j < cols; ++j) {
@@ -68,32 +70,6 @@ namespace faasm {
         return mat;
     }
 
-    struct SparseKeys {
-        char *valueKey;
-        char *innerKey;
-        char *outerKey;
-        char *sizeKey;
-        char *nonZeroKey;
-
-        ~SparseKeys() {
-            delete[] valueKey;
-            delete[] innerKey;
-            delete[] outerKey;
-            delete[] sizeKey;
-            delete[] nonZeroKey;
-        }
-    };
-
-    struct SparseSizes {
-        long cols;
-        long rows;
-        long nNonZeros;
-
-        size_t valuesLen;
-        size_t innerLen;
-        size_t outerLen;
-    };
-
     SparseKeys getSparseKeys(const char *key) {
         size_t keyLen = strlen(key);
 
@@ -113,7 +89,7 @@ namespace faasm {
         return keys;
     }
 
-    void writeSparseMatrixToState(FaasmMemory *memory, const char *key, const SparseMatrix<double> &mat) {
+    SparseMatrixSerialiser::SparseMatrixSerialiser(const SparseMatrix<double> &matIn) : mat(matIn) {
         if (!mat.isCompressed()) {
             throw std::runtime_error("Sparse matrices must be compressed before serializing");
         }
@@ -126,7 +102,7 @@ namespace faasm {
         // Inner index = index of each value in its respective column (ints)
         // Outer index = number of non-zero entries in the columns _before_ this one (has length cols + 1)
         //
-        // To make partial deserialisation easier, we also store a fourther array:
+        // To make partial deserialisation easier, we also store a further array:
         //
         // Non-zero count = the number of non-zero entries in _this_ column
         //
@@ -134,20 +110,26 @@ namespace faasm {
         // Outer index and non-zero count will have one entry for each column
         long totalNonZeros = mat.nonZeros();
         long nCols = mat.cols();
-        size_t nValueBytes = totalNonZeros * sizeof(double);
-        size_t nInnerBytes = totalNonZeros * sizeof(int);
-        size_t nOuterBytes = (mat.outerSize() + 1) * sizeof(int);
-        size_t nNonZeroBytes = mat.outerSize() * sizeof(int);
+        nValueBytes = totalNonZeros * sizeof(double);
+        nInnerBytes = totalNonZeros * sizeof(int);
+        nOuterBytes = (mat.outerSize() + 1) * sizeof(int);
+        nNonZeroBytes = mat.outerSize() * sizeof(int);
 
-        // The non-zero counts can worked out with the outer indices by subtracting the ith value from the (i+1)th
-        int *nonZeroCounts = new int[nCols];
+        // Set up bytes pointers to the relevant matrix data
+        valueBytes = reinterpret_cast<const uint8_t *>(mat.valuePtr());
+        innerBytes = reinterpret_cast<const uint8_t *>(mat.innerIndexPtr());
+        outerBytes = reinterpret_cast<const uint8_t *>(mat.outerIndexPtr());
+
+        // The non-zero counts can be worked out with the outer indices by subtracting the
+        // ith value from the (i+1)th
+        nonZeroCounts = new int[nCols];
         const int *outerIndices = mat.outerIndexPtr();
         for (int i = 0; i < nCols; i++) {
             nonZeroCounts[i] = outerIndices[i + 1] - outerIndices[i];
         }
+        nonZeroBytes = reinterpret_cast<const uint8_t *>(nonZeroCounts);
 
         // Build array to specify sizes
-        SparseSizes sizes{};
         sizes.cols = nCols;
         sizes.rows = mat.rows();
         sizes.nNonZeros = totalNonZeros;
@@ -155,17 +137,50 @@ namespace faasm {
         sizes.innerLen = nInnerBytes;
         sizes.outerLen = nOuterBytes;
 
-        auto sizeBytes = reinterpret_cast<uint8_t *>(&sizes);
+        sizeBytes = reinterpret_cast<uint8_t *>(&sizes);
+        nSizeBytes = sizeof(SparseSizes);
+    }
 
-        // Write everything
+    void SparseMatrixSerialiser::writeToState(FaasmMemory *memory, const char *key) {
         SparseKeys keys = getSparseKeys(key);
-        memory->writeState(keys.valueKey, reinterpret_cast<const uint8_t *>(mat.valuePtr()), nValueBytes);
-        memory->writeState(keys.innerKey, reinterpret_cast<const uint8_t *>(mat.innerIndexPtr()), nInnerBytes);
-        memory->writeState(keys.outerKey, reinterpret_cast<const uint8_t *>(mat.outerIndexPtr()), nOuterBytes);
-        memory->writeState(keys.nonZeroKey, reinterpret_cast<const uint8_t *>(nonZeroCounts), nNonZeroBytes);
-        memory->writeState(keys.sizeKey, sizeBytes, sizeof(SparseSizes));
+        memory->writeState(keys.valueKey, valueBytes, nValueBytes);
+        memory->writeState(keys.innerKey, innerBytes, nInnerBytes);
+        memory->writeState(keys.outerKey, outerBytes, nOuterBytes);
+        memory->writeState(keys.nonZeroKey, nonZeroBytes, nNonZeroBytes);
+        memory->writeState(keys.sizeKey, sizeBytes, nSizeBytes);
+    }
 
+    SparseMatrix<double> SparseMatrixSerialiser::readFromBytes(
+            const SparseSizes &sizes,
+            uint8_t *outerBytes,
+            uint8_t *innerBytes,
+            uint8_t *valuesBytes
+    ) {
+
+        auto outerPtr = reinterpret_cast<int *>(outerBytes);
+        auto innerPtr = reinterpret_cast<int *>(innerBytes);
+        auto valuePtr = reinterpret_cast<double *>(valuesBytes);
+
+        // Use eigen to import from the buffers
+        Map<SparseMatrix<double>> mat(
+                sizes.rows,
+                sizes.cols,
+                sizes.nNonZeros,
+                outerPtr,
+                innerPtr,
+                valuePtr
+        );
+
+        return mat;
+    }
+
+    SparseMatrixSerialiser::~SparseMatrixSerialiser() {
         delete[] nonZeroCounts;
+    }
+
+    void writeSparseMatrixToState(FaasmMemory *memory, const char *key, const SparseMatrix<double> &mat) {
+        SparseMatrixSerialiser serialiser(mat);
+        serialiser.writeToState(memory, key);
     }
 
     SparseSizes readSparseSizes(FaasmMemory *memory, const SparseKeys &keys) {
@@ -189,21 +204,12 @@ namespace faasm {
         memory->readState(keys.innerKey, innerBytes, sizes.innerLen);
         memory->readState(keys.valueKey, valuesBytes, sizes.valuesLen);
 
-        auto outerPtr = reinterpret_cast<int *>(outerBytes);
-        auto innerPtr = reinterpret_cast<int *>(innerBytes);
-        auto valuePtr = reinterpret_cast<double *>(valuesBytes);
-
-        // Use eigen to import from the buffers
-        Map<SparseMatrix<double>> mat(
-                sizes.rows,
-                sizes.cols,
-                sizes.nNonZeros,
-                outerPtr,
-                innerPtr,
-                valuePtr
+        return SparseMatrixSerialiser::readFromBytes(
+                sizes,
+                outerBytes,
+                innerBytes,
+                valuesBytes
         );
-
-        return mat;
     }
 
     /**
@@ -372,10 +378,10 @@ namespace faasm {
     }
 
     /**
-     * Sums the squared error between two vectors when the value in the first is non-zero
+     * Sums the squared error between two vectors
      */
-    double calculateSquaredError(const MatrixXd &a, const MatrixXd &b) {
-        MatrixXd diff = a - b;
+    double calculateSquaredError(const MatrixXd &prediction, const MatrixXd &actual) {
+        MatrixXd diff = prediction - actual;
 
         double squaredError = 0;
         for (long r = 0; r < diff.rows(); r++) {
@@ -387,6 +393,27 @@ namespace faasm {
 
         return squaredError;
     }
+
+    /**
+     * Calculates the hinge error. This is used in classification problems.
+     * The error will be zero if the classification is correct (i.e. the
+     * prediction and the actual have the same sign), but will be non-zero
+     * if they are different sign.
+     */
+    double calculateHingeError(const MatrixXd &prediction, const MatrixXd &actual) {
+        double totalErr = 0;
+        for (long r = 0; r < prediction.rows(); r++) {
+            for (long c = 0; c < prediction.cols(); c++) {
+                double thisProduct = prediction.coeff(r, c) * actual.coeffRef(c, r);
+
+                // Product will be negative if prediction and actual have different sign
+                totalErr += std::max(1.0 - thisProduct, 0.0);
+            }
+        }
+
+        return totalErr;
+    }
+
 
     /**
      * Finds the mean squared error between two matrices

@@ -9,7 +9,7 @@ namespace faasm {
     }
 
     int getCounter(FaasmMemory *memory, const char *counterKey) {
-        auto counterBuffer = new int[1];
+        int counterBuffer[1];
         auto counterBytes = reinterpret_cast<uint8_t *>(counterBuffer);
         memory->readState(counterKey, counterBytes, sizeof(int));
 
@@ -22,7 +22,8 @@ namespace faasm {
         int count = getCounter(memory, counterKey);
         count++;
 
-        int counterBuffer[] = {count};
+        int counterBuffer[1];
+        counterBuffer[0] = count;
         auto counterBytes = reinterpret_cast<uint8_t *>(counterBuffer);
 
         memory->writeState(counterKey, counterBytes, sizeof(int));

@@ -1,6 +1,8 @@
 #include <catch/catch.hpp>
+#include "utils.h"
 
 #include "faasm/matrix.h"
+
 #include <infra/infra.h>
 
 #include <iostream>
@@ -8,44 +10,6 @@
 using namespace Eigen;
 
 namespace tests {
-
-    void checkSparseMatrixEquality(const SparseMatrix<double> &a, const SparseMatrix<double> &b) {
-        // As we can't use a simple equality operator, we need to iterate through both
-        // matrices and check the contents in detail
-
-        REQUIRE(a.nonZeros() == b.nonZeros());
-        REQUIRE(a.cols() == b.cols());
-        REQUIRE(a.rows() == b.rows());
-
-        std::vector<int> rowsA;
-        std::vector<int> colsA;
-        std::vector<double> valuesA;
-
-        for (int k = 0; k < a.outerSize(); ++k) {
-            for (SparseMatrix<double>::InnerIterator it(a, k); it; ++it) {
-                valuesA.push_back(it.value());
-                rowsA.push_back(it.row());
-                colsA.push_back(it.col());
-            }
-        }
-
-        std::vector<int> rowsB;
-        std::vector<int> colsB;
-        std::vector<double> valuesB;
-
-        for (int k = 0; k < b.outerSize(); ++k) {
-            for (SparseMatrix<double>::InnerIterator it(b, k); it; ++it) {
-                valuesB.push_back(it.value());
-                rowsB.push_back(it.row());
-                colsB.push_back(it.col());
-            }
-        }
-
-        REQUIRE(rowsA == rowsB);
-        REQUIRE(colsA == colsB);
-        REQUIRE(valuesA == valuesB);
-    }
-
     TEST_CASE("Test sparse matrix generation", "[matrix]") {
         const SparseMatrix<double> actual = faasm::randomSparseMatrix(10, 5, 0.4);
 
@@ -265,6 +229,22 @@ namespace tests {
 
         double actual = faasm::calculateSquaredError(matA, matB);
         REQUIRE(actual == a + b + c + d);
+    }
+
+    TEST_CASE("Test calculating hinge loss", "[matrix]") {
+        // Some correctly classified (i.e. correct sign), some not
+        MatrixXd matA(1, 4);
+        matA << -2.3, 1.1, -3.3, 0.0;
+
+        MatrixXd matB(1, 4);
+        matB << 1.0, -1.0, -1.0, 1.0;
+
+        // Error will be zero unless the signs are wrong, or the product of the
+        // two is less than 1, so the first, second and fourth elements contribute
+        double expected = (1 - (1.0 * -2.3)) + (1 - (-1.0 * 1.1)) + (1 - (0.0 * 1.0));
+        double actual = faasm::calculateHingeError(matA, matB);
+
+        REQUIRE(actual == expected);
     }
 
     TEST_CASE("Test sparse matrix round trip", "[matrix]") {

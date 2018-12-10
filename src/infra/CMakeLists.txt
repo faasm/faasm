@@ -14,5 +14,4 @@ target_link_libraries(
         proto
         pthread
         hiredis
-        boost_system boost_filesystem
 )

@@ -1,5 +1,7 @@
 #include <catch/catch.hpp>
 
+#include "utils.h"
+
 #include <faasm/sgd.h>
 #include <faasm/matrix.h>
 
@@ -69,7 +71,7 @@ namespace tests {
         REQUIRE(actualOutputs.cols() == params.nTrain);
     }
 
-    TEST_CASE("Test least squares updates", "[sgd]") {
+    void checkLossUpdates(LossType lossType) {
         infra::Redis r;
         r.flushAll();
 
@@ -77,6 +79,7 @@ namespace tests {
 
         int nWeights = 4;
         SgdParams params;
+        params.lossType = lossType;
         params.nWeights = nWeights;
         params.learningRate = 0.1;
 
@@ -93,30 +96,64 @@ namespace tests {
         // Fake up sparse inputs with all permutations
         SparseMatrix<double> inputs(nWeights, 2);
         std::vector<Triplet<double>> tripletList;
-        tripletList.reserve(4);
 
-        tripletList.push_back(Triplet<double>(0, 0, 3));
-        tripletList.push_back(Triplet<double>(0, 1, 3));
-        tripletList.push_back(Triplet<double>(1, 0, 0));
-        tripletList.push_back(Triplet<double>(1, 1, 1));
-        tripletList.push_back(Triplet<double>(2, 0, 2));
-        tripletList.push_back(Triplet<double>(2, 1, 0));
-        tripletList.push_back(Triplet<double>(3, 0, 0));
-        tripletList.push_back(Triplet<double>(3, 1, 0));
+        if(lossType == RMSE) {
+            // Inputs to look like this:
+            // 3 3
+            // 0 1
+            // 2 0
+            // 0 0
+            tripletList.emplace_back(Triplet<double>(0, 0, 3));
+            tripletList.emplace_back(Triplet<double>(0, 1, 3));
+            tripletList.emplace_back(Triplet<double>(1, 0, 0));
+            tripletList.emplace_back(Triplet<double>(1, 1, 1));
+            tripletList.emplace_back(Triplet<double>(2, 0, 2));
+            tripletList.emplace_back(Triplet<double>(2, 1, 0));
+            tripletList.emplace_back(Triplet<double>(3, 0, 0));
+            tripletList.emplace_back(Triplet<double>(3, 1, 0));
+        }
+        else if(lossType == HINGE) {
+            // Inputs to look like this:
+            // -3.2  3.1
+            // 0     -1.5
+            // 2.9   0
+            // 0     0
+            tripletList.emplace_back(Triplet<double>(0, 0, -3.2));
+            tripletList.emplace_back(Triplet<double>(0, 1, 3.1));
+            tripletList.emplace_back(Triplet<double>(1, 0, 0));
+            tripletList.emplace_back(Triplet<double>(1, 1, -1.5));
+            tripletList.emplace_back(Triplet<double>(2, 0, 2.9));
+            tripletList.emplace_back(Triplet<double>(2, 1, 0));
+            tripletList.emplace_back(Triplet<double>(3, 0, 0));
+            tripletList.emplace_back(Triplet<double>(3, 1, 0));
+        }
 
         inputs.setFromTriplets(tripletList.begin(), tripletList.end());
 
-        // Outputs
-        MatrixXd outputs(1, 2);
-        outputs << 10, 11;
+        // Check what the predictions are pre-update
+        MatrixXd preUpdate = weights * inputs;
 
-        const MatrixXd &actualOutputs = leastSquaresWeightUpdate(&mem, params, weights, inputs, outputs);
+        // Now run the actual updates and check the impact
+        MatrixXd postUpdate;
+        if(lossType == RMSE) {
+            MatrixXd outputs(1, 2);
+            outputs << 10, 11;
 
-        // Check actuals are as they should be
-        MatrixXd expected(1, 2);
-        expected << 9, 5;
+            postUpdate = leastSquaresWeightUpdate(&mem, params, weights, inputs, outputs);
+        }
+        else if(lossType == HINGE) {
+            // Classification-style outputs
+            MatrixXd outputs(1, 2);
+            outputs << -1, 1;
 
-        REQUIRE(expected == actualOutputs);
+            int epoch = 3;
+            postUpdate = hingeLossWeightUpdate(&mem, params, epoch, weights, inputs, outputs);
+        }
+
+        // Check the post-update values are different but same shape
+        REQUIRE(postUpdate.rows() == preUpdate.rows());
+        REQUIRE(postUpdate.cols() == preUpdate.cols());
+        REQUIRE(postUpdate != preUpdate);
 
         // Check weights have been updated where necessary
         const MatrixXd actualWeights = readMatrixFromState(&mem, WEIGHTS_KEY, 1, nWeights);
@@ -132,33 +169,12 @@ namespace tests {
         REQUIRE(actualWeights(0, 3) == weightsCopy(0, 3));
     }
 
-    double doSgdStep(FaasmMemory *mem, SgdParams &params, SparseMatrix<double> &inputs, MatrixXd &outputs) {
-        // Shuffle indices
-        int *batchStartIndices = randomIntRange(params.nBatches);
+    TEST_CASE("Test least squares updates", "[sgd]") {
+        checkLossUpdates(RMSE);
+    }
 
-        // Prepare update loop
-        int batchSize = params.nTrain / params.nBatches;
-        MatrixXd weights = readMatrixFromState(mem, WEIGHTS_KEY, 1, params.nWeights);
-
-        // Perform batch updates to weights
-        for (int b = 0; b < params.nBatches; b++) {
-            int startCol = batchStartIndices[b];
-
-            SparseMatrix<double> inputBatch = inputs.block(0, startCol, params.nWeights, batchSize);
-            MatrixXd outputBatch = outputs.block(0, startCol, 1, batchSize);
-
-            // Perform the update
-            leastSquaresWeightUpdate(mem, params, weights, inputBatch, outputBatch);
-
-            // Update parameters
-            weights = readMatrixFromState(mem, WEIGHTS_KEY, 1, params.nWeights);
-        }
-
-        // Calculate the actual values
-        MatrixXd actual = weights * inputs;
-
-        double rmse = calculateRootMeanSquaredError(actual, outputs);
-        return rmse;
+    TEST_CASE("Test hinge loss updates", "[sgd]") {
+        checkLossUpdates(HINGE);
     }
 
     TEST_CASE("Test SGD with least squares converges", "[sgd]") {
@@ -167,6 +183,7 @@ namespace tests {
 
         // Perform minibatch
         SgdParams params;
+        params.lossType = RMSE;
         params.nBatches = 2500;
         params.nWeights = 4;
         params.nTrain = 5000;
@@ -188,7 +205,7 @@ namespace tests {
         // Run multiple updates
         double finalLoss = 0;
         for (int e = 0; e < params.nEpochs; e++) {
-            finalLoss = doSgdStep(&mem, params, inputs, outputs);
+            finalLoss = doSgdStep(&mem, params, e, inputs, outputs);
         }
 
         REQUIRE(finalLoss < startingLoss);
