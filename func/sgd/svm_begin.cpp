@@ -13,9 +13,10 @@ namespace faasm {
 
         // Largest factors of number of training examples: 1, 2, 4, 5, 10, 20, 37, 74, 148, 151, 185, 302, 370, 604,
         // 740, 755, 1510, 3020, 5587, 11174, 22348, 27935, 55870, 111740
-        // Want something as close to one per worker as possible
-        // 111740 / 1510 = 74
-        p.nBatches = p.nTrain / 1510;
+        // Batch size should be small enough that batches don't overwrite each other too often,
+        // but large enough that we aren't doing a new function call for each training example.
+        int batchSize = 604;
+        p.nBatches = p.nTrain / batchSize;
         p.nEpochs = 60;
 
         writeParamsToState(memory, PARAMS_KEY, p);

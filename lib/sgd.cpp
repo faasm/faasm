@@ -28,38 +28,49 @@ namespace faasm {
 
     MatrixXd hingeLossWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int epoch, MatrixXd &weights,
                                    const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
-        // Create the prediction
-        MatrixXd prediction = weights * inputs;
 
-        // Go through each example in the batch
-        long batchSize = inputs.cols();
-        for (int b = 0; b < batchSize; b++) {
-            double thisOutput = outputs(0, b);
-            double thisPrediction = prediction.coeff(0, b);
+        // Create array of flags to say which weights to update
+        auto weightsToUpdate = new bool[sgdParams.nWeights];
+        for(int w = 0; w < sgdParams.nWeights; w++) {
+            weightsToUpdate[w] = false;
+        }
 
-            double thisProduct = thisPrediction * thisOutput;
+        // Iterate through all training examples (i.e. columns)
+        for (int col = 0; col < inputs.outerSize(); ++col) {
+            // Get input and output associated with this example
+            double thisOutput = outputs.coeff(0, col);
+            SparseMatrix<double> thisInput = inputs.col(col);
 
-            SparseMatrix<double> inputCol = inputs.col(b);
+            // Work out the prediction for this example (do this inside the loop to include weight updates
+            MatrixXd prediction = weights * thisInput;
+            double thisPrediction = prediction.coeff(0, 0);
 
-            // Update weights accordingly
-            for (int w = 0; w < sgdParams.nWeights; w++) {
-                double thisInput = inputCol.coeff(w, 0);
+            // If the prediction is less than one, it's misclassified
+            bool isMisclassified = (thisOutput * thisPrediction) < 1;
 
-                // Skip if no input here (i.e. this weight played no part)
-                if (abs(thisInput) < 0.00000000001) continue;
+            // Iterate through all non-zero input values in this column
+            for (Eigen::SparseMatrix<double>::InnerIterator it(inputs, col); it; ++it) {
+                // Get the value and associated weight
+                double thisValue = it.value();
+                double thisWeight = weights.coeff(0, it.row());
 
-                // Do the update
-                double thisWeight = weights.coeff(0, w);
-                if (thisProduct < 1) {
-                    // If the product is less than 1, it's a misclassification, so we include this part
-                    thisWeight += (sgdParams.learningRate * thisOutput * thisInput);
+                // If misclassified, hinge loss is active
+                if (isMisclassified) {
+                    thisWeight += (sgdParams.learningRate * thisOutput * thisValue);
                 }
 
-                thisWeight *= (1 - (sgdParams.learningRate/(1+epoch)));
+                thisWeight *= (1 - (sgdParams.learningRate / (1 + epoch)));
 
-                // Update in memory and state
-                weights(0, w) = thisWeight;
-                writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, w);
+                // Update in memory and flag
+                weights(0, it.row()) = thisWeight;
+                weightsToUpdate[it.row()] = true;
+            }
+        }
+
+        // Update any weights that have changed in this batch
+        for (int i = 0; i < sgdParams.nWeights; i++) {
+            if (weightsToUpdate[i]) {
+                writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, i);
             }
         }
 

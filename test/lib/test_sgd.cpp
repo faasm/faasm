@@ -105,12 +105,8 @@ namespace tests {
             // 0 0
             tripletList.emplace_back(Triplet<double>(0, 0, 3));
             tripletList.emplace_back(Triplet<double>(0, 1, 3));
-            tripletList.emplace_back(Triplet<double>(1, 0, 0));
             tripletList.emplace_back(Triplet<double>(1, 1, 1));
             tripletList.emplace_back(Triplet<double>(2, 0, 2));
-            tripletList.emplace_back(Triplet<double>(2, 1, 0));
-            tripletList.emplace_back(Triplet<double>(3, 0, 0));
-            tripletList.emplace_back(Triplet<double>(3, 1, 0));
         }
         else if(lossType == HINGE) {
             // Inputs to look like this:
@@ -120,12 +116,8 @@ namespace tests {
             // 0     0
             tripletList.emplace_back(Triplet<double>(0, 0, -3.2));
             tripletList.emplace_back(Triplet<double>(0, 1, 3.1));
-            tripletList.emplace_back(Triplet<double>(1, 0, 0));
             tripletList.emplace_back(Triplet<double>(1, 1, -1.5));
             tripletList.emplace_back(Triplet<double>(2, 0, 2.9));
-            tripletList.emplace_back(Triplet<double>(2, 1, 0));
-            tripletList.emplace_back(Triplet<double>(3, 0, 0));
-            tripletList.emplace_back(Triplet<double>(3, 1, 0));
         }
 
         inputs.setFromTriplets(tripletList.begin(), tripletList.end());

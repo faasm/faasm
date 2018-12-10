@@ -9,6 +9,7 @@ def pull(context):
     images = [
         "faasm/worker",
         "faasm/edge",
+        "faasm/data",
         "faasm/upload",
         "faasm/toolchain",
     ]
