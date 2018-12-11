@@ -13,8 +13,8 @@ namespace infra {
 
     // Once we have resolved the IP of the redis instance, we need to keep using it
     // This allows things operating within the network namespace to resolve it properly
-    static std::string redisStateIp = "not_set";
-    static std::string redisQueueIp = "not_set";
+    static std::string redisStateIp;
+    static std::string redisQueueIp;
 
     // Script to atomically scale up a worker.  The logic is:
     //
@@ -73,7 +73,7 @@ namespace infra {
         if(role == STATE) {
             hostname = util::getEnvVar("REDIS_STATE_HOST", "localhost");
 
-            if (redisStateIp == "not_set") {
+            if (redisStateIp.empty()) {
                 redisStateIp = util::getIPFromHostname(hostname);
             }
 
@@ -82,7 +82,7 @@ namespace infra {
         else {
             hostname = util::getEnvVar("REDIS_QUEUE_HOST", "localhost");
 
-            if (redisQueueIp == "not_set") {
+            if (redisQueueIp.empty()) {
                 redisQueueIp = util::getIPFromHostname(hostname);
             }
 
@@ -95,6 +95,16 @@ namespace infra {
         int portInt = std::stoi(port);
 
         context = redisConnect(thisIp.c_str(), portInt);
+
+        if (context == nullptr || context->err) {
+            if (context) {
+                printf("Error connecting to redis at %s: %s\n", thisIp.c_str(), context->errstr);
+            } else {
+                printf("Error allocating redis context\n");
+            }
+
+            throw std::runtime_error("Failed to connect to redis");
+        }
     }
 
     Redis::~Redis() {
