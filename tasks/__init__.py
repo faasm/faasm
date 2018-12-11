@@ -1,11 +1,16 @@
 from tasks.compile import lib, compile, funcs
 
 from tasks.docker import (
+    build_all,
     build_base,
+    build_data,
     build_edge,
     build_worker,
     build_upload,
     build_toolchain,
+    data,
+    push_all,
+    push_data,
     push_edge,
     push_upload,
     push_worker,
@@ -29,12 +34,6 @@ from tasks.setup import (
     setup_protobuf,
     setup_spdlog,
     setup_pistache
-)
-
-from tasks.state import (
-    reuters_upload,
-    upload_binary_file,
-    upload_sparse_matrix,
 )
 
 from tasks.upload import upload

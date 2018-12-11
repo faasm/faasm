@@ -16,8 +16,6 @@ namespace faasm {
         int epoch = faasm::getCounter(memory, EPOCH_COUNT_KEY);
 
         // Shuffle start indices for each batch
-        // Note that the batch size must be small compared to the total number of
-        // training examples for this to provide enough shuffling
         int* batchStartIndices = faasm::randomIntRange(p.nBatches);
 
         // Chain new calls to perform the work
@@ -36,9 +34,6 @@ namespace faasm {
         }
 
         delete[] batchStartIndices;
-
-        // Dispatch the barrier function
-        memory->chainFunction("sgd_barrier");
 
         return 0;
     }

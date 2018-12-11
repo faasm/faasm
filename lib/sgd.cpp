@@ -28,38 +28,49 @@ namespace faasm {
 
     MatrixXd hingeLossWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int epoch, MatrixXd &weights,
                                    const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
-        // Create the prediction
-        MatrixXd prediction = weights * inputs;
 
-        // Go through each example in the batch
-        long batchSize = inputs.cols();
-        for (int b = 0; b < batchSize; b++) {
-            double thisOutput = outputs(0, b);
-            double thisPrediction = prediction.coeff(0, b);
+        // Create array of flags to say which weights to update
+        auto weightsToUpdate = new bool[sgdParams.nWeights];
+        for(int w = 0; w < sgdParams.nWeights; w++) {
+            weightsToUpdate[w] = false;
+        }
 
-            double thisProduct = thisPrediction * thisOutput;
+        // Iterate through all training examples (i.e. columns)
+        for (int col = 0; col < inputs.outerSize(); ++col) {
+            // Get input and output associated with this example
+            double thisOutput = outputs.coeff(0, col);
+            SparseMatrix<double> thisInput = inputs.col(col);
 
-            SparseMatrix<double> inputCol = inputs.col(b);
+            // Work out the prediction for this example (do this inside the loop to include weight updates
+            MatrixXd prediction = weights * thisInput;
+            double thisPrediction = prediction.coeff(0, 0);
 
-            // Update weights accordingly
-            for (int w = 0; w < sgdParams.nWeights; w++) {
-                double thisInput = inputCol.coeff(w, 0);
+            // If the prediction is less than one, it's misclassified
+            bool isMisclassified = (thisOutput * thisPrediction) < 1;
 
-                // Skip if no input here (i.e. this weight played no part)
-                if (abs(thisInput) < 0.00000000001) continue;
+            // Iterate through all non-zero input values in this column
+            for (Eigen::SparseMatrix<double>::InnerIterator it(inputs, col); it; ++it) {
+                // Get the value and associated weight
+                double thisValue = it.value();
+                double thisWeight = weights.coeff(0, it.row());
 
-                // Do the update
-                double thisWeight = weights.coeff(0, w);
-                if (thisProduct < 1) {
-                    // If the product is less than 1, it's a misclassification, so we include this part
-                    thisWeight += (sgdParams.learningRate * thisOutput * thisInput);
+                // If misclassified, hinge loss is active
+                if (isMisclassified) {
+                    thisWeight += (sgdParams.learningRate * thisOutput * thisValue);
                 }
 
-                thisWeight *= (1 - (sgdParams.learningRate/(1+epoch)));
+                thisWeight *= (1 - (sgdParams.learningRate / (1 + epoch)));
 
-                // Update in memory and state
-                weights(0, w) = thisWeight;
-                writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, w);
+                // Update in memory and flag
+                weights(0, it.row()) = thisWeight;
+                weightsToUpdate[it.row()] = true;
+            }
+        }
+
+        // Update any weights that have changed in this batch
+        for (int i = 0; i < sgdParams.nWeights; i++) {
+            if (weightsToUpdate[i]) {
+                writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, i);
             }
         }
 
@@ -97,70 +108,83 @@ namespace faasm {
         return postUpdate;
     }
 
-    void zeroArray(FaasmMemory *memory, const char *key, long len) {
+    void zeroDoubleArray(FaasmMemory *memory, const char *key, long len) {
         // Set buffer to zero
-        auto errors = new double[len];
+        auto buffer = new double[len];
         for (int i = 0; i < len; i++) {
-            errors[i] = 0;
+            buffer[i] = 0;
         }
 
         // Write zeroed buffer to state
-        auto errorsBytes = reinterpret_cast<uint8_t *>(errors);
-        memory->writeState(key, errorsBytes, len * sizeof(double));
-        delete[] errors;
+        auto bytes = reinterpret_cast<uint8_t *>(buffer);
+        memory->writeState(key, bytes, len * sizeof(double));
+        delete[] buffer;
     }
 
-    void writeFinishedFlag(FaasmMemory *memory, int workerIdx) {
-        double success = 1.0;
-        auto successBytes = reinterpret_cast<uint8_t *>(&success);
-        long offset = workerIdx * sizeof(double);
-        memory->writeStateOffset(FINISHED_KEY, offset, successBytes, sizeof(double));
+    void zeroIntArray(FaasmMemory *memory, const char *key, long len) {
+        // Set buffer to zero
+        auto buffer = new int[len];
+        for (int i = 0; i < len; i++) {
+            buffer[i] = 0;
+        }
+
+        // Write zeroed buffer to state
+        auto bytes = reinterpret_cast<uint8_t *>(buffer);
+        memory->writeState(key, bytes, len * sizeof(int));
+        delete[] buffer;
+    }
+
+    void writeFinishedFlag(FaasmMemory *memory, int batchNumber) {
+        int finished = 1;
+        auto finishedBytes = reinterpret_cast<uint8_t *>(&finished);
+        long offset = batchNumber * sizeof(int);
+        memory->writeStateOffset(FINISHED_KEY, offset, finishedBytes, sizeof(int));
     }
 
     void zeroFinished(FaasmMemory *memory, SgdParams sgdParams) {
-        zeroArray(memory, FINISHED_KEY, sgdParams.nBatches);
+        zeroIntArray(memory, FINISHED_KEY, sgdParams.nBatches);
     }
 
     void zeroErrors(FaasmMemory *memory, SgdParams sgdParams) {
-        zeroArray(memory, ERRORS_KEY, sgdParams.nBatches);
+        zeroDoubleArray(memory, ERRORS_KEY, sgdParams.nBatches);
     }
 
     void zeroLosses(FaasmMemory *memory, SgdParams sgdParams) {
-        zeroArray(memory, LOSSES_KEY, sgdParams.nEpochs);
+        zeroDoubleArray(memory, LOSSES_KEY, sgdParams.nEpochs);
     }
 
-    void _writeError(FaasmMemory *memory, int workerIdx, double error) {
+    void _writeError(FaasmMemory *memory, int batchNumber, double error) {
         auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&error);
 
-        long offset = workerIdx * sizeof(double);
+        long offset = batchNumber * sizeof(double);
         memory->writeStateOffset(ERRORS_KEY, offset, squaredErrorBytes, sizeof(double));
     }
 
-    void writeHingeError(FaasmMemory *memory, int workerIdx, const MatrixXd &outputs, const MatrixXd &actual) {
+    void writeHingeError(FaasmMemory *memory, int batchNumber, const MatrixXd &outputs, const MatrixXd &actual) {
         double err = calculateHingeError(actual, outputs);
-        _writeError(memory, workerIdx, err);
+        _writeError(memory, batchNumber, err);
     }
 
-    void writeSquaredError(FaasmMemory *memory, int workerIdx, const MatrixXd &outputs, const MatrixXd &actual) {
+    void writeSquaredError(FaasmMemory *memory, int batchNumber, const MatrixXd &outputs, const MatrixXd &actual) {
         double err = calculateSquaredError(actual, outputs);
-        _writeError(memory, workerIdx, err);
+        _writeError(memory, batchNumber, err);
     }
 
     bool readEpochFinished(FaasmMemory *memory, const SgdParams &sgdParams) {
         // Load finished flags from state
-        const size_t nBytes = sgdParams.nBatches * sizeof(double);
+        const size_t nBytes = sgdParams.nBatches * sizeof(int);
         auto buffer = new uint8_t[nBytes];
         memory->readState(FINISHED_KEY, buffer, nBytes);
 
-        auto flags = reinterpret_cast<double *>(buffer);
+        auto flags = reinterpret_cast<int *>(buffer);
 
-        // Iterate through
+        // Iterate through all the batches to see if finished
         bool isFinished = true;
         for (int i = 0; i < sgdParams.nBatches; i++) {
             double flag = flags[i];
 
-            // If error is still zero, we've not yet finished
-            if (flag == 0.0) {
+            // If flag is zero, we've not finished
+            if (flag == 0) {
                 isFinished = false;
                 break;
             }

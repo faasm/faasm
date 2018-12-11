@@ -24,7 +24,7 @@ services:
       - NETNS_MODE=on
       - LOG_LEVEL=info
       - PREWARM_TARGET=80
-      - MAX_QUEUE_RATIO=4
+      - MAX_QUEUE_RATIO=1
       - MAX_WORKERS_PER_FUNCTION=100
       - BOUND_TIMEOUT=30
       - UNBOUND_TIMEOUT=240
@@ -44,7 +44,7 @@ services:
       - FUNC_ROOT=/usr/share/faasm
       - LOG_LEVEL=info
       - PREWARM_TARGET=80
-      - MAX_QUEUE_RATIO=4
+      - MAX_QUEUE_RATIO=1
       - MAX_WORKERS_PER_FUNCTION=100
       - BOUND_TIMEOUT=30
       - UNBOUND_TIMEOUT=240

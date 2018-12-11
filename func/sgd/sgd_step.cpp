@@ -11,7 +11,7 @@ namespace faasm {
 
         const int *inputParams = reinterpret_cast<const int *>(inputBuffer);
 
-        int workerIdx = inputParams[0];
+        int batchNumber = inputParams[0];
         int startIdx = inputParams[1];
         int endIdx = inputParams[2];
         int epoch = inputParams[3];
@@ -30,16 +30,21 @@ namespace faasm {
             actual = hingeLossWeightUpdate(memory, sgdParams, epoch, weights, inputs, outputs);
 
             // Persist error
-            writeHingeError(memory, workerIdx, outputs, actual);
+            writeHingeError(memory, batchNumber, outputs, actual);
         } else {
             actual = leastSquaresWeightUpdate(memory, sgdParams, weights, inputs, outputs);
 
             // Persist error for these examples
-            writeSquaredError(memory, workerIdx, outputs, actual);
+            writeSquaredError(memory, batchNumber, outputs, actual);
         }
 
         // Flag that this worker has finished
-        writeFinishedFlag(memory, workerIdx);
+        writeFinishedFlag(memory, batchNumber);
+
+        // If this is the last, dispatch the barrier (will have finished by now or will do soon)
+        if(batchNumber == sgdParams.nBatches - 1) {
+            memory->chainFunction("sgd_barrier");
+        }
 
         return 0;
     }

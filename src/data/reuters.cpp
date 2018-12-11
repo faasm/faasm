@@ -26,7 +26,7 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
     int exampleCount = 0;
     int maxFeature = 0;
 
-    std::vector<char> categories;
+    std::vector<double> categories;
     std::vector<Eigen::Triplet<double>> triplets;
 
     for (const auto &f : files) {
@@ -87,7 +87,7 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
     s.writeToFile(outputDir.string());
 
     // Write categories to files
-    long nCatBytes = categories.size() * sizeof(char);
+    long nCatBytes = categories.size() * sizeof(double);
     auto catPtr = reinterpret_cast<uint8_t *>(categories.data());
 
     path catFile = outputDir;

@@ -64,11 +64,11 @@ namespace faasm {
 
     void zeroFinished(FaasmMemory *memory, SgdParams sgdParams);
 
-    void writeFinishedFlag(FaasmMemory *memory, int workerIdx);
+    void writeFinishedFlag(FaasmMemory *memory, int batchNumber);
 
-    void writeHingeError(FaasmMemory *memory, int workerIdx, const MatrixXd &outputs, const MatrixXd &actual);
+    void writeHingeError(FaasmMemory *memory, int batchNumber, const MatrixXd &outputs, const MatrixXd &actual);
 
-    void writeSquaredError(FaasmMemory *memory, int workerIdx, const MatrixXd &outputs, const MatrixXd &actual);
+    void writeSquaredError(FaasmMemory *memory, int batchNumber, const MatrixXd &outputs, const MatrixXd &actual);
 
     double readTotalError(FaasmMemory *memory, const SgdParams &sgdParams);
 
