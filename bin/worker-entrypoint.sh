@@ -12,5 +12,5 @@ echo "Setting up namespaces"
 
 popd >> /dev/null
 
-# Continue with normal Docker execution
+# Continue with normal command
 exec "$@"

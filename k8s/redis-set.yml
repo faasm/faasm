@@ -18,13 +18,12 @@ spec:
     spec:
       containers:
         - name: redis
-          image: redis
+          image: faasm/redis
           ports:
             - containerPort: 6379
               name: client
             - containerPort: 16379
               name: gossip
-          command: ["/conf/fix-ip.sh", "redis-server", "/conf/redis.conf"]
           readinessProbe:
             exec:
               command:
