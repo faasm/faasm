@@ -45,11 +45,3 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-          volumeMounts:
-            - name: func-vol
-              mountPath: /conf
-              readOnly: false
-      volumes:
-        - name: func-vol
-          persistentVolumeClaim:
-            claimName: func-storage-claim

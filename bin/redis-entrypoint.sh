@@ -2,7 +2,7 @@
 
 # This script updates the node config file with the current IP
 # Based on this repo: https://github.com/sanderploegsma/redis-cluster
-CLUSTER_CONFIG="/conf/redis-nodes.conf"
+CLUSTER_CONFIG="/redis-nodes.conf"
 
 if [ -f ${CLUSTER_CONFIG} ]; then
   if [ -z "${POD_IP}" ]; then
