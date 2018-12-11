@@ -4,6 +4,7 @@
 
 #include <boost/filesystem.hpp>
 #include <unistd.h>
+#include "utils.h"
 
 using namespace web::http::experimental::listener;
 using namespace web::http;
@@ -23,8 +24,7 @@ namespace tests {
     }
 
     TEST_CASE("Test uploading state", "[edge]") {
-        infra::Redis cli;
-        cli.flushAll();
+        redisQueue.flushAll();
 
         // Create multiple upload requests for different users
         std::string pathA1 = "/s/foo/bar";
@@ -49,14 +49,13 @@ namespace tests {
         std::string realKeyA2 = "foo_baz";
         std::string realKeyB = "bat_qux";
 
-        REQUIRE(cli.get(realKeyA1) == stateA1);
-        REQUIRE(cli.get(realKeyA2) == stateA2);
-        REQUIRE(cli.get(realKeyB) == stateB);
+        REQUIRE(redisQueue.get(realKeyA1) == stateA1);
+        REQUIRE(redisQueue.get(realKeyA2) == stateA2);
+        REQUIRE(redisQueue.get(realKeyB) == stateB);
     }
 
     TEST_CASE("Test uploading and downloading state", "[edge]") {
-        infra::Redis cli;
-        cli.flushAll();
+        redisQueue.flushAll();
 
         std::string path = "/s/foo/bar";
         std::vector<uint8_t> state = {0, 1, 2, 3, 4, 5};

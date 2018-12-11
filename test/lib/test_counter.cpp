@@ -4,13 +4,13 @@
 
 #include "faasm/memory.h"
 #include "faasm/counter.h"
+#include "utils.h"
 
 using namespace faasm;
 
 namespace tests {
     TEST_CASE("Test normal counter operation", "[counter]") {
-        infra::Redis redis;
-        redis.flushAll();
+        redisQueue.flushAll();
 
         FaasmMemory mem;
 
@@ -33,8 +33,7 @@ namespace tests {
     }
 
     TEST_CASE("Test counter over big number", "[counter]") {
-        infra::Redis redis;
-        redis.flushAll();
+        redisQueue.flushAll();
 
         FaasmMemory mem;
 
@@ -49,8 +48,7 @@ namespace tests {
     }
 
     TEST_CASE("Test uninitialised counter", "[counter]") {
-        infra::Redis redis;
-        redis.flushAll();
+        redisQueue.flushAll();
 
         FaasmMemory mem;
 

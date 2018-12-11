@@ -6,28 +6,30 @@
  * Dummy implementations of state calls to keep compiler happy
  */
 
-static thread_local infra::Redis redis;
-
 extern "C" {
 
 long __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) {
-    std::vector<uint8_t> state = redis.get(key);
+    infra::Redis *redis = infra::Redis::getThreadState();
+    std::vector<uint8_t> state = redis->get(key);
     int stateSize = util::safeCopyToBuffer(state, buffer, bufferLen);
     return stateSize;
 }
 
 void __faasm_write_state(const char *key, const unsigned char *data, long dataLen) {
+    infra::Redis *redis = infra::Redis::getThreadState();
     std::vector<uint8_t> newState(data, data + dataLen);
-    redis.set(key, newState);
+    redis->set(key, newState);
 }
 
 void __faasm_write_state_offset(const char *key, long offset, const unsigned char *data, long dataLen) {
+    infra::Redis *redis = infra::Redis::getThreadState();
     std::vector<uint8_t> newState(data, data + dataLen);
-    redis.setRange(key, offset, newState);
+    redis->setRange(key, offset, newState);
 }
 
 void __faasm_read_state_offset(const char *key, long offset, unsigned char *buffer, long bufferLen) {
-    std::vector<uint8_t> state = redis.getRange(key, offset, offset + bufferLen);
+    infra::Redis *redis = infra::Redis::getThreadState();
+    std::vector<uint8_t> state = redis->getRange(key, offset, offset + bufferLen);
     util::safeCopyToBuffer(state, buffer, bufferLen);
 }
 

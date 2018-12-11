@@ -23,17 +23,23 @@ namespace infra {
 
     std::vector<uint8_t> messageToBytes(const message::Message &msg);
 
+    enum RedisRole {
+        QUEUE,
+        STATE,
+    };
 
     class Redis {
 
     public:
 
-        Redis();
+        Redis(const RedisRole &role);
 
         ~Redis();
 
         /** Returns the instance for the current thread */
-        static Redis *getThreadConnection();
+        static Redis *getThreadQueue();
+
+        static Redis *getThreadState();
 
         std::vector<uint8_t> get(const std::string &key);
 

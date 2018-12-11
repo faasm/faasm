@@ -90,7 +90,7 @@ namespace worker {
         int workerIdx;
         NetworkNamespace *ns;
 
-        infra::Redis *redis;
+        infra::Redis *queue;
 
         const std::string executeCall(message::Message &msg);
 

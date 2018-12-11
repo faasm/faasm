@@ -78,8 +78,8 @@ namespace edge {
             return "Async request submitted";
         } else {
             logger->info("Sync request {}", infra::funcToString(msg));
-            infra::Redis *redis = infra::Redis::getThreadConnection();
-            message::Message result = redis->getFunctionResult(msg);
+            infra::Redis *queue = infra::Redis::getThreadQueue();
+            message::Message result = queue->getFunctionResult(msg);
 
             const std::chrono::steady_clock::time_point &t2 = prof::startTimer();
 

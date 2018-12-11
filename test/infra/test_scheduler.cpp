@@ -1,6 +1,7 @@
 #include <catch/catch.hpp>
 #include <infra/infra.h>
 #include <util/util.h>
+#include "utils.h"
 
 using namespace infra;
 
@@ -14,8 +15,7 @@ namespace tests {
     }
 
     TEST_CASE("Test worker prewarm to bound", "[scheduler]") {
-        Redis cli;
-        cli.flushAll();
+        redisQueue.flushAll();
 
         // Set up some fake prewarms
         Scheduler::prewarmWorker();
@@ -34,13 +34,12 @@ namespace tests {
         // Check that the prewarm count is *not* updated and other messages not sent.
         // This is done in the original bind call
         REQUIRE(Scheduler::getPrewarmCount() == 2);
-        REQUIRE(cli.listLength(PREWARM_QUEUE) == 0);
-        REQUIRE(cli.listLength(COLD_QUEUE) == 0);
+        REQUIRE(redisQueue.listLength(PREWARM_QUEUE) == 0);
+        REQUIRE(redisQueue.listLength(COLD_QUEUE) == 0);
     }
 
     TEST_CASE("Test worker finished prewarm", "[scheduler]") {
-        Redis cli;
-        cli.flushAll();
+        redisQueue.flushAll();
 
         Scheduler::prewarmWorker();
         REQUIRE(Scheduler::getPrewarmCount() == 1);
@@ -51,12 +50,11 @@ namespace tests {
     }
 
     TEST_CASE("Test worker finished cold", "[scheduler]") {
-        Redis cli;
-        cli.flushAll();
+        redisQueue.flushAll();
 
         // Fill up all prewarm
         util::SystemConfig conf = util::getSystemConfig();
-        for(int i = 0; i < conf.prewarm_target; i++) {
+        for (int i = 0; i < conf.prewarm_target; i++) {
             Scheduler::prewarmWorker();
         }
 
@@ -70,8 +68,7 @@ namespace tests {
     }
 
     TEST_CASE("Test worker finished bound", "[scheduler]") {
-        Redis cli;
-        cli.flushAll();
+        redisQueue.flushAll();
 
         message::Message call;
         call.set_user("userA");
@@ -89,8 +86,7 @@ namespace tests {
     }
 
     TEST_CASE("Test calling function with no workers sends bind message", "[scheduler]") {
-        Redis cli;
-        cli.flushAll();
+        redisQueue.flushAll();
 
         message::Message call;
         call.set_function("my func");
@@ -106,16 +102,15 @@ namespace tests {
 
         // Check function count has increased and bind message sent
         REQUIRE(Scheduler::getFunctionCount(call) == 1);
-        REQUIRE(cli.listLength(PREWARM_QUEUE) == 1);
+        REQUIRE(redisQueue.listLength(PREWARM_QUEUE) == 1);
 
         // Check prewarm count has been decreased and prewarm message sent
         REQUIRE(Scheduler::getPrewarmCount() == 0);
-        REQUIRE(cli.listLength(COLD_QUEUE) == 1);
+        REQUIRE(redisQueue.listLength(COLD_QUEUE) == 1);
     }
 
     TEST_CASE("Test sending bind messages", "[scheduler]") {
-        Redis cli;
-        cli.flushAll();
+        redisQueue.flushAll();
 
         // Set up calls
         message::Message callA;
@@ -135,8 +130,8 @@ namespace tests {
         REQUIRE(Scheduler::getFunctionCount(callB) == 1);
 
         // Check that bind messages have been sent
-        const message::Message bindA = cli.nextMessage(PREWARM_QUEUE);
-        const message::Message bindB = cli.nextMessage(PREWARM_QUEUE);
+        const message::Message bindA = redisQueue.nextMessage(PREWARM_QUEUE);
+        const message::Message bindB = redisQueue.nextMessage(PREWARM_QUEUE);
 
         REQUIRE(bindA.user() == callA.user());
         REQUIRE(bindA.function() == callA.function());
@@ -147,8 +142,8 @@ namespace tests {
         REQUIRE(bindB.type() == message::Message_MessageType_BIND);
 
         // Check that prewarm messages have been sent
-        const message::Message prewarmA = cli.nextMessage(COLD_QUEUE);
-        const message::Message prewarmB = cli.nextMessage(COLD_QUEUE);
+        const message::Message prewarmA = redisQueue.nextMessage(COLD_QUEUE);
+        const message::Message prewarmB = redisQueue.nextMessage(COLD_QUEUE);
 
         REQUIRE(prewarmA.user().empty());
         REQUIRE(prewarmA.function().empty());
@@ -160,8 +155,7 @@ namespace tests {
     }
 
     TEST_CASE("Test calling function with existing workers does not send bind message", "[scheduler]") {
-        Redis cli;
-        cli.flushAll();
+        redisQueue.flushAll();
 
         message::Message call;
         call.set_function("my func");
@@ -175,20 +169,19 @@ namespace tests {
 
         // Fake calling the function first, should cause a bind message and set up the function queue
         Scheduler::callFunction(call);
-        REQUIRE(cli.listLength(PREWARM_QUEUE) == 1);
-        REQUIRE(cli.listLength(queueName) == 1);
+        REQUIRE(redisQueue.listLength(PREWARM_QUEUE) == 1);
+        REQUIRE(redisQueue.listLength(queueName) == 1);
 
         // Call the function again
         Scheduler::callFunction(call);
 
         // Check function call has been added, but no new bind messages
-        REQUIRE(cli.listLength(PREWARM_QUEUE) == 1);
-        REQUIRE(cli.listLength(queueName) == 2);
+        REQUIRE(redisQueue.listLength(PREWARM_QUEUE) == 1);
+        REQUIRE(redisQueue.listLength(queueName) == 2);
     }
 
     TEST_CASE("Test calling function which breaches queue ratio sends bind message", "[scheduler]") {
-        Redis cli;
-        cli.flushAll();
+        redisQueue.flushAll();
 
         message::Message call;
         call.set_function("my func");
@@ -203,21 +196,20 @@ namespace tests {
             Scheduler::callFunction(call);
 
             // Check only one bind message is ever sent
-            REQUIRE(cli.listLength(PREWARM_QUEUE) == 1);
+            REQUIRE(redisQueue.listLength(PREWARM_QUEUE) == 1);
 
             // Check call queued
-            REQUIRE(cli.listLength(queueName) == i + 1);
+            REQUIRE(redisQueue.listLength(queueName) == i + 1);
         }
 
         // Dispatch another and check that a bind message is sent
         Scheduler::callFunction(call);
-        REQUIRE(cli.listLength(PREWARM_QUEUE) == 2);
-        REQUIRE(cli.listLength(queueName) == nCalls + 1);
+        REQUIRE(redisQueue.listLength(PREWARM_QUEUE) == 2);
+        REQUIRE(redisQueue.listLength(queueName) == nCalls + 1);
     }
 
     TEST_CASE("Test function which breaches queue ratio but has no capacity does not scale up", "[scheduler]") {
-        Redis cli;
-        cli.flushAll();
+        redisQueue.flushAll();
 
         message::Message call;
         call.set_user("userA");
@@ -233,38 +225,37 @@ namespace tests {
         }
 
         // Check number of bind messages
-        REQUIRE(cli.listLength(PREWARM_QUEUE) == conf.max_workers_per_function);
+        REQUIRE(redisQueue.listLength(PREWARM_QUEUE) == conf.max_workers_per_function);
 
         // Check count assigned to function
         REQUIRE(Scheduler::getFunctionCount(call) == conf.max_workers_per_function);
 
         // Check calls have been queued
-        REQUIRE(cli.listLength(Scheduler::getFunctionQueueName(call)) == nCalls);
+        REQUIRE(redisQueue.listLength(Scheduler::getFunctionQueueName(call)) == nCalls);
 
         // Now call the function a few more times and check calls are queued but no new bind messages/ workers added
         Scheduler::callFunction(call);
         Scheduler::callFunction(call);
         Scheduler::callFunction(call);
 
-        REQUIRE(cli.listLength(PREWARM_QUEUE) == conf.max_workers_per_function);
+        REQUIRE(redisQueue.listLength(PREWARM_QUEUE) == conf.max_workers_per_function);
         REQUIRE(Scheduler::getFunctionCount(call) == conf.max_workers_per_function);
-        REQUIRE(cli.listLength(Scheduler::getFunctionQueueName(call)) == nCalls + 3);
+        REQUIRE(redisQueue.listLength(Scheduler::getFunctionQueueName(call)) == nCalls + 3);
     }
 
     TEST_CASE("Test is need to prewarm", "[scheduler]") {
-        Redis cli;
-        cli.flushAll();
+        redisQueue.flushAll();
 
         // Check should prewarm up to limit
         const util::SystemConfig conf = util::getSystemConfig();
-        for(int i =0; i < conf.prewarm_target; i++) {
+        for (int i = 0; i < conf.prewarm_target; i++) {
             REQUIRE(Scheduler::prewarmWorker());
             REQUIRE(Scheduler::getPrewarmCount() == i + 1);
             REQUIRE(Scheduler::getColdCount() == 0);
         }
 
         // Should be false once we've hit the target
-        for(int i = 0; i < 5; i++) {
+        for (int i = 0; i < 5; i++) {
             REQUIRE(!Scheduler::prewarmWorker());
             REQUIRE(Scheduler::getPrewarmCount() == conf.prewarm_target);
             REQUIRE(Scheduler::getColdCount() == i + 1);

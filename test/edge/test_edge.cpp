@@ -1,13 +1,13 @@
 #include <catch/catch.hpp>
 
+#include "utils.h"
 #include <edge/edge.h>
 
 using namespace Pistache;
 
 namespace tests {
     TEST_CASE("Test invoking a function", "[edge]") {
-        infra::Redis cli;
-        cli.flushAll();
+        redisQueue.flushAll();
 
         // Note - must be async to avoid needing a result
         message::Message call;
@@ -22,7 +22,7 @@ namespace tests {
         edge::FunctionEndpoint endpoint;
         endpoint.handleFunction(call);
 
-        const message::Message actual = cli.nextMessage(queueName);
+        const message::Message actual = redisQueue.nextMessage(queueName);
 
         REQUIRE(actual.user() == "demo");
         REQUIRE(actual.function() == "echo");
@@ -30,8 +30,7 @@ namespace tests {
     }
 
     TEST_CASE("Test invoking a non-existent function", "[worker]") {
-        infra::Redis cli;
-        cli.flushAll();
+        redisQueue.flushAll();
 
         // Note - must be async to avoid needing a result
         message::Message call;
@@ -45,6 +44,6 @@ namespace tests {
 
         // Check nothing added to queue
         const std::string queueName = infra::Scheduler::getFunctionQueueName(call);
-        REQUIRE(cli.listLength(queueName) == 0);
+        REQUIRE(redisQueue.listLength(queueName) == 0);
     }
 }

@@ -1,12 +1,11 @@
 #include <catch/catch.hpp>
 
 #include <worker/worker.h>
+#include "utils.h"
 
 using namespace worker;
 
 namespace tests {
-    static infra::Redis redis;
-
     void execErrorFunction(message::Message &call) {
         WorkerThread w(1);
 
@@ -20,7 +19,7 @@ namespace tests {
     }
 
     void checkError(const std::string &funcName, const std::string &expectedMsg) {
-        redis.flushAll();
+        redisQueue.flushAll();
 
         message::Message call;
         call.set_user("errors");
@@ -30,7 +29,7 @@ namespace tests {
         execErrorFunction(call);
 
         // Get result
-        message::Message result = redis.getFunctionResult(call);
+        message::Message result = redisQueue.getFunctionResult(call);
         REQUIRE(!result.success());
 
         const std::string actualOutput = result.outputdata();

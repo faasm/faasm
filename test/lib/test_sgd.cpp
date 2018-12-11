@@ -31,8 +31,7 @@ namespace tests {
     }
 
     TEST_CASE("Test serialising params round trip", "[sgd]") {
-        infra::Redis r;
-        r.flushAll();
+        redisQueue.flushAll();
 
         SgdParams params = getDummySgdParams();
 
@@ -48,8 +47,7 @@ namespace tests {
     }
 
     TEST_CASE("Test setting up dummy data", "[sgd]") {
-        infra::Redis r;
-        r.flushAll();
+        redisQueue.flushAll();
 
         SgdParams params = getDummySgdParams();
 
@@ -72,8 +70,7 @@ namespace tests {
     }
 
     void checkLossUpdates(LossType lossType) {
-        infra::Redis r;
-        r.flushAll();
+        redisQueue.flushAll();
 
         FaasmMemory mem;
 
@@ -170,8 +167,7 @@ namespace tests {
     }
 
     TEST_CASE("Test SGD with least squares converges", "[sgd]") {
-        infra::Redis r;
-        r.flushAll();
+        redisQueue.flushAll();
 
         // Perform minibatch
         SgdParams params;
@@ -204,7 +200,7 @@ namespace tests {
     }
 
     void checkDoubleArrayInState(infra::Redis &r, const char *key, std::vector<double> expected) {
-        std::vector<uint8_t> actualBytes = r.get(key);
+        std::vector<uint8_t> actualBytes = redisQueue.get(key);
 
         auto actualPtr = reinterpret_cast<double *>(actualBytes.data());
         std::vector<double> actual(actualPtr, actualPtr + expected.size());
@@ -213,7 +209,7 @@ namespace tests {
     }
 
     void checkIntArrayInState(infra::Redis &r, const char *key, std::vector<int> expected) {
-        std::vector<uint8_t> actualBytes = r.get(key);
+        std::vector<uint8_t> actualBytes = redisQueue.get(key);
 
         auto actualPtr = reinterpret_cast<int *>(actualBytes.data());
         std::vector<int> actual(actualPtr, actualPtr + expected.size());
@@ -222,8 +218,7 @@ namespace tests {
     }
 
     TEST_CASE("Test writing errors to state", "[sgd]") {
-        infra::Redis r;
-        r.flushAll();
+        redisQueue.flushAll();
 
         MatrixXd a = randomDenseMatrix(1, 5);
         MatrixXd b = randomDenseMatrix(1, 5);
@@ -231,7 +226,7 @@ namespace tests {
         MatrixXd d = randomDenseMatrix(1, 5);
 
         // Check no errors set initially
-        const std::vector<uint8_t> initial = r.get(ERRORS_KEY);
+        const std::vector<uint8_t> initial = redisQueue.get(ERRORS_KEY);
         REQUIRE(initial.empty());
 
         FaasmMemory memory;
@@ -240,7 +235,7 @@ namespace tests {
 
         // Check zeroing out errors
         zeroErrors(&memory, params);
-        checkDoubleArrayInState(r, ERRORS_KEY, {0, 0, 0, 0});
+        checkDoubleArrayInState(redisQueue, ERRORS_KEY, {0, 0, 0, 0});
 
         // Work out expectation
         double expected1 = calculateSquaredError(a, b);
@@ -250,12 +245,11 @@ namespace tests {
         writeSquaredError(&memory, 0, a, b);
         writeSquaredError(&memory, 2, a, b);
 
-        checkDoubleArrayInState(r, ERRORS_KEY, {expected1, 0, expected2, 0});
+        checkDoubleArrayInState(redisQueue, ERRORS_KEY, {expected1, 0, expected2, 0});
     }
 
     TEST_CASE("Test reading errors from state", "[sgd]") {
-        infra::Redis r;
-        r.flushAll();
+        redisQueue.flushAll();
 
         FaasmMemory memory;
         SgdParams p = getDummySgdParams();
@@ -276,7 +270,7 @@ namespace tests {
         writeSquaredError(&memory, 1, a, b);
 
         // Check these have been written
-        checkDoubleArrayInState(r, ERRORS_KEY,{expected, expected, 0});
+        checkDoubleArrayInState(redisQueue, ERRORS_KEY,{expected, expected, 0});
 
         // Error should just include the 2 written
         double expectedRmse1 = sqrt((2 * expected) / p.nTrain);
@@ -285,7 +279,7 @@ namespace tests {
 
         // Now write error for a third batch
         writeSquaredError(&memory, 2, a, b);
-        checkDoubleArrayInState(r, ERRORS_KEY,{expected, expected, expected});
+        checkDoubleArrayInState(redisQueue, ERRORS_KEY,{expected, expected, expected});
 
         // Work out what the result should be
         double expectedRmse2 = sqrt((3 * expected) / p.nTrain);
@@ -294,8 +288,7 @@ namespace tests {
     }
 
     TEST_CASE("Test zeroing losses", "[sgd]") {
-        infra::Redis r;
-        r.flushAll();
+        redisQueue.flushAll();
 
         SgdParams p = getDummySgdParams();
         p.nBatches = 10;
@@ -305,23 +298,22 @@ namespace tests {
 
         // Zero and check it's worked
         zeroLosses(&mem, p);
-        checkDoubleArrayInState(r, LOSSES_KEY, {0, 0, 0, 0, 0});
+        checkDoubleArrayInState(redisQueue, LOSSES_KEY, {0, 0, 0, 0, 0});
 
         // Update with some other values
         std::vector<double> losses = {2.2, 3.3, 4.4, 5.5, 0.0};
         auto lossBytes = reinterpret_cast<uint8_t *>(losses.data());
         mem.writeState(LOSSES_KEY, lossBytes, 5 * sizeof(double));
 
-        checkDoubleArrayInState(r, LOSSES_KEY, losses);
+        checkDoubleArrayInState(redisQueue, LOSSES_KEY, losses);
 
         // Zero again and check it's worked
         zeroLosses(&mem, p);
-        checkDoubleArrayInState(r, LOSSES_KEY, {0, 0, 0, 0, 0});
+        checkDoubleArrayInState(redisQueue, LOSSES_KEY, {0, 0, 0, 0, 0});
     }
 
     TEST_CASE("Test setting finished flags", "[sgd]") {
-        infra::Redis r;
-        r.flushAll();
+        redisQueue.flushAll();
 
         SgdParams p = getDummySgdParams();
         p.nBatches = 3;
@@ -334,16 +326,15 @@ namespace tests {
         writeFinishedFlag(&mem, 0);
         writeFinishedFlag(&mem, 2);
         REQUIRE(!readEpochFinished(&mem, p));
-        checkIntArrayInState(r, FINISHED_KEY, {1, 0, 1});
+        checkIntArrayInState(redisQueue, FINISHED_KEY, {1, 0, 1});
 
         writeFinishedFlag(&mem, 1);
-        checkIntArrayInState(r, FINISHED_KEY, {1, 1, 1});
+        checkIntArrayInState(redisQueue, FINISHED_KEY, {1, 1, 1});
         REQUIRE(readEpochFinished(&mem, p));
     }
 
     TEST_CASE("Test zeroing finished flags", "[sgd]") {
-        infra::Redis r;
-        r.flushAll();
+        redisQueue.flushAll();
 
         SgdParams p = getDummySgdParams();
         p.nBatches = 3;
@@ -352,18 +343,18 @@ namespace tests {
 
         // Zero and check it's worked
         zeroFinished(&mem, p);
-        checkIntArrayInState(r, FINISHED_KEY, {0, 0, 0});
+        checkIntArrayInState(redisQueue, FINISHED_KEY, {0, 0, 0});
 
         // Update with some other values
         std::vector<int> finished = {1, 0, 1};
         auto lossBytes = reinterpret_cast<uint8_t *>(finished.data());
         mem.writeState(FINISHED_KEY, lossBytes, 5 * sizeof(int));
 
-        checkIntArrayInState(r, FINISHED_KEY, finished);
+        checkIntArrayInState(redisQueue, FINISHED_KEY, finished);
 
         // Zero again and check it's worked
         zeroFinished(&mem, p);
-        checkIntArrayInState(r, FINISHED_KEY, {0, 0, 0});
+        checkIntArrayInState(redisQueue, FINISHED_KEY, {0, 0, 0});
     }
 
 }

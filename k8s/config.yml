@@ -4,7 +4,8 @@ metadata:
   name: faasm-config
   namespace: faasm
 data:
-  REDIS_HOST: "redis-cluster"
+  REDIS_STATE_HOST: redis-state
+  REDIS_QUEUE_HOST: redis-queue
   REDIS_PORT: "6379"
   FUNC_ROOT: "/usr/share/faasm"
   LOG_LEVEL: "info"

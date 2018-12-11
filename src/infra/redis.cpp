@@ -8,11 +8,13 @@
 namespace infra {
     // Note - hiredis redis contexts are suitable only for single threads
     // therefore we need to ensure that each thread has its own instance
-    static thread_local infra::Redis redis;
+    static thread_local infra::Redis redisState(STATE);
+    static thread_local infra::Redis redisQueue(QUEUE);
 
     // Once we have resolved the IP of the redis instance, we need to keep using it
     // This allows things operating within the network namespace to resolve it properly
-    static std::string redisIp = "not_set";
+    static std::string redisStateIp = "not_set";
+    static std::string redisQueueIp = "not_set";
 
     // Script to atomically scale up a worker.  The logic is:
     //
@@ -66,26 +68,45 @@ namespace infra {
                                           ""
                                           "return 0";
 
-    Redis::Redis() {
-        hostname = util::getEnvVar("REDIS_HOST", "localhost");
-        port = util::getEnvVar("REDIS_PORT", "6379");
+    Redis::Redis(const RedisRole &role) {
+        std::string thisIp;
+        if(role == STATE) {
+            hostname = util::getEnvVar("REDIS_STATE_HOST", "localhost");
 
-        if (redisIp == "not_set") {
-            redisIp = util::getIPFromHostname(hostname);
+            if (redisStateIp == "not_set") {
+                redisStateIp = util::getIPFromHostname(hostname);
+            }
+
+            thisIp = redisStateIp;
         }
+        else {
+            hostname = util::getEnvVar("REDIS_QUEUE_HOST", "localhost");
+
+            if (redisQueueIp == "not_set") {
+                redisQueueIp = util::getIPFromHostname(hostname);
+            }
+
+            thisIp = redisQueueIp;
+        }
+
+        port = util::getEnvVar("REDIS_PORT", "6379");
 
         // Note, connect with IP, not with hostname
         int portInt = std::stoi(port);
 
-        context = redisConnect(redisIp.c_str(), portInt);
+        context = redisConnect(thisIp.c_str(), portInt);
     }
 
     Redis::~Redis() {
         redisFree(context);
     }
 
-    Redis *Redis::getThreadConnection() {
-        return &redis;
+    Redis *Redis::getThreadState() {
+        return &redisState;
+    }
+
+    Redis *Redis::getThreadQueue() {
+        return &redisQueue;
     }
 
     std::vector<uint8_t> getBytesFromReply(redisReply *reply) {
@@ -110,7 +131,7 @@ namespace infra {
     long Redis::getCounter(const std::string &key) {
         auto reply = (redisReply *) redisCommand(context, "GET %s", key.c_str());
 
-        if (reply->len == 0) {
+        if (reply == nullptr || reply->type == REDIS_REPLY_NIL || reply->len == 0) {
             return 0;
         }
 
@@ -119,7 +140,9 @@ namespace infra {
 
     long Redis::incr(const std::string &key) {
         auto reply = (redisReply *) redisCommand(context, "INCR %s", key.c_str());
+
         long result = reply->integer;
+
         freeReplyObject(reply);
         return result;
     }
@@ -257,6 +280,11 @@ namespace infra {
 
     long Redis::listLength(const std::string &queueName) {
         auto reply = (redisReply *) redisCommand(context, "LLEN %s", queueName.c_str());
+
+        if(reply == nullptr || reply->type == REDIS_REPLY_NIL) {
+            return 0;
+        }
+
         long result = reply->integer;
         freeReplyObject(reply);
 
