@@ -85,6 +85,17 @@ def push_all(context):
 
 
 @task
+def build_redis(context):
+    cmd = "docker build -t faasm/redis -f docker/redis.dockerfile ."
+    call(cmd, shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def push_redis(context):
+    call("docker push faasm/redis", shell=True, cwd=PROJ_ROOT)
+
+
+@task
 def build_toolchain(context):
     cmd = "docker build -t faasm/toolchain -f docker/toolchain.dockerfile ."
     print(cmd)
