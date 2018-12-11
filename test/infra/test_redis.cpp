@@ -1,6 +1,8 @@
 #include <catch/catch.hpp>
 #include <infra/infra.h>
 #include <util/util.h>
+#include "utils.h"
+
 
 using namespace infra;
 
@@ -18,71 +20,67 @@ namespace tests {
         const std::vector<uint8_t> BYTES_C = util::stringToBytes(VALUE_C);
     }
 
-    void doEnqueue(Redis *cli) {
-        cli->flushAll();
+    void doEnqueue() {
+        redisQueue.flushAll();
 
         // Enqueue some values
         std::vector<uint8_t> bytesA = util::stringToBytes(vars::VALUE_A);
-        cli->enqueue(vars::QUEUE_NAME, vars::BYTES_A);
-        cli->enqueue(vars::QUEUE_NAME, vars::BYTES_B);
-        cli->enqueue(vars::QUEUE_NAME, vars::BYTES_C);
+        redisQueue.enqueue(vars::QUEUE_NAME, vars::BYTES_A);
+        redisQueue.enqueue(vars::QUEUE_NAME, vars::BYTES_B);
+        redisQueue.enqueue(vars::QUEUE_NAME, vars::BYTES_C);
 
         // Check expected length
-        REQUIRE(3 == cli->listLength(vars::QUEUE_NAME));
+        REQUIRE(3 == redisQueue.listLength(vars::QUEUE_NAME));
     }
 
     TEST_CASE("Test incr/ decr", "[redis]") {
-        Redis cli;
-        cli.flushAll();
+        redisQueue.flushAll();
 
         std::string key = "test_counter";
 
-        REQUIRE(cli.getCounter(key) == 0);
+        REQUIRE(redisQueue.getCounter(key) == 0);
 
-        REQUIRE(cli.incr(key) == 1);
-        REQUIRE(cli.getCounter(key) == 1);
+        REQUIRE(redisQueue.incr(key) == 1);
+        REQUIRE(redisQueue.getCounter(key) == 1);
 
-        REQUIRE(cli.incr(key) == 2);
-        REQUIRE(cli.incr(key) == 3);
-        REQUIRE(cli.incr(key) == 4);
-        REQUIRE(cli.getCounter(key) == 4);
+        REQUIRE(redisQueue.incr(key) == 2);
+        REQUIRE(redisQueue.incr(key) == 3);
+        REQUIRE(redisQueue.incr(key) == 4);
+        REQUIRE(redisQueue.getCounter(key) == 4);
 
-        REQUIRE(cli.decr(key) == 3);
-        REQUIRE(cli.decr(key) == 2);
-        REQUIRE(cli.getCounter(key) == 2);
+        REQUIRE(redisQueue.decr(key) == 3);
+        REQUIRE(redisQueue.decr(key) == 2);
+        REQUIRE(redisQueue.getCounter(key) == 2);
     }
 
     TEST_CASE("Test enqueue/ dequeue", "[redis]") {
-        Redis cli;
-
         // Enqueue
-        doEnqueue(&cli);
+        doEnqueue();
 
         // Blocking dequeue
-        std::vector<uint8_t> actual = cli.dequeue(vars::QUEUE_NAME);
+        std::vector<uint8_t> actual = redisQueue.dequeue(vars::QUEUE_NAME);
 
         REQUIRE(vars::BYTES_A == actual);
 
         // Dequeue again
-        std::vector<uint8_t> actual2 = cli.dequeue(vars::QUEUE_NAME);
+        std::vector<uint8_t> actual2 = redisQueue.dequeue(vars::QUEUE_NAME);
 
         REQUIRE(vars::BYTES_B == actual2);
     }
 
     TEST_CASE("Test set/ get/ del", "[redis]") {
-        Redis cli;
-        cli.flushAll();
+        redisQueue.flushAll();
 
         std::string keyA = "key a";
         std::string keyB = "key b";
 
-        cli.set(keyA, vars::BYTES_A);
-        cli.set(keyB, vars::BYTES_B);
+        redisQueue.set(keyA, vars::BYTES_A);
+        redisQueue.set(keyB, vars::BYTES_B);
 
         // Test multiple gets on the same key
-        std::vector<uint8_t> actualA1 = cli.get(keyA);
-        std::vector<uint8_t> actualA2 = cli.get(keyA);
-        std::vector<uint8_t> actualB = cli.get(keyB);
+        std::vector<uint8_t> actualA1 = redisQueue.get(keyA);
+        std::vector<uint8_t> actualA2 = redisQueue.get(keyA);
+        std::vector<uint8_t> actualB = redisQueue.get(keyB);
 
         REQUIRE(vars::BYTES_A == actualA1);
         REQUIRE(vars::BYTES_A == actualA2);
@@ -90,53 +88,53 @@ namespace tests {
         REQUIRE(vars::BYTES_B == actualB);
 
         // Check deleting
-        cli.del(keyA);
-        std::vector<uint8_t> actualDel = cli.get(keyA);
+        redisQueue.del(keyA);
+        std::vector<uint8_t> actualDel = redisQueue.get(keyA);
         REQUIRE(actualDel.empty());
 
         // Check other still there
-        REQUIRE(cli.get(keyB) == vars::BYTES_B);
+        REQUIRE(redisQueue.get(keyB) == vars::BYTES_B);
 
         // Check deleting non-existent key
-        cli.del("blahblah");
-        std::vector<uint8_t> actualDel2 = cli.get("blahblah");
+        redisQueue.del("blahblah");
+        std::vector<uint8_t> actualDel2 = redisQueue.get("blahblah");
         REQUIRE(actualDel2.empty());
     }
 
     TEST_CASE("Test set range", "[redis]") {
-        Redis cli;
-        cli.flushAll();
+
+        redisQueue.flushAll();
 
         std::string key = "setrange_test";
 
         std::string initialValue = "hello there world!";
         std::vector<uint8_t> bytesValue = util::stringToBytes(initialValue);
-        cli.set(key, bytesValue);
+        redisQueue.set(key, bytesValue);
 
-        REQUIRE(cli.get(key) == bytesValue);
+        REQUIRE(redisQueue.get(key) == bytesValue);
 
         std::string replacement = "hello";
         std::vector<uint8_t> replacementBytes = util::stringToBytes(replacement);
-        cli.setRange(key, 6, replacementBytes);
+        redisQueue.setRange(key, 6, replacementBytes);
 
         std::string expected = "hello hello world!";
         std::vector<uint8_t> expectedBytes = util::stringToBytes(expected);
-        REQUIRE(cli.get(key) == expectedBytes);
+        REQUIRE(redisQueue.get(key) == expectedBytes);
     }
 
     TEST_CASE("Test get range", "[redis]") {
-        Redis cli;
-        cli.flushAll();
+
+        redisQueue.flushAll();
 
         std::string key = "getrange_test";
 
         std::string initialValue = "get this string!";
         std::vector<uint8_t> bytesValue = util::stringToBytes(initialValue);
-        cli.set(key, bytesValue);
+        redisQueue.set(key, bytesValue);
 
-        REQUIRE(cli.get(key) == bytesValue);
+        REQUIRE(redisQueue.get(key) == bytesValue);
 
-        std::vector<uint8_t> actualBytes = cli.getRange(key, 4, 7);
+        std::vector<uint8_t> actualBytes = redisQueue.getRange(key, 4, 7);
 
         std::string expected = "this";
         std::vector<uint8_t> expectedBytes = util::stringToBytes(expected);
@@ -144,17 +142,15 @@ namespace tests {
     }
 
     TEST_CASE("Test get empty key", "[redis]") {
-        Redis cli;
-        cli.flushAll();
+        redisQueue.flushAll();
 
         std::string nonExistKey = "blahblah";
-        std::vector<uint8_t> actual = cli.get(nonExistKey);
+        std::vector<uint8_t> actual = redisQueue.get(nonExistKey);
         REQUIRE(actual.empty());
     }
 
     void checkCallRoundTrip(bool isAsync, bool isSuccess) {
-        Redis cli;
-        cli.flushAll();
+        redisQueue.flushAll();
 
         // Request function
         message::Message call;
@@ -174,7 +170,7 @@ namespace tests {
         std::string queueName = infra::Scheduler::callFunction(call);
 
         // Get the next call
-        message::Message actual = cli.nextMessage(queueName);
+        message::Message actual = redisQueue.nextMessage(queueName);
 
         REQUIRE(funcName == actual.function());
         REQUIRE(userName == actual.user());
@@ -203,8 +199,7 @@ namespace tests {
     }
 
     TEST_CASE("Test redis reading and writing function results", "[redis]") {
-        Redis cli;
-        cli.flushAll();
+        redisQueue.flushAll();
 
         // Write some function result
         message::Message call;
@@ -212,17 +207,17 @@ namespace tests {
         call.set_user("some user");
         call.set_resultkey("function 123");
 
-        cli.setFunctionResult(call, true);
+        redisQueue.setFunctionResult(call, true);
 
         // Check result has been written to the right key
-        REQUIRE(cli.listLength("function 123") == 1);
+        REQUIRE(redisQueue.listLength("function 123") == 1);
 
         // Check that some expiry has been set
-        long ttl = cli.getTtl(call.resultkey());
+        long ttl = redisQueue.getTtl(call.resultkey());
         REQUIRE(ttl > 10);
 
         // Check retrieval method gets the same call out again
-        message::Message actualCall2 = cli.getFunctionResult(call);
+        message::Message actualCall2 = redisQueue.getFunctionResult(call);
 
         REQUIRE("my func" == actualCall2.function());
         REQUIRE("some user" == actualCall2.user());
@@ -231,38 +226,37 @@ namespace tests {
     }
 
     void _validateAddWorker(int nWorkers, int queueLengh, int maxRatio, int maxWorkers, bool expectIncrement) {
-        Redis cli;
-        cli.flushAll();
+        redisQueue.flushAll();
 
         std::string counter = "dummyCount";
         std::string queueName = "dummyQueue";
 
         // Set up number of workers
         for (int w = 0; w < nWorkers; w++) {
-            cli.incr(counter);
+            redisQueue.incr(counter);
         }
 
         // Set up queue
         for (int q = 0; q < queueLengh; q++) {
-            cli.enqueue(queueName, {0, 1});
+            redisQueue.enqueue(queueName, {0, 1});
         }
 
         // Call addWorker
-        bool shouldAddWorker = cli.addWorker(counter, queueName, maxRatio, maxWorkers);
+        bool shouldAddWorker = redisQueue.addWorker(counter, queueName, maxRatio, maxWorkers);
 
         // Check queue length hasn't changed
-        REQUIRE(cli.listLength(queueName) == queueLengh);
+        REQUIRE(redisQueue.listLength(queueName) == queueLengh);
 
         if (expectIncrement) {
             // Check result indicates increment
             REQUIRE(shouldAddWorker);
 
             // Check worker count has been incremented
-            REQUIRE(cli.getCounter(counter) == nWorkers + 1);
+            REQUIRE(redisQueue.getCounter(counter) == nWorkers + 1);
         } else {
             // Check no change
             REQUIRE(!shouldAddWorker);
-            REQUIRE(cli.getCounter(counter) == nWorkers);
+            REQUIRE(redisQueue.getCounter(counter) == nWorkers);
         }
     }
 
@@ -308,23 +302,22 @@ namespace tests {
     }
 
     void _validateIncrIfBelowTarget(int currentValue, int target, bool expectIncr) {
-        Redis cli;
-        cli.flushAll();
+        redisQueue.flushAll();
 
         std::string key = "incr_test";
 
         for (int i = 0; i < currentValue; i++) {
-            cli.incr(key);
+            redisQueue.incr(key);
         }
 
-        bool res = cli.incrIfBelowTarget(key, target);
+        bool res = redisQueue.incrIfBelowTarget(key, target);
 
         if (expectIncr) {
             REQUIRE(res);
-            REQUIRE(cli.getCounter(key) == currentValue + 1);
+            REQUIRE(redisQueue.getCounter(key) == currentValue + 1);
         } else {
             REQUIRE(!res);
-            REQUIRE(cli.getCounter(key) == currentValue);
+            REQUIRE(redisQueue.getCounter(key) == currentValue);
         }
     }
 

@@ -10,7 +10,7 @@ WORKDIR /faasm/build
 RUN cmake --build . --target worker
 
 # Set up entrypoint (for cgroups, namespaces etc.)
-COPY docker/entrypoint.sh /entrypoint.sh
+COPY bin/worker-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]

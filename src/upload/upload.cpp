@@ -74,8 +74,8 @@ namespace edge {
 
         logger->info("Downloading state from ({}/{})", user, key);
 
-        infra::Redis *redis = infra::Redis::getThreadConnection();
-        const std::vector<uint8_t> value = redis->get(realKey);
+        infra::Redis *state = infra::Redis::getThreadState();
+        const std::vector<uint8_t> value = state->get(realKey);
 
         return value;
     }
@@ -90,16 +90,16 @@ namespace edge {
 
         logger->info("Upload state to ({}/{})", user, key);
 
-        infra::Redis *redis = infra::Redis::getThreadConnection();
+        infra::Redis *state = infra::Redis::getThreadState();
 
         // Read request body into KV store
         const concurrency::streams::istream bodyStream = request.body();
         concurrency::streams::stringstreambuf inputStream;
-        bodyStream.read_to_end(inputStream).then([&inputStream, &redis, &realKey](size_t size) {
+        bodyStream.read_to_end(inputStream).then([&inputStream, &state, &realKey](size_t size) {
             if (size > 0) {
                 std::string s = inputStream.collection();
                 const std::vector<uint8_t> bytesData = util::stringToBytes(s);
-                redis->set(realKey, bytesData);
+                state->set(realKey, bytesData);
             }
 
         }).wait();

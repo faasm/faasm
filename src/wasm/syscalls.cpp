@@ -106,7 +106,7 @@ namespace wasm {
         std::string key = getKeyFromWasm(keyPtr);
 
         // Set the whole state in redis
-        infra::Redis *redis = infra::Redis::getThreadConnection();
+        infra::Redis *redis = infra::Redis::getThreadState();
         redis->set(key, newState);
     }
 
@@ -118,7 +118,7 @@ namespace wasm {
         std::string key = getKeyFromWasm(keyPtr);
 
         // Set the state at the given offset
-        infra::Redis *redis = infra::Redis::getThreadConnection();
+        infra::Redis *redis = infra::Redis::getThreadState();
         redis->setRange(key, offset, newState);
     }
 
@@ -129,7 +129,7 @@ namespace wasm {
         std::string key = getKeyFromWasm(keyPtr);
 
         // Read the state in
-        infra::Redis *redis = infra::Redis::getThreadConnection();
+        infra::Redis *redis = infra::Redis::getThreadState();
         std::vector<uint8_t> state = redis->get(key);
 
         int stateSize = copyToWasmBuffer(state, bufferPtr, bufferLen);
@@ -145,7 +145,7 @@ namespace wasm {
         std::string key = getKeyFromWasm(keyPtr);
 
         // Read the state in
-        infra::Redis *redis = infra::Redis::getThreadConnection();
+        infra::Redis *redis = infra::Redis::getThreadState();
         std::vector<uint8_t> state = redis->getRange(key, offset, offset + bufferLen);
 
         copyToWasmBuffer(state, bufferPtr, bufferLen);

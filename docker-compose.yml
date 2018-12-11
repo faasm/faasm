@@ -4,10 +4,17 @@ networks:
   faasm:
 
 services:
-  redis:
-    image: redis
+  redis-state:
+    image: redis:5
     ports:
       - "6378:6379"
+    networks:
+      - faasm
+
+  redis-queue:
+    image: redis:5
+    ports:
+      - "6377:6379"
     networks:
       - faasm
 
@@ -15,9 +22,11 @@ services:
     image: faasm/worker:latest
 
     depends_on:
-      - redis
+      - redis-queue
+      - redis-state
     environment:
-      - REDIS_HOST=redis
+      - REDIS_STATE_HOST=redis-state
+      - REDIS_QUEUE_HOST=redis-queue
       - REDIS_PORT=6379
       - FUNC_ROOT=/usr/share/faasm
       - CGROUP_MODE=on
@@ -39,7 +48,8 @@ services:
     ports:
       - "8001:8001"
     environment:
-      - REDIS_HOST=redis
+      - REDIS_STATE_HOST=redis-state
+      - REDIS_QUEUE_HOST=redis-queue
       - REDIS_PORT=6379
       - FUNC_ROOT=/usr/share/faasm
       - LOG_LEVEL=info
@@ -51,7 +61,8 @@ services:
     volumes:
       - ./wasm:/usr/share/faasm/wasm
     depends_on:
-      - redis
+      - redis-queue
+      - redis-state
     networks:
       - faasm
 
@@ -60,12 +71,14 @@ services:
     ports:
       - "8002:8002"
     environment:
-      - REDIS_HOST=redis
+      - REDIS_STATE_HOST=redis-state
+      - REDIS_QUEUE_HOST=redis-queue
       - REDIS_PORT=6379
       - FUNC_ROOT=/usr/share/faasm
     volumes:
-    - ./wasm:/usr/share/faasm/wasm
+      - ./wasm:/usr/share/faasm/wasm
     depends_on:
-      - redis
+      - redis-queue
+      - redis-state
     networks:
       - faasm

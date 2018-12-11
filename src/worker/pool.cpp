@@ -40,7 +40,7 @@ namespace worker {
         id = hostname + "_" + std::to_string(workerIdx);
 
         // Get Redis connection
-        redis = infra::Redis::getThreadConnection();
+        queue = infra::Redis::getThreadQueue();
 
         // If we need more prewarm containers, set this worker to be prewarm. If not, sit in cold queue
         bool shouldPrewarm = infra::Scheduler::prewarmWorker();
@@ -113,7 +113,7 @@ namespace worker {
         }
 
         // Set result
-        redis->setFunctionResult(call, isSuccess);
+        queue->setFunctionResult(call, isSuccess);
 
         // Restore the module memory after the execution
         module->restoreMemory();
@@ -168,7 +168,7 @@ namespace worker {
         int timeout = infra::Scheduler::getWorkerTimeout(currentQueue);
 
         // Wait for next message
-        message::Message msg = redis->nextMessage(currentQueue, timeout);
+        message::Message msg = queue->nextMessage(currentQueue, timeout);
 
         // Handle the message
         std::string errorMessage;

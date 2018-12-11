@@ -62,8 +62,7 @@ namespace tests {
     }
 
     TEST_CASE("Test matrix to redis round trip", "[matrix]") {
-        infra::Redis redis;
-        redis.flushAll();
+        redisQueue.flushAll();
 
         MatrixXd mat = buildDummyMatrix();
 
@@ -83,8 +82,7 @@ namespace tests {
     }
 
     TEST_CASE("Test updating matrix element in state", "[matrix]") {
-        infra::Redis redis;
-        redis.flushAll();
+        redisQueue.flushAll();
 
         MatrixXd mat = buildDummyMatrix();
 
@@ -116,8 +114,7 @@ namespace tests {
     }
 
     TEST_CASE("Test reading columns from state", "[matrix]") {
-        infra::Redis redis;
-        redis.flushAll();
+        redisQueue.flushAll();
 
         long nRows = 4;
         MatrixXd mat(nRows, 5);
@@ -248,8 +245,7 @@ namespace tests {
     }
 
     TEST_CASE("Test sparse matrix round trip", "[matrix]") {
-        infra::Redis redis;
-        redis.flushAll();
+        redisQueue.flushAll();
 
         SparseMatrix<double> mat = faasm::randomSparseMatrix(5, 10, 0.4);
 
@@ -263,8 +259,7 @@ namespace tests {
     }
 
     void checkSparseMatrixRoundTrip(int rows, int cols, int colStart, int colEnd) {
-        infra::Redis redis;
-        redis.flushAll();
+        redisQueue.flushAll();
 
         const char *key = "sparse_trip_offset_test";
 

@@ -1,11 +1,27 @@
+---
+
 apiVersion: v1
 kind: Service
 metadata:
-  name: redis
+  name: redis-queue
   namespace: faasm
 spec:
   ports:
     - port: 6379
       targetPort: 6379
   selector:
-    role: redis
+    role: redis-queue
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-state
+  namespace: faasm
+spec:
+  ports:
+    - port: 6379
+      targetPort: 6379
+  selector:
+    role: redis-state
