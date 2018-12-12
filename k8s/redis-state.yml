@@ -1,0 +1,21 @@
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis-state
+  namespace: faasm
+  labels:
+    app: faasm
+    role: redis-state
+spec:
+  containers:
+    - name: master
+      image: redis:5
+      env:
+        - name: MASTER
+          value: "true"
+      ports:
+        - containerPort: 6379
+  nodeSelector:
+    nodeRole: redis
