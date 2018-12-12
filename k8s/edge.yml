@@ -6,7 +6,7 @@ metadata:
   labels:
     app: faasm
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app: faasm
@@ -29,6 +29,8 @@ spec:
           volumeMounts:
             - mountPath: "/usr/share/faasm"
               name: func-vol
+      nodeSelector:
+        nodeRole: worker
       volumes:
         - name: func-vol
           persistentVolumeClaim:
