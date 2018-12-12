@@ -17,6 +17,8 @@ spec:
           value: "true"
       ports:
         - containerPort: 6379
+  nodeSelector:
+    nodeRole: redis
 
 ---
 
@@ -37,3 +39,5 @@ spec:
           value: "true"
       ports:
         - containerPort: 6379
+  nodeSelector:
+    nodeRole: redis
