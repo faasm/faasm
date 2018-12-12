@@ -69,8 +69,6 @@ def build_all(context):
     build_upload(context)
     build_data(context)
 
-    build_toolchain(context)
-
 
 @task
 def push_all(context):
@@ -80,8 +78,6 @@ def push_all(context):
     push_edge(context)
     push_upload(context)
     push_data(context)
-
-    push_toolchain(context)
 
 
 @task
