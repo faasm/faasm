@@ -133,4 +133,38 @@ namespace infra {
         static std::string getFunctionCounterName(const message::Message &msg);
     };
 
+
+    class StateSegment {
+    public:
+        long startIdx;
+        long endIdx;
+    };
+
+    class StateKeyValue {
+    public:
+        std::string key;
+        std::vector<uint8_t> value;
+
+        std::vector<StateSegment> dirtySegments;
+        bool isFullKeyDirty;
+    };
+
+    class State {
+    public:
+        State();
+
+        long getStateSize(const std::string &key);
+
+        long readState(const std::string &key, std::vector<uint8_t> &buffer);
+
+        void writeState(const std::string &key, const std::vector<uint8_t> &data);
+
+        void writeStateOffset(const std::string &key, long offset, const std::vector<uint8_t> &data);
+
+        void readStateOffset(const std::string &key, long offset, std::vector<uint8_t> &buffer);
+
+    private:
+        Redis *redis;
+        std::map<std::string, StateKeyValue> local;
+    };
 };
