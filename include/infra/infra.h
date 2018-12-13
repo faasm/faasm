@@ -136,35 +136,47 @@ namespace infra {
 
     class StateSegment {
     public:
+        StateSegment(long startIdx, long endIdx);
+
         long startIdx;
         long endIdx;
     };
 
     class StateKeyValue {
     public:
-        std::string key;
-        std::vector<uint8_t> value;
+        StateKeyValue(const std::string &keyIn, Redis *redisIn);
 
-        std::vector<StateSegment> dirtySegments;
-        bool isFullKeyDirty;
+        const std::string key;
+
+        std::vector<uint8_t> get();
+
+    private:
+        Redis *redis;
+        std::mutex mutex;
+
+        std::atomic<bool> isInitialised;
+        std::vector<uint8_t> value;
+        std::vector<StateSegment> segments;
+
+        void initialise();
     };
+
+    typedef std::map<std::string, StateKeyValue*> KVMap;
+    typedef std::pair<std::string, StateKeyValue*> KVPair;
 
     class State {
     public:
         State();
 
-        long getStateSize(const std::string &key);
+        ~State();
 
-        long readState(const std::string &key, std::vector<uint8_t> &buffer);
-
-        void writeState(const std::string &key, const std::vector<uint8_t> &data);
-
-        void writeStateOffset(const std::string &key, long offset, const std::vector<uint8_t> &data);
-
-        void readStateOffset(const std::string &key, long offset, std::vector<uint8_t> &buffer);
+        StateKeyValue* getKV(const std::string &key);
 
     private:
         Redis *redis;
-        std::map<std::string, StateKeyValue> local;
+        KVMap local;
+        std::mutex localMutex;
+
+        bool existsLocally(const std::string &key);
     };
 };
