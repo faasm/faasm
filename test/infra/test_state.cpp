@@ -6,13 +6,35 @@ using namespace infra;
 
 namespace tests {
 
-    TEST_CASE("Test simple kv retrieval", "[state]") {
+    TEST_CASE("Test simple state get/set", "[state]") {
         State s;
         std::string newKey = "test_state_new";
 
         StateKeyValue *kv = s.getKV(newKey);
 
-        const std::vector<uint8_t> &actual = kv->get();
+        REQUIRE(!kv->isDirty());
+
+        // Get the key value via state
+        std::vector<uint8_t> actual = kv->get();
         REQUIRE(actual.empty());
+
+        // Update via state
+        std::vector<uint8_t> values = {0, 1, 2, 3, 4};
+        kv->set(values);
+        REQUIRE(kv->isDirty());
+
+        // Check that getting returns the update
+        REQUIRE(kv->get() == values);
+
+        // Check that the underlying key in Redis isn't changed
+        Redis *redis = Redis::getThreadState();
+        REQUIRE(redis->get(newKey).empty());
+
+        // Check that when synchronised, the update is pushed to redis
+        kv->sync();
+        REQUIRE(!kv->isDirty());
+        REQUIRE(kv->get() == values);
+        REQUIRE(redis->get(newKey) == values);
+
     }
 }

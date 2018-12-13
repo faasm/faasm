@@ -133,14 +133,23 @@ namespace infra {
         static std::string getFunctionCounterName(const message::Message &msg);
     };
 
-
     class StateSegment {
     public:
-        StateSegment(long startIdx, long endIdx);
+        StateSegment(const std::string &key, Redis *redis, long offset, long length);
 
-        long startIdx;
-        long endIdx;
+        const std::string string();
+    private:
+        const std::string _string;
+        const std::string key;
+
+        Redis *redis;
+        long offset;
+        long length;
     };
+
+    typedef std::map<std::string, StateSegment *> SegmentMap;
+    typedef std::pair<std::string, StateSegment *> SegmentPair;
+
 
     class StateKeyValue {
     public:
@@ -150,19 +159,38 @@ namespace infra {
 
         std::vector<uint8_t> get();
 
+        std::vector<uint8_t> getPartial(long offset, long length);
+
+        void set(const std::vector<uint8_t> &data);
+
+        void setPartial(long offset, const std::vector<uint8_t> &data);
+
+        bool isDirty();
+
+        void sync();
+
     private:
         Redis *redis;
-        std::mutex mutex;
+        std::mutex mtx;
+
+        SegmentMap segments;
+        std::mutex segmentMutex;
+
+        std::atomic<bool> _isDirty;
 
         std::atomic<bool> isInitialised;
+
         std::vector<uint8_t> value;
-        std::vector<StateSegment> segments;
 
         void initialise();
+
+        StateSegment* getSegment(long offset, long length);
+
+        bool segmentExistsLocally(long offset, long length);
     };
 
-    typedef std::map<std::string, StateKeyValue*> KVMap;
-    typedef std::pair<std::string, StateKeyValue*> KVPair;
+    typedef std::map<std::string, StateKeyValue *> KVMap;
+    typedef std::pair<std::string, StateKeyValue *> KVPair;
 
     class State {
     public:
@@ -170,7 +198,7 @@ namespace infra {
 
         ~State();
 
-        StateKeyValue* getKV(const std::string &key);
+        StateKeyValue *getKV(const std::string &key);
 
     private:
         Redis *redis;
