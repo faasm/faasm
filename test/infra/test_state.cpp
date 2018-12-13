@@ -35,6 +35,9 @@ namespace tests {
         REQUIRE(!kv->isDirty());
         REQUIRE(kv->get() == values);
         REQUIRE(redis->get(newKey) == values);
+    }
+
+    TEST_CASE("Test get/ set segment", "[state]") {
 
     }
 }

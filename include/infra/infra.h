@@ -6,6 +6,10 @@
 #include <string>
 #include <spdlog/spdlog.h>
 
+#include <thread>
+#include <mutex>
+#include <shared_mutex>
+
 #include <proto/faasm.pb.h>
 #include <hiredis/hiredis.h>
 
@@ -133,24 +137,6 @@ namespace infra {
         static std::string getFunctionCounterName(const message::Message &msg);
     };
 
-    class StateSegment {
-    public:
-        StateSegment(const std::string &key, Redis *redis, long offset, long length);
-
-        const std::string string();
-    private:
-        const std::string _string;
-        const std::string key;
-
-        Redis *redis;
-        long offset;
-        long length;
-    };
-
-    typedef std::map<std::string, StateSegment *> SegmentMap;
-    typedef std::pair<std::string, StateSegment *> SegmentPair;
-
-
     class StateKeyValue {
     public:
         StateKeyValue(const std::string &keyIn, Redis *redisIn);
@@ -159,34 +145,26 @@ namespace infra {
 
         std::vector<uint8_t> get();
 
-        std::vector<uint8_t> getPartial(long offset, long length);
+        std::vector<uint8_t> getSegment(long offset, long length);
 
         void set(const std::vector<uint8_t> &data);
 
-        void setPartial(long offset, const std::vector<uint8_t> &data);
-
-        bool isDirty();
+        void setSegment(long offset, const std::vector<uint8_t> &data);
 
         void sync();
 
     private:
         Redis *redis;
-        std::mutex mtx;
-
-        SegmentMap segments;
-        std::mutex segmentMutex;
-
-        std::atomic<bool> _isDirty;
 
         std::atomic<bool> isInitialised;
+        std::atomic<bool> _isDirty;
+
+        std::set<std::pair<long, long>> dirtySegments;
 
         std::vector<uint8_t> value;
+        std::mutex valueMutex;
 
         void initialise();
-
-        StateSegment* getSegment(long offset, long length);
-
-        bool segmentExistsLocally(long offset, long length);
     };
 
     typedef std::map<std::string, StateKeyValue *> KVMap;
