@@ -60,44 +60,6 @@ namespace tests {
         REQUIRE(redisState.get(key) == expected);
     }
 
-    TEST_CASE("Test set segment interactions", "[state]") {
-        State s;
-        std::string key = "test_state_segment_interaction";
-        StateKeyValue *kv = s.getKV(key);
-
-        // Set up and push
-        std::vector<uint8_t> values = {0, 1, 2, 3, 4, 5};
-        kv->set(values);
-        kv->push();
-
-        // Get and check
-        REQUIRE(kv->get() == values);
-        REQUIRE(redisState.get(key) == values);
-
-        // Update a subsection
-        std::vector<uint8_t> updateA = {7, 7};
-        kv->setSegment(0, updateA);
-
-        // Update a section directly in redis
-        std::vector<uint8_t> updateB = {8, 8, 8};
-        redisState.setRange(key, 3, updateB);
-
-        // Check updates made individually
-        std::vector<uint8_t> expectedA = {7, 7, 2, 3, 4, 5};
-        std::vector<uint8_t> expectedB = {0, 1, 2, 8, 8, 8};
-
-        // Check expectations
-        REQUIRE(kv->get() == expectedA);
-        REQUIRE(redisState.get(key) == expectedB);
-
-        // Now push and check two updates have both been accepted
-        kv->pushPartial();
-        kv->pull();
-        std::vector<uint8_t> expectedMerged = {7, 7, 2, 8, 8, 8};
-        REQUIRE(redisState.get(key) == expectedMerged);
-        REQUIRE(kv->get() == expectedMerged);
-    }
-
     TEST_CASE("Test pushing all state", "[state]") {
         State s;
         std::string keyA = "test_multi_push_a";

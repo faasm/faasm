@@ -15,7 +15,7 @@ namespace infra {
         staleThreshold = std::stol(util::getEnvVar("STALE_THRESHOLD", "1000"));
 
         // State over the clear threshold is removed from local
-        clearThreshold = std::stol(util::getEnvVar("CLEAR_THRESHOLD", "30000"));
+        idleThreshold = std::stol(util::getEnvVar("CLEAR_THRESHOLD", "30000"));
     }
 
     void StateKeyValue::pull() {
@@ -33,16 +33,14 @@ namespace infra {
 
         // Check staleness
         std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-        long dt = this->getAge(now);
 
         // If stale, try to update from remote
-        if (dt > staleThreshold) {
+        if (this->isStale(now)) {
             // Unique lock on the whole value while loading
             FullLock lock(valueMutex);
 
             // Double check staleness
-            long dt2 = this->getAge(now);
-            if (dt2 > staleThreshold) {
+            if (this->isStale(now)) {
                 doRemoteRead();
             }
         }
@@ -63,12 +61,14 @@ namespace infra {
         lastInteraction = now;
     }
 
-    long StateKeyValue::getAge(const std::chrono::steady_clock::time_point &now) {
-        return std::chrono::duration_cast<std::chrono::milliseconds>(now - lastPull).count();
+    long StateKeyValue::isStale(const std::chrono::steady_clock::time_point &now) {
+        long age = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastPull).count();
+        return age > staleThreshold;
     }
 
-    long StateKeyValue::getIdleTime(const std::chrono::steady_clock::time_point &now) {
-        return std::chrono::duration_cast<std::chrono::milliseconds>(now - lastInteraction).count();
+    long StateKeyValue::isIdle(const std::chrono::steady_clock::time_point &now) {
+        long idleTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastInteraction).count();
+        return idleTime > idleThreshold;
     }
 
     std::vector<uint8_t> StateKeyValue::get() {
@@ -138,17 +138,14 @@ namespace infra {
     void StateKeyValue::clear() {
         // Check age since last interaction
         std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-        long dt = this->getIdleTime(now);
 
         // If over clear threshold, remove
-        if (dt > clearThreshold) {
+        if (this->isIdle(now)) {
             // Unique lock on the whole value while clearing
             std::unique_lock<std::shared_mutex> lock(valueMutex);
 
-            long dt2 = this->getIdleTime(now);
-
             // Double check still over the threshold
-            if (dt2 > clearThreshold) {
+            if (this->isIdle(now)) {
                 // Totally remove the value
                 this->value.clear();
                 isNew = true;

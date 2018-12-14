@@ -171,13 +171,12 @@ namespace infra {
         std::chrono::steady_clock::time_point lastPull;
         std::chrono::steady_clock::time_point lastInteraction;
         long staleThreshold;
-        long clearThreshold;
+        long idleThreshold;
 
         std::atomic<bool> isNew;
 
-        long getAge(const std::chrono::steady_clock::time_point &now);
-
-        long getIdleTime(const std::chrono::steady_clock::time_point &now);
+        long isStale(const std::chrono::steady_clock::time_point &now);
+        long isIdle(const std::chrono::steady_clock::time_point &now);
 
         void doRemoteRead();
         void updateLastInteraction();
