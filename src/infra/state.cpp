@@ -11,7 +11,7 @@ namespace infra {
 
     void StateKeyValue::initialise() {
         // Unique lock on the whole value while initialising
-        std::unique_lock<std::mutex> lock(valueMutex);
+        std::unique_lock<std::shared_mutex> lock(valueMutex);
 
         // Drop out if initialisation has happened since we acquired the lock
         if (isInitialised) {
@@ -30,7 +30,7 @@ namespace infra {
         }
 
         // Shared lock for reads
-        std::shared_lock<std::mutex> lock(valueMutex);
+        std::shared_lock<std::shared_mutex> lock(valueMutex);
         return value;
     }
 
@@ -40,7 +40,7 @@ namespace infra {
         }
 
         // Shared lock for reads
-        std::shared_lock<std::mutex> lock(valueMutex);
+        std::shared_lock<std::shared_mutex> lock(valueMutex);
 
         // Return just the required segment
         std::vector<uint8_t> segment(value.begin() + offset, value.begin() + offset + length);
@@ -49,7 +49,7 @@ namespace infra {
 
     void StateKeyValue::set(const std::vector<uint8_t> &data) {
         // Unique lock for setting the whole value
-        std::unique_lock<std::mutex> lock(valueMutex);
+        std::unique_lock<std::shared_mutex> lock(valueMutex);
 
         this->value = data;
         _isDirty = true;
@@ -63,7 +63,7 @@ namespace infra {
 
         // Shared lock for writing segments (need to allow lock-free writing of multiple threads on same
         // state value)
-        std::shared_lock<std::mutex> valueLock(valueMutex);
+        std::shared_lock<std::shared_mutex> valueLock(valueMutex);
 
         // TODO - is std::set insert thread-safe in this context?
         // Record that this segment is dirty
@@ -75,7 +75,7 @@ namespace infra {
 
     void StateKeyValue::sync() {
         // Get unique lock the value for syncing
-        std::unique_lock<std::mutex> valueLock(valueMutex);
+        std::unique_lock<std::shared_mutex> valueLock(valueMutex);
 
         // If nothing dirty, ignore
         if (!_isDirty && dirtySegments.empty()) {

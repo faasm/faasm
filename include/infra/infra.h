@@ -162,7 +162,7 @@ namespace infra {
         std::set<std::pair<long, long>> dirtySegments;
 
         std::vector<uint8_t> value;
-        std::mutex valueMutex;
+        std::shared_mutex valueMutex;
 
         void initialise();
     };
