@@ -152,17 +152,16 @@ namespace infra {
         void setSegment(long offset, const std::vector<uint8_t> &data);
 
         void sync();
-
     private:
         Redis *redis;
 
-        std::atomic<bool> isInitialised;
-        std::atomic<bool> _isDirty;
-
+        std::atomic<bool> isWholeValueDirty;
         std::set<std::pair<long, long>> dirtySegments;
 
         std::vector<uint8_t> value;
         std::shared_mutex valueMutex;
+
+        std::atomic<bool> isNew;
 
         void initialise();
     };
@@ -177,6 +176,8 @@ namespace infra {
         ~State();
 
         StateKeyValue *getKV(const std::string &key);
+
+        void syncAll();
 
     private:
         Redis *redis;

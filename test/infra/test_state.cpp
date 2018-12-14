@@ -96,4 +96,31 @@ namespace tests {
         REQUIRE(redisState.get(key) == expectedMerged);
         REQUIRE(kv->get() == expectedMerged);
     }
+
+    TEST_CASE("Test syncing all state", "[state]") {
+        State s;
+        std::string keyA = "test_multi_sync_a";
+        std::string keyB = "test_multi_sync_b";
+
+        StateKeyValue *kvA = s.getKV(keyA);
+        StateKeyValue *kvB = s.getKV(keyB);
+
+        // Set up and sync
+        std::vector<uint8_t> valuesA = {0, 1, 2, 3};
+        std::vector<uint8_t> valuesB = {4, 5, 6};
+
+        kvA->set(valuesA);
+        kvB->set(valuesB);
+
+        // Check neither in redis
+        REQUIRE(redisState.get(keyA).empty());
+        REQUIRE(redisState.get(keyB).empty());
+
+        // Sync all
+        s.syncAll();
+
+        // Check both now in redis
+        REQUIRE(redisState.get(keyA) == valuesA);
+        REQUIRE(redisState.get(keyB) == valuesB);
+    }
 }

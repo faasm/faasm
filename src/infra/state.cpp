@@ -5,27 +5,23 @@ namespace infra {
      * Key/value
      */
     StateKeyValue::StateKeyValue(const std::string &keyIn, Redis *redisIn) : key(keyIn), redis(redisIn) {
-        _isDirty = false;
-        isInitialised = false;
+        isWholeValueDirty = false;
+        isNew = true;
     }
 
     void StateKeyValue::initialise() {
-        // Unique lock on the whole value while initialising
+        // Unique lock on the whole value while loading
         std::unique_lock<std::shared_mutex> lock(valueMutex);
 
-        // Drop out if initialisation has happened since we acquired the lock
-        if (isInitialised) {
-            return;
+        // Handle initialisation (double checking condition)
+        if (isNew) {
+            value = redis->get(key);
+            isNew = false;
         }
-
-        // Load the whole thing from remote
-        value = redis->get(key);
-
-        isInitialised = true;
     }
 
     std::vector<uint8_t> StateKeyValue::get() {
-        if (!isInitialised) {
+        if (isNew) {
             this->initialise();
         }
 
@@ -35,7 +31,7 @@ namespace infra {
     }
 
     std::vector<uint8_t> StateKeyValue::getSegment(long offset, long length) {
-        if (!isInitialised) {
+        if (isNew) {
             this->initialise();
         }
 
@@ -52,13 +48,26 @@ namespace infra {
         std::unique_lock<std::shared_mutex> lock(valueMutex);
 
         this->value = data;
-        _isDirty = true;
-        isInitialised = true;
+        isWholeValueDirty = true;
+        isNew = false;
     }
 
     void StateKeyValue::setSegment(long offset, const std::vector<uint8_t> &data) {
-        if (!isInitialised) {
-            this->initialise();
+        size_t max = offset + data.size();
+
+        // Resize vector if needed
+        if(max > value.size()) {
+            // Unique lock for changing value size
+            valueMutex.lock();
+
+            // Double check condition still holds
+            if(max > value.size()) {
+                // Do the resize
+                std::unique_lock<std::shared_mutex> resizeLock(valueMutex);
+                value.resize(max);
+            }
+
+            valueMutex.unlock();
         }
 
         // Shared lock for writing segments (need to allow lock-free writing of multiple threads on same
@@ -73,24 +82,20 @@ namespace infra {
         std::copy(data.begin(), data.end(), value.begin() + offset);
     }
 
+
     void StateKeyValue::sync() {
         // Get unique lock the value for syncing
         std::unique_lock<std::shared_mutex> valueLock(valueMutex);
 
-        // If nothing dirty, ignore
-        if (!_isDirty && dirtySegments.empty()) {
-            return;
-        }
-
-        // If whole value is dirty, run the full update
-        if (_isDirty) {
+        // If whole value is dirty, run the full update and drop out
+        if (isWholeValueDirty) {
             redis->set(key, value);
-            _isDirty = false;
+            isWholeValueDirty = false;
             dirtySegments.clear();
             return;
         }
 
-        // At this point we just have dirty segments, update those
+        // If segments to write, write those
         for (const auto segment : dirtySegments) {
             std::vector<uint8_t> dataSegment(
                     value.begin() + segment.first,
@@ -154,5 +159,12 @@ namespace infra {
         }
 
         return local[key];
+    }
+
+    void State::syncAll() {
+        // Iterate through all key-values
+        for (const auto &kv : local) {
+            kv.second->sync();
+        }
     }
 }
