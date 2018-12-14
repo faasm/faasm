@@ -26,8 +26,8 @@ namespace tests {
         // Check that the underlying key in Redis isn't changed
         REQUIRE(redisState.get(key).empty());
 
-        // Check that when synchronised, the update is pushed to redis
-        kv->sync();
+        // Check that when pushed, the update is pushed to redis
+        kv->push();
         REQUIRE(kv->get() == values);
         REQUIRE(redisState.get(key) == values);
     }
@@ -37,10 +37,10 @@ namespace tests {
         std::string key = "test_state_segment";
         StateKeyValue *kv = s.getKV(key);
 
-        // Set up and sync
+        // Set up and push
         std::vector<uint8_t> values = {0, 0, 1, 1, 2, 2, 3, 3, 4, 4};
         kv->set(values);
-        kv->sync();
+        kv->push();
 
         // Get and check
         REQUIRE(kv->get() == values);
@@ -55,8 +55,8 @@ namespace tests {
         REQUIRE(kv->get() == expected);
         REQUIRE(kv->getSegment(3, 3) == update);
 
-        // Run sync and check redis updated
-        kv->sync();
+        // Run push and check redis updated
+        kv->push();
         REQUIRE(redisState.get(key) == expected);
     }
 
@@ -65,10 +65,10 @@ namespace tests {
         std::string key = "test_state_segment_interaction";
         StateKeyValue *kv = s.getKV(key);
 
-        // Set up and sync
+        // Set up and push
         std::vector<uint8_t> values = {0, 1, 2, 3, 4, 5};
         kv->set(values);
-        kv->sync();
+        kv->push();
 
         // Get and check
         REQUIRE(kv->get() == values);
@@ -90,22 +90,22 @@ namespace tests {
         REQUIRE(kv->get() == expectedA);
         REQUIRE(redisState.get(key) == expectedB);
 
-        // Now sync and check two updates have both been accepted
-        kv->sync();
+        // Now push and check two updates have both been accepted
+        kv->push();
         std::vector<uint8_t> expectedMerged = {7, 7, 2, 8, 8, 8};
         REQUIRE(redisState.get(key) == expectedMerged);
         REQUIRE(kv->get() == expectedMerged);
     }
 
-    TEST_CASE("Test syncing all state", "[state]") {
+    TEST_CASE("Test pushing all state", "[state]") {
         State s;
-        std::string keyA = "test_multi_sync_a";
-        std::string keyB = "test_multi_sync_b";
+        std::string keyA = "test_multi_push_a";
+        std::string keyB = "test_multi_push_b";
 
         StateKeyValue *kvA = s.getKV(keyA);
         StateKeyValue *kvB = s.getKV(keyB);
 
-        // Set up and sync
+        // Set up and push
         std::vector<uint8_t> valuesA = {0, 1, 2, 3};
         std::vector<uint8_t> valuesB = {4, 5, 6};
 
@@ -116,8 +116,8 @@ namespace tests {
         REQUIRE(redisState.get(keyA).empty());
         REQUIRE(redisState.get(keyB).empty());
 
-        // Sync all
-        s.syncAll();
+        // Push all
+        s.pushAll();
 
         // Check both now in redis
         REQUIRE(redisState.get(keyA) == valuesA);

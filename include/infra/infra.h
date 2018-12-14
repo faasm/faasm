@@ -151,7 +151,11 @@ namespace infra {
 
         void setSegment(long offset, const std::vector<uint8_t> &data);
 
-        void sync();
+        void push();
+
+        long getAge(const std::chrono::steady_clock::time_point &now);
+
+        void clear();
     private:
         Redis *redis;
 
@@ -161,9 +165,12 @@ namespace infra {
         std::vector<uint8_t> value;
         std::shared_mutex valueMutex;
 
-        std::atomic<bool> isNew;
+        std::chrono::steady_clock::time_point lastRemoteRead;
+        long staleThreshold;
+        long clearThreshold;
 
-        void initialise();
+        std::atomic<bool> isNew;
+        void pull();
     };
 
     typedef std::map<std::string, StateKeyValue *> KVMap;
@@ -177,12 +184,15 @@ namespace infra {
 
         StateKeyValue *getKV(const std::string &key);
 
-        void syncAll();
+        void pushAll();
 
+        void pushLoop();
     private:
         Redis *redis;
         KVMap local;
         std::mutex localMutex;
+
+        long syncInterval;
 
         bool existsLocally(const std::string &key);
     };
