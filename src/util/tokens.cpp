@@ -24,7 +24,8 @@ namespace util {
 
     void TokenPool::releaseToken(int token) {
         // Get lock and add token back to queue
-        std::lock_guard<std::mutex> guard(queueMutex);
+        std::unique_lock<std::mutex> guard(queueMutex);
+
         tokenQueue.push(token);
 
         // Notify someone that there's a token available

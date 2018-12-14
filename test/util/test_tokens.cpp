@@ -36,7 +36,7 @@ namespace tests {
         // Get a token and add to the list of acquired tokens
         int token = vars::sharedPool.getToken();
 
-        std::lock_guard<std::mutex> lock(vars::testMutex);
+        std::scoped_lock<std::mutex> lock(vars::testMutex);
         vars::acquiredTokens.push_back(token);
     }
 

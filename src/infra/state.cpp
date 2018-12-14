@@ -1,6 +1,9 @@
 #include "infra.h"
 
 namespace infra {
+    typedef std::unique_lock<std::shared_mutex> FullLock;
+    typedef std::shared_lock<std::shared_mutex> SharedLock;
+
     /**
      * Key/value
      */
@@ -12,19 +15,18 @@ namespace infra {
         staleThreshold = std::stol(util::getEnvVar("STALE_THRESHOLD", "1000"));
 
         // State over the clear threshold is removed from local
-        clearThreshold = std::stol(util::getEnvVar("CLEAR_THRESHOLD", "10000"));
+        clearThreshold = std::stol(util::getEnvVar("CLEAR_THRESHOLD", "30000"));
     }
 
     void StateKeyValue::pull() {
         // Check if new (one-off initialisation)
         if (isNew) {
             // Unique lock on the whole value while loading
-            std::unique_lock<std::shared_mutex> lock(valueMutex);
+            FullLock lock(valueMutex);
 
             // Double check assumption
             if (isNew) {
-                value = redis->get(key);
-                lastRemoteRead = std::chrono::steady_clock::now();
+                doRemoteRead();
                 isNew = false;
             }
         }
@@ -36,37 +38,57 @@ namespace infra {
         // If stale, try to update from remote
         if (dt > staleThreshold) {
             // Unique lock on the whole value while loading
-            std::unique_lock<std::shared_mutex> lock(valueMutex);
+            FullLock lock(valueMutex);
 
             // Double check staleness
             long dt2 = this->getAge(now);
             if (dt2 > staleThreshold) {
-                // Read from the remote
-                value = redis->get(key);
-                lastRemoteRead = std::chrono::steady_clock::now();
+                doRemoteRead();
             }
         }
+    }
 
+    void StateKeyValue::doRemoteRead() {
+        // Read from the remote
+        value = redis->get(key);
+
+        const std::chrono::time_point now = std::chrono::steady_clock::now();
+        lastPull = now;
+
+        this->updateLastInteraction();
+    }
+
+    void StateKeyValue::updateLastInteraction() {
+        const std::chrono::time_point now = std::chrono::steady_clock::now();
+        lastInteraction = now;
     }
 
     long StateKeyValue::getAge(const std::chrono::steady_clock::time_point &now) {
-        return std::chrono::duration_cast<std::chrono::milliseconds>(now - lastRemoteRead).count();
+        return std::chrono::duration_cast<std::chrono::milliseconds>(now - lastPull).count();
     }
 
+    long StateKeyValue::getIdleTime(const std::chrono::steady_clock::time_point &now) {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(now - lastInteraction).count();
+    }
 
     std::vector<uint8_t> StateKeyValue::get() {
+        this->updateLastInteraction();
+
         this->pull();
 
-        // Shared lock for reads
-        std::shared_lock<std::shared_mutex> lock(valueMutex);
+        // Shared lock for full reads
+        SharedLock lock(valueMutex);
+
         return value;
     }
 
     std::vector<uint8_t> StateKeyValue::getSegment(long offset, long length) {
+        this->updateLastInteraction();
+
         this->pull();
 
-        // Shared lock for reads
-        std::shared_lock<std::shared_mutex> lock(valueMutex);
+        // Shared lock for partial reads
+        SharedLock lock(valueMutex);
 
         // Return just the required segment
         std::vector<uint8_t> segment(value.begin() + offset, value.begin() + offset + length);
@@ -74,8 +96,10 @@ namespace infra {
     }
 
     void StateKeyValue::set(const std::vector<uint8_t> &data) {
+        this->updateLastInteraction();
+
         // Unique lock for setting the whole value
-        std::unique_lock<std::shared_mutex> lock(valueMutex);
+        FullLock lock(valueMutex);
 
         this->value = data;
         isWholeValueDirty = true;
@@ -83,12 +107,13 @@ namespace infra {
     }
 
     void StateKeyValue::setSegment(long offset, const std::vector<uint8_t> &data) {
-        size_t max = offset + data.size();
+        this->updateLastInteraction();
 
         // Resize vector if needed
+        size_t max = offset + data.size();
         if (max > value.size()) {
             // Unique lock for changing value size
-            valueMutex.lock();
+            FullLock lock(valueMutex);
 
             // Double check condition still holds
             if (max > value.size()) {
@@ -96,13 +121,11 @@ namespace infra {
                 std::unique_lock<std::shared_mutex> resizeLock(valueMutex);
                 value.resize(max);
             }
-
-            valueMutex.unlock();
         }
 
         // Shared lock for writing segments (need to allow lock-free writing of multiple threads on same
         // state value)
-        std::shared_lock<std::shared_mutex> valueLock(valueMutex);
+        SharedLock lock(valueMutex);
 
         // TODO - is std::set insert thread-safe in this context?
         // Record that this segment is dirty
@@ -113,21 +136,19 @@ namespace infra {
     }
 
     void StateKeyValue::clear() {
-        // Check age since last remote read
+        // Check age since last interaction
         std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-        long dt = this->getAge(now);
+        long dt = this->getIdleTime(now);
 
         // If over clear threshold, remove
         if (dt > clearThreshold) {
-            // Unique lock on the whole value while loading
+            // Unique lock on the whole value while clearing
             std::unique_lock<std::shared_mutex> lock(valueMutex);
 
-            long dt2 = this->getAge(now);
+            long dt2 = this->getIdleTime(now);
+
             // Double check still over the threshold
             if (dt2 > clearThreshold) {
-                // Make sure everything has been pushed
-                this->push();
-
                 // Totally remove the value
                 this->value.clear();
                 isNew = true;
@@ -136,25 +157,38 @@ namespace infra {
     }
 
     void StateKeyValue::push() {
-        // TODO - require lock for this check?
-        // Skip the sync if nothing dirty
+        // Skip the push if nothing dirty
         if (!isWholeValueDirty && dirtySegments.empty()) {
             return;
         }
 
-        // Get unique lock the value for syncing
-        std::unique_lock<std::shared_mutex> valueLock(valueMutex);
-
         // If whole value is dirty, run the full update and drop out
         if (isWholeValueDirty) {
+            // Get full lock for complete write
+            FullLock fullLock(valueMutex);
+
             redis->set(key, value);
             isWholeValueDirty = false;
             dirtySegments.clear();
             return;
         }
 
-        // If segments to write, write those
-        for (const auto segment : dirtySegments) {
+        // Handle partial push
+        this->pushPartial();
+    }
+
+    void StateKeyValue::pushPartial() {
+        // Create copy of the dirty segments and clear the old version
+        std::set<std::pair<long, long>> dirtySegmentsCopy;
+        {
+            FullLock fullLock(valueMutex);
+            dirtySegmentsCopy = dirtySegments;
+            dirtySegments.clear();
+        }
+
+        // Write the dirty segments
+        SharedLock sharedLock(valueMutex);
+        for (const auto segment : dirtySegmentsCopy) {
             std::vector<uint8_t> dataSegment(
                     value.begin() + segment.first,
                     value.begin() + segment.first + segment.second
@@ -166,10 +200,6 @@ namespace infra {
                     dataSegment
             );
         }
-
-        // Reset and read back the full value
-        dirtySegments.clear();
-        value = redis->get(key);
     }
 
     /**
@@ -205,26 +235,17 @@ namespace infra {
         }
     }
 
-    bool State::existsLocally(const std::string &key) {
-        return local.count(key) > 0;
-    }
-
     StateKeyValue *State::getKV(const std::string &key) {
-        // Synchronisation here is important:
-        // - If key exists locally, that's fine, return a reference
-        // - If not, there's a race to create the object
-        bool exists = this->existsLocally(key);
-        if (!exists) {
-            localMutex.lock();
+        if (local.count(key) == 0) {
+            // Lock on editing local state registry
+            FullLock fullLock(localMutex);
 
             // Double check it still doesn't exist
-            if (!this->existsLocally(key)) {
+            if (local.count(key) == 0) {
                 auto kv = new StateKeyValue(key, redis);
 
                 local.emplace(KVPair(key, kv));
             }
-
-            localMutex.unlock();
         }
 
         return local[key];
@@ -232,6 +253,8 @@ namespace infra {
 
     void State::pushAll() {
         // Iterate through all key-values
+        SharedLock sharedLock(localMutex);
+
         for (const auto &kv : local) {
             // Attempt to push (will be ignored if not relevant)
             kv.second->push();

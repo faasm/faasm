@@ -91,7 +91,8 @@ namespace tests {
         REQUIRE(redisState.get(key) == expectedB);
 
         // Now push and check two updates have both been accepted
-        kv->push();
+        kv->pushPartial();
+        kv->pull();
         std::vector<uint8_t> expectedMerged = {7, 7, 2, 8, 8, 8};
         REQUIRE(redisState.get(key) == expectedMerged);
         REQUIRE(kv->get() == expectedMerged);

@@ -60,7 +60,7 @@ namespace worker {
         }
 
         // Get lock and add to controllers
-        std::lock_guard<std::mutex> guard(groupMutex);
+        std::scoped_lock<std::mutex> guard(groupMutex);
 
         for (const std::string &controller : controllers) {
             path tasksPath(BASE_DIR);

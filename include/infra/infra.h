@@ -151,11 +151,14 @@ namespace infra {
 
         void setSegment(long offset, const std::vector<uint8_t> &data);
 
+        void pull();
+
         void push();
 
-        long getAge(const std::chrono::steady_clock::time_point &now);
+        void pushPartial();
 
         void clear();
+
     private:
         Redis *redis;
 
@@ -165,12 +168,19 @@ namespace infra {
         std::vector<uint8_t> value;
         std::shared_mutex valueMutex;
 
-        std::chrono::steady_clock::time_point lastRemoteRead;
+        std::chrono::steady_clock::time_point lastPull;
+        std::chrono::steady_clock::time_point lastInteraction;
         long staleThreshold;
         long clearThreshold;
 
         std::atomic<bool> isNew;
-        void pull();
+
+        long getAge(const std::chrono::steady_clock::time_point &now);
+
+        long getIdleTime(const std::chrono::steady_clock::time_point &now);
+
+        void doRemoteRead();
+        void updateLastInteraction();
     };
 
     typedef std::map<std::string, StateKeyValue *> KVMap;
@@ -187,14 +197,13 @@ namespace infra {
         void pushAll();
 
         void pushLoop();
+
     private:
         Redis *redis;
         KVMap local;
-        std::mutex localMutex;
+        std::shared_mutex localMutex;
 
         long syncInterval;
-
-        bool existsLocally(const std::string &key);
     };
 
     State &getGlobalState();
