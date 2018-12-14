@@ -101,13 +101,14 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state", void, __faasm_write_state,
                               I32 keyPtr, I32 dataPtr, I32 dataLen) {
         util::getLogger()->debug("S - write_state - {} {} {}", keyPtr, dataPtr, dataLen);
-
+        
         const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
         std::string key = getKeyFromWasm(keyPtr);
 
-        // Set the whole state in redis
-        infra::Redis *redis = infra::Redis::getThreadState();
-        redis->set(key, newState);
+        // Set the whole state
+        infra::State &s = infra::getGlobalState();
+        infra::StateKeyValue *kv = s.getKV(key);
+        kv->set(newState);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_offset", void, __faasm_write_state_offset,
@@ -118,8 +119,9 @@ namespace wasm {
         std::string key = getKeyFromWasm(keyPtr);
 
         // Set the state at the given offset
-        infra::Redis *redis = infra::Redis::getThreadState();
-        redis->setRange(key, offset, newState);
+        infra::State &s = infra::getGlobalState();
+        infra::StateKeyValue *kv = s.getKV(key);
+        kv->setSegment(offset, newState);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state", I32, __faasm_read_state,
@@ -129,10 +131,11 @@ namespace wasm {
         std::string key = getKeyFromWasm(keyPtr);
 
         // Read the state in
-        infra::Redis *redis = infra::Redis::getThreadState();
-        std::vector<uint8_t> state = redis->get(key);
+        infra::State &s = infra::getGlobalState();
+        infra::StateKeyValue *kv = s.getKV(key);
+        std::vector<uint8_t> value = kv->get();
 
-        int stateSize = copyToWasmBuffer(state, bufferPtr, bufferLen);
+        int stateSize = copyToWasmBuffer(value, bufferPtr, bufferLen);
 
         // Return the total number of bytes in the whole state
         return stateSize;
@@ -145,10 +148,11 @@ namespace wasm {
         std::string key = getKeyFromWasm(keyPtr);
 
         // Read the state in
-        infra::Redis *redis = infra::Redis::getThreadState();
-        std::vector<uint8_t> state = redis->getRange(key, offset, offset + bufferLen);
+        infra::State &s = infra::getGlobalState();
+        infra::StateKeyValue *kv = s.getKV(key);
+        std::vector<uint8_t> value = kv->getSegment(offset, bufferLen);
 
-        copyToWasmBuffer(state, bufferPtr, bufferLen);
+        copyToWasmBuffer(value, bufferPtr, bufferLen);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_input", I32, __faasm_read_input, I32 bufferPtr, I32 bufferLen) {

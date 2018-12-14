@@ -113,6 +113,11 @@ namespace infra {
      * State (can have multiple key/ values)
      */
 
+    State &getGlobalState() {
+        static State s;
+        return s;
+    }
+
     State::State() {
         redis = new Redis(STATE);
     }

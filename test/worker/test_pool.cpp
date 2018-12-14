@@ -221,6 +221,9 @@ namespace tests {
         std::vector<uint8_t> initialState = redisQueue.get(stateKey);
         REQUIRE(initialState.empty());
 
+        infra::State &s = infra::getGlobalState();
+        infra::StateKeyValue *kv = s.getKV(stateKey);
+
         // Set up the function call
         message::Message call;
         call.set_user("demo");
@@ -240,7 +243,7 @@ namespace tests {
         REQUIRE(resultA.success());
 
         // Load the state again, it should have a new element
-        std::vector<uint8_t> stateA = redisQueue.get(stateKey);
+        std::vector<uint8_t> stateA = kv->get();
         std::vector<uint8_t> expectedA = {1};
         REQUIRE(stateA == expectedA);
 
@@ -260,7 +263,7 @@ namespace tests {
         message::Message resultC = redisQueue.getFunctionResult(call);
         REQUIRE(resultC.success());
 
-        std::vector<uint8_t> stateC = redisQueue.get(stateKey);
+        std::vector<uint8_t> stateC = kv->get();
         std::vector<uint8_t> expectedC = {1, 2, 3};
         REQUIRE(stateC == expectedC);
     }

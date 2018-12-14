@@ -185,4 +185,6 @@ namespace infra {
 
         bool existsLocally(const std::string &key);
     };
+
+    State &getGlobalState();
 };
