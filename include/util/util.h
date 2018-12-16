@@ -99,9 +99,16 @@ namespace util {
 
     class Clock {
     public:
+        Clock();
+
         const TimePoint now();
 
         const long timeDiff(const TimePoint &t1, const TimePoint &t2);
+
+        void setFakeNow(const TimePoint &t);
+    private:
+        bool isFake = false;
+        TimePoint fakeNow;
     };
 
     Clock& getGlobalClock();

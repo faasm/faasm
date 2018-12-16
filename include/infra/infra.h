@@ -153,6 +153,8 @@ namespace infra {
 
         void clear();
 
+        long getLocalValueSize();
+
     private:
         Redis *redis;
 

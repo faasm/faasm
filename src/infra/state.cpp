@@ -138,7 +138,7 @@ namespace infra {
 
     void StateKeyValue::clear() {
         // Check age since last interaction
-        util::Clock c = util::getGlobalClock();
+        util::Clock &c = util::getGlobalClock();
         util::TimePoint now = c.now();
 
         // If over clear threshold, remove
@@ -153,6 +153,10 @@ namespace infra {
                 isNew = true;
             }
         }
+    }
+
+    long StateKeyValue::getLocalValueSize() {
+        return value.size();
     }
 
     void StateKeyValue::push() {

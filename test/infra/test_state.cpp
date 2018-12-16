@@ -86,4 +86,71 @@ namespace tests {
         REQUIRE(redisState.get(keyA) == valuesA);
         REQUIRE(redisState.get(keyB) == valuesB);
     }
+    
+    TEST_CASE("Test stale values cleared", "[state]") {
+        State s;
+        std::string key = "stale_check";
+        util::Clock &c = util::getGlobalClock();
+
+        // Fix time
+        const util::TimePoint now = c.now();
+        c.setFakeNow(now);
+
+        std::vector<uint8_t> value = {0, 1, 2, 3};
+        StateKeyValue * kv = s.getKV(key);
+
+        // Push value to redis
+        kv->set(value);
+        kv->push();
+
+        // Try clearing, check nothing happens
+        kv->clear();
+        REQUIRE(kv->get() == value);
+        REQUIRE(kv->getLocalValueSize() == value.size());
+
+        // Advance time a bit, check it doesn't get cleared
+        std::chrono::seconds secsSmall(1);
+        util::TimePoint newNow = now + secsSmall;
+        c.setFakeNow(newNow);
+
+        kv->clear();
+        REQUIRE(kv->getLocalValueSize() == value.size());
+
+        // Advance time a lot and check it does get cleared
+        std::chrono::seconds secsBig(120);
+        newNow = now + secsBig;
+        c.setFakeNow(newNow);
+
+        kv->clear();
+        REQUIRE(kv->getLocalValueSize() == 0);
+    }
+
+    TEST_CASE("Test pulling only happens if stale") {
+        State s;
+        std::string key = "stale_pull_check";
+        util::Clock &c = util::getGlobalClock();
+
+        // Fix time
+        const util::TimePoint now = c.now();
+        c.setFakeNow(now);
+
+        // Set up a value in redis
+        std::vector<uint8_t> value = {0, 1, 2, 3, 4, 5};
+        StateKeyValue * kv = s.getKV(key);
+        kv->set(value);
+        kv->push();
+
+        // Now change the value in Redis
+        std::vector<uint8_t> value2 = {2, 4};
+        redisState.set(key, value2);
+
+        // Pull, check hasn't changed
+        kv->pull();
+        REQUIRE(kv->get() == value);
+
+        // Move time forward then pull again and check updated
+        c.setFakeNow(now + std::chrono::seconds(30));
+        kv->pull();
+        REQUIRE(kv->get() == value2);
+    }
 }
