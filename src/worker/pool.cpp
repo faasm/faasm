@@ -12,6 +12,13 @@ namespace worker {
     static util::TokenPool tokenPool(util::N_THREADS_PER_WORKER);
 
     void startWorkerThreadPool() {
+        // Spawn the state thread first
+        std::thread stateThread([] {
+            StateThread s;
+            s.run();
+        });
+        stateThread.detach();
+
         // Spawn worker threads until we've hit the limit (thus creating a pool that will replenish
         // when one releases its token)
         while (true) {
@@ -26,6 +33,13 @@ namespace worker {
 
             funcThread.detach();
         }
+    }
+
+    StateThread::StateThread() = default;
+
+    void StateThread::run() {
+        infra::State &s = infra::getGlobalState();
+        s.pushLoop();
     }
 
     WorkerThread::WorkerThread(int workerIdx) : workerIdx(workerIdx) {
@@ -138,8 +152,6 @@ namespace worker {
     }
 
     void WorkerThread::run() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
         // Wait for next message
         while (true) {
             try {
@@ -151,10 +163,7 @@ namespace worker {
                 }
             }
             catch (infra::RedisNoResponseException &e) {
-                logger->debug("No messages received in timeout");
-
-                this->finish();
-                return;
+                // Ignore and try again
             }
         }
 

@@ -173,11 +173,13 @@ namespace infra {
 
         std::atomic<bool> isNew;
 
-        long isStale(const util::TimePoint &now);
-        long isIdle(const util::TimePoint &now);
-
         void doRemoteRead();
+
         void updateLastInteraction();
+
+        bool isStale(const util::TimePoint &now);
+
+        bool isIdle(const util::TimePoint &now);
     };
 
     typedef std::map<std::string, StateKeyValue *> KVMap;

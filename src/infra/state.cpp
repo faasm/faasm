@@ -48,6 +48,8 @@ namespace infra {
 
             // Double check staleness
             if (this->isStale(now)) {
+                logger->debug("Doing remote read for stale {}", key);
+
                 doRemoteRead();
             }
         }
@@ -56,6 +58,9 @@ namespace infra {
     void StateKeyValue::doRemoteRead() {
         // Read from the remote
         value = redis->get(key);
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Value for {} size {} after read", key, value.size());
 
         const util::TimePoint now = clock.now();
         lastPull = now;
@@ -68,12 +73,12 @@ namespace infra {
         lastInteraction = now;
     }
 
-    long StateKeyValue::isStale(const util::TimePoint &now) {
+    bool StateKeyValue::isStale(const util::TimePoint &now) {
         long age = clock.timeDiff(now, lastPull);
         return age > staleThreshold;
     }
 
-    long StateKeyValue::isIdle(const util::TimePoint &now) {
+    bool StateKeyValue::isIdle(const util::TimePoint &now) {
         long idleTime = clock.timeDiff(now, lastInteraction);
         return idleTime > idleThreshold;
     }
@@ -98,6 +103,13 @@ namespace infra {
         SharedLock lock(valueMutex);
 
         // Return just the required segment
+        if ((offset + length) > value.size()) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+            logger->error("Out of bounds read at {} on {} with length {}", offset + length, key, value.size());
+            throw std::runtime_error("Out of bounds read");
+        }
+
         std::vector<uint8_t> segment(value.begin() + offset, value.begin() + offset + length);
         return segment;
     }
@@ -148,7 +160,7 @@ namespace infra {
         util::TimePoint now = c.now();
 
         // If over clear threshold, remove
-        if (this->isIdle(now)) {
+        if (this->isIdle(now) && !value.empty()) {
             // Unique lock on the whole value while clearing
             std::unique_lock<std::shared_mutex> lock(valueMutex);
 
@@ -208,7 +220,7 @@ namespace infra {
         SharedLock sharedLock(valueMutex);
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         for (const auto segment : dirtySegmentsCopy) {
-            logger->debug("Pushing partial value for {} ({} - {})", key, segment.first, segment.second);
+            logger->debug("Pushing partial value for {} ({} - {})", key, segment.first, segment.first + segment.second);
 
             std::vector<uint8_t> dataSegment(
                     value.begin() + segment.first,

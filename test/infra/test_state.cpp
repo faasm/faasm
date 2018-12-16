@@ -104,7 +104,7 @@ namespace tests {
         REQUIRE(redisState.get(key) == values);
 
         // Now update in Redis directly
-        std::vector<uint8_t> newValues =  {5, 5, 5};
+        std::vector<uint8_t> newValues = {5, 5, 5};
         redisState.set(key, newValues);
 
         // Get and check that remote value isn't pulled because it's not stale
@@ -129,7 +129,7 @@ namespace tests {
         c.setFakeNow(now);
 
         std::vector<uint8_t> value = {0, 1, 2, 3};
-        StateKeyValue * kv = s.getKV(key);
+        StateKeyValue *kv = s.getKV(key);
 
         // Push value to redis
         kv->set(value);
@@ -168,7 +168,7 @@ namespace tests {
 
         // Set up a value in redis
         std::vector<uint8_t> value = {0, 1, 2, 3, 4, 5};
-        StateKeyValue * kv = s.getKV(key);
+        StateKeyValue *kv = s.getKV(key);
         kv->set(value);
         kv->push();
 
@@ -184,5 +184,66 @@ namespace tests {
         c.setFakeNow(now + std::chrono::seconds(30));
         kv->pull();
         REQUIRE(kv->get() == value2);
+    }
+
+    void checkActionResetsIdleness(std::string actionType) {
+        redisState.flushAll();
+
+        State s;
+        std::string key = "idle_check";
+
+        util::Clock &c = util::getGlobalClock();
+        const util::TimePoint now = c.now();
+        c.setFakeNow(now);
+
+        // Check not idle by default
+        StateKeyValue *const kv = s.getKV(key);
+        kv->set({1, 2, 3});
+        kv->push();
+        kv->clear();
+
+        REQUIRE(kv->getLocalValueSize() == 3);
+
+        // Move time on, but then perform some action
+        c.setFakeNow(now + std::chrono::seconds(180));
+
+        if (actionType == "get") {
+            kv->get();
+        } else if (actionType == "getSegment") {
+            kv->getSegment(1, 2);
+        } else if (actionType == "set") {
+            kv->set({4, 5, 6});
+        } else if (actionType == "setSegment") {
+            kv->setSegment(1, {4, 4});
+        } else {
+            throw std::runtime_error("Unrecognised action type");
+        }
+
+        kv->clear();
+
+        // Check not counted as stale
+        REQUIRE(kv->getLocalValueSize() == 3);
+
+        // Move time on again without any action, check is stale
+        c.setFakeNow(now + std::chrono::seconds(360));
+        kv->clear();
+        REQUIRE(kv->getLocalValueSize() == 0);
+
+    }
+
+    TEST_CASE("Check idleness reset with get", "[state]") {
+        checkActionResetsIdleness("get");
+    }
+
+    TEST_CASE("Check idleness reset with getSegment", "[state]") {
+        checkActionResetsIdleness("getSegment");
+    }
+
+    TEST_CASE("Check idleness reset with set", "[state]") {
+        checkActionResetsIdleness("set");
+    }
+
+    TEST_CASE("Check idleness reset with setSegment", "[state]") {
+        checkActionResetsIdleness("setSegment");
     }
 }
