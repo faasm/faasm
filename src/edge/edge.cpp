@@ -60,7 +60,8 @@ namespace edge {
     }
 
     std::string FunctionEndpoint::handleFunction(message::Message &msg) {
-        const std::chrono::steady_clock::time_point &t = prof::startTimer();
+        util::Clock &c = util::getGlobalClock();
+        const util::TimePoint now = c.now();
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Bomb out if call isn't valid
@@ -71,7 +72,7 @@ namespace edge {
 
         // Make the call
         infra::Scheduler::callFunction(msg);
-        prof::logEndTimer("edge-submit", t);
+        prof::logEndTimer("edge-submit", now);
 
         if (msg.isasync()) {
             logger->info("Async request {}", infra::funcToString(msg));
@@ -81,7 +82,7 @@ namespace edge {
             infra::Redis *queue = infra::Redis::getThreadQueue();
             message::Message result = queue->getFunctionResult(msg);
 
-            const std::chrono::steady_clock::time_point &t2 = prof::startTimer();
+            const util::TimePoint t2 = prof::startTimer();
 
             logger->info("Finished request {}", infra::funcToString(msg));
 

@@ -3,6 +3,7 @@ include_directories(${FAASM_INCLUDE_DIR}/util)
 add_library(util STATIC
         bytes.cpp
         config.cpp
+        clock.cpp
         environment.cpp
         files.cpp
         hash.cpp

@@ -1,11 +1,10 @@
 #pragma once
 
-#include <chrono>
 #include <util/util.h>
 
 namespace prof {
     // Timing
-    std::chrono::steady_clock::time_point startTimer();
+    util::TimePoint startTimer();
 
-    void logEndTimer(const std::string &label, const std::chrono::steady_clock::time_point &begin);
+    void logEndTimer(const std::string &label, const util::TimePoint &begin);
 };

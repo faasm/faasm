@@ -2,7 +2,6 @@
 
 #include <util/util.h>
 
-#include <chrono>
 #include <string>
 #include <spdlog/spdlog.h>
 
@@ -96,11 +95,6 @@ namespace infra {
     class RedisNoResponseException : public std::exception {
     };
 
-    // Timing
-    std::chrono::steady_clock::time_point startTimer();
-
-    void logEndTimer(const std::string &label, const std::chrono::steady_clock::time_point &begin);
-
     // Scheduling
     const std::string PREWARM_QUEUE = "prewarm";
     const std::string COLD_QUEUE = "cold";
@@ -162,21 +156,23 @@ namespace infra {
     private:
         Redis *redis;
 
+        util::Clock &clock;
+
         std::atomic<bool> isWholeValueDirty;
         std::set<std::pair<long, long>> dirtySegments;
 
         std::vector<uint8_t> value;
         std::shared_mutex valueMutex;
 
-        std::chrono::steady_clock::time_point lastPull;
-        std::chrono::steady_clock::time_point lastInteraction;
+        util::TimePoint lastPull;
+        util::TimePoint lastInteraction;
         long staleThreshold;
         long idleThreshold;
 
         std::atomic<bool> isNew;
 
-        long isStale(const std::chrono::steady_clock::time_point &now);
-        long isIdle(const std::chrono::steady_clock::time_point &now);
+        long isStale(const util::TimePoint &now);
+        long isIdle(const util::TimePoint &now);
 
         void doRemoteRead();
         void updateLastInteraction();

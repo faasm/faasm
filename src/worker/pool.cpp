@@ -189,7 +189,7 @@ namespace worker {
     const std::string WorkerThread::executeCall(message::Message &call) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        const std::chrono::steady_clock::time_point &t = prof::startTimer();
+        const util::TimePoint t = prof::startTimer();
 
         logger->info("WorkerThread executing {}", infra::funcToString(call));
 

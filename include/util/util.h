@@ -93,4 +93,16 @@ namespace util {
     // Strings
     std::vector<std::string> tokeniseString(const std::string &input, char delimiter);
     bool isAllWhitespace(const std::string &input);
+
+    // Timing
+    typedef std::chrono::steady_clock::time_point TimePoint;
+
+    class Clock {
+    public:
+        const TimePoint now();
+
+        const long timeDiff(const TimePoint &t1, const TimePoint &t2);
+    };
+
+    Clock& getGlobalClock();
 }

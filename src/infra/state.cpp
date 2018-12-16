@@ -7,7 +7,8 @@ namespace infra {
     /**
      * Key/value
      */
-    StateKeyValue::StateKeyValue(const std::string &keyIn, Redis *redisIn) : key(keyIn), redis(redisIn) {
+    StateKeyValue::StateKeyValue(const std::string &keyIn, Redis *redisIn) : key(keyIn), redis(redisIn),
+                                                                             clock(util::getGlobalClock()) {
         isWholeValueDirty = false;
         isNew = true;
 
@@ -32,7 +33,7 @@ namespace infra {
         }
 
         // Check staleness
-        std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+        const util::TimePoint now = clock.now();
 
         // If stale, try to update from remote
         if (this->isStale(now)) {
@@ -50,24 +51,24 @@ namespace infra {
         // Read from the remote
         value = redis->get(key);
 
-        const std::chrono::time_point now = std::chrono::steady_clock::now();
+        const util::TimePoint now = clock.now();
         lastPull = now;
 
         this->updateLastInteraction();
     }
 
     void StateKeyValue::updateLastInteraction() {
-        const std::chrono::time_point now = std::chrono::steady_clock::now();
+        const util::TimePoint now = clock.now();
         lastInteraction = now;
     }
 
-    long StateKeyValue::isStale(const std::chrono::steady_clock::time_point &now) {
-        long age = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastPull).count();
+    long StateKeyValue::isStale(const util::TimePoint &now) {
+        long age = clock.timeDiff(now, lastPull);
         return age > staleThreshold;
     }
 
-    long StateKeyValue::isIdle(const std::chrono::steady_clock::time_point &now) {
-        long idleTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastInteraction).count();
+    long StateKeyValue::isIdle(const util::TimePoint &now) {
+        long idleTime = clock.timeDiff(now, lastInteraction);
         return idleTime > idleThreshold;
     }
 
@@ -137,7 +138,8 @@ namespace infra {
 
     void StateKeyValue::clear() {
         // Check age since last interaction
-        std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+        util::Clock c = util::getGlobalClock();
+        util::TimePoint now = c.now();
 
         // If over clear threshold, remove
         if (this->isIdle(now)) {
