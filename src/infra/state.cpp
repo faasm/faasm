@@ -22,6 +22,9 @@ namespace infra {
     void StateKeyValue::pull() {
         // Check if new (one-off initialisation)
         if (isNew) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->debug("Initialising state for {}", key);
+
             // Unique lock on the whole value while loading
             FullLock lock(valueMutex);
 
@@ -37,6 +40,9 @@ namespace infra {
 
         // If stale, try to update from remote
         if (this->isStale(now)) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->debug("Refreshing stale state for {}", key);
+
             // Unique lock on the whole value while loading
             FullLock lock(valueMutex);
 
@@ -148,6 +154,9 @@ namespace infra {
 
             // Double check still over the threshold
             if (this->isIdle(now)) {
+                const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+                logger->debug("Clearing unused value {}", key);
+
                 // Totally remove the value
                 this->value.clear();
                 isNew = true;
@@ -167,10 +176,16 @@ namespace infra {
 
         // If whole value is dirty, run the full update and drop out
         if (isWholeValueDirty) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->debug("Pushing whole value for {}", key);
+
             // Get full lock for complete write
             FullLock fullLock(valueMutex);
 
             redis->set(key, value);
+
+            // Reset (as we're setting the full value, we've effectively pulled)
+            lastPull = clock.now();
             isWholeValueDirty = false;
             dirtySegments.clear();
             return;
@@ -191,7 +206,10 @@ namespace infra {
 
         // Write the dirty segments
         SharedLock sharedLock(valueMutex);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         for (const auto segment : dirtySegmentsCopy) {
+            logger->debug("Pushing partial value for {} ({} - {})", key, segment.first, segment.second);
+
             std::vector<uint8_t> dataSegment(
                     value.begin() + segment.first,
                     value.begin() + segment.first + segment.second

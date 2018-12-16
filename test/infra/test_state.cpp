@@ -86,7 +86,39 @@ namespace tests {
         REQUIRE(redisState.get(keyA) == valuesA);
         REQUIRE(redisState.get(keyB) == valuesB);
     }
-    
+
+    TEST_CASE("Test getting/ pushing only happens when stale/ dirty", "[state]") {
+        State s;
+        std::string key = "test_dirty_push";
+        StateKeyValue *kv = s.getKV(key);
+        std::vector<uint8_t> values = {0, 1, 2, 3};
+
+        // Fix time
+        util::Clock &c = util::getGlobalClock();
+        const util::TimePoint now = c.now();
+        c.setFakeNow(now);
+
+        // Push and make sure reflected in redis
+        kv->set(values);
+        kv->push();
+        REQUIRE(redisState.get(key) == values);
+
+        // Now update in Redis directly
+        std::vector<uint8_t> newValues =  {5, 5, 5};
+        redisState.set(key, newValues);
+
+        // Get and check that remote value isn't pulled because it's not stale
+        REQUIRE(kv->get() == values);
+
+        // Check that push also doesn't push to remote as not dirty
+        kv->push();
+        REQUIRE(redisState.get(key) == newValues);
+
+        // Now advance time and make sure new value is retrieved
+        c.setFakeNow(now + std::chrono::seconds(120));
+        REQUIRE(kv->get() == newValues);
+    }
+
     TEST_CASE("Test stale values cleared", "[state]") {
         State s;
         std::string key = "stale_check";
