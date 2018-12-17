@@ -7,11 +7,11 @@ using namespace infra;
 
 namespace tests {
     TEST_CASE("Test getting timeout", "[scheduler]") {
-        util::SystemConfig conf = util::getSystemConfig();
+        util::SystemConfig &conf = util::getSystemConfig();
 
-        REQUIRE(Scheduler::getWorkerTimeout("blah") == conf.bound_timeout);
-        REQUIRE(Scheduler::getWorkerTimeout(PREWARM_QUEUE) == conf.unbound_timeout);
-        REQUIRE(Scheduler::getWorkerTimeout(COLD_QUEUE) == conf.unbound_timeout);
+        REQUIRE(Scheduler::getWorkerTimeout("blah") == conf.boundTimeout);
+        REQUIRE(Scheduler::getWorkerTimeout(PREWARM_QUEUE) == conf.unboundTimeout);
+        REQUIRE(Scheduler::getWorkerTimeout(COLD_QUEUE) == conf.unboundTimeout);
     }
 
     TEST_CASE("Test worker prewarm to bound", "[scheduler]") {
@@ -53,8 +53,8 @@ namespace tests {
         redisQueue.flushAll();
 
         // Fill up all prewarm
-        util::SystemConfig conf = util::getSystemConfig();
-        for (int i = 0; i < conf.prewarm_target; i++) {
+        util::SystemConfig &conf = util::getSystemConfig();
+        for (int i = 0; i < conf.prewarmTarget; i++) {
             Scheduler::prewarmWorker();
         }
 
@@ -190,8 +190,8 @@ namespace tests {
         std::string queueName = Scheduler::getFunctionQueueName(call);
 
         // Saturate up to the number of max queued calls
-        util::SystemConfig conf = util::getSystemConfig();
-        int nCalls = conf.max_queue_ratio - 1;
+        util::SystemConfig &conf = util::getSystemConfig();
+        int nCalls = conf.maxQueueRatio - 1;
         for (int i = 0; i < nCalls; i++) {
             Scheduler::callFunction(call);
 
@@ -218,17 +218,17 @@ namespace tests {
         std::string queueName = Scheduler::getFunctionQueueName(call);
 
         // Make calls up to the limit
-        util::SystemConfig conf = util::getSystemConfig();
-        int nCalls = conf.max_workers_per_function * conf.max_queue_ratio;
+        util::SystemConfig &conf = util::getSystemConfig();
+        int nCalls = conf.maxWorkersPerFunction * conf.maxQueueRatio;
         for (int i = 0; i < nCalls; i++) {
             Scheduler::callFunction(call);
         }
 
         // Check number of bind messages
-        REQUIRE(redisQueue.listLength(PREWARM_QUEUE) == conf.max_workers_per_function);
+        REQUIRE(redisQueue.listLength(PREWARM_QUEUE) == conf.maxWorkersPerFunction);
 
         // Check count assigned to function
-        REQUIRE(Scheduler::getFunctionCount(call) == conf.max_workers_per_function);
+        REQUIRE(Scheduler::getFunctionCount(call) == conf.maxWorkersPerFunction);
 
         // Check calls have been queued
         REQUIRE(redisQueue.listLength(Scheduler::getFunctionQueueName(call)) == nCalls);
@@ -238,8 +238,8 @@ namespace tests {
         Scheduler::callFunction(call);
         Scheduler::callFunction(call);
 
-        REQUIRE(redisQueue.listLength(PREWARM_QUEUE) == conf.max_workers_per_function);
-        REQUIRE(Scheduler::getFunctionCount(call) == conf.max_workers_per_function);
+        REQUIRE(redisQueue.listLength(PREWARM_QUEUE) == conf.maxWorkersPerFunction);
+        REQUIRE(Scheduler::getFunctionCount(call) == conf.maxWorkersPerFunction);
         REQUIRE(redisQueue.listLength(Scheduler::getFunctionQueueName(call)) == nCalls + 3);
     }
 
@@ -247,8 +247,8 @@ namespace tests {
         redisQueue.flushAll();
 
         // Check should prewarm up to limit
-        const util::SystemConfig conf = util::getSystemConfig();
-        for (int i = 0; i < conf.prewarm_target; i++) {
+        const util::SystemConfig &conf = util::getSystemConfig();
+        for (int i = 0; i < conf.prewarmTarget; i++) {
             REQUIRE(Scheduler::prewarmWorker());
             REQUIRE(Scheduler::getPrewarmCount() == i + 1);
             REQUIRE(Scheduler::getColdCount() == 0);
@@ -257,7 +257,7 @@ namespace tests {
         // Should be false once we've hit the target
         for (int i = 0; i < 5; i++) {
             REQUIRE(!Scheduler::prewarmWorker());
-            REQUIRE(Scheduler::getPrewarmCount() == conf.prewarm_target);
+            REQUIRE(Scheduler::getPrewarmCount() == conf.prewarmTarget);
             REQUIRE(Scheduler::getColdCount() == i + 1);
         }
     }

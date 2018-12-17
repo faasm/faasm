@@ -27,13 +27,18 @@ namespace util {
 
     public:
         // Default values
-        int prewarm_target;
-        int max_queue_ratio;
-        int max_workers_per_function;
+        int prewarmTarget;
+        int maxQueueRatio;
+        int maxWorkersPerFunction;
 
         // Worker-related timeouts
-        int unbound_timeout;
-        int bound_timeout;
+        int unboundTimeout;
+        int boundTimeout;
+
+        // State
+        int stateStaleThreshold;
+        int stateClearThreshold;
+        int statePushInterval;
 
         SystemConfig();
 
@@ -43,7 +48,7 @@ namespace util {
         int getSystemConfParam(const char *name, const char *defaultValue);
     };
 
-    SystemConfig getSystemConfig();
+    SystemConfig& getSystemConfig();
 
     // Byte handling
     std::vector<uint8_t> stringToBytes(const std::string &str);
@@ -93,4 +98,23 @@ namespace util {
     // Strings
     std::vector<std::string> tokeniseString(const std::string &input, char delimiter);
     bool isAllWhitespace(const std::string &input);
+
+    // Timing
+    typedef std::chrono::steady_clock::time_point TimePoint;
+
+    class Clock {
+    public:
+        Clock();
+
+        const TimePoint now();
+
+        const long timeDiff(const TimePoint &t1, const TimePoint &t2);
+
+        void setFakeNow(const TimePoint &t);
+    private:
+        bool isFake = false;
+        TimePoint fakeNow;
+    };
+
+    Clock& getGlobalClock();
 }

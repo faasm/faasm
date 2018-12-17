@@ -29,12 +29,6 @@ namespace faasm {
     MatrixXd hingeLossWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int epoch, MatrixXd &weights,
                                    const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
 
-        // Create array of flags to say which weights to update
-        auto weightsToUpdate = new bool[sgdParams.nWeights];
-        for(int w = 0; w < sgdParams.nWeights; w++) {
-            weightsToUpdate[w] = false;
-        }
-
         // Iterate through all training examples (i.e. columns)
         for (int col = 0; col < inputs.outerSize(); ++col) {
             // Get input and output associated with this example
@@ -61,16 +55,9 @@ namespace faasm {
 
                 thisWeight *= (1 - (sgdParams.learningRate / (1 + epoch)));
 
-                // Update in memory and flag
+                // Update in memory and state
                 weights(0, it.row()) = thisWeight;
-                weightsToUpdate[it.row()] = true;
-            }
-        }
-
-        // Update any weights that have changed in this batch
-        for (int i = 0; i < sgdParams.nWeights; i++) {
-            if (weightsToUpdate[i]) {
-                writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, i);
+                writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, it.row());
             }
         }
 

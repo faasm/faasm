@@ -38,12 +38,12 @@ namespace tests {
     TEST_CASE("Test default system config initialisation", "[util]") {
         SystemConfig conf;
 
-        REQUIRE(conf.prewarm_target == 20);
-        REQUIRE(conf.max_queue_ratio == 4);
-        REQUIRE(conf.max_workers_per_function == 10);
+        REQUIRE(conf.prewarmTarget == 20);
+        REQUIRE(conf.maxQueueRatio == 4);
+        REQUIRE(conf.maxWorkersPerFunction == 10);
 
-        REQUIRE(conf.bound_timeout == 30);
-        REQUIRE(conf.unbound_timeout == 240);
+        REQUIRE(conf.boundTimeout == 30);
+        REQUIRE(conf.unboundTimeout == 240);
     }
 
     TEST_CASE("Test overriding system config initialisation", "[util]") {
@@ -55,12 +55,12 @@ namespace tests {
         setEnvVar("UNBOUND_TIMEOUT", "5555");
 
         SystemConfig conf;
-        REQUIRE(conf.prewarm_target == 9999);
-        REQUIRE(conf.max_queue_ratio == 8888);
-        REQUIRE(conf.max_workers_per_function == 7777);
+        REQUIRE(conf.prewarmTarget == 9999);
+        REQUIRE(conf.maxQueueRatio == 8888);
+        REQUIRE(conf.maxWorkersPerFunction == 7777);
 
-        REQUIRE(conf.bound_timeout == 6666);
-        REQUIRE(conf.unbound_timeout == 5555);
+        REQUIRE(conf.boundTimeout == 6666);
+        REQUIRE(conf.unboundTimeout == 5555);
 
         util::unsetEnvVar("PREWARM_TARGET");
         util::unsetEnvVar("MAX_QUEUE_RATIO");

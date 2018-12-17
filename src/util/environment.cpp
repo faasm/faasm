@@ -7,7 +7,7 @@
 #include <limits.h>
 
 namespace util {
-    SystemConfig getSystemConfig() {
+    SystemConfig& getSystemConfig() {
         static SystemConfig conf;
         return conf;
     }

@@ -98,4 +98,11 @@ namespace worker {
 
         void finishCall(message::Message &msg, const std::string &errorMsg);
     };
+
+    class StateThread {
+    public:
+        StateThread();
+
+        void run();
+    };
 }
