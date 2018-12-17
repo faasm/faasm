@@ -17,8 +17,11 @@ long __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) 
 
 void __faasm_write_state(const char *key, const unsigned char *data, long dataLen) {
     infra::Redis *redis = infra::Redis::getThreadState();
-    std::vector<uint8_t> newState(data, data + dataLen);
-    redis->set(key, newState);
+
+    if (dataLen > 0) {
+        std::vector<uint8_t> newState(data, data + dataLen);
+        redis->set(key, newState);
+    }
 }
 
 void __faasm_write_state_offset(const char *key, long offset, const unsigned char *data, long dataLen) {

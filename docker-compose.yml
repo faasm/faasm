@@ -33,13 +33,13 @@ services:
       - NETNS_MODE=on
       - LOG_LEVEL=debug
       - PREWARM_TARGET=80
-      - MAX_QUEUE_RATIO=1
-      - MAX_WORKERS_PER_FUNCTION=60
+      - MAX_QUEUE_RATIO=3
+      - MAX_WORKERS_PER_FUNCTION=30
       - BOUND_TIMEOUT=30
       - UNBOUND_TIMEOUT=240
       - STATE_STALE_THRESHOLD=3000
       - STATE_CLEAR_THRESHOLD=30000
-      - STATE_PUSH_INTERVAL=50
+      - STATE_PUSH_INTERVAL=250
     volumes:
       - ./wasm:/usr/share/faasm/wasm
     networks:

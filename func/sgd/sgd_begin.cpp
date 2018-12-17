@@ -21,6 +21,7 @@ namespace faasm {
 
         // Begin first epoch
         initCounter(memory, EPOCH_COUNT_KEY);
+        memory->forcePushState(EPOCH_COUNT_KEY);
         memory->chainFunction("sgd_epoch");
 
         return 0;

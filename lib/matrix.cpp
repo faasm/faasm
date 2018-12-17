@@ -143,11 +143,18 @@ namespace faasm {
 
     void SparseMatrixSerialiser::writeToState(FaasmMemory *memory, const char *key) {
         SparseKeys keys = getSparseKeys(key);
+
         memory->writeState(keys.valueKey, valueBytes, nValueBytes);
         memory->writeState(keys.innerKey, innerBytes, nInnerBytes);
         memory->writeState(keys.outerKey, outerBytes, nOuterBytes);
         memory->writeState(keys.nonZeroKey, nonZeroBytes, nNonZeroBytes);
         memory->writeState(keys.sizeKey, sizeBytes, nSizeBytes);
+
+        memory->forcePushState(keys.valueKey);
+        memory->forcePushState(keys.innerKey);
+        memory->forcePushState(keys.outerKey);
+        memory->forcePushState(keys.nonZeroKey);
+        memory->forcePushState(keys.sizeKey);
     }
 
     SparseMatrix<double> SparseMatrixSerialiser::readFromBytes(

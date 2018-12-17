@@ -101,14 +101,19 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state", void, __faasm_write_state,
                               I32 keyPtr, I32 dataPtr, I32 dataLen) {
         util::getLogger()->debug("S - write_state - {} {} {}", keyPtr, dataPtr, dataLen);
-        
-        const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
-        std::string key = getKeyFromWasm(keyPtr);
 
         // Set the whole state
+        std::string key = getKeyFromWasm(keyPtr);
         infra::State &s = infra::getGlobalState();
         infra::StateKeyValue *kv = s.getKV(key);
-        kv->set(newState);
+
+        // Data length of zero means force push
+        if (dataLen == 0) {
+            kv->push();
+        } else {
+            const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
+            kv->set(newState);
+        }
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_offset", void, __faasm_write_state_offset,
@@ -1073,12 +1078,12 @@ namespace wasm {
 
         Runtime::Memory *memory = getExecutingModule()->defaultMemory;
 
-        if(addr & (IR::numBytesPerPage - 1) || length == 0) { return -EINVAL; }
+        if (addr & (IR::numBytesPerPage - 1) || length == 0) { return -EINVAL; }
 
         const Uptr basePageIndex = addr / IR::numBytesPerPage;
         const Uptr numPages = (length + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
 
-        if(basePageIndex + numPages > getMemoryMaxPages(memory)) { return -EINVAL; }
+        if (basePageIndex + numPages > getMemoryMaxPages(memory)) { return -EINVAL; }
 
         unmapMemoryPages(memory, basePageIndex, numPages);
 

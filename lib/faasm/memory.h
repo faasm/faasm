@@ -30,6 +30,11 @@ namespace faasm {
         void writeStateOffset(const char *key, long offset, const uint8_t *data, long dataLen);
 
         /**
+         * Forces a synchronous write of the state
+         */
+        void forcePushState(const char *key);
+
+        /**
          * Reads a chunk of state at the given key and offset
          */
         void readStateOffset(const char *key, long offset, uint8_t *buffer, long bufferLen);

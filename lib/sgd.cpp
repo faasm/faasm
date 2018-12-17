@@ -212,6 +212,7 @@ namespace faasm {
     void setUpDummyProblem(FaasmMemory *memory, const SgdParams &params) {
         // Persis the parameters
         writeParamsToState(memory, PARAMS_KEY, params);
+        memory->forcePushState(PARAMS_KEY);
 
         // Create fake training data as dot product of the matrix of training input data and the real weight vector
         Eigen::MatrixXd realWeights = randomDenseMatrix(1, params.nWeights);
@@ -222,9 +223,11 @@ namespace faasm {
         Eigen::MatrixXd weights = randomDenseMatrix(1, params.nWeights);
 
         // Write all data to memory
-        writeMatrixToState(memory, OUTPUTS_KEY, outputs);
         writeSparseMatrixToState(memory, INPUTS_KEY, inputs);
+        writeMatrixToState(memory, OUTPUTS_KEY, outputs);
         writeMatrixToState(memory, WEIGHTS_KEY, weights);
+        memory->forcePushState(OUTPUTS_KEY);
+        memory->forcePushState(WEIGHTS_KEY);
     }
 }
 

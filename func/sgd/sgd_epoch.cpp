@@ -11,6 +11,8 @@ namespace faasm {
         // Set per-epoch memory to zero
         faasm::zeroErrors(memory, p);
         faasm::zeroFinished(memory, p);
+        memory->forcePushState(ERRORS_KEY);
+        memory->forcePushState(FINISHED_KEY);
 
         // Get the epoch count
         int epoch = faasm::getCounter(memory, EPOCH_COUNT_KEY);
