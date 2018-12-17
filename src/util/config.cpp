@@ -2,11 +2,14 @@
 
 namespace util {
     SystemConfig::SystemConfig() {
-        prewarm_target = this->getSystemConfParam("PREWARM_TARGET", "20");
-        max_queue_ratio = this->getSystemConfParam("MAX_QUEUE_RATIO", "4");
-        max_workers_per_function = this->getSystemConfParam("MAX_WORKERS_PER_FUNCTION", "10");
-        bound_timeout = this->getSystemConfParam("BOUND_TIMEOUT", "30");
-        unbound_timeout = this->getSystemConfParam("UNBOUND_TIMEOUT", "240");
+        prewarmTarget = this->getSystemConfParam("PREWARM_TARGET", "20");
+        maxQueueRatio = this->getSystemConfParam("MAX_QUEUE_RATIO", "4");
+        maxWorkersPerFunction = this->getSystemConfParam("MAX_WORKERS_PER_FUNCTION", "10");
+        boundTimeout = this->getSystemConfParam("BOUND_TIMEOUT", "30");
+        unboundTimeout = this->getSystemConfParam("UNBOUND_TIMEOUT", "240");
+        stateStaleThreshold = this->getSystemConfParam("STATE_STALE_THRESHOLD", "3000");
+        stateClearThreshold = this->getSystemConfParam("STATE_CLEAR_THRESHOLD", "30000");
+        statePushInterval = this->getSystemConfParam("STATE_PUSH_INTERVAL", "50");
     }
 
     int SystemConfig::getSystemConfParam(const char *name, const char *defaultValue) {
@@ -18,10 +21,13 @@ namespace util {
     void SystemConfig::print() {
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
-        logger->info("PREWARM_TARGET             {}", prewarm_target);
-        logger->info("MAX_QUEUE_RATIO            {}", max_queue_ratio);
-        logger->info("MAX_WORKERS_PER_FUNCTION   {}", max_workers_per_function);
-        logger->info("BOUND_TIMEOUT              {}", bound_timeout);
-        logger->info("UNBOUND_TIMEOUT            {}", unbound_timeout);
+        logger->info("PREWARM_TARGET             {}", prewarmTarget);
+        logger->info("MAX_QUEUE_RATIO            {}", maxQueueRatio);
+        logger->info("MAX_WORKERS_PER_FUNCTION   {}", maxWorkersPerFunction);
+        logger->info("BOUND_TIMEOUT              {}", boundTimeout);
+        logger->info("UNBOUND_TIMEOUT            {}", unboundTimeout);
+        logger->info("STATE_STALE_THRESHOLD      {}", stateStaleThreshold);
+        logger->info("STATE_CLEAR_THRESHOLD      {}", stateClearThreshold);
+        logger->info("STATE_PUSH_INTERVAL        {}", statePushInterval);
     }
 }

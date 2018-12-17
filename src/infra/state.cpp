@@ -12,10 +12,11 @@ namespace infra {
         isNew = true;
 
         // Gets over the stale threshold trigger a pull from remote
-        staleThreshold = std::stol(util::getEnvVar("STALE_THRESHOLD", "1000"));
+        const util::SystemConfig &conf = util::getSystemConfig();
+        staleThreshold = conf.stateStaleThreshold;
 
         // State over the clear threshold is removed from local
-        idleThreshold = std::stol(util::getEnvVar("CLEAR_THRESHOLD", "30000"));
+        idleThreshold = conf.stateClearThreshold;
     }
 
     void StateKeyValue::pull() {
@@ -249,7 +250,8 @@ namespace infra {
     }
 
     State::State() {
-        syncInterval = std::stol(util::getEnvVar("SYNC_INTERVAL", "50"));
+        const util::SystemConfig &conf = util::getSystemConfig();
+        pushInterval = conf.statePushInterval;
     }
 
     State::~State() {
@@ -261,7 +263,8 @@ namespace infra {
 
     void State::pushLoop() {
         while (true) {
-            usleep(1000 * syncInterval);
+            // usleep takes microseconds
+            usleep(1000 * pushInterval);
 
             // Run the sync
             this->pushAll();

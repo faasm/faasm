@@ -91,8 +91,8 @@ namespace tests {
         REQUIRE(infra::Scheduler::getColdCount() == 0);
 
         // Set up enough fake workers to meet our prewarm target
-        util::SystemConfig conf = util::getSystemConfig();
-        int nWorkers = conf.prewarm_target;
+        util::SystemConfig &conf = util::getSystemConfig();
+        int nWorkers = conf.prewarmTarget;
         for (int i = 0; i < nWorkers; i++) {
             infra::Scheduler::prewarmWorker();
         }

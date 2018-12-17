@@ -199,7 +199,7 @@ namespace infra {
         KVMap local;
         std::shared_mutex localMutex;
 
-        long syncInterval;
+        long pushInterval;
     };
 
     State &getGlobalState();

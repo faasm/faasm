@@ -27,13 +27,18 @@ namespace util {
 
     public:
         // Default values
-        int prewarm_target;
-        int max_queue_ratio;
-        int max_workers_per_function;
+        int prewarmTarget;
+        int maxQueueRatio;
+        int maxWorkersPerFunction;
 
         // Worker-related timeouts
-        int unbound_timeout;
-        int bound_timeout;
+        int unboundTimeout;
+        int boundTimeout;
+
+        // State
+        int stateStaleThreshold;
+        int stateClearThreshold;
+        int statePushInterval;
 
         SystemConfig();
 
@@ -43,7 +48,7 @@ namespace util {
         int getSystemConfParam(const char *name, const char *defaultValue);
     };
 
-    SystemConfig getSystemConfig();
+    SystemConfig& getSystemConfig();
 
     // Byte handling
     std::vector<uint8_t> stringToBytes(const std::string &str);

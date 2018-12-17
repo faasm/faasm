@@ -35,19 +35,19 @@ namespace infra {
     }
 
     int Scheduler::getWorkerTimeout(const std::string &currentQueue) {
-        util::SystemConfig conf = util::getSystemConfig();
+        util::SystemConfig &conf = util::getSystemConfig();
         if (currentQueue == COLD_QUEUE || currentQueue == PREWARM_QUEUE) {
-            return conf.unbound_timeout;
+            return conf.unboundTimeout;
         } else {
-            return conf.bound_timeout;
+            return conf.boundTimeout;
         }
     }
 
     bool Scheduler::prewarmWorker() {
         Redis *queue = Redis::getThreadQueue();
 
-        util::SystemConfig conf = util::getSystemConfig();
-        bool isPrewarm = queue->incrIfBelowTarget(PREWARM_COUNTER, conf.prewarm_target);
+        util::SystemConfig &conf = util::getSystemConfig();
+        bool isPrewarm = queue->incrIfBelowTarget(PREWARM_COUNTER, conf.prewarmTarget);
 
         if(!isPrewarm) {
             queue->incr(COLD_COUNTER);
@@ -79,7 +79,7 @@ namespace infra {
     void Scheduler::updateWorkerAllocs(const message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        util::SystemConfig conf = util::getSystemConfig();
+        util::SystemConfig &conf = util::getSystemConfig();
 
         // Get queue details
         Redis *queue = Redis::getThreadQueue();
@@ -87,7 +87,7 @@ namespace infra {
         const std::string queueName = Scheduler::getFunctionQueueName(msg);
 
         // Add more workers if necessary
-        bool shouldAddWorker = queue->addWorker(counter, queueName, conf.max_queue_ratio, conf.max_workers_per_function);
+        bool shouldAddWorker = queue->addWorker(counter, queueName, conf.maxQueueRatio, conf.maxWorkersPerFunction);
 
         // Send bind message to pre-warm queue to enlist help of other workers
         if (shouldAddWorker) {
@@ -95,12 +95,12 @@ namespace infra {
 
             logger->debug(
                     "SCALE-UP {}, max_qr = {}, max_workers = {}",
-                    infra::funcToString(msg), conf.max_queue_ratio, conf.max_workers_per_function
+                    infra::funcToString(msg), conf.maxQueueRatio, conf.maxWorkersPerFunction
             );
         } else {
             logger->debug(
                     "MAINTAIN {}, max_qr = {}, max_workers = {}",
-                    infra::funcToString(msg), conf.max_queue_ratio, conf.max_workers_per_function
+                    infra::funcToString(msg), conf.maxQueueRatio, conf.maxWorkersPerFunction
             );
         }
     }
