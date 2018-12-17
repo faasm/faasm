@@ -12,32 +12,27 @@ namespace faasm {
         /**
          * Returns the size of the state in bytes. Returns zero if not set.
          */
-        long getStateSize(const char *key);
+        long getStateSize(const char *key, bool async=false);
 
         /**
          * Reads the full state at the given key
          */
-        long readState(const char *key, uint8_t *buffer, long bufferLen);
+        long readState(const char *key, uint8_t *buffer, long bufferLen, bool async=false);
 
         /**
          * Overwrites the state at the given key
          */
-        void writeState(const char *key, const uint8_t *data, long dataLen);
+        void writeState(const char *key, const uint8_t *data, long dataLen, bool async=false);
 
         /**
          * Writes a chunk of state at the given key and offset
          */
-        void writeStateOffset(const char *key, long offset, const uint8_t *data, long dataLen);
-
-        /**
-         * Forces a synchronous write of the state
-         */
-        void forcePushState(const char *key);
+        void writeStateOffset(const char *key, long offset, const uint8_t *data, long dataLen, bool async=false);
 
         /**
          * Reads a chunk of state at the given key and offset
          */
-        void readStateOffset(const char *key, long offset, uint8_t *buffer, long bufferLen);
+        void readStateOffset(const char *key, long offset, uint8_t *buffer, long bufferLen, bool async=false);
 
         /**
          * Returns the size of the input in bytes. Returns zero if none.

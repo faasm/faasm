@@ -1,3 +1,4 @@
+#include <prof/prof.h>
 #include "infra.h"
 
 namespace infra {
@@ -144,7 +145,7 @@ namespace infra {
 
         // Shared lock for writing segments (need to allow lock-free writing of multiple threads on same
         // state value)
-        SharedLock lock(valueMutex);
+        // SharedLock lock(valueMutex);
 
         // TODO - is std::set insert thread-safe in this context?
         // Record that this segment is dirty
@@ -180,35 +181,38 @@ namespace infra {
         return value.size();
     }
 
-    void StateKeyValue::push() {
-        // Skip the push if nothing dirty
-        if (!isWholeValueDirty && dirtySegments.empty()) {
+    void StateKeyValue::pushFull() {
+        // Double check condition
+        if (!isWholeValueDirty) {
             return;
         }
 
-        // If whole value is dirty, run the full update and drop out
-        if (isWholeValueDirty) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            logger->debug("Pushing whole value for {}", key);
+        // Get full lock for complete write
+        FullLock fullLock(valueMutex);
 
-            // Get full lock for complete write
-            FullLock fullLock(valueMutex);
-
-            Redis *redis = infra::Redis::getThreadState();
-            redis->set(key, value);
-
-            // Reset (as we're setting the full value, we've effectively pulled)
-            lastPull = clock.now();
-            isWholeValueDirty = false;
-            dirtySegments.clear();
+        // Double check condition
+        if (!isWholeValueDirty) {
             return;
         }
 
-        // Handle partial push
-        this->pushPartial();
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Pushing whole value for {}", key);
+
+        Redis *redis = infra::Redis::getThreadState();
+        redis->set(key, value);
+
+        // Reset (as we're setting the full value, we've effectively pulled)
+        lastPull = clock.now();
+        isWholeValueDirty = false;
+        dirtySegments.clear();
     }
 
     void StateKeyValue::pushPartial() {
+        // Ignore if the whole value is dirty
+        if (isWholeValueDirty) {
+            return;
+        }
+
         // Create copy of the dirty segments and clear the old version
         std::set<std::pair<long, long>> dirtySegmentsCopy;
         {
@@ -291,8 +295,11 @@ namespace infra {
         SharedLock sharedLock(localMutex);
 
         for (const auto &kv : local) {
-            // Attempt to push (will be ignored if not relevant)
-            kv.second->push();
+            // Attempt to push partial updates
+            kv.second->pushPartial();
+
+            // Attempt to push partial updates
+            kv.second->pushFull();
 
             // Attempt to clear (will be ignored if not relevant)
             kv.second->clear();

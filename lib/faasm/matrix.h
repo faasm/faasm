@@ -44,12 +44,12 @@ namespace faasm {
     public:
         explicit SparseMatrixSerialiser(const SparseMatrix<double> &matIn);
 
-        void writeToState(FaasmMemory *memory, const char *key);
+        void writeToState(FaasmMemory *memory, const char *key, bool async=false);
 
         static SparseMatrix<double> readFromBytes(const SparseSizes &sizes,
-                                                  uint8_t * outerBytes,
-                                                  uint8_t * innerBytes,
-                                                  uint8_t * valuesBytes);
+                                                  uint8_t *outerBytes,
+                                                  uint8_t *innerBytes,
+                                                  uint8_t *valuesBytes);
 
         ~SparseMatrixSerialiser();
 
@@ -75,10 +75,31 @@ namespace faasm {
         SparseSizes sizes{};
     };
 
-    void writeSparseMatrixToState(FaasmMemory *memory, const char *key, const SparseMatrix<double> &mat);
+    /**
+     * State
+     */
+    SparseMatrix<double> readSparseMatrixFromState(FaasmMemory *memory, const char *key, bool async = false);
 
-    SparseMatrix<double> readSparseMatrixFromState(FaasmMemory *memory, const char *key);
+    void writeSparseMatrixToState(FaasmMemory *memory, const char *key, const SparseMatrix<double> &mat,
+            bool async = false);
 
+    MatrixXd readMatrixFromState(FaasmMemory *memory, const char *key, long rows, long cols, bool async = false);
+
+    void writeMatrixToState(FaasmMemory *memory, const char *key, const MatrixXd &matrix, bool async = false);
+
+    void writeMatrixToStateElement(FaasmMemory *memory, const char *key, const MatrixXd &matrix, long row, long col,
+                                   bool async = false);
+
+    MatrixXd readMatrixColumnsFromState(FaasmMemory *memory, const char *key, long colStart, long colEnd, long nRows,
+                                        bool async = false);
+
+    SparseMatrix<double> readSparseMatrixColumnsFromState(FaasmMemory *memory, const char *key, long colStart,
+                                                          long colEnd, bool async = false);
+
+
+    /**
+     * Manipulation
+     */
     MatrixXd randomDenseMatrix(int rows, int cols);
 
     SparseMatrix<double> randomSparseMatrix(int rows, int cols, double threshold);
@@ -87,18 +108,7 @@ namespace faasm {
 
     MatrixXd bytesToMatrix(uint8_t *byteArray, long rows, long columns);
 
-    void writeMatrixToState(FaasmMemory *memory, const char *key, const MatrixXd &matrix);
-
-    MatrixXd readMatrixFromState(FaasmMemory *memory, const char *key, long rows, long cols);
-
     long matrixByteIndex(long row, long col, long nRows);
-
-    void writeMatrixToStateElement(FaasmMemory *memory, const char *key, const MatrixXd &matrix, long row, long col);
-
-    MatrixXd readMatrixColumnsFromState(FaasmMemory *memory, const char *key, long colStart, long colEnd, long nRows);
-
-    SparseMatrix<double> readSparseMatrixColumnsFromState(FaasmMemory *memory, const char *key, long colStart,
-                                                          long colEnd);
 
     void shuffleMatrixColumns(MatrixXd &matrix);
 

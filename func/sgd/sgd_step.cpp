@@ -19,20 +19,19 @@ namespace faasm {
         // Load params
         SgdParams sgdParams = readParamsFromState(memory, PARAMS_KEY);
 
-        // Load the data
-        MatrixXd weights = readMatrixFromState(memory, WEIGHTS_KEY, 1, sgdParams.nWeights);
-        SparseMatrix<double> inputs = readSparseMatrixColumnsFromState(memory, INPUTS_KEY, startIdx, endIdx);
-        MatrixXd outputs = readMatrixColumnsFromState(memory, OUTPUTS_KEY, startIdx, endIdx, 1);
+        // Load the inputs and outputs async (as they should be constant)
+        SparseMatrix<double> inputs = readSparseMatrixColumnsFromState(memory, INPUTS_KEY, startIdx, endIdx, true);
+        MatrixXd outputs = readMatrixColumnsFromState(memory, OUTPUTS_KEY, startIdx, endIdx, 1, true);
 
         // Perform updates
         MatrixXd actual;
         if (sgdParams.lossType == HINGE) {
-            actual = hingeLossWeightUpdate(memory, sgdParams, epoch, weights, inputs, outputs);
+            actual = hingeLossWeightUpdate(memory, sgdParams, epoch, inputs, outputs);
 
             // Persist error
             writeHingeError(memory, batchNumber, outputs, actual);
         } else {
-            actual = leastSquaresWeightUpdate(memory, sgdParams, weights, inputs, outputs);
+            actual = leastSquaresWeightUpdate(memory, sgdParams, inputs, outputs);
 
             // Persist error for these examples
             writeSquaredError(memory, batchNumber, outputs, actual);

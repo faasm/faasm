@@ -27,7 +27,7 @@ namespace tests {
         REQUIRE(redisState.get(key).empty());
 
         // Check that when pushed, the update is pushed to redis
-        kv->push();
+        kv->pushFull();
         REQUIRE(kv->get() == values);
         REQUIRE(redisState.get(key) == values);
     }
@@ -40,7 +40,7 @@ namespace tests {
         // Set up and push
         std::vector<uint8_t> values = {0, 0, 1, 1, 2, 2, 3, 3, 4, 4};
         kv->set(values);
-        kv->push();
+        kv->pushFull();
 
         // Get and check
         REQUIRE(kv->get() == values);
@@ -56,7 +56,7 @@ namespace tests {
         REQUIRE(kv->getSegment(3, 3) == update);
 
         // Run push and check redis updated
-        kv->push();
+        kv->pushPartial();
         REQUIRE(redisState.get(key) == expected);
     }
 
@@ -123,7 +123,7 @@ namespace tests {
 
         // Push and make sure reflected in redis
         kv->set(values);
-        kv->push();
+        kv->pushFull();
         REQUIRE(redisState.get(key) == values);
 
         // Now update in Redis directly
@@ -134,7 +134,7 @@ namespace tests {
         REQUIRE(kv->get() == values);
 
         // Check that push also doesn't push to remote as not dirty
-        kv->push();
+        kv->pushFull();
         REQUIRE(redisState.get(key) == newValues);
 
         // Now advance time and make sure new value is retrieved
@@ -156,7 +156,7 @@ namespace tests {
 
         // Push value to redis
         kv->set(value);
-        kv->push();
+        kv->pushFull();
 
         // Try clearing, check nothing happens
         kv->clear();
@@ -193,7 +193,7 @@ namespace tests {
         std::vector<uint8_t> value = {0, 1, 2, 3, 4, 5};
         StateKeyValue *kv = s.getKV(key);
         kv->set(value);
-        kv->push();
+        kv->pushFull();
 
         // Now change the value in Redis
         std::vector<uint8_t> value2 = {2, 4};
@@ -222,7 +222,7 @@ namespace tests {
         // Check not idle by default
         StateKeyValue *const kv = s.getKV(key);
         kv->set({1, 2, 3});
-        kv->push();
+        kv->pushFull();
         kv->clear();
 
         REQUIRE(kv->getLocalValueSize() == 3);

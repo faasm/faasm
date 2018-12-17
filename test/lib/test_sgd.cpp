@@ -128,7 +128,7 @@ namespace tests {
             MatrixXd outputs(1, 2);
             outputs << 10, 11;
 
-            postUpdate = leastSquaresWeightUpdate(&mem, params, weights, inputs, outputs);
+            postUpdate = leastSquaresWeightUpdate(&mem, params, inputs, outputs);
         }
         else if(lossType == HINGE) {
             // Classification-style outputs
@@ -136,7 +136,7 @@ namespace tests {
             outputs << -1, 1;
 
             int epoch = 3;
-            postUpdate = hingeLossWeightUpdate(&mem, params, epoch, weights, inputs, outputs);
+            postUpdate = hingeLossWeightUpdate(&mem, params, epoch, inputs, outputs);
         }
 
         // Check the post-update values are different but same shape

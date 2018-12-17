@@ -45,7 +45,6 @@ namespace faasm {
             FaasmMemory *memory,
             const SgdParams &sgdParams,
             int epoch,
-            MatrixXd &weights,
             const SparseMatrix<double> &inputs,
             const MatrixXd &outputs
     );
@@ -53,7 +52,6 @@ namespace faasm {
     MatrixXd leastSquaresWeightUpdate(
             FaasmMemory *memory,
             const SgdParams &sgdParams,
-            MatrixXd &weights,
             const SparseMatrix<double> &inputs,
             const MatrixXd &outputs
     );

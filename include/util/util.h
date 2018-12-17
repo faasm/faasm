@@ -110,6 +110,8 @@ namespace util {
 
         const long timeDiff(const TimePoint &t1, const TimePoint &t2);
 
+        const long timeDiffMicro(const TimePoint &t1, const TimePoint &t2);
+
         void setFakeNow(const TimePoint &t);
     private:
         bool isFake = false;

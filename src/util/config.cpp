@@ -9,7 +9,7 @@ namespace util {
         unboundTimeout = this->getSystemConfParam("UNBOUND_TIMEOUT", "240");
         stateStaleThreshold = this->getSystemConfParam("STATE_STALE_THRESHOLD", "3000");
         stateClearThreshold = this->getSystemConfParam("STATE_CLEAR_THRESHOLD", "30000");
-        statePushInterval = this->getSystemConfParam("STATE_PUSH_INTERVAL", "50");
+        statePushInterval = this->getSystemConfParam("STATE_PUSH_INTERVAL", "10000");
     }
 
     int SystemConfig::getSystemConfParam(const char *name, const char *defaultValue) {

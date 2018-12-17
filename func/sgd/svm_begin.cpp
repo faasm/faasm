@@ -36,21 +36,17 @@ namespace faasm {
         p.nEpochs = 60;
 
         writeParamsToState(memory, PARAMS_KEY, p);
-        memory->forcePushState(PARAMS_KEY);
 
         // Initialise weights
         Eigen::MatrixXd weights = randomDenseMatrix(1, p.nWeights);
         writeMatrixToState(memory, WEIGHTS_KEY, weights);
-        memory->forcePushState(PARAMS_KEY);
 
         // Zero the losses
         zeroLosses(memory, p);
-        memory->forcePushState(LOSSES_KEY);
 
         // Begin first epoch
         initCounter(memory, EPOCH_COUNT_KEY);
         memory->chainFunction("sgd_epoch");
-        memory->forcePushState(EPOCH_COUNT_KEY);
 
         return 0;
     }

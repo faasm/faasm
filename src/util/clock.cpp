@@ -22,6 +22,11 @@ namespace util {
         return age;
     }
 
+    const long Clock::timeDiffMicro(const TimePoint &t1, const TimePoint &t2) {
+        long age = std::chrono::duration_cast<std::chrono::microseconds>(t1 - t2).count();
+        return age;
+    }
+
     void Clock::setFakeNow(const util::TimePoint &t) {
         isFake = true;
         fakeNow = t;

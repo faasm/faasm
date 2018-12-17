@@ -147,7 +147,7 @@ namespace infra {
 
         void pull();
 
-        void push();
+        void pushFull();
 
         void pushPartial();
 

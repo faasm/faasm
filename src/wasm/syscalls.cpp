@@ -16,6 +16,7 @@
 #include <WAVM/Runtime/RuntimeData.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <stdarg.h>
+#include <prof/prof.h>
 
 using namespace WAVM;
 
@@ -99,7 +100,7 @@ namespace wasm {
     // FAASM-specific
     // ------------------------
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state", void, __faasm_write_state,
-                              I32 keyPtr, I32 dataPtr, I32 dataLen) {
+                              I32 keyPtr, I32 dataPtr, I32 dataLen, I32 async) {
         util::getLogger()->debug("S - write_state - {} {} {}", keyPtr, dataPtr, dataLen);
 
         // Set the whole state
@@ -107,30 +108,38 @@ namespace wasm {
         infra::State &s = infra::getGlobalState();
         infra::StateKeyValue *kv = s.getKV(key);
 
-        // Data length of zero means force push
-        if (dataLen == 0) {
-            kv->push();
-        } else {
-            const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
-            kv->set(newState);
+        // Read the data and set
+        const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
+        kv->set(newState);
+
+        // Push if synchronous
+        if (async == 0) {
+            kv->pushFull();
         }
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_offset", void, __faasm_write_state_offset,
-                              I32 keyPtr, I32 offset, I32 dataPtr, I32 dataLen) {
+                              I32 keyPtr, I32 offset, I32 dataPtr, I32 dataLen, I32 async) {
         util::getLogger()->debug("S - write_state_offset - {} {} {} {}", keyPtr, offset, dataPtr, dataLen);
 
-        const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
         std::string key = getKeyFromWasm(keyPtr);
 
         // Set the state at the given offset
         infra::State &s = infra::getGlobalState();
         infra::StateKeyValue *kv = s.getKV(key);
+
+        // Read data and set
+        const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
         kv->setSegment(offset, newState);
+
+        // Push if synchronous
+        if (async == 0) {
+            kv->pushPartial();
+        }
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state", I32, __faasm_read_state,
-                              I32 keyPtr, I32 bufferPtr, I32 bufferLen) {
+                              I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 async) {
         util::getLogger()->debug("S - read_state - {} {} {}", keyPtr, bufferPtr, bufferLen);
 
         std::string key = getKeyFromWasm(keyPtr);
@@ -138,6 +147,12 @@ namespace wasm {
         // Read the state in
         infra::State &s = infra::getGlobalState();
         infra::StateKeyValue *kv = s.getKV(key);
+
+        // Pull from remote if synchronous
+        if (async == 0) {
+            kv->pull();
+        }
+
         std::vector<uint8_t> value = kv->get();
 
         int stateSize = copyToWasmBuffer(value, bufferPtr, bufferLen);
@@ -147,7 +162,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset", void, __faasm_read_state_offset,
-                              I32 keyPtr, I32 offset, I32 bufferPtr, I32 bufferLen) {
+                              I32 keyPtr, I32 offset, I32 bufferPtr, I32 bufferLen, I32 async) {
         util::getLogger()->debug("S - read_state_offset - {} {} {} {}", keyPtr, offset, bufferPtr, bufferLen);
 
         std::string key = getKeyFromWasm(keyPtr);
@@ -155,6 +170,12 @@ namespace wasm {
         // Read the state in
         infra::State &s = infra::getGlobalState();
         infra::StateKeyValue *kv = s.getKV(key);
+
+        // Pull from remote if synchronous
+        if (async == 0) {
+            kv->pull();
+        }
+
         std::vector<uint8_t> value = kv->getSegment(offset, bufferLen);
 
         copyToWasmBuffer(value, bufferPtr, bufferLen);

@@ -26,11 +26,15 @@ namespace faasm {
         return s;
     }
 
-    MatrixXd hingeLossWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int epoch, MatrixXd &weights,
+    MatrixXd hingeLossWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int epoch,
                                    const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
+        MatrixXd weights;
 
         // Iterate through all training examples (i.e. columns)
         for (int col = 0; col < inputs.outerSize(); ++col) {
+            // Read in weights asynchronously
+            weights = readMatrixFromState(memory, WEIGHTS_KEY, 1, sgdParams.nWeights, true);
+
             // Get input and output associated with this example
             double thisOutput = outputs.coeff(0, col);
             SparseMatrix<double> thisInput = inputs.col(col);
@@ -39,7 +43,7 @@ namespace faasm {
             MatrixXd prediction = weights * thisInput;
             double thisPrediction = prediction.coeff(0, 0);
 
-            // If the prediction is less than one, it's misclassified
+            // If the prediction multiplied by the output is less than one, it's misclassified
             bool isMisclassified = (thisOutput * thisPrediction) < 1;
 
             // Iterate through all non-zero input values in this column
@@ -55,9 +59,11 @@ namespace faasm {
 
                 thisWeight *= (1 - (sgdParams.learningRate / (1 + epoch)));
 
-                // Update in memory and state
+                // Update in memory
                 weights(0, it.row()) = thisWeight;
-                writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, it.row());
+
+                // Update asynchronously in state. Other local workers will see, but not remote
+                writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, it.row(), true);
             }
         }
 
@@ -66,8 +72,10 @@ namespace faasm {
         return postUpdate;
     }
 
-    MatrixXd leastSquaresWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, MatrixXd &weights,
+    MatrixXd leastSquaresWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams,
                                       const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
+        MatrixXd weights = readMatrixFromState(memory, WEIGHTS_KEY, 1, sgdParams.nWeights, true);
+
         // Work out error
         MatrixXd actual = weights * inputs;
         MatrixXd error = actual - outputs;
@@ -212,7 +220,6 @@ namespace faasm {
     void setUpDummyProblem(FaasmMemory *memory, const SgdParams &params) {
         // Persis the parameters
         writeParamsToState(memory, PARAMS_KEY, params);
-        memory->forcePushState(PARAMS_KEY);
 
         // Create fake training data as dot product of the matrix of training input data and the real weight vector
         Eigen::MatrixXd realWeights = randomDenseMatrix(1, params.nWeights);
@@ -226,8 +233,6 @@ namespace faasm {
         writeSparseMatrixToState(memory, INPUTS_KEY, inputs);
         writeMatrixToState(memory, OUTPUTS_KEY, outputs);
         writeMatrixToState(memory, WEIGHTS_KEY, weights);
-        memory->forcePushState(OUTPUTS_KEY);
-        memory->forcePushState(WEIGHTS_KEY);
     }
 }
 

@@ -61,12 +61,12 @@ namespace tests {
             // Perform the update
             MatrixXd actual;
             if (params.lossType == RMSE) {
-                actual = leastSquaresWeightUpdate(mem, params, weights, inputBatch, outputBatch);
+                actual = leastSquaresWeightUpdate(mem, params, inputBatch, outputBatch);
 
                 // Persist error for these examples
                 writeSquaredError(mem, b, outputBatch, actual);
             } else if (params.lossType == HINGE) {
-                actual = hingeLossWeightUpdate(mem, params, epoch, weights, inputBatch, outputBatch);
+                actual = hingeLossWeightUpdate(mem, params, epoch, inputBatch, outputBatch);
 
                 // Persist error
                 writeHingeError(mem, b, outputBatch, actual);
