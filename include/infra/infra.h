@@ -133,7 +133,7 @@ namespace infra {
 
     class StateKeyValue {
     public:
-        StateKeyValue(const std::string &keyIn, Redis *redisIn);
+        StateKeyValue(const std::string &keyIn);
 
         const std::string key;
 
@@ -156,8 +156,6 @@ namespace infra {
         long getLocalValueSize();
 
     private:
-        Redis *redis;
-
         util::Clock &clock;
 
         std::atomic<bool> isWholeValueDirty;
@@ -198,7 +196,6 @@ namespace infra {
         void pushLoop();
 
     private:
-        Redis *redis;
         KVMap local;
         std::shared_mutex localMutex;
 

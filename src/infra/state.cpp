@@ -7,8 +7,7 @@ namespace infra {
     /**
      * Key/value
      */
-    StateKeyValue::StateKeyValue(const std::string &keyIn, Redis *redisIn) : key(keyIn), redis(redisIn),
-                                                                             clock(util::getGlobalClock()) {
+    StateKeyValue::StateKeyValue(const std::string &keyIn) : key(keyIn), clock(util::getGlobalClock()) {
         isWholeValueDirty = false;
         isNew = true;
 
@@ -57,6 +56,7 @@ namespace infra {
 
     void StateKeyValue::doRemoteRead() {
         // Read from the remote
+        Redis *redis = infra::Redis::getThreadState();
         value = redis->get(key);
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
@@ -162,7 +162,7 @@ namespace infra {
         // If over clear threshold, remove
         if (this->isIdle(now) && !value.empty()) {
             // Unique lock on the whole value while clearing
-            std::unique_lock<std::shared_mutex> lock(valueMutex);
+            FullLock lock(valueMutex);
 
             // Double check still over the threshold
             if (this->isIdle(now)) {
@@ -194,6 +194,7 @@ namespace infra {
             // Get full lock for complete write
             FullLock fullLock(valueMutex);
 
+            Redis *redis = infra::Redis::getThreadState();
             redis->set(key, value);
 
             // Reset (as we're setting the full value, we've effectively pulled)
@@ -216,8 +217,10 @@ namespace infra {
             dirtySegments.clear();
         }
 
-        // Write the dirty segments
+        // Shared lock for writing segments
         SharedLock sharedLock(valueMutex);
+
+        // Write the dirty segments
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         for (const auto segment : dirtySegmentsCopy) {
             logger->debug("Pushing partial value for {} ({} - {})", key, segment.first, segment.first + segment.second);
@@ -227,6 +230,7 @@ namespace infra {
                     value.begin() + segment.first + segment.second
             );
 
+            Redis *redis = infra::Redis::getThreadState();
             redis->setRange(
                     key,
                     segment.first,
@@ -245,14 +249,10 @@ namespace infra {
     }
 
     State::State() {
-        redis = new Redis(STATE);
-
         syncInterval = std::stol(util::getEnvVar("SYNC_INTERVAL", "50"));
     }
 
     State::~State() {
-        delete redis;
-
         // Delete contents of local state
         for (const auto &iter: local) {
             delete iter.second;
@@ -275,7 +275,7 @@ namespace infra {
 
             // Double check it still doesn't exist
             if (local.count(key) == 0) {
-                auto kv = new StateKeyValue(key, redis);
+                auto kv = new StateKeyValue(key);
 
                 local.emplace(KVPair(key, kv));
             }
