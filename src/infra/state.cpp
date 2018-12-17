@@ -138,7 +138,6 @@ namespace infra {
             // Double check condition still holds
             if (max > value.size()) {
                 // Do the resize
-                std::unique_lock<std::shared_mutex> resizeLock(valueMutex);
                 value.resize(max);
             }
         }

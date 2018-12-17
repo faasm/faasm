@@ -60,6 +60,29 @@ namespace tests {
         REQUIRE(redisState.get(key) == expected);
     }
 
+    TEST_CASE("Test set segment extends value", "[state]") {
+        State s;
+        std::string key = "test_state_extension";
+        StateKeyValue *kv = s.getKV(key);
+
+        // Set a segment offset
+        std::vector<uint8_t> update = {8, 8, 8};
+        kv->setSegment(5, update);
+
+        // Check nothing has been done in redis
+        REQUIRE(redisState.get(key).empty());
+
+        // Check value has expanded to meet the insertion
+        std::vector<uint8_t> expected = {0, 0, 0, 0, 0, 8, 8, 8};
+        REQUIRE(kv->getLocalValueSize() == expected.size());
+
+        // Push and check updates correctly
+        kv->pushPartial();
+        REQUIRE(kv->get() == expected);
+        REQUIRE(kv->getSegment(5, 3) == update);
+        REQUIRE(redisState.get(key) == expected);
+    }
+
     TEST_CASE("Test pushing all state", "[state]") {
         State s;
         std::string keyA = "test_multi_push_a";
