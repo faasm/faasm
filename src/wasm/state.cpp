@@ -293,7 +293,12 @@ namespace wasm {
      */
 
     UserState::UserState(const std::string &userIn) : user(userIn) {
+        // Prepare memory
+        IR::MemoryType memoryType(true, {0, 0});
 
+        compartment = Runtime::createCompartment();
+
+        sharedMemory = Runtime::createMemory(compartment, memoryType, user + "_mem");
     }
 
     UserState::~UserState() {
@@ -375,6 +380,11 @@ namespace wasm {
     }
 
     StateKeyValue *State::getKV(const std::string &user, const std::string &key) {
+        UserState *us = this->getUserState(user);
+        return us->getValue(key);
+    }
+
+    UserState *State::getUserState(const std::string &user) {
         if (userStateMap.count(user) == 0) {
             // Lock on editing user state registry
             FullLock fullLock(userStateMapMutex);
@@ -387,9 +397,6 @@ namespace wasm {
             }
         }
 
-        UserState *us = userStateMap[user];
-        return us->getValue(key);
+        return userStateMap[user];
     }
-
-
 }

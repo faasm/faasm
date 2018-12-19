@@ -95,10 +95,11 @@ namespace wasm {
         this->module.memories.defs[0].type.size.min = (U64) MIN_MEMORY_PAGES;
 
         // Add the shared memory definition
-        this->module.memories.imports.push_back({{true, {1024, IR::maxMemoryPages}}, msg.user(), "shared_state"});
+        this->module.memories.imports.push_back({{true, {0, 0}}, msg.user(), "shared_state"});
 
         // Linking
         const auto &t1 = prof::startTimer();
+        resolver->setUser(msg.user());
         Runtime::LinkResult linkResult = linkModule(module, *resolver);
         if (!linkResult.success) {
             std::cerr << "Failed to link module:" << std::endl;
@@ -139,7 +140,8 @@ namespace wasm {
         }
 
         // Keep reference to memory
-        this->defaultMemory = getDefaultMemory(moduleInstance);
+        this->defaultMemory = getMemory(moduleInstance, 0);
+        this->stateMemory = getMemory(moduleInstance, 1);
 
         // Snapshot initial state
         this->snapshotMemory();

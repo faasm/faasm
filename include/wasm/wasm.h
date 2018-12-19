@@ -99,10 +99,12 @@ namespace wasm {
         StateKeyValue *getValue(const std::string &key);
 
         void pushAll();
+
+        Runtime::Memory *sharedMemory;
     private:
         const std::string user;
 
-        //Runtime::Memory *sharedMemory;
+        Runtime::Compartment *compartment;
 
         KVMap kvMap;
         std::shared_mutex kvMapMutex;
@@ -122,9 +124,12 @@ namespace wasm {
 
         StateKeyValue *getKV(const std::string &user, const std::string &key);
 
+        UserState *getUserState(const std::string &user);
+
         void pushLoop();
 
         void pushAll();
+
     private:
         UserStateMap userStateMap;
         std::shared_mutex userStateMapMutex;
@@ -145,6 +150,10 @@ namespace wasm {
             );
         }
 
+        void setUser(const std::string &userIn) {
+            user = userIn;
+        }
+
         void cleanUp() {
             moduleInstance = nullptr;
         }
@@ -158,7 +167,15 @@ namespace wasm {
 
             if (resolved && isA(resolved, type)) {
                 return true;
-            };
+            }
+
+            if (type.kind == IR::ExternKind::memory && moduleName == user && exportName == "shared_state") {
+                State &state = getGlobalState();
+                UserState *userState = state.getUserState(user);
+
+                resolved = Runtime::asObject(userState->sharedMemory);
+                return true;
+            }
 
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Missing import {}.{} {}", moduleName, exportName, asString(type).c_str());
@@ -168,6 +185,7 @@ namespace wasm {
 
     private:
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
+        std::string user;
     };
 
     class CallChain {
@@ -195,15 +213,18 @@ namespace wasm {
 
         void initialise();
 
-        void snapshotMemory(bool fullCopy=true);
+        void snapshotMemory(bool fullCopy = true);
 
-        void restoreMemory(bool fullCopy=true);
+        void restoreMemory(bool fullCopy = true);
 
         void bindToFunction(const message::Message &msg);
 
         int execute(message::Message &msg, CallChain &callChain);
 
         Runtime::GCPointer<Runtime::Memory> defaultMemory;
+
+        // Note, this will be in a different compartment
+        Runtime::GCPointer<Runtime::Memory> stateMemory;
 
         Runtime::GCPointer<Runtime::Compartment> compartment;
 
