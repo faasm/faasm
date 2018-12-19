@@ -101,7 +101,7 @@ namespace wasm {
     // ------------------------
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state", void, __faasm_write_state,
                               I32 keyPtr, I32 dataPtr, I32 dataLen, I32 async) {
-        util::getLogger()->debug("S - write_state - {} {} {}", keyPtr, dataPtr, dataLen);
+        util::getLogger()->debug("S - write_state - {} {} {} {}", keyPtr, dataPtr, dataLen, async);
 
         // Set the whole state
         std::string key = getKeyFromWasm(keyPtr);
@@ -120,7 +120,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_offset", void, __faasm_write_state_offset,
                               I32 keyPtr, I32 offset, I32 dataPtr, I32 dataLen, I32 async) {
-        util::getLogger()->debug("S - write_state_offset - {} {} {} {}", keyPtr, offset, dataPtr, dataLen);
+        util::getLogger()->debug("S - write_state_offset - {} {} {} {} {}", keyPtr, offset, dataPtr, dataLen, async);
 
         std::string key = getKeyFromWasm(keyPtr);
 
@@ -130,7 +130,7 @@ namespace wasm {
 
         // Read data and set
         const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
-        kv->setSegment(offset, newState);
+         kv->setSegment(offset, newState);
 
         // Push if synchronous
         if (async == 0) {

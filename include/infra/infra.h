@@ -131,6 +131,9 @@ namespace infra {
         static std::string getFunctionCounterName(const message::Message &msg);
     };
 
+    typedef std::pair<long, long> Segment;
+    typedef std::set<std::pair<long, long>> SegmentSet;
+
     class StateKeyValue {
     public:
         StateKeyValue(const std::string &keyIn);
@@ -148,6 +151,8 @@ namespace infra {
         void pull();
 
         void pushFull();
+
+        static SegmentSet mergeSegments(SegmentSet);
 
         void pushPartial();
 

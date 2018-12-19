@@ -28,13 +28,11 @@ namespace faasm {
 
     MatrixXd hingeLossWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int epoch,
                                    const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
-        MatrixXd weights;
+        // Read in weights asynchronously
+        MatrixXd weights = readMatrixFromState(memory, WEIGHTS_KEY, 1, sgdParams.nWeights, true);
 
         // Iterate through all training examples (i.e. columns)
         for (int col = 0; col < inputs.outerSize(); ++col) {
-            // Read in weights asynchronously
-            weights = readMatrixFromState(memory, WEIGHTS_KEY, 1, sgdParams.nWeights, true);
-
             // Get input and output associated with this example
             double thisOutput = outputs.coeff(0, col);
             SparseMatrix<double> thisInput = inputs.col(col);
@@ -62,7 +60,6 @@ namespace faasm {
                 // Update in memory
                 weights(0, it.row()) = thisWeight;
 
-                // Update asynchronously in state. Other local workers will see, but not remote
                 writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, it.row(), true);
             }
         }

@@ -7,9 +7,9 @@ namespace util {
         maxWorkersPerFunction = this->getSystemConfParam("MAX_WORKERS_PER_FUNCTION", "10");
         boundTimeout = this->getSystemConfParam("BOUND_TIMEOUT", "30");
         unboundTimeout = this->getSystemConfParam("UNBOUND_TIMEOUT", "240");
-        stateStaleThreshold = this->getSystemConfParam("STATE_STALE_THRESHOLD", "3000");
+        stateStaleThreshold = this->getSystemConfParam("STATE_STALE_THRESHOLD", "1000");
         stateClearThreshold = this->getSystemConfParam("STATE_CLEAR_THRESHOLD", "30000");
-        statePushInterval = this->getSystemConfParam("STATE_PUSH_INTERVAL", "10000");
+        statePushInterval = this->getSystemConfParam("STATE_PUSH_INTERVAL", "1000");
     }
 
     int SystemConfig::getSystemConfParam(const char *name, const char *defaultValue) {

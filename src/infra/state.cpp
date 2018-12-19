@@ -23,14 +23,14 @@ namespace infra {
     void StateKeyValue::pull() {
         // Check if new (one-off initialisation)
         if (isNew) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            logger->debug("Initialising state for {}", key);
-
             // Unique lock on the whole value while loading
             FullLock lock(valueMutex);
 
             // Double check assumption
             if (isNew) {
+                const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+                logger->debug("Initialising state for {}", key);
+
                 doRemoteRead();
                 isNew = false;
             }
@@ -41,15 +41,13 @@ namespace infra {
 
         // If stale, try to update from remote
         if (this->isStale(now)) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            logger->debug("Refreshing stale state for {}", key);
-
             // Unique lock on the whole value while loading
             FullLock lock(valueMutex);
 
             // Double check staleness
             if (this->isStale(now)) {
-                logger->debug("Doing remote read for stale {}", key);
+                const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+                logger->debug("Refreshing stale state for {}", key);
 
                 doRemoteRead();
             }
@@ -145,11 +143,10 @@ namespace infra {
 
         // Shared lock for writing segments (need to allow lock-free writing of multiple threads on same
         // state value)
-        // SharedLock lock(valueMutex);
+        SharedLock lock(valueMutex);
 
-        // TODO - is std::set insert thread-safe in this context?
         // Record that this segment is dirty
-        dirtySegments.insert(std::pair<long, long>(offset, data.size()));
+        dirtySegments.insert(Segment(offset, offset + data.size()));
 
         // Update the value itself
         std::copy(data.begin(), data.end(), value.begin() + offset);
@@ -207,6 +204,51 @@ namespace infra {
         dirtySegments.clear();
     }
 
+    SegmentSet StateKeyValue::mergeSegments(SegmentSet setIn) {
+        SegmentSet mergedSet;
+
+        if(setIn.size() < 2) {
+            mergedSet = setIn;
+            return mergedSet;
+        }
+
+        // Note: standard set sort order does fine here
+        long count = 0;
+        long currentStart = INT_MAX;
+        long currentEnd = -INT_MAX;
+
+        for(const auto p : setIn) {
+            // On first loop, just set up
+            if(count == 0) {
+                currentStart = p.first;
+                currentEnd = p.second;
+                count++;
+                continue;
+            }
+
+            if(p.first > currentEnd) {
+                // If new segment is disjoint, write the last one and continue
+                mergedSet.insert(Segment(currentStart, currentEnd));
+
+                currentStart = p.first;
+                currentEnd = p.second;
+            }
+            else {
+                // Update current segment if not
+                currentEnd = std::max(p.second, currentEnd);
+            }
+
+            // If on the last loop, make sure we've recorded the current range
+            if(count == setIn.size() -1) {
+                mergedSet.insert(Segment(currentStart, currentEnd));
+            }
+
+            count++;
+        }
+
+        return mergedSet;
+    }
+
     void StateKeyValue::pushPartial() {
         // Ignore if the whole value is dirty
         if (isWholeValueDirty) {
@@ -214,24 +256,27 @@ namespace infra {
         }
 
         // Create copy of the dirty segments and clear the old version
-        std::set<std::pair<long, long>> dirtySegmentsCopy;
+        SegmentSet dirtySegmentsCopy;
         {
             FullLock fullLock(valueMutex);
             dirtySegmentsCopy = dirtySegments;
             dirtySegments.clear();
         }
 
+        // Merge segments that are next to each other to save on writes
+        SegmentSet segmentsToMerge = this->mergeSegments(dirtySegmentsCopy);
+
         // Shared lock for writing segments
         SharedLock sharedLock(valueMutex);
 
         // Write the dirty segments
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        for (const auto segment : dirtySegmentsCopy) {
-            logger->debug("Pushing partial value for {} ({} - {})", key, segment.first, segment.first + segment.second);
+        for (const auto segment : segmentsToMerge) {
+            logger->debug("Pushing partial value for {} ({} - {})", key, segment.first, segment.second);
 
             std::vector<uint8_t> dataSegment(
                     value.begin() + segment.first,
-                    value.begin() + segment.first + segment.second
+                    value.begin() + segment.second
             );
 
             Redis *redis = infra::Redis::getThreadState();
