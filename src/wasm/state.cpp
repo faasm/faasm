@@ -1,7 +1,8 @@
 #include <prof/prof.h>
-#include "infra.h"
 
-namespace infra {
+#include "wasm.h"
+
+namespace wasm {
     typedef std::unique_lock<std::shared_mutex> FullLock;
     typedef std::shared_lock<std::shared_mutex> SharedLock;
 
@@ -56,7 +57,7 @@ namespace infra {
 
     void StateKeyValue::doRemoteRead() {
         // Read from the remote
-        Redis *redis = infra::Redis::getThreadState();
+        infra::Redis *redis = infra::Redis::getThreadState();
         value = redis->get(key);
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
@@ -195,7 +196,7 @@ namespace infra {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Pushing whole value for {}", key);
 
-        Redis *redis = infra::Redis::getThreadState();
+        infra::Redis *redis = infra::Redis::getThreadState();
         redis->set(key, value);
 
         // Reset (as we're setting the full value, we've effectively pulled)
@@ -207,7 +208,7 @@ namespace infra {
     SegmentSet StateKeyValue::mergeSegments(SegmentSet setIn) {
         SegmentSet mergedSet;
 
-        if(setIn.size() < 2) {
+        if (setIn.size() < 2) {
             mergedSet = setIn;
             return mergedSet;
         }
@@ -217,29 +218,28 @@ namespace infra {
         long currentStart = INT_MAX;
         long currentEnd = -INT_MAX;
 
-        for(const auto p : setIn) {
+        for (const auto p : setIn) {
             // On first loop, just set up
-            if(count == 0) {
+            if (count == 0) {
                 currentStart = p.first;
                 currentEnd = p.second;
                 count++;
                 continue;
             }
 
-            if(p.first > currentEnd) {
+            if (p.first > currentEnd) {
                 // If new segment is disjoint, write the last one and continue
                 mergedSet.insert(Segment(currentStart, currentEnd));
 
                 currentStart = p.first;
                 currentEnd = p.second;
-            }
-            else {
+            } else {
                 // Update current segment if not
                 currentEnd = std::max(p.second, currentEnd);
             }
 
             // If on the last loop, make sure we've recorded the current range
-            if(count == setIn.size() -1) {
+            if (count == setIn.size() - 1) {
                 mergedSet.insert(Segment(currentStart, currentEnd));
             }
 
@@ -279,7 +279,7 @@ namespace infra {
                     value.begin() + segment.second
             );
 
-            Redis *redis = infra::Redis::getThreadState();
+            infra::Redis *redis = infra::Redis::getThreadState();
             redis->setRange(
                     key,
                     segment.first,

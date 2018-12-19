@@ -7,6 +7,8 @@
 #include <string>
 #include <tuple>
 #include <thread>
+#include <mutex>
+#include <shared_mutex>
 
 #include <proto/faasm.pb.h>
 
@@ -24,6 +26,84 @@ namespace wasm {
     // Note that the max memory per module is 8GiB, i.e. > 100k pages
     // Page size in wasm is 64kiB so 100 pages ~ 6MiB of memory
     const int MIN_MEMORY_PAGES = 100;
+
+    typedef std::pair<long, long> Segment;
+    typedef std::set<std::pair<long, long>> SegmentSet;
+
+    class StateKeyValue {
+    public:
+        StateKeyValue(const std::string &keyIn);
+
+        const std::string key;
+
+        std::vector<uint8_t> get();
+
+        std::vector<uint8_t> getSegment(long offset, long length);
+
+        void set(const std::vector<uint8_t> &data);
+
+        void setSegment(long offset, const std::vector<uint8_t> &data);
+
+        void pull();
+
+        void pushFull();
+
+        static SegmentSet mergeSegments(SegmentSet);
+
+        void pushPartial();
+
+        void clear();
+
+        long getLocalValueSize();
+
+    private:
+        util::Clock &clock;
+
+        std::atomic<bool> isWholeValueDirty;
+        std::set<std::pair<long, long>> dirtySegments;
+
+        std::vector<uint8_t> value;
+        std::shared_mutex valueMutex;
+
+        util::TimePoint lastPull;
+        util::TimePoint lastInteraction;
+        long staleThreshold;
+        long idleThreshold;
+
+        std::atomic<bool> isNew;
+
+        void doRemoteRead();
+
+        void updateLastInteraction();
+
+        bool isStale(const util::TimePoint &now);
+
+        bool isIdle(const util::TimePoint &now);
+    };
+
+    typedef std::map<std::string, StateKeyValue *> KVMap;
+    typedef std::pair<std::string, StateKeyValue *> KVPair;
+
+    class State {
+    public:
+        State();
+
+        ~State();
+
+        StateKeyValue *getKV(const std::string &key);
+
+        void pushAll();
+
+        void pushLoop();
+
+    private:
+        KVMap local;
+        std::shared_mutex localMutex;
+
+        long pushInterval;
+    };
+
+    State &getGlobalState();
 
     struct RootResolver : Runtime::Resolver {
         explicit RootResolver(Runtime::Compartment *compartment) {
@@ -96,6 +176,8 @@ namespace wasm {
 
         Runtime::GCPointer<Runtime::Memory> defaultMemory;
 
+        Runtime::GCPointer<Runtime::Compartment> compartment;
+
         bool isInitialised();
 
         bool isBound();
@@ -104,7 +186,6 @@ namespace wasm {
         IR::Module module;
 
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
-        Runtime::GCPointer<Runtime::Compartment> compartment;
         Runtime::GCPointer<Runtime::Function> functionInstance;
 
         U8 *cleanMemory = nullptr;

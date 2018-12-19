@@ -221,8 +221,8 @@ namespace tests {
         std::vector<uint8_t> initialState = redisQueue.get(stateKey);
         REQUIRE(initialState.empty());
 
-        infra::State &s = infra::getGlobalState();
-        infra::StateKeyValue *kv = s.getKV(stateKey);
+        wasm::State &s = wasm::getGlobalState();
+        wasm::StateKeyValue *kv = s.getKV(stateKey);
 
         // Set up the function call
         message::Message call;

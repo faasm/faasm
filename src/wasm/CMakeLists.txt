@@ -6,6 +6,7 @@ include_directories(
 add_library(wasm STATIC
         chaining.cpp
         wasm.cpp
+        state.cpp
         syscalls.cpp
         ${FAASM_INCLUDE_DIR}/wasm/wasm.h
         )

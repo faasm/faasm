@@ -5,7 +5,6 @@ add_library(
         func.cpp
         redis.cpp
         scheduler.cpp
-        state.cpp
         ${FAASM_INCLUDE_DIR}/infra/infra.h
 )
 

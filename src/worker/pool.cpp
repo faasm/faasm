@@ -38,7 +38,7 @@ namespace worker {
     StateThread::StateThread() = default;
 
     void StateThread::run() {
-        infra::State &s = infra::getGlobalState();
+        wasm::State &s = wasm::getGlobalState();
         s.pushLoop();
     }
 

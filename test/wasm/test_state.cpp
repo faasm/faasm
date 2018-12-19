@@ -1,8 +1,8 @@
 #include <catch/catch.hpp>
 #include "utils.h"
-#include <infra/infra.h>
+#include <wasm/wasm.h>
 
-using namespace infra;
+using namespace wasm;
 
 namespace tests {
 

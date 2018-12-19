@@ -105,8 +105,8 @@ namespace wasm {
 
         // Set the whole state
         std::string key = getKeyFromWasm(keyPtr);
-        infra::State &s = infra::getGlobalState();
-        infra::StateKeyValue *kv = s.getKV(key);
+        wasm::State &s = wasm::getGlobalState();
+        wasm::StateKeyValue *kv = s.getKV(key);
 
         // Read the data and set
         const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
@@ -125,8 +125,8 @@ namespace wasm {
         std::string key = getKeyFromWasm(keyPtr);
 
         // Set the state at the given offset
-        infra::State &s = infra::getGlobalState();
-        infra::StateKeyValue *kv = s.getKV(key);
+        wasm::State &s = wasm::getGlobalState();
+        wasm::StateKeyValue *kv = s.getKV(key);
 
         // Read data and set
         const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
@@ -145,20 +145,32 @@ namespace wasm {
         std::string key = getKeyFromWasm(keyPtr);
 
         // Read the state in
-        infra::State &s = infra::getGlobalState();
-        infra::StateKeyValue *kv = s.getKV(key);
+        wasm::State &s = wasm::getGlobalState();
+        wasm::StateKeyValue *kv = s.getKV(key);
 
-        // Pull from remote if synchronous
-        if (async == 0) {
-            kv->pull();
+        if (async == 1) {
+            // Asynchronous
+
+            // If we just want the size, return it
+            if (bufferLen <= 0) {
+                return (int) kv->getLocalValueSize();
+            }
+
+            // TODO - use shared memory
+            // Copy to buffer
+            std::vector<uint8_t> value = kv->get();
+            return copyToWasmBuffer(value, bufferPtr, bufferLen);
         }
+        else {
+            // Synchronous
 
-        std::vector<uint8_t> value = kv->get();
+            // Pull from remote
+            kv->pull();
 
-        int stateSize = copyToWasmBuffer(value, bufferPtr, bufferLen);
-
-        // Return the total number of bytes in the whole state
-        return stateSize;
+            // Pass copy back to wasm
+            std::vector<uint8_t> value = kv->get();
+            return copyToWasmBuffer(value, bufferPtr, bufferLen);
+        }
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset", void, __faasm_read_state_offset,
@@ -168,8 +180,8 @@ namespace wasm {
         std::string key = getKeyFromWasm(keyPtr);
 
         // Read the state in
-        infra::State &s = infra::getGlobalState();
-        infra::StateKeyValue *kv = s.getKV(key);
+        wasm::State &s = wasm::getGlobalState();
+        wasm::StateKeyValue *kv = s.getKV(key);
 
         // Pull from remote if synchronous
         if (async == 0) {
