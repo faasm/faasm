@@ -94,6 +94,9 @@ namespace wasm {
         // Set up minimum memory size
         this->module.memories.defs[0].type.size.min = (U64) MIN_MEMORY_PAGES;
 
+        // Add the shared memory definition
+        this->module.memories.imports.push_back({{true, {1024, IR::maxMemoryPages}}, msg.user(), "shared_state"});
+
         // Linking
         const auto &t1 = prof::startTimer();
         Runtime::LinkResult linkResult = linkModule(module, *resolver);
