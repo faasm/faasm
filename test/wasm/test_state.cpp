@@ -8,9 +8,12 @@ namespace tests {
 
     TEST_CASE("Test simple state get/set", "[state]") {
         State s;
-        std::string key = "test_state_new";
+        std::string user = "test";
+        std::string key = "state_new";
 
-        StateKeyValue *kv = s.getKV(key);
+        StateKeyValue *kv = s.getKV(user, key);
+
+        std::string actualKey = "test_state_new";
 
         // Get
         std::vector<uint8_t> actual = kv->get();
@@ -24,18 +27,21 @@ namespace tests {
         REQUIRE(kv->get() == values);
 
         // Check that the underlying key in Redis isn't changed
-        REQUIRE(redisState.get(key).empty());
+        REQUIRE(redisState.get(actualKey).empty());
 
         // Check that when pushed, the update is pushed to redis
         kv->pushFull();
         REQUIRE(kv->get() == values);
-        REQUIRE(redisState.get(key) == values);
+        REQUIRE(redisState.get(actualKey) == values);
     }
 
     TEST_CASE("Test get/ set segment", "[state]") {
         State s;
-        std::string key = "test_state_segment";
-        StateKeyValue *kv = s.getKV(key);
+        std::string user = "test";
+        std::string key = "state_segment";
+        StateKeyValue *kv = s.getKV(user, key);
+
+        std::string actualKey = "test_state_segment";
 
         // Set up and push
         std::vector<uint8_t> values = {0, 0, 1, 1, 2, 2, 3, 3, 4, 4};
@@ -51,19 +57,22 @@ namespace tests {
 
         // Check changed locally but not in redis
         std::vector<uint8_t> expected = {0, 0, 1, 8, 8, 8, 3, 3, 4, 4};
-        REQUIRE(redisState.get(key) == values);
+        REQUIRE(redisState.get(actualKey) == values);
         REQUIRE(kv->get() == expected);
         REQUIRE(kv->getSegment(3, 3) == update);
 
         // Run push and check redis updated
         kv->pushPartial();
-        REQUIRE(redisState.get(key) == expected);
+        REQUIRE(redisState.get(actualKey) == expected);
     }
 
     TEST_CASE("Test set segment extends value", "[state]") {
         State s;
-        std::string key = "test_state_extension";
-        StateKeyValue *kv = s.getKV(key);
+        std::string user = "test";
+        std::string key = "state_extension";
+        StateKeyValue *kv = s.getKV(user, key);
+
+        std::string actualKey = "test_state_extension";
 
         // Set a segment offset
         std::vector<uint8_t> update = {8, 8, 8};
@@ -80,16 +89,21 @@ namespace tests {
         kv->pushPartial();
         REQUIRE(kv->get() == expected);
         REQUIRE(kv->getSegment(5, 3) == update);
-        REQUIRE(redisState.get(key) == expected);
+        REQUIRE(redisState.get(actualKey) == expected);
     }
 
     TEST_CASE("Test pushing all state", "[state]") {
         State s;
-        std::string keyA = "test_multi_push_a";
-        std::string keyB = "test_multi_push_b";
+        std::string userA = "test_a";
+        std::string userB = "test_b";
+        std::string keyA = "multi_push_a";
+        std::string keyB = "multi_push_b";
 
-        StateKeyValue *kvA = s.getKV(keyA);
-        StateKeyValue *kvB = s.getKV(keyB);
+        StateKeyValue *kvA = s.getKV(userA, keyA);
+        StateKeyValue *kvB = s.getKV(userB, keyB);
+
+        std::string actualKeyA = userA + "_" + keyA;
+        std::string actualKeyB = userB + "_" + keyB;
 
         // Set up and push
         std::vector<uint8_t> valuesA = {0, 1, 2, 3};
@@ -106,15 +120,18 @@ namespace tests {
         s.pushAll();
 
         // Check both now in redis
-        REQUIRE(redisState.get(keyA) == valuesA);
-        REQUIRE(redisState.get(keyB) == valuesB);
+        REQUIRE(redisState.get(actualKeyA) == valuesA);
+        REQUIRE(redisState.get(actualKeyB) == valuesB);
     }
 
     TEST_CASE("Test getting/ pushing only happens when stale/ dirty", "[state]") {
         State s;
-        std::string key = "test_dirty_push";
-        StateKeyValue *kv = s.getKV(key);
+        std::string user = "test";
+        std::string key = "dirty_push";
+        StateKeyValue *kv = s.getKV(user, key);
         std::vector<uint8_t> values = {0, 1, 2, 3};
+
+        std::string actualKey = user + "_" + key;
 
         // Fix time
         util::Clock &c = util::getGlobalClock();
@@ -124,18 +141,18 @@ namespace tests {
         // Push and make sure reflected in redis
         kv->set(values);
         kv->pushFull();
-        REQUIRE(redisState.get(key) == values);
+        REQUIRE(redisState.get(actualKey) == values);
 
         // Now update in Redis directly
         std::vector<uint8_t> newValues = {5, 5, 5};
-        redisState.set(key, newValues);
+        redisState.set(actualKey, newValues);
 
         // Get and check that remote value isn't pulled because it's not stale
         REQUIRE(kv->get() == values);
 
         // Check that push also doesn't push to remote as not dirty
         kv->pushFull();
-        REQUIRE(redisState.get(key) == newValues);
+        REQUIRE(redisState.get(actualKey) == newValues);
 
         // Now advance time and make sure new value is retrieved
         c.setFakeNow(now + std::chrono::seconds(120));
@@ -144,7 +161,8 @@ namespace tests {
 
     TEST_CASE("Test stale values cleared", "[state]") {
         State s;
-        std::string key = "stale_check";
+        std::string user = "stale";
+        std::string key = "check";
         util::Clock &c = util::getGlobalClock();
 
         // Fix time
@@ -152,7 +170,7 @@ namespace tests {
         c.setFakeNow(now);
 
         std::vector<uint8_t> value = {0, 1, 2, 3};
-        StateKeyValue *kv = s.getKV(key);
+        StateKeyValue *kv = s.getKV(user, key);
 
         // Push value to redis
         kv->set(value);
@@ -182,7 +200,8 @@ namespace tests {
 
     TEST_CASE("Test pulling only happens if stale") {
         State s;
-        std::string key = "stale_pull_check";
+        std::string user = "stale";
+        std::string key = "pull_check";
         util::Clock &c = util::getGlobalClock();
 
         // Fix time
@@ -191,13 +210,14 @@ namespace tests {
 
         // Set up a value in redis
         std::vector<uint8_t> value = {0, 1, 2, 3, 4, 5};
-        StateKeyValue *kv = s.getKV(key);
+        StateKeyValue *kv = s.getKV(user, key);
         kv->set(value);
         kv->pushFull();
 
         // Now change the value in Redis
         std::vector<uint8_t> value2 = {2, 4};
-        redisState.set(key, value2);
+        std::string actualKey = user + "_" + key;
+        redisState.set(actualKey, value2);
 
         // Pull, check hasn't changed
         kv->pull();
@@ -213,14 +233,16 @@ namespace tests {
         redisState.flushAll();
 
         State s;
-        std::string key = "idle_check";
+        std::string user = "idle";
+        std::string key = "check";
+        std::string actualKey = user + "_" + key;
 
         util::Clock &c = util::getGlobalClock();
         const util::TimePoint now = c.now();
         c.setFakeNow(now);
 
         // Check not idle by default
-        StateKeyValue *const kv = s.getKV(key);
+        StateKeyValue *const kv = s.getKV(user, key);
         kv->set({1, 2, 3});
         kv->pushFull();
         kv->clear();

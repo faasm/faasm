@@ -77,6 +77,14 @@ namespace wasm {
         return str;
     }
 
+    std::pair<std::string, std::string> getUserKeyPairFromWasm(I32 keyPtr) {
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
+
+        const message::Message *call = getExecutingCall();
+        return std::pair<std::string, std::string>(call->user(), key);
+    }
+
     std::string getKeyFromWasm(I32 keyPtr) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
@@ -104,9 +112,9 @@ namespace wasm {
         util::getLogger()->debug("S - write_state - {} {} {} {}", keyPtr, dataPtr, dataLen, async);
 
         // Set the whole state
-        std::string key = getKeyFromWasm(keyPtr);
+        const std::pair<std::string, std::string> userKey = getUserKeyPairFromWasm(keyPtr);
         wasm::State &s = wasm::getGlobalState();
-        wasm::StateKeyValue *kv = s.getKV(key);
+        wasm::StateKeyValue *kv = s.getKV(userKey.first, userKey.second);
 
         // Read the data and set
         const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
@@ -122,11 +130,10 @@ namespace wasm {
                               I32 keyPtr, I32 offset, I32 dataPtr, I32 dataLen, I32 async) {
         util::getLogger()->debug("S - write_state_offset - {} {} {} {} {}", keyPtr, offset, dataPtr, dataLen, async);
 
-        std::string key = getKeyFromWasm(keyPtr);
-
         // Set the state at the given offset
         wasm::State &s = wasm::getGlobalState();
-        wasm::StateKeyValue *kv = s.getKV(key);
+        const std::pair<std::string, std::string> userKey = getUserKeyPairFromWasm(keyPtr);
+        wasm::StateKeyValue *kv = s.getKV(userKey.first, userKey.second);
 
         // Read data and set
         const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
@@ -142,11 +149,10 @@ namespace wasm {
                               I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 async) {
         util::getLogger()->debug("S - read_state - {} {} {}", keyPtr, bufferPtr, bufferLen);
 
-        std::string key = getKeyFromWasm(keyPtr);
-
         // Read the state in
         wasm::State &s = wasm::getGlobalState();
-        wasm::StateKeyValue *kv = s.getKV(key);
+        const std::pair<std::string, std::string> userKey = getUserKeyPairFromWasm(keyPtr);
+        wasm::StateKeyValue *kv = s.getKV(userKey.first, userKey.second);
 
         if (async == 1) {
             // Asynchronous
@@ -177,11 +183,10 @@ namespace wasm {
                               I32 keyPtr, I32 offset, I32 bufferPtr, I32 bufferLen, I32 async) {
         util::getLogger()->debug("S - read_state_offset - {} {} {} {}", keyPtr, offset, bufferPtr, bufferLen);
 
-        std::string key = getKeyFromWasm(keyPtr);
-
         // Read the state in
         wasm::State &s = wasm::getGlobalState();
-        wasm::StateKeyValue *kv = s.getKV(key);
+        const std::pair<std::string, std::string> userKey = getUserKeyPairFromWasm(keyPtr);
+        wasm::StateKeyValue *kv = s.getKV(userKey.first, userKey.second);
 
         // Pull from remote if synchronous
         if (async == 0) {

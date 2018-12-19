@@ -30,6 +30,9 @@ namespace wasm {
     typedef std::pair<long, long> Segment;
     typedef std::set<std::pair<long, long>> SegmentSet;
 
+    /**
+     * A specific key/value pair for state
+     */
     class StateKeyValue {
     public:
         StateKeyValue(const std::string &keyIn);
@@ -84,21 +87,47 @@ namespace wasm {
     typedef std::map<std::string, StateKeyValue *> KVMap;
     typedef std::pair<std::string, StateKeyValue *> KVPair;
 
+    /**
+     * Holds state for a given user
+     */
+    class UserState {
+    public:
+        UserState(const std::string &userIn);
+
+        ~UserState();
+
+        StateKeyValue *getValue(const std::string &key);
+
+        void pushAll();
+    private:
+        const std::string user;
+
+        //Runtime::Memory *sharedMemory;
+
+        KVMap kvMap;
+        std::shared_mutex kvMapMutex;
+    };
+
+    typedef std::map<std::string, UserState *> UserStateMap;
+    typedef std::pair<std::string, UserState *> UserStatePair;
+
+    /**
+     * Global entry point into state
+     */
     class State {
     public:
         State();
 
         ~State();
 
-        StateKeyValue *getKV(const std::string &key);
-
-        void pushAll();
+        StateKeyValue *getKV(const std::string &user, const std::string &key);
 
         void pushLoop();
 
+        void pushAll();
     private:
-        KVMap local;
-        std::shared_mutex localMutex;
+        UserStateMap userStateMap;
+        std::shared_mutex userStateMapMutex;
 
         long pushInterval;
     };

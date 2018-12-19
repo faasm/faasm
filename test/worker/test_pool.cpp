@@ -217,12 +217,14 @@ namespace tests {
 
         // Initially function's state should be an empty array
         // Note, we need to prepend the user to the actual key used in the code
+        std::string user = "demo";
+        std::string key = "state_example";
         const char *stateKey = "demo_state_example";
         std::vector<uint8_t> initialState = redisQueue.get(stateKey);
         REQUIRE(initialState.empty());
 
         wasm::State &s = wasm::getGlobalState();
-        wasm::StateKeyValue *kv = s.getKV(stateKey);
+        wasm::StateKeyValue *kv = s.getKV(user, key);
 
         // Set up the function call
         message::Message call;

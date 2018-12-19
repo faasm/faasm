@@ -289,7 +289,56 @@ namespace wasm {
     }
 
     /**
-     * State (can have multiple key/ values)
+     * User state (can have multiple key/ values)
+     */
+
+    UserState::UserState(const std::string &userIn) : user(userIn) {
+
+    }
+
+    UserState::~UserState() {
+        // Delete contents of key value store
+        for (const auto &iter: kvMap) {
+            delete iter.second;
+        }
+    }
+
+    StateKeyValue *UserState::getValue(const std::string &key) {
+        if (kvMap.count(key) == 0) {
+            // Lock on editing local state registry
+            FullLock fullLock(kvMapMutex);
+
+            std::string actualKey = user + "_" + key;
+
+            // Double check it still doesn't exist
+            if (kvMap.count(key) == 0) {
+                auto kv = new StateKeyValue(actualKey);
+
+                kvMap.emplace(KVPair(key, kv));
+            }
+        }
+
+        return kvMap[key];
+    }
+
+    void UserState::pushAll() {
+        // Iterate through all key-values
+        SharedLock sharedLock(kvMapMutex);
+
+        for (const auto &kv : kvMap) {
+            // Attempt to push partial updates
+            kv.second->pushPartial();
+
+            // Attempt to push partial updates
+            kv.second->pushFull();
+
+            // Attempt to clear (will be ignored if not relevant)
+            kv.second->clear();
+        }
+    }
+
+    /**
+     * Global state (can hold many users' state)
      */
 
     State &getGlobalState() {
@@ -303,8 +352,8 @@ namespace wasm {
     }
 
     State::~State() {
-        // Delete contents of local state
-        for (const auto &iter: local) {
+        // Delete contents of user state map
+        for (const auto &iter: userStateMap) {
             delete iter.second;
         }
     }
@@ -314,40 +363,33 @@ namespace wasm {
             // usleep takes microseconds
             usleep(1000 * pushInterval);
 
-            // Run the sync
             this->pushAll();
         }
     }
 
-    StateKeyValue *State::getKV(const std::string &key) {
-        if (local.count(key) == 0) {
-            // Lock on editing local state registry
-            FullLock fullLock(localMutex);
+    void State::pushAll() {
+        // Run the sync for all users' state
+        for (const auto &iter: userStateMap) {
+            iter.second->pushAll();
+        }
+    }
+
+    StateKeyValue *State::getKV(const std::string &user, const std::string &key) {
+        if (userStateMap.count(user) == 0) {
+            // Lock on editing user state registry
+            FullLock fullLock(userStateMapMutex);
 
             // Double check it still doesn't exist
-            if (local.count(key) == 0) {
-                auto kv = new StateKeyValue(key);
+            if (userStateMap.count(user) == 0) {
+                auto s = new UserState(user);
 
-                local.emplace(KVPair(key, kv));
+                userStateMap.emplace(UserStatePair(user, s));
             }
         }
 
-        return local[key];
+        UserState *us = userStateMap[user];
+        return us->getValue(key);
     }
 
-    void State::pushAll() {
-        // Iterate through all key-values
-        SharedLock sharedLock(localMutex);
 
-        for (const auto &kv : local) {
-            // Attempt to push partial updates
-            kv.second->pushPartial();
-
-            // Attempt to push partial updates
-            kv.second->pushFull();
-
-            // Attempt to clear (will be ignored if not relevant)
-            kv.second->clear();
-        }
-    }
 }
