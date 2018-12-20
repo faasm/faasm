@@ -27,15 +27,34 @@ namespace wasm {
     // Page size in wasm is 64kiB so 100 pages ~ 6MiB of memory
     const int MIN_MEMORY_PAGES = 100;
 
+    Uptr getNumberPagesAtOffset(U32 offset);
+
     typedef std::pair<long, long> Segment;
     typedef std::set<std::pair<long, long>> SegmentSet;
+
+    /**
+     * A wrapper around shared memory for state
+     */
+     class StateMemory {
+     public:
+         explicit StateMemory(const std::string &user);
+         ~StateMemory();
+
+         uint8_t *getPointer(size_t length);
+
+         Runtime::GCPointer<Runtime::Memory> wavmMemory;
+         Runtime::GCPointer<Runtime::Compartment> compartment;
+     private:
+         Uptr nextOffset;
+         const std::string user;
+     };
 
     /**
      * A specific key/value pair for state
      */
     class StateKeyValue {
     public:
-        StateKeyValue(const std::string &keyIn);
+        explicit StateKeyValue(const std::string &keyIn);
 
         const std::string key;
 
@@ -64,6 +83,8 @@ namespace wasm {
 
         std::atomic<bool> isWholeValueDirty;
         std::set<std::pair<long, long>> dirtySegments;
+
+        StateMemory *sharedMemory;
 
         std::vector<uint8_t> value;
         std::shared_mutex valueMutex;
@@ -100,11 +121,9 @@ namespace wasm {
 
         void pushAll();
 
-        Runtime::Memory *sharedMemory;
+        StateMemory *memory;
     private:
         const std::string user;
-
-        Runtime::Compartment *compartment;
 
         KVMap kvMap;
         std::shared_mutex kvMapMutex;
@@ -173,7 +192,7 @@ namespace wasm {
                 State &state = getGlobalState();
                 UserState *userState = state.getUserState(user);
 
-                resolved = Runtime::asObject(userState->sharedMemory);
+                resolved = Runtime::asObject(userState->memory->wavmMemory);
                 return true;
             }
 

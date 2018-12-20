@@ -7,9 +7,64 @@ namespace wasm {
     typedef std::shared_lock<std::shared_mutex> SharedLock;
 
     /**
+     * Shared memory
+     */
+    StateMemory::StateMemory(const std::string &userIn) : user(userIn) {
+        compartment = Runtime::createCompartment();
+
+        // Prepare memory
+        IR::MemoryType memoryType(true, {0, 0});
+
+        // Create a shared memory for this user
+        wavmMemory = Runtime::createMemory(compartment, memoryType, user + "_shared");
+        Runtime::growMemory(wavmMemory, 5);
+
+        nextOffset = 0;
+    }
+
+    StateMemory::~StateMemory() {
+        compartment = nullptr;
+        wavmMemory = nullptr;
+
+        Runtime::tryCollectCompartment(std::move(compartment));
+    };
+
+    uint8_t *StateMemory::getPointer(size_t length) {
+        const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+
+        // Work out the max address required
+        Uptr maxAddress = nextOffset + length;
+        const Uptr requiredPages = getNumberPagesAtOffset(maxAddress);
+
+        // See if we need to grow
+        const Uptr currentPageCount = getMemoryNumPages(wavmMemory);
+        Uptr maxPages = getMemoryMaxPages(wavmMemory);
+        if (requiredPages > maxPages) {
+            logger->error("Allocating {} pages of shared memory when max is {}", requiredPages, maxPages);
+            throw std::runtime_error("Attempting to allocate more than max pages of shared memory.");
+        }
+
+        // Grow memory if required
+        if (requiredPages > currentPageCount) {
+            Uptr expansion = requiredPages - currentPageCount;
+            growMemory(wavmMemory, expansion);
+        }
+
+        // Return pointer to memory
+        U8 *data = Runtime::memoryArrayPtr<U8>(wavmMemory, nextOffset, length);
+
+        // Increment offset with a page buffer
+        nextOffset += (length + IR::numBytesPerPage);
+
+        return data;
+    }
+
+    /**
      * Key/value
      */
-    StateKeyValue::StateKeyValue(const std::string &keyIn) : key(keyIn), clock(util::getGlobalClock()) {
+    StateKeyValue::StateKeyValue(const std::string &keyIn, StateMemory *sharedMemoryIn) : key(keyIn),
+                                                                                          sharedMemory(sharedMemoryIn),
+                                                                                          clock(util::getGlobalClock()) {
         isWholeValueDirty = false;
         isNew = true;
 
@@ -59,6 +114,10 @@ namespace wasm {
         // Read from the remote
         infra::Redis *redis = infra::Redis::getThreadState();
         value = redis->get(key);
+
+        // Copy into shared memory
+        uint8_t *memPtr = sharedMemory->getPointer(value.size());
+        std::copy(value.begin(), value.end(), memPtr);
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Value for {} size {} after read", key, value.size());
@@ -293,12 +352,7 @@ namespace wasm {
      */
 
     UserState::UserState(const std::string &userIn) : user(userIn) {
-        // Prepare memory
-        IR::MemoryType memoryType(true, {0, 0});
-
-        compartment = Runtime::createCompartment();
-
-        sharedMemory = Runtime::createMemory(compartment, memoryType, user + "_mem");
+        memory = new StateMemory();
     }
 
     UserState::~UserState() {
@@ -306,6 +360,9 @@ namespace wasm {
         for (const auto &iter: kvMap) {
             delete iter.second;
         }
+
+        // Delete memory
+        delete memory;
     }
 
     StateKeyValue *UserState::getValue(const std::string &key) {

@@ -29,6 +29,19 @@ namespace wasm {
         return executingCallChain;
     }
 
+    Uptr getNumberPagesAtOffset(U32 offset) {
+        // Work out how many pages needed to hit the target address
+        Uptr pageCount = ((Uptr) offset) / IR::numBytesPerPage;
+
+        // Check we're on a page boundary, if not bump up number of pages
+        if (offset % IR::numBytesPerPage != 0) {
+            printf("Warning, requesting address off page boundary (%u)", offset);
+            pageCount++;
+        }
+
+        return pageCount;
+    }
+
     WasmModule::WasmModule() = default;
 
     WasmModule::~WasmModule() {
