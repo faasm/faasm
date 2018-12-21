@@ -19,23 +19,25 @@ namespace tests {
 
         std::string actualKey = "test_state_new";
 
-        // Get
-        std::vector<uint8_t> actual = kv->get();
-        REQUIRE(actual.empty());
+        // Get (should do nothing)
+        std::vector<uint8_t> actual(5);
+        kv->get(actual.data());
 
         // Update
         std::vector<uint8_t> values = {0, 1, 2, 3, 4};
-        kv->set(values);
+        kv->set(values.data());
 
         // Check that getting returns the update
-        REQUIRE(kv->get() == values);
+        kv->get(actual.data());
+        REQUIRE(actual == values);
 
         // Check that the underlying key in Redis isn't changed
         REQUIRE(redisState.get(actualKey).empty());
 
         // Check that when pushed, the update is pushed to redis
         kv->pushFull();
-        REQUIRE(kv->get() == values);
+        kv->get(actual.data());
+        REQUIRE(actual == values);
         REQUIRE(redisState.get(actualKey) == values);
     }
 
@@ -49,21 +51,27 @@ namespace tests {
 
         // Set up and push
         std::vector<uint8_t> values = {0, 0, 1, 1, 2, 2, 3, 3, 4, 4};
-        kv->set(values);
+        kv->set(values.data());
         kv->pushFull();
 
         // Get and check
-        REQUIRE(kv->get() == values);
+        std::vector<uint8_t> actual(10);
+        kv->get(actual.data());
+        REQUIRE(actual == values);
 
         // Update a subsection
         std::vector<uint8_t> update = {8, 8, 8};
-        kv->setSegment(3, update);
+        kv->setSegment(3, update.data(), 3);
 
         // Check changed locally but not in redis
         std::vector<uint8_t> expected = {0, 0, 1, 8, 8, 8, 3, 3, 4, 4};
+        kv->get(actual.data());
         REQUIRE(redisState.get(actualKey) == values);
-        REQUIRE(kv->get() == expected);
-        REQUIRE(kv->getSegment(3, 3) == update);
+        REQUIRE(actual == expected);
+
+        std::vector<uint8_t> actualSegment(3);
+        kv->getSegment(3, actualSegment.data(), 3);
+        REQUIRE(actualSegment == update);
 
         // Run push and check redis updated
         kv->pushPartial();
@@ -81,7 +89,7 @@ namespace tests {
         // Set a segment offset
         std::vector<uint8_t> update = {8, 8, 8};
 
-        REQUIRE_THROWS(kv->setSegment(5, update));
+        REQUIRE_THROWS(kv->setSegment(5, update.data(), 3));
     }
 
     TEST_CASE("Test pushing all state", "[state]") {
@@ -91,8 +99,8 @@ namespace tests {
         std::string keyA = "multi_push_a";
         std::string keyB = "multi_push_b";
 
-        StateKeyValue *kvA = s.getKV(userA, keyA,4);
-        StateKeyValue *kvB = s.getKV(userB, keyB,3);
+        StateKeyValue *kvA = s.getKV(userA, keyA, 4);
+        StateKeyValue *kvB = s.getKV(userB, keyB, 3);
 
         std::string actualKeyA = userA + "_" + keyA;
         std::string actualKeyB = userB + "_" + keyB;
@@ -101,8 +109,8 @@ namespace tests {
         std::vector<uint8_t> valuesA = {0, 1, 2, 3};
         std::vector<uint8_t> valuesB = {4, 5, 6};
 
-        kvA->set(valuesA);
-        kvB->set(valuesB);
+        kvA->set(valuesA.data());
+        kvB->set(valuesB.data());
 
         // Check neither in redis
         REQUIRE(redisState.get(keyA).empty());
@@ -120,7 +128,7 @@ namespace tests {
         State s;
         std::string user = "test";
         std::string key = "dirty_push";
-        StateKeyValue *kv = s.getKV(user, key,4);
+        StateKeyValue *kv = s.getKV(user, key, 4);
         std::vector<uint8_t> values = {0, 1, 2, 3};
 
         std::string actualKey = user + "_" + key;
@@ -131,7 +139,7 @@ namespace tests {
         c.setFakeNow(now);
 
         // Push and make sure reflected in redis
-        kv->set(values);
+        kv->set(values.data());
         kv->pushFull();
         REQUIRE(redisState.get(actualKey) == values);
 
@@ -140,7 +148,9 @@ namespace tests {
         redisState.set(actualKey, newValues);
 
         // Get and check that remote value isn't pulled because it's not stale
-        REQUIRE(kv->get() == values);
+        std::vector<uint8_t> actual(4);
+        kv->get(actual.data());
+        REQUIRE(actual == values);
 
         // Check that push also doesn't push to remote as not dirty
         kv->pushFull();
@@ -148,7 +158,8 @@ namespace tests {
 
         // Now advance time and make sure new value is retrieved
         c.setFakeNow(now + std::chrono::seconds(120));
-        REQUIRE(kv->get() == newValues);
+        kv->get(actual.data());
+        REQUIRE(actual == newValues);
     }
 
     TEST_CASE("Test stale values cleared", "[state]") {
@@ -165,12 +176,14 @@ namespace tests {
         StateKeyValue *kv = s.getKV(user, key, 4);
 
         // Push value to redis
-        kv->set(value);
+        kv->set(value.data());
         kv->pushFull();
 
         // Try clearing, check nothing happens
         kv->clear();
-        REQUIRE(kv->get() == value);
+        std::vector<uint8_t> actual(4);
+        kv->get(actual.data());
+        REQUIRE(actual == value);
 
         // Advance time a bit, check it doesn't get cleared
         std::chrono::seconds secsSmall(1);
@@ -202,7 +215,7 @@ namespace tests {
         // Set up a value in redis
         std::vector<uint8_t> value = {0, 1, 2, 3, 4, 5};
         StateKeyValue *kv = s.getKV(user, key, 6);
-        kv->set(value);
+        kv->set(value.data());
         kv->pushFull();
 
         // Now change the value in Redis
@@ -212,12 +225,15 @@ namespace tests {
 
         // Pull, check hasn't changed
         kv->pull();
-        REQUIRE(kv->get() == value);
+        std::vector<uint8_t> actual(6);
+        kv->get(actual.data());
+        REQUIRE(actual == value);
 
         // Move time forward then pull again and check updated
         c.setFakeNow(now + std::chrono::seconds(30));
         kv->pull();
-        REQUIRE(kv->get() == value2);
+        kv->get(actual.data());
+        REQUIRE(actual == value2);
     }
 
     void checkActionResetsIdleness(std::string actionType) {
@@ -234,23 +250,29 @@ namespace tests {
 
         // Check not idle by default (i.e. won't get cleared)
         StateKeyValue *const kv = s.getKV(user, key, 3);
-        kv->set({1, 2, 3});
+        std::vector<uint8_t> values = {1, 2, 3};
+        kv->set(values.data());
         kv->pushFull();
         kv->clear();
 
-        REQUIRE(kv->get().size() == 3);
+        REQUIRE(!kv->isNew());
 
         // Move time on, but then perform some action
         c.setFakeNow(now + std::chrono::seconds(180));
 
+        std::vector<uint8_t> actual;
         if (actionType == "get") {
-            kv->get();
+            actual.reserve(3);
+            kv->get(actual.data());
         } else if (actionType == "getSegment") {
-            kv->getSegment(1, 2);
+            actual.reserve(2);
+            kv->getSegment(1, actual.data(), 2);
         } else if (actionType == "set") {
-            kv->set({4, 5, 6});
+            actual = {4, 5, 6};
+            kv->set(actual.data());
         } else if (actionType == "setSegment") {
-            kv->setSegment(1, {4, 4});
+            actual = {4, 4};
+            kv->setSegment(1, actual.data(), 2);
         } else {
             throw std::runtime_error("Unrecognised action type");
         }

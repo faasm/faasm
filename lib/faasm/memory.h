@@ -12,7 +12,7 @@ namespace faasm {
         /**
          * Reads the full state at the given key
          */
-        long readState(const char *key, uint8_t *buffer, long bufferLen, bool async = false);
+        void readState(const char *key, uint8_t *buffer, long bufferLen, bool async = false);
 
         /**
         * Reads the full state at the given key and returns a pointer to it
@@ -39,18 +39,15 @@ namespace faasm {
         */
         void lockStateRead(const char *key);
 
-
         /**
         * Releases a read lock for the given state
         */
         void unlockStateRead(const char *key);
 
-
         /**
          * Acquires a write lock for the given state
          */
         void lockStateWrite(const char *key);
-
 
         /**
         * Releases a write lock for the given state

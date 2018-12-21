@@ -44,6 +44,8 @@ namespace infra {
 
         std::vector<uint8_t> get(const std::string &key);
 
+        void get(const std::string &key, uint8_t *buffer, size_t size);
+
         void set(const std::string &key, const std::vector<uint8_t> &value);
 
         void set(const std::string &key, const uint8_t *value, size_t size);

@@ -1,7 +1,7 @@
 #include "faasm/memory.h"
 
 extern "C" {
-long __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, int async);
+void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, int async);
 
 uint8_t *__faasm_read_state_ptr(const char *key, long len, int async);
 
@@ -32,8 +32,8 @@ namespace faasm {
 
     }
 
-    long FaasmMemory::readState(const char *key, uint8_t *buffer, long bufferLen, bool async) {
-        return __faasm_read_state(key, buffer, bufferLen, (int) async);
+    void FaasmMemory::readState(const char *key, uint8_t *buffer, long bufferLen, bool async) {
+        __faasm_read_state(key, buffer, bufferLen, (int) async);
     };
 
     uint8_t *FaasmMemory::readStatePtr(const char *key, long len, bool async) {

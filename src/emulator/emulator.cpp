@@ -8,11 +8,10 @@
 
 extern "C" {
 
-long __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, int async) {
+void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, int async) {
     infra::Redis *redis = infra::Redis::getThreadState();
     std::vector<uint8_t> state = redis->get(key);
-    int stateSize = util::safeCopyToBuffer(state, buffer, bufferLen);
-    return stateSize;
+    util::safeCopyToBuffer(state, buffer, bufferLen);
 }
 
 uint8_t *__faasm_read_state_ptr(const char *key, long len, int async) {

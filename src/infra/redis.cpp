@@ -128,6 +128,20 @@ namespace infra {
         return resultData;
     }
 
+    void getBytesFromReply(redisReply *reply, uint8_t *buffer, size_t size) {
+        // We have to be careful here to handle the bytes properly
+        char *resultArray = reply->str;
+        int resultLen = reply->len;
+
+        std::copy(resultArray, resultArray + resultLen, buffer);
+    }
+
+    void Redis::get(const std::string &key, uint8_t *buffer, size_t size) {
+        auto reply = (redisReply *) redisCommand(context, "GET %s", key.c_str());
+        getBytesFromReply(reply, buffer, size);
+        freeReplyObject(reply);
+    }
+
     std::vector<uint8_t> Redis::get(const std::string &key) {
         auto reply = (redisReply *) redisCommand(context, "GET %s", key.c_str());
 

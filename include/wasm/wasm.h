@@ -73,19 +73,19 @@ namespace wasm {
      */
     class StateKeyValue {
     public:
-        explicit StateKeyValue(const std::string &keyIn, size_t sizeIn, StateMemory *memory);
+        explicit StateKeyValue(const std::string &keyIn, size_t sizeIn);
+
+        ~StateKeyValue();
 
         const std::string key;
 
-        int getWasmPointer();
+        void get(uint8_t *buffer);
 
-        std::vector<uint8_t> get();
+        void getSegment(long offset, uint8_t *buffer, size_t length);
 
-        std::vector<uint8_t> getSegment(long offset, long length);
+        void set(uint8_t *buffer);
 
-        void set(const std::vector<uint8_t> &data);
-
-        void setSegment(long offset, const std::vector<uint8_t> &data);
+        void setSegment(long offset, uint8_t *buffer, size_t length);
 
         void pull();
 
@@ -113,8 +113,6 @@ namespace wasm {
         std::atomic<bool> isWholeValueDirty;
         std::set<std::pair<long, long>> dirtySegments;
 
-        StateMemory *sharedMemory;
-        uint8_t *sharedMemoryPtr = nullptr;
         std::shared_mutex valueMutex;
 
         util::TimePoint lastPull;
@@ -122,15 +120,16 @@ namespace wasm {
         long staleThreshold;
         long idleThreshold;
 
+        uint8_t *data;
         size_t size;
 
         std::atomic<bool> _isNew;
 
         void doRemoteRead();
 
-        void copyValueToSharedMem(const std::vector<uint8_t> &value);
+        void copyValueToSharedMem(uint8_t *buffer, size_t bufferLen);
 
-        void copySegmentToSharedMem(long offset, const std::vector<uint8_t> &value);
+        void copySegmentToSharedMem(long offset, uint8_t *buffer, size_t bufferLen);
 
         void updateLastInteraction();
 
@@ -154,8 +153,6 @@ namespace wasm {
         StateKeyValue *getValue(const std::string &key, size_t size);
 
         void pushAll();
-
-        StateMemory *memory;
     private:
         const std::string user;
 
@@ -222,13 +219,13 @@ namespace wasm {
                 return true;
             }
 
-            if (type.kind == IR::ExternKind::memory && moduleName == user && exportName == "shared_state") {
-                State &state = getGlobalState();
-                UserState *userState = state.getUserState(user);
-
-                resolved = Runtime::asObject(userState->memory->wavmMemory);
-                return true;
-            }
+//            if (type.kind == IR::ExternKind::memory && moduleName == user && exportName == "shared_state") {
+//                State &state = getGlobalState();
+//                UserState *userState = state.getUserState(user);
+//
+//                resolved = Runtime::asObject(userState->memory->wavmMemory);
+//                return true;
+//            }
 
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Missing import {}.{} {}", moduleName, exportName, asString(type).c_str());

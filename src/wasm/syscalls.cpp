@@ -60,12 +60,16 @@ namespace wasm {
     // Thread-local variables to isolate bits of environment
     static thread_local std::set<int> openFds;
 
-    std::vector<uint8_t> getBytesFromWasm(I32 dataPtr, I32 dataLen) {
+    void getBytesFromWasm(I32 dataPtr, I32 dataLen, uint8_t *buffer) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
 
-        std::vector<uint8_t> bytes(data, data + dataLen);
+        std::copy(data, data + dataLen, buffer);
+    }
 
+    std::vector<uint8_t> getBytesFromWasm(I32 dataPtr, I32 dataLen) {
+        std::vector<uint8_t> bytes(dataLen);
+        getBytesFromWasm(dataPtr, dataLen, bytes.data());
         return bytes;
     }
 
@@ -149,9 +153,10 @@ namespace wasm {
 
         wasm::StateKeyValue *kv = getStateKV(keyPtr, dataLen);
 
-        // Read the data and set
-        const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
-        kv->set(newState);
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
+
+        kv->set(data);
 
         // Push if synchronous
         if (async == 0) {
@@ -165,9 +170,10 @@ namespace wasm {
 
         wasm::StateKeyValue *kv = getStateKV(keyPtr, dataLen);
 
-        // Read data and set
-        const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
-         kv->setSegment(offset, newState);
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
+
+        kv->setSegment(offset, data, dataLen);
 
         // Push if synchronous
         if (async == 0) {
@@ -175,16 +181,18 @@ namespace wasm {
         }
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_ptr", I32, __faasm_read_state_ptr, I32 keyPtr, I32 len) {
-        util::getLogger()->debug("S - read_state_ptr - {} {}", keyPtr, len);
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_ptr", I32, __faasm_read_state_ptr, I32 keyPtr, I32 len, I32 async) {
+        util::getLogger()->debug("S - read_state_ptr - {} {} {}", keyPtr, len, async);
 
-        wasm::StateKeyValue *kv = getStateKV(keyPtr, len);
-        return kv->getWasmPointer();
+        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state", I32, __faasm_read_state,
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state", void, __faasm_read_state,
                               I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 async) {
         util::getLogger()->debug("S - read_state - {} {} {}", keyPtr, bufferPtr, bufferLen);
+
+        Runtime::CompartmentRuntimeData *runtimeData = Runtime::getCompartmentRuntimeData(contextRuntimeData);
+        printf("%p", runtimeData);
 
         wasm::StateKeyValue *kv = getStateKV(keyPtr, bufferLen);
 
@@ -193,9 +201,10 @@ namespace wasm {
             kv->pull();
         }
 
-        // Copy to buffer
-        std::vector<uint8_t> value = kv->get();
-        return copyToWasmBuffer(value, bufferPtr, bufferLen);
+        // Copy to straight to buffer
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
+        kv->get(buffer);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset", void, __faasm_read_state_offset,
@@ -210,9 +219,10 @@ namespace wasm {
             kv->pull();
         }
 
-        std::vector<uint8_t> value = kv->getSegment(offset, bufferLen);
-
-        copyToWasmBuffer(value, bufferPtr, bufferLen);
+        // Copy to straight to buffer
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
+        kv->getSegment(offset, buffer, bufferLen);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_input", I32, __faasm_read_input, I32 bufferPtr, I32 bufferLen) {

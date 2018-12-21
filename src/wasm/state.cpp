@@ -90,12 +90,14 @@ namespace wasm {
     /**
      * Key/value
      */
-    StateKeyValue::StateKeyValue(const std::string &keyIn, size_t sizeIn,
-                                 StateMemory *sharedMemoryIn) : key(keyIn), clock(util::getGlobalClock()),
-                                                                sharedMemory(sharedMemoryIn), size(sizeIn) {
+    StateKeyValue::StateKeyValue(const std::string &keyIn, size_t sizeIn) : key(keyIn),
+                                                                            clock(util::getGlobalClock()),
+                                                                            size(sizeIn) {
 
         isWholeValueDirty = false;
         _isNew = true;
+
+        data = nullptr;
 
         // Gets over the stale threshold trigger a pull from remote
         const util::SystemConfig &conf = util::getSystemConfig();
@@ -105,7 +107,13 @@ namespace wasm {
         idleThreshold = conf.stateClearThreshold;
     }
 
+    StateKeyValue::~StateKeyValue() {
+        delete data;
+    }
+
     void StateKeyValue::pull() {
+        this->updateLastInteraction();
+
         // Check if new (one-off initialisation)
         if (_isNew) {
             // Unique lock on the whole value while loading
@@ -140,46 +148,25 @@ namespace wasm {
         }
     }
 
-    void StateKeyValue::copySegmentToSharedMem(long offset, const std::vector<uint8_t> &value) {
-        if (offset + value.size() > size) {
+    void StateKeyValue::copySegmentToSharedMem(long offset, uint8_t *buffer, size_t bufferLen) {
+        if (offset + bufferLen > size) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-            logger->error("Segment length {} at offset {} too big for size {}", value.size(), offset, size);
+            logger->error("Segment length {} at offset {} too big for size {}", bufferLen, offset, size);
             throw std::runtime_error("Setting state segment too big for container");
         }
 
         // Copy data into shared region
-        std::copy(value.begin(), value.end(), sharedMemoryPtr + offset);
-    }
-
-    void StateKeyValue::copyValueToSharedMem(const std::vector<uint8_t> &value) {
-        if (value.size() > size) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-            logger->error("Value length {} too big for size {}", value.size(), size);
-            throw std::runtime_error("Setting state value too big for container");
-        }
-        if (!value.empty()) {
-            // Set up the shared memory region
-            if (sharedMemoryPtr == nullptr) {
-                sharedMemoryPtr = sharedMemory->createSegment(value.size());
-            }
-
-            // Copy data into shared region
-            std::copy(value.begin(), value.end(), sharedMemoryPtr);
-        }
+        std::copy(buffer, buffer + bufferLen, data + offset);
     }
 
     void StateKeyValue::doRemoteRead() {
+        // Initialise the data array
+        data = new uint8_t[size];
+
         // Read from the remote
         infra::Redis *redis = infra::Redis::getThreadState();
-        std::vector<uint8_t> value = redis->get(key);
-
-        // Copy into shared memory
-        this->copyValueToSharedMem(value);
-
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Value for {} size {} after read", key, value.size());
+        redis->get(key, data, size);
 
         const util::TimePoint now = clock.now();
         lastPull = now;
@@ -202,38 +189,18 @@ namespace wasm {
         return idleTime > idleThreshold;
     }
 
-    std::vector<uint8_t> StateKeyValue::get() {
-        this->updateLastInteraction();
-
+    void StateKeyValue::get(uint8_t *buffer) {
         this->pull();
 
         // Shared lock for full reads
         SharedLock lock(valueMutex);
 
-        if (sharedMemoryPtr == nullptr) {
-            return std::vector<uint8_t>();
-        } else {
-            return std::vector<uint8_t>(sharedMemoryPtr, sharedMemoryPtr + size);
-        }
+        std::copy(data, data + size, buffer);
     }
 
-    int StateKeyValue::getWasmPointer() {
-        this->updateLastInteraction();
-
+    void StateKeyValue::getSegment(long offset, uint8_t *buffer, size_t length) {
         this->pull();
 
-        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->sharedMemory->wavmMemory);
-        int wasmOffset = (int) (sharedMemoryPtr - baseAddr);
-
-        return wasmOffset;
-    }
-
-    std::vector<uint8_t> StateKeyValue::getSegment(long offset, long length) {
-        this->updateLastInteraction();
-
-        this->pull();
-
-        // Shared lock for partial reads
         SharedLock lock(valueMutex);
 
         // Return just the required segment
@@ -244,29 +211,32 @@ namespace wasm {
             throw std::runtime_error("Out of bounds read");
         }
 
-        std::vector<uint8_t> segment(sharedMemoryPtr + offset, sharedMemoryPtr + offset + length);
-        return segment;
+        std::copy(data + offset, data + offset + length, buffer);
     }
 
-    void StateKeyValue::set(const std::vector<uint8_t> &data) {
+    void StateKeyValue::set(uint8_t *buffer) {
         this->updateLastInteraction();
 
         // Unique lock for setting the whole value
         FullLock lock(valueMutex);
 
-        this->copyValueToSharedMem(data);
+        if(data == nullptr) {
+            data = new uint8_t[size];
+        }
+
+        // Copy data into shared region
+        std::copy(buffer, buffer + size, data);
+
         isWholeValueDirty = true;
         _isNew = false;
     }
 
-    void StateKeyValue::setSegment(long offset, const std::vector<uint8_t> &data) {
-        this->updateLastInteraction();
-
+    void StateKeyValue::setSegment(long offset, uint8_t *buffer, size_t length) {
         // Get the value first
         this->pull();
 
         // Check we're in bounds
-        size_t end = offset + data.size();
+        size_t end = offset + length;
         if (end > size) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Trying to write segment finishing at {} (value length {})", end, size);
@@ -281,7 +251,7 @@ namespace wasm {
         dirtySegments.insert(Segment(offset, end));
 
         // Update shared memory
-        this->copySegmentToSharedMem(offset, data);
+        this->copySegmentToSharedMem(offset, buffer, length);
     }
 
     void StateKeyValue::clear() {
@@ -299,8 +269,8 @@ namespace wasm {
                 const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 logger->debug("Clearing unused value {}", key);
 
-                // Release shared state
-                sharedMemory->releaseSegment(sharedMemoryPtr);
+                delete[] data;
+                data = nullptr;
 
                 // Set flag to say this is effectively new again
                 _isNew = true;
@@ -330,7 +300,7 @@ namespace wasm {
         logger->debug("Pushing whole value for {}", key);
 
         infra::Redis *redis = infra::Redis::getThreadState();
-        redis->set(key, sharedMemoryPtr, size);
+        redis->set(key, data, size);
 
         // Reset (as we're setting the full value, we've effectively pulled)
         lastPull = clock.now();
@@ -412,7 +382,7 @@ namespace wasm {
             redis->setRange(
                     key,
                     segment.first,
-                    sharedMemoryPtr + segment.first,
+                    data + segment.first,
                     (size_t) size
             );
         }
@@ -439,7 +409,7 @@ namespace wasm {
      */
 
     UserState::UserState(const std::string &userIn) : user(userIn) {
-        memory = new StateMemory(userIn);
+
     }
 
     UserState::~UserState() {
@@ -447,9 +417,6 @@ namespace wasm {
         for (const auto &iter: kvMap) {
             delete iter.second;
         }
-
-        // Delete memory
-        delete memory;
     }
 
     StateKeyValue *UserState::getValue(const std::string &key, size_t size) {
@@ -465,7 +432,7 @@ namespace wasm {
 
             // Double check it still doesn't exist
             if (kvMap.count(key) == 0) {
-                auto kv = new StateKeyValue(actualKey, size, memory);
+                auto kv = new StateKeyValue(actualKey, size);
 
                 kvMap.emplace(KVPair(key, kv));
             }

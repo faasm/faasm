@@ -9,6 +9,7 @@ using namespace worker;
 namespace tests {
     void setUp() {
         redisQueue.flushAll();
+        redisState.flushAll();
 
         // Network ns requires root
         util::setEnvVar("NETNS_MODE", "off");
