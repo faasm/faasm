@@ -392,6 +392,22 @@ namespace wasm {
         }
     }
 
+    void StateKeyValue::lockRead() {
+        valueMutex.lock_shared();
+    }
+
+    void StateKeyValue::unlockRead() {
+        valueMutex.unlock_shared();
+    }
+
+    void StateKeyValue::lockWrite() {
+        valueMutex.lock();
+    }
+
+    void StateKeyValue::unlockWrite() {
+        valueMutex.unlock();
+    }
+
     /**
      * User state (can have multiple key/ values)
      */

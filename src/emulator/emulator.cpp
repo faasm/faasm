@@ -43,6 +43,23 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen) {
     return 14;
 }
 
+void __faasm_lock_state_read(const char *key) {
+
+}
+
+void __faasm_unlock_state_read(const char *key) {
+
+}
+
+void __faasm_lock_state_write(const char *key) {
+
+}
+
+void __faasm_unlock_state_write(const char *key) {
+
+}
+
+
 void __faasm_write_output(const unsigned char *output, long outputLen) {
 
 }

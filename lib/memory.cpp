@@ -9,6 +9,14 @@ void __faasm_write_state_offset(const char *key, long offset, const unsigned cha
 
 void __faasm_read_state_offset(const char *key, long offset, unsigned char *buffer, long bufferLen, int async);
 
+void __faasm_lock_state_read(const char *key);
+
+void __faasm_unlock_state_read(const char *key);
+
+void __faasm_lock_state_write(const char *key);
+
+void __faasm_unlock_state_write(const char *key);
+
 long __faasm_read_input(unsigned char *buffer, long bufferLen);
 
 void __faasm_write_output(const unsigned char *output, long outputLen);

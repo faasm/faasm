@@ -95,6 +95,14 @@ namespace wasm {
 
         long getLocalValueSize();
 
+        void lockRead();
+
+        void unlockRead();
+
+        void lockWrite();
+
+        void unlockWrite();
+
     private:
         util::Clock &clock;
 
