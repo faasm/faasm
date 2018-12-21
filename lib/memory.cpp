@@ -3,6 +3,8 @@
 extern "C" {
 long __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, int async);
 
+uint8_t *__faasm_read_state_ptr(const char *key, long len, int async);
+
 void __faasm_write_state(const char *key, const unsigned char *data, long dataLen, int async);
 
 void __faasm_write_state_offset(const char *key, long offset, const unsigned char *data, long dataLen, int async);
@@ -40,6 +42,10 @@ namespace faasm {
         return __faasm_read_state(key, buffer, bufferLen, (int) async);
     };
 
+    uint8_t *FaasmMemory::readStatePtr(const char *key, long len, bool async) {
+        return __faasm_read_state_ptr(key, len, (int) async);
+    };
+
     void FaasmMemory::writeState(const char *key, const uint8_t *data, long dataLen, bool async) {
         __faasm_write_state(key, data, dataLen, (int) async);
     };
@@ -50,6 +56,22 @@ namespace faasm {
 
     void FaasmMemory::readStateOffset(const char *key, long offset, uint8_t *buffer, long bufferLen, bool async) {
         __faasm_read_state_offset(key, offset, buffer, bufferLen, (int) async);
+    };
+
+    void FaasmMemory::lockStateRead(const char *key) {
+        __faasm_lock_state_read(key);
+    };
+
+    void FaasmMemory::unlockStateRead(const char *key) {
+        __faasm_unlock_state_read(key);
+    };
+
+    void FaasmMemory::lockStateWrite(const char *key) {
+        __faasm_lock_state_write(key);
+    };
+
+    void FaasmMemory::unlockStateWrite(const char *key) {
+        __faasm_unlock_state_write(key);
     };
 
     long FaasmMemory::getInputSize() {

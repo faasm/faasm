@@ -9,9 +9,10 @@ namespace wasm {
     /**
      * Shared memory segment
      */
-    StateMemorySegment::StateMemorySegment(Uptr pageIn, uint8_t *ptrIn, size_t lengthIn) : page(pageIn), ptr(ptrIn),
+    StateMemorySegment::StateMemorySegment(Uptr offsetIn, uint8_t *ptrIn, size_t lengthIn) : offset(offsetIn), ptr(ptrIn),
                                                                                            length(lengthIn) {
 
+        inUse = true;
     }
 
     /**
@@ -25,9 +26,11 @@ namespace wasm {
 
         // Create a shared memory for this user
         wavmMemory = Runtime::createMemory(compartment, memoryType, user + "_shared");
+
+        // Create some space initially
         Runtime::growMemory(wavmMemory, 5);
 
-        nextPage = 0;
+        nextByte = 0;
     }
 
     StateMemory::~StateMemory() {
@@ -36,46 +39,49 @@ namespace wasm {
         Runtime::tryCollectCompartment(std::move(compartment));
     };
 
-    uint8_t *StateMemory::getPointer(size_t length) {
+    uint8_t *StateMemory::createSegment(size_t length) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
         // Need to lock the whole memory to make changes
         FullLock lock(memMutex);
 
-        const Uptr pagesToAdd = getNumberOfPagesForBytes(length);
-        const Uptr thisPage = nextPage;
-        nextPage += pagesToAdd;
+        Uptr bytesToAdd = (Uptr)length;
+        Uptr thisStart = nextByte;
+        nextByte += bytesToAdd;
 
         // See if we need to grow
+        Uptr requiredPages = getNumberOfPagesForBytes(nextByte);
         const Uptr currentPageCount = getMemoryNumPages(wavmMemory);
         Uptr maxPages = getMemoryMaxPages(wavmMemory);
-        if (nextPage > maxPages) {
-            logger->error("Allocating {} pages of shared memory when max is {}", nextPage, maxPages);
+        if (requiredPages > maxPages) {
+            logger->error("Allocating {} pages of shared memory when max is {}", requiredPages, maxPages);
             throw std::runtime_error("Attempting to allocate more than max pages of shared memory.");
         }
 
         // Grow memory if required
-        if (nextPage > currentPageCount) {
-            Uptr expansion = nextPage - currentPageCount;
+        if (requiredPages > currentPageCount) {
+            Uptr expansion = requiredPages - currentPageCount;
             growMemory(wavmMemory, expansion);
         }
 
         // Return pointer to memory
-        U8 *data = Runtime::memoryArrayPtr<U8>(wavmMemory, thisPage, length);
+        U8 *ptr = Runtime::memoryArrayPtr<U8>(wavmMemory, thisStart, length);
 
         // Record the use of this segment
-        segments.emplace_back(StateMemorySegment(thisPage, data, length));
+        segments.emplace_back(StateMemorySegment(thisStart, ptr, length));
 
-        return data;
+        return ptr;
     }
 
     void StateMemory::releaseSegment(uint8_t *ptr) {
         // Lock the memory to make changes
         FullLock lock(memMutex);
 
+        // TODO make this more efficient
         for (auto s : segments) {
             if (s.ptr == ptr) {
                 s.inUse = false;
+                break;
             }
         }
     }
@@ -83,7 +89,8 @@ namespace wasm {
     /**
      * Key/value
      */
-    StateKeyValue::StateKeyValue(const std::string &keyIn, StateMemory *sharedMemoryIn) : key(keyIn),
+    StateKeyValue::StateKeyValue(const std::string &keyIn, size_t lenIn, StateMemory *sharedMemoryIn) : key(keyIn),
+                                                                                            len(lenIn),
                                                                                           clock(util::getGlobalClock()),
                                                                                           sharedMemory(sharedMemoryIn) {
         isWholeValueDirty = false;
@@ -141,7 +148,7 @@ namespace wasm {
         if (!value.empty()) {
             // Set up the shared memory region
             if (sharedMemoryPtr == nullptr) {
-                sharedMemoryPtr = sharedMemory->getPointer(value.size());
+                sharedMemoryPtr = sharedMemory->createSegment(value.size());
             }
 
             // Copy data into new shared region
@@ -190,6 +197,17 @@ namespace wasm {
         SharedLock lock(valueMutex);
 
         return value;
+    }
+
+    int StateKeyValue::getWasmPointer() {
+        this->updateLastInteraction();
+
+        this->pull();
+
+        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->sharedMemory->wavmMemory);
+        int wasmOffset = (int) (sharedMemoryPtr - baseAddr);
+
+        return wasmOffset;
     }
 
     std::vector<uint8_t> StateKeyValue::getSegment(long offset, long length) {

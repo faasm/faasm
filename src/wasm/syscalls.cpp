@@ -175,6 +175,13 @@ namespace wasm {
         }
     }
 
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_ptr", I32, __faasm_read_state_ptr, I32 keyPtr, I32 len) {
+        util::getLogger()->debug("S - read_state_ptr - {} {}", keyPtr, len);
+
+        wasm::StateKeyValue *kv = getStateKV(keyPtr);
+        return kv->getWasmPointer();
+    }
+
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state", I32, __faasm_read_state,
                               I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 async) {
         util::getLogger()->debug("S - read_state - {} {} {}", keyPtr, bufferPtr, bufferLen);

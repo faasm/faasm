@@ -15,6 +15,16 @@ long __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, 
     return stateSize;
 }
 
+uint8_t *__faasm_read_state_ptr(const char *key, long len, int async) {
+    infra::Redis *redis = infra::Redis::getThreadState();
+    std::vector<uint8_t> state = redis->get(key);
+
+    auto buffer = new uint8_t[len];
+    std::copy(state.begin(), state.end(), buffer);
+
+    return buffer;
+}
+
 void __faasm_write_state(const char *key, const unsigned char *data, long dataLen, int async) {
     infra::Redis *redis = infra::Redis::getThreadState();
 

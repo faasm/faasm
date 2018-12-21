@@ -1,4 +1,5 @@
 __faasm_read_state
+__faasm_read_state_ptr
 __faasm_write_state
 __faasm_write_state_offset
 __faasm_read_state_offset

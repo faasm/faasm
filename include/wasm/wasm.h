@@ -37,12 +37,12 @@ namespace wasm {
      */
      class StateMemorySegment {
      public:
-         StateMemorySegment(Uptr pageIn, uint8_t *ptrIn, size_t lengthIn);
+         StateMemorySegment(Uptr offsetIn, uint8_t *ptrIn, size_t lengthIn);
 
-         Uptr page;
+         Uptr offset;
          uint8_t *ptr;
          size_t length;
-         bool inUse = true;
+         bool inUse;
      };
 
     /**
@@ -53,7 +53,7 @@ namespace wasm {
          explicit StateMemory(const std::string &user);
          ~StateMemory();
 
-         uint8_t *getPointer(size_t length);
+         uint8_t *createSegment(size_t length);
          void releaseSegment(uint8_t *ptr);
 
          Runtime::GCPointer<Runtime::Memory> wavmMemory;
@@ -61,7 +61,7 @@ namespace wasm {
      private:
          std::shared_mutex memMutex;
 
-         Uptr nextPage;
+         Uptr nextByte;
          const std::string user;
          std::vector<StateMemorySegment> segments;
      };
@@ -74,6 +74,8 @@ namespace wasm {
         explicit StateKeyValue(const std::string &keyIn, StateMemory *memory);
 
         const std::string key;
+
+        int getWasmPointer();
 
         std::vector<uint8_t> get();
 
@@ -119,6 +121,8 @@ namespace wasm {
         util::TimePoint lastInteraction;
         long staleThreshold;
         long idleThreshold;
+
+        size_t len;
 
         std::atomic<bool> isNew;
 
