@@ -9,8 +9,9 @@ namespace wasm {
     /**
      * Shared memory segment
      */
-    StateMemorySegment::StateMemorySegment(Uptr offsetIn, uint8_t *ptrIn, size_t lengthIn) : offset(offsetIn), ptr(ptrIn),
-                                                                                           length(lengthIn) {
+    StateMemorySegment::StateMemorySegment(Uptr offsetIn, uint8_t *ptrIn, size_t lengthIn) : offset(offsetIn),
+                                                                                             ptr(ptrIn),
+                                                                                             length(lengthIn) {
 
         inUse = true;
     }
@@ -45,7 +46,7 @@ namespace wasm {
         // Need to lock the whole memory to make changes
         FullLock lock(memMutex);
 
-        Uptr bytesToAdd = (Uptr)length;
+        Uptr bytesToAdd = (Uptr) length;
         Uptr thisStart = nextByte;
         nextByte += bytesToAdd;
 
@@ -89,12 +90,12 @@ namespace wasm {
     /**
      * Key/value
      */
-    StateKeyValue::StateKeyValue(const std::string &keyIn, size_t lenIn, StateMemory *sharedMemoryIn) : key(keyIn),
-                                                                                            len(lenIn),
-                                                                                          clock(util::getGlobalClock()),
-                                                                                          sharedMemory(sharedMemoryIn) {
+    StateKeyValue::StateKeyValue(const std::string &keyIn, size_t sizeIn,
+                                 StateMemory *sharedMemoryIn) : key(keyIn), clock(util::getGlobalClock()),
+                                                                sharedMemory(sharedMemoryIn), size(sizeIn) {
+
         isWholeValueDirty = false;
-        isNew = true;
+        _isNew = true;
 
         // Gets over the stale threshold trigger a pull from remote
         const util::SystemConfig &conf = util::getSystemConfig();
@@ -106,17 +107,17 @@ namespace wasm {
 
     void StateKeyValue::pull() {
         // Check if new (one-off initialisation)
-        if (isNew) {
+        if (_isNew) {
             // Unique lock on the whole value while loading
             FullLock lock(valueMutex);
 
             // Double check assumption
-            if (isNew) {
+            if (_isNew) {
                 const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 logger->debug("Initialising state for {}", key);
 
                 doRemoteRead();
-                isNew = false;
+                _isNew = false;
                 return;
             }
         }
@@ -139,19 +140,32 @@ namespace wasm {
         }
     }
 
-    void StateKeyValue::copySegmentToSharedMem(long start, long end) {
-        // Copy data into new shared region
-        std::copy(value.begin() + start, value.begin() + end, sharedMemoryPtr + start);
+    void StateKeyValue::copySegmentToSharedMem(long offset, const std::vector<uint8_t> &value) {
+        if (offset + value.size() > size) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+            logger->error("Segment length {} at offset {} too big for size {}", value.size(), offset, size);
+            throw std::runtime_error("Setting state segment too big for container");
+        }
+
+        // Copy data into shared region
+        std::copy(value.begin(), value.end(), sharedMemoryPtr + offset);
     }
 
-    void StateKeyValue::copyValueToSharedMem() {
+    void StateKeyValue::copyValueToSharedMem(const std::vector<uint8_t> &value) {
+        if (value.size() > size) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+            logger->error("Value length {} too big for size {}", value.size(), size);
+            throw std::runtime_error("Setting state value too big for container");
+        }
         if (!value.empty()) {
             // Set up the shared memory region
             if (sharedMemoryPtr == nullptr) {
                 sharedMemoryPtr = sharedMemory->createSegment(value.size());
             }
 
-            // Copy data into new shared region
+            // Copy data into shared region
             std::copy(value.begin(), value.end(), sharedMemoryPtr);
         }
     }
@@ -159,10 +173,10 @@ namespace wasm {
     void StateKeyValue::doRemoteRead() {
         // Read from the remote
         infra::Redis *redis = infra::Redis::getThreadState();
-        value = redis->get(key);
+        std::vector<uint8_t> value = redis->get(key);
 
         // Copy into shared memory
-        this->copyValueToSharedMem();
+        this->copyValueToSharedMem(value);
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Value for {} size {} after read", key, value.size());
@@ -196,7 +210,11 @@ namespace wasm {
         // Shared lock for full reads
         SharedLock lock(valueMutex);
 
-        return value;
+        if (sharedMemoryPtr == nullptr) {
+            return std::vector<uint8_t>();
+        } else {
+            return std::vector<uint8_t>(sharedMemoryPtr, sharedMemoryPtr + size);
+        }
     }
 
     int StateKeyValue::getWasmPointer() {
@@ -219,14 +237,14 @@ namespace wasm {
         SharedLock lock(valueMutex);
 
         // Return just the required segment
-        if ((offset + length) > value.size()) {
+        if ((offset + length) > size) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-            logger->error("Out of bounds read at {} on {} with length {}", offset + length, key, value.size());
+            logger->error("Out of bounds read at {} on {} with length {}", offset + length, key, size);
             throw std::runtime_error("Out of bounds read");
         }
 
-        std::vector<uint8_t> segment(value.begin() + offset, value.begin() + offset + length);
+        std::vector<uint8_t> segment(sharedMemoryPtr + offset, sharedMemoryPtr + offset + length);
         return segment;
     }
 
@@ -236,10 +254,9 @@ namespace wasm {
         // Unique lock for setting the whole value
         FullLock lock(valueMutex);
 
-        this->value = data;
-        this->copyValueToSharedMem();
+        this->copyValueToSharedMem(data);
         isWholeValueDirty = true;
-        isNew = false;
+        _isNew = false;
     }
 
     void StateKeyValue::setSegment(long offset, const std::vector<uint8_t> &data) {
@@ -250,9 +267,9 @@ namespace wasm {
 
         // Check we're in bounds
         size_t end = offset + data.size();
-        if (end > value.size()) {
+        if (end > size) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            logger->error("Trying to write segment finishing at {} (value length {})", end, value.size());
+            logger->error("Trying to write segment finishing at {} (value length {})", end, size);
             throw std::runtime_error("Attempting to set segment out of bounds");
         }
 
@@ -263,11 +280,8 @@ namespace wasm {
         // Record that this segment is dirty
         dirtySegments.insert(Segment(offset, end));
 
-        // Update the value itself
-        std::copy(data.begin(), data.end(), value.begin() + offset);
-
         // Update shared memory
-        this->copySegmentToSharedMem(offset, end);
+        this->copySegmentToSharedMem(offset, data);
     }
 
     void StateKeyValue::clear() {
@@ -276,7 +290,7 @@ namespace wasm {
         util::TimePoint now = c.now();
 
         // If over clear threshold, remove
-        if (this->isIdle(now) && !value.empty()) {
+        if (this->isIdle(now) && !_isNew) {
             // Unique lock on the whole value while clearing
             FullLock lock(valueMutex);
 
@@ -285,20 +299,17 @@ namespace wasm {
                 const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 logger->debug("Clearing unused value {}", key);
 
-                // Totally remove the value
-                this->value.clear();
-
                 // Release shared state
                 sharedMemory->releaseSegment(sharedMemoryPtr);
 
                 // Set flag to say this is effectively new again
-                isNew = true;
+                _isNew = true;
             }
         }
     }
 
-    long StateKeyValue::getLocalValueSize() {
-        return value.size();
+    bool StateKeyValue::isNew() {
+        return _isNew;
     }
 
     void StateKeyValue::pushFull() {
@@ -319,7 +330,7 @@ namespace wasm {
         logger->debug("Pushing whole value for {}", key);
 
         infra::Redis *redis = infra::Redis::getThreadState();
-        redis->set(key, value);
+        redis->set(key, sharedMemoryPtr, size);
 
         // Reset (as we're setting the full value, we've effectively pulled)
         lastPull = clock.now();
@@ -396,16 +407,13 @@ namespace wasm {
         for (const auto segment : segmentsToMerge) {
             logger->debug("Pushing partial value for {} ({} - {})", key, segment.first, segment.second);
 
-            std::vector<uint8_t> dataSegment(
-                    value.begin() + segment.first,
-                    value.begin() + segment.second
-            );
-
+            long size = segment.second - segment.first;
             infra::Redis *redis = infra::Redis::getThreadState();
             redis->setRange(
                     key,
                     segment.first,
-                    dataSegment
+                    sharedMemoryPtr + segment.first,
+                    (size_t) size
             );
         }
     }
@@ -444,8 +452,12 @@ namespace wasm {
         delete memory;
     }
 
-    StateKeyValue *UserState::getValue(const std::string &key) {
+    StateKeyValue *UserState::getValue(const std::string &key, size_t size) {
         if (kvMap.count(key) == 0) {
+            if (size == 0) {
+                throw std::runtime_error("Must provide a size when getting a value that's not already present");
+            }
+
             // Lock on editing local state registry
             FullLock fullLock(kvMapMutex);
 
@@ -453,7 +465,7 @@ namespace wasm {
 
             // Double check it still doesn't exist
             if (kvMap.count(key) == 0) {
-                auto kv = new StateKeyValue(actualKey, memory);
+                auto kv = new StateKeyValue(actualKey, size, memory);
 
                 kvMap.emplace(KVPair(key, kv));
             }
@@ -515,9 +527,9 @@ namespace wasm {
         }
     }
 
-    StateKeyValue *State::getKV(const std::string &user, const std::string &key) {
+    StateKeyValue *State::getKV(const std::string &user, const std::string &key, size_t size) {
         UserState *us = this->getUserState(user);
-        return us->getValue(key);
+        return us->getValue(key, size);
     }
 
     UserState *State::getUserState(const std::string &user) {

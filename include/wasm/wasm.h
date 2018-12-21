@@ -35,43 +35,45 @@ namespace wasm {
     /**
      * Wrapper around segment of shared memory
      */
-     class StateMemorySegment {
-     public:
-         StateMemorySegment(Uptr offsetIn, uint8_t *ptrIn, size_t lengthIn);
+    class StateMemorySegment {
+    public:
+        StateMemorySegment(Uptr offsetIn, uint8_t *ptrIn, size_t lengthIn);
 
-         Uptr offset;
-         uint8_t *ptr;
-         size_t length;
-         bool inUse;
-     };
+        Uptr offset;
+        uint8_t *ptr;
+        size_t length;
+        bool inUse;
+    };
 
     /**
      * A wrapper around shared memory for state
      */
-     class StateMemory {
-     public:
-         explicit StateMemory(const std::string &user);
-         ~StateMemory();
+    class StateMemory {
+    public:
+        explicit StateMemory(const std::string &user);
 
-         uint8_t *createSegment(size_t length);
-         void releaseSegment(uint8_t *ptr);
+        ~StateMemory();
 
-         Runtime::GCPointer<Runtime::Memory> wavmMemory;
-         Runtime::GCPointer<Runtime::Compartment> compartment;
-     private:
-         std::shared_mutex memMutex;
+        uint8_t *createSegment(size_t length);
 
-         Uptr nextByte;
-         const std::string user;
-         std::vector<StateMemorySegment> segments;
-     };
+        void releaseSegment(uint8_t *ptr);
+
+        Runtime::GCPointer<Runtime::Memory> wavmMemory;
+        Runtime::GCPointer<Runtime::Compartment> compartment;
+    private:
+        std::shared_mutex memMutex;
+
+        Uptr nextByte;
+        const std::string user;
+        std::vector<StateMemorySegment> segments;
+    };
 
     /**
      * A specific key/value pair for state
      */
     class StateKeyValue {
     public:
-        explicit StateKeyValue(const std::string &keyIn, StateMemory *memory);
+        explicit StateKeyValue(const std::string &keyIn, size_t sizeIn, StateMemory *memory);
 
         const std::string key;
 
@@ -95,8 +97,6 @@ namespace wasm {
 
         void clear();
 
-        long getLocalValueSize();
-
         void lockRead();
 
         void unlockRead();
@@ -104,6 +104,8 @@ namespace wasm {
         void lockWrite();
 
         void unlockWrite();
+
+        bool isNew();
 
     private:
         util::Clock &clock;
@@ -113,8 +115,6 @@ namespace wasm {
 
         StateMemory *sharedMemory;
         uint8_t *sharedMemoryPtr = nullptr;
-
-        std::vector<uint8_t> value;
         std::shared_mutex valueMutex;
 
         util::TimePoint lastPull;
@@ -122,15 +122,15 @@ namespace wasm {
         long staleThreshold;
         long idleThreshold;
 
-        size_t len;
+        size_t size;
 
-        std::atomic<bool> isNew;
+        std::atomic<bool> _isNew;
 
         void doRemoteRead();
 
-        void copyValueToSharedMem();
+        void copyValueToSharedMem(const std::vector<uint8_t> &value);
 
-        void copySegmentToSharedMem(long start, long end);
+        void copySegmentToSharedMem(long offset, const std::vector<uint8_t> &value);
 
         void updateLastInteraction();
 
@@ -151,7 +151,7 @@ namespace wasm {
 
         ~UserState();
 
-        StateKeyValue *getValue(const std::string &key);
+        StateKeyValue *getValue(const std::string &key, size_t size);
 
         void pushAll();
 
@@ -175,7 +175,7 @@ namespace wasm {
 
         ~State();
 
-        StateKeyValue *getKV(const std::string &user, const std::string &key);
+        StateKeyValue *getKV(const std::string &user, const std::string &key, size_t size);
 
         UserState *getUserState(const std::string &user);
 

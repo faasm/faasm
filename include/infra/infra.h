@@ -46,6 +46,8 @@ namespace infra {
 
         void set(const std::string &key, const std::vector<uint8_t> &value);
 
+        void set(const std::string &key, const uint8_t *value, size_t size);
+
         void del(const std::string &key);
 
         long getCounter(const std::string &key);
@@ -59,6 +61,8 @@ namespace infra {
         bool incrIfBelowTarget(const std::string &key, int target);
 
         void setRange(const std::string &key, long offset, const std::vector<uint8_t> &value);
+
+        void setRange(const std::string &key, long offset, const uint8_t *value, size_t size);
 
         std::vector<uint8_t> getRange(const std::string &key, long start, long end);
 

@@ -107,10 +107,10 @@ namespace wasm {
     // ------------------------
     // FAASM-specific
     // ------------------------
-    StateKeyValue * getStateKV(I32 keyPtr) {
+    StateKeyValue * getStateKV(I32 keyPtr, size_t size) {
         const std::pair<std::string, std::string> userKey = getUserKeyPairFromWasm(keyPtr);
         wasm::State &s = wasm::getGlobalState();
-        wasm::StateKeyValue *kv = s.getKV(userKey.first, userKey.second);
+        wasm::StateKeyValue *kv = s.getKV(userKey.first, userKey.second, size);
 
         return kv;
     }
@@ -118,28 +118,28 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_lock_state_read", void, __faasm_lock_state_read, I32 keyPtr) {
         util::getLogger()->debug("S - lock_state_read - {}", keyPtr);
 
-        wasm::StateKeyValue *kv = getStateKV(keyPtr);
+        wasm::StateKeyValue *kv = getStateKV(keyPtr, 0);
         kv->lockRead();
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_unlock_state_read", void, __faasm_unlock_state_read, I32 keyPtr) {
         util::getLogger()->debug("S - unlock_state_read - {}", keyPtr);
 
-        wasm::StateKeyValue *kv = getStateKV(keyPtr);
+        wasm::StateKeyValue *kv = getStateKV(keyPtr, 0);
         kv->unlockRead();
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_lock_state_write", void, __faasm_lock_state_write, I32 keyPtr) {
         util::getLogger()->debug("S - lock_state_write - {}", keyPtr);
 
-        wasm::StateKeyValue *kv = getStateKV(keyPtr);
+        wasm::StateKeyValue *kv = getStateKV(keyPtr, 0);
         kv->lockWrite();
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_unlock_state_write", void, __faasm_unlock_state_write, I32 keyPtr) {
         util::getLogger()->debug("S - unlock_state_write - {}", keyPtr);
 
-        wasm::StateKeyValue *kv = getStateKV(keyPtr);
+        wasm::StateKeyValue *kv = getStateKV(keyPtr, 0);
         kv->unlockWrite();
     }
 
@@ -147,7 +147,7 @@ namespace wasm {
                               I32 keyPtr, I32 dataPtr, I32 dataLen, I32 async) {
         util::getLogger()->debug("S - write_state - {} {} {} {}", keyPtr, dataPtr, dataLen, async);
 
-        wasm::StateKeyValue *kv = getStateKV(keyPtr);
+        wasm::StateKeyValue *kv = getStateKV(keyPtr, dataLen);
 
         // Read the data and set
         const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
@@ -163,7 +163,7 @@ namespace wasm {
                               I32 keyPtr, I32 offset, I32 dataPtr, I32 dataLen, I32 async) {
         util::getLogger()->debug("S - write_state_offset - {} {} {} {} {}", keyPtr, offset, dataPtr, dataLen, async);
 
-        wasm::StateKeyValue *kv = getStateKV(keyPtr);
+        wasm::StateKeyValue *kv = getStateKV(keyPtr, dataLen);
 
         // Read data and set
         const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
@@ -178,7 +178,7 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_ptr", I32, __faasm_read_state_ptr, I32 keyPtr, I32 len) {
         util::getLogger()->debug("S - read_state_ptr - {} {}", keyPtr, len);
 
-        wasm::StateKeyValue *kv = getStateKV(keyPtr);
+        wasm::StateKeyValue *kv = getStateKV(keyPtr, len);
         return kv->getWasmPointer();
     }
 
@@ -186,31 +186,16 @@ namespace wasm {
                               I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 async) {
         util::getLogger()->debug("S - read_state - {} {} {}", keyPtr, bufferPtr, bufferLen);
 
-        wasm::StateKeyValue *kv = getStateKV(keyPtr);
+        wasm::StateKeyValue *kv = getStateKV(keyPtr, bufferLen);
 
-        if (async == 1) {
-            // Asynchronous
-
-            // If we just want the size, return it
-            if (bufferLen <= 0) {
-                return (int) kv->getLocalValueSize();
-            }
-
-            // TODO - use shared memory
-            // Copy to buffer
-            std::vector<uint8_t> value = kv->get();
-            return copyToWasmBuffer(value, bufferPtr, bufferLen);
-        }
-        else {
-            // Synchronous
-
+        if (async == 0) {
             // Pull from remote
             kv->pull();
-
-            // Pass copy back to wasm
-            std::vector<uint8_t> value = kv->get();
-            return copyToWasmBuffer(value, bufferPtr, bufferLen);
         }
+
+        // Copy to buffer
+        std::vector<uint8_t> value = kv->get();
+        return copyToWasmBuffer(value, bufferPtr, bufferLen);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset", void, __faasm_read_state_offset,
@@ -218,7 +203,7 @@ namespace wasm {
         util::getLogger()->debug("S - read_state_offset - {} {} {} {}", keyPtr, offset, bufferPtr, bufferLen);
 
         // Read the state in
-        wasm::StateKeyValue *kv = getStateKV(keyPtr);
+        wasm::StateKeyValue *kv = getStateKV(keyPtr, bufferLen);
 
         // Pull from remote if synchronous
         if (async == 0) {

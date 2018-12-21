@@ -212,64 +212,6 @@ namespace tests {
         tearDown();
     }
 
-    TEST_CASE("Test state", "[worker]") {
-        setUp();
-
-        // Initially function's state should be an empty array
-        // Note, we need to prepend the user to the actual key used in the code
-        std::string user = "demo";
-        std::string key = "state_example";
-        const char *stateKey = "demo_state_example";
-        std::vector<uint8_t> initialState = redisQueue.get(stateKey);
-        REQUIRE(initialState.empty());
-
-        wasm::State &s = wasm::getGlobalState();
-        wasm::StateKeyValue *kv = s.getKV(user, key);
-
-        // Set up the function call
-        message::Message call;
-        call.set_user("demo");
-        call.set_function("state");
-        call.set_resultkey("test_state");
-
-        WorkerThread w(1);
-
-        // Tell the worker to bind to the function
-        infra::Scheduler::callFunction(call);
-        w.processNextMessage();
-
-        // Exec the function
-        w.processNextMessage();
-
-        message::Message resultA = redisQueue.getFunctionResult(call);
-        REQUIRE(resultA.success());
-
-        // Load the state again, it should have a new element
-        std::vector<uint8_t> stateA = kv->get();
-        std::vector<uint8_t> expectedA = {1};
-        REQUIRE(stateA == expectedA);
-
-        // Call the function a second time, the state should have another element added
-        infra::Scheduler::callFunction(call);
-        w.processNextMessage();
-        message::Message resultB = redisQueue.getFunctionResult(call);
-        REQUIRE(resultB.success());
-
-        std::vector<uint8_t> stateB = redisQueue.get(stateKey);
-        std::vector<uint8_t> expectedB = {1, 2};
-        //REQUIRE(stateB == expectedB);
-
-        // Do the same a third time
-        infra::Scheduler::callFunction(call);
-        w.processNextMessage();
-        message::Message resultC = redisQueue.getFunctionResult(call);
-        REQUIRE(resultC.success());
-
-        std::vector<uint8_t> stateC = kv->get();
-        std::vector<uint8_t> expectedC = {1, 2, 3};
-        REQUIRE(stateC == expectedC);
-    }
-
     TEST_CASE("Test state increment", "[worker]") {
         setUp();
 

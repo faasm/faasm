@@ -15,7 +15,7 @@ namespace tests {
         util::Clock &clock = util::getGlobalClock();
         clock.setFakeNow(clock.now());
 
-        StateKeyValue *kv = s.getKV(user, key);
+        StateKeyValue *kv = s.getKV(user, key, 5);
 
         std::string actualKey = "test_state_new";
 
@@ -43,7 +43,7 @@ namespace tests {
         State s;
         std::string user = "test";
         std::string key = "state_segment";
-        StateKeyValue *kv = s.getKV(user, key);
+        StateKeyValue *kv = s.getKV(user, key, 10);
 
         std::string actualKey = "test_state_segment";
 
@@ -74,7 +74,7 @@ namespace tests {
         State s;
         std::string user = "test";
         std::string key = "state_extension";
-        StateKeyValue *kv = s.getKV(user, key);
+        StateKeyValue *kv = s.getKV(user, key, 2);
 
         std::string actualKey = "test_state_oob";
 
@@ -91,8 +91,8 @@ namespace tests {
         std::string keyA = "multi_push_a";
         std::string keyB = "multi_push_b";
 
-        StateKeyValue *kvA = s.getKV(userA, keyA);
-        StateKeyValue *kvB = s.getKV(userB, keyB);
+        StateKeyValue *kvA = s.getKV(userA, keyA,4);
+        StateKeyValue *kvB = s.getKV(userB, keyB,3);
 
         std::string actualKeyA = userA + "_" + keyA;
         std::string actualKeyB = userB + "_" + keyB;
@@ -120,7 +120,7 @@ namespace tests {
         State s;
         std::string user = "test";
         std::string key = "dirty_push";
-        StateKeyValue *kv = s.getKV(user, key);
+        StateKeyValue *kv = s.getKV(user, key,4);
         std::vector<uint8_t> values = {0, 1, 2, 3};
 
         std::string actualKey = user + "_" + key;
@@ -136,7 +136,7 @@ namespace tests {
         REQUIRE(redisState.get(actualKey) == values);
 
         // Now update in Redis directly
-        std::vector<uint8_t> newValues = {5, 5, 5};
+        std::vector<uint8_t> newValues = {5, 5, 5, 5};
         redisState.set(actualKey, newValues);
 
         // Get and check that remote value isn't pulled because it's not stale
@@ -162,7 +162,7 @@ namespace tests {
         c.setFakeNow(now);
 
         std::vector<uint8_t> value = {0, 1, 2, 3};
-        StateKeyValue *kv = s.getKV(user, key);
+        StateKeyValue *kv = s.getKV(user, key, 4);
 
         // Push value to redis
         kv->set(value);
@@ -171,7 +171,6 @@ namespace tests {
         // Try clearing, check nothing happens
         kv->clear();
         REQUIRE(kv->get() == value);
-        REQUIRE(kv->getLocalValueSize() == value.size());
 
         // Advance time a bit, check it doesn't get cleared
         std::chrono::seconds secsSmall(1);
@@ -179,7 +178,7 @@ namespace tests {
         c.setFakeNow(newNow);
 
         kv->clear();
-        REQUIRE(kv->getLocalValueSize() == value.size());
+        REQUIRE(!kv->isNew());
 
         // Advance time a lot and check it does get cleared
         std::chrono::seconds secsBig(120);
@@ -187,7 +186,7 @@ namespace tests {
         c.setFakeNow(newNow);
 
         kv->clear();
-        REQUIRE(kv->getLocalValueSize() == 0);
+        REQUIRE(kv->isNew());
     }
 
     TEST_CASE("Test pulling only happens if stale") {
@@ -202,12 +201,12 @@ namespace tests {
 
         // Set up a value in redis
         std::vector<uint8_t> value = {0, 1, 2, 3, 4, 5};
-        StateKeyValue *kv = s.getKV(user, key);
+        StateKeyValue *kv = s.getKV(user, key, 6);
         kv->set(value);
         kv->pushFull();
 
         // Now change the value in Redis
-        std::vector<uint8_t> value2 = {2, 4};
+        std::vector<uint8_t> value2 = {2, 4, 2, 4, 2, 4};
         std::string actualKey = user + "_" + key;
         redisState.set(actualKey, value2);
 
@@ -233,13 +232,13 @@ namespace tests {
         const util::TimePoint now = c.now();
         c.setFakeNow(now);
 
-        // Check not idle by default
-        StateKeyValue *const kv = s.getKV(user, key);
+        // Check not idle by default (i.e. won't get cleared)
+        StateKeyValue *const kv = s.getKV(user, key, 3);
         kv->set({1, 2, 3});
         kv->pushFull();
         kv->clear();
 
-        REQUIRE(kv->getLocalValueSize() == 3);
+        REQUIRE(kv->get().size() == 3);
 
         // Move time on, but then perform some action
         c.setFakeNow(now + std::chrono::seconds(180));
@@ -256,15 +255,16 @@ namespace tests {
             throw std::runtime_error("Unrecognised action type");
         }
 
+        // Try clearing, check not cleared
         kv->clear();
 
         // Check not counted as stale
-        REQUIRE(kv->getLocalValueSize() == 3);
+        REQUIRE(!kv->isNew());
 
-        // Move time on again without any action, check is stale
+        // Move time on again without any action, check is stale and gets cleared
         c.setFakeNow(now + std::chrono::seconds(360));
         kv->clear();
-        REQUIRE(kv->getLocalValueSize() == 0);
+        REQUIRE(kv->isNew());
 
     }
 

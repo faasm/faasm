@@ -69,7 +69,6 @@ void __faasm_unlock_state_write(const char *key) {
 
 }
 
-
 void __faasm_write_output(const unsigned char *output, long outputLen) {
 
 }

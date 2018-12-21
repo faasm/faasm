@@ -32,12 +32,6 @@ namespace faasm {
 
     }
 
-    long FaasmMemory::getStateSize(const char *key, bool async) {
-        // Passing zero buffer len returns total size
-        uint8_t buf[1];
-        return __faasm_read_state(key, buf, 0, (int) async);
-    }
-
     long FaasmMemory::readState(const char *key, uint8_t *buffer, long bufferLen, bool async) {
         return __faasm_read_state(key, buffer, bufferLen, (int) async);
     };

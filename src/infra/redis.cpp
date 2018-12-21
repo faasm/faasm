@@ -54,23 +54,23 @@ namespace infra {
     // 1a. If it's less than the target
     static std::string incrIfBelowTargetSha;
     static std::string incrIfBelowTargetCmd = "local prewarmCount = redis.call(\"GET\", KEYS[1]) \n"
-                                          "if prewarmCount then \n"
-                                          "    prewarmCount = tonumber(prewarmCount) \n"
-                                          "else \n"
-                                          "    prewarmCount = 0 \n"
-                                          "end \n"
-                                          ""
-                                          "local prewarmTarget = tonumber(ARGV[1]) \n"
-                                          "if prewarmCount < prewarmTarget then \n"
-                                          "    redis.call(\"INCR\", KEYS[1]) \n"
-                                          "    return 1 \n"
-                                          "end \n"
-                                          ""
-                                          "return 0";
+                                              "if prewarmCount then \n"
+                                              "    prewarmCount = tonumber(prewarmCount) \n"
+                                              "else \n"
+                                              "    prewarmCount = 0 \n"
+                                              "end \n"
+                                              ""
+                                              "local prewarmTarget = tonumber(ARGV[1]) \n"
+                                              "if prewarmCount < prewarmTarget then \n"
+                                              "    redis.call(\"INCR\", KEYS[1]) \n"
+                                              "    return 1 \n"
+                                              "end \n"
+                                              ""
+                                              "return 0";
 
     Redis::Redis(const RedisRole &role) {
         std::string thisIp;
-        if(role == STATE) {
+        if (role == STATE) {
             hostname = util::getEnvVar("REDIS_STATE_HOST", "localhost");
 
             if (redisStateIp.empty()) {
@@ -78,8 +78,7 @@ namespace infra {
             }
 
             thisIp = redisStateIp;
-        }
-        else {
+        } else {
             hostname = util::getEnvVar("REDIS_QUEUE_HOST", "localhost");
 
             if (redisQueueIp.empty()) {
@@ -223,7 +222,11 @@ namespace infra {
 
 
     void Redis::set(const std::string &key, const std::vector<uint8_t> &value) {
-        auto reply = (redisReply *) redisCommand(context, "SET %s %b", key.c_str(), value.data(), value.size());
+        this->set(key, value.data(), value.size());
+    }
+
+    void Redis::set(const std::string &key, const uint8_t *value, size_t size) {
+        auto reply = (redisReply *) redisCommand(context, "SET %s %b", key.c_str(), value, size);
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -240,8 +243,12 @@ namespace infra {
     }
 
     void Redis::setRange(const std::string &key, long offset, const std::vector<uint8_t> &value) {
-        auto reply = (redisReply *) redisCommand(context, "SETRANGE %s %li %b", key.c_str(), offset, value.data(),
-                                                 value.size());
+        this->setRange(key, offset, value.data(), value.size());
+    }
+
+    void Redis::setRange(const std::string &key, long offset, const uint8_t *value, size_t size) {
+        auto reply = (redisReply *) redisCommand(context, "SETRANGE %s %li %b", key.c_str(), offset, value,
+                                                 size);
         freeReplyObject(reply);
     }
 
@@ -291,7 +298,7 @@ namespace infra {
     long Redis::listLength(const std::string &queueName) {
         auto reply = (redisReply *) redisCommand(context, "LLEN %s", queueName.c_str());
 
-        if(reply == nullptr || reply->type == REDIS_REPLY_NIL) {
+        if (reply == nullptr || reply->type == REDIS_REPLY_NIL) {
             return 0;
         }
 

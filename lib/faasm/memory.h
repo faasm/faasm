@@ -10,11 +10,6 @@ namespace faasm {
         FaasmMemory();
 
         /**
-         * Returns the size of the state in bytes. Returns zero if not set.
-         */
-        long getStateSize(const char *key, bool async = false);
-
-        /**
          * Reads the full state at the given key
          */
         long readState(const char *key, uint8_t *buffer, long bufferLen, bool async = false);
