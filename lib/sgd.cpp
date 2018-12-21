@@ -28,11 +28,11 @@ namespace faasm {
 
     MatrixXd hingeLossWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int epoch,
                                    const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
-        // Read in weights asynchronously
-        MatrixXd weights = readMatrixFromState(memory, WEIGHTS_KEY, 1, sgdParams.nWeights, true);
-
         // Iterate through all training examples (i.e. columns)
         for (int col = 0; col < inputs.outerSize(); ++col) {
+            // Read in weights asynchronously
+            MatrixXd weights = readMatrixFromState(memory, WEIGHTS_KEY, 1, sgdParams.nWeights, true);
+
             // Get input and output associated with this example
             double thisOutput = outputs.coeff(0, col);
             SparseMatrix<double> thisInput = inputs.col(col);
@@ -65,6 +65,7 @@ namespace faasm {
         }
 
         // Recalculate the result and return
+        MatrixXd weights = readMatrixFromState(memory, WEIGHTS_KEY, 1, sgdParams.nWeights, true);
         MatrixXd postUpdate = weights * inputs;
         return postUpdate;
     }
