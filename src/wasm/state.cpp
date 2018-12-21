@@ -7,23 +7,30 @@ namespace wasm {
     typedef std::shared_lock<std::shared_mutex> SharedLock;
 
     /**
+     * Shared memory segment
+     */
+    StateMemorySegment::StateMemorySegment(Uptr pageIn, uint8_t *ptrIn, size_t lengthIn) : page(pageIn), ptr(ptrIn),
+                                                                                           length(lengthIn) {
+
+    }
+
+    /**
      * Shared memory
      */
     StateMemory::StateMemory(const std::string &userIn) : user(userIn) {
         compartment = Runtime::createCompartment();
 
-        // Prepare memory
-        IR::MemoryType memoryType(true, {0, 0});
+        // Prepare memory, each user can have up to 1000
+        IR::MemoryType memoryType(true, {0, 1000});
 
         // Create a shared memory for this user
         wavmMemory = Runtime::createMemory(compartment, memoryType, user + "_shared");
         Runtime::growMemory(wavmMemory, 5);
 
-        nextOffset = 0;
+        nextPage = 0;
     }
 
     StateMemory::~StateMemory() {
-        compartment = nullptr;
         wavmMemory = nullptr;
 
         Runtime::tryCollectCompartment(std::move(compartment));
@@ -32,39 +39,53 @@ namespace wasm {
     uint8_t *StateMemory::getPointer(size_t length) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
-        // Work out the max address required
-        Uptr maxAddress = nextOffset + length;
-        const Uptr requiredPages = getNumberPagesAtOffset(maxAddress);
+        // Need to lock the whole memory to make changes
+        FullLock lock(memMutex);
+
+        const Uptr pagesToAdd = getNumberOfPagesForBytes(length);
+        const Uptr thisPage = nextPage;
+        nextPage += pagesToAdd;
 
         // See if we need to grow
         const Uptr currentPageCount = getMemoryNumPages(wavmMemory);
         Uptr maxPages = getMemoryMaxPages(wavmMemory);
-        if (requiredPages > maxPages) {
-            logger->error("Allocating {} pages of shared memory when max is {}", requiredPages, maxPages);
+        if (nextPage > maxPages) {
+            logger->error("Allocating {} pages of shared memory when max is {}", nextPage, maxPages);
             throw std::runtime_error("Attempting to allocate more than max pages of shared memory.");
         }
 
         // Grow memory if required
-        if (requiredPages > currentPageCount) {
-            Uptr expansion = requiredPages - currentPageCount;
+        if (nextPage > currentPageCount) {
+            Uptr expansion = nextPage - currentPageCount;
             growMemory(wavmMemory, expansion);
         }
 
         // Return pointer to memory
-        U8 *data = Runtime::memoryArrayPtr<U8>(wavmMemory, nextOffset, length);
+        U8 *data = Runtime::memoryArrayPtr<U8>(wavmMemory, thisPage, length);
 
-        // Increment offset with a page buffer
-        nextOffset += (length + IR::numBytesPerPage);
+        // Record the use of this segment
+        segments.emplace_back(StateMemorySegment(thisPage, data, length));
 
         return data;
+    }
+
+    void StateMemory::releaseSegment(uint8_t *ptr) {
+        // Lock the memory to make changes
+        FullLock lock(memMutex);
+
+        for (auto s : segments) {
+            if (s.ptr == ptr) {
+                s.inUse = false;
+            }
+        }
     }
 
     /**
      * Key/value
      */
     StateKeyValue::StateKeyValue(const std::string &keyIn, StateMemory *sharedMemoryIn) : key(keyIn),
-                                                                                          sharedMemory(sharedMemoryIn),
-                                                                                          clock(util::getGlobalClock()) {
+                                                                                          clock(util::getGlobalClock()),
+                                                                                          sharedMemory(sharedMemoryIn) {
         isWholeValueDirty = false;
         isNew = true;
 
@@ -89,6 +110,7 @@ namespace wasm {
 
                 doRemoteRead();
                 isNew = false;
+                return;
             }
         }
 
@@ -110,14 +132,30 @@ namespace wasm {
         }
     }
 
+    void StateKeyValue::copySegmentToSharedMem(long start, long end) {
+        // Copy data into new shared region
+        std::copy(value.begin() + start, value.begin() + end, sharedMemoryPtr + start);
+    }
+
+    void StateKeyValue::copyValueToSharedMem() {
+        if (!value.empty()) {
+            // Set up the shared memory region
+            if (sharedMemoryPtr == nullptr) {
+                sharedMemoryPtr = sharedMemory->getPointer(value.size());
+            }
+
+            // Copy data into new shared region
+            std::copy(value.begin(), value.end(), sharedMemoryPtr);
+        }
+    }
+
     void StateKeyValue::doRemoteRead() {
         // Read from the remote
         infra::Redis *redis = infra::Redis::getThreadState();
         value = redis->get(key);
 
         // Copy into shared memory
-        uint8_t *memPtr = sharedMemory->getPointer(value.size());
-        std::copy(value.begin(), value.end(), memPtr);
+        this->copyValueToSharedMem();
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Value for {} size {} after read", key, value.size());
@@ -181,6 +219,7 @@ namespace wasm {
         FullLock lock(valueMutex);
 
         this->value = data;
+        this->copyValueToSharedMem();
         isWholeValueDirty = true;
         isNew = false;
     }
@@ -188,17 +227,15 @@ namespace wasm {
     void StateKeyValue::setSegment(long offset, const std::vector<uint8_t> &data) {
         this->updateLastInteraction();
 
-        // Resize vector if needed
-        size_t max = offset + data.size();
-        if (max > value.size()) {
-            // Unique lock for changing value size
-            FullLock lock(valueMutex);
+        // Get the value first
+        this->pull();
 
-            // Double check condition still holds
-            if (max > value.size()) {
-                // Do the resize
-                value.resize(max);
-            }
+        // Check we're in bounds
+        size_t end = offset + data.size();
+        if (end > value.size()) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->error("Trying to write segment finishing at {} (value length {})", end, value.size());
+            throw std::runtime_error("Attempting to set segment out of bounds");
         }
 
         // Shared lock for writing segments (need to allow lock-free writing of multiple threads on same
@@ -206,10 +243,13 @@ namespace wasm {
         SharedLock lock(valueMutex);
 
         // Record that this segment is dirty
-        dirtySegments.insert(Segment(offset, offset + data.size()));
+        dirtySegments.insert(Segment(offset, end));
 
         // Update the value itself
         std::copy(data.begin(), data.end(), value.begin() + offset);
+
+        // Update shared memory
+        this->copySegmentToSharedMem(offset, end);
     }
 
     void StateKeyValue::clear() {
@@ -229,6 +269,11 @@ namespace wasm {
 
                 // Totally remove the value
                 this->value.clear();
+
+                // Release shared state
+                sharedMemory->releaseSegment(sharedMemoryPtr);
+
+                // Set flag to say this is effectively new again
                 isNew = true;
             }
         }
@@ -352,7 +397,7 @@ namespace wasm {
      */
 
     UserState::UserState(const std::string &userIn) : user(userIn) {
-        memory = new StateMemory();
+        memory = new StateMemory(userIn);
     }
 
     UserState::~UserState() {
@@ -374,7 +419,7 @@ namespace wasm {
 
             // Double check it still doesn't exist
             if (kvMap.count(key) == 0) {
-                auto kv = new StateKeyValue(actualKey);
+                auto kv = new StateKeyValue(actualKey, memory);
 
                 kvMap.emplace(KVPair(key, kv));
             }

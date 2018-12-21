@@ -27,10 +27,23 @@ namespace wasm {
     // Page size in wasm is 64kiB so 100 pages ~ 6MiB of memory
     const int MIN_MEMORY_PAGES = 100;
 
-    Uptr getNumberPagesAtOffset(U32 offset);
+    Uptr getNumberOfPagesForBytes(U32 nBytes);
 
     typedef std::pair<long, long> Segment;
     typedef std::set<std::pair<long, long>> SegmentSet;
+
+    /**
+     * Wrapper around segment of shared memory
+     */
+     class StateMemorySegment {
+     public:
+         StateMemorySegment(Uptr pageIn, uint8_t *ptrIn, size_t lengthIn);
+
+         Uptr page;
+         uint8_t *ptr;
+         size_t length;
+         bool inUse = true;
+     };
 
     /**
      * A wrapper around shared memory for state
@@ -41,12 +54,16 @@ namespace wasm {
          ~StateMemory();
 
          uint8_t *getPointer(size_t length);
+         void releaseSegment(uint8_t *ptr);
 
          Runtime::GCPointer<Runtime::Memory> wavmMemory;
          Runtime::GCPointer<Runtime::Compartment> compartment;
      private:
-         Uptr nextOffset;
+         std::shared_mutex memMutex;
+
+         Uptr nextPage;
          const std::string user;
+         std::vector<StateMemorySegment> segments;
      };
 
     /**
@@ -54,7 +71,7 @@ namespace wasm {
      */
     class StateKeyValue {
     public:
-        explicit StateKeyValue(const std::string &keyIn);
+        explicit StateKeyValue(const std::string &keyIn, StateMemory *memory);
 
         const std::string key;
 
@@ -85,6 +102,7 @@ namespace wasm {
         std::set<std::pair<long, long>> dirtySegments;
 
         StateMemory *sharedMemory;
+        uint8_t *sharedMemoryPtr = nullptr;
 
         std::vector<uint8_t> value;
         std::shared_mutex valueMutex;
@@ -97,6 +115,10 @@ namespace wasm {
         std::atomic<bool> isNew;
 
         void doRemoteRead();
+
+        void copyValueToSharedMem();
+
+        void copySegmentToSharedMem(long start, long end);
 
         void updateLastInteraction();
 

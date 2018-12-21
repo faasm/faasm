@@ -29,13 +29,12 @@ namespace wasm {
         return executingCallChain;
     }
 
-    Uptr getNumberPagesAtOffset(U32 offset) {
+    Uptr getNumberOfPagesForBytes(U32 nBytes) {
         // Work out how many pages needed to hit the target address
-        Uptr pageCount = ((Uptr) offset) / IR::numBytesPerPage;
+        Uptr pageCount = ((Uptr) nBytes) / IR::numBytesPerPage;
 
-        // Check we're on a page boundary, if not bump up number of pages
-        if (offset % IR::numBytesPerPage != 0) {
-            printf("Warning, requesting address off page boundary (%u)", offset);
+        // Round up
+        if (nBytes % IR::numBytesPerPage != 0) {
             pageCount++;
         }
 
@@ -108,7 +107,7 @@ namespace wasm {
         this->module.memories.defs[0].type.size.min = (U64) MIN_MEMORY_PAGES;
 
         // Add the shared memory definition
-        this->module.memories.imports.push_back({{true, {0, 0}}, msg.user(), "shared_state"});
+        this->module.memories.imports.push_back({{true, {0, 1000}}, msg.user(), "shared_state"});
 
         // Linking
         const auto &t1 = prof::startTimer();

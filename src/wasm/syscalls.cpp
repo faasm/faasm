@@ -1080,7 +1080,7 @@ namespace wasm {
         }
 
         // Work out how many pages need to be added
-        Uptr pagesRequested = getNumberPagesAtOffset(length);
+        Uptr pagesRequested = getNumberOfPagesForBytes(length);
 
         Iptr previousPageCount = growMemory(getExecutingModule()->defaultMemory, pagesRequested);
 
@@ -1128,7 +1128,7 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_brk", I32, __syscall_brk, U32 addr) {
         util::getLogger()->debug("S - brk - {}", addr);
 
-        Uptr targetPageCount = getNumberPagesAtOffset(addr);
+        Uptr targetPageCount = getNumberOfPagesForBytes(addr);
 
         // Work out current page count and break
         Runtime::Memory *memory = getExecutingModule()->defaultMemory;

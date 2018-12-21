@@ -11,6 +11,10 @@ namespace tests {
         std::string user = "test";
         std::string key = "state_new";
 
+        // Fake time
+        util::Clock &clock = util::getGlobalClock();
+        clock.setFakeNow(clock.now());
+
         StateKeyValue *kv = s.getKV(user, key);
 
         std::string actualKey = "test_state_new";
@@ -66,30 +70,18 @@ namespace tests {
         REQUIRE(redisState.get(actualKey) == expected);
     }
 
-    TEST_CASE("Test set segment extends value", "[state]") {
+    TEST_CASE("Test set segment cannot be out of bounds", "[state]") {
         State s;
         std::string user = "test";
         std::string key = "state_extension";
         StateKeyValue *kv = s.getKV(user, key);
 
-        std::string actualKey = "test_state_extension";
+        std::string actualKey = "test_state_oob";
 
         // Set a segment offset
         std::vector<uint8_t> update = {8, 8, 8};
-        kv->setSegment(5, update);
 
-        // Check nothing has been done in redis
-        REQUIRE(redisState.get(key).empty());
-
-        // Check value has expanded to meet the insertion
-        std::vector<uint8_t> expected = {0, 0, 0, 0, 0, 8, 8, 8};
-        REQUIRE(kv->getLocalValueSize() == expected.size());
-
-        // Push and check updates correctly
-        kv->pushPartial();
-        REQUIRE(kv->get() == expected);
-        REQUIRE(kv->getSegment(5, 3) == update);
-        REQUIRE(redisState.get(actualKey) == expected);
+        REQUIRE_THROWS(kv->setSegment(5, update));
     }
 
     TEST_CASE("Test pushing all state", "[state]") {
