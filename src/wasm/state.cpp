@@ -152,8 +152,7 @@ namespace wasm {
     void StateKeyValue::doRemoteRead() {
         // Initialise the data array with zeroes
         if(_empty) {
-            value.reserve(size);
-            std::fill(value.data(), value.data() + size, 0);
+            value.resize(size);
         }
 
         // Read from the remote
@@ -199,6 +198,10 @@ namespace wasm {
     }
 
     void StateKeyValue::getSegment(long offset, uint8_t *buffer, size_t length) {
+        if(this->empty()) {
+            throw std::runtime_error("Must pull before accessing state");
+        }
+
         this->updateLastInteraction();
 
         SharedLock lock(valueMutex);
@@ -221,7 +224,7 @@ namespace wasm {
         FullLock lock(valueMutex);
 
         if(value.empty()) {
-            value.reserve(size);
+            value.resize(size);
         }
 
         // Copy data into shared region

@@ -33,13 +33,15 @@ void __faasm_write_state(const char *key, const unsigned char *data, long dataLe
     }
 }
 
-void __faasm_write_state_offset(const char *key, long offset, const unsigned char *data, long dataLen, int async) {
+void __faasm_write_state_offset(const char *key, long totalLen, long offset, const unsigned char *data, long dataLen,
+                                int async) {
     infra::Redis *redis = infra::Redis::getThreadState();
     std::vector<uint8_t> newState(data, data + dataLen);
     redis->setRange(key, offset, newState);
 }
 
-void __faasm_read_state_offset(const char *key, long offset, unsigned char *buffer, long bufferLen, int async) {
+void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsigned char *buffer, long bufferLen,
+                               int async) {
     infra::Redis *redis = infra::Redis::getThreadState();
     std::vector<uint8_t> state = redis->getRange(key, offset, offset + bufferLen);
     util::safeCopyToBuffer(state, buffer, bufferLen);

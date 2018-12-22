@@ -130,11 +130,12 @@ namespace faasm {
         delete[] buffer;
     }
 
-    void writeFinishedFlag(FaasmMemory *memory, int batchNumber) {
+    void writeFinishedFlag(FaasmMemory *memory, int batchNumber, int totalBatches) {
+        long totalBytes = totalBatches * sizeof(int);
         int finished = 1;
         auto finishedBytes = reinterpret_cast<uint8_t *>(&finished);
         long offset = batchNumber * sizeof(int);
-        memory->writeStateOffset(FINISHED_KEY, offset, finishedBytes, sizeof(int));
+        memory->writeStateOffset(FINISHED_KEY, totalBytes, offset, finishedBytes, sizeof(int));
     }
 
     void zeroFinished(FaasmMemory *memory, SgdParams sgdParams) {
@@ -149,21 +150,24 @@ namespace faasm {
         zeroDoubleArray(memory, LOSSES_KEY, sgdParams.nEpochs);
     }
 
-    void _writeError(FaasmMemory *memory, int batchNumber, double error) {
+    void _writeError(FaasmMemory *memory, int batchNumber, int totalBatches, double error) {
         auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&error);
 
         long offset = batchNumber * sizeof(double);
-        memory->writeStateOffset(ERRORS_KEY, offset, squaredErrorBytes, sizeof(double));
+        long totalBytes = totalBatches * sizeof(double);
+        memory->writeStateOffset(ERRORS_KEY, totalBytes, offset, squaredErrorBytes, sizeof(double));
     }
 
-    void writeHingeError(FaasmMemory *memory, int batchNumber, const MatrixXd &outputs, const MatrixXd &actual) {
+    void writeHingeError(FaasmMemory *memory, int batchNumber, int totalBatches, const MatrixXd &outputs,
+                         const MatrixXd &actual) {
         double err = calculateHingeError(actual, outputs);
-        _writeError(memory, batchNumber, err);
+        _writeError(memory, batchNumber, totalBatches, err);
     }
 
-    void writeSquaredError(FaasmMemory *memory, int batchNumber, const MatrixXd &outputs, const MatrixXd &actual) {
+    void writeSquaredError(FaasmMemory *memory, int batchNumber, int totalBatches, const MatrixXd &outputs,
+                           const MatrixXd &actual) {
         double err = calculateSquaredError(actual, outputs);
-        _writeError(memory, batchNumber, err);
+        _writeError(memory, batchNumber, totalBatches, err);
     }
 
     bool readEpochFinished(FaasmMemory *memory, const SgdParams &sgdParams) {

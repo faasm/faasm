@@ -29,12 +29,12 @@ namespace faasm {
             actual = hingeLossWeightUpdate(memory, sgdParams, epoch, inputs, outputs);
 
             // Persist error
-            writeHingeError(memory, batchNumber, outputs, actual);
+            writeHingeError(memory, batchNumber,  sgdParams.nBatches, outputs, actual);
         } else {
             actual = leastSquaresWeightUpdate(memory, sgdParams, inputs, outputs);
 
             // Persist error for these examples
-            writeSquaredError(memory, batchNumber, outputs, actual);
+            writeSquaredError(memory, batchNumber, sgdParams.nBatches, outputs, actual);
         }
 
         // Flag that this worker has finished

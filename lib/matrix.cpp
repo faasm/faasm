@@ -325,6 +325,9 @@ namespace faasm {
      */
     void writeMatrixToStateElement(FaasmMemory *memory, const char *key, const MatrixXd &matrix, long row, long col,
             bool async) {
+        // Work out total size of this matrix
+        size_t totalBytes = matrix.rows() * matrix.cols() * sizeof(double);
+
         // Work out the position of this element
         // Note that matrices are stored in column-major order by default
         long byteIdx = matrixByteIndex(row, col, matrix.rows());
@@ -333,7 +336,7 @@ namespace faasm {
         auto byteValue = reinterpret_cast<uint8_t *>(&value);
         size_t nBytes = sizeof(double);
 
-        memory->writeStateOffset(key, (size_t) byteIdx, byteValue, nBytes, async);
+        memory->writeStateOffset(key, totalBytes, (size_t) byteIdx, byteValue, nBytes, async);
     }
 
     /**

@@ -64,12 +64,12 @@ namespace tests {
                 actual = leastSquaresWeightUpdate(mem, params, inputBatch, outputBatch);
 
                 // Persist error for these examples
-                writeSquaredError(mem, b, outputBatch, actual);
+                writeSquaredError(mem, b, params.nBatches, outputBatch, actual);
             } else if (params.lossType == HINGE) {
                 actual = hingeLossWeightUpdate(mem, params, epoch, inputBatch, outputBatch);
 
                 // Persist error
-                writeHingeError(mem, b, outputBatch, actual);
+                writeHingeError(mem, b, params.nBatches, outputBatch, actual);
             }
 
             // Flag that this worker has finished

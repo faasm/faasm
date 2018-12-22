@@ -242,8 +242,8 @@ namespace tests {
         double expected2 = calculateSquaredError(a, b);
 
         // Write errors to memory
-        writeSquaredError(&memory, 0, a, b);
-        writeSquaredError(&memory, 2, a, b);
+        writeSquaredError(&memory, 0, 4, a, b);
+        writeSquaredError(&memory, 2, 4, a, b);
 
         checkDoubleArrayInState(redisQueue, ERRORS_KEY, {expected1, 0, expected2, 0});
     }
@@ -266,8 +266,8 @@ namespace tests {
         MatrixXd b = randomDenseMatrix(1, 5);
         double expected = calculateSquaredError(a, b);
 
-        writeSquaredError(&memory, 0, a, b);
-        writeSquaredError(&memory, 1, a, b);
+        writeSquaredError(&memory, 0, 3, a, b);
+        writeSquaredError(&memory, 1, 3, a, b);
 
         // Check these have been written
         checkDoubleArrayInState(redisQueue, ERRORS_KEY,{expected, expected, 0});
@@ -278,7 +278,7 @@ namespace tests {
         REQUIRE(actual1 == expectedRmse1);
 
         // Now write error for a third batch
-        writeSquaredError(&memory, 2, a, b);
+        writeSquaredError(&memory, 2, 3, a, b);
         checkDoubleArrayInState(redisQueue, ERRORS_KEY,{expected, expected, expected});
 
         // Work out what the result should be

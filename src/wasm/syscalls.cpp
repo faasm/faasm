@@ -179,10 +179,10 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_offset", void, __faasm_write_state_offset,
-                              I32 keyPtr, I32 offset, I32 dataPtr, I32 dataLen, I32 async) {
-        util::getLogger()->debug("S - write_state_offset - {} {} {} {} {}", keyPtr, offset, dataPtr, dataLen, async);
+                              I32 keyPtr, I32 totalLen, I32 offset, I32 dataPtr, I32 dataLen, I32 async) {
+        util::getLogger()->debug("S - write_state_offset - {} {} {} {} {} {}", keyPtr, totalLen, offset, dataPtr, dataLen, async);
 
-        wasm::StateKeyValue *kv = getStateKV(keyPtr, dataLen);
+        wasm::StateKeyValue *kv = getStateKV(keyPtr, totalLen);
 
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
@@ -218,18 +218,19 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset", void, __faasm_read_state_offset,
-                              I32 keyPtr, I32 offset, I32 bufferPtr, I32 bufferLen, I32 async) {
-        util::getLogger()->debug("S - read_state_offset - {} {} {} {}", keyPtr, offset, bufferPtr, bufferLen);
+                              I32 keyPtr, I32 totalLen, I32 offset, I32 bufferPtr, I32 bufferLen, I32 async) {
+        util::getLogger()->debug("S - read_state_offset - {} {} {} {} {}", keyPtr, totalLen, offset, bufferPtr,
+                bufferLen);
 
         // Read the state in
-        wasm::StateKeyValue *kv = getStateKV(keyPtr, bufferLen);
+        wasm::StateKeyValue *kv = getStateKV(keyPtr, totalLen);
 
         // Pull
         bool isAsync = async == 1;
         kv->pull(isAsync);
 
-        // Copy to straight to buffer
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        // Copy to straight to buffer
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
         kv->getSegment(offset, buffer, bufferLen);
     }

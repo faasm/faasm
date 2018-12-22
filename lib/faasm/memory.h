@@ -27,12 +27,12 @@ namespace faasm {
         /**
          * Writes a chunk of state at the given key and offset
          */
-        void writeStateOffset(const char *key, long offset, const uint8_t *data, long dataLen, bool async = false);
+        void writeStateOffset(const char *key, long totalLen, long offset, const uint8_t *data, long dataLen, bool async = false);
 
         /**
          * Reads a chunk of state at the given key and offset
          */
-        void readStateOffset(const char *key, long offset, uint8_t *buffer, long bufferLen, bool async = false);
+        void readStateOffset(const char *key, long totalLen, long offset, uint8_t *buffer, long bufferLen, bool async = false);
 
         /**
          * Forces a push of state
