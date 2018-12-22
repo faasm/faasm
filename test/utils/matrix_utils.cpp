@@ -73,7 +73,7 @@ namespace tests {
             }
 
             // Flag that this worker has finished
-            writeFinishedFlag(mem, b);
+            writeFinishedFlag(mem, b, params.nBatches);
         }
 
         // Get the loss

@@ -21,7 +21,7 @@ namespace faasm {
 
         // Load the inputs and outputs async (as they should be constant)
         SparseMatrix<double> inputs = readSparseMatrixColumnsFromState(memory, INPUTS_KEY, startIdx, endIdx, true);
-        MatrixXd outputs = readMatrixColumnsFromState(memory, OUTPUTS_KEY, startIdx, endIdx, 1, true);
+        MatrixXd outputs = readMatrixColumnsFromState(memory, OUTPUTS_KEY, sgdParams.nTrain, startIdx, endIdx, 1, true);
 
         // Perform updates
         MatrixXd actual;
@@ -38,7 +38,7 @@ namespace faasm {
         }
 
         // Flag that this worker has finished
-        writeFinishedFlag(memory, batchNumber);
+        writeFinishedFlag(memory, batchNumber, sgdParams.nBatches);
 
         // If this is the last, dispatch the barrier (will have finished by now or will do soon)
         if(batchNumber == sgdParams.nBatches - 1) {

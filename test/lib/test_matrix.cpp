@@ -117,7 +117,8 @@ namespace tests {
         redisQueue.flushAll();
 
         long nRows = 4;
-        MatrixXd mat(nRows, 5);
+        long nCols = 5;
+        MatrixXd mat(nRows, nCols);
         mat << 1, 2, 3, 4, 5,
                 6, 7, 8, 9, 10,
                 11, 12, 13, 14, 15,
@@ -133,7 +134,7 @@ namespace tests {
         // Read a subset of columns (exclusive)
         long startCol = 1;
         long endCol = 4;
-        MatrixXd actual = faasm::readMatrixColumnsFromState(&mem, stateKey, startCol, endCol, nRows);
+        MatrixXd actual = faasm::readMatrixColumnsFromState(&mem, stateKey, nCols, startCol, endCol, nRows);
 
         REQUIRE(actual.rows() == nRows);
         REQUIRE(actual.cols() == 3);

@@ -13,13 +13,13 @@ namespace faasm {
 
         // Now 5, 5, 6, 6, 4, 5, 6
         uint8_t partialB[2] = {6, 6};
-        memory->writeStateOffset(key, 7, 2, partialB, 3);
+        memory->writeStateOffset(key, 7, 2, partialB, 2);
 
         // Read 5, 5, 6, 6, 4
         uint8_t readValuePartial[5];
-        memory->readStateOffset(key, 7, 0, readValuePartial, 4);
+        memory->readStateOffset(key, 7, 0, readValuePartial, 5);
 
-        memory->setOutput(readValuePartial, 4);
+        memory->setOutput(readValuePartial, 5);
 
         return 0;
     }
