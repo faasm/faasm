@@ -245,6 +245,14 @@ namespace wasm {
             throw std::runtime_error("Attempting to set segment out of bounds");
         }
 
+        // If empty, set to full size
+        if(value.empty()) {
+            FullLock lock(valueMutex);
+            if(value.empty()) {
+                value.resize(size);
+            }
+        }
+
         // Shared lock for writing segments (need to allow lock-free writing of multiple threads on same
         // state value)
         SharedLock lock(valueMutex);
