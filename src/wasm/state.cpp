@@ -91,13 +91,10 @@ namespace wasm {
      * Key/value
      */
     StateKeyValue::StateKeyValue(const std::string &keyIn, size_t sizeIn) : key(keyIn),
-                                                                            clock(util::getGlobalClock()),
                                                                             size(sizeIn) {
 
         isWholeValueDirty = false;
         _empty = true;
-
-        data = nullptr;
 
         // Gets over the stale threshold trigger a pull from remote
         const util::SystemConfig &conf = util::getSystemConfig();
@@ -105,10 +102,6 @@ namespace wasm {
 
         // State over the clear threshold is removed from local
         idleThreshold = conf.stateClearThreshold;
-    }
-
-    StateKeyValue::~StateKeyValue() {
-        delete data;
     }
 
     void StateKeyValue::pull(bool async) {
@@ -134,6 +127,7 @@ namespace wasm {
 
         if(async) {
             // Check staleness
+            util::Clock &clock = util::getGlobalClock();
             const util::TimePoint now = clock.now();
 
             // If stale, try to update from remote
@@ -155,29 +149,18 @@ namespace wasm {
         }
     }
 
-    void StateKeyValue::copySegmentToSharedMem(long offset, uint8_t *buffer, size_t bufferLen) {
-        if (offset + bufferLen > size) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-            logger->error("Segment length {} at offset {} too big for size {}", bufferLen, offset, size);
-            throw std::runtime_error("Setting state segment too big for container");
-        }
-
-        // Copy data into shared region
-        std::copy(buffer, buffer + bufferLen, data + offset);
-    }
-
     void StateKeyValue::doRemoteRead() {
         // Initialise the data array with zeroes
         if(_empty) {
-            data = new uint8_t[size];
-            std::fill(data, data+size, 0);
+            value.reserve(size);
+            std::fill(value.data(), value.data() + size, 0);
         }
 
         // Read from the remote
         infra::Redis *redis = infra::Redis::getThreadState();
-        redis->get(key, data, size);
+        redis->get(key, value.data(), size);
 
+        util::Clock &clock = util::getGlobalClock();
         const util::TimePoint now = clock.now();
         lastPull = now;
 
@@ -185,16 +168,19 @@ namespace wasm {
     }
 
     void StateKeyValue::updateLastInteraction() {
+        util::Clock &clock = util::getGlobalClock();
         const util::TimePoint now = clock.now();
         lastInteraction = now;
     }
 
     bool StateKeyValue::isStale(const util::TimePoint &now) {
+        util::Clock &clock = util::getGlobalClock();
         long age = clock.timeDiff(now, lastPull);
         return age > staleThreshold;
     }
 
     bool StateKeyValue::isIdle(const util::TimePoint &now) {
+        util::Clock &clock = util::getGlobalClock();
         long idleTime = clock.timeDiff(now, lastInteraction);
         return idleTime > idleThreshold;
     }
@@ -209,7 +195,7 @@ namespace wasm {
         // Shared lock for full reads
         SharedLock lock(valueMutex);
 
-        std::copy(data, data + size, buffer);
+        std::copy(value.data(), value.data() + size, buffer);
     }
 
     void StateKeyValue::getSegment(long offset, uint8_t *buffer, size_t length) {
@@ -225,7 +211,7 @@ namespace wasm {
             throw std::runtime_error("Out of bounds read");
         }
 
-        std::copy(data + offset, data + offset + length, buffer);
+        std::copy(value.data() + offset, value.data() + offset + length, buffer);
     }
 
     void StateKeyValue::set(uint8_t *buffer) {
@@ -234,12 +220,12 @@ namespace wasm {
         // Unique lock for setting the whole value
         FullLock lock(valueMutex);
 
-        if(data == nullptr) {
-            data = new uint8_t[size];
+        if(value.empty()) {
+            value.reserve(size);
         }
 
         // Copy data into shared region
-        std::copy(buffer, buffer + size, data);
+        std::copy(buffer, buffer + size, value.data());
 
         isWholeValueDirty = true;
         _empty = false;
@@ -264,7 +250,15 @@ namespace wasm {
         dirtySegments.insert(Segment(offset, end));
 
         // Update shared memory
-        this->copySegmentToSharedMem(offset, buffer, length);
+        if (offset + length > size) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+            logger->error("Segment length {} at offset {} too big for size {}", length, offset, size);
+            throw std::runtime_error("Setting state segment too big for container");
+        }
+
+        // Copy data into shared region
+        std::copy(buffer, buffer + length, value.data() + offset);
     }
 
     void StateKeyValue::clear() {
@@ -282,8 +276,7 @@ namespace wasm {
                 const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 logger->debug("Clearing unused value {}", key);
 
-                delete[] data;
-                data = nullptr;
+                value.clear();
 
                 // Set flag to say this is effectively new again
                 _empty = true;
@@ -313,9 +306,10 @@ namespace wasm {
         logger->debug("Pushing whole value for {}", key);
 
         infra::Redis *redis = infra::Redis::getThreadState();
-        redis->set(key, data, size);
+        redis->set(key, value.data(), size);
 
         // Reset (as we're setting the full value, we've effectively pulled)
+        util::Clock &clock = util::getGlobalClock();
         lastPull = clock.now();
         isWholeValueDirty = false;
         dirtySegments.clear();
@@ -395,7 +389,7 @@ namespace wasm {
             redis->setRange(
                     key,
                     segment.first,
-                    data + segment.first,
+                    value.data() + segment.first,
                     (size_t) size
             );
         }

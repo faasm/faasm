@@ -25,7 +25,7 @@ namespace wasm {
 
     // Note that the max memory per module is 8GiB, i.e. > 100k pages
     // Page size in wasm is 64kiB so 100 pages ~ 6MiB of memory
-    const int MIN_MEMORY_PAGES = 100;
+    const int MIN_MEMORY_PAGES = 1000;
 
     Uptr getNumberOfPagesForBytes(U32 nBytes);
 
@@ -75,7 +75,9 @@ namespace wasm {
     public:
         explicit StateKeyValue(const std::string &keyIn, size_t sizeIn);
 
-        ~StateKeyValue();
+        StateKeyValue(const StateKeyValue& other);
+
+        StateKeyValue& operator=(const StateKeyValue& other);
 
         const std::string key;
 
@@ -108,8 +110,6 @@ namespace wasm {
         bool empty();
 
     private:
-        util::Clock &clock;
-
         std::atomic<bool> isWholeValueDirty;
         std::set<std::pair<long, long>> dirtySegments;
 
@@ -120,16 +120,12 @@ namespace wasm {
         long staleThreshold;
         long idleThreshold;
 
-        uint8_t *data;
+        std::vector<uint8_t> value;
         size_t size;
 
         std::atomic<bool> _empty;
 
         void doRemoteRead();
-
-        void copyValueToSharedMem(uint8_t *buffer, size_t bufferLen);
-
-        void copySegmentToSharedMem(long offset, uint8_t *buffer, size_t bufferLen);
 
         void updateLastInteraction();
 
@@ -146,7 +142,7 @@ namespace wasm {
      */
     class UserState {
     public:
-        UserState(const std::string &userIn);
+        explicit UserState(const std::string &userIn);
 
         ~UserState();
 
