@@ -1095,7 +1095,9 @@ namespace wasm {
     // ------------------------
 
     /**
-     * With mmap we will ignore the start address and not support file mapping
+     * mmap doesn't make too much sense in the wasm world, only in order to provide anonymous, shared
+     * mappings to be used for allocating space. We can just extend the existing memory and return this as the newly
+     * mapped region.
      */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_mmap", I32, __syscall_mmap,
                               U32 addr, U32 length, U32 prot, U32 flags, I32 fd, U32 offset) {
@@ -1105,6 +1107,7 @@ namespace wasm {
             printf("Ignoring mmap hint at %i\n", addr);
         }
 
+        // fd != -1 is non-anonymous mapping
         if (fd != -1) {
             throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
         }
@@ -1121,13 +1124,13 @@ namespace wasm {
 
         // Get pointer to mapped range
         auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);
-        util::getLogger()->debug("mmap returning {}", mappedRangePtr);
 
         return mappedRangePtr;
     }
 
     /**
-     * munmap is fairly straightforward, just unmap the relevant pages
+     * munmap also doesn't quite make sense when we only have one linear memory region to deal with,
+     * so we can just shrink the memory back down if we're munmapping the bit at the end.
      */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_munmap", I32, __syscall_munmap,
                               U32 addr, U32 length) {
@@ -1135,16 +1138,28 @@ namespace wasm {
 
         Runtime::Memory *memory = getExecutingModule()->defaultMemory;
 
-        if (addr & (IR::numBytesPerPage - 1) || length == 0) { return -EINVAL; }
+        // If not aligned or zero length, drop out
+        if (addr & (IR::numBytesPerPage - 1) || length == 0) {
+            return -EINVAL;
+        }
 
         const Uptr basePageIndex = addr / IR::numBytesPerPage;
         const Uptr numPages = getNumberOfPagesForBytes(length);
 
-        if (basePageIndex + numPages > getMemoryMaxPages(memory)) { return -EINVAL; }
+        // Drop out if we're munmapping over the max page boundary
+        if (basePageIndex + numPages > getMemoryMaxPages(memory)) {
+            return -EINVAL;
+        }
 
-        util::getLogger()->debug("munmap using {} {}", basePageIndex, numPages);
-
-        unmapMemoryPages(memory, basePageIndex, numPages);
+        // If these are the top pages of memory, shrink it, if not, unmap them
+        // Note that we won't be able to reclaim them if we're just unmapping
+        const Uptr currentPageCount = getMemoryNumPages(memory);
+        if(basePageIndex + numPages == currentPageCount) {
+            shrinkMemory(memory, numPages);
+        }
+        else {
+            unmapMemoryPages(memory, basePageIndex, numPages);
+        }
 
         return 0;
     }
