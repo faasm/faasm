@@ -52,6 +52,14 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen) {
     return 14;
 }
 
+void __faasm_push_state(const char *key) {
+
+}
+
+void __faasm_push_state_partial(const char *key) {
+
+}
+
 void __faasm_lock_state_read(const char *key) {
 
 }

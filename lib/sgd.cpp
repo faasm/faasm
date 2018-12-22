@@ -64,6 +64,9 @@ namespace faasm {
             }
         }
 
+        // Make sure all updates have been pushed
+        memory->pushStatePartial(WEIGHTS_KEY);
+
         // Recalculate the result and return
         MatrixXd weights = readMatrixFromState(memory, WEIGHTS_KEY, 1, sgdParams.nWeights, true);
         MatrixXd postUpdate = weights * inputs;

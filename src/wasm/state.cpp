@@ -111,7 +111,7 @@ namespace wasm {
         delete data;
     }
 
-    void StateKeyValue::pull() {
+    void StateKeyValue::pull(bool async) {
         this->updateLastInteraction();
 
         // Check if new (one-off initialisation)
@@ -130,21 +130,28 @@ namespace wasm {
             }
         }
 
-        // Check staleness
-        const util::TimePoint now = clock.now();
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // If stale, try to update from remote
-        if (this->isStale(now)) {
-            // Unique lock on the whole value while loading
-            FullLock lock(valueMutex);
+        if(async) {
+            // Check staleness
+            const util::TimePoint now = clock.now();
 
-            // Double check staleness
+            // If stale, try to update from remote
             if (this->isStale(now)) {
-                const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-                logger->debug("Refreshing stale state for {}", key);
+                // Unique lock on the whole value while loading
+                FullLock lock(valueMutex);
 
-                doRemoteRead();
+                // Double check staleness
+                if (this->isStale(now)) {
+                    logger->debug("Refreshing stale state for {}", key);
+                    doRemoteRead();
+                }
             }
+        }
+        else {
+            FullLock lock(valueMutex);
+            logger->debug("Sync read for state {}", key);
+            doRemoteRead();
         }
     }
 
@@ -162,8 +169,10 @@ namespace wasm {
 
     void StateKeyValue::doRemoteRead() {
         // Initialise the data array with zeroes
-        data = new uint8_t[size];
-        std::fill(data, data+size, 0);
+        if(_isNew) {
+            data = new uint8_t[size];
+            std::fill(data, data+size, 0);
+        }
 
         // Read from the remote
         infra::Redis *redis = infra::Redis::getThreadState();
@@ -191,7 +200,7 @@ namespace wasm {
     }
 
     void StateKeyValue::get(uint8_t *buffer) {
-        this->pull();
+        this->updateLastInteraction();
 
         // Shared lock for full reads
         SharedLock lock(valueMutex);
@@ -200,7 +209,7 @@ namespace wasm {
     }
 
     void StateKeyValue::getSegment(long offset, uint8_t *buffer, size_t length) {
-        this->pull();
+        this->updateLastInteraction();
 
         SharedLock lock(valueMutex);
 
@@ -233,8 +242,7 @@ namespace wasm {
     }
 
     void StateKeyValue::setSegment(long offset, uint8_t *buffer, size_t length) {
-        // Get the value first
-        this->pull();
+        this->updateLastInteraction();
 
         // Check we're in bounds
         size_t end = offset + length;

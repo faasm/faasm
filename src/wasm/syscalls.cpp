@@ -119,6 +119,20 @@ namespace wasm {
         return kv;
     }
 
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state", void, __faasm_push_state, I32 keyPtr) {
+        util::getLogger()->debug("S - push_state - {}", keyPtr);
+
+        wasm::StateKeyValue *kv = getStateKV(keyPtr, 0);
+        kv->pushFull();
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state_partial", void, __faasm_push_state_partial, I32 keyPtr) {
+        util::getLogger()->debug("S - push_state_partial - {}", keyPtr);
+
+        wasm::StateKeyValue *kv = getStateKV(keyPtr, 0);
+        kv->pushPartial();
+    }
+
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_lock_state_read", void, __faasm_lock_state_read, I32 keyPtr) {
         util::getLogger()->debug("S - lock_state_read - {}", keyPtr);
 
@@ -193,10 +207,9 @@ namespace wasm {
 
         wasm::StateKeyValue *kv = getStateKV(keyPtr, bufferLen);
 
-        if (async == 0) {
-            // Pull from remote
-            kv->pull();
-        }
+        // Pull
+        bool isAsync = async == 1;
+        kv->pull(isAsync);
 
         // Copy to straight to buffer
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
@@ -211,10 +224,9 @@ namespace wasm {
         // Read the state in
         wasm::StateKeyValue *kv = getStateKV(keyPtr, bufferLen);
 
-        // Pull from remote if synchronous
-        if (async == 0) {
-            kv->pull();
-        }
+        // Pull
+        bool isAsync = async == 1;
+        kv->pull(isAsync);
 
         // Copy to straight to buffer
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;

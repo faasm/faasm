@@ -11,6 +11,10 @@ void __faasm_write_state_offset(const char *key, long offset, const unsigned cha
 
 void __faasm_read_state_offset(const char *key, long offset, unsigned char *buffer, long bufferLen, int async);
 
+void __faasm_push_state(const char *key);
+
+void __faasm_push_state_partial(const char *key);
+
 void __faasm_lock_state_read(const char *key);
 
 void __faasm_unlock_state_read(const char *key);
@@ -50,6 +54,14 @@ namespace faasm {
 
     void FaasmMemory::readStateOffset(const char *key, long offset, uint8_t *buffer, long bufferLen, bool async) {
         __faasm_read_state_offset(key, offset, buffer, bufferLen, (int) async);
+    };
+
+    void FaasmMemory::pushState(const char *key) {
+        __faasm_push_state(key);
+    };
+
+    void FaasmMemory::pushStatePartial(const char *key) {
+        __faasm_push_state_partial(key);
     };
 
     void FaasmMemory::lockStateRead(const char *key) {

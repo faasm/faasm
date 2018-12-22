@@ -87,7 +87,7 @@ namespace wasm {
 
         void setSegment(long offset, uint8_t *buffer, size_t length);
 
-        void pull();
+        void pull(bool async=true);
 
         void pushFull();
 

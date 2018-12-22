@@ -35,6 +35,16 @@ namespace faasm {
         void readStateOffset(const char *key, long offset, uint8_t *buffer, long bufferLen, bool async = false);
 
         /**
+         * Forces a push of state
+         */
+        void pushState(const char *key);
+
+        /**
+         * Forces a push of any partial state updates
+         */
+        void pushStatePartial(const char *key);
+
+        /**
         * Acquires a read lock for the given state
         */
         void lockStateRead(const char *key);
