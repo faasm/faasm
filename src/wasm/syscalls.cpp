@@ -1121,6 +1121,8 @@ namespace wasm {
 
         // Get pointer to mapped range
         auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);
+        util::getLogger()->debug("mmap returning {}", mappedRangePtr);
+
         return mappedRangePtr;
     }
 
@@ -1136,9 +1138,11 @@ namespace wasm {
         if (addr & (IR::numBytesPerPage - 1) || length == 0) { return -EINVAL; }
 
         const Uptr basePageIndex = addr / IR::numBytesPerPage;
-        const Uptr numPages = (length + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
+        const Uptr numPages = getNumberOfPagesForBytes(length);
 
         if (basePageIndex + numPages > getMemoryMaxPages(memory)) { return -EINVAL; }
+
+        util::getLogger()->debug("munmap using {} {}", basePageIndex, numPages);
 
         unmapMemoryPages(memory, basePageIndex, numPages);
 

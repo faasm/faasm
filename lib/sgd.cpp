@@ -39,7 +39,7 @@ namespace faasm {
         // Iterate through all training examples (i.e. columns)
         for (int col = 0; col < inputs.outerSize(); ++col) {
             // Read in weights asynchronously *directly into the existing weights matrix*
-            // readMatrixFromState(memory, WEIGHTS_KEY, weightData, 1, sgdParams.nWeights, true);
+            readMatrixFromState(memory, WEIGHTS_KEY, weightData, 1, sgdParams.nWeights, true);
 
             // Get input and output associated with this example
             double thisOutput = outputs.coeff(0, col);

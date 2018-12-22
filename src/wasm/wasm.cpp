@@ -30,13 +30,8 @@ namespace wasm {
     }
 
     Uptr getNumberOfPagesForBytes(U32 nBytes) {
-        // Work out how many pages needed to hit the target address
-        Uptr pageCount = ((Uptr) nBytes) / IR::numBytesPerPage;
-
-        // Round up
-        if (nBytes % IR::numBytesPerPage != 0) {
-            pageCount++;
-        }
+        // Round up to nearest page
+        Uptr pageCount = (Uptr(nBytes) + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
 
         return pageCount;
     }

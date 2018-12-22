@@ -321,4 +321,27 @@ namespace tests {
         Uptr afterPages = Runtime::getMemoryNumPages(w.module->defaultMemory);
         REQUIRE(afterPages == initialPages);
     }
+
+    TEST_CASE("Test mmap/munmap", "[worker]") {
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("mmap");
+        call.set_resultkey("test_mmap");
+
+        // Call function
+        WorkerThread w(1);
+        infra::Scheduler::callFunction(call);
+
+        // Bind and execute
+        w.processNextMessage();
+        w.processNextMessage();
+
+        // Check output is true
+        message::Message result = redisQueue.getFunctionResult(call);
+        REQUIRE(result.success());
+        std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
+
+        std::vector<uint8_t > expectedOutput = {1};
+        REQUIRE(outputBytes == expectedOutput);
+    }
 }
