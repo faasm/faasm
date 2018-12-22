@@ -87,7 +87,7 @@ namespace wasm {
 
         void setSegment(long offset, uint8_t *buffer, size_t length);
 
-        void pull(bool async=true);
+        void pull(bool async);
 
         void pushFull();
 
@@ -105,7 +105,7 @@ namespace wasm {
 
         void unlockWrite();
 
-        bool isNew();
+        bool empty();
 
     private:
         util::Clock &clock;
@@ -123,7 +123,7 @@ namespace wasm {
         uint8_t *data;
         size_t size;
 
-        std::atomic<bool> _isNew;
+        std::atomic<bool> _empty;
 
         void doRemoteRead();
 

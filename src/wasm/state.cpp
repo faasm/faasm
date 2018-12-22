@@ -95,7 +95,7 @@ namespace wasm {
                                                                             size(sizeIn) {
 
         isWholeValueDirty = false;
-        _isNew = true;
+        _empty = true;
 
         data = nullptr;
 
@@ -115,17 +115,17 @@ namespace wasm {
         this->updateLastInteraction();
 
         // Check if new (one-off initialisation)
-        if (_isNew) {
+        if (_empty) {
             // Unique lock on the whole value while loading
             FullLock lock(valueMutex);
 
             // Double check assumption
-            if (_isNew) {
+            if (_empty) {
                 const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 logger->debug("Initialising state for {}", key);
 
                 doRemoteRead();
-                _isNew = false;
+                _empty = false;
                 return;
             }
         }
@@ -169,7 +169,7 @@ namespace wasm {
 
     void StateKeyValue::doRemoteRead() {
         // Initialise the data array with zeroes
-        if(_isNew) {
+        if(_empty) {
             data = new uint8_t[size];
             std::fill(data, data+size, 0);
         }
@@ -200,6 +200,10 @@ namespace wasm {
     }
 
     void StateKeyValue::get(uint8_t *buffer) {
+        if(this->empty()) {
+            throw std::runtime_error("Must pull before accessing state");
+        }
+
         this->updateLastInteraction();
 
         // Shared lock for full reads
@@ -238,7 +242,7 @@ namespace wasm {
         std::copy(buffer, buffer + size, data);
 
         isWholeValueDirty = true;
-        _isNew = false;
+        _empty = false;
     }
 
     void StateKeyValue::setSegment(long offset, uint8_t *buffer, size_t length) {
@@ -269,7 +273,7 @@ namespace wasm {
         util::TimePoint now = c.now();
 
         // If over clear threshold, remove
-        if (this->isIdle(now) && !_isNew) {
+        if (this->isIdle(now) && !_empty) {
             // Unique lock on the whole value while clearing
             FullLock lock(valueMutex);
 
@@ -282,13 +286,13 @@ namespace wasm {
                 data = nullptr;
 
                 // Set flag to say this is effectively new again
-                _isNew = true;
+                _empty = true;
             }
         }
     }
 
-    bool StateKeyValue::isNew() {
-        return _isNew;
+    bool StateKeyValue::empty() {
+        return _empty;
     }
 
     void StateKeyValue::pushFull() {
