@@ -161,8 +161,9 @@ namespace wasm {
     }
 
     void StateKeyValue::doRemoteRead() {
-        // Initialise the data array
+        // Initialise the data array with zeroes
         data = new uint8_t[size];
+        std::fill(data, data+size, 0);
 
         // Read from the remote
         infra::Redis *redis = infra::Redis::getThreadState();
