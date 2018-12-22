@@ -226,10 +226,8 @@ namespace tests {
         WorkerThread w(1);
         infra::Scheduler::callFunction(call);
 
-        // Process bind
+        // Bind and exec
         w.processNextMessage();
-
-        // Exec the function
         w.processNextMessage();
 
         // Check result
@@ -244,6 +242,61 @@ namespace tests {
         message::Message resultB = redisQueue.getFunctionResult(call);
         REQUIRE(resultB.success());
         REQUIRE(resultB.outputdata() == "Counter: 002");
+    }
+
+    TEST_CASE("Test synchronous state", "[worker]") {
+        setUp();
+
+        // Set up the function call
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("state");
+        call.set_resultkey("test_sync_state");
+
+        // Call function
+        WorkerThread w(1);
+        infra::Scheduler::callFunction(call);
+
+        // Bind and exec
+        w.processNextMessage();
+        w.processNextMessage();
+
+        // Check result
+        message::Message result = redisQueue.getFunctionResult(call);
+        REQUIRE(result.success());
+        std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
+        std::vector<uint8_t> expected = {0, 1, 2, 3};
+
+        REQUIRE(outputBytes == expected);
+        REQUIRE(redisState.get("demo_state_example") == expected);
+    }
+
+    TEST_CASE("Test asynchronous state", "[worker]") {
+        setUp();
+
+        // Set up the function call
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("state_async");
+        call.set_resultkey("test_async_state");
+
+        // Call function
+        WorkerThread w(1);
+        infra::Scheduler::callFunction(call);
+
+        // Bind and exec
+        w.processNextMessage();
+        w.processNextMessage();
+
+        // Check result
+        message::Message result = redisQueue.getFunctionResult(call);
+        REQUIRE(result.success());
+        std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
+        std::vector<uint8_t> expected = {1, 1, 1, 1};
+        REQUIRE(outputBytes == expected);
+
+        std::vector<uint8_t> expectedRedis = {3, 2, 1, 0};
+        REQUIRE(redisState.get("demo_state_async_example") == expectedRedis);
     }
 
     TEST_CASE("Test memory is reset", "[worker]") {

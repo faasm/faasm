@@ -1,19 +1,16 @@
 #include <faasm/faasm.h>
-#include "stdio.h"
-
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
         const char *key = "state_example";
 
-        // Check initial state size (zero when new state is created)
-        uint8_t *ptr = memory->readStatePtr(key, 6, true);
+        uint8_t value[4] = {0, 1, 2, 3};
+        memory->writeState(key, value, 4);
 
-        for(int i = 0; i < 6; i++) {
-            printf("%i: %i\n", i, ptr[i]);
-        }
+        uint8_t readValue[4];
+        memory->readState(key, readValue, 4);
 
-        printf("%i\n", *(ptr + 4147483647));
+        memory->setOutput(readValue, 4);
 
         return 0;
     }
