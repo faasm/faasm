@@ -86,6 +86,9 @@ namespace faasm {
 
     MatrixXd readMatrixFromState(FaasmMemory *memory, const char *key, long rows, long cols, bool async = false);
 
+    void readMatrixFromState(FaasmMemory *memory, const char *key, double *buffer, long rows, long cols,
+                                 bool async);
+
     void writeMatrixToState(FaasmMemory *memory, const char *key, const MatrixXd &matrix, bool async = false);
 
     void writeMatrixToStateElement(FaasmMemory *memory, const char *key, const MatrixXd &matrix, long row, long col,
@@ -104,10 +107,6 @@ namespace faasm {
     MatrixXd randomDenseMatrix(int rows, int cols);
 
     SparseMatrix<double> randomSparseMatrix(int rows, int cols, double threshold);
-
-    uint8_t *matrixToBytes(const MatrixXd &mat);
-
-    MatrixXd bytesToMatrix(uint8_t *byteArray, long rows, long columns);
 
     long matrixByteIndex(long row, long col, long nRows);
 

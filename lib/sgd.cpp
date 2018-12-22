@@ -28,10 +28,15 @@ namespace faasm {
 
     MatrixXd hingeLossWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int epoch,
                                    const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
+
+        auto weightData = new double[sgdParams.nWeights];
+        readMatrixFromState(memory, WEIGHTS_KEY, weightData, 1, sgdParams.nWeights, true);
+        Map<MatrixXd> weights(weightData, 1, sgdParams.nWeights);
+
         // Iterate through all training examples (i.e. columns)
         for (int col = 0; col < inputs.outerSize(); ++col) {
-            // Read in weights asynchronously
-            MatrixXd weights = readMatrixFromState(memory, WEIGHTS_KEY, 1, sgdParams.nWeights, true);
+            // Read in weights asynchronously *directly into the existing weights matrix*
+            readMatrixFromState(memory, WEIGHTS_KEY, weightData, 1, sgdParams.nWeights, true);
 
             // Get input and output associated with this example
             double thisOutput = outputs.coeff(0, col);
@@ -68,14 +73,19 @@ namespace faasm {
         memory->pushStatePartial(WEIGHTS_KEY);
 
         // Recalculate the result and return
-        MatrixXd weights = readMatrixFromState(memory, WEIGHTS_KEY, 1, sgdParams.nWeights, true);
         MatrixXd postUpdate = weights * inputs;
+
+        delete[] weightData;
+
         return postUpdate;
     }
 
     MatrixXd leastSquaresWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams,
                                       const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
-        MatrixXd weights = readMatrixFromState(memory, WEIGHTS_KEY, 1, sgdParams.nWeights, true);
+
+        auto weightData = new double[sgdParams.nWeights];
+        readMatrixFromState(memory, WEIGHTS_KEY, weightData, 1, sgdParams.nWeights, true);
+        Map<MatrixXd> weights(weightData, 1, sgdParams.nWeights);
 
         // Work out error
         MatrixXd actual = weights * inputs;
@@ -101,6 +111,9 @@ namespace faasm {
 
         // Recalculate the result and return
         MatrixXd postUpdate = weights * inputs;
+
+        delete[] weightData;
+
         return postUpdate;
     }
 

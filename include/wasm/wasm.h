@@ -25,7 +25,7 @@ namespace wasm {
 
     // Note that the max memory per module is 8GiB, i.e. > 100k pages
     // Page size in wasm is 64kiB so 100 pages ~ 6MiB of memory
-    const int MIN_MEMORY_PAGES = 1000;
+    const int MIN_MEMORY_PAGES = 100;
 
     Uptr getNumberOfPagesForBytes(U32 nBytes);
 

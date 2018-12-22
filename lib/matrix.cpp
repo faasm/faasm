@@ -43,33 +43,6 @@ namespace faasm {
         return mat;
     }
 
-    /**
-     * Serialises a matrix to a byte array
-     */
-    uint8_t *matrixToBytes(const MatrixXd &mat) {
-        long rows = mat.rows();
-        long cols = mat.cols();
-
-        long nDoubles = rows * cols;
-        auto doubleArray = new double[nDoubles];
-        Map<MatrixXd>(&doubleArray[0], rows, cols) = mat;
-
-        auto byteArray = reinterpret_cast<uint8_t *>(&doubleArray[0]);
-
-        return byteArray;
-    }
-
-    /**
-     * Deserialises a byte array to a matrix
-     */
-    MatrixXd bytesToMatrix(uint8_t *byteArray, long rows, long columns) {
-        auto doubleArray = reinterpret_cast<double *>(&byteArray[0]);
-
-        Map<MatrixXd> mat(&doubleArray[0], rows, columns);
-
-        return mat;
-    }
-
     SparseKeys getSparseKeys(const char *key) {
         size_t keyLen = strlen(key);
 
@@ -293,26 +266,37 @@ namespace faasm {
      */
     void writeMatrixToState(FaasmMemory *memory, const char *key, const MatrixXd &matrix, bool async) {
         size_t nBytes = matrix.rows() * matrix.cols() * sizeof(double);
-        uint8_t *serialisedData = matrixToBytes(matrix);
+        auto byteArray = reinterpret_cast<const uint8_t *>(matrix.data());
 
-        memory->writeState(key, serialisedData, nBytes, async);
-
-        delete[] serialisedData;
+        memory->writeState(key, byteArray, nBytes, async);
     }
-
+    
     /**
      * Reads a matrix from state
      */
     MatrixXd readMatrixFromState(FaasmMemory *memory, const char *key, long rows, long cols, bool async) {
-        size_t nBytes = rows * cols * sizeof(double);
+        long nDoubles = rows * cols;
 
-        auto buffer = new uint8_t[nBytes];
-        memory->readState(key, buffer, nBytes, async);
+        auto buffer = new double[nDoubles];
+        readMatrixFromState(memory, key, buffer, rows, cols, async);
 
-        Eigen::MatrixXd deserialised = bytesToMatrix(buffer, rows, cols);
-        delete[] buffer;
-        return deserialised;
+        Map<MatrixXd> mat(buffer, rows, cols);
+
+        return mat;
     }
+    
+    /** 
+     * Reads a matrix from state directly into the given buffer
+     */
+    void readMatrixFromState(FaasmMemory *memory, const char *key, double* buffer, long rows, long cols,
+            bool async) {
+
+        size_t nBytes = rows * cols * sizeof(double);
+        auto byteBuffer = reinterpret_cast<uint8_t *>(buffer);
+
+        memory->readState(key, byteBuffer, nBytes, async);
+    }
+    
 
     long matrixByteIndex(long row, long col, long nRows) {
         // Work out the position of this element
@@ -357,8 +341,9 @@ namespace faasm {
         long totalLen = matrixByteIndex(nRows, totalCols, nRows);
         memory->readStateOffset(key, totalLen, startIdx, buffer, bufferLen, async);
 
-        MatrixXd result = bytesToMatrix(buffer, nRows, nCols);
-        delete[] buffer;
+        auto doubleArray = reinterpret_cast<double *>(buffer);
+        Map<MatrixXd> result(doubleArray, nRows, nCols);
+
         return result;
     }
 

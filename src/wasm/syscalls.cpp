@@ -203,7 +203,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state", void, __faasm_read_state,
                               I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 async) {
-        util::getLogger()->debug("S - read_state - {} {} {}", keyPtr, bufferPtr, bufferLen);
+        util::getLogger()->debug("S - read_state - {} {} {} {}", keyPtr, bufferPtr, bufferLen, async);
 
         wasm::StateKeyValue *kv = getStateKV(keyPtr, bufferLen);
 
