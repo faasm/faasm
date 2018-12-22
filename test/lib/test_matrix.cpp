@@ -46,8 +46,6 @@ namespace tests {
         REQUIRE(afterState.rows() == 2);
         REQUIRE(afterState.cols() == 3);
         REQUIRE(afterState == mat);
-
-        delete[] afterState.data();
     }
 
     TEST_CASE("Test updating matrix element in state", "[matrix]") {
@@ -66,12 +64,13 @@ namespace tests {
         mat(0, 2) = 3.3;
         mat(1, 1) = 10.5;
 
-        // Update a single element
+        // Update single elements
         faasm::writeMatrixToStateElement(&mem, stateKey, mat, 0, 2);
         faasm::writeMatrixToStateElement(&mem, stateKey, mat, 1, 1);
 
         // Retrieve from redis and check it matches the one in memory
-        const MatrixXd afterState = faasm::readMatrixFromState(&mem, stateKey, 2, 3);
+        MatrixXd afterState(2, 3);
+        faasm::readMatrixFromState(&mem, stateKey, afterState.data(), 2, 3);
 
         REQUIRE(afterState.rows() == 2);
         REQUIRE(afterState.cols() == 3);

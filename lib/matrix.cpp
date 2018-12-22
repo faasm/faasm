@@ -318,7 +318,7 @@ namespace faasm {
         // Note that matrices are stored in column-major order by default
         long byteIdx = matrixByteIndex(row, col, matrix.rows());
 
-        double value = matrix(row, col);
+        double value = matrix.coeff(row, col);
         auto byteValue = reinterpret_cast<uint8_t *>(&value);
         size_t nBytes = sizeof(double);
 

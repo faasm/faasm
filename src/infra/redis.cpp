@@ -133,6 +133,10 @@ namespace infra {
         char *resultArray = reply->str;
         int resultLen = reply->len;
 
+        if(resultLen > size) {
+            throw std::runtime_error("Reading value too big for buffer");
+        }
+
         std::copy(resultArray, resultArray + resultLen, buffer);
     }
 
@@ -256,23 +260,22 @@ namespace infra {
         freeReplyObject(reply);
     }
 
-    void Redis::setRange(const std::string &key, long offset, const std::vector<uint8_t> &value) {
-        this->setRange(key, offset, value.data(), value.size());
-    }
-
     void Redis::setRange(const std::string &key, long offset, const uint8_t *value, size_t size) {
         auto reply = (redisReply *) redisCommand(context, "SETRANGE %s %li %b", key.c_str(), offset, value,
                                                  size);
         freeReplyObject(reply);
     }
 
-    std::vector<uint8_t> Redis::getRange(const std::string &key, long start, long end) {
+    /**
+     * Note that start/end are both inclusive
+     */
+    void Redis::getRange(const std::string &key, uint8_t *buffer, long start, long end) {
         auto reply = (redisReply *) redisCommand(context, "GETRANGE %s %li %li", key.c_str(), start, end);
 
-        const std::vector<uint8_t> replyBytes = getBytesFromReply(reply);
+        // getrange is inclusive
+        long len = end - start + 1;
+        getBytesFromReply(reply, buffer, len);
         freeReplyObject(reply);
-
-        return replyBytes;
     }
 
     void Redis::enqueue(const std::string &queueName, const std::vector<uint8_t> &value) {

@@ -87,7 +87,7 @@ namespace faasm {
     MatrixXd readMatrixFromState(FaasmMemory *memory, const char *key, long rows, long cols, bool async = false);
 
     void readMatrixFromState(FaasmMemory *memory, const char *key, double *buffer, long rows, long cols,
-                                 bool async);
+                                 bool async = false);
 
     void writeMatrixToState(FaasmMemory *memory, const char *key, const MatrixXd &matrix, bool async = false);
 

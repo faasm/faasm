@@ -99,15 +99,6 @@ namespace wasm {
         return prefixedKey;
     }
 
-    int copyToWasmBuffer(const std::vector<uint8_t> &dataIn, I32 bufferPtr, I32 bufferLen) {
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
-
-        int dataSize = util::safeCopyToBuffer(dataIn, buffer, bufferLen);
-
-        return dataSize;
-    }
-
     // ------------------------
     // FAASM-specific
     // ------------------------
@@ -229,8 +220,8 @@ namespace wasm {
         bool isAsync = async == 1;
         kv->pull(isAsync);
 
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         // Copy to straight to buffer
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
         kv->getSegment(offset, buffer, bufferLen);
     }
@@ -243,8 +234,10 @@ namespace wasm {
         std::vector<uint8_t> inputBytes = util::stringToBytes(call->inputdata());
 
         // Write to the wasm buffer
-        int inputSize = copyToWasmBuffer(inputBytes, bufferPtr, bufferLen);
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
 
+        int inputSize = util::safeCopyToBuffer(inputBytes, buffer, bufferLen);
         return inputSize;
     }
 

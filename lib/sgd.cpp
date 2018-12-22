@@ -33,17 +33,21 @@ namespace faasm {
         readMatrixFromState(memory, WEIGHTS_KEY, weightData, 1, sgdParams.nWeights, true);
         Map<MatrixXd> weights(weightData, 1, sgdParams.nWeights);
 
+        SparseMatrix<double> thisInput;
+        Matrix<double, 1, 1> prediction;
+
         // Iterate through all training examples (i.e. columns)
         for (int col = 0; col < inputs.outerSize(); ++col) {
             // Read in weights asynchronously *directly into the existing weights matrix*
-            readMatrixFromState(memory, WEIGHTS_KEY, weightData, 1, sgdParams.nWeights, true);
+            // readMatrixFromState(memory, WEIGHTS_KEY, weightData, 1, sgdParams.nWeights, true);
 
             // Get input and output associated with this example
             double thisOutput = outputs.coeff(0, col);
-            SparseMatrix<double> thisInput = inputs.col(col);
+            thisInput = inputs.col(col);
 
-            // Work out the prediction for this example (do this inside the loop to include weight updates
-            MatrixXd prediction = weights * thisInput;
+            // Work out the prediction for this example. This will be a single number.D
+            // Do this inside the loop to include weight updates.
+            prediction = weights * thisInput;
             double thisPrediction = prediction.coeff(0, 0);
 
             // If the prediction multiplied by the output is less than one, it's misclassified

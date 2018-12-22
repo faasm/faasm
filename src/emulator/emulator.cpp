@@ -10,41 +10,31 @@ extern "C" {
 
 void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, int async) {
     infra::Redis *redis = infra::Redis::getThreadState();
-    std::vector<uint8_t> state = redis->get(key);
-    util::safeCopyToBuffer(state, buffer, bufferLen);
+    redis->get(key, buffer, bufferLen);
 }
 
 uint8_t *__faasm_read_state_ptr(const char *key, long len, int async) {
-    infra::Redis *redis = infra::Redis::getThreadState();
-    std::vector<uint8_t> state = redis->get(key);
-
-    auto buffer = new uint8_t[len];
-    std::copy(state.begin(), state.end(), buffer);
-
-    return buffer;
+    throw std::runtime_error("Not implemented");
 }
 
 void __faasm_write_state(const char *key, const unsigned char *data, long dataLen, int async) {
     infra::Redis *redis = infra::Redis::getThreadState();
 
     if (dataLen > 0) {
-        std::vector<uint8_t> newState(data, data + dataLen);
-        redis->set(key, newState);
+        redis->set(key, data, (size_t) dataLen);
     }
 }
 
 void __faasm_write_state_offset(const char *key, long totalLen, long offset, const unsigned char *data, long dataLen,
                                 int async) {
     infra::Redis *redis = infra::Redis::getThreadState();
-    std::vector<uint8_t> newState(data, data + dataLen);
-    redis->setRange(key, offset, newState);
+    redis->setRange(key, offset, data, dataLen);
 }
 
 void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsigned char *buffer, long bufferLen,
                                int async) {
     infra::Redis *redis = infra::Redis::getThreadState();
-    std::vector<uint8_t> state = redis->getRange(key, offset, offset + bufferLen);
-    util::safeCopyToBuffer(state, buffer, bufferLen);
+    redis->getRange(key, buffer, offset, offset + bufferLen);
 }
 
 long __faasm_read_input(unsigned char *buffer, long bufferLen) {
