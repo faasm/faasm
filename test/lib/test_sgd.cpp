@@ -323,12 +323,12 @@ namespace tests {
         zeroFinished(&mem, p);
         REQUIRE(!readEpochFinished(&mem, p));
 
-        writeFinishedFlag(&mem, 0, 3);
-        writeFinishedFlag(&mem, 2, 3);
+        writeFinishedFlag(&mem, p, 0);
+        writeFinishedFlag(&mem, p, 2);
         REQUIRE(!readEpochFinished(&mem, p));
         checkIntArrayInState(redisQueue, FINISHED_KEY, {1, 0, 1});
 
-        writeFinishedFlag(&mem, 1, 3);
+        writeFinishedFlag(&mem, p, 1);
         checkIntArrayInState(redisQueue, FINISHED_KEY, {1, 1, 1});
         REQUIRE(readEpochFinished(&mem, p));
     }

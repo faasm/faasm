@@ -19,7 +19,7 @@ namespace faasm {
         // Load params
         SgdParams sgdParams = readParamsFromState(memory, PARAMS_KEY);
 
-        // Load the inputs and outputs async (as they should be constant)
+        // Always load the inputs and outputs async (as they should be constant)
         SparseMatrix<double> inputs = readSparseMatrixColumnsFromState(memory, INPUTS_KEY, startIdx, endIdx, true);
         MatrixXd outputs = readMatrixColumnsFromState(memory, OUTPUTS_KEY, sgdParams.nTrain, startIdx, endIdx, 1, true);
 
@@ -29,16 +29,16 @@ namespace faasm {
             actual = hingeLossWeightUpdate(memory, sgdParams, epoch, inputs, outputs);
 
             // Persist error
-            writeHingeError(memory, batchNumber,  sgdParams.nBatches, outputs, actual);
+            writeHingeError(memory, sgdParams, batchNumber,  outputs, actual);
         } else {
             actual = leastSquaresWeightUpdate(memory, sgdParams, inputs, outputs);
 
             // Persist error for these examples
-            writeSquaredError(memory, batchNumber, sgdParams.nBatches, outputs, actual);
+            writeSquaredError(memory, sgdParams, batchNumber, outputs, actual);
         }
 
         // Flag that this worker has finished
-        writeFinishedFlag(memory, batchNumber, sgdParams.nBatches);
+        writeFinishedFlag(memory, sgdParams, batchNumber);
 
         // If this is the last, dispatch the barrier (will have finished by now or will do soon)
         if(batchNumber == sgdParams.nBatches - 1) {

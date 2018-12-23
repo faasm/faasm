@@ -35,11 +35,14 @@ namespace faasm {
         p.nBatches = p.nTrain / batchSize;
         p.nEpochs = 60;
 
+        // Full sync or not
+        p.fullAsync = true;
+
         writeParamsToState(memory, PARAMS_KEY, p);
 
         // Initialise weights
         Eigen::MatrixXd weights = randomDenseMatrix(1, p.nWeights);
-        writeMatrixToState(memory, WEIGHTS_KEY, weights);
+        writeMatrixToState(memory, WEIGHTS_KEY, weights, p.fullAsync);
 
         // Zero the losses
         zeroLosses(memory, p);

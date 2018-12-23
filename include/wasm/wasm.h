@@ -111,7 +111,9 @@ namespace wasm {
 
     private:
         std::atomic<bool> isWholeValueDirty;
+
         std::set<std::pair<long, long>> dirtySegments;
+        std::shared_mutex dirtySegmentsMutex;
 
         std::shared_mutex valueMutex;
 

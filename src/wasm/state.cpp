@@ -253,14 +253,13 @@ namespace wasm {
             }
         }
 
-        // Shared lock for writing segments (need to allow lock-free writing of multiple threads on same
-        // state value)
-        SharedLock lock(valueMutex);
-
         // Record that this segment is dirty
-        dirtySegments.insert(Segment(offset, end));
+        {
+            FullLock segmentsLock(dirtySegmentsMutex);
+            dirtySegments.insert(Segment(offset, end));
+        }
 
-        // Update shared memory
+        // Check size
         if (offset + length > size) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -269,6 +268,7 @@ namespace wasm {
         }
 
         // Copy data into shared region
+        SharedLock lock(valueMutex);
         std::copy(buffer, buffer + length, value.data() + offset);
     }
 
@@ -379,7 +379,7 @@ namespace wasm {
         // Create copy of the dirty segments and clear the old version
         SegmentSet dirtySegmentsCopy;
         {
-            FullLock fullLock(valueMutex);
+            FullLock segmentsLock(dirtySegmentsMutex);
             dirtySegmentsCopy = dirtySegments;
             dirtySegments.clear();
         }

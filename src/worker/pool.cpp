@@ -13,11 +13,11 @@ namespace worker {
 
     void startWorkerThreadPool() {
         // Spawn the state thread first
-        std::thread stateThread([] {
-            StateThread s;
-            s.run();
-        });
-        stateThread.detach();
+//        std::thread stateThread([] {
+//            StateThread s;
+//            s.run();
+//        });
+//        stateThread.detach();
 
         // Spawn worker threads until we've hit the limit (thus creating a pool that will replenish
         // when one releases its token)

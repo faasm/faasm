@@ -35,11 +35,12 @@ namespace faasm {
         int nTrain;
         double learningRate;
         int nEpochs;
+        bool fullAsync;
     };
 
     void writeParamsToState(FaasmMemory *memory, const char *keyName, const SgdParams &params);
 
-    SgdParams readParamsFromState(FaasmMemory *memory, const char *keyName);
+    SgdParams readParamsFromState(FaasmMemory *memory, const char *keyName, bool async = false);
 
     MatrixXd hingeLossWeightUpdate(
             FaasmMemory *memory,
@@ -62,11 +63,11 @@ namespace faasm {
 
     void zeroFinished(FaasmMemory *memory, SgdParams sgdParams);
 
-    void writeFinishedFlag(FaasmMemory *memory, int batchNumber, int totalBatches);
+    void writeFinishedFlag(FaasmMemory *memory, SgdParams sgdParams, int batchNumber);
 
-    void writeHingeError(FaasmMemory *memory, int batchNumber, int totalBatches, const MatrixXd &outputs, const MatrixXd &actual);
+    void writeHingeError(FaasmMemory *memory, SgdParams sgdParams, int batchNumber, const MatrixXd &outputs, const MatrixXd &actual);
 
-    void writeSquaredError(FaasmMemory *memory, int batchNumber, int totalBatches, const MatrixXd &outputs, const MatrixXd &actual);
+    void writeSquaredError(FaasmMemory *memory, SgdParams sgdParams, int batchNumber, const MatrixXd &outputs, const MatrixXd &actual);
 
     double readTotalError(FaasmMemory *memory, const SgdParams &sgdParams);
 

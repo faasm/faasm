@@ -10,14 +10,16 @@ namespace faasm {
     void writeParamsToState(FaasmMemory *memory, const char *keyName, const SgdParams &params) {
         size_t nBytes = sizeof(SgdParams);
         auto bytePtr = reinterpret_cast<const uint8_t *>(&params);
-        memory->writeState(keyName, bytePtr, nBytes);
+
+        // Allow full async
+        memory->writeState(keyName, bytePtr, nBytes, params.fullAsync);
     }
 
-    SgdParams readParamsFromState(FaasmMemory *memory, const char *keyName) {
+    SgdParams readParamsFromState(FaasmMemory *memory, const char *keyName, bool async) {
         size_t nBytes = sizeof(SgdParams);
         auto buffer = new uint8_t[nBytes];
 
-        memory->readState(keyName, buffer, nBytes);
+        memory->readState(keyName, buffer, nBytes, async);
 
         SgdParams s{};
         memcpy(&s, buffer, nBytes);
@@ -78,8 +80,10 @@ namespace faasm {
             }
         }
 
-        // Make sure all updates have been pushed
-        memory->pushStatePartial(WEIGHTS_KEY);
+        // Make sure all updates have been pushed if we're not running in full async mode
+        if (!sgdParams.fullAsync) {
+            memory->pushStatePartial(WEIGHTS_KEY);
+        }
 
         // Recalculate the result and return
         MatrixXd postUpdate = weights * inputs;
@@ -115,7 +119,12 @@ namespace faasm {
 
             // Make the update
             weights(0, w) -= sgdParams.learningRate * thisGradient;
-            writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, w);
+            writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, w, true);
+        }
+
+        // Make sure all updates have been pushed if we're not running in full async mode
+        if (!sgdParams.fullAsync) {
+            memory->pushStatePartial(WEIGHTS_KEY);
         }
 
         // Recalculate the result and return
@@ -126,7 +135,7 @@ namespace faasm {
         return postUpdate;
     }
 
-    void zeroDoubleArray(FaasmMemory *memory, const char *key, long len) {
+    void zeroDoubleArray(FaasmMemory *memory, const char *key, long len, bool async) {
         // Set buffer to zero
         auto buffer = new double[len];
         for (int i = 0; i < len; i++) {
@@ -135,11 +144,11 @@ namespace faasm {
 
         // Write zeroed buffer to state
         auto bytes = reinterpret_cast<uint8_t *>(buffer);
-        memory->writeState(key, bytes, len * sizeof(double));
+        memory->writeState(key, bytes, len * sizeof(double), async);
         delete[] buffer;
     }
 
-    void zeroIntArray(FaasmMemory *memory, const char *key, long len) {
+    void zeroIntArray(FaasmMemory *memory, const char *key, long len, bool async) {
         // Set buffer to zero
         auto buffer = new int[len];
         for (int i = 0; i < len; i++) {
@@ -148,55 +157,62 @@ namespace faasm {
 
         // Write zeroed buffer to state
         auto bytes = reinterpret_cast<uint8_t *>(buffer);
-        memory->writeState(key, bytes, len * sizeof(int));
+        memory->writeState(key, bytes, len * sizeof(int), async);
         delete[] buffer;
     }
 
-    void writeFinishedFlag(FaasmMemory *memory, int batchNumber, int totalBatches) {
-        long totalBytes = totalBatches * sizeof(int);
+    void writeFinishedFlag(FaasmMemory *memory, SgdParams sgdParams, int batchNumber) {
+        long totalBytes = sgdParams.nBatches * sizeof(int);
         int finished = 1;
         auto finishedBytes = reinterpret_cast<uint8_t *>(&finished);
         long offset = batchNumber * sizeof(int);
-        memory->writeStateOffset(FINISHED_KEY, totalBytes, offset, finishedBytes, sizeof(int));
+
+        // Async if necessary
+        memory->writeStateOffset(FINISHED_KEY, totalBytes, offset, finishedBytes, sizeof(int), sgdParams.fullAsync);
     }
 
     void zeroFinished(FaasmMemory *memory, SgdParams sgdParams) {
-        zeroIntArray(memory, FINISHED_KEY, sgdParams.nBatches);
+        zeroIntArray(memory, FINISHED_KEY, sgdParams.nBatches, sgdParams.fullAsync);
     }
 
     void zeroErrors(FaasmMemory *memory, SgdParams sgdParams) {
-        zeroDoubleArray(memory, ERRORS_KEY, sgdParams.nBatches);
+        zeroDoubleArray(memory, ERRORS_KEY, sgdParams.nBatches, sgdParams.fullAsync);
     }
 
     void zeroLosses(FaasmMemory *memory, SgdParams sgdParams) {
-        zeroDoubleArray(memory, LOSSES_KEY, sgdParams.nEpochs);
+        zeroDoubleArray(memory, LOSSES_KEY, sgdParams.nEpochs, sgdParams.fullAsync);
     }
 
-    void _writeError(FaasmMemory *memory, int batchNumber, int totalBatches, double error) {
+    void _writeError(FaasmMemory *memory, SgdParams sgdParams, int batchNumber, double error) {
         auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&error);
 
         long offset = batchNumber * sizeof(double);
-        long totalBytes = totalBatches * sizeof(double);
-        memory->writeStateOffset(ERRORS_KEY, totalBytes, offset, squaredErrorBytes, sizeof(double));
+        long totalBytes = sgdParams.nBatches * sizeof(double);
+
+        // Write (going async if in full async mode)
+        memory->writeStateOffset(ERRORS_KEY, totalBytes, offset, squaredErrorBytes, sizeof(double),
+                                 sgdParams.fullAsync);
     }
 
-    void writeHingeError(FaasmMemory *memory, int batchNumber, int totalBatches, const MatrixXd &outputs,
+    void writeHingeError(FaasmMemory *memory, SgdParams sgdParams, int batchNumber, const MatrixXd &outputs,
                          const MatrixXd &actual) {
         double err = calculateHingeError(actual, outputs);
-        _writeError(memory, batchNumber, totalBatches, err);
+        _writeError(memory, sgdParams, batchNumber, err);
     }
 
-    void writeSquaredError(FaasmMemory *memory, int batchNumber, int totalBatches, const MatrixXd &outputs,
+    void writeSquaredError(FaasmMemory *memory, SgdParams sgdParams, int batchNumber, const MatrixXd &outputs,
                            const MatrixXd &actual) {
         double err = calculateSquaredError(actual, outputs);
-        _writeError(memory, batchNumber, totalBatches, err);
+        _writeError(memory, sgdParams, batchNumber, err);
     }
 
     bool readEpochFinished(FaasmMemory *memory, const SgdParams &sgdParams) {
         // Load finished flags from state
         const size_t nBytes = sgdParams.nBatches * sizeof(int);
         auto buffer = new uint8_t[nBytes];
-        memory->readState(FINISHED_KEY, buffer, nBytes);
+
+        // Read in (async if necessary)
+        memory->readState(FINISHED_KEY, buffer, nBytes, sgdParams.fullAsync);
 
         auto flags = reinterpret_cast<int *>(buffer);
 
@@ -220,7 +236,9 @@ namespace faasm {
         // Load errors from state
         const size_t nBytes = sgdParams.nBatches * sizeof(double);
         auto buffer = new uint8_t[nBytes];
-        memory->readState(ERRORS_KEY, buffer, nBytes);
+
+        // Allow fully async
+        memory->readState(ERRORS_KEY, buffer, nBytes, sgdParams.fullAsync);
 
         auto errors = reinterpret_cast<double *>(buffer);
 
