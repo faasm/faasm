@@ -10,7 +10,7 @@ namespace faasm {
         SgdParams p = readParamsFromState(memory, PARAMS_KEY);
 
         // Get current epoch count (starts at zero)
-        int thisEpoch = getCounter(memory, EPOCH_COUNT_KEY);
+        int thisEpoch = getCounter(memory, EPOCH_COUNT_KEY, p.fullAsync);
 
         // See if we've finished the epoch
         bool isFinished = readEpochFinished(memory, p);
@@ -25,14 +25,14 @@ namespace faasm {
         long tsTotal = p.nEpochs * sizeof(double);
         long tsOffset = thisEpoch * sizeof(long);
         auto tsBytes = reinterpret_cast<uint8_t *>(&ts);
-        memory->writeStateOffset(LOSS_TIMESTAMPS_KEY, tsTotal, tsOffset, tsBytes, sizeof(long));
+        memory->writeStateOffset(LOSS_TIMESTAMPS_KEY, tsTotal, tsOffset, tsBytes, sizeof(long), p.fullAsync);
 
         // Record the loss for this epoch
         double loss = faasm::readRootMeanSquaredError(memory, p);
         long lossTotal = p.nEpochs * sizeof(double);
         long lossOffset = thisEpoch * sizeof(double);
         auto lossBytes = reinterpret_cast<uint8_t *>(&loss);
-        memory->writeStateOffset(LOSSES_KEY, lossTotal, lossOffset, lossBytes, sizeof(double));
+        memory->writeStateOffset(LOSSES_KEY, lossTotal, lossOffset, lossBytes, sizeof(double), p.fullAsync);
 
         // Drop out if finished all epochs
         if (thisEpoch >= p.nEpochs - 1) {
@@ -41,7 +41,7 @@ namespace faasm {
         }
 
         // Increment epoch counter
-        incrementCounter(memory, EPOCH_COUNT_KEY);
+        incrementCounter(memory, EPOCH_COUNT_KEY, p.fullAsync);
         int nextEpoch = thisEpoch + 1;
         printf("Starting epoch %i (MSE = %f)\n", nextEpoch, loss);
 

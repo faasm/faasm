@@ -38,6 +38,7 @@ namespace faasm {
         // Full sync or not
         p.fullAsync = true;
 
+        // Write params synchronously
         writeParamsToState(memory, PARAMS_KEY, p);
 
         // Initialise weights
