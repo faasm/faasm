@@ -7,6 +7,27 @@
 using namespace Eigen;
 
 namespace faasm {
+    SgdParams setUpReutersParams(FaasmMemory *memory, int batchSize, bool fullAsync) {
+        // Set up reuters params
+        SgdParams p;
+        p.lossType = HINGE;
+        p.nWeights = REUTERS_N_FEATURES;
+        p.nTrain = REUTERS_N_EXAMPLES;
+        p.learningRate = REUTERS_LEARNING_RATE;
+
+        printf("Starting SVM with batch size %i\n", batchSize);
+        p.nBatches = p.nTrain / batchSize;
+        p.nEpochs = 60;
+
+        // Full sync or not
+        p.fullAsync = true;
+
+        // Write params synchronously
+        writeParamsToState(memory, PARAMS_KEY, p);
+
+        return p;
+    }
+
     void writeParamsToState(FaasmMemory *memory, const char *keyName, const SgdParams &params) {
         size_t nBytes = sizeof(SgdParams);
         auto bytePtr = reinterpret_cast<const uint8_t *>(&params);
@@ -48,7 +69,7 @@ namespace faasm {
 
         // Iterate through all training examples (i.e. columns)
         for (int col = 0; col < inputs.outerSize(); ++col) {
-            // Read in weights asynchronously *directly into the existing weights matrix*
+            // Read in weights asynchronously
             memory->readState(WEIGHTS_KEY, weightDataByteBuffer, nWeightBytes, true);
 
             // Get input and output associated with this example

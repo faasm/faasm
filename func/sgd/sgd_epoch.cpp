@@ -16,12 +16,12 @@ namespace faasm {
         int epoch = faasm::getCounter(memory, EPOCH_COUNT_KEY, p.fullAsync);
 
         // Shuffle start indices for each batch
-        int* batchStartIndices = faasm::randomIntRange(p.nBatches);
+        int* batchNumbers = faasm::randomIntRange(p.nBatches);
 
         // Chain new calls to perform the work
         int batchSize = p.nTrain / p.nBatches;
         for (int w = 0; w < p.nBatches; w++) {
-            int startIdx = batchStartIndices[w];
+            int startIdx = batchNumbers[w] * batchSize;
             int endIdx = startIdx + batchSize;
 
             // Prepare input data for the worker
@@ -33,7 +33,7 @@ namespace faasm {
             memory->chainFunction("sgd_step", inputBytes, nBytes);
         }
 
-        delete[] batchStartIndices;
+        delete[] batchNumbers;
 
         return 0;
     }

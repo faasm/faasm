@@ -11,6 +11,4 @@ namespace tests {
     static infra::Redis redisState(infra::STATE);
 
     void checkSparseMatrixEquality(const SparseMatrix<double> &a, const SparseMatrix<double> &b);
-
-    double doSgdStep(FaasmMemory *mem, SgdParams &params, int epoch, SparseMatrix<double> &inputs, MatrixXd &outputs);
 }

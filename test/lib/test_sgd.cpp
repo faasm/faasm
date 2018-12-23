@@ -5,6 +5,7 @@
 #include <faasm/sgd.h>
 #include <faasm/matrix.h>
 
+#include <data/data.h>
 #include <infra/infra.h>
 #include <state/state.h>
 
@@ -174,41 +175,6 @@ namespace tests {
 
     TEST_CASE("Test hinge loss updates", "[sgd]") {
         checkLossUpdates(HINGE);
-    }
-
-    TEST_CASE("Test SGD with least squares converges", "[sgd]") {
-        redisQueue.flushAll();
-        state::getGlobalState().forceClearAll();
-
-        // Perform minibatch
-        SgdParams params;
-        params.lossType = RMSE;
-        params.nBatches = 2500;
-        params.nWeights = 4;
-        params.nTrain = 5000;
-        params.learningRate = 0.01;
-        params.nEpochs = 10;
-        params.fullAsync = true;
-
-        // Set up the problem
-        FaasmMemory mem;
-        setUpDummyProblem(&mem, params);
-
-        SparseMatrix<double> inputs = readSparseMatrixFromState(&mem, INPUTS_KEY);
-        MatrixXd outputs = readMatrixFromState(&mem, OUTPUTS_KEY, 1, params.nTrain);
-
-        // Work out the error before we start
-        MatrixXd weights = readMatrixFromState(&mem, WEIGHTS_KEY, 1, params.nWeights);
-        MatrixXd initialOutput = weights * inputs;
-        double startingLoss = calculateRootMeanSquaredError(initialOutput, outputs);
-
-        // Run multiple updates
-        double finalLoss = 0;
-        for (int e = 0; e < params.nEpochs; e++) {
-            finalLoss = doSgdStep(&mem, params, e, inputs, outputs);
-        }
-
-        REQUIRE(finalLoss < startingLoss);
     }
 
     void checkDoubleArrayInState(infra::Redis &r, const char *key, std::vector<double> expected) {
