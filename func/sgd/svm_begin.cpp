@@ -49,7 +49,7 @@ namespace faasm {
         zeroLosses(memory, p);
 
         // Begin first epoch
-        initCounter(memory, EPOCH_COUNT_KEY);
+        initCounter(memory, EPOCH_COUNT_KEY, p.fullAsync);
         memory->chainFunction("sgd_epoch");
 
         return 0;
