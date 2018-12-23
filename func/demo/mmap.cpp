@@ -9,21 +9,15 @@ namespace faasm {
 
         uint8_t outputBuf[1];
 
-        printf("Doing mmap test\n");
-
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 10; i++) {
             // Map some memory
             void *memPtr = mmap(nullptr, memLen, 3, 34, -1, 0);
-
-            printf("Mapped: %p\n", memPtr);
 
             // Now unmap that memory
             munmap(memPtr, memLen);
 
             // Map again
             void *memPtr2 = mmap(nullptr, memLen, 3, 34, -1, 0);
-
-            printf("Mapped again: %p\n", memPtr);
 
             // Check we get the same pointer
             if (memPtr != memPtr2) {

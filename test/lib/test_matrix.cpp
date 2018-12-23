@@ -232,7 +232,7 @@ namespace tests {
 
         const char *key = "sparse_trip_offset_test";
 
-        SparseMatrix<double> mat = faasm::randomSparseMatrix(rows, cols, 0.4);
+        SparseMatrix<double> mat = faasm::randomSparseMatrix(rows, cols, 0.7);
         faasm::FaasmMemory mem;
         faasm::writeSparseMatrixToState(&mem, key, mat);
 

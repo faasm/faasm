@@ -29,25 +29,27 @@ namespace faasm {
     MatrixXd hingeLossWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int epoch,
                                    const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
 
-        auto weightData = new double[sgdParams.nWeights];
-        readMatrixFromState(memory, WEIGHTS_KEY, weightData, 1, sgdParams.nWeights, true);
-        Map<MatrixXd> weights(weightData, 1, sgdParams.nWeights);
+        auto weightDataBuffer = new double[sgdParams.nWeights];
+        auto weightDataByteBuffer = reinterpret_cast<uint8_t *>(weightDataBuffer);
+        size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
 
-        SparseMatrix<double> thisInput;
-        Matrix<double, 1, 1> prediction;
+        // Read in the weights initially
+        memory->readState(WEIGHTS_KEY, weightDataByteBuffer, nWeightBytes, true);
+        Map<RowVectorXd> weights(weightDataBuffer, sgdParams.nWeights);
 
         // Iterate through all training examples (i.e. columns)
         for (int col = 0; col < inputs.outerSize(); ++col) {
             // Read in weights asynchronously *directly into the existing weights matrix*
-            readMatrixFromState(memory, WEIGHTS_KEY, weightData, 1, sgdParams.nWeights, true);
+            memory->readState(WEIGHTS_KEY, weightDataByteBuffer, nWeightBytes, true);
 
             // Get input and output associated with this example
             double thisOutput = outputs.coeff(0, col);
-            thisInput = inputs.col(col);
+            SparseVector<double> thisInput = inputs.col(col);
 
-            // Work out the prediction for this example. This will be a single number.D
-            // Do this inside the loop to include weight updates.
-            prediction = weights * thisInput;
+            // Work out the prediction for this example. This will be a single number.
+            // Do this inside the loop to include weight updates. Importantly the input
+            // here will be sparse so we need to use the eigen multiplication
+            Matrix<double, 1, 1> prediction = weights * thisInput;
             double thisPrediction = prediction.coeff(0, 0);
 
             // If the prediction multiplied by the output is less than one, it's misclassified
@@ -57,7 +59,7 @@ namespace faasm {
             for (Eigen::SparseMatrix<double>::InnerIterator it(inputs, col); it; ++it) {
                 // Get the value and associated weight
                 double thisValue = it.value();
-                double thisWeight = weights.coeff(0, it.row());
+                double thisWeight = weightDataBuffer[it.row()];
 
                 // If misclassified, hinge loss is active
                 if (isMisclassified) {
@@ -66,10 +68,13 @@ namespace faasm {
 
                 thisWeight *= (1 - (sgdParams.learningRate / (1 + epoch)));
 
-                // Update in memory
-                weights(0, it.row()) = thisWeight;
+                // Write update memory array
+                weightDataBuffer[it.row()] = thisWeight;
 
-                writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, it.row(), true);
+                // Update in state
+                auto byteWeight = reinterpret_cast<uint8_t *>(&thisWeight);
+                size_t offset = it.row() * sizeof(double);
+                memory->writeStateOffset(WEIGHTS_KEY, nWeightBytes, offset, byteWeight, sizeof(double), true);
             }
         }
 
@@ -79,7 +84,7 @@ namespace faasm {
         // Recalculate the result and return
         MatrixXd postUpdate = weights * inputs;
 
-        delete[] weightData;
+        delete[] weightDataBuffer;
 
         return postUpdate;
     }
