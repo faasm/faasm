@@ -6,9 +6,8 @@ include_directories(
 add_library(wasm STATIC
         chaining.cpp
         wasm.cpp
-        state.cpp
         syscalls.cpp
         ${FAASM_INCLUDE_DIR}/wasm/wasm.h
         )
 
-target_link_libraries(wasm infra Logging IR WASTParse WASM Runtime)
+target_link_libraries(wasm infra state Logging IR WASTParse WASM Runtime)

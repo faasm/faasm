@@ -5,4 +5,4 @@ add_library(
         emulator.cpp
 )
 
-target_link_libraries(emulator infra)
+target_link_libraries(emulator infra state)

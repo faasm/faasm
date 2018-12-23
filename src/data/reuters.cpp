@@ -5,7 +5,7 @@
 #include <boost/filesystem.hpp>
 #include <util/util.h>
 
-#include <faasm/matrix.h>
+#include <faasm/sgd.h>
 
 
 using namespace boost::filesystem;
@@ -28,6 +28,8 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
 
     std::vector<double> categories;
     std::vector<Eigen::Triplet<double>> triplets;
+
+    std::vector<int> featureCounts(REUTERS_N_FEATURES);
 
     for (const auto &f : files) {
         path thisFile = downloadDir;
@@ -61,9 +63,12 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
                 double weight = std::stof(valueTokens[1]);
 
                 // Add to matrix.
-                // NOTE: the file is 1-based. With triplets, eigen is zero-based (although when
-                // indexing an array it's 1-based)
+                // NOTE: the file is 1-based so we knock one off the feature value.
+                // With triplets, eigen is zero-based (although when indexing an array it's 1-based)
                 triplets.emplace_back(Eigen::Triplet<double>(feature - 1, exampleCount, weight));
+
+                // Record an occurrence of this feature
+                featureCounts.at(feature - 1)++;
 
                 maxFeature = std::max(maxFeature, feature);
             };
@@ -76,6 +81,10 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
         input.close();
     }
 
+    if (maxFeature != REUTERS_N_FEATURES) {
+        logger->error("Expected {} features but got {}", REUTERS_N_FEATURES, maxFeature);
+    }
+
     logger->info("Totals: {} features and {} examples", maxFeature, exampleCount);
 
     // Build the sparse matrix (row for each feature, col for each example)
@@ -86,7 +95,7 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
     data::SparseMatrixFileSerialiser s(mat);
     s.writeToFile(outputDir.string());
 
-    // Write categories to files
+    // Write categories to file
     long nCatBytes = categories.size() * sizeof(double);
     auto catPtr = reinterpret_cast<uint8_t *>(categories.data());
 
@@ -95,6 +104,17 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
 
     logger->info("Writing {} bytes to {}", nCatBytes, catFile.c_str());
     util::writeBytesToFile(catFile.string(), std::vector<uint8_t>(catPtr, catPtr + nCatBytes));
+
+    // Write feature counts to file
+    long nFeatureCountBytes = featureCounts.size() * sizeof(int);
+    auto featureCountsPtr = reinterpret_cast<uint8_t *>(featureCounts.data());
+
+    path featureCountsFile = outputDir;
+    featureCountsFile.append("feature_counts");
+
+    logger->info("Writing {} bytes to {}", nFeatureCountBytes, featureCountsFile.c_str());
+    util::writeBytesToFile(featureCountsFile.string(), std::vector<uint8_t>(featureCountsPtr,
+                                                                            featureCountsPtr + nFeatureCountBytes));
 }
 
 int main() {

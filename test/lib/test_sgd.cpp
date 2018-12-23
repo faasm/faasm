@@ -6,6 +6,7 @@
 #include <faasm/matrix.h>
 
 #include <infra/infra.h>
+#include <state/state.h>
 
 using namespace faasm;
 
@@ -32,6 +33,7 @@ namespace tests {
 
     TEST_CASE("Test serialising params round trip", "[sgd]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         SgdParams params = getDummySgdParams();
 
@@ -48,6 +50,7 @@ namespace tests {
 
     TEST_CASE("Test setting up dummy data", "[sgd]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         SgdParams params = getDummySgdParams();
 
@@ -71,6 +74,7 @@ namespace tests {
 
     void checkLossUpdates(LossType lossType) {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         FaasmMemory mem;
 
@@ -86,6 +90,12 @@ namespace tests {
 
         // Persist weights to allow updates
         writeMatrixToState(&mem, WEIGHTS_KEY, weights);
+
+        // Set up some dummy feature counts
+        std::vector<int> featureCounts(4);
+        std::fill(featureCounts.begin(), featureCounts.end(), 1);
+        uint8_t *featureBytes = reinterpret_cast<uint8_t *>(featureCounts.data());
+        mem.writeState(FEATURE_COUNTS_KEY, featureBytes, 4 * sizeof(int));
 
         // Copy of weights for testing
         MatrixXd weightsCopy = weights;
@@ -168,6 +178,7 @@ namespace tests {
 
     TEST_CASE("Test SGD with least squares converges", "[sgd]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         // Perform minibatch
         SgdParams params;
@@ -177,6 +188,7 @@ namespace tests {
         params.nTrain = 5000;
         params.learningRate = 0.01;
         params.nEpochs = 10;
+        params.fullAsync = true;
 
         // Set up the problem
         FaasmMemory mem;
@@ -200,7 +212,8 @@ namespace tests {
     }
 
     void checkDoubleArrayInState(infra::Redis &r, const char *key, std::vector<double> expected) {
-        std::vector<uint8_t> actualBytes = redisQueue.get(key);
+        std::string actualKey("demo_" + std::string(key));
+        std::vector<uint8_t> actualBytes = redisQueue.get(actualKey);
 
         auto actualPtr = reinterpret_cast<double *>(actualBytes.data());
         std::vector<double> actual(actualPtr, actualPtr + expected.size());
@@ -209,7 +222,8 @@ namespace tests {
     }
 
     void checkIntArrayInState(infra::Redis &r, const char *key, std::vector<int> expected) {
-        std::vector<uint8_t> actualBytes = redisQueue.get(key);
+        std::string actualKey("demo_" + std::string(key));
+        std::vector<uint8_t> actualBytes = redisQueue.get(actualKey);
 
         auto actualPtr = reinterpret_cast<int *>(actualBytes.data());
         std::vector<int> actual(actualPtr, actualPtr + expected.size());
@@ -219,6 +233,7 @@ namespace tests {
 
     TEST_CASE("Test writing errors to state", "[sgd]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         MatrixXd a = randomDenseMatrix(1, 5);
         MatrixXd b = randomDenseMatrix(1, 5);
@@ -250,6 +265,7 @@ namespace tests {
 
     TEST_CASE("Test reading errors from state", "[sgd]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         FaasmMemory memory;
         SgdParams p = getDummySgdParams();
@@ -289,6 +305,7 @@ namespace tests {
 
     TEST_CASE("Test zeroing losses", "[sgd]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         SgdParams p = getDummySgdParams();
         p.nBatches = 10;
@@ -314,6 +331,7 @@ namespace tests {
 
     TEST_CASE("Test setting finished flags", "[sgd]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         SgdParams p = getDummySgdParams();
         p.nBatches = 3;
@@ -335,6 +353,7 @@ namespace tests {
 
     TEST_CASE("Test zeroing finished flags", "[sgd]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         SgdParams p = getDummySgdParams();
         p.nBatches = 3;

@@ -1,9 +1,11 @@
 #include "faasm/memory.h"
 
+// In a wasm build, these need to be C definitions to avoid the names getting mangled
+#if WASM_BUILD == 1
 extern "C" {
-void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, int async);
+#endif
 
-uint8_t *__faasm_read_state_ptr(const char *key, long len, int async);
+void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, int async);
 
 void __faasm_write_state(const char *key, const unsigned char *data, long dataLen, int async);
 
@@ -28,7 +30,10 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen);
 void __faasm_write_output(const unsigned char *output, long outputLen);
 
 void __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize);
+
+#if WASM_BUILD == 1
 }
+#endif
 
 namespace faasm {
 
@@ -38,10 +43,6 @@ namespace faasm {
 
     void FaasmMemory::readState(const char *key, uint8_t *buffer, long bufferLen, bool async) {
         __faasm_read_state(key, buffer, bufferLen, (int) async);
-    };
-
-    uint8_t *FaasmMemory::readStatePtr(const char *key, long len, bool async) {
-        return __faasm_read_state_ptr(key, len, (int) async);
     };
 
     void FaasmMemory::writeState(const char *key, const uint8_t *data, long dataLen, bool async) {

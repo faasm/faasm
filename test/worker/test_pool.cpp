@@ -273,7 +273,7 @@ namespace tests {
 
     TEST_CASE("Test synchronous state", "[worker]") {
         checkStateExample(
-                "state",
+                "state_sync",
                 "demo_state_example",
                 {0, 1, 2, 3},
                 {0, 1, 2, 3}

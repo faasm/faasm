@@ -1,6 +1,7 @@
 #include <catch/catch.hpp>
 
 #include <infra/infra.h>
+#include <state/state.h>
 
 #include "faasm/memory.h"
 #include "faasm/counter.h"
@@ -11,6 +12,7 @@ using namespace faasm;
 namespace tests {
     TEST_CASE("Test normal counter operation", "[counter]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         FaasmMemory mem;
 
@@ -34,6 +36,7 @@ namespace tests {
 
     TEST_CASE("Test counter over big number", "[counter]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         FaasmMemory mem;
 
@@ -49,6 +52,7 @@ namespace tests {
 
     TEST_CASE("Test uninitialised counter", "[counter]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         FaasmMemory mem;
 

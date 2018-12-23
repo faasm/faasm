@@ -1,8 +1,8 @@
 #include <catch/catch.hpp>
 #include "utils.h"
-#include <wasm/wasm.h>
+#include <state/state.h>
 
-using namespace wasm;
+using namespace state;
 
 namespace tests {
     util::TimePoint timeNow;

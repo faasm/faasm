@@ -31,13 +31,20 @@ namespace faasm {
     MatrixXd hingeLossWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int epoch,
                                    const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
 
+        // Read in the weights initially
         auto weightDataBuffer = new double[sgdParams.nWeights];
         auto weightDataByteBuffer = reinterpret_cast<uint8_t *>(weightDataBuffer);
         size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
 
-        // Read in the weights initially
         memory->readState(WEIGHTS_KEY, weightDataByteBuffer, nWeightBytes, true);
         Map<RowVectorXd> weights(weightDataBuffer, sgdParams.nWeights);
+
+        // Read in the feature counts (will be constant)
+        auto featureCountBuffer = new int[sgdParams.nWeights];
+        auto featureCountByteBuffer = reinterpret_cast<uint8_t *>(featureCountBuffer);
+        size_t nFeatureCountBytes = sgdParams.nWeights * sizeof(int);
+
+        memory->readState(FEATURE_COUNTS_KEY, featureCountByteBuffer, nFeatureCountBytes, true);
 
         // Iterate through all training examples (i.e. columns)
         for (int col = 0; col < inputs.outerSize(); ++col) {
@@ -68,7 +75,9 @@ namespace faasm {
                     thisWeight += (sgdParams.learningRate * thisOutput * thisValue);
                 }
 
-                thisWeight *= (1 - (sgdParams.learningRate / (1 + epoch)));
+                // Update weight regardless of classification including scaling based on how common it is
+                int thisFeatureCount = featureCountBuffer[it.row()];
+                thisWeight *= (1 - (sgdParams.learningRate / (thisFeatureCount * (1 + epoch))));
 
                 // Write update memory array
                 weightDataBuffer[it.row()] = thisWeight;
@@ -138,9 +147,7 @@ namespace faasm {
     void zeroDoubleArray(FaasmMemory *memory, const char *key, long len, bool async) {
         // Set buffer to zero
         auto buffer = new double[len];
-        for (int i = 0; i < len; i++) {
-            buffer[i] = 0;
-        }
+        std::fill(buffer, buffer + len, 0);
 
         // Write zeroed buffer to state
         auto bytes = reinterpret_cast<uint8_t *>(buffer);
@@ -151,9 +158,7 @@ namespace faasm {
     void zeroIntArray(FaasmMemory *memory, const char *key, long len, bool async) {
         // Set buffer to zero
         auto buffer = new int[len];
-        for (int i = 0; i < len; i++) {
-            buffer[i] = 0;
-        }
+        std::fill(buffer, buffer + len, 0);
 
         // Write zeroed buffer to state
         auto bytes = reinterpret_cast<uint8_t *>(buffer);

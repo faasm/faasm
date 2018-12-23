@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <infra/infra.h>
 #include <prof/prof.h>
+#include <state/state.h>
 
 #include <spdlog/spdlog.h>
 #include <thread>
@@ -38,7 +39,7 @@ namespace worker {
     StateThread::StateThread() = default;
 
     void StateThread::run() {
-        wasm::State &s = wasm::getGlobalState();
+        state::State &s = state::getGlobalState();
         s.pushLoop();
     }
 

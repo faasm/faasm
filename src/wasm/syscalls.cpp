@@ -17,6 +17,7 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <stdarg.h>
 #include <prof/prof.h>
+#include <state/state.h>
 
 using namespace WAVM;
 
@@ -102,10 +103,10 @@ namespace wasm {
     // ------------------------
     // FAASM-specific
     // ------------------------
-    StateKeyValue * getStateKV(I32 keyPtr, size_t size) {
+    state::StateKeyValue * getStateKV(I32 keyPtr, size_t size) {
         const std::pair<std::string, std::string> userKey = getUserKeyPairFromWasm(keyPtr);
-        wasm::State &s = wasm::getGlobalState();
-        wasm::StateKeyValue *kv = s.getKV(userKey.first, userKey.second, size);
+        state::State &s = state::getGlobalState();
+        state::StateKeyValue *kv = s.getKV(userKey.first, userKey.second, size);
 
         return kv;
     }
@@ -113,42 +114,42 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state", void, __faasm_push_state, I32 keyPtr) {
         util::getLogger()->debug("S - push_state - {}", keyPtr);
 
-        wasm::StateKeyValue *kv = getStateKV(keyPtr, 0);
+        state::StateKeyValue *kv = getStateKV(keyPtr, 0);
         kv->pushFull();
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state_partial", void, __faasm_push_state_partial, I32 keyPtr) {
         util::getLogger()->debug("S - push_state_partial - {}", keyPtr);
 
-        wasm::StateKeyValue *kv = getStateKV(keyPtr, 0);
+        state::StateKeyValue *kv = getStateKV(keyPtr, 0);
         kv->pushPartial();
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_lock_state_read", void, __faasm_lock_state_read, I32 keyPtr) {
         util::getLogger()->debug("S - lock_state_read - {}", keyPtr);
 
-        wasm::StateKeyValue *kv = getStateKV(keyPtr, 0);
+        state::StateKeyValue *kv = getStateKV(keyPtr, 0);
         kv->lockRead();
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_unlock_state_read", void, __faasm_unlock_state_read, I32 keyPtr) {
         util::getLogger()->debug("S - unlock_state_read - {}", keyPtr);
 
-        wasm::StateKeyValue *kv = getStateKV(keyPtr, 0);
+        state::StateKeyValue *kv = getStateKV(keyPtr, 0);
         kv->unlockRead();
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_lock_state_write", void, __faasm_lock_state_write, I32 keyPtr) {
         util::getLogger()->debug("S - lock_state_write - {}", keyPtr);
 
-        wasm::StateKeyValue *kv = getStateKV(keyPtr, 0);
+        state::StateKeyValue *kv = getStateKV(keyPtr, 0);
         kv->lockWrite();
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_unlock_state_write", void, __faasm_unlock_state_write, I32 keyPtr) {
         util::getLogger()->debug("S - unlock_state_write - {}", keyPtr);
 
-        wasm::StateKeyValue *kv = getStateKV(keyPtr, 0);
+        state::StateKeyValue *kv = getStateKV(keyPtr, 0);
         kv->unlockWrite();
     }
 
@@ -156,7 +157,7 @@ namespace wasm {
                               I32 keyPtr, I32 dataPtr, I32 dataLen, I32 async) {
         util::getLogger()->debug("S - write_state - {} {} {} {}", keyPtr, dataPtr, dataLen, async);
 
-        wasm::StateKeyValue *kv = getStateKV(keyPtr, dataLen);
+        state::StateKeyValue *kv = getStateKV(keyPtr, dataLen);
 
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
@@ -173,7 +174,7 @@ namespace wasm {
                               I32 keyPtr, I32 totalLen, I32 offset, I32 dataPtr, I32 dataLen, I32 async) {
         util::getLogger()->debug("S - write_state_offset - {} {} {} {} {} {}", keyPtr, totalLen, offset, dataPtr, dataLen, async);
 
-        wasm::StateKeyValue *kv = getStateKV(keyPtr, totalLen);
+        state::StateKeyValue *kv = getStateKV(keyPtr, totalLen);
 
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
@@ -186,17 +187,11 @@ namespace wasm {
         }
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_ptr", I32, __faasm_read_state_ptr, I32 keyPtr, I32 len, I32 async) {
-        util::getLogger()->debug("S - read_state_ptr - {} {} {}", keyPtr, len, async);
-
-        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
-    }
-
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state", void, __faasm_read_state,
                               I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 async) {
         util::getLogger()->debug("S - read_state - {} {} {} {}", keyPtr, bufferPtr, bufferLen, async);
 
-        wasm::StateKeyValue *kv = getStateKV(keyPtr, bufferLen);
+        state::StateKeyValue *kv = getStateKV(keyPtr, bufferLen);
 
         // Pull
         bool isAsync = async == 1;
@@ -214,7 +209,7 @@ namespace wasm {
                 bufferLen);
 
         // Read the state in
-        wasm::StateKeyValue *kv = getStateKV(keyPtr, totalLen);
+        state::StateKeyValue *kv = getStateKV(keyPtr, totalLen);
 
         // Pull
         bool isAsync = async == 1;
@@ -415,7 +410,7 @@ namespace wasm {
         // Get array of iovecs from memory
         wasm_iovec *iovecs = Runtime::memoryArrayPtr<wasm_iovec>(memoryPtr, iov, iovcnt);
 
-        // Build vector of emulator iovecs
+        // Build vector of iovecs
         iovec nativeIovecs[iovcnt];
         for (U32 i = 0; i < iovcnt; i++) {
             wasm_iovec thisIovec = iovecs[i];
@@ -423,7 +418,7 @@ namespace wasm {
             // Get pointer to data
             U8 *ioData = Runtime::memoryArrayPtr<U8>(memoryPtr, thisIovec.iov_base, thisIovec.iov_len);
 
-            // Create emulator iovec and add to list
+            // Create iovec and add to list
             iovec nativeIovec{
                     .iov_base = ioData,
                     .iov_len = thisIovec.iov_len,
@@ -619,7 +614,7 @@ namespace wasm {
     /** Writes changes to a native sockaddr back to a wasm sockaddr. This is important in several
      * networking syscalls that receive responses and modify arguments in place */
     void setSockAddr(sockaddr nativeSockAddr, I32 addrPtr) {
-        // Get emulator pointer to wasm address
+        // Get pointer to wasm address
         wasm_sockaddr *wasmAddrPtr = &Runtime::memoryRef<wasm_sockaddr>(getExecutingModule()->defaultMemory,
                                                                         (Uptr) addrPtr);
 
@@ -629,7 +624,7 @@ namespace wasm {
     }
 
     void setSockLen(socklen_t nativeValue, I32 wasmPtr) {
-        // Get emulator pointer to wasm address
+        // Get pointer to wasm address
         I32 *wasmAddrPtr = &Runtime::memoryRef<I32>(getExecutingModule()->defaultMemory, (Uptr) wasmPtr);
         std::copy(&nativeValue, &nativeValue + 1, wasmAddrPtr);
     }
@@ -789,7 +784,7 @@ namespace wasm {
                                                  sockAddrPtr,
                                                  addrLen);
 
-                        // Make the emulator call
+                        // Make the call
                         result = recvfrom(sockfd, buf, bufLen, flags, &sockAddr, &nativeAddrLen);
 
                         // Note, recvfrom will modify the sockaddr and addrlen in place with the details returned

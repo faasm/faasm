@@ -15,11 +15,6 @@ namespace faasm {
         void readState(const char *key, uint8_t *buffer, long bufferLen, bool async = false);
 
         /**
-        * Reads the full state at the given key and returns a pointer to it
-        */
-        uint8_t *readStatePtr(const char *key, long len, bool async);
-
-        /**
          * Overwrites the state at the given key
          */
         void writeState(const char *key, const uint8_t *data, long dataLen, bool async = false);
