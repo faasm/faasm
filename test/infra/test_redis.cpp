@@ -136,7 +136,7 @@ namespace tests {
 
         // Note that redis getrange is inclusive on start/end indices
         uint8_t buffer[3];
-        redisQueue.getRange(key, buffer, 4, 6);
+        redisQueue.getRange(key, buffer, 3, 4, 6);
         std::vector<uint8_t> actualBytes(buffer, buffer + 3);
 
         std::string expected = "thi";

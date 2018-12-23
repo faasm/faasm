@@ -64,7 +64,7 @@ namespace infra {
 
         void setRange(const std::string &key, long offset, const uint8_t *value, size_t size);
 
-        void getRange(const std::string &key, uint8_t *buffer, long start, long end);
+        void getRange(const std::string &key, uint8_t *buffer, size_t bufferLen, long start, long end);
 
         void enqueue(const std::string &queueName, const std::vector<uint8_t> &value);
 

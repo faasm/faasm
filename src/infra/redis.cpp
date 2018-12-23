@@ -128,12 +128,12 @@ namespace infra {
         return resultData;
     }
 
-    void getBytesFromReply(redisReply *reply, uint8_t *buffer, size_t size) {
+    void getBytesFromReply(redisReply *reply, uint8_t *buffer, size_t bufferLen) {
         // We have to be careful here to handle the bytes properly
         char *resultArray = reply->str;
         int resultLen = reply->len;
 
-        if(resultLen > size) {
+        if(resultLen > bufferLen) {
             throw std::runtime_error("Reading value too big for buffer");
         }
 
@@ -269,12 +269,11 @@ namespace infra {
     /**
      * Note that start/end are both inclusive
      */
-    void Redis::getRange(const std::string &key, uint8_t *buffer, long start, long end) {
+    void Redis::getRange(const std::string &key, uint8_t *buffer, size_t bufferLen, long start, long end) {
         auto reply = (redisReply *) redisCommand(context, "GETRANGE %s %li %li", key.c_str(), start, end);
 
-        // getrange is inclusive
-        long len = end - start + 1;
-        getBytesFromReply(reply, buffer, len);
+        // Importantly getrange is inclusive so we need to be checking the buffer length
+        getBytesFromReply(reply, buffer, bufferLen);
         freeReplyObject(reply);
     }
 

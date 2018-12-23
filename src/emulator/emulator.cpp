@@ -34,7 +34,9 @@ void __faasm_write_state_offset(const char *key, long totalLen, long offset, con
 void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsigned char *buffer, long bufferLen,
                                int async) {
     infra::Redis *redis = infra::Redis::getThreadState();
-    redis->getRange(key, buffer, offset, offset + bufferLen);
+
+    // Importantly getRange is *inclusive*, so we need to knock one off the end of the range
+    redis->getRange(key, buffer, bufferLen, offset, offset + bufferLen - 1);
 }
 
 long __faasm_read_input(unsigned char *buffer, long bufferLen) {
