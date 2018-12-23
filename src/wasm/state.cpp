@@ -1,5 +1,5 @@
 #include <prof/prof.h>
-
+#include <algorithm>
 #include "wasm.h"
 
 namespace wasm {
@@ -125,7 +125,7 @@ namespace wasm {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        if(async) {
+        if (async) {
             // Check staleness
             util::Clock &clock = util::getGlobalClock();
             const util::TimePoint now = clock.now();
@@ -141,8 +141,7 @@ namespace wasm {
                     doRemoteRead();
                 }
             }
-        }
-        else {
+        } else {
             FullLock lock(valueMutex);
             logger->debug("Sync read for state {}", key);
             doRemoteRead();
@@ -151,8 +150,9 @@ namespace wasm {
 
     void StateKeyValue::doRemoteRead() {
         // Initialise the data array with zeroes
-        if(_empty) {
+        if (_empty) {
             value.resize(size);
+            dirtyFlags.resize(size);
         }
 
         // Read from the remote
@@ -185,7 +185,7 @@ namespace wasm {
     }
 
     void StateKeyValue::get(uint8_t *buffer) {
-        if(this->empty()) {
+        if (this->empty()) {
             throw std::runtime_error("Must pull before accessing state");
         }
 
@@ -198,7 +198,7 @@ namespace wasm {
     }
 
     void StateKeyValue::getSegment(long offset, uint8_t *buffer, size_t length) {
-        if(this->empty()) {
+        if (this->empty()) {
             throw std::runtime_error("Must pull before accessing state");
         }
 
@@ -223,8 +223,9 @@ namespace wasm {
         // Unique lock for setting the whole value
         FullLock lock(valueMutex);
 
-        if(value.empty()) {
+        if (value.empty()) {
             value.resize(size);
+            dirtyFlags.resize(size);
         }
 
         // Copy data into shared region
@@ -246,17 +247,12 @@ namespace wasm {
         }
 
         // If empty, set to full size
-        if(value.empty()) {
+        if (value.empty()) {
             FullLock lock(valueMutex);
-            if(value.empty()) {
+            if (value.empty()) {
                 value.resize(size);
+                dirtyFlags.resize(size);
             }
-        }
-
-        // Record that this segment is dirty
-        {
-            FullLock segmentsLock(dirtySegmentsMutex);
-            dirtySegments.insert(Segment(offset, end));
         }
 
         // Check size
@@ -270,6 +266,9 @@ namespace wasm {
         // Copy data into shared region
         SharedLock lock(valueMutex);
         std::copy(buffer, buffer + length, value.data() + offset);
+
+        // Flag as dirty
+        std::fill(dirtyFlags.begin() + offset, dirtyFlags.begin() + offset + length, true);
     }
 
     void StateKeyValue::clear() {
@@ -323,51 +322,9 @@ namespace wasm {
         util::Clock &clock = util::getGlobalClock();
         lastPull = clock.now();
         isWholeValueDirty = false;
-        dirtySegments.clear();
-    }
 
-    SegmentSet StateKeyValue::mergeSegments(SegmentSet setIn) {
-        SegmentSet mergedSet;
-
-        if (setIn.size() < 2) {
-            mergedSet = setIn;
-            return mergedSet;
-        }
-
-        // Note: standard set sort order does fine here
-        long count = 0;
-        long currentStart = INT_MAX;
-        long currentEnd = -INT_MAX;
-
-        for (const auto p : setIn) {
-            // On first loop, just set up
-            if (count == 0) {
-                currentStart = p.first;
-                currentEnd = p.second;
-                count++;
-                continue;
-            }
-
-            if (p.first > currentEnd) {
-                // If new segment is disjoint, write the last one and continue
-                mergedSet.insert(Segment(currentStart, currentEnd));
-
-                currentStart = p.first;
-                currentEnd = p.second;
-            } else {
-                // Update current segment if not
-                currentEnd = std::max(p.second, currentEnd);
-            }
-
-            // If on the last loop, make sure we've recorded the current range
-            if (count == setIn.size() - 1) {
-                mergedSet.insert(Segment(currentStart, currentEnd));
-            }
-
-            count++;
-        }
-
-        return mergedSet;
+        // Remove any dirty flags
+        std::fill(dirtyFlags.begin(), dirtyFlags.end(), false);
     }
 
     void StateKeyValue::pushPartial() {
@@ -376,33 +333,44 @@ namespace wasm {
             return;
         }
 
-        // Create copy of the dirty segments and clear the old version
-        SegmentSet dirtySegmentsCopy;
+        // Create copy of the dirty flags and clear the old version
+        std::vector<bool> dirtyFlagsCopy(size);
         {
-            FullLock segmentsLock(dirtySegmentsMutex);
-            dirtySegmentsCopy = dirtySegments;
-            dirtySegments.clear();
+            FullLock segmentsLock(valueMutex);
+            std::copy(dirtyFlags.begin(), dirtyFlags.end(), dirtyFlagsCopy.begin());
+            std::fill(dirtyFlags.begin(), dirtyFlags.end(), false);
         }
-
-        // Merge segments that are next to each other to save on writes
-        SegmentSet segmentsToMerge = this->mergeSegments(dirtySegmentsCopy);
 
         // Shared lock for writing segments
         SharedLock sharedLock(valueMutex);
 
-        // Write the dirty segments
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        for (const auto segment : segmentsToMerge) {
-            logger->debug("Pushing partial value for {} ({} - {})", key, segment.first, segment.second);
+        infra::Redis *redis = infra::Redis::getThreadState();
 
-            long size = segment.second - segment.first;
-            infra::Redis *redis = infra::Redis::getThreadState();
+        // Go through all dirty flags and update accordingly
+
+        // Find first true flag
+        auto start = std::find(dirtyFlagsCopy.begin(), dirtyFlagsCopy.end(), true);
+
+        // While we still have more segments
+        while (start != dirtyFlagsCopy.end()) {
+            // Find next false
+            auto end = std::find(start + 1, dirtyFlagsCopy.end(), false);
+
+            logger->debug("Pushing partial value for {}", key);
+
+            // Our indices are inclusive here
+            long size = end - start;
+            long offset = start - dirtyFlagsCopy.begin();
             redis->setRange(
                     key,
-                    segment.first,
-                    value.data() + segment.first,
+                    offset,
+                    value.data() + offset,
                     (size_t) size
             );
+
+            // Find next true
+            start = std::find(end + 1, dirtyFlagsCopy.end(), true);
         }
     }
 

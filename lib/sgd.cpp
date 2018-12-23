@@ -161,7 +161,7 @@ namespace faasm {
         delete[] buffer;
     }
 
-    void writeFinishedFlag(FaasmMemory *memory, SgdParams sgdParams, int batchNumber) {
+    void writeFinishedFlag(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber) {
         long totalBytes = sgdParams.nBatches * sizeof(int);
         int finished = 1;
         auto finishedBytes = reinterpret_cast<uint8_t *>(&finished);
@@ -171,19 +171,19 @@ namespace faasm {
         memory->writeStateOffset(FINISHED_KEY, totalBytes, offset, finishedBytes, sizeof(int), sgdParams.fullAsync);
     }
 
-    void zeroFinished(FaasmMemory *memory, SgdParams sgdParams) {
+    void zeroFinished(FaasmMemory *memory, const SgdParams &sgdParams) {
         zeroIntArray(memory, FINISHED_KEY, sgdParams.nBatches, sgdParams.fullAsync);
     }
 
-    void zeroErrors(FaasmMemory *memory, SgdParams sgdParams) {
+    void zeroErrors(FaasmMemory *memory, const SgdParams &sgdParams) {
         zeroDoubleArray(memory, ERRORS_KEY, sgdParams.nBatches, sgdParams.fullAsync);
     }
 
-    void zeroLosses(FaasmMemory *memory, SgdParams sgdParams) {
+    void zeroLosses(FaasmMemory *memory, const SgdParams &sgdParams) {
         zeroDoubleArray(memory, LOSSES_KEY, sgdParams.nEpochs, sgdParams.fullAsync);
     }
 
-    void _writeError(FaasmMemory *memory, SgdParams sgdParams, int batchNumber, double error) {
+    void _writeError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, double error) {
         auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&error);
 
         long offset = batchNumber * sizeof(double);
@@ -194,13 +194,13 @@ namespace faasm {
                                  sgdParams.fullAsync);
     }
 
-    void writeHingeError(FaasmMemory *memory, SgdParams sgdParams, int batchNumber, const MatrixXd &outputs,
+    void writeHingeError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &outputs,
                          const MatrixXd &actual) {
         double err = calculateHingeError(actual, outputs);
         _writeError(memory, sgdParams, batchNumber, err);
     }
 
-    void writeSquaredError(FaasmMemory *memory, SgdParams sgdParams, int batchNumber, const MatrixXd &outputs,
+    void writeSquaredError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &outputs,
                            const MatrixXd &actual) {
         double err = calculateSquaredError(actual, outputs);
         _writeError(memory, sgdParams, batchNumber, err);

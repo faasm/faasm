@@ -93,8 +93,6 @@ namespace wasm {
 
         void pushFull();
 
-        static SegmentSet mergeSegments(SegmentSet);
-
         void pushPartial();
 
         void clear();
@@ -112,7 +110,7 @@ namespace wasm {
     private:
         std::atomic<bool> isWholeValueDirty;
 
-        std::set<std::pair<long, long>> dirtySegments;
+        std::vector<bool> dirtyFlags;
         std::shared_mutex dirtySegmentsMutex;
 
         std::shared_mutex valueMutex;

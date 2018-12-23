@@ -57,17 +57,17 @@ namespace faasm {
             const MatrixXd &outputs
     );
 
-    void zeroErrors(FaasmMemory *memory, SgdParams sgdParams);
+    void zeroErrors(FaasmMemory *memory, const SgdParams &sgdParams);
 
-    void zeroLosses(FaasmMemory *memory, SgdParams sgdParams);
+    void zeroLosses(FaasmMemory *memory, const SgdParams &sgdParams);
 
-    void zeroFinished(FaasmMemory *memory, SgdParams sgdParams);
+    void zeroFinished(FaasmMemory *memory, const SgdParams &sgdParams);
 
-    void writeFinishedFlag(FaasmMemory *memory, SgdParams sgdParams, int batchNumber);
+    void writeFinishedFlag(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber);
 
-    void writeHingeError(FaasmMemory *memory, SgdParams sgdParams, int batchNumber, const MatrixXd &outputs, const MatrixXd &actual);
+    void writeHingeError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &outputs, const MatrixXd &actual);
 
-    void writeSquaredError(FaasmMemory *memory, SgdParams sgdParams, int batchNumber, const MatrixXd &outputs, const MatrixXd &actual);
+    void writeSquaredError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &outputs, const MatrixXd &actual);
 
     double readTotalError(FaasmMemory *memory, const SgdParams &sgdParams);
 

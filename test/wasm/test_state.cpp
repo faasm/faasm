@@ -96,6 +96,39 @@ namespace tests {
         REQUIRE_THROWS(kv->setSegment(5, update.data(), 3));
     }
 
+    TEST_CASE("Test partially setting just first/ last element", "[state]") {
+        StateKeyValue *kv = setupKV(5);
+
+        // Set up and push
+        std::vector<uint8_t> values = {0, 1, 2, 3, 4};
+        kv->set(values.data());
+        kv->pushFull();
+
+        // Update just the last
+        std::vector<uint8_t> update = {8};
+        kv->setSegment(4, update.data(), 1);
+
+        kv->pushPartial();
+        std::vector<uint8_t> expected = {0, 1, 2, 3, 8};
+        REQUIRE(redisState.get(kv->key) == expected);
+
+        // Update the first
+        kv->setSegment(0, update.data(), 1);
+
+        kv->pushPartial();
+        expected = {8, 1, 2, 3, 8};
+        REQUIRE(redisState.get(kv->key) == expected);
+
+        // Update both
+        update = {6};
+        kv->setSegment(0, update.data(), 1);
+        kv->setSegment(4, update.data(), 1);
+
+        kv->pushPartial();
+        expected = {6, 1, 2, 3, 6};
+        REQUIRE(redisState.get(kv->key) == expected);
+    }
+
     TEST_CASE("Test pushing all state", "[state]") {
         State s;
         std::string userA = "test_a";
@@ -287,51 +320,5 @@ namespace tests {
 
     TEST_CASE("Check idleness reset with setSegment", "[state]") {
         checkActionResetsIdleness("setSegment");
-    }
-
-    TEST_CASE("Test merging segments", "[state]") {
-        SegmentSet setIn;
-        SegmentSet expected;
-
-        // Segments next to each other (inserted out of order)
-        setIn.insert(Segment(5, 10));
-        setIn.insert(Segment(0, 5));
-        expected.insert(Segment(0, 10));
-
-        // Segments that overlap  (inserted out of order)
-        setIn.insert(Segment(15, 18));
-        setIn.insert(Segment(14, 16));
-        setIn.insert(Segment(19, 25));
-        setIn.insert(Segment(15, 20));
-        expected.insert(Segment(14, 25));
-
-        // Segments that don't overlap
-        setIn.insert(Segment(30, 40));
-        setIn.insert(Segment(41, 50));
-        setIn.insert(Segment(70, 90));
-        expected.insert(Segment(30, 40));
-        expected.insert(Segment(41, 50));
-        expected.insert(Segment(70, 90));
-
-        SegmentSet actual = StateKeyValue::mergeSegments(setIn);
-        REQUIRE(actual == expected);
-    }
-
-    TEST_CASE("Test merging segments does nothing with sets with one element", "[state]") {
-        SegmentSet setIn = {Segment(10, 15)};
-        SegmentSet expected = setIn;
-        REQUIRE(StateKeyValue::mergeSegments(setIn) == expected);
-    }
-
-    TEST_CASE("Test merging segments manages sets with two elements", "[state]") {
-        SegmentSet setIn = {Segment(10, 15), Segment(11, 18)};
-        SegmentSet expected = {Segment(10, 18)};
-        REQUIRE(StateKeyValue::mergeSegments(setIn) == expected);
-    }
-
-    TEST_CASE("Test merging segments does nothing with empty set", "[state]") {
-        SegmentSet setIn;
-        SegmentSet expected = setIn;
-        REQUIRE(StateKeyValue::mergeSegments(setIn) == expected);
     }
 }
