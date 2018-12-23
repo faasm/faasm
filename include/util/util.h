@@ -39,6 +39,7 @@ namespace util {
         int stateStaleThreshold;
         int stateClearThreshold;
         int statePushInterval;
+        int fullAsync;
 
         SystemConfig();
 

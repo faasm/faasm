@@ -21,10 +21,6 @@ namespace state {
     public:
         explicit StateKeyValue(const std::string &keyIn, size_t sizeIn);
 
-        StateKeyValue(const StateKeyValue& other);
-
-        StateKeyValue& operator=(const StateKeyValue& other);
-
         const std::string key;
 
         void get(uint8_t *buffer);
@@ -55,6 +51,8 @@ namespace state {
 
     private:
         std::atomic<bool> isWholeValueDirty;
+
+        bool fullAsync;
 
         std::vector<bool> dirtyFlags;
 

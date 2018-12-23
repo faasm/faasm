@@ -20,16 +20,14 @@ namespace data {
     public:
         LocalWorker();
 
+        static void runPool(const SgdParams &params, int epoch);
+
         static void clear();
 
         static std::vector<double> getLosses();
 
         static std::vector<double> getLossTimestamps();
 
-        static void run(const SgdParams &params, int epoch, int batchNumber,
-                 const SparseMatrix<double> &inputs, const MatrixXd &outputs);
+        static void run(int epoch, int batchNumber);
     };
-
-    double doSgdStep(FaasmMemory *mem, const SgdParams &params, int epoch, int batchNumber,
-                     const SparseMatrix<double> &inputs, const MatrixXd &outputs);
 }

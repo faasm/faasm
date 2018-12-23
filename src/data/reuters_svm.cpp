@@ -24,34 +24,11 @@ int main() {
 
     // Initialise weights
     Eigen::MatrixXd weights = faasm::randomDenseMatrix(1, p.nWeights);
-    writeMatrixToState(&memory, WEIGHTS_KEY, weights);
-
-    // Zero the losses
-    zeroLosses(&memory, p);
-
-    // Get full input/ output data in memory
-    const SparseMatrix<double> inputs = readSparseMatrixFromState(&memory, INPUTS_KEY, false);
-    const MatrixXd outputs = readMatrixFromState(&memory, OUTPUTS_KEY, 1, p.nTrain, false);
+    writeMatrixToState(&memory, WEIGHTS_KEY, weights, true);
 
     // Run each epoch
     for (int epoch = 0; epoch < p.nEpochs; epoch++) {
-        // Spawn a thread for each batch
-        std::vector<std::thread> threads(p.nBatches);
-        for (int b = 0; b < p.nBatches; b++) {
-            threads.emplace_back(std::thread(
-                    data::LocalWorker::run, p, epoch, b, inputs, outputs
-            ));
-        }
-
-        // Wait for all threads
-        for (auto &t : threads) {
-            if(t.joinable()) {
-                t.join();
-            }
-            else {
-                logger->error("Thread not joinable");
-            }
-        }
+        data::LocalWorker::runPool(p, epoch);
 
         // Work out error
         double totalError = 0;

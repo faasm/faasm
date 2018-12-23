@@ -18,6 +18,9 @@ namespace state {
 
         // State over the clear threshold is removed from local
         idleThreshold = conf.stateClearThreshold;
+
+        // Whether to run in fully async mode
+        fullAsync = conf.fullAsync > 0;
     }
 
     void StateKeyValue::pull(bool async) {
@@ -41,7 +44,10 @@ namespace state {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        if (async) {
+        if(async && fullAsync) {
+            // Never pull in full async mode
+        }
+        else if (async) {
             // Check staleness
             util::Clock &clock = util::getGlobalClock();
             const util::TimePoint now = clock.now();
@@ -215,6 +221,10 @@ namespace state {
     }
 
     void StateKeyValue::pushFull() {
+        if(fullAsync) {
+            throw std::runtime_error("Shouldn't be pushing in full async mode.");
+        }
+
         // Double check condition
         if (!isWholeValueDirty) {
             return;
@@ -244,6 +254,10 @@ namespace state {
     }
 
     void StateKeyValue::pushPartial() {
+        if(fullAsync) {
+            throw std::runtime_error("Shouldn't be pushing in full async mode.");
+        }
+
         // Ignore if the whole value is dirty
         if (isWholeValueDirty) {
             return;
