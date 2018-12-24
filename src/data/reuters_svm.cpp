@@ -16,7 +16,8 @@ int main() {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
     FaasmMemory memory;
-    int batchSize = 69000;
+    // int batchSize = 69000;
+    int batchSize = REUTERS_N_EXAMPLES;
     int epochs = 30;
     SgdParams p = setUpReutersParams(&memory, batchSize, epochs);
 

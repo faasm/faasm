@@ -405,7 +405,7 @@ namespace faasm {
         double totalErr = 0;
         for (long r = 0; r < prediction.rows(); r++) {
             for (long c = 0; c < prediction.cols(); c++) {
-                double thisProduct = prediction.coeff(r, c) * actual.coeffRef(c, r);
+                double thisProduct = prediction.coeff(r, c) * actual.coeff(c, r);
 
                 // Product will be negative if prediction and actual have different sign
                 totalErr += std::max(1.0 - thisProduct, 0.0);
