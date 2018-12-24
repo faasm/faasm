@@ -13,22 +13,14 @@ using namespace boost::filesystem;
 void parseReutersData(const path &downloadDir, const path &outputDir) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-    std::string targetCategory = "CCAT";
-
-    std::vector<std::string> files = {
-            "Index_EN-EN",
-            "Index_FR-EN",
-            "Index_GR-EN",
-            "Index_IT-EN",
-            "Index_SP-EN",
-    };
+    // Use the test set for training
+    std::vector<std::string> files = {"test"};
 
     int exampleCount = 0;
     int maxFeature = 0;
 
-    std::vector<double> categories;
     std::vector<Eigen::Triplet<double>> triplets;
-
+    std::vector<double> categories(REUTERS_N_EXAMPLES);
     std::vector<int> featureCounts(REUTERS_N_FEATURES);
 
     for (const auto &f : files) {
@@ -42,13 +34,8 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
         while (getline(input, line)) {
             // Split up the line
             const std::vector<std::string> lineTokens = util::tokeniseString(line, ' ');
-            std::string cat = lineTokens[0];
-
-            if (cat == targetCategory) {
-                categories.push_back(1);
-            } else {
-                categories.push_back(-1);
-            }
+            int cat = std::stoi(lineTokens[0]);
+            categories.push_back(cat);
 
             for (int i = 1; i < lineTokens.size(); i++) {
                 // Ignore empty token
@@ -124,7 +111,7 @@ int main() {
     faasmDir.append("faasm");
 
     path downloadDir = faasmDir;
-    downloadDir.append("rcv1rcv2aminigoutte/EN");
+    downloadDir.append("rcv1");
 
     path outputDir = faasmDir;
     outputDir.append("data/reuters");

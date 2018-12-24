@@ -106,6 +106,8 @@ namespace faasm {
      */
     MatrixXd randomDenseMatrix(int rows, int cols);
 
+    MatrixXd zeroMatrix(int rows, int cols);
+
     SparseMatrix<double> randomSparseMatrix(int rows, int cols, double threshold);
 
     long matrixByteIndex(long row, long col, long nRows);

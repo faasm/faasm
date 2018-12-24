@@ -18,9 +18,9 @@ using namespace Eigen;
 #define LOSS_TIMESTAMPS_KEY "loss_ts"
 
 // Reuters-specific
-#define REUTERS_N_FEATURES 21531
-#define REUTERS_N_EXAMPLES 111740
-#define REUTERS_LEARNING_RATE 0.1
+#define REUTERS_N_FEATURES 47236
+#define REUTERS_N_EXAMPLES 781265
+#define REUTERS_LEARNING_RATE 0.05
 
 
 namespace faasm {
@@ -39,7 +39,7 @@ namespace faasm {
         bool fullAsync;
     };
 
-    SgdParams setUpReutersParams(FaasmMemory *memory, int batchSize, bool fullAsync);
+    SgdParams setUpReutersParams(FaasmMemory *memory, int batchSize, int epochs, bool fullAsync);
 
     void writeParamsToState(FaasmMemory *memory, const char *keyName, const SgdParams &params);
 

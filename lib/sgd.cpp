@@ -7,20 +7,18 @@
 using namespace Eigen;
 
 namespace faasm {
-    SgdParams setUpReutersParams(FaasmMemory *memory, int batchSize, bool fullAsync) {
+    SgdParams setUpReutersParams(FaasmMemory *memory, int batchSize, int epochs, bool fullAsync) {
         // Set up reuters params
         SgdParams p;
         p.lossType = HINGE;
         p.nWeights = REUTERS_N_FEATURES;
         p.nTrain = REUTERS_N_EXAMPLES;
         p.learningRate = REUTERS_LEARNING_RATE;
-
-        printf("Starting SVM with batch size %i\n", batchSize);
         p.nBatches = p.nTrain / batchSize;
-        p.nEpochs = 60;
+        p.nEpochs = epochs;
 
         // Full sync or not
-        p.fullAsync = true;
+        p.fullAsync = fullAsync;
 
         // Write params synchronously
         writeParamsToState(memory, PARAMS_KEY, p);
@@ -67,6 +65,8 @@ namespace faasm {
 
         memory->readState(FEATURE_COUNTS_KEY, featureCountByteBuffer, nFeatureCountBytes, true);
 
+        double decayedLearningRate = sgdParams.learningRate / (1 + epoch);
+
         // Iterate through all training examples (i.e. columns)
         for (int col = 0; col < inputs.outerSize(); ++col) {
             // Read in weights asynchronously
@@ -93,12 +93,12 @@ namespace faasm {
 
                 // If misclassified, hinge loss is active
                 if (isMisclassified) {
-                    thisWeight += (sgdParams.learningRate * thisOutput * thisValue);
+                    thisWeight = thisWeight + (sgdParams.learningRate * thisOutput * thisValue);
                 }
 
                 // Update weight regardless of classification including scaling based on how common it is
                 int thisFeatureCount = featureCountBuffer[it.row()];
-                thisWeight *= (1 - (sgdParams.learningRate / (thisFeatureCount * (1 + epoch))));
+                thisWeight *= (1 - (decayedLearningRate/ thisFeatureCount));
 
                 // Write update memory array
                 weightDataBuffer[it.row()] = thisWeight;

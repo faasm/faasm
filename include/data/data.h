@@ -16,18 +16,13 @@ namespace data {
         static SparseMatrix<double> readFromFiles(const std::string &directory);
     };
 
-    class LocalWorker {
-    public:
-        LocalWorker();
+    void runPool(const SgdParams &params, int epoch);
 
-        static void runPool(const SgdParams &params, int epoch);
+    void clear();
 
-        static void clear();
+    std::vector<double> getLosses();
 
-        static std::vector<double> getLosses();
+    std::vector<double> getLossTimestamps();
 
-        static std::vector<double> getLossTimestamps();
-
-        static void run(int epoch, int batchNumber);
-    };
+    void run(int epoch, int batchNumber);
 }

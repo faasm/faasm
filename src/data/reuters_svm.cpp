@@ -12,28 +12,30 @@ using namespace faasm;
 
 int main() {
     util::initLogging();
-
     state::getGlobalState().forceClearAll();
 
     FaasmMemory memory;
-    int batchSize = 5587;
+    int batchSize = 111740;
+    int epochs = 30;
     bool fullAsync = true;
-    SgdParams p = setUpReutersParams(&memory, batchSize, fullAsync);
+    SgdParams p = setUpReutersParams(&memory, batchSize, epochs, fullAsync);
 
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-    // Initialise weights
-    Eigen::MatrixXd weights = faasm::randomDenseMatrix(1, p.nWeights);
+    // Initialise weights to zero
+    Eigen::MatrixXd weights = faasm::zeroMatrix(1, p.nWeights);
     writeMatrixToState(&memory, WEIGHTS_KEY, weights, true);
 
     // Run each epoch
     for (int epoch = 0; epoch < p.nEpochs; epoch++) {
-        data::LocalWorker::runPool(p, epoch);
+        data::clear();
+
+        data::runPool(p, epoch);
 
         // Work out error
         double totalError = 0;
-        std::vector<double> losses = data::LocalWorker::getLosses();
-        std::vector<double> lossTimestamps = data::LocalWorker::getLossTimestamps();
+        std::vector<double> losses = data::getLosses();
+        std::vector<double> lossTimestamps = data::getLossTimestamps();
 
         for (auto l : losses) {
             totalError += l;
@@ -41,7 +43,5 @@ int main() {
 
         double rmse = sqrt(totalError / p.nTrain);
         logger->info("Epoch {} - RMSE {}", epoch, rmse);
-
-        data::LocalWorker::clear();
     }
 }

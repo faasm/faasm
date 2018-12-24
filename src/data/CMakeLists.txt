@@ -2,7 +2,7 @@ include_directories(${FAASM_INCLUDE_DIR}/data)
 
 add_library(data STATIC
         matrix.cpp
-        sgd.cpp
+        local_sgd.cpp
         ${FAASM_INCLUDE_DIR}/data/data.h
         )
 

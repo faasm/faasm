@@ -11,26 +11,24 @@ namespace data {
     static std::vector<double> losses;
     static std::vector<double> lossTimestamps;
 
-    LocalWorker::LocalWorker() = default;
-
-    void LocalWorker::clear() {
+    void clear() {
         losses.clear();
         lossTimestamps.clear();
     }
 
-    std::vector<double> LocalWorker::getLosses() {
+    std::vector<double> getLosses() {
         return losses;
     }
 
-    std::vector<double> LocalWorker::getLossTimestamps() {
+    std::vector<double> getLossTimestamps() {
         return lossTimestamps;
     }
 
-    void LocalWorker::runPool(const SgdParams &params, int epoch) {
+    void runPool(const SgdParams &params, int epoch) {
         // Spawn a thread for each batch
-        std::vector<std::thread> threads(params.nBatches);
+        std::thread threads[params.nBatches];
         for (int b = 0; b < params.nBatches; b++) {
-            threads.emplace_back(std::thread(data::LocalWorker::run, epoch, b));
+            threads[b] = std::thread(data::run, epoch, b);
         }
 
         // Wait for threads to finish
@@ -42,7 +40,7 @@ namespace data {
         }
     }
 
-    void LocalWorker::run(int epoch, int batchNumber) {
+    void run(int epoch, int batchNumber) {
         FaasmMemory memory;
 
         SgdParams params = readParamsFromState(&memory, PARAMS_KEY, true);

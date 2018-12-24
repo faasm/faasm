@@ -13,6 +13,12 @@ namespace faasm {
         return mat;
     }
 
+    MatrixXd zeroMatrix(int rows, int cols) {
+        MatrixXd mat = MatrixXd::Zero(rows, cols);
+
+        return mat;
+    }
+
     SparseMatrix<double> randomSparseMatrix(int rows, int cols, double threshold) {
         // Random distribution
         std::random_device rd;
@@ -155,7 +161,7 @@ namespace faasm {
     }
 
     void writeSparseMatrixToState(FaasmMemory *memory, const char *key, const SparseMatrix<double> &mat,
-            bool async) {
+                                  bool async) {
         SparseMatrixSerialiser serialiser(mat);
         serialiser.writeToState(memory, key, async);
     }
@@ -270,7 +276,7 @@ namespace faasm {
 
         memory->writeState(key, byteArray, nBytes, async);
     }
-    
+
     /**
      * Reads a matrix from state
      */
@@ -284,19 +290,19 @@ namespace faasm {
 
         return mat;
     }
-    
+
     /** 
      * Reads a matrix from state directly into the given buffer
      */
-    void readMatrixFromState(FaasmMemory *memory, const char *key, double* buffer, long rows, long cols,
-            bool async) {
+    void readMatrixFromState(FaasmMemory *memory, const char *key, double *buffer, long rows, long cols,
+                             bool async) {
 
         size_t nBytes = rows * cols * sizeof(double);
         auto byteBuffer = reinterpret_cast<uint8_t *>(buffer);
 
         memory->readState(key, byteBuffer, nBytes, async);
     }
-    
+
 
     long matrixByteIndex(long row, long col, long nRows) {
         // Work out the position of this element
@@ -310,7 +316,7 @@ namespace faasm {
      * Updates a specific element in state 
      */
     void writeMatrixToStateElement(FaasmMemory *memory, const char *key, const MatrixXd &matrix, long row, long col,
-            bool async) {
+                                   bool async) {
         // Work out total size of this matrix
         size_t totalBytes = matrix.rows() * matrix.cols() * sizeof(double);
 
@@ -329,7 +335,7 @@ namespace faasm {
      * Reads a subset of full columns from state. Columns are *exclusive*
      */
     MatrixXd readMatrixColumnsFromState(FaasmMemory *memory, const char *key, long totalCols, long colStart,
-            long colEnd, long nRows, bool async) {
+                                        long colEnd, long nRows, bool async) {
         long nCols = colEnd - colStart;
 
         long startIdx = matrixByteIndex(0, colStart, nRows);

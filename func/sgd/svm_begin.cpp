@@ -26,10 +26,11 @@ namespace faasm {
 
         // Prepare params
         bool fullAsync = true;
-        SgdParams p = setUpReutersParams(memory, batchSize, fullAsync);
+        int epochs = 30;
+        SgdParams p = setUpReutersParams(memory, batchSize, epochs, fullAsync);
 
         // Initialise weights
-        Eigen::MatrixXd weights = randomDenseMatrix(1, p.nWeights);
+        Eigen::MatrixXd weights = zeroMatrix(1, p.nWeights);
         writeMatrixToState(memory, WEIGHTS_KEY, weights, p.fullAsync);
 
         // Zero the losses
