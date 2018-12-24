@@ -5,7 +5,7 @@
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        SgdParams p = readParamsFromState(memory, PARAMS_KEY);
+        SgdParams p = readParamsFromState(memory, PARAMS_KEY, REUTERS_FULL_ASYNC);
 
         // Get loss values from state
         size_t lossBytes = p.nEpochs * sizeof(double);

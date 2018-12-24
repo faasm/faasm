@@ -15,9 +15,10 @@ namespace tests {
 
     SgdParams getDummySgdParams() {
         SgdParams params;
-        params.nBatches = 4;
-        params.nWeights = 3;
         params.nTrain = 10;
+        params.batchSize = 2;
+        params.nBatches = 5;
+        params.nWeights = 3;
         params.learningRate = 0.1;
         params.nEpochs = 2;
 

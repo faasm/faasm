@@ -344,7 +344,7 @@ namespace faasm {
         long bufferLen = endIdx - startIdx;
         auto buffer = new uint8_t[bufferLen];
 
-        long totalLen = matrixByteIndex(nRows, totalCols, nRows);
+        long totalLen = totalCols * nRows * sizeof(double);
         memory->readStateOffset(key, totalLen, startIdx, buffer, bufferLen, async);
 
         auto doubleArray = reinterpret_cast<double *>(buffer);

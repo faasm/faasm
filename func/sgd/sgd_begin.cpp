@@ -9,6 +9,7 @@ namespace faasm {
         p.lossType = RMSE;
         p.nWeights = 10;
         p.nTrain = 10000;
+        p.batchSize = 20;
         p.nBatches = 500;
         p.nEpochs = 20;
         p.learningRate = 0.01;

@@ -7,7 +7,7 @@
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        SgdParams p = readParamsFromState(memory, PARAMS_KEY);
+        SgdParams p = readParamsFromState(memory, PARAMS_KEY, REUTERS_FULL_ASYNC);
 
         // Get current epoch count (starts at zero)
         int thisEpoch = getCounter(memory, EPOCH_COUNT_KEY, p.fullAsync);
@@ -39,6 +39,10 @@ namespace faasm {
             printf("SGD complete over %i epochs (loss = %f)\n", thisEpoch, loss);
             return 0;
         }
+
+        // Decay learning rate
+        p.learningRate = p.learningRate * p.learningDecay;
+        writeParamsToState(memory, PARAMS_KEY, p);
 
         // Increment epoch counter
         incrementCounter(memory, EPOCH_COUNT_KEY, p.fullAsync);

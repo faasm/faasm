@@ -13,35 +13,34 @@ using namespace faasm;
 int main() {
     util::initLogging();
     state::getGlobalState().forceClearAll();
+    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
     FaasmMemory memory;
-    int batchSize = 111740;
+    int batchSize = 69000;
     int epochs = 30;
-    bool fullAsync = true;
-    SgdParams p = setUpReutersParams(&memory, batchSize, epochs, fullAsync);
+    SgdParams p = setUpReutersParams(&memory, batchSize, epochs);
 
-    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+    logger->info("Running SVM with {} threads", p.nBatches);
 
     // Initialise weights to zero
     Eigen::MatrixXd weights = faasm::zeroMatrix(1, p.nWeights);
     writeMatrixToState(&memory, WEIGHTS_KEY, weights, true);
 
     // Run each epoch
+    long startTs = faasm::getMillisSinceEpoch();
     for (int epoch = 0; epoch < p.nEpochs; epoch++) {
         data::clear();
 
         data::runPool(p, epoch);
 
         // Work out error
-        double totalError = 0;
-        std::vector<double> losses = data::getLosses();
-        std::vector<double> lossTimestamps = data::getLossTimestamps();
+        double rmse = data::getRMSE(p);
 
-        for (auto l : losses) {
-            totalError += l;
-        }
+        double seconds = ((double)(faasm::getMillisSinceEpoch() - startTs)) / 1000;
+        logger->info("Epoch {} - time {:04.2f}s - RMSE {:06.4f}", epoch, seconds, rmse);
 
-        double rmse = sqrt(totalError / p.nTrain);
-        logger->info("Epoch {} - RMSE {}", epoch, rmse);
+        // Decay learning rate
+        p.learningRate = p.learningRate * p.learningDecay;
+        faasm::writeParamsToState(&memory, PARAMS_KEY, p);
     }
 }

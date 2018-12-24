@@ -14,7 +14,7 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
     // Use the test set for training
-    std::vector<std::string> files = {"test"};
+    std::vector<std::string> files = {"train"};
 
     int exampleCount = 0;
     int maxFeature = 0;
@@ -34,8 +34,10 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
         while (getline(input, line)) {
             // Split up the line
             const std::vector<std::string> lineTokens = util::tokeniseString(line, ' ');
-            int cat = std::stoi(lineTokens[0]);
-            categories.push_back(cat);
+
+            // Note, we're treating categories as doubles here to ease serialisation/ deserialisation
+            double cat = std::stod(lineTokens[0]);
+            categories.at(exampleCount) = cat;
 
             for (int i = 1; i < lineTokens.size(); i++) {
                 // Ignore empty token
@@ -70,6 +72,10 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
 
     if (maxFeature != REUTERS_N_FEATURES) {
         logger->error("Expected {} features but got {}", REUTERS_N_FEATURES, maxFeature);
+    }
+
+    if(categories.size() != REUTERS_N_EXAMPLES) {
+        logger->error("Got {} categories but {} examples", categories.size(), REUTERS_N_EXAMPLES);
     }
 
     logger->info("Totals: {} features and {} examples", maxFeature, exampleCount);

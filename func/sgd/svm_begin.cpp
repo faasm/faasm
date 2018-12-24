@@ -6,17 +6,13 @@
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        // Largest factors of number of training examples (111740) are:
-        // 1, 2, 4, 5, 10, 20, 37, 74, 148, 151, 185, 302, 370, 604, 740, 755,
-        // 1510, 3020, 5587, 11174, 22348, 27935, 55870
-        //
         // Batch size should be small enough that batches don't overwrite each other too often,
         // but large enough that we aren't doing too many function calls.
         // This function allows passing the batch size in as input.
         long inputSize = memory->getInputSize();
         int batchSize;
         if(inputSize == 0) {
-            batchSize = 5587;
+            batchSize = 4000;
         } else {
             auto inputBuffer = new uint8_t[inputSize];
             memory->getInput(inputBuffer, inputSize);
@@ -25,9 +21,8 @@ namespace faasm {
         }
 
         // Prepare params
-        bool fullAsync = true;
         int epochs = 30;
-        SgdParams p = setUpReutersParams(memory, batchSize, epochs, fullAsync);
+        SgdParams p = setUpReutersParams(memory, batchSize, epochs);
 
         // Initialise weights
         Eigen::MatrixXd weights = zeroMatrix(1, p.nWeights);

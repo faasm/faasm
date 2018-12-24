@@ -6,7 +6,7 @@
 namespace faasm {
     int exec(FaasmMemory *memory) {
         // Load params
-        SgdParams p = readParamsFromState(memory, PARAMS_KEY);
+        SgdParams p = readParamsFromState(memory, PARAMS_KEY, REUTERS_FULL_ASYNC);
 
         // Set per-epoch memory to zero
         faasm::zeroErrors(memory, p);
@@ -16,13 +16,14 @@ namespace faasm {
         int epoch = faasm::getCounter(memory, EPOCH_COUNT_KEY, p.fullAsync);
 
         // Shuffle start indices for each batch
-        int* batchNumbers = faasm::randomIntRange(p.nBatches);
+        int *batchNumbers = faasm::randomIntRange(p.nBatches);
 
         // Chain new calls to perform the work
-        int batchSize = p.nTrain / p.nBatches;
         for (int w = 0; w < p.nBatches; w++) {
-            int startIdx = batchNumbers[w] * batchSize;
-            int endIdx = startIdx + batchSize;
+            int startIdx = batchNumbers[w] * p.batchSize;
+
+            // Make sure we don't overshoot
+            int endIdx = std::min(startIdx + p.batchSize, p.nTrain - 1);
 
             // Prepare input data for the worker
             int inputData[4] = {w, startIdx, endIdx, epoch};

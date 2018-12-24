@@ -7,20 +7,24 @@
 using namespace Eigen;
 
 namespace faasm {
-    SgdParams setUpReutersParams(FaasmMemory *memory, int batchSize, int epochs, bool fullAsync) {
+    SgdParams setUpReutersParams(FaasmMemory *memory, int batchSize, int epochs) {
         // Set up reuters params
         SgdParams p;
         p.lossType = HINGE;
         p.nWeights = REUTERS_N_FEATURES;
         p.nTrain = REUTERS_N_EXAMPLES;
         p.learningRate = REUTERS_LEARNING_RATE;
-        p.nBatches = p.nTrain / batchSize;
+        p.learningDecay = REUTERS_LEARNING_DECAY;
         p.nEpochs = epochs;
 
-        // Full sync or not
-        p.fullAsync = fullAsync;
+        // Round up number of batches
+        p.batchSize = batchSize;
+        p.nBatches = (p.nTrain + batchSize - 1) / batchSize;
 
-        // Write params synchronously
+        // Full sync or not
+        p.fullAsync = REUTERS_FULL_ASYNC;
+
+        // Write params (will take async/ not from params themselves)
         writeParamsToState(memory, PARAMS_KEY, p);
 
         return p;
@@ -65,8 +69,6 @@ namespace faasm {
 
         memory->readState(FEATURE_COUNTS_KEY, featureCountByteBuffer, nFeatureCountBytes, true);
 
-        double decayedLearningRate = sgdParams.learningRate / (1 + epoch);
-
         // Iterate through all training examples (i.e. columns)
         for (int col = 0; col < inputs.outerSize(); ++col) {
             // Read in weights asynchronously
@@ -98,7 +100,7 @@ namespace faasm {
 
                 // Update weight regardless of classification including scaling based on how common it is
                 int thisFeatureCount = featureCountBuffer[it.row()];
-                thisWeight *= (1 - (decayedLearningRate/ thisFeatureCount));
+                thisWeight *= (1 - (sgdParams.learningRate / thisFeatureCount));
 
                 // Write update memory array
                 weightDataBuffer[it.row()] = thisWeight;
@@ -115,12 +117,12 @@ namespace faasm {
             memory->pushStatePartial(WEIGHTS_KEY);
         }
 
-        // Recalculate the result and return
-        MatrixXd postUpdate = weights * inputs;
+        // Recalculate all predictions
+        MatrixXd prediction = weights * inputs;
 
         delete[] weightDataBuffer;
 
-        return postUpdate;
+        return prediction;
     }
 
     MatrixXd leastSquaresWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams,
@@ -158,11 +160,11 @@ namespace faasm {
         }
 
         // Recalculate the result and return
-        MatrixXd postUpdate = weights * inputs;
+        MatrixXd prediction = weights * inputs;
 
         delete[] weightData;
 
-        return postUpdate;
+        return prediction;
     }
 
     void zeroDoubleArray(FaasmMemory *memory, const char *key, long len, bool async) {
@@ -220,15 +222,15 @@ namespace faasm {
                                  sgdParams.fullAsync);
     }
 
-    void writeHingeError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &outputs,
-                         const MatrixXd &actual) {
-        double err = calculateHingeError(actual, outputs);
+    void writeHingeError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
+                         const MatrixXd &prediction) {
+        double err = calculateHingeError(prediction, actual);
         _writeError(memory, sgdParams, batchNumber, err);
     }
 
-    void writeSquaredError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &outputs,
-                           const MatrixXd &actual) {
-        double err = calculateSquaredError(actual, outputs);
+    void writeSquaredError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
+                           const MatrixXd &prediction) {
+        double err = calculateSquaredError(prediction, actual);
         _writeError(memory, sgdParams, batchNumber, err);
     }
 
@@ -266,9 +268,8 @@ namespace faasm {
         // Allow fully async
         memory->readState(ERRORS_KEY, buffer, nBytes, sgdParams.fullAsync);
 
-        auto errors = reinterpret_cast<double *>(buffer);
-
         // Iterate through and sum up
+        auto errors = reinterpret_cast<double *>(buffer);
         double totalError = 0;
         for (int i = 0; i < sgdParams.nBatches; i++) {
             double error = errors[i];
@@ -281,10 +282,10 @@ namespace faasm {
     }
 
     double readRootMeanSquaredError(FaasmMemory *memory, const SgdParams &sgdParams) {
-        double totalError = readTotalError(memory, sgdParams);
+        double totalSquaredError = readTotalError(memory, sgdParams);
 
         // Calculate the mean squared error across all batches
-        double rmse = sqrt(totalError / sgdParams.nTrain);
+        double rmse = std::sqrt(totalSquaredError) / std::sqrt(sgdParams.nTrain);
         return rmse;
     }
 

@@ -7,21 +7,24 @@
 #include "faasm/time.h"
 
 namespace data {
-    static std::mutex lossMutex;
-    static std::vector<double> losses;
-    static std::vector<double> lossTimestamps;
+    static std::mutex errorsMutex;
+    static std::vector<double> errors;
 
     void clear() {
-        losses.clear();
-        lossTimestamps.clear();
+        errors.clear();
     }
 
-    std::vector<double> getLosses() {
-        return losses;
+    double getRMSE(const SgdParams &p) {
+        double totalError = 0;
+        for(auto e : errors) {
+            totalError += e;
+        }
+
+        return std::sqrt(totalError) / std::sqrt(p.nTrain);
     }
 
-    std::vector<double> getLossTimestamps() {
-        return lossTimestamps;
+    std::vector<double> getErrors() {
+        return errors;
     }
 
     void runPool(const SgdParams &params, int epoch) {
@@ -45,9 +48,8 @@ namespace data {
 
         SgdParams params = readParamsFromState(&memory, PARAMS_KEY, true);
 
-        int batchSize = params.nTrain / params.nBatches;
-        int startIdx = batchNumber * batchSize;
-        int endIdx = startIdx + batchSize;
+        int startIdx = batchNumber * params.batchSize;
+        int endIdx = std::min(startIdx + params.batchSize, params.nTrain - 1);
 
         SparseMatrix<double> inputs = readSparseMatrixColumnsFromState(&memory, INPUTS_KEY, startIdx, endIdx, true);
         MatrixXd outputs = readMatrixColumnsFromState(&memory, OUTPUTS_KEY, params.nTrain, startIdx, endIdx, 1, true);
@@ -55,11 +57,10 @@ namespace data {
         // Perform the update
         MatrixXd actual = hingeLossWeightUpdate(&memory, params, epoch, inputs, outputs);
 
-        // Calculate the loss and add to the list
-        double loss = calculateHingeError(actual, outputs);
-        long ts = faasm::getMillisSinceEpoch();
-        std::unique_lock<std::mutex> lock(lossMutex);
-        losses.push_back(loss);
-        lossTimestamps.push_back(ts);
+        // Calculate the error and add to the list
+        double error = calculateHingeError(actual, outputs);
+
+        std::unique_lock<std::mutex> lock(errorsMutex);
+        errors.push_back(error);
     }
 }

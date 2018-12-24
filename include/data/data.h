@@ -20,9 +20,9 @@ namespace data {
 
     void clear();
 
-    std::vector<double> getLosses();
+    double getRMSE(const SgdParams &p);
 
-    std::vector<double> getLossTimestamps();
+    std::vector<double> getErrors();
 
     void run(int epoch, int batchNumber);
 }
