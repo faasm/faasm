@@ -5,7 +5,9 @@
 #include <faasm/sgd.h>
 #include <faasm/matrix.h>
 
+#include <data/data.h>
 #include <infra/infra.h>
+#include <state/state.h>
 
 using namespace faasm;
 
@@ -32,6 +34,7 @@ namespace tests {
 
     TEST_CASE("Test serialising params round trip", "[sgd]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         SgdParams params = getDummySgdParams();
 
@@ -48,6 +51,7 @@ namespace tests {
 
     TEST_CASE("Test setting up dummy data", "[sgd]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         SgdParams params = getDummySgdParams();
 
@@ -71,6 +75,7 @@ namespace tests {
 
     void checkLossUpdates(LossType lossType) {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         FaasmMemory mem;
 
@@ -86,6 +91,12 @@ namespace tests {
 
         // Persist weights to allow updates
         writeMatrixToState(&mem, WEIGHTS_KEY, weights);
+
+        // Set up some dummy feature counts
+        std::vector<int> featureCounts(4);
+        std::fill(featureCounts.begin(), featureCounts.end(), 1);
+        uint8_t *featureBytes = reinterpret_cast<uint8_t *>(featureCounts.data());
+        mem.writeState(FEATURE_COUNTS_KEY, featureBytes, 4 * sizeof(int));
 
         // Copy of weights for testing
         MatrixXd weightsCopy = weights;
@@ -128,7 +139,7 @@ namespace tests {
             MatrixXd outputs(1, 2);
             outputs << 10, 11;
 
-            postUpdate = leastSquaresWeightUpdate(&mem, params, weights, inputs, outputs);
+            postUpdate = leastSquaresWeightUpdate(&mem, params, inputs, outputs);
         }
         else if(lossType == HINGE) {
             // Classification-style outputs
@@ -136,7 +147,7 @@ namespace tests {
             outputs << -1, 1;
 
             int epoch = 3;
-            postUpdate = hingeLossWeightUpdate(&mem, params, epoch, weights, inputs, outputs);
+            postUpdate = hingeLossWeightUpdate(&mem, params, epoch, inputs, outputs);
         }
 
         // Check the post-update values are different but same shape
@@ -166,41 +177,9 @@ namespace tests {
         checkLossUpdates(HINGE);
     }
 
-    TEST_CASE("Test SGD with least squares converges", "[sgd]") {
-        redisQueue.flushAll();
-
-        // Perform minibatch
-        SgdParams params;
-        params.lossType = RMSE;
-        params.nBatches = 2500;
-        params.nWeights = 4;
-        params.nTrain = 5000;
-        params.learningRate = 0.01;
-        params.nEpochs = 10;
-
-        // Set up the problem
-        FaasmMemory mem;
-        setUpDummyProblem(&mem, params);
-
-        SparseMatrix<double> inputs = readSparseMatrixFromState(&mem, INPUTS_KEY);
-        MatrixXd outputs = readMatrixFromState(&mem, OUTPUTS_KEY, 1, params.nTrain);
-
-        // Work out the error before we start
-        MatrixXd weights = readMatrixFromState(&mem, WEIGHTS_KEY, 1, params.nWeights);
-        MatrixXd initialOutput = weights * inputs;
-        double startingLoss = calculateRootMeanSquaredError(initialOutput, outputs);
-
-        // Run multiple updates
-        double finalLoss = 0;
-        for (int e = 0; e < params.nEpochs; e++) {
-            finalLoss = doSgdStep(&mem, params, e, inputs, outputs);
-        }
-
-        REQUIRE(finalLoss < startingLoss);
-    }
-
     void checkDoubleArrayInState(infra::Redis &r, const char *key, std::vector<double> expected) {
-        std::vector<uint8_t> actualBytes = redisQueue.get(key);
+        std::string actualKey("demo_" + std::string(key));
+        std::vector<uint8_t> actualBytes = redisQueue.get(actualKey);
 
         auto actualPtr = reinterpret_cast<double *>(actualBytes.data());
         std::vector<double> actual(actualPtr, actualPtr + expected.size());
@@ -209,7 +188,8 @@ namespace tests {
     }
 
     void checkIntArrayInState(infra::Redis &r, const char *key, std::vector<int> expected) {
-        std::vector<uint8_t> actualBytes = redisQueue.get(key);
+        std::string actualKey("demo_" + std::string(key));
+        std::vector<uint8_t> actualBytes = redisQueue.get(actualKey);
 
         auto actualPtr = reinterpret_cast<int *>(actualBytes.data());
         std::vector<int> actual(actualPtr, actualPtr + expected.size());
@@ -219,6 +199,7 @@ namespace tests {
 
     TEST_CASE("Test writing errors to state", "[sgd]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         MatrixXd a = randomDenseMatrix(1, 5);
         MatrixXd b = randomDenseMatrix(1, 5);
@@ -242,14 +223,15 @@ namespace tests {
         double expected2 = calculateSquaredError(a, b);
 
         // Write errors to memory
-        writeSquaredError(&memory, 0, a, b);
-        writeSquaredError(&memory, 2, a, b);
+        writeSquaredError(&memory, params, 0, a, b);
+        writeSquaredError(&memory, params, 2, a, b);
 
         checkDoubleArrayInState(redisQueue, ERRORS_KEY, {expected1, 0, expected2, 0});
     }
 
     TEST_CASE("Test reading errors from state", "[sgd]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         FaasmMemory memory;
         SgdParams p = getDummySgdParams();
@@ -266,8 +248,8 @@ namespace tests {
         MatrixXd b = randomDenseMatrix(1, 5);
         double expected = calculateSquaredError(a, b);
 
-        writeSquaredError(&memory, 0, a, b);
-        writeSquaredError(&memory, 1, a, b);
+        writeSquaredError(&memory, p, 0, a, b);
+        writeSquaredError(&memory, p, 1, a, b);
 
         // Check these have been written
         checkDoubleArrayInState(redisQueue, ERRORS_KEY,{expected, expected, 0});
@@ -278,7 +260,7 @@ namespace tests {
         REQUIRE(actual1 == expectedRmse1);
 
         // Now write error for a third batch
-        writeSquaredError(&memory, 2, a, b);
+        writeSquaredError(&memory, p, 2, a, b);
         checkDoubleArrayInState(redisQueue, ERRORS_KEY,{expected, expected, expected});
 
         // Work out what the result should be
@@ -289,6 +271,7 @@ namespace tests {
 
     TEST_CASE("Test zeroing losses", "[sgd]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         SgdParams p = getDummySgdParams();
         p.nBatches = 10;
@@ -314,6 +297,7 @@ namespace tests {
 
     TEST_CASE("Test setting finished flags", "[sgd]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         SgdParams p = getDummySgdParams();
         p.nBatches = 3;
@@ -323,18 +307,19 @@ namespace tests {
         zeroFinished(&mem, p);
         REQUIRE(!readEpochFinished(&mem, p));
 
-        writeFinishedFlag(&mem, 0);
-        writeFinishedFlag(&mem, 2);
+        writeFinishedFlag(&mem, p, 0);
+        writeFinishedFlag(&mem, p, 2);
         REQUIRE(!readEpochFinished(&mem, p));
         checkIntArrayInState(redisQueue, FINISHED_KEY, {1, 0, 1});
 
-        writeFinishedFlag(&mem, 1);
+        writeFinishedFlag(&mem, p, 1);
         checkIntArrayInState(redisQueue, FINISHED_KEY, {1, 1, 1});
         REQUIRE(readEpochFinished(&mem, p));
     }
 
     TEST_CASE("Test zeroing finished flags", "[sgd]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         SgdParams p = getDummySgdParams();
         p.nBatches = 3;

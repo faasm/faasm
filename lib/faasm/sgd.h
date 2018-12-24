@@ -9,6 +9,7 @@ using namespace Eigen;
 #define EPOCH_COUNT_KEY "epoch_count"
 #define WEIGHTS_KEY "weights"
 #define INPUTS_KEY "inputs"
+#define FEATURE_COUNTS_KEY "feature_counts"
 #define OUTPUTS_KEY "outputs"
 #define PARAMS_KEY "params"
 #define ERRORS_KEY "errors"
@@ -17,9 +18,9 @@ using namespace Eigen;
 #define LOSS_TIMESTAMPS_KEY "loss_ts"
 
 // Reuters-specific
-#define REUTERS_N_FEATURES 21531
-#define REUTERS_N_EXAMPLES 111740
-#define REUTERS_LEARNING_RATE 0.1
+#define REUTERS_N_FEATURES 47236
+#define REUTERS_N_EXAMPLES 781265
+#define REUTERS_LEARNING_RATE 0.05
 
 
 namespace faasm {
@@ -35,17 +36,19 @@ namespace faasm {
         int nTrain;
         double learningRate;
         int nEpochs;
+        bool fullAsync;
     };
+
+    SgdParams setUpReutersParams(FaasmMemory *memory, int batchSize, int epochs, bool fullAsync);
 
     void writeParamsToState(FaasmMemory *memory, const char *keyName, const SgdParams &params);
 
-    SgdParams readParamsFromState(FaasmMemory *memory, const char *keyName);
+    SgdParams readParamsFromState(FaasmMemory *memory, const char *keyName, bool async = false);
 
     MatrixXd hingeLossWeightUpdate(
             FaasmMemory *memory,
             const SgdParams &sgdParams,
             int epoch,
-            MatrixXd &weights,
             const SparseMatrix<double> &inputs,
             const MatrixXd &outputs
     );
@@ -53,22 +56,21 @@ namespace faasm {
     MatrixXd leastSquaresWeightUpdate(
             FaasmMemory *memory,
             const SgdParams &sgdParams,
-            MatrixXd &weights,
             const SparseMatrix<double> &inputs,
             const MatrixXd &outputs
     );
 
-    void zeroErrors(FaasmMemory *memory, SgdParams sgdParams);
+    void zeroErrors(FaasmMemory *memory, const SgdParams &sgdParams);
 
-    void zeroLosses(FaasmMemory *memory, SgdParams sgdParams);
+    void zeroLosses(FaasmMemory *memory, const SgdParams &sgdParams);
 
-    void zeroFinished(FaasmMemory *memory, SgdParams sgdParams);
+    void zeroFinished(FaasmMemory *memory, const SgdParams &sgdParams);
 
-    void writeFinishedFlag(FaasmMemory *memory, int batchNumber);
+    void writeFinishedFlag(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber);
 
-    void writeHingeError(FaasmMemory *memory, int batchNumber, const MatrixXd &outputs, const MatrixXd &actual);
+    void writeHingeError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &outputs, const MatrixXd &actual);
 
-    void writeSquaredError(FaasmMemory *memory, int batchNumber, const MatrixXd &outputs, const MatrixXd &actual);
+    void writeSquaredError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &outputs, const MatrixXd &actual);
 
     double readTotalError(FaasmMemory *memory, const SgdParams &sgdParams);
 

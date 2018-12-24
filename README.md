@@ -107,7 +107,6 @@ It has the following methods:
 - `getInput()` - allows functions to retrieve their input data
 - `setOutput()` - this allows functions to return output data to the caller
 - `chainFunction()` - this allows one function to invoke others
-- `getStateSize()` - returns the size (in bytes) of the current state associated with the given key 
 - `readState()` and `writeState()` - allows functions to read/ write key/value state
 - `readStateOffset()` and `writeStateOffset()` - allows functions to read/ write at specific points in existing state (e.g. updating a subsection of an array)
 
@@ -152,8 +151,7 @@ namespace faasm {
     int exec(FaasmMemory *memory) {
         const char *key = "my_state_key";
 
-        // Get initial state size (if not known)
-        long stateSize = memory->getStateSize(key);
+        long stateSize = 123;
 
         // Read the state into a buffer
         uint8_t *myState = new uint8_t[stateSize];

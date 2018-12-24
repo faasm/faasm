@@ -39,6 +39,7 @@ namespace util {
         int stateStaleThreshold;
         int stateClearThreshold;
         int statePushInterval;
+        int fullAsync;
 
         SystemConfig();
 
@@ -109,6 +110,8 @@ namespace util {
         const TimePoint now();
 
         const long timeDiff(const TimePoint &t1, const TimePoint &t2);
+
+        const long timeDiffMicro(const TimePoint &t1, const TimePoint &t2);
 
         void setFakeNow(const TimePoint &t);
     private:

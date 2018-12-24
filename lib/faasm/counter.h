@@ -4,11 +4,11 @@
 #include "faasm/memory.h"
 
 namespace faasm {
-    void initCounter(FaasmMemory *memory, const char* counterKey);
+    void initCounter(FaasmMemory *memory, const char *counterKey, bool async = false);
 
-    int getCounter(FaasmMemory *memory, const char* counterKey);
+    int getCounter(FaasmMemory *memory, const char *counterKey, bool async = false);
 
-    void incrementCounter(FaasmMemory *memory, const char* counterKey) ;
+    void incrementCounter(FaasmMemory *memory, const char *counterKey, bool async = false);
 }
 
 #endif

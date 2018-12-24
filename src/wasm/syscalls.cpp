@@ -16,6 +16,8 @@
 #include <WAVM/Runtime/RuntimeData.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <stdarg.h>
+#include <prof/prof.h>
+#include <state/state.h>
 
 using namespace WAVM;
 
@@ -59,12 +61,16 @@ namespace wasm {
     // Thread-local variables to isolate bits of environment
     static thread_local std::set<int> openFds;
 
-    std::vector<uint8_t> getBytesFromWasm(I32 dataPtr, I32 dataLen) {
+    void getBytesFromWasm(I32 dataPtr, I32 dataLen, uint8_t *buffer) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
 
-        std::vector<uint8_t> bytes(data, data + dataLen);
+        std::copy(data, data + dataLen, buffer);
+    }
 
+    std::vector<uint8_t> getBytesFromWasm(I32 dataPtr, I32 dataLen) {
+        std::vector<uint8_t> bytes(dataLen);
+        getBytesFromWasm(dataPtr, dataLen, bytes.data());
         return bytes;
     }
 
@@ -74,6 +80,14 @@ namespace wasm {
         std::string str(key);
 
         return str;
+    }
+
+    std::pair<std::string, std::string> getUserKeyPairFromWasm(I32 keyPtr) {
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
+
+        const message::Message *call = getExecutingCall();
+        return std::pair<std::string, std::string>(call->user(), key);
     }
 
     std::string getKeyFromWasm(I32 keyPtr) {
@@ -86,73 +100,125 @@ namespace wasm {
         return prefixedKey;
     }
 
-    int copyToWasmBuffer(const std::vector<uint8_t> &dataIn, I32 bufferPtr, I32 bufferLen) {
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
-
-        int dataSize = util::safeCopyToBuffer(dataIn, buffer, bufferLen);
-
-        return dataSize;
-    }
-
     // ------------------------
     // FAASM-specific
     // ------------------------
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state", void, __faasm_write_state,
-                              I32 keyPtr, I32 dataPtr, I32 dataLen) {
-        util::getLogger()->debug("S - write_state - {} {} {}", keyPtr, dataPtr, dataLen);
-        
-        const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
-        std::string key = getKeyFromWasm(keyPtr);
+    state::StateKeyValue * getStateKV(I32 keyPtr, size_t size) {
+        const std::pair<std::string, std::string> userKey = getUserKeyPairFromWasm(keyPtr);
+        state::State &s = state::getGlobalState();
+        state::StateKeyValue *kv = s.getKV(userKey.first, userKey.second, size);
 
-        // Set the whole state
-        infra::State &s = infra::getGlobalState();
-        infra::StateKeyValue *kv = s.getKV(key);
-        kv->set(newState);
+        return kv;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state", void, __faasm_push_state, I32 keyPtr) {
+        util::getLogger()->debug("S - push_state - {}", keyPtr);
+
+        state::StateKeyValue *kv = getStateKV(keyPtr, 0);
+        kv->pushFull();
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state_partial", void, __faasm_push_state_partial, I32 keyPtr) {
+        util::getLogger()->debug("S - push_state_partial - {}", keyPtr);
+
+        state::StateKeyValue *kv = getStateKV(keyPtr, 0);
+        kv->pushPartial();
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_lock_state_read", void, __faasm_lock_state_read, I32 keyPtr) {
+        util::getLogger()->debug("S - lock_state_read - {}", keyPtr);
+
+        state::StateKeyValue *kv = getStateKV(keyPtr, 0);
+        kv->lockRead();
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_unlock_state_read", void, __faasm_unlock_state_read, I32 keyPtr) {
+        util::getLogger()->debug("S - unlock_state_read - {}", keyPtr);
+
+        state::StateKeyValue *kv = getStateKV(keyPtr, 0);
+        kv->unlockRead();
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_lock_state_write", void, __faasm_lock_state_write, I32 keyPtr) {
+        util::getLogger()->debug("S - lock_state_write - {}", keyPtr);
+
+        state::StateKeyValue *kv = getStateKV(keyPtr, 0);
+        kv->lockWrite();
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_unlock_state_write", void, __faasm_unlock_state_write, I32 keyPtr) {
+        util::getLogger()->debug("S - unlock_state_write - {}", keyPtr);
+
+        state::StateKeyValue *kv = getStateKV(keyPtr, 0);
+        kv->unlockWrite();
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state", void, __faasm_write_state,
+                              I32 keyPtr, I32 dataPtr, I32 dataLen, I32 async) {
+        util::getLogger()->debug("S - write_state - {} {} {} {}", keyPtr, dataPtr, dataLen, async);
+
+        state::StateKeyValue *kv = getStateKV(keyPtr, dataLen);
+
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
+
+        kv->set(data);
+
+        // Push if synchronous
+        if (async == 0) {
+            kv->pushFull();
+        }
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_offset", void, __faasm_write_state_offset,
-                              I32 keyPtr, I32 offset, I32 dataPtr, I32 dataLen) {
-        util::getLogger()->debug("S - write_state_offset - {} {} {} {}", keyPtr, offset, dataPtr, dataLen);
+                              I32 keyPtr, I32 totalLen, I32 offset, I32 dataPtr, I32 dataLen, I32 async) {
+        util::getLogger()->debug("S - write_state_offset - {} {} {} {} {} {}", keyPtr, totalLen, offset, dataPtr, dataLen, async);
 
-        const std::vector<uint8_t> newState = getBytesFromWasm(dataPtr, dataLen);
-        std::string key = getKeyFromWasm(keyPtr);
+        state::StateKeyValue *kv = getStateKV(keyPtr, totalLen);
 
-        // Set the state at the given offset
-        infra::State &s = infra::getGlobalState();
-        infra::StateKeyValue *kv = s.getKV(key);
-        kv->setSegment(offset, newState);
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
+
+        kv->setSegment(offset, data, dataLen);
+
+        // Push if synchronous
+        if (async == 0) {
+            kv->pushPartial();
+        }
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state", I32, __faasm_read_state,
-                              I32 keyPtr, I32 bufferPtr, I32 bufferLen) {
-        util::getLogger()->debug("S - read_state - {} {} {}", keyPtr, bufferPtr, bufferLen);
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state", void, __faasm_read_state,
+                              I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 async) {
+        util::getLogger()->debug("S - read_state - {} {} {} {}", keyPtr, bufferPtr, bufferLen, async);
 
-        std::string key = getKeyFromWasm(keyPtr);
+        state::StateKeyValue *kv = getStateKV(keyPtr, bufferLen);
 
-        // Read the state in
-        infra::State &s = infra::getGlobalState();
-        infra::StateKeyValue *kv = s.getKV(key);
-        std::vector<uint8_t> value = kv->get();
+        // Pull
+        bool isAsync = async == 1;
+        kv->pull(isAsync);
 
-        int stateSize = copyToWasmBuffer(value, bufferPtr, bufferLen);
-
-        // Return the total number of bytes in the whole state
-        return stateSize;
+        // Copy to straight to buffer
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
+        kv->get(buffer);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset", void, __faasm_read_state_offset,
-                              I32 keyPtr, I32 offset, I32 bufferPtr, I32 bufferLen) {
-        util::getLogger()->debug("S - read_state_offset - {} {} {} {}", keyPtr, offset, bufferPtr, bufferLen);
-
-        std::string key = getKeyFromWasm(keyPtr);
+                              I32 keyPtr, I32 totalLen, I32 offset, I32 bufferPtr, I32 bufferLen, I32 async) {
+        util::getLogger()->debug("S - read_state_offset - {} {} {} {} {}", keyPtr, totalLen, offset, bufferPtr,
+                bufferLen);
 
         // Read the state in
-        infra::State &s = infra::getGlobalState();
-        infra::StateKeyValue *kv = s.getKV(key);
-        std::vector<uint8_t> value = kv->getSegment(offset, bufferLen);
+        state::StateKeyValue *kv = getStateKV(keyPtr, totalLen);
 
-        copyToWasmBuffer(value, bufferPtr, bufferLen);
+        // Pull
+        bool isAsync = async == 1;
+        kv->pull(isAsync);
+
+        // Copy to straight to buffer
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
+        kv->getSegment(offset, buffer, bufferLen);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_input", I32, __faasm_read_input, I32 bufferPtr, I32 bufferLen) {
@@ -163,8 +229,10 @@ namespace wasm {
         std::vector<uint8_t> inputBytes = util::stringToBytes(call->inputdata());
 
         // Write to the wasm buffer
-        int inputSize = copyToWasmBuffer(inputBytes, bufferPtr, bufferLen);
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
 
+        int inputSize = util::safeCopyToBuffer(inputBytes, buffer, bufferLen);
         return inputSize;
     }
 
@@ -342,7 +410,7 @@ namespace wasm {
         // Get array of iovecs from memory
         wasm_iovec *iovecs = Runtime::memoryArrayPtr<wasm_iovec>(memoryPtr, iov, iovcnt);
 
-        // Build vector of emulator iovecs
+        // Build vector of iovecs
         iovec nativeIovecs[iovcnt];
         for (U32 i = 0; i < iovcnt; i++) {
             wasm_iovec thisIovec = iovecs[i];
@@ -350,7 +418,7 @@ namespace wasm {
             // Get pointer to data
             U8 *ioData = Runtime::memoryArrayPtr<U8>(memoryPtr, thisIovec.iov_base, thisIovec.iov_len);
 
-            // Create emulator iovec and add to list
+            // Create iovec and add to list
             iovec nativeIovec{
                     .iov_base = ioData,
                     .iov_len = thisIovec.iov_len,
@@ -546,7 +614,7 @@ namespace wasm {
     /** Writes changes to a native sockaddr back to a wasm sockaddr. This is important in several
      * networking syscalls that receive responses and modify arguments in place */
     void setSockAddr(sockaddr nativeSockAddr, I32 addrPtr) {
-        // Get emulator pointer to wasm address
+        // Get pointer to wasm address
         wasm_sockaddr *wasmAddrPtr = &Runtime::memoryRef<wasm_sockaddr>(getExecutingModule()->defaultMemory,
                                                                         (Uptr) addrPtr);
 
@@ -556,7 +624,7 @@ namespace wasm {
     }
 
     void setSockLen(socklen_t nativeValue, I32 wasmPtr) {
-        // Get emulator pointer to wasm address
+        // Get pointer to wasm address
         I32 *wasmAddrPtr = &Runtime::memoryRef<I32>(getExecutingModule()->defaultMemory, (Uptr) wasmPtr);
         std::copy(&nativeValue, &nativeValue + 1, wasmAddrPtr);
     }
@@ -716,7 +784,7 @@ namespace wasm {
                                                  sockAddrPtr,
                                                  addrLen);
 
-                        // Make the emulator call
+                        // Make the call
                         result = recvfrom(sockfd, buf, bufLen, flags, &sockAddr, &nativeAddrLen);
 
                         // Note, recvfrom will modify the sockaddr and addrlen in place with the details returned
@@ -1021,21 +1089,10 @@ namespace wasm {
     // Memory - supported
     // ------------------------
 
-    Uptr getNumberPagesAtOffset(U32 offset) {
-        // Work out how many pages needed to hit the target address
-        Uptr pageCount = ((Uptr) offset) / IR::numBytesPerPage;
-
-        // Check we're on a page boundary, if not bump up number of pages
-        if (offset % IR::numBytesPerPage != 0) {
-            printf("Warning, requesting address off page boundary (%u)", offset);
-            pageCount++;
-        }
-
-        return pageCount;
-    }
-
     /**
-     * With mmap we will ignore the start address and not support file mapping
+     * mmap doesn't make too much sense in the wasm world, only in order to provide anonymous, shared
+     * mappings to be used for allocating space. We can just extend the existing memory and return this as the newly
+     * mapped region.
      */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_mmap", I32, __syscall_mmap,
                               U32 addr, U32 length, U32 prot, U32 flags, I32 fd, U32 offset) {
@@ -1045,12 +1102,13 @@ namespace wasm {
             printf("Ignoring mmap hint at %i\n", addr);
         }
 
+        // fd != -1 is non-anonymous mapping
         if (fd != -1) {
             throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
         }
 
         // Work out how many pages need to be added
-        Uptr pagesRequested = getNumberPagesAtOffset(length);
+        Uptr pagesRequested = getNumberOfPagesForBytes(length);
 
         Iptr previousPageCount = growMemory(getExecutingModule()->defaultMemory, pagesRequested);
 
@@ -1061,11 +1119,13 @@ namespace wasm {
 
         // Get pointer to mapped range
         auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);
+
         return mappedRangePtr;
     }
 
     /**
-     * munmap is fairly straightforward, just unmap the relevant pages
+     * munmap also doesn't quite make sense when we only have one linear memory region to deal with,
+     * so we can just shrink the memory back down if we're munmapping the bit at the end.
      */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_munmap", I32, __syscall_munmap,
                               U32 addr, U32 length) {
@@ -1073,14 +1133,28 @@ namespace wasm {
 
         Runtime::Memory *memory = getExecutingModule()->defaultMemory;
 
-        if(addr & (IR::numBytesPerPage - 1) || length == 0) { return -EINVAL; }
+        // If not aligned or zero length, drop out
+        if (addr & (IR::numBytesPerPage - 1) || length == 0) {
+            return -EINVAL;
+        }
 
         const Uptr basePageIndex = addr / IR::numBytesPerPage;
-        const Uptr numPages = (length + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
+        const Uptr numPages = getNumberOfPagesForBytes(length);
 
-        if(basePageIndex + numPages > getMemoryMaxPages(memory)) { return -EINVAL; }
+        // Drop out if we're munmapping over the max page boundary
+        if (basePageIndex + numPages > getMemoryMaxPages(memory)) {
+            return -EINVAL;
+        }
 
-        unmapMemoryPages(memory, basePageIndex, numPages);
+        // If these are the top pages of memory, shrink it, if not, unmap them
+        // Note that we won't be able to reclaim them if we're just unmapping
+        const Uptr currentPageCount = getMemoryNumPages(memory);
+        if(basePageIndex + numPages == currentPageCount) {
+            shrinkMemory(memory, numPages);
+        }
+        else {
+            unmapMemoryPages(memory, basePageIndex, numPages);
+        }
 
         return 0;
     }
@@ -1098,7 +1172,7 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_brk", I32, __syscall_brk, U32 addr) {
         util::getLogger()->debug("S - brk - {}", addr);
 
-        Uptr targetPageCount = getNumberPagesAtOffset(addr);
+        Uptr targetPageCount = getNumberOfPagesForBytes(addr);
 
         // Work out current page count and break
         Runtime::Memory *memory = getExecutingModule()->defaultMemory;

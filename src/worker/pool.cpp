@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <infra/infra.h>
 #include <prof/prof.h>
+#include <state/state.h>
 
 #include <spdlog/spdlog.h>
 #include <thread>
@@ -13,11 +14,11 @@ namespace worker {
 
     void startWorkerThreadPool() {
         // Spawn the state thread first
-        std::thread stateThread([] {
-            StateThread s;
-            s.run();
-        });
-        stateThread.detach();
+//        std::thread stateThread([] {
+//            StateThread s;
+//            s.run();
+//        });
+//        stateThread.detach();
 
         // Spawn worker threads until we've hit the limit (thus creating a pool that will replenish
         // when one releases its token)
@@ -38,7 +39,7 @@ namespace worker {
     StateThread::StateThread() = default;
 
     void StateThread::run() {
-        infra::State &s = infra::getGlobalState();
+        state::State &s = state::getGlobalState();
         s.pushLoop();
     }
 

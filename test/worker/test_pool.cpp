@@ -9,6 +9,7 @@ using namespace worker;
 namespace tests {
     void setUp() {
         redisQueue.flushAll();
+        redisState.flushAll();
 
         // Network ns requires root
         util::setEnvVar("NETNS_MODE", "off");
@@ -212,62 +213,6 @@ namespace tests {
         tearDown();
     }
 
-    TEST_CASE("Test state", "[worker]") {
-        setUp();
-
-        // Initially function's state should be an empty array
-        // Note, we need to prepend the user to the actual key used in the code
-        const char *stateKey = "demo_state_example";
-        std::vector<uint8_t> initialState = redisQueue.get(stateKey);
-        REQUIRE(initialState.empty());
-
-        infra::State &s = infra::getGlobalState();
-        infra::StateKeyValue *kv = s.getKV(stateKey);
-
-        // Set up the function call
-        message::Message call;
-        call.set_user("demo");
-        call.set_function("state");
-        call.set_resultkey("test_state");
-
-        WorkerThread w(1);
-
-        // Tell the worker to bind to the function
-        infra::Scheduler::callFunction(call);
-        w.processNextMessage();
-
-        // Exec the function
-        w.processNextMessage();
-
-        message::Message resultA = redisQueue.getFunctionResult(call);
-        REQUIRE(resultA.success());
-
-        // Load the state again, it should have a new element
-        std::vector<uint8_t> stateA = kv->get();
-        std::vector<uint8_t> expectedA = {1};
-        REQUIRE(stateA == expectedA);
-
-        // Call the function a second time, the state should have another element added
-        infra::Scheduler::callFunction(call);
-        w.processNextMessage();
-        message::Message resultB = redisQueue.getFunctionResult(call);
-        REQUIRE(resultB.success());
-
-        std::vector<uint8_t> stateB = redisQueue.get(stateKey);
-        std::vector<uint8_t> expectedB = {1, 2};
-        //REQUIRE(stateB == expectedB);
-
-        // Do the same a third time
-        infra::Scheduler::callFunction(call);
-        w.processNextMessage();
-        message::Message resultC = redisQueue.getFunctionResult(call);
-        REQUIRE(resultC.success());
-
-        std::vector<uint8_t> stateC = kv->get();
-        std::vector<uint8_t> expectedC = {1, 2, 3};
-        REQUIRE(stateC == expectedC);
-    }
-
     TEST_CASE("Test state increment", "[worker]") {
         setUp();
 
@@ -281,10 +226,8 @@ namespace tests {
         WorkerThread w(1);
         infra::Scheduler::callFunction(call);
 
-        // Process bind
+        // Bind and exec
         w.processNextMessage();
-
-        // Exec the function
         w.processNextMessage();
 
         // Check result
@@ -299,6 +242,60 @@ namespace tests {
         message::Message resultB = redisQueue.getFunctionResult(call);
         REQUIRE(resultB.success());
         REQUIRE(resultB.outputdata() == "Counter: 002");
+    }
+
+    void checkStateExample(const std::string &funcName, const std::string &keyName, std::vector<uint8_t> expectedOutput,
+                           std::vector<uint8_t> expectedRedis) {
+        setUp();
+
+        // Set up the function call
+        message::Message call;
+        call.set_user("demo");
+        call.set_function(funcName);
+        call.set_resultkey("check_state_res");
+
+        // Call function
+        WorkerThread w(1);
+        infra::Scheduler::callFunction(call);
+
+        // Bind and exec
+        w.processNextMessage();
+        w.processNextMessage();
+
+        // Check result
+        message::Message result = redisQueue.getFunctionResult(call);
+        REQUIRE(result.success());
+        std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
+
+        REQUIRE(outputBytes == expectedOutput);
+        REQUIRE(redisState.get(keyName) == expectedRedis);
+    }
+
+    TEST_CASE("Test synchronous state", "[worker]") {
+        checkStateExample(
+                "state_sync",
+                "demo_state_example",
+                {0, 1, 2, 3},
+                {0, 1, 2, 3}
+        );
+    }
+
+    TEST_CASE("Test asynchronous state", "[worker]") {
+        checkStateExample(
+                "state_async",
+                "demo_state_async_example",
+                {1, 1, 1, 1},
+                {3, 2, 1, 0}
+        );
+    }
+
+    TEST_CASE("Test offset state", "[worker]") {
+        checkStateExample(
+                "state_offset",
+                "demo_state_offset_example",
+                {5, 5, 6, 6, 4},
+                {5, 5, 6, 6, 4, 5, 6}
+        );
     }
 
     TEST_CASE("Test memory is reset", "[worker]") {
@@ -323,5 +320,28 @@ namespace tests {
         // Check page count is equal
         Uptr afterPages = Runtime::getMemoryNumPages(w.module->defaultMemory);
         REQUIRE(afterPages == initialPages);
+    }
+
+    TEST_CASE("Test mmap/munmap", "[worker]") {
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("mmap");
+        call.set_resultkey("test_mmap");
+
+        // Call function
+        WorkerThread w(1);
+        infra::Scheduler::callFunction(call);
+
+        // Bind and execute
+        w.processNextMessage();
+        w.processNextMessage();
+
+        // Check output is true
+        message::Message result = redisQueue.getFunctionResult(call);
+        REQUIRE(result.success());
+        std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
+
+        std::vector<uint8_t > expectedOutput = {1};
+        REQUIRE(outputBytes == expectedOutput);
     }
 }

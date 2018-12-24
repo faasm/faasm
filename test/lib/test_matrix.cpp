@@ -4,6 +4,7 @@
 #include "faasm/matrix.h"
 
 #include <infra/infra.h>
+#include <state/state.h>
 
 #include <iostream>
 
@@ -20,11 +21,6 @@ namespace tests {
         REQUIRE(actual.nonZeros() < 40);
     }
 
-    void checkDoubleBytes(double expected, uint8_t *byteArrayStart) {
-        double actual = *reinterpret_cast<double *>(&byteArrayStart[0]);
-        REQUIRE(expected == actual);
-    }
-
     MatrixXd buildDummyMatrix() {
         MatrixXd mat(2, 3);
         mat << 1, 2, 3,
@@ -33,36 +29,9 @@ namespace tests {
         return mat;
     }
 
-    TEST_CASE("Test matrix to bytes round trip", "[matrix]") {
-        MatrixXd mat = buildDummyMatrix();
-
-        REQUIRE(mat.rows() == 2);
-        REQUIRE(mat.cols() == 3);
-
-        uint8_t *byteArray = faasm::matrixToBytes(mat);
-
-        // Double check size assumption
-        REQUIRE(sizeof(double) == 8);
-
-        // Note, column-major order
-        checkDoubleBytes(1, &byteArray[0]);
-        checkDoubleBytes(4, &byteArray[8]);
-        checkDoubleBytes(2, &byteArray[16]);
-        checkDoubleBytes(5, &byteArray[24]);
-        checkDoubleBytes(3, &byteArray[32]);
-        checkDoubleBytes(6, &byteArray[40]);
-
-        // Rebuild matrix from array and check it has survived round trip
-        MatrixXd matrixOut = faasm::bytesToMatrix(byteArray, 2, 3);
-        REQUIRE(matrixOut.rows() == 2);
-        REQUIRE(matrixOut.cols() == 3);
-        REQUIRE(matrixOut == mat);
-
-        delete[] byteArray;
-    }
-
     TEST_CASE("Test matrix to redis round trip", "[matrix]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         MatrixXd mat = buildDummyMatrix();
 
@@ -83,6 +52,7 @@ namespace tests {
 
     TEST_CASE("Test updating matrix element in state", "[matrix]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         MatrixXd mat = buildDummyMatrix();
 
@@ -97,12 +67,13 @@ namespace tests {
         mat(0, 2) = 3.3;
         mat(1, 1) = 10.5;
 
-        // Update a single element
+        // Update single elements
         faasm::writeMatrixToStateElement(&mem, stateKey, mat, 0, 2);
         faasm::writeMatrixToStateElement(&mem, stateKey, mat, 1, 1);
 
         // Retrieve from redis and check it matches the one in memory
-        const MatrixXd afterState = faasm::readMatrixFromState(&mem, stateKey, 2, 3);
+        MatrixXd afterState(2, 3);
+        faasm::readMatrixFromState(&mem, stateKey, afterState.data(), 2, 3);
 
         REQUIRE(afterState.rows() == 2);
         REQUIRE(afterState.cols() == 3);
@@ -115,9 +86,11 @@ namespace tests {
 
     TEST_CASE("Test reading columns from state", "[matrix]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         long nRows = 4;
-        MatrixXd mat(nRows, 5);
+        long nCols = 5;
+        MatrixXd mat(nRows, nCols);
         mat << 1, 2, 3, 4, 5,
                 6, 7, 8, 9, 10,
                 11, 12, 13, 14, 15,
@@ -133,7 +106,7 @@ namespace tests {
         // Read a subset of columns (exclusive)
         long startCol = 1;
         long endCol = 4;
-        MatrixXd actual = faasm::readMatrixColumnsFromState(&mem, stateKey, startCol, endCol, nRows);
+        MatrixXd actual = faasm::readMatrixColumnsFromState(&mem, stateKey, nCols, startCol, endCol, nRows);
 
         REQUIRE(actual.rows() == nRows);
         REQUIRE(actual.cols() == 3);
@@ -246,6 +219,7 @@ namespace tests {
 
     TEST_CASE("Test sparse matrix round trip", "[matrix]") {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         SparseMatrix<double> mat = faasm::randomSparseMatrix(5, 10, 0.4);
 
@@ -260,10 +234,11 @@ namespace tests {
 
     void checkSparseMatrixRoundTrip(int rows, int cols, int colStart, int colEnd) {
         redisQueue.flushAll();
+        state::getGlobalState().forceClearAll();
 
         const char *key = "sparse_trip_offset_test";
 
-        SparseMatrix<double> mat = faasm::randomSparseMatrix(rows, cols, 0.4);
+        SparseMatrix<double> mat = faasm::randomSparseMatrix(rows, cols, 0.7);
         faasm::FaasmMemory mem;
         faasm::writeSparseMatrixToState(&mem, key, mat);
 

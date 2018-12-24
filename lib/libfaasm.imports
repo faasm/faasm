@@ -1,7 +1,13 @@
+__faasm_push_state
+__faasm_push_state_partial
 __faasm_read_state
 __faasm_write_state
 __faasm_write_state_offset
 __faasm_read_state_offset
+__faasm_lock_state_read
+__faasm_unlock_state_read
+__faasm_lock_state_write
+__faasm_unlock_state_write
 __faasm_read_input
 __faasm_write_output
 __faasm_chain_function

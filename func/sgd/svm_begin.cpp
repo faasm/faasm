@@ -6,13 +6,6 @@
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        // Set up reuters params
-        SgdParams p;
-        p.lossType = HINGE;
-        p.nWeights = REUTERS_N_FEATURES;
-        p.nTrain = REUTERS_N_EXAMPLES;
-        p.learningRate = REUTERS_LEARNING_RATE;
-
         // Largest factors of number of training examples (111740) are:
         // 1, 2, 4, 5, 10, 20, 37, 74, 148, 151, 185, 302, 370, 604, 740, 755,
         // 1510, 3020, 5587, 11174, 22348, 27935, 55870
@@ -23,7 +16,7 @@ namespace faasm {
         long inputSize = memory->getInputSize();
         int batchSize;
         if(inputSize == 0) {
-            batchSize = 604;
+            batchSize = 5587;
         } else {
             auto inputBuffer = new uint8_t[inputSize];
             memory->getInput(inputBuffer, inputSize);
@@ -31,21 +24,20 @@ namespace faasm {
             batchSize = std::stoi(inputString);
         }
 
-        printf("Starting SVM with batch size %i\n", batchSize);
-        p.nBatches = p.nTrain / batchSize;
-        p.nEpochs = 60;
-
-        writeParamsToState(memory, PARAMS_KEY, p);
+        // Prepare params
+        bool fullAsync = true;
+        int epochs = 30;
+        SgdParams p = setUpReutersParams(memory, batchSize, epochs, fullAsync);
 
         // Initialise weights
-        Eigen::MatrixXd weights = randomDenseMatrix(1, p.nWeights);
-        writeMatrixToState(memory, WEIGHTS_KEY, weights);
+        Eigen::MatrixXd weights = zeroMatrix(1, p.nWeights);
+        writeMatrixToState(memory, WEIGHTS_KEY, weights, p.fullAsync);
 
         // Zero the losses
         zeroLosses(memory, p);
 
         // Begin first epoch
-        initCounter(memory, EPOCH_COUNT_KEY);
+        initCounter(memory, EPOCH_COUNT_KEY, p.fullAsync);
         memory->chainFunction("sgd_epoch");
 
         return 0;

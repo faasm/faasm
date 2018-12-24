@@ -10,13 +10,13 @@ namespace faasm {
         // Get loss values from state
         size_t lossBytes = p.nEpochs * sizeof(double);
         auto lossBuffer = new uint8_t[lossBytes];
-        memory->readState(LOSSES_KEY, lossBuffer, lossBytes);
+        memory->readState(LOSSES_KEY, lossBuffer, lossBytes, p.fullAsync);
         auto losses = reinterpret_cast<double *>(lossBuffer);
 
         // Get loss timestamps from state
         size_t tsBytes = p.nEpochs * sizeof(long);
         auto tsBuffer = new uint8_t[tsBytes];
-        memory->readState(LOSS_TIMESTAMPS_KEY, tsBuffer, tsBytes);
+        memory->readState(LOSS_TIMESTAMPS_KEY, tsBuffer, tsBytes, p.fullAsync);
         auto ts = reinterpret_cast<long *>(tsBuffer);
 
         long baseTs = ts[0];

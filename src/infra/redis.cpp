@@ -54,23 +54,23 @@ namespace infra {
     // 1a. If it's less than the target
     static std::string incrIfBelowTargetSha;
     static std::string incrIfBelowTargetCmd = "local prewarmCount = redis.call(\"GET\", KEYS[1]) \n"
-                                          "if prewarmCount then \n"
-                                          "    prewarmCount = tonumber(prewarmCount) \n"
-                                          "else \n"
-                                          "    prewarmCount = 0 \n"
-                                          "end \n"
-                                          ""
-                                          "local prewarmTarget = tonumber(ARGV[1]) \n"
-                                          "if prewarmCount < prewarmTarget then \n"
-                                          "    redis.call(\"INCR\", KEYS[1]) \n"
-                                          "    return 1 \n"
-                                          "end \n"
-                                          ""
-                                          "return 0";
+                                              "if prewarmCount then \n"
+                                              "    prewarmCount = tonumber(prewarmCount) \n"
+                                              "else \n"
+                                              "    prewarmCount = 0 \n"
+                                              "end \n"
+                                              ""
+                                              "local prewarmTarget = tonumber(ARGV[1]) \n"
+                                              "if prewarmCount < prewarmTarget then \n"
+                                              "    redis.call(\"INCR\", KEYS[1]) \n"
+                                              "    return 1 \n"
+                                              "end \n"
+                                              ""
+                                              "return 0";
 
     Redis::Redis(const RedisRole &role) {
         std::string thisIp;
-        if(role == STATE) {
+        if (role == STATE) {
             hostname = util::getEnvVar("REDIS_STATE_HOST", "localhost");
 
             if (redisStateIp.empty()) {
@@ -78,8 +78,7 @@ namespace infra {
             }
 
             thisIp = redisStateIp;
-        }
-        else {
+        } else {
             hostname = util::getEnvVar("REDIS_QUEUE_HOST", "localhost");
 
             if (redisQueueIp.empty()) {
@@ -127,6 +126,24 @@ namespace infra {
         std::vector<uint8_t> resultData(resultArray, resultArray + resultLen);
 
         return resultData;
+    }
+
+    void getBytesFromReply(redisReply *reply, uint8_t *buffer, size_t bufferLen) {
+        // We have to be careful here to handle the bytes properly
+        char *resultArray = reply->str;
+        int resultLen = reply->len;
+
+        if(resultLen > bufferLen) {
+            throw std::runtime_error("Reading value too big for buffer");
+        }
+
+        std::copy(resultArray, resultArray + resultLen, buffer);
+    }
+
+    void Redis::get(const std::string &key, uint8_t *buffer, size_t size) {
+        auto reply = (redisReply *) redisCommand(context, "GET %s", key.c_str());
+        getBytesFromReply(reply, buffer, size);
+        freeReplyObject(reply);
     }
 
     std::vector<uint8_t> Redis::get(const std::string &key) {
@@ -223,7 +240,11 @@ namespace infra {
 
 
     void Redis::set(const std::string &key, const std::vector<uint8_t> &value) {
-        auto reply = (redisReply *) redisCommand(context, "SET %s %b", key.c_str(), value.data(), value.size());
+        this->set(key, value.data(), value.size());
+    }
+
+    void Redis::set(const std::string &key, const uint8_t *value, size_t size) {
+        auto reply = (redisReply *) redisCommand(context, "SET %s %b", key.c_str(), value, size);
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -239,19 +260,21 @@ namespace infra {
         freeReplyObject(reply);
     }
 
-    void Redis::setRange(const std::string &key, long offset, const std::vector<uint8_t> &value) {
-        auto reply = (redisReply *) redisCommand(context, "SETRANGE %s %li %b", key.c_str(), offset, value.data(),
-                                                 value.size());
+    void Redis::setRange(const std::string &key, long offset, const uint8_t *value, size_t size) {
+        auto reply = (redisReply *) redisCommand(context, "SETRANGE %s %li %b", key.c_str(), offset, value,
+                                                 size);
         freeReplyObject(reply);
     }
 
-    std::vector<uint8_t> Redis::getRange(const std::string &key, long start, long end) {
+    /**
+     * Note that start/end are both inclusive
+     */
+    void Redis::getRange(const std::string &key, uint8_t *buffer, size_t bufferLen, long start, long end) {
         auto reply = (redisReply *) redisCommand(context, "GETRANGE %s %li %li", key.c_str(), start, end);
 
-        const std::vector<uint8_t> replyBytes = getBytesFromReply(reply);
+        // Importantly getrange is inclusive so we need to be checking the buffer length
+        getBytesFromReply(reply, buffer, bufferLen);
         freeReplyObject(reply);
-
-        return replyBytes;
     }
 
     void Redis::enqueue(const std::string &queueName, const std::vector<uint8_t> &value) {
@@ -291,7 +314,7 @@ namespace infra {
     long Redis::listLength(const std::string &queueName) {
         auto reply = (redisReply *) redisCommand(context, "LLEN %s", queueName.c_str());
 
-        if(reply == nullptr || reply->type == REDIS_REPLY_NIL) {
+        if (reply == nullptr || reply->type == REDIS_REPLY_NIL) {
             return 0;
         }
 

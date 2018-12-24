@@ -29,6 +29,13 @@ namespace wasm {
         return executingCallChain;
     }
 
+    Uptr getNumberOfPagesForBytes(U32 nBytes) {
+        // Round up to nearest page
+        Uptr pageCount = (Uptr(nBytes) + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
+
+        return pageCount;
+    }
+
     WasmModule::WasmModule() = default;
 
     WasmModule::~WasmModule() {
@@ -91,11 +98,9 @@ namespace wasm {
         // Parse the wasm file to work out imports, function signatures etc.
         this->parseWasm(msg);
 
-        // Set up minimum memory size
-        this->module.memories.defs[0].type.size.min = (U64) MIN_MEMORY_PAGES;
-
         // Linking
         const auto &t1 = prof::startTimer();
+        resolver->setUser(msg.user());
         Runtime::LinkResult linkResult = linkModule(module, *resolver);
         if (!linkResult.success) {
             std::cerr << "Failed to link module:" << std::endl;
@@ -136,7 +141,8 @@ namespace wasm {
         }
 
         // Keep reference to memory
-        this->defaultMemory = getDefaultMemory(moduleInstance);
+        this->defaultMemory = getMemory(moduleInstance, 0);
+        // this->stateMemory = getMemory(moduleInstance, 1);
 
         // Snapshot initial state
         this->snapshotMemory();
@@ -266,6 +272,12 @@ namespace wasm {
         }
 
         WASM::loadBinaryModule(fileBytes.data(), fileBytes.size(), this->module);
+
+        // Set up minimum memory size
+        this->module.memories.defs[0].type.size.min = (U64) MIN_MEMORY_PAGES;
+
+        // Add the shared memory definition
+//        this->module.memories.imports.push_back({{true, {0, 1000}}, msg.user(), "shared_state"});
 
         prof::logEndTimer("parse-wasm", t);
     }

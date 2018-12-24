@@ -7,17 +7,38 @@
 using namespace Eigen;
 
 namespace faasm {
+    SgdParams setUpReutersParams(FaasmMemory *memory, int batchSize, int epochs, bool fullAsync) {
+        // Set up reuters params
+        SgdParams p;
+        p.lossType = HINGE;
+        p.nWeights = REUTERS_N_FEATURES;
+        p.nTrain = REUTERS_N_EXAMPLES;
+        p.learningRate = REUTERS_LEARNING_RATE;
+        p.nBatches = p.nTrain / batchSize;
+        p.nEpochs = epochs;
+
+        // Full sync or not
+        p.fullAsync = fullAsync;
+
+        // Write params synchronously
+        writeParamsToState(memory, PARAMS_KEY, p);
+
+        return p;
+    }
+
     void writeParamsToState(FaasmMemory *memory, const char *keyName, const SgdParams &params) {
         size_t nBytes = sizeof(SgdParams);
         auto bytePtr = reinterpret_cast<const uint8_t *>(&params);
-        memory->writeState(keyName, bytePtr, nBytes);
+
+        // Allow full async
+        memory->writeState(keyName, bytePtr, nBytes, params.fullAsync);
     }
 
-    SgdParams readParamsFromState(FaasmMemory *memory, const char *keyName) {
+    SgdParams readParamsFromState(FaasmMemory *memory, const char *keyName, bool async) {
         size_t nBytes = sizeof(SgdParams);
         auto buffer = new uint8_t[nBytes];
 
-        memory->readState(keyName, buffer, nBytes);
+        memory->readState(keyName, buffer, nBytes, async);
 
         SgdParams s{};
         memcpy(&s, buffer, nBytes);
@@ -26,48 +47,89 @@ namespace faasm {
         return s;
     }
 
-    MatrixXd hingeLossWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int epoch, MatrixXd &weights,
+    MatrixXd hingeLossWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int epoch,
                                    const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
+
+        // Read in the weights initially
+        auto weightDataBuffer = new double[sgdParams.nWeights];
+        auto weightDataByteBuffer = reinterpret_cast<uint8_t *>(weightDataBuffer);
+        size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
+
+        memory->readState(WEIGHTS_KEY, weightDataByteBuffer, nWeightBytes, true);
+        Map<RowVectorXd> weights(weightDataBuffer, sgdParams.nWeights);
+
+        // Read in the feature counts (will be constant)
+        auto featureCountBuffer = new int[sgdParams.nWeights];
+        auto featureCountByteBuffer = reinterpret_cast<uint8_t *>(featureCountBuffer);
+        size_t nFeatureCountBytes = sgdParams.nWeights * sizeof(int);
+
+        memory->readState(FEATURE_COUNTS_KEY, featureCountByteBuffer, nFeatureCountBytes, true);
+
+        double decayedLearningRate = sgdParams.learningRate / (1 + epoch);
 
         // Iterate through all training examples (i.e. columns)
         for (int col = 0; col < inputs.outerSize(); ++col) {
+            // Read in weights asynchronously
+            memory->readState(WEIGHTS_KEY, weightDataByteBuffer, nWeightBytes, true);
+
             // Get input and output associated with this example
             double thisOutput = outputs.coeff(0, col);
-            SparseMatrix<double> thisInput = inputs.col(col);
+            SparseVector<double> thisInput = inputs.col(col);
 
-            // Work out the prediction for this example (do this inside the loop to include weight updates
-            MatrixXd prediction = weights * thisInput;
+            // Work out the prediction for this example. This will be a single number.
+            // Do this inside the loop to include weight updates. Importantly the input
+            // here will be sparse so we need to use the eigen multiplication
+            Matrix<double, 1, 1> prediction = weights * thisInput;
             double thisPrediction = prediction.coeff(0, 0);
 
-            // If the prediction is less than one, it's misclassified
+            // If the prediction multiplied by the output is less than one, it's misclassified
             bool isMisclassified = (thisOutput * thisPrediction) < 1;
 
             // Iterate through all non-zero input values in this column
             for (Eigen::SparseMatrix<double>::InnerIterator it(inputs, col); it; ++it) {
                 // Get the value and associated weight
                 double thisValue = it.value();
-                double thisWeight = weights.coeff(0, it.row());
+                double thisWeight = weightDataBuffer[it.row()];
 
                 // If misclassified, hinge loss is active
                 if (isMisclassified) {
-                    thisWeight += (sgdParams.learningRate * thisOutput * thisValue);
+                    thisWeight = thisWeight + (sgdParams.learningRate * thisOutput * thisValue);
                 }
 
-                thisWeight *= (1 - (sgdParams.learningRate / (1 + epoch)));
+                // Update weight regardless of classification including scaling based on how common it is
+                int thisFeatureCount = featureCountBuffer[it.row()];
+                thisWeight *= (1 - (decayedLearningRate/ thisFeatureCount));
 
-                // Update in memory and state
-                weights(0, it.row()) = thisWeight;
-                writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, it.row());
+                // Write update memory array
+                weightDataBuffer[it.row()] = thisWeight;
+
+                // Update in state
+                auto byteWeight = reinterpret_cast<uint8_t *>(&thisWeight);
+                size_t offset = it.row() * sizeof(double);
+                memory->writeStateOffset(WEIGHTS_KEY, nWeightBytes, offset, byteWeight, sizeof(double), true);
             }
+        }
+
+        // Make sure all updates have been pushed if we're not running in full async mode
+        if (!sgdParams.fullAsync) {
+            memory->pushStatePartial(WEIGHTS_KEY);
         }
 
         // Recalculate the result and return
         MatrixXd postUpdate = weights * inputs;
+
+        delete[] weightDataBuffer;
+
         return postUpdate;
     }
 
-    MatrixXd leastSquaresWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, MatrixXd &weights,
+    MatrixXd leastSquaresWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams,
                                       const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
+
+        auto weightData = new double[sgdParams.nWeights];
+        readMatrixFromState(memory, WEIGHTS_KEY, weightData, 1, sgdParams.nWeights, true);
+        Map<MatrixXd> weights(weightData, 1, sgdParams.nWeights);
+
         // Work out error
         MatrixXd actual = weights * inputs;
         MatrixXd error = actual - outputs;
@@ -87,81 +149,96 @@ namespace faasm {
 
             // Make the update
             weights(0, w) -= sgdParams.learningRate * thisGradient;
-            writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, w);
+            writeMatrixToStateElement(memory, WEIGHTS_KEY, weights, 0, w, true);
+        }
+
+        // Make sure all updates have been pushed if we're not running in full async mode
+        if (!sgdParams.fullAsync) {
+            memory->pushStatePartial(WEIGHTS_KEY);
         }
 
         // Recalculate the result and return
         MatrixXd postUpdate = weights * inputs;
+
+        delete[] weightData;
+
         return postUpdate;
     }
 
-    void zeroDoubleArray(FaasmMemory *memory, const char *key, long len) {
+    void zeroDoubleArray(FaasmMemory *memory, const char *key, long len, bool async) {
         // Set buffer to zero
         auto buffer = new double[len];
-        for (int i = 0; i < len; i++) {
-            buffer[i] = 0;
-        }
+        std::fill(buffer, buffer + len, 0);
 
         // Write zeroed buffer to state
         auto bytes = reinterpret_cast<uint8_t *>(buffer);
-        memory->writeState(key, bytes, len * sizeof(double));
+        memory->writeState(key, bytes, len * sizeof(double), async);
         delete[] buffer;
     }
 
-    void zeroIntArray(FaasmMemory *memory, const char *key, long len) {
+    void zeroIntArray(FaasmMemory *memory, const char *key, long len, bool async) {
         // Set buffer to zero
         auto buffer = new int[len];
-        for (int i = 0; i < len; i++) {
-            buffer[i] = 0;
-        }
+        std::fill(buffer, buffer + len, 0);
 
         // Write zeroed buffer to state
         auto bytes = reinterpret_cast<uint8_t *>(buffer);
-        memory->writeState(key, bytes, len * sizeof(int));
+        memory->writeState(key, bytes, len * sizeof(int), async);
         delete[] buffer;
     }
 
-    void writeFinishedFlag(FaasmMemory *memory, int batchNumber) {
+    void writeFinishedFlag(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber) {
+        long totalBytes = sgdParams.nBatches * sizeof(int);
         int finished = 1;
         auto finishedBytes = reinterpret_cast<uint8_t *>(&finished);
         long offset = batchNumber * sizeof(int);
-        memory->writeStateOffset(FINISHED_KEY, offset, finishedBytes, sizeof(int));
+
+        // Async if necessary
+        memory->writeStateOffset(FINISHED_KEY, totalBytes, offset, finishedBytes, sizeof(int), sgdParams.fullAsync);
     }
 
-    void zeroFinished(FaasmMemory *memory, SgdParams sgdParams) {
-        zeroIntArray(memory, FINISHED_KEY, sgdParams.nBatches);
+    void zeroFinished(FaasmMemory *memory, const SgdParams &sgdParams) {
+        zeroIntArray(memory, FINISHED_KEY, sgdParams.nBatches, sgdParams.fullAsync);
     }
 
-    void zeroErrors(FaasmMemory *memory, SgdParams sgdParams) {
-        zeroDoubleArray(memory, ERRORS_KEY, sgdParams.nBatches);
+    void zeroErrors(FaasmMemory *memory, const SgdParams &sgdParams) {
+        zeroDoubleArray(memory, ERRORS_KEY, sgdParams.nBatches, sgdParams.fullAsync);
     }
 
-    void zeroLosses(FaasmMemory *memory, SgdParams sgdParams) {
-        zeroDoubleArray(memory, LOSSES_KEY, sgdParams.nEpochs);
+    void zeroLosses(FaasmMemory *memory, const SgdParams &sgdParams) {
+        zeroDoubleArray(memory, LOSSES_KEY, sgdParams.nEpochs, sgdParams.fullAsync);
     }
 
-    void _writeError(FaasmMemory *memory, int batchNumber, double error) {
+    void _writeError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, double error) {
         auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&error);
 
         long offset = batchNumber * sizeof(double);
-        memory->writeStateOffset(ERRORS_KEY, offset, squaredErrorBytes, sizeof(double));
+        long totalBytes = sgdParams.nBatches * sizeof(double);
+
+        // Write (going async if in full async mode)
+        memory->writeStateOffset(ERRORS_KEY, totalBytes, offset, squaredErrorBytes, sizeof(double),
+                                 sgdParams.fullAsync);
     }
 
-    void writeHingeError(FaasmMemory *memory, int batchNumber, const MatrixXd &outputs, const MatrixXd &actual) {
+    void writeHingeError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &outputs,
+                         const MatrixXd &actual) {
         double err = calculateHingeError(actual, outputs);
-        _writeError(memory, batchNumber, err);
+        _writeError(memory, sgdParams, batchNumber, err);
     }
 
-    void writeSquaredError(FaasmMemory *memory, int batchNumber, const MatrixXd &outputs, const MatrixXd &actual) {
+    void writeSquaredError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &outputs,
+                           const MatrixXd &actual) {
         double err = calculateSquaredError(actual, outputs);
-        _writeError(memory, batchNumber, err);
+        _writeError(memory, sgdParams, batchNumber, err);
     }
 
     bool readEpochFinished(FaasmMemory *memory, const SgdParams &sgdParams) {
         // Load finished flags from state
         const size_t nBytes = sgdParams.nBatches * sizeof(int);
         auto buffer = new uint8_t[nBytes];
-        memory->readState(FINISHED_KEY, buffer, nBytes);
+
+        // Read in (async if necessary)
+        memory->readState(FINISHED_KEY, buffer, nBytes, sgdParams.fullAsync);
 
         auto flags = reinterpret_cast<int *>(buffer);
 
@@ -185,7 +262,9 @@ namespace faasm {
         // Load errors from state
         const size_t nBytes = sgdParams.nBatches * sizeof(double);
         auto buffer = new uint8_t[nBytes];
-        memory->readState(ERRORS_KEY, buffer, nBytes);
+
+        // Allow fully async
+        memory->readState(ERRORS_KEY, buffer, nBytes, sgdParams.fullAsync);
 
         auto errors = reinterpret_cast<double *>(buffer);
 
@@ -222,8 +301,8 @@ namespace faasm {
         Eigen::MatrixXd weights = randomDenseMatrix(1, params.nWeights);
 
         // Write all data to memory
-        writeMatrixToState(memory, OUTPUTS_KEY, outputs);
         writeSparseMatrixToState(memory, INPUTS_KEY, inputs);
+        writeMatrixToState(memory, OUTPUTS_KEY, outputs);
         writeMatrixToState(memory, WEIGHTS_KEY, weights);
     }
 }

@@ -42,44 +42,4 @@ namespace tests {
         REQUIRE(colsA == colsB);
         REQUIRE(valuesA == valuesB);
     }
-
-    double doSgdStep(FaasmMemory *mem, SgdParams &params, int epoch, SparseMatrix<double> &inputs, MatrixXd &outputs) {
-        // Shuffle indices
-        int *batchStartIndices = randomIntRange(params.nBatches);
-
-        // Prepare update loop
-        int batchSize = params.nTrain / params.nBatches;
-        MatrixXd weights = readMatrixFromState(mem, WEIGHTS_KEY, 1, params.nWeights);
-
-        // Perform batch updates to weights
-        for (int b = 0; b < params.nBatches; b++) {
-            int startCol = batchStartIndices[b];
-
-            SparseMatrix<double> inputBatch = inputs.block(0, startCol, params.nWeights, batchSize);
-            MatrixXd outputBatch = outputs.block(0, startCol, 1, batchSize);
-
-            // Perform the update
-            MatrixXd actual;
-            if (params.lossType == RMSE) {
-                actual = leastSquaresWeightUpdate(mem, params, weights, inputBatch, outputBatch);
-
-                // Persist error for these examples
-                writeSquaredError(mem, b, outputBatch, actual);
-            } else if (params.lossType == HINGE) {
-                actual = hingeLossWeightUpdate(mem, params, epoch, weights, inputBatch, outputBatch);
-
-                // Persist error
-                writeHingeError(mem, b, outputBatch, actual);
-            }
-
-            // Flag that this worker has finished
-            writeFinishedFlag(mem, b);
-        }
-
-        // Get the loss
-        double loss = faasm::readRootMeanSquaredError(mem, params);
-
-        return loss;
-    }
-
 }

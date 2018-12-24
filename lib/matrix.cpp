@@ -13,6 +13,12 @@ namespace faasm {
         return mat;
     }
 
+    MatrixXd zeroMatrix(int rows, int cols) {
+        MatrixXd mat = MatrixXd::Zero(rows, cols);
+
+        return mat;
+    }
+
     SparseMatrix<double> randomSparseMatrix(int rows, int cols, double threshold) {
         // Random distribution
         std::random_device rd;
@@ -39,33 +45,6 @@ namespace faasm {
         // Create a sparse matrix from the list of triplets
         SparseMatrix<double> mat(rows, cols);
         mat.setFromTriplets(triplets.begin(), triplets.end());
-
-        return mat;
-    }
-
-    /**
-     * Serialises a matrix to a byte array
-     */
-    uint8_t *matrixToBytes(const MatrixXd &mat) {
-        long rows = mat.rows();
-        long cols = mat.cols();
-
-        long nDoubles = rows * cols;
-        auto doubleArray = new double[nDoubles];
-        Map<MatrixXd>(&doubleArray[0], rows, cols) = mat;
-
-        auto byteArray = reinterpret_cast<uint8_t *>(&doubleArray[0]);
-
-        return byteArray;
-    }
-
-    /**
-     * Deserialises a byte array to a matrix
-     */
-    MatrixXd bytesToMatrix(uint8_t *byteArray, long rows, long columns) {
-        auto doubleArray = reinterpret_cast<double *>(&byteArray[0]);
-
-        Map<MatrixXd> mat(&doubleArray[0], rows, columns);
 
         return mat;
     }
@@ -136,18 +115,21 @@ namespace faasm {
         sizes.valuesLen = nValueBytes;
         sizes.innerLen = nInnerBytes;
         sizes.outerLen = nOuterBytes;
+        sizes.nonZeroLen = nNonZeroBytes;
 
         sizeBytes = reinterpret_cast<uint8_t *>(&sizes);
         nSizeBytes = sizeof(SparseSizes);
     }
 
-    void SparseMatrixSerialiser::writeToState(FaasmMemory *memory, const char *key) {
+    void SparseMatrixSerialiser::writeToState(FaasmMemory *memory, const char *key, bool async) {
         SparseKeys keys = getSparseKeys(key);
-        memory->writeState(keys.valueKey, valueBytes, nValueBytes);
-        memory->writeState(keys.innerKey, innerBytes, nInnerBytes);
-        memory->writeState(keys.outerKey, outerBytes, nOuterBytes);
-        memory->writeState(keys.nonZeroKey, nonZeroBytes, nNonZeroBytes);
-        memory->writeState(keys.sizeKey, sizeBytes, nSizeBytes);
+
+        memory->writeState(keys.valueKey, valueBytes, nValueBytes, async);
+        memory->writeState(keys.innerKey, innerBytes, nInnerBytes, async);
+        memory->writeState(keys.outerKey, outerBytes, nOuterBytes, async);
+        memory->writeState(keys.nonZeroKey, nonZeroBytes, nNonZeroBytes, async);
+
+        memory->writeState(keys.sizeKey, sizeBytes, nSizeBytes, async);
     }
 
     SparseMatrix<double> SparseMatrixSerialiser::readFromBytes(
@@ -178,31 +160,32 @@ namespace faasm {
         delete[] nonZeroCounts;
     }
 
-    void writeSparseMatrixToState(FaasmMemory *memory, const char *key, const SparseMatrix<double> &mat) {
+    void writeSparseMatrixToState(FaasmMemory *memory, const char *key, const SparseMatrix<double> &mat,
+                                  bool async) {
         SparseMatrixSerialiser serialiser(mat);
-        serialiser.writeToState(memory, key);
+        serialiser.writeToState(memory, key, async);
     }
 
-    SparseSizes readSparseSizes(FaasmMemory *memory, const SparseKeys &keys) {
+    SparseSizes readSparseSizes(FaasmMemory *memory, const SparseKeys &keys, bool async) {
         uint8_t sizeBuffer[sizeof(SparseSizes)];
-        memory->readState(keys.sizeKey, sizeBuffer, sizeof(SparseSizes));
+        memory->readState(keys.sizeKey, sizeBuffer, sizeof(SparseSizes), async);
         auto sizes = reinterpret_cast<SparseSizes *>(sizeBuffer);
 
         return *sizes;
     }
 
-    SparseMatrix<double> readSparseMatrixFromState(FaasmMemory *memory, const char *key) {
+    SparseMatrix<double> readSparseMatrixFromState(FaasmMemory *memory, const char *key, bool async) {
         SparseKeys keys = getSparseKeys(key);
-        SparseSizes sizes = readSparseSizes(memory, keys);
+        SparseSizes sizes = readSparseSizes(memory, keys, async);
 
         auto outerBytes = new uint8_t[sizes.outerLen];
         auto innerBytes = new uint8_t[sizes.innerLen];
         auto valuesBytes = new uint8_t[sizes.valuesLen];
 
         // Read data into buffers
-        memory->readState(keys.outerKey, outerBytes, sizes.outerLen);
-        memory->readState(keys.innerKey, innerBytes, sizes.innerLen);
-        memory->readState(keys.valueKey, valuesBytes, sizes.valuesLen);
+        memory->readState(keys.outerKey, outerBytes, sizes.outerLen, async);
+        memory->readState(keys.innerKey, innerBytes, sizes.innerLen, async);
+        memory->readState(keys.valueKey, valuesBytes, sizes.valuesLen, async);
 
         return SparseMatrixSerialiser::readFromBytes(
                 sizes,
@@ -216,13 +199,13 @@ namespace faasm {
      *  Reads a subset of a sparse matrix from state. The start/ end columns are *exclusive*
      */
     SparseMatrix<double> readSparseMatrixColumnsFromState(FaasmMemory *memory, const char *key,
-                                                          long colStart, long colEnd) {
+                                                          long colStart, long colEnd, bool async) {
         // This depends heavily on the Eigen sparse matrix representation which is documented here:
         // https://eigen.tuxfamily.org/dox/group__TutorialSparse.html
 
         // Read in the full matrix properties
         SparseKeys keys = getSparseKeys(key);
-        SparseSizes sizes = readSparseSizes(memory, keys);
+        SparseSizes sizes = readSparseSizes(memory, keys, async);
 
         long nCols = colEnd - colStart;
         size_t colBytes = nCols * sizeof(int);
@@ -230,7 +213,7 @@ namespace faasm {
 
         // Load the number of non-zeros in each column
         auto nonZeroBuffer = new uint8_t[colBytes];
-        memory->readStateOffset(keys.nonZeroKey, colOffset, nonZeroBuffer, colBytes);
+        memory->readStateOffset(keys.nonZeroKey, sizes.nonZeroLen, colOffset, nonZeroBuffer, colBytes, async);
         int *nonZeroCounts = reinterpret_cast<int *>(nonZeroBuffer);
 
         // Work out how many values we have in total
@@ -242,7 +225,7 @@ namespace faasm {
         // Load the outer indices (one longer than the number of columns)
         size_t outerBytes = colBytes + sizeof(int);
         auto outerBuffer = new uint8_t[outerBytes];
-        memory->readStateOffset(keys.outerKey, colOffset, outerBuffer, outerBytes);
+        memory->readStateOffset(keys.outerKey, sizes.outerLen, colOffset, outerBuffer, outerBytes, async);
         int *outerIndices = reinterpret_cast<int *>(outerBuffer);
 
         // We need to rebase the outer indices to fit our newly created matrix
@@ -262,8 +245,8 @@ namespace faasm {
         auto innerBytes = new uint8_t[nInnerBytes];
 
         // Do the reading from state
-        memory->readStateOffset(keys.valueKey, offsetValueBytes, valueBytes, nValueBytes);
-        memory->readStateOffset(keys.innerKey, offsetInnerBytes, innerBytes, nInnerBytes);
+        memory->readStateOffset(keys.valueKey, sizes.valuesLen, offsetValueBytes, valueBytes, nValueBytes, async);
+        memory->readStateOffset(keys.innerKey, sizes.innerLen, offsetInnerBytes, innerBytes, nInnerBytes, async);
 
         auto valuePtr = reinterpret_cast<double *>(valueBytes);
         auto innerPtr = reinterpret_cast<int *>(innerBytes);
@@ -287,28 +270,39 @@ namespace faasm {
     /**
      * Writes a matrix to state
      */
-    void writeMatrixToState(FaasmMemory *memory, const char *key, const MatrixXd &matrix) {
+    void writeMatrixToState(FaasmMemory *memory, const char *key, const MatrixXd &matrix, bool async) {
         size_t nBytes = matrix.rows() * matrix.cols() * sizeof(double);
-        uint8_t *serialisedData = matrixToBytes(matrix);
+        auto byteArray = reinterpret_cast<const uint8_t *>(matrix.data());
 
-        memory->writeState(key, serialisedData, nBytes);
-
-        delete[] serialisedData;
+        memory->writeState(key, byteArray, nBytes, async);
     }
 
     /**
      * Reads a matrix from state
      */
-    MatrixXd readMatrixFromState(FaasmMemory *memory, const char *key, long rows, long cols) {
-        size_t nBytes = rows * cols * sizeof(double);
+    MatrixXd readMatrixFromState(FaasmMemory *memory, const char *key, long rows, long cols, bool async) {
+        long nDoubles = rows * cols;
 
-        auto buffer = new uint8_t[nBytes];
-        memory->readState(key, buffer, nBytes);
+        auto buffer = new double[nDoubles];
+        readMatrixFromState(memory, key, buffer, rows, cols, async);
 
-        Eigen::MatrixXd deserialised = bytesToMatrix(buffer, rows, cols);
-        delete[] buffer;
-        return deserialised;
+        Map<MatrixXd> mat(buffer, rows, cols);
+
+        return mat;
     }
+
+    /** 
+     * Reads a matrix from state directly into the given buffer
+     */
+    void readMatrixFromState(FaasmMemory *memory, const char *key, double *buffer, long rows, long cols,
+                             bool async) {
+
+        size_t nBytes = rows * cols * sizeof(double);
+        auto byteBuffer = reinterpret_cast<uint8_t *>(buffer);
+
+        memory->readState(key, byteBuffer, nBytes, async);
+    }
+
 
     long matrixByteIndex(long row, long col, long nRows) {
         // Work out the position of this element
@@ -321,22 +315,27 @@ namespace faasm {
     /** 
      * Updates a specific element in state 
      */
-    void writeMatrixToStateElement(FaasmMemory *memory, const char *key, const MatrixXd &matrix, long row, long col) {
+    void writeMatrixToStateElement(FaasmMemory *memory, const char *key, const MatrixXd &matrix, long row, long col,
+                                   bool async) {
+        // Work out total size of this matrix
+        size_t totalBytes = matrix.rows() * matrix.cols() * sizeof(double);
+
         // Work out the position of this element
         // Note that matrices are stored in column-major order by default
         long byteIdx = matrixByteIndex(row, col, matrix.rows());
 
-        double value = matrix(row, col);
+        double value = matrix.coeff(row, col);
         auto byteValue = reinterpret_cast<uint8_t *>(&value);
         size_t nBytes = sizeof(double);
 
-        memory->writeStateOffset(key, (size_t) byteIdx, byteValue, nBytes);
+        memory->writeStateOffset(key, totalBytes, (size_t) byteIdx, byteValue, nBytes, async);
     }
 
     /**
      * Reads a subset of full columns from state. Columns are *exclusive*
      */
-    MatrixXd readMatrixColumnsFromState(FaasmMemory *memory, const char *key, long colStart, long colEnd, long nRows) {
+    MatrixXd readMatrixColumnsFromState(FaasmMemory *memory, const char *key, long totalCols, long colStart,
+                                        long colEnd, long nRows, bool async) {
         long nCols = colEnd - colStart;
 
         long startIdx = matrixByteIndex(0, colStart, nRows);
@@ -345,10 +344,12 @@ namespace faasm {
         long bufferLen = endIdx - startIdx;
         auto buffer = new uint8_t[bufferLen];
 
-        memory->readStateOffset(key, startIdx, buffer, bufferLen);
+        long totalLen = matrixByteIndex(nRows, totalCols, nRows);
+        memory->readStateOffset(key, totalLen, startIdx, buffer, bufferLen, async);
 
-        MatrixXd result = bytesToMatrix(buffer, nRows, nCols);
-        delete[] buffer;
+        auto doubleArray = reinterpret_cast<double *>(buffer);
+        Map<MatrixXd> result(doubleArray, nRows, nCols);
+
         return result;
     }
 
