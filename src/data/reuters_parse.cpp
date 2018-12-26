@@ -14,7 +14,7 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
     // Use the test set for training
-    std::vector<std::string> files = {"train"};
+    std::vector<std::string> files = {"test"};
 
     int exampleCount = 0;
     int maxFeature = 0;
@@ -51,13 +51,11 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
                 int feature = std::stoi(valueTokens[0]);
                 double weight = std::stof(valueTokens[1]);
 
-                // Add to matrix.
-                // NOTE: the file is 1-based so we knock one off the feature value.
-                // With triplets, eigen is zero-based (although when indexing an array it's 1-based)
-                triplets.emplace_back(Eigen::Triplet<double>(feature - 1, exampleCount, weight));
+                // Add to matrix
+                triplets.emplace_back(Eigen::Triplet<double>(feature, exampleCount, weight));
 
                 // Record an occurrence of this feature
-                featureCounts.at(feature - 1)++;
+                featureCounts.at(feature)++;
 
                 maxFeature = std::max(maxFeature, feature);
             };
@@ -70,7 +68,9 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
         input.close();
     }
 
-    if (maxFeature != REUTERS_N_FEATURES) {
+    // Note, features are zero based
+    int nFeatures = maxFeature + 1;
+    if (nFeatures != REUTERS_N_FEATURES) {
         logger->error("Expected {} features but got {}", REUTERS_N_FEATURES, maxFeature);
     }
 
@@ -81,7 +81,7 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
     logger->info("Totals: {} features and {} examples", maxFeature, exampleCount);
 
     // Build the sparse matrix (row for each feature, col for each example)
-    Eigen::SparseMatrix<double> mat(maxFeature, exampleCount);
+    Eigen::SparseMatrix<double> mat(nFeatures, exampleCount);
     mat.setFromTriplets(triplets.begin(), triplets.end());
 
     // Write matrix to files
