@@ -22,6 +22,16 @@ void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, 
     kv->get(buffer);
 }
 
+unsigned char *__faasm_read_state_ptr(const char *key, long totalLen, int async) {
+    state::StateKeyValue *kv = getKv(key, totalLen);
+
+    bool isAsync = async == 1;
+    kv->pull(isAsync);
+
+    return kv->get();
+}
+
+
 void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsigned char *buffer, long bufferLen,
                                int async) {
     state::StateKeyValue *kv = getKv(key, totalLen);
@@ -30,6 +40,15 @@ void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsi
     kv->pull(isAsync);
 
     kv->getSegment(offset, buffer, bufferLen);
+}
+
+unsigned char *__faasm_read_state_offset_ptr(const char *key, long totalLen, long offset, int async) {
+    state::StateKeyValue *kv = getKv(key, totalLen);
+
+    bool isAsync = async == 1;
+    kv->pull(isAsync);
+
+    return kv->getSegment(offset);
 }
 
 void __faasm_write_state(const char *key, const uint8_t *data, long dataLen, int async) {

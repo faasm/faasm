@@ -203,6 +203,13 @@ namespace wasm {
         kv->get(buffer);
     }
 
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_ptr", void, __faasm_read_state_ptr,
+                              I32 keyPtr, I32 totalLen, I32 async) {
+        util::getLogger()->debug("S - read_state - {} {} {}", keyPtr, totalLen, async);
+
+        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+    }
+
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset", void, __faasm_read_state_offset,
                               I32 keyPtr, I32 totalLen, I32 offset, I32 bufferPtr, I32 bufferLen, I32 async) {
         util::getLogger()->debug("S - read_state_offset - {} {} {} {} {}", keyPtr, totalLen, offset, bufferPtr,
@@ -219,6 +226,13 @@ namespace wasm {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
         kv->getSegment(offset, buffer, bufferLen);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset_ptr", void, __faasm_read_state_offset_ptr,
+                              I32 keyPtr, I32 totalLen, I32 offset, I32 async) {
+        util::getLogger()->debug("S - read_state_offset_ptr - {} {} {} {}", keyPtr, totalLen, offset, async);
+
+        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_input", I32, __faasm_read_input, I32 bufferPtr, I32 bufferLen) {

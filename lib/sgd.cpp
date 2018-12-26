@@ -7,7 +7,7 @@
 using namespace Eigen;
 
 namespace faasm {
-    SgdParams setUpReutersParams(FaasmMemory *memory, int batchSize, int epochs) {
+    SgdParams setUpReutersParams(FaasmMemory *memory, int batchSize, int epochs, bool copyMem) {
         // Set up reuters params
         SgdParams p;
         p.lossType = HINGE;
@@ -23,6 +23,9 @@ namespace faasm {
 
         // Full sync or not
         p.fullAsync = REUTERS_FULL_ASYNC;
+
+        // No copy
+        p.copyMem = copyMem;
 
         // Write params (will take async/ not from params themselves)
         writeParamsToState(memory, PARAMS_KEY, p);
@@ -55,11 +58,20 @@ namespace faasm {
                                    const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
 
         // Read in the weights initially
-        auto weightDataBuffer = new double[sgdParams.nWeights];
-        auto weightDataByteBuffer = reinterpret_cast<uint8_t *>(weightDataBuffer);
         size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
+        uint8_t *weightDataByteBuffer;
 
-        memory->readState(WEIGHTS_KEY, weightDataByteBuffer, nWeightBytes, true);
+        // Copy memory if necessary
+        if (sgdParams.copyMem) {
+            weightDataByteBuffer = new uint8_t[nWeightBytes];
+            memory->readState(WEIGHTS_KEY, weightDataByteBuffer, nWeightBytes, true);
+        } else {
+            weightDataByteBuffer = memory->readState(WEIGHTS_KEY, nWeightBytes, true);
+        }
+
+        auto weightDataBuffer = reinterpret_cast<double *>(weightDataByteBuffer);
+
+        // Map raw data onto a vector
         Map<RowVectorXd> weights(weightDataBuffer, sgdParams.nWeights);
 
         // Read in the feature counts (will be constant)
@@ -71,8 +83,10 @@ namespace faasm {
 
         // Iterate through all training examples (i.e. columns)
         for (int col = 0; col < inputs.outerSize(); ++col) {
-            // Read in weights asynchronously
-            memory->readState(WEIGHTS_KEY, weightDataByteBuffer, nWeightBytes, true);
+            // Copy weights into memory if need be
+            if (sgdParams.copyMem) {
+                memory->readState(WEIGHTS_KEY, weightDataByteBuffer, nWeightBytes, true);
+            }
 
             // Get input and output associated with this example
             double thisOutput = outputs.coeff(0, col);
@@ -105,22 +119,27 @@ namespace faasm {
                 // Write update memory array
                 weightDataBuffer[it.row()] = thisWeight;
 
-                // Update in state
-                auto byteWeight = reinterpret_cast<uint8_t *>(&thisWeight);
-                size_t offset = it.row() * sizeof(double);
-                memory->writeStateOffset(WEIGHTS_KEY, nWeightBytes, offset, byteWeight, sizeof(double), true);
+                // Update in state if need to copy mem
+                if (sgdParams.copyMem) {
+                    auto byteWeight = reinterpret_cast<uint8_t *>(&thisWeight);
+                    size_t offset = it.row() * sizeof(double);
+                    memory->writeStateOffset(WEIGHTS_KEY, nWeightBytes, offset, byteWeight, sizeof(double), true);
+                }
             }
         }
 
-        // Make sure all updates have been pushed if we're not running in full async mode
-        if (!sgdParams.fullAsync) {
+        // Make sure all updates have been pushed if we're not running in full async mode and mem copy on
+        if (!sgdParams.fullAsync && sgdParams.copyMem) {
             memory->pushStatePartial(WEIGHTS_KEY);
         }
 
         // Recalculate all predictions
         MatrixXd prediction = weights * inputs;
 
-        delete[] weightDataBuffer;
+        // Clear up if not in no-copy
+        if (sgdParams.copyMem) {
+            delete[] weightDataBuffer;
+        }
 
         return prediction;
     }

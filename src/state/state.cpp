@@ -44,10 +44,9 @@ namespace state {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        if(async && fullAsync) {
+        if (async && fullAsync) {
             // Never pull in full async mode
-        }
-        else if (async) {
+        } else if (async) {
             // Check staleness
             util::Clock &clock = util::getGlobalClock();
             const util::TimePoint now = clock.now();
@@ -106,25 +105,32 @@ namespace state {
         return idleTime > idleThreshold;
     }
 
-    void StateKeyValue::get(uint8_t *buffer) {
+    void StateKeyValue::preGet() {
         if (this->empty()) {
             throw std::runtime_error("Must pull before accessing state");
         }
 
         this->updateLastInteraction();
+    }
 
-        // Shared lock for full reads
+    void StateKeyValue::get(uint8_t *buffer) {
+        this->preGet();
+
         SharedLock lock(valueMutex);
 
         std::copy(value.data(), value.data() + size, buffer);
     }
 
-    void StateKeyValue::getSegment(long offset, uint8_t *buffer, size_t length) {
-        if (this->empty()) {
-            throw std::runtime_error("Must pull before accessing state");
-        }
+    uint8_t *StateKeyValue::get() {
+        this->preGet();
 
-        this->updateLastInteraction();
+        SharedLock lock(valueMutex);
+
+        return value.data();
+    }
+
+    void StateKeyValue::getSegment(long offset, uint8_t *buffer, size_t length) {
+        this->preGet();
 
         SharedLock lock(valueMutex);
 
@@ -137,6 +143,14 @@ namespace state {
         }
 
         std::copy(value.data() + offset, value.data() + offset + length, buffer);
+    }
+
+    uint8_t *StateKeyValue::getSegment(long offset) {
+        this->preGet();
+
+        SharedLock lock(valueMutex);
+
+        return value.data() + offset;
     }
 
     void StateKeyValue::set(const uint8_t *buffer) {
@@ -221,7 +235,7 @@ namespace state {
     }
 
     void StateKeyValue::pushFull() {
-        if(fullAsync) {
+        if (fullAsync) {
             throw std::runtime_error("Shouldn't be pushing in full async mode.");
         }
 
@@ -254,7 +268,7 @@ namespace state {
     }
 
     void StateKeyValue::pushPartial() {
-        if(fullAsync) {
+        if (fullAsync) {
             throw std::runtime_error("Shouldn't be pushing in full async mode.");
         }
 

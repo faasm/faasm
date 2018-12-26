@@ -25,7 +25,11 @@ namespace state {
 
         void get(uint8_t *buffer);
 
+        uint8_t *get();
+
         void getSegment(long offset, uint8_t *buffer, size_t length);
+
+        uint8_t *getSegment(long offset);
 
         void set(const uint8_t *buffer);
 
@@ -75,6 +79,8 @@ namespace state {
         bool isStale(const util::TimePoint &now);
 
         bool isIdle(const util::TimePoint &now);
+
+        void preGet();
     };
 
     typedef std::map<std::string, StateKeyValue *> KVMap;
@@ -92,6 +98,7 @@ namespace state {
         StateKeyValue *getValue(const std::string &key, size_t size);
 
         void pushAll();
+
     private:
         const std::string user;
 

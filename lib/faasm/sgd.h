@@ -41,9 +41,10 @@ namespace faasm {
         double learningDecay;
         int nEpochs;
         bool fullAsync;
+        bool copyMem;
     };
 
-    SgdParams setUpReutersParams(FaasmMemory *memory, int batchSize, int epochs);
+    SgdParams setUpReutersParams(FaasmMemory *memory, int batchSize, int epochs, bool copyMem = true);
 
     void writeParamsToState(FaasmMemory *memory, const char *keyName, const SgdParams &params);
 
@@ -72,9 +73,11 @@ namespace faasm {
 
     void writeFinishedFlag(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber);
 
-    void writeHingeError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual, const MatrixXd &prediction);
+    void writeHingeError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
+                         const MatrixXd &prediction);
 
-    void writeSquaredError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual, const MatrixXd &prediction);
+    void writeSquaredError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
+                           const MatrixXd &prediction);
 
     double readTotalError(FaasmMemory *memory, const SgdParams &sgdParams);
 
