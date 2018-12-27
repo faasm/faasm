@@ -282,4 +282,39 @@ namespace wasm {
         prof::logEndTimer("parse-wasm", t);
     }
 
+    I32 WasmModule::mmap(U32 length) {
+        // Work out how many pages need to be added
+        Uptr pagesRequested = getNumberOfPagesForBytes(length);
+
+        Iptr previousPageCount = growMemory(defaultMemory, pagesRequested);
+
+        if (previousPageCount == -1) {
+            printf("mmap no memory\n");
+            return -ENOMEM;
+        }
+
+        // Get pointer to mapped range
+        auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);
+
+        return mappedRangePtr;
+    }
+
+    I32 WasmModule::mmapKey(state::StateKeyValue *kv, U32 length) {
+        // See if we need to initialise this mapping or if it already exists
+        if(mmapedKeys.count(kv->key) == 0) {
+            // Create memory region for this module
+            I32 wasmPtr = this->mmap(length);
+
+            // Record the pointer
+            mmapedKeys.insert(std::pair<std::string, I32>(kv->key, wasmPtr));
+
+            // Do the mapping from the central shared region
+            U8 *hostMemPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmPtr);
+            kv->mapSharedMemory((void *) hostMemPtr);
+        }
+
+        // Return the wasm pointer
+        return mmapedKeys[kv->key];
+    }
+
 }

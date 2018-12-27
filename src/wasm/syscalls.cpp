@@ -17,7 +17,6 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <stdarg.h>
 #include <prof/prof.h>
-#include <state/state.h>
 
 using namespace WAVM;
 
@@ -90,32 +89,6 @@ namespace wasm {
         return std::pair<std::string, std::string>(call->user(), key);
     }
 
-    std::string getKeyFromWasm(I32 keyPtr) {
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
-
-        const message::Message *call = getExecutingCall();
-        std::string prefixedKey = call->user() + "_" + key;
-
-        return prefixedKey;
-    }
-
-    I32 doMMap(U32 length) {
-        // Work out how many pages need to be added
-        Uptr pagesRequested = getNumberOfPagesForBytes(length);
-
-        Iptr previousPageCount = growMemory(getExecutingModule()->defaultMemory, pagesRequested);
-
-        if (previousPageCount == -1) {
-            printf("mmap no memory\n");
-            return -ENOMEM;
-        }
-
-        // Get pointer to mapped range
-        auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);
-
-        return mappedRangePtr;
-    }
 
     // ------------------------
     // FAASM-specific
@@ -231,17 +204,10 @@ namespace wasm {
 
         state::StateKeyValue *kv = getStateKVRead(keyPtr, totalLen, async);
 
-        // Create new memory region
-        I32 wasmPtr = doMMap(totalLen);
+        // Map shared memory
+        WasmModule *module = getExecutingModule();
+        I32 wasmPtr = module->mmapKey(kv, totalLen);
 
-        // Get address in host memory
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        U8 *hostMemPtr = &Runtime::memoryRef<U8>(memoryPtr, wasmPtr);
-
-        // Do the mapping
-        kv->mapSharedMemory((void *) hostMemPtr);
-
-        // Return the wasm pointer
         return wasmPtr;
     }
 
@@ -1150,7 +1116,9 @@ namespace wasm {
             throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
         }
 
-        return doMMap(length);
+        WasmModule *module = getExecutingModule();
+
+        return module->mmap(length);
     }
 
     /**

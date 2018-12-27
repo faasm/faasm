@@ -88,7 +88,7 @@ namespace state {
         void preGet();
     };
 
-    typedef std::map<std::string, StateKeyValue *> KVMap;
+    typedef std::unordered_map<std::string, StateKeyValue *> KVMap;
     typedef std::pair<std::string, StateKeyValue *> KVPair;
 
     /**
@@ -111,7 +111,7 @@ namespace state {
         std::shared_mutex kvMapMutex;
     };
 
-    typedef std::map<std::string, UserState *> UserStateMap;
+    typedef std::unordered_map<std::string, UserState *> UserStateMap;
     typedef std::pair<std::string, UserState *> UserStatePair;
 
     /**
