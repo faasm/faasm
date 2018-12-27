@@ -28,7 +28,7 @@ namespace faasm {
         /**
           * Reads a chunk of state and returns a direct pointer
           */
-        uint8_t *readStateOffset(const char *key, long fullLen, long offset, bool async);
+        uint8_t *readStateOffset(const char *key, long fullLen, long offset, long len, bool async);
 
         /**
          * Overwrites the state at the given key

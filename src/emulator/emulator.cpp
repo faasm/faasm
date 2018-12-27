@@ -42,13 +42,13 @@ void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsi
     kv->getSegment(offset, buffer, bufferLen);
 }
 
-unsigned char *__faasm_read_state_offset_ptr(const char *key, long totalLen, long offset, int async) {
+unsigned char *__faasm_read_state_offset_ptr(const char *key, long totalLen, long offset, long len, int async) {
     state::StateKeyValue *kv = getKv(key, totalLen);
 
     bool isAsync = async == 1;
     kv->pull(isAsync);
 
-    return kv->getSegment(offset);
+    return kv->getSegment(offset, len);
 }
 
 void __faasm_write_state(const char *key, const uint8_t *data, long dataLen, int async) {

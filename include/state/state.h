@@ -29,7 +29,7 @@ namespace state {
 
         void getSegment(long offset, uint8_t *buffer, size_t length);
 
-        uint8_t *getSegment(long offset);
+        uint8_t *getSegment(long offset, long len);
 
         void set(const uint8_t *buffer);
 

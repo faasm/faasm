@@ -360,4 +360,14 @@ namespace tests {
         // Run the function to read
         checkCallingFunctionGivesTrueOutput("state_shared_read");
     }
+
+    TEST_CASE("Test shared state offset pointers", "[worker]") {
+        setUp();
+
+        // Run the function to write
+        checkCallingFunctionGivesTrueOutput("state_shared_write_offset");
+
+        // Run the function to read
+        checkCallingFunctionGivesTrueOutput("state_shared_read_offset");
+    }
 }

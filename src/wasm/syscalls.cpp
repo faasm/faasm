@@ -225,10 +225,18 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset_ptr", I32, __faasm_read_state_offset_ptr,
-                              I32 keyPtr, I32 totalLen, I32 offset, I32 async) {
-        util::getLogger()->debug("S - read_state_offset_ptr - {} {} {} {}", keyPtr, totalLen, offset, async);
+                              I32 keyPtr, I32 totalLen, I32 offset, I32 len, I32 async) {
+        util::getLogger()->debug("S - read_state_offset_ptr - {} {} {} {} {}", keyPtr, totalLen, offset, len, async);
 
-        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+        state::StateKeyValue *kv = getStateKVRead(keyPtr, totalLen, async);
+
+        // Map whole key in shared memory
+        WasmModule *module = getExecutingModule();
+        I32 wasmPtr = module->mmapKey(kv, totalLen);
+
+        // Return pointer to offset region
+        I32 offsetPtr = wasmPtr + offset;
+        return offsetPtr;
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_input", I32, __faasm_read_input, I32 bufferPtr, I32 bufferLen) {

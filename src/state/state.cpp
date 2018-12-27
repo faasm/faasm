@@ -154,7 +154,7 @@ namespace state {
         std::copy(sharedMemory + offset, sharedMemory + offset + length, buffer);
     }
 
-    uint8_t *StateKeyValue::getSegment(long offset) {
+    uint8_t *StateKeyValue::getSegment(long offset, long len) {
         this->preGet();
 
         SharedLock lock(valueMutex);
