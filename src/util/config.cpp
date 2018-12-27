@@ -8,7 +8,7 @@ namespace util {
         boundTimeout = this->getSystemConfParam("BOUND_TIMEOUT", "30");
         unboundTimeout = this->getSystemConfParam("UNBOUND_TIMEOUT", "240");
         fullAsync = this->getSystemConfParam("FULL_ASYNC", "0");
-        stateStaleThreshold = this->getSystemConfParam("STATE_STALE_THRESHOLD", "1000");
+        stateStaleThreshold = this->getSystemConfParam("STATE_STALE_THRESHOLD", "150000");
         stateClearThreshold = this->getSystemConfParam("STATE_CLEAR_THRESHOLD", "30000");
         statePushInterval = this->getSystemConfParam("STATE_PUSH_INTERVAL", "1000");
     }

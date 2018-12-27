@@ -87,7 +87,9 @@ namespace faasm {
             for (Eigen::SparseMatrix<double>::InnerIterator it(inputs, col); it; ++it) {
                 // Get the value and associated weight
                 double thisValue = it.value();
+
                 double thisWeight = weightDataBuffer[it.row()];
+                int thisFeatureCount = featureCountBuffer[it.row()];
 
                 // If misclassified, hinge loss is active
                 if (isMisclassified) {
@@ -95,10 +97,8 @@ namespace faasm {
                 }
 
                 // Update weight regardless of classification including scaling based on how common it is
-                int thisFeatureCount = featureCountBuffer[it.row()];
                 if(thisFeatureCount == 0) {
-                    printf("Skipping zero feature count\n");
-                    continue;
+                    throw std::runtime_error("Should not have a zero feature count for a feature we have a value for.");
                 }
                 thisWeight *= (1 - (sgdParams.learningRate / thisFeatureCount));
 

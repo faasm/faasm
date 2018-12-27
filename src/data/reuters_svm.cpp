@@ -17,7 +17,7 @@ int main() {
 
     FaasmMemory memory;
     // int batchSize = 69000;
-    int batchSize = REUTERS_N_EXAMPLES;
+    int batchSize = REUTERS_N_EXAMPLES/5;
     int epochs = 30;
     SgdParams p = setUpReutersParams(&memory, batchSize, epochs);
 
