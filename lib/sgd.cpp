@@ -52,7 +52,7 @@ namespace faasm {
     }
 
     MatrixXd hingeLossWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int epoch,
-                                   const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
+                                   const Map<SparseMatrix<double>> &inputs, const Map<MatrixXd> &outputs) {
 
         // Read in the weights initially
         size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
@@ -84,7 +84,7 @@ namespace faasm {
             bool isMisclassified = (thisOutput * thisPrediction) < 1;
 
             // Iterate through all non-zero input values in this column
-            for (Eigen::SparseMatrix<double>::InnerIterator it(inputs, col); it; ++it) {
+            for (Map<SparseMatrix<double>>::InnerIterator it(inputs, col); it; ++it) {
                 // Get the value and associated weight
                 double thisValue = it.value();
 
@@ -126,7 +126,7 @@ namespace faasm {
     }
 
     MatrixXd leastSquaresWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams,
-                                      const SparseMatrix<double> &inputs, const MatrixXd &outputs) {
+                                      const Map<SparseMatrix<double>> &inputs, const Map<MatrixXd> &outputs) {
 
         auto weightData = new double[sgdParams.nWeights];
         readMatrixFromState(memory, WEIGHTS_KEY, weightData, 1, sgdParams.nWeights, true);

@@ -53,15 +53,15 @@ namespace faasm {
             FaasmMemory *memory,
             const SgdParams &sgdParams,
             int epoch,
-            const SparseMatrix<double> &inputs,
-            const MatrixXd &outputs
+            const Map<SparseMatrix<double>> &inputs,
+            const Map<MatrixXd> &outputs
     );
 
     MatrixXd leastSquaresWeightUpdate(
             FaasmMemory *memory,
             const SgdParams &sgdParams,
-            const SparseMatrix<double> &inputs,
-            const MatrixXd &outputs
+            const Map<SparseMatrix<double>> &inputs,
+            const Map<MatrixXd> &outputs
     );
 
     void zeroErrors(FaasmMemory *memory, const SgdParams &sgdParams);

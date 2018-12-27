@@ -47,7 +47,7 @@ namespace faasm {
 
         void writeToState(FaasmMemory *memory, const char *key, bool async = false);
 
-        static SparseMatrix<double> readFromBytes(const SparseSizes &sizes,
+        static Map<SparseMatrix<double>> readFromBytes(const SparseSizes &sizes,
                                                   uint8_t *outerBytes,
                                                   uint8_t *innerBytes,
                                                   uint8_t *valuesBytes);
@@ -79,12 +79,12 @@ namespace faasm {
     /**
      * State
      */
-    SparseMatrix<double> readSparseMatrixFromState(FaasmMemory *memory, const char *key, bool async = false);
+    Map<SparseMatrix<double>> readSparseMatrixFromState(FaasmMemory *memory, const char *key, bool async = false);
 
     void writeSparseMatrixToState(FaasmMemory *memory, const char *key, const SparseMatrix<double> &mat,
                                   bool async = false);
 
-    MatrixXd readMatrixFromState(FaasmMemory *memory, const char *key, long rows, long cols, bool async = false);
+    Map<MatrixXd> readMatrixFromState(FaasmMemory *memory, const char *key, long rows, long cols, bool async = false);
 
     void readMatrixFromState(FaasmMemory *memory, const char *key, double *buffer, long rows, long cols,
                                  bool async = false);
@@ -94,12 +94,11 @@ namespace faasm {
     void writeMatrixToStateElement(FaasmMemory *memory, const char *key, const MatrixXd &matrix, long row, long col,
                                    bool async = false);
 
-    MatrixXd readMatrixColumnsFromState(FaasmMemory *memory, const char *key, long totalCols, long colStart,
+    Map<MatrixXd> readMatrixColumnsFromState(FaasmMemory *memory, const char *key, long totalCols, long colStart,
                                         long colEnd, long nRows, bool async = false);
 
-    SparseMatrix<double> readSparseMatrixColumnsFromState(FaasmMemory *memory, const char *key, long colStart,
+    Map<SparseMatrix<double>> readSparseMatrixColumnsFromState(FaasmMemory *memory, const char *key, long colStart,
                                                           long colEnd, bool async = false);
-
 
     /**
      * Manipulation

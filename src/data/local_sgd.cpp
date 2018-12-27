@@ -51,8 +51,8 @@ namespace data {
         int startIdx = batchNumber * params.batchSize;
         int endIdx = std::min(startIdx + params.batchSize, params.nTrain - 1);
 
-        SparseMatrix<double> inputs = readSparseMatrixColumnsFromState(&memory, INPUTS_KEY, startIdx, endIdx, true);
-        MatrixXd outputs = readMatrixColumnsFromState(&memory, OUTPUTS_KEY, params.nTrain, startIdx, endIdx, 1, true);
+        Map<SparseMatrix<double>> inputs = readSparseMatrixColumnsFromState(&memory, INPUTS_KEY, startIdx, endIdx, true);
+        Map<MatrixXd> outputs = readMatrixColumnsFromState(&memory, OUTPUTS_KEY, params.nTrain, startIdx, endIdx, 1, true);
 
         // Perform the update
         MatrixXd actual = hingeLossWeightUpdate(&memory, params, epoch, inputs, outputs);

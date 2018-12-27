@@ -164,6 +164,7 @@ namespace tests {
     void checkPulling(bool async) {
         StateKeyValue *kv = setupKV(4);
         std::vector<uint8_t> values = {0, 1, 2, 3};
+        util::SystemConfig &conf = util::getSystemConfig();
         
         // Push and make sure reflected in redis
         kv->set(values.data());
@@ -188,8 +189,9 @@ namespace tests {
         
         // Now advance time and make sure new value is retrieved for async
         util::Clock &c = util::getGlobalClock();
+        long bigStep = conf.stateStaleThreshold + 100;
         if(async) {
-            c.setFakeNow(timeNow + std::chrono::seconds(120));
+            c.setFakeNow(timeNow + std::chrono::milliseconds(bigStep));
             kv->pull(true);
             kv->get(actual.data());
             REQUIRE(actual == newValues);

@@ -130,6 +130,8 @@ namespace tests {
         }
 
         inputs.setFromTriplets(tripletList.begin(), tripletList.end());
+        Map<SparseMatrix<double>> inputsMap(inputs.rows(), inputs.cols(), inputs.nonZeros(),
+                inputs.outerIndexPtr(), inputs.innerIndexPtr(), inputs.valuePtr());
 
         // Check what the predictions are pre-update
         MatrixXd preUpdate = weights * inputs;
@@ -140,15 +142,19 @@ namespace tests {
             MatrixXd outputs(1, 2);
             outputs << 10, 11;
 
-            postUpdate = leastSquaresWeightUpdate(&mem, params, inputs, outputs);
+            Map<MatrixXd> outputsMap(outputs.data(), outputs.rows(), outputs.cols());
+
+            postUpdate = leastSquaresWeightUpdate(&mem, params, inputsMap, outputsMap);
         }
         else if(lossType == HINGE) {
             // Classification-style outputs
             MatrixXd outputs(1, 2);
             outputs << -1, 1;
 
+            Map<MatrixXd> outputsMap(outputs.data(), outputs.rows(), outputs.cols());
+
             int epoch = 3;
-            postUpdate = hingeLossWeightUpdate(&mem, params, epoch, inputs, outputs);
+            postUpdate = hingeLossWeightUpdate(&mem, params, epoch, inputsMap, outputsMap);
         }
 
         // Check the post-update values are different but same shape
