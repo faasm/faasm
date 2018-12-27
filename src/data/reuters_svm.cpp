@@ -19,7 +19,7 @@ int main() {
     // int batchSize = 69000;
     int batchSize = REUTERS_N_EXAMPLES;
     int epochs = 30;
-    SgdParams p = setUpReutersParams(&memory, batchSize, epochs, true);
+    SgdParams p = setUpReutersParams(&memory, batchSize, epochs);
 
     logger->info("Running SVM with {} threads", p.nBatches);
 

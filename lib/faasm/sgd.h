@@ -41,10 +41,9 @@ namespace faasm {
         double learningDecay;
         int nEpochs;
         bool fullAsync;
-        bool copyMem;
     };
 
-    SgdParams setUpReutersParams(FaasmMemory *memory, int batchSize, int epochs, bool copyMem = true);
+    SgdParams setUpReutersParams(FaasmMemory *memory, int batchSize, int epochs);
 
     void writeParamsToState(FaasmMemory *memory, const char *keyName, const SgdParams &params);
 

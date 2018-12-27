@@ -7,7 +7,7 @@
 using namespace Eigen;
 
 namespace faasm {
-    SgdParams setUpReutersParams(FaasmMemory *memory, int batchSize, int epochs, bool copyMem) {
+    SgdParams setUpReutersParams(FaasmMemory *memory, int batchSize, int epochs) {
         // Set up reuters params
         SgdParams p;
         p.lossType = HINGE;
@@ -23,9 +23,6 @@ namespace faasm {
 
         // Full sync or not
         p.fullAsync = REUTERS_FULL_ASYNC;
-
-        // No copy
-        p.copyMem = copyMem;
 
         // Write params (will take async/ not from params themselves)
         writeParamsToState(memory, PARAMS_KEY, p);
@@ -59,15 +56,7 @@ namespace faasm {
 
         // Read in the weights initially
         size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
-        uint8_t *weightDataByteBuffer;
-
-        // Copy memory if necessary
-        if (sgdParams.copyMem) {
-            weightDataByteBuffer = new uint8_t[nWeightBytes];
-            memory->readState(WEIGHTS_KEY, weightDataByteBuffer, nWeightBytes, true);
-        } else {
-            weightDataByteBuffer = memory->readState(WEIGHTS_KEY, nWeightBytes, true);
-        }
+        uint8_t *weightDataByteBuffer = memory->readState(WEIGHTS_KEY, nWeightBytes, true);
 
         auto weightDataBuffer = reinterpret_cast<double *>(weightDataByteBuffer);
 
@@ -75,19 +64,12 @@ namespace faasm {
         Map<RowVectorXd> weights(weightDataBuffer, sgdParams.nWeights);
 
         // Read in the feature counts (will be constant)
-        auto featureCountBuffer = new int[sgdParams.nWeights];
-        auto featureCountByteBuffer = reinterpret_cast<uint8_t *>(featureCountBuffer);
         size_t nFeatureCountBytes = sgdParams.nWeights * sizeof(int);
-
-        memory->readState(FEATURE_COUNTS_KEY, featureCountByteBuffer, nFeatureCountBytes, true);
+        uint8_t *featureCountByteBuffer = memory->readState(FEATURE_COUNTS_KEY, nFeatureCountBytes, true);
+        auto featureCountBuffer = reinterpret_cast<int *>(featureCountByteBuffer);
 
         // Iterate through all training examples (i.e. columns)
         for (int col = 0; col < inputs.outerSize(); ++col) {
-            // Copy weights into memory if need be
-            if (sgdParams.copyMem) {
-                memory->readState(WEIGHTS_KEY, weightDataByteBuffer, nWeightBytes, true);
-            }
-
             // Get input and output associated with this example
             double thisOutput = outputs.coeff(0, col);
             SparseVector<double> thisInput = inputs.col(col);
@@ -114,13 +96,17 @@ namespace faasm {
 
                 // Update weight regardless of classification including scaling based on how common it is
                 int thisFeatureCount = featureCountBuffer[it.row()];
+                if(thisFeatureCount == 0) {
+                    printf("Skipping zero feature count\n");
+                    continue;
+                }
                 thisWeight *= (1 - (sgdParams.learningRate / thisFeatureCount));
 
                 // Write update memory array
                 weightDataBuffer[it.row()] = thisWeight;
 
-                // Update in state if need to copy mem
-                if (sgdParams.copyMem) {
+                // Update state if not running fully async
+                if (!sgdParams.fullAsync) {
                     auto byteWeight = reinterpret_cast<uint8_t *>(&thisWeight);
                     size_t offset = it.row() * sizeof(double);
                     memory->writeStateOffset(WEIGHTS_KEY, nWeightBytes, offset, byteWeight, sizeof(double), true);
@@ -128,18 +114,13 @@ namespace faasm {
             }
         }
 
-        // Make sure all updates have been pushed if we're not running in full async mode and mem copy on
-        if (!sgdParams.fullAsync && sgdParams.copyMem) {
+        // Make sure all updates have been pushed
+        if (!sgdParams.fullAsync) {
             memory->pushStatePartial(WEIGHTS_KEY);
         }
 
         // Recalculate all predictions
         MatrixXd prediction = weights * inputs;
-
-        // Clear up if not in no-copy
-        if (sgdParams.copyMem) {
-            delete[] weightDataBuffer;
-        }
 
         return prediction;
     }
