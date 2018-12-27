@@ -229,10 +229,7 @@ namespace wasm {
                               I32 keyPtr, I32 totalLen, I32 async) {
         util::getLogger()->debug("S - read_state - {} {} {}", keyPtr, totalLen, async);
 
-        state::StateKeyValue *kv = getStateKVRead(keyPtr, 7, async);
-
-        uint8_t buffer[7] = {0, 1, 2, 3, 4, 5, 6};
-        kv->set(buffer);
+        state::StateKeyValue *kv = getStateKVRead(keyPtr, totalLen, async);
 
         // Create new memory region
         I32 wasmPtr = doMMap(totalLen);
