@@ -35,6 +35,8 @@ namespace state {
 
         void setSegment(long offset, const uint8_t *buffer, size_t length);
 
+        void mapSharedMemory(void* newAddr);
+
         void pull(bool async);
 
         void pushFull();
@@ -67,10 +69,13 @@ namespace state {
         long staleThreshold;
         long idleThreshold;
 
-        std::vector<uint8_t> value;
-        size_t size;
+        size_t valueSize;
+        size_t sharedMemSize;
+        uint8_t *sharedMemory;
 
         std::atomic<bool> _empty;
+
+        void initialiseStorage();
 
         void doRemoteRead();
 

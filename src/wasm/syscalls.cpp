@@ -100,13 +100,38 @@ namespace wasm {
         return prefixedKey;
     }
 
+    I32 doMMap(U32 length) {
+        // Work out how many pages need to be added
+        Uptr pagesRequested = getNumberOfPagesForBytes(length);
+
+        Iptr previousPageCount = growMemory(getExecutingModule()->defaultMemory, pagesRequested);
+
+        if (previousPageCount == -1) {
+            printf("mmap no memory\n");
+            return -ENOMEM;
+        }
+
+        // Get pointer to mapped range
+        auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);
+
+        return mappedRangePtr;
+    }
+
     // ------------------------
     // FAASM-specific
     // ------------------------
-    state::StateKeyValue * getStateKV(I32 keyPtr, size_t size) {
+    state::StateKeyValue *getStateKV(I32 keyPtr, size_t size) {
         const std::pair<std::string, std::string> userKey = getUserKeyPairFromWasm(keyPtr);
         state::State &s = state::getGlobalState();
         state::StateKeyValue *kv = s.getKV(userKey.first, userKey.second, size);
+
+        return kv;
+    }
+
+    state::StateKeyValue *getStateKVRead(I32 keyPtr, size_t size, int async) {
+        state::StateKeyValue *kv = getStateKV(keyPtr, size);
+        bool isAsync = async == 1;
+        kv->pull(isAsync);
 
         return kv;
     }
@@ -172,7 +197,8 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_offset", void, __faasm_write_state_offset,
                               I32 keyPtr, I32 totalLen, I32 offset, I32 dataPtr, I32 dataLen, I32 async) {
-        util::getLogger()->debug("S - write_state_offset - {} {} {} {} {} {}", keyPtr, totalLen, offset, dataPtr, dataLen, async);
+        util::getLogger()->debug("S - write_state_offset - {} {} {} {} {} {}", keyPtr, totalLen, offset, dataPtr,
+                                 dataLen, async);
 
         state::StateKeyValue *kv = getStateKV(keyPtr, totalLen);
 
@@ -191,11 +217,7 @@ namespace wasm {
                               I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 async) {
         util::getLogger()->debug("S - read_state - {} {} {} {}", keyPtr, bufferPtr, bufferLen, async);
 
-        state::StateKeyValue *kv = getStateKV(keyPtr, bufferLen);
-
-        // Pull
-        bool isAsync = async == 1;
-        kv->pull(isAsync);
+        state::StateKeyValue *kv = getStateKVRead(keyPtr, bufferLen, async);
 
         // Copy to straight to buffer
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
@@ -203,24 +225,35 @@ namespace wasm {
         kv->get(buffer);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_ptr", void, __faasm_read_state_ptr,
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_ptr", I32, __faasm_read_state_ptr,
                               I32 keyPtr, I32 totalLen, I32 async) {
         util::getLogger()->debug("S - read_state - {} {} {}", keyPtr, totalLen, async);
 
-        throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
+        state::StateKeyValue *kv = getStateKVRead(keyPtr, 7, async);
+
+        uint8_t buffer[7] = {0, 1, 2, 3, 4, 5, 6};
+        kv->set(buffer);
+
+        // Create new memory region
+        I32 wasmPtr = doMMap(totalLen);
+
+        // Get address in host memory
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        U8 *hostMemPtr = &Runtime::memoryRef<U8>(memoryPtr, wasmPtr);
+
+        // Do the mapping
+        kv->mapSharedMemory((void *) hostMemPtr);
+
+        // Return the wasm pointer
+        return wasmPtr;
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset", void, __faasm_read_state_offset,
                               I32 keyPtr, I32 totalLen, I32 offset, I32 bufferPtr, I32 bufferLen, I32 async) {
         util::getLogger()->debug("S - read_state_offset - {} {} {} {} {}", keyPtr, totalLen, offset, bufferPtr,
-                bufferLen);
+                                 bufferLen);
 
-        // Read the state in
-        state::StateKeyValue *kv = getStateKV(keyPtr, totalLen);
-
-        // Pull
-        bool isAsync = async == 1;
-        kv->pull(isAsync);
+        state::StateKeyValue *kv = getStateKVRead(keyPtr, totalLen, async);
 
         // Copy to straight to buffer
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
@@ -228,7 +261,7 @@ namespace wasm {
         kv->getSegment(offset, buffer, bufferLen);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset_ptr", void, __faasm_read_state_offset_ptr,
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset_ptr", I32, __faasm_read_state_offset_ptr,
                               I32 keyPtr, I32 totalLen, I32 offset, I32 async) {
         util::getLogger()->debug("S - read_state_offset_ptr - {} {} {} {}", keyPtr, totalLen, offset, async);
 
@@ -1104,9 +1137,8 @@ namespace wasm {
     // ------------------------
 
     /**
-     * mmap doesn't make too much sense in the wasm world, only in order to provide anonymous, shared
-     * mappings to be used for allocating space. We can just extend the existing memory and return this as the newly
-     * mapped region.
+     * We can permit mmap as a means to grow memory via anonymous mappings. As there is only one
+     * address range, this may end up conflicting with other memory management for the module.
      */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_mmap", I32, __syscall_mmap,
                               U32 addr, U32 length, U32 prot, U32 flags, I32 fd, U32 offset) {
@@ -1121,25 +1153,11 @@ namespace wasm {
             throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
         }
 
-        // Work out how many pages need to be added
-        Uptr pagesRequested = getNumberOfPagesForBytes(length);
-
-        Iptr previousPageCount = growMemory(getExecutingModule()->defaultMemory, pagesRequested);
-
-        if (previousPageCount == -1) {
-            printf("mmap no memory\n");
-            return -ENOMEM;
-        }
-
-        // Get pointer to mapped range
-        auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);
-
-        return mappedRangePtr;
+        return doMMap(length);
     }
 
     /**
-     * munmap also doesn't quite make sense when we only have one linear memory region to deal with,
-     * so we can just shrink the memory back down if we're munmapping the bit at the end.
+     * munmap is allowed to shrink the available module memory
      */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_munmap", I32, __syscall_munmap,
                               U32 addr, U32 length) {
@@ -1163,10 +1181,9 @@ namespace wasm {
         // If these are the top pages of memory, shrink it, if not, unmap them
         // Note that we won't be able to reclaim them if we're just unmapping
         const Uptr currentPageCount = getMemoryNumPages(memory);
-        if(basePageIndex + numPages == currentPageCount) {
+        if (basePageIndex + numPages == currentPageCount) {
             shrinkMemory(memory, numPages);
-        }
-        else {
+        } else {
             unmapMemoryPages(memory, basePageIndex, numPages);
         }
 

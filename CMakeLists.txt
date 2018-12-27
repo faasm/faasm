@@ -49,6 +49,8 @@ add_subdirectory(func)
 # Faasm library
 add_subdirectory(lib)
 
+add_subdirectory(experiment)
+
 # Faasm runtime
 add_subdirectory(src/data)
 add_subdirectory(src/edge)

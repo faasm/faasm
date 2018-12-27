@@ -1,13 +1,23 @@
 #include <algorithm>
+#include <sys/mman.h>
+
 #include "state.h"
 
 namespace state {
+
+    // Assume 4kb host page size
+    static const int HOST_PAGE_SIZE = 4096;
 
     /**
      * Key/value
      */
     StateKeyValue::StateKeyValue(const std::string &keyIn, size_t sizeIn) : key(keyIn),
-                                                                            size(sizeIn) {
+                                                                            valueSize(sizeIn) {
+
+        // Work out size of required shared memory
+        size_t nHostPages = (valueSize + HOST_PAGE_SIZE - 1) / HOST_PAGE_SIZE;
+        sharedMemSize = nHostPages * HOST_PAGE_SIZE;
+        sharedMemory = nullptr;
 
         isWholeValueDirty = false;
         _empty = true;
@@ -72,13 +82,12 @@ namespace state {
     void StateKeyValue::doRemoteRead() {
         // Initialise the data array with zeroes
         if (_empty) {
-            value.resize(size);
-            dirtyFlags.resize(size);
+            initialiseStorage();
         }
 
         // Read from the remote
         infra::Redis *redis = infra::Redis::getThreadState();
-        redis->get(key, value.data(), size);
+        redis->get(key, sharedMemory, valueSize);
 
         util::Clock &clock = util::getGlobalClock();
         const util::TimePoint now = clock.now();
@@ -118,7 +127,7 @@ namespace state {
 
         SharedLock lock(valueMutex);
 
-        std::copy(value.data(), value.data() + size, buffer);
+        std::copy(sharedMemory, sharedMemory + valueSize, buffer);
     }
 
     uint8_t *StateKeyValue::get() {
@@ -126,7 +135,7 @@ namespace state {
 
         SharedLock lock(valueMutex);
 
-        return value.data();
+        return sharedMemory;
     }
 
     void StateKeyValue::getSegment(long offset, uint8_t *buffer, size_t length) {
@@ -135,14 +144,14 @@ namespace state {
         SharedLock lock(valueMutex);
 
         // Return just the required segment
-        if ((offset + length) > size) {
+        if ((offset + length) > valueSize) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-            logger->error("Out of bounds read at {} on {} with length {}", offset + length, key, size);
+            logger->error("Out of bounds read at {} on {} with length {}", offset + length, key, valueSize);
             throw std::runtime_error("Out of bounds read");
         }
 
-        std::copy(value.data() + offset, value.data() + offset + length, buffer);
+        std::copy(sharedMemory + offset, sharedMemory + offset + length, buffer);
     }
 
     uint8_t *StateKeyValue::getSegment(long offset) {
@@ -150,7 +159,7 @@ namespace state {
 
         SharedLock lock(valueMutex);
 
-        return value.data() + offset;
+        return sharedMemory + offset;
     }
 
     void StateKeyValue::set(const uint8_t *buffer) {
@@ -159,13 +168,12 @@ namespace state {
         // Unique lock for setting the whole value
         FullLock lock(valueMutex);
 
-        if (value.empty()) {
-            value.resize(size);
-            dirtyFlags.resize(size);
+        if (sharedMemory == nullptr) {
+            initialiseStorage();
         }
 
         // Copy data into shared region
-        std::copy(buffer, buffer + size, value.data());
+        std::copy(buffer, buffer + valueSize, sharedMemory);
 
         isWholeValueDirty = true;
         _empty = false;
@@ -176,32 +184,31 @@ namespace state {
 
         // Check we're in bounds
         size_t end = offset + length;
-        if (end > size) {
+        if (end > valueSize) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            logger->error("Trying to write segment finishing at {} (value length {})", end, size);
+            logger->error("Trying to write segment finishing at {} (value length {})", end, valueSize);
             throw std::runtime_error("Attempting to set segment out of bounds");
         }
 
         // If empty, set to full size
-        if (value.empty()) {
+        if (sharedMemory == nullptr) {
             FullLock lock(valueMutex);
-            if (value.empty()) {
-                value.resize(size);
-                dirtyFlags.resize(size);
+            if (sharedMemory == nullptr) {
+                initialiseStorage();
             }
         }
 
         // Check size
-        if (offset + length > size) {
+        if (offset + length > valueSize) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-            logger->error("Segment length {} at offset {} too big for size {}", length, offset, size);
+            logger->error("Segment length {} at offset {} too big for size {}", length, offset, valueSize);
             throw std::runtime_error("Setting state segment too big for container");
         }
 
         // Copy data into shared region
         SharedLock lock(valueMutex);
-        std::copy(buffer, buffer + length, value.data() + offset);
+        std::copy(buffer, buffer + length, sharedMemory + offset);
 
         // Flag as dirty
         std::fill(dirtyFlags.begin() + offset, dirtyFlags.begin() + offset + length, true);
@@ -222,16 +229,39 @@ namespace state {
                 const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 logger->debug("Clearing unused value {}", key);
 
-                value.clear();
-
-                // Set flag to say this is effectively new again
+               // Set flag to say this is effectively new again
                 _empty = true;
+
+                // Unmap shared region
+                munmap((void*)sharedMemory, sharedMemSize);
             }
         }
     }
 
     bool StateKeyValue::empty() {
         return _empty;
+    }
+
+    void StateKeyValue::mapSharedMemory(void * newAddr) {
+        // Remap our existing shared memory onto this new region
+        void *result = mremap((void*)sharedMemory, 0, sharedMemSize, MREMAP_FIXED | MREMAP_MAYMOVE, newAddr);
+        if(*(int*)result == -1) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->debug("Failed to map shared memory. errno: {}", errno);
+
+            throw std::runtime_error("Failed mapping shared memory");
+        }
+    }
+
+    void StateKeyValue::initialiseStorage() {
+        // Create shared memory region
+        void* newMemory = mmap(nullptr, sharedMemSize, PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
+        // Set up value in shared memory region
+        sharedMemory = reinterpret_cast<uint8_t *>(newMemory);
+
+        // Set up dirty flags
+        dirtyFlags.resize(valueSize);
     }
 
     void StateKeyValue::pushFull() {
@@ -256,7 +286,7 @@ namespace state {
         logger->debug("Pushing whole value for {}", key);
 
         infra::Redis *redis = infra::Redis::getThreadState();
-        redis->set(key, value.data(), size);
+        redis->set(key, sharedMemory, valueSize);
 
         // Reset (as we're setting the full value, we've effectively pulled)
         util::Clock &clock = util::getGlobalClock();
@@ -278,7 +308,7 @@ namespace state {
         }
 
         // Create copy of the dirty flags and clear the old version
-        std::vector<bool> dirtyFlagsCopy(size);
+        std::vector<bool> dirtyFlagsCopy(valueSize);
         {
             FullLock segmentsLock(valueMutex);
             std::copy(dirtyFlags.begin(), dirtyFlags.end(), dirtyFlagsCopy.begin());
@@ -309,7 +339,7 @@ namespace state {
             redis->setRange(
                     key,
                     offset,
-                    value.data() + offset,
+                    sharedMemory + offset,
                     (size_t) size
             );
 
