@@ -137,7 +137,7 @@ namespace tests {
         MatrixXd preUpdate = weights * inputs;
 
         // Now run the actual updates and check the impact
-        double *postUpdate;
+        MatrixXd postUpdate;
         if(lossType == RMSE) {
             MatrixXd outputs(1, 2);
             outputs << 10, 11;
@@ -146,7 +146,7 @@ namespace tests {
 
             postUpdate = leastSquaresWeightUpdate(&mem, params, inputsMap, outputsMap);
         }
-        else {
+        else if(lossType == HINGE) {
             // Classification-style outputs
             MatrixXd outputs(1, 2);
             outputs << -1, 1;
@@ -156,6 +156,11 @@ namespace tests {
             int epoch = 3;
             postUpdate = hingeLossWeightUpdate(&mem, params, epoch, inputsMap, outputsMap);
         }
+
+        // Check the post-update values are different but same shape
+        REQUIRE(postUpdate.rows() == preUpdate.rows());
+        REQUIRE(postUpdate.cols() == preUpdate.cols());
+        REQUIRE(postUpdate != preUpdate);
 
         // Check weights have been updated where necessary
         const MatrixXd actualWeights = readMatrixFromState(&mem, WEIGHTS_KEY, 1, nWeights);
@@ -169,8 +174,6 @@ namespace tests {
 
         // Where no input values, weights should remain the same
         REQUIRE(actualWeights(0, 3) == weightsCopy(0, 3));
-
-        delete[] postUpdate;
     }
 
     TEST_CASE("Test least squares updates", "[sgd]") {
@@ -210,11 +213,6 @@ namespace tests {
         MatrixXd c = randomDenseMatrix(1, 5);
         MatrixXd d = randomDenseMatrix(1, 5);
 
-        Map<MatrixXd> mapA(a.data(), 1, 5);
-        Map<MatrixXd> mapB(b.data(), 1, 5);
-        Map<MatrixXd> mapC(c.data(), 1, 5);
-        Map<MatrixXd> mapD(d.data(), 1, 5);
-
         // Check no errors set initially
         const std::vector<uint8_t> initial = redisQueue.get(ERRORS_KEY);
         REQUIRE(initial.empty());
@@ -228,12 +226,12 @@ namespace tests {
         checkDoubleArrayInState(redisQueue, ERRORS_KEY, {0, 0, 0, 0});
 
         // Work out expectation
-        double expected1 = calculateSquaredError(a.data(), mapB);
-        double expected2 = calculateSquaredError(c.data(), mapD);
+        double expected1 = calculateSquaredError(a, b);
+        double expected2 = calculateSquaredError(a, b);
 
         // Write errors to memory
-        writeSquaredError(&memory, params, 0, a.data(), mapB);
-        writeSquaredError(&memory, params, 2, c.data(), mapD);
+        writeSquaredError(&memory, params, 0, a, b);
+        writeSquaredError(&memory, params, 2, a, b);
 
         checkDoubleArrayInState(redisQueue, ERRORS_KEY, {expected1, 0, expected2, 0});
     }
@@ -255,11 +253,10 @@ namespace tests {
         // Write the error for two of the three batches
         MatrixXd a = randomDenseMatrix(1, 5);
         MatrixXd b = randomDenseMatrix(1, 5);
-        Map<MatrixXd> mapB(b.data(), 1, 5);
-        double expected = calculateSquaredError(a.data(), mapB);
+        double expected = calculateSquaredError(a, b);
 
-        writeSquaredError(&memory, p, 0, a.data(), mapB);
-        writeSquaredError(&memory, p, 1, a.data(), mapB);
+        writeSquaredError(&memory, p, 0, a, b);
+        writeSquaredError(&memory, p, 1, a, b);
 
         // Check these have been written
         checkDoubleArrayInState(redisQueue, ERRORS_KEY,{expected, expected, 0});
@@ -270,7 +267,7 @@ namespace tests {
         REQUIRE(actual1 == expectedRmse1);
 
         // Now write error for a third batch
-        writeSquaredError(&memory, p, 2, a.data(), mapB);
+        writeSquaredError(&memory, p, 2, a, b);
         checkDoubleArrayInState(redisQueue, ERRORS_KEY,{expected, expected, expected});
 
         // Work out what the result should be

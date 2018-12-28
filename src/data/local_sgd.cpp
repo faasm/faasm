@@ -55,12 +55,10 @@ namespace data {
         Map<MatrixXd> outputs = readMatrixColumnsFromState(&memory, OUTPUTS_KEY, params.nTrain, startIdx, endIdx, 1, true);
 
         // Perform the update
-        double *predictions = hingeLossWeightUpdate(&memory, params, epoch, inputs, outputs);
+        MatrixXd actual = hingeLossWeightUpdate(&memory, params, epoch, inputs, outputs);
 
         // Calculate the error and add to the list
-        double error = calculateHingeError(predictions, outputs);
-
-        delete[] predictions;
+        double error = calculateHingeError(actual, outputs);
 
         std::unique_lock<std::mutex> lock(errorsMutex);
         errors.push_back(error);

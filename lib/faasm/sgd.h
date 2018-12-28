@@ -49,7 +49,7 @@ namespace faasm {
 
     SgdParams readParamsFromState(FaasmMemory *memory, const char *keyName, bool async = false);
 
-    double *hingeLossWeightUpdate(
+    MatrixXd hingeLossWeightUpdate(
             FaasmMemory *memory,
             const SgdParams &sgdParams,
             int epoch,
@@ -57,7 +57,7 @@ namespace faasm {
             const Map<MatrixXd> &outputs
     );
 
-    double *leastSquaresWeightUpdate(
+    MatrixXd leastSquaresWeightUpdate(
             FaasmMemory *memory,
             const SgdParams &sgdParams,
             const Map<SparseMatrix<double>> &inputs,
@@ -72,11 +72,11 @@ namespace faasm {
 
     void writeFinishedFlag(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber);
 
-    void writeHingeError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const double *predictions,
-                         const Map<MatrixXd> &actual);
+    void writeHingeError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
+                         const MatrixXd &prediction);
 
-    void writeSquaredError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const double *predictions,
-                           const Map<MatrixXd> &actual);
+    void writeSquaredError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
+                           const MatrixXd &prediction);
 
     double readTotalError(FaasmMemory *memory, const SgdParams &sgdParams);
 
