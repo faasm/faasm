@@ -39,11 +39,15 @@ namespace tests {
         SystemConfig conf;
 
         REQUIRE(conf.prewarmTarget == 20);
-        REQUIRE(conf.maxQueueRatio == 4);
+        REQUIRE(conf.maxQueueRatio == 3);
         REQUIRE(conf.maxWorkersPerFunction == 10);
 
         REQUIRE(conf.boundTimeout == 30);
         REQUIRE(conf.unboundTimeout == 240);
+
+        REQUIRE(conf.stateStaleThreshold == 150000);
+        REQUIRE(conf.stateClearThreshold == 30000);
+        REQUIRE(conf.statePushInterval == 1000);
     }
 
     TEST_CASE("Test overriding system config initialisation", "[util]") {
@@ -54,6 +58,10 @@ namespace tests {
         setEnvVar("BOUND_TIMEOUT", "6666");
         setEnvVar("UNBOUND_TIMEOUT", "5555");
 
+        setEnvVar("STATE_STALE_THRESHOLD", "4444");
+        setEnvVar("STATE_CLEAR_THRESHOLD", "3333");
+        setEnvVar("STATE_PUSH_INTERVAL", "2222");
+
         SystemConfig conf;
         REQUIRE(conf.prewarmTarget == 9999);
         REQUIRE(conf.maxQueueRatio == 8888);
@@ -62,11 +70,19 @@ namespace tests {
         REQUIRE(conf.boundTimeout == 6666);
         REQUIRE(conf.unboundTimeout == 5555);
 
+        REQUIRE(conf.stateStaleThreshold == 4444);
+        REQUIRE(conf.stateClearThreshold == 3333);
+        REQUIRE(conf.statePushInterval == 2222);
+
         util::unsetEnvVar("PREWARM_TARGET");
         util::unsetEnvVar("MAX_QUEUE_RATIO");
         util::unsetEnvVar("MAX_WORKERS_PER_FUNCTION");
 
         util::unsetEnvVar("BOUND_TIMEOUT");
         util::unsetEnvVar("UNBOUND_TIMEOUT");
+
+        util::unsetEnvVar("STATE_STALE_THRESHOLD");
+        util::unsetEnvVar("STATE_CLEAR_THRESHOLD");
+        util::unsetEnvVar("STATE_PUSH_INTERVAL");
     }
 }
