@@ -20,7 +20,7 @@ int main() {
 
     FaasmMemory memory;
     // int batchSize = 69000;
-    int batchSize = REUTERS_N_EXAMPLES;
+    int batchSize = 400000;
     int epochs = 30;
     SgdParams p = setUpReutersParams(&memory, batchSize, epochs);
 
@@ -31,7 +31,7 @@ int main() {
     writeMatrixToState(&memory, WEIGHTS_KEY, weights, true);
 
     // Run each epoch
-    std::vector<std::pair<long, double>> losses;
+    std::vector<std::pair<double, double>> losses;
     double startTs = faasm::getSecondsSinceEpoch();
     for (int epoch = 0; epoch < p.nEpochs; epoch++) {
         logger->info("Epoch {} start", epoch);
@@ -43,7 +43,7 @@ int main() {
         double rmse = data::getRMSE(p);
         double thisTs = faasm::getSecondsSinceEpoch() - startTs;
 
-        losses.push_back({thisTs, rmse});
+        losses.emplace_back(std::pair<double, double>(thisTs, rmse));
 
         logger->info("Epoch {} end   - time {:04.2f}s - RMSE {:06.4f}", epoch, thisTs, rmse);
 
