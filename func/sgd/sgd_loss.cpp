@@ -14,15 +14,15 @@ namespace faasm {
         auto losses = reinterpret_cast<double *>(lossBuffer);
 
         // Get loss timestamps from state
-        size_t tsBytes = p.nEpochs * sizeof(long);
+        size_t tsBytes = p.nEpochs * sizeof(double);
         auto tsBuffer = new uint8_t[tsBytes];
         memory->readState(LOSS_TIMESTAMPS_KEY, tsBuffer, tsBytes, p.fullAsync);
-        auto ts = reinterpret_cast<long *>(tsBuffer);
+        auto ts = reinterpret_cast<double *>(tsBuffer);
 
-        long baseTs = ts[0];
+        double baseTs = ts[0];
         std::string lossString;
         for (long l = 0; l < p.nEpochs; l++) {
-            long relativeTs = ts[l] - baseTs;
+            double relativeTs = ts[l] - baseTs;
             lossString += std::to_string(relativeTs) + " - " + std::to_string(losses[l]);
 
             if (l < p.nEpochs - 1) {

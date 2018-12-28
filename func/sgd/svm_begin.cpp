@@ -12,7 +12,7 @@ namespace faasm {
         long inputSize = memory->getInputSize();
         int batchSize;
         if(inputSize == 0) {
-            batchSize = REUTERS_N_EXAMPLES;
+            batchSize = REUTERS_N_EXAMPLES/5;
         } else {
             auto inputBuffer = new uint8_t[inputSize];
             memory->getInput(inputBuffer, inputSize);

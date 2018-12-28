@@ -45,8 +45,7 @@ int main() {
 
         losses.push_back({thisTs, rmse});
 
-        double seconds = ((double) thisTs) / 1000;
-        logger->info("Epoch {} end   - time {:04.2f}s - RMSE {:06.4f}", epoch, seconds, rmse);
+        logger->info("Epoch {} end   - time {:04.2f}s - RMSE {:06.4f}", epoch, thisTs, rmse);
 
         // Decay learning rate
         p.learningRate = p.learningRate * p.learningDecay;

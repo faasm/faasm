@@ -60,9 +60,6 @@ namespace faasm {
 
         auto weightDataBuffer = reinterpret_cast<double *>(weightDataByteBuffer);
 
-        // Map raw data onto a vector
-        Map<RowVectorXd> weights(weightDataBuffer, sgdParams.nWeights);
-
         // Read in the feature counts (will be constant)
         size_t nFeatureCountBytes = sgdParams.nWeights * sizeof(int);
         uint8_t *featureCountByteBuffer = memory->readState(FEATURE_COUNTS_KEY, nFeatureCountBytes, true);
@@ -72,18 +69,19 @@ namespace faasm {
         for (int col = 0; col < inputs.outerSize(); ++col) {
             // Get input and output associated with this example
             double thisOutput = outputs.coeff(0, col);
-            SparseVector<double> thisInput = inputs.col(col);
 
-            // Work out the prediction for this example. This will be a single number.
-            // Do this inside the loop to include weight updates. Importantly the input
-            // here will be sparse so we need to use the eigen multiplication
-            Matrix<double, 1, 1> prediction = weights * thisInput;
-            double thisPrediction = prediction.coeff(0, 0);
+            // Work out the prediction for this example. This is the dot product of the weights and
+            // the (sparse) input example (i.e. column of the input matrix). This can be done with
+            // eigen multiplication operation but we do it here in a loop
+            double thisPrediction = 0;
+            for (Map<SparseMatrix<double>>::InnerIterator it(inputs, col); it; ++it) {
+                thisPrediction += (it.value() * weightDataBuffer[it.row()]);
+            }
 
             // If the prediction multiplied by the output is less than one, it's misclassified
             bool isMisclassified = (thisOutput * thisPrediction) < 1;
 
-            // Iterate through all non-zero input values in this column
+            // Iterate through all non-zero input values in this column and update the relevant weight accordingly
             for (Map<SparseMatrix<double>>::InnerIterator it(inputs, col); it; ++it) {
                 // Get the value and associated weight
                 double thisValue = it.value();
@@ -120,6 +118,7 @@ namespace faasm {
         }
 
         // Recalculate all predictions
+        Map<RowVectorXd> weights(weightDataBuffer, sgdParams.nWeights);
         MatrixXd prediction = weights * inputs;
 
         return prediction;
@@ -245,19 +244,22 @@ namespace faasm {
         auto flags = reinterpret_cast<int *>(buffer);
 
         // Iterate through all the batches to see if finished
-        bool isFinished = true;
+        bool allFinished = true;
+        auto isFinished = new bool[sgdParams.nBatches];
         for (int i = 0; i < sgdParams.nBatches; i++) {
             double flag = flags[i];
 
             // If flag is zero, we've not finished
-            if (flag == 0) {
-                isFinished = false;
-                break;
+            isFinished[i] = flag > 0;
+
+            if(flag == 0) {
+                allFinished = false;
             }
         }
 
+        delete[] isFinished;
         delete[] buffer;
-        return isFinished;
+        return allFinished;
     }
 
     double readTotalError(FaasmMemory *memory, const SgdParams &sgdParams) {
