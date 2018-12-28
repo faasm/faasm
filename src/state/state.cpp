@@ -243,6 +243,8 @@ namespace state {
     }
 
     void StateKeyValue::mapSharedMemory(void * newAddr) {
+        FullLock lock(valueMutex);
+
         // Remap our existing shared memory onto this new region
         void *result = mremap((void*)sharedMemory, 0, sharedMemSize, MREMAP_FIXED | MREMAP_MAYMOVE, newAddr);
         if(*(int*)result == -1) {

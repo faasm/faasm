@@ -958,7 +958,7 @@ namespace wasm {
         util::getLogger()->debug("S - clock_gettime - {} {}", clockId, resultAddress);
 
         timespec ts{};
-        clock_gettime(clockId, &ts);
+        clock_gettime(CLOCK_MONOTONIC, &ts);
 
         auto result = &Runtime::memoryRef<wasm_timespec>(getExecutingModule()->defaultMemory, (Uptr) resultAddress);
         result->tv_sec = I32(ts.tv_sec);

@@ -21,11 +21,11 @@ namespace faasm {
         }
 
         // Record the time for this epoch
-        long ts = faasm::getMillisSinceEpoch();
+        double ts = faasm::getSecondsSinceEpoch();
         long tsTotal = p.nEpochs * sizeof(double);
-        long tsOffset = thisEpoch * sizeof(long);
+        long tsOffset = thisEpoch * sizeof(double);
         auto tsBytes = reinterpret_cast<uint8_t *>(&ts);
-        memory->writeStateOffset(LOSS_TIMESTAMPS_KEY, tsTotal, tsOffset, tsBytes, sizeof(long), p.fullAsync);
+        memory->writeStateOffset(LOSS_TIMESTAMPS_KEY, tsTotal, tsOffset, tsBytes, sizeof(double), p.fullAsync);
 
         // Record the loss for this epoch
         double loss = faasm::readRootMeanSquaredError(memory, p);
@@ -36,7 +36,7 @@ namespace faasm {
 
         // Drop out if finished all epochs
         if (thisEpoch >= p.nEpochs - 1) {
-            printf("SGD complete over %i epochs (loss = %f)\n", thisEpoch, loss);
+            printf("SGD complete over %i epochs (time = %f, loss = %f)\n", thisEpoch, ts, loss);
             return 0;
         }
 
@@ -47,7 +47,7 @@ namespace faasm {
         // Increment epoch counter
         incrementCounter(memory, EPOCH_COUNT_KEY, p.fullAsync);
         int nextEpoch = thisEpoch + 1;
-        printf("Starting epoch %i (MSE = %f)\n", nextEpoch, loss);
+        printf("Starting epoch %i (time = %f, loss = %f)\n", nextEpoch, ts, loss);
 
         // Kick off next epoch
         memory->chainFunction("sgd_epoch");

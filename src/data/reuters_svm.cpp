@@ -32,7 +32,7 @@ int main() {
 
     // Run each epoch
     std::vector<std::pair<long, double>> losses;
-    long startTs = faasm::getMillisSinceEpoch();
+    double startTs = faasm::getSecondsSinceEpoch();
     for (int epoch = 0; epoch < p.nEpochs; epoch++) {
         logger->info("Epoch {} start", epoch);
         data::clear();
@@ -41,7 +41,7 @@ int main() {
 
         // Work out error
         double rmse = data::getRMSE(p);
-        long thisTs = faasm::getMillisSinceEpoch() - startTs;
+        double thisTs = faasm::getSecondsSinceEpoch() - startTs;
 
         losses.push_back({thisTs, rmse});
 

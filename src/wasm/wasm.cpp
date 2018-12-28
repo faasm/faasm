@@ -199,6 +199,9 @@ namespace wasm {
             std::copy(cleanMemory, cleanMemory + cleanMemorySize, baseAddr);
         }
 
+        // Clear mmaped keys
+        mmapedKeys.clear();
+
         prof::logEndTimer("restore-mem", t);
     }
 
@@ -292,6 +295,9 @@ namespace wasm {
             printf("mmap no memory\n");
             return -ENOMEM;
         }
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Memory grown from {} to {} pages", previousPageCount, previousPageCount + pagesRequested);
 
         // Get pointer to mapped range
         auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);
