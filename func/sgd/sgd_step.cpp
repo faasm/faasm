@@ -3,6 +3,8 @@
 #include "faasm/matrix.h"
 #include "faasm/sgd.h"
 
+#include <stdio.h>
+
 namespace faasm {
     int exec(FaasmMemory *memory) {
         size_t nBytes = sizeof(int) * 4;
@@ -16,27 +18,37 @@ namespace faasm {
         int endIdx = inputParams[2];
         int epoch = inputParams[3];
 
+        printf("Starting batch %i (%i - %i). Epoch %i\n", batchNumber, startIdx, endIdx, epoch);
+
         // Load params
+        printf("------- A\n");
         SgdParams sgdParams = readParamsFromState(memory, PARAMS_KEY, REUTERS_FULL_ASYNC);
 
         // Always load the inputs and outputs async (as they should be constant)
+        printf("------- B\n");
         Map<SparseMatrix<double>> inputs = readSparseMatrixColumnsFromState(memory, INPUTS_KEY, startIdx, endIdx, true);
+
+        printf("------- C\n");
         Map<MatrixXd> outputs = readMatrixColumnsFromState(memory, OUTPUTS_KEY, sgdParams.nTrain, startIdx, endIdx, 1,
                 true);
 
         // Perform updates
-        MatrixXd prediction;
+        double *predictions;
         if (sgdParams.lossType == HINGE) {
-            prediction = hingeLossWeightUpdate(memory, sgdParams, epoch, inputs, outputs);
+            predictions = hingeLossWeightUpdate(memory, sgdParams, epoch, inputs, outputs);
 
             // Persist error
-            writeHingeError(memory, sgdParams, batchNumber, outputs, prediction);
+            printf("------- J\n");
+            writeHingeError(memory, sgdParams, batchNumber, predictions, outputs);
+
         } else {
-            prediction = leastSquaresWeightUpdate(memory, sgdParams, inputs, outputs);
+            predictions = leastSquaresWeightUpdate(memory, sgdParams, inputs, outputs);
 
             // Persist error for these examples
-            writeSquaredError(memory, sgdParams, batchNumber, outputs, prediction);
+            writeSquaredError(memory, sgdParams, batchNumber, predictions, outputs);
         }
+
+        delete[] predictions;
 
         // Flag that this worker has finished
         writeFinishedFlag(memory, sgdParams, batchNumber);

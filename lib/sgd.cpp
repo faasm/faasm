@@ -51,8 +51,21 @@ namespace faasm {
         return s;
     }
 
-    MatrixXd hingeLossWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int epoch,
-                                   const Map<SparseMatrix<double>> &inputs, const Map<MatrixXd> &outputs) {
+    double *calculatePredictions(double *weightDataBuffer, const Map<SparseMatrix<double>> &inputs) {
+        // Avoiding eigen multiplication to dodge wasm syscalls
+        auto predictions = new double[inputs.outerSize()];
+        for (int col = 0; col < inputs.outerSize(); ++col) {
+            predictions[col] = 0;
+            for (Map<SparseMatrix<double>>::InnerIterator it(inputs, col); it; ++it) {
+                predictions[col] += (weightDataBuffer[it.row()] * it.value());
+            }
+        }
+
+        return predictions;
+    }
+
+    double *hingeLossWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int epoch,
+                                  const Map<SparseMatrix<double>> &inputs, const Map<MatrixXd> &outputs) {
 
         // Read in the weights initially
         size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
@@ -71,11 +84,11 @@ namespace faasm {
             double thisOutput = outputs.coeff(0, col);
 
             // Work out the prediction for this example. This is the dot product of the weights and
-            // the (sparse) input example (i.e. column of the input matrix). This can be done with
-            // eigen multiplication operation but we do it here in a loop
+            // the (sparse) input example (i.e. column of the input matrix). On a native machine this is fine
+            // to do with eigen, but in wasm this leads to a call to mmap which we want to avoid
             double thisPrediction = 0;
             for (Map<SparseMatrix<double>>::InnerIterator it(inputs, col); it; ++it) {
-                thisPrediction += (it.value() * weightDataBuffer[it.row()]);
+                thisPrediction += (weightDataBuffer[it.row()] * it.value());
             }
 
             // If the prediction multiplied by the output is less than one, it's misclassified
@@ -95,7 +108,7 @@ namespace faasm {
                 }
 
                 // Update weight regardless of classification including scaling based on how common it is
-                if(thisFeatureCount == 0) {
+                if (thisFeatureCount == 0) {
                     throw std::runtime_error("Should not have a zero feature count for a feature we have a value for.");
                 }
                 thisWeight *= (1 - (sgdParams.learningRate / thisFeatureCount));
@@ -117,15 +130,12 @@ namespace faasm {
             memory->pushStatePartial(WEIGHTS_KEY);
         }
 
-        // Recalculate all predictions
-        Map<RowVectorXd> weights(weightDataBuffer, sgdParams.nWeights);
-        MatrixXd prediction = weights * inputs;
-
-        return prediction;
+        // Recalculate predictions
+        return calculatePredictions(weightDataBuffer, inputs);
     }
 
-    MatrixXd leastSquaresWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams,
-                                      const Map<SparseMatrix<double>> &inputs, const Map<MatrixXd> &outputs) {
+    double *leastSquaresWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams,
+                                     const Map<SparseMatrix<double>> &inputs, const Map<MatrixXd> &outputs) {
 
         auto weightData = new double[sgdParams.nWeights];
         readMatrixFromState(memory, WEIGHTS_KEY, weightData, 1, sgdParams.nWeights, true);
@@ -158,12 +168,9 @@ namespace faasm {
             memory->pushStatePartial(WEIGHTS_KEY);
         }
 
-        // Recalculate the result and return
-        MatrixXd prediction = weights * inputs;
-
+        double *predictions = calculatePredictions(weightData, inputs);
         delete[] weightData;
-
-        return prediction;
+        return predictions;
     }
 
     void zeroDoubleArray(FaasmMemory *memory, const char *key, long len, bool async) {
@@ -221,15 +228,15 @@ namespace faasm {
                                  sgdParams.fullAsync);
     }
 
-    void writeHingeError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
-                         const MatrixXd &prediction) {
-        double err = calculateHingeError(prediction, actual);
+    void writeHingeError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber,
+                         const double *predictions, const Map<MatrixXd> &actual) {
+        double err = calculateHingeError(predictions, actual);
         _writeError(memory, sgdParams, batchNumber, err);
     }
 
-    void writeSquaredError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
-                           const MatrixXd &prediction) {
-        double err = calculateSquaredError(prediction, actual);
+    void writeSquaredError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber,
+                           const double *predictions, const Map<MatrixXd> &actual) {
+        double err = calculateSquaredError(predictions, actual);
         _writeError(memory, sgdParams, batchNumber, err);
     }
 
@@ -252,7 +259,7 @@ namespace faasm {
             // If flag is zero, we've not finished
             isFinished[i] = flag > 0;
 
-            if(flag == 0) {
+            if (flag == 0) {
                 allFinished = false;
             }
         }

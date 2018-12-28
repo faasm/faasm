@@ -373,15 +373,11 @@ namespace faasm {
     /**
      * Sums the squared error between two vectors
      */
-    double calculateSquaredError(const MatrixXd &prediction, const MatrixXd &actual) {
-        MatrixXd diff = prediction - actual;
-
+    double calculateSquaredError(const double *predictions, const Map<MatrixXd> &actual) {
         double squaredError = 0;
-        for (long r = 0; r < diff.rows(); r++) {
-            for (long c = 0; c < diff.cols(); c++) {
-                double e = diff.coeff(r, c);
-                squaredError += pow(e, 2);
-            }
+        for (long c = 0; c < actual.cols(); c++) {
+            double e = predictions[c] - actual.coeff(0, c);
+            squaredError += pow(e, 2);
         }
 
         return squaredError;
@@ -393,15 +389,14 @@ namespace faasm {
      * prediction and the actual have the same sign), but will be non-zero
      * if they are different sign.
      */
-    double calculateHingeError(const MatrixXd &prediction, const MatrixXd &actual) {
+    double calculateHingeError(const double *predictions, const Map<MatrixXd> &actual) {
         double totalErr = 0;
-        for (long r = 0; r < prediction.rows(); r++) {
-            for (long c = 0; c < prediction.cols(); c++) {
-                double thisProduct = prediction.coeff(r, c) * actual.coeff(c, r);
 
-                // Product will be negative if prediction and actual have different sign
-                totalErr += std::max(1.0 - thisProduct, 0.0);
-            }
+        for (long c = 0; c < actual.cols(); c++) {
+            double thisProduct = predictions[c] * actual.coeff(0, c);
+
+            // Product will be negative if prediction and actual have different sign
+            totalErr += std::max(1.0 - thisProduct, 0.0);
         }
 
         return totalErr;
@@ -411,10 +406,10 @@ namespace faasm {
     /**
      * Finds the mean squared error between two matrices
      */
-    double calculateRootMeanSquaredError(const MatrixXd &a, const MatrixXd &b) {
-        double squaredError = calculateSquaredError(a, b);
+    double calculateRootMeanSquaredError(const double * predictions, const Map<MatrixXd> &actual) {
+        double squaredError = calculateSquaredError(predictions, actual);
 
-        long nElements = a.cols() * a.rows();
+        long nElements = actual.cols();
         double rmse = sqrt(squaredError / nElements);
         return rmse;
     }

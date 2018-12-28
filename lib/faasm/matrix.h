@@ -48,9 +48,9 @@ namespace faasm {
         void writeToState(FaasmMemory *memory, const char *key, bool async = false);
 
         static Map<SparseMatrix<double>> readFromBytes(const SparseSizes &sizes,
-                                                  uint8_t *outerBytes,
-                                                  uint8_t *innerBytes,
-                                                  uint8_t *valuesBytes);
+                                                       uint8_t *outerBytes,
+                                                       uint8_t *innerBytes,
+                                                       uint8_t *valuesBytes);
 
         ~SparseMatrixSerialiser();
 
@@ -87,7 +87,7 @@ namespace faasm {
     Map<MatrixXd> readMatrixFromState(FaasmMemory *memory, const char *key, long rows, long cols, bool async = false);
 
     void readMatrixFromState(FaasmMemory *memory, const char *key, double *buffer, long rows, long cols,
-                                 bool async = false);
+                             bool async = false);
 
     void writeMatrixToState(FaasmMemory *memory, const char *key, const MatrixXd &matrix, bool async = false);
 
@@ -95,10 +95,10 @@ namespace faasm {
                                    bool async = false);
 
     Map<MatrixXd> readMatrixColumnsFromState(FaasmMemory *memory, const char *key, long totalCols, long colStart,
-                                        long colEnd, long nRows, bool async = false);
+                                             long colEnd, long nRows, bool async = false);
 
     Map<SparseMatrix<double>> readSparseMatrixColumnsFromState(FaasmMemory *memory, const char *key, long colStart,
-                                                          long colEnd, bool async = false);
+                                                               long colEnd, bool async = false);
 
     /**
      * Manipulation
@@ -115,11 +115,11 @@ namespace faasm {
 
     void shufflePairedMatrixColumns(MatrixXd &a, MatrixXd &b);
 
-    double calculateSquaredError(const MatrixXd &prediction, const MatrixXd &b);
+    double calculateSquaredError(const double *predictions, const Map<MatrixXd> &actual);
 
-    double calculateHingeError(const MatrixXd &a, const MatrixXd &b);
+    double calculateHingeError(const double *predictions, const Map<MatrixXd> &actual);
 
-    double calculateRootMeanSquaredError(const MatrixXd &a, const MatrixXd &b);
+    double calculateRootMeanSquaredError(const double *predictions, const Map<MatrixXd> &actual);
 }
 
 #endif

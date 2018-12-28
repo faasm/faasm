@@ -168,11 +168,10 @@ namespace tests {
     }
 
     TEST_CASE("Test root mean squared error", "[matrix]") {
-        MatrixXd matA(1, 3);
-        matA << 8.5, 10.1, 15.5;
+        double predictions[3] = {8.5, 10.1, 15.5};
 
-        MatrixXd matB(1, 3);
-        matB << 2.5, 1.3, 16.6;
+        double actuals[3] = {2.5, 1.3, 16.6};
+        Map<MatrixXd> matB(actuals, 1, 3);
 
         double a = std::pow(8.5 - 2.5, 2);
         double b = std::pow(10.1 - 1.3, 2);
@@ -180,39 +179,37 @@ namespace tests {
 
         double expected = sqrt((a + b + c) / 3.0);
 
-        double actual = faasm::calculateRootMeanSquaredError(matA, matB);
+        double actual = faasm::calculateRootMeanSquaredError(predictions, matB);
 
         REQUIRE(actual == expected);
     }
 
     TEST_CASE("Test calculating squared error", "[matrix]") {
-        MatrixXd matA(1, 4);
-        matA << 11.1, 0.0, 12.2, 13.3;
+        double predictions[4] = {11.1, 0.0, 12.2, 13.3};
 
-        MatrixXd matB(1, 4);
-        matB << 0.0, 21.1, 20.0, 19.9;
+        double actuals[4] = {0.0, 21.1, 20.0, 19.9};
+        Map<MatrixXd> matB(actuals, 1, 4);
 
         double a = std::pow(11.1 - 0.0, 2);
         double b = std::pow(0.0 - 21.1, 2);
         double c = std::pow(12.2 - 20.0, 2);
         double d = std::pow(13.3 - 19.9, 2);
 
-        double actual = faasm::calculateSquaredError(matA, matB);
+        double actual = faasm::calculateSquaredError(predictions, matB);
         REQUIRE(actual == a + b + c + d);
     }
 
     TEST_CASE("Test calculating hinge loss", "[matrix]") {
         // Some correctly classified (i.e. correct sign), some not
-        MatrixXd matA(1, 4);
-        matA << -2.3, 1.1, -3.3, 0.0;
+        double predictions[4] = {-2.3, 1.1, -3.3, 0.0};
 
-        MatrixXd matB(1, 4);
-        matB << 1.0, -1.0, -1.0, 1.0;
+        double actuals[4]  = {1.0, -1.0, -1.0, 1.0};
+        Map<MatrixXd> actualMap(actuals, 1, 4);
 
         // Error will be zero unless the signs are wrong, or the product of the
         // two is less than 1, so the first, second and fourth elements contribute
         double expected = (1 - (1.0 * -2.3)) + (1 - (-1.0 * 1.1)) + (1 - (0.0 * 1.0));
-        double actual = faasm::calculateHingeError(matA, matB);
+        double actual = faasm::calculateHingeError(predictions, actualMap);
 
         REQUIRE(actual == expected);
     }
