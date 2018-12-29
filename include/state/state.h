@@ -57,6 +57,8 @@ namespace state {
 
         bool empty();
 
+        size_t size();
+
     private:
         std::atomic<bool> isWholeValueDirty;
 

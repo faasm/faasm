@@ -200,14 +200,15 @@ namespace wasm {
         }
 
         // Unmap shared memory regions
-        for(auto const &p : sharedMemWasmPtrs) {
+        for (auto const &p : sharedMemWasmPtrs) {
             state::StateKeyValue *kv = sharedMemKVs[p.first];
-            U8 *hostMemPtr = &Runtime::memoryRef<U8>(defaultMemory, p.second);
-            kv->unmapSharedMemory((void *) hostMemPtr);
+            void* hostPtr = sharedMemHostPtrs[p.first];
+            kv->unmapSharedMemory(hostPtr);
         }
 
         sharedMemKVs.clear();
         sharedMemWasmPtrs.clear();
+        sharedMemHostPtrs.clear();
 
         prof::logEndTimer("restore-mem", t);
     }
@@ -314,20 +315,22 @@ namespace wasm {
 
     I32 WasmModule::mmapKey(state::StateKeyValue *kv, U32 length) {
         // See if we need to initialise this mapping or if it already exists
-        if(sharedMemWasmPtrs.count(kv->key) == 0) {
+        if (sharedMemWasmPtrs.count(kv->key) == 0) {
             // Create memory region for this module
             I32 wasmPtr = this->mmap(length);
 
             // Do the mapping from the central shared region
             U8 *hostMemPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmPtr);
-            if(!util::isPageAligned(hostMemPtr)) {
+            if (!util::isPageAligned(hostMemPtr)) {
                 throw std::runtime_error("WAVM memory not page aligned");
             }
 
-            kv->mapSharedMemory((void *) hostMemPtr);
+            void *voidPtr = static_cast<void *>(hostMemPtr);
+            kv->mapSharedMemory(voidPtr);
 
             // Remember the kv and pointer
             sharedMemWasmPtrs.insert(std::pair<std::string, I32>(kv->key, wasmPtr));
+            sharedMemHostPtrs.insert(std::pair<std::string, void*>(kv->key, voidPtr));
             sharedMemKVs.insert(std::pair<std::string, state::StateKeyValue *>(kv->key, kv));
         }
 

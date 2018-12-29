@@ -84,7 +84,7 @@ namespace state {
 
         // Read from the remote
         infra::Redis *redis = infra::Redis::getThreadState();
-        redis->get(key, (uint8_t *) sharedMemory, valueSize);
+        redis->get(key, static_cast<uint8_t *>(sharedMemory), valueSize);
 
         util::Clock &clock = util::getGlobalClock();
         const util::TimePoint now = clock.now();
@@ -124,7 +124,8 @@ namespace state {
 
         SharedLock lock(valueMutex);
 
-        std::copy((uint8_t *) sharedMemory, ((uint8_t *) sharedMemory) + valueSize, buffer);
+        auto bytePtr = static_cast<uint8_t *>(sharedMemory);
+        std::copy(bytePtr, bytePtr + valueSize, buffer);
     }
 
     uint8_t *StateKeyValue::get() {
@@ -132,7 +133,7 @@ namespace state {
 
         SharedLock lock(valueMutex);
 
-        return (uint8_t *) sharedMemory;
+        return static_cast<uint8_t *>(sharedMemory);
     }
 
     void StateKeyValue::getSegment(long offset, uint8_t *buffer, size_t length) {
@@ -148,7 +149,7 @@ namespace state {
             throw std::runtime_error("Out of bounds read");
         }
 
-        auto bytePtr = (uint8_t *) sharedMemory;
+        auto bytePtr = static_cast<uint8_t *>(sharedMemory);
         std::copy(bytePtr + offset, bytePtr + offset + length, buffer);
     }
 
@@ -157,7 +158,8 @@ namespace state {
 
         SharedLock lock(valueMutex);
 
-        return ((uint8_t *) sharedMemory) + offset;
+        uint8_t *segmentPtr = static_cast<uint8_t *>(sharedMemory) + offset;
+        return segmentPtr;
     }
 
     void StateKeyValue::set(const uint8_t *buffer) {
@@ -171,7 +173,7 @@ namespace state {
         }
 
         // Copy data into shared region
-        std::copy(buffer, buffer + valueSize, (uint8_t *) sharedMemory);
+        std::copy(buffer, buffer + valueSize, static_cast<uint8_t *>(sharedMemory));
 
         isWholeValueDirty = true;
         _empty = false;
@@ -206,7 +208,8 @@ namespace state {
 
         // Copy data into shared region
         SharedLock lock(valueMutex);
-        std::copy(buffer, buffer + length, ((uint8_t *) sharedMemory) + offset);
+        auto bytePtr = static_cast<uint8_t *>(sharedMemory);
+        std::copy(buffer, buffer + length, bytePtr + offset);
 
         // Flag as dirty
         std::fill(dirtyFlags.begin() + offset, dirtyFlags.begin() + offset + length, true);
@@ -237,9 +240,19 @@ namespace state {
         return _empty;
     }
 
+    size_t StateKeyValue::size() {
+        return valueSize;
+    }
+
     void StateKeyValue::mapSharedMemory(void *newAddr) {
-        FullLock lock(valueMutex);
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        if (!util::isPageAligned(newAddr)) {
+            logger->error("Attempting to map non-page-aligned memory at {} for {}", newAddr, key);
+            throw std::runtime_error("Mapping misaligned shared memory");
+        }
+
+        FullLock lock(valueMutex);
 
         // Remap our existing shared memory onto this new region
         void *result = mremap(sharedMemory, 0, sharedMemSize, MREMAP_FIXED | MREMAP_MAYMOVE, newAddr);
@@ -312,11 +325,11 @@ namespace state {
             return;
         }
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr <spdlog::logger> &logger = util::getLogger();
         logger->debug("Pushing whole value for {}", key);
 
         infra::Redis *redis = infra::Redis::getThreadState();
-        redis->set(key, (uint8_t *) sharedMemory, valueSize);
+        redis->set(key, static_cast<uint8_t *>(sharedMemory), valueSize);
 
         // Reset (as we're setting the full value, we've effectively pulled)
         util::Clock &clock = util::getGlobalClock();
@@ -348,7 +361,7 @@ namespace state {
         // Shared lock for writing segments
         SharedLock sharedLock(valueMutex);
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr <spdlog::logger> &logger = util::getLogger();
         infra::Redis *redis = infra::Redis::getThreadState();
 
         // Go through all dirty flags and update accordingly
@@ -369,7 +382,7 @@ namespace state {
             redis->setRange(
                     key,
                     offset,
-                    (uint8_t *) sharedMemory + offset,
+                    static_cast<uint8_t *>(sharedMemory) + offset,
                     (size_t) size
             );
 

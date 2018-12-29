@@ -143,6 +143,7 @@ namespace wasm {
         std::string boundFunction;
 
         std::unordered_map<std::string, I32> sharedMemWasmPtrs;
+        std::unordered_map<std::string, void*> sharedMemHostPtrs;
         std::unordered_map<std::string, state::StateKeyValue*> sharedMemKVs;
 
         void parseWasm(const message::Message &msg);
