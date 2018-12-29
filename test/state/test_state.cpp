@@ -1,6 +1,7 @@
 #include <catch/catch.hpp>
 #include "utils.h"
 #include <state/state.h>
+#include <sys/mman.h>
 
 using namespace state;
 
@@ -8,7 +9,7 @@ namespace tests {
     util::TimePoint timeNow;
     static int i = 0;
 
-    StateKeyValue * setupKV(size_t size) {
+    StateKeyValue *setupKV(size_t size) {
         i++;
         const std::string stateUser = "test";
         const std::string stateKey = "state_key_" + std::to_string(i);
@@ -23,7 +24,7 @@ namespace tests {
         util::Clock &c = util::getGlobalClock();
         timeNow = c.now();
         c.setFakeNow(timeNow);
-        
+
         return kv;
     }
 
@@ -165,7 +166,7 @@ namespace tests {
         StateKeyValue *kv = setupKV(4);
         std::vector<uint8_t> values = {0, 1, 2, 3};
         util::SystemConfig &conf = util::getSystemConfig();
-        
+
         // Push and make sure reflected in redis
         kv->set(values.data());
         kv->pushFull();
@@ -180,17 +181,16 @@ namespace tests {
         kv->pull(async);
         kv->get(actual.data());
 
-        if(async) {
+        if (async) {
             REQUIRE(actual == values);
-        }
-        else {
+        } else {
             REQUIRE(actual == newValues);
         }
-        
+
         // Now advance time and make sure new value is retrieved for async
         util::Clock &c = util::getGlobalClock();
         long bigStep = conf.stateStaleThreshold + 100;
-        if(async) {
+        if (async) {
             c.setFakeNow(timeNow + std::chrono::milliseconds(bigStep));
             kv->pull(true);
             kv->get(actual.data());
@@ -264,7 +264,7 @@ namespace tests {
 
     void checkActionResetsIdleness(std::string actionType) {
         StateKeyValue *kv = setupKV(3);
-        
+
         util::Clock &c = util::getGlobalClock();
 
         // Check not idle by default (i.e. won't get cleared)
@@ -322,5 +322,27 @@ namespace tests {
 
     TEST_CASE("Check idleness reset with setSegment", "[state]") {
         checkActionResetsIdleness("setSegment");
+    }
+
+    TEST_CASE("Test mapping shared memory", "[state]") {
+        StateKeyValue *kv = setupKV(5);
+
+        std::vector<uint8_t> value = {0, 1, 2, 3, 4};
+
+        kv->set(value.data());
+
+        // Map some memory to be shared
+        size_t memSize = 2 * util::HOST_PAGE_SIZE;
+        void *newRegion = mmap(nullptr, memSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        kv->mapSharedMemory(newRegion);
+
+        // Check shared memory region new shows state
+        auto byteRegion = (uint8_t *) newRegion;
+        std::vector<uint8_t> actual(byteRegion, byteRegion + 5);
+
+        REQUIRE(actual == value);
+
+        // Now unmap the memory
+        kv->unmapSharedMemory(newRegion);
     }
 }

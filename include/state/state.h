@@ -73,7 +73,7 @@ namespace state {
 
         size_t valueSize;
         size_t sharedMemSize;
-        uint8_t *sharedMemory;
+        void *sharedMemory;
 
         std::atomic<bool> _empty;
 

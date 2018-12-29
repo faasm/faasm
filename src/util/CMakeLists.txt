@@ -8,6 +8,7 @@ add_library(util STATIC
         files.cpp
         hash.cpp
         logging.cpp
+        memory.cpp
         network.cpp
         random.cpp
         strings.cpp

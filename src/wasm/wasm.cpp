@@ -203,7 +203,7 @@ namespace wasm {
         for(auto const &p : sharedMemWasmPtrs) {
             state::StateKeyValue *kv = sharedMemKVs[p.first];
             U8 *hostMemPtr = &Runtime::memoryRef<U8>(defaultMemory, p.second);
-            kv->mapSharedMemory((void *) hostMemPtr);
+            kv->unmapSharedMemory((void *) hostMemPtr);
         }
 
         sharedMemKVs.clear();
@@ -293,18 +293,18 @@ namespace wasm {
     }
 
     I32 WasmModule::mmap(U32 length) {
-        // Work out how many pages need to be added
+        // Work out how many WAVM pages need to be added
         Uptr pagesRequested = getNumberOfPagesForBytes(length);
 
         Iptr previousPageCount = growMemory(defaultMemory, pagesRequested);
 
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         if (previousPageCount == -1) {
-            printf("mmap no memory\n");
+            logger->error("No memory for mapping");
             return -ENOMEM;
         }
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Memory grown from {} to {} pages", previousPageCount, previousPageCount + pagesRequested);
+        logger->debug("Memory grown from {} to {} WAVM pages", previousPageCount, previousPageCount + pagesRequested);
 
         // Get pointer to mapped range
         auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);
@@ -318,14 +318,16 @@ namespace wasm {
             // Create memory region for this module
             I32 wasmPtr = this->mmap(length);
 
-            // Record the pointer
-            sharedMemWasmPtrs.insert(std::pair<std::string, I32>(kv->key, wasmPtr));
-
             // Do the mapping from the central shared region
             U8 *hostMemPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmPtr);
+            if(!util::isPageAligned(hostMemPtr)) {
+                throw std::runtime_error("WAVM memory not page aligned");
+            }
+
             kv->mapSharedMemory((void *) hostMemPtr);
 
-            // Remember the kv
+            // Remember the kv and pointer
+            sharedMemWasmPtrs.insert(std::pair<std::string, I32>(kv->key, wasmPtr));
             sharedMemKVs.insert(std::pair<std::string, state::StateKeyValue *>(kv->key, kv));
         }
 

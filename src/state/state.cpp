@@ -5,9 +5,6 @@
 
 namespace state {
 
-    // Assume 4kb host page size
-    static const int HOST_PAGE_SIZE = 4096;
-
     /**
      * Key/value
      */
@@ -15,8 +12,8 @@ namespace state {
                                                                             valueSize(sizeIn) {
 
         // Work out size of required shared memory
-        size_t nHostPages = (valueSize + HOST_PAGE_SIZE - 1) / HOST_PAGE_SIZE;
-        sharedMemSize = nHostPages * HOST_PAGE_SIZE;
+        size_t nHostPages = util::getRequiredHostPages(valueSize);
+        sharedMemSize = nHostPages * util::HOST_PAGE_SIZE;
         sharedMemory = nullptr;
 
         isWholeValueDirty = false;
@@ -87,7 +84,7 @@ namespace state {
 
         // Read from the remote
         infra::Redis *redis = infra::Redis::getThreadState();
-        redis->get(key, sharedMemory, valueSize);
+        redis->get(key, (uint8_t *) sharedMemory, valueSize);
 
         util::Clock &clock = util::getGlobalClock();
         const util::TimePoint now = clock.now();
@@ -127,7 +124,7 @@ namespace state {
 
         SharedLock lock(valueMutex);
 
-        std::copy(sharedMemory, sharedMemory + valueSize, buffer);
+        std::copy((uint8_t *) sharedMemory, ((uint8_t *) sharedMemory) + valueSize, buffer);
     }
 
     uint8_t *StateKeyValue::get() {
@@ -135,7 +132,7 @@ namespace state {
 
         SharedLock lock(valueMutex);
 
-        return sharedMemory;
+        return (uint8_t *) sharedMemory;
     }
 
     void StateKeyValue::getSegment(long offset, uint8_t *buffer, size_t length) {
@@ -151,7 +148,8 @@ namespace state {
             throw std::runtime_error("Out of bounds read");
         }
 
-        std::copy(sharedMemory + offset, sharedMemory + offset + length, buffer);
+        auto bytePtr = (uint8_t *) sharedMemory;
+        std::copy(bytePtr + offset, bytePtr + offset + length, buffer);
     }
 
     uint8_t *StateKeyValue::getSegment(long offset, long len) {
@@ -159,7 +157,7 @@ namespace state {
 
         SharedLock lock(valueMutex);
 
-        return sharedMemory + offset;
+        return ((uint8_t *) sharedMemory) + offset;
     }
 
     void StateKeyValue::set(const uint8_t *buffer) {
@@ -173,7 +171,7 @@ namespace state {
         }
 
         // Copy data into shared region
-        std::copy(buffer, buffer + valueSize, sharedMemory);
+        std::copy(buffer, buffer + valueSize, (uint8_t *) sharedMemory);
 
         isWholeValueDirty = true;
         _empty = false;
@@ -208,7 +206,7 @@ namespace state {
 
         // Copy data into shared region
         SharedLock lock(valueMutex);
-        std::copy(buffer, buffer + length, sharedMemory + offset);
+        std::copy(buffer, buffer + length, ((uint8_t *) sharedMemory) + offset);
 
         // Flag as dirty
         std::fill(dirtyFlags.begin() + offset, dirtyFlags.begin() + offset + length, true);
@@ -231,14 +229,6 @@ namespace state {
 
                 // Set flag to say this is effectively new again
                 _empty = true;
-
-                // Unmap shared region
-                int result = munmap((void *) sharedMemory, sharedMemSize);
-                if (result == -1) {
-                    logger->error("Failed to unmap shared memory. errno: {}", errno);
-
-                    throw std::runtime_error("Failed unmapping KV memory");
-                }
             }
         }
     }
@@ -249,25 +239,39 @@ namespace state {
 
     void StateKeyValue::mapSharedMemory(void *newAddr) {
         FullLock lock(valueMutex);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Remap our existing shared memory onto this new region
-        void *result = mremap((void *) sharedMemory, 0, sharedMemSize, MREMAP_FIXED | MREMAP_MAYMOVE, newAddr);
+        void *result = mremap(sharedMemory, 0, sharedMemSize, MREMAP_FIXED | MREMAP_MAYMOVE, newAddr);
         if (result == MAP_FAILED) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            logger->debug("Failed to map shared memory. errno: {}", errno);
+            logger->error("Failed to map shared memory at {} with size {}. errno: {}",
+                          sharedMemory, sharedMemSize, errno);
 
             throw std::runtime_error("Failed mapping shared memory");
+        }
+
+        if (newAddr != result) {
+            logger->error("New mapped addr doesn't match required {} != {}",
+                          newAddr, result);
+
+            throw std::runtime_error("Misaligned shared memory mapping");
         }
     }
 
     void StateKeyValue::unmapSharedMemory(void *mappedAddr) {
         FullLock lock(valueMutex);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        if (!util::isPageAligned(mappedAddr)) {
+            logger->error("Attempting to unmap non-page-aligned memory at {} for {}", mappedAddr, key);
+            throw std::runtime_error("Unmapping misaligned shared memory");
+        }
 
         // Unmap the current memory so it can be reused
         int result = munmap(mappedAddr, sharedMemSize);
         if (result == -1) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            logger->debug("Failed to unmap shared memory. errno: {}", errno);
+            logger->error("Failed to unmap shared memory at {} with size {}. errno: {}", mappedAddr, sharedMemSize,
+                          errno);
 
             throw std::runtime_error("Failed unmapping shared memory");
         }
@@ -277,17 +281,14 @@ namespace state {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Create shared memory region
-        void *newMemory = mmap(nullptr, sharedMemSize, PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-        if (newMemory == MAP_FAILED) {
-            logger->debug("Mmapping of storage failed. errno: {}", errno);
+        sharedMemory = mmap(nullptr, sharedMemSize, PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+        if (sharedMemory == MAP_FAILED) {
+            logger->debug("Mmapping of storage size {} failed. errno: {}", sharedMemSize, errno);
 
             throw std::runtime_error("Failed mapping memory for KV");
         }
 
-        logger->debug("Mmapped {} pages of shared storage for {}", sharedMemSize / HOST_PAGE_SIZE, key);
-
-        // Set up value in shared memory region
-        sharedMemory = reinterpret_cast<uint8_t *>(newMemory);
+        logger->debug("Mmapped {} pages of shared storage for {}", sharedMemSize / util::HOST_PAGE_SIZE, key);
 
         // Set up dirty flags
         dirtyFlags.resize(valueSize);
@@ -315,7 +316,7 @@ namespace state {
         logger->debug("Pushing whole value for {}", key);
 
         infra::Redis *redis = infra::Redis::getThreadState();
-        redis->set(key, sharedMemory, valueSize);
+        redis->set(key, (uint8_t *) sharedMemory, valueSize);
 
         // Reset (as we're setting the full value, we've effectively pulled)
         util::Clock &clock = util::getGlobalClock();
@@ -368,7 +369,7 @@ namespace state {
             redis->setRange(
                     key,
                     offset,
-                    sharedMemory + offset,
+                    (uint8_t *) sharedMemory + offset,
                     (size_t) size
             );
 
