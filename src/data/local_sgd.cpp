@@ -47,13 +47,6 @@ namespace data {
         FaasmMemory memory;
         SgdParams params = readParamsFromState(&memory, PARAMS_KEY, REUTERS_FULL_ASYNC);
 
-        // Get the weights
-        size_t nWeightBytes = params.nWeights * sizeof(double);
-        uint8_t *weights = memory.readState(WEIGHTS_KEY, nWeightBytes, REUTERS_FULL_ASYNC);
-        double *weightsDbl = reinterpret_cast<double *>(weights);
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->info("Weights before {}\n", weightsDbl[0]);
-
         int startIdx = batchNumber * params.batchSize;
         int endIdx = std::min(startIdx + params.batchSize, params.nTrain - 1);
 
