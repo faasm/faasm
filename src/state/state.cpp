@@ -229,11 +229,16 @@ namespace state {
                 const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 logger->debug("Clearing unused value {}", key);
 
-               // Set flag to say this is effectively new again
+                // Set flag to say this is effectively new again
                 _empty = true;
 
                 // Unmap shared region
-                munmap((void*)sharedMemory, sharedMemSize);
+                int result = munmap((void *) sharedMemory, sharedMemSize);
+                if (result == -1) {
+                    logger->error("Failed to unmap shared memory. errno: {}", errno);
+
+                    throw std::runtime_error("Failed unmapping KV memory");
+                }
             }
         }
     }
@@ -242,12 +247,12 @@ namespace state {
         return _empty;
     }
 
-    void StateKeyValue::mapSharedMemory(void * newAddr) {
+    void StateKeyValue::mapSharedMemory(void *newAddr) {
         FullLock lock(valueMutex);
 
         // Remap our existing shared memory onto this new region
-        void *result = mremap((void*)sharedMemory, 0, sharedMemSize, MREMAP_FIXED | MREMAP_MAYMOVE, newAddr);
-        if(*(int*)result == -1) {
+        void *result = mremap((void *) sharedMemory, 0, sharedMemSize, MREMAP_FIXED | MREMAP_MAYMOVE, newAddr);
+        if (result == MAP_FAILED) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->debug("Failed to map shared memory. errno: {}", errno);
 
@@ -255,9 +260,31 @@ namespace state {
         }
     }
 
+    void StateKeyValue::unmapSharedMemory(void *mappedAddr) {
+        FullLock lock(valueMutex);
+
+        // Unmap the current memory so it can be reused
+        int result = munmap(mappedAddr, sharedMemSize);
+        if (result == -1) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->debug("Failed to unmap shared memory. errno: {}", errno);
+
+            throw std::runtime_error("Failed unmapping shared memory");
+        }
+    }
+
     void StateKeyValue::initialiseStorage() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         // Create shared memory region
-        void* newMemory = mmap(nullptr, sharedMemSize, PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+        void *newMemory = mmap(nullptr, sharedMemSize, PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+        if (newMemory == MAP_FAILED) {
+            logger->debug("Mmapping of storage failed. errno: {}", errno);
+
+            throw std::runtime_error("Failed mapping memory for KV");
+        }
+
+        logger->debug("Mmapped {} pages of shared storage for {}", sharedMemSize / HOST_PAGE_SIZE, key);
 
         // Set up value in shared memory region
         sharedMemory = reinterpret_cast<uint8_t *>(newMemory);

@@ -19,8 +19,12 @@ int main() {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
     FaasmMemory memory;
-    // int batchSize = 69000;
+    // 2 threads
     int batchSize = 400000;
+
+    // 5 threads
+    //int batchSize = REUTERS_N_EXAMPLES/5;
+
     int epochs = 30;
     SgdParams p = setUpReutersParams(&memory, batchSize, epochs);
 
@@ -28,13 +32,14 @@ int main() {
 
     // Initialise weights to zero
     Eigen::MatrixXd weights = faasm::zeroMatrix(1, p.nWeights);
-    writeMatrixToState(&memory, WEIGHTS_KEY, weights, true);
+    writeMatrixToState(&memory, WEIGHTS_KEY, weights, REUTERS_FULL_ASYNC);
 
     // Run each epoch
     std::vector<std::pair<double, double>> losses;
     double startTs = faasm::getSecondsSinceEpoch();
     for (int epoch = 0; epoch < p.nEpochs; epoch++) {
         logger->info("Epoch {} start", epoch);
+
         data::clear();
 
         data::runPool(p, epoch);
@@ -53,8 +58,8 @@ int main() {
     }
 
     std::ofstream resultFile;
-    resultFile.open ("measurement/losses.txt");
-    for(auto loss : losses) {
+    resultFile.open("measurement/losses.txt");
+    for (auto loss : losses) {
         resultFile << loss.first << " " << loss.second << std::endl;
     }
     resultFile.close();

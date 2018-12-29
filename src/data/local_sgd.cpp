@@ -16,7 +16,7 @@ namespace data {
 
     double getRMSE(const SgdParams &p) {
         double totalError = 0;
-        for(auto e : errors) {
+        for (auto e : errors) {
             totalError += e;
         }
 
@@ -35,8 +35,8 @@ namespace data {
         }
 
         // Wait for threads to finish
-        for(auto& t : threads) {
-            if(!t.joinable()) {
+        for (auto &t : threads) {
+            if (!t.joinable()) {
                 throw std::runtime_error("Thread not joinable");
             }
             t.join();
@@ -45,14 +45,22 @@ namespace data {
 
     void run(int epoch, int batchNumber) {
         FaasmMemory memory;
+        SgdParams params = readParamsFromState(&memory, PARAMS_KEY, REUTERS_FULL_ASYNC);
 
-        SgdParams params = readParamsFromState(&memory, PARAMS_KEY, true);
+        // Get the weights
+        size_t nWeightBytes = params.nWeights * sizeof(double);
+        uint8_t *weights = memory.readState(WEIGHTS_KEY, nWeightBytes, REUTERS_FULL_ASYNC);
+        double *weightsDbl = reinterpret_cast<double *>(weights);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->info("Weights before {}\n", weightsDbl[0]);
 
         int startIdx = batchNumber * params.batchSize;
         int endIdx = std::min(startIdx + params.batchSize, params.nTrain - 1);
 
-        Map<SparseMatrix<double>> inputs = readSparseMatrixColumnsFromState(&memory, INPUTS_KEY, startIdx, endIdx, true);
-        Map<MatrixXd> outputs = readMatrixColumnsFromState(&memory, OUTPUTS_KEY, params.nTrain, startIdx, endIdx, 1, true);
+        Map<SparseMatrix<double>> inputs = readSparseMatrixColumnsFromState(&memory, INPUTS_KEY, startIdx, endIdx,
+                                                                            REUTERS_FULL_ASYNC);
+        Map<MatrixXd> outputs = readMatrixColumnsFromState(&memory, OUTPUTS_KEY, params.nTrain, startIdx, endIdx, 1,
+                                                           REUTERS_FULL_ASYNC);
 
         // Perform the update
         MatrixXd actual = hingeLossWeightUpdate(&memory, params, epoch, inputs, outputs);

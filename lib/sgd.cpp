@@ -85,9 +85,9 @@ namespace faasm {
             for (Map<SparseMatrix<double>>::InnerIterator it(inputs, col); it; ++it) {
                 // Get the value and associated weight
                 double thisValue = it.value();
-
-                double thisWeight = weightDataBuffer[it.row()];
-                int thisFeatureCount = featureCountBuffer[it.row()];
+                int thisFeature = it.row();
+                double thisWeight = weightDataBuffer[thisFeature];
+                int thisFeatureCount = featureCountBuffer[thisFeature];
 
                 // If misclassified, hinge loss is active
                 if (isMisclassified) {
@@ -101,7 +101,7 @@ namespace faasm {
                 thisWeight *= (1 - (sgdParams.learningRate / thisFeatureCount));
 
                 // Write update memory array
-                weightDataBuffer[it.row()] = thisWeight;
+                weightDataBuffer[thisFeature] = thisWeight;
 
                 // Update state if not running fully async
                 if (!sgdParams.fullAsync) {

@@ -142,7 +142,8 @@ namespace wasm {
         std::string boundUser;
         std::string boundFunction;
 
-        std::unordered_map<std::string, I32> mmapedKeys;
+        std::unordered_map<std::string, I32> sharedMemWasmPtrs;
+        std::unordered_map<std::string, state::StateKeyValue*> sharedMemKVs;
 
         void parseWasm(const message::Message &msg);
     };

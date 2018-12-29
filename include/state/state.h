@@ -37,6 +37,8 @@ namespace state {
 
         void mapSharedMemory(void* newAddr);
 
+        void unmapSharedMemory(void *mappedAddr);
+
         void pull(bool async);
 
         void pushFull();

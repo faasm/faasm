@@ -29,4 +29,14 @@ int main() {
     int *copy2 = reinterpret_cast<int *>(mappedRegion3);
 
     printf("%i  %i  %i\n", *original, *copy1, *copy2);
+
+    // Unmap one region to anonymous
+    munmap(mappedRegion2, memSize);
+    mmap(mappedRegion2, memSize, PROT_WRITE, MAP_PRIVATE| MAP_ANONYMOUS, -1, 0);
+    *copy1 = 99;
+
+    // Update original and check value isn't passed to unmapped
+    *original = 66;
+
+    printf("%i  %i  %i\n", *original, *copy1, *copy2);
 }

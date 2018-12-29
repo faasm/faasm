@@ -199,8 +199,15 @@ namespace wasm {
             std::copy(cleanMemory, cleanMemory + cleanMemorySize, baseAddr);
         }
 
-        // Clear mmaped keys
-        mmapedKeys.clear();
+        // Unmap shared memory regions
+        for(auto const &p : sharedMemWasmPtrs) {
+            state::StateKeyValue *kv = sharedMemKVs[p.first];
+            U8 *hostMemPtr = &Runtime::memoryRef<U8>(defaultMemory, p.second);
+            kv->mapSharedMemory((void *) hostMemPtr);
+        }
+
+        sharedMemKVs.clear();
+        sharedMemWasmPtrs.clear();
 
         prof::logEndTimer("restore-mem", t);
     }
@@ -307,20 +314,23 @@ namespace wasm {
 
     I32 WasmModule::mmapKey(state::StateKeyValue *kv, U32 length) {
         // See if we need to initialise this mapping or if it already exists
-        if(mmapedKeys.count(kv->key) == 0) {
+        if(sharedMemWasmPtrs.count(kv->key) == 0) {
             // Create memory region for this module
             I32 wasmPtr = this->mmap(length);
 
             // Record the pointer
-            mmapedKeys.insert(std::pair<std::string, I32>(kv->key, wasmPtr));
+            sharedMemWasmPtrs.insert(std::pair<std::string, I32>(kv->key, wasmPtr));
 
             // Do the mapping from the central shared region
             U8 *hostMemPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmPtr);
             kv->mapSharedMemory((void *) hostMemPtr);
+
+            // Remember the kv
+            sharedMemKVs.insert(std::pair<std::string, state::StateKeyValue *>(kv->key, kv));
         }
 
         // Return the wasm pointer
-        return mmapedKeys[kv->key];
+        return sharedMemWasmPtrs[kv->key];
     }
 
 }
