@@ -51,10 +51,18 @@ namespace faasm {
         return s;
     }
 
-    MatrixXd hingeLossWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int epoch,
-                                   const Map<SparseMatrix<double>> &inputs, const Map<MatrixXd> &outputs) {
+    void hingeLossWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int epoch, int batchNumber,
+                               int startIdx, int endIdx) {
 
-        // Read in the weights initially
+        // Load this batch of inputs
+        Map<const SparseMatrix<double>> inputs = readSparseMatrixColumnsFromState(memory, INPUTS_KEY,
+                                                                            startIdx, endIdx, true);
+
+        // Load this batch of outputs
+        Map<const MatrixXd> outputs = readMatrixColumnsFromState(memory, OUTPUTS_KEY, sgdParams.nTrain,
+                                                           startIdx, endIdx, 1, true);
+
+        // Load the weights
         size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
         uint8_t *weightDataByteBuffer = memory->readState(WEIGHTS_KEY, nWeightBytes, true);
 
@@ -67,25 +75,27 @@ namespace faasm {
 
         // Iterate through all training examples (i.e. columns)
         for (int col = 0; col < inputs.outerSize(); ++col) {
-            // Get input and output associated with this example
             double thisOutput = outputs.coeff(0, col);
 
             // Work out the prediction for this example. This is the dot product of the weights and
             // the (sparse) input example (i.e. column of the input matrix). This can be done with
             // eigen multiplication operation but we do it here in a loop
             double thisPrediction = 0;
-            for (Map<SparseMatrix<double>>::InnerIterator it(inputs, col); it; ++it) {
-                thisPrediction += (it.value() * weightDataBuffer[it.row()]);
+            for (Map<const SparseMatrix<double>>::InnerIterator it(inputs, col); it; ++it) {
+                double val = it.value();
+                long row = it.row();
+                double weight = weightDataBuffer[row];
+                thisPrediction += (weight * val);
             }
 
             // If the prediction multiplied by the output is less than one, it's misclassified
             bool isMisclassified = (thisOutput * thisPrediction) < 1;
 
             // Iterate through all non-zero input values in this column and update the relevant weight accordingly
-            for (Map<SparseMatrix<double>>::InnerIterator it(inputs, col); it; ++it) {
+            for (Map<const SparseMatrix<double>>::InnerIterator it(inputs, col); it; ++it) {
                 // Get the value and associated weight
                 double thisValue = it.value();
-                int thisFeature = it.row();
+                long thisFeature = it.row();
                 double thisWeight = weightDataBuffer[thisFeature];
                 int thisFeatureCount = featureCountBuffer[thisFeature];
 
@@ -95,7 +105,7 @@ namespace faasm {
                 }
 
                 // Update weight regardless of classification including scaling based on how common it is
-                if(thisFeatureCount == 0) {
+                if (thisFeatureCount == 0) {
                     throw std::runtime_error("Should not have a zero feature count for a feature we have a value for.");
                 }
                 thisWeight *= (1 - (sgdParams.learningRate / thisFeatureCount));
@@ -118,14 +128,20 @@ namespace faasm {
         }
 
         // Recalculate all predictions
-        Map<RowVectorXd> weights(weightDataBuffer, sgdParams.nWeights);
+        Map<const RowVectorXd> weights(weightDataBuffer, sgdParams.nWeights);
         MatrixXd prediction = weights * inputs;
 
-        return prediction;
+        // Persist error
+        writeHingeError(memory, sgdParams, batchNumber, outputs, prediction);
     }
 
-    MatrixXd leastSquaresWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams,
-                                      const Map<SparseMatrix<double>> &inputs, const Map<MatrixXd> &outputs) {
+    void leastSquaresWeightUpdate(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber,
+                                  int startIdx, int endIdx) {
+
+        // Always load the inputs and outputs async (as they should be constant)
+        Map<const SparseMatrix<double>> inputs = readSparseMatrixColumnsFromState(memory, INPUTS_KEY, startIdx, endIdx, true);
+        Map<const MatrixXd> outputs = readMatrixColumnsFromState(memory, OUTPUTS_KEY, sgdParams.nTrain, startIdx, endIdx, 1,
+                                                           true);
 
         auto weightData = new double[sgdParams.nWeights];
         readMatrixFromState(memory, WEIGHTS_KEY, weightData, 1, sgdParams.nWeights, true);
@@ -163,7 +179,8 @@ namespace faasm {
 
         delete[] weightData;
 
-        return prediction;
+        // Persist error for these examples
+        writeSquaredError(memory, sgdParams, batchNumber, outputs, prediction);
     }
 
     void zeroDoubleArray(FaasmMemory *memory, const char *key, long len, bool async) {
@@ -252,7 +269,7 @@ namespace faasm {
             // If flag is zero, we've not finished
             isFinished[i] = flag > 0;
 
-            if(flag == 0) {
+            if (flag == 0) {
                 allFinished = false;
             }
         }

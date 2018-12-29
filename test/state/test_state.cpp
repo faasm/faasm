@@ -325,24 +325,88 @@ namespace tests {
     }
 
     TEST_CASE("Test mapping shared memory", "[state]") {
+        // Set up the KV
         StateKeyValue *kv = setupKV(5);
-
         std::vector<uint8_t> value = {0, 1, 2, 3, 4};
-
         kv->set(value.data());
 
-        // Map some memory to be shared
-        size_t memSize = 2 * util::HOST_PAGE_SIZE;
-        void *newRegion = mmap(nullptr, memSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-        kv->mapSharedMemory(newRegion);
+        // Get a pointer to the shared memory and update
+        uint8_t *sharedRegion = kv->get();
+        sharedRegion[0] = 5;
+        sharedRegion[2] = 5;
 
-        // Check shared memory region new shows state
-        auto byteRegion = (uint8_t *) newRegion;
-        std::vector<uint8_t> actual(byteRegion, byteRegion + 5);
+        // Map some shared memory areas
+        int memSize = 2 * util::HOST_PAGE_SIZE;
+        void *mappedRegionA = mmap(nullptr, memSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        auto byteRegionA = static_cast<uint8_t *>(mappedRegionA);
+        kv->mapSharedMemory(mappedRegionA);
+        void *mappedRegionB = mmap(nullptr, memSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        kv->mapSharedMemory(mappedRegionB);
+        auto byteRegionB = static_cast<uint8_t *>(mappedRegionB);
 
-        REQUIRE(actual == value);
+        // Check shared memory regions reflect state
 
-        // Now unmap the memory
-        kv->unmapSharedMemory(newRegion);
+        std::vector<uint8_t> expected = {5, 1, 5, 3, 4};
+        for (int i = 0; i < 5; i++) {
+            REQUIRE(byteRegionA[i] == expected.at(i));
+            REQUIRE(byteRegionB[i] == expected.at(i));
+        }
+
+        // Now update the pointer directly from both
+        byteRegionA[2] = 6;
+        byteRegionB[3] = 7;
+        sharedRegion[4] = 8;
+        std::vector<uint8_t> expected2 = {5, 1, 6, 7, 8};
+        for (int i = 0; i < 5; i++) {
+            REQUIRE(sharedRegion[i] == expected2.at(i));
+            REQUIRE(byteRegionA[i] == expected2.at(i));
+            REQUIRE(byteRegionB[i] == expected2.at(i));
+        }
+
+        // Now unmap the memory of one shared region
+        kv->unmapSharedMemory(mappedRegionA);
+
+        // Check original and shared regions still intact
+        for (int i = 0; i < 5; i++) {
+            REQUIRE(sharedRegion[i] == expected2.at(i));
+            REQUIRE(byteRegionB[i] == expected2.at(i));
+        }
+    }
+
+    TEST_CASE("Test mapping shared memory offsets", "[state]") {
+        // Set up the KV
+        StateKeyValue *kv = setupKV(7);
+        std::vector<uint8_t> value = {0, 1, 2, 3, 4, 5, 6};
+        kv->set(value.data());
+
+        // Map a shared region
+        void *mappedRegionA = mmap(nullptr, util::HOST_PAGE_SIZE, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        void *mappedRegionB = mmap(nullptr, util::HOST_PAGE_SIZE, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        kv->mapSharedMemory(mappedRegionA);
+        kv->mapSharedMemory(mappedRegionB);
+        auto byteRegionA = static_cast<uint8_t *>(mappedRegionA);
+        auto byteRegionB = static_cast<uint8_t *>(mappedRegionB);
+
+        // Update segments and check changes reflected
+        uint8_t *full = kv->get();
+        uint8_t *segmentA = kv->getSegment(1, 2);
+        uint8_t *segmentB = kv->getSegment(4, 3);
+
+        segmentA[1] = 8;
+        segmentB[2] = 8;
+
+        std::vector<uint8_t > expected = {0, 1, 8, 3, 4, 5, 8};
+        for (int i = 0; i < 5; i++) {
+            REQUIRE(full[i] == expected.at(i));
+            REQUIRE(byteRegionA[i] == expected.at(i));
+            REQUIRE(byteRegionB[i] == expected.at(i));
+        }
+
+        // Update shared regions and check reflected in segments
+        byteRegionB[1] = 9;
+        REQUIRE(segmentA[0] == 9);
+
+        byteRegionA[5] = 1;
+        REQUIRE(segmentB[1] == 1);
     }
 }

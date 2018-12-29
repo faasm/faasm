@@ -19,20 +19,20 @@ int main() {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
     FaasmMemory memory;
-    // 2 threads
-    int batchSize = 400000;
-
-    // 5 threads
-    //int batchSize = REUTERS_N_EXAMPLES/5;
+    int nBatches = 4;
+    int batchSize = (nBatches + REUTERS_N_EXAMPLES - 1) / REUTERS_N_EXAMPLES;
 
     int epochs = 30;
     SgdParams p = setUpReutersParams(&memory, batchSize, epochs);
 
-    logger->info("Running SVM with {} threads", p.nBatches);
+    logger->info("Running SVM with {} threads (batch size {})", p.nBatches, p.batchSize);
 
     // Initialise weights to zero
     Eigen::MatrixXd weights = faasm::zeroMatrix(1, p.nWeights);
     writeMatrixToState(&memory, WEIGHTS_KEY, weights, REUTERS_FULL_ASYNC);
+
+    // Clear out existing state
+    faasm::zeroLosses(&memory, p);
 
     // Run each epoch
     std::vector<std::pair<double, double>> losses;
@@ -40,7 +40,8 @@ int main() {
     for (int epoch = 0; epoch < p.nEpochs; epoch++) {
         logger->info("Epoch {} start", epoch);
 
-        data::clear();
+        faasm::zeroErrors(&memory, p);
+        faasm::zeroFinished(&memory, p);
 
         data::runPool(p, epoch);
 

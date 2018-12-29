@@ -117,12 +117,12 @@ namespace util {
     private:
         bool isFake = false;
         TimePoint fakeNow;
-    };
 
+    };
     Clock& getGlobalClock();
 
     // Assume 4kb host page size
-    static const int HOST_PAGE_SIZE = sysconf(_SC_PAGESIZE);;
+    static const long HOST_PAGE_SIZE = sysconf(_SC_PAGESIZE);;
 
     bool isPageAligned(void *ptr);
 

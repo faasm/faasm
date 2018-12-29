@@ -7,24 +7,10 @@
 #include "faasm/time.h"
 
 namespace data {
-    static std::mutex errorsMutex;
-    static std::vector<double> errors;
-
-    void clear() {
-        errors.clear();
-    }
-
     double getRMSE(const SgdParams &p) {
-        double totalError = 0;
-        for (auto e : errors) {
-            totalError += e;
-        }
-
-        return std::sqrt(totalError) / std::sqrt(p.nTrain);
-    }
-
-    std::vector<double> getErrors() {
-        return errors;
+        FaasmMemory memory;
+        double rmse = faasm::readRootMeanSquaredError(&memory, p);
+        return rmse;
     }
 
     void runPool(const SgdParams &params, int epoch) {
@@ -50,18 +36,7 @@ namespace data {
         int startIdx = batchNumber * params.batchSize;
         int endIdx = std::min(startIdx + params.batchSize, params.nTrain - 1);
 
-        Map<SparseMatrix<double>> inputs = readSparseMatrixColumnsFromState(&memory, INPUTS_KEY, startIdx, endIdx,
-                                                                            REUTERS_FULL_ASYNC);
-        Map<MatrixXd> outputs = readMatrixColumnsFromState(&memory, OUTPUTS_KEY, params.nTrain, startIdx, endIdx, 1,
-                                                           REUTERS_FULL_ASYNC);
-
         // Perform the update
-        MatrixXd actual = hingeLossWeightUpdate(&memory, params, epoch, inputs, outputs);
-
-        // Calculate the error and add to the list
-        double error = calculateHingeError(actual, outputs);
-
-        std::unique_lock<std::mutex> lock(errorsMutex);
-        errors.push_back(error);
+        hingeLossWeightUpdate(&memory, params, epoch, batchNumber, startIdx, endIdx);
     }
 }

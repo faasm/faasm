@@ -23,6 +23,10 @@ enable_testing()
 add_definitions(-DDLL_EXPORT=)
 add_definitions(-DDLL_IMPORT=)
 
+# Turn off eigen parallelisation
+# add_definitions(-DEIGEN_DONT_PARALLELIZE)
+# add_definitions(-DEIGEN_NO_MALLOC)
+
 set(FAASM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
 set(FAASM_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lib)

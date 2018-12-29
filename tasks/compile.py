@@ -165,9 +165,9 @@ def compile_libfaasm():
 
 def compile_eigen():
     extract_dir, build_dir = download_proj(
-        "http://bitbucket.org/eigen/eigen/get/3.3.5.tar.gz",
-        "3.3.5",
-        extract_file="eigen-eigen-b3f3d4950030"
+        "http://bitbucket.org/eigen/eigen/get/3.3.7.tar.gz",
+        "3.3.7",
+        extract_file="eigen-eigen-323c052e1731"
     )
 
     call("cmake -DCMAKE_INSTALL_PREFIX={} ..".format(SYSROOT), shell=True, cwd=build_dir)

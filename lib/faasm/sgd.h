@@ -49,19 +49,21 @@ namespace faasm {
 
     SgdParams readParamsFromState(FaasmMemory *memory, const char *keyName, bool async = false);
 
-    MatrixXd hingeLossWeightUpdate(
+    void hingeLossWeightUpdate(
             FaasmMemory *memory,
             const SgdParams &sgdParams,
             int epoch,
-            const Map<SparseMatrix<double>> &inputs,
-            const Map<MatrixXd> &outputs
+            int batchNumber,
+            int startIdx,
+            int endIdx
     );
 
-    MatrixXd leastSquaresWeightUpdate(
+    void leastSquaresWeightUpdate(
             FaasmMemory *memory,
             const SgdParams &sgdParams,
-            const Map<SparseMatrix<double>> &inputs,
-            const Map<MatrixXd> &outputs
+            int batchNumber,
+            int startIdx,
+            int endIdx
     );
 
     void zeroErrors(FaasmMemory *memory, const SgdParams &sgdParams);

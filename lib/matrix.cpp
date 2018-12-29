@@ -132,7 +132,7 @@ namespace faasm {
         memory->writeState(keys.sizeKey, sizeBytes, nSizeBytes, async);
     }
 
-    Map<SparseMatrix<double>> SparseMatrixSerialiser::readFromBytes(
+    Map<const SparseMatrix<double>> SparseMatrixSerialiser::readFromBytes(
             const SparseSizes &sizes,
             uint8_t *outerBytes,
             uint8_t *innerBytes,
@@ -144,7 +144,7 @@ namespace faasm {
         auto valuePtr = reinterpret_cast<double *>(valuesBytes);
 
         // Use eigen to import from the buffers
-        Map<SparseMatrix<double>> mat(
+        Map<const SparseMatrix<double>> mat(
                 sizes.rows,
                 sizes.cols,
                 sizes.nNonZeros,
@@ -160,8 +160,8 @@ namespace faasm {
         delete[] nonZeroCounts;
     }
 
-    void writeSparseMatrixToState(FaasmMemory *memory, const char *key, const SparseMatrix<double> &mat,
-                                  bool async) {
+    void writeSparseMatrixToState(FaasmMemory *memory, const char *key,
+                                  const SparseMatrix<double> &mat, bool async) {
         SparseMatrixSerialiser serialiser(mat);
         serialiser.writeToState(memory, key, async);
     }
@@ -174,7 +174,7 @@ namespace faasm {
         return *sizes;
     }
 
-    Map<SparseMatrix<double>> readSparseMatrixFromState(FaasmMemory *memory, const char *key, bool async) {
+    Map<const SparseMatrix<double>> readSparseMatrixFromState(FaasmMemory *memory, const char *key, bool async) {
         SparseKeys keys = getSparseKeys(key);
         SparseSizes sizes = readSparseSizes(memory, keys, async);
 
@@ -198,8 +198,8 @@ namespace faasm {
     /**
      *  Reads a subset of a sparse matrix from state. The start/ end columns are *exclusive*
      */
-    Map<SparseMatrix<double>> readSparseMatrixColumnsFromState(FaasmMemory *memory, const char *key,
-                                                          long colStart, long colEnd, bool async) {
+    Map<const SparseMatrix<double>> readSparseMatrixColumnsFromState(FaasmMemory *memory, const char *key,
+                                                                     long colStart, long colEnd, bool async) {
         // This depends heavily on the Eigen sparse matrix representation which is documented here:
         // https://eigen.tuxfamily.org/dox/group__TutorialSparse.html
 
@@ -222,14 +222,18 @@ namespace faasm {
         }
 
         // Load the outer indices (one longer than the number of columns)
-        size_t outerBytes = colBytes + sizeof(int);
+        long nOuterIndices = nCols + 1;
+        size_t outerBytes = nOuterIndices * sizeof(int);
         uint8_t *outerBuffer = memory->readStateOffset(keys.outerKey, sizes.outerLen, colOffset, outerBytes, async);
         int *outerIndices = reinterpret_cast<int *>(outerBuffer);
-
-        // We need to rebase the outer indices to fit our newly created matrix
         int startIdx = outerIndices[0];
+
+        // We need to get these indices RELATIVE to the first index to fit our newly created matrix
+        // BUT: we may be reusing THIS SAME ARRAY of outer indices so we must copy it first before modifying
+        auto outerIndicesRebased = new int[nOuterIndices];
+        std::copy(outerIndices, outerIndices + nOuterIndices, outerIndicesRebased);
         for (int i = 0; i <= nCols; i++) {
-            outerIndices[i] -= startIdx;
+            outerIndicesRebased[i] -= startIdx;
         }
 
         // Read in the values and inner indices
@@ -241,6 +245,7 @@ namespace faasm {
         // Do the reading from state
         uint8_t *valueBytes = memory->readStateOffset(keys.valueKey, sizes.valuesLen, offsetValueBytes, nValueBytes,
                                                       async);
+
         uint8_t *innerBytes = memory->readStateOffset(keys.innerKey, sizes.innerLen, offsetInnerBytes, nInnerBytes,
                                                       async);
 
@@ -248,11 +253,11 @@ namespace faasm {
         auto innerPtr = reinterpret_cast<int *>(innerBytes);
 
         // Use eigen to import from the buffers
-        Map<SparseMatrix<double>> mat(
+        Map<const SparseMatrix<double>> mat(
                 sizes.rows,
                 nCols,
                 nValues,
-                outerIndices,
+                outerIndicesRebased,
                 innerPtr,
                 valuePtr
         );
@@ -274,13 +279,13 @@ namespace faasm {
     /**
      * Reads a matrix from state
      */
-    Map<MatrixXd> readMatrixFromState(FaasmMemory *memory, const char *key, long rows, long cols, bool async) {
+    Map<const MatrixXd> readMatrixFromState(FaasmMemory *memory, const char *key, long rows, long cols, bool async) {
         long nDoubles = rows * cols;
 
         auto buffer = new double[nDoubles];
         readMatrixFromState(memory, key, buffer, rows, cols, async);
 
-        Map<MatrixXd> mat(buffer, rows, cols);
+        Map<const MatrixXd> mat(buffer, rows, cols);
 
         return mat;
     }
@@ -328,8 +333,8 @@ namespace faasm {
     /**
      * Reads a subset of full columns from state. Columns are *exclusive*
      */
-    Map<MatrixXd> readMatrixColumnsFromState(FaasmMemory *memory, const char *key, long totalCols, long colStart,
-                                        long colEnd, long nRows, bool async) {
+    Map<const MatrixXd> readMatrixColumnsFromState(FaasmMemory *memory, const char *key, long totalCols, long colStart,
+                                                   long colEnd, long nRows, bool async) {
         long nCols = colEnd - colStart;
 
         long startIdx = matrixByteIndex(0, colStart, nRows);
@@ -337,10 +342,10 @@ namespace faasm {
 
         long bufferLen = endIdx - startIdx;
         long totalLen = totalCols * nRows * sizeof(double);
-        uint8_t * buffer = memory->readStateOffset(key, totalLen, startIdx, bufferLen, async);
+        uint8_t *buffer = memory->readStateOffset(key, totalLen, startIdx, bufferLen, async);
 
         auto doubleArray = reinterpret_cast<double *>(buffer);
-        Map<MatrixXd> result(doubleArray, nRows, nCols);
+        Map<const MatrixXd> result(doubleArray, nRows, nCols);
 
         return result;
     }

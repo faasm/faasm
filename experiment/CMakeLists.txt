@@ -1,2 +1,2 @@
 
-add_executable(experiment experiment.cpp)
+add_executable(mem_experiment mem_experiment.cpp)

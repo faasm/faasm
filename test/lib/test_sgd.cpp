@@ -74,7 +74,7 @@ namespace tests {
         REQUIRE(actualOutputs.cols() == params.nTrain);
     }
 
-    void checkLossUpdates(LossType lossType) {
+    void checkLossUpdates(LossType lossType, bool async) {
         redisQueue.flushAll();
         state::getGlobalState().forceClearAll();
 
@@ -85,19 +85,21 @@ namespace tests {
         params.lossType = lossType;
         params.nWeights = nWeights;
         params.learningRate = 0.1;
+        params.nBatches = 1;
+        params.batchSize = 2;
 
         // Dummy initial weights
         MatrixXd weights(1, nWeights);
         weights << 1, 2, 3, 4;
 
         // Persist weights to allow updates
-        writeMatrixToState(&mem, WEIGHTS_KEY, weights);
+        writeMatrixToState(&mem, WEIGHTS_KEY, weights, async);
 
         // Set up some dummy feature counts
         std::vector<int> featureCounts(4);
         std::fill(featureCounts.begin(), featureCounts.end(), 1);
         uint8_t *featureBytes = reinterpret_cast<uint8_t *>(featureCounts.data());
-        mem.writeState(FEATURE_COUNTS_KEY, featureBytes, 4 * sizeof(int));
+        mem.writeState(FEATURE_COUNTS_KEY, featureBytes, 4 * sizeof(int), async);
 
         // Copy of weights for testing
         MatrixXd weightsCopy = weights;
@@ -106,7 +108,7 @@ namespace tests {
         SparseMatrix<double> inputs(nWeights, 2);
         std::vector<Triplet<double>> tripletList;
 
-        if(lossType == RMSE) {
+        if (lossType == RMSE) {
             // Inputs to look like this:
             // 3 3
             // 0 1
@@ -116,8 +118,7 @@ namespace tests {
             tripletList.emplace_back(Triplet<double>(0, 1, 3));
             tripletList.emplace_back(Triplet<double>(1, 1, 1));
             tripletList.emplace_back(Triplet<double>(2, 0, 2));
-        }
-        else if(lossType == HINGE) {
+        } else if (lossType == HINGE) {
             // Inputs to look like this:
             // -3.2  3.1
             // 0     -1.5
@@ -129,38 +130,33 @@ namespace tests {
             tripletList.emplace_back(Triplet<double>(2, 0, 2.9));
         }
 
+        // Set up inputs in state
         inputs.setFromTriplets(tripletList.begin(), tripletList.end());
-        Map<SparseMatrix<double>> inputsMap(inputs.rows(), inputs.cols(), inputs.nonZeros(),
-                inputs.outerIndexPtr(), inputs.innerIndexPtr(), inputs.valuePtr());
+        faasm::writeSparseMatrixToState(&mem, INPUTS_KEY, inputs, async);
 
         // Check what the predictions are pre-update
         MatrixXd preUpdate = weights * inputs;
 
         // Now run the actual updates and check the impact
-        MatrixXd postUpdate;
-        if(lossType == RMSE) {
+        int batchNumber = 0;
+        int startIdx = 0;
+        int endIdx = 2;
+        if (lossType == RMSE) {
             MatrixXd outputs(1, 2);
             outputs << 10, 11;
 
-            Map<MatrixXd> outputsMap(outputs.data(), outputs.rows(), outputs.cols());
-
-            postUpdate = leastSquaresWeightUpdate(&mem, params, inputsMap, outputsMap);
-        }
-        else if(lossType == HINGE) {
+            faasm::writeMatrixToState(&mem, OUTPUTS_KEY, outputs, async);
+            leastSquaresWeightUpdate(&mem, params, batchNumber, startIdx, endIdx);
+        } else if (lossType == HINGE) {
             // Classification-style outputs
             MatrixXd outputs(1, 2);
             outputs << -1, 1;
 
-            Map<MatrixXd> outputsMap(outputs.data(), outputs.rows(), outputs.cols());
+            faasm::writeMatrixToState(&mem, OUTPUTS_KEY, outputs, async);
 
             int epoch = 3;
-            postUpdate = hingeLossWeightUpdate(&mem, params, epoch, inputsMap, outputsMap);
+            hingeLossWeightUpdate(&mem, params, epoch, batchNumber, startIdx, endIdx);
         }
-
-        // Check the post-update values are different but same shape
-        REQUIRE(postUpdate.rows() == preUpdate.rows());
-        REQUIRE(postUpdate.cols() == preUpdate.cols());
-        REQUIRE(postUpdate != preUpdate);
 
         // Check weights have been updated where necessary
         const MatrixXd actualWeights = readMatrixFromState(&mem, WEIGHTS_KEY, 1, nWeights);
@@ -177,11 +173,19 @@ namespace tests {
     }
 
     TEST_CASE("Test least squares updates", "[sgd]") {
-        checkLossUpdates(RMSE);
+        checkLossUpdates(RMSE, false);
+    }
+
+    TEST_CASE("Test least squares updates async", "[sgd]") {
+        checkLossUpdates(RMSE, true);
     }
 
     TEST_CASE("Test hinge loss updates", "[sgd]") {
-        checkLossUpdates(HINGE);
+        checkLossUpdates(HINGE, false);
+    }
+
+    TEST_CASE("Test hinge loss updates async", "[sgd]") {
+        checkLossUpdates(HINGE, true);
     }
 
     void checkDoubleArrayInState(infra::Redis &r, const char *key, std::vector<double> expected) {
@@ -259,7 +263,7 @@ namespace tests {
         writeSquaredError(&memory, p, 1, a, b);
 
         // Check these have been written
-        checkDoubleArrayInState(redisQueue, ERRORS_KEY,{expected, expected, 0});
+        checkDoubleArrayInState(redisQueue, ERRORS_KEY, {expected, expected, 0});
 
         // Error should just include the 2 written
         double expectedRmse1 = sqrt((2 * expected) / p.nTrain);
@@ -268,7 +272,7 @@ namespace tests {
 
         // Now write error for a third batch
         writeSquaredError(&memory, p, 2, a, b);
-        checkDoubleArrayInState(redisQueue, ERRORS_KEY,{expected, expected, expected});
+        checkDoubleArrayInState(redisQueue, ERRORS_KEY, {expected, expected, expected});
 
         // Work out what the result should be
         double expectedRmse2 = sqrt((3 * expected) / p.nTrain);

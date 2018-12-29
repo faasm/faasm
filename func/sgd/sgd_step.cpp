@@ -19,23 +19,13 @@ namespace faasm {
         // Load params
         SgdParams sgdParams = readParamsFromState(memory, PARAMS_KEY, REUTERS_FULL_ASYNC);
 
-        // Always load the inputs and outputs async (as they should be constant)
-        Map<SparseMatrix<double>> inputs = readSparseMatrixColumnsFromState(memory, INPUTS_KEY, startIdx, endIdx, true);
-        Map<MatrixXd> outputs = readMatrixColumnsFromState(memory, OUTPUTS_KEY, sgdParams.nTrain, startIdx, endIdx, 1,
-                true);
-
         // Perform updates
         MatrixXd prediction;
         if (sgdParams.lossType == HINGE) {
-            prediction = hingeLossWeightUpdate(memory, sgdParams, epoch, inputs, outputs);
+            hingeLossWeightUpdate(memory, sgdParams, epoch, batchNumber, startIdx, endIdx);
 
-            // Persist error
-            writeHingeError(memory, sgdParams, batchNumber, outputs, prediction);
         } else {
-            prediction = leastSquaresWeightUpdate(memory, sgdParams, inputs, outputs);
-
-            // Persist error for these examples
-            writeSquaredError(memory, sgdParams, batchNumber, outputs, prediction);
+            leastSquaresWeightUpdate(memory, sgdParams, batchNumber,startIdx, endIdx);
         }
 
         // Flag that this worker has finished

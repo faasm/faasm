@@ -4,23 +4,25 @@
   gather_facts: no
   tasks:
     - name: "Download source"
-      shell: "wget http://bitbucket.org/eigen/eigen/get/3.3.5.tar.gz"
-      args:
-        chdir: "/tmp"
+      get_url:
+        url: "http://bitbucket.org/eigen/eigen/get/3.3.7.tar.gz"
+        dest: "/tmp/eigen.tar.gz"
 
     - name: "Extract"
-      shell: "tar -xf 3.3.5.tar.gz"
+      shell: "tar -xf eigen.tar.gz"
       args:
         chdir: "/tmp"
 
     - name: "Create build dir"
-      shell: "mkdir /tmp/eigen-eigen-b3f3d4950030/build"
+      file:
+        path: "/tmp/eigen-eigen-323c052e1731/build"
+        state: directory
 
     - name: "Make and install"
       become: yes
       shell: "{{ item }}"
       args:
-        chdir: "/tmp/eigen-eigen-b3f3d4950030/build"
+        chdir: "/tmp/eigen-eigen-323c052e1731/build"
       with_items:
         - "cmake .."
         - "make install"
