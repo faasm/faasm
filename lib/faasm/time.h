@@ -2,7 +2,7 @@
 #define FAASM_TIME_H
 
 namespace faasm {
-    long getMillisSinceEpoch();
+    double getSecondsSinceEpoch();
 }
 
 #endif

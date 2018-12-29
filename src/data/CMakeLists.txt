@@ -10,6 +10,7 @@ target_link_libraries(
         data
         faasm
         emulator
+        prof
         util
 )
 

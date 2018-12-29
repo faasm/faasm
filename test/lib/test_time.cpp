@@ -7,14 +7,15 @@ using namespace faasm;
 
 namespace tests {
     TEST_CASE("Test epoch millis", "[time]") {
-        long actualA = getMillisSinceEpoch();
+        double actualA = getSecondsSinceEpoch();
 
-        unsigned int microseconds = 2000;
+        // Microseconds changes should be picked up
+        unsigned int microseconds = 1000;
         usleep(microseconds);
 
-        long actualB = getMillisSinceEpoch();
+        double actualB = getSecondsSinceEpoch();
 
         REQUIRE(actualB > actualA);
-        REQUIRE(actualA > 1543912843186);
+        REQUIRE(actualA > 1543912843);
     }
 }

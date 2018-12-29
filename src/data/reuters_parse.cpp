@@ -34,8 +34,10 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
         while (getline(input, line)) {
             // Split up the line
             const std::vector<std::string> lineTokens = util::tokeniseString(line, ' ');
-            int cat = std::stoi(lineTokens[0]);
-            categories.push_back(cat);
+
+            // Note, we're treating categories as doubles here to ease serialisation/ deserialisation
+            double cat = std::stod(lineTokens[0]);
+            categories.at(exampleCount) = cat;
 
             for (int i = 1; i < lineTokens.size(); i++) {
                 // Ignore empty token
@@ -49,13 +51,11 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
                 int feature = std::stoi(valueTokens[0]);
                 double weight = std::stof(valueTokens[1]);
 
-                // Add to matrix.
-                // NOTE: the file is 1-based so we knock one off the feature value.
-                // With triplets, eigen is zero-based (although when indexing an array it's 1-based)
-                triplets.emplace_back(Eigen::Triplet<double>(feature - 1, exampleCount, weight));
+                // Add to matrix
+                triplets.emplace_back(Eigen::Triplet<double>(feature, exampleCount, weight));
 
                 // Record an occurrence of this feature
-                featureCounts.at(feature - 1)++;
+                featureCounts.at(feature)++;
 
                 maxFeature = std::max(maxFeature, feature);
             };
@@ -68,14 +68,20 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
         input.close();
     }
 
-    if (maxFeature != REUTERS_N_FEATURES) {
+    // Note, features are zero based
+    int nFeatures = maxFeature + 1;
+    if (nFeatures != REUTERS_N_FEATURES) {
         logger->error("Expected {} features but got {}", REUTERS_N_FEATURES, maxFeature);
+    }
+
+    if(categories.size() != REUTERS_N_EXAMPLES) {
+        logger->error("Got {} categories but {} examples", categories.size(), REUTERS_N_EXAMPLES);
     }
 
     logger->info("Totals: {} features and {} examples", maxFeature, exampleCount);
 
     // Build the sparse matrix (row for each feature, col for each example)
-    Eigen::SparseMatrix<double> mat(maxFeature, exampleCount);
+    Eigen::SparseMatrix<double> mat(nFeatures, exampleCount);
     mat.setFromTriplets(triplets.begin(), triplets.end());
 
     // Write matrix to files

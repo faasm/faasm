@@ -14,7 +14,9 @@ namespace faasm {
     }
 
     void shuffleArray(int *arrayIn, size_t arrayLen) {
-        std::random_shuffle(arrayIn, arrayIn + arrayLen);
+        std::random_device rd;
+        std::mt19937 rng(rd());
+        std::shuffle(arrayIn, arrayIn + arrayLen, rng);
     }
 
     int* randomIntRange(size_t rangeLen) {

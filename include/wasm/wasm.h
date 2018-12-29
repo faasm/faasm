@@ -2,6 +2,7 @@
 
 #include <infra/infra.h>
 #include <util/util.h>
+#include <state/state.h>
 
 #include <exception>
 #include <string>
@@ -122,6 +123,9 @@ namespace wasm {
 
         bool isBound();
 
+        U32 mmap(U32 length);
+
+        U32 mmapKey(state::StateKeyValue *kv, U32 length);
     private:
         IR::Module module;
 
@@ -137,6 +141,10 @@ namespace wasm {
         bool _isBound = false;
         std::string boundUser;
         std::string boundFunction;
+
+        std::unordered_map<std::string, I32> sharedMemWasmPtrs;
+        std::unordered_map<std::string, void*> sharedMemHostPtrs;
+        std::unordered_map<std::string, state::StateKeyValue*> sharedMemKVs;
 
         void parseWasm(const message::Message &msg);
     };

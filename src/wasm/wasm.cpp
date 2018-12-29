@@ -199,6 +199,17 @@ namespace wasm {
             std::copy(cleanMemory, cleanMemory + cleanMemorySize, baseAddr);
         }
 
+        // Unmap shared memory regions
+//        for (auto const &p : sharedMemWasmPtrs) {
+//            state::StateKeyValue *kv = sharedMemKVs[p.first];
+//            void* hostPtr = sharedMemHostPtrs[p.first];
+//            kv->unmapSharedMemory(hostPtr);
+//        }
+
+        sharedMemKVs.clear();
+        sharedMemWasmPtrs.clear();
+        sharedMemHostPtrs.clear();
+
         prof::logEndTimer("restore-mem", t);
     }
 
@@ -280,6 +291,51 @@ namespace wasm {
 //        this->module.memories.imports.push_back({{true, {0, 1000}}, msg.user(), "shared_state"});
 
         prof::logEndTimer("parse-wasm", t);
+    }
+
+    U32 WasmModule::mmap(U32 length) {
+        // Work out how many WAVM pages need to be added
+        Uptr pagesRequested = getNumberOfPagesForBytes(length);
+
+        Iptr previousPageCount = growMemory(defaultMemory, pagesRequested);
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Growing memory from {} to {} WAVM pages", previousPageCount, previousPageCount + pagesRequested);
+
+        if (previousPageCount == -1) {
+            logger->error("No memory for mapping");
+            throw std::runtime_error("Run out of memory to map");
+        }
+
+        // Get pointer to mapped range
+        auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);
+
+        return mappedRangePtr;
+    }
+
+    U32 WasmModule::mmapKey(state::StateKeyValue *kv, U32 length) {
+        // See if we need to initialise this mapping or if it already exists
+        if (sharedMemWasmPtrs.count(kv->key) == 0) {
+            // Create memory region for this module
+            U32 wasmPtr = this->mmap(length);
+
+            // Do the mapping from the central shared region
+            U8 *hostMemPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmPtr);
+            if (!util::isPageAligned(hostMemPtr)) {
+                throw std::runtime_error("WAVM memory not page aligned");
+            }
+
+            void *voidPtr = static_cast<void *>(hostMemPtr);
+            kv->mapSharedMemory(voidPtr);
+
+            // Remember the kv and pointer
+            sharedMemWasmPtrs.insert(std::pair<std::string, I32>(kv->key, wasmPtr));
+            sharedMemHostPtrs.insert(std::pair<std::string, void*>(kv->key, voidPtr));
+            sharedMemKVs.insert(std::pair<std::string, state::StateKeyValue *>(kv->key, kv));
+        }
+
+        // Return the wasm pointer
+        return sharedMemWasmPtrs[kv->key];
     }
 
 }

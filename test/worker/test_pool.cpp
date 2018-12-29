@@ -322,11 +322,11 @@ namespace tests {
         REQUIRE(afterPages == initialPages);
     }
 
-    TEST_CASE("Test mmap/munmap", "[worker]") {
+    void checkCallingFunctionGivesTrueOutput(const std::string &funcName) {
         message::Message call;
         call.set_user("demo");
-        call.set_function("mmap");
-        call.set_resultkey("test_mmap");
+        call.set_function(funcName);
+        call.set_resultkey("test_" + funcName);
 
         // Call function
         WorkerThread w(1);
@@ -343,5 +343,31 @@ namespace tests {
 
         std::vector<uint8_t > expectedOutput = {1};
         REQUIRE(outputBytes == expectedOutput);
+    }
+
+    TEST_CASE("Test mmap/munmap", "[worker]") {
+        setUp();
+
+        checkCallingFunctionGivesTrueOutput("mmap");
+    }
+
+    TEST_CASE("Test shared state pointers", "[worker]") {
+        setUp();
+
+        // Run the function to write
+        checkCallingFunctionGivesTrueOutput("state_shared_write");
+
+        // Run the function to read
+        checkCallingFunctionGivesTrueOutput("state_shared_read");
+    }
+
+    TEST_CASE("Test shared state offset pointers", "[worker]") {
+        setUp();
+
+        // Run the function to write
+        checkCallingFunctionGivesTrueOutput("state_shared_write_offset");
+
+        // Run the function to read
+        checkCallingFunctionGivesTrueOutput("state_shared_read_offset");
     }
 }

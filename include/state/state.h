@@ -25,11 +25,19 @@ namespace state {
 
         void get(uint8_t *buffer);
 
+        uint8_t *get();
+
         void getSegment(long offset, uint8_t *buffer, size_t length);
+
+        uint8_t *getSegment(long offset, long len);
 
         void set(const uint8_t *buffer);
 
         void setSegment(long offset, const uint8_t *buffer, size_t length);
+
+        void mapSharedMemory(void* newAddr);
+
+        void unmapSharedMemory(void *mappedAddr);
 
         void pull(bool async);
 
@@ -49,6 +57,8 @@ namespace state {
 
         bool empty();
 
+        size_t size();
+
     private:
         std::atomic<bool> isWholeValueDirty;
 
@@ -63,10 +73,13 @@ namespace state {
         long staleThreshold;
         long idleThreshold;
 
-        std::vector<uint8_t> value;
-        size_t size;
+        size_t valueSize;
+        size_t sharedMemSize;
+        void *sharedMemory;
 
         std::atomic<bool> _empty;
+
+        void initialiseStorage();
 
         void doRemoteRead();
 
@@ -75,9 +88,11 @@ namespace state {
         bool isStale(const util::TimePoint &now);
 
         bool isIdle(const util::TimePoint &now);
+
+        void preGet();
     };
 
-    typedef std::map<std::string, StateKeyValue *> KVMap;
+    typedef std::unordered_map<std::string, StateKeyValue *> KVMap;
     typedef std::pair<std::string, StateKeyValue *> KVPair;
 
     /**
@@ -92,6 +107,7 @@ namespace state {
         StateKeyValue *getValue(const std::string &key, size_t size);
 
         void pushAll();
+
     private:
         const std::string user;
 
@@ -99,7 +115,7 @@ namespace state {
         std::shared_mutex kvMapMutex;
     };
 
-    typedef std::map<std::string, UserState *> UserStateMap;
+    typedef std::unordered_map<std::string, UserState *> UserStateMap;
     typedef std::pair<std::string, UserState *> UserStatePair;
 
     /**

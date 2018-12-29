@@ -43,7 +43,7 @@ namespace tests {
         faasm::writeMatrixToState(&mem, stateKey, mat);
 
         // Retrieve from redis and check it's still the same
-        const MatrixXd afterState = faasm::readMatrixFromState(&mem, stateKey, 2, 3);
+        Map<const MatrixXd> afterState = faasm::readMatrixFromState(&mem, stateKey, 2, 3);
 
         REQUIRE(afterState.rows() == 2);
         REQUIRE(afterState.cols() == 3);
@@ -84,7 +84,7 @@ namespace tests {
         REQUIRE(afterState(1, 1) == 10.5);
     }
 
-    TEST_CASE("Test reading columns from state", "[matrix]") {
+    void checkReadingMatrixColumnsFromState(bool async) {
         redisQueue.flushAll();
         state::getGlobalState().forceClearAll();
 
@@ -101,12 +101,12 @@ namespace tests {
 
         // Write full state to a dummy key
         const char *stateKey = "test_matrix_cols_state";
-        faasm::writeMatrixToState(&mem, stateKey, mat);
+        faasm::writeMatrixToState(&mem, stateKey, mat, async);
 
         // Read a subset of columns (exclusive)
         long startCol = 1;
         long endCol = 4;
-        MatrixXd actual = faasm::readMatrixColumnsFromState(&mem, stateKey, nCols, startCol, endCol, nRows);
+        Map<const MatrixXd> actual = faasm::readMatrixColumnsFromState(&mem, stateKey, nCols, startCol, endCol, nRows, async);
 
         REQUIRE(actual.rows() == nRows);
         REQUIRE(actual.cols() == 3);
@@ -118,6 +118,14 @@ namespace tests {
                 17, 18, 19;
 
         REQUIRE(actual == expected);
+    }
+
+    TEST_CASE("Test reading columns from state", "[matrix]") {
+        checkReadingMatrixColumnsFromState(false);
+    }
+
+    TEST_CASE("Test reading columns from state async", "[matrix]") {
+        checkReadingMatrixColumnsFromState(true);
     }
 
     TEST_CASE("Test shuffling matrix", "[matrix]") {
@@ -228,11 +236,11 @@ namespace tests {
         const char *key = "sparse_trip_test";
         faasm::writeSparseMatrixToState(&mem, key, mat);
 
-        SparseMatrix<double> actual = faasm::readSparseMatrixFromState(&mem, key);
+        Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixFromState(&mem, key);
         checkSparseMatrixEquality(mat, actual);
     }
 
-    void checkSparseMatrixRoundTrip(int rows, int cols, int colStart, int colEnd) {
+    void doSparseMatrixRoundTripCheck(int rows, int cols, int colStart, int colEnd, bool async) {
         redisQueue.flushAll();
         state::getGlobalState().forceClearAll();
 
@@ -240,13 +248,20 @@ namespace tests {
 
         SparseMatrix<double> mat = faasm::randomSparseMatrix(rows, cols, 0.7);
         faasm::FaasmMemory mem;
-        faasm::writeSparseMatrixToState(&mem, key, mat);
+        faasm::writeSparseMatrixToState(&mem, key, mat, async);
 
+        // Check subsection
         SparseMatrix<double> expected = mat.block(0, colStart, rows, colEnd - colStart);
 
         // Read a subsection
-        SparseMatrix<double> actual = faasm::readSparseMatrixColumnsFromState(&mem, key, colStart, colEnd);
+        Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixColumnsFromState(&mem, key, colStart, colEnd, async);
         checkSparseMatrixEquality(actual, expected);
+    }
+
+    void checkSparseMatrixRoundTrip(int rows, int cols, int colStart, int colEnd) {
+        // Do both sync and async
+        doSparseMatrixRoundTripCheck(rows, cols, colStart, colEnd, false);
+        doSparseMatrixRoundTripCheck(rows, cols, colStart, colEnd, true);
     }
 
     TEST_CASE("Test sparse matrix offset multiple columns", "[matrix]") {

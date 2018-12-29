@@ -26,6 +26,15 @@ namespace wasm {
                 return errorMessage;
             }
 
+            // TODO: Avoid this, add some concept of delay in the scheduler?
+            // Wait a bit before chaining the same function
+            if (chainedCall.function() == originalCall.function()) {
+                logger->debug("Delaying chained call {} -> {}", infra::funcToString(originalCall),
+                              infra::funcToString(chainedCall));
+                uint microseconds = (uint) 500 * 1000; // 500ms
+                usleep(microseconds);
+            }
+
             logger->debug("Chaining {} -> {}", infra::funcToString(originalCall), infra::funcToString(chainedCall));
             infra::Scheduler::callFunction(chainedCall);
         }

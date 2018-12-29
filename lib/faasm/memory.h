@@ -15,6 +15,22 @@ namespace faasm {
         void readState(const char *key, uint8_t *buffer, long bufferLen, bool async = false);
 
         /**
+         * Reads the full state and returns a direct pointer
+         */
+        uint8_t *readState(const char *key, long totalLen, bool async);
+
+        /**
+        * Reads a chunk of state at the given key and offset
+        */
+        void readStateOffset(const char *key, long totalLen, long offset, uint8_t *buffer, long bufferLen,
+                             bool async = false);
+
+        /**
+          * Reads a chunk of state and returns a direct pointer
+          */
+        uint8_t *readStateOffset(const char *key, long fullLen, long offset, long len, bool async);
+
+        /**
          * Overwrites the state at the given key
          */
         void writeState(const char *key, const uint8_t *data, long dataLen, bool async = false);
@@ -22,12 +38,9 @@ namespace faasm {
         /**
          * Writes a chunk of state at the given key and offset
          */
-        void writeStateOffset(const char *key, long totalLen, long offset, const uint8_t *data, long dataLen, bool async = false);
+        void writeStateOffset(const char *key, long totalLen, long offset, const uint8_t *data, long dataLen,
+                              bool async = false);
 
-        /**
-         * Reads a chunk of state at the given key and offset
-         */
-        void readStateOffset(const char *key, long totalLen, long offset, uint8_t *buffer, long bufferLen, bool async = false);
 
         /**
          * Forces a push of state
