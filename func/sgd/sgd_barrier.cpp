@@ -20,19 +20,18 @@ namespace faasm {
             return 0;
         }
 
-        // Record the time for this epoch
-        double ts = faasm::getSecondsSinceEpoch();
         long tsTotal = p.nEpochs * sizeof(double);
         long tsOffset = thisEpoch * sizeof(double);
+
+        // Record the time for this epoch
+        double ts = faasm::getSecondsSinceEpoch();
         auto tsBytes = reinterpret_cast<uint8_t *>(&ts);
         memory->writeStateOffset(LOSS_TIMESTAMPS_KEY, tsTotal, tsOffset, tsBytes, sizeof(double), p.fullAsync);
 
         // Record the loss for this epoch
         double loss = faasm::readRootMeanSquaredError(memory, p);
-        long lossTotal = p.nEpochs * sizeof(double);
-        long lossOffset = thisEpoch * sizeof(double);
         auto lossBytes = reinterpret_cast<uint8_t *>(&loss);
-        memory->writeStateOffset(LOSSES_KEY, lossTotal, lossOffset, lossBytes, sizeof(double), p.fullAsync);
+        memory->writeStateOffset(LOSSES_KEY, tsTotal, tsOffset, lossBytes, sizeof(double), p.fullAsync);
 
         // Drop out if finished all epochs
         if (thisEpoch >= p.nEpochs - 1) {

@@ -200,11 +200,11 @@ namespace wasm {
         }
 
         // Unmap shared memory regions
-        for (auto const &p : sharedMemWasmPtrs) {
-            state::StateKeyValue *kv = sharedMemKVs[p.first];
-            void* hostPtr = sharedMemHostPtrs[p.first];
-            kv->unmapSharedMemory(hostPtr);
-        }
+//        for (auto const &p : sharedMemWasmPtrs) {
+//            state::StateKeyValue *kv = sharedMemKVs[p.first];
+//            void* hostPtr = sharedMemHostPtrs[p.first];
+//            kv->unmapSharedMemory(hostPtr);
+//        }
 
         sharedMemKVs.clear();
         sharedMemWasmPtrs.clear();
@@ -293,19 +293,19 @@ namespace wasm {
         prof::logEndTimer("parse-wasm", t);
     }
 
-    I32 WasmModule::mmap(U32 length) {
+    U32 WasmModule::mmap(U32 length) {
         // Work out how many WAVM pages need to be added
         Uptr pagesRequested = getNumberOfPagesForBytes(length);
 
         Iptr previousPageCount = growMemory(defaultMemory, pagesRequested);
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Growing memory from {} to {} WAVM pages", previousPageCount, previousPageCount + pagesRequested);
+
         if (previousPageCount == -1) {
             logger->error("No memory for mapping");
-            return -ENOMEM;
+            throw std::runtime_error("Run out of memory to map");
         }
-
-        logger->debug("Memory grown from {} to {} WAVM pages", previousPageCount, previousPageCount + pagesRequested);
 
         // Get pointer to mapped range
         auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);
@@ -313,11 +313,11 @@ namespace wasm {
         return mappedRangePtr;
     }
 
-    I32 WasmModule::mmapKey(state::StateKeyValue *kv, U32 length) {
+    U32 WasmModule::mmapKey(state::StateKeyValue *kv, U32 length) {
         // See if we need to initialise this mapping or if it already exists
         if (sharedMemWasmPtrs.count(kv->key) == 0) {
             // Create memory region for this module
-            I32 wasmPtr = this->mmap(length);
+            U32 wasmPtr = this->mmap(length);
 
             // Do the mapping from the central shared region
             U8 *hostMemPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmPtr);

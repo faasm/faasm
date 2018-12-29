@@ -123,9 +123,9 @@ namespace wasm {
 
         bool isBound();
 
-        I32 mmap(U32 length);
+        U32 mmap(U32 length);
 
-        I32 mmapKey(state::StateKeyValue *kv, U32 length);
+        U32 mmapKey(state::StateKeyValue *kv, U32 length);
     private:
         IR::Module module;
 

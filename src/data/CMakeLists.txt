@@ -19,6 +19,3 @@ target_link_libraries(reuters_parse data)
 
 add_executable(reuters_svm reuters_svm.cpp)
 target_link_libraries(reuters_svm data)
-
-add_executable(reuters_exp reuters_exp.cpp)
-target_link_libraries(reuters_exp data)

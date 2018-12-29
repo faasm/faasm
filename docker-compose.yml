@@ -40,6 +40,7 @@ services:
       - STATE_STALE_THRESHOLD=300000
       - STATE_CLEAR_THRESHOLD=300000
       - STATE_PUSH_INTERVAL=250
+      - FULL_ASYNC=1
     volumes:
       - ./wasm:/usr/share/faasm/wasm
     networks:
