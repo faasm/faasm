@@ -7,7 +7,7 @@
 using namespace worker;
 
 namespace tests {
-    void setUp() {
+    static void setUp() {
         redisQueue.flushAll();
         redisState.flushAll();
 
@@ -15,7 +15,7 @@ namespace tests {
         util::setEnvVar("NETNS_MODE", "off");
     }
 
-    void tearDown() {
+    static void tearDown() {
         util::unsetEnvVar("NETNS_MODE");
     }
 

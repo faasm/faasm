@@ -19,16 +19,20 @@ namespace faasm {
         memory->readState(LOSS_TIMESTAMPS_KEY, tsBuffer, tsBytes, p.fullAsync);
         auto ts = reinterpret_cast<double *>(tsBuffer);
 
-        std::string lossString;
+        // Build string representation
+        char lossString[p.nEpochs * 20];
         for (long l = 0; l < p.nEpochs; l++) {
-            lossString += std::to_string(ts[l]) + " - " + std::to_string(losses[l]);
+            // Want relative times
+            double relativeTs = ts[l] - ts[0];
 
-            if (l < p.nEpochs - 1) {
-                lossString += ", ";
-            }
+            // Overwrite the last null terminator
+            int offset = strlen(lossString);
+            sprintf(lossString + offset, "%.2f - %.4f, ", relativeTs, losses[l]);
         }
 
-        memory->setOutput((uint8_t *) lossString.data(), lossString.size());
+        // Set as output
+        size_t outputLen = strlen(lossString);
+        memory->setOutput((uint8_t *) lossString, outputLen);
 
         return 0;
     }

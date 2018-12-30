@@ -2,6 +2,7 @@
 #include <fstream>
 
 #include <data/data.h>
+#include <emulator/emulator.h>
 #include <util/util.h>
 #include <infra/infra.h>
 #include <state/state.h>
@@ -17,6 +18,9 @@ int main() {
     util::initLogging();
     state::getGlobalState().forceClearAll();
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+    // Override emulator user
+    setEmulatorUser("sgd");
 
     FaasmMemory memory;
     int nBatches = 4;

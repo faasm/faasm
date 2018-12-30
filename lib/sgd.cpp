@@ -225,6 +225,7 @@ namespace faasm {
 
     void zeroLosses(FaasmMemory *memory, const SgdParams &sgdParams) {
         zeroDoubleArray(memory, LOSSES_KEY, sgdParams.nEpochs, sgdParams.fullAsync);
+        zeroDoubleArray(memory, LOSS_TIMESTAMPS_KEY, sgdParams.nEpochs, sgdParams.fullAsync);
     }
 
     void _writeError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, double error) {

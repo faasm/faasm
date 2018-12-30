@@ -293,17 +293,24 @@ namespace tests {
         // Zero and check it's worked
         zeroLosses(&mem, p);
         checkDoubleArrayInState(redisQueue, LOSSES_KEY, {0, 0, 0, 0, 0});
+        checkDoubleArrayInState(redisQueue, LOSS_TIMESTAMPS_KEY, {0, 0, 0, 0, 0});
 
         // Update with some other values
         std::vector<double> losses = {2.2, 3.3, 4.4, 5.5, 0.0};
         auto lossBytes = reinterpret_cast<uint8_t *>(losses.data());
         mem.writeState(LOSSES_KEY, lossBytes, 5 * sizeof(double));
 
+        std::vector<double> timestamps = {100.0, 200.2, 300.3, 1000.1, 2000.2};
+        auto timestampBytes = reinterpret_cast<uint8_t *>(timestamps.data());
+        mem.writeState(LOSS_TIMESTAMPS_KEY, timestampBytes, 5 * sizeof(double));
+
         checkDoubleArrayInState(redisQueue, LOSSES_KEY, losses);
+        checkDoubleArrayInState(redisQueue, LOSS_TIMESTAMPS_KEY, timestamps);
 
         // Zero again and check it's worked
         zeroLosses(&mem, p);
         checkDoubleArrayInState(redisQueue, LOSSES_KEY, {0, 0, 0, 0, 0});
+        checkDoubleArrayInState(redisQueue, LOSS_TIMESTAMPS_KEY, {0, 0, 0, 0, 0});
     }
 
     TEST_CASE("Test setting finished flags", "[sgd]") {

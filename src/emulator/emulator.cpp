@@ -7,9 +7,19 @@
  * Local implementations of faasm calls
  */
 
+static std::string user = "demo";
+
+void setEmulatorUser(const std::string &newUser) {
+    user = newUser;
+}
+
+void resetEmulatorUser() {
+    user = "demo";
+}
+
 state::StateKeyValue *getKv(const char *key, size_t size) {
     state::State &s = state::getGlobalState();
-    state::StateKeyValue *kv = s.getKV("demo", key, size);
+    state::StateKeyValue *kv = s.getKV(user, key, size);
     return kv;
 }
 
