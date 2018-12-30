@@ -114,9 +114,6 @@ namespace wasm {
 
         Runtime::GCPointer<Runtime::Memory> defaultMemory;
 
-        // Note, this will be in a different compartment
-        Runtime::GCPointer<Runtime::Memory> stateMemory;
-
         Runtime::GCPointer<Runtime::Compartment> compartment;
 
         bool isInitialised();
