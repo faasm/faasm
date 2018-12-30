@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.8.0)
 project(faasm)
 
-set(CMAKE_CXX_FLAGS "-Wall -Werror")
+set(CMAKE_CXX_FLAGS "-Wall -Werror -O3")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 
 # Address sanitizer
