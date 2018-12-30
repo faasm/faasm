@@ -36,6 +36,9 @@ namespace data {
         int startIdx = batchNumber * params.batchSize;
         int endIdx = std::min(startIdx + params.batchSize, params.nTrain - 1);
 
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->info("Batch {} ({} - {}, {} examples)", batchNumber, startIdx, endIdx, endIdx - startIdx);
+
         // Perform the update
         hingeLossWeightUpdate(&memory, params, epoch, batchNumber, startIdx, endIdx);
     }

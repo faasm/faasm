@@ -23,10 +23,10 @@ int main() {
     setEmulatorUser("sgd");
 
     FaasmMemory memory;
-    int nBatches = 4;
-    int batchSize = (nBatches + REUTERS_N_EXAMPLES - 1) / REUTERS_N_EXAMPLES;
+    int nBatches = 3;
+    int batchSize = (REUTERS_N_EXAMPLES + nBatches - 1) / nBatches;
 
-    int epochs = 30;
+    int epochs = 20;
     SgdParams p = setUpReutersParams(&memory, batchSize, epochs);
 
     logger->info("Running SVM with {} threads (batch size {})", p.nBatches, p.batchSize);
@@ -63,9 +63,11 @@ int main() {
     }
 
     std::ofstream resultFile;
-    resultFile.open("measurement/losses.txt");
+    std::string fileName = "measurement/THREADS_" + std::to_string(nBatches) + ".txt";
+    resultFile.open(fileName);
+    double tsZero = losses.at(0).first;
     for (auto loss : losses) {
-        resultFile << loss.first << " " << loss.second << std::endl;
+        resultFile << loss.first - tsZero << " " << loss.second << std::endl;
     }
     resultFile.close();
 }
