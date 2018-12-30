@@ -40,9 +40,9 @@ namespace faasm {
             return 0;
         }
 
-        // Decay learning rate
-        p.learningRate = p.learningRate * p.learningDecay;
-        writeParamsToState(memory, PARAMS_KEY, p);
+        // Decay learning rate (apparently hogwild doesn't actually do this although it takes in the param)
+        // p.learningRate = p.learningRate * p.learningDecay;
+        // writeParamsToState(memory, PARAMS_KEY, p);
 
         // Increment epoch counter
         incrementCounter(memory, EPOCH_COUNT_KEY, p.fullAsync);

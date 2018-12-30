@@ -37,8 +37,9 @@ namespace faasm {
         int batchSize;
         int nWeights;
         int nTrain;
-        double learningRate;
-        double learningDecay;
+        float learningRate;
+        float mu = 1.0;
+        float learningDecay;
         int nEpochs;
         bool fullAsync;
     };

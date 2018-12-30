@@ -23,7 +23,7 @@ int main() {
     setEmulatorUser("sgd");
 
     FaasmMemory memory;
-    int nBatches = 3;
+    int nBatches = 1;
     int batchSize = (REUTERS_N_EXAMPLES + nBatches - 1) / nBatches;
 
     int epochs = 20;
@@ -57,9 +57,9 @@ int main() {
 
         logger->info("Epoch {} end   - time {:04.2f}s - RMSE {:06.4f}", epoch, thisTs, rmse);
 
-        // Decay learning rate
-        p.learningRate = p.learningRate * p.learningDecay;
-        faasm::writeParamsToState(&memory, PARAMS_KEY, p);
+        // Decay learning rate (it appears hogwild doesn't actually do this even though it takes in a param
+        // p.learningRate = p.learningRate * p.learningDecay;
+        // faasm::writeParamsToState(&memory, PARAMS_KEY, p);
     }
 
     std::ofstream resultFile;
