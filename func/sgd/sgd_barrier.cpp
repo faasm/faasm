@@ -16,6 +16,7 @@ namespace faasm {
         bool isFinished = readEpochFinished(memory, p);
         if (!isFinished) {
             // Try again
+            printf("Epoch %i not finished\n", thisEpoch);
             memory->chainFunction("sgd_barrier");
             return 0;
         }

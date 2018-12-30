@@ -195,6 +195,7 @@ namespace state {
             FullLock lock(valueMutex);
             if (sharedMemory == nullptr) {
                 initialiseStorage();
+                _empty = false;
             }
         }
 

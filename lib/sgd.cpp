@@ -211,7 +211,6 @@ namespace faasm {
         auto finishedBytes = reinterpret_cast<uint8_t *>(&finished);
         long offset = batchNumber * sizeof(int);
 
-        // Async if necessary
         memory->writeStateOffset(FINISHED_KEY, totalBytes, offset, finishedBytes, sizeof(int), sgdParams.fullAsync);
     }
 

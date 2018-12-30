@@ -86,9 +86,12 @@ namespace tests {
         // Set up params
         FaasmMemory mem;
         SgdParams p;
+        p.nEpochs = 10;
         p.nBatches = 3;
         p.fullAsync = async;
         p.nTrain = 100;
+        p.learningRate = 0.1;
+        p.learningDecay = 0.8;
         faasm::writeParamsToState(&mem, PARAMS_KEY, p);
 
         // Zero errors and losses
@@ -104,7 +107,7 @@ namespace tests {
         long totalErrorBytes = p.nBatches * sizeof(double);
         double totalError = 0;
         for (int i = 0; i < p.nBatches; i++) {
-            faasm::writeFinishedFlag(&mem, p, 0);
+            faasm::writeFinishedFlag(&mem, p, i);
 
             double error = i * 1.5;
             totalError += error;
@@ -113,22 +116,28 @@ namespace tests {
                                  sizeof(double), async);
         }
 
+        // Double check it's registering as finished
+        REQUIRE(faasm::readEpochFinished(&mem, p));
+
         // Execute
         execFunction("sgd_barrier");
 
         // Check losses and loss timestamps are written
         size_t nBytes = p.nEpochs * sizeof(double);
         int offset = 2 * sizeof(double);
-        uint8_t* lossBytes = mem.readStateOffset(LOSSES_KEY, nBytes, offset, sizeof(double), async);
-        uint8_t* lossTsBytes = mem.readStateOffset(LOSS_TIMESTAMPS_KEY, nBytes, offset, sizeof(double), async);
+        uint8_t *lossBytes = mem.readStateOffset(LOSSES_KEY, nBytes, offset, sizeof(double), async);
+        uint8_t *lossTsBytes = mem.readStateOffset(LOSS_TIMESTAMPS_KEY, nBytes, offset, sizeof(double), async);
 
-        double loss = *reinterpret_cast<double*>(lossBytes);
-        double lossTs = *reinterpret_cast<double*>(lossTsBytes);
-
-        REQUIRE(lossTs > 0);
-
+        double loss = *reinterpret_cast<double *>(lossBytes);
         double expectedLoss = std::sqrt(totalError) / std::sqrt(p.nTrain);
         REQUIRE(loss == expectedLoss);
+
+        double lossTs = *reinterpret_cast<double *>(lossTsBytes);
+        REQUIRE(lossTs > 0);
+
+        // Check learning rate has decayed
+        const SgdParams paramsAfter = faasm::readParamsFromState(&mem, PARAMS_KEY, async);
+        REQUIRE(paramsAfter.learningRate == 0.8 * 0.1);
 
         tearDown();
     }
