@@ -21,7 +21,7 @@ namespace faasm {
         }
 
         // Prepare params
-        int epochs = 20;
+        int epochs = 30;
         SgdParams p = setUpReutersParams(memory, batchSize, epochs);
 
         // Initialise weights
