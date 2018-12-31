@@ -6,23 +6,20 @@
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        // Batch size should be small enough that batches don't overwrite each other too often,
-        // but large enough that we aren't doing too many function calls.
-        // This function allows passing the batch size in as input.
         long inputSize = memory->getInputSize();
-        int batchSize;
+        int nBatches;
         if(inputSize == 0) {
-            batchSize = REUTERS_N_EXAMPLES/5;
+            nBatches = 4;
         } else {
             auto inputBuffer = new uint8_t[inputSize];
             memory->getInput(inputBuffer, inputSize);
             char* inputString = reinterpret_cast<char*>(inputBuffer);
-            batchSize = std::stoi(inputString);
+            nBatches = std::stoi(inputString);
         }
 
         // Prepare params
         int epochs = 30;
-        SgdParams p = setUpReutersParams(memory, batchSize, epochs);
+        SgdParams p = setUpReutersParams(memory, nBatches, epochs);
 
         // Initialise weights
         Eigen::MatrixXd weights = zeroMatrix(1, p.nWeights);

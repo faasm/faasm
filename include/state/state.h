@@ -55,16 +55,20 @@ namespace state {
 
         void unlockWrite();
 
+        void flagFullValueDirty();
+
+        void flagSegmentDirty(long offset, long len);
+
         bool empty();
 
         size_t size();
 
     private:
-        std::atomic<bool> isWholeValueDirty;
+        bool isWholeValueDirty;
+        bool isPartiallyDirty;
+        std::vector<bool> dirtyFlags;
 
         bool fullAsync;
-
-        std::vector<bool> dirtyFlags;
 
         std::shared_mutex valueMutex;
 

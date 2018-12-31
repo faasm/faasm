@@ -88,6 +88,37 @@ namespace tests {
         REQUIRE(redisState.get(kv->key) == expected);
     }
 
+    TEST_CASE("Test marking segments dirty", "[state]") {
+        StateKeyValue *kv = setupKV(10);
+
+        // Set up and push
+        std::vector<uint8_t> values = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+        kv->set(values.data());
+        kv->pushFull();
+
+        // Get pointer, update
+        uint8_t *ptr = kv->get();
+        ptr[0] = 8;
+        ptr[5] = 7;
+        kv->pushPartial();
+
+        // Check nothing happens
+        REQUIRE(redisState.get(kv->key) == values);
+
+        // Mark region as dirty, check update happens
+        kv->flagSegmentDirty(0, 2);
+        kv->pushPartial();
+        values.at(0) = 8;
+        REQUIRE(redisState.get(kv->key) == values);
+
+        // Mark other region and check also updated
+        kv->flagSegmentDirty(5, 6);
+        kv->pushPartial();
+        values.at(5) = 7;
+        REQUIRE(redisState.get(kv->key) == values);
+    }
+
+
     TEST_CASE("Test set segment cannot be out of bounds", "[state]") {
         StateKeyValue *kv = setupKV(2);
 
@@ -254,7 +285,7 @@ namespace tests {
         REQUIRE(!kv->empty());
 
         // Advance time a lot and check it does get cleared
-        std::chrono::seconds secsBig(120);
+        std::chrono::seconds secsBig(1000);
         newNow = timeNow + secsBig;
         c.setFakeNow(newNow);
 
@@ -302,7 +333,7 @@ namespace tests {
         REQUIRE(!kv->empty());
 
         // Move time on again without any action, check is stale and gets cleared
-        c.setFakeNow(timeNow + std::chrono::seconds(360));
+        c.setFakeNow(timeNow + std::chrono::seconds(1000));
         kv->clear();
         REQUIRE(kv->empty());
 
@@ -395,7 +426,7 @@ namespace tests {
         segmentA[1] = 8;
         segmentB[2] = 8;
 
-        std::vector<uint8_t > expected = {0, 1, 8, 3, 4, 5, 8};
+        std::vector<uint8_t> expected = {0, 1, 8, 3, 4, 5, 8};
         for (int i = 0; i < 5; i++) {
             REQUIRE(full[i] == expected.at(i));
             REQUIRE(byteRegionA[i] == expected.at(i));

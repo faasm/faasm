@@ -44,7 +44,7 @@ namespace faasm {
         bool fullAsync;
     };
 
-    SgdParams setUpReutersParams(FaasmMemory *memory, int batchSize, int epochs);
+    SgdParams setUpReutersParams(FaasmMemory *memory, int nBatches, int epochs);
 
     void writeParamsToState(FaasmMemory *memory, const char *keyName, const SgdParams &params);
 

@@ -7,7 +7,7 @@
 using namespace Eigen;
 
 namespace faasm {
-    SgdParams setUpReutersParams(FaasmMemory *memory, int batchSize, int epochs) {
+    SgdParams setUpReutersParams(FaasmMemory *memory, int nBatches, int epochs) {
         // Set up reuters params
         SgdParams p;
         p.lossType = HINGE;
@@ -19,8 +19,8 @@ namespace faasm {
         p.mu = 1.0;
 
         // Round up number of batches
-        p.batchSize = batchSize;
-        p.nBatches = (p.nTrain + batchSize - 1) / batchSize;
+        p.nBatches = nBatches;
+        p.batchSize = (REUTERS_N_EXAMPLES + nBatches - 1) / nBatches;
 
         // Full sync or not
         p.fullAsync = REUTERS_FULL_ASYNC;
@@ -107,11 +107,10 @@ namespace faasm {
                 int thisFeatureCount = featureCountBuffer[thisFeature];
                 weightDataBuffer[thisFeature] *= 1 - constScalar / thisFeatureCount;
 
-                // Update state if not running fully async
+                // Flag that this segment is dirty
                 if (!sgdParams.fullAsync) {
-                    auto byteWeight = reinterpret_cast<uint8_t *>(&weightDataBuffer[thisFeature]);
                     size_t offset = it.row() * sizeof(double);
-                    memory->writeStateOffset(WEIGHTS_KEY, nWeightBytes, offset, byteWeight, sizeof(double), true);
+                    memory->flagStateOffsetDirty(WEIGHTS_KEY, nWeightBytes, offset, sizeof(double));
                 }
             }
         }

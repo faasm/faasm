@@ -45,9 +45,9 @@ namespace tests {
         REQUIRE(conf.boundTimeout == 30);
         REQUIRE(conf.unboundTimeout == 240);
 
-        REQUIRE(conf.stateStaleThreshold == 150000);
-        REQUIRE(conf.stateClearThreshold == 30000);
-        REQUIRE(conf.statePushInterval == 1000);
+        REQUIRE(conf.stateStaleThreshold == 500);
+        REQUIRE(conf.stateClearThreshold == 300000);
+        REQUIRE(conf.statePushInterval == 500);
     }
 
     TEST_CASE("Test overriding system config initialisation", "[util]") {

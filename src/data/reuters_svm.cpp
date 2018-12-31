@@ -24,10 +24,8 @@ int main() {
 
     FaasmMemory memory;
     int nBatches = 1;
-    int batchSize = (REUTERS_N_EXAMPLES + nBatches - 1) / nBatches;
-
     int epochs = 30;
-    SgdParams p = setUpReutersParams(&memory, batchSize, epochs);
+    SgdParams p = setUpReutersParams(&memory, nBatches, epochs);
 
     logger->info("Running SVM with {} threads (batch size {})", p.nBatches, p.batchSize);
 

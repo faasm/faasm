@@ -17,6 +17,7 @@ namespace state {
         sharedMemory = nullptr;
 
         isWholeValueDirty = false;
+        isPartiallyDirty = false;
         _empty = true;
 
         // Gets over the stale threshold trigger a pull from remote
@@ -208,12 +209,23 @@ namespace state {
         }
 
         // Copy data into shared region
-        SharedLock lock(valueMutex);
-        auto bytePtr = static_cast<uint8_t *>(sharedMemory);
-        std::copy(buffer, buffer + length, bytePtr + offset);
+        {
+            SharedLock lock(valueMutex);
+            auto bytePtr = static_cast<uint8_t *>(sharedMemory);
+            std::copy(buffer, buffer + length, bytePtr + offset);
+        }
 
-        // Flag as dirty
-        std::fill(dirtyFlags.begin() + offset, dirtyFlags.begin() + offset + length, true);
+        this->flagSegmentDirty(offset, length);
+    }
+
+    void StateKeyValue::flagFullValueDirty() {
+        isWholeValueDirty = true;
+    }
+
+    void StateKeyValue::flagSegmentDirty(long offset, long len) {
+        SharedLock lock(valueMutex);
+        isPartiallyDirty = true;
+        std::fill(dirtyFlags.begin() + offset, dirtyFlags.begin() + offset + len, true);
     }
 
     void StateKeyValue::clear() {
@@ -313,12 +325,12 @@ namespace state {
             throw std::runtime_error("Shouldn't be pushing in full async mode.");
         }
 
-        // Double check condition
+        // Ignore if not dirty
         if (!isWholeValueDirty) {
             return;
         }
 
-        // Get full lock for complete write
+        // Get full lock for complete push
         FullLock fullLock(valueMutex);
 
         // Double check condition
@@ -326,7 +338,7 @@ namespace state {
             return;
         }
 
-        const std::shared_ptr <spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Pushing whole value for {}", key);
 
         infra::Redis *redis = infra::Redis::getThreadState();
@@ -338,6 +350,7 @@ namespace state {
         isWholeValueDirty = false;
 
         // Remove any dirty flags
+        isPartiallyDirty = false;
         std::fill(dirtyFlags.begin(), dirtyFlags.end(), false);
     }
 
@@ -346,26 +359,37 @@ namespace state {
             throw std::runtime_error("Shouldn't be pushing in full async mode.");
         }
 
-        // Ignore if the whole value is dirty
-        if (isWholeValueDirty) {
+        // Ignore if the whole value is dirty or not partially dirty
+        if (isWholeValueDirty || !isPartiallyDirty) {
             return;
         }
 
         // Create copy of the dirty flags and clear the old version
         std::vector<bool> dirtyFlagsCopy(valueSize);
         {
-            FullLock segmentsLock(valueMutex);
+            FullLock lock(valueMutex);
+
+            // Double check condition
+            if (isWholeValueDirty || !isPartiallyDirty) {
+                return;
+            }
+
             std::copy(dirtyFlags.begin(), dirtyFlags.end(), dirtyFlagsCopy.begin());
+
+            // Reset dirty flags
+            isPartiallyDirty = false;
             std::fill(dirtyFlags.begin(), dirtyFlags.end(), false);
         }
 
-        // Shared lock for writing segments
-        SharedLock sharedLock(valueMutex);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Pushing partial state for {}", key);
 
-        const std::shared_ptr <spdlog::logger> &logger = util::getLogger();
+        // Read in the actual value remotely
         infra::Redis *redis = infra::Redis::getThreadState();
+        auto tempBuff = new uint8_t[valueSize];
+        redis->get(key, tempBuff, valueSize);
 
-        // Go through all dirty flags and update accordingly
+        // Go through all dirty flags and update value
 
         // Find first true flag
         auto start = std::find(dirtyFlagsCopy.begin(), dirtyFlagsCopy.end(), true);
@@ -375,21 +399,18 @@ namespace state {
             // Find next false
             auto end = std::find(start + 1, dirtyFlagsCopy.end(), false);
 
-            logger->debug("Pushing partial value for {}", key);
-
             // Our indices are inclusive here
             long size = end - start;
             long offset = start - dirtyFlagsCopy.begin();
-            redis->setRange(
-                    key,
-                    offset,
-                    static_cast<uint8_t *>(sharedMemory) + offset,
-                    (size_t) size
-            );
+            uint8_t *ptr = static_cast<uint8_t *>(sharedMemory) + offset;
+            std::copy(ptr, ptr + size, tempBuff + offset);
 
             // Find next true
             start = std::find(end + 1, dirtyFlagsCopy.end(), true);
         }
+
+        // Set whole value back again
+        redis->set(key, tempBuff, valueSize);
     }
 
     void StateKeyValue::lockRead() {
