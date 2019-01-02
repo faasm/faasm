@@ -158,8 +158,11 @@ namespace tests {
             hingeLossWeightUpdate(&mem, params, epoch, batchNumber, startIdx, endIdx);
         }
 
+        // Ensure everything pushed
+        mem.pushStatePartial(WEIGHTS_KEY);
+
         // Check weights have been updated where necessary
-        const MatrixXd actualWeights = readMatrixFromState(&mem, WEIGHTS_KEY, 1, nWeights);
+        const MatrixXd actualWeights = readMatrixFromState(&mem, WEIGHTS_KEY, 1, nWeights, async);
         REQUIRE(actualWeights.rows() == 1);
         REQUIRE(actualWeights.cols() == nWeights);
 

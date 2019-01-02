@@ -19,7 +19,8 @@ namespace infra {
     // Script to atomically scale up a worker.  The logic is:
     //
     // 0. Get the current count and length of the queue
-    // 1. Check if we've exceeded the ratio
+    // 0a. If there are no workers, add one regardless
+    // 1. Check if we've exceeded the queue ratio
     // 2a. If no workers at all, increment and return 1
     // 2b. If ratio not exceeded, return 0
     // 2c. If ratio exceeded, increment and return 1
@@ -41,7 +42,7 @@ namespace infra {
                                       "local maxQueueRatio = tonumber(ARGV[1]) \n"
                                       "local maxCount = tonumber(ARGV[2])"
                                       ""
-                                      "if queueRatio >= maxQueueRatio and workerCount < maxCount then \n"
+                                      "if queueRatio > maxQueueRatio and workerCount < maxCount then \n"
                                       "    redis.call(\"INCR\", KEYS[1]) \n"
                                       "    return 1 \n"
                                       "end \n"
@@ -304,7 +305,7 @@ namespace infra {
             logger->debug("Loaded worker script with SHA {}", addWorkerSha);
         };
 
-        // Invoke the script (number 2 says how many keys there are at the start of the argument list)
+        // Invoke the script
         auto reply = (redisReply *) redisCommand(context, "EVALSHA %s 2 %s %s %li %li", addWorkerSha.c_str(),
                                                  counterName.c_str(), queueName.c_str(), maxRatio, maxWorkers);
 
