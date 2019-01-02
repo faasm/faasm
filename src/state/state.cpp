@@ -116,13 +116,14 @@ namespace state {
 
     long StateKeyValue::waitOnRemoteLock() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Waiting on remote lock for {}", key);
 
         infra::Redis *redis = infra::Redis::getThreadState();
 
         long remoteLockId = redis->acquireLock(key, remoteLockTimeout);
         int retryCount = 0;
         while(remoteLockId ==  -1) {
+            logger->debug("Waiting on remote lock for {} (loop {})", key, retryCount);
+
             if(retryCount >= remoteLockMaxRetries) {
                 logger->error("Timed out waiting for lock on {}", key);
                 break;
@@ -132,6 +133,7 @@ namespace state {
             usleep(remoteLockWaitTime * 1000);
 
             remoteLockId = redis->acquireLock(key, remoteLockTimeout);
+            retryCount++;
         }
 
         return remoteLockId;
