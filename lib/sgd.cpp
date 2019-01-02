@@ -115,11 +115,6 @@ namespace faasm {
             }
         }
 
-        // Make sure all updates have been pushed
-        if (!sgdParams.fullAsync) {
-            memory->pushStatePartial(WEIGHTS_KEY);
-        }
-
         // Recalculate all predictions
         Map<const RowVectorXd> weights(weightDataBuffer, sgdParams.nWeights);
         MatrixXd prediction = weights * inputs;

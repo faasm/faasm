@@ -24,8 +24,6 @@ from tasks.docker import (
 
 from tasks.docker_compose import start_all, stop_all, restart_all
 
-from tasks.reuters import reuters_download
-
 from tasks.setup import (
     setup_namespaces,
     setup_net_files,
