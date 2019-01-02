@@ -243,7 +243,7 @@ namespace faasm {
         const size_t nBytes = sgdParams.nBatches * sizeof(int);
         auto buffer = new uint8_t[nBytes];
 
-        // Read in (async if necessary)
+        // Read in
         memory->readState(FINISHED_KEY, buffer, nBytes, sgdParams.fullAsync);
 
         auto flags = reinterpret_cast<int *>(buffer);
@@ -252,7 +252,7 @@ namespace faasm {
         bool allFinished = true;
         auto isFinished = new bool[sgdParams.nBatches];
         for (int i = 0; i < sgdParams.nBatches; i++) {
-            double flag = flags[i];
+            int flag = flags[i];
 
             // If flag is zero, we've not finished
             isFinished[i] = flag > 0;
