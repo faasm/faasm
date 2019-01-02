@@ -68,6 +68,18 @@ CONFIG_FLAGS = [
 
 
 @task
+def clean_build(context):
+    lib_build_dir = join(PROJ_ROOT, "lib", "build")
+
+    # Clean build of library
+    rmtree(lib_build_dir)
+    lib(context, "faasm")
+
+    # Clean build of functions
+    funcs(context, clean=True)
+
+
+@task
 def funcs(context, clean=False):
     """
     Compiles all the functions in this project

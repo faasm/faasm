@@ -27,6 +27,9 @@ namespace util {
         logger->info("MAX_WORKERS_PER_FUNCTION   {}", maxWorkersPerFunction);
         logger->info("BOUND_TIMEOUT              {}", boundTimeout);
         logger->info("UNBOUND_TIMEOUT            {}", unboundTimeout);
+
+        logger->info("FULL_ASYNC                 {}", fullAsync);
+
         logger->info("STATE_STALE_THRESHOLD      {}", stateStaleThreshold);
         logger->info("STATE_CLEAR_THRESHOLD      {}", stateClearThreshold);
         logger->info("STATE_PUSH_INTERVAL        {}", statePushInterval);
