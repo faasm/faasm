@@ -8,7 +8,7 @@ data:
   REDIS_QUEUE_HOST: redis-queue
   REDIS_PORT: "6379"
   FUNC_ROOT: "/usr/share/faasm"
-  LOG_LEVEL: "info"
+  LOG_LEVEL: "debug"
   PREWARM_TARGET: "200"
   MAX_QUEUE_RATIO: "1"
   MAX_WORKERS_PER_FUNCTION: "20"
