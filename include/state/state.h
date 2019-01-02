@@ -19,6 +19,9 @@ namespace state {
      */
     class StateKeyValue {
     public:
+        // Remote lock timeout in seconds
+        int remoteLockTimeout = 5;
+
         explicit StateKeyValue(const std::string &keyIn, size_t sizeIn);
 
         const std::string key;

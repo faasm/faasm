@@ -330,6 +330,8 @@ namespace state {
             return;
         }
 
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         // Get full lock for complete push
         FullLock fullLock(valueMutex);
 
@@ -338,7 +340,6 @@ namespace state {
             return;
         }
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Pushing whole value for {}", key);
 
         infra::Redis *redis = infra::Redis::getThreadState();
@@ -364,6 +365,23 @@ namespace state {
             return;
         }
 
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        // Attempt to lock the value remotely
+        infra::Redis *redis = infra::Redis::getThreadState();
+        long remoteLockId = redis->acquireLock(key, remoteLockTimeout);
+
+        // If we don't get remote lock, just skip this push and wait for next one
+        if(remoteLockId == -1) {
+            logger->debug("Failed to acquire remote lock for {}", key);
+            return;
+        }
+
+        // TODO Fix potential locking issue here.
+        // If we get the remote lock, then have to wait a long time for the local
+        // value lock, the remote one may have expired by the time we get to updating
+        // the value, and we end up clashing.
+
         // Create copy of the dirty flags and clear the old version
         std::vector<bool> dirtyFlagsCopy(valueSize);
         {
@@ -381,16 +399,14 @@ namespace state {
             std::fill(dirtyFlags.begin(), dirtyFlags.end(), false);
         }
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Pushing partial state for {}", key);
-
-        // Read in the actual value remotely
-        infra::Redis *redis = infra::Redis::getThreadState();
+        // Don't need any more local locking here
         auto tempBuff = new uint8_t[valueSize];
         redis->get(key, tempBuff, valueSize);
+        
+        logger->debug("Pushing partial state for {}", key);
 
         // Go through all dirty flags and update value
-
+        
         // Find first true flag
         auto start = std::find(dirtyFlagsCopy.begin(), dirtyFlagsCopy.end(), true);
 
@@ -411,6 +427,9 @@ namespace state {
 
         // Set whole value back again
         redis->set(key, tempBuff, valueSize);
+
+        // Release remote lock
+        redis->releaseLock(key, remoteLockId);
     }
 
     void StateKeyValue::lockRead() {
