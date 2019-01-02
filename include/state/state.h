@@ -20,7 +20,10 @@ namespace state {
     class StateKeyValue {
     public:
         // Remote lock timeout in seconds
-        int remoteLockTimeout = 5;
+        unsigned int remoteLockTimeout = 5;
+        // Remote lock sleep time in milliseconds
+        unsigned int remoteLockWaitTime = 100;
+        unsigned int remoteLockMaxRetries = 20;
 
         explicit StateKeyValue(const std::string &keyIn, size_t sizeIn);
 
@@ -97,6 +100,8 @@ namespace state {
         bool isIdle(const util::TimePoint &now);
 
         void preGet();
+
+        long waitOnRemoteLock();
     };
 
     typedef std::unordered_map<std::string, StateKeyValue *> KVMap;

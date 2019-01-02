@@ -9,14 +9,23 @@ namespace faasm {
     int exec(FaasmMemory *memory) {
         SgdParams p = readParamsFromState(memory, PARAMS_KEY, REUTERS_FULL_ASYNC);
 
-        // Get current epoch count (starts at zero)
+        // Get epoch count and barrier count(starts at zero)
         int thisEpoch = getCounter(memory, EPOCH_COUNT_KEY, p.fullAsync);
+        int barrierCount = getCounter(memory, BARRIER_COUNT_KEY, p.fullAsync);
 
         // See if we've finished the epoch
         bool isFinished = readEpochFinished(memory, p);
         if (!isFinished) {
+            if(barrierCount > MAX_BARRIER_COUNT) {
+                printf("Exceeded max barrier count. Stopping.\n");
+                return 0;
+            }
+
+            // Increment the barrier count
+            faasm::incrementCounter(memory, BARRIER_COUNT_KEY, p.fullAsync);
+
             // Try again
-            printf("Epoch %i not finished\n", thisEpoch);
+            printf("Epoch %i not finished (barrier count %i)\n", thisEpoch, barrierCount);
             memory->chainFunction("sgd_barrier");
             return 0;
         }

@@ -17,6 +17,10 @@ using namespace Eigen;
 #define LOSSES_KEY "losses"
 #define LOSS_TIMESTAMPS_KEY "loss_ts"
 
+// Synchronisation barriers
+#define BARRIER_COUNT_KEY "barrier_count"
+#define MAX_BARRIER_COUNT 20
+
 // Reuters-specific
 #define REUTERS_N_FEATURES 47236
 #define REUTERS_N_EXAMPLES 781265

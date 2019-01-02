@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <sys/mman.h>
+#include <unistd.h>
 
 #include "state.h"
 
@@ -72,6 +73,7 @@ namespace state {
             }
         } else {
             FullLock lock(valueMutex);
+
             logger->debug("Sync read for state {}", key);
             doRemoteRead();
         }
@@ -110,6 +112,29 @@ namespace state {
         util::Clock &clock = util::getGlobalClock();
         long idleTime = clock.timeDiff(now, lastInteraction);
         return idleTime > idleThreshold;
+    }
+
+    long StateKeyValue::waitOnRemoteLock() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Waiting on remote lock for {}", key);
+
+        infra::Redis *redis = infra::Redis::getThreadState();
+
+        long remoteLockId = redis->acquireLock(key, remoteLockTimeout);
+        int retryCount = 0;
+        while(remoteLockId ==  -1) {
+            if(retryCount >= remoteLockMaxRetries) {
+                logger->error("Timed out waiting for lock on {}", key);
+                break;
+            }
+
+            // usleep in microseconds
+            usleep(remoteLockWaitTime * 1000);
+
+            remoteLockId = redis->acquireLock(key, remoteLockTimeout);
+        }
+
+        return remoteLockId;
     }
 
     void StateKeyValue::preGet() {
@@ -369,7 +394,7 @@ namespace state {
 
         // Attempt to lock the value remotely
         infra::Redis *redis = infra::Redis::getThreadState();
-        long remoteLockId = redis->acquireLock(key, remoteLockTimeout);
+        long remoteLockId = this->waitOnRemoteLock();
 
         // If we don't get remote lock, just skip this push and wait for next one
         if(remoteLockId == -1) {
@@ -377,7 +402,7 @@ namespace state {
             return;
         }
 
-        // TODO Fix potential locking issue here.
+        // TODO Potential locking issues here.
         // If we get the remote lock, then have to wait a long time for the local
         // value lock, the remote one may have expired by the time we get to updating
         // the value, and we end up clashing.
