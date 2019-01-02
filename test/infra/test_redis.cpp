@@ -9,18 +9,18 @@ using namespace infra;
 namespace tests {
 
     namespace vars {
-        const std::string QUEUE_NAME = "my queue";
+        static const std::string QUEUE_NAME = "my queue";
 
-        const std::string VALUE_A = "val a";
-        const std::string VALUE_B = "val b";
-        const std::string VALUE_C = "val c";
+        static const std::string VALUE_A = "val a";
+        static const std::string VALUE_B = "val b";
+        static const std::string VALUE_C = "val c";
 
-        const std::vector<uint8_t> BYTES_A = util::stringToBytes(VALUE_A);
-        const std::vector<uint8_t> BYTES_B = util::stringToBytes(VALUE_B);
-        const std::vector<uint8_t> BYTES_C = util::stringToBytes(VALUE_C);
+        static const std::vector<uint8_t> BYTES_A = util::stringToBytes(VALUE_A);
+        static const std::vector<uint8_t> BYTES_B = util::stringToBytes(VALUE_B);
+        static const std::vector<uint8_t> BYTES_C = util::stringToBytes(VALUE_C);
     }
 
-    void doEnqueue() {
+    static void doEnqueue() {
         redisQueue.flushAll();
 
         // Enqueue some values
@@ -338,5 +338,88 @@ namespace tests {
 
     TEST_CASE("Test incr below target doesn't increase if above", "[redis]") {
         _validateIncrIfBelowTarget(15, 10, false);
+    }
+
+    TEST_CASE("Test setnxex", "[redis]") {
+        redisState.flushAll();
+
+        std::string key = "setnxex_test";
+        long valueA = 101;
+        long valueB = 102;
+
+        // Set one value and make sure it works
+        long res = redisState.setnxex(key, valueA, 60);
+        REQUIRE(res);
+        REQUIRE(redisState.getLong(key) == valueA);
+
+        // Try to set another and make sure it doesn't
+        long res2 = redisState.setnxex(key, valueB, 60);
+        REQUIRE(!res2);
+        REQUIRE(redisState.getLong(key) == valueA);
+
+        // Remove first value, try again and make sure it works
+        redisState.del(key);
+        long res3 = redisState.setnxex(key, valueB, 60);
+        REQUIRE(res3);
+        REQUIRE(redisState.getLong(key) == valueB);
+    }
+
+    TEST_CASE("Test del if equal", "[redis]") {
+        redisState.flushAll();
+
+        std::string key = "delifeq_test";
+        long valueA = 101;
+        long valueB = 102;
+
+        // Try with nothing set
+        redisState.delIfEq(key, valueA);
+        REQUIRE(redisState.get(key).empty());
+
+        // Set a value and try deleting another
+        redisState.setnxex(key, valueA, 60);
+        redisState.delIfEq(key, valueB);
+        REQUIRE(redisState.getLong(key) == valueA);
+
+        // Now delete the actual value
+        redisState.delIfEq(key, valueA);
+        REQUIRE(redisState.get(key).empty());
+    }
+
+    TEST_CASE("Test acquire/ release lock", "[redis]") {
+        redisState.flushAll();
+
+        std::string key = "lock_test";
+        std::string lockKey = key + "_lock";
+
+        // Set a value for the key to make sure it isn't affected
+        std::vector<uint8_t> value = {0, 1, 2, 3};
+        redisState.set(key, value);
+
+        // Check we can acquire the lock
+        long lockId = redisState.acquireLock(key, 10);
+        REQUIRE(lockId > 0);
+        REQUIRE(redisState.getLong(lockKey) == lockId);
+        REQUIRE(redisState.get(key) == value);
+
+        // Check someone else can't acquire the lock
+        long lockId2 = redisState.acquireLock(key, 10);
+        REQUIRE(lockId2 == -1);
+        REQUIRE(redisState.getLong(lockKey) == lockId);
+        REQUIRE(redisState.get(key) == value);
+
+        // Release with an invalid lock ID and check it's still locked
+        redisState.releaseLock(key, lockId + 1);
+        long lockId3 = redisState.acquireLock(key, 10);
+        REQUIRE(lockId3 == -1);
+        REQUIRE(redisState.getLong(lockKey) == lockId);
+        REQUIRE(redisState.get(key) == value);
+
+        // Release with valid ID and check we can re-acquire
+        redisState.releaseLock(key, lockId);
+        long lockId4 = redisState.acquireLock(key, 10);
+        REQUIRE(lockId4 > 0);
+        REQUIRE(lockId4 != lockId);
+        REQUIRE(redisState.getLong(lockKey) == lockId4);
+        REQUIRE(redisState.get(key) == value);
     }
 }
