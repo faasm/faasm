@@ -228,82 +228,6 @@ namespace tests {
         REQUIRE(actualCall2.success());
     }
 
-    void _validateAddWorker(int nWorkers, int queueLengh, int maxRatio, int maxWorkers, bool expectIncrement) {
-        redisQueue.flushAll();
-
-        std::string counter = "dummyCount";
-        std::string queueName = "dummyQueue";
-
-        // Set up number of workers
-        for (int w = 0; w < nWorkers; w++) {
-            redisQueue.incr(counter);
-        }
-
-        // Set up queue
-        for (int q = 0; q < queueLengh; q++) {
-            redisQueue.enqueue(queueName, {0, 1});
-        }
-
-        // Call addWorker
-        bool shouldAddWorker = redisQueue.addWorker(counter, queueName, maxRatio, maxWorkers);
-
-        // Check queue length hasn't changed
-        REQUIRE(redisQueue.listLength(queueName) == queueLengh);
-
-        if (expectIncrement) {
-            // Check result indicates increment
-            REQUIRE(shouldAddWorker);
-
-            // Check worker count has been incremented
-            REQUIRE(redisQueue.getCounter(counter) == nWorkers + 1);
-        } else {
-            // Check no change
-            REQUIRE(!shouldAddWorker);
-            REQUIRE(redisQueue.getCounter(counter) == nWorkers);
-        }
-    }
-
-
-    TEST_CASE("Test add worker with zero counter causes addition", "[redis]") {
-        int nWorkers = 0;
-        int queueLength = 1;
-        int maxRatio = 5;
-        int maxWorkers = 10;
-        bool expectIncrement = true;
-
-        _validateAddWorker(nWorkers, queueLength, maxRatio, maxWorkers, expectIncrement);
-    }
-
-    TEST_CASE("Test add worker with queue but below threshold causes no addition", "[redis]") {
-        int nWorkers = 1;
-        int queueLength = 1;
-        int maxRatio = 5;
-        int maxWorkers = 10;
-        bool expectIncrement = false;
-
-        _validateAddWorker(nWorkers, queueLength, maxRatio, maxWorkers, expectIncrement);
-    }
-
-    TEST_CASE("Test add worker above threshold causes addition", "[redis]") {
-        int nWorkers = 1;
-        int queueLength = 6;
-        int maxRatio = 5;
-        int maxWorkers = 10;
-        bool expectIncrement = true;
-
-        _validateAddWorker(nWorkers, queueLength, maxRatio, maxWorkers, expectIncrement);
-    }
-
-    TEST_CASE("Test add worker above threshold but above worker limit causes no addition", "[redis]") {
-        int nWorkers = 6;
-        int queueLength = 100;
-        int maxRatio = 5;
-        int maxWorkers = 5;
-        bool expectIncrement = false;
-
-        _validateAddWorker(nWorkers, queueLength, maxRatio, maxWorkers, expectIncrement);
-    }
-
     TEST_CASE("Test setnxex", "[redis]") {
         redisState.flushAll();
 
@@ -394,11 +318,14 @@ namespace tests {
         std::string key = "lock_test";
         std::string lockKey = key + "_lock";
 
-        // Check we can't acquire the lock when the key doesn't exist (not equal to expectation)
+        // Check we can acquire the lock when the key doesn't exist
         long lockId = redisState.acquireConditionalLock(key, 10);
-        REQUIRE(lockId == -1);
-        REQUIRE(redisState.getLong(lockKey) == 0);
+        REQUIRE(lockId > 0);
+        REQUIRE(redisState.getLong(lockKey) == lockId);
         REQUIRE(redisState.getLong(key) == 0);
+
+        // Release it
+        redisState.releaseLock(key, lockId);
 
         // Set some value and check we can get the lock with the right value
         redisState.setLong(key, 50);

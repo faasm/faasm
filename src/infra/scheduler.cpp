@@ -50,68 +50,65 @@ namespace infra {
     }
 
     void Scheduler::updateWorkerAllocs(const message::Message &msg) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
+        // NOTE: Function counter will already have been updated
         util::SystemConfig &conf = util::getSystemConfig();
 
-        // Get queue details
         Redis *queue = Redis::getThreadQueue();
-        const std::string counter = Scheduler::getFunctionCounterName(msg);
-        const std::string queueName = Scheduler::getFunctionQueueName(msg);
 
-        // Get the queue ratio for this function
-        int queueRatio = conf.maxQueueRatio;
+        // Get the max queue ratio for this function
+        int maxQueueRatio = conf.maxQueueRatio;
 
         // TODO make this configurable
-        if(msg.function() == "sgd_step") {
+        if (msg.function() == "sgd_step") {
             // No queueing
-            queueRatio = 0;
+            maxQueueRatio = 0;
         }
 
-        // Add more workers if necessary
-        bool shouldAddWorker = queue->addWorker(counter, queueName, queueRatio, conf.maxWorkersPerFunction);
+        // Get the queue length and worker count
+        const std::string queueName = getFunctionQueueName(msg);
+        const std::string counterKey = Scheduler::getFunctionCounterName(msg);
 
-        // Send bind message to pre-warm queue to enlist help of other workers
-        if (shouldAddWorker) {
-            Scheduler::sendBindMessage(msg);
+        long queueLen = queue->listLength(queueName);
+        long workerCount = queue->getCounter(counterKey);
 
-            logger->debug(
-                    "SCALE-UP {}, max_qr = {}, max_workers = {}",
-                    infra::funcToString(msg), queueRatio, conf.maxWorkersPerFunction
-            );
-        } else {
-            logger->debug(
-                    "MAINTAIN {}, max_qr = {}, max_workers = {}",
-                    infra::funcToString(msg), queueRatio, conf.maxWorkersPerFunction
-            );
+        // See if we're over the queue ratio and have scope to scale up
+        bool needMore;
+        if(workerCount == 0) {
+            needMore = true;
         }
-    }
-
-    void Scheduler::sendBindMessage(const message::Message &msg) {
-        // Function counter will already have been updated
-        Redis *queue = Redis::getThreadQueue();
-
-        util::SystemConfig &conf = util::getSystemConfig();
-
-        // Work out which workers are in this function set and which are available
-        if(conf.affinity == 1) {
-            // Get an existing member that's also available for work
-            // TODO - implement
-            // options = sunion(func_workers, available_workers)
-            // if(options) {
-            //   selected = random_member(options)
-            // else {
-            //   selected = srandmember(available_workers)
-            // }
+        else {
+            double queueRatio = ((double) queueLen) / workerCount;
+            needMore = queueRatio > maxQueueRatio;
         }
 
-        // Send the bind message
-        message::Message bindMsg;
-        bindMsg.set_type(message::Message_MessageType_BIND);
-        bindMsg.set_user(msg.user());
-        bindMsg.set_function(msg.function());
+        if (needMore && workerCount < conf.maxWorkersPerFunction) {
+            // Try and get the remote lock for this function, checking that
+            // the worker count situation is still the same
+            long lockId = queue->acquireConditionalLock(counterKey, workerCount);
 
-        queue->enqueueMessage(PREWARM_QUEUE, bindMsg);
+            if(lockId <= 0) {
+                // At this point, the worker count has changed, or we've not got the lock,
+                // so we need to wait and try again
+                usleep(scheduleWaitMillis * 1000);
+
+                // Recurse
+                Scheduler::updateWorkerAllocs(msg);
+            } else {
+                // Here we have the lock and the worker count is still the same, so
+                // we can increment the count and send the bind message
+                queue->incr(counterKey);
+
+                message::Message bindMsg;
+                bindMsg.set_type(message::Message_MessageType_BIND);
+                bindMsg.set_user(msg.user());
+                bindMsg.set_function(msg.function());
+
+                queue->enqueueMessage(PREWARM_QUEUE, bindMsg);
+
+                // Release the lock
+                queue->releaseLock(counterKey, lockId);
+            }
+        }
     }
 
     void Scheduler::workerFinished(const std::string &currentQueue) {

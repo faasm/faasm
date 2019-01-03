@@ -28,48 +28,14 @@ namespace infra {
     // 1 = lock acquired
     static std::string conditionalLockSha;
     static std::string conditionalLockCmd = "local val = redis.call(\"GET\", KEYS[1]) \n"
-                                            "if val ~= ARGV[1] then \n"
-                                            "    return -1 \n"
-                                            "end \n"
                                             ""
-                                            "return redis.call(\"SETNX\", KEYS[2], ARGV[2])";
+                                            "if (val == false) or (val == ARGV[1]) then \n"
+                                            "    return redis.call(\"SETNX\", KEYS[2], ARGV[2]) \n"
+                                            "else \n"
+                                            "    return -1 \n"
+                                            "end";
 
-    // Atomic redis operation to check if we need to scale up the workers for a function.
-    // This both makes the decision and increments the counter accordingly. This needs
-    // to be atomic and executed on the server to make sure multiple schedulers can operate
-    // efficiently at once.
-    //
-    // The logic is as follows:
-    //
-    // 0. Get the current count and length of the queue
-    // 1. Check if we've exceeded the queue ratio
-    // 2a. If no workers at all, increment count and return 1
-    // 2b. If ratio not exceeded, return 0
-    // 2c. If ratio exceeded, increment and return 1
-    // 2d. If ratio exceeded and at max workers, return 0
-    //
-    // See Redis docs for more info on scripting: https://redis.io/commands/eval
-    //
-    // Arguments are: counterName, queueName, lockName, maxQueueRatio, maxWorkers
-    static std::string addWorkerSha;
-    static std::string addWorkerCmd = "local workerCount = redis.call(\"GET\", KEYS[1]) \n"
-                                      "if not workerCount then \n"
-                                      "    redis.call(\"INCR\", KEYS[1]) \n"
-                                      "    return 1 \n"
-                                      "end \n"
-                                      ""
-                                      "workerCount = tonumber(workerCount) \n"
-                                      "local queueLen = redis.call(\"LLEN\", KEYS[2]) \n"
-                                      "local queueRatio = queueLen / workerCount \n"
-                                      "local maxQueueRatio = tonumber(ARGV[1]) \n"
-                                      "local maxCount = tonumber(ARGV[2])"
-                                      ""
-                                      "if queueRatio > maxQueueRatio and workerCount < maxCount then \n"
-                                      "    redis.call(\"INCR\", KEYS[1]) \n"
-                                      "    return 1 \n"
-                                      "end \n"
-                                      ""
-                                      "return 0 \n";
+
 
     // Script to delete a key if it equals a given value
     static std::string delifeqSha;
@@ -307,23 +273,6 @@ namespace infra {
     /**
     *  ------ Scheduling ------
     */
-
-    bool Redis::addWorker(const std::string &counterName, const std::string &queueName,
-                          long maxRatio, long maxWorkers) {
-        // Create the script if not exists
-        if (addWorkerSha.empty()) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            addWorkerSha = this->loadScript(addWorkerCmd);
-            logger->debug("Loaded worker script with SHA {}", addWorkerSha);
-        };
-
-        // Invoke the script
-        auto reply = (redisReply *) redisCommand(context, "EVALSHA %s 2 %s %s %li %li", addWorkerSha.c_str(),
-                                                 counterName.c_str(), queueName.c_str(), maxRatio, maxWorkers);
-
-        long result = extractScriptResult(reply);
-        return result == 1;
-    }
 
     std::pair<long, long> Redis::mgetLongPair(const std::string &keyA, const std::string &keyB) {
         auto reply = (redisReply *) redisCommand(context, "MGET %s %s", keyA.c_str(), keyB.c_str());

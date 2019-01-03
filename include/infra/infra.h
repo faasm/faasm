@@ -97,8 +97,6 @@ namespace infra {
         *  ------ Scheduling ------
         */
 
-        bool addWorker(const std::string &counterName, const std::string &queueName, long maxRatio, long maxWorkers);
-
         std::pair<long, long> mgetLongPair(const std::string &keyA, const std::string &keyB);
 
         /**
@@ -139,6 +137,8 @@ namespace infra {
     public:
         Scheduler();
 
+        static const int scheduleWaitMillis = 100;
+
         static long getFunctionCount(const message::Message &msg);
 
         static int getWorkerTimeout(const std::string &currentQueue);
@@ -150,8 +150,6 @@ namespace infra {
         static std::string getFunctionQueueName(const message::Message &msg);
 
     private:
-        static void sendBindMessage(const message::Message &msg);
-
         static void updateWorkerAllocs(const message::Message &msg);
 
         static std::string getFunctionCounterName(const message::Message &msg);
