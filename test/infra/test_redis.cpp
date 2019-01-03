@@ -2,7 +2,7 @@
 #include <infra/infra.h>
 #include <util/util.h>
 #include "utils.h"
-
+#include <algorithm>
 
 using namespace infra;
 
@@ -373,5 +373,76 @@ namespace tests {
         std::pair<long, long> actual3 = redisState.mgetLongPair(keyA, keyB);
         REQUIRE(actual3.first == 999);
         REQUIRE(actual3.second == 222);
+    }
+
+    TEST_CASE("Test set operations", "[redis]") {
+        redisQueue.flushAll();
+
+        std::string setA = "set_a";
+        std::string setB = "set_b";
+
+        std::string valueA = "val_a";
+        std::string valueB = "val_b";
+        std::string valueC = "val_c";
+
+        // Check cardinality is zero for both initially
+        REQUIRE(redisQueue.scard(setA) == 0);
+        REQUIRE(redisQueue.scard(setB) == 0);
+        REQUIRE(!redisQueue.sismember(setA, valueA));
+        REQUIRE(!redisQueue.sismember(setA, valueB));
+
+        // Add something and check
+        redisQueue.sadd(setA, valueA);
+        REQUIRE(redisQueue.scard(setA) == 1);
+        REQUIRE(redisQueue.sismember(setA, valueA));
+        REQUIRE(!redisQueue.sismember(setA, valueB));
+        REQUIRE(redisQueue.scard(setB) == 0);
+
+        // Add more and check
+        redisQueue.sadd(setA, valueB);
+        redisQueue.sadd(setB, valueC);
+        REQUIRE(redisQueue.scard(setA) == 2);
+        REQUIRE(redisQueue.sismember(setA, valueA));
+        REQUIRE(redisQueue.sismember(setA, valueB));
+        REQUIRE(redisQueue.sismember(setB, valueC));
+        REQUIRE(redisQueue.scard(setB) == 1);
+
+        // Remove and check
+        redisQueue.srem(setA, valueB);
+        REQUIRE(redisQueue.scard(setA) == 1);
+        REQUIRE(redisQueue.sismember(setA, valueA));
+        REQUIRE(!redisQueue.sismember(setA, valueB));
+        REQUIRE(redisQueue.sismember(setB, valueC));
+        REQUIRE(redisQueue.scard(setB) == 1);
+    }
+
+    TEST_CASE("Test set diff", "[redis]") {
+        redisQueue.flushAll();
+
+        std::string setA = "set_a";
+        std::string setB = "set_b";
+
+        const std::vector<std::string> actualA = redisQueue.sdiff(setA, setB);
+        REQUIRE(actualA.empty());
+
+        std::string valueA = "val_a";
+        std::string valueB = "val_b";
+        std::string valueC = "val_c";
+        std::string valueD = "val_d";
+
+        redisQueue.sadd(setA, valueA);
+        redisQueue.sadd(setA, valueB);
+        redisQueue.sadd(setA, valueC);
+
+        redisQueue.sadd(setB, valueC);
+        redisQueue.sadd(setB, valueD);
+
+        std::vector<std::string> actualB = redisQueue.sdiff(setA, setB);
+        std::vector<std::string> expected = {valueA, valueB};
+
+        std::sort(actualB.begin(), actualB.end());
+        std::sort(expected.begin(), expected.end());
+
+        REQUIRE(actualB == expected);
     }
 }

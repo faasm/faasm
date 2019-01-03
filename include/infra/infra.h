@@ -69,6 +69,16 @@ namespace infra {
 
         void getRange(const std::string &key, uint8_t *buffer, size_t bufferLen, long start, long end);
 
+        void sadd(const std::string &key, const std::string &value);
+
+        void srem(const std::string &key, const std::string &value);
+
+        long scard(const std::string &key);
+
+        bool sismember(const std::string &key, const std::string &value);
+
+        std::vector<std::string> sdiff(const std::string &keyA, const std::string &keyB);
+
         void flushAll();
 
         long listLength(const std::string &queueName);

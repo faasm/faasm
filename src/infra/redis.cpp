@@ -231,6 +231,48 @@ namespace infra {
         freeReplyObject(reply);
     }
 
+    void Redis::sadd(const std::string &key, const std::string &value) {
+        auto reply = (redisReply *) redisCommand(context, "SADD %s %s", key.c_str(), value.c_str());
+        freeReplyObject(reply);
+    }
+
+    void Redis::srem(const std::string &key, const std::string &value) {
+        auto reply = (redisReply *) redisCommand(context, "SREM %s %s", key.c_str(), value.c_str());
+        freeReplyObject(reply);
+    }
+
+    long Redis::scard(const std::string &key) {
+        auto reply = (redisReply *) redisCommand(context, "SCARD %s", key.c_str());
+
+        long res = reply->integer;
+
+        freeReplyObject(reply);
+
+        return res;
+    }
+
+    bool Redis::sismember(const std::string &key, const std::string &value) {
+        auto reply = (redisReply *) redisCommand(context, "SISMEMBER %s %s", key.c_str(), value.c_str());
+
+        bool res = reply->integer == 1;
+
+        freeReplyObject(reply);
+
+        return res;
+    }
+
+    std::vector<std::string> Redis::sdiff(const std::string &keyA, const std::string &keyB) {
+        auto reply = (redisReply *) redisCommand(context, "SDIFF %s %s", keyA.c_str(), keyB.c_str());
+
+        std::vector<std::string> retValue;
+        for(int i = 0; i < reply->elements; i++) {
+            retValue.emplace_back(reply->element[i]->str);
+        }
+
+        freeReplyObject(reply);
+
+        return retValue;
+    }
 
     void Redis::flushAll() {
         auto reply = (redisReply *) redisCommand(context, "FLUSHALL");
