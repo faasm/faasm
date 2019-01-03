@@ -95,9 +95,6 @@ namespace infra {
 
         bool addWorker(const std::string &counterName, const std::string &queueName, long maxRatio, long maxWorkers);
 
-        bool incrIfBelowTarget(const std::string &key, int target);
-
-
         /**
         *  ------ Queueing ------
         */

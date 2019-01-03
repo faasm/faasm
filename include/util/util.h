@@ -45,6 +45,9 @@ namespace util {
         int statePushInterval;
         int fullAsync;
 
+        // Scheduling
+        int affinity;
+
         SystemConfig();
 
         void print();

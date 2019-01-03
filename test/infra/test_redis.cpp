@@ -304,42 +304,6 @@ namespace tests {
         _validateAddWorker(nWorkers, queueLength, maxRatio, maxWorkers, expectIncrement);
     }
 
-    void _validateIncrIfBelowTarget(int currentValue, int target, bool expectIncr) {
-        redisQueue.flushAll();
-
-        std::string key = "incr_test";
-
-        for (int i = 0; i < currentValue; i++) {
-            redisQueue.incr(key);
-        }
-
-        bool res = redisQueue.incrIfBelowTarget(key, target);
-
-        if (expectIncr) {
-            REQUIRE(res);
-            REQUIRE(redisQueue.getCounter(key) == currentValue + 1);
-        } else {
-            REQUIRE(!res);
-            REQUIRE(redisQueue.getCounter(key) == currentValue);
-        }
-    }
-
-    TEST_CASE("Test incr below target increases if uninitialised", "[redis]") {
-        _validateIncrIfBelowTarget(0, 1, true);
-    }
-
-    TEST_CASE("Test incr below target increases if below target", "[redis]") {
-        _validateIncrIfBelowTarget(10, 12, true);
-    }
-
-    TEST_CASE("Test incr below target doesn't increase if equal", "[redis]") {
-        _validateIncrIfBelowTarget(10, 10, false);
-    }
-
-    TEST_CASE("Test incr below target doesn't increase if above", "[redis]") {
-        _validateIncrIfBelowTarget(15, 10, false);
-    }
-
     TEST_CASE("Test setnxex", "[redis]") {
         redisState.flushAll();
 

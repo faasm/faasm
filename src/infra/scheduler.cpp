@@ -89,8 +89,21 @@ namespace infra {
 
     void Scheduler::sendBindMessage(const message::Message &msg) {
         // Function counter will already have been updated
-
         Redis *queue = Redis::getThreadQueue();
+
+        util::SystemConfig &conf = util::getSystemConfig();
+
+        // Work out which workers are in this function set and which are available
+        if(conf.affinity == 1) {
+            // Get an existing member that's also available for work
+            // TODO - implement
+            // options = sunion(func_workers, available_workers)
+            // if(options) {
+            //   selected = random_member(options)
+            // else {
+            //   selected = srandmember(available_workers)
+            // }
+        }
 
         // Send the bind message
         message::Message bindMsg;

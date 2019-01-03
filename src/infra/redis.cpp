@@ -16,19 +16,23 @@ namespace infra {
     static std::string redisStateIp;
     static std::string redisQueueIp;
 
-    // Script to atomically scale up a worker.  The logic is:
+    // Atomic redis operation to check if we need to scale up the workers for a function.
+    // This both makes the decision and increments the counter accordingly. This needs
+    // to be atomic and executed on the server to make sure multiple schedulers can operate
+    // efficiently at once.
+    //
+    // The logic is as follows:
     //
     // 0. Get the current count and length of the queue
-    // 0a. If there are no workers, add one regardless
     // 1. Check if we've exceeded the queue ratio
-    // 2a. If no workers at all, increment and return 1
+    // 2a. If no workers at all, increment count and return 1
     // 2b. If ratio not exceeded, return 0
     // 2c. If ratio exceeded, increment and return 1
     // 2d. If ratio exceeded and at max workers, return 0
     //
-    // See Redis docs for more info: https://redis.io/commands/eval
+    // See Redis docs for more info on scripting: https://redis.io/commands/eval
     //
-    // Arguments are: counterName, queueName, maxQueueRatio, maxWorkers
+    // Arguments are: counterName, queueName, lockName, maxQueueRatio, maxWorkers
     static std::string addWorkerSha;
     static std::string addWorkerCmd = "local workerCount = redis.call(\"GET\", KEYS[1]) \n"
                                       "if not workerCount then \n"
@@ -49,25 +53,8 @@ namespace infra {
                                       ""
                                       "return 0 \n";
 
-    // Script to atomically get whether a container should prewarm. Logic is:
-    //
-    // 0. Get the current prewarm count
-    // 1a. If it's less than the target
-    static std::string incrIfBelowTargetSha;
-    static std::string incrIfBelowTargetCmd = "local prewarmCount = redis.call(\"GET\", KEYS[1]) \n"
-                                              "if prewarmCount then \n"
-                                              "    prewarmCount = tonumber(prewarmCount) \n"
-                                              "else \n"
-                                              "    prewarmCount = 0 \n"
-                                              "end \n"
-                                              ""
-                                              "local prewarmTarget = tonumber(ARGV[1]) \n"
-                                              "if prewarmCount < prewarmTarget then \n"
-                                              "    redis.call(\"INCR\", KEYS[1]) \n"
-                                              "    return 1 \n"
-                                              "end \n"
-                                              ""
-                                              "return 0";
+    static std::string nextWorkerAntiAffinitySha;
+    static std::string nextWorkerAntiAffinityCmd = "";
 
     // Script to delete a key if it equals a given value
     static std::string delifeqSha;
@@ -312,23 +299,6 @@ namespace infra {
         long result = extractScriptResult(reply);
         return result == 1;
     }
-
-    bool Redis::incrIfBelowTarget(const std::string &key, int target) {
-        // Create the script if not exists
-        if (incrIfBelowTargetSha.empty()) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            incrIfBelowTargetSha = this->loadScript(incrIfBelowTargetCmd);
-            logger->debug("Loaded incr below target script with SHA {}", incrIfBelowTargetSha);
-        };
-
-        // Invoke the script
-        auto reply = (redisReply *) redisCommand(context, "EVALSHA %s 1 %s %i", incrIfBelowTargetSha.c_str(),
-                                                 key.c_str(), target);
-
-        long result = extractScriptResult(reply);
-        return result == 1;
-    }
-
 
     /**
      *  ------ Locking ------
