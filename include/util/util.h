@@ -1,13 +1,17 @@
 #pragma once
 
+#include <spdlog/spdlog.h>
+
 #include <string>
 #include <vector>
 #include <queue>
 #include <mutex>
-#include <condition_variable>
-#include <spdlog/spdlog.h>
+#include <shared_mutex>
 
 namespace util {
+    typedef std::unique_lock<std::shared_mutex> FullLock;
+    typedef std::shared_lock<std::shared_mutex> SharedLock;
+
     // Environment manipulation
     std::string getEnvVar(const std::string &key, const std::string &deflt);
 
@@ -78,6 +82,8 @@ namespace util {
         int getToken();
 
         void releaseToken(int token);
+
+        void reset();
 
     private:
         std::queue<int> tokenQueue;

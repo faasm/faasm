@@ -62,9 +62,13 @@ namespace worker {
     /** WorkerThread wrapper */
     void startWorkerThreadPool();
 
+    util::TokenPool& getWorkerTokenPool();
+
+    util::TokenPool& getPrewarmTokenPool();
+
     class WorkerThread {
     public:
-        explicit WorkerThread(int workerIdx);
+        explicit WorkerThread(int workerIdx, int prewarmToken);
 
         ~WorkerThread();
 
@@ -88,6 +92,7 @@ namespace worker {
         bool _isBound = false;
         int isolationIdx;
         int workerIdx;
+        int prewarmToken;
         NetworkNamespace *ns;
 
         infra::Redis *queue;

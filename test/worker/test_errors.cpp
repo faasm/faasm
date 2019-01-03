@@ -7,7 +7,7 @@ using namespace worker;
 
 namespace tests {
     void execErrorFunction(message::Message &call) {
-        WorkerThread w(1);
+        WorkerThread w(1, 1);
 
         infra::Scheduler::callFunction(call);
 

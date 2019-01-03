@@ -7,13 +7,9 @@
 #include <string>
 #include <tuple>
 #include <thread>
-#include <mutex>
-#include <shared_mutex>
+
 
 namespace state {
-    typedef std::unique_lock<std::shared_mutex> FullLock;
-    typedef std::shared_lock<std::shared_mutex> SharedLock;
-
     /**
      * A specific key/value pair for state
      */

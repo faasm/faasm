@@ -21,7 +21,7 @@ namespace tests {
 
     void execFunction(message::Message &call) {
         // Set up worker to listen for relevant function
-        WorkerThread w(1);
+        WorkerThread w(1, 1);
         REQUIRE(w.isInitialised());
         REQUIRE(!w.isBound());
 
@@ -69,40 +69,14 @@ namespace tests {
     TEST_CASE("Test worker initially pre-warmed", "[worker]") {
         setUp();
 
-        REQUIRE(infra::Scheduler::getPrewarmCount() == 0);
-        REQUIRE(infra::Scheduler::getColdCount() == 0);
-
-        WorkerThread w(2);
+        WorkerThread w(1, 1);
         REQUIRE(!w.isBound());
         REQUIRE(w.isInitialised());
-
-        REQUIRE(infra::Scheduler::getPrewarmCount() == 1);
-        REQUIRE(infra::Scheduler::getColdCount() == 0);
     }
 
     void checkBound(WorkerThread &w, message::Message &msg, bool isBound) {
         REQUIRE(w.isBound() == isBound);
         REQUIRE(w.module->isBound() == isBound);
-    }
-
-    TEST_CASE("Test worker doesn't initialise by default when enough workers in system", "[worker]") {
-        setUp();
-
-        REQUIRE(infra::Scheduler::getPrewarmCount() == 0);
-        REQUIRE(infra::Scheduler::getColdCount() == 0);
-
-        // Set up enough fake workers to meet our prewarm target
-        util::SystemConfig &conf = util::getSystemConfig();
-        int nWorkers = conf.prewarmTarget;
-        for (int i = 0; i < nWorkers; i++) {
-            infra::Scheduler::prewarmWorker();
-        }
-
-        WorkerThread w(1);
-        REQUIRE(!w.isBound());
-        REQUIRE(!w.isInitialised());
-        REQUIRE(infra::Scheduler::getPrewarmCount() == nWorkers);
-        REQUIRE(infra::Scheduler::getColdCount() == 1);
     }
 
     TEST_CASE("Test binding to function", "[worker]") {
@@ -112,7 +86,7 @@ namespace tests {
         call.set_user("demo");
         call.set_function("chain");
 
-        WorkerThread w(1);
+        WorkerThread w(1, 1);
         w.initialise();
         checkBound(w, call, false);
 
@@ -143,16 +117,10 @@ namespace tests {
     TEST_CASE("Test bind message causes worker to bind", "[worker]") {
         setUp();
 
-        // Check prewarm empty to begin with
-        REQUIRE(infra::Scheduler::getPrewarmCount() == 0);
-        REQUIRE(infra::Scheduler::getColdCount() == 0);
-
-        // Create worker and check it's in prewarm set
-        WorkerThread w(2);
+        // Create worker and check it's prewarm
+        WorkerThread w(1, 1);
         REQUIRE(!w.isBound());
         REQUIRE(w.isInitialised());
-        REQUIRE(infra::Scheduler::getPrewarmCount() == 1);
-        REQUIRE(infra::Scheduler::getColdCount() == 0);
 
         // Invoke a new call which will require a worker to bind
         message::Message call;
@@ -168,12 +136,6 @@ namespace tests {
 
         // Check message has been consumed and that worker is now bound
         REQUIRE(w.isBound());
-        REQUIRE(infra::Scheduler::getPrewarmCount() == 0);
-
-        // Check that the corresponding pre-warm message has been added to the cold queue
-        REQUIRE(redisQueue.listLength(infra::COLD_QUEUE) == 1);
-        const message::Message actual = redisQueue.nextMessage(infra::COLD_QUEUE);
-        REQUIRE(actual.type() == message::Message_MessageType_PREWARM);
     }
 
     TEST_CASE("Test function chaining", "[worker]") {
@@ -186,7 +148,7 @@ namespace tests {
 
         // Set up a real worker to execute this function. Remove it from the
         // unassigned set and add to handle this function
-        WorkerThread w(1);
+        WorkerThread w(1, 1);
         w.bindToFunction(call);
 
         // Make the call
@@ -223,7 +185,7 @@ namespace tests {
         call.set_resultkey("test_state_incr");
 
         // Call function
-        WorkerThread w(1);
+        WorkerThread w(1, 1);
         infra::Scheduler::callFunction(call);
 
         // Bind and exec
@@ -255,7 +217,7 @@ namespace tests {
         call.set_resultkey("check_state_res");
 
         // Call function
-        WorkerThread w(1);
+        WorkerThread w(1, 1);
         infra::Scheduler::callFunction(call);
 
         // Bind and exec
@@ -305,7 +267,7 @@ namespace tests {
         call.set_resultkey("test_heap_mem");
 
         // Call function
-        WorkerThread w(1);
+        WorkerThread w(1, 1);
         infra::Scheduler::callFunction(call);
 
         // Process bind
@@ -329,7 +291,7 @@ namespace tests {
         call.set_resultkey("test_" + funcName);
 
         // Call function
-        WorkerThread w(1);
+        WorkerThread w(1, 1);
         infra::Scheduler::callFunction(call);
 
         // Bind and execute

@@ -131,29 +131,18 @@ namespace infra {
 
     // Scheduling
     const std::string PREWARM_QUEUE = "prewarm";
-    const std::string COLD_QUEUE = "cold";
 
     class Scheduler {
     public:
         Scheduler();
 
-        static long getPrewarmCount();
-
-        static long getColdCount();
-
         static long getFunctionCount(const message::Message &msg);
 
         static int getWorkerTimeout(const std::string &currentQueue);
 
-        static std::string workerColdToPrewarm();
-
-        static std::string workerPrewarmToBound(const message::Message &msg);
-
         static void workerFinished(const std::string &currentQueue);
 
         static std::string callFunction(message::Message &msg);
-
-        static bool prewarmWorker();
 
         static std::string getFunctionQueueName(const message::Message &msg);
 

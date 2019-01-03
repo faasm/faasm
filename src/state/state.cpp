@@ -4,6 +4,8 @@
 
 #include "state.h"
 
+using namespace util;
+
 namespace state {
 
     /**
@@ -13,8 +15,8 @@ namespace state {
                                                                             valueSize(sizeIn) {
 
         // Work out size of required shared memory
-        size_t nHostPages = util::getRequiredHostPages(valueSize);
-        sharedMemSize = nHostPages * util::HOST_PAGE_SIZE;
+        size_t nHostPages = getRequiredHostPages(valueSize);
+        sharedMemSize = nHostPages * HOST_PAGE_SIZE;
         sharedMemory = nullptr;
 
         isWholeValueDirty = false;
@@ -22,7 +24,7 @@ namespace state {
         _empty = true;
 
         // Gets over the stale threshold trigger a pull from remote
-        const util::SystemConfig &conf = util::getSystemConfig();
+        const SystemConfig &conf = getSystemConfig();
         staleThreshold = conf.stateStaleThreshold;
 
         // State over the clear threshold is removed from local
@@ -42,7 +44,7 @@ namespace state {
 
             // Double check assumption
             if (_empty) {
-                const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+                const std::shared_ptr<spdlog::logger> &logger = getLogger();
                 logger->debug("Initialising state for {}", key);
 
                 doRemoteRead();
@@ -51,14 +53,14 @@ namespace state {
             }
         }
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         if (async && fullAsync) {
             // Never pull in full async mode
         } else if (async) {
             // Check staleness
-            util::Clock &clock = util::getGlobalClock();
-            const util::TimePoint now = clock.now();
+            Clock &clock = getGlobalClock();
+            const TimePoint now = clock.now();
 
             // If stale, try to update from remote
             if (this->isStale(now)) {
@@ -89,33 +91,33 @@ namespace state {
         infra::Redis *redis = infra::Redis::getThreadState();
         redis->get(key, static_cast<uint8_t *>(sharedMemory), valueSize);
 
-        util::Clock &clock = util::getGlobalClock();
-        const util::TimePoint now = clock.now();
+        Clock &clock = getGlobalClock();
+        const TimePoint now = clock.now();
         lastPull = now;
 
         this->updateLastInteraction();
     }
 
     void StateKeyValue::updateLastInteraction() {
-        util::Clock &clock = util::getGlobalClock();
-        const util::TimePoint now = clock.now();
+        Clock &clock = getGlobalClock();
+        const TimePoint now = clock.now();
         lastInteraction = now;
     }
 
-    bool StateKeyValue::isStale(const util::TimePoint &now) {
-        util::Clock &clock = util::getGlobalClock();
+    bool StateKeyValue::isStale(const TimePoint &now) {
+        Clock &clock = getGlobalClock();
         long age = clock.timeDiff(now, lastPull);
         return age > staleThreshold;
     }
 
-    bool StateKeyValue::isIdle(const util::TimePoint &now) {
-        util::Clock &clock = util::getGlobalClock();
+    bool StateKeyValue::isIdle(const TimePoint &now) {
+        Clock &clock = getGlobalClock();
         long idleTime = clock.timeDiff(now, lastInteraction);
         return idleTime > idleThreshold;
     }
 
     long StateKeyValue::waitOnRemoteLock() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         infra::Redis *redis = infra::Redis::getThreadState();
 
@@ -171,7 +173,7 @@ namespace state {
 
         // Return just the required segment
         if ((offset + length) > valueSize) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
             logger->error("Out of bounds read at {} on {} with length {}", offset + length, key, valueSize);
             throw std::runtime_error("Out of bounds read");
@@ -213,7 +215,7 @@ namespace state {
         // Check we're in bounds
         size_t end = offset + length;
         if (end > valueSize) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            const std::shared_ptr<spdlog::logger> &logger = getLogger();
             logger->error("Trying to write segment finishing at {} (value length {})", end, valueSize);
             throw std::runtime_error("Attempting to set segment out of bounds");
         }
@@ -229,7 +231,7 @@ namespace state {
 
         // Check size
         if (offset + length > valueSize) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
             logger->error("Segment length {} at offset {} too big for size {}", length, offset, valueSize);
             throw std::runtime_error("Setting state segment too big for container");
@@ -257,8 +259,8 @@ namespace state {
 
     void StateKeyValue::clear() {
         // Check age since last interaction
-        util::Clock &c = util::getGlobalClock();
-        util::TimePoint now = c.now();
+        Clock &c = getGlobalClock();
+        TimePoint now = c.now();
 
         // If over clear threshold, remove
         if (this->isIdle(now) && !_empty) {
@@ -267,7 +269,7 @@ namespace state {
 
             // Double check still over the threshold
             if (this->isIdle(now)) {
-                const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+                const std::shared_ptr<spdlog::logger> &logger = getLogger();
                 logger->debug("Clearing unused value {}", key);
 
                 // Set flag to say this is effectively new again
@@ -285,9 +287,9 @@ namespace state {
     }
 
     void StateKeyValue::mapSharedMemory(void *newAddr) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
-        if (!util::isPageAligned(newAddr)) {
+        if (!isPageAligned(newAddr)) {
             logger->error("Attempting to map non-page-aligned memory at {} for {}", newAddr, key);
             throw std::runtime_error("Mapping misaligned shared memory");
         }
@@ -313,9 +315,9 @@ namespace state {
 
     void StateKeyValue::unmapSharedMemory(void *mappedAddr) {
         FullLock lock(valueMutex);
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
-        if (!util::isPageAligned(mappedAddr)) {
+        if (!isPageAligned(mappedAddr)) {
             logger->error("Attempting to unmap non-page-aligned memory at {} for {}", mappedAddr, key);
             throw std::runtime_error("Unmapping misaligned shared memory");
         }
@@ -331,7 +333,7 @@ namespace state {
     }
 
     void StateKeyValue::initialiseStorage() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         // Create shared memory region
         sharedMemory = mmap(nullptr, sharedMemSize, PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
@@ -341,7 +343,7 @@ namespace state {
             throw std::runtime_error("Failed mapping memory for KV");
         }
 
-        logger->debug("Mmapped {} pages of shared storage for {}", sharedMemSize / util::HOST_PAGE_SIZE, key);
+        logger->debug("Mmapped {} pages of shared storage for {}", sharedMemSize / HOST_PAGE_SIZE, key);
 
         // Set up dirty flags
         dirtyFlags.resize(valueSize);
@@ -357,7 +359,7 @@ namespace state {
             return;
         }
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         // Get full lock for complete push
         FullLock fullLock(valueMutex);
@@ -373,7 +375,7 @@ namespace state {
         redis->set(key, static_cast<uint8_t *>(sharedMemory), valueSize);
 
         // Reset (as we're setting the full value, we've effectively pulled)
-        util::Clock &clock = util::getGlobalClock();
+        Clock &clock = getGlobalClock();
         lastPull = clock.now();
         isWholeValueDirty = false;
 
@@ -392,7 +394,7 @@ namespace state {
             return;
         }
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         // Attempt to lock the value remotely
         infra::Redis *redis = infra::Redis::getThreadState();
@@ -540,7 +542,7 @@ namespace state {
     }
 
     State::State() {
-        const util::SystemConfig &conf = util::getSystemConfig();
+        const SystemConfig &conf = getSystemConfig();
         pushInterval = conf.statePushInterval;
     }
 

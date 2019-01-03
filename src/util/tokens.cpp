@@ -13,7 +13,7 @@ namespace util {
      */
     int TokenPool::getToken() {
         std::unique_lock<std::mutex> lock(queueMutex);
-        while(tokenQueue.empty()) {
+        while (tokenQueue.empty()) {
             tokenCondition.wait(lock);
         }
 
@@ -30,5 +30,10 @@ namespace util {
 
         // Notify someone that there's a token available
         tokenCondition.notify_one();
+    }
+
+    void TokenPool::reset() {
+        std::queue<int> empty;
+        std::swap(tokenQueue, empty);
     }
 }

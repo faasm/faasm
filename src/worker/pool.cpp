@@ -7,10 +7,24 @@
 
 #include <spdlog/spdlog.h>
 #include <thread>
+#include <condition_variable>
 
 
 namespace worker {
-    static util::TokenPool tokenPool(util::N_THREADS_PER_WORKER);
+    // To run the pool we have two token pools, one for the total workers in the pool,
+    // The other for prewarm workers. Workers first need to acquire a worker token,
+    // then a prewarm token to say they should start
+    util::TokenPool& getPrewarmTokenPool() {
+        util::SystemConfig &conf = util::getSystemConfig();
+        static util::TokenPool prewarmPool(conf.prewarmTarget);
+
+        return prewarmPool;
+    }
+
+    util::TokenPool& getWorkerTokenPool() {
+        static util::TokenPool workerPool(util::N_THREADS_PER_WORKER);
+        return workerPool;
+    }
 
     void startWorkerThreadPool() {
         util::SystemConfig &conf = util::getSystemConfig();
@@ -24,15 +38,18 @@ namespace worker {
             stateThread.detach();
         }
 
-        // Spawn worker threads until we've hit the limit (thus creating a pool that will replenish
-        // when one releases its token)
+        // Spawn worker threads until we've hit the worker limit, thus creating a pool
+        // that will replenish when one releases its token
         while (true) {
             // Try to get an available slot (blocks if none available)
-            int workerIdx = tokenPool.getToken();
+            int workerIdx = getWorkerTokenPool().getToken();
+
+            // See if we can prewarm
+            int prewarmToken = getPrewarmTokenPool().getToken();
 
             // Spawn thread to execute function
-            std::thread funcThread([workerIdx] {
-                WorkerThread w(workerIdx);
+            std::thread funcThread([workerIdx, prewarmToken] {
+                WorkerThread w(workerIdx, prewarmToken);
                 w.run();
             });
 
@@ -47,32 +64,19 @@ namespace worker {
         s.pushLoop();
     }
 
-    WorkerThread::WorkerThread(int workerIdx) : workerIdx(workerIdx) {
+    WorkerThread::WorkerThread(int workerIdxIn, int prewarmTokenIn) : workerIdx(workerIdxIn),
+        prewarmToken(prewarmTokenIn) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        // TODO do this without delaying start
-        // Introduce a small delay to avoid race condition
-        uint microseconds = (uint) workerIdx * 50 * 1000;
-        usleep(microseconds);
-
+        
         const std::string hostname = util::getEnvVar("HOSTNAME", "");
         id = hostname + "_" + std::to_string(workerIdx);
 
         // Get Redis connection
         queue = infra::Redis::getThreadQueue();
 
-        // If we need more prewarm containers, set this worker to be prewarm. If not, sit in cold queue
-        bool shouldPrewarm = infra::Scheduler::prewarmWorker();
-        if (shouldPrewarm) {
-            logger->debug("Prewarming worker {}", id);
-
-            currentQueue = infra::PREWARM_QUEUE;
-            this->initialise();
-        } else {
-            logger->debug("Cold starting worker {}", id);
-
-            currentQueue = infra::COLD_QUEUE;
-        }
+        logger->debug("Starting worker {}", id);
+        currentQueue = infra::PREWARM_QUEUE;
+        this->initialise();
     }
 
     WorkerThread::~WorkerThread() {
@@ -119,7 +123,8 @@ namespace worker {
         infra::Scheduler::workerFinished(currentQueue);
 
         // Release token
-        tokenPool.releaseToken(workerIdx);
+        getWorkerTokenPool().releaseToken(workerIdx);
+        getPrewarmTokenPool().releaseToken(prewarmToken);
     }
 
     void WorkerThread::finishCall(message::Message &call, const std::string &errorMsg) {
@@ -147,8 +152,8 @@ namespace worker {
             throw std::runtime_error("Cannot bind worker thread again");
         }
 
-        // Inform scheduler
-        currentQueue = infra::Scheduler::workerPrewarmToBound(msg);
+        // Work out where to listen
+        currentQueue = infra::Scheduler::getFunctionQueueName(msg);
 
         // Perform the actual wasm initialisation
         module->bindToFunction(msg);
@@ -189,10 +194,6 @@ namespace worker {
         if (msg.type() == message::Message_MessageType_BIND) {
             logger->info("Worker {} binding to {}", id, infra::funcToString(msg));
             this->bindToFunction(msg);
-        } else if (msg.type() == message::Message_MessageType_PREWARM) {
-            logger->info("Worker {} prewarming", id);
-            currentQueue = infra::Scheduler::workerColdToPrewarm();
-            this->initialise();
         } else {
             errorMessage = this->executeCall(msg);
         }

@@ -32,7 +32,7 @@ services:
       - CGROUP_MODE=on
       - NETNS_MODE=on
       - LOG_LEVEL=debug
-      - PREWARM_TARGET=80
+      - PREWARM_TARGET=20
       - MAX_QUEUE_RATIO=1
       - MAX_WORKERS_PER_FUNCTION=30
       - BOUND_TIMEOUT=30
@@ -57,7 +57,7 @@ services:
       - REDIS_PORT=6379
       - FUNC_ROOT=/usr/share/faasm
       - LOG_LEVEL=info
-      - PREWARM_TARGET=80
+      - PREWARM_TARGET=20
       - MAX_QUEUE_RATIO=1
       - MAX_WORKERS_PER_FUNCTION=100
       - BOUND_TIMEOUT=30

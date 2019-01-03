@@ -7,7 +7,6 @@ message Message {
     optional string function = 2;
 
     enum MessageType {
-        PREWARM = 0;
         BIND = 1;
         CALL = 2;
         KILL = 3;
