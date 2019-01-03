@@ -79,6 +79,8 @@ namespace infra {
         *  ------ Locking ------
         */
 
+        long acquireConditionalLock(const std::string &key, long expectedValue);
+
         long acquireLock(const std::string &key, int expirySeconds);
 
         void releaseLock(const std::string &key, long lockId);
@@ -89,11 +91,15 @@ namespace infra {
 
         long getLong(const std::string &key);
 
+        void setLong(const std::string &key, long value);
+
         /**
         *  ------ Scheduling ------
         */
 
         bool addWorker(const std::string &counterName, const std::string &queueName, long maxRatio, long maxWorkers);
+
+        std::pair<long, long> mgetLongPair(const std::string &keyA, const std::string &keyB);
 
         /**
         *  ------ Queueing ------

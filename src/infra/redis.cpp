@@ -16,6 +16,24 @@ namespace infra {
     static std::string redisStateIp;
     static std::string redisQueueIp;
 
+    // Conditional lock is used as part of a locking scheme where we need to make sure an assumption
+    // is correct before acquiring the lock. The function takes 4 arguments:
+    // key_to_check, key_to_lock, expected_value, lock_id
+    //
+    // This takes elements of the redlock algorithm described here: https://redis.io/topics/distlock
+    //
+    // Return values:
+    // -1 = value is different
+    // 0 = lock not acquired
+    // 1 = lock acquired
+    static std::string conditionalLockSha;
+    static std::string conditionalLockCmd = "local val = redis.call(\"GET\", KEYS[1]) \n"
+                                            "if val ~= ARGV[1] then \n"
+                                            "    return -1 \n"
+                                            "end \n"
+                                            ""
+                                            "return redis.call(\"SETNX\", KEYS[2], ARGV[2])";
+
     // Atomic redis operation to check if we need to scale up the workers for a function.
     // This both makes the decision and increments the counter accordingly. This needs
     // to be atomic and executed on the server to make sure multiple schedulers can operate
@@ -52,9 +70,6 @@ namespace infra {
                                       "end \n"
                                       ""
                                       "return 0 \n";
-
-    static std::string nextWorkerAntiAffinitySha;
-    static std::string nextWorkerAntiAffinityCmd = "";
 
     // Script to delete a key if it equals a given value
     static std::string delifeqSha;
@@ -116,6 +131,16 @@ namespace infra {
 
     Redis *Redis::getThreadQueue() {
         return &redisQueue;
+    }
+
+    long getLongFromReply(redisReply *reply) {
+        long res = 0;
+
+        if (reply->str != nullptr) {
+            res = std::stol(reply->str);
+        }
+
+        return res;
     }
 
     std::vector<uint8_t> getBytesFromReply(redisReply *reply) {
@@ -300,9 +325,50 @@ namespace infra {
         return result == 1;
     }
 
+    std::pair<long, long> Redis::mgetLongPair(const std::string &keyA, const std::string &keyB) {
+        auto reply = (redisReply *) redisCommand(context, "MGET %s %s", keyA.c_str(), keyB.c_str());
+
+        long valA = getLongFromReply(reply->element[0]);
+        long valB = getLongFromReply(reply->element[1]);
+
+        freeReplyObject(reply);
+
+        return std::pair<long, long>(valA, valB);
+    }
+
     /**
      *  ------ Locking ------
      */
+
+    long Redis::acquireConditionalLock(const std::string &key, long expectedValue) {
+        if (conditionalLockSha.empty()) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            conditionalLockSha = this->loadScript(conditionalLockCmd);
+            logger->debug("Loaded conditional lock script with SHA {}", conditionalLockSha);
+        };
+
+        std::string lockKey = key + "_lock";
+        int lockId = util::randomInteger(0, 100000);
+
+        // Invoke the script
+        auto reply = (redisReply *) redisCommand(
+                context,
+                "EVALSHA %s 2 %s %s %i %i",
+                conditionalLockSha.c_str(),
+                key.c_str(),
+                lockKey.c_str(),
+                expectedValue,
+                lockId
+        );
+
+        long result = extractScriptResult(reply);
+
+        if (result > 0) {
+            return lockId;
+        } else {
+            return result;
+        }
+    }
 
     long Redis::acquireLock(const std::string &key, int expirySeconds) {
         // Implementation of single host redlock algorithm
@@ -317,7 +383,7 @@ namespace infra {
         if (result == 1) {
             return lockId;
         } else {
-            return -1;
+            return 0;
         }
     }
 
@@ -366,15 +432,16 @@ namespace infra {
     long Redis::getLong(const std::string &key) {
         auto reply = (redisReply *) redisCommand(context, "GET %s", key.c_str());
 
-        long res = -1;
-
-        if (reply->str != nullptr) {
-            res = std::stol(reply->str);
-        }
-
+        long res = getLongFromReply(reply);
         freeReplyObject(reply);
 
         return res;
+    }
+
+    void Redis::setLong(const std::string &key, long value) {
+        auto reply = (redisReply *) redisCommand(context, "SET %s %i", key.c_str(), value);
+
+        freeReplyObject(reply);
     }
 
     /**

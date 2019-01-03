@@ -367,14 +367,14 @@ namespace tests {
 
         // Check someone else can't acquire the lock
         long lockId2 = redisState.acquireLock(key, 10);
-        REQUIRE(lockId2 == -1);
+        REQUIRE(lockId2 == 0);
         REQUIRE(redisState.getLong(lockKey) == lockId);
         REQUIRE(redisState.get(key) == value);
 
         // Release with an invalid lock ID and check it's still locked
         redisState.releaseLock(key, lockId + 1);
         long lockId3 = redisState.acquireLock(key, 10);
-        REQUIRE(lockId3 == -1);
+        REQUIRE(lockId3 == 0);
         REQUIRE(redisState.getLong(lockKey) == lockId);
         REQUIRE(redisState.get(key) == value);
 
@@ -385,5 +385,66 @@ namespace tests {
         REQUIRE(lockId4 != lockId);
         REQUIRE(redisState.getLong(lockKey) == lockId4);
         REQUIRE(redisState.get(key) == value);
+    }
+
+
+    TEST_CASE("Test acquire/ release conditional lock", "[redis]") {
+        redisState.flushAll();
+
+        std::string key = "lock_test";
+        std::string lockKey = key + "_lock";
+
+        // Check we can't acquire the lock when the key doesn't exist (not equal to expectation)
+        long lockId = redisState.acquireConditionalLock(key, 10);
+        REQUIRE(lockId == -1);
+        REQUIRE(redisState.getLong(lockKey) == 0);
+        REQUIRE(redisState.getLong(key) == 0);
+
+        // Set some value and check we can get the lock with the right value
+        redisState.setLong(key, 50);
+        long lockId2 = redisState.acquireConditionalLock(key, 50);
+        REQUIRE(lockId2 > 0);
+        REQUIRE(redisState.getLong(lockKey) == lockId2);
+        REQUIRE(redisState.getLong(key) == 50);
+
+        // Check someone else can't get it with the same value
+        long lockId3 = redisState.acquireConditionalLock(key, 50);
+        REQUIRE(lockId3 == 0);
+        REQUIRE(redisState.getLong(lockKey) == lockId2);
+        REQUIRE(redisState.getLong(key) == 50);
+
+        // Release it
+        redisState.releaseLock(key, lockId2);
+
+        // Check we can't acquire it with the wrong value
+        redisState.setLong(key, 50);
+        long lockId4 = redisState.acquireConditionalLock(key, 20);
+        REQUIRE(lockId4 == -1);
+        REQUIRE(redisState.getLong(lockKey) == 0);
+        REQUIRE(redisState.getLong(key) == 50);
+    }
+
+    TEST_CASE("Test getting long pair", "[redis]") {
+        redisState.flushAll();
+
+        std::string keyA = "fooA";
+        std::string keyB = "fooB";
+
+        // Should be empty when not initialised
+        std::pair<long, long> actual = redisState.mgetLongPair(keyA, keyB);
+        REQUIRE(actual.first == 0);
+        REQUIRE(actual.second == 0);
+
+        // Check when one set
+        redisState.setLong(keyA, 999);
+        std::pair<long, long> actual2 = redisState.mgetLongPair(keyA, keyB);
+        REQUIRE(actual2.first == 999);
+        REQUIRE(actual2.second == 0);
+
+        // Check when both set
+        redisState.setLong(keyB, 222);
+        std::pair<long, long> actual3 = redisState.mgetLongPair(keyA, keyB);
+        REQUIRE(actual3.first == 999);
+        REQUIRE(actual3.second == 222);
     }
 }

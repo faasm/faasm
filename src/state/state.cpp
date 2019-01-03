@@ -123,7 +123,7 @@ namespace state {
 
         long remoteLockId = redis->acquireLock(key, remoteLockTimeout);
         int retryCount = 0;
-        while(remoteLockId ==  -1) {
+        while(remoteLockId ==  0) {
             logger->debug("Waiting on remote lock for {} (loop {})", key, retryCount);
 
             if(retryCount >= remoteLockMaxRetries) {
