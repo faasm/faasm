@@ -141,8 +141,7 @@ namespace wasm {
         }
 
         // Keep reference to memory
-        this->defaultMemory = getMemory(moduleInstance, 0);
-        // this->stateMemory = getMemory(moduleInstance, 1);
+        this->defaultMemory = Runtime::getDefaultMemory(moduleInstance);
 
         // Snapshot initial state
         this->snapshotMemory();

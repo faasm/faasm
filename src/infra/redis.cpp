@@ -19,7 +19,8 @@ namespace infra {
     // Script to atomically scale up a worker.  The logic is:
     //
     // 0. Get the current count and length of the queue
-    // 1. Check if we've exceeded the ratio
+    // 0a. If there are no workers, add one regardless
+    // 1. Check if we've exceeded the queue ratio
     // 2a. If no workers at all, increment and return 1
     // 2b. If ratio not exceeded, return 0
     // 2c. If ratio exceeded, increment and return 1
@@ -41,7 +42,7 @@ namespace infra {
                                       "local maxQueueRatio = tonumber(ARGV[1]) \n"
                                       "local maxCount = tonumber(ARGV[2])"
                                       ""
-                                      "if queueRatio >= maxQueueRatio and workerCount < maxCount then \n"
+                                      "if queueRatio > maxQueueRatio and workerCount < maxCount then \n"
                                       "    redis.call(\"INCR\", KEYS[1]) \n"
                                       "    return 1 \n"
                                       "end \n"
@@ -67,6 +68,14 @@ namespace infra {
                                               "end \n"
                                               ""
                                               "return 0";
+
+    // Script to delete a key if it equals a given value
+    static std::string delifeqSha;
+    static std::string delifeqCmd = "if redis.call(\"GET\", KEYS[1]) == ARGV[1] then \n"
+                                    "    return redis.call(\"DEL\", KEYS[1]) \n"
+                                    "else \n"
+                                    "    return 0 \n"
+                                    "end";
 
     Redis::Redis(const RedisRole &role) {
         std::string thisIp;
@@ -110,6 +119,10 @@ namespace infra {
         redisFree(context);
     }
 
+    /**
+     *  ------ Utils ------
+     */
+
     Redis *Redis::getThreadState() {
         return &redisState;
     }
@@ -133,12 +146,43 @@ namespace infra {
         char *resultArray = reply->str;
         int resultLen = reply->len;
 
-        if(resultLen > bufferLen) {
+        if (resultLen > bufferLen) {
             throw std::runtime_error("Reading value too big for buffer");
         }
 
         std::copy(resultArray, resultArray + resultLen, buffer);
     }
+
+    /**
+     *  ------ Lua script management ------
+     */
+
+    std::string Redis::loadScript(const std::string &scriptBody) {
+        auto reply = (redisReply *) redisCommand(context, "SCRIPT LOAD %s", scriptBody.c_str());
+        if (reply->type == REDIS_REPLY_ERROR) {
+            throw (std::runtime_error(reply->str));
+        }
+
+        std::string scriptSha = reply->str;
+        freeReplyObject(reply);
+
+        return scriptSha;
+    }
+
+    long extractScriptResult(redisReply *reply) {
+        if (reply->type == REDIS_REPLY_ERROR) {
+            throw (std::runtime_error(reply->str));
+        }
+
+        long result = reply->integer;
+        freeReplyObject(reply);
+
+        return result;
+    }
+
+    /**
+     *  ------ Standard Redis commands ------
+     */
 
     void Redis::get(const std::string &key, uint8_t *buffer, size_t size) {
         auto reply = (redisReply *) redisCommand(context, "GET %s", key.c_str());
@@ -182,63 +226,6 @@ namespace infra {
         return result;
     }
 
-    std::string Redis::loadScript(const std::string &scriptBody) {
-        auto reply = (redisReply *) redisCommand(context, "SCRIPT LOAD %s", scriptBody.c_str());
-        if (reply->type == REDIS_REPLY_ERROR) {
-            throw (std::runtime_error(reply->str));
-        }
-
-        std::string scriptSha = reply->str;
-        freeReplyObject(reply);
-
-        return scriptSha;
-    }
-
-    long extractScriptResult(redisReply *reply) {
-        if (reply->type == REDIS_REPLY_ERROR) {
-            throw (std::runtime_error(reply->str));
-        }
-
-        long result = reply->integer;
-        freeReplyObject(reply);
-
-        return result;
-    }
-
-    bool Redis::addWorker(const std::string &counterName, const std::string &queueName,
-                          long maxRatio, long maxWorkers) {
-        // Create the script if not exists
-        if (addWorkerSha.empty()) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            addWorkerSha = this->loadScript(addWorkerCmd);
-            logger->debug("Loaded worker script with SHA {}", addWorkerSha);
-        };
-
-        // Invoke the script (number 2 says how many keys there are at the start of the argument list)
-        auto reply = (redisReply *) redisCommand(context, "EVALSHA %s 2 %s %s %li %li", addWorkerSha.c_str(),
-                                                 counterName.c_str(), queueName.c_str(), maxRatio, maxWorkers);
-
-        long result = extractScriptResult(reply);
-        return result == 1;
-    }
-
-    bool Redis::incrIfBelowTarget(const std::string &key, int target) {
-        // Create the script if not exists
-        if (incrIfBelowTargetSha.empty()) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            incrIfBelowTargetSha = this->loadScript(incrIfBelowTargetCmd);
-            logger->debug("Loaded incr below target script with SHA {}", incrIfBelowTargetSha);
-        };
-
-        // Invoke the script
-        auto reply = (redisReply *) redisCommand(context, "EVALSHA %s 1 %s %i", incrIfBelowTargetSha.c_str(),
-                                                 key.c_str(), target);
-
-        long result = extractScriptResult(reply);
-        return result == 1;
-    }
-
-
     void Redis::set(const std::string &key, const std::vector<uint8_t> &value) {
         this->set(key, value.data(), value.size());
     }
@@ -266,6 +253,34 @@ namespace infra {
         freeReplyObject(reply);
     }
 
+
+    void Redis::flushAll() {
+        auto reply = (redisReply *) redisCommand(context, "FLUSHALL");
+        freeReplyObject(reply);
+    }
+
+    long Redis::listLength(const std::string &queueName) {
+        auto reply = (redisReply *) redisCommand(context, "LLEN %s", queueName.c_str());
+
+        if (reply == nullptr || reply->type == REDIS_REPLY_NIL) {
+            return 0;
+        }
+
+        long result = reply->integer;
+        freeReplyObject(reply);
+
+        return result;
+    }
+
+    long Redis::getTtl(const std::string &key) {
+        auto reply = (redisReply *) redisCommand(context, "TTL %s", key.c_str());
+
+        long ttl = reply->integer;
+        freeReplyObject(reply);
+
+        return ttl;
+    }
+
     /**
      * Note that start/end are both inclusive
      */
@@ -276,6 +291,125 @@ namespace infra {
         getBytesFromReply(reply, buffer, bufferLen);
         freeReplyObject(reply);
     }
+
+    /**
+    *  ------ Scheduling ------
+    */
+
+    bool Redis::addWorker(const std::string &counterName, const std::string &queueName,
+                          long maxRatio, long maxWorkers) {
+        // Create the script if not exists
+        if (addWorkerSha.empty()) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            addWorkerSha = this->loadScript(addWorkerCmd);
+            logger->debug("Loaded worker script with SHA {}", addWorkerSha);
+        };
+
+        // Invoke the script
+        auto reply = (redisReply *) redisCommand(context, "EVALSHA %s 2 %s %s %li %li", addWorkerSha.c_str(),
+                                                 counterName.c_str(), queueName.c_str(), maxRatio, maxWorkers);
+
+        long result = extractScriptResult(reply);
+        return result == 1;
+    }
+
+    bool Redis::incrIfBelowTarget(const std::string &key, int target) {
+        // Create the script if not exists
+        if (incrIfBelowTargetSha.empty()) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            incrIfBelowTargetSha = this->loadScript(incrIfBelowTargetCmd);
+            logger->debug("Loaded incr below target script with SHA {}", incrIfBelowTargetSha);
+        };
+
+        // Invoke the script
+        auto reply = (redisReply *) redisCommand(context, "EVALSHA %s 1 %s %i", incrIfBelowTargetSha.c_str(),
+                                                 key.c_str(), target);
+
+        long result = extractScriptResult(reply);
+        return result == 1;
+    }
+
+
+    /**
+     *  ------ Locking ------
+     */
+
+    long Redis::acquireLock(const std::string &key, int expirySeconds) {
+        // Implementation of single host redlock algorithm
+        // https://redis.io/topics/distlock
+        int lockId = util::randomInteger(0, 100000);
+
+        std::string lockKey = key + "_lock";
+
+        long result = this->setnxex(lockKey, lockId, expirySeconds);
+
+        // Return the lock ID if successful, else return -1
+        if (result == 1) {
+            return lockId;
+        } else {
+            return -1;
+        }
+    }
+
+    void Redis::releaseLock(const std::string &key, long lockId) {
+        std::string lockKey = key + "_lock";
+        this->delIfEq(lockKey, lockId);
+    }
+
+    void Redis::delIfEq(const std::string &key, long value) {
+        // Create the script if not exists
+        if (delifeqSha.empty()) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            delifeqSha = this->loadScript(delifeqCmd);
+            logger->debug("Loaded del if eq script with SHA {}", delifeqSha);
+        };
+
+        // Invoke the script
+        auto reply = (redisReply *) redisCommand(context, "EVALSHA %s 1 %s %i", delifeqSha.c_str(),
+                                                 key.c_str(), value);
+
+        extractScriptResult(reply);
+    }
+
+    bool Redis::setnxex(const std::string &key, long value, int expirySeconds) {
+        // See docs on set for info on options: https://redis.io/commands/set
+        // We use NX to say "set if not exists" and ex to specify the expiry of this key/value
+        // This is useful in implementing locks. We only use longs as values to keep things simple
+        auto reply = (redisReply *) redisCommand(context, "SET %s %i NX EX %i", key.c_str(), value, expirySeconds);
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        if (reply->type == REDIS_REPLY_ERROR) {
+            logger->error("Failed to SET {} - {}", key.c_str(), reply->str);
+        }
+
+        bool success = true;
+        if (reply->type == REDIS_REPLY_NIL) {
+            success = false;
+        }
+
+        freeReplyObject(reply);
+
+        return success;
+    }
+
+    long Redis::getLong(const std::string &key) {
+        auto reply = (redisReply *) redisCommand(context, "GET %s", key.c_str());
+
+        long res = -1;
+
+        if (reply->str != nullptr) {
+            res = std::stol(reply->str);
+        }
+
+        freeReplyObject(reply);
+
+        return res;
+    }
+
+    /**
+     *  ------ Queueing ------
+     */
 
     void Redis::enqueue(const std::string &queueName, const std::vector<uint8_t> &value) {
         // NOTE: Here we must be careful with the input and specify bytes rather than a string
@@ -305,29 +439,14 @@ namespace infra {
         return replyBytes;
     }
 
-
-    void Redis::flushAll() {
-        auto reply = (redisReply *) redisCommand(context, "FLUSHALL");
-        freeReplyObject(reply);
-    }
-
-    long Redis::listLength(const std::string &queueName) {
-        auto reply = (redisReply *) redisCommand(context, "LLEN %s", queueName.c_str());
-
-        if (reply == nullptr || reply->type == REDIS_REPLY_NIL) {
-            return 0;
-        }
-
-        long result = reply->integer;
-        freeReplyObject(reply);
-
-        return result;
-    }
-
     void Redis::enqueueMessage(const std::string &queueName, const message::Message &msg) {
         std::vector<uint8_t> msgBytes = infra::messageToBytes(msg);
         this->enqueue(queueName, msgBytes);
     }
+
+    /**
+     *  ------ Function messages ------
+     */
 
     message::Message Redis::nextMessage(const std::string &queueName, int timeout) {
         std::vector<uint8_t> dequeueResult = this->dequeue(queueName, timeout);
@@ -362,15 +481,6 @@ namespace infra {
         prof::logEndTimer("function-result", t);
     }
 
-    long Redis::getTtl(const std::string &key) {
-        auto reply = (redisReply *) redisCommand(context, "TTL %s", key.c_str());
-
-        long ttl = reply->integer;
-        freeReplyObject(reply);
-
-        return ttl;
-    }
-
     message::Message Redis::getFunctionResult(const message::Message &msg) {
         std::vector<uint8_t> result = this->dequeue(msg.resultkey());
 
@@ -378,13 +488,6 @@ namespace infra {
         msgResult.ParseFromArray(result.data(), (int) result.size());
 
         return msgResult;
-    }
-
-    void Redis::refresh() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Redis reconnecting");
-
-        redisReconnect(context);
     }
 }
 

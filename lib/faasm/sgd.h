@@ -17,12 +17,16 @@ using namespace Eigen;
 #define LOSSES_KEY "losses"
 #define LOSS_TIMESTAMPS_KEY "loss_ts"
 
+// Synchronisation barriers
+#define BARRIER_COUNT_KEY "barrier_count"
+#define MAX_BARRIER_COUNT 20
+
 // Reuters-specific
 #define REUTERS_N_FEATURES 47236
 #define REUTERS_N_EXAMPLES 781265
 #define REUTERS_LEARNING_RATE 0.1
 #define REUTERS_LEARNING_DECAY 0.8
-#define REUTERS_FULL_ASYNC true
+#define REUTERS_FULL_ASYNC false
 
 
 namespace faasm {
@@ -37,13 +41,14 @@ namespace faasm {
         int batchSize;
         int nWeights;
         int nTrain;
-        double learningRate;
-        double learningDecay;
+        float learningRate;
+        float mu = 1.0;
+        float learningDecay;
         int nEpochs;
         bool fullAsync;
     };
 
-    SgdParams setUpReutersParams(FaasmMemory *memory, int batchSize, int epochs);
+    SgdParams setUpReutersParams(FaasmMemory *memory, int nBatches, int epochs);
 
     void writeParamsToState(FaasmMemory *memory, const char *keyName, const SgdParams &params);
 

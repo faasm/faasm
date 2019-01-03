@@ -19,6 +19,12 @@ namespace state {
      */
     class StateKeyValue {
     public:
+        // Remote lock timeout in seconds
+        unsigned int remoteLockTimeout = 5;
+        // Remote lock sleep time in milliseconds
+        unsigned int remoteLockWaitTime = 100;
+        unsigned int remoteLockMaxRetries = 20;
+
         explicit StateKeyValue(const std::string &keyIn, size_t sizeIn);
 
         const std::string key;
@@ -55,16 +61,20 @@ namespace state {
 
         void unlockWrite();
 
+        void flagFullValueDirty();
+
+        void flagSegmentDirty(long offset, long len);
+
         bool empty();
 
         size_t size();
 
     private:
-        std::atomic<bool> isWholeValueDirty;
+        bool isWholeValueDirty;
+        bool isPartiallyDirty;
+        std::vector<bool> dirtyFlags;
 
         bool fullAsync;
-
-        std::vector<bool> dirtyFlags;
 
         std::shared_mutex valueMutex;
 
@@ -90,6 +100,8 @@ namespace state {
         bool isIdle(const util::TimePoint &now);
 
         void preGet();
+
+        long waitOnRemoteLock();
     };
 
     typedef std::unordered_map<std::string, StateKeyValue *> KVMap;

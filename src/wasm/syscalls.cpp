@@ -239,6 +239,24 @@ namespace wasm {
         return offsetPtr;
     }
 
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_flag_state_dirty", void, __faasm_flag_state_dirty,
+                              I32 keyPtr, I32 totalLen) {
+        util::getLogger()->debug("S - __faasm_flag_state_dirty - {} {}", keyPtr, totalLen);
+
+        state::StateKeyValue *kv = getStateKV(keyPtr, totalLen);
+        kv->flagFullValueDirty();
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_flag_state_offset_dirty", void, __faasm_flag_state_offset_dirty,
+                              I32 keyPtr, I32 totalLen, I32 offset, I32 len) {
+        // Avoid heavy logging
+        //        util::getLogger()->debug("S - __faasm_flag_state_offset_dirty - {} {} {} {}", keyPtr, totalLen, offset,
+        //                                 len);
+
+        state::StateKeyValue *kv = getStateKV(keyPtr, totalLen);
+        kv->flagSegmentDirty(offset, len);
+    }
+
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_input", I32, __faasm_read_input, I32 bufferPtr, I32 bufferLen) {
         util::getLogger()->debug("S - read_input - {} {}", bufferPtr, bufferLen);
 

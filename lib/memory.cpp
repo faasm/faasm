@@ -17,6 +17,10 @@ void __faasm_write_state_offset(const char *key, long totalLen, long offset, con
 void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsigned char *buffer, long bufferLen,
                                int async);
 
+void __faasm_flag_state_dirty(const char *key, long totalLen);
+
+void __faasm_flag_state_offset_dirty(const char *key, long totalLen, long offset, long dataLen);
+
 unsigned char *__faasm_read_state_offset_ptr(const char *key, long totalLen, long offset, long len, int async);
 
 void __faasm_push_state(const char *key);
@@ -73,6 +77,14 @@ namespace faasm {
         __faasm_write_state_offset(key, totalLen, offset, data, dataLen, (int) async);
     };
 
+
+    void FaasmMemory::flagStateDirty(const char *key, long totalLen) {
+        __faasm_flag_state_dirty(key, totalLen);
+    }
+
+    void FaasmMemory::flagStateOffsetDirty(const char *key, long totalLen, long offset, long len) {
+        __faasm_flag_state_offset_dirty(key, totalLen, offset, len);
+    }
 
     void FaasmMemory::pushState(const char *key) {
         __faasm_push_state(key);

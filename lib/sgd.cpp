@@ -7,7 +7,7 @@
 using namespace Eigen;
 
 namespace faasm {
-    SgdParams setUpReutersParams(FaasmMemory *memory, int batchSize, int epochs) {
+    SgdParams setUpReutersParams(FaasmMemory *memory, int nBatches, int epochs) {
         // Set up reuters params
         SgdParams p;
         p.lossType = HINGE;
@@ -16,10 +16,11 @@ namespace faasm {
         p.learningRate = REUTERS_LEARNING_RATE;
         p.learningDecay = REUTERS_LEARNING_DECAY;
         p.nEpochs = epochs;
+        p.mu = 1.0;
 
         // Round up number of batches
-        p.batchSize = batchSize;
-        p.nBatches = (p.nTrain + batchSize - 1) / batchSize;
+        p.nBatches = nBatches;
+        p.batchSize = (REUTERS_N_EXAMPLES + nBatches - 1) / nBatches;
 
         // Full sync or not
         p.fullAsync = REUTERS_FULL_ASYNC;
@@ -73,58 +74,45 @@ namespace faasm {
         uint8_t *featureCountByteBuffer = memory->readState(FEATURE_COUNTS_KEY, nFeatureCountBytes, true);
         auto featureCountBuffer = reinterpret_cast<int *>(featureCountByteBuffer);
 
+        // Shuffle examples in this batch
+        int *cols = randomIntRange(inputs.outerSize());
+
         // Iterate through all training examples (i.e. columns)
-        for (int col = 0; col < inputs.outerSize(); ++col) {
+        for (int c = 0; c < inputs.outerSize(); ++c) {
+            int col = cols[c];
+
             double thisOutput = outputs.coeff(0, col);
 
-            // Work out the prediction for this example. This is the dot product of the weights and
-            // the (sparse) input example (i.e. column of the input matrix). This can be done with
-            // eigen multiplication operation but we do it here in a loop
-            double thisPrediction = 0;
+            double thisPrediction = 0.0;
             for (Map<const SparseMatrix<double>>::InnerIterator it(inputs, col); it; ++it) {
-                double val = it.value();
-                long row = it.row();
-                double weight = weightDataBuffer[row];
-                thisPrediction += (weight * val);
+                double weight = weightDataBuffer[it.row()];
+                thisPrediction += (weight * it.value());
             }
+            thisPrediction *= thisOutput;
 
-            // If the prediction multiplied by the output is less than one, it's misclassified
-            bool isMisclassified = (thisOutput * thisPrediction) < 1;
+            double adjustment = sgdParams.learningRate * thisOutput;
+            double constScalar = sgdParams.learningRate * sgdParams.mu;
 
             // Iterate through all non-zero input values in this column and update the relevant weight accordingly
             for (Map<const SparseMatrix<double>>::InnerIterator it(inputs, col); it; ++it) {
                 // Get the value and associated weight
-                double thisValue = it.value();
                 long thisFeature = it.row();
-                double thisWeight = weightDataBuffer[thisFeature];
-                int thisFeatureCount = featureCountBuffer[thisFeature];
 
                 // If misclassified, hinge loss is active
-                if (isMisclassified) {
-                    thisWeight = thisWeight + (sgdParams.learningRate * thisOutput * thisValue);
+                if (thisPrediction < 1) {
+                    weightDataBuffer[thisFeature] = weightDataBuffer[thisFeature] + it.value() * adjustment;
                 }
 
                 // Update weight regardless of classification including scaling based on how common it is
-                if (thisFeatureCount == 0) {
-                    throw std::runtime_error("Should not have a zero feature count for a feature we have a value for.");
-                }
-                thisWeight *= (1 - (sgdParams.learningRate / thisFeatureCount));
+                int thisFeatureCount = featureCountBuffer[thisFeature];
+                weightDataBuffer[thisFeature] *= 1 - constScalar / thisFeatureCount;
 
-                // Write update memory array
-                weightDataBuffer[thisFeature] = thisWeight;
-
-                // Update state if not running fully async
+                // Flag that this segment is dirty
                 if (!sgdParams.fullAsync) {
-                    auto byteWeight = reinterpret_cast<uint8_t *>(&thisWeight);
                     size_t offset = it.row() * sizeof(double);
-                    memory->writeStateOffset(WEIGHTS_KEY, nWeightBytes, offset, byteWeight, sizeof(double), true);
+                    memory->flagStateOffsetDirty(WEIGHTS_KEY, nWeightBytes, offset, sizeof(double));
                 }
             }
-        }
-
-        // Make sure all updates have been pushed
-        if (!sgdParams.fullAsync) {
-            memory->pushStatePartial(WEIGHTS_KEY);
         }
 
         // Recalculate all predictions
@@ -255,7 +243,7 @@ namespace faasm {
         const size_t nBytes = sgdParams.nBatches * sizeof(int);
         auto buffer = new uint8_t[nBytes];
 
-        // Read in (async if necessary)
+        // Read in
         memory->readState(FINISHED_KEY, buffer, nBytes, sgdParams.fullAsync);
 
         auto flags = reinterpret_cast<int *>(buffer);
@@ -264,7 +252,7 @@ namespace faasm {
         bool allFinished = true;
         auto isFinished = new bool[sgdParams.nBatches];
         for (int i = 0; i < sgdParams.nBatches; i++) {
-            double flag = flags[i];
+            int flag = flags[i];
 
             // If flag is zero, we've not finished
             isFinished[i] = flag > 0;

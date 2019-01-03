@@ -41,6 +41,15 @@ namespace faasm {
         void writeStateOffset(const char *key, long totalLen, long offset, const uint8_t *data, long dataLen,
                               bool async = false);
 
+        /**
+         * Mark the whole value as dirty
+         */
+        void flagStateDirty(const char *key, long totalLen);
+
+        /**
+         * Mark a segment as dirty
+         */
+        void flagStateOffsetDirty(const char *key, long totalLen, long offset, long len);
 
         /**
          * Forces a push of state

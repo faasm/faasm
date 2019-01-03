@@ -12,6 +12,9 @@ namespace faasm {
         faasm::zeroErrors(memory, p);
         faasm::zeroFinished(memory, p);
 
+        // Reset the barrier counter
+        faasm::initCounter(memory, BARRIER_COUNT_KEY, REUTERS_FULL_ASYNC);
+
         // Get the epoch count
         int epoch = faasm::getCounter(memory, EPOCH_COUNT_KEY, p.fullAsync);
 

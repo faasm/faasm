@@ -191,7 +191,7 @@ namespace tests {
 
         // Saturate up to the number of max queued calls
         util::SystemConfig &conf = util::getSystemConfig();
-        int nCalls = conf.maxQueueRatio - 1;
+        int nCalls = conf.maxQueueRatio;
         for (int i = 0; i < nCalls; i++) {
             Scheduler::callFunction(call);
 

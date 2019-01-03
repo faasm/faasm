@@ -37,10 +37,17 @@ namespace infra {
 
         ~Redis();
 
-        /** Returns the instance for the current thread */
+        /**
+        *  ------ Utils ------
+        */
+
         static Redis *getThreadQueue();
 
         static Redis *getThreadState();
+
+        /**
+        *  ------ Standard Redis commands ------
+        */
 
         std::vector<uint8_t> get(const std::string &key);
 
@@ -58,13 +65,42 @@ namespace infra {
 
         long decr(const std::string &key);
 
+        void setRange(const std::string &key, long offset, const uint8_t *value, size_t size);
+
+        void getRange(const std::string &key, uint8_t *buffer, size_t bufferLen, long start, long end);
+
+        void flushAll();
+
+        long listLength(const std::string &queueName);
+
+        long getTtl(const std::string &key);
+
+        /**
+        *  ------ Locking ------
+        */
+
+        long acquireLock(const std::string &key, int expirySeconds);
+
+        void releaseLock(const std::string &key, long lockId);
+
+        void delIfEq(const std::string &key, long value);
+
+        bool setnxex(const std::string &key, long value, int expirySeconds);
+
+        long getLong(const std::string &key);
+
+        /**
+        *  ------ Scheduling ------
+        */
+
         bool addWorker(const std::string &counterName, const std::string &queueName, long maxRatio, long maxWorkers);
 
         bool incrIfBelowTarget(const std::string &key, int target);
 
-        void setRange(const std::string &key, long offset, const uint8_t *value, size_t size);
 
-        void getRange(const std::string &key, uint8_t *buffer, size_t bufferLen, long start, long end);
+        /**
+        *  ------ Queueing ------
+        */
 
         void enqueue(const std::string &queueName, const std::vector<uint8_t> &value);
 
@@ -72,19 +108,15 @@ namespace infra {
 
         std::vector<uint8_t> dequeue(const std::string &queueName, int timeout = util::DEFAULT_TIMEOUT);
 
-        void flushAll();
-
-        long listLength(const std::string &queueName);
+        /**
+        *  ------ Function messages ------
+        */
 
         message::Message nextMessage(const std::string &queueName, int timeout = util::DEFAULT_TIMEOUT);
 
         void setFunctionResult(message::Message &msg, bool success);
 
         message::Message getFunctionResult(const message::Message &msg);
-
-        long getTtl(const std::string &key);
-
-        void refresh();
 
     private:
         redisContext *context;

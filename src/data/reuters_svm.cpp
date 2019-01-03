@@ -23,11 +23,9 @@ int main() {
     setEmulatorUser("sgd");
 
     FaasmMemory memory;
-    int nBatches = 4;
-    int batchSize = (nBatches + REUTERS_N_EXAMPLES - 1) / REUTERS_N_EXAMPLES;
-
+    int nBatches = 1;
     int epochs = 30;
-    SgdParams p = setUpReutersParams(&memory, batchSize, epochs);
+    SgdParams p = setUpReutersParams(&memory, nBatches, epochs);
 
     logger->info("Running SVM with {} threads (batch size {})", p.nBatches, p.batchSize);
 
@@ -57,15 +55,17 @@ int main() {
 
         logger->info("Epoch {} end   - time {:04.2f}s - RMSE {:06.4f}", epoch, thisTs, rmse);
 
-        // Decay learning rate
-        p.learningRate = p.learningRate * p.learningDecay;
-        faasm::writeParamsToState(&memory, PARAMS_KEY, p);
+        // Decay learning rate (it appears hogwild doesn't actually do this even though it takes in a param
+        // p.learningRate = p.learningRate * p.learningDecay;
+        // faasm::writeParamsToState(&memory, PARAMS_KEY, p);
     }
 
     std::ofstream resultFile;
-    resultFile.open("measurement/losses.txt");
+    std::string fileName = "measurement/THREADS_" + std::to_string(nBatches) + ".txt";
+    resultFile.open(fileName);
+    double tsZero = losses.at(0).first;
     for (auto loss : losses) {
-        resultFile << loss.first << " " << loss.second << std::endl;
+        resultFile << loss.first - tsZero << " " << loss.second << std::endl;
     }
     resultFile.close();
 }

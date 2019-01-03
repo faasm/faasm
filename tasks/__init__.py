@@ -1,4 +1,9 @@
-from tasks.compile import lib, compile, funcs
+from tasks.compile import (
+    lib,
+    compile,
+    clean_build,
+    funcs
+)
 
 from tasks.docker import (
     build_all,
@@ -23,8 +28,6 @@ from tasks.docker import (
 )
 
 from tasks.docker_compose import start_all, stop_all, restart_all
-
-from tasks.reuters import reuters_download
 
 from tasks.setup import (
     setup_namespaces,

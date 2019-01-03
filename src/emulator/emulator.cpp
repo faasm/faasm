@@ -81,6 +81,17 @@ void __faasm_write_state_offset(const char *key, long totalLen, long offset, con
     }
 }
 
+void __faasm_flag_state_dirty(const char *key, long totalLen) {
+    state::StateKeyValue *kv = getKv(key, totalLen);
+    kv->flagFullValueDirty();
+}
+
+void __faasm_flag_state_offset_dirty(const char *key, long totalLen, long offset, long dataLen) {
+    state::StateKeyValue *kv = getKv(key, totalLen);
+    kv->flagSegmentDirty(offset, dataLen);
+}
+
+
 void __faasm_push_state(const char *key) {
     state::StateKeyValue *kv = getKv(key, 0);
     kv->pushFull();

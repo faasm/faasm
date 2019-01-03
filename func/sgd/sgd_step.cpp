@@ -23,7 +23,6 @@ namespace faasm {
         MatrixXd prediction;
         if (sgdParams.lossType == HINGE) {
             hingeLossWeightUpdate(memory, sgdParams, epoch, batchNumber, startIdx, endIdx);
-
         } else {
             leastSquaresWeightUpdate(memory, sgdParams, batchNumber,startIdx, endIdx);
         }

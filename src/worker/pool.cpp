@@ -13,12 +13,16 @@ namespace worker {
     static util::TokenPool tokenPool(util::N_THREADS_PER_WORKER);
 
     void startWorkerThreadPool() {
-        // Spawn the state thread first
-//        std::thread stateThread([] {
-//            StateThread s;
-//            s.run();
-//        });
-//        stateThread.detach();
+        util::SystemConfig &conf = util::getSystemConfig();
+
+        // Spawn the state thread first if not running in full async
+        if(!conf.fullAsync) {
+            std::thread stateThread([] {
+                StateThread s;
+                s.run();
+            });
+            stateThread.detach();
+        }
 
         // Spawn worker threads until we've hit the limit (thus creating a pool that will replenish
         // when one releases its token)

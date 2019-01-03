@@ -49,7 +49,7 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
                 // Split up index:value part
                 const std::vector<std::string> valueTokens = util::tokeniseString(thisToken, ':');
                 int feature = std::stoi(valueTokens[0]);
-                double weight = std::stof(valueTokens[1]);
+                double weight = std::stod(valueTokens[1]);
 
                 // Add to matrix
                 triplets.emplace_back(Eigen::Triplet<double>(feature, exampleCount, weight));

@@ -86,8 +86,17 @@ namespace infra {
         const std::string counter = Scheduler::getFunctionCounterName(msg);
         const std::string queueName = Scheduler::getFunctionQueueName(msg);
 
+        // Get the queue ratio for this function
+        int queueRatio = conf.maxQueueRatio;
+
+        // TODO make this configurable
+        if(msg.function() == "sgd_step") {
+            // No queueing
+            queueRatio = 0;
+        }
+
         // Add more workers if necessary
-        bool shouldAddWorker = queue->addWorker(counter, queueName, conf.maxQueueRatio, conf.maxWorkersPerFunction);
+        bool shouldAddWorker = queue->addWorker(counter, queueName, queueRatio, conf.maxWorkersPerFunction);
 
         // Send bind message to pre-warm queue to enlist help of other workers
         if (shouldAddWorker) {
@@ -95,12 +104,12 @@ namespace infra {
 
             logger->debug(
                     "SCALE-UP {}, max_qr = {}, max_workers = {}",
-                    infra::funcToString(msg), conf.maxQueueRatio, conf.maxWorkersPerFunction
+                    infra::funcToString(msg), queueRatio, conf.maxWorkersPerFunction
             );
         } else {
             logger->debug(
                     "MAINTAIN {}, max_qr = {}, max_workers = {}",
-                    infra::funcToString(msg), conf.maxQueueRatio, conf.maxWorkersPerFunction
+                    infra::funcToString(msg), queueRatio, conf.maxWorkersPerFunction
             );
         }
     }
