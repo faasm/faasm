@@ -5,12 +5,14 @@
 
 namespace infra {
     const std::string COUNTER_PREFIX = "n_";
+    const std::string WORKER_SET_PREFIX = "w_";
+    const std::string PREWARM_QUEUE_PREFIX = "prewarm_";
 
     Scheduler::Scheduler() = default;
 
     long Scheduler::getFunctionCount(const message::Message &msg) {
-        Redis *queue = Redis::getThreadQueue();
-        return queue->getCounter(Scheduler::getFunctionCounterName(msg));
+        Redis *redis = Redis::getThreadQueue();
+        return redis->getCounter(Scheduler::getFunctionCounterName(msg));
     }
 
     void addResultKeyToMessage(message::Message &msg) {
@@ -23,7 +25,7 @@ namespace infra {
 
     int Scheduler::getWorkerTimeout(const std::string &currentQueue) {
         util::SystemConfig &conf = util::getSystemConfig();
-        if (currentQueue == PREWARM_QUEUE) {
+        if (util::startsWith(currentQueue, PREWARM_QUEUE_PREFIX)) {
             return conf.unboundTimeout;
         } else {
             return conf.boundTimeout;
@@ -35,12 +37,12 @@ namespace infra {
         const auto &t = prof::startTimer();
 
         // First of all, send the message to execute the function
-        Redis *queue = Redis::getThreadQueue();
+        Redis *redis = Redis::getThreadQueue();
 
         const std::string queueName = getFunctionQueueName(msg);
         logger->debug("Adding call {} to {}", infra::funcToString(msg), queueName);
         addResultKeyToMessage(msg);
-        queue->enqueueMessage(queueName, msg);
+        redis->enqueueMessage(queueName, msg);
 
         // Then add more workers if necessary
         Scheduler::updateWorkerAllocs(msg);
@@ -53,7 +55,7 @@ namespace infra {
         // NOTE: Function counter will already have been updated
         util::SystemConfig &conf = util::getSystemConfig();
 
-        Redis *queue = Redis::getThreadQueue();
+        Redis *redis = Redis::getThreadQueue();
 
         // Get the max queue ratio for this function
         int maxQueueRatio = conf.maxQueueRatio;
@@ -68,8 +70,8 @@ namespace infra {
         const std::string queueName = getFunctionQueueName(msg);
         const std::string counterKey = Scheduler::getFunctionCounterName(msg);
 
-        long queueLen = queue->listLength(queueName);
-        long workerCount = queue->getCounter(counterKey);
+        long queueLen = redis->listLength(queueName);
+        long workerCount = redis->getCounter(counterKey);
 
         // See if we're over the queue ratio and have scope to scale up
         bool needMore;
@@ -84,7 +86,7 @@ namespace infra {
         if (needMore && workerCount < conf.maxWorkersPerFunction) {
             // Try and get the remote lock for this function, checking that
             // the worker count situation is still the same
-            long lockId = queue->acquireConditionalLock(counterKey, workerCount);
+            long lockId = redis->acquireConditionalLock(counterKey, workerCount);
 
             if(lockId <= 0) {
                 // At this point, the worker count has changed, or we've not got the lock,
@@ -96,32 +98,72 @@ namespace infra {
             } else {
                 // Here we have the lock and the worker count is still the same, so
                 // we can increment the count and send the bind message
-                queue->incr(counterKey);
+                redis->incr(counterKey);
+
+                // Get the appropriate prewarm queue
+                std::string prewarmQueue = Scheduler::getPrewarmQueueForFunction(msg);
 
                 message::Message bindMsg;
                 bindMsg.set_type(message::Message_MessageType_BIND);
                 bindMsg.set_user(msg.user());
                 bindMsg.set_function(msg.function());
 
-                queue->enqueueMessage(PREWARM_QUEUE, bindMsg);
+                redis->enqueueMessage(prewarmQueue, bindMsg);
 
                 // Release the lock
-                queue->releaseLock(counterKey, lockId);
+                redis->releaseLock(counterKey, lockId);
             }
         }
     }
 
-    void Scheduler::workerFinished(const std::string &currentQueue) {
-        Redis *queue = Redis::getThreadQueue();
+    std::string Scheduler::getPrewarmQueueForFunction(const message::Message &msg) {
+        util::SystemConfig &conf = util::getSystemConfig();
 
-        if (currentQueue == PREWARM_QUEUE) {
-            // Ignore
-        } else {
-            std::string counterName = COUNTER_PREFIX + currentQueue;
-            queue->decr(counterName);
+        // We only deal in affinity or anti-affinity for now.
+        bool affinity = conf.affinity == 1;
+
+        Redis *redis = Redis::getThreadQueue();
+
+        std::string workerSet = Scheduler::getFunctionWorkerSetName(msg);
+
+        std::vector<std::string> options;
+        if(affinity) {
+            // Get workers already assigned to this function that are also available
+            options = redis->sinter(workerSet, GLOBAL_WORKER_SET);
+            if (options.empty()) {
+                // If no options, return a random member of the global worker set
+                std::string workerChoice = redis->srandmember(GLOBAL_WORKER_SET);
+                return Scheduler::getHostPrewarmQueue(workerChoice);
+            }
         }
+        else {
+            // Get workers not already assigned to this function
+            options = redis->sdiff(GLOBAL_WORKER_SET, workerSet);
+            if(options.empty()) {
+                // If no options, return a random member of workers already assigned to func
+                std::string workerChoice = redis->srandmember(workerSet);
+                return Scheduler::getHostPrewarmQueue(workerChoice);
+            }
+        }
+
+        // Return a random choice from the options
+        int idx = util::randomInteger(0, options.size());
+        std::string workerChoice = options.at(idx);
+        return Scheduler::getHostPrewarmQueue(workerChoice);
     }
 
+    void Scheduler::workerFinished(const std::string &currentQueue) {
+        Redis *redis = Redis::getThreadQueue();
+
+        // Ignore if it's a prewarm queue
+        if (util::startsWith(currentQueue, PREWARM_QUEUE_PREFIX)) {
+            // Ignore
+        }
+        else {
+            std::string counterName = COUNTER_PREFIX + currentQueue;
+            redis->decr(counterName);
+        }
+    }
 
     std::string Scheduler::getFunctionQueueName(const message::Message &msg) {
         return infra::funcToString(msg);
@@ -129,5 +171,24 @@ namespace infra {
 
     std::string Scheduler::getFunctionCounterName(const message::Message &msg) {
         return COUNTER_PREFIX + Scheduler::getFunctionQueueName(msg);
+    }
+
+    std::string Scheduler::getFunctionWorkerSetName(const message::Message &msg) {
+        return WORKER_SET_PREFIX + Scheduler::getFunctionQueueName(msg);
+    }
+
+    std::string Scheduler::getHostName() {
+        std::string hostname = util::getEnvVar("HOSTNAME", "");
+        return hostname;
+    }
+
+    std::string Scheduler::getHostPrewarmQueue(const std::string &hostName) {
+        std::string queueName = PREWARM_QUEUE_PREFIX + hostName;
+
+        return queueName;
+    }
+
+    std::string Scheduler::getHostPrewarmQueue() {
+        return Scheduler::getHostPrewarmQueue(Scheduler::getHostName());
     }
 }

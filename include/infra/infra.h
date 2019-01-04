@@ -77,7 +77,11 @@ namespace infra {
 
         bool sismember(const std::string &key, const std::string &value);
 
+        std::string srandmember(const std::string &key);
+
         std::vector<std::string> sdiff(const std::string &keyA, const std::string &keyB);
+
+        std::vector<std::string> sinter(const std::string &keyA, const std::string &keyB);
 
         void flushAll();
 
@@ -141,7 +145,7 @@ namespace infra {
     };
 
     // Scheduling
-    const std::string PREWARM_QUEUE = "prewarm";
+    const std::string GLOBAL_WORKER_SET = "workers";
 
     class Scheduler {
     public:
@@ -159,9 +163,18 @@ namespace infra {
 
         static std::string getFunctionQueueName(const message::Message &msg);
 
+        static std::string getHostName();
+
+        static std::string getHostPrewarmQueue(const std::string &hostName);
+
+        static std::string getHostPrewarmQueue();
+
+        static std::string getPrewarmQueueForFunction(const message::Message &msg);
     private:
         static void updateWorkerAllocs(const message::Message &msg);
 
         static std::string getFunctionCounterName(const message::Message &msg);
+
+        static std::string getFunctionWorkerSetName(const message::Message &msg);
     };
 };

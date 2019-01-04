@@ -108,6 +108,7 @@ namespace util {
     // Strings
     std::vector<std::string> tokeniseString(const std::string &input, char delimiter);
     bool isAllWhitespace(const std::string &input);
+    bool startsWith(const std::string &input, const std::string &subStr);
 
     // Timing
     typedef std::chrono::steady_clock::time_point TimePoint;

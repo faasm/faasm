@@ -55,6 +55,7 @@ namespace tests {
         state::getGlobalState().forceClearAll();
 
         SgdParams params = getDummySgdParams();
+        params.fullAsync = false;
 
         // Set up the problem
         FaasmMemory mem;

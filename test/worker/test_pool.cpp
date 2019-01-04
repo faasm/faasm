@@ -21,32 +21,36 @@ namespace tests {
 
     void execFunction(message::Message &call) {
         // Set up worker to listen for relevant function
-        WorkerThread w(1, 1);
+        WorkerThreadPool pool;
+        WorkerThread w(pool, 1, 1);
         REQUIRE(w.isInitialised());
         REQUIRE(!w.isBound());
 
+        const std::string expectedPrewarmQueue = infra::Scheduler::getHostPrewarmQueue();
+        
         // Call the function, checking that everything is set up
         infra::Scheduler::callFunction(call);
         REQUIRE(redisQueue.listLength(infra::Scheduler::getFunctionQueueName(call)) == 1);
         REQUIRE(infra::Scheduler::getFunctionCount(call) == 1);
-        REQUIRE(redisQueue.listLength(infra::PREWARM_QUEUE) == 1);
+        REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 1);
 
         // Process the bind message
         w.processNextMessage();
         REQUIRE(w.isBound());
         REQUIRE(redisQueue.listLength(infra::Scheduler::getFunctionQueueName(call)) == 1);
         REQUIRE(infra::Scheduler::getFunctionCount(call) == 1);
-        REQUIRE(redisQueue.listLength(infra::PREWARM_QUEUE) == 0);
+        REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 0);
 
         // Now execute the function
         w.processNextMessage();
         REQUIRE(redisQueue.listLength(infra::Scheduler::getFunctionQueueName(call)) == 0);
         REQUIRE(infra::Scheduler::getFunctionCount(call) == 1);
-        REQUIRE(redisQueue.listLength(infra::PREWARM_QUEUE) == 0);
+        REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 0);
     }
 
     void checkBindMessage(const message::Message &expected) {
-        const message::Message actual = redisQueue.nextMessage(infra::PREWARM_QUEUE);
+        std::string expectedPrewarmQueue = infra::Scheduler::getHostPrewarmQueue();
+        const message::Message actual = redisQueue.nextMessage(expectedPrewarmQueue);
         REQUIRE(actual.user() == expected.user());
         REQUIRE(actual.function() == expected.function());
     }
@@ -69,7 +73,8 @@ namespace tests {
     TEST_CASE("Test worker initially pre-warmed", "[worker]") {
         setUp();
 
-        WorkerThread w(1, 1);
+        WorkerThreadPool pool;
+        WorkerThread w(pool, 1, 1);
         REQUIRE(!w.isBound());
         REQUIRE(w.isInitialised());
     }
@@ -86,7 +91,8 @@ namespace tests {
         call.set_user("demo");
         call.set_function("chain");
 
-        WorkerThread w(1, 1);
+        WorkerThreadPool pool;
+        WorkerThread w(pool, 1, 1);
         w.initialise();
         checkBound(w, call, false);
 
@@ -118,10 +124,13 @@ namespace tests {
         setUp();
 
         // Create worker and check it's prewarm
-        WorkerThread w(1, 1);
+        WorkerThreadPool pool;
+        WorkerThread w(pool, 1, 1);
         REQUIRE(!w.isBound());
         REQUIRE(w.isInitialised());
 
+        const std::string expectedPrewarmQueue = infra::Scheduler::getHostPrewarmQueue();
+        
         // Invoke a new call which will require a worker to bind
         message::Message call;
         call.set_user("demo");
@@ -129,7 +138,7 @@ namespace tests {
         infra::Scheduler::callFunction(call);
 
         // Check message is on the prewarm queue
-        REQUIRE(redisQueue.listLength(infra::PREWARM_QUEUE) == 1);
+        REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 1);
 
         // Process next message
         w.processNextMessage();
@@ -148,7 +157,8 @@ namespace tests {
 
         // Set up a real worker to execute this function. Remove it from the
         // unassigned set and add to handle this function
-        WorkerThread w(1, 1);
+        WorkerThreadPool pool;
+        WorkerThread w(pool, 1, 1);
         w.bindToFunction(call);
 
         // Make the call
@@ -185,7 +195,8 @@ namespace tests {
         call.set_resultkey("test_state_incr");
 
         // Call function
-        WorkerThread w(1, 1);
+        WorkerThreadPool pool;
+        WorkerThread w(pool, 1, 1);
         infra::Scheduler::callFunction(call);
 
         // Bind and exec
@@ -217,7 +228,8 @@ namespace tests {
         call.set_resultkey("check_state_res");
 
         // Call function
-        WorkerThread w(1, 1);
+        WorkerThreadPool pool;
+        WorkerThread w(pool, 1, 1);
         infra::Scheduler::callFunction(call);
 
         // Bind and exec
@@ -267,7 +279,8 @@ namespace tests {
         call.set_resultkey("test_heap_mem");
 
         // Call function
-        WorkerThread w(1, 1);
+        WorkerThreadPool pool;
+        WorkerThread w(pool, 1, 1);
         infra::Scheduler::callFunction(call);
 
         // Process bind
@@ -291,7 +304,8 @@ namespace tests {
         call.set_resultkey("test_" + funcName);
 
         // Call function
-        WorkerThread w(1, 1);
+        WorkerThreadPool pool;
+        WorkerThread w(pool, 1, 1);
         infra::Scheduler::callFunction(call);
 
         // Bind and execute
@@ -303,7 +317,7 @@ namespace tests {
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
 
-        std::vector<uint8_t > expectedOutput = {1};
+        std::vector<uint8_t> expectedOutput = {1};
         REQUIRE(outputBytes == expectedOutput);
     }
 
@@ -331,5 +345,21 @@ namespace tests {
 
         // Run the function to read
         checkCallingFunctionGivesTrueOutput("state_shared_read_offset");
+    }
+
+    TEST_CASE("Test worker pool adds worker hostname to set when starting up") {
+        redisQueue.flushAll();
+
+        util::setEnvVar("HOSTNAME", "foo");
+
+        {
+            WorkerThreadPool pool;
+
+            REQUIRE(redisQueue.sismember(infra::GLOBAL_WORKER_SET, "foo"));
+        }
+
+        REQUIRE(!redisQueue.sismember(infra::GLOBAL_WORKER_SET, "foo"));
+
+        util::unsetEnvVar("HOSTNAME");
     }
 }

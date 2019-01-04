@@ -416,6 +416,24 @@ namespace tests {
         REQUIRE(redisQueue.scard(setB) == 1);
     }
 
+    TEST_CASE("Test set random member", "[redis]") {
+        redisQueue.flushAll();
+
+        std::string setName = "set_foo";
+        REQUIRE(redisQueue.srandmember(setName).empty());
+
+        std::string valueA = "val_a";
+        std::string valueB = "val_b";
+        redisQueue.sadd(setName, valueA);
+
+        REQUIRE(redisQueue.srandmember(setName) == valueA);
+
+        redisQueue.sadd(setName, valueB);
+        const std::string actual = redisQueue.srandmember(setName);
+        bool isExpected = (actual == valueA) || (actual == valueB);
+        REQUIRE(isExpected);
+    }
+
     TEST_CASE("Test set diff", "[redis]") {
         redisQueue.flushAll();
 
@@ -439,6 +457,39 @@ namespace tests {
 
         std::vector<std::string> actualB = redisQueue.sdiff(setA, setB);
         std::vector<std::string> expected = {valueA, valueB};
+
+        std::sort(actualB.begin(), actualB.end());
+        std::sort(expected.begin(), expected.end());
+
+        REQUIRE(actualB == expected);
+    }
+
+    TEST_CASE("Test set intersection", "[redis]") {
+        redisQueue.flushAll();
+
+        std::string setA = "set_a";
+        std::string setB = "set_b";
+
+        const std::vector<std::string> actualA = redisQueue.sinter(setA, setB);
+        REQUIRE(actualA.empty());
+
+        std::string valueA = "val_a";
+        std::string valueB = "val_b";
+        std::string valueC = "val_c";
+        std::string valueD = "val_d";
+        std::string valueE = "val_e";
+
+        redisQueue.sadd(setA, valueA);
+        redisQueue.sadd(setA, valueB);
+        redisQueue.sadd(setA, valueC);
+
+        redisQueue.sadd(setB, valueA);
+        redisQueue.sadd(setB, valueC);
+        redisQueue.sadd(setB, valueD);
+        redisQueue.sadd(setB, valueE);
+
+        std::vector<std::string> actualB = redisQueue.sinter(setA, setB);
+        std::vector<std::string> expected = {valueA, valueC};
 
         std::sort(actualB.begin(), actualB.end());
         std::sort(expected.begin(), expected.end());

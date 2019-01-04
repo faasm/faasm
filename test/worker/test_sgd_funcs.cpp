@@ -30,7 +30,8 @@ namespace tests {
         call.set_resultkey("foobar");
 
         // Set up worker to listen for relevant function
-        WorkerThread w(1, 1);
+        WorkerThreadPool pool;
+        WorkerThread w(pool, 1, 1);
         REQUIRE(w.isInitialised());
         REQUIRE(!w.isBound());
 

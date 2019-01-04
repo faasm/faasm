@@ -59,16 +59,38 @@ namespace worker {
         NetworkIsolationMode mode;
     };
 
-    /** WorkerThread wrapper */
-    void startWorkerThreadPool();
+    /**
+     * Wrapper around global worker thread pool
+     */
+    class WorkerThreadPool {
+    public:
+        WorkerThreadPool();
 
-    util::TokenPool& getWorkerTokenPool();
+        ~WorkerThreadPool();
 
-    util::TokenPool& getPrewarmTokenPool();
+        void start();
 
+        void releaseWorkerToken(int workerIdx);
+
+        void releasePrewarmToken(int prewarmToken);
+
+    private:
+        util::TokenPool *workerTokenPool;
+        util::TokenPool *prewarmTokenPool;
+
+        std::string hostname;
+
+        int getWorkerToken();
+
+        int getPrewarmToken();
+    };
+
+    /**
+     * Worker threads
+     */
     class WorkerThread {
     public:
-        explicit WorkerThread(int workerIdx, int prewarmToken);
+        WorkerThread(WorkerThreadPool &threadPool, int workerIdx, int prewarmToken);
 
         ~WorkerThread();
 
@@ -91,11 +113,13 @@ namespace worker {
         bool _isInitialised = false;
         bool _isBound = false;
         int isolationIdx;
-        int workerIdx;
-        int prewarmToken;
         NetworkNamespace *ns;
 
-        infra::Redis *queue;
+        WorkerThreadPool &threadPool;
+        int workerIdx;
+        int prewarmToken;
+
+        infra::Redis *redis;
 
         const std::string executeCall(message::Message &msg);
 

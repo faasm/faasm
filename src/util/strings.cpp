@@ -13,4 +13,12 @@ namespace util {
     bool isAllWhitespace(const std::string &input) {
         return std::all_of(input.begin(), input.end(), isspace);
     }
+
+    bool startsWith(const std::string &input, const std::string &subStr) {
+        if(subStr.empty()) {
+            return false;
+        }
+
+        return input.rfind(subStr, 0) == 0;
+    }
 }

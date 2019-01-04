@@ -19,4 +19,10 @@ namespace tests {
         REQUIRE(isAllWhitespace("    "));
         REQUIRE(!isAllWhitespace("  s  "));
     }
+
+    TEST_CASE("Test startswith", "[util]") {
+        REQUIRE(startsWith("foobar", "foo"));
+        REQUIRE(!startsWith("foobar", "goo"));
+        REQUIRE(!startsWith("foobar", ""));
+    }
 }
