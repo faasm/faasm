@@ -7,7 +7,6 @@
 
 #include <spdlog/spdlog.h>
 #include <thread>
-#include <condition_variable>
 
 
 namespace worker {

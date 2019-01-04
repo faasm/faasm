@@ -347,7 +347,7 @@ namespace tests {
         checkCallingFunctionGivesTrueOutput("state_shared_read_offset");
     }
 
-    TEST_CASE("Test worker pool adds worker hostname to set when starting up") {
+    TEST_CASE("Test worker pool adds worker hostname to set when starting up", "[worker]") {
         redisQueue.flushAll();
 
         util::setEnvVar("HOSTNAME", "foo");
@@ -361,5 +361,6 @@ namespace tests {
         REQUIRE(!redisQueue.sismember(infra::GLOBAL_WORKER_SET, "foo"));
 
         util::unsetEnvVar("HOSTNAME");
+        redisQueue.flushAll();
     }
 }

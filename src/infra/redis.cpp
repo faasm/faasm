@@ -334,21 +334,6 @@ namespace infra {
     }
 
     /**
-    *  ------ Scheduling ------
-    */
-
-    std::pair<long, long> Redis::mgetLongPair(const std::string &keyA, const std::string &keyB) {
-        auto reply = (redisReply *) redisCommand(context, "MGET %s %s", keyA.c_str(), keyB.c_str());
-
-        long valA = getLongFromReply(reply->element[0]);
-        long valB = getLongFromReply(reply->element[1]);
-
-        freeReplyObject(reply);
-
-        return std::pair<long, long>(valA, valB);
-    }
-
-    /**
      *  ------ Locking ------
      */
 

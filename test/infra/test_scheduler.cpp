@@ -53,6 +53,7 @@ namespace tests {
         REQUIRE(Scheduler::getFunctionCount(call) == 1);
 
         REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 1);
+        redisQueue.flushAll();
     }
 
     TEST_CASE("Test sending bind messages", "[scheduler]") {
@@ -90,6 +91,8 @@ namespace tests {
         REQUIRE(bindB.user() == callB.user());
         REQUIRE(bindB.function() == callB.function());
         REQUIRE(bindB.type() == message::Message_MessageType_BIND);
+
+        redisQueue.flushAll();
     }
 
     TEST_CASE("Test calling function with existing workers does not send bind message", "[scheduler]") {
@@ -116,6 +119,8 @@ namespace tests {
         // Check function call has been added, but no new bind messages
         REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 1);
         REQUIRE(redisQueue.listLength(queueName) == 2);
+
+        redisQueue.flushAll();
     }
 
     TEST_CASE("Test calling function which breaches queue ratio sends bind message", "[scheduler]") {
@@ -148,6 +153,8 @@ namespace tests {
         Scheduler::callFunction(call);
         REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 2);
         REQUIRE(redisQueue.listLength(queueName) == nCalls + 1);
+
+        redisQueue.flushAll();
     }
 
     TEST_CASE("Test function which breaches queue ratio but has no capacity does not scale up", "[scheduler]") {
@@ -187,5 +194,78 @@ namespace tests {
         REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == conf.maxWorkersPerFunction);
         REQUIRE(Scheduler::getFunctionCount(call) == conf.maxWorkersPerFunction);
         REQUIRE(redisQueue.listLength(Scheduler::getFunctionQueueName(call)) == nCalls + 3);
+
+        redisQueue.flushAll();
+    }
+
+    void checkPrewarmQueueChoice(bool affinity) {
+        redisQueue.flushAll();
+
+        std::string hostA = "hostA";
+        std::string hostB = "hostB";
+        std::string hostC = "hostC";
+        std::string hostD = "hostD";
+
+        const std::string prewarmA = Scheduler::getHostPrewarmQueue(hostA);
+        const std::string prewarmB = Scheduler::getHostPrewarmQueue(hostB);
+        const std::string prewarmC = Scheduler::getHostPrewarmQueue(hostC);
+        const std::string prewarmD = Scheduler::getHostPrewarmQueue(hostD);
+
+        message::Message msg;
+        msg.set_user("alpha");
+        msg.set_function("beta");
+
+        std::string workerSet = Scheduler::getFunctionWorkerSetName(msg);
+
+        // Add workers to the global set
+        redisQueue.sadd(GLOBAL_WORKER_SET, hostA);
+        redisQueue.sadd(GLOBAL_WORKER_SET, hostB);
+
+        // With no workers assigned to function, should just get one of the global set
+        // regardless of affinity
+        std::string actual = Scheduler::getPrewarmQueueForFunction(msg, affinity);
+        std::set<std::string> expected = {prewarmA, prewarmB};
+        REQUIRE(expected.find(actual) != expected.end());
+
+        // Assign a worker to the function set
+        redisQueue.sadd(workerSet, hostB);
+
+        // Get actual and check depending on affinity
+        std::string actual2 = Scheduler::getPrewarmQueueForFunction(msg, affinity);
+        if (affinity) {
+            // If affinity, should be the one we already have
+            REQUIRE(actual2 == prewarmB);
+
+            // If this one isn't also part of the global set, we should get the other
+            redisQueue.srem(GLOBAL_WORKER_SET, hostB);
+            REQUIRE(Scheduler::getPrewarmQueueForFunction(msg, affinity) == prewarmA);
+        } else {
+            // If anti-affinity should be the other from the global set
+            REQUIRE(actual2 == prewarmA);
+
+            // If the global set is empty, should choose the one already associated with the function
+            redisQueue.del(GLOBAL_WORKER_SET);
+            REQUIRE(Scheduler::getPrewarmQueueForFunction(msg, affinity) == prewarmB);
+        }
+
+        redisQueue.flushAll();
+    }
+    
+    TEST_CASE("Test getting prewarm queue for function with affinity", "[scheduler]") {
+        checkPrewarmQueueChoice(true);
+    }
+
+    TEST_CASE("Test getting prewarm queue for function with anti-affinity", "[scheduler]") {
+        checkPrewarmQueueChoice(false);
+    }
+
+    TEST_CASE("Test error is thrown when no scheduling options", "[scheduler]") {
+        redisQueue.flushAll();
+
+        message::Message msg;
+        msg.set_user("alpha");
+        msg.set_function("beta");
+
+        REQUIRE_THROWS(Scheduler::getPrewarmQueueForFunction(msg, true));
     }
 }

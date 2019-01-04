@@ -2,12 +2,20 @@
 
 #include "utils.h"
 #include <edge/edge.h>
+#include <worker/worker.h>
 
 using namespace Pistache;
 
 namespace tests {
-    TEST_CASE("Test invoking a function", "[edge]") {
+    static void setUp() {
         redisQueue.flushAll();
+
+        // Create a worker pool to allow scheduling
+        worker::WorkerThreadPool wp;
+    }
+
+    TEST_CASE("Test invoking a function", "[edge]") {
+        setUp();
 
         // Note - must be async to avoid needing a result
         message::Message call;
@@ -30,7 +38,7 @@ namespace tests {
     }
 
     TEST_CASE("Test invoking a non-existent function", "[worker]") {
-        redisQueue.flushAll();
+        setUp();
 
         // Note - must be async to avoid needing a result
         message::Message call;

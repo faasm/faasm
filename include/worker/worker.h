@@ -70,6 +70,10 @@ namespace worker {
 
         void start();
 
+        int getWorkerToken();
+
+        int getPrewarmToken();
+
         void releaseWorkerToken(int workerIdx);
 
         void releasePrewarmToken(int prewarmToken);
@@ -79,10 +83,6 @@ namespace worker {
         util::TokenPool *prewarmTokenPool;
 
         std::string hostname;
-
-        int getWorkerToken();
-
-        int getPrewarmToken();
     };
 
     /**

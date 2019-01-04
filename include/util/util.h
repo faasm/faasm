@@ -88,7 +88,10 @@ namespace util {
 
         void reset();
 
+        int size();
+
     private:
+        int _size;
         std::queue<int> tokenQueue;
         std::mutex queueMutex;
         std::condition_variable tokenCondition;

@@ -108,12 +108,6 @@ namespace infra {
         void setLong(const std::string &key, long value);
 
         /**
-        *  ------ Scheduling ------
-        */
-
-        std::pair<long, long> mgetLongPair(const std::string &keyA, const std::string &keyB);
-
-        /**
         *  ------ Queueing ------
         */
 
@@ -153,6 +147,8 @@ namespace infra {
 
         static const int scheduleWaitMillis = 100;
 
+        static const int scheduleRecursionLimit = 10;
+
         static long getFunctionCount(const message::Message &msg);
 
         static int getWorkerTimeout(const std::string &currentQueue);
@@ -163,18 +159,19 @@ namespace infra {
 
         static std::string getFunctionQueueName(const message::Message &msg);
 
+        static std::string getFunctionWorkerSetName(const message::Message &msg);
+
         static std::string getHostName();
 
         static std::string getHostPrewarmQueue(const std::string &hostName);
 
         static std::string getHostPrewarmQueue();
 
-        static std::string getPrewarmQueueForFunction(const message::Message &msg);
+        static std::string getPrewarmQueueForFunction(const message::Message &msg, bool affinity);
+
     private:
-        static void updateWorkerAllocs(const message::Message &msg);
+        static void updateWorkerAllocs(const message::Message &msg, int recursionCount=0);
 
         static std::string getFunctionCounterName(const message::Message &msg);
-
-        static std::string getFunctionWorkerSetName(const message::Message &msg);
     };
 };

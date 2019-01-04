@@ -351,30 +351,6 @@ namespace tests {
         REQUIRE(redisState.getLong(key) == 50);
     }
 
-    TEST_CASE("Test getting long pair", "[redis]") {
-        redisState.flushAll();
-
-        std::string keyA = "fooA";
-        std::string keyB = "fooB";
-
-        // Should be empty when not initialised
-        std::pair<long, long> actual = redisState.mgetLongPair(keyA, keyB);
-        REQUIRE(actual.first == 0);
-        REQUIRE(actual.second == 0);
-
-        // Check when one set
-        redisState.setLong(keyA, 999);
-        std::pair<long, long> actual2 = redisState.mgetLongPair(keyA, keyB);
-        REQUIRE(actual2.first == 999);
-        REQUIRE(actual2.second == 0);
-
-        // Check when both set
-        redisState.setLong(keyB, 222);
-        std::pair<long, long> actual3 = redisState.mgetLongPair(keyA, keyB);
-        REQUIRE(actual3.first == 999);
-        REQUIRE(actual3.second == 222);
-    }
-
     TEST_CASE("Test set operations", "[redis]") {
         redisQueue.flushAll();
 

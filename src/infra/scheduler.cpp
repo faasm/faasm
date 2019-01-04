@@ -51,7 +51,13 @@ namespace infra {
         return queueName;
     }
 
-    void Scheduler::updateWorkerAllocs(const message::Message &msg) {
+    void Scheduler::updateWorkerAllocs(const message::Message &msg, int recursionCount) {
+        if(recursionCount > scheduleRecursionLimit) {
+            const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+            logger->error("Recursion count exceeded (count {})", recursionCount);
+            throw std::runtime_error("Scheduling recursion count exceeded");
+        }
+        
         // NOTE: Function counter will already have been updated
         util::SystemConfig &conf = util::getSystemConfig();
 
@@ -94,14 +100,15 @@ namespace infra {
                 usleep(scheduleWaitMillis * 1000);
 
                 // Recurse
-                Scheduler::updateWorkerAllocs(msg);
+                Scheduler::updateWorkerAllocs(msg, recursionCount + 1);
             } else {
                 // Here we have the lock and the worker count is still the same, so
                 // we can increment the count and send the bind message
                 redis->incr(counterKey);
 
                 // Get the appropriate prewarm queue
-                std::string prewarmQueue = Scheduler::getPrewarmQueueForFunction(msg);
+                bool affinity = conf.affinity == 1;
+                std::string prewarmQueue = Scheduler::getPrewarmQueueForFunction(msg, affinity);
 
                 message::Message bindMsg;
                 bindMsg.set_type(message::Message_MessageType_BIND);
@@ -116,24 +123,19 @@ namespace infra {
         }
     }
 
-    std::string Scheduler::getPrewarmQueueForFunction(const message::Message &msg) {
-        util::SystemConfig &conf = util::getSystemConfig();
-
-        // We only deal in affinity or anti-affinity for now.
-        bool affinity = conf.affinity == 1;
-
+    std::string Scheduler::getPrewarmQueueForFunction(const message::Message &msg, bool affinity) {
         Redis *redis = Redis::getThreadQueue();
 
         std::string workerSet = Scheduler::getFunctionWorkerSetName(msg);
 
         std::vector<std::string> options;
+        std::string workerChoice;
         if(affinity) {
             // Get workers already assigned to this function that are also available
             options = redis->sinter(workerSet, GLOBAL_WORKER_SET);
             if (options.empty()) {
                 // If no options, return a random member of the global worker set
-                std::string workerChoice = redis->srandmember(GLOBAL_WORKER_SET);
-                return Scheduler::getHostPrewarmQueue(workerChoice);
+                workerChoice = redis->srandmember(GLOBAL_WORKER_SET);
             }
         }
         else {
@@ -141,14 +143,21 @@ namespace infra {
             options = redis->sdiff(GLOBAL_WORKER_SET, workerSet);
             if(options.empty()) {
                 // If no options, return a random member of workers already assigned to func
-                std::string workerChoice = redis->srandmember(workerSet);
-                return Scheduler::getHostPrewarmQueue(workerChoice);
+                workerChoice = redis->srandmember(workerSet);
             }
         }
 
-        // Return a random choice from the options
-        int idx = util::randomInteger(0, options.size());
-        std::string workerChoice = options.at(idx);
+        // See if we've got any options
+        if(options.empty() && workerChoice.empty()) {
+            const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+            logger->error("No worker host available for scheduling {}", funcToString(msg));
+            throw std::runtime_error("No worker host available for scheduling");
+        }
+        else if(workerChoice.empty()) {
+            int idx = util::randomInteger(0, options.size() - 1);
+            workerChoice = options.at(idx);
+        }
+
         return Scheduler::getHostPrewarmQueue(workerChoice);
     }
 
