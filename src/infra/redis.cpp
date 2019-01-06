@@ -6,10 +6,6 @@
 #include <thread>
 
 namespace infra {
-    // Note - hiredis redis contexts are suitable only for single threads
-    // therefore we need to ensure that each thread has its own instance
-    static thread_local infra::Redis redisState(STATE);
-    static thread_local infra::Redis redisQueue(QUEUE);
 
     // Once we have resolved the IP of the redis instance, we need to keep using it
     // This allows things operating within the network namespace to resolve it properly
@@ -34,7 +30,6 @@ namespace infra {
                                             "else \n"
                                             "    return -1 \n"
                                             "end";
-
 
 
     // Script to delete a key if it equals a given value
@@ -91,12 +86,16 @@ namespace infra {
      *  ------ Utils ------
      */
 
-    Redis *Redis::getThreadState() {
-        return &redisState;
+    Redis &Redis::getThreadState() {
+        // Hiredis requires one instance per thread
+        static thread_local infra::Redis redisState(STATE);
+        return redisState;
     }
 
-    Redis *Redis::getThreadQueue() {
-        return &redisQueue;
+    Redis &Redis::getThreadQueue() {
+        // Hiredis requires one instance per thread
+        static thread_local infra::Redis redisQueue(QUEUE);
+        return redisQueue;
     }
 
     long getLongFromReply(redisReply *reply) {
@@ -265,7 +264,7 @@ namespace infra {
         auto reply = (redisReply *) redisCommand(context, "SRANDMEMBER %s", key.c_str());
 
         std::string res;
-        if(reply->len > 0) {
+        if (reply->len > 0) {
             res = reply->str;
         }
 
@@ -276,7 +275,7 @@ namespace infra {
 
     std::vector<std::string> extractStringListFromReply(redisReply *reply) {
         std::vector<std::string> retValue;
-        for(int i = 0; i < reply->elements; i++) {
+        for (int i = 0; i < reply->elements; i++) {
             retValue.emplace_back(reply->element[i]->str);
         }
 

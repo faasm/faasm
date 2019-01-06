@@ -11,43 +11,36 @@
 
 namespace worker {
 
-    WorkerThreadPool::WorkerThreadPool() {
+    WorkerThreadPool::WorkerThreadPool() : workerTokenPool(util::N_THREADS_PER_WORKER),
+                                           prewarmTokenPool(util::getSystemConfig().prewarmTarget),
+                                           redis(infra::Redis::getThreadQueue()){
         // To run the pool we have two token pools, one for the total workers in the pool,
         // The other for prewarm workers. Workers first need to acquire a worker token,
         // then a prewarm token to say they should start
-        util::SystemConfig &conf = util::getSystemConfig();
-        prewarmTokenPool = new util::TokenPool(conf.prewarmTarget);
-        workerTokenPool = new util::TokenPool(util::N_THREADS_PER_WORKER);
 
         // Add this worker to the list of workers accepting jobs
-        infra::Redis *redis = infra::Redis::getThreadQueue();
         hostname = infra::Scheduler::getHostName();
-        redis->sadd(infra::GLOBAL_WORKER_SET, hostname);
-    }
+        if(hostname.empty()) {
+            throw std::runtime_error("HOSTNAME for this machine is empty");
+        }
 
-    WorkerThreadPool::~WorkerThreadPool() {
-        delete prewarmTokenPool;
-        delete workerTokenPool;
-
-        // Make sure this host is removed from the worker set
-        infra::Redis *redis = infra::Redis::getThreadQueue();
-        redis->srem(infra::GLOBAL_WORKER_SET, hostname);
+        redis.sadd(GLOBAL_WORKER_SET, hostname);
     }
 
     void WorkerThreadPool::releasePrewarmToken(int prewarmToken) {
-        prewarmTokenPool->releaseToken(prewarmToken);
+        prewarmTokenPool.releaseToken(prewarmToken);
     }
 
     void WorkerThreadPool::releaseWorkerToken(int workerIdx) {
-        workerTokenPool->releaseToken(workerIdx);
+        workerTokenPool.releaseToken(workerIdx);
     }
 
     int WorkerThreadPool::getWorkerToken() {
-        return workerTokenPool->getToken();
+        return workerTokenPool.getToken();
     }
 
     int WorkerThreadPool::getPrewarmToken() {
-        return prewarmTokenPool->getToken();
+        return prewarmTokenPool.getToken();
     }
 
     void WorkerThreadPool::start() {
@@ -80,6 +73,14 @@ namespace worker {
         }
     }
 
+    void WorkerThreadPool::reset() {
+        workerTokenPool.reset();
+        prewarmTokenPool.reset();
+
+        // Add hostname to global workers
+        redis.sadd(GLOBAL_WORKER_SET, hostname);
+    }
+
     StateThread::StateThread() = default;
 
     void StateThread::run() {
@@ -90,7 +91,8 @@ namespace worker {
     WorkerThread::WorkerThread(WorkerThreadPool &threadPoolIn, int workerIdxIn,
                                int prewarmTokenIn) : threadPool(threadPoolIn),
                                                      workerIdx(workerIdxIn),
-                                                     prewarmToken(prewarmTokenIn) {
+                                                     prewarmToken(prewarmTokenIn),
+                                                     redis(infra::Redis::getThreadQueue()) {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -163,7 +165,7 @@ namespace worker {
         }
 
         // Set result
-        redis->setFunctionResult(call, isSuccess);
+        redis.setFunctionResult(call, isSuccess);
 
         // Restore the module memory after the execution
         module->restoreMemory();
@@ -213,7 +215,7 @@ namespace worker {
         int timeout = infra::Scheduler::getWorkerTimeout(currentQueue);
 
         // Wait for next message
-        message::Message msg = redis->nextMessage(currentQueue, timeout);
+        message::Message msg = redis.nextMessage(currentQueue, timeout);
 
         // Handle the message
         std::string errorMessage;

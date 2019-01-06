@@ -88,8 +88,8 @@ namespace state {
         }
 
         // Read from the remote
-        infra::Redis *redis = infra::Redis::getThreadState();
-        redis->get(key, static_cast<uint8_t *>(sharedMemory), valueSize);
+        infra::Redis &redis = infra::Redis::getThreadState();
+        redis.get(key, static_cast<uint8_t *>(sharedMemory), valueSize);
 
         Clock &clock = getGlobalClock();
         const TimePoint now = clock.now();
@@ -119,9 +119,9 @@ namespace state {
     long StateKeyValue::waitOnRemoteLock() {
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
-        infra::Redis *redis = infra::Redis::getThreadState();
+        infra::Redis &redis = infra::Redis::getThreadState();
 
-        long remoteLockId = redis->acquireLock(key, remoteLockTimeout);
+        long remoteLockId = redis.acquireLock(key, remoteLockTimeout);
         int retryCount = 0;
         while(remoteLockId ==  0) {
             logger->debug("Waiting on remote lock for {} (loop {})", key, retryCount);
@@ -134,7 +134,7 @@ namespace state {
             // usleep in microseconds
             usleep(remoteLockWaitTime * 1000);
 
-            remoteLockId = redis->acquireLock(key, remoteLockTimeout);
+            remoteLockId = redis.acquireLock(key, remoteLockTimeout);
             retryCount++;
         }
 
@@ -371,8 +371,8 @@ namespace state {
 
         logger->debug("Pushing whole value for {}", key);
 
-        infra::Redis *redis = infra::Redis::getThreadState();
-        redis->set(key, static_cast<uint8_t *>(sharedMemory), valueSize);
+        infra::Redis &redis = infra::Redis::getThreadState();
+        redis.set(key, static_cast<uint8_t *>(sharedMemory), valueSize);
 
         // Reset (as we're setting the full value, we've effectively pulled)
         Clock &clock = getGlobalClock();
@@ -397,7 +397,7 @@ namespace state {
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         // Attempt to lock the value remotely
-        infra::Redis *redis = infra::Redis::getThreadState();
+        infra::Redis &redis = infra::Redis::getThreadState();
         long remoteLockId = this->waitOnRemoteLock();
 
         // If we don't get remote lock, just skip this push and wait for next one
@@ -430,7 +430,7 @@ namespace state {
 
         // Don't need any more local locking here
         auto tempBuff = new uint8_t[valueSize];
-        redis->get(key, tempBuff, valueSize);
+        redis.get(key, tempBuff, valueSize);
         
         logger->debug("Pushing partial state for {}", key);
 
@@ -455,10 +455,10 @@ namespace state {
         }
 
         // Set whole value back again
-        redis->set(key, tempBuff, valueSize);
+        redis.set(key, tempBuff, valueSize);
 
         // Release remote lock
-        redis->releaseLock(key, remoteLockId);
+        redis.releaseLock(key, remoteLockId);
     }
 
     void StateKeyValue::lockRead() {

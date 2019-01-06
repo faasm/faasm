@@ -27,7 +27,7 @@ namespace tests {
         REQUIRE(!w.isBound());
 
         const std::string expectedPrewarmQueue = infra::Scheduler::getHostPrewarmQueue();
-        
+
         // Call the function, checking that everything is set up
         infra::Scheduler::callFunction(call);
         REQUIRE(redisQueue.listLength(infra::Scheduler::getFunctionQueueName(call)) == 1);
@@ -130,7 +130,7 @@ namespace tests {
         REQUIRE(w.isInitialised());
 
         const std::string expectedPrewarmQueue = infra::Scheduler::getHostPrewarmQueue();
-        
+
         // Invoke a new call which will require a worker to bind
         message::Message call;
         call.set_user("demo");
@@ -348,19 +348,18 @@ namespace tests {
     }
 
     TEST_CASE("Test worker pool adds worker hostname to set when starting up", "[worker]") {
-        redisQueue.flushAll();
+        cleanSystem();
+
+        std::string originalHostname = util::getEnvVar("HOSTNAME", "");
+        REQUIRE(!originalHostname.empty());
 
         util::setEnvVar("HOSTNAME", "foo");
 
-        {
-            WorkerThreadPool pool;
+        WorkerThreadPool pool;
+        REQUIRE(redisQueue.sismember(GLOBAL_WORKER_SET, "foo"));
 
-            REQUIRE(redisQueue.sismember(infra::GLOBAL_WORKER_SET, "foo"));
-        }
-
-        REQUIRE(!redisQueue.sismember(infra::GLOBAL_WORKER_SET, "foo"));
-
-        util::unsetEnvVar("HOSTNAME");
-        redisQueue.flushAll();
+        redisQueue.srem(GLOBAL_WORKER_SET, "foo");
+        util::setEnvVar("HOSTNAME", originalHostname);
+        cleanSystem();
     }
 }

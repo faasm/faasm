@@ -10,6 +10,8 @@
 #include <proto/faasm.pb.h>
 #include <hiredis/hiredis.h>
 
+#define GLOBAL_WORKER_SET "available_workers"
+
 namespace infra {
 
     std::string getFunctionFile(const message::Message &msg);
@@ -41,9 +43,9 @@ namespace infra {
         *  ------ Utils ------
         */
 
-        static Redis *getThreadQueue();
+        static Redis &getThreadQueue();
 
-        static Redis *getThreadState();
+        static Redis &getThreadState();
 
         /**
         *  ------ Standard Redis commands ------
@@ -139,8 +141,6 @@ namespace infra {
     };
 
     // Scheduling
-    const std::string GLOBAL_WORKER_SET = "workers";
-
     class Scheduler {
     public:
         Scheduler();
@@ -170,7 +170,7 @@ namespace infra {
         static std::string getPrewarmQueueForFunction(const message::Message &msg, bool affinity);
 
     private:
-        static void updateWorkerAllocs(const message::Message &msg, int recursionCount=0);
+        static void updateWorkerAllocs(const message::Message &msg, int recursionCount = 0);
 
         static std::string getFunctionCounterName(const message::Message &msg);
     };

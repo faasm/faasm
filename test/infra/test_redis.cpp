@@ -123,7 +123,6 @@ namespace tests {
     }
 
     TEST_CASE("Test get range", "[redis]") {
-
         redisQueue.flushAll();
 
         std::string key = "getrange_test";
@@ -153,7 +152,7 @@ namespace tests {
     }
 
     void checkCallRoundTrip(bool isAsync, bool isSuccess) {
-        redisQueue.flushAll();
+        cleanSystem();
 
         // Request function
         message::Message call;

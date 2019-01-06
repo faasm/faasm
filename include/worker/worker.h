@@ -66,8 +66,6 @@ namespace worker {
     public:
         WorkerThreadPool();
 
-        ~WorkerThreadPool();
-
         void start();
 
         int getWorkerToken();
@@ -78,10 +76,13 @@ namespace worker {
 
         void releasePrewarmToken(int prewarmToken);
 
-    private:
-        util::TokenPool *workerTokenPool;
-        util::TokenPool *prewarmTokenPool;
+        void reset();
 
+    private:
+        util::TokenPool workerTokenPool;
+        util::TokenPool prewarmTokenPool;
+
+        infra::Redis &redis;
         std::string hostname;
     };
 
@@ -119,7 +120,7 @@ namespace worker {
         int workerIdx;
         int prewarmToken;
 
-        infra::Redis *redis;
+        infra::Redis &redis;
 
         const std::string executeCall(message::Message &msg);
 

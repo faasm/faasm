@@ -15,7 +15,7 @@ namespace tests {
     }
 
     TEST_CASE("Test invoking a function", "[edge]") {
-        setUp();
+        cleanSystem();
 
         // Note - must be async to avoid needing a result
         message::Message call;

@@ -16,7 +16,7 @@ namespace tests {
     }
 
     TEST_CASE("Test worker finished bound", "[scheduler]") {
-        redisQueue.flushAll();
+        cleanSystem();
 
         message::Message call;
         call.set_user("userA");

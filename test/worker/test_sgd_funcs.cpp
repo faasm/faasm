@@ -12,8 +12,8 @@ using namespace worker;
 
 namespace tests {
     static void setUp() {
-        redisQueue.flushAll();
-        redisState.flushAll();
+        cleanSystem();
+
         state::getGlobalState().forceClearAll();
 
         setEmulatorUser("sgd");

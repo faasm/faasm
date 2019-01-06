@@ -11,8 +11,8 @@ namespace infra {
     Scheduler::Scheduler() = default;
 
     long Scheduler::getFunctionCount(const message::Message &msg) {
-        Redis *redis = Redis::getThreadQueue();
-        return redis->getCounter(Scheduler::getFunctionCounterName(msg));
+        Redis &redis = Redis::getThreadQueue();
+        return redis.getCounter(Scheduler::getFunctionCounterName(msg));
     }
 
     void addResultKeyToMessage(message::Message &msg) {
@@ -37,12 +37,12 @@ namespace infra {
         const auto &t = prof::startTimer();
 
         // First of all, send the message to execute the function
-        Redis *redis = Redis::getThreadQueue();
+        Redis &redis = Redis::getThreadQueue();
 
         const std::string queueName = getFunctionQueueName(msg);
         logger->debug("Adding call {} to {}", infra::funcToString(msg), queueName);
         addResultKeyToMessage(msg);
-        redis->enqueueMessage(queueName, msg);
+        redis.enqueueMessage(queueName, msg);
 
         // Then add more workers if necessary
         Scheduler::updateWorkerAllocs(msg);
@@ -61,7 +61,7 @@ namespace infra {
         // NOTE: Function counter will already have been updated
         util::SystemConfig &conf = util::getSystemConfig();
 
-        Redis *redis = Redis::getThreadQueue();
+        Redis &redis = Redis::getThreadQueue();
 
         // Get the max queue ratio for this function
         int maxQueueRatio = conf.maxQueueRatio;
@@ -76,8 +76,8 @@ namespace infra {
         const std::string queueName = getFunctionQueueName(msg);
         const std::string counterKey = Scheduler::getFunctionCounterName(msg);
 
-        long queueLen = redis->listLength(queueName);
-        long workerCount = redis->getCounter(counterKey);
+        long queueLen = redis.listLength(queueName);
+        long workerCount = redis.getCounter(counterKey);
 
         // See if we're over the queue ratio and have scope to scale up
         bool needMore;
@@ -92,7 +92,7 @@ namespace infra {
         if (needMore && workerCount < conf.maxWorkersPerFunction) {
             // Try and get the remote lock for this function, checking that
             // the worker count situation is still the same
-            long lockId = redis->acquireConditionalLock(counterKey, workerCount);
+            long lockId = redis.acquireConditionalLock(counterKey, workerCount);
 
             if(lockId <= 0) {
                 // At this point, the worker count has changed, or we've not got the lock,
@@ -104,7 +104,7 @@ namespace infra {
             } else {
                 // Here we have the lock and the worker count is still the same, so
                 // we can increment the count and send the bind message
-                redis->incr(counterKey);
+                redis.incr(counterKey);
 
                 // Get the appropriate prewarm queue
                 bool affinity = conf.affinity == 1;
@@ -115,16 +115,16 @@ namespace infra {
                 bindMsg.set_user(msg.user());
                 bindMsg.set_function(msg.function());
 
-                redis->enqueueMessage(prewarmQueue, bindMsg);
+                redis.enqueueMessage(prewarmQueue, bindMsg);
 
                 // Release the lock
-                redis->releaseLock(counterKey, lockId);
+                redis.releaseLock(counterKey, lockId);
             }
         }
     }
 
     std::string Scheduler::getPrewarmQueueForFunction(const message::Message &msg, bool affinity) {
-        Redis *redis = Redis::getThreadQueue();
+        Redis &redis = Redis::getThreadQueue();
 
         std::string workerSet = Scheduler::getFunctionWorkerSetName(msg);
 
@@ -132,18 +132,18 @@ namespace infra {
         std::string workerChoice;
         if(affinity) {
             // Get workers already assigned to this function that are also available
-            options = redis->sinter(workerSet, GLOBAL_WORKER_SET);
+            options = redis.sinter(workerSet, GLOBAL_WORKER_SET);
             if (options.empty()) {
                 // If no options, return a random member of the global worker set
-                workerChoice = redis->srandmember(GLOBAL_WORKER_SET);
+                workerChoice = redis.srandmember(GLOBAL_WORKER_SET);
             }
         }
         else {
             // Get workers not already assigned to this function
-            options = redis->sdiff(GLOBAL_WORKER_SET, workerSet);
+            options = redis.sdiff(GLOBAL_WORKER_SET, workerSet);
             if(options.empty()) {
                 // If no options, return a random member of workers already assigned to func
-                workerChoice = redis->srandmember(workerSet);
+                workerChoice = redis.srandmember(workerSet);
             }
         }
 
@@ -162,7 +162,7 @@ namespace infra {
     }
 
     void Scheduler::workerFinished(const std::string &currentQueue) {
-        Redis *redis = Redis::getThreadQueue();
+        Redis &redis = Redis::getThreadQueue();
 
         // Ignore if it's a prewarm queue
         if (util::startsWith(currentQueue, PREWARM_QUEUE_PREFIX)) {
@@ -170,7 +170,7 @@ namespace infra {
         }
         else {
             std::string counterName = COUNTER_PREFIX + currentQueue;
-            redis->decr(counterName);
+            redis.decr(counterName);
         }
     }
 
