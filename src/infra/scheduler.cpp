@@ -124,6 +124,7 @@ namespace infra {
     }
 
     std::string Scheduler::getPrewarmQueueForFunction(const message::Message &msg, bool affinity) {
+        const std::shared_ptr<spdlog::logger> logger = util::getLogger();
         Redis &redis = Redis::getThreadQueue();
 
         std::string workerSet = Scheduler::getFunctionWorkerSetName(msg);
@@ -149,7 +150,6 @@ namespace infra {
 
         // See if we've got any options
         if(options.empty() && workerChoice.empty()) {
-            const std::shared_ptr<spdlog::logger> logger = util::getLogger();
             logger->error("No worker host available for scheduling {}", funcToString(msg));
             throw std::runtime_error("No worker host available for scheduling");
         }
@@ -157,6 +157,8 @@ namespace infra {
             int idx = util::randomInteger(0, options.size() - 1);
             workerChoice = options.at(idx);
         }
+
+        logger->debug("Schedule prewarm on {} for {}", workerChoice, funcToString(msg));
 
         return Scheduler::getHostPrewarmQueue(workerChoice);
     }
