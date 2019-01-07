@@ -10,7 +10,7 @@ namespace util {
 
         fullAsync = this->getSystemConfParam("FULL_ASYNC", "0");
 
-        stateStaleThreshold = this->getSystemConfParam("STATE_STALE_THRESHOLD", "500");
+        stateStaleThreshold = this->getSystemConfParam("STATE_STALE_THRESHOLD", "60000");
         stateClearThreshold = this->getSystemConfParam("STATE_CLEAR_THRESHOLD", "300000");
         statePushInterval = this->getSystemConfParam("STATE_PUSH_INTERVAL", "500");
 

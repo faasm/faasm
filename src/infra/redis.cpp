@@ -25,7 +25,7 @@ namespace infra {
             std::unique_lock<std::mutex> lock(scriptsLock);
 
             if (conditionalLockSha.empty()) {
-                printf("Loading scripts for Redis instance at %s", hostname.c_str());
+                printf("Loading scripts for Redis instance at %s\n", hostname.c_str());
                 redisContext *context = redisConnect(ip.c_str(), port);
 
                 conditionalLockSha = this->loadScript(context, conditionalLockCmd);

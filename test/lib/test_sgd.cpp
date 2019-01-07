@@ -21,6 +21,7 @@ namespace tests {
         params.nWeights = 3;
         params.learningRate = 0.1;
         params.nEpochs = 2;
+        params.fullAsync = false;
 
         return params;
     }
@@ -251,8 +252,8 @@ namespace tests {
     }
 
     TEST_CASE("Test reading errors from state", "[sgd]") {
-        infra::Redis &redisQueue = infra::Redis::getQueue();
-        redisQueue.flushAll();
+        infra::Redis &redisState = infra::Redis::getState();
+        redisState.flushAll();
 
         state::getGlobalState().forceClearAll();
 
@@ -275,7 +276,7 @@ namespace tests {
         writeSquaredError(&memory, p, 1, a, b);
 
         // Check these have been written
-        checkDoubleArrayInState(redisQueue, ERRORS_KEY, {expected, expected, 0});
+        checkDoubleArrayInState(redisState, ERRORS_KEY, {expected, expected, 0});
 
         // Error should just include the 2 written
         double expectedRmse1 = sqrt((2 * expected) / p.nTrain);
@@ -284,7 +285,7 @@ namespace tests {
 
         // Now write error for a third batch
         writeSquaredError(&memory, p, 2, a, b);
-        checkDoubleArrayInState(redisQueue, ERRORS_KEY, {expected, expected, expected});
+        checkDoubleArrayInState(redisState, ERRORS_KEY, {expected, expected, expected});
 
         // Work out what the result should be
         double expectedRmse2 = sqrt((3 * expected) / p.nTrain);
