@@ -18,4 +18,4 @@ data:
   FULL_ASYNC: "0"
   AFFINITY: "0"
   CGROUP_MODE: "on"
-  NETNS_MODE: "on"
+  NETNS_MODE: "off"
