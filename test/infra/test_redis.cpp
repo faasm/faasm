@@ -33,6 +33,12 @@ namespace tests {
         REQUIRE(3 == redisQueue.listLength(vars::QUEUE_NAME));
     }
 
+    TEST_CASE("Test redis ping", "[redis]") {
+        // Will throw exception if something is wrong
+        redisState.ping();
+        redisQueue.ping();
+    }
+
     TEST_CASE("Test incr/ decr", "[redis]") {
         redisQueue.flushAll();
 

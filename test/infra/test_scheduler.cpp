@@ -227,25 +227,45 @@ namespace tests {
         std::set<std::string> expected = {prewarmA, prewarmB};
         REQUIRE(expected.find(actual) != expected.end());
 
-        // Assign a worker to the function set
-        redisQueue.sadd(workerSet, hostB);
+        // Work out which host it is
+        std::string chosenHost;
+        std::string otherHost;
+        std::string otherQueue;
+        if(actual == prewarmA) {
+            chosenHost = hostA;
+            otherHost = hostB;
+            otherQueue = prewarmB;
+        }
+        else {
+            chosenHost = hostB;
+            otherHost = hostA;
+            otherQueue = prewarmA;
+        }
 
-        // Get actual and check depending on affinity
+        // Check that this is now added to the function set
+        REQUIRE(redisQueue.sismember(workerSet, chosenHost));
+
+        // Run again and check result depending on affinity
         std::string actual2 = Scheduler::getPrewarmQueueForFunction(msg, affinity);
         if (affinity) {
             // If affinity, should be the one we already have
-            REQUIRE(actual2 == prewarmB);
+            REQUIRE(actual2 == actual);
 
-            // If this one isn't also part of the global set, we should get the other
-            redisQueue.srem(GLOBAL_WORKER_SET, hostB);
-            REQUIRE(Scheduler::getPrewarmQueueForFunction(msg, affinity) == prewarmA);
+            // Now remove it from the global worker set and check we get the other
+            redisQueue.srem(GLOBAL_WORKER_SET, chosenHost);
+            REQUIRE(Scheduler::getPrewarmQueueForFunction(msg, affinity) == otherQueue);
+            REQUIRE(redisQueue.sismember(workerSet, otherHost));
         } else {
             // If anti-affinity should be the other from the global set
-            REQUIRE(actual2 == prewarmA);
+            REQUIRE(actual2 == otherQueue);
 
-            // If the global set is empty, should choose the one already associated with the function
+            // Now remove everything from the global worker set and leave only one host
+            // in the function's set, this should force it to pick the same one
             redisQueue.del(GLOBAL_WORKER_SET);
-            REQUIRE(Scheduler::getPrewarmQueueForFunction(msg, affinity) == prewarmB);
+            redisQueue.srem(workerSet, otherHost);
+
+            REQUIRE(Scheduler::getPrewarmQueueForFunction(msg, affinity) == actual);
+            REQUIRE(redisQueue.sismember(workerSet, chosenHost));
         }
 
         redisQueue.flushAll();

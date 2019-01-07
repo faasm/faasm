@@ -35,7 +35,7 @@ namespace infra {
 
     public:
 
-        Redis(const RedisRole &role);
+        explicit Redis(const RedisRole &role);
 
         ~Redis();
 
@@ -43,13 +43,14 @@ namespace infra {
         *  ------ Utils ------
         */
 
-        static Redis &getThreadQueue();
+        static Redis &getQueue();
 
-        static Redis &getThreadState();
+        static Redis &getState();
 
         /**
         *  ------ Standard Redis commands ------
         */
+        void ping();
 
         std::vector<uint8_t> get(const std::string &key);
 

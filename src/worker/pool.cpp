@@ -13,10 +13,14 @@ namespace worker {
 
     WorkerThreadPool::WorkerThreadPool() : workerTokenPool(util::N_THREADS_PER_WORKER),
                                            prewarmTokenPool(util::getSystemConfig().prewarmTarget),
-                                           redis(infra::Redis::getThreadQueue()){
+                                           redis(infra::Redis::getQueue()){
         // To run the pool we have two token pools, one for the total workers in the pool,
         // The other for prewarm workers. Workers first need to acquire a worker token,
         // then a prewarm token to say they should start
+
+        // Ensure we can ping both redis instances
+        infra::Redis::getQueue().ping();
+        infra::Redis::getState().ping();
 
         // Add this worker to the list of workers accepting jobs
         hostname = infra::Scheduler::getHostName();
@@ -92,7 +96,7 @@ namespace worker {
                                int prewarmTokenIn) : threadPool(threadPoolIn),
                                                      workerIdx(workerIdxIn),
                                                      prewarmToken(prewarmTokenIn),
-                                                     redis(infra::Redis::getThreadQueue()) {
+                                                     redis(infra::Redis::getQueue()) {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -100,7 +104,7 @@ namespace worker {
         id = infra::Scheduler::getHostName() + "_" + std::to_string(workerIdx);
 
         // Get Redis connection
-        redis = infra::Redis::getThreadQueue();
+        redis = infra::Redis::getQueue();
 
         logger->debug("Starting worker {}", id);
         currentQueue = infra::Scheduler::getHostPrewarmQueue();

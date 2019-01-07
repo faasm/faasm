@@ -76,6 +76,8 @@ namespace infra {
 
             throw std::runtime_error("Failed to connect to redis");
         }
+
+        printf("Connected to redis host %s at %s:%i\n", hostname.c_str(), thisIp.c_str(), portInt);
     }
 
     Redis::~Redis() {
@@ -86,13 +88,13 @@ namespace infra {
      *  ------ Utils ------
      */
 
-    Redis &Redis::getThreadState() {
+    Redis &Redis::getState() {
         // Hiredis requires one instance per thread
         static thread_local infra::Redis redisState(STATE);
         return redisState;
     }
 
-    Redis &Redis::getThreadQueue() {
+    Redis &Redis::getQueue() {
         // Hiredis requires one instance per thread
         static thread_local infra::Redis redisQueue(QUEUE);
         return redisQueue;
@@ -160,6 +162,18 @@ namespace infra {
     /**
      *  ------ Standard Redis commands ------
      */
+
+    void Redis::ping() {
+        auto reply = (redisReply *) redisCommand(context, "PING");
+
+        std::string response(reply->str);
+
+        freeReplyObject(reply);
+
+        if(response != "PONG") {
+            throw std::runtime_error("Failed to ping redis host");
+        }
+    }
 
     void Redis::get(const std::string &key, uint8_t *buffer, size_t size) {
         auto reply = (redisReply *) redisCommand(context, "GET %s", key.c_str());

@@ -11,7 +11,7 @@ namespace infra {
     Scheduler::Scheduler() = default;
 
     long Scheduler::getFunctionCount(const message::Message &msg) {
-        Redis &redis = Redis::getThreadQueue();
+        Redis &redis = Redis::getQueue();
         return redis.getCounter(Scheduler::getFunctionCounterName(msg));
     }
 
@@ -37,7 +37,7 @@ namespace infra {
         const auto &t = prof::startTimer();
 
         // First of all, send the message to execute the function
-        Redis &redis = Redis::getThreadQueue();
+        Redis &redis = Redis::getQueue();
 
         const std::string queueName = getFunctionQueueName(msg);
         logger->debug("Adding call {} to {}", infra::funcToString(msg), queueName);
@@ -61,7 +61,7 @@ namespace infra {
         // NOTE: Function counter will already have been updated
         util::SystemConfig &conf = util::getSystemConfig();
 
-        Redis &redis = Redis::getThreadQueue();
+        Redis &redis = Redis::getQueue();
 
         // Get the max queue ratio for this function
         int maxQueueRatio = conf.maxQueueRatio;
@@ -125,37 +125,45 @@ namespace infra {
 
     std::string Scheduler::getPrewarmQueueForFunction(const message::Message &msg, bool affinity) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
-        Redis &redis = Redis::getThreadQueue();
+        Redis &redis = Redis::getQueue();
 
         std::string workerSet = Scheduler::getFunctionWorkerSetName(msg);
 
-        std::vector<std::string> options;
         std::string workerChoice;
         if(affinity) {
             // Get workers already assigned to this function that are also available
-            options = redis.sinter(workerSet, GLOBAL_WORKER_SET);
+            std::vector<std::string> options = redis.sinter(workerSet, GLOBAL_WORKER_SET);
             if (options.empty()) {
-                // If no options, return a random member of the global worker set
+                // If no options, return a random member of the global worker set and
+                // add it to the worker set
                 workerChoice = redis.srandmember(GLOBAL_WORKER_SET);
+
+                redis.sadd(workerSet, workerChoice);
+            } else {
+                int idx = util::randomInteger(0, options.size() - 1);
+                workerChoice = options.at(idx);
             }
         }
         else {
             // Get workers not already assigned to this function
-            options = redis.sdiff(GLOBAL_WORKER_SET, workerSet);
+            std::vector<std::string> options = redis.sdiff(GLOBAL_WORKER_SET, workerSet);
             if(options.empty()) {
                 // If no options, return a random member of workers already assigned to func
                 workerChoice = redis.srandmember(workerSet);
             }
+            else {
+                // If options, choose one and add it to the worker's set
+                int idx = util::randomInteger(0, options.size() - 1);
+                workerChoice = options.at(idx);
+
+                redis.sadd(workerSet, workerChoice);
+            }
         }
 
         // See if we've got any options
-        if(options.empty() && workerChoice.empty()) {
+        if(workerChoice.empty()) {
             logger->error("No worker host available for scheduling {}", funcToString(msg));
             throw std::runtime_error("No worker host available for scheduling");
-        }
-        else if(workerChoice.empty()) {
-            int idx = util::randomInteger(0, options.size() - 1);
-            workerChoice = options.at(idx);
         }
 
         logger->debug("Schedule prewarm on {} for {}", workerChoice, funcToString(msg));
@@ -164,7 +172,7 @@ namespace infra {
     }
 
     void Scheduler::workerFinished(const std::string &currentQueue) {
-        Redis &redis = Redis::getThreadQueue();
+        Redis &redis = Redis::getQueue();
 
         // Ignore if it's a prewarm queue
         if (util::startsWith(currentQueue, PREWARM_QUEUE_PREFIX)) {

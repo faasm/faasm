@@ -14,7 +14,7 @@ namespace util {
         stateClearThreshold = this->getSystemConfParam("STATE_CLEAR_THRESHOLD", "300000");
         statePushInterval = this->getSystemConfParam("STATE_PUSH_INTERVAL", "500");
 
-        affinity = this->getSystemConfParam("AFFINITY", "1");
+        affinity = this->getSystemConfParam("AFFINITY", "0");
     }
 
     int SystemConfig::getSystemConfParam(const char *name, const char *defaultValue) {
