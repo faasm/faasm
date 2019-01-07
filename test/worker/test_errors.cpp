@@ -20,6 +20,7 @@ namespace tests {
     }
 
     void checkError(const std::string &funcName, const std::string &expectedMsg) {
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         redisQueue.flushAll();
 
         message::Message call;

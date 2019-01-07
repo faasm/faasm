@@ -10,6 +10,8 @@ namespace tests {
     static int i = 0;
 
     StateKeyValue *setupKV(size_t size) {
+        infra::Redis &redisState = infra::Redis::getState();
+
         i++;
         const std::string stateUser = "test";
         const std::string stateKey = "state_key_" + std::to_string(i);
@@ -29,6 +31,7 @@ namespace tests {
     }
 
     TEST_CASE("Test simple state get/set", "[state]") {
+        infra::Redis &redisState = infra::Redis::getState();
         StateKeyValue *kv = setupKV(5);
 
         // Get (should do nothing)
@@ -55,6 +58,7 @@ namespace tests {
     }
 
     TEST_CASE("Test get/ set segment", "[state]") {
+        infra::Redis &redisState = infra::Redis::getState();
         StateKeyValue *kv = setupKV(10);
 
         // Set up and push
@@ -89,6 +93,7 @@ namespace tests {
     }
 
     TEST_CASE("Test marking segments dirty", "[state]") {
+        infra::Redis &redisState = infra::Redis::getState();
         StateKeyValue *kv = setupKV(10);
 
         // Set up and push
@@ -129,6 +134,7 @@ namespace tests {
     }
 
     TEST_CASE("Test partially setting just first/ last element", "[state]") {
+        infra::Redis &redisState = infra::Redis::getState();
         StateKeyValue *kv = setupKV(5);
 
         // Set up and push
@@ -162,6 +168,8 @@ namespace tests {
     }
 
     TEST_CASE("Test pushing all state", "[state]") {
+        infra::Redis &redisState = infra::Redis::getState();
+
         State s;
         std::string userA = "test_a";
         std::string userB = "test_b";
@@ -194,6 +202,8 @@ namespace tests {
     }
 
     void checkPulling(bool async) {
+        infra::Redis &redisState = infra::Redis::getState();
+
         StateKeyValue *kv = setupKV(4);
         std::vector<uint8_t> values = {0, 1, 2, 3};
         util::SystemConfig &conf = util::getSystemConfig();
@@ -238,6 +248,8 @@ namespace tests {
     }
 
     TEST_CASE("Test pushing only happens when dirty", "[state]") {
+        infra::Redis &redisState = infra::Redis::getState();
+
         StateKeyValue *kv = setupKV(4);
 
         std::vector<uint8_t> values = {0, 1, 2, 3};

@@ -82,11 +82,7 @@ namespace edge {
             infra::Redis &redis = infra::Redis::getQueue();
             message::Message result = redis.getFunctionResult(msg);
 
-            const util::TimePoint t2 = prof::startTimer();
-
             logger->info("Finished request {}", infra::funcToString(msg));
-
-            prof::logEndTimer("edge-reply", t2);
 
             return result.outputdata() + "\n";
         }

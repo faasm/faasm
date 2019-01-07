@@ -21,6 +21,7 @@ namespace tests {
     }
 
     static void doEnqueue() {
+        Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
 
         // Enqueue some values
@@ -34,12 +35,16 @@ namespace tests {
     }
 
     TEST_CASE("Test redis ping", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
+        Redis &redisState = Redis::getState();
+
         // Will throw exception if something is wrong
         redisState.ping();
         redisQueue.ping();
     }
 
     TEST_CASE("Test incr/ decr", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
 
         std::string key = "test_counter";
@@ -64,6 +69,7 @@ namespace tests {
         doEnqueue();
 
         // Blocking dequeue
+        Redis &redisQueue = Redis::getQueue();
         std::vector<uint8_t> actual = redisQueue.dequeue(vars::QUEUE_NAME);
 
         REQUIRE(vars::BYTES_A == actual);
@@ -75,6 +81,7 @@ namespace tests {
     }
 
     TEST_CASE("Test set/ get/ del", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
 
         std::string keyA = "key a";
@@ -108,7 +115,7 @@ namespace tests {
     }
 
     TEST_CASE("Test set range", "[redis]") {
-
+        Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
 
         std::string key = "setrange_test";
@@ -129,6 +136,7 @@ namespace tests {
     }
 
     TEST_CASE("Test get range", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
 
         std::string key = "getrange_test";
@@ -150,6 +158,7 @@ namespace tests {
     }
 
     TEST_CASE("Test get empty key", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
 
         std::string nonExistKey = "blahblah";
@@ -175,9 +184,10 @@ namespace tests {
         // Check resultkey not set initially
         REQUIRE(!call.has_resultkey());
 
-        std::string queueName = infra::Scheduler::callFunction(call);
+        std::string queueName = Scheduler::callFunction(call);
 
         // Get the next call
+        Redis &redisQueue = Redis::getQueue();
         message::Message actual = redisQueue.nextMessage(queueName);
 
         REQUIRE(funcName == actual.function());
@@ -207,6 +217,7 @@ namespace tests {
     }
 
     TEST_CASE("Test redis reading and writing function results", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
 
         // Write some function result
@@ -234,6 +245,7 @@ namespace tests {
     }
 
     TEST_CASE("Test setnxex", "[redis]") {
+        Redis &redisState = Redis::getState();
         redisState.flushAll();
 
         std::string key = "setnxex_test";
@@ -257,106 +269,133 @@ namespace tests {
         REQUIRE(redisState.getLong(key) == valueB);
     }
 
-    TEST_CASE("Test del if equal", "[redis]") {
-        redisState.flushAll();
+    void checkDelIfEq(Redis &redis) {
+        redis.flushAll();
 
         std::string key = "delifeq_test";
         long valueA = 101;
         long valueB = 102;
 
         // Try with nothing set
-        redisState.delIfEq(key, valueA);
-        REQUIRE(redisState.get(key).empty());
+        redis.delIfEq(key, valueA);
+        REQUIRE(redis.get(key).empty());
 
         // Set a value and try deleting another
-        redisState.setnxex(key, valueA, 60);
-        redisState.delIfEq(key, valueB);
-        REQUIRE(redisState.getLong(key) == valueA);
+        redis.setnxex(key, valueA, 60);
+        redis.delIfEq(key, valueB);
+        REQUIRE(redis.getLong(key) == valueA);
 
         // Now delete the actual value
-        redisState.delIfEq(key, valueA);
-        REQUIRE(redisState.get(key).empty());
+        redis.delIfEq(key, valueA);
+        REQUIRE(redis.get(key).empty());
     }
 
-    TEST_CASE("Test acquire/ release lock", "[redis]") {
-        redisState.flushAll();
+    TEST_CASE("Test del if equal for state", "[redis]") {
+        checkDelIfEq(Redis::getState());
+    }
+
+    TEST_CASE("Test del if equal for queue", "[redis]") {
+        checkDelIfEq(Redis::getQueue());
+    }
+
+    void checkLock(Redis &redis) {
+        redis.flushAll();
 
         std::string key = "lock_test";
         std::string lockKey = key + "_lock";
 
         // Set a value for the key to make sure it isn't affected
         std::vector<uint8_t> value = {0, 1, 2, 3};
-        redisState.set(key, value);
+        redis.set(key, value);
+
+        // Check releasing when lock doesn't exist does nothing
+        redis.releaseLock(key, 1234);
 
         // Check we can acquire the lock
-        long lockId = redisState.acquireLock(key, 10);
+        long lockId = redis.acquireLock(key, 10);
         REQUIRE(lockId > 0);
-        REQUIRE(redisState.getLong(lockKey) == lockId);
-        REQUIRE(redisState.get(key) == value);
+        REQUIRE(redis.getLong(lockKey) == lockId);
+        REQUIRE(redis.get(key) == value);
 
         // Check someone else can't acquire the lock
-        long lockId2 = redisState.acquireLock(key, 10);
+        long lockId2 = redis.acquireLock(key, 10);
         REQUIRE(lockId2 == 0);
-        REQUIRE(redisState.getLong(lockKey) == lockId);
-        REQUIRE(redisState.get(key) == value);
+        REQUIRE(redis.getLong(lockKey) == lockId);
+        REQUIRE(redis.get(key) == value);
 
         // Release with an invalid lock ID and check it's still locked
-        redisState.releaseLock(key, lockId + 1);
-        long lockId3 = redisState.acquireLock(key, 10);
+        redis.releaseLock(key, lockId + 1);
+        long lockId3 = redis.acquireLock(key, 10);
         REQUIRE(lockId3 == 0);
-        REQUIRE(redisState.getLong(lockKey) == lockId);
-        REQUIRE(redisState.get(key) == value);
+        REQUIRE(redis.getLong(lockKey) == lockId);
+        REQUIRE(redis.get(key) == value);
 
         // Release with valid ID and check we can re-acquire
-        redisState.releaseLock(key, lockId);
-        long lockId4 = redisState.acquireLock(key, 10);
+        redis.releaseLock(key, lockId);
+        long lockId4 = redis.acquireLock(key, 10);
         REQUIRE(lockId4 > 0);
         REQUIRE(lockId4 != lockId);
-        REQUIRE(redisState.getLong(lockKey) == lockId4);
-        REQUIRE(redisState.get(key) == value);
+        REQUIRE(redis.getLong(lockKey) == lockId4);
+        REQUIRE(redis.get(key) == value);
     }
 
+    TEST_CASE("Test acquire/ release lock for state", "[redis]") {
+        checkLock(Redis::getState());
+    }
 
-    TEST_CASE("Test acquire/ release conditional lock", "[redis]") {
-        redisState.flushAll();
+    TEST_CASE("Test acquire/ release lock for queue", "[redis]") {
+        checkLock(Redis::getQueue());
+    }
+
+    void checkConditionalLock(Redis &redis) {
+        redis.flushAll();
 
         std::string key = "lock_test";
         std::string lockKey = key + "_lock";
 
         // Check we can acquire the lock when the key doesn't exist
-        long lockId = redisState.acquireConditionalLock(key, 10);
+        long lockId = redis.acquireConditionalLock(key, 10);
         REQUIRE(lockId > 0);
-        REQUIRE(redisState.getLong(lockKey) == lockId);
-        REQUIRE(redisState.getLong(key) == 0);
+        REQUIRE(redis.getLong(lockKey) == lockId);
+        REQUIRE(redis.getLong(key) == 0);
 
         // Release it
-        redisState.releaseLock(key, lockId);
+        redis.releaseLock(key, lockId);
 
         // Set some value and check we can get the lock with the right value
-        redisState.setLong(key, 50);
-        long lockId2 = redisState.acquireConditionalLock(key, 50);
+        redis.setLong(key, 50);
+        long lockId2 = redis.acquireConditionalLock(key, 50);
         REQUIRE(lockId2 > 0);
-        REQUIRE(redisState.getLong(lockKey) == lockId2);
-        REQUIRE(redisState.getLong(key) == 50);
+        REQUIRE(redis.getLong(lockKey) == lockId2);
+        REQUIRE(redis.getLong(key) == 50);
 
         // Check someone else can't get it with the same value
-        long lockId3 = redisState.acquireConditionalLock(key, 50);
+        long lockId3 = redis.acquireConditionalLock(key, 50);
         REQUIRE(lockId3 == 0);
-        REQUIRE(redisState.getLong(lockKey) == lockId2);
-        REQUIRE(redisState.getLong(key) == 50);
+        REQUIRE(redis.getLong(lockKey) == lockId2);
+        REQUIRE(redis.getLong(key) == 50);
 
         // Release it
-        redisState.releaseLock(key, lockId2);
+        redis.releaseLock(key, lockId2);
 
         // Check we can't acquire it with the wrong value
-        redisState.setLong(key, 50);
-        long lockId4 = redisState.acquireConditionalLock(key, 20);
+        redis.setLong(key, 50);
+        long lockId4 = redis.acquireConditionalLock(key, 20);
         REQUIRE(lockId4 == -1);
-        REQUIRE(redisState.getLong(lockKey) == 0);
-        REQUIRE(redisState.getLong(key) == 50);
+        REQUIRE(redis.getLong(lockKey) == 0);
+        REQUIRE(redis.getLong(key) == 50);
+    }
+
+    TEST_CASE("Test acquire/ release conditional lock for state", "[redis]") {
+        checkConditionalLock(Redis::getState());
+    }
+
+    TEST_CASE("Test acquire/ release conditional lock for queue", "[redis]") {
+        checkConditionalLock(Redis::getQueue());
     }
 
     TEST_CASE("Test set operations", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
 
         std::string setA = "set_a";
@@ -398,6 +437,7 @@ namespace tests {
     }
 
     TEST_CASE("Test set random member", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
 
         std::string setName = "set_foo";
@@ -416,6 +456,7 @@ namespace tests {
     }
 
     TEST_CASE("Test set diff", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
 
         std::string setA = "set_a";
@@ -446,6 +487,7 @@ namespace tests {
     }
 
     TEST_CASE("Test set intersection", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
 
         std::string setA = "set_a";

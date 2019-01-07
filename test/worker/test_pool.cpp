@@ -8,8 +8,8 @@ using namespace worker;
 
 namespace tests {
     static void setUp() {
-        redisQueue.flushAll();
-        redisState.flushAll();
+        infra::Redis::getState().flushAll();
+        infra::Redis::getQueue().flushAll();
 
         // Network ns requires root
         util::setEnvVar("NETNS_MODE", "off");
@@ -20,6 +20,8 @@ namespace tests {
     }
 
     void execFunction(message::Message &call) {
+        infra::Redis &redisQueue = infra::Redis::getQueue();
+
         // Set up worker to listen for relevant function
         WorkerThreadPool pool;
         WorkerThread w(pool, 1, 1);
@@ -49,6 +51,8 @@ namespace tests {
     }
 
     void checkBindMessage(const message::Message &expected) {
+        infra::Redis &redisQueue = infra::Redis::getQueue();
+
         std::string expectedPrewarmQueue = infra::Scheduler::getHostPrewarmQueue();
         const message::Message actual = redisQueue.nextMessage(expectedPrewarmQueue);
         REQUIRE(actual.user() == expected.user());
@@ -56,6 +60,8 @@ namespace tests {
     }
 
     message::Message checkChainCall(const std::string &user, const std::string &func, const std::string &inputData) {
+        infra::Redis &redisQueue = infra::Redis::getQueue();
+
         message::Message expected;
         expected.set_user(user);
         expected.set_function(func);
@@ -111,6 +117,7 @@ namespace tests {
 
         // Run the execution
         execFunction(call);
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         message::Message result = redisQueue.getFunctionResult(call);
 
         // Check output
@@ -138,6 +145,7 @@ namespace tests {
         infra::Scheduler::callFunction(call);
 
         // Check message is on the prewarm queue
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 1);
 
         // Process next message
@@ -168,6 +176,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check the call executed successfully
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         message::Message result = redisQueue.getFunctionResult(call);
         REQUIRE(result.success());
 
@@ -204,6 +213,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check result
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         message::Message resultA = redisQueue.getFunctionResult(call);
         REQUIRE(resultA.success());
         REQUIRE(resultA.outputdata() == "Counter: 001");
@@ -237,12 +247,13 @@ namespace tests {
         w.processNextMessage();
 
         // Check result
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         message::Message result = redisQueue.getFunctionResult(call);
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
 
         REQUIRE(outputBytes == expectedOutput);
-        REQUIRE(redisState.get(keyName) == expectedRedis);
+        REQUIRE(redisQueue.get(keyName) == expectedRedis);
     }
 
     TEST_CASE("Test synchronous state", "[worker]") {
@@ -313,6 +324,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check output is true
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         message::Message result = redisQueue.getFunctionResult(call);
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
@@ -356,6 +368,7 @@ namespace tests {
         util::setEnvVar("HOSTNAME", "foo");
 
         WorkerThreadPool pool;
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         REQUIRE(redisQueue.sismember(GLOBAL_WORKER_SET, "foo"));
 
         redisQueue.srem(GLOBAL_WORKER_SET, "foo");

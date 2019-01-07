@@ -31,16 +31,57 @@ namespace infra {
         STATE,
     };
 
+    class RedisInstance {
+    public:
+        explicit RedisInstance(RedisRole role);
+
+        std::string conditionalLockSha;
+        std::string delifeqSha;
+
+        std::string ip;
+        std::string hostname;
+        int port;
+    private:
+        RedisRole role;
+
+        std::mutex scriptsLock;
+
+        std::string loadScript(redisContext *context, const std::string &scriptBody);
+
+        // Conditional lock is used as part of a locking scheme where we need to make sure an assumption
+        // is correct before acquiring the lock. The function takes 4 arguments:
+        // key_to_check, key_to_lock, expected_value, lock_id
+        //
+        // This takes elements of the redlock algorithm described here: https://redis.io/topics/distlock
+        //
+        // Return values:
+        // -1 = value is different
+        // 0 = lock not acquired
+        // 1 = lock acquired
+        const std::string conditionalLockCmd = "local val = redis.call(\"GET\", KEYS[1]) \n"
+                                               ""
+                                               "if (val == false) or (val == ARGV[1]) then \n"
+                                               "    return redis.call(\"SETNX\", KEYS[2], ARGV[2]) \n"
+                                               "else \n"
+                                               "    return -1 \n"
+                                               "end";
+
+        // Script to delete a key if it equals a given value
+        const std::string delifeqCmd = "if redis.call(\"GET\", KEYS[1]) == ARGV[1] then \n"
+                                       "    return redis.call(\"DEL\", KEYS[1]) \n"
+                                       "else \n"
+                                       "    return 0 \n"
+                                       "end";
+    };
+
+
     class Redis {
 
     public:
-
-        explicit Redis(const RedisRole &role);
-
         ~Redis();
 
         /**
-        *  ------ Utils ------
+        *  ------ Factories ------
         */
 
         static Redis &getQueue();
@@ -131,11 +172,11 @@ namespace infra {
         message::Message getFunctionResult(const message::Message &msg);
 
     private:
-        redisContext *context;
-        std::string hostname;
-        std::string port;
+        explicit Redis(const RedisInstance &instance);
 
-        std::string loadScript(const std::string &scriptBody);
+        const RedisInstance &instance;
+
+        redisContext *context;
     };
 
     class RedisNoResponseException : public std::exception {
@@ -144,8 +185,6 @@ namespace infra {
     // Scheduling
     class Scheduler {
     public:
-        Scheduler();
-
         static const int scheduleWaitMillis = 100;
 
         static const int scheduleRecursionLimit = 10;
@@ -171,6 +210,8 @@ namespace infra {
         static std::string getPrewarmQueueForFunction(const message::Message &msg, bool affinity);
 
     private:
+        Scheduler();
+
         static void updateWorkerAllocs(const message::Message &msg, int recursionCount = 0);
 
         static std::string getFunctionCounterName(const message::Message &msg);

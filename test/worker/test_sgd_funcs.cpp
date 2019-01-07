@@ -42,6 +42,7 @@ namespace tests {
         w.processNextMessage();
         w.processNextMessage();
 
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         const message::Message result = redisQueue.getFunctionResult(call);
         return result.outputdata();
     }

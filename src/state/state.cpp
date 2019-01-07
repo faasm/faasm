@@ -36,6 +36,7 @@ namespace state {
 
     void StateKeyValue::pull(bool async) {
         this->updateLastInteraction();
+        const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         // Check if new (one-off initialisation)
         if (_empty) {
@@ -44,19 +45,19 @@ namespace state {
 
             // Double check assumption
             if (_empty) {
-                const std::shared_ptr<spdlog::logger> &logger = getLogger();
                 logger->debug("Initialising state for {}", key);
 
                 doRemoteRead();
                 _empty = false;
-                return;
             }
-        }
 
-        const std::shared_ptr<spdlog::logger> &logger = getLogger();
+            return;
+        }
 
         if (async && fullAsync) {
             // Never pull in full async mode
+            logger->debug("Ignoring pull in full async mode for {}", key);
+
         } else if (async) {
             // Check staleness
             Clock &clock = getGlobalClock();
@@ -73,6 +74,7 @@ namespace state {
                     doRemoteRead();
                 }
             }
+
         } else {
             FullLock lock(valueMutex);
 
@@ -89,6 +91,10 @@ namespace state {
 
         // Read from the remote
         infra::Redis &redis = infra::Redis::getState();
+
+        const std::shared_ptr<spdlog::logger> &logger = getLogger();
+        logger->debug("Reading from remote for {}", key);
+
         redis.get(key, static_cast<uint8_t *>(sharedMemory), valueSize);
 
         Clock &clock = getGlobalClock();
@@ -123,10 +129,10 @@ namespace state {
 
         long remoteLockId = redis.acquireLock(key, remoteLockTimeout);
         int retryCount = 0;
-        while(remoteLockId ==  0) {
+        while (remoteLockId <= 0) {
             logger->debug("Waiting on remote lock for {} (loop {})", key, retryCount);
 
-            if(retryCount >= remoteLockMaxRetries) {
+            if (retryCount >= remoteLockMaxRetries) {
                 logger->error("Timed out waiting for lock on {}", key);
                 break;
             }
@@ -212,10 +218,11 @@ namespace state {
     void StateKeyValue::setSegment(long offset, const uint8_t *buffer, size_t length) {
         this->updateLastInteraction();
 
+        const std::shared_ptr<spdlog::logger> &logger = getLogger();
+
         // Check we're in bounds
         size_t end = offset + length;
         if (end > valueSize) {
-            const std::shared_ptr<spdlog::logger> &logger = getLogger();
             logger->error("Trying to write segment finishing at {} (value length {})", end, valueSize);
             throw std::runtime_error("Attempting to set segment out of bounds");
         }
@@ -223,6 +230,7 @@ namespace state {
         // If empty, set to full size
         if (sharedMemory == nullptr) {
             FullLock lock(valueMutex);
+
             if (sharedMemory == nullptr) {
                 initialiseStorage();
                 _empty = false;
@@ -231,8 +239,6 @@ namespace state {
 
         // Check size
         if (offset + length > valueSize) {
-            const std::shared_ptr<spdlog::logger> &logger = getLogger();
-
             logger->error("Segment length {} at offset {} too big for size {}", length, offset, valueSize);
             throw std::runtime_error("Setting state segment too big for container");
         }
@@ -401,10 +407,12 @@ namespace state {
         long remoteLockId = this->waitOnRemoteLock();
 
         // If we don't get remote lock, just skip this push and wait for next one
-        if(remoteLockId == -1) {
+        if (remoteLockId <= 0) {
             logger->debug("Failed to acquire remote lock for {}", key);
             return;
         }
+
+        logger->debug("Got remote lock for {} with id {}", key, remoteLockId);
 
         // TODO Potential locking issues here.
         // If we get the remote lock, then have to wait a long time for the local
@@ -431,11 +439,11 @@ namespace state {
         // Don't need any more local locking here
         auto tempBuff = new uint8_t[valueSize];
         redis.get(key, tempBuff, valueSize);
-        
+
         logger->debug("Pushing partial state for {}", key);
 
         // Go through all dirty flags and update value
-        
+
         // Find first true flag
         auto start = std::find(dirtyFlagsCopy.begin(), dirtyFlagsCopy.end(), true);
 
@@ -459,6 +467,7 @@ namespace state {
 
         // Release remote lock
         redis.releaseLock(key, remoteLockId);
+        logger->debug("Released remote lock for {} with id {}", key, remoteLockId);
     }
 
     void StateKeyValue::lockRead() {

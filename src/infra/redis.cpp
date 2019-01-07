@@ -7,69 +7,55 @@
 
 namespace infra {
 
-    // Once we have resolved the IP of the redis instance, we need to keep using it
-    // This allows things operating within the network namespace to resolve it properly
-    static std::string redisStateIp;
-    static std::string redisQueueIp;
-
-    // Conditional lock is used as part of a locking scheme where we need to make sure an assumption
-    // is correct before acquiring the lock. The function takes 4 arguments:
-    // key_to_check, key_to_lock, expected_value, lock_id
-    //
-    // This takes elements of the redlock algorithm described here: https://redis.io/topics/distlock
-    //
-    // Return values:
-    // -1 = value is different
-    // 0 = lock not acquired
-    // 1 = lock acquired
-    static std::string conditionalLockSha;
-    static std::string conditionalLockCmd = "local val = redis.call(\"GET\", KEYS[1]) \n"
-                                            ""
-                                            "if (val == false) or (val == ARGV[1]) then \n"
-                                            "    return redis.call(\"SETNX\", KEYS[2], ARGV[2]) \n"
-                                            "else \n"
-                                            "    return -1 \n"
-                                            "end";
-
-
-    // Script to delete a key if it equals a given value
-    static std::string delifeqSha;
-    static std::string delifeqCmd = "if redis.call(\"GET\", KEYS[1]) == ARGV[1] then \n"
-                                    "    return redis.call(\"DEL\", KEYS[1]) \n"
-                                    "else \n"
-                                    "    return 0 \n"
-                                    "end";
-
-    Redis::Redis(const RedisRole &role) {
-        std::string thisIp;
+    RedisInstance::RedisInstance(RedisRole roleIn) : role(roleIn) {
         if (role == STATE) {
             hostname = util::getEnvVar("REDIS_STATE_HOST", "localhost");
+            ip = util::getIPFromHostname(hostname);
 
-            if (redisStateIp.empty()) {
-                redisStateIp = util::getIPFromHostname(hostname);
-            }
-
-            thisIp = redisStateIp;
         } else {
             hostname = util::getEnvVar("REDIS_QUEUE_HOST", "localhost");
-
-            if (redisQueueIp.empty()) {
-                redisQueueIp = util::getIPFromHostname(hostname);
-            }
-
-            thisIp = redisQueueIp;
+            ip = util::getIPFromHostname(hostname);
         }
 
-        port = util::getEnvVar("REDIS_PORT", "6379");
+        std::string portStr = util::getEnvVar("REDIS_PORT", "6379");
+        port = std::stoi(portStr);
 
+        // Load scripts
+        if (conditionalLockSha.empty()) {
+            std::unique_lock<std::mutex> lock(scriptsLock);
+
+            if (conditionalLockSha.empty()) {
+                printf("Loading scripts for Redis instance at %s", hostname.c_str());
+                redisContext *context = redisConnect(ip.c_str(), port);
+
+                conditionalLockSha = this->loadScript(context, conditionalLockCmd);
+                delifeqSha = this->loadScript(context, delifeqCmd);
+
+                redisFree(context);
+            }
+        }
+    }
+
+    std::string RedisInstance::loadScript(redisContext *context, const std::string &scriptBody) {
+        auto reply = (redisReply *) redisCommand(context, "SCRIPT LOAD %s", scriptBody.c_str());
+        if (reply->type == REDIS_REPLY_ERROR) {
+            throw (std::runtime_error(reply->str));
+        }
+
+        std::string scriptSha = reply->str;
+        freeReplyObject(reply);
+
+        return scriptSha;
+    }
+
+
+    Redis::Redis(const RedisInstance &instanceIn) : instance(instanceIn) {
         // Note, connect with IP, not with hostname
-        int portInt = std::stoi(port);
-
-        context = redisConnect(thisIp.c_str(), portInt);
+        context = redisConnect(instance.ip.c_str(), instance.port);
 
         if (context == nullptr || context->err) {
             if (context) {
-                printf("Error connecting to redis at %s: %s\n", thisIp.c_str(), context->errstr);
+                printf("Error connecting to redis at %s: %s\n", instance.ip.c_str(), context->errstr);
             } else {
                 printf("Error allocating redis context\n");
             }
@@ -77,7 +63,7 @@ namespace infra {
             throw std::runtime_error("Failed to connect to redis");
         }
 
-        printf("Connected to redis host %s at %s:%i\n", hostname.c_str(), thisIp.c_str(), portInt);
+        printf("Connected to redis host %s at %s:%i\n", instance.hostname.c_str(), instance.ip.c_str(), instance.port);
     }
 
     Redis::~Redis() {
@@ -90,13 +76,16 @@ namespace infra {
 
     Redis &Redis::getState() {
         // Hiredis requires one instance per thread
-        static thread_local infra::Redis redisState(STATE);
+        static RedisInstance stateInstance(STATE);
+        static thread_local infra::Redis redisState(stateInstance);
         return redisState;
     }
 
     Redis &Redis::getQueue() {
         // Hiredis requires one instance per thread
-        static thread_local infra::Redis redisQueue(QUEUE);
+        static RedisInstance queueInstance(QUEUE);
+        static thread_local infra::Redis redisQueue(queueInstance);
+
         return redisQueue;
     }
 
@@ -133,20 +122,8 @@ namespace infra {
     }
 
     /**
-     *  ------ Lua script management ------
+     *  ------ Lua scripts ------
      */
-
-    std::string Redis::loadScript(const std::string &scriptBody) {
-        auto reply = (redisReply *) redisCommand(context, "SCRIPT LOAD %s", scriptBody.c_str());
-        if (reply->type == REDIS_REPLY_ERROR) {
-            throw (std::runtime_error(reply->str));
-        }
-
-        std::string scriptSha = reply->str;
-        freeReplyObject(reply);
-
-        return scriptSha;
-    }
 
     long extractScriptResult(redisReply *reply) {
         if (reply->type == REDIS_REPLY_ERROR) {
@@ -170,7 +147,7 @@ namespace infra {
 
         freeReplyObject(reply);
 
-        if(response != "PONG") {
+        if (response != "PONG") {
             throw std::runtime_error("Failed to ping redis host");
         }
     }
@@ -351,12 +328,6 @@ namespace infra {
      */
 
     long Redis::acquireConditionalLock(const std::string &key, long expectedValue) {
-        if (conditionalLockSha.empty()) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            conditionalLockSha = this->loadScript(conditionalLockCmd);
-            logger->debug("Loaded conditional lock script with SHA {}", conditionalLockSha);
-        };
-
         std::string lockKey = key + "_lock";
         int lockId = util::randomInteger(0, 100000);
 
@@ -364,7 +335,7 @@ namespace infra {
         auto reply = (redisReply *) redisCommand(
                 context,
                 "EVALSHA %s 2 %s %s %i %i",
-                conditionalLockSha.c_str(),
+                instance.conditionalLockSha.c_str(),
                 key.c_str(),
                 lockKey.c_str(),
                 expectedValue,
@@ -403,16 +374,14 @@ namespace infra {
     }
 
     void Redis::delIfEq(const std::string &key, long value) {
-        // Create the script if not exists
-        if (delifeqSha.empty()) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            delifeqSha = this->loadScript(delifeqCmd);
-            logger->debug("Loaded del if eq script with SHA {}", delifeqSha);
-        };
-
         // Invoke the script
-        auto reply = (redisReply *) redisCommand(context, "EVALSHA %s 1 %s %i", delifeqSha.c_str(),
-                                                 key.c_str(), value);
+        auto reply = (redisReply *) redisCommand(
+                context,
+                "EVALSHA %s 1 %s %i",
+                instance.delifeqSha.c_str(),
+                key.c_str(),
+                value
+        );
 
         extractScriptResult(reply);
     }
@@ -498,22 +467,17 @@ namespace infra {
     message::Message Redis::nextMessage(const std::string &queueName, int timeout) {
         std::vector<uint8_t> dequeueResult = this->dequeue(queueName, timeout);
 
-        const auto &t = prof::startTimer();
-
         message::Message msg;
         msg.ParseFromArray(dequeueResult.data(), (int) dequeueResult.size());
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Redis dequeued {}", infra::funcToString(msg));
 
-        prof::logEndTimer("next-function", t);
         return msg;
     }
 
     void Redis::setFunctionResult(message::Message &msg, bool success) {
         msg.set_success(success);
-
-        const auto &t = prof::startTimer();
 
         std::string key = msg.resultkey();
 
@@ -524,8 +488,6 @@ namespace infra {
         // Set the result key to expire
         auto reply = (redisReply *) redisCommand(context, "EXPIRE %s %d", key.c_str(), util::RESULT_KEY_EXPIRY);
         freeReplyObject(reply);
-
-        prof::logEndTimer("function-result", t);
     }
 
     message::Message Redis::getFunctionResult(const message::Message &msg) {

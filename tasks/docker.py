@@ -43,6 +43,11 @@ def tools(context):
 
 
 @task
+def purge_images(context):
+    call("docker rmi -f $(docker images -f dangling=true -q)")
+
+
+@task
 def data(context):
     cmd = [
         "docker",

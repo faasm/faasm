@@ -103,9 +103,6 @@ namespace worker {
         // Prepare host-specific variables
         id = infra::Scheduler::getHostName() + "_" + std::to_string(workerIdx);
 
-        // Get Redis connection
-        redis = infra::Redis::getQueue();
-
         logger->debug("Starting worker {}", id);
         currentQueue = infra::Scheduler::getHostPrewarmQueue();
         this->initialise();
@@ -236,8 +233,6 @@ namespace worker {
     const std::string WorkerThread::executeCall(message::Message &call) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        const util::TimePoint t = prof::startTimer();
-
         logger->info("WorkerThread executing {}", infra::funcToString(call));
 
         // Create and execute the module
@@ -263,7 +258,6 @@ namespace worker {
         const std::string empty;
         this->finishCall(call, empty);
 
-        prof::logEndTimer("func-total", t);
         return empty;
     }
 }

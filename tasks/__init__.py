@@ -15,6 +15,7 @@ from tasks.docker import (
     build_upload,
     build_toolchain,
     data,
+    purge_images,
     push_all,
     push_data,
     push_edge,

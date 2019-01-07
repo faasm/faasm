@@ -34,26 +34,25 @@ namespace infra {
 
     std::string Scheduler::callFunction(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        const auto &t = prof::startTimer();
 
         // First of all, send the message to execute the function
         Redis &redis = Redis::getQueue();
 
         const std::string queueName = getFunctionQueueName(msg);
-        logger->debug(" Adding call {} to {}", infra::funcToString(msg), queueName);
+        logger->debug("Queueing call to {}", infra::funcToString(msg));
         addResultKeyToMessage(msg);
         redis.enqueueMessage(queueName, msg);
 
         // Then add more workers if necessary
         Scheduler::updateWorkerAllocs(msg);
-        prof::logEndTimer("call-function", t);
 
         return queueName;
     }
 
     void Scheduler::updateWorkerAllocs(const message::Message &msg, int recursionCount) {
+        const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+
         if(recursionCount > scheduleRecursionLimit) {
-            const std::shared_ptr<spdlog::logger> logger = util::getLogger();
             logger->error("Recursion count exceeded (count {})", recursionCount);
             throw std::runtime_error("Scheduling recursion count exceeded");
         }
@@ -89,12 +88,16 @@ namespace infra {
             needMore = queueRatio > maxQueueRatio;
         }
 
+        logger->debug("{} at length {} with {} workers. Need more: {}", queueName, queueLen, workerCount, needMore);
+
         if (needMore && workerCount < conf.maxWorkersPerFunction) {
             // Try and get the remote lock for this function, checking that
             // the worker count situation is still the same
             long lockId = redis.acquireConditionalLock(counterKey, workerCount);
 
             if(lockId <= 0) {
+                logger->debug("Failed to get lock for {}. Waiting", counterKey);
+
                 // At this point, the worker count has changed, or we've not got the lock,
                 // so we need to wait and try again
                 usleep(scheduleWaitMillis * 1000);
@@ -109,6 +112,8 @@ namespace infra {
                 // Get the appropriate prewarm queue
                 bool affinity = conf.affinity == 1;
                 std::string prewarmQueue = Scheduler::getPrewarmQueueForFunction(msg, affinity);
+
+                logger->debug("Requesting bind on {}", prewarmQueue);
 
                 message::Message bindMsg;
                 bindMsg.set_type(message::Message_MessageType_BIND);
