@@ -40,7 +40,7 @@ namespace infra {
         Redis &redis = Redis::getQueue();
 
         const std::string queueName = getFunctionQueueName(msg);
-        logger->debug("Adding call {} to {}", infra::funcToString(msg), queueName);
+        logger->debug(" Adding call {} to {}", infra::funcToString(msg), queueName);
         addResultKeyToMessage(msg);
         redis.enqueueMessage(queueName, msg);
 
