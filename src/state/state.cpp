@@ -426,6 +426,8 @@ namespace state {
 
             // Double check condition
             if (isWholeValueDirty || !isPartiallyDirty) {
+                logger->debug("Released remote lock (doing nothing) for {} with id {}", key, remoteLockId);
+                redis.releaseLock(key, remoteLockId);
                 return;
             }
 
