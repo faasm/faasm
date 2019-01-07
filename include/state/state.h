@@ -18,8 +18,8 @@ namespace state {
         // Remote lock timeout in seconds
         unsigned int remoteLockTimeout = 5;
         // Remote lock sleep time in milliseconds
-        unsigned int remoteLockWaitTime = 100;
-        unsigned int remoteLockMaxRetries = 20;
+        unsigned int remoteLockWaitTime = 500;
+        unsigned int remoteLockMaxRetries = 10;
 
         explicit StateKeyValue(const std::string &keyIn, size_t sizeIn);
 
