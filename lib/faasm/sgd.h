@@ -19,7 +19,7 @@ using namespace Eigen;
 
 // Synchronisation barriers
 #define BARRIER_COUNT_KEY "barrier_count"
-#define MAX_BARRIER_COUNT 20
+#define MAX_BARRIER_COUNT 60
 
 // Reuters-specific
 #define REUTERS_N_FEATURES 47236
