@@ -21,6 +21,7 @@ namespace tests {
         params.nWeights = 3;
         params.learningRate = 0.1;
         params.nEpochs = 2;
+        params.fullAsync = false;
 
         return params;
     }
@@ -34,6 +35,7 @@ namespace tests {
     }
 
     TEST_CASE("Test serialising params round trip", "[sgd]") {
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         redisQueue.flushAll();
         state::getGlobalState().forceClearAll();
 
@@ -51,10 +53,12 @@ namespace tests {
     }
 
     TEST_CASE("Test setting up dummy data", "[sgd]") {
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         redisQueue.flushAll();
         state::getGlobalState().forceClearAll();
 
         SgdParams params = getDummySgdParams();
+        params.fullAsync = false;
 
         // Set up the problem
         FaasmMemory mem;
@@ -75,6 +79,7 @@ namespace tests {
     }
 
     void checkLossUpdates(LossType lossType, bool async) {
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         redisQueue.flushAll();
         state::getGlobalState().forceClearAll();
 
@@ -192,6 +197,7 @@ namespace tests {
     }
 
     void checkDoubleArrayInState(infra::Redis &r, const char *key, std::vector<double> expected) {
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         std::string actualKey("demo_" + std::string(key));
         std::vector<uint8_t> actualBytes = redisQueue.get(actualKey);
 
@@ -202,6 +208,7 @@ namespace tests {
     }
 
     void checkIntArrayInState(infra::Redis &r, const char *key, std::vector<int> expected) {
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         std::string actualKey("demo_" + std::string(key));
         std::vector<uint8_t> actualBytes = redisQueue.get(actualKey);
 
@@ -212,6 +219,7 @@ namespace tests {
     }
 
     TEST_CASE("Test writing errors to state", "[sgd]") {
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         redisQueue.flushAll();
         state::getGlobalState().forceClearAll();
 
@@ -244,7 +252,9 @@ namespace tests {
     }
 
     TEST_CASE("Test reading errors from state", "[sgd]") {
-        redisQueue.flushAll();
+        infra::Redis &redisState = infra::Redis::getState();
+        redisState.flushAll();
+
         state::getGlobalState().forceClearAll();
 
         FaasmMemory memory;
@@ -266,7 +276,7 @@ namespace tests {
         writeSquaredError(&memory, p, 1, a, b);
 
         // Check these have been written
-        checkDoubleArrayInState(redisQueue, ERRORS_KEY, {expected, expected, 0});
+        checkDoubleArrayInState(redisState, ERRORS_KEY, {expected, expected, 0});
 
         // Error should just include the 2 written
         double expectedRmse1 = sqrt((2 * expected) / p.nTrain);
@@ -275,7 +285,7 @@ namespace tests {
 
         // Now write error for a third batch
         writeSquaredError(&memory, p, 2, a, b);
-        checkDoubleArrayInState(redisQueue, ERRORS_KEY, {expected, expected, expected});
+        checkDoubleArrayInState(redisState, ERRORS_KEY, {expected, expected, expected});
 
         // Work out what the result should be
         double expectedRmse2 = sqrt((3 * expected) / p.nTrain);
@@ -284,7 +294,9 @@ namespace tests {
     }
 
     TEST_CASE("Test zeroing losses", "[sgd]") {
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         redisQueue.flushAll();
+
         state::getGlobalState().forceClearAll();
 
         SgdParams p = getDummySgdParams();
@@ -317,6 +329,7 @@ namespace tests {
     }
 
     TEST_CASE("Test setting finished flags", "[sgd]") {
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         redisQueue.flushAll();
         state::getGlobalState().forceClearAll();
 
@@ -339,7 +352,9 @@ namespace tests {
     }
 
     TEST_CASE("Test zeroing finished flags", "[sgd]") {
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         redisQueue.flushAll();
+
         state::getGlobalState().forceClearAll();
 
         SgdParams p = getDummySgdParams();

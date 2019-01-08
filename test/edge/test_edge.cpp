@@ -2,12 +2,20 @@
 
 #include "utils.h"
 #include <edge/edge.h>
+#include <worker/worker.h>
 
 using namespace Pistache;
 
 namespace tests {
+    static void setUp() {
+        infra::Redis::getQueue().flushAll();
+
+        // Create a worker pool to allow scheduling
+        worker::WorkerThreadPool wp;
+    }
+
     TEST_CASE("Test invoking a function", "[edge]") {
-        redisQueue.flushAll();
+        cleanSystem();
 
         // Note - must be async to avoid needing a result
         message::Message call;
@@ -22,7 +30,7 @@ namespace tests {
         edge::FunctionEndpoint endpoint;
         endpoint.handleFunction(call);
 
-        const message::Message actual = redisQueue.nextMessage(queueName);
+        const message::Message actual = infra::Redis::getQueue().nextMessage(queueName);
 
         REQUIRE(actual.user() == "demo");
         REQUIRE(actual.function() == "echo");
@@ -30,7 +38,7 @@ namespace tests {
     }
 
     TEST_CASE("Test invoking a non-existent function", "[worker]") {
-        redisQueue.flushAll();
+        setUp();
 
         // Note - must be async to avoid needing a result
         message::Message call;
@@ -44,6 +52,6 @@ namespace tests {
 
         // Check nothing added to queue
         const std::string queueName = infra::Scheduler::getFunctionQueueName(call);
-        REQUIRE(redisQueue.listLength(queueName) == 0);
+        REQUIRE(infra::Redis::getQueue().listLength(queueName) == 0);
     }
 }

@@ -27,6 +27,7 @@ using namespace Eigen;
 #define REUTERS_LEARNING_RATE 0.1
 #define REUTERS_LEARNING_DECAY 0.8
 #define REUTERS_FULL_ASYNC false
+#define REUTERS_SYNC_INTERVAL 30000
 
 
 namespace faasm {
@@ -46,6 +47,7 @@ namespace faasm {
         float learningDecay;
         int nEpochs;
         bool fullAsync;
+        int syncInterval;
     };
 
     SgdParams setUpReutersParams(FaasmMemory *memory, int nBatches, int epochs);

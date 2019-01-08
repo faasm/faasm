@@ -2,7 +2,7 @@
 #include <infra/infra.h>
 #include <util/util.h>
 #include "utils.h"
-
+#include <algorithm>
 
 using namespace infra;
 
@@ -21,6 +21,7 @@ namespace tests {
     }
 
     static void doEnqueue() {
+        Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
 
         // Enqueue some values
@@ -33,7 +34,17 @@ namespace tests {
         REQUIRE(3 == redisQueue.listLength(vars::QUEUE_NAME));
     }
 
+    TEST_CASE("Test redis ping", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
+        Redis &redisState = Redis::getState();
+
+        // Will throw exception if something is wrong
+        redisState.ping();
+        redisQueue.ping();
+    }
+
     TEST_CASE("Test incr/ decr", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
 
         std::string key = "test_counter";
@@ -58,6 +69,7 @@ namespace tests {
         doEnqueue();
 
         // Blocking dequeue
+        Redis &redisQueue = Redis::getQueue();
         std::vector<uint8_t> actual = redisQueue.dequeue(vars::QUEUE_NAME);
 
         REQUIRE(vars::BYTES_A == actual);
@@ -69,6 +81,7 @@ namespace tests {
     }
 
     TEST_CASE("Test set/ get/ del", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
 
         std::string keyA = "key a";
@@ -102,7 +115,7 @@ namespace tests {
     }
 
     TEST_CASE("Test set range", "[redis]") {
-
+        Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
 
         std::string key = "setrange_test";
@@ -123,7 +136,7 @@ namespace tests {
     }
 
     TEST_CASE("Test get range", "[redis]") {
-
+        Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
 
         std::string key = "getrange_test";
@@ -145,6 +158,7 @@ namespace tests {
     }
 
     TEST_CASE("Test get empty key", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
 
         std::string nonExistKey = "blahblah";
@@ -153,7 +167,7 @@ namespace tests {
     }
 
     void checkCallRoundTrip(bool isAsync, bool isSuccess) {
-        redisQueue.flushAll();
+        cleanSystem();
 
         // Request function
         message::Message call;
@@ -170,9 +184,10 @@ namespace tests {
         // Check resultkey not set initially
         REQUIRE(!call.has_resultkey());
 
-        std::string queueName = infra::Scheduler::callFunction(call);
+        std::string queueName = Scheduler::callFunction(call);
 
         // Get the next call
+        Redis &redisQueue = Redis::getQueue();
         message::Message actual = redisQueue.nextMessage(queueName);
 
         REQUIRE(funcName == actual.function());
@@ -202,6 +217,7 @@ namespace tests {
     }
 
     TEST_CASE("Test redis reading and writing function results", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
 
         // Write some function result
@@ -228,119 +244,8 @@ namespace tests {
         REQUIRE(actualCall2.success());
     }
 
-    void _validateAddWorker(int nWorkers, int queueLengh, int maxRatio, int maxWorkers, bool expectIncrement) {
-        redisQueue.flushAll();
-
-        std::string counter = "dummyCount";
-        std::string queueName = "dummyQueue";
-
-        // Set up number of workers
-        for (int w = 0; w < nWorkers; w++) {
-            redisQueue.incr(counter);
-        }
-
-        // Set up queue
-        for (int q = 0; q < queueLengh; q++) {
-            redisQueue.enqueue(queueName, {0, 1});
-        }
-
-        // Call addWorker
-        bool shouldAddWorker = redisQueue.addWorker(counter, queueName, maxRatio, maxWorkers);
-
-        // Check queue length hasn't changed
-        REQUIRE(redisQueue.listLength(queueName) == queueLengh);
-
-        if (expectIncrement) {
-            // Check result indicates increment
-            REQUIRE(shouldAddWorker);
-
-            // Check worker count has been incremented
-            REQUIRE(redisQueue.getCounter(counter) == nWorkers + 1);
-        } else {
-            // Check no change
-            REQUIRE(!shouldAddWorker);
-            REQUIRE(redisQueue.getCounter(counter) == nWorkers);
-        }
-    }
-
-
-    TEST_CASE("Test add worker with zero counter causes addition", "[redis]") {
-        int nWorkers = 0;
-        int queueLength = 1;
-        int maxRatio = 5;
-        int maxWorkers = 10;
-        bool expectIncrement = true;
-
-        _validateAddWorker(nWorkers, queueLength, maxRatio, maxWorkers, expectIncrement);
-    }
-
-    TEST_CASE("Test add worker with queue but below threshold causes no addition", "[redis]") {
-        int nWorkers = 1;
-        int queueLength = 1;
-        int maxRatio = 5;
-        int maxWorkers = 10;
-        bool expectIncrement = false;
-
-        _validateAddWorker(nWorkers, queueLength, maxRatio, maxWorkers, expectIncrement);
-    }
-
-    TEST_CASE("Test add worker above threshold causes addition", "[redis]") {
-        int nWorkers = 1;
-        int queueLength = 6;
-        int maxRatio = 5;
-        int maxWorkers = 10;
-        bool expectIncrement = true;
-
-        _validateAddWorker(nWorkers, queueLength, maxRatio, maxWorkers, expectIncrement);
-    }
-
-    TEST_CASE("Test add worker above threshold but above worker limit causes no addition", "[redis]") {
-        int nWorkers = 6;
-        int queueLength = 100;
-        int maxRatio = 5;
-        int maxWorkers = 5;
-        bool expectIncrement = false;
-
-        _validateAddWorker(nWorkers, queueLength, maxRatio, maxWorkers, expectIncrement);
-    }
-
-    void _validateIncrIfBelowTarget(int currentValue, int target, bool expectIncr) {
-        redisQueue.flushAll();
-
-        std::string key = "incr_test";
-
-        for (int i = 0; i < currentValue; i++) {
-            redisQueue.incr(key);
-        }
-
-        bool res = redisQueue.incrIfBelowTarget(key, target);
-
-        if (expectIncr) {
-            REQUIRE(res);
-            REQUIRE(redisQueue.getCounter(key) == currentValue + 1);
-        } else {
-            REQUIRE(!res);
-            REQUIRE(redisQueue.getCounter(key) == currentValue);
-        }
-    }
-
-    TEST_CASE("Test incr below target increases if uninitialised", "[redis]") {
-        _validateIncrIfBelowTarget(0, 1, true);
-    }
-
-    TEST_CASE("Test incr below target increases if below target", "[redis]") {
-        _validateIncrIfBelowTarget(10, 12, true);
-    }
-
-    TEST_CASE("Test incr below target doesn't increase if equal", "[redis]") {
-        _validateIncrIfBelowTarget(10, 10, false);
-    }
-
-    TEST_CASE("Test incr below target doesn't increase if above", "[redis]") {
-        _validateIncrIfBelowTarget(15, 10, false);
-    }
-
     TEST_CASE("Test setnxex", "[redis]") {
+        Redis &redisState = Redis::getState();
         redisState.flushAll();
 
         std::string key = "setnxex_test";
@@ -364,62 +269,254 @@ namespace tests {
         REQUIRE(redisState.getLong(key) == valueB);
     }
 
-    TEST_CASE("Test del if equal", "[redis]") {
-        redisState.flushAll();
+    void checkDelIfEq(Redis &redis) {
+        redis.flushAll();
 
         std::string key = "delifeq_test";
         long valueA = 101;
         long valueB = 102;
 
         // Try with nothing set
-        redisState.delIfEq(key, valueA);
-        REQUIRE(redisState.get(key).empty());
+        redis.delIfEq(key, valueA);
+        REQUIRE(redis.get(key).empty());
 
         // Set a value and try deleting another
-        redisState.setnxex(key, valueA, 60);
-        redisState.delIfEq(key, valueB);
-        REQUIRE(redisState.getLong(key) == valueA);
+        redis.setnxex(key, valueA, 60);
+        redis.delIfEq(key, valueB);
+        REQUIRE(redis.getLong(key) == valueA);
 
         // Now delete the actual value
-        redisState.delIfEq(key, valueA);
-        REQUIRE(redisState.get(key).empty());
+        redis.delIfEq(key, valueA);
+        REQUIRE(redis.get(key).empty());
     }
 
-    TEST_CASE("Test acquire/ release lock", "[redis]") {
-        redisState.flushAll();
+    TEST_CASE("Test del if equal for state", "[redis]") {
+        checkDelIfEq(Redis::getState());
+    }
+
+    TEST_CASE("Test del if equal for queue", "[redis]") {
+        checkDelIfEq(Redis::getQueue());
+    }
+
+    void checkLock(Redis &redis) {
+        redis.flushAll();
 
         std::string key = "lock_test";
         std::string lockKey = key + "_lock";
 
         // Set a value for the key to make sure it isn't affected
         std::vector<uint8_t> value = {0, 1, 2, 3};
-        redisState.set(key, value);
+        redis.set(key, value);
+
+        // Check releasing when lock doesn't exist does nothing
+        redis.releaseLock(key, 1234);
 
         // Check we can acquire the lock
-        long lockId = redisState.acquireLock(key, 10);
+        long lockId = redis.acquireLock(key, 10);
         REQUIRE(lockId > 0);
-        REQUIRE(redisState.getLong(lockKey) == lockId);
-        REQUIRE(redisState.get(key) == value);
+        REQUIRE(redis.getLong(lockKey) == lockId);
+        REQUIRE(redis.get(key) == value);
 
         // Check someone else can't acquire the lock
-        long lockId2 = redisState.acquireLock(key, 10);
-        REQUIRE(lockId2 == -1);
-        REQUIRE(redisState.getLong(lockKey) == lockId);
-        REQUIRE(redisState.get(key) == value);
+        long lockId2 = redis.acquireLock(key, 10);
+        REQUIRE(lockId2 == 0);
+        REQUIRE(redis.getLong(lockKey) == lockId);
+        REQUIRE(redis.get(key) == value);
 
         // Release with an invalid lock ID and check it's still locked
-        redisState.releaseLock(key, lockId + 1);
-        long lockId3 = redisState.acquireLock(key, 10);
-        REQUIRE(lockId3 == -1);
-        REQUIRE(redisState.getLong(lockKey) == lockId);
-        REQUIRE(redisState.get(key) == value);
+        redis.releaseLock(key, lockId + 1);
+        long lockId3 = redis.acquireLock(key, 10);
+        REQUIRE(lockId3 == 0);
+        REQUIRE(redis.getLong(lockKey) == lockId);
+        REQUIRE(redis.get(key) == value);
 
         // Release with valid ID and check we can re-acquire
-        redisState.releaseLock(key, lockId);
-        long lockId4 = redisState.acquireLock(key, 10);
+        redis.releaseLock(key, lockId);
+        long lockId4 = redis.acquireLock(key, 10);
         REQUIRE(lockId4 > 0);
         REQUIRE(lockId4 != lockId);
-        REQUIRE(redisState.getLong(lockKey) == lockId4);
-        REQUIRE(redisState.get(key) == value);
+        REQUIRE(redis.getLong(lockKey) == lockId4);
+        REQUIRE(redis.get(key) == value);
+    }
+
+    TEST_CASE("Test acquire/ release lock for state", "[redis]") {
+        checkLock(Redis::getState());
+    }
+
+    TEST_CASE("Test acquire/ release lock for queue", "[redis]") {
+        checkLock(Redis::getQueue());
+    }
+
+    void checkConditionalLock(Redis &redis) {
+        redis.flushAll();
+
+        std::string key = "lock_test";
+        std::string lockKey = key + "_lock";
+
+        // Check we can acquire the lock when the key doesn't exist
+        long lockId = redis.acquireConditionalLock(key, 10);
+        REQUIRE(lockId > 0);
+        REQUIRE(redis.getLong(lockKey) == lockId);
+        REQUIRE(redis.getLong(key) == 0);
+
+        // Release it
+        redis.releaseLock(key, lockId);
+
+        // Set some value and check we can get the lock with the right value
+        redis.setLong(key, 50);
+        long lockId2 = redis.acquireConditionalLock(key, 50);
+        REQUIRE(lockId2 > 0);
+        REQUIRE(redis.getLong(lockKey) == lockId2);
+        REQUIRE(redis.getLong(key) == 50);
+
+        // Check someone else can't get it with the same value
+        long lockId3 = redis.acquireConditionalLock(key, 50);
+        REQUIRE(lockId3 == 0);
+        REQUIRE(redis.getLong(lockKey) == lockId2);
+        REQUIRE(redis.getLong(key) == 50);
+
+        // Release it
+        redis.releaseLock(key, lockId2);
+
+        // Check we can't acquire it with the wrong value
+        redis.setLong(key, 50);
+        long lockId4 = redis.acquireConditionalLock(key, 20);
+        REQUIRE(lockId4 == -1);
+        REQUIRE(redis.getLong(lockKey) == 0);
+        REQUIRE(redis.getLong(key) == 50);
+    }
+
+    TEST_CASE("Test acquire/ release conditional lock for state", "[redis]") {
+        checkConditionalLock(Redis::getState());
+    }
+
+    TEST_CASE("Test acquire/ release conditional lock for queue", "[redis]") {
+        checkConditionalLock(Redis::getQueue());
+    }
+
+    TEST_CASE("Test set operations", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
+        redisQueue.flushAll();
+
+        std::string setA = "set_a";
+        std::string setB = "set_b";
+
+        std::string valueA = "val_a";
+        std::string valueB = "val_b";
+        std::string valueC = "val_c";
+
+        // Check cardinality is zero for both initially
+        REQUIRE(redisQueue.scard(setA) == 0);
+        REQUIRE(redisQueue.scard(setB) == 0);
+        REQUIRE(!redisQueue.sismember(setA, valueA));
+        REQUIRE(!redisQueue.sismember(setA, valueB));
+
+        // Add something and check
+        redisQueue.sadd(setA, valueA);
+        REQUIRE(redisQueue.scard(setA) == 1);
+        REQUIRE(redisQueue.sismember(setA, valueA));
+        REQUIRE(!redisQueue.sismember(setA, valueB));
+        REQUIRE(redisQueue.scard(setB) == 0);
+
+        // Add more and check
+        redisQueue.sadd(setA, valueB);
+        redisQueue.sadd(setB, valueC);
+        REQUIRE(redisQueue.scard(setA) == 2);
+        REQUIRE(redisQueue.sismember(setA, valueA));
+        REQUIRE(redisQueue.sismember(setA, valueB));
+        REQUIRE(redisQueue.sismember(setB, valueC));
+        REQUIRE(redisQueue.scard(setB) == 1);
+
+        // Remove and check
+        redisQueue.srem(setA, valueB);
+        REQUIRE(redisQueue.scard(setA) == 1);
+        REQUIRE(redisQueue.sismember(setA, valueA));
+        REQUIRE(!redisQueue.sismember(setA, valueB));
+        REQUIRE(redisQueue.sismember(setB, valueC));
+        REQUIRE(redisQueue.scard(setB) == 1);
+    }
+
+    TEST_CASE("Test set random member", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
+        redisQueue.flushAll();
+
+        std::string setName = "set_foo";
+        REQUIRE(redisQueue.srandmember(setName).empty());
+
+        std::string valueA = "val_a";
+        std::string valueB = "val_b";
+        redisQueue.sadd(setName, valueA);
+
+        REQUIRE(redisQueue.srandmember(setName) == valueA);
+
+        redisQueue.sadd(setName, valueB);
+        const std::string actual = redisQueue.srandmember(setName);
+        bool isExpected = (actual == valueA) || (actual == valueB);
+        REQUIRE(isExpected);
+    }
+
+    TEST_CASE("Test set diff", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
+        redisQueue.flushAll();
+
+        std::string setA = "set_a";
+        std::string setB = "set_b";
+
+        const std::vector<std::string> actualA = redisQueue.sdiff(setA, setB);
+        REQUIRE(actualA.empty());
+
+        std::string valueA = "val_a";
+        std::string valueB = "val_b";
+        std::string valueC = "val_c";
+        std::string valueD = "val_d";
+
+        redisQueue.sadd(setA, valueA);
+        redisQueue.sadd(setA, valueB);
+        redisQueue.sadd(setA, valueC);
+
+        redisQueue.sadd(setB, valueC);
+        redisQueue.sadd(setB, valueD);
+
+        std::vector<std::string> actualB = redisQueue.sdiff(setA, setB);
+        std::vector<std::string> expected = {valueA, valueB};
+
+        std::sort(actualB.begin(), actualB.end());
+        std::sort(expected.begin(), expected.end());
+
+        REQUIRE(actualB == expected);
+    }
+
+    TEST_CASE("Test set intersection", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
+        redisQueue.flushAll();
+
+        std::string setA = "set_a";
+        std::string setB = "set_b";
+
+        const std::vector<std::string> actualA = redisQueue.sinter(setA, setB);
+        REQUIRE(actualA.empty());
+
+        std::string valueA = "val_a";
+        std::string valueB = "val_b";
+        std::string valueC = "val_c";
+        std::string valueD = "val_d";
+        std::string valueE = "val_e";
+
+        redisQueue.sadd(setA, valueA);
+        redisQueue.sadd(setA, valueB);
+        redisQueue.sadd(setA, valueC);
+
+        redisQueue.sadd(setB, valueA);
+        redisQueue.sadd(setB, valueC);
+        redisQueue.sadd(setB, valueD);
+        redisQueue.sadd(setB, valueE);
+
+        std::vector<std::string> actualB = redisQueue.sinter(setA, setB);
+        std::vector<std::string> expected = {valueA, valueC};
+
+        std::sort(actualB.begin(), actualB.end());
+        std::sort(expected.begin(), expected.end());
+
+        REQUIRE(actualB == expected);
     }
 }

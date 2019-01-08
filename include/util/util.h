@@ -1,13 +1,17 @@
 #pragma once
 
+#include <spdlog/spdlog.h>
+
 #include <string>
 #include <vector>
 #include <queue>
 #include <mutex>
-#include <condition_variable>
-#include <spdlog/spdlog.h>
+#include <shared_mutex>
 
 namespace util {
+    typedef std::unique_lock<std::shared_mutex> FullLock;
+    typedef std::shared_lock<std::shared_mutex> SharedLock;
+
     // Environment manipulation
     std::string getEnvVar(const std::string &key, const std::string &deflt);
 
@@ -40,6 +44,9 @@ namespace util {
         int stateClearThreshold;
         int statePushInterval;
         int fullAsync;
+
+        // Scheduling
+        int affinity;
 
         SystemConfig();
 
@@ -79,7 +86,12 @@ namespace util {
 
         void releaseToken(int token);
 
+        void reset();
+
+        int size();
+
     private:
+        int _size;
         std::queue<int> tokenQueue;
         std::mutex queueMutex;
         std::condition_variable tokenCondition;
@@ -99,6 +111,7 @@ namespace util {
     // Strings
     std::vector<std::string> tokeniseString(const std::string &input, char delimiter);
     bool isAllWhitespace(const std::string &input);
+    bool startsWith(const std::string &input, const std::string &subStr);
 
     // Timing
     typedef std::chrono::steady_clock::time_point TimePoint;

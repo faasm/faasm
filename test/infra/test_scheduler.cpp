@@ -10,65 +10,13 @@ namespace tests {
         util::SystemConfig &conf = util::getSystemConfig();
 
         REQUIRE(Scheduler::getWorkerTimeout("blah") == conf.boundTimeout);
-        REQUIRE(Scheduler::getWorkerTimeout(PREWARM_QUEUE) == conf.unboundTimeout);
-        REQUIRE(Scheduler::getWorkerTimeout(COLD_QUEUE) == conf.unboundTimeout);
-    }
 
-    TEST_CASE("Test worker prewarm to bound", "[scheduler]") {
-        redisQueue.flushAll();
-
-        // Set up some fake prewarms
-        Scheduler::prewarmWorker();
-        Scheduler::prewarmWorker();
-        REQUIRE(Scheduler::getPrewarmCount() == 2);
-
-        // Set up call
-        message::Message call;
-        call.set_user("userA");
-        call.set_function("funcA");
-
-        // Check the right queue name is returned
-        std::string actualA = Scheduler::workerPrewarmToBound(call);
-        REQUIRE(actualA == Scheduler::getFunctionQueueName(call));
-
-        // Check that the prewarm count is *not* updated and other messages not sent.
-        // This is done in the original bind call
-        REQUIRE(Scheduler::getPrewarmCount() == 2);
-        REQUIRE(redisQueue.listLength(PREWARM_QUEUE) == 0);
-        REQUIRE(redisQueue.listLength(COLD_QUEUE) == 0);
-    }
-
-    TEST_CASE("Test worker finished prewarm", "[scheduler]") {
-        redisQueue.flushAll();
-
-        Scheduler::prewarmWorker();
-        REQUIRE(Scheduler::getPrewarmCount() == 1);
-
-        Scheduler::workerFinished(PREWARM_QUEUE);
-
-        REQUIRE(Scheduler::getPrewarmCount() == 0);
-    }
-
-    TEST_CASE("Test worker finished cold", "[scheduler]") {
-        redisQueue.flushAll();
-
-        // Fill up all prewarm
-        util::SystemConfig &conf = util::getSystemConfig();
-        for (int i = 0; i < conf.prewarmTarget; i++) {
-            Scheduler::prewarmWorker();
-        }
-
-        // Add a cold init
-        Scheduler::prewarmWorker();
-        REQUIRE(Scheduler::getColdCount() == 1);
-
-        Scheduler::workerFinished(COLD_QUEUE);
-
-        REQUIRE(Scheduler::getColdCount() == 0);
+        std::string prewarmQueue = Scheduler::getHostPrewarmQueue("foo");
+        REQUIRE(Scheduler::getWorkerTimeout(prewarmQueue) == conf.unboundTimeout);
     }
 
     TEST_CASE("Test worker finished bound", "[scheduler]") {
-        redisQueue.flushAll();
+        cleanSystem();
 
         message::Message call;
         call.set_user("userA");
@@ -86,30 +34,31 @@ namespace tests {
     }
 
     TEST_CASE("Test calling function with no workers sends bind message", "[scheduler]") {
+        Redis &redisQueue = infra::Redis::getQueue();
         redisQueue.flushAll();
 
         message::Message call;
         call.set_function("my func");
         call.set_user("some user");
 
-        // Set up a dummy prewarm
-        Scheduler::prewarmWorker();
         REQUIRE(Scheduler::getFunctionCount(call) == 0);
-        REQUIRE(Scheduler::getPrewarmCount() == 1);
+
+        // Add a worker host to the global set
+        redisQueue.sadd(GLOBAL_WORKER_SET, "foo");
+        std::string expectedPrewarmQueue = Scheduler::getHostPrewarmQueue("foo");
 
         // Call the function
         Scheduler::callFunction(call);
 
         // Check function count has increased and bind message sent
         REQUIRE(Scheduler::getFunctionCount(call) == 1);
-        REQUIRE(redisQueue.listLength(PREWARM_QUEUE) == 1);
 
-        // Check prewarm count has been decreased and prewarm message sent
-        REQUIRE(Scheduler::getPrewarmCount() == 0);
-        REQUIRE(redisQueue.listLength(COLD_QUEUE) == 1);
+        REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 1);
+        redisQueue.flushAll();
     }
 
     TEST_CASE("Test sending bind messages", "[scheduler]") {
+        Redis &redisQueue = infra::Redis::getQueue();
         redisQueue.flushAll();
 
         // Set up calls
@@ -121,6 +70,10 @@ namespace tests {
         callB.set_user("userB");
         callB.set_function("funcB");
 
+        // Add a worker host to the global set
+        redisQueue.sadd(GLOBAL_WORKER_SET, "foo");
+        std::string expectedPrewarmQueue = Scheduler::getHostPrewarmQueue("foo");
+
         // Call each function
         Scheduler::callFunction(callA);
         Scheduler::callFunction(callB);
@@ -130,8 +83,8 @@ namespace tests {
         REQUIRE(Scheduler::getFunctionCount(callB) == 1);
 
         // Check that bind messages have been sent
-        const message::Message bindA = redisQueue.nextMessage(PREWARM_QUEUE);
-        const message::Message bindB = redisQueue.nextMessage(PREWARM_QUEUE);
+        const message::Message bindA = redisQueue.nextMessage(expectedPrewarmQueue);
+        const message::Message bindB = redisQueue.nextMessage(expectedPrewarmQueue);
 
         REQUIRE(bindA.user() == callA.user());
         REQUIRE(bindA.function() == callA.function());
@@ -141,46 +94,40 @@ namespace tests {
         REQUIRE(bindB.function() == callB.function());
         REQUIRE(bindB.type() == message::Message_MessageType_BIND);
 
-        // Check that prewarm messages have been sent
-        const message::Message prewarmA = redisQueue.nextMessage(COLD_QUEUE);
-        const message::Message prewarmB = redisQueue.nextMessage(COLD_QUEUE);
-
-        REQUIRE(prewarmA.user().empty());
-        REQUIRE(prewarmA.function().empty());
-        REQUIRE(prewarmA.type() == message::Message_MessageType_PREWARM);
-
-        REQUIRE(prewarmB.user().empty());
-        REQUIRE(prewarmB.function().empty());
-        REQUIRE(prewarmB.type() == message::Message_MessageType_PREWARM);
+        redisQueue.flushAll();
     }
 
     TEST_CASE("Test calling function with existing workers does not send bind message", "[scheduler]") {
+        Redis &redisQueue = infra::Redis::getQueue();
         redisQueue.flushAll();
 
         message::Message call;
         call.set_function("my func");
         call.set_user("some user");
 
-        std::string queueName = Scheduler::getFunctionQueueName(call);
+        // Add a worker host to the global set
+        redisQueue.sadd(GLOBAL_WORKER_SET, "foo");
+        std::string expectedPrewarmQueue = Scheduler::getHostPrewarmQueue("foo");
 
-        // Fake 2 workers initialising to prewarm
-        Scheduler::prewarmWorker();
-        Scheduler::prewarmWorker();
+        std::string queueName = Scheduler::getFunctionQueueName(call);
 
         // Fake calling the function first, should cause a bind message and set up the function queue
         Scheduler::callFunction(call);
-        REQUIRE(redisQueue.listLength(PREWARM_QUEUE) == 1);
+        REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 1);
         REQUIRE(redisQueue.listLength(queueName) == 1);
 
         // Call the function again
         Scheduler::callFunction(call);
 
         // Check function call has been added, but no new bind messages
-        REQUIRE(redisQueue.listLength(PREWARM_QUEUE) == 1);
+        REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 1);
         REQUIRE(redisQueue.listLength(queueName) == 2);
+
+        redisQueue.flushAll();
     }
 
     TEST_CASE("Test calling function which breaches queue ratio sends bind message", "[scheduler]") {
+        Redis &redisQueue = infra::Redis::getQueue();
         redisQueue.flushAll();
 
         message::Message call;
@@ -188,6 +135,10 @@ namespace tests {
         call.set_user("some user");
 
         std::string queueName = Scheduler::getFunctionQueueName(call);
+
+        // Add a worker host to the global set
+        redisQueue.sadd(GLOBAL_WORKER_SET, "foo");
+        std::string expectedPrewarmQueue = Scheduler::getHostPrewarmQueue("foo");
 
         // Saturate up to the number of max queued calls
         util::SystemConfig &conf = util::getSystemConfig();
@@ -196,7 +147,7 @@ namespace tests {
             Scheduler::callFunction(call);
 
             // Check only one bind message is ever sent
-            REQUIRE(redisQueue.listLength(PREWARM_QUEUE) == 1);
+            REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 1);
 
             // Check call queued
             REQUIRE(redisQueue.listLength(queueName) == i + 1);
@@ -204,11 +155,14 @@ namespace tests {
 
         // Dispatch another and check that a bind message is sent
         Scheduler::callFunction(call);
-        REQUIRE(redisQueue.listLength(PREWARM_QUEUE) == 2);
+        REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 2);
         REQUIRE(redisQueue.listLength(queueName) == nCalls + 1);
+
+        redisQueue.flushAll();
     }
 
     TEST_CASE("Test function which breaches queue ratio but has no capacity does not scale up", "[scheduler]") {
+        Redis &redisQueue = infra::Redis::getQueue();
         redisQueue.flushAll();
 
         message::Message call;
@@ -216,6 +170,10 @@ namespace tests {
         call.set_function("funcA");
 
         std::string queueName = Scheduler::getFunctionQueueName(call);
+
+        // Add a worker host to the global set
+        redisQueue.sadd(GLOBAL_WORKER_SET, "foo");
+        std::string expectedPrewarmQueue = Scheduler::getHostPrewarmQueue("foo");
 
         // Make calls up to the limit
         util::SystemConfig &conf = util::getSystemConfig();
@@ -225,7 +183,7 @@ namespace tests {
         }
 
         // Check number of bind messages
-        REQUIRE(redisQueue.listLength(PREWARM_QUEUE) == conf.maxWorkersPerFunction);
+        REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == conf.maxWorkersPerFunction);
 
         // Check count assigned to function
         REQUIRE(Scheduler::getFunctionCount(call) == conf.maxWorkersPerFunction);
@@ -238,27 +196,103 @@ namespace tests {
         Scheduler::callFunction(call);
         Scheduler::callFunction(call);
 
-        REQUIRE(redisQueue.listLength(PREWARM_QUEUE) == conf.maxWorkersPerFunction);
+        REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == conf.maxWorkersPerFunction);
         REQUIRE(Scheduler::getFunctionCount(call) == conf.maxWorkersPerFunction);
         REQUIRE(redisQueue.listLength(Scheduler::getFunctionQueueName(call)) == nCalls + 3);
+
+        redisQueue.flushAll();
     }
 
-    TEST_CASE("Test is need to prewarm", "[scheduler]") {
+    void checkPrewarmQueueChoice(bool affinity) {
+        Redis &redisQueue = infra::Redis::getQueue();
         redisQueue.flushAll();
 
-        // Check should prewarm up to limit
-        const util::SystemConfig &conf = util::getSystemConfig();
-        for (int i = 0; i < conf.prewarmTarget; i++) {
-            REQUIRE(Scheduler::prewarmWorker());
-            REQUIRE(Scheduler::getPrewarmCount() == i + 1);
-            REQUIRE(Scheduler::getColdCount() == 0);
+        std::string hostA = "hostA";
+        std::string hostB = "hostB";
+        std::string hostC = "hostC";
+        std::string hostD = "hostD";
+
+        const std::string prewarmA = Scheduler::getHostPrewarmQueue(hostA);
+        const std::string prewarmB = Scheduler::getHostPrewarmQueue(hostB);
+        const std::string prewarmC = Scheduler::getHostPrewarmQueue(hostC);
+        const std::string prewarmD = Scheduler::getHostPrewarmQueue(hostD);
+
+        message::Message msg;
+        msg.set_user("alpha");
+        msg.set_function("beta");
+
+        std::string workerSet = Scheduler::getFunctionWorkerSetName(msg);
+
+        // Add workers to the global set
+        redisQueue.sadd(GLOBAL_WORKER_SET, hostA);
+        redisQueue.sadd(GLOBAL_WORKER_SET, hostB);
+
+        // With no workers assigned to function, should just get one of the global set
+        // regardless of affinity
+        std::string actual = Scheduler::getPrewarmQueueForFunction(msg, affinity);
+        std::set<std::string> expected = {prewarmA, prewarmB};
+        REQUIRE(expected.find(actual) != expected.end());
+
+        // Work out which host it is
+        std::string chosenHost;
+        std::string otherHost;
+        std::string otherQueue;
+        if(actual == prewarmA) {
+            chosenHost = hostA;
+            otherHost = hostB;
+            otherQueue = prewarmB;
+        }
+        else {
+            chosenHost = hostB;
+            otherHost = hostA;
+            otherQueue = prewarmA;
         }
 
-        // Should be false once we've hit the target
-        for (int i = 0; i < 5; i++) {
-            REQUIRE(!Scheduler::prewarmWorker());
-            REQUIRE(Scheduler::getPrewarmCount() == conf.prewarmTarget);
-            REQUIRE(Scheduler::getColdCount() == i + 1);
+        // Check that this is now added to the function set
+        REQUIRE(redisQueue.sismember(workerSet, chosenHost));
+
+        // Run again and check result depending on affinity
+        std::string actual2 = Scheduler::getPrewarmQueueForFunction(msg, affinity);
+        if (affinity) {
+            // If affinity, should be the one we already have
+            REQUIRE(actual2 == actual);
+
+            // Now remove it from the global worker set and check we get the other
+            redisQueue.srem(GLOBAL_WORKER_SET, chosenHost);
+            REQUIRE(Scheduler::getPrewarmQueueForFunction(msg, affinity) == otherQueue);
+            REQUIRE(redisQueue.sismember(workerSet, otherHost));
+        } else {
+            // If anti-affinity should be the other from the global set
+            REQUIRE(actual2 == otherQueue);
+
+            // Now remove everything from the global worker set and leave only one host
+            // in the function's set, this should force it to pick the same one
+            redisQueue.del(GLOBAL_WORKER_SET);
+            redisQueue.srem(workerSet, otherHost);
+
+            REQUIRE(Scheduler::getPrewarmQueueForFunction(msg, affinity) == actual);
+            REQUIRE(redisQueue.sismember(workerSet, chosenHost));
         }
+
+        redisQueue.flushAll();
+    }
+    
+    TEST_CASE("Test getting prewarm queue for function with affinity", "[scheduler]") {
+        checkPrewarmQueueChoice(true);
+    }
+
+    TEST_CASE("Test getting prewarm queue for function with anti-affinity", "[scheduler]") {
+        checkPrewarmQueueChoice(false);
+    }
+
+    TEST_CASE("Test error is thrown when no scheduling options", "[scheduler]") {
+        Redis &redisQueue = infra::Redis::getQueue();
+        redisQueue.flushAll();
+
+        message::Message msg;
+        msg.set_user("alpha");
+        msg.set_function("beta");
+
+        REQUIRE_THROWS(Scheduler::getPrewarmQueueForFunction(msg, true));
     }
 }

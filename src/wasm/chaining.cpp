@@ -20,22 +20,24 @@ namespace wasm {
         // Dispatch any chained calls
         for (auto chainedCall : calls) {
             // Check if call is valid
+            const std::string chainedStr = infra::funcToString(chainedCall);
             if (!infra::isValidFunction(chainedCall)) {
-                std::string errorMessage = "Invalid chained function call: " + infra::funcToString(chainedCall);
+                std::string errorMessage = "Invalid chained function call: " + chainedStr;
 
                 return errorMessage;
             }
 
-            // TODO: Avoid this, add some concept of delay in the scheduler?
+            const std::string origStr = infra::funcToString(originalCall);
+
+            // TODO: Avoid this approach, add some concept of delay in the scheduler?
             // Wait a bit before chaining the same function
             if (chainedCall.function() == originalCall.function()) {
-                logger->debug("Delaying chained call {} -> {}", infra::funcToString(originalCall),
-                              infra::funcToString(chainedCall));
+                logger->debug("Delaying chained call {} -> {}", origStr, chainedStr);
                 uint microseconds = (uint) 500 * 1000; // 500ms
                 usleep(microseconds);
             }
 
-            logger->debug("Chaining {} -> {}", infra::funcToString(originalCall), infra::funcToString(chainedCall));
+            logger->debug("Chaining {} -> {}", origStr, chainedStr);
             infra::Scheduler::callFunction(chainedCall);
         }
 

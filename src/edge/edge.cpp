@@ -79,14 +79,10 @@ namespace edge {
             return "Async request submitted";
         } else {
             logger->info("Sync request {}", infra::funcToString(msg));
-            infra::Redis *queue = infra::Redis::getThreadQueue();
-            message::Message result = queue->getFunctionResult(msg);
-
-            const util::TimePoint t2 = prof::startTimer();
+            infra::Redis &redis = infra::Redis::getQueue();
+            message::Message result = redis.getFunctionResult(msg);
 
             logger->info("Finished request {}", infra::funcToString(msg));
-
-            prof::logEndTimer("edge-reply", t2);
 
             return result.outputdata() + "\n";
         }

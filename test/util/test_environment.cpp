@@ -45,7 +45,7 @@ namespace tests {
         REQUIRE(conf.boundTimeout == 30);
         REQUIRE(conf.unboundTimeout == 240);
 
-        REQUIRE(conf.stateStaleThreshold == 500);
+        REQUIRE(conf.stateStaleThreshold == 60000);
         REQUIRE(conf.stateClearThreshold == 300000);
         REQUIRE(conf.statePushInterval == 500);
     }

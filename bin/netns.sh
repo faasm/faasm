@@ -2,6 +2,12 @@
 
 set -e
 
+if [ "$NETNS_MODE" == "off" ];
+then
+    echo "Network namespace support is off"
+    exit 0
+fi
+
 egress_rate=1mbit
 egress_ceil=2mbit
 ingress_rate=1mbit

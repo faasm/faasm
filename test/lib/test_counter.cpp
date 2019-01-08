@@ -11,6 +11,7 @@ using namespace faasm;
 
 namespace tests {
     TEST_CASE("Test normal counter operation", "[counter]") {
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         redisQueue.flushAll();
         state::getGlobalState().forceClearAll();
 
@@ -35,6 +36,7 @@ namespace tests {
     }
 
     TEST_CASE("Test counter over big number", "[counter]") {
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         redisQueue.flushAll();
         state::getGlobalState().forceClearAll();
 
@@ -51,6 +53,7 @@ namespace tests {
     }
 
     TEST_CASE("Test uninitialised counter", "[counter]") {
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         redisQueue.flushAll();
         state::getGlobalState().forceClearAll();
 

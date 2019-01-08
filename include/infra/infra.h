@@ -10,6 +10,8 @@
 #include <proto/faasm.pb.h>
 #include <hiredis/hiredis.h>
 
+#define GLOBAL_WORKER_SET "available_workers"
+
 namespace infra {
 
     std::string getFunctionFile(const message::Message &msg);
@@ -29,25 +31,67 @@ namespace infra {
         STATE,
     };
 
+    class RedisInstance {
+    public:
+        explicit RedisInstance(RedisRole role);
+
+        std::string conditionalLockSha;
+        std::string delifeqSha;
+
+        std::string ip;
+        std::string hostname;
+        int port;
+    private:
+        RedisRole role;
+
+        std::mutex scriptsLock;
+
+        std::string loadScript(redisContext *context, const std::string &scriptBody);
+
+        // Conditional lock is used as part of a locking scheme where we need to make sure an assumption
+        // is correct before acquiring the lock. The function takes 4 arguments:
+        // key_to_check, key_to_lock, expected_value, lock_id
+        //
+        // This takes elements of the redlock algorithm described here: https://redis.io/topics/distlock
+        //
+        // Return values:
+        // -1 = value is different
+        // 0 = lock not acquired
+        // 1 = lock acquired
+        const std::string conditionalLockCmd = "local val = redis.call(\"GET\", KEYS[1]) \n"
+                                               ""
+                                               "if (val == false) or (val == ARGV[1]) then \n"
+                                               "    return redis.call(\"SETNX\", KEYS[2], ARGV[2]) \n"
+                                               "else \n"
+                                               "    return -1 \n"
+                                               "end";
+
+        // Script to delete a key if it equals a given value
+        const std::string delifeqCmd = "if redis.call(\"GET\", KEYS[1]) == ARGV[1] then \n"
+                                       "    return redis.call(\"DEL\", KEYS[1]) \n"
+                                       "else \n"
+                                       "    return 0 \n"
+                                       "end";
+    };
+
+
     class Redis {
 
     public:
-
-        Redis(const RedisRole &role);
-
         ~Redis();
 
         /**
-        *  ------ Utils ------
+        *  ------ Factories ------
         */
 
-        static Redis *getThreadQueue();
+        static Redis &getQueue();
 
-        static Redis *getThreadState();
+        static Redis &getState();
 
         /**
         *  ------ Standard Redis commands ------
         */
+        void ping();
 
         std::vector<uint8_t> get(const std::string &key);
 
@@ -69,6 +113,20 @@ namespace infra {
 
         void getRange(const std::string &key, uint8_t *buffer, size_t bufferLen, long start, long end);
 
+        void sadd(const std::string &key, const std::string &value);
+
+        void srem(const std::string &key, const std::string &value);
+
+        long scard(const std::string &key);
+
+        bool sismember(const std::string &key, const std::string &value);
+
+        std::string srandmember(const std::string &key);
+
+        std::vector<std::string> sdiff(const std::string &keyA, const std::string &keyB);
+
+        std::vector<std::string> sinter(const std::string &keyA, const std::string &keyB);
+
         void flushAll();
 
         long listLength(const std::string &queueName);
@@ -78,6 +136,8 @@ namespace infra {
         /**
         *  ------ Locking ------
         */
+
+        long acquireConditionalLock(const std::string &key, long expectedValue);
 
         long acquireLock(const std::string &key, int expirySeconds);
 
@@ -89,14 +149,7 @@ namespace infra {
 
         long getLong(const std::string &key);
 
-        /**
-        *  ------ Scheduling ------
-        */
-
-        bool addWorker(const std::string &counterName, const std::string &queueName, long maxRatio, long maxWorkers);
-
-        bool incrIfBelowTarget(const std::string &key, int target);
-
+        void setLong(const std::string &key, long value);
 
         /**
         *  ------ Queueing ------
@@ -119,48 +172,47 @@ namespace infra {
         message::Message getFunctionResult(const message::Message &msg);
 
     private:
-        redisContext *context;
-        std::string hostname;
-        std::string port;
+        explicit Redis(const RedisInstance &instance);
 
-        std::string loadScript(const std::string &scriptBody);
+        const RedisInstance &instance;
+
+        redisContext *context;
     };
 
     class RedisNoResponseException : public std::exception {
     };
 
     // Scheduling
-    const std::string PREWARM_QUEUE = "prewarm";
-    const std::string COLD_QUEUE = "cold";
-
     class Scheduler {
     public:
-        Scheduler();
+        static const int scheduleWaitMillis = 100;
 
-        static long getPrewarmCount();
-
-        static long getColdCount();
+        static const int scheduleRecursionLimit = 10;
 
         static long getFunctionCount(const message::Message &msg);
 
         static int getWorkerTimeout(const std::string &currentQueue);
 
-        static std::string workerColdToPrewarm();
-
-        static std::string workerPrewarmToBound(const message::Message &msg);
-
         static void workerFinished(const std::string &currentQueue);
 
         static std::string callFunction(message::Message &msg);
 
-        static bool prewarmWorker();
-
         static std::string getFunctionQueueName(const message::Message &msg);
 
-    private:
-        static void sendBindMessage(const message::Message &msg);
+        static std::string getFunctionWorkerSetName(const message::Message &msg);
 
-        static void updateWorkerAllocs(const message::Message &msg);
+        static std::string getHostName();
+
+        static std::string getHostPrewarmQueue(const std::string &hostName);
+
+        static std::string getHostPrewarmQueue();
+
+        static std::string getPrewarmQueueForFunction(const message::Message &msg, bool affinity);
+
+    private:
+        Scheduler();
+
+        static void updateWorkerAllocs(const message::Message &msg, int recursionCount = 0);
 
         static std::string getFunctionCounterName(const message::Message &msg);
     };

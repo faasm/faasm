@@ -30,17 +30,18 @@ services:
       - REDIS_PORT=6379
       - FUNC_ROOT=/usr/share/faasm
       - CGROUP_MODE=on
-      - NETNS_MODE=on
+      - NETNS_MODE=off
       - LOG_LEVEL=debug
-      - PREWARM_TARGET=80
+      - PREWARM_TARGET=20
       - MAX_QUEUE_RATIO=1
       - MAX_WORKERS_PER_FUNCTION=30
       - BOUND_TIMEOUT=30
       - UNBOUND_TIMEOUT=240
-      - STATE_STALE_THRESHOLD=500
+      - STATE_STALE_THRESHOLD=60000
       - STATE_CLEAR_THRESHOLD=300000
       - STATE_PUSH_INTERVAL=500
       - FULL_ASYNC=0
+      - AFFINITY=0
     volumes:
       - ./wasm:/usr/share/faasm/wasm
     networks:
@@ -56,17 +57,19 @@ services:
       - REDIS_QUEUE_HOST=redis-queue
       - REDIS_PORT=6379
       - FUNC_ROOT=/usr/share/faasm
-      - LOG_LEVEL=info
-      - PREWARM_TARGET=80
+      - LOG_LEVEL=debug
+      - PREWARM_TARGET=20
       - MAX_QUEUE_RATIO=1
       - MAX_WORKERS_PER_FUNCTION=100
       - BOUND_TIMEOUT=30
       - UNBOUND_TIMEOUT=240
+      - AFFINITY=0
     volumes:
       - ./wasm:/usr/share/faasm/wasm
     depends_on:
       - redis-queue
       - redis-state
+      - worker
     networks:
       - faasm
 

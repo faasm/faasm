@@ -7,13 +7,9 @@
 #include <string>
 #include <tuple>
 #include <thread>
-#include <mutex>
-#include <shared_mutex>
+
 
 namespace state {
-    typedef std::unique_lock<std::shared_mutex> FullLock;
-    typedef std::shared_lock<std::shared_mutex> SharedLock;
-
     /**
      * A specific key/value pair for state
      */
@@ -22,8 +18,8 @@ namespace state {
         // Remote lock timeout in seconds
         unsigned int remoteLockTimeout = 5;
         // Remote lock sleep time in milliseconds
-        unsigned int remoteLockWaitTime = 100;
-        unsigned int remoteLockMaxRetries = 20;
+        unsigned int remoteLockWaitTime = 500;
+        unsigned int remoteLockMaxRetries = 10;
 
         explicit StateKeyValue(const std::string &keyIn, size_t sizeIn);
 

@@ -6,5 +6,6 @@ int main() {
     util::SystemConfig &config = util::getSystemConfig();
     config.print();
 
-    worker::startWorkerThreadPool();
+    worker::WorkerThreadPool pool;
+    pool.start();
 }

@@ -20,7 +20,6 @@ namespace faasm {
         SgdParams sgdParams = readParamsFromState(memory, PARAMS_KEY, REUTERS_FULL_ASYNC);
 
         // Perform updates
-        MatrixXd prediction;
         if (sgdParams.lossType == HINGE) {
             hingeLossWeightUpdate(memory, sgdParams, epoch, batchNumber, startIdx, endIdx);
         } else {

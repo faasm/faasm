@@ -25,6 +25,10 @@ namespace faasm {
         // Full sync or not
         p.fullAsync = REUTERS_FULL_ASYNC;
 
+        // How many examples should be processed before doing a synchronous read
+        // to update worker's weights
+        p.syncInterval = REUTERS_SYNC_INTERVAL;
+
         // Write params (will take async/ not from params themselves)
         writeParamsToState(memory, PARAMS_KEY, p);
 
@@ -57,11 +61,11 @@ namespace faasm {
 
         // Load this batch of inputs
         Map<const SparseMatrix<double>> inputs = readSparseMatrixColumnsFromState(memory, INPUTS_KEY,
-                                                                            startIdx, endIdx, true);
+                                                                                  startIdx, endIdx, true);
 
         // Load this batch of outputs
         Map<const MatrixXd> outputs = readMatrixColumnsFromState(memory, OUTPUTS_KEY, sgdParams.nTrain,
-                                                           startIdx, endIdx, 1, true);
+                                                                 startIdx, endIdx, 1, true);
 
         // Load the weights
         size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
@@ -78,6 +82,7 @@ namespace faasm {
         int *cols = randomIntRange(inputs.outerSize());
 
         // Iterate through all training examples (i.e. columns)
+        int exampleCount = 0;
         for (int c = 0; c < inputs.outerSize(); ++c) {
             int col = cols[c];
 
@@ -113,6 +118,14 @@ namespace faasm {
                     memory->flagStateOffsetDirty(WEIGHTS_KEY, nWeightBytes, offset, sizeof(double));
                 }
             }
+
+            // Do a synchronous read if we're sufficiently far through this set of examples
+            // and not running in full async mode. This will pull in the latest updates
+            exampleCount++;
+            bool isSyncNeeded = (exampleCount > 0) && ((exampleCount % sgdParams.syncInterval) == 0);
+            if (!sgdParams.fullAsync && isSyncNeeded) {
+                memory->readState(WEIGHTS_KEY, nWeightBytes, false);
+            }
         }
 
         // Recalculate all predictions
@@ -127,9 +140,11 @@ namespace faasm {
                                   int startIdx, int endIdx) {
 
         // Always load the inputs and outputs async (as they should be constant)
-        Map<const SparseMatrix<double>> inputs = readSparseMatrixColumnsFromState(memory, INPUTS_KEY, startIdx, endIdx, true);
-        Map<const MatrixXd> outputs = readMatrixColumnsFromState(memory, OUTPUTS_KEY, sgdParams.nTrain, startIdx, endIdx, 1,
-                                                           true);
+        Map<const SparseMatrix<double>> inputs = readSparseMatrixColumnsFromState(memory, INPUTS_KEY, startIdx, endIdx,
+                                                                                  true);
+        Map<const MatrixXd> outputs = readMatrixColumnsFromState(memory, OUTPUTS_KEY, sgdParams.nTrain, startIdx,
+                                                                 endIdx, 1,
+                                                                 true);
 
         auto weightData = new double[sgdParams.nWeights];
         readMatrixFromState(memory, WEIGHTS_KEY, weightData, 1, sgdParams.nWeights, true);

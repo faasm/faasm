@@ -72,8 +72,6 @@ namespace wasm {
             throw std::runtime_error("Cannot initialise already initialised module");
         }
 
-        const auto &t = prof::startTimer();
-
         // Treat any unhandled exception (e.g. in a thread) as a fatal error.
         Runtime::setUnhandledExceptionHandler([](Runtime::Exception &&exception) {
             Errors::fatalf("Runtime exception: %s\n", describeException(exception).c_str());
@@ -83,7 +81,6 @@ namespace wasm {
 
         // Prepare name resolution
         resolver = new RootResolver(compartment);
-        prof::logEndTimer("pre-init", t);
 
         _isInitialised = true;
     }
@@ -99,7 +96,6 @@ namespace wasm {
         this->parseWasm(msg);
 
         // Linking
-        const auto &t1 = prof::startTimer();
         resolver->setUser(msg.user());
         Runtime::LinkResult linkResult = linkModule(module, *resolver);
         if (!linkResult.success) {
@@ -107,28 +103,16 @@ namespace wasm {
             throw std::runtime_error("Failed linking module");
         }
 
-        prof::logEndTimer("link", t1);
-
         // Load the object file
-        const auto &t2 = prof::startTimer();
         std::vector<uint8_t> objectFileBytes = infra::getFunctionObjectBytes(msg);
-        prof::logEndTimer("load-bytes", t2);
-
-        const auto &t3 = prof::startTimer();
         Runtime::ModuleRef compiledModule = Runtime::loadPrecompiledModule(module, objectFileBytes);
-        prof::logEndTimer("load-obj", t3);
-
         // Instantiate the module, i.e. create memory, tables etc.
-        const auto &t4 = prof::startTimer();
-
         moduleInstance = instantiateModule(
                 compartment,
                 compiledModule,
                 std::move(linkResult.resolvedImports),
                 infra::funcToString(msg)
         );
-
-        prof::logEndTimer("instantiate", t4);
 
         // Extract the module's exported function
         // Note that an underscore may be added before the function name by the compiler
@@ -153,8 +137,6 @@ namespace wasm {
     }
 
     void WasmModule::snapshotMemory(bool fullCopy) {
-        const auto &t = prof::startTimer();
-
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         cleanMemoryPages = Runtime::getMemoryNumPages(this->defaultMemory);
@@ -168,12 +150,9 @@ namespace wasm {
             std::copy(baseAddr, baseAddr + cleanMemorySize, cleanMemory);
         }
 
-        prof::logEndTimer("snapshot-mem", t);
     }
 
     void WasmModule::restoreMemory(bool fullCopy) {
-        const auto &t = prof::startTimer();
-
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         Uptr currentPages = Runtime::getMemoryNumPages(this->defaultMemory);
@@ -209,7 +188,6 @@ namespace wasm {
         sharedMemWasmPtrs.clear();
         sharedMemHostPtrs.clear();
 
-        prof::logEndTimer("restore-mem", t);
     }
 
     /**
@@ -232,7 +210,6 @@ namespace wasm {
         executingCallChain = &callChain;
 
         // Make the call
-        const auto &t = prof::startTimer();
         int exitCode = 0;
         std::vector<IR::Value> invokeArgs;
         try {
@@ -245,8 +222,6 @@ namespace wasm {
         catch (wasm::WasmExitException &e) {
             exitCode = e.exitCode;
         }
-        prof::logEndTimer("exec", t);
-
         return exitCode;
     }
 
@@ -270,7 +245,6 @@ namespace wasm {
      * Parse the WASM file to work out functions, exports, imports etc.
      */
     void WasmModule::parseWasm(const message::Message &msg) {
-        const auto &t = prof::startTimer();
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         std::vector<U8> fileBytes;
@@ -287,9 +261,7 @@ namespace wasm {
         this->module.memories.defs[0].type.size.min = (U64) MIN_MEMORY_PAGES;
 
         // Add the shared memory definition
-//        this->module.memories.imports.push_back({{true, {0, 1000}}, msg.user(), "shared_state"});
-
-        prof::logEndTimer("parse-wasm", t);
+        // this->module.memories.imports.push_back({{true, {0, 1000}}, msg.user(), "shared_state"});
     }
 
     U32 WasmModule::mmap(U32 length) {
@@ -329,7 +301,7 @@ namespace wasm {
 
             // Remember the kv and pointer
             sharedMemWasmPtrs.insert(std::pair<std::string, I32>(kv->key, wasmPtr));
-            sharedMemHostPtrs.insert(std::pair<std::string, void*>(kv->key, voidPtr));
+            sharedMemHostPtrs.insert(std::pair<std::string, void *>(kv->key, voidPtr));
             sharedMemKVs.insert(std::pair<std::string, state::StateKeyValue *>(kv->key, kv));
         }
 

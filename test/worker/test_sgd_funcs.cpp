@@ -12,8 +12,8 @@ using namespace worker;
 
 namespace tests {
     static void setUp() {
-        redisQueue.flushAll();
-        redisState.flushAll();
+        cleanSystem();
+
         state::getGlobalState().forceClearAll();
 
         setEmulatorUser("sgd");
@@ -30,7 +30,8 @@ namespace tests {
         call.set_resultkey("foobar");
 
         // Set up worker to listen for relevant function
-        WorkerThread w(1);
+        WorkerThreadPool pool;
+        WorkerThread w(pool, 1, 1);
         REQUIRE(w.isInitialised());
         REQUIRE(!w.isBound());
 
@@ -41,6 +42,7 @@ namespace tests {
         w.processNextMessage();
         w.processNextMessage();
 
+        infra::Redis &redisQueue = infra::Redis::getQueue();
         const message::Message result = redisQueue.getFunctionResult(call);
         return result.outputdata();
     }
