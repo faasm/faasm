@@ -29,8 +29,26 @@ spec:
           volumeMounts:
             - mountPath: "/usr/share/faasm"
               name: func-vol
-      nodeSelector:
-        nodeRole: worker
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: nodeRole
+                    operator: In
+                    values:
+                      - worker
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: role
+                      operator: In
+                      values:
+                        - worker
+                topologyKey: kubernetes.io/hostname
       volumes:
         - name: func-vol
           persistentVolumeClaim:

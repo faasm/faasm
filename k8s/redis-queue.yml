@@ -17,5 +17,12 @@ spec:
           value: "true"
       ports:
         - containerPort: 6379
-  nodeSelector:
-    nodeRole: redis
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: nodeRole
+                operator: In
+                values:
+                  - redis
