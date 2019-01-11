@@ -11,7 +11,7 @@ namespace tests {
         infra::Redis::getQueue().flushAll();
 
         // Create a worker pool to allow scheduling
-        worker::WorkerThreadPool wp;
+        worker::WorkerThreadPool wp(1, 1);
     }
 
     TEST_CASE("Test invoking a function", "[edge]") {

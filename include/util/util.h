@@ -21,19 +21,18 @@ namespace util {
 
     // System configuration
 
-    // TODO - must match the underlying number of available namespaces. Good to decouple?
-    const int N_THREADS_PER_WORKER = 100;
-
     const int DEFAULT_TIMEOUT = 60;
     const int RESULT_KEY_EXPIRY = 30;
 
     class SystemConfig {
 
     public:
-        // Default values
+        // Scheduling
         int prewarmTarget;
         int maxQueueRatio;
         int maxWorkersPerFunction;
+        int affinity;
+        int threadsPerWorker;
 
         // Worker-related timeouts
         int unboundTimeout;
@@ -44,9 +43,6 @@ namespace util {
         int stateClearThreshold;
         int statePushInterval;
         int fullAsync;
-
-        // Scheduling
-        int affinity;
 
         SystemConfig();
 

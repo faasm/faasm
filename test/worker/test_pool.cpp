@@ -23,7 +23,7 @@ namespace tests {
         infra::Redis &redisQueue = infra::Redis::getQueue();
 
         // Set up worker to listen for relevant function
-        WorkerThreadPool pool;
+        WorkerThreadPool pool(1, 1);
         WorkerThread w(pool, 1, 1);
         REQUIRE(w.isInitialised());
         REQUIRE(!w.isBound());
@@ -79,7 +79,7 @@ namespace tests {
     TEST_CASE("Test worker initially pre-warmed", "[worker]") {
         setUp();
 
-        WorkerThreadPool pool;
+        WorkerThreadPool pool(1, 1);
         WorkerThread w(pool, 1, 1);
         REQUIRE(!w.isBound());
         REQUIRE(w.isInitialised());
@@ -97,7 +97,7 @@ namespace tests {
         call.set_user("demo");
         call.set_function("chain");
 
-        WorkerThreadPool pool;
+        WorkerThreadPool pool(1, 1);
         WorkerThread w(pool, 1, 1);
         w.initialise();
         checkBound(w, call, false);
@@ -131,7 +131,7 @@ namespace tests {
         setUp();
 
         // Create worker and check it's prewarm
-        WorkerThreadPool pool;
+        WorkerThreadPool pool(1, 1);
         WorkerThread w(pool, 1, 1);
         REQUIRE(!w.isBound());
         REQUIRE(w.isInitialised());
@@ -165,7 +165,7 @@ namespace tests {
 
         // Set up a real worker to execute this function. Remove it from the
         // unassigned set and add to handle this function
-        WorkerThreadPool pool;
+        WorkerThreadPool pool(1, 1);
         WorkerThread w(pool, 1, 1);
         w.bindToFunction(call);
 
@@ -204,7 +204,7 @@ namespace tests {
         call.set_resultkey("test_state_incr");
 
         // Call function
-        WorkerThreadPool pool;
+        WorkerThreadPool pool(1, 1);
         WorkerThread w(pool, 1, 1);
         infra::Scheduler::callFunction(call);
 
@@ -238,7 +238,7 @@ namespace tests {
         call.set_resultkey("check_state_res");
 
         // Call function
-        WorkerThreadPool pool;
+        WorkerThreadPool pool(1, 1);
         WorkerThread w(pool, 1, 1);
         infra::Scheduler::callFunction(call);
 
@@ -290,7 +290,7 @@ namespace tests {
         call.set_resultkey("test_heap_mem");
 
         // Call function
-        WorkerThreadPool pool;
+        WorkerThreadPool pool(1, 1);
         WorkerThread w(pool, 1, 1);
         infra::Scheduler::callFunction(call);
 
@@ -315,7 +315,7 @@ namespace tests {
         call.set_resultkey("test_" + funcName);
 
         // Call function
-        WorkerThreadPool pool;
+        WorkerThreadPool pool(1, 1);
         WorkerThread w(pool, 1, 1);
         infra::Scheduler::callFunction(call);
 
@@ -367,7 +367,7 @@ namespace tests {
 
         util::setEnvVar("HOSTNAME", "foo");
 
-        WorkerThreadPool pool;
+        WorkerThreadPool pool(1, 1);
         infra::Redis &redisQueue = infra::Redis::getQueue();
         REQUIRE(redisQueue.sismember(GLOBAL_WORKER_SET, "foo"));
 

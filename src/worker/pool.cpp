@@ -11,8 +11,8 @@
 
 namespace worker {
 
-    WorkerThreadPool::WorkerThreadPool() : workerTokenPool(util::N_THREADS_PER_WORKER),
-                                           prewarmTokenPool(util::getSystemConfig().prewarmTarget),
+    WorkerThreadPool::WorkerThreadPool(int nThreads, int nPrewarm) : workerTokenPool(nThreads),
+                                           prewarmTokenPool(nPrewarm),
                                            redis(infra::Redis::getQueue()){
         // To run the pool we have two token pools, one for the total workers in the pool,
         // The other for prewarm workers. Workers first need to acquire a worker token,

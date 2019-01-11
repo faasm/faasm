@@ -92,6 +92,7 @@ namespace tests {
         params.learningRate = 0.1;
         params.nBatches = 1;
         params.batchSize = 2;
+        params.syncInterval = 100;
 
         // Dummy initial weights
         MatrixXd weights(1, nWeights);

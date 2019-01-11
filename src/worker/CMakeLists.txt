@@ -8,7 +8,7 @@ add_library(worker_lib
         network.cpp
         pool.cpp
         ${FAASM_INCLUDE_DIR}/worker/worker.h
-)
+        )
 
 target_link_libraries(worker_lib wasm)
 

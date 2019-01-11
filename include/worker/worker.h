@@ -64,7 +64,7 @@ namespace worker {
      */
     class WorkerThreadPool {
     public:
-        WorkerThreadPool();
+        WorkerThreadPool(int nThreads, int nPrewarm);
 
         void start();
 
