@@ -28,11 +28,11 @@ namespace util {
 
     public:
         // Scheduling
+        int threadsPerWorker;
         int prewarmTarget;
         int maxQueueRatio;
         int maxWorkersPerFunction;
         int affinity;
-        int threadsPerWorker;
 
         // Worker-related timeouts
         int unboundTimeout;

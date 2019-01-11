@@ -20,28 +20,11 @@ services:
 
   worker:
     image: faasm/worker:latest
-
     depends_on:
       - redis-queue
       - redis-state
-    environment:
-      - REDIS_STATE_HOST=redis-state
-      - REDIS_QUEUE_HOST=redis-queue
-      - REDIS_PORT=6379
-      - FUNC_ROOT=/usr/share/faasm
-      - CGROUP_MODE=on
-      - NETNS_MODE=off
-      - LOG_LEVEL=debug
-      - PREWARM_TARGET=20
-      - MAX_QUEUE_RATIO=1
-      - MAX_WORKERS_PER_FUNCTION=30
-      - BOUND_TIMEOUT=30
-      - UNBOUND_TIMEOUT=240
-      - STATE_STALE_THRESHOLD=60000
-      - STATE_CLEAR_THRESHOLD=300000
-      - STATE_PUSH_INTERVAL=500
-      - FULL_ASYNC=0
-      - AFFINITY=0
+    env_file:
+      - docker-compose.env
     volumes:
       - ./wasm:/usr/share/faasm/wasm
     networks:
@@ -52,24 +35,14 @@ services:
     image: faasm/edge:latest
     ports:
       - "8001:8001"
-    environment:
-      - REDIS_STATE_HOST=redis-state
-      - REDIS_QUEUE_HOST=redis-queue
-      - REDIS_PORT=6379
-      - FUNC_ROOT=/usr/share/faasm
-      - LOG_LEVEL=debug
-      - PREWARM_TARGET=20
-      - MAX_QUEUE_RATIO=1
-      - MAX_WORKERS_PER_FUNCTION=100
-      - BOUND_TIMEOUT=30
-      - UNBOUND_TIMEOUT=240
-      - AFFINITY=0
     volumes:
       - ./wasm:/usr/share/faasm/wasm
     depends_on:
       - redis-queue
       - redis-state
       - worker
+    env_file:
+      - docker-compose.env
     networks:
       - faasm
 
@@ -77,15 +50,12 @@ services:
     image: faasm/upload:latest
     ports:
       - "8002:8002"
-    environment:
-      - REDIS_STATE_HOST=redis-state
-      - REDIS_QUEUE_HOST=redis-queue
-      - REDIS_PORT=6379
-      - FUNC_ROOT=/usr/share/faasm
     volumes:
       - ./wasm:/usr/share/faasm/wasm
     depends_on:
       - redis-queue
       - redis-state
+    env_file:
+      - docker-compose.env
     networks:
       - faasm
