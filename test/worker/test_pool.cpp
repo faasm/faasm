@@ -85,6 +85,18 @@ namespace tests {
         REQUIRE(w.isInitialised());
     }
 
+    TEST_CASE("Test worker not pre-warmed if no prewarm token given", "[worker]") {
+        setUp();
+
+        WorkerThreadPool pool(1, 1);
+
+        // Note prewarm token -1 here
+        WorkerThread w(pool, 1, -1);
+
+        REQUIRE(!w.isBound());
+        REQUIRE(!w.isInitialised());
+    }
+
     void checkBound(WorkerThread &w, message::Message &msg, bool isBound) {
         REQUIRE(w.isBound() == isBound);
         REQUIRE(w.module->isBound() == isBound);
@@ -99,10 +111,26 @@ namespace tests {
 
         WorkerThreadPool pool(1, 1);
         WorkerThread w(pool, 1, 1);
-        w.initialise();
+        REQUIRE(w.isInitialised());
         checkBound(w, call, false);
 
         w.bindToFunction(call);
+        checkBound(w, call, true);
+    }
+
+    TEST_CASE("Test binding to function initialises when in no-prewarm mode", "[worker]") {
+        setUp();
+
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("chain");
+
+        WorkerThreadPool pool(1, 1);
+        WorkerThread w(pool, 1, -1);
+        REQUIRE(!w.isInitialised());
+
+        w.bindToFunction(call);
+        REQUIRE(w.isInitialised());
         checkBound(w, call, true);
     }
 

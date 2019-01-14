@@ -16,6 +16,10 @@ namespace util {
      * Blocking call to get an available token
      */
     int TokenPool::getToken() {
+        if(_size == 0) {
+            return -1;
+        }
+
         std::unique_lock<std::mutex> lock(queueMutex);
         while (tokenQueue.empty()) {
             tokenCondition.wait(lock);

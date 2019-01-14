@@ -12,8 +12,8 @@
 namespace worker {
 
     WorkerThreadPool::WorkerThreadPool(int nThreads, int nPrewarm) : workerTokenPool(nThreads),
-                                           prewarmTokenPool(nPrewarm),
-                                           redis(infra::Redis::getQueue()){
+                                                                     prewarmTokenPool(nPrewarm),
+                                                                     redis(infra::Redis::getQueue()) {
         // To run the pool we have two token pools, one for the total workers in the pool,
         // The other for prewarm workers. Workers first need to acquire a worker token,
         // then a prewarm token to say they should start
@@ -24,7 +24,7 @@ namespace worker {
 
         // Add this worker to the list of workers accepting jobs
         hostname = infra::Scheduler::getHostName();
-        if(hostname.empty()) {
+        if (hostname.empty()) {
             throw std::runtime_error("HOSTNAME for this machine is empty");
         }
 
@@ -105,7 +105,13 @@ namespace worker {
 
         logger->debug("Starting worker {}", id);
         currentQueue = infra::Scheduler::getHostPrewarmQueue();
-        this->initialise();
+
+        // If we've got a prewarm token less than zero we don't need to prewarm
+        if (prewarmTokenIn < 0) {
+            logger->debug("No prewarm for worker {}", id);
+        } else {
+            this->initialise();
+        }
     }
 
     WorkerThread::~WorkerThread() {
@@ -118,6 +124,10 @@ namespace worker {
     }
 
     void WorkerThread::initialise() {
+        if(_isInitialised) {
+            throw std::runtime_error("Should not be initialising an already initialised thread");
+        }
+
         // Set up network namespace
         isolationIdx = workerIdx + 1;
         std::string netnsName = BASE_NETNS_NAME + std::to_string(isolationIdx);
@@ -174,7 +184,13 @@ namespace worker {
 
     void WorkerThread::bindToFunction(const message::Message &msg) {
         if (!_isInitialised) {
-            throw std::runtime_error("Cannot bind without initialising");
+            // If we're in "no prewarm" mode, then we need to initialise on demand
+            if (prewarmToken < 0) {
+                this->initialise();
+            } else {
+                // If we get here, something has gone wrong
+                throw std::runtime_error("Cannot bind without initialising");
+            }
         }
 
         if (_isBound) {

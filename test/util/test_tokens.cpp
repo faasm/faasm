@@ -67,4 +67,16 @@ namespace tests {
 
         //TODO: come up with a better test here to check blocking?
     }
+
+    TEST_CASE("Test empty token pool returns -1", "[util]") {
+        TokenPool p(0);
+
+        int actualA = p.getToken();
+        int actualB = p.getToken();
+        int actualC = p.getToken();
+
+        REQUIRE(actualA == -1);
+        REQUIRE(actualB == -1);
+        REQUIRE(actualC == -1);
+    }
 }
