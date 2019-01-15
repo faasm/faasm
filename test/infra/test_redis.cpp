@@ -184,7 +184,8 @@ namespace tests {
         // Check resultkey not set initially
         REQUIRE(!call.has_resultkey());
 
-        std::string queueName = Scheduler::callFunction(call);
+        Scheduler &sch = getScheduler();
+        std::string queueName = sch.callFunction(call);
 
         // Get the next call
         Redis &redisQueue = Redis::getQueue();

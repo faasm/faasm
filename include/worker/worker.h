@@ -60,36 +60,11 @@ namespace worker {
     };
 
     /**
-     * Wrapper around global worker thread pool
-     */
-    class WorkerThreadPool {
-    public:
-        WorkerThreadPool(int nThreads, int nPrewarm);
-
-        void start();
-
-        int getWorkerToken();
-
-        int getPrewarmToken();
-
-        void releaseWorkerToken(int workerIdx);
-
-        void releasePrewarmToken(int prewarmToken);
-
-        void reset();
-
-    private:
-        util::TokenPool workerTokenPool;
-        util::TokenPool prewarmTokenPool;
-
-        infra::Redis &redis;
-        std::string hostname;
-    };
-
-    /**
      * Worker threads
      */
+    class WorkerThreadPool;
     class WorkerThread {
+        friend class WorkerThreadPool;
     public:
         WorkerThread(WorkerThreadPool &threadPool, int workerIdx, int prewarmToken);
 
@@ -113,6 +88,8 @@ namespace worker {
     private:
         bool _isInitialised = false;
         bool _isBound = false;
+        message::Message boundMessage;
+
         int isolationIdx;
         NetworkNamespace *ns;
 
@@ -128,6 +105,32 @@ namespace worker {
 
         void finishCall(message::Message &msg, const std::string &errorMsg);
     };
+
+    /**
+     * Wrapper around global worker thread pool
+     */
+    class WorkerThreadPool {
+    public:
+        WorkerThreadPool(int nThreads, int nPrewarm);
+
+        void start();
+
+        void reset();
+
+        std::string getPrewarmQueue();
+
+        std::string threadBound(const WorkerThread &thread);
+
+        void threadFinished(WorkerThread &thread);
+    private:
+        util::TokenPool workerTokenPool;
+        util::TokenPool prewarmTokenPool;
+
+        infra::Redis &redis;
+
+        infra::Scheduler &scheduler;
+    };
+
 
     class StateThread {
     public:

@@ -36,7 +36,8 @@ namespace tests {
         REQUIRE(!w.isBound());
 
         // Call the function
-        infra::Scheduler::callFunction(call);
+        infra::Scheduler &sch = infra::getScheduler();
+        sch.callFunction(call);
 
         // Process the bind and execute messages
         w.processNextMessage();

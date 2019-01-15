@@ -71,7 +71,8 @@ namespace edge {
         }
 
         // Make the call
-        infra::Scheduler::callFunction(msg);
+        infra::Scheduler &sch = infra::getScheduler();
+        sch.callFunction(msg);
         prof::logEndTimer("edge-submit", now);
 
         if (msg.isasync()) {

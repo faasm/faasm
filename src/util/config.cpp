@@ -49,4 +49,9 @@ namespace util {
         logger->info("FULL_ASYNC                 {}", fullAsync);
 
     }
+
+    std::string getHostName() {
+        std::string hostname = util::getEnvVar("HOSTNAME", "");
+        return hostname;
+    }
 }

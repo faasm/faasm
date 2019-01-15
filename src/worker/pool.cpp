@@ -13,7 +13,8 @@ namespace worker {
 
     WorkerThreadPool::WorkerThreadPool(int nThreads, int nPrewarm) : workerTokenPool(nThreads),
                                                                      prewarmTokenPool(nPrewarm),
-                                                                     redis(infra::Redis::getQueue()) {
+                                                                     redis(infra::Redis::getQueue()),
+                                                                     scheduler(infra::getScheduler()) {
         // To run the pool we have two token pools, one for the total workers in the pool,
         // The other for prewarm workers. Workers first need to acquire a worker token,
         // then a prewarm token to say they should start
@@ -22,29 +23,8 @@ namespace worker {
         infra::Redis::getQueue().ping();
         infra::Redis::getState().ping();
 
-        // Add this worker to the list of workers accepting jobs
-        hostname = infra::Scheduler::getHostName();
-        if (hostname.empty()) {
-            throw std::runtime_error("HOSTNAME for this machine is empty");
-        }
-
-        redis.sadd(GLOBAL_WORKER_SET, hostname);
-    }
-
-    void WorkerThreadPool::releasePrewarmToken(int prewarmToken) {
-        prewarmTokenPool.releaseToken(prewarmToken);
-    }
-
-    void WorkerThreadPool::releaseWorkerToken(int workerIdx) {
-        workerTokenPool.releaseToken(workerIdx);
-    }
-
-    int WorkerThreadPool::getWorkerToken() {
-        return workerTokenPool.getToken();
-    }
-
-    int WorkerThreadPool::getPrewarmToken() {
-        return prewarmTokenPool.getToken();
+        // Notify scheduler
+        scheduler.addCurrentHostToWorkerPool();
     }
 
     void WorkerThreadPool::start() {
@@ -62,10 +42,10 @@ namespace worker {
         // that will replenish when one releases its token
         while (true) {
             // Try to get an available slot (blocks if none available)
-            int workerIdx = this->getWorkerToken();
+            int workerIdx = workerTokenPool.getToken();
 
             // See if we can prewarm
-            int prewarmToken = this->getPrewarmToken();
+            int prewarmToken = prewarmTokenPool.getToken();
 
             // Spawn thread to execute function
             std::thread funcThread([this, workerIdx, prewarmToken] {
@@ -82,7 +62,31 @@ namespace worker {
         prewarmTokenPool.reset();
 
         // Add hostname to global workers
-        redis.sadd(GLOBAL_WORKER_SET, hostname);
+        scheduler.addCurrentHostToWorkerPool();
+    }
+
+    std::string WorkerThreadPool::threadBound(const WorkerThread &thread) {
+        // Notify the scheduler
+        scheduler.workerBound(thread.boundMessage);
+
+        // Tell the thread where to listen
+        std::string newQueue = scheduler.getFunctionQueueName(thread.boundMessage);
+        return newQueue;
+    }
+
+    void WorkerThreadPool::threadFinished(WorkerThread &thread) {
+        // Release tokens
+        workerTokenPool.releaseToken(thread.workerIdx);
+        prewarmTokenPool.releaseToken(thread.prewarmToken);
+
+        // Notifiy scheduler if this thread was bound to a function
+        if(thread.isBound()) {
+            scheduler.workerUnbound(thread.boundMessage);
+        }
+    }
+
+    std::string WorkerThreadPool::getPrewarmQueue() {
+        return scheduler.getHostPrewarmQueue();
     }
 
     StateThread::StateThread() = default;
@@ -101,10 +105,10 @@ namespace worker {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Prepare host-specific variables
-        id = infra::Scheduler::getHostName() + "_" + std::to_string(workerIdx);
+        id = util::getHostName() + "_" + std::to_string(workerIdx);
 
         logger->debug("Starting worker {}", id);
-        currentQueue = infra::Scheduler::getHostPrewarmQueue();
+        currentQueue = threadPool.getPrewarmQueue();
 
         // If we've got a prewarm token less than zero we don't need to prewarm
         if (prewarmTokenIn < 0) {
@@ -124,7 +128,7 @@ namespace worker {
     }
 
     void WorkerThread::initialise() {
-        if(_isInitialised) {
+        if (_isInitialised) {
             throw std::runtime_error("Should not be initialising an already initialised thread");
         }
 
@@ -158,12 +162,8 @@ namespace worker {
             ns->removeCurrentThread();
         }
 
-        // Notify scheduler
-        infra::Scheduler::workerFinished(currentQueue);
-
-        // Release token
-        threadPool.releaseWorkerToken(workerIdx);
-        threadPool.releasePrewarmToken(prewarmToken);
+        // Notify the pool
+        threadPool.threadFinished(*this);
     }
 
     void WorkerThread::finishCall(message::Message &call, const std::string &errorMsg) {
@@ -194,11 +194,12 @@ namespace worker {
         }
 
         if (_isBound) {
-            throw std::runtime_error("Cannot bind worker thread again");
+            throw std::runtime_error("Cannot bind worker thread more than once");
         }
 
-        // Work out where to listen
-        currentQueue = infra::Scheduler::getFunctionQueueName(msg);
+        // Notify the pool
+        boundMessage = msg;
+        currentQueue = threadPool.threadBound(*this);
 
         // Perform the actual wasm initialisation
         module->bindToFunction(msg);
@@ -218,7 +219,8 @@ namespace worker {
                 }
             }
             catch (infra::RedisNoResponseException &e) {
-                // Ignore and try again
+                // At this point we've received no message, so die off
+                break;
             }
         }
 
@@ -229,7 +231,13 @@ namespace worker {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Work out which timeout
-        int timeout = infra::Scheduler::getWorkerTimeout(currentQueue);
+        int timeout;
+        util::SystemConfig conf = util::getSystemConfig();
+        if (_isBound) {
+            timeout = conf.boundTimeout;
+        } else {
+            timeout = conf.unboundTimeout;
+        }
 
         // Wait for next message
         message::Message msg = redis.nextMessage(currentQueue, timeout);

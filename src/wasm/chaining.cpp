@@ -38,7 +38,8 @@ namespace wasm {
             }
 
             logger->debug("Chaining {} -> {}", origStr, chainedStr);
-            infra::Scheduler::callFunction(chainedCall);
+            infra::Scheduler &sch = infra::getScheduler();
+            sch.callFunction(chainedCall);
         }
 
         std::string empty;

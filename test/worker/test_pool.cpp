@@ -28,32 +28,34 @@ namespace tests {
         REQUIRE(w.isInitialised());
         REQUIRE(!w.isBound());
 
-        const std::string expectedPrewarmQueue = infra::Scheduler::getHostPrewarmQueue();
+        infra::Scheduler &sch = infra::getScheduler();
+        const std::string expectedPrewarmQueue = sch.getHostPrewarmQueue();
 
         // Call the function, checking that everything is set up
-        infra::Scheduler::callFunction(call);
-        REQUIRE(redisQueue.listLength(infra::Scheduler::getFunctionQueueName(call)) == 1);
-        REQUIRE(infra::Scheduler::getFunctionCount(call) == 1);
+        sch.callFunction(call);
+        REQUIRE(redisQueue.listLength(sch.getFunctionQueueName(call)) == 1);
+        REQUIRE(sch.getFunctionCount(call) == 1);
         REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 1);
 
         // Process the bind message
         w.processNextMessage();
         REQUIRE(w.isBound());
-        REQUIRE(redisQueue.listLength(infra::Scheduler::getFunctionQueueName(call)) == 1);
-        REQUIRE(infra::Scheduler::getFunctionCount(call) == 1);
+        REQUIRE(redisQueue.listLength(sch.getFunctionQueueName(call)) == 1);
+        REQUIRE(sch.getFunctionCount(call) == 1);
         REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 0);
 
         // Now execute the function
         w.processNextMessage();
-        REQUIRE(redisQueue.listLength(infra::Scheduler::getFunctionQueueName(call)) == 0);
-        REQUIRE(infra::Scheduler::getFunctionCount(call) == 1);
+        REQUIRE(redisQueue.listLength(sch.getFunctionQueueName(call)) == 0);
+        REQUIRE(sch.getFunctionCount(call) == 1);
         REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 0);
     }
 
     void checkBindMessage(const message::Message &expected) {
         infra::Redis &redisQueue = infra::Redis::getQueue();
 
-        std::string expectedPrewarmQueue = infra::Scheduler::getHostPrewarmQueue();
+        infra::Scheduler &sch = infra::getScheduler();
+        std::string expectedPrewarmQueue = sch.getHostPrewarmQueue();
         const message::Message actual = redisQueue.nextMessage(expectedPrewarmQueue);
         REQUIRE(actual.user() == expected.user());
         REQUIRE(actual.function() == expected.function());
@@ -67,7 +69,8 @@ namespace tests {
         expected.set_function(func);
         expected.set_inputdata(inputData);
 
-        message::Message actual = redisQueue.nextMessage(infra::Scheduler::getFunctionQueueName(expected));
+        infra::Scheduler &sch = infra::getScheduler();
+        message::Message actual = redisQueue.nextMessage(sch.getFunctionQueueName(expected));
 
         REQUIRE(actual.user() == expected.user());
         REQUIRE(actual.function() == expected.function());
@@ -164,13 +167,14 @@ namespace tests {
         REQUIRE(!w.isBound());
         REQUIRE(w.isInitialised());
 
-        const std::string expectedPrewarmQueue = infra::Scheduler::getHostPrewarmQueue();
+        infra::Scheduler &sch = infra::getScheduler();
+        const std::string expectedPrewarmQueue = sch.getHostPrewarmQueue();
 
         // Invoke a new call which will require a worker to bind
         message::Message call;
         call.set_user("demo");
         call.set_function("echo");
-        infra::Scheduler::callFunction(call);
+        sch.callFunction(call);
 
         // Check message is on the prewarm queue
         infra::Redis &redisQueue = infra::Redis::getQueue();
@@ -198,7 +202,8 @@ namespace tests {
         w.bindToFunction(call);
 
         // Make the call
-        infra::Scheduler::callFunction(call);
+        infra::Scheduler &sch = infra::getScheduler();
+        sch.callFunction(call);
 
         // Execute the worker
         w.processNextMessage();
@@ -234,7 +239,9 @@ namespace tests {
         // Call function
         WorkerThreadPool pool(1, 1);
         WorkerThread w(pool, 1, 1);
-        infra::Scheduler::callFunction(call);
+
+        infra::Scheduler &sch = infra::getScheduler();
+        sch.callFunction(call);
 
         // Bind and exec
         w.processNextMessage();
@@ -247,7 +254,7 @@ namespace tests {
         REQUIRE(resultA.outputdata() == "Counter: 001");
 
         // Call the function a second time, the state should have been incremented
-        infra::Scheduler::callFunction(call);
+        sch.callFunction(call);
         w.processNextMessage();
 
         message::Message resultB = redisQueue.getFunctionResult(call);
@@ -268,7 +275,9 @@ namespace tests {
         // Call function
         WorkerThreadPool pool(1, 1);
         WorkerThread w(pool, 1, 1);
-        infra::Scheduler::callFunction(call);
+
+        infra::Scheduler &sch = infra::getScheduler();
+        sch.callFunction(call);
 
         // Bind and exec
         w.processNextMessage();
@@ -320,7 +329,9 @@ namespace tests {
         // Call function
         WorkerThreadPool pool(1, 1);
         WorkerThread w(pool, 1, 1);
-        infra::Scheduler::callFunction(call);
+
+        infra::Scheduler &sch = infra::getScheduler();
+        sch.callFunction(call);
 
         // Process bind
         w.processNextMessage();
@@ -345,7 +356,9 @@ namespace tests {
         // Call function
         WorkerThreadPool pool(1, 1);
         WorkerThread w(pool, 1, 1);
-        infra::Scheduler::callFunction(call);
+
+        infra::Scheduler &sch = infra::getScheduler();
+        sch.callFunction(call);
 
         // Bind and execute
         w.processNextMessage();
