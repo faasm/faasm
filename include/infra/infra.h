@@ -193,6 +193,10 @@ namespace infra {
 
         long getFunctionCount(const message::Message &msg);
 
+        long getFunctionQueueLength(const message::Message &msg);
+
+        long getLocalThreadCount(const message::Message &msg);
+
         void workerBound(const message::Message &msg);
 
         void workerUnbound(const message::Message &msg);
@@ -210,6 +214,8 @@ namespace infra {
         std::string getHostPrewarmQueue();
 
         std::string getPrewarmQueueForFunction(const message::Message &msg, bool affinity);
+
+        void reset();
 
     private:
         std::map<std::string, int> funcCounts;

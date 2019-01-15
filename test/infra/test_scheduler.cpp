@@ -6,22 +6,49 @@
 using namespace infra;
 
 namespace tests {
-    TEST_CASE("Test worker finished bound", "[scheduler]") {
+    TEST_CASE("Test worker finishing and host removal", "[scheduler]") {
         cleanSystem();
         infra::Scheduler &sch = infra::getScheduler();
+        Redis &redis = Redis::getQueue();
 
         message::Message call;
         call.set_user("userA");
         call.set_function("funcA");
 
-        // Call the function to simulate the worker getting added
-        sch.callFunction(call);
+        // Sanity check to see that the host is in the global set but not the set for the function
+        std::string hostname = util::getHostName();
+        std::string funcSet = sch.getFunctionWorkerSetName(call);
+        REQUIRE(redis.sismember(GLOBAL_WORKER_SET, hostname));
+        REQUIRE(!redis.sismember(funcSet, hostname));
+
+        // Call the function enough to get multiple workers set up
+        util::SystemConfig &conf = util::getSystemConfig();
+        int requiredCalls = conf.maxQueueRatio * 2;
+        for (int i = 0; i < requiredCalls; i++) {
+            sch.callFunction(call);
+        }
+
+        // Check host is now part of function's set
+        REQUIRE(redis.sismember(funcSet, hostname));
+        REQUIRE(sch.getFunctionQueueLength(call) == requiredCalls);
+        REQUIRE(sch.getFunctionCount(call) == 2);
+
+        // Fake two workers binding
+        sch.workerBound(call);
+        sch.workerBound(call);
+
+        // Notify that a worker has finished, count decremented by one and worker is still member of function set
+        sch.workerUnbound(call);
+        REQUIRE(redis.sismember(funcSet, hostname));
+        REQUIRE(sch.getFunctionQueueLength(call) == requiredCalls);
         REQUIRE(sch.getFunctionCount(call) == 1);
 
-        // Notify that a worker has finished
-        sch.workerFinished(sch.getFunctionQueueName(call));
-
-        // Check count decremented
+        // Notify that another worker has finished, check count is decremented and host removed from function set
+        // (but still in global set)
+        sch.workerUnbound(call);
+        REQUIRE(redis.sismember(GLOBAL_WORKER_SET, hostname));
+        REQUIRE(!redis.sismember(funcSet, hostname));
+        REQUIRE(sch.getFunctionQueueLength(call) == requiredCalls);
         REQUIRE(sch.getFunctionCount(call) == 0);
     }
 
@@ -235,12 +262,11 @@ namespace tests {
         std::string chosenHost;
         std::string otherHost;
         std::string otherQueue;
-        if(actual == prewarmA) {
+        if (actual == prewarmA) {
             chosenHost = hostA;
             otherHost = hostB;
             otherQueue = prewarmB;
-        }
-        else {
+        } else {
             chosenHost = hostB;
             otherHost = hostA;
             otherQueue = prewarmA;
@@ -274,7 +300,7 @@ namespace tests {
 
         redisQueue.flushAll();
     }
-    
+
     TEST_CASE("Test getting prewarm queue for function with affinity", "[scheduler]") {
         checkPrewarmQueueChoice(true);
     }

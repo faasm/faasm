@@ -11,7 +11,7 @@
 
 namespace worker {
 
-    WorkerThreadPool::WorkerThreadPool(int nThreads, int nPrewarm) : workerTokenPool(nThreads),
+    WorkerThreadPool::WorkerThreadPool(int nThreads, int nPrewarm) : threadTokenPool(nThreads),
                                                                      prewarmTokenPool(nPrewarm),
                                                                      redis(infra::Redis::getQueue()),
                                                                      scheduler(infra::getScheduler()) {
@@ -42,14 +42,14 @@ namespace worker {
         // that will replenish when one releases its token
         while (true) {
             // Try to get an available slot (blocks if none available)
-            int workerIdx = workerTokenPool.getToken();
+            int threadIdx = this->getThreadToken();
 
             // See if we can prewarm
-            int prewarmToken = prewarmTokenPool.getToken();
+            int prewarmToken = this->getPrewarmToken();
 
             // Spawn thread to execute function
-            std::thread funcThread([this, workerIdx, prewarmToken] {
-                WorkerThread w(*this, workerIdx, prewarmToken);
+            std::thread funcThread([this, threadIdx, prewarmToken] {
+                WorkerThread w(*this, threadIdx, prewarmToken);
                 w.run();
             });
 
@@ -58,11 +58,27 @@ namespace worker {
     }
 
     void WorkerThreadPool::reset() {
-        workerTokenPool.reset();
+        threadTokenPool.reset();
         prewarmTokenPool.reset();
 
         // Add hostname to global workers
         scheduler.addCurrentHostToWorkerPool();
+    }
+
+    int WorkerThreadPool::getPrewarmToken() {
+        return prewarmTokenPool.getToken();
+    }
+
+    int WorkerThreadPool::getThreadToken() {
+        return threadTokenPool.getToken();
+    }
+
+    int WorkerThreadPool::getPrewarmCount() {
+        return prewarmTokenPool.taken();
+    }
+
+    int WorkerThreadPool::getThreadCount() {
+        return threadTokenPool.taken();
     }
 
     std::string WorkerThreadPool::threadBound(const WorkerThread &thread) {
@@ -78,7 +94,7 @@ namespace worker {
     }
 
     void WorkerThreadPool::threadFinished(WorkerThread &thread) {
-        if(thread.isBound()) {
+        if (thread.isBound()) {
             // Notifiy scheduler if this thread was bound to a function
             scheduler.workerUnbound(thread.boundMessage);
         } else {
@@ -87,7 +103,7 @@ namespace worker {
         }
 
         // Release worker token
-        workerTokenPool.releaseToken(thread.workerIdx);
+        threadTokenPool.releaseToken(thread.threadIdx);
     }
 
     std::string WorkerThreadPool::getPrewarmQueue() {
@@ -101,16 +117,16 @@ namespace worker {
         s.pushLoop();
     }
 
-    WorkerThread::WorkerThread(WorkerThreadPool &threadPoolIn, int workerIdxIn,
+    WorkerThread::WorkerThread(WorkerThreadPool &threadPoolIn, int threadIdxIn,
                                int prewarmTokenIn) : threadPool(threadPoolIn),
-                                                     workerIdx(workerIdxIn),
+                                                     threadIdx(threadIdxIn),
                                                      prewarmToken(prewarmTokenIn),
                                                      redis(infra::Redis::getQueue()) {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Prepare host-specific variables
-        id = util::getHostName() + "_" + std::to_string(workerIdx);
+        id = util::getHostName() + "_" + std::to_string(threadIdx);
 
         logger->debug("Starting worker {}", id);
         currentQueue = threadPool.getPrewarmQueue();
@@ -138,7 +154,7 @@ namespace worker {
         }
 
         // Set up network namespace
-        isolationIdx = workerIdx + 1;
+        isolationIdx = threadIdx + 1;
         std::string netnsName = BASE_NETNS_NAME + std::to_string(isolationIdx);
         ns = new NetworkNamespace(netnsName);
         ns->addCurrentThread();

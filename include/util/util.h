@@ -88,6 +88,9 @@ namespace util {
 
         int size();
 
+        int taken();
+
+        int free();
     private:
         int _size;
         std::queue<int> tokenQueue;

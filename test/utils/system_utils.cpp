@@ -9,6 +9,8 @@ namespace tests {
 
         state::getGlobalState().forceClearAll();
 
+        infra::getScheduler().reset();
+
         workerThreadPool.reset();
     }
 }

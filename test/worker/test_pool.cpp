@@ -416,4 +416,98 @@ namespace tests {
         util::setEnvVar("HOSTNAME", originalHostname);
         cleanSystem();
     }
+
+    TEST_CASE("Test finishing thread releases prewarm and thread tokens when not bound", "[worker]") {
+        cleanSystem();
+
+        WorkerThreadPool pool(10, 5);
+        REQUIRE(pool.getPrewarmCount() == 0);
+        REQUIRE(pool.getThreadCount() == 0);
+
+        // Add threads and check tokens are taken
+        WorkerThread w1(pool, pool.getThreadToken(), pool.getPrewarmToken());
+        WorkerThread w2(pool, pool.getThreadToken(), pool.getPrewarmToken());
+        REQUIRE(pool.getPrewarmCount() == 2);
+        REQUIRE(pool.getThreadCount() == 2);
+
+        // Remove one and check tokens returned
+        w1.finish();
+        REQUIRE(pool.getPrewarmCount() == 1);
+        REQUIRE(pool.getThreadCount() == 1);
+    }
+
+    TEST_CASE("Test thread releases prewarm token when bound then thread token when finishing", "[worker]") {
+        cleanSystem();
+
+        WorkerThreadPool pool(10, 5);
+        REQUIRE(pool.getPrewarmCount() == 0);
+        REQUIRE(pool.getThreadCount() == 0);
+
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("noop");
+
+        // Add threads and check tokens are taken
+        WorkerThread w1(pool, pool.getThreadToken(), pool.getPrewarmToken());
+        WorkerThread w2(pool, pool.getThreadToken(), pool.getPrewarmToken());
+        REQUIRE(pool.getPrewarmCount() == 2);
+        REQUIRE(pool.getThreadCount() == 2);
+
+        // Bind and check prewarm token returned
+        w1.bindToFunction(call);
+        REQUIRE(pool.getPrewarmCount() == 1);
+        REQUIRE(pool.getThreadCount() == 2);
+
+        // Finish and check thread token also returned
+        w1.finish();
+        REQUIRE(pool.getPrewarmCount() == 1);
+        REQUIRE(pool.getThreadCount() == 1);
+    }
+
+    TEST_CASE("Test worker lifecycle interacts with scheduler", "[worker]") {
+        cleanSystem();
+        infra::Redis &redis = infra::Redis::getQueue();
+
+        WorkerThreadPool pool(5, 5);
+
+        WorkerThread w(pool, 1, 1);
+        std::string hostname = util::getHostName();
+
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("noop");
+
+        // Sense check initial scheduler set-up
+        infra::Scheduler &sch = infra::getScheduler();
+        REQUIRE(sch.getFunctionQueueLength(call) == 0);
+        REQUIRE(sch.getFunctionCount(call) == 0);
+        REQUIRE(sch.getLocalThreadCount(call) == 0);
+
+        // Call the function
+        sch.callFunction(call);
+
+        // Check scheduler set-up
+        const std::string workerSetName = sch.getFunctionWorkerSetName(call);
+        REQUIRE(sch.getFunctionQueueLength(call) == 1);
+        REQUIRE(sch.getFunctionCount(call) == 1);
+        REQUIRE(redis.sismember(workerSetName, hostname));
+
+        // Check that thread isn't currently registered locally
+        REQUIRE(sch.getLocalThreadCount(call) == 0);
+
+        // Bind the thread and check it's now registered
+        w.processNextMessage();
+        REQUIRE(sch.getLocalThreadCount(call) == 1);
+
+        // Execute function and check thread still registered
+        w.processNextMessage();
+        REQUIRE(sch.getLocalThreadCount(call) == 1);
+
+        // Finish thread and check things are reset
+        w.finish();
+        REQUIRE(sch.getFunctionQueueLength(call) == 0);
+        REQUIRE(sch.getFunctionCount(call) == 0);
+        REQUIRE(sch.getLocalThreadCount(call) == 0);
+        REQUIRE(!redis.sismember(workerSetName, hostname));
+    }
 }

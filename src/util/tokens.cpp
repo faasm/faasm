@@ -12,6 +12,14 @@ namespace util {
         return _size;
     }
 
+    int TokenPool::taken() {
+        return _size - tokenQueue.size();
+    }
+
+    int TokenPool::free() {
+        return tokenQueue.size();
+    }
+
     /**
      * Blocking call to get an available token
      */

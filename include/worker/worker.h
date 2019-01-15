@@ -66,7 +66,7 @@ namespace worker {
     class WorkerThread {
         friend class WorkerThreadPool;
     public:
-        WorkerThread(WorkerThreadPool &threadPool, int workerIdx, int prewarmToken);
+        WorkerThread(WorkerThreadPool &threadPool, int threadIdx, int prewarmToken);
 
         ~WorkerThread();
 
@@ -82,6 +82,8 @@ namespace worker {
 
         const std::string processNextMessage();
 
+        void finish();
+
         std::string id;
         std::string currentQueue;
         wasm::WasmModule *module;
@@ -94,14 +96,12 @@ namespace worker {
         NetworkNamespace *ns;
 
         WorkerThreadPool &threadPool;
-        int workerIdx;
+        int threadIdx;
         int prewarmToken;
 
         infra::Redis &redis;
 
         const std::string executeCall(message::Message &msg);
-
-        void finish();
 
         void finishCall(message::Message &msg, const std::string &errorMsg);
     };
@@ -122,8 +122,17 @@ namespace worker {
         std::string threadBound(const WorkerThread &thread);
 
         void threadFinished(WorkerThread &thread);
+
+        int getPrewarmToken();
+
+        int getThreadToken();
+
+        int getPrewarmCount();
+
+        int getThreadCount();
+
     private:
-        util::TokenPool workerTokenPool;
+        util::TokenPool threadTokenPool;
         util::TokenPool prewarmTokenPool;
 
         infra::Redis &redis;

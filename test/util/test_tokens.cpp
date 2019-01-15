@@ -68,6 +68,32 @@ namespace tests {
         //TODO: come up with a better test here to check blocking?
     }
 
+    TEST_CASE("Test count functions", "[util]") {
+        TokenPool p(10);
+        REQUIRE(p.size() == 10);
+        REQUIRE(p.free() == 10);
+        REQUIRE(p.taken() == 0);
+
+        int tokenA = p.getToken();
+        int tokenB = p.getToken();
+
+        REQUIRE(p.size() == 10);
+        REQUIRE(p.free() == 8);
+        REQUIRE(p.taken() == 2);
+
+        p.releaseToken(tokenA);
+
+        REQUIRE(p.size() == 10);
+        REQUIRE(p.free() == 9);
+        REQUIRE(p.taken() == 1);
+
+        p.releaseToken(tokenB);
+
+        REQUIRE(p.size() == 10);
+        REQUIRE(p.free() == 10);
+        REQUIRE(p.taken() == 0);
+    }
+
     TEST_CASE("Test empty token pool returns -1", "[util]") {
         TokenPool p(0);
 

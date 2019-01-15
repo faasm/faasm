@@ -21,6 +21,19 @@ namespace infra {
         return redis.getCounter(this->getFunctionCounterName(msg));
     }
 
+    long Scheduler::getFunctionQueueLength(const message::Message &msg) {
+        return redis.listLength(this->getFunctionQueueName(msg));
+    }
+
+    long Scheduler::getLocalThreadCount(const message::Message &msg) {
+        const std::string &funcStr = infra::funcToString(msg);
+        return funcCounts[funcStr];
+    }
+
+    void Scheduler::reset() {
+        funcCounts.clear();
+    }
+
     void addResultKeyToMessage(message::Message &msg) {
         // Generate a random result key
         int randomNumber = util::randomInteger();
@@ -31,10 +44,9 @@ namespace infra {
 
     std::string Scheduler::callFunction(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        // First of all, send the message to execute the function
         Redis &redis = Redis::getQueue();
 
+        // First of all, send the message to execute the function
         const std::string queueName = getFunctionQueueName(msg);
         logger->debug("Queueing call to {}", infra::funcToString(msg));
         addResultKeyToMessage(msg);
@@ -183,7 +195,7 @@ namespace infra {
         std::unique_lock<std::mutex> lock(funcCountMutex);
         funcCounts[funcStr]++;
     }
-    
+
     void Scheduler::workerUnbound(const message::Message &msg) {
         // Decrement the remote counter
         const std::string &counterName = this->getFunctionCounterName(msg);
@@ -194,9 +206,10 @@ namespace infra {
         std::unique_lock<std::mutex> lock(funcCountMutex);
         funcCounts[funcStr]--;
 
-        // Remove this whole worker from the global set if no more threads left
-        if(funcCounts[funcStr] <= 0) {
-            redis.srem(GLOBAL_WORKER_SET, hostname);
+        // Remove this whole worker from the function set if no more threads left
+        if (funcCounts[funcStr] <= 0) {
+            std::string workerSet = this->getFunctionWorkerSetName(msg);
+            redis.srem(workerSet, hostname);
         }
     }
 
