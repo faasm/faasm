@@ -13,7 +13,7 @@ namespace util {
 
         // Worker-related timeouts
         boundTimeout = this->getSystemConfParam("BOUND_TIMEOUT", "30");
-        unboundTimeout = this->getSystemConfParam("UNBOUND_TIMEOUT", "240");
+        unboundTimeout = this->getSystemConfParam("UNBOUND_TIMEOUT", "5000");
 
         // State
         stateStaleThreshold = this->getSystemConfParam("STATE_STALE_THRESHOLD", "60000");
