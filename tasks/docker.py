@@ -1,4 +1,4 @@
-from subprocess import call
+from subprocess import call, check_output
 
 from invoke import task
 
@@ -44,7 +44,16 @@ def tools(context):
 
 @task
 def purge_images(context):
-    call("docker rmi -f $(docker images -f dangling=true -q)")
+    images_cmd = ["docker", "images", "-q", "-f", "dangling=true"]
+    image_list = check_output(images_cmd)
+
+    for img in image_list.decode().split("\n"):
+        if not img.strip():
+            continue
+
+        print("Removing {}".format(img))
+        cmd = ["docker", "rmi", "-f", img]
+        call(cmd)
 
 
 @task

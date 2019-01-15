@@ -11,7 +11,7 @@ namespace tests {
         infra::Redis::getQueue().flushAll();
 
         // Create a worker pool to allow scheduling
-        worker::WorkerThreadPool wp;
+        worker::WorkerThreadPool wp(1, 1);
     }
 
     TEST_CASE("Test invoking a function", "[edge]") {
@@ -25,7 +25,8 @@ namespace tests {
         call.set_inputdata("abc");
 
         // Get expected queue
-        std::string queueName = infra::Scheduler::getFunctionQueueName(call);
+        infra::Scheduler &sch = infra::getScheduler();
+        std::string queueName = sch.getFunctionQueueName(call);
 
         edge::FunctionEndpoint endpoint;
         endpoint.handleFunction(call);
@@ -51,7 +52,8 @@ namespace tests {
         REQUIRE(msg == "foobar/baz is not a valid function");
 
         // Check nothing added to queue
-        const std::string queueName = infra::Scheduler::getFunctionQueueName(call);
+        infra::Scheduler &sch = infra::getScheduler();
+        const std::string queueName = sch.getFunctionQueueName(call);
         REQUIRE(infra::Redis::getQueue().listLength(queueName) == 0);
     }
 }

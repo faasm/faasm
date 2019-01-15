@@ -7,10 +7,11 @@ using namespace worker;
 
 namespace tests {
     void execErrorFunction(message::Message &call) {
-        WorkerThreadPool pool;
+        WorkerThreadPool pool(1, 1);
         WorkerThread w(pool, 1, 1);
 
-        infra::Scheduler::callFunction(call);
+        infra::Scheduler &sch = infra::getScheduler();
+        sch.callFunction(call);
 
         // Bind message
         w.processNextMessage();

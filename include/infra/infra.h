@@ -185,35 +185,50 @@ namespace infra {
     // Scheduling
     class Scheduler {
     public:
-        static const int scheduleWaitMillis = 100;
-
-        static const int scheduleRecursionLimit = 10;
-
-        static long getFunctionCount(const message::Message &msg);
-
-        static int getWorkerTimeout(const std::string &currentQueue);
-
-        static void workerFinished(const std::string &currentQueue);
-
-        static std::string callFunction(message::Message &msg);
-
-        static std::string getFunctionQueueName(const message::Message &msg);
-
-        static std::string getFunctionWorkerSetName(const message::Message &msg);
-
-        static std::string getHostName();
-
-        static std::string getHostPrewarmQueue(const std::string &hostName);
-
-        static std::string getHostPrewarmQueue();
-
-        static std::string getPrewarmQueueForFunction(const message::Message &msg, bool affinity);
-
-    private:
         Scheduler();
 
-        static void updateWorkerAllocs(const message::Message &msg, int recursionCount = 0);
+        const int scheduleWaitMillis = 100;
 
-        static std::string getFunctionCounterName(const message::Message &msg);
+        const int scheduleRecursionLimit = 10;
+
+        long getFunctionCount(const message::Message &msg);
+
+        long getFunctionQueueLength(const message::Message &msg);
+
+        long getLocalThreadCount(const message::Message &msg);
+
+        void workerBound(const message::Message &msg);
+
+        void workerUnbound(const message::Message &msg);
+
+        void addCurrentHostToWorkerPool();
+
+        std::string callFunction(message::Message &msg);
+
+        std::string getFunctionQueueName(const message::Message &msg);
+
+        std::string getFunctionWorkerSetName(const message::Message &msg);
+
+        std::string getHostPrewarmQueue(const std::string &hostName);
+
+        std::string getHostPrewarmQueue();
+
+        std::string getPrewarmQueueForFunction(const message::Message &msg, bool affinity);
+
+        void reset();
+
+    private:
+        std::map<std::string, int> funcCounts;
+        std::mutex funcCountMutex;
+        std::string hostname;
+
+        void updateWorkerAllocs(const message::Message &msg, int recursionCount = 0);
+
+        std::string getFunctionCounterName(const message::Message &msg);
+
+        Redis &redis;
+        util::SystemConfig &conf;
     };
+
+    Scheduler& getScheduler();
 };

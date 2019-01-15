@@ -60,38 +60,13 @@ namespace worker {
     };
 
     /**
-     * Wrapper around global worker thread pool
-     */
-    class WorkerThreadPool {
-    public:
-        WorkerThreadPool();
-
-        void start();
-
-        int getWorkerToken();
-
-        int getPrewarmToken();
-
-        void releaseWorkerToken(int workerIdx);
-
-        void releasePrewarmToken(int prewarmToken);
-
-        void reset();
-
-    private:
-        util::TokenPool workerTokenPool;
-        util::TokenPool prewarmTokenPool;
-
-        infra::Redis &redis;
-        std::string hostname;
-    };
-
-    /**
      * Worker threads
      */
+    class WorkerThreadPool;
     class WorkerThread {
+        friend class WorkerThreadPool;
     public:
-        WorkerThread(WorkerThreadPool &threadPool, int workerIdx, int prewarmToken);
+        WorkerThread(WorkerThreadPool &threadPool, int threadIdx, int prewarmToken);
 
         ~WorkerThread();
 
@@ -107,27 +82,64 @@ namespace worker {
 
         const std::string processNextMessage();
 
+        void finish();
+
         std::string id;
         std::string currentQueue;
         wasm::WasmModule *module;
     private:
         bool _isInitialised = false;
         bool _isBound = false;
+        message::Message boundMessage;
+
         int isolationIdx;
         NetworkNamespace *ns;
 
         WorkerThreadPool &threadPool;
-        int workerIdx;
+        int threadIdx;
         int prewarmToken;
 
         infra::Redis &redis;
 
         const std::string executeCall(message::Message &msg);
 
-        void finish();
-
         void finishCall(message::Message &msg, const std::string &errorMsg);
     };
+
+    /**
+     * Wrapper around global worker thread pool
+     */
+    class WorkerThreadPool {
+    public:
+        WorkerThreadPool(int nThreads, int nPrewarm);
+
+        void start();
+
+        void reset();
+
+        std::string getPrewarmQueue();
+
+        std::string threadBound(const WorkerThread &thread);
+
+        void threadFinished(WorkerThread &thread);
+
+        int getPrewarmToken();
+
+        int getThreadToken();
+
+        int getPrewarmCount();
+
+        int getThreadCount();
+
+    private:
+        util::TokenPool threadTokenPool;
+        util::TokenPool prewarmTokenPool;
+
+        infra::Redis &redis;
+
+        infra::Scheduler &scheduler;
+    };
+
 
     class StateThread {
     public:

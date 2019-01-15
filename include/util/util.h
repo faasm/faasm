@@ -21,8 +21,7 @@ namespace util {
 
     // System configuration
 
-    // TODO - must match the underlying number of available namespaces. Good to decouple?
-    const int N_THREADS_PER_WORKER = 100;
+    std::string getHostName();
 
     const int DEFAULT_TIMEOUT = 60;
     const int RESULT_KEY_EXPIRY = 30;
@@ -30,10 +29,12 @@ namespace util {
     class SystemConfig {
 
     public:
-        // Default values
+        // Scheduling
+        int threadsPerWorker;
         int prewarmTarget;
         int maxQueueRatio;
         int maxWorkersPerFunction;
+        int affinity;
 
         // Worker-related timeouts
         int unboundTimeout;
@@ -44,9 +45,6 @@ namespace util {
         int stateClearThreshold;
         int statePushInterval;
         int fullAsync;
-
-        // Scheduling
-        int affinity;
 
         SystemConfig();
 
@@ -90,6 +88,9 @@ namespace util {
 
         int size();
 
+        int taken();
+
+        int free();
     private:
         int _size;
         std::queue<int> tokenQueue;
