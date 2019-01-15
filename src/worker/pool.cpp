@@ -69,20 +69,25 @@ namespace worker {
         // Notify the scheduler
         scheduler.workerBound(thread.boundMessage);
 
+        // Release thread's prewarm token
+        prewarmTokenPool.releaseToken(thread.prewarmToken);
+
         // Tell the thread where to listen
         std::string newQueue = scheduler.getFunctionQueueName(thread.boundMessage);
         return newQueue;
     }
 
     void WorkerThreadPool::threadFinished(WorkerThread &thread) {
-        // Release tokens
-        workerTokenPool.releaseToken(thread.workerIdx);
-        prewarmTokenPool.releaseToken(thread.prewarmToken);
-
-        // Notifiy scheduler if this thread was bound to a function
         if(thread.isBound()) {
+            // Notifiy scheduler if this thread was bound to a function
             scheduler.workerUnbound(thread.boundMessage);
+        } else {
+            // If thread was not bound, needs to release its prewarm token
+            prewarmTokenPool.releaseToken(thread.prewarmToken);
         }
+
+        // Release worker token
+        workerTokenPool.releaseToken(thread.workerIdx);
     }
 
     std::string WorkerThreadPool::getPrewarmQueue() {
