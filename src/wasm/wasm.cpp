@@ -93,26 +93,35 @@ namespace wasm {
         }
 
         // Parse the wasm file to work out imports, function signatures etc.
+        const util::TimePoint &wasmParseTs = prof::startTimer();
         this->parseWasm(msg);
+        prof::logEndTimer("wasm-parse", wasmParseTs);
 
         // Linking
+        const util::TimePoint &linkTs = prof::startTimer();
         resolver->setUser(msg.user());
         Runtime::LinkResult linkResult = linkModule(module, *resolver);
         if (!linkResult.success) {
             std::cerr << "Failed to link module:" << std::endl;
             throw std::runtime_error("Failed linking module");
         }
+        prof::logEndTimer("wasm-link", linkTs);
 
         // Load the object file
+        const util::TimePoint &objTs = prof::startTimer();
         std::vector<uint8_t> objectFileBytes = infra::getFunctionObjectBytes(msg);
-        Runtime::ModuleRef compiledModule = Runtime::loadPrecompiledModule(module, objectFileBytes);
+        prof::logEndTimer("obj-load", objTs);
+
         // Instantiate the module, i.e. create memory, tables etc.
+        const util::TimePoint &instantTs = prof::startTimer();
+        Runtime::ModuleRef compiledModule = Runtime::loadPrecompiledModule(module, objectFileBytes);
         moduleInstance = instantiateModule(
                 compartment,
                 compiledModule,
                 std::move(linkResult.resolvedImports),
                 infra::funcToString(msg)
         );
+        prof::logEndTimer("wavm-mod", instantTs);
 
         // Extract the module's exported function
         // Note that an underscore may be added before the function name by the compiler
@@ -128,7 +137,9 @@ namespace wasm {
         this->defaultMemory = Runtime::getDefaultMemory(moduleInstance);
 
         // Snapshot initial state
+        const util::TimePoint &memTs = prof::startTimer();
         this->snapshotMemory();
+        prof::logEndTimer("mem-snap", memTs);
 
         // Record that this module is now bound
         _isBound = true;
