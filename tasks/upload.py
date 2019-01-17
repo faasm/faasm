@@ -1,16 +1,11 @@
-from os.path import join
 from subprocess import call
 
 from invoke import task
 
-from tasks.env import PROJ_ROOT
-
 
 @task
-def upload(context, user, func_name, host="localhost"):
-    print("Uploading {} for user {}".format(func_name, user))
-
-    wasm_file = join(PROJ_ROOT, "wasm", user, func_name, "function.wasm")
+def upload(context, wasm_file, user, func_name, host="localhost"):
+    print("Uploading {} as {} for user {}".format(wasm_file, func_name, user))
 
     cmd = [
         "curl",
