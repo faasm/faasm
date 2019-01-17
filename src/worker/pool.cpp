@@ -153,6 +153,9 @@ namespace worker {
             throw std::runtime_error("Should not be initialising an already initialised thread");
         }
 
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Initialising worker {}", id);
+
         // Set up network namespace
         isolationIdx = threadIdx + 1;
         std::string netnsName = BASE_NETNS_NAME + std::to_string(isolationIdx);
