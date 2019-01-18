@@ -19,7 +19,7 @@ namespace tests {
         util::unsetEnvVar("NETNS_MODE");
     }
 
-    void execFunction(message::Message &call) {
+    WorkerThread execFunction(message::Message &call) {
         infra::Redis &redisQueue = infra::Redis::getQueue();
 
         // Set up worker to listen for relevant function
@@ -49,6 +49,8 @@ namespace tests {
         REQUIRE(redisQueue.listLength(sch.getFunctionQueueName(call)) == 0);
         REQUIRE(sch.getFunctionCount(call) == 1);
         REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 0);
+
+        return w;
     }
 
     void checkBindMessage(const message::Message &expected) {
@@ -158,6 +160,41 @@ namespace tests {
         tearDown();
     }
 
+    TEST_CASE("Test repeat execution of WASM module", "[worker]") {
+        setUp();
+        infra::Redis &redisQueue = infra::Redis::getQueue();
+
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("echo");
+        call.set_inputdata("first input");
+        call.set_resultkey("test_repeat_a");
+
+        // Run the execution
+        WorkerThread w = execFunction(call);
+
+        // Check output from first invocation
+        message::Message resultA = redisQueue.getFunctionResult(call);
+        REQUIRE(resultA.outputdata() == "first input");
+        REQUIRE(resultA.success());
+
+        // Execute again
+        call.set_inputdata("second input");
+        call.set_resultkey("test_repeat_b");
+
+        infra::Scheduler &sch = infra::getScheduler();
+        sch.callFunction(call);
+
+        w.processNextMessage();
+
+        // Check output from second invocation
+        message::Message resultB = redisQueue.getFunctionResult(call);
+        REQUIRE(resultB.outputdata() == "second input");
+        REQUIRE(resultB.success());
+
+        tearDown();
+    }
+
     TEST_CASE("Test bind message causes worker to bind", "[worker]") {
         setUp();
 
@@ -227,7 +264,7 @@ namespace tests {
         tearDown();
     }
 
-    TEST_CASE("Test state increment", "[worker]") {
+    TEST_CASE("Test repeat invocation with state", "[worker]") {
         setUp();
 
         // Set up the function call
@@ -321,6 +358,8 @@ namespace tests {
     }
 
     TEST_CASE("Test memory is reset", "[worker]") {
+        cleanSystem();
+
         message::Message call;
         call.set_user("demo");
         call.set_function("heap");

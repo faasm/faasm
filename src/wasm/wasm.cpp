@@ -147,46 +147,48 @@ namespace wasm {
         boundFunction = msg.function();
     }
 
-    void WasmModule::snapshotMemory(bool fullCopy) {
+    void WasmModule::snapshotMemory() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        cleanMemoryPages = Runtime::getMemoryNumPages(this->defaultMemory);
-        size_t cleanMemorySize = cleanMemoryPages * IR::numBytesPerPage;
-        cleanMemory = new uint8_t[cleanMemorySize];
+        logger->debug("Snapshotting {} pages of memory for restore", CLEAN_MEMORY_PAGES);
+        cleanMemory = new uint8_t[CLEAN_MEMORY_SIZE];
 
-        logger->debug("Snapshotting memory with {} pages", cleanMemoryPages);
-
-        if (fullCopy) {
-            U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
-            std::copy(baseAddr, baseAddr + cleanMemorySize, cleanMemory);
-        }
-
+        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
+        std::copy(baseAddr, baseAddr + CLEAN_MEMORY_SIZE, cleanMemory);
     }
 
-    void WasmModule::restoreMemory(bool fullCopy) {
+    void WasmModule::restoreMemory() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
+        // Grow/ shrink memory to its original size
         Uptr currentPages = Runtime::getMemoryNumPages(this->defaultMemory);
 
-        // Grow/ shrink memory as required
-        if (currentPages > cleanMemoryPages) {
-            Uptr shrinkSize = currentPages - cleanMemoryPages;
+        if (currentPages > INITIAL_MEMORY_PAGES) {
+            Uptr shrinkSize = currentPages - INITIAL_MEMORY_PAGES;
             logger->debug("Restoring memory and shrinking {} pages", shrinkSize);
+
             Runtime::shrinkMemory(this->defaultMemory, shrinkSize);
-        } else if (cleanMemoryPages > currentPages) {
-            Uptr growSize = cleanMemoryPages - currentPages;
+
+        } else if (INITIAL_MEMORY_PAGES > currentPages) {
+            Uptr growSize = INITIAL_MEMORY_PAGES - currentPages;
             logger->debug("Restoring memory and growing {} pages", growSize);
+
             Runtime::growMemory(this->defaultMemory, growSize);
+
         } else {
-            logger->debug("Restoring memory with {} pages", cleanMemoryPages);
+            logger->debug("Restoring memory with {} pages", INITIAL_MEMORY_PAGES);
         }
 
-        // Restore initial memory state
-        if (fullCopy) {
-            U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
-            size_t cleanMemorySize = cleanMemoryPages * IR::numBytesPerPage;
-            std::copy(cleanMemory, cleanMemory + cleanMemorySize, baseAddr);
-        }
+        // Restore initial memory in clean region
+        const util::TimePoint &memRestoreTs = prof::startTimer();
+        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
+        std::copy(cleanMemory, cleanMemory + CLEAN_MEMORY_SIZE, baseAddr);
+        prof::logEndTimer("mem-restore", memRestoreTs);
+
+        // Reset shared memory variables
+        sharedMemKVs.clear();
+        sharedMemWasmPtrs.clear();
+        sharedMemHostPtrs.clear();
 
         // Unmap shared memory regions
 //        for (auto const &p : sharedMemWasmPtrs) {
@@ -194,11 +196,6 @@ namespace wasm {
 //            void* hostPtr = sharedMemHostPtrs[p.first];
 //            kv->unmapSharedMemory(hostPtr);
 //        }
-
-        sharedMemKVs.clear();
-        sharedMemWasmPtrs.clear();
-        sharedMemHostPtrs.clear();
-
     }
 
     /**
@@ -269,7 +266,7 @@ namespace wasm {
         WASM::loadBinaryModule(fileBytes.data(), fileBytes.size(), this->module);
 
         // Set up minimum memory size
-        this->module.memories.defs[0].type.size.min = (U64) MIN_MEMORY_PAGES;
+        this->module.memories.defs[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
 
         // Add the shared memory definition
         // this->module.memories.imports.push_back({{true, {0, 1000}}, msg.user(), "shared_state"});
