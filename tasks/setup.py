@@ -16,7 +16,7 @@ def setup_local(context):
 
 @task
 def setup_namespaces(context):
-    sudo_script("netns.sh")
+    sudo_script("netns.sh 20")
 
 
 @task

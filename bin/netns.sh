@@ -8,6 +8,14 @@ then
     exit 0
 fi
 
+if [ -z "$1" ]; then
+    echo "Must provide a required number of namespaces"
+    exit 1
+fi
+
+N_THREADS_PER_WORKER=$1;
+echo "Setting up ${N_THREADS_PER_WORKER} namespaces"
+
 egress_rate=1mbit
 egress_ceil=2mbit
 ingress_rate=1mbit
@@ -90,9 +98,6 @@ function setup_ns() {
     ip netns exec ${ns_name} tc class add dev ${vif_peer} parent 1: classid 1:1 htb rate ${egress_rate} ceil ${egress_ceil}
 }
 
-
-# Note - hard-coded ns count here
-N_THREADS_PER_WORKER=100
 for (( i=1; i<=N_THREADS_PER_WORKER; i++ ))
 do
     setup_ns ${i}
