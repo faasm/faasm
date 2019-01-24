@@ -1,32 +1,74 @@
 # Faasm
 
-Faasm is a serverless system focused on performance and security, using 
-WebAssembly to run users' code. The features of WebAssmebly mean we can 
-trust users' code and maintain good isolation with very lightweight mechanisms.
-For more details on the isolation approach, see the 
-[wiki page](https://github.com/lsds/faasm/wiki/isolation).
+Faasm is a high-performance distributed multi-tenant runtime aimed primarily at
+serverless systems.
 
-This lightweight isolation enables excellent performance and opens the door to 
-features not possible in a more strongly isolated environment (e.g. 
-inter-function communication, shared state).
+By using WebAssembly to run users' code, we can combine software fault isolation with 
+standard OS tooling to provide strong security and resource isolation guarantees at low cost.
+
+This lightweight isolation enables excellent performance and allows sharing of data between 
+colocated functions through shared memory.
 
 The underlying WebAssembly execution is handled by [WAVM](https://github.com/WAVM/WAVM), 
-which is well worth checking out.
+a server-side WebAssembly runtime which is well worth checking out.
 
 More detail on the internals, development and deployment is held in the 
 [wiki](https://github.com/lsds/faasm/wiki).
 
-A preconfigured, Dockerised toolchain is provided for compiling Faasm functions. 
-Details are given below. This is based on a basic
-[Dockerised WASM toolchain](https://github.com/Shillaker/wasm-toolchain)
+A preconfigured, Dockerised toolchain is provided for compiling C/C++ code to run in Faasm. 
+This toolchaing is based on a generic [Dockerised WASM toolchain](https://github.com/Shillaker/wasm-toolchain)
 with a customised libc to implement the required syscalls.
 
-# Quick Start
+# Architecture
 
-To run the project you can use the `docker-compose.yml` file in the root of the project, i.e. 
+To allow integration with a range of serverless and data processing systems, Faasm workers have a pluggable input, 
+output and state handling. These fall into the following categories:  
+
+## Function calls, inputs and outputs
+
+Faasm workers receive function calls as protobuf objects which are then deserialised to get the function name
+and method of handling input/ output.
+
+The following options for receiving messages are available:
+
+- Redis "queues" - by specifying the `redis` mode and an associated key to listen for incoming invocations
+- stdin pipe - by specifying the `pipe` mode
+- sockets - by specifying the `socket` mode
+
+Input and output can be handled as follows:
+
+- Redis - when in `redis` mode, the inputs and outputs will be read from and written to the same Redis instance
+- S3 - when in `s3` mode, inputs and outputs will be read from and written to the given S3 keys
+
+## Function storage
+
+To execute a function it must be available to the worker via one of the following sources:
+
+- Local filesystem - at a predefined location (which can be mapped to NFS in a distributed environment)
+- S3 - by giving an S3 bucket name
+
+## State handling
+
+Faasm workers support both mutable and immutable state accessed in either a synchronous or asynchronous manner.
+This can be handled in the following ways:
+
+- Redis - for both mutable and immutable state
+- S3 - for immutable state only
+
+# Compilation
+
+Faasm functions can be compiled from several source languages, handled by slightly different toolchains:
+
+# Serverless demo
+
+To demonstrate a Faasm worker in action, the `docker-compose.yml` file in the root of the project will 
+set up a simple serverless system using Redis to handle both function calls and state, and the local filesystem
+to store functions. 
+
+You can start it by running:
 
 ```
-docker-compose up -d --scale worker=2
+docker-compose up -d
 ```
 
 Then curl one of the example functions:
