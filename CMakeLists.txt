@@ -74,4 +74,4 @@ add_subdirectory(src/worker)
 add_library(catch INTERFACE)
 
 add_subdirectory(test)
-add_subdirectory(integration_test)
+add_subdirectory(test_integration)
