@@ -27,7 +27,11 @@ namespace awswrapper {
 
         S3Wrapper();
 
-        void listKeys(std::string bucketName);
+        std::vector<std::string> listKeys(const std::string &bucketName);
+
+        void addKey(const std::string &bucketName, const std::string &keyName, const std::string &data);
+
+        std::string getKey(const std::string &bucketName, const std::string &keyName);
     private:
         Aws::S3::S3Client client;
     };
