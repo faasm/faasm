@@ -70,4 +70,8 @@ add_subdirectory(src/util)
 add_subdirectory(src/wasm)
 add_subdirectory(src/worker)
 
+# Tests
+add_library(catch INTERFACE)
+
 add_subdirectory(test)
+add_subdirectory(integration_test)

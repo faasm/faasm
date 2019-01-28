@@ -1,5 +1,3 @@
-add_library(catch INTERFACE)
-
 file(GLOB_RECURSE TEST_FILES ${CMAKE_CURRENT_LIST_DIR} test_*.cpp)
 
 include_directories(${CMAKE_CURRENT_LIST_DIR})
