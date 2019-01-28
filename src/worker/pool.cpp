@@ -153,7 +153,11 @@ namespace worker {
             throw std::runtime_error("Should not be initialising an already initialised thread");
         }
 
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Initialising worker {}", id);
+
         // Set up network namespace
+        const util::TimePoint &isolationTs = prof::startTimer();
         isolationIdx = threadIdx + 1;
         std::string netnsName = BASE_NETNS_NAME + std::to_string(isolationIdx);
         ns = new NetworkNamespace(netnsName);
@@ -162,10 +166,13 @@ namespace worker {
         // Add this thread to the cgroup
         CGroup cgroup(BASE_CGROUP_NAME);
         cgroup.addCurrentThread();
+        prof::logEndTimer("isolation", isolationTs);
 
         // Initialise wasm module
+        const util::TimePoint &wavmTs = prof::startTimer();
         module = new wasm::WasmModule();
         module->initialise();
+        prof::logEndTimer("wavm-init", wavmTs);
 
         _isInitialised = true;
     }

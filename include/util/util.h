@@ -135,8 +135,8 @@ namespace util {
     };
     Clock& getGlobalClock();
 
-    // Assume 4kb host page size
-    static const long HOST_PAGE_SIZE = sysconf(_SC_PAGESIZE);;
+    // Memory
+    static const long HOST_PAGE_SIZE = sysconf(_SC_PAGESIZE);
 
     bool isPageAligned(void *ptr);
 

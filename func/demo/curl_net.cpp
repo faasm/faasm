@@ -13,7 +13,7 @@ namespace faasm {
         auto inputBuffer = new uint8_t[inputSize];
         memory->getInput(inputBuffer, inputSize);
 
-        char* url = reinterpret_cast<char*>(inputBuffer);
+        char *url = reinterpret_cast<char *>(inputBuffer);
 
         printf("CURL-ing %s\n", url);
 
@@ -22,6 +22,10 @@ namespace faasm {
             printf("Curl initialisation failed\n");
         }
 
+        // Send a HEAD request
+        // curl_easy_setopt(curl, CURLOPT_NOBODY, 1);
+
+        curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1);
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 

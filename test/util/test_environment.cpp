@@ -43,7 +43,7 @@ namespace tests {
         REQUIRE(conf.maxWorkersPerFunction == 10);
 
         REQUIRE(conf.boundTimeout == 30);
-        REQUIRE(conf.unboundTimeout == 240);
+        REQUIRE(conf.unboundTimeout == 5000);
 
         REQUIRE(conf.stateStaleThreshold == 60000);
         REQUIRE(conf.stateClearThreshold == 300000);
