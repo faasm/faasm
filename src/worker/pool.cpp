@@ -2,7 +2,6 @@
 
 #include <unistd.h>
 #include <scheduler/scheduler.h>
-#include <redis/redis.h>
 #include <prof/prof.h>
 #include <state/state.h>
 
@@ -14,7 +13,6 @@ namespace worker {
 
     WorkerThreadPool::WorkerThreadPool(int nThreads, int nPrewarm) : threadTokenPool(nThreads),
                                                                      prewarmTokenPool(nPrewarm),
-                                                                     redis(redis::Redis::getQueue()),
                                                                      scheduler(scheduler::getScheduler()) {
         // To run the pool we have two token pools, one for the total workers in the pool,
         // The other for prewarm workers. Workers first need to acquire a worker token,
@@ -121,8 +119,7 @@ namespace worker {
     WorkerThread::WorkerThread(WorkerThreadPool &threadPoolIn, int threadIdxIn,
                                int prewarmTokenIn) : threadPool(threadPoolIn),
                                                      threadIdx(threadIdxIn),
-                                                     prewarmToken(prewarmTokenIn),
-                                                     redis(redis::Redis::getQueue()) {
+                                                     prewarmToken(prewarmTokenIn) {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -205,7 +202,7 @@ namespace worker {
         }
 
         // Set result
-        redis.setFunctionResult(call, isSuccess);
+        messageQueue.setFunctionResult(call, isSuccess);
 
         // Restore the module memory after the execution
         module->restoreMemory();
@@ -269,7 +266,7 @@ namespace worker {
         }
 
         // Wait for next message
-        message::Message msg = redis.nextMessage(currentQueue, timeout);
+        message::Message msg = messageQueue.nextMessage(currentQueue, timeout);
 
         // Handle the message
         std::string errorMessage;

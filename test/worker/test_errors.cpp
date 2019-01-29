@@ -32,7 +32,8 @@ namespace tests {
         execErrorFunction(call);
 
         // Get result
-        message::Message result = redisQueue.getFunctionResult(call);
+        scheduler::MessageQueue messageQueue;
+        message::Message result = messageQueue.getFunctionResult(call);
         REQUIRE(!result.success());
 
         const std::string actualOutput = result.outputdata();

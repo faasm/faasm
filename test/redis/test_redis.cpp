@@ -190,8 +190,8 @@ namespace tests {
         std::string queueName = sch.callFunction(call);
 
         // Get the next call
-        Redis &redisQueue = Redis::getQueue();
-        message::Message actual = redisQueue.nextMessage(queueName);
+        scheduler::MessageQueue messageQueue;
+        message::Message actual = messageQueue.nextMessage(queueName);
 
         REQUIRE(funcName == actual.function());
         REQUIRE(userName == actual.user());
@@ -229,7 +229,8 @@ namespace tests {
         call.set_user("some user");
         call.set_resultkey("function 123");
 
-        redisQueue.setFunctionResult(call, true);
+        scheduler::MessageQueue messageQueue;
+        messageQueue.setFunctionResult(call, true);
 
         // Check result has been written to the right key
         REQUIRE(redisQueue.listLength("function 123") == 1);
@@ -239,7 +240,7 @@ namespace tests {
         REQUIRE(ttl > 10);
 
         // Check retrieval method gets the same call out again
-        message::Message actualCall2 = redisQueue.getFunctionResult(call);
+        message::Message actualCall2 = messageQueue.getFunctionResult(call);
 
         REQUIRE("my func" == actualCall2.function());
         REQUIRE("some user" == actualCall2.user());

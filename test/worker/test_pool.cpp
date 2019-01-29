@@ -1,7 +1,9 @@
 #include <catch/catch.hpp>
 
-#include <worker/worker.h>
 #include "utils.h"
+
+#include <worker/worker.h>
+
 
 
 using namespace worker;
@@ -54,25 +56,25 @@ namespace tests {
     }
 
     void checkBindMessage(const message::Message &expected) {
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-
         scheduler::Scheduler &sch = scheduler::getScheduler();
         std::string expectedPrewarmQueue = sch.getHostPrewarmQueue();
-        const message::Message actual = redisQueue.nextMessage(expectedPrewarmQueue);
+
+        scheduler::MessageQueue messageQueue;
+        const message::Message actual = messageQueue.nextMessage(expectedPrewarmQueue);
+
         REQUIRE(actual.user() == expected.user());
         REQUIRE(actual.function() == expected.function());
     }
 
     message::Message checkChainCall(const std::string &user, const std::string &func, const std::string &inputData) {
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-
         message::Message expected;
         expected.set_user(user);
         expected.set_function(func);
         expected.set_inputdata(inputData);
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        message::Message actual = redisQueue.nextMessage(sch.getFunctionQueueName(expected));
+        scheduler::MessageQueue messageQueue;
+        message::Message actual = messageQueue.nextMessage(sch.getFunctionQueueName(expected));
 
         REQUIRE(actual.user() == expected.user());
         REQUIRE(actual.function() == expected.function());
@@ -150,8 +152,8 @@ namespace tests {
 
         // Run the execution
         execFunction(call);
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-        message::Message result = redisQueue.getFunctionResult(call);
+        scheduler::MessageQueue messageQueue;
+        message::Message result = messageQueue.getFunctionResult(call);
 
         // Check output
         REQUIRE(result.outputdata() == "this is input");
@@ -162,7 +164,6 @@ namespace tests {
 
     TEST_CASE("Test repeat execution of WASM module", "[worker]") {
         setUp();
-        redis::Redis &redisQueue = redis::Redis::getQueue();
 
         message::Message call;
         call.set_user("demo");
@@ -174,7 +175,8 @@ namespace tests {
         WorkerThread w = execFunction(call);
 
         // Check output from first invocation
-        message::Message resultA = redisQueue.getFunctionResult(call);
+        scheduler::MessageQueue messageQueue;
+        message::Message resultA = messageQueue.getFunctionResult(call);
         REQUIRE(resultA.outputdata() == "first input");
         REQUIRE(resultA.success());
 
@@ -188,7 +190,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check output from second invocation
-        message::Message resultB = redisQueue.getFunctionResult(call);
+        message::Message resultB = messageQueue.getFunctionResult(call);
         REQUIRE(resultB.outputdata() == "second input");
         REQUIRE(resultB.success());
 
@@ -246,8 +248,8 @@ namespace tests {
         w.processNextMessage();
 
         // Check the call executed successfully
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-        message::Message result = redisQueue.getFunctionResult(call);
+        scheduler::MessageQueue messageQueue;
+        message::Message result = messageQueue.getFunctionResult(call);
         REQUIRE(result.success());
 
         // Check the chained calls have been set up
@@ -285,8 +287,8 @@ namespace tests {
         w.processNextMessage();
 
         // Check result
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-        message::Message resultA = redisQueue.getFunctionResult(call);
+        scheduler::MessageQueue messageQueue;
+        message::Message resultA = messageQueue.getFunctionResult(call);
         REQUIRE(resultA.success());
         REQUIRE(resultA.outputdata() == "Counter: 001");
 
@@ -294,7 +296,7 @@ namespace tests {
         sch.callFunction(call);
         w.processNextMessage();
 
-        message::Message resultB = redisQueue.getFunctionResult(call);
+        message::Message resultB = messageQueue.getFunctionResult(call);
         REQUIRE(resultB.success());
         REQUIRE(resultB.outputdata() == "Counter: 002");
     }
@@ -321,12 +323,14 @@ namespace tests {
         w.processNextMessage();
 
         // Check result
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-        message::Message result = redisQueue.getFunctionResult(call);
+        scheduler::MessageQueue messageQueue;
+        message::Message result = messageQueue.getFunctionResult(call);
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
 
         REQUIRE(outputBytes == expectedOutput);
+
+        redis::Redis &redisQueue = redis::Redis::getQueue();
         REQUIRE(redisQueue.get(keyName) == expectedRedis);
     }
 
@@ -404,8 +408,8 @@ namespace tests {
         w.processNextMessage();
 
         // Check output is true
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-        message::Message result = redisQueue.getFunctionResult(call);
+        scheduler::MessageQueue messageQueue;
+        message::Message result = messageQueue.getFunctionResult(call);
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
 

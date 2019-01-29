@@ -1,12 +1,11 @@
-#include "edge/edge.h"
-#include "prof/prof.h"
+#include "edge.h"
 
 #include <pistache/http.h>
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
 
+#include <prof/prof.h>
 #include <scheduler/scheduler.h>
-#include <redis/redis.h>
 #include <util/util.h>
 
 using namespace Pistache;
@@ -81,8 +80,7 @@ namespace edge {
             return "Async request submitted";
         } else {
             logger->info("Sync request {}", util::funcToString(msg));
-            redis::Redis &redis = redis::Redis::getQueue();
-            message::Message result = redis.getFunctionResult(msg);
+            message::Message result = messageQueue.getFunctionResult(msg);
 
             logger->info("Finished request {}", util::funcToString(msg));
 

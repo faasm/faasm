@@ -2,6 +2,7 @@
 
 #include <proto/faasm.pb.h>
 #include <util/util.h>
+#include <scheduler/scheduler.h>
 
 #include <pistache/http.h>
 #include <pistache/router.h>
@@ -22,6 +23,7 @@ namespace edge {
     private:
         std::shared_ptr<Http::Endpoint> httpEndpoint;
         Rest::Router router;
+        scheduler::MessageQueue messageQueue;
 
         void setupRoutes();
 

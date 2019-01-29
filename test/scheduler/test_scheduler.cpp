@@ -108,8 +108,9 @@ namespace tests {
         REQUIRE(sch.getFunctionCount(callB) == 1);
 
         // Check that bind messages have been sent
-        const message::Message bindA = redisQueue.nextMessage(expectedPrewarmQueue);
-        const message::Message bindB = redisQueue.nextMessage(expectedPrewarmQueue);
+        scheduler::MessageQueue messageQueue;
+        const message::Message bindA = messageQueue.nextMessage(expectedPrewarmQueue);
+        const message::Message bindB = messageQueue.nextMessage(expectedPrewarmQueue);
 
         REQUIRE(bindA.user() == callA.user());
         REQUIRE(bindA.function() == callA.function());

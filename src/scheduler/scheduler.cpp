@@ -13,16 +13,16 @@ namespace scheduler {
         return scheduler;
     }
 
-    Scheduler::Scheduler() : redis(redis::Redis::getQueue()), conf(util::getSystemConfig()) {
+    Scheduler::Scheduler() : conf(util::getSystemConfig()) {
 
     };
 
     long Scheduler::getFunctionCount(const message::Message &msg) {
-        return redis.getCounter(this->getFunctionCounterName(msg));
+        return messageQueue.redis.getCounter(this->getFunctionCounterName(msg));
     }
 
     long Scheduler::getFunctionQueueLength(const message::Message &msg) {
-        return redis.listLength(this->getFunctionQueueName(msg));
+        return messageQueue.redis.listLength(this->getFunctionQueueName(msg));
     }
 
     long Scheduler::getLocalThreadCount(const message::Message &msg) {
@@ -44,13 +44,12 @@ namespace scheduler {
 
     std::string Scheduler::callFunction(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        redis::Redis &redis = redis::Redis::getQueue();
 
         // First of all, send the message to execute the function
         const std::string queueName = getFunctionQueueName(msg);
         logger->debug("Queueing call to {}", util::funcToString(msg));
         addResultKeyToMessage(msg);
-        redis.enqueueMessage(queueName, msg);
+        messageQueue.enqueueMessage(queueName, msg);
 
         // Then add more workers if necessary
         this->updateWorkerAllocs(msg);
@@ -80,8 +79,8 @@ namespace scheduler {
         const std::string queueName = getFunctionQueueName(msg);
         const std::string counterKey = this->getFunctionCounterName(msg);
 
-        long queueLen = redis.listLength(queueName);
-        long workerCount = redis.getCounter(counterKey);
+        long queueLen = messageQueue.redis.listLength(queueName);
+        long workerCount = messageQueue.redis.getCounter(counterKey);
 
         // See if we're over the queue ratio and have scope to scale up
         bool needMore;
@@ -97,7 +96,7 @@ namespace scheduler {
         if (needMore && workerCount < conf.maxWorkersPerFunction) {
             // Try and get the remote lock for this function, checking that
             // the worker count situation is still the same
-            long lockId = redis.acquireConditionalLock(counterKey, workerCount);
+            long lockId = messageQueue.redis.acquireConditionalLock(counterKey, workerCount);
 
             if (lockId <= 0) {
                 logger->debug("Failed to get lock for {}. Waiting", counterKey);
@@ -111,7 +110,7 @@ namespace scheduler {
             } else {
                 // Here we have the lock and the worker count is still the same, so
                 // we can increment the count and send the bind message
-                redis.incr(counterKey);
+                messageQueue.redis.incr(counterKey);
 
                 // Get the appropriate prewarm queue
                 bool affinity = conf.affinity == 1;
@@ -124,10 +123,10 @@ namespace scheduler {
                 bindMsg.set_user(msg.user());
                 bindMsg.set_function(msg.function());
 
-                redis.enqueueMessage(prewarmQueue, bindMsg);
+                messageQueue.enqueueMessage(prewarmQueue, bindMsg);
 
                 // Release the lock
-                redis.releaseLock(counterKey, lockId);
+                messageQueue.redis.releaseLock(counterKey, lockId);
             }
         }
     }
@@ -140,29 +139,29 @@ namespace scheduler {
         std::string workerChoice;
         if (affinity) {
             // Get workers already assigned to this function that are also available
-            std::vector<std::string> options = redis.sinter(workerSet, GLOBAL_WORKER_SET);
+            std::vector<std::string> options = messageQueue.redis.sinter(workerSet, GLOBAL_WORKER_SET);
             if (options.empty()) {
                 // If no options, return a random member of the global worker set and
                 // add it to the worker set
-                workerChoice = redis.srandmember(GLOBAL_WORKER_SET);
+                workerChoice = messageQueue.redis.srandmember(GLOBAL_WORKER_SET);
 
-                redis.sadd(workerSet, workerChoice);
+                messageQueue.redis.sadd(workerSet, workerChoice);
             } else {
                 int idx = util::randomInteger(0, options.size() - 1);
                 workerChoice = options.at(idx);
             }
         } else {
             // Get workers not already assigned to this function
-            std::vector<std::string> options = redis.sdiff(GLOBAL_WORKER_SET, workerSet);
+            std::vector<std::string> options = messageQueue.redis.sdiff(GLOBAL_WORKER_SET, workerSet);
             if (options.empty()) {
                 // If no options, return a random member of workers already assigned to func
-                workerChoice = redis.srandmember(workerSet);
+                workerChoice = messageQueue.redis.srandmember(workerSet);
             } else {
                 // If options, choose one and add it to the worker's set
                 int idx = util::randomInteger(0, options.size() - 1);
                 workerChoice = options.at(idx);
 
-                redis.sadd(workerSet, workerChoice);
+                messageQueue.redis.sadd(workerSet, workerChoice);
             }
         }
 
@@ -184,7 +183,7 @@ namespace scheduler {
             throw std::runtime_error("HOSTNAME for this machine is empty");
         }
 
-        redis.sadd(GLOBAL_WORKER_SET, hostname);
+        messageQueue.redis.sadd(GLOBAL_WORKER_SET, hostname);
     }
 
     void Scheduler::workerBound(const message::Message &msg) {
@@ -199,7 +198,7 @@ namespace scheduler {
     void Scheduler::workerUnbound(const message::Message &msg) {
         // Decrement the remote counter
         const std::string &counterName = this->getFunctionCounterName(msg);
-        redis.decr(counterName);
+        messageQueue.redis.decr(counterName);
 
         // Decrement the local counter
         std::string funcStr = util::funcToString(msg);
@@ -209,7 +208,7 @@ namespace scheduler {
         // Remove this whole worker from the function set if no more threads left
         if (funcCounts[funcStr] <= 0) {
             std::string workerSet = this->getFunctionWorkerSetName(msg);
-            redis.srem(workerSet, hostname);
+            messageQueue.redis.srem(workerSet, hostname);
         }
     }
 

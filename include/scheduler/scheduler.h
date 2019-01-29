@@ -6,6 +6,22 @@
 #define GLOBAL_WORKER_SET "available_workers"
 
 namespace scheduler {
+    class MessageQueue {
+        friend class Scheduler;
+    public:
+        MessageQueue();
+
+        void enqueueMessage(const std::string &queueName, const message::Message &msg);
+
+        message::Message nextMessage(const std::string &queueName, int timeout = util::DEFAULT_TIMEOUT);
+
+        void setFunctionResult(message::Message &msg, bool success);
+
+        message::Message getFunctionResult(const message::Message &msg);
+    private:
+        redis::Redis &redis;
+    };
+
     class Scheduler {
     public:
         Scheduler();
@@ -49,7 +65,7 @@ namespace scheduler {
 
         std::string getFunctionCounterName(const message::Message &msg);
 
-        redis::Redis &redis;
+        MessageQueue messageQueue;
         util::SystemConfig &conf;
     };
 

@@ -43,8 +43,8 @@ namespace tests {
         w.processNextMessage();
         w.processNextMessage();
 
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-        const message::Message result = redisQueue.getFunctionResult(call);
+        scheduler::MessageQueue messageQueue;
+        const message::Message result = messageQueue.getFunctionResult(call);
         return result.outputdata();
     }
 

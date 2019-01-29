@@ -31,7 +31,9 @@ namespace tests {
         edge::FunctionEndpoint endpoint;
         endpoint.handleFunction(call);
 
-        const message::Message actual = redis::Redis::getQueue().nextMessage(queueName);
+        scheduler::MessageQueue messageQueue;
+
+        const message::Message actual = messageQueue.nextMessage(queueName);
 
         REQUIRE(actual.user() == "demo");
         REQUIRE(actual.function() == "echo");

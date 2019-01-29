@@ -311,6 +311,11 @@ namespace redis {
         return ttl;
     }
 
+    void Redis::expire(const std::string &key, long expiry) {
+        auto reply = (redisReply *) redisCommand(context, "EXPIRE %s %d", key.c_str(), expiry);
+        freeReplyObject(reply);
+    }
+
     /**
      * Note that start/end are both inclusive
      */
@@ -452,50 +457,6 @@ namespace redis {
         freeReplyObject(reply);
 
         return replyBytes;
-    }
-
-    void Redis::enqueueMessage(const std::string &queueName, const message::Message &msg) {
-        std::vector<uint8_t> msgBytes = util::messageToBytes(msg);
-        this->enqueue(queueName, msgBytes);
-    }
-
-    /**
-     *  ------ Function messages ------
-     */
-
-    message::Message Redis::nextMessage(const std::string &queueName, int timeout) {
-        std::vector<uint8_t> dequeueResult = this->dequeue(queueName, timeout);
-
-        message::Message msg;
-        msg.ParseFromArray(dequeueResult.data(), (int) dequeueResult.size());
-
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Redis dequeued {}", util::funcToString(msg));
-
-        return msg;
-    }
-
-    void Redis::setFunctionResult(message::Message &msg, bool success) {
-        msg.set_success(success);
-
-        std::string key = msg.resultkey();
-
-        // Write the successful result to the result queue
-        std::vector<uint8_t> inputData = util::messageToBytes(msg);
-        this->enqueue(key, inputData);
-
-        // Set the result key to expire
-        auto reply = (redisReply *) redisCommand(context, "EXPIRE %s %d", key.c_str(), util::RESULT_KEY_EXPIRY);
-        freeReplyObject(reply);
-    }
-
-    message::Message Redis::getFunctionResult(const message::Message &msg) {
-        std::vector<uint8_t> result = this->dequeue(msg.resultkey());
-
-        message::Message msgResult;
-        msgResult.ParseFromArray(result.data(), (int) result.size());
-
-        return msgResult;
     }
 }
 

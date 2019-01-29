@@ -1,6 +1,5 @@
 #pragma once
 
-#include <redis/redis.h>
 #include <scheduler/scheduler.h>
 #include <util/util.h>
 #include <wasm/wasm.h>
@@ -100,7 +99,7 @@ namespace worker {
         int threadIdx;
         int prewarmToken;
 
-        redis::Redis &redis;
+        scheduler::MessageQueue messageQueue;
 
         const std::string executeCall(message::Message &msg);
 
@@ -135,8 +134,6 @@ namespace worker {
     private:
         util::TokenPool threadTokenPool;
         util::TokenPool prewarmTokenPool;
-
-        redis::Redis &redis;
 
         scheduler::Scheduler &scheduler;
     };

@@ -4,10 +4,9 @@
 
 #include <string>
 #include <spdlog/spdlog.h>
-
+#include <hiredis/hiredis.h>
 #include <thread>
 
-#include <hiredis/hiredis.h>
 
 namespace redis {
     enum RedisRole {
@@ -117,6 +116,8 @@ namespace redis {
 
         long getTtl(const std::string &key);
 
+        void expire(const std::string &key, long expiry);
+
         /**
         *  ------ Locking ------
         */
@@ -136,25 +137,11 @@ namespace redis {
         void setLong(const std::string &key, long value);
 
         /**
-        *  ------ Queueing ------
-        */
-
+         * ------ Queueing ------
+         */
         void enqueue(const std::string &queueName, const std::vector<uint8_t> &value);
 
-        void enqueueMessage(const std::string &queueName, const message::Message &msg);
-
         std::vector<uint8_t> dequeue(const std::string &queueName, int timeout = util::DEFAULT_TIMEOUT);
-
-        /**
-        *  ------ Function messages ------
-        */
-
-        message::Message nextMessage(const std::string &queueName, int timeout = util::DEFAULT_TIMEOUT);
-
-        void setFunctionResult(message::Message &msg, bool success);
-
-        message::Message getFunctionResult(const message::Message &msg);
-
     private:
         explicit Redis(const RedisInstance &instance);
 
