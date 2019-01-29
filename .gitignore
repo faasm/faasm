@@ -1,3 +1,9 @@
+# Faasm
+work/
+download/
+build/
+wasm/
+
 # Ansible
 *.retry
 
@@ -95,10 +101,3 @@ dkms.conf
 __pycache__/
 *.pyc
 venv/
-
-# Faasm
-work/
-download/
-build/
-
-

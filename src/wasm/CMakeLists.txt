@@ -10,4 +10,4 @@ add_library(wasm STATIC
         ${FAASM_INCLUDE_DIR}/wasm/wasm.h
         )
 
-target_link_libraries(wasm redis state Logging IR WASTParse WASM Runtime)
+target_link_libraries(wasm scheduler state Logging IR WASTParse WASM Runtime)
