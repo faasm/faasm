@@ -56,16 +56,22 @@ add_subdirectory(lib)
 add_subdirectory(experiment)
 
 # Faasm runtime
+add_subdirectory(src/aws)
 add_subdirectory(src/data)
 add_subdirectory(src/edge)
 add_subdirectory(src/emulator)
 add_subdirectory(src/infra)
 add_subdirectory(src/prof)
 add_subdirectory(src/proto)
+add_subdirectory(src/pywren)
 add_subdirectory(src/state)
 add_subdirectory(src/upload)
 add_subdirectory(src/util)
 add_subdirectory(src/wasm)
 add_subdirectory(src/worker)
 
+# Tests
+add_library(catch INTERFACE)
+
 add_subdirectory(test)
+add_subdirectory(test_integration)

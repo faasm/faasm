@@ -1,0 +1,31 @@
+---
+
+- hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: "Clone repo"
+      git:
+        repo: "https://github.com/aws/aws-sdk-cpp.git"
+        dest: "/usr/local/code/lib/aws-sdk"
+        version: 1.7.41
+
+    - name: "Set up build"
+      shell: "mkdir -p build"
+      args:
+        chdir: "/usr/local/code/lib/aws-sdk"
+
+    - name: "Prepare build"
+      shell: 'cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_ONLY="s3;sqs" -DENABLE_TESTING=OFF ..'
+      args:
+        chdir: "/usr/local/code/lib/aws-sdk/build"
+
+    - name: "Build components"
+      shell: "make"
+      args:
+        chdir: "/usr/local/code/lib/aws-sdk/build"
+
+    - name: "Install"
+      become: yes
+      shell: "sudo make install"
+      args:
+        chdir: "/usr/local/code/lib/aws-sdk/build"

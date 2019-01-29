@@ -15,10 +15,11 @@ message Message {
     optional MessageType type = 3 [default = CALL];
 
     optional string resultKey = 4;
-    optional bool success = 5;
-    optional bool isAsync = 6;
+    optional string statusKey = 5;
+    optional bool success = 6;
+    optional bool isAsync = 7;
 
-    optional bytes inputData = 7;
-    optional bytes outputData = 8;
+    optional bytes inputData = 8;
+    optional bytes outputData = 9;
 }
 
