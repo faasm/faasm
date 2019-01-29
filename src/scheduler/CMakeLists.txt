@@ -2,7 +2,7 @@ include_directories(${FAASM_INCLUDE_DIR}/scheduler)
 
 add_library(
         scheduler STATIC
-        queue.cpp
+        message_queue.cpp
         scheduler.cpp
         ${FAASM_INCLUDE_DIR}/scheduler/scheduler.h
 )

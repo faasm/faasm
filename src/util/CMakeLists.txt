@@ -4,16 +4,16 @@ add_library(util STATIC
         bytes.cpp
         config.cpp
         clock.cpp
-        func.cpp
         environment.cpp
         files.cpp
+        func.cpp
         hash.cpp
         logging.cpp
         memory.cpp
         network.cpp
+        queue.cpp
         random.cpp
         strings.cpp
-        tokens.cpp
         ${FAASM_INCLUDE_DIR}/util/util.h)
 
 target_link_libraries(

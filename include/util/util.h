@@ -11,6 +11,7 @@
 #include <shared_mutex>
 
 namespace util {
+    typedef std::unique_lock<std::mutex> UniqueLock;
     typedef std::unique_lock<std::shared_mutex> FullLock;
     typedef std::shared_lock<std::shared_mutex> SharedLock;
 
@@ -89,6 +90,23 @@ namespace util {
     // Misc
     int randomInteger(int iStart = 0, int iEnd = 1000000);
 
+    // Queue
+    template<class T>
+    class Queue {
+    public:
+        void enqueue(T val);
+
+        T dequeue();
+
+        long size();
+
+        void reset();
+    private:
+        std::queue<T> mq;
+        std::condition_variable cv;
+        std::mutex mx;
+    };
+
     // Token pool
     class TokenPool {
     public:
@@ -107,9 +125,7 @@ namespace util {
         int free();
     private:
         int _size;
-        std::queue<int> tokenQueue;
-        std::mutex queueMutex;
-        std::condition_variable tokenCondition;
+        Queue<int> queue;
     };
 
     // Logging

@@ -42,6 +42,10 @@ namespace scheduler {
         msg.set_resultkey(resultKey);
     }
 
+    void Scheduler::placeOnGlobalQueue(message::Message &msg) {
+        messageQueue.enqueueMessage(INCOMING_QUEUE, msg);
+    }
+
     std::string Scheduler::callFunction(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 

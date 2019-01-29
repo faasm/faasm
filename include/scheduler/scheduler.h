@@ -6,6 +6,8 @@
 #define GLOBAL_WORKER_SET "available_workers"
 
 namespace scheduler {
+    const std::string INCOMING_QUEUE = "incoming";
+
     class MessageQueue {
         friend class Scheduler;
     public:
@@ -41,6 +43,8 @@ namespace scheduler {
         void workerUnbound(const message::Message &msg);
 
         void addCurrentHostToWorkerPool();
+
+        void placeOnGlobalQueue(message::Message &msg);
 
         std::string callFunction(message::Message &msg);
 
