@@ -1,10 +1,12 @@
 #include <catch/catch.hpp>
-#include <infra/infra.h>
-#include <util/util.h>
+
 #include "utils.h"
+
+#include <scheduler/scheduler.h>
+#include <util/util.h>
 #include <algorithm>
 
-using namespace infra;
+using namespace redis;
 
 namespace tests {
 
@@ -184,7 +186,7 @@ namespace tests {
         // Check resultkey not set initially
         REQUIRE(!call.has_resultkey());
 
-        Scheduler &sch = getScheduler();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
         std::string queueName = sch.callFunction(call);
 
         // Get the next call

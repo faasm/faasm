@@ -8,7 +8,7 @@ using namespace Pistache;
 
 namespace tests {
     static void setUp() {
-        infra::Redis::getQueue().flushAll();
+        redis::Redis::getQueue().flushAll();
 
         // Create a worker pool to allow scheduling
         worker::WorkerThreadPool wp(1, 1);
@@ -25,13 +25,13 @@ namespace tests {
         call.set_inputdata("abc");
 
         // Get expected queue
-        infra::Scheduler &sch = infra::getScheduler();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
         std::string queueName = sch.getFunctionQueueName(call);
 
         edge::FunctionEndpoint endpoint;
         endpoint.handleFunction(call);
 
-        const message::Message actual = infra::Redis::getQueue().nextMessage(queueName);
+        const message::Message actual = redis::Redis::getQueue().nextMessage(queueName);
 
         REQUIRE(actual.user() == "demo");
         REQUIRE(actual.function() == "echo");
@@ -52,8 +52,8 @@ namespace tests {
         REQUIRE(msg == "foobar/baz is not a valid function");
 
         // Check nothing added to queue
-        infra::Scheduler &sch = infra::getScheduler();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
         const std::string queueName = sch.getFunctionQueueName(call);
-        REQUIRE(infra::Redis::getQueue().listLength(queueName) == 0);
+        REQUIRE(redis::Redis::getQueue().listLength(queueName) == 0);
     }
 }

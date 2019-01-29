@@ -1,14 +1,18 @@
 #include <catch/catch.hpp>
-#include <infra/infra.h>
-#include <util/util.h>
+
 #include "utils.h"
 
-using namespace infra;
+#include <scheduler/scheduler.h>
+#include <redis/redis.h>
+#include <util/util.h>
+
+using namespace scheduler;
+using namespace redis;
 
 namespace tests {
     TEST_CASE("Test worker finishing and host removal", "[scheduler]") {
         cleanSystem();
-        infra::Scheduler &sch = infra::getScheduler();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
         Redis &redis = Redis::getQueue();
 
         message::Message call;
@@ -53,9 +57,9 @@ namespace tests {
     }
 
     TEST_CASE("Test calling function with no workers sends bind message", "[scheduler]") {
-        Redis &redisQueue = infra::Redis::getQueue();
+        Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
-        infra::Scheduler &sch = infra::getScheduler();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
 
         message::Message call;
         call.set_function("my func");
@@ -78,9 +82,9 @@ namespace tests {
     }
 
     TEST_CASE("Test sending bind messages", "[scheduler]") {
-        Redis &redisQueue = infra::Redis::getQueue();
+        Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
-        infra::Scheduler &sch = infra::getScheduler();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
 
         // Set up calls
         message::Message callA;
@@ -119,9 +123,9 @@ namespace tests {
     }
 
     TEST_CASE("Test calling function with existing workers does not send bind message", "[scheduler]") {
-        Redis &redisQueue = infra::Redis::getQueue();
+        Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
-        infra::Scheduler &sch = infra::getScheduler();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
 
         message::Message call;
         call.set_function("my func");
@@ -149,9 +153,9 @@ namespace tests {
     }
 
     TEST_CASE("Test calling function which breaches queue ratio sends bind message", "[scheduler]") {
-        Redis &redisQueue = infra::Redis::getQueue();
+        Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
-        infra::Scheduler &sch = infra::getScheduler();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
 
         message::Message call;
         call.set_function("my func");
@@ -185,9 +189,9 @@ namespace tests {
     }
 
     TEST_CASE("Test function which breaches queue ratio but has no capacity does not scale up", "[scheduler]") {
-        Redis &redisQueue = infra::Redis::getQueue();
+        Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
-        infra::Scheduler &sch = infra::getScheduler();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
 
         message::Message call;
         call.set_user("userA");
@@ -228,9 +232,9 @@ namespace tests {
     }
 
     void checkPrewarmQueueChoice(bool affinity) {
-        Redis &redisQueue = infra::Redis::getQueue();
+        Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
-        infra::Scheduler &sch = infra::getScheduler();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
 
         std::string hostA = "hostA";
         std::string hostB = "hostB";
@@ -310,9 +314,9 @@ namespace tests {
     }
 
     TEST_CASE("Test error is thrown when no scheduling options", "[scheduler]") {
-        Redis &redisQueue = infra::Redis::getQueue();
+        Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
-        infra::Scheduler &sch = infra::getScheduler();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
 
         message::Message msg;
         msg.set_user("alpha");

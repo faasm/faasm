@@ -1,5 +1,7 @@
 #include "wasm.h"
 
+#include <scheduler/scheduler.h>
+
 namespace wasm {
     CallChain::CallChain(const message::Message &msg) :
             originalCall(msg) {
@@ -20,14 +22,14 @@ namespace wasm {
         // Dispatch any chained calls
         for (auto chainedCall : calls) {
             // Check if call is valid
-            const std::string chainedStr = infra::funcToString(chainedCall);
-            if (!infra::isValidFunction(chainedCall)) {
+            const std::string chainedStr = util::funcToString(chainedCall);
+            if (!util::isValidFunction(chainedCall)) {
                 std::string errorMessage = "Invalid chained function call: " + chainedStr;
 
                 return errorMessage;
             }
 
-            const std::string origStr = infra::funcToString(originalCall);
+            const std::string origStr = util::funcToString(originalCall);
 
             // TODO: Avoid this approach, add some concept of delay in the scheduler?
             // Wait a bit before chaining the same function
@@ -38,7 +40,7 @@ namespace wasm {
             }
 
             logger->debug("Chaining {} -> {}", origStr, chainedStr);
-            infra::Scheduler &sch = infra::getScheduler();
+            scheduler::Scheduler &sch = scheduler::getScheduler();
             sch.callFunction(chainedCall);
         }
 

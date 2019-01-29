@@ -2,6 +2,8 @@
 
 #include <spdlog/spdlog.h>
 
+#include <proto/faasm.pb.h>
+
 #include <string>
 #include <vector>
 #include <queue>
@@ -12,6 +14,19 @@ namespace util {
     typedef std::unique_lock<std::shared_mutex> FullLock;
     typedef std::shared_lock<std::shared_mutex> SharedLock;
 
+    // Functions
+    std::string getFunctionFile(const message::Message &msg);
+
+    std::string getFunctionObjectFile(const message::Message &msg);
+
+    std::vector<uint8_t> getFunctionObjectBytes(const message::Message &msg);
+
+    bool isValidFunction(const message::Message &msg);
+
+    std::string funcToString(const message::Message &msg);
+
+    std::vector<uint8_t> messageToBytes(const message::Message &msg);
+
     // Environment manipulation
     std::string getEnvVar(const std::string &key, const std::string &deflt);
 
@@ -20,7 +35,6 @@ namespace util {
     void unsetEnvVar(const std::string &varName);
 
     // System configuration
-
     std::string getHostName();
 
     const int DEFAULT_TIMEOUT = 60;

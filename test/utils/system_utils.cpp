@@ -4,12 +4,12 @@
 
 namespace tests {
     void cleanSystem() {
-        infra::Redis::getState().flushAll();
-        infra::Redis::getQueue().flushAll();
+        redis::Redis::getState().flushAll();
+        redis::Redis::getQueue().flushAll();
 
         state::getGlobalState().forceClearAll();
 
-        infra::getScheduler().reset();
+        scheduler::getScheduler().reset();
 
         workerThreadPool.reset();
     }

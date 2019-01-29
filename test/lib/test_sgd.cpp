@@ -6,7 +6,7 @@
 #include <faasm/matrix.h>
 
 #include <data/data.h>
-#include <infra/infra.h>
+#include <redis/redis.h>
 #include <state/state.h>
 
 using namespace faasm;
@@ -35,7 +35,7 @@ namespace tests {
     }
 
     TEST_CASE("Test serialising params round trip", "[sgd]") {
-        infra::Redis &redisQueue = infra::Redis::getQueue();
+        redis::Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
         state::getGlobalState().forceClearAll();
 
@@ -53,7 +53,7 @@ namespace tests {
     }
 
     TEST_CASE("Test setting up dummy data", "[sgd]") {
-        infra::Redis &redisQueue = infra::Redis::getQueue();
+        redis::Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
         state::getGlobalState().forceClearAll();
 
@@ -79,7 +79,7 @@ namespace tests {
     }
 
     void checkLossUpdates(LossType lossType, bool async) {
-        infra::Redis &redisQueue = infra::Redis::getQueue();
+        redis::Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
         state::getGlobalState().forceClearAll();
 
@@ -197,8 +197,8 @@ namespace tests {
         checkLossUpdates(HINGE, true);
     }
 
-    void checkDoubleArrayInState(infra::Redis &r, const char *key, std::vector<double> expected) {
-        infra::Redis &redisQueue = infra::Redis::getQueue();
+    void checkDoubleArrayInState(redis::Redis &r, const char *key, std::vector<double> expected) {
+        redis::Redis &redisQueue = redis::Redis::getQueue();
         std::string actualKey("demo_" + std::string(key));
         std::vector<uint8_t> actualBytes = redisQueue.get(actualKey);
 
@@ -208,8 +208,8 @@ namespace tests {
         REQUIRE(actual == expected);
     }
 
-    void checkIntArrayInState(infra::Redis &r, const char *key, std::vector<int> expected) {
-        infra::Redis &redisQueue = infra::Redis::getQueue();
+    void checkIntArrayInState(redis::Redis &r, const char *key, std::vector<int> expected) {
+        redis::Redis &redisQueue = redis::Redis::getQueue();
         std::string actualKey("demo_" + std::string(key));
         std::vector<uint8_t> actualBytes = redisQueue.get(actualKey);
 
@@ -220,7 +220,7 @@ namespace tests {
     }
 
     TEST_CASE("Test writing errors to state", "[sgd]") {
-        infra::Redis &redisQueue = infra::Redis::getQueue();
+        redis::Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
         state::getGlobalState().forceClearAll();
 
@@ -253,7 +253,7 @@ namespace tests {
     }
 
     TEST_CASE("Test reading errors from state", "[sgd]") {
-        infra::Redis &redisState = infra::Redis::getState();
+        redis::Redis &redisState = redis::Redis::getState();
         redisState.flushAll();
 
         state::getGlobalState().forceClearAll();
@@ -295,7 +295,7 @@ namespace tests {
     }
 
     TEST_CASE("Test zeroing losses", "[sgd]") {
-        infra::Redis &redisQueue = infra::Redis::getQueue();
+        redis::Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
 
         state::getGlobalState().forceClearAll();
@@ -330,7 +330,7 @@ namespace tests {
     }
 
     TEST_CASE("Test setting finished flags", "[sgd]") {
-        infra::Redis &redisQueue = infra::Redis::getQueue();
+        redis::Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
         state::getGlobalState().forceClearAll();
 
@@ -353,7 +353,7 @@ namespace tests {
     }
 
     TEST_CASE("Test zeroing finished flags", "[sgd]") {
-        infra::Redis &redisQueue = infra::Redis::getQueue();
+        redis::Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
 
         state::getGlobalState().forceClearAll();

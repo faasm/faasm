@@ -1,7 +1,8 @@
 #include "worker.h"
 
 #include <unistd.h>
-#include <infra/infra.h>
+#include <scheduler/scheduler.h>
+#include <redis/redis.h>
 #include <prof/prof.h>
 #include <state/state.h>
 
@@ -13,15 +14,15 @@ namespace worker {
 
     WorkerThreadPool::WorkerThreadPool(int nThreads, int nPrewarm) : threadTokenPool(nThreads),
                                                                      prewarmTokenPool(nPrewarm),
-                                                                     redis(infra::Redis::getQueue()),
-                                                                     scheduler(infra::getScheduler()) {
+                                                                     redis(redis::Redis::getQueue()),
+                                                                     scheduler(scheduler::getScheduler()) {
         // To run the pool we have two token pools, one for the total workers in the pool,
         // The other for prewarm workers. Workers first need to acquire a worker token,
         // then a prewarm token to say they should start
 
         // Ensure we can ping both redis instances
-        infra::Redis::getQueue().ping();
-        infra::Redis::getState().ping();
+        redis::Redis::getQueue().ping();
+        redis::Redis::getState().ping();
 
         // Notify scheduler
         scheduler.addCurrentHostToWorkerPool();
@@ -121,7 +122,7 @@ namespace worker {
                                int prewarmTokenIn) : threadPool(threadPoolIn),
                                                      threadIdx(threadIdxIn),
                                                      prewarmToken(prewarmTokenIn),
-                                                     redis(infra::Redis::getQueue()) {
+                                                     redis(redis::Redis::getQueue()) {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -196,7 +197,7 @@ namespace worker {
 
     void WorkerThread::finishCall(message::Message &call, const std::string &errorMsg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->info("Finished {}", infra::funcToString(call));
+        logger->info("Finished {}", util::funcToString(call));
 
         bool isSuccess = errorMsg.empty();
         if (!isSuccess) {
@@ -246,7 +247,7 @@ namespace worker {
                     break;
                 }
             }
-            catch (infra::RedisNoResponseException &e) {
+            catch (redis::RedisNoResponseException &e) {
                 // At this point we've received no message, so die off
                 break;
             }
@@ -273,7 +274,7 @@ namespace worker {
         // Handle the message
         std::string errorMessage;
         if (msg.type() == message::Message_MessageType_BIND) {
-            logger->info("Worker {} binding to {}", id, infra::funcToString(msg));
+            logger->info("Worker {} binding to {}", id, util::funcToString(msg));
             this->bindToFunction(msg);
         } else {
             errorMessage = this->executeCall(msg);
@@ -285,7 +286,7 @@ namespace worker {
     const std::string WorkerThread::executeCall(message::Message &call) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        logger->info("WorkerThread executing {}", infra::funcToString(call));
+        logger->info("WorkerThread executing {}", util::funcToString(call));
 
         // Create and execute the module
         wasm::CallChain callChain(call);

@@ -3,7 +3,7 @@
 
 #include "faasm/matrix.h"
 
-#include <infra/infra.h>
+#include <redis/redis.h>
 #include <state/state.h>
 
 #include <iostream>
@@ -30,7 +30,7 @@ namespace tests {
     }
 
     TEST_CASE("Test matrix to redis round trip", "[matrix]") {
-        infra::Redis &redisQueue = infra::Redis::getQueue();
+        redis::Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
 
         state::getGlobalState().forceClearAll();
@@ -53,7 +53,7 @@ namespace tests {
     }
 
     TEST_CASE("Test updating matrix element in state", "[matrix]") {
-        infra::Redis &redisQueue = infra::Redis::getQueue();
+        redis::Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
 
         state::getGlobalState().forceClearAll();
@@ -89,7 +89,7 @@ namespace tests {
     }
 
     void checkReadingMatrixColumnsFromState(bool async) {
-        infra::Redis &redisQueue = infra::Redis::getQueue();
+        redis::Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
 
         state::getGlobalState().forceClearAll();
@@ -232,7 +232,7 @@ namespace tests {
     }
 
     TEST_CASE("Test sparse matrix round trip", "[matrix]") {
-        infra::Redis &redisQueue = infra::Redis::getQueue();
+        redis::Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
 
         state::getGlobalState().forceClearAll();
@@ -249,7 +249,7 @@ namespace tests {
     }
 
     void doSparseMatrixRoundTripCheck(int rows, int cols, int colStart, int colEnd, bool async) {
-        infra::Redis &redisQueue = infra::Redis::getQueue();
+        redis::Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
 
         state::getGlobalState().forceClearAll();

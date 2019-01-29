@@ -1,7 +1,6 @@
 #pragma once
 
 #include <worker/worker.h>
-#include "infra/infra.h"
 #include "faasm/matrix.h"
 #include "faasm/sgd.h"
 

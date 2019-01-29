@@ -109,7 +109,7 @@ namespace wasm {
 
         // Load the object file
         const util::TimePoint &objTs = prof::startTimer();
-        std::vector<uint8_t> objectFileBytes = infra::getFunctionObjectBytes(msg);
+        std::vector<uint8_t> objectFileBytes = util::getFunctionObjectBytes(msg);
         prof::logEndTimer("obj-load", objTs);
 
         // Instantiate the module, i.e. create memory, tables etc.
@@ -119,7 +119,7 @@ namespace wasm {
                 compartment,
                 compiledModule,
                 std::move(linkResult.resolvedImports),
-                infra::funcToString(msg)
+                util::funcToString(msg)
         );
         prof::logEndTimer("wavm-mod", instantTs);
 
@@ -208,7 +208,7 @@ namespace wasm {
             throw std::runtime_error("WorkerThread must be bound before executing function");
         } else if (boundUser != msg.user() || boundFunction != msg.function()) {
             logger->error("Cannot execute {} on module bound to {}/{}",
-                          infra::funcToString(msg), boundUser, boundFunction);
+                          util::funcToString(msg), boundUser, boundFunction);
             throw std::runtime_error("Cannot execute function on module bound to another");
         }
 
@@ -245,7 +245,7 @@ namespace wasm {
 
     void WasmModule::compileToObjectFile(message::Message &msg) {
         std::vector<uint8_t> objBytes = wasm::WasmModule::compile(msg);
-        std::string objFilePath = infra::getFunctionObjectFile(msg);
+        std::string objFilePath = util::getFunctionObjectFile(msg);
         util::writeBytesToFile(objFilePath, objBytes);
     }
 
@@ -256,7 +256,7 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         std::vector<U8> fileBytes;
-        std::string filePath = infra::getFunctionFile(msg);
+        std::string filePath = util::getFunctionFile(msg);
 
         if (!loadFile(filePath.c_str(), fileBytes)) {
             logger->error("Could not read data from {}", filePath);

@@ -1,8 +1,11 @@
+#include "state.h"
+
+#include <redis/redis.h>
+
 #include <algorithm>
 #include <sys/mman.h>
 #include <unistd.h>
 
-#include "state.h"
 
 using namespace util;
 
@@ -90,7 +93,7 @@ namespace state {
         }
 
         // Read from the remote
-        infra::Redis &redis = infra::Redis::getState();
+        redis::Redis &redis = redis::Redis::getState();
 
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
         logger->debug("Reading from remote for {}", key);
@@ -125,7 +128,7 @@ namespace state {
     long StateKeyValue::waitOnRemoteLock() {
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
-        infra::Redis &redis = infra::Redis::getState();
+        redis::Redis &redis = redis::Redis::getState();
 
         long remoteLockId = redis.acquireLock(key, remoteLockTimeout);
         int retryCount = 0;
@@ -377,7 +380,7 @@ namespace state {
 
         logger->debug("Pushing whole value for {}", key);
 
-        infra::Redis &redis = infra::Redis::getState();
+        redis::Redis &redis = redis::Redis::getState();
         redis.set(key, static_cast<uint8_t *>(sharedMemory), valueSize);
 
         // Reset (as we're setting the full value, we've effectively pulled)
@@ -403,7 +406,7 @@ namespace state {
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         // Attempt to lock the value remotely
-        infra::Redis &redis = infra::Redis::getState();
+        redis::Redis &redis = redis::Redis::getState();
         long remoteLockId = this->waitOnRemoteLock();
 
         // If we don't get remote lock, just skip this push and wait for next one

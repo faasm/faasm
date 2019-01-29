@@ -2,7 +2,6 @@
 
 #include <catch/catch.hpp>
 #include <util/util.h>
-#include <infra/infra.h>
 
 int main(int argc, char *argv[]) {
     util::initLogging();

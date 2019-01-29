@@ -24,7 +24,7 @@ namespace tests {
     }
 
     TEST_CASE("Test uploading state", "[edge]") {
-        infra::Redis &redisQueue = infra::Redis::getQueue();
+        redis::Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
 
         // Create multiple upload requests for different users
@@ -56,7 +56,7 @@ namespace tests {
     }
 
     TEST_CASE("Test uploading and downloading state", "[edge]") {
-        infra::Redis &redisQueue = infra::Redis::getQueue();
+        redis::Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
 
         std::string path = "/s/foo/bar";

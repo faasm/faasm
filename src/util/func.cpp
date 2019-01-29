@@ -1,9 +1,9 @@
-#include "infra.h"
+#include "util.h"
 
 #include <util/util.h>
 #include <boost/filesystem.hpp>
 
-namespace infra {
+namespace util {
     const static std::string funcFile = "function.wasm";
     const static std::string objFile = "function.o";
 

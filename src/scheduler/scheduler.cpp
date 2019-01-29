@@ -1,9 +1,9 @@
-#include "infra.h"
+#include "scheduler.h"
 
 #include "util/util.h"
 #include "prof/prof.h"
 
-namespace infra {
+namespace scheduler {
     const std::string COUNTER_PREFIX = "n_";
     const std::string WORKER_SET_PREFIX = "w_";
     const std::string PREWARM_QUEUE_PREFIX = "prewarm_";
@@ -13,7 +13,7 @@ namespace infra {
         return scheduler;
     }
 
-    Scheduler::Scheduler() : redis(infra::Redis::getQueue()), conf(util::getSystemConfig()) {
+    Scheduler::Scheduler() : redis(redis::Redis::getQueue()), conf(util::getSystemConfig()) {
 
     };
 
@@ -26,7 +26,7 @@ namespace infra {
     }
 
     long Scheduler::getLocalThreadCount(const message::Message &msg) {
-        const std::string &funcStr = infra::funcToString(msg);
+        const std::string &funcStr = util::funcToString(msg);
         return funcCounts[funcStr];
     }
 
@@ -44,11 +44,11 @@ namespace infra {
 
     std::string Scheduler::callFunction(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        Redis &redis = Redis::getQueue();
+        redis::Redis &redis = redis::Redis::getQueue();
 
         // First of all, send the message to execute the function
         const std::string queueName = getFunctionQueueName(msg);
-        logger->debug("Queueing call to {}", infra::funcToString(msg));
+        logger->debug("Queueing call to {}", util::funcToString(msg));
         addResultKeyToMessage(msg);
         redis.enqueueMessage(queueName, msg);
 
@@ -168,11 +168,11 @@ namespace infra {
 
         // See if we've got any options
         if (workerChoice.empty()) {
-            logger->error("No worker host available for scheduling {}", funcToString(msg));
+            logger->error("No worker host available for scheduling {}", util::funcToString(msg));
             throw std::runtime_error("No worker host available for scheduling");
         }
 
-        logger->debug("Schedule prewarm on {} for {}", workerChoice, funcToString(msg));
+        logger->debug("Schedule prewarm on {} for {}", workerChoice, util::funcToString(msg));
 
         return this->getHostPrewarmQueue(workerChoice);
     }
@@ -190,7 +190,7 @@ namespace infra {
     void Scheduler::workerBound(const message::Message &msg) {
         // Note, counter will already have been incremented by updating worker allocs
         // Just need to maintain local count for this function
-        std::string funcStr = funcToString(msg);
+        std::string funcStr = util::funcToString(msg);
 
         std::unique_lock<std::mutex> lock(funcCountMutex);
         funcCounts[funcStr]++;
@@ -202,7 +202,7 @@ namespace infra {
         redis.decr(counterName);
 
         // Decrement the local counter
-        std::string funcStr = funcToString(msg);
+        std::string funcStr = util::funcToString(msg);
         std::unique_lock<std::mutex> lock(funcCountMutex);
         funcCounts[funcStr]--;
 
@@ -214,7 +214,7 @@ namespace infra {
     }
 
     std::string Scheduler::getFunctionQueueName(const message::Message &msg) {
-        return infra::funcToString(msg);
+        return util::funcToString(msg);
     }
 
     std::string Scheduler::getFunctionCounterName(const message::Message &msg) {

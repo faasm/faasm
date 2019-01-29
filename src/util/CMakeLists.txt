@@ -4,6 +4,7 @@ add_library(util STATIC
         bytes.cpp
         config.cpp
         clock.cpp
+        func.cpp
         environment.cpp
         files.cpp
         hash.cpp
@@ -17,6 +18,7 @@ add_library(util STATIC
 
 target_link_libraries(
         util
+        proto
         ssl
         crypto
         boost_system

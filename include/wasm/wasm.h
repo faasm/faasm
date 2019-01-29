@@ -1,6 +1,5 @@
 #pragma once
 
-#include <infra/infra.h>
 #include <util/util.h>
 #include <state/state.h>
 
@@ -64,14 +63,6 @@ namespace wasm {
             if (resolved && isA(resolved, type)) {
                 return true;
             }
-
-//            if (type.kind == IR::ExternKind::memory && moduleName == user && exportName == "shared_state") {
-//                State &state = getGlobalState();
-//                UserState *userState = state.getUserState(user);
-//
-//                resolved = Runtime::asObject(userState->memory->wavmMemory);
-//                return true;
-//            }
 
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Missing import {}.{} {}", moduleName, exportName, asString(type).c_str());

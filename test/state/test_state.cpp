@@ -10,7 +10,7 @@ namespace tests {
     static int i = 0;
 
     StateKeyValue *setupKV(size_t size) {
-        infra::Redis &redisState = infra::Redis::getState();
+        redis::Redis &redisState = redis::Redis::getState();
 
         i++;
         const std::string stateUser = "test";
@@ -31,7 +31,7 @@ namespace tests {
     }
 
     TEST_CASE("Test simple state get/set", "[state]") {
-        infra::Redis &redisState = infra::Redis::getState();
+        redis::Redis &redisState = redis::Redis::getState();
         StateKeyValue *kv = setupKV(5);
 
         // Get (should do nothing)
@@ -58,7 +58,7 @@ namespace tests {
     }
 
     TEST_CASE("Test get/ set segment", "[state]") {
-        infra::Redis &redisState = infra::Redis::getState();
+        redis::Redis &redisState = redis::Redis::getState();
         StateKeyValue *kv = setupKV(10);
 
         // Set up and push
@@ -93,7 +93,7 @@ namespace tests {
     }
 
     TEST_CASE("Test marking segments dirty", "[state]") {
-        infra::Redis &redisState = infra::Redis::getState();
+        redis::Redis &redisState = redis::Redis::getState();
         StateKeyValue *kv = setupKV(10);
 
         // Set up and push
@@ -134,7 +134,7 @@ namespace tests {
     }
 
     TEST_CASE("Test partially setting just first/ last element", "[state]") {
-        infra::Redis &redisState = infra::Redis::getState();
+        redis::Redis &redisState = redis::Redis::getState();
         StateKeyValue *kv = setupKV(5);
 
         // Set up and push
@@ -168,7 +168,7 @@ namespace tests {
     }
 
     TEST_CASE("Test pushing all state", "[state]") {
-        infra::Redis &redisState = infra::Redis::getState();
+        redis::Redis &redisState = redis::Redis::getState();
 
         State s;
         std::string userA = "test_a";
@@ -202,7 +202,7 @@ namespace tests {
     }
 
     void checkPulling(bool async) {
-        infra::Redis &redisState = infra::Redis::getState();
+        redis::Redis &redisState = redis::Redis::getState();
 
         StateKeyValue *kv = setupKV(4);
         std::vector<uint8_t> values = {0, 1, 2, 3};
@@ -248,7 +248,7 @@ namespace tests {
     }
 
     TEST_CASE("Test pushing only happens when dirty", "[state]") {
-        infra::Redis &redisState = infra::Redis::getState();
+        redis::Redis &redisState = redis::Redis::getState();
 
         StateKeyValue *kv = setupKV(4);
 

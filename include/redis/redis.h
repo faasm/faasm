@@ -7,25 +7,9 @@
 
 #include <thread>
 
-#include <proto/faasm.pb.h>
 #include <hiredis/hiredis.h>
 
-#define GLOBAL_WORKER_SET "available_workers"
-
-namespace infra {
-
-    std::string getFunctionFile(const message::Message &msg);
-
-    std::string getFunctionObjectFile(const message::Message &msg);
-
-    std::vector<uint8_t> getFunctionObjectBytes(const message::Message &msg);
-
-    bool isValidFunction(const message::Message &msg);
-
-    std::string funcToString(const message::Message &msg);
-
-    std::vector<uint8_t> messageToBytes(const message::Message &msg);
-
+namespace redis {
     enum RedisRole {
         QUEUE,
         STATE,
@@ -181,54 +165,4 @@ namespace infra {
 
     class RedisNoResponseException : public std::exception {
     };
-
-    // Scheduling
-    class Scheduler {
-    public:
-        Scheduler();
-
-        const int scheduleWaitMillis = 100;
-
-        const int scheduleRecursionLimit = 10;
-
-        long getFunctionCount(const message::Message &msg);
-
-        long getFunctionQueueLength(const message::Message &msg);
-
-        long getLocalThreadCount(const message::Message &msg);
-
-        void workerBound(const message::Message &msg);
-
-        void workerUnbound(const message::Message &msg);
-
-        void addCurrentHostToWorkerPool();
-
-        std::string callFunction(message::Message &msg);
-
-        std::string getFunctionQueueName(const message::Message &msg);
-
-        std::string getFunctionWorkerSetName(const message::Message &msg);
-
-        std::string getHostPrewarmQueue(const std::string &hostName);
-
-        std::string getHostPrewarmQueue();
-
-        std::string getPrewarmQueueForFunction(const message::Message &msg, bool affinity);
-
-        void reset();
-
-    private:
-        std::map<std::string, int> funcCounts;
-        std::mutex funcCountMutex;
-        std::string hostname;
-
-        void updateWorkerAllocs(const message::Message &msg, int recursionCount = 0);
-
-        std::string getFunctionCounterName(const message::Message &msg);
-
-        Redis &redis;
-        util::SystemConfig &conf;
-    };
-
-    Scheduler& getScheduler();
 };

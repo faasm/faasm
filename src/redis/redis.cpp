@@ -1,11 +1,10 @@
-#include "infra.h"
+#include "redis.h"
 #include "util/util.h"
 #include "prof/prof.h"
 
-
 #include <thread>
 
-namespace infra {
+namespace redis {
 
     RedisInstance::RedisInstance(RedisRole roleIn) : role(roleIn) {
         if (role == STATE) {
@@ -77,14 +76,14 @@ namespace infra {
     Redis &Redis::getState() {
         // Hiredis requires one instance per thread
         static RedisInstance stateInstance(STATE);
-        static thread_local infra::Redis redisState(stateInstance);
+        static thread_local redis::Redis redisState(stateInstance);
         return redisState;
     }
 
     Redis &Redis::getQueue() {
         // Hiredis requires one instance per thread
         static RedisInstance queueInstance(QUEUE);
-        static thread_local infra::Redis redisQueue(queueInstance);
+        static thread_local redis::Redis redisQueue(queueInstance);
 
         return redisQueue;
     }
@@ -456,7 +455,7 @@ namespace infra {
     }
 
     void Redis::enqueueMessage(const std::string &queueName, const message::Message &msg) {
-        std::vector<uint8_t> msgBytes = infra::messageToBytes(msg);
+        std::vector<uint8_t> msgBytes = util::messageToBytes(msg);
         this->enqueue(queueName, msgBytes);
     }
 
@@ -471,7 +470,7 @@ namespace infra {
         msg.ParseFromArray(dequeueResult.data(), (int) dequeueResult.size());
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Redis dequeued {}", infra::funcToString(msg));
+        logger->debug("Redis dequeued {}", util::funcToString(msg));
 
         return msg;
     }
@@ -482,7 +481,7 @@ namespace infra {
         std::string key = msg.resultkey();
 
         // Write the successful result to the result queue
-        std::vector<uint8_t> inputData = infra::messageToBytes(msg);
+        std::vector<uint8_t> inputData = util::messageToBytes(msg);
         this->enqueue(key, inputData);
 
         // Set the result key to expire

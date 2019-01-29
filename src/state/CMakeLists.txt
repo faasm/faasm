@@ -8,4 +8,4 @@ add_library(state STATIC
         ${FAASM_INCLUDE_DIR}/state/state.h
         )
 
-target_link_libraries(state infra Logging)
+target_link_libraries(state proto redis Logging)

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <proto/faasm.pb.h>
-#include <infra/infra.h>
 #include <util/util.h>
 
 #include <pistache/http.h>

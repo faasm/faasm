@@ -36,14 +36,14 @@ namespace tests {
         REQUIRE(!w.isBound());
 
         // Call the function
-        infra::Scheduler &sch = infra::getScheduler();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.callFunction(call);
 
         // Process the bind and execute messages
         w.processNextMessage();
         w.processNextMessage();
 
-        infra::Redis &redisQueue = infra::Redis::getQueue();
+        redis::Redis &redisQueue = redis::Redis::getQueue();
         const message::Message result = redisQueue.getFunctionResult(call);
         return result.outputdata();
     }

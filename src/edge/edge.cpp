@@ -5,7 +5,8 @@
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
 
-#include <infra/infra.h>
+#include <scheduler/scheduler.h>
+#include <redis/redis.h>
 #include <util/util.h>
 
 using namespace Pistache;
@@ -65,25 +66,25 @@ namespace edge {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Bomb out if call isn't valid
-        if (!infra::isValidFunction(msg)) {
-            std::string errorMessage = infra::funcToString(msg) + " is not a valid function";
+        if (!util::isValidFunction(msg)) {
+            std::string errorMessage = util::funcToString(msg) + " is not a valid function";
             return errorMessage;
         }
 
         // Make the call
-        infra::Scheduler &sch = infra::getScheduler();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.callFunction(msg);
         prof::logEndTimer("edge-submit", now);
 
         if (msg.isasync()) {
-            logger->info("Async request {}", infra::funcToString(msg));
+            logger->info("Async request {}", util::funcToString(msg));
             return "Async request submitted";
         } else {
-            logger->info("Sync request {}", infra::funcToString(msg));
-            infra::Redis &redis = infra::Redis::getQueue();
+            logger->info("Sync request {}", util::funcToString(msg));
+            redis::Redis &redis = redis::Redis::getQueue();
             message::Message result = redis.getFunctionResult(msg);
 
-            logger->info("Finished request {}", infra::funcToString(msg));
+            logger->info("Finished request {}", util::funcToString(msg));
 
             return result.outputdata() + "\n";
         }
