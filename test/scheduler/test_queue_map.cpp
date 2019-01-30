@@ -7,7 +7,7 @@
 using namespace scheduler;
 
 namespace tests {
-    TEST_CASE("Test local queue map", "[scheduler]") {
+    TEST_CASE("Test listening/ stopping listening on queue map", "[scheduler]") {
         LocalQueueMap &queueMap = LocalQueueMap::getInstance();
         queueMap.clear();
 

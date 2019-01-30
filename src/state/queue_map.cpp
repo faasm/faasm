@@ -6,8 +6,7 @@ namespace scheduler {
     }
 
     void LocalQueueMap::clear() {
-        InMemoryMessageQueue empty;
-        std::swap(*bindQueue, empty);
+        bindQueue->reset();
 
         for (const auto &iter: queueMap) {
             delete iter.second;
@@ -24,6 +23,18 @@ namespace scheduler {
         }
 
         queueMap.clear();
+    }
+
+    void LocalQueueMap::enqueueMessage(const message::Message &msg) {
+        std::string funcStr = util::funcToString(msg);
+
+        if(msg.type() == message::Message_MessageType_BIND) {
+            bindQueue->enqueue(msg);
+        }
+        else {
+            InMemoryMessageQueue *q = this->getFunctionQueue(msg);
+            q->enqueue(msg);
+        }
     }
 
     long LocalQueueMap::getFunctionThreadCount(const message::Message &msg) {

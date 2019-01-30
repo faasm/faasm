@@ -9,7 +9,7 @@
 namespace scheduler {
     const std::string INCOMING_QUEUE = "incoming";
 
-    typedef std::queue<message::Message> InMemoryMessageQueue;
+    typedef util::Queue<message::Message> InMemoryMessageQueue;
     typedef std::pair<std::string, InMemoryMessageQueue *> InMemoryMessageQueuePair;
 
     class LocalQueueMap {
@@ -19,6 +19,8 @@ namespace scheduler {
         ~LocalQueueMap();
 
         static LocalQueueMap &getInstance();
+
+        void enqueueMessage(const message::Message &msg);
 
         long getFunctionThreadCount(const message::Message &msg);
 
