@@ -136,6 +136,8 @@ namespace worker {
         util::TokenPool prewarmTokenPool;
 
         scheduler::Scheduler &scheduler;
+
+        scheduler::InMemoryMessageQueue bindQueue;
     };
 
 
