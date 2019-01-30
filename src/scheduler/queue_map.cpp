@@ -1,4 +1,8 @@
-#include "scheduler/scheduler.h"
+#include "scheduler.h"
+
+#include <util/util.h>
+
+using namespace util;
 
 namespace scheduler {
     LocalQueueMap::LocalQueueMap() {

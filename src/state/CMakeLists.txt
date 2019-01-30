@@ -4,7 +4,6 @@ include_directories(
 )
 
 add_library(state STATIC
-        queue_map.cpp
         state.cpp
         ${FAASM_INCLUDE_DIR}/state/state.h
         )

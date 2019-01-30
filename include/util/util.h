@@ -69,7 +69,7 @@ namespace util {
         int getSystemConfParam(const char *name, const char *defaultValue);
     };
 
-    SystemConfig& getSystemConfig();
+    SystemConfig &getSystemConfig();
 
     // Byte handling
     std::vector<uint8_t> stringToBytes(const std::string &str);
@@ -90,17 +90,42 @@ namespace util {
     // Misc
     int randomInteger(int iStart = 0, int iEnd = 1000000);
 
-    // Queue
-    template<class T>
+    // Queue - need to include implementation here to allow compiling
+    template<typename T>
     class Queue {
     public:
-        void enqueue(T val);
+        void enqueue(T value) {
+            UniqueLock lock(mx);
 
-        T dequeue();
+            mq.push(value);
 
-        long size();
+            cv.notify_one();
+        }
 
-        void reset();
+        T dequeue() {
+            UniqueLock lock(mx);
+
+            while (mq.empty()) {
+                cv.wait(lock);
+            }
+
+            T value = mq.front();
+            mq.pop();
+            return value;
+        }
+
+        long size() {
+            UniqueLock lock(mx);
+            return mq.size();
+        }
+
+        void reset() {
+            UniqueLock lock(mx);
+
+            std::queue<T> empty;
+            std::swap(mq, empty);
+        }
+
     private:
         std::queue<T> mq;
         std::condition_variable cv;
@@ -123,6 +148,7 @@ namespace util {
         int taken();
 
         int free();
+
     private:
         int _size;
         Queue<int> queue;
@@ -141,7 +167,9 @@ namespace util {
 
     // Strings
     std::vector<std::string> tokeniseString(const std::string &input, char delimiter);
+
     bool isAllWhitespace(const std::string &input);
+
     bool startsWith(const std::string &input, const std::string &subStr);
 
     // Timing
@@ -158,12 +186,14 @@ namespace util {
         const long timeDiffMicro(const TimePoint &t1, const TimePoint &t2);
 
         void setFakeNow(const TimePoint &t);
+
     private:
         bool isFake = false;
         TimePoint fakeNow;
 
     };
-    Clock& getGlobalClock();
+
+    Clock &getGlobalClock();
 
     // Memory
     static const long HOST_PAGE_SIZE = sysconf(_SC_PAGESIZE);

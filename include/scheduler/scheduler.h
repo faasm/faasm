@@ -35,6 +35,7 @@ namespace scheduler {
         InMemoryMessageQueue *getBindQueue();
 
         void clear();
+
     private:
         InMemoryMessageQueue *bindQueue;
         std::shared_mutex mx;

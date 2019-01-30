@@ -10,7 +10,7 @@ add_library(worker_lib
         ${FAASM_INCLUDE_DIR}/worker/worker.h
         )
 
-target_link_libraries(worker_lib wasm redis scheduler)
+target_link_libraries(worker_lib wasm scheduler)
 
 add_executable(worker worker.cpp)
 target_link_libraries(worker worker_lib)
