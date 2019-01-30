@@ -10,32 +10,39 @@ namespace scheduler {
     const std::string INCOMING_QUEUE = "incoming";
 
     typedef std::queue<message::Message> InMemoryMessageQueue;
-    typedef std::pair<std::string, InMemoryMessageQueue*> InMemoryMessageQueuePair;
+    typedef std::pair<std::string, InMemoryMessageQueue *> InMemoryMessageQueuePair;
 
     class LocalQueueMap {
     public:
         LocalQueueMap();
+
         ~LocalQueueMap();
 
-        LocalQueueMap & getInstance();
+        static LocalQueueMap &getInstance();
 
         long getFunctionThreadCount(const message::Message &msg);
+
         long getFunctionQueueLength(const message::Message &msg);
 
-        InMemoryMessageQueue* listenToQueue(const message::Message &msg);
-        InMemoryMessageQueue* getFunctionQueue(const message::Message &msg);
-        void stopListeningToQueue(const message::Message &msg);
-        InMemoryMessageQueue* getBindQueue();
+        InMemoryMessageQueue *listenToQueue(const message::Message &msg);
 
+        InMemoryMessageQueue *getFunctionQueue(const message::Message &msg);
+
+        void stopListeningToQueue(const message::Message &msg);
+
+        InMemoryMessageQueue *getBindQueue();
+
+        void clear();
     private:
         InMemoryMessageQueue *bindQueue;
         std::shared_mutex mx;
-        std::map<std::string, InMemoryMessageQueue*> queueMap;
+        std::map<std::string, InMemoryMessageQueue *> queueMap;
         std::map<std::string, long> threadCountMap;
     };
 
     class MessageQueue {
         friend class Scheduler;
+
     public:
         MessageQueue();
 
@@ -46,6 +53,7 @@ namespace scheduler {
         void setFunctionResult(message::Message &msg, bool success);
 
         message::Message getFunctionResult(const message::Message &msg);
+
     private:
         redis::Redis &redis;
     };

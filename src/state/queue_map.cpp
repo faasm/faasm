@@ -5,6 +5,17 @@ namespace scheduler {
         bindQueue = new InMemoryMessageQueue();
     }
 
+    void LocalQueueMap::clear() {
+        InMemoryMessageQueue empty;
+        std::swap(*bindQueue, empty);
+
+        for (const auto &iter: queueMap) {
+            delete iter.second;
+        }
+
+        queueMap.clear();
+    }
+
     LocalQueueMap::~LocalQueueMap() {
         delete bindQueue;
 
@@ -54,7 +65,7 @@ namespace scheduler {
     InMemoryMessageQueue *LocalQueueMap::listenToQueue(const message::Message &msg) {
         std::string funcStr = util::funcToString(msg);
 
-        InMemoryMessageQueue* q = this->getFunctionQueue(msg);
+        InMemoryMessageQueue *q = this->getFunctionQueue(msg);
 
         {
             util::FullLock lock(mx);
