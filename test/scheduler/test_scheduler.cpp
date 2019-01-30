@@ -259,7 +259,7 @@ namespace tests {
 
         // With no workers assigned to function, should just get one of the global set
         // regardless of affinity
-        std::string actual = sch.getPrewarmQueueForFunction(msg, affinity);
+        std::string actual = sch.getBestHostForFunction(msg, affinity);
         std::set<std::string> expected = {prewarmA, prewarmB};
         REQUIRE(expected.find(actual) != expected.end());
 
@@ -281,14 +281,14 @@ namespace tests {
         REQUIRE(redisQueue.sismember(workerSet, chosenHost));
 
         // Run again and check result depending on affinity
-        std::string actual2 = sch.getPrewarmQueueForFunction(msg, affinity);
+        std::string actual2 = sch.getBestHostForFunction(msg, affinity);
         if (affinity) {
             // If affinity, should be the one we already have
             REQUIRE(actual2 == actual);
 
             // Now remove it from the global worker set and check we get the other
             redisQueue.srem(GLOBAL_WORKER_SET, chosenHost);
-            REQUIRE(sch.getPrewarmQueueForFunction(msg, affinity) == otherQueue);
+            REQUIRE(sch.getBestHostForFunction(msg, affinity) == otherQueue);
             REQUIRE(redisQueue.sismember(workerSet, otherHost));
         } else {
             // If anti-affinity should be the other from the global set
@@ -299,7 +299,7 @@ namespace tests {
             redisQueue.del(GLOBAL_WORKER_SET);
             redisQueue.srem(workerSet, otherHost);
 
-            REQUIRE(sch.getPrewarmQueueForFunction(msg, affinity) == actual);
+            REQUIRE(sch.getBestHostForFunction(msg, affinity) == actual);
             REQUIRE(redisQueue.sismember(workerSet, chosenHost));
         }
 
@@ -323,6 +323,6 @@ namespace tests {
         msg.set_user("alpha");
         msg.set_function("beta");
 
-        REQUIRE_THROWS(sch.getPrewarmQueueForFunction(msg, true));
+        REQUIRE_THROWS(sch.getBestHostForFunction(msg, true));
     }
 }

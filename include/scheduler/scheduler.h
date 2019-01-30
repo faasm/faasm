@@ -22,6 +22,8 @@ namespace scheduler {
 
         void enqueueMessage(const message::Message &msg);
 
+        void enqueueBindMessage(const message::Message &msg);
+
         long getFunctionThreadCount(const message::Message &msg);
 
         long getFunctionQueueLength(const message::Message &msg);
@@ -34,6 +36,8 @@ namespace scheduler {
 
         InMemoryMessageQueue *getBindQueue();
 
+        std::string getFunctionWorkerSetName(const message::Message &msg);
+
         void clear();
 
     private:
@@ -41,6 +45,7 @@ namespace scheduler {
         std::shared_mutex mx;
         std::map<std::string, InMemoryMessageQueue *> queueMap;
         std::map<std::string, long> threadCountMap;
+        redis::Redis &redis;
     };
 
     class MessageQueue {
@@ -69,44 +74,21 @@ namespace scheduler {
 
         const int scheduleRecursionLimit = 10;
 
-        long getFunctionCount(const message::Message &msg);
-
-        long getFunctionQueueLength(const message::Message &msg);
-
-        long getLocalThreadCount(const message::Message &msg);
-
-        void workerBound(const message::Message &msg);
-
-        void workerUnbound(const message::Message &msg);
-
         void addCurrentHostToWorkerPool();
 
         void placeOnGlobalQueue(message::Message &msg);
 
         std::string callFunction(message::Message &msg);
 
-        std::string getFunctionQueueName(const message::Message &msg);
-
-        std::string getFunctionWorkerSetName(const message::Message &msg);
-
-        std::string getHostPrewarmQueue(const std::string &hostName);
-
-        std::string getHostPrewarmQueue();
-
-        std::string getPrewarmQueueForFunction(const message::Message &msg, bool affinity);
-
-        void reset();
+        std::string getBestHostForFunction(const message::Message &msg, bool affinity);
 
     private:
-        std::map<std::string, int> funcCounts;
-        std::mutex funcCountMutex;
         std::string hostname;
 
         void updateWorkerAllocs(const message::Message &msg, int recursionCount = 0);
 
-        std::string getFunctionCounterName(const message::Message &msg);
-
         MessageQueue messageQueue;
+        LocalQueueMap &queueMap;
         util::SystemConfig &conf;
     };
 

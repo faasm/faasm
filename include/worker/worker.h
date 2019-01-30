@@ -85,7 +85,6 @@ namespace worker {
         void finish();
 
         std::string id;
-        std::string currentQueue;
         wasm::WasmModule *module;
     private:
         bool _isInitialised = false;
@@ -99,7 +98,8 @@ namespace worker {
         int threadIdx;
         int prewarmToken;
 
-        scheduler::MessageQueue messageQueue;
+        scheduler::MessageQueue globalQueue;
+        scheduler::InMemoryMessageQueue *currentQueue;
 
         const std::string executeCall(message::Message &msg);
 
@@ -116,8 +116,6 @@ namespace worker {
         void start();
 
         void reset();
-
-        std::string getPrewarmQueue();
 
         std::string threadBound(const WorkerThread &thread);
 

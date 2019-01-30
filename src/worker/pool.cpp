@@ -88,7 +88,7 @@ namespace worker {
         prewarmTokenPool.releaseToken(thread.prewarmToken);
 
         // Tell the thread where to listen
-        std::string newQueue = scheduler.getFunctionQueueName(thread.boundMessage);
+        std::string newQueue = queueMap.getFunctionQueueName(thread.boundMessage);
         return newQueue;
     }
 
@@ -105,10 +105,6 @@ namespace worker {
         threadTokenPool.releaseToken(thread.threadIdx);
     }
 
-    std::string WorkerThreadPool::getPrewarmQueue() {
-        return scheduler.getHostPrewarmQueue();
-    }
-
     StateThread::StateThread() = default;
 
     void StateThread::run() {
@@ -119,7 +115,8 @@ namespace worker {
     WorkerThread::WorkerThread(WorkerThreadPool &threadPoolIn, int threadIdxIn,
                                int prewarmTokenIn) : threadPool(threadPoolIn),
                                                      threadIdx(threadIdxIn),
-                                                     prewarmToken(prewarmTokenIn) {
+                                                     prewarmToken(prewarmTokenIn) ,
+                                                     queueMap(scheduler::LocalQueueMap::getInstance()){
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -127,7 +124,8 @@ namespace worker {
         id = util::getHostName() + "_" + std::to_string(threadIdx);
 
         logger->debug("Starting worker {}", id);
-        currentQueue = threadPool.getPrewarmQueue();
+
+        currentQueue = queueMap.getBindQueue();
 
         // If we've got a prewarm token less than zero we don't need to prewarm
         if (prewarmTokenIn < 0) {

@@ -4,35 +4,14 @@
 #include "prof/prof.h"
 
 namespace scheduler {
-    const std::string COUNTER_PREFIX = "n_";
-    const std::string WORKER_SET_PREFIX = "w_";
-    const std::string PREWARM_QUEUE_PREFIX = "prewarm_";
-
     Scheduler &getScheduler() {
         static Scheduler scheduler;
         return scheduler;
     }
 
-    Scheduler::Scheduler() : conf(util::getSystemConfig()) {
+    Scheduler::Scheduler() : queueMap(LocalQueueMap::getInstance()), conf(util::getSystemConfig()) {
 
     };
-
-    long Scheduler::getFunctionCount(const message::Message &msg) {
-        return messageQueue.redis.getCounter(this->getFunctionCounterName(msg));
-    }
-
-    long Scheduler::getFunctionQueueLength(const message::Message &msg) {
-        return messageQueue.redis.listLength(this->getFunctionQueueName(msg));
-    }
-
-    long Scheduler::getLocalThreadCount(const message::Message &msg) {
-        const std::string &funcStr = util::funcToString(msg);
-        return funcCounts[funcStr];
-    }
-
-    void Scheduler::reset() {
-        funcCounts.clear();
-    }
 
     void addResultKeyToMessage(message::Message &msg) {
         // Generate a random result key
@@ -49,14 +28,29 @@ namespace scheduler {
     std::string Scheduler::callFunction(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // First of all, send the message to execute the function
-        const std::string queueName = getFunctionQueueName(msg);
-        logger->debug("Queueing call to {}", util::funcToString(msg));
-        addResultKeyToMessage(msg);
-        messageQueue.enqueueMessage(queueName, msg);
+        if(queueMap.getFunctionThreadCount(msg) > 0) {
+            logger->debug("Executing {} locally", util::funcToString(msg));
+            addResultKeyToMessage(msg);
+            queueMap.enqueueMessage(msg);
 
-        // Then add more workers if necessary
-        this->updateWorkerAllocs(msg);
+            // Add more threads if necessary
+            this->updateWorkerAllocs(msg);
+        }
+        else {
+            bool affinity = conf.affinity == 1;
+            std::string bestHost = this->getBestHostForFunction(msg, affinity);
+
+            if(bestHost == hostname) {
+                queueMap.enqueueMessage(msg);
+
+                // Send bind message to add a new thread locally
+                queueMap.enqueueBindMessage(msg);
+            }
+            else {
+                // TODO - send call to a different host
+            }
+        }
+
 
         return queueName;
     }
@@ -80,7 +74,7 @@ namespace scheduler {
         }
 
         // Get the queue length and worker count
-        const std::string queueName = getFunctionQueueName(msg);
+        const std::string queueName = util::funcToString(msg);
         const std::string counterKey = this->getFunctionCounterName(msg);
 
         long queueLen = messageQueue.redis.listLength(queueName);
@@ -118,7 +112,7 @@ namespace scheduler {
 
                 // Get the appropriate prewarm queue
                 bool affinity = conf.affinity == 1;
-                std::string prewarmQueue = this->getPrewarmQueueForFunction(msg, affinity);
+                std::string prewarmQueue = this->getBestHostForFunction(msg, affinity);
 
                 logger->debug("Requesting bind on {}", prewarmQueue);
 
@@ -135,10 +129,10 @@ namespace scheduler {
         }
     }
 
-    std::string Scheduler::getPrewarmQueueForFunction(const message::Message &msg, bool affinity) {
+    std::string Scheduler::getBestHostForFunction(const message::Message &msg, bool affinity) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
-        std::string workerSet = this->getFunctionWorkerSetName(msg);
+        std::string workerSet = queueMap.getFunctionWorkerSetName(msg);
 
         std::string workerChoice;
         if (affinity) {
@@ -188,53 +182,5 @@ namespace scheduler {
         }
 
         messageQueue.redis.sadd(GLOBAL_WORKER_SET, hostname);
-    }
-
-    void Scheduler::workerBound(const message::Message &msg) {
-        // Note, counter will already have been incremented by updating worker allocs
-        // Just need to maintain local count for this function
-        std::string funcStr = util::funcToString(msg);
-
-        std::unique_lock<std::mutex> lock(funcCountMutex);
-        funcCounts[funcStr]++;
-    }
-
-    void Scheduler::workerUnbound(const message::Message &msg) {
-        // Decrement the remote counter
-        const std::string &counterName = this->getFunctionCounterName(msg);
-        messageQueue.redis.decr(counterName);
-
-        // Decrement the local counter
-        std::string funcStr = util::funcToString(msg);
-        std::unique_lock<std::mutex> lock(funcCountMutex);
-        funcCounts[funcStr]--;
-
-        // Remove this whole worker from the function set if no more threads left
-        if (funcCounts[funcStr] <= 0) {
-            std::string workerSet = this->getFunctionWorkerSetName(msg);
-            messageQueue.redis.srem(workerSet, hostname);
-        }
-    }
-
-    std::string Scheduler::getFunctionQueueName(const message::Message &msg) {
-        return util::funcToString(msg);
-    }
-
-    std::string Scheduler::getFunctionCounterName(const message::Message &msg) {
-        return COUNTER_PREFIX + this->getFunctionQueueName(msg);
-    }
-
-    std::string Scheduler::getFunctionWorkerSetName(const message::Message &msg) {
-        return WORKER_SET_PREFIX + this->getFunctionQueueName(msg);
-    }
-
-    std::string Scheduler::getHostPrewarmQueue(const std::string &hostName) {
-        std::string queueName = PREWARM_QUEUE_PREFIX + hostName;
-
-        return queueName;
-    }
-
-    std::string Scheduler::getHostPrewarmQueue() {
-        return this->getHostPrewarmQueue(util::getHostName());
     }
 }
