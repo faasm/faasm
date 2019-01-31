@@ -10,6 +10,7 @@ using namespace scheduler;
 using namespace redis;
 
 namespace tests {
+
     TEST_CASE("Test worker finishing and host removal", "[scheduler]") {
         cleanSystem();
         scheduler::Scheduler &sch = scheduler::getScheduler();
@@ -53,9 +54,9 @@ namespace tests {
     }
 
     TEST_CASE("Test calling function with no workers sends bind message", "[scheduler]") {
-        Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
+        cleanSystem();
         scheduler::Scheduler &sch = scheduler::getScheduler();
+        Redis &redis = Redis::getQueue();
 
         message::Message call;
         call.set_function("my func");
@@ -65,7 +66,7 @@ namespace tests {
         REQUIRE(sch.getFunctionThreadCount(call) == 0);
 
         // Add a worker host to the global set
-        redisQueue.sadd(GLOBAL_WORKER_SET, "foo");
+        redis.sadd(GLOBAL_WORKER_SET, "foo");
         
         // Call the function
         sch.callFunction(call);
@@ -78,25 +79,25 @@ namespace tests {
         REQUIRE(actual.function() == "my func");
         REQUIRE(actual.user() == "some user");
 
-        redisQueue.flushAll();
+        redis.flushAll();
     }
 
     TEST_CASE("Test sending bind messages", "[scheduler]") {
-        Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
+        cleanSystem();
         scheduler::Scheduler &sch = scheduler::getScheduler();
+        Redis &redis = Redis::getQueue();
 
         // Set up calls
         message::Message callA;
-        callA.set_user("userA");
-        callA.set_function("funcA");
+        callA.set_user("demo");
+        callA.set_function("echo");
 
         message::Message callB;
-        callB.set_user("userB");
-        callB.set_function("funcB");
+        callB.set_user("demo");
+        callB.set_function("x2");
 
         // Add a worker host to the global set
-        redisQueue.sadd(GLOBAL_WORKER_SET, "foo");
+        redis.sadd(GLOBAL_WORKER_SET, "foo");
         
         // Call each function
         sch.callFunction(callA);
@@ -110,9 +111,9 @@ namespace tests {
         REQUIRE(sch.getBindQueue()->size() == 2);
 
         // Check that bind messages have been sent
-        MessageQueue &globalQueue = scheduler::MessageQueue::getGlobalQueue();
-        const message::Message bindA = globalQueue.nextMessage();
-        const message::Message bindB = globalQueue.nextMessage();
+        InMemoryMessageQueue *bindQueue = sch.getBindQueue();
+        message::Message bindA = bindQueue->dequeue();
+        message::Message bindB = bindQueue->dequeue();
 
         REQUIRE(bindA.user() == callA.user());
         REQUIRE(bindA.function() == callA.function());
@@ -122,20 +123,20 @@ namespace tests {
         REQUIRE(bindB.function() == callB.function());
         REQUIRE(bindB.type() == message::Message_MessageType_BIND);
 
-        redisQueue.flushAll();
+        redis.flushAll();
     }
 
     TEST_CASE("Test calling function with existing workers does not send bind message", "[scheduler]") {
-        Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
+        cleanSystem();
         scheduler::Scheduler &sch = scheduler::getScheduler();
+        Redis &redis = Redis::getQueue();
 
         message::Message call;
         call.set_function("my func");
         call.set_user("some user");
 
         // Add a worker host to the global set
-        redisQueue.sadd(GLOBAL_WORKER_SET, "foo");
+        redis.sadd(GLOBAL_WORKER_SET, "foo");
 
         // Call the function and check thread count is incremented while bind message sent
         sch.callFunction(call);
@@ -151,20 +152,20 @@ namespace tests {
         REQUIRE(sch.getFunctionThreadCount(call) == 1);
         REQUIRE(sch.getBindQueue()->size() == 1);
 
-        redisQueue.flushAll();
+        redis.flushAll();
     }
 
     TEST_CASE("Test calling function which breaches queue ratio sends bind message", "[scheduler]") {
-        Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
+        cleanSystem();
         scheduler::Scheduler &sch = scheduler::getScheduler();
+        Redis &redis = Redis::getQueue();
 
         message::Message call;
         call.set_function("my func");
         call.set_user("some user");
 
         // Add a worker host to the global set
-        redisQueue.sadd(GLOBAL_WORKER_SET, "foo");
+        redis.sadd(GLOBAL_WORKER_SET, "foo");
 
         // Saturate up to the number of max queued calls
         util::SystemConfig &conf = util::getSystemConfig();
@@ -185,20 +186,20 @@ namespace tests {
         REQUIRE(bindQueue->size() == 2);
         REQUIRE(sch.getFunctionQueueLength(call) == nCalls + 1);
 
-        redisQueue.flushAll();
+        redis.flushAll();
     }
 
     TEST_CASE("Test function which breaches queue ratio but has no capacity does not scale up", "[scheduler]") {
-        Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
+        cleanSystem();
         scheduler::Scheduler &sch = scheduler::getScheduler();
+        Redis &redis = Redis::getQueue();
 
         message::Message call;
         call.set_user("userA");
         call.set_function("funcA");
         
         // Add a worker host to the global set
-        redisQueue.sadd(GLOBAL_WORKER_SET, "foo");
+        redis.sadd(GLOBAL_WORKER_SET, "foo");
 
         // Make calls up to the limit
         util::SystemConfig &conf = util::getSystemConfig();
@@ -224,15 +225,15 @@ namespace tests {
         REQUIRE(sch.getFunctionThreadCount(call) == conf.maxWorkersPerFunction);
         REQUIRE(sch.getFunctionQueueLength(call) == nCalls + 3);
 
-        redisQueue.flushAll();
+        redis.flushAll();
     }
 
     // TODO - check that best host for function updates with changes in queueing etc.
 
     TEST_CASE("Test error is thrown when no scheduling options", "[scheduler]") {
-        Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
+        cleanSystem();
         scheduler::Scheduler &sch = scheduler::getScheduler();
+        Redis &redis = Redis::getQueue();
 
         message::Message msg;
         msg.set_user("alpha");

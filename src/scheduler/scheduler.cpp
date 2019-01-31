@@ -1,12 +1,6 @@
 #include "scheduler.h"
 
-#include "util/util.h"
-#include "prof/prof.h"
-
-#include "scheduler.h"
-
 #include <util/util.h>
-#include <limits>
 
 using namespace util;
 
@@ -33,6 +27,7 @@ namespace scheduler {
         }
 
         queueMap.clear();
+        threadCountMap.clear();
 
         // Make sure this host is in the global set
         redis.sadd(GLOBAL_WORKER_SET, hostname);
@@ -73,7 +68,7 @@ namespace scheduler {
         long queueLength = this->getFunctionQueue(msg)->size();
 
         if (threadCount == 0) {
-            return std::numeric_limits<double>::max();
+            return 100000.0;
         }
 
         return ((double) queueLength) / threadCount;
@@ -187,7 +182,7 @@ namespace scheduler {
                 logger->debug("Scaling up {} to {} threads", util::funcToString(msg), nThreads + 1);
 
                 // If this is the first thread on this host, add it to the warm set for this function
-                if(nThreads == 0) {
+                if (nThreads == 0) {
                     std::string workerSet = this->getFunctionWarmSetName(msg);
                     redis.sadd(workerSet, hostname);
                 }

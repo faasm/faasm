@@ -38,9 +38,6 @@ namespace tests {
         REQUIRE(inputData == actual.inputdata());
         REQUIRE(isAsync == actual.isasync());
         REQUIRE(isSuccess == actual.success());
-
-        // Check result key has now been set
-        REQUIRE(actual.has_resultkey());
     }
 
     TEST_CASE("Test redis round trip sync fail", "[redis]") {
