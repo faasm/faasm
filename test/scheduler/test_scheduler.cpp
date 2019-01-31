@@ -168,21 +168,22 @@ namespace tests {
 
         // Saturate up to the number of max queued calls
         util::SystemConfig &conf = util::getSystemConfig();
+        InMemoryMessageQueue *bindQueue = sch.getBindQueue();
         int nCalls = conf.maxQueueRatio;
         for (int i = 0; i < nCalls; i++) {
             sch.callFunction(call);
 
             // Check only one bind message is ever sent
-            REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 1);
+            REQUIRE(bindQueue->size() == 1);
 
             // Check call queued
-            REQUIRE(redisQueue.listLength(queueName) == i + 1);
+            REQUIRE(sch.getFunctionQueueLength(call) == i + 1);
         }
 
         // Dispatch another and check that a bind message is sent
         sch.callFunction(call);
-        REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 2);
-        REQUIRE(redisQueue.listLength(queueName) == nCalls + 1);
+        REQUIRE(bindQueue->size() == 2);
+        REQUIRE(sch.getFunctionQueueLength(call) == nCalls + 1);
 
         redisQueue.flushAll();
     }
@@ -195,12 +196,9 @@ namespace tests {
         message::Message call;
         call.set_user("userA");
         call.set_function("funcA");
-
-        std::string queueName = sch.getFunctionQueueName(call);
-
+        
         // Add a worker host to the global set
         redisQueue.sadd(GLOBAL_WORKER_SET, "foo");
-        std::string expectedPrewarmQueue = sch.getHostPrewarmQueue("foo");
 
         // Make calls up to the limit
         util::SystemConfig &conf = util::getSystemConfig();
@@ -210,107 +208,26 @@ namespace tests {
         }
 
         // Check number of bind messages
-        REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == conf.maxWorkersPerFunction);
-
-        // Check count assigned to function
-        REQUIRE(sch.getFunctionCount(call) == conf.maxWorkersPerFunction);
+        InMemoryMessageQueue *bindQueue = sch.getBindQueue();
+        REQUIRE(bindQueue->size() == conf.maxWorkersPerFunction);
+        REQUIRE(sch.getFunctionThreadCount(call) == conf.maxWorkersPerFunction);
 
         // Check calls have been queued
-        REQUIRE(redisQueue.listLength(sch.getFunctionQueueName(call)) == nCalls);
+        REQUIRE(sch.getFunctionQueueLength(call) == nCalls);
 
         // Now call the function a few more times and check calls are queued but no new bind messages/ workers added
         sch.callFunction(call);
         sch.callFunction(call);
         sch.callFunction(call);
 
-        REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == conf.maxWorkersPerFunction);
-        REQUIRE(sch.getFunctionCount(call) == conf.maxWorkersPerFunction);
-        REQUIRE(redisQueue.listLength(sch.getFunctionQueueName(call)) == nCalls + 3);
+        REQUIRE(bindQueue->size() == conf.maxWorkersPerFunction);
+        REQUIRE(sch.getFunctionThreadCount(call) == conf.maxWorkersPerFunction);
+        REQUIRE(sch.getFunctionQueueLength(call) == nCalls + 3);
 
         redisQueue.flushAll();
     }
 
-    void checkPrewarmQueueChoice(bool affinity) {
-        Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-
-        std::string hostA = "hostA";
-        std::string hostB = "hostB";
-        std::string hostC = "hostC";
-        std::string hostD = "hostD";
-
-        const std::string prewarmA = sch.getHostPrewarmQueue(hostA);
-        const std::string prewarmB = sch.getHostPrewarmQueue(hostB);
-        const std::string prewarmC = sch.getHostPrewarmQueue(hostC);
-        const std::string prewarmD = sch.getHostPrewarmQueue(hostD);
-
-        message::Message msg;
-        msg.set_user("alpha");
-        msg.set_function("beta");
-
-        std::string workerSet = sch.getFunctionWarmSetName(msg);
-
-        // Add workers to the global set
-        redisQueue.sadd(GLOBAL_WORKER_SET, hostA);
-        redisQueue.sadd(GLOBAL_WORKER_SET, hostB);
-
-        // With no workers assigned to function, should just get one of the global set
-        // regardless of affinity
-        std::string actual = sch.getBestHostForFunction(msg, affinity);
-        std::set<std::string> expected = {prewarmA, prewarmB};
-        REQUIRE(expected.find(actual) != expected.end());
-
-        // Work out which host it is
-        std::string chosenHost;
-        std::string otherHost;
-        std::string otherQueue;
-        if (actual == prewarmA) {
-            chosenHost = hostA;
-            otherHost = hostB;
-            otherQueue = prewarmB;
-        } else {
-            chosenHost = hostB;
-            otherHost = hostA;
-            otherQueue = prewarmA;
-        }
-
-        // Check that this is now added to the function set
-        REQUIRE(redisQueue.sismember(workerSet, chosenHost));
-
-        // Run again and check result depending on affinity
-        std::string actual2 = sch.getBestHostForFunction(msg, affinity);
-        if (affinity) {
-            // If affinity, should be the one we already have
-            REQUIRE(actual2 == actual);
-
-            // Now remove it from the global worker set and check we get the other
-            redisQueue.srem(GLOBAL_WORKER_SET, chosenHost);
-            REQUIRE(sch.getBestHostForFunction(msg, affinity) == otherQueue);
-            REQUIRE(redisQueue.sismember(workerSet, otherHost));
-        } else {
-            // If anti-affinity should be the other from the global set
-            REQUIRE(actual2 == otherQueue);
-
-            // Now remove everything from the global worker set and leave only one host
-            // in the function's set, this should force it to pick the same one
-            redisQueue.del(GLOBAL_WORKER_SET);
-            redisQueue.srem(workerSet, otherHost);
-
-            REQUIRE(sch.getBestHostForFunction(msg, affinity) == actual);
-            REQUIRE(redisQueue.sismember(workerSet, chosenHost));
-        }
-
-        redisQueue.flushAll();
-    }
-
-    TEST_CASE("Test getting prewarm queue for function with affinity", "[scheduler]") {
-        checkPrewarmQueueChoice(true);
-    }
-
-    TEST_CASE("Test getting prewarm queue for function with anti-affinity", "[scheduler]") {
-        checkPrewarmQueueChoice(false);
-    }
+    // TODO - check that best host for function updates with changes in queueing etc.
 
     TEST_CASE("Test error is thrown when no scheduling options", "[scheduler]") {
         Redis &redisQueue = redis::Redis::getQueue();
@@ -321,62 +238,6 @@ namespace tests {
         msg.set_user("alpha");
         msg.set_function("beta");
 
-        REQUIRE_THROWS(sch.getBestHostForFunction(msg, true));
+        REQUIRE_THROWS(sch.getBestHostForFunction(msg));
     }
-
-    TEST_CASE("Test listening/ stopping listening on queue map", "[scheduler]") {
-        LocalQueueMap &queueMap = LocalQueueMap::getInstance();
-        queueMap.clear();
-
-        message::Message msg;
-        msg.set_user("user a");
-        msg.set_function("func a");
-
-        REQUIRE(queueMap.getFunctionQueueLength(msg) == 0);
-        REQUIRE(queueMap.getFunctionThreadCount(msg) == 0);
-
-        // Listen to the queue for this function
-        queueMap.listenToQueue(msg);
-
-        REQUIRE(queueMap.getFunctionQueueLength(msg) == 0);
-        REQUIRE(queueMap.getFunctionThreadCount(msg) == 1);
-
-        // Stop listening
-        queueMap.stopListeningToQueue(msg);
-
-        REQUIRE(queueMap.getFunctionQueueLength(msg) == 0);
-        REQUIRE(queueMap.getFunctionThreadCount(msg) == 0);
-    }
-
-    TEST_CASE("Test enqueueing messages") {
-        LocalQueueMap &queueMap = LocalQueueMap::getInstance();
-        queueMap.clear();
-
-        message::Message bindMsg;
-        bindMsg.set_user("user a");
-        bindMsg.set_function("func a");
-        bindMsg.set_type(message::Message_MessageType_BIND);
-
-        message::Message callMsg;
-        callMsg.set_user("user a");
-        callMsg.set_function("func a");
-        callMsg.set_type(message::Message_MessageType_CALL);
-
-        queueMap.enqueueMessage(bindMsg);
-        queueMap.enqueueMessage(callMsg);
-
-        InMemoryMessageQueue *funcQueue = queueMap.getFunctionQueue(callMsg);
-        InMemoryMessageQueue *bindQueue = queueMap.getBindQueue();
-
-        REQUIRE(funcQueue->size() == 1);
-        REQUIRE(bindQueue->size() == 1);
-
-        message::Message actualCall = funcQueue->dequeue();
-        message::Message actualBind = bindQueue->dequeue();
-
-        REQUIRE(actualCall.type() == message::Message_MessageType_CALL);
-        REQUIRE(actualBind.type() == message::Message_MessageType_BIND);
-    }
-
-    // TODO - check that best host for function updates with changes in queueing etc.
 }

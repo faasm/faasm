@@ -32,7 +32,7 @@ namespace tests {
         execErrorFunction(call);
 
         // Get result
-        scheduler::MessageQueue messageQueue;
+        scheduler::MessageQueue &messageQueue = scheduler::MessageQueue::getGlobalQueue();
         message::Message result = messageQueue.getFunctionResult(call);
         REQUIRE(!result.success());
 
