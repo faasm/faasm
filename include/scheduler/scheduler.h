@@ -12,42 +12,6 @@ namespace scheduler {
     typedef util::Queue<message::Message> InMemoryMessageQueue;
     typedef std::pair<std::string, InMemoryMessageQueue *> InMemoryMessageQueuePair;
 
-    class LocalQueueMap {
-    public:
-        LocalQueueMap();
-
-        ~LocalQueueMap();
-
-        static LocalQueueMap &getInstance();
-
-        void enqueueMessage(const message::Message &msg);
-
-        void enqueueBindMessage(const message::Message &msg);
-
-        long getFunctionThreadCount(const message::Message &msg);
-
-        long getFunctionQueueLength(const message::Message &msg);
-
-        InMemoryMessageQueue *listenToQueue(const message::Message &msg);
-
-        InMemoryMessageQueue *getFunctionQueue(const message::Message &msg);
-
-        void stopListeningToQueue(const message::Message &msg);
-
-        InMemoryMessageQueue *getBindQueue();
-
-        std::string getFunctionWorkerSetName(const message::Message &msg);
-
-        void clear();
-
-    private:
-        InMemoryMessageQueue *bindQueue;
-        std::shared_mutex mx;
-        std::map<std::string, InMemoryMessageQueue *> queueMap;
-        std::map<std::string, long> threadCountMap;
-        redis::Redis &redis;
-    };
-
     class MessageQueue {
         friend class Scheduler;
 
@@ -70,6 +34,8 @@ namespace scheduler {
     public:
         Scheduler();
 
+        ~Scheduler();
+
         const int scheduleWaitMillis = 100;
 
         const int scheduleRecursionLimit = 10;
@@ -82,14 +48,43 @@ namespace scheduler {
 
         std::string getBestHostForFunction(const message::Message &msg, bool affinity);
 
+        void enqueueMessage(const message::Message &msg);
+
+        void enqueueBindMessage(const message::Message &msg);
+
+        long getFunctionThreadCount(const message::Message &msg);
+
+        long getFunctionQueueLength(const message::Message &msg);
+
+        InMemoryMessageQueue *listenToQueue(const message::Message &msg);
+
+        InMemoryMessageQueue *getFunctionQueue(const message::Message &msg);
+
+        void stopListeningToQueue(const message::Message &msg);
+
+        InMemoryMessageQueue *getBindQueue();
+
+        MessageQueue &getMessageQueue();
+
+        std::string getFunctionWorkerSetName(const message::Message &msg);
+
+        void clear();
+
     private:
         std::string hostname;
 
         void updateWorkerAllocs(const message::Message &msg, int recursionCount = 0);
 
-        MessageQueue messageQueue;
-        LocalQueueMap &queueMap;
         util::SystemConfig &conf;
+
+        MessageQueue messageQueue;
+        InMemoryMessageQueue *bindQueue;
+
+        std::map<std::string, InMemoryMessageQueue *> queueMap;
+        std::map<std::string, long> threadCountMap;
+        std::shared_mutex mx;
+
+        redis::Redis &redis;
     };
 
     Scheduler &getScheduler();

@@ -80,22 +80,26 @@ namespace worker {
         return threadTokenPool.taken();
     }
 
-    std::string WorkerThreadPool::threadBound(const WorkerThread &thread) {
-        // Notify the scheduler
-        scheduler.workerBound(thread.boundMessage);
+    scheduler::InMemoryMessageQueue* WorkerThreadPool::getBindQueue() {
+        return scheduler.getBindQueue();
+    }
 
+    scheduler::InMemoryMessageQueue *WorkerThreadPool::threadBound(const WorkerThread &thread) {
         // Release thread's prewarm token
         prewarmTokenPool.releaseToken(thread.prewarmToken);
 
-        // Tell the thread where to listen
-        std::string newQueue = queueMap.getFunctionQueueName(thread.boundMessage);
-        return newQueue;
+        // Notify scheduler
+        return scheduler.listenToQueue(thread.boundMessage);
+    }
+
+    void WorkerThreadPool::callFinished(message::Message &msg, bool isSuccess) {
+        scheduler.getMessageQueue().setFunctionResult(msg, isSuccess);
     }
 
     void WorkerThreadPool::threadFinished(WorkerThread &thread) {
         if (thread.isBound()) {
             // Notifiy scheduler if this thread was bound to a function
-            scheduler.workerUnbound(thread.boundMessage);
+            scheduler.stopListeningToQueue(thread.boundMessage);
         } else {
             // If thread was not bound, needs to release its prewarm token
             prewarmTokenPool.releaseToken(thread.prewarmToken);
@@ -115,8 +119,7 @@ namespace worker {
     WorkerThread::WorkerThread(WorkerThreadPool &threadPoolIn, int threadIdxIn,
                                int prewarmTokenIn) : threadPool(threadPoolIn),
                                                      threadIdx(threadIdxIn),
-                                                     prewarmToken(prewarmTokenIn) ,
-                                                     queueMap(scheduler::LocalQueueMap::getInstance()){
+                                                     prewarmToken(prewarmTokenIn)){
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -125,7 +128,8 @@ namespace worker {
 
         logger->debug("Starting worker {}", id);
 
-        currentQueue = queueMap.getBindQueue();
+        // Listen to bind queue by default
+        currentQueue = threadPool.getBindQueue();
 
         // If we've got a prewarm token less than zero we don't need to prewarm
         if (prewarmTokenIn < 0) {
@@ -200,7 +204,7 @@ namespace worker {
         }
 
         // Set result
-        messageQueue.setFunctionResult(call, isSuccess);
+        threadPool.callFinished(call, isSuccess);
 
         // Restore the module memory after the execution
         module->restoreMemory();
@@ -221,8 +225,9 @@ namespace worker {
             throw std::runtime_error("Cannot bind worker thread more than once");
         }
 
-        // Notify the pool
         boundMessage = msg;
+
+        // Set up with scheduler
         currentQueue = threadPool.threadBound(*this);
 
         // Perform the actual wasm initialisation
@@ -264,7 +269,7 @@ namespace worker {
         }
 
         // Wait for next message
-        message::Message msg = messageQueue.nextMessage(currentQueue, timeout);
+        message::Message msg = currentQueue->dequeue(timeout);
 
         // Handle the message
         std::string errorMessage;

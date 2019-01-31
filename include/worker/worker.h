@@ -63,8 +63,10 @@ namespace worker {
      * Worker threads
      */
     class WorkerThreadPool;
+
     class WorkerThread {
         friend class WorkerThreadPool;
+
     public:
         WorkerThread(WorkerThreadPool &threadPool, int threadIdx, int prewarmToken);
 
@@ -98,7 +100,6 @@ namespace worker {
         int threadIdx;
         int prewarmToken;
 
-        scheduler::MessageQueue globalQueue;
         scheduler::InMemoryMessageQueue *currentQueue;
 
         const std::string executeCall(message::Message &msg);
@@ -117,7 +118,9 @@ namespace worker {
 
         void reset();
 
-        std::string threadBound(const WorkerThread &thread);
+        scheduler::InMemoryMessageQueue *threadBound(const WorkerThread &thread);
+
+        void callFinished(message::Message &msg, bool isSuccess);
 
         void threadFinished(WorkerThread &thread);
 
@@ -128,6 +131,8 @@ namespace worker {
         int getPrewarmCount();
 
         int getThreadCount();
+
+        scheduler::InMemoryMessageQueue *getBindQueue();
 
     private:
         util::TokenPool threadTokenPool;

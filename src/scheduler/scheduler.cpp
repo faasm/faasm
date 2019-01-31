@@ -3,15 +3,135 @@
 #include "util/util.h"
 #include "prof/prof.h"
 
+#include "scheduler.h"
+
+#include <util/util.h>
+
+using namespace util;
+
 namespace scheduler {
+    const std::string WORKER_SET_PREFIX = "w_";
+
+    Scheduler::Scheduler() : conf(util::getSystemConfig()), redis(redis::Redis::getQueue()) {
+        bindQueue = new InMemoryMessageQueue();
+    }
+
+    void Scheduler::clear() {
+        bindQueue->reset();
+
+        for (const auto &iter: queueMap) {
+            delete iter.second;
+        }
+
+        queueMap.clear();
+    }
+
+    Scheduler::~Scheduler() {
+        delete bindQueue;
+
+        for (const auto &iter: queueMap) {
+            delete iter.second;
+        }
+
+        queueMap.clear();
+    }
+
+    void Scheduler::enqueueMessage(const message::Message &msg) {
+
+        std::string funcStr = util::funcToString(msg);
+
+        if (msg.type() == message::Message_MessageType_BIND) {
+            bindQueue->enqueue(msg);
+        } else {
+            InMemoryMessageQueue *q = this->getFunctionQueue(msg);
+            q->enqueue(msg);
+        }
+    }
+
+    void Scheduler::enqueueBindMessage(const message::Message &msg) {
+        message::Message bindMsg;
+        bindMsg.set_type(message::Message_MessageType_BIND);
+        bindMsg.set_user(msg.user());
+        bindMsg.set_function(msg.function());
+
+        this->enqueueMessage(bindMsg);
+    }
+
+    long Scheduler::getFunctionThreadCount(const message::Message &msg) {
+        std::string funcStr = util::funcToString(msg);
+
+        util::SharedLock lock(mx);
+        return threadCountMap[funcStr];
+    }
+
+    long Scheduler::getFunctionQueueLength(const message::Message &msg) {
+        std::string funcStr = util::funcToString(msg);
+
+        InMemoryMessageQueue *q = this->getFunctionQueue(msg);
+
+        util::SharedLock lock(mx);
+        return q->size();
+    }
+
+    InMemoryMessageQueue *Scheduler::getFunctionQueue(const message::Message &msg) {
+        std::string funcStr = util::funcToString(msg);
+        if (queueMap.count(funcStr) == 0) {
+            util::FullLock lock(mx);
+
+            if (queueMap.count(funcStr) == 0) {
+                auto mq = new InMemoryMessageQueue();
+
+                queueMap.emplace(InMemoryMessageQueuePair(funcStr, mq));
+            }
+        }
+
+        return queueMap[funcStr];
+    }
+
+    InMemoryMessageQueue *Scheduler::listenToQueue(const message::Message &msg) {
+        std::string funcStr = util::funcToString(msg);
+
+        InMemoryMessageQueue *q = this->getFunctionQueue(msg);
+
+        {
+            util::FullLock lock(mx);
+            threadCountMap[funcStr]++;
+        }
+
+        return q;
+    }
+
+    void Scheduler::stopListeningToQueue(const message::Message &msg) {
+        std::string funcStr = util::funcToString(msg);
+
+        {
+            util::FullLock lock(mx);
+            threadCountMap[funcStr]--;
+
+            if (threadCountMap[funcStr] == 0) {
+                std::string workerSet = this->getFunctionWorkerSetName(msg);
+                redis.srem(workerSet, hostname);
+            }
+        }
+    }
+
+    std::string Scheduler::getFunctionWorkerSetName(const message::Message &msg) {
+        std::string funcStr = util::funcToString(msg);
+        return WORKER_SET_PREFIX + funcStr;
+    }
+
+    InMemoryMessageQueue *Scheduler::getBindQueue() {
+        return bindQueue;
+    }
+
+    MessageQueue &Scheduler::getMessageQueue() {
+        return messageQueue;
+    }
+
     Scheduler &getScheduler() {
         static Scheduler scheduler;
         return scheduler;
     }
-
-    Scheduler::Scheduler() : queueMap(LocalQueueMap::getInstance()), conf(util::getSystemConfig()) {
-
-    };
 
     void addResultKeyToMessage(message::Message &msg) {
         // Generate a random result key
@@ -28,31 +148,26 @@ namespace scheduler {
     std::string Scheduler::callFunction(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        if(queueMap.getFunctionThreadCount(msg) > 0) {
+        if (this->getFunctionThreadCount(msg) > 0) {
             logger->debug("Executing {} locally", util::funcToString(msg));
             addResultKeyToMessage(msg);
-            queueMap.enqueueMessage(msg);
+            this->enqueueMessage(msg);
 
             // Add more threads if necessary
             this->updateWorkerAllocs(msg);
-        }
-        else {
+        } else {
             bool affinity = conf.affinity == 1;
             std::string bestHost = this->getBestHostForFunction(msg, affinity);
 
-            if(bestHost == hostname) {
-                queueMap.enqueueMessage(msg);
+            if (bestHost == hostname) {
+                this->enqueueMessage(msg);
 
                 // Send bind message to add a new thread locally
-                queueMap.enqueueBindMessage(msg);
-            }
-            else {
+                this->enqueueBindMessage(msg);
+            } else {
                 // TODO - send call to a different host
             }
         }
-
-
-        return queueName;
     }
 
     void Scheduler::updateWorkerAllocs(const message::Message &msg, int recursionCount) {
@@ -132,7 +247,7 @@ namespace scheduler {
     std::string Scheduler::getBestHostForFunction(const message::Message &msg, bool affinity) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
-        std::string workerSet = queueMap.getFunctionWorkerSetName(msg);
+        std::string workerSet = this->getFunctionWorkerSetName(msg);
 
         std::string workerChoice;
         if (affinity) {

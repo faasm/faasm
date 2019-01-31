@@ -102,11 +102,16 @@ namespace util {
             cv.notify_one();
         }
 
-        T dequeue() {
+        T dequeue(long timeoutMs=0) {
             UniqueLock lock(mx);
 
             while (mq.empty()) {
-                cv.wait(lock);
+                if(timeoutMs > 0) {
+                    cv.wait(lock);
+                }
+                else {
+                    cv.wait_for(lock, timeoutMs);
+                }
             }
 
             T value = mq.front();
