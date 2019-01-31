@@ -74,4 +74,12 @@ namespace util {
         std::string str = msg.user() + "/" + msg.function();
         return str;
     }
+
+    void addResultKeyToMessage(message::Message &msg) {
+        // Generate a random result key
+        int randomNumber = util::randomInteger();
+        std::string resultKey = "Result_";
+        resultKey += std::to_string(randomNumber);
+        msg.set_resultkey(resultKey);
+    }
 }

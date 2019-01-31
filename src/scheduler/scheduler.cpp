@@ -48,11 +48,13 @@ namespace scheduler {
         }
     }
 
+    // Not thread-safe
     long Scheduler::getFunctionThreadCount(const message::Message &msg) {
         std::string funcStr = util::funcToString(msg);
         return threadCountMap[funcStr];
     }
 
+    // Not thread-safe
     double Scheduler::getFunctionQueueRatio(const message::Message &msg) {
         std::string funcStr = util::funcToString(msg);
 
@@ -66,6 +68,7 @@ namespace scheduler {
         return ((double) queueLength) / threadCount;
     }
 
+    // Not thread-safe
     long Scheduler::getFunctionQueueLength(const message::Message &msg) {
         std::string funcStr = util::funcToString(msg);
         InMemoryMessageQueue *q = this->getFunctionQueue(msg);
@@ -89,14 +92,11 @@ namespace scheduler {
     }
 
     InMemoryMessageQueue *Scheduler::listenToQueue(const message::Message &msg) {
+        // Note: don't need to increment thread count here as that's done when we
+        // dispatch the bind message
         std::string funcStr = util::funcToString(msg);
 
         InMemoryMessageQueue *q = this->getFunctionQueue(msg);
-
-        {
-            util::FullLock lock(mx);
-            threadCountMap[funcStr]++;
-        }
 
         return q;
     }
@@ -124,26 +124,9 @@ namespace scheduler {
         return bindQueue;
     }
 
-    MessageQueue &Scheduler::getGlobalQueue() {
-        return messageQueue;
-    }
-
     Scheduler &getScheduler() {
         static Scheduler scheduler;
         return scheduler;
-    }
-
-    void addResultKeyToMessage(message::Message &msg) {
-        // Generate a random result key
-        int randomNumber = util::randomInteger();
-        std::string resultKey = "Result_";
-        resultKey += std::to_string(randomNumber);
-        msg.set_resultkey(resultKey);
-    }
-
-    void Scheduler::placeOnGlobalQueue(message::Message &msg) {
-        addResultKeyToMessage(msg);
-        messageQueue.enqueueMessage(INCOMING_QUEUE, msg);
     }
 
     void Scheduler::callFunction(message::Message &msg) {
@@ -176,16 +159,24 @@ namespace scheduler {
             maxQueueRatio = 0;
         }
 
-        // If we're over the queue ratio, need to scale up
-        if (this->getFunctionQueueRatio(msg) > maxQueueRatio) {
+        double queueRatio = this->getFunctionQueueRatio(msg);
+        double nThreads = this->getFunctionThreadCount(msg);
+
+        // If we're over the queue ratio and have capacity, need to scale up
+        if (queueRatio > maxQueueRatio && nThreads < conf.maxWorkersPerFunction) {
             FullLock lock(mx);
 
-            double queueRatio = this->getFunctionQueueRatio(msg);
-            double nThreads = this->getFunctionThreadCount(msg);
+            std::string funcStr = util::funcToString(msg);
+
+            queueRatio = this->getFunctionQueueRatio(msg);
+            nThreads = this->getFunctionThreadCount(msg);
 
             // Double check condition
             if (queueRatio > maxQueueRatio && nThreads < conf.maxWorkersPerFunction) {
                 logger->debug("Scaling up {} to {} threads", util::funcToString(msg), nThreads + 1);
+
+                // Increment thread count here
+                threadCountMap[funcStr]++;
 
                 message::Message bindMsg;
                 bindMsg.set_type(message::Message_MessageType_BIND);
@@ -247,6 +238,6 @@ namespace scheduler {
             throw std::runtime_error("HOSTNAME for this machine is empty");
         }
 
-        messageQueue.redis.sadd(GLOBAL_WORKER_SET, hostname);
+        redis.sadd(GLOBAL_WORKER_SET, hostname);
     }
 }

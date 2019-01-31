@@ -26,6 +26,8 @@ namespace util {
 
     std::string funcToString(const message::Message &msg);
 
+    void addResultKeyToMessage(message::Message &msg);
+
     std::vector<uint8_t> messageToBytes(const message::Message &msg);
 
     // Environment manipulation
@@ -120,7 +122,7 @@ namespace util {
                     cv.wait(lock);
                 }
                 else {
-                    cv.wait_for(lock, timeoutMs);
+                    cv.wait_for(lock, std::chrono::milliseconds(timeoutMs));
                 }
             }
 

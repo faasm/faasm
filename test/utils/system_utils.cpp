@@ -9,7 +9,7 @@ namespace tests {
 
         state::getGlobalState().forceClearAll();
 
-        scheduler::getScheduler().reset();
+        scheduler::getScheduler().clear();
 
         workerThreadPool.reset();
     }

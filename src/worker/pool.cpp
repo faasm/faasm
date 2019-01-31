@@ -93,7 +93,7 @@ namespace worker {
     }
 
     void WorkerThreadPool::callFinished(message::Message &msg, bool isSuccess) {
-        scheduler.getGlobalQueue().setFunctionResult(msg, isSuccess);
+        scheduler::MessageQueue::getGlobalQueue().setFunctionResult(msg, isSuccess);
     }
 
     void WorkerThreadPool::threadFinished(WorkerThread &thread) {

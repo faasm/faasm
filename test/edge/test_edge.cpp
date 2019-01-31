@@ -24,16 +24,14 @@ namespace tests {
         call.set_function("echo");
         call.set_inputdata("abc");
 
-        // Get expected queue
+        // Get global queue
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        std::string queueName = sch.getFunctionQueueName(call);
+        scheduler::MessageQueue globalQueue = scheduler::MessageQueue::getGlobalQueue();
 
         edge::FunctionEndpoint endpoint;
         endpoint.handleFunction(call);
 
-        scheduler::MessageQueue messageQueue;
-
-        const message::Message actual = messageQueue.nextMessage(queueName);
+        const message::Message actual = globalQueue.nextMessage();
 
         REQUIRE(actual.user() == "demo");
         REQUIRE(actual.function() == "echo");
@@ -52,10 +50,5 @@ namespace tests {
         std::string msg = endpoint.handleFunction(call);
 
         REQUIRE(msg == "foobar/baz is not a valid function");
-
-        // Check nothing added to queue
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        const std::string queueName = sch.getFunctionQueueName(call);
-        REQUIRE(redis::Redis::getQueue().listLength(queueName) == 0);
     }
 }

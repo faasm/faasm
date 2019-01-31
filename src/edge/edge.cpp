@@ -4,7 +4,6 @@
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
 
-#include <prof/prof.h>
 #include <scheduler/scheduler.h>
 #include <util/util.h>
 
@@ -60,8 +59,6 @@ namespace edge {
     }
 
     std::string FunctionEndpoint::handleFunction(message::Message &msg) {
-        util::Clock &c = util::getGlobalClock();
-        const util::TimePoint now = c.now();
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Bomb out if call isn't valid
@@ -71,16 +68,16 @@ namespace edge {
         }
 
         // Make the call
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        sch.callFunction(msg);
-        prof::logEndTimer("edge-submit", now);
+        scheduler::MessageQueue globalQueue = scheduler::MessageQueue::getGlobalQueue();
+        util::addResultKeyToMessage(msg);
+        globalQueue.enqueueMessage(msg);
 
         if (msg.isasync()) {
             logger->info("Async request {}", util::funcToString(msg));
             return "Async request submitted";
         } else {
             logger->info("Sync request {}", util::funcToString(msg));
-            message::Message result = messageQueue.getFunctionResult(msg);
+            message::Message result = globalQueue.getFunctionResult(msg);
 
             logger->info("Finished request {}", util::funcToString(msg));
 

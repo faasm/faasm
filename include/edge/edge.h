@@ -23,7 +23,6 @@ namespace edge {
     private:
         std::shared_ptr<Http::Endpoint> httpEndpoint;
         Rest::Router router;
-        scheduler::MessageQueue messageQueue;
 
         void setupRoutes();
 

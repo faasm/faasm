@@ -7,8 +7,6 @@
 #define GLOBAL_WORKER_SET "available_workers"
 
 namespace scheduler {
-    const std::string INCOMING_QUEUE = "incoming";
-
     typedef util::Queue<message::Message> InMemoryMessageQueue;
     typedef std::pair<std::string, InMemoryMessageQueue *> InMemoryMessageQueuePair;
 
@@ -16,17 +14,20 @@ namespace scheduler {
         friend class Scheduler;
 
     public:
-        MessageQueue();
+        static MessageQueue &getGlobalQueue();
 
-        void enqueueMessage(const std::string &queueName, const message::Message &msg);
+        explicit MessageQueue(const std::string &queueName);
 
-        message::Message nextMessage(const std::string &queueName, int timeout = util::DEFAULT_TIMEOUT);
+        void enqueueMessage(const message::Message &msg);
+
+        message::Message nextMessage(int timeout = util::DEFAULT_TIMEOUT);
 
         void setFunctionResult(message::Message &msg, bool success);
 
         message::Message getFunctionResult(const message::Message &msg);
 
     private:
+        std::string queueName;
         redis::Redis &redis;
     };
 
@@ -36,15 +37,7 @@ namespace scheduler {
 
         ~Scheduler();
 
-        const int scheduleWaitMillis = 100;
-
-        const int scheduleRecursionLimit = 10;
-
         void addCurrentHostToWorkerPool();
-
-        void placeOnGlobalQueue(message::Message &msg);
-
-        MessageQueue &getGlobalQueue();
 
         void callFunction(message::Message &msg);
 
@@ -64,6 +57,12 @@ namespace scheduler {
 
         void clear();
 
+        long getFunctionThreadCount(const message::Message &msg);
+
+        double getFunctionQueueRatio(const message::Message &msg);
+
+        long getFunctionQueueLength(const message::Message &msg);
+
     private:
         std::string hostname;
 
@@ -71,7 +70,6 @@ namespace scheduler {
 
         util::SystemConfig &conf;
 
-        MessageQueue messageQueue;
         InMemoryMessageQueue *bindQueue;
 
         std::map<std::string, InMemoryMessageQueue *> queueMap;
@@ -79,12 +77,6 @@ namespace scheduler {
         std::shared_mutex mx;
 
         redis::Redis &redis;
-
-        long getFunctionThreadCount(const message::Message &msg);
-
-        double getFunctionQueueRatio(const message::Message &msg);
-
-        long getFunctionQueueLength(const message::Message &msg);
     };
 
     Scheduler &getScheduler();

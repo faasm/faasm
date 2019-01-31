@@ -1,21 +1,24 @@
 #include "scheduler.h"
 
 namespace scheduler {
-    /**
-     *  ------ Function messages ------
-     */
+    const std::string GLOBAL_QUEUE = "all_incoming";
 
-    MessageQueue::MessageQueue() : redis(redis::Redis::getQueue()) {
+    MessageQueue &MessageQueue::getGlobalQueue() {
+        static MessageQueue q(GLOBAL_QUEUE);
+        return q;
+    }
+
+    MessageQueue::MessageQueue(const std::string &queueNameIn) : queueName(queueNameIn),
+        redis(redis::Redis::getQueue()) {
 
     }
 
-    void MessageQueue::enqueueMessage(const std::string &queueName, const message::Message &msg) {
+    void MessageQueue::enqueueMessage(const message::Message &msg) {
         std::vector<uint8_t> msgBytes = util::messageToBytes(msg);
         redis.enqueue(queueName, msgBytes);
     }
 
-
-    message::Message MessageQueue::nextMessage(const std::string &queueName, int timeout) {
+    message::Message MessageQueue::nextMessage(int timeout) {
         std::vector<uint8_t> dequeueResult = redis.dequeue(queueName, timeout);
 
         message::Message msg;
