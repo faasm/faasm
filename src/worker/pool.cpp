@@ -21,9 +21,6 @@ namespace worker {
         // Ensure we can ping both redis instances
         redis::Redis::getQueue().ping();
         redis::Redis::getState().ping();
-
-        // Notify scheduler
-        scheduler.addCurrentHostToWorkerPool();
     }
 
     void WorkerThreadPool::start() {
@@ -59,9 +56,6 @@ namespace worker {
     void WorkerThreadPool::reset() {
         threadTokenPool.reset();
         prewarmTokenPool.reset();
-
-        // Add hostname to global workers
-        scheduler.addCurrentHostToWorkerPool();
     }
 
     int WorkerThreadPool::getPrewarmToken() {

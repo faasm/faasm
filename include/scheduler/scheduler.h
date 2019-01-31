@@ -37,8 +37,6 @@ namespace scheduler {
 
         ~Scheduler();
 
-        void addCurrentHostToWorkerPool();
-
         void callFunction(message::Message &msg);
 
         std::string getBestHostForFunction(const message::Message &msg);

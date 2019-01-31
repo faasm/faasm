@@ -15,6 +15,14 @@ namespace scheduler {
 
     Scheduler::Scheduler() : conf(util::getSystemConfig()), redis(redis::Redis::getQueue()) {
         bindQueue = new InMemoryMessageQueue();
+
+        hostname = util::getHostName();
+        if (hostname.empty()) {
+            throw std::runtime_error("HOSTNAME for this machine is empty");
+        }
+
+        // Add to global set of workers
+        redis.sadd(GLOBAL_WORKER_SET, hostname);
     }
 
     void Scheduler::clear() {
@@ -25,6 +33,9 @@ namespace scheduler {
         }
 
         queueMap.clear();
+
+        // Make sure this host is in the global set
+        redis.sadd(GLOBAL_WORKER_SET, hostname);
     }
 
     Scheduler::~Scheduler() {
@@ -175,6 +186,12 @@ namespace scheduler {
             if (queueRatio > maxQueueRatio && nThreads < conf.maxWorkersPerFunction) {
                 logger->debug("Scaling up {} to {} threads", util::funcToString(msg), nThreads + 1);
 
+                // If this is the first thread on this host, add it to the warm set for this function
+                if(nThreads == 0) {
+                    std::string workerSet = this->getFunctionWarmSetName(msg);
+                    redis.sadd(workerSet, hostname);
+                }
+
                 // Increment thread count here
                 threadCountMap[funcStr]++;
 
@@ -229,15 +246,5 @@ namespace scheduler {
             logger->error("No worker host available for scheduling {}", util::funcToString(msg));
             throw std::runtime_error("No worker host available for scheduling");
         }
-    }
-
-    void Scheduler::addCurrentHostToWorkerPool() {
-        // Add this worker to the list of workers accepting jobs
-        hostname = util::getHostName();
-        if (hostname.empty()) {
-            throw std::runtime_error("HOSTNAME for this machine is empty");
-        }
-
-        redis.sadd(GLOBAL_WORKER_SET, hostname);
     }
 }

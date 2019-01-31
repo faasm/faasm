@@ -31,36 +31,33 @@ namespace tests {
         REQUIRE(!w.isBound());
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        const std::string expectedPrewarmQueue = sch.getHostPrewarmQueue();
-
+        scheduler::InMemoryMessageQueue *bindQueue = sch.getBindQueue();
+        
         // Call the function, checking that everything is set up
         sch.callFunction(call);
-        REQUIRE(redisQueue.listLength(sch.getFunctionQueueName(call)) == 1);
-        REQUIRE(sch.getFunctionCount(call) == 1);
-        REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 1);
+        REQUIRE(sch.getFunctionQueueLength(call) == 1);
+        REQUIRE(sch.getFunctionThreadCount(call) == 1);
+        REQUIRE(bindQueue->size() == 1);
 
         // Process the bind message
         w.processNextMessage();
         REQUIRE(w.isBound());
-        REQUIRE(redisQueue.listLength(sch.getFunctionQueueName(call)) == 1);
-        REQUIRE(sch.getFunctionCount(call) == 1);
-        REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 0);
+        REQUIRE(sch.getFunctionQueueLength(call) == 1);
+        REQUIRE(sch.getFunctionThreadCount(call) == 1);
+        REQUIRE(bindQueue->size() == 0);
 
         // Now execute the function
         w.processNextMessage();
-        REQUIRE(redisQueue.listLength(sch.getFunctionQueueName(call)) == 0);
-        REQUIRE(sch.getFunctionCount(call) == 1);
-        REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 0);
+        REQUIRE(sch.getFunctionQueueLength(call) == 0);
+        REQUIRE(sch.getFunctionThreadCount(call) == 1);
+        REQUIRE(bindQueue->size() == 0);
 
         return w;
     }
 
     void checkBindMessage(const message::Message &expected) {
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        std::string expectedPrewarmQueue = sch.getHostPrewarmQueue();
-
-        scheduler::MessageQueue messageQueue;
-        const message::Message actual = messageQueue.nextMessage(expectedPrewarmQueue);
+        const message::Message actual = sch.getBindQueue()->dequeue();
 
         REQUIRE(actual.user() == expected.user());
         REQUIRE(actual.function() == expected.function());
@@ -73,8 +70,7 @@ namespace tests {
         expected.set_inputdata(inputData);
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        scheduler::MessageQueue messageQueue;
-        message::Message actual = messageQueue.nextMessage(sch.getFunctionQueueName(expected));
+        message::Message actual = sch.getFunctionQueue(expected)->dequeue();
 
         REQUIRE(actual.user() == expected.user());
         REQUIRE(actual.function() == expected.function());
@@ -152,8 +148,8 @@ namespace tests {
 
         // Run the execution
         execFunction(call);
-        scheduler::MessageQueue messageQueue;
-        message::Message result = messageQueue.getFunctionResult(call);
+        scheduler::MessageQueue &globalQueue = scheduler::MessageQueue::getGlobalQueue();
+        message::Message result = globalQueue.getFunctionResult(call);
 
         // Check output
         REQUIRE(result.outputdata() == "this is input");
@@ -175,8 +171,8 @@ namespace tests {
         WorkerThread w = execFunction(call);
 
         // Check output from first invocation
-        scheduler::MessageQueue messageQueue;
-        message::Message resultA = messageQueue.getFunctionResult(call);
+        scheduler::MessageQueue &globalQueue = scheduler::MessageQueue::getGlobalQueue();
+        message::Message resultA = globalQueue.getFunctionResult(call);
         REQUIRE(resultA.outputdata() == "first input");
         REQUIRE(resultA.success());
 
@@ -190,7 +186,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check output from second invocation
-        message::Message resultB = messageQueue.getFunctionResult(call);
+        message::Message resultB = globalQueue.getFunctionResult(call);
         REQUIRE(resultB.outputdata() == "second input");
         REQUIRE(resultB.success());
 
@@ -207,7 +203,6 @@ namespace tests {
         REQUIRE(w.isInitialised());
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        const std::string expectedPrewarmQueue = sch.getHostPrewarmQueue();
 
         // Invoke a new call which will require a worker to bind
         message::Message call;
@@ -215,9 +210,9 @@ namespace tests {
         call.set_function("echo");
         sch.callFunction(call);
 
-        // Check message is on the prewarm queue
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-        REQUIRE(redisQueue.listLength(expectedPrewarmQueue) == 1);
+        // Check message is on the bind queue
+        scheduler::InMemoryMessageQueue *bindQueue = sch.getBindQueue();
+        REQUIRE(bindQueue->size() == 1);
 
         // Process next message
         w.processNextMessage();
@@ -248,8 +243,8 @@ namespace tests {
         w.processNextMessage();
 
         // Check the call executed successfully
-        scheduler::MessageQueue messageQueue;
-        message::Message result = messageQueue.getFunctionResult(call);
+        scheduler::MessageQueue &globalQueue = scheduler::MessageQueue::getGlobalQueue();
+        message::Message result = globalQueue.getFunctionResult(call);
         REQUIRE(result.success());
 
         // Check the chained calls have been set up
@@ -287,8 +282,8 @@ namespace tests {
         w.processNextMessage();
 
         // Check result
-        scheduler::MessageQueue messageQueue;
-        message::Message resultA = messageQueue.getFunctionResult(call);
+        scheduler::MessageQueue &globalQueue = scheduler::MessageQueue::getGlobalQueue();
+        message::Message resultA = globalQueue.getFunctionResult(call);
         REQUIRE(resultA.success());
         REQUIRE(resultA.outputdata() == "Counter: 001");
 
@@ -296,7 +291,7 @@ namespace tests {
         sch.callFunction(call);
         w.processNextMessage();
 
-        message::Message resultB = messageQueue.getFunctionResult(call);
+        message::Message resultB = globalQueue.getFunctionResult(call);
         REQUIRE(resultB.success());
         REQUIRE(resultB.outputdata() == "Counter: 002");
     }
@@ -323,8 +318,8 @@ namespace tests {
         w.processNextMessage();
 
         // Check result
-        scheduler::MessageQueue messageQueue;
-        message::Message result = messageQueue.getFunctionResult(call);
+        scheduler::MessageQueue &globalQueue = scheduler::MessageQueue::getGlobalQueue();
+        message::Message result = globalQueue.getFunctionResult(call);
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
 
@@ -408,8 +403,8 @@ namespace tests {
         w.processNextMessage();
 
         // Check output is true
-        scheduler::MessageQueue messageQueue;
-        message::Message result = messageQueue.getFunctionResult(call);
+        scheduler::MessageQueue &globalQueue = scheduler::MessageQueue::getGlobalQueue();
+        message::Message result = globalQueue.getFunctionResult(call);
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
 
@@ -522,9 +517,10 @@ namespace tests {
 
         // Sense check initial scheduler set-up
         scheduler::Scheduler &sch = scheduler::getScheduler();
+        scheduler::InMemoryMessageQueue *bindQueue = sch.getBindQueue();
         REQUIRE(sch.getFunctionQueueLength(call) == 0);
-        REQUIRE(sch.getFunctionCount(call) == 0);
-        REQUIRE(sch.getLocalThreadCount(call) == 0);
+        REQUIRE(sch.getFunctionThreadCount(call) == 0);
+        REQUIRE(bindQueue->size() == 0);
 
         // Call the function
         sch.callFunction(call);
@@ -532,25 +528,27 @@ namespace tests {
         // Check scheduler set-up
         const std::string workerSetName = sch.getFunctionWarmSetName(call);
         REQUIRE(sch.getFunctionQueueLength(call) == 1);
-        REQUIRE(sch.getFunctionCount(call) == 1);
+        REQUIRE(sch.getFunctionThreadCount(call) == 1);
+        REQUIRE(bindQueue->size() == 1);
         REQUIRE(redis.sismember(workerSetName, hostname));
-
-        // Check that thread isn't currently registered locally
-        REQUIRE(sch.getLocalThreadCount(call) == 0);
 
         // Bind the thread and check it's now registered
         w.processNextMessage();
-        REQUIRE(sch.getLocalThreadCount(call) == 1);
+        REQUIRE(sch.getFunctionQueueLength(call) == 1);
+        REQUIRE(sch.getFunctionThreadCount(call) == 1);
+        REQUIRE(bindQueue->size() == 0);
 
         // Execute function and check thread still registered
         w.processNextMessage();
-        REQUIRE(sch.getLocalThreadCount(call) == 1);
+        REQUIRE(sch.getFunctionQueueLength(call) == 0);
+        REQUIRE(sch.getFunctionThreadCount(call) == 1);
+        REQUIRE(bindQueue->size() == 0);
 
         // Finish thread and check things are reset
         w.finish();
         REQUIRE(sch.getFunctionQueueLength(call) == 0);
-        REQUIRE(sch.getFunctionCount(call) == 0);
-        REQUIRE(sch.getLocalThreadCount(call) == 0);
+        REQUIRE(sch.getFunctionThreadCount(call) == 0);
+        REQUIRE(bindQueue->size() == 0);
         REQUIRE(!redis.sismember(workerSetName, hostname));
     }
 }

@@ -43,8 +43,8 @@ namespace tests {
         w.processNextMessage();
         w.processNextMessage();
 
-        scheduler::MessageQueue messageQueue;
-        const message::Message result = messageQueue.getFunctionResult(call);
+        scheduler::MessageQueue &globalQueue = scheduler::MessageQueue::getGlobalQueue();
+        const message::Message result = globalQueue.getFunctionResult(call);
         return result.outputdata();
     }
 
