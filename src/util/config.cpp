@@ -9,7 +9,6 @@ namespace util {
         prewarmTarget = this->getSystemConfParam("PREWARM_TARGET", "20");
         maxQueueRatio = this->getSystemConfParam("MAX_QUEUE_RATIO", "3");
         maxWorkersPerFunction = this->getSystemConfParam("MAX_WORKERS_PER_FUNCTION", "10");
-        affinity = this->getSystemConfParam("AFFINITY", "0");
 
         // Worker-related timeouts
         boundTimeout = this->getSystemConfParam("BOUND_TIMEOUT", "30");
@@ -36,7 +35,6 @@ namespace util {
         logger->info("PREWARM_TARGET             {}", prewarmTarget);
         logger->info("MAX_QUEUE_RATIO            {}", maxQueueRatio);
         logger->info("MAX_WORKERS_PER_FUNCTION   {}", maxWorkersPerFunction);
-        logger->info("AFFINITY                   {}", affinity);
 
         logger->info("--- Timeouts ---");
         logger->info("BOUND_TIMEOUT              {}", boundTimeout);

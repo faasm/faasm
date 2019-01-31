@@ -106,9 +106,11 @@ namespace redis {
 
         std::string srandmember(const std::string &key);
 
-        std::vector<std::string> sdiff(const std::string &keyA, const std::string &keyB);
+        std::set<std::string> smembers(const std::string &key);
 
-        std::vector<std::string> sinter(const std::string &keyA, const std::string &keyB);
+        std::set<std::string> sdiff(const std::string &keyA, const std::string &keyB);
+
+        std::set<std::string> sinter(const std::string &keyA, const std::string &keyB);
 
         void flushAll();
 

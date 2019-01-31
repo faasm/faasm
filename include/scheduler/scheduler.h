@@ -44,17 +44,13 @@ namespace scheduler {
 
         void placeOnGlobalQueue(message::Message &msg);
 
-        std::string callFunction(message::Message &msg);
+        MessageQueue &getGlobalQueue();
 
-        std::string getBestHostForFunction(const message::Message &msg, bool affinity);
+        void callFunction(message::Message &msg);
+
+        std::string getBestHostForFunction(const message::Message &msg);
 
         void enqueueMessage(const message::Message &msg);
-
-        void enqueueBindMessage(const message::Message &msg);
-
-        long getFunctionThreadCount(const message::Message &msg);
-
-        long getFunctionQueueLength(const message::Message &msg);
 
         InMemoryMessageQueue *listenToQueue(const message::Message &msg);
 
@@ -64,16 +60,14 @@ namespace scheduler {
 
         InMemoryMessageQueue *getBindQueue();
 
-        MessageQueue &getMessageQueue();
-
-        std::string getFunctionWorkerSetName(const message::Message &msg);
+        std::string getFunctionWarmSetName(const message::Message &msg);
 
         void clear();
 
     private:
         std::string hostname;
 
-        void updateWorkerAllocs(const message::Message &msg, int recursionCount = 0);
+        void addWarmThreads(const message::Message &msg);
 
         util::SystemConfig &conf;
 
@@ -85,6 +79,12 @@ namespace scheduler {
         std::shared_mutex mx;
 
         redis::Redis &redis;
+
+        long getFunctionThreadCount(const message::Message &msg);
+
+        double getFunctionQueueRatio(const message::Message &msg);
+
+        long getFunctionQueueLength(const message::Message &msg);
     };
 
     Scheduler &getScheduler();

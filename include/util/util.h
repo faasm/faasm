@@ -49,7 +49,6 @@ namespace util {
         int prewarmTarget;
         int maxQueueRatio;
         int maxWorkersPerFunction;
-        int affinity;
 
         // Worker-related timeouts
         int unboundTimeout;
@@ -89,6 +88,17 @@ namespace util {
 
     // Misc
     int randomInteger(int iStart = 0, int iEnd = 1000000);
+
+    // Sets
+    template<typename T>
+    T randomSetElement(std::set<T> in) {
+        typename std::set<T>::iterator iter = in.begin();
+
+        int rint = randomInteger(0, in.size());
+        std::advance(iter, rint);
+
+        return *iter;
+    }
 
     // Queue - need to include implementation here to allow compiling
     template<typename T>

@@ -263,10 +263,10 @@ namespace redis {
         return res;
     }
 
-    std::vector<std::string> extractStringListFromReply(redisReply *reply) {
-        std::vector<std::string> retValue;
+    std::set<std::string> extractStringSetFromReply(redisReply *reply) {
+        std::set<std::string> retValue;
         for (int i = 0; i < reply->elements; i++) {
-            retValue.emplace_back(reply->element[i]->str);
+            retValue.insert(reply->element[i]->str);
         }
 
         freeReplyObject(reply);
@@ -274,14 +274,19 @@ namespace redis {
         return retValue;
     }
 
-    std::vector<std::string> Redis::sinter(const std::string &keyA, const std::string &keyB) {
-        auto reply = (redisReply *) redisCommand(context, "SINTER %s %s", keyA.c_str(), keyB.c_str());
-        return extractStringListFromReply(reply);
+    std::set<std::string> Redis::smembers(const std::string &key) {
+        auto reply = (redisReply *) redisCommand(context, "SMEMBERS %s", key.c_str());
+        return extractStringSetFromReply(reply);
     }
 
-    std::vector<std::string> Redis::sdiff(const std::string &keyA, const std::string &keyB) {
+    std::set<std::string> Redis::sinter(const std::string &keyA, const std::string &keyB) {
+        auto reply = (redisReply *) redisCommand(context, "SINTER %s %s", keyA.c_str(), keyB.c_str());
+        return extractStringSetFromReply(reply);
+    }
+
+    std::set<std::string> Redis::sdiff(const std::string &keyA, const std::string &keyB) {
         auto reply = (redisReply *) redisCommand(context, "SDIFF %s %s", keyA.c_str(), keyB.c_str());
-        return extractStringListFromReply(reply);
+        return extractStringSetFromReply(reply);
     }
 
     void Redis::flushAll() {

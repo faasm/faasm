@@ -80,7 +80,7 @@ namespace worker {
         return threadTokenPool.taken();
     }
 
-    scheduler::InMemoryMessageQueue* WorkerThreadPool::getBindQueue() {
+    scheduler::InMemoryMessageQueue *WorkerThreadPool::getBindQueue() {
         return scheduler.getBindQueue();
     }
 
@@ -93,7 +93,7 @@ namespace worker {
     }
 
     void WorkerThreadPool::callFinished(message::Message &msg, bool isSuccess) {
-        scheduler.getMessageQueue().setFunctionResult(msg, isSuccess);
+        scheduler.getGlobalQueue().setFunctionResult(msg, isSuccess);
     }
 
     void WorkerThreadPool::threadFinished(WorkerThread &thread) {
@@ -119,7 +119,7 @@ namespace worker {
     WorkerThread::WorkerThread(WorkerThreadPool &threadPoolIn, int threadIdxIn,
                                int prewarmTokenIn) : threadPool(threadPoolIn),
                                                      threadIdx(threadIdxIn),
-                                                     prewarmToken(prewarmTokenIn)){
+                                                     prewarmToken(prewarmTokenIn) {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 

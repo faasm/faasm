@@ -530,7 +530,7 @@ namespace tests {
         sch.callFunction(call);
 
         // Check scheduler set-up
-        const std::string workerSetName = sch.getFunctionWorkerSetName(call);
+        const std::string workerSetName = sch.getFunctionWarmSetName(call);
         REQUIRE(sch.getFunctionQueueLength(call) == 1);
         REQUIRE(sch.getFunctionCount(call) == 1);
         REQUIRE(redis.sismember(workerSetName, hostname));

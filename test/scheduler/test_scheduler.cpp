@@ -21,7 +21,7 @@ namespace tests {
 
         // Sanity check to see that the host is in the global set but not the set for the function
         std::string hostname = util::getHostName();
-        std::string funcSet = sch.getFunctionWorkerSetName(call);
+        std::string funcSet = sch.getFunctionWarmSetName(call);
         REQUIRE(redis.sismember(GLOBAL_WORKER_SET, hostname));
         REQUIRE(!redis.sismember(funcSet, hostname));
 
@@ -251,7 +251,7 @@ namespace tests {
         msg.set_user("alpha");
         msg.set_function("beta");
 
-        std::string workerSet = sch.getFunctionWorkerSetName(msg);
+        std::string workerSet = sch.getFunctionWarmSetName(msg);
 
         // Add workers to the global set
         redisQueue.sadd(GLOBAL_WORKER_SET, hostA);
