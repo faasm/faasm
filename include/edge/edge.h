@@ -1,7 +1,7 @@
 #pragma once
 
 #include <proto/faasm.pb.h>
-#include <scheduler/scheduler.h>
+#include <scheduler/Scheduler.h>
 
 #include <pistache/http.h>
 #include <pistache/router.h>

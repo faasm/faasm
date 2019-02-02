@@ -6,7 +6,7 @@
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
 
-#include <scheduler/scheduler.h>
+#include <scheduler/Scheduler.h>
 
 using namespace Pistache;
 

@@ -1,6 +1,6 @@
 #include "wasm.h"
 
-#include <scheduler/scheduler.h>
+#include <scheduler/Scheduler.h>
 
 namespace wasm {
     CallChain::CallChain(const message::Message &msg) :

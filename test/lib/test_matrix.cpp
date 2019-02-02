@@ -3,7 +3,7 @@
 
 #include "faasm/matrix.h"
 
-#include <redis/redis.h>
+#include <redis/Redis.h>
 #include <state/state.h>
 
 #include <iostream>

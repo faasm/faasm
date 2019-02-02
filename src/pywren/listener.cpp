@@ -4,6 +4,7 @@
 #include <util/logging.h>
 
 #include <aws/aws.h>
+#include <aws/S3Wrapper.h>
 
 
 int main() {

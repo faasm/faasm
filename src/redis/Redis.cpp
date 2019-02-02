@@ -1,4 +1,4 @@
-#include "redis.h"
+#include "Redis.h"
 
 #include <util/network.h>
 #include <util/environment.h>

@@ -4,7 +4,7 @@
 #include <util/logging.h>
 #include <util/locks.h>
 
-#include <redis/redis.h>
+#include <redis/Redis.h>
 
 #include <algorithm>
 #include <sys/mman.h>

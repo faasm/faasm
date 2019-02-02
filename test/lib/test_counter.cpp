@@ -1,6 +1,6 @@
 #include <catch/catch.hpp>
 
-#include <redis/redis.h>
+#include <redis/Redis.h>
 #include <state/state.h>
 
 #include "faasm/memory.h"

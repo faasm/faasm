@@ -2,8 +2,8 @@
 
 #include "utils.h"
 
-#include <scheduler/scheduler.h>
-#include <redis/redis.h>
+#include <scheduler/Scheduler.h>
+#include <redis/Redis.h>
 
 using namespace scheduler;
 using namespace redis;

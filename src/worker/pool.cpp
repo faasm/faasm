@@ -1,7 +1,7 @@
 #include "worker.h"
 
 #include <unistd.h>
-#include <scheduler/scheduler.h>
+#include <scheduler/Scheduler.h>
 #include <prof/prof.h>
 #include <state/state.h>
 

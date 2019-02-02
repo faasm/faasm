@@ -2,7 +2,7 @@
 
 #include "utils.h"
 
-#include <scheduler/scheduler.h>
+#include <scheduler/Scheduler.h>
 
 #include <util/queue.h>
 
