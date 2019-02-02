@@ -1,4 +1,4 @@
-#include "wasm.h"
+#include "WasmModule.h"
 
 #include <scheduler/Scheduler.h>
 

@@ -2,7 +2,7 @@
 
 #include "NetworkNamespace.h"
 
-#include <wasm/wasm.h>
+#include <wasm/WasmModule.h>
 #include <util/func.h>
 #include <scheduler/Scheduler.h>
 
