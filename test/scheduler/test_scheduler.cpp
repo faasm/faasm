@@ -2,6 +2,7 @@
 
 #include "utils.h"
 
+#include <util/environment.h>
 #include <scheduler/Scheduler.h>
 #include <redis/Redis.h>
 
@@ -196,9 +197,6 @@ namespace tests {
         message::Message call;
         call.set_user("userA");
         call.set_function("funcA");
-        
-        // Add a worker host to the global set
-        redis.sadd(GLOBAL_WORKER_SET, "foo");
 
         // Make calls up to the limit
         util::SystemConfig &conf = util::getSystemConfig();
@@ -227,17 +225,16 @@ namespace tests {
         redis.flushAll();
     }
 
-    // TODO - check that best host for function updates with changes in queueing etc.
-
-    TEST_CASE("Test error is thrown when no scheduling options", "[scheduler]") {
-        cleanSystem();
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+    TEST_CASE("Test scheduler adds hostname to global set when starting up", "[scheduler]") {
         Redis &redis = Redis::getQueue();
+        redis.flushAll();
 
-        message::Message msg;
-        msg.set_user("alpha");
-        msg.set_function("beta");
+        cleanSystem();
 
-        REQUIRE_THROWS(sch.getBestHostForFunction(msg));
+        std::string thisHostname = util::getEnvVar("HOSTNAME", "");
+        REQUIRE(!thisHostname.empty());
+        REQUIRE(redis.sismember(GLOBAL_WORKER_SET, thisHostname));
     }
+
+    // TODO - check that best host for function updates with changes in queueing etc.
 }

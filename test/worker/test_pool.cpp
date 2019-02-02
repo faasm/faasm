@@ -14,6 +14,9 @@ namespace tests {
         redis::Redis::getState().flushAll();
         redis::Redis::getQueue().flushAll();
 
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        sch.clear();
+        
         // Network ns requires root
         util::setEnvVar("NETNS_MODE", "off");
     }
@@ -439,23 +442,6 @@ namespace tests {
         checkCallingFunctionGivesTrueOutput("state_shared_read_offset");
     }
 
-    TEST_CASE("Test worker pool adds worker hostname to set when starting up", "[worker]") {
-        cleanSystem();
-
-        std::string originalHostname = util::getEnvVar("HOSTNAME", "");
-        REQUIRE(!originalHostname.empty());
-
-        util::setEnvVar("HOSTNAME", "foo");
-
-        WorkerThreadPool pool(1, 1);
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-        REQUIRE(redisQueue.sismember(GLOBAL_WORKER_SET, "foo"));
-
-        redisQueue.srem(GLOBAL_WORKER_SET, "foo");
-        util::setEnvVar("HOSTNAME", originalHostname);
-        cleanSystem();
-    }
-
     TEST_CASE("Test finishing thread releases prewarm and thread tokens when not bound", "[worker]") {
         cleanSystem();
 
@@ -535,6 +521,7 @@ namespace tests {
 
         // Bind the thread and check it's now registered
         w.processNextMessage();
+        REQUIRE(w.isBound());
         REQUIRE(sch.getFunctionQueueLength(call) == 1);
         REQUIRE(sch.getFunctionThreadCount(call) == 1);
         REQUIRE(bindQueue->size() == 0);

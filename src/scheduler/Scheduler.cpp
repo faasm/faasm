@@ -198,7 +198,7 @@ namespace scheduler {
 
                 this->enqueueMessage(bindMsg);
             }
-        };
+        }
     }
 
     std::string Scheduler::getBestHostForFunction(const message::Message &msg) {
@@ -211,9 +211,9 @@ namespace scheduler {
 
             // If we have some warm threads below the max, we can handle locally
             long threadCount = this->getFunctionThreadCount(msg);
-            if (threadCount > 0 && threadCount < conf.maxWorkersPerFunction) {
+            if (threadCount > 0 && threadCount <= conf.maxWorkersPerFunction) {
                 return hostname;
-            } else if (threadCount >= conf.maxWorkersPerFunction) {
+            } else if (threadCount > conf.maxWorkersPerFunction) {
                 excludeThisHost = true;
             }
         }
