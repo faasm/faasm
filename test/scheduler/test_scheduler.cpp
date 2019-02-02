@@ -177,7 +177,7 @@ namespace tests {
         redis.flushAll();
     }
 
-    TEST_CASE("Test function which breaches queue ratio but has no capacity does not scale up", "[scheduler]") {
+    TEST_CASE("Test function which breaches queue ratio but has no capacity fails over", "[scheduler]") {
         setUp();
         message::Message call = getCall();
 
@@ -196,7 +196,11 @@ namespace tests {
         // Check calls have been queued
         REQUIRE(sch.getFunctionQueueLength(call) == nCalls);
 
-        // Now call the function a few more times and check calls are queued but no new bind messages/ workers added
+        // Check "best host" is now different
+        REQUIRE(sch.getBestHostForFunction(call) != thisHost);
+
+        // Now call the function a few more times and check calls are queued but no new bind messages/ workers
+        // added to this host
         sch.callFunction(call);
         sch.callFunction(call);
         sch.callFunction(call);
@@ -262,4 +266,5 @@ namespace tests {
         REQUIRE(sch.getBestHostForFunction(call) == thisHost);
         REQUIRE(sch.getBestHostForFunction(call) == thisHost);
     }
+
 }
