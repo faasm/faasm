@@ -1,6 +1,14 @@
-#include "util.h"
+#include "config.h"
+#include "environment.h"
+#include "logging.h"
+
 
 namespace util {
+    SystemConfig &getSystemConfig() {
+        static SystemConfig conf;
+        return conf;
+    }
+
     SystemConfig::SystemConfig() {
         // TODO - max cannot exceed the underlying number of available namespaces. Good to decouple?
         threadsPerWorker = this->getSystemConfParam("THREADS_PER_WORKER", "100");

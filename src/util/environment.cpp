@@ -1,17 +1,6 @@
-#include "util.h"
-
-#include <string>
-#include <cstring>
-#include <iostream>
-#include <unistd.h>
-#include <limits.h>
+#include "environment.h"
 
 namespace util {
-    SystemConfig &getSystemConfig() {
-        static SystemConfig conf;
-        return conf;
-    }
-
     std::string getEnvVar(std::string const &key, std::string const &deflt) {
         char const *val = getenv(key.c_str());
 

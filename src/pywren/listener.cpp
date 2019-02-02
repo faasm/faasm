@@ -1,5 +1,8 @@
 #include "pywren.h"
-#include <util/util.h>
+
+#include <util/config.h>
+#include <util/logging.h>
+
 #include <aws/aws.h>
 
 

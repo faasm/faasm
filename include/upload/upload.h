@@ -1,7 +1,7 @@
 #pragma once
 
+#include <util/func.h>
 #include <wasm/wasm.h>
-#include <util/util.h>
 
 #include <cpprest/http_listener.h>
 

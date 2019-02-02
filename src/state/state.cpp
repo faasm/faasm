@@ -1,5 +1,9 @@
 #include "state.h"
 
+#include <util/memory.h>
+#include <util/logging.h>
+#include <util/locks.h>
+
 #include <redis/redis.h>
 
 #include <algorithm>

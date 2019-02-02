@@ -1,7 +1,6 @@
 #pragma once
 
 #include <scheduler/scheduler.h>
-#include <util/util.h>
 #include <wasm/wasm.h>
 
 #include <string>

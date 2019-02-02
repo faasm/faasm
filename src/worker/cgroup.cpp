@@ -1,5 +1,7 @@
 #include "worker/worker.h"
 
+#include <util/environment.h>
+
 #include <syscall.h>
 #include <sys/types.h>
 #include <boost/filesystem.hpp>

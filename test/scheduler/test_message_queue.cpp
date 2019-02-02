@@ -3,7 +3,8 @@
 #include "utils.h"
 
 #include <scheduler/scheduler.h>
-#include <util/util.h>
+
+#include <util/queue.h>
 
 using namespace redis;
 

@@ -1,6 +1,6 @@
 #include "aws.h"
 
-#include <util/util.h>
+#include <util/logging.h>
 
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/ListObjectsRequest.h>

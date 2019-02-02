@@ -1,5 +1,8 @@
 #include <catch/catch.hpp>
 
+#include <util/environment.h>
+#include <util/files.h>
+
 #include <worker/worker.h>
 
 #include <boost/filesystem.hpp>

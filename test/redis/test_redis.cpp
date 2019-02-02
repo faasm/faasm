@@ -2,7 +2,8 @@
 
 #include "utils.h"
 
-#include <util/util.h>
+#include <util/bytes.h>
+
 #include <algorithm>
 
 using namespace redis;

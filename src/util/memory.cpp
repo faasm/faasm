@@ -1,4 +1,6 @@
-#include "util.h"
+#include "memory.h"
+
+#include <stdint.h>
 
 namespace util {
     bool isPageAligned(void *ptr) {

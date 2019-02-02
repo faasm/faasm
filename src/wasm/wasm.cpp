@@ -1,5 +1,8 @@
 #include "wasm.h"
 
+#include <util/files.h>
+#include <util/func.h>
+#include <util/memory.h>
 #include <prof/prof.h>
 
 #include <syscall.h>

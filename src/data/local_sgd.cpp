@@ -1,6 +1,6 @@
 #include "data.h"
 
-#include <util/util.h>
+#include <util/logging.h>
 
 #include "faasm/matrix.h"
 #include "faasm/sgd.h"

@@ -1,5 +1,6 @@
 #include "upload.h"
 
+#include <util/bytes.h>
 #include <prof/prof.h>
 #include <redis/redis.h>
 

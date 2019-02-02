@@ -1,4 +1,4 @@
-#include "util.h"
+#include "hash.h"
 
 #include <openssl/sha.h>
 

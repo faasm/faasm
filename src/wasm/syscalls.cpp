@@ -1,5 +1,9 @@
 #include "wasm.h"
 
+#include <prof/prof.h>
+#include <util/bytes.h>
+#include <util/logging.h>
+
 #include <fcntl.h>
 #include <math.h>
 #include <netdb.h>
@@ -16,7 +20,6 @@
 #include <WAVM/Runtime/RuntimeData.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <stdarg.h>
-#include <prof/prof.h>
 
 using namespace WAVM;
 

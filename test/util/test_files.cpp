@@ -1,5 +1,5 @@
 #include <catch/catch.hpp>
-#include <util/util.h>
+#include <util/files.h>
 
 #include <boost/filesystem.hpp>
 

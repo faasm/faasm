@@ -1,5 +1,7 @@
 #include <catch/catch.hpp>
 
+#include <util/environment.h>
+
 #include <worker/worker.h>
 
 using namespace worker;

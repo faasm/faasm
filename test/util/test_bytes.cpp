@@ -1,5 +1,5 @@
 #include <catch/catch.hpp>
-#include <util/util.h>
+#include <util/bytes.h>
 
 using namespace util;
 

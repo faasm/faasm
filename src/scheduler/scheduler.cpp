@@ -1,6 +1,7 @@
 #include "scheduler.h"
 
-#include <util/util.h>
+#include <util/logging.h>
+#include <util/random.h>
 
 using namespace util;
 

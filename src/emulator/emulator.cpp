@@ -1,5 +1,5 @@
 #include <faasm/memory.h>
-#include <util/util.h>
+
 #include <redis/redis.h>
 #include <state/state.h>
 

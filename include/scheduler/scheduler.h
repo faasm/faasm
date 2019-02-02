@@ -1,8 +1,10 @@
 #pragma once
 
+#include <util/func.h>
+#include <util/queue.h>
+
 #include <shared_mutex>
 #include <redis/redis.h>
-#include <util/util.h>
 
 #define GLOBAL_WORKER_SET "available_workers"
 

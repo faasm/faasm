@@ -1,6 +1,10 @@
-#include "util.h"
+#include "func.h"
 
-#include <util/util.h>
+#include "bytes.h"
+#include "environment.h"
+#include "files.h"
+#include "random.h"
+
 #include <boost/filesystem.hpp>
 
 namespace util {

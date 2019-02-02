@@ -1,9 +1,9 @@
 #include <iostream>
 #include <fstream>
 
+#include <util/logging.h>
 #include <data/data.h>
 #include <emulator/emulator.h>
-#include <util/util.h>
 #include <state/state.h>
 
 #include <faasm/matrix.h>

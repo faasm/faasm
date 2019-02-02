@@ -2,6 +2,8 @@
 
 #include <boost/filesystem.hpp>
 
+#include <util/environment.h>
+
 #include <errno.h>
 #include <fcntl.h>
 

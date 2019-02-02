@@ -1,6 +1,6 @@
 #pragma once
 
-#include <util/util.h>
+#include <util/logging.h>
 #include <state/state.h>
 
 #include <exception>

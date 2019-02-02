@@ -1,10 +1,11 @@
 #pragma once
 
-#include <util/util.h>
+#include <util/config.h>
 
-#include <string>
-#include <spdlog/spdlog.h>
 #include <hiredis/hiredis.h>
+#include <set>
+#include <spdlog/spdlog.h>
+#include <string>
 #include <thread>
 
 

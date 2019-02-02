@@ -1,5 +1,9 @@
 #include <catch/catch.hpp>
 
+#include <util/bytes.h>
+#include <util/environment.h>
+#include <util/files.h>
+
 #include <upload/upload.h>
 
 #include <boost/filesystem.hpp>

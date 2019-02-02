@@ -1,6 +1,7 @@
 #include <catch/catch.hpp>
 
-#include <util/util.h>
+#include <util/func.h>
+#include <util/environment.h>
 #include <boost/filesystem.hpp>
 
 using namespace boost::filesystem;

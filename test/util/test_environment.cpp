@@ -1,5 +1,7 @@
 #include <catch/catch.hpp>
-#include <util/util.h>
+
+#include <util/config.h>
+#include <util/environment.h>
 
 using namespace util;
 

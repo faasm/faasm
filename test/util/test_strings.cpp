@@ -1,5 +1,5 @@
 #include <catch/catch.hpp>
-#include <util/util.h>
+#include <util/strings.h>
 
 using namespace util;
 

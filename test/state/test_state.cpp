@@ -1,5 +1,7 @@
 #include <catch/catch.hpp>
 #include "utils.h"
+
+#include <util/memory.h>
 #include <state/state.h>
 #include <sys/mman.h>
 

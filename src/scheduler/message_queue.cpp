@@ -1,5 +1,7 @@
 #include "scheduler.h"
 
+#include <util/logging.h>
+
 namespace scheduler {
     const std::string GLOBAL_QUEUE = "all_incoming";
 

@@ -2,9 +2,10 @@
 
 #include "utils.h"
 
+#include <util/environment.h>
+#include <util/bytes.h>
+
 #include <worker/worker.h>
-
-
 
 using namespace worker;
 

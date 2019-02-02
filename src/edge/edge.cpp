@@ -1,11 +1,12 @@
 #include "edge.h"
 
+#include <util/logging.h>
+
 #include <pistache/http.h>
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
 
 #include <scheduler/scheduler.h>
-#include <util/util.h>
 
 using namespace Pistache;
 

@@ -4,7 +4,6 @@
 
 #include <scheduler/scheduler.h>
 #include <redis/redis.h>
-#include <util/util.h>
 
 using namespace scheduler;
 using namespace redis;

@@ -1,7 +1,7 @@
 #define CATCH_CONFIG_RUNNER
 
 #include <catch/catch.hpp>
-#include <util/util.h>
+#include <util/logging.h>
 
 int main(int argc, char *argv[]) {
     util::initLogging();
