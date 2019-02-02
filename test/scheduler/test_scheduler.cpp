@@ -10,15 +10,28 @@ using namespace scheduler;
 using namespace redis;
 
 namespace tests {
+    static Scheduler &sch = scheduler::getScheduler();
+    static Redis &redis = Redis::getQueue();
+
+    static std::string thisHost = util::getEnvVar("HOSTNAME", "");
+    static std::string otherHostA = "Host A";
+    static std::string otherHostB = "Host B";
+
+    message::Message getCall() {
+        message::Message call;
+        call.set_user("user a");
+        call.set_function("function a");
+
+        return call;
+    }
+
+    static void setUp() {
+        cleanSystem();
+    }
 
     TEST_CASE("Test worker finishing and host removal", "[scheduler]") {
-        cleanSystem();
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        Redis &redis = Redis::getQueue();
-
-        message::Message call;
-        call.set_user("userA");
-        call.set_function("funcA");
+        setUp();
+        message::Message call = getCall();
 
         // Sanity check to see that the host is in the global set but not the set for the function
         std::string hostname = util::getHostName();
@@ -54,20 +67,12 @@ namespace tests {
     }
 
     TEST_CASE("Test calling function with no workers sends bind message", "[scheduler]") {
-        cleanSystem();
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        Redis &redis = Redis::getQueue();
-
-        message::Message call;
-        call.set_function("my func");
-        call.set_user("some user");
+        setUp();
+        message::Message call = getCall();
 
         REQUIRE(sch.getFunctionQueueLength(call) == 0);
         REQUIRE(sch.getFunctionThreadCount(call) == 0);
 
-        // Add a worker host to the global set
-        redis.sadd(GLOBAL_WORKER_SET, "foo");
-        
         // Call the function
         sch.callFunction(call);
 
@@ -76,16 +81,15 @@ namespace tests {
         REQUIRE(sch.getBindQueue()->size() == 1);
         message::Message actual = sch.getBindQueue()->dequeue();
 
-        REQUIRE(actual.function() == "my func");
-        REQUIRE(actual.user() == "some user");
+        REQUIRE(actual.user() == "user a");
+        REQUIRE(actual.function() == "function a");
 
         redis.flushAll();
     }
 
     TEST_CASE("Test sending bind messages", "[scheduler]") {
-        cleanSystem();
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        Redis &redis = Redis::getQueue();
+        setUp();
+        message::Message call = getCall();
 
         // Set up calls
         message::Message callA;
@@ -98,7 +102,7 @@ namespace tests {
 
         // Add a worker host to the global set
         redis.sadd(GLOBAL_WORKER_SET, "foo");
-        
+
         // Call each function
         sch.callFunction(callA);
         sch.callFunction(callB);
@@ -127,16 +131,8 @@ namespace tests {
     }
 
     TEST_CASE("Test calling function with existing workers does not send bind message", "[scheduler]") {
-        cleanSystem();
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        Redis &redis = Redis::getQueue();
-
-        message::Message call;
-        call.set_function("my func");
-        call.set_user("some user");
-
-        // Add a worker host to the global set
-        redis.sadd(GLOBAL_WORKER_SET, "foo");
+        setUp();
+        message::Message call = getCall();
 
         // Call the function and check thread count is incremented while bind message sent
         sch.callFunction(call);
@@ -156,16 +152,8 @@ namespace tests {
     }
 
     TEST_CASE("Test calling function which breaches queue ratio sends bind message", "[scheduler]") {
-        cleanSystem();
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        Redis &redis = Redis::getQueue();
-
-        message::Message call;
-        call.set_function("my func");
-        call.set_user("some user");
-
-        // Add a worker host to the global set
-        redis.sadd(GLOBAL_WORKER_SET, "foo");
+        setUp();
+        message::Message call = getCall();
 
         // Saturate up to the number of max queued calls
         util::SystemConfig &conf = util::getSystemConfig();
@@ -190,13 +178,8 @@ namespace tests {
     }
 
     TEST_CASE("Test function which breaches queue ratio but has no capacity does not scale up", "[scheduler]") {
-        cleanSystem();
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        Redis &redis = Redis::getQueue();
-
-        message::Message call;
-        call.set_user("userA");
-        call.set_function("funcA");
+        setUp();
+        message::Message call = getCall();
 
         // Make calls up to the limit
         util::SystemConfig &conf = util::getSystemConfig();
@@ -226,15 +209,57 @@ namespace tests {
     }
 
     TEST_CASE("Test scheduler adds hostname to global set when starting up", "[scheduler]") {
-        Redis &redis = Redis::getQueue();
-        redis.flushAll();
-
-        cleanSystem();
+        setUp();
 
         std::string thisHostname = util::getEnvVar("HOSTNAME", "");
         REQUIRE(!thisHostname.empty());
         REQUIRE(redis.sismember(GLOBAL_WORKER_SET, thisHostname));
     }
 
-    // TODO - check that best host for function updates with changes in queueing etc.
+    void setUpHostChoiceCheck() {
+        setUp();
+
+        redis.sadd(GLOBAL_WORKER_SET, otherHostA);
+        redis.sadd(GLOBAL_WORKER_SET, otherHostB);
+    }
+
+    TEST_CASE("Test current host chosen when no warm alternatives", "[scheduler]") {
+        setUpHostChoiceCheck();
+        message::Message call = getCall();
+
+        REQUIRE(sch.getBestHostForFunction(call) == thisHost);
+    }
+
+    TEST_CASE("Test other warm option chosen when available", "[scheduler]") {
+        setUpHostChoiceCheck();
+        message::Message call = getCall();
+
+        // Add another host to the warm set for the given function
+        const std::string warmSet = sch.getFunctionWarmSetName(call);
+        redis.sadd(warmSet, otherHostA);
+
+        REQUIRE(sch.getBestHostForFunction(call) == otherHostA);
+    }
+
+    TEST_CASE("Test current host chosen when already warm even if alternatives", "[scheduler]") {
+        setUpHostChoiceCheck();
+        message::Message call = getCall();
+
+        // Ensure a warm worker exists on this host
+        sch.callFunction(call);
+        REQUIRE(sch.getFunctionThreadCount(call) == 1);
+
+        // Check this host is in the warm set
+        const std::string warmSet = sch.getFunctionWarmSetName(call);
+        REQUIRE(redis.sismember(warmSet, thisHost));
+
+        // Add another host to the warm set
+        redis.sadd(warmSet, otherHostA);
+
+        // Run a few times to make sure
+        REQUIRE(sch.getBestHostForFunction(call) == thisHost);
+        REQUIRE(sch.getBestHostForFunction(call) == thisHost);
+        REQUIRE(sch.getBestHostForFunction(call) == thisHost);
+        REQUIRE(sch.getBestHostForFunction(call) == thisHost);
+    }
 }
