@@ -177,8 +177,15 @@ namespace tests {
         redis.flushAll();
     }
 
-    TEST_CASE("Test function which breaches queue ratio but has no capacity fails over", "[scheduler]") {
+    void setUpHostChoiceCheck() {
         setUp();
+
+        redis.sadd(GLOBAL_WORKER_SET, otherHostA);
+        redis.sadd(GLOBAL_WORKER_SET, otherHostB);
+    }
+
+    TEST_CASE("Test function which breaches queue ratio but has no capacity fails over", "[scheduler]") {
+        setUpHostChoiceCheck();
         message::Message call = getCall();
 
         // Make calls up to the limit
@@ -188,7 +195,7 @@ namespace tests {
             sch.callFunction(call);
         }
 
-        // Check number of bind messages
+        // Check local workers requested
         InMemoryMessageQueue *bindQueue = sch.getBindQueue();
         REQUIRE(bindQueue->size() == conf.maxWorkersPerFunction);
         REQUIRE(sch.getFunctionThreadCount(call) == conf.maxWorkersPerFunction);
@@ -199,15 +206,14 @@ namespace tests {
         // Check "best host" is now different
         REQUIRE(sch.getBestHostForFunction(call) != thisHost);
 
-        // Now call the function a few more times and check calls are queued but no new bind messages/ workers
-        // added to this host
+        // Call more and check calls are shared elsewhere
         sch.callFunction(call);
         sch.callFunction(call);
         sch.callFunction(call);
 
         REQUIRE(bindQueue->size() == conf.maxWorkersPerFunction);
         REQUIRE(sch.getFunctionThreadCount(call) == conf.maxWorkersPerFunction);
-        REQUIRE(sch.getFunctionQueueLength(call) == nCalls + 3);
+        REQUIRE(sch.getFunctionQueueLength(call) == nCalls);
 
         redis.flushAll();
     }
@@ -218,13 +224,6 @@ namespace tests {
         std::string thisHostname = util::getEnvVar("HOSTNAME", "");
         REQUIRE(!thisHostname.empty());
         REQUIRE(redis.sismember(GLOBAL_WORKER_SET, thisHostname));
-    }
-
-    void setUpHostChoiceCheck() {
-        setUp();
-
-        redis.sadd(GLOBAL_WORKER_SET, otherHostA);
-        redis.sadd(GLOBAL_WORKER_SET, otherHostB);
     }
 
     TEST_CASE("Test current host chosen when no warm alternatives", "[scheduler]") {

@@ -9,6 +9,7 @@ add_library(worker_lib
         CGroup.cpp
         NetworkNamespace.cpp
         StateThread.cpp
+        WorkerThread.cpp
         WorkerThreadPool.cpp
         ${HEADERS}
         )

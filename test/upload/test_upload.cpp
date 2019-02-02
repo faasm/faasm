@@ -3,6 +3,7 @@
 #include <util/bytes.h>
 #include <util/environment.h>
 #include <util/files.h>
+#include <redis/Redis.h>
 
 #include <upload/upload.h>
 

@@ -2,6 +2,7 @@
 
 #include "utils.h"
 
+#include <redis/Redis.h>
 #include <util/bytes.h>
 
 #include <algorithm>

@@ -1,9 +1,13 @@
 #include <catch/catch.hpp>
 
-#include <emulator/emulator.h>
-#include <worker/WorkerThreadPool.h>
-
 #include "utils.h"
+
+#include <emulator/emulator.h>
+#include <state/State.h>
+#include <worker/WorkerThreadPool.h>
+#include <worker/WorkerThread.h>
+#include <util/func.h>
+
 #include <faasm/sgd.h>
 #include <faasm/counter.h>
 
@@ -30,8 +34,8 @@ namespace tests {
         call.set_resultkey("foobar");
 
         // Set up worker to listen for relevant function
-        WorkerThreadPool pool(1, 1);
-        WorkerThread w(pool, 1, 1);
+        WorkerThreadPool pool(1);
+        WorkerThread w(1);
         REQUIRE(w.isInitialised());
         REQUIRE(!w.isBound());
 
@@ -43,7 +47,7 @@ namespace tests {
         w.processNextMessage();
         w.processNextMessage();
 
-        scheduler::MessageQueue &globalQueue = scheduler::MessageQueue::getGlobalQueue();
+        scheduler::GlobalMessageQueue &globalQueue = scheduler::GlobalMessageQueue::getGlobalQueue();
         const message::Message result = globalQueue.getFunctionResult(call);
         return result.outputdata();
     }

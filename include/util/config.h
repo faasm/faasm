@@ -13,7 +13,7 @@ namespace util {
     public:
         // Scheduling
         int threadsPerWorker;
-        int prewarmTarget;
+        int prewarm;
         int maxQueueRatio;
         int maxWorkersPerFunction;
 

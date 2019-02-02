@@ -2,6 +2,11 @@
 
 #include "utils.h"
 
+#include <redis/Redis.h>
+#include <state/State.h>
+#include <scheduler/Scheduler.h>
+
+
 namespace tests {
     void cleanSystem() {
         redis::Redis::getState().flushAll();

@@ -7,7 +7,7 @@
 using namespace faasm;
 
 namespace tests {
-    static worker::WorkerThreadPool workerThreadPool(10, 1);
+    static worker::WorkerThreadPool workerThreadPool(10);
 
     void cleanSystem();
 

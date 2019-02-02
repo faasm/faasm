@@ -2,16 +2,13 @@
 
 #include "utils.h"
 #include <edge/edge.h>
-#include <worker/WorkerThreadPool.h>
+#include <scheduler/GlobalMessageQueue.h>
 
 using namespace Pistache;
 
 namespace tests {
     static void setUp() {
         redis::Redis::getQueue().flushAll();
-
-        // Create a worker pool to allow scheduling
-        worker::WorkerThreadPool wp(1, 1);
     }
 
     TEST_CASE("Test invoking a function", "[edge]") {

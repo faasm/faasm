@@ -1,14 +1,17 @@
 #include <catch/catch.hpp>
 
-#include <worker/WorkerThreadPool.h>
 #include "utils.h"
+
+#include <worker/WorkerThreadPool.h>
+#include <worker/WorkerThread.h>
+#include <scheduler/InMemoryMessageQueue.h>
 
 using namespace worker;
 
 namespace tests {
     void execErrorFunction(message::Message &call) {
-        WorkerThreadPool pool(1, 1);
-        WorkerThread w(pool, 1, 1);
+        WorkerThreadPool pool(1);
+        WorkerThread w(1);
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.callFunction(call);
@@ -32,7 +35,7 @@ namespace tests {
         execErrorFunction(call);
 
         // Get result
-        scheduler::MessageQueue &messageQueue = scheduler::MessageQueue::getGlobalQueue();
+        scheduler::GlobalMessageQueue &messageQueue = scheduler::GlobalMessageQueue::getGlobalQueue();
         message::Message result = messageQueue.getFunctionResult(call);
         REQUIRE(!result.success());
 

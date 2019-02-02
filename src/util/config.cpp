@@ -14,7 +14,7 @@ namespace util {
         threadsPerWorker = this->getSystemConfParam("THREADS_PER_WORKER", "100");
 
         // Scheduling
-        prewarmTarget = this->getSystemConfParam("PREWARM_TARGET", "20");
+        prewarm = this->getSystemConfParam("PREWARM", "1");
         maxQueueRatio = this->getSystemConfParam("MAX_QUEUE_RATIO", "3");
         maxWorkersPerFunction = this->getSystemConfParam("MAX_WORKERS_PER_FUNCTION", "10");
 
@@ -40,7 +40,7 @@ namespace util {
 
         logger->info("--- Scheduling ---");
         logger->info("THREADS_PER_WORKER         {}", threadsPerWorker);
-        logger->info("PREWARM_TARGET             {}", prewarmTarget);
+        logger->info("PREWARM                    {}", prewarm);
         logger->info("MAX_QUEUE_RATIO            {}", maxQueueRatio);
         logger->info("MAX_WORKERS_PER_FUNCTION   {}", maxWorkersPerFunction);
 

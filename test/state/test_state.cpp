@@ -1,6 +1,8 @@
 #include <catch/catch.hpp>
+
 #include "utils.h"
 
+#include <redis/Redis.h>
 #include <util/memory.h>
 #include <state/State.h>
 #include <sys/mman.h>

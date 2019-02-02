@@ -4,8 +4,10 @@
 
 #include <util/environment.h>
 #include <util/bytes.h>
+#include <redis/Redis.h>
 
 #include <worker/WorkerThreadPool.h>
+#include <worker/WorkerThread.h>
 
 using namespace worker;
 
@@ -29,8 +31,8 @@ namespace tests {
         redis::Redis &redisQueue = redis::Redis::getQueue();
 
         // Set up worker to listen for relevant function
-        WorkerThreadPool pool(1, 1);
-        WorkerThread w(pool, 1, 1);
+        WorkerThreadPool pool(1);
+        WorkerThread w(1);
         REQUIRE(w.isInitialised());
         REQUIRE(!w.isBound());
 
@@ -86,22 +88,26 @@ namespace tests {
     TEST_CASE("Test worker initially pre-warmed", "[worker]") {
         setUp();
 
-        WorkerThreadPool pool(1, 1);
-        WorkerThread w(pool, 1, 1);
+        WorkerThreadPool pool(1);
+        WorkerThread w(1);
         REQUIRE(!w.isBound());
         REQUIRE(w.isInitialised());
     }
 
-    TEST_CASE("Test worker not pre-warmed if no prewarm token given", "[worker]") {
+    TEST_CASE("Test worker not pre-warmed if not in prewarm mode", "[worker]") {
         setUp();
 
-        WorkerThreadPool pool(1, 1);
+        util::SystemConfig &conf = util::getSystemConfig();
+        conf.prewarm = 0;
 
-        // Note prewarm token -1 here
-        WorkerThread w(pool, 1, -1);
+        WorkerThreadPool pool(1);
+        
+        WorkerThread w(1);
 
         REQUIRE(!w.isBound());
         REQUIRE(!w.isInitialised());
+
+        conf.prewarm = 1;
     }
 
     void checkBound(WorkerThread &w, message::Message &msg, bool isBound) {
@@ -116,8 +122,8 @@ namespace tests {
         call.set_user("demo");
         call.set_function("chain");
 
-        WorkerThreadPool pool(1, 1);
-        WorkerThread w(pool, 1, 1);
+        WorkerThreadPool pool(1);
+        WorkerThread w(1);
         REQUIRE(w.isInitialised());
         checkBound(w, call, false);
 
@@ -132,13 +138,18 @@ namespace tests {
         call.set_user("demo");
         call.set_function("chain");
 
-        WorkerThreadPool pool(1, 1);
-        WorkerThread w(pool, 1, -1);
+        util::SystemConfig &conf = util::getSystemConfig();
+        conf.prewarm = 0;
+
+        WorkerThreadPool pool(1);
+        WorkerThread w(1);
         REQUIRE(!w.isInitialised());
 
         w.bindToFunction(call);
         REQUIRE(w.isInitialised());
         checkBound(w, call, true);
+
+        conf.prewarm = 1;
     }
 
     TEST_CASE("Test full execution of WASM module", "[worker]") {
@@ -152,7 +163,7 @@ namespace tests {
 
         // Run the execution
         execFunction(call);
-        scheduler::MessageQueue &globalQueue = scheduler::MessageQueue::getGlobalQueue();
+        scheduler::GlobalMessageQueue &globalQueue = scheduler::GlobalMessageQueue::getGlobalQueue();
         message::Message result = globalQueue.getFunctionResult(call);
 
         // Check output
@@ -175,7 +186,7 @@ namespace tests {
         WorkerThread w = execFunction(call);
 
         // Check output from first invocation
-        scheduler::MessageQueue &globalQueue = scheduler::MessageQueue::getGlobalQueue();
+        scheduler::GlobalMessageQueue &globalQueue = scheduler::GlobalMessageQueue::getGlobalQueue();
         message::Message resultA = globalQueue.getFunctionResult(call);
         REQUIRE(resultA.outputdata() == "first input");
         REQUIRE(resultA.success());
@@ -201,8 +212,8 @@ namespace tests {
         setUp();
 
         // Create worker and check it's prewarm
-        WorkerThreadPool pool(1, 1);
-        WorkerThread w(pool, 1, 1);
+        WorkerThreadPool pool(1);
+        WorkerThread w(1);
         REQUIRE(!w.isBound());
         REQUIRE(w.isInitialised());
 
@@ -235,8 +246,8 @@ namespace tests {
 
         // Set up a real worker to execute this function. Remove it from the
         // unassigned set and add to handle this function
-        WorkerThreadPool pool(1, 1);
-        WorkerThread w(pool, 1, 1);
+        WorkerThreadPool pool(1);
+        WorkerThread w(1);
         w.bindToFunction(call);
 
         // Make the call
@@ -247,7 +258,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check the call executed successfully
-        scheduler::MessageQueue &globalQueue = scheduler::MessageQueue::getGlobalQueue();
+        scheduler::GlobalMessageQueue &globalQueue = scheduler::GlobalMessageQueue::getGlobalQueue();
         message::Message result = globalQueue.getFunctionResult(call);
         REQUIRE(result.success());
 
@@ -275,8 +286,8 @@ namespace tests {
         call.set_resultkey("test_state_incr");
 
         // Call function
-        WorkerThreadPool pool(1, 1);
-        WorkerThread w(pool, 1, 1);
+        WorkerThreadPool pool(1);
+        WorkerThread w(1);
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.callFunction(call);
@@ -286,7 +297,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check result
-        scheduler::MessageQueue &globalQueue = scheduler::MessageQueue::getGlobalQueue();
+        scheduler::GlobalMessageQueue &globalQueue = scheduler::GlobalMessageQueue::getGlobalQueue();
         message::Message resultA = globalQueue.getFunctionResult(call);
         REQUIRE(resultA.success());
         REQUIRE(resultA.outputdata() == "Counter: 001");
@@ -311,8 +322,8 @@ namespace tests {
         call.set_resultkey("check_state_res");
 
         // Call function
-        WorkerThreadPool pool(1, 1);
-        WorkerThread w(pool, 1, 1);
+        WorkerThreadPool pool(1);
+        WorkerThread w(1);
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.callFunction(call);
@@ -322,7 +333,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check result
-        scheduler::MessageQueue &globalQueue = scheduler::MessageQueue::getGlobalQueue();
+        scheduler::GlobalMessageQueue &globalQueue = scheduler::GlobalMessageQueue::getGlobalQueue();
         message::Message result = globalQueue.getFunctionResult(call);
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
@@ -369,8 +380,8 @@ namespace tests {
         call.set_resultkey("test_heap_mem");
 
         // Call function
-        WorkerThreadPool pool(1, 1);
-        WorkerThread w(pool, 1, 1);
+        WorkerThreadPool pool(1);
+        WorkerThread w(1);
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.callFunction(call);
@@ -396,8 +407,8 @@ namespace tests {
         call.set_resultkey("test_" + funcName);
 
         // Call function
-        WorkerThreadPool pool(1, 1);
-        WorkerThread w(pool, 1, 1);
+        WorkerThreadPool pool(1);
+        WorkerThread w(1);
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.callFunction(call);
@@ -407,7 +418,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check output is true
-        scheduler::MessageQueue &globalQueue = scheduler::MessageQueue::getGlobalQueue();
+        scheduler::GlobalMessageQueue &globalQueue = scheduler::GlobalMessageQueue::getGlobalQueue();
         message::Message result = globalQueue.getFunctionResult(call);
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
@@ -442,30 +453,10 @@ namespace tests {
         checkCallingFunctionGivesTrueOutput("state_shared_read_offset");
     }
 
-    TEST_CASE("Test finishing thread releases prewarm and thread tokens when not bound", "[worker]") {
+    TEST_CASE("Test pool accounting", "[worker]") {
         cleanSystem();
 
-        WorkerThreadPool pool(10, 5);
-        REQUIRE(pool.getPrewarmCount() == 0);
-        REQUIRE(pool.getThreadCount() == 0);
-
-        // Add threads and check tokens are taken
-        WorkerThread w1(pool, pool.getThreadToken(), pool.getPrewarmToken());
-        WorkerThread w2(pool, pool.getThreadToken(), pool.getPrewarmToken());
-        REQUIRE(pool.getPrewarmCount() == 2);
-        REQUIRE(pool.getThreadCount() == 2);
-
-        // Remove one and check tokens returned
-        w1.finish();
-        REQUIRE(pool.getPrewarmCount() == 1);
-        REQUIRE(pool.getThreadCount() == 1);
-    }
-
-    TEST_CASE("Test thread releases prewarm token when bound then thread token when finishing", "[worker]") {
-        cleanSystem();
-
-        WorkerThreadPool pool(10, 5);
-        REQUIRE(pool.getPrewarmCount() == 0);
+        WorkerThreadPool pool(5);
         REQUIRE(pool.getThreadCount() == 0);
 
         message::Message call;
@@ -473,29 +464,22 @@ namespace tests {
         call.set_function("noop");
 
         // Add threads and check tokens are taken
-        WorkerThread w1(pool, pool.getThreadToken(), pool.getPrewarmToken());
-        WorkerThread w2(pool, pool.getThreadToken(), pool.getPrewarmToken());
-        REQUIRE(pool.getPrewarmCount() == 2);
+        WorkerThread w1(pool.getThreadToken());
+        WorkerThread w2(pool.getThreadToken());
         REQUIRE(pool.getThreadCount() == 2);
 
-        // Bind and check prewarm token returned
+        // Bind
         w1.bindToFunction(call);
-        REQUIRE(pool.getPrewarmCount() == 1);
         REQUIRE(pool.getThreadCount() == 2);
-
-        // Finish and check thread token also returned
-        w1.finish();
-        REQUIRE(pool.getPrewarmCount() == 1);
-        REQUIRE(pool.getThreadCount() == 1);
     }
 
     TEST_CASE("Test worker lifecycle interacts with scheduler", "[worker]") {
         cleanSystem();
         redis::Redis &redis = redis::Redis::getQueue();
 
-        WorkerThreadPool pool(5, 5);
+        WorkerThreadPool pool(5);
 
-        WorkerThread w(pool, 1, 1);
+        WorkerThread w(1);
         std::string hostname = util::getHostName();
 
         message::Message call;
