@@ -1,6 +1,6 @@
 #include "StateThread.h"
 
-#include <state/state.h>
+#include <state/State.h>
 
 namespace worker {
     StateThread::StateThread() = default;

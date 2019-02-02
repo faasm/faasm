@@ -4,7 +4,7 @@
 #include "faasm/matrix.h"
 
 #include <redis/Redis.h>
-#include <state/state.h>
+#include <state/State.h>
 
 #include <iostream>
 

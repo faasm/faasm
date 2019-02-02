@@ -2,16 +2,11 @@
 
 #include <util/clock.h>
 
-#include <vector>
 #include <atomic>
-#include <exception>
-#include <string>
-#include <tuple>
-#include <thread>
-#include <mutex>
-#include <unordered_map>
-#include <map>
 #include <shared_mutex>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 
 namespace state {
@@ -42,7 +37,7 @@ namespace state {
 
         void setSegment(long offset, const uint8_t *buffer, size_t length);
 
-        void mapSharedMemory(void* newAddr);
+        void mapSharedMemory(void *newAddr);
 
         void unmapSharedMemory(void *mappedAddr);
 
@@ -107,55 +102,4 @@ namespace state {
 
     typedef std::unordered_map<std::string, StateKeyValue *> KVMap;
     typedef std::pair<std::string, StateKeyValue *> KVPair;
-
-    /**
-     * Holds state for a given user
-     */
-    class UserState {
-    public:
-        explicit UserState(const std::string &userIn);
-
-        ~UserState();
-
-        StateKeyValue *getValue(const std::string &key, size_t size);
-
-        void pushAll();
-
-    private:
-        const std::string user;
-
-        KVMap kvMap;
-        std::shared_mutex kvMapMutex;
-    };
-
-    typedef std::unordered_map<std::string, UserState *> UserStateMap;
-    typedef std::pair<std::string, UserState *> UserStatePair;
-
-    /**
-     * Global entry point into state
-     */
-    class State {
-    public:
-        State();
-
-        ~State();
-
-        StateKeyValue *getKV(const std::string &user, const std::string &key, size_t size);
-
-        UserState *getUserState(const std::string &user);
-
-        void pushLoop();
-
-        void pushAll();
-
-        void forceClearAll();
-
-    private:
-        UserStateMap userStateMap;
-        std::shared_mutex userStateMapMutex;
-
-        long pushInterval;
-    };
-
-    State &getGlobalState();
 }

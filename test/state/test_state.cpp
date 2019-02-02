@@ -2,7 +2,7 @@
 #include "utils.h"
 
 #include <util/memory.h>
-#include <state/state.h>
+#include <state/State.h>
 #include <sys/mman.h>
 
 using namespace state;

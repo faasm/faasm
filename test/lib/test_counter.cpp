@@ -1,7 +1,7 @@
 #include <catch/catch.hpp>
 
 #include <redis/Redis.h>
-#include <state/state.h>
+#include <state/State.h>
 
 #include "faasm/memory.h"
 #include "faasm/counter.h"

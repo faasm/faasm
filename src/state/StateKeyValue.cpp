@@ -1,15 +1,12 @@
-#include "state.h"
-
-#include <util/memory.h>
-#include <util/logging.h>
-#include <util/locks.h>
+#include "StateKeyValue.h"
 
 #include <redis/Redis.h>
+#include <util/config.h>
+#include <util/memory.h>
+#include <util/locks.h>
+#include <util/logging.h>
 
-#include <algorithm>
 #include <sys/mman.h>
-#include <unistd.h>
-
 
 using namespace util;
 
@@ -493,128 +490,5 @@ namespace state {
 
     void StateKeyValue::unlockWrite() {
         valueMutex.unlock();
-    }
-
-    /**
-     * User state (can have multiple key/ values)
-     */
-
-    UserState::UserState(const std::string &userIn) : user(userIn) {
-
-    }
-
-    UserState::~UserState() {
-        // Delete contents of key value store
-        for (const auto &iter: kvMap) {
-            delete iter.second;
-        }
-
-        kvMap.clear();
-    }
-
-    StateKeyValue *UserState::getValue(const std::string &key, size_t size) {
-        if (kvMap.count(key) == 0) {
-            if (size == 0) {
-                throw std::runtime_error("Must provide a size when getting a value that's not already present");
-            }
-
-            // Lock on editing local state registry
-            FullLock fullLock(kvMapMutex);
-
-            std::string actualKey = user + "_" + key;
-
-            // Double check it still doesn't exist
-            if (kvMap.count(key) == 0) {
-                auto kv = new StateKeyValue(actualKey, size);
-
-                kvMap.emplace(KVPair(key, kv));
-            }
-        }
-
-        return kvMap[key];
-    }
-
-    void UserState::pushAll() {
-        // Iterate through all key-values
-        SharedLock sharedLock(kvMapMutex);
-
-        for (const auto &kv : kvMap) {
-            // Attempt to push partial updates
-            kv.second->pushPartial();
-
-            // Attempt to push partial updates
-            kv.second->pushFull();
-
-            // Attempt to clear (will be ignored if not relevant)
-            kv.second->clear();
-        }
-    }
-
-    /**
-     * Global state (can hold many users' state)
-     */
-
-    State &getGlobalState() {
-        static State s;
-        return s;
-    }
-
-    State::State() {
-        const SystemConfig &conf = getSystemConfig();
-        pushInterval = conf.statePushInterval;
-    }
-
-    State::~State() {
-        // Delete contents of user state map
-        for (const auto &iter: userStateMap) {
-            delete iter.second;
-        }
-
-        userStateMap.clear();
-    }
-
-    void State::pushLoop() {
-        while (true) {
-            // usleep takes microseconds
-            usleep(1000 * pushInterval);
-
-            this->pushAll();
-        }
-    }
-
-    void State::pushAll() {
-        // Run the sync for all users' state
-        for (const auto &iter: userStateMap) {
-            iter.second->pushAll();
-        }
-    }
-
-    void State::forceClearAll() {
-        for (const auto &iter: userStateMap) {
-            delete iter.second;
-        }
-
-        userStateMap.clear();
-    }
-
-    StateKeyValue *State::getKV(const std::string &user, const std::string &key, size_t size) {
-        UserState *us = this->getUserState(user);
-        return us->getValue(key, size);
-    }
-
-    UserState *State::getUserState(const std::string &user) {
-        if (userStateMap.count(user) == 0) {
-            // Lock on editing user state registry
-            FullLock fullLock(userStateMapMutex);
-
-            // Double check it still doesn't exist
-            if (userStateMap.count(user) == 0) {
-                auto s = new UserState(user);
-
-                userStateMap.emplace(UserStatePair(user, s));
-            }
-        }
-
-        return userStateMap[user];
     }
 }

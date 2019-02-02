@@ -7,7 +7,7 @@
 
 #include <data/data.h>
 #include <redis/Redis.h>
-#include <state/state.h>
+#include <state/State.h>
 
 using namespace faasm;
 

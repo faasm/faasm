@@ -1,7 +1,8 @@
 #pragma once
 
 #include <util/logging.h>
-#include <state/state.h>
+
+#include <state/State.h>
 
 #include <exception>
 #include <string>

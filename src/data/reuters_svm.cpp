@@ -4,7 +4,7 @@
 #include <util/logging.h>
 #include <data/data.h>
 #include <emulator/emulator.h>
-#include <state/state.h>
+#include <state/State.h>
 
 #include <faasm/matrix.h>
 #include <faasm/sgd.h>

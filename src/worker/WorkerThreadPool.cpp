@@ -5,7 +5,6 @@
 #include <unistd.h>
 #include <scheduler/Scheduler.h>
 #include <prof/prof.h>
-#include <state/state.h>
 
 #include <spdlog/spdlog.h>
 #include <thread>
