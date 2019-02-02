@@ -4,6 +4,7 @@
 
 #include <unistd.h>
 #include <scheduler/Scheduler.h>
+#include <scheduler/GlobalMessageQueue.h>
 #include <prof/prof.h>
 
 #include <spdlog/spdlog.h>
@@ -88,7 +89,7 @@ namespace worker {
     }
 
     void WorkerThreadPool::callFinished(message::Message &msg, bool isSuccess) {
-        scheduler::MessageQueue::getGlobalQueue().setFunctionResult(msg, isSuccess);
+        scheduler::GlobalMessageQueue::getGlobalQueue().setFunctionResult(msg, isSuccess);
     }
 
     void WorkerThreadPool::threadFinished(WorkerThread &thread) {

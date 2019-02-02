@@ -1,6 +1,7 @@
 #pragma once
 
-#include "MessageQueue.h"
+#include "InMemoryMessageQueue.h"
+#include "GlobalMessageQueue.h"
 
 #include <util/func.h>
 #include <util/queue.h>

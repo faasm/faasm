@@ -6,7 +6,7 @@
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
 
-#include <scheduler/Scheduler.h>
+#include <scheduler/GlobalMessageQueue.h>
 
 using namespace Pistache;
 
@@ -69,7 +69,7 @@ namespace edge {
         }
 
         // Make the call
-        scheduler::MessageQueue globalQueue = scheduler::MessageQueue::getGlobalQueue();
+        scheduler::GlobalMessageQueue globalQueue = scheduler::GlobalMessageQueue::getGlobalQueue();
         util::addResultKeyToMessage(msg);
         globalQueue.enqueueMessage(msg);
 

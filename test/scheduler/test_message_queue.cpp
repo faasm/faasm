@@ -67,8 +67,7 @@ namespace tests {
         call.set_user("some user");
         call.set_resultkey("function 123");
 
-
-        scheduler::MessageQueue &messageQueue = scheduler::MessageQueue::getGlobalQueue();
+        scheduler::GlobalMessageQueue &messageQueue = scheduler::GlobalMessageQueue::getGlobalQueue();
         messageQueue.setFunctionResult(call, true);
 
         // Check result has been written to the right key

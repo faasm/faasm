@@ -26,7 +26,7 @@ namespace tests {
 
         // Get global queue
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        scheduler::MessageQueue globalQueue = scheduler::MessageQueue::getGlobalQueue();
+        scheduler::GlobalMessageQueue globalQueue = scheduler::GlobalMessageQueue::getGlobalQueue();
 
         edge::FunctionEndpoint endpoint;
         endpoint.handleFunction(call);
