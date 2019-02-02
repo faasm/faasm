@@ -1,12 +1,17 @@
 #include <worker/WorkerThread.h>
 
 #include "WorkerThreadPool.h"
+#include "DispatcherThread.h"
 #include "StateThread.h"
 
+#include <scheduler/GlobalMessageQueue.h>
 
 namespace worker {
 
-    WorkerThreadPool::WorkerThreadPool(int nThreads) : threadTokenPool(nThreads) {
+    WorkerThreadPool::WorkerThreadPool(int nThreads) :
+            scheduler(scheduler::getScheduler()),
+            threadTokenPool(nThreads) {
+
         // Ensure we can ping both redis instances
         redis::Redis::getQueue().ping();
         redis::Redis::getState().ping();
@@ -23,7 +28,19 @@ namespace worker {
             stateThread.detach();
         }
 
-        // TODO create global listeners
+        // Thread to listen for global incoming messages
+        std::thread globalDispatchThread([this] {
+            DispatcherThread t(scheduler.getGlobalQueue());
+            t.run();
+        });
+        globalDispatchThread.detach();
+
+        // Thread to listen for incoming sharing messages
+        std::thread sharingDispatchThread([this] {
+            DispatcherThread t(scheduler.getHostSharingQueue());
+            t.run();
+        });
+        sharingDispatchThread.detach();
 
         // Spawn worker threads until we've hit the worker limit, thus creating a pool
         // that will replenish when one releases its token

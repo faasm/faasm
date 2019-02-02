@@ -8,16 +8,25 @@ using namespace util;
 namespace scheduler {
     const std::string WARM_SET_PREFIX = "w_";
 
-    Scheduler::Scheduler() : conf(util::getSystemConfig()), redis(redis::Redis::getQueue()) {
-        bindQueue = new InMemoryMessageQueue();
+    Scheduler::Scheduler() :
+            hostname(util::getHostName()),
+            conf(util::getSystemConfig()),
+            globalQueue(GlobalMessageQueue(INCOMING_QUEUE)),
+            hostSharingQueue(GlobalMessageQueue(hostname)),
+            redis(redis::Redis::getQueue()) {
 
-        hostname = util::getHostName();
-        if (hostname.empty()) {
-            throw std::runtime_error("HOSTNAME for this machine is empty");
-        }
+        bindQueue = new InMemoryMessageQueue();
 
         // Add to global set of workers
         redis.sadd(GLOBAL_WORKER_SET, hostname);
+    }
+
+    GlobalMessageQueue &Scheduler::getHostSharingQueue() {
+        return hostSharingQueue;
+    }
+
+    GlobalMessageQueue &Scheduler::getGlobalQueue() {
+        return globalQueue;
     }
 
     void Scheduler::clear() {

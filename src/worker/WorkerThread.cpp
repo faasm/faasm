@@ -97,7 +97,7 @@ namespace worker {
         }
 
         // Set result
-        scheduler::GlobalMessageQueue::getGlobalQueue().setFunctionResult(call, isSuccess);
+        scheduler.getGlobalQueue().setFunctionResult(call, isSuccess);
 
         // Restore the module memory after the execution
         module->restoreMemory();

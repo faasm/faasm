@@ -58,6 +58,11 @@ namespace util {
 
     std::string getHostName() {
         std::string hostname = util::getEnvVar("HOSTNAME", "");
+
+        if (hostname.empty()) {
+            throw std::runtime_error("HOSTNAME for this machine is empty");
+        }
+
         return hostname;
     }
 }

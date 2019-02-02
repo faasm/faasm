@@ -42,6 +42,9 @@ namespace scheduler {
 
         long getFunctionQueueLength(const message::Message &msg);
 
+        GlobalMessageQueue &getHostSharingQueue();
+
+        GlobalMessageQueue &getGlobalQueue();
     private:
         std::string hostname;
 
@@ -50,6 +53,9 @@ namespace scheduler {
         util::SystemConfig &conf;
 
         InMemoryMessageQueue *bindQueue;
+
+        GlobalMessageQueue globalQueue;
+        GlobalMessageQueue hostSharingQueue;
 
         std::unordered_map<std::string, InMemoryMessageQueue *> queueMap;
         std::unordered_map<std::string, long> threadCountMap;

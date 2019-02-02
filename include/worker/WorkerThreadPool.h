@@ -1,5 +1,6 @@
 #pragma once
 
+#include <scheduler/Scheduler.h>
 #include <util/queue.h>
 
 namespace worker {
@@ -15,6 +16,7 @@ namespace worker {
 
         int getThreadCount();
     private:
+        scheduler::Scheduler &scheduler;
         util::TokenPool threadTokenPool;
     };
 }

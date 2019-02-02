@@ -4,11 +4,11 @@
 #include <util/queue.h>
 #include <redis/Redis.h>
 
+#define INCOMING_QUEUE "all_incoming"
+
 namespace scheduler {
     class GlobalMessageQueue {
     public:
-        static GlobalMessageQueue &getGlobalQueue();
-
         explicit GlobalMessageQueue(const std::string &queueName);
 
         void enqueueMessage(const message::Message &msg);

@@ -3,16 +3,12 @@
 #include <util/logging.h>
 
 namespace scheduler {
-    const std::string GLOBAL_QUEUE = "all_incoming";
-
-    GlobalMessageQueue &GlobalMessageQueue::getGlobalQueue() {
-        static GlobalMessageQueue q(GLOBAL_QUEUE);
-        return q;
-    }
-
     GlobalMessageQueue::GlobalMessageQueue(const std::string &queueNameIn) : queueName(queueNameIn),
         redis(redis::Redis::getQueue()) {
 
+        if(queueName.empty()) {
+            throw std::runtime_error("Must provide a queue name");
+        }
     }
 
     void GlobalMessageQueue::enqueueMessage(const message::Message &msg) {

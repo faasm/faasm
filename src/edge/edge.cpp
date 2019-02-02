@@ -11,7 +11,7 @@
 using namespace Pistache;
 
 namespace edge {
-    FunctionEndpoint::FunctionEndpoint() {
+    FunctionEndpoint::FunctionEndpoint() : globalQueue(scheduler::GlobalMessageQueue(INCOMING_QUEUE)) {
         int port = 8001;
         int threadCount = 40;
 
@@ -69,7 +69,6 @@ namespace edge {
         }
 
         // Make the call
-        scheduler::GlobalMessageQueue globalQueue = scheduler::GlobalMessageQueue::getGlobalQueue();
         util::addResultKeyToMessage(msg);
         globalQueue.enqueueMessage(msg);
 

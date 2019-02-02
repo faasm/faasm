@@ -163,7 +163,8 @@ namespace tests {
 
         // Run the execution
         execFunction(call);
-        scheduler::GlobalMessageQueue &globalQueue = scheduler::GlobalMessageQueue::getGlobalQueue();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        scheduler::GlobalMessageQueue &globalQueue = sch.getGlobalQueue();
         message::Message result = globalQueue.getFunctionResult(call);
 
         // Check output
@@ -186,7 +187,9 @@ namespace tests {
         WorkerThread w = execFunction(call);
 
         // Check output from first invocation
-        scheduler::GlobalMessageQueue &globalQueue = scheduler::GlobalMessageQueue::getGlobalQueue();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        scheduler::GlobalMessageQueue &globalQueue = sch.getGlobalQueue();
+
         message::Message resultA = globalQueue.getFunctionResult(call);
         REQUIRE(resultA.outputdata() == "first input");
         REQUIRE(resultA.success());
@@ -195,7 +198,6 @@ namespace tests {
         call.set_inputdata("second input");
         call.set_resultkey("test_repeat_b");
 
-        scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.callFunction(call);
 
         w.processNextMessage();
@@ -258,7 +260,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check the call executed successfully
-        scheduler::GlobalMessageQueue &globalQueue = scheduler::GlobalMessageQueue::getGlobalQueue();
+        scheduler::GlobalMessageQueue &globalQueue = sch.getGlobalQueue();
         message::Message result = globalQueue.getFunctionResult(call);
         REQUIRE(result.success());
 
@@ -297,7 +299,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check result
-        scheduler::GlobalMessageQueue &globalQueue = scheduler::GlobalMessageQueue::getGlobalQueue();
+        scheduler::GlobalMessageQueue &globalQueue = sch.getGlobalQueue();
         message::Message resultA = globalQueue.getFunctionResult(call);
         REQUIRE(resultA.success());
         REQUIRE(resultA.outputdata() == "Counter: 001");
@@ -333,7 +335,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check result
-        scheduler::GlobalMessageQueue &globalQueue = scheduler::GlobalMessageQueue::getGlobalQueue();
+        scheduler::GlobalMessageQueue &globalQueue = sch.getGlobalQueue();
         message::Message result = globalQueue.getFunctionResult(call);
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
@@ -418,7 +420,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check output is true
-        scheduler::GlobalMessageQueue &globalQueue = scheduler::GlobalMessageQueue::getGlobalQueue();
+        scheduler::GlobalMessageQueue &globalQueue = sch.getGlobalQueue();
         message::Message result = globalQueue.getFunctionResult(call);
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
