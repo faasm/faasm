@@ -1,7 +1,7 @@
 #include <catch/catch.hpp>
 
 #include <emulator/emulator.h>
-#include <worker/worker.h>
+#include <worker/WorkerThreadPool.h>
 
 #include "utils.h"
 #include <faasm/sgd.h>

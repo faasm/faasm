@@ -5,7 +5,7 @@
 #include <util/environment.h>
 #include <util/bytes.h>
 
-#include <worker/worker.h>
+#include <worker/WorkerThreadPool.h>
 
 using namespace worker;
 

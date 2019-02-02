@@ -1,8 +1,9 @@
-#include "worker.h"
+#include "NetworkNamespace.h"
 
 #include <boost/filesystem.hpp>
 
 #include <util/environment.h>
+#include <util/logging.h>
 
 #include <errno.h>
 #include <fcntl.h>

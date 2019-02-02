@@ -1,4 +1,4 @@
-#include "worker.h"
+#include "WorkerThreadPool.h"
 
 int main() {
     util::initLogging();

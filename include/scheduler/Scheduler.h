@@ -50,8 +50,8 @@ namespace scheduler {
 
         InMemoryMessageQueue *bindQueue;
 
-        std::map<std::string, InMemoryMessageQueue *> queueMap;
-        std::map<std::string, long> threadCountMap;
+        std::unordered_map<std::string, InMemoryMessageQueue *> queueMap;
+        std::unordered_map<std::string, long> threadCountMap;
         std::shared_mutex mx;
 
         redis::Redis &redis;

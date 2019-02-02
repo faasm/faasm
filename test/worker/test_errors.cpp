@@ -1,6 +1,6 @@
 #include <catch/catch.hpp>
 
-#include <worker/worker.h>
+#include <worker/WorkerThreadPool.h>
 #include "utils.h"
 
 using namespace worker;

@@ -1,4 +1,4 @@
-#include "network.h"
+#include "NetworkNamespace.h"
 
 #include <stdexcept>
 #include <netdb.h>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <worker/worker.h>
+#include <worker/WorkerThreadPool.h>
 #include "faasm/matrix.h"
 #include "faasm/sgd.h"
 

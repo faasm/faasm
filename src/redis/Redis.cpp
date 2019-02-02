@@ -1,6 +1,6 @@
 #include "Redis.h"
 
-#include <util/network.h>
+#include <util/NetworkNamespace.h>
 #include <util/environment.h>
 #include <util/logging.h>
 #include <util/random.h>

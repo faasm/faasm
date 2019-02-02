@@ -2,7 +2,7 @@
 
 #include <util/environment.h>
 
-#include <worker/worker.h>
+#include <worker/NetworkNamespace.h>
 
 using namespace worker;
 

@@ -2,7 +2,7 @@
 
 #include "utils.h"
 #include <edge/edge.h>
-#include <worker/worker.h>
+#include <worker/WorkerThreadPool.h>
 
 using namespace Pistache;
 

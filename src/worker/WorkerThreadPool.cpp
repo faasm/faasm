@@ -1,4 +1,6 @@
-#include "worker.h"
+#include "WorkerThreadPool.h"
+#include "StateThread.h"
+#include "CGroup.h"
 
 #include <unistd.h>
 #include <scheduler/Scheduler.h>
@@ -101,13 +103,6 @@ namespace worker {
 
         // Release worker token
         threadTokenPool.releaseToken(thread.threadIdx);
-    }
-
-    StateThread::StateThread() = default;
-
-    void StateThread::run() {
-        state::State &s = state::getGlobalState();
-        s.pushLoop();
     }
 
     WorkerThread::WorkerThread(WorkerThreadPool &threadPoolIn, int threadIdxIn,
