@@ -18,9 +18,14 @@ namespace worker {
     }
 
     void WorkerThreadPool::start() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->info("Starting pool with {} threads", threadTokenPool.size());
+
         // Spawn the state thread first if not running in full async
         util::SystemConfig &conf = util::getSystemConfig();
         if (!conf.fullAsync) {
+            logger->info("Starting state sync thread");
+
             std::thread stateThread([] {
                 StateThread s;
                 s.run();
@@ -29,6 +34,8 @@ namespace worker {
         }
 
         // Thread to listen for global incoming messages
+        logger->info("Starting global queue listener (queue = {})", INCOMING_QUEUE);
+
         std::thread globalDispatchThread([this] {
             DispatcherThread t(scheduler.getGlobalQueue());
             t.run();
@@ -36,6 +43,8 @@ namespace worker {
         globalDispatchThread.detach();
 
         // Thread to listen for incoming sharing messages
+        logger->info("Starting work sharing listener (queue = {})", scheduler.getHostSharingQueue().queueName);
+
         std::thread sharingDispatchThread([this] {
             DispatcherThread t(scheduler.getHostSharingQueue());
             t.run();

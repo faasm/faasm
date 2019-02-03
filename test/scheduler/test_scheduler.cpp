@@ -19,8 +19,8 @@ namespace tests {
 
         std::string hostname = util::getHostName();
         std::string otherHostA = "Host A";
-        std::string otherHostB = "Host B";
-
+        GlobalMessageQueue otherHostAQueue(otherHostA);
+        
         message::Message call;
         call.set_user("user a");
         call.set_function("function a");
@@ -159,7 +159,6 @@ namespace tests {
 
         SECTION("Host choice checks") {
             redis.sadd(GLOBAL_WORKER_SET, otherHostA);
-            redis.sadd(GLOBAL_WORKER_SET, otherHostB);
 
             SECTION("Test function which breaches queue ratio but has no capacity fails over") {
                 // Make calls up to the limit
@@ -182,8 +181,17 @@ namespace tests {
                 // Call more and check calls are shared elsewhere
                 sch.callFunction(call);
                 sch.callFunction(call);
-                sch.callFunction(call);
 
+                message::Message actualA = otherHostAQueue.nextMessage();
+                message::Message actualB = otherHostAQueue.nextMessage();
+
+                REQUIRE(actualA.function() == call.function());
+                REQUIRE(actualA.user() == call.user());
+
+                REQUIRE(actualB.function() == call.function());
+                REQUIRE(actualB.user() == call.user());
+
+                // Check not added to local queues
                 REQUIRE(bindQueue->size() == conf.maxWorkersPerFunction);
                 REQUIRE(sch.getFunctionThreadCount(call) == conf.maxWorkersPerFunction);
                 REQUIRE(sch.getFunctionQueueLength(call) == nCalls);

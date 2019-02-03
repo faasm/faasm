@@ -10,7 +10,7 @@ namespace scheduler {
             throw std::runtime_error("Must provide a queue name");
         }
     }
-
+    
     void GlobalMessageQueue::enqueueMessage(const message::Message &msg) {
         std::vector<uint8_t> msgBytes = util::messageToBytes(msg);
         redis.enqueue(queueName, msgBytes);
