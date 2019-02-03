@@ -241,8 +241,8 @@ namespace scheduler {
         std::string warmSet = this->getFunctionWarmSetName(msg);
 
         // Get options excluding this host
-        std::set<std::string> warmOptions = redis.smembers(warmSet);
-        std::set<std::string> allOptions = redis.smembers(GLOBAL_WORKER_SET);
+        std::unordered_set<std::string> warmOptions = redis.smembers(warmSet);
+        std::unordered_set<std::string> allOptions = redis.smembers(GLOBAL_WORKER_SET);
         warmOptions.erase(hostname);
         allOptions.erase(hostname);
 
@@ -250,13 +250,13 @@ namespace scheduler {
 
         if (!warmOptions.empty()) {
             // If we have warm options, pick one of those
-            return util::randomSetElement(warmOptions);
+            return *warmOptions.begin();
         } else if (!excludeThisHost) {
             // If no warm options, we should accommodate on this host unless it's over the limit
             return hostname;
         } else if (!allOptions.empty()) {
             // Pick a random option from all hosts
-            return util::randomSetElement(allOptions);
+            return *allOptions.begin();
         } else {
             // TODO: scale out here
             logger->error("No worker host available for scheduling {}", util::funcToString(msg));

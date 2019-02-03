@@ -3,7 +3,7 @@
 #include <util/config.h>
 
 #include <hiredis/hiredis.h>
-#include <set>
+#include <unordered_set>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <thread>
@@ -107,11 +107,11 @@ namespace redis {
 
         std::string srandmember(const std::string &key);
 
-        std::set<std::string> smembers(const std::string &key);
+        std::unordered_set<std::string> smembers(const std::string &key);
 
-        std::set<std::string> sdiff(const std::string &keyA, const std::string &keyB);
+        std::unordered_set<std::string> sdiff(const std::string &keyA, const std::string &keyB);
 
-        std::set<std::string> sinter(const std::string &keyA, const std::string &keyB);
+        std::unordered_set<std::string> sinter(const std::string &keyA, const std::string &keyB);
 
         void flushAll();
 

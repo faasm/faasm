@@ -387,7 +387,7 @@ namespace tests {
         std::string setA = "set_a";
         std::string setB = "set_b";
 
-        const std::set<std::string> actualA = redisQueue.sdiff(setA, setB);
+        const std::unordered_set<std::string> actualA = redisQueue.sdiff(setA, setB);
         REQUIRE(actualA.empty());
 
         std::string valueA = "val_a";
@@ -402,8 +402,8 @@ namespace tests {
         redisQueue.sadd(setB, valueC);
         redisQueue.sadd(setB, valueD);
 
-        std::set<std::string> actualB = redisQueue.sdiff(setA, setB);
-        std::set<std::string> expected = {valueA, valueB};
+        std::unordered_set<std::string> actualB = redisQueue.sdiff(setA, setB);
+        std::unordered_set<std::string> expected = {valueA, valueB};
 
         REQUIRE(actualB == expected);
     }
@@ -415,7 +415,7 @@ namespace tests {
         std::string setA = "set_a";
         std::string setB = "set_b";
 
-        std::set<std::string> actualA = redisQueue.sinter(setA, setB);
+        std::unordered_set<std::string> actualA = redisQueue.sinter(setA, setB);
         REQUIRE(actualA.empty());
 
         std::string valueA = "val_a";
@@ -433,8 +433,8 @@ namespace tests {
         redisQueue.sadd(setB, valueD);
         redisQueue.sadd(setB, valueE);
 
-        std::set<std::string> actualB = redisQueue.sinter(setA, setB);
-        std::set<std::string> expected = {valueA, valueC};
+        std::unordered_set<std::string> actualB = redisQueue.sinter(setA, setB);
+        std::unordered_set<std::string> expected = {valueA, valueC};
 
         REQUIRE(actualB == expected);
     }

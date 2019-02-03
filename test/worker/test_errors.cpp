@@ -24,8 +24,7 @@ namespace tests {
     }
 
     void checkError(const std::string &funcName, const std::string &expectedMsg) {
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
+        cleanSystem();
 
         message::Message call;
         call.set_user("errors");
