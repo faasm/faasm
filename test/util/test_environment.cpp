@@ -41,6 +41,7 @@ namespace tests {
         SystemConfig conf;
 
         REQUIRE(conf.threadsPerWorker == 50);
+        REQUIRE(conf.noScheduler == 0);
         REQUIRE(conf.prewarm == 1);
         REQUIRE(conf.maxQueueRatio == 3);
         REQUIRE(conf.maxWorkersPerFunction == 10);
@@ -55,7 +56,8 @@ namespace tests {
 
     TEST_CASE("Test overriding system config initialisation", "[util]") {
         setEnvVar("THREADS_PER_WORKER", "10");
-        setEnvVar("PREWARM", "0");
+        setEnvVar("NO_SCHEDULER", "12");
+        setEnvVar("PREWARM", "5");
         setEnvVar("MAX_QUEUE_RATIO", "8888");
         setEnvVar("MAX_WORKERS_PER_FUNCTION", "7777");
 
@@ -68,7 +70,8 @@ namespace tests {
 
         SystemConfig conf;
         REQUIRE(conf.threadsPerWorker == 10);
-        REQUIRE(conf.prewarm == 0);
+        REQUIRE(conf.noScheduler == 12);
+        REQUIRE(conf.prewarm == 5);
         REQUIRE(conf.maxQueueRatio == 8888);
         REQUIRE(conf.maxWorkersPerFunction == 7777);
 

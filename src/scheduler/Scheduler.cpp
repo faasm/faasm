@@ -148,9 +148,8 @@ namespace scheduler {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         std::string bestHost = this->getBestHostForFunction(msg);
-
         if (bestHost == hostname) {
-            logger->debug("Executing {} locally", util::funcToString(msg));
+            logger->info("SCH - Executing {} locally", util::funcToString(msg));
 
             // Enqueue the message locally
             this->enqueueMessage(msg);
@@ -175,11 +174,13 @@ namespace scheduler {
         // TODO make this configurable
         if (msg.function() == "sgd_step") {
             // No queueing
-            maxQueueRatio = 0;
+            maxQueueRatio = 2;
         }
 
         double queueRatio = this->getFunctionQueueRatio(msg);
         double nThreads = this->getFunctionThreadCount(msg);
+
+        logger->info("SCH - {} Queue ratio = {} threads = {}", util::funcToString(msg), queueRatio, nThreads);
 
         // If we're over the queue ratio and have capacity, need to scale up
         if (queueRatio > maxQueueRatio && nThreads < conf.maxWorkersPerFunction) {
@@ -192,7 +193,7 @@ namespace scheduler {
 
             // Double check condition
             if (queueRatio > maxQueueRatio && nThreads < conf.maxWorkersPerFunction) {
-                logger->debug("Scaling up {} to {} threads", util::funcToString(msg), nThreads + 1);
+                logger->info("SCH - Scaling up {} to {} threads", util::funcToString(msg), nThreads + 1);
 
                 // If this is the first thread on this host, add it to the warm set for this function
                 if (nThreads == 0) {
@@ -215,6 +216,13 @@ namespace scheduler {
 
     std::string Scheduler::getBestHostForFunction(const message::Message &msg) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+
+        // If we're ignoring the scheduling, just put it on this host regardless
+        bool ignoreScheduler = conf.noScheduler == 1;
+        if(ignoreScheduler) {
+            logger->debug("Ignoring scheduler and queueing {} locally", util::funcToString(msg));
+            return hostname;
+        }
 
         bool excludeThisHost = false;
 

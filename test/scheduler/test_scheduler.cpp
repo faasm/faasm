@@ -216,6 +216,19 @@ namespace tests {
                 REQUIRE(sch.getBestHostForFunction(call) == otherHostA);
             }
 
+            SECTION("Test other warm option *not* chosen when in no scheduler mode") {
+                conf.noScheduler = 1;
+
+                // Add another host to the warm set for the given function
+                const std::string warmSet = sch.getFunctionWarmSetName(call);
+                redis.sadd(warmSet, otherHostA);
+
+                // Check it's ignored
+                REQUIRE(sch.getBestHostForFunction(call) == hostname);
+
+                conf.noScheduler = 0;
+            }
+
             SECTION("Test current host chosen when already warm even if alternatives") {
                 // Ensure a warm worker exists on this host
                 sch.callFunction(call);
