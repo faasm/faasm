@@ -175,25 +175,6 @@ then update them separately.
 
 This can be useful for implementing distributed iterative algorithms.
 
-### State example
-
-An example implementing a simple counter can be found in `func/demo/increment.cpp`. It 
-can be called with:
-
-```
-curl -X POST http://localhost:8001/f/demo/increment/
-```
-
-On successive calls this will add 1 to a value stored in shared state, returning something 
-like:
-
-```
-Counter: 001
-Counter: 002
-Counter: 003
-...
-```
-
 ### Uploading state
 
 If you need to prepopulate state for your functions you can use the state upload endpoint. 
