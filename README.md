@@ -18,43 +18,7 @@ A preconfigured, Dockerised toolchain is provided for compiling C/C++ code to ru
 This toolchaing is based on a generic [Dockerised WASM toolchain](https://github.com/Shillaker/wasm-toolchain)
 with a customised libc to implement the required syscalls.
 
-# Architecture
-
-To allow integration with a range of serverless and data processing systems, Faasm workers have a pluggable input, 
-output and state handling. These fall into the following categories:  
-
-## Function calls, inputs and outputs
-
-Faasm workers receive function calls as protobuf objects which are then deserialised to get the function name
-and method of handling input/ output.
-
-The following options for receiving messages are available:
-
-- Redis "queues" - by specifying the `redis` mode and an associated key to listen for incoming invocations
-- stdin pipe - by specifying the `pipe` mode
-- sockets - by specifying the `socket` mode
-
-Input and output can be handled as follows:
-
-- Redis - when in `redis` mode, the inputs and outputs will be read from and written to the same Redis instance
-- S3 - when in `s3` mode, inputs and outputs will be read from and written to the given S3 keys
-
-## Function storage
-
-To execute a function it must be available to the worker via one of the following sources:
-
-- Local filesystem - at a predefined location (which can be mapped to NFS in a distributed environment)
-- S3 - by giving an S3 bucket name
-
-## State handling
-
-Faasm workers support both mutable and immutable state accessed in either a synchronous or asynchronous manner.
-This can be handled in the following ways:
-
-- Redis - for both mutable and immutable state
-- S3 - for immutable state only
-
-# Serverless demo
+# Quick start
 
 To demonstrate a Faasm worker in action, the `docker-compose.yml` file in the root of the project will 
 set up a simple serverless system using Redis to handle both function calls and state, and the local filesystem
@@ -264,3 +228,39 @@ I can execute:
 curl -X PUT http://localhost:8002/f/demo/cool_func/ -T /tmp/do_something.wasm
 ```
 
+# Configuration
+
+To allow integration with a range of serverless and data processing systems, Faasm workers have a pluggable input, 
+output and state handling. These fall into the following categories:  
+
+## Function calls, inputs and outputs
+
+Faasm workers receive function calls as protobuf objects which are then deserialised to get the function name
+and method of handling input/ output.
+
+The following options for receiving messages are available:
+
+- Redis "queues" - by specifying the `redis` mode and an associated key to listen for incoming invocations
+- SQS - by specifying the `aws` mode and an associated queue name
+- stdin pipe - by specifying the `pipe` mode
+- sockets - by specifying the `socket` mode
+
+Input and output can be handled as follows:
+
+- Redis - when in `redis` mode, the inputs and outputs will be read from and written to the same Redis instance
+- S3 - when in `s3` mode, inputs and outputs will be read from and written to the given S3 keys
+
+## Function storage
+
+To execute a function it must be available to the worker via one of the following sources:
+
+- Local filesystem - at a predefined location (which can be mapped to NFS in a distributed environment)
+- S3 - by giving an S3 bucket name
+
+## State handling
+
+Faasm workers support both mutable and immutable state accessed in either a synchronous or asynchronous manner.
+This can be handled in the following ways:
+
+- Redis - for both mutable and immutable state
+- S3 - for immutable state only
