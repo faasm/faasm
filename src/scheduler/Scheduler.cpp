@@ -159,8 +159,12 @@ namespace scheduler {
             // Add more threads if necessary
             this->addWarmThreads(msg);
         } else {
+            // Share with other host
             logger->debug("Sharing {} call with {}", util::funcToString(msg), bestHost);
-            // TODO - send call to a different host
+
+            // TODO - cache these queues and reuse
+            GlobalMessageQueue globalQueue(bestHost);
+            globalQueue.enqueueMessage(msg);
         }
     }
 
@@ -217,13 +221,20 @@ namespace scheduler {
 
         {
             SharedLock lock(mx);
-
+                          
             // If we have some warm threads below the max, we can handle locally
             long threadCount = this->getFunctionThreadCount(msg);
             if (threadCount > 0 && threadCount < conf.maxWorkersPerFunction) {
                 return hostname;
-            } else if (threadCount >= conf.maxWorkersPerFunction) {
-                excludeThisHost = true;
+            } else if (threadCount == conf.maxWorkersPerFunction) {
+                // If we're at the max workers, we want to saturate so that all are full,
+                // i.e. we want to get up to the maximum queue ratio
+                double queueRatio = this->getFunctionQueueRatio(msg);
+
+                if(queueRatio >= conf.maxQueueRatio) {
+                    // Only exclude when we've saturated the last worker
+                    excludeThisHost = true;
+                }
             }
         }
 
