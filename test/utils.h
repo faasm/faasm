@@ -1,14 +1,13 @@
 #pragma once
 
-#include <worker/worker.h>
-#include "infra/infra.h"
+#include <worker/WorkerThreadPool.h>
 #include "faasm/matrix.h"
 #include "faasm/sgd.h"
 
 using namespace faasm;
 
 namespace tests {
-    static worker::WorkerThreadPool workerThreadPool(10, 1);
+    static worker::WorkerThreadPool workerThreadPool(10);
 
     void cleanSystem();
 

@@ -1,5 +1,7 @@
 #include "prof/prof.h"
 
+#include <util/logging.h>
+
 namespace prof {
     util::TimePoint startTimer() {
         util::Clock &clock = util::getGlobalClock();

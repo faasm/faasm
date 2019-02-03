@@ -1,16 +1,19 @@
 #include <catch/catch.hpp>
 
-#include <worker/worker.h>
 #include "utils.h"
+
+#include <worker/WorkerThreadPool.h>
+#include <worker/WorkerThread.h>
+#include <scheduler/InMemoryMessageQueue.h>
 
 using namespace worker;
 
 namespace tests {
     void execErrorFunction(message::Message &call) {
-        WorkerThreadPool pool(1, 1);
-        WorkerThread w(pool, 1, 1);
+        WorkerThreadPool pool(1);
+        WorkerThread w(1);
 
-        infra::Scheduler &sch = infra::getScheduler();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.callFunction(call);
 
         // Bind message
@@ -21,8 +24,7 @@ namespace tests {
     }
 
     void checkError(const std::string &funcName, const std::string &expectedMsg) {
-        infra::Redis &redisQueue = infra::Redis::getQueue();
-        redisQueue.flushAll();
+        cleanSystem();
 
         message::Message call;
         call.set_user("errors");
@@ -32,7 +34,10 @@ namespace tests {
         execErrorFunction(call);
 
         // Get result
-        message::Message result = redisQueue.getFunctionResult(call);
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        scheduler::GlobalMessageQueue &messageQueue = sch.getGlobalQueue();
+
+        message::Message result = messageQueue.getFunctionResult(call);
         REQUIRE(!result.success());
 
         const std::string actualOutput = result.outputdata();

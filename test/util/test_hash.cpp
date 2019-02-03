@@ -1,5 +1,5 @@
 #include <catch/catch.hpp>
-#include <util/util.h>
+#include <util/hash.h>
 
 using namespace util;
 

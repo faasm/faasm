@@ -1,10 +1,9 @@
 include_directories(${FAASM_INCLUDE_DIR}/edge)
 
-add_library(edge_lib STATIC edge.cpp ${FAASM_INCLUDE_DIR}/edge/edge.h)
+add_library(edge_lib STATIC FunctionEndpoint.cpp ${FAASM_INCLUDE_DIR}/edge/FunctionEndpoint.h)
 
 target_link_libraries(edge_lib
-        proto
-        infra
+        scheduler
         pistache
         )
 

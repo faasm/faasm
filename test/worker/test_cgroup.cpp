@@ -1,6 +1,9 @@
 #include <catch/catch.hpp>
 
-#include <worker/worker.h>
+#include <util/environment.h>
+#include <util/files.h>
+
+#include <worker/CGroup.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>

@@ -6,4 +6,4 @@ add_library(
         ${FAASM_INCLUDE_DIR}/emulator/emulator.h
 )
 
-target_link_libraries(emulator infra state)
+target_link_libraries(emulator scheduler state)

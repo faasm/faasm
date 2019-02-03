@@ -1,8 +1,8 @@
+#include "files.h"
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <vector>
-
 
 namespace util {
     std::string readFileToString(const std::string &path) {

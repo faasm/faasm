@@ -2,7 +2,7 @@
 #include <iostream>
 
 #include <proto/faasm.pb.h>
-#include <util/util.h>
+#include <util/bytes.h>
 
 namespace tests {
 

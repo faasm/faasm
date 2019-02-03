@@ -1,6 +1,8 @@
 #include <catch/catch.hpp>
 
-#include <worker/worker.h>
+#include <util/environment.h>
+
+#include <worker/NetworkNamespace.h>
 
 using namespace worker;
 

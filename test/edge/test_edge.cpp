@@ -1,17 +1,14 @@
 #include <catch/catch.hpp>
 
 #include "utils.h"
-#include <edge/edge.h>
-#include <worker/worker.h>
+#include <edge/FunctionEndpoint.h>
+#include <scheduler/GlobalMessageQueue.h>
 
 using namespace Pistache;
 
 namespace tests {
     static void setUp() {
-        infra::Redis::getQueue().flushAll();
-
-        // Create a worker pool to allow scheduling
-        worker::WorkerThreadPool wp(1, 1);
+        redis::Redis::getQueue().flushAll();
     }
 
     TEST_CASE("Test invoking a function", "[edge]") {
@@ -24,14 +21,14 @@ namespace tests {
         call.set_function("echo");
         call.set_inputdata("abc");
 
-        // Get expected queue
-        infra::Scheduler &sch = infra::getScheduler();
-        std::string queueName = sch.getFunctionQueueName(call);
+        // Get global queue
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        scheduler::GlobalMessageQueue globalQueue = sch.getGlobalQueue();
 
         edge::FunctionEndpoint endpoint;
         endpoint.handleFunction(call);
 
-        const message::Message actual = infra::Redis::getQueue().nextMessage(queueName);
+        const message::Message actual = globalQueue.nextMessage();
 
         REQUIRE(actual.user() == "demo");
         REQUIRE(actual.function() == "echo");
@@ -50,10 +47,5 @@ namespace tests {
         std::string msg = endpoint.handleFunction(call);
 
         REQUIRE(msg == "foobar/baz is not a valid function");
-
-        // Check nothing added to queue
-        infra::Scheduler &sch = infra::getScheduler();
-        const std::string queueName = sch.getFunctionQueueName(call);
-        REQUIRE(infra::Redis::getQueue().listLength(queueName) == 0);
     }
 }

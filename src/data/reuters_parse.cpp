@@ -1,9 +1,13 @@
 #include "data/data.h"
 
+#include <util/logging.h>
+#include <util/strings.h>
+#include <util/files.h>
+#include <util/environment.h>
+
 #include <string>
 #include <iostream>
 #include <boost/filesystem.hpp>
-#include <util/util.h>
 
 #include <faasm/sgd.h>
 

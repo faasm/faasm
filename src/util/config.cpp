@@ -1,15 +1,23 @@
-#include "util.h"
+#include "config.h"
+#include "environment.h"
+#include "logging.h"
+
 
 namespace util {
+    SystemConfig &getSystemConfig() {
+        static SystemConfig conf;
+        return conf;
+    }
+
     SystemConfig::SystemConfig() {
         // TODO - max cannot exceed the underlying number of available namespaces. Good to decouple?
-        threadsPerWorker = this->getSystemConfParam("THREADS_PER_WORKER", "100");
+        threadsPerWorker = this->getSystemConfParam("THREADS_PER_WORKER", "50");
 
         // Scheduling
-        prewarmTarget = this->getSystemConfParam("PREWARM_TARGET", "20");
+        noScheduler = this->getSystemConfParam("NO_SCHEDULER", "0");
+        prewarm = this->getSystemConfParam("PREWARM", "1");
         maxQueueRatio = this->getSystemConfParam("MAX_QUEUE_RATIO", "3");
         maxWorkersPerFunction = this->getSystemConfParam("MAX_WORKERS_PER_FUNCTION", "10");
-        affinity = this->getSystemConfParam("AFFINITY", "0");
 
         // Worker-related timeouts
         boundTimeout = this->getSystemConfParam("BOUND_TIMEOUT", "30");
@@ -33,10 +41,10 @@ namespace util {
 
         logger->info("--- Scheduling ---");
         logger->info("THREADS_PER_WORKER         {}", threadsPerWorker);
-        logger->info("PREWARM_TARGET             {}", prewarmTarget);
+        logger->info("NO_SCHEDULER               {}", noScheduler);
+        logger->info("PREWARM                    {}", prewarm);
         logger->info("MAX_QUEUE_RATIO            {}", maxQueueRatio);
         logger->info("MAX_WORKERS_PER_FUNCTION   {}", maxWorkersPerFunction);
-        logger->info("AFFINITY                   {}", affinity);
 
         logger->info("--- Timeouts ---");
         logger->info("BOUND_TIMEOUT              {}", boundTimeout);
@@ -52,6 +60,11 @@ namespace util {
 
     std::string getHostName() {
         std::string hostname = util::getEnvVar("HOSTNAME", "");
+
+        if (hostname.empty()) {
+            throw std::runtime_error("HOSTNAME for this machine is empty");
+        }
+
         return hostname;
     }
 }

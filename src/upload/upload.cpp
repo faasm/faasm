@@ -1,5 +1,8 @@
-#include "upload/upload.h"
-#include "prof/prof.h"
+#include "upload.h"
+
+#include <util/bytes.h>
+#include <prof/prof.h>
+#include <redis/Redis.h>
 
 
 namespace edge {
@@ -74,7 +77,7 @@ namespace edge {
 
         logger->info("Downloading state from ({}/{})", user, key);
 
-        infra::Redis &redis = infra::Redis::getState();
+        redis::Redis &redis = redis::Redis::getState();
         const std::vector<uint8_t> value = redis.get(realKey);
 
         return value;
@@ -90,7 +93,7 @@ namespace edge {
 
         logger->info("Upload state to ({}/{})", user, key);
 
-        infra::Redis &redis = infra::Redis::getState();
+        redis::Redis &redis = redis::Redis::getState();
 
         // Read request body into KV store
         const concurrency::streams::istream bodyStream = request.body();
@@ -111,9 +114,9 @@ namespace edge {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         message::Message msg = RestServer::buildMessageFromRequest(request);
-        std::string outputFile = infra::getFunctionFile(msg);
+        std::string outputFile = util::getFunctionFile(msg);
 
-        logger->info("Uploading {}", infra::funcToString(msg));
+        logger->info("Uploading {}", util::funcToString(msg));
 
         // Here the msg input data is actually the file
         std::ofstream out(outputFile);

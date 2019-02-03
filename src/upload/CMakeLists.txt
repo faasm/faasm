@@ -5,8 +5,8 @@ add_library(upload_lib STATIC upload.cpp ${FAASM_INCLUDE_DIR}/upload/upload.h)
 target_link_libraries(upload_lib
         wasm
         proto
-        infra
-        ssl crypto
+        ssl
+        crypto
         cpprest
         )
 

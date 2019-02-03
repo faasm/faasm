@@ -1,9 +1,13 @@
 #include <catch/catch.hpp>
 
-#include <emulator/emulator.h>
-#include <worker/worker.h>
-
 #include "utils.h"
+
+#include <emulator/emulator.h>
+#include <state/State.h>
+#include <worker/WorkerThreadPool.h>
+#include <worker/WorkerThread.h>
+#include <util/func.h>
+
 #include <faasm/sgd.h>
 #include <faasm/counter.h>
 
@@ -30,21 +34,21 @@ namespace tests {
         call.set_resultkey("foobar");
 
         // Set up worker to listen for relevant function
-        WorkerThreadPool pool(1, 1);
-        WorkerThread w(pool, 1, 1);
+        WorkerThreadPool pool(1);
+        WorkerThread w(1);
         REQUIRE(w.isInitialised());
         REQUIRE(!w.isBound());
 
         // Call the function
-        infra::Scheduler &sch = infra::getScheduler();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.callFunction(call);
 
         // Process the bind and execute messages
         w.processNextMessage();
         w.processNextMessage();
 
-        infra::Redis &redisQueue = infra::Redis::getQueue();
-        const message::Message result = redisQueue.getFunctionResult(call);
+        scheduler::GlobalMessageQueue &globalQueue = sch.getGlobalQueue();
+        const message::Message result = globalQueue.getFunctionResult(call);
         return result.outputdata();
     }
 

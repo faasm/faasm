@@ -1,6 +1,8 @@
 #include "data.h"
 
-#include <util/util.h>
+#include <util/files.h>
+#include <util/logging.h>
+
 #include <faasm/matrix.h>
 
 #include <boost/filesystem.hpp>

@@ -3,9 +3,13 @@ include_directories(
         ${FAASM_WAVM_SOURCE_DIR}
 )
 
+file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/state/*.h")
+
 add_library(state STATIC
-        state.cpp
-        ${FAASM_INCLUDE_DIR}/state/state.h
+        State.cpp
+        UserState.cpp
+        StateKeyValue.cpp
+        ${HEADERS}
         )
 
-target_link_libraries(state infra Logging)
+target_link_libraries(state proto redis Logging)

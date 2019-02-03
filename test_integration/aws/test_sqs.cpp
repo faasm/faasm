@@ -1,6 +1,6 @@
 #include <catch/catch.hpp>
 
-#include <aws/aws.h>
+#include <aws/SQSWrapper.h>
 
 using namespace awswrapper;
 

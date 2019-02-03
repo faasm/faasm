@@ -1,11 +1,10 @@
 #include <iostream>
 #include <fstream>
 
+#include <util/logging.h>
 #include <data/data.h>
 #include <emulator/emulator.h>
-#include <util/util.h>
-#include <infra/infra.h>
-#include <state/state.h>
+#include <state/State.h>
 
 #include <faasm/matrix.h>
 #include <faasm/sgd.h>

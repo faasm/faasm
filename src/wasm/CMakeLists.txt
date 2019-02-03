@@ -4,10 +4,11 @@ include_directories(
 )
 
 add_library(wasm STATIC
-        chaining.cpp
-        wasm.cpp
+        CallChain.cpp
+        WasmModule.cpp
         syscalls.cpp
-        ${FAASM_INCLUDE_DIR}/wasm/wasm.h
+        ${FAASM_INCLUDE_DIR}/wasm/CallChain.h
+        ${FAASM_INCLUDE_DIR}/wasm/WasmModule.h
         )
 
-target_link_libraries(wasm infra state Logging IR WASTParse WASM Runtime)
+target_link_libraries(wasm scheduler state Logging IR WASTParse WASM Runtime)

@@ -1,7 +1,7 @@
 #include <faasm/memory.h>
-#include <util/util.h>
-#include <infra/infra.h>
-#include <state/state.h>
+
+#include <redis/Redis.h>
+#include <state/State.h>
 
 /**
  * Local implementations of faasm calls

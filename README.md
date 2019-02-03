@@ -1,7 +1,6 @@
 # Faasm
 
-Faasm is a high-performance distributed multi-tenant runtime aimed primarily at
-serverless systems.
+Faasm is a high-performance multi-tenant serverless runtime.
 
 By using WebAssembly to run users' code, we can combine software fault isolation with 
 standard OS tooling to provide strong security and resource isolation guarantees at low cost.
@@ -55,10 +54,6 @@ This can be handled in the following ways:
 - Redis - for both mutable and immutable state
 - S3 - for immutable state only
 
-# Compilation
-
-Faasm functions can be compiled from several source languages, handled by slightly different toolchains:
-
 # Serverless demo
 
 To demonstrate a Faasm worker in action, the `docker-compose.yml` file in the root of the project will 
@@ -71,17 +66,11 @@ You can start it by running:
 docker-compose up -d
 ```
 
-Then curl one of the example functions:
-
-```
-curl -X POST http://localhost:8001/f/demo/echo -d "Hello!"
-```
-
-And you should see your message echoed back.
-
 ## Compiling a simple function
 
-The `hello.cpp` file in the root of this directory shows a basic faasm function.
+The `hello.cpp` file in the root of this directory shows a basic faasm function; you can
+open it and take a look at the API and format.
+
 To compile this to WebAssembly you can run the following from the project root:
 
 ```
@@ -100,6 +89,8 @@ curl -X PUT http://localhost:8002/f/dummy/hello -T hello.wasm
 # Invoke the function
 curl -X POST http://localhost:8001/f/dummy/hello
 ```
+
+You should then see the response `Hello faasm!`.
 
 # Usage
 

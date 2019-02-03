@@ -1,5 +1,5 @@
 #include <catch/catch.hpp>
-#include <util/util.h>
+#include <util/queue.h>
 #include <thread>
 
 #include <iostream>

@@ -1,6 +1,6 @@
 #include <catch/catch.hpp>
-#include <wasm/wasm.h>
-#include <util/util.h>
+#include <wasm/WasmModule.h>
+#include <util/bytes.h>
 
 namespace tests {
 
