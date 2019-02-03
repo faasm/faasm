@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CallChain.h"
+
 #include <util/logging.h>
 
 #include <state/State.h>
@@ -74,19 +76,6 @@ namespace wasm {
     private:
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
         std::string user;
-    };
-
-    class CallChain {
-    public:
-        explicit CallChain(const message::Message &msg);
-
-        void addCall(std::string user, std::string functionName, const std::vector<uint8_t> &inputData);
-
-        std::string execute();
-
-        std::vector<message::Message> calls;
-    private:
-        const message::Message &originalCall;
     };
 
     class WasmModule {

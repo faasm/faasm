@@ -11,7 +11,7 @@ namespace util {
 
     SystemConfig::SystemConfig() {
         // TODO - max cannot exceed the underlying number of available namespaces. Good to decouple?
-        threadsPerWorker = this->getSystemConfParam("THREADS_PER_WORKER", "100");
+        threadsPerWorker = this->getSystemConfParam("THREADS_PER_WORKER", "50");
 
         // Scheduling
         prewarm = this->getSystemConfParam("PREWARM", "1");

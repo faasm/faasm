@@ -1,4 +1,4 @@
-#include <edge/edge.h>
+#include <edge/FunctionEndpoint.h>
 
 #include <util/logging.h>
 

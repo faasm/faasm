@@ -1,4 +1,4 @@
-#include "edge.h"
+#include "FunctionEndpoint.h"
 
 #include <util/logging.h>
 
@@ -69,6 +69,7 @@ namespace edge {
         }
 
         // Make the call
+        logger->debug("Enqueueing call to {}", globalQueue.queueName);
         util::addResultKeyToMessage(msg);
         globalQueue.enqueueMessage(msg);
 

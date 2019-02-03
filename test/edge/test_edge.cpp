@@ -1,7 +1,7 @@
 #include <catch/catch.hpp>
 
 #include "utils.h"
-#include <edge/edge.h>
+#include <edge/FunctionEndpoint.h>
 #include <scheduler/GlobalMessageQueue.h>
 
 using namespace Pistache;

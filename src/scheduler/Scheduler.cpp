@@ -12,7 +12,6 @@ namespace scheduler {
             hostname(util::getHostName()),
             conf(util::getSystemConfig()),
             globalQueue(GlobalMessageQueue(INCOMING_QUEUE)),
-            hostSharingQueue(GlobalMessageQueue(hostname)),
             redis(redis::Redis::getQueue()) {
 
         bindQueue = new InMemoryMessageQueue();
@@ -21,8 +20,8 @@ namespace scheduler {
         redis.sadd(GLOBAL_WORKER_SET, hostname);
     }
 
-    GlobalMessageQueue &Scheduler::getHostSharingQueue() {
-        return hostSharingQueue;
+    std::string Scheduler::getHostSharingQueueName() {
+        return "share_" + hostname;
     }
 
     GlobalMessageQueue &Scheduler::getGlobalQueue() {

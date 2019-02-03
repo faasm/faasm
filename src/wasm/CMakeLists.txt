@@ -4,9 +4,10 @@ include_directories(
 )
 
 add_library(wasm STATIC
-        chaining.cpp
+        CallChain.cpp
         WasmModule.cpp
         syscalls.cpp
+        ${FAASM_INCLUDE_DIR}/wasm/CallChain.h
         ${FAASM_INCLUDE_DIR}/wasm/WasmModule.h
         )
 

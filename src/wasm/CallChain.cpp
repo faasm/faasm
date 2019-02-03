@@ -1,4 +1,4 @@
-#include "WasmModule.h"
+#include "CallChain.h"
 
 #include <scheduler/Scheduler.h>
 
@@ -18,6 +18,8 @@ namespace wasm {
 
     std::string CallChain::execute() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        scheduler::Scheduler &sch = scheduler::getScheduler();
 
         // Dispatch any chained calls
         for (auto chainedCall : calls) {
@@ -39,8 +41,10 @@ namespace wasm {
                 usleep(microseconds);
             }
 
+            // Schedule functions locally (will be shared if this host is busy)
             logger->debug("Chaining {} -> {}", origStr, chainedStr);
-            scheduler::Scheduler &sch = scheduler::getScheduler();
+
+            util::addResultKeyToMessage(chainedCall);
             sch.callFunction(chainedCall);
         }
 

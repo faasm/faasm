@@ -319,6 +319,16 @@ namespace tests {
         checkConditionalLock(Redis::getQueue());
     }
 
+    TEST_CASE("Test set operations with empty sets", "[redis]") {
+        Redis &redis = Redis::getQueue();
+        redis.flushAll();
+
+        std::string setName = "test_empty_set";
+
+        std::unordered_set<std::string> members = redis.smembers(setName);
+        REQUIRE(members.empty());
+    }
+
     TEST_CASE("Test set operations", "[redis]") {
         Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();

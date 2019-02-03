@@ -9,11 +9,10 @@
 namespace worker {
     class DispatcherThread {
     public:
-        explicit DispatcherThread(scheduler::GlobalMessageQueue &queue);
+        explicit DispatcherThread(const std::string &queueName);
 
         void run();
     private:
-        scheduler::GlobalMessageQueue queue;
-        scheduler::Scheduler &sch;
+        std::string queueName;
     };
 }

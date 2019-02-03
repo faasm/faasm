@@ -36,17 +36,18 @@ namespace worker {
         // Thread to listen for global incoming messages
         logger->info("Starting global queue listener (queue = {})", INCOMING_QUEUE);
 
-        std::thread globalDispatchThread([this] {
-            DispatcherThread t(scheduler.getGlobalQueue());
+        std::thread globalDispatchThread([] {
+            DispatcherThread t(INCOMING_QUEUE);
             t.run();
         });
         globalDispatchThread.detach();
 
         // Thread to listen for incoming sharing messages
-        logger->info("Starting work sharing listener (queue = {})", scheduler.getHostSharingQueue().queueName);
+        const std::string sharingQueueName = scheduler.getHostSharingQueueName();
+        logger->info("Starting work sharing listener (queue = {})", sharingQueueName);
 
-        std::thread sharingDispatchThread([this] {
-            DispatcherThread t(scheduler.getHostSharingQueue());
+        std::thread sharingDispatchThread([sharingQueueName] {
+            DispatcherThread t(sharingQueueName);
             t.run();
         });
         sharingDispatchThread.detach();
