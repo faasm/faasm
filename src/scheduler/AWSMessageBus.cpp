@@ -1,6 +1,7 @@
 #include "AWSMessageBus.h"
 
 #include <util/logging.h>
+#include <util/base64.h>
 
 
 namespace scheduler {
@@ -12,9 +13,16 @@ namespace scheduler {
 
     void AWSMessageBus::enqueueMessage(const message::Message &msg) {
         std::string msgBytes = msg.SerializeAsString();
+
+        // Annoyingly SQS has restrictions on which characters it allows in messages
+        // The consensus is that encoding/ decoding with base64 is acceptable 
+        // Unfortunately there is no obvious/ easy C++ base64 library so the current
+        // solution is copy-pasted. As a result performance may/ may not become an issue.
+        const std::string encoded = util::b64encode(msgBytes);
+        
         const std::string url = sqs.getQueueUrl(queueName);
 
-        sqs.sendMessage(url, msgBytes);
+        sqs.sendMessage(url, encoded);
     }
 
     message::Message AWSMessageBus::nextMessage() {
@@ -22,9 +30,10 @@ namespace scheduler {
 
         // TODO throw appropriate exception when timing out or no messages found
         const std::string result = sqs.receiveMessage(url);
-
+        const std::string decoded = util::b64decode(result);
+        
         message::Message msg;
-        msg.ParseFromString(result);
+        msg.ParseFromString(decoded);
 
         return msg;
     }

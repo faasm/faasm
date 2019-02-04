@@ -3,23 +3,23 @@ syntax = "proto2";
 package message;
 
 message Message {
-    optional string user = 1;
-    optional string function = 2;
+    optional string user = 20;
+    optional string function = 21;
 
     enum MessageType {
-        BIND = 1;
-        CALL = 2;
-        KILL = 3;
+        BIND = 10;
+        CALL = 11;
+        KILL = 12;
     }
 
-    optional MessageType type = 3 [default = CALL];
+    optional MessageType type = 22 [default = CALL];
 
-    optional string resultKey = 4;
-    optional string statusKey = 5;
-    optional bool success = 6;
-    optional bool isAsync = 7;
+    optional string resultKey = 23;
+    optional string statusKey = 24;
+    optional bool success = 25;
+    optional bool isAsync = 26;
 
-    optional bytes inputData = 8;
-    optional bytes outputData = 9;
+    optional bytes inputData = 27;
+    optional bytes outputData = 28;
 }
 
