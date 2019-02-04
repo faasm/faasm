@@ -8,6 +8,6 @@ add_executable(
         ${TEST_FILES}
 )
 
-target_link_libraries(integration_tests aws)
+target_link_libraries(integration_tests scheduler aws)
 
 add_test(NAME integration_tests COMMAND "integration_test/tests")

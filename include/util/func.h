@@ -17,7 +17,5 @@ namespace util {
 
     void addResultKeyToMessage(message::Message &msg);
 
-    std::string messageToString(const message::Message &msg);
-
     std::vector<uint8_t> messageToBytes(const message::Message &msg);
 }

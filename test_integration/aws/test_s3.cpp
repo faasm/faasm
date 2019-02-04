@@ -1,24 +1,25 @@
 #include <catch/catch.hpp>
 
+#include <util/config.h>
 #include <aws/S3Wrapper.h>
 
 using namespace awswrapper;
 
 namespace tests {
-    std::string testBucketName = "faasm-test";
-
     TEST_CASE("Test add/remove keys in bucket", "[aws]") {
-        S3Wrapper &s3 = S3Wrapper::getThreadLocal();
-        
-        s3.addKey(testBucketName, "alpha", "alphaContents");
-        s3.addKey(testBucketName, "beta", "betaContents");
+        util::SystemConfig &conf = util::getSystemConfig();
 
-        std::vector<std::string> actual = s3.listKeys(testBucketName);
+        S3Wrapper &s3 = S3Wrapper::getThreadLocal();
+
+        s3.addKey(conf.bucketName, "alpha", "alphaContents");
+        s3.addKey(conf.bucketName, "beta", "betaContents");
+
+        std::vector<std::string> actual = s3.listKeys(conf.bucketName);
         std::sort(actual.begin(), actual.end());
         std::vector<std::string> expected = {"alpha", "beta"};
         REQUIRE(actual == expected);
 
-        REQUIRE(s3.getKey(testBucketName, "alpha") == "alphaContents");
-        REQUIRE(s3.getKey(testBucketName, "beta") == "betaContents");
+        REQUIRE(s3.getKey(conf.bucketName, "alpha") == "alphaContents");
+        REQUIRE(s3.getKey(conf.bucketName, "beta") == "betaContents");
     }
 }

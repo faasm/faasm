@@ -64,11 +64,6 @@ namespace util {
         return bytes;
     }
 
-    std::string messageToString(const message::Message &msg) {
-        const std::string output = msg.SerializeAsString();
-        return output;
-    }
-
     std::vector<uint8_t> messageToBytes(const message::Message &msg) {
         size_t byteSize = msg.ByteSizeLong();
         uint8_t buffer[byteSize];

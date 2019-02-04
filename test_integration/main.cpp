@@ -7,6 +7,7 @@
 #include <aws/aws.h>
 
 int main(int argc, char *argv[]) {
+    util::setEnvVar("SYSTEM_MODE", "aws");
     util::setEnvVar("BUCKET_NAME", "faasm-test");
     util::setEnvVar("QUEUE_NAME", "faasm-test");
 

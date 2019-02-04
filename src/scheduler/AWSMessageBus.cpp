@@ -11,7 +11,7 @@ namespace scheduler {
     }
 
     void AWSMessageBus::enqueueMessage(const message::Message &msg) {
-        std::string msgBytes = util::messageToString(msg);
+        std::string msgBytes = msg.SerializeAsString();
         const std::string url = sqs.getQueueUrl(queueName);
 
         sqs.sendMessage(url, msgBytes);
