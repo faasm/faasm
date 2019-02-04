@@ -13,11 +13,11 @@ namespace scheduler {
         return "sharing_" + hostname;
     }
 
-    SharingMessageBus::SharingMessageBus() : hostname(util::getHostName()), redis(redis::Redis::getQueue()) {
+    SharingMessageBus::SharingMessageBus() : thisHostname(util::getHostName()), redis(redis::Redis::getQueue()) {
 
     }
 
-    message::Message SharingMessageBus::nextMessageForThisHost() {
+    message::Message SharingMessageBus::nextMessageForHost(const std::string &hostname) {
         std::string queueName = getSharingQueueNameForHost(hostname);
         std::vector<uint8_t> dequeueResult = redis.dequeue(queueName, util::DEFAULT_TIMEOUT);
 
@@ -25,6 +25,10 @@ namespace scheduler {
         msg.ParseFromArray(dequeueResult.data(), (int) dequeueResult.size());
 
         return msg;
+    }
+
+    message::Message SharingMessageBus::nextMessageForThisHost() {
+        return this->nextMessageForHost(thisHostname);
     }
 
     void SharingMessageBus::shareMessageWithHost(const std::string &hostname, const message::Message &msg) {

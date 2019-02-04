@@ -12,11 +12,13 @@ namespace scheduler {
 
         static SharingMessageBus &getInstance();
 
+        message::Message nextMessageForHost(const std::string &hostname);
+
         message::Message nextMessageForThisHost();
 
         void shareMessageWithHost(const std::string &hostname, const message::Message &msg);
     private:
-        std::string hostname;
+        std::string thisHostname;
         redis::Redis &redis;
     };
 }
