@@ -1,6 +1,10 @@
 include_directories(${FAASM_INCLUDE_DIR}/upload)
 
-add_library(upload_lib STATIC upload.cpp ${FAASM_INCLUDE_DIR}/upload/upload.h)
+add_library(upload_lib
+        STATIC
+        UploadServer.cpp
+        ${FAASM_INCLUDE_DIR}/upload/UploadServer.h
+        )
 
 target_link_libraries(upload_lib
         wasm

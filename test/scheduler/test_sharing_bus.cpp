@@ -8,10 +8,9 @@ using namespace redis;
 
 namespace tests {
     TEST_CASE("Sharing bus tests", "[scheduler]") {
-
         SharingMessageBus &bus = SharingMessageBus::getInstance();
 
-        Redis redis = Redis::getQueue();
+        Redis &redis = Redis::getQueue();
 
         std::string thisHost = util::getHostName();
         std::string otherHost = "host_other";

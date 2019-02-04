@@ -1,11 +1,11 @@
-#include <upload/upload.h>
+#include <upload/UploadServer.h>
 
 int main() {
     std::string port = "8002";
 
     util::initLogging();
 
-    edge::RestServer server;
+    edge::UploadServer server;
     server.listen(port);
 
     return 0;

@@ -142,7 +142,7 @@ namespace scheduler {
 
         std::string bestHost = this->getBestHostForFunction(msg);
         if (bestHost == hostname) {
-            logger->info("SCH - Executing {} locally", util::funcToString(msg));
+            logger->debug("Executing {} locally", util::funcToString(msg));
 
             // Enqueue the message locally
             this->enqueueMessage(msg);
@@ -171,7 +171,7 @@ namespace scheduler {
         double queueRatio = this->getFunctionQueueRatio(msg);
         double nThreads = this->getFunctionThreadCount(msg);
 
-        logger->info("SCH - {} Queue ratio = {} threads = {}", util::funcToString(msg), queueRatio, nThreads);
+        logger->debug("{} queue ratio = {} threads = {}", util::funcToString(msg), queueRatio, nThreads);
 
         // If we're over the queue ratio and have capacity, need to scale up
         if (queueRatio > maxQueueRatio && nThreads < conf.maxWorkersPerFunction) {
@@ -184,7 +184,7 @@ namespace scheduler {
 
             // Double check condition
             if (queueRatio > maxQueueRatio && nThreads < conf.maxWorkersPerFunction) {
-                logger->info("SCH - Scaling up {} to {} threads", util::funcToString(msg), nThreads + 1);
+                logger->debug("Scaling up {} to {} threads", util::funcToString(msg), nThreads + 1);
 
                 // If this is the first thread on this host, add it to the warm set for this function
                 if (nThreads == 0) {

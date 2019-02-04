@@ -9,9 +9,9 @@ using namespace web::http::experimental::listener;
 using namespace web::http;
 
 namespace edge {
-    class RestServer {
+    class UploadServer {
     public:
-        RestServer();
+        UploadServer();
 
         void listen(const std::string &port);
 

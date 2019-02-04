@@ -89,7 +89,6 @@ namespace redis {
         // Hiredis requires one instance per thread
         static RedisInstance queueInstance(QUEUE);
         static thread_local redis::Redis redisQueue(queueInstance);
-
         return redisQueue;
     }
 
