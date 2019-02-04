@@ -64,8 +64,6 @@ namespace tests {
         t4.join();
         expected.push_back(1);
         REQUIRE(vars::acquiredTokens == expected);
-
-        //TODO: come up with a better test here to check blocking?
     }
 
     TEST_CASE("Test count functions", "[util]") {

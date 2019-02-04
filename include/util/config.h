@@ -13,6 +13,8 @@ namespace util {
     public:
         // System
         std::string systemMode;
+        std::string bucketName;
+        std::string queueName;
 
         // Scheduling
         int threadsPerWorker;

@@ -7,7 +7,7 @@
 namespace scheduler {
     class RedisMessageBus : public GlobalMessageBus {
     public:
-        explicit RedisMessageBus(const std::string &queueName);
+        RedisMessageBus();
 
         void enqueueMessage(const message::Message &msg) override;
 

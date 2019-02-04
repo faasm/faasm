@@ -10,7 +10,7 @@
 namespace worker {
     WorkerThread::WorkerThread(int threadIdxIn) : threadIdx(threadIdxIn),
                                                   scheduler(scheduler::getScheduler()),
-                                                  globalBus(scheduler::GlobalMessageBus::getInstance()){
+                                                  globalBus(scheduler::getGlobalMessageBus()){
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 

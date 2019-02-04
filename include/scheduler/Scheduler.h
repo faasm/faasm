@@ -61,4 +61,6 @@ namespace scheduler {
     };
 
     Scheduler &getScheduler();
+
+    GlobalMessageBus &getGlobalMessageBus();
 }

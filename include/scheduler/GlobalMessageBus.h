@@ -1,28 +1,29 @@
 #pragma once
 
+#include <util/config.h>
 #include <util/func.h>
 #include <util/queue.h>
-
-#define INCOMING_QUEUE "all_incoming"
 
 namespace scheduler {
     class GlobalMessageBus {
     public:
-        const std::string queueName;
+        virtual void enqueueMessage(const message::Message &msg) = 0;
 
-        static GlobalMessageBus &getInstance();
+        virtual message::Message nextMessage() = 0;
 
-        virtual void enqueueMessage(const message::Message &msg);
+        virtual message::Message nextMessage(int timeout) = 0;
 
-        virtual message::Message nextMessage();
+        virtual void setFunctionResult(message::Message &msg, bool success) = 0;
 
-        virtual message::Message nextMessage(int timeout);
-
-        virtual void setFunctionResult(message::Message &msg, bool success);
-
-        virtual message::Message getFunctionResult(const message::Message &msg);
+        virtual message::Message getFunctionResult(const message::Message &msg) = 0;
 
     protected:
-        explicit GlobalMessageBus(const std::string &queueName);
+        GlobalMessageBus() : queueName(util::getSystemConfig().queueName) {
+        }
+
+        const std::string queueName;
+    };
+
+    class GlobalMessageBusNoMessageException : public std::exception {
     };
 }

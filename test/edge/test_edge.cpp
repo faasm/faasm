@@ -22,7 +22,7 @@ namespace tests {
         call.set_inputdata("abc");
 
         // Get global bus
-        scheduler::GlobalMessageBus globalBus = scheduler::GlobalMessageBus::getInstance();
+        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
 
         edge::FunctionEndpoint endpoint;
         endpoint.handleFunction(call);

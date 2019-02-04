@@ -47,7 +47,7 @@ namespace tests {
         w.processNextMessage();
         w.processNextMessage();
 
-        scheduler::GlobalMessageBus &globalBus = scheduler::GlobalMessageBus::getInstance();
+        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
         const message::Message result = globalBus.getFunctionResult(call);
         return result.outputdata();
     }

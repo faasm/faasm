@@ -14,4 +14,5 @@ add_library(scheduler STATIC
 target_link_libraries(
         scheduler
         redis
+        aws
 )

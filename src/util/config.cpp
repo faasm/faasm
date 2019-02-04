@@ -15,6 +15,14 @@ namespace util {
 
         // System
         systemMode = getEnvVar("SYSTEM_MODE", "redis");
+        bucketName = getEnvVar("BUCKET_NAME", "");
+        queueName = getEnvVar("QUEUE_NAME", "faasm_messages");
+
+        if(systemMode == "aws") {
+            if(bucketName.empty() || queueName.empty()) {
+                throw std::runtime_error("Must provide both bucket name and queue name when in AWS mode");
+            }
+        }
 
         // Scheduling
         noScheduler = this->getSystemConfIntParam("NO_SCHEDULER", "0");
@@ -44,6 +52,8 @@ namespace util {
 
         logger->info("--- System ---");
         logger->info("SYSTEM_MODE                {}", systemMode);
+        logger->info("BUCKET_NAME                {}", bucketName);
+        logger->info("QUEUE_NAME                 {}", queueName);
 
         logger->info("--- Scheduling ---");
         logger->info("THREADS_PER_WORKER         {}", threadsPerWorker);

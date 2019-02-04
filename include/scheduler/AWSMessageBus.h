@@ -5,10 +5,12 @@
 #include <aws/SQSWrapper.h>
 #include <aws/S3Wrapper.h>
 
+#include <util/config.h>
+
 namespace scheduler {
     class AWSMessageBus : public GlobalMessageBus {
     public:
-        explicit AWSMessageBus(const std::string &queueName);
+        AWSMessageBus();
 
         void enqueueMessage(const message::Message &msg);
 
@@ -23,5 +25,6 @@ namespace scheduler {
     private:
         awswrapper::SQSWrapper &sqs;
         awswrapper::S3Wrapper &s3;
+        const std::string bucketName;
     };
 }

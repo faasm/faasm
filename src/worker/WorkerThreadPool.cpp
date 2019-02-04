@@ -34,16 +34,20 @@ namespace worker {
         }
 
         // Thread to listen for global incoming messages
-        logger->info("Starting global queue listener (queue = {})", INCOMING_QUEUE);
+        logger->info("Starting global queue listener on {}", conf.queueName);
 
         std::thread globalDispatchThread([] {
-            scheduler::GlobalMessageBus &bus = scheduler::GlobalMessageBus::getInstance();
+            scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
             scheduler::Scheduler &sch = scheduler::getScheduler();
 
-            while(true) {
-                // TODO - catch timeout exceptions here for general global bus
-                message::Message msg = bus.nextMessage();
-                sch.callFunction(msg);
+            while (true) {
+                try {
+                    message::Message msg = bus.nextMessage();
+                    sch.callFunction(msg);
+                }
+                catch (scheduler::GlobalMessageBusNoMessageException &ex) {
+                    continue;
+                }
             }
         });
         globalDispatchThread.detach();
@@ -55,12 +59,12 @@ namespace worker {
             scheduler::SharingMessageBus &sharingBus = scheduler::SharingMessageBus::getInstance();
             scheduler::Scheduler &sch = scheduler::getScheduler();
 
-            while(true) {
+            while (true) {
                 try {
                     message::Message msg = sharingBus.nextMessageForThisHost();
                     sch.callFunction(msg);
                 }
-                catch(redis::RedisNoResponseException ex) {
+                catch (redis::RedisNoResponseException &ex) {
                     continue;
                 }
             }

@@ -6,12 +6,13 @@
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
 
+#include <scheduler/Scheduler.h>
 #include <scheduler/GlobalMessageBus.h>
 
 using namespace Pistache;
 
 namespace edge {
-    FunctionEndpoint::FunctionEndpoint() : globalBus(scheduler::GlobalMessageBus::getInstance()) {
+    FunctionEndpoint::FunctionEndpoint() : globalBus(scheduler::getGlobalMessageBus()) {
         int port = 8001;
         int threadCount = 40;
 
@@ -69,7 +70,6 @@ namespace edge {
         }
 
         // Make the call
-        logger->debug("Enqueueing call to {}", globalBus.queueName);
         util::addResultKeyToMessage(msg);
         globalBus.enqueueMessage(msg);
 

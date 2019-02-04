@@ -14,7 +14,7 @@ namespace tests {
         cleanSystem();
 
         redis::Redis &redis = redis::Redis::getQueue();
-        GlobalMessageBus &bus = GlobalMessageBus::getInstance();
+        GlobalMessageBus &bus = getGlobalMessageBus();
 
         // Request function
         message::Message call;
@@ -54,8 +54,8 @@ namespace tests {
             call.set_success(isSuccess);
 
             // Do round trip
-            q.enqueueMessage(call);
-            message::Message actual = q.nextMessage();
+            bus.enqueueMessage(call);
+            message::Message actual = bus.nextMessage();
 
             REQUIRE(funcName == actual.function());
             REQUIRE(userName == actual.user());
@@ -66,7 +66,7 @@ namespace tests {
 
         SECTION("Check reading/ writing function results") {
             call.set_resultkey("function 123");
-            q.setFunctionResult(call, true);
+            bus.setFunctionResult(call, true);
 
             // Check result has been written to the right key
             REQUIRE(redis.listLength("function 123") == 1);
@@ -76,7 +76,7 @@ namespace tests {
             REQUIRE(ttl > 10);
 
             // Check retrieval method gets the same call out again
-            message::Message actualCall2 = q.getFunctionResult(call);
+            message::Message actualCall2 = bus.getFunctionResult(call);
 
             REQUIRE("my func" == actualCall2.function());
             REQUIRE("some user" == actualCall2.user());

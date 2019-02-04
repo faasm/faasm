@@ -3,8 +3,7 @@
 #include <util/logging.h>
 
 namespace scheduler {
-    RedisMessageBus::RedisMessageBus(const std::string &queueNameIn) : GlobalMessageBus(queueNameIn),
-                                                                       redis(redis::Redis::getQueue()) {
+    RedisMessageBus::RedisMessageBus() : redis(redis::Redis::getQueue()) {
 
     }
 
@@ -18,10 +17,15 @@ namespace scheduler {
     }
 
     message::Message RedisMessageBus::nextMessage(int timeout) {
-        std::vector<uint8_t> dequeueResult = redis.dequeue(queueName, timeout);
-
         message::Message msg;
-        msg.ParseFromArray(dequeueResult.data(), (int) dequeueResult.size());
+
+        try {
+            std::vector<uint8_t> dequeueResult = redis.dequeue(queueName, timeout);
+            msg.ParseFromArray(dequeueResult.data(), (int) dequeueResult.size());
+        }
+        catch (redis::RedisNoResponseException &ex) {
+            throw GlobalMessageBusNoMessageException();
+        }
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Message queue dequeued {}", util::funcToString(msg));
