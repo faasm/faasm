@@ -163,8 +163,7 @@ namespace tests {
 
         // Run the execution
         execFunction(call);
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        scheduler::GlobalMessageBus &globalBus = sch.getGlobalMessageBus();
+        scheduler::GlobalMessageBus &globalBus = scheduler::GlobalMessageBus::getInstance();
         message::Message result = globalBus.getFunctionResult(call);
 
         // Check output
@@ -188,7 +187,7 @@ namespace tests {
 
         // Check output from first invocation
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        scheduler::GlobalMessageBus &globalBus = sch.getGlobalMessageBus();
+        scheduler::GlobalMessageBus &globalBus = scheduler::GlobalMessageBus::getInstance();
 
         message::Message resultA = globalBus.getFunctionResult(call);
         REQUIRE(resultA.outputdata() == "first input");
@@ -260,7 +259,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check the call executed successfully
-        scheduler::GlobalMessageBus &globalBus = sch.getGlobalMessageBus();
+        scheduler::GlobalMessageBus &globalBus = scheduler::GlobalMessageBus::getInstance();
         message::Message result = globalBus.getFunctionResult(call);
         REQUIRE(result.success());
 
@@ -299,7 +298,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check result
-        scheduler::GlobalMessageBus &globalBus = sch.getGlobalMessageBus();
+        scheduler::GlobalMessageBus &globalBus = scheduler::GlobalMessageBus::getInstance();
         message::Message resultA = globalBus.getFunctionResult(call);
         REQUIRE(resultA.success());
         REQUIRE(resultA.outputdata() == "Counter: 001");
@@ -335,7 +334,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check result
-        scheduler::GlobalMessageBus &globalBus = sch.getGlobalMessageBus();
+        scheduler::GlobalMessageBus &globalBus = scheduler::GlobalMessageBus::getInstance();
         message::Message result = globalBus.getFunctionResult(call);
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
@@ -420,7 +419,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check output is true
-        scheduler::GlobalMessageBus &globalBus = sch.getGlobalMessageBus();
+        scheduler::GlobalMessageBus &globalBus = scheduler::GlobalMessageBus::getInstance();
         message::Message result = globalBus.getFunctionResult(call);
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());

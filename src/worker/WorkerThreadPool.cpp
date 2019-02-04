@@ -1,10 +1,10 @@
 #include <worker/WorkerThread.h>
 
 #include "WorkerThreadPool.h"
-#include "DispatcherThread.h"
 #include "StateThread.h"
 
 #include <scheduler/GlobalMessageBus.h>
+#include <scheduler/SharingMessageBus.h>
 
 namespace worker {
 
@@ -37,18 +37,33 @@ namespace worker {
         logger->info("Starting global queue listener (queue = {})", INCOMING_QUEUE);
 
         std::thread globalDispatchThread([] {
-            DispatcherThread t(INCOMING_QUEUE);
-            t.run();
+            scheduler::GlobalMessageBus &bus = scheduler::GlobalMessageBus::getInstance();
+            scheduler::Scheduler &sch = scheduler::getScheduler();
+
+            while(true) {
+                // TODO - catch timeout exceptions here for general global bus
+                message::Message msg = bus.nextMessage();
+                sch.callFunction(msg);
+            }
         });
         globalDispatchThread.detach();
 
         // Thread to listen for incoming sharing messages
-        const std::string sharingQueueName = scheduler.getHostSharingQueueName();
-        logger->info("Starting work sharing listener (queue = {})", sharingQueueName);
+        logger->info("Starting work sharing listener");
 
-        std::thread sharingDispatchThread([sharingQueueName] {
-            DispatcherThread t(sharingQueueName);
-            t.run();
+        std::thread sharingDispatchThread([] {
+            scheduler::SharingMessageBus &sharingBus = scheduler::SharingMessageBus::getInstance();
+            scheduler::Scheduler &sch = scheduler::getScheduler();
+
+            while(true) {
+                try {
+                    message::Message msg = sharingBus.nextMessageForThisHost();
+                    sch.callFunction(msg);
+                }
+                catch(redis::RedisNoResponseException ex) {
+                    continue;
+                }
+            }
         });
         sharingDispatchThread.detach();
 

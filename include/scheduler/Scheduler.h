@@ -2,6 +2,7 @@
 
 #include "InMemoryMessageQueue.h"
 #include "GlobalMessageBus.h"
+#include "SharingMessageBus.h"
 
 #include <util/func.h>
 #include <util/queue.h>
@@ -41,10 +42,6 @@ namespace scheduler {
         double getFunctionQueueRatio(const message::Message &msg);
 
         long getFunctionQueueLength(const message::Message &msg);
-
-        std::string getHostSharingQueueName();
-
-        GlobalMessageBus &getGlobalMessageBus();
     private:
         std::string hostname;
 
@@ -54,13 +51,13 @@ namespace scheduler {
 
         InMemoryMessageQueue *bindQueue;
 
-        GlobalMessageBus globalBus;
-
         std::unordered_map<std::string, InMemoryMessageQueue *> queueMap;
         std::unordered_map<std::string, long> threadCountMap;
         std::shared_mutex mx;
 
         redis::Redis &redis;
+
+        SharingMessageBus &sharingBus;
     };
 
     Scheduler &getScheduler();

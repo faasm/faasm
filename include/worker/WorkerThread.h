@@ -46,6 +46,8 @@ namespace worker {
 
         scheduler::InMemoryMessageQueue *currentQueue;
 
+        scheduler::GlobalMessageBus &globalBus;
+
         const std::string executeCall(message::Message &msg);
 
         void finishCall(message::Message &msg, const std::string &errorMsg);

@@ -2,6 +2,7 @@
 
 #include <util/logging.h>
 #include <util/random.h>
+#include <scheduler/SharingMessageBus.h>
 
 using namespace util;
 
@@ -11,21 +12,13 @@ namespace scheduler {
     Scheduler::Scheduler() :
             hostname(util::getHostName()),
             conf(util::getSystemConfig()),
-            globalBus(GlobalMessageBus(INCOMING_QUEUE)),
-            redis(redis::Redis::getQueue()) {
+            redis(redis::Redis::getQueue()),
+            sharingBus(SharingMessageBus::getInstance()) {
 
         bindQueue = new InMemoryMessageQueue();
 
         // Add to global set of workers
         redis.sadd(GLOBAL_WORKER_SET, hostname);
-    }
-
-    std::string Scheduler::getHostSharingQueueName() {
-        return "share_" + hostname;
-    }
-
-    GlobalMessageBus &Scheduler::getGlobalMessageBus() {
-        return globalBus;
     }
 
     void Scheduler::clear() {
@@ -160,9 +153,7 @@ namespace scheduler {
             // Share with other host
             logger->debug("Sharing {} call with {}", util::funcToString(msg), bestHost);
 
-            // TODO - cache these queues and reuse
-            GlobalMessageBus globalBus(bestHost);
-            globalBus.enqueueMessage(msg);
+            sharingBus.shareMessageWithHost(bestHost, msg);
         }
     }
 
@@ -266,8 +257,8 @@ namespace scheduler {
             return *allOptions.begin();
         } else {
             // TODO: scale out here
-            logger->error("No worker host available for scheduling {}", util::funcToString(msg));
-            throw std::runtime_error("No worker host available for scheduling");
+            // For now just give up and accept the message locally
+            return hostname;
         }
     }
 }

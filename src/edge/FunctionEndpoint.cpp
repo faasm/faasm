@@ -11,7 +11,7 @@
 using namespace Pistache;
 
 namespace edge {
-    FunctionEndpoint::FunctionEndpoint() : globalBus(scheduler::GlobalMessageBus(INCOMING_QUEUE)) {
+    FunctionEndpoint::FunctionEndpoint() : globalBus(scheduler::GlobalMessageBus::getInstance()) {
         int port = 8001;
         int threadCount = 40;
 

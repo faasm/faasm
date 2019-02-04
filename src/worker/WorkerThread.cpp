@@ -9,7 +9,8 @@
 
 namespace worker {
     WorkerThread::WorkerThread(int threadIdxIn) : threadIdx(threadIdxIn),
-                                                  scheduler(scheduler::getScheduler()) {
+                                                  scheduler(scheduler::getScheduler()),
+                                                  globalBus(scheduler::GlobalMessageBus::getInstance()){
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -97,7 +98,7 @@ namespace worker {
         }
 
         // Set result
-        scheduler.getGlobalMessageBus().setFunctionResult(call, isSuccess);
+        globalBus.setFunctionResult(call, isSuccess);
 
         // Restore the module memory after the execution
         module->restoreMemory();
