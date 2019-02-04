@@ -14,7 +14,7 @@ namespace tests {
         cleanSystem();
 
         redis::Redis &redis = redis::Redis::getQueue();
-        GlobalMessageQueue q(INCOMING_QUEUE);
+        GlobalMessageBus q(INCOMING_QUEUE);
 
         // Request function
         message::Message call;

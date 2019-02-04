@@ -14,7 +14,7 @@ namespace worker {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        scheduler::GlobalMessageQueue queue(queueName);
+        scheduler::GlobalMessageBus queue(queueName);
 
         // Wait on next message
         while (true) {
@@ -23,7 +23,7 @@ namespace worker {
                 sch.callFunction(msg);
             }
             catch (redis::RedisNoResponseException ex) {
-                logger->info("No message from global queue {} in timeout", queue.queueName);
+                logger->info("No message from global bus in timeout");
                 continue;
             }
         }

@@ -19,7 +19,7 @@ namespace tests {
 
         std::string hostname = util::getHostName();
         std::string otherHostA = "Host A";
-        GlobalMessageQueue otherHostAQueue(otherHostA);
+        GlobalMessageBus otherHostAQueue(otherHostA);
         
         message::Message call;
         call.set_user("user a");

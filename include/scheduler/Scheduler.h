@@ -1,7 +1,7 @@
 #pragma once
 
 #include "InMemoryMessageQueue.h"
-#include "GlobalMessageQueue.h"
+#include "GlobalMessageBus.h"
 
 #include <util/func.h>
 #include <util/queue.h>
@@ -44,7 +44,7 @@ namespace scheduler {
 
         std::string getHostSharingQueueName();
 
-        GlobalMessageQueue &getGlobalQueue();
+        GlobalMessageBus &getGlobalMessageBus();
     private:
         std::string hostname;
 
@@ -54,7 +54,7 @@ namespace scheduler {
 
         InMemoryMessageQueue *bindQueue;
 
-        GlobalMessageQueue globalQueue;
+        GlobalMessageBus globalBus;
 
         std::unordered_map<std::string, InMemoryMessageQueue *> queueMap;
         std::unordered_map<std::string, long> threadCountMap;

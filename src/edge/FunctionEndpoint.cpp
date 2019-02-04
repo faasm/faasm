@@ -6,12 +6,12 @@
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
 
-#include <scheduler/GlobalMessageQueue.h>
+#include <scheduler/GlobalMessageBus.h>
 
 using namespace Pistache;
 
 namespace edge {
-    FunctionEndpoint::FunctionEndpoint() : globalQueue(scheduler::GlobalMessageQueue(INCOMING_QUEUE)) {
+    FunctionEndpoint::FunctionEndpoint() : globalBus(scheduler::GlobalMessageBus(INCOMING_QUEUE)) {
         int port = 8001;
         int threadCount = 40;
 
@@ -69,16 +69,16 @@ namespace edge {
         }
 
         // Make the call
-        logger->debug("Enqueueing call to {}", globalQueue.queueName);
+        logger->debug("Enqueueing call to {}", globalBus.queueName);
         util::addResultKeyToMessage(msg);
-        globalQueue.enqueueMessage(msg);
+        globalBus.enqueueMessage(msg);
 
         if (msg.isasync()) {
             logger->info("Async request {}", util::funcToString(msg));
             return "Async request submitted";
         } else {
             logger->info("Sync request {}", util::funcToString(msg));
-            message::Message result = globalQueue.getFunctionResult(msg);
+            message::Message result = globalBus.getFunctionResult(msg);
 
             logger->info("Finished request {}", util::funcToString(msg));
 

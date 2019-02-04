@@ -35,7 +35,7 @@ namespace tests {
 
         // Get result
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        scheduler::GlobalMessageQueue &messageQueue = sch.getGlobalQueue();
+        scheduler::GlobalMessageBus &messageQueue = sch.getGlobalMessageBus();
 
         message::Message result = messageQueue.getFunctionResult(call);
         REQUIRE(!result.success());

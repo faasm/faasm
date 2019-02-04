@@ -164,8 +164,8 @@ namespace tests {
         // Run the execution
         execFunction(call);
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        scheduler::GlobalMessageQueue &globalQueue = sch.getGlobalQueue();
-        message::Message result = globalQueue.getFunctionResult(call);
+        scheduler::GlobalMessageBus &globalBus = sch.getGlobalMessageBus();
+        message::Message result = globalBus.getFunctionResult(call);
 
         // Check output
         REQUIRE(result.outputdata() == "this is input");
@@ -188,9 +188,9 @@ namespace tests {
 
         // Check output from first invocation
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        scheduler::GlobalMessageQueue &globalQueue = sch.getGlobalQueue();
+        scheduler::GlobalMessageBus &globalBus = sch.getGlobalMessageBus();
 
-        message::Message resultA = globalQueue.getFunctionResult(call);
+        message::Message resultA = globalBus.getFunctionResult(call);
         REQUIRE(resultA.outputdata() == "first input");
         REQUIRE(resultA.success());
 
@@ -203,7 +203,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check output from second invocation
-        message::Message resultB = globalQueue.getFunctionResult(call);
+        message::Message resultB = globalBus.getFunctionResult(call);
         REQUIRE(resultB.outputdata() == "second input");
         REQUIRE(resultB.success());
 
@@ -260,8 +260,8 @@ namespace tests {
         w.processNextMessage();
 
         // Check the call executed successfully
-        scheduler::GlobalMessageQueue &globalQueue = sch.getGlobalQueue();
-        message::Message result = globalQueue.getFunctionResult(call);
+        scheduler::GlobalMessageBus &globalBus = sch.getGlobalMessageBus();
+        message::Message result = globalBus.getFunctionResult(call);
         REQUIRE(result.success());
 
         // Check the chained calls have been set up
@@ -299,8 +299,8 @@ namespace tests {
         w.processNextMessage();
 
         // Check result
-        scheduler::GlobalMessageQueue &globalQueue = sch.getGlobalQueue();
-        message::Message resultA = globalQueue.getFunctionResult(call);
+        scheduler::GlobalMessageBus &globalBus = sch.getGlobalMessageBus();
+        message::Message resultA = globalBus.getFunctionResult(call);
         REQUIRE(resultA.success());
         REQUIRE(resultA.outputdata() == "Counter: 001");
 
@@ -308,7 +308,7 @@ namespace tests {
         sch.callFunction(call);
         w.processNextMessage();
 
-        message::Message resultB = globalQueue.getFunctionResult(call);
+        message::Message resultB = globalBus.getFunctionResult(call);
         REQUIRE(resultB.success());
         REQUIRE(resultB.outputdata() == "Counter: 002");
     }
@@ -335,8 +335,8 @@ namespace tests {
         w.processNextMessage();
 
         // Check result
-        scheduler::GlobalMessageQueue &globalQueue = sch.getGlobalQueue();
-        message::Message result = globalQueue.getFunctionResult(call);
+        scheduler::GlobalMessageBus &globalBus = sch.getGlobalMessageBus();
+        message::Message result = globalBus.getFunctionResult(call);
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
 
@@ -420,8 +420,8 @@ namespace tests {
         w.processNextMessage();
 
         // Check output is true
-        scheduler::GlobalMessageQueue &globalQueue = sch.getGlobalQueue();
-        message::Message result = globalQueue.getFunctionResult(call);
+        scheduler::GlobalMessageBus &globalBus = sch.getGlobalMessageBus();
+        message::Message result = globalBus.getFunctionResult(call);
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
 

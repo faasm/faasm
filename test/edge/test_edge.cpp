@@ -2,7 +2,7 @@
 
 #include "utils.h"
 #include <edge/FunctionEndpoint.h>
-#include <scheduler/GlobalMessageQueue.h>
+#include <scheduler/GlobalMessageBus.h>
 
 using namespace Pistache;
 
@@ -21,14 +21,14 @@ namespace tests {
         call.set_function("echo");
         call.set_inputdata("abc");
 
-        // Get global queue
+        // Get global bus
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        scheduler::GlobalMessageQueue globalQueue = sch.getGlobalQueue();
+        scheduler::GlobalMessageBus globalBus = sch.getGlobalMessageBus();
 
         edge::FunctionEndpoint endpoint;
         endpoint.handleFunction(call);
 
-        const message::Message actual = globalQueue.nextMessage();
+        const message::Message actual = globalBus.nextMessage();
 
         REQUIRE(actual.user() == "demo");
         REQUIRE(actual.function() == "echo");

@@ -11,7 +11,7 @@ namespace scheduler {
     Scheduler::Scheduler() :
             hostname(util::getHostName()),
             conf(util::getSystemConfig()),
-            globalQueue(GlobalMessageQueue(INCOMING_QUEUE)),
+            globalBus(GlobalMessageBus(INCOMING_QUEUE)),
             redis(redis::Redis::getQueue()) {
 
         bindQueue = new InMemoryMessageQueue();
@@ -24,8 +24,8 @@ namespace scheduler {
         return "share_" + hostname;
     }
 
-    GlobalMessageQueue &Scheduler::getGlobalQueue() {
-        return globalQueue;
+    GlobalMessageBus &Scheduler::getGlobalMessageBus() {
+        return globalBus;
     }
 
     void Scheduler::clear() {
@@ -161,8 +161,8 @@ namespace scheduler {
             logger->debug("Sharing {} call with {}", util::funcToString(msg), bestHost);
 
             // TODO - cache these queues and reuse
-            GlobalMessageQueue globalQueue(bestHost);
-            globalQueue.enqueueMessage(msg);
+            GlobalMessageBus globalBus(bestHost);
+            globalBus.enqueueMessage(msg);
         }
     }
 

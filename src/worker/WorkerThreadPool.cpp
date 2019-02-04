@@ -4,7 +4,7 @@
 #include "DispatcherThread.h"
 #include "StateThread.h"
 
-#include <scheduler/GlobalMessageQueue.h>
+#include <scheduler/GlobalMessageBus.h>
 
 namespace worker {
 
