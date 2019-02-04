@@ -15,6 +15,7 @@ namespace util {
 
         // System
         systemMode = getEnvVar("SYSTEM_MODE", "redis");
+        serialisation = getEnvVar("SERIALISATION", "json");
         bucketName = getEnvVar("BUCKET_NAME", "");
         queueName = getEnvVar("QUEUE_NAME", "faasm_messages");
 

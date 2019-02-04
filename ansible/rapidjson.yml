@@ -1,0 +1,31 @@
+---
+
+- hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: "Clone repo"
+      git:
+        repo: "https://github.com/Tencent/rapidjson"
+        dest: "/usr/local/code/lib/rapidjson"
+        version: "2ce91b823c8b4504b9c40f99abf00917641cef6c"
+
+    - name: "Set up build"
+      shell: "mkdir -p build"
+      args:
+        chdir: "/usr/local/code/lib/rapidjson"
+
+    - name: "Prepare build"
+      shell: "cmake .."
+      args:
+        chdir: "/usr/local/code/lib/rapidjson/build"
+
+    - name: "Build components"
+      shell: "make"
+      args:
+        chdir: "/usr/local/code/lib/rapidjson/build"
+
+    - name: "Install"
+      become: yes
+      shell: "sudo make install"
+      args:
+        chdir: "/usr/local/code/lib/rapidjson/build"

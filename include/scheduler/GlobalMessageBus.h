@@ -18,10 +18,10 @@ namespace scheduler {
         virtual message::Message getFunctionResult(const message::Message &msg) = 0;
 
     protected:
-        GlobalMessageBus() : queueName(util::getSystemConfig().queueName) {
+        GlobalMessageBus() : conf(util::getSystemConfig()){
         }
 
-        const std::string queueName;
+        const util::SystemConfig &conf;
     };
 
     class GlobalMessageBusNoMessageException : public std::exception {

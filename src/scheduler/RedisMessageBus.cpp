@@ -9,7 +9,7 @@ namespace scheduler {
 
     void RedisMessageBus::enqueueMessage(const message::Message &msg) {
         std::vector<uint8_t> msgBytes = util::messageToBytes(msg);
-        redis.enqueue(queueName, msgBytes);
+        redis.enqueue(conf.queueName, msgBytes);
     }
 
     message::Message RedisMessageBus::nextMessage() {
@@ -20,7 +20,7 @@ namespace scheduler {
         message::Message msg;
 
         try {
-            std::vector<uint8_t> dequeueResult = redis.dequeue(queueName, timeout);
+            std::vector<uint8_t> dequeueResult = redis.dequeue(conf.queueName, timeout);
             msg.ParseFromArray(dequeueResult.data(), (int) dequeueResult.size());
         }
         catch (redis::RedisNoResponseException &ex) {
