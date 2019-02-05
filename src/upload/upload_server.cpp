@@ -1,5 +1,7 @@
 #include <upload/UploadServer.h>
 
+#include <util/logging.h>
+
 int main() {
     std::string port = "8002";
 

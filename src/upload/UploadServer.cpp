@@ -120,7 +120,7 @@ namespace edge {
         logger->info("Uploading {}", util::funcToString(msg));
 
         // Do the upload
-        wasm::FunctionLoader l;
+        wasm::FunctionLoader &l = wasm::getFunctionLoader();
         l.uploadFunction(msg);
 
         request.reply(status_codes::OK, "Function upload complete\n");

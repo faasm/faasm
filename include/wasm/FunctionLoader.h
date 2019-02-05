@@ -2,21 +2,21 @@
 
 #include <proto/faasm.pb.h>
 
-#include <WAVM/WASM/WASM.h>
-
 #include <string>
 #include <vector>
-
-using namespace WAVM;
 
 namespace wasm {
     class FunctionLoader {
     public:
-        void loadFunctionBytes(const message::Message &msg, IR::Module& outModule);
+        virtual std::vector<uint8_t> loadFunctionBytes(const message::Message &msg) = 0;
 
-        void uploadFunction(message::Message &msg);
+        virtual void uploadFunction(message::Message &msg) = 0;
 
-    private:
+    protected:
+        virtual void uploadObjectBytes(const message::Message &msg, const std::vector<uint8_t> &objBytes) = 0;
+
         void compileToObjectFile(message::Message &msg);
     };
+
+    FunctionLoader &getFunctionLoader();
 };

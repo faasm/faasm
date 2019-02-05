@@ -1,6 +1,7 @@
 #pragma once
 
 #include "aws.h"
+
 #include <aws/s3/S3Client.h>
 
 namespace awswrapper {

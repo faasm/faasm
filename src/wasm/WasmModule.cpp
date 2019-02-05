@@ -6,6 +6,14 @@
 #include <prof/prof.h>
 #include <wasm/FunctionLoader.h>
 
+#include <WAVM/WASM/WASM.h>
+#include <WAVM/Inline/CLI.h>
+#include <WAVM/IR/Types.h>
+#include <WAVM/IR/Module.h>
+#include <WAVM/Runtime/Intrinsics.h>
+#include <WAVM/Runtime/Runtime.h>
+#include <WAVM/Runtime/RuntimeData.h>
+
 #include <syscall.h>
 
 using namespace WAVM;
@@ -91,8 +99,9 @@ namespace wasm {
 
         // Load the function data
         const util::TimePoint &wasmParseTs = prof::startTimer();
-        FunctionLoader f;
-        f.loadFunctionBytes(msg, module);
+        wasm::FunctionLoader &l = wasm::getFunctionLoader();
+        const std::vector<uint8_t> &bytes = l.loadFunctionBytes(msg);
+        WASM::loadBinaryModule(bytes.data(), bytes.size(), module);
 
         // Set up minimum memory size
         module.memories.defs[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
