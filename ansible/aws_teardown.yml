@@ -3,6 +3,8 @@
 - hosts: localhost
   connection: local
   gather_facts: no
+  vars:
+    ansible_python_interpreter: "../venv/bin/python3"
   tasks:
     - name: "Delete SQS queue"
       sqs_queue:
@@ -24,3 +26,4 @@
         region: "{{ aws_region }}"
         engine: redis
         state: absent
+
