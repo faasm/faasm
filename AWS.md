@@ -9,6 +9,7 @@ You need to create a new IAM user called `faasm_admin` with the following roles:
 - AmazonSQSFullAccess
 - AWSLambdaFullAccess
 - IAMFullAccess
+- AmazonElastiCacheFullAccess
 
 Their credentials need to be added to your `~/.aws/credentials` file under `faasm`, i.e.
 
@@ -30,6 +31,12 @@ ID in `aws.yml`):
 ```
 cd ansible
 ansible-playbook aws.yml
+```
+
+You can then use the corresponding task to tear down the components (Elasticache can be expensive):
+
+```
+ansible-playbook aws_teardown.yml
 ```
 
 ## Pywren

@@ -1,0 +1,26 @@
+---
+
+- hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: "Delete SQS queue"
+      sqs_queue:
+        name: "{{ sqs_queue_name }}"
+        region: "{{ aws_region }}"
+        default_visibility_timeout: 120
+        state: absent
+
+# S3 buckets are very cheap to keep around, easier to leave it
+#    - name: "Delete S3 bucket"
+#      s3_bucket:
+#        name: "{{ s3_bucket_name }}"
+#        region: "{{ aws_region }}"
+#        state: absent
+
+    - name: "Delete Elasticache instance"
+      elasticache:
+        name: "{{ elasticache_name }}"
+        region: "{{ aws_region }}"
+        engine: redis
+        state: absent
