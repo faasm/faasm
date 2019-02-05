@@ -10,10 +10,16 @@
 namespace wasm {
     std::vector<uint8_t> LocalFunctionLoader::loadFunctionBytes(const message::Message &msg) {
         std::string filePath = util::getFunctionFile(msg);
-
-        const std::vector<uint8_t> fileBytes = util::readFileToBytes(filePath);
+        std::vector<uint8_t> fileBytes = util::readFileToBytes(filePath);
 
         return fileBytes;
+    }
+
+    std::vector<uint8_t> LocalFunctionLoader::loadFunctionObjectBytes(const message::Message &msg) {
+        std::string objectFilePath = util::getFunctionObjectFile(msg);
+        std::vector<uint8_t> bytes = util::readFileToBytes(objectFilePath);
+
+        return bytes;
     }
 
     void LocalFunctionLoader::uploadFunction(message::Message &msg) {

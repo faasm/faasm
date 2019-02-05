@@ -5,24 +5,35 @@
 #include <util/files.h>
 
 namespace wasm {
-    S3FunctionLoader::S3FunctionLoader() : s3(awswrapper::S3Wrapper::getThreadLocal()) {
+    S3FunctionLoader::S3FunctionLoader() : conf(util::getSystemConfig()), s3(awswrapper::S3Wrapper::getThreadLocal()) {
 
     }
 
     std::vector<uint8_t> S3FunctionLoader::loadFunctionBytes(const message::Message &msg) {
-        // TODO - load from S3
-        // TODO - cache locally on filesystem?
-        std::vector<uint8_t> bytes;
+        const std::string &funcPath = util::getFunctionFile(msg);
+        const std::vector<uint8_t> &bytes = s3.getKeyBytes(conf.bucketName, funcPath);
+        
+        return bytes;
+    }
+
+    std::vector<uint8_t> S3FunctionLoader::loadFunctionObjectBytes(const message::Message &msg) {
+        const std::string &objPath = util::getFunctionObjectFile(msg);
+        const std::vector<uint8_t> &bytes = s3.getKeyBytes(conf.bucketName, objPath);
 
         return bytes;
     }
 
     void S3FunctionLoader::uploadFunction(message::Message &msg) {
-        // TODO - upload to S3
+        // Note, when uploading, the input data is the function body
+        const std::string &inputBytes = msg.inputdata();
+
+        const std::string &funcPath = util::getFunctionFile(msg);
+        s3.addKeyStr(conf.bucketName, funcPath, inputBytes);
     }
 
     void S3FunctionLoader::uploadObjectBytes(const message::Message &msg, const std::vector<uint8_t> &objBytes) {
-        // TODO - upload to S3
+        const std::string objPath = util::getFunctionObjectFile(msg);
+        s3.addKeyBytes(conf.bucketName, objPath, objBytes);
     }
 
 }

@@ -99,8 +99,8 @@ namespace wasm {
 
         // Load the function data
         const util::TimePoint &wasmParseTs = prof::startTimer();
-        wasm::FunctionLoader &l = wasm::getFunctionLoader();
-        const std::vector<uint8_t> &bytes = l.loadFunctionBytes(msg);
+        wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
+        const std::vector<uint8_t> &bytes = functionLoader.loadFunctionBytes(msg);
         WASM::loadBinaryModule(bytes.data(), bytes.size(), module);
 
         // Set up minimum memory size
@@ -120,7 +120,7 @@ namespace wasm {
 
         // Load the object file
         const util::TimePoint &objTs = prof::startTimer();
-        std::vector<uint8_t> objectFileBytes = util::getFunctionObjectBytes(msg);
+        std::vector<uint8_t> objectFileBytes = functionLoader.loadFunctionObjectBytes(msg);
         prof::logEndTimer("obj-load", objTs);
 
         // Instantiate the module, i.e. create memory, tables etc.

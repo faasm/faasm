@@ -2,6 +2,7 @@
 #include "S3Wrapper.h"
 
 #include <util/logging.h>
+#include <util/bytes.h>
 
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/ListObjectsRequest.h>
@@ -41,12 +42,35 @@ namespace awswrapper {
         return keys;
     }
 
-    void S3Wrapper::addKey(const std::string &bucketName, const std::string &keyName, const std::string &data) {
+    void S3Wrapper::addKeyBytes(const std::string &bucketName, const std::string &keyName,
+            const std::vector<uint8_t> &data) {
+        const char *charPtr = reinterpret_cast<const char*>(data.data());
+        this->addKey(bucketName, keyName, charPtr, data.size());
+    }
+
+    void S3Wrapper::addKeyStr(const std::string &bucketName, const std::string &keyName, const std::string &data) {
+        this->addKey(bucketName, keyName, data.c_str(), data.size());
+    }
+
+    std::vector<uint8_t> S3Wrapper::getKeyBytes(const std::string &bucketName, const std::string &keyName) {
+        const std::string &byteStr = this->getKey(bucketName, keyName);
+
+        const std::vector<uint8_t> &bytes = util::stringToBytes(byteStr);
+
+        return bytes;
+    }
+
+    std::string S3Wrapper::getKeyStr(const std::string &bucketName, const std::string &keyName) {
+        return this->getKey(bucketName, keyName);
+    }
+
+    void S3Wrapper::addKey(const std::string &bucketName, const std::string &keyName, const char* data, size_t dataLen)
+    {
         Aws::S3::Model::PutObjectRequest request;
         request.WithBucket(Aws::String(bucketName)).WithKey(Aws::String(keyName));
 
-        std::shared_ptr<Aws::IOStream> dataStream = Aws::MakeShared<Aws::StringStream>(data.c_str());
-        *dataStream << data;
+        std::shared_ptr<Aws::IOStream> dataStream = Aws::MakeShared<Aws::StringStream>(data);
+        dataStream->write(data, dataLen);
         request.SetBody(dataStream);
 
         auto response = client.PutObject(request);

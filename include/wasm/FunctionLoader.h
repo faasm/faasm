@@ -10,11 +10,13 @@ namespace wasm {
     public:
         virtual std::vector<uint8_t> loadFunctionBytes(const message::Message &msg) = 0;
 
+        virtual std::vector<uint8_t> loadFunctionObjectBytes(const message::Message &msg) = 0;
+
         virtual void uploadFunction(message::Message &msg) = 0;
 
-    protected:
         virtual void uploadObjectBytes(const message::Message &msg, const std::vector<uint8_t> &objBytes) = 0;
 
+    protected:
         void compileToObjectFile(message::Message &msg);
     };
 

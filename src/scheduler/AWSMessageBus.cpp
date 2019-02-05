@@ -54,16 +54,20 @@ namespace scheduler {
     }
 
     void AWSMessageBus::setFunctionResult(message::Message &msg, bool success) {
-        // TODO work out what format to write results to S3 in
-        std::string s3Key = msg.resultkey();
+        // TODO - avoid writing output data in status?
+        // Write status
+        const std::string &statusKey = msg.statuskey();
+        const std::string statusJson = util::messageToJson(msg);
+        s3.addKeyStr(conf.bucketName, statusKey, statusJson);
 
+        // Write result
+        const std::string &resultKey = msg.resultkey();
+        s3.addKeyStr(conf.bucketName, resultKey, msg.outputdata());
     }
 
     message::Message AWSMessageBus::getFunctionResult(const message::Message &msg) {
-        // TODO work out what format results from S3 are in
-        std::string s3Key = msg.resultkey();
-
-        const std::string result = s3.getKey(bucketName, s3Key);
+        const std::string &statusKey = msg.statuskey();
+        const std::string result = s3.getKeyStr(bucketName, statusKey);
 
         message::Message resultMsg;
         resultMsg.ParseFromString(result);

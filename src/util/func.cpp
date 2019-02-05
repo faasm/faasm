@@ -57,13 +57,6 @@ namespace util {
         return path.string();
     }
 
-    std::vector<uint8_t> getFunctionObjectBytes(const message::Message &msg) {
-        std::string objectFilePath = getFunctionObjectFile(msg);
-        std::vector<uint8_t> bytes = util::readFileToBytes(objectFilePath);
-
-        return bytes;
-    }
-
     std::vector<uint8_t> messageToBytes(const message::Message &msg) {
         size_t byteSize = msg.ByteSizeLong();
         uint8_t buffer[byteSize];
