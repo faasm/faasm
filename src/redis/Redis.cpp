@@ -440,14 +440,19 @@ namespace redis {
      *  ------ Queueing ------
      */
 
-    void Redis::enqueue(const std::string &queueName, const std::vector<uint8_t> &value) {
+    void Redis::enqueue(const std::string &queueName, const std::string &value) {
+        auto reply = (redisReply *) redisCommand(context, "RPUSH %s %s", queueName.c_str(), value.c_str());
+        freeReplyObject(reply);
+    }
+
+    void Redis::enqueueBytes(const std::string &queueName, const std::vector<uint8_t> &value) {
         // NOTE: Here we must be careful with the input and specify bytes rather than a string
         // otherwise an encoded false boolean can be treated as a string terminator
         auto reply = (redisReply *) redisCommand(context, "RPUSH %s %b", queueName.c_str(), value.data(), value.size());
         freeReplyObject(reply);
     }
 
-    std::vector<uint8_t> Redis::dequeue(const std::string &queueName, int timeout) {
+    redisReply* Redis::dequeueBase(const std::string &queueName, int timeout) {
         auto reply = (redisReply *) redisCommand(context, "BLPOP %s %d", queueName.c_str(), timeout);
 
         if (reply == nullptr || reply->type == REDIS_REPLY_NIL) {
@@ -460,8 +465,26 @@ namespace redis {
             throw std::runtime_error("Returned more than one pair of dequeued values");
         }
 
+        return reply;
+    }
+
+    std::string Redis::dequeue(const std::string &queueName, int timeout) {
+        redisReply *reply = this->dequeueBase(queueName, timeout);
+
+        redisReply *r = reply->element[1];
+        std::string result(r->str);
+
+        freeReplyObject(reply);
+
+        return result;
+    }
+
+    std::vector<uint8_t> Redis::dequeueBytes(const std::string &queueName, int timeout) {
+        redisReply *reply = this->dequeueBase(queueName, timeout);
+
         // Note, BLPOP will return the queue name and the value returned (elements 0 and 1)
         redisReply *r = reply->element[1];
+
         const std::vector<uint8_t> replyBytes = getBytesFromReply(r);
         freeReplyObject(reply);
 

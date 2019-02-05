@@ -12,10 +12,11 @@ namespace tests {
     TEST_CASE("SQS message bus integration test", "[aws]") {
         SQSWrapper &sqs = SQSWrapper::getThreadLocal();
         scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
-
+        util::SystemConfig &conf = util::getSystemConfig();
+        
         SECTION("Check global bus of correct type") {
             // Dynamic cast to null ptr means not of that type
-            auto castPtr = dynamic_cast<scheduler::AWSMessageBus*>(&bus);
+            auto castPtr = dynamic_cast<scheduler::AWSMessageBus *>(&bus);
             REQUIRE(castPtr != nullptr);
         }
 
@@ -30,18 +31,24 @@ namespace tests {
             msg.set_inputdata(inputData);
             msg.set_isasync(true);
 
-            SECTION("Simple check of message properties") {
-                // Send the message
+            message::Message actual;
+
+            SECTION("Check message with JSON encoding") {
+                conf.serialisation = "json";
                 bus.enqueueMessage(msg);
-
-                // Get the message
-                const message::Message &actual = bus.nextMessage();
-                REQUIRE(actual.user() == msg.user());
-                REQUIRE(actual.function() == msg.function());
-                REQUIRE(actual.inputdata() == msg.inputdata());
-                REQUIRE(actual.isasync() == msg.isasync());
+                actual = bus.nextMessage();
             }
-        }
 
+            SECTION("Check message with protobuf objects") {
+                conf.serialisation = "proto";
+                bus.enqueueMessage(msg);
+                actual = bus.nextMessage();
+            }
+
+            REQUIRE(actual.user() == msg.user());
+            REQUIRE(actual.function() == msg.function());
+            REQUIRE(actual.inputdata() == msg.inputdata());
+            REQUIRE(actual.isasync() == msg.isasync());
+        }
     }
 }

@@ -15,7 +15,8 @@ namespace tests {
 
         redis::Redis &redis = redis::Redis::getQueue();
         GlobalMessageBus &bus = getGlobalMessageBus();
-
+        util::SystemConfig &conf = util::getSystemConfig();
+        
         // Request function
         message::Message call;
         std::string funcName = "my func";
@@ -26,42 +27,34 @@ namespace tests {
         call.set_user(userName);
         call.set_inputdata(inputData);
 
+        std::string originalSerialisation = conf.serialisation;
+
         SECTION("Round trip checks") {
-            bool isAsync;
-            bool isSuccess;
-
-            SECTION("Synchronous no success") {
-                isAsync = false;
-                isSuccess = false;
+            SECTION("True boolean over JSON") {
+                call.set_isasync(true);
+                conf.serialisation = "json";
             }
 
-            SECTION("Asynchronous no success") {
-                isAsync = true;
-                isSuccess = false;
+            SECTION("False boolean over JSON") {
+                call.set_isasync(false);
+                conf.serialisation = "json";
             }
 
-            SECTION("Synchronous success") {
-                isAsync = false;
-                isSuccess = true;
+            SECTION("True boolean with protobuf") {
+                call.set_isasync(true);
+                conf.serialisation = "proto";
             }
 
-            SECTION("Asynchronous success") {
-                isAsync = true;
-                isSuccess = true;
+            SECTION("False boolean with protobuf") {
+                call.set_isasync(false);
+                conf.serialisation = "proto";
             }
-
-            call.set_isasync(isAsync);
-            call.set_success(isSuccess);
 
             // Do round trip
             bus.enqueueMessage(call);
             message::Message actual = bus.nextMessage();
 
-            REQUIRE(funcName == actual.function());
-            REQUIRE(userName == actual.user());
-            REQUIRE(inputData == actual.inputdata());
-            REQUIRE(isAsync == actual.isasync());
-            REQUIRE(isSuccess == actual.success());
+            checkMessageEquality(call, actual);
         }
 
         SECTION("Check reading/ writing function results") {
@@ -78,10 +71,10 @@ namespace tests {
             // Check retrieval method gets the same call out again
             message::Message actualCall2 = bus.getFunctionResult(call);
 
-            REQUIRE("my func" == actualCall2.function());
-            REQUIRE("some user" == actualCall2.user());
-            REQUIRE("function 123" == actualCall2.resultkey());
-            REQUIRE(actualCall2.success());
+            call.set_success(true);
+            checkMessageEquality(call, actualCall2);
         }
+
+        conf.serialisation = originalSerialisation;
     }
 }

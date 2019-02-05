@@ -11,162 +11,159 @@ using namespace redis;
 
 namespace tests {
 
-    namespace vars {
-        static const std::string QUEUE_NAME = "my queue";
-
-        static const std::string VALUE_A = "val a";
-        static const std::string VALUE_B = "val b";
-        static const std::string VALUE_C = "val c";
-
-        static const std::vector<uint8_t> BYTES_A = util::stringToBytes(VALUE_A);
-        static const std::vector<uint8_t> BYTES_B = util::stringToBytes(VALUE_B);
-        static const std::vector<uint8_t> BYTES_C = util::stringToBytes(VALUE_C);
-    }
-
-    static void doEnqueue() {
-        Redis &redisQueue = Redis::getQueue();
-        redisQueue.flushAll();
-
-        // Enqueue some values
-        std::vector<uint8_t> bytesA = util::stringToBytes(vars::VALUE_A);
-        redisQueue.enqueue(vars::QUEUE_NAME, vars::BYTES_A);
-        redisQueue.enqueue(vars::QUEUE_NAME, vars::BYTES_B);
-        redisQueue.enqueue(vars::QUEUE_NAME, vars::BYTES_C);
-
-        // Check expected length
-        REQUIRE(3 == redisQueue.listLength(vars::QUEUE_NAME));
-    }
-
-    TEST_CASE("Test redis ping", "[redis]") {
+    TEST_CASE("Basic Redis operations", "[redis]") {
         Redis &redisQueue = Redis::getQueue();
         Redis &redisState = Redis::getState();
-
-        // Will throw exception if something is wrong
-        redisState.ping();
-        redisQueue.ping();
-    }
-
-    TEST_CASE("Test incr/ decr", "[redis]") {
-        Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
 
-        std::string key = "test_counter";
+        const std::string QUEUE_NAME = "my queue";
 
-        REQUIRE(redisQueue.getCounter(key) == 0);
+        const std::string VALUE_A = "val a";
+        const std::string VALUE_B = "val b";
+        const std::string VALUE_C = "val c";
 
-        REQUIRE(redisQueue.incr(key) == 1);
-        REQUIRE(redisQueue.getCounter(key) == 1);
+        const std::vector<uint8_t> BYTES_A = util::stringToBytes(VALUE_A);
+        const std::vector<uint8_t> BYTES_B = util::stringToBytes(VALUE_B);
+        const std::vector<uint8_t> BYTES_C = util::stringToBytes(VALUE_C);
 
-        REQUIRE(redisQueue.incr(key) == 2);
-        REQUIRE(redisQueue.incr(key) == 3);
-        REQUIRE(redisQueue.incr(key) == 4);
-        REQUIRE(redisQueue.getCounter(key) == 4);
+        SECTION("Test ping") {
+            // Will throw exception if something is wrong
+            redisState.ping();
+            redisQueue.ping();
+        }
+        
+        SECTION("Test incr/ decr") {
+            std::string key = "test_counter";
 
-        REQUIRE(redisQueue.decr(key) == 3);
-        REQUIRE(redisQueue.decr(key) == 2);
-        REQUIRE(redisQueue.getCounter(key) == 2);
-    }
+            REQUIRE(redisQueue.getCounter(key) == 0);
 
-    TEST_CASE("Test enqueue/ dequeue", "[redis]") {
-        // Enqueue
-        doEnqueue();
+            REQUIRE(redisQueue.incr(key) == 1);
+            REQUIRE(redisQueue.getCounter(key) == 1);
 
-        // Blocking dequeue
-        Redis &redisQueue = Redis::getQueue();
-        std::vector<uint8_t> actual = redisQueue.dequeue(vars::QUEUE_NAME);
+            REQUIRE(redisQueue.incr(key) == 2);
+            REQUIRE(redisQueue.incr(key) == 3);
+            REQUIRE(redisQueue.incr(key) == 4);
+            REQUIRE(redisQueue.getCounter(key) == 4);
 
-        REQUIRE(vars::BYTES_A == actual);
+            REQUIRE(redisQueue.decr(key) == 3);
+            REQUIRE(redisQueue.decr(key) == 2);
+            REQUIRE(redisQueue.getCounter(key) == 2);
+        }
 
-        // Dequeue again
-        std::vector<uint8_t> actual2 = redisQueue.dequeue(vars::QUEUE_NAME);
+        SECTION("Test enqueue/ dequeue bytes") {
+            // Enqueue some values
+            std::vector<uint8_t> bytesA = util::stringToBytes(VALUE_A);
+            redisQueue.enqueueBytes(QUEUE_NAME, BYTES_A);
+            redisQueue.enqueueBytes(QUEUE_NAME, BYTES_B);
+            redisQueue.enqueueBytes(QUEUE_NAME, BYTES_C);
 
-        REQUIRE(vars::BYTES_B == actual2);
-    }
+            // Check expected length
+            REQUIRE(redisQueue.listLength(QUEUE_NAME) == 3);
 
-    TEST_CASE("Test set/ get/ del", "[redis]") {
-        Redis &redisQueue = Redis::getQueue();
-        redisQueue.flushAll();
+            // Blocking dequeue
+            std::vector<uint8_t> actual = redisQueue.dequeueBytes(QUEUE_NAME);
+            REQUIRE(BYTES_A == actual);
+            REQUIRE(redisQueue.listLength(QUEUE_NAME) == 2);
 
-        std::string keyA = "key a";
-        std::string keyB = "key b";
+            // Dequeue again
+            std::vector<uint8_t> actual2 = redisQueue.dequeueBytes(QUEUE_NAME);
+            REQUIRE(BYTES_B == actual2);
+            REQUIRE(redisQueue.listLength(QUEUE_NAME) == 1);
+        }
 
-        redisQueue.set(keyA, vars::BYTES_A);
-        redisQueue.set(keyB, vars::BYTES_B);
+        SECTION("Test enqueue/ dequeue strings") {
+            // Enqueue some values
+            redisQueue.enqueue(QUEUE_NAME, VALUE_A);
+            redisQueue.enqueue(QUEUE_NAME, VALUE_B);
+            redisQueue.enqueue(QUEUE_NAME, VALUE_C);
 
-        // Test multiple gets on the same key
-        std::vector<uint8_t> actualA1 = redisQueue.get(keyA);
-        std::vector<uint8_t> actualA2 = redisQueue.get(keyA);
-        std::vector<uint8_t> actualB = redisQueue.get(keyB);
+            // Check expected length
+            REQUIRE(redisQueue.listLength(QUEUE_NAME) == 3);
 
-        REQUIRE(vars::BYTES_A == actualA1);
-        REQUIRE(vars::BYTES_A == actualA2);
+            // Blocking dequeue
+            std::string actual = redisQueue.dequeue(QUEUE_NAME);
+            REQUIRE(VALUE_A == actual);
+            REQUIRE(redisQueue.listLength(QUEUE_NAME) == 2);
 
-        REQUIRE(vars::BYTES_B == actualB);
+            // Dequeue again
+            std::string actual2 = redisQueue.dequeue(QUEUE_NAME);
+            REQUIRE(VALUE_B == actual2);
+            REQUIRE(redisQueue.listLength(QUEUE_NAME) == 1);
+        }
 
-        // Check deleting
-        redisQueue.del(keyA);
-        std::vector<uint8_t> actualDel = redisQueue.get(keyA);
-        REQUIRE(actualDel.empty());
+        SECTION("Test set/ get/ del") {
+            std::string keyA = "key a";
+            std::string keyB = "key b";
 
-        // Check other still there
-        REQUIRE(redisQueue.get(keyB) == vars::BYTES_B);
+            redisQueue.set(keyA, BYTES_A);
+            redisQueue.set(keyB, BYTES_B);
 
-        // Check deleting non-existent key
-        redisQueue.del("blahblah");
-        std::vector<uint8_t> actualDel2 = redisQueue.get("blahblah");
-        REQUIRE(actualDel2.empty());
-    }
+            // Test multiple gets on the same key
+            std::vector<uint8_t> actualA1 = redisQueue.get(keyA);
+            std::vector<uint8_t> actualA2 = redisQueue.get(keyA);
+            std::vector<uint8_t> actualB = redisQueue.get(keyB);
 
-    TEST_CASE("Test set range", "[redis]") {
-        Redis &redisQueue = Redis::getQueue();
-        redisQueue.flushAll();
+            REQUIRE(BYTES_A == actualA1);
+            REQUIRE(BYTES_A == actualA2);
 
-        std::string key = "setrange_test";
+            REQUIRE(BYTES_B == actualB);
 
-        std::string initialValue = "hello there world!";
-        std::vector<uint8_t> bytesValue = util::stringToBytes(initialValue);
-        redisQueue.set(key, bytesValue);
+            // Check deleting
+            redisQueue.del(keyA);
+            std::vector<uint8_t> actualDel = redisQueue.get(keyA);
+            REQUIRE(actualDel.empty());
 
-        REQUIRE(redisQueue.get(key) == bytesValue);
+            // Check other still there
+            REQUIRE(redisQueue.get(keyB) == BYTES_B);
 
-        std::string replacement = "hello";
-        std::vector<uint8_t> replacementBytes = util::stringToBytes(replacement);
-        redisQueue.setRange(key, 6, replacementBytes.data(), replacementBytes.size());
+            // Check deleting non-existent key
+            redisQueue.del("blahblah");
+            std::vector<uint8_t> actualDel2 = redisQueue.get("blahblah");
+            REQUIRE(actualDel2.empty());
+        }
 
-        std::string expected = "hello hello world!";
-        std::vector<uint8_t> expectedBytes = util::stringToBytes(expected);
-        REQUIRE(redisQueue.get(key) == expectedBytes);
-    }
+        SECTION("Test set range") {
+            std::string key = "setrange_test";
 
-    TEST_CASE("Test get range", "[redis]") {
-        Redis &redisQueue = Redis::getQueue();
-        redisQueue.flushAll();
+            std::string initialValue = "hello there world!";
+            std::vector<uint8_t> bytesValue = util::stringToBytes(initialValue);
+            redisQueue.set(key, bytesValue);
 
-        std::string key = "getrange_test";
+            REQUIRE(redisQueue.get(key) == bytesValue);
 
-        std::string initialValue = "get this string!";
-        std::vector<uint8_t> bytesValue = util::stringToBytes(initialValue);
-        redisQueue.set(key, bytesValue);
+            std::string replacement = "hello";
+            std::vector<uint8_t> replacementBytes = util::stringToBytes(replacement);
+            redisQueue.setRange(key, 6, replacementBytes.data(), replacementBytes.size());
 
-        REQUIRE(redisQueue.get(key) == bytesValue);
+            std::string expected = "hello hello world!";
+            std::vector<uint8_t> expectedBytes = util::stringToBytes(expected);
+            REQUIRE(redisQueue.get(key) == expectedBytes);
+        }
 
-        // Note that redis getrange is inclusive on start/end indices
-        uint8_t buffer[3];
-        redisQueue.getRange(key, buffer, 3, 4, 6);
-        std::vector<uint8_t> actualBytes(buffer, buffer + 3);
+        SECTION("Test get range") {
+            std::string key = "getrange_test";
 
-        std::string expected = "thi";
-        std::vector<uint8_t> expectedBytes = util::stringToBytes(expected);
-        REQUIRE(actualBytes == expectedBytes);
-    }
+            std::string initialValue = "get this string!";
+            std::vector<uint8_t> bytesValue = util::stringToBytes(initialValue);
+            redisQueue.set(key, bytesValue);
 
-    TEST_CASE("Test get empty key", "[redis]") {
-        Redis &redisQueue = Redis::getQueue();
-        redisQueue.flushAll();
+            REQUIRE(redisQueue.get(key) == bytesValue);
 
-        std::string nonExistKey = "blahblah";
-        std::vector<uint8_t> actual = redisQueue.get(nonExistKey);
-        REQUIRE(actual.empty());
+            // Note that redis getrange is inclusive on start/end indices
+            uint8_t buffer[3];
+            redisQueue.getRange(key, buffer, 3, 4, 6);
+            std::vector<uint8_t> actualBytes(buffer, buffer + 3);
+
+            std::string expected = "thi";
+            std::vector<uint8_t> expectedBytes = util::stringToBytes(expected);
+            REQUIRE(actualBytes == expectedBytes);
+        }
+
+        SECTION("Test get empty key") {
+            std::string nonExistKey = "blahblah";
+            std::vector<uint8_t> actual = redisQueue.get(nonExistKey);
+            REQUIRE(actual.empty());
+        }
     }
 
     TEST_CASE("Test setnxex", "[redis]") {

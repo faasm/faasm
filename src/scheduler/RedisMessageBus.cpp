@@ -1,6 +1,7 @@
 #include "RedisMessageBus.h"
 
 #include <util/logging.h>
+#include <util/json.h>
 
 namespace scheduler {
     RedisMessageBus::RedisMessageBus() : redis(redis::Redis::getQueue()) {
@@ -8,8 +9,13 @@ namespace scheduler {
     }
 
     void RedisMessageBus::enqueueMessage(const message::Message &msg) {
-        std::vector<uint8_t> msgBytes = util::messageToBytes(msg);
-        redis.enqueue(conf.queueName, msgBytes);
+        if (conf.serialisation == "json") {
+            const std::string json = util::messageToJson(msg);
+            redis.enqueue(conf.queueName, json);
+        } else {
+            std::vector<uint8_t> msgBytes = util::messageToBytes(msg);
+            redis.enqueueBytes(conf.queueName, msgBytes);
+        }
     }
 
     message::Message RedisMessageBus::nextMessage() {
@@ -17,20 +23,24 @@ namespace scheduler {
     }
 
     message::Message RedisMessageBus::nextMessage(int timeout) {
-        message::Message msg;
-
         try {
-            std::vector<uint8_t> dequeueResult = redis.dequeue(conf.queueName, timeout);
-            msg.ParseFromArray(dequeueResult.data(), (int) dequeueResult.size());
+            if(conf.serialisation == "json") {
+                std::string dequeueResult = redis.dequeue(conf.queueName);
+                message::Message msg = util::jsonToMessage(dequeueResult);
+
+                return msg;
+            }
+            else {
+                message::Message msg;
+                std::vector<uint8_t> dequeueResult = redis.dequeueBytes(conf.queueName, timeout);
+                msg.ParseFromArray(dequeueResult.data(), (int) dequeueResult.size());
+
+                return msg;
+            }
         }
         catch (redis::RedisNoResponseException &ex) {
             throw GlobalMessageBusNoMessageException();
         }
-
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Message queue dequeued {}", util::funcToString(msg));
-
-        return msg;
     }
 
     void RedisMessageBus::setFunctionResult(message::Message &msg, bool success) {
@@ -40,14 +50,14 @@ namespace scheduler {
 
         // Write the successful result to the result queue
         std::vector<uint8_t> inputData = util::messageToBytes(msg);
-        redis.enqueue(key, inputData);
+        redis.enqueueBytes(key, inputData);
 
         // Set the result key to expire
         redis.expire(key, util::RESULT_KEY_EXPIRY);
     }
 
     message::Message RedisMessageBus::getFunctionResult(const message::Message &msg) {
-        std::vector<uint8_t> result = redis.dequeue(msg.resultkey());
+        std::vector<uint8_t> result = redis.dequeueBytes(msg.resultkey());
 
         message::Message msgResult;
         msgResult.ParseFromArray(result.data(), (int) result.size());
