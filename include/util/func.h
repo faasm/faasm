@@ -5,6 +5,10 @@
 #include <vector>
 
 namespace util {
+    std::string getFunctionKey(const message::Message &msg);
+
+    std::string getFunctionObjectKey(const message::Message &msg);
+
     std::string getFunctionFile(const message::Message &msg);
 
     std::string getFunctionObjectFile(const message::Message &msg);

@@ -10,7 +10,8 @@
 #include <aws/s3/model/PutObjectRequest.h>
 
 namespace awswrapper {
-    S3Wrapper::S3Wrapper() : client(Aws::S3::S3Client(getClientConf(REQUEST_TIMEOUT_MS))) {
+    S3Wrapper::S3Wrapper() : clientConf(getClientConf(REQUEST_TIMEOUT_MS)),
+                             client(Aws::S3::S3Client(clientConf)) {
 
     }
 
@@ -46,15 +47,15 @@ namespace awswrapper {
 
         auto response = client.DeleteObject(request);
 
-        if (!response.IsSuccess())   {
+        if (!response.IsSuccess()) {
             const auto &err = response.GetError();
             handleError(err);
         }
     }
 
     void S3Wrapper::addKeyBytes(const std::string &bucketName, const std::string &keyName,
-            const std::vector<uint8_t> &data) {
-        const char *charPtr = reinterpret_cast<const char*>(data.data());
+                                const std::vector<uint8_t> &data) {
+        const char *charPtr = reinterpret_cast<const char *>(data.data());
         this->addKey(bucketName, keyName, charPtr, data.size());
     }
 
@@ -74,8 +75,11 @@ namespace awswrapper {
         return this->getKey(bucketName, keyName);
     }
 
-    void S3Wrapper::addKey(const std::string &bucketName, const std::string &keyName, const char* data, size_t dataLen)
-    {
+    void
+    S3Wrapper::addKey(const std::string &bucketName, const std::string &keyName, const char *data, size_t dataLen) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Writing {} to bucket {}", keyName, bucketName);
+
         Aws::S3::Model::PutObjectRequest request;
         request.WithBucket(Aws::String(bucketName)).WithKey(Aws::String(keyName));
 

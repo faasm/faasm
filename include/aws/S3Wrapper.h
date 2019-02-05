@@ -30,6 +30,7 @@ namespace awswrapper {
 
         std::string getKey(const std::string &bucketName, const std::string &keyName);
 
+        Aws::Client::ClientConfiguration clientConf;
         Aws::S3::S3Client client;
     };
 }

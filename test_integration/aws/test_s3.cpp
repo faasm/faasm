@@ -77,7 +77,6 @@ namespace tests {
 
         // Do both uploads
         loader.uploadFunction(msg);
-        loader.uploadObjectBytes(msg, objectBytes);
         
         // Download again
         const std::vector<uint8_t> &actualWasmBytes = loader.loadFunctionBytes(msg);
@@ -85,9 +84,17 @@ namespace tests {
         REQUIRE(actualWasmBytes == wasmBytes);
         REQUIRE(actualObjectBytes == objectBytes);
 
-        s3.deleteKey(conf.bucketName, funcPath);
-        s3.deleteKey(conf.bucketName, objPath);
+        // Check 2 keys present
+        std::vector<std::string> keys = s3.listKeys(conf.bucketName);
+        REQUIRE(keys.size() == 2);
 
+        // Clear up
+        const std::string &funcKey = util::getFunctionKey(msg);
+        const std::string &objKey = util::getFunctionObjectKey(msg);
+        s3.deleteKey(conf.bucketName, funcKey);
+        s3.deleteKey(conf.bucketName, objKey);
+
+        // Check no more keys
         std::vector<std::string> actualEmpty = s3.listKeys(conf.bucketName);
         REQUIRE(actualEmpty.empty());
     }

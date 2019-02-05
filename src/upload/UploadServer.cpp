@@ -5,6 +5,7 @@
 #include <prof/prof.h>
 
 #include <redis/Redis.h>
+#include <aws/S3Wrapper.h>
 #include <wasm/FunctionLoader.h>
 
 

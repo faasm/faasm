@@ -10,15 +10,15 @@ namespace wasm {
     }
 
     std::vector<uint8_t> S3FunctionLoader::loadFunctionBytes(const message::Message &msg) {
-        const std::string &funcPath = util::getFunctionFile(msg);
-        const std::vector<uint8_t> &bytes = s3.getKeyBytes(conf.bucketName, funcPath);
+        const std::string key = util::getFunctionKey(msg);
+        const std::vector<uint8_t> bytes = s3.getKeyBytes(conf.bucketName, key);
         
         return bytes;
     }
 
     std::vector<uint8_t> S3FunctionLoader::loadFunctionObjectBytes(const message::Message &msg) {
-        const std::string &objPath = util::getFunctionObjectFile(msg);
-        const std::vector<uint8_t> &bytes = s3.getKeyBytes(conf.bucketName, objPath);
+        const std::string key = util::getFunctionObjectKey(msg);
+        const std::vector<uint8_t> bytes = s3.getKeyBytes(conf.bucketName, key);
 
         return bytes;
     }
@@ -27,13 +27,16 @@ namespace wasm {
         // Note, when uploading, the input data is the function body
         const std::string &inputBytes = msg.inputdata();
 
-        const std::string &funcPath = util::getFunctionFile(msg);
-        s3.addKeyStr(conf.bucketName, funcPath, inputBytes);
+        const std::string key = util::getFunctionKey(msg);
+        s3.addKeyStr(conf.bucketName, key, inputBytes);
+
+        // Build the object file from the file we've just received
+        this->compileToObjectFile(msg);
     }
 
     void S3FunctionLoader::uploadObjectBytes(const message::Message &msg, const std::vector<uint8_t> &objBytes) {
-        const std::string objPath = util::getFunctionObjectFile(msg);
-        s3.addKeyBytes(conf.bucketName, objPath, objBytes);
+        const std::string key = util::getFunctionObjectKey(msg);
+        s3.addKeyBytes(conf.bucketName, key, objBytes);
     }
 
 }

@@ -4,6 +4,7 @@
 #include <aws/s3/S3Client.h>
 
 #include <util/logging.h>
+#include <util/config.h>
 
 /**
  * Examples: https://docs.aws.amazon.com/sdk-for-cpp/v1/developer-guide/programming-services.html
@@ -23,9 +24,17 @@ namespace awswrapper {
     }
 
     void initSDK() {
-        options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Info;
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        util::SystemConfig &conf = util::getSystemConfig();
 
-        Aws::InitAPI(options);
+        if(conf.systemMode != "aws") {
+            logger->info("Not initialising AWS support as in {} mode", conf.systemMode);
+        } else {
+            logger->info("Initialising AWS support");
+            options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Info;
+
+            Aws::InitAPI(options);
+        }
     }
 
     void cleanUpSDK() {
