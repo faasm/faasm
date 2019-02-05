@@ -48,9 +48,18 @@ namespace tests {
             REQUIRE(actualA == byteDataA);
             REQUIRE(actualB == byteDataB);
         }
+
+        s3.deleteKey(conf.bucketName, "alpha");
+        s3.deleteKey(conf.bucketName, "beta");
+
+        std::vector<std::string> actualEmpty = s3.listKeys(conf.bucketName);
+        REQUIRE(actualEmpty.empty());
     }
 
     TEST_CASE("Test read/write function data in bucket") {
+        util::SystemConfig &conf = util::getSystemConfig();
+        S3Wrapper &s3 = S3Wrapper::getThreadLocal();
+
         message::Message msg;
         msg.set_user("demo");
         msg.set_function("echo");
@@ -75,5 +84,11 @@ namespace tests {
         const std::vector<uint8_t> &actualObjectBytes = loader.loadFunctionObjectBytes(msg);
         REQUIRE(actualWasmBytes == wasmBytes);
         REQUIRE(actualObjectBytes == objectBytes);
+
+        s3.deleteKey(conf.bucketName, funcPath);
+        s3.deleteKey(conf.bucketName, objPath);
+
+        std::vector<std::string> actualEmpty = s3.listKeys(conf.bucketName);
+        REQUIRE(actualEmpty.empty());
     }
 }

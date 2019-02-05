@@ -15,6 +15,8 @@ namespace awswrapper {
 
         std::vector<std::string> listKeys(const std::string &bucketName);
 
+        void deleteKey(const std::string &bucketName, const std::string &keyName);
+
         void addKeyBytes(const std::string &bucketName, const std::string &keyName, const std::vector<uint8_t> &data);
 
         void addKeyStr(const std::string &bucketName, const std::string &keyName, const std::string &data);

@@ -4,6 +4,7 @@
 #include <util/logging.h>
 #include <util/bytes.h>
 
+#include <aws/s3/model/DeleteObjectRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/ListObjectsRequest.h>
 #include <aws/s3/model/PutObjectRequest.h>
@@ -18,14 +19,11 @@ namespace awswrapper {
         return s3;
     }
 
-
     std::vector<std::string> S3Wrapper::listKeys(const std::string &bucketName) {
-        S3Wrapper &s3 = S3Wrapper::getThreadLocal();
-
         Aws::S3::Model::ListObjectsRequest request;
         request.WithBucket(Aws::String(bucketName));
 
-        auto response = s3.client.ListObjects(request);
+        auto response = client.ListObjects(request);
 
         if (!response.IsSuccess()) {
             const auto &err = response.GetError();
@@ -40,6 +38,18 @@ namespace awswrapper {
         }
 
         return keys;
+    }
+
+    void S3Wrapper::deleteKey(const std::string &bucketName, const std::string &keyName) {
+        Aws::S3::Model::DeleteObjectRequest request;
+        request.WithBucket(Aws::String(bucketName)).WithKey(Aws::String(keyName));
+
+        auto response = client.DeleteObject(request);
+
+        if (!response.IsSuccess())   {
+            const auto &err = response.GetError();
+            handleError(err);
+        }
     }
 
     void S3Wrapper::addKeyBytes(const std::string &bucketName, const std::string &keyName,
