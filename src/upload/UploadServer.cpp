@@ -5,6 +5,7 @@
 #include <prof/prof.h>
 
 #include <redis/Redis.h>
+#include <wasm/FunctionLoader.h>
 
 
 namespace edge {
@@ -116,19 +117,11 @@ namespace edge {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         message::Message msg = UploadServer::buildMessageFromRequest(request);
-        std::string outputFile = util::getFunctionFile(msg);
-
         logger->info("Uploading {}", util::funcToString(msg));
 
-        // Here the msg input data is actually the file
-        std::ofstream out(outputFile);
-        const std::string &fileBody = msg.inputdata();
-        out.write(fileBody.c_str(), fileBody.size());
-        out.flush();
-        out.close();
-
-        // Build the object file from the file we've just received
-        wasm::WasmModule::compileToObjectFile(msg);
+        // Do the upload
+        wasm::FunctionLoader l;
+        l.uploadFunction(msg);
 
         request.reply(status_codes::OK, "Function upload complete\n");
     }

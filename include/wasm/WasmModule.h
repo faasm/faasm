@@ -3,17 +3,13 @@
 #include "CallChain.h"
 
 #include <util/logging.h>
-
 #include <state/State.h>
+#include <proto/faasm.pb.h>
 
 #include <exception>
 #include <string>
 #include <tuple>
 #include <thread>
-#include <mutex>
-#include <shared_mutex>
-
-#include <proto/faasm.pb.h>
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
@@ -84,10 +80,6 @@ namespace wasm {
 
         ~WasmModule();
 
-        static std::vector<uint8_t> compile(message::Message &msg);
-
-        static void compileToObjectFile(message::Message &msg);
-
         void initialise();
 
         void snapshotMemory();
@@ -127,8 +119,6 @@ namespace wasm {
         std::unordered_map<std::string, I32> sharedMemWasmPtrs;
         std::unordered_map<std::string, void*> sharedMemHostPtrs;
         std::unordered_map<std::string, state::StateKeyValue*> sharedMemKVs;
-
-        void parseWasm(const message::Message &msg);
     };
 
     WasmModule *getExecutingModule();
