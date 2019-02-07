@@ -1,4 +1,10 @@
+#ifdef AWS_LAMBDA
+// Handle AWS context with different import
+#include "lambda/lambda.h"
+#else
+
 #include "faasm/faasm.h"
+#endif
 
 /**
  * Writes the input to the output

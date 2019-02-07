@@ -2,14 +2,60 @@ from os import mkdir
 from os.path import join, exists
 from subprocess import call
 
+import boto3
 from invoke import task
 
-from tasks.env import FAASM_HOME
+from tasks.env import FAASM_HOME, PROJ_ROOT
 
 SDK_VERSION = "1.7.41"
 RUNTIME_VERSION = "v0.1.0"
 
 INSTALL_PATH = join(FAASM_HOME, "lambda")
+LAMBDA_FUNC_BUILD_DIR = join(PROJ_ROOT, "lambda", "build")
+
+# TODO - add this to config
+AWS_ACCOUNT_ID = "733781933474"
+AWS_LAMBDA_ROLE = "faasm-lambda-role"
+LAMBDA_FUNCTION_NAME = "faasm-lambda"
+AWS_REGION = "eu-west-1"
+
+
+@task
+def upload_lambda_function(ctx):
+    # Build the function
+    zip_file_path = build_lambda_function(ctx)
+    with open(zip_file_path, "rb") as content_file:
+        content = content_file.read()
+
+    # Upload the function
+    client = boto3.client("lambda", region_name=AWS_REGION)
+
+    kwargs = {
+        "FunctionName": LAMBDA_FUNCTION_NAME,
+        "Role": "arn:aws:iam::{}:role/{}".format(AWS_ACCOUNT_ID, AWS_LAMBDA_ROLE),
+        "Handler": LAMBDA_FUNCTION_NAME,
+        "Code": {"ZipFile": content},
+        "Runtime": "provided",
+        "MemorySize": 128,
+        "Timeout": 15,
+    }
+
+    client.create_function(**kwargs)
+
+
+@task
+def build_lambda_function(ctx):
+    if not exists(LAMBDA_FUNC_BUILD_DIR):
+        mkdir(LAMBDA_FUNC_BUILD_DIR)
+
+    _build_cmake_project(LAMBDA_FUNC_BUILD_DIR, [])
+
+    # Create the zip
+    call("make aws-lambda-package-faasm-lambda", cwd=LAMBDA_FUNC_BUILD_DIR, shell=True)
+    zip_file = join(LAMBDA_FUNC_BUILD_DIR, "faasm-lambda.zip")
+    assert exists(zip_file), "Expected zip file at {}".format(zip_file)
+
+    return zip_file
 
 
 @task
@@ -66,14 +112,19 @@ def _set_up_cmake_project(repo_url, dir_name, cmake_args, version):
         # Checkout the required version
         call("git checkout {}".format(version), cwd=build_dir, shell=True)
 
-        cpp_sdk_build_cmd = [
-            "cmake",
-            "..",
-            "-DCMAKE_INSTALL_PREFIX={}".format(INSTALL_PATH),
-        ]
+        _build_cmake_project(build_dir, cmake_args)
 
-        cpp_sdk_build_cmd.extend(cmake_args)
-
-        call(" ".join(cpp_sdk_build_cmd), cwd=build_dir, shell=True)
-        call("make", cwd=build_dir, shell=True)
         call("make install", cwd=build_dir, shell=True)
+
+
+def _build_cmake_project(build_dir, cmake_args):
+    cpp_sdk_build_cmd = [
+        "cmake",
+        "..",
+        "-DCMAKE_INSTALL_PREFIX={}".format(INSTALL_PATH),
+    ]
+
+    cpp_sdk_build_cmd.extend(cmake_args)
+
+    call(" ".join(cpp_sdk_build_cmd), cwd=build_dir, shell=True)
+    call("make", cwd=build_dir, shell=True)

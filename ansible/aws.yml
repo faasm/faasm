@@ -27,4 +27,5 @@
         num_nodes: 1
 
   roles:
+    - aws_roles
     - pywren
