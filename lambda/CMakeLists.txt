@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 set(CMAKE_CXX_STANDARD 11)
-project(encoder LANGUAGES CXX)
+project(faasm-lambda LANGUAGES CXX)
 
 # Note that here we force the install prefix as it must be done in the context of
 # the custom build (to avoid pulling in the standard system files)
