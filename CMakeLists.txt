@@ -6,14 +6,13 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g")
 
 # Address sanitizer
 # set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -O0")
-
 # set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Oz")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-enable_testing()
+#enable_testing()
 
 #set(WAVM_ENABLE_ASAN OFF)
 #set(WAVM_ENABLE_UBSAN OFF)
@@ -53,7 +52,7 @@ add_subdirectory(func)
 # Faasm library
 add_subdirectory(lib)
 
-# AWS Lambda
+# AWS Lambda integration
 add_subdirectory(lambda)
 
 # Experiments

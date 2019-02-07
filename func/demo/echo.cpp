@@ -1,4 +1,4 @@
-#ifdef AWS_LAMBDA
+#if AWS_LAMBDA == 1
 // Handle AWS context with different import
 #include "lambda/lambda.h"
 #else

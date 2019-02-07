@@ -1,7 +1,6 @@
 # Faasm
 work/
 download/
-build/
 
 # Ansible
 *.retry

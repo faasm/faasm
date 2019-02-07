@@ -33,7 +33,7 @@ from tasks.docker_compose import start_all, stop_all, restart_all
 from tasks.aws import (
     build_aws_sdk,
     build_lambda_runtime,
-    build_lambda_function,
+    build_lambdas,
     upload_lambda_function,
 )
 

@@ -38,11 +38,20 @@ set(PUBLIC_HEADERS
 
 set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
-INSTALL(TARGETS faasm
-        ARCHIVE DESTINATION /toolchain/sysroot/lib
-        LIBRARY DESTINATION /toolchain/sysroot/lib
-        PUBLIC_HEADER DESTINATION /toolchain/sysroot/include/faasm
-        )
+if(CMAKE_BUILD_TYPE MATCHES "wasm")
+    install(TARGETS faasm
+            ARCHIVE DESTINATION /toolchain/sysroot/lib
+            LIBRARY DESTINATION /toolchain/sysroot/lib
+            PUBLIC_HEADER DESTINATION /toolchain/sysroot/include/faasm
+            )
 
-# Copy imports file into place
-install(FILES libfaasm.imports DESTINATION /toolchain/sysroot/lib/)
+    # Copy imports file into place
+    install(FILES libfaasm.imports DESTINATION /toolchain/sysroot/lib/)
+else()
+    install(TARGETS faasm
+            ARCHIVE DESTINATION lib
+            LIBRARY DESTINATION lib
+            RUNTIME DESTINATION bin
+            PUBLIC_HEADER DESTINATION include/faasm
+            )
+endif()

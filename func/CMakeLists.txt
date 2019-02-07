@@ -9,8 +9,6 @@ else ()
     set(FAASM_HOST localhost)
 endif ()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Oz -fvisibility=hidden")
-
 include_directories(${FAASM_LIB_DIR})
 
 if (CMAKE_BUILD_TYPE MATCHES "lambda")
@@ -24,6 +22,8 @@ if (CMAKE_BUILD_TYPE MATCHES "wasm")
     # ----------------------
     # WASM build
     # ----------------------
+
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Oz -fvisibility=hidden")
 
     function(faasm_func exec_name file_name)
         add_executable(${exec_name} ${file_name})
@@ -44,27 +44,31 @@ elseif (CMAKE_BUILD_TYPE MATCHES "lambda")
     # AWS Lambda build
     # ----------------------
 
-    SET(CMAKE_INSTALL_PREFIX ~/faasm/lambda CACHE PATH override FORCE)
+    find_package(aws-lambda-runtime)
 
     function(faasm_func func_name file_name)
         add_executable(${func_name}-lambda ${file_name})
 
+        find_package(lambda)
+        find_package(faasm)
+
         # Link with Faasm lambda library
         target_link_libraries(${func_name}-lambda lambda)
 
-        target_compile_options(
-                ${func_name}-lambda PRIVATE
-                "-Wall"
-                "-Wextra"
-                "-Wconversion"
-                "-Wshadow"
-                "-Wno-sign-conversion"
-        )
+#        target_compile_options(
+#                ${func_name}-lambda PRIVATE
+#                "-Wall"
+#                "-Wextra"
+#                "-Wconversion"
+#                "-Wshadow"
+#                "-Wno-sign-conversion"
+#        )
 
         #target_compile_features(${PROJECT_NAME} PRIVATE "cxx_std_11")
 
         # Add custom target to build Lambda zip file
         aws_lambda_package_target(${func_name}-lambda)
+
     endfunction(faasm_func)
 
 else ()
