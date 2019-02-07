@@ -53,6 +53,10 @@ add_subdirectory(func)
 # Faasm library
 add_subdirectory(lib)
 
+# AWS Lambda
+add_subdirectory(lambda)
+
+# Experiments
 add_subdirectory(experiment)
 
 # Faasm runtime
