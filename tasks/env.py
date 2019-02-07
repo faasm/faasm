@@ -5,7 +5,7 @@ from subprocess import call
 HOME_DIR = expanduser("~")
 PROJ_ROOT = dirname(dirname(realpath(__file__)))
 
-DOWNLOAD_DIR = join(HOME_DIR, "faasm")
+FAASM_HOME = join(HOME_DIR, "faasm")
 
 ANSIBLE_DIR = join(PROJ_ROOT, "ansible")
 

@@ -5,16 +5,16 @@ from subprocess import call
 
 from requests import get
 
-from tasks.env import DOWNLOAD_DIR
+from tasks.env import FAASM_HOME
 
 
 def download_proj(url, filename, extension="tar.gz", tar_args="-xvf", extract_file=None):
-    if not exists(DOWNLOAD_DIR):
-        mkdir(DOWNLOAD_DIR)
+    if not exists(FAASM_HOME):
+        mkdir(FAASM_HOME)
 
-    extract_dir = join(DOWNLOAD_DIR, extract_file) if extract_file else join(DOWNLOAD_DIR, filename)
+    extract_dir = join(FAASM_HOME, extract_file) if extract_file else join(FAASM_HOME, filename)
     tar_filename = "{}.{}".format(filename, extension)
-    tar_file = join(DOWNLOAD_DIR, tar_filename)
+    tar_file = join(FAASM_HOME, tar_filename)
 
     build_dir = join(extract_dir, "build")
 
@@ -29,7 +29,7 @@ def download_proj(url, filename, extension="tar.gz", tar_args="-xvf", extract_fi
 
     # Extract
     cmd = "tar {} {}".format(tar_args, tar_filename)
-    call(cmd, cwd=DOWNLOAD_DIR, shell=True)
+    call(cmd, cwd=FAASM_HOME, shell=True)
 
     # Create build dir
     if not exists(build_dir):

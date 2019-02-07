@@ -6,7 +6,7 @@ from subprocess import call
 
 from invoke import task
 
-from tasks.download import download_proj, DOWNLOAD_DIR
+from tasks.download import download_proj, FAASM_HOME
 from tasks.env import PROJ_ROOT
 
 # Note, most of the time this will be run inside the toolchain container
@@ -139,8 +139,8 @@ def compile(context, path, libcurl=False, debug=False):
 
 @task
 def lib(context, lib_name):
-    if not exists(DOWNLOAD_DIR):
-        mkdir(DOWNLOAD_DIR)
+    if not exists(FAASM_HOME):
+        mkdir(FAASM_HOME)
 
     if lib_name == "curl":
         compile_libcurl()
