@@ -92,7 +92,7 @@ def funcs(context, clean=False):
     if not exists(func_build_dir):
         mkdir(func_build_dir)
 
-    call("cmake -DCMAKE_BUILD_TYPE=wasm ..", shell=True, cwd=func_build_dir)
+    call("cmake -DFAASM_BUILD_TYPE=wasm ..", shell=True, cwd=func_build_dir)
     call("make", shell=True, cwd=func_build_dir)
 
 
@@ -167,7 +167,7 @@ def compile_libfaasm():
 
     mkdir(build_dir)
 
-    build_cmd = "{} cmake -DCMAKE_BUILD_TYPE=wasm ..".format(ENV_STR)
+    build_cmd = "{} cmake -DFAASM_BUILD_TYPE=wasm ..".format(ENV_STR)
     print(build_cmd)
     call(build_cmd, shell=True, cwd=build_dir)
 

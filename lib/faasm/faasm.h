@@ -1,6 +1,11 @@
 #ifndef _FAASM_H
 #define _FAASM_H
 
+// For lambda builds we need to go a different route
+#if AWS_LAMBDA == 1
+#include "lambda.h"
+#else
+
 #include "faasm/memory.h"
 
 namespace faasm {
@@ -16,5 +21,7 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+
+#endif
 
 #endif

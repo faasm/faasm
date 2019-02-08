@@ -1,6 +1,7 @@
 #pragma once
 
 #include <aws/lambda-runtime/runtime.h>
+#include <aws/logging/logging.h>
 
 #include "faasm/memory.h"
 #include "backend.h"
@@ -16,6 +17,8 @@ int main() {
     faasm::initialiseLambdaBackend();
 
     auto handler_fn = [](aws::lambda_runtime::invocation_request const &req) {
+        faasm::startRequest();
+
         faasm::setInput(req.payload);
 
         // Run the normal Faasm function entrypoint
@@ -24,7 +27,7 @@ int main() {
 
         // Return a Lambda-friendly response
         const std::string output = faasm::getOutput();
-        std::string jsonResponse = "{'result': '" + output + "'}";
+        std::string jsonResponse = "{\"result\": \"" + output + "\"}";
         return invocation_response::success(
                 jsonResponse,
                 "application/json"
@@ -33,6 +36,5 @@ int main() {
 
     run_handler(handler_fn);
 
-    faasm::shutdownLambdaBackend();
     return 0;
 }

@@ -15,6 +15,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(FAASM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
 set(FAASM_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lib)
+set(FAASM_LAMBDA_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lambda)
 set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/WAVM/Lib)
 set(FAASM_WAVM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/WAVM/Include)
 
@@ -33,7 +34,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # AWS Lambda runtime (used by all builds)
 find_package(aws-lambda-runtime)
 
-if(CMAKE_BUILD_TYPE MATCHES "lambda")
+if(FAASM_BUILD_TYPE MATCHES "lambda")
     # Debug to allow logging
     set(CMAKE_CXX_FLAGS "-g")
 

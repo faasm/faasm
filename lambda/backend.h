@@ -5,7 +5,7 @@
 namespace faasm {
     void initialiseLambdaBackend();
 
-    void shutdownLambdaBackend();
+    void startRequest();
 
     void setInput(const std::string &input);
 

@@ -5,8 +5,17 @@ include_directories(
 
 add_library(lambda STATIC
         backend.cpp
-        ${PUBLIC_HEADERS}
+        lambda.h
+        backend.h
         )
+
+set(PUBLIC_HEADERS
+        lambda.h
+        backend.h
+        )
+
+set_target_properties(lambda PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
+
 
 target_link_libraries(
         lambda

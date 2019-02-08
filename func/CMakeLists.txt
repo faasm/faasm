@@ -3,22 +3,26 @@ project(faasm-func)
 
 set(FAASM_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/../lib)
 
+include_directories(${FAASM_LIB_DIR})
+
+# Faasm host for uploads
 if (DEFINED ENV{FAASM_HOST})
     set(FAASM_HOST $ENV{FAASM_HOST})
 else ()
     set(FAASM_HOST localhost)
 endif ()
 
-include_directories(${FAASM_LIB_DIR})
-
-if (CMAKE_BUILD_TYPE MATCHES "lambda")
+# Modify inclusions if building for lambda
+if (FAASM_BUILD_TYPE MATCHES "lambda")
     add_definitions(-DAWS_LAMBDA=1)
+
+    include_directories(${FAASM_LIB_DIR} ${FAASM_LAMBDA_LIB_DIR})
 else ()
     add_definitions(-DAWS_LAMBDA=0)
 endif ()
 
 # Define functions for building
-if (CMAKE_BUILD_TYPE MATCHES "wasm")
+if (FAASM_BUILD_TYPE MATCHES "wasm")
     # ----------------------
     # WASM build
     # ----------------------
@@ -39,7 +43,7 @@ if (CMAKE_BUILD_TYPE MATCHES "wasm")
                 )
     endfunction(faasm_func)
 
-elseif (CMAKE_BUILD_TYPE MATCHES "lambda")
+elseif (FAASM_BUILD_TYPE MATCHES "lambda")
     # ----------------------
     # AWS Lambda build
     # ----------------------
@@ -72,8 +76,14 @@ else ()
     # ----------------------
 
     function(faasm_func exec_name file_name)
+        # Using emulator (faasm-like)
         add_executable(${exec_name} ${file_name})
         target_link_libraries(${exec_name} faasm emulator)
+
+        # Using lambda back-end
+        add_executable(${exec_name}-lambda ${file_name})
+        target_link_libraries(${exec_name}-lambda faasm lambda)
+
     endfunction(faasm_func)
 
 endif ()

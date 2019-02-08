@@ -2,28 +2,37 @@
 
 #include "faasm/memory.h"
 
+#include "aws/logging/logging.h"
+
 #include <string>
+
+#define LOG_MARKER "FAASM"
 
 namespace faasm {
 
     std::string input;
     std::string output;
 
+    void startRequest() {
+        printf("\nStarting request\n");
+        aws::logging::log_info(LOG_MARKER, "Starting request");
+
+        input = std::string();
+        output = std::string();
+    }
+
     void setInput(const std::string &i) {
+        aws::logging::log_info(LOG_MARKER, "Received input [%s]", i.c_str());
         input = i;
     }
 
     std::string getOutput() {
+        aws::logging::log_info(LOG_MARKER, "Returning output [%s]", output.c_str());
         return output;
     }
 
     void initialiseLambdaBackend() {
 
-    }
-
-    void shutdownLambdaBackend() {
-        input = "";
-        output = "";
     }
 }
 
