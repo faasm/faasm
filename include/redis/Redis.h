@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CoreRedis.h"
+
 #include <util/config.h>
 
 #include <hiredis/hiredis.h>
@@ -59,7 +61,7 @@ namespace redis {
     };
 
 
-    class Redis {
+    class Redis : public CoreRedis {
 
     public:
         ~Redis();
@@ -156,8 +158,6 @@ namespace redis {
         const RedisInstance &instance;
 
         redisReply* dequeueBase(const std::string &queueName, int timeout);
-
-        redisContext *context;
     };
 
     class RedisNoResponseException : public std::exception {

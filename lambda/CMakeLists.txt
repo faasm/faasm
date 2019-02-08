@@ -16,7 +16,6 @@ set(PUBLIC_HEADERS
 
 set_target_properties(lambda PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
-
 target_link_libraries(
         lambda
         faasm
@@ -24,10 +23,3 @@ target_link_libraries(
 )
 
 set_target_properties(lambda PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
-
-#install(TARGETS lambda
-#        ARCHIVE DESTINATION lib
-#        LIBRARY DESTINATION lib
-#        RUNTIME DESTINATION bin
-#        PUBLIC_HEADER DESTINATION include/lambda
-#        )

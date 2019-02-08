@@ -35,7 +35,7 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen) {
     if(bufferLen == 0) {
         return faasm::input.size();
     }
-    
+
     auto inputBytes = reinterpret_cast<uint8_t *>(faasm::input.data());
     std::copy(inputBytes, inputBytes + faasm::input.size(), buffer);
 

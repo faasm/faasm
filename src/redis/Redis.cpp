@@ -52,11 +52,11 @@ namespace redis {
         return scriptSha;
     }
 
+    Redis::Redis(const RedisInstance &instanceIn) :
+            CoreRedis(instanceIn.ip, instanceIn.port),
+            instance(instanceIn) {
 
-    Redis::Redis(const RedisInstance &instanceIn) : instance(instanceIn) {
-        // Note, connect with IP, not with hostname
-        context = redisConnect(instance.ip.c_str(), instance.port);
-
+        // Note, we must connect with IP, not with hostname
         if (context == nullptr || context->err) {
             if (context) {
                 printf("Error connecting to redis at %s: %s\n", instance.ip.c_str(), context->errstr);
@@ -68,10 +68,6 @@ namespace redis {
         }
 
         printf("Connected to redis host %s at %s:%i\n", instance.hostname.c_str(), instance.ip.c_str(), instance.port);
-    }
-
-    Redis::~Redis() {
-        redisFree(context);
     }
 
     /**
@@ -452,7 +448,7 @@ namespace redis {
         freeReplyObject(reply);
     }
 
-    redisReply* Redis::dequeueBase(const std::string &queueName, int timeout) {
+    redisReply *Redis::dequeueBase(const std::string &queueName, int timeout) {
         auto reply = (redisReply *) redisCommand(context, "BLPOP %s %d", queueName.c_str(), timeout);
 
         if (reply == nullptr || reply->type == REDIS_REPLY_NIL) {

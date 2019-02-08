@@ -23,14 +23,13 @@ AWS_REGION = "eu-west-1"
 
 @task
 def build_lambdas(ctx):
-    # Compile the whole project passing in the right config
     print("Running Lambda build")
 
+    # Compile the whole project passing in the right config
     build_dir = join(PROJ_ROOT, "lambda_build")
-
     _build_cmake_project(build_dir, [
         "-DFAASM_BUILD_TYPE=lambda",
-        "-DCMAKE_BUILD_TYPE=Debug",
+        "-DCMAKE_BUILD_TYPE=Release",
     ], clean=True)
 
 
