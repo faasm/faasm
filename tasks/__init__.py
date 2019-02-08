@@ -30,16 +30,10 @@ from tasks.docker import (
 
 from tasks.docker_compose import start_all, stop_all, restart_all
 
-from tasks.setup import (
-    setup_namespaces,
-    setup_net_files,
-    setup_libs,
-    setup_clang,
-    setup_eigen,
-    setup_cgroup,
-    setup_protobuf,
-    setup_spdlog,
-    setup_pistache
+from tasks.aws import (
+    build_lambda_runtime,
+    build_lambdas,
+    upload_lambda_function,
 )
 
 from tasks.upload import upload

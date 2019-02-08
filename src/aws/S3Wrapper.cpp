@@ -2,13 +2,16 @@
 #include "S3Wrapper.h"
 
 #include <util/logging.h>
+#include <util/bytes.h>
 
+#include <aws/s3/model/DeleteObjectRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/ListObjectsRequest.h>
 #include <aws/s3/model/PutObjectRequest.h>
 
 namespace awswrapper {
-    S3Wrapper::S3Wrapper() : client(Aws::S3::S3Client(getClientConf(REQUEST_TIMEOUT_MS))) {
+    S3Wrapper::S3Wrapper() : clientConf(getClientConf(REQUEST_TIMEOUT_MS)),
+                             client(Aws::S3::S3Client(clientConf)) {
 
     }
 
@@ -17,14 +20,11 @@ namespace awswrapper {
         return s3;
     }
 
-
     std::vector<std::string> S3Wrapper::listKeys(const std::string &bucketName) {
-        S3Wrapper &s3 = S3Wrapper::getThreadLocal();
-
         Aws::S3::Model::ListObjectsRequest request;
         request.WithBucket(Aws::String(bucketName));
 
-        auto response = s3.client.ListObjects(request);
+        auto response = client.ListObjects(request);
 
         if (!response.IsSuccess()) {
             const auto &err = response.GetError();
@@ -41,12 +41,50 @@ namespace awswrapper {
         return keys;
     }
 
-    void S3Wrapper::addKey(const std::string &bucketName, const std::string &keyName, const std::string &data) {
+    void S3Wrapper::deleteKey(const std::string &bucketName, const std::string &keyName) {
+        Aws::S3::Model::DeleteObjectRequest request;
+        request.WithBucket(Aws::String(bucketName)).WithKey(Aws::String(keyName));
+
+        auto response = client.DeleteObject(request);
+
+        if (!response.IsSuccess()) {
+            const auto &err = response.GetError();
+            handleError(err);
+        }
+    }
+
+    void S3Wrapper::addKeyBytes(const std::string &bucketName, const std::string &keyName,
+                                const std::vector<uint8_t> &data) {
+        const char *charPtr = reinterpret_cast<const char *>(data.data());
+        this->addKey(bucketName, keyName, charPtr, data.size());
+    }
+
+    void S3Wrapper::addKeyStr(const std::string &bucketName, const std::string &keyName, const std::string &data) {
+        this->addKey(bucketName, keyName, data.c_str(), data.size());
+    }
+
+    std::vector<uint8_t> S3Wrapper::getKeyBytes(const std::string &bucketName, const std::string &keyName) {
+        const std::string &byteStr = this->getKey(bucketName, keyName);
+
+        const std::vector<uint8_t> &bytes = util::stringToBytes(byteStr);
+
+        return bytes;
+    }
+
+    std::string S3Wrapper::getKeyStr(const std::string &bucketName, const std::string &keyName) {
+        return this->getKey(bucketName, keyName);
+    }
+
+    void
+    S3Wrapper::addKey(const std::string &bucketName, const std::string &keyName, const char *data, size_t dataLen) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Writing {} to bucket {}", keyName, bucketName);
+
         Aws::S3::Model::PutObjectRequest request;
         request.WithBucket(Aws::String(bucketName)).WithKey(Aws::String(keyName));
 
-        std::shared_ptr<Aws::IOStream> dataStream = Aws::MakeShared<Aws::StringStream>(data.c_str());
-        *dataStream << data;
+        std::shared_ptr<Aws::IOStream> dataStream = Aws::MakeShared<Aws::StringStream>(data);
+        dataStream->write(data, dataLen);
         request.SetBody(dataStream);
 
         auto response = client.PutObject(request);

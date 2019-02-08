@@ -2,6 +2,7 @@
 #include "SQSWrapper.h"
 
 #include <util/logging.h>
+#include <util/locks.h>
 
 #include <aws/sqs/SQSClient.h>
 
@@ -12,6 +13,9 @@
 #include <aws/sqs/model/DeleteMessageRequest.h>
 
 namespace awswrapper {
+    std::unordered_map<std::string, std::string> urlMap;
+    std::mutex urlMapMx;
+
     SQSWrapper::SQSWrapper() : client(Aws::SQS::SQSClient(getClientConf(REQUEST_TIMEOUT_MS))) {
     }
 
@@ -21,17 +25,27 @@ namespace awswrapper {
     }
 
     std::string SQSWrapper::getQueueUrl(const std::string &queueName) {
-        Aws::SQS::Model::GetQueueUrlRequest request;
-        request.SetQueueName(Aws::String(queueName));
+        if(urlMap.count(queueName) == 0) {
+            // Make sure we have a full lock before getting the URL for this queue
+            util::UniqueLock lock(urlMapMx);
 
-        auto response = client.GetQueueUrl(request);
-        if (!response.IsSuccess()) {
-            const auto &err = response.GetError();
-            handleError(err);
+            // Double check condition
+            if(urlMap.count(queueName) == 0) {
+                Aws::SQS::Model::GetQueueUrlRequest request;
+                request.SetQueueName(Aws::String(queueName));
+
+                auto response = client.GetQueueUrl(request);
+                if (!response.IsSuccess()) {
+                    const auto &err = response.GetError();
+                    handleError(err);
+                }
+
+                std::string url(response.GetResult().GetQueueUrl());
+                urlMap[queueName] = url;
+            }
         }
 
-        std::string url(response.GetResult().GetQueueUrl());
-        return url;
+        return urlMap[queueName];
     }
 
     void SQSWrapper::sendMessage(const std::string &queueUrl, const std::string &content) {

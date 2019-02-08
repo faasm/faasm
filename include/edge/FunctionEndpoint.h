@@ -23,7 +23,7 @@ namespace edge {
         std::shared_ptr<Http::Endpoint> httpEndpoint;
         Rest::Router router;
 
-        scheduler::GlobalMessageQueue globalQueue;
+        scheduler::GlobalMessageBus &globalBus;
 
         void setupRoutes();
 

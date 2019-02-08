@@ -14,7 +14,7 @@ namespace awswrapper {
     template<typename T>
     void handleError(const Aws::Client::AWSError<T> err) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->error("Failed to list objects: {} {}", err.GetExceptionName().c_str(), err.GetMessage().c_str());
+        logger->error("AWS error: {} {}", err.GetExceptionName().c_str(), err.GetMessage().c_str());
 
         throw std::runtime_error("AWS error");
     }

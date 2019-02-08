@@ -1,11 +1,21 @@
-#include <upload/upload.h>
+#include <upload/UploadServer.h>
+
+#include <aws/aws.h>
+
+#include <util/logging.h>
+#include <util/config.h>
 
 int main() {
     std::string port = "8002";
-
+    
     util::initLogging();
 
-    edge::RestServer server;
+    util::SystemConfig &config = util::getSystemConfig();
+    config.print();
+
+    awswrapper::initSDK();
+
+    edge::UploadServer server;
     server.listen(port);
 
     return 0;

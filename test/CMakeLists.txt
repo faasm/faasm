@@ -6,6 +6,7 @@ add_executable(
         tests
         main.cpp
         utils/matrix_utils.cpp
+        utils/message_utils.cpp
         utils/system_utils.cpp
         utils.h
         ${TEST_FILES}

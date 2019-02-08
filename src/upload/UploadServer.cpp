@@ -1,14 +1,18 @@
-#include "upload.h"
+#include "UploadServer.h"
 
+#include <util/logging.h>
 #include <util/bytes.h>
 #include <prof/prof.h>
+
 #include <redis/Redis.h>
+#include <aws/S3Wrapper.h>
+#include <wasm/FunctionLoader.h>
 
 
 namespace edge {
-    RestServer::RestServer() = default;
+    UploadServer::UploadServer() = default;
 
-    std::vector<std::string> RestServer::getPathParts(const http_request &request) {
+    std::vector<std::string> UploadServer::getPathParts(const http_request &request) {
         const uri uri = request.relative_uri();
         const std::vector<std::string> pathParts = uri::split_path(uri::decode(uri.path()));
 
@@ -29,15 +33,15 @@ namespace edge {
         return pathParts;
     }
 
-    void RestServer::listen(const std::string &port) {
+    void UploadServer::listen(const std::string &port) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         std::string addr = "http://0.0.0.0:" + port;
         http_listener listener(addr);
 
-        listener.support(methods::GET, RestServer::handleGet);
+        listener.support(methods::GET, UploadServer::handleGet);
 
-        listener.support(methods::PUT, RestServer::handlePut);
+        listener.support(methods::PUT, UploadServer::handlePut);
 
         listener.open().wait();
 
@@ -48,8 +52,8 @@ namespace edge {
         }
     }
 
-    void RestServer::handleGet(const http_request &request) {
-        const std::vector<std::string> pathParts = RestServer::getPathParts(request);
+    void UploadServer::handleGet(const http_request &request) {
+        const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
 
         const std::vector<uint8_t> stateBytes = getState(request);
 
@@ -58,8 +62,8 @@ namespace edge {
         request.reply(response);
     }
 
-    void RestServer::handlePut(const http_request &request) {
-        const std::vector<std::string> pathParts = RestServer::getPathParts(request);
+    void UploadServer::handlePut(const http_request &request) {
+        const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
         if (pathParts[0] == "s") {
             handleStateUpload(request);
         } else {
@@ -67,10 +71,10 @@ namespace edge {
         }
     }
 
-    std::vector<uint8_t> RestServer::getState(const http_request &request) {
+    std::vector<uint8_t> UploadServer::getState(const http_request &request) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        const std::vector<std::string> pathParts = RestServer::getPathParts(request);
+        const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
         std::string user = pathParts[1];
         std::string key = pathParts[2];
         std::string realKey = user + "_" + key;
@@ -83,10 +87,10 @@ namespace edge {
         return value;
     }
 
-    void RestServer::handleStateUpload(const http_request &request) {
+    void UploadServer::handleStateUpload(const http_request &request) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        const std::vector<std::string> pathParts = RestServer::getPathParts(request);
+        const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
         std::string user = pathParts[1];
         std::string key = pathParts[2];
         std::string realKey = user + "_" + key;
@@ -110,29 +114,21 @@ namespace edge {
         request.reply(status_codes::OK, "State upload complete\n");
     }
 
-    void RestServer::handleFunctionUpload(const http_request &request) {
+    void UploadServer::handleFunctionUpload(const http_request &request) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        message::Message msg = RestServer::buildMessageFromRequest(request);
-        std::string outputFile = util::getFunctionFile(msg);
-
+        message::Message msg = UploadServer::buildMessageFromRequest(request);
         logger->info("Uploading {}", util::funcToString(msg));
 
-        // Here the msg input data is actually the file
-        std::ofstream out(outputFile);
-        const std::string &fileBody = msg.inputdata();
-        out.write(fileBody.c_str(), fileBody.size());
-        out.flush();
-        out.close();
-
-        // Build the object file from the file we've just received
-        wasm::WasmModule::compileToObjectFile(msg);
+        // Do the upload
+        wasm::FunctionLoader &l = wasm::getFunctionLoader();
+        l.uploadFunction(msg);
 
         request.reply(status_codes::OK, "Function upload complete\n");
     }
 
-    message::Message RestServer::buildMessageFromRequest(const http_request &request) {
-        const std::vector<std::string> pathParts = RestServer::getPathParts(request);
+    message::Message UploadServer::buildMessageFromRequest(const http_request &request) {
+        const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
 
         if (pathParts.size() != 3) {
             request.reply(status_codes::OK, "Invalid path (must be /f|fa/<user>/<func>/ \n");

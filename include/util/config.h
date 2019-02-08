@@ -11,6 +11,12 @@ namespace util {
     class SystemConfig {
 
     public:
+        // System
+        std::string systemMode;
+        std::string serialisation;
+        std::string bucketName;
+        std::string queueName;
+
         // Scheduling
         int threadsPerWorker;
         int noScheduler;
@@ -33,7 +39,7 @@ namespace util {
         void print();
 
     private:
-        int getSystemConfParam(const char *name, const char *defaultValue);
+        int getSystemConfIntParam(const char *name, const char *defaultValue);
     };
 
     SystemConfig &getSystemConfig();

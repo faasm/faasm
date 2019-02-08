@@ -1,6 +1,8 @@
 #pragma once
 
+#include <util/func.h>
 #include <worker/WorkerThreadPool.h>
+
 #include "faasm/matrix.h"
 #include "faasm/sgd.h"
 
@@ -12,4 +14,6 @@ namespace tests {
     void cleanSystem();
 
     void checkSparseMatrixEquality(const SparseMatrix<double> &a, const SparseMatrix<double> &b);
+
+    void checkMessageEquality(const message::Message &msgA, const message::Message &msgB);
 }

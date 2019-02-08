@@ -19,7 +19,7 @@ namespace tests {
 
         std::string hostname = util::getHostName();
         std::string otherHostA = "Host A";
-        GlobalMessageQueue otherHostAQueue(otherHostA);
+        SharingMessageBus &sharingBus = SharingMessageBus::getInstance();
         
         message::Message call;
         call.set_user("user a");
@@ -182,8 +182,8 @@ namespace tests {
                 sch.callFunction(call);
                 sch.callFunction(call);
 
-                message::Message actualA = otherHostAQueue.nextMessage();
-                message::Message actualB = otherHostAQueue.nextMessage();
+                message::Message actualA = sharingBus.nextMessageForHost(otherHostA);
+                message::Message actualB = sharingBus.nextMessageForHost(otherHostA);
 
                 REQUIRE(actualA.function() == call.function());
                 REQUIRE(actualA.user() == call.user());

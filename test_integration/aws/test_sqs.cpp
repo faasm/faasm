@@ -1,16 +1,16 @@
 #include <catch/catch.hpp>
 
+#include <util/config.h>
 #include <aws/SQSWrapper.h>
 
 using namespace awswrapper;
 
 namespace tests {
-    std::string testQueueName = "faasm-test";
-
     TEST_CASE("Test send/receive messages", "[aws]") {
         SQSWrapper &sqs = SQSWrapper::getThreadLocal();
-
-        std::string url = sqs.getQueueUrl(testQueueName);
+        util::SystemConfig &conf = util::getSystemConfig();
+        
+        std::string url = sqs.getQueueUrl(conf.queueName);
 
         sqs.sendMessage(url, "alpha");
         sqs.sendMessage(url, "beta");

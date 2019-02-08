@@ -19,7 +19,7 @@ namespace faasm {
         std::shuffle(arrayIn, arrayIn + arrayLen, rng);
     }
 
-    int* randomIntRange(size_t rangeLen) {
+    int* randomIntRange(int rangeLen) {
         int *range = new int[rangeLen];
 
         for(int i = 0; i < rangeLen; i++) {

@@ -7,7 +7,6 @@ file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/worker/*.h")
 
 add_library(worker_lib
         CGroup.cpp
-        DispatcherThread.cpp
         NetworkNamespace.cpp
         StateThread.cpp
         WorkerThread.cpp

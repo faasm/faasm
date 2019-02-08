@@ -6,7 +6,7 @@ from subprocess import call
 
 from invoke import task
 
-from tasks.download import download_proj, DOWNLOAD_DIR
+from tasks.download import download_proj, FAASM_HOME
 from tasks.env import PROJ_ROOT
 
 # Note, most of the time this will be run inside the toolchain container
@@ -92,7 +92,7 @@ def funcs(context, clean=False):
     if not exists(func_build_dir):
         mkdir(func_build_dir)
 
-    call("cmake -DCMAKE_BUILD_TYPE=wasm ..", shell=True, cwd=func_build_dir)
+    call("cmake -DFAASM_BUILD_TYPE=wasm ..", shell=True, cwd=func_build_dir)
     call("make", shell=True, cwd=func_build_dir)
 
 
@@ -139,8 +139,8 @@ def compile(context, path, libcurl=False, debug=False):
 
 @task
 def lib(context, lib_name):
-    if not exists(DOWNLOAD_DIR):
-        mkdir(DOWNLOAD_DIR)
+    if not exists(FAASM_HOME):
+        mkdir(FAASM_HOME)
 
     if lib_name == "curl":
         compile_libcurl()
@@ -167,7 +167,7 @@ def compile_libfaasm():
 
     mkdir(build_dir)
 
-    build_cmd = "{} cmake -DCMAKE_BUILD_TYPE=wasm ..".format(ENV_STR)
+    build_cmd = "{} cmake -DFAASM_BUILD_TYPE=wasm ..".format(ENV_STR)
     print(build_cmd)
     call(build_cmd, shell=True, cwd=build_dir)
 

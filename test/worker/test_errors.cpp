@@ -34,8 +34,7 @@ namespace tests {
         execErrorFunction(call);
 
         // Get result
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        scheduler::GlobalMessageQueue &messageQueue = sch.getGlobalQueue();
+        scheduler::GlobalMessageBus &messageQueue = scheduler::getGlobalMessageBus();
 
         message::Message result = messageQueue.getFunctionResult(call);
         REQUIRE(!result.success());

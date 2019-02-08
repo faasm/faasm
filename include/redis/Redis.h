@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CoreRedis.h"
+
 #include <util/config.h>
 
 #include <hiredis/hiredis.h>
@@ -59,11 +61,9 @@ namespace redis {
     };
 
 
-    class Redis {
+    class Redis : public CoreRedis {
 
     public:
-        ~Redis();
-
         /**
         *  ------ Factories ------
         */
@@ -142,15 +142,20 @@ namespace redis {
         /**
          * ------ Queueing ------
          */
-        void enqueue(const std::string &queueName, const std::vector<uint8_t> &value);
+        void enqueue(const std::string &queueName, const std::string &value);
 
-        std::vector<uint8_t> dequeue(const std::string &queueName, int timeout = util::DEFAULT_TIMEOUT);
+        void enqueueBytes(const std::string &queueName, const std::vector<uint8_t> &value);
+
+        std::string dequeue(const std::string &queueName, int timeout = util::DEFAULT_TIMEOUT);
+
+        std::vector<uint8_t> dequeueBytes(const std::string &queueName, int timeout = util::DEFAULT_TIMEOUT);
+
     private:
         explicit Redis(const RedisInstance &instance);
 
         const RedisInstance &instance;
 
-        redisContext *context;
+        redisReply* dequeueBase(const std::string &queueName, int timeout);
     };
 
     class RedisNoResponseException : public std::exception {

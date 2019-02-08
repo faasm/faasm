@@ -1,2 +1,6 @@
+awscli
+botocore
+boto
+boto3
 invoke
 requests

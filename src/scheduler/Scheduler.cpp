@@ -2,6 +2,7 @@
 
 #include <util/logging.h>
 #include <util/random.h>
+#include <scheduler/SharingMessageBus.h>
 
 using namespace util;
 
@@ -11,21 +12,13 @@ namespace scheduler {
     Scheduler::Scheduler() :
             hostname(util::getHostName()),
             conf(util::getSystemConfig()),
-            globalQueue(GlobalMessageQueue(INCOMING_QUEUE)),
-            redis(redis::Redis::getQueue()) {
+            redis(redis::Redis::getQueue()),
+            sharingBus(SharingMessageBus::getInstance()) {
 
         bindQueue = new InMemoryMessageQueue();
 
         // Add to global set of workers
         redis.sadd(GLOBAL_WORKER_SET, hostname);
-    }
-
-    std::string Scheduler::getHostSharingQueueName() {
-        return "share_" + hostname;
-    }
-
-    GlobalMessageQueue &Scheduler::getGlobalQueue() {
-        return globalQueue;
     }
 
     void Scheduler::clear() {
@@ -149,7 +142,7 @@ namespace scheduler {
 
         std::string bestHost = this->getBestHostForFunction(msg);
         if (bestHost == hostname) {
-            logger->info("SCH - Executing {} locally", util::funcToString(msg));
+            logger->debug("Executing {} locally", util::funcToString(msg));
 
             // Enqueue the message locally
             this->enqueueMessage(msg);
@@ -160,9 +153,7 @@ namespace scheduler {
             // Share with other host
             logger->debug("Sharing {} call with {}", util::funcToString(msg), bestHost);
 
-            // TODO - cache these queues and reuse
-            GlobalMessageQueue globalQueue(bestHost);
-            globalQueue.enqueueMessage(msg);
+            sharingBus.shareMessageWithHost(bestHost, msg);
         }
     }
 
@@ -180,7 +171,7 @@ namespace scheduler {
         double queueRatio = this->getFunctionQueueRatio(msg);
         double nThreads = this->getFunctionThreadCount(msg);
 
-        logger->info("SCH - {} Queue ratio = {} threads = {}", util::funcToString(msg), queueRatio, nThreads);
+        logger->debug("{} queue ratio = {} threads = {}", util::funcToString(msg), queueRatio, nThreads);
 
         // If we're over the queue ratio and have capacity, need to scale up
         if (queueRatio > maxQueueRatio && nThreads < conf.maxWorkersPerFunction) {
@@ -193,7 +184,7 @@ namespace scheduler {
 
             // Double check condition
             if (queueRatio > maxQueueRatio && nThreads < conf.maxWorkersPerFunction) {
-                logger->info("SCH - Scaling up {} to {} threads", util::funcToString(msg), nThreads + 1);
+                logger->debug("Scaling up {} to {} threads", util::funcToString(msg), nThreads + 1);
 
                 // If this is the first thread on this host, add it to the warm set for this function
                 if (nThreads == 0) {
@@ -266,8 +257,8 @@ namespace scheduler {
             return *allOptions.begin();
         } else {
             // TODO: scale out here
-            logger->error("No worker host available for scheduling {}", util::funcToString(msg));
-            throw std::runtime_error("No worker host available for scheduling");
+            // For now just give up and accept the message locally
+            return hostname;
         }
     }
 }

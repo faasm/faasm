@@ -4,14 +4,17 @@
 #include <util/func.h>
 #include <util/memory.h>
 #include <prof/prof.h>
-
-#include <syscall.h>
+#include <wasm/FunctionLoader.h>
 
 #include <WAVM/WASM/WASM.h>
 #include <WAVM/Inline/CLI.h>
 #include <WAVM/IR/Types.h>
+#include <WAVM/IR/Module.h>
+#include <WAVM/Runtime/Intrinsics.h>
+#include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/RuntimeData.h>
 
+#include <syscall.h>
 
 using namespace WAVM;
 
@@ -43,7 +46,6 @@ namespace wasm {
 
     WasmModule::~WasmModule() {
         // delete[] cleanMemory;
-
         defaultMemory = nullptr;
         moduleInstance = nullptr;
         functionInstance = nullptr;
@@ -95,9 +97,15 @@ namespace wasm {
             throw std::runtime_error("Cannot bind a module twice");
         }
 
-        // Parse the wasm file to work out imports, function signatures etc.
+        // Load the function data
         const util::TimePoint &wasmParseTs = prof::startTimer();
-        this->parseWasm(msg);
+        wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
+        const std::vector<uint8_t> &bytes = functionLoader.loadFunctionBytes(msg);
+        WASM::loadBinaryModule(bytes.data(), bytes.size(), module);
+
+        // Set up minimum memory size
+        module.memories.defs[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
+
         prof::logEndTimer("wasm-parse", wasmParseTs);
 
         // Linking
@@ -112,7 +120,7 @@ namespace wasm {
 
         // Load the object file
         const util::TimePoint &objTs = prof::startTimer();
-        std::vector<uint8_t> objectFileBytes = util::getFunctionObjectBytes(msg);
+        std::vector<uint8_t> objectFileBytes = functionLoader.loadFunctionObjectBytes(msg);
         prof::logEndTimer("obj-load", objTs);
 
         // Instantiate the module, i.e. create memory, tables etc.
@@ -234,45 +242,6 @@ namespace wasm {
             exitCode = e.exitCode;
         }
         return exitCode;
-    }
-
-    std::vector<uint8_t> WasmModule::compile(message::Message &msg) {
-        // Parse the wasm file to work out imports, function signatures etc.
-        WasmModule tempModule;
-        tempModule.parseWasm(msg);
-
-        // Compile the module to object code
-        Runtime::ModuleRef module = Runtime::compileModule(tempModule.module);
-        return Runtime::getObjectCode(module);
-    }
-
-    void WasmModule::compileToObjectFile(message::Message &msg) {
-        std::vector<uint8_t> objBytes = wasm::WasmModule::compile(msg);
-        std::string objFilePath = util::getFunctionObjectFile(msg);
-        util::writeBytesToFile(objFilePath, objBytes);
-    }
-
-    /**
-     * Parse the WASM file to work out functions, exports, imports etc.
-     */
-    void WasmModule::parseWasm(const message::Message &msg) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        std::vector<U8> fileBytes;
-        std::string filePath = util::getFunctionFile(msg);
-
-        if (!loadFile(filePath.c_str(), fileBytes)) {
-            logger->error("Could not read data from {}", filePath);
-            throw std::runtime_error("Could not read binary data from file");
-        }
-
-        WASM::loadBinaryModule(fileBytes.data(), fileBytes.size(), this->module);
-
-        // Set up minimum memory size
-        this->module.memories.defs[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
-
-        // Add the shared memory definition
-        // this->module.memories.imports.push_back({{true, {0, 1000}}, msg.user(), "shared_state"});
     }
 
     U32 WasmModule::mmap(U32 length) {

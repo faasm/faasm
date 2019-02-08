@@ -1,10 +1,16 @@
 #define CATCH_CONFIG_RUNNER
 
 #include <catch/catch.hpp>
+
 #include <util/logging.h>
+#include <util/environment.h>
 #include <aws/aws.h>
 
 int main(int argc, char *argv[]) {
+    util::setEnvVar("SYSTEM_MODE", "aws");
+    util::setEnvVar("BUCKET_NAME", "faasm-test");
+    util::setEnvVar("QUEUE_NAME", "faasm-test");
+
     util::initLogging();
     awswrapper::initSDK();
 

@@ -11,26 +11,38 @@ namespace util {
 
     SystemConfig::SystemConfig() {
         // TODO - max cannot exceed the underlying number of available namespaces. Good to decouple?
-        threadsPerWorker = this->getSystemConfParam("THREADS_PER_WORKER", "50");
+        threadsPerWorker = this->getSystemConfIntParam("THREADS_PER_WORKER", "50");
+
+        // System
+        systemMode = getEnvVar("SYSTEM_MODE", "redis");
+        serialisation = getEnvVar("SERIALISATION", "json");
+        bucketName = getEnvVar("BUCKET_NAME", "");
+        queueName = getEnvVar("QUEUE_NAME", "faasm_messages");
+
+        if(systemMode == "aws") {
+            if(bucketName.empty() || queueName.empty()) {
+                throw std::runtime_error("Must provide both bucket name and queue name when in AWS mode");
+            }
+        }
 
         // Scheduling
-        noScheduler = this->getSystemConfParam("NO_SCHEDULER", "0");
-        prewarm = this->getSystemConfParam("PREWARM", "1");
-        maxQueueRatio = this->getSystemConfParam("MAX_QUEUE_RATIO", "3");
-        maxWorkersPerFunction = this->getSystemConfParam("MAX_WORKERS_PER_FUNCTION", "10");
+        noScheduler = this->getSystemConfIntParam("NO_SCHEDULER", "0");
+        prewarm = this->getSystemConfIntParam("PREWARM", "1");
+        maxQueueRatio = this->getSystemConfIntParam("MAX_QUEUE_RATIO", "3");
+        maxWorkersPerFunction = this->getSystemConfIntParam("MAX_WORKERS_PER_FUNCTION", "10");
 
         // Worker-related timeouts
-        boundTimeout = this->getSystemConfParam("BOUND_TIMEOUT", "30");
-        unboundTimeout = this->getSystemConfParam("UNBOUND_TIMEOUT", "5000");
+        boundTimeout = this->getSystemConfIntParam("BOUND_TIMEOUT", "30");
+        unboundTimeout = this->getSystemConfIntParam("UNBOUND_TIMEOUT", "5000");
 
         // State
-        stateStaleThreshold = this->getSystemConfParam("STATE_STALE_THRESHOLD", "60000");
-        stateClearThreshold = this->getSystemConfParam("STATE_CLEAR_THRESHOLD", "300000");
-        statePushInterval = this->getSystemConfParam("STATE_PUSH_INTERVAL", "500");
-        fullAsync = this->getSystemConfParam("FULL_ASYNC", "0");
+        stateStaleThreshold = this->getSystemConfIntParam("STATE_STALE_THRESHOLD", "60000");
+        stateClearThreshold = this->getSystemConfIntParam("STATE_CLEAR_THRESHOLD", "300000");
+        statePushInterval = this->getSystemConfIntParam("STATE_PUSH_INTERVAL", "500");
+        fullAsync = this->getSystemConfIntParam("FULL_ASYNC", "0");
     }
 
-    int SystemConfig::getSystemConfParam(const char *name, const char *defaultValue) {
+    int SystemConfig::getSystemConfIntParam(const char *name, const char *defaultValue) {
         int value = stoi(getEnvVar(name, defaultValue));
 
         return value;
@@ -38,6 +50,11 @@ namespace util {
 
     void SystemConfig::print() {
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
+
+        logger->info("--- System ---");
+        logger->info("SYSTEM_MODE                {}", systemMode);
+        logger->info("BUCKET_NAME                {}", bucketName);
+        logger->info("QUEUE_NAME                 {}", queueName);
 
         logger->info("--- Scheduling ---");
         logger->info("THREADS_PER_WORKER         {}", threadsPerWorker);

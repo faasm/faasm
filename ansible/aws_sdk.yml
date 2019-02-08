@@ -15,7 +15,7 @@
         chdir: "/usr/local/code/lib/aws-sdk"
 
     - name: "Prepare build"
-      shell: 'cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_ONLY="s3;sqs" -DENABLE_TESTING=OFF ..'
+      shell: 'cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_ONLY="s3;sqs" -DENABLE_TESTING=OFF -DBUILD_SHARED_LIBS=OFF ..'
       args:
         chdir: "/usr/local/code/lib/aws-sdk/build"
 

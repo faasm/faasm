@@ -43,6 +43,24 @@ namespace util {
         return isValid;
     }
 
+    std::string getFunctionKey(const message::Message &msg) {
+        boost::filesystem::path path("wasm");
+        path.append(msg.user());
+        path.append(msg.function());
+        path.append(funcFile);
+
+        return path.string();
+    }
+
+    std::string getFunctionObjectKey(const message::Message &msg) {
+        boost::filesystem::path path("wasm");
+        path.append(msg.user());
+        path.append(msg.function());
+        path.append(objFile);
+
+        return path.string();
+    }
+
     std::string getFunctionFile(const message::Message &msg) {
         auto path = getFunctionDir(msg);
         path.append(funcFile);
@@ -55,13 +73,6 @@ namespace util {
         path.append(objFile);
 
         return path.string();
-    }
-
-    std::vector<uint8_t> getFunctionObjectBytes(const message::Message &msg) {
-        std::string objectFilePath = getFunctionObjectFile(msg);
-        std::vector<uint8_t> bytes = util::readFileToBytes(objectFilePath);
-
-        return bytes;
     }
 
     std::vector<uint8_t> messageToBytes(const message::Message &msg) {

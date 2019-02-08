@@ -5,11 +5,13 @@
 #include <vector>
 
 namespace util {
+    std::string getFunctionKey(const message::Message &msg);
+
+    std::string getFunctionObjectKey(const message::Message &msg);
+
     std::string getFunctionFile(const message::Message &msg);
 
     std::string getFunctionObjectFile(const message::Message &msg);
-
-    std::vector<uint8_t> getFunctionObjectBytes(const message::Message &msg);
 
     bool isValidFunction(const message::Message &msg);
 
