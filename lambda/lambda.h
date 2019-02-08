@@ -1,7 +1,6 @@
 #pragma once
 
 #include <aws/lambda-runtime/runtime.h>
-#include <aws/logging/logging.h>
 
 #include "faasm/memory.h"
 #include "backend.h"
@@ -21,7 +20,7 @@ int main() {
 
         faasm::setInput(req.payload);
 
-        // Run the normal Faasm function entrypoint
+        // Run the normal Faasm function entry point
         auto memory = new faasm::FaasmMemory();
         exec(memory);
 

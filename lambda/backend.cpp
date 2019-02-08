@@ -2,11 +2,7 @@
 
 #include "faasm/memory.h"
 
-#include "aws/logging/logging.h"
-
 #include <string>
-
-static const char* LOG_MARKER = "FAASM";
 
 namespace faasm {
 
@@ -14,19 +10,19 @@ namespace faasm {
     std::string output;
 
     void startRequest() {
-        aws::logging::log_info(LOG_MARKER, "Starting request\n");
+        printf("Starting request\n");
 
         input = std::string();
         output = std::string();
     }
 
     void setInput(const std::string &i) {
-        aws::logging::log_info(LOG_MARKER, "Received input [%s]\n", i.c_str());
+        printf("Received input [%s]\n", i.c_str());
         input = i;
     }
 
     std::string getOutput() {
-        aws::logging::log_info(LOG_MARKER, "Returning output [%s]\n", output.c_str());
+        printf("Returning output [%s]\n", output.c_str());
         return output;
     }
 
@@ -36,7 +32,13 @@ namespace faasm {
 }
 
 long __faasm_read_input(unsigned char *buffer, long bufferLen) {
-    faasm::input = std::string(reinterpret_cast<const char*>(buffer), (size_t) bufferLen);
+    if(bufferLen == 0) {
+        return faasm::input.size();
+    }
+    
+    auto inputBytes = reinterpret_cast<uint8_t *>(faasm::input.data());
+    std::copy(inputBytes, inputBytes + faasm::input.size(), buffer);
+
     return bufferLen;
 }
 
