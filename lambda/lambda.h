@@ -27,10 +27,9 @@ int main() {
 
         // Return a Lambda-friendly response
         const std::string output = faasm::getOutput();
-        std::string jsonResponse = "{\"result\": \"" + output + "\"}";
         return invocation_response::success(
-                jsonResponse,
-                "application/json"
+                output,
+                "text/plain"
         );
     };
 

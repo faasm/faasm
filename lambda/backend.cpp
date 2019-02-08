@@ -6,7 +6,7 @@
 
 #include <string>
 
-#define LOG_MARKER "FAASM"
+static const char* LOG_MARKER = "FAASM";
 
 namespace faasm {
 
@@ -14,20 +14,19 @@ namespace faasm {
     std::string output;
 
     void startRequest() {
-        printf("\nStarting request\n");
-        aws::logging::log_info(LOG_MARKER, "Starting request");
+        aws::logging::log_info(LOG_MARKER, "Starting request\n");
 
         input = std::string();
         output = std::string();
     }
 
     void setInput(const std::string &i) {
-        aws::logging::log_info(LOG_MARKER, "Received input [%s]", i.c_str());
+        aws::logging::log_info(LOG_MARKER, "Received input [%s]\n", i.c_str());
         input = i;
     }
 
     std::string getOutput() {
-        aws::logging::log_info(LOG_MARKER, "Returning output [%s]", output.c_str());
+        aws::logging::log_info(LOG_MARKER, "Returning output [%s]\n", output.c_str());
         return output;
     }
 
