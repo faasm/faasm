@@ -64,8 +64,6 @@ namespace redis {
     class Redis : public CoreRedis {
 
     public:
-        ~Redis();
-
         /**
         *  ------ Factories ------
         */
