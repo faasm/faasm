@@ -1,52 +1,108 @@
 #include "backend.h"
 
-#include <aws/core/Aws.h>
-#include <aws/s3/S3Client.h>
-#include <aws/sqs/SQSClient.h>
+#include "faasm/memory.h"
 
-#include <aws/core/utils/logging/LogLevel.h>
-#include <aws/core/utils/logging/ConsoleLogSystem.h>
-#include <aws/core/utils/logging/LogMacros.h>
-#include <aws/core/utils/json/JsonSerializer.h>
-#include <aws/core/utils/HashingUtils.h>
-#include <aws/core/platform/Environment.h>
-#include <aws/core/client/ClientConfiguration.h>
-#include <aws/core/auth/AWSCredentialsProvider.h>
-
-using namespace Aws;
+#include <string>
 
 namespace faasm {
-    char const TAG[] = "LAMBDA_ALLOC";
 
-    S3::S3Client s3Client;
-    SQS::SQSClient sqsClient;
-    SDKOptions options;
+    std::string input;
+    std::string output;
 
-    std::function<std::shared_ptr<Aws::Utils::Logging::LogSystemInterface>()> GetConsoleLoggerFactory() {
-        return [] {
-            return Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>(
-                    "console_logger", Aws::Utils::Logging::LogLevel::Trace);
-        };
+    void setInput(const std::string &i) {
+        input = i;
+    }
+
+    std::string getOutput() {
+        return output;
     }
 
     void initialiseLambdaBackend() {
-        options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
-        options.loggingOptions.logger_create_fn = GetConsoleLoggerFactory();
 
-        InitAPI(options);
-
-        {
-            Client::ClientConfiguration config;
-            config.region = Aws::Environment::GetEnv("AWS_REGION");
-            config.caFile = "/etc/pki/tls/certs/ca-bundle.crt";
-
-            auto credentialsProvider = Aws::MakeShared<Aws::Auth::EnvironmentAWSCredentialsProvider>(TAG);
-            s3Client = S3::S3Client(credentialsProvider, config);
-            sqsClient = SQS::SQSClient(credentialsProvider, config);
-        }
     }
 
     void shutdownLambdaBackend() {
-        ShutdownAPI(options);
+        input = "";
+        output = "";
     }
 }
+
+long __faasm_read_input(unsigned char *buffer, long bufferLen) {
+    faasm::input = std::string(reinterpret_cast<const char*>(buffer), (size_t) bufferLen);
+    return bufferLen;
+}
+
+void __faasm_write_output(const unsigned char *o, long len) {
+    auto charPtr = reinterpret_cast<const char*>(o);
+    faasm::output = std::string(charPtr, (size_t) len);
+}
+
+void __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize) {
+    // TODO use lambda api to call another function?
+    // Requires AWS SDK?
+}
+
+void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, int async) {
+    // TODO read from Redis
+}
+
+unsigned char *__faasm_read_state_ptr(const char *key, long totalLen, int async) {
+    // TODO read from Redis
+    auto ptr = new unsigned char[1];
+    return ptr;
+}
+
+void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsigned char *buffer, long bufferLen,
+                               int async) {
+    // TODO read from Redis
+}
+
+unsigned char *__faasm_read_state_offset_ptr(const char *key, long totalLen, long offset, long len, int async) {
+    // TODO read from Redis
+    auto ptr = new unsigned char[1];
+    return ptr;
+}
+
+void __faasm_write_state(const char *key, const uint8_t *data, long dataLen, int async) {
+    // TODO write to Redis
+}
+
+void __faasm_write_state_offset(const char *key, long totalLen, long offset, const unsigned char *data, long dataLen,
+                                int async) {
+    // TODO write to Redis
+}
+
+// Ignore everything from here?
+
+void __faasm_flag_state_dirty(const char *key, long totalLen) {
+
+}
+
+void __faasm_flag_state_offset_dirty(const char *key, long totalLen, long offset, long dataLen) {
+
+}
+
+void __faasm_push_state(const char *key) {
+
+}
+
+void __faasm_push_state_partial(const char *key) {
+
+}
+
+void __faasm_lock_state_read(const char *key) {
+
+}
+
+void __faasm_unlock_state_read(const char *key) {
+
+}
+
+void __faasm_lock_state_write(const char *key) {
+
+}
+
+void __faasm_unlock_state_write(const char *key) {
+
+}
+

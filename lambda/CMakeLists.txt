@@ -1,14 +1,7 @@
-cmake_minimum_required(VERSION 3.8.0)
-project(lambda)
-
 include_directories(
         ${CMAKE_CURRENT_LIST_DIR}
+        ${FAASM_LIB_DIR}
 )
-
-set(PUBLIC_HEADERS
-        lambda.h
-        backend.h
-        )
 
 add_library(lambda STATIC
         backend.cpp

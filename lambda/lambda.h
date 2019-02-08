@@ -16,13 +16,15 @@ int main() {
     faasm::initialiseLambdaBackend();
 
     auto handler_fn = [](aws::lambda_runtime::invocation_request const &req) {
+        faasm::setInput(req.payload);
 
         // Run the normal Faasm function entrypoint
         auto memory = new faasm::FaasmMemory();
         exec(memory);
 
         // Return a Lambda-friendly response
-        std::string jsonResponse = "{'result': 'success'}";
+        const std::string output = faasm::getOutput();
+        std::string jsonResponse = "{'result': '" + output + "'}";
         return invocation_response::success(
                 jsonResponse,
                 "application/json"

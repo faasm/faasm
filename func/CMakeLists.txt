@@ -48,7 +48,7 @@ elseif (CMAKE_BUILD_TYPE MATCHES "lambda")
         add_executable(${func_name}-lambda ${file_name})
 
         # Link with Faasm lambda library
-        target_link_libraries(${func_name}-lambda lambda faasm)
+        target_link_libraries(${func_name}-lambda faasm lambda)
 
 #        target_compile_options(
 #                ${func_name}-lambda PRIVATE

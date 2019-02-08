@@ -34,6 +34,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(aws-lambda-runtime)
 
 if(CMAKE_BUILD_TYPE MATCHES "lambda")
+    # Debug to allow logging
+    set(CMAKE_CXX_FLAGS "-g")
+
     # Just the bits we need for the lambda build
     add_subdirectory(func)
     add_subdirectory(lib)

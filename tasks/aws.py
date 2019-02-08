@@ -4,6 +4,7 @@ from shutil import rmtree
 from subprocess import call
 
 import boto3
+from boto.awslambda.exceptions import ResourceNotFoundException
 from invoke import task
 
 from tasks.env import FAASM_HOME, PROJ_ROOT
@@ -12,13 +13,11 @@ from tasks.env import FAASM_HOME, PROJ_ROOT
 RUNTIME_VERSION = "v0.1.0"
 
 INSTALL_PATH = join(FAASM_HOME, "lambda")
-FUNC_BUILD_DIR = join(PROJ_ROOT, "func", "lambda_build")
-LAMBDA_BUILD_DIR = join(PROJ_ROOT, "lambda", "build")
+LAMBDA_BUILD_DIR = join(PROJ_ROOT, "lambda_build")
 
 # TODO - avoid hard-coding
 AWS_ACCOUNT_ID = "733781933474"
 AWS_LAMBDA_ROLE = "faasm-lambda-role"
-LAMBDA_FUNCTION_NAME = "faasm-lambda"
 AWS_REGION = "eu-west-1"
 
 
@@ -29,18 +28,27 @@ def build_lambdas(ctx):
 
     build_dir = join(PROJ_ROOT, "lambda_build")
 
+    rmtree(build_dir)
+
     _build_cmake_project(build_dir, [
         "-DCMAKE_BUILD_TYPE=lambda",
+        "-DLOG_VERBOSITY=3",
     ])
 
 
 @task
-def upload_lambda_function(ctx, func_name):
+def upload_lambda_function(ctx, user, func_name):
     # Create the zip
-    cmake_zip_target = "aws-lambda-package-{}".format(func_name)
+    cmake_zip_target = "aws-lambda-package-{}-lambda".format(func_name)
+    call("make {}".format(cmake_zip_target), cwd=LAMBDA_BUILD_DIR, shell=True)
 
-    call("make {}".format(cmake_zip_target), cwd=FUNC_BUILD_DIR, shell=True)
-    zip_file_path = join(FUNC_BUILD_DIR, "{}.zip".format(func_name))
+    zip_file_path = join(
+        LAMBDA_BUILD_DIR,
+        "func",
+        user,
+        "{}-lambda.zip".format(func_name)
+    )
+
     assert exists(zip_file_path), "Expected zip file at {}".format(zip_file_path)
 
     with open(zip_file_path, "rb") as content_file:
@@ -49,17 +57,40 @@ def upload_lambda_function(ctx, func_name):
     # Upload the function
     client = boto3.client("lambda", region_name=AWS_REGION)
 
+    # Check if function exists
+    is_existing = True
+    try:
+        client.get_function(
+            FunctionName=func_name,
+        )
+    except ResourceNotFoundException:
+        is_existing = False
+
     kwargs = {
-        "FunctionName": LAMBDA_FUNCTION_NAME,
-        "Role": "arn:aws:iam::{}:role/{}".format(AWS_ACCOUNT_ID, AWS_LAMBDA_ROLE),
-        "Handler": LAMBDA_FUNCTION_NAME,
-        "Code": {"ZipFile": content},
-        "Runtime": "provided",
-        "MemorySize": 128,
-        "Timeout": 15,
+        "FunctionName": func_name,
     }
 
-    client.create_function(**kwargs)
+    if is_existing:
+        print("{} already exists, updating".format(func_name))
+
+        kwargs.update({
+            "ZipFile": content,
+        })
+
+        client.update_function_code(**kwargs)
+    else:
+        print("{} does not already exist, creating".format(func_name))
+
+        kwargs.update({
+            "Runtime": "provided",
+            "Role": "arn:aws:iam::{}:role/{}".format(AWS_ACCOUNT_ID, AWS_LAMBDA_ROLE),
+            "Handler": func_name,
+            "Code": {"ZipFile": content},
+            "MemorySize": 128,
+            "Timeout": 15,
+        })
+
+        client.create_function(**kwargs)
 
 
 # @task
