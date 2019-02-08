@@ -44,16 +44,11 @@ elseif (CMAKE_BUILD_TYPE MATCHES "lambda")
     # AWS Lambda build
     # ----------------------
 
-    find_package(aws-lambda-runtime)
-
     function(faasm_func func_name file_name)
         add_executable(${func_name}-lambda ${file_name})
 
-        find_package(lambda)
-        find_package(faasm)
-
         # Link with Faasm lambda library
-        target_link_libraries(${func_name}-lambda lambda)
+        target_link_libraries(${func_name}-lambda lambda faasm)
 
 #        target_compile_options(
 #                ${func_name}-lambda PRIVATE

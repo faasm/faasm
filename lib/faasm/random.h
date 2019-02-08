@@ -8,7 +8,7 @@ namespace faasm {
 
     void shuffleArray(int *arrayIn, size_t arrayLen);
 
-    int* randomIntRange(size_t rangeLen);
+    int* randomIntRange(int rangeLen);
 }
 
 #endif

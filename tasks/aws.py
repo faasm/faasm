@@ -8,7 +8,7 @@ from invoke import task
 
 from tasks.env import FAASM_HOME, PROJ_ROOT
 
-SDK_VERSION = "1.7.41"
+# SDK_VERSION = "1.7.41"
 RUNTIME_VERSION = "v0.1.0"
 
 INSTALL_PATH = join(FAASM_HOME, "lambda")
@@ -24,26 +24,12 @@ AWS_REGION = "eu-west-1"
 
 @task
 def build_lambdas(ctx):
-    # Set up dependent projects
-    dependent_libs = [
-        "lib",
-        "lambda",
-    ]
+    # Compile the whole project passing in the right config
+    print("Running Lambda build")
 
-    for lib_dir in dependent_libs:
-        build_dir = join(PROJ_ROOT, lib_dir, "lambda_build")
+    build_dir = join(PROJ_ROOT, "lambda_build")
 
-        print("\nBuilding {}".format(build_dir))
-
-        _build_cmake_project(build_dir, [
-            "-DCMAKE_BUILD_TYPE=Release",
-        ])
-
-        call("make install", cwd=build_dir, shell=True)
-
-    # Compile the lambda functions
-    print("\nBuilding Lambda functions at {}".format(FUNC_BUILD_DIR))
-    _build_cmake_project(FUNC_BUILD_DIR, [
+    _build_cmake_project(build_dir, [
         "-DCMAKE_BUILD_TYPE=lambda",
     ])
 
@@ -76,25 +62,25 @@ def upload_lambda_function(ctx, func_name):
     client.create_function(**kwargs)
 
 
-@task
-def build_aws_sdk(ctx):
-    if not exists(INSTALL_PATH):
-        mkdir(INSTALL_PATH)
-
-    # AWS C++ SDK
-    _set_up_cmake_project(
-        "https://github.com/aws/aws-sdk-cpp.git",
-        "aws-sdk-cpp",
-        [
-            "-DCMAKE_BUILD_TYPE=Release",
-            "-DBUILD_SHARED_LIBS=OFF",
-            '-DBUILD_ONLY="s3;sqs"',
-            "-DCUSTOM_MEMORY_MANAGEMENT=OFF",
-            "-DENABLE_UNITY_BUILD=ON",
-            "-DENABLE_TESTING=OFF",
-        ],
-        SDK_VERSION
-    )
+# @task
+# def build_aws_sdk(ctx):
+#     if not exists(INSTALL_PATH):
+#         mkdir(INSTALL_PATH)
+#
+#     # AWS C++ SDK
+#     _set_up_cmake_project(
+#         "https://github.com/aws/aws-sdk-cpp.git",
+#         "aws-sdk-cpp",
+#         [
+#             "-DCMAKE_BUILD_TYPE=Release",
+#             "-DBUILD_SHARED_LIBS=OFF",
+#             '-DBUILD_ONLY="s3;sqs"',
+#             "-DCUSTOM_MEMORY_MANAGEMENT=OFF",
+#             "-DENABLE_UNITY_BUILD=ON",
+#             "-DENABLE_TESTING=OFF",
+#         ],
+#         SDK_VERSION
+#     )
 
 
 @task
