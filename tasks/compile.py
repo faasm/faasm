@@ -6,7 +6,7 @@ from subprocess import call
 
 from invoke import task
 
-from tasks.download import download_proj, FAASM_HOME
+from tasks.download import download_proj, FAASM_HOME, clone_proj
 from tasks.env import PROJ_ROOT
 
 # Note, most of the time this will be run inside the toolchain container
@@ -18,6 +18,7 @@ SYSROOT = join(TOOLCHAIN_ROOT, "sysroot")
 
 TARGET_TRIPLE = "wasm32-unknown-unknown-wasm"
 CONFIG_TARGET = "wasm32"
+CONFIG_HOST = "wasm32-unknown-none"
 
 COMPILER_FLAGS = [
     "--target={}".format(TARGET_TRIPLE),
@@ -113,13 +114,14 @@ def compile(context, path, libcurl=False, debug=False):
 
     compile_cmd = [
         CXX,
-        *COMPILER_FLAGS,
         "-Oz",
         "-fvisibility=hidden",
         "-lfaasm",
         path,
         "-o", output_file,
     ]
+
+    compile_cmd.extend(COMPILER_FLAGS)
 
     # Debug
     if debug:
@@ -135,6 +137,47 @@ def compile(context, path, libcurl=False, debug=False):
     res = call(compile_cmd_str, shell=True, cwd=PROJ_ROOT)
     if res != 0:
         raise RuntimeError("Compile call failed")
+
+
+@task
+def build_python(ctx):
+    proj_dir = clone_proj("https://github.com/Shillaker/cpython", "cpython", branch="wasm")
+
+    # Configure
+    config_cmd = [
+        "CONFIG_SITE=./config.site",
+        "READELF=true",
+        "./configure",
+        ENV_STR,
+        "--without-threads",
+        "--without-pymalloc",
+        "--disable-shared",
+        "--disable-ipv6",
+        "--without-gcc",
+        "--target={}".format(CONFIG_TARGET),
+        "--host={}".format(CONFIG_HOST),
+        "--build={}".format(CONFIG_TARGET),
+        "--prefix={}".format(SYSROOT),
+    ]
+
+    config_cmd_str = " ".join(config_cmd)
+
+    # res = call(config_cmd_str, shell=True, cwd=proj_dir)
+    # if res != 0:
+    #     raise RuntimeError("Configure command failed")
+
+    # Copy setup local file into place
+    call("cp wasm32/Modules_Setup.local Modules/Setup.local", shell=True, cwd=proj_dir)
+
+    # Make
+    make_cmd = ["make"]
+    res = call(make_cmd, shell=True, cwd=proj_dir)
+    if res != 0:
+        raise RuntimeError("Make failed")
+
+    res = call("make install", shell=True, cwd=proj_dir)
+    if res != 0:
+        raise RuntimeError("Make install failed")
 
 
 @task
@@ -198,8 +241,8 @@ def compile_gsl():
     config_cmd = [
         "./configure",
         ENV_STR,
-        *CONFIG_FLAGS
     ]
+    config_cmd.extend(COMPILER_FLAGS)
     config_cmd_str = " ".join(config_cmd)
 
     print(config_cmd_str)
@@ -261,8 +304,9 @@ def compile_libcurl():
         "--disable-threaded-resolver",
         "--without-winssl",
         "--without-darwinssl",
-        *CONFIG_FLAGS
     ]
+    config_cmd.extend(CONFIG_FLAGS)
+
     config_cmd_str = " ".join(config_cmd)
     res = call(config_cmd_str, shell=True, cwd=extract_dir)
     if res != 0:

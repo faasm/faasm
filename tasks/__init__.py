@@ -1,8 +1,9 @@
 from tasks.compile import (
-    lib,
+    build_python,
     compile,
     clean_build,
-    funcs
+    funcs,
+    lib,
 )
 
 from tasks.docker import (
