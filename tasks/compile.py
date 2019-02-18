@@ -1,3 +1,4 @@
+import copy
 import os
 from os import mkdir
 from os.path import exists
@@ -126,7 +127,7 @@ def funcs(context, clean=False):
 
 
 @task
-def compile(context, path, libcurl=False, debug=False):
+def compile(context, path, libcurl=False, debug=False, python=False):
     """
     Compiles the given function
     """
@@ -159,6 +160,11 @@ def compile(context, path, libcurl=False, debug=False):
     if libcurl:
         compile_cmd.append("-lcurl")
 
+    # Add python
+    if python:
+        compile_cmd.append("-lpython3.6")
+        compile_cmd.append("-I/toolchain/sysroot/include/python3.6")
+
     compile_cmd_str = " ".join(compile_cmd)
     print(compile_cmd_str)
 
@@ -180,31 +186,36 @@ def build_python_emscripten(ctx):
         "PATH": "{}:{}".format(os.environ("PATH"), emscripten_dir)
     })
 
-@task
-def build_python(ctx):
-    proj_dir = clone_proj("https://github.com/Shillaker/cpython", "cpython", branch="wasm")
 
-    # First build for the native host
-    host_build_dir = join(proj_dir, "host_build")
-    host_build_bin = join(host_build_dir, "bin")
-    host_python = join(host_build_bin, "python3")
-    host_pgen = join(host_build_bin, "pgen")
-    python_lib = "libpython3.6.a"
+@task
+def build_cpython_host(ctx):
+    # -----------------------------------
+    # Build for native host (used by cross-compile build steps)
+    # -----------------------------------
+
+    host_proj = clone_proj("https://github.com/Shillaker/cpython", "cpython-host", branch="wasm")
+    host_build_dir = join(host_proj, "host_build")
 
     call("./configure --prefix={}".format(host_build_dir),
-         shell=True, cwd=proj_dir, env=NATIVE_ENV_DICT)
+         shell=True, cwd=host_proj, env=NATIVE_ENV_DICT)
 
-    call("make regen-grammar", shell=True, cwd=proj_dir, env=NATIVE_ENV_DICT)
+    # call("make regen-grammar", shell=True, cwd=host_proj, env=NATIVE_ENV_DICT)
+    call("make python Parser/pgen", shell=True, cwd=host_proj, env=NATIVE_ENV_DICT)
+    call("make install", shell=True, cwd=host_proj, env=NATIVE_ENV_DICT)
 
-    call("make install", shell=True, cwd=proj_dir, env=NATIVE_ENV_DICT)
 
-    # Keep pgen
-    call("cp Parser/pgen {}".format(host_build_bin))
+@task
+def build_python(ctx):
+    host_proj = join(FAASM_HOME, "cpython-host")
+    host_python = join(host_proj, "host_build", "bin", "python3")
+    host_pgen = join(host_proj, "Parser", "pgen")
+    python_lib = "libpython3.6.a"
 
-    # Clean up
-    call("make distclean", shell=True, cwd=proj_dir)
-
+    # -----------------------------------
     # Configure cross-compile
+    # -----------------------------------
+    target_proj = clone_proj("https://github.com/Shillaker/cpython", "cpython-wasm", branch="wasm")
+
     config_cmd = [
         "CONFIG_SITE=./config.site",
         "READELF=true",
@@ -223,58 +234,69 @@ def build_python(ctx):
 
     # Run configuration
     config_cmd_str = " ".join(config_cmd)
-    res = call(config_cmd_str, shell=True, cwd=proj_dir)
-    if res != 0:
-        raise RuntimeError("Configure command failed")
+    call(config_cmd_str, shell=True, cwd=target_proj)
 
     # Copy setup local file into place
-    call("cp wasm32/Modules_Setup.local Modules/Setup.local", shell=True, cwd=proj_dir)
+    call("cp wasm32/Modules_Setup.local Modules/Setup.local", shell=True, cwd=target_proj)
 
+    # -----------------------------------
     # Build static zlib
+    # -----------------------------------
+
     zlib_config_cmd = [
         ENV_STR,
         "./configure",
         "--static",
     ]
     zlib_config_cmd_str = " ".join(zlib_config_cmd)
-    call(zlib_config_cmd_str, cwd=join(proj_dir, "Modules", "zlib"), shell=True)
+    call(zlib_config_cmd_str, cwd=join(target_proj, "Modules", "zlib"), shell=True)
 
-    # Make libpython
-    make_cmd = [
+    base_make_cmd = [
         "make",
         "HOSTPYTHON={}".format(host_python),
         "HOSTPGEN={}".format(host_pgen),
-        "PYTHON_FOR_BUILD={}".format(host_python),
         "CROSS_COMPILE=yes",
-        "inclinstall",
-        python_lib
     ]
 
-    make_cmd_str = " ".join(make_cmd)
-    res = call(make_cmd_str, shell=True, cwd=proj_dir)
-    if res != 0:
-        raise RuntimeError("Make failed")
+    # -----------------------------------
+    # Build core Python lib
+    # -----------------------------------
+    make_cmd_a = copy.copy(base_make_cmd)
+    make_cmd_a.append(python_lib)
 
-    # Now we have to do some magic and run libinstall
-    call("sed -i -e 's/libinstall:.*/libinstall:/' Makefile;", shell=True, cwd=proj_dir)
-    make_cmd.append("libinstall")
+    # Invoke the make command
+    call(" ".join(make_cmd_a), shell=True, cwd=target_proj)
 
-    make_cmd_str = " ".join(make_cmd)
-    res = call(make_cmd_str, shell=True, cwd=proj_dir)
-    if res != 0:
-        raise RuntimeError("Make failed running libinstall")
+    # -----------------------------------
+    # Build all Python standard modules
+    # -----------------------------------
+
+    # Remove any of the dependencies of the libinstall target
+    call("sed -i -e 's/libinstall:.*/libinstall:/' Makefile;", shell=True, cwd=target_proj)
+
+    # Build make command
+    make_cmd_b = copy.copy(base_make_cmd)
+    make_cmd_b.extend([
+        "PYTHON_FOR_BUILD={}".format(host_python),
+        "inclinstall",
+        python_lib,
+        "libinstall"
+    ])
+
+    call(" ".join(make_cmd_b), shell=True, cwd=target_proj)
+
+    # -----------------------------------
+    # Tidy up
+    # -----------------------------------
 
     # Put lib in place
-    call("cp {} {}".format(python_lib, join(SYSROOT, "lib")), shell=True, cwd=proj_dir)
+    call("cp {} {}".format(python_lib, join(SYSROOT, "lib")), shell=True, cwd=target_proj)
 
-    # Put sysconfig data in place
-    host_sysconfig = join(host_build_dir, "lib", "python3.6", "_sysconfigdata_m_linux_x86_64-linux-gnu.py")
-    sysconfig_dest = join(SYSROOT, "lib", "python3.6")
-    call("cp {} {}".format(host_sysconfig, sysconfig_dest))
+    # Put sysconfig in place
+    # host_sysconfig = join(host_build_dir, "lib", "python3.6", "_sysconfigdata_m_linux_x86_64-linux-gnu.py")
+    # sysconfig_dest = join(SYSROOT, "lib", "python3.6", "_sysconfigdata__wasm32_x86_64-linux-gnu.py")
+    # os.copy(host_sysconfig, sysconfig_dest)
 
-    # Note, this _may_ be needed to get things running. It will be expecting a certain sysconfig
-    # file which needs to match the cross-compiled host I guess.
-    call("cp {} {}".format(host_sysconfig, join(sysconfig_dest, "_sysconfigdata_wasm32_x86_64-linux-gnu.py")))
 
 @task
 def lib(context, lib_name):
