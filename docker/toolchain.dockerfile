@@ -63,11 +63,14 @@ RUN cp -r arch/generic/bits/* arch/wasm32/bits* /toolchain/sysroot/include/bits
 # Faasm dependencies
 # ----------------------
 
-RUN apt-get install -y python3-dev python3-pip
+RUN apt-get install -y python3-dev python3-pip zlib1g-dev
 RUN pip3 install invoke requests
 
 COPY . /faasm/code
 WORKDIR /faasm/code
+
+# Install all Python deps
+RUN pip3 install -r requirements.txt
 
 ENV CC /toolchain/bin/clang
 ENV CPP /toolchain/bin/clang-cpp

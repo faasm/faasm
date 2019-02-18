@@ -1,3 +1,4 @@
+import os
 from os import mkdir
 from os.path import exists
 from os.path import join
@@ -32,6 +33,17 @@ COMPILER_FLAGS_STRING = "\"{}\"".format(COMPILER_FLAGS_STRING)
 # using system defaults we can get some errors that are *very* hard
 # to debug
 
+NATIVE_CC = "/usr/bin/clang"
+NATIVE_CPP = "/usr/bin/clang-cpp"
+NATIVE_CFLAGS = ""
+NATIVE_CXX = "/usr/bin/clang++"
+NATIVE_CXXFLAGS = ""
+NATIVE_LD = "/usr/bin/ld"
+NATIVE_CROSS_COMPILE = ""
+NATIVE_AR = "/usr/bin/ar"
+NATIVE_AS = "/usr/bin/as"
+NATIVE_RANLIB = "/usr/bin/ranlib"
+
 CC = join(TOOLCHAIN_ROOT, "bin", "clang")
 CPP = join(TOOLCHAIN_ROOT, "bin", "clang-cpp")
 CFLAGS = COMPILER_FLAGS_STRING
@@ -56,8 +68,24 @@ _ENV_TUPLES = [
     ("CXXFLAGS", CXXFLAGS),
 ]
 
+_NATIVE_ENV_TUPLES = [
+    ("CC", NATIVE_CC),
+    ("CPP", NATIVE_CPP),
+    ("CFLAGS", NATIVE_CFLAGS),
+    ("AR", NATIVE_AR),
+    ("AS", NATIVE_AS),
+    ("LD", NATIVE_LD),
+    ("RANLIB", NATIVE_RANLIB),
+    ("CROSS_COMPILE", NATIVE_CROSS_COMPILE),
+    ("CXX", NATIVE_CXX),
+    ("CXXFLAGS", NATIVE_CXXFLAGS),
+]
+
 ENV_DICT = {e[0]: e[1] for e in _ENV_TUPLES}
 ENV_STR = " ".join(["{}={}".format(e[0], e[1]) for e in _ENV_TUPLES])
+
+NATIVE_ENV_DICT = {e[0]: e[1] for e in _NATIVE_ENV_TUPLES}
+NATIVE_ENV_STR = " ".join(["{}={}".format(e[0], e[1]) for e in _NATIVE_ENV_TUPLES])
 
 BUILD_DIR = join(PROJ_ROOT, "work")
 
@@ -140,10 +168,43 @@ def compile(context, path, libcurl=False, debug=False):
 
 
 @task
+def build_python_emscripten(ctx):
+    proj_dir = clone_proj("https://github.com/Shillaker/cpython-emscripten", "cpython-emscripten")
+
+    # Make sure emscripten is present
+    emscripten_dir = "/usr/local/code/emsdk/emscripten/1.38.10/"
+    assert exists(emscripten_dir), "Must have emscripten ready"
+
+    # Run the emscripten python build
+    call("make", cwd=proj_dir, shell=True, env={
+        "PATH": "{}:{}".format(os.environ("PATH"), emscripten_dir)
+    })
+
+@task
 def build_python(ctx):
     proj_dir = clone_proj("https://github.com/Shillaker/cpython", "cpython", branch="wasm")
 
-    # Configure
+    # First build for the native host
+    host_build_dir = join(proj_dir, "host_build")
+    host_build_bin = join(host_build_dir, "bin")
+    host_python = join(host_build_bin, "python3")
+    host_pgen = join(host_build_bin, "pgen")
+    python_lib = "libpython3.6.a"
+
+    call("./configure --prefix={}".format(host_build_dir),
+         shell=True, cwd=proj_dir, env=NATIVE_ENV_DICT)
+
+    call("make regen-grammar", shell=True, cwd=proj_dir, env=NATIVE_ENV_DICT)
+
+    call("make install", shell=True, cwd=proj_dir, env=NATIVE_ENV_DICT)
+
+    # Keep pgen
+    call("cp Parser/pgen {}".format(host_build_bin))
+
+    # Clean up
+    call("make distclean", shell=True, cwd=proj_dir)
+
+    # Configure cross-compile
     config_cmd = [
         "CONFIG_SITE=./config.site",
         "READELF=true",
@@ -160,25 +221,60 @@ def build_python(ctx):
         "--prefix={}".format(SYSROOT),
     ]
 
+    # Run configuration
     config_cmd_str = " ".join(config_cmd)
-
-    # res = call(config_cmd_str, shell=True, cwd=proj_dir)
-    # if res != 0:
-    #     raise RuntimeError("Configure command failed")
+    res = call(config_cmd_str, shell=True, cwd=proj_dir)
+    if res != 0:
+        raise RuntimeError("Configure command failed")
 
     # Copy setup local file into place
     call("cp wasm32/Modules_Setup.local Modules/Setup.local", shell=True, cwd=proj_dir)
 
-    # Make
-    make_cmd = ["make"]
-    res = call(make_cmd, shell=True, cwd=proj_dir)
+    # Build static zlib
+    zlib_config_cmd = [
+        ENV_STR,
+        "./configure",
+        "--static",
+    ]
+    zlib_config_cmd_str = " ".join(zlib_config_cmd)
+    call(zlib_config_cmd_str, cwd=join(proj_dir, "Modules", "zlib"), shell=True)
+
+    # Make libpython
+    make_cmd = [
+        "make",
+        "HOSTPYTHON={}".format(host_python),
+        "HOSTPGEN={}".format(host_pgen),
+        "PYTHON_FOR_BUILD={}".format(host_python),
+        "CROSS_COMPILE=yes",
+        "inclinstall",
+        python_lib
+    ]
+
+    make_cmd_str = " ".join(make_cmd)
+    res = call(make_cmd_str, shell=True, cwd=proj_dir)
     if res != 0:
         raise RuntimeError("Make failed")
 
-    res = call("make install", shell=True, cwd=proj_dir)
-    if res != 0:
-        raise RuntimeError("Make install failed")
+    # Now we have to do some magic and run libinstall
+    call("sed -i -e 's/libinstall:.*/libinstall:/' Makefile;", shell=True, cwd=proj_dir)
+    make_cmd.append("libinstall")
 
+    make_cmd_str = " ".join(make_cmd)
+    res = call(make_cmd_str, shell=True, cwd=proj_dir)
+    if res != 0:
+        raise RuntimeError("Make failed running libinstall")
+
+    # Put lib in place
+    call("cp {} {}".format(python_lib, join(SYSROOT, "lib")), shell=True, cwd=proj_dir)
+
+    # Put sysconfig data in place
+    host_sysconfig = join(host_build_dir, "lib", "python3.6", "_sysconfigdata_m_linux_x86_64-linux-gnu.py")
+    sysconfig_dest = join(SYSROOT, "lib", "python3.6")
+    call("cp {} {}".format(host_sysconfig, sysconfig_dest))
+
+    # Note, this _may_ be needed to get things running. It will be expecting a certain sysconfig
+    # file which needs to match the cross-compiled host I guess.
+    call("cp {} {}".format(host_sysconfig, join(sysconfig_dest, "_sysconfigdata_wasm32_x86_64-linux-gnu.py")))
 
 @task
 def lib(context, lib_name):

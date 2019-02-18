@@ -31,6 +31,7 @@ def tools(context):
         "docker",
         "run",
         "-v {}:/work".format(PROJ_ROOT),
+        "-v {}/faasm:/root/faasm".format(HOME_DIR),
         "-w /work",
         "-it",
         "--net=host",
