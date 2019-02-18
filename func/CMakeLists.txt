@@ -3,7 +3,7 @@ project(faasm-func)
 
 set(FAASM_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/../lib)
 
-include_directories(${FAASM_LIB_DIR} ${PYTHON_INCLUDE_DIRS})
+include_directories(${FAASM_LIB_DIR})
 
 # Faasm host for uploads
 if (DEFINED ENV{FAASM_HOST})
@@ -83,12 +83,6 @@ else ()
         # Using lambda back-end
         add_executable(${exec_name}-lambda ${file_name})
         target_link_libraries(${exec_name}-lambda faasm lambda)
-
-        # Linking python if necessary
-        if(file_name MATCHES "py_*")
-            target_link_libraries(${exec_name} ${PYTHON_LIBRARIES})
-        endif()
-
     endfunction(faasm_func)
 
 endif ()

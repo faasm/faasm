@@ -1,7 +1,6 @@
 from tasks.compile import (
     build_cpython_host,
     build_python,
-    compile,
     clean_build,
     funcs,
     lib,

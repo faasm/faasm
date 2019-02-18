@@ -110,9 +110,9 @@ def clean_build(context):
 
 
 @task
-def funcs(context, clean=False):
+def funcs(context, clean=False, func=None):
     """
-    Compiles all the functions in this project
+    Compiles functions
     """
     func_build_dir = join(PROJ_ROOT, "func", "build")
 
@@ -123,54 +123,14 @@ def funcs(context, clean=False):
         mkdir(func_build_dir)
 
     call("cmake -DFAASM_BUILD_TYPE=wasm ..", shell=True, cwd=func_build_dir)
-    call("make", shell=True, cwd=func_build_dir)
 
+    # Allow specifying a single function
+    if func:
+        cmd = "make {}".format(func)
+    else:
+        cmd = "make"
 
-@task
-def compile(context, path, libcurl=False, debug=False, python=False):
-    """
-    Compiles the given function
-    """
-
-    print("Compiling {}".format(path))
-
-    # Recreate the build dir
-    if exists(BUILD_DIR):
-        rmtree(BUILD_DIR)
-    mkdir(BUILD_DIR)
-
-    output_file = join("work", "out.wasm")
-
-    compile_cmd = [
-        CXX,
-        "-Oz",
-        "-fvisibility=hidden",
-        "-lfaasm",
-        path,
-        "-o", output_file,
-    ]
-
-    compile_cmd.extend(COMPILER_FLAGS)
-
-    # Debug
-    if debug:
-        compile_cmd.append("-g")
-
-    # Add libcurl
-    if libcurl:
-        compile_cmd.append("-lcurl")
-
-    # Add python
-    if python:
-        compile_cmd.append("-lpython3.6")
-        compile_cmd.append("-I/toolchain/sysroot/include/python3.6")
-
-    compile_cmd_str = " ".join(compile_cmd)
-    print(compile_cmd_str)
-
-    res = call(compile_cmd_str, shell=True, cwd=PROJ_ROOT)
-    if res != 0:
-        raise RuntimeError("Compile call failed")
+    call(cmd, shell=True, cwd=func_build_dir)
 
 
 @task

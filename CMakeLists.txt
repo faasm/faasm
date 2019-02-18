@@ -34,9 +34,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # AWS Lambda runtime (used by all builds)
 find_package(aws-lambda-runtime)
 
-# Python libraries (used to link against)
-find_package(PythonLibs)
-
 if(FAASM_BUILD_TYPE MATCHES "lambda")
     # Debug to allow logging
     set(CMAKE_CXX_FLAGS "-g")
