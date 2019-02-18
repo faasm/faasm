@@ -78,9 +78,9 @@ namespace wasm {
         }
 
         // Treat any unhandled exception (e.g. in a thread) as a fatal error.
-        Runtime::setUnhandledExceptionHandler([](Runtime::Exception &&exception) {
-            Errors::fatalf("Runtime exception: %s\n", describeException(exception).c_str());
-        });
+//        Runtime::setUnhandledExceptionHandler([](Runtime::Exception &&exception) {
+//            Errors::fatalf("Runtime exception: %s\n", describeException(exception).c_str());
+//        });
 
         compartment = Runtime::createCompartment();
 

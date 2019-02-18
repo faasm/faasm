@@ -80,9 +80,12 @@ else ()
         add_executable(${exec_name} ${file_name})
         target_link_libraries(${exec_name} faasm emulator)
 
-        # Using lambda back-end
-        add_executable(${exec_name}-lambda ${file_name})
-        target_link_libraries(${exec_name}-lambda faasm lambda)
+        # Using lambda back-end (don't do for python functions)
+        if(exec_name MATCHES "py_*")
+        else()
+            add_executable(${exec_name}-lambda ${file_name})
+            target_link_libraries(${exec_name}-lambda faasm lambda)
+        endif()
     endfunction(faasm_func)
 
 endif ()
