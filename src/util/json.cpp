@@ -69,6 +69,14 @@ namespace util {
         return msg;
     }
 
+    FunctionConfig jsonToFunctionConfig(const std::string &jsonIn) {
+        Document d;
+        d.Parse(jsonIn.c_str());
 
+        FunctionConfig conf;
+        conf.runtime = getStringFromJson(d, "runtime", "wasm");
+
+        return conf;
+    }
 }
 
