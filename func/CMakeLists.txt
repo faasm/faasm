@@ -26,8 +26,10 @@ if (FAASM_BUILD_TYPE MATCHES "wasm")
     # ----------------------
     # WASM build
     # ----------------------
-
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Oz -fvisibility=hidden")
+
+    set(WASM_LINKER_FLAGS "-s EMULATE_FUNCTION_POINTER_CASTS=1 --memory-init-file 0 -s ASSERTIONS=2")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${WASM_LINKER_FLAGS}")
 
     function(faasm_func exec_name file_name)
         add_executable(${exec_name} ${file_name})
