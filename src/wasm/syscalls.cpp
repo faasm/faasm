@@ -52,9 +52,24 @@ using namespace WAVM;
 
 namespace wasm {
     static Intrinsics::Module envModule;
+    static Intrinsics::Module emEnvModule;
+    static Intrinsics::Module emAsm2wasmModule;
+    static Intrinsics::Module emGlobalModule;
 
     Intrinsics::Module &getIntrinsicModule_env() {
         return envModule;
+    }
+
+    Intrinsics::Module &getIntrinsicModule_emEnv() {
+        return emEnvModule;
+    }
+
+    Intrinsics::Module &getIntrinsicModule_emAsm2wasm() {
+        return emAsm2wasmModule;
+    }
+
+    Intrinsics::Module &getIntrinsicModule_emGlobal() {
+        return emGlobalModule;
     }
 
     static const char *HOSTS_FILE = "/usr/local/faasm/net/hosts";
@@ -112,50 +127,97 @@ namespace wasm {
         return kv;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state", void, __faasm_push_state, I32 keyPtr) {
+    void s__faasm_push_state(I32 keyPtr) {
         util::getLogger()->debug("S - push_state - {}", keyPtr);
 
         state::StateKeyValue *kv = getStateKV(keyPtr, 0);
         kv->pushFull();
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state_partial", void, __faasm_push_state_partial, I32 keyPtr) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state", void, __faasm_push_state, I32 keyPtr) {
+        s__faasm_push_state(keyPtr);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___faasm_push_state", void, ___faasm_push_state, I32 keyPtr) {
+        s__faasm_push_state(keyPtr);
+    }
+
+    void s__faasm_push_state_partial(I32 keyPtr) {
         util::getLogger()->debug("S - push_state_partial - {}", keyPtr);
 
         state::StateKeyValue *kv = getStateKV(keyPtr, 0);
         kv->pushPartial();
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_lock_state_read", void, __faasm_lock_state_read, I32 keyPtr) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state_partial", void, __faasm_push_state_partial, I32 keyPtr) {
+        s__faasm_push_state_partial(keyPtr);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___faasm_push_state_partial", void, ___faasm_push_state_partial, I32 keyPtr) {
+        s__faasm_push_state_partial(keyPtr);
+    }
+
+    void s__faasm_lock_state_read(I32 keyPtr) {
         util::getLogger()->debug("S - lock_state_read - {}", keyPtr);
 
         state::StateKeyValue *kv = getStateKV(keyPtr, 0);
         kv->lockRead();
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_unlock_state_read", void, __faasm_unlock_state_read, I32 keyPtr) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_lock_state_read", void, __faasm_lock_state_read, I32 keyPtr) {
+        s__faasm_lock_state_read(keyPtr);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___faasm_lock_state_read", void, ___faasm_lock_state_read, I32 keyPtr) {
+        s__faasm_lock_state_read(keyPtr);
+    }
+
+    void s__faasm_unlock_state_read(I32 keyPtr) {
         util::getLogger()->debug("S - unlock_state_read - {}", keyPtr);
 
         state::StateKeyValue *kv = getStateKV(keyPtr, 0);
         kv->unlockRead();
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_lock_state_write", void, __faasm_lock_state_write, I32 keyPtr) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_unlock_state_read", void, __faasm_unlock_state_read, I32 keyPtr) {
+        s__faasm_unlock_state_read(keyPtr);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___faasm_unlock_state_read", void, ___faasm_unlock_state_read, I32 keyPtr) {
+        s__faasm_unlock_state_read(keyPtr);
+    }
+
+    void s__faasm_lock_state_write(I32 keyPtr) {
         util::getLogger()->debug("S - lock_state_write - {}", keyPtr);
 
         state::StateKeyValue *kv = getStateKV(keyPtr, 0);
         kv->lockWrite();
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_unlock_state_write", void, __faasm_unlock_state_write, I32 keyPtr) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_lock_state_write", void, __faasm_lock_state_write, I32 keyPtr) {
+        s__faasm_lock_state_write(keyPtr);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___faasm_lock_state_write", void, ___faasm_lock_state_write, I32 keyPtr) {
+        s__faasm_lock_state_write(keyPtr);
+    }
+
+    void s__faasm_unlock_state_write(I32 keyPtr) {
         util::getLogger()->debug("S - unlock_state_write - {}", keyPtr);
 
         state::StateKeyValue *kv = getStateKV(keyPtr, 0);
         kv->unlockWrite();
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state", void, __faasm_write_state,
-                              I32 keyPtr, I32 dataPtr, I32 dataLen, I32 async) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_unlock_state_write", void, __faasm_unlock_state_write, I32 keyPtr) {
+        s__faasm_unlock_state_write(keyPtr);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___faasm_unlock_state_write", void, ___faasm_unlock_state_write, I32 keyPtr) {
+        s__faasm_unlock_state_write(keyPtr);
+    }
+
+    void s__faasm_write_state(I32 keyPtr, I32 dataPtr, I32 dataLen, I32 async) {
         util::getLogger()->debug("S - write_state - {} {} {} {}", keyPtr, dataPtr, dataLen, async);
 
         state::StateKeyValue *kv = getStateKV(keyPtr, dataLen);
@@ -171,8 +233,17 @@ namespace wasm {
         }
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_offset", void, __faasm_write_state_offset,
-                              I32 keyPtr, I32 totalLen, I32 offset, I32 dataPtr, I32 dataLen, I32 async) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state", void, __faasm_write_state,
+                              I32 keyPtr, I32 dataPtr, I32 dataLen, I32 async) {
+        s__faasm_write_state(keyPtr, dataPtr, dataLen, async);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___faasm_write_state", void, ___faasm_write_state,
+                              I32 keyPtr, I32 dataPtr, I32 dataLen, I32 async) {
+        s__faasm_write_state(keyPtr, dataPtr, dataLen, async);
+    }
+
+    void s__faasm_write_state_offset(I32 keyPtr, I32 totalLen, I32 offset, I32 dataPtr, I32 dataLen, I32 async) {
         util::getLogger()->debug("S - write_state_offset - {} {} {} {} {} {}", keyPtr, totalLen, offset, dataPtr,
                                  dataLen, async);
 
@@ -189,8 +260,17 @@ namespace wasm {
         }
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state", void, __faasm_read_state,
-                              I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 async) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_offset", void, __faasm_write_state_offset,
+                              I32 keyPtr, I32 totalLen, I32 offset, I32 dataPtr, I32 dataLen, I32 async) {
+        s__faasm_write_state_offset(keyPtr, totalLen, offset, dataPtr, dataLen, async);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___faasm_write_state_offset", void, ___faasm_write_state_offset,
+                              I32 keyPtr, I32 totalLen, I32 offset, I32 dataPtr, I32 dataLen, I32 async) {
+        s__faasm_write_state_offset(keyPtr, totalLen, offset, dataPtr, dataLen, async);
+    }
+
+    void s__faasm_read_state(I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 async) {
         util::getLogger()->debug("S - read_state - {} {} {} {}", keyPtr, bufferPtr, bufferLen, async);
 
         state::StateKeyValue *kv = getStateKVRead(keyPtr, bufferLen, async);
@@ -201,8 +281,17 @@ namespace wasm {
         kv->get(buffer);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_ptr", I32, __faasm_read_state_ptr,
-                              I32 keyPtr, I32 totalLen, I32 async) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state", void, __faasm_read_state,
+                              I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 async) {
+        s__faasm_read_state(keyPtr, bufferPtr, bufferLen, async);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___faasm_read_state", void, ___faasm_read_state,
+                              I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 async) {
+        s__faasm_read_state(keyPtr, bufferPtr, bufferLen, async);
+    }
+
+    I32 s__faasm_read_state_ptr(I32 keyPtr, I32 totalLen, I32 async) {
         util::getLogger()->debug("S - read_state - {} {} {}", keyPtr, totalLen, async);
 
         state::StateKeyValue *kv = getStateKVRead(keyPtr, totalLen, async);
@@ -214,8 +303,17 @@ namespace wasm {
         return wasmPtr;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset", void, __faasm_read_state_offset,
-                              I32 keyPtr, I32 totalLen, I32 offset, I32 bufferPtr, I32 bufferLen, I32 async) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_ptr", I32, __faasm_read_state_ptr,
+                              I32 keyPtr, I32 totalLen, I32 async) {
+        return s__faasm_read_state_ptr(keyPtr, totalLen, async);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___faasm_read_state_ptr", I32, ___faasm_read_state_ptr,
+                              I32 keyPtr, I32 totalLen, I32 async) {
+        return s__faasm_read_state_ptr(keyPtr, totalLen, async);
+    }
+
+    void s__faasm_read_state_offset(I32 keyPtr, I32 totalLen, I32 offset, I32 bufferPtr, I32 bufferLen, I32 async) {
         util::getLogger()->debug("S - read_state_offset - {} {} {} {} {}", keyPtr, totalLen, offset, bufferPtr,
                                  bufferLen);
 
@@ -227,8 +325,17 @@ namespace wasm {
         kv->getSegment(offset, buffer, bufferLen);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset_ptr", I32, __faasm_read_state_offset_ptr,
-                              I32 keyPtr, I32 totalLen, I32 offset, I32 len, I32 async) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset", void, __faasm_read_state_offset,
+                              I32 keyPtr, I32 totalLen, I32 offset, I32 bufferPtr, I32 bufferLen, I32 async) {
+        s__faasm_read_state_offset(keyPtr, totalLen, offset, bufferPtr, bufferLen, async);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___faasm_read_state_offset", void, ___faasm_read_state_offset,
+                              I32 keyPtr, I32 totalLen, I32 offset, I32 bufferPtr, I32 bufferLen, I32 async) {
+        s__faasm_read_state_offset(keyPtr, totalLen, offset, bufferPtr, bufferLen, async);
+    }
+
+    I32 s__faasm_read_state_offset_ptr(I32 keyPtr, I32 totalLen, I32 offset, I32 len, I32 async) {
         util::getLogger()->debug("S - read_state_offset_ptr - {} {} {} {} {}", keyPtr, totalLen, offset, len, async);
 
         state::StateKeyValue *kv = getStateKVRead(keyPtr, totalLen, async);
@@ -242,16 +349,34 @@ namespace wasm {
         return offsetPtr;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_flag_state_dirty", void, __faasm_flag_state_dirty,
-                              I32 keyPtr, I32 totalLen) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset_ptr", I32, __faasm_read_state_offset_ptr,
+                              I32 keyPtr, I32 totalLen, I32 offset, I32 len, I32 async) {
+        return s__faasm_read_state_offset_ptr(keyPtr, totalLen, offset, len, async);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___faasm_read_state_offset_ptr", I32, ___faasm_read_state_offset_ptr,
+                              I32 keyPtr, I32 totalLen, I32 offset, I32 len, I32 async) {
+        return s__faasm_read_state_offset_ptr(keyPtr, totalLen, offset, len, async);
+    }
+
+    void s__faasm_flag_state_dirty(I32 keyPtr, I32 totalLen) {
         util::getLogger()->debug("S - __faasm_flag_state_dirty - {} {}", keyPtr, totalLen);
 
         state::StateKeyValue *kv = getStateKV(keyPtr, totalLen);
         kv->flagFullValueDirty();
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_flag_state_offset_dirty", void, __faasm_flag_state_offset_dirty,
-                              I32 keyPtr, I32 totalLen, I32 offset, I32 len) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_flag_state_dirty", void, __faasm_flag_state_dirty,
+                              I32 keyPtr, I32 totalLen) {
+        s__faasm_flag_state_dirty(keyPtr, totalLen);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___faasm_flag_state_dirty", void, ___faasm_flag_state_dirty,
+                              I32 keyPtr, I32 totalLen) {
+        s__faasm_flag_state_dirty(keyPtr, totalLen);
+    }
+
+    void s__faasm_flag_state_offset_dirty(I32 keyPtr, I32 totalLen, I32 offset, I32 len) {
         // Avoid heavy logging
         //        util::getLogger()->debug("S - __faasm_flag_state_offset_dirty - {} {} {} {}", keyPtr, totalLen, offset,
         //                                 len);
@@ -260,7 +385,17 @@ namespace wasm {
         kv->flagSegmentDirty(offset, len);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_input", I32, __faasm_read_input, I32 bufferPtr, I32 bufferLen) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_flag_state_offset_dirty", void, __faasm_flag_state_offset_dirty,
+                              I32 keyPtr, I32 totalLen, I32 offset, I32 len) {
+        s__faasm_flag_state_offset_dirty(keyPtr, totalLen, offset, len);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___faasm_flag_state_offset_dirty", void, ___faasm_flag_state_offset_dirty,
+                              I32 keyPtr, I32 totalLen, I32 offset, I32 len) {
+        s__faasm_flag_state_offset_dirty(keyPtr, totalLen, offset, len);
+    }
+
+    I32 s__faasm_read_input(I32 bufferPtr, I32 bufferLen) {
         util::getLogger()->debug("S - read_input - {} {}", bufferPtr, bufferLen);
 
         // Get the input
@@ -275,7 +410,15 @@ namespace wasm {
         return inputSize;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_output", void, __faasm_write_output, I32 outputPtr, I32 outputLen) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_input", I32, __faasm_read_input, I32 bufferPtr, I32 bufferLen) {
+        return s__faasm_read_input(bufferPtr, bufferLen);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___faasm_read_input", I32, ___faasm_read_input, I32 bufferPtr, I32 bufferLen) {
+        return s__faasm_read_input(bufferPtr, bufferLen);
+    }
+
+    void s__faasm_write_output(I32 outputPtr, I32 outputLen) {
         util::getLogger()->debug("S - write_output - {} {}", outputPtr, outputLen);
 
         std::vector<uint8_t> outputData = getBytesFromWasm(outputPtr, outputLen);
@@ -283,8 +426,16 @@ namespace wasm {
         call->set_outputdata(outputData.data(), outputData.size());
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_function", void, __faasm_chain_function,
-                              I32 namePtr, I32 inputDataPtr, I32 inputDataLen) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_output", void, __faasm_write_output, I32 outputPtr, I32 outputLen) {
+        s__faasm_write_output(outputPtr, outputLen);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___faasm_write_output", void, ___faasm_write_output, I32 outputPtr,
+                              I32 outputLen) {
+        s__faasm_write_output(outputPtr, outputLen);
+    }
+
+    void s__faasm_chain_function(I32 namePtr, I32 inputDataPtr, I32 inputDataLen) {
         util::getLogger()->debug("S - chain_function - {} {} {}", namePtr, inputDataPtr, inputDataLen);
 
         message::Message *call = getExecutingCall();
@@ -294,6 +445,16 @@ namespace wasm {
 
         // Add this to the chain of calls
         callChain->addCall(call->user(), funcName, inputData);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_function", void, __faasm_chain_function,
+                              I32 namePtr, I32 inputDataPtr, I32 inputDataLen) {
+        s__faasm_chain_function(namePtr, inputDataPtr, inputDataLen);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___faasm_chain_function", void, ___faasm_chain_function,
+                              I32 namePtr, I32 inputDataPtr, I32 inputDataLen) {
+        s__faasm_chain_function(namePtr, inputDataPtr, inputDataLen);
     }
 
     // ------------------------

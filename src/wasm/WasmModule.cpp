@@ -119,6 +119,8 @@ namespace wasm {
         // Linking
         const util::TimePoint &linkTs = prof::startTimer();
         resolver->setUser(msg.user());
+        resolver->setIsEmscripten(isEmscripten);
+
         Runtime::LinkResult linkResult = linkModule(module, *resolver);
         if (!linkResult.success) {
             std::cerr << "Failed to link module:" << std::endl;
