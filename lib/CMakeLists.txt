@@ -9,7 +9,7 @@ include_directories(
 )
 
 # Emscripten doesn't seem to look in normal system includes so we explicitly have to tell it to
-if (EMSCRIPTEN MATCHES "1")
+if (${EMSCRIPTEN})
     include_directories(/usr/local/include/)
 endif()
 

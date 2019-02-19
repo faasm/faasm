@@ -298,10 +298,12 @@ def compile_libfaasm_emscripten(ctx):
 
     mkdir(build_dir)
 
-    call("emconfigure cmake -DCMAKE_TOOLCHAIN_FILE={} ..".format(EMSCRIPTEN_CMAKE_TOOLCHAIN),
+    call("emconfigure cmake -DFAASM_BUILD_TYPE=wasm -DCMAKE_TOOLCHAIN_FILE={} ..".format(EMSCRIPTEN_CMAKE_TOOLCHAIN),
         shell=True, cwd=build_dir, env=EMSCRIPTEN_ENV_DICT)
     call("make", shell=True, cwd=build_dir, env=EMSCRIPTEN_ENV_DICT)
-    call("make install", shell=True, cwd=build_dir, env=EMSCRIPTEN_ENV_DICT)
+
+    # Put imports file in place to avoid undefined symbols
+    call("cp libfaasm.imports {}".format(build_dir), shell=True, cwd=work_dir)
 
 
 @task

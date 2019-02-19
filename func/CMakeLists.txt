@@ -22,12 +22,19 @@ else ()
 endif ()
 
 # Emscripten fiddles
-if (EMSCRIPTEN MATCHES "1")
+if (${EMSCRIPTEN})
+    message(INFO "Detected Emscripten build")
+
+    # Ignore undefined symbols
+    # TODO - there must be a way to respect the libfaasm.imports file
+    set(CMAKE_EXE_LINKER_FLAGS  "-s ERROR_ON_UNDEFINED_SYMBOLS=0")
+
     # Avoid compiling javascript
     set(CMAKE_EXECUTABLE_SUFFIX ".wasm")
 
     # Link to custom-build faasm lib
-    set(FAASM_LIB /usr/local/code/faasm/lib/embuild/libfaasm.a)
+    link_directories(/usr/local/code/faasm/lib/embuild/)
+    set(FAASM_LIB libfaasm.a)
 else()
     set(FAASM_LIB faasm)
 endif()
@@ -53,7 +60,7 @@ if (FAASM_BUILD_TYPE MATCHES "wasm")
         # Path to built function
         set(FUNCTION_FILE ${CMAKE_BINARY_DIR}/${FAASM_USER}/${exec_name})
 
-        if(EMSCRIPTEN MATCHES "1")
+        if(${EMSCRIPTEN})
             # Append .wasm for emscripten
             set(FUNCTION_FILE ${FUNCTION_FILE}.wasm)
         endif()
