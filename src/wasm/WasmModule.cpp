@@ -103,8 +103,16 @@ namespace wasm {
         const std::vector<uint8_t> &bytes = functionLoader.loadFunctionBytes(msg);
         WASM::loadBinaryModule(bytes.data(), bytes.size(), module);
 
-        // Set up minimum memory size
-        module.memories.defs[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
+        // Detect if this is an emscripten function
+        bool isEmscripten = false;
+        if(!module.memories.defs.empty()) {
+            // Set up minimum memory size
+            module.memories.defs[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
+        }
+        else {
+            // TODO make this check better. Is it always a reliable way to detect Emscripten funcs?
+            isEmscripten = true;
+        }
 
         prof::logEndTimer("wasm-parse", wasmParseTs);
 

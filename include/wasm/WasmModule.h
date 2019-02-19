@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CallChain.h"
+#include "RootResolver.h"
 
 #include <util/logging.h>
 #include <state/State.h>
@@ -18,8 +19,6 @@
 using namespace WAVM;
 
 namespace wasm {
-    extern Intrinsics::Module &getIntrinsicModule_env();
-
     const std::string ENTRYPOINT_FUNC = "_start";
 
     // Note that the max memory per module is 8GiB, i.e. > 100k pages
@@ -32,47 +31,6 @@ namespace wasm {
     const int CLEAN_MEMORY_SIZE = CLEAN_MEMORY_PAGES * IR::numBytesPerPage;
 
     Uptr getNumberOfPagesForBytes(U32 nBytes);
-
-    struct RootResolver : Runtime::Resolver {
-        explicit RootResolver(Runtime::Compartment *compartment) {
-            Intrinsics::Module &moduleRef = getIntrinsicModule_env();
-
-            moduleInstance = Intrinsics::instantiateModule(
-                    compartment,
-                    moduleRef,
-                    "env"
-            );
-        }
-
-        void setUser(const std::string &userIn) {
-            user = userIn;
-        }
-
-        void cleanUp() {
-            moduleInstance = nullptr;
-        }
-
-        bool resolve(const std::string &moduleName,
-                     const std::string &exportName,
-                     IR::ExternType type,
-                     Runtime::Object *&resolved) override {
-
-            resolved = getInstanceExport(moduleInstance, exportName);
-
-            if (resolved && isA(resolved, type)) {
-                return true;
-            }
-
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            logger->error("Missing import {}.{} {}", moduleName, exportName, asString(type).c_str());
-
-            return false;
-        }
-
-    private:
-        Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
-        std::string user;
-    };
 
     class WasmModule {
     public:

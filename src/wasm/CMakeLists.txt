@@ -3,6 +3,8 @@ include_directories(
         ${FAASM_WAVM_SOURCE_DIR}
 )
 
+file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/wasm/*.h")
+
 add_library(wasm STATIC
         CallChain.cpp
         FunctionLoader.cpp
@@ -11,8 +13,7 @@ add_library(wasm STATIC
         instance.cpp
         WasmModule.cpp
         syscalls.cpp
-        ${FAASM_INCLUDE_DIR}/wasm/CallChain.h
-        ${FAASM_INCLUDE_DIR}/wasm/WasmModule.h
+        ${HEADERS}
         )
 
 target_link_libraries(wasm scheduler state Logging IR WASTParse WASM Runtime)
