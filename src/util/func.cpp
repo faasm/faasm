@@ -3,6 +3,7 @@
 #include "bytes.h"
 #include "environment.h"
 #include "files.h"
+#include "json.h"
 #include "random.h"
 
 #include <boost/filesystem.hpp>
@@ -10,6 +11,7 @@
 namespace util {
     const static std::string funcFile = "function.wasm";
     const static std::string objFile = "function.o";
+    const static std::string confFile = "conf.json";
 
     boost::filesystem::path getFuncRootPath() {
         std::string funcRoot = util::getEnvVar("FUNC_ROOT", "/usr/local/code/faasm");
@@ -68,11 +70,33 @@ namespace util {
         return path.string();
     }
 
+    std::string getFunctionConfigFile(const message::Message &msg) {
+        auto path = getFunctionDir(msg);
+        path.append(confFile);
+
+        return path.string();
+    }
+
     std::string getFunctionObjectFile(const message::Message &msg) {
         auto path = getFunctionDir(msg);
         path.append(objFile);
 
         return path.string();
+    }
+
+    FunctionConfig getFunctionConfig(const message::Message &msg) {
+        auto path = getFunctionConfigFile(msg);
+        if(boost::filesystem::exists(path)) {
+            const std::string &jsonBody = readFileToString(path);
+
+            FunctionConfig conf = jsonToFunctionConfig(jsonBody);
+            return conf;
+        }
+        else {
+            // Return default if no config exists
+            FunctionConfig conf;
+            return conf;
+        }
     }
 
     std::vector<uint8_t> messageToBytes(const message::Message &msg) {
