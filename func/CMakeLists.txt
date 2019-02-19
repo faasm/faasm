@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.8.0)
 project(faasm-func)
 
+set(CMAKE_CXX_STANDARD 17)
+
 set(FAASM_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/../lib)
 
 include_directories(${FAASM_LIB_DIR})
@@ -23,7 +25,10 @@ endif ()
 
 # Emscripten fiddles
 if (${EMSCRIPTEN})
-    message(INFO "Detected Emscripten build")
+    message(STATUS "Detected Emscripten build")
+
+    # Emscripten doesn't seem to look in normal system includes so we explicitly have to tell it to
+    include_directories(/usr/local/include/)
 
     # Ignore undefined symbols
     # TODO - there must be a way to respect the libfaasm.imports file
