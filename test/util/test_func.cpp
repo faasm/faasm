@@ -65,4 +65,13 @@ namespace tests {
 
         REQUIRE(util::isValidFunction(validCall));
     }
+    
+    TEST_CASE("Test getting default function config", "[util]") {
+        message::Message validCall;
+        validCall.set_user("demo");
+        validCall.set_function("echo");
+
+        const util::FunctionConfig &actual = util::getFunctionConfig(validCall);
+        REQUIRE(actual.runtime == "wasm");
+    }
 }
