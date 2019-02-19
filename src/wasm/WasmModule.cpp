@@ -104,14 +104,13 @@ namespace wasm {
         WASM::loadBinaryModule(bytes.data(), bytes.size(), module);
 
         // Detect if this is an emscripten function
-        bool isEmscripten = false;
         if(!module.memories.defs.empty()) {
             // Set up minimum memory size
             module.memories.defs[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
         }
         else {
             // TODO make this check better. Is it always a reliable way to detect Emscripten funcs?
-            isEmscripten = true;
+            resolver->setUpEmscripten(compartment, module);
         }
 
         prof::logEndTimer("wasm-parse", wasmParseTs);
@@ -119,7 +118,6 @@ namespace wasm {
         // Linking
         const util::TimePoint &linkTs = prof::startTimer();
         resolver->setUser(msg.user());
-        resolver->setIsEmscripten(isEmscripten);
 
         Runtime::LinkResult linkResult = linkModule(module, *resolver);
         if (!linkResult.success) {
