@@ -5,9 +5,8 @@
 /** Attempts to poll stdin */
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        struct pollfd stdinFd{
-                .fd=0,
-        };
+        struct pollfd stdinFd;
+        stdinFd.fd=0;
 
         pollfd pollFds[1];
         pollFds[0] = stdinFd;

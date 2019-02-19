@@ -23,6 +23,10 @@ endif ()
 
 # Emscripten fiddles
 if (EMSCRIPTEN MATCHES "1")
+    # Avoid compiling javascript
+    set(CMAKE_EXECUTABLE_SUFFIX ".wasm")
+
+    # Link to custom-build faasm lib
     set(FAASM_LIB /usr/local/code/faasm/lib/embuild/libfaasm.a)
 else()
     set(FAASM_LIB faasm)
