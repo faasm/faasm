@@ -88,6 +88,14 @@ ENV_STR = " ".join(["{}={}".format(e[0], e[1]) for e in _ENV_TUPLES])
 NATIVE_ENV_DICT = {e[0]: e[1] for e in _NATIVE_ENV_TUPLES}
 NATIVE_ENV_STR = " ".join(["{}={}".format(e[0], e[1]) for e in _NATIVE_ENV_TUPLES])
 
+EMSCRIPTEN_DIR = "/usr/local/code/emsdk/emscripten/1.38.27/"
+EMSCRIPTEN_CMAKE_TOOLCHAIN = join(EMSCRIPTEN_DIR, "cmake", "Modules", "Platform", "Emscripten.cmake")
+INITIAL_PATH = os.environ["PATH"]
+EMSCRIPTEN_ENV_DICT = {
+    "PATH": "{}:{}".format(INITIAL_PATH, EMSCRIPTEN_DIR)
+}
+EMSCRIPTEN_SYSROOT = join(FAASM_HOME, "emsysroot")
+
 BUILD_DIR = join(PROJ_ROOT, "work")
 
 CONFIG_FLAGS = [
@@ -103,10 +111,32 @@ def clean_build(context):
 
     # Clean build of library
     rmtree(lib_build_dir)
-    lib(context, "faasm")
+    compile_libfaasm(context)
 
     # Clean build of functions
     funcs(context, clean=True)
+
+
+@task
+def funcs_emscripten(context, clean=False, func=None):
+    func_build_dir = join(PROJ_ROOT, "func", "embuild")
+
+    if clean:
+        rmtree(func_build_dir)
+
+    if not exists(func_build_dir):
+        mkdir(func_build_dir)
+
+    call("cmake -DFAASM_BUILD_TYPE=wasm -DCMAKE_TOOLCHAIN_FILE={} ..".format(EMSCRIPTEN_CMAKE_TOOLCHAIN),
+         shell=True, cwd=func_build_dir)
+
+    # Allow specifying a single function
+    if func:
+        cmd = "make {}".format(func)
+    else:
+        cmd = "make"
+
+    call(cmd, shell=True, cwd=func_build_dir)
 
 
 @task
@@ -138,13 +168,12 @@ def build_python_emscripten(ctx):
     proj_dir = clone_proj("https://github.com/Shillaker/cpython-emscripten", "cpython-emscripten")
 
     # Make sure emscripten is present
-    emscripten_dir = "/usr/local/code/emsdk/emscripten/1.38.10/"
-    assert exists(emscripten_dir), "Must have emscripten ready"
+    assert exists(EMSCRIPTEN_DIR), "Must have emscripten ready"
 
     # Run the emscripten python build
-    call("make", cwd=proj_dir, shell=True, env={
-        "PATH": "{}:{}".format(os.environ("PATH"), emscripten_dir)
-    })
+    current_path = os.environ["PATH"]
+    make_dir = join(proj_dir, "3.5.2")
+    call("make", cwd=make_dir, shell=True, env=EMSCRIPTEN_ENV_DICT)
 
 
 @task
@@ -260,27 +289,26 @@ def build_python(ctx):
 
 
 @task
-def lib(context, lib_name):
+def compile_libfaasm_emscripten(ctx):
+    work_dir = join(PROJ_ROOT, "lib")
+    build_dir = join(work_dir, "embuild")
+
+    if exists(build_dir):
+        rmtree(build_dir)
+
+    mkdir(build_dir)
+
+    call("emconfigure cmake -DCMAKE_TOOLCHAIN_FILE={} ..".format(EMSCRIPTEN_CMAKE_TOOLCHAIN),
+        shell=True, cwd=build_dir, env=EMSCRIPTEN_ENV_DICT)
+    call("make", shell=True, cwd=build_dir, env=EMSCRIPTEN_ENV_DICT)
+    call("make install", shell=True, cwd=build_dir, env=EMSCRIPTEN_ENV_DICT)
+
+
+@task
+def compile_libfaasm(ctx):
     if not exists(FAASM_HOME):
         mkdir(FAASM_HOME)
 
-    if lib_name == "curl":
-        compile_libcurl()
-    elif lib_name == "eigen":
-        compile_eigen()
-    elif lib_name == "faasm":
-        compile_libfaasm()
-    elif lib_name == "mlpack":
-        compile_mlpack()
-    elif lib_name == "dlib":
-        compile_dlib()
-    elif lib_name == "gsl":
-        compile_gsl()
-    else:
-        raise RuntimeError("Unrecognised lib name: {}".format(lib_name))
-
-
-def compile_libfaasm():
     work_dir = join(PROJ_ROOT, "lib")
     build_dir = join(work_dir, "build")
 
@@ -297,18 +325,85 @@ def compile_libfaasm():
     call("make install", shell=True, cwd=build_dir)
 
 
-def compile_eigen():
+def _checkout_eigen():
     extract_dir, build_dir = download_proj(
         "http://bitbucket.org/eigen/eigen/get/3.3.7.tar.gz",
         "3.3.7",
         extract_file="eigen-eigen-323c052e1731"
     )
 
+    if exists(build_dir):
+        rmtree(build_dir)
+
+    mkdir(build_dir)
+
+    return build_dir
+
+
+@task
+def compile_eigen_emscripten(ctx):
+    build_dir = _checkout_eigen()
+
+    call("emconfigure cmake -DCMAKE_TOOLCHAIN_FILE={} ..".format(EMSCRIPTEN_CMAKE_TOOLCHAIN),
+         shell=True, cwd=build_dir, env=EMSCRIPTEN_ENV_DICT)
+
+    call("make", shell=True, cwd=build_dir, env=EMSCRIPTEN_ENV_DICT)
+    call("make install", shell=True, cwd=build_dir, env=EMSCRIPTEN_ENV_DICT)
+
+
+@task
+def compile_eigen(ctx):
+    build_dir = _checkout_eigen()
+
     call("cmake -DCMAKE_INSTALL_PREFIX={} ..".format(SYSROOT), shell=True, cwd=build_dir)
 
     call("make", shell=True, cwd=build_dir)
     call("make install", shell=True, cwd=build_dir)
 
+
+@task
+def compile_libcurl(ctx):
+    extract_dir, build_dir = download_proj(
+        "https://github.com/curl/curl/archive/curl-7_61_1.tar.gz",
+        "curl-curl-7_61_1"
+    )
+
+    # Buildconf
+    buildconf_cmd = ["./buildconf"]
+    res = call(buildconf_cmd, shell=True, cwd=extract_dir)
+    if res != 0:
+        raise RuntimeError("Buildconf command failed")
+
+    # Configure
+    config_cmd = [
+        "./configure",
+        ENV_STR,
+        "--enable-debug",
+        "--disable-threaded-resolver",
+        "--without-winssl",
+        "--without-darwinssl",
+    ]
+    config_cmd.extend(CONFIG_FLAGS)
+
+    config_cmd_str = " ".join(config_cmd)
+    res = call(config_cmd_str, shell=True, cwd=extract_dir)
+    if res != 0:
+        raise RuntimeError("Configure command failed")
+
+    # Make
+    make_cmd = ["make"]
+    res = call(make_cmd, shell=True, cwd=extract_dir)
+    if res != 0:
+        raise RuntimeError("Make failed")
+
+    res = call("make install", shell=True, cwd=extract_dir)
+    if res != 0:
+        raise RuntimeError("Make install failed")
+
+
+# ---------------------------------------
+# Libraries below not working
+# ---------------------------------------
 
 def compile_gsl():
     # TODO gsl doesn't like --host=wasm32
@@ -361,42 +456,3 @@ def compile_mlpack():
     # TODO mlpack depends on armadillo which in turn depends on blas, lapack etc.
     # Obviously all the transitive dependencies need to be compiled to wasm which is a big project
     call(cmake_cmd, cwd=build_dir, shell=True)
-
-
-def compile_libcurl():
-    extract_dir, build_dir = download_proj(
-        "https://github.com/curl/curl/archive/curl-7_61_1.tar.gz",
-        "curl-curl-7_61_1"
-    )
-
-    # Buildconf
-    buildconf_cmd = ["./buildconf"]
-    res = call(buildconf_cmd, shell=True, cwd=extract_dir)
-    if res != 0:
-        raise RuntimeError("Buildconf command failed")
-
-    # Configure
-    config_cmd = [
-        "./configure",
-        ENV_STR,
-        "--enable-debug",
-        "--disable-threaded-resolver",
-        "--without-winssl",
-        "--without-darwinssl",
-    ]
-    config_cmd.extend(CONFIG_FLAGS)
-
-    config_cmd_str = " ".join(config_cmd)
-    res = call(config_cmd_str, shell=True, cwd=extract_dir)
-    if res != 0:
-        raise RuntimeError("Configure command failed")
-
-    # Make
-    make_cmd = ["make"]
-    res = call(make_cmd, shell=True, cwd=extract_dir)
-    if res != 0:
-        raise RuntimeError("Make failed")
-
-    res = call("make install", shell=True, cwd=extract_dir)
-    if res != 0:
-        raise RuntimeError("Make install failed")

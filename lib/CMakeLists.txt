@@ -1,10 +1,17 @@
 cmake_minimum_required(VERSION 3.0)
 project(libfaasm)
 
+set(CMAKE_CXX_STANDARD 17)
+
 # Include Faasm headers
 include_directories(
         ${CMAKE_CURRENT_LIST_DIR}
 )
+
+# Emscripten doesn't seem to look in normal system includes so we explicitly have to tell it to
+if (EMSCRIPTEN MATCHES "1")
+    include_directories(/usr/local/include/)
+endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic -fvisibility=default")
 

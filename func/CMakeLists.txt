@@ -21,27 +21,42 @@ else ()
     add_definitions(-DAWS_LAMBDA=0)
 endif ()
 
+# Emscripten fiddles
+if (EMSCRIPTEN MATCHES "1")
+    set(FAASM_LIB /usr/local/code/faasm/lib/embuild/libfaasm.a)
+else()
+    set(FAASM_LIB faasm)
+endif()
+
+
 # Define functions for building
 if (FAASM_BUILD_TYPE MATCHES "wasm")
     # ----------------------
     # WASM build
     # ----------------------
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Oz -fvisibility=hidden")
-
-    set(WASM_LINKER_FLAGS "-s EMULATE_FUNCTION_POINTER_CASTS=1 --memory-init-file 0 -s ASSERTIONS=2")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${WASM_LINKER_FLAGS}")
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --target=wasm32-unknown-unknown-wasm")
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --sysroot=/toolchain/sysroot")
 
     function(faasm_func exec_name file_name)
         add_executable(${exec_name} ${file_name})
-        target_link_libraries(${exec_name} faasm)
+
+        target_link_libraries(${exec_name} ${FAASM_LIB})
 
         # Upload URL
         set(UPLOAD_URL http://${FAASM_HOST}:8002/f/${FAASM_USER}/${exec_name})
-        # Path to build module
-        set(EXECUTABLE_PATH ${CMAKE_BINARY_DIR}/${FAASM_USER}/${exec_name})
+
+        # Path to built function
+        set(FUNCTION_FILE ${CMAKE_BINARY_DIR}/${FAASM_USER}/${exec_name})
+
+        if(EMSCRIPTEN MATCHES "1")
+            # Append .wasm for emscripten
+            set(FUNCTION_FILE ${FUNCTION_FILE}.wasm)
+        endif()
+
         # Use CURL to upload
         add_custom_command(TARGET ${exec_name} POST_BUILD
-                COMMAND curl -X PUT ${UPLOAD_URL} -T ${EXECUTABLE_PATH}
+                COMMAND curl -X PUT ${UPLOAD_URL} -T ${FUNCTION_FILE}
                 )
     endfunction(faasm_func)
 
