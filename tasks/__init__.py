@@ -1,5 +1,5 @@
 from tasks.compile import (
-    build_cpython_host,
+    build_python_host,
     build_python,
     clean_build,
     funcs,

@@ -148,7 +148,7 @@ def build_python_emscripten(ctx):
 
 
 @task
-def build_cpython_host(ctx):
+def build_python_host(ctx):
     # -----------------------------------
     # Build for native host (used by cross-compile build steps)
     # -----------------------------------
@@ -166,6 +166,7 @@ def build_cpython_host(ctx):
 
 @task
 def build_python(ctx):
+    # Note, full python version is 3.6.7
     host_proj = join(FAASM_HOME, "cpython-host")
     host_python = join(host_proj, "host_build", "bin", "python3")
     host_pgen = join(host_proj, "Parser", "pgen")
