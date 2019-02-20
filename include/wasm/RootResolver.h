@@ -120,6 +120,8 @@ namespace wasm {
 
         void cleanUp() {
             envModule = nullptr;
+
+            emEnvModule = nullptr;
             emAsm2wasmModule = nullptr;
             emGlobalModule = nullptr;
         }
