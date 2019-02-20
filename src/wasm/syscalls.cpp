@@ -77,7 +77,7 @@ namespace wasm {
     static const char *HOSTS_FILE = "/usr/local/faasm/net/hosts";
     static const char *RESOLV_FILE = "/usr/local/faasm/net/resolv.conf";
 
-    U8* emscriptenArgs(U32 syscallNo, I32 argsPtr, int argCount) {
+    U8 *emscriptenArgs(U32 syscallNo, I32 argsPtr, int argCount) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *args = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) argsPtr, argCount);
 
@@ -542,7 +542,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall5", I32, ___syscall5, I32 syscallNo, I32 argsPtr) {
-        U8* args = emscriptenArgs(syscallNo, argsPtr, 3);
+        U8 *args = emscriptenArgs(syscallNo, argsPtr, 3);
         return s__syscall_open(args[0], args[1], args[2]);
     }
 
@@ -1626,7 +1626,6 @@ namespace wasm {
     DEFINE_INTRINSIC_GLOBAL(emEnv, "EMT_STACK_MAX", U32, EMT_STACK_MAX, 0)
     DEFINE_INTRINSIC_GLOBAL(emEnv, "eb", I32, eb, 0)
 
-    static thread_local Runtime::Memory *emscriptenMemory = nullptr;
     static thread_local U32 emscriptenErrNoLocation = 0;
 
     static U32 dynamicAlloc(Runtime::Memory *memory, U32 numBytes) {
@@ -1646,9 +1645,9 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "getTotalMemory", U32, getTotalMemory) {
-        wavmAssert(emscriptenMemory);
-        return coerce32bitAddress(emscriptenMemory,
-                                  Runtime::getMemoryMaxPages(emscriptenMemory) * IR::numBytesPerPage);
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+
+        return coerce32bitAddress(memoryPtr, Runtime::getMemoryMaxPages(memoryPtr) * IR::numBytesPerPage);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_emscripten_get_heap_size", U32, _emscripten_get_heap_size) {
@@ -1672,9 +1671,9 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_time", I32, _time, U32 address) {
-        wavmAssert(emscriptenMemory);
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         time_t t = time(nullptr);
-        if (address) { Runtime::memoryRef<I32>(emscriptenMemory, address) = (I32) t; }
+        if (address) { Runtime::memoryRef<I32>(memoryPtr, address) = (I32) t; }
         return (I32) t;
     }
 
@@ -1682,7 +1681,8 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___setErrNo", void, ___seterrno, I32 value) {
         if (emscriptenErrNoLocation) {
-            Runtime::memoryRef<I32>(emscriptenMemory, emscriptenErrNoLocation) = (I32) value;
+            Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+            Runtime::memoryRef<I32>(memoryPtr, emscriptenErrNoLocation) = (I32) value;
         }
     }
 
@@ -1699,7 +1699,6 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___ctype_b_loc", U32, ___ctype_b_loc) {
-        wavmAssert(emscriptenMemory);
         unsigned short data[384] = {
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1732,16 +1731,18 @@ namespace wasm {
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0};
         static U32 vmAddress = 0;
+
         if (vmAddress == 0) {
-            vmAddress
-                    = coerce32bitAddress(emscriptenMemory, dynamicAlloc(emscriptenMemory, sizeof(data)));
-            memcpy(Runtime::memoryArrayPtr<U8>(emscriptenMemory, vmAddress, sizeof(data)), data, sizeof(data));
+            Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+
+            vmAddress = coerce32bitAddress(memoryPtr, dynamicAlloc(memoryPtr, sizeof(data)));
+            memcpy(Runtime::memoryArrayPtr<U8>(memoryPtr, vmAddress, sizeof(data)), data, sizeof(data));
         }
+
         return vmAddress + sizeof(short) * 128;
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___ctype_toupper_loc", U32, ___ctype_toupper_loc) {
-        wavmAssert(emscriptenMemory);
         I32 data[384]
                 = {128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145,
                    146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163,
@@ -1766,16 +1767,17 @@ namespace wasm {
                    232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249,
                    250, 251, 252, 253, 254, 255};
         static U32 vmAddress = 0;
+
         if (vmAddress == 0) {
-            vmAddress
-                    = coerce32bitAddress(emscriptenMemory, dynamicAlloc(emscriptenMemory, sizeof(data)));
-            memcpy(Runtime::memoryArrayPtr<U8>(emscriptenMemory, vmAddress, sizeof(data)), data, sizeof(data));
+            Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+            vmAddress = coerce32bitAddress(memoryPtr, dynamicAlloc(memoryPtr, sizeof(data)));
+            memcpy(Runtime::memoryArrayPtr<U8>(memoryPtr, vmAddress, sizeof(data)), data, sizeof(data));
         }
+
         return vmAddress + sizeof(I32) * 128;
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___ctype_tolower_loc", U32, ___ctype_tolower_loc) {
-        wavmAssert(emscriptenMemory);
         I32 data[384]
                 = {128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145,
                    146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163,
@@ -1800,11 +1802,13 @@ namespace wasm {
                    232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249,
                    250, 251, 252, 253, 254, 255};
         static U32 vmAddress = 0;
+
         if (vmAddress == 0) {
-            vmAddress
-                    = coerce32bitAddress(emscriptenMemory, dynamicAlloc(emscriptenMemory, sizeof(data)));
-            memcpy(Runtime::memoryArrayPtr<U8>(emscriptenMemory, vmAddress, sizeof(data)), data, sizeof(data));
+            Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+            vmAddress = coerce32bitAddress(memoryPtr, dynamicAlloc(memoryPtr, sizeof(data)));
+            memcpy(Runtime::memoryArrayPtr<U8>(memoryPtr, vmAddress, sizeof(data)), data, sizeof(data));
         }
+
         return vmAddress + sizeof(I32) * 128;
     }
 
@@ -1896,8 +1900,8 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_newlocale", U32, _newlocale, I32 mask, I32 locale, I32 base) {
-        wavmAssert(emscriptenMemory);
-        if (!base) { base = coerce32bitAddress(emscriptenMemory, dynamicAlloc(emscriptenMemory, 4)); }
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        if (!base) { base = coerce32bitAddress(memoryPtr, dynamicAlloc(memoryPtr, 4)); }
         return base;
     }
 
@@ -1941,10 +1945,13 @@ namespace wasm {
                               U32 sourceAddress,
                               U32 destAddress,
                               U32 numBytes) {
-        wavmAssert(emscriptenMemory);
-        memcpy(Runtime::memoryArrayPtr<U8>(emscriptenMemory, sourceAddress, numBytes),
-               Runtime::memoryArrayPtr<U8>(emscriptenMemory, destAddress, numBytes),
+
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+
+        memcpy(Runtime::memoryArrayPtr<U8>(memoryPtr, sourceAddress, numBytes),
+               Runtime::memoryArrayPtr<U8>(memoryPtr, destAddress, numBytes),
                numBytes);
+
         return sourceAddress;
     }
 
@@ -1985,10 +1992,11 @@ namespace wasm {
                               U32 size,
                               U32 count,
                               I32 file) {
-        wavmAssert(emscriptenMemory);
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+
         return coerce32bitAddress(
-                emscriptenMemory,
-                fread(Runtime::memoryArrayPtr<U8>(emscriptenMemory, destAddress, U64(size) * U64(count)),
+                memoryPtr,
+                fread(Runtime::memoryArrayPtr<U8>(memoryPtr, destAddress, U64(size) * U64(count)),
                       U64(size),
                       U64(count),
                       vmFile(file)));
@@ -2002,10 +2010,10 @@ namespace wasm {
                               U32 size,
                               U32 count,
                               I32 file) {
-        wavmAssert(emscriptenMemory);
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         return coerce32bitAddress(
-                emscriptenMemory,
-                fwrite(Runtime::memoryArrayPtr<U8>(emscriptenMemory, sourceAddress, U64(size) * U64(count)),
+                memoryPtr,
+                fwrite(Runtime::memoryArrayPtr<U8>(memoryPtr, sourceAddress, U64(size) * U64(count)),
                        U64(size),
                        U64(count),
                        vmFile(file)));
