@@ -14,6 +14,7 @@
 #include <sys/socket.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <sys/uio.h>
 
 #include <WAVM/Runtime/Runtime.h>
@@ -714,14 +715,6 @@ namespace wasm {
     // I/O - unsupported
     // ------------------------
 
-    /**
-     * 192 is mmap2, should be called from mmap rather than called directly
-     */
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall192", I32, ___syscall192, I32 syscallNo, I32 argsPtr) {
-        util::getLogger()->debug("S - mmap2 - {} {}", syscallNo, argsPtr);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
     I32 s__syscall_readv(I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - readv - {} {} {}", a, b, c);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
@@ -1247,9 +1240,13 @@ namespace wasm {
         I32 tv_nsec;
     };
 
-    //TODO - make this more secure
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_clock_gettime", I32, __syscall_clock_gettime,
-                              I32 clockId, I32 resultAddress) {
+    struct wasm_timeval {
+        I32 tv_sec;
+        I32 tv_usec;
+    };
+
+    //TODO - make timing functions more secure
+    I32 s__syscall_clock_gettime(I32 clockId, I32 resultAddress) {
         util::getLogger()->debug("S - clock_gettime - {} {}", clockId, resultAddress);
 
         timespec ts{};
@@ -1262,22 +1259,40 @@ namespace wasm {
         return 0;
     }
 
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_clock_gettime", I32, __syscall_clock_gettime,
+                              I32 clockId, I32 resultAddress) {
+        return s__syscall_clock_gettime(clockId, resultAddress);
+    }
+
+    /**
+     * As specified in the gettimeofday man page, use of the timezone struct is obsolete and hence not supported here
+     */
+    I32 s__syscall_gettimeofday(I32 timevalPtr, I32 tzPtr) {
+        util::getLogger()->debug("S - gettimeofday - {} {}", timevalPtr, tzPtr);
+
+        timeval tv{};
+        gettimeofday(&tv, nullptr);
+
+        auto result = &Runtime::memoryRef<wasm_timeval>(getExecutingModule()->defaultMemory, (Uptr) timevalPtr);
+        result->tv_sec = I32(tv.tv_sec);
+        result->tv_usec = I32(tv.tv_usec);
+
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_gettimeofday", I32, __syscall_gettimeofday, I32 timevalPtr, I32 tzPtr) {
+        return s__syscall_gettimeofday(timevalPtr, tzPtr);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_gettimeofday", I32, _gettimeofday, I32 syscallNo, I32 argsPtr) {
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 2);
+
+        return s__syscall_gettimeofday(args[0], args[1]);
+    }
+
     // ------------------------
     // Timing - unsupported
     // ------------------------
-
-    I32 s__syscall_gettimeofday(I32 a, I32 b) {
-        util::getLogger()->debug("S - gettimeofday - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_gettimeofday", I32, __syscall_gettimeofday, I32 a, I32 b) {
-        return s__syscall_gettimeofday(a, b);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_gettimeofday", I32, _gettimeofday, I32 a, I32 b) {
-        return s__syscall_gettimeofday(a, b);
-    }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_setitimer", I32, __syscall_setitimer, I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - setitimer - {} {} {}", a, b, c);
@@ -1424,9 +1439,10 @@ namespace wasm {
      * We can permit mmap as a means to grow memory via anonymous mappings. As there is only one
      * address range, this may end up conflicting with other memory management for the module.
      */
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_mmap", I32, __syscall_mmap,
-                              U32 addr, U32 length, U32 prot, U32 flags, I32 fd, U32 offset) {
+    I32 s__syscall_mmap(U32 addr, U32 length, U32 prot, U32 flags, I32 fd, U32 offset) {
         util::getLogger()->debug("S - mmap - {} {} {} {} {} {}", addr, length, prot, flags, fd, offset);
+
+        // Note - we are ignoring the offset input
 
         if (addr != 0) {
             printf("Ignoring mmap hint at %i\n", addr);
@@ -1440,6 +1456,23 @@ namespace wasm {
         WasmModule *module = getExecutingModule();
 
         return module->mmap(length);
+    }
+
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_mmap", I32, __syscall_mmap,
+                              U32 addr, U32 length, U32 prot, U32 flags, I32 fd, U32 offset) {
+        return s__syscall_mmap(addr, length, prot, flags, fd, offset);
+    }
+
+    /**
+     * syscall 192 is mmap2, which has the same interface as mmap except that the final argument specifies
+     * the offset into the file in 4096-byte units (instead of bytes, as is done by mmap). Given that we
+     * ignore the offset we can just treat it like mmap
+     */
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall192", I32, ___syscall192, I32 syscallNo, I32 argsPtr) {
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 6);
+
+        return s__syscall_mmap(args[0], args[1], args[2], args[3], args[4], args[5]);
     }
 
     /**
