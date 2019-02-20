@@ -53,6 +53,12 @@ using namespace WAVM;
  */
 
 namespace wasm {
+    static thread_local U32 EMSCRIPTEN_ERRNO_LOCATION = 0;
+
+    void setEmscriptenErrnoLocation(U32 value) {
+        EMSCRIPTEN_ERRNO_LOCATION = value;
+    }
+
     static Intrinsics::Module envModule;
     static Intrinsics::Module emEnvModule;
     static Intrinsics::Module emAsm2wasmModule;
@@ -77,9 +83,9 @@ namespace wasm {
     static const char *HOSTS_FILE = "/usr/local/faasm/net/hosts";
     static const char *RESOLV_FILE = "/usr/local/faasm/net/resolv.conf";
 
-    U8 *emscriptenArgs(U32 syscallNo, I32 argsPtr, int argCount) {
+    U32 *emscriptenArgs(U32 syscallNo, I32 argsPtr, int argCount) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        U8 *args = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) argsPtr, argCount);
+        U32 *args = Runtime::memoryArrayPtr<U32>(memoryPtr, (Uptr) argsPtr, argCount);
 
         return args;
     }
@@ -542,7 +548,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall5", I32, ___syscall5, I32 syscallNo, I32 argsPtr) {
-        U8 *args = emscriptenArgs(syscallNo, argsPtr, 3);
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 3);
         return s__syscall_open(args[0], args[1], args[2]);
     }
 
@@ -562,7 +568,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall221", I32, ___syscall221,
                               I32 syscallNo, I32 argsPtr) {
-        U8 *args = emscriptenArgs(syscallNo, argsPtr, 3);
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 3);
         return s__syscall_fcntl64(args[0], args[1], args[2]);
     }
 
@@ -600,7 +606,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall6", I32, ___syscall6, I32 syscallNo, I32 argsPtr) {
-        U8 *args = emscriptenArgs(syscallNo, argsPtr, 1);
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 1);
         return s__syscall_close(args[0]);
     }
 
@@ -625,7 +631,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall168", I32, ___syscall168, I32 syscallNo, I32 argsPtr) {
-        U8 *args = emscriptenArgs(syscallNo, argsPtr, 3);
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 3);
         return s__syscall_poll(args[0], args[1], args[2]);
     }
 
@@ -647,7 +653,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall54", I32, ___syscall54, I32 syscallNo, I32 argsPtr) {
-        U8 *args = emscriptenArgs(syscallNo, argsPtr, 6);
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 6);
         return s__syscall_ioctl(args[0], args[1], args[2], args[3], args[4], args[5]);
     }
 
@@ -699,7 +705,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall146", I32, ___syscall146, I32 syscallNo, I32 argsPtr) {
-        U8 *args = emscriptenArgs(syscallNo, argsPtr, 3);
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 3);
 
         return s__syscall_writev(args[0], args[1], args[2]);
     }
@@ -726,7 +732,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall145", I32, ___syscall145, I32 syscallNo, I32 argsPtr) {
-        U8 *args = emscriptenArgs(syscallNo, argsPtr, 3);
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 3);
         return s__syscall_readv(args[0], args[1], args[2]);
     }
 
@@ -740,7 +746,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall140", I32, ___syscall140, I32 syscallNo, I32 argsPtr) {
-        U8 *args = emscriptenArgs(syscallNo, argsPtr, 5);
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 5);
 
         return s__syscall_llseek(args[0], args[1], args[2], args[3], args[4]);
     }
@@ -1219,7 +1225,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall102", I32, ___syscall102, I32 syscallNo, I32 argsPtr) {
-        U8 *args = emscriptenArgs(syscallNo, argsPtr, 2);
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 2);
         return s__syscall_socketcall(args[0], args[1]);
     }
 
@@ -1474,7 +1480,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall91", I32, ___syscall91, U32 syscallNo, U32 argsPtr) {
-        U8 *args = emscriptenArgs(syscallNo, argsPtr, 2);
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 2);
         return s__syscall_munmap(args[0], args[1]);
     }
 
@@ -1584,8 +1590,8 @@ namespace wasm {
      * TODO - USE THE ACTUAL FILE
      */
 
-    DEFINE_INTRINSIC_GLOBAL(emEnv, "STACKTOP", I32, STACKTOP, 64 * IR::numBytesPerPage);
-    DEFINE_INTRINSIC_GLOBAL(emEnv, "STACK_MAX", I32, STACK_MAX, 128 * IR::numBytesPerPage);
+    DEFINE_INTRINSIC_GLOBAL(emEnv, "STACKTOP", I32, STACKTOP, EMSCRIPTEN_STACKTOP);
+    DEFINE_INTRINSIC_GLOBAL(emEnv, "STACK_MAX", I32, STACK_MAX, EMSCRIPTEN_STACK_MAX);
     DEFINE_INTRINSIC_GLOBAL(emEnv,
                             "tempDoublePtr",
                             I32,
@@ -1626,24 +1632,6 @@ namespace wasm {
     DEFINE_INTRINSIC_GLOBAL(emEnv, "EMT_STACK_MAX", U32, EMT_STACK_MAX, 0)
     DEFINE_INTRINSIC_GLOBAL(emEnv, "eb", I32, eb, 0)
 
-    static thread_local U32 emscriptenErrNoLocation = 0;
-
-    static U32 dynamicAlloc(Runtime::Memory *memory, U32 numBytes) {
-        MutableGlobals &mutableGlobals = Runtime::memoryRef<MutableGlobals>(memory, MutableGlobals::address);
-
-        const U32 allocationAddress = mutableGlobals.DYNAMICTOP_PTR;
-        const U32 endAddress = (allocationAddress + numBytes + 15) & -16;
-
-        mutableGlobals.DYNAMICTOP_PTR = endAddress;
-
-        const Uptr endPage = (endAddress + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
-        if (endPage >= getMemoryNumPages(memory) && endPage < getMemoryMaxPages(memory)) {
-            growMemory(memory, endPage - getMemoryNumPages(memory) + 1);
-        }
-
-        return allocationAddress;
-    }
-
     DEFINE_INTRINSIC_FUNCTION(emEnv, "getTotalMemory", U32, getTotalMemory) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
 
@@ -1680,9 +1668,9 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___errno_location", I32, ___errno_location) { return 0; }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___setErrNo", void, ___seterrno, I32 value) {
-        if (emscriptenErrNoLocation) {
+        if (EMSCRIPTEN_ERRNO_LOCATION) {
             Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-            Runtime::memoryRef<I32>(memoryPtr, emscriptenErrNoLocation) = (I32) value;
+            Runtime::memoryRef<I32>(memoryPtr, EMSCRIPTEN_ERRNO_LOCATION) = (I32) value;
         }
     }
 

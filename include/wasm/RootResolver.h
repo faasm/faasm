@@ -17,6 +17,11 @@ namespace wasm {
     const int INITIAL_MEMORY_PAGES = 100;
     const size_t INITIAL_MEMORY_SIZE = INITIAL_MEMORY_PAGES * IR::numBytesPerPage;
 
+    const int EMSCRIPTEN_STACKTOP = 64 * IR::numBytesPerPage;
+    const int EMSCRIPTEN_STACK_MAX = 128 * IR::numBytesPerPage;
+
+    void setEmscriptenErrnoLocation(U32 value);
+
     enum {
         minStaticEmscriptenMemoryPages = 128
     };
@@ -171,4 +176,5 @@ namespace wasm {
 
         std::string user;
     };
+
 }

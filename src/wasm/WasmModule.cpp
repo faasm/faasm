@@ -42,6 +42,22 @@ namespace wasm {
         return pageCount;
     }
 
+    U32 dynamicAlloc(Runtime::Memory *memory, U32 numBytes) {
+        MutableGlobals &mutableGlobals = Runtime::memoryRef<MutableGlobals>(memory, MutableGlobals::address);
+
+        const U32 allocationAddress = mutableGlobals.DYNAMICTOP_PTR;
+        const U32 endAddress = (allocationAddress + numBytes + 15) & -16;
+
+        mutableGlobals.DYNAMICTOP_PTR = endAddress;
+
+        const Uptr endPage = (endAddress + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
+        if (endPage >= getMemoryNumPages(memory) && endPage < getMemoryMaxPages(memory)) {
+            growMemory(memory, endPage - getMemoryNumPages(memory) + 1);
+        }
+
+        return allocationAddress;
+    }
+
     WasmModule::WasmModule() = default;
 
     WasmModule::~WasmModule() {
@@ -136,18 +152,15 @@ namespace wasm {
         prof::logEndTimer("wavm-mod", instantTs);
 
         // Extract the module's exported function
-        // Note that an underscore may be added before the function name by the compiler
         std::string entryFunc;
-        if(resolver->isEmscripten) {
+        if (resolver->isEmscripten) {
             entryFunc = "_main";
-        }
-        else {
+        } else {
             entryFunc = "_start";
         }
 
-        functionInstance = asFunctionNullable(
-                getInstanceExport(moduleInstance, entryFunc));
-
+        // Get main entrypoint function
+        functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, entryFunc));
         if (!functionInstance) {
             std::string errorMsg = "No exported function \"" + entryFunc + "\"";
             throw std::runtime_error(errorMsg);
@@ -218,6 +231,45 @@ namespace wasm {
 //        }
     }
 
+    // TODO - this may not be needed
+    void WasmModule::emscriptenRuntimeInit(Runtime::Context *context) {
+        // Initialise globals
+        // Call the establishStackSpace function to set the Emscripten module's internal stack pointers.
+        Runtime::Function *establishStackSpace = asFunctionNullable(
+                Runtime::getInstanceExport(moduleInstance, "establishStackSpace"));
+
+        const IR::FunctionType &stackspaceFuncType = IR::FunctionType(IR::TypeTuple{},
+                                                                      IR::TypeTuple{IR::ValueType::i32,
+                                                                                    IR::ValueType::i64});
+
+        if (establishStackSpace && getFunctionType(establishStackSpace) == stackspaceFuncType) {
+            std::vector<IR::Value> parameters = {IR::Value(EMSCRIPTEN_STACKTOP), IR::Value(EMSCRIPTEN_STACK_MAX)};
+            Runtime::invokeFunctionChecked(context, establishStackSpace, parameters);
+        }
+
+        // Call the global initializer functions.
+        for (Uptr exportIndex = 0; exportIndex < module.exports.size(); ++exportIndex) {
+            const IR::Export &functionExport = module.exports[exportIndex];
+            if (functionExport.kind == IR::ExternKind::function
+                && !strncmp(functionExport.name.c_str(), "__GLOBAL__", 10)) {
+                Runtime::Function *function
+                        = asFunctionNullable(getInstanceExport(moduleInstance, functionExport.name));
+                if (function) { Runtime::invokeFunctionChecked(context, function, {}); }
+            }
+        }
+
+        // Store ___errno_location.
+        Runtime::Function *errNoLocation = asFunctionNullable(getInstanceExport(moduleInstance, "___errno_location"));
+        if (errNoLocation
+            && getFunctionType(errNoLocation) == IR::FunctionType(IR::TypeTuple{IR::ValueType::i32}, IR::TypeTuple{})) {
+            IR::ValueTuple errNoResult = Runtime::invokeFunctionChecked(context, errNoLocation, {});
+
+            if (errNoResult.size() == 1 && errNoResult[0].type == IR::ValueType::i32) {
+                setEmscriptenErrnoLocation(errNoResult[0].i32);
+            }
+        }
+    }
+
     /**
      * Executes the given function call
      */
@@ -240,9 +292,22 @@ namespace wasm {
         // Make the call
         int exitCode = 0;
         std::vector<IR::Value> invokeArgs;
+
+        if(resolver->isEmscripten) {
+            U8* memoryBaseAddress = getMemoryBaseAddress(defaultMemory);
+
+            U32* argvOffsets = (U32*)(memoryBaseAddress + dynamicAlloc(defaultMemory, (U32)(sizeof(U32))));
+            argvOffsets[0] = 0;
+            invokeArgs = {(U32) 0, (U32)((U8*)argvOffsets - memoryBaseAddress)};
+        }
+
         try {
             // Create the runtime context
             Runtime::Context *context = Runtime::createContext(compartment);
+
+            if (resolver->isEmscripten) {
+                this->emscriptenRuntimeInit(context);
+            }
 
             // Call the function
             invokeFunctionChecked(context, functionInstance, invokeArgs);

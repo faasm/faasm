@@ -23,6 +23,8 @@ namespace wasm {
     const int CLEAN_MEMORY_PAGES = 1;
     const int CLEAN_MEMORY_SIZE = CLEAN_MEMORY_PAGES * IR::numBytesPerPage;
 
+    U32 dynamicAlloc(Runtime::Memory *memory, U32 numBytes);
+
     Uptr getNumberOfPagesForBytes(U32 nBytes);
 
     class WasmModule {
@@ -70,6 +72,8 @@ namespace wasm {
         std::unordered_map<std::string, I32> sharedMemWasmPtrs;
         std::unordered_map<std::string, void*> sharedMemHostPtrs;
         std::unordered_map<std::string, state::StateKeyValue*> sharedMemKVs;
+
+        void emscriptenRuntimeInit(Runtime::Context *context);
     };
 
     WasmModule *getExecutingModule();
