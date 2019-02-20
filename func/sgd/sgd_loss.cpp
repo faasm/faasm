@@ -21,13 +21,14 @@ namespace faasm {
 
         // Build string representation
         char lossString[p.nEpochs * 20];
+        size_t offset = 0;
         for (long l = 0; l < p.nEpochs; l++) {
             // Want relative times
             double relativeTs = ts[l] - ts[0];
 
             // Overwrite the last null terminator
-            int offset = strlen(lossString);
             sprintf(lossString + offset, "%.2f - %.4f, ", relativeTs, losses[l]);
+            offset = strlen(lossString);
         }
 
         // Set as output

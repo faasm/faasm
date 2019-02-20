@@ -17,7 +17,7 @@ namespace util {
         systemMode = getEnvVar("SYSTEM_MODE", "redis");
         serialisation = getEnvVar("SERIALISATION", "json");
         bucketName = getEnvVar("BUCKET_NAME", "");
-        queueName = getEnvVar("QUEUE_NAME", "faasm_messages");
+        queueName = getEnvVar("QUEUE_NAME", "faasm-messages");
 
         if(systemMode == "aws") {
             if(bucketName.empty() || queueName.empty()) {

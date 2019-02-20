@@ -6,13 +6,11 @@
 namespace faasm {
     int exec(FaasmMemory *memory) {
 
-        struct pollfd fdA{
-                .fd=11,
-        };
+        struct pollfd fdA;
+        fdA.fd = 11;
 
-        struct pollfd fdB{
-                .fd=12,
-        };
+        struct pollfd fdB;
+        fdB.fd = 12;
 
         pollfd pollFds[2];
         pollFds[0] = fdA;

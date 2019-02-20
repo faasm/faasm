@@ -12,9 +12,9 @@ namespace faasm {
         int count = getCounter(memory, key);
 
         // Return message
-        char output[13];
+        char output[12];
         sprintf(output, "Counter: %03i", count);
-        memory->setOutput((uint8_t *) output, 13);
+        memory->setOutput((uint8_t *) output, 12);
 
         return 0;
     }

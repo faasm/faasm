@@ -42,6 +42,22 @@ namespace wasm {
         return pageCount;
     }
 
+    U32 dynamicAlloc(Runtime::Memory *memory, U32 numBytes) {
+        MutableGlobals &mutableGlobals = Runtime::memoryRef<MutableGlobals>(memory, MutableGlobals::address);
+
+        const U32 allocationAddress = mutableGlobals.DYNAMICTOP_PTR;
+        const U32 endAddress = (allocationAddress + numBytes + 15) & -16;
+
+        mutableGlobals.DYNAMICTOP_PTR = endAddress;
+
+        const Uptr endPage = (endAddress + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
+        if (endPage >= getMemoryNumPages(memory) && endPage < getMemoryMaxPages(memory)) {
+            growMemory(memory, endPage - getMemoryNumPages(memory) + 1);
+        }
+
+        return allocationAddress;
+    }
+
     WasmModule::WasmModule() = default;
 
     WasmModule::~WasmModule() {
@@ -78,9 +94,9 @@ namespace wasm {
         }
 
         // Treat any unhandled exception (e.g. in a thread) as a fatal error.
-        Runtime::setUnhandledExceptionHandler([](Runtime::Exception &&exception) {
-            Errors::fatalf("Runtime exception: %s\n", describeException(exception).c_str());
-        });
+//        Runtime::setUnhandledExceptionHandler([](Runtime::Exception &&exception) {
+//            Errors::fatalf("Runtime exception: %s\n", describeException(exception).c_str());
+//        });
 
         compartment = Runtime::createCompartment();
 
@@ -103,14 +119,15 @@ namespace wasm {
         const std::vector<uint8_t> &bytes = functionLoader.loadFunctionBytes(msg);
         WASM::loadBinaryModule(bytes.data(), bytes.size(), module);
 
-        // Set up minimum memory size
-        module.memories.defs[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
+        // Configure resolver
+        resolver->setUp(compartment, module);
 
         prof::logEndTimer("wasm-parse", wasmParseTs);
 
         // Linking
         const util::TimePoint &linkTs = prof::startTimer();
         resolver->setUser(msg.user());
+
         Runtime::LinkResult linkResult = linkModule(module, *resolver);
         if (!linkResult.success) {
             std::cerr << "Failed to link module:" << std::endl;
@@ -135,12 +152,17 @@ namespace wasm {
         prof::logEndTimer("wavm-mod", instantTs);
 
         // Extract the module's exported function
-        // Note that an underscore may be added before the function name by the compiler
-        functionInstance = asFunctionNullable(
-                getInstanceExport(moduleInstance, ENTRYPOINT_FUNC));
+        std::string entryFunc;
+        if (resolver->isEmscripten) {
+            entryFunc = "_main";
+        } else {
+            entryFunc = "_start";
+        }
 
+        // Get main entrypoint function
+        functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, entryFunc));
         if (!functionInstance) {
-            std::string errorMsg = "No exported function \"" + ENTRYPOINT_FUNC + "\"";
+            std::string errorMsg = "No exported function \"" + entryFunc + "\"";
             throw std::runtime_error(errorMsg);
         }
 
@@ -229,18 +251,33 @@ namespace wasm {
         executingCallChain = &callChain;
 
         // Make the call
-        int exitCode = 0;
         std::vector<IR::Value> invokeArgs;
+
+        if (resolver->isEmscripten) {
+            U8 *memoryBaseAddress = getMemoryBaseAddress(defaultMemory);
+
+            U32 *argvOffsets = (U32 *) (memoryBaseAddress + dynamicAlloc(defaultMemory, (U32) (sizeof(U32))));
+            argvOffsets[0] = 0;
+            invokeArgs = {(U32) 0, (U32) ((U8 *) argvOffsets - memoryBaseAddress)};
+        }
+
+        int exitCode = 0;
         try {
             // Create the runtime context
             Runtime::Context *context = Runtime::createContext(compartment);
 
             // Call the function
-            invokeFunctionChecked(context, functionInstance, invokeArgs);
+            Runtime::unwindSignalsAsExceptions([this, &context, &invokeArgs] {
+                invokeFunctionChecked(context, functionInstance, invokeArgs);
+            });
         }
         catch (wasm::WasmExitException &e) {
             exitCode = e.exitCode;
         }
+        catch (Runtime::Exception &ex) {
+            logger->error("Runtime exception: {}", Runtime::describeException(&ex).c_str());
+        }
+
         return exitCode;
     }
 

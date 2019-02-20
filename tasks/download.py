@@ -8,6 +8,22 @@ from requests import get
 from tasks.env import FAASM_HOME
 
 
+def clone_proj(url, filename, branch=None):
+    if not exists(FAASM_HOME):
+        mkdir(FAASM_HOME)
+
+    clone_dir = join(FAASM_HOME, filename)
+    if exists(clone_dir):
+        return clone_dir
+
+    call("git clone {} {}".format(url, clone_dir), cwd=FAASM_HOME, shell=True)
+
+    if branch:
+        call("git checkout {}".format(branch), cwd=clone_dir, shell=True)
+
+    return clone_dir
+
+
 def download_proj(url, filename, extension="tar.gz", tar_args="-xvf", extract_file=None):
     if not exists(FAASM_HOME):
         mkdir(FAASM_HOME)

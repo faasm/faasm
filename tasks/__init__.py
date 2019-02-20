@@ -1,8 +1,15 @@
 from tasks.compile import (
-    lib,
-    compile,
+    build_python_host,
+    build_python,
+    build_python_emscripten,
     clean_build,
-    funcs
+    funcs,
+    funcs_emscripten,
+    compile_libfaasm,
+    compile_libfaasm_emscripten,
+    compile_eigen,
+    compile_eigen_emscripten,
+    compile_libcurl,
 )
 
 from tasks.docker import (
@@ -39,4 +46,3 @@ from tasks.aws import (
 from tasks.upload import upload
 
 from tasks.wasm2wast import wast
-
