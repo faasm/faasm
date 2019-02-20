@@ -1421,14 +1421,22 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
+    // ------------------------
+    // LLVM/ Emscripten
+    // ------------------------
+
+    /**
+     * It appears we can ignore this llvm_stacksave and llvm_stackrestore although I'm
+     * not 100% sure when/ why they get called.
+     */
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_llvm_stacksave", I32, _llvm_stacksave) {
         util::getLogger()->debug("S - llvm_stacksave");
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+
+        return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_llvm_stackrestore", void, _llvm_stackrestore, I32 a) {
         util::getLogger()->debug("S - llvm_stackrestore");
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     // ------------------------
