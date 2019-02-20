@@ -231,45 +231,6 @@ namespace wasm {
 //        }
     }
 
-    // TODO - this may not be needed
-//    void WasmModule::emscriptenRuntimeInit(Runtime::Context *context) {
-//        // Initialise globals
-//        // Call the establishStackSpace function to set the Emscripten module's internal stack pointers.
-//        Runtime::Function *establishStackSpace = asFunctionNullable(
-//                Runtime::getInstanceExport(moduleInstance, "establishStackSpace"));
-//
-//        const IR::FunctionType &stackspaceFuncType = IR::FunctionType(IR::TypeTuple{},
-//                                                                      IR::TypeTuple{IR::ValueType::i32,
-//                                                                                    IR::ValueType::i64});
-//
-//        if (establishStackSpace && getFunctionType(establishStackSpace) == stackspaceFuncType) {
-//            std::vector<IR::Value> parameters = {IR::Value(EMSCRIPTEN_STACKTOP), IR::Value(EMSCRIPTEN_STACK_MAX)};
-//            Runtime::invokeFunctionChecked(context, establishStackSpace, parameters);
-//        }
-//
-//        // Call the global initializer functions.
-//        for (Uptr exportIndex = 0; exportIndex < module.exports.size(); ++exportIndex) {
-//            const IR::Export &functionExport = module.exports[exportIndex];
-//            if (functionExport.kind == IR::ExternKind::function
-//                && !strncmp(functionExport.name.c_str(), "__GLOBAL__", 10)) {
-//                Runtime::Function *function
-//                        = asFunctionNullable(getInstanceExport(moduleInstance, functionExport.name));
-//                if (function) { Runtime::invokeFunctionChecked(context, function, {}); }
-//            }
-//        }
-//
-//        // Store ___errno_location.
-//        Runtime::Function *errNoLocation = asFunctionNullable(getInstanceExport(moduleInstance, "___errno_location"));
-//        if (errNoLocation
-//            && getFunctionType(errNoLocation) == IR::FunctionType(IR::TypeTuple{IR::ValueType::i32}, IR::TypeTuple{})) {
-//            IR::ValueTuple errNoResult = Runtime::invokeFunctionChecked(context, errNoLocation, {});
-//
-//            if (errNoResult.size() == 1 && errNoResult[0].type == IR::ValueType::i32) {
-//                setEmscriptenErrnoLocation(errNoResult[0].i32);
-//            }
-//        }
-//    }
-
     /**
      * Executes the given function call
      */
@@ -290,31 +251,33 @@ namespace wasm {
         executingCallChain = &callChain;
 
         // Make the call
-        int exitCode = 0;
         std::vector<IR::Value> invokeArgs;
 
-        if(resolver->isEmscripten) {
-            U8* memoryBaseAddress = getMemoryBaseAddress(defaultMemory);
+        if (resolver->isEmscripten) {
+            U8 *memoryBaseAddress = getMemoryBaseAddress(defaultMemory);
 
-            U32* argvOffsets = (U32*)(memoryBaseAddress + dynamicAlloc(defaultMemory, (U32)(sizeof(U32))));
+            U32 *argvOffsets = (U32 *) (memoryBaseAddress + dynamicAlloc(defaultMemory, (U32) (sizeof(U32))));
             argvOffsets[0] = 0;
-            invokeArgs = {(U32) 0, (U32)((U8*)argvOffsets - memoryBaseAddress)};
+            invokeArgs = {(U32) 0, (U32) ((U8 *) argvOffsets - memoryBaseAddress)};
         }
 
+        int exitCode = 0;
         try {
             // Create the runtime context
             Runtime::Context *context = Runtime::createContext(compartment);
 
-//            if (resolver->isEmscripten) {
-//                this->emscriptenRuntimeInit(context);
-//            }
-
             // Call the function
-            invokeFunctionChecked(context, functionInstance, invokeArgs);
+            Runtime::unwindSignalsAsExceptions([this, &context, &invokeArgs] {
+                invokeFunctionChecked(context, functionInstance, invokeArgs);
+            });
         }
         catch (wasm::WasmExitException &e) {
             exitCode = e.exitCode;
         }
+        catch (Runtime::Exception &ex) {
+            logger->error("Runtime exception: {}", Runtime::describeException(&ex).c_str());
+        }
+
         return exitCode;
     }
 

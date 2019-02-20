@@ -8,7 +8,7 @@
 namespace faasm {
     int exec(FaasmMemory *memory) {
         // Create array on heap
-        int size = 100;
+        int size = 1024*1024;
         auto heapArray = new int[size];
         for (int i = 0; i < size; i++) {
             heapArray[i] = i;
