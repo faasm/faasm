@@ -103,15 +103,8 @@ namespace wasm {
         const std::vector<uint8_t> &bytes = functionLoader.loadFunctionBytes(msg);
         WASM::loadBinaryModule(bytes.data(), bytes.size(), module);
 
-        // Detect if this is an emscripten function
-        if(!module.memories.defs.empty()) {
-            // Set up minimum memory size
-            module.memories.defs[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
-        }
-        else {
-            // TODO make this check better. Is it always a reliable way to detect Emscripten funcs?
-            resolver->setUpEmscripten(compartment, module);
-        }
+        // Configure resolver
+        resolver->setUp(compartment, module);
 
         prof::logEndTimer("wasm-parse", wasmParseTs);
 
@@ -144,11 +137,19 @@ namespace wasm {
 
         // Extract the module's exported function
         // Note that an underscore may be added before the function name by the compiler
+        std::string entryFunc;
+        if(resolver->isEmscripten) {
+            entryFunc = "_main";
+        }
+        else {
+            entryFunc = "_start";
+        }
+
         functionInstance = asFunctionNullable(
-                getInstanceExport(moduleInstance, ENTRYPOINT_FUNC));
+                getInstanceExport(moduleInstance, entryFunc));
 
         if (!functionInstance) {
-            std::string errorMsg = "No exported function \"" + ENTRYPOINT_FUNC + "\"";
+            std::string errorMsg = "No exported function \"" + entryFunc + "\"";
             throw std::runtime_error(errorMsg);
         }
 

@@ -19,13 +19,6 @@
 using namespace WAVM;
 
 namespace wasm {
-    const std::string ENTRYPOINT_FUNC = "_start";
-
-    // Note that the max memory per module is 8GiB, i.e. > 100k pages
-    // Page size in wasm is 64kiB so 50 pages ~ 3MiB of memory
-    const int INITIAL_MEMORY_PAGES = 100;
-    const size_t INITIAL_MEMORY_SIZE = INITIAL_MEMORY_PAGES * IR::numBytesPerPage;
-
     // This is the number of pages we copy and restore for each reuse of the module.
     const int CLEAN_MEMORY_PAGES = 1;
     const int CLEAN_MEMORY_SIZE = CLEAN_MEMORY_PAGES * IR::numBytesPerPage;

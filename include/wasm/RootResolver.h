@@ -12,6 +12,11 @@ using namespace WAVM;
 
 namespace wasm {
 
+    // Note that the max memory per module is 8GiB, i.e. > 100k pages
+    // Page size in wasm is 64kiB so 50 pages ~ 3MiB of memory
+    const int INITIAL_MEMORY_PAGES = 100;
+    const size_t INITIAL_MEMORY_SIZE = INITIAL_MEMORY_PAGES * IR::numBytesPerPage;
+
     enum {
         minStaticEmscriptenMemoryPages = 128
     };
@@ -50,11 +55,31 @@ namespace wasm {
 
     struct RootResolver : Runtime::Resolver {
         explicit RootResolver(Runtime::Compartment *compartment) {
-            envModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_env(), "env");
+
         }
 
         void setUser(const std::string &userIn) {
             user = userIn;
+        }
+
+        void setUp(Runtime::Compartment *compartment, IR::Module &module) {
+            // Detect if this is an emscripten function
+            if (!module.memories.defs.empty()) {
+                isEmscripten = false;
+                this->setUpStandardToolchain(compartment, module);
+            } else {
+                isEmscripten = true;
+
+                // TODO make this check better. Is it always a reliable way to detect Emscripten funcs?
+                this->setUpEmscripten(compartment, module);
+            }
+        }
+
+        void setUpStandardToolchain(Runtime::Compartment *compartment, IR::Module &module) {
+            // Set up minimum memory size
+            module.memories.defs[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
+
+            envModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_env(), "env");
         }
 
         void setUpEmscripten(Runtime::Compartment *compartment, IR::Module &module) {
@@ -72,7 +97,7 @@ namespace wasm {
                     {"table",  Runtime::asObject(table)},
             };
 
-            emEnvModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_emEnv(), "emEnv",
+            emEnvModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_emEnv(), "env",
                                                         extraEnvExports);
 
             emAsm2wasmModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_emAsm2wasm(),
@@ -86,7 +111,6 @@ namespace wasm {
             mutableGlobals._stderr = (U32) ioStreamVMHandle::StdErr;
             mutableGlobals._stdin = (U32) ioStreamVMHandle::StdIn;
             mutableGlobals._stdout = (U32) ioStreamVMHandle::StdOut;
-
         }
 
         void cleanUp() {
@@ -136,6 +160,7 @@ namespace wasm {
             return false;
         }
 
+        bool isEmscripten = false;
     private:
         Runtime::GCPointer<Runtime::ModuleInstance> envModule;
 
@@ -145,7 +170,5 @@ namespace wasm {
         Runtime::GCPointer<Runtime::ModuleInstance> emGlobalModule;
 
         std::string user;
-
-        bool isEmscripten = false;
     };
 }
