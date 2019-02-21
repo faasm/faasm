@@ -14,5 +14,17 @@ int main() {
     awswrapper::initSDK();
 
     worker::WorkerThreadPool pool(config.threadsPerWorker);
-    pool.start();
+
+    // Global queue listener
+    pool.startGlobalQueueThread();
+
+    // Work sharing thread
+    pool.startSharingThread();
+
+    // State management thread
+    pool.startStateThread();
+
+    // Worker pool run in main thread
+    bool detach = false;
+    pool.startThreadPool(detach);
 }

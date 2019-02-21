@@ -5,6 +5,7 @@
 
 #include <util/logging.h>
 #include <util/config.h>
+#include <util/json.h>
 
 #include <lambda/backend.h>
 
@@ -23,14 +24,21 @@ int main() {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
     logger->info("Starting thread pool with {} workers", config.threadsPerWorker);
     worker::WorkerThreadPool pool(config.threadsPerWorker);
-    pool.start();
 
-    auto handler_fn = [&logger](aws::lambda_runtime::invocation_request const &req) {
-        logger->info("Received function call");
+    // Start thread pool but detach so we can carry on invoking tasks from the main thread
+    bool detach = true;
+    pool.startThreadPool(detach);
 
+    // Reference to local scheduler
+    scheduler::Scheduler &sch = scheduler::getScheduler();
+
+    auto handler_fn = [&logger, &sch](aws::lambda_runtime::invocation_request const &req) {
         // Receive JSON from invocation, decode into a message
+        message::Message msg = util::jsonToMessage(req.payload);
 
         // Execute (pass to local scheduler)
+        logger->info("Invoking {}", util::funcToString(msg));
+        sch.callFunction(msg);
 
         // Return a Lambda-friendly response
         const std::string output = faasm::getOutput();

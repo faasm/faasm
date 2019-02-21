@@ -17,12 +17,10 @@ namespace worker {
         redis::Redis::getState().ping();
     }
 
-    void WorkerThreadPool::start() {
+    void WorkerThreadPool::startStateThread() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->info("Starting pool with {} threads", threadTokenPool.size());
-
-        // Spawn the state thread first if not running in full async
         util::SystemConfig &conf = util::getSystemConfig();
+
         if (!conf.fullAsync) {
             logger->info("Starting state sync thread");
 
@@ -32,8 +30,12 @@ namespace worker {
             });
             stateThread.detach();
         }
+    }
 
-        // Thread to listen for global incoming messages
+    void WorkerThreadPool::startGlobalQueueThread() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        util::SystemConfig &conf = util::getSystemConfig();
+
         logger->info("Starting global queue listener on {}", conf.queueName);
 
         std::thread globalDispatchThread([] {
@@ -51,8 +53,10 @@ namespace worker {
             }
         });
         globalDispatchThread.detach();
+    }
 
-        // Thread to listen for incoming sharing messages
+    void WorkerThreadPool::startSharingThread() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->info("Starting work sharing listener");
 
         std::thread sharingDispatchThread([] {
@@ -70,25 +74,38 @@ namespace worker {
             }
         });
         sharingDispatchThread.detach();
+    }
+
+    void WorkerThreadPool::startThreadPool(bool detach) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->info("Starting pool with {} threads", threadTokenPool.size());
 
         // Spawn worker threads until we've hit the worker limit, thus creating a pool
         // that will replenish when one releases its token
-        while (true) {
-            // Try to get an available slot (blocks if none available)
-            int threadIdx = this->getThreadToken();
+        std::thread poolThread([this] {
+            while (true) {
+                // Try to get an available slot (blocks if none available)
+                int threadIdx = this->getThreadToken();
 
-            // Spawn thread to execute function
-            std::thread funcThread([this, threadIdx] {
-                WorkerThread w(threadIdx);
+                // Spawn thread to execute function
+                std::thread funcThread([this, threadIdx] {
+                    WorkerThread w(threadIdx);
 
-                // Worker will now run for a long time
-                w.run();
+                    // Worker will now run for a long time
+                    w.run();
 
-                // Handle thread finishing
-                threadTokenPool.releaseToken(w.threadIdx);
-            });
+                    // Handle thread finishing
+                    threadTokenPool.releaseToken(w.threadIdx);
+                });
 
-            funcThread.detach();
+                funcThread.detach();
+            }
+        });
+
+        if(detach) {
+            poolThread.detach();
+        } else {
+            poolThread.join();
         }
     }
 
