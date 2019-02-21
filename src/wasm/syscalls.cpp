@@ -1414,6 +1414,15 @@ namespace wasm {
     // Misc
     // ------------------------
 
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_getenv", I32, _getenv, I32 strPtr) {
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        char *string = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
+
+        util::getLogger()->debug("S - _getenv - {}", string);
+
+        return strPtr;
+    }
+
     DEFINE_INTRINSIC_FUNCTION(env, "abort", void, abort) {
         util::getLogger()->debug("S - abort");
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
@@ -2220,10 +2229,6 @@ namespace wasm {
     // ---------------------------------
     // Incoming
     // ---------------------------------
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_getenv", I32, _getenv, I32 a) {
-        util::getLogger()->debug("S - _getenv - {}", a);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall300", I32, ___syscall300, I32 a, I32 b) {
         util::getLogger()->debug("S - ___syscall300 - {} {}", a, b);
