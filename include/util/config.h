@@ -16,6 +16,13 @@ namespace util {
         std::string serialisation;
         std::string bucketName;
         std::string queueName;
+        std::string cgroupMode;
+        std::string netNsMode;
+
+        // Redis
+        std::string redisStateHost;
+        std::string redisQueueHost;
+        std::string redisPort;
 
         // Scheduling
         int threadsPerWorker;

@@ -28,8 +28,6 @@ namespace tests {
     }
 
     WorkerThread execFunction(message::Message &call) {
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-
         // Set up worker to listen for relevant function
         WorkerThreadPool pool(1);
         WorkerThread w(1);

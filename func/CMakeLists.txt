@@ -15,7 +15,7 @@ else ()
 endif ()
 
 # Modify inclusions if building for lambda
-if (FAASM_BUILD_TYPE MATCHES "lambda")
+if (FAASM_BUILD_TYPE STREQUAL "lambda")
     add_definitions(-DAWS_LAMBDA=1)
 
     include_directories(${FAASM_LIB_DIR} ${FAASM_LAMBDA_LIB_DIR})
@@ -46,7 +46,7 @@ endif()
 
 
 # Define functions for building
-if (FAASM_BUILD_TYPE MATCHES "wasm")
+if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # ----------------------
     # WASM build
     # ----------------------
@@ -76,7 +76,7 @@ if (FAASM_BUILD_TYPE MATCHES "wasm")
                 )
     endfunction(faasm_func)
 
-elseif (FAASM_BUILD_TYPE MATCHES "lambda")
+elseif (FAASM_BUILD_TYPE STREQUAL "lambda")
     # ----------------------
     # AWS Lambda build
     # ----------------------

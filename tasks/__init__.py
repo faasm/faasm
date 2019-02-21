@@ -41,6 +41,7 @@ from tasks.aws import (
     build_lambda_runtime,
     build_lambdas,
     upload_lambda_function,
+    upload_lambda_runtime,
 )
 
 from tasks.upload import upload

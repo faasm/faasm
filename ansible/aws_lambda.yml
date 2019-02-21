@@ -16,7 +16,7 @@
 
     # Note - debug build allows verbose logging
     - name: "Prepare build"
-      shell: 'cmake -DCMAKE_BUILD_TYPE=Debug -DLOG_VERBOSITY=3 ..'
+      shell: 'cmake -DCMAKE_BUILD_TYPE=Debug -DLOG_VERBOSITY=3 -DBUILD_SHARED_LIBS=OFF ..'
       args:
         chdir: "/usr/local/code/lib/aws-lambda-cpp/build"
 

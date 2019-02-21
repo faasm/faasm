@@ -12,16 +12,18 @@
 namespace redis {
 
     RedisInstance::RedisInstance(RedisRole roleIn) : role(roleIn) {
+        util::SystemConfig &conf = util::getSystemConfig();
+
         if (role == STATE) {
-            hostname = util::getEnvVar("REDIS_STATE_HOST", "localhost");
+            hostname = conf.redisStateHost;
             ip = util::getIPFromHostname(hostname);
 
         } else {
-            hostname = util::getEnvVar("REDIS_QUEUE_HOST", "localhost");
+            hostname = conf.redisQueueHost;
             ip = util::getIPFromHostname(hostname);
         }
 
-        std::string portStr = util::getEnvVar("REDIS_PORT", "6379");
+        std::string portStr = conf.redisPort;
         port = std::stoi(portStr);
 
         // Load scripts

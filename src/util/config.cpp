@@ -1,6 +1,7 @@
 #include "config.h"
 #include "environment.h"
 #include "logging.h"
+#include "random.h"
 
 
 namespace util {
@@ -18,12 +19,19 @@ namespace util {
         serialisation = getEnvVar("SERIALISATION", "json");
         bucketName = getEnvVar("BUCKET_NAME", "");
         queueName = getEnvVar("QUEUE_NAME", "faasm-messages");
+        cgroupMode = getEnvVar("CGROUP_MODE", "on");
+        netNsMode = getEnvVar("NETNS_MODE", "off");
 
-        if(systemMode == "aws") {
-            if(bucketName.empty() || queueName.empty()) {
+        if (systemMode == "aws") {
+            if (bucketName.empty() || queueName.empty()) {
                 throw std::runtime_error("Must provide both bucket name and queue name when in AWS mode");
             }
         }
+
+        // Redis
+        redisStateHost = getEnvVar("REDIS_STATE_HOST", "localhost");
+        redisQueueHost = getEnvVar("REDIS_QUEUE_HOST", "localhost");
+        redisPort = getEnvVar("REDIS_PORT", "6379");
 
         // Scheduling
         noScheduler = this->getSystemConfIntParam("NO_SCHEDULER", "0");
@@ -79,7 +87,8 @@ namespace util {
         std::string hostname = util::getEnvVar("HOSTNAME", "");
 
         if (hostname.empty()) {
-            throw std::runtime_error("HOSTNAME for this machine is empty");
+            // Generate random hostname
+            hostname = util::randomString(10);
         }
 
         return hostname;

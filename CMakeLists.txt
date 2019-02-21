@@ -34,8 +34,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # AWS Lambda runtime (used by all builds)
 find_package(aws-lambda-runtime)
 
-if(FAASM_BUILD_TYPE MATCHES "lambda")
-    # Debug to allow logging
+if(FAASM_BUILD_TYPE STREQUAL "lambda")
+    # Debug allows full logging
     set(CMAKE_CXX_FLAGS "-g")
 
     # Just the bits we need for the lambda build
@@ -58,39 +58,63 @@ else()
             ${CMAKE_CURRENT_BINARY_DIR}/src # Required for protobuf
     )
 
-    # WAVM
-    add_subdirectory(WAVM)
+    # Subset of directories for lambda runtime build
+    if(FAASM_BUILD_TYPE STREQUAL "lambda-runtime")
+        # ------------------
+        # Lambda runtime build
+        # ------------------
 
-    # Faasm functions
-    add_subdirectory(func)
+        add_subdirectory(WAVM)
+        add_subdirectory(lambda)
 
-    # Faasm library
-    add_subdirectory(lib)
+        add_subdirectory(src/aws)
+        add_subdirectory(src/prof)
+        add_subdirectory(src/proto)
+        add_subdirectory(src/redis)
+        add_subdirectory(src/scheduler)
+        add_subdirectory(src/state)
+        add_subdirectory(src/util)
+        add_subdirectory(src/wasm)
+        add_subdirectory(src/worker)
 
-    # AWS Lambda integration
-    add_subdirectory(lambda)
+    else()
+        # ------------------
+        # Standard build
+        # ------------------
 
-    # Experiments
-    add_subdirectory(experiment)
+        # WAVM
+        add_subdirectory(WAVM)
 
-    # Faasm runtime
-    add_subdirectory(src/aws)
-    add_subdirectory(src/data)
-    add_subdirectory(src/edge)
-    add_subdirectory(src/emulator)
-    add_subdirectory(src/prof)
-    add_subdirectory(src/proto)
-    add_subdirectory(src/redis)
-    add_subdirectory(src/scheduler)
-    add_subdirectory(src/state)
-    add_subdirectory(src/upload)
-    add_subdirectory(src/util)
-    add_subdirectory(src/wasm)
-    add_subdirectory(src/worker)
+        # Faasm functions
+        add_subdirectory(func)
 
-    # Tests
-    add_library(catch INTERFACE)
-    add_subdirectory(test)
-    add_subdirectory(test_integration)
+        # Faasm library
+        add_subdirectory(lib)
 
+        # AWS Lambda integration
+        add_subdirectory(lambda)
+
+        # Experiments
+        add_subdirectory(experiment)
+
+        # Faasm runtime
+        add_subdirectory(src/aws)
+        add_subdirectory(src/data)
+        add_subdirectory(src/edge)
+        add_subdirectory(src/emulator)
+        add_subdirectory(src/prof)
+        add_subdirectory(src/proto)
+        add_subdirectory(src/redis)
+        add_subdirectory(src/scheduler)
+        add_subdirectory(src/state)
+        add_subdirectory(src/upload)
+        add_subdirectory(src/util)
+        add_subdirectory(src/wasm)
+        add_subdirectory(src/worker)
+
+        # Tests
+        add_library(catch INTERFACE)
+        add_subdirectory(test)
+        add_subdirectory(test_integration)
+    endif()
 endif()
