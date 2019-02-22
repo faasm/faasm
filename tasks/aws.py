@@ -102,7 +102,7 @@ def _get_lambda_env():
         "CGROUP_MODE": "off",
         "NETNS_MODE": "off",
         "THREADS_PER_WORKER": "4",
-        "BUCKET_NAME": "faasm-bucket",
+        "BUCKET_NAME": "faasm-runtime",
         "QUEUE_NAME": "faasm-messages",
         "REDIS_STATE_HOST": redis_url,
         "REDIS_QUEUE_HOST": redis_url,

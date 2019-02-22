@@ -22,15 +22,15 @@ int main() {
     util::SystemConfig &config = util::getSystemConfig();
     config.print();
 
-    wasm::S3FunctionLoader loader;
+    wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
 
-    auto handler_fn = [&logger, &loader](aws::lambda_runtime::invocation_request const &req) {
+    auto handler_fn = [&logger, &functionLoader](aws::lambda_runtime::invocation_request const &req) {
         // Work out which function we're compiling
         message::Message msg = util::jsonToMessage(req.payload);
         logger->info("Generating object code for function {}", util::funcToString(msg));
 
         // Compile the function to object bytes
-        loader.compileToObjectFile(msg);
+        functionLoader.compileToObjectFile(msg);
 
         // Return a Lambda-friendly response
         return invocation_response::success(

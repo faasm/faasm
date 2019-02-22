@@ -10,7 +10,11 @@ namespace wasm {
     }
 
     std::vector<uint8_t> S3FunctionLoader::loadFunctionBytes(const message::Message &msg) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         const std::string key = util::getFunctionKey(msg);
+        logger->debug("Loading function bytes from {}/{}", conf.bucketName, key);
+
         const std::vector<uint8_t> bytes = s3.getKeyBytes(conf.bucketName, key);
         
         return bytes;
@@ -35,7 +39,10 @@ namespace wasm {
     }
 
     void S3FunctionLoader::uploadObjectBytes(const message::Message &msg, const std::vector<uint8_t> &objBytes) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         const std::string key = util::getFunctionObjectKey(msg);
+        logger->debug("Uploading object bytes to {}/{}", conf.bucketName, key);
         s3.addKeyBytes(conf.bucketName, key, objBytes);
     }
 
