@@ -20,6 +20,8 @@ AWS_ACCOUNT_ID = "733781933474"
 AWS_LAMBDA_ROLE = "faasm-lambda-role"
 AWS_REGION = "eu-west-1"
 
+RUNTIME_S3_BUCKET = "faasm-runtime"
+RUNTIME_S3_KEY = "worker-lambda.zip"
 
 @task
 def build_lambdas(ctx):
@@ -46,7 +48,7 @@ def upload_lambda_function(ctx, user, func_name):
         "{}-lambda.zip".format(func_name)
     )
 
-    _do_upload(zip_file_path, func_name)
+    _do_upload(func_name, zip_file_path=zip_file_path)
 
 
 @task
@@ -64,9 +66,8 @@ def build_lambda_runtime(ctx):
     cmake_zip_target = "aws-lambda-package-worker-lambda"
     call("make {}".format(cmake_zip_target), cwd=LAMBDA_BUILD_DIR, shell=True)
 
+    print("Uploading runtime to S3")
 
-@task
-def upload_lambda_runtime(ctx):
     zip_file_path = join(
         LAMBDA_BUILD_DIR,
         "src",
@@ -74,12 +75,18 @@ def upload_lambda_runtime(ctx):
         "worker-lambda.zip"
     )
 
+    s3 = boto3.resource('s3', region_name=AWS_REGION)
+    s3.meta.client.upload_file(zip_file_path, RUNTIME_S3_BUCKET, RUNTIME_S3_KEY)
+
+
+@task
+def upload_lambda_runtime(ctx):
     redis_url = _get_elasticache_url()
     print("Using redis instance at {}".format(redis_url))
 
     mem = 1 * 128
     timeout = 15
-    _do_upload(zip_file_path, "faasm-runtime", memory=mem, timeout=timeout, environment={
+    env = {
         "LOG_LEVEL": "debug",
         "SYSTEM_MODE": "aws",
         "CGROUP_MODE": "off",
@@ -90,7 +97,16 @@ def upload_lambda_runtime(ctx):
         "REDIS_STATE_HOST": redis_url,
         "REDIS_QUEUE_HOST": redis_url,
         "NO_SCHEDULER": "1",
-    })
+    }
+
+    _do_upload(
+        "faasm-runtime",
+        memory=mem,
+        timeout=timeout,
+        s3_bucket=RUNTIME_S3_BUCKET,
+        s3_key=RUNTIME_S3_KEY,
+        environment=env
+    )
 
 
 def _get_elasticache_url():
@@ -107,11 +123,11 @@ def _get_elasticache_url():
     return node_data["Endpoint"]["Address"]
 
 
-def _do_upload(zip_file_path, func_name, memory=128, timeout=15, environment=None):
-    assert exists(zip_file_path), "Expected zip file at {}".format(zip_file_path)
+def _do_upload(func_name, memory=128, timeout=15, environment=None, zip_file_path=None, s3_bucket=None, s3_key=None):
+    assert zip_file_path or (s3_bucket and s3_key), "Must give either a zip file or S3 bucket and key"
 
-    with open(zip_file_path, "rb") as fh:
-        content = fh.read()
+    if zip_file_path:
+        assert exists(zip_file_path), "Expected zip file at {}".format(zip_file_path)
 
     # Upload the function
     client = boto3.client("lambda", region_name=AWS_REGION)
@@ -129,33 +145,42 @@ def _do_upload(zip_file_path, func_name, memory=128, timeout=15, environment=Non
         "FunctionName": func_name,
     }
 
+    content = None
+    if zip_file_path:
+        with open(zip_file_path, "rb") as fh:
+            content = fh.read()
+
     if is_existing:
         print("{} already exists, updating".format(func_name))
 
-        kwargs.update({
-            "ZipFile": content,
-        })
+        if zip_file_path:
+            kwargs["ZipFile"] = content
+        else:
+            kwargs["S3Bucket"] = s3_bucket
+            kwargs["S3Key"] = s3_key
 
         client.update_function_code(**kwargs)
     else:
         print("{} does not already exist, creating".format(func_name))
 
-        update_args = {
+        kwargs.update({
             "Runtime": "provided",
             "Role": "arn:aws:iam::{}:role/{}".format(AWS_ACCOUNT_ID, AWS_LAMBDA_ROLE),
             "Handler": func_name,
-            "Code": {"ZipFile": content},
             "MemorySize": memory,
             "Timeout": timeout,
-        }
+        })
+
+        if zip_file_path:
+            kwargs["Code"] = {"ZipFile": content}
+        else:
+            kwargs["Code"] = {"S3Bucket": s3_bucket, "S3Key": s3_key}
 
         if environment:
             lambda_env = {
                 "Variables": environment
             }
-            update_args["Environment"] = lambda_env
-
-        kwargs.update(update_args)
+            kwargs["Environment"] = lambda_env
 
         client.create_function(**kwargs)
 

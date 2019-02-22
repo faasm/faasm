@@ -78,7 +78,6 @@ namespace worker {
 
     void WorkerThreadPool::startThreadPool(bool detach) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->info("Starting pool with {} threads", threadTokenPool.size());
 
         // Spawn worker threads until we've hit the worker limit, thus creating a pool
         // that will replenish when one releases its token
@@ -103,8 +102,10 @@ namespace worker {
         });
 
         if(detach) {
+            logger->info("Starting pool with {} threads in background", threadTokenPool.size());
             poolThread.detach();
         } else {
+            logger->info("Starting pool with {} threads in main thread", threadTokenPool.size());
             poolThread.join();
         }
     }

@@ -22,8 +22,9 @@ int main() {
 
     // Initialise worker pool
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-    logger->info("Starting thread pool with {} workers", config.threadsPerWorker);
+    logger->info("Initialising thread pool with {} workers", config.threadsPerWorker);
     worker::WorkerThreadPool pool(config.threadsPerWorker);
+    logger->info("Thread pool initialised");
 
     // Start thread pool but detach so we can carry on invoking tasks from the main thread
     bool detach = true;

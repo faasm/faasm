@@ -132,7 +132,7 @@ namespace state {
         redis::Redis &redis = redis::Redis::getState();
 
         long remoteLockId = redis.acquireLock(key, remoteLockTimeout);
-        int retryCount = 0;
+        unsigned int retryCount = 0;
         while (remoteLockId <= 0) {
             logger->debug("Waiting on remote lock for {} (loop {})", key, retryCount);
 
