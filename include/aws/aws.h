@@ -2,9 +2,12 @@
 
 #include <util/logging.h>
 
+#include <aws/core/auth/AWSCredentialsProvider.h>
 #include <aws/core/Aws.h>
 
 namespace awswrapper {
+
+    std::shared_ptr<Aws::Auth::AWSCredentialsProvider> getCredentialsProvider();
 
     Aws::Client::ClientConfiguration getClientConf(long timeout=3000);
 

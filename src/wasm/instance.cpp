@@ -7,14 +7,14 @@ namespace wasm {
     FunctionLoader &getFunctionLoader() {
         util::SystemConfig &conf = util::getSystemConfig();
 
-        if (conf.systemMode == "redis") {
+        if (conf.functionStorage == "local") {
             static LocalFunctionLoader fl;
             return fl;
-        } else if (conf.systemMode == "aws") {
+        } else if (conf.functionStorage == "s3") {
             static S3FunctionLoader fl;
             return fl;
         } else {
-            throw std::runtime_error("Invalid system mode");
+            throw std::runtime_error("Invalid function storage mode");
         }
     }
 }

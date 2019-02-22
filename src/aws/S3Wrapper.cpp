@@ -10,8 +10,9 @@
 #include <aws/s3/model/PutObjectRequest.h>
 
 namespace awswrapper {
-    S3Wrapper::S3Wrapper() : clientConf(getClientConf(REQUEST_TIMEOUT_MS)),
-                             client(Aws::S3::S3Client(clientConf)) {
+    S3Wrapper::S3Wrapper() : credentialsProvider(getCredentialsProvider()),
+                             clientConf(getClientConf(REQUEST_TIMEOUT_MS)),
+                             client(Aws::S3::S3Client(credentialsProvider, clientConf)) {
 
     }
 

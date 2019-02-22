@@ -33,9 +33,8 @@ int main() {
         loader.compileToObjectFile(msg);
 
         // Return a Lambda-friendly response
-        const std::string output = faasm::getOutput();
         return invocation_response::success(
-                output,
+                "Code gen success",
                 "text/plain"
         );
     };

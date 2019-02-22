@@ -68,8 +68,8 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda")
     function(faasm_func func_name file_name)
         add_executable(${func_name}-lambda ${file_name})
 
-        # Link with Faasm lambda library
-        target_link_libraries(${func_name}-lambda faasm lambda)
+        # Link with Faasm library
+        target_link_libraries(${func_name}-lambda faasm)
 
 #        target_compile_options(
 #                ${func_name}-lambda PRIVATE
@@ -96,13 +96,6 @@ else ()
         # Using emulator (faasm-like)
         add_executable(${exec_name} ${file_name})
         target_link_libraries(${exec_name} faasm emulator)
-
-        # Using lambda back-end (don't do for python functions)
-        if(exec_name MATCHES "py_*")
-        else()
-            add_executable(${exec_name}-lambda ${file_name})
-            target_link_libraries(${exec_name}-lambda faasm lambda)
-        endif()
     endfunction(faasm_func)
 
 endif ()

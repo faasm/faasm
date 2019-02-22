@@ -2,11 +2,9 @@
 
 #include "faasm/memory.h"
 
-#include <aws/aws.h>
 #include <string>
 
 namespace faasm {
-
     std::string input;
     std::string output;
 
@@ -25,16 +23,6 @@ namespace faasm {
     std::string getOutput() {
         printf("Returning output [%s]\n", output.c_str());
         return output;
-    }
-
-    void initialiseLambdaBackend() {
-        // Set up lambda SDK
-        awswrapper::initSDK();
-    }
-
-    void tearDownLambdaBackend() {
-        // Shut down SDK
-        awswrapper::cleanUpSDK();
     }
 }
 

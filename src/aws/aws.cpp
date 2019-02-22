@@ -15,26 +15,38 @@ namespace awswrapper {
 
     static Aws::SDKOptions options;
 
-    Aws::Client::ClientConfiguration getClientConf(long timeout) {
-        Aws::Client::ClientConfiguration conf;
-        conf.region = Aws::Region::EU_WEST_1;
-        conf.requestTimeoutMs = timeout;
+    std::shared_ptr<Aws::Auth::AWSCredentialsProvider> getCredentialsProvider() {
+        util::SystemConfig &systemConf = util::getSystemConfig();
 
-        return conf;
+        if(systemConf.hostType == "lambda") {
+            return Aws::MakeShared<Aws::Auth::EnvironmentAWSCredentialsProvider>("lambda");
+        }
+        else {
+            return Aws::MakeShared<Aws::Auth::ProfileConfigFileAWSCredentialsProvider>("local");
+        }
+    }
+
+    Aws::Client::ClientConfiguration getClientConf(long timeout) {
+        util::SystemConfig &systemConf = util::getSystemConfig();
+
+        Aws::Client::ClientConfiguration clientConf;
+        clientConf.region = Aws::Region::EU_WEST_1;
+        clientConf.requestTimeoutMs = timeout;
+
+        if(systemConf.hostType == "lambda") {
+            clientConf.caFile = "/etc/pki/tls/certs/ca-bundle.crt";
+        }
+
+        return clientConf;
     }
 
     void initSDK() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        util::SystemConfig &conf = util::getSystemConfig();
 
-        if(conf.systemMode != "aws") {
-            logger->info("Not initialising AWS support as in {} mode", conf.systemMode);
-        } else {
-            logger->info("Initialising AWS support");
-            options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Info;
+        logger->info("Initialising AWS support");
+        options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Info;
 
-            Aws::InitAPI(options);
-        }
+        Aws::InitAPI(options);
     }
 
     void cleanUpSDK() {

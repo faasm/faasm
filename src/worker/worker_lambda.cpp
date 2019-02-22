@@ -43,9 +43,8 @@ int main() {
         sch.callFunction(msg);
 
         // Return a Lambda-friendly response
-        const std::string output = faasm::getOutput();
         return invocation_response::success(
-                output,
+                "Function queued",
                 "text/plain"
         );
     };

@@ -95,6 +95,8 @@ def upload_lambda_codegen(ctx):
 def _get_lambda_env():
     redis_url = _get_elasticache_url()
     env = {
+        "FUNCTION_STORAGE": "s3",
+        "HOST_TYPE": "lambda",
         "LOG_LEVEL": "debug",
         "SYSTEM_MODE": "aws",
         "CGROUP_MODE": "off",

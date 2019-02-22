@@ -19,19 +19,15 @@ namespace util {
         threadsPerWorker = this->getSystemConfIntParam("THREADS_PER_WORKER", "50");
 
         // System
-        systemMode = getEnvVar("SYSTEM_MODE", "redis");
+        hostType = getEnvVar("HOST_TYPE", "default");
+        globalMessageBus = getEnvVar("GLOBAL_MESSAGE_BUS", "redis");
+        functionStorage = getEnvVar("FUNCTION_STORAGE", "local");
         serialisation = getEnvVar("SERIALISATION", "json");
         bucketName = getEnvVar("BUCKET_NAME", "");
         queueName = getEnvVar("QUEUE_NAME", "faasm-messages");
         cgroupMode = getEnvVar("CGROUP_MODE", "on");
         netNsMode = getEnvVar("NETNS_MODE", "off");
         logLevel = getEnvVar("LOG_LEVEL", "info");
-
-        if (systemMode == "aws") {
-            if (bucketName.empty() || queueName.empty()) {
-                throw std::runtime_error("Must provide both bucket name and queue name when in AWS mode");
-            }
-        }
 
         // Redis
         redisStateHost = getEnvVar("REDIS_STATE_HOST", "localhost");
@@ -69,7 +65,9 @@ namespace util {
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         logger->info("--- System ---");
-        logger->info("SYSTEM_MODE                {}", systemMode);
+        logger->info("HOST_TYPE                  {}", hostType);
+        logger->info("GLOBAL_MESSAGE_BUS         {}", globalMessageBus);
+        logger->info("FUNCTION_STORAGE           {}", functionStorage);
         logger->info("SERIALISATION              {}", serialisation);
         logger->info("BUCKET_NAME                {}", bucketName);
         logger->info("QUEUE_NAME                 {}", queueName);

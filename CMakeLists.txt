@@ -66,9 +66,9 @@ else()
         message(STATUS "Running lambda worker build")
 
         add_subdirectory(WAVM)
-        add_subdirectory(lambda)
 
         add_subdirectory(src/aws)
+        add_subdirectory(src/lambda)
         add_subdirectory(src/prof)
         add_subdirectory(src/proto)
         add_subdirectory(src/redis)
@@ -86,11 +86,11 @@ else()
         message(STATUS "Running lambda codegen build")
 
         add_subdirectory(WAVM)
-        add_subdirectory(lambda)
 
         add_subdirectory(src/aws)
-        add_subdirectory(src/prof)
         add_subdirectory(src/codegen)
+        add_subdirectory(src/lambda)
+        add_subdirectory(src/prof)
         add_subdirectory(src/proto)
         add_subdirectory(src/redis)
         add_subdirectory(src/scheduler)
@@ -112,9 +112,6 @@ else()
         # Faasm library
         add_subdirectory(lib)
 
-        # AWS Lambda integration
-        add_subdirectory(lambda)
-
         # Experiments
         add_subdirectory(experiment)
 
@@ -124,6 +121,7 @@ else()
         add_subdirectory(src/data)
         add_subdirectory(src/edge)
         add_subdirectory(src/emulator)
+        add_subdirectory(src/lambda)
         add_subdirectory(src/prof)
         add_subdirectory(src/proto)
         add_subdirectory(src/redis)

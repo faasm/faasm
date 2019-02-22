@@ -11,7 +11,9 @@ namespace tests {
 
         REQUIRE(conf.threadsPerWorker == 50);
 
-        REQUIRE(conf.systemMode == "redis");
+        REQUIRE(conf.hostType == "default");
+        REQUIRE(conf.globalMessageBus == "redis");
+        REQUIRE(conf.functionStorage == "local");
         REQUIRE(conf.serialisation == "json");
         REQUIRE(conf.bucketName == "");
         REQUIRE(conf.queueName == "faasm-messages");
@@ -39,7 +41,9 @@ namespace tests {
     TEST_CASE("Test overriding system config initialisation", "[util]") {
         setEnvVar("THREADS_PER_WORKER", "50");
 
-        setEnvVar("SYSTEM_MODE", "aws");
+        setEnvVar("HOST_TYPE", "magic");
+        setEnvVar("GLOBAL_MESSAGE_BUS", "blah");
+        setEnvVar("FUNCTION_STORAGE", "foobar");
         setEnvVar("SERIALISATION", "proto");
         setEnvVar("BUCKET_NAME", "foo-bucket");
         setEnvVar("QUEUE_NAME", "dummy-queue");
@@ -66,7 +70,9 @@ namespace tests {
         SystemConfig conf;
         REQUIRE(conf.threadsPerWorker == 50);
 
-        REQUIRE(conf.systemMode == "aws");
+        REQUIRE(conf.hostType == "magic");
+        REQUIRE(conf.globalMessageBus == "blah");
+        REQUIRE(conf.functionStorage == "foobar");
         REQUIRE(conf.serialisation == "proto");
         REQUIRE(conf.bucketName == "foo-bucket");
         REQUIRE(conf.queueName == "dummy-queue");
@@ -92,7 +98,9 @@ namespace tests {
 
         unsetEnvVar("THREADS_PER_WORKER");
 
-        unsetEnvVar("SYSTEM_MODE");
+        unsetEnvVar("HOST_TYPE");
+        unsetEnvVar("GLOBAL_MESSAGE_BUS");
+        unsetEnvVar("FUNCTION_STORAGE");
         unsetEnvVar("SERIALISATION");
         unsetEnvVar("BUCKET_NAME");
         unsetEnvVar("QUEUE_NAME");

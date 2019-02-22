@@ -9,14 +9,14 @@ namespace scheduler {
     GlobalMessageBus &getGlobalMessageBus() {
         util::SystemConfig &conf = util::getSystemConfig();
 
-        if (conf.systemMode == "redis") {
+        if (conf.globalMessageBus == "redis") {
             static RedisMessageBus mb;
             return mb;
-        } else if (conf.systemMode == "aws") {
+        } else if (conf.globalMessageBus == "sqs") {
             static AWSMessageBus mb;
             return mb;
         } else {
-            throw std::runtime_error("Invalid system mode");
+            throw std::runtime_error("Invalid global message bus type");
         }
     }
 }

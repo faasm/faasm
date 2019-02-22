@@ -12,7 +12,9 @@ namespace util {
 
     public:
         // System
-        std::string systemMode;
+        std::string hostType;
+        std::string globalMessageBus;
+        std::string functionStorage;
         std::string serialisation;
         std::string bucketName;
         std::string queueName;

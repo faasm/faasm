@@ -3,7 +3,7 @@
 #include <aws/lambda-runtime/runtime.h>
 
 #include "faasm/memory.h"
-#include "lambda/backend.h"
+#include "emulator/emulator.h"
 
 using namespace aws::lambda_runtime;
 
