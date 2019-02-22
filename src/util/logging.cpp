@@ -1,4 +1,5 @@
 #include "logging.h"
+#include "config.h"
 #include "environment.h"
 
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -10,11 +11,11 @@ namespace  util {
         logger = spdlog::stderr_color_mt("console");
 
         // Work out log level from environment
-        std::string logLevelEnv = util::getEnvVar("LOG_LEVEL", "info");
-        if(logLevelEnv == "debug") {
+        SystemConfig &conf = util::getSystemConfig();
+        if(conf.logLevel == "debug") {
             spdlog::set_level(spdlog::level::debug);
         }
-        else if(logLevelEnv == "trace") {
+        else if(conf.logLevel == "trace") {
             spdlog::set_level(spdlog::level::trace);
         }
         else {

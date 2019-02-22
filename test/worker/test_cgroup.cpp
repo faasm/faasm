@@ -2,6 +2,7 @@
 
 #include <util/environment.h>
 #include <util/files.h>
+#include <util/config.h>
 
 #include <worker/CGroup.h>
 
@@ -14,38 +15,50 @@
 using namespace worker;
 
 namespace tests {
+    TEST_CASE("Test cgroup on/ off", "[worker]") {
+        util::SystemConfig &conf = util::getSystemConfig();
 
-    TEST_CASE("Test basic cgroup properties", "[worker]") {
-        util::setEnvVar("CGROUP_MODE", "on");
+        std::string envValue;
+        CgroupMode  expected;
 
-        CGroup cgA("foo");
+        SECTION("Test cgroup on") {
+            envValue = "on";
+            expected = CgroupMode::cg_on;
+        }
 
-        util::setEnvVar("CGROUP_MODE", "off");
+        SECTION("Test cgroup off") {
+            envValue = "off";
+            expected = CgroupMode::cg_off;
+        }
 
-        CGroup cgB("bar");
+        // Update the config
+        util::setEnvVar("CGROUP_MODE", envValue);
+        conf.reset();
 
-        REQUIRE(cgA.getMode() == CgroupMode::cg_on);
-        REQUIRE(cgA.getName() == "foo");
+        // Create and check
+        CGroup cg("foo");
+        REQUIRE(cg.getMode() == expected);
+        REQUIRE(cg.getName() == "foo");
 
-        REQUIRE(cgB.getMode() == CgroupMode::cg_off);
-        REQUIRE(cgB.getName() == "bar");
-
+        // Reset config
         util::unsetEnvVar("CGROUP_MODE");
+        conf.reset();
     }
 
-    void checkAddingToController(const std::string &controllerName) {
+    TEST_CASE("Test adding thread to cpu controller", "[worker]") {
+        util::SystemConfig &conf = util::getSystemConfig();
+        REQUIRE(conf.cgroupMode == "on");
+
         // Delete the cgroup if it exists already
         boost::filesystem::path cgroupPath("/sys/fs/cgroup");
-        cgroupPath.append(controllerName);
+        cgroupPath.append("cpu");
         cgroupPath.append(BASE_CGROUP_NAME);
 
         REQUIRE(boost::filesystem::exists(cgroupPath));
 
         // Check tasks file is empty
         cgroupPath.append("tasks");
-
         std::string fileBefore = util::readFileToString(cgroupPath.string());
-
         REQUIRE(fileBefore.empty());
 
         // Add the current thread
@@ -55,9 +68,5 @@ namespace tests {
 
         std::string fileAfter = util::readFileToString(cgroupPath.string());
         REQUIRE(boost::trim_copy(fileAfter) == std::to_string(tid));
-    }
-
-    TEST_CASE("Test adding thread to cpu controller", "[worker]") {
-        checkAddingToController("cpu");
     }
 }

@@ -16,7 +16,6 @@ namespace wasm {
 
         virtual void uploadObjectBytes(const message::Message &msg, const std::vector<uint8_t> &objBytes) = 0;
 
-    protected:
         void compileToObjectFile(message::Message &msg);
     };
 

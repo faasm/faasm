@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
     // Make sure we're using redis
     util::SystemConfig conf = util::getSystemConfig();
     conf.systemMode = "redis";
-    
+
     int result = Catch::Session().run(argc, argv);
 
     return result;

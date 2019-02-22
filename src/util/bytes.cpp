@@ -29,21 +29,6 @@ namespace util {
         }
     }
 
-    void printBytes(uint8_t *ptr, size_t count, bool asChar) {
-        printf("[");
-
-        for (int i = 0; i < count; i++) {
-            if(asChar) {
-                printf("%c ", ptr[i]);
-            }
-            else {
-                printf("%02x ", ptr[i]);
-            }
-        }
-
-        printf("]\n");
-    }
-
     int safeCopyToBuffer(const std::vector<uint8_t> &dataIn, uint8_t *buffer, int bufferLen) {
         int dataInSize = (int) dataIn.size();
 

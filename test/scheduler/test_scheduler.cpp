@@ -10,6 +10,38 @@ using namespace scheduler;
 using namespace redis;
 
 namespace tests {
+    TEST_CASE("Test scheduler destructor", "[scheduler]") {
+        cleanSystem();
+
+        message::Message call;
+        call.set_user("some user");
+        call.set_function("some function");
+        std::string funcSet;
+
+        std::string hostname = util::getHostName();
+        Redis &redis = Redis::getQueue();
+
+        // Create a scheduler in its own context
+        {
+            Scheduler s;
+
+            funcSet = s.getFunctionWarmSetName(call);
+
+            // Check initial set-up
+            REQUIRE(redis.sismember(GLOBAL_WORKER_SET, hostname));
+            REQUIRE(!redis.sismember(funcSet, hostname));
+
+            // Call the function and check it's added to the function's warm set
+            s.callFunction(call);
+
+            REQUIRE(redis.sismember(GLOBAL_WORKER_SET, hostname));
+            REQUIRE(redis.sismember(funcSet, hostname));
+        }
+
+        // After destructor has run this host should no longer be part of either set
+        REQUIRE(!redis.sismember(GLOBAL_WORKER_SET, hostname));
+        REQUIRE(!redis.sismember(funcSet, hostname));
+    }
 
     TEST_CASE("Test scheduler operations", "[scheduler]") {
         cleanSystem();

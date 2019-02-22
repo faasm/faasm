@@ -2,7 +2,7 @@ set(FAASM_USER python)
 
 # Normally we can rely on CMake to find the python libs, but when doing a
 # wasm build we need to be specific
-if(FAASM_BUILD_TYPE MATCHES "wasm")
+if(FAASM_BUILD_TYPE STREQUAL "wasm")
     set(PYTHON_INCLUDE_DIRS "/toolchain/sysroot/include/python3.6")
     set(PYTHON_LIBRARIES "/toolchain/sysroot/lib/libpython3.6.a")
 else()
