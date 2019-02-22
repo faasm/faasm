@@ -69,8 +69,16 @@ namespace util {
 
         logger->info("--- System ---");
         logger->info("SYSTEM_MODE                {}", systemMode);
+        logger->info("SERIALISATION              {}", serialisation);
         logger->info("BUCKET_NAME                {}", bucketName);
         logger->info("QUEUE_NAME                 {}", queueName);
+        logger->info("CGROUP_MODE                {}", cgroupMode);
+        logger->info("NETNS_MODE                 {}", netNsMode);
+
+        logger->info("--- Redis ---");
+        logger->info("REDIS_STATE_HOST           {}", redisStateHost);
+        logger->info("REDIS_QUEUE_HOST           {}", redisQueueHost);
+        logger->info("REDIS_PORT                 {}", redisPort);
 
         logger->info("--- Scheduling ---");
         logger->info("THREADS_PER_WORKER         {}", threadsPerWorker);
@@ -88,7 +96,6 @@ namespace util {
         logger->info("STATE_CLEAR_THRESHOLD      {}", stateClearThreshold);
         logger->info("STATE_PUSH_INTERVAL        {}", statePushInterval);
         logger->info("FULL_ASYNC                 {}", fullAsync);
-
     }
 
     std::string getHostName() {
