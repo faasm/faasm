@@ -15,7 +15,5 @@ namespace tests {
         state::getGlobalState().forceClearAll();
 
         scheduler::getScheduler().clear();
-
-        workerThreadPool.reset();
     }
 }

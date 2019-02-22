@@ -7,7 +7,7 @@ import boto3
 from botocore.exceptions import ClientError
 from invoke import task
 
-from tasks.env import FAASM_HOME, PROJ_ROOT
+from tasks.env import FAASM_HOME, PROJ_ROOT, RUNTIME_S3_BUCKET, AWS_REGION
 
 SDK_VERSION = "1.7.41"
 RUNTIME_VERSION = "master"
@@ -15,12 +15,7 @@ RUNTIME_VERSION = "master"
 INSTALL_PATH = join(FAASM_HOME, "lambda")
 LAMBDA_BUILD_DIR = join(PROJ_ROOT, "lambda_build")
 
-# TODO - avoid hard-coding
-AWS_ACCOUNT_ID = "733781933474"
 AWS_LAMBDA_ROLE = "faasm-lambda-role"
-AWS_REGION = "eu-west-1"
-
-RUNTIME_S3_BUCKET = "faasm-runtime"
 RUNTIME_S3_KEY = "worker-lambda.zip"
 
 

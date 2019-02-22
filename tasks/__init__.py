@@ -44,6 +44,8 @@ from tasks.aws import (
     upload_lambda_runtime,
 )
 
-from tasks.upload import upload
+from tasks.upload import (
+    upload_funcs
+)
 
 from tasks.wasm2wast import wast

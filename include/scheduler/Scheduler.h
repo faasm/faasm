@@ -35,6 +35,8 @@ namespace scheduler {
 
         std::string getFunctionWarmSetName(const message::Message &msg);
 
+        std::string getFunctionWarmSetNameFromStr(const std::string &funcStr);
+
         void clear();
 
         long getFunctionThreadCount(const message::Message &msg);

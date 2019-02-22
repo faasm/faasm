@@ -11,6 +11,11 @@ ANSIBLE_DIR = join(PROJ_ROOT, "ansible")
 
 WASM_DIR = join(PROJ_ROOT, "wasm")
 
+RUNTIME_S3_BUCKET = "faasm-runtime"
+
+# TODO - avoid hard-coding
+AWS_ACCOUNT_ID = "733781933474"
+AWS_REGION = "eu-west-1"
 
 def get_wasm_func_path(user, func_name):
     func_dir = join(WASM_DIR, user, func_name)
