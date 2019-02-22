@@ -38,10 +38,10 @@ from tasks.docker import (
 from tasks.docker_compose import start_all, stop_all, restart_all
 
 from tasks.aws import (
-    build_lambda_runtime,
-    build_lambdas,
-    upload_lambda_function,
-    upload_lambda_runtime,
+    build_lambda_worker,
+    build_lambda_codegen,
+    upload_lambda_worker,
+    upload_lambda_codegen,
 )
 
 from tasks.upload import (

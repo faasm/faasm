@@ -3,6 +3,8 @@ work/
 embuild/
 download/
 lambda_build/
+lambda_worker_build/
+lambda_upload_build/
 
 # Ansible
 *.retry

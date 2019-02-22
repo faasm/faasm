@@ -12,6 +12,10 @@ DIRS_TO_SKIP = ["errors", "dummy", "python"]
 
 @task
 def upload_funcs(context, s3=False, host="localhost"):
+    s3_client = None
+    if s3:
+        s3_client = boto3.resource('s3', region_name=AWS_REGION)
+
     # Walk the function directory tree
     for root, dirs, files in os.walk(WASM_DIR):
         # Strip original dir from root
@@ -34,11 +38,11 @@ def upload_funcs(context, s3=False, host="localhost"):
             continue
 
         if s3:
-            print("Uploading {}/{} to S3")
+            print("Uploading {}/{} to S3".format(user, func))
 
             s3_key = "wasm/{}/{}/function.wasm".format(user, func)
-            s3 = boto3.resource('s3', region_name=AWS_REGION)
-            s3.meta.client.upload_file(wasm_file, RUNTIME_S3_BUCKET, s3_key)
+
+            s3_client.meta.client.upload_file(wasm_file, RUNTIME_S3_BUCKET, s3_key)
 
         else:
             print("Uploading {}/{} to host {}".format(user, func, host))

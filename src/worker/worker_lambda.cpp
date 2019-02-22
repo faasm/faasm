@@ -14,7 +14,8 @@ using namespace aws::lambda_runtime;
 
 int main() {
     util::initLogging();
-    
+
+    // Set things up
     faasm::initialiseLambdaBackend();
 
     util::SystemConfig &config = util::getSystemConfig();
@@ -51,6 +52,10 @@ int main() {
 
     logger->info("Listening for invocations");
     run_handler(handler_fn);
+
+    // Clear up
+    logger->info("Runtime function shutting down");
+    faasm::tearDownLambdaBackend();
 
     return 0;
 }

@@ -3,6 +3,8 @@
 #include <string>
 
 namespace faasm {
+    void tearDownLambdaBackend();
+
     void initialiseLambdaBackend();
 
     void startRequest();

@@ -13,8 +13,6 @@ namespace faasm {
 }
 
 int main() {
-    faasm::initialiseLambdaBackend();
-
     auto handler_fn = [](aws::lambda_runtime::invocation_request const &req) {
         faasm::startRequest();
 

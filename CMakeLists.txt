@@ -58,11 +58,12 @@ else()
             ${CMAKE_CURRENT_BINARY_DIR}/src # Required for protobuf
     )
 
-    # Subset of directories for lambda runtime build
-    if(FAASM_BUILD_TYPE STREQUAL "lambda-runtime")
+    if(FAASM_BUILD_TYPE STREQUAL "lambda-worker")
         # ------------------
-        # Lambda runtime build
+        # Lambda worker build
         # ------------------
+
+        message(STATUS "Running lambda worker build")
 
         add_subdirectory(WAVM)
         add_subdirectory(lambda)
@@ -76,6 +77,22 @@ else()
         add_subdirectory(src/util)
         add_subdirectory(src/wasm)
         add_subdirectory(src/worker)
+
+    elseif(FAASM_BUILD_TYPE STREQUAL "lambda-codegen")
+        # ------------------
+        # Lambda upload build
+        # ------------------
+
+        message(STATUS "Running lambda codegen build")
+
+        add_subdirectory(WAVM)
+        add_subdirectory(lambda)
+
+        add_subdirectory(src/aws)
+        add_subdirectory(src/proto)
+        add_subdirectory(src/util)
+        add_subdirectory(src/wasm)
+        add_subdirectory(src/codegen)
 
     else()
         # ------------------
@@ -111,6 +128,7 @@ else()
         add_subdirectory(src/util)
         add_subdirectory(src/wasm)
         add_subdirectory(src/worker)
+        add_subdirectory(src/codegen)
 
         # Tests
         add_library(catch INTERFACE)

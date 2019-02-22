@@ -7,80 +7,93 @@ import boto3
 from botocore.exceptions import ClientError
 from invoke import task
 
-from tasks.env import FAASM_HOME, PROJ_ROOT, RUNTIME_S3_BUCKET, AWS_REGION
+from tasks.env import FAASM_HOME, PROJ_ROOT, RUNTIME_S3_BUCKET, AWS_REGION, AWS_ACCOUNT_ID
 
 SDK_VERSION = "1.7.41"
 RUNTIME_VERSION = "master"
 
 INSTALL_PATH = join(FAASM_HOME, "lambda")
-LAMBDA_BUILD_DIR = join(PROJ_ROOT, "lambda_build")
 
 AWS_LAMBDA_ROLE = "faasm-lambda-role"
-RUNTIME_S3_KEY = "worker-lambda.zip"
 
 
 @task
-def build_lambdas(ctx):
-    print("Running Lambda build")
+def build_lambda_worker(ctx):
+    _build_lambda(ctx, "worker")
+
+
+@task
+def build_lambda_codegen(ctx):
+    _build_lambda(ctx, "codegen")
+
+
+def _get_s3_key(module_name):
+    s3_key = "{}-lambda.zip".format(module_name)
+    return s3_key
+
+
+def _build_lambda(ctx, module_name, zip_file_path=None):
+    print("Running Lambda {} build".format(module_name))
+
+    s3_key = _get_s3_key(module_name)
 
     # Compile the whole project passing in the right config
-    build_dir = join(PROJ_ROOT, "lambda_fn_build")
+    build_dir = join(PROJ_ROOT, "lambda_{}_build".format(module_name))
+
     _build_cmake_project(build_dir, [
-        "-DFAASM_BUILD_TYPE=lambda",
-        "-DCMAKE_BUILD_TYPE=Release",
-    ], clean=True)
-
-
-@task
-def upload_lambda_function(ctx, user, func_name):
-    # Create the zip
-    cmake_zip_target = "aws-lambda-package-{}-lambda".format(func_name)
-    call("make {}".format(cmake_zip_target), cwd=LAMBDA_BUILD_DIR, shell=True)
-
-    zip_file_path = join(
-        LAMBDA_BUILD_DIR,
-        "func",
-        user,
-        "{}-lambda.zip".format(func_name)
-    )
-
-    _do_upload(func_name, zip_file_path=zip_file_path)
-
-
-@task
-def build_lambda_runtime(ctx):
-    print("Running Lambda runtime build")
-
-    # Compile the whole project passing in the right config
-    build_dir = join(PROJ_ROOT, "lambda_build")
-    _build_cmake_project(build_dir, [
-        "-DFAASM_BUILD_TYPE=lambda-runtime",
+        "-DFAASM_BUILD_TYPE=lambda-{}".format(module_name),
         "-DCMAKE_BUILD_TYPE=Release",
     ], clean=False)
 
     # Create the zip
-    cmake_zip_target = "aws-lambda-package-worker-lambda"
-    call("make {}".format(cmake_zip_target), cwd=LAMBDA_BUILD_DIR, shell=True)
+    cmake_zip_target = "aws-lambda-package-{}-lambda".format(module_name)
+    call("make {}".format(cmake_zip_target), cwd=build_dir, shell=True)
 
-    print("Uploading runtime to S3")
+    if zip_file_path is None:
+        zip_file_path = join(
+            build_dir,
+            "src",
+            module_name,
+            "{}-lambda.zip".format(module_name)
+        )
 
-    zip_file_path = join(
-        LAMBDA_BUILD_DIR,
-        "src",
-        "worker",
-        "worker-lambda.zip"
-    )
+    assert exists(zip_file_path), "Could not find lambda zip at {}".format(zip_file_path)
 
+    print("Uploading lambda {} to S3".format(s3_key))
     s3 = boto3.resource('s3', region_name=AWS_REGION)
-    s3.meta.client.upload_file(zip_file_path, RUNTIME_S3_BUCKET, RUNTIME_S3_KEY)
+    s3.meta.client.upload_file(zip_file_path, RUNTIME_S3_BUCKET, s3_key)
 
 
 @task
-def upload_lambda_runtime(ctx):
-    redis_url = _get_elasticache_url()
+def upload_lambda_worker(ctx):
+    s3_key = _get_s3_key("worker")
 
-    mem = 1 * 128
-    timeout = 15
+    _do_upload(
+        "faasm-worker",
+        memory=1 * 128,
+        timeout=15,
+        s3_bucket=RUNTIME_S3_BUCKET,
+        s3_key=s3_key,
+        environment=_get_lambda_env()
+    )
+
+
+@task
+def upload_lambda_codegen(ctx):
+    s3_key = _get_s3_key("codegen")
+
+    _do_upload(
+        "faasm-codegen",
+        memory=1 * 128,
+        timeout=15,
+        s3_bucket=RUNTIME_S3_BUCKET,
+        s3_key=s3_key,
+        environment=_get_lambda_env()
+    )
+
+
+def _get_lambda_env():
+    redis_url = _get_elasticache_url()
     env = {
         "LOG_LEVEL": "debug",
         "SYSTEM_MODE": "aws",
@@ -94,14 +107,7 @@ def upload_lambda_runtime(ctx):
         "NO_SCHEDULER": "1",
     }
 
-    _do_upload(
-        "faasm-runtime",
-        memory=mem,
-        timeout=timeout,
-        s3_bucket=RUNTIME_S3_BUCKET,
-        s3_key=RUNTIME_S3_KEY,
-        environment=env
-    )
+    return env
 
 
 def _get_elasticache_url():
@@ -243,6 +249,26 @@ def _do_upload(func_name, memory=128, timeout=15, environment=None, zip_file_pat
         client.create_function(**kwargs)
 
 
+def _build_cmake_project(build_dir, cmake_args, clean=False):
+    # Nuke if required
+    if clean and exists(build_dir):
+        rmtree(build_dir)
+
+    # Create build dir if necessary
+    if not exists(build_dir):
+        mkdir(build_dir)
+
+    cpp_sdk_build_cmd = [
+        "cmake",
+        "..",
+        "-DCMAKE_INSTALL_PREFIX={}".format(INSTALL_PATH),
+    ]
+
+    cpp_sdk_build_cmd.extend(cmake_args)
+
+    call(" ".join(cpp_sdk_build_cmd), cwd=build_dir, shell=True)
+    call("make", cwd=build_dir, shell=True)
+
 #
 # @task
 # def build_aws_sdk(ctx):
@@ -292,42 +318,21 @@ def _do_upload(func_name, memory=128, timeout=15, environment=None, zip_file_pat
 #         RUNTIME_VERSION,
 #         clean=True
 #     )
-
-
-def _set_up_cmake_project(repo_url, dir_name, cmake_args, version, clean=False):
-    checkout_path = join(FAASM_HOME, dir_name)
-
-    if not exists(checkout_path):
-        print("Cloning {}".format(repo_url))
-
-        cmd = ["git", "clone", repo_url, dir_name]
-        call(" ".join(cmd), cwd=FAASM_HOME, shell=True)
-
-        # Checkout the required version
-        call("git checkout {}".format(version), cwd=checkout_path, shell=True)
-
-    build_dir = join(checkout_path, "build")
-    _build_cmake_project(build_dir, cmake_args, clean=clean)
-
-    call("make install", cwd=build_dir, shell=True)
-
-
-def _build_cmake_project(build_dir, cmake_args, clean=False):
-    # Nuke if required
-    if clean and exists(build_dir):
-        rmtree(build_dir)
-
-    # Create build dir if necessary
-    if not exists(build_dir):
-        mkdir(build_dir)
-
-    cpp_sdk_build_cmd = [
-        "cmake",
-        "..",
-        "-DCMAKE_INSTALL_PREFIX={}".format(INSTALL_PATH),
-    ]
-
-    cpp_sdk_build_cmd.extend(cmake_args)
-
-    call(" ".join(cpp_sdk_build_cmd), cwd=build_dir, shell=True)
-    call("make", cwd=build_dir, shell=True)
+#
+#
+# def _set_up_cmake_project(repo_url, dir_name, cmake_args, version, clean=False):
+#     checkout_path = join(FAASM_HOME, dir_name)
+#
+#     if not exists(checkout_path):
+#         print("Cloning {}".format(repo_url))
+#
+#         cmd = ["git", "clone", repo_url, dir_name]
+#         call(" ".join(cmd), cwd=FAASM_HOME, shell=True)
+#
+#         # Checkout the required version
+#         call("git checkout {}".format(version), cwd=checkout_path, shell=True)
+#
+#     build_dir = join(checkout_path, "build")
+#     _build_cmake_project(build_dir, cmake_args, clean=clean)
+#
+#     call("make install", cwd=build_dir, shell=True)
