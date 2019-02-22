@@ -12,19 +12,29 @@ namespace tests {
     TEST_CASE("Test basic network properties", "[worker]") {
         util::SystemConfig &conf = util::getSystemConfig();
 
-        util::setEnvVar("NETNS_MODE", "on");
-        NetworkNamespace nsA("foo");
+        std::string envValue;
+        NetworkIsolationMode expected;
+        SECTION("Test network namespace on") {
+            envValue = "on";
+            expected = NetworkIsolationMode::ns_on;
+        }
 
+        SECTION("Test network namespace off") {
+            envValue = "off";
+            expected = NetworkIsolationMode::ns_off;
+        }
+
+        // Reset config
+        util::setEnvVar("NETNS_MODE", envValue);
         conf.reset();
-        util::setEnvVar("NETNS_MODE", "off");
-        NetworkNamespace nsB("bar");
 
-        REQUIRE(nsA.getMode() == NetworkIsolationMode::ns_on);
-        REQUIRE(nsA.getName() == "foo");
+        // Create and check namespace
+        NetworkNamespace ns("foo");
+        REQUIRE(ns.getMode() == expected);
+        REQUIRE(ns.getName() == "foo");
 
-        REQUIRE(nsB.getMode() == NetworkIsolationMode::ns_off);
-        REQUIRE(nsB.getName() == "bar");
-
+        // Reset conf
         util::unsetEnvVar("NETNS_MODE");
+        conf.reset();
     }
 }
