@@ -1,0 +1,119 @@
+#include <catch/catch.hpp>
+
+#include <util/config.h>
+#include <util/environment.h>
+
+using namespace util;
+
+namespace tests {
+    TEST_CASE("Test default system config initialisation", "[util]") {
+        SystemConfig conf;
+
+        REQUIRE(conf.threadsPerWorker == 50);
+
+        REQUIRE(conf.systemMode == "redis");
+        REQUIRE(conf.serialisation == "json");
+        REQUIRE(conf.bucketName == "");
+        REQUIRE(conf.queueName == "faasm-messages");
+        REQUIRE(conf.cgroupMode == "on");
+        REQUIRE(conf.netNsMode == "off");
+
+        REQUIRE(conf.redisStateHost == "localhost");
+        REQUIRE(conf.redisQueueHost == "localhost");
+        REQUIRE(conf.redisPort == "6379");
+
+        REQUIRE(conf.noScheduler == 0);
+        REQUIRE(conf.prewarm == 1);
+        REQUIRE(conf.maxQueueRatio == 3);
+        REQUIRE(conf.maxWorkersPerFunction == 10);
+
+        REQUIRE(conf.boundTimeout == 30);
+        REQUIRE(conf.unboundTimeout == 5000);
+
+        REQUIRE(conf.stateStaleThreshold == 60000);
+        REQUIRE(conf.stateClearThreshold == 300000);
+        REQUIRE(conf.statePushInterval == 500);
+        REQUIRE(conf.fullAsync == 0);
+    }
+
+    TEST_CASE("Test overriding system config initialisation", "[util]") {
+        setEnvVar("THREADS_PER_WORKER", "10");
+
+        setEnvVar("SYSTEM_MODE", "aws");
+        setEnvVar("SERIALISATION", "proto");
+        setEnvVar("BUCKET_NAME", "foo-bucket");
+        setEnvVar("QUEUE_NAME", "dummy-queue");
+        setEnvVar("CGROUP_MODE", "off");
+        setEnvVar("NETNS_MODE", "on");
+
+        setEnvVar("REDIS_STATE_HOST", "not-localhost");
+        setEnvVar("REDIS_QUEUE_HOST", "other-host");
+        setEnvVar("REDIS_PORT", "1234");
+
+        setEnvVar("NO_SCHEDULER", "1");
+        setEnvVar("PREWARM", "5");
+        setEnvVar("MAX_QUEUE_RATIO", "8888");
+        setEnvVar("MAX_WORKERS_PER_FUNCTION", "7777");
+
+        setEnvVar("BOUND_TIMEOUT", "6666");
+        setEnvVar("UNBOUND_TIMEOUT", "5555");
+
+        setEnvVar("STATE_STALE_THRESHOLD", "4444");
+        setEnvVar("STATE_CLEAR_THRESHOLD", "3333");
+        setEnvVar("STATE_PUSH_INTERVAL", "2222");
+        setEnvVar("FULL_ASYNC", "1");
+
+        SystemConfig conf;
+        REQUIRE(conf.threadsPerWorker == 50);
+
+        REQUIRE(conf.systemMode == "aws");
+        REQUIRE(conf.serialisation == "proto");
+        REQUIRE(conf.bucketName == "foo-bucket");
+        REQUIRE(conf.queueName == "dummy-queue");
+        REQUIRE(conf.cgroupMode == "off");
+        REQUIRE(conf.netNsMode == "on");
+
+        REQUIRE(conf.redisStateHost == "not-localhost");
+        REQUIRE(conf.redisQueueHost == "other-host");
+        REQUIRE(conf.redisPort == "1234");
+
+        REQUIRE(conf.noScheduler == 1);
+        REQUIRE(conf.prewarm == 5);
+        REQUIRE(conf.maxQueueRatio == 8888);
+        REQUIRE(conf.maxWorkersPerFunction == 7777);
+
+        REQUIRE(conf.boundTimeout == 30);
+        REQUIRE(conf.unboundTimeout == 5000);
+
+        REQUIRE(conf.stateStaleThreshold == 4444);
+        REQUIRE(conf.stateClearThreshold == 3333);
+        REQUIRE(conf.statePushInterval == 2222);
+        REQUIRE(conf.fullAsync == 1);
+
+        unsetEnvVar("THREADS_PER_WORKER");
+
+        unsetEnvVar("SYSTEM_MODE");
+        unsetEnvVar("SERIALISATION");
+        unsetEnvVar("BUCKET_NAME");
+        unsetEnvVar("QUEUE_NAME");
+        unsetEnvVar("CGROUP_MODE");
+        unsetEnvVar("NETNS_MODE");
+
+        unsetEnvVar("REDIS_STATE_HOST");
+        unsetEnvVar("REDIS_QUEUE_HOST");
+        unsetEnvVar("REDIS_PORT");
+
+        unsetEnvVar("NO_SCHEDULER");
+        unsetEnvVar("PREWARM");
+        unsetEnvVar("MAX_QUEUE_RATIO");
+        unsetEnvVar("MAX_WORKERS_PER_FUNCTION");
+
+        unsetEnvVar("BOUND_TIMEOUT");
+        unsetEnvVar("UNBOUND_TIMEOUT");
+
+        unsetEnvVar("STATE_STALE_THRESHOLD");
+        unsetEnvVar("STATE_CLEAR_THRESHOLD");
+        unsetEnvVar("STATE_PUSH_INTERVAL");
+        unsetEnvVar("FULL_ASYNC");
+    }
+}

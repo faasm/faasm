@@ -89,6 +89,7 @@ def upload_lambda_runtime(ctx):
         "QUEUE_NAME": "faasm-messages",
         "REDIS_STATE_HOST": redis_url,
         "REDIS_QUEUE_HOST": redis_url,
+        "NO_SCHEDULER": "1",
     })
 
 
