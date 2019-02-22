@@ -3,24 +3,11 @@
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        wchar_t *program = Py_DecodeLocale("foobar", nullptr);
+        Py_InitializeEx(0);
 
-        if (program == nullptr) {
-            fprintf(stderr, "Fatal error: cannot decode argv[0]\n");
-            exit(1);
-        }
+        PyRun_SimpleString("print('Hello python from wasm.')");
 
-        Py_SetProgramName(program);  /* optional but recommended */
-        Py_Initialize();
-
-        PyRun_SimpleString("from time import time,ctime\n"
-                           "print('Today is', ctime(time()))\n");
-
-        if (Py_FinalizeEx() < 0) {
-            exit(120);
-        }
-
-        PyMem_RawFree(program);
+        Py_Finalize();
 
         return 0;
     }
