@@ -11,6 +11,10 @@ namespace util {
     }
 
     SystemConfig::SystemConfig() {
+        this->initialise();
+    }
+
+    void SystemConfig::initialise() {
         // TODO - max cannot exceed the underlying number of available namespaces. Good to decouple?
         threadsPerWorker = this->getSystemConfIntParam("THREADS_PER_WORKER", "50");
 
@@ -56,6 +60,10 @@ namespace util {
         return value;
     };
 
+    void SystemConfig::reset() {
+        this->initialise();
+    }
+
     void SystemConfig::print() {
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
@@ -84,11 +92,15 @@ namespace util {
     }
 
     std::string getHostName() {
-        std::string hostname = util::getEnvVar("HOSTNAME", "");
+        static std::string hostname;
 
-        if (hostname.empty()) {
-            // Generate random hostname
-            hostname = util::randomString(10);
+        if(hostname.empty()) {
+            hostname = util::getEnvVar("HOSTNAME", "");
+
+            if (hostname.empty()) {
+                // Generate random hostname
+                hostname = util::randomString(10);
+            }
         }
 
         return hostname;

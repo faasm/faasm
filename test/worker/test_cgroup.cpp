@@ -2,6 +2,7 @@
 
 #include <util/environment.h>
 #include <util/files.h>
+#include <util/config.h>
 
 #include <worker/CGroup.h>
 
@@ -16,12 +17,13 @@ using namespace worker;
 namespace tests {
 
     TEST_CASE("Test basic cgroup properties", "[worker]") {
+        util::SystemConfig &conf = util::getSystemConfig();
         util::setEnvVar("CGROUP_MODE", "on");
-
+        
         CGroup cgA("foo");
-
         util::setEnvVar("CGROUP_MODE", "off");
 
+        conf.reset();
         CGroup cgB("bar");
 
         REQUIRE(cgA.getMode() == CgroupMode::cg_on);

@@ -45,8 +45,12 @@ namespace util {
 
         void print();
 
+        void reset();
+
     private:
         int getSystemConfIntParam(const char *name, const char *defaultValue);
+
+        void initialise();
     };
 
     SystemConfig &getSystemConfig();
