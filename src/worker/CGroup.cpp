@@ -2,6 +2,7 @@
 
 #include <util/environment.h>
 #include <util/logging.h>
+#include <util/config.h>
 
 #include <mutex>
 
@@ -20,10 +21,9 @@ namespace worker {
     static std::mutex groupMutex;
 
     CGroup::CGroup(const std::string &name) : name(name) {
-        // Get which cgroup mode we're operating in
-        std::string modeEnv = util::getEnvVar("CGROUP_MODE", "on");
+        util::SystemConfig &conf = util::getSystemConfig();
 
-        if (modeEnv == "on") {
+        if (conf.cgroupMode == "on") {
             mode = CgroupMode::cg_on;
         } else {
             mode = CgroupMode::cg_off;

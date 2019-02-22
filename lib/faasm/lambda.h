@@ -3,7 +3,7 @@
 #include <aws/lambda-runtime/runtime.h>
 
 #include "faasm/memory.h"
-#include "backend.h"
+#include "lambda/backend.h"
 
 using namespace aws::lambda_runtime;
 
@@ -13,8 +13,6 @@ namespace faasm {
 }
 
 int main() {
-    faasm::initialiseLambdaBackend();
-
     auto handler_fn = [](aws::lambda_runtime::invocation_request const &req) {
         faasm::startRequest();
 

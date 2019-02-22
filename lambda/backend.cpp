@@ -2,6 +2,7 @@
 
 #include "faasm/memory.h"
 
+#include <aws/aws.h>
 #include <string>
 
 namespace faasm {
@@ -27,12 +28,18 @@ namespace faasm {
     }
 
     void initialiseLambdaBackend() {
+        // Set up lambda SDK
+        awswrapper::initSDK();
+    }
 
+    void tearDownLambdaBackend() {
+        // Shut down SDK
+        awswrapper::cleanUpSDK();
     }
 }
 
 long __faasm_read_input(unsigned char *buffer, long bufferLen) {
-    if(bufferLen == 0) {
+    if (bufferLen == 0) {
         return faasm::input.size();
     }
 
@@ -43,7 +50,7 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen) {
 }
 
 void __faasm_write_output(const unsigned char *o, long len) {
-    auto charPtr = reinterpret_cast<const char*>(o);
+    auto charPtr = reinterpret_cast<const char *>(o);
     faasm::output = std::string(charPtr, (size_t) len);
 }
 

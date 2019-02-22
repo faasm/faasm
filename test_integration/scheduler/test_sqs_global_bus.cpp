@@ -10,7 +10,6 @@ using namespace awswrapper;
 
 namespace tests {
     TEST_CASE("SQS message bus integration test", "[aws]") {
-        SQSWrapper &sqs = SQSWrapper::getThreadLocal();
         scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
         util::SystemConfig &conf = util::getSystemConfig();
         

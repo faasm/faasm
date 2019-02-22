@@ -12,16 +12,18 @@
 namespace redis {
 
     RedisInstance::RedisInstance(RedisRole roleIn) : role(roleIn) {
+        util::SystemConfig &conf = util::getSystemConfig();
+
         if (role == STATE) {
-            hostname = util::getEnvVar("REDIS_STATE_HOST", "localhost");
+            hostname = conf.redisStateHost;
             ip = util::getIPFromHostname(hostname);
 
         } else {
-            hostname = util::getEnvVar("REDIS_QUEUE_HOST", "localhost");
+            hostname = conf.redisQueueHost;
             ip = util::getIPFromHostname(hostname);
         }
 
-        std::string portStr = util::getEnvVar("REDIS_PORT", "6379");
+        std::string portStr = conf.redisPort;
         port = std::stoi(portStr);
 
         // Load scripts
@@ -113,7 +115,7 @@ namespace redis {
         char *resultArray = reply->str;
         int resultLen = reply->len;
 
-        if (resultLen > bufferLen) {
+        if (resultLen > (int) bufferLen) {
             throw std::runtime_error("Reading value too big for buffer");
         }
 
@@ -140,6 +142,9 @@ namespace redis {
      */
 
     void Redis::ping() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        logger->debug("Pinging redis at {}", instance.hostname);
         auto reply = (redisReply *) redisCommand(context, "PING");
 
         std::string response(reply->str);
@@ -147,8 +152,11 @@ namespace redis {
         freeReplyObject(reply);
 
         if (response != "PONG") {
+            logger->debug("Failed pinging redis at {}", instance.hostname);
             throw std::runtime_error("Failed to ping redis host");
         }
+
+        logger->debug("Successfully pinged redis");
     }
 
     void Redis::get(const std::string &key, uint8_t *buffer, size_t size) {
@@ -200,9 +208,8 @@ namespace redis {
     void Redis::set(const std::string &key, const uint8_t *value, size_t size) {
         auto reply = (redisReply *) redisCommand(context, "SET %s %b", key.c_str(), value, size);
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
         if (reply->type == REDIS_REPLY_ERROR) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Failed to SET {} - {}", key.c_str(), reply->str);
         }
 
@@ -265,7 +272,7 @@ namespace redis {
 
     std::unordered_set<std::string> extractStringSetFromReply(redisReply *reply) {
         std::unordered_set<std::string> retValue;
-        for (int i = 0; i < reply->elements; i++) {
+        for (size_t i = 0; i < reply->elements; i++) {
             retValue.insert(reply->element[i]->str);
         }
 
@@ -400,10 +407,9 @@ namespace redis {
         // We use NX to say "set if not exists" and ex to specify the expiry of this key/value
         // This is useful in implementing locks. We only use longs as values to keep things simple
         auto reply = (redisReply *) redisCommand(context, "SET %s %i NX EX %i", key.c_str(), value, expirySeconds);
-
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
+        
         if (reply->type == REDIS_REPLY_ERROR) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Failed to SET {} - {}", key.c_str(), reply->str);
         }
 

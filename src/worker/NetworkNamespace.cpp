@@ -4,6 +4,7 @@
 
 #include <util/environment.h>
 #include <util/logging.h>
+#include <util/config.h>
 
 #include <errno.h>
 #include <fcntl.h>
@@ -12,9 +13,9 @@
 namespace worker {
     NetworkNamespace::NetworkNamespace(const std::string &name) : name(name) {
         // Get which mode we're operating in
-        std::string modeEnv = util::getEnvVar("NETNS_MODE", "off");
+        util::SystemConfig &conf = util::getSystemConfig();
 
-        if (modeEnv == "on") {
+        if (conf.netNsMode == "on") {
             mode = NetworkIsolationMode::ns_on;
         } else {
             mode = NetworkIsolationMode::ns_off;

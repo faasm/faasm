@@ -681,7 +681,7 @@ namespace wasm {
 
         // Build vector of iovecs
         iovec nativeIovecs[iovcnt];
-        for (U32 i = 0; i < iovcnt; i++) {
+        for (int i = 0; i < iovcnt; i++) {
             wasm_iovec thisIovec = iovecs[i];
 
             // Get pointer to data

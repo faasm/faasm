@@ -15,7 +15,7 @@ else ()
 endif ()
 
 # Modify inclusions if building for lambda
-if (FAASM_BUILD_TYPE MATCHES "lambda")
+if (FAASM_BUILD_TYPE STREQUAL "lambda")
     add_definitions(-DAWS_LAMBDA=1)
 
     include_directories(${FAASM_LIB_DIR} ${FAASM_LAMBDA_LIB_DIR})
@@ -46,7 +46,7 @@ endif()
 
 
 # Define functions for building
-if (FAASM_BUILD_TYPE MATCHES "wasm")
+if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # ----------------------
     # WASM build
     # ----------------------
@@ -58,25 +58,9 @@ if (FAASM_BUILD_TYPE MATCHES "wasm")
         add_executable(${exec_name} ${file_name})
 
         target_link_libraries(${exec_name} ${FAASM_LIB})
-
-        # Upload URL
-        set(UPLOAD_URL http://${FAASM_HOST}:8002/f/${FAASM_USER}/${exec_name})
-
-        # Path to built function
-        set(FUNCTION_FILE ${CMAKE_BINARY_DIR}/${FAASM_USER}/${exec_name})
-
-        if(${EMSCRIPTEN})
-            # Append .wasm for emscripten
-            set(FUNCTION_FILE ${FUNCTION_FILE}.wasm)
-        endif()
-
-        # Use CURL to upload
-        add_custom_command(TARGET ${exec_name} POST_BUILD
-                COMMAND curl -X PUT ${UPLOAD_URL} -T ${FUNCTION_FILE}
-                )
     endfunction(faasm_func)
 
-elseif (FAASM_BUILD_TYPE MATCHES "lambda")
+elseif (FAASM_BUILD_TYPE STREQUAL "lambda")
     # ----------------------
     # AWS Lambda build
     # ----------------------

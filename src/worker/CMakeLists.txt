@@ -16,5 +16,11 @@ add_library(worker_lib
 
 target_link_libraries(worker_lib wasm scheduler)
 
+# Bare metal worker
 add_executable(worker worker_main.cpp)
 target_link_libraries(worker worker_lib)
+
+# Lambda worker
+add_executable(worker-lambda worker_lambda.cpp)
+target_link_libraries(worker-lambda worker_lib lambda)
+aws_lambda_package_target(worker-lambda)

@@ -8,3 +8,4 @@
     assume_role_policy_document: "{{ lookup('file','policy.json') }}"
     managed_policy:
       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole

@@ -38,11 +38,20 @@ namespace scheduler {
     Scheduler::~Scheduler() {
         delete bindQueue;
 
+        // Clean up the queues for each function
         for (const auto &iter: queueMap) {
+            // Remove this host from the warm set
+            const std::string &warmSetName = getFunctionWarmSetNameFromStr(iter.first);
+            redis.srem(warmSetName, hostname);
+
+            // Remove the queue itself
             delete iter.second;
         }
 
         queueMap.clear();
+
+        // Remove host from the global set
+        redis.srem(GLOBAL_WORKER_SET, hostname);
     }
 
     void Scheduler::enqueueMessage(const message::Message &msg) {
@@ -125,6 +134,10 @@ namespace scheduler {
 
     std::string Scheduler::getFunctionWarmSetName(const message::Message &msg) {
         std::string funcStr = util::funcToString(msg);
+        return this->getFunctionWarmSetNameFromStr(funcStr);
+    }
+
+    std::string Scheduler::getFunctionWarmSetNameFromStr(const std::string &funcStr) {
         return WARM_SET_PREFIX + funcStr;
     }
 
@@ -210,7 +223,7 @@ namespace scheduler {
 
         // If we're ignoring the scheduling, just put it on this host regardless
         bool ignoreScheduler = conf.noScheduler == 1;
-        if(ignoreScheduler) {
+        if (ignoreScheduler) {
             logger->debug("Ignoring scheduler and queueing {} locally", util::funcToString(msg));
             return hostname;
         }
@@ -219,7 +232,7 @@ namespace scheduler {
 
         {
             SharedLock lock(mx);
-                          
+
             // If we have some warm threads below the max, we can handle locally
             long threadCount = this->getFunctionThreadCount(msg);
             if (threadCount > 0 && threadCount < conf.maxWorkersPerFunction) {
@@ -229,7 +242,7 @@ namespace scheduler {
                 // i.e. we want to get up to the maximum queue ratio
                 double queueRatio = this->getFunctionQueueRatio(msg);
 
-                if(queueRatio >= conf.maxQueueRatio) {
+                if (queueRatio >= conf.maxQueueRatio) {
                     // Only exclude when we've saturated the last worker
                     excludeThisHost = true;
                 }

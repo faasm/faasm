@@ -1,6 +1,7 @@
 #include <catch/catch.hpp>
 
 #include <util/environment.h>
+#include <util/config.h>
 
 #include <worker/NetworkNamespace.h>
 
@@ -9,20 +10,31 @@ using namespace worker;
 namespace tests {
 
     TEST_CASE("Test basic network properties", "[worker]") {
-        util::setEnvVar("NETNS_MODE", "on");
+        util::SystemConfig &conf = util::getSystemConfig();
 
-        NetworkNamespace nsA("foo");
+        std::string envValue;
+        NetworkIsolationMode expected;
+        SECTION("Test network namespace on") {
+            envValue = "on";
+            expected = NetworkIsolationMode::ns_on;
+        }
 
-        util::setEnvVar("NETNS_MODE", "off");
+        SECTION("Test network namespace off") {
+            envValue = "off";
+            expected = NetworkIsolationMode::ns_off;
+        }
 
-        NetworkNamespace nsB("bar");
+        // Reset config
+        util::setEnvVar("NETNS_MODE", envValue);
+        conf.reset();
 
-        REQUIRE(nsA.getMode() == NetworkIsolationMode::ns_on);
-        REQUIRE(nsA.getName() == "foo");
+        // Create and check namespace
+        NetworkNamespace ns("foo");
+        REQUIRE(ns.getMode() == expected);
+        REQUIRE(ns.getName() == "foo");
 
-        REQUIRE(nsB.getMode() == NetworkIsolationMode::ns_off);
-        REQUIRE(nsB.getName() == "bar");
-
+        // Reset conf
         util::unsetEnvVar("NETNS_MODE");
+        conf.reset();
     }
 }

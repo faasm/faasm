@@ -9,8 +9,6 @@
 using namespace faasm;
 
 namespace tests {
-    static worker::WorkerThreadPool workerThreadPool(10);
-
     void cleanSystem();
 
     void checkSparseMatrixEquality(const SparseMatrix<double> &a, const SparseMatrix<double> &b);

@@ -16,6 +16,14 @@ namespace util {
         std::string serialisation;
         std::string bucketName;
         std::string queueName;
+        std::string cgroupMode;
+        std::string netNsMode;
+        std::string logLevel;
+
+        // Redis
+        std::string redisStateHost;
+        std::string redisQueueHost;
+        std::string redisPort;
 
         // Scheduling
         int threadsPerWorker;
@@ -38,8 +46,12 @@ namespace util {
 
         void print();
 
+        void reset();
+
     private:
         int getSystemConfIntParam(const char *name, const char *defaultValue);
+
+        void initialise();
     };
 
     SystemConfig &getSystemConfig();

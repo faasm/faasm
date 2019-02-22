@@ -17,7 +17,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic -fvisibility=default")
 
 # For some incredibly annoying reason, CMake isn't picking this up from the environment
 # It's crucial for getting things to link properly so unfortunately must be set here
-if (FAASM_BUILD_TYPE MATCHES "wasm")
+if (FAASM_BUILD_TYPE STREQUAL "wasm")
     add_definitions(-DWASM_BUILD=1)
     set(CMAKE_RANLIB /toolchain/bin/llvm-ranlib)
 else()
@@ -36,6 +36,7 @@ add_library(faasm STATIC
 set(PUBLIC_HEADERS
         faasm/faasm.h
         faasm/counter.h
+        faasm/lambda.h
         faasm/matrix.h
         faasm/memory.h
         faasm/random.h
@@ -45,7 +46,7 @@ set(PUBLIC_HEADERS
 
 set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
-if(FAASM_BUILD_TYPE MATCHES "wasm")
+if(FAASM_BUILD_TYPE STREQUAL "wasm")
     install(TARGETS faasm
             ARCHIVE DESTINATION /toolchain/sysroot/lib
             LIBRARY DESTINATION /toolchain/sysroot/lib
