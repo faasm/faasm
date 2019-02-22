@@ -37,7 +37,7 @@ namespace tests {
     }
 
     TEST_CASE("Test overriding system config initialisation", "[util]") {
-        setEnvVar("THREADS_PER_WORKER", "10");
+        setEnvVar("THREADS_PER_WORKER", "50");
 
         setEnvVar("SYSTEM_MODE", "aws");
         setEnvVar("SERIALISATION", "proto");
@@ -82,8 +82,8 @@ namespace tests {
         REQUIRE(conf.maxQueueRatio == 8888);
         REQUIRE(conf.maxWorkersPerFunction == 7777);
 
-        REQUIRE(conf.boundTimeout == 30);
-        REQUIRE(conf.unboundTimeout == 5000);
+        REQUIRE(conf.boundTimeout == 6666);
+        REQUIRE(conf.unboundTimeout == 5555);
 
         REQUIRE(conf.stateStaleThreshold == 4444);
         REQUIRE(conf.stateClearThreshold == 3333);
