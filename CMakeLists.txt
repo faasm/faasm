@@ -89,10 +89,14 @@ else()
         add_subdirectory(lambda)
 
         add_subdirectory(src/aws)
+        add_subdirectory(src/prof)
+        add_subdirectory(src/codegen)
         add_subdirectory(src/proto)
+        add_subdirectory(src/redis)
+        add_subdirectory(src/scheduler)
+        add_subdirectory(src/state)
         add_subdirectory(src/util)
         add_subdirectory(src/wasm)
-        add_subdirectory(src/codegen)
 
     else()
         # ------------------
@@ -116,6 +120,7 @@ else()
 
         # Faasm runtime
         add_subdirectory(src/aws)
+        add_subdirectory(src/codegen)
         add_subdirectory(src/data)
         add_subdirectory(src/edge)
         add_subdirectory(src/emulator)
@@ -128,7 +133,6 @@ else()
         add_subdirectory(src/util)
         add_subdirectory(src/wasm)
         add_subdirectory(src/worker)
-        add_subdirectory(src/codegen)
 
         # Tests
         add_library(catch INTERFACE)
