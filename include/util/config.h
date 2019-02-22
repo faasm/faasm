@@ -18,6 +18,7 @@ namespace util {
         std::string queueName;
         std::string cgroupMode;
         std::string netNsMode;
+        std::string logLevel;
 
         // Redis
         std::string redisStateHost;

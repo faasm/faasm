@@ -25,6 +25,7 @@ namespace util {
         queueName = getEnvVar("QUEUE_NAME", "faasm-messages");
         cgroupMode = getEnvVar("CGROUP_MODE", "on");
         netNsMode = getEnvVar("NETNS_MODE", "off");
+        logLevel = getEnvVar("LOG_LEVEL", "info");
 
         if (systemMode == "aws") {
             if (bucketName.empty() || queueName.empty()) {
@@ -74,6 +75,7 @@ namespace util {
         logger->info("QUEUE_NAME                 {}", queueName);
         logger->info("CGROUP_MODE                {}", cgroupMode);
         logger->info("NETNS_MODE                 {}", netNsMode);
+        logger->info("LOG_LEVEL                  {}", logLevel);
 
         logger->info("--- Redis ---");
         logger->info("REDIS_STATE_HOST           {}", redisStateHost);
