@@ -23,6 +23,7 @@ AWS_REGION = "eu-west-1"
 RUNTIME_S3_BUCKET = "faasm-runtime"
 RUNTIME_S3_KEY = "worker-lambda.zip"
 
+
 @task
 def build_lambdas(ctx):
     print("Running Lambda build")
@@ -82,7 +83,6 @@ def build_lambda_runtime(ctx):
 @task
 def upload_lambda_runtime(ctx):
     redis_url = _get_elasticache_url()
-    print("Using redis instance at {}".format(redis_url))
 
     mem = 1 * 128
     timeout = 15
@@ -120,7 +120,64 @@ def _get_elasticache_url():
     cluster_data = response["CacheClusters"][0]
     node_data = cluster_data["CacheNodes"][0]
 
-    return node_data["Endpoint"]["Address"]
+    url = node_data["Endpoint"]["Address"]
+    print("Found elasticache at {}".format(url))
+
+    return url
+
+
+def _get_default_security_group_ids():
+    ec2 = boto3.client("ec2", region_name=AWS_REGION)
+
+    vpc_id = _get_default_vpc_id()
+
+    response = ec2.describe_security_groups(
+        Filters=[{
+            "Name": "vpc-id",
+            "Values": [
+                vpc_id
+            ]
+        }]
+    )
+
+    group_ids = [sg["GroupId"] for sg in response["SecurityGroups"]]
+    return group_ids
+
+
+def _get_default_vpc_id():
+    ec2 = boto3.client("ec2", region_name=AWS_REGION)
+
+    response = ec2.describe_vpcs()
+
+    vpc_data = response['Vpcs']
+    default_vpcs = [vpc for vpc in vpc_data if vpc["IsDefault"]]
+    assert len(default_vpcs) == 1, "Found {} default VPCs, expected 1".format(len(default_vpcs))
+
+    vpc_id = default_vpcs[0]['VpcId']
+
+    print("Found default VPC {}".format(vpc_id))
+
+    return vpc_id
+
+
+def _get_subnet_ids():
+    vpc_id = _get_default_vpc_id()
+
+    ec2 = boto3.client("ec2", region_name=AWS_REGION)
+
+    response = ec2.describe_subnets(
+        Filters=[{
+            "Name": "vpc-id",
+            "Values": [
+                vpc_id
+            ]
+        }]
+    )
+
+    subnet_data = response['Subnets']
+    ids = [sn["SubnetId"] for sn in subnet_data]
+
+    return ids
 
 
 def _do_upload(func_name, memory=128, timeout=15, environment=None, zip_file_path=None, s3_bucket=None, s3_key=None):
@@ -129,11 +186,13 @@ def _do_upload(func_name, memory=128, timeout=15, environment=None, zip_file_pat
     if zip_file_path:
         assert exists(zip_file_path), "Expected zip file at {}".format(zip_file_path)
 
-    # Upload the function
-    client = boto3.client("lambda", region_name=AWS_REGION)
+    # Get subnet IDs and security groups
+    subnet_ids = _get_subnet_ids()
+    security_group_ids = _get_default_security_group_ids()
 
     # Check if function exists
     is_existing = True
+    client = boto3.client("lambda", region_name=AWS_REGION)
     try:
         client.get_function(
             FunctionName=func_name,
@@ -169,6 +228,10 @@ def _do_upload(func_name, memory=128, timeout=15, environment=None, zip_file_pat
             "Handler": func_name,
             "MemorySize": memory,
             "Timeout": timeout,
+            "VpcConfig": {
+                "SubnetIds": subnet_ids,
+                "SecurityGroupIds": security_group_ids
+            }
         })
 
         if zip_file_path:
