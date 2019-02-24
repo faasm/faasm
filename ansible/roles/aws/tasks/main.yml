@@ -78,6 +78,7 @@
     vpc_id: "{{ vpc.vpc.id }}"
     region: "{{ aws_region }}"
     rules:
+      - proto:
       - proto: tcp
         ports:
           - 80
@@ -85,6 +86,10 @@
       - proto: tcp
         ports:
           - 443
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        ports:
+          - 6379
         cidr_ip: 0.0.0.0/0
   register: security_group
 

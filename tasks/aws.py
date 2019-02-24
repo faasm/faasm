@@ -129,10 +129,10 @@ def _get_elasticache_url():
     return url
 
 
-def _get_default_security_group_ids():
+def _get_security_group_ids():
     ec2 = boto3.client("ec2", region_name=AWS_REGION)
 
-    vpc_id = _get_default_vpc_id()
+    vpc_id = _get_vpc_id()
 
     response = ec2.describe_security_groups(
         Filters=[{
@@ -144,27 +144,36 @@ def _get_default_security_group_ids():
     )
 
     group_ids = [sg["GroupId"] for sg in response["SecurityGroups"]]
+
+    print("Found security groups {}".format(group_ids))
+
     return group_ids
 
 
-def _get_default_vpc_id():
+def _get_vpc_id():
     ec2 = boto3.client("ec2", region_name=AWS_REGION)
 
-    response = ec2.describe_vpcs()
+    response = ec2.describe_vpcs(
+        Filters=[{
+            "Name": "tag:Name",
+            "Values": [
+                "faasm-vpc",
+            ]
+        }]
+    )
 
     vpc_data = response['Vpcs']
-    default_vpcs = [vpc for vpc in vpc_data if vpc["IsDefault"]]
-    assert len(default_vpcs) == 1, "Found {} default VPCs, expected 1".format(len(default_vpcs))
+    assert len(vpc_data) == 1, "Found {} default VPCs, expected 1".format(len(vpc_data))
 
-    vpc_id = default_vpcs[0]['VpcId']
+    vpc_id = vpc_data[0]['VpcId']
 
-    print("Found default VPC {}".format(vpc_id))
+    print("Found faasm VPC {}".format(vpc_id))
 
     return vpc_id
 
 
-def _get_subnet_ids():
-    vpc_id = _get_default_vpc_id()
+def _get_private_subnet_ids():
+    vpc_id = _get_vpc_id()
 
     ec2 = boto3.client("ec2", region_name=AWS_REGION)
 
@@ -174,11 +183,18 @@ def _get_subnet_ids():
             "Values": [
                 vpc_id
             ]
+        }, {
+            "Name": "tag:Name",
+            "Values": [
+                "faasm-private"
+            ]
         }]
     )
 
     subnet_data = response['Subnets']
     ids = [sn["SubnetId"] for sn in subnet_data]
+
+    print("Found subnet IDs {}".format(ids))
 
     return ids
 
@@ -190,8 +206,8 @@ def _do_upload(func_name, memory=128, timeout=15, environment=None, zip_file_pat
         assert exists(zip_file_path), "Expected zip file at {}".format(zip_file_path)
 
     # Get subnet IDs and security groups
-    subnet_ids = _get_subnet_ids()
-    security_group_ids = _get_default_security_group_ids()
+    subnet_ids = _get_private_subnet_ids()
+    security_group_ids = _get_security_group_ids()
 
     # Check if function exists
     is_existing = True
