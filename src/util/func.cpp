@@ -46,21 +46,27 @@ namespace util {
     }
 
     std::string getFunctionKey(const message::Message &msg) {
-        boost::filesystem::path path("wasm");
-        path.append(msg.user());
-        path.append(msg.function());
-        path.append(funcFile);
+        std::string key = "wasm";
+        key += "/";
+        key += msg.user();
+        key += "/";
+        key += msg.function();
+        key += "/";
+        key += funcFile;
 
-        return path.string();
+        return key;
     }
 
     std::string getFunctionObjectKey(const message::Message &msg) {
-        boost::filesystem::path path("wasm");
-        path.append(msg.user());
-        path.append(msg.function());
-        path.append(objFile);
+        std::string key = "wasm";
+        key += "/";
+        key += msg.user();
+        key += "/";
+        key += msg.function();
+        key += "/";
+        key += objFile;
 
-        return path.string();
+        return key;
     }
 
     std::string getFunctionFile(const message::Message &msg) {

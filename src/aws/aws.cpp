@@ -2,6 +2,9 @@
 
 #include <aws/core/Region.h>
 #include <aws/s3/S3Client.h>
+#include <aws/core/utils/logging/ConsoleLogSystem.h>
+#include <aws/core/utils/logging/LogMacros.h>
+#include <aws/core/client/ClientConfiguration.h>
 
 #include <util/logging.h>
 #include <util/config.h>
@@ -18,10 +21,9 @@ namespace awswrapper {
     std::shared_ptr<Aws::Auth::AWSCredentialsProvider> getCredentialsProvider() {
         util::SystemConfig &systemConf = util::getSystemConfig();
 
-        if(systemConf.hostType == "lambda") {
+        if (systemConf.hostType == "lambda") {
             return Aws::MakeShared<Aws::Auth::EnvironmentAWSCredentialsProvider>("lambda");
-        }
-        else {
+        } else {
             return Aws::MakeShared<Aws::Auth::ProfileConfigFileAWSCredentialsProvider>("local");
         }
     }
@@ -33,18 +35,27 @@ namespace awswrapper {
         clientConf.region = Aws::Region::EU_WEST_1;
         clientConf.requestTimeoutMs = timeout;
 
-        if(systemConf.hostType == "lambda") {
+        if (systemConf.hostType == "lambda") {
             clientConf.caFile = "/etc/pki/tls/certs/ca-bundle.crt";
         }
 
         return clientConf;
     }
 
+    std::function<std::shared_ptr<Aws::Utils::Logging::LogSystemInterface>()> getConsoleLoggerFactory() {
+        return [] {
+            return Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>(
+                    "console_logger", Aws::Utils::Logging::LogLevel::Debug);
+        };
+    }
+
+
     void initSDK() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         logger->info("Initialising AWS support");
-        options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Info;
+        options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Debug;
+        options.loggingOptions.logger_create_fn = getConsoleLoggerFactory();
 
         Aws::InitAPI(options);
     }

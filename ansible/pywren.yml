@@ -6,4 +6,4 @@
   vars:
     ansible_python_interpreter: "../venv/bin/python3"
   roles:
-    - aws
+    - pywren
