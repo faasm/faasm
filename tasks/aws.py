@@ -123,8 +123,8 @@ def upload_lambda_worker(ctx):
 
     # Worker timeout should be less than the function timeout to give things time to shut down gracefully
     lambda_env = _get_lambda_env()
-    lambda_env["LAMBDA_WORKER_TIMEOUT"] = "30"
-    function_timeout = 40
+    lambda_env["LAMBDA_WORKER_TIMEOUT"] = "60"
+    function_timeout = 60
 
     _do_upload(
         "faasm-worker",

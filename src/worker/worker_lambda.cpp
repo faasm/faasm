@@ -32,20 +32,15 @@ int main() {
     logger->info("Initialising thread pool with {} workers", config.threadsPerWorker);
     worker::WorkerThreadPool pool(config.threadsPerWorker);
 
-    // Start thread pool and detach from main thread
-    bool detach = true;
-    pool.startThreadPool(detach);
-    logger->info("Thread pool started", config.threadsPerWorker);
-
-    // Start global queue listener which will pass messages to the pool
-    pool.startGlobalQueueThread();
-
-    auto handler_fn = [&logger, &config](aws::lambda_runtime::invocation_request const &req) {
+    auto handler_fn = [&logger, &config, &pool](aws::lambda_runtime::invocation_request const &req) {
         logger->info("Listening for requests for {} seconds", config.lambdaWorkerTimeout);
 
-        // Sleep for a while as threads execute in background
-        std::this_thread::sleep_for(std::chrono::seconds(config.lambdaWorkerTimeout));
-        logger->info("Worker finished, threads pausing");
+        // Start global queue listener which will pass messages to the pool
+        pool.startGlobalQueueThread();
+
+        // TODO - put some kind of time limit on this
+        // Start thread pool but don't detach from main thread
+        pool.startThreadPool(false);
 
         return invocation_response::success(
                 "Worker finished",
