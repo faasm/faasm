@@ -69,7 +69,7 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda")
         add_executable(${func_name}-lambda ${file_name})
 
         # Link with Faasm library
-        target_link_libraries(${func_name}-lambda faasm)
+        target_link_libraries(${func_name}-lambda faasm lambda-func)
 
 #        target_compile_options(
 #                ${func_name}-lambda PRIVATE

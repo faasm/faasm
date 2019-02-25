@@ -6,6 +6,7 @@ file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/aws/*.h")
 
 add_library(aws STATIC
         aws.cpp
+        LambdaWrapper.cpp
         S3Wrapper.cpp
         SQSWrapper.cpp
         ${HEADERS}

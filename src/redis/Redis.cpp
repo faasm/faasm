@@ -1,11 +1,9 @@
 #include "Redis.h"
 
-#include <util/NetworkNamespace.h>
+#include <util/network.h>
 #include <util/environment.h>
 #include <util/logging.h>
 #include <util/random.h>
-
-#include "prof/prof.h"
 
 #include <thread>
 

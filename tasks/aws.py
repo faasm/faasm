@@ -23,6 +23,11 @@ def build_lambda_worker(ctx):
 
 
 @task
+def build_lambda_dispatch(ctx):
+    _build_lambda(ctx, "dispatch")
+
+
+@task
 def build_lambda_codegen(ctx):
     _build_lambda(ctx, "codegen")
 
@@ -70,8 +75,8 @@ def upload_lambda_worker(ctx):
 
     _do_upload(
         "faasm-worker",
-        memory=1 * 128,
-        timeout=15,
+        memory=256,
+        timeout=60,
         s3_bucket=RUNTIME_S3_BUCKET,
         s3_key=s3_key,
         environment=_get_lambda_env()
@@ -84,8 +89,19 @@ def upload_lambda_codegen(ctx):
 
     _do_upload(
         "faasm-codegen",
-        memory=1 * 128,
-        timeout=15,
+        timeout=30,
+        s3_bucket=RUNTIME_S3_BUCKET,
+        s3_key=s3_key,
+        environment=_get_lambda_env()
+    )
+
+
+@task
+def upload_lambda_dispatch(ctx):
+    s3_key = _get_s3_key("dispatch")
+
+    _do_upload(
+        "faasm-dispatch",
         s3_bucket=RUNTIME_S3_BUCKET,
         s3_key=s3_key,
         environment=_get_lambda_env()
@@ -198,7 +214,8 @@ def _get_private_subnet_ids():
     return ids
 
 
-def _do_upload(func_name, memory=128, timeout=15, environment=None, zip_file_path=None, s3_bucket=None, s3_key=None):
+def _do_upload(func_name, memory=128, timeout=15, concurrency=10,
+               environment=None, zip_file_path=None, s3_bucket=None, s3_key=None):
     assert zip_file_path or (s3_bucket and s3_key), "Must give either a zip file or S3 bucket and key"
 
     if zip_file_path:
@@ -265,6 +282,12 @@ def _do_upload(func_name, memory=128, timeout=15, environment=None, zip_file_pat
 
         client.create_function(**kwargs)
 
+    # Set up concurrency
+    client.put_function_concurrency(
+        FunctionName=func_name,
+        ReservedConcurrentExecutions=concurrency,
+    )
+
 
 def _build_cmake_project(build_dir, cmake_args, clean=False):
     # Nuke if required
@@ -286,70 +309,3 @@ def _build_cmake_project(build_dir, cmake_args, clean=False):
     call(" ".join(cpp_sdk_build_cmd), cwd=build_dir, shell=True)
     call("make", cwd=build_dir, shell=True)
 
-#
-# @task
-# def build_aws_sdk(ctx):
-#     """
-#     Builds AWS SDK for use by Lambda functions themselves
-#     """
-#
-#     if not exists(INSTALL_PATH):
-#         mkdir(INSTALL_PATH)
-#
-#     # AWS C++ SDK
-#     _set_up_cmake_project(
-#         "https://github.com/aws/aws-sdk-cpp.git",
-#         "aws-sdk-cpp",
-#         [
-#             "-DCMAKE_BUILD_TYPE=Release",
-#             "-DBUILD_SHARED_LIBS=OFF",
-#             '-DBUILD_ONLY="s3;sqs"',
-#             "-DCUSTOM_MEMORY_MANAGEMENT=OFF",
-#             "-DENABLE_UNITY_BUILD=ON",
-#             "-DENABLE_TESTING=OFF",
-#         ],
-#         SDK_VERSION
-#     )
-
-
-# @task
-# def build_lambda_runtime(ctx):
-#     """
-#     Builds AWS Lambda runtime itself
-#     """
-#
-#     if not exists(INSTALL_PATH):
-#         mkdir(INSTALL_PATH)
-#
-#     # AWS C++ runtime
-#     # NOTE: building in debug mode enables verbose logging by default
-#     # Verbosity can be set on release builds (1 = info, 2 = debug, 3 = all)
-#     _set_up_cmake_project(
-#         "https://github.com/awslabs/aws-lambda-cpp-runtime.git",
-#         "aws-lambda-cpp-runtime",
-#         [
-#             "-DCMAKE_BUILD_TYPE=Release",
-#             "-DLOG_VERBOSITY=1",
-#             "-DBUILD_SHARED_LIBS=OFF",
-#         ],
-#         RUNTIME_VERSION,
-#         clean=True
-#     )
-#
-#
-# def _set_up_cmake_project(repo_url, dir_name, cmake_args, version, clean=False):
-#     checkout_path = join(FAASM_HOME, dir_name)
-#
-#     if not exists(checkout_path):
-#         print("Cloning {}".format(repo_url))
-#
-#         cmd = ["git", "clone", repo_url, dir_name]
-#         call(" ".join(cmd), cwd=FAASM_HOME, shell=True)
-#
-#         # Checkout the required version
-#         call("git checkout {}".format(version), cwd=checkout_path, shell=True)
-#
-#     build_dir = join(checkout_path, "build")
-#     _build_cmake_project(build_dir, cmake_args, clean=clean)
-#
-#     call("make install", cwd=build_dir, shell=True)

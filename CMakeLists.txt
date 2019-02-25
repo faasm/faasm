@@ -98,6 +98,21 @@ else()
         add_subdirectory(src/util)
         add_subdirectory(src/wasm)
 
+    elseif(FAASM_BUILD_TYPE STREQUAL "lambda-dispatch")
+        # ------------------
+        # Lambda dispatch build
+        # ------------------
+
+        message(STATUS "Running lambda dispatch build")
+
+        add_subdirectory(src/aws)
+        add_subdirectory(src/dispatch)
+        add_subdirectory(src/lambda)
+        add_subdirectory(src/proto)
+        add_subdirectory(src/redis)
+        add_subdirectory(src/scheduler)
+        add_subdirectory(src/util)
+
     else()
         # ------------------
         # Standard build
@@ -119,9 +134,11 @@ else()
         add_subdirectory(src/aws)
         add_subdirectory(src/codegen)
         add_subdirectory(src/data)
+        add_subdirectory(src/dispatch)
         add_subdirectory(src/edge)
         add_subdirectory(src/emulator)
         add_subdirectory(src/lambda)
+        add_subdirectory(src/lambda_func)
         add_subdirectory(src/prof)
         add_subdirectory(src/proto)
         add_subdirectory(src/redis)

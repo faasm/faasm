@@ -49,7 +49,6 @@ namespace awswrapper {
         };
     }
 
-
     void initSDK() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 

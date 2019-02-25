@@ -11,7 +11,6 @@ add_library(
 target_link_libraries(
         redis
         util
-        prof
         pthread
         hiredis
 )
