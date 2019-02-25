@@ -5,6 +5,7 @@ from tasks.compile import (
     clean_build,
     funcs,
     funcs_emscripten,
+    funcs_lambda,
     compile_libfaasm,
     compile_libfaasm_emscripten,
     compile_eigen,

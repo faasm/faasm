@@ -5,6 +5,8 @@ download/
 lambda_build/
 lambda_worker_build/
 lambda_codegen_build/
+lambda_dispatch_build/
+lambda_func_build/
 
 # Ansible
 *.retry

@@ -2,7 +2,6 @@
 
 #include <util/logging.h>
 #include <util/bytes.h>
-#include <prof/prof.h>
 
 #include <redis/Redis.h>
 #include <aws/S3Wrapper.h>

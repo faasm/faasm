@@ -64,7 +64,6 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda")
     # ----------------------
     # AWS Lambda build
     # ----------------------
-
     function(faasm_func func_name file_name)
         add_executable(${func_name}-lambda ${file_name})
 
@@ -103,4 +102,6 @@ endif ()
 add_subdirectory(errors)
 add_subdirectory(demo)
 add_subdirectory(sgd)
-add_subdirectory(python)
+
+# Ignore python functions while not working
+#add_subdirectory(python)

@@ -34,124 +34,123 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # AWS Lambda runtime (used by all builds)
 find_package(aws-lambda-runtime)
 
-if(FAASM_BUILD_TYPE STREQUAL "lambda")
-    # Debug allows full logging
-    set(CMAKE_CXX_FLAGS "-g")
+# AWS SDK
+find_package(AWSSDK REQUIRED COMPONENTS lambda s3 sqs)
 
-    # Just the bits we need for the lambda build
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+include_directories(
+        ${FAASM_INCLUDE_DIR}
+        ${FAASM_LIB_DIR}
+        ${FAASM_WAVM_INCLUDE_DIR} # Required for using WAVM elsewhere
+        ${CMAKE_CURRENT_BINARY_DIR}/src # Required for protobuf
+)
+
+if (FAASM_BUILD_TYPE STREQUAL "lambda")
+    message(STATUS "Running lambda function build")
+
     add_subdirectory(func)
     add_subdirectory(lib)
-    add_subdirectory(lambda)
 
-else()
-    # AWS SDK
-    find_package(AWSSDK REQUIRED COMPONENTS s3 sqs)
+    add_subdirectory(src/aws)
+    add_subdirectory(src/lambda_func)
+    add_subdirectory(src/proto)
+    add_subdirectory(src/redis)
+    add_subdirectory(src/util)
 
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+elseif (FAASM_BUILD_TYPE STREQUAL "lambda-worker")
+    # ------------------
+    # Lambda worker build
+    # ------------------
 
-    include_directories(
-            ${FAASM_INCLUDE_DIR}
-            ${FAASM_LIB_DIR}
-            ${FAASM_WAVM_INCLUDE_DIR} # Required for using WAVM elsewhere
-            ${CMAKE_CURRENT_BINARY_DIR}/src # Required for protobuf
-    )
+    message(STATUS "Running lambda worker build")
 
-    if(FAASM_BUILD_TYPE STREQUAL "lambda-worker")
-        # ------------------
-        # Lambda worker build
-        # ------------------
+    add_subdirectory(WAVM)
 
-        message(STATUS "Running lambda worker build")
+    add_subdirectory(src/aws)
+    add_subdirectory(src/lambda)
+    add_subdirectory(src/proto)
+    add_subdirectory(src/redis)
+    add_subdirectory(src/scheduler)
+    add_subdirectory(src/state)
+    add_subdirectory(src/util)
+    add_subdirectory(src/wasm)
+    add_subdirectory(src/worker)
 
-        add_subdirectory(WAVM)
+elseif (FAASM_BUILD_TYPE STREQUAL "lambda-codegen")
+    # ------------------
+    # Lambda upload build
+    # ------------------
 
-        add_subdirectory(src/aws)
-        add_subdirectory(src/lambda)
-        add_subdirectory(src/prof)
-        add_subdirectory(src/proto)
-        add_subdirectory(src/redis)
-        add_subdirectory(src/scheduler)
-        add_subdirectory(src/state)
-        add_subdirectory(src/util)
-        add_subdirectory(src/wasm)
-        add_subdirectory(src/worker)
+    message(STATUS "Running lambda codegen build")
 
-    elseif(FAASM_BUILD_TYPE STREQUAL "lambda-codegen")
-        # ------------------
-        # Lambda upload build
-        # ------------------
+    add_subdirectory(WAVM)
 
-        message(STATUS "Running lambda codegen build")
+    add_subdirectory(src/aws)
+    add_subdirectory(src/codegen)
+    add_subdirectory(src/lambda)
+    add_subdirectory(src/proto)
+    add_subdirectory(src/redis)
+    add_subdirectory(src/scheduler)
+    add_subdirectory(src/state)
+    add_subdirectory(src/util)
+    add_subdirectory(src/wasm)
 
-        add_subdirectory(WAVM)
+elseif (FAASM_BUILD_TYPE STREQUAL "lambda-dispatch")
+    # ------------------
+    # Lambda dispatch build
+    # ------------------
 
-        add_subdirectory(src/aws)
-        add_subdirectory(src/codegen)
-        add_subdirectory(src/lambda)
-        add_subdirectory(src/prof)
-        add_subdirectory(src/proto)
-        add_subdirectory(src/redis)
-        add_subdirectory(src/scheduler)
-        add_subdirectory(src/state)
-        add_subdirectory(src/util)
-        add_subdirectory(src/wasm)
+    message(STATUS "Running lambda dispatch build")
 
-    elseif(FAASM_BUILD_TYPE STREQUAL "lambda-dispatch")
-        # ------------------
-        # Lambda dispatch build
-        # ------------------
+    add_subdirectory(src/aws)
+    add_subdirectory(src/dispatch)
+    add_subdirectory(src/lambda)
+    add_subdirectory(src/proto)
+    add_subdirectory(src/redis)
+    add_subdirectory(src/scheduler)
+    add_subdirectory(src/util)
 
-        message(STATUS "Running lambda dispatch build")
+else ()
+    # ------------------
+    # Standard build
+    # ------------------
 
-        add_subdirectory(src/aws)
-        add_subdirectory(src/dispatch)
-        add_subdirectory(src/lambda)
-        add_subdirectory(src/proto)
-        add_subdirectory(src/redis)
-        add_subdirectory(src/scheduler)
-        add_subdirectory(src/util)
+    # WAVM
+    add_subdirectory(WAVM)
 
-    else()
-        # ------------------
-        # Standard build
-        # ------------------
+    # Faasm functions
+    add_subdirectory(func)
 
-        # WAVM
-        add_subdirectory(WAVM)
+    # Faasm library
+    add_subdirectory(lib)
 
-        # Faasm functions
-        add_subdirectory(func)
+    # Experiments
+    add_subdirectory(experiment)
 
-        # Faasm library
-        add_subdirectory(lib)
+    # Faasm runtime
+    add_subdirectory(src/aws)
+    add_subdirectory(src/codegen)
+    add_subdirectory(src/data)
+    add_subdirectory(src/dispatch)
+    add_subdirectory(src/edge)
+    add_subdirectory(src/emulator)
+    add_subdirectory(src/lambda)
+    add_subdirectory(src/lambda_func)
+    add_subdirectory(src/prof)
+    add_subdirectory(src/proto)
+    add_subdirectory(src/redis)
+    add_subdirectory(src/scheduler)
+    add_subdirectory(src/state)
+    add_subdirectory(src/upload)
+    add_subdirectory(src/util)
+    add_subdirectory(src/wasm)
+    add_subdirectory(src/worker)
 
-        # Experiments
-        add_subdirectory(experiment)
-
-        # Faasm runtime
-        add_subdirectory(src/aws)
-        add_subdirectory(src/codegen)
-        add_subdirectory(src/data)
-        add_subdirectory(src/dispatch)
-        add_subdirectory(src/edge)
-        add_subdirectory(src/emulator)
-        add_subdirectory(src/lambda)
-        add_subdirectory(src/lambda_func)
-        add_subdirectory(src/prof)
-        add_subdirectory(src/proto)
-        add_subdirectory(src/redis)
-        add_subdirectory(src/scheduler)
-        add_subdirectory(src/state)
-        add_subdirectory(src/upload)
-        add_subdirectory(src/util)
-        add_subdirectory(src/wasm)
-        add_subdirectory(src/worker)
-
-        # Tests
-        add_library(catch INTERFACE)
-        add_subdirectory(test)
-        add_subdirectory(test_integration)
-    endif()
-endif()
+    # Tests
+    add_library(catch INTERFACE)
+    add_subdirectory(test)
+    add_subdirectory(test_integration)
+endif ()

@@ -119,40 +119,46 @@ def clean_build(context):
 
 @task
 def funcs_emscripten(context, clean=False, func=None):
-    func_build_dir = join(PROJ_ROOT, "func", "embuild")
+    _build_funcs("emscripten", clean=clean, func=func)
 
-    if clean:
-        rmtree(func_build_dir)
 
-    if not exists(func_build_dir):
-        mkdir(func_build_dir)
-
-    call("cmake -DFAASM_BUILD_TYPE=wasm -DCMAKE_TOOLCHAIN_FILE={} ..".format(EMSCRIPTEN_CMAKE_TOOLCHAIN),
-         shell=True, cwd=func_build_dir)
-
-    # Allow specifying a single function
-    if func:
-        cmd = "make {}".format(func)
-    else:
-        cmd = "make"
-
-    call(cmd, shell=True, cwd=func_build_dir)
+@task
+def funcs_lambda(context, clean=False, func=None):
+    _build_funcs("lambda", clean=clean, func=func, top_level_build=True)
 
 
 @task
 def funcs(context, clean=False, func=None):
+    _build_funcs("wasm", clean=clean, func=func)
+
+
+def _build_funcs(build_type, clean=False, func=None, toolchain_file=None, top_level_build=False):
     """
     Compiles functions
     """
-    func_build_dir = join(PROJ_ROOT, "func", "build")
 
-    if clean:
+    if build_type == "emscripten":
+        toolchain_file = EMSCRIPTEN_CMAKE_TOOLCHAIN
+
+    if top_level_build:
+        func_build_dir = join(PROJ_ROOT, "{}_func_build".format(build_type))
+    else:
+        func_build_dir = join(PROJ_ROOT, "func", "{}_func_build".format(build_type))
+
+    if clean and exists(func_build_dir):
         rmtree(func_build_dir)
 
     if not exists(func_build_dir):
         mkdir(func_build_dir)
 
-    call("cmake -DFAASM_BUILD_TYPE=wasm ..", shell=True, cwd=func_build_dir)
+    build_cmd = [
+        "cmake",
+        "-DFAASM_BUILD_TYPE={}".format(build_type),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(toolchain_file) if toolchain_file else "",
+        ".."
+    ]
+
+    call(" ".join(build_cmd), shell=True, cwd=func_build_dir)
 
     # Allow specifying a single function
     if func:
@@ -299,7 +305,7 @@ def compile_libfaasm_emscripten(ctx):
     mkdir(build_dir)
 
     call("emconfigure cmake -DFAASM_BUILD_TYPE=wasm -DCMAKE_TOOLCHAIN_FILE={} ..".format(EMSCRIPTEN_CMAKE_TOOLCHAIN),
-        shell=True, cwd=build_dir, env=EMSCRIPTEN_ENV_DICT)
+         shell=True, cwd=build_dir, env=EMSCRIPTEN_ENV_DICT)
     call("make", shell=True, cwd=build_dir, env=EMSCRIPTEN_ENV_DICT)
 
     # Put imports file in place to avoid undefined symbols
