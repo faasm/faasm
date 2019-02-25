@@ -44,8 +44,16 @@ namespace awswrapper {
 
     std::function<std::shared_ptr<Aws::Utils::Logging::LogSystemInterface>()> getConsoleLoggerFactory() {
         return [] {
-            return Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>(
-                    "console_logger", Aws::Utils::Logging::LogLevel::Info);
+            util::SystemConfig &conf = util::getSystemConfig();
+
+            Aws::Utils::Logging::LogLevel logLevel;
+            if (conf.awsLogLevel == "debug") {
+                logLevel = Aws::Utils::Logging::LogLevel::Debug;
+            } else {
+                logLevel = Aws::Utils::Logging::LogLevel::Info;
+            }
+
+            return Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>("console_logger", logLevel);
         };
     }
 

@@ -24,6 +24,9 @@ int main() {
     util::SystemConfig &config = util::getSystemConfig();
     config.print();
 
+    // Make sure this host gets added to the global worker set (happens in scheduler constructor)
+    scheduler::getScheduler();
+
     // Initialise worker pool
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
     logger->info("Initialising thread pool with {} workers", config.threadsPerWorker);
@@ -33,6 +36,9 @@ int main() {
     bool detach = true;
     pool.startThreadPool(detach);
     logger->info("Thread pool started", config.threadsPerWorker);
+
+    // Start global queue listener which will pass messages to the pool
+    pool.startGlobalQueueThread();
 
     auto handler_fn = [&logger, &config](aws::lambda_runtime::invocation_request const &req) {
         logger->info("Listening for requests for {} seconds", config.lambdaWorkerTimeout);

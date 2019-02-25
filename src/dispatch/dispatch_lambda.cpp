@@ -68,11 +68,11 @@ int main() {
         );
     };
 
-    logger->info("Listening for function codegen calls");
+    logger->info("Listening for function dispatch calls");
     run_handler(handler_fn);
 
     // Tidy up
-    logger->info("Codegen function shutting down");
+    logger->info("Shutting down");
     faasm::tearDownLambdaBackend();
 
     return 0;

@@ -4,6 +4,8 @@
 #include <aws/lambda/model/InvokeRequest.h>
 #include <aws/lambda/model/InvokeResult.h>
 
+#include <util/logging.h>
+
 #include <rapidjson/rapidjson.h>
 
 namespace awswrapper {
@@ -36,10 +38,14 @@ namespace awswrapper {
         *payload << body;
 
         invokeRequest.SetBody(payload);
-        invokeRequest.SetContentType("application/javascript");
+        invokeRequest.SetContentType("text/plain");
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         auto outcome = client.Invoke(invokeRequest);
         if (outcome.IsSuccess()) {
+            logger->info("Successfully invoked lambda {}", functionName);
+
             auto &result = outcome.GetResult();
 
             // Lambda function result (key1 value)
@@ -49,6 +55,8 @@ namespace awswrapper {
 
             return functionResult;
         } else {
+            logger->error("Failed to invoke lambda {}", functionName);
+
             return "Request failed";
         }
     }

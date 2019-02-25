@@ -123,7 +123,7 @@ def upload_lambda_worker(ctx):
 
     # Worker timeout should be less than the function timeout to give things time to shut down gracefully
     lambda_env = _get_lambda_env()
-    lambda_env["LAMBDA_WORKER_TIMEOUT"] = 30
+    lambda_env["LAMBDA_WORKER_TIMEOUT"] = "30"
     function_timeout = 40
 
     _do_upload(
@@ -140,9 +140,11 @@ def upload_lambda_worker(ctx):
 def upload_lambda_codegen(ctx):
     s3_key = _get_s3_key("codegen")
 
+    # Codegen can be slow and take up memory
     _do_upload(
         "faasm-codegen",
-        timeout=30,
+        timeout=60,
+        memory=300,
         s3_bucket=RUNTIME_S3_BUCKET,
         s3_key=s3_key,
         environment=_get_lambda_env()
@@ -167,6 +169,7 @@ def upload_lambda_dispatch(ctx):
 
     _do_upload(
         "faasm-dispatch",
+        timeout=20,
         s3_bucket=RUNTIME_S3_BUCKET,
         s3_key=s3_key,
         environment=_get_lambda_env()
@@ -183,10 +186,13 @@ def _get_lambda_env():
         "NETNS_MODE": "off",
         "THREADS_PER_WORKER": "4",
         "BUCKET_NAME": "faasm-runtime",
+        "QUEUE_NAME": "faasm-messages",
+        "SERIALISATION": "proto",
         "REDIS_STATE_HOST": redis_url,
         "REDIS_QUEUE_HOST": redis_url,
         "NO_SCHEDULER": "1",
         "GLOBAL_MESSAGE_BUS": "redis",
+        "AWS_LOG_LEVEL": "info",
     }
 
     return env

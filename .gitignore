@@ -4,6 +4,7 @@ embuild/
 download/
 lambda_build/
 lambda_*_build/
+*_func_build/
 
 # Ansible
 *.retry

@@ -10,8 +10,15 @@ namespace tests {
         LambdaWrapper &lambda = LambdaWrapper::getThreadLocal();
 
         std::string inputStr = R"({"foobar": "blah"})";
-        const std::string &result = lambda.invokeFunction("demo-echo", inputStr, true);
 
-        REQUIRE(result == inputStr);
+        SECTION("Async call") {
+            const std::string &result = lambda.invokeFunction("demo-echo", inputStr, false);
+            REQUIRE(result.empty());
+        }
+
+        SECTION("Synchronous call") {
+            const std::string &result = lambda.invokeFunction("demo-echo", inputStr, true);
+            REQUIRE(result == inputStr);
+        }
     }
 }
