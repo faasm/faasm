@@ -48,7 +48,7 @@ include_directories(
         ${CMAKE_CURRENT_BINARY_DIR}/src # Required for protobuf
 )
 
-if (FAASM_BUILD_TYPE STREQUAL "lambda")
+if (FAASM_BUILD_TYPE STREQUAL "lambda-func")
     message(STATUS "Running lambda function build")
 
     add_subdirectory(func)

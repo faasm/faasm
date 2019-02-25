@@ -123,11 +123,6 @@ def funcs_emscripten(context, clean=False, func=None):
 
 
 @task
-def funcs_lambda(context, clean=False, func=None):
-    _build_funcs("lambda", clean=clean, func=func, top_level_build=True)
-
-
-@task
 def funcs(context, clean=False, func=None):
     _build_funcs("wasm", clean=clean, func=func)
 

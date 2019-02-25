@@ -12,7 +12,8 @@ namespace faasm {
         char buffer[100];
 
         // Read in
-        fread(buffer, 10, 1, fp);
+        size_t i = fread(buffer, 10, 1, fp);
+        printf("Read %li\n", i);
         printf("%s\n", buffer);
 
         fclose(fp);

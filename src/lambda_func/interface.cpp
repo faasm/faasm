@@ -29,6 +29,29 @@ namespace faasm {
     }
 }
 
+int main() {
+    auto handler_fn = [](aws::lambda_runtime::invocation_request const &req) {
+        faasm::startRequest();
+
+        faasm::setInput(req.payload);
+
+        // Run the normal Faasm function entry point
+        auto memory = new faasm::FaasmMemory();
+        exec(memory);
+
+        // Return response with function output
+        const std::string output = faasm::getOutput();
+        return invocation_response::success(
+                output,
+                "text/plain"
+        );
+    };
+
+    run_handler(handler_fn);
+
+    return 0;
+}
+
 long __faasm_read_input(unsigned char *buffer, long bufferLen) {
     if (bufferLen == 0) {
         return faasm::input.size();

@@ -1,6 +1,8 @@
 #include "faasm/faasm.h"
 #include "faasm/counter.h"
 
+#include <string>
+
 #include <stdio.h>
 
 namespace faasm {
@@ -12,7 +14,7 @@ namespace faasm {
         int count = getCounter(memory, key);
 
         // Return message
-        char output[12];
+        char output[13];
         sprintf(output, "Counter: %03i", count);
         memory->setOutput((uint8_t *) output, 12);
 

@@ -18,29 +18,60 @@ AWS_LAMBDA_ROLE = "faasm-lambda-role"
 
 
 @task
+def build_lambda_func(ctx, user, func):
+    # Run the build
+    build_dir = _build_lambda("func")
+
+    # Create the function zip
+    _create_lambda_zip(func, build_dir)
+
+    zip_file_path = join(
+        build_dir,
+        "func",
+        user,
+        "{}-lambda.zip".format(func)
+    )
+
+    assert exists(zip_file_path), "Could not find lambda zip at {}".format(zip_file_path)
+
+    s3_key = _get_s3_key("{}-{}".format(user, func))
+    _upload_lambda_to_s3(s3_key, zip_file_path)
+
+
+@task
 def build_lambda_worker(ctx):
-    _build_lambda(ctx, "worker")
+    _build_system_lambda("worker")
 
 
 @task
 def build_lambda_dispatch(ctx):
-    _build_lambda(ctx, "dispatch")
+    _build_system_lambda("dispatch")
 
 
 @task
 def build_lambda_codegen(ctx):
-    _build_lambda(ctx, "codegen")
+    _build_system_lambda("codegen")
 
 
-def _get_s3_key(module_name):
-    s3_key = "{}-lambda.zip".format(module_name)
-    return s3_key
+def _build_system_lambda(module_name):
+    build_dir = _build_lambda(module_name)
+    _create_lambda_zip(module_name, build_dir)
 
+    zip_file_path = join(
+        build_dir,
+        "src",
+        module_name,
+        "{}-lambda.zip".format(module_name)
+    )
 
-def _build_lambda(ctx, module_name, zip_file_path=None):
-    print("Running Lambda {} build".format(module_name))
+    assert exists(zip_file_path), "Could not find lambda zip at {}".format(zip_file_path)
 
     s3_key = _get_s3_key(module_name)
+    _upload_lambda_to_s3(s3_key, zip_file_path)
+
+
+def _build_lambda(module_name):
+    print("Running Lambda {} build".format(module_name))
 
     # Compile the whole project passing in the right config
     build_dir = join(PROJ_ROOT, "lambda_{}_build".format(module_name))
@@ -50,20 +81,20 @@ def _build_lambda(ctx, module_name, zip_file_path=None):
         "-DCMAKE_BUILD_TYPE=Release",
     ], clean=False)
 
-    # Create the zip
+    return build_dir
+
+
+def _create_lambda_zip(module_name, build_dir):
     cmake_zip_target = "aws-lambda-package-{}-lambda".format(module_name)
     call("make {}".format(cmake_zip_target), cwd=build_dir, shell=True)
 
-    if zip_file_path is None:
-        zip_file_path = join(
-            build_dir,
-            "src",
-            module_name,
-            "{}-lambda.zip".format(module_name)
-        )
 
-    assert exists(zip_file_path), "Could not find lambda zip at {}".format(zip_file_path)
+def _get_s3_key(module_name):
+    s3_key = "{}-lambda.zip".format(module_name)
+    return s3_key
 
+
+def _upload_lambda_to_s3(s3_key, zip_file_path):
     print("Uploading lambda {} to S3".format(s3_key))
     s3 = boto3.resource('s3', region_name=AWS_REGION)
     s3.meta.client.upload_file(zip_file_path, RUNTIME_S3_BUCKET, s3_key)
@@ -90,6 +121,18 @@ def upload_lambda_codegen(ctx):
     _do_upload(
         "faasm-codegen",
         timeout=30,
+        s3_bucket=RUNTIME_S3_BUCKET,
+        s3_key=s3_key,
+        environment=_get_lambda_env()
+    )
+
+
+@task
+def upload_lambda_func(ctx, user, func):
+    s3_key = _get_s3_key("{}-{}".format(user, func))
+
+    _do_upload(
+        "{}-{}".format(user, func),
         s3_bucket=RUNTIME_S3_BUCKET,
         s3_key=s3_key,
         environment=_get_lambda_env()
@@ -308,4 +351,3 @@ def _build_cmake_project(build_dir, cmake_args, clean=False):
 
     call(" ".join(cpp_sdk_build_cmd), cwd=build_dir, shell=True)
     call("make", cwd=build_dir, shell=True)
-

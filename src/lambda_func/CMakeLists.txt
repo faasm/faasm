@@ -9,6 +9,7 @@ add_library(lambda-func STATIC
 
 target_link_libraries(
         lambda-func
+        faasm
         aws
         redis
         AWS::aws-lambda-runtime

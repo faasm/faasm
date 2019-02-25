@@ -22,25 +22,4 @@ namespace faasm {
     std::string getOutput();
 }
 
-int main() {
-    auto handler_fn = [](aws::lambda_runtime::invocation_request const &req) {
-        faasm::startRequest();
-
-        faasm::setInput(req.payload);
-
-        // Run the normal Faasm function entry point
-        auto memory = new faasm::FaasmMemory();
-        exec(memory);
-
-        // Return response with function output
-        const std::string output = faasm::getOutput();
-        return invocation_response::success(
-                output,
-                "text/plain"
-        );
-    };
-
-    run_handler(handler_fn);
-
-    return 0;
-}
+int main();

@@ -5,7 +5,6 @@ from tasks.compile import (
     clean_build,
     funcs,
     funcs_emscripten,
-    funcs_lambda,
     compile_libfaasm,
     compile_libfaasm_emscripten,
     compile_eigen,
@@ -42,9 +41,11 @@ from tasks.aws import (
     build_lambda_worker,
     build_lambda_codegen,
     build_lambda_dispatch,
+    build_lambda_func,
     upload_lambda_worker,
     upload_lambda_codegen,
     upload_lambda_dispatch,
+    upload_lambda_func,
 )
 
 from tasks.upload import (
