@@ -98,15 +98,14 @@ def _get_lambda_env():
         "FUNCTION_STORAGE": "s3",
         "HOST_TYPE": "lambda",
         "LOG_LEVEL": "debug",
-        "SYSTEM_MODE": "aws",
         "CGROUP_MODE": "off",
         "NETNS_MODE": "off",
         "THREADS_PER_WORKER": "4",
         "BUCKET_NAME": "faasm-runtime",
-        "QUEUE_NAME": "faasm-messages",
         "REDIS_STATE_HOST": redis_url,
         "REDIS_QUEUE_HOST": redis_url,
         "NO_SCHEDULER": "1",
+        "GLOBAL_MESSAGE_BUS": "redis",
     }
 
     return env

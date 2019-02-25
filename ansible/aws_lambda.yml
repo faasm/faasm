@@ -5,28 +5,28 @@
   tasks:
     - name: "Clone repo"
       git:
-        repo: "https://github.com/awslabs/aws-lambda-cpp"
-        dest: "/usr/local/code/lib/aws-lambda-cpp"
-        version: "v0.1.0"
+        repo: "git@github.com:Shillaker/aws-lambda-cpp.git"
+        dest: "/usr/local/code/aws-lambda-cpp"
+        version: "multi-thread"
 
     - name: "Set up build"
       shell: "mkdir -p build"
       args:
-        chdir: "/usr/local/code/lib/aws-lambda-cpp"
+        chdir: "/usr/local/code/aws-lambda-cpp"
 
     # Note - CMAKE_BUILD_TYPE=Debug allows verbose logging
     - name: "Prepare build"
       shell: 'cmake -DCMAKE_BUILD_TYPE=Release -DLOG_VERBOSITY=3 -DBUILD_SHARED_LIBS=OFF ..'
       args:
-        chdir: "/usr/local/code/lib/aws-lambda-cpp/build"
+        chdir: "/usr/local/code/aws-lambda-cpp/build"
 
     - name: "Build components"
       shell: "make"
       args:
-        chdir: "/usr/local/code/lib/aws-lambda-cpp/build"
+        chdir: "/usr/local/code/aws-lambda-cpp/build"
 
     - name: "Install"
       become: yes
       shell: "sudo make install"
       args:
-        chdir: "/usr/local/code/lib/aws-lambda-cpp/build"
+        chdir: "/usr/local/code/aws-lambda-cpp/build"

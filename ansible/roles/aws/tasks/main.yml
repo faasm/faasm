@@ -138,5 +138,6 @@
     managed_policy:
       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole  # Elasticache
-      - arn:aws:iam::aws:policy/AWSLambdaExecute  # S3
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole   # SQS
+      - arn:aws:iam::aws:policy/AWSLambdaExecute                              # S3
 
