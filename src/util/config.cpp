@@ -42,6 +42,7 @@ namespace util {
         maxWorkersPerFunction = this->getSystemConfIntParam("MAX_WORKERS_PER_FUNCTION", "10");
 
         // Worker-related timeouts
+        lambdaWorkerTimeout = this->getSystemConfIntParam("LAMBDA_WORKER_TIMEOUT", "30");
         boundTimeout = this->getSystemConfIntParam("BOUND_TIMEOUT", "30");
         unboundTimeout = this->getSystemConfIntParam("UNBOUND_TIMEOUT", "5000");
 

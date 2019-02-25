@@ -36,6 +36,7 @@ namespace util {
         int maxWorkersPerFunction;
 
         // Worker-related timeouts
+        int lambdaWorkerTimeout;
         int unboundTimeout;
         int boundTimeout;
 

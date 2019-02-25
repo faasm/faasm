@@ -8,9 +8,8 @@ add_library(
         ${FAASM_INCLUDE_DIR}/redis/Redis.h
 )
 
-target_link_libraries(
-        redis
-        util
-        pthread
-        hiredis
-)
+target_link_libraries(redis util pthread hiredis)
+
+add_executable(redis-lambda redis_lambda.cpp)
+target_link_libraries(redis-lambda redis lambda)
+aws_lambda_package_target(redis-lambda)

@@ -39,6 +39,11 @@ def build_lambda_func(ctx, user, func):
 
 
 @task
+def build_lambda_redis(ctx):
+    _build_system_lambda("redis")
+
+
+@task
 def build_lambda_worker(ctx):
     _build_system_lambda("worker")
 
@@ -101,16 +106,33 @@ def _upload_lambda_to_s3(s3_key, zip_file_path):
 
 
 @task
+def upload_lambda_redis(ctx):
+    s3_key = _get_s3_key("redis")
+
+    _do_upload(
+        "faasm-redis",
+        s3_bucket=RUNTIME_S3_BUCKET,
+        s3_key=s3_key,
+        environment=_get_lambda_env()
+    )
+
+
+@task
 def upload_lambda_worker(ctx):
     s3_key = _get_s3_key("worker")
+
+    # Worker timeout should be less than the function timeout to give things time to shut down gracefully
+    lambda_env = _get_lambda_env()
+    lambda_env["LAMBDA_WORKER_TIMEOUT"] = 30
+    function_timeout = 40
 
     _do_upload(
         "faasm-worker",
         memory=256,
-        timeout=60,
+        timeout=function_timeout,
         s3_bucket=RUNTIME_S3_BUCKET,
         s3_key=s3_key,
-        environment=_get_lambda_env()
+        environment=lambda_env
     )
 
 

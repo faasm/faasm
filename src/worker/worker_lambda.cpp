@@ -9,6 +9,9 @@
 
 #include <lambda/backend.h>
 
+#include <thread>
+#include <chrono>
+
 using namespace aws::lambda_runtime;
 
 
@@ -25,40 +28,31 @@ int main() {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
     logger->info("Initialising thread pool with {} workers", config.threadsPerWorker);
     worker::WorkerThreadPool pool(config.threadsPerWorker);
-    logger->info("Thread pool initialised");
 
-    // Start thread pool but detach so we can carry on invoking tasks from the main thread
+    // Start thread pool and detach from main thread
     bool detach = true;
     pool.startThreadPool(detach);
+    logger->info("Thread pool started", config.threadsPerWorker);
 
-    // Reference to local scheduler
-    scheduler::Scheduler &sch = scheduler::getScheduler();
-    scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
+    auto handler_fn = [&logger, &config](aws::lambda_runtime::invocation_request const &req) {
+        logger->info("Listening for requests for {} seconds", config.lambdaWorkerTimeout);
 
-    auto handler_fn = [&logger, &sch, &globalBus](aws::lambda_runtime::invocation_request const &req) {
-        // Receive JSON from invocation, decode into a message
-        message::Message msg = util::jsonToMessage(req.payload);
+        // Sleep for a while as threads execute in background
+        std::this_thread::sleep_for(std::chrono::seconds(config.lambdaWorkerTimeout));
+        logger->info("Worker finished, threads pausing");
 
-        // Execute (pass to local scheduler)
-        logger->info("Invoking {}", util::funcToString(msg));
-        sch.callFunction(msg);
-
-        // Wait for response
-        message::Message result = globalBus.getFunctionResult(msg);
-        std::string outputData = result.outputdata();
-
-        // Return a Lambda-friendly response
         return invocation_response::success(
-                outputData,
+                "Worker finished",
                 "text/plain"
         );
     };
 
-    logger->info("Calling Lambda runtime hook");
-    run_handler_threads(handler_fn);
+    logger->info("Worker entering invocation loop");
+    run_handler(handler_fn);
 
     // Clear up
-    logger->info("Runtime function shutting down");
+    // TODO - clear up thread pool properly here?
+    logger->info("Worker shutting down");
     faasm::tearDownLambdaBackend();
 
     return 0;
