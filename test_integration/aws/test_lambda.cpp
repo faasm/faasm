@@ -9,9 +9,9 @@ namespace tests {
     TEST_CASE("Test invoking lambda function", "[aws]") {
         LambdaWrapper &lambda = LambdaWrapper::getThreadLocal();
 
-        std::string input = "foobar";
-        const std::string &result = lambda.invokeFunction("echo", input, true);
+        std::string inputStr = R"({"foobar": "blah"})";
+        const std::string &result = lambda.invokeFunction("demo-echo", inputStr, true);
 
-        REQUIRE(result == input);
+        REQUIRE(result == inputStr);
     }
 }

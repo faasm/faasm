@@ -28,6 +28,7 @@ namespace util {
         cgroupMode = getEnvVar("CGROUP_MODE", "on");
         netNsMode = getEnvVar("NETNS_MODE", "off");
         logLevel = getEnvVar("LOG_LEVEL", "info");
+        awsLogLevel = getEnvVar("AWS_LOG_LEVEL", "off");
 
         // Redis
         redisStateHost = getEnvVar("REDIS_STATE_HOST", "localhost");
@@ -74,6 +75,7 @@ namespace util {
         logger->info("CGROUP_MODE                {}", cgroupMode);
         logger->info("NETNS_MODE                 {}", netNsMode);
         logger->info("LOG_LEVEL                  {}", logLevel);
+        logger->info("AWS_LOG_LEVEL              {}", awsLogLevel);
 
         logger->info("--- Redis ---");
         logger->info("REDIS_STATE_HOST           {}", redisStateHost);

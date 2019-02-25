@@ -19,12 +19,12 @@ namespace faasm {
     }
 
     void setInput(const std::string &i) {
-        printf("Received input [%s]\n", i.c_str());
+        printf("Received input %s\n", i.c_str());
         input = i;
     }
 
     std::string getOutput() {
-        printf("Returning output [%s]\n", output.c_str());
+        printf("Returning output %s\n", output.c_str());
         return output;
     }
 }
@@ -43,7 +43,7 @@ int main() {
         const std::string output = faasm::getOutput();
         return invocation_response::success(
                 output,
-                "text/plain"
+                "application/json"
         );
     };
 

@@ -20,7 +20,7 @@ AWS_LAMBDA_ROLE = "faasm-lambda-role"
 @task
 def build_lambda_func(ctx, user, func):
     # Run the build
-    build_dir = _build_lambda("func")
+    build_dir = _build_lambda("func", target="{}-lambda".format(func))
 
     # Create the function zip
     _create_lambda_zip(func, build_dir)
@@ -70,7 +70,7 @@ def _build_system_lambda(module_name):
     _upload_lambda_to_s3(s3_key, zip_file_path)
 
 
-def _build_lambda(module_name):
+def _build_lambda(module_name, target=None):
     print("Running Lambda {} build".format(module_name))
 
     # Compile the whole project passing in the right config
@@ -79,7 +79,7 @@ def _build_lambda(module_name):
     _build_cmake_project(build_dir, [
         "-DFAASM_BUILD_TYPE=lambda-{}".format(module_name),
         "-DCMAKE_BUILD_TYPE=Release",
-    ], clean=False)
+    ], clean=False, target=target)
 
     return build_dir
 
@@ -332,7 +332,7 @@ def _do_upload(func_name, memory=128, timeout=15, concurrency=10,
     )
 
 
-def _build_cmake_project(build_dir, cmake_args, clean=False):
+def _build_cmake_project(build_dir, cmake_args, clean=False, target=None):
     # Nuke if required
     if clean and exists(build_dir):
         rmtree(build_dir)
@@ -350,4 +350,8 @@ def _build_cmake_project(build_dir, cmake_args, clean=False):
     cpp_sdk_build_cmd.extend(cmake_args)
 
     call(" ".join(cpp_sdk_build_cmd), cwd=build_dir, shell=True)
-    call("make", cwd=build_dir, shell=True)
+
+    if target:
+        call("make {}".format(target), cwd=build_dir, shell=True)
+    else:
+        call("make", cwd=build_dir, shell=True)

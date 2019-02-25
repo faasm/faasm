@@ -32,7 +32,8 @@ namespace awswrapper {
             invokeRequest.SetInvocationType(Aws::Lambda::Model::InvocationType::Event);
         }
 
-        std::shared_ptr<Aws::IOStream> payload = Aws::MakeShared<Aws::StringStream>(body.c_str());
+        std::shared_ptr<Aws::IOStream> payload = Aws::MakeShared<Aws::StringStream>("");
+        *payload << body;
 
         invokeRequest.SetBody(payload);
         invokeRequest.SetContentType("application/javascript");
