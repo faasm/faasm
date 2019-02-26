@@ -123,12 +123,12 @@ def upload_lambda_worker(ctx):
 
     # Worker timeout should be less than the function timeout to give things time to shut down gracefully
     lambda_env = _get_lambda_env()
-    lambda_env["LAMBDA_WORKER_TIMEOUT"] = "60"
-    function_timeout = 60
+    lambda_env["UNBOUND_TIMEOUT"] = "60"
+    function_timeout = 120
 
     _do_upload(
         "faasm-worker",
-        memory=256,
+        memory=2048,
         timeout=function_timeout,
         s3_bucket=RUNTIME_S3_BUCKET,
         s3_key=s3_key,
@@ -184,7 +184,7 @@ def _get_lambda_env():
         "LOG_LEVEL": "debug",
         "CGROUP_MODE": "off",
         "NETNS_MODE": "off",
-        "THREADS_PER_WORKER": "4",
+        "THREADS_PER_WORKER": "2",
         "BUCKET_NAME": "faasm-runtime",
         "QUEUE_NAME": "faasm-messages",
         "SERIALISATION": "proto",

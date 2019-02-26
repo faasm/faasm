@@ -93,9 +93,11 @@ namespace worker {
         }
 
         // Set result
+        logger->debug("Setting function result for {}", util::funcToString(call));
         globalBus.setFunctionResult(call, isSuccess);
 
         // Restore the module memory after the execution
+        logger->debug("Restoring memory for {}", util::funcToString(call));
         module->restoreMemory();
     }
 

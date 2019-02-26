@@ -33,14 +33,12 @@ int main() {
     worker::WorkerThreadPool pool(config.threadsPerWorker);
 
     auto handler_fn = [&logger, &config, &pool](aws::lambda_runtime::invocation_request const &req) {
-        logger->info("Listening for requests for {} seconds", config.lambdaWorkerTimeout);
+        logger->info("Listening for requests for {}ms", config.unboundTimeout);
+
+        pool.startThreadPool(true);
 
         // Start global queue listener which will pass messages to the pool
-        pool.startGlobalQueueThread();
-
-        // TODO - put some kind of time limit on this
-        // Start thread pool but don't detach from main thread
-        pool.startThreadPool(false);
+        pool.startGlobalQueueThread(false, true);
 
         return invocation_response::success(
                 "Worker finished",

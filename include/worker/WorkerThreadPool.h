@@ -10,7 +10,7 @@ namespace worker {
 
         void startStateThread();
 
-        void startGlobalQueueThread();
+        void startGlobalQueueThread(bool detach, bool dropOut);
 
         void startSharingThread();
 
