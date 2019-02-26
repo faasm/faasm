@@ -1,11 +1,11 @@
 import os
 from os.path import join
-from subprocess import call
 
 import boto3
 from invoke import task
 
 from tasks.env import AWS_REGION, RUNTIME_S3_BUCKET, PROJ_ROOT
+from tasks.upload_util import curl_file, upload_file_to_s3
 
 DIRS_TO_INCLUDE = ["demo", "errors", "sgd"]
 
@@ -47,18 +47,5 @@ def upload_funcs(context, s3=False, host="localhost"):
                 else:
                     print("Uploading {}/{} to host {}".format(user, func, host))
 
-                    cmd = [
-                        "curl",
-                        "-X", "PUT",
-                        "http://{}:8002/f/{}/{}".format(host, user, func),
-                        "-T", func_file
-                    ]
-
-                    cmd = " ".join(cmd)
-
-                    res = call(cmd, shell=True)
-
-                    if res == 0:
-                        print("Upload finished")
-                    else:
-                        print("Upload failed")
+                    url = "http://{}:8002/f/{}/{}".format(host, user, func)
+                    curl_file(url, func_file)

@@ -61,3 +61,8 @@ from tasks.aws_lambda import (
     invoke_lambda,
     invoke_faasm_lambda,
 )
+
+from tasks.data import (
+    reuters_upload,
+    reuters_upload_s3,
+)

@@ -18,9 +18,12 @@
 # S3 buckets are very cheap to keep around, easier to leave it
 #    - name: "Delete S3 bucket"
 #      s3_bucket:
-#        name: "{{ s3_bucket_name }}"
+#        name: "{{ item }}"
 #        region: "{{ aws_region }}"
 #        state: absent
+#      with_items:
+#        - "{{ s3_runtime_bucket }}"
+#        - "{{ s3_state_bucket }}"
 
     - name: "Delete Elasticache instance"
       elasticache:

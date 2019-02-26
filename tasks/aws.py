@@ -8,6 +8,7 @@ from botocore.exceptions import ClientError
 from invoke import task
 
 from tasks.env import FAASM_HOME, PROJ_ROOT, RUNTIME_S3_BUCKET, AWS_REGION, AWS_ACCOUNT_ID
+from tasks.upload_util import upload_file_to_s3
 
 SDK_VERSION = "1.7.41"
 RUNTIME_VERSION = "master"
@@ -101,8 +102,7 @@ def _get_s3_key(module_name):
 
 def _upload_lambda_to_s3(s3_key, zip_file_path):
     print("Uploading lambda {} to S3".format(s3_key))
-    s3 = boto3.resource('s3', region_name=AWS_REGION)
-    s3.meta.client.upload_file(zip_file_path, RUNTIME_S3_BUCKET, s3_key)
+    upload_file_to_s3(zip_file_path, RUNTIME_S3_BUCKET, s3_key)
 
 
 @task

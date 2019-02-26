@@ -101,8 +101,11 @@
 
 - name: "Create S3 bucket"
   s3_bucket:
-    name: "{{ s3_bucket_name }}"
+    name: "{{ item }}"
     region: "{{ aws_region }}"
+  with_items:
+    - "{{ s3_runtime_bucket }}"
+    - "{{ s3_state_bucket }}"
 
 - name: "Create Elasticache subnet group"
   elasticache_subnet_group:
