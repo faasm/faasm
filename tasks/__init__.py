@@ -55,3 +55,9 @@ from tasks.upload import (
 )
 
 from tasks.wasm2wast import wast
+
+from tasks.aws_lambda import (
+    list_lambdas,
+    invoke_lambda,
+    invoke_faasm_lambda,
+)

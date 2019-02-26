@@ -1,5 +1,5 @@
 import os
-from os.path import join, exists
+from os.path import join
 from subprocess import call
 
 import boto3

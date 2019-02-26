@@ -8,10 +8,12 @@
   tasks:
     - name: "Delete SQS queue"
       sqs_queue:
-        name: "{{ sqs_queue_name }}"
+        name: "{{ sqs_queue_name }}-{{ item }}"
         region: "{{ aws_region }}"
-        default_visibility_timeout: 120
         state: absent
+      with_items:
+        - "state"
+        - "queue"
 
 # S3 buckets are very cheap to keep around, easier to leave it
 #    - name: "Delete S3 bucket"
