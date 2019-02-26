@@ -15,7 +15,7 @@ else ()
 endif ()
 
 # Modify inclusions if building for lambda
-if (FAASM_BUILD_TYPE STREQUAL "lambda")
+if (FAASM_BUILD_TYPE STREQUAL "lambda-func")
     add_definitions(-DAWS_LAMBDA=1)
 
     include_directories(${FAASM_LIB_DIR} ${FAASM_LAMBDA_LIB_DIR})
@@ -57,19 +57,20 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     function(faasm_func exec_name file_name)
         add_executable(${exec_name} ${file_name})
 
+        set_target_properties(${exec_name} PROPERTIES OUTPUT_NAME ${exec_name}.wasm)
+
         target_link_libraries(${exec_name} ${FAASM_LIB})
     endfunction(faasm_func)
 
-elseif (FAASM_BUILD_TYPE STREQUAL "lambda")
+elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
     # ----------------------
     # AWS Lambda build
     # ----------------------
-
     function(faasm_func func_name file_name)
         add_executable(${func_name}-lambda ${file_name})
 
         # Link with Faasm library
-        target_link_libraries(${func_name}-lambda faasm)
+        target_link_libraries(${func_name}-lambda lambda-func)
 
 #        target_compile_options(
 #                ${func_name}-lambda PRIVATE
@@ -103,4 +104,6 @@ endif ()
 add_subdirectory(errors)
 add_subdirectory(demo)
 add_subdirectory(sgd)
-add_subdirectory(python)
+
+# Ignore python functions while not working
+#add_subdirectory(python)

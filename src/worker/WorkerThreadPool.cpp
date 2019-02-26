@@ -32,27 +32,41 @@ namespace worker {
         }
     }
 
-    void WorkerThreadPool::startGlobalQueueThread() {
+    void WorkerThreadPool::startGlobalQueueThread(bool detach, bool dropOut) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         util::SystemConfig &conf = util::getSystemConfig();
 
         logger->info("Starting global queue listener on {}", conf.queueName);
 
-        std::thread globalDispatchThread([] {
+        std::thread globalDispatchThread([&conf, &logger, &dropOut] {
             scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
             scheduler::Scheduler &sch = scheduler::getScheduler();
 
             while (true) {
                 try {
-                    message::Message msg = bus.nextMessage();
+                    message::Message msg = bus.nextMessage(conf.unboundTimeout);
+
+                    logger->debug("Got invocation for {} on {}", util::funcToString(msg), conf.queueName);
                     sch.callFunction(msg);
                 }
                 catch (scheduler::GlobalMessageBusNoMessageException &ex) {
-                    continue;
+                    if(dropOut) {
+                        logger->info("No message from global bus in {}ms, dropping out", conf.unboundTimeout);
+                        return;
+                    }
+                    else {
+                        continue;
+                    }
                 }
             }
         });
-        globalDispatchThread.detach();
+
+        if(detach) {
+            globalDispatchThread.detach();
+        }
+        else {
+            globalDispatchThread.join();
+        }
     }
 
     void WorkerThreadPool::startSharingThread() {

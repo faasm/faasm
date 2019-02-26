@@ -18,24 +18,65 @@ AWS_LAMBDA_ROLE = "faasm-lambda-role"
 
 
 @task
+def build_lambda_func(ctx, user, func):
+    # Run the build
+    build_dir = _build_lambda("func", target="{}-lambda".format(func))
+
+    # Create the function zip
+    _create_lambda_zip(func, build_dir)
+
+    zip_file_path = join(
+        build_dir,
+        "func",
+        user,
+        "{}-lambda.zip".format(func)
+    )
+
+    assert exists(zip_file_path), "Could not find lambda zip at {}".format(zip_file_path)
+
+    s3_key = _get_s3_key("{}-{}".format(user, func))
+    _upload_lambda_to_s3(s3_key, zip_file_path)
+
+
+@task
+def build_lambda_redis(ctx):
+    _build_system_lambda("redis")
+
+
+@task
 def build_lambda_worker(ctx):
-    _build_lambda(ctx, "worker")
+    _build_system_lambda("worker")
+
+
+@task
+def build_lambda_dispatch(ctx):
+    _build_system_lambda("dispatch")
 
 
 @task
 def build_lambda_codegen(ctx):
-    _build_lambda(ctx, "codegen")
+    _build_system_lambda("codegen")
 
 
-def _get_s3_key(module_name):
-    s3_key = "{}-lambda.zip".format(module_name)
-    return s3_key
+def _build_system_lambda(module_name):
+    build_dir = _build_lambda(module_name)
+    _create_lambda_zip(module_name, build_dir)
 
+    zip_file_path = join(
+        build_dir,
+        "src",
+        module_name,
+        "{}-lambda.zip".format(module_name)
+    )
 
-def _build_lambda(ctx, module_name, zip_file_path=None):
-    print("Running Lambda {} build".format(module_name))
+    assert exists(zip_file_path), "Could not find lambda zip at {}".format(zip_file_path)
 
     s3_key = _get_s3_key(module_name)
+    _upload_lambda_to_s3(s3_key, zip_file_path)
+
+
+def _build_lambda(module_name, target=None):
+    print("Running Lambda {} build".format(module_name))
 
     # Compile the whole project passing in the right config
     build_dir = join(PROJ_ROOT, "lambda_{}_build".format(module_name))
@@ -43,38 +84,55 @@ def _build_lambda(ctx, module_name, zip_file_path=None):
     _build_cmake_project(build_dir, [
         "-DFAASM_BUILD_TYPE=lambda-{}".format(module_name),
         "-DCMAKE_BUILD_TYPE=Release",
-    ], clean=False)
+    ], clean=False, target=target)
 
-    # Create the zip
+    return build_dir
+
+
+def _create_lambda_zip(module_name, build_dir):
     cmake_zip_target = "aws-lambda-package-{}-lambda".format(module_name)
     call("make {}".format(cmake_zip_target), cwd=build_dir, shell=True)
 
-    if zip_file_path is None:
-        zip_file_path = join(
-            build_dir,
-            "src",
-            module_name,
-            "{}-lambda.zip".format(module_name)
-        )
 
-    assert exists(zip_file_path), "Could not find lambda zip at {}".format(zip_file_path)
+def _get_s3_key(module_name):
+    s3_key = "{}-lambda.zip".format(module_name)
+    return s3_key
 
+
+def _upload_lambda_to_s3(s3_key, zip_file_path):
     print("Uploading lambda {} to S3".format(s3_key))
     s3 = boto3.resource('s3', region_name=AWS_REGION)
     s3.meta.client.upload_file(zip_file_path, RUNTIME_S3_BUCKET, s3_key)
 
 
 @task
-def upload_lambda_worker(ctx):
-    s3_key = _get_s3_key("worker")
+def upload_lambda_redis(ctx):
+    s3_key = _get_s3_key("redis")
 
     _do_upload(
-        "faasm-worker",
-        memory=1 * 128,
-        timeout=15,
+        "faasm-redis",
         s3_bucket=RUNTIME_S3_BUCKET,
         s3_key=s3_key,
         environment=_get_lambda_env()
+    )
+
+
+@task
+def upload_lambda_worker(ctx):
+    s3_key = _get_s3_key("worker")
+
+    # Worker timeout should be less than the function timeout to give things time to shut down gracefully
+    lambda_env = _get_lambda_env()
+    lambda_env["UNBOUND_TIMEOUT"] = "60"
+    function_timeout = 120
+
+    _do_upload(
+        "faasm-worker",
+        memory=2048,
+        timeout=function_timeout,
+        s3_bucket=RUNTIME_S3_BUCKET,
+        s3_key=s3_key,
+        environment=lambda_env
     )
 
 
@@ -82,10 +140,36 @@ def upload_lambda_worker(ctx):
 def upload_lambda_codegen(ctx):
     s3_key = _get_s3_key("codegen")
 
+    # Codegen can be slow and take up memory
     _do_upload(
         "faasm-codegen",
-        memory=1 * 128,
-        timeout=15,
+        timeout=60,
+        memory=300,
+        s3_bucket=RUNTIME_S3_BUCKET,
+        s3_key=s3_key,
+        environment=_get_lambda_env()
+    )
+
+
+@task
+def upload_lambda_func(ctx, user, func):
+    s3_key = _get_s3_key("{}-{}".format(user, func))
+
+    _do_upload(
+        "{}-{}".format(user, func),
+        s3_bucket=RUNTIME_S3_BUCKET,
+        s3_key=s3_key,
+        environment=_get_lambda_env()
+    )
+
+
+@task
+def upload_lambda_dispatch(ctx):
+    s3_key = _get_s3_key("dispatch")
+
+    _do_upload(
+        "faasm-dispatch",
+        timeout=20,
         s3_bucket=RUNTIME_S3_BUCKET,
         s3_key=s3_key,
         environment=_get_lambda_env()
@@ -93,30 +177,34 @@ def upload_lambda_codegen(ctx):
 
 
 def _get_lambda_env():
-    redis_url = _get_elasticache_url()
+    state_redis_url = _get_elasticache_url("faasm-redis-state")
+    queue_redis_url = _get_elasticache_url("faasm-redis-queue")
+
     env = {
         "FUNCTION_STORAGE": "s3",
         "HOST_TYPE": "lambda",
         "LOG_LEVEL": "debug",
-        "SYSTEM_MODE": "aws",
         "CGROUP_MODE": "off",
         "NETNS_MODE": "off",
-        "THREADS_PER_WORKER": "4",
+        "THREADS_PER_WORKER": "2",
         "BUCKET_NAME": "faasm-runtime",
         "QUEUE_NAME": "faasm-messages",
-        "REDIS_STATE_HOST": redis_url,
-        "REDIS_QUEUE_HOST": redis_url,
+        "SERIALISATION": "proto",
+        "REDIS_STATE_HOST": state_redis_url,
+        "REDIS_QUEUE_HOST": queue_redis_url,
         "NO_SCHEDULER": "1",
+        "GLOBAL_MESSAGE_BUS": "redis",
+        "AWS_LOG_LEVEL": "info",
     }
 
     return env
 
 
-def _get_elasticache_url():
+def _get_elasticache_url(cluster_name):
     client = boto3.client("elasticache", region_name=AWS_REGION)
 
     response = client.describe_cache_clusters(
-        CacheClusterId="faasm-redis",
+        CacheClusterId=cluster_name,
         ShowCacheNodeInfo=True,
     )
 
@@ -129,10 +217,10 @@ def _get_elasticache_url():
     return url
 
 
-def _get_default_security_group_ids():
+def _get_security_group_ids():
     ec2 = boto3.client("ec2", region_name=AWS_REGION)
 
-    vpc_id = _get_default_vpc_id()
+    vpc_id = _get_vpc_id()
 
     response = ec2.describe_security_groups(
         Filters=[{
@@ -144,27 +232,36 @@ def _get_default_security_group_ids():
     )
 
     group_ids = [sg["GroupId"] for sg in response["SecurityGroups"]]
+
+    print("Found security groups {}".format(group_ids))
+
     return group_ids
 
 
-def _get_default_vpc_id():
+def _get_vpc_id():
     ec2 = boto3.client("ec2", region_name=AWS_REGION)
 
-    response = ec2.describe_vpcs()
+    response = ec2.describe_vpcs(
+        Filters=[{
+            "Name": "tag:Name",
+            "Values": [
+                "faasm-vpc",
+            ]
+        }]
+    )
 
     vpc_data = response['Vpcs']
-    default_vpcs = [vpc for vpc in vpc_data if vpc["IsDefault"]]
-    assert len(default_vpcs) == 1, "Found {} default VPCs, expected 1".format(len(default_vpcs))
+    assert len(vpc_data) == 1, "Found {} default VPCs, expected 1".format(len(vpc_data))
 
-    vpc_id = default_vpcs[0]['VpcId']
+    vpc_id = vpc_data[0]['VpcId']
 
-    print("Found default VPC {}".format(vpc_id))
+    print("Found faasm VPC {}".format(vpc_id))
 
     return vpc_id
 
 
-def _get_subnet_ids():
-    vpc_id = _get_default_vpc_id()
+def _get_private_subnet_ids():
+    vpc_id = _get_vpc_id()
 
     ec2 = boto3.client("ec2", region_name=AWS_REGION)
 
@@ -174,24 +271,32 @@ def _get_subnet_ids():
             "Values": [
                 vpc_id
             ]
+        }, {
+            "Name": "tag:Name",
+            "Values": [
+                "faasm-private"
+            ]
         }]
     )
 
     subnet_data = response['Subnets']
     ids = [sn["SubnetId"] for sn in subnet_data]
 
+    print("Found subnet IDs {}".format(ids))
+
     return ids
 
 
-def _do_upload(func_name, memory=128, timeout=15, environment=None, zip_file_path=None, s3_bucket=None, s3_key=None):
+def _do_upload(func_name, memory=128, timeout=15, concurrency=10,
+               environment=None, zip_file_path=None, s3_bucket=None, s3_key=None):
     assert zip_file_path or (s3_bucket and s3_key), "Must give either a zip file or S3 bucket and key"
 
     if zip_file_path:
         assert exists(zip_file_path), "Expected zip file at {}".format(zip_file_path)
 
     # Get subnet IDs and security groups
-    subnet_ids = _get_subnet_ids()
-    security_group_ids = _get_default_security_group_ids()
+    subnet_ids = _get_private_subnet_ids()
+    security_group_ids = _get_security_group_ids()
 
     # Check if function exists
     is_existing = True
@@ -250,8 +355,14 @@ def _do_upload(func_name, memory=128, timeout=15, environment=None, zip_file_pat
 
         client.create_function(**kwargs)
 
+    # Set up concurrency
+    client.put_function_concurrency(
+        FunctionName=func_name,
+        ReservedConcurrentExecutions=concurrency,
+    )
 
-def _build_cmake_project(build_dir, cmake_args, clean=False):
+
+def _build_cmake_project(build_dir, cmake_args, clean=False, target=None):
     # Nuke if required
     if clean and exists(build_dir):
         rmtree(build_dir)
@@ -269,72 +380,8 @@ def _build_cmake_project(build_dir, cmake_args, clean=False):
     cpp_sdk_build_cmd.extend(cmake_args)
 
     call(" ".join(cpp_sdk_build_cmd), cwd=build_dir, shell=True)
-    call("make", cwd=build_dir, shell=True)
 
-#
-# @task
-# def build_aws_sdk(ctx):
-#     """
-#     Builds AWS SDK for use by Lambda functions themselves
-#     """
-#
-#     if not exists(INSTALL_PATH):
-#         mkdir(INSTALL_PATH)
-#
-#     # AWS C++ SDK
-#     _set_up_cmake_project(
-#         "https://github.com/aws/aws-sdk-cpp.git",
-#         "aws-sdk-cpp",
-#         [
-#             "-DCMAKE_BUILD_TYPE=Release",
-#             "-DBUILD_SHARED_LIBS=OFF",
-#             '-DBUILD_ONLY="s3;sqs"',
-#             "-DCUSTOM_MEMORY_MANAGEMENT=OFF",
-#             "-DENABLE_UNITY_BUILD=ON",
-#             "-DENABLE_TESTING=OFF",
-#         ],
-#         SDK_VERSION
-#     )
-
-
-# @task
-# def build_lambda_runtime(ctx):
-#     """
-#     Builds AWS Lambda runtime itself
-#     """
-#
-#     if not exists(INSTALL_PATH):
-#         mkdir(INSTALL_PATH)
-#
-#     # AWS C++ runtime
-#     # NOTE: building in debug mode enables verbose logging by default
-#     # Verbosity can be set on release builds (1 = info, 2 = debug, 3 = all)
-#     _set_up_cmake_project(
-#         "https://github.com/awslabs/aws-lambda-cpp-runtime.git",
-#         "aws-lambda-cpp-runtime",
-#         [
-#             "-DCMAKE_BUILD_TYPE=Release",
-#             "-DLOG_VERBOSITY=1",
-#             "-DBUILD_SHARED_LIBS=OFF",
-#         ],
-#         RUNTIME_VERSION,
-#         clean=True
-#     )
-#
-#
-# def _set_up_cmake_project(repo_url, dir_name, cmake_args, version, clean=False):
-#     checkout_path = join(FAASM_HOME, dir_name)
-#
-#     if not exists(checkout_path):
-#         print("Cloning {}".format(repo_url))
-#
-#         cmd = ["git", "clone", repo_url, dir_name]
-#         call(" ".join(cmd), cwd=FAASM_HOME, shell=True)
-#
-#         # Checkout the required version
-#         call("git checkout {}".format(version), cwd=checkout_path, shell=True)
-#
-#     build_dir = join(checkout_path, "build")
-#     _build_cmake_project(build_dir, cmake_args, clean=clean)
-#
-#     call("make install", cwd=build_dir, shell=True)
+    if target:
+        call("make {}".format(target), cwd=build_dir, shell=True)
+    else:
+        call("make", cwd=build_dir, shell=True)

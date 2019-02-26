@@ -1,9 +1,10 @@
 #ifndef _FAASM_H
 #define _FAASM_H
 
-// For lambda builds we need to go a different route
+// For lambda builds we need to include the lambda function interface
+// which defines its own main method etc.
 #if AWS_LAMBDA == 1
-#include "lambda.h"
+#include <lambda_func/interface.h>
 #else
 
 #include "faasm/memory.h"

@@ -1,8 +1,20 @@
 ---
 
+vpc_name: "faasm-vpc"
+public_subnet_name: "faasm-public"
+private_subnet_name: "faasm-private"
+internet_gateway_name: "faasm-igw"
+nat_gateway_name: "faasm-nat"
+lambda_role_name: "faasm-lambda-role"
+
+vpc_cidr: "10.10.0.0/16"
+public_subnet_cidr: "10.10.10.0/24"
+private_subnet_cidr: "10.10.20.0/24"
+
 s3_bucket_name: "faasm-runtime"
 sqs_queue_name: "faasm-messages"
 elasticache_name: "faasm-redis"
+security_group_name: "faasm-sg"
 
 aws_region: "eu-west-1"
 aws_account_id: "733781933474"

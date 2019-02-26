@@ -40,8 +40,14 @@ from tasks.docker_compose import start_all, stop_all, restart_all
 from tasks.aws import (
     build_lambda_worker,
     build_lambda_codegen,
+    build_lambda_dispatch,
+    build_lambda_func,
+    build_lambda_redis,
     upload_lambda_worker,
     upload_lambda_codegen,
+    upload_lambda_dispatch,
+    upload_lambda_func,
+    upload_lambda_redis,
 )
 
 from tasks.upload import (

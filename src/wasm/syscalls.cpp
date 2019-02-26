@@ -1,6 +1,5 @@
 #include "WasmModule.h"
 
-#include <prof/prof.h>
 #include <util/bytes.h>
 #include <util/logging.h>
 

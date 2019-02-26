@@ -3,7 +3,6 @@
 #include <util/files.h>
 #include <util/func.h>
 #include <util/memory.h>
-#include <prof/prof.h>
 #include <wasm/FunctionLoader.h>
 
 #include <WAVM/WASM/WASM.h>
@@ -114,7 +113,6 @@ namespace wasm {
         }
 
         // Load the function data
-        const util::TimePoint &wasmParseTs = prof::startTimer();
         wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
         const std::vector<uint8_t> &bytes = functionLoader.loadFunctionBytes(msg);
         WASM::loadBinaryModule(bytes.data(), bytes.size(), module);
@@ -122,10 +120,7 @@ namespace wasm {
         // Configure resolver
         resolver->setUp(compartment, module);
 
-        prof::logEndTimer("wasm-parse", wasmParseTs);
-
         // Linking
-        const util::TimePoint &linkTs = prof::startTimer();
         resolver->setUser(msg.user());
 
         Runtime::LinkResult linkResult = linkModule(module, *resolver);
@@ -133,15 +128,11 @@ namespace wasm {
             std::cerr << "Failed to link module:" << std::endl;
             throw std::runtime_error("Failed linking module");
         }
-        prof::logEndTimer("wasm-link", linkTs);
 
         // Load the object file
-        const util::TimePoint &objTs = prof::startTimer();
         std::vector<uint8_t> objectFileBytes = functionLoader.loadFunctionObjectBytes(msg);
-        prof::logEndTimer("obj-load", objTs);
 
         // Instantiate the module, i.e. create memory, tables etc.
-        const util::TimePoint &instantTs = prof::startTimer();
         Runtime::ModuleRef compiledModule = Runtime::loadPrecompiledModule(module, objectFileBytes);
         moduleInstance = instantiateModule(
                 compartment,
@@ -149,7 +140,6 @@ namespace wasm {
                 std::move(linkResult.resolvedImports),
                 util::funcToString(msg)
         );
-        prof::logEndTimer("wavm-mod", instantTs);
 
         // Extract the module's exported function
         std::string entryFunc;
@@ -170,9 +160,7 @@ namespace wasm {
         this->defaultMemory = Runtime::getDefaultMemory(moduleInstance);
 
         // Snapshot initial state
-        const util::TimePoint &memTs = prof::startTimer();
         this->snapshotMemory();
-        prof::logEndTimer("mem-snap", memTs);
 
         // Record that this module is now bound
         _isBound = true;
@@ -213,10 +201,8 @@ namespace wasm {
         }
 
         // Restore initial memory in clean region
-        const util::TimePoint &memRestoreTs = prof::startTimer();
         U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
         std::copy(cleanMemory, cleanMemory + CLEAN_MEMORY_SIZE, baseAddr);
-        prof::logEndTimer("mem-restore", memRestoreTs);
 
         // Reset shared memory variables
         sharedMemKVs.clear();

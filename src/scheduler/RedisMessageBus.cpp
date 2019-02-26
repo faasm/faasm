@@ -23,14 +23,17 @@ namespace scheduler {
     }
 
     message::Message RedisMessageBus::nextMessage(int timeout) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         try {
-            if(conf.serialisation == "json") {
+            logger->debug("Waiting for next message on {}", conf.queueName);
+
+            if (conf.serialisation == "json") {
                 std::string dequeueResult = redis.dequeue(conf.queueName);
                 message::Message msg = util::jsonToMessage(dequeueResult);
 
                 return msg;
-            }
-            else {
+            } else {
                 message::Message msg;
                 std::vector<uint8_t> dequeueResult = redis.dequeueBytes(conf.queueName, timeout);
                 msg.ParseFromArray(dequeueResult.data(), (int) dequeueResult.size());
@@ -47,6 +50,9 @@ namespace scheduler {
         msg.set_success(success);
 
         std::string key = msg.resultkey();
+        if(key.empty()) {
+            throw std::runtime_error("Result key empty. Cannot publish result");
+        }
 
         // Write the successful result to the result queue
         std::vector<uint8_t> inputData = util::messageToBytes(msg);

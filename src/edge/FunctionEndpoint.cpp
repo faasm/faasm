@@ -63,12 +63,6 @@ namespace edge {
     std::string FunctionEndpoint::handleFunction(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Bomb out if call isn't valid
-        if (!util::isValidFunction(msg)) {
-            std::string errorMessage = util::funcToString(msg) + " is not a valid function";
-            return errorMessage;
-        }
-
         // Make the call
         util::addResultKeyToMessage(msg);
         globalBus.enqueueMessage(msg);

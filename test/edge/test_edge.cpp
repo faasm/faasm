@@ -7,10 +7,6 @@
 using namespace Pistache;
 
 namespace tests {
-    static void setUp() {
-        redis::Redis::getQueue().flushAll();
-    }
-
     TEST_CASE("Test invoking a function", "[edge]") {
         cleanSystem();
 
@@ -32,19 +28,5 @@ namespace tests {
         REQUIRE(actual.user() == "demo");
         REQUIRE(actual.function() == "echo");
         REQUIRE(actual.inputdata() == "abc");
-    }
-
-    TEST_CASE("Test invoking a non-existent function", "[worker]") {
-        setUp();
-
-        // Note - must be async to avoid needing a result
-        message::Message call;
-        call.set_user("foobar");
-        call.set_function("baz");
-
-        edge::FunctionEndpoint endpoint;
-        std::string msg = endpoint.handleFunction(call);
-
-        REQUIRE(msg == "foobar/baz is not a valid function");
     }
 }

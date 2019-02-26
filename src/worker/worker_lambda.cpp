@@ -9,6 +9,9 @@
 
 #include <lambda/backend.h>
 
+#include <thread>
+#include <chrono>
+
 using namespace aws::lambda_runtime;
 
 
@@ -21,41 +24,35 @@ int main() {
     util::SystemConfig &config = util::getSystemConfig();
     config.print();
 
+    // Make sure this host gets added to the global worker set (happens in scheduler constructor)
+    scheduler::getScheduler();
+
     // Initialise worker pool
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
     logger->info("Initialising thread pool with {} workers", config.threadsPerWorker);
     worker::WorkerThreadPool pool(config.threadsPerWorker);
-    logger->info("Thread pool initialised");
 
-    // Start thread pool but detach so we can carry on invoking tasks from the main thread
-    bool detach = true;
-    pool.startThreadPool(detach);
+    auto handler_fn = [&logger, &config, &pool](aws::lambda_runtime::invocation_request const &req) {
+        logger->info("Listening for requests for {}ms", config.unboundTimeout);
 
-    // Reference to local scheduler
-    scheduler::Scheduler &sch = scheduler::getScheduler();
+        pool.startThreadPool(true);
 
-    auto handler_fn = [&logger, &sch](aws::lambda_runtime::invocation_request const &req) {
-        // Receive JSON from invocation, decode into a message
-        message::Message msg = util::jsonToMessage(req.payload);
+        // Start global queue listener which will pass messages to the pool
+        pool.startGlobalQueueThread(false, true);
 
-        // Execute (pass to local scheduler)
-        logger->info("Invoking {}", util::funcToString(msg));
-        sch.callFunction(msg);
-
-        // Return a Lambda-friendly response
         return invocation_response::success(
-                "Function queued",
+                "Worker finished",
                 "text/plain"
         );
     };
 
-    logger->info("Listening for invocations");
+    logger->info("Worker entering invocation loop");
     run_handler(handler_fn);
 
     // Clear up
-    logger->info("Runtime function shutting down");
+    // TODO - clear up thread pool properly here?
+    logger->info("Worker shutting down");
     faasm::tearDownLambdaBackend();
 
     return 0;
 }
-

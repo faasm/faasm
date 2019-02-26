@@ -44,6 +44,15 @@ namespace scheduler {
         double getFunctionQueueRatio(const message::Message &msg);
 
         long getFunctionQueueLength(const message::Message &msg);
+
+        void addHostToGlobalSet();
+
+        void removeHostFromGlobalSet();
+
+        void addHostToWarmSet(const std::string &funcStr);
+
+        void removeHostFromWarmSet(const std::string &funcStr);
+
     private:
         std::string hostname;
 
@@ -56,8 +65,6 @@ namespace scheduler {
         std::unordered_map<std::string, InMemoryMessageQueue *> queueMap;
         std::unordered_map<std::string, long> threadCountMap;
         std::shared_mutex mx;
-
-        redis::Redis &redis;
 
         SharingMessageBus &sharingBus;
     };

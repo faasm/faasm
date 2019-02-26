@@ -1,7 +1,5 @@
 #pragma once
 
-#include "CoreRedis.h"
-
 #include <util/config.h>
 
 #include <hiredis/hiredis.h>
@@ -61,9 +59,11 @@ namespace redis {
     };
 
 
-    class Redis : public CoreRedis {
+    class Redis {
 
     public:
+        ~Redis();
+
         /**
         *  ------ Factories ------
         */
@@ -152,6 +152,8 @@ namespace redis {
 
     private:
         explicit Redis(const RedisInstance &instance);
+
+        redisContext *context;
 
         const RedisInstance &instance;
 
