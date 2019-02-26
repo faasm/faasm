@@ -177,7 +177,9 @@ def upload_lambda_dispatch(ctx):
 
 
 def _get_lambda_env():
-    redis_url = _get_elasticache_url()
+    state_redis_url = _get_elasticache_url("faasm-redis-state")
+    queue_redis_url = _get_elasticache_url("faasm-redis-queue")
+
     env = {
         "FUNCTION_STORAGE": "s3",
         "HOST_TYPE": "lambda",
@@ -188,8 +190,8 @@ def _get_lambda_env():
         "BUCKET_NAME": "faasm-runtime",
         "QUEUE_NAME": "faasm-messages",
         "SERIALISATION": "proto",
-        "REDIS_STATE_HOST": redis_url,
-        "REDIS_QUEUE_HOST": redis_url,
+        "REDIS_STATE_HOST": state_redis_url,
+        "REDIS_QUEUE_HOST": queue_redis_url,
         "NO_SCHEDULER": "1",
         "GLOBAL_MESSAGE_BUS": "redis",
         "AWS_LOG_LEVEL": "info",
@@ -198,11 +200,11 @@ def _get_lambda_env():
     return env
 
 
-def _get_elasticache_url():
+def _get_elasticache_url(cluster_name):
     client = boto3.client("elasticache", region_name=AWS_REGION)
 
     response = client.describe_cache_clusters(
-        CacheClusterId="faasm-redis",
+        CacheClusterId=cluster_name,
         ShowCacheNodeInfo=True,
     )
 

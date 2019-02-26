@@ -117,18 +117,6 @@
 - debug:
     var: ec_subnet
 
-- name: "Create Elasticache instance"
-  elasticache:
-    name: "{{ elasticache_name }}"
-    region: "{{ aws_region }}"
-    engine: redis
-    state: present
-    node_type: cache.t2.medium
-    num_nodes: 1
-    cache_subnet_group: "{{ elasticache_name }}-subnet"
-    security_group_ids:
-      - "{{ security_group.group_id }}"
-
 - name: "Create Lambda IAM role"
   iam_role:
     name: "{{ lambda_role_name }}"
@@ -141,4 +129,21 @@
       - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole   # SQS
       - arn:aws:iam::aws:policy/AWSLambdaExecute                              # S3
       - arn:aws:iam::aws:policy/service-role/AWSLambdaRole                    # Invoke other lambdas
+
+# Note, we're not waiting here but elasticache instances take ages to set up
+- name: "Create Elasticache instances"
+  elasticache:
+    name: "{{ elasticache_name }}-{{ item }}"
+    region: "{{ aws_region }}"
+    engine: redis
+    state: present
+    node_type: cache.t2.medium
+    num_nodes: 1
+    cache_subnet_group: "{{ elasticache_name }}-subnet"
+    security_group_ids:
+      - "{{ security_group.group_id }}"
+    wait: no
+  with_items:
+    - "state"
+    - "queue"
 
