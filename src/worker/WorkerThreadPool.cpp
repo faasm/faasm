@@ -44,7 +44,6 @@ namespace worker {
 
             while (true) {
                 try {
-                    logger->debug("Waiting for next invocation on {}", conf.queueName);
                     message::Message msg = bus.nextMessage(conf.unboundTimeout);
 
                     logger->debug("Got invocation for {} on {}", util::funcToString(msg), conf.queueName);

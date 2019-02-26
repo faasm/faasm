@@ -12,15 +12,37 @@ namespace scheduler {
     Scheduler::Scheduler() :
             hostname(util::getHostName()),
             conf(util::getSystemConfig()),
-            redis(redis::Redis::getQueue()),
             sharingBus(SharingMessageBus::getInstance()) {
 
         bindQueue = new InMemoryMessageQueue();
 
+        this->addHostToGlobalSet();
+    }
+
+    void Scheduler::addHostToGlobalSet() {
         // Add to global set of workers
+        redis::Redis &redis = redis::Redis::getQueue();
         redis.sadd(GLOBAL_WORKER_SET, hostname);
     }
 
+    void Scheduler::removeHostFromGlobalSet() {
+        redis::Redis &redis = redis::Redis::getQueue();
+        redis.srem(GLOBAL_WORKER_SET, hostname);
+    }
+
+    void Scheduler::addHostToWarmSet(const std::string &funcStr) {
+        const std::string &warmSetName = getFunctionWarmSetNameFromStr(funcStr);
+        redis::Redis &redis = redis::Redis::getQueue();
+        redis.sadd(warmSetName, hostname);
+
+    }
+
+    void Scheduler::removeHostFromWarmSet(const std::string &funcStr) {
+        const std::string &warmSetName = getFunctionWarmSetNameFromStr(funcStr);
+        redis::Redis &redis = redis::Redis::getQueue();
+        redis.srem(warmSetName, hostname);
+    }
+    
     void Scheduler::clear() {
         bindQueue->reset();
 
@@ -32,7 +54,7 @@ namespace scheduler {
         threadCountMap.clear();
 
         // Make sure this host is in the global set
-        redis.sadd(GLOBAL_WORKER_SET, hostname);
+        this->addHostToGlobalSet();
     }
 
     Scheduler::~Scheduler() {
@@ -41,8 +63,7 @@ namespace scheduler {
         // Clean up the queues for each function
         for (const auto &iter: queueMap) {
             // Remove this host from the warm set
-            const std::string &warmSetName = getFunctionWarmSetNameFromStr(iter.first);
-            redis.srem(warmSetName, hostname);
+            this->removeHostFromWarmSet(iter.first);
 
             // Remove the queue itself
             delete iter.second;
@@ -51,7 +72,7 @@ namespace scheduler {
         queueMap.clear();
 
         // Remove host from the global set
-        redis.srem(GLOBAL_WORKER_SET, hostname);
+        this->removeHostFromGlobalSet();
     }
 
     void Scheduler::enqueueMessage(const message::Message &msg) {
@@ -125,9 +146,9 @@ namespace scheduler {
             util::FullLock lock(mx);
             threadCountMap[funcStr]--;
 
+            // If this is the last thread listening to this queue, remove the host entirely
             if (threadCountMap[funcStr] == 0) {
-                std::string workerSet = this->getFunctionWarmSetName(msg);
-                redis.srem(workerSet, hostname);
+                this->removeHostFromWarmSet(funcStr);
             }
         }
     }
@@ -146,7 +167,8 @@ namespace scheduler {
     }
 
     Scheduler &getScheduler() {
-        static thread_local Scheduler scheduler;
+        // This is *global* and must be shared across threads
+        static Scheduler scheduler;
         return scheduler;
     }
 
@@ -201,8 +223,7 @@ namespace scheduler {
 
                 // If this is the first thread on this host, add it to the warm set for this function
                 if (nThreads == 0) {
-                    std::string workerSet = this->getFunctionWarmSetName(msg);
-                    redis.sadd(workerSet, hostname);
+                    this->addHostToWarmSet(funcStr);
                 }
 
                 // Increment thread count here
@@ -252,6 +273,7 @@ namespace scheduler {
         std::string warmSet = this->getFunctionWarmSetName(msg);
 
         // Get options excluding this host
+        redis::Redis &redis = redis::Redis::getQueue();
         std::unordered_set<std::string> warmOptions = redis.smembers(warmSet);
         std::unordered_set<std::string> allOptions = redis.smembers(GLOBAL_WORKER_SET);
         warmOptions.erase(hostname);

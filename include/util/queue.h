@@ -21,10 +21,10 @@ namespace util {
 
             while (mq.empty()) {
                 if(timeoutMs > 0) {
-                    cv.wait(lock);
+                    cv.wait_for(lock, std::chrono::milliseconds(timeoutMs));
                 }
                 else {
-                    cv.wait_for(lock, std::chrono::milliseconds(timeoutMs));
+                    cv.wait(lock);
                 }
             }
 
