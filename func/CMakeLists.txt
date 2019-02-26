@@ -57,6 +57,8 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     function(faasm_func exec_name file_name)
         add_executable(${exec_name} ${file_name})
 
+        set_target_properties(${exec_name} PROPERTIES OUTPUT_NAME ${exec_name}.wasm)
+
         target_link_libraries(${exec_name} ${FAASM_LIB})
     endfunction(faasm_func)
 

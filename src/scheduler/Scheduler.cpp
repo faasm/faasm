@@ -146,7 +146,7 @@ namespace scheduler {
     }
 
     Scheduler &getScheduler() {
-        static Scheduler scheduler;
+        static thread_local Scheduler scheduler;
         return scheduler;
     }
 

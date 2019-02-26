@@ -4,7 +4,7 @@
 
 namespace scheduler {
     SharingMessageBus &SharingMessageBus::getInstance() {
-        static SharingMessageBus mb;
+        static thread_local SharingMessageBus mb;
 
         return mb;
     }
