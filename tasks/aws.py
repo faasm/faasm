@@ -7,7 +7,7 @@ import boto3
 from botocore.exceptions import ClientError
 from invoke import task
 
-from tasks.env import FAASM_HOME, PROJ_ROOT, RUNTIME_S3_BUCKET, AWS_REGION, AWS_ACCOUNT_ID
+from tasks.env import FAASM_HOME, PROJ_ROOT, RUNTIME_S3_BUCKET, AWS_REGION, AWS_ACCOUNT_ID, STATE_S3_BUCKET
 from tasks.upload_util import upload_file_to_s3
 
 SDK_VERSION = "1.7.41"
@@ -42,6 +42,11 @@ def build_lambda_func(ctx, user, func):
 @task
 def build_lambda_redis(ctx):
     _build_system_lambda("redis")
+
+
+@task
+def build_lambda_state(ctx):
+    _build_system_lambda("state")
 
 
 @task
@@ -114,6 +119,25 @@ def upload_lambda_redis(ctx):
         s3_bucket=RUNTIME_S3_BUCKET,
         s3_key=s3_key,
         environment=_get_lambda_env()
+    )
+
+
+@task
+def upload_lambda_state(ctx):
+    s3_key = _get_s3_key("state")
+
+    # Need to specify the state bucket in the environment so it can load data
+    lambda_env = _get_lambda_env()
+    lambda_env["BUCKET_NAME"] = STATE_S3_BUCKET
+
+    # Memory must be bigger than the biggest state it needs to load and must have time to process
+    _do_upload(
+        "faasm-state",
+        timeout=300,
+        memory=2048,
+        s3_bucket=RUNTIME_S3_BUCKET,
+        s3_key=s3_key,
+        environment=lambda_env
     )
 
 

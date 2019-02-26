@@ -43,11 +43,13 @@ from tasks.aws import (
     build_lambda_dispatch,
     build_lambda_func,
     build_lambda_redis,
+    build_lambda_state,
     upload_lambda_worker,
     upload_lambda_codegen,
     upload_lambda_dispatch,
     upload_lambda_func,
     upload_lambda_redis,
+    upload_lambda_state,
 )
 
 from tasks.upload import (
@@ -62,7 +64,9 @@ from tasks.aws_lambda import (
     invoke_faasm_lambda,
 )
 
-from tasks.data import (
+from tasks.sgd import (
+    reuters_codegen,
     reuters_upload,
     reuters_upload_s3,
+    reuters_prepare_aws,
 )
