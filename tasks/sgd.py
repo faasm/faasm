@@ -1,10 +1,9 @@
-from json import dumps
 from os.path import join
 
-import boto3
 from invoke import task
 
-from tasks.env import HOME_DIR, STATE_S3_BUCKET, AWS_REGION
+from tasks import invoke_faasm_lambda, invoke_lambda
+from tasks.env import HOME_DIR, STATE_S3_BUCKET
 from tasks.upload_util import curl_file, upload_file_to_s3
 
 _SGD_FUNCS = [
@@ -44,76 +43,33 @@ def reuters_upload_s3(ctx):
 
 @task
 def begin_aws_svm(ctx):
-    client = boto3.client("lambda", region_name=AWS_REGION)
-
-    response = client.invoke(
-        FunctionName="faasm-dispatch",
-        InvocationType="RequestResponse",
-        Payload=dumps({
-            "user": "sgd",
-            "function": "svm_begin",
-        }),
-    )
-
-    print(response)
-
-    print("\nResponse message: {}".format(response["Payload"].read()))
+    invoke_faasm_lambda(ctx, "sgd", "svm_begin")
 
 
 @task
 def clear_aws_queue(ctx):
-    client = boto3.client("lambda", region_name=AWS_REGION)
-
-    response = client.invoke(
-        FunctionName="faasm-redis",
-        InvocationType="RequestResponse",
-        Payload=dumps({
-            "target": "queue",
-        }),
-    )
-
-    print(response)
-
-    print("\nResponse message: {}".format(response["Payload"].read()))
+    invoke_lambda(ctx, "faasm-redis", payload={
+        "target": "queue",
+    })
 
 
 @task
 def reuters_prepare_aws(ctx):
-    client = boto3.client("lambda", region_name=AWS_REGION)
-
     for state_key in _ALL_REUTERS_STATE_KEYS:
         # Note, hack here where we pass state key as "function"
-        payload = {
+        invoke_lambda(ctx, "faasm-state", payload={
             "user": "sgd",
             "function": state_key,
-        }
-
-        response = client.invoke(
-            FunctionName="faasm-state",
-            InvocationType="RequestResponse",
-            Payload=dumps(payload),
-        )
-
-        print(response)
+        })
 
 
 @task
 def reuters_codegen(ctx):
-    client = boto3.client("lambda", region_name=AWS_REGION)
-
     for func_name in _SGD_FUNCS:
-        payload = {
+        invoke_lambda(ctx, "faasm-codegen", payload={
             "user": "sgd",
             "function": func_name,
-        }
-
-        response = client.invoke(
-            FunctionName="faasm-codegen",
-            InvocationType="RequestResponse",
-            Payload=dumps(payload),
-        )
-
-        print(response)
+        })
 
 
 def _do_reuters_upload(host=None, s3_bucket=None):

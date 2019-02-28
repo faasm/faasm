@@ -23,3 +23,14 @@ For AWS deployments the data needs to be put in S3, which is a one-off task and 
 
 To load this into Redis, we need to repeatedly invoke the relevant lambda function. This can be done with
 `reuters_prepare_aws` (provided the functions are already there).
+
+### Native run
+
+To run the SGD code natively, you need to upload to the local redis instance, i.e.
+
+```
+redis-cli flushall
+inv reuters-upload localhost
+```
+
+Then you can run the `reuters_svm` executable in this project.

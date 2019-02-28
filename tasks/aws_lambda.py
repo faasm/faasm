@@ -21,26 +21,31 @@ def list_lambdas(ctx):
 
 
 @task
-def invoke_lambda(ctx, lambda_name, async=False):
+def invoke_lambda(ctx, lambda_name, async=False, payload=None):
     client = boto3.client("lambda", region_name=AWS_REGION)
 
     response = client.invoke(
         FunctionName=lambda_name,
         InvocationType="Event" if async else "RequestResponse",
+        Payload=dumps(payload) if payload else None,
     )
 
     print(response)
+    print("\nResponse payload: {}".format(response["Payload"].read()))
 
 
 @task
-def invoke_faasm_lambda(ctx, user, func):
+def invoke_faasm_lambda(ctx, user, func, input_data="", extra_payload=None):
     client = boto3.client("lambda", region_name=AWS_REGION)
 
     payload = {
         "user": user,
         "function": func,
-        "input_data": "foobar123",
+        "input_data": input_data,
     }
+
+    if extra_payload:
+        payload.update(extra_payload)
 
     response = client.invoke(
         FunctionName="faasm-dispatch",
@@ -49,6 +54,5 @@ def invoke_faasm_lambda(ctx, user, func):
     )
 
     print(response)
-
     response_payload = response["Payload"]
     print("\nResponse payload: {}".format(response_payload.read()))

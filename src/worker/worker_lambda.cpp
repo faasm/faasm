@@ -45,9 +45,10 @@ int main() {
 
             // Try to get a global lock on execution. If we can get it, it implies nothing
             // is currently executing
-            isFinished = sch.getExecutingCount() == 0;
+            int executingCount = sch.getExecutingCount();
+            isFinished = executingCount == 0;
             if(!isFinished) {
-                logger->info("No new messages for {}s but execution not finished", config.unboundTimeout);
+                logger->info("No new messages but still {} executing workers. Looping.", executingCount);
             }
         }
 
