@@ -53,6 +53,12 @@ namespace scheduler {
 
         void removeHostFromWarmSet(const std::string &funcStr);
 
+        int getExecutingCount();
+
+        void incrementExecutingCount();
+
+        void decrementExecutingCount();
+
     private:
         std::string hostname;
 
@@ -65,6 +71,9 @@ namespace scheduler {
         std::unordered_map<std::string, InMemoryMessageQueue *> queueMap;
         std::unordered_map<std::string, long> threadCountMap;
         std::shared_mutex mx;
+
+        std::shared_mutex execCountMutex;
+        int execCount = 0;
 
         SharingMessageBus &sharingBus;
     };

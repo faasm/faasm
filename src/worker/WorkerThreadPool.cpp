@@ -51,7 +51,7 @@ namespace worker {
                 }
                 catch (scheduler::GlobalMessageBusNoMessageException &ex) {
                     if(dropOut) {
-                        logger->info("No message from global bus in {}ms, dropping out", conf.unboundTimeout);
+                        logger->info("No message from global bus in {}s, dropping out", conf.unboundTimeout);
                         return;
                     }
                     else {

@@ -8,6 +8,8 @@
 
 #include <lambda/backend.h>
 
+#include "rapidjson/document.h"
+
 using namespace aws::lambda_runtime;
 
 
@@ -21,16 +23,30 @@ int main() {
     config.print();
 
     auto handler_fn = [&logger](aws::lambda_runtime::invocation_request const &req) {
-        logger->info("Flushing Redis");
+        rapidjson::Document d;
+        d.Parse(req.payload.c_str());
+
+        std::string target = "all";
+        if (d.HasMember("target")) {
+            target = d["target"].GetString();
+        }
+
+        logger->info("Flushing Redis target {}", target);
 
         redis::Redis &queue = redis::Redis::getQueue();
         redis::Redis &state = redis::Redis::getState();
 
-        queue.flushAll();
-        state.flushAll();
+        if (target == "all") {
+            queue.flushAll();
+            state.flushAll();
+        } else if (target == "queue") {
+            queue.flushAll();
+        } else {
+            logger->error("Unrecognised target: {}", target);
+        }
 
         return invocation_response::success(
-                "Redis flushed",
+                "Redis operation done",
                 "text/plain"
         );
     };

@@ -52,7 +52,7 @@ namespace tests {
         std::string hostname = util::getHostName();
         std::string otherHostA = "Host A";
         SharingMessageBus &sharingBus = SharingMessageBus::getInstance();
-        
+
         message::Message call;
         call.set_user("user a");
         call.set_function("function a");
@@ -280,5 +280,29 @@ namespace tests {
                 REQUIRE(sch.getBestHostForFunction(call) == hostname);
             }
         }
+    }
+
+    TEST_CASE("Test scheduler execution count", "[scheduler]") {
+        cleanSystem();
+
+        Scheduler &sch = scheduler::getScheduler();
+
+        REQUIRE(sch.getExecutingCount() == 0);
+
+        sch.incrementExecutingCount();
+        sch.incrementExecutingCount();
+
+        REQUIRE(sch.getExecutingCount() == 2);
+
+        sch.decrementExecutingCount();
+
+        REQUIRE(sch.getExecutingCount() == 1);
+
+        // Try to decrement below zero
+        sch.decrementExecutingCount();
+        sch.decrementExecutingCount();
+        sch.decrementExecutingCount();
+
+        REQUIRE(sch.getExecutingCount() == 0);
     }
 }

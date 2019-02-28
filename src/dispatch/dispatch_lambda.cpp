@@ -27,7 +27,7 @@ int main() {
     scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
     redis::Redis &redis = redis::Redis::getQueue();
     awswrapper::LambdaWrapper &lambda = awswrapper::LambdaWrapper::getThreadLocal();
-    
+
     auto handler_fn = [&logger, &globalBus, &redis, &lambda](aws::lambda_runtime::invocation_request const &req) {
         // Get the function
         message::Message msg = util::jsonToMessage(req.payload);
@@ -62,7 +62,6 @@ int main() {
             resultData = result.outputdata();
         }
 
-        // Return a Lambda-friendly response
         return invocation_response::success(
                 resultData,
                 "text/plain"

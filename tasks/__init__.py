@@ -38,18 +38,10 @@ from tasks.docker import (
 from tasks.docker_compose import start_all, stop_all, restart_all
 
 from tasks.aws import (
-    build_lambda_worker,
-    build_lambda_codegen,
-    build_lambda_dispatch,
+    deploy_faasm_lambda,
+    delete_faasm_lambda,
     build_lambda_func,
-    build_lambda_redis,
-    build_lambda_state,
-    upload_lambda_worker,
-    upload_lambda_codegen,
-    upload_lambda_dispatch,
     upload_lambda_func,
-    upload_lambda_redis,
-    upload_lambda_state,
 )
 
 from tasks.upload import (
@@ -65,6 +57,8 @@ from tasks.aws_lambda import (
 )
 
 from tasks.sgd import (
+    begin_aws_svm,
+    clear_aws_queue,
     reuters_codegen,
     reuters_upload,
     reuters_upload_s3,

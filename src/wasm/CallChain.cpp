@@ -23,27 +23,18 @@ namespace wasm {
 
         // Dispatch any chained calls
         for (auto chainedCall : calls) {
-            // Check if call is valid
             const std::string chainedStr = util::funcToString(chainedCall);
-            if (!util::isValidFunction(chainedCall)) {
-                std::string errorMessage = "Invalid chained function call: " + chainedStr;
-
-                return errorMessage;
-            }
-
             const std::string origStr = util::funcToString(originalCall);
 
-            // TODO: Avoid this approach, add some concept of delay in the scheduler?
-            // Wait a bit before chaining the same function
+            // TODO: Avoid this approach to recursive calls, add some option of delay in the scheduler?
+            // Wait a bit before making a recursive call
             if (chainedCall.function() == originalCall.function()) {
                 logger->debug("Delaying chained call {} -> {}", origStr, chainedStr);
                 uint microseconds = (uint) 500 * 1000; // 500ms
                 usleep(microseconds);
             }
 
-            // Schedule functions locally (will be shared if this host is busy)
             logger->debug("Chaining {} -> {}", origStr, chainedStr);
-
             util::addResultKeyToMessage(chainedCall);
             sch.callFunction(chainedCall);
         }

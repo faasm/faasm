@@ -43,6 +43,41 @@ def reuters_upload_s3(ctx):
 
 
 @task
+def begin_aws_svm(ctx):
+    client = boto3.client("lambda", region_name=AWS_REGION)
+
+    response = client.invoke(
+        FunctionName="faasm-dispatch",
+        InvocationType="RequestResponse",
+        Payload=dumps({
+            "user": "sgd",
+            "function": "svm_begin",
+        }),
+    )
+
+    print(response)
+
+    print("\nResponse message: {}".format(response["Payload"].read()))
+
+
+@task
+def clear_aws_queue(ctx):
+    client = boto3.client("lambda", region_name=AWS_REGION)
+
+    response = client.invoke(
+        FunctionName="faasm-redis",
+        InvocationType="RequestResponse",
+        Payload=dumps({
+            "target": "queue",
+        }),
+    )
+
+    print(response)
+
+    print("\nResponse message: {}".format(response["Payload"].read()))
+
+
+@task
 def reuters_prepare_aws(ctx):
     client = boto3.client("lambda", region_name=AWS_REGION)
 
