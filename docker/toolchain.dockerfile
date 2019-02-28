@@ -85,13 +85,13 @@ ENV AS /toolchain/bin/llvm-as
 ENV RANLINB /toolchain/bin/llvm-ranlib
 
 # Install eigen
-RUN inv lib eigen
+RUN inv compile-eigen
 
 # Build libcurl
 # RUN inv lib curl
 
 # Install libfaasm
-RUN inv lib faasm
+RUN inv compile-libfaasm
 
 # Remove code
 RUN rm -rf /faasm
