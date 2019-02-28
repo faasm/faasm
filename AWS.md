@@ -1,6 +1,8 @@
 # Faasm on AWS
 
-## IAM user
+## Set-up
+
+### IAM user
 
 Before running anything you'll need to create a new IAM user with the following roles:
 
@@ -19,7 +21,7 @@ aws_access_key_id = <public_key>
 aws_secret_access_key = <private_key>
 ```
 
-## Component set-up
+### Component set-up
 
 There's an Ansible task that will set up all the relevant bits. You need to modify `region` and `aws_account_id`
 in `ansible/roles/aws/defaults/main.yml` to match your account, then run:
@@ -35,47 +37,27 @@ You can then use the corresponding task to tear down the components (Elasticache
 ansible-playbook aws_teardown.yml
 ```
 
-## Lambda functions
+## Functions
 
-To set up the requried Lambda functions, you can run the following task which will build, upload and configure
-the relevant AWS Lambda functions needed to run Faasm:
+### Faasm Lambda functions
+
+To set up the requried Lambda functions for running WebAssembly, you can run the following task which will
+build, upload and configure the relevant AWS Lambda functions needed to run WebAssembly with Faasm:
 
 ```
 inv deploy-faasm-lambda
 ```
 
-## Pywren
+### Uploading native functions
 
-### Private key
+Functions in the `func` directory can be compiled to machine code and deployed as native lambda functions
+with the `deploy-native-lambda-func` task, e.g. `inv deploy-native-lambda-func demo echo`.
 
-To use EC2 you also need to create a private SSH key in AWS called `faasm_key` and store it at `~/faasm_key.pem`
-(with `0600` perms).
+### Uploading wasm functions
 
-### Components
+To upload functions as wasm, you first need to run the functions wasm build locally (`inv funcs` from inside the
+toolchain container).
 
-The above playbook will set up the relevant Pywren config file to match the components it creates.
-This is found at `~/.pywren_config`.
-
-You clone the Pywren code from [this fork](https://github.com/Shillaker/pywren) and set up as an
-editable module:
-
-```
-python3 -m venv venv
-source venv/bin/activate
-pip install -e ./
-```
-
-You won't need to run the full set-up, only the following commands:
-
-```
-pywren create_role
-pywren deploy_lambda
-```
-
-### Stand-alone set-up
-
-To experiment with Pywren standalone mode, you can set up hosts with:
-
-```
-pywren standalone launch_instances 1
-```
+Once this is done, you can deploy a given function to lambda with `inv deploy-wasm-lambda-func`, e.g.
+`inv deploy-wasm-lambda-func demo echo`. This will upload the function to S3, then use another lambda function to
+run the code generation.

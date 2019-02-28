@@ -4,20 +4,14 @@ from os.path import join
 import boto3
 from invoke import task
 
-from tasks.env import AWS_REGION, RUNTIME_S3_BUCKET, PROJ_ROOT
-from tasks.upload_util import curl_file, upload_file_to_s3
+from tasks.env import AWS_REGION, RUNTIME_S3_BUCKET, WASM_FUNC_BUILD_DIR
+from tasks.upload_util import curl_file
 
 DIRS_TO_INCLUDE = ["demo", "errors", "sgd"]
 
-WASM_FUNC_BUILD_DIR = join(PROJ_ROOT, "func", "wasm_func_build")
-
 
 @task
-def upload_funcs(context, s3=False, host="localhost"):
-    s3_client = None
-    if s3:
-        s3_client = boto3.resource('s3', region_name=AWS_REGION)
-
+def upload_funcs(ctx, host="localhost"):
     # Walk the function directory tree
     for root, dirs, files in os.walk(WASM_FUNC_BUILD_DIR):
         # Strip original dir from root
@@ -37,15 +31,7 @@ def upload_funcs(context, s3=False, host="localhost"):
             if f.endswith(".wasm"):
                 func = f.replace(".wasm", "")
                 func_file = join(root, f)
-                if s3:
-                    print("Uploading {}/{} to S3".format(user, func))
+                print("Uploading {}/{} to host {}".format(user, func, host))
 
-                    s3_key = "wasm/{}/{}/function.wasm".format(user, func)
-
-                    s3_client.meta.client.upload_file(func_file, RUNTIME_S3_BUCKET, s3_key)
-
-                else:
-                    print("Uploading {}/{} to host {}".format(user, func, host))
-
-                    url = "http://{}:8002/f/{}/{}".format(host, user, func)
-                    curl_file(url, func_file)
+                url = "http://{}:8002/f/{}/{}".format(host, user, func)
+                curl_file(url, func_file)

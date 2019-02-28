@@ -2,7 +2,7 @@ from os.path import join
 
 from invoke import task
 
-from tasks import invoke_faasm_lambda, invoke_lambda
+from tasks.aws import invoke_faasm_lambda, invoke_lambda, deploy_wasm_lambda_func_multiple, deploy_native_lambda_func
 from tasks.env import HOME_DIR, STATE_S3_BUCKET
 from tasks.upload_util import curl_file, upload_file_to_s3
 
@@ -31,15 +31,9 @@ _SPARSE_MATRIX_PARTS = [
 ]
 
 
-@task
-def reuters_upload(ctx, host):
-    _do_reuters_upload(host=host)
-
-
-@task
-def reuters_upload_s3(ctx):
-    _do_reuters_upload(s3_bucket=STATE_S3_BUCKET)
-
+# -------------------------------------------------
+# SGD
+# -------------------------------------------------
 
 @task
 def begin_aws_svm(ctx):
@@ -54,21 +48,37 @@ def clear_aws_queue(ctx):
 
 
 @task
+def deploy_sgd_wasm_lambda(ctx):
+    deploy_wasm_lambda_func_multiple(ctx, "sgd", _SGD_FUNCS)
+
+
+@task
+def deploy_sgd_native_lambda(ctx):
+    for func_name in _SGD_FUNCS:
+        deploy_native_lambda_func(ctx, "sgd", func_name)
+
+
+# -------------------------------------------------
+# REUTERS DATA
+# -------------------------------------------------
+
+@task
+def reuters_upload(ctx, host):
+    _do_reuters_upload(host=host)
+
+
+@task
+def reuters_upload_s3(ctx):
+    _do_reuters_upload(s3_bucket=STATE_S3_BUCKET)
+
+
+@task
 def reuters_prepare_aws(ctx):
     for state_key in _ALL_REUTERS_STATE_KEYS:
         # Note, hack here where we pass state key as "function"
         invoke_lambda(ctx, "faasm-state", payload={
             "user": "sgd",
             "function": state_key,
-        })
-
-
-@task
-def reuters_codegen(ctx):
-    for func_name in _SGD_FUNCS:
-        invoke_lambda(ctx, "faasm-codegen", payload={
-            "user": "sgd",
-            "function": func_name,
         })
 
 

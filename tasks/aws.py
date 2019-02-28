@@ -1,3 +1,4 @@
+from json import dumps
 from os import mkdir
 from os.path import join, exists
 from shutil import rmtree
@@ -8,7 +9,8 @@ from botocore.exceptions import ClientError
 from invoke import task
 
 from tasks.config import get_faasm_config
-from tasks.env import FAASM_HOME, PROJ_ROOT, RUNTIME_S3_BUCKET, AWS_REGION, AWS_ACCOUNT_ID, STATE_S3_BUCKET
+from tasks.env import FAASM_HOME, PROJ_ROOT, RUNTIME_S3_BUCKET, AWS_REGION, AWS_ACCOUNT_ID, STATE_S3_BUCKET, \
+    WASM_FUNC_BUILD_DIR
 from tasks.upload_util import upload_file_to_s3
 
 SDK_VERSION = "1.7.41"
@@ -29,6 +31,7 @@ faasm_lambda_funcs = {
         "extra_env": {
             "UNBOUND_TIMEOUT": "60",
             "THREADS_PER_WORKER": "10",
+            "FULL_ASYNC": "1",
         }
     },
     "dispatch": {
@@ -64,6 +67,89 @@ faasm_lambda_funcs = {
 }
 
 
+def _get_lambda_env():
+    conf = get_faasm_config()
+    state_redis_url = conf["AWS"]["redis_state"]
+    queue_redis_url = conf["AWS"]["redis_queue"]
+
+    env = {
+        "FUNCTION_STORAGE": "s3",
+        "HOST_TYPE": "lambda",
+        "LOG_LEVEL": "debug",
+        "CGROUP_MODE": "off",
+        "NETNS_MODE": "off",
+        "BUCKET_NAME": "faasm-runtime",
+        "QUEUE_NAME": "faasm-messages",
+        "SERIALISATION": "proto",
+        "REDIS_STATE_HOST": state_redis_url,
+        "REDIS_QUEUE_HOST": queue_redis_url,
+        "NO_SCHEDULER": "1",
+        "GLOBAL_MESSAGE_BUS": "redis",
+        "AWS_LOG_LEVEL": "info",
+    }
+
+    return env
+
+
+# --------------------------------
+# INVOKE/ LIST
+# --------------------------------
+
+@task
+def list_lambdas(ctx):
+    client = boto3.client("lambda", region_name=AWS_REGION)
+
+    result = client.list_functions()
+
+    for func_data in result["Functions"]:
+        print("\n--- {} --- ".format(func_data["FunctionName"]))
+        print("Timeout:  {}".format(func_data["Timeout"]))
+        print("Memory:   {}MB".format(func_data["MemorySize"]))
+        print("Modified: {}".format(func_data["LastModified"]))
+
+
+@task
+def invoke_lambda(ctx, lambda_name, async=False, payload=None):
+    client = boto3.client("lambda", region_name=AWS_REGION)
+
+    response = client.invoke(
+        FunctionName=lambda_name,
+        InvocationType="Event" if async else "RequestResponse",
+        Payload=dumps(payload) if payload else None,
+    )
+
+    print(response)
+    print("\nResponse payload: {}".format(response["Payload"].read()))
+
+
+@task
+def invoke_faasm_lambda(ctx, user, func, input_data="", extra_payload=None):
+    client = boto3.client("lambda", region_name=AWS_REGION)
+
+    payload = {
+        "user": user,
+        "function": func,
+        "input_data": input_data,
+    }
+
+    if extra_payload:
+        payload.update(extra_payload)
+
+    response = client.invoke(
+        FunctionName="faasm-dispatch",
+        InvocationType="RequestResponse",
+        Payload=dumps(payload)
+    )
+
+    print(response)
+    response_payload = response["Payload"]
+    print("\nResponse payload: {}".format(response_payload.read()))
+
+
+# --------------------------------
+# SYSTEM LAMBDAS
+# --------------------------------
+
 @task
 def deploy_faasm_lambda(ctx, func=None):
     if func:
@@ -94,7 +180,7 @@ def _do_system_lambda_deploy(func_name, lambda_conf):
     lambda_env = _get_lambda_env()
     lambda_env.update(lambda_conf["extra_env"])
 
-    _do_upload(
+    _do_deploy(
         lambda_conf["name"],
         s3_bucket=RUNTIME_S3_BUCKET,
         s3_key=s3_key,
@@ -131,23 +217,40 @@ def _build_system_lambda(module_name):
     _upload_lambda_to_s3(s3_key, zip_file_path)
 
 
-def _create_lambda_zip(module_name, build_dir):
-    cmake_zip_target = "aws-lambda-package-{}-lambda".format(module_name)
-    call("make {}".format(cmake_zip_target), cwd=build_dir, shell=True)
-
-
-def _get_s3_key(module_name):
-    s3_key = "{}-lambda.zip".format(module_name)
-    return s3_key
-
-
-def _upload_lambda_to_s3(s3_key, zip_file_path):
-    print("Uploading lambda {} to S3".format(s3_key))
-    upload_file_to_s3(zip_file_path, RUNTIME_S3_BUCKET, s3_key)
-
+# -------------------------------------------------
+# WASM LAMBDA FUNCTIONS
+# -------------------------------------------------
 
 @task
-def build_lambda_func(ctx, user, func):
+def deploy_wasm_lambda_func(ctx, user, func):
+    deploy_wasm_lambda_func_multiple(ctx, user, [func])
+
+
+def deploy_wasm_lambda_func_multiple(ctx, user, funcs):
+    s3_client = boto3.resource('s3', region_name=AWS_REGION)
+
+    for func in funcs:
+        # Assume the build has already been run locally
+        wasm_file = join(WASM_FUNC_BUILD_DIR, user, "{}.wasm".format(func))
+
+        print("Uploading {}/{} to S3".format(user, func))
+
+        s3_key = "wasm/{}/{}/function.wasm".format(user, func)
+        s3_client.meta.client.upload_file(wasm_file, RUNTIME_S3_BUCKET, s3_key)
+
+        print("Invoking codegen lambda function for {}/{}".format(user, func))
+        invoke_lambda(ctx, "faasm-codegen", payload={
+            "user": user,
+            "function": func,
+        })
+
+
+# -------------------------------------------------
+# NATIVE LAMBDA FUNCTIONS
+# -------------------------------------------------
+
+@task
+def deploy_native_lambda_func(ctx, user, func):
     # Run the build
     build_dir = _build_lambda("func", target="{}-lambda".format(func))
 
@@ -166,12 +269,7 @@ def build_lambda_func(ctx, user, func):
     s3_key = _get_s3_key("{}-{}".format(user, func))
     _upload_lambda_to_s3(s3_key, zip_file_path)
 
-
-@task
-def upload_lambda_func(ctx, user, func):
-    s3_key = _get_s3_key("{}-{}".format(user, func))
-
-    _do_upload(
+    _do_deploy(
         "{}-{}".format(user, func),
         s3_bucket=RUNTIME_S3_BUCKET,
         s3_key=s3_key,
@@ -192,31 +290,7 @@ def _build_lambda(module_name, target=None):
     return build_dir
 
 
-def _get_lambda_env():
-    conf = get_faasm_config()
-    state_redis_url = conf["AWS"]["redis_state"]
-    queue_redis_url = conf["AWS"]["redis_queue"]
-
-    env = {
-        "FUNCTION_STORAGE": "s3",
-        "HOST_TYPE": "lambda",
-        "LOG_LEVEL": "debug",
-        "CGROUP_MODE": "off",
-        "NETNS_MODE": "off",
-        "BUCKET_NAME": "faasm-runtime",
-        "QUEUE_NAME": "faasm-messages",
-        "SERIALISATION": "proto",
-        "REDIS_STATE_HOST": state_redis_url,
-        "REDIS_QUEUE_HOST": queue_redis_url,
-        "NO_SCHEDULER": "1",
-        "GLOBAL_MESSAGE_BUS": "redis",
-        "AWS_LOG_LEVEL": "info",
-    }
-
-    return env
-
-
-def _do_upload(func_name, memory=128, timeout=15, concurrency=10,
+def _do_deploy(func_name, memory=128, timeout=15, concurrency=10,
                environment=None, zip_file_path=None, s3_bucket=None, s3_key=None):
     assert zip_file_path or (s3_bucket and s3_key), "Must give either a zip file or S3 bucket and key"
 
@@ -290,6 +364,26 @@ def _do_upload(func_name, memory=128, timeout=15, concurrency=10,
         FunctionName=func_name,
         ReservedConcurrentExecutions=concurrency,
     )
+
+
+# -------------------------------------------
+# MISC UTILITIES
+# -------------------------------------------
+
+
+def _create_lambda_zip(module_name, build_dir):
+    cmake_zip_target = "aws-lambda-package-{}-lambda".format(module_name)
+    call("make {}".format(cmake_zip_target), cwd=build_dir, shell=True)
+
+
+def _get_s3_key(module_name):
+    s3_key = "{}-lambda.zip".format(module_name)
+    return s3_key
+
+
+def _upload_lambda_to_s3(s3_key, zip_file_path):
+    print("Uploading lambda {} to S3".format(s3_key))
+    upload_file_to_s3(zip_file_path, RUNTIME_S3_BUCKET, s3_key)
 
 
 def _build_cmake_project(build_dir, cmake_args, clean=False, target=None):
