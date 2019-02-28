@@ -22,7 +22,7 @@ int main() {
     setEmulatorUser("sgd");
 
     FaasmMemory memory;
-    int nBatches = 1;
+    int nBatches = 4;
     int epochs = 30;
     SgdParams p = setUpReutersParams(&memory, nBatches, epochs);
 
