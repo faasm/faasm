@@ -51,13 +51,22 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # WASM build
     # ----------------------
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Oz -fvisibility=hidden")
-#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --target=wasm32-unknown-unknown-wasm")
-#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --sysroot=/toolchain/sysroot")
 
     function(faasm_func exec_name file_name)
         add_executable(${exec_name} ${file_name})
 
         set_target_properties(${exec_name} PROPERTIES OUTPUT_NAME ${exec_name}.wasm)
+
+        target_link_libraries(${exec_name} ${FAASM_LIB})
+    endfunction(faasm_func)
+
+elseif (FAASM_BUILD_TYPE STREQUAL "emscripten")
+    # ----------------------
+    # Emscripten build
+    # ----------------------
+
+    function(faasm_func exec_name file_name)
+        add_executable(${exec_name} ${file_name})
 
         target_link_libraries(${exec_name} ${FAASM_LIB})
     endfunction(faasm_func)
@@ -72,17 +81,6 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
         # Link with Faasm library
         target_link_libraries(${func_name}-lambda lambda-func)
 
-#        target_compile_options(
-#                ${func_name}-lambda PRIVATE
-#                "-Wall"
-#                "-Wextra"
-#                "-Wconversion"
-#                "-Wshadow"
-#                "-Wno-sign-conversion"
-#        )
-
-        #target_compile_features(${PROJECT_NAME} PRIVATE "cxx_std_11")
-
         # Add custom target to build Lambda zip file
         aws_lambda_package_target(${func_name}-lambda)
 
@@ -96,7 +94,7 @@ else ()
     function(faasm_func exec_name file_name)
         # Using emulator (faasm-like)
         add_executable(${exec_name} ${file_name})
-        target_link_libraries(${exec_name} faasm emulator)
+        target_link_libraries(${exec_name} ${FAASM_LIB} emulator)
     endfunction(faasm_func)
 
 endif ()
