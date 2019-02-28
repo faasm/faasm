@@ -1,8 +1,10 @@
 # Faasm on AWS
 
-## IAM user
+## Set-up
 
-You need to create a new IAM user called `faasm_admin` with the following roles:
+### IAM user
+
+Before running anything you'll need to create a new IAM user with the following roles:
 
 - AmazonEC2FullAccess
 - AmazonS3FullAccess
@@ -11,26 +13,22 @@ You need to create a new IAM user called `faasm_admin` with the following roles:
 - IAMFullAccess
 - AmazonElastiCacheFullAccess
 
-Their credentials need to be added to your `~/.aws/credentials` file under `faasm`, i.e.
+Their credentials then need to be added to your `~/.aws/credentials` file under the `default` profile, i.e.
 
 ```
-[faasm]
-aws_access_key_id = <public>
-aws_secret_access_key = <private>
+[default]
+aws_access_key_id = <public_key>
+aws_secret_access_key = <private_key>
 ```
 
-## Private key
+### Component set-up
 
-You need to create a private SSH key in AWS called `faasm_key` and store it at `~/faasm_key.pem` (with 0600 perms).
-
-## Components
-
-You can use the Ansible task in this repo to set up the required components (you'll need to change the account
-ID in `aws.yml`):
+There's an Ansible task that will set up all the relevant bits. You need to modify `region` and `aws_account_id`
+in `ansible/roles/aws/defaults/main.yml` to match your account, then run:
 
 ```
 cd ansible
-ansible-playbook aws.yml
+ansible-playbook aws_infra.yml
 ```
 
 You can then use the corresponding task to tear down the components (Elasticache can be expensive):
@@ -39,31 +37,27 @@ You can then use the corresponding task to tear down the components (Elasticache
 ansible-playbook aws_teardown.yml
 ```
 
-## Pywren
+## Functions
 
-The above playbook will set up the relevant Pywren config file to match the components it creates.
-This is found at `~/.pywren_config`.
+### Faasm Lambda functions
 
-You clone the Pywren code from [this fork](https://github.com/Shillaker/pywren) and set up as an
-editable module:
-
-```
-python3 -m venv venv
-source venv/bin/activate
-pip install -e ./
-```
-
-You won't need to run the full set-up, only the following commands:
+To set up the requried Lambda functions for running WebAssembly, you can run the following task which will
+build, upload and configure the relevant AWS Lambda functions needed to run WebAssembly with Faasm:
 
 ```
-pywren create_role
-pywren deploy_lambda
+inv deploy-faasm-lambda
 ```
 
-### Stand-alone set-up
+### Uploading native functions
 
-To experiment with Pywren standalone mode, you can set up hosts with:
+Functions in the `func` directory can be compiled to machine code and deployed as native lambda functions
+with the `deploy-native-lambda-func` task, e.g. `inv deploy-native-lambda-func demo echo`.
 
-```
-pywren standalone launch_instances 1
-```
+### Uploading wasm functions
+
+To upload functions as wasm, you first need to run the functions wasm build locally (`inv funcs` from inside the
+toolchain container).
+
+Once this is done, you can deploy a given function to lambda with `inv deploy-wasm-lambda-func`, e.g.
+`inv deploy-wasm-lambda-func demo echo`. This will upload the function to S3, then use another lambda function to
+run the code generation.

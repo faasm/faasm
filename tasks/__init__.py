@@ -38,16 +38,13 @@ from tasks.docker import (
 from tasks.docker_compose import start_all, stop_all, restart_all
 
 from tasks.aws import (
-    build_lambda_worker,
-    build_lambda_codegen,
-    build_lambda_dispatch,
-    build_lambda_func,
-    build_lambda_redis,
-    upload_lambda_worker,
-    upload_lambda_codegen,
-    upload_lambda_dispatch,
-    upload_lambda_func,
-    upload_lambda_redis,
+    list_lambdas,
+    invoke_lambda,
+    invoke_faasm_lambda,
+    deploy_faasm_lambda,
+    delete_faasm_lambda,
+    deploy_wasm_lambda_func,
+    deploy_native_lambda_func,
 )
 
 from tasks.upload import (
@@ -55,3 +52,13 @@ from tasks.upload import (
 )
 
 from tasks.wasm2wast import wast
+
+from tasks.sgd import (
+    begin_aws_svm,
+    clear_aws_queue,
+    deploy_sgd_wasm_lambda,
+    deploy_sgd_native_lambda,
+    reuters_upload,
+    reuters_upload_s3,
+    reuters_prepare_aws,
+)

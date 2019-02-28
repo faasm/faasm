@@ -9,9 +9,12 @@ FAASM_HOME = join(HOME_DIR, "faasm")
 
 ANSIBLE_DIR = join(PROJ_ROOT, "ansible")
 
+WASM_FUNC_BUILD_DIR = join(PROJ_ROOT, "func", "wasm_func_build")
+
 WASM_DIR = join(PROJ_ROOT, "wasm")
 
 RUNTIME_S3_BUCKET = "faasm-runtime"
+STATE_S3_BUCKET = "faasm-state"
 
 # TODO - avoid hard-coding
 AWS_ACCOUNT_ID = "733781933474"

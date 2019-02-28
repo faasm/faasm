@@ -12,4 +12,9 @@ add_library(state STATIC
         ${HEADERS}
         )
 
-target_link_libraries(state proto redis Logging)
+target_link_libraries(state proto redis)
+
+# State Lambda function
+add_executable(state-lambda state_lambda.cpp)
+target_link_libraries(state-lambda redis lambda)
+aws_lambda_package_target(state-lambda)

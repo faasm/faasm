@@ -34,7 +34,6 @@ namespace scheduler {
         const std::string &warmSetName = getFunctionWarmSetNameFromStr(funcStr);
         redis::Redis &redis = redis::Redis::getQueue();
         redis.sadd(warmSetName, hostname);
-
     }
 
     void Scheduler::removeHostFromWarmSet(const std::string &funcStr) {
@@ -42,7 +41,25 @@ namespace scheduler {
         redis::Redis &redis = redis::Redis::getQueue();
         redis.srem(warmSetName, hostname);
     }
-    
+
+    int Scheduler::getExecutingCount() {
+        util::SharedLock lock(execCountMutex);
+        return execCount;
+    }
+
+    void Scheduler::incrementExecutingCount() {
+        util::FullLock lock(execCountMutex);
+        execCount++;
+    }
+
+    void Scheduler::decrementExecutingCount() {
+        util::FullLock lock(execCountMutex);
+
+        if(execCount > 0) {
+            execCount--;
+        }
+    }
+
     void Scheduler::clear() {
         bindQueue->reset();
 

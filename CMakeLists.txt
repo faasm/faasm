@@ -69,6 +69,16 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-redis")
     add_subdirectory(src/redis)
     add_subdirectory(src/util)
 
+elseif (FAASM_BUILD_TYPE STREQUAL "lambda-state")
+    message(STATUS "Running lambda state build")
+
+    add_subdirectory(src/aws)
+    add_subdirectory(src/lambda)
+    add_subdirectory(src/proto)
+    add_subdirectory(src/redis)
+    add_subdirectory(src/state)
+    add_subdirectory(src/util)
+
 elseif (FAASM_BUILD_TYPE STREQUAL "lambda-worker")
     # ------------------
     # Lambda worker build

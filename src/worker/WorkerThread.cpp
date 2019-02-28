@@ -173,6 +173,9 @@ namespace worker {
 
         logger->info("WorkerThread executing {}", util::funcToString(call));
 
+        // Increment the execution count
+        scheduler.incrementExecutingCount();
+
         // Create and execute the module
         wasm::CallChain callChain(call);
         try {
@@ -195,6 +198,9 @@ namespace worker {
 
         const std::string empty;
         this->finishCall(call, empty);
+
+        // Decrement execution count
+        scheduler.decrementExecutingCount();
 
         return empty;
     }

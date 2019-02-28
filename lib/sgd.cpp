@@ -119,12 +119,13 @@ namespace faasm {
                 }
             }
 
-            // Do a synchronous read if we're sufficiently far through this set of examples
-            // and not running in full async mode. This will pull in the latest updates
+            // Do a write (of the dirty segments) if we're sufficiently far through this set of examples
+            // and not running in full async mode. This will both push local writes, and pull in the latest
+            // updates
             exampleCount++;
             bool isSyncNeeded = (exampleCount > 0) && ((exampleCount % sgdParams.syncInterval) == 0);
             if (!sgdParams.fullAsync && isSyncNeeded) {
-                memory->readState(WEIGHTS_KEY, nWeightBytes, false);
+                memory->pushStatePartial(WEIGHTS_KEY);
             }
         }
 

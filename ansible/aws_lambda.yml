@@ -5,7 +5,7 @@
   tasks:
     - name: "Clone repo"
       git:
-        repo: "git@github.com:Shillaker/aws-lambda-cpp.git"
+        repo: "https://github.com/Shillaker/aws-lambda-cpp.git"
         dest: "/usr/local/code/aws-lambda-cpp"
         version: "multi-thread"
 
