@@ -14,7 +14,7 @@ namespace wasm {
 
     // Note that the max memory per module is 8GiB, i.e. > 100k pages
     // Page size in wasm is 64kiB so 50 pages ~ 3MiB of memory
-    const int INITIAL_MEMORY_PAGES = 100;
+    const int INITIAL_MEMORY_PAGES = 1000;
     const size_t INITIAL_MEMORY_SIZE = INITIAL_MEMORY_PAGES * IR::numBytesPerPage;
 
     const int EMSCRIPTEN_STACKTOP = 64 * IR::numBytesPerPage;
