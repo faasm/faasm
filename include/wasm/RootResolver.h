@@ -18,7 +18,7 @@ namespace wasm {
     const size_t INITIAL_MEMORY_SIZE = INITIAL_MEMORY_PAGES * IR::numBytesPerPage;
 
     // Note, we don't allow emscripten to grow memory
-    const int INITIAL_EMSCRIPTEN_PAGES = 500;
+    const int INITIAL_EMSCRIPTEN_PAGES = 15000;
     const int MAX_EMSCRIPTEN_PAGES = INITIAL_EMSCRIPTEN_PAGES;
     const int EMSCRIPTEN_STACKTOP = 64 * IR::numBytesPerPage;
     const int EMSCRIPTEN_STACK_MAX = 128 * IR::numBytesPerPage;
