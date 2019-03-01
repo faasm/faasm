@@ -4,18 +4,29 @@ from os.path import join
 import boto3
 from invoke import task
 
-from tasks.env import AWS_REGION, RUNTIME_S3_BUCKET, WASM_FUNC_BUILD_DIR
+from tasks.env import AWS_REGION, RUNTIME_S3_BUCKET, WASM_FUNC_BUILD_DIR, EMSCRIPTEN_FUNC_BUILD_DIR
 from tasks.upload_util import curl_file
 
 DIRS_TO_INCLUDE = ["demo", "errors", "sgd"]
 
 
 @task
-def upload_funcs(ctx, host="localhost"):
+def upload_func(ctx, user, func, host="localhost", emscripten=False):
+    func_dir = EMSCRIPTEN_FUNC_BUILD_DIR if emscripten else WASM_FUNC_BUILD_DIR
+
+    func_file = join(func_dir, user, "{}.wasm".format(func))
+    url = "http://{}:8002/f/{}/{}".format(host, user, func)
+    curl_file(url, func_file)
+
+
+@task
+def upload_funcs(ctx, host="localhost", emscripten=False):
+    func_dir = EMSCRIPTEN_FUNC_BUILD_DIR if emscripten else WASM_FUNC_BUILD_DIR
+
     # Walk the function directory tree
-    for root, dirs, files in os.walk(WASM_FUNC_BUILD_DIR):
+    for root, dirs, files in os.walk(func_dir):
         # Strip original dir from root
-        rel_path = root.replace(WASM_FUNC_BUILD_DIR, "")
+        rel_path = root.replace(func_dir, "")
         rel_path = rel_path.strip("/")
 
         path_parts = rel_path.split("/")

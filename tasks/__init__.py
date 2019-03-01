@@ -48,7 +48,8 @@ from tasks.aws import (
 )
 
 from tasks.upload import (
-    upload_funcs
+    upload_funcs,
+    upload_func,
 )
 
 from tasks.wasm2wast import wast

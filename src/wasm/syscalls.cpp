@@ -2004,7 +2004,7 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledAbort);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "abort", void, emscripten_abort, I32 code) {
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "abort", void, emscripten_abort) {
         throwException(Runtime::ExceptionTypes::calledAbort);
     }
 
@@ -2061,6 +2061,14 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_viiiiii", void, emscripten_nullFunc_viiiiii, I32 code) {
+        throwException(Runtime::ExceptionTypes::calledAbort);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_dd", void, emscripten_nullFunc_dd, I32 code) {
+        throwException(Runtime::ExceptionTypes::calledAbort);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_ddd", void, emscripten_nullFunc_ddd, I32 code) {
         throwException(Runtime::ExceptionTypes::calledAbort);
     }
 
