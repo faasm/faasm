@@ -32,7 +32,7 @@ if (${EMSCRIPTEN})
 
     # Linker changes to dodge some emscripten issues
     # TODO - is there a way to avoid ignoring undefined symbols by respecting the libfaasm.imports file?
-    set(CMAKE_EXE_LINKER_FLAGS  "-s ERROR_ON_UNDEFINED_SYMBOLS=0 -s EMULATE_FUNCTION_POINTER_CASTS=1")
+    set(CMAKE_EXE_LINKER_FLAGS  "-s ERROR_ON_UNDEFINED_SYMBOLS=0 -s EMULATE_FUNCTION_POINTER_CASTS=1 --memory-init-file 0 -s EXPORTED_FUNCTIONS='[\"_main\",\"_PyRun_SimpleString\"]'")
 
     # Avoid compiling javascript
     set(CMAKE_EXECUTABLE_SUFFIX ".wasm")
@@ -53,6 +53,8 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Oz -fvisibility=hidden")
 
     function(faasm_func exec_name file_name)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+
         add_executable(${exec_name} ${file_name})
 
         set_target_properties(${exec_name} PROPERTIES OUTPUT_NAME ${exec_name}.wasm)

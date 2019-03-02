@@ -129,6 +129,81 @@ namespace wasm {
         return std::pair<std::string, std::string>(call->user(), key);
     }
 
+    // ---------------------------
+    // System-related structs
+    // ---------------------------
+
+    /** Struct to fake 32-bit time in wasm modules */
+    struct wasm_timespec {
+        I32 tv_sec;
+        I32 tv_nsec;
+    };
+
+    struct wasm_timeval {
+        I32 tv_sec;
+        I32 tv_usec;
+    };
+
+    struct wasm_iovec {
+        U32 iov_base;
+        U32 iov_len;
+    };
+
+    /** Socket-related struct (see https://beej.us/guide/bgnet/html/multi/sockaddr_inman.html) */
+    struct wasm_sockaddr {
+        U16 sa_family;
+        U8 sa_data[14];
+    };
+
+    /** Translates a wasm sockaddr into a native sockaddr */
+    sockaddr getSockAddr(I32 addrPtr) {
+        auto addr = &Runtime::memoryRef<wasm_sockaddr>(getExecutingModule()->defaultMemory, (Uptr) addrPtr);
+
+        sockaddr sa = {.sa_family = addr->sa_family};
+
+        std::copy(addr->sa_data, addr->sa_data + 14, sa.sa_data);
+        return sa;
+    }
+
+    // Taken from arch/wasm32/bits/stat.h in the musl port
+    struct wasm_stat {
+        U32 st_dev;
+        I32 __st_dev_padding;
+        I32 __st_ino_truncated;
+        U32 st_mode;
+        U32 st_nlink;
+        U32 st_uid;
+        U32 st_gid;
+        U32 st_rdev;
+        I32 __st_rdev_padding;
+        I32 st_size;
+        I32 st_blksize;
+        I32 st_blocks;
+        struct wasm_timespec st_atim;
+        struct wasm_timespec st_mtim;
+        struct wasm_timespec st_ctim;
+        U32 st_ino;
+    };
+
+    /** Translates a native stat to a wasm stat */
+    void writeNativeStatToWasmStat(struct stat64 *nativeStatPtr, I32 wasmStatPtr) {
+        auto wasmHostPtr = &Runtime::memoryRef<wasm_stat>(getExecutingModule()->defaultMemory, (Uptr) wasmStatPtr);
+
+        // Support *some* details from the host but not all
+        wasmHostPtr->st_dev = nativeStatPtr->st_dev;
+        wasmHostPtr->st_mode = nativeStatPtr->st_mode;
+        wasmHostPtr->st_nlink = nativeStatPtr->st_nlink;
+
+        wasmHostPtr->st_uid = nativeStatPtr->st_uid;
+        wasmHostPtr->st_gid = nativeStatPtr->st_gid;
+
+        wasmHostPtr->st_rdev = nativeStatPtr->st_rdev;
+        wasmHostPtr->st_size = nativeStatPtr->st_size;
+
+        wasmHostPtr->st_blksize = nativeStatPtr->st_blksize;
+        wasmHostPtr->st_blocks = nativeStatPtr->st_blocks;
+    }
+
 
     // ------------------------
     // FAASM-specific
@@ -706,11 +781,6 @@ namespace wasm {
         return 0;
     }
 
-    struct wasm_iovec {
-        U32 iov_base;
-        U32 iov_len;
-    };
-
     /**
      * Writing is ok provided the function owns the file descriptor
      */
@@ -789,6 +859,10 @@ namespace wasm {
     I32 s__syscall_fstat64(I32 fd, I32 statBufPtr) {
         util::getLogger()->debug("S - fstat64 - {} {}", fd, statBufPtr);
 
+        struct stat64 nativeStat{};
+        fstat64(fd, &nativeStat);
+        writeNativeStatToWasmStat(&nativeStat, statBufPtr);
+
         return 0;
     }
 
@@ -811,6 +885,10 @@ namespace wasm {
         char *path = &Runtime::memoryRef<char>(memoryPtr, (Uptr) pathPtr);
 
         util::getLogger()->debug("S - stat64 - {} {}", path, statBufPtr);
+
+        struct stat64 nativeStat{};
+        stat64(path, &nativeStat);
+        writeNativeStatToWasmStat(&nativeStat, statBufPtr);
 
         return 0;
     }
@@ -994,22 +1072,6 @@ namespace wasm {
         sc_recvmmsg,
         sc_sendmmsg,
     };
-
-    /** Socket-related structs (see https://beej.us/guide/bgnet/html/multi/sockaddr_inman.html) */
-    struct wasm_sockaddr {
-        U16 sa_family;
-        U8 sa_data[14];
-    };
-
-    /** Translates a wasm sockaddr into a native sockaddr */
-    sockaddr getSockAddr(I32 addrPtr) {
-        auto addr = &Runtime::memoryRef<wasm_sockaddr>(getExecutingModule()->defaultMemory, (Uptr) addrPtr);
-
-        sockaddr sa = {.sa_family = addr->sa_family};
-
-        std::copy(addr->sa_data, addr->sa_data + 14, sa.sa_data);
-        return sa;
-    }
 
     /** Writes changes to a native sockaddr back to a wasm sockaddr. This is important in several
      * networking syscalls that receive responses and modify arguments in place */
@@ -1337,17 +1399,6 @@ namespace wasm {
     // Timing - supported
     // ------------------------
 
-    /** Struct to fake 32-bit time in wasm modules */
-    struct wasm_timespec {
-        I32 tv_sec;
-        I32 tv_nsec;
-    };
-
-    struct wasm_timeval {
-        I32 tv_sec;
-        I32 tv_usec;
-    };
-
     //TODO - make timing functions more secure
     I32 s__syscall_clock_gettime(I32 clockId, I32 resultAddress) {
         util::getLogger()->debug("S - clock_gettime - {} {}", clockId, resultAddress);
@@ -1525,6 +1576,18 @@ namespace wasm {
             value = "0";
         } else if (strcmp(varName, "PYTHONVERBOSE") == 0) {
             value = "on";
+        } else if (strcmp(varName, "LC_CTYPE") == 0) {
+            value = "en_GB.UTF-8";
+//        } else if (strcmp(varName, "LC_ALL") == 0) {
+//            value = "en_GB.UTF-8";
+        } else if (strcmp(varName, "LANG") == 0) {
+            value = "en_GB.UTF-8";
+        } else if (strcmp(varName, "LANGUAGE") == 0) {
+            value = "en_GB:en";
+        } else if (strcmp(varName, "PYTHONHOME") == 0) {
+            value = "/foo/home/";
+        } else if (strcmp(varName, "PYTHONPATH") == 0) {
+            value = "/foo/path/";
         }
 
         U32 result = dynamicAllocString(memoryPtr, value, 1);
