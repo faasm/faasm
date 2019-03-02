@@ -17,11 +17,14 @@
           - cgroup-tools
           - cgroup-bin
           - iproute2
-          - iptable
+          - iptables
           - valgrind
           - kcachegrind
           - redis-server
           - redis-tools
-          - python-dev python-pip python3-dev python3-pip
+          - python-dev
+          - python-pip 
+          - python3-dev
+          - python3-pip
         state: present
 
