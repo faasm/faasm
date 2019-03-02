@@ -2,6 +2,14 @@
 
 ## Set-up
 
+### AWS CLI
+
+Assuming you've already installed `awscli` (can be done with `pip3`), you need to run:
+
+```
+aws configure
+```
+
 ### IAM user
 
 Before running anything you'll need to create a new IAM user with the following roles:
@@ -61,3 +69,15 @@ toolchain container).
 Once this is done, you can deploy a given function to lambda with `inv deploy-wasm-lambda-func`, e.g.
 `inv deploy-wasm-lambda-func demo echo`. This will upload the function to S3, then use another lambda function to
 run the code generation.
+
+### SGD
+
+There are a couple of shortcuts for setting up the SGD experiments:
+
+```
+# Deploy wasm functions
+inv deploy-sgd-wasm-lambda
+
+# Deploy native functions
+inv deploy-sgd-native-lambda
+```
