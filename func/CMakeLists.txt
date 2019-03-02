@@ -105,5 +105,6 @@ add_subdirectory(sgd)
 
 # Exclude python stuff in normal wasm build
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
+else()
     add_subdirectory(python)
 endif()
