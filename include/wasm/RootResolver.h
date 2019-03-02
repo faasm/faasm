@@ -17,6 +17,9 @@ namespace wasm {
     const int INITIAL_MEMORY_PAGES = 100;
     const size_t INITIAL_MEMORY_SIZE = INITIAL_MEMORY_PAGES * IR::numBytesPerPage;
 
+    // Note, we don't allow emscripten to grow memory
+    const int INITIAL_EMSCRIPTEN_PAGES = 15000;
+    const int MAX_EMSCRIPTEN_PAGES = INITIAL_EMSCRIPTEN_PAGES;
     const int EMSCRIPTEN_STACKTOP = 64 * IR::numBytesPerPage;
     const int EMSCRIPTEN_STACK_MAX = 128 * IR::numBytesPerPage;
 
@@ -89,7 +92,8 @@ namespace wasm {
 
         void setUpEmscripten(Runtime::Compartment *compartment, IR::Module &module) {
             // Min memory pages
-            module.memories.imports[0].type.size.min = (U64) 100;
+            module.memories.imports[0].type.size.min = (U64) INITIAL_EMSCRIPTEN_PAGES;
+            module.memories.imports[0].type.size.max = (U64) MAX_EMSCRIPTEN_PAGES;
 
             IR::TableType tableType(IR::ReferenceType::funcref, false, IR::SizeConstraints{0, 0});
             tableType = module.tables.imports[0].type;

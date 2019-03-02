@@ -41,6 +41,14 @@ namespace wasm {
         return pageCount;
     }
 
+    U32 dynamicAllocString(Runtime::Memory *memory, const char* str, U32 len) {
+        U32 wasmAddr = dynamicAlloc(memory, len);
+        U8 *hostAddr = Runtime::memoryArrayPtr<U8>(memory, wasmAddr, len);
+        memcpy(hostAddr, str, len);
+
+        return wasmAddr;
+    }
+    
     U32 dynamicAlloc(Runtime::Memory *memory, U32 numBytes) {
         MutableGlobals &mutableGlobals = Runtime::memoryRef<MutableGlobals>(memory, MutableGlobals::address);
 

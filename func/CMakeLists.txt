@@ -104,4 +104,4 @@ add_subdirectory(demo)
 add_subdirectory(sgd)
 
 # Ignore python functions while not working
-#add_subdirectory(python)
+add_subdirectory(python)
