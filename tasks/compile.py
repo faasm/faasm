@@ -88,7 +88,7 @@ ENV_STR = " ".join(["{}={}".format(e[0], e[1]) for e in _ENV_TUPLES])
 NATIVE_ENV_DICT = {e[0]: e[1] for e in _NATIVE_ENV_TUPLES}
 NATIVE_ENV_STR = " ".join(["{}={}".format(e[0], e[1]) for e in _NATIVE_ENV_TUPLES])
 
-EMSCRIPTEN_VERSION = "1.38.27"
+EMSCRIPTEN_VERSION = "1.38.28"
 EMSCRIPTEN_DIR = "/usr/local/code/emsdk/emscripten/{}/".format(EMSCRIPTEN_VERSION)
 EMSCRIPTEN_CMAKE_TOOLCHAIN = join(EMSCRIPTEN_DIR, "cmake", "Modules", "Platform", "Emscripten.cmake")
 INITIAL_PATH = os.environ["PATH"]

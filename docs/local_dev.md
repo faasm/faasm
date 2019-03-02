@@ -26,6 +26,14 @@ git submodule init
 git submodule update
 ```
 
+## Clang
+
+You need to install clang using:
+
+```
+ansible-playbook --ask-become-pass clang.yml
+```
+
 ## Libraries from source
 
 Faasm has various library dependencies that need to be installed from source:
@@ -37,7 +45,6 @@ ansible-playbook --ask-become-pass \
    aws_sdk.yml \
    catch.yml \
    eigen.yml \
-   emscripten.yml \
    local.yml \
    rapidjson.yml \
    spdlog.yml
@@ -48,7 +55,7 @@ ansible-playbook --ask-become-pass \
 Faasm depends on protobuf which can be a bit of a hassle to install. First of all you can try the task:
 
 ```
-inv setup-protobuf
+ansible-playbook protobuf.yml --ask-become-pass
 ```
 
 If there are any issue you need to remove every trace of protobuf on your system before reinstalling.
@@ -61,13 +68,12 @@ You can look in the following folders and remove any reference to `libprotobuf` 
 
 Avoid trying to do this with `apt` as it can accidentally delete a whole load of other stuff.
 
-## Clang
+### Emscripten
 
-So far Faasm has only been built with clang (although there's no reason not to use something else).
-There's a task for installing clang at:
+If you want to compile things with Emscripten, you can install it using:
 
 ```
-inv setup-clang
+ansible-playbook --ask-become-pass emscripten.yml
 ```
 
 ### wasm Toolchain

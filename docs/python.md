@@ -12,7 +12,6 @@ We build Python using [this project](https://github.com/Shillaker/cpython-emscri
 inv build-python-emscripten
 ```
 
-
 ## Compiling functions
 
 

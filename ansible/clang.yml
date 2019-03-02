@@ -18,11 +18,10 @@
     - name: "Install clang and other deps"
       become: yes
       apt:
-        name: "{{ item }}"
+        name:
+          - clang-6.0
+          - build-essential
         update_cache: yes
-      with_items:
-        - "clang-6.0"
-        - "build-essential"
 
     - name: "Symlinks"
       become: yes

@@ -20,7 +20,7 @@ set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/WAVM/Lib)
 set(FAASM_WAVM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/WAVM/Include)
 
 # Emscripten
-set(EMSCRIPTEN_VERSION 1.38.27)
+set(EMSCRIPTEN_VERSION 1.38.28)
 
 # Stops WAVM compilation complaining
 add_definitions(-DDLL_EXPORT=)
