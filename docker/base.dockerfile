@@ -17,8 +17,7 @@ RUN apt-get install -y ansible \
     libcgroup-dev \
     libcurl4-openssl-dev \
     cgroup-tools \
-    cgroup-bin \
-    iproute2
+    cgroup-bin
 
 WORKDIR /tmp
 
