@@ -26,5 +26,6 @@
           - python-pip 
           - python3-dev
           - python3-pip
+          - libpython
         state: present
 

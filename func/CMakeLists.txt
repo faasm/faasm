@@ -103,5 +103,7 @@ add_subdirectory(errors)
 add_subdirectory(demo)
 add_subdirectory(sgd)
 
-# Ignore python functions while not working
-add_subdirectory(python)
+# Exclude python stuff in normal wasm build
+if (FAASM_BUILD_TYPE STREQUAL "wasm")
+    add_subdirectory(python)
+endif()
