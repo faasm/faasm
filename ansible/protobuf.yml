@@ -3,7 +3,7 @@
 - hosts: localhost
   gather_facts: no
   tasks:
-    - name: "System deps"
+    - name: "System deps for protobuf"
       become: yes
       apt:
         name:
@@ -14,7 +14,7 @@
         - make
         - unzip
 
-    - name: "Download source"
+    - name: "Download protobuf source"
       shell: "{{ item }}"
       args:
         chdir: "/tmp/"

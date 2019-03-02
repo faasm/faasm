@@ -3,7 +3,7 @@
 - hosts: localhost
   gather_facts: no
   tasks:
-    - name: "Download the release"
+    - name: "Download the spdlog release"
       shell: "{{ item }}"
       args:
         chdir: "/tmp"

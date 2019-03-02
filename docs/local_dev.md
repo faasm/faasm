@@ -17,25 +17,6 @@ ansible-playbook local.yml --ask-become-pass
 sudo pip3 install invoke
 ```
 
-### wasm Toolchain
-
-A Dockerised wasm toolchain is already configured. To enter a container with these tools you can run the following:
-
-```
-# Start the container
-inv tools
-
-# Check clang works
-/toolchain/bin/clang -v
-```
-
-You can run the normal `inv` tasks from inside this container, e.g. to build libfaasm you can run
-
-```
-# From inside the tools
-inv compile-libfaasm
-```
-
 ## Submodules
 
 Faasm relies on WAVM as a git submodule, which will need to be updated when you first clone this project:
@@ -45,9 +26,9 @@ git submodule init
 git submodule update
 ```
 
-## Libraries
+## Libraries from source
 
-Faasm has various library dependencies that can be installed using:
+Faasm has various library dependencies that need to be installed from source:
 
 ```
 cd ansible
@@ -89,12 +70,23 @@ There's a task for installing clang at:
 inv setup-clang
 ```
 
-## Redis
+### wasm Toolchain
 
-For running faasm locally you'll need to install Redis:
+A Dockerised wasm toolchain is already configured. To enter a container with these tools you can run the following:
 
 ```
-sudo apt install redis-server redis-tools
+# Start the container
+inv tools
+
+# Check clang works
+/toolchain/bin/clang -v
+```
+
+You can run the normal `inv` tasks from inside this container, e.g. to build libfaasm you can run
+
+```
+# From inside the tools
+inv compile-libfaasm
 ```
 
 ## Building with CMake
@@ -110,30 +102,26 @@ cmake --build . --target all
 
 ## Networking
 
-### Set-up
-
-To set up network namespaces properly we need to ensure consistent interface naming (`eth0` for main public interface).
-If your public interface is already called `eth0` then you can skip this step.
-
-If your public interface isn't called eth0, you can:
+If you want to switch on network isolation locally, you need to set up network namespaces. To do this we need to
+ensure consistent interface naming (`eth0` for main public interface). If your public interface is already called
+`eth0` then you can skip this step.
 
 - Edit `/etc/default/grub` and add `net.ifnames=0 biosdevname=0` to `GRUB_CMDLINE_LINUX_DEFAULT`
 - Run `sudo update-grub`
+- Restart the machine
 
-We then need to configure some network interfaces and namespaces:
+This script will then set up the namespaces
 
 ```
-sudo ./bin/netns
+sudo ./bin/netns.sh
 ```
-
-You
 
 ## Cgroups
 
-To run locally you will need to have the relevant cgroups in place. To do this, you can run:
+To use cgroup isolation, you'll need to run:
 
 ```
-inv setup-cgroup
+sudo ./bin/cgroup.sh
 ```
 
 ## Running Locally
@@ -179,9 +167,3 @@ The tests can be found in the `test` directory and executed by running:
 ```
 ./build/bin/tests
 ```
-
-## Syscalls
-
-To get syscalls working properly, we need to use a [custom musl port](https://github.com/Shillaker/musl) which is a fork of the main experimental wasm musl port.
-
-The mapping of syscalls is done in [this file](https://github.com/Shillaker/musl/blob/wasm-prototype-1/arch/wasm32/syscall_arch.h).

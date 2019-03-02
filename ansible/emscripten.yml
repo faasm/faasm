@@ -3,7 +3,7 @@
 - hosts: localhost
   gather_facts: no
   tasks:
-    - name: "Clone"
+    - name: "Clone emsdk repo"
       git:
         repo: "https://github.com/emscripten-core/emsdk.git"
         dest: "/usr/local/code/lib/emsdk"
