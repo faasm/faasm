@@ -491,9 +491,10 @@ namespace wasm {
             logger->error("Process interacting with stdin");
             throw std::runtime_error("Attempt to interact with stdin");
         } else if (fd == STDOUT_FILENO) {
-            logger->debug("Process interacting with stdout", fd);
+            // Can allow stdout/ stderr through
+            // logger->debug("Process interacting with stdout", fd);
         } else if (fd == STDERR_FILENO) {
-            logger->debug("Process interacting with stderr", fd);
+            // logger->debug("Process interacting with stderr", fd);
         } else if (isNotOwned) {
             printf("fd not owned by this thread (%i)\n", fd);
             throw std::runtime_error("fd not owned by this function");
@@ -710,6 +711,9 @@ namespace wasm {
         U32 iov_len;
     };
 
+    /**
+     * Writing is ok provided the function owns the file descriptor
+     */
     I32 s__syscall_writev(I32 fd, I32 iov, I32 iovcnt) {
         util::getLogger()->debug("S - writev - {} {} {}", fd, iov, iovcnt);
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
@@ -748,6 +752,34 @@ namespace wasm {
         U32 *args = emscriptenArgs(syscallNo, argsPtr, 3);
 
         return s__syscall_writev(args[0], args[1], args[2]);
+    }
+
+    /**
+     * Writing is ok provided the function owns the file descriptor
+     */
+    I32 s__syscall_write(I32 fd, I32 bufPtr, I32 bufLen) {
+        util::getLogger()->debug("S - write - {} {} {}", fd, bufPtr, bufLen);
+
+        // Provided the thread owns the fd, we allow reading.
+        checkThreadOwnsFd(fd);
+
+        // Get the buffer etc.
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        U8 *buf = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufPtr, (Uptr) bufLen);
+
+        // Do the actual read
+        ssize_t bytesWritten = write(fd, buf, (size_t) bufLen);
+
+        return bytesWritten;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_write", I32, __syscall_write, I32 fd, I32 bufPtr, I32 bufLen) {
+        return s__syscall_write(fd, bufPtr, bufLen);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall4", I32, ___syscall4, I32 syscallNo, I32 argsPtr) {
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 3);
+        return s__syscall_write(args[0], args[1], args[2]);
     }
 
     /**
@@ -1911,7 +1943,6 @@ namespace wasm {
         util::getLogger()->debug("S - _emscripten_get_heap_size");
 
         U32 memSize = _getMemorySize();
-        util::getLogger()->debug("Heap size - {}", memSize);
         return memSize;
     }
 
@@ -1960,18 +1991,13 @@ namespace wasm {
         }
     }
 
+    /**
+     * Allowing straight-through access to sysconf my not be wise. Should revisit this.
+     */
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_sysconf", I32, _sysconf, I32 a) {
-        util::getLogger()->debug("S - _sysconf = {}", a);
+        util::getLogger()->debug("S - _sysconf - {}", a);
 
-        enum {
-            sysConfPageSize = 30
-        };
-        switch (a) {
-            case sysConfPageSize:
-                return IR::numBytesPerPage;
-            default:
-                throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-        }
+        return sysconf(a);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___ctype_b_loc", U32, ___ctype_b_loc) {
@@ -2116,6 +2142,17 @@ namespace wasm {
         util::getLogger()->debug("S - abort");
 
         throwException(Runtime::ExceptionTypes::calledAbort);
+    }
+
+    /**
+     * All the null funcs are catastrophic and related to issues with function pointers
+     * https://emscripten.org/docs/porting/Debugging.html#function-pointer-issues
+     *
+     * You need to make sure you link your code with -s EMULATE_FUNCTION_POINTER_CASTS=1
+     */
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_X", void, emscripten_nullFunc_X, I32 code) {
+        util::getLogger()->debug("S - nullFunc_X - {}", code);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_i", void, emscripten_nullFunc_i, I32 code) {
@@ -2528,11 +2565,6 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall10", I32, ___syscall10, I32 a, I32 b) {
         util::getLogger()->debug("S - ___syscall10 - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall4", I32, ___syscall4, I32 a, I32 b) {
-        util::getLogger()->debug("S - ___syscall4 - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 

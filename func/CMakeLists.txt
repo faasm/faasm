@@ -30,9 +30,9 @@ if (${EMSCRIPTEN})
     # Emscripten doesn't seem to look in normal system includes so we explicitly have to tell it to
     include_directories(/usr/local/include/)
 
-    # Ignore undefined symbols
-    # TODO - there must be a way to respect the libfaasm.imports file
-    set(CMAKE_EXE_LINKER_FLAGS  "-s ERROR_ON_UNDEFINED_SYMBOLS=0")
+    # Linker changes to dodge some emscripten issues
+    # TODO - is there a way to avoid ignoring undefined symbols by respecting the libfaasm.imports file?
+    set(CMAKE_EXE_LINKER_FLAGS  "-s ERROR_ON_UNDEFINED_SYMBOLS=0 -s EMULATE_FUNCTION_POINTER_CASTS=1")
 
     # Avoid compiling javascript
     set(CMAKE_EXECUTABLE_SUFFIX ".wasm")
