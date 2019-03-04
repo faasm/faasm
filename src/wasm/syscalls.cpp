@@ -81,6 +81,7 @@ namespace wasm {
         return emGlobalModule;
     }
 
+    static const char *FALSE_ROOT = "/usr/local/faasm/runtime_root";
     static const char *HOSTS_FILE = "/usr/local/faasm/net/hosts";
     static const char *RESOLV_FILE = "/usr/local/faasm/net/resolv.conf";
 
@@ -633,6 +634,9 @@ namespace wasm {
         } else if (strcmp(path, "pyvenv.cfg") == 0) {
             logger->debug("Forcing non-existent pyvenv.cfg");
             return -ENOENT;
+        } else if (strcmp(path, "/") == 0) {
+            logger->debug("Opening root as {}", FALSE_ROOT);
+            fd = open(FALSE_ROOT, 0, 0);
         } else {
             // Warn re. unknown path
             logger->warn("Opening unrecognised path: {}", path);
@@ -687,47 +691,56 @@ namespace wasm {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *hostWasmDirentBuf = &Runtime::memoryRef<U8>(memoryPtr, (Uptr) wasmDirentBuf);
 
-        // We need to receive a list of dirent structs from the host, so we need to set up
-        // a buffer to receive them
+        // Fill up the provided wasm buffer by making multiple calls to the native getdents.
+        // We need to avoid a case where we run out of wasm buffer space but still have native
+        // dirents to copy.
+        // Therefore we need to leave sufficient space in the wasm buffer.
+        int wasmOffset;
+        size_t wasmDirentSize = sizeof(wasm_dirent64);
+        int nativeBufLen = 200;
+        for (wasmOffset = 0; wasmOffset <= wasmDirentBufLen - wasmDirentSize;) {
+            // Make the native syscall. This will read in a list of dirent structs to the buffer
+            // we provide. We need to do this in small chunks.
+            auto nativeBuf = new char[nativeBufLen];
+            long bytesRead = syscall(SYS_getdents64, fd, nativeBuf, nativeBufLen);
 
-        int bufLen = wasmDirentBufLen;
-        auto buf = new char[bufLen];
-
-        long bytesRead = syscall(SYS_getdents64, fd, buf, bufLen);
-        if (bytesRead == 0) {
-            return 0;
-        }
-
-        int wasmOffset = 0;
-        for (int nativeOffset = 0; nativeOffset < bytesRead;) {
-            // If we read more than the buffer size, want to drop out
-            if (wasmOffset >= bufLen) {
-                break;
+            // If we get zero bytes back, we've reached the end of the native file listing
+            // but we may have some pending wasm dirents to return.
+            if (bytesRead == 0) {
+                return wasmOffset;
             }
 
-            // Get a pointer to the host dirent
-            auto d = (struct dirent64 *) (buf + nativeOffset);
+            // Now we iterate through the dirents we just got back from the host
+            int nativeOffset;
+            for(nativeOffset = 0; nativeOffset < bytesRead;) {
+                // Get a pointer to the first native dirent
+                auto d = (struct dirent64 *) (nativeBuf + nativeOffset);
 
-            // Copy all this into the wasm dirent
-            struct wasm_dirent64 dWasm{};
-            dWasm.d_ino = d->d_ino;
-            dWasm.d_type = d->d_type;
+                // Copy all this into a new wasm dirent
+                struct wasm_dirent64 dWasm{};
+                dWasm.d_ino = d->d_ino;
+                dWasm.d_type = d->d_type;
+                dWasm.d_off = d->d_off;
 
-            // Copy the name into place
-            size_t nameLen = strlen(d->d_name);
-            std::copy(d->d_name, d->d_name + nameLen, dWasm.d_name);
+                // Copy the name into place
+                size_t nameLen = strlen(d->d_name);
+                std::copy(d->d_name, d->d_name + nameLen, dWasm.d_name);
 
-            // Set the wasm dirent and reclen properly
-            dWasm.d_off = sizeof(dWasm);
-            dWasm.d_reclen = sizeof(dWasm);
+                // Work out the length of this record.
+                // NOTE: i'm a little confused as to what this field actually represents. It seems to be
+                // small when coming back from the host (e.g. 20/30) but is apparently used to iterate through
+                // the structs in memory (therefore I'd expect it to be sizeof(wasm_dirent64).
+                // I think setting it too long is just inefficient and shouldn't cause any problems.
+                dWasm.d_reclen = wasmDirentSize;
 
-            // Copy the wasm dirent into place in wasm memory
-            const U8 *dWasmBytes = reinterpret_cast<const U8*>(&dWasm);
-            std::copy(dWasmBytes, dWasmBytes + dWasm.d_reclen, hostWasmDirentBuf + wasmOffset);
+                // Copy the wasm dirent into place in wasm memory
+                auto dWasmBytes = reinterpret_cast<uint8_t *>(&dWasm);
+                std::copy(dWasmBytes, dWasmBytes + wasmDirentSize, hostWasmDirentBuf + wasmOffset);
 
-            // Move the offset along to the next entry
-            nativeOffset += d->d_reclen;
-            wasmOffset += dWasm.d_off;
+                // Move each offset along by the length of the respective dirents
+                nativeOffset += d->d_reclen;
+                wasmOffset += dWasm.d_reclen;
+            }
         }
 
         return wasmOffset;
@@ -974,9 +987,13 @@ namespace wasm {
     I32 s__syscall_stat64(I32 pathPtr, I32 statBufPtr) {
         // Get the path
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        char *path = &Runtime::memoryRef<char>(memoryPtr, (Uptr) pathPtr);
+        const char *path = &Runtime::memoryRef<const char>(memoryPtr, (Uptr) pathPtr);
 
         util::getLogger()->debug("S - stat64 - {} {}", path, statBufPtr);
+
+        if(strcmp(path, "/") == 0) {
+            path = FALSE_ROOT;
+        }
 
         struct stat64 nativeStat{};
         stat64(path, &nativeStat);
