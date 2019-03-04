@@ -685,7 +685,7 @@ namespace wasm {
         util::getLogger()->debug("S - getdents64 - {} {} {}", fd, wasmDirentBuf, wasmDirentBufLen);
 
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        wasm_dirent64 *hostWasmDirentBuf = &Runtime::memoryRef<wasm_dirent64>(memoryPtr, (Uptr) wasmDirentBuf);
+        U8 *hostWasmDirentBuf = &Runtime::memoryRef<U8>(memoryPtr, (Uptr) wasmDirentBuf);
 
         // We need to receive a list of dirent structs from the host, so we need to set up
         // a buffer to receive them
@@ -722,7 +722,8 @@ namespace wasm {
             dWasm.d_reclen = sizeof(dWasm);
 
             // Copy the wasm dirent into place in wasm memory
-            std::copy(&dWasm, &dWasm + dWasm.d_reclen, hostWasmDirentBuf + wasmOffset);
+            const U8 *dWasmBytes = reinterpret_cast<const U8*>(&dWasm);
+            std::copy(dWasmBytes, dWasmBytes + dWasm.d_reclen, hostWasmDirentBuf + wasmOffset);
 
             // Move the offset along to the next entry
             nativeOffset += d->d_reclen;
