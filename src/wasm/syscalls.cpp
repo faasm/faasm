@@ -5,6 +5,7 @@
 
 #include <fcntl.h>
 #include <math.h>
+#include <dirent.h>
 #include <netdb.h>
 #include <poll.h>
 #include <stdio.h>
@@ -133,17 +134,19 @@ namespace wasm {
     // System-related structs
     // ---------------------------
 
-    /** Struct to fake 32-bit time in wasm modules */
+    // Timing
     struct wasm_timespec {
         I32 tv_sec;
         I32 tv_nsec;
     };
 
+    // Timing
     struct wasm_timeval {
         I32 tv_sec;
         I32 tv_usec;
     };
 
+    // I/O
     struct wasm_iovec {
         U32 iov_base;
         U32 iov_len;
@@ -202,8 +205,28 @@ namespace wasm {
 
         wasmHostPtr->st_blksize = nativeStatPtr->st_blksize;
         wasmHostPtr->st_blocks = nativeStatPtr->st_blocks;
+
+        wasmHostPtr->st_atim.tv_sec = nativeStatPtr->st_atim.tv_sec;
+        wasmHostPtr->st_atim.tv_nsec = nativeStatPtr->st_atim.tv_nsec;
+
+        wasmHostPtr->st_mtim.tv_sec = nativeStatPtr->st_mtim.tv_sec;
+        wasmHostPtr->st_mtim.tv_nsec = nativeStatPtr->st_mtim.tv_nsec;
+
+        wasmHostPtr->st_ctim.tv_sec = nativeStatPtr->st_ctim.tv_sec;
+        wasmHostPtr->st_ctim.tv_nsec = nativeStatPtr->st_ctim.tv_nsec;
+
+        wasmHostPtr->st_ino = nativeStatPtr->st_ino;
     }
 
+
+    // Directory listings (include/dirent.h in musl)
+    struct wasm_dirent64 {
+        U32 d_ino;
+        I32 d_off;
+        U16 d_reclen;
+        U8 d_type;
+        I8 d_name[256];
+    };
 
     // ------------------------
     // FAASM-specific
@@ -604,9 +627,9 @@ namespace wasm {
             logger->debug("Forcing non-existent pyvenv.cfg");
             return -ENOENT;
         } else {
-            // Bomb out if not valid path
-            printf("Trying to open blocked path (%s) \n", path);
-            throw std::runtime_error("Attempt to open invalid file");
+            // Warn re. unknown path
+            logger->warn("Opening unrecognised path: {}", path);
+            fd = open(path, 0, 0);
         }
 
         if (fd > 0) {
@@ -649,6 +672,60 @@ namespace wasm {
                               I32 syscallNo, I32 argsPtr) {
         U32 *args = emscriptenArgs(syscallNo, argsPtr, 3);
         return s__syscall_fcntl64(args[0], args[1], args[2]);
+    }
+
+    I32 s__syscall_getdents64(U32 fd, I32 wasmDirentPtr, U32 direntSize) {
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        wasm_dirent64 *wasmDirent = &Runtime::memoryRef<wasm_dirent64>(memoryPtr, (Uptr) wasmDirentPtr);
+
+        // We need to receive a list of dirent structs from the host, so we need to set up
+        // a buffer to receive them
+
+        int bufLen = 1024;
+        auto buf = new char[bufLen];
+
+        long bytesRead = syscall(SYS_getdents64, fd, buf, bufLen);
+        if (bytesRead == 0) {
+            return 0;
+        }
+
+        int wasmOffset = 0;
+        for (int nativeOffset = 0; nativeOffset < bytesRead;) {
+            // Get a pointer to the host dirent
+            auto d = (struct dirent64 *) (buf + nativeOffset);
+
+            // Copy to the wasm dirent
+            struct wasm_dirent64 dWasm{};
+            dWasm.d_ino = d->d_ino;
+            dWasm.d_reclen = d->d_reclen;
+            dWasm.d_type = d->d_type;
+
+            // Copy the name into place
+            size_t nameLen = strlen(d->d_name);
+            std::copy(d->d_name, d->d_name + nameLen, dWasm.d_name);
+
+            // Set the wasm dirent offset properly
+            dWasm.d_off = 32 + 32 + 16 + 8 + nameLen;
+
+            // Copy the wasm dirent into place in wasm memory
+            std::copy(&dWasm, &dWasm + dWasm.d_off, wasmDirent + wasmOffset);
+
+            // Move the offset along to the next entry
+            nativeOffset += d->d_reclen;
+            wasmOffset += dWasm.d_off;
+        }
+
+        return wasmOffset;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_getdents64", I32, __syscall_getdents64,
+                              I32 fd, I32 direntBuf, I32 direntBufSize) {
+        return s__syscall_fcntl64(fd, direntBuf, direntBufSize);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall220", I32, ___syscall220, I32 syscallNo, I32 argsPtr) {
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 3);
+        return s__syscall_getdents64(args[0], args[1], args[2]);
     }
 
     /**
