@@ -219,9 +219,16 @@ namespace wasm {
     }
 
 
-    // Directory listings (include/dirent.h in musl)
+    /**
+     * Directory listings.
+     * As described in http://man7.org/linux/man-pages/man2/getdents.2.html we need to define our
+     * own linux_dirent64 struct for the native data, then convert this to a wasm version.
+     *
+     * NOTE: representations of dirent64 vary. Look at include/dirent.h in the musl code to see the one expected
+     * by wasm.
+     * */
     struct wasm_dirent64 {
-        U32 d_ino;
+        I32 d_ino;
         I32 d_off;
         U16 d_reclen;
         U8 d_type;
@@ -674,14 +681,16 @@ namespace wasm {
         return s__syscall_fcntl64(args[0], args[1], args[2]);
     }
 
-    I32 s__syscall_getdents64(U32 fd, I32 wasmDirentPtr, U32 direntSize) {
+    I32 s__syscall_getdents64(U32 fd, I32 wasmDirentBuf, U32 wasmDirentBufLen) {
+        util::getLogger()->debug("S - getdents64 - {} {} {}", fd, wasmDirentBuf, wasmDirentBufLen);
+
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        wasm_dirent64 *wasmDirent = &Runtime::memoryRef<wasm_dirent64>(memoryPtr, (Uptr) wasmDirentPtr);
+        wasm_dirent64 *hostWasmDirentBuf = &Runtime::memoryRef<wasm_dirent64>(memoryPtr, (Uptr) wasmDirentBuf);
 
         // We need to receive a list of dirent structs from the host, so we need to set up
         // a buffer to receive them
 
-        int bufLen = 1024;
+        int bufLen = wasmDirentBufLen;
         auto buf = new char[bufLen];
 
         long bytesRead = syscall(SYS_getdents64, fd, buf, bufLen);
@@ -691,24 +700,29 @@ namespace wasm {
 
         int wasmOffset = 0;
         for (int nativeOffset = 0; nativeOffset < bytesRead;) {
+            // If we read more than the buffer size, want to drop out
+            if (wasmOffset >= bufLen) {
+                break;
+            }
+
             // Get a pointer to the host dirent
             auto d = (struct dirent64 *) (buf + nativeOffset);
 
-            // Copy to the wasm dirent
+            // Copy all this into the wasm dirent
             struct wasm_dirent64 dWasm{};
             dWasm.d_ino = d->d_ino;
-            dWasm.d_reclen = d->d_reclen;
             dWasm.d_type = d->d_type;
 
             // Copy the name into place
             size_t nameLen = strlen(d->d_name);
             std::copy(d->d_name, d->d_name + nameLen, dWasm.d_name);
 
-            // Set the wasm dirent offset properly
-            dWasm.d_off = 32 + 32 + 16 + 8 + nameLen;
+            // Set the wasm dirent and reclen properly
+            dWasm.d_off = sizeof(dWasm);
+            dWasm.d_reclen = sizeof(dWasm);
 
             // Copy the wasm dirent into place in wasm memory
-            std::copy(&dWasm, &dWasm + dWasm.d_off, wasmDirent + wasmOffset);
+            std::copy(&dWasm, &dWasm + dWasm.d_reclen, hostWasmDirentBuf + wasmOffset);
 
             // Move the offset along to the next entry
             nativeOffset += d->d_reclen;
@@ -1101,12 +1115,6 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_umask", I32, __syscall_umask, I32 a) {
         util::getLogger()->debug("S - umask - {}", a);
-
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_getdents64", I32, __syscall_getdents64, I32 a, I32 b, I32 c) {
-        util::getLogger()->debug("S - getdents64 - {} {} {}", a, b, c);
 
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
@@ -2810,11 +2818,6 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall268", I32, ___syscall268, I32 a, I32 b) {
         util::getLogger()->debug("S - ___syscall268 - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall220", I32, ___syscall220, I32 a, I32 b) {
-        util::getLogger()->debug("S - ___syscall220 - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
