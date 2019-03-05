@@ -34,9 +34,8 @@ add_library(faasm STATIC
         )
 
 set(PUBLIC_HEADERS
-        faasm/faasm.h
         faasm/counter.h
-        faasm/lambda.h
+        faasm/faasm.h
         faasm/matrix.h
         faasm/memory.h
         faasm/random.h

@@ -30,9 +30,9 @@ if (${EMSCRIPTEN})
     # Emscripten doesn't seem to look in normal system includes so we explicitly have to tell it to
     include_directories(/usr/local/include/)
 
-    # Ignore undefined symbols
-    # TODO - there must be a way to respect the libfaasm.imports file
-    set(CMAKE_EXE_LINKER_FLAGS  "-s ERROR_ON_UNDEFINED_SYMBOLS=0")
+    # Linker changes to dodge some emscripten issues
+    # TODO - is there a way to avoid ignoring undefined symbols by respecting the libfaasm.imports file?
+    set(CMAKE_EXE_LINKER_FLAGS  "-s ERROR_ON_UNDEFINED_SYMBOLS=0 -s EMULATE_FUNCTION_POINTER_CASTS=1 --memory-init-file 0")
 
     # Avoid compiling javascript
     set(CMAKE_EXECUTABLE_SUFFIX ".wasm")
@@ -51,13 +51,24 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # WASM build
     # ----------------------
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Oz -fvisibility=hidden")
-#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --target=wasm32-unknown-unknown-wasm")
-#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --sysroot=/toolchain/sysroot")
 
     function(faasm_func exec_name file_name)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+
         add_executable(${exec_name} ${file_name})
 
         set_target_properties(${exec_name} PROPERTIES OUTPUT_NAME ${exec_name}.wasm)
+
+        target_link_libraries(${exec_name} ${FAASM_LIB})
+    endfunction(faasm_func)
+
+elseif (FAASM_BUILD_TYPE STREQUAL "emscripten")
+    # ----------------------
+    # Emscripten build
+    # ----------------------
+
+    function(faasm_func exec_name file_name)
+        add_executable(${exec_name} ${file_name})
 
         target_link_libraries(${exec_name} ${FAASM_LIB})
     endfunction(faasm_func)
@@ -72,17 +83,6 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
         # Link with Faasm library
         target_link_libraries(${func_name}-lambda lambda-func)
 
-#        target_compile_options(
-#                ${func_name}-lambda PRIVATE
-#                "-Wall"
-#                "-Wextra"
-#                "-Wconversion"
-#                "-Wshadow"
-#                "-Wno-sign-conversion"
-#        )
-
-        #target_compile_features(${PROJECT_NAME} PRIVATE "cxx_std_11")
-
         # Add custom target to build Lambda zip file
         aws_lambda_package_target(${func_name}-lambda)
 
@@ -96,7 +96,7 @@ else ()
     function(faasm_func exec_name file_name)
         # Using emulator (faasm-like)
         add_executable(${exec_name} ${file_name})
-        target_link_libraries(${exec_name} faasm emulator)
+        target_link_libraries(${exec_name} ${FAASM_LIB} emulator)
     endfunction(faasm_func)
 
 endif ()
@@ -105,5 +105,8 @@ add_subdirectory(errors)
 add_subdirectory(demo)
 add_subdirectory(sgd)
 
-# Ignore python functions while not working
-#add_subdirectory(python)
+# Exclude python stuff in normal wasm build
+if (FAASM_BUILD_TYPE STREQUAL "wasm")
+else()
+    add_subdirectory(python)
+endif()

@@ -3,7 +3,7 @@
 - hosts: localhost
   gather_facts: no
   tasks:
-    - name: "Clone repo"
+    - name: "Clone AWS lambda CPP repo"
       git:
         repo: "https://github.com/Shillaker/aws-lambda-cpp.git"
         dest: "/usr/local/code/aws-lambda-cpp"

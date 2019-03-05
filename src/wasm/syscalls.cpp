@@ -5,6 +5,7 @@
 
 #include <fcntl.h>
 #include <math.h>
+#include <dirent.h>
 #include <netdb.h>
 #include <poll.h>
 #include <stdio.h>
@@ -80,6 +81,7 @@ namespace wasm {
         return emGlobalModule;
     }
 
+    static const char *FALSE_ROOT = "/usr/local/faasm/runtime_root";
     static const char *HOSTS_FILE = "/usr/local/faasm/net/hosts";
     static const char *RESOLV_FILE = "/usr/local/faasm/net/resolv.conf";
 
@@ -129,6 +131,110 @@ namespace wasm {
         return std::pair<std::string, std::string>(call->user(), key);
     }
 
+    // ---------------------------
+    // System-related structs
+    // ---------------------------
+
+    // Timing
+    struct wasm_timespec {
+        I32 tv_sec;
+        I32 tv_nsec;
+    };
+
+    // Timing
+    struct wasm_timeval {
+        I32 tv_sec;
+        I32 tv_usec;
+    };
+
+    // I/O
+    struct wasm_iovec {
+        U32 iov_base;
+        U32 iov_len;
+    };
+
+    /** Socket-related struct (see https://beej.us/guide/bgnet/html/multi/sockaddr_inman.html) */
+    struct wasm_sockaddr {
+        U16 sa_family;
+        U8 sa_data[14];
+    };
+
+    /** Translates a wasm sockaddr into a native sockaddr */
+    sockaddr getSockAddr(I32 addrPtr) {
+        auto addr = &Runtime::memoryRef<wasm_sockaddr>(getExecutingModule()->defaultMemory, (Uptr) addrPtr);
+
+        sockaddr sa = {.sa_family = addr->sa_family};
+
+        std::copy(addr->sa_data, addr->sa_data + 14, sa.sa_data);
+        return sa;
+    }
+
+    // Taken from arch/wasm32/bits/stat.h in the musl port
+    struct wasm_stat {
+        U32 st_dev;
+        I32 __st_dev_padding;
+        I32 __st_ino_truncated;
+        U32 st_mode;
+        U32 st_nlink;
+        U32 st_uid;
+        U32 st_gid;
+        U32 st_rdev;
+        I32 __st_rdev_padding;
+        I32 st_size;
+        I32 st_blksize;
+        I32 st_blocks;
+        struct wasm_timespec st_atim;
+        struct wasm_timespec st_mtim;
+        struct wasm_timespec st_ctim;
+        U32 st_ino;
+    };
+
+    /** Translates a native stat to a wasm stat */
+    void writeNativeStatToWasmStat(struct stat64 *nativeStatPtr, I32 wasmStatPtr) {
+        auto wasmHostPtr = &Runtime::memoryRef<wasm_stat>(getExecutingModule()->defaultMemory, (Uptr) wasmStatPtr);
+
+        // Support *some* details from the host but not all
+        wasmHostPtr->st_dev = nativeStatPtr->st_dev;
+        wasmHostPtr->st_mode = nativeStatPtr->st_mode;
+        wasmHostPtr->st_nlink = nativeStatPtr->st_nlink;
+
+        wasmHostPtr->st_uid = nativeStatPtr->st_uid;
+        wasmHostPtr->st_gid = nativeStatPtr->st_gid;
+
+        wasmHostPtr->st_rdev = nativeStatPtr->st_rdev;
+        wasmHostPtr->st_size = nativeStatPtr->st_size;
+
+        wasmHostPtr->st_blksize = nativeStatPtr->st_blksize;
+        wasmHostPtr->st_blocks = nativeStatPtr->st_blocks;
+
+        wasmHostPtr->st_atim.tv_sec = nativeStatPtr->st_atim.tv_sec;
+        wasmHostPtr->st_atim.tv_nsec = nativeStatPtr->st_atim.tv_nsec;
+
+        wasmHostPtr->st_mtim.tv_sec = nativeStatPtr->st_mtim.tv_sec;
+        wasmHostPtr->st_mtim.tv_nsec = nativeStatPtr->st_mtim.tv_nsec;
+
+        wasmHostPtr->st_ctim.tv_sec = nativeStatPtr->st_ctim.tv_sec;
+        wasmHostPtr->st_ctim.tv_nsec = nativeStatPtr->st_ctim.tv_nsec;
+
+        wasmHostPtr->st_ino = nativeStatPtr->st_ino;
+    }
+
+
+    /**
+     * Directory listings.
+     * As described in http://man7.org/linux/man-pages/man2/getdents.2.html we need to define our
+     * own linux_dirent64 struct for the native data, then convert this to a wasm version.
+     *
+     * NOTE: representations of dirent64 vary. Look at include/dirent.h in the musl code to see the one expected
+     * by wasm.
+     * */
+    struct wasm_dirent64 {
+        I32 d_ino;
+        I32 d_off;
+        U16 d_reclen;
+        U8 d_type;
+        I8 d_name[256];
+    };
 
     // ------------------------
     // FAASM-specific
@@ -491,9 +597,10 @@ namespace wasm {
             logger->error("Process interacting with stdin");
             throw std::runtime_error("Attempt to interact with stdin");
         } else if (fd == STDOUT_FILENO) {
-            logger->debug("Process interacting with stdout", fd);
+            // Can allow stdout/ stderr through
+            // logger->debug("Process interacting with stdout", fd);
         } else if (fd == STDERR_FILENO) {
-            logger->debug("Process interacting with stderr", fd);
+            // logger->debug("Process interacting with stderr", fd);
         } else if (isNotOwned) {
             printf("fd not owned by this thread (%i)\n", fd);
             throw std::runtime_error("fd not owned by this function");
@@ -524,10 +631,16 @@ namespace wasm {
             logger->debug("Opening /dev/urandom");
             fd = open("/dev/urandom", 0, 0);
 
+        } else if (strcmp(path, "pyvenv.cfg") == 0) {
+            logger->debug("Forcing non-existent pyvenv.cfg");
+            return -ENOENT;
+        } else if (strcmp(path, "/") == 0) {
+            logger->debug("Opening root as {}", FALSE_ROOT);
+            fd = open(FALSE_ROOT, 0, 0);
         } else {
-            // Bomb out if not valid path
-            printf("Trying to open blocked path (%s) \n", path);
-            throw std::runtime_error("Attempt to open invalid file");
+            // Warn re. unknown path
+            logger->warn("Opening unrecognised path: {}", path);
+            fd = open(path, 0, 0);
         }
 
         if (fd > 0) {
@@ -572,21 +685,128 @@ namespace wasm {
         return s__syscall_fcntl64(args[0], args[1], args[2]);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_read", I32, __syscall_read,
-                              I32 fd, I32 bufPtr, I32 count) {
-        util::getLogger()->debug("S - read - {} {} {}", fd, bufPtr, count);
+    I32 s__syscall_getdents64(U32 fd, I32 wasmDirentBuf, U32 wasmDirentBufLen) {
+        util::getLogger()->debug("S - getdents64 - {} {} {}", fd, wasmDirentBuf, wasmDirentBufLen);
+
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        U8 *hostWasmDirentBuf = &Runtime::memoryRef<U8>(memoryPtr, (Uptr) wasmDirentBuf);
+
+        // Fill up the provided wasm buffer by making multiple calls to the native getdents.
+        // We need to avoid a case where we run out of wasm buffer space but still have native
+        // dirents to copy.
+        // Therefore we need to leave sufficient space in the wasm buffer.
+        int wasmOffset;
+        size_t wasmDirentSize = sizeof(wasm_dirent64);
+        int nativeBufLen = 200;
+        for (wasmOffset = 0; wasmOffset <= wasmDirentBufLen - wasmDirentSize;) {
+            // Make the native syscall. This will read in a list of dirent structs to the buffer
+            // we provide. We need to do this in small chunks.
+            auto nativeBuf = new char[nativeBufLen];
+            long bytesRead = syscall(SYS_getdents64, fd, nativeBuf, nativeBufLen);
+
+            // If we get zero bytes back, we've reached the end of the native file listing
+            // but we may have some pending wasm dirents to return.
+            if (bytesRead == 0) {
+                return wasmOffset;
+            }
+
+            // Now we iterate through the dirents we just got back from the host
+            int nativeOffset;
+            for(nativeOffset = 0; nativeOffset < bytesRead;) {
+                // Get a pointer to the first native dirent
+                auto d = (struct dirent64 *) (nativeBuf + nativeOffset);
+
+                // Copy all this into a new wasm dirent
+                struct wasm_dirent64 dWasm{};
+                dWasm.d_ino = d->d_ino;
+                dWasm.d_type = d->d_type;
+                dWasm.d_off = d->d_off;
+
+                // Copy the name into place
+                size_t nameLen = strlen(d->d_name);
+                std::copy(d->d_name, d->d_name + nameLen, dWasm.d_name);
+
+                // Work out the length of this record.
+                // NOTE: i'm a little confused as to what this field actually represents. It seems to be
+                // small when coming back from the host (e.g. 20/30) but is apparently used to iterate through
+                // the structs in memory (therefore I'd expect it to be sizeof(wasm_dirent64).
+                // I think setting it too long is just inefficient and shouldn't cause any problems.
+                dWasm.d_reclen = wasmDirentSize;
+
+                // Copy the wasm dirent into place in wasm memory
+                auto dWasmBytes = reinterpret_cast<uint8_t *>(&dWasm);
+                std::copy(dWasmBytes, dWasmBytes + wasmDirentSize, hostWasmDirentBuf + wasmOffset);
+
+                // Move each offset along by the length of the respective dirents
+                nativeOffset += d->d_reclen;
+                wasmOffset += dWasm.d_reclen;
+            }
+        }
+
+        return wasmOffset;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_getdents64", I32, __syscall_getdents64,
+                              I32 fd, I32 direntBuf, I32 direntBufSize) {
+        return s__syscall_fcntl64(fd, direntBuf, direntBufSize);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall220", I32, ___syscall220, I32 syscallNo, I32 argsPtr) {
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 3);
+        return s__syscall_getdents64(args[0], args[1], args[2]);
+    }
+
+    /**
+     * Read is ok provided the function owns the file descriptor
+     */
+    I32 s__syscall_read(I32 fd, I32 bufPtr, I32 bufLen) {
+        util::getLogger()->debug("S - read - {} {} {}", fd, bufPtr, bufLen);
 
         // Provided the thread owns the fd, we allow reading.
         checkThreadOwnsFd(fd);
 
         // Get the buffer etc.
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        U8 *buf = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufPtr, (Uptr) count);
+        U8 *buf = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufPtr, (Uptr) bufLen);
 
         // Do the actual read
-        ssize_t bytesRead = read(fd, buf, (size_t) count);
+        ssize_t bytesRead = read(fd, buf, (size_t) bufLen);
 
         return (I32) bytesRead;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_read", I32, __syscall_read, I32 fd, I32 bufPtr, I32 bufLen) {
+        return s__syscall_read(fd, bufPtr, bufLen);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall3", I32, ___syscall3, I32 syscallNo, I32 argsPtr) {
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 3);
+        return s__syscall_read(args[0], args[1], args[2]);
+    }
+
+    /**
+    * readlink is ok for certain special cases
+    */
+    I32 s__syscall_readlink(I32 pathPtr, I32 bufPtr, I32 bufLen) {
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        char *path = &Runtime::memoryRef<char>(memoryPtr, (Uptr) pathPtr);
+
+        util::getLogger()->debug("S - readlink - {} {} {}", path, bufPtr, bufLen);
+
+        char *buf = Runtime::memoryArrayPtr<char>(memoryPtr, (Uptr) bufPtr, (Uptr) bufLen);
+
+        ssize_t bytesRead = readlink(path, buf, (size_t) bufLen);
+
+        return (I32) bytesRead;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_readlink", I32, __syscall_readlink, I32 pathPtr, I32 bufPtr, I32 count) {
+        return s__syscall_readlink(pathPtr, bufPtr, count);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall85", I32, ___syscall85, I32 syscallNo, I32 argsPtr) {
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 3);
+        return s__syscall_readlink(args[0], args[1], args[2]);
     }
 
     I32 s__syscall_close(I32 fd) {
@@ -666,11 +886,9 @@ namespace wasm {
         return 0;
     }
 
-    struct wasm_iovec {
-        U32 iov_base;
-        U32 iov_len;
-    };
-
+    /**
+     * Writing is ok provided the function owns the file descriptor
+     */
     I32 s__syscall_writev(I32 fd, I32 iov, I32 iovcnt) {
         util::getLogger()->debug("S - writev - {} {} {}", fd, iov, iovcnt);
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
@@ -695,7 +913,8 @@ namespace wasm {
             nativeIovecs[i] = nativeIovec;
         }
 
-        Iptr count = writev(fileno(stdout), nativeIovecs, iovcnt);
+        Iptr count = writev(STDOUT_FILENO, nativeIovecs, iovcnt);
+        fflush(stdout);
 
         return (I32) count;
     }
@@ -708,6 +927,89 @@ namespace wasm {
         U32 *args = emscriptenArgs(syscallNo, argsPtr, 3);
 
         return s__syscall_writev(args[0], args[1], args[2]);
+    }
+
+    /**
+     * Writing is ok provided the function owns the file descriptor
+     */
+    I32 s__syscall_write(I32 fd, I32 bufPtr, I32 bufLen) {
+        util::getLogger()->debug("S - write - {} {} {}", fd, bufPtr, bufLen);
+
+        // Provided the thread owns the fd, we allow reading.
+        checkThreadOwnsFd(fd);
+
+        // Get the buffer etc.
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        U8 *buf = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufPtr, (Uptr) bufLen);
+
+        // Do the actual read
+        ssize_t bytesWritten = write(fd, buf, (size_t) bufLen);
+
+        return bytesWritten;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_write", I32, __syscall_write, I32 fd, I32 bufPtr, I32 bufLen) {
+        return s__syscall_write(fd, bufPtr, bufLen);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall4", I32, ___syscall4, I32 syscallNo, I32 argsPtr) {
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 3);
+        return s__syscall_write(args[0], args[1], args[2]);
+    }
+
+    /**
+     *  We don't want to give away any real info about the filesystem, but we can just return the default
+     *  stat object and catch the application later if it tries to do anything dodgy.
+     */
+    I32 s__syscall_fstat64(I32 fd, I32 statBufPtr) {
+        util::getLogger()->debug("S - fstat64 - {} {}", fd, statBufPtr);
+
+        struct stat64 nativeStat{};
+        fstat64(fd, &nativeStat);
+        writeNativeStatToWasmStat(&nativeStat, statBufPtr);
+
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_fstat64", I32, __syscall_fstat64, I32 fd, I32 statBufPtr) {
+        return s__syscall_fstat64(fd, statBufPtr);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall197", I32, ___syscall197, I32 syscallNo, I32 argsPtr) {
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 2);
+
+        return s__syscall_fstat64(args[0], args[1]);
+    }
+
+    /**
+     * Case is same for stat as for fstat, can just do nothing and see what happens.
+     */
+    I32 s__syscall_stat64(I32 pathPtr, I32 statBufPtr) {
+        // Get the path
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        const char *path = &Runtime::memoryRef<const char>(memoryPtr, (Uptr) pathPtr);
+
+        util::getLogger()->debug("S - stat64 - {} {}", path, statBufPtr);
+
+        if(strcmp(path, "/") == 0) {
+            path = FALSE_ROOT;
+        }
+
+        struct stat64 nativeStat{};
+        stat64(path, &nativeStat);
+        writeNativeStatToWasmStat(&nativeStat, statBufPtr);
+
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_stat64", I32, __syscall_stat64, I32 pathPtr, I32 statBufPtr) {
+        return s__syscall_stat64(pathPtr, statBufPtr);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall195", I32, ___syscall195, I32 syscallNo, I32 argsPtr) {
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 2);
+
+        return s__syscall_stat64(args[0], args[1]);
     }
 
     // ------------------------
@@ -751,16 +1053,6 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_futex", I32, __syscall_futex,
                               I32 uaddr, I32 futexOp, I32 val, I32 timeoutPtr, I32 uaddr2, I32 val2) {
         util::getLogger()->debug("S - futex - {} {} {} {} {} {}", uaddr, futexOp, val, timeoutPtr, uaddr2, val2);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_fstat64", I32, __syscall_fstat64, I32 a, I32 b) {
-        util::getLogger()->debug("S - fstat64 - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_stat64", I32, __syscall_stat64, I32 a, I32 b) {
-        util::getLogger()->debug("S - stat64 - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
@@ -833,12 +1125,6 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_readlink", I32, __syscall_readlink, I32 a, I32 b, I32 c) {
-        util::getLogger()->debug("S - readlink - {} {} {}", a, b, c);
-
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_chdir", I32, __syscall_chdir, I32 a) {
         util::getLogger()->debug("S - chdir - {}", a);
 
@@ -847,12 +1133,6 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_umask", I32, __syscall_umask, I32 a) {
         util::getLogger()->debug("S - umask - {}", a);
-
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_getdents64", I32, __syscall_getdents64, I32 a, I32 b, I32 c) {
-        util::getLogger()->debug("S - getdents64 - {} {} {}", a, b, c);
 
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
@@ -895,22 +1175,6 @@ namespace wasm {
         sc_recvmmsg,
         sc_sendmmsg,
     };
-
-    /** Socket-related structs (see https://beej.us/guide/bgnet/html/multi/sockaddr_inman.html) */
-    struct wasm_sockaddr {
-        U16 sa_family;
-        U8 sa_data[14];
-    };
-
-    /** Translates a wasm sockaddr into a native sockaddr */
-    sockaddr getSockAddr(I32 addrPtr) {
-        auto addr = &Runtime::memoryRef<wasm_sockaddr>(getExecutingModule()->defaultMemory, (Uptr) addrPtr);
-
-        sockaddr sa = {.sa_family = addr->sa_family};
-
-        std::copy(addr->sa_data, addr->sa_data + 14, sa.sa_data);
-        return sa;
-    }
 
     /** Writes changes to a native sockaddr back to a wasm sockaddr. This is important in several
      * networking syscalls that receive responses and modify arguments in place */
@@ -1238,17 +1502,6 @@ namespace wasm {
     // Timing - supported
     // ------------------------
 
-    /** Struct to fake 32-bit time in wasm modules */
-    struct wasm_timespec {
-        I32 tv_sec;
-        I32 tv_nsec;
-    };
-
-    struct wasm_timeval {
-        I32 tv_sec;
-        I32 tv_usec;
-    };
-
     //TODO - make timing functions more secure
     I32 s__syscall_clock_gettime(I32 clockId, I32 resultAddress) {
         util::getLogger()->debug("S - clock_gettime - {} {}", clockId, resultAddress);
@@ -1415,11 +1668,34 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_getenv", I32, _getenv, I32 strPtr) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        char *string = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
+        char *varName = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
 
-        util::getLogger()->debug("S - _getenv - {}", string);
+        util::getLogger()->debug("S - _getenv - {}", varName);
 
-        return strPtr;
+        const char *value = "";
+
+        // Special cases
+        if (strcmp(varName, "PYTHONHASHSEED") == 0) {
+            value = "0";
+        } else if (strcmp(varName, "PYTHONVERBOSE") == 0) {
+            value = "on";
+        } else if (strcmp(varName, "LC_CTYPE") == 0) {
+            value = "en_GB.UTF-8";
+//        } else if (strcmp(varName, "LC_ALL") == 0) {
+//            value = "en_GB.UTF-8";
+        } else if (strcmp(varName, "LANG") == 0) {
+            value = "en_GB.UTF-8";
+        } else if (strcmp(varName, "LANGUAGE") == 0) {
+            value = "en_GB:en";
+        } else if (strcmp(varName, "PYTHONHOME") == 0) {
+            value = "/foo/home/";
+        } else if (strcmp(varName, "PYTHONPATH") == 0) {
+            value = "/foo/path/";
+        }
+
+        U32 result = dynamicAllocString(memoryPtr, value, 1);
+
+        return result;
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "abort", void, abort) {
@@ -1817,58 +2093,77 @@ namespace wasm {
     DEFINE_INTRINSIC_GLOBAL(emEnv, "EMT_STACK_MAX", U32, EMT_STACK_MAX, 0)
     DEFINE_INTRINSIC_GLOBAL(emEnv, "eb", I32, eb, 0)
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "getTotalMemory", U32, getTotalMemory) {
+    U32 _getMemorySize() {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Uptr memSize = Runtime::getMemoryMaxPages(memoryPtr) * IR::numBytesPerPage;
+        return coerce32bitAddress(memoryPtr, memSize);
+    }
 
-        return coerce32bitAddress(memoryPtr, Runtime::getMemoryMaxPages(memoryPtr) * IR::numBytesPerPage);
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "getTotalMemory", U32, getTotalMemory) {
+        util::getLogger()->debug("S - getTotalMemory");
+
+        return _getMemorySize();
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_emscripten_get_heap_size", U32, _emscripten_get_heap_size) {
-        return getTotalMemory(contextRuntimeData);
+        util::getLogger()->debug("S - _emscripten_get_heap_size");
+
+        U32 memSize = _getMemorySize();
+        return memSize;
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "abortStackOverflow", void, abortStackOverflow, I32 size) {
+        util::getLogger()->debug("S - abortStackOverflow - {}", size);
+
         throwException(Runtime::ExceptionTypes::calledAbort);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "abortOnCannotGrowMemory", I32, abortOnCannotGrowMemory, I32 a) {
+        util::getLogger()->debug("S - abortOnCannotGrowMemory - {}", a);
+
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "enlargeMemory", I32, enlargeMemory) {
+        util::getLogger()->debug("S - enlargeMemory");
+
         return abortOnCannotGrowMemory(contextRuntimeData, 1);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_emscripten_resize_heap", I32, _emscripten_resize_heap, U32 size) {
+        util::getLogger()->debug("S - _emscripten_resize_heap - {}", size);
         return enlargeMemory(contextRuntimeData);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_time", I32, _time, U32 address) {
+        util::getLogger()->debug("S - _time - {}", address);
+
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         time_t t = time(nullptr);
         if (address) { Runtime::memoryRef<I32>(memoryPtr, address) = (I32) t; }
         return (I32) t;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "___errno_location", I32, ___errno_location) { return 0; }
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___errno_location", I32, ___errno_location) {
+        util::getLogger()->debug("S - ___errno_location");
+        return 0;
+    }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___setErrNo", void, ___seterrno, I32 value) {
+        util::getLogger()->debug("S - ___setErrNo = {}", value);
         if (EMSCRIPTEN_ERRNO_LOCATION) {
             Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
             Runtime::memoryRef<I32>(memoryPtr, EMSCRIPTEN_ERRNO_LOCATION) = (I32) value;
         }
     }
 
+    /**
+     * Allowing straight-through access to sysconf my not be wise. Should revisit this.
+     */
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_sysconf", I32, _sysconf, I32 a) {
-        enum {
-            sysConfPageSize = 30
-        };
-        switch (a) {
-            case sysConfPageSize:
-                return IR::numBytesPerPage;
-            default:
-                throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-        }
+        util::getLogger()->debug("S - _sysconf - {}", a);
+
+        return sysconf(a);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___ctype_b_loc", U32, ___ctype_b_loc) {
@@ -1993,131 +2288,171 @@ namespace wasm {
                               I32 filename,
                               I32 line,
                               I32 function) {
+        util::getLogger()->debug("S - ___assert_fail - {} {} {} {}", condition, filename, line, function);
+
         throwException(Runtime::ExceptionTypes::calledAbort);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_abort", void, emscripten__abort) {
+        util::getLogger()->debug("S - _abort");
+
         throwException(Runtime::ExceptionTypes::calledAbort);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_exit", void, emscripten__exit, I32 code) {
+        util::getLogger()->debug("S - _exit - {}", code);
         throwException(Runtime::ExceptionTypes::calledAbort);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "abort", void, emscripten_abort, I32 code) {
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "abort", void, emscripten_abort) {
+        util::getLogger()->debug("S - abort");
+
         throwException(Runtime::ExceptionTypes::calledAbort);
+    }
+
+    /**
+     * All the null funcs are catastrophic and related to issues with function pointers
+     * https://emscripten.org/docs/porting/Debugging.html#function-pointer-issues
+     *
+     * You need to make sure you link your code with -s EMULATE_FUNCTION_POINTER_CASTS=1
+     */
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_X", void, emscripten_nullFunc_X, I32 code) {
+        util::getLogger()->debug("S - nullFunc_X - {}", code);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_i", void, emscripten_nullFunc_i, I32 code) {
-        throwException(Runtime::ExceptionTypes::calledAbort);
+        util::getLogger()->debug("S - nullFunc_i - {}", code);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_ii", void, emscripten_nullFunc_ii, I32 code) {
-        throwException(Runtime::ExceptionTypes::calledAbort);
+        util::getLogger()->debug("S - nullFunc_ii - {}", code);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_iii", void, emscripten_nullFunc_iii, I32 code) {
-        throwException(Runtime::ExceptionTypes::calledAbort);
+        util::getLogger()->debug("S - nullFunc_iii - {}", code);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_iiii", void, emscripten_nullFunc_iiii, I32 code) {
-        throwException(Runtime::ExceptionTypes::calledAbort);
+        util::getLogger()->debug("S - nullFunc_iiii - {}", code);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_iiiii", void, emscripten_nullFunc_iiiii, I32 code) {
-        throwException(Runtime::ExceptionTypes::calledAbort);
+        util::getLogger()->debug("S - nullFunc_iiiii - {}", code);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_iiiiii", void, emscripten_nullFunc_iiiiii, I32 code) {
-        throwException(Runtime::ExceptionTypes::calledAbort);
+        util::getLogger()->debug("S - nullFunc_iiiiii - {}", code);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_iiiiiii", void, emscripten_nullFunc_iiiiiii, I32 code) {
-        throwException(Runtime::ExceptionTypes::calledAbort);
+        util::getLogger()->debug("S - nullFunc_iiiiiii - {}", code);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_v", void, emscripten_nullFunc_v, I32 code) {
-        throwException(Runtime::ExceptionTypes::calledAbort);
+        util::getLogger()->debug("S - nullFunc_v - {}", code);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_vi", void, emscripten_nullFunc_vi, I32 code) {
-        throwException(Runtime::ExceptionTypes::calledAbort);
+        util::getLogger()->debug("S - nullFunc_vi - {}", code);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_vii", void, emscripten_nullFunc_vii, I32 code) {
-        throwException(Runtime::ExceptionTypes::calledAbort);
+        util::getLogger()->debug("S - nullFunc_vii - {}", code);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_viii", void, emscripten_nullFunc_viii, I32 code) {
-        throwException(Runtime::ExceptionTypes::calledAbort);
+        util::getLogger()->debug("S - nullFunc_viii - {}", code);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_viiii", void, emscripten_nullFunc_viiii, I32 code) {
-        throwException(Runtime::ExceptionTypes::calledAbort);
+        util::getLogger()->debug("S - nullFunc_viiii - {}", code);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_viiiii", void, emscripten_nullFunc_viiiii, I32 code) {
-        throwException(Runtime::ExceptionTypes::calledAbort);
+        util::getLogger()->debug("S - nullFunc_viiiii - {}", code);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_viiiiii", void, emscripten_nullFunc_viiiiii, I32 code) {
-        throwException(Runtime::ExceptionTypes::calledAbort);
+        util::getLogger()->debug("S - nullFunc_viiiiii - {}", code);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_dd", void, emscripten_nullFunc_dd, I32 code) {
+        util::getLogger()->debug("S - nullFunc_dd - {}", code);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_ddd", void, emscripten_nullFunc_ddd, I32 code) {
+        util::getLogger()->debug("S - nullFunc_ddd - {}", code);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     static U32 currentLocale = 0;
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_uselocale", I32, _uselocale, I32 locale) {
+        util::getLogger()->debug("S - _uselocale - {}", locale);
+
         auto oldLocale = currentLocale;
         currentLocale = locale;
         return oldLocale;
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_newlocale", U32, _newlocale, I32 mask, I32 locale, I32 base) {
+        util::getLogger()->debug("S - _newlocale - {} {} {}", mask, locale, base);
+
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         if (!base) { base = coerce32bitAddress(memoryPtr, dynamicAlloc(memoryPtr, 4)); }
         return base;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_freelocale", void, emscripten__freelocale, I32 a) {}
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_freelocale", void, emscripten__freelocale, I32 a) {
+        util::getLogger()->debug("S - _freelocale");
+    }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv,
-                              "_strftime_l",
-                              I32,
-                              emscripten__strftime_l,
-                              I32 a,
-                              I32 b,
-                              I32 c,
-                              I32 d,
-                              I32 e) {
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_strftime_l", I32, emscripten__strftime_l, I32 a, I32 b, I32 c, I32 d, I32 e) {
+        util::getLogger()->debug("S - _strftime_l - {} {} {} {} {}", a, b, c, d, e);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_strerror", I32, emscripten__strerror, I32 a) {
+        util::getLogger()->debug("S - _strerror - {}", a);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_catopen", I32, emscripten__catopen, I32 a, I32 b) { return -1; }
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_catopen", I32, emscripten__catopen, I32 a, I32 b) {
+        util::getLogger()->debug("S - _catopen - {} {}", a, b);
+        return -1;
+    }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv,
-                              "_catgets",
-                              I32,
-                              emscripten__catgets,
-                              I32 catd,
-                              I32 set_id,
-                              I32 msg_id,
-                              I32 s) {
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_catgets", I32, emscripten__catgets, I32 catd, I32 set_id, I32 msg_id, I32 s) {
+        util::getLogger()->debug("S - _catgets - {} {} {} {}", catd, set_id, msg_id, s);
+
         return s;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_catclose", I32, emscripten__catclose, I32 a) { return 0; }
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_catclose", I32, emscripten__catclose, I32 a) {
+        util::getLogger()->debug("S - _catclose - {}", a);
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv,
-                              "_emscripten_memcpy_big",
-                              U32,
-                              _emscripten_memcpy_big,
-                              U32 sourceAddress,
-                              U32 destAddress,
-                              U32 numBytes) {
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_emscripten_memcpy_big", U32, _emscripten_memcpy_big, U32 sourceAddress,
+                              U32 destAddress, U32 numBytes) {
+        util::getLogger()->debug("S - _emscripten_memcpy_big - {} {} {}", sourceAddress, destAddress, numBytes);
 
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
 
@@ -2141,70 +2476,85 @@ namespace wasm {
         }
     }
 
+    /**
+     * fprintf can provide some useful debugging info so we can just spit it to stdout
+     */
     DEFINE_INTRINSIC_FUNCTION(emEnv,
                               "_vfprintf",
                               I32,
                               _vfprintf,
-                              I32 file,
-                              U32 formatPointer,
+                              I32 fd,
+                              U32 formatPtr,
                               I32 argList) {
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        const char *format = &Runtime::memoryRef<char>(memoryPtr, (Uptr) formatPtr);
+        std::cout << "S - vfprintf - " << format << std::endl;
+        return 0;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_getc", I32, _getc, I32 file) { return getc(vmFile(file)); }
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_getc", I32, _getc, I32 file) {
+        util::getLogger()->debug("S - _getc - {}", file);
+
+        return getc(vmFile(file));
+    }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_ungetc", I32, _ungetc, I32 character, I32 file) {
+        util::getLogger()->debug("S - _ungetc - {}", file);
+
         return ungetc(character, vmFile(file));
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv,
-                              "_fread",
-                              U32,
-                              _fread,
-                              U32 destAddress,
-                              U32 size,
-                              U32 count,
-                              I32 file) {
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_fread", U32, _fread, U32 destAddress, U32 size, U32 count, I32 file) {
+        util::getLogger()->debug("S - _fread - {} {} {} {}", destAddress, size, count, file);
+
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
 
-        return coerce32bitAddress(
-                memoryPtr,
-                fread(Runtime::memoryArrayPtr<U8>(memoryPtr, destAddress, U64(size) * U64(count)),
-                      U64(size),
-                      U64(count),
-                      vmFile(file)));
+        U8 *destPtr = Runtime::memoryArrayPtr<U8>(memoryPtr, destAddress, U64(size) * U64(count));
+        size_t addr = fread(destPtr, U64(size), U64(count), vmFile(file));
+
+        return coerce32bitAddress(memoryPtr, addr);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv,
-                              "_fwrite",
-                              U32,
-                              _fwrite,
-                              U32 sourceAddress,
-                              U32 size,
-                              U32 count,
-                              I32 file) {
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_fwrite", U32, _fwrite, U32 sourceAddress, U32 size, U32 count, I32 file) {
+        util::getLogger()->debug("S - _fwrite - {} {} {} {}", sourceAddress, size, count, file);
+
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        return coerce32bitAddress(
-                memoryPtr,
-                fwrite(Runtime::memoryArrayPtr<U8>(memoryPtr, sourceAddress, U64(size) * U64(count)),
-                       U64(size),
-                       U64(count),
-                       vmFile(file)));
+        U8 *sourcePtr = Runtime::memoryArrayPtr<U8>(memoryPtr, sourceAddress, U64(size) * U64(count));
+
+        return coerce32bitAddress(memoryPtr, fwrite(sourcePtr, U64(size), U64(count), vmFile(file)));
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_fputc", I32, _fputc, I32 character, I32 file) {
+        util::getLogger()->debug("S - _fputc - {} {}", character, file);
+
         return fputc(character, vmFile(file));
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_fflush", I32, _fflush, I32 file) { return fflush(vmFile(file)); }
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_fflush", I32, _fflush, I32 file) {
+        util::getLogger()->debug("S - _fflush - {}", file);
+        return fflush(vmFile(file));
+    }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "___lock", void, ___lock, I32 a) {}
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___lock", void, ___lock, I32 a) {
+        util::getLogger()->debug("S - ___lock - {}", a);
+    }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "___unlock", void, ___unlock, I32 a) {}
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___unlock", void, ___unlock, I32 a) {
+        util::getLogger()->debug("S - ___unlock - {}", a);
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "___lockfile", I32, ___lockfile, I32 a) { return 1; }
+    }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "___unlockfile", void, ___unlockfile, I32 a) {}
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___lockfile", I32, ___lockfile, I32 a) {
+        util::getLogger()->debug("S - ___lockfile - {}", a);
+
+        return 1;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___unlockfile", void, ___unlockfile, I32 a) {
+        util::getLogger()->debug("S - ___unlockfile - {}", a);
+
+    }
 
     static F64 makeNaN() {
         FloatComponents<F64> floatBits;
@@ -2226,7 +2576,7 @@ namespace wasm {
     DEFINE_INTRINSIC_GLOBAL(emGlobal, "Infinity", F64, Infinity, makeInf())
 
     // ---------------------------------
-    // Incoming
+    // Uncategorised (mainly dumped from Python trace)
     // ---------------------------------
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall300", I32, ___syscall300, I32 a, I32 b) {
@@ -2261,11 +2611,6 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall212", I32, ___syscall212, I32 a, I32 b) {
         util::getLogger()->debug("S - ___syscall212 - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall195", I32, ___syscall195, I32 a, I32 b) {
-        util::getLogger()->debug("S - ___syscall195 - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
@@ -2329,11 +2674,6 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall85", I32, ___syscall85, I32 a, I32 b) {
-        util::getLogger()->debug("S - ___syscall85 - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall83", I32, ___syscall83, I32 a, I32 b) {
         util::getLogger()->debug("S - ___syscall83 - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
@@ -2391,11 +2731,6 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall10", I32, ___syscall10, I32 a, I32 b) {
         util::getLogger()->debug("S - ___syscall10 - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall4", I32, ___syscall4, I32 a, I32 b) {
-        util::getLogger()->debug("S - ___syscall4 - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
@@ -2469,11 +2804,6 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall3", I32, ___syscall3, I32 a, I32 b) {
-        util::getLogger()->debug("S - ___syscall3 - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall298", I32, ___syscall298, I32 a, I32 b) {
         util::getLogger()->debug("S - ___syscall298 - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
@@ -2506,11 +2836,6 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall268", I32, ___syscall268, I32 a, I32 b) {
         util::getLogger()->debug("S - ___syscall268 - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall220", I32, ___syscall220, I32 a, I32 b) {
-        util::getLogger()->debug("S - ___syscall220 - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
@@ -2566,11 +2891,6 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___libc_current_sigrtmin", I32, ___libc_current_sigrtmin) {
         util::getLogger()->debug("S - ___libc_current_sigrtmin");
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall197", I32, ___syscall197, I32 a, I32 b) {
-        util::getLogger()->debug("S - ___syscall197 - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 

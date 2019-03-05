@@ -3,7 +3,7 @@
 - hosts: localhost
   gather_facts: no
   tasks:
-    - name: "Download source"
+    - name: "Download Eigen3 source"
       get_url:
         url: "http://bitbucket.org/eigen/eigen/get/3.3.7.tar.gz"
         dest: "/tmp/eigen.tar.gz"

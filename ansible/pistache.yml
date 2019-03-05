@@ -3,7 +3,7 @@
 - hosts: localhost
   gather_facts: no
   tasks:
-    - name: "Clone"
+    - name: "Clone Pistache"
       git:
         repo: "https://github.com/oktal/pistache.git"
         dest: "/usr/local/code/lib/pistache"

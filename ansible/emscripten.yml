@@ -1,0 +1,18 @@
+---
+
+- hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: "Clone emsdk repo"
+      git:
+        repo: "https://github.com/emscripten-core/emsdk.git"
+        dest: "/usr/local/code/lib/emsdk"
+        update: yes
+
+    - name: "Set up"
+      shell: "{{ item }}"
+      args:
+        chdir: "/usr/local/code/lib/emsdk"
+      with_items:
+        - "./emsdk install latest"
+        - "./emsdk activate latest"

@@ -3,7 +3,7 @@
 - hosts: localhost
   gather_facts: no
   tasks:
-    - name: "Create directory"
+    - name: "Create directory for catch"
       become: yes
       file:
         path: "/usr/local/include/catch"

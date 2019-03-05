@@ -3,7 +3,7 @@
 - hosts: localhost
   gather_facts: no
   tasks:
-    - name: "Clone repo"
+    - name: "Clone rapidjson repo"
       git:
         repo: "https://github.com/Tencent/rapidjson"
         dest: "/usr/local/code/lib/rapidjson"
