@@ -2,6 +2,7 @@
 
 #include <util/bytes.h>
 #include <util/logging.h>
+#include <util/config.h>
 
 #include <fcntl.h>
 #include <math.h>
@@ -640,7 +641,12 @@ namespace wasm {
         } else {
             // Warn re. unknown path
             logger->warn("Opening unrecognised path: {}", path);
-            fd = open(path, 0, 0);
+
+            // Switch on when debugging
+            // fd = open(path, 0, 0);
+
+            // Throw exception normally
+            throw std::runtime_error("Attempt to open invalid file");
         }
 
         if (fd > 0) {
@@ -1670,6 +1676,8 @@ namespace wasm {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         char *varName = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
 
+        util::SystemConfig &conf = util::getSystemConfig();
+        
         util::getLogger()->debug("S - _getenv - {}", varName);
 
         const char *value = "";
@@ -1687,10 +1695,12 @@ namespace wasm {
             value = "en_GB.UTF-8";
         } else if (strcmp(varName, "LANGUAGE") == 0) {
             value = "en_GB:en";
-        } else if (strcmp(varName, "PYTHONHOME") == 0) {
-            value = "/foo/home/";
-        } else if (strcmp(varName, "PYTHONPATH") == 0) {
-            value = "/foo/path/";
+//        } else if (strcmp(varName, "PYTHONHOME") == 0) {
+//            value = "/foo/home/";
+//        } else if (strcmp(varName, "PYTHONPATH") == 0) {
+//            value = "/foo/path/";
+        } else if(strcmp(varName, "FULL_ASYNC") == 0) {
+            value = std::to_string(conf.fullAsync).c_str();
         }
 
         U32 result = dynamicAllocString(memoryPtr, value, 1);

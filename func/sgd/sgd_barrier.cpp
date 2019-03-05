@@ -7,7 +7,8 @@
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        SgdParams p = readParamsFromState(memory, PARAMS_KEY, REUTERS_FULL_ASYNC);
+        bool fullAsync = getEnvFullAsync();
+        SgdParams p = readParamsFromState(memory, PARAMS_KEY, fullAsync);
 
         // Get epoch count and barrier count(starts at zero)
         int thisEpoch = getCounter(memory, EPOCH_COUNT_KEY, p.fullAsync);

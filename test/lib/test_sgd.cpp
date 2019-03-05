@@ -8,6 +8,8 @@
 #include <data/data.h>
 #include <redis/Redis.h>
 #include <state/State.h>
+#include <util/environment.h>
+
 
 using namespace faasm;
 
@@ -379,4 +381,23 @@ namespace tests {
         checkIntArrayInState(redisQueue, FINISHED_KEY, {0, 0, 0});
     }
 
+    TEST_CASE("Test getting full async from environment", "[sgd]") {
+        std::string envVar;
+        bool expected;
+        SECTION("Check true") {
+            envVar = "1";
+            expected = true;
+        }
+        SECTION("Check false") {
+            envVar = "0";
+            expected = false;
+        }
+
+        util::setEnvVar("FULL_ASYNC", envVar);
+
+        bool actual = getEnvFullAsync();
+
+        util::unsetEnvVar("FULL_ASYNC");
+    }
+    
 }
