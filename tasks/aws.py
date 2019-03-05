@@ -31,7 +31,6 @@ faasm_lambda_funcs = {
         "extra_env": {
             "UNBOUND_TIMEOUT": "60",
             "THREADS_PER_WORKER": "10",
-            "FULL_ASYNC": "1",
         }
     },
     "dispatch": {
@@ -86,6 +85,7 @@ def _get_lambda_env():
         "NO_SCHEDULER": "1",
         "GLOBAL_MESSAGE_BUS": "redis",
         "AWS_LOG_LEVEL": "info",
+        "FULL_ASYNC": "1",
     }
 
     return env

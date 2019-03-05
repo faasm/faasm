@@ -701,7 +701,7 @@ namespace wasm {
         // We need to avoid a case where we run out of wasm buffer space but still have native
         // dirents to copy.
         // Therefore we need to leave sufficient space in the wasm buffer.
-        int wasmOffset;
+        U32 wasmOffset;
         size_t wasmDirentSize = sizeof(wasm_dirent64);
         int nativeBufLen = 200;
         for (wasmOffset = 0; wasmOffset <= wasmDirentBufLen - wasmDirentSize;) {
