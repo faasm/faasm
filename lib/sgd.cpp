@@ -9,6 +9,8 @@ using namespace Eigen;
 namespace faasm {
     bool getEnvFullAsync() {
         char *envVal = getenv("FULL_ASYNC");
+        printf("Got FULL_ASYNC: %s\n", envVal);
+
         if(strcmp(envVal, "1") == 0) {
             printf("SGD running full async\n");
             return true;

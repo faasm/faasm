@@ -718,7 +718,7 @@ namespace wasm {
 
             // Now we iterate through the dirents we just got back from the host
             int nativeOffset;
-            for(nativeOffset = 0; nativeOffset < bytesRead;) {
+            for (nativeOffset = 0; nativeOffset < bytesRead;) {
                 // Get a pointer to the first native dirent
                 auto d = (struct dirent64 *) (nativeBuf + nativeOffset);
 
@@ -997,7 +997,7 @@ namespace wasm {
 
         util::getLogger()->debug("S - stat64 - {} {}", path, statBufPtr);
 
-        if(strcmp(path, "/") == 0) {
+        if (strcmp(path, "/") == 0) {
             path = FALSE_ROOT;
         }
 
@@ -1672,12 +1672,12 @@ namespace wasm {
     // Misc
     // ------------------------
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_getenv", I32, _getenv, I32 strPtr) {
+    U32 s__getenv(I32 strPtr) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         char *varName = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
 
         util::SystemConfig &conf = util::getSystemConfig();
-        
+
         util::getLogger()->debug("S - _getenv - {}", varName);
 
         const char *value = "";
@@ -1695,17 +1695,27 @@ namespace wasm {
             value = "en_GB.UTF-8";
         } else if (strcmp(varName, "LANGUAGE") == 0) {
             value = "en_GB:en";
-//        } else if (strcmp(varName, "PYTHONHOME") == 0) {
-//            value = "/foo/home/";
-//        } else if (strcmp(varName, "PYTHONPATH") == 0) {
-//            value = "/foo/path/";
-        } else if(strcmp(varName, "FULL_ASYNC") == 0) {
-            value = std::to_string(conf.fullAsync).c_str();
+        } else if (strcmp(varName, "FULL_ASYNC") == 0) {
+            if (conf.fullAsync == 1) {
+                util::getLogger()->debug("S - getenv returning full async true");
+                value = "1";
+            } else {
+                util::getLogger()->debug("S - getenv returning full async false");
+                value = "0";
+            }
         }
 
         U32 result = dynamicAllocString(memoryPtr, value, 1);
 
         return result;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "getenv", I32, getenv, I32 strPtr) {
+        return s__getenv(strPtr);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_getenv", I32, _getenv, I32 strPtr) {
+        return s__getenv(strPtr);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "abort", void, abort) {

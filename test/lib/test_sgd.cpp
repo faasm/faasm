@@ -396,6 +396,7 @@ namespace tests {
         util::setEnvVar("FULL_ASYNC", envVar);
 
         bool actual = getEnvFullAsync();
+        REQUIRE(actual == expected);
 
         util::unsetEnvVar("FULL_ASYNC");
     }
