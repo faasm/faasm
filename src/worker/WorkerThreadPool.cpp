@@ -44,14 +44,14 @@ namespace worker {
 
             while (true) {
                 try {
-                    message::Message msg = bus.nextMessage(conf.unboundTimeout);
+                    message::Message msg = bus.nextMessage(conf.globalMessageTimeout);
 
                     logger->debug("Got invocation for {} on {}", util::funcToString(msg), conf.queueName);
                     sch.callFunction(msg);
                 }
                 catch (scheduler::GlobalMessageBusNoMessageException &ex) {
                     if(dropOut) {
-                        logger->info("No message from global bus in {}s, dropping out", conf.unboundTimeout);
+                        logger->info("No message from global bus in {}s, dropping out", conf.globalMessageTimeout);
                         return;
                     }
                     else {

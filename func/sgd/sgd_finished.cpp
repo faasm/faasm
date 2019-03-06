@@ -6,9 +6,10 @@
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        SgdParams p = readParamsFromState(memory, PARAMS_KEY, REUTERS_FULL_ASYNC);
+        bool fullAsync = getEnvFullAsync();
+        SgdParams p = readParamsFromState(memory, PARAMS_KEY, fullAsync);
 
-        int epochCount = faasm::getCounter(memory, EPOCH_COUNT_KEY, REUTERS_FULL_ASYNC);
+        int epochCount = faasm::getCounter(memory, EPOCH_COUNT_KEY, fullAsync);
 
         // Work out if we've finished all epochs
         if (epochCount >= p.nEpochs - 1) {

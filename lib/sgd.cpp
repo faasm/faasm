@@ -7,6 +7,18 @@
 using namespace Eigen;
 
 namespace faasm {
+    bool getEnvFullAsync() {
+        char *envVal = getenv("FULL_ASYNC");
+
+        if(strcmp(envVal, "1") == 0) {
+            printf("SGD running full async\n");
+            return true;
+        } else {
+            printf("SGD not running full async\n");
+            return false;
+        }
+    }
+    
     SgdParams setUpReutersParams(FaasmMemory *memory, int nBatches, int epochs) {
         // Set up reuters params
         SgdParams p;
@@ -22,14 +34,16 @@ namespace faasm {
         p.nBatches = nBatches;
         p.batchSize = (REUTERS_N_EXAMPLES + nBatches - 1) / nBatches;
 
-        // Full sync or not
-        p.fullAsync = REUTERS_FULL_ASYNC;
+        // Full async or not
+        bool fullAsync = getEnvFullAsync();
+        p.fullAsync = fullAsync;
 
         // How many examples should be processed before doing a synchronous read
         // to update worker's weights
         p.syncInterval = REUTERS_SYNC_INTERVAL;
 
         // Write params (will take async/ not from params themselves)
+        printf("Writing SVM params to state\n");
         writeParamsToState(memory, PARAMS_KEY, p);
 
         return p;
@@ -325,9 +339,9 @@ namespace faasm {
         Eigen::MatrixXd weights = randomDenseMatrix(1, params.nWeights);
 
         // Write all data to memory
-        writeSparseMatrixToState(memory, INPUTS_KEY, inputs);
-        writeMatrixToState(memory, OUTPUTS_KEY, outputs);
-        writeMatrixToState(memory, WEIGHTS_KEY, weights);
+        writeSparseMatrixToState(memory, INPUTS_KEY, inputs, params.fullAsync);
+        writeMatrixToState(memory, OUTPUTS_KEY, outputs, params.fullAsync);
+        writeMatrixToState(memory, WEIGHTS_KEY, weights, params.fullAsync);
     }
 }
 

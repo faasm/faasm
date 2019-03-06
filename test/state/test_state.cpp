@@ -4,6 +4,8 @@
 
 #include <redis/Redis.h>
 #include <util/memory.h>
+#include <util/environment.h>
+#include <util/config.h>
 #include <state/State.h>
 #include <sys/mman.h>
 
@@ -40,8 +42,11 @@ namespace tests {
 
         // Get (should do nothing)
         std::vector<uint8_t> actual(5);
+        std::vector<uint8_t> expected = {0, 0, 0, 0, 0};
+
         kv->pull(true);
         kv->get(actual.data());
+        REQUIRE(actual == expected);
 
         // Update
         std::vector<uint8_t> values = {0, 1, 2, 3, 4};
@@ -455,5 +460,44 @@ namespace tests {
 
         byteRegionA[5] = 1;
         REQUIRE(segmentB[1] == 1);
+    }
+
+    TEST_CASE("Test pulling in full async mode") {
+        util::setEnvVar("FULL_ASYNC", "1");
+        util::getSystemConfig().reset();
+
+        StateKeyValue *kv = setupKV(6);
+        REQUIRE(kv->empty());
+        REQUIRE(kv->size() == 6);
+        
+        // Set up value in Redis
+        redis::Redis &redisState = redis::Redis::getState();
+        std::vector<uint8_t> value = {0, 1, 2, 3, 4, 5};
+        redisState.set(kv->key, value);
+
+        std::vector<uint8_t> expected;
+
+        SECTION("Check pull ignored when async and full async") {
+            // Pull and check storage is initialised
+            kv->pull(true);
+            REQUIRE(!kv->empty());
+            REQUIRE(kv->size() == 6);
+            expected = {0, 0, 0, 0, 0, 0};
+        }
+
+        SECTION("Check pull respected when not async but in full async mode") {
+            // Pull and check storage is initialised
+            kv->pull(false);
+            REQUIRE(!kv->empty());
+            REQUIRE(kv->size() == 6);
+            expected = {0, 1, 2, 3, 4, 5};
+        }
+
+        uint8_t *actualBytes = kv->get();
+        std::vector<uint8_t > actual(actualBytes, actualBytes + 6);
+        REQUIRE(actual == expected);
+        
+        util::unsetEnvVar("FULL_ASYNC");
+        util::getSystemConfig().reset();
     }
 }

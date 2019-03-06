@@ -17,6 +17,18 @@ void resetEmulatorUser() {
     user = "demo";
 }
 
+char *_getenv(const char *var) {
+    return getenv(var);
+}
+
+int _setenv(const char *var, const char *value, int overwrite) {
+    return setenv(var, value, overwrite);
+}
+
+int _unsetenv(const char *var) {
+    return unsetenv(var);
+}
+
 state::StateKeyValue *getKv(const char *key, size_t size) {
     state::State &s = state::getGlobalState();
     state::StateKeyValue *kv = s.getKV(user, key, size);

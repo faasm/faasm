@@ -56,4 +56,15 @@ namespace tests {
         REQUIRE(actual == buffer);
     }
 
+    TEST_CASE("Test safe copy empty data ignored", "[util]") {
+        std::vector<uint8_t> buffer;
+
+        uint8_t recvBuf[3] = {0, 0, 0};
+        int res = safeCopyToBuffer(buffer, recvBuf, 3);
+        REQUIRE(res == 0);
+        REQUIRE(recvBuf[0] == 0);
+        REQUIRE(recvBuf[1] == 0);
+        REQUIRE(recvBuf[2] == 0);
+    }
+
 }

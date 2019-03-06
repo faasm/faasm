@@ -59,6 +59,7 @@ from tasks.sgd import (
     clear_aws_queue,
     deploy_sgd_wasm_lambda,
     deploy_sgd_native_lambda,
+    upload_sgd_funcs,
     reuters_upload,
     reuters_upload_s3,
     reuters_prepare_aws,

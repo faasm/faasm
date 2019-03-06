@@ -15,6 +15,7 @@ namespace wasm {
     // Note that the max memory per module is 8GiB, i.e. > 100k pages
     // Page size in wasm is 64kiB so 50 pages ~ 3MiB of memory
     const int INITIAL_MEMORY_PAGES = 100;
+    const int MAX_MEMORY_PAGES = 16384; // 1GB
     const size_t INITIAL_MEMORY_SIZE = INITIAL_MEMORY_PAGES * IR::numBytesPerPage;
 
     // Note, we don't allow emscripten to grow memory
@@ -86,6 +87,7 @@ namespace wasm {
         void setUpStandardToolchain(Runtime::Compartment *compartment, IR::Module &module) {
             // Set up minimum memory size
             module.memories.defs[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
+            module.memories.defs[0].type.size.max = (U64) MAX_MEMORY_PAGES;
 
             envModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_env(), "env");
         }

@@ -5,6 +5,8 @@
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
+        bool fullAsync = getEnvFullAsync();
+
         size_t nBytes = sizeof(int) * 4;
         auto inputBuffer = new uint8_t[nBytes];
         memory->getInput(inputBuffer, nBytes);
@@ -17,7 +19,7 @@ namespace faasm {
         int epoch = inputParams[3];
 
         // Load params
-        SgdParams sgdParams = readParamsFromState(memory, PARAMS_KEY, REUTERS_FULL_ASYNC);
+        SgdParams sgdParams = readParamsFromState(memory, PARAMS_KEY, fullAsync);
 
         // Perform updates
         if (sgdParams.lossType == HINGE) {

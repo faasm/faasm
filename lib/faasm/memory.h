@@ -12,7 +12,7 @@ namespace faasm {
         /**
          * Reads the full state at the given key
          */
-        void readState(const char *key, uint8_t *buffer, long bufferLen, bool async = false);
+        void readState(const char *key, uint8_t *buffer, long bufferLen, bool async);
 
         /**
          * Reads the full state and returns a direct pointer
@@ -23,7 +23,7 @@ namespace faasm {
         * Reads a chunk of state at the given key and offset
         */
         void readStateOffset(const char *key, long totalLen, long offset, uint8_t *buffer, long bufferLen,
-                             bool async = false);
+                             bool async);
 
         /**
           * Reads a chunk of state and returns a direct pointer
@@ -33,13 +33,13 @@ namespace faasm {
         /**
          * Overwrites the state at the given key
          */
-        void writeState(const char *key, const uint8_t *data, long dataLen, bool async = false);
+        void writeState(const char *key, const uint8_t *data, long dataLen, bool async);
 
         /**
          * Writes a chunk of state at the given key and offset
          */
         void writeStateOffset(const char *key, long totalLen, long offset, const uint8_t *data, long dataLen,
-                              bool async = false);
+                              bool async);
 
         /**
          * Mark the whole value as dirty

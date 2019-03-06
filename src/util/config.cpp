@@ -42,6 +42,7 @@ namespace util {
         maxWorkersPerFunction = this->getSystemConfIntParam("MAX_WORKERS_PER_FUNCTION", "10");
 
         // Worker-related timeouts
+        globalMessageTimeout = this->getSystemConfIntParam("GLOBAL_MESSAGE_TIMEOUT", "60");
         boundTimeout = this->getSystemConfIntParam("BOUND_TIMEOUT", "30");
         unboundTimeout = this->getSystemConfIntParam("UNBOUND_TIMEOUT", "5000");
 
@@ -90,6 +91,7 @@ namespace util {
         logger->info("MAX_WORKERS_PER_FUNCTION   {}", maxWorkersPerFunction);
 
         logger->info("--- Timeouts ---");
+        logger->info("GLOBAL_MESSAGE_TIMEOUT     {}", globalMessageTimeout);
         logger->info("BOUND_TIMEOUT              {}", boundTimeout);
         logger->info("UNBOUND_TIMEOUT            {}", unboundTimeout);
 

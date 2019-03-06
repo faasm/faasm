@@ -42,10 +42,10 @@ namespace tests {
 
         // Write to a dummy key
         const char *stateKey = "test_matrix_state";
-        faasm::writeMatrixToState(&mem, stateKey, mat);
+        faasm::writeMatrixToState(&mem, stateKey, mat, false);
 
         // Retrieve from redis and check it's still the same
-        Map<const MatrixXd> afterState = faasm::readMatrixFromState(&mem, stateKey, 2, 3);
+        Map<const MatrixXd> afterState = faasm::readMatrixFromState(&mem, stateKey, 2, 3, false);
 
         REQUIRE(afterState.rows() == 2);
         REQUIRE(afterState.cols() == 3);
@@ -65,19 +65,19 @@ namespace tests {
 
         // Write full state to a dummy key
         const char *stateKey = "test_matrix_elem_state";
-        faasm::writeMatrixToState(&mem, stateKey, mat);
+        faasm::writeMatrixToState(&mem, stateKey, mat, false);
 
         // Update the matrix in memory
         mat(0, 2) = 3.3;
         mat(1, 1) = 10.5;
 
         // Update single elements
-        faasm::writeMatrixToStateElement(&mem, stateKey, mat, 0, 2);
-        faasm::writeMatrixToStateElement(&mem, stateKey, mat, 1, 1);
+        faasm::writeMatrixToStateElement(&mem, stateKey, mat, 0, 2, false);
+        faasm::writeMatrixToStateElement(&mem, stateKey, mat, 1, 1, false);
 
         // Retrieve from redis and check it matches the one in memory
         MatrixXd afterState(2, 3);
-        faasm::readMatrixFromState(&mem, stateKey, afterState.data(), 2, 3);
+        faasm::readMatrixFromState(&mem, stateKey, afterState.data(), 2, 3, false);
 
         REQUIRE(afterState.rows() == 2);
         REQUIRE(afterState.cols() == 3);
@@ -242,9 +242,9 @@ namespace tests {
         faasm::FaasmMemory mem;
 
         const char *key = "sparse_trip_test";
-        faasm::writeSparseMatrixToState(&mem, key, mat);
+        faasm::writeSparseMatrixToState(&mem, key, mat, false);
 
-        Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixFromState(&mem, key);
+        Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixFromState(&mem, key, false);
         checkSparseMatrixEquality(mat, actual);
     }
 

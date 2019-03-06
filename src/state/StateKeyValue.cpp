@@ -42,7 +42,20 @@ namespace state {
         this->updateLastInteraction();
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
-        // Check if new (one-off initialisation)
+        // If in full async mode, we won't do an asynchronous pull at all, we just
+        // want to initialise storage
+        if (async && fullAsync) {
+            logger->debug("Skipping async pull in full async mode for {}", key);
+
+            if(_empty) {
+                initialiseStorage();
+                _empty = false;
+            }
+
+            return;
+        }
+
+        // Initialise if new
         if (_empty) {
             // Unique lock on the whole value while loading
             FullLock lock(valueMutex);
@@ -58,11 +71,7 @@ namespace state {
             return;
         }
 
-        if (async && fullAsync) {
-            // Never pull in full async mode
-            logger->debug("Ignoring pull in full async mode for {}", key);
-
-        } else if (async) {
+        if (async) {
             // Check staleness
             Clock &clock = getGlobalClock();
             const TimePoint now = clock.now();
@@ -214,7 +223,6 @@ namespace state {
 
         // Copy data into shared region
         std::copy(buffer, buffer + valueSize, static_cast<uint8_t *>(sharedMemory));
-
         isWholeValueDirty = true;
         _empty = false;
     }

@@ -1,10 +1,9 @@
 import os
 from os.path import join
 
-import boto3
 from invoke import task
 
-from tasks.env import AWS_REGION, RUNTIME_S3_BUCKET, WASM_FUNC_BUILD_DIR, EMSCRIPTEN_FUNC_BUILD_DIR
+from tasks.env import WASM_FUNC_BUILD_DIR, EMSCRIPTEN_FUNC_BUILD_DIR
 from tasks.upload_util import curl_file
 
 DIRS_TO_INCLUDE = ["demo", "errors", "sgd"]

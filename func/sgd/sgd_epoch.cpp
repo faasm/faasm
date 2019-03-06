@@ -6,14 +6,15 @@
 namespace faasm {
     int exec(FaasmMemory *memory) {
         // Load params
-        SgdParams p = readParamsFromState(memory, PARAMS_KEY, REUTERS_FULL_ASYNC);
+        bool fullAsync = getEnvFullAsync();
+        SgdParams p = readParamsFromState(memory, PARAMS_KEY, fullAsync);
 
         // Set per-epoch memory to zero
         faasm::zeroErrors(memory, p);
         faasm::zeroFinished(memory, p);
 
         // Reset the barrier counter
-        faasm::initCounter(memory, BARRIER_COUNT_KEY, REUTERS_FULL_ASYNC);
+        faasm::initCounter(memory, BARRIER_COUNT_KEY, fullAsync);
 
         // Get the epoch count
         int epoch = faasm::getCounter(memory, EPOCH_COUNT_KEY, p.fullAsync);

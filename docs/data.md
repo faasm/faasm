@@ -21,8 +21,8 @@ For a Kubernetes/ local deployment you can use the `reuters-upload` task.
 
 For AWS deployments the data needs to be put in S3, which is a one-off task and can be done with `reuters-upload-s3`.
 
-To load this into Redis, we need to repeatedly invoke the relevant lambda function. This can be done with
-`reuters_prepare_aws` (provided the functions are already there).
+To load this into Redis, we need to repeatedly invoke the state copy lambda function. This can be done with
+`reuters-prepare-aws` (provided the data is already in S3).
 
 ### Native run
 

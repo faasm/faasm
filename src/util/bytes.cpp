@@ -36,6 +36,10 @@ namespace util {
             return dataInSize;
         }
 
+        if(dataIn.empty()) {
+            return 0;
+        }
+
         // Handle buffer longer than actual data
         int dataLen = bufferLen;
         if (dataInSize < bufferLen) {

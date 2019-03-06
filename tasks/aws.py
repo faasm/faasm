@@ -25,19 +25,19 @@ AWS_LAMBDA_ROLE = "faasm-lambda-role"
 faasm_lambda_funcs = {
     "worker": {
         "name": "faasm-worker",
-        "memory": 2048,
+        "memory": 2688,
         # Worker timeout should be less than the function timeout to give things time to shut down gracefully
-        "timeout": 600,
+        "timeout": 300,
         "extra_env": {
+            "GLOBAL_MESSAGE_TIMEOUT": "30",
             "UNBOUND_TIMEOUT": "60",
             "THREADS_PER_WORKER": "10",
-            "FULL_ASYNC": "1",
         }
     },
     "dispatch": {
         "name": "faasm-dispatch",
         "memory": 128,
-        "timeout": 20,
+        "timeout": 30,
         "extra_env": {
         }
     },
@@ -86,6 +86,7 @@ def _get_lambda_env():
         "NO_SCHEDULER": "1",
         "GLOBAL_MESSAGE_BUS": "redis",
         "AWS_LOG_LEVEL": "info",
+        "FULL_ASYNC": "1",
     }
 
     return env
@@ -373,7 +374,9 @@ def _do_deploy(func_name, memory=128, timeout=15, concurrency=10,
 
 def _create_lambda_zip(module_name, build_dir):
     cmake_zip_target = "aws-lambda-package-{}-lambda".format(module_name)
-    call("make {}".format(cmake_zip_target), cwd=build_dir, shell=True)
+    res = call("make {}".format(cmake_zip_target), cwd=build_dir, shell=True)
+    if res != 0:
+        raise RuntimeError("Failed to create lambda zip")
 
 
 def _get_s3_key(module_name):
@@ -403,7 +406,9 @@ def _build_cmake_project(build_dir, cmake_args, clean=False, target=None):
 
     cpp_sdk_build_cmd.extend(cmake_args)
 
-    call(" ".join(cpp_sdk_build_cmd), cwd=build_dir, shell=True)
+    res = call(" ".join(cpp_sdk_build_cmd), cwd=build_dir, shell=True)
+    if res != 0:
+        raise RuntimeError("Building cmake project failed")
 
     if target:
         call("make {}".format(target), cwd=build_dir, shell=True)

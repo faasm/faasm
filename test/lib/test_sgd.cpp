@@ -8,6 +8,8 @@
 #include <data/data.h>
 #include <redis/Redis.h>
 #include <state/State.h>
+#include <util/environment.h>
+
 
 using namespace faasm;
 
@@ -48,7 +50,7 @@ namespace tests {
         writeParamsToState(&mem, key, params);
 
         // Read back and check
-        SgdParams actual = readParamsFromState(&mem, key);
+        SgdParams actual = readParamsFromState(&mem, key, false);
         checkSgdParamEquality(actual, params);
     }
 
@@ -65,15 +67,15 @@ namespace tests {
         setUpDummyProblem(&mem, params);
 
         // Check params are set up
-        SgdParams actual = readParamsFromState(&mem, PARAMS_KEY);
+        SgdParams actual = readParamsFromState(&mem, PARAMS_KEY, false);
         checkSgdParamEquality(actual, params);
 
         // Check weights
-        const MatrixXd actualWeights = readMatrixFromState(&mem, WEIGHTS_KEY, 1, params.nWeights);
+        const MatrixXd actualWeights = readMatrixFromState(&mem, WEIGHTS_KEY, 1, params.nWeights, false);
         REQUIRE(actualWeights.rows() == 1);
         REQUIRE(actualWeights.cols() == params.nWeights);
 
-        const MatrixXd actualOutputs = readMatrixFromState(&mem, OUTPUTS_KEY, params.nWeights, params.nTrain);
+        const MatrixXd actualOutputs = readMatrixFromState(&mem, OUTPUTS_KEY, params.nWeights, params.nTrain, false);
         REQUIRE(actualOutputs.rows() == params.nWeights);
         REQUIRE(actualOutputs.cols() == params.nTrain);
     }
@@ -314,11 +316,11 @@ namespace tests {
         // Update with some other values
         std::vector<double> losses = {2.2, 3.3, 4.4, 5.5, 0.0};
         auto lossBytes = reinterpret_cast<uint8_t *>(losses.data());
-        mem.writeState(LOSSES_KEY, lossBytes, 5 * sizeof(double));
+        mem.writeState(LOSSES_KEY, lossBytes, 5 * sizeof(double), false);
 
         std::vector<double> timestamps = {100.0, 200.2, 300.3, 1000.1, 2000.2};
         auto timestampBytes = reinterpret_cast<uint8_t *>(timestamps.data());
-        mem.writeState(LOSS_TIMESTAMPS_KEY, timestampBytes, 5 * sizeof(double));
+        mem.writeState(LOSS_TIMESTAMPS_KEY, timestampBytes, 5 * sizeof(double), false);
 
         checkDoubleArrayInState(redisQueue, LOSSES_KEY, losses);
         checkDoubleArrayInState(redisQueue, LOSS_TIMESTAMPS_KEY, timestamps);
@@ -370,7 +372,7 @@ namespace tests {
         // Update with some other values
         std::vector<int> finished = {1, 0, 1};
         auto lossBytes = reinterpret_cast<uint8_t *>(finished.data());
-        mem.writeState(FINISHED_KEY, lossBytes, 5 * sizeof(int));
+        mem.writeState(FINISHED_KEY, lossBytes, 5 * sizeof(int), false);
 
         checkIntArrayInState(redisQueue, FINISHED_KEY, finished);
 
@@ -379,4 +381,24 @@ namespace tests {
         checkIntArrayInState(redisQueue, FINISHED_KEY, {0, 0, 0});
     }
 
+    TEST_CASE("Test getting full async from environment", "[sgd]") {
+        std::string envVar;
+        bool expected;
+        SECTION("Check true") {
+            envVar = "1";
+            expected = true;
+        }
+        SECTION("Check false") {
+            envVar = "0";
+            expected = false;
+        }
+
+        util::setEnvVar("FULL_ASYNC", envVar);
+
+        bool actual = getEnvFullAsync();
+        REQUIRE(actual == expected);
+
+        util::unsetEnvVar("FULL_ASYNC");
+    }
+    
 }

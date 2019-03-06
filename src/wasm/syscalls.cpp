@@ -2,6 +2,7 @@
 
 #include <util/bytes.h>
 #include <util/logging.h>
+#include <util/config.h>
 
 #include <fcntl.h>
 #include <math.h>
@@ -249,6 +250,7 @@ namespace wasm {
 
     state::StateKeyValue *getStateKVRead(I32 keyPtr, size_t size, int async) {
         state::StateKeyValue *kv = getStateKV(keyPtr, size);
+
         bool isAsync = async == 1;
         kv->pull(isAsync);
 
@@ -640,7 +642,12 @@ namespace wasm {
         } else {
             // Warn re. unknown path
             logger->warn("Opening unrecognised path: {}", path);
-            fd = open(path, 0, 0);
+
+            // Switch on when debugging
+            // fd = open(path, 0, 0);
+
+            // Throw exception normally
+            throw std::runtime_error("Attempt to open invalid file");
         }
 
         if (fd > 0) {
@@ -695,7 +702,7 @@ namespace wasm {
         // We need to avoid a case where we run out of wasm buffer space but still have native
         // dirents to copy.
         // Therefore we need to leave sufficient space in the wasm buffer.
-        int wasmOffset;
+        U32 wasmOffset;
         size_t wasmDirentSize = sizeof(wasm_dirent64);
         int nativeBufLen = 200;
         for (wasmOffset = 0; wasmOffset <= wasmDirentBufLen - wasmDirentSize;) {
@@ -712,7 +719,7 @@ namespace wasm {
 
             // Now we iterate through the dirents we just got back from the host
             int nativeOffset;
-            for(nativeOffset = 0; nativeOffset < bytesRead;) {
+            for (nativeOffset = 0; nativeOffset < bytesRead;) {
                 // Get a pointer to the first native dirent
                 auto d = (struct dirent64 *) (nativeBuf + nativeOffset);
 
@@ -881,7 +888,7 @@ namespace wasm {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         char *string = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
 
-        util::getLogger()->debug("S - puts", "%s", string);
+        util::getLogger()->debug("S - puts {}", string);
 
         return 0;
     }
@@ -991,7 +998,7 @@ namespace wasm {
 
         util::getLogger()->debug("S - stat64 - {} {}", path, statBufPtr);
 
-        if(strcmp(path, "/") == 0) {
+        if (strcmp(path, "/") == 0) {
             path = FALSE_ROOT;
         }
 
@@ -1666,11 +1673,15 @@ namespace wasm {
     // Misc
     // ------------------------
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_getenv", I32, _getenv, I32 strPtr) {
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        char *varName = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
+    U32 s__getenv(I32 varPtr, bool isEmscripten) {
+        WasmModule *module = getExecutingModule();
+        Runtime::Memory *memoryPtr = module->defaultMemory;
+        char *varName = &Runtime::memoryRef<char>(memoryPtr, (Uptr) varPtr);
 
-        util::getLogger()->debug("S - _getenv - {}", varName);
+        util::SystemConfig &conf = util::getSystemConfig();
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - _getenv - {}", varName);
 
         const char *value = "";
 
@@ -1687,15 +1698,62 @@ namespace wasm {
             value = "en_GB.UTF-8";
         } else if (strcmp(varName, "LANGUAGE") == 0) {
             value = "en_GB:en";
-        } else if (strcmp(varName, "PYTHONHOME") == 0) {
-            value = "/foo/home/";
-        } else if (strcmp(varName, "PYTHONPATH") == 0) {
-            value = "/foo/path/";
+        } else if (strcmp(varName, "FULL_ASYNC") == 0) {
+            if (conf.fullAsync == 1) {
+                value = "1";
+            } else {
+                value = "0";
+            }
         }
 
-        U32 result = dynamicAllocString(memoryPtr, value, 1);
+        U32 result;
+        size_t nBytes = strlen(value) + 1;
+        if (isEmscripten) {
+            result = dynamicAllocString(memoryPtr, value, nBytes);
+        } else {
+            // TODO - avoid allocating a whole page just for a new string
+            result = module->mmap(nBytes);
+            char *hostAddr = Runtime::memoryArrayPtr<char>(memoryPtr, result, nBytes);
+            std::copy(value, value + nBytes, hostAddr);
+            logger->debug("Copied {}={} ({} bytes)", varName, value, nBytes);
+        }
 
         return result;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "_getenv", I32, _getenv, I32 varPtr) {
+        return s__getenv(varPtr, false);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_getenv", I32, _emscriptenGetenv, I32 varPtr) {
+        return s__getenv(varPtr, true);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "_setenv", I32, _setenv, I32 varPtr, I32 valPtr, I32 overwrite) {
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        char *varName = &Runtime::memoryRef<char>(memoryPtr, (Uptr) varPtr);
+        char *value = &Runtime::memoryRef<char>(memoryPtr, (Uptr) valPtr);
+
+        util::getLogger()->debug("S - _setenv {} {} {}", varName, value, overwrite);
+
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    I32 s__unsetenv(I32 varPtr) {
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        char *varName = &Runtime::memoryRef<char>(memoryPtr, (Uptr) varPtr);
+
+        util::getLogger()->debug("S - _unsetenv {} {} {}", varName);
+
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "_unsetenv", I32, _unsetenv, I32 varPtr) {
+        return s__unsetenv(varPtr);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_unsetenv", I32, _emscriptenUnsetenv, I32 varPtr) {
+        return s__unsetenv(varPtr);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "abort", void, abort) {
@@ -2966,11 +3024,6 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall142", I32, ___syscall142, I32 a, I32 b) {
         util::getLogger()->debug("S - ___syscall142 - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_unsetenv", I32, _unsetenv, I32 a) {
-        util::getLogger()->debug("S - _unsetenv - {}", a);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 

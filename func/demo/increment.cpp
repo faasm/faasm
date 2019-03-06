@@ -9,9 +9,9 @@ namespace faasm {
     int exec(FaasmMemory *memory) {
         const char *key = "incr_example";
 
-        incrementCounter(memory, key);
+        incrementCounter(memory, key, false);
 
-        int count = getCounter(memory, key);
+        int count = getCounter(memory, key, false);
 
         // Return message
         char output[13];

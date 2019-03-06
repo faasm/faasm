@@ -18,7 +18,7 @@ namespace tests {
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.clear();
-        
+
         // Network ns requires root
         util::setEnvVar("NETNS_MODE", "off");
     }
@@ -36,7 +36,7 @@ namespace tests {
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         scheduler::InMemoryMessageQueue *bindQueue = sch.getBindQueue();
-        
+
         // Call the function, checking that everything is set up
         sch.callFunction(call);
         REQUIRE(sch.getFunctionQueueLength(call) == 1);
@@ -99,7 +99,7 @@ namespace tests {
         conf.prewarm = 0;
 
         WorkerThreadPool pool(1);
-        
+
         WorkerThread w(1);
 
         REQUIRE(!w.isBound());
@@ -399,7 +399,7 @@ namespace tests {
         REQUIRE(afterPages == initialPages);
     }
 
-    void checkCallingFunctionGivesTrueOutput(const std::string &funcName) {
+    void checkCallingFunctionGivesBoolOutput(const std::string &funcName, bool expected) {
         message::Message call;
         call.set_user("demo");
         call.set_function(funcName);
@@ -422,34 +422,61 @@ namespace tests {
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
 
-        std::vector<uint8_t> expectedOutput = {1};
+        std::vector<uint8_t> expectedOutput;
+
+        if (expected) {
+            expectedOutput = {1};
+        } else {
+            expectedOutput = {0};
+        }
+
         REQUIRE(outputBytes == expectedOutput);
     }
 
     TEST_CASE("Test mmap/munmap", "[worker]") {
         setUp();
 
-        checkCallingFunctionGivesTrueOutput("mmap");
+        checkCallingFunctionGivesBoolOutput("mmap", true);
     }
 
-    TEST_CASE("Test shared state pointers", "[worker]") {
+    TEST_CASE("Test getenv", "[worker]") {
+        setUp();
+
+        bool expected;
+        SECTION("With full async true") {
+            util::setEnvVar("FULL_ASYNC", "1");
+            util::getSystemConfig().reset();
+            expected = true;
+        }
+
+        SECTION("With full async false") {
+            util::setEnvVar("FULL_ASYNC", "0");
+            util::getSystemConfig().reset();
+            expected = false;
+        }
+
+        checkCallingFunctionGivesBoolOutput("getenv", expected);
+        util::unsetEnvVar("FULL_ASYNC");
+    }
+
+    TEST_CASE("Test shared state write pointers", "[worker]") {
         setUp();
 
         // Run the function to write
-        checkCallingFunctionGivesTrueOutput("state_shared_write");
+        checkCallingFunctionGivesBoolOutput("state_shared_write", true);
 
         // Run the function to read
-        checkCallingFunctionGivesTrueOutput("state_shared_read");
+        checkCallingFunctionGivesBoolOutput("state_shared_read", true);
     }
 
     TEST_CASE("Test shared state offset pointers", "[worker]") {
         setUp();
 
         // Run the function to write
-        checkCallingFunctionGivesTrueOutput("state_shared_write_offset");
+        checkCallingFunctionGivesBoolOutput("state_shared_write_offset", true);
 
         // Run the function to read
-        checkCallingFunctionGivesTrueOutput("state_shared_read_offset");
+        checkCallingFunctionGivesBoolOutput("state_shared_read_offset", true);
     }
 
     TEST_CASE("Test pool accounting", "[worker]") {

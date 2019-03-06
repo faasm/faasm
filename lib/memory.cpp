@@ -42,7 +42,7 @@ void __faasm_write_output(const unsigned char *output, long outputLen);
 void __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize);
 
 #if WASM_BUILD == 1
-}
+}  // Close extern C
 #endif
 
 namespace faasm {

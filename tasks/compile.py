@@ -137,7 +137,7 @@ def _build_funcs(build_type, clean=False, func=None, toolchain_file=None, top_le
         toolchain_file = EMSCRIPTEN_CMAKE_TOOLCHAIN
 
     if top_level_build:
-        func_build_dir = join(PROJ_ROOT, "{}_func_build".format(build_type))
+        func_build_dir = join(PROJ_ROOT, "func", "{}_func_build".format(build_type))
     else:
         func_build_dir = join(PROJ_ROOT, "func", "{}_func_build".format(build_type))
 

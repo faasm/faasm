@@ -87,6 +87,9 @@ namespace worker {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->info("Finished {}", util::funcToString(call));
 
+        // Decrement execution count
+        scheduler.decrementExecutingCount();
+
         bool isSuccess = errorMsg.empty();
         if (!isSuccess) {
             call.set_outputdata(errorMsg);
@@ -198,9 +201,6 @@ namespace worker {
 
         const std::string empty;
         this->finishCall(call, empty);
-
-        // Decrement execution count
-        scheduler.decrementExecutingCount();
 
         return empty;
     }

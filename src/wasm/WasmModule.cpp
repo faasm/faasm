@@ -41,15 +41,18 @@ namespace wasm {
         return pageCount;
     }
 
-    U32 dynamicAllocString(Runtime::Memory *memory, const char* str, U32 len) {
+    U32 dynamicAllocString(Runtime::Memory *memory, const char *str, U32 len) {
         U32 wasmAddr = dynamicAlloc(memory, len);
         U8 *hostAddr = Runtime::memoryArrayPtr<U8>(memory, wasmAddr, len);
         memcpy(hostAddr, str, len);
 
         return wasmAddr;
     }
-    
+
     U32 dynamicAlloc(Runtime::Memory *memory, U32 numBytes) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Dynamically allocating emscripten memory for {} bytes", numBytes);
+
         MutableGlobals &mutableGlobals = Runtime::memoryRef<MutableGlobals>(memory, MutableGlobals::address);
 
         const U32 allocationAddress = mutableGlobals.DYNAMICTOP_PTR;
@@ -276,9 +279,8 @@ namespace wasm {
     }
 
     U32 WasmModule::mmap(U32 length) {
-        // Work out how many WAVM pages need to be added
+        // Round up to page boundary
         Uptr pagesRequested = getNumberOfPagesForBytes(length);
-
         Iptr previousPageCount = growMemory(defaultMemory, pagesRequested);
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();

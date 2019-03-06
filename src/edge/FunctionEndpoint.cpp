@@ -21,7 +21,7 @@ namespace edge {
         // Configure endpoint
         auto opts = Http::Endpoint::options()
                 .threads(threadCount)
-                .flags(Tcp::Options::InstallSignalHandler);
+                .flags(Tcp::Options::InstallSignalHandler | Tcp::Options::ReuseAddr);
 
         httpEndpoint = std::make_shared<Http::Endpoint>(addr);
         httpEndpoint->init(opts);
