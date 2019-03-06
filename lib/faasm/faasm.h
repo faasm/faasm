@@ -7,11 +7,6 @@
 #include <lambda_func/interface.h>
 #else
 
-#if WASM_BUILD == 1
-// Hack to override getenv to force using our virtualised environment
-#define getenv _getenv
-#endif
-
 #include "faasm/memory.h"
 
 namespace faasm {

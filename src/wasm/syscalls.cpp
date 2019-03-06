@@ -1672,9 +1672,9 @@ namespace wasm {
     // Misc
     // ------------------------
 
-    U32 s__getenv(I32 strPtr, bool isEmscripten) {
+    U32 s__getenv(I32 varPtr, bool isEmscripten) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        char *varName = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
+        char *varName = &Runtime::memoryRef<char>(memoryPtr, (Uptr) varPtr);
 
         util::SystemConfig &conf = util::getSystemConfig();
 
@@ -1697,20 +1697,17 @@ namespace wasm {
             value = "en_GB:en";
         } else if (strcmp(varName, "FULL_ASYNC") == 0) {
             if (conf.fullAsync == 1) {
-                util::getLogger()->debug("S - getenv returning full async true");
                 value = "1";
             } else {
-                util::getLogger()->debug("S - getenv returning full async false");
                 value = "0";
             }
         }
 
         U32 result;
         size_t nBytes = strlen(value) + 1;
-        if(isEmscripten) {
+        if (isEmscripten) {
             result = dynamicAllocString(memoryPtr, value, nBytes);
-        }
-        else {
+        } else {
             // TODO - avoid allocating a whole page just for a new string
             Iptr pageBoundary = growMemory(memoryPtr, 1);
             result = pageBoundary * IR::numBytesPerPage;
@@ -1721,12 +1718,39 @@ namespace wasm {
         return result;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "_getenv", I32, getenv, I32 strPtr) {
-        return s__getenv(strPtr, false);
+    DEFINE_INTRINSIC_FUNCTION(env, "_getenv", I32, _getenv, I32 varPtr) {
+        return s__getenv(varPtr, false);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_getenv", I32, _getenv, I32 strPtr) {
-        return s__getenv(strPtr, true);
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_getenv", I32, _emscriptenGetenv, I32 varPtr) {
+        return s__getenv(varPtr, true);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "_setenv", I32, _setenv, I32 varPtr, I32 valPtr, I32 overwrite) {
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        char *varName = &Runtime::memoryRef<char>(memoryPtr, (Uptr) varPtr);
+        char *value = &Runtime::memoryRef<char>(memoryPtr, (Uptr) valPtr);
+
+        util::getLogger()->debug("S - _setenv {} {} {}", varName, value, overwrite);
+
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    I32 s__unsetenv(I32 varPtr) {
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        char *varName = &Runtime::memoryRef<char>(memoryPtr, (Uptr) varPtr);
+
+        util::getLogger()->debug("S - _unsetenv {} {} {}", varName);
+
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "_unsetenv", I32, _unsetenv, I32 varPtr) {
+        return s__unsetenv(varPtr);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_unsetenv", I32, _emscriptenUnsetenv, I32 varPtr) {
+        return s__unsetenv(varPtr);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "abort", void, abort) {
@@ -2997,11 +3021,6 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall142", I32, ___syscall142, I32 a, I32 b) {
         util::getLogger()->debug("S - ___syscall142 - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_unsetenv", I32, _unsetenv, I32 a) {
-        util::getLogger()->debug("S - _unsetenv - {}", a);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 

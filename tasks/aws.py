@@ -36,7 +36,7 @@ faasm_lambda_funcs = {
     "dispatch": {
         "name": "faasm-dispatch",
         "memory": 128,
-        "timeout": 20,
+        "timeout": 30,
         "extra_env": {
         }
     },
