@@ -30,6 +30,7 @@ namespace tests {
         REQUIRE(conf.maxQueueRatio == 3);
         REQUIRE(conf.maxWorkersPerFunction == 10);
 
+        REQUIRE(conf.globalMessageTimeout == 60);
         REQUIRE(conf.boundTimeout == 30);
         REQUIRE(conf.unboundTimeout == 5000);
 
@@ -60,6 +61,7 @@ namespace tests {
         setEnvVar("MAX_QUEUE_RATIO", "8888");
         setEnvVar("MAX_WORKERS_PER_FUNCTION", "7777");
 
+        setEnvVar("GLOBAL_MESSAGE_TIMEOUT", "9876");
         setEnvVar("BOUND_TIMEOUT", "6666");
         setEnvVar("UNBOUND_TIMEOUT", "5555");
 
@@ -89,6 +91,7 @@ namespace tests {
         REQUIRE(conf.maxQueueRatio == 8888);
         REQUIRE(conf.maxWorkersPerFunction == 7777);
 
+        REQUIRE(conf.globalMessageTimeout == 9876);
         REQUIRE(conf.boundTimeout == 6666);
         REQUIRE(conf.unboundTimeout == 5555);
 

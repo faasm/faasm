@@ -33,7 +33,7 @@ int main() {
         logger->info("Initialising thread pool with {} workers", config.threadsPerWorker);
         worker::WorkerThreadPool pool(config.threadsPerWorker);
 
-        logger->info("Listening for requests for {}s", config.unboundTimeout);
+        logger->info("Listening for requests for {}s", config.globalMessageTimeout);
 
         pool.startThreadPool(true);
 
