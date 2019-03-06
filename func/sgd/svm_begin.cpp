@@ -1,6 +1,7 @@
 #include "faasm/faasm.h"
 #include "faasm/counter.h"
 #include "faasm/sgd.h"
+#include "faasm/matrix.h"
 
 #include <stdio.h>
 
@@ -30,6 +31,13 @@ namespace faasm {
         // Zero the losses
         printf("Zeroing losses\n");
         zeroLosses(memory, p);
+
+        // If running full async, we need to make sure the inputs and outputs are loaded fully into memory
+        if(p.fullAsync) {
+            readSparseMatrixFromState(memory, INPUTS_KEY, false);
+
+            readMatrixFromState(memory, OUTPUTS_KEY, p.nTrain, 1, false);
+        }
 
         // Begin first epoch
         printf("Chaining epoch call\n");

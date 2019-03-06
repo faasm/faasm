@@ -42,7 +42,20 @@ namespace state {
         this->updateLastInteraction();
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
-        // Check if new (one-off initialisation)
+        // If in full async mode, we won't do an asynchronous pull at all, we just
+        // want to initialise storage
+        if (async && fullAsync) {
+            logger->debug("Skipping async pull in full async mode for {}", key);
+
+            if(_empty) {
+                initialiseStorage();
+                _empty = false;
+            }
+
+            return;
+        }
+
+        // Initialise if new
         if (_empty) {
             // Unique lock on the whole value while loading
             FullLock lock(valueMutex);
@@ -58,11 +71,7 @@ namespace state {
             return;
         }
 
-        if (fullAsync) {
-            // Never pull in full async mode
-            logger->debug("Ignoring pull in full async mode for {}", key);
-
-        } else if (async) {
+        if (async) {
             // Check staleness
             Clock &clock = getGlobalClock();
             const TimePoint now = clock.now();
@@ -91,12 +100,6 @@ namespace state {
         // Initialise the data array with zeroes
         if (_empty) {
             initialiseStorage();
-        }
-
-        if(fullAsync) {
-            const std::shared_ptr<spdlog::logger> &logger = getLogger();
-            logger->debug("Skipping remote read in full async for {}", key);
-            return;
         }
 
         // Read from the remote
@@ -219,15 +222,9 @@ namespace state {
         }
 
         // Copy data into shared region
-        if(valueSize == 0) {
-            const std::shared_ptr<spdlog::logger> &logger = getLogger();
-            logger->warn("Setting empty state value for {}", key);
-        }
-        else {
-            std::copy(buffer, buffer + valueSize, static_cast<uint8_t *>(sharedMemory));
-            isWholeValueDirty = true;
-            _empty = false;
-        }
+        std::copy(buffer, buffer + valueSize, static_cast<uint8_t *>(sharedMemory));
+        isWholeValueDirty = true;
+        _empty = false;
     }
 
     void StateKeyValue::setSegment(long offset, const uint8_t *buffer, size_t length) {
