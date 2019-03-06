@@ -1712,7 +1712,8 @@ namespace wasm {
         }
         else {
             // TODO - avoid allocating a whole page just for a new string
-            result = growMemory(memoryPtr, 1);
+            Iptr pageBoundary = growMemory(memoryPtr, 1);
+            result = pageBoundary * IR::numBytesPerPage;
             U8 *hostAddr = Runtime::memoryArrayPtr<U8>(memoryPtr, result, nBytes);
             memcpy(hostAddr, value, nBytes);
         }

@@ -373,7 +373,9 @@ def _do_deploy(func_name, memory=128, timeout=15, concurrency=10,
 
 def _create_lambda_zip(module_name, build_dir):
     cmake_zip_target = "aws-lambda-package-{}-lambda".format(module_name)
-    call("make {}".format(cmake_zip_target), cwd=build_dir, shell=True)
+    res = call("make {}".format(cmake_zip_target), cwd=build_dir, shell=True)
+    if res != 0:
+        raise RuntimeError("Failed to create lambda zip")
 
 
 def _get_s3_key(module_name):
@@ -403,7 +405,9 @@ def _build_cmake_project(build_dir, cmake_args, clean=False, target=None):
 
     cpp_sdk_build_cmd.extend(cmake_args)
 
-    call(" ".join(cpp_sdk_build_cmd), cwd=build_dir, shell=True)
+    res = call(" ".join(cpp_sdk_build_cmd), cwd=build_dir, shell=True)
+    if res != 0:
+        raise RuntimeError("Building cmake project failed")
 
     if target:
         call("make {}".format(target), cwd=build_dir, shell=True)

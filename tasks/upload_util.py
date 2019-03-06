@@ -28,6 +28,6 @@ def curl_file(url, file_path):
     res = subprocess.call(cmd, shell=True)
 
     if res == 0:
-        print("Successfully PUT file {} to {}".format(url, file_path))
+        print("Successfully PUT file {} to {}".format(file_path, url))
     else:
-        raise RuntimeError("Failed PUTting file {} to {}".format(url, file_path))
+        raise RuntimeError("Failed PUTting file {} to {}".format(file_path, url))

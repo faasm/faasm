@@ -50,6 +50,8 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # ----------------------
     # WASM build
     # ----------------------
+    add_definitions(-DWASM_BUILD=1)
+
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Oz -fvisibility=hidden")
 
     function(faasm_func exec_name file_name)
