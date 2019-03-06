@@ -58,7 +58,7 @@ namespace state {
             return;
         }
 
-        if (async && fullAsync) {
+        if (fullAsync) {
             // Never pull in full async mode
             logger->debug("Ignoring pull in full async mode for {}", key);
 
@@ -91,6 +91,12 @@ namespace state {
         // Initialise the data array with zeroes
         if (_empty) {
             initialiseStorage();
+        }
+
+        if(fullAsync) {
+            const std::shared_ptr<spdlog::logger> &logger = getLogger();
+            logger->debug("Skipping remote read in full async for {}", key);
+            return;
         }
 
         // Read from the remote
@@ -213,10 +219,15 @@ namespace state {
         }
 
         // Copy data into shared region
-        std::copy(buffer, buffer + valueSize, static_cast<uint8_t *>(sharedMemory));
-
-        isWholeValueDirty = true;
-        _empty = false;
+        if(valueSize == 0) {
+            const std::shared_ptr<spdlog::logger> &logger = getLogger();
+            logger->warn("Setting empty state value for {}", key);
+        }
+        else {
+            std::copy(buffer, buffer + valueSize, static_cast<uint8_t *>(sharedMemory));
+            isWholeValueDirty = true;
+            _empty = false;
+        }
     }
 
     void StateKeyValue::setSegment(long offset, const uint8_t *buffer, size_t length) {

@@ -27,7 +27,7 @@ faasm_lambda_funcs = {
         "name": "faasm-worker",
         "memory": 2048,
         # Worker timeout should be less than the function timeout to give things time to shut down gracefully
-        "timeout": 600,
+        "timeout": 300,
         "extra_env": {
             "UNBOUND_TIMEOUT": "60",
             "THREADS_PER_WORKER": "10",

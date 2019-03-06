@@ -250,6 +250,7 @@ namespace wasm {
 
     state::StateKeyValue *getStateKVRead(I32 keyPtr, size_t size, int async) {
         state::StateKeyValue *kv = getStateKV(keyPtr, size);
+
         bool isAsync = async == 1;
         kv->pull(isAsync);
 
@@ -1673,12 +1674,14 @@ namespace wasm {
     // ------------------------
 
     U32 s__getenv(I32 varPtr, bool isEmscripten) {
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        WasmModule *module = getExecutingModule();
+        Runtime::Memory *memoryPtr = module->defaultMemory;
         char *varName = &Runtime::memoryRef<char>(memoryPtr, (Uptr) varPtr);
 
         util::SystemConfig &conf = util::getSystemConfig();
 
-        util::getLogger()->debug("S - _getenv - {}", varName);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - _getenv - {}", varName);
 
         const char *value = "";
 
@@ -1709,10 +1712,10 @@ namespace wasm {
             result = dynamicAllocString(memoryPtr, value, nBytes);
         } else {
             // TODO - avoid allocating a whole page just for a new string
-            Iptr pageBoundary = growMemory(memoryPtr, 1);
-            result = pageBoundary * IR::numBytesPerPage;
-            U8 *hostAddr = Runtime::memoryArrayPtr<U8>(memoryPtr, result, nBytes);
-            memcpy(hostAddr, value, nBytes);
+            result = module->mmap(nBytes);
+            char *hostAddr = Runtime::memoryArrayPtr<char>(memoryPtr, result, nBytes);
+            std::copy(value, value + nBytes, hostAddr);
+            logger->debug("Copied {}={} ({} bytes)", varName, value, nBytes);
         }
 
         return result;

@@ -279,13 +279,6 @@ namespace wasm {
     }
 
     U32 WasmModule::mmap(U32 length) {
-        // Note, if we're running an emscripten module, we can't actually grow the memory
-//        // but we can dynamically allocate from the existing memory (provided there's space)
-//        if (resolver->isEmscripten) {
-//            U32 result = dynamicAlloc(defaultMemory, length);
-//            return result;
-//        }
-
         // Round up to page boundary
         Uptr pagesRequested = getNumberOfPagesForBytes(length);
         Iptr previousPageCount = growMemory(defaultMemory, pagesRequested);

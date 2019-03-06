@@ -74,8 +74,6 @@ namespace wasm {
         std::unordered_map<std::string, I32> sharedMemWasmPtrs;
         std::unordered_map<std::string, void*> sharedMemHostPtrs;
         std::unordered_map<std::string, state::StateKeyValue*> sharedMemKVs;
-
-        void emscriptenRuntimeInit(Runtime::Context *context);
     };
 
     WasmModule *getExecutingModule();

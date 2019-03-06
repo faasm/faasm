@@ -8,6 +8,7 @@ using namespace util;
 namespace tests {
     TEST_CASE("Test default system config initialisation", "[util]") {
         SystemConfig conf;
+        conf.reset();
 
         REQUIRE(conf.threadsPerWorker == 50);
 

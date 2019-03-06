@@ -9,7 +9,6 @@ using namespace Eigen;
 namespace faasm {
     bool getEnvFullAsync() {
         char *envVal = getenv("FULL_ASYNC");
-        printf("Got FULL_ASYNC: %s\n", envVal);
 
         if(strcmp(envVal, "1") == 0) {
             printf("SGD running full async\n");
@@ -44,6 +43,7 @@ namespace faasm {
         p.syncInterval = REUTERS_SYNC_INTERVAL;
 
         // Write params (will take async/ not from params themselves)
+        printf("Writing SVM params to state\n");
         writeParamsToState(memory, PARAMS_KEY, p);
 
         return p;

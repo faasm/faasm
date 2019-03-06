@@ -4,6 +4,8 @@
 
 #include <redis/Redis.h>
 #include <util/memory.h>
+#include <util/environment.h>
+#include <util/config.h>
 #include <state/State.h>
 #include <sys/mman.h>
 
@@ -455,5 +457,33 @@ namespace tests {
 
         byteRegionA[5] = 1;
         REQUIRE(segmentB[1] == 1);
+    }
+
+    TEST_CASE("Test pulling in full async mode just initialises storage") {
+        util::setEnvVar("FULL_ASYNC", "1");
+        util::getSystemConfig().reset();
+
+        StateKeyValue *kv = setupKV(6);
+        REQUIRE(kv->empty());
+        REQUIRE(kv->size() == 6);
+        
+        // Set something fake up in the database
+        redis::Redis &redisState = redis::Redis::getState();
+        
+        std::vector<uint8_t> value = {0, 1, 2, 3, 4, 5};
+        redisState.set(kv->key, value);
+
+        // Pull and check storage is initialised
+        kv->pull(true);
+        REQUIRE(!kv->empty());
+        REQUIRE(kv->size() == 6);
+
+        uint8_t *actualBytes = kv->get();
+        std::vector<uint8_t> expected = {0, 0, 0, 0, 0, 0};
+        std::vector<uint8_t > actual(actualBytes, actualBytes + 6);
+        REQUIRE(actual == expected);
+        
+        util::unsetEnvVar("FULL_ASYNC");
+        util::getSystemConfig().reset();
     }
 }
