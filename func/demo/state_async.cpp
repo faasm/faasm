@@ -14,7 +14,7 @@ namespace faasm {
         // Push synchronously and read again
         memory->pushState(key);
         uint8_t readValueSync[4];
-        memory->readState(key, readValueSync, 4);
+        memory->readState(key, readValueSync, 4, false);
 
         // Check things are equal
         uint8_t equal[4];

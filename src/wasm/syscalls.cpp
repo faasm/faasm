@@ -888,7 +888,7 @@ namespace wasm {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         char *string = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
 
-        util::getLogger()->debug("S - puts", "%s", string);
+        util::getLogger()->debug("S - puts {}", string);
 
         return 0;
     }

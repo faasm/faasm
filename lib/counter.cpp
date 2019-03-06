@@ -19,7 +19,7 @@ namespace faasm {
     }
 
     void incrementCounter(FaasmMemory *memory, const char *counterKey, bool async) {
-        int count = getCounter(memory, counterKey);
+        int count = getCounter(memory, counterKey, async);
         count++;
 
         int counterBuffer[1];

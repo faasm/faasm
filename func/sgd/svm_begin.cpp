@@ -34,9 +34,15 @@ namespace faasm {
 
         // If running full async, we need to make sure the inputs and outputs are loaded fully into memory
         if(p.fullAsync) {
+            printf("Loading inputs into local memory\n");
             readSparseMatrixFromState(memory, INPUTS_KEY, false);
 
+            printf("Loading outputs into local memory\n");
             readMatrixFromState(memory, OUTPUTS_KEY, p.nTrain, 1, false);
+
+            printf("Loading feature counts into local memory\n");
+            size_t nFeatureCountBytes = p.nWeights * sizeof(int);
+            memory->readState(FEATURE_COUNTS_KEY, nFeatureCountBytes, false);
         }
 
         // Begin first epoch

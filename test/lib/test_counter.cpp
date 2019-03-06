@@ -18,21 +18,21 @@ namespace tests {
         FaasmMemory mem;
 
         const char *key = "test_counter";
-        initCounter(&mem, key);
+        initCounter(&mem, key, false);
 
-        REQUIRE(getCounter(&mem, key) == 0);
+        REQUIRE(getCounter(&mem, key, false) == 0);
 
-        incrementCounter(&mem, key);
-        REQUIRE(getCounter(&mem, key) == 1);
+        incrementCounter(&mem, key, false);
+        REQUIRE(getCounter(&mem, key, false) == 1);
 
-        incrementCounter(&mem, key);
-        REQUIRE(getCounter(&mem, key) == 2);
+        incrementCounter(&mem, key, false);
+        REQUIRE(getCounter(&mem, key, false) == 2);
 
-        initCounter(&mem, key);
-        REQUIRE(getCounter(&mem, key) == 0);
+        initCounter(&mem, key, false);
+        REQUIRE(getCounter(&mem, key, false) == 0);
 
-        incrementCounter(&mem, key);
-        REQUIRE(getCounter(&mem, key) == 1);
+        incrementCounter(&mem, key, false);
+        REQUIRE(getCounter(&mem, key, false) == 1);
     }
 
     TEST_CASE("Test counter over big number", "[counter]") {
@@ -43,13 +43,13 @@ namespace tests {
         FaasmMemory mem;
 
         const char *key = "test_counter";
-        initCounter(&mem, key);
+        initCounter(&mem, key, false);
 
         for (int i = 0; i < 1000; i++) {
-            incrementCounter(&mem, key);
+            incrementCounter(&mem, key, false);
         }
 
-        REQUIRE(getCounter(&mem, key) == 1000);
+        REQUIRE(getCounter(&mem, key, false) == 1000);
     }
 
     TEST_CASE("Test uninitialised counter", "[counter]") {
@@ -60,10 +60,10 @@ namespace tests {
         FaasmMemory mem;
 
         const char *key = "test_uninit_key";
-        initCounter(&mem, key);
-        REQUIRE(getCounter(&mem, key) == 0);
+        initCounter(&mem, key, false);
+        REQUIRE(getCounter(&mem, key, false) == 0);
 
-        incrementCounter(&mem, key);
-        REQUIRE(getCounter(&mem, key) == 1);
+        incrementCounter(&mem, key, false);
+        REQUIRE(getCounter(&mem, key, false) == 1);
     }
 }

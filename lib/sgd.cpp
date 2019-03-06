@@ -34,7 +34,7 @@ namespace faasm {
         p.nBatches = nBatches;
         p.batchSize = (REUTERS_N_EXAMPLES + nBatches - 1) / nBatches;
 
-        // Full sync or not
+        // Full async or not
         bool fullAsync = getEnvFullAsync();
         p.fullAsync = fullAsync;
 
@@ -339,9 +339,9 @@ namespace faasm {
         Eigen::MatrixXd weights = randomDenseMatrix(1, params.nWeights);
 
         // Write all data to memory
-        writeSparseMatrixToState(memory, INPUTS_KEY, inputs);
-        writeMatrixToState(memory, OUTPUTS_KEY, outputs);
-        writeMatrixToState(memory, WEIGHTS_KEY, weights);
+        writeSparseMatrixToState(memory, INPUTS_KEY, inputs, params.fullAsync);
+        writeMatrixToState(memory, OUTPUTS_KEY, outputs, params.fullAsync);
+        writeMatrixToState(memory, WEIGHTS_KEY, weights, params.fullAsync);
     }
 }
 

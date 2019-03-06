@@ -8,7 +8,7 @@ namespace faasm {
     int exec(FaasmMemory *memory) {
         const char *key = "state_op";
 
-        incrementCounter(memory, key);
+        incrementCounter(memory, key, false);
 
         return 0;
     }

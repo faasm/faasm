@@ -55,7 +55,7 @@ namespace faasm {
 
     void writeParamsToState(FaasmMemory *memory, const char *keyName, const SgdParams &params);
 
-    SgdParams readParamsFromState(FaasmMemory *memory, const char *keyName, bool async = false);
+    SgdParams readParamsFromState(FaasmMemory *memory, const char *keyName, bool async);
 
     void hingeLossWeightUpdate(
             FaasmMemory *memory,
