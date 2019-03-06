@@ -1,3 +1,5 @@
+_getenv
+
 __faasm_push_state
 __faasm_push_state_partial
 __faasm_read_state

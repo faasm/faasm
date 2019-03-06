@@ -1672,7 +1672,7 @@ namespace wasm {
     // Misc
     // ------------------------
 
-    U32 s__getenv(I32 strPtr) {
+    U32 s__getenv(I32 strPtr, bool isEmscripten) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         char *varName = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
 
@@ -1705,17 +1705,27 @@ namespace wasm {
             }
         }
 
-        U32 result = dynamicAllocString(memoryPtr, value, 1);
+        U32 result;
+        size_t nBytes = strlen(value) + 1;
+        if(isEmscripten) {
+            result = dynamicAllocString(memoryPtr, value, nBytes);
+        }
+        else {
+            // TODO - avoid allocating a whole page just for a new string
+            result = growMemory(memoryPtr, 1);
+            U8 *hostAddr = Runtime::memoryArrayPtr<U8>(memoryPtr, result, nBytes);
+            memcpy(hostAddr, value, nBytes);
+        }
 
         return result;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "getenv", I32, getenv, I32 strPtr) {
-        return s__getenv(strPtr);
+    DEFINE_INTRINSIC_FUNCTION(env, "_getenv", I32, getenv, I32 strPtr) {
+        return s__getenv(strPtr, false);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_getenv", I32, _getenv, I32 strPtr) {
-        return s__getenv(strPtr);
+        return s__getenv(strPtr, true);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "abort", void, abort) {

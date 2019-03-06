@@ -2,6 +2,7 @@ from os.path import join
 
 from invoke import task
 
+from tasks import upload_func
 from tasks.aws import invoke_faasm_lambda, invoke_lambda, deploy_wasm_lambda_func_multiple, deploy_native_lambda_func
 from tasks.env import HOME_DIR, STATE_S3_BUCKET
 from tasks.upload_util import curl_file, upload_file_to_s3
@@ -45,6 +46,12 @@ def clear_aws_queue(ctx):
     invoke_lambda(ctx, "faasm-redis", payload={
         "target": "queue",
     })
+
+
+@task
+def upload_sgd_funcs(ctx, host="localhost", emscripten=False):
+    for func_name in _SGD_FUNCS:
+        upload_func(ctx, "sgd", func_name, host=host, emscripten=emscripten)
 
 
 @task
