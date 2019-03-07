@@ -7,6 +7,7 @@
 #include <util/config.h>
 
 #include <lambda/backend.h>
+#include <scheduler/Scheduler.h>
 
 #include "rapidjson/document.h"
 
@@ -29,24 +30,35 @@ int main() {
         std::string target = "all";
         if (d.HasMember("target")) {
             target = d["target"].GetString();
+        } else {
+            return invocation_response::success(
+                    "Must provide a target for the function",
+                    "text/plain"
+            );
         }
 
-        logger->info("Flushing Redis target {}", target);
+        logger->info("Handling Redis target {}", target);
 
         redis::Redis &queue = redis::Redis::getQueue();
         redis::Redis &state = redis::Redis::getState();
 
-        if (target == "all") {
+        std::string message = "Target complete: " + target;
+
+        if (target == "flush-all") {
             queue.flushAll();
             state.flushAll();
-        } else if (target == "queue") {
+        } else if (target == "flush-queue") {
             queue.flushAll();
+        } else if (target == "node-count") {
+            long count = queue.scard(GLOBAL_WORKER_SET);
+            message = "Node count: " + std::to_string(count);
         } else {
-            logger->error("Unrecognised target: {}", target);
+            message = "Unrecognies target: " + target;
+            logger->error(message);
         }
 
         return invocation_response::success(
-                "Redis operation done",
+                message,
                 "text/plain"
         );
     };

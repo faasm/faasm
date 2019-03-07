@@ -44,7 +44,7 @@ def begin_aws_svm(ctx):
 @task
 def clear_aws_queue(ctx):
     invoke_lambda(ctx, "faasm-redis", payload={
-        "target": "queue",
+        "target": "flush-queue",
     })
 
 
