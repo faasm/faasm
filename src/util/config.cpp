@@ -36,6 +36,7 @@ namespace util {
         redisPort = getEnvVar("REDIS_PORT", "6379");
 
         // Scheduling
+        maxNodes = this->getSystemConfIntParam("MAX_NODES", "4");
         noScheduler = this->getSystemConfIntParam("NO_SCHEDULER", "0");
         prewarm = this->getSystemConfIntParam("PREWARM", "1");
         maxQueueRatio = this->getSystemConfIntParam("MAX_QUEUE_RATIO", "3");
@@ -84,6 +85,7 @@ namespace util {
         logger->info("REDIS_PORT                 {}", redisPort);
 
         logger->info("--- Scheduling ---");
+        logger->info("MAX_NODES                  {}", maxNodes);
         logger->info("THREADS_PER_WORKER         {}", threadsPerWorker);
         logger->info("NO_SCHEDULER               {}", noScheduler);
         logger->info("PREWARM                    {}", prewarm);

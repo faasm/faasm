@@ -305,4 +305,47 @@ namespace tests {
 
         REQUIRE(sch.getExecutingCount() == 0);
     }
+
+    TEST_CASE("Test scaling out", "[scheduler]") {
+        cleanSystem();
+        Scheduler &sch = scheduler::getScheduler();
+        GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
+        Redis &queue = redis::Redis::getQueue();
+        util::SystemConfig &conf = util::getSystemConfig();
+
+        // Check there are no workers and no scale-out requests initially
+        REQUIRE(sch.getGlobalSetSize() == 0);
+        REQUIRE(globalBus.getScaleoutRequestCount() == 0);
+
+        SECTION("Check scale out requested when none preset") {
+            // Request a scale-out (should always dispatch only one request at a time regardless of the target)
+            sch.scaleOut(4);
+
+            REQUIRE(globalBus.getScaleoutRequestCount() == 1);
+        }
+
+        SECTION("Check scale out ignored when already over target") {
+            // Add some random workers
+            queue.sadd(GLOBAL_WORKER_SET, "foo");
+            queue.sadd(GLOBAL_WORKER_SET, "bar");
+
+            // Request a scale-out (should always dispatch only one request at a time regardless of the target)
+            sch.scaleOut(2);
+
+            REQUIRE(globalBus.getScaleoutRequestCount() == 0);
+        }
+
+        SECTION("Check scale out ignored when at max") {
+            // Add workers up to the limit
+            for (int i = 0; i < conf.maxNodes; i++) {
+                std::string workerName = "foo" + std::to_string(i);
+                queue.sadd(GLOBAL_WORKER_SET, workerName);
+            }
+
+            // Request a scale-out over the max
+            sch.scaleOut(conf.maxNodes + 1);
+
+            REQUIRE(globalBus.getScaleoutRequestCount() == 0);
+        }
+    }
 }

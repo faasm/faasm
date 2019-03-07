@@ -70,4 +70,19 @@ namespace scheduler {
 
         return msgResult;
     }
+
+    void RedisMessageBus::requestNewWorkerNode() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->info("Ignoring request to scale out");
+
+        scaleOutRequests++;
+    }
+
+    int RedisMessageBus::getScaleoutRequestCount() {
+        return scaleOutRequests;
+    }
+
+    void RedisMessageBus::clear() {
+        scaleOutRequests = 0;
+    }
 }

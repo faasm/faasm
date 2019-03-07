@@ -3,11 +3,14 @@
 #include <util/logging.h>
 #include <util/json.h>
 #include <util/base64.h>
+#include <aws/LambdaWrapper.h>
 
+#define WORKER_LAMBDA_NAME "faasm-worker"
 
 namespace scheduler {
     AWSMessageBus::AWSMessageBus() : sqs(awswrapper::SQSWrapper::getThreadLocal()),
                                      s3(awswrapper::S3Wrapper::getThreadLocal()),
+                                     lambda(awswrapper::LambdaWrapper::getThreadLocal()),
                                      bucketName(util::getSystemConfig().bucketName) {
 
     }
@@ -72,5 +75,22 @@ namespace scheduler {
         message::Message resultMsg;
         resultMsg.ParseFromString(result);
         return resultMsg;
+    }
+
+    void AWSMessageBus::requestNewWorkerNode() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->info("Requesting scale-up of lambda function {}", WORKER_LAMBDA_NAME);
+
+        lambda.invokeFunction(WORKER_LAMBDA_NAME, "", false);
+
+        scaleoutRequestCount++;
+    }
+
+    int AWSMessageBus::getScaleoutRequestCount() {
+        return scaleoutRequestCount;
+    }
+
+    void AWSMessageBus::clear() {
+        scaleoutRequestCount = 0;
     }
 }

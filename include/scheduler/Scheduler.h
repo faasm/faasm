@@ -49,6 +49,8 @@ namespace scheduler {
 
         void removeHostFromGlobalSet();
 
+        long getGlobalSetSize();
+
         void addHostToWarmSet(const std::string &funcStr);
 
         void removeHostFromWarmSet(const std::string &funcStr);
@@ -58,6 +60,8 @@ namespace scheduler {
         void incrementExecutingCount();
 
         void decrementExecutingCount();
+
+        void scaleOut(int targetCount);
 
     private:
         std::string hostname;

@@ -113,20 +113,22 @@ def list_lambdas(ctx):
 def invoke_lambda(ctx, lambda_name, async=False, payload=None):
     client = boto3.client("lambda", region_name=AWS_REGION)
 
-    response = client.invoke(
-        FunctionName=lambda_name,
-        InvocationType="Event" if async else "RequestResponse",
-        Payload=dumps(payload) if payload else None,
-    )
+    kwargs = {
+        "FunctionName": lambda_name,
+        "InvocationType": "Event" if async else "RequestResponse",
+    }
+
+    if payload:
+        kwargs["Payload"] = dumps(payload)
+
+    response = client.invoke(**kwargs)
 
     print(response)
     print("\nResponse payload: {}".format(response["Payload"].read()))
 
 
 @task
-def invoke_faasm_lambda(ctx, user, func, input_data="", extra_payload=None):
-    client = boto3.client("lambda", region_name=AWS_REGION)
-
+def invoke_faasm_lambda(ctx, user, func, input_data="", extra_payload=None, async=False):
     payload = {
         "user": user,
         "function": func,
@@ -136,15 +138,7 @@ def invoke_faasm_lambda(ctx, user, func, input_data="", extra_payload=None):
     if extra_payload:
         payload.update(extra_payload)
 
-    response = client.invoke(
-        FunctionName="faasm-dispatch",
-        InvocationType="RequestResponse",
-        Payload=dumps(payload)
-    )
-
-    print(response)
-    response_payload = response["Payload"]
-    print("\nResponse payload: {}".format(response_payload.read()))
+    invoke_lambda(ctx, "faasm-dispatch", async=async, payload=payload)
 
 
 # --------------------------------

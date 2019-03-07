@@ -29,6 +29,7 @@ namespace util {
         std::string redisPort;
 
         // Scheduling
+        int maxNodes;
         int threadsPerWorker;
         int noScheduler;
         int prewarm;

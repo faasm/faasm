@@ -30,6 +30,11 @@ namespace scheduler {
         redis.srem(GLOBAL_WORKER_SET, hostname);
     }
 
+    long Scheduler::getGlobalSetSize() {
+        redis::Redis &redis = redis::Redis::getQueue();
+        return redis.scard(GLOBAL_WORKER_SET);
+    }
+
     void Scheduler::addHostToWarmSet(const std::string &funcStr) {
         const std::string &warmSetName = getFunctionWarmSetNameFromStr(funcStr);
         redis::Redis &redis = redis::Redis::getQueue();
@@ -55,7 +60,7 @@ namespace scheduler {
     void Scheduler::decrementExecutingCount() {
         util::FullLock lock(execCountMutex);
 
-        if(execCount > 0) {
+        if (execCount > 0) {
             execCount--;
         }
     }
@@ -217,7 +222,7 @@ namespace scheduler {
         // TODO make this configurable
         if (msg.function() == "sgd_step") {
             // No queueing
-            maxQueueRatio = 2;
+            maxQueueRatio = 0;
         }
 
         double queueRatio = this->getFunctionQueueRatio(msg);
@@ -311,6 +316,19 @@ namespace scheduler {
             // TODO: scale out here
             // For now just give up and accept the message locally
             return hostname;
+        }
+    }
+
+    void Scheduler::scaleOut(int targetCount) {
+        long nActiveWorkers = this->getGlobalSetSize();
+        const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+
+        if ((targetCount > nActiveWorkers) && (nActiveWorkers < conf.maxNodes)) {
+            logger->info("Requesting scale-out (from {} -> {} nodes)", nActiveWorkers, targetCount);
+
+            // Attempt to spawn a new worker
+            GlobalMessageBus &globalBus = getGlobalMessageBus();
+            globalBus.requestNewWorkerNode();
         }
     }
 }
