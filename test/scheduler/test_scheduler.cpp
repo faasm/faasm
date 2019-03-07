@@ -192,7 +192,7 @@ namespace tests {
         SECTION("Host choice checks") {
             redis.sadd(GLOBAL_WORKER_SET, otherHostA);
 
-            SECTION("Test function which breaches queue ratio but has no capacity fails over") {
+            SECTION("Test function which breaches queue ratio but has no capacity shares with other host") {
                 // Make calls up to the limit
                 int nCalls = conf.maxWorkersPerFunction * conf.maxQueueRatio;
                 for (int i = 0; i < nCalls; i++) {
@@ -231,6 +231,30 @@ namespace tests {
                 redis.flushAll();
             }
 
+            SECTION("Test scheduler requests scale-out when no options") {
+                // Clear out worker set and just add this host
+                redis.flushAll();
+                redis.sadd(GLOBAL_WORKER_SET, hostname);
+
+                GlobalMessageBus &globalBus = getGlobalMessageBus();
+                globalBus.clear();
+
+                REQUIRE(sch.getGlobalSetSize() == 1);
+                REQUIRE(globalBus.getScaleoutRequestCount() == 0);
+
+                // Saturate this host
+                int nCalls = conf.maxWorkersPerFunction * conf.maxQueueRatio;
+                for (int i = 0; i < nCalls; i++) {
+                    sch.callFunction(call);
+                }
+
+                // Make another request
+                sch.callFunction(call);
+
+                // Check scale-out request has been made
+                REQUIRE(globalBus.getScaleoutRequestCount() == 1);
+            }
+            
             SECTION("Test scheduler adds hostname to global set when starting up") {
                 REQUIRE(!hostname.empty());
                 REQUIRE(redis.sismember(GLOBAL_WORKER_SET, hostname));

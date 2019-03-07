@@ -298,6 +298,9 @@ namespace scheduler {
         redis::Redis &redis = redis::Redis::getQueue();
         std::unordered_set<std::string> warmOptions = redis.smembers(warmSet);
         std::unordered_set<std::string> allOptions = redis.smembers(GLOBAL_WORKER_SET);
+        int nCurrentWorkers = (int) allOptions.size();
+
+        // Remove this host from sets
         warmOptions.erase(hostname);
         allOptions.erase(hostname);
 
@@ -313,8 +316,9 @@ namespace scheduler {
             // Pick a random option from all hosts
             return *allOptions.begin();
         } else {
-            // TODO: scale out here
-            // For now just give up and accept the message locally
+            // Request scale out, then give up and try to execute locally
+            this->scaleOut(nCurrentWorkers + 1);
+
             return hostname;
         }
     }
