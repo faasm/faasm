@@ -35,33 +35,32 @@ namespace tests {
         REQUIRE(!w.isBound());
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        scheduler::InMemoryMessageQueue *bindQueue = sch.getBindQueue();
 
         // Call the function, checking that everything is set up
         sch.callFunction(call);
         REQUIRE(sch.getFunctionQueueLength(call) == 1);
         REQUIRE(sch.getFunctionThreadCount(call) == 1);
-        REQUIRE(bindQueue->size() == 1);
+        REQUIRE(sch.bindQueue.size() == 1);
 
         // Process the bind message
         w.processNextMessage();
         REQUIRE(w.isBound());
         REQUIRE(sch.getFunctionQueueLength(call) == 1);
         REQUIRE(sch.getFunctionThreadCount(call) == 1);
-        REQUIRE(bindQueue->size() == 0);
+        REQUIRE(sch.bindQueue.size() == 0);
 
         // Now execute the function
         w.processNextMessage();
         REQUIRE(sch.getFunctionQueueLength(call) == 0);
         REQUIRE(sch.getFunctionThreadCount(call) == 1);
-        REQUIRE(bindQueue->size() == 0);
+        REQUIRE(sch.bindQueue.size() == 0);
 
         return w;
     }
 
     void checkBindMessage(const message::Message &expected) {
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        const message::Message actual = sch.getBindQueue()->dequeue();
+        const message::Message actual = sch.bindQueue.dequeue();
 
         REQUIRE(actual.user() == expected.user());
         REQUIRE(actual.function() == expected.function());
@@ -225,8 +224,7 @@ namespace tests {
         sch.callFunction(call);
 
         // Check message is on the bind queue
-        scheduler::InMemoryMessageQueue *bindQueue = sch.getBindQueue();
-        REQUIRE(bindQueue->size() == 1);
+        REQUIRE(sch.bindQueue.size() == 1);
 
         // Process next message
         w.processNextMessage();
@@ -515,10 +513,9 @@ namespace tests {
 
         // Sense check initial scheduler set-up
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        scheduler::InMemoryMessageQueue *bindQueue = sch.getBindQueue();
         REQUIRE(sch.getFunctionQueueLength(call) == 0);
         REQUIRE(sch.getFunctionThreadCount(call) == 0);
-        REQUIRE(bindQueue->size() == 0);
+        REQUIRE(sch.bindQueue.size() == 0);
 
         // Call the function
         sch.callFunction(call);
@@ -527,7 +524,7 @@ namespace tests {
         const std::string workerSetName = sch.getFunctionWarmSetName(call);
         REQUIRE(sch.getFunctionQueueLength(call) == 1);
         REQUIRE(sch.getFunctionThreadCount(call) == 1);
-        REQUIRE(bindQueue->size() == 1);
+        REQUIRE(sch.bindQueue.size() == 1);
         REQUIRE(redis.sismember(workerSetName, hostname));
 
         // Bind the thread and check it's now registered
@@ -535,19 +532,19 @@ namespace tests {
         REQUIRE(w.isBound());
         REQUIRE(sch.getFunctionQueueLength(call) == 1);
         REQUIRE(sch.getFunctionThreadCount(call) == 1);
-        REQUIRE(bindQueue->size() == 0);
+        REQUIRE(sch.bindQueue.size() == 0);
 
         // Execute function and check thread still registered
         w.processNextMessage();
         REQUIRE(sch.getFunctionQueueLength(call) == 0);
         REQUIRE(sch.getFunctionThreadCount(call) == 1);
-        REQUIRE(bindQueue->size() == 0);
+        REQUIRE(sch.bindQueue.size() == 0);
 
         // Finish thread and check things are reset
         w.finish();
         REQUIRE(sch.getFunctionQueueLength(call) == 0);
         REQUIRE(sch.getFunctionThreadCount(call) == 0);
-        REQUIRE(bindQueue->size() == 0);
+        REQUIRE(sch.bindQueue.size() == 0);
         REQUIRE(!redis.sismember(workerSetName, hostname));
     }
 }

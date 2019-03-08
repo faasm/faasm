@@ -19,19 +19,9 @@ namespace state {
         return s;
     }
 
-    State::State() {
-        const SystemConfig &conf = getSystemConfig();
-        pushInterval = conf.statePushInterval;
-    }
-
-    State::~State() {
-        // Delete contents of user state map
-        for (const auto &iter: userStateMap) {
-            delete iter.second;
-        }
-
-        userStateMap.clear();
-    }
+//    State::~State() {
+//        this->forceClearAll();
+//    }
 
     void State::pushAll() {
         // Run the sync for all users' state
@@ -41,11 +31,13 @@ namespace state {
     }
 
     void State::forceClearAll() {
-        for (const auto &iter: userStateMap) {
-            delete iter.second;
-        }
-
-        userStateMap.clear();
+//        if(!userStateMap.empty()) {
+//            // Delete contents of user state map
+//            for (const auto &iter: userStateMap) {
+//                delete iter.second;
+//            }
+//        }
+//        userStateMap.clear();
     }
 
     StateKeyValue *State::getKV(const std::string &user, const std::string &key, size_t size) {

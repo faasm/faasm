@@ -21,10 +21,10 @@ int main() {
     pool.startThreadPool();
 
     // Work sharing thread
-    pool.startSharingThread();
-
-    // State management thread
-    pool.startStateThread();
+//    pool.startSharingThread();
+//
+//    // State management thread
+//    pool.startStateThread();
 
     // Global queue listener
     pool.startGlobalQueueThread();

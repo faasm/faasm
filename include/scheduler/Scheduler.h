@@ -31,8 +31,6 @@ namespace scheduler {
 
         void stopListeningToQueue(const message::Message &msg);
 
-        InMemoryMessageQueue *getBindQueue();
-
         std::string getFunctionWarmSetName(const message::Message &msg);
 
         std::string getFunctionWarmSetNameFromStr(const std::string &funcStr);
@@ -63,14 +61,13 @@ namespace scheduler {
 
         void scaleOut(int targetCount);
 
+        InMemoryMessageQueue bindQueue;
     private:
         std::string hostname;
 
         void addWarmThreads(const message::Message &msg);
 
         util::SystemConfig &conf;
-
-        InMemoryMessageQueue *bindQueue;
 
         std::unordered_map<std::string, InMemoryMessageQueue *> queueMap;
         std::unordered_map<std::string, long> threadCountMap;

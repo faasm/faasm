@@ -19,7 +19,7 @@ namespace worker {
         logger->debug("Starting worker {}", id);
 
         // Listen to bind queue by default
-        currentQueue = scheduler.getBindQueue();
+        currentQueue = &scheduler.bindQueue;
 
         // Prewarm if necessary
         util::SystemConfig &conf = util::getSystemConfig();

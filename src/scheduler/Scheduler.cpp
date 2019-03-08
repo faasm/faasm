@@ -10,11 +10,10 @@ namespace scheduler {
     const std::string WARM_SET_PREFIX = "w_";
 
     Scheduler::Scheduler() :
+            bindQueue(InMemoryMessageQueue()),
             hostname(util::getHostName()),
             conf(util::getSystemConfig()),
             sharingBus(SharingMessageBus::getInstance()) {
-
-        bindQueue = new InMemoryMessageQueue();
 
         this->addHostToGlobalSet();
     }
@@ -66,11 +65,15 @@ namespace scheduler {
     }
 
     void Scheduler::clear() {
-        bindQueue->reset();
-
-        for (const auto &iter: queueMap) {
-            delete iter.second;
-        }
+        bindQueue.reset();
+//
+//        if(!queueMap.empty()) {
+//            for (const auto &iter: queueMap) {
+//                delete iter.second;
+//            }
+//
+//
+//        }
 
         queueMap.clear();
         threadCountMap.clear();
@@ -80,18 +83,16 @@ namespace scheduler {
     }
 
     Scheduler::~Scheduler() {
-        delete bindQueue;
-
         // Clean up the queues for each function
-        for (const auto &iter: queueMap) {
-            // Remove this host from the warm set
-            this->removeHostFromWarmSet(iter.first);
+        if(!queueMap.empty()) {
+            for (const auto &iter: queueMap) {
+                // Remove this host from the warm set
+                this->removeHostFromWarmSet(iter.first);
 
-            // Remove the queue itself
-            delete iter.second;
+//                // Remove the queue itself
+//                delete iter.second;
+            }
         }
-
-        queueMap.clear();
 
         // Remove host from the global set
         this->removeHostFromGlobalSet();
@@ -101,7 +102,7 @@ namespace scheduler {
         std::string funcStr = util::funcToString(msg);
 
         if (msg.type() == message::Message_MessageType_BIND) {
-            bindQueue->enqueue(msg);
+            bindQueue.enqueue(msg);
         } else {
             InMemoryMessageQueue *q = this->getFunctionQueue(msg);
             q->enqueue(msg);
@@ -182,10 +183,6 @@ namespace scheduler {
 
     std::string Scheduler::getFunctionWarmSetNameFromStr(const std::string &funcStr) {
         return WARM_SET_PREFIX + funcStr;
-    }
-
-    InMemoryMessageQueue *Scheduler::getBindQueue() {
-        return bindQueue;
     }
 
     Scheduler &getScheduler() {
