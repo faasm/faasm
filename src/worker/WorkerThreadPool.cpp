@@ -1,7 +1,6 @@
 #include <worker/WorkerThread.h>
 
 #include "WorkerThreadPool.h"
-#include "StateThread.h"
 
 #include <scheduler/GlobalMessageBus.h>
 #include <scheduler/SharingMessageBus.h>
@@ -25,9 +24,15 @@ namespace worker {
         if (!conf.fullAsync) {
             logger->info("Starting state sync thread");
 
-            stateThread = std::thread([] {
-                StateThread s;
-                s.run();
+            stateThread = std::thread([this, conf] {
+                state::State &state = state::getGlobalState();
+
+                while (!this->isShutdown()) {
+                    // usleep takes microseconds
+                    usleep(1000 * conf.statePushInterval);
+
+                    state.pushAll();
+                }
             });
         }
     }
@@ -38,7 +43,7 @@ namespace worker {
 
         logger->info("Starting global queue listener on {}", conf.queueName);
 
-        globalQueueThread = std::thread ([this, &conf, &logger] {
+        globalQueueThread = std::thread([this, &conf, &logger] {
             scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
             scheduler::Scheduler &sch = scheduler::getScheduler();
 
@@ -88,15 +93,19 @@ namespace worker {
         // Spawn worker threads until we've hit the worker limit, thus creating a pool
         // that will replenish when one releases its token
         poolThread = std::thread([this] {
-            // We need to keep these threads in scope until the program terminates
-            std::vector<std::thread> threads;
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
             while (!this->isShutdown()) {
                 // Try to get an available slot (blocks if none available)
                 int threadIdx = this->getThreadToken();
 
+                // Double check shutdown condition
+                if (this->isShutdown()) {
+                    break;
+                }
+
                 // Spawn thread to execute function
-                threads.emplace_back(std::thread([this, threadIdx] {
+                poolThreads.emplace_back(std::thread([this, threadIdx] {
                     WorkerThread w(threadIdx);
 
                     // Worker will now run for a long time
@@ -108,8 +117,9 @@ namespace worker {
             }
 
             // Once shut down, wait for everything to die
-            for(auto &t : threads) {
-                if(t.joinable()) {
+            logger->info("Waiting for {} worker threads", poolThreads.size());
+            for (auto &t : poolThreads) {
+                if (t.joinable()) {
                     t.join();
                 }
             }
@@ -139,17 +149,22 @@ namespace worker {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        if(globalQueueThread.joinable()) {
+        if (globalQueueThread.joinable()) {
             logger->info("Waiting for global queue thread to finish");
-            globalQueueThread.join();    
+            globalQueueThread.join();
         }
-        
-        if(stateThread.joinable()) {
+
+        if (stateThread.joinable()) {
             logger->info("Waiting for state thread to finish");
             stateThread.join();
         }
 
-        if(poolThread.joinable()) {
+        if (sharingQueueThread.joinable()) {
+            logger->info("Waiting for sharing queue thread to finish");
+            sharingQueueThread.join();
+        }
+
+        if (poolThread.joinable()) {
             logger->info("Waiting for pool to finish");
             poolThread.join();
         }

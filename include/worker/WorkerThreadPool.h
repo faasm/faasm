@@ -34,5 +34,6 @@ namespace worker {
         std::thread globalQueueThread;
         std::thread sharingQueueThread;
         std::thread poolThread;
+        std::vector<std::thread> poolThreads;
     };
 }

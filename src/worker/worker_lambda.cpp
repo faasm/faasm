@@ -33,10 +33,14 @@ int main() {
 
         // Start up the thread pool
         logger->info("Listening for requests for {}ms", config.globalMessageTimeout);
+
         pool.startThreadPool();
 
-        // Make sure this host is in the global set
-        sch.addHostToGlobalSet();
+        // Work sharing thread
+        // pool.startSharingThread();
+
+        // State management thread
+        // pool.startStateThread();
 
         pool.startGlobalQueueThread();
 

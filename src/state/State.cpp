@@ -33,15 +33,6 @@ namespace state {
         userStateMap.clear();
     }
 
-    void State::pushLoop() {
-        while (true) {
-            // usleep takes microseconds
-            usleep(1000 * pushInterval);
-
-            this->pushAll();
-        }
-    }
-
     void State::pushAll() {
         // Run the sync for all users' state
         for (const auto &iter: userStateMap) {

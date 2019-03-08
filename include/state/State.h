@@ -16,13 +16,13 @@ namespace state {
 
         UserState *getUserState(const std::string &user);
 
-        void pushLoop();
-
         void pushAll();
 
         void forceClearAll();
 
+        void shutdown();
     private:
+        std::atomic<bool> _shutdown;
         UserStateMap userStateMap;
         std::shared_mutex userStateMapMutex;
 
