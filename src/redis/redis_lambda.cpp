@@ -9,7 +9,7 @@
 #include <lambda/backend.h>
 #include <scheduler/Scheduler.h>
 
-#include "rapidjson/document.h"
+#include <rapidjson/document.h>
 
 using namespace aws::lambda_runtime;
 
@@ -53,7 +53,7 @@ int main() {
             long count = queue.scard(GLOBAL_WORKER_SET);
             message = "Worker count: " + std::to_string(count);
         } else {
-            message = "Unrecognies target: " + target;
+            message = "Unrecognised target: " + target;
             logger->error(message);
         }
 

@@ -456,6 +456,11 @@ namespace redis {
     }
 
     redisReply *Redis::dequeueBase(const std::string &queueName, int timeout) {
+        // Note, timeouts here should be in seconds
+        if(timeout > 500) {
+            throw std::runtime_error("Timeout passed to dequeue of over 500s");
+        }
+
         auto reply = (redisReply *) redisCommand(context, "BLPOP %s %d", queueName.c_str(), timeout);
 
         if (reply == nullptr || reply->type == REDIS_REPLY_NIL) {

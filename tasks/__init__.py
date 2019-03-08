@@ -42,6 +42,7 @@ from tasks.aws import (
     lambda_concurrency,
     lambda_worker_count,
     list_lambdas,
+    list_event_sources,
     invoke_lambda,
     invoke_faasm_lambda,
     deploy_faasm_lambda,

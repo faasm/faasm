@@ -167,6 +167,22 @@ def list_lambdas(ctx):
 
 
 @task
+def list_event_sources(ctx, func_name):
+    client = boto3.client("lambda", region_name=AWS_REGION)
+
+    conf = get_faasm_config()
+    sqs_arn = conf["AWS"]["sqs_arn"]
+
+    response = client.list_event_source_mappings(
+        EventSourceArn=sqs_arn,
+        FunctionName=func_name,
+    )
+
+    for es in response["EventSourceMappings"]:
+        print(es)
+
+
+@task
 def lambda_worker_count(ctx):
     invoke_lambda(ctx, "faasm-redis", payload={
         "target": "worker-count",
@@ -255,7 +271,7 @@ def _do_system_lambda_deploy(func_name, lambda_conf):
     print("Build and deploy {} lambda func".format(func_name))
     print("---------------------\n")
 
-    # _build_system_lambda(func_name)
+    _build_system_lambda(func_name)
 
     s3_key = _get_s3_key(func_name)
 
@@ -384,76 +400,76 @@ def _do_deploy(func_name, memory=128, timeout=15, concurrency=10,
 
     client = boto3.client("lambda", region_name=AWS_REGION)
 
-    # if zip_file_path:
-    #     assert exists(zip_file_path), "Expected zip file at {}".format(zip_file_path)
-    #
-    # # Get subnet IDs and security groups
-    # conf = get_faasm_config()
-    # subnet_ids = conf["AWS"]["subnet_ids"].split(",")
-    # security_group_ids = conf["AWS"]["security_group_ids"].split(",")
-    #
-    # # Check if function exists
-    # is_existing = True
-    #
-    # try:
-    #     client.get_function(
-    #         FunctionName=func_name,
-    #     )
-    # except ClientError:
-    #     is_existing = False
-    #
-    # kwargs = {
-    #     "FunctionName": func_name,
-    # }
-    #
-    # content = None
-    # if zip_file_path:
-    #     with open(zip_file_path, "rb") as fh:
-    #         content = fh.read()
+    if zip_file_path:
+        assert exists(zip_file_path), "Expected zip file at {}".format(zip_file_path)
 
-    # if is_existing:
-    #     print("{} already exists, updating".format(func_name))
-    #
-    #     if zip_file_path:
-    #         kwargs["ZipFile"] = content
-    #     else:
-    #         kwargs["S3Bucket"] = s3_bucket
-    #         kwargs["S3Key"] = s3_key
-    #
-    #     client.update_function_code(**kwargs)
-    # else:
-    #     print("{} does not already exist, creating".format(func_name))
-    #
-    #     kwargs.update({
-    #         "Runtime": "provided",
-    #         "Role": "arn:aws:iam::{}:role/{}".format(AWS_ACCOUNT_ID, AWS_LAMBDA_ROLE),
-    #         "Handler": func_name,
-    #         "MemorySize": memory,
-    #         "Timeout": timeout,
-    #         "VpcConfig": {
-    #             "SubnetIds": subnet_ids,
-    #             "SecurityGroupIds": security_group_ids
-    #         }
-    #     })
-    #
-    #     if zip_file_path:
-    #         kwargs["Code"] = {"ZipFile": content}
-    #     else:
-    #         kwargs["Code"] = {"S3Bucket": s3_bucket, "S3Key": s3_key}
-    #
-    #     if environment:
-    #         lambda_env = {
-    #             "Variables": environment
-    #         }
-    #         kwargs["Environment"] = lambda_env
-    #
-    #     client.create_function(**kwargs)
-    #
-    # # Set up concurrency
-    # client.put_function_concurrency(
-    #     FunctionName=func_name,
-    #     ReservedConcurrentExecutions=concurrency,
-    # )
+    # Get subnet IDs and security groups
+    conf = get_faasm_config()
+    subnet_ids = conf["AWS"]["subnet_ids"].split(",")
+    security_group_ids = conf["AWS"]["security_group_ids"].split(",")
+
+    # Check if function exists
+    is_existing = True
+
+    try:
+        client.get_function(
+            FunctionName=func_name,
+        )
+    except ClientError:
+        is_existing = False
+
+    kwargs = {
+        "FunctionName": func_name,
+    }
+
+    content = None
+    if zip_file_path:
+        with open(zip_file_path, "rb") as fh:
+            content = fh.read()
+
+    if is_existing:
+        print("{} already exists, updating".format(func_name))
+
+        if zip_file_path:
+            kwargs["ZipFile"] = content
+        else:
+            kwargs["S3Bucket"] = s3_bucket
+            kwargs["S3Key"] = s3_key
+
+        client.update_function_code(**kwargs)
+    else:
+        print("{} does not already exist, creating".format(func_name))
+
+        kwargs.update({
+            "Runtime": "provided",
+            "Role": "arn:aws:iam::{}:role/{}".format(AWS_ACCOUNT_ID, AWS_LAMBDA_ROLE),
+            "Handler": func_name,
+            "MemorySize": memory,
+            "Timeout": timeout,
+            "VpcConfig": {
+                "SubnetIds": subnet_ids,
+                "SecurityGroupIds": security_group_ids
+            }
+        })
+
+        if zip_file_path:
+            kwargs["Code"] = {"ZipFile": content}
+        else:
+            kwargs["Code"] = {"S3Bucket": s3_bucket, "S3Key": s3_key}
+
+        if environment:
+            lambda_env = {
+                "Variables": environment
+            }
+            kwargs["Environment"] = lambda_env
+
+        client.create_function(**kwargs)
+
+    # Set up concurrency
+    client.put_function_concurrency(
+        FunctionName=func_name,
+        ReservedConcurrentExecutions=concurrency,
+    )
 
     if sqs:
         _add_sqs_event_source(client, func_name)

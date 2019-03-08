@@ -12,20 +12,24 @@
 #include <thread>
 #include <chrono>
 
+#include <rapidjson/document.h>
+
 using namespace aws::lambda_runtime;
 
 
 int main() {
     util::initLogging();
-    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-    // Set things up
     faasm::initialiseLambdaBackend();
+
+    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
     util::SystemConfig &config = util::getSystemConfig();
     config.print();
 
     auto handler_fn = [&logger, &config](aws::lambda_runtime::invocation_request const &req) {
+        rapidjson::Document d;
+        d.Parse(req.payload.c_str());
+
         // Make sure this host gets added to the global worker set (happens in scheduler constructor)
         scheduler::Scheduler &sch = scheduler::getScheduler();
 
@@ -35,7 +39,7 @@ int main() {
 
         logger->info("Listening for requests for {}s", config.globalMessageTimeout);
 
-        pool.startThreadPool(true);
+        pool.startThreadPool(false);
 
         // Start global queue listener which will pass messages to the pool.
         // This call returns once there has been no message for the given timeout.
@@ -52,23 +56,20 @@ int main() {
             }
         }
 
-        // Here is the end of the invocation, we need to manually tidy up as we can't
-        // guarantee destructors will be called
-        logger->info("Worker shutting down");
-        faasm::tearDownLambdaBackend();
-
         // Remove this host from the global pool
         sch.removeHostFromGlobalSet();
 
         logger->info("Returning Lambda response");
+        std::string message = "Worker finished";
         return invocation_response::success(
-                "Worker finished",
+                message,
                 "text/plain"
         );
     };
 
-    logger->info("Worker entering invocation loop");
     run_handler(handler_fn);
+
+    faasm::tearDownLambdaBackend();
 
     return 0;
 }

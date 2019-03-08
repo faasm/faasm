@@ -5,6 +5,9 @@
 #include <queue>
 
 namespace util {
+    class QueueTimeoutException : public std::exception {
+    };
+
     template<typename T>
     class Queue {
     public:
@@ -16,14 +19,22 @@ namespace util {
             cv.notify_one();
         }
 
-        T dequeue(long timeoutMs=0) {
+        T dequeue(long timeoutMs = 0) {
+            if (timeoutMs > 0 && timeoutMs < 100) {
+                throw std::runtime_error("Dequeue timeout less than 100ms");
+            }
+
             UniqueLock lock(mx);
 
             while (mq.empty()) {
-                if(timeoutMs > 0) {
-                    cv.wait_for(lock, std::chrono::milliseconds(timeoutMs));
-                }
-                else {
+                if (timeoutMs > 0) {
+                    std::cv_status returnVal = cv.wait_for(lock, std::chrono::milliseconds(timeoutMs));
+
+                    // Work out if this has returned due to timeout expiring
+                    if (returnVal == std::cv_status::timeout) {
+                        throw QueueTimeoutException();
+                    }
+                } else {
                     cv.wait(lock);
                 }
             }
@@ -50,6 +61,7 @@ namespace util {
         std::condition_variable cv;
         std::mutex mx;
     };
+
 
     class TokenPool {
     public:

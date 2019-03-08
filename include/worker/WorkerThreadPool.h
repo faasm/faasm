@@ -10,11 +10,11 @@ namespace worker {
 
         void startStateThread();
 
-        void startGlobalQueueThread(bool detach, bool dropOut);
+        void startGlobalQueueThread(bool join, bool dropOut);
 
         void startSharingThread();
 
-        void startThreadPool(bool detach);
+        void startThreadPool(bool join);
 
         void reset();
 
@@ -24,5 +24,10 @@ namespace worker {
     private:
         scheduler::Scheduler &scheduler;
         util::TokenPool threadTokenPool;
+
+        std::thread stateThread;
+        std::thread globalQueueThread;
+        std::thread sharingQueueThread;
+        std::thread poolThread;
     };
 }

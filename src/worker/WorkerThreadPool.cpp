@@ -24,21 +24,20 @@ namespace worker {
         if (!conf.fullAsync) {
             logger->info("Starting state sync thread");
 
-            std::thread stateThread([] {
+            stateThread = std::thread([] {
                 StateThread s;
                 s.run();
             });
-            stateThread.detach();
         }
     }
 
-    void WorkerThreadPool::startGlobalQueueThread(bool detach, bool dropOut) {
+    void WorkerThreadPool::startGlobalQueueThread(bool join, bool dropOut) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         util::SystemConfig &conf = util::getSystemConfig();
 
         logger->info("Starting global queue listener on {}", conf.queueName);
 
-        std::thread globalDispatchThread([&conf, &logger, &dropOut] {
+        globalQueueThread = std::thread ([&conf, &logger, &dropOut] {
             scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
             scheduler::Scheduler &sch = scheduler::getScheduler();
 
@@ -61,11 +60,8 @@ namespace worker {
             }
         });
 
-        if(detach) {
-            globalDispatchThread.detach();
-        }
-        else {
-            globalDispatchThread.join();
+        if(join) {
+            globalQueueThread.join();
         }
     }
 
@@ -73,7 +69,7 @@ namespace worker {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->info("Starting work sharing listener");
 
-        std::thread sharingDispatchThread([] {
+        sharingQueueThread = std::thread([] {
             scheduler::SharingMessageBus &sharingBus = scheduler::SharingMessageBus::getInstance();
             scheduler::Scheduler &sch = scheduler::getScheduler();
 
@@ -87,21 +83,23 @@ namespace worker {
                 }
             }
         });
-        sharingDispatchThread.detach();
     }
 
-    void WorkerThreadPool::startThreadPool(bool detach) {
+    void WorkerThreadPool::startThreadPool(bool join) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Spawn worker threads until we've hit the worker limit, thus creating a pool
         // that will replenish when one releases its token
-        std::thread poolThread([this] {
+        poolThread = std::thread([this] {
+            // We need to keep these threads in scope until the program terminates
+            std::vector<std::thread> threads;
+
             while (true) {
                 // Try to get an available slot (blocks if none available)
                 int threadIdx = this->getThreadToken();
 
                 // Spawn thread to execute function
-                std::thread funcThread([this, threadIdx] {
+                threads.push_back(std::thread([this, threadIdx] {
                     WorkerThread w(threadIdx);
 
                     // Worker will now run for a long time
@@ -109,17 +107,12 @@ namespace worker {
 
                     // Handle thread finishing
                     threadTokenPool.releaseToken(w.threadIdx);
-                });
-
-                funcThread.detach();
+                }));
             }
         });
 
-        if(detach) {
-            logger->info("Starting pool with {} threads in background", threadTokenPool.size());
-            poolThread.detach();
-        } else {
-            logger->info("Starting pool with {} threads in main thread", threadTokenPool.size());
+        if(join) {
+            logger->info("Joining pool with {} threads in main thread", threadTokenPool.size());
             poolThread.join();
         }
     }

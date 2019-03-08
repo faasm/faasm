@@ -125,9 +125,12 @@ namespace worker {
     }
 
     void WorkerThread::run() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         // Wait for next message
         while (true) {
             try {
+                logger->debug("Worker {} waiting for next message", this->id);
                 std::string errorMessage = this->processNextMessage();
 
                 // Drop out if there's some issue
@@ -135,8 +138,9 @@ namespace worker {
                     break;
                 }
             }
-            catch (redis::RedisNoResponseException &e) {
+            catch (util::QueueTimeoutException &e) {
                 // At this point we've received no message, so die off
+                logger->debug("Worker {} got no messages. Finishing", this->id);
                 break;
             }
         }
@@ -156,8 +160,9 @@ namespace worker {
             timeout = conf.unboundTimeout;
         }
 
-        // Wait for next message
-        message::Message msg = currentQueue->dequeue(timeout);
+        // Wait for next message (note, timeout in ms)
+        message::Message msg = currentQueue->dequeue(timeout * 1000);
+        logger->info("Worker {} binding to {}", id, util::funcToString(msg));
 
         // Handle the message
         std::string errorMessage;

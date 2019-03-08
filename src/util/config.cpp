@@ -16,7 +16,7 @@ namespace util {
 
     void SystemConfig::initialise() {
         // TODO - max cannot exceed the underlying number of available namespaces. Good to decouple?
-        threadsPerWorker = this->getSystemConfIntParam("THREADS_PER_WORKER", "50");
+        threadsPerWorker = this->getSystemConfIntParam("THREADS_PER_WORKER", "5");
 
         // System
         hostType = getEnvVar("HOST_TYPE", "default");
@@ -42,12 +42,12 @@ namespace util {
         maxQueueRatio = this->getSystemConfIntParam("MAX_QUEUE_RATIO", "3");
         maxWorkersPerFunction = this->getSystemConfIntParam("MAX_WORKERS_PER_FUNCTION", "10");
 
-        // Worker-related timeouts
+        // Worker-related timeouts (all in seconds)
         globalMessageTimeout = this->getSystemConfIntParam("GLOBAL_MESSAGE_TIMEOUT", "60");
         boundTimeout = this->getSystemConfIntParam("BOUND_TIMEOUT", "30");
-        unboundTimeout = this->getSystemConfIntParam("UNBOUND_TIMEOUT", "5000");
+        unboundTimeout = this->getSystemConfIntParam("UNBOUND_TIMEOUT", "120");
 
-        // State
+        // State timeouts (all in millis)
         stateStaleThreshold = this->getSystemConfIntParam("STATE_STALE_THRESHOLD", "60000");
         stateClearThreshold = this->getSystemConfIntParam("STATE_CLEAR_THRESHOLD", "300000");
         statePushInterval = this->getSystemConfIntParam("STATE_PUSH_INTERVAL", "500");

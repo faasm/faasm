@@ -16,7 +16,7 @@ int main() {
     worker::WorkerThreadPool pool(config.threadsPerWorker);
 
     // Global queue listener
-    pool.startGlobalQueueThread(true, false);
+    pool.startGlobalQueueThread(false, false);
 
     // Work sharing thread
     pool.startSharingThread();
@@ -25,5 +25,5 @@ int main() {
     pool.startStateThread();
 
     // Worker pool run in main thread
-    pool.startThreadPool(false);
+    pool.startThreadPool(true);
 }
