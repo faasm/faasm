@@ -152,16 +152,16 @@ namespace worker {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Work out which timeout
-        int timeout;
+        int timeoutMs;
         util::SystemConfig conf = util::getSystemConfig();
         if (_isBound) {
-            timeout = conf.boundTimeout;
+            timeoutMs = conf.boundTimeout;
         } else {
-            timeout = conf.unboundTimeout;
+            timeoutMs = conf.unboundTimeout;
         }
 
         // Wait for next message (note, timeout in ms)
-        message::Message msg = currentQueue->dequeue(timeout * 1000);
+        message::Message msg = currentQueue->dequeue(timeoutMs);
         logger->info("Worker {} binding to {}", id, util::funcToString(msg));
 
         // Handle the message

@@ -18,6 +18,7 @@ namespace scheduler {
 
         void shareMessageWithHost(const std::string &hostname, const message::Message &msg);
     private:
+        util::SystemConfig &conf;
         std::string thisHostname;
         redis::Redis &redis;
     };

@@ -10,7 +10,7 @@ namespace tests {
         SystemConfig conf;
         conf.reset();
 
-        REQUIRE(conf.threadsPerWorker == 50);
+        REQUIRE(conf.threadsPerWorker == 5);
 
         REQUIRE(conf.hostType == "default");
         REQUIRE(conf.globalMessageBus == "redis");
@@ -31,9 +31,9 @@ namespace tests {
         REQUIRE(conf.maxQueueRatio == 3);
         REQUIRE(conf.maxWorkersPerFunction == 10);
 
-        REQUIRE(conf.globalMessageTimeout == 60);
-        REQUIRE(conf.boundTimeout == 30);
-        REQUIRE(conf.unboundTimeout == 5000);
+        REQUIRE(conf.globalMessageTimeout == 60000);
+        REQUIRE(conf.boundTimeout == 30000);
+        REQUIRE(conf.unboundTimeout == 60000);
 
         REQUIRE(conf.stateStaleThreshold == 60000);
         REQUIRE(conf.stateClearThreshold == 300000);

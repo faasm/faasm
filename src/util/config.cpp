@@ -43,9 +43,9 @@ namespace util {
         maxWorkersPerFunction = this->getSystemConfIntParam("MAX_WORKERS_PER_FUNCTION", "10");
 
         // Worker-related timeouts (all in seconds)
-        globalMessageTimeout = this->getSystemConfIntParam("GLOBAL_MESSAGE_TIMEOUT", "60");
-        boundTimeout = this->getSystemConfIntParam("BOUND_TIMEOUT", "30");
-        unboundTimeout = this->getSystemConfIntParam("UNBOUND_TIMEOUT", "120");
+        globalMessageTimeout = this->getSystemConfIntParam("GLOBAL_MESSAGE_TIMEOUT", "60000");
+        boundTimeout = this->getSystemConfIntParam("BOUND_TIMEOUT", "30000");
+        unboundTimeout = this->getSystemConfIntParam("UNBOUND_TIMEOUT", "60000");
 
         // State timeouts (all in millis)
         stateStaleThreshold = this->getSystemConfIntParam("STATE_STALE_THRESHOLD", "60000");

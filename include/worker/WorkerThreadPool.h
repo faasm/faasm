@@ -10,18 +10,23 @@ namespace worker {
 
         void startStateThread();
 
-        void startGlobalQueueThread(bool join, bool dropOut);
+        void startGlobalQueueThread();
 
         void startSharingThread();
 
-        void startThreadPool(bool join);
+        void startThreadPool();
 
         void reset();
 
         int getThreadToken();
 
         int getThreadCount();
+
+        bool isShutdown();
+
+        void shutdown();
     private:
+        std::atomic<bool> _shutdown;
         scheduler::Scheduler &scheduler;
         util::TokenPool threadTokenPool;
 

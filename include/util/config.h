@@ -5,8 +5,8 @@
 namespace util {
     std::string getHostName();
 
-    const int DEFAULT_TIMEOUT = 60;
-    const int RESULT_KEY_EXPIRY = 30;
+    const int DEFAULT_TIMEOUT = 60000;
+    const int RESULT_KEY_EXPIRY = 30000;
 
     class SystemConfig {
 

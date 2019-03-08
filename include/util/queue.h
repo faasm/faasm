@@ -20,10 +20,6 @@ namespace util {
         }
 
         T dequeue(long timeoutMs = 0) {
-            if (timeoutMs > 0 && timeoutMs < 100) {
-                throw std::runtime_error("Dequeue timeout less than 100ms");
-            }
-
             UniqueLock lock(mx);
 
             while (mq.empty()) {

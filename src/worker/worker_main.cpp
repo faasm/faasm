@@ -8,6 +8,8 @@
 int main() {
     util::initLogging();
 
+    scheduler::Scheduler &sch = scheduler::getScheduler();
+    
     util::SystemConfig &config = util::getSystemConfig();
     config.print();
 
@@ -16,7 +18,7 @@ int main() {
     worker::WorkerThreadPool pool(config.threadsPerWorker);
 
     // Worker pool in background
-    pool.startThreadPool(false);
+    pool.startThreadPool();
 
     // Work sharing thread
     pool.startSharingThread();
@@ -25,5 +27,12 @@ int main() {
     pool.startStateThread();
 
     // Global queue listener
-    pool.startGlobalQueueThread(true, false);
+    pool.startGlobalQueueThread();
+
+    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+    logger->info("Removing from global working set");
+    
+    sch.removeHostFromGlobalSet();
+
+    pool.shutdown();
 }
