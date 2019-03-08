@@ -12,8 +12,6 @@
 #include <thread>
 #include <chrono>
 
-#include <rapidjson/document.h>
-
 using namespace aws::lambda_runtime;
 
 
@@ -26,26 +24,27 @@ int main() {
     util::SystemConfig &config = util::getSystemConfig();
     config.print();
 
-    auto handler_fn = [&logger, &config](aws::lambda_runtime::invocation_request const &req) {
-        rapidjson::Document d;
-        d.Parse(req.payload.c_str());
+    scheduler::Scheduler &sch = scheduler::getScheduler();
 
-        // Make sure this host gets added to the global worker set (happens in scheduler constructor)
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+    // Initialise worker pool
+    logger->info("Initialising thread pool with {} workers", config.threadsPerWorker);
+    worker::WorkerThreadPool pool(config.threadsPerWorker);
 
-        // Initialise worker pool
-        logger->info("Initialising thread pool with {} workers", config.threadsPerWorker);
-        worker::WorkerThreadPool pool(config.threadsPerWorker);
-
+    auto handler_fn = [&config, &logger, &pool, &sch](aws::lambda_runtime::invocation_request const &req) {
+        // Start up the thread pool
         logger->info("Listening for requests for {}s", config.globalMessageTimeout);
-
         pool.startThreadPool(false);
 
-        // Start global queue listener which will pass messages to the pool.
-        // This call returns once there has been no message for the given timeout.
+        // Make sure this host is in the global set
+        sch.addHostToGlobalSet();
+
+        // Listen for messages on the global queue.
+        // This will pass messages to the pool.
+        // This loop will break returns once there has been no message for the given timeout
+        // *provided* no threads are still executing
         bool isFinished = false;
         while(!isFinished) {
-            pool.startGlobalQueueThread(false, true);
+            pool.startGlobalQueueThread(true, true);
 
             // Try to get a global lock on execution. If we can get it, it implies nothing
             // is currently executing
@@ -56,7 +55,7 @@ int main() {
             }
         }
 
-        // Remove this host from the global pool
+        logger->info("Removing host from global set");
         sch.removeHostFromGlobalSet();
 
         logger->info("Returning Lambda response");
