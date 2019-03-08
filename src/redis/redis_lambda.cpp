@@ -49,9 +49,9 @@ int main() {
             state.flushAll();
         } else if (target == "flush-queue") {
             queue.flushAll();
-        } else if (target == "node-count") {
+        } else if (target == "worker-count") {
             long count = queue.scard(GLOBAL_WORKER_SET);
-            message = "Node count: " + std::to_string(count);
+            message = "Worker count: " + std::to_string(count);
         } else {
             message = "Unrecognies target: " + target;
             logger->error(message);

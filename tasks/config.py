@@ -4,7 +4,7 @@ from os.path import join, exists
 
 import boto3
 
-from tasks.env import FAASM_HOME, AWS_REGION
+from tasks.env import FAASM_HOME, AWS_REGION, AWS_ACCOUNT_ID
 
 CONFIG_FILE = join(FAASM_HOME, "faasm.ini")
 
@@ -37,6 +37,10 @@ def _generate_faasm_config():
 
     security_group_ids = _get_security_group_ids()
     config["AWS"]["security_group_ids"] = ",".join(security_group_ids)
+
+    queue_url, queue_arn = _get_sqs_info()
+    config["AWS"]["sqs_url"] = queue_url
+    config["AWS"]["sqs_arn"] = queue_arn
 
     with open(CONFIG_FILE, "w") as fh:
         config.write(fh)
@@ -127,3 +131,25 @@ def _get_private_subnet_ids():
     print("Found subnet IDs {}".format(ids))
 
     return ids
+
+
+def _get_sqs_info():
+    sqs = boto3.client("sqs", region_name=AWS_REGION)
+
+    response = sqs.get_queue_url(
+        QueueName="faasm-messages",
+        QueueOwnerAWSAccountId=AWS_ACCOUNT_ID
+    )
+
+    url = response["QueueUrl"]
+    print("Found SQS queue at {}".format(url))
+
+    response = sqs.get_queue_attributes(
+        QueueUrl=url,
+        AttributeNames=["QueueArn"],
+    )
+
+    arn = response["Attributes"]["QueueArn"]
+    print("Found SQS queue arn {}".format(arn))
+
+    return url, arn

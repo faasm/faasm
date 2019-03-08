@@ -1,3 +1,4 @@
+from datetime import datetime
 from json import dumps
 from os import mkdir
 from os.path import join, exists
@@ -28,16 +29,19 @@ faasm_lambda_funcs = {
         "memory": 2688,
         # Worker timeout should be less than the function timeout to give things time to shut down gracefully
         "timeout": 300,
+        "concurrency": 4,
         "extra_env": {
             "GLOBAL_MESSAGE_TIMEOUT": "30",
             "UNBOUND_TIMEOUT": "60",
             "THREADS_PER_WORKER": "10",
-        }
+        },
+        "sqs": True,
     },
     "dispatch": {
         "name": "faasm-dispatch",
         "memory": 128,
         "timeout": 30,
+        "concurrency": 2,
         "extra_env": {
         }
     },
@@ -45,6 +49,7 @@ faasm_lambda_funcs = {
         "name": "faasm-codegen",
         "memory": 300,
         "timeout": 60,
+        "concurrency": 1,
         "extra_env": {
         }
     },
@@ -52,6 +57,7 @@ faasm_lambda_funcs = {
         "name": "faasm-state",
         "memory": 2048,
         "timeout": 300,
+        "concurrency": 1,
         "extra_env": {
             "BUCKET_NAME": STATE_S3_BUCKET,
         }
@@ -60,6 +66,7 @@ faasm_lambda_funcs = {
         "name": "faasm-redis",
         "memory": 128,
         "timeout": 15,
+        "concurrency": 1,
         "extra_env": {
 
         }
@@ -93,6 +100,51 @@ def _get_lambda_env():
 
 
 # --------------------------------
+# SQS
+# --------------------------------
+
+def _get_sqs_client():
+    conf = get_faasm_config()
+    url = conf["AWS"]["sqs_url"]
+    client = boto3.client("sqs", region_name=AWS_REGION)
+    return client, url
+
+
+@task
+def sqs_length(ctx):
+    client, url = _get_sqs_client()
+
+    response = client.get_queue_attributes(
+        QueueUrl=url,
+        AttributeNames=["ApproximateNumberOfMessages"]
+    )
+
+    print("Queue length: {}".format(response["Attributes"]["ApproximateNumberOfMessages"]))
+
+
+@task
+def purge_sqs(ctx):
+    client, url = _get_sqs_client()
+    client.purge_queue(
+        QueueUrl=url,
+    )
+
+
+@task
+def invoke_lambda_worker(ctx):
+    client, url = _get_sqs_client()
+
+    message = {
+        "submitted": str(datetime.now()),
+    }
+
+    client.send_message(
+        QueueUrl=url,
+        MessageBody=dumps(message),
+    )
+
+
+# --------------------------------
 # INVOKE/ LIST
 # --------------------------------
 
@@ -110,6 +162,20 @@ def list_lambdas(ctx):
 
 
 @task
+def lambda_worker_count(ctx):
+    invoke_lambda(ctx, "faasm-redis", payload={
+        "target": "worker-count",
+    })
+
+
+@task
+def lambda_clear_queue(ctx):
+    invoke_lambda(ctx, "faasm-redis", payload={
+        "target": "flush-queue",
+    })
+
+
+@task
 def invoke_lambda(ctx, lambda_name, async=False, payload=None):
     client = boto3.client("lambda", region_name=AWS_REGION)
 
@@ -118,8 +184,9 @@ def invoke_lambda(ctx, lambda_name, async=False, payload=None):
         "InvocationType": "Event" if async else "RequestResponse",
     }
 
-    if payload:
-        kwargs["Payload"] = dumps(payload)
+    payload = payload if payload else {}
+    payload["submitted"] = str(datetime.now())
+    kwargs["Payload"] = dumps(payload)
 
     response = client.invoke(**kwargs)
 
@@ -144,6 +211,21 @@ def invoke_faasm_lambda(ctx, user, func, input_data="", extra_payload=None, asyn
 # --------------------------------
 # SYSTEM LAMBDAS
 # --------------------------------
+
+@task
+def lambda_concurrency(ctx, func_name, concurrency):
+    conf = faasm_lambda_funcs[func_name]
+
+    concurrency = int(concurrency)
+    client = boto3.client("lambda", region_name=AWS_REGION)
+
+    print("Setting concurrency for {} to {}".format(conf["name"], concurrency))
+
+    client.put_function_concurrency(
+        FunctionName=conf["name"],
+        ReservedConcurrentExecutions=concurrency,
+    )
+
 
 @task
 def deploy_faasm_lambda(ctx, func=None):
@@ -181,7 +263,9 @@ def _do_system_lambda_deploy(func_name, lambda_conf):
         s3_key=s3_key,
         memory=lambda_conf["memory"],
         timeout=lambda_conf["timeout"],
-        environment=lambda_env
+        concurrency=lambda_conf["concurrency"],
+        environment=lambda_env,
+        sqs=lambda_conf.get("sqs", False),
     )
 
 
@@ -272,6 +356,10 @@ def deploy_native_lambda_func(ctx, user, func):
     )
 
 
+# -------------------------------------------
+# MISC UTILITIES
+# -------------------------------------------
+
 def _build_lambda(module_name, target=None):
     print("Running Lambda {} build".format(module_name))
 
@@ -286,7 +374,7 @@ def _build_lambda(module_name, target=None):
 
 
 def _do_deploy(func_name, memory=128, timeout=15, concurrency=10,
-               environment=None, zip_file_path=None, s3_bucket=None, s3_key=None):
+               environment=None, zip_file_path=None, s3_bucket=None, s3_key=None, sqs=False):
     assert zip_file_path or (s3_bucket and s3_key), "Must give either a zip file or S3 bucket and key"
 
     if zip_file_path:
@@ -360,10 +448,8 @@ def _do_deploy(func_name, memory=128, timeout=15, concurrency=10,
         ReservedConcurrentExecutions=concurrency,
     )
 
-
-# -------------------------------------------
-# MISC UTILITIES
-# -------------------------------------------
+    if sqs:
+        _add_sqs_event_source(client, func_name)
 
 
 def _create_lambda_zip(module_name, build_dir):
@@ -408,3 +494,22 @@ def _build_cmake_project(build_dir, cmake_args, clean=False, target=None):
         call("make {}".format(target), cwd=build_dir, shell=True)
     else:
         call("make", cwd=build_dir, shell=True)
+
+
+def _add_sqs_event_source(client, func_name):
+    conf = get_faasm_config()
+    queue_arn = conf["AWS"]["sqs_arn"]
+    queue_url = conf["AWS"]["sqs_url"]
+
+    print("Adding SQS source for {} from queue {}".format(func_name, queue_url))
+
+    try:
+        client.create_event_source_mapping(
+            EventSourceArn=queue_arn,
+            FunctionName=func_name,
+            Enabled=True,
+            BatchSize=1,
+        )
+    except ClientError:
+        print("Failed to create SQS queue mapping")
+

@@ -38,6 +38,9 @@ from tasks.docker import (
 from tasks.docker_compose import start_all, stop_all, restart_all
 
 from tasks.aws import (
+    lambda_clear_queue,
+    lambda_concurrency,
+    lambda_worker_count,
     list_lambdas,
     invoke_lambda,
     invoke_faasm_lambda,
@@ -45,6 +48,9 @@ from tasks.aws import (
     delete_faasm_lambda,
     deploy_wasm_lambda_func,
     deploy_native_lambda_func,
+    sqs_length,
+    purge_sqs,
+    invoke_lambda_worker,
 )
 
 from tasks.upload import (
@@ -56,7 +62,6 @@ from tasks.wasm2wast import wast
 
 from tasks.sgd import (
     begin_aws_svm,
-    clear_aws_queue,
     deploy_sgd_wasm_lambda,
     deploy_sgd_native_lambda,
     upload_sgd_funcs,

@@ -97,7 +97,7 @@
   sqs_queue:
     name: "{{ sqs_queue_name }}"
     region: "{{ aws_region }}"
-    default_visibility_timeout: 120
+    default_visibility_timeout: 600
 
 - name: "Create S3 bucket"
   s3_bucket:

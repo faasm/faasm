@@ -60,6 +60,7 @@ int main() {
         // Remove this host from the global pool
         sch.removeHostFromGlobalSet();
 
+        logger->info("Returning Lambda response");
         return invocation_response::success(
                 "Worker finished",
                 "text/plain"
