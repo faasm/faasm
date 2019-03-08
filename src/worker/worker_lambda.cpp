@@ -52,7 +52,7 @@ int main() {
             }
         }
 
-        // Here is the end of the invocation, we need to manually tidy up as we can't 
+        // Here is the end of the invocation, we need to manually tidy up as we can't
         // guarantee destructors will be called
         logger->info("Worker shutting down");
         faasm::tearDownLambdaBackend();
