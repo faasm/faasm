@@ -17,6 +17,11 @@ namespace scheduler {
 
         virtual message::Message getFunctionResult(const message::Message &msg) = 0;
 
+        virtual void requestNewWorkerNode() = 0;
+
+        virtual int getScaleoutRequestCount() = 0;
+
+        virtual void clear() = 0;
     protected:
         GlobalMessageBus() : conf(util::getSystemConfig()){
         }

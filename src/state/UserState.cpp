@@ -13,16 +13,7 @@ namespace state {
 
     }
 
-    UserState::~UserState() {
-        // Delete contents of key value store
-        for (const auto &iter: kvMap) {
-            delete iter.second;
-        }
-
-        kvMap.clear();
-    }
-
-    StateKeyValue *UserState::getValue(const std::string &key, size_t size) {
+    std::shared_ptr<StateKeyValue> UserState::getValue(const std::string &key, size_t size) {
         if (kvMap.count(key) == 0) {
             if (size == 0) {
                 throw std::runtime_error("Must provide a size when getting a value that's not already present");

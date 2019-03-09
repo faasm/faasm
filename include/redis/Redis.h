@@ -121,6 +121,8 @@ namespace redis {
 
         void expire(const std::string &key, long expiry);
 
+        void refresh();
+
         /**
         *  ------ Locking ------
         */

@@ -9,14 +9,14 @@
 namespace worker {
     WorkerThread::WorkerThread(int threadIdxIn) : threadIdx(threadIdxIn),
                                                   scheduler(scheduler::getScheduler()),
-                                                  globalBus(scheduler::getGlobalMessageBus()){
+                                                  globalBus(scheduler::getGlobalMessageBus()) {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Prepare host-specific variables
-        id = util::getHostName() + "_" + std::to_string(threadIdx);
+        // Prepare node-specific variables
+        id = util::getNodeId() + "_" + std::to_string(threadIdx);
 
-        logger->debug("Starting worker {}", id);
+        logger->debug("Starting worker thread {}", id);
 
         // Listen to bind queue by default
         currentQueue = scheduler.getBindQueue();
@@ -30,15 +30,6 @@ namespace worker {
         }
     }
 
-    WorkerThread::~WorkerThread() {
-        if (!_isInitialised) {
-            return;
-        }
-
-        delete ns;
-        delete module;
-    }
-
     void WorkerThread::initialise() {
         if (_isInitialised) {
             throw std::runtime_error("Should not be initialising an already initialised thread");
@@ -50,7 +41,7 @@ namespace worker {
         // Set up network namespace
         isolationIdx = threadIdx + 1;
         std::string netnsName = BASE_NETNS_NAME + std::to_string(isolationIdx);
-        ns = new NetworkNamespace(netnsName);
+        ns = std::make_unique<NetworkNamespace>(netnsName);
         ns->addCurrentThread();
 
         // Add this thread to the cgroup
@@ -58,7 +49,7 @@ namespace worker {
         cgroup.addCurrentThread();
 
         // Initialise wasm module
-        module = new wasm::WasmModule();
+        module = std::make_unique<wasm::WasmModule>();
         module->initialise();
 
         _isInitialised = true;
@@ -125,9 +116,12 @@ namespace worker {
     }
 
     void WorkerThread::run() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         // Wait for next message
         while (true) {
             try {
+                logger->debug("Worker {} waiting for next message", this->id);
                 std::string errorMessage = this->processNextMessage();
 
                 // Drop out if there's some issue
@@ -135,8 +129,9 @@ namespace worker {
                     break;
                 }
             }
-            catch (redis::RedisNoResponseException &e) {
+            catch (util::QueueTimeoutException &e) {
                 // At this point we've received no message, so die off
+                logger->debug("Worker {} got no messages. Finishing", this->id);
                 break;
             }
         }
@@ -148,16 +143,16 @@ namespace worker {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Work out which timeout
-        int timeout;
+        int timeoutMs;
         util::SystemConfig conf = util::getSystemConfig();
         if (_isBound) {
-            timeout = conf.boundTimeout;
+            timeoutMs = conf.boundTimeout;
         } else {
-            timeout = conf.unboundTimeout;
+            timeoutMs = conf.unboundTimeout;
         }
 
-        // Wait for next message
-        message::Message msg = currentQueue->dequeue(timeout);
+        // Wait for next message (note, timeout in ms)
+        message::Message msg = currentQueue->dequeue(timeoutMs);
 
         // Handle the message
         std::string errorMessage;

@@ -12,9 +12,9 @@ namespace tests {
 
         Redis &redis = Redis::getQueue();
 
-        std::string thisHost = util::getHostName();
-        std::string otherHost = "host_other";
-        std::string otherHostQueue = "sharing_host_other";
+        std::string thisNode = util::getNodeId();
+        std::string otherNode = "node_other";
+        std::string otherNodeQueue = "sharing_node_other";
 
         std::string inputData = "this is input";
 
@@ -25,10 +25,10 @@ namespace tests {
         msg.set_inputdata(inputData);
 
         SECTION("Check sharing message with a host puts on relevant queue") {
-            bus.shareMessageWithHost(otherHost, msg);
+            bus.shareMessageWithNode(otherNode, msg);
 
-            REQUIRE(redis.listLength(otherHostQueue) == 1);
-            const message::Message &actual = bus.nextMessageForHost(otherHost);
+            REQUIRE(redis.listLength(otherNodeQueue) == 1);
+            const message::Message &actual = bus.nextMessageForNode(otherNode);
             REQUIRE(actual.user() == msg.user());
             REQUIRE(actual.function() == msg.function());
             REQUIRE(actual.isasync() == msg.isasync());

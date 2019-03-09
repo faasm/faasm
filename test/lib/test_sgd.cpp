@@ -284,7 +284,7 @@ namespace tests {
         // Error should just include the 2 written
         double expectedRmse1 = sqrt((2 * expected) / p.nTrain);
         double actual1 = faasm::readRootMeanSquaredError(&memory, p);
-        REQUIRE(actual1 == expectedRmse1);
+        REQUIRE(abs(actual1 - expectedRmse1) < 0.0000001);
 
         // Now write error for a third batch
         writeSquaredError(&memory, p, 2, a, b);

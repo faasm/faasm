@@ -17,6 +17,7 @@ namespace state {
     public:
         // Remote lock timeout in seconds
         unsigned int remoteLockTimeout = 5;
+
         // Remote lock sleep time in milliseconds
         unsigned int remoteLockWaitTime = 500;
         unsigned int remoteLockMaxRetries = 10;
@@ -100,6 +101,6 @@ namespace state {
         long waitOnRemoteLock();
     };
 
-    typedef std::unordered_map<std::string, StateKeyValue *> KVMap;
-    typedef std::pair<std::string, StateKeyValue *> KVPair;
+    typedef std::unordered_map<std::string, std::shared_ptr<StateKeyValue>> KVMap;
+    typedef std::pair<std::string, std::shared_ptr<StateKeyValue>> KVPair;
 }

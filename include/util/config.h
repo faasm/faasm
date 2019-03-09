@@ -3,10 +3,10 @@
 #include <string>
 
 namespace util {
-    std::string getHostName();
+    std::string getNodeId();
 
-    const int DEFAULT_TIMEOUT = 60;
-    const int RESULT_KEY_EXPIRY = 30;
+    const int DEFAULT_TIMEOUT = 60000;
+    const int RESULT_KEY_EXPIRY = 30000;
 
     class SystemConfig {
 
@@ -29,6 +29,7 @@ namespace util {
         std::string redisPort;
 
         // Scheduling
+        int maxNodes;
         int threadsPerWorker;
         int noScheduler;
         int prewarm;

@@ -25,10 +25,8 @@ int main() {
     config.print();
 
     scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-    redis::Redis &redis = redis::Redis::getQueue();
-    awswrapper::LambdaWrapper &lambda = awswrapper::LambdaWrapper::getThreadLocal();
 
-    auto handler_fn = [&logger, &globalBus, &redis, &lambda](aws::lambda_runtime::invocation_request const &req) {
+    auto handler_fn = [&logger, &globalBus](aws::lambda_runtime::invocation_request const &req) {
         // Get the function
         message::Message msg = util::jsonToMessage(req.payload);
         logger->info("Queueing request to {}", util::funcToString(msg));
@@ -36,17 +34,6 @@ int main() {
 
         // Dispatch function
         globalBus.enqueueMessage(msg);
-
-        // Invoke lambda function asynchronously if no workers present
-        // (to ensure there's something there to process messages)
-        long workerCount = redis.scard(GLOBAL_WORKER_SET);
-        if(workerCount == 0) {
-            logger->info("No workers currently registered. Spawning one");
-
-            lambda.invokeFunction("faasm-worker", "", false);
-        } else {
-            logger->info("{} workers currently registered. Not requesting another", workerCount);
-        }
 
         // Handle sync/ async Faasm requests accordingly
         std::string resultData = "Function dispatched";

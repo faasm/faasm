@@ -22,20 +22,20 @@ namespace scheduler {
         return this->nextMessage(util::DEFAULT_TIMEOUT);
     }
 
-    message::Message RedisMessageBus::nextMessage(int timeout) {
+    message::Message RedisMessageBus::nextMessage(int timeoutMs) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         try {
             logger->debug("Waiting for next message on {}", conf.queueName);
 
             if (conf.serialisation == "json") {
-                std::string dequeueResult = redis.dequeue(conf.queueName);
+                std::string dequeueResult = redis.dequeue(conf.queueName, timeoutMs);
                 message::Message msg = util::jsonToMessage(dequeueResult);
 
                 return msg;
             } else {
                 message::Message msg;
-                std::vector<uint8_t> dequeueResult = redis.dequeueBytes(conf.queueName, timeout);
+                std::vector<uint8_t> dequeueResult = redis.dequeueBytes(conf.queueName, timeoutMs);
                 msg.ParseFromArray(dequeueResult.data(), (int) dequeueResult.size());
 
                 return msg;
@@ -69,5 +69,20 @@ namespace scheduler {
         msgResult.ParseFromArray(result.data(), (int) result.size());
 
         return msgResult;
+    }
+
+    void RedisMessageBus::requestNewWorkerNode() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->info("Ignoring request to scale out");
+
+        scaleOutRequests++;
+    }
+
+    int RedisMessageBus::getScaleoutRequestCount() {
+        return scaleOutRequests;
+    }
+
+    void RedisMessageBus::clear() {
+        scaleOutRequests = 0;
     }
 }

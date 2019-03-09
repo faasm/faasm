@@ -17,57 +17,53 @@ using namespace aws::lambda_runtime;
 
 int main() {
     util::initLogging();
-    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-    // Set things up
     faasm::initialiseLambdaBackend();
+
+    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
     util::SystemConfig &config = util::getSystemConfig();
     config.print();
 
-    auto handler_fn = [&logger, &config](aws::lambda_runtime::invocation_request const &req) {
-        // Make sure this host gets added to the global worker set (happens in scheduler constructor)
+    auto handler_fn = [&config, &logger](aws::lambda_runtime::invocation_request const &req) {
+        // Ensure scheduler set up and this node is in global set
         scheduler::Scheduler &sch = scheduler::getScheduler();
+        sch.addNodeToGlobalSet();
 
         // Initialise worker pool
         logger->info("Initialising thread pool with {} workers", config.threadsPerWorker);
         worker::WorkerThreadPool pool(config.threadsPerWorker);
 
-        logger->info("Listening for requests for {}s", config.globalMessageTimeout);
+        // Start up the thread pool
+        logger->info("Listening for requests for {}ms", config.globalMessageTimeout);
 
-        pool.startThreadPool(true);
+        pool.startThreadPool();
 
-        // Start global queue listener which will pass messages to the pool.
-        // This call returns once there has been no message for the given timeout.
-        bool isFinished = false;
-        while(!isFinished) {
-            pool.startGlobalQueueThread(false, true);
+        // Work sharing thread
+        // pool.startSharingThread();
 
-            // Try to get a global lock on execution. If we can get it, it implies nothing
-            // is currently executing
-            int executingCount = sch.getExecutingCount();
-            isFinished = executingCount == 0;
-            if(!isFinished) {
-                logger->info("No new messages but still {} executing workers. Looping.", executingCount);
-            }
-        }
+        // State management thread
+        // pool.startStateThread();
 
-        // Here is the end of the invocation, we need to manually tidy up as we can't 
-        // guarantee destructors will be called
-        logger->info("Worker shutting down");
-        faasm::tearDownLambdaBackend();
+        pool.startGlobalQueueThread();
 
-        // Remove this host from the global pool
-        sch.removeHostFromGlobalSet();
+        logger->info("Removing node from global set");
+        sch.clear();
+
+        // Wait for the pool to properly shut down
+        pool.shutdown();
+
+        logger->info("Returning Lambda response");
+        std::string message = "Worker finished";
 
         return invocation_response::success(
-                "Worker finished",
+                message,
                 "text/plain"
         );
     };
 
-    logger->info("Worker entering invocation loop");
     run_handler(handler_fn);
+
+    faasm::tearDownLambdaBackend();
 
     return 0;
 }

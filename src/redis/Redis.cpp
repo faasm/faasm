@@ -329,6 +329,10 @@ namespace redis {
         freeReplyObject(reply);
     }
 
+    void Redis::refresh() {
+        redisReconnect(context);
+    }
+
     /**
      * Note that start/end are both inclusive
      */
@@ -455,8 +459,11 @@ namespace redis {
         freeReplyObject(reply);
     }
 
-    redisReply *Redis::dequeueBase(const std::string &queueName, int timeout) {
-        auto reply = (redisReply *) redisCommand(context, "BLPOP %s %d", queueName.c_str(), timeout);
+    redisReply *Redis::dequeueBase(const std::string &queueName, int timeoutMs) {
+        // Note, timeouts need to be converted into seconds
+        int timeoutSecs = timeoutMs / 1000;
+
+        auto reply = (redisReply *) redisCommand(context, "BLPOP %s %d", queueName.c_str(), timeoutSecs);
 
         if (reply == nullptr || reply->type == REDIS_REPLY_NIL) {
             throw RedisNoResponseException();
@@ -471,8 +478,8 @@ namespace redis {
         return reply;
     }
 
-    std::string Redis::dequeue(const std::string &queueName, int timeout) {
-        redisReply *reply = this->dequeueBase(queueName, timeout);
+    std::string Redis::dequeue(const std::string &queueName, int timeoutMs) {
+        redisReply *reply = this->dequeueBase(queueName, timeoutMs);
 
         redisReply *r = reply->element[1];
         std::string result(r->str);
@@ -482,8 +489,8 @@ namespace redis {
         return result;
     }
 
-    std::vector<uint8_t> Redis::dequeueBytes(const std::string &queueName, int timeout) {
-        redisReply *reply = this->dequeueBase(queueName, timeout);
+    std::vector<uint8_t> Redis::dequeueBytes(const std::string &queueName, int timeoutMs) {
+        redisReply *reply = this->dequeueBase(queueName, timeoutMs);
 
         // Note, BLPOP will return the queue name and the value returned (elements 0 and 1)
         redisReply *r = reply->element[1];

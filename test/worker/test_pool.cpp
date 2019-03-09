@@ -18,6 +18,7 @@ namespace tests {
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.clear();
+        sch.addNodeToGlobalSet();
 
         // Network ns requires root
         util::setEnvVar("NETNS_MODE", "off");
@@ -35,7 +36,7 @@ namespace tests {
         REQUIRE(!w.isBound());
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        scheduler::InMemoryMessageQueue *bindQueue = sch.getBindQueue();
+        auto bindQueue = sch.getBindQueue();
 
         // Call the function, checking that everything is set up
         sch.callFunction(call);
@@ -150,7 +151,7 @@ namespace tests {
         conf.prewarm = 1;
     }
 
-    TEST_CASE("Test full execution of WASM module", "[worker]") {
+    TEST_CASE("Test execution of echo function", "[worker]") {
         setUp();
 
         message::Message call;
@@ -166,6 +167,26 @@ namespace tests {
 
         // Check output
         REQUIRE(result.outputdata() == "this is input");
+        REQUIRE(result.success());
+
+        tearDown();
+    }
+
+    TEST_CASE("Test execution of empty echo function", "[worker]") {
+        setUp();
+
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("echo");
+        call.set_resultkey("test_echo_empty");
+
+        // Run the execution
+        execFunction(call);
+        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
+        message::Message result = globalBus.getFunctionResult(call);
+
+        // Check output
+        REQUIRE(result.outputdata() == "Nothing to echo");
         REQUIRE(result.success());
 
         tearDown();
@@ -225,7 +246,7 @@ namespace tests {
         sch.callFunction(call);
 
         // Check message is on the bind queue
-        scheduler::InMemoryMessageQueue *bindQueue = sch.getBindQueue();
+        auto bindQueue = sch.getBindQueue();
         REQUIRE(bindQueue->size() == 1);
 
         // Process next message
@@ -506,7 +527,7 @@ namespace tests {
         WorkerThreadPool pool(5);
 
         WorkerThread w(1);
-        std::string hostname = util::getHostName();
+        std::string nodeId = util::getNodeId();
 
         message::Message call;
         call.set_user("demo");
@@ -515,7 +536,7 @@ namespace tests {
 
         // Sense check initial scheduler set-up
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        scheduler::InMemoryMessageQueue *bindQueue = sch.getBindQueue();
+        auto bindQueue = sch.getBindQueue();
         REQUIRE(sch.getFunctionQueueLength(call) == 0);
         REQUIRE(sch.getFunctionThreadCount(call) == 0);
         REQUIRE(bindQueue->size() == 0);
@@ -528,7 +549,7 @@ namespace tests {
         REQUIRE(sch.getFunctionQueueLength(call) == 1);
         REQUIRE(sch.getFunctionThreadCount(call) == 1);
         REQUIRE(bindQueue->size() == 1);
-        REQUIRE(redis.sismember(workerSetName, hostname));
+        REQUIRE(redis.sismember(workerSetName, nodeId));
 
         // Bind the thread and check it's now registered
         w.processNextMessage();
@@ -548,6 +569,6 @@ namespace tests {
         REQUIRE(sch.getFunctionQueueLength(call) == 0);
         REQUIRE(sch.getFunctionThreadCount(call) == 0);
         REQUIRE(bindQueue->size() == 0);
-        REQUIRE(!redis.sismember(workerSetName, hostname));
+        REQUIRE(!redis.sismember(workerSetName, nodeId));
     }
 }

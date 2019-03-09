@@ -93,11 +93,20 @@
         cidr_ip: 0.0.0.0/0
   register: security_group
 
+- name: "Create dead letter SQS queue"
+  sqs_queue:
+    name: "{{ sqs_queue_name }}-dead"
+    region: "{{ aws_region }}"
+  register: dead_queue
+
 - name: "Create SQS queue"
   sqs_queue:
     name: "{{ sqs_queue_name }}"
     region: "{{ aws_region }}"
-    default_visibility_timeout: 120
+    default_visibility_timeout: 600
+    redrive_policy:
+      deadLetterTargetArn: "{{ dead_queue.queue_arn }}"
+      maxReceiveCount: 2
 
 - name: "Create S3 bucket"
   s3_bucket:

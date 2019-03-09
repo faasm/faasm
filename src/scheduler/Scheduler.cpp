@@ -10,36 +10,39 @@ namespace scheduler {
     const std::string WARM_SET_PREFIX = "w_";
 
     Scheduler::Scheduler() :
-            hostname(util::getHostName()),
+            nodeId(util::getNodeId()),
             conf(util::getSystemConfig()),
             sharingBus(SharingMessageBus::getInstance()) {
 
-        bindQueue = new InMemoryMessageQueue();
-
-        this->addHostToGlobalSet();
+        bindQueue = std::make_shared<InMemoryMessageQueue>();
     }
 
-    void Scheduler::addHostToGlobalSet() {
+    void Scheduler::addNodeToGlobalSet() {
         // Add to global set of workers
         redis::Redis &redis = redis::Redis::getQueue();
-        redis.sadd(GLOBAL_WORKER_SET, hostname);
+        redis.sadd(GLOBAL_NODE_SET, nodeId);
     }
 
-    void Scheduler::removeHostFromGlobalSet() {
+    void Scheduler::removeNodeFromGlobalSet() {
         redis::Redis &redis = redis::Redis::getQueue();
-        redis.srem(GLOBAL_WORKER_SET, hostname);
+        redis.srem(GLOBAL_NODE_SET, nodeId);
     }
 
-    void Scheduler::addHostToWarmSet(const std::string &funcStr) {
+    long Scheduler::getGlobalSetSize() {
+        redis::Redis &redis = redis::Redis::getQueue();
+        return redis.scard(GLOBAL_NODE_SET);
+    }
+
+    void Scheduler::addNodeToWarmSet(const std::string &funcStr) {
         const std::string &warmSetName = getFunctionWarmSetNameFromStr(funcStr);
         redis::Redis &redis = redis::Redis::getQueue();
-        redis.sadd(warmSetName, hostname);
+        redis.sadd(warmSetName, nodeId);
     }
 
-    void Scheduler::removeHostFromWarmSet(const std::string &funcStr) {
+    void Scheduler::removeNodeFromWarmSet(const std::string &funcStr) {
         const std::string &warmSetName = getFunctionWarmSetNameFromStr(funcStr);
         redis::Redis &redis = redis::Redis::getQueue();
-        redis.srem(warmSetName, hostname);
+        redis.srem(warmSetName, nodeId);
     }
 
     int Scheduler::getExecutingCount() {
@@ -55,41 +58,22 @@ namespace scheduler {
     void Scheduler::decrementExecutingCount() {
         util::FullLock lock(execCountMutex);
 
-        if(execCount > 0) {
+        if (execCount > 0) {
             execCount--;
         }
     }
 
     void Scheduler::clear() {
-        bindQueue->reset();
-
+        // Remove each node from the relevant warm sets
         for (const auto &iter: queueMap) {
-            delete iter.second;
+            this->removeNodeFromWarmSet(iter.first);
         }
 
+        bindQueue->reset();
         queueMap.clear();
         threadCountMap.clear();
 
-        // Make sure this host is in the global set
-        this->addHostToGlobalSet();
-    }
-
-    Scheduler::~Scheduler() {
-        delete bindQueue;
-
-        // Clean up the queues for each function
-        for (const auto &iter: queueMap) {
-            // Remove this host from the warm set
-            this->removeHostFromWarmSet(iter.first);
-
-            // Remove the queue itself
-            delete iter.second;
-        }
-
-        queueMap.clear();
-
-        // Remove host from the global set
-        this->removeHostFromGlobalSet();
+        this->removeNodeFromGlobalSet();
     }
 
     void Scheduler::enqueueMessage(const message::Message &msg) {
@@ -98,7 +82,7 @@ namespace scheduler {
         if (msg.type() == message::Message_MessageType_BIND) {
             bindQueue->enqueue(msg);
         } else {
-            InMemoryMessageQueue *q = this->getFunctionQueue(msg);
+            auto q = this->getFunctionQueue(msg);
             q->enqueue(msg);
         }
     }
@@ -126,12 +110,12 @@ namespace scheduler {
     // Not thread-safe
     long Scheduler::getFunctionQueueLength(const message::Message &msg) {
         std::string funcStr = util::funcToString(msg);
-        InMemoryMessageQueue *q = this->getFunctionQueue(msg);
+        auto q = this->getFunctionQueue(msg);
 
         return q->size();
     }
 
-    InMemoryMessageQueue *Scheduler::getFunctionQueue(const message::Message &msg) {
+    std::shared_ptr<InMemoryMessageQueue> Scheduler::getFunctionQueue(const message::Message &msg) {
         std::string funcStr = util::funcToString(msg);
         if (queueMap.count(funcStr) == 0) {
             util::FullLock lock(mx);
@@ -146,12 +130,12 @@ namespace scheduler {
         return queueMap[funcStr];
     }
 
-    InMemoryMessageQueue *Scheduler::listenToQueue(const message::Message &msg) {
+    std::shared_ptr<InMemoryMessageQueue> Scheduler::listenToQueue(const message::Message &msg) {
         // Note: don't need to increment thread count here as that's done when we
         // dispatch the bind message
         std::string funcStr = util::funcToString(msg);
 
-        InMemoryMessageQueue *q = this->getFunctionQueue(msg);
+        auto q = this->getFunctionQueue(msg);
 
         return q;
     }
@@ -163,9 +147,9 @@ namespace scheduler {
             util::FullLock lock(mx);
             threadCountMap[funcStr]--;
 
-            // If this is the last thread listening to this queue, remove the host entirely
+            // If this is the last thread listening to this queue, remove the node entirely
             if (threadCountMap[funcStr] == 0) {
-                this->removeHostFromWarmSet(funcStr);
+                this->removeNodeFromWarmSet(funcStr);
             }
         }
     }
@@ -179,7 +163,7 @@ namespace scheduler {
         return WARM_SET_PREFIX + funcStr;
     }
 
-    InMemoryMessageQueue *Scheduler::getBindQueue() {
+    std::shared_ptr<InMemoryMessageQueue> Scheduler::getBindQueue() {
         return bindQueue;
     }
 
@@ -192,8 +176,8 @@ namespace scheduler {
     void Scheduler::callFunction(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        std::string bestHost = this->getBestHostForFunction(msg);
-        if (bestHost == hostname) {
+        std::string bestNode = this->getBestNodeForFunction(msg);
+        if (bestNode == nodeId) {
             logger->debug("Executing {} locally", util::funcToString(msg));
 
             // Enqueue the message locally
@@ -202,10 +186,10 @@ namespace scheduler {
             // Add more threads if necessary
             this->addWarmThreads(msg);
         } else {
-            // Share with other host
-            logger->debug("Sharing {} call with {}", util::funcToString(msg), bestHost);
+            // Share with other node
+            logger->debug("Sharing {} call with {}", util::funcToString(msg), bestNode);
 
-            sharingBus.shareMessageWithHost(bestHost, msg);
+            sharingBus.shareMessageWithNode(bestNode, msg);
         }
     }
 
@@ -217,7 +201,7 @@ namespace scheduler {
         // TODO make this configurable
         if (msg.function() == "sgd_step") {
             // No queueing
-            maxQueueRatio = 2;
+            maxQueueRatio = 0;
         }
 
         double queueRatio = this->getFunctionQueueRatio(msg);
@@ -238,9 +222,9 @@ namespace scheduler {
             if (queueRatio > maxQueueRatio && nThreads < conf.maxWorkersPerFunction) {
                 logger->debug("Scaling up {} to {} threads", util::funcToString(msg), nThreads + 1);
 
-                // If this is the first thread on this host, add it to the warm set for this function
+                // If this is the first thread on this node, add it to the warm set for this function
                 if (nThreads == 0) {
-                    this->addHostToWarmSet(funcStr);
+                    this->addNodeToWarmSet(funcStr);
                 }
 
                 // Increment thread count here
@@ -256,17 +240,17 @@ namespace scheduler {
         }
     }
 
-    std::string Scheduler::getBestHostForFunction(const message::Message &msg) {
+    std::string Scheduler::getBestNodeForFunction(const message::Message &msg) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
-        // If we're ignoring the scheduling, just put it on this host regardless
+        // If we're ignoring the scheduling, just put it on this node regardless
         bool ignoreScheduler = conf.noScheduler == 1;
         if (ignoreScheduler) {
             logger->debug("Ignoring scheduler and queueing {} locally", util::funcToString(msg));
-            return hostname;
+            return nodeId;
         }
 
-        bool excludeThisHost = false;
+        bool excludeThisNode = false;
 
         {
             SharedLock lock(mx);
@@ -274,7 +258,7 @@ namespace scheduler {
             // If we have some warm threads below the max, we can handle locally
             long threadCount = this->getFunctionThreadCount(msg);
             if (threadCount > 0 && threadCount < conf.maxWorkersPerFunction) {
-                return hostname;
+                return nodeId;
             } else if (threadCount == conf.maxWorkersPerFunction) {
                 // If we're at the max workers, we want to saturate so that all are full,
                 // i.e. we want to get up to the maximum queue ratio
@@ -282,35 +266,52 @@ namespace scheduler {
 
                 if (queueRatio >= conf.maxQueueRatio) {
                     // Only exclude when we've saturated the last worker
-                    excludeThisHost = true;
+                    excludeThisNode = true;
                 }
             }
         }
 
         std::string warmSet = this->getFunctionWarmSetName(msg);
 
-        // Get options excluding this host
+        // Get options excluding this node
         redis::Redis &redis = redis::Redis::getQueue();
         std::unordered_set<std::string> warmOptions = redis.smembers(warmSet);
-        std::unordered_set<std::string> allOptions = redis.smembers(GLOBAL_WORKER_SET);
-        warmOptions.erase(hostname);
-        allOptions.erase(hostname);
+        std::unordered_set<std::string> allOptions = redis.smembers(GLOBAL_NODE_SET);
+        int nCurrentWorkers = (int) allOptions.size();
 
-        std::string hostChoice;
+        // Remove this node from sets
+        warmOptions.erase(nodeId);
+        allOptions.erase(nodeId);
+
+        std::string nodeChoice;
 
         if (!warmOptions.empty()) {
             // If we have warm options, pick one of those
             return *warmOptions.begin();
-        } else if (!excludeThisHost) {
-            // If no warm options, we should accommodate on this host unless it's over the limit
-            return hostname;
+        } else if (!excludeThisNode) {
+            // If no warm options, we should accommodate on this node unless it's over the limit
+            return nodeId;
         } else if (!allOptions.empty()) {
-            // Pick a random option from all hosts
+            // Pick a random option from all nodes
             return *allOptions.begin();
         } else {
-            // TODO: scale out here
-            // For now just give up and accept the message locally
-            return hostname;
+            // Request scale out, then give up and try to execute locally
+            this->scaleOut(nCurrentWorkers + 1);
+
+            return nodeId;
+        }
+    }
+
+    void Scheduler::scaleOut(int targetCount) {
+        long nActiveWorkers = this->getGlobalSetSize();
+        const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+
+        if ((targetCount > nActiveWorkers) && (nActiveWorkers < conf.maxNodes)) {
+            logger->info("Requesting scale-out (from {} -> {} nodes)", nActiveWorkers, targetCount);
+
+            // Attempt to spawn a new worker
+            GlobalMessageBus &globalBus = getGlobalMessageBus();
+            globalBus.requestNewWorkerNode();
         }
     }
 }

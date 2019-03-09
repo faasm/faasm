@@ -55,7 +55,7 @@ namespace wasm {
 
         U32 mmap(U32 length);
 
-        U32 mmapKey(state::StateKeyValue *kv, U32 length);
+        U32 mmapKey(std::shared_ptr<state::StateKeyValue> kv, U32 length);
     private:
         IR::Module module;
 
@@ -73,7 +73,7 @@ namespace wasm {
 
         std::unordered_map<std::string, I32> sharedMemWasmPtrs;
         std::unordered_map<std::string, void*> sharedMemHostPtrs;
-        std::unordered_map<std::string, state::StateKeyValue*> sharedMemKVs;
+        std::unordered_map<std::string, std::shared_ptr<state::StateKeyValue>> sharedMemKVs;
     };
 
     WasmModule *getExecutingModule();

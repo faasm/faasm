@@ -5,13 +5,16 @@
 namespace util {
 
     std::vector<uint8_t> stringToBytes(const std::string &str) {
+        if(str.empty()) {
+            std::vector<uint8_t> empty;
+            return empty;
+        }
+
         // Get raw data as byte pointer
         const char *cstr = str.c_str();
         auto *rawBytes = reinterpret_cast<const uint8_t *>(cstr);
 
-        // Put into a vector
         std::vector<uint8_t> actual(rawBytes, rawBytes + str.length());
-
         return actual;
     }
 

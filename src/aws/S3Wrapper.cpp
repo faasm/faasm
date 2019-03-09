@@ -108,7 +108,7 @@ namespace awswrapper {
         }
 
         std::ostringstream ss;
-        auto responseStream = response.GetResult().GetBody().rdbuf();
+        auto responseStream = response.GetResultWithOwnership().GetBody().rdbuf();
         ss << responseStream;
 
         return ss.str();

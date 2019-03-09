@@ -5,9 +5,8 @@
   tasks:
     - name: "Clone AWS lambda CPP repo"
       git:
-        repo: "https://github.com/Shillaker/aws-lambda-cpp.git"
+        repo: "https://github.com/awslabs/aws-lambda-cpp"
         dest: "/usr/local/code/aws-lambda-cpp"
-        version: "multi-thread"
 
     - name: "Set up build"
       shell: "mkdir -p build"

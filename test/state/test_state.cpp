@@ -15,7 +15,7 @@ namespace tests {
     util::TimePoint timeNow;
     static int i = 0;
 
-    StateKeyValue *setupKV(size_t size) {
+    std::shared_ptr<StateKeyValue> setupKV(size_t size) {
         redis::Redis &redisState = redis::Redis::getState();
 
         i++;
@@ -26,7 +26,7 @@ namespace tests {
 
         // Get state and remove key if already exists
         State &s = getGlobalState();
-        StateKeyValue *kv = s.getKV(stateUser, stateKey, size);
+        auto kv = s.getKV(stateUser, stateKey, size);
 
         // Fix time
         util::Clock &c = util::getGlobalClock();
@@ -38,7 +38,7 @@ namespace tests {
 
     TEST_CASE("Test simple state get/set", "[state]") {
         redis::Redis &redisState = redis::Redis::getState();
-        StateKeyValue *kv = setupKV(5);
+        auto kv = setupKV(5);
 
         // Get (should do nothing)
         std::vector<uint8_t> actual(5);
@@ -68,7 +68,7 @@ namespace tests {
 
     TEST_CASE("Test get/ set segment", "[state]") {
         redis::Redis &redisState = redis::Redis::getState();
-        StateKeyValue *kv = setupKV(10);
+        auto kv = setupKV(10);
 
         // Set up and push
         std::vector<uint8_t> values = {0, 0, 1, 1, 2, 2, 3, 3, 4, 4};
@@ -103,7 +103,7 @@ namespace tests {
 
     TEST_CASE("Test marking segments dirty", "[state]") {
         redis::Redis &redisState = redis::Redis::getState();
-        StateKeyValue *kv = setupKV(10);
+        auto kv = setupKV(10);
 
         // Set up and push
         std::vector<uint8_t> values = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
@@ -134,7 +134,7 @@ namespace tests {
 
 
     TEST_CASE("Test set segment cannot be out of bounds", "[state]") {
-        StateKeyValue *kv = setupKV(2);
+        auto kv = setupKV(2);
 
         // Set a segment offset
         std::vector<uint8_t> update = {8, 8, 8};
@@ -144,7 +144,7 @@ namespace tests {
 
     TEST_CASE("Test partially setting just first/ last element", "[state]") {
         redis::Redis &redisState = redis::Redis::getState();
-        StateKeyValue *kv = setupKV(5);
+        auto kv = setupKV(5);
 
         // Set up and push
         std::vector<uint8_t> values = {0, 1, 2, 3, 4};
@@ -185,8 +185,8 @@ namespace tests {
         std::string keyA = "multi_push_a";
         std::string keyB = "multi_push_b";
 
-        StateKeyValue *kvA = s.getKV(userA, keyA, 4);
-        StateKeyValue *kvB = s.getKV(userB, keyB, 3);
+        auto kvA = s.getKV(userA, keyA, 4);
+        auto kvB = s.getKV(userB, keyB, 3);
 
         std::string actualStateKeyA = userA + "_" + keyA;
         std::string actualStateKeyB = userB + "_" + keyB;
@@ -213,7 +213,7 @@ namespace tests {
     void checkPulling(bool async) {
         redis::Redis &redisState = redis::Redis::getState();
 
-        StateKeyValue *kv = setupKV(4);
+        auto kv = setupKV(4);
         std::vector<uint8_t> values = {0, 1, 2, 3};
         util::SystemConfig &conf = util::getSystemConfig();
 
@@ -259,7 +259,7 @@ namespace tests {
     TEST_CASE("Test pushing only happens when dirty", "[state]") {
         redis::Redis &redisState = redis::Redis::getState();
 
-        StateKeyValue *kv = setupKV(4);
+        auto kv = setupKV(4);
 
         std::vector<uint8_t> values = {0, 1, 2, 3};
         kv->set(values.data());
@@ -281,7 +281,7 @@ namespace tests {
     }
 
     TEST_CASE("Test stale values cleared", "[state]") {
-        StateKeyValue *kv = setupKV(4);
+        auto kv = setupKV(4);
 
         util::Clock &c = util::getGlobalClock();
 
@@ -315,7 +315,7 @@ namespace tests {
     }
 
     void checkActionResetsIdleness(std::string actionType) {
-        StateKeyValue *kv = setupKV(3);
+        auto kv = setupKV(3);
 
         util::Clock &c = util::getGlobalClock();
 
@@ -378,7 +378,7 @@ namespace tests {
 
     TEST_CASE("Test mapping shared memory", "[state]") {
         // Set up the KV
-        StateKeyValue *kv = setupKV(5);
+        auto kv = setupKV(5);
         std::vector<uint8_t> value = {0, 1, 2, 3, 4};
         kv->set(value.data());
 
@@ -427,7 +427,7 @@ namespace tests {
 
     TEST_CASE("Test mapping shared memory offsets", "[state]") {
         // Set up the KV
-        StateKeyValue *kv = setupKV(7);
+        auto kv = setupKV(7);
         std::vector<uint8_t> value = {0, 1, 2, 3, 4, 5, 6};
         kv->set(value.data());
 
@@ -466,7 +466,7 @@ namespace tests {
         util::setEnvVar("FULL_ASYNC", "1");
         util::getSystemConfig().reset();
 
-        StateKeyValue *kv = setupKV(6);
+        auto kv = setupKV(6);
         REQUIRE(kv->empty());
         REQUIRE(kv->size() == 6);
         

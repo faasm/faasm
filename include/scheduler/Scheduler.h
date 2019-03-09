@@ -10,28 +10,26 @@
 #include <shared_mutex>
 #include <redis/Redis.h>
 
-#define GLOBAL_WORKER_SET "available_workers"
+#define GLOBAL_NODE_SET "available_workers"
 
 namespace scheduler {
     class Scheduler {
     public:
         Scheduler();
 
-        ~Scheduler();
-
         void callFunction(message::Message &msg);
 
-        std::string getBestHostForFunction(const message::Message &msg);
+        std::string getBestNodeForFunction(const message::Message &msg);
 
         void enqueueMessage(const message::Message &msg);
 
-        InMemoryMessageQueue *listenToQueue(const message::Message &msg);
+        std::shared_ptr<InMemoryMessageQueue> listenToQueue(const message::Message &msg);
 
-        InMemoryMessageQueue *getFunctionQueue(const message::Message &msg);
+        std::shared_ptr<InMemoryMessageQueue> getFunctionQueue(const message::Message &msg);
 
         void stopListeningToQueue(const message::Message &msg);
 
-        InMemoryMessageQueue *getBindQueue();
+        std::shared_ptr<InMemoryMessageQueue> getBindQueue();
 
         std::string getFunctionWarmSetName(const message::Message &msg);
 
@@ -45,13 +43,13 @@ namespace scheduler {
 
         long getFunctionQueueLength(const message::Message &msg);
 
-        void addHostToGlobalSet();
+        void addNodeToGlobalSet();
 
-        void removeHostFromGlobalSet();
+        long getGlobalSetSize();
 
-        void addHostToWarmSet(const std::string &funcStr);
+        void addNodeToWarmSet(const std::string &funcStr);
 
-        void removeHostFromWarmSet(const std::string &funcStr);
+        void removeNodeFromWarmSet(const std::string &funcStr);
 
         int getExecutingCount();
 
@@ -59,16 +57,19 @@ namespace scheduler {
 
         void decrementExecutingCount();
 
+        void scaleOut(int targetCount);
     private:
-        std::string hostname;
+        std::string nodeId;
+
+        void removeNodeFromGlobalSet();
 
         void addWarmThreads(const message::Message &msg);
 
         util::SystemConfig &conf;
 
-        InMemoryMessageQueue *bindQueue;
+        std::shared_ptr<InMemoryMessageQueue> bindQueue;
 
-        std::unordered_map<std::string, InMemoryMessageQueue *> queueMap;
+        std::unordered_map<std::string, std::shared_ptr<InMemoryMessageQueue>> queueMap;
         std::unordered_map<std::string, long> threadCountMap;
         std::shared_mutex mx;
 

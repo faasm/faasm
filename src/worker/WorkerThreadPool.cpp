@@ -1,7 +1,6 @@
 #include <worker/WorkerThread.h>
 
 #include "WorkerThreadPool.h"
-#include "StateThread.h"
 
 #include <scheduler/GlobalMessageBus.h>
 #include <scheduler/SharingMessageBus.h>
@@ -9,6 +8,7 @@
 namespace worker {
 
     WorkerThreadPool::WorkerThreadPool(int nThreads) :
+            _shutdown(false),
             scheduler(scheduler::getScheduler()),
             threadTokenPool(nThreads) {
 
@@ -24,25 +24,30 @@ namespace worker {
         if (!conf.fullAsync) {
             logger->info("Starting state sync thread");
 
-            std::thread stateThread([] {
-                StateThread s;
-                s.run();
+            stateThread = std::thread([this, conf] {
+                state::State &state = state::getGlobalState();
+
+                while (!this->isShutdown()) {
+                    // usleep takes microseconds
+                    usleep(1000 * conf.statePushInterval);
+
+                    state.pushAll();
+                }
             });
-            stateThread.detach();
         }
     }
 
-    void WorkerThreadPool::startGlobalQueueThread(bool detach, bool dropOut) {
+    void WorkerThreadPool::startGlobalQueueThread() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         util::SystemConfig &conf = util::getSystemConfig();
 
         logger->info("Starting global queue listener on {}", conf.queueName);
 
-        std::thread globalDispatchThread([&conf, &logger, &dropOut] {
+        globalQueueThread = std::thread([this, &conf, &logger] {
             scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
             scheduler::Scheduler &sch = scheduler::getScheduler();
 
-            while (true) {
+            while (!this->isShutdown()) {
                 try {
                     message::Message msg = bus.nextMessage(conf.globalMessageTimeout);
 
@@ -50,58 +55,57 @@ namespace worker {
                     sch.callFunction(msg);
                 }
                 catch (scheduler::GlobalMessageBusNoMessageException &ex) {
-                    if(dropOut) {
-                        logger->info("No message from global bus in {}s, dropping out", conf.globalMessageTimeout);
-                        return;
-                    }
-                    else {
-                        continue;
-                    }
+                    logger->info("No message from global bus in {}ms, dropping out", conf.globalMessageTimeout);
+                    return;
                 }
             }
+
+            // Will die gracefully at this point
         });
 
-        if(detach) {
-            globalDispatchThread.detach();
-        }
-        else {
-            globalDispatchThread.join();
-        }
+        // Wait for the queue to time out
+        globalQueueThread.join();
     }
 
     void WorkerThreadPool::startSharingThread() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->info("Starting work sharing listener");
 
-        std::thread sharingDispatchThread([] {
+        sharingQueueThread = std::thread([this] {
             scheduler::SharingMessageBus &sharingBus = scheduler::SharingMessageBus::getInstance();
             scheduler::Scheduler &sch = scheduler::getScheduler();
 
-            while (true) {
+            while (!this->isShutdown()) {
                 try {
-                    message::Message msg = sharingBus.nextMessageForThisHost();
+                    message::Message msg = sharingBus.nextMessageForThisNode();
                     sch.callFunction(msg);
                 }
                 catch (redis::RedisNoResponseException &ex) {
                     continue;
                 }
             }
+
+            // Will die gracefully at this point
         });
-        sharingDispatchThread.detach();
     }
 
-    void WorkerThreadPool::startThreadPool(bool detach) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
+    void WorkerThreadPool::startThreadPool() {
         // Spawn worker threads until we've hit the worker limit, thus creating a pool
         // that will replenish when one releases its token
-        std::thread poolThread([this] {
-            while (true) {
+        poolThread = std::thread([this] {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+            while (!this->isShutdown()) {
                 // Try to get an available slot (blocks if none available)
                 int threadIdx = this->getThreadToken();
 
+                // Double check shutdown condition
+                if (this->isShutdown()) {
+                    break;
+                }
+
                 // Spawn thread to execute function
-                std::thread funcThread([this, threadIdx] {
+                poolThreads.emplace_back(std::thread([this, threadIdx] {
                     WorkerThread w(threadIdx);
 
                     // Worker will now run for a long time
@@ -109,19 +113,19 @@ namespace worker {
 
                     // Handle thread finishing
                     threadTokenPool.releaseToken(w.threadIdx);
-                });
-
-                funcThread.detach();
+                }));
             }
-        });
 
-        if(detach) {
-            logger->info("Starting pool with {} threads in background", threadTokenPool.size());
-            poolThread.detach();
-        } else {
-            logger->info("Starting pool with {} threads in main thread", threadTokenPool.size());
-            poolThread.join();
-        }
+            // Once shut down, wait for everything to die
+            logger->info("Waiting for {} worker threads", poolThreads.size());
+            for (auto &t : poolThreads) {
+                if (t.joinable()) {
+                    t.join();
+                }
+            }
+
+            // Will die gracefully at this point
+        });
     }
 
     void WorkerThreadPool::reset() {
@@ -134,5 +138,37 @@ namespace worker {
 
     int WorkerThreadPool::getThreadCount() {
         return threadTokenPool.taken();
+    }
+
+    bool WorkerThreadPool::isShutdown() {
+        return _shutdown;
+    }
+
+    void WorkerThreadPool::shutdown() {
+        _shutdown = true;
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        if (globalQueueThread.joinable()) {
+            logger->info("Waiting for global queue thread to finish");
+            globalQueueThread.join();
+        }
+
+        if (stateThread.joinable()) {
+            logger->info("Waiting for state thread to finish");
+            stateThread.join();
+        }
+
+        if (sharingQueueThread.joinable()) {
+            logger->info("Waiting for sharing queue thread to finish");
+            sharingQueueThread.join();
+        }
+
+        if (poolThread.joinable()) {
+            logger->info("Waiting for pool to finish");
+            poolThread.join();
+        }
+
+        logger->info("Worker pool successfully shut down");
     }
 }

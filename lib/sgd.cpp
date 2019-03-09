@@ -209,6 +209,7 @@ namespace faasm {
         // Write zeroed buffer to state
         auto bytes = reinterpret_cast<uint8_t *>(buffer);
         memory->writeState(key, bytes, len * sizeof(double), async);
+
         delete[] buffer;
     }
 

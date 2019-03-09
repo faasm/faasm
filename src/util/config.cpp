@@ -16,7 +16,7 @@ namespace util {
 
     void SystemConfig::initialise() {
         // TODO - max cannot exceed the underlying number of available namespaces. Good to decouple?
-        threadsPerWorker = this->getSystemConfIntParam("THREADS_PER_WORKER", "50");
+        threadsPerWorker = this->getSystemConfIntParam("THREADS_PER_WORKER", "5");
 
         // System
         hostType = getEnvVar("HOST_TYPE", "default");
@@ -36,17 +36,18 @@ namespace util {
         redisPort = getEnvVar("REDIS_PORT", "6379");
 
         // Scheduling
+        maxNodes = this->getSystemConfIntParam("MAX_NODES", "4");
         noScheduler = this->getSystemConfIntParam("NO_SCHEDULER", "0");
         prewarm = this->getSystemConfIntParam("PREWARM", "1");
         maxQueueRatio = this->getSystemConfIntParam("MAX_QUEUE_RATIO", "3");
         maxWorkersPerFunction = this->getSystemConfIntParam("MAX_WORKERS_PER_FUNCTION", "10");
 
-        // Worker-related timeouts
-        globalMessageTimeout = this->getSystemConfIntParam("GLOBAL_MESSAGE_TIMEOUT", "60");
-        boundTimeout = this->getSystemConfIntParam("BOUND_TIMEOUT", "30");
-        unboundTimeout = this->getSystemConfIntParam("UNBOUND_TIMEOUT", "5000");
+        // Worker-related timeouts (all in seconds)
+        globalMessageTimeout = this->getSystemConfIntParam("GLOBAL_MESSAGE_TIMEOUT", "60000");
+        boundTimeout = this->getSystemConfIntParam("BOUND_TIMEOUT", "30000");
+        unboundTimeout = this->getSystemConfIntParam("UNBOUND_TIMEOUT", "60000");
 
-        // State
+        // State timeouts (all in millis)
         stateStaleThreshold = this->getSystemConfIntParam("STATE_STALE_THRESHOLD", "60000");
         stateClearThreshold = this->getSystemConfIntParam("STATE_CLEAR_THRESHOLD", "300000");
         statePushInterval = this->getSystemConfIntParam("STATE_PUSH_INTERVAL", "500");
@@ -84,6 +85,7 @@ namespace util {
         logger->info("REDIS_PORT                 {}", redisPort);
 
         logger->info("--- Scheduling ---");
+        logger->info("MAX_NODES                  {}", maxNodes);
         logger->info("THREADS_PER_WORKER         {}", threadsPerWorker);
         logger->info("NO_SCHEDULER               {}", noScheduler);
         logger->info("PREWARM                    {}", prewarm);
@@ -102,18 +104,14 @@ namespace util {
         logger->info("FULL_ASYNC                 {}", fullAsync);
     }
 
-    std::string getHostName() {
-        static std::string hostname;
+    std::string getNodeId() {
+        static std::string nodeId;
 
-        if(hostname.empty()) {
-            hostname = util::getEnvVar("HOSTNAME", "");
-
-            if (hostname.empty()) {
-                // Generate random hostname
-                hostname = util::randomString(10);
-            }
+        if(nodeId.empty()) {
+            // Generate random node ID
+            nodeId = util::randomString(20);
         }
 
-        return hostname;
+        return nodeId;
     }
 }

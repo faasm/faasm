@@ -10,7 +10,7 @@ namespace tests {
         SystemConfig conf;
         conf.reset();
 
-        REQUIRE(conf.threadsPerWorker == 50);
+        REQUIRE(conf.threadsPerWorker == 5);
 
         REQUIRE(conf.hostType == "default");
         REQUIRE(conf.globalMessageBus == "redis");
@@ -25,14 +25,15 @@ namespace tests {
         REQUIRE(conf.redisQueueHost == "localhost");
         REQUIRE(conf.redisPort == "6379");
 
+        REQUIRE(conf.maxNodes == 4);
         REQUIRE(conf.noScheduler == 0);
         REQUIRE(conf.prewarm == 1);
         REQUIRE(conf.maxQueueRatio == 3);
         REQUIRE(conf.maxWorkersPerFunction == 10);
 
-        REQUIRE(conf.globalMessageTimeout == 60);
-        REQUIRE(conf.boundTimeout == 30);
-        REQUIRE(conf.unboundTimeout == 5000);
+        REQUIRE(conf.globalMessageTimeout == 60000);
+        REQUIRE(conf.boundTimeout == 30000);
+        REQUIRE(conf.unboundTimeout == 60000);
 
         REQUIRE(conf.stateStaleThreshold == 60000);
         REQUIRE(conf.stateClearThreshold == 300000);
@@ -56,6 +57,7 @@ namespace tests {
         setEnvVar("REDIS_QUEUE_HOST", "other-host");
         setEnvVar("REDIS_PORT", "1234");
 
+        setEnvVar("MAX_NODES", "15");
         setEnvVar("NO_SCHEDULER", "1");
         setEnvVar("PREWARM", "5");
         setEnvVar("MAX_QUEUE_RATIO", "8888");
@@ -86,6 +88,7 @@ namespace tests {
         REQUIRE(conf.redisQueueHost == "other-host");
         REQUIRE(conf.redisPort == "1234");
 
+        REQUIRE(conf.maxNodes == 15);
         REQUIRE(conf.noScheduler == 1);
         REQUIRE(conf.prewarm == 5);
         REQUIRE(conf.maxQueueRatio == 8888);
@@ -115,11 +118,13 @@ namespace tests {
         unsetEnvVar("REDIS_QUEUE_HOST");
         unsetEnvVar("REDIS_PORT");
 
+        unsetEnvVar("MAX_NODES");
         unsetEnvVar("NO_SCHEDULER");
         unsetEnvVar("PREWARM");
         unsetEnvVar("MAX_QUEUE_RATIO");
         unsetEnvVar("MAX_WORKERS_PER_FUNCTION");
 
+        unsetEnvVar("GLOBAL_MESSAGE_TIMEOUT");
         unsetEnvVar("BOUND_TIMEOUT");
         unsetEnvVar("UNBOUND_TIMEOUT");
 

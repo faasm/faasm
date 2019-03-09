@@ -8,10 +8,10 @@ namespace wasm {
         util::SystemConfig &conf = util::getSystemConfig();
 
         if (conf.functionStorage == "local") {
-            static LocalFunctionLoader fl;
+            static thread_local LocalFunctionLoader fl;
             return fl;
         } else if (conf.functionStorage == "s3") {
-            static S3FunctionLoader fl;
+            static thread_local S3FunctionLoader fl;
             return fl;
         } else {
             throw std::runtime_error("Invalid function storage mode");
