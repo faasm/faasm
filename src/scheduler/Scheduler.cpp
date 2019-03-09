@@ -66,23 +66,14 @@ namespace scheduler {
     }
 
     void Scheduler::clear() {
-        bindQueue->reset();
-
-        queueMap.clear();
-        threadCountMap.clear();
-
-        // Make sure this host is in the global set
-        this->addHostToGlobalSet();
-    }
-
-    Scheduler::~Scheduler() {
         // Remove each host from the relevant warm sets
         for (const auto &iter: queueMap) {
             this->removeHostFromWarmSet(iter.first);
         }
 
-        // Remove host from the global set
-        this->removeHostFromGlobalSet();
+        bindQueue->reset();
+        queueMap.clear();
+        threadCountMap.clear();
     }
 
     void Scheduler::enqueueMessage(const message::Message &msg) {

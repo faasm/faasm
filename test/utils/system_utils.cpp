@@ -14,7 +14,9 @@ namespace tests {
 
         state::getGlobalState().forceClearAll();
 
-        scheduler::getScheduler().clear();
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        sch.clear();
+        sch.addHostToGlobalSet();
 
         scheduler::getGlobalMessageBus().clear();
     }

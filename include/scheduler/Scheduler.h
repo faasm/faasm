@@ -17,8 +17,6 @@ namespace scheduler {
     public:
         Scheduler();
 
-        ~Scheduler();
-
         void callFunction(message::Message &msg);
 
         std::string getBestHostForFunction(const message::Message &msg);

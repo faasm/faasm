@@ -18,6 +18,7 @@ namespace tests {
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.clear();
+        sch.addHostToGlobalSet();
 
         // Network ns requires root
         util::setEnvVar("NETNS_MODE", "off");
