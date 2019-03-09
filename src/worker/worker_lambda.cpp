@@ -25,7 +25,9 @@ int main() {
     config.print();
 
     auto handler_fn = [&config, &logger](aws::lambda_runtime::invocation_request const &req) {
+        // Ensure scheduler set up and this node is in global set
         scheduler::Scheduler &sch = scheduler::getScheduler();
+        sch.addNodeToGlobalSet();
 
         // Initialise worker pool
         logger->info("Initialising thread pool with {} workers", config.threadsPerWorker);

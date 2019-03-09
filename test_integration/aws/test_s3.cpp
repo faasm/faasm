@@ -88,6 +88,17 @@ namespace tests {
         std::vector<std::string> keys = s3.listKeys(conf.bucketName);
         REQUIRE(keys.size() == 2);
 
+        // Download in a different thread and check for any thread-local issues
+        std::thread t([&msg, &wasmBytes, &objectBytes]{
+            wasm::FunctionLoader &l = wasm::getFunctionLoader();
+            const std::vector<uint8_t> &actualWasmBytes2 = l.loadFunctionBytes(msg);
+            const std::vector<uint8_t> &actualObjectBytes2 = l.loadFunctionObjectBytes(msg);
+            REQUIRE(actualWasmBytes2 == wasmBytes);
+            REQUIRE(actualObjectBytes2 == objectBytes);
+        });
+
+        t.join();
+
         // Clear up
         const std::string &funcKey = util::getFunctionKey(msg);
         const std::string &objKey = util::getFunctionObjectKey(msg);

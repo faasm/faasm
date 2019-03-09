@@ -8,8 +8,10 @@
 int main() {
     util::initLogging();
 
+    // Set up scheduler and add node to global set
     scheduler::Scheduler &sch = scheduler::getScheduler();
-    
+    sch.addNodeToGlobalSet();
+
     util::SystemConfig &config = util::getSystemConfig();
     config.print();
 
@@ -21,10 +23,10 @@ int main() {
     pool.startThreadPool();
 
     // Work sharing thread
-//    pool.startSharingThread();
-//
-//    // State management thread
-//    pool.startStateThread();
+    pool.startSharingThread();
+
+    // State management thread
+    pool.startStateThread();
 
     // Global queue listener
     pool.startGlobalQueueThread();

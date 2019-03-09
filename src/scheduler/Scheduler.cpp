@@ -15,8 +15,6 @@ namespace scheduler {
             sharingBus(SharingMessageBus::getInstance()) {
 
         bindQueue = std::make_shared<InMemoryMessageQueue>();
-
-        this->addNodeToGlobalSet();
     }
 
     void Scheduler::addNodeToGlobalSet() {

@@ -153,7 +153,6 @@ namespace worker {
 
         // Wait for next message (note, timeout in ms)
         message::Message msg = currentQueue->dequeue(timeoutMs);
-        logger->info("Worker {} binding to {}", id, util::funcToString(msg));
 
         // Handle the message
         std::string errorMessage;

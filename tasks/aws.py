@@ -27,9 +27,9 @@ AWS_LAMBDA_ROLE = "faasm-lambda-role"
 faasm_lambda_funcs = {
     "worker": {
         "name": "faasm-worker",
-        "memory": 512,
+        "memory": 2688,
         # Worker timeout should be less than the function timeout to give things time to shut down gracefully
-        "timeout": 300,
+        "timeout": 600,
         "concurrency": 2,
         "extra_env": {
             "GLOBAL_MESSAGE_TIMEOUT": "120000",
@@ -259,7 +259,7 @@ def prepare_lambda_workers(ctx, n_workers):
         invoke_lambda_worker(ctx)
 
     # Wait and check the worker count
-    sleep(5)
+    sleep(10)
     worker_count = lambda_worker_count(ctx)
 
     if worker_count == n_workers:
