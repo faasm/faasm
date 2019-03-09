@@ -32,7 +32,7 @@ int main() {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
     logger->info("Removing from global working set");
     
-    sch.removeHostFromGlobalSet();
+    sch.clear();
 
     pool.shutdown();
 }

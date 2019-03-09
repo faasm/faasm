@@ -45,8 +45,6 @@ namespace scheduler {
 
         void addHostToGlobalSet();
 
-        void removeHostFromGlobalSet();
-
         long getGlobalSetSize();
 
         void addHostToWarmSet(const std::string &funcStr);
@@ -62,6 +60,8 @@ namespace scheduler {
         void scaleOut(int targetCount);
     private:
         std::string hostname;
+
+        void removeHostFromGlobalSet();
 
         void addWarmThreads(const message::Message &msg);
 

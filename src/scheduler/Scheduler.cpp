@@ -74,6 +74,8 @@ namespace scheduler {
         bindQueue->reset();
         queueMap.clear();
         threadCountMap.clear();
+
+        this->removeHostFromGlobalSet();
     }
 
     void Scheduler::enqueueMessage(const message::Message &msg) {
