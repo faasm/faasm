@@ -10,12 +10,15 @@ namespace faasm {
         long inputSize = memory->getInputSize();
         int nBatches;
         if(inputSize == 0) {
-            nBatches = 3;
+            nBatches = 2;
+            printf("SVM running default %i batches \n", nBatches);
         } else {
             auto inputBuffer = new uint8_t[inputSize];
             memory->getInput(inputBuffer, inputSize);
             char* inputString = reinterpret_cast<char*>(inputBuffer);
             nBatches = std::stoi(inputString);
+
+            printf("SVM running %i batches as requested\n", nBatches);
         }
 
         // Prepare params

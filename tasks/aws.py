@@ -34,7 +34,7 @@ faasm_lambda_funcs = {
         "extra_env": {
             "GLOBAL_MESSAGE_TIMEOUT": "120000",
             "UNBOUND_TIMEOUT": "30000",
-            "THREADS_PER_WORKER": "5",
+            "THREADS_PER_WORKER": "10",
         },
         "sqs": True,
     },
@@ -247,6 +247,7 @@ def prepare_lambda_workers(ctx, n_workers):
 
     # First take concurrency down to zero
     lambda_concurrency(ctx, "worker", 0)
+    sleep(5)
 
     # Clear out the queue
     lambda_clear_queue(ctx)

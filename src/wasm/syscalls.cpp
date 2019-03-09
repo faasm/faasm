@@ -348,13 +348,15 @@ namespace wasm {
     }
 
     void s__faasm_write_state(I32 keyPtr, I32 dataPtr, I32 dataLen, I32 async) {
-        util::getLogger()->debug("S - write_state - {} {} {} {}", keyPtr, dataPtr, dataLen, async);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - write_state - {} {} {} {}", keyPtr, dataPtr, dataLen, async);
 
         auto kv = getStateKV(keyPtr, dataLen);
 
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
 
+        logger->debug("Writing state length {} to key {}", dataLen, kv->key);
         kv->set(data);
 
         // Push if synchronous
