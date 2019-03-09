@@ -13,10 +13,10 @@ namespace worker {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Prepare host-specific variables
-        id = util::getHostName() + "_" + std::to_string(threadIdx);
+        // Prepare node-specific variables
+        id = util::getNodeId() + "_" + std::to_string(threadIdx);
 
-        logger->debug("Starting worker {}", id);
+        logger->debug("Starting worker thread {}", id);
 
         // Listen to bind queue by default
         currentQueue = scheduler.getBindQueue();

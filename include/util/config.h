@@ -3,7 +3,7 @@
 #include <string>
 
 namespace util {
-    std::string getHostName();
+    std::string getNodeId();
 
     const int DEFAULT_TIMEOUT = 60000;
     const int RESULT_KEY_EXPIRY = 30000;

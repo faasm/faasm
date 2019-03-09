@@ -52,6 +52,7 @@ from tasks.aws import (
     sqs_length,
     purge_sqs,
     invoke_lambda_worker,
+    prepare_lambda_workers,
 )
 
 from tasks.upload import (

@@ -18,7 +18,7 @@ namespace tests {
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.clear();
-        sch.addHostToGlobalSet();
+        sch.addNodeToGlobalSet();
 
         // Network ns requires root
         util::setEnvVar("NETNS_MODE", "off");
@@ -507,7 +507,7 @@ namespace tests {
         WorkerThreadPool pool(5);
 
         WorkerThread w(1);
-        std::string hostname = util::getHostName();
+        std::string nodeId = util::getNodeId();
 
         message::Message call;
         call.set_user("demo");
@@ -529,7 +529,7 @@ namespace tests {
         REQUIRE(sch.getFunctionQueueLength(call) == 1);
         REQUIRE(sch.getFunctionThreadCount(call) == 1);
         REQUIRE(bindQueue->size() == 1);
-        REQUIRE(redis.sismember(workerSetName, hostname));
+        REQUIRE(redis.sismember(workerSetName, nodeId));
 
         // Bind the thread and check it's now registered
         w.processNextMessage();
@@ -549,6 +549,6 @@ namespace tests {
         REQUIRE(sch.getFunctionQueueLength(call) == 0);
         REQUIRE(sch.getFunctionThreadCount(call) == 0);
         REQUIRE(bindQueue->size() == 0);
-        REQUIRE(!redis.sismember(workerSetName, hostname));
+        REQUIRE(!redis.sismember(workerSetName, nodeId));
     }
 }

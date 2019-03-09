@@ -44,7 +44,7 @@ int main() {
 
         pool.startGlobalQueueThread();
 
-        logger->info("Removing host from global set");
+        logger->info("Removing node from global set");
         sch.clear();
 
         // Wait for the pool to properly shut down

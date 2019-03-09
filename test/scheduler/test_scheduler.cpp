@@ -10,7 +10,7 @@ using namespace scheduler;
 using namespace redis;
 
 namespace tests {
-    TEST_CASE("Test scheduler destructor", "[scheduler]") {
+    TEST_CASE("Test scheduler clear-up", "[scheduler]") {
         cleanSystem();
 
         message::Message call;
@@ -18,29 +18,29 @@ namespace tests {
         call.set_function("some function");
         std::string funcSet;
 
-        std::string hostname = util::getHostName();
+        std::string nodeId = util::getNodeId();
         Redis &redis = Redis::getQueue();
 
-        // Create a scheduler in its own context
-        {
-            Scheduler s;
+        Scheduler s;
 
-            funcSet = s.getFunctionWarmSetName(call);
+        funcSet = s.getFunctionWarmSetName(call);
 
-            // Check initial set-up
-            REQUIRE(redis.sismember(GLOBAL_WORKER_SET, hostname));
-            REQUIRE(!redis.sismember(funcSet, hostname));
+        // Check initial set-up
+        REQUIRE(redis.sismember(GLOBAL_NODE_SET, nodeId));
+        REQUIRE(!redis.sismember(funcSet, nodeId));
 
-            // Call the function and check it's added to the function's warm set
-            s.callFunction(call);
+        // Call the function and check it's added to the function's warm set
+        s.callFunction(call);
 
-            REQUIRE(redis.sismember(GLOBAL_WORKER_SET, hostname));
-            REQUIRE(redis.sismember(funcSet, hostname));
-        }
+        REQUIRE(redis.sismember(GLOBAL_NODE_SET, nodeId));
+        REQUIRE(redis.sismember(funcSet, nodeId));
 
-        // After destructor has run this host should no longer be part of either set
-        REQUIRE(!redis.sismember(GLOBAL_WORKER_SET, hostname));
-        REQUIRE(!redis.sismember(funcSet, hostname));
+        // Run clear-up
+        s.clear();
+
+        // After clear-up has run this node should no longer be part of either set
+        REQUIRE(!redis.sismember(GLOBAL_NODE_SET, nodeId));
+        REQUIRE(!redis.sismember(funcSet, nodeId));
     }
 
     TEST_CASE("Test scheduler operations", "[scheduler]") {
@@ -49,8 +49,8 @@ namespace tests {
         Scheduler &sch = scheduler::getScheduler();
         Redis &redis = Redis::getQueue();
 
-        std::string hostname = util::getHostName();
-        std::string otherHostA = "Host A";
+        std::string nodeId = util::getNodeId();
+        std::string otherNodeA = "node A";
         SharingMessageBus &sharingBus = SharingMessageBus::getInstance();
 
         message::Message call;
@@ -59,11 +59,11 @@ namespace tests {
 
         util::SystemConfig &conf = util::getSystemConfig();
 
-        SECTION("Test worker finishing and host removal") {
-            // Sanity check to see that the host is in the global set but not the set for the function
+        SECTION("Test worker finishing and node removal") {
+            // Sanity check to see that the node is in the global set but not the set for the function
             std::string funcSet = sch.getFunctionWarmSetName(call);
-            REQUIRE(redis.sismember(GLOBAL_WORKER_SET, hostname));
-            REQUIRE(!redis.sismember(funcSet, hostname));
+            REQUIRE(redis.sismember(GLOBAL_NODE_SET, nodeId));
+            REQUIRE(!redis.sismember(funcSet, nodeId));
 
             // Call the function enough to get multiple workers set up
             int requiredCalls = conf.maxQueueRatio * 2;
@@ -71,22 +71,22 @@ namespace tests {
                 sch.callFunction(call);
             }
 
-            // Check host is now part of function's set
-            REQUIRE(redis.sismember(funcSet, hostname));
+            // Check node is now part of function's set
+            REQUIRE(redis.sismember(funcSet, nodeId));
             REQUIRE(sch.getFunctionQueueLength(call) == requiredCalls);
             REQUIRE(sch.getBindQueue()->size() == 2);
 
             // Notify that a worker has finished, count decremented by one and worker is still member of function set
             sch.stopListeningToQueue(call);
-            REQUIRE(redis.sismember(funcSet, hostname));
+            REQUIRE(redis.sismember(funcSet, nodeId));
             REQUIRE(sch.getFunctionQueueLength(call) == requiredCalls);
             REQUIRE(sch.getFunctionThreadCount(call) == 1);
 
-            // Notify that another worker has finished, check count is decremented and host removed from function set
+            // Notify that another worker has finished, check count is decremented and node removed from function set
             // (but still in global set)
             sch.stopListeningToQueue(call);
-            REQUIRE(redis.sismember(GLOBAL_WORKER_SET, hostname));
-            REQUIRE(!redis.sismember(funcSet, hostname));
+            REQUIRE(redis.sismember(GLOBAL_NODE_SET, nodeId));
+            REQUIRE(!redis.sismember(funcSet, nodeId));
             REQUIRE(sch.getFunctionQueueLength(call) == requiredCalls);
             REQUIRE(sch.getFunctionThreadCount(call) == 0);
         }
@@ -119,8 +119,8 @@ namespace tests {
             callB.set_user("demo");
             callB.set_function("x2");
 
-            // Add a worker host to the global set
-            redis.sadd(GLOBAL_WORKER_SET, "foo");
+            // Add a worker node to the global set
+            redis.sadd(GLOBAL_NODE_SET, "foo");
 
             // Call each function
             sch.callFunction(callA);
@@ -189,8 +189,8 @@ namespace tests {
             redis.flushAll();
         }
 
-        SECTION("Host choice checks") {
-            redis.sadd(GLOBAL_WORKER_SET, otherHostA);
+        SECTION("node choice checks") {
+            redis.sadd(GLOBAL_NODE_SET, otherNodeA);
 
             SECTION("Test function which breaches queue ratio but has no capacity fails over") {
                 // Make calls up to the limit
@@ -207,15 +207,15 @@ namespace tests {
                 // Check calls have been queued
                 REQUIRE(sch.getFunctionQueueLength(call) == nCalls);
 
-                // Check "best host" is now different
-                REQUIRE(sch.getBestHostForFunction(call) != hostname);
+                // Check "best node" is now different
+                REQUIRE(sch.getBestNodeForFunction(call) != nodeId);
 
                 // Call more and check calls are shared elsewhere
                 sch.callFunction(call);
                 sch.callFunction(call);
 
-                message::Message actualA = sharingBus.nextMessageForHost(otherHostA);
-                message::Message actualB = sharingBus.nextMessageForHost(otherHostA);
+                message::Message actualA = sharingBus.nextMessageForNode(otherNodeA);
+                message::Message actualB = sharingBus.nextMessageForNode(otherNodeA);
 
                 REQUIRE(actualA.function() == call.function());
                 REQUIRE(actualA.user() == call.user());
@@ -232,9 +232,9 @@ namespace tests {
             }
 
             SECTION("Test scheduler requests scale-out when no options") {
-                // Clear out worker set and just add this host
+                // Clear out worker set and just add this node
                 redis.flushAll();
-                redis.sadd(GLOBAL_WORKER_SET, hostname);
+                redis.sadd(GLOBAL_NODE_SET, nodeId);
 
                 GlobalMessageBus &globalBus = getGlobalMessageBus();
                 globalBus.clear();
@@ -242,7 +242,7 @@ namespace tests {
                 REQUIRE(sch.getGlobalSetSize() == 1);
                 REQUIRE(globalBus.getScaleoutRequestCount() == 0);
 
-                // Saturate this host
+                // Saturate this node
                 int nCalls = conf.maxWorkersPerFunction * conf.maxQueueRatio;
                 for (int i = 0; i < nCalls; i++) {
                     sch.callFunction(call);
@@ -255,53 +255,53 @@ namespace tests {
                 REQUIRE(globalBus.getScaleoutRequestCount() == 1);
             }
             
-            SECTION("Test scheduler adds hostname to global set when starting up") {
-                REQUIRE(!hostname.empty());
-                REQUIRE(redis.sismember(GLOBAL_WORKER_SET, hostname));
+            SECTION("Test scheduler adds node ID to global set when starting up") {
+                REQUIRE(!nodeId.empty());
+                REQUIRE(redis.sismember(GLOBAL_NODE_SET, nodeId));
             }
 
-            SECTION("Test current host chosen when no warm alternatives") {
-                REQUIRE(sch.getBestHostForFunction(call) == hostname);
+            SECTION("Test current node chosen when no warm alternatives") {
+                REQUIRE(sch.getBestNodeForFunction(call) == nodeId);
             }
 
             SECTION("Test other warm option chosen when available") {
-                // Add another host to the warm set for the given function
+                // Add another node to the warm set for the given function
                 const std::string warmSet = sch.getFunctionWarmSetName(call);
-                redis.sadd(warmSet, otherHostA);
+                redis.sadd(warmSet, otherNodeA);
 
-                REQUIRE(sch.getBestHostForFunction(call) == otherHostA);
+                REQUIRE(sch.getBestNodeForFunction(call) == otherNodeA);
             }
 
             SECTION("Test other warm option *not* chosen when in no scheduler mode") {
                 conf.noScheduler = 1;
 
-                // Add another host to the warm set for the given function
+                // Add another node to the warm set for the given function
                 const std::string warmSet = sch.getFunctionWarmSetName(call);
-                redis.sadd(warmSet, otherHostA);
+                redis.sadd(warmSet, otherNodeA);
 
                 // Check it's ignored
-                REQUIRE(sch.getBestHostForFunction(call) == hostname);
+                REQUIRE(sch.getBestNodeForFunction(call) == nodeId);
 
                 conf.noScheduler = 0;
             }
 
-            SECTION("Test current host chosen when already warm even if alternatives") {
-                // Ensure a warm worker exists on this host
+            SECTION("Test current node chosen when already warm even if alternatives") {
+                // Ensure a warm worker exists on this node
                 sch.callFunction(call);
                 REQUIRE(sch.getFunctionThreadCount(call) == 1);
 
-                // Check this host is in the warm set
+                // Check this node is in the warm set
                 const std::string warmSet = sch.getFunctionWarmSetName(call);
-                REQUIRE(redis.sismember(warmSet, hostname));
+                REQUIRE(redis.sismember(warmSet, nodeId));
 
-                // Add another host to the warm set
-                redis.sadd(warmSet, otherHostA);
+                // Add another node to the warm set
+                redis.sadd(warmSet, otherNodeA);
 
                 // Run a few times to make sure
-                REQUIRE(sch.getBestHostForFunction(call) == hostname);
-                REQUIRE(sch.getBestHostForFunction(call) == hostname);
-                REQUIRE(sch.getBestHostForFunction(call) == hostname);
-                REQUIRE(sch.getBestHostForFunction(call) == hostname);
+                REQUIRE(sch.getBestNodeForFunction(call) == nodeId);
+                REQUIRE(sch.getBestNodeForFunction(call) == nodeId);
+                REQUIRE(sch.getBestNodeForFunction(call) == nodeId);
+                REQUIRE(sch.getBestNodeForFunction(call) == nodeId);
             }
         }
     }
@@ -351,8 +351,8 @@ namespace tests {
 
         SECTION("Check scale out ignored when already over target") {
             // Add some random workers
-            redis.sadd(GLOBAL_WORKER_SET, "foo");
-            redis.sadd(GLOBAL_WORKER_SET, "bar");
+            redis.sadd(GLOBAL_NODE_SET, "foo");
+            redis.sadd(GLOBAL_NODE_SET, "bar");
 
             // Request a scale-out (should always dispatch only one request at a time regardless of the target)
             sch.scaleOut(2);
@@ -364,7 +364,7 @@ namespace tests {
             // Add workers up to the limit
             for (int i = 0; i < conf.maxNodes; i++) {
                 std::string workerName = "foo" + std::to_string(i);
-                redis.sadd(GLOBAL_WORKER_SET, workerName);
+                redis.sadd(GLOBAL_NODE_SET, workerName);
             }
 
             // Request a scale-out over the max

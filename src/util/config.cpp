@@ -104,18 +104,14 @@ namespace util {
         logger->info("FULL_ASYNC                 {}", fullAsync);
     }
 
-    std::string getHostName() {
-        static std::string hostname;
+    std::string getNodeId() {
+        static std::string nodeId;
 
-        if(hostname.empty()) {
-            hostname = util::getEnvVar("HOSTNAME", "");
-
-            if (hostname.empty()) {
-                // Generate random hostname
-                hostname = util::randomString(10);
-            }
+        if(nodeId.empty()) {
+            // Generate random node ID
+            nodeId = util::randomString(20);
         }
 
-        return hostname;
+        return nodeId;
     }
 }

@@ -4,6 +4,7 @@ from os import mkdir
 from os.path import join, exists
 from shutil import rmtree
 from subprocess import call
+from time import sleep
 
 import boto3
 from botocore.exceptions import ClientError
@@ -138,6 +139,7 @@ def purge_sqs(ctx):
 @task
 def invoke_lambda_worker(ctx):
     client, url = _get_sqs_client()
+    print("Adding message to queue {}".format(url))
 
     message = {
         "submitted": str(datetime.now()),
@@ -184,9 +186,12 @@ def list_event_sources(ctx, func_name):
 
 @task
 def lambda_worker_count(ctx):
-    invoke_lambda(ctx, "faasm-redis", payload={
+    response_body = invoke_lambda(ctx, "faasm-redis", payload={
         "target": "worker-count",
     })
+
+    response_body = response_body.replace("Worker count: ", "")
+    return int(response_body.strip())
 
 
 @task
@@ -212,7 +217,10 @@ def invoke_lambda(ctx, lambda_name, async=False, payload=None):
     response = client.invoke(**kwargs)
 
     print(response)
-    print("\nResponse payload: {}".format(response["Payload"].read()))
+    response_body = response["Payload"].read()
+    print("\nResponse payload: {}".format(response_body))
+
+    return response_body
 
 
 @task
@@ -232,6 +240,33 @@ def invoke_faasm_lambda(ctx, user, func, input_data="", extra_payload=None, asyn
 # --------------------------------
 # SYSTEM LAMBDAS
 # --------------------------------
+
+@task
+def prepare_lambda_workers(ctx, n_workers):
+    n_workers = int(n_workers)
+
+    # First take concurrency down to zero
+    lambda_concurrency(ctx, "worker", 0)
+
+    # Clear out the queue
+    lambda_clear_queue(ctx)
+
+    # Now up concurrency
+    lambda_concurrency(ctx, "worker", n_workers)
+
+    # Now trigger messages
+    for i in range(n_workers):
+        invoke_lambda_worker(ctx)
+
+    # Wait and check the worker count
+    sleep(5)
+    worker_count = lambda_worker_count(ctx)
+
+    if worker_count == n_workers:
+        print("Successfully set-up ({} workers)".format(n_workers))
+    else:
+        print("Unsuccessful set-up (expected {} but found {})".format(n_workers, worker_count))
+
 
 @task
 def lambda_concurrency(ctx, func_name, concurrency):

@@ -10,7 +10,7 @@
 #include <shared_mutex>
 #include <redis/Redis.h>
 
-#define GLOBAL_WORKER_SET "available_workers"
+#define GLOBAL_NODE_SET "available_workers"
 
 namespace scheduler {
     class Scheduler {
@@ -19,7 +19,7 @@ namespace scheduler {
 
         void callFunction(message::Message &msg);
 
-        std::string getBestHostForFunction(const message::Message &msg);
+        std::string getBestNodeForFunction(const message::Message &msg);
 
         void enqueueMessage(const message::Message &msg);
 
@@ -43,13 +43,13 @@ namespace scheduler {
 
         long getFunctionQueueLength(const message::Message &msg);
 
-        void addHostToGlobalSet();
+        void addNodeToGlobalSet();
 
         long getGlobalSetSize();
 
-        void addHostToWarmSet(const std::string &funcStr);
+        void addNodeToWarmSet(const std::string &funcStr);
 
-        void removeHostFromWarmSet(const std::string &funcStr);
+        void removeNodeFromWarmSet(const std::string &funcStr);
 
         int getExecutingCount();
 
@@ -59,9 +59,9 @@ namespace scheduler {
 
         void scaleOut(int targetCount);
     private:
-        std::string hostname;
+        std::string nodeId;
 
-        void removeHostFromGlobalSet();
+        void removeNodeFromGlobalSet();
 
         void addWarmThreads(const message::Message &msg);
 

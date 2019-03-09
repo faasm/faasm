@@ -77,7 +77,7 @@ namespace worker {
 
             while (!this->isShutdown()) {
                 try {
-                    message::Message msg = sharingBus.nextMessageForThisHost();
+                    message::Message msg = sharingBus.nextMessageForThisNode();
                     sch.callFunction(msg);
                 }
                 catch (redis::RedisNoResponseException &ex) {

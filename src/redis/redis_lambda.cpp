@@ -50,7 +50,7 @@ int main() {
         } else if (target == "flush-queue") {
             queue.flushAll();
         } else if (target == "worker-count") {
-            long count = queue.scard(GLOBAL_WORKER_SET);
+            long count = queue.scard(GLOBAL_NODE_SET);
             message = "Worker count: " + std::to_string(count);
         } else {
             message = "Unrecognised target: " + target;
