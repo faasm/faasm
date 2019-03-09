@@ -532,6 +532,11 @@ namespace wasm {
         message::Message *call = getExecutingCall();
         std::vector<uint8_t> inputBytes = util::stringToBytes(call->inputdata());
 
+        // If nothing, return nothing
+        if(inputBytes.empty()) {
+            return 0;
+        }
+
         // Write to the wasm buffer
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);

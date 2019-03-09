@@ -151,7 +151,7 @@ namespace tests {
         conf.prewarm = 1;
     }
 
-    TEST_CASE("Test full execution of WASM module", "[worker]") {
+    TEST_CASE("Test execution of echo function", "[worker]") {
         setUp();
 
         message::Message call;
@@ -167,6 +167,26 @@ namespace tests {
 
         // Check output
         REQUIRE(result.outputdata() == "this is input");
+        REQUIRE(result.success());
+
+        tearDown();
+    }
+
+    TEST_CASE("Test execution of empty echo function", "[worker]") {
+        setUp();
+
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("echo");
+        call.set_resultkey("test_echo_empty");
+
+        // Run the execution
+        execFunction(call);
+        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
+        message::Message result = globalBus.getFunctionResult(call);
+
+        // Check output
+        REQUIRE(result.outputdata() == "Nothing to echo");
         REQUIRE(result.success());
 
         tearDown();
