@@ -297,7 +297,7 @@ namespace wasm {
         return mappedRangePtr;
     }
 
-    U32 WasmModule::mmapKey(state::StateKeyValue *kv, U32 length) {
+    U32 WasmModule::mmapKey(const std::shared_ptr<state::StateKeyValue> kv, U32 length) {
         // See if we need to initialise this mapping or if it already exists
         if (sharedMemWasmPtrs.count(kv->key) == 0) {
             // Create memory region for this module
@@ -315,7 +315,7 @@ namespace wasm {
             // Remember the kv and pointer
             sharedMemWasmPtrs.insert(std::pair<std::string, I32>(kv->key, wasmPtr));
             sharedMemHostPtrs.insert(std::pair<std::string, void *>(kv->key, voidPtr));
-            sharedMemKVs.insert(std::pair<std::string, state::StateKeyValue *>(kv->key, kv));
+            sharedMemKVs.insert(std::pair<std::string, std::shared_ptr<state::StateKeyValue>>(kv->key, kv));
         }
 
         // Return the wasm pointer

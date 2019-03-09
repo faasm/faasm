@@ -134,7 +134,7 @@ namespace tests {
             REQUIRE(sch.getBindQueue()->size() == 2);
 
             // Check that bind messages have been sent
-            InMemoryMessageQueue *bindQueue = sch.getBindQueue();
+            auto bindQueue = sch.getBindQueue();
             message::Message bindA = bindQueue->dequeue();
             message::Message bindB = bindQueue->dequeue();
 
@@ -169,7 +169,7 @@ namespace tests {
 
         SECTION("Test calling function which breaches queue ratio sends bind message") {
             // Saturate up to the number of max queued calls
-            InMemoryMessageQueue *bindQueue = sch.getBindQueue();
+            auto bindQueue = sch.getBindQueue();
             int nCalls = conf.maxQueueRatio;
             for (int i = 0; i < nCalls; i++) {
                 sch.callFunction(call);
@@ -200,7 +200,7 @@ namespace tests {
                 }
 
                 // Check local workers requested
-                InMemoryMessageQueue *bindQueue = sch.getBindQueue();
+                auto bindQueue = sch.getBindQueue();
                 REQUIRE(bindQueue->size() == conf.maxWorkersPerFunction);
                 REQUIRE(sch.getFunctionThreadCount(call) == conf.maxWorkersPerFunction);
 

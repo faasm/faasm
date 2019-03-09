@@ -25,13 +25,13 @@ namespace scheduler {
 
         void enqueueMessage(const message::Message &msg);
 
-        InMemoryMessageQueue *listenToQueue(const message::Message &msg);
+        std::shared_ptr<InMemoryMessageQueue> listenToQueue(const message::Message &msg);
 
-        InMemoryMessageQueue *getFunctionQueue(const message::Message &msg);
+        std::shared_ptr<InMemoryMessageQueue> getFunctionQueue(const message::Message &msg);
 
         void stopListeningToQueue(const message::Message &msg);
 
-        InMemoryMessageQueue *getBindQueue();
+        std::shared_ptr<InMemoryMessageQueue> getBindQueue();
 
         std::string getFunctionWarmSetName(const message::Message &msg);
 
@@ -69,9 +69,9 @@ namespace scheduler {
 
         util::SystemConfig &conf;
 
-        InMemoryMessageQueue *bindQueue;
+        std::shared_ptr<InMemoryMessageQueue> bindQueue;
 
-        std::unordered_map<std::string, InMemoryMessageQueue *> queueMap;
+        std::unordered_map<std::string, std::shared_ptr<InMemoryMessageQueue>> queueMap;
         std::unordered_map<std::string, long> threadCountMap;
         std::shared_mutex mx;
 

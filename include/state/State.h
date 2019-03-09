@@ -8,13 +8,9 @@
 namespace state {
     class State {
     public:
-        State();
+        std::shared_ptr<StateKeyValue> getKV(const std::string &user, const std::string &key, size_t size);
 
-        ~State();
-
-        StateKeyValue *getKV(const std::string &user, const std::string &key, size_t size);
-
-        UserState *getUserState(const std::string &user);
+        std::shared_ptr<UserState> getUserState(const std::string &user);
 
         void pushAll();
 

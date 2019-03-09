@@ -35,7 +35,7 @@ namespace tests {
         REQUIRE(!w.isBound());
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        scheduler::InMemoryMessageQueue *bindQueue = sch.getBindQueue();
+        auto bindQueue = sch.getBindQueue();
 
         // Call the function, checking that everything is set up
         sch.callFunction(call);
@@ -225,7 +225,7 @@ namespace tests {
         sch.callFunction(call);
 
         // Check message is on the bind queue
-        scheduler::InMemoryMessageQueue *bindQueue = sch.getBindQueue();
+        auto bindQueue = sch.getBindQueue();
         REQUIRE(bindQueue->size() == 1);
 
         // Process next message
@@ -515,7 +515,7 @@ namespace tests {
 
         // Sense check initial scheduler set-up
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        scheduler::InMemoryMessageQueue *bindQueue = sch.getBindQueue();
+        auto bindQueue = sch.getBindQueue();
         REQUIRE(sch.getFunctionQueueLength(call) == 0);
         REQUIRE(sch.getFunctionThreadCount(call) == 0);
         REQUIRE(bindQueue->size() == 0);

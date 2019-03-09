@@ -19,19 +19,6 @@ namespace state {
         return s;
     }
 
-    State::State() {
-        const SystemConfig &conf = getSystemConfig();
-    }
-
-    State::~State() {
-        // Delete contents of user state map
-        for (const auto &iter: userStateMap) {
-            delete iter.second;
-        }
-
-        userStateMap.clear();
-    }
-
     void State::pushAll() {
         // Run the sync for all users' state
         for (const auto &iter: userStateMap) {
@@ -40,19 +27,15 @@ namespace state {
     }
 
     void State::forceClearAll() {
-        for (const auto &iter: userStateMap) {
-            delete iter.second;
-        }
-
         userStateMap.clear();
     }
 
-    StateKeyValue *State::getKV(const std::string &user, const std::string &key, size_t size) {
-        UserState *us = this->getUserState(user);
+    std::shared_ptr<StateKeyValue> State::getKV(const std::string &user, const std::string &key, size_t size) {
+        std::shared_ptr<UserState> us = this->getUserState(user);
         return us->getValue(key, size);
     }
 
-    UserState *State::getUserState(const std::string &user) {
+    std::shared_ptr<UserState> State::getUserState(const std::string &user) {
         if (userStateMap.count(user) == 0) {
             // Lock on editing user state registry
             FullLock fullLock(userStateMapMutex);

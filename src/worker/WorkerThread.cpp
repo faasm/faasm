@@ -9,7 +9,7 @@
 namespace worker {
     WorkerThread::WorkerThread(int threadIdxIn) : threadIdx(threadIdxIn),
                                                   scheduler(scheduler::getScheduler()),
-                                                  globalBus(scheduler::getGlobalMessageBus()){
+                                                  globalBus(scheduler::getGlobalMessageBus()) {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -30,13 +30,6 @@ namespace worker {
         }
     }
 
-    WorkerThread::~WorkerThread() {
-        if (_isInitialised) {
-            delete ns;
-            delete module;
-        }
-    }
-
     void WorkerThread::initialise() {
         if (_isInitialised) {
             throw std::runtime_error("Should not be initialising an already initialised thread");
@@ -48,7 +41,7 @@ namespace worker {
         // Set up network namespace
         isolationIdx = threadIdx + 1;
         std::string netnsName = BASE_NETNS_NAME + std::to_string(isolationIdx);
-        ns = new NetworkNamespace(netnsName);
+        ns = std::make_unique<NetworkNamespace>(netnsName);
         ns->addCurrentThread();
 
         // Add this thread to the cgroup
@@ -56,7 +49,7 @@ namespace worker {
         cgroup.addCurrentThread();
 
         // Initialise wasm module
-        module = new wasm::WasmModule();
+        module = std::make_unique<wasm::WasmModule>();
         module->initialise();
 
         _isInitialised = true;

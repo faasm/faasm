@@ -14,7 +14,7 @@ namespace scheduler {
             conf(util::getSystemConfig()),
             sharingBus(SharingMessageBus::getInstance()) {
 
-        bindQueue = new InMemoryMessageQueue();
+        bindQueue = std::make_shared<InMemoryMessageQueue>();
 
         this->addHostToGlobalSet();
     }
@@ -68,10 +68,6 @@ namespace scheduler {
     void Scheduler::clear() {
         bindQueue->reset();
 
-        for (const auto &iter: queueMap) {
-            delete iter.second;
-        }
-
         queueMap.clear();
         threadCountMap.clear();
 
@@ -80,18 +76,10 @@ namespace scheduler {
     }
 
     Scheduler::~Scheduler() {
-        delete bindQueue;
-
-        // Clean up the queues for each function
+        // Remove each host from the relevant warm sets
         for (const auto &iter: queueMap) {
-            // Remove this host from the warm set
             this->removeHostFromWarmSet(iter.first);
-
-            // Remove the queue itself
-            delete iter.second;
         }
-
-        queueMap.clear();
 
         // Remove host from the global set
         this->removeHostFromGlobalSet();
@@ -103,7 +91,7 @@ namespace scheduler {
         if (msg.type() == message::Message_MessageType_BIND) {
             bindQueue->enqueue(msg);
         } else {
-            InMemoryMessageQueue *q = this->getFunctionQueue(msg);
+            auto q = this->getFunctionQueue(msg);
             q->enqueue(msg);
         }
     }
@@ -131,12 +119,12 @@ namespace scheduler {
     // Not thread-safe
     long Scheduler::getFunctionQueueLength(const message::Message &msg) {
         std::string funcStr = util::funcToString(msg);
-        InMemoryMessageQueue *q = this->getFunctionQueue(msg);
+        auto q = this->getFunctionQueue(msg);
 
         return q->size();
     }
 
-    InMemoryMessageQueue *Scheduler::getFunctionQueue(const message::Message &msg) {
+    std::shared_ptr<InMemoryMessageQueue> Scheduler::getFunctionQueue(const message::Message &msg) {
         std::string funcStr = util::funcToString(msg);
         if (queueMap.count(funcStr) == 0) {
             util::FullLock lock(mx);
@@ -151,12 +139,12 @@ namespace scheduler {
         return queueMap[funcStr];
     }
 
-    InMemoryMessageQueue *Scheduler::listenToQueue(const message::Message &msg) {
+    std::shared_ptr<InMemoryMessageQueue> Scheduler::listenToQueue(const message::Message &msg) {
         // Note: don't need to increment thread count here as that's done when we
         // dispatch the bind message
         std::string funcStr = util::funcToString(msg);
 
-        InMemoryMessageQueue *q = this->getFunctionQueue(msg);
+        auto q = this->getFunctionQueue(msg);
 
         return q;
     }
@@ -184,7 +172,7 @@ namespace scheduler {
         return WARM_SET_PREFIX + funcStr;
     }
 
-    InMemoryMessageQueue *Scheduler::getBindQueue() {
+    std::shared_ptr<InMemoryMessageQueue> Scheduler::getBindQueue() {
         return bindQueue;
     }
 

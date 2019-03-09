@@ -13,8 +13,6 @@ namespace worker {
     public:
         explicit WorkerThread(int threadIdx);
 
-        ~WorkerThread();
-
         void initialise();
 
         void bindToFunction(const message::Message &msg);
@@ -30,7 +28,7 @@ namespace worker {
         void finish();
 
         std::string id;
-        wasm::WasmModule *module;
+        std::unique_ptr<wasm::WasmModule> module;
 
         const int threadIdx;
     private:
@@ -38,13 +36,13 @@ namespace worker {
         bool _isBound = false;
 
         int isolationIdx;
-        NetworkNamespace *ns;
+        std::unique_ptr<NetworkNamespace> ns;
 
         message::Message boundMessage;
 
         scheduler::Scheduler &scheduler;
 
-        scheduler::InMemoryMessageQueue *currentQueue;
+        std::shared_ptr<scheduler::InMemoryMessageQueue> currentQueue;
 
         scheduler::GlobalMessageBus &globalBus;
 

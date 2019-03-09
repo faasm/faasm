@@ -101,6 +101,6 @@ namespace state {
         long waitOnRemoteLock();
     };
 
-    typedef std::unordered_map<std::string, StateKeyValue *> KVMap;
-    typedef std::pair<std::string, StateKeyValue *> KVPair;
+    typedef std::unordered_map<std::string, std::shared_ptr<StateKeyValue>> KVMap;
+    typedef std::pair<std::string, std::shared_ptr<StateKeyValue>> KVPair;
 }

@@ -240,16 +240,16 @@ namespace wasm {
     // ------------------------
     // FAASM-specific
     // ------------------------
-    state::StateKeyValue *getStateKV(I32 keyPtr, size_t size) {
+    std::shared_ptr<state::StateKeyValue> getStateKV(I32 keyPtr, size_t size) {
         const std::pair<std::string, std::string> userKey = getUserKeyPairFromWasm(keyPtr);
         state::State &s = state::getGlobalState();
-        state::StateKeyValue *kv = s.getKV(userKey.first, userKey.second, size);
+        auto kv = s.getKV(userKey.first, userKey.second, size);
 
         return kv;
     }
 
-    state::StateKeyValue *getStateKVRead(I32 keyPtr, size_t size, int async) {
-        state::StateKeyValue *kv = getStateKV(keyPtr, size);
+    std::shared_ptr<state::StateKeyValue> getStateKVRead(I32 keyPtr, size_t size, int async) {
+        auto kv = getStateKV(keyPtr, size);
 
         bool isAsync = async == 1;
         kv->pull(isAsync);
@@ -260,7 +260,7 @@ namespace wasm {
     void s__faasm_push_state(I32 keyPtr) {
         util::getLogger()->debug("S - push_state - {}", keyPtr);
 
-        state::StateKeyValue *kv = getStateKV(keyPtr, 0);
+        auto kv = getStateKV(keyPtr, 0);
         kv->pushFull();
     }
 
@@ -275,7 +275,7 @@ namespace wasm {
     void s__faasm_push_state_partial(I32 keyPtr) {
         util::getLogger()->debug("S - push_state_partial - {}", keyPtr);
 
-        state::StateKeyValue *kv = getStateKV(keyPtr, 0);
+        auto kv = getStateKV(keyPtr, 0);
         kv->pushPartial();
     }
 
@@ -290,7 +290,7 @@ namespace wasm {
     void s__faasm_lock_state_read(I32 keyPtr) {
         util::getLogger()->debug("S - lock_state_read - {}", keyPtr);
 
-        state::StateKeyValue *kv = getStateKV(keyPtr, 0);
+        auto kv = getStateKV(keyPtr, 0);
         kv->lockRead();
     }
 
@@ -305,7 +305,7 @@ namespace wasm {
     void s__faasm_unlock_state_read(I32 keyPtr) {
         util::getLogger()->debug("S - unlock_state_read - {}", keyPtr);
 
-        state::StateKeyValue *kv = getStateKV(keyPtr, 0);
+        auto kv = getStateKV(keyPtr, 0);
         kv->unlockRead();
     }
 
@@ -320,7 +320,7 @@ namespace wasm {
     void s__faasm_lock_state_write(I32 keyPtr) {
         util::getLogger()->debug("S - lock_state_write - {}", keyPtr);
 
-        state::StateKeyValue *kv = getStateKV(keyPtr, 0);
+        auto kv = getStateKV(keyPtr, 0);
         kv->lockWrite();
     }
 
@@ -335,7 +335,7 @@ namespace wasm {
     void s__faasm_unlock_state_write(I32 keyPtr) {
         util::getLogger()->debug("S - unlock_state_write - {}", keyPtr);
 
-        state::StateKeyValue *kv = getStateKV(keyPtr, 0);
+        auto kv = getStateKV(keyPtr, 0);
         kv->unlockWrite();
     }
 
@@ -350,7 +350,7 @@ namespace wasm {
     void s__faasm_write_state(I32 keyPtr, I32 dataPtr, I32 dataLen, I32 async) {
         util::getLogger()->debug("S - write_state - {} {} {} {}", keyPtr, dataPtr, dataLen, async);
 
-        state::StateKeyValue *kv = getStateKV(keyPtr, dataLen);
+        auto kv = getStateKV(keyPtr, dataLen);
 
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
@@ -377,7 +377,7 @@ namespace wasm {
         util::getLogger()->debug("S - write_state_offset - {} {} {} {} {} {}", keyPtr, totalLen, offset, dataPtr,
                                  dataLen, async);
 
-        state::StateKeyValue *kv = getStateKV(keyPtr, totalLen);
+        auto kv = getStateKV(keyPtr, totalLen);
 
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
@@ -403,7 +403,7 @@ namespace wasm {
     void s__faasm_read_state(I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 async) {
         util::getLogger()->debug("S - read_state - {} {} {} {}", keyPtr, bufferPtr, bufferLen, async);
 
-        state::StateKeyValue *kv = getStateKVRead(keyPtr, bufferLen, async);
+        auto kv = getStateKVRead(keyPtr, bufferLen, async);
 
         // Copy to straight to buffer
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
@@ -424,7 +424,7 @@ namespace wasm {
     I32 s__faasm_read_state_ptr(I32 keyPtr, I32 totalLen, I32 async) {
         util::getLogger()->debug("S - read_state - {} {} {}", keyPtr, totalLen, async);
 
-        state::StateKeyValue *kv = getStateKVRead(keyPtr, totalLen, async);
+        auto kv = getStateKVRead(keyPtr, totalLen, async);
 
         // Map shared memory
         WasmModule *module = getExecutingModule();
@@ -447,7 +447,7 @@ namespace wasm {
         util::getLogger()->debug("S - read_state_offset - {} {} {} {} {}", keyPtr, totalLen, offset, bufferPtr,
                                  bufferLen);
 
-        state::StateKeyValue *kv = getStateKVRead(keyPtr, totalLen, async);
+        auto kv = getStateKVRead(keyPtr, totalLen, async);
 
         // Copy to straight to buffer
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
@@ -468,7 +468,7 @@ namespace wasm {
     I32 s__faasm_read_state_offset_ptr(I32 keyPtr, I32 totalLen, I32 offset, I32 len, I32 async) {
         util::getLogger()->debug("S - read_state_offset_ptr - {} {} {} {} {}", keyPtr, totalLen, offset, len, async);
 
-        state::StateKeyValue *kv = getStateKVRead(keyPtr, totalLen, async);
+        auto kv = getStateKVRead(keyPtr, totalLen, async);
 
         // Map whole key in shared memory
         WasmModule *module = getExecutingModule();
@@ -492,7 +492,7 @@ namespace wasm {
     void s__faasm_flag_state_dirty(I32 keyPtr, I32 totalLen) {
         util::getLogger()->debug("S - __faasm_flag_state_dirty - {} {}", keyPtr, totalLen);
 
-        state::StateKeyValue *kv = getStateKV(keyPtr, totalLen);
+        auto kv = getStateKV(keyPtr, totalLen);
         kv->flagFullValueDirty();
     }
 
@@ -511,7 +511,7 @@ namespace wasm {
         //        util::getLogger()->debug("S - __faasm_flag_state_offset_dirty - {} {} {} {}", keyPtr, totalLen, offset,
         //                                 len);
 
-        state::StateKeyValue *kv = getStateKV(keyPtr, totalLen);
+        auto kv = getStateKV(keyPtr, totalLen);
         kv->flagSegmentDirty(offset, len);
     }
 
