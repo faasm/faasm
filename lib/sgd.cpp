@@ -203,18 +203,13 @@ namespace faasm {
 
     void zeroDoubleArray(FaasmMemory *memory, const char *key, long len, bool async) {
         // Set buffer to zero
-        printf("Creating buffer length %li\n", len);
         auto buffer = new double[len];
-
-        printf("Filling buffer with zeros length %li\n", len);
         std::fill(buffer, buffer + len, 0);
 
         // Write zeroed buffer to state
-        printf("Writing bytes to state\n");
         auto bytes = reinterpret_cast<uint8_t *>(buffer);
         memory->writeState(key, bytes, len * sizeof(double), async);
 
-        printf("Deleting buffer\n");
         delete[] buffer;
     }
 

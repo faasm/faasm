@@ -24,10 +24,15 @@ FAASM_LAMBDA_BUILD_DIR = join(PROJ_ROOT, "lambda_faasm_build")
 
 AWS_LAMBDA_ROLE = "faasm-lambda-role"
 
+# Note - the codegen and worker environments must be the same to ensure compiling for
+# the same processor arch. CPU type and share is determined by memory, so we need to make
+# the memory the same
+WORKER_MEM_SIZE = 2688
+
 faasm_lambda_funcs = {
     "worker": {
         "name": "faasm-worker",
-        "memory": 2688,
+        "memory": WORKER_MEM_SIZE,
         # Worker timeout should be less than the function timeout to give things time to shut down gracefully
         "timeout": 600,
         "concurrency": 2,
@@ -48,7 +53,7 @@ faasm_lambda_funcs = {
     },
     "codegen": {
         "name": "faasm-codegen",
-        "memory": 300,
+        "memory": WORKER_MEM_SIZE,
         "timeout": 60,
         "concurrency": 1,
         "extra_env": {
