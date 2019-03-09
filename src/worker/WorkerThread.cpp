@@ -19,7 +19,7 @@ namespace worker {
         logger->debug("Starting worker {}", id);
 
         // Listen to bind queue by default
-        currentQueue = &scheduler.bindQueue;
+        currentQueue = scheduler.getBindQueue();
 
         // Prewarm if necessary
         util::SystemConfig &conf = util::getSystemConfig();
@@ -31,12 +31,10 @@ namespace worker {
     }
 
     WorkerThread::~WorkerThread() {
-        if (!_isInitialised) {
-            return;
+        if (_isInitialised) {
+            delete ns;
+            delete module;
         }
-
-        delete ns;
-        delete module;
     }
 
     void WorkerThread::initialise() {

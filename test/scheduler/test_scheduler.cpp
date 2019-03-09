@@ -74,7 +74,7 @@ namespace tests {
             // Check host is now part of function's set
             REQUIRE(redis.sismember(funcSet, hostname));
             REQUIRE(sch.getFunctionQueueLength(call) == requiredCalls);
-            REQUIRE(sch.bindQueue.size() == 2);
+            REQUIRE(sch.getBindQueue()->size() == 2);
 
             // Notify that a worker has finished, count decremented by one and worker is still member of function set
             sch.stopListeningToQueue(call);
@@ -100,8 +100,8 @@ namespace tests {
 
             // Check function count has increased and bind message sent
             REQUIRE(sch.getFunctionQueueLength(call) == 1);
-            REQUIRE(sch.bindQueue.size() == 1);
-            message::Message actual = sch.bindQueue.dequeue();
+            REQUIRE(sch.getBindQueue()->size() == 1);
+            message::Message actual = sch.getBindQueue()->dequeue();
 
             REQUIRE(actual.user() == "user a");
             REQUIRE(actual.function() == "function a");
@@ -131,11 +131,12 @@ namespace tests {
             REQUIRE(sch.getFunctionThreadCount(callA) == 1);
             REQUIRE(sch.getFunctionQueueLength(callB) == 1);
             REQUIRE(sch.getFunctionThreadCount(callB) == 1);
-            REQUIRE(sch.bindQueue.size() == 2);
+            REQUIRE(sch.getBindQueue()->size() == 2);
 
             // Check that bind messages have been sent
-            message::Message bindA = sch.bindQueue.dequeue();
-            message::Message bindB = sch.bindQueue.dequeue();
+            InMemoryMessageQueue *bindQueue = sch.getBindQueue();
+            message::Message bindA = bindQueue->dequeue();
+            message::Message bindB = bindQueue->dequeue();
 
             REQUIRE(bindA.user() == callA.user());
             REQUIRE(bindA.function() == callA.function());
@@ -153,7 +154,7 @@ namespace tests {
             sch.callFunction(call);
             REQUIRE(sch.getFunctionQueueLength(call) == 1);
             REQUIRE(sch.getFunctionThreadCount(call) == 1);
-            REQUIRE(sch.bindQueue.size() == 1);
+            REQUIRE(sch.getBindQueue()->size() == 1);
 
             // Call the function again
             sch.callFunction(call);
@@ -161,19 +162,20 @@ namespace tests {
             // Check function call has been added, but no new bind messages
             REQUIRE(sch.getFunctionQueueLength(call) == 2);
             REQUIRE(sch.getFunctionThreadCount(call) == 1);
-            REQUIRE(sch.bindQueue.size() == 1);
+            REQUIRE(sch.getBindQueue()->size() == 1);
 
             redis.flushAll();
         }
 
         SECTION("Test calling function which breaches queue ratio sends bind message") {
             // Saturate up to the number of max queued calls
+            InMemoryMessageQueue *bindQueue = sch.getBindQueue();
             int nCalls = conf.maxQueueRatio;
             for (int i = 0; i < nCalls; i++) {
                 sch.callFunction(call);
 
                 // Check only one bind message is ever sent
-                REQUIRE(sch.bindQueue.size() == 1);
+                REQUIRE(bindQueue->size() == 1);
 
                 // Check call queued
                 REQUIRE(sch.getFunctionQueueLength(call) == i + 1);
@@ -181,7 +183,7 @@ namespace tests {
 
             // Dispatch another and check that a bind message is sent
             sch.callFunction(call);
-            REQUIRE(sch.bindQueue.size() == 2);
+            REQUIRE(bindQueue->size() == 2);
             REQUIRE(sch.getFunctionQueueLength(call) == nCalls + 1);
 
             redis.flushAll();
@@ -190,7 +192,7 @@ namespace tests {
         SECTION("Host choice checks") {
             redis.sadd(GLOBAL_WORKER_SET, otherHostA);
 
-            SECTION("Test function which breaches queue ratio but has no capacity shares with other host") {
+            SECTION("Test function which breaches queue ratio but has no capacity fails over") {
                 // Make calls up to the limit
                 int nCalls = conf.maxWorkersPerFunction * conf.maxQueueRatio;
                 for (int i = 0; i < nCalls; i++) {
@@ -198,7 +200,8 @@ namespace tests {
                 }
 
                 // Check local workers requested
-                REQUIRE(sch.bindQueue.size() == conf.maxWorkersPerFunction);
+                InMemoryMessageQueue *bindQueue = sch.getBindQueue();
+                REQUIRE(bindQueue->size() == conf.maxWorkersPerFunction);
                 REQUIRE(sch.getFunctionThreadCount(call) == conf.maxWorkersPerFunction);
 
                 // Check calls have been queued
@@ -221,7 +224,7 @@ namespace tests {
                 REQUIRE(actualB.user() == call.user());
 
                 // Check not added to local queues
-                REQUIRE(sch.bindQueue.size() == conf.maxWorkersPerFunction);
+                REQUIRE(bindQueue->size() == conf.maxWorkersPerFunction);
                 REQUIRE(sch.getFunctionThreadCount(call) == conf.maxWorkersPerFunction);
                 REQUIRE(sch.getFunctionQueueLength(call) == nCalls);
 

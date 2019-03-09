@@ -8,6 +8,10 @@
 namespace state {
     class State {
     public:
+        State();
+
+        ~State();
+
         StateKeyValue *getKV(const std::string &user, const std::string &key, size_t size);
 
         UserState *getUserState(const std::string &user);

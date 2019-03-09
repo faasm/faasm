@@ -12,7 +12,7 @@ namespace state {
     public:
         explicit UserState(const std::string &userIn);
 
-//        ~UserState();
+        ~UserState();
 
         StateKeyValue *getValue(const std::string &key, size_t size);
 
