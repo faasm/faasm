@@ -26,14 +26,14 @@ AWS_LAMBDA_ROLE = "faasm-lambda-role"
 faasm_lambda_funcs = {
     "worker": {
         "name": "faasm-worker",
-        "memory": 300,
+        "memory": 512,
         # Worker timeout should be less than the function timeout to give things time to shut down gracefully
-        "timeout": 35,
-        "concurrency": 4,
+        "timeout": 300,
+        "concurrency": 2,
         "extra_env": {
-            "GLOBAL_MESSAGE_TIMEOUT": "30",
-            "UNBOUND_TIMEOUT": "40",
-            "THREADS_PER_WORKER": "10",
+            "GLOBAL_MESSAGE_TIMEOUT": "120000",
+            "UNBOUND_TIMEOUT": "30000",
+            "THREADS_PER_WORKER": "5",
         },
         "sqs": True,
     },
