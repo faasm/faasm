@@ -217,7 +217,7 @@ def invoke_lambda(ctx, lambda_name, async=False, payload=None):
     response = client.invoke(**kwargs)
 
     print(response)
-    response_body = response["Payload"].read()
+    response_body = response["Payload"].read().decode()
     print("\nResponse payload: {}".format(response_body))
 
     return response_body
