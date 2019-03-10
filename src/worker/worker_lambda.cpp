@@ -3,14 +3,12 @@
 #include <aws/aws.h>
 #include <aws/lambda-runtime/runtime.h>
 
-#include <util/logging.h>
-#include <util/config.h>
 #include <util/json.h>
+#include <wasm/FunctionLoader.h>
 
 #include <lambda/backend.h>
 
-#include <thread>
-#include <chrono>
+#include <rapidjson/document.h>
 
 using namespace aws::lambda_runtime;
 
@@ -25,35 +23,55 @@ int main() {
     config.print();
 
     auto handler_fn = [&config, &logger](aws::lambda_runtime::invocation_request const &req) {
-        // Ensure scheduler set up and this node is in global set
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        sch.addNodeToGlobalSet();
+        rapidjson::Document d;
+        d.Parse(req.payload.c_str());
 
-        // Initialise worker pool
-        logger->info("Initialising thread pool with {} workers", config.threadsPerWorker);
-        worker::WorkerThreadPool pool(config.threadsPerWorker);
+        std::string message;
 
-        // Start up the thread pool
-        logger->info("Listening for requests for {}ms", config.globalMessageTimeout);
+        // Note, to ensure we have *exactly* the same underlying architecture
+        // when generating machine code, we must make sure we run codegen in the
+        // same function.
+        if (d.HasMember("function")) {
+            // Codegen
+            message::Message msg = util::jsonToMessage(req.payload);
+            logger->info("Generating object code for function {}", util::funcToString(msg));
 
-        pool.startThreadPool();
+            // Compile the function to object bytes
+            wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
+            functionLoader.compileToObjectFile(msg);
 
-        // Work sharing thread
-        // pool.startSharingThread();
+            message = "Codegen finished";
+        } else {
+            // Ensure scheduler set up and this node is in global set
+            scheduler::Scheduler &sch = scheduler::getScheduler();
+            sch.addNodeToGlobalSet();
 
-        // State management thread
-        // pool.startStateThread();
+            // Initialise worker pool
+            logger->info("Initialising thread pool with {} workers", config.threadsPerWorker);
+            worker::WorkerThreadPool pool(config.threadsPerWorker);
 
-        pool.startGlobalQueueThread();
+            // Start up the thread pool
+            logger->info("Listening for requests for {}ms", config.globalMessageTimeout);
 
-        logger->info("Removing node from global set");
-        sch.clear();
+            pool.startThreadPool();
 
-        // Wait for the pool to properly shut down
-        pool.shutdown();
+            // Work sharing thread
+            // pool.startSharingThread();
 
-        logger->info("Returning Lambda response");
-        std::string message = "Worker finished";
+            // State management thread
+            // pool.startStateThread();
+
+            pool.startGlobalQueueThread();
+
+            logger->info("Removing node from global set");
+            sch.clear();
+
+            // Wait for the pool to properly shut down
+            pool.shutdown();
+
+            logger->info("Returning Lambda response");
+            message = "Worker finished";
+        }
 
         return invocation_response::success(
                 message,

@@ -24,9 +24,6 @@ FAASM_LAMBDA_BUILD_DIR = join(PROJ_ROOT, "lambda_faasm_build")
 
 AWS_LAMBDA_ROLE = "faasm-lambda-role"
 
-# Note - the codegen and worker environments must be the same to ensure compiling for
-# the same processor arch. CPU type and share is determined by memory, so we need to make
-# the memory the same
 WORKER_MEM_SIZE = 2688
 
 faasm_lambda_funcs = {
@@ -46,16 +43,8 @@ faasm_lambda_funcs = {
     "dispatch": {
         "name": "faasm-dispatch",
         "memory": 128,
-        "timeout": 30,
-        "concurrency": 2,
-        "extra_env": {
-        }
-    },
-    "codegen": {
-        "name": "faasm-codegen",
-        "memory": WORKER_MEM_SIZE,
         "timeout": 60,
-        "concurrency": 1,
+        "concurrency": 2,
         "extra_env": {
         }
     },
@@ -380,7 +369,7 @@ def deploy_wasm_lambda_func_multiple(ctx, user, funcs):
         s3_client.meta.client.upload_file(wasm_file, RUNTIME_S3_BUCKET, s3_key)
 
         print("Invoking codegen lambda function for {}/{}".format(user, func))
-        invoke_lambda(ctx, "faasm-codegen", payload={
+        invoke_lambda(ctx, "faasm-worker", payload={
             "user": user,
             "function": func,
         })
