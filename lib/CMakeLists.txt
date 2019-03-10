@@ -29,6 +29,7 @@ endif()
 
 add_library(faasm STATIC
         counter.cpp
+        func.cpp
         matrix.cpp
         memory.cpp
         random.cpp
@@ -39,6 +40,7 @@ add_library(faasm STATIC
 set(PUBLIC_HEADERS
         faasm/counter.h
         faasm/faasm.h
+        faasm/func.h
         faasm/matrix.h
         faasm/memory.h
         faasm/random.h

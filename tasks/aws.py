@@ -26,6 +26,10 @@ AWS_LAMBDA_ROLE = "faasm-lambda-role"
 
 WORKER_MEM_SIZE = 2688
 
+DEFAULT_LAMBDA_MEM = 128
+DEFAULT_LAMBDA_CONCURRENCY = 2
+DEFAULT_LAMBDA_TIMEOUT = 30
+
 faasm_lambda_funcs = {
     "worker": {
         "name": "faasm-worker",
@@ -34,9 +38,7 @@ faasm_lambda_funcs = {
         "timeout": 600,
         "concurrency": 2,
         "extra_env": {
-            "GLOBAL_MESSAGE_TIMEOUT": "120000",
-            "UNBOUND_TIMEOUT": "30000",
-            "THREADS_PER_WORKER": "10",
+
         },
         "sqs": True,
     },
@@ -88,7 +90,10 @@ def _get_lambda_env():
         "NO_SCHEDULER": "1",
         "GLOBAL_MESSAGE_BUS": "redis",
         "AWS_LOG_LEVEL": "info",
-        "FULL_ASYNC": "1",
+        "FULL_ASYNC": "0",
+        "GLOBAL_MESSAGE_TIMEOUT": "120000",
+        "UNBOUND_TIMEOUT": "30000",
+        "THREADS_PER_WORKER": "10",
     }
 
     return env
@@ -196,7 +201,7 @@ def lambda_clear_queue(ctx):
 
 
 @task
-def invoke_lambda(ctx, lambda_name, async=False, payload=None):
+def invoke_lambda(ctx, lambda_name, async=False, payload=None, no_payload=False):
     client = boto3.client("lambda", region_name=AWS_REGION)
 
     kwargs = {
@@ -204,9 +209,10 @@ def invoke_lambda(ctx, lambda_name, async=False, payload=None):
         "InvocationType": "Event" if async else "RequestResponse",
     }
 
-    payload = payload if payload else {}
-    payload["submitted"] = str(datetime.now())
-    kwargs["Payload"] = dumps(payload)
+    if not no_payload:
+        payload = payload if payload else {}
+        payload["submitted"] = str(datetime.now())
+        kwargs["Payload"] = dumps(payload)
 
     response = client.invoke(**kwargs)
 
@@ -288,12 +294,18 @@ def deploy_faasm_lambda(ctx, func=None):
 
 
 @task
+def delete_lambda(ctx, func_name):
+    _delete_lambda(func_name)
+
+
+@task
 def delete_faasm_lambda(ctx, func=None):
     if func:
-        _delete_system_lambda(func)
+        lambda_name = faasm_lambda_funcs[func]["name"]
+        _delete_lambda(lambda_name)
     else:
         for lambda_func, _ in faasm_lambda_funcs.items():
-            _delete_system_lambda(lambda_func)
+            _delete_lambda(lambda_func)
 
 
 def _do_system_lambda_deploy(func_name, lambda_conf):
@@ -320,8 +332,7 @@ def _do_system_lambda_deploy(func_name, lambda_conf):
     )
 
 
-def _delete_system_lambda(func_name):
-    lambda_name = faasm_lambda_funcs[func_name]["name"]
+def _delete_lambda(lambda_name):
     client = boto3.client("lambda", region_name=AWS_REGION)
 
     print("Deleting lambda function {}".format(lambda_name))
@@ -353,26 +364,19 @@ def _build_system_lambda(module_name):
 
 @task
 def deploy_wasm_lambda_func(ctx, user, func):
-    deploy_wasm_lambda_func_multiple(ctx, user, [func])
+    # Assume the build has already been run locally
+    wasm_file = join(WASM_FUNC_BUILD_DIR, user, "{}.wasm".format(func))
 
+    print("Uploading {}/{} to S3".format(user, func))
 
-def deploy_wasm_lambda_func_multiple(ctx, user, funcs):
-    s3_client = boto3.resource('s3', region_name=AWS_REGION)
+    s3_key = "wasm/{}/{}/function.wasm".format(user, func)
+    upload_file_to_s3(wasm_file, RUNTIME_S3_BUCKET, s3_key)
 
-    for func in funcs:
-        # Assume the build has already been run locally
-        wasm_file = join(WASM_FUNC_BUILD_DIR, user, "{}.wasm".format(func))
-
-        print("Uploading {}/{} to S3".format(user, func))
-
-        s3_key = "wasm/{}/{}/function.wasm".format(user, func)
-        s3_client.meta.client.upload_file(wasm_file, RUNTIME_S3_BUCKET, s3_key)
-
-        print("Invoking codegen lambda function for {}/{}".format(user, func))
-        invoke_lambda(ctx, "faasm-worker", payload={
-            "user": user,
-            "function": func,
-        })
+    print("Invoking codegen lambda function for {}/{}".format(user, func))
+    invoke_lambda(ctx, "faasm-worker", payload={
+        "user": user,
+        "function": func,
+    })
 
 
 # -------------------------------------------------
@@ -380,7 +384,8 @@ def deploy_wasm_lambda_func_multiple(ctx, user, funcs):
 # -------------------------------------------------
 
 @task
-def deploy_native_lambda_func(ctx, user, func):
+def deploy_native_lambda_func(ctx, user, func, memory=DEFAULT_LAMBDA_MEM, timeout=DEFAULT_LAMBDA_TIMEOUT,
+                              concurrency=DEFAULT_LAMBDA_CONCURRENCY):
     # Run the build
     build_dir = _build_lambda("func", target="{}-lambda".format(func))
 
@@ -403,7 +408,10 @@ def deploy_native_lambda_func(ctx, user, func):
         "{}-{}".format(user, func),
         s3_bucket=RUNTIME_S3_BUCKET,
         s3_key=s3_key,
-        environment=_get_lambda_env()
+        environment=_get_lambda_env(),
+        memory=memory,
+        concurrency=concurrency,
+        timeout=timeout
     )
 
 
@@ -418,14 +426,15 @@ def _build_lambda(module_name, target=None):
     build_dir = FAASM_LAMBDA_BUILD_DIR
     _build_cmake_project(build_dir, [
         "-DFAASM_BUILD_TYPE=lambda-{}".format(module_name),
-        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_BUILD_TYPE=Debug",
     ], clean=False, target=target)
 
     return build_dir
 
 
-def _do_deploy(func_name, memory=128, timeout=15, concurrency=10,
-               environment=None, zip_file_path=None, s3_bucket=None, s3_key=None, sqs=False):
+def _do_deploy(func_name, memory=DEFAULT_LAMBDA_MEM, timeout=DEFAULT_LAMBDA_TIMEOUT,
+               concurrency=DEFAULT_LAMBDA_CONCURRENCY, environment=None, zip_file_path=None, s3_bucket=None,
+               s3_key=None, sqs=False):
     assert zip_file_path or (s3_bucket and s3_key), "Must give either a zip file or S3 bucket and key"
 
     client = boto3.client("lambda", region_name=AWS_REGION)

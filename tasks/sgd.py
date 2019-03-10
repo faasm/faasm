@@ -1,21 +1,45 @@
 from os.path import join
 
+from botocore.exceptions import ClientError
 from invoke import task
 
-from tasks import upload_func
-from tasks.aws import invoke_faasm_lambda, invoke_lambda, deploy_wasm_lambda_func_multiple, deploy_native_lambda_func
+from tasks import upload_func, deploy_wasm_lambda_func, delete_lambda
+from tasks.aws import invoke_faasm_lambda, invoke_lambda, deploy_native_lambda_func
 from tasks.env import HOME_DIR, STATE_S3_BUCKET
 from tasks.upload_util import curl_file, upload_file_to_s3
 
-_SGD_FUNCS = [
-    "sgd_barrier",
-    "sgd_begin",
-    "sgd_epoch",
-    "sgd_finished",
-    "sgd_loss",
-    "sgd_step",
-    "svm_begin",
-]
+_SGD_FUNCS = {
+    "sgd_barrier": {
+        "memory": 256,
+        "timeout": 30,
+        "concurrency": 1,
+    },
+    "sgd_epoch": {
+        "memory": 256,
+        "timeout": 30,
+        "concurrency": 1,
+    },
+    "sgd_finished": {
+        "memory": 128,
+        "timeout": 30,
+        "concurrency": 1,
+    },
+    "sgd_loss": {
+        "memory": 128,
+        "timeout": 30,
+        "concurrency": 1,
+    },
+    "sgd_step": {
+        "memory": 2688,
+        "timeout": 30,
+        "concurrency": 4,
+    },
+    "svm_begin": {
+        "memory": 128,
+        "timeout": 30,
+        "concurrency": 1,
+    },
+}
 
 _ALL_REUTERS_STATE_KEYS = [
     "feature_counts",
@@ -49,13 +73,41 @@ def upload_sgd_funcs(ctx, host="localhost", emscripten=False):
 
 @task
 def deploy_sgd_wasm_lambda(ctx):
-    deploy_wasm_lambda_func_multiple(ctx, "sgd", _SGD_FUNCS)
+    for func_name, func_spec in _SGD_FUNCS.items():
+        print("Deploying wasm {}".format(func_name))
+
+        deploy_wasm_lambda_func(ctx, "sgd", func_name)
 
 
 @task
-def deploy_sgd_native_lambda(ctx):
-    for func_name in _SGD_FUNCS:
-        deploy_native_lambda_func(ctx, "sgd", func_name)
+def deploy_sgd_native_lambda(ctx, func=None):
+    if func:
+        _do_func_deploy(ctx, func, _SGD_FUNCS[func])
+    else:
+        for func_name, func_spec in _SGD_FUNCS.items():
+            _do_func_deploy(ctx, func_name, func_spec)
+
+
+def _do_func_deploy(ctx, func_name, func_spec):
+    print("Deploying native {}".format(func_name))
+
+    deploy_native_lambda_func(
+        ctx,
+        "sgd", func_name,
+        memory=func_spec["memory"],
+        timeout=func_spec["timeout"],
+        concurrency=func_spec["concurrency"]
+    )
+
+
+@task
+def delete_sgd_native_lambda(ctx):
+    for func_name, func_spec in _SGD_FUNCS.items():
+        lambda_name = "sgd-{}".format(func_name)
+        try:
+            delete_lambda(ctx, lambda_name)
+        except ClientError:
+            print("Failed to delete {}. Continuing".format(lambda_name))
 
 
 # -------------------------------------------------

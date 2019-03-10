@@ -377,8 +377,6 @@ namespace state {
             return;
         }
 
-        const std::shared_ptr<spdlog::logger> &logger = getLogger();
-
         // Get full lock for complete push
         FullLock fullLock(valueMutex);
 
@@ -387,6 +385,7 @@ namespace state {
             return;
         }
 
+        const std::shared_ptr<spdlog::logger> &logger = getLogger();
         logger->debug("Pushing whole value for {}", key);
 
         redis::Redis &redis = redis::Redis::getState();
@@ -395,11 +394,13 @@ namespace state {
         // Reset (as we're setting the full value, we've effectively pulled)
         Clock &clock = getGlobalClock();
         lastPull = clock.now();
-        isWholeValueDirty = false;
 
         // Remove any dirty flags
-        isPartiallyDirty = false;
-        std::fill(dirtyFlags.begin(), dirtyFlags.end(), false);
+        isWholeValueDirty = false;
+        if(isPartiallyDirty) {
+            isPartiallyDirty = false;
+            std::fill(dirtyFlags.begin(), dirtyFlags.end(), false);
+        }
     }
 
     void StateKeyValue::pushPartial() {

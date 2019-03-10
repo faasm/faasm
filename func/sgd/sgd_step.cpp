@@ -2,21 +2,23 @@
 #include "faasm/counter.h"
 #include "faasm/matrix.h"
 #include "faasm/sgd.h"
+#include "faasm/func.h"
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
         bool fullAsync = getEnvFullAsync();
 
-        size_t nBytes = sizeof(int) * 4;
-        auto inputBuffer = new uint8_t[nBytes];
-        memory->getInput(inputBuffer, nBytes);
+        long inputSize = memory->getInputSize();
+        auto inputBuffer = new uint8_t[inputSize];
+        memory->getInput(inputBuffer, inputSize);
 
-        const int *inputParams = reinterpret_cast<const int *>(inputBuffer);
+        const char *inputStr = reinterpret_cast<const char *>(inputBuffer);
+        int *intArgs = faasm::splitStringIntoInts(inputStr, 4);
 
-        int batchNumber = inputParams[0];
-        int startIdx = inputParams[1];
-        int endIdx = inputParams[2];
-        int epoch = inputParams[3];
+        int batchNumber = intArgs[0];
+        int startIdx = intArgs[1];
+        int endIdx = intArgs[2];
+        int epoch = intArgs[3];
 
         // Load params
         SgdParams sgdParams = readParamsFromState(memory, PARAMS_KEY, fullAsync);
@@ -35,6 +37,8 @@ namespace faasm {
         if (batchNumber == sgdParams.nBatches - 1) {
             memory->chainFunction("sgd_barrier");
         }
+
+        delete[] intArgs;
 
         return 0;
     }

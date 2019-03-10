@@ -29,13 +29,14 @@ namespace faasm {
             // Make sure we don't overshoot
             int endIdx = std::min(startIdx + p.batchSize, p.nTrain - 1);
 
-            // Prepare input data for the worker
-            int inputData[4] = {w, startIdx, endIdx, epoch};
-            auto inputBytes = reinterpret_cast<uint8_t *>(&inputData[0]);
-            int nBytes = 4 * sizeof(int);
+            // Prepare input data for the worker as a string
+            std::string args = std::to_string(w) + " " + std::to_string(startIdx) + " " + std::to_string(endIdx) + " " + std::to_string(epoch);
+            printf("Chaining sgd_step with args: %s\n", args.c_str());
+
+            auto inputBytes = reinterpret_cast<const uint8_t *>(args.c_str());
 
             // Call the chained function
-            memory->chainFunction("sgd_step", inputBytes, nBytes);
+            memory->chainFunction("sgd_step", inputBytes, args.size());
         }
 
         delete[] batchNumbers;
