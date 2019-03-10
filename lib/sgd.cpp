@@ -7,28 +7,38 @@
 using namespace Eigen;
 
 namespace faasm {
-    bool getEnvFullSync() {
-        char *envVal = getenv("FULL_SYNC");
+    bool _getEnvVarBool(const char *varName) {
+        char *envVal = getenv(varName);
 
-        if (strcmp(envVal, "1") == 0) {
-            printf("SGD running full sync\n");
-            return true;
-        } else {
-            printf("SGD not running full sync\n");
+        if (envVal == nullptr) {
             return false;
+        } else {
+            return strcmp(envVal, "1") == 0;
         }
     }
 
-    bool getEnvFullAsync() {
-        char *envVal = getenv("FULL_ASYNC");
+    bool getEnvFullSync() {
+        bool result = _getEnvVarBool("FULL_SYNC");
 
-        if (strcmp(envVal, "1") == 0) {
+        if (result) {
+            printf("SGD running full sync\n");
+        } else {
+            printf("SGD not running full sync\n");
+        }
+
+        return result;
+    }
+
+    bool getEnvFullAsync() {
+        bool result = _getEnvVarBool("FULL_ASYNC");
+
+        if (result) {
             printf("SGD running full async\n");
-            return true;
         } else {
             printf("SGD not running full async\n");
-            return false;
         }
+
+        return result;
     }
 
     SgdParams setUpReutersParams(FaasmMemory *memory, int nBatches, int epochs) {
@@ -146,8 +156,7 @@ namespace faasm {
                     auto weightBytes = reinterpret_cast<uint8_t *>(thisWeightPtr);
 
                     memory->writeStateOffset(WEIGHTS_KEY, nWeightBytes, offset, weightBytes, sizeof(double), false);
-                }
-                else if (!sgdParams.fullAsync) {
+                } else if (!sgdParams.fullAsync) {
                     // Flag that this segment is dirty if async
                     size_t offset = it.row() * sizeof(double);
                     memory->flagStateOffsetDirty(WEIGHTS_KEY, nWeightBytes, offset, sizeof(double));
@@ -156,7 +165,7 @@ namespace faasm {
 
             // If we're running in normal async mode, do a write (of the dirty segments)
             // This will both push local writes, and pull in the latest updates
-            if(!sgdParams.fullSync && !sgdParams.fullAsync) {
+            if (!sgdParams.fullSync && !sgdParams.fullAsync) {
                 exampleCount++;
                 bool isSyncNeeded = (exampleCount > 0) && ((exampleCount % sgdParams.syncInterval) == 0);
                 if (isSyncNeeded) {

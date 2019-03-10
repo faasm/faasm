@@ -392,8 +392,16 @@ namespace tests {
             envVar = "0";
             expected = false;
         }
+        SECTION("Check NULL") {
+            envVar = "";
+            expected = false;
+        }
 
-        util::setEnvVar("FULL_ASYNC", envVar);
+        if(envVar.empty()) {
+            util::unsetEnvVar("FULL_ASYNC");
+        } else {
+            util::setEnvVar("FULL_ASYNC", envVar);
+        }
 
         bool actual = getEnvFullAsync();
         REQUIRE(actual == expected);
