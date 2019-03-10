@@ -96,7 +96,7 @@ def _do_func_deploy(ctx, func_name, func_spec):
         "sgd", func_name,
         memory=func_spec["memory"],
         timeout=func_spec["timeout"],
-        concurrency=func_spec["concurrency"]
+        concurrency=func_spec["concurrency"],
     )
 
 

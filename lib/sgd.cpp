@@ -7,10 +7,22 @@
 using namespace Eigen;
 
 namespace faasm {
+    bool getEnvFullSync() {
+        char *envVal = getenv("FULL_SYNC");
+
+        if (strcmp(envVal, "1") == 0) {
+            printf("SGD running full sync\n");
+            return true;
+        } else {
+            printf("SGD not running full sync\n");
+            return false;
+        }
+    }
+
     bool getEnvFullAsync() {
         char *envVal = getenv("FULL_ASYNC");
 
-        if(strcmp(envVal, "1") == 0) {
+        if (strcmp(envVal, "1") == 0) {
             printf("SGD running full async\n");
             return true;
         } else {
@@ -18,7 +30,7 @@ namespace faasm {
             return false;
         }
     }
-    
+
     SgdParams setUpReutersParams(FaasmMemory *memory, int nBatches, int epochs) {
         // Set up reuters params
         SgdParams p;
@@ -35,8 +47,8 @@ namespace faasm {
         p.batchSize = (REUTERS_N_EXAMPLES + nBatches - 1) / nBatches;
 
         // Full async or not
-        bool fullAsync = getEnvFullAsync();
-        p.fullAsync = fullAsync;
+        p.fullAsync = getEnvFullAsync();
+        p.fullSync = getEnvFullSync();
 
         // How many examples should be processed before doing a synchronous read
         // to update worker's weights
@@ -126,20 +138,30 @@ namespace faasm {
                 int thisFeatureCount = featureCountBuffer[thisFeature];
                 weightDataBuffer[thisFeature] *= 1 - constScalar / thisFeatureCount;
 
-                // Flag that this segment is dirty
-                if (!sgdParams.fullAsync) {
+                // Handle updates differently for full sync/ async/ full async
+                if (sgdParams.fullSync) {
+                    // Write offset synchronously on every loop if running full sync
+                    size_t offset = it.row() * sizeof(double);
+                    double *thisWeightPtr = &weightDataBuffer[thisFeature];
+                    auto weightBytes = reinterpret_cast<uint8_t *>(thisWeightPtr);
+
+                    memory->writeStateOffset(WEIGHTS_KEY, nWeightBytes, offset, weightBytes, sizeof(double), false);
+                }
+                else if (!sgdParams.fullAsync) {
+                    // Flag that this segment is dirty if async
                     size_t offset = it.row() * sizeof(double);
                     memory->flagStateOffsetDirty(WEIGHTS_KEY, nWeightBytes, offset, sizeof(double));
                 }
             }
 
-            // Do a write (of the dirty segments) if we're sufficiently far through this set of examples
-            // and not running in full async mode. This will both push local writes, and pull in the latest
-            // updates
-            exampleCount++;
-            bool isSyncNeeded = (exampleCount > 0) && ((exampleCount % sgdParams.syncInterval) == 0);
-            if (!sgdParams.fullAsync && isSyncNeeded) {
-                memory->pushStatePartial(WEIGHTS_KEY);
+            // If we're running in normal async mode, do a write (of the dirty segments)
+            // This will both push local writes, and pull in the latest updates
+            if(!sgdParams.fullSync && !sgdParams.fullAsync) {
+                exampleCount++;
+                bool isSyncNeeded = (exampleCount > 0) && ((exampleCount % sgdParams.syncInterval) == 0);
+                if (isSyncNeeded) {
+                    memory->pushStatePartial(WEIGHTS_KEY);
+                }
             }
         }
 

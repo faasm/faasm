@@ -535,7 +535,7 @@ namespace wasm {
         std::vector<uint8_t> inputBytes = util::stringToBytes(call->inputdata());
 
         // If nothing, return nothing
-        if(inputBytes.empty()) {
+        if (inputBytes.empty()) {
             return 0;
         }
 
@@ -1699,14 +1699,18 @@ namespace wasm {
             value = "on";
         } else if (strcmp(varName, "LC_CTYPE") == 0) {
             value = "en_GB.UTF-8";
-//        } else if (strcmp(varName, "LC_ALL") == 0) {
-//            value = "en_GB.UTF-8";
         } else if (strcmp(varName, "LANG") == 0) {
             value = "en_GB.UTF-8";
         } else if (strcmp(varName, "LANGUAGE") == 0) {
             value = "en_GB:en";
         } else if (strcmp(varName, "FULL_ASYNC") == 0) {
             if (conf.fullAsync == 1) {
+                value = "1";
+            } else {
+                value = "0";
+            }
+        } else if (strcmp(varName, "FULL_SYNC") == 0) {
+            if (conf.fullSync == 1) {
                 value = "1";
             } else {
                 value = "0";

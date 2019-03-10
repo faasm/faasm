@@ -91,6 +91,7 @@ def _get_lambda_env():
         "GLOBAL_MESSAGE_BUS": "redis",
         "AWS_LOG_LEVEL": "info",
         "FULL_ASYNC": "0",
+        "FULL_SYNC": "1",
         "GLOBAL_MESSAGE_TIMEOUT": "120000",
         "UNBOUND_TIMEOUT": "30000",
         "THREADS_PER_WORKER": "10",
@@ -404,11 +405,13 @@ def deploy_native_lambda_func(ctx, user, func, memory=DEFAULT_LAMBDA_MEM, timeou
     s3_key = _get_s3_key("{}-{}".format(user, func))
     _upload_lambda_to_s3(s3_key, zip_file_path)
 
+    lambda_env = _get_lambda_env()
+
     _do_deploy(
         "{}-{}".format(user, func),
         s3_bucket=RUNTIME_S3_BUCKET,
         s3_key=s3_key,
-        environment=_get_lambda_env(),
+        environment=lambda_env,
         memory=memory,
         concurrency=concurrency,
         timeout=timeout
@@ -426,7 +429,7 @@ def _build_lambda(module_name, target=None):
     build_dir = FAASM_LAMBDA_BUILD_DIR
     _build_cmake_project(build_dir, [
         "-DFAASM_BUILD_TYPE=lambda-{}".format(module_name),
-        "-DCMAKE_BUILD_TYPE=Debug",
+        "-DCMAKE_BUILD_TYPE=Release",
     ], clean=False, target=target)
 
     return build_dir

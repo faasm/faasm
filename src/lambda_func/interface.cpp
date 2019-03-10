@@ -4,81 +4,76 @@
 
 #include <redis/Redis.h>
 #include <aws/LambdaWrapper.h>
-
-#include <aws/core/utils/logging/LogLevel.h>
-#include <aws/core/utils/logging/ConsoleLogSystem.h>
-#include <aws/logging/logging.h>
+#include <aws/aws.h>
 
 #include <string>
-
-static char const LOG_TAG[] = "LAMBDA_RUNTIME";
 
 namespace faasm {
     std::string input;
     std::string output;
+    std::vector<std::vector<uint8_t>> stateValues;
 
     void startRequest() {
-        aws::logging::log_info(LOG_TAG, "Starting request");
-
         input = std::string();
         output = std::string();
     }
 
-    void setInput(const std::string &i) {
-        std::string msg = "Received input: " + i;
-        aws::logging::log_info(LOG_TAG, msg.c_str());
+    void finishRequest() {
+        // Clear up state data
+        stateValues.clear();
+    }
 
-        if(i == "{}") {
+    void setInput(const std::string &i) {
+        if (i == "{}") {
             input = "";
         } else {
             input = i;
         }
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->info("Setting input: {}", i);
     }
 
     std::string getOutput() {
-        std::string msg = "Returning output " + output;
-        aws::logging::log_info(LOG_TAG, msg.c_str());
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->info("Returning output: {}", output);
 
         return output;
     }
 }
 
-std::function<std::shared_ptr<Aws::Utils::Logging::LogSystemInterface>()> GetConsoleLoggerFactory() {
-    return [] {
-        return Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>(
-                "console_logger", Aws::Utils::Logging::LogLevel::Trace
-        );
-    };
-}
-
 int main() {
-    using namespace Aws;
-    SDKOptions options;
-    options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Debug;
-    options.loggingOptions.logger_create_fn = GetConsoleLoggerFactory();
-    InitAPI(options);
+    util::initLogging();
+    awswrapper::initSDK();
+    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-    auto handler_fn = [](aws::lambda_runtime::invocation_request const &req) {
+    util::SystemConfig &config = util::getSystemConfig();
+    config.print();
+
+    auto handler_fn = [&logger](aws::lambda_runtime::invocation_request const &req) {
         faasm::startRequest();
 
         faasm::setInput(req.payload);
 
         // Run the normal Faasm function entry point
-        aws::logging::log_info(LOG_TAG, "Executing the function itself");
+        logger->info("Executing the function itself");
         auto memory = new faasm::FaasmMemory();
         exec(memory);
 
         // Return response with function output
         const std::string output = faasm::getOutput();
+
+        faasm::finishRequest();
+
         return invocation_response::success(
                 output,
                 "application/json"
         );
     };
 
-    aws::logging::log_info(LOG_TAG, "Starting user handler");
     run_handler(handler_fn);
-    ShutdownAPI(options);
+    awswrapper::cleanUpSDK();
+
     return 0;
 }
 
@@ -114,7 +109,7 @@ void __faasm_chain_function(const char *name, const unsigned char *inputData, lo
     std::string funcName = "sgd-" + std::string(name);
 
     // HACK if SGD barrier, delay
-    if(funcName == "sgd-sgd_barrier") {
+    if (funcName == "sgd-sgd_barrier") {
         usleep(1000 * 500);
     }
 
@@ -132,9 +127,19 @@ void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, 
     redis.get(key, buffer, bufferLen);
 }
 
+
 unsigned char *__faasm_read_state_ptr(const char *key, long totalLen, int async) {
-    // Not supported in lambda environment
-    throw std::runtime_error("__faasm_read_state_ptr not supported in Lambda env");
+    // This is basically the same as a normal state read in the one-function-per-container
+    // model. Every read is synchronous and will never hit local memory
+
+    // Create a buffer and read in state
+    faasm::stateValues.emplace_back(totalLen);
+    uint8_t *bytePtr = faasm::stateValues.back().data();
+
+    __faasm_read_state(key, bytePtr, totalLen, async);
+
+    // Return pointer to the buffer
+    return bytePtr;
 }
 
 void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsigned char *buffer, long bufferLen,
@@ -148,8 +153,17 @@ void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsi
 }
 
 unsigned char *__faasm_read_state_offset_ptr(const char *key, long totalLen, long offset, long len, int async) {
-    // Not supported in lambda environment
-    throw std::runtime_error("__faasm_read_state_offset_ptr not supported in Lambda env");
+    // Again this is pretty much the same as the non-ptr version when running as a single function
+    // however, we don't need to reserve the full space
+
+    // Create a buffer and read in state
+    faasm::stateValues.emplace_back(len);
+    uint8_t *bytePtr = faasm::stateValues.back().data();
+
+    __faasm_read_state_offset(key, totalLen, offset, bytePtr, len, async);
+
+    // Return pointer to the buffer
+    return bytePtr;
 }
 
 void __faasm_write_state(const char *key, const uint8_t *data, long dataLen, int async) {

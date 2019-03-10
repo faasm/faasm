@@ -46,10 +46,13 @@ namespace faasm {
         float learningDecay;
         int nEpochs;
         bool fullAsync;
+        bool fullSync;
         int syncInterval;
     };
 
     bool getEnvFullAsync();
+
+    bool getEnvFullSync();
 
     SgdParams setUpReutersParams(FaasmMemory *memory, int nBatches, int epochs);
 
