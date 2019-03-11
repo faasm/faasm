@@ -107,8 +107,9 @@ add_subdirectory(errors)
 add_subdirectory(demo)
 add_subdirectory(sgd)
 
-# Exclude python stuff in normal wasm build
+# Exclude python stuff in normal wasm build or lambda native
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
+elseif(FAASM_BUILD_TYPE STREQUAL "lambda-func")
 else()
     add_subdirectory(python)
 endif()

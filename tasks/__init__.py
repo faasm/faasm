@@ -46,6 +46,7 @@ from tasks.aws import (
     invoke_lambda,
     invoke_faasm_lambda,
     deploy_faasm_lambda,
+    delete_lambda,
     delete_faasm_lambda,
     deploy_wasm_lambda_func,
     deploy_native_lambda_func,
@@ -66,8 +67,10 @@ from tasks.sgd import (
     begin_aws_svm,
     deploy_sgd_wasm_lambda,
     deploy_sgd_native_lambda,
+    delete_sgd_native_lambda,
     upload_sgd_funcs,
     reuters_upload,
     reuters_upload_s3,
     reuters_prepare_aws,
+    zero_sgd_native_lambda
 )

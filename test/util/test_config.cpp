@@ -39,6 +39,7 @@ namespace tests {
         REQUIRE(conf.stateClearThreshold == 300000);
         REQUIRE(conf.statePushInterval == 500);
         REQUIRE(conf.fullAsync == 0);
+        REQUIRE(conf.fullSync == 0);
     }
 
     TEST_CASE("Test overriding system config initialisation", "[util]") {
@@ -71,6 +72,7 @@ namespace tests {
         setEnvVar("STATE_CLEAR_THRESHOLD", "3333");
         setEnvVar("STATE_PUSH_INTERVAL", "2222");
         setEnvVar("FULL_ASYNC", "1");
+        setEnvVar("FULL_SYNC", "12");
 
         SystemConfig conf;
         REQUIRE(conf.threadsPerWorker == 50);
@@ -102,6 +104,7 @@ namespace tests {
         REQUIRE(conf.stateClearThreshold == 3333);
         REQUIRE(conf.statePushInterval == 2222);
         REQUIRE(conf.fullAsync == 1);
+        REQUIRE(conf.fullSync == 12);
 
         unsetEnvVar("THREADS_PER_WORKER");
 
@@ -132,5 +135,16 @@ namespace tests {
         unsetEnvVar("STATE_CLEAR_THRESHOLD");
         unsetEnvVar("STATE_PUSH_INTERVAL");
         unsetEnvVar("FULL_ASYNC");
+        unsetEnvVar("FULL_SYNC");
+    }
+
+    TEST_CASE("Check we can't have both full sync and full async on at the same time", "[conf]") {
+        setEnvVar("FULL_ASYNC", "1");
+        setEnvVar("FULL_SYNC", "1");
+
+        REQUIRE_THROWS(SystemConfig());
+
+        unsetEnvVar("FULL_ASYNC");
+        unsetEnvVar("FULL_SYNC");
     }
 }

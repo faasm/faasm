@@ -101,25 +101,6 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-worker")
     add_subdirectory(src/wasm)
     add_subdirectory(src/worker)
 
-elseif (FAASM_BUILD_TYPE STREQUAL "lambda-codegen")
-    # ------------------
-    # Lambda upload build
-    # ------------------
-
-    message(STATUS "Running lambda codegen build")
-
-    add_subdirectory(WAVM)
-
-    add_subdirectory(src/aws)
-    add_subdirectory(src/codegen)
-    add_subdirectory(src/lambda)
-    add_subdirectory(src/proto)
-    add_subdirectory(src/redis)
-    add_subdirectory(src/scheduler)
-    add_subdirectory(src/state)
-    add_subdirectory(src/util)
-    add_subdirectory(src/wasm)
-
 elseif (FAASM_BUILD_TYPE STREQUAL "lambda-dispatch")
     # ------------------
     # Lambda dispatch build
@@ -154,7 +135,6 @@ else ()
 
     # Faasm runtime
     add_subdirectory(src/aws)
-    add_subdirectory(src/codegen)
     add_subdirectory(src/data)
     add_subdirectory(src/dispatch)
     add_subdirectory(src/edge)

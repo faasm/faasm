@@ -12,8 +12,10 @@ namespace faasm {
     // Define main Faasm entry point
     int exec(FaasmMemory *memory);
 
-    // Hook into starting a request
+    // Hooks into starting/ finishing a request
     void startRequest();
+
+    void finishRequest();
 
     // Sets function input
     void setInput(const std::string &input);

@@ -31,7 +31,7 @@ namespace tests {
             redisState.ping();
             redisQueue.ping();
         }
-        
+
         SECTION("Test incr/ decr") {
             std::string key = "test_counter";
 
@@ -157,6 +157,27 @@ namespace tests {
             std::string expected = "thi";
             std::vector<uint8_t> expectedBytes = util::stringToBytes(expected);
             REQUIRE(actualBytes == expectedBytes);
+        }
+
+        SECTION("Test get range with short buffer errors") {
+            std::string key = "short_range_test";
+
+            std::string val = "this is the value";
+            std::vector<uint8_t> bytesValue = util::stringToBytes(val);
+            redisQueue.set(key, bytesValue);
+
+            uint8_t buffer[3];
+
+            bool testPassed = false;
+            try {
+                redisQueue.getRange(key, buffer, 3, 4, 8);
+            } catch (std::runtime_error &ex) {
+                const char *msg = ex.what();
+                REQUIRE(strcmp(msg, "Reading value too big for buffer") == 0);
+                testPassed = true;
+            }
+
+            REQUIRE(testPassed);
         }
 
         SECTION("Test get empty key") {

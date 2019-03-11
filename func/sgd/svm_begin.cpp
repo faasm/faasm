@@ -10,7 +10,7 @@ namespace faasm {
         long inputSize = memory->getInputSize();
         int nBatches;
         if(inputSize == 0) {
-            nBatches = 2;
+            nBatches = 200;
             printf("SVM running default %i batches \n", nBatches);
         } else {
             auto inputBuffer = new uint8_t[inputSize];

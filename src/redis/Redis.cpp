@@ -117,6 +117,8 @@ namespace redis {
         int resultLen = reply->len;
 
         if (resultLen > (int) bufferLen) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->error("Value ({}) too big for buffer ({})", resultLen, bufferLen);
             throw std::runtime_error("Reading value too big for buffer");
         }
 
