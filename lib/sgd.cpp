@@ -96,10 +96,12 @@ namespace faasm {
                                int startIdx, int endIdx) {
 
         // Load this batch of inputs
+        printf("Loading inputs %i - %i\n", startIdx, endIdx);
         Map<const SparseMatrix<double>> inputs = readSparseMatrixColumnsFromState(memory, INPUTS_KEY,
                                                                                   startIdx, endIdx, true);
 
         // Load this batch of outputs
+        printf("Loading outputs %i - %i\n", startIdx, endIdx);
         Map<const MatrixXd> outputs = readMatrixColumnsFromState(memory, OUTPUTS_KEY, sgdParams.nTrain,
                                                                  startIdx, endIdx, 1, true);
 
@@ -175,6 +177,7 @@ namespace faasm {
         }
 
         // Recalculate all predictions
+        printf("Calculating error");
         Map<const RowVectorXd> weights(weightDataBuffer, sgdParams.nWeights);
         MatrixXd prediction = weights * inputs;
 

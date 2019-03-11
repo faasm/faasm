@@ -20,17 +20,22 @@ namespace faasm {
         int endIdx = intArgs[2];
         int epoch = intArgs[3];
 
+        printf("SGD step: %i %i %i %i\n", batchNumber, startIdx, endIdx, epoch);
+
         // Load params
         SgdParams sgdParams = readParamsFromState(memory, PARAMS_KEY, fullAsync);
 
         // Perform updates
         if (sgdParams.lossType == HINGE) {
+            printf("SGD hinge weight update\n");
             hingeLossWeightUpdate(memory, sgdParams, epoch, batchNumber, startIdx, endIdx);
         } else {
+            printf("SGD least squares weight update\n");
             leastSquaresWeightUpdate(memory, sgdParams, batchNumber,startIdx, endIdx);
         }
 
         // Flag that this worker has finished
+        printf("Writing finished flag\n");
         writeFinishedFlag(memory, sgdParams, batchNumber);
 
         // If this is the last, dispatch the barrier (will have finished by now or will do soon)

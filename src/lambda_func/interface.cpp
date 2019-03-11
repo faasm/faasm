@@ -12,6 +12,7 @@ namespace faasm {
     std::string input;
     std::string output;
     std::vector<std::vector<uint8_t>> stateValues;
+    std::string functionUser = "sgd";
 
     void startRequest() {
         input = std::string();
@@ -105,8 +106,7 @@ void __faasm_chain_function(const char *name, const unsigned char *inputData, lo
     awswrapper::LambdaWrapper &lambda = awswrapper::LambdaWrapper::getThreadLocal();
 
     // Note, in the lambda env, we need to prepend the username to the chained function
-    // HACK always assume SGD
-    std::string funcName = "sgd-" + std::string(name);
+    std::string funcName = faasm::functionUser + "-" + std::string(name);
 
     // HACK if SGD barrier, delay
     if (funcName == "sgd-sgd_barrier") {
@@ -123,8 +123,10 @@ void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, 
         return;
     }
 
+    std::string actualKey = faasm::functionUser + "_" + key;
+
     redis::Redis &redis = redis::Redis::getState();
-    redis.get(key, buffer, bufferLen);
+    redis.get(actualKey, buffer, bufferLen);
 }
 
 
@@ -149,7 +151,8 @@ void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsi
     }
 
     redis::Redis &redis = redis::Redis::getState();
-    redis.getRange(key, buffer, bufferLen, offset, offset + bufferLen);
+    std::string actualKey = faasm::functionUser + "_" + key;
+    redis.getRange(actualKey, buffer, bufferLen, offset, offset + bufferLen);
 }
 
 unsigned char *__faasm_read_state_offset_ptr(const char *key, long totalLen, long offset, long len, int async) {
@@ -171,8 +174,10 @@ void __faasm_write_state(const char *key, const uint8_t *data, long dataLen, int
         return;
     }
 
+    std::string actualKey = faasm::functionUser + "_" + key;
+
     redis::Redis &redis = redis::Redis::getState();
-    redis.set(key, data, dataLen);
+    redis.set(actualKey, data, dataLen);
 }
 
 void __faasm_write_state_offset(const char *key, long totalLen, long offset, const unsigned char *data, long dataLen,
@@ -181,8 +186,10 @@ void __faasm_write_state_offset(const char *key, long totalLen, long offset, con
         return;
     }
 
+    std::string actualKey = faasm::functionUser + "_" + key;
+
     redis::Redis &redis = redis::Redis::getState();
-    redis.setRange(key, offset, data, dataLen);
+    redis.setRange(actualKey, offset, data, dataLen);
 }
 
 // Ignore everything from here?
