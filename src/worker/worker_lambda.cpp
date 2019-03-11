@@ -52,7 +52,6 @@ int main() {
 
             // Start up the thread pool
             logger->info("Listening for requests for {}ms", config.globalMessageTimeout);
-
             pool.startThreadPool();
 
             // Work sharing thread

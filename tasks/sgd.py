@@ -3,10 +3,14 @@ from os.path import join
 from botocore.exceptions import ClientError
 from invoke import task
 
-from tasks import upload_func, deploy_wasm_lambda_func, delete_lambda
+from tasks import upload_func, deploy_wasm_lambda_func, delete_lambda, lambda_concurrency
 from tasks.aws import invoke_faasm_lambda, invoke_lambda, deploy_native_lambda_func
 from tasks.env import HOME_DIR, STATE_S3_BUCKET
 from tasks.upload_util import curl_file, upload_file_to_s3
+
+_MAX_BATCH_TIME = 180
+_BATCH_MEMORY = 128
+_BATCH_CONCURRENCY = 200
 
 _SGD_FUNCS = {
     "sgd_barrier": {
@@ -30,9 +34,9 @@ _SGD_FUNCS = {
         "concurrency": 1,
     },
     "sgd_step": {
-        "memory": 2688,
-        "timeout": 30,
-        "concurrency": 4,
+        "memory": _BATCH_MEMORY,
+        "timeout": _MAX_BATCH_TIME,
+        "concurrency": _BATCH_CONCURRENCY,
     },
     "svm_begin": {
         "memory": 128,
@@ -88,6 +92,12 @@ def deploy_sgd_native_lambda(ctx, func=None):
             _do_func_deploy(ctx, func_name, func_spec)
 
 
+@task
+def zero_sgd_native_lambda(ctx):
+    for func_name, func_spec in _SGD_FUNCS.items():
+        lambda_concurrency(ctx, "sgd-{}".format(func_name), 0)
+
+
 def _do_func_deploy(ctx, func_name, func_spec):
     print("Deploying native {}".format(func_name))
 
@@ -101,13 +111,20 @@ def _do_func_deploy(ctx, func_name, func_spec):
 
 
 @task
-def delete_sgd_native_lambda(ctx):
-    for func_name, func_spec in _SGD_FUNCS.items():
-        lambda_name = "sgd-{}".format(func_name)
-        try:
-            delete_lambda(ctx, lambda_name)
-        except ClientError:
-            print("Failed to delete {}. Continuing".format(lambda_name))
+def delete_sgd_native_lambda(ctx, func=None):
+    if func:
+        _do_delete(ctx, func)
+    else:
+        for func_name, func_spec in _SGD_FUNCS.items():
+            _do_delete(ctx, func_name)
+
+
+def _do_delete(ctx, func_name):
+    lambda_name = "sgd-{}".format(func_name)
+    try:
+        delete_lambda(ctx, lambda_name)
+    except ClientError:
+        print("Failed to delete {}. Continuing".format(lambda_name))
 
 
 # -------------------------------------------------

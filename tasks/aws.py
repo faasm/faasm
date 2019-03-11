@@ -271,16 +271,14 @@ def prepare_lambda_workers(ctx, n_workers):
 
 
 @task
-def lambda_concurrency(ctx, func_name, concurrency):
-    conf = faasm_lambda_funcs[func_name]
-
+def lambda_concurrency(ctx, func, concurrency):
     concurrency = int(concurrency)
     client = boto3.client("lambda", region_name=AWS_REGION)
 
-    print("Setting concurrency for {} to {}".format(conf["name"], concurrency))
+    print("Setting concurrency for {} to {}".format(func, concurrency))
 
     client.put_function_concurrency(
-        FunctionName=conf["name"],
+        FunctionName=func,
         ReservedConcurrentExecutions=concurrency,
     )
 

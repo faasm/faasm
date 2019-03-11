@@ -72,4 +72,5 @@ from tasks.sgd import (
     reuters_upload,
     reuters_upload_s3,
     reuters_prepare_aws,
+    zero_sgd_native_lambda
 )

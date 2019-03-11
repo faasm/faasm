@@ -152,7 +152,11 @@ void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsi
 
     redis::Redis &redis = redis::Redis::getState();
     std::string actualKey = faasm::functionUser + "_" + key;
-    redis.getRange(actualKey, buffer, bufferLen, offset, offset + bufferLen);
+
+    // Note, getrange indices are inclusive, so we need to finish one before the end of the buffer
+    long startIdx = offset;
+    long endIdx = offset + bufferLen - 1;
+    redis.getRange(actualKey, buffer, bufferLen, startIdx, endIdx);
 }
 
 unsigned char *__faasm_read_state_offset_ptr(const char *key, long totalLen, long offset, long len, int async) {
