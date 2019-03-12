@@ -1,5 +1,6 @@
 import copy
 import os
+from copy import copy
 from os import mkdir
 from os.path import exists
 from os.path import join
@@ -174,8 +175,12 @@ def build_python_emscripten(ctx):
 
     # Run the emscripten python build
     current_path = os.environ["PATH"]
+    em_path = "{}:{}".format(current_path, EMSCRIPTEN_DIR)
+    env_vars = copy(EMSCRIPTEN_ENV_DICT)
+    env_vars["PATH"] = em_path
+
     make_dir = join(proj_dir, "3.5.2")
-    call("make", cwd=make_dir, shell=True, env=EMSCRIPTEN_ENV_DICT)
+    call("make", cwd=make_dir, shell=True, env=env_vars)
 
 
 @task
