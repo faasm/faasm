@@ -28,28 +28,42 @@ int main() {
     printf("Original:\n");
     _printArray(original);
 
-    // Map file into memory copy-on-write
-    void *ptrA = mmap(nullptr, len, PROT_WRITE, MAP_PRIVATE, fd, 0);
-    void *ptrB = mmap(nullptr, len, PROT_WRITE, MAP_PRIVATE, fd, 0);
+    // Create other memories (these are like the wasm module memories
+    printf("----------------\n");
+    void *otherMemA = mmap(nullptr, len, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    void *otherMemB = mmap(nullptr, len, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    int *otherA = reinterpret_cast<int*>(otherMemA);
+    int *otherB = reinterpret_cast<int*>(otherMemB);
+    _printArray(otherA);
+    _printArray(otherB);
+
+    // Map the file into these locations, this will implicitly unmap the original stuff but that's what we want
+    void *ptrA = mmap(otherMemA, len, PROT_WRITE, MAP_PRIVATE | MAP_FIXED, fd, 0);
+    void *ptrB = mmap(otherMemB, len, PROT_WRITE, MAP_PRIVATE | MAP_FIXED, fd, 0);
 
     // Get as int pointers
-    int *otherA = reinterpret_cast<int*>(ptrA);
-    int *otherB = reinterpret_cast<int*>(ptrB);
+    int *mappedA = reinterpret_cast<int*>(ptrA);
+    int *mappedB = reinterpret_cast<int*>(ptrB);
 
     printf("----------------\n");
-    _printArray(otherA);
-    _printArray(otherB);
+    _printArray(mappedA);
+    _printArray(mappedB);
 
     // Write a single element of A
-    otherA[2] = 9;
+    mappedA[2] = 9;
 
     printf("----------------\n");
-    _printArray(otherA);
-    _printArray(otherB);
+    _printArray(mappedA);
+    _printArray(mappedB);
 
     // Write a single element of B
-    otherB[1] = 88;
+    mappedB[1] = 88;
 
+    printf("----------------\n");
+    _printArray(mappedA);
+    _printArray(mappedB);
+
+    // Now test reading from the original memory locations
     printf("----------------\n");
     _printArray(otherA);
     _printArray(otherB);
