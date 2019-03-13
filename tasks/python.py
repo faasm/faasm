@@ -1,6 +1,5 @@
 import copy
 import os
-import shutil
 from copy import copy
 from os import mkdir
 from os.path import exists
@@ -18,44 +17,24 @@ PY_EMSCRIPTEN_INSTALL_DIR = join(FAASM_HOME, "cpython-emscripten", "installs", "
 
 # Subset of files to make available to the python runtime
 PYTHON_LIB_FILES = [
-    "_collections_abc.py",
-    "_dummy_thread.py",
-    "_sitebuiltins.py",
-    "_sysconfigdata.py",
-    "_weakrefset.py",
-    "abc.py",
-    "codecs.py",
-    "collections/__init__.py",
-    "collections/abc.py",
-    "contextlib.py",
-    "encodings/__init__.py",
-    "encodings/aliases.py",
-    "encodings/cp437.py",
-    "encodings/latin_1.py",
-    "encodings/utf_8.py",
-    "functools.py",
-    "genericpath.py",
-    "heapq.py",
-    "importlib/__init__.py",
-    "importlib/_bootstrap.py",
-    "importlib/_bootstrap_external.py",
-    "importlib/abc.py",
-    "importlib/machinery.py",
-    "importlib/util.py",
-    "io.py",
-    "keyword.py",
-    "operator.py",
-    "os.py",
-    "pkgutil.py",
-    "posixpath.py",
-    "reprlib.py",
-    "runpy.py",
-    "site.py",
-    "stat.py",
-    "sysconfig.py",
-    "types.py",
-    "warnings.py",
-    "weakref.py",
+    "lib/python3.5/_collections_abc.py",
+    "lib/python3.5/_sitebuiltins.py",
+    "lib/python3.5/_sysconfigdata.py",
+    "lib/python3.5/_weakrefset.py",
+    "lib/python3.5/abc.py",
+    "lib/python3.5/codecs.py",
+    "lib/python3.5/encodings/__init__.py",
+    "lib/python3.5/encodings/aliases.py",
+    "lib/python3.5/encodings/latin_1.py",
+    "lib/python3.5/encodings/utf_8.py",
+    "lib/python3.5/genericpath.py",
+    "lib/python3.5/io.py",
+    "lib/python3.5/os.py",
+    "lib/python3.5/posixpath.py",
+    "lib/python3.5/site.py",
+    "lib/python3.5/stat.py",
+    "lib/python3.5/sysconfig.py",
+    "lib/python3.5/weakref.py",
 ]
 
 
@@ -82,20 +61,24 @@ def set_up_python_root(ctx):
     if not exists(FAASM_RUNTIME_ROOT):
         raise RuntimeError("Must create runtime root at {}".format(FAASM_RUNTIME_ROOT))
 
-    # We need to copy the relevant subset of files from the lib dir
-    dest_lib_dir = join(FAASM_RUNTIME_ROOT, "lib")
-    if not exists(dest_lib_dir):
-        mkdir(dest_lib_dir)
+    # Clear out the destination
+    call("rm -rf {}/*".format(FAASM_RUNTIME_ROOT), shell=True)
 
-    dest_lib_dir = join(dest_lib_dir, "python3.5")
-    if not exists(dest_lib_dir):
-        mkdir(dest_lib_dir)
+    # Iterate through and put files in place
+    for relative_path in PYTHON_LIB_FILES:
+        # Create the intermediate directory
+        file_name_parts = relative_path.split("/")
+        relative_dir = "/".join(file_name_parts[:-1])
+        call("mkdir -p {}/{}".format(FAASM_RUNTIME_ROOT, relative_dir), shell=True)
 
-    src_lib_dir = join(PY_EMSCRIPTEN_INSTALL_DIR, "lib", "python3.5")
-    for filename in PYTHON_LIB_FILES:
-        # Copy everything from the build dir into the runtime root
-        file_path = join(src_lib_dir, filename)
-        shutil.copy(file_path, dest_lib_dir)
+        dest_file = join(FAASM_RUNTIME_ROOT, relative_path)
+        abs_path = "{}/{}".format(PY_EMSCRIPTEN_INSTALL_DIR, relative_path)
+
+        cmd = "cp {} {}".format(abs_path, dest_file)
+        print(cmd)
+        res = call(cmd, shell=True)
+        if res != 0:
+            raise RuntimeError("Failed to put file {} in place".format(abs_path))
 
 
 @task

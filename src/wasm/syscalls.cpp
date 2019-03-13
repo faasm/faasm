@@ -695,16 +695,10 @@ namespace wasm {
         if (fd > 0) {
             openFds.insert(fd);
             return (I32) fd;
-        } else if (fd == -ENOENT) {
-            printf("File does not exist %s\n", path);
-            throw std::runtime_error("File does not exist");
-        } else if (fd == -EPERM) {
-            printf("Error opening %s due to permissions", path);
         } else {
-            printf("Error opening file %s (code %d) \n", path, fd);
+            // This is an error of some form
+            return (I32) fd;
         }
-
-        throw std::runtime_error("Unknown error opening file");
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_open", I32, __syscall_open, I32 pathPtr, I32 flags, I32 mode) {
@@ -781,7 +775,7 @@ namespace wasm {
                 // NOTE: i'm a little confused as to what this field actually represents. It seems to be
                 // small when coming back from the host (e.g. 20/30) but is apparently used to iterate through
                 // the structs in memory (therefore I'd expect it to be sizeof(wasm_dirent64).
-                // I think setting it too long is just inefficient and shouldn't cause any problems.
+                // I think setting it too long is inefficient but shouldn't cause any problems.
                 dWasm.d_reclen = wasmDirentSize;
 
                 // Copy the wasm dirent into place in wasm memory
@@ -1088,9 +1082,18 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    I32 s__syscall_llseek(I32 a, I32 b, I32 c, I32 d, I32 e) {
-        util::getLogger()->debug("S - llseek - {} {} {} {} {}", a, b, c, d, e);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    /**
+     * Although llseek is being called, musl is using it within the implementation of lseek,
+     * therefore we can just use lseek as a shortcut
+     */
+    I32 s__syscall_llseek(I32 fd, I32 offsetHigh, I32 offsetLow, I32 resultPtr, I32 whence) {
+        util::getLogger()->debug("S - llseek - {} {} {} {} {}", fd, offsetHigh, offsetLow, resultPtr, whence);
+
+        checkThreadOwnsFd(fd);
+
+        int res = (int) lseek(fd, offsetLow, whence);
+
+        return (I32) res;
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_llseek", I32, __syscall_llseek, I32 a, I32 b, I32 c, I32 d, I32 e) {
@@ -2558,17 +2561,18 @@ namespace wasm {
         return 0;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_emscripten_memcpy_big", U32, _emscripten_memcpy_big, U32 sourceAddress,
-                              U32 destAddress, U32 numBytes) {
-        util::getLogger()->debug("S - _emscripten_memcpy_big - {} {} {}", sourceAddress, destAddress, numBytes);
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_emscripten_memcpy_big", U32, _emscripten_memcpy_big, U32 destPtr, U32 srcPtr,
+                              U32 numBytes) {
+        util::getLogger()->debug("S - _emscripten_memcpy_big - {} {} {}", destPtr, srcPtr, numBytes);
 
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
 
-        memcpy(Runtime::memoryArrayPtr<U8>(memoryPtr, sourceAddress, numBytes),
-               Runtime::memoryArrayPtr<U8>(memoryPtr, destAddress, numBytes),
-               numBytes);
+        U8 *dest = Runtime::memoryArrayPtr<U8>(memoryPtr, destPtr, numBytes);
+        U8 *src = Runtime::memoryArrayPtr<U8>(memoryPtr, srcPtr, numBytes);
 
-        return sourceAddress;
+        std::copy(src, src + numBytes, dest);
+
+        return destPtr;
     }
 
     FILE *vmFile(U32 vmHandle) {
