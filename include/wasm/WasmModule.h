@@ -55,6 +55,10 @@ namespace wasm {
         U32 mmap(U32 length);
 
         U32 mmapKey(std::shared_ptr<state::StateKeyValue> kv, U32 length);
+
+        void snapshotFullMemory();
+
+        void restoreFullMemory();
     private:
         IR::Module module;
 

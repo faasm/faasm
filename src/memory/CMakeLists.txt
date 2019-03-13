@@ -6,6 +6,7 @@ file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/memory/*.h")
 
 add_library(memory STATIC
         MemorySnapshot.cpp
+        MemorySnapshotRegister.cpp
         ${HEADERS}
         )
 
