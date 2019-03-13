@@ -11,7 +11,7 @@ namespace memory {
             // Create new snapshot object if not already existing
             snapshotMap.emplace(MemorySnapshotPair(key, std::make_shared<MemorySnapshot>()));
         }
-        
+
         return snapshotMap[key];
     }
 }
