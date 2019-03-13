@@ -15,6 +15,7 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
 #include <WAVM/Runtime/Runtime.h>
+#include <memory/MemorySnapshot.h>
 
 using namespace WAVM;
 
@@ -36,8 +37,6 @@ namespace wasm {
         ~WasmModule();
 
         void initialise();
-
-        void snapshotMemory();
 
         void restoreMemory();
 
@@ -62,8 +61,6 @@ namespace wasm {
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
         Runtime::GCPointer<Runtime::Function> functionInstance;
 
-        U8 *cleanMemory = nullptr;
-
         RootResolver *resolver = nullptr;
 
         bool _isInitialised = false;
@@ -74,6 +71,8 @@ namespace wasm {
         std::unordered_map<std::string, I32> sharedMemWasmPtrs;
         std::unordered_map<std::string, void*> sharedMemHostPtrs;
         std::unordered_map<std::string, std::shared_ptr<state::StateKeyValue>> sharedMemKVs;
+
+        memory::MemorySnapshot memSnapshot;
     };
 
     WasmModule *getExecutingModule();

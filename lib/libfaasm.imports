@@ -15,3 +15,5 @@ __faasm_unlock_state_write
 __faasm_read_input
 __faasm_write_output
 __faasm_chain_function
+__faasm_snapshot_memory
+__faasm_restore_memory

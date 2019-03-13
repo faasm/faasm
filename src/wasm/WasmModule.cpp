@@ -71,7 +71,6 @@ namespace wasm {
     WasmModule::WasmModule() = default;
 
     WasmModule::~WasmModule() {
-        // delete[] cleanMemory;
         defaultMemory = nullptr;
         moduleInstance = nullptr;
         functionInstance = nullptr;
@@ -88,6 +87,8 @@ namespace wasm {
                 logger->debug("Successful GC for compartment");
             }
         }
+
+        memSnapshot.clear();
     };
 
     bool WasmModule::isBound() {
@@ -117,6 +118,8 @@ namespace wasm {
     }
 
     void WasmModule::bindToFunction(const message::Message &msg) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         if (!_isInitialised) {
             throw std::runtime_error("Must initialise module before binding");
         } else if (_isBound) {
@@ -171,22 +174,14 @@ namespace wasm {
         this->defaultMemory = Runtime::getDefaultMemory(moduleInstance);
 
         // Snapshot initial state
-        this->snapshotMemory();
+        logger->debug("Snapshotting {} pages of memory for restore", CLEAN_MEMORY_PAGES);
+        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
+        memSnapshot.createCopy(baseAddr, CLEAN_MEMORY_SIZE);
 
         // Record that this module is now bound
         _isBound = true;
         boundUser = msg.user();
         boundFunction = msg.function();
-    }
-
-    void WasmModule::snapshotMemory() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        logger->debug("Snapshotting {} pages of memory for restore", CLEAN_MEMORY_PAGES);
-        cleanMemory = new uint8_t[CLEAN_MEMORY_SIZE];
-
-        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
-        std::copy(baseAddr, baseAddr + CLEAN_MEMORY_SIZE, cleanMemory);
     }
 
     void WasmModule::restoreMemory() {
@@ -213,7 +208,7 @@ namespace wasm {
 
         // Restore initial memory in clean region
         U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
-        std::copy(cleanMemory, cleanMemory + CLEAN_MEMORY_SIZE, baseAddr);
+        memSnapshot.restoreCopy(baseAddr);
 
         // Reset shared memory variables
         sharedMemKVs.clear();

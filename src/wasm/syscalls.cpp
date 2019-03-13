@@ -594,6 +594,32 @@ namespace wasm {
         s__faasm_chain_function(namePtr, inputDataPtr, inputDataLen);
     }
 
+    void s__faasm_snapshot_memory(I32 keyPtr) {
+        util::getLogger()->debug("S - snapshot_memory - {}", keyPtr);
+
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_snapshot_memory", void, __faasm_snapshot_memory, I32 keyPtr) {
+        s__faasm_snapshot_memory(keyPtr);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___faasm_snapshot_memory", void, ___faasm_snapshot_memory, I32 keyPtr) {
+        s__faasm_snapshot_memory(keyPtr);
+    }
+
+    void s__faasm_restore_memory(I32 keyPtr) {
+        util::getLogger()->debug("S - restore_memory - {}", keyPtr);
+
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_restore_memory", void, __faasm_restore_memory, I32 keyPtr) {
+        s__faasm_restore_memory(keyPtr);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___faasm_restore_memory", void, ___faasm_restore_memory, I32 keyPtr) {
+        s__faasm_restore_memory(keyPtr);
+    }
+
     // ------------------------
     // I/O - supported
     // ------------------------

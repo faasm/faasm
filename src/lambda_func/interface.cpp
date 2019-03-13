@@ -230,3 +230,10 @@ void __faasm_unlock_state_write(const char *key) {
 
 }
 
+void __faasm_snapshot_memory(const char *key) {
+
+}
+
+void __faasm_restore_memory(const char *key) {
+
+}
