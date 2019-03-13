@@ -19,10 +19,10 @@ namespace wasm {
     const size_t INITIAL_MEMORY_SIZE = INITIAL_MEMORY_PAGES * IR::numBytesPerPage;
 
     // Note, we don't allow emscripten to grow memory
-    const int INITIAL_EMSCRIPTEN_PAGES = 26384;
+    const int INITIAL_EMSCRIPTEN_PAGES = 16384;
     const int MAX_EMSCRIPTEN_PAGES = INITIAL_EMSCRIPTEN_PAGES;
     const int EMSCRIPTEN_STACKTOP = 64 * IR::numBytesPerPage;
-    const int EMSCRIPTEN_STACK_MAX = 128 * IR::numBytesPerPage;
+    const int EMSCRIPTEN_STACK_MAX = 256 * IR::numBytesPerPage;
 
     void setEmscriptenErrnoLocation(U32 value);
 
@@ -93,10 +93,11 @@ namespace wasm {
         }
 
         void setUpEmscripten(Runtime::Compartment *compartment, IR::Module &module) {
-            // Min memory pages
+            // Memory constraints
             module.memories.imports[0].type.size.min = (U64) INITIAL_EMSCRIPTEN_PAGES;
             module.memories.imports[0].type.size.max = (U64) MAX_EMSCRIPTEN_PAGES;
 
+            // No table constraints
             IR::TableType tableType(IR::ReferenceType::funcref, false, IR::SizeConstraints{0, 0});
             tableType = module.tables.imports[0].type;
 
@@ -118,7 +119,7 @@ namespace wasm {
 
             MutableGlobals &mutableGlobals = Runtime::memoryRef<MutableGlobals>(memory, MutableGlobals::address);
 
-            mutableGlobals.DYNAMICTOP_PTR = 128 * IR::numBytesPerPage;
+            mutableGlobals.DYNAMICTOP_PTR = EMSCRIPTEN_STACK_MAX;
             mutableGlobals._stderr = (U32) ioStreamVMHandle::StdErr;
             mutableGlobals._stdin = (U32) ioStreamVMHandle::StdIn;
             mutableGlobals._stdout = (U32) ioStreamVMHandle::StdOut;

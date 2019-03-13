@@ -25,6 +25,7 @@ PYTHON_LIB_FILES = [
     "lib/python3.5/codecs.py",
     "lib/python3.5/encodings/__init__.py",
     "lib/python3.5/encodings/aliases.py",
+    "lib/python3.5/encodings/cp437.py",
     "lib/python3.5/encodings/latin_1.py",
     "lib/python3.5/encodings/utf_8.py",
     "lib/python3.5/genericpath.py",
