@@ -38,8 +38,6 @@ namespace wasm {
 
         void initialise();
 
-        void restoreMemory();
-
         void bindToFunction(const message::Message &msg);
 
         int execute(message::Message &msg, CallChain &callChain);
@@ -56,9 +54,11 @@ namespace wasm {
 
         U32 mmapKey(std::shared_ptr<state::StateKeyValue> kv, U32 length);
 
-        void snapshotFullMemory();
+        void snapshotFullMemory(const char* key);
 
-        void restoreFullMemory();
+        void restoreFullMemory(const char* key);
+
+        void restoreMemory();
     private:
         IR::Module module;
 
@@ -77,6 +77,8 @@ namespace wasm {
         std::unordered_map<std::string, std::shared_ptr<state::StateKeyValue>> sharedMemKVs;
 
         memory::MemorySnapshot memSnapshot;
+
+        void resizeMemory(size_t targetPages);
     };
 
     WasmModule *getExecutingModule();

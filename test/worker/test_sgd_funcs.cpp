@@ -27,7 +27,7 @@ namespace tests {
         resetEmulatorUser();
     }
 
-    std::string execFunction(const std::string &funcName) {
+    std::string execStrFunction(const std::string &funcName) {
         message::Message call;
         call.set_user("sgd");
         call.set_function(funcName);
@@ -70,7 +70,7 @@ namespace tests {
         mem.writeState(LOSS_TIMESTAMPS_KEY, reinterpret_cast<uint8_t *>(lossTimestamps.data()), nBytes, async);
 
         // Call function
-        std::string output = execFunction("sgd_loss");
+        std::string output = execStrFunction("sgd_loss");
 
         // Expected is relative timestamp - loss
         std::string expct = "0.00 - 1000.5000, 1.23 - 900.2200, 12.34 - 20.1000, 123.46 - 5.5000, 1234.56 - 99.9990, ";
@@ -127,7 +127,7 @@ namespace tests {
         REQUIRE(faasm::readEpochFinished(&mem, p));
 
         // Execute
-        execFunction("sgd_barrier");
+        execStrFunction("sgd_barrier");
 
         // Check losses and loss timestamps are written
         size_t nBytes = p.nEpochs * sizeof(double);

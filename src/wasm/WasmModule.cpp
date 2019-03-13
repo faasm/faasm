@@ -1,5 +1,6 @@
 #include "WasmModule.h"
 
+#include <memory/MemorySnapshotRegister.h>
 #include <util/files.h>
 #include <util/func.h>
 #include <util/memory.h>
@@ -184,27 +185,54 @@ namespace wasm {
         boundFunction = msg.function();
     }
 
-    void WasmModule::restoreMemory() {
+    void WasmModule::snapshotFullMemory(const char *key) {
+        // Get memory and dimensions
+        Uptr currentPages = Runtime::getMemoryNumPages(this->defaultMemory);
+        Uptr memSize = currentPages * IR::numBytesPerPage;
+        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
+
+        // Create the snapshot
+        memory::MemorySnapshotRegister &snapRegister = memory::getGlobalMemorySnapshotRegister();
+        const std::shared_ptr<memory::MemorySnapshot> snapshot = snapRegister.getSnapshot(key);
+        snapshot->create(key, baseAddr, memSize);
+    }
+
+    void WasmModule::restoreFullMemory(const char *key) {
+        // Retrieve the snapshot
+        memory::MemorySnapshotRegister &snapRegister = memory::getGlobalMemorySnapshotRegister();
+        const std::shared_ptr<memory::MemorySnapshot> snapshot = snapRegister.getSnapshot(key);
+
+        // Resize memory accordingly
+        size_t wasmPages = (snapshot->getSize() + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
+        this->resizeMemory(wasmPages);
+
+        // Do the restore
+        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
+        snapshot->restore(baseAddr);
+    }
+
+    void WasmModule::resizeMemory(size_t targetPages) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Grow/ shrink memory to its original size
+        // Get current size
         Uptr currentPages = Runtime::getMemoryNumPages(this->defaultMemory);
 
-        if (currentPages > INITIAL_MEMORY_PAGES) {
-            Uptr shrinkSize = currentPages - INITIAL_MEMORY_PAGES;
-            logger->debug("Restoring memory and shrinking {} pages", shrinkSize);
+        if (currentPages > targetPages) {
+            Uptr shrinkSize = currentPages - targetPages;
+            logger->debug("Shrinking memory by {} pages", shrinkSize);
 
             Runtime::shrinkMemory(this->defaultMemory, shrinkSize);
 
-        } else if (INITIAL_MEMORY_PAGES > currentPages) {
-            Uptr growSize = INITIAL_MEMORY_PAGES - currentPages;
-            logger->debug("Restoring memory and growing {} pages", growSize);
+        } else if (targetPages > currentPages) {
+            Uptr growSize = targetPages - currentPages;
+            logger->debug("Growing memory by {} pages", growSize);
 
             Runtime::growMemory(this->defaultMemory, growSize);
-
-        } else {
-            logger->debug("Restoring memory with {} pages", INITIAL_MEMORY_PAGES);
         }
+    }
+
+    void WasmModule::restoreMemory() {
+        this->resizeMemory(INITIAL_MEMORY_PAGES);
 
         // Restore initial memory in clean region
         U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);

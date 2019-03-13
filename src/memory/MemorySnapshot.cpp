@@ -37,6 +37,10 @@ namespace memory {
         std::copy(memCopy, memCopy + memSize, ptr);
     }
 
+    size_t MemorySnapshot::getSize() {
+        return memSize;
+    }
+
     void MemorySnapshot::clear() {
         memSize = 0;
         delete[] memCopy;

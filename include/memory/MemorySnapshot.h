@@ -18,6 +18,8 @@ namespace memory {
 
         void clear();
 
+        size_t getSize();
+
     private:
         size_t memSize;
         int memFd;
