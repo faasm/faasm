@@ -132,6 +132,15 @@ namespace wasm {
         return std::pair<std::string, std::string>(call->user(), key);
     }
 
+    std::string maskPath(const char *originalPath) {
+        std::string fakePath = FALSE_ROOT;
+        if (strcmp(originalPath, "/") != 0) {
+            fakePath += std::string("/") + originalPath;
+        }
+
+        return fakePath;
+    }
+
     // ---------------------------
     // System-related structs
     // ---------------------------
@@ -659,7 +668,7 @@ namespace wasm {
         char *path = &Runtime::memoryRef<char>(memoryPtr, (Uptr) pathPtr);
 
         // Check if this is a valid path. Return a read-only handle to the file if so
-        int fd = -1;
+        int fd;
         if (strcmp(path, "/etc/hosts") == 0) {
             logger->debug("Opening dummy /etc/hosts");
             fd = open(HOSTS_FILE, 0, 0);
@@ -676,18 +685,11 @@ namespace wasm {
         } else if (strcmp(path, "pyvenv.cfg") == 0) {
             logger->debug("Forcing non-existent pyvenv.cfg");
             return -ENOENT;
-        } else if (strcmp(path, "/") == 0) {
-            logger->debug("Opening root as {}", FALSE_ROOT);
-            fd = open(FALSE_ROOT, 0, 0);
         } else {
-            // Warn re. unknown path
-            logger->warn("Opening unrecognised path: {}", path);
+            std::string fakePath = maskPath(path);
+            logger->debug("Opening {} as {}", path, fakePath);
 
-            // Switch on when debugging
-            // fd = open(path, 0, 0);
-
-            // Throw exception normally
-            throw std::runtime_error("Attempt to open invalid file");
+            fd = open(fakePath.c_str(), 0, 0);
         }
 
         if (fd > 0) {
@@ -696,6 +698,8 @@ namespace wasm {
         } else if (fd == -ENOENT) {
             printf("File does not exist %s\n", path);
             throw std::runtime_error("File does not exist");
+        } else if (fd == -EPERM) {
+            printf("Error opening %s due to permissions", path);
         } else {
             printf("Error opening file %s (code %d) \n", path, fd);
         }
@@ -1036,14 +1040,16 @@ namespace wasm {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         const char *path = &Runtime::memoryRef<const char>(memoryPtr, (Uptr) pathPtr);
 
-        util::getLogger()->debug("S - stat64 - {} {}", path, statBufPtr);
-
-        if (strcmp(path, "/") == 0) {
-            path = FALSE_ROOT;
+        // Fake the path we're looking at
+        std::string fakePath = FALSE_ROOT;
+        if (strcmp(path, "/") != 0) {
+            fakePath += std::string("/") + path;
         }
 
+        util::getLogger()->debug("S - stat64 - {} {}", fakePath, statBufPtr);
+
         struct stat64 nativeStat{};
-        stat64(path, &nativeStat);
+        stat64(fakePath.c_str(), &nativeStat);
         writeNativeStatToWasmStat(&nativeStat, statBufPtr);
 
         return 0;
@@ -2208,7 +2214,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_emscripten_get_heap_size", U32, _emscripten_get_heap_size) {
-        util::getLogger()->debug("S - _emscripten_get_heap_size");
+        // util::getLogger()->debug("S - _emscripten_get_heap_size");
 
         U32 memSize = _getMemorySize();
         return memSize;
