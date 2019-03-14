@@ -2498,6 +2498,12 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledAbort);
     }
 
+//    DEFINE_INTRINSIC_FUNCTION(emEnv, "abort", void, emscripten_abort, I32 a) {
+//        util::getLogger()->debug("S - abort {}", a);
+//
+//        throwException(Runtime::ExceptionTypes::calledAbort);
+//    }
+
     DEFINE_INTRINSIC_FUNCTION(emEnv, "abort", void, emscripten_abort) {
         util::getLogger()->debug("S - abort");
 

@@ -33,7 +33,7 @@ def funcs(context, clean=False, func=None):
     _build_funcs("wasm", clean=clean, func=func)
 
 
-def _build_funcs(build_type, clean=False, func=None, toolchain_file=None, top_level_build=False, cmake_build_type="Release", extra_env=None):
+def _build_funcs(build_type, clean=False, func=None, toolchain_file=None, top_level_build=False, cmake_build_type="Release"):
     """
     Compiles functions
     """
