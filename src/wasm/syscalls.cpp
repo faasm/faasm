@@ -25,6 +25,10 @@
 
 #include <stdarg.h>
 
+#define EXPAND_TOO_BIG -2
+#define EXPAND_NO_ACTION -1
+#define EXPAND_SUCCESS 0
+
 using namespace WAVM;
 
 /**
@@ -139,6 +143,32 @@ namespace wasm {
         }
 
         return fakePath;
+    }
+
+    int expandMemory(U32 newSize) {
+        Uptr targetPageCount = getNumberOfPagesForBytes(newSize);
+
+        // Work out current size
+        Runtime::Memory *memory = getExecutingModule()->defaultMemory;
+        const Uptr currentPageCount = getMemoryNumPages(memory);
+
+        Uptr maxPages = getMemoryMaxPages(memory);
+        if (targetPageCount > maxPages) {
+            // Return old break if there's an error
+            return EXPAND_TOO_BIG;
+        }
+
+        if (targetPageCount <= currentPageCount || newSize == 0) {
+            // Return old break if nothing changes or called with zero
+            return EXPAND_NO_ACTION;
+        }
+
+        Uptr expansion = targetPageCount - currentPageCount;
+
+        // Grow memory as required
+        growMemory(memory, expansion);
+
+        return EXPAND_SUCCESS;
     }
 
     // ---------------------------
@@ -2033,43 +2063,33 @@ namespace wasm {
     }
 
     /**
-     * brk should be fine to run in most cases, need to check limits on the process' memory.
-     *
-     * Details of the return value aren't particularly clear. I took info from https://linux.die.net/man/2/brk
-     * i.e.
-     *
-     *   - on addr == 0 return current break
-     *   - on error return current break
-     *   - on success return NEW break
-     */
+   * brk should be fine to run in most cases, need to check limits on the process' memory.
+   *
+   * Details of the return value aren't particularly clear. I took info from https://linux.die.net/man/2/brk
+   * i.e.
+   *
+   *   - on addr == 0 return current break
+   *   - on error return current break
+   *   - on success return NEW break
+   */
+
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_brk", I32, __syscall_brk, U32 addr) {
         util::getLogger()->debug("S - brk - {}", addr);
 
-        Uptr targetPageCount = getNumberOfPagesForBytes(addr);
-
-        // Work out current page count and break
         Runtime::Memory *memory = getExecutingModule()->defaultMemory;
-        const Uptr currentPageCount = getMemoryNumPages(memory);
-        const U32 currentBreak = (U32) ((currentPageCount * IR::numBytesPerPage));
+        const U32 currentBreak = (U32) ((getMemoryNumPages(memory) * IR::numBytesPerPage));
 
-        Uptr maxPages = getMemoryMaxPages(memory);
-        if (targetPageCount > maxPages) {
-            // Return old break if there's an error
+        // Attempt the expansion
+        int expandRes = expandMemory(addr);
+
+        if (expandRes == EXPAND_TOO_BIG) {
             return currentBreak;
-        }
-
-        if (targetPageCount <= currentPageCount || addr == 0) {
-            // Return old break if nothing changes or called with zero
+        } else if (expandRes == EXPAND_NO_ACTION) {
             return currentBreak;
+        } else {
+            // Success, return requested break
+            return (U32) addr;
         }
-
-        Uptr expansion = targetPageCount - currentPageCount;
-
-        // Grow memory as required
-        growMemory(memory, expansion);
-
-        // Return NEW break if successful
-        return (U32) addr;
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_madvise", I32, __syscall_madvise,
@@ -2204,22 +2224,21 @@ namespace wasm {
     DEFINE_INTRINSIC_GLOBAL(emEnv, "EMT_STACK_MAX", U32, EMT_STACK_MAX, 0)
     DEFINE_INTRINSIC_GLOBAL(emEnv, "eb", I32, eb, 0)
 
-    U32 _getMemorySize() {
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        Uptr memSize = Runtime::getMemoryMaxPages(memoryPtr) * IR::numBytesPerPage;
-        return coerce32bitAddress(memoryPtr, memSize);
-    }
-
     DEFINE_INTRINSIC_FUNCTION(emEnv, "getTotalMemory", U32, getTotalMemory) {
         util::getLogger()->debug("S - getTotalMemory");
 
-        return _getMemorySize();
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Uptr memSize = Runtime::getMemoryNumPages(memoryPtr) * IR::numBytesPerPage;
+
+        return memSize;
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_emscripten_get_heap_size", U32, _emscripten_get_heap_size) {
-        // util::getLogger()->debug("S - _emscripten_get_heap_size");
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Uptr memSize = Runtime::getMemoryNumPages(memoryPtr) * IR::numBytesPerPage;
 
-        U32 memSize = _getMemorySize();
+        util::getLogger()->debug("S - _emscripten_get_heap_size - {}", memSize);
+
         return memSize;
     }
 
@@ -2241,9 +2260,36 @@ namespace wasm {
         return abortOnCannotGrowMemory(contextRuntimeData, 1);
     }
 
+    /**
+     * This funciton is from the Emscripten asm.js toolchain. It returns true/ false depending
+     * on whether it was successful
+     */
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_emscripten_resize_heap", I32, _emscripten_resize_heap, U32 size) {
         util::getLogger()->debug("S - _emscripten_resize_heap - {}", size);
-        return enlargeMemory(contextRuntimeData);
+
+        Runtime::Memory *memory = getExecutingModule()->defaultMemory;
+        Uptr initialPages = getMemoryNumPages(memory);
+        Uptr initialSize = initialPages * IR::numBytesPerPage;
+
+        // Grow the memory accordingly
+        int expansionRes = expandMemory(size);
+
+        if (expansionRes == EXPAND_TOO_BIG) {
+            Uptr maxPages = getMemoryMaxPages(memory);
+            Uptr maxBytes = maxPages * IR::numBytesPerPage;
+
+            util::getLogger()->error("Emscripten resize heap failed (max bytes {}, requested {})", maxBytes, size);
+            throw std::runtime_error("Emscripten expanding beyond max heap size");
+
+        } else if(expansionRes == EXPAND_NO_ACTION) {
+            util::getLogger()->debug("Emscripten requested pointless resize heap (requested {}, current {})", size, initialSize);
+            return 0;
+        }
+
+        Uptr newPages = getMemoryNumPages(memory);
+        util::getLogger()->debug("Emscripten grew heap from {} pages to {} pages", initialPages, newPages);
+
+        return 1;
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_time", I32, _time, U32 address) {

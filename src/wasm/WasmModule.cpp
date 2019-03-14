@@ -294,8 +294,9 @@ namespace wasm {
         catch (wasm::WasmExitException &e) {
             exitCode = e.exitCode;
         }
-        catch (Runtime::Exception &ex) {
-            logger->error("Runtime exception: {}", Runtime::describeException(&ex).c_str());
+        catch (Runtime::Exception *ex) {
+            logger->error("Runtime exception: {}", Runtime::describeException(ex).c_str());
+            Runtime::destroyException(ex);
         }
 
         return exitCode;

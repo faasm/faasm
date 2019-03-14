@@ -25,7 +25,7 @@ def clean_build(context):
 
 @task
 def funcs_emscripten(context, clean=False, func=None):
-    _build_funcs("emscripten", clean=clean, func=func)
+    _build_funcs("emscripten", clean=clean, func=func, cmake_build_type="Release")
 
 
 @task
@@ -33,7 +33,7 @@ def funcs(context, clean=False, func=None):
     _build_funcs("wasm", clean=clean, func=func)
 
 
-def _build_funcs(build_type, clean=False, func=None, toolchain_file=None, top_level_build=False):
+def _build_funcs(build_type, clean=False, func=None, toolchain_file=None, top_level_build=False, cmake_build_type="Release", extra_env=None):
     """
     Compiles functions
     """
@@ -56,6 +56,7 @@ def _build_funcs(build_type, clean=False, func=None, toolchain_file=None, top_le
         "cmake",
         "-DFAASM_BUILD_TYPE={}".format(build_type),
         "-DCMAKE_TOOLCHAIN_FILE={}".format(toolchain_file) if toolchain_file else "",
+        "-DCMAKE_BUILD_TYPE={}".format(cmake_build_type),
         ".."
     ]
 
@@ -66,6 +67,10 @@ def _build_funcs(build_type, clean=False, func=None, toolchain_file=None, top_le
         cmd = "make {}".format(func)
     else:
         cmd = "make"
+
+    # cmd_env = {}
+    # if extra_env:
+    #     cmd_env.update(extra_env)
 
     call(cmd, shell=True, cwd=func_build_dir)
 

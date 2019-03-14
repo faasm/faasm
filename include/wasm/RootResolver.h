@@ -13,14 +13,15 @@ using namespace WAVM;
 namespace wasm {
 
     // Note that the max memory per module is 8GiB, i.e. > 100k pages
-    // Page size in wasm is 64kiB so 50 pages ~ 3MiB of memory
-    const int INITIAL_MEMORY_PAGES = 100;
-    const int MAX_MEMORY_PAGES = 16384; // 1GB
-    const size_t INITIAL_MEMORY_SIZE = INITIAL_MEMORY_PAGES * IR::numBytesPerPage;
+    // Page size in wasm is 64kiB
+    const int ONE_MB_PAGES = 16;
+    const int ONE_GB_PAGES = 1024 * ONE_MB_PAGES;
 
-    // Note, we don't allow emscripten to grow memory
-    const int INITIAL_EMSCRIPTEN_PAGES = 16384;
-    const int MAX_EMSCRIPTEN_PAGES = INITIAL_EMSCRIPTEN_PAGES;
+    const int INITIAL_MEMORY_PAGES = 15 * ONE_MB_PAGES;
+    const int MAX_MEMORY_PAGES = ONE_GB_PAGES;
+
+    const int INITIAL_EMSCRIPTEN_PAGES = 500 * ONE_MB_PAGES;
+    const int MAX_EMSCRIPTEN_PAGES = 3 * ONE_GB_PAGES;
     const int EMSCRIPTEN_STACKTOP = 64 * IR::numBytesPerPage;
     const int EMSCRIPTEN_STACK_MAX = 256 * IR::numBytesPerPage;
 

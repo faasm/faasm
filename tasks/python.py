@@ -1,7 +1,6 @@
 import copy
 import os
 from copy import copy
-from os import mkdir
 from os.path import exists
 from os.path import join
 from subprocess import call

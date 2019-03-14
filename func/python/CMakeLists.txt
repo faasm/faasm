@@ -6,14 +6,16 @@ if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     set(PYTHON_LIBRARIES "/home/shillaker/faasm/cpython-emscripten/installs/python-3.5.2/lib/libpython3.5.a")
     set(PYTHON_INCLUDE_DIRS "/home/shillaker/faasm/cpython-emscripten/installs/python-3.5.2/include/python3.5")
 
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s EXPORTED_FUNCTIONS='[\"_main\",\"_PyRun_SimpleString\"]'")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s EXPORTED_FUNCTIONS='[\"_main\"]'")
 else ()
     find_package(PythonLibs)
 endif ()
 
-# Python headers
+# Python functions
 include_directories(${PYTHON_INCLUDE_DIRS})
-
-faasm_func(py_hello py_hello.cpp)
+faasm_func(py_hello py_hello.c)
 target_link_libraries(py_hello ${PYTHON_LIBRARIES})
+
+faasm_func(c_hello c_hello.c)
+
 
