@@ -132,14 +132,21 @@ namespace wasm {
         return std::pair<std::string, std::string>(call->user(), key);
     }
 
-    std::string maskPath(const char *originalPath) {
+    std::string maskPath(std::string originalPath) {
         std::string fakePath = FALSE_ROOT;
-        if (strcmp(originalPath, "/") != 0) {
+        if (originalPath != "/") {
             fakePath += std::string("/") + originalPath;
         }
 
         return fakePath;
     }
+
+    std::string getMaskedPathFromWasm(I32 strPtr) {
+        const std::string originalPath = getStringFromWasm(strPtr);
+
+        return maskPath(originalPath);
+    }
+
 
     // ---------------------------
     // System-related structs
@@ -661,35 +668,33 @@ namespace wasm {
     /** Whitelist specific files to allow open and read-only */
     I32 s__syscall_open(I32 pathPtr, I32 flags, I32 mode) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
-        logger->debug("S - open - {} {} {}", pathPtr, flags, mode);
-
-        // Get the path
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        char *path = &Runtime::memoryRef<char>(memoryPtr, (Uptr) pathPtr);
+        const std::string path = getStringFromWasm(pathPtr);
+        logger->debug("S - open - {} {} {}", path, flags, mode);
 
         // Check if this is a valid path. Return a read-only handle to the file if so
         int fd;
-        if (strcmp(path, "/etc/hosts") == 0) {
+        if (path == "/etc/hosts") {
             logger->debug("Opening dummy /etc/hosts");
             fd = open(HOSTS_FILE, 0, 0);
 
-        } else if (strcmp(path, "/etc/resolv.conf") == 0) {
+        } else if (path == "/etc/resolv.conf") {
             logger->debug("Opening dummy /etc/resolv.conf");
             fd = open(RESOLV_FILE, 0, 0);
 
-        } else if (strcmp(path, "/dev/urandom") == 0) {
+        } else if (path == "/dev/urandom") {
             //TODO avoid use of system-wide urandom
             logger->debug("Opening /dev/urandom");
             fd = open("/dev/urandom", 0, 0);
 
-        } else if (strcmp(path, "pyvenv.cfg") == 0) {
+        } else if (path == "pyvenv.cfg") {
             logger->debug("Forcing non-existent pyvenv.cfg");
             return -ENOENT;
         } else {
-            std::string fakePath = maskPath(path);
-            logger->debug("Opening {} as {}", path, fakePath);
+            std::string fakePath = maskPath(path.c_str());
+            logger->debug("Opening {}", fakePath);
 
-            fd = open(fakePath.c_str(), 0, 0);
+            //TODO - need some sanity checks around these flags and mode
+            fd = open(fakePath.c_str(), flags, mode);
         }
 
         if (fd > 0) {
@@ -1002,6 +1007,60 @@ namespace wasm {
         return s__syscall_write(args[0], args[1], args[2]);
     }
 
+    I32 s__syscall_mkdir(I32 pathPtr, I32 mode) {
+        const std::string fakePath = getMaskedPathFromWasm(pathPtr);
+
+        util::getLogger()->debug("S - mkdir - {} {}", fakePath, mode);
+
+        int res = mkdir(fakePath.c_str(), mode);
+
+        return res;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall39", I32, ___syscall39, I32 syscallNo, I32 argsPtr) {
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 2);
+        return s__syscall_mkdir(args[0], args[1]);
+    }
+
+    I32 s__syscall_rename(I32 srcPtr, I32 destPtr) {
+        const std::string srcPath = getMaskedPathFromWasm(srcPtr);
+        const std::string destPath = getMaskedPathFromWasm(destPtr);
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - rename - {} {}", srcPath, destPath);
+
+        int res = rename(srcPath.c_str(), destPath.c_str());
+        if(res != 0) {
+            if(res == -EPERM) {
+                logger->error("Permission error renaming {} -> {}", srcPath, destPath);
+            } else {
+                logger->error("Failed renaming {} -> {} - code {}", srcPath, destPath, res);
+            }
+
+            throw std::runtime_error("Failed renaming file");
+        }
+        return res;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall38", I32, ___syscall38, I32 syscallNo, I32 argsPtr) {
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 2);
+        return s__syscall_rename(args[0], args[1]);
+    }
+
+    I32 s__syscall_unlink(I32 pathPtr) {
+        const std::string path = getStringFromWasm(pathPtr);
+
+        util::getLogger()->debug("S - unlink {}", path);
+
+        int res = unlink(path.c_str());
+        return res;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall10", I32, ___syscall10, I32 syscallNo, I32 argsPtr) {
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 1);
+        return s__syscall_unlink(args[0]);
+    }
+
     /**
      *  We don't want to give away any real info about the filesystem, but we can just return the default
      *  stat object and catch the application later if it tries to do anything dodgy.
@@ -1031,12 +1090,11 @@ namespace wasm {
      */
     I32 s__syscall_stat64(I32 pathPtr, I32 statBufPtr) {
         // Get the path
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        const char *path = &Runtime::memoryRef<const char>(memoryPtr, (Uptr) pathPtr);
-
+        std::string path = getStringFromWasm(pathPtr);
+        
         // Fake the path we're looking at
         std::string fakePath = FALSE_ROOT;
-        if (strcmp(path, "/") != 0) {
+        if (path != "/") {
             fakePath += std::string("/") + path;
         }
 
@@ -2221,7 +2279,7 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledAbort);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "abortOnCannotGrowMemory", I32, abortOnCannotGrowMemory, I32 a) {
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "abortOnCannotGrowMemory", U32, abortOnCannotGrowMemory, U32 a) {
         util::getLogger()->debug("S - abortOnCannotGrowMemory - {}", a);
 
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
@@ -2864,21 +2922,6 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall40", I32, ___syscall40, I32 a, I32 b) {
         util::getLogger()->debug("S - ___syscall40 - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall10", I32, ___syscall10, I32 a, I32 b) {
-        util::getLogger()->debug("S - ___syscall10 - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall39", I32, ___syscall39, I32 a, I32 b) {
-        util::getLogger()->debug("S - ___syscall39 - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall38", I32, ___syscall38, I32 a, I32 b) {
-        util::getLogger()->debug("S - ___syscall38 - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
