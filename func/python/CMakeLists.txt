@@ -5,8 +5,6 @@ set(FAASM_USER python)
 if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     set(PYTHON_LIBRARIES "/home/shillaker/faasm/cpython-emscripten/installs/python-3.5.2/lib/libpython3.5.a")
     set(PYTHON_INCLUDE_DIRS "/home/shillaker/faasm/cpython-emscripten/installs/python-3.5.2/include/python3.5")
-
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s EXPORTED_FUNCTIONS='[\"_main\"]'")
 else ()
     find_package(PythonLibs)
 endif ()

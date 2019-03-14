@@ -30,20 +30,40 @@ if (${EMSCRIPTEN})
     # Emscripten doesn't seem to look in normal system includes so we explicitly have to tell it to
     include_directories(/usr/local/include/)
 
-    # Linker changes to dodge some emscripten issues
+    set(EM_OTHER_FLAGS "
+    -s TOTAL_MEMORY=268435456 \
+    -s MAIN_MODULE=1 \
+    -s MINIMAL_RUNTIME=1 \
+")
+
+    # Emscripten-specific linker options
+    # It's absolutely *crucial* to make sure these are actually getting used
+    # To triple check you can enter some invalid values and see if stuff breaks
     # TODO - is there a way to avoid ignoring undefined symbols by respecting the libfaasm.imports file?
-    set(CMAKE_EXE_LINKER_FLAGS  "-s ERROR_ON_UNDEFINED_SYMBOLS=0 -s EMULATE_FUNCTION_POINTER_CASTS=1 -s ASSERTIONS=2 -s ALLOW_MEMORY_GROWTH=1 -s FILESYSTEM=0 --memory-init-file 0")
+    set(EM_LINKER_FLAGS "-s ERROR_ON_UNDEFINED_SYMBOLS=0 \
+    -s EMULATE_FUNCTION_POINTER_CASTS=1 \
+    -s USES_DYNAMIC_ALLOC=0 \
+    -s ALLOW_MEMORY_GROWTH=1 \
+    -s EMULATED_FUNCTION_POINTERS=1 \
+    -s WASM=1 \
+    -s FILESYSTEM=0 \
+    --memory-init-file 0 \
+    -s EXPORTED_FUNCTIONS='[\"_main\"]' \
+    ")
+
+
+    set(CMAKE_EXE_LINKER_FLAGS "${EM_LINKER_FLAGS}")
 
     # Avoid compiling javascript
-    set(CMAKE_REQUIRED_FLAGS "-s WASM=1")
+    set(CMAKE_REQUIRED_FLAGS "WASM=1")
     set(CMAKE_EXECUTABLE_SUFFIX ".wasm")
 
     # Link to custom-build faasm lib
     link_directories(/usr/local/code/faasm/lib/embuild/)
     set(FAASM_LIB libfaasm.a)
-else()
+else ()
     set(FAASM_LIB faasm)
-endif()
+endif ()
 
 
 # Define functions for building
@@ -110,7 +130,7 @@ add_subdirectory(sgd)
 
 # Exclude python stuff in normal wasm build or lambda native
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
-elseif(FAASM_BUILD_TYPE STREQUAL "lambda-func")
-else()
+elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
+else ()
     add_subdirectory(python)
-endif()
+endif ()

@@ -17,6 +17,10 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <memory/MemorySnapshot.h>
 
+#define EXPAND_TOO_BIG -2
+#define EXPAND_NO_ACTION -1
+#define EXPAND_SUCCESS 0
+
 using namespace WAVM;
 
 namespace wasm {
@@ -24,9 +28,12 @@ namespace wasm {
     const int CLEAN_MEMORY_PAGES = 1;
     const int CLEAN_MEMORY_SIZE = CLEAN_MEMORY_PAGES * IR::numBytesPerPage;
 
+    int expandMemory(U32 newSize);
     U32 dynamicAllocString(Runtime::Memory *memory, const char* str, U32 len);
-    U32 dynamicAllocPages(Runtime::Memory *memory, U32 numPages);
     U32 dynamicAlloc(Runtime::Memory *memory, U32 numBytes);
+
+    void setEmscriptenDynamicTop(U32 newValue);
+    U32 getEmscriptenDynamicTop();
 
     Uptr getNumberOfPagesForBytes(U32 nBytes);
 
@@ -49,6 +56,8 @@ namespace wasm {
         bool isInitialised();
 
         bool isBound();
+
+        bool isEmscripten();
 
         U32 mmap(U32 length);
 

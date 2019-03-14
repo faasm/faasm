@@ -35,6 +35,33 @@ namespace wasm {
         return executingCallChain;
     }
 
+    int expandMemory(U32 newSize) {
+        Uptr targetPageCount = getNumberOfPagesForBytes(newSize);
+
+        // Work out current size
+        WasmModule *module = getExecutingModule();
+        Runtime::Memory *memory = module->defaultMemory;
+        const Uptr currentPageCount = getMemoryNumPages(memory);
+
+        // Check if expanding too far
+        Uptr maxPages = getMemoryMaxPages(memory);
+        if (targetPageCount > maxPages) {
+            return EXPAND_TOO_BIG;
+        }
+
+        // Nothing too be done if memory already big enough or new size is zero
+        if (targetPageCount <= currentPageCount || newSize == 0) {
+            return EXPAND_NO_ACTION;
+        }
+
+        Uptr expansion = targetPageCount - currentPageCount;
+
+        // Grow memory as required
+        growMemory(memory, expansion);
+
+        return EXPAND_SUCCESS;
+    }
+
     Uptr getNumberOfPagesForBytes(U32 nBytes) {
         // Round up to nearest page
         Uptr pageCount = (Uptr(nBytes) + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
@@ -50,16 +77,34 @@ namespace wasm {
         return wasmAddr;
     }
 
+    void setEmscriptenDynamicTop(U32 newValue) {
+        Runtime::Memory *memory = getExecutingModule()->defaultMemory;
+
+        // Note that this MUST be a reference, otherwise we just update a copy that's not seen by wasm
+        MutableGlobals &mutableGlobals = Runtime::memoryRef<MutableGlobals>(memory, MutableGlobals::address);
+        mutableGlobals.DYNAMICTOP_PTR = newValue;
+    }
+
+    U32 getEmscriptenDynamicTop() {
+        Runtime::Memory *memory = getExecutingModule()->defaultMemory;
+        MutableGlobals &mutableGlobals = Runtime::memoryRef<MutableGlobals>(memory, MutableGlobals::address);
+        return mutableGlobals.DYNAMICTOP_PTR;
+    }
+
+    /**
+     * This is an emscripten-specific operation. The dyanamictop_ptr is used by emscripten
+     * to keep track of where the top of its heap is. If dynamictop_ptr goes over the size of
+     * the available memory, we need to expand the memory (and make sure we keep dynamictop_ptr
+     * in sync.
+     */
     U32 dynamicAlloc(Runtime::Memory *memory, U32 numBytes) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Dynamically allocating emscripten memory for {} bytes", numBytes);
 
-        MutableGlobals &mutableGlobals = Runtime::memoryRef<MutableGlobals>(memory, MutableGlobals::address);
-
-        const U32 allocationAddress = mutableGlobals.DYNAMICTOP_PTR;
+        // Shift the dynamic top ptr
+        const U32 allocationAddress = getEmscriptenDynamicTop();
         const U32 endAddress = (allocationAddress + numBytes + 15) & -16;
-
-        mutableGlobals.DYNAMICTOP_PTR = endAddress;
+        setEmscriptenDynamicTop(endAddress);
 
         const Uptr endPage = (endAddress + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
         if (endPage >= getMemoryNumPages(memory) && endPage < getMemoryMaxPages(memory)) {
@@ -94,6 +139,10 @@ namespace wasm {
 
     bool WasmModule::isBound() {
         return _isBound;
+    }
+
+    bool WasmModule::isEmscripten() {
+        return resolver->isEmscripten;
     }
 
     bool WasmModule::isInitialised() {
@@ -158,7 +207,7 @@ namespace wasm {
 
         // Extract the module's exported function
         std::string entryFunc;
-        if (resolver->isEmscripten) {
+        if (this->isEmscripten()) {
             entryFunc = "_main";
         } else {
             entryFunc = "_start";
@@ -273,7 +322,7 @@ namespace wasm {
         // Make the call
         std::vector<IR::Value> invokeArgs;
 
-        if (resolver->isEmscripten) {
+        if (this->isEmscripten()) {
             U8 *memoryBaseAddress = getMemoryBaseAddress(defaultMemory);
 
             U32 *argvOffsets = (U32 *) (memoryBaseAddress + dynamicAlloc(defaultMemory, (U32) (sizeof(U32))));

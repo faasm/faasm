@@ -24,8 +24,8 @@ def clean_build(context):
 
 
 @task
-def funcs_emscripten(context, clean=False, func=None):
-    _build_funcs("emscripten", clean=clean, func=func, cmake_build_type="Release")
+def funcs_emscripten(context, clean=False, func=None, debug=False):
+    _build_funcs("emscripten", clean=clean, func=func, cmake_build_type="Debug" if debug else "Release")
 
 
 @task

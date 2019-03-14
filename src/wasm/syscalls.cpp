@@ -25,10 +25,6 @@
 
 #include <stdarg.h>
 
-#define EXPAND_TOO_BIG -2
-#define EXPAND_NO_ACTION -1
-#define EXPAND_SUCCESS 0
-
 using namespace WAVM;
 
 /**
@@ -143,32 +139,6 @@ namespace wasm {
         }
 
         return fakePath;
-    }
-
-    int expandMemory(U32 newSize) {
-        Uptr targetPageCount = getNumberOfPagesForBytes(newSize);
-
-        // Work out current size
-        Runtime::Memory *memory = getExecutingModule()->defaultMemory;
-        const Uptr currentPageCount = getMemoryNumPages(memory);
-
-        Uptr maxPages = getMemoryMaxPages(memory);
-        if (targetPageCount > maxPages) {
-            // Return old break if there's an error
-            return EXPAND_TOO_BIG;
-        }
-
-        if (targetPageCount <= currentPageCount || newSize == 0) {
-            // Return old break if nothing changes or called with zero
-            return EXPAND_NO_ACTION;
-        }
-
-        Uptr expansion = targetPageCount - currentPageCount;
-
-        // Grow memory as required
-        growMemory(memory, expansion);
-
-        return EXPAND_SUCCESS;
     }
 
     // ---------------------------
@@ -2235,11 +2205,14 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_emscripten_get_heap_size", U32, _emscripten_get_heap_size) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+
         Uptr memSize = Runtime::getMemoryNumPages(memoryPtr) * IR::numBytesPerPage;
+        U32 res = coerce32bitAddress(memoryPtr, memSize);
 
-        util::getLogger()->debug("S - _emscripten_get_heap_size - {}", memSize);
+        util::getLogger()->debug("S - _emscripten_get_heap_size - {} (dynamic top - {})", res,
+                                 getEmscriptenDynamicTop());
 
-        return memSize;
+        return res;
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "abortStackOverflow", void, abortStackOverflow, I32 size) {
@@ -2267,7 +2240,8 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_emscripten_resize_heap", I32, _emscripten_resize_heap, U32 size) {
         util::getLogger()->debug("S - _emscripten_resize_heap - {}", size);
 
-        Runtime::Memory *memory = getExecutingModule()->defaultMemory;
+        WasmModule *module = getExecutingModule();
+        Runtime::Memory *memory = module->defaultMemory;
         Uptr initialPages = getMemoryNumPages(memory);
         Uptr initialSize = initialPages * IR::numBytesPerPage;
 
@@ -2281,13 +2255,18 @@ namespace wasm {
             util::getLogger()->error("Emscripten resize heap failed (max bytes {}, requested {})", maxBytes, size);
             throw std::runtime_error("Emscripten expanding beyond max heap size");
 
-        } else if(expansionRes == EXPAND_NO_ACTION) {
-            util::getLogger()->debug("Emscripten requested pointless resize heap (requested {}, current {})", size, initialSize);
+        } else if (expansionRes == EXPAND_NO_ACTION) {
+            util::getLogger()->debug("Emscripten requested pointless resize heap (requested {}, current {})", size,
+                                     initialSize);
             return 0;
         }
 
+        // In emscripten, must now set the dynamic top ptr to the requested resize point, NOT the top of the memory
+        setEmscriptenDynamicTop(size);
+
         Uptr newPages = getMemoryNumPages(memory);
-        util::getLogger()->debug("Emscripten grew heap from {} pages to {} pages", initialPages, newPages);
+        util::getLogger()->debug("Emscripten heap {} -> {} (dynamic top {})", initialPages, newPages,
+                                 getEmscriptenDynamicTop());
 
         return 1;
     }
@@ -2609,9 +2588,10 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_emscripten_memcpy_big", U32, _emscripten_memcpy_big, U32 destPtr, U32 srcPtr,
                               U32 numBytes) {
-        util::getLogger()->debug("S - _emscripten_memcpy_big - {} {} {}", destPtr, srcPtr, numBytes);
-
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+
+        util::getLogger()->debug("S - _emscripten_memcpy_big - {} {} {} (dynamic top {})", destPtr, srcPtr, numBytes,
+                                 getEmscriptenDynamicTop());
 
         U8 *dest = Runtime::memoryArrayPtr<U8>(memoryPtr, destPtr, numBytes);
         U8 *src = Runtime::memoryArrayPtr<U8>(memoryPtr, srcPtr, numBytes);

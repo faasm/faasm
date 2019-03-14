@@ -118,8 +118,8 @@ namespace wasm {
 
             emGlobalModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_emGlobal(), "emGlobal");
 
+            // Note: this MUST be a reference
             MutableGlobals &mutableGlobals = Runtime::memoryRef<MutableGlobals>(memory, MutableGlobals::address);
-
             mutableGlobals.DYNAMICTOP_PTR = EMSCRIPTEN_STACK_MAX;
             mutableGlobals._stderr = (U32) ioStreamVMHandle::StdErr;
             mutableGlobals._stdin = (U32) ioStreamVMHandle::StdIn;
