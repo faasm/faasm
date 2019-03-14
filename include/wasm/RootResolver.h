@@ -21,6 +21,7 @@ namespace wasm {
     const int MAX_MEMORY_PAGES = ONE_GB_PAGES;
 
     const int EMSCRIPTEN_MIN_TABLE_ELEMS = 40000000;
+    const int EMSCRIPTEN_MAX_TABLE_ELEMS = 60000000;
     const int INITIAL_EMSCRIPTEN_PAGES = 500 * ONE_MB_PAGES;
     const int MAX_EMSCRIPTEN_PAGES = 3 * ONE_GB_PAGES;
     const int EMSCRIPTEN_STACKTOP = 64 * IR::numBytesPerPage;
@@ -100,6 +101,7 @@ namespace wasm {
             module.memories.imports[0].type.size.max = (U64) MAX_EMSCRIPTEN_PAGES;
 
             module.tables.imports[0].type.size.min = (U64) EMSCRIPTEN_MIN_TABLE_ELEMS;
+            module.tables.imports[0].type.size.max = (U64) EMSCRIPTEN_MAX_TABLE_ELEMS;
 
             Runtime::Memory *memory = Runtime::createMemory(compartment, module.memories.imports[0].type, "env.memory");
             Runtime::Table *table = Runtime::createTable(compartment, module.tables.imports[0].type, "env.table");
