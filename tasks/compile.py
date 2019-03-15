@@ -76,10 +76,6 @@ def _build_funcs(build_type, clean=False, func=None, toolchain_file=None, top_le
     else:
         cmd = "make"
 
-    # cmd_env = {}
-    # if extra_env:
-    #     cmd_env.update(extra_env)
-
     call(cmd, shell=True, cwd=func_build_dir)
 
 

@@ -71,9 +71,9 @@ def begin_aws_svm(ctx):
 
 
 @task
-def upload_sgd_funcs(ctx, host="localhost", emscripten=False):
+def upload_sgd_funcs(ctx, host="localhost"):
     for func_name in _SGD_FUNCS:
-        upload_func(ctx, "sgd", func_name, host=host, emscripten=emscripten)
+        upload_func(ctx, "sgd", func_name, host=host)
 
 
 @task

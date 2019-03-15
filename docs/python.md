@@ -19,6 +19,22 @@ inv build-python-pyodide
 
 **NOTE** this will have to build their patched `emsdk` to work, so will take a long time on the first run.
 
+## Compiling Python functions
+
+To compile Python functions we need to use the pyodide version of Emscripten. To do this, you
+**must** run the following in your shell:
+
+```
+source ~/faasm/pyodide/emsdk/emsdk/emsdk_env.sh
+```
+
+Once this is done, you can run:
+
+```
+inv funcs-python --func=<your func>
+inv upload-func <your user> <your func> --python
+```
+
 ## Running
 
 To run Python you need to set up the Faasm runtime root filesystem. To do this you can run:

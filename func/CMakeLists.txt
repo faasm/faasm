@@ -47,13 +47,17 @@ if (${EMSCRIPTEN})
     # To triple check you can enter some invalid values and see if stuff breaks
     # TODO - is there a way to avoid ignoring undefined symbols by respecting the libfaasm.imports file?
     set(EM_LINKER_FLAGS "-s ERROR_ON_UNDEFINED_SYMBOLS=0 \
+    -O2 \
     -s ASSERTIONS=2 \
     -s EMULATE_FUNCTION_POINTER_CASTS=1 \
+    -s EMULATED_FUNCTION_POINTERS=1 \
     -s ALLOW_MEMORY_GROWTH=1 \
     -s WASM=1 \
+    -s LINKABLE=1 \
     -s EXPORTED_FUNCTIONS='[\"_main\", \"_PyRun_SimpleString\"]' \
-    -s SIDE_MODULE=1 \
+    -s MAIN_MODULE=1 \
     -s \"BINARYEN_METHOD='native-wasm'\" \
+    -s \"BINARYEN_TRAP_MODE='clamp'\" \
     --memory-init-file 0 \
     ")
 
@@ -61,7 +65,7 @@ if (${EMSCRIPTEN})
 
     # Avoid compiling javascript
     set(CMAKE_REQUIRED_FLAGS "WASM=1")
-    set(CMAKE_EXECUTABLE_SUFFIX ".wasm")
+#    set(CMAKE_EXECUTABLE_SUFFIX ".wasm")
 
     # Link to custom-build faasm lib
     link_directories(/usr/local/code/faasm/lib/embuild/)
