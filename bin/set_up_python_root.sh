@@ -4,7 +4,7 @@
 # INSTALL_DIR=${HOME}/faasm/pyodide/cpython/installs/python-3.7.0/lib
 
 # Emscripten
-INSTALL_DIR=${HOME}/faasm/cpython-emscripten/installs/python-3.5.2/lib
+INSTALL_DIR=/usr/local/code/faasm/cpython-emscripten/installs/python-3.5.2/lib
 
 rm -rf /usr/local/faasm/runtime_root/*
 
