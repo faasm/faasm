@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Pyodide
-# INSTALL_DIR=${HOME}/faasm/pyodide/cpython/installs/python-3.7.0/lib
+# INSTALL_DIR=${HOME}/faasm/pyodide/cpython/installs/python-3.7.0/
 
 # Emscripten
-INSTALL_DIR=/usr/local/code/faasm/cpython-emscripten/installs/python-3.5.2/lib
+INSTALL_DIR=/usr/local/code/faasm/cpython-emscripten/installs/python-3.5.2/
 
 rm -rf /usr/local/faasm/runtime_root/*
 
@@ -16,3 +16,6 @@ find ${INSTALL_DIR} | grep "__pycache__" | xargs rm -rf
 find ${INSTALL_DIR} | grep "\.pyc$" | xargs rm -rf
 
 cp -r ${INSTALL_DIR}/* /usr/local/faasm/runtime_root
+
+# Remote the actual lib
+rm /usr/local/faasm/runtime_root/lib/libpython*

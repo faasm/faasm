@@ -9,33 +9,33 @@ from invoke import task
 from tasks.compile import check_correct_emscripten
 from tasks.download import FAASM_HOME, clone_proj
 from tasks.env import NATIVE_ENV_DICT, ENV_STR, CONFIG_TARGET, \
-    CONFIG_HOST, SYSROOT, PY_EMSCRIPTEN_DIR, PROJ_ROOT, EMSCRIPTEN_DIR
+    CONFIG_HOST, SYSROOT, PY_EMSCRIPTEN_DIR, PROJ_ROOT, EMSCRIPTEN_DIR, FAASM_RUNTIME_ROOT
 
 # Note: this must be the dir that contains "include" and "lib" into the runtime root
 PYODIDE_CPYTHON_INSTALL_DIR = join(FAASM_HOME, "pyodide", "cpython", "installs", "python-3.7.0")
-EMSCRIPTEN_CPYTHON_INSTALL_DIR = join(FAASM_HOME, "cpython-emscripten", "installs", "python-3.5.2")
+EMSCRIPTEN_CPYTHON_INSTALL_DIR = join(PROJ_ROOT, "cpython-emscripten", "installs", "python-3.5.2")
 
 # Subset of files to make available to the python runtime
 PYTHON_LIB_FILES = [
-    "lib/python3.7/_collections_abc.py",
-    "lib/python3.7/_sitebuiltins.py",
-    "lib/python3.7/_sysconfigdata.py",
-    "lib/python3.7/_weakrefset.py",
-    "lib/python3.7/abc.py",
-    "lib/python3.7/codecs.py",
-    "lib/python3.7/encodings/__init__.py",
-    "lib/python3.7/encodings/aliases.py",
-    "lib/python3.7/encodings/cp437.py",
-    "lib/python3.7/encodings/latin_1.py",
-    "lib/python3.7/encodings/utf_8.py",
-    "lib/python3.7/genericpath.py",
-    "lib/python3.7/io.py",
-    "lib/python3.7/os.py",
-    "lib/python3.7/posixpath.py",
-    "lib/python3.7/site.py",
-    "lib/python3.7/stat.py",
-    "lib/python3.7/sysconfig.py",
-    "lib/python3.7/weakref.py",
+    "lib/python3.5/_collections_abc.py",
+    "lib/python3.5/_sitebuiltins.py",
+    "lib/python3.5/_sysconfigdata.py",
+    "lib/python3.5/_weakrefset.py",
+    "lib/python3.5/abc.py",
+    "lib/python3.5/codecs.py",
+    "lib/python3.5/encodings/__init__.py",
+    "lib/python3.5/encodings/aliases.py",
+    "lib/python3.5/encodings/cp437.py",
+    "lib/python3.5/encodings/latin_1.py",
+    "lib/python3.5/encodings/utf_8.py",
+    "lib/python3.5/genericpath.py",
+    "lib/python3.5/io.py",
+    "lib/python3.5/os.py",
+    "lib/python3.5/posixpath.py",
+    "lib/python3.5/site.py",
+    "lib/python3.5/stat.py",
+    "lib/python3.5/sysconfig.py",
+    "lib/python3.5/weakref.py",
 ]
 
 
@@ -67,31 +67,30 @@ def build_pyodide_cpython(ctx):
     call("make", cwd=make_dir, shell=True)
 
 
-# @task
-# def set_up_python_root(ctx, pyodide=False):
-#     # Create root if necessary
-#     if not exists(FAASM_RUNTIME_ROOT):
-#         raise RuntimeError("Must create runtime root at {}".format(FAASM_RUNTIME_ROOT))
-#
-#
-#     # Clear out the destination
-#     call("rm -rf {}/*".format(FAASM_RUNTIME_ROOT), shell=True)
-#
-# # Iterate through and put files in place
-# for relative_path in PYTHON_LIB_FILES:
-#     # Create the intermediate directory
-#     file_name_parts = relative_path.split("/")
-#     relative_dir = "/".join(file_name_parts[:-1])
-#     call("mkdir -p {}/{}".format(FAASM_RUNTIME_ROOT, relative_dir), shell=True)
-#
-#     dest_file = join(FAASM_RUNTIME_ROOT, relative_path)
-#     abs_path = "{}/{}".format(PY_EMSCRIPTEN_INSTALL_DIR, relative_path)
-#
-#     cmd = "cp {} {}".format(abs_path, dest_file)
-#     print(cmd)
-#     res = call(cmd, shell=True)
-#     if res != 0:
-#         raise RuntimeError("Failed to put file {} in place".format(abs_path))
+@task
+def set_up_python_root(ctx, pyodide=False):
+    # Create root if necessary
+    if not exists(FAASM_RUNTIME_ROOT):
+        raise RuntimeError("Must create runtime root at {}".format(FAASM_RUNTIME_ROOT))
+
+    # Clear out the destination
+    call("rm -rf {}/*".format(FAASM_RUNTIME_ROOT), shell=True)
+
+    # Iterate through and put files in place
+    for relative_path in PYTHON_LIB_FILES:
+        # Create the intermediate directory
+        file_name_parts = relative_path.split("/")
+        relative_dir = "/".join(file_name_parts[:-1])
+        call("mkdir -p {}/{}".format(FAASM_RUNTIME_ROOT, relative_dir), shell=True)
+
+        dest_file = join(FAASM_RUNTIME_ROOT, relative_path)
+        abs_path = "{}/{}".format(EMSCRIPTEN_CPYTHON_INSTALL_DIR, relative_path)
+
+        cmd = "cp {} {}".format(abs_path, dest_file)
+        print(cmd)
+        res = call(cmd, shell=True)
+        if res != 0:
+            raise RuntimeError("Failed to put file {} in place".format(abs_path))
 
 
 @task

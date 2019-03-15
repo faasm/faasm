@@ -673,6 +673,7 @@ namespace wasm {
 
         // Check if this is a valid path. Return a read-only handle to the file if so
         int fd;
+        std::string fakePath;
         if (path == "/etc/hosts") {
             logger->debug("Opening dummy /etc/hosts");
             fd = open(HOSTS_FILE, 0, 0);
@@ -690,7 +691,7 @@ namespace wasm {
             logger->debug("Forcing non-existent pyvenv.cfg");
             return -ENOENT;
         } else {
-            std::string fakePath = maskPath(path.c_str());
+            fakePath = maskPath(path.c_str());
             logger->debug("Opening {}", fakePath);
 
             //TODO - need some sanity checks around these flags and mode
@@ -702,6 +703,12 @@ namespace wasm {
             return (I32) fd;
         } else {
             // This is an error of some form
+            if(!fakePath.empty()) {
+                logger->error("Failed on open - {} (masked {})", path, fakePath);
+            } else{
+                logger->error("Failed on open - {}", path);
+            }
+
             return (I32) fd;
         }
     }
@@ -1010,9 +1017,14 @@ namespace wasm {
     I32 s__syscall_mkdir(I32 pathPtr, I32 mode) {
         const std::string fakePath = getMaskedPathFromWasm(pathPtr);
 
-        util::getLogger()->debug("S - mkdir - {} {}", fakePath, mode);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - mkdir - {} {}", fakePath, mode);
 
         int res = mkdir(fakePath.c_str(), mode);
+        if(res < 0) {
+            logger->error("Failed to mkdir at {} - code {}", fakePath, res);
+            throw std::runtime_error("Failed on mkdir");
+        }
 
         return res;
     }
@@ -1048,11 +1060,17 @@ namespace wasm {
     }
 
     I32 s__syscall_unlink(I32 pathPtr) {
-        const std::string path = getStringFromWasm(pathPtr);
+        const std::string fakePath = getMaskedPathFromWasm(pathPtr);
 
-        util::getLogger()->debug("S - unlink {}", path);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - unlink {}", fakePath);
 
-        int res = unlink(path.c_str());
+        int res = unlink(fakePath.c_str());
+        if(res < 0) {
+            logger->error("Failed to unlink at {} - code {}", fakePath, res);
+            throw std::runtime_error("Failed on mkdir");
+        }
+        
         return res;
     }
 
@@ -1090,13 +1108,7 @@ namespace wasm {
      */
     I32 s__syscall_stat64(I32 pathPtr, I32 statBufPtr) {
         // Get the path
-        std::string path = getStringFromWasm(pathPtr);
-
-        // Fake the path we're looking at
-        std::string fakePath = FALSE_ROOT;
-        if (path != "/") {
-            fakePath += std::string("/") + path;
-        }
+        const std::string fakePath = getMaskedPathFromWasm(pathPtr);
 
         util::getLogger()->debug("S - stat64 - {} {}", fakePath, statBufPtr);
 
