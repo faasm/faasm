@@ -29,6 +29,18 @@ def generate_intrinsics():
                 elif args_in == "(i32, i32, i32, i32)":
                     log_str = "\"S - {} - {{}} {{}} {{}} {{}}\", a, b, c, d".format(syscall_name)
                     arg_str = ", I32 a, I32 b, I32 c, I32 d"
+                elif args_in == "(i32, i32, i32, i32, i32)":
+                    log_str = "\"S - {} - {{}} {{}} {{}} {{}} {{}}\", a, b, c, d, e".format(syscall_name)
+                    arg_str = ", I32 a, I32 b, I32 c, I32 d, I32 e"
+                elif args_in == "(i32, i32, i32, i32, i32, i32)":
+                    log_str = "\"S - {} - {{}} {{}} {{}} {{}} {{}} {{}}\", a, b, c, d, e, f".format(syscall_name)
+                    arg_str = ", I32 a, I32 b, I32 c, I32 d, I32 e, I32 f"
+                elif args_in == "(i32, i32, i32, i32, i32, i32, i32)":
+                    log_str = "\"S - {} - {{}} {{}} {{}} {{}} {{}} {{}} {{}}\", a, b, c, d, e, f, g".format(syscall_name)
+                    arg_str = ", I32 a, I32 b, I32 c, I32 d, I32 e, I32 f, I32 g"
+                elif args_in == "(i32, i32, i32, i32, i32, i32, i32, i32)":
+                    log_str = "\"S - {} - {{}} {{}} {{}} {{}} {{}} {{}} {{}} {{}}\", a, b, c, d, e, f, g, h".format(syscall_name)
+                    arg_str = ", I32 a, I32 b, I32 c, I32 d, I32 e, I32 f, I32 g, I32 h"
                 else:
                     print("Unrecognised line: {}\n".format(line))
                     exit(1)

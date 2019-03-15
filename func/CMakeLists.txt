@@ -40,7 +40,6 @@ if (${EMSCRIPTEN})
     -s FILESYSTEM=0 \
     -s USES_DYNAMIC_ALLOC=0 \
     -s EMULATED_FUNCTION_POINTERS=1 \
-    -s \"BINARYEN_METHOD='native-wasm'\"
     ")
 
     # Emscripten-specific linker options
@@ -53,6 +52,8 @@ if (${EMSCRIPTEN})
     -s ALLOW_MEMORY_GROWTH=1 \
     -s WASM=1 \
     -s EXPORTED_FUNCTIONS='[\"_main\", \"_PyRun_SimpleString\"]' \
+    -s SIDE_MODULE=1 \
+    -s \"BINARYEN_METHOD='native-wasm'\" \
     --memory-init-file 0 \
     ")
 
@@ -89,7 +90,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
         target_link_libraries(${exec_name} ${FAASM_LIB})
     endfunction(faasm_func)
 
-elseif (FAASM_BUILD_TYPE STREQUAL "emscripten")
+elseif (${EMSCRIPTEN})
     # ----------------------
     # Emscripten build
     # ----------------------

@@ -8,7 +8,7 @@ from invoke import task
 
 from tasks.download import download_proj, FAASM_HOME
 from tasks.env import PROJ_ROOT, EMSCRIPTEN_CMAKE_TOOLCHAIN, EMSCRIPTEN_ENV_DICT, ENV_STR, SYSROOT, CONFIG_FLAGS, \
-    COMPILER_FLAGS
+    COMPILER_FLAGS, PY_EMSCRIPTEN_CMAKE_TOOLCHAIN
 
 
 @task
@@ -29,20 +29,28 @@ def funcs_emscripten(context, clean=False, func=None, debug=False):
 
 
 @task
+def funcs_python(context, clean=False, func=None, debug=False):
+    _build_funcs("python", clean=clean, func=func, cmake_build_type="Debug" if debug else "Release")
+
+
+@task
 def funcs(context, clean=False, func=None):
     _build_funcs("wasm", clean=clean, func=func)
 
 
-def _build_funcs(build_type, clean=False, func=None, toolchain_file=None, top_level_build=False, cmake_build_type="Release"):
+def _build_funcs(build_type, clean=False, func=None, toolchain_file=None, top_level_build=False,
+                 cmake_build_type="Release"):
     """
     Compiles functions
     """
 
     if build_type == "emscripten":
         toolchain_file = EMSCRIPTEN_CMAKE_TOOLCHAIN
+    elif build_type == "python":
+        toolchain_file = PY_EMSCRIPTEN_CMAKE_TOOLCHAIN
 
     if top_level_build:
-        func_build_dir = join(PROJ_ROOT, "func", "{}_func_build".format(build_type))
+        func_build_dir = join(PROJ_ROOT, "{}_func_build".format(build_type))
     else:
         func_build_dir = join(PROJ_ROOT, "func", "{}_func_build".format(build_type))
 

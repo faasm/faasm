@@ -1,3 +1,10 @@
+assemblyscript
 cmake-build-debug
 cmake-build-release
+docker
+docs
 k8s
+node_modules
+venv
+wasm
+work

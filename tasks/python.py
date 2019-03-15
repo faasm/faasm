@@ -1,5 +1,4 @@
 import copy
-import os
 from copy import copy
 from os.path import exists
 from os.path import join
@@ -9,56 +8,48 @@ from invoke import task
 
 from tasks.download import FAASM_HOME, clone_proj
 from tasks.env import FAASM_RUNTIME_ROOT, NATIVE_ENV_DICT, ENV_STR, CONFIG_TARGET, \
-    CONFIG_HOST, SYSROOT
+    CONFIG_HOST, SYSROOT, PY_EMSCRIPTEN_DIR, PY_EMSCRIPTEN_ENV_DICT
 
 # Note: this must be the dir that contains "include" and "lib" into the runtime root
-PY_EMSCRIPTEN_INSTALL_DIR = join(FAASM_HOME, "cpython-emscripten", "installs", "python-3.5.2")
+PY_EMSCRIPTEN_INSTALL_DIR = join(FAASM_HOME, "pyodide", "cpython", "installs", "python-3.7.0")
 
 # Subset of files to make available to the python runtime
 PYTHON_LIB_FILES = [
-    "lib/python3.5/_collections_abc.py",
-    "lib/python3.5/_sitebuiltins.py",
-    "lib/python3.5/_sysconfigdata.py",
-    "lib/python3.5/_weakrefset.py",
-    "lib/python3.5/abc.py",
-    "lib/python3.5/codecs.py",
-    "lib/python3.5/encodings/__init__.py",
-    "lib/python3.5/encodings/aliases.py",
-    "lib/python3.5/encodings/cp437.py",
-    "lib/python3.5/encodings/latin_1.py",
-    "lib/python3.5/encodings/utf_8.py",
-    "lib/python3.5/genericpath.py",
-    "lib/python3.5/io.py",
-    "lib/python3.5/os.py",
-    "lib/python3.5/posixpath.py",
-    "lib/python3.5/site.py",
-    "lib/python3.5/stat.py",
-    "lib/python3.5/sysconfig.py",
-    "lib/python3.5/weakref.py",
+    "lib/python3.7/_collections_abc.py",
+    "lib/python3.7/_sitebuiltins.py",
+    "lib/python3.7/_sysconfigdata.py",
+    "lib/python3.7/_weakrefset.py",
+    "lib/python3.7/abc.py",
+    "lib/python3.7/codecs.py",
+    "lib/python3.7/encodings/__init__.py",
+    "lib/python3.7/encodings/aliases.py",
+    "lib/python3.7/encodings/cp437.py",
+    "lib/python3.7/encodings/latin_1.py",
+    "lib/python3.7/encodings/utf_8.py",
+    "lib/python3.7/genericpath.py",
+    "lib/python3.7/io.py",
+    "lib/python3.7/os.py",
+    "lib/python3.7/posixpath.py",
+    "lib/python3.7/site.py",
+    "lib/python3.7/stat.py",
+    "lib/python3.7/sysconfig.py",
+    "lib/python3.7/weakref.py",
 ]
 
 
 @task
-def build_python_emscripten(ctx):
+def build_python_pyodide(ctx):
     proj_dir = clone_proj("https://github.com/iodide-project/pyodide.git", "pyodide")
 
     # Set up emscripten if necessary
     emscripten_proj = join(proj_dir, "emsdk")
-    emscripten_dir = join(emscripten_proj, "emsdk", "emscripten", "1.38.22")
-    if not exists(emscripten_dir):
+    if not exists(PY_EMSCRIPTEN_DIR):
         print("Warining: building emscripten, this will take a while")
         call("make", cwd=emscripten_proj, shell=True)
 
-    # Add the project-specific emscripten to the path
-    current_path = os.environ["PATH"]
-    em_path = "{}:{}".format(current_path, emscripten_dir)
-    env_vars = {
-        "PATH": em_path
-    }
-
     # Build cpython
     make_dir = join(proj_dir, "cpython")
-    call("make", cwd=make_dir, shell=True, env=env_vars)
+    call("make", cwd=make_dir, shell=True, env=PY_EMSCRIPTEN_ENV_DICT)
 
 
 @task

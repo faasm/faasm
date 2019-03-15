@@ -21,6 +21,7 @@ from tasks.compile import (
     clean_build,
     funcs,
     funcs_emscripten,
+    funcs_python,
     compile_libfaasm,
     compile_libfaasm_emscripten,
     compile_eigen,
@@ -53,7 +54,7 @@ from tasks.docker_compose import start_all, stop_all, restart_all
 from tasks.python import (
     build_python_host,
     build_python,
-    build_python_emscripten,
+    build_python_pyodide,
     set_up_python_root,
 )
 from tasks.sgd import (

@@ -2,9 +2,9 @@ set(FAASM_USER python)
 
 # Normally we can rely on CMake to find the python libs, but when doing a
 # wasm build we need to point to the wasm-built versions on the local machine
-if (FAASM_BUILD_TYPE STREQUAL "emscripten")
-    set(PYTHON_LIBRARIES "/home/shillaker/faasm/cpython-emscripten/installs/python-3.5.2/lib/libpython3.5.a")
-    set(PYTHON_INCLUDE_DIRS "/home/shillaker/faasm/cpython-emscripten/installs/python-3.5.2/include/python3.5")
+if (${EMSCRIPTEN})
+    set(PYTHON_LIBRARIES "$ENV{HOME}/faasm/pyodide/cpython/installs/python-3.7.0/lib/libpython3.7.a")
+    set(PYTHON_INCLUDE_DIRS "$ENV{HOME}/faasm/pyodide/cpython/installs/python-3.7.0/include/python3.7")
 else ()
     find_package(PythonLibs)
 endif ()

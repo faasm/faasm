@@ -9,6 +9,9 @@ lambda_*_build/
 # Ansible
 *.retry
 
+# Node
+node_modules/
+
 # C
 
 # Prerequisites

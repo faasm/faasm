@@ -109,14 +109,20 @@ ENV_STR = " ".join(["{}={}".format(e[0], e[1]) for e in _ENV_TUPLES])
 NATIVE_ENV_DICT = {e[0]: e[1] for e in _NATIVE_ENV_TUPLES}
 NATIVE_ENV_STR = " ".join(["{}={}".format(e[0], e[1]) for e in _NATIVE_ENV_TUPLES])
 
-EMSCRIPTEN_VERSION = "1.38.28"
-EMSCRIPTEN_DIR = "/usr/local/code/lib/emsdk/emscripten/{}/".format(EMSCRIPTEN_VERSION)
+PY_EMSCRIPTEN_VERSION = "tag-1.38.22"
+PY_EMSCRIPTEN_DIR = join(HOME_DIR, "faasm", "pyodide", "emsdk", "emsdk", "emscripten", PY_EMSCRIPTEN_VERSION)
+PY_EMSCRIPTEN_CMAKE_TOOLCHAIN = join(PY_EMSCRIPTEN_DIR, "cmake", "Modules", "Platform", "Emscripten.cmake")
+
+EMSCRIPTEN_DIR = "/usr/local/code/lib/emsdk/emscripten/1.38.28"
 EMSCRIPTEN_CMAKE_TOOLCHAIN = join(EMSCRIPTEN_DIR, "cmake", "Modules", "Platform", "Emscripten.cmake")
+
 INITIAL_PATH = os.environ["PATH"]
 EMSCRIPTEN_ENV_DICT = {
     "PATH": "{}:{}".format(INITIAL_PATH, EMSCRIPTEN_DIR)
 }
-EMSCRIPTEN_SYSROOT = join(FAASM_HOME, "emsysroot")
+PY_EMSCRIPTEN_ENV_DICT = {
+    "PATH": "{}:{}".format(INITIAL_PATH, PY_EMSCRIPTEN_DIR)
+}
 
 BUILD_DIR = join(PROJ_ROOT, "work")
 
@@ -125,6 +131,7 @@ CONFIG_FLAGS = [
     "--host={}".format(CONFIG_TARGET),
     "--prefix={}".format(SYSROOT),
 ]
+
 
 # ---------------------------------------------
 # Utility functions
