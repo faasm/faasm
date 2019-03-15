@@ -117,12 +117,6 @@ EMSCRIPTEN_DIR = "/usr/local/code/lib/emsdk/emscripten/1.38.28"
 EMSCRIPTEN_CMAKE_TOOLCHAIN = join(EMSCRIPTEN_DIR, "cmake", "Modules", "Platform", "Emscripten.cmake")
 
 INITIAL_PATH = os.environ["PATH"]
-EMSCRIPTEN_ENV_DICT = {
-    "PATH": "{}:{}".format(INITIAL_PATH, EMSCRIPTEN_DIR)
-}
-PY_EMSCRIPTEN_ENV_DICT = {
-    "PATH": "{}:{}".format(INITIAL_PATH, PY_EMSCRIPTEN_DIR)
-}
 
 BUILD_DIR = join(PROJ_ROOT, "work")
 

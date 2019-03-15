@@ -1,4 +1,4 @@
-from os import mkdir
+from os import mkdir, environ
 from os.path import exists
 from os.path import join
 from shutil import rmtree
@@ -7,8 +7,16 @@ from subprocess import call
 from invoke import task
 
 from tasks.download import download_proj, FAASM_HOME
-from tasks.env import PROJ_ROOT, EMSCRIPTEN_CMAKE_TOOLCHAIN, EMSCRIPTEN_ENV_DICT, ENV_STR, SYSROOT, CONFIG_FLAGS, \
-    COMPILER_FLAGS, PY_EMSCRIPTEN_CMAKE_TOOLCHAIN
+from tasks.env import PROJ_ROOT, EMSCRIPTEN_CMAKE_TOOLCHAIN, ENV_STR, SYSROOT, CONFIG_FLAGS, \
+    COMPILER_FLAGS, PY_EMSCRIPTEN_CMAKE_TOOLCHAIN, EMSCRIPTEN_DIR
+
+
+def check_correct_emscripten(expected_root):
+    actual_root = environ.get("EMSCRIPTEN")
+
+    if not actual_root or not actual_root.startswith(expected_root):
+        print("NOTE: you must source the emsdk_env.sh for {}".format(expected_root))
+        exit(1)
 
 
 @task
@@ -30,7 +38,7 @@ def funcs_emscripten(context, clean=False, func=None, debug=False):
 
 @task
 def funcs_python(context, clean=False, func=None, debug=False):
-    _build_funcs("python", clean=clean, func=func, cmake_build_type="Debug" if debug else "Release")
+    _build_funcs("pyodide", clean=clean, func=func, cmake_build_type="Debug" if debug else "Release")
 
 
 @task
@@ -46,7 +54,7 @@ def _build_funcs(build_type, clean=False, func=None, toolchain_file=None, top_le
 
     if build_type == "emscripten":
         toolchain_file = EMSCRIPTEN_CMAKE_TOOLCHAIN
-    elif build_type == "python":
+    elif build_type == "pyodide":
         toolchain_file = PY_EMSCRIPTEN_CMAKE_TOOLCHAIN
 
     if top_level_build:
@@ -89,9 +97,11 @@ def compile_libfaasm_emscripten(ctx):
 
     mkdir(build_dir)
 
+    check_correct_emscripten(EMSCRIPTEN_DIR)
+
     call("emconfigure cmake -DFAASM_BUILD_TYPE=wasm -DCMAKE_TOOLCHAIN_FILE={} ..".format(EMSCRIPTEN_CMAKE_TOOLCHAIN),
-         shell=True, cwd=build_dir, env=EMSCRIPTEN_ENV_DICT)
-    call("make", shell=True, cwd=build_dir, env=EMSCRIPTEN_ENV_DICT)
+         shell=True, cwd=build_dir)
+    call("make", shell=True, cwd=build_dir)
 
     # Put imports file in place to avoid undefined symbols
     call("cp libfaasm.imports {}".format(build_dir), shell=True, cwd=work_dir)
@@ -137,11 +147,13 @@ def _checkout_eigen():
 def compile_eigen_emscripten(ctx):
     build_dir = _checkout_eigen()
 
-    call("emconfigure cmake -DCMAKE_TOOLCHAIN_FILE={} ..".format(EMSCRIPTEN_CMAKE_TOOLCHAIN),
-         shell=True, cwd=build_dir, env=EMSCRIPTEN_ENV_DICT)
+    check_correct_emscripten(EMSCRIPTEN_DIR)
 
-    call("make", shell=True, cwd=build_dir, env=EMSCRIPTEN_ENV_DICT)
-    call("make install", shell=True, cwd=build_dir, env=EMSCRIPTEN_ENV_DICT)
+    call("emconfigure cmake -DCMAKE_TOOLCHAIN_FILE={} ..".format(EMSCRIPTEN_CMAKE_TOOLCHAIN),
+         shell=True, cwd=build_dir)
+
+    call("make", shell=True, cwd=build_dir)
+    call("make install", shell=True, cwd=build_dir)
 
 
 @task

@@ -30,34 +30,29 @@ if (${EMSCRIPTEN})
     # Emscripten doesn't seem to look in normal system includes so we explicitly have to tell it to
     include_directories(/usr/local/include/)
 
+    # --- Emscripten linker options ---
+    #
     # Couple of useful examples:
     # https://github.com/dgym/cpython-emscripten/blob/master/examples/03-python-app/Makefile
     # https://github.com/iodide-project/pyodide/blob/master/Makefile
-    set(EM_OTHER_FLAGS "
-    -s TOTAL_MEMORY=268435456 \
-    -s MAIN_MODULE=1 \
-    -s MINIMAL_RUNTIME=1 \
-    -s FILESYSTEM=0 \
-    -s USES_DYNAMIC_ALLOC=0 \
-    -s EMULATED_FUNCTION_POINTERS=1 \
-    ")
-
-    # Emscripten-specific linker options
+    #
     # It's absolutely *crucial* to make sure these are actually getting used
     # To triple check you can enter some invalid values and see if stuff breaks
     # TODO - is there a way to avoid ignoring undefined symbols by respecting the libfaasm.imports file?
     set(EM_LINKER_FLAGS "-s ERROR_ON_UNDEFINED_SYMBOLS=0 \
-    -O2 \
+    -O3 \
+    -s \"BINARYEN_METHOD='native-wasm'\" \
+    -s \"BINARYEN_TRAP_MODE='clamp'\" \
+    -s ALLOW_MEMORY_GROWTH=1 \
     -s ASSERTIONS=2 \
     -s EMULATE_FUNCTION_POINTER_CASTS=1 \
     -s EMULATED_FUNCTION_POINTERS=1 \
-    -s ALLOW_MEMORY_GROWTH=1 \
-    -s WASM=1 \
-    -s LINKABLE=1 \
     -s EXPORTED_FUNCTIONS='[\"_main\", \"_PyRun_SimpleString\"]' \
+    -s LINKABLE=1 \
     -s MAIN_MODULE=1 \
-    -s \"BINARYEN_METHOD='native-wasm'\" \
-    -s \"BINARYEN_TRAP_MODE='clamp'\" \
+    -s SWAPPABLE_ASM_MODULE=1 \
+    -s TOTAL_MEMORY=1073741824 \
+    -s WASM=1 \
     --memory-init-file 0 \
     ")
 

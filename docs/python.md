@@ -11,13 +11,31 @@ ansible-playbook python3_7.yml --ask-become-pass
 
 ## Building CPython
 
-We build Python using [pyodide](https://github.com/iodide-project/pyodide). This can be done by running:
+We build Python using [pyodide](https://github.com/iodide-project/pyodide).
+
+Unfortunately pyodide bundles its own `emsdk` which we must build with:
 
 ```
-inv build-python-pyodide
+inv build-pyodide-emscripten
 ```
 
-**NOTE** this will have to build their patched `emsdk` to work, so will take a long time on the first run.
+This will take ages but is a one-off. Once done, we can build cpython with:
+
+```
+source ~/faasm/pyodide/emsdk/emsdk/emsdk_env.sh
+inv build-pyodide-cpython
+```
+
+## Setting up the runtime root
+
+To run Python you need to set up the Faasm runtime root filesystem. To do this you can run:
+
+```
+sudo mkdir /usr/local/faasm/runtime_root
+sudo chown -R <user>:<user> !$
+cd /usr/local/code/faasm
+./bin/set_up_python_root.sh
+```
 
 ## Compiling Python functions
 
@@ -33,14 +51,4 @@ Once this is done, you can run:
 ```
 inv funcs-python --func=<your func>
 inv upload-func <your user> <your func> --python
-```
-
-## Running
-
-To run Python you need to set up the Faasm runtime root filesystem. To do this you can run:
-
-```
-sudo mkdir /usr/local/faasm/runtime_root
-sudo chown -R <user>:<user> !$
-inv set-up-python-root
 ```

@@ -17,7 +17,6 @@ from tasks.aws import (
     prepare_lambda_workers,
 )
 from tasks.compile import (
-
     clean_build,
     funcs,
     funcs_emscripten,
@@ -54,8 +53,9 @@ from tasks.docker_compose import start_all, stop_all, restart_all
 from tasks.python import (
     build_python_host,
     build_python,
-    build_python_pyodide,
-    set_up_python_root,
+    build_emscripten_cpython,
+    build_pyodide_cpython,
+    build_pyodide_emscripten,
 )
 from tasks.sgd import (
     begin_aws_svm,
