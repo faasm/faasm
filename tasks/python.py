@@ -8,7 +8,7 @@ from subprocess import call
 from invoke import task
 
 from tasks.download import FAASM_HOME, clone_proj
-from tasks.env import FAASM_RUNTIME_ROOT, EMSCRIPTEN_DIR, EMSCRIPTEN_ENV_DICT, NATIVE_ENV_DICT, ENV_STR, CONFIG_TARGET, \
+from tasks.env import FAASM_RUNTIME_ROOT, NATIVE_ENV_DICT, ENV_STR, CONFIG_TARGET, \
     CONFIG_HOST, SYSROOT
 
 # Note: this must be the dir that contains "include" and "lib" into the runtime root
@@ -40,23 +40,29 @@ PYTHON_LIB_FILES = [
 
 @task
 def build_python_emscripten(ctx):
-    proj_dir = clone_proj("https://github.com/Shillaker/cpython-emscripten", "cpython-emscripten")
+    proj_dir = clone_proj("https://github.com/iodide-project/pyodide.git", "pyodide")
 
-    # Make sure emscripten is present
-    assert exists(EMSCRIPTEN_DIR), "Must have emscripten ready"
+    # Set up emscripten if necessary
+    emscripten_proj = join(proj_dir, "emsdk")
+    emscripten_dir = join(emscripten_proj, "emsdk", "emscripten", "1.38.22")
+    if not exists(emscripten_dir):
+        print("Warining: building emscripten, this will take a while")
+        call("make", cwd=emscripten_proj, shell=True)
 
-    # Run the emscripten python build
+    # Add the project-specific emscripten to the path
     current_path = os.environ["PATH"]
-    em_path = "{}:{}".format(current_path, EMSCRIPTEN_DIR)
-    env_vars = copy(EMSCRIPTEN_ENV_DICT)
-    env_vars["PATH"] = em_path
+    em_path = "{}:{}".format(current_path, emscripten_dir)
+    env_vars = {
+        "PATH": em_path
+    }
 
-    make_dir = join(proj_dir, "3.5.2")
+    # Build cpython
+    make_dir = join(proj_dir, "cpython")
     call("make", cwd=make_dir, shell=True, env=env_vars)
 
 
 @task
-def set_up_python_root(ctx):
+def set_up_python_root(ctx, full=False):
     # Create root if necessary
     if not exists(FAASM_RUNTIME_ROOT):
         raise RuntimeError("Must create runtime root at {}".format(FAASM_RUNTIME_ROOT))
