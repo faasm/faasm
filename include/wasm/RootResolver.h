@@ -22,8 +22,8 @@ namespace wasm {
 
     const int EMSCRIPTEN_MIN_TABLE_ELEMS = 40000000;
     const int EMSCRIPTEN_MAX_TABLE_ELEMS = 60000000;
-    const int INITIAL_EMSCRIPTEN_PAGES = 500 * ONE_MB_PAGES;
-    const int MAX_EMSCRIPTEN_PAGES = 3 * ONE_GB_PAGES;
+    const int INITIAL_EMSCRIPTEN_PAGES = 1024 * ONE_MB_PAGES;
+    const int MAX_EMSCRIPTEN_PAGES = 2048 * ONE_GB_PAGES;
     const int EMSCRIPTEN_STACKTOP = 64 * IR::numBytesPerPage;
     const int EMSCRIPTEN_STACK_MAX = 256 * IR::numBytesPerPage;
 

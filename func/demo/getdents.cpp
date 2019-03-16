@@ -5,8 +5,8 @@
 #include <dirent.h>
 
 namespace faasm {
-    int exec(FaasmMemory *memory) {
-        const char *dirName = "/";
+    void listDir() {
+        const char *dirName = "/lib/python3.5";
 
         DIR *dirp = opendir(dirName);
 
@@ -16,7 +16,10 @@ namespace faasm {
         }
 
         closedir(dirp);
-
+    }
+    int exec(FaasmMemory *memory) {
+        listDir();
+        listDir();
         return 0;
     }
 }

@@ -4,8 +4,8 @@ int main() {
     util::initLogging();
 
     message::Message call;
-    call.set_user("errors");
-    call.set_function("open_blocked2");
+    call.set_user("python");
+    call.set_function("py_hello");
 
     wasm::CallChain callChain(call);
 

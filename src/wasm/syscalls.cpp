@@ -698,7 +698,6 @@ namespace wasm {
 
         if (fd > 0) {
             openFds.insert(fd);
-            return (I32) fd;
         } else {
             // This is an error of some form
             if (!fakePath.empty()) {
@@ -706,10 +705,9 @@ namespace wasm {
             } else {
                 logger->error("Failed on open - {}", path);
             }
-
-            // Note, we must always return -1 with a failure and set errno
-            return (I32) -1;
         }
+
+        return fd;
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_open", I32, __syscall_open, I32 pathPtr, I32 flags, I32 mode) {
@@ -873,8 +871,8 @@ namespace wasm {
 
         // Provided the thread owns the fd, we allow closing.
         checkThreadOwnsFd(fd);
-
         openFds.erase(fd);
+
         close(fd);
 
         return 0;
@@ -1815,8 +1813,8 @@ namespace wasm {
             value = "/";
         } else if (strcmp(varName, "PYTHONPATH") == 0) {
             value = "/";
-//        } else if (strcmp(varName, "LC_CTYPE") == 0) {
-//            value = "en_GB.UTF-8";
+        } else if (strcmp(varName, "LC_CTYPE") == 0) {
+            value = "en_GB.UTF-8";
 //        } else if (strcmp(varName, "LANG") == 0) {
 //            value = "en_GB.UTF-8";
 //        } else if (strcmp(varName, "LANGUAGE") == 0) {

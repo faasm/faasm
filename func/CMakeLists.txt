@@ -41,7 +41,7 @@ if (${EMSCRIPTEN})
     # TODO - is there a way to avoid ignoring undefined symbols by respecting the libfaasm.imports file?
     set(EM_LINKER_FLAGS "-s ERROR_ON_UNDEFINED_SYMBOLS \
     -O2 \
-    -s TOTAL_MEMORY=268435456 \
+    -s ALLOW_MEMORY_GROWTH=1 \
     -s ASSERTIONS=2 \
     -s EMULATE_FUNCTION_POINTER_CASTS=1 \
     -s -s EXPORTED_FUNCTIONS='[\"_main\"]' \
@@ -49,7 +49,8 @@ if (${EMSCRIPTEN})
     ")
 
     # UNUSED
-    # -s ALLOW_MEMORY_GROWTH=1 \
+    # -s TOTAL_MEMORY=268435456 \
+
     # -s \"BINARYEN_METHOD='native-wasm'\" \
     # -s \"BINARYEN_TRAP_MODE='clamp'\" \
     # -s LINKABLE=1 \
