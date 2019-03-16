@@ -55,7 +55,6 @@ from tasks.python import (
     build_python,
     build_emscripten_cpython,
     build_pyodide_cpython,
-    build_pyodide_emscripten,
     set_up_python_root,
 )
 from tasks.sgd import (

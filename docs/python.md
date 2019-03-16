@@ -13,37 +13,36 @@ ansible-playbook python3_7.yml --ask-become-pass
 
 We build Python using [pyodide](https://github.com/iodide-project/pyodide).
 
-Unfortunately pyodide bundles its own `emsdk` which we must build with:
+The first pyodide build takes multiple hours and can be run with their Docker set-up.
+
+To do this, you need to run the following. **NOTE we must check out a stable release**
 
 ```
-inv build-pyodide-emscripten
+cd /usr/local/code
+git clone git@github.com:iodide-project/pyodide.git
+cd pyodide
+git checkout 0.9.0
+./run_docker
+make
 ```
 
-This will take ages but is a one-off. Once done, we can build cpython with:
-
-```
-source ~/faasm/pyodide/emsdk/emsdk/emsdk_env.sh
-inv build-pyodide-cpython
-```
+This will perform the build in place so you can access it from your local filesystem.
 
 ## Setting up the runtime root
 
 To run Python you need to set up the Faasm runtime root filesystem. To do this you can run:
 
 ```
-sudo mkdir /usr/local/faasm/runtime_root
-sudo chown -R <user>:<user> !$
-cd /usr/local/code/faasm
 ./bin/set_up_python_root.sh
 ```
 
 ## Compiling Python functions
 
-To compile Python functions we need to use the pyodide version of Emscripten. To do this, you
-**must** run the following in your shell:
+
+When building you **must** use their custom emscripten:
 
 ```
-source ~/faasm/pyodide/emsdk/emsdk/emsdk_env.sh
+source /usr/local/code/pyodide/emsdk/emsdk/emsdk_env.sh
 ```
 
 Once this is done, you can run:

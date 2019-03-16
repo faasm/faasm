@@ -9,14 +9,13 @@ from invoke import task
 from tasks.compile import check_correct_emscripten
 from tasks.download import FAASM_HOME, clone_proj
 from tasks.env import NATIVE_ENV_DICT, ENV_STR, CONFIG_TARGET, \
-    CONFIG_HOST, SYSROOT, PY_EMSCRIPTEN_DIR, PROJ_ROOT, EMSCRIPTEN_DIR, FAASM_RUNTIME_ROOT
+    CONFIG_HOST, SYSROOT, PY_EMSCRIPTEN_DIR, PROJ_ROOT, EMSCRIPTEN_DIR, PYODIDE_ROOT, FAASM_RUNTIME_ROOT
 
 # Note: this must be the dir that contains "include" and "lib" into the runtime root
-PYODIDE_CPYTHON_INSTALL_DIR = join(FAASM_HOME, "pyodide", "cpython", "installs", "python-3.7.0")
 EMSCRIPTEN_CPYTHON_INSTALL_DIR = join(PROJ_ROOT, "cpython-emscripten", "installs", "python-3.5.2")
 
 # Subset of files to make available to the python runtime
-PYTHON_LIB_FILES = [
+EMSCRIPTEN_PYTHON_LIB_FILES = [
     "lib/python3.5/_collections_abc.py",
     "lib/python3.5/_dummy_thread.py",
     "lib/python3.5/_sitebuiltins.py",
@@ -66,28 +65,20 @@ def build_emscripten_cpython(ctx):
 
 
 @task
-def build_pyodide_emscripten(ctx):
-    proj_dir = clone_proj("https://github.com/iodide-project/pyodide.git", "pyodide")
-
-    # Set up emscripten if necessary
-    emscripten_proj = join(proj_dir, "emsdk")
-    if not exists(PY_EMSCRIPTEN_DIR):
-        print("Warining: building emscripten, this will take a while")
-        call("make", cwd=emscripten_proj, shell=True)
-
-
-@task
 def build_pyodide_cpython(ctx):
-    proj_dir = clone_proj("https://github.com/iodide-project/pyodide.git", "pyodide")
+    check_correct_emscripten(PY_EMSCRIPTEN_DIR)
 
-    # Build cpython
-    check_correct_emscripten(proj_dir)
-    make_dir = join(proj_dir, "cpython")
-    call("make", cwd=make_dir, shell=True)
+    cpython_root = join(PYODIDE_ROOT, "cpython")
+
+    # Remove lib to force make to run
+    py_lib = join(cpython_root, "installs/python-3.7.0/lib/libpython3.7.a")
+    call("rm -f {}".format(py_lib), shell=True)
+
+    call("make", cwd=cpython_root, shell=True)
 
 
 @task
-def set_up_python_root(ctx, pyodide=False):
+def set_up_python_root(ctx):
     # Create root if necessary
     if not exists(FAASM_RUNTIME_ROOT):
         raise RuntimeError("Must create runtime root at {}".format(FAASM_RUNTIME_ROOT))
@@ -96,7 +87,7 @@ def set_up_python_root(ctx, pyodide=False):
     call("rm -rf {}/*".format(FAASM_RUNTIME_ROOT), shell=True)
 
     # Iterate through and put files in place
-    for relative_path in PYTHON_LIB_FILES:
+    for relative_path in EMSCRIPTEN_PYTHON_LIB_FILES:
         # Create the intermediate directory
         file_name_parts = relative_path.split("/")
         relative_dir = "/".join(file_name_parts[:-1])

@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Pyodide
-# INSTALL_DIR=${HOME}/faasm/pyodide/cpython/installs/python-3.7.0/
+# INSTALL_DIR=/usr/local/code/pyodide/cpython/installs/python-3.7.0
+# sudo chown -R ${USER}:${USER} ${INSTALL_DIR}
 
 # Emscripten
 INSTALL_DIR=/usr/local/code/faasm/cpython-emscripten/installs/python-3.5.2/
@@ -17,5 +18,5 @@ find ${INSTALL_DIR} | grep "\.pyc$" | xargs rm -rf
 
 cp -r ${INSTALL_DIR}/* /usr/local/faasm/runtime_root
 
-# Remote the actual lib
+# Remove the actual lib file
 rm /usr/local/faasm/runtime_root/lib/libpython*

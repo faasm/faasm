@@ -8,7 +8,7 @@ from invoke import task
 
 from tasks.download import download_proj, FAASM_HOME
 from tasks.env import PROJ_ROOT, EMSCRIPTEN_CMAKE_TOOLCHAIN, ENV_STR, SYSROOT, CONFIG_FLAGS, \
-    COMPILER_FLAGS, PY_EMSCRIPTEN_CMAKE_TOOLCHAIN, EMSCRIPTEN_DIR
+    COMPILER_FLAGS, PY_EMSCRIPTEN_CMAKE_TOOLCHAIN, EMSCRIPTEN_DIR, PY_EMSCRIPTEN_DIR
 
 
 def check_correct_emscripten(expected_root):
@@ -53,8 +53,10 @@ def _build_funcs(build_type, clean=False, func=None, toolchain_file=None, top_le
     """
 
     if build_type == "emscripten":
+        check_correct_emscripten(EMSCRIPTEN_DIR)
         toolchain_file = EMSCRIPTEN_CMAKE_TOOLCHAIN
     elif build_type == "pyodide":
+        check_correct_emscripten(PY_EMSCRIPTEN_DIR)
         toolchain_file = PY_EMSCRIPTEN_CMAKE_TOOLCHAIN
 
     if top_level_build:

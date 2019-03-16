@@ -5,21 +5,36 @@
 #include <dirent.h>
 
 namespace faasm {
-    void listDir() {
-        const char *dirName = "/lib/python3.5";
+    int listDir() {
+        // Native versions commented out
+        const char *dirName = "lib/python3.7";
+//        const char *dirName = "/usr/local/faasm/runtime_root/lib/python3.7";
 
         DIR *dirp = opendir(dirName);
+        if(dirp == nullptr) {
+            printf("Couldn't open dir %s", dirName);
+            return 1;
+        }
 
         struct dirent *dp;
+        printf("ino        d_off            reclen   d_type   name\n");
         while ((dp = readdir(dirp)) != NULL) {
-            printf("%s\n", dp->d_name);
+            ino_t d_ino = dp->d_ino;
+            off_t off = dp->d_off;
+            unsigned short reclen = dp->d_reclen;
+            unsigned char d_type = dp->d_type;
+            char *name256 = dp->d_name;
+
+            printf("%u   %i   %i   %u   %s\n", d_ino, off, reclen, d_type, name256);
+//            printf("%li   %li   %i   %u   %s\n", d_ino, off, reclen, d_type, name256);
         }
 
         closedir(dirp);
-    }
-    int exec(FaasmMemory *memory) {
-        listDir();
-        listDir();
+
         return 0;
+    }
+
+    int exec(FaasmMemory *memory) {
+        return listDir();
     }
 }

@@ -147,7 +147,7 @@ namespace wasm {
                     resolved = getInstanceExport(emEnvModule, exportName);
                 } else if (moduleName == "asm2wasm") {
                     resolved = getInstanceExport(emAsm2wasmModule, exportName);
-                } else if (moduleName == "global") {
+                } else if (moduleName == "global" || moduleName == "global.Math") {
                     resolved = getInstanceExport(emGlobalModule, exportName);
                 } else {
                     logger->error("Unrecognised module: {}", moduleName);

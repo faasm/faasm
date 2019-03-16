@@ -1,3 +1,79 @@
-_emscripten_async_wget func (i32, i32, i32, i32)->()
-_emscripten_exit_with_live_runtime func ()->()
-_setenv func (i32, i32, i32)->i32
+setTempRet0 func i32->()
+getTempRet0 func ()->i32
+invoke_ii func (i32, i32)->i32
+invoke_iii func (i32, i32, i32)->i32
+invoke_iiii func (i32, i32, i32, i32)->i32
+invoke_iiiii func (i32, i32, i32, i32, i32)->i32
+invoke_vi func (i32, i32)->()
+invoke_vii func (i32, i32, i32)->()
+invoke_viiii func (i32, i32, i32, i32, i32)->()
+___clock_gettime func (i32, i32)->i32
+___cxa_allocate_exception func i32->i32
+___cxa_begin_catch func i32->i32
+___cxa_current_primary_exception func ()->i32
+___cxa_decrement_exception_refcount func i32->()
+___cxa_increment_exception_refcount func i32->()
+___cxa_pure_virtual func ()->()
+___cxa_rethrow_primary_exception func i32->()
+___cxa_throw func (i32, i32, i32)->()
+___cxa_uncaught_exception func ()->i32
+___syscall114 func (i32, i32)->i32
+___syscall121 func (i32, i32)->i32
+___syscall125 func (i32, i32)->i32
+___syscall144 func (i32, i32)->i32
+___syscall150 func (i32, i32)->i32
+___syscall151 func (i32, i32)->i32
+___syscall152 func (i32, i32)->i32
+___syscall153 func (i32, i32)->i32
+___syscall163 func (i32, i32)->i32
+___syscall218 func (i32, i32)->i32
+___syscall219 func (i32, i32)->i32
+___syscall308 func (i32, i32)->i32
+___syscall333 func (i32, i32)->i32
+___syscall334 func (i32, i32)->i32
+___syscall337 func (i32, i32)->i32
+___syscall345 func (i32, i32)->i32
+___syscall51 func (i32, i32)->i32
+_emscripten_longjmp func (i32, i32)->()
+_gai_strerror func i32->i32
+_getaddrinfo func (i32, i32, i32, i32)->i32
+_gethostbyaddr func (i32, i32, i32)->i32
+_gethostbyname func i32->i32
+_getnameinfo func (i32, i32, i32, i32, i32, i32, i32)->i32
+_getprotobyname func i32->i32
+_gmtime_r func (i32, i32)->i32
+_inet_addr func i32->i32
+_llvm_copysign_f32 func (f64, f64)->f64
+_llvm_copysign_f64 func (f64, f64)->f64
+_llvm_trap func ()->()
+_localtime_r func (i32, i32)->i32
+_longjmp func (i32, i32)->()
+_nanosleep func (i32, i32)->i32
+_pthread_attr_destroy func i32->i32
+_pthread_attr_init func i32->i32
+_pthread_attr_setstacksize func (i32, i32)->i32
+_pthread_cleanup_pop func i32->()
+_pthread_cleanup_push func (i32, i32)->()
+_pthread_cond_destroy func i32->i32
+_pthread_cond_init func (i32, i32)->i32
+_pthread_cond_signal func i32->i32
+_pthread_cond_timedwait func (i32, i32, i32)->i32
+_pthread_cond_wait func (i32, i32)->i32
+_pthread_create func (i32, i32, i32, i32)->i32
+_pthread_detach func i32->i32
+_pthread_equal func (i32, i32)->i32
+_pthread_exit func i32->()
+_pthread_getspecific func i32->i32
+_pthread_join func (i32, i32)->i32
+_pthread_key_create func (i32, i32)->i32
+_pthread_key_delete func i32->i32
+_pthread_mutex_destroy func i32->i32
+_pthread_mutex_init func (i32, i32)->i32
+_pthread_mutexattr_destroy func i32->i32
+_pthread_mutexattr_init func i32->i32
+_pthread_mutexattr_settype func (i32, i32)->i32
+_pthread_once func (i32, i32)->i32
+_pthread_setspecific func (i32, i32)->i32
+_sigaddset func (i32, i32)->i32
+_signal func (i32, i32)->i32
+_utime func (i32, i32)->i32
