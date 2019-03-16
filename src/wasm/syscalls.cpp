@@ -4,6 +4,7 @@
 #include <util/logging.h>
 #include <util/config.h>
 
+#include <boost/filesystem.hpp>
 #include <fcntl.h>
 #include <math.h>
 #include <dirent.h>
@@ -133,12 +134,9 @@ namespace wasm {
     }
 
     std::string maskPath(std::string originalPath) {
-        std::string fakePath = FALSE_ROOT;
-        if (originalPath != "/") {
-            fakePath += std::string("/") + originalPath;
-        }
-
-        return fakePath;
+        boost::filesystem::path p(FALSE_ROOT);
+        p.append(originalPath);
+        return p.string();
     }
 
     std::string getMaskedPathFromWasm(I32 strPtr) {
@@ -703,13 +701,14 @@ namespace wasm {
             return (I32) fd;
         } else {
             // This is an error of some form
-            if(!fakePath.empty()) {
+            if (!fakePath.empty()) {
                 logger->error("Failed on open - {} (masked {})", path, fakePath);
-            } else{
+            } else {
                 logger->error("Failed on open - {}", path);
             }
 
-            return (I32) fd;
+            // Note, we must always return -1 with a failure and set errno
+            return (I32) -1;
         }
     }
 
@@ -722,11 +721,14 @@ namespace wasm {
         return s__syscall_open(args[0], args[1], args[2]);
     }
 
-    /** Dummy fcntl implementation, many operations are irrelevant */
     I32 s__syscall_fcntl64(I32 fd, I32 cmd, I32 c) {
         util::getLogger()->debug("S - fcntl64 - {} {} {}", fd, cmd, c);
 
         checkThreadOwnsFd(fd);
+
+        // Allow for now
+        // TODO - is this ok?
+        fcntl(fd, cmd, c);
 
         return 0;
     }
@@ -1021,7 +1023,7 @@ namespace wasm {
         logger->debug("S - mkdir - {} {}", fakePath, mode);
 
         int res = mkdir(fakePath.c_str(), mode);
-        if(res < 0) {
+        if (res < 0) {
             logger->error("Failed to mkdir at {} - code {}", fakePath, res);
             throw std::runtime_error("Failed on mkdir");
         }
@@ -1042,8 +1044,8 @@ namespace wasm {
         logger->debug("S - rename - {} {}", srcPath, destPath);
 
         int res = rename(srcPath.c_str(), destPath.c_str());
-        if(res != 0) {
-            if(res == -EPERM) {
+        if (res != 0) {
+            if (res == -EPERM) {
                 logger->error("Permission error renaming {} -> {}", srcPath, destPath);
             } else {
                 logger->error("Failed renaming {} -> {} - code {}", srcPath, destPath, res);
@@ -1066,11 +1068,11 @@ namespace wasm {
         logger->debug("S - unlink {}", fakePath);
 
         int res = unlink(fakePath.c_str());
-        if(res < 0) {
+        if (res < 0) {
             logger->error("Failed to unlink at {} - code {}", fakePath, res);
             throw std::runtime_error("Failed on mkdir");
         }
-        
+
         return res;
     }
 
@@ -1809,12 +1811,16 @@ namespace wasm {
             value = "0";
         } else if (strcmp(varName, "PYTHONVERBOSE") == 0) {
             value = "on";
-        } else if (strcmp(varName, "LC_CTYPE") == 0) {
-            value = "en_GB.UTF-8";
-        } else if (strcmp(varName, "LANG") == 0) {
-            value = "en_GB.UTF-8";
-        } else if (strcmp(varName, "LANGUAGE") == 0) {
-            value = "en_GB:en";
+        } else if (strcmp(varName, "PYTHONHOME") == 0) {
+            value = "/";
+        } else if (strcmp(varName, "PYTHONPATH") == 0) {
+            value = "/";
+//        } else if (strcmp(varName, "LC_CTYPE") == 0) {
+//            value = "en_GB.UTF-8";
+//        } else if (strcmp(varName, "LANG") == 0) {
+//            value = "en_GB.UTF-8";
+//        } else if (strcmp(varName, "LANGUAGE") == 0) {
+//            value = "en_GB:en";
         } else if (strcmp(varName, "FULL_ASYNC") == 0) {
             if (conf.fullAsync == 1) {
                 value = "1";
@@ -1852,14 +1858,21 @@ namespace wasm {
         return s__getenv(varPtr, true);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "_setenv", I32, _setenv, I32 varPtr, I32 valPtr, I32 overwrite) {
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        char *varName = &Runtime::memoryRef<char>(memoryPtr, (Uptr) varPtr);
-        char *value = &Runtime::memoryRef<char>(memoryPtr, (Uptr) valPtr);
+    I32 s__setenv(I32 varPtr, I32 valPtr, I32 overwrite) {
+        const std::string varName = getStringFromWasm(varPtr);
+        const std::string value = getStringFromWasm(valPtr);
 
         util::getLogger()->debug("S - _setenv {} {} {}", varName, value, overwrite);
 
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "_setenv", I32, _setenv, I32 varPtr, I32 valPtr, I32 overwrite) {
+        return s__setenv(varPtr, valPtr, overwrite);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_setenv", I32, emscripten_setenv, I32 varPtr, I32 valPtr, I32 overwrite) {
+        return s__setenv(varPtr, valPtr, overwrite);
     }
 
     I32 s__unsetenv(I32 varPtr) {
@@ -2304,7 +2317,7 @@ namespace wasm {
     }
 
     /**
-     * This funciton is from the Emscripten asm.js toolchain. It returns true/ false depending
+     * This function is from the Emscripten asm.js toolchain. It returns true/ false depending
      * on whether it was successful
      */
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_emscripten_resize_heap", I32, _emscripten_resize_heap, U32 size) {
@@ -3305,6 +3318,17 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___buildEnvironment", void, ___buildEnvironment, I32 a) {
         util::getLogger()->debug("S - ___buildEnvironment - {}", a);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_emscripten_async_wget", void, _emscripten_async_wget, I32 a, I32 b, I32 c,
+                              I32 d) {
+        util::getLogger()->debug("S - _emscripten_async_wget - {} {} {} {}", a, b, c, d);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_emscripten_exit_with_live_runtime", void, _emscripten_exit_with_live_runtime) {
+        util::getLogger()->debug("S - _emscripten_exit_with_live_runtime");
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 }

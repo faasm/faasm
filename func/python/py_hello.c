@@ -1,5 +1,4 @@
 #include <Python.h>
-#include <emscripten.h>
 
 int main(int argc, char *argv[]) {
     printf("Started python hello\n");

@@ -1,0 +1,15 @@
+DEFINE_INTRINSIC_FUNCTION(emEnv, "_emscripten_async_wget", void, _emscripten_async_wget , I32 a, I32 b, I32 c, I32 d) {
+ 	util::getLogger()->debug("S - _emscripten_async_wget - {} {} {} {}", a, b, c, d);
+ 	throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
+DEFINE_INTRINSIC_FUNCTION(emEnv, "_emscripten_exit_with_live_runtime", void, _emscripten_exit_with_live_runtime ) {
+ 	util::getLogger()->debug("S - _emscripten_exit_with_live_runtime");
+ 	throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+
+DEFINE_INTRINSIC_FUNCTION(emEnv, "_setenv", I32, _setenv , I32 a, I32 b, I32 c) {
+ 	util::getLogger()->debug("S - _setenv - {} {} {}", a, b, c);
+ 	throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+}
+

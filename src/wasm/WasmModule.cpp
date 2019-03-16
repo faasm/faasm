@@ -13,6 +13,7 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/RuntimeData.h>
+#include <WAVM/WASTParse/WASTParse.h>
 
 #include <syscall.h>
 
@@ -178,8 +179,15 @@ namespace wasm {
 
         // Load the function data
         wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
-        const std::vector<uint8_t> &bytes = functionLoader.loadFunctionBytes(msg);
-        WASM::loadBinaryModule(bytes.data(), bytes.size(), module);
+        std::vector<uint8_t> bytes = functionLoader.loadFunctionBytes(msg);
+
+        if(functionLoader.isWasm(bytes)) {
+            WASM::loadBinaryModule(bytes.data(), bytes.size(), module);
+        } else {
+            std::vector<WAST::Error> parseErrors;
+            WAST::parseModule((const char *) bytes.data(), bytes.size(), module, parseErrors);
+            WAST::reportParseErrors("wast_file", parseErrors);
+        }
 
         // Configure resolver
         resolver->setUp(compartment, module);
