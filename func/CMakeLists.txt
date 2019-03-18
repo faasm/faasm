@@ -25,24 +25,63 @@ endif ()
 
 # Emscripten fiddles
 if (${EMSCRIPTEN})
-    message(STATUS "Detected Emscripten build")
-
     # Emscripten doesn't seem to look in normal system includes so we explicitly have to tell it to
     include_directories(/usr/local/include/)
 
-    # Linker changes to dodge some emscripten issues
-    # TODO - is there a way to avoid ignoring undefined symbols by respecting the libfaasm.imports file?
-    set(CMAKE_EXE_LINKER_FLAGS  "-s ERROR_ON_UNDEFINED_SYMBOLS=0 -s EMULATE_FUNCTION_POINTER_CASTS=1 --memory-init-file 0")
+    if (FAASM_BUILD_TYPE STREQUAL "pyodide")
+        message(STATUS "Detected Emscripten python build")
 
-    # Avoid compiling javascript
-    set(CMAKE_EXECUTABLE_SUFFIX ".wasm")
+        # --- Emscripten pyodide options ---
+        #
+        # These should match the main pyodide Makefile
+        # https://github.com/iodide-project/pyodide/blob/master/Makefile
+        set(EM_LINKER_FLAGS "-s ERROR_ON_UNDEFINED_SYMBOLS \
+            -O3 \
+            -s MODULARIZE=1 \
+            -s \"BINARYEN_METHOD='native-wasm'\" \
+            -s \"BINARYEN_TRAP_MODE='clamp'\" \
+            -s TEXTDECODER=0 \
+            -s TOTAL_MEMORY=1073741824 \
+            -s ALLOW_MEMORY_GROWTH=1 \
+            -s EMULATED_FUNCTION_POINTERS=1 \
+            -s EMULATE_FUNCTION_POINTER_CASTS=1 \
+            -s LINKABLE=1 \
+            -s EXPORT_ALL=1 \
+            -s EXPORTED_FUNCTIONS='[\"___cxa_guard_acquire\", \"__ZNSt3__28ios_base4initEPv\"]' \
+            -s WASM=1 \
+            -s SWAPPABLE_ASM_MODULE=1 \
+            --memory-init-file 0 \
+        ")
 
-    # Link to custom-build faasm lib
+    else ()
+        # --- Vanilla Emscripten options ---
+        #
+        # These should match the normal cpython-emscripten repo
+        # https://github.com/dgym/cpython-emscripten/blob/master/examples/03-python-app/Makefile
+        #
+        # TODO - is there a way to avoid ignoring undefined symbols by respecting the libfaasm.imports file?
+        set(EM_LINKER_FLAGS "-s ERROR_ON_UNDEFINED_SYMBOLS=0 \
+            -O2 \
+            -s TOTAL_MEMORY=1073741824 \
+            -s EMULATE_FUNCTION_POINTER_CASTS=1 \
+            -s EXPORTED_FUNCTIONS='[\"_main\"]' \
+            -s ASSERTIONS=2 \
+            --memory-init-file 0 \
+        ")
+
+        # Avoid compiling javascript
+        set(CMAKE_REQUIRED_FLAGS "WASM=1")
+        set(CMAKE_EXECUTABLE_SUFFIX ".wasm")
+    endif ()
+
+    # Link to emscripten libfaasm
     link_directories(/usr/local/code/faasm/lib/embuild/)
     set(FAASM_LIB libfaasm.a)
-else()
+
+    set(CMAKE_EXE_LINKER_FLAGS "${EM_LINKER_FLAGS}")
+else ()
     set(FAASM_LIB faasm)
-endif()
+endif ()
 
 
 # Define functions for building
@@ -64,7 +103,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
         target_link_libraries(${exec_name} ${FAASM_LIB})
     endfunction(faasm_func)
 
-elseif (FAASM_BUILD_TYPE STREQUAL "emscripten")
+elseif (${EMSCRIPTEN})
     # ----------------------
     # Emscripten build
     # ----------------------
@@ -109,7 +148,7 @@ add_subdirectory(sgd)
 
 # Exclude python stuff in normal wasm build or lambda native
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
-elseif(FAASM_BUILD_TYPE STREQUAL "lambda-func")
-else()
+elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
+else ()
     add_subdirectory(python)
-endif()
+endif ()

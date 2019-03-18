@@ -16,4 +16,8 @@ add_library(wasm STATIC
         ${HEADERS}
         )
 
-target_link_libraries(wasm scheduler state Logging IR WASTParse WASM Runtime)
+target_link_libraries(wasm scheduler memory state Logging IR WASTParse WASM Runtime)
+
+add_executable(snapshot_runner snapshot_runner.cpp)
+target_link_libraries(snapshot_runner wasm)
+

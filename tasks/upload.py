@@ -3,15 +3,20 @@ from os.path import join
 
 from invoke import task
 
-from tasks.env import WASM_FUNC_BUILD_DIR, EMSCRIPTEN_FUNC_BUILD_DIR
+from tasks.env import WASM_FUNC_BUILD_DIR, EMSCRIPTEN_FUNC_BUILD_DIR, PYTHON_FUNC_BUILD_DIR
 from tasks.upload_util import curl_file
 
 DIRS_TO_INCLUDE = ["demo", "errors", "sgd"]
 
 
 @task
-def upload_func(ctx, user, func, host="localhost", emscripten=False):
-    func_dir = EMSCRIPTEN_FUNC_BUILD_DIR if emscripten else WASM_FUNC_BUILD_DIR
+def upload_func(ctx, user, func, host="localhost", emscripten=False, python=False):
+    if emscripten:
+        func_dir = EMSCRIPTEN_FUNC_BUILD_DIR
+    elif python:
+        func_dir = PYTHON_FUNC_BUILD_DIR
+    else:
+        func_dir = WASM_FUNC_BUILD_DIR
 
     func_file = join(func_dir, user, "{}.wasm".format(func))
     url = "http://{}:8002/f/{}/{}".format(host, user, func)
@@ -19,8 +24,13 @@ def upload_func(ctx, user, func, host="localhost", emscripten=False):
 
 
 @task
-def upload_funcs(ctx, host="localhost", emscripten=False):
-    func_dir = EMSCRIPTEN_FUNC_BUILD_DIR if emscripten else WASM_FUNC_BUILD_DIR
+def upload_funcs(ctx, host="localhost", emscripten=False, python=False):
+    if emscripten:
+        func_dir = EMSCRIPTEN_FUNC_BUILD_DIR
+    elif python:
+        func_dir = PYTHON_FUNC_BUILD_DIR
+    else:
+        func_dir = WASM_FUNC_BUILD_DIR
 
     # Walk the function directory tree
     for root, dirs, files in os.walk(func_dir):

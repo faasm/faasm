@@ -41,6 +41,10 @@ void __faasm_write_output(const unsigned char *output, long outputLen);
 
 void __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize);
 
+void __faasm_snapshot_memory(const char *key);
+
+void __faasm_restore_memory(const char *key);
+
 #if WASM_BUILD == 1
 }  // Close extern C
 #endif
@@ -131,5 +135,13 @@ namespace faasm {
 
     void FaasmMemory::chainFunction(const char *name, const uint8_t *inputData, long inputDataSize) {
         __faasm_chain_function(name, inputData, inputDataSize);
+    }
+
+    void FaasmMemory::snapshot(const char *key) {
+        __faasm_snapshot_memory(key);
+    }
+
+    void FaasmMemory::restore(const char *key) {
+        __faasm_restore_memory(key);
     }
 };

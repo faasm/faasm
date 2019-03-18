@@ -17,6 +17,8 @@ namespace wasm {
         virtual void uploadObjectBytes(const message::Message &msg, const std::vector<uint8_t> &objBytes) = 0;
 
         void compileToObjectFile(message::Message &msg);
+
+        bool isWasm(std::vector<uint8_t> &objBytes);
     };
 
     FunctionLoader &getFunctionLoader();

@@ -15,6 +15,11 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
 #include <WAVM/Runtime/Runtime.h>
+#include <memory/MemorySnapshot.h>
+
+#define EXPAND_TOO_BIG -2
+#define EXPAND_NO_ACTION -1
+#define EXPAND_SUCCESS 0
 
 using namespace WAVM;
 
@@ -23,9 +28,12 @@ namespace wasm {
     const int CLEAN_MEMORY_PAGES = 1;
     const int CLEAN_MEMORY_SIZE = CLEAN_MEMORY_PAGES * IR::numBytesPerPage;
 
+    int expandMemory(U32 newSize);
     U32 dynamicAllocString(Runtime::Memory *memory, const char* str, U32 len);
-    U32 dynamicAllocPages(Runtime::Memory *memory, U32 numPages);
     U32 dynamicAlloc(Runtime::Memory *memory, U32 numBytes);
+
+    void setEmscriptenDynamicTop(U32 newValue);
+    U32 getEmscriptenDynamicTop();
 
     Uptr getNumberOfPagesForBytes(U32 nBytes);
 
@@ -36,10 +44,6 @@ namespace wasm {
         ~WasmModule();
 
         void initialise();
-
-        void snapshotMemory();
-
-        void restoreMemory();
 
         void bindToFunction(const message::Message &msg);
 
@@ -53,16 +57,22 @@ namespace wasm {
 
         bool isBound();
 
+        bool isEmscripten();
+
         U32 mmap(U32 length);
 
         U32 mmapKey(std::shared_ptr<state::StateKeyValue> kv, U32 length);
+
+        void snapshotFullMemory(const char* key);
+
+        void restoreFullMemory(const char* key);
+
+        void restoreMemory();
     private:
         IR::Module module;
 
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
         Runtime::GCPointer<Runtime::Function> functionInstance;
-
-        U8 *cleanMemory = nullptr;
 
         RootResolver *resolver = nullptr;
 
@@ -74,6 +84,10 @@ namespace wasm {
         std::unordered_map<std::string, I32> sharedMemWasmPtrs;
         std::unordered_map<std::string, void*> sharedMemHostPtrs;
         std::unordered_map<std::string, std::shared_ptr<state::StateKeyValue>> sharedMemKVs;
+
+        memory::MemorySnapshot memSnapshot;
+
+        void resizeMemory(size_t targetPages);
     };
 
     WasmModule *getExecutingModule();

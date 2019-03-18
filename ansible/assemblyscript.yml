@@ -1,0 +1,13 @@
+---
+
+- hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: "Install Node"
+      become: yes
+      shell: "curl -sL https://deb.nodesource.com/setup_11.x | bash - && apt-get install -y nodejs"
+
+    - name: "Install assemblyscript"
+      shell: "npm install --save-dev AssemblyScript/assemblyscript"
+      args:
+        chdir: "/usr/local/code/faasm/assemblyscript"

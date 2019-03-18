@@ -8,6 +8,7 @@ add_executable(
         utils/matrix_utils.cpp
         utils/message_utils.cpp
         utils/system_utils.cpp
+        utils/worker_utils.cpp
         utils.h
         ${TEST_FILES}
 )

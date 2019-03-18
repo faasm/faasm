@@ -11,6 +11,8 @@ def generate_intrinsics():
 
                 if args_out == "i32":
                     out_str = "I32"
+                elif args_out == "f64":
+                    out_str = "F64"
                 elif args_out == "()":
                     out_str = "void"
 
@@ -29,6 +31,27 @@ def generate_intrinsics():
                 elif args_in == "(i32, i32, i32, i32)":
                     log_str = "\"S - {} - {{}} {{}} {{}} {{}}\", a, b, c, d".format(syscall_name)
                     arg_str = ", I32 a, I32 b, I32 c, I32 d"
+                elif args_in == "(i32, i32, i32, i32, i32)":
+                    log_str = "\"S - {} - {{}} {{}} {{}} {{}} {{}}\", a, b, c, d, e".format(syscall_name)
+                    arg_str = ", I32 a, I32 b, I32 c, I32 d, I32 e"
+                elif args_in == "(i32, i32, i32, i32, i32, i32)":
+                    log_str = "\"S - {} - {{}} {{}} {{}} {{}} {{}} {{}}\", a, b, c, d, e, f".format(syscall_name)
+                    arg_str = ", I32 a, I32 b, I32 c, I32 d, I32 e, I32 f"
+                elif args_in == "(i32, i32, i32, i32, i32, i32, i32)":
+                    log_str = "\"S - {} - {{}} {{}} {{}} {{}} {{}} {{}} {{}}\", a, b, c, d, e, f, g".format(syscall_name)
+                    arg_str = ", I32 a, I32 b, I32 c, I32 d, I32 e, I32 f, I32 g"
+                elif args_in == "(i32, i32, i32, i32, i32, i32, i32, i32)":
+                    log_str = "\"S - {} - {{}} {{}} {{}} {{}} {{}} {{}} {{}} {{}}\", a, b, c, d, e, f, g, h".format(syscall_name)
+                    arg_str = ", I32 a, I32 b, I32 c, I32 d, I32 e, I32 f, I32 g, I32 h"
+                elif args_in == "f64":
+                    log_str = "\"S - {} - {{}}\", a".format(syscall_name)
+                    arg_str = ", F64 a"
+                elif args_in == "(f64, f64)":
+                    log_str = "\"S - {} - {{}} {{}}\", a, b".format(syscall_name)
+                    arg_str = ", F64 a, F64 b"
+                elif args_in == "(f64, i32)":
+                    log_str = "\"S - {} - {{}} {{}}\", a, b".format(syscall_name)
+                    arg_str = ", F64 a, I32 b"
                 else:
                     print("Unrecognised line: {}\n".format(line))
                     exit(1)
@@ -47,3 +70,4 @@ def generate_intrinsics():
 
 if __name__ == "__main__":
     generate_intrinsics()
+

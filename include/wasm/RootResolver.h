@@ -13,16 +13,19 @@ using namespace WAVM;
 namespace wasm {
 
     // Note that the max memory per module is 8GiB, i.e. > 100k pages
-    // Page size in wasm is 64kiB so 50 pages ~ 3MiB of memory
-    const int INITIAL_MEMORY_PAGES = 100;
-    const int MAX_MEMORY_PAGES = 16384; // 1GB
-    const size_t INITIAL_MEMORY_SIZE = INITIAL_MEMORY_PAGES * IR::numBytesPerPage;
+    // Page size in wasm is 64kiB
+    const int ONE_MB_PAGES = 16;
+    const int ONE_GB_PAGES = 1024 * ONE_MB_PAGES;
 
-    // Note, we don't allow emscripten to grow memory
-    const int INITIAL_EMSCRIPTEN_PAGES = 15000;
-    const int MAX_EMSCRIPTEN_PAGES = INITIAL_EMSCRIPTEN_PAGES;
+    const int INITIAL_MEMORY_PAGES = 15 * ONE_MB_PAGES;
+    const int MAX_MEMORY_PAGES = ONE_GB_PAGES;
+
+    const int EMSCRIPTEN_MIN_TABLE_ELEMS = 40000000;
+    const int EMSCRIPTEN_MAX_TABLE_ELEMS = 60000000;
+    const int INITIAL_EMSCRIPTEN_PAGES = 1024 * ONE_MB_PAGES;
+    const int MAX_EMSCRIPTEN_PAGES = 2048 * ONE_GB_PAGES;
     const int EMSCRIPTEN_STACKTOP = 64 * IR::numBytesPerPage;
-    const int EMSCRIPTEN_STACK_MAX = 128 * IR::numBytesPerPage;
+    const int EMSCRIPTEN_STACK_MAX = 256 * IR::numBytesPerPage;
 
     void setEmscriptenErrnoLocation(U32 value);
 
@@ -93,15 +96,15 @@ namespace wasm {
         }
 
         void setUpEmscripten(Runtime::Compartment *compartment, IR::Module &module) {
-            // Min memory pages
+            // Memory constraints
             module.memories.imports[0].type.size.min = (U64) INITIAL_EMSCRIPTEN_PAGES;
             module.memories.imports[0].type.size.max = (U64) MAX_EMSCRIPTEN_PAGES;
 
-            IR::TableType tableType(IR::ReferenceType::funcref, false, IR::SizeConstraints{0, 0});
-            tableType = module.tables.imports[0].type;
+            module.tables.imports[0].type.size.min = (U64) EMSCRIPTEN_MIN_TABLE_ELEMS;
+            module.tables.imports[0].type.size.max = (U64) EMSCRIPTEN_MAX_TABLE_ELEMS;
 
             Runtime::Memory *memory = Runtime::createMemory(compartment, module.memories.imports[0].type, "env.memory");
-            Runtime::Table *table = Runtime::createTable(compartment, tableType, "env.table");
+            Runtime::Table *table = Runtime::createTable(compartment, module.tables.imports[0].type, "env.table");
 
             HashMap<std::string, Runtime::Object *> extraEnvExports = {
                     {"memory", Runtime::asObject(memory)},
@@ -116,9 +119,9 @@ namespace wasm {
 
             emGlobalModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_emGlobal(), "emGlobal");
 
+            // Note: this MUST be a reference
             MutableGlobals &mutableGlobals = Runtime::memoryRef<MutableGlobals>(memory, MutableGlobals::address);
-
-            mutableGlobals.DYNAMICTOP_PTR = 128 * IR::numBytesPerPage;
+            mutableGlobals.DYNAMICTOP_PTR = EMSCRIPTEN_STACK_MAX;
             mutableGlobals._stderr = (U32) ioStreamVMHandle::StdErr;
             mutableGlobals._stdin = (U32) ioStreamVMHandle::StdIn;
             mutableGlobals._stdout = (U32) ioStreamVMHandle::StdOut;
@@ -144,7 +147,7 @@ namespace wasm {
                     resolved = getInstanceExport(emEnvModule, exportName);
                 } else if (moduleName == "asm2wasm") {
                     resolved = getInstanceExport(emAsm2wasmModule, exportName);
-                } else if (moduleName == "global") {
+                } else if (moduleName == "global" || moduleName == "global.Math") {
                     resolved = getInstanceExport(emGlobalModule, exportName);
                 } else {
                     logger->error("Unrecognised module: {}", moduleName);

@@ -19,9 +19,6 @@ set(FAASM_LAMBDA_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lambda)
 set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/WAVM/Lib)
 set(FAASM_WAVM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/WAVM/Include)
 
-# Emscripten
-set(EMSCRIPTEN_VERSION 1.38.28)
-
 # Stops WAVM compilation complaining
 add_definitions(-DDLL_EXPORT=)
 add_definitions(-DDLL_IMPORT=)
@@ -141,6 +138,7 @@ else ()
     add_subdirectory(src/emulator)
     add_subdirectory(src/lambda)
     add_subdirectory(src/lambda_func)
+    add_subdirectory(src/memory)
     add_subdirectory(src/prof)
     add_subdirectory(src/proto)
     add_subdirectory(src/python)

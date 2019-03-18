@@ -1,5 +1,6 @@
 #include "WasmModule.h"
 
+#include <memory/MemorySnapshotRegister.h>
 #include <util/files.h>
 #include <util/func.h>
 #include <util/memory.h>
@@ -12,6 +13,7 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/RuntimeData.h>
+#include <WAVM/WASTParse/WASTParse.h>
 
 #include <syscall.h>
 
@@ -34,6 +36,33 @@ namespace wasm {
         return executingCallChain;
     }
 
+    int expandMemory(U32 newSize) {
+        Uptr targetPageCount = getNumberOfPagesForBytes(newSize);
+
+        // Work out current size
+        WasmModule *module = getExecutingModule();
+        Runtime::Memory *memory = module->defaultMemory;
+        const Uptr currentPageCount = getMemoryNumPages(memory);
+
+        // Check if expanding too far
+        Uptr maxPages = getMemoryMaxPages(memory);
+        if (targetPageCount > maxPages) {
+            return EXPAND_TOO_BIG;
+        }
+
+        // Nothing too be done if memory already big enough or new size is zero
+        if (targetPageCount <= currentPageCount || newSize == 0) {
+            return EXPAND_NO_ACTION;
+        }
+
+        Uptr expansion = targetPageCount - currentPageCount;
+
+        // Grow memory as required
+        growMemory(memory, expansion);
+
+        return EXPAND_SUCCESS;
+    }
+
     Uptr getNumberOfPagesForBytes(U32 nBytes) {
         // Round up to nearest page
         Uptr pageCount = (Uptr(nBytes) + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
@@ -49,16 +78,34 @@ namespace wasm {
         return wasmAddr;
     }
 
+    void setEmscriptenDynamicTop(U32 newValue) {
+        Runtime::Memory *memory = getExecutingModule()->defaultMemory;
+
+        // Note that this MUST be a reference, otherwise we just update a copy that's not seen by wasm
+        MutableGlobals &mutableGlobals = Runtime::memoryRef<MutableGlobals>(memory, MutableGlobals::address);
+        mutableGlobals.DYNAMICTOP_PTR = newValue;
+    }
+
+    U32 getEmscriptenDynamicTop() {
+        Runtime::Memory *memory = getExecutingModule()->defaultMemory;
+        MutableGlobals &mutableGlobals = Runtime::memoryRef<MutableGlobals>(memory, MutableGlobals::address);
+        return mutableGlobals.DYNAMICTOP_PTR;
+    }
+
+    /**
+     * This is an emscripten-specific operation. The dyanamictop_ptr is used by emscripten
+     * to keep track of where the top of its heap is. If dynamictop_ptr goes over the size of
+     * the available memory, we need to expand the memory (and make sure we keep dynamictop_ptr
+     * in sync.
+     */
     U32 dynamicAlloc(Runtime::Memory *memory, U32 numBytes) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Dynamically allocating emscripten memory for {} bytes", numBytes);
 
-        MutableGlobals &mutableGlobals = Runtime::memoryRef<MutableGlobals>(memory, MutableGlobals::address);
-
-        const U32 allocationAddress = mutableGlobals.DYNAMICTOP_PTR;
+        // Shift the dynamic top ptr
+        const U32 allocationAddress = getEmscriptenDynamicTop();
         const U32 endAddress = (allocationAddress + numBytes + 15) & -16;
-
-        mutableGlobals.DYNAMICTOP_PTR = endAddress;
+        setEmscriptenDynamicTop(endAddress);
 
         const Uptr endPage = (endAddress + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
         if (endPage >= getMemoryNumPages(memory) && endPage < getMemoryMaxPages(memory)) {
@@ -71,7 +118,6 @@ namespace wasm {
     WasmModule::WasmModule() = default;
 
     WasmModule::~WasmModule() {
-        // delete[] cleanMemory;
         defaultMemory = nullptr;
         moduleInstance = nullptr;
         functionInstance = nullptr;
@@ -88,10 +134,16 @@ namespace wasm {
                 logger->debug("Successful GC for compartment");
             }
         }
+
+        memSnapshot.clear();
     };
 
     bool WasmModule::isBound() {
         return _isBound;
+    }
+
+    bool WasmModule::isEmscripten() {
+        return resolver->isEmscripten;
     }
 
     bool WasmModule::isInitialised() {
@@ -117,6 +169,8 @@ namespace wasm {
     }
 
     void WasmModule::bindToFunction(const message::Message &msg) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         if (!_isInitialised) {
             throw std::runtime_error("Must initialise module before binding");
         } else if (_isBound) {
@@ -125,8 +179,15 @@ namespace wasm {
 
         // Load the function data
         wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
-        const std::vector<uint8_t> &bytes = functionLoader.loadFunctionBytes(msg);
-        WASM::loadBinaryModule(bytes.data(), bytes.size(), module);
+        std::vector<uint8_t> bytes = functionLoader.loadFunctionBytes(msg);
+
+        if(functionLoader.isWasm(bytes)) {
+            WASM::loadBinaryModule(bytes.data(), bytes.size(), module);
+        } else {
+            std::vector<WAST::Error> parseErrors;
+            WAST::parseModule((const char *) bytes.data(), bytes.size(), module, parseErrors);
+            WAST::reportParseErrors("wast_file", parseErrors);
+        }
 
         // Configure resolver
         resolver->setUp(compartment, module);
@@ -154,7 +215,7 @@ namespace wasm {
 
         // Extract the module's exported function
         std::string entryFunc;
-        if (resolver->isEmscripten) {
+        if (this->isEmscripten()) {
             entryFunc = "_main";
         } else {
             entryFunc = "_start";
@@ -171,7 +232,9 @@ namespace wasm {
         this->defaultMemory = Runtime::getDefaultMemory(moduleInstance);
 
         // Snapshot initial state
-        this->snapshotMemory();
+        logger->debug("Snapshotting {} pages of memory for restore", CLEAN_MEMORY_PAGES);
+        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
+        memSnapshot.createCopy(baseAddr, CLEAN_MEMORY_SIZE);
 
         // Record that this module is now bound
         _isBound = true;
@@ -179,41 +242,58 @@ namespace wasm {
         boundFunction = msg.function();
     }
 
-    void WasmModule::snapshotMemory() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        logger->debug("Snapshotting {} pages of memory for restore", CLEAN_MEMORY_PAGES);
-        cleanMemory = new uint8_t[CLEAN_MEMORY_SIZE];
-
+    void WasmModule::snapshotFullMemory(const char *key) {
+        // Get memory and dimensions
+        Uptr currentPages = Runtime::getMemoryNumPages(this->defaultMemory);
+        Uptr memSize = currentPages * IR::numBytesPerPage;
         U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
-        std::copy(baseAddr, baseAddr + CLEAN_MEMORY_SIZE, cleanMemory);
+
+        // Create the snapshot
+        memory::MemorySnapshotRegister &snapRegister = memory::getGlobalMemorySnapshotRegister();
+        const std::shared_ptr<memory::MemorySnapshot> snapshot = snapRegister.getSnapshot(key);
+        snapshot->create(key, baseAddr, memSize);
     }
 
-    void WasmModule::restoreMemory() {
+    void WasmModule::restoreFullMemory(const char *key) {
+        // Retrieve the snapshot
+        memory::MemorySnapshotRegister &snapRegister = memory::getGlobalMemorySnapshotRegister();
+        const std::shared_ptr<memory::MemorySnapshot> snapshot = snapRegister.getSnapshot(key);
+
+        // Resize memory accordingly
+        size_t wasmPages = (snapshot->getSize() + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
+        this->resizeMemory(wasmPages);
+
+        // Do the restore
+        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
+        snapshot->restore(baseAddr);
+    }
+
+    void WasmModule::resizeMemory(size_t targetPages) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Grow/ shrink memory to its original size
+        // Get current size
         Uptr currentPages = Runtime::getMemoryNumPages(this->defaultMemory);
 
-        if (currentPages > INITIAL_MEMORY_PAGES) {
-            Uptr shrinkSize = currentPages - INITIAL_MEMORY_PAGES;
-            logger->debug("Restoring memory and shrinking {} pages", shrinkSize);
+        if (currentPages > targetPages) {
+            Uptr shrinkSize = currentPages - targetPages;
+            logger->debug("Shrinking memory by {} pages", shrinkSize);
 
             Runtime::shrinkMemory(this->defaultMemory, shrinkSize);
 
-        } else if (INITIAL_MEMORY_PAGES > currentPages) {
-            Uptr growSize = INITIAL_MEMORY_PAGES - currentPages;
-            logger->debug("Restoring memory and growing {} pages", growSize);
+        } else if (targetPages > currentPages) {
+            Uptr growSize = targetPages - currentPages;
+            logger->debug("Growing memory by {} pages", growSize);
 
             Runtime::growMemory(this->defaultMemory, growSize);
-
-        } else {
-            logger->debug("Restoring memory with {} pages", INITIAL_MEMORY_PAGES);
         }
+    }
+
+    void WasmModule::restoreMemory() {
+        this->resizeMemory(INITIAL_MEMORY_PAGES);
 
         // Restore initial memory in clean region
         U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
-        std::copy(cleanMemory, cleanMemory + CLEAN_MEMORY_SIZE, baseAddr);
+        memSnapshot.restoreCopy(baseAddr);
 
         // Reset shared memory variables
         sharedMemKVs.clear();
@@ -250,7 +330,7 @@ namespace wasm {
         // Make the call
         std::vector<IR::Value> invokeArgs;
 
-        if (resolver->isEmscripten) {
+        if (this->isEmscripten()) {
             U8 *memoryBaseAddress = getMemoryBaseAddress(defaultMemory);
 
             U32 *argvOffsets = (U32 *) (memoryBaseAddress + dynamicAlloc(defaultMemory, (U32) (sizeof(U32))));
@@ -271,8 +351,9 @@ namespace wasm {
         catch (wasm::WasmExitException &e) {
             exitCode = e.exitCode;
         }
-        catch (Runtime::Exception &ex) {
-            logger->error("Runtime exception: {}", Runtime::describeException(&ex).c_str());
+        catch (Runtime::Exception *ex) {
+            logger->error("Runtime exception: {}", Runtime::describeException(ex).c_str());
+            Runtime::destroyException(ex);
         }
 
         return exitCode;

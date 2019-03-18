@@ -1,114 +1,79 @@
- _getenv func i32->i32
- ___syscall300 func (i32, i32)->i32
- ___syscall12 func (i32, i32)->i32
- ___syscall63 func (i32, i32)->i32
- ___syscall340 func (i32, i32)->i32
- ___syscall306 func (i32, i32)->i32
- ___syscall295 func (i32, i32)->i32
- ___syscall212 func (i32, i32)->i32
- ___syscall195 func (i32, i32)->i32
- ___syscall15 func (i32, i32)->i32
- ___syscall132 func (i32, i32)->i32
- _dlsym func (i32, i32)->i32
- _confstr func (i32, i32, i32)->i32
- _clock_settime func (i32, i32)->i32
- _chroot func i32->i32
- _alarm func i32->i32
- ___wait func (i32, i32, i32, i32)->()
- ___syscall97 func (i32, i32)->i32
- ___syscall96 func (i32, i32)->i32
- ___syscall94 func (i32, i32)->i32
- ___syscall9 func (i32, i32)->i32
- ___syscall85 func (i32, i32)->i32
- ___syscall83 func (i32, i32)->i32
- ___syscall77 func (i32, i32)->i32
- ___syscall75 func (i32, i32)->i32
- ___syscall66 func (i32, i32)->i32
- ___syscall118 func (i32, i32)->i32
- ___syscall64 func (i32, i32)->i32
- ___syscall60 func (i32, i32)->i32
- ___syscall57 func (i32, i32)->i32
- ___syscall42 func (i32, i32)->i32
- ___syscall41 func (i32, i32)->i32
- ___syscall40 func (i32, i32)->i32
- ___syscall10 func (i32, i32)->i32
- ___syscall4 func (i32, i32)->i32
- ___syscall39 func (i32, i32)->i32
- ___syscall38 func (i32, i32)->i32
- ___syscall36 func (i32, i32)->i32
- ___syscall34 func (i32, i32)->i32
- ___syscall331 func (i32, i32)->i32
- ___syscall330 func (i32, i32)->i32
- ___syscall33 func (i32, i32)->i32
- ___syscall324 func (i32, i32)->i32
- ___syscall320 func (i32, i32)->i32
- ___syscall305 func (i32, i32)->i32
- ___syscall304 func (i32, i32)->i32
- ___syscall303 func (i32, i32)->i32
- ___syscall302 func (i32, i32)->i32
- ___syscall301 func (i32, i32)->i32
- ___syscall3 func (i32, i32)->i32
- ___syscall298 func (i32, i32)->i32
- ___syscall297 func (i32, i32)->i32
- ___syscall296 func (i32, i32)->i32
- ___syscall29 func (i32, i32)->i32
- ___syscall272 func (i32, i32)->i32
- ___syscall269 func (i32, i32)->i32
- ___syscall268 func (i32, i32)->i32
- ___syscall220 func (i32, i32)->i32
- ___syscall211 func (i32, i32)->i32
- ___syscall209 func (i32, i32)->i32
- ___syscall207 func (i32, i32)->i32
- ___syscall205 func (i32, i32)->i32
- ___syscall202 func (i32, i32)->i32
- ___syscall201 func (i32, i32)->i32
- ___syscall200 func (i32, i32)->i32
- ___syscall20 func (i32, i32)->i32
- ___syscall199 func (i32, i32)->i32
- ___syscall198 func (i32, i32)->i32
- ___libc_current_sigrtmin func ()->i32
- ___syscall197 func (i32, i32)->i32
- ___syscall196 func (i32, i32)->i32
- ___syscall194 func (i32, i32)->i32
- ___syscall193 func (i32, i32)->i32
- ___syscall191 func (i32, i32)->i32
- ___syscall183 func (i32, i32)->i32
- ___syscall181 func (i32, i32)->i32
- ___syscall180 func (i32, i32)->i32
- ___libc_current_sigrtmax func ()->i32
- ___syscall148 func (i32, i32)->i32
- ___syscall147 func (i32, i32)->i32
- _waitid func (i32, i32, i32, i32)->i32
- _wait4 func (i32, i32, i32, i32)->i32
- _wait3 func (i32, i32, i32)->i32
- _wait func i32->i32
- ___syscall142 func (i32, i32)->i32
- _unsetenv func i32->i32
- _system func i32->i32
- _strftime func (i32, i32, i32, i32)->i32
- _sigpending func i32->i32
- _sigismember func (i32, i32)->i32
- _siginterrupt func (i32, i32)->i32
- _sigfillset func i32->i32
- _setpwent func ()->()
- _setitimer func (i32, i32, i32)->i32
- _setgroups func (i32, i32)->i32
- _sched_yield func ()->i32
- _putenv func i32->i32
- ___syscall14 func (i32, i32)->i32
- _pathconf func (i32, i32)->i32
- _killpg func (i32, i32)->i32
- _kill func (i32, i32)->i32
- _gmtime func i32->i32
- ___syscall133 func (i32, i32)->i32
- _getpwuid func i32->i32
- _getpwnam func i32->i32
- _getloadavg func (i32, i32)->i32
- _getitimer func (i32, i32)->i32
- _fexecve func (i32, i32, i32)->i32
- _execve func (i32, i32, i32)->i32
- _execv func (i32, i32)->i32
- _dlopen func (i32, i32)->i32
- _dlerror func ()->i32
- ___syscall122 func (i32, i32)->i32
- ___buildEnvironment func i32->()
+setTempRet0 func i32->()
+getTempRet0 func ()->i32
+invoke_ii func (i32, i32)->i32
+invoke_iii func (i32, i32, i32)->i32
+invoke_iiii func (i32, i32, i32, i32)->i32
+invoke_iiiii func (i32, i32, i32, i32, i32)->i32
+invoke_vi func (i32, i32)->()
+invoke_vii func (i32, i32, i32)->()
+invoke_viiii func (i32, i32, i32, i32, i32)->()
+___clock_gettime func (i32, i32)->i32
+___cxa_allocate_exception func i32->i32
+___cxa_begin_catch func i32->i32
+___cxa_current_primary_exception func ()->i32
+___cxa_decrement_exception_refcount func i32->()
+___cxa_increment_exception_refcount func i32->()
+___cxa_pure_virtual func ()->()
+___cxa_rethrow_primary_exception func i32->()
+___cxa_throw func (i32, i32, i32)->()
+___cxa_uncaught_exception func ()->i32
+___syscall114 func (i32, i32)->i32
+___syscall121 func (i32, i32)->i32
+___syscall125 func (i32, i32)->i32
+___syscall144 func (i32, i32)->i32
+___syscall150 func (i32, i32)->i32
+___syscall151 func (i32, i32)->i32
+___syscall152 func (i32, i32)->i32
+___syscall153 func (i32, i32)->i32
+___syscall163 func (i32, i32)->i32
+___syscall218 func (i32, i32)->i32
+___syscall219 func (i32, i32)->i32
+___syscall308 func (i32, i32)->i32
+___syscall333 func (i32, i32)->i32
+___syscall334 func (i32, i32)->i32
+___syscall337 func (i32, i32)->i32
+___syscall345 func (i32, i32)->i32
+___syscall51 func (i32, i32)->i32
+_emscripten_longjmp func (i32, i32)->()
+_gai_strerror func i32->i32
+_getaddrinfo func (i32, i32, i32, i32)->i32
+_gethostbyaddr func (i32, i32, i32)->i32
+_gethostbyname func i32->i32
+_getnameinfo func (i32, i32, i32, i32, i32, i32, i32)->i32
+_getprotobyname func i32->i32
+_gmtime_r func (i32, i32)->i32
+_inet_addr func i32->i32
+_llvm_copysign_f32 func (f64, f64)->f64
+_llvm_copysign_f64 func (f64, f64)->f64
+_llvm_trap func ()->()
+_localtime_r func (i32, i32)->i32
+_longjmp func (i32, i32)->()
+_nanosleep func (i32, i32)->i32
+_pthread_attr_destroy func i32->i32
+_pthread_attr_init func i32->i32
+_pthread_attr_setstacksize func (i32, i32)->i32
+_pthread_cleanup_pop func i32->()
+_pthread_cleanup_push func (i32, i32)->()
+_pthread_cond_destroy func i32->i32
+_pthread_cond_init func (i32, i32)->i32
+_pthread_cond_signal func i32->i32
+_pthread_cond_timedwait func (i32, i32, i32)->i32
+_pthread_cond_wait func (i32, i32)->i32
+_pthread_create func (i32, i32, i32, i32)->i32
+_pthread_detach func i32->i32
+_pthread_equal func (i32, i32)->i32
+_pthread_exit func i32->()
+_pthread_getspecific func i32->i32
+_pthread_join func (i32, i32)->i32
+_pthread_key_create func (i32, i32)->i32
+_pthread_key_delete func i32->i32
+_pthread_mutex_destroy func i32->i32
+_pthread_mutex_init func (i32, i32)->i32
+_pthread_mutexattr_destroy func i32->i32
+_pthread_mutexattr_init func i32->i32
+_pthread_mutexattr_settype func (i32, i32)->i32
+_pthread_once func (i32, i32)->i32
+_pthread_setspecific func (i32, i32)->i32
+_sigaddset func (i32, i32)->i32
+_signal func (i32, i32)->i32
+_utime func (i32, i32)->i32

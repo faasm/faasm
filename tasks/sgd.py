@@ -3,8 +3,9 @@ from os.path import join
 from botocore.exceptions import ClientError
 from invoke import task
 
-from tasks import upload_func, deploy_wasm_lambda_func, delete_lambda, lambda_concurrency
-from tasks.aws import invoke_faasm_lambda, invoke_lambda, deploy_native_lambda_func
+from tasks.upload import upload_func
+from tasks.aws import invoke_faasm_lambda, invoke_lambda, deploy_native_lambda_func, deploy_wasm_lambda_func, \
+    lambda_concurrency, delete_lambda
 from tasks.env import HOME_DIR, STATE_S3_BUCKET
 from tasks.upload_util import curl_file, upload_file_to_s3
 
@@ -70,9 +71,9 @@ def begin_aws_svm(ctx):
 
 
 @task
-def upload_sgd_funcs(ctx, host="localhost", emscripten=False):
+def upload_sgd_funcs(ctx, host="localhost"):
     for func_name in _SGD_FUNCS:
-        upload_func(ctx, "sgd", func_name, host=host, emscripten=emscripten)
+        upload_func(ctx, "sgd", func_name, host=host)
 
 
 @task

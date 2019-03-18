@@ -1,0 +1,25 @@
+---
+
+- hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: "Download 3.7 dist"
+      get_url:
+        url: https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tgz
+        dest: "/tmp/Python-3.7.2.tgz"
+
+    - name: "Unzip"
+      shell: "tar -xf Python-3.7.2.tgz"
+      args:
+        chdir: "/tmp"
+
+    - name: "Configure 3.7"
+      shell: "./configure --enable-optimizations"
+      args:
+        chdir: "/tmp/Python-3.7.2/"
+
+    - name: "Install alt 3.7"
+      become: yes
+      shell: "make altinstall"
+      args:
+        chdir: "/tmp/Python-3.7.2/"

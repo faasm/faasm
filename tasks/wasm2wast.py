@@ -29,7 +29,8 @@ def wast(context, user, func_name):
     cmd = [
         disassemble_bin,
         wasm_path,
-        wast_path
+        wast_path,
+        "--enable-quoted-names"
     ]
 
     cmd = " ".join(cmd)

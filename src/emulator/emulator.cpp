@@ -144,4 +144,12 @@ void __faasm_chain_function(const char *name, const unsigned char *inputData, lo
 
 }
 
+void __faasm_snapshot_memory(const char *key) {
+
+}
+
+void __faasm_restore_memory(const char *key) {
+
+}
+
 

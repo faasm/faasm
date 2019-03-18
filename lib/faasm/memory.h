@@ -105,6 +105,16 @@ namespace faasm {
          * Chains a function with the given input data
          */
         void chainFunction(const char *name, const uint8_t *inputData, long inputDataSize);
+
+        /**
+         * Snapshots the current memory for future restore
+         */
+        void snapshot(const char *name);
+
+        /**
+         * Restore the current memory from a snapshot
+         */
+        void restore(const char *name);
     };
 }
 
