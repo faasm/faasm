@@ -83,6 +83,9 @@ namespace wasm {
         return emGlobalModule;
     }
 
+    static const char *FAKE_NAME = "faasm";
+    static const char *FAKE_PASSWORD = "foobar123";
+    static const char *FAKE_HOME = "/";
     static const int FAKE_UID = 1;
     static const int FAKE_GID = 1;
     static const char *FALSE_ROOT = "/usr/local/faasm/runtime_root";
@@ -236,6 +239,18 @@ namespace wasm {
         wasmHostPtr->st_ino = nativeStatPtr->st_ino;
     }
 
+    /**
+     * Note that char pointers are U32
+     */
+    struct wasm_passwd {
+        U32 pw_name;
+        U32 pw_passwd;
+        U32 pw_uid;
+        U32 pw_gid;
+        U32 pw_gecos;
+        U32 pw_dir;
+        U32 pw_shell;
+    };
 
     /**
      * Note, this struct type works with emscripten, but may not work with musl implementations
@@ -1826,17 +1841,19 @@ namespace wasm {
     }
 
     // ------------------------
-    // Signals - unsupported
+    // Signals
     // ------------------------
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_sigaction", I32, _sigaction, I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - sigaction - {} {} {}", a, b, c);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+
+        return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_sigemptyset", I32, _sigemptyset, I32 a) {
         util::getLogger()->debug("S - _sigemptyset - {}", a);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+
+        return 0;
     }
 
     // ------------------------
@@ -1855,6 +1872,33 @@ namespace wasm {
     // ------------------------
     // Misc
     // ------------------------
+
+    I32 s__getpwuid(I32 uid) {
+        util::getLogger()->debug("S - _getpwuid - {}", uid);
+
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+
+        // Provision space for the new struct, username and password
+        U32 namePtr = dynamicAllocString(memoryPtr, FAKE_NAME, strlen(FAKE_NAME));
+        U32 passwordPtr = dynamicAllocString(memoryPtr, FAKE_PASSWORD, strlen(FAKE_PASSWORD));
+        U32 homePtr = dynamicAllocString(memoryPtr, FAKE_HOME, strlen(FAKE_HOME));
+        U32 structPtr = dynamicAlloc(memoryPtr, sizeof(wasm_passwd));
+
+        // Get a pointer to it
+        wasm_passwd *wasmPasswd = &Runtime::memoryRef<wasm_passwd>(memoryPtr, (Uptr) structPtr);
+
+        wasmPasswd->pw_name = namePtr;
+        wasmPasswd->pw_passwd = passwordPtr;
+        wasmPasswd->pw_uid = FAKE_UID;
+        wasmPasswd->pw_gid = FAKE_GID;
+        wasmPasswd->pw_dir = homePtr;
+
+        return structPtr;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_getpwuid", I32, _getpwuid, I32 uid) {
+        return s__getpwuid(uid);
+    }
 
     I32 s__getuid32() {
         util::getLogger()->debug("S - getuid32");
@@ -3478,11 +3522,6 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall133", I32, ___syscall133, I32 a, I32 b) {
         util::getLogger()->debug("S - ___syscall133 - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_getpwuid", I32, _getpwuid, I32 a) {
-        util::getLogger()->debug("S - _getpwuid - {}", a);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
