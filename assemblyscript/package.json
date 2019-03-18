@@ -1,8 +1,9 @@
 {
   "scripts": {
-    "asbuild:untouched": "asc assembly/index.ts -b build/untouched.wasm -t build/untouched.wat --sourceMap --validate --debug",
-    "asbuild:optimized": "asc assembly/index.ts -b build/optimized.wasm -t build/optimized.wat --sourceMap --validate --optimize",
-    "asbuild": "npm run asbuild:untouched && npm run asbuild:optimized"
+    "asbuild:untouched": "asc assembly/$FUNC.ts -b build/$FUNC.untouched.wasm -t build/$FUNC.untouched.wast --validate --debug",
+    "asbuild:optimized": "asc assembly/$FUNC.ts -b build/$FUNC.optimized.wasm -t build/$FUNC.optimized.wast --validate --optimize",
+    "asbuild": "npm run asbuild:untouched && npm run asbuild:optimized",
+    "echo": "FUNC=echo npm run asbuild"
   },
   "devDependencies": {
     "assemblyscript": "github:AssemblyScript/assemblyscript"
