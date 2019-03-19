@@ -15,7 +15,12 @@ def check_correct_emscripten(expected_root):
     actual_root = environ.get("EMSCRIPTEN")
 
     if not actual_root or not actual_root.startswith(expected_root):
-        print("NOTE: you must source the emsdk_env.sh for {}".format(expected_root))
+        path_parts = expected_root.split("/")
+        emsdk_path = path_parts[:-2]
+        emsdk_path.append("emsdk_env.sh")
+
+        print("You are not running the expected emscripten. Start a new shell and run: ")
+        print("source {}".format("/".join(emsdk_path)))
         exit(1)
 
 

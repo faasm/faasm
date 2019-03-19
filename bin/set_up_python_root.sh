@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Pyodide
-# INSTALL_DIR=/usr/local/code/pyodide/cpython/installs/python-3.7.0
-# sudo chown -R ${USER}:${USER} ${INSTALL_DIR}
+INSTALL_DIR=/usr/local/code/pyodide/cpython/installs/python-3.7.0
+sudo chown -R ${USER}:${USER} ${INSTALL_DIR}
 
 # Emscripten
-INSTALL_DIR=/usr/local/code/faasm/cpython-emscripten/installs/python-3.5.2/
+#INSTALL_DIR=/usr/local/code/faasm/cpython-emscripten/installs/python-3.5.2/
 
 rm -rf /usr/local/faasm/runtime_root/*
 

@@ -29,7 +29,7 @@ if (${EMSCRIPTEN})
     include_directories(/usr/local/include/)
 
     if (FAASM_BUILD_TYPE STREQUAL "pyodide")
-        message(STATUS "Detected Emscripten python build")
+        message(STATUS "Detected pyodide build")
 
         # --- Emscripten pyodide options ---
         #
@@ -47,13 +47,14 @@ if (${EMSCRIPTEN})
             -s EMULATE_FUNCTION_POINTER_CASTS=1 \
             -s LINKABLE=1 \
             -s EXPORT_ALL=1 \
-            -s EXPORTED_FUNCTIONS='[\"___cxa_guard_acquire\", \"__ZNSt3__28ios_base4initEPv\"]' \
+            -s EXPORTED_FUNCTIONS='[\"_main\", \"___cxa_guard_acquire\", \"__ZNSt3__28ios_base4initEPv\"]' \
             -s WASM=1 \
             -s SWAPPABLE_ASM_MODULE=1 \
             --memory-init-file 0 \
         ")
 
     else ()
+        message(STATUS "Detected standard emscripten build")
         # --- Vanilla Emscripten options ---
         #
         # These should match the normal cpython-emscripten repo

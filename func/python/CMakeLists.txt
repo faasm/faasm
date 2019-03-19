@@ -12,6 +12,9 @@ else ()
     find_package(PythonLibs)
 endif ()
 
+message(STATUS "PYTHON_LIBRARIES=${PYTHON_LIBRARIES}")
+message(STATUS "PYTHON_INCLUDE_DIRS=${PYTHON_INCLUDE_DIRS}")
+
 # Python functions
 include_directories(${PYTHON_INCLUDE_DIRS})
 faasm_func(py_hello py_hello.c)

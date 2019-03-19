@@ -86,6 +86,7 @@ namespace wasm {
     static const char *FAKE_NAME = "faasm";
     static const char *FAKE_PASSWORD = "foobar123";
     static const char *FAKE_HOME = "/";
+    static const int FAKE_PID = 23;
     static const int FAKE_UID = 1;
     static const int FAKE_GID = 1;
     static const char *FALSE_ROOT = "/usr/local/faasm/runtime_root";
@@ -1841,7 +1842,7 @@ namespace wasm {
     }
 
     // ------------------------
-    // Signals
+    // Signals (ignored)
     // ------------------------
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_sigaction", I32, _sigaction, I32 a, I32 b, I32 c) {
@@ -1852,6 +1853,30 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_sigemptyset", I32, _sigemptyset, I32 a) {
         util::getLogger()->debug("S - _sigemptyset - {}", a);
+
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_signal", I32, _signal, I32 a, I32 b) {
+        util::getLogger()->debug("S - _signal - {} {}", a, b);
+
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_siginterrupt", I32, _siginterrupt, I32 a, I32 b) {
+        util::getLogger()->debug("S - _siginterrupt - {} {}", a, b);
+
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___libc_current_sigrtmin", I32, ___libc_current_sigrtmin) {
+        util::getLogger()->debug("S - ___libc_current_sigrtmin");
+
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___libc_current_sigrtmax", I32, ___libc_current_sigrtmax) {
+        util::getLogger()->debug("S - ___libc_current_sigrtmax");
 
         return 0;
     }
@@ -1872,6 +1897,15 @@ namespace wasm {
     // ------------------------
     // Misc
     // ------------------------
+
+    I32 s__getpid() {
+        return FAKE_PID;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall20", I32, ___syscall20, I32 a, I32 b) {
+        util::getLogger()->debug("S - ___syscall20 - {} {}", a, b);
+        return s__getpid();
+    }
 
     I32 s__getpwuid(I32 uid) {
         util::getLogger()->debug("S - _getpwuid - {}", uid);
@@ -2454,11 +2488,19 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledAbort);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "abortOnCannotGrowMemory", U32, abortOnCannotGrowMemory, I32 a) {
-        util::getLogger()->debug("S - abortOnCannotGrowMemory - {}", a);
+    // Version for older emscripten builds
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "abortOnCannotGrowMemory", U32, abortOnCannotGrowMemory) {
+        util::getLogger()->debug("S - abortOnCannotGrowMemory");
 
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
+
+    // Version for newer emscripten builds
+//    DEFINE_INTRINSIC_FUNCTION(emEnv, "abortOnCannotGrowMemory", U32, abortOnCannotGrowMemory, I32 a) {
+//        util::getLogger()->debug("S - abortOnCannotGrowMemory - {}", a);
+//
+//        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+//    }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "enlargeMemory", I32, enlargeMemory) {
         util::getLogger()->debug("S - enlargeMemory");
@@ -2673,17 +2715,19 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledAbort);
     }
 
-//    DEFINE_INTRINSIC_FUNCTION(emEnv, "abort", void, emscripten_abort, I32 a) {
-//        util::getLogger()->debug("S - abort {}", a);
-//
-//        throwException(Runtime::ExceptionTypes::calledAbort);
-//    }
-
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "abort", void, emscripten_abort) {
-        util::getLogger()->debug("S - abort");
+    // Version for older emscripten builds
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "abort", void, emscripten_abort, I32 a) {
+        util::getLogger()->debug("S - abort {}", a);
 
         throwException(Runtime::ExceptionTypes::calledAbort);
     }
+
+    // Version for newer emscripten builds
+//    DEFINE_INTRINSIC_FUNCTION(emEnv, "abort", void, emscripten_abort) {
+//        util::getLogger()->debug("S - abort");
+//
+//        throwException(Runtime::ExceptionTypes::calledAbort);
+//    }
 
     /**
      * All the null funcs are catastrophic and related to issues with function pointers
@@ -3053,7 +3097,8 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_pthread_key_delete", I32, _pthread_key_delete, I32 a) {
         util::getLogger()->debug("S - _pthread_key_delete - {}", a);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+
+        return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_pthread_mutex_destroy", I32, _pthread_mutex_destroy, I32 a) {
@@ -3360,18 +3405,8 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall20", I32, ___syscall20, I32 a, I32 b) {
-        util::getLogger()->debug("S - ___syscall20 - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall198", I32, ___syscall198, I32 a, I32 b) {
         util::getLogger()->debug("S - ___syscall198 - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "___libc_current_sigrtmin", I32, ___libc_current_sigrtmin) {
-        util::getLogger()->debug("S - ___libc_current_sigrtmin");
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
@@ -3397,11 +3432,6 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall180", I32, ___syscall180, I32 a, I32 b) {
         util::getLogger()->debug("S - ___syscall180 - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "___libc_current_sigrtmax", I32, ___libc_current_sigrtmax) {
-        util::getLogger()->debug("S - ___libc_current_sigrtmax");
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
@@ -3457,11 +3487,6 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_sigismember", I32, _sigismember, I32 a, I32 b) {
         util::getLogger()->debug("S - _sigismember - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_siginterrupt", I32, _siginterrupt, I32 a, I32 b) {
-        util::getLogger()->debug("S - _siginterrupt - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
@@ -3845,13 +3870,68 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_signal", I32, _signal, I32 a, I32 b) {
-        util::getLogger()->debug("S - _signal - {} {}", a, b);
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_utime", I32, _utime, I32 a, I32 b) {
+        util::getLogger()->debug("S - _utime - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_utime", I32, _utime, I32 a, I32 b) {
-        util::getLogger()->debug("S - _utime - {} {}", a, b);
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_adler32", I32, _adler32 , I32 a, I32 b, I32 c) {
+        util::getLogger()->debug("S - _adler32 - {} {} {}", a, b, c);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_crc32", I32, _crc32 , I32 a, I32 b, I32 c) {
+        util::getLogger()->debug("S - _crc32 - {} {} {}", a, b, c);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_deflate", I32, _deflate , I32 a, I32 b) {
+        util::getLogger()->debug("S - _deflate - {} {}", a, b);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_deflateEnd", I32, _deflateEnd , I32 a) {
+        util::getLogger()->debug("S - _deflateEnd - {}", a);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_deflateInit2_", I32, _deflateInit2_ , I32 a, I32 b, I32 c, I32 d, I32 e, I32 f, I32 g, I32 h) {
+        util::getLogger()->debug("S - _deflateInit2_ - {} {} {} {} {} {} {} {}", a, b, c, d, e, f, g, h);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_deflateInit_", I32, _deflateInit_ , I32 a, I32 b, I32 c, I32 d) {
+        util::getLogger()->debug("S - _deflateInit_ - {} {} {} {}", a, b, c, d);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_deflateSetDictionary", I32, _deflateSetDictionary , I32 a, I32 b, I32 c) {
+        util::getLogger()->debug("S - _deflateSetDictionary - {} {} {}", a, b, c);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_inflate", I32, _inflate , I32 a, I32 b) {
+        util::getLogger()->debug("S - _inflate - {} {}", a, b);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_inflateEnd", I32, _inflateEnd , I32 a) {
+        util::getLogger()->debug("S - _inflateEnd - {}", a);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_inflateInit2_", I32, _inflateInit2_ , I32 a, I32 b, I32 c, I32 d) {
+        util::getLogger()->debug("S - _inflateInit2_ - {} {} {} {}", a, b, c, d);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_inflateSetDictionary", I32, _inflateSetDictionary , I32 a, I32 b, I32 c) {
+        util::getLogger()->debug("S - _inflateSetDictionary - {} {} {}", a, b, c);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_zlibVersion", I32, _zlibVersion ) {
+        util::getLogger()->debug("S - _zlibVersion");
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 }

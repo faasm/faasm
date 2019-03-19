@@ -55,7 +55,6 @@ from tasks.python import (
     build_python,
     build_emscripten_cpython,
     build_pyodide_cpython,
-    set_up_python_root,
 )
 from tasks.sgd import (
     begin_aws_svm,

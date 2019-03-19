@@ -1,6 +1,5 @@
 import copy
 from copy import copy
-from os.path import exists
 from os.path import join
 from subprocess import call
 
@@ -9,52 +8,7 @@ from invoke import task
 from tasks.compile import check_correct_emscripten
 from tasks.download import FAASM_HOME, clone_proj
 from tasks.env import NATIVE_ENV_DICT, ENV_STR, CONFIG_TARGET, \
-    CONFIG_HOST, SYSROOT, PY_EMSCRIPTEN_DIR, PROJ_ROOT, EMSCRIPTEN_DIR, PYODIDE_ROOT, FAASM_RUNTIME_ROOT
-
-# Note: this must be the dir that contains "include" and "lib" into the runtime root
-EMSCRIPTEN_CPYTHON_INSTALL_DIR = join(PROJ_ROOT, "cpython-emscripten", "installs", "python-3.5.2")
-
-# Subset of files to make available to the python runtime
-EMSCRIPTEN_PYTHON_LIB_FILES = [
-    "lib/python3.5/_collections_abc.py",
-    "lib/python3.5/_dummy_thread.py",
-    "lib/python3.5/_sitebuiltins.py",
-    "lib/python3.5/_sysconfigdata.py",
-    "lib/python3.5/_weakrefset.py",
-    "lib/python3.5/abc.py",
-    "lib/python3.5/codecs.py",
-    "lib/python3.5/collections/__init__.py",
-    "lib/python3.5/collections/abc.py",
-    "lib/python3.5/contextlib.py",
-    "lib/python3.5/encodings/__init__.py",
-    "lib/python3.5/encodings/aliases.py",
-    "lib/python3.5/encodings/cp437.py",
-    "lib/python3.5/encodings/latin_1.py",
-    "lib/python3.5/encodings/utf_8.py",
-    "lib/python3.5/functools.py",
-    "lib/python3.5/genericpath.py",
-    "lib/python3.5/heapq.py",
-    "lib/python3.5/importlib/__init__.py",
-    "lib/python3.5/importlib/_bootstrap.py",
-    "lib/python3.5/importlib/_bootstrap_external.py",
-    "lib/python3.5/importlib/abc.py",
-    "lib/python3.5/importlib/machinery.py",
-    "lib/python3.5/importlib/util.py",
-    "lib/python3.5/io.py",
-    "lib/python3.5/keyword.py",
-    "lib/python3.5/operator.py",
-    "lib/python3.5/os.py",
-    "lib/python3.5/pkgutil.py",
-    "lib/python3.5/posixpath.py",
-    "lib/python3.5/reprlib.py",
-    "lib/python3.5/runpy.py",
-    "lib/python3.5/site.py",
-    "lib/python3.5/stat.py",
-    "lib/python3.5/sysconfig.py",
-    "lib/python3.5/types.py",
-    "lib/python3.5/warnings.py",
-    "lib/python3.5/weakref.py",
-]
+    CONFIG_HOST, SYSROOT, PY_EMSCRIPTEN_DIR, PROJ_ROOT, EMSCRIPTEN_DIR, PYODIDE_ROOT
 
 
 @task
@@ -75,32 +29,6 @@ def build_pyodide_cpython(ctx):
     call("rm -f {}".format(py_lib), shell=True)
 
     call("make", cwd=cpython_root, shell=True)
-
-
-@task
-def set_up_python_root(ctx):
-    # Create root if necessary
-    if not exists(FAASM_RUNTIME_ROOT):
-        raise RuntimeError("Must create runtime root at {}".format(FAASM_RUNTIME_ROOT))
-
-    # Clear out the destination
-    call("rm -rf {}/*".format(FAASM_RUNTIME_ROOT), shell=True)
-
-    # Iterate through and put files in place
-    for relative_path in EMSCRIPTEN_PYTHON_LIB_FILES:
-        # Create the intermediate directory
-        file_name_parts = relative_path.split("/")
-        relative_dir = "/".join(file_name_parts[:-1])
-        call("mkdir -p {}/{}".format(FAASM_RUNTIME_ROOT, relative_dir), shell=True)
-
-        dest_file = join(FAASM_RUNTIME_ROOT, relative_path)
-        abs_path = "{}/{}".format(EMSCRIPTEN_CPYTHON_INSTALL_DIR, relative_path)
-
-        cmd = "cp {} {}".format(abs_path, dest_file)
-        print(cmd)
-        res = call(cmd, shell=True)
-        if res != 0:
-            raise RuntimeError("Failed to put file {} in place".format(abs_path))
 
 
 @task
