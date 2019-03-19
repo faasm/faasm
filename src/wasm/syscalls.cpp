@@ -877,7 +877,6 @@ namespace wasm {
         return s__getcwd(args[0], args[1]);
     }
 
-
     /**
      * Read is ok provided the function owns the file descriptor
      */
@@ -1008,35 +1007,44 @@ namespace wasm {
         return 0;
     }
 
+    iovec *wasmIovecsToNativeIovecs(I32 wasmIovecPtr, I32 wasmIovecCount) {
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+
+        // Get array of iovecs from memory
+        auto wasmIovecs = Runtime::memoryArrayPtr<wasm_iovec>(memoryPtr, wasmIovecPtr, wasmIovecCount);
+
+        // Build vector of iovecs
+        auto nativeIovecs = new iovec[wasmIovecCount];
+        for (int i = 0; i < wasmIovecCount; i++) {
+            wasm_iovec wasmIovec = wasmIovecs[i];
+
+            // Create a native iovec from the wasm one
+            iovec nativeIovec{
+                    .iov_base = Runtime::memoryArrayPtr<U8>(memoryPtr, wasmIovec.iov_base, wasmIovec.iov_len),
+                    .iov_len = wasmIovec.iov_len,
+            };
+
+            // Add to the list
+            nativeIovecs[i] = nativeIovec;
+        }
+
+        return nativeIovecs;
+    }
+
     /**
      * Writing is ok provided the function owns the file descriptor
      */
     I32 s__syscall_writev(I32 fd, I32 iov, I32 iovcnt) {
         util::getLogger()->debug("S - writev - {} {} {}", fd, iov, iovcnt);
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
 
-        // Get array of iovecs from memory
-        wasm_iovec *iovecs = Runtime::memoryArrayPtr<wasm_iovec>(memoryPtr, iov, iovcnt);
+        checkThreadOwnsFd(fd);
 
-        // Build vector of iovecs
-        iovec nativeIovecs[iovcnt];
-        for (int i = 0; i < iovcnt; i++) {
-            wasm_iovec thisIovec = iovecs[i];
-
-            // Get pointer to data
-            U8 *ioData = Runtime::memoryArrayPtr<U8>(memoryPtr, thisIovec.iov_base, thisIovec.iov_len);
-
-            // Create iovec and add to list
-            iovec nativeIovec{
-                    .iov_base = ioData,
-                    .iov_len = thisIovec.iov_len,
-            };
-
-            nativeIovecs[i] = nativeIovec;
-        }
+        iovec *nativeIovecs = wasmIovecsToNativeIovecs(iov, iovcnt);
 
         Iptr count = writev(STDOUT_FILENO, nativeIovecs, iovcnt);
         fflush(stdout);
+
+        delete[] nativeIovecs;
 
         return (I32) count;
     }
@@ -1049,6 +1057,29 @@ namespace wasm {
         U32 *args = emscriptenArgs(syscallNo, argsPtr, 3);
 
         return s__syscall_writev(args[0], args[1], args[2]);
+    }
+
+    I32 s__syscall_readv(I32 fd, I32 iovecPtr, I32 iovecCount) {
+        util::getLogger()->debug("S - readv - {} {} {}", fd, iovecPtr, iovecCount);
+
+        checkThreadOwnsFd(fd);
+
+        iovec *nativeIovecs = wasmIovecsToNativeIovecs(iovecPtr, iovecCount);
+
+        int bytesRead = readv(fd, nativeIovecs, iovecCount);
+
+        delete[] nativeIovecs;
+
+        return bytesRead;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_readv", I32, __syscall_readv, I32 a, I32 b, I32 c) {
+        return s__syscall_readv(a, b, c);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall145", I32, ___syscall145, I32 syscallNo, I32 argsPtr) {
+        U32 *args = emscriptenArgs(syscallNo, argsPtr, 3);
+        return s__syscall_readv(args[0], args[1], args[2]);
     }
 
     /**
@@ -1208,23 +1239,39 @@ namespace wasm {
         return s__syscall_lstat64(args[0], args[1]);
     }
 
-    // ------------------------
-    // I/O - unsupported
-    // ------------------------
+    /**
+    *  WebAssembly official docs on dynamic linking:
+    *  https://webassembly.org/docs/dynamic-linking/
+    */
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlopen", I32, _dlopen, I32 fileNamePtr, I32 flags) {
+        const std::string fileName = getMaskedPathFromWasm(fileNamePtr);
 
-    I32 s__syscall_readv(I32 a, I32 b, I32 c) {
-        util::getLogger()->debug("S - readv - {} {} {}", a, b, c);
+        util::getLogger()->debug("S - _dlopen - {} {}", fileName, flags);
+
+        // TODO - use WAVM to load a WebAssembly module into the same context etc.
+
+        // TODO - keep a running copy of which handle is which lib?
+        return 5;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlsym", I32, _dlsym, I32 handle, I32 symbolPtr) {
+        const std::string symbol = getStringFromWasm(symbolPtr);
+        util::getLogger()->debug("S - _dlsym - {} {}", handle, symbol);
+
+        // TODO - use WAVM to look up the relevant function at the relevant point in the table
+
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_readv", I32, __syscall_readv, I32 a, I32 b, I32 c) {
-        return s__syscall_readv(a, b, c);
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlerror", I32, _dlerror) {
+        util::getLogger()->debug("S - _dlerror");
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall145", I32, ___syscall145, I32 syscallNo, I32 argsPtr) {
-        U32 *args = emscriptenArgs(syscallNo, argsPtr, 3);
-        return s__syscall_readv(args[0], args[1], args[2]);
-    }
+
+    // ------------------------
+    // I/O - unsupported
+    // ------------------------
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___map_file", I32, ___map_file, I32 a, I32 b) {
         util::getLogger()->debug("S - ___map_file - {} {}", a, b);
@@ -1993,6 +2040,10 @@ namespace wasm {
             value = "/";
         } else if (strcmp(varName, "PYTHONPATH") == 0) {
             value = "/";
+        } else if (strcmp(varName, "OPENBLAS_MAIN_FREE") == 0) {
+            value = "1";
+        } else if (strcmp(varName, "GOTOBLAS_MAIN_FREE") == 0) {
+            value = "1";
         } else if (strcmp(varName, "LC_CTYPE") == 0) {
             value = "en_GB.UTF-8";
 //        } else if (strcmp(varName, "LANG") == 0) {
@@ -2051,6 +2102,14 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_setenv", I32, emscripten_setenv, I32 varPtr, I32 valPtr, I32 overwrite) {
         return s__setenv(varPtr, valPtr, overwrite);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_putenv", I32, _putenv, I32 varStringPtr) {
+        const std::string varString = getStringFromWasm(varStringPtr);
+
+        util::getLogger()->debug("S - _putenv {}", varString);
+
+        return 0;
     }
 
     I32 s__unsetenv(I32 varPtr) {
@@ -3188,11 +3247,6 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlsym", I32, _dlsym, I32 a, I32 b) {
-        util::getLogger()->debug("S - _dlsym - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_confstr", I32, _confstr, I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - _confstr - {} {} {}", a, b, c);
 
@@ -3515,11 +3569,6 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_putenv", I32, _putenv, I32 a) {
-        util::getLogger()->debug("S - _putenv - {}", a);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall14", I32, ___syscall14, I32 a, I32 b) {
         util::getLogger()->debug("S - ___syscall14 - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
@@ -3577,16 +3626,6 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_execv", I32, _execv, I32 a, I32 b) {
         util::getLogger()->debug("S - _execv - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlopen", I32, _dlopen, I32 a, I32 b) {
-        util::getLogger()->debug("S - _dlopen - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlerror", I32, _dlerror) {
-        util::getLogger()->debug("S - _dlerror");
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
@@ -3875,62 +3914,63 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_adler32", I32, _adler32 , I32 a, I32 b, I32 c) {
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_adler32", I32, _adler32, I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - _adler32 - {} {} {}", a, b, c);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_crc32", I32, _crc32 , I32 a, I32 b, I32 c) {
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_crc32", I32, _crc32, I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - _crc32 - {} {} {}", a, b, c);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_deflate", I32, _deflate , I32 a, I32 b) {
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_deflate", I32, _deflate, I32 a, I32 b) {
         util::getLogger()->debug("S - _deflate - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_deflateEnd", I32, _deflateEnd , I32 a) {
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_deflateEnd", I32, _deflateEnd, I32 a) {
         util::getLogger()->debug("S - _deflateEnd - {}", a);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_deflateInit2_", I32, _deflateInit2_ , I32 a, I32 b, I32 c, I32 d, I32 e, I32 f, I32 g, I32 h) {
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_deflateInit2_", I32, _deflateInit2_, I32 a, I32 b, I32 c, I32 d, I32 e, I32 f,
+                              I32 g, I32 h) {
         util::getLogger()->debug("S - _deflateInit2_ - {} {} {} {} {} {} {} {}", a, b, c, d, e, f, g, h);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_deflateInit_", I32, _deflateInit_ , I32 a, I32 b, I32 c, I32 d) {
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_deflateInit_", I32, _deflateInit_, I32 a, I32 b, I32 c, I32 d) {
         util::getLogger()->debug("S - _deflateInit_ - {} {} {} {}", a, b, c, d);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_deflateSetDictionary", I32, _deflateSetDictionary , I32 a, I32 b, I32 c) {
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_deflateSetDictionary", I32, _deflateSetDictionary, I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - _deflateSetDictionary - {} {} {}", a, b, c);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_inflate", I32, _inflate , I32 a, I32 b) {
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_inflate", I32, _inflate, I32 a, I32 b) {
         util::getLogger()->debug("S - _inflate - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_inflateEnd", I32, _inflateEnd , I32 a) {
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_inflateEnd", I32, _inflateEnd, I32 a) {
         util::getLogger()->debug("S - _inflateEnd - {}", a);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_inflateInit2_", I32, _inflateInit2_ , I32 a, I32 b, I32 c, I32 d) {
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_inflateInit2_", I32, _inflateInit2_, I32 a, I32 b, I32 c, I32 d) {
         util::getLogger()->debug("S - _inflateInit2_ - {} {} {} {}", a, b, c, d);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_inflateSetDictionary", I32, _inflateSetDictionary , I32 a, I32 b, I32 c) {
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_inflateSetDictionary", I32, _inflateSetDictionary, I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - _inflateSetDictionary - {} {} {}", a, b, c);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_zlibVersion", I32, _zlibVersion ) {
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_zlibVersion", I32, _zlibVersion) {
         util::getLogger()->debug("S - _zlibVersion");
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }

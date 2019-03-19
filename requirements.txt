@@ -4,4 +4,5 @@ boto
 boto3
 configparser
 invoke
+numpy
 requests
