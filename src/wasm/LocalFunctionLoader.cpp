@@ -10,14 +10,21 @@
 namespace wasm {
     std::vector<uint8_t> LocalFunctionLoader::loadFunctionBytes(const message::Message &msg) {
         std::string filePath = util::getFunctionFile(msg);
-        std::vector<uint8_t> fileBytes = util::readFileToBytes(filePath);
+        return this->loadFunctionObjectBytes(filePath);
+    }
 
+    std::vector<uint8_t> LocalFunctionLoader::loadFunctionBytes(const std::string &path) {
+        std::vector<uint8_t> fileBytes = util::readFileToBytes(path);
         return fileBytes;
     }
 
     std::vector<uint8_t> LocalFunctionLoader::loadFunctionObjectBytes(const message::Message &msg) {
         std::string objectFilePath = util::getFunctionObjectFile(msg);
-        std::vector<uint8_t> bytes = util::readFileToBytes(objectFilePath);
+        return this->loadFunctionObjectBytes(objectFilePath);
+    }
+
+    std::vector<uint8_t> LocalFunctionLoader::loadFunctionObjectBytes(const std::string &path) {
+        std::vector<uint8_t> bytes = util::readFileToBytes(path);
 
         return bytes;
     }
@@ -38,7 +45,11 @@ namespace wasm {
 
     void LocalFunctionLoader::uploadObjectBytes(const message::Message &msg, const std::vector<uint8_t> &objBytes) {
         std::string objFilePath = util::getFunctionObjectFile(msg);
-        util::writeBytesToFile(objFilePath, objBytes);
+        this->uploadObjectBytes(objFilePath, objBytes);
+    }
+
+    void LocalFunctionLoader::uploadObjectBytes(const std::string &path, const std::vector<uint8_t> &objBytes) {
+        util::writeBytesToFile(path, objBytes);
     }
 
 }

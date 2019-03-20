@@ -10,20 +10,29 @@ namespace wasm {
     }
 
     std::vector<uint8_t> S3FunctionLoader::loadFunctionBytes(const message::Message &msg) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
         const std::string key = util::getFunctionKey(msg);
-        logger->debug("Loading function bytes from {}/{}", conf.bucketName, key);
+        return this->loadFunctionBytes(key);
+    }
 
-        const std::vector<uint8_t> bytes = s3.getKeyBytes(conf.bucketName, key);
-        
+    std::vector<uint8_t> S3FunctionLoader::loadFunctionBytes(const std::string &path) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Loading function bytes from {}/{}", conf.bucketName, path);
+
+        const std::vector<uint8_t> bytes = s3.getKeyBytes(conf.bucketName, path);
+
         return bytes;
     }
 
     std::vector<uint8_t> S3FunctionLoader::loadFunctionObjectBytes(const message::Message &msg) {
         const std::string key = util::getFunctionObjectKey(msg);
-        const std::vector<uint8_t> bytes = s3.getKeyBytes(conf.bucketName, key);
+        return this->loadFunctionObjectBytes(key);
+    }
 
+    std::vector<uint8_t> S3FunctionLoader::loadFunctionObjectBytes(const std::string &path) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Loading object bytes from {}/{}", conf.bucketName, path);
+
+        const std::vector<uint8_t> bytes = s3.getKeyBytes(conf.bucketName, path);
         return bytes;
     }
 
@@ -39,11 +48,16 @@ namespace wasm {
     }
 
     void S3FunctionLoader::uploadObjectBytes(const message::Message &msg, const std::vector<uint8_t> &objBytes) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
         const std::string key = util::getFunctionObjectKey(msg);
-        logger->debug("Uploading object bytes to {}/{}", conf.bucketName, key);
-        s3.addKeyBytes(conf.bucketName, key, objBytes);
+
+        this->uploadObjectBytes(key, objBytes);
+    }
+
+    void S3FunctionLoader::uploadObjectBytes(const std::string &path, const std::vector<uint8_t> &objBytes) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Uploading object bytes to {}/{}", conf.bucketName, path);
+
+        s3.addKeyBytes(conf.bucketName, path, objBytes);
     }
 
 }

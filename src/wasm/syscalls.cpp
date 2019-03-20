@@ -1248,7 +1248,7 @@ namespace wasm {
 
         util::getLogger()->debug("S - _dlopen - {} {}", fileName, flags);
 
-        // TODO - use WAVM to load a WebAssembly module into the same context etc.
+        //
 
         // TODO - keep a running copy of which handle is which lib?
         return 5;
