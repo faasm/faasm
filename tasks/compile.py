@@ -8,7 +8,7 @@ from invoke import task
 
 from tasks.download import download_proj, FAASM_HOME
 from tasks.env import PROJ_ROOT, EMSCRIPTEN_CMAKE_TOOLCHAIN, ENV_STR, SYSROOT, CONFIG_FLAGS, \
-    COMPILER_FLAGS, PY_EMSCRIPTEN_CMAKE_TOOLCHAIN, EMSCRIPTEN_DIR, PY_EMSCRIPTEN_DIR
+    COMPILER_FLAGS, PY_EMSCRIPTEN_CMAKE_TOOLCHAIN, EMSCRIPTEN_DIR, PY_EMSCRIPTEN_DIR, PYODIDE_ROOT
 
 
 def check_correct_emscripten(expected_root):
@@ -51,18 +51,26 @@ def funcs(context, clean=False, func=None):
     _build_funcs("wasm", clean=clean, func=func)
 
 
-def _build_funcs(build_type, clean=False, func=None, toolchain_file=None, top_level_build=False,
-                 cmake_build_type="Release"):
-    """
-    Compiles functions
-    """
-
+def _get_toolchain(build_type):
     if build_type == "emscripten":
         check_correct_emscripten(EMSCRIPTEN_DIR)
         toolchain_file = EMSCRIPTEN_CMAKE_TOOLCHAIN
     elif build_type == "pyodide":
         check_correct_emscripten(PY_EMSCRIPTEN_DIR)
         toolchain_file = PY_EMSCRIPTEN_CMAKE_TOOLCHAIN
+    else:
+        toolchain_file = None
+
+    return toolchain_file
+
+
+def _build_funcs(build_type, clean=False, func=None, top_level_build=False,
+                 cmake_build_type="Release"):
+    """
+    Compiles functions
+    """
+
+    toolchain_file = _get_toolchain(build_type)
 
     if top_level_build:
         func_build_dir = join(PROJ_ROOT, "{}_func_build".format(build_type))
@@ -95,44 +103,45 @@ def _build_funcs(build_type, clean=False, func=None, toolchain_file=None, top_le
 
 
 @task
+def compile_libfaasm_python(ctx):
+    _do_libfaasm_build("pyodide")
+
+
+@task
 def compile_libfaasm_emscripten(ctx):
-    work_dir = join(PROJ_ROOT, "lib")
-    build_dir = join(work_dir, "embuild")
-
-    if exists(build_dir):
-        rmtree(build_dir)
-
-    mkdir(build_dir)
-
-    check_correct_emscripten(EMSCRIPTEN_DIR)
-
-    call("emconfigure cmake -DFAASM_BUILD_TYPE=wasm -DCMAKE_TOOLCHAIN_FILE={} ..".format(EMSCRIPTEN_CMAKE_TOOLCHAIN),
-         shell=True, cwd=build_dir)
-    call("make", shell=True, cwd=build_dir)
-
-    # Put imports file in place to avoid undefined symbols
-    call("cp libfaasm.imports {}".format(build_dir), shell=True, cwd=work_dir)
+    _do_libfaasm_build("emscripten")
 
 
 @task
 def compile_libfaasm(ctx):
-    if not exists(FAASM_HOME):
-        mkdir(FAASM_HOME)
+    _do_libfaasm_build("wasm")
 
+
+def _do_libfaasm_build(build_type, cmake_build_type="Release"):
     work_dir = join(PROJ_ROOT, "lib")
-    build_dir = join(work_dir, "build")
+    build_dir = join(work_dir, "{}_lib_build".format(build_type))
 
     if exists(build_dir):
         rmtree(build_dir)
 
     mkdir(build_dir)
 
-    build_cmd = "{} cmake -DFAASM_BUILD_TYPE=wasm ..".format(ENV_STR)
-    print(build_cmd)
-    call(build_cmd, shell=True, cwd=build_dir)
+    toolchain_file = _get_toolchain(build_type)
 
+    build_cmd = [
+        "cmake",
+        "-DFAASM_BUILD_TYPE={}".format(build_type),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(toolchain_file) if toolchain_file else "",
+        "-DCMAKE_BUILD_TYPE={}".format(cmake_build_type),
+        ".."
+    ]
+
+    call(" ".join(build_cmd), shell=True, cwd=build_dir)
     call("make", shell=True, cwd=build_dir)
     call("make install", shell=True, cwd=build_dir)
+
+    # Put imports file in place to avoid undefined symbols
+    call("cp libfaasm.imports {}".format(build_dir), shell=True, cwd=work_dir)
 
 
 def _checkout_eigen():

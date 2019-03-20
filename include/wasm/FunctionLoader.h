@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#define SHARED_OBJ_EXT "_wasm.so"
+
 namespace wasm {
     class FunctionLoader {
     public:
@@ -26,7 +28,7 @@ namespace wasm {
 
         void compileToObjectFile(const std::string &inputPath, const std::string &outputPath);
 
-        bool isWasm(std::vector<uint8_t> &bytes);
+        bool isWasm(const std::vector<uint8_t> &bytes);
 
         std::vector<uint8_t> doCompile(std::vector<uint8_t> &bytes);
     };

@@ -23,6 +23,7 @@ from tasks.compile import (
     funcs_python,
     compile_libfaasm,
     compile_libfaasm_emscripten,
+    compile_libfaasm_python,
     compile_eigen,
     compile_eigen_emscripten,
     compile_libcurl,

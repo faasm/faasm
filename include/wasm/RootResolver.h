@@ -67,11 +67,15 @@ namespace wasm {
 
     struct RootResolver : Runtime::Resolver {
         explicit RootResolver(Runtime::Compartment *compartment) {
-
+            _isSetUp = false;
         }
 
         void setUser(const std::string &userIn) {
             user = userIn;
+        }
+
+        bool isSetUp(){
+            return _isSetUp;
         }
 
         void setUp(Runtime::Compartment *compartment, IR::Module &module) {
@@ -85,6 +89,8 @@ namespace wasm {
                 // TODO make this check better. Is it always a reliable way to detect Emscripten funcs?
                 this->setUpEmscripten(compartment, module);
             }
+
+            _isSetUp = true;
         }
 
         void setUpStandardToolchain(Runtime::Compartment *compartment, IR::Module &module) {
@@ -186,6 +192,7 @@ namespace wasm {
         Runtime::GCPointer<Runtime::ModuleInstance> emGlobalModule;
 
         std::string user;
+        bool _isSetUp;
     };
 
 }

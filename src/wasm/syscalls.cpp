@@ -1248,10 +1248,9 @@ namespace wasm {
 
         util::getLogger()->debug("S - _dlopen - {} {}", fileName, flags);
 
-        //
+        int handle = getExecutingModule()->dynamicLoadModule(fileName);
 
-        // TODO - keep a running copy of which handle is which lib?
-        return 5;
+        return handle;
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlsym", I32, _dlsym, I32 handle, I32 symbolPtr) {

@@ -177,41 +177,15 @@ namespace wasm {
             throw std::runtime_error("Cannot bind a module twice");
         }
 
-        // Load the function data
-        wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
-        std::vector<uint8_t> bytes = functionLoader.loadFunctionBytes(msg);
-
-        if(functionLoader.isWasm(bytes)) {
-            WASM::loadBinaryModule(bytes.data(), bytes.size(), module);
-        } else {
-            std::vector<WAST::Error> parseErrors;
-            WAST::parseModule((const char *) bytes.data(), bytes.size(), module, parseErrors);
-            WAST::reportParseErrors("wast_file", parseErrors);
-        }
-
-        // Configure resolver
-        resolver->setUp(compartment, module);
-
-        // Linking
         resolver->setUser(msg.user());
 
-        Runtime::LinkResult linkResult = linkModule(module, *resolver);
-        if (!linkResult.success) {
-            std::cerr << "Failed to link module:" << std::endl;
-            throw std::runtime_error("Failed linking module");
-        }
-
-        // Load the object file
+        // Load the function data
+        wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
+        std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionBytes(msg);
         std::vector<uint8_t> objectFileBytes = functionLoader.loadFunctionObjectBytes(msg);
 
-        // Instantiate the module, i.e. create memory, tables etc.
-        Runtime::ModuleRef compiledModule = Runtime::loadPrecompiledModule(module, objectFileBytes);
-        moduleInstance = instantiateModule(
-                compartment,
-                compiledModule,
-                std::move(linkResult.resolvedImports),
-                util::funcToString(msg)
-        );
+        // Create the module instance
+        moduleInstance = this->createModuleInstance(module, wasmBytes, objectFileBytes, util::funcToString(msg));
 
         // Extract the module's exported function
         std::string entryFunc;
@@ -240,6 +214,59 @@ namespace wasm {
         _isBound = true;
         boundUser = msg.user();
         boundFunction = msg.function();
+    }
+
+    Runtime::ModuleInstance *
+    WasmModule::createModuleInstance(IR::Module &irModule, const std::vector<uint8_t> &wasmBytes, const std::vector<uint8_t> &objBytes,
+                                     const std::string &name) {
+        wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
+
+        if (functionLoader.isWasm(wasmBytes)) {
+            WASM::loadBinaryModule(wasmBytes.data(), wasmBytes.size(), irModule);
+        } else {
+            std::vector<WAST::Error> parseErrors;
+            WAST::parseModule((const char *) wasmBytes.data(), wasmBytes.size(), irModule, parseErrors);
+            WAST::reportParseErrors("wast_file", parseErrors);
+        }
+
+        // Configure resolver (if not already set up)
+        if (!resolver->isSetUp()) {
+            resolver->setUp(compartment, irModule);
+        }
+
+        Runtime::LinkResult linkResult = linkModule(irModule, *resolver);
+        if (!linkResult.success) {
+            std::cerr << "Failed to link module:" << std::endl;
+            throw std::runtime_error("Failed linking module");
+        }
+
+        // Instantiate the module, i.e. create memory, tables etc.
+        Runtime::ModuleRef compiledModule = Runtime::loadPrecompiledModule(irModule, objBytes);
+        return instantiateModule(
+                compartment,
+                compiledModule,
+                std::move(linkResult.resolvedImports),
+                name.c_str()
+        );
+    }
+
+    int WasmModule::dynamicLoadModule(const std::string &path) {
+        IR::Module sharedModule;
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
+
+        // Get path to where machine code should be
+        std::string objFilePath = path + SHARED_OBJ_EXT;
+        std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionBytes(path);
+        std::vector<uint8_t> objectBytes = functionLoader.loadFunctionObjectBytes(objFilePath);
+
+        nextHandle++;
+        std::string name = "handle_" + std::to_string(nextHandle);
+        this->createModuleInstance(sharedModule, wasmBytes, objectBytes, name);
+
+        logger->info("Loaded module at {}", path);
+
+        return nextHandle;
     }
 
     void WasmModule::snapshotFullMemory(const char *key) {

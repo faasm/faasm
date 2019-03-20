@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
     }
 
     std::string inputFile = argv[1];
-    std::string outputFile = inputFile + "_wasm.so";
+    std::string outputFile = inputFile + SHARED_OBJ_EXT;
 
     wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
     functionLoader.compileToObjectFile(inputFile, outputFile);

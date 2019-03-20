@@ -15,13 +15,11 @@ using namespace WAVM;
 
 namespace wasm {
 
-    bool FunctionLoader::isWasm(std::vector<uint8_t> &bytes) {
+    bool FunctionLoader::isWasm(const std::vector<uint8_t> &bytes) {
         static const U8 wasmMagicNumber[4] = {0x00, 0x61, 0x73, 0x6d};
         if (bytes.size() >= 4 && !memcmp(bytes.data(), wasmMagicNumber, 4)) {
             return true;
         } else {
-            // Ensure null terminated
-            bytes.push_back(0);
             return false;
         }
     }
