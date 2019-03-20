@@ -74,6 +74,8 @@ namespace wasm {
 
         int dynamicLoadModule(const std::string &path);
 
+        Runtime::Function *getFunction(const std::string funcName);
+
     private:
         IR::Module module;
 

@@ -10,6 +10,7 @@
 #include <WAVM/Inline/CLI.h>
 #include <WAVM/IR/Types.h>
 #include <WAVM/IR/Module.h>
+#include <WAVM/LLVMJIT/LLVMJIT.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/RuntimeData.h>
@@ -168,6 +169,19 @@ namespace wasm {
         _isInitialised = true;
     }
 
+    Runtime::Function *WasmModule::getFunction(const std::string funcName) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        // Get main entrypoint function
+        Runtime::Function *func = asFunctionNullable(getInstanceExport(moduleInstance, funcName));
+        if (!func) {
+            logger->error("Unable to find function {}", funcName);
+            throw std::runtime_error("Missing exported function");
+        }
+
+        return func;
+    }
+
     void WasmModule::bindToFunction(const message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -196,11 +210,7 @@ namespace wasm {
         }
 
         // Get main entrypoint function
-        functionInstance = asFunctionNullable(getInstanceExport(moduleInstance, entryFunc));
-        if (!functionInstance) {
-            std::string errorMsg = "No exported function \"" + entryFunc + "\"";
-            throw std::runtime_error(errorMsg);
-        }
+        functionInstance = this->getFunction(entryFunc);
 
         // Keep reference to memory
         this->defaultMemory = Runtime::getDefaultMemory(moduleInstance);
@@ -217,7 +227,8 @@ namespace wasm {
     }
 
     Runtime::ModuleInstance *
-    WasmModule::createModuleInstance(IR::Module &irModule, const std::vector<uint8_t> &wasmBytes, const std::vector<uint8_t> &objBytes,
+    WasmModule::createModuleInstance(IR::Module &irModule, const std::vector<uint8_t> &wasmBytes,
+                                     const std::vector<uint8_t> &objBytes,
                                      const std::string &name) {
         wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
 
@@ -262,7 +273,9 @@ namespace wasm {
 
         nextHandle++;
         std::string name = "handle_" + std::to_string(nextHandle);
-        this->createModuleInstance(sharedModule, wasmBytes, objectBytes, name);
+        IR::Module dynModule;
+
+        // TODO: instantiate the new module here
 
         logger->info("Loaded module at {}", path);
 

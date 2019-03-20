@@ -1248,16 +1248,15 @@ namespace wasm {
 
         util::getLogger()->debug("S - _dlopen - {} {}", fileName, flags);
 
-        int handle = getExecutingModule()->dynamicLoadModule(fileName);
-
-        return handle;
+        return 3;
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlsym", I32, _dlsym, I32 handle, I32 symbolPtr) {
         const std::string symbol = getStringFromWasm(symbolPtr);
         util::getLogger()->debug("S - _dlsym - {} {}", handle, symbol);
 
-        // TODO - use WAVM to look up the relevant function at the relevant point in the table
+        std::string fpSymbol = "_" + symbol;
+        getExecutingModule()->getFunction(fpSymbol);
 
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
