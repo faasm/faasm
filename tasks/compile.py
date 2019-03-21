@@ -137,7 +137,7 @@ def _do_libfaasm_build(build_type, cmake_build_type="Release"):
     ]
 
     call(" ".join(build_cmd), shell=True, cwd=build_dir)
-    call("make", shell=True, cwd=build_dir)
+    call("make VERBOSE=1", shell=True, cwd=build_dir)
     call("make install", shell=True, cwd=build_dir)
 
     # Put imports file in place to avoid undefined symbols

@@ -28,6 +28,12 @@ make
 
 This will perform the build in place so you can access it from your local filesystem.
 
+Once it's finished, it might be useful to change the whole thing to be owned by you:
+
+```
+sudo chown -R $USER:$USER /usr/local/code/pyodide
+```
+
 ## Setting up the runtime root
 
 To run Python you need to set up the Faasm runtime root filesystem. To do this you can run:

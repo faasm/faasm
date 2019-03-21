@@ -13,34 +13,7 @@ endif ()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic -fvisibility=default")
 
-# For some incredibly annoying reason, CMake isn't picking this up from the environment
-# It's crucial for getting things to link properly so unfortunately must be set here
-if (FAASM_BUILD_TYPE STREQUAL "wasm")
-    message(STATUS "Running libfaasm wasm build")
-    add_definitions(-DWASM_BUILD=1)
-    set(CMAKE_RANLIB /toolchain/bin/llvm-ranlib)
-
-elseif (FAASM_BUILD_TYPE STREQUAL "pyodide")
-    set(CMAKE_SHARED_LINKER_FLAGS "
-        -O3 \
-        -s \"BINARYEN_METHOD='native-wasm'\" \
-        -s \"BINARYEN_TRAP_MODE='clamp'\" \
-        -s EMULATED_FUNCTION_POINTERS=1 \
-        -s EMULATE_FUNCTION_POINTER_CASTS=1 \
-        -s SIDE_MODULE=1 \
-        -s WASM=1 \
-        --memory-init-file 0 \
-        -s LINKABLE=1 \
-        -s EXPORT_ALL=1
-    ")
-
-elseif (${EMSCRIPTEN})
-    add_definitions(-DWASM_BUILD=0)
-else ()
-    add_definitions(-DWASM_BUILD=0)
-endif ()
-
-add_library(faasm STATIC
+set(LIB_FILES
         counter.cpp
         func.cpp
         matrix.cpp
@@ -60,6 +33,43 @@ set(PUBLIC_HEADERS
         faasm/sgd.h
         faasm/time.h
         )
+
+if (FAASM_BUILD_TYPE STREQUAL "wasm")
+    message(STATUS "Running libfaasm wasm build")
+    add_definitions(-DWASM_BUILD=1)
+
+    # For some incredibly annoying reason, CMake isn't picking this up from the environment
+    # It's crucial for getting things to link properly so unfortunately must be set here
+    set(CMAKE_RANLIB /toolchain/bin/llvm-ranlib)
+
+    add_library(faasm STATIC ${LIB_FILES})
+
+elseif (FAASM_BUILD_TYPE STREQUAL "pyodide")
+    add_definitions(-DWASM_BUILD=0)
+
+    set(CMAKE_SHARED_LINKER_FLAGS "-O3 \
+        -s EMULATED_FUNCTION_POINTERS=1 \
+        -s EMULATE_FUNCTION_POINTER_CASTS=1 \
+        -s SIDE_MODULE=1 \
+        -s WASM=1 \
+        -s LINKABLE=1 \
+        -s EXPORT_ALL=1 \
+        --memory-init-file 0")
+
+    set(CMAKE_SHARED_LIBRARY_SUFFIX ".wasm")
+    add_library(faasm SHARED ${LIB_FILES})
+
+elseif (${EMSCRIPTEN})
+    add_definitions(-DWASM_BUILD=0)
+
+    add_library(faasm STATIC ${LIB_FILES})
+
+else ()
+    add_definitions(-DWASM_BUILD=0)
+
+    add_library(faasm STATIC ${LIB_FILES})
+
+endif ()
 
 set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 

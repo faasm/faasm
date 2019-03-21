@@ -4,11 +4,19 @@
 
 
 int main(int argc, char *argv[]) {
-    const char* fileName = "lib/python3.7/site-packages/numpy/core/multiarray.so";
+    const char* fileName = "libfaasm.wasm";
 
+    // Open the module
     void * handle = dlopen(fileName, RTLD_LAZY);
+    printf("Handle: %p\n", handle);
 
-    printf("Handle: ");
+    // Extract the function handle
+    int (*foo)(int);
+    *(void **) (&foo) = dlsym(handle, "foo");
+
+    // Print the result
+    int result = (*foo)(2);
+    printf("Result: %i\n", result);
 
     return 0;
 

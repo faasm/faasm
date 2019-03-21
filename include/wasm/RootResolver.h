@@ -170,7 +170,9 @@ namespace wasm {
             }
 
             // If not resolved here and we have a main module, check that (used in dynamic linking)
-            resolved = getInstanceExport(mainModule, exportName);
+            if(!resolved && mainModule != nullptr) {
+                resolved = getInstanceExport(mainModule, exportName);
+            }
 
             // Check whether the function has been resolved to the correct type
             if (resolved) {

@@ -10,7 +10,6 @@
 #include <WAVM/Inline/CLI.h>
 #include <WAVM/IR/Types.h>
 #include <WAVM/IR/Module.h>
-#include <WAVM/LLVMJIT/LLVMJIT.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/RuntimeData.h>
