@@ -7,6 +7,8 @@
 int main(int argc, char *argv[]) {
     printf("Started python hello\n");
 
+    printf("Global var: %i\n", Py_OptimizeFlag);
+
     Py_InitializeEx(0);
     printf("\n\nInitialised\n");
 

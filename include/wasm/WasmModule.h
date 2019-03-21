@@ -54,6 +54,8 @@ namespace wasm {
 
         Runtime::GCPointer<Runtime::Memory> defaultMemory;
 
+        Runtime::GCPointer<Runtime::Table> defaultTable;
+
         Runtime::GCPointer<Runtime::Compartment> compartment;
 
         bool isInitialised();
@@ -74,7 +76,7 @@ namespace wasm {
 
         int dynamicLoadModule(const std::string &path);
 
-        Runtime::Function *getDynamicModuleFunction(int handle, const std::string &funcName);
+        Uptr getDynamicModuleFunction(int handle, const std::string &funcName);
 
         Runtime::Function *getFunction(const std::string &funcName);
 
@@ -82,6 +84,9 @@ namespace wasm {
         IR::Module module;
 
         int nextHandle = 1;
+
+        // TODO - how do we work out where this should be?
+        int nextTableOffset = 50000;
 
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
         Runtime::GCPointer<Runtime::Function> functionInstance;

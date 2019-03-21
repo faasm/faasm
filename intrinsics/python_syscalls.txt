@@ -1,12 +1,27 @@
-_adler32 func (i32, i32, i32)->i32
-_crc32 func (i32, i32, i32)->i32
-_deflate func (i32, i32)->i32
-_deflateEnd func i32->i32
-_deflateInit2_ func (i32, i32, i32, i32, i32, i32, i32, i32)->i32
-_deflateInit_ func (i32, i32, i32, i32)->i32
-_deflateSetDictionary func (i32, i32, i32)->i32
-_inflate func (i32, i32)->i32
-_inflateEnd func i32->i32
-_inflateInit2_ func (i32, i32, i32, i32)->i32
-_inflateSetDictionary func (i32, i32, i32)->i32
-_zlibVersion func ()->i32
+invoke_i func i32->i32
+invoke_iiiiii func (i32, i32, i32, i32, i32, i32)->i32
+___divdi3 func (i32, i32, i32, i32)->i32
+___muldi3 func (i32, i32, i32, i32)->i32
+___remdi3 func (i32, i32, i32, i32)->i32
+___udivdi3 func (i32, i32, i32, i32)->i32
+___uremdi3 func (i32, i32, i32, i32)->i32
+_bitshift64Ashr func (i32, i32, i32)->i32
+_bitshift64Lshr func (i32, i32, i32)->i32
+_bitshift64Shl func (i32, i32, i32)->i32
+_fdopen func (i32, i32)->i32
+_fseeko func (i32, i32, i32)->i32
+_ftello func i32->i32
+_i64Add func (i32, i32, i32, i32)->i32
+_i64Subtract func (i32, i32, i32, i32)->i32
+_llvm_bswap_i64 func (i32, i32)->i32
+_llvm_exp2_f32 func f64->f64
+_llvm_exp2_f64 func f64->f64
+_llvm_log10_f32 func f64->f64
+_llvm_log2_f32 func f64->f64
+_llvm_rint_f32 func f64->f64
+_llvm_rint_f64 func f64->f64
+_llvm_trunc_f32 func f64->f64
+_llvm_trunc_f64 func f64->f64
+_saveSetjmp func (i32, i32, i32, i32)->i32
+_siglongjmp func (i32, i32)->()
+_testSetjmp func (i32, i32, i32)->i32

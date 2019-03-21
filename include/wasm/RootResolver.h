@@ -7,6 +7,8 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
 #include <WAVM/Runtime/Runtime.h>
+#include <WAVM/Inline/Serialization.h>
+#include <WAVM/IR/Validate.h>
 
 using namespace WAVM;
 
@@ -66,9 +68,10 @@ namespace wasm {
     extern Intrinsics::Module &getIntrinsicModule_emGlobal();
 
     struct RootResolver : Runtime::Resolver {
-        explicit RootResolver(Runtime::Compartment *compartment) {
+        explicit RootResolver(Runtime::Compartment *compartmentIn) {
             _isSetUp = false;
             mainModule = nullptr;
+            compartment = compartmentIn;
         }
 
         void setUser(const std::string &userIn) {
@@ -152,6 +155,13 @@ namespace wasm {
                      Runtime::Object *&resolved) override {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
+            bool isGlobalAccessor = exportName.rfind("g$_", 0) == 0;
+            bool isAFunc = type.kind == IR::ExternKind::function;
+            if(isGlobalAccessor && isAFunc) {
+                logger->debug("Stubbing global accessor import {}", exportName);
+                resolved = getStubObject(exportName, type);
+                return true;
+            }
 
             if (isEmscripten) {
                 // Emscripten modules can have imports from 3 modules
@@ -193,10 +203,64 @@ namespace wasm {
             return false;
         }
 
+        Runtime::Object* getStubObject(const std::string& exportName, IR::ExternType type) const
+        {
+            // If the import couldn't be resolved, stub it in.
+            switch(type.kind)
+            {
+                case IR::ExternKind::function:
+                {
+                    // Generate a function body that just uses the unreachable op to fault if called.
+                    Serialization::ArrayOutputStream codeStream;
+                    IR::OperatorEncoderStream encoder(codeStream);
+                    encoder.unreachable();
+                    encoder.end();
+
+                    // Generate a module for the stub function.
+                    IR::Module stubIRModule;
+                    IR::DisassemblyNames stubModuleNames;
+                    stubIRModule.types.push_back(asFunctionType(type));
+                    stubIRModule.functions.defs.push_back({{0}, {}, std::move(codeStream.getBytes()), {}});
+                    stubIRModule.exports.push_back({"importStub", IR::ExternKind::function, 0});
+                    stubModuleNames.functions.push_back({"importStub: " + exportName, {}, {}});
+                    IR::setDisassemblyNames(stubIRModule, stubModuleNames);
+                    IR::validatePreCodeSections(stubIRModule);
+                    IR::validatePostCodeSections(stubIRModule);
+
+                    // Instantiate the module and return the stub function instance.
+                    auto stubModule = Runtime::compileModule(stubIRModule);
+                    auto stubModuleInstance = instantiateModule(compartment, stubModule, {}, "importStub");
+                    return getInstanceExport(stubModuleInstance, "importStub");
+                }
+                case IR::ExternKind::memory:
+                {
+                    return asObject(
+                            Runtime::createMemory(compartment, asMemoryType(type), std::string(exportName)));
+                }
+                case IR::ExternKind::table:
+                {
+                    return asObject(
+                            Runtime::createTable(compartment, asTableType(type), std::string(exportName)));
+                }
+                case IR::ExternKind::global:
+                {
+                    return asObject(Runtime::createGlobal(compartment, asGlobalType(type)));
+                }
+                case IR::ExternKind::exceptionType:
+                {
+                    return asObject(
+                            Runtime::createExceptionType(compartment, asExceptionType(type), "importStub"));
+                }
+                default: Errors::unreachable();
+            };
+        }
+
         bool isEmscripten = false;
     private:
         // Main module (not mastered here)
         Runtime::ModuleInstance *mainModule;
+
+        Runtime::Compartment* compartment;
 
         // Module for non-Emscripten
         Runtime::GCPointer<Runtime::ModuleInstance> envModule;

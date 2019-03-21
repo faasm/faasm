@@ -5,15 +5,26 @@
 
 #include <util/func.h>
 #include <util/bytes.h>
+#include <util/logging.h>
 #include <util/files.h>
 
+#include <boost/filesystem.hpp>
+
 namespace wasm {
+    void checkFileExists(const std::string &path) {
+        if(!boost::filesystem::exists(path)) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->error("File {} does not exist", path);
+        }
+    }
+
     std::vector<uint8_t> LocalFunctionLoader::loadFunctionBytes(const message::Message &msg) {
         std::string filePath = util::getFunctionFile(msg);
         return this->loadFunctionObjectBytes(filePath);
     }
 
     std::vector<uint8_t> LocalFunctionLoader::loadFunctionBytes(const std::string &path) {
+        checkFileExists(path);
         std::vector<uint8_t> fileBytes = util::readFileToBytes(path);
         return fileBytes;
     }
@@ -24,8 +35,8 @@ namespace wasm {
     }
 
     std::vector<uint8_t> LocalFunctionLoader::loadFunctionObjectBytes(const std::string &path) {
+        checkFileExists(path);
         std::vector<uint8_t> bytes = util::readFileToBytes(path);
-
         return bytes;
     }
 
@@ -49,6 +60,7 @@ namespace wasm {
     }
 
     void LocalFunctionLoader::uploadObjectBytes(const std::string &path, const std::vector<uint8_t> &objBytes) {
+        checkFileExists(path);
         util::writeBytesToFile(path, objBytes);
     }
 

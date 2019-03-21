@@ -119,6 +119,7 @@ namespace wasm {
 
     WasmModule::~WasmModule() {
         defaultMemory = nullptr;
+        defaultTable = nullptr;
         moduleInstance = nullptr;
         functionInstance = nullptr;
 
@@ -209,8 +210,9 @@ namespace wasm {
         // Get main entrypoint function
         functionInstance = this->getFunction(entryFunc);
 
-        // Keep reference to memory
+        // Keep reference to memory and table
         this->defaultMemory = Runtime::getDefaultMemory(moduleInstance);
+        this->defaultTable = Runtime::getDefaultTable(moduleInstance);
 
         // Snapshot initial state
         logger->debug("Snapshotting {} pages of memory for restore", CLEAN_MEMORY_PAGES);
@@ -290,8 +292,10 @@ namespace wasm {
         return nextHandle;
     }
 
-    Runtime::Function *WasmModule::getDynamicModuleFunction(int handle, const std::string &funcName) {
+    Uptr WasmModule::getDynamicModuleFunction(int handle, const std::string &funcName) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        // TODO - avoid doing this if function is already in the table
 
         // Get main entrypoint function
         if(dynamicModuleMap.count(handle) == 0) {
@@ -300,7 +304,10 @@ namespace wasm {
         }
 
         Runtime::ModuleInstance *dynModule = dynamicModuleMap[handle];
-        Runtime::Function *func = asFunctionNullable(getInstanceExport(dynModule, funcName));
+
+        // Emscripten seems to put an underscore in front of the exports
+        std::string actualFuncName = "_" + funcName;
+        Runtime::Function *func = asFunctionNullable(getInstanceExport(dynModule, actualFuncName));
 
         if (!func) {
             logger->error("Unable to dynamically load function {}", funcName);
@@ -308,9 +315,10 @@ namespace wasm {
         }
 
         // Add function to the table
-        // TODO - do the adding to table and getting pointer
+        nextTableOffset++;
+        Runtime::setTableElement(defaultTable, nextTableOffset, Runtime::asObject(func));
 
-        return func;
+        return nextTableOffset;
     }
 
     void WasmModule::snapshotFullMemory(const char *key) {

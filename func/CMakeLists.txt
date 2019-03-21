@@ -36,15 +36,13 @@ if (${EMSCRIPTEN})
         # These should match the main pyodide Makefile
         # https://github.com/iodide-project/pyodide/blob/master/Makefile
         set(EM_LINKER_FLAGS "-s ERROR_ON_UNDEFINED_SYMBOLS \
-            -O3 \
+            -O2 \
             -s MODULARIZE=1 \
             -s \"BINARYEN_METHOD='native-wasm'\" \
             -s \"BINARYEN_TRAP_MODE='clamp'\" \
             -s TEXTDECODER=0 \
             -s TOTAL_MEMORY=1073741824 \
             -s ALLOW_MEMORY_GROWTH=1 \
-            -s EMULATED_FUNCTION_POINTERS=1 \
-            -s EMULATE_FUNCTION_POINTER_CASTS=1 \
             -s LINKABLE=1 \
             -s EXPORT_ALL=1 \
             -s EXPORTED_FUNCTIONS='[\"_main\", \"___cxa_guard_acquire\", \"__ZNSt3__28ios_base4initEPv\"]' \

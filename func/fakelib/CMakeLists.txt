@@ -6,8 +6,6 @@ include_directories(include)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic -fvisibility=default")
 
 set(CMAKE_SHARED_LINKER_FLAGS "-O3 \
-    -s EMULATED_FUNCTION_POINTERS=1 \
-    -s EMULATE_FUNCTION_POINTER_CASTS=1 \
     -s SIDE_MODULE=1 \
     -s WASM=1 \
     -s LINKABLE=1 \

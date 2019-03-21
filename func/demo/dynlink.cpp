@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
 
     // Extract the function handle
     int (*doubleInt)(int);
-    *(void **) (&doubleInt) = dlsym(handle, "_doubleInt");
+    *(void **) (&doubleInt) = dlsym(handle, "doubleInt");
 
     // Print the result
     int result = (*doubleInt)(100);
