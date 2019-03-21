@@ -156,23 +156,18 @@ namespace wasm {
             throw std::runtime_error("Cannot initialise already initialised module");
         }
 
-        // Treat any unhandled exception (e.g. in a thread) as a fatal error.
-//        Runtime::setUnhandledExceptionHandler([](Runtime::Exception &&exception) {
-//            Errors::fatalf("Runtime exception: %s\n", describeException(exception).c_str());
-//        });
-
         compartment = Runtime::createCompartment();
 
-        // Prepare name resolution
         resolver = new RootResolver(compartment);
 
         _isInitialised = true;
     }
 
-    Runtime::Function *WasmModule::getFunction(const std::string funcName) {
+
+    Runtime::Function *WasmModule::getFunction(const std::string &funcName) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Get main entrypoint function
+        // Look up the function
         Runtime::Function *func = asFunctionNullable(getInstanceExport(moduleInstance, funcName));
         if (!func) {
             logger->error("Unable to find function {}", funcName);
@@ -200,6 +195,9 @@ namespace wasm {
 
         // Create the module instance
         moduleInstance = this->createModuleInstance(module, wasmBytes, objectFileBytes, util::funcToString(msg));
+
+        // Add this module to the resolver for dynamic imports
+        resolver->setMainModule(moduleInstance);
 
         // Extract the module's exported function
         std::string entryFunc;
@@ -253,15 +251,22 @@ namespace wasm {
 
         // Instantiate the module, i.e. create memory, tables etc.
         Runtime::ModuleRef compiledModule = Runtime::loadPrecompiledModule(irModule, objBytes);
-        return instantiateModule(
+        Runtime::ModuleInstance *instance = instantiateModule(
                 compartment,
                 compiledModule,
                 std::move(linkResult.resolvedImports),
                 name.c_str()
         );
+
+        return instance;
     }
 
     int WasmModule::dynamicLoadModule(const std::string &path) {
+        // Return the handle if we've already loaded this module
+        if (dynamicPathToHandleMap.count(path) > 0) {
+            return dynamicPathToHandleMap[path];
+        }
+
         IR::Module sharedModule;
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
@@ -275,11 +280,31 @@ namespace wasm {
         std::string name = "handle_" + std::to_string(nextHandle);
         IR::Module dynModule;
 
-        // TODO: instantiate the new module here
+        // Instantiate the shared module
+        Runtime::ModuleInstance *moduleInstance = createModuleInstance(sharedModule, wasmBytes, objectBytes, name);
 
-        logger->info("Loaded module at {}", path);
+        dynamicPathToHandleMap[path] = nextHandle;
+        dynamicModuleMap[nextHandle] = moduleInstance;
+
+        logger->debug("Loaded shared module at {} with handle {}", path, nextHandle);
 
         return nextHandle;
+    }
+
+    Runtime::Function *WasmModule::getDynamicModuleFunction(int handle, const std::string &funcName) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        // Get main entrypoint function
+        Runtime::Function *func = asFunctionNullable(getInstanceExport(moduleInstance, funcName));
+        if (!func) {
+            logger->error("Unable to dynamically load function {}", funcName);
+            throw std::runtime_error("Missing dynamic module function");
+        }
+
+        // Add function to the table
+        // TODO - do the adding to table and getting pointer
+
+        return func;
     }
 
     void WasmModule::snapshotFullMemory(const char *key) {

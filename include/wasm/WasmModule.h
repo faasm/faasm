@@ -74,7 +74,9 @@ namespace wasm {
 
         int dynamicLoadModule(const std::string &path);
 
-        Runtime::Function *getFunction(const std::string funcName);
+        Runtime::Function *getDynamicModuleFunction(int handle, const std::string &funcName);
+
+        Runtime::Function *getFunction(const std::string &funcName);
 
     private:
         IR::Module module;
@@ -91,9 +93,14 @@ namespace wasm {
         std::string boundUser;
         std::string boundFunction;
 
+        // Shared memory regions
         std::unordered_map<std::string, I32> sharedMemWasmPtrs;
         std::unordered_map<std::string, void *> sharedMemHostPtrs;
         std::unordered_map<std::string, std::shared_ptr<state::StateKeyValue>> sharedMemKVs;
+
+        // Map of dynamically loaded modules
+        std::unordered_map<std::string, int> dynamicPathToHandleMap;
+        std::unordered_map<int, Runtime::GCPointer<Runtime::ModuleInstance>> dynamicModuleMap;
 
         memory::MemorySnapshot memSnapshot;
 

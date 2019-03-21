@@ -68,14 +68,19 @@ namespace wasm {
     struct RootResolver : Runtime::Resolver {
         explicit RootResolver(Runtime::Compartment *compartment) {
             _isSetUp = false;
+            mainModule = nullptr;
         }
 
         void setUser(const std::string &userIn) {
             user = userIn;
         }
 
-        bool isSetUp(){
+        bool isSetUp() {
             return _isSetUp;
+        }
+
+        void setMainModule(Runtime::ModuleInstance *mainModuleIn) {
+            mainModule = mainModuleIn;
         }
 
         void setUp(Runtime::Compartment *compartment, IR::Module &module) {
@@ -147,6 +152,7 @@ namespace wasm {
                      Runtime::Object *&resolved) override {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
+
             if (isEmscripten) {
                 // Emscripten modules can have imports from 3 modules
                 if (moduleName == "env") {
@@ -162,6 +168,9 @@ namespace wasm {
                 // In non-emscripten environments we only care about the env module
                 resolved = getInstanceExport(envModule, exportName);
             }
+
+            // If not resolved here and we have a main module, check that (used in dynamic linking)
+            resolved = getInstanceExport(mainModule, exportName);
 
             // Check whether the function has been resolved to the correct type
             if (resolved) {
@@ -184,6 +193,10 @@ namespace wasm {
 
         bool isEmscripten = false;
     private:
+        // Main module (not mastered here)
+        Runtime::ModuleInstance *mainModule;
+
+        // Module for non-Emscripten
         Runtime::GCPointer<Runtime::ModuleInstance> envModule;
 
         // Emscripten modules
