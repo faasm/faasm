@@ -12,6 +12,17 @@ from tasks.env import NATIVE_ENV_DICT, ENV_STR, CONFIG_TARGET, \
 
 
 @task
+def python_codegen(ctx):
+    codegen_bin = join(PROJ_ROOT, "cmake-build-debug", "bin", "codegen")
+
+    with open(join(PROJ_ROOT, "python", "python_shared_obj.txt")) as fh:
+        for so_file in fh:
+            res = call("{} {}".format(codegen_bin, so_file), shell=True)
+            if res != 0:
+                print("Failed to generate machine code for {}".format(so_file))
+
+
+@task
 def build_emscripten_cpython(ctx):
     check_correct_emscripten(EMSCRIPTEN_DIR)
     make_dir = join(PROJ_ROOT, "cpython-emscripten", "3.5.2")

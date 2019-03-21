@@ -294,7 +294,14 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Get main entrypoint function
-        Runtime::Function *func = asFunctionNullable(getInstanceExport(moduleInstance, funcName));
+        if(dynamicModuleMap.count(handle) == 0) {
+            logger->error("No dynamic module registered for handle {}", handle);
+            throw std::runtime_error("Missing dynamic module");
+        }
+
+        Runtime::ModuleInstance *dynModule = dynamicModuleMap[handle];
+        Runtime::Function *func = asFunctionNullable(getInstanceExport(dynModule, funcName));
+
         if (!func) {
             logger->error("Unable to dynamically load function {}", funcName);
             throw std::runtime_error("Missing dynamic module function");

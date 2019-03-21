@@ -1244,19 +1244,20 @@ namespace wasm {
     *  https://webassembly.org/docs/dynamic-linking/
     */
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlopen", I32, _dlopen, I32 fileNamePtr, I32 flags) {
-        const std::string fileName = getMaskedPathFromWasm(fileNamePtr);
+        const std::string filePath = getMaskedPathFromWasm(fileNamePtr);
 
-        util::getLogger()->debug("S - _dlopen - {} {}", fileName, flags);
+        util::getLogger()->debug("S - _dlopen - {} {}", filePath, flags);
 
-        return 3;
+        int handle = getExecutingModule()->dynamicLoadModule(filePath);
+
+        return handle;
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlsym", I32, _dlsym, I32 handle, I32 symbolPtr) {
         const std::string symbol = getStringFromWasm(symbolPtr);
         util::getLogger()->debug("S - _dlsym - {} {}", handle, symbol);
 
-        std::string fpSymbol = "_" + symbol;
-        getExecutingModule()->getFunction(fpSymbol);
+        getExecutingModule()->getDynamicModuleFunction(handle, symbol);
 
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }

@@ -15,6 +15,8 @@ int main(int argc, char *argv[]) {
     }
 
     std::string inputFile = argv[1];
+    logger->info("Generating machine code for {}", inputFile);
+
     std::string outputFile = inputFile + SHARED_OBJ_EXT;
 
     wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();

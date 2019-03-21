@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#define SHARED_OBJ_EXT "_wasm.so"
+#define SHARED_OBJ_EXT ".o"
 
 namespace wasm {
     class FunctionLoader {

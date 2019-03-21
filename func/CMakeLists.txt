@@ -138,7 +138,7 @@ else ()
     function(faasm_func exec_name file_name)
         # Using emulator (faasm-like)
         add_executable(${exec_name} ${file_name})
-        target_link_libraries(${exec_name} ${FAASM_LIB} emulator)
+        target_link_libraries(${exec_name} ${FAASM_LIB} emulator dl)
     endfunction(faasm_func)
 
 endif ()
@@ -147,9 +147,13 @@ add_subdirectory(errors)
 add_subdirectory(demo)
 add_subdirectory(sgd)
 
-# Exclude python stuff in normal wasm build or lambda native
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
 elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
+elseif(${EMSCRIPTEN})
+    # Emscripten-only
+    add_subdirectory(fakelib)
+    add_subdirectory(python)
 else ()
+    # Native-only
     add_subdirectory(python)
 endif ()

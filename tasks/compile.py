@@ -144,6 +144,29 @@ def _do_libfaasm_build(build_type, cmake_build_type="Release"):
     call("cp libfaasm.imports {}".format(build_dir), shell=True, cwd=work_dir)
 
 
+@task
+def compile_fakelib(ctx):
+    work_dir = join(PROJ_ROOT, "func", "fakelib")
+
+    build_dir = join(work_dir, "build")
+    if exists(build_dir):
+        rmtree(build_dir)
+    mkdir(build_dir)
+
+    toolchain_file = _get_toolchain("pyodide")
+
+    build_cmd = [
+        "cmake",
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(toolchain_file) if toolchain_file else "",
+        "-DCMAKE_BUILD_TYPE=Release",
+        ".."
+    ]
+
+    call(" ".join(build_cmd), shell=True, cwd=build_dir)
+    call("make VERBOSE=1", shell=True, cwd=build_dir)
+    call("make install", shell=True, cwd=build_dir)
+
+
 def _checkout_eigen():
     extract_dir, build_dir = download_proj(
         "http://bitbucket.org/eigen/eigen/get/3.3.7.tar.gz",

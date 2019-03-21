@@ -27,6 +27,7 @@ from tasks.compile import (
     compile_eigen,
     compile_eigen_emscripten,
     compile_libcurl,
+    compile_fakelib,
 )
 from tasks.docker import (
     build_all,
@@ -56,6 +57,7 @@ from tasks.python import (
     build_python,
     build_emscripten_cpython,
     build_pyodide_cpython,
+    python_codegen,
 )
 from tasks.sgd import (
     begin_aws_svm,

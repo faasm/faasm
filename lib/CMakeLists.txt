@@ -42,8 +42,6 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # It's crucial for getting things to link properly so unfortunately must be set here
     set(CMAKE_RANLIB /toolchain/bin/llvm-ranlib)
 
-    add_library(faasm STATIC ${LIB_FILES})
-
 elseif (FAASM_BUILD_TYPE STREQUAL "pyodide")
     add_definitions(-DWASM_BUILD=0)
 
@@ -56,20 +54,13 @@ elseif (FAASM_BUILD_TYPE STREQUAL "pyodide")
         -s EXPORT_ALL=1 \
         --memory-init-file 0")
 
-    set(CMAKE_SHARED_LIBRARY_SUFFIX ".wasm")
-    add_library(faasm SHARED ${LIB_FILES})
-
 elseif (${EMSCRIPTEN})
     add_definitions(-DWASM_BUILD=0)
-
-    add_library(faasm STATIC ${LIB_FILES})
-
 else ()
     add_definitions(-DWASM_BUILD=0)
-
-    add_library(faasm STATIC ${LIB_FILES})
-
 endif ()
+
+add_library(faasm STATIC ${LIB_FILES})
 
 set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
