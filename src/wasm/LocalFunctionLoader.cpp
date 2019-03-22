@@ -15,6 +15,7 @@ namespace wasm {
         if(!boost::filesystem::exists(path)) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("File {} does not exist", path);
+            throw std::runtime_error("Expected file does not exist");
         }
     }
 
@@ -60,7 +61,6 @@ namespace wasm {
     }
 
     void LocalFunctionLoader::uploadObjectBytes(const std::string &path, const std::vector<uint8_t> &objBytes) {
-        checkFileExists(path);
         util::writeBytesToFile(path, objBytes);
     }
 

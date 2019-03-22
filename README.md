@@ -14,10 +14,6 @@ a server-side WebAssembly runtime which is well worth checking out.
 More detail on the internals, development and deployment is held in the 
 [wiki](https://github.com/lsds/faasm/wiki).
 
-A preconfigured, Dockerised toolchain is provided for compiling C/C++ code to run in Faasm. 
-This toolchaing is based on a generic [Dockerised WASM toolchain](https://github.com/Shillaker/wasm-toolchain)
-with a customised libc to implement the required syscalls.
-
 # Quick start
 
 To demonstrate a Faasm worker in action, the `docker-compose.yml` file in the root of the project will 

@@ -26,7 +26,6 @@ from tasks.compile import (
     compile_libfaasm_python,
     compile_eigen,
     compile_eigen_emscripten,
-    compile_libcurl,
     compile_libfake,
 )
 from tasks.docker import (
@@ -37,7 +36,6 @@ from tasks.docker import (
     build_redis,
     build_worker,
     build_upload,
-    build_toolchain,
     data,
     purge_images,
     push_all,
@@ -46,8 +44,6 @@ from tasks.docker import (
     push_redis,
     push_upload,
     push_worker,
-    push_toolchain,
-    tools,
     pull,
     push_base
 )

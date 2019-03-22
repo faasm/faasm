@@ -4,6 +4,6 @@
 // Check we can export global variables
 int globalIntVar = 4;
 
-int doubleInt(int arg);
+int mult(int a, int b);
 
 #endif

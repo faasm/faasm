@@ -2,10 +2,10 @@
 
 #include <stdio.h>
 
-int doubleInt(int arg) {
-    int result = 2*arg;
+int mult(int a, int b) {
+    int result = a * b;
 
-    printf("Doubling %i to %i\n",arg, result);
+    printf("Multiplying %i and %i to get %i\n", a, b, result);
 
     return result;
 }

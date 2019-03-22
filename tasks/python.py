@@ -7,8 +7,7 @@ from invoke import task
 
 from tasks.compile import check_correct_emscripten
 from tasks.download import FAASM_HOME, clone_proj
-from tasks.env import NATIVE_ENV_DICT, ENV_STR, CONFIG_TARGET, \
-    CONFIG_HOST, SYSROOT, PY_EMSCRIPTEN_DIR, PROJ_ROOT, PYODIDE_ROOT
+from tasks.env import CONFIG_TARGET, CONFIG_HOST, SYSROOT, PY_EMSCRIPTEN_DIR, PROJ_ROOT, PYODIDE_ROOT
 
 
 @task
@@ -45,11 +44,11 @@ def build_python_host(ctx):
     host_build_dir = join(host_proj, "host_build")
 
     call("./configure --prefix={}".format(host_build_dir),
-         shell=True, cwd=host_proj, env=NATIVE_ENV_DICT)
+         shell=True, cwd=host_proj)
 
-    # call("make regen-grammar", shell=True, cwd=host_proj, env=NATIVE_ENV_DICT)
-    call("make python Parser/pgen", shell=True, cwd=host_proj, env=NATIVE_ENV_DICT)
-    call("make install", shell=True, cwd=host_proj, env=NATIVE_ENV_DICT)
+    # call("make regen-grammar", shell=True, cwd=host_proj, env=ENV_DICT)
+    call("make python Parser/pgen", shell=True, cwd=host_proj)
+    call("make install", shell=True, cwd=host_proj)
 
 
 @task
@@ -69,7 +68,6 @@ def build_python(ctx):
         "CONFIG_SITE=./config.site",
         "READELF=true",
         "./configure",
-        ENV_STR,
         "--without-threads",
         "--without-pymalloc",
         "--disable-shared",
@@ -93,7 +91,6 @@ def build_python(ctx):
     # -----------------------------------
 
     zlib_config_cmd = [
-        ENV_STR,
         "./configure",
         "--static",
     ]

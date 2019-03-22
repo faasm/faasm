@@ -2,10 +2,11 @@
 #include <string.h>
 #include <dlfcn.h>
 
+typedef int (*mult)(int, int);
 
 int main(int argc, char *argv[]) {
     // Open the module
-    void * handle = dlopen("libfake.wasm", RTLD_LAZY);
+    void * handle = dlopen("libfake.wasm", RTLD_NOW);
     if(handle == nullptr) {
         printf("Handle is null\n");
         return 1;
@@ -14,18 +15,12 @@ int main(int argc, char *argv[]) {
     printf("Handle: %p\n", handle);
 
     // Extract the function handle
-    typedef int (*doubleIntFunc)(int);
-    void * rawPtr = dlsym(handle, "doubleInt");
-    printf("Raw pointer: %p\n", rawPtr);
 
-    auto f = (doubleIntFunc) rawPtr;
-    printf("Func: %p\n", f);
+    mult f = (mult)dlsym(handle, "mult");
+    printf("Mult func: %p\n", f);
 
-    // Print the result
-    int result = f(100);
+    int result = f(20, 30);
     printf("Result: %i\n", result);
-
-    dlclose(handle);
 
     return 0;
 }

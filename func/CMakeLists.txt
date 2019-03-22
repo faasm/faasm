@@ -38,16 +38,15 @@ if (${EMSCRIPTEN})
         #
         # We do not set MAIN_MODULE here as we are building pure WebAssembly
         set(EM_LINKER_FLAGS "-s ERROR_ON_UNDEFINED_SYMBOLS=0 \
-            -O2 \
             -s MODULARIZE=1 \
             -s \"BINARYEN_METHOD='native-wasm'\" \
             -s \"BINARYEN_TRAP_MODE='clamp'\" \
             -s TEXTDECODER=0 \
             -s ALLOW_MEMORY_GROWTH=1 \
             -s LINKABLE=1 \
+            -s MAIN_MODULE=1 \
             -s EXPORT_ALL=1 \
             -s WASM=1 \
-            -s SWAPPABLE_ASM_MODULE=1 \
             --memory-init-file 0 \
         ")
     endif ()

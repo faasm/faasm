@@ -249,11 +249,11 @@ namespace wasm {
             resolver->setUp(compartment, irModule);
         } else {
             // Check that the module isn't expecting to create any memories or tables
-            if(!irModule.tables.defs.empty()) {
+            if (!irModule.tables.defs.empty()) {
                 throw std::runtime_error("Dynamic module trying to define tables");
             }
 
-            if(!irModule.memories.defs.empty()) {
+            if (!irModule.memories.defs.empty()) {
                 throw std::runtime_error("Dynamic module trying to define memories");
             }
         }
@@ -265,7 +265,13 @@ namespace wasm {
         }
 
         // Instantiate the module, i.e. create memory, tables etc.
-        Runtime::ModuleRef compiledModule = Runtime::loadPrecompiledModule(irModule, objBytes);
+        Runtime::ModuleRef compiledModule;
+        if (!objBytes.empty()) {
+            compiledModule = Runtime::loadPrecompiledModule(irModule, objBytes);
+        } else {
+            compiledModule = Runtime::compileModule(irModule);
+        }
+
         Runtime::ModuleInstance *instance = instantiateModule(
                 compartment,
                 compiledModule,
@@ -295,7 +301,8 @@ namespace wasm {
         std::string name = "handle_" + std::to_string(nextHandle);
 
         // Instantiate the shared module
-        Runtime::ModuleInstance *moduleInstance = createModuleInstance(sharedModule, wasmBytes, objectBytes, name, false);
+        Runtime::ModuleInstance *moduleInstance = createModuleInstance(sharedModule, wasmBytes, objectBytes, name,
+                                                                       false);
         dynamicPathToHandleMap[path] = nextHandle;
         dynamicModuleMap[nextHandle] = moduleInstance;
 
@@ -328,11 +335,15 @@ namespace wasm {
 
         // Add function to the table
         Iptr prevIdx = Runtime::growTable(defaultTable, 1);
-        if(prevIdx == -1) {
+        if (prevIdx == -1) {
             throw std::runtime_error("Failed to grow table");
         }
 
+        prevIdx = 234;
         Runtime::setTableElement(defaultTable, prevIdx, exportedFunc);
+//        if(oldObject != nullptr) {
+//            throw std::runtime_error("Dynamic function has overwritten an initialised table element");
+//        }
 
         return prevIdx;
     }
@@ -422,7 +433,8 @@ namespace wasm {
         executingCall = &msg;
         executingCallChain = &callChain;
 
-        // Make the call
+        // Set up the call
+        Runtime::Context *context = Runtime::createContext(compartment);
         std::vector<IR::Value> invokeArgs;
 
         if (this->isEmscripten()) {
@@ -431,14 +443,41 @@ namespace wasm {
             U32 *argvOffsets = (U32 *) (memoryBaseAddress + dynamicAlloc(defaultMemory, (U32) (sizeof(U32))));
             argvOffsets[0] = 0;
             invokeArgs = {(U32) 0, (U32) ((U8 *) argvOffsets - memoryBaseAddress)};
+
+            // Call the global initializer functions.
+            for (Uptr exportIndex = 0; exportIndex < module.exports.size(); ++exportIndex) {
+                const IR::Export &functionExport = module.exports[exportIndex];
+
+                int isGlobal = strncmp(functionExport.name.c_str(), "__GLOBAL__", 10);
+                bool isFunction = functionExport.kind == IR::ExternKind::function;
+
+                if (isFunction && !isGlobal) {
+                    Runtime::Function *function = asFunctionNullable(getInstanceExport(moduleInstance, functionExport.name));
+                    if (function) {
+                        logger->info("Executing Emscripten global initialiser: {}", functionExport.name.c_str());
+                        Runtime::invokeFunctionChecked(context, function, {});
+                    }
+                }
+            }
+
+            // Store ___errno_location.
+            Runtime::Function *errNoLocation
+                    = asFunctionNullable(getInstanceExport(moduleInstance, "___errno_location"));
+            if (errNoLocation
+                && getFunctionType(errNoLocation) ==
+                   IR::FunctionType(IR::TypeTuple{IR::ValueType::i32}, IR::TypeTuple{})) {
+                IR::ValueTuple errNoResult = Runtime::invokeFunctionChecked(context, errNoLocation, {});
+                if (errNoResult.size() == 1 && errNoResult[0].type == IR::ValueType::i32) {
+                    throw std::runtime_error("Didn't expect to get here");
+                    // emscriptenErrNoLocation = errNoResult[0].i32;
+                }
+            }
         }
 
         int exitCode = 0;
         try {
-            // Create the runtime context
-            Runtime::Context *context = Runtime::createContext(compartment);
-
             // Call the function
+            logger->debug("Invoking the function itself");
             Runtime::unwindSignalsAsExceptions([this, &context, &invokeArgs] {
                 invokeFunctionChecked(context, functionInstance, invokeArgs);
             });

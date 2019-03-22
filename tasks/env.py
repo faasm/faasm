@@ -33,12 +33,9 @@ AWS_REGION = "eu-west-1"
 # Compile related
 # ---------------------------------------------
 
-# Note, most of the time this will be run inside the toolchain container
-TOOLCHAIN_ROOT = "/toolchain"
-
 WASM_LIB_DIR = join(PROJ_ROOT, "wasm", "lib")
 
-SYSROOT = join(TOOLCHAIN_ROOT, "sysroot")
+SYSROOT = join(FAASM_HOME, "sysroot")
 
 TARGET_TRIPLE = "wasm32-unknown-unknown-wasm"
 CONFIG_TARGET = "wasm32"
@@ -56,59 +53,32 @@ COMPILER_FLAGS_STRING = "\"{}\"".format(COMPILER_FLAGS_STRING)
 # using system defaults we can get some errors that are *very* hard
 # to debug
 
-NATIVE_CC = "/usr/bin/clang"
-NATIVE_CPP = "/usr/bin/clang-cpp"
-NATIVE_CFLAGS = ""
-NATIVE_CXX = "/usr/bin/clang++"
-NATIVE_CXXFLAGS = ""
-NATIVE_LD = "/usr/bin/ld"
-NATIVE_CROSS_COMPILE = ""
-NATIVE_AR = "/usr/bin/ar"
-NATIVE_AS = "/usr/bin/as"
-NATIVE_RANLIB = "/usr/bin/ranlib"
+# CC = "/usr/bin/clang-8"
+# CPP = "/usr/bin/clang-cpp-8"
+# CFLAGS = ""
+# CXX = "/usr/bin/clang++-8"
+# CXXFLAGS = ""
+# LD = "/usr/bin/llvm-link-8"
+# CROSS_COMPILE = "/usr/bin/llvm-"
+# AR = "/usr/bin/llvm-ar-8"
+# AS = "/usr/bin/llvm-as-8"
+# RANLIB = "/usr/bin/llvm-ranlib-8"
 
-CC = join(TOOLCHAIN_ROOT, "bin", "clang")
-CPP = join(TOOLCHAIN_ROOT, "bin", "clang-cpp")
-CFLAGS = COMPILER_FLAGS_STRING
-CXX = join(TOOLCHAIN_ROOT, "bin", "clang++")
-CXXFLAGS = COMPILER_FLAGS_STRING
-LD = join(TOOLCHAIN_ROOT, "bin", "wasm-ld")
-CROSS_COMPILE = join(TOOLCHAIN_ROOT, "llvm-")
-AR = join(TOOLCHAIN_ROOT, "bin", "llvm-ar")
-AS = join(TOOLCHAIN_ROOT, "bin", "llvm-as")
-RANLIB = join(TOOLCHAIN_ROOT, "bin", "llvm-ranlib")
+# _ENV_TUPLES = [
+#     ("CC", CC),
+#     ("CPP", CPP),
+#     ("CFLAGS", CFLAGS),
+#     ("AR", AR),
+#     ("AS", AS),
+#     ("LD", LD),
+#     ("RANLIB", RANLIB),
+#     ("CROSS_COMPILE", CROSS_COMPILE),
+#     ("CXX", CXX),
+#     ("CXXFLAGS", CXXFLAGS),
+# ]
 
-_ENV_TUPLES = [
-    ("CC", CC),
-    ("CPP", CPP),
-    ("CFLAGS", CFLAGS),
-    ("AR", AR),
-    ("AS", AS),
-    ("LD", LD),
-    ("RANLIB", RANLIB),
-    ("CROSS_COMPILE", CROSS_COMPILE),
-    ("CXX", CXX),
-    ("CXXFLAGS", CXXFLAGS),
-]
-
-_NATIVE_ENV_TUPLES = [
-    ("CC", NATIVE_CC),
-    ("CPP", NATIVE_CPP),
-    ("CFLAGS", NATIVE_CFLAGS),
-    ("AR", NATIVE_AR),
-    ("AS", NATIVE_AS),
-    ("LD", NATIVE_LD),
-    ("RANLIB", NATIVE_RANLIB),
-    ("CROSS_COMPILE", NATIVE_CROSS_COMPILE),
-    ("CXX", NATIVE_CXX),
-    ("CXXFLAGS", NATIVE_CXXFLAGS),
-]
-
-ENV_DICT = {e[0]: e[1] for e in _ENV_TUPLES}
-ENV_STR = " ".join(["{}={}".format(e[0], e[1]) for e in _ENV_TUPLES])
-
-NATIVE_ENV_DICT = {e[0]: e[1] for e in _NATIVE_ENV_TUPLES}
-NATIVE_ENV_STR = " ".join(["{}={}".format(e[0], e[1]) for e in _NATIVE_ENV_TUPLES])
+# ENV_DICT = {e[0]: e[1] for e in _ENV_TUPLES}
+# ENV_STR = " ".join(["{}={}".format(e[0], e[1]) for e in _ENV_TUPLES])
 
 PYODIDE_ROOT = "/usr/local/code/pyodide/"
 PY_EMSCRIPTEN_DIR = join(PYODIDE_ROOT, "emsdk/emsdk/emscripten/tag-1.38.22")
@@ -128,6 +98,13 @@ CONFIG_FLAGS = [
 # ---------------------------------------------
 # Utility functions
 # ---------------------------------------------
+
+def check_wasm_compiler():
+    cc = os.environ.get("CC")
+    if cc != "/usr/bin/clang-8":
+        print("Must be running wasm compiler by sourcing bin/wasm_env.sh")
+        exit(1)
+
 
 def get_wasm_func_path(user, func_name):
     func_dir = join(WASM_DIR, user, func_name)

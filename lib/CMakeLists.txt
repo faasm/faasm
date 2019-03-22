@@ -40,7 +40,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
 
     # For some incredibly annoying reason, CMake isn't picking this up from the environment
     # It's crucial for getting things to link properly so unfortunately must be set here
-    set(CMAKE_RANLIB /toolchain/bin/llvm-ranlib)
+    set(CMAKE_RANLIB /usr/bin/llvm-ranlib-8)
 
 elseif (FAASM_BUILD_TYPE STREQUAL "python")
     add_definitions(-DWASM_BUILD=1)
@@ -71,22 +71,11 @@ add_library(faasm STATIC ${LIB_FILES})
 
 set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
-if (FAASM_BUILD_TYPE STREQUAL "wasm")
-    install(TARGETS faasm
-            ARCHIVE DESTINATION /toolchain/sysroot/lib
-            LIBRARY DESTINATION /toolchain/sysroot/lib
-            PUBLIC_HEADER DESTINATION /toolchain/sysroot/include/faasm
-            )
+install(TARGETS faasm
+        ARCHIVE DESTINATION ${CMAKE_BINARY_DIR}/lib
+        LIBRARY DESTINATION ${CMAKE_BINARY_DIR}/lib
+        RUNTIME DESTINATION ${CMAKE_BINARY_DIR}/bin
+        PUBLIC_HEADER DESTINATION ${CMAKE_BINARY_DIR}/include
+        )
 
-    # Copy imports file into place
-    install(FILES libfaasm.imports DESTINATION /toolchain/sysroot/lib/)
-else ()
-    install(TARGETS faasm
-            ARCHIVE DESTINATION ${CMAKE_BINARY_DIR}/lib
-            LIBRARY DESTINATION ${CMAKE_BINARY_DIR}/lib
-            RUNTIME DESTINATION ${CMAKE_BINARY_DIR}/bin
-            PUBLIC_HEADER DESTINATION ${CMAKE_BINARY_DIR}/include
-            )
-
-    install(FILES libfaasm.imports DESTINATION ${CMAKE_BINARY_DIR}/lib/)
-endif ()
+install(FILES libfaasm.imports DESTINATION ${CMAKE_BINARY_DIR}/lib/)

@@ -8,14 +8,12 @@ if(${EMSCRIPTEN})
 
     # These flags should match what's set for SIDE_LDFLAGS in pyodide
     # https://github.com/iodide-project/pyodide/blob/master/Makefile.envs
-    set(CMAKE_SHARED_LINKER_FLAGS "-O2 \
-        -s \"BINARYEN_METHOD='native-wasm'\" \
+    set(CMAKE_SHARED_LINKER_FLAGS "-s \"BINARYEN_METHOD='native-wasm'\" \
         -s \"BINARYEN_TRAP_MODE='clamp'\" \
         -s SIDE_MODULE=1 \
+	    -s EXPORT_ALL=1 \
+	    -s EXPORTED_FUNCTIONS='[\"_mult\"]' \
 	    -s WASM=1 \
-        -s LINKABLE=1 \
-        -s EXPORTED_FUNCTIONS='[\"_doubleInt\"]' \
-        --memory-init-file 0 \
         ")
 
     set(CMAKE_SHARED_LIBRARY_SUFFIX ".wasm")
