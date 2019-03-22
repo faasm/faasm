@@ -87,7 +87,7 @@ def _build_funcs(build_type, clean=False, func=None, cmake_build_type="Release")
 
     # Allow specifying a single function
     if func:
-        cmd = "make {}".format(func)
+        cmd = "make VERBOSE=1 {}".format(func)
     else:
         cmd = "make"
 
@@ -137,7 +137,7 @@ def _do_libfaasm_build(build_type, cmake_build_type="Release"):
 
 
 @task
-def compile_fakelib(ctx):
+def compile_libfake(ctx):
     work_dir = join(PROJ_ROOT, "func", "libfake")
 
     build_dir = join(work_dir, "build")

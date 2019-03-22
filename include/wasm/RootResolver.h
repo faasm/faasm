@@ -114,7 +114,7 @@ namespace wasm {
             module.memories.imports[0].type.size.min = (U64) INITIAL_EMSCRIPTEN_PAGES;
             module.memories.imports[0].type.size.max = (U64) MAX_EMSCRIPTEN_PAGES;
 
-            module.tables.imports[0].type.size.min = (U64) EMSCRIPTEN_MIN_TABLE_ELEMS;
+//            module.tables.imports[0].type.size.min = (U64) EMSCRIPTEN_MIN_TABLE_ELEMS;
             module.tables.imports[0].type.size.max = (U64) EMSCRIPTEN_MAX_TABLE_ELEMS;
 
             Runtime::Memory *memory = Runtime::createMemory(compartment, module.memories.imports[0].type, "env.memory");

@@ -61,7 +61,8 @@ elseif (${EMSCRIPTEN})
         -s SIDE_MODULE=1 \
         -s WASM=1 \
         -s LINKABLE=1 \
-        -s EXPORT_ALL=1")
+        -s EXPORT_ALL=1 \
+        --memory-init-file 0")
 else ()
     add_definitions(-DWASM_BUILD=0)
 endif ()

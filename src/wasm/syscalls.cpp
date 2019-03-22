@@ -4145,4 +4145,34 @@ namespace wasm {
         util::getLogger()->debug("S - _testSetjmp - {} {} {}", a, b, c);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_iiiiid", void, nullFunc_iiiiid , I32 a) {
+        util::getLogger()->debug("S - nullFunc_iiiiid - {}", a);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_iiiiiid", void, nullFunc_iiiiiid , I32 a) {
+        util::getLogger()->debug("S - nullFunc_iiiiiid - {}", a);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_iiiiiiii", void, nullFunc_iiiiiiii , I32 a) {
+        util::getLogger()->debug("S - nullFunc_iiiiiiii - {}", a);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_iiiiiiiii", void, nullFunc_iiiiiiiii , I32 a) {
+        util::getLogger()->debug("S - nullFunc_iiiiiiiii - {}", a);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_iiiiij", void, nullFunc_iiiiij , I32 a) {
+        util::getLogger()->debug("S - nullFunc_iiiiij - {}", a);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "nullFunc_viijii", void, nullFunc_viijii , I32 a) {
+        util::getLogger()->debug("S - nullFunc_viijii - {}", a);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
 }

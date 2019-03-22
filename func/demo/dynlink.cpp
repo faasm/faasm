@@ -4,15 +4,21 @@
 
 
 int main(int argc, char *argv[]) {
-    const char* fileName = "libfake.wasm";
-
     // Open the module
-    void * handle = dlopen(fileName, RTLD_LAZY);
+    void * handle = dlopen("libfake.wasm", RTLD_LAZY);
+    if(handle == nullptr) {
+        printf("Handle is null\n");
+        return 1;
+    }
+
     printf("Handle: %p\n", handle);
 
     // Extract the function handle
     typedef int (*doubleIntFunc)(int);
-    auto f = (doubleIntFunc) dlsym(handle, "doubleInt");
+    void * rawPtr = dlsym(handle, "doubleInt");
+    printf("Raw pointer: %p\n", rawPtr);
+
+    auto f = (doubleIntFunc) rawPtr;
     printf("Func: %p\n", f);
 
     // Print the result

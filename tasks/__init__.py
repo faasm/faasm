@@ -27,7 +27,7 @@ from tasks.compile import (
     compile_eigen,
     compile_eigen_emscripten,
     compile_libcurl,
-    compile_fakelib,
+    compile_libfake,
 )
 from tasks.docker import (
     build_all,

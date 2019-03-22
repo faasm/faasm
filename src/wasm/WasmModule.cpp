@@ -319,16 +319,20 @@ namespace wasm {
 
         // Something puts an underscore in front of the name
         std::string actualFuncName = "_" + funcName;
-        Runtime::Function *func = asFunctionNullable(getInstanceExport(dynModule, actualFuncName));
+        Runtime::Object *exportedFunc = getInstanceExport(dynModule, actualFuncName);
 
-        if (!func) {
+        if (!exportedFunc) {
             logger->error("Unable to dynamically load function {}", funcName);
             throw std::runtime_error("Missing dynamic module function");
         }
 
         // Add function to the table
         Iptr prevIdx = Runtime::growTable(defaultTable, 1);
-        Runtime::setTableElement(defaultTable, prevIdx, Runtime::asObject(func));
+        if(prevIdx == -1) {
+            throw std::runtime_error("Failed to grow table");
+        }
+
+        Runtime::setTableElement(defaultTable, prevIdx, exportedFunc);
 
         return prevIdx;
     }

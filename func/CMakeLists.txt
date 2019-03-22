@@ -28,13 +28,15 @@ if (${EMSCRIPTEN})
     # Emscripten doesn't seem to look in normal system includes so we explicitly have to tell it to
     include_directories(/usr/local/include/)
 
-    if (FAASM_BUILD_TYPE STREQUAL "python")
-        message(STATUS "Detected python emscripten build")
+    if (${EMSCRIPTEN})
+        message(STATUS "Detected emscripten build")
 
         # --- Emscripten python options ---
         #
         # These should match the main pyodide Makefile
         # https://github.com/iodide-project/pyodide/blob/master/Makefile
+        #
+        # We do not set MAIN_MODULE here as we are building pure WebAssembly
         set(EM_LINKER_FLAGS "-s ERROR_ON_UNDEFINED_SYMBOLS=0 \
             -O2 \
             -s MODULARIZE=1 \
@@ -44,26 +46,10 @@ if (${EMSCRIPTEN})
             -s ALLOW_MEMORY_GROWTH=1 \
             -s LINKABLE=1 \
             -s EXPORT_ALL=1 \
-            -s EXPORTED_FUNCTIONS='[\"_main\"]' \
             -s WASM=1 \
             -s SWAPPABLE_ASM_MODULE=1 \
             --memory-init-file 0 \
         ")
-
-    else ()
-        message(STATUS "Detected standard emscripten build")
-
-        # --- Vanilla Emscripten options ---
-        #
-        # TODO - is there a way to avoid ignoring undefined symbols by respecting the libfaasm.imports file?
-        set(EM_LINKER_FLAGS "-s ERROR_ON_UNDEFINED_SYMBOLS=0 \
-            -O2 \
-            -s WASM=1 \
-            -s EXPORTED_FUNCTIONS='[\"_main\"]'")
-
-        # Avoid compiling javascript
-#        set(CMAKE_REQUIRED_FLAGS "WASM=1")
-#        set(CMAKE_EXECUTABLE_SUFFIX ".wasm")
     endif ()
 
     # Link to emscripten libfaasm

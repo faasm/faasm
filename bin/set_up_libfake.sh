@@ -3,7 +3,7 @@
 set -e
 
 # Compile libfake
-inv compile-fakelib
+inv compile-libfake 
 
 # Run codegen
 ./cmake-build-debug/bin/codegen /usr/local/faasm/runtime_root/libfake.wasm
