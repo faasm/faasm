@@ -137,12 +137,11 @@ endif ()
 add_subdirectory(errors)
 add_subdirectory(demo)
 add_subdirectory(sgd)
+add_subdirectory(libfake)
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
 elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
 elseif(${EMSCRIPTEN})
-    # Emscripten-only
-    add_subdirectory(fakelib)
     add_subdirectory(python)
 else ()
     # Native-only

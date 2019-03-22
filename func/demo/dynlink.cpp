@@ -13,6 +13,7 @@ int main(int argc, char *argv[]) {
     // Extract the function handle
     typedef int (*doubleIntFunc)(int);
     auto f = (doubleIntFunc) dlsym(handle, "doubleInt");
+    printf("Func: %p\n", f);
 
     // Print the result
     int result = f(100);

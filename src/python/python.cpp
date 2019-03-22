@@ -1,7 +1,12 @@
 #include <wasm/WasmModule.h>
 
+#include <util/config.h>
+
 int main() {
     util::initLogging();
+
+    util::SystemConfig &conf = util::getSystemConfig();
+    conf.unsafeMode = "on";
 
     message::Message call;
     call.set_user("demo");

@@ -5,10 +5,12 @@ include_directories(include)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic -fvisibility=default")
 
-set(CMAKE_SHARED_LINKER_FLAGS "-O2 \
-    -s SIDE_MODULE=1 \
-    -s WASM=1 \
-    -s EXPORTED_FUNCTIONS='[\"doubleInt\"]'")
+if(${EMSCRIPTEN})
+    set(CMAKE_SHARED_LINKER_FLAGS "-O2 \
+        -s SIDE_MODULE=1 \
+        -s WASM=1 \
+        -s EXPORTED_FUNCTIONS='[\"_doubleInt\"]'")
+endif()
 
 set(CMAKE_SHARED_LIBRARY_SUFFIX ".wasm")
 add_library(fake SHARED src/fake.c)

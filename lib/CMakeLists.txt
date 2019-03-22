@@ -43,7 +43,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     set(CMAKE_RANLIB /toolchain/bin/llvm-ranlib)
 
 elseif (FAASM_BUILD_TYPE STREQUAL "python")
-    add_definitions(-DWASM_BUILD=0)
+    add_definitions(-DWASM_BUILD=1)
 
     set(CMAKE_SHARED_LINKER_FLAGS "-O2 \
         -s EMULATED_FUNCTION_POINTERS=1 \
@@ -55,7 +55,7 @@ elseif (FAASM_BUILD_TYPE STREQUAL "python")
         --memory-init-file 0")
 
 elseif (${EMSCRIPTEN})
-    add_definitions(-DWASM_BUILD=0)
+    add_definitions(-DWASM_BUILD=1)
 
     set(CMAKE_SHARED_LINKER_FLAGS "-O2 \
         -s SIDE_MODULE=1 \

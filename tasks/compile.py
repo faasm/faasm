@@ -138,7 +138,7 @@ def _do_libfaasm_build(build_type, cmake_build_type="Release"):
 
 @task
 def compile_fakelib(ctx):
-    work_dir = join(PROJ_ROOT, "func", "fakelib")
+    work_dir = join(PROJ_ROOT, "func", "libfake")
 
     build_dir = join(work_dir, "build")
     if exists(build_dir):
