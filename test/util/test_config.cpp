@@ -20,6 +20,8 @@ namespace tests {
         REQUIRE(conf.queueName == "faasm-messages");
         REQUIRE(conf.cgroupMode == "on");
         REQUIRE(conf.netNsMode == "off");
+        REQUIRE(conf.awsLogLevel == "off");
+        REQUIRE(conf.unsafeMode == "off");
 
         REQUIRE(conf.redisStateHost == "localhost");
         REQUIRE(conf.redisQueueHost == "localhost");
@@ -53,6 +55,8 @@ namespace tests {
         setEnvVar("QUEUE_NAME", "dummy-queue");
         setEnvVar("CGROUP_MODE", "off");
         setEnvVar("NETNS_MODE", "on");
+        setEnvVar("AWS_LOG_LEVEL", "debug");
+        setEnvVar("UNSAFE_MODE", "on");
 
         setEnvVar("REDIS_STATE_HOST", "not-localhost");
         setEnvVar("REDIS_QUEUE_HOST", "other-host");
@@ -85,6 +89,8 @@ namespace tests {
         REQUIRE(conf.queueName == "dummy-queue");
         REQUIRE(conf.cgroupMode == "off");
         REQUIRE(conf.netNsMode == "on");
+        REQUIRE(conf.awsLogLevel == "debug");
+        REQUIRE(conf.unsafeMode == "on");
 
         REQUIRE(conf.redisStateHost == "not-localhost");
         REQUIRE(conf.redisQueueHost == "other-host");
@@ -116,6 +122,8 @@ namespace tests {
         unsetEnvVar("QUEUE_NAME");
         unsetEnvVar("CGROUP_MODE");
         unsetEnvVar("NETNS_MODE");
+        unsetEnvVar("AWS_LOG_LEVEL");
+        unsetEnvVar("UNSAFE_MODE");
 
         unsetEnvVar("REDIS_STATE_HOST");
         unsetEnvVar("REDIS_QUEUE_HOST");

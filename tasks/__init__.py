@@ -55,7 +55,6 @@ from tasks.docker_compose import start_all, stop_all, restart_all
 from tasks.python import (
     build_python_host,
     build_python,
-    build_emscripten_cpython,
     build_pyodide_cpython,
     python_codegen,
 )

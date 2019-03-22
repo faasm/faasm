@@ -53,7 +53,7 @@ namespace tests {
     }
 
     TEST_CASE("Test opening blocked path", "[wasm]") {
-        checkError("open_blocked", "Attempt to open invalid file");
+        checkError("open_blocked", "Opening arbitrary path");
     }
 
     TEST_CASE("Test connecting to socket not owned by function", "[wasm]") {
@@ -65,6 +65,6 @@ namespace tests {
     }
 
     TEST_CASE("Test polling stdin", "[wasm]") {
-        checkError("stdin_poll", "Attempt to interact with stdin");
+        checkError("stdin_poll", "Process interacting with stdin");
     }
 }

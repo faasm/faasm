@@ -85,9 +85,6 @@ namespace wasm {
 
         int nextHandle = 1;
 
-        // TODO - how do we work out where this should be?
-        int nextTableOffset = 50000;
-
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
         Runtime::GCPointer<Runtime::Function> functionInstance;
 
@@ -116,7 +113,8 @@ namespace wasm {
                 IR::Module &irModule,
                 const std::vector<uint8_t> &wasmBytes,
                 const std::vector<uint8_t> &objBytes,
-                const std::string &name
+                const std::string &name,
+                bool isMainModule
         );
     };
 

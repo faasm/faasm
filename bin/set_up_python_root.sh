@@ -29,5 +29,3 @@ cp -r ${NUMPY_DIR} ${SITE_PACKAGES}
 # Put dummy functions in place
 cp -r python/funcs ${RUNTIME_ROOT}
 
-# Put libfaasm in place
-

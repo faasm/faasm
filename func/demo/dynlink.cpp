@@ -11,12 +11,14 @@ int main(int argc, char *argv[]) {
     printf("Handle: %p\n", handle);
 
     // Extract the function handle
-    int (*doubleInt)(int);
-    *(void **) (&doubleInt) = dlsym(handle, "doubleInt");
+    typedef int (*doubleIntFunc)(int);
+    auto f = (doubleIntFunc) dlsym(handle, "doubleInt");
 
     // Print the result
-    int result = (*doubleInt)(100);
+    int result = f(100);
     printf("Result: %i\n", result);
+
+    dlclose(handle);
 
     return 0;
 }

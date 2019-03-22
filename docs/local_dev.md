@@ -68,14 +68,6 @@ You can look in the following folders and remove any reference to `libprotobuf` 
 
 Avoid trying to do this with `apt` as it can accidentally delete a whole load of other stuff.
 
-### Emscripten
-
-If you want to compile things with Emscripten, you can install it using:
-
-```
-ansible-playbook --ask-become-pass emscripten.yml
-```
-
 ### wasm Toolchain
 
 A Dockerised wasm toolchain is already configured. To enter a container with these tools you can run the following:

@@ -6,9 +6,9 @@ from subprocess import call
 
 from invoke import task
 
-from tasks.download import download_proj, FAASM_HOME
-from tasks.env import PROJ_ROOT, EMSCRIPTEN_CMAKE_TOOLCHAIN, ENV_STR, SYSROOT, CONFIG_FLAGS, \
-    COMPILER_FLAGS, PY_EMSCRIPTEN_CMAKE_TOOLCHAIN, EMSCRIPTEN_DIR, PY_EMSCRIPTEN_DIR, PYODIDE_ROOT
+from tasks.download import download_proj
+from tasks.env import PROJ_ROOT, ENV_STR, SYSROOT, CONFIG_FLAGS, COMPILER_FLAGS, PY_EMSCRIPTEN_CMAKE_TOOLCHAIN, \
+    PY_EMSCRIPTEN_DIR
 
 
 def check_correct_emscripten(expected_root):
@@ -26,7 +26,7 @@ def check_correct_emscripten(expected_root):
 
 @task
 def clean_build(context):
-    lib_build_dir = join(PROJ_ROOT, "lib", "build")
+    lib_build_dir = join(PROJ_ROOT, "lib", "wasm_lib_build")
 
     # Clean build of library
     rmtree(lib_build_dir)
@@ -43,7 +43,7 @@ def funcs_emscripten(context, clean=False, func=None, debug=False):
 
 @task
 def funcs_python(context, clean=False, func=None, debug=False):
-    _build_funcs("pyodide", clean=clean, func=func, cmake_build_type="Debug" if debug else "Release")
+    _build_funcs("python", clean=clean, func=func, cmake_build_type="Debug" if debug else "Release")
 
 
 @task
@@ -52,10 +52,7 @@ def funcs(context, clean=False, func=None):
 
 
 def _get_toolchain(build_type):
-    if build_type == "emscripten":
-        check_correct_emscripten(EMSCRIPTEN_DIR)
-        toolchain_file = EMSCRIPTEN_CMAKE_TOOLCHAIN
-    elif build_type == "pyodide":
+    if build_type in ["emscripten", "python"]:
         check_correct_emscripten(PY_EMSCRIPTEN_DIR)
         toolchain_file = PY_EMSCRIPTEN_CMAKE_TOOLCHAIN
     else:
@@ -64,18 +61,13 @@ def _get_toolchain(build_type):
     return toolchain_file
 
 
-def _build_funcs(build_type, clean=False, func=None, top_level_build=False,
-                 cmake_build_type="Release"):
+def _build_funcs(build_type, clean=False, func=None, cmake_build_type="Release"):
     """
     Compiles functions
     """
 
     toolchain_file = _get_toolchain(build_type)
-
-    if top_level_build:
-        func_build_dir = join(PROJ_ROOT, "{}_func_build".format(build_type))
-    else:
-        func_build_dir = join(PROJ_ROOT, "func", "{}_func_build".format(build_type))
+    func_build_dir = join(PROJ_ROOT, "func", "{}_func_build".format(build_type))
 
     if clean and exists(func_build_dir):
         rmtree(func_build_dir)
@@ -104,7 +96,7 @@ def _build_funcs(build_type, clean=False, func=None, top_level_build=False,
 
 @task
 def compile_libfaasm_python(ctx):
-    _do_libfaasm_build("pyodide")
+    _do_libfaasm_build("python")
 
 
 @task
@@ -153,7 +145,7 @@ def compile_fakelib(ctx):
         rmtree(build_dir)
     mkdir(build_dir)
 
-    toolchain_file = _get_toolchain("pyodide")
+    toolchain_file = _get_toolchain("python")
 
     build_cmd = [
         "cmake",
@@ -186,10 +178,9 @@ def _checkout_eigen():
 def compile_eigen_emscripten(ctx):
     build_dir = _checkout_eigen()
 
-    check_correct_emscripten(EMSCRIPTEN_DIR)
+    toolchain_file = _get_toolchain("emscripten")
 
-    call("emconfigure cmake -DCMAKE_TOOLCHAIN_FILE={} ..".format(EMSCRIPTEN_CMAKE_TOOLCHAIN),
-         shell=True, cwd=build_dir)
+    call("emconfigure cmake -DCMAKE_TOOLCHAIN_FILE={} ..".format(toolchain_file), shell=True, cwd=build_dir)
 
     call("make", shell=True, cwd=build_dir)
     call("make install", shell=True, cwd=build_dir)

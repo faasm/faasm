@@ -42,10 +42,10 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # It's crucial for getting things to link properly so unfortunately must be set here
     set(CMAKE_RANLIB /toolchain/bin/llvm-ranlib)
 
-elseif (FAASM_BUILD_TYPE STREQUAL "pyodide")
+elseif (FAASM_BUILD_TYPE STREQUAL "python")
     add_definitions(-DWASM_BUILD=0)
 
-    set(CMAKE_SHARED_LINKER_FLAGS "-O3 \
+    set(CMAKE_SHARED_LINKER_FLAGS "-O2 \
         -s EMULATED_FUNCTION_POINTERS=1 \
         -s EMULATE_FUNCTION_POINTER_CASTS=1 \
         -s SIDE_MODULE=1 \
@@ -56,6 +56,12 @@ elseif (FAASM_BUILD_TYPE STREQUAL "pyodide")
 
 elseif (${EMSCRIPTEN})
     add_definitions(-DWASM_BUILD=0)
+
+    set(CMAKE_SHARED_LINKER_FLAGS "-O2 \
+        -s SIDE_MODULE=1 \
+        -s WASM=1 \
+        -s LINKABLE=1 \
+        -s EXPORT_ALL=1")
 else ()
     add_definitions(-DWASM_BUILD=0)
 endif ()

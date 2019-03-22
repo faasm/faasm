@@ -18,7 +18,7 @@ ANSIBLE_DIR = join(PROJ_ROOT, "ansible")
 
 WASM_FUNC_BUILD_DIR = join(PROJ_ROOT, "func", "wasm_func_build")
 EMSCRIPTEN_FUNC_BUILD_DIR = join(PROJ_ROOT, "func", "emscripten_func_build")
-PYTHON_FUNC_BUILD_DIR = join(PROJ_ROOT, "func", "pyodide_func_build")
+PYTHON_FUNC_BUILD_DIR = join(PROJ_ROOT, "func", "python_func_build")
 
 WASM_DIR = join(PROJ_ROOT, "wasm")
 
@@ -113,9 +113,6 @@ NATIVE_ENV_STR = " ".join(["{}={}".format(e[0], e[1]) for e in _NATIVE_ENV_TUPLE
 PYODIDE_ROOT = "/usr/local/code/pyodide/"
 PY_EMSCRIPTEN_DIR = join(PYODIDE_ROOT, "emsdk/emsdk/emscripten/tag-1.38.22")
 PY_EMSCRIPTEN_CMAKE_TOOLCHAIN = join(PY_EMSCRIPTEN_DIR, "cmake", "Modules", "Platform", "Emscripten.cmake")
-
-EMSCRIPTEN_DIR = "/usr/local/code/lib/emsdk/emscripten/1.38.28"
-EMSCRIPTEN_CMAKE_TOOLCHAIN = join(EMSCRIPTEN_DIR, "cmake", "Modules", "Platform", "Emscripten.cmake")
 
 INITIAL_PATH = os.environ["PATH"]
 

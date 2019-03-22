@@ -661,12 +661,15 @@ namespace wasm {
     void checkThreadOwnsFd(int fd) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
         bool isNotOwned = openFds.find(fd) == openFds.end();
-
+        util::SystemConfig &conf = util::getSystemConfig();
+        
         if (fd == STDIN_FILENO) {
-            logger->warn("Process interacting with stdin");
-
-            // TODO - this is a hack to allow Python to work.
-            // throw std::runtime_error("Attempt to interact with stdin");
+            if(conf.unsafeMode == "on") {
+                logger->warn("Process interacting with stdin");
+            } else {
+                logger->error("Process interacting with stdin");
+                throw std::runtime_error("Process interacting with stdin");
+            }
         } else if (fd == STDOUT_FILENO) {
             // Can allow stdout/ stderr through
             // logger->debug("Process interacting with stdout", fd);
@@ -684,6 +687,8 @@ namespace wasm {
         const std::string path = getStringFromWasm(pathPtr);
         logger->debug("S - open - {} {} {}", path, flags, mode);
 
+        util::SystemConfig &conf = util::getSystemConfig();
+        
         // Check if this is a valid path. Return a read-only handle to the file if so
         int fd;
         std::string fakePath;
@@ -705,10 +710,15 @@ namespace wasm {
             return -ENOENT;
         } else {
             fakePath = maskPath(path.c_str());
-            logger->debug("Opening {}", fakePath);
 
-            //TODO - need some sanity checks around these flags and mode
-            fd = open(fakePath.c_str(), flags, mode);
+            if(conf.unsafeMode == "on") {
+                logger->debug("Opening {}", fakePath);
+                fd = open(fakePath.c_str(), flags, mode);
+            }
+            else {
+                logger->error("Opening arbitrary path {}", fakePath);
+                throw std::runtime_error("Opening arbitrary path");
+            }
         }
 
         if (fd > 0) {
@@ -1243,7 +1253,7 @@ namespace wasm {
     *  WebAssembly official docs on dynamic linking:
     *  https://webassembly.org/docs/dynamic-linking/
     */
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlopen", I32, _dlopen, I32 fileNamePtr, I32 flags) {
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlopen", I32, emscripten_dlopen, I32 fileNamePtr, I32 flags) {
         const std::string filePath = getMaskedPathFromWasm(fileNamePtr);
 
         util::getLogger()->debug("S - _dlopen - {} {}", filePath, flags);
@@ -1253,7 +1263,12 @@ namespace wasm {
         return handle;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlsym", I32, _dlsym, I32 handle, I32 symbolPtr) {
+    DEFINE_INTRINSIC_FUNCTION(env, "_dlopen", I32, _dlopen, I32 a, I32 b) {
+        util::getLogger()->debug("S - _dlopen - {} {}", a, b);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlsym", I32, emscripten_dlsym, I32 handle, I32 symbolPtr) {
         const std::string symbol = getStringFromWasm(symbolPtr);
         util::getLogger()->debug("S - _dlsym - {} {}", handle, symbol);
 
@@ -1262,11 +1277,33 @@ namespace wasm {
         return (I32) tableIdx;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlerror", I32, _dlerror) {
+    DEFINE_INTRINSIC_FUNCTION(env, "_dlsym", I32, _dlsym, I32 a, I32 b) {
+        util::getLogger()->debug("S - _dlsym - {} {}", a, b);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlerror", I32, emscripten_dlerror) {
+        util::getLogger()->debug("S - _dlerror");
+
+        // Ignore
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "_dlerror", I32, _dlerror) {
         util::getLogger()->debug("S - _dlerror");
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlclose", I32, emscripten_dlclose, I32 handle) {
+        util::getLogger()->debug("S - _dlclose - {}", handle);
+
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "_dlclose", I32, _dlclose, I32 handle) {
+        util::getLogger()->debug("S - _dlclose - {}", handle);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
 
     // ------------------------
     // I/O - unsupported

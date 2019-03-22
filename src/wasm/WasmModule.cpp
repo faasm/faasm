@@ -118,10 +118,15 @@ namespace wasm {
     WasmModule::WasmModule() = default;
 
     WasmModule::~WasmModule() {
+        // Set all reference to GC pointers to null to allow WAVM GC to clear up
         defaultMemory = nullptr;
         defaultTable = nullptr;
         moduleInstance = nullptr;
         functionInstance = nullptr;
+
+        for (auto const &m : dynamicModuleMap) {
+            dynamicModuleMap[m.first] = nullptr;
+        }
 
         if (compartment != nullptr) {
             resolver->cleanUp();
@@ -194,7 +199,7 @@ namespace wasm {
         std::vector<uint8_t> objectFileBytes = functionLoader.loadFunctionObjectBytes(msg);
 
         // Create the module instance
-        moduleInstance = this->createModuleInstance(module, wasmBytes, objectFileBytes, util::funcToString(msg));
+        moduleInstance = this->createModuleInstance(module, wasmBytes, objectFileBytes, util::funcToString(msg), true);
 
         // Add this module to the resolver for dynamic imports
         resolver->setMainModule(moduleInstance);
@@ -228,7 +233,7 @@ namespace wasm {
     Runtime::ModuleInstance *
     WasmModule::createModuleInstance(IR::Module &irModule, const std::vector<uint8_t> &wasmBytes,
                                      const std::vector<uint8_t> &objBytes,
-                                     const std::string &name) {
+                                     const std::string &name, bool isMainModule) {
         wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
 
         if (functionLoader.isWasm(wasmBytes)) {
@@ -239,9 +244,18 @@ namespace wasm {
             WAST::reportParseErrors("wast_file", parseErrors);
         }
 
-        // Configure resolver (if not already set up)
-        if (!resolver->isSetUp()) {
+        // If this is the main module, set up the resolver
+        if (isMainModule) {
             resolver->setUp(compartment, irModule);
+        } else {
+            // Check that the module isn't expecting to create any memories or tables
+            if(!irModule.tables.defs.empty()) {
+                throw std::runtime_error("Dynamic module trying to define tables");
+            }
+
+            if(!irModule.memories.defs.empty()) {
+                throw std::runtime_error("Dynamic module trying to define memories");
+            }
         }
 
         Runtime::LinkResult linkResult = linkModule(irModule, *resolver);
@@ -279,11 +293,9 @@ namespace wasm {
 
         nextHandle++;
         std::string name = "handle_" + std::to_string(nextHandle);
-        IR::Module dynModule;
 
         // Instantiate the shared module
-        Runtime::ModuleInstance *moduleInstance = createModuleInstance(sharedModule, wasmBytes, objectBytes, name);
-
+        Runtime::ModuleInstance *moduleInstance = createModuleInstance(sharedModule, wasmBytes, objectBytes, name, false);
         dynamicPathToHandleMap[path] = nextHandle;
         dynamicModuleMap[nextHandle] = moduleInstance;
 
@@ -298,14 +310,14 @@ namespace wasm {
         // TODO - avoid doing this if function is already in the table
 
         // Get main entrypoint function
-        if(dynamicModuleMap.count(handle) == 0) {
+        if (dynamicModuleMap.count(handle) == 0) {
             logger->error("No dynamic module registered for handle {}", handle);
             throw std::runtime_error("Missing dynamic module");
         }
 
         Runtime::ModuleInstance *dynModule = dynamicModuleMap[handle];
 
-        // Emscripten seems to put an underscore in front of the exports
+        // Something puts an underscore in front of the name
         std::string actualFuncName = "_" + funcName;
         Runtime::Function *func = asFunctionNullable(getInstanceExport(dynModule, actualFuncName));
 
@@ -315,10 +327,10 @@ namespace wasm {
         }
 
         // Add function to the table
-        nextTableOffset++;
-        Runtime::setTableElement(defaultTable, nextTableOffset, Runtime::asObject(func));
+        Iptr prevIdx = Runtime::growTable(defaultTable, 1);
+        Runtime::setTableElement(defaultTable, prevIdx, Runtime::asObject(func));
 
-        return nextTableOffset;
+        return prevIdx;
     }
 
     void WasmModule::snapshotFullMemory(const char *key) {

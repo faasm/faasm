@@ -8,7 +8,7 @@ from invoke import task
 from tasks.compile import check_correct_emscripten
 from tasks.download import FAASM_HOME, clone_proj
 from tasks.env import NATIVE_ENV_DICT, ENV_STR, CONFIG_TARGET, \
-    CONFIG_HOST, SYSROOT, PY_EMSCRIPTEN_DIR, PROJ_ROOT, EMSCRIPTEN_DIR, PYODIDE_ROOT
+    CONFIG_HOST, SYSROOT, PY_EMSCRIPTEN_DIR, PROJ_ROOT, PYODIDE_ROOT
 
 
 @task
@@ -20,13 +20,6 @@ def python_codegen(ctx):
             res = call("{} {}".format(codegen_bin, so_file), shell=True)
             if res != 0:
                 print("Failed to generate machine code for {}".format(so_file))
-
-
-@task
-def build_emscripten_cpython(ctx):
-    check_correct_emscripten(EMSCRIPTEN_DIR)
-    make_dir = join(PROJ_ROOT, "cpython-emscripten", "3.5.2")
-    call("make", cwd=make_dir, shell=True)
 
 
 @task
