@@ -68,7 +68,7 @@ install(TARGETS faasm
         ARCHIVE DESTINATION ${WASM_SYSROOT}/lib
         LIBRARY DESTINATION ${WASM_SYSROOT}/lib
         RUNTIME DESTINATION ${WASM_SYSROOT}/bin
-        PUBLIC_HEADER DESTINATION ${WASM_SYSROOT}/include
+        PUBLIC_HEADER DESTINATION ${WASM_SYSROOT}/include/faasm
         )
 
 install(FILES libfaasm.imports DESTINATION ${WASM_SYSROOT}/lib/)

@@ -25,7 +25,6 @@ from tasks.compile import (
     compile_libfaasm_emscripten,
     compile_libfaasm_python,
     compile_eigen,
-    compile_eigen_emscripten,
     compile_libfake,
 )
 from tasks.docker import (

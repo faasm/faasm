@@ -7,7 +7,7 @@ from subprocess import call
 from invoke import task
 
 from tasks.download import download_proj
-from tasks.env import PROJ_ROOT, SYSROOT, PY_EMSCRIPTEN_CMAKE_TOOLCHAIN, PY_EMSCRIPTEN_DIR, WASM_TOOLCHAIN
+from tasks.env import PROJ_ROOT, PY_EMSCRIPTEN_CMAKE_TOOLCHAIN, PY_EMSCRIPTEN_DIR, WASM_TOOLCHAIN, WASM_SYSROOT
 
 
 def check_correct_emscripten(expected_root):
@@ -55,16 +55,12 @@ def _get_toolchain(build_type):
         check_correct_emscripten(PY_EMSCRIPTEN_DIR)
         toolchain_file = PY_EMSCRIPTEN_CMAKE_TOOLCHAIN
     else:
-        toolchain_file = None
+        toolchain_file = WASM_TOOLCHAIN
 
     return toolchain_file
 
 
 def _build_funcs(build_type, clean=False, func=None, cmake_build_type="Release"):
-    """
-    Compiles functions
-    """
-
     toolchain_file = _get_toolchain(build_type)
     func_build_dir = join(PROJ_ROOT, "func", "{}_func_build".format(build_type))
 
@@ -75,6 +71,7 @@ def _build_funcs(build_type, clean=False, func=None, cmake_build_type="Release")
         mkdir(func_build_dir)
 
     build_cmd = [
+        "VERBOSE=1",
         "cmake",
         "-DFAASM_BUILD_TYPE={}".format(build_type),
         "-DCMAKE_TOOLCHAIN_FILE={}".format(toolchain_file) if toolchain_file else "",
@@ -145,61 +142,31 @@ def compile_libfake(ctx):
         rmtree(build_dir)
     mkdir(build_dir)
 
-    toolchain_file = _get_toolchain("python")
-
     build_cmd = [
         "cmake",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(toolchain_file) if toolchain_file else "",
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
         "-DCMAKE_BUILD_TYPE=Release",
         ".."
     ]
 
     call(" ".join(build_cmd), shell=True, cwd=build_dir)
-    call("make VERBOSE=1", shell=True, cwd=build_dir)
-    call("make install", shell=True, cwd=build_dir)
-
-
-def _checkout_eigen():
-    extract_dir, build_dir = download_proj(
-        "http://bitbucket.org/eigen/eigen/get/3.3.7.tar.gz",
-        "3.3.7",
-        extract_file="eigen-eigen-323c052e1731"
-    )
-
-    if exists(build_dir):
-        rmtree(build_dir)
-
-    mkdir(build_dir)
-
-    return build_dir
-
-
-@task
-def compile_eigen_emscripten(ctx):
-    build_dir = _checkout_eigen()
-
-    toolchain_file = _get_toolchain("emscripten")
-
-    call("emconfigure cmake -DCMAKE_TOOLCHAIN_FILE={} ..".format(toolchain_file), shell=True, cwd=build_dir)
-
     call("make", shell=True, cwd=build_dir)
     call("make install", shell=True, cwd=build_dir)
 
 
 @task
 def compile_eigen(ctx):
-    build_dir = _checkout_eigen()
+    extract_dir, build_dir = download_proj(
+        "http://bitbucket.org/eigen/eigen/get/3.3.7.tar.gz",
+        "3.3.7",
+        extract_file="eigen-eigen-323c052e1731"
+    )
 
-    build_cmd = [
-        "VERBOSE=1",
-        "cmake",
-        "-DFAASM_BUILD_TYPE=wasm",
-        "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
-        ".."
-    ]
+    dest_dir = join(WASM_SYSROOT, "include", "eigen3")
+    if exists(dest_dir):
+        rmtree(dest_dir)
+    mkdir(dest_dir)
 
-    call(" ".join(build_cmd), shell=True, cwd=build_dir)
-
-    call("make", shell=True, cwd=build_dir)
-    call("make install", shell=True, cwd=build_dir)
+    # Eigen is header-only so we just need to copy the files in place
+    src_dir = join(extract_dir, "Eigen")
+    call("cp -r {} {}".format(src_dir, dest_dir), shell=True)

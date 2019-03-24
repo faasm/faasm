@@ -35,36 +35,17 @@ AWS_REGION = "eu-west-1"
 
 WASM_LIB_DIR = join(PROJ_ROOT, "wasm", "lib")
 
-SYSROOT = join(FAASM_HOME, "sysroot")
+WASM_SYSROOT = join(FAASM_HOME, "toolchain", "sysroot")
 
 TARGET_TRIPLE = "wasm32-unknown-unknown-wasm"
 CONFIG_TARGET = "wasm32"
 CONFIG_HOST = "wasm32-unknown-none"
-
-COMPILER_FLAGS = [
-    "--target={}".format(TARGET_TRIPLE),
-    "--sysroot={}".format(SYSROOT),
-]
-
-COMPILER_FLAGS_STRING = " ".join(COMPILER_FLAGS)
-COMPILER_FLAGS_STRING = "\"{}\"".format(COMPILER_FLAGS_STRING)
 
 PYODIDE_ROOT = "/usr/local/code/pyodide/"
 PY_EMSCRIPTEN_DIR = join(PYODIDE_ROOT, "emsdk/emsdk/emscripten/tag-1.38.22")
 PY_EMSCRIPTEN_CMAKE_TOOLCHAIN = join(PY_EMSCRIPTEN_DIR, "cmake", "Modules", "Platform", "Emscripten.cmake")
 
 WASM_TOOLCHAIN = join(PROJ_ROOT, "WasmToolchain.cmake")
-
-INITIAL_PATH = os.environ["PATH"]
-
-BUILD_DIR = join(PROJ_ROOT, "work")
-
-CONFIG_FLAGS = [
-    "--target={}".format(CONFIG_TARGET),
-    "--host={}".format(CONFIG_TARGET),
-    "--prefix={}".format(SYSROOT),
-]
-
 
 # ---------------------------------------------
 # Utility functions

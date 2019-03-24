@@ -3,22 +3,11 @@ project(faasm-func)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(FAASM_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/../lib)
-
-include_directories(${FAASM_LIB_DIR})
-
-# Faasm host for uploads
-if (DEFINED ENV{FAASM_HOST})
-    set(FAASM_HOST $ENV{FAASM_HOST})
-else ()
-    set(FAASM_HOST localhost)
-endif ()
-
-# Modify inclusions if building for lambda
 if (FAASM_BUILD_TYPE STREQUAL "lambda-func")
     add_definitions(-DAWS_LAMBDA=1)
 
-    include_directories(${FAASM_LIB_DIR} ${FAASM_LAMBDA_LIB_DIR})
+    # Add faasm lambda headers
+    include_directories(${FAASM_LAMBDA_LIB_DIR})
 else ()
     add_definitions(-DAWS_LAMBDA=0)
 endif ()
@@ -28,16 +17,15 @@ if (${EMSCRIPTEN})
     # Emscripten doesn't seem to look in normal system includes so we explicitly have to tell it to
     include_directories(/usr/local/include/)
 
-    if (${EMSCRIPTEN})
-        message(STATUS "Detected emscripten build")
+    message(STATUS "Detected emscripten build")
 
-        # --- Emscripten python options ---
-        #
-        # These should match the main pyodide Makefile
-        # https://github.com/iodide-project/pyodide/blob/master/Makefile
-        #
-        # We do not set MAIN_MODULE here as we are building pure WebAssembly
-        set(EM_LINKER_FLAGS "-s ERROR_ON_UNDEFINED_SYMBOLS=0 \
+    # --- Emscripten python options ---
+    #
+    # These should match the main pyodide Makefile
+    # https://github.com/iodide-project/pyodide/blob/master/Makefile
+    #
+    # We do not set MAIN_MODULE here as we are building pure WebAssembly
+    set(EM_LINKER_FLAGS "-s ERROR_ON_UNDEFINED_SYMBOLS=0 \
             -s MODULARIZE=1 \
             -s \"BINARYEN_METHOD='native-wasm'\" \
             -s \"BINARYEN_TRAP_MODE='clamp'\" \
@@ -48,8 +36,7 @@ if (${EMSCRIPTEN})
             -s EXPORT_ALL=1 \
             -s WASM=1 \
             --memory-init-file 0 \
-        ")
-    endif ()
+    ")
 
     # Link to emscripten libfaasm
     link_directories(/usr/local/code/faasm/lib/emscripten_lib_build/)
@@ -66,18 +53,12 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # ----------------------
     # WASM build
     # ----------------------
-    add_definitions(-DWASM_BUILD=1)
-
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Oz -fvisibility=hidden")
-
     function(faasm_func exec_name file_name)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
-
         add_executable(${exec_name} ${file_name})
 
-        set_target_properties(${exec_name} PROPERTIES OUTPUT_NAME ${exec_name}.wasm)
+        # set_target_properties(${exec_name} PROPERTIES OUTPUT_NAME ${exec_name}.wasm)
 
-        target_link_libraries(${exec_name} ${FAASM_LIB})
+        target_link_libraries(${exec_name} ${FAASM_LIB} c c++ c++abi)
     endfunction(faasm_func)
 
 elseif (${EMSCRIPTEN})
@@ -122,11 +103,10 @@ endif ()
 add_subdirectory(errors)
 add_subdirectory(demo)
 add_subdirectory(sgd)
-add_subdirectory(libfake)
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
 elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
-elseif(${EMSCRIPTEN})
+elseif (${EMSCRIPTEN})
     add_subdirectory(python)
 else ()
     # Native-only

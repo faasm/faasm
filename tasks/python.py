@@ -7,7 +7,7 @@ from invoke import task
 
 from tasks.compile import check_correct_emscripten
 from tasks.download import FAASM_HOME, clone_proj
-from tasks.env import CONFIG_TARGET, CONFIG_HOST, SYSROOT, PY_EMSCRIPTEN_DIR, PROJ_ROOT, PYODIDE_ROOT
+from tasks.env import CONFIG_TARGET, CONFIG_HOST, PY_EMSCRIPTEN_DIR, PROJ_ROOT, PYODIDE_ROOT, WASM_SYSROOT
 
 
 @task
@@ -76,7 +76,7 @@ def build_python(ctx):
         "--target={}".format(CONFIG_TARGET),
         "--host={}".format(CONFIG_HOST),
         "--build={}".format(CONFIG_TARGET),
-        "--prefix={}".format(SYSROOT),
+        "--prefix={}".format(WASM_SYSROOT),
     ]
 
     # Run configuration
@@ -136,7 +136,7 @@ def build_python(ctx):
     # -----------------------------------
 
     # Put lib in place
-    call("cp {} {}".format(python_lib, join(SYSROOT, "lib")), shell=True, cwd=target_proj)
+    call("cp {} {}".format(python_lib, join(WASM_SYSROOT, "lib")), shell=True, cwd=target_proj)
 
     # Put sysconfig in place
     # host_sysconfig = join(host_build_dir, "lib", "python3.6", "_sysconfigdata_m_linux_x86_64-linux-gnu.py")

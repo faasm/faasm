@@ -26,8 +26,8 @@ add_library(fake SHARED src/fake.c)
 set_target_properties(fake PROPERTIES PUBLIC_HEADER include/fake.h)
 
 install(TARGETS fake
-        ARCHIVE DESTINATION ${CMAKE_BINARY_DIR}/lib
-        LIBRARY DESTINATION /usr/local/faasm/runtime_root
-        RUNTIME DESTINATION ${CMAKE_BINARY_DIR}/bin
-        PUBLIC_HEADER DESTINATION ${CMAKE_BINARY_DIR}/include
+        ARCHIVE DESTINATION ${WASM_SYSROOT}/lib
+        LIBRARY DESTINATION ${WASM_SYSROOT}/lib
+        RUNTIME DESTINATION ${WASM_SYSROOT}/bin
+        PUBLIC_HEADER DESTINATION ${WASM_SYSROOT}/include
         )
