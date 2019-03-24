@@ -33,9 +33,6 @@ set(PUBLIC_HEADERS
         )
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
-    set(CMAKE_C_FLAGS "${WASM_COMPILER_FLAGS}")
-    set(CMAKE_CXX_FLAGS "${WASM_COMPILER_FLAGS}")
-
     message(STATUS "Running libfaasm wasm build")
 
 elseif (FAASM_BUILD_TYPE STREQUAL "python")
@@ -68,10 +65,10 @@ add_library(faasm STATIC ${LIB_FILES})
 set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
 install(TARGETS faasm
-        ARCHIVE DESTINATION ${CMAKE_BINARY_DIR}/lib
-        LIBRARY DESTINATION ${CMAKE_BINARY_DIR}/lib
-        RUNTIME DESTINATION ${CMAKE_BINARY_DIR}/bin
-        PUBLIC_HEADER DESTINATION ${CMAKE_BINARY_DIR}/include
+        ARCHIVE DESTINATION ${WASM_SYSROOT}/lib
+        LIBRARY DESTINATION ${WASM_SYSROOT}/lib
+        RUNTIME DESTINATION ${WASM_SYSROOT}/bin
+        PUBLIC_HEADER DESTINATION ${WASM_SYSROOT}/include
         )
 
-install(FILES libfaasm.imports DESTINATION ${CMAKE_BINARY_DIR}/lib/)
+install(FILES libfaasm.imports DESTINATION ${WASM_SYSROOT}/lib/)

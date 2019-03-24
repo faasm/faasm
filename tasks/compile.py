@@ -190,7 +190,16 @@ def compile_eigen_emscripten(ctx):
 def compile_eigen(ctx):
     build_dir = _checkout_eigen()
 
-    call("cmake -DCMAKE_INSTALL_PREFIX={} ..".format(SYSROOT), shell=True, cwd=build_dir)
+    build_cmd = [
+        "VERBOSE=1",
+        "cmake",
+        "-DFAASM_BUILD_TYPE=wasm",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
+        ".."
+    ]
+
+    call(" ".join(build_cmd), shell=True, cwd=build_dir)
 
     call("make", shell=True, cwd=build_dir)
     call("make install", shell=True, cwd=build_dir)
