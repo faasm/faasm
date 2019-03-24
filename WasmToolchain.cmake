@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.0.0)
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_CXX_STANDARD 17)
 
-# Tools
+# LLVM Tools
 set(CMAKE_CROSSCOMPILING TRUE)
 set(CMAKE_C_COMPILER "/usr/bin/clang-8")
 set(CMAKE_CXX_COMPILER "/usr/bin/clang++-8")
@@ -59,3 +59,5 @@ SET(CMAKE_SHARED_MODULE_SUFFIX ".wasm")
 # Definitions
 add_definitions(-DWASM_BUILD=1)
 
+# Install location
+SET(CMAKE_INSTALL_PREFIX ${WASM_SYSROOT})

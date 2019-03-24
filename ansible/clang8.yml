@@ -25,6 +25,8 @@
           - clang-tools-8
           - lld-8
           - lldb-8
+          - libc++-8-dev
+          - libc++abi-8-dev
           - build-essential
         update_cache: yes
 
