@@ -11,8 +11,6 @@ if (${EMSCRIPTEN})
     include_directories(/usr/local/include/)
 endif ()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic -fvisibility=default")
-
 set(LIB_FILES
         counter.cpp
         func.cpp
@@ -35,12 +33,10 @@ set(PUBLIC_HEADERS
         )
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
-    message(STATUS "Running libfaasm wasm build")
-    add_definitions(-DWASM_BUILD=1)
+    set(CMAKE_C_FLAGS "${WASM_COMPILER_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${WASM_COMPILER_FLAGS}")
 
-    # For some incredibly annoying reason, CMake isn't picking this up from the environment
-    # It's crucial for getting things to link properly so unfortunately must be set here
-    set(CMAKE_RANLIB /usr/bin/llvm-ranlib-8)
+    message(STATUS "Running libfaasm wasm build")
 
 elseif (FAASM_BUILD_TYPE STREQUAL "python")
     add_definitions(-DWASM_BUILD=1)

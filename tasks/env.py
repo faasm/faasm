@@ -49,40 +49,11 @@ COMPILER_FLAGS = [
 COMPILER_FLAGS_STRING = " ".join(COMPILER_FLAGS)
 COMPILER_FLAGS_STRING = "\"{}\"".format(COMPILER_FLAGS_STRING)
 
-# Getting everything mapped properly here is crucial. If we end up
-# using system defaults we can get some errors that are *very* hard
-# to debug
-
-# CC = "/usr/bin/clang-8"
-# CPP = "/usr/bin/clang-cpp-8"
-# CFLAGS = ""
-# CXX = "/usr/bin/clang++-8"
-# CXXFLAGS = ""
-# LD = "/usr/bin/llvm-link-8"
-# CROSS_COMPILE = "/usr/bin/llvm-"
-# AR = "/usr/bin/llvm-ar-8"
-# AS = "/usr/bin/llvm-as-8"
-# RANLIB = "/usr/bin/llvm-ranlib-8"
-
-# _ENV_TUPLES = [
-#     ("CC", CC),
-#     ("CPP", CPP),
-#     ("CFLAGS", CFLAGS),
-#     ("AR", AR),
-#     ("AS", AS),
-#     ("LD", LD),
-#     ("RANLIB", RANLIB),
-#     ("CROSS_COMPILE", CROSS_COMPILE),
-#     ("CXX", CXX),
-#     ("CXXFLAGS", CXXFLAGS),
-# ]
-
-# ENV_DICT = {e[0]: e[1] for e in _ENV_TUPLES}
-# ENV_STR = " ".join(["{}={}".format(e[0], e[1]) for e in _ENV_TUPLES])
-
 PYODIDE_ROOT = "/usr/local/code/pyodide/"
 PY_EMSCRIPTEN_DIR = join(PYODIDE_ROOT, "emsdk/emsdk/emscripten/tag-1.38.22")
 PY_EMSCRIPTEN_CMAKE_TOOLCHAIN = join(PY_EMSCRIPTEN_DIR, "cmake", "Modules", "Platform", "Emscripten.cmake")
+
+WASM_TOOLCHAIN = join(PROJ_ROOT, "WasmToolchain.cmake")
 
 INITIAL_PATH = os.environ["PATH"]
 
@@ -98,12 +69,6 @@ CONFIG_FLAGS = [
 # ---------------------------------------------
 # Utility functions
 # ---------------------------------------------
-
-def check_wasm_compiler():
-    cc = os.environ.get("CC")
-    if cc != "/usr/bin/clang-8":
-        print("Must be running wasm compiler by sourcing bin/wasm_env.sh")
-        exit(1)
 
 
 def get_wasm_func_path(user, func_name):

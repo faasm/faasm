@@ -7,7 +7,7 @@ from subprocess import call
 from invoke import task
 
 from tasks.download import download_proj
-from tasks.env import PROJ_ROOT, SYSROOT, PY_EMSCRIPTEN_CMAKE_TOOLCHAIN, PY_EMSCRIPTEN_DIR, check_wasm_compiler
+from tasks.env import PROJ_ROOT, SYSROOT, PY_EMSCRIPTEN_CMAKE_TOOLCHAIN, PY_EMSCRIPTEN_DIR, WASM_TOOLCHAIN
 
 
 def check_correct_emscripten(expected_root):
@@ -109,8 +109,6 @@ def compile_libfaasm(ctx):
 
 
 def _do_libfaasm_build(build_type, cmake_build_type="Release"):
-    check_wasm_compiler()
-
     work_dir = join(PROJ_ROOT, "lib")
     build_dir = join(work_dir, "{}_lib_build".format(build_type))
 
@@ -123,10 +121,14 @@ def _do_libfaasm_build(build_type, cmake_build_type="Release"):
         "cmake",
         "-DFAASM_BUILD_TYPE={}".format(build_type),
         "-DCMAKE_BUILD_TYPE={}".format(cmake_build_type),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
         ".."
     ]
 
-    call(" ".join(build_cmd), shell=True, cwd=build_dir)
+    build_cmd_str = " ".join(build_cmd)
+    print(build_cmd_str)
+
+    call(build_cmd_str, shell=True, cwd=build_dir)
     call("make VERBOSE=1", shell=True, cwd=build_dir)
     call("make install", shell=True, cwd=build_dir)
 

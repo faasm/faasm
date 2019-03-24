@@ -18,7 +18,7 @@ if(${EMSCRIPTEN})
 
     set(CMAKE_SHARED_LIBRARY_SUFFIX ".wasm")
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic -fvisibility=default")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=default")
 endif()
 
 add_library(fake SHARED src/fake.c)
