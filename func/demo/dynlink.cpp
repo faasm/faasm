@@ -6,7 +6,7 @@ typedef int (*mult)(int, int);
 
 int main(int argc, char *argv[]) {
     // Open the module
-    void * handle = dlopen("libfake.wasm", RTLD_NOW);
+    void * handle = dlopen("libfake.so", RTLD_NOW);
     if(handle == nullptr) {
         printf("Handle is null\n");
         return 1;

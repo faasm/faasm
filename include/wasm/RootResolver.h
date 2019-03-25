@@ -87,14 +87,12 @@ namespace wasm {
         }
 
         void setUp(Runtime::Compartment *compartment, IR::Module &module) {
-            // Emscripten imports tables
-            if (!module.tables.defs.empty()) {
-                isEmscripten = false;
-                this->setUpStandardToolchain(compartment, module);
-            } else {
-                isEmscripten = true;
-                this->setUpEmscripten(compartment, module);
-            }
+            // TODO - need to work out how to distinguish between emscripten/ non-emscripten
+            isEmscripten = false;
+            this->setUpStandardToolchain(compartment, module);
+
+            // isEmscripten = true;
+            // this->setUpEmscripten(compartment, module);
 
             _isSetUp = true;
         }
@@ -105,13 +103,15 @@ namespace wasm {
             module.memories.imports[0].type.size.max = (U64) MAX_MEMORY_PAGES;
 
             Runtime::Memory *memory = Runtime::createMemory(compartment, module.memories.imports[0].type, "env.memory");
+            Runtime::Table *table = Runtime::createTable(compartment, module.tables.imports[0].type, "env.__indirect_function_table");
 
             HashMap<std::string, Runtime::Object *> extraEnvExports = {
                     {"memory", Runtime::asObject(memory)},
+                    {"__indirect_function_table", Runtime::asObject(table)},
             };
 
             envModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_env(), "env",
-                                                        extraEnvExports);
+                                                      extraEnvExports);
         }
 
         void setUpEmscripten(Runtime::Compartment *compartment, IR::Module &module) {

@@ -2,14 +2,22 @@
 
 set -e
 
+TOOLCHAIN=$HOME/faasm/toolchain
+
 # Compile libfake
 inv compile-libfake 
 
-# Put it in place
-cp /home/shillaker/faasm/toolchain/sysroot/lib/objects-Release/fake/src/fake.c.obj /usr/local/faasm/runtime_root/libfake.wasm
+# Build the shared object
+ARCHIVE=${TOOLCHAIN}/sysroot/lib/libfake.a
+${TOOLCHAIN}/bin/wasm-ld \
+    --whole-archive ${TOOLCHAIN}/sysroot/lib/libfake.a \
+    --shared \
+    --import-memory \
+    --import-table \
+    -o /usr/local/faasm/runtime_root/libfake.so
 
 # Run codegen
-./cmake-build-debug/bin/codegen /usr/local/faasm/runtime_root/libfake.wasm
+./cmake-build-debug/bin/codegen /usr/local/faasm/runtime_root/libfake.so
 
 # Generate wast
-./cmake-build-debug/WAVM/bin/wavm-disas /usr/local/faasm/runtime_root/libfake.wasm /usr/local/faasm/runtime_root/libfake.wast
+./cmake-build-debug/WAVM/bin/wavm-disas /usr/local/faasm/runtime_root/libfake.so /usr/local/faasm/runtime_root/libfake.wast

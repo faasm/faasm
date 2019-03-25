@@ -264,6 +264,14 @@ namespace wasm {
         U8 d_name[256];
     };
 
+    // -------------------------
+    // Globals
+    // -------------------------
+
+    DEFINE_INTRINSIC_GLOBAL(env, "__stack_pointer", U32, stack_pointer, 0);
+    DEFINE_INTRINSIC_GLOBAL(env, "__memory_base", U32, memory_base, 1024);
+    DEFINE_INTRINSIC_GLOBAL(env, "__table_base", U32, table_base, 0);
+
     // ------------------------
     // FAASM-specific
     // ------------------------
@@ -2551,10 +2559,10 @@ namespace wasm {
                             _stdout,
                             MutableGlobals::address + offsetof(MutableGlobals, _stdout));
 
-    DEFINE_INTRINSIC_GLOBAL(emEnv, "__memory_base", U32, memory_base, 1024);
+    DEFINE_INTRINSIC_GLOBAL(emEnv, "__memory_base", U32, emscripten_memory_base, 1024);
     DEFINE_INTRINSIC_GLOBAL(emEnv, "memoryBase", U32, emscriptenMemoryBase, 1024);
 
-    DEFINE_INTRINSIC_GLOBAL(emEnv, "__table_base", U32, table_base, 0);
+    DEFINE_INTRINSIC_GLOBAL(emEnv, "__table_base", U32, emscripten_table_base, 0);
     DEFINE_INTRINSIC_GLOBAL(emEnv, "tableBase", U32, emscriptenTableBase, 0);
 
     DEFINE_INTRINSIC_GLOBAL(emEnv,

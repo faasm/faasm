@@ -17,15 +17,19 @@ if(${EMSCRIPTEN})
         ")
 
     set(CMAKE_SHARED_LIBRARY_SUFFIX ".wasm")
+else()
+    # Attempt to get wasm-ld to produce shared object
+    set(COMPILER_FLAGS "${CMAKE_CXX_FLAGS} -Xlinker --shared")
+    set(CMAKE_CXX_FLAGS "${COMPILER_FLAGS}")
+    set(CMAKE_C_FLAGS "${COMPILER_FLAGS}")
 endif()
 
-add_library(fake OBJECT src/fake.c)
-
+set(BUILD_SHARED_LIBS ON)
+add_library(fake SHARED include/fake.h src/fake.c)
 set_target_properties(fake PROPERTIES PUBLIC_HEADER include/fake.h)
 
 install(TARGETS fake
         ARCHIVE DESTINATION ${WASM_SYSROOT}/lib
         LIBRARY DESTINATION ${WASM_SYSROOT}/lib
-        OBJECTS DESTINATION ${WASM_SYSROOT}/lib
         PUBLIC_HEADER DESTINATION ${WASM_SYSROOT}/include
         )

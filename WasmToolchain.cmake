@@ -31,6 +31,7 @@ set(WASM_COMPILER_FLAGS "\
     --target=wasm32 \
     --sysroot=${WASM_SYSROOT} \
     -Xlinker --import-memory \
+    -Xlinker --import-table \
     ")
 
 set(CMAKE_C_FLAGS ${WASM_COMPILER_FLAGS} CACHE STRING "" FORCE)
