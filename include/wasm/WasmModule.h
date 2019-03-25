@@ -74,7 +74,7 @@ namespace wasm {
 
         void restoreMemory();
 
-        int dynamicLoadModule(const std::string &path);
+        int dynamicLoadModule(const std::string &path, Runtime::Context *context);
 
         Uptr getDynamicModuleFunction(int handle, const std::string &funcName);
 
@@ -83,7 +83,7 @@ namespace wasm {
     private:
         IR::Module module;
 
-        int nextHandle = 1;
+        int dynamicModuleCount = 0;
 
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
         Runtime::GCPointer<Runtime::Function> functionInstance;
@@ -116,6 +116,8 @@ namespace wasm {
                 const std::string &name,
                 bool isMainModule
         );
+
+        I32 getGlobalI32(const std::string &globalName, Runtime::Context *context);
     };
 
     WasmModule *getExecutingModule();

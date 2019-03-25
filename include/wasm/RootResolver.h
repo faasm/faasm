@@ -14,16 +14,32 @@ using namespace WAVM;
 
 namespace wasm {
 
-    // Note that the max memory per module is 8GiB, i.e. > 100k pages
-    // Page size in wasm is 64kiB
+    // ------- WASM MEMORY CONSTANTS --------
+    //
+    // wasm memory is laid out as follows:
+    //
+    // |  | SP |   DATA   |   STACK   |   DYNAMIC   |   HEAP   brk ->   |
+    // 0  4    5       data_end    heap_base      initial              MAX
+    //
+    // SP = stack pointer lives at address 4 as pre-defined in the spec
+    // DATA = this holds any data segments
+    // STACK = the stack (grows downwards)
+    // DYNAMIC = fixed size empty region, can be used to create stuff on the fly (e.g. when dynamic linking)
+    // HEAP = the heap (grows upwards), the heap will grow from the edge of your initial memory boundary and up
+    //
+    // __data_end and __heap_base should be exported from the main module and will be determined dynamically.
+    // The initial memory size and max are determined when instantiating the module below.
+    //
+    // Note that page size in wasm is 64kiB
+    // Note also that this initial memory must be big enough to include all data, stack and dynamic
+    // memory that the module will need.
     const int ONE_MB_PAGES = 16;
     const int ONE_GB_PAGES = 1024 * ONE_MB_PAGES;
 
-    // Must make sure initial memory is big enough to fit data, stack and globals
-    // heap will always grop up from here (regardless of where the top is)
-    const int INITIAL_MEMORY_PAGES = 10 * ONE_MB_PAGES;
+    const int INITIAL_MEMORY_PAGES = 30 * ONE_MB_PAGES;
     const int MAX_MEMORY_PAGES = ONE_GB_PAGES;
 
+    // Emscripten memory constants
     const int EMSCRIPTEN_MIN_TABLE_ELEMS = 200000;
     const int EMSCRIPTEN_MAX_TABLE_ELEMS = 600000;
     const int INITIAL_EMSCRIPTEN_PAGES = 1024 * ONE_MB_PAGES;
@@ -99,15 +115,9 @@ namespace wasm {
             Runtime::Table *table = Runtime::createTable(compartment, module.tables.imports[0].type,
                                                          "env.__indirect_function_table");
 
-            // Add stack pointer
-            Runtime::Global *stackPtrGlobal = Runtime::createGlobal(compartment,
-                                                                    IR::GlobalType(IR::ValueType::i32, true));
-            Runtime::initializeGlobal(stackPtrGlobal, 4052);
-
             HashMap<std::string, Runtime::Object *> extraEnvExports = {
                     {"memory",                    Runtime::asObject(memory)},
                     {"__indirect_function_table", Runtime::asObject(table)},
-                    {"__stack_pointer",           Runtime::asObject(stackPtrGlobal)},
             };
 
             envModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_env(), "env",
@@ -160,17 +170,19 @@ namespace wasm {
                      IR::ExternType type,
                      Runtime::Object *&resolved) override {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-            bool isGlobalAccessor = exportName.rfind("g$_", 0) == 0;
-            bool isAFunc = type.kind == IR::ExternKind::function;
-
-            if (isGlobalAccessor && isAFunc) {
-                logger->debug("Stubbing global accessor import {}", exportName);
-                resolved = getStubObject(exportName, type);
-                return true;
-            }
-
+            
+            bool isDynamicModule = mainModule != nullptr;
+            
             if (isEmscripten) {
+                bool isGlobalAccessor = exportName.rfind("g$_", 0) == 0;
+                bool isAFunc = type.kind == IR::ExternKind::function;
+
+                if (isGlobalAccessor && isAFunc) {
+                    logger->debug("Stubbing global accessor import {}", exportName);
+                    resolved = getStubObject(exportName, type);
+                    return true;
+                }
+
                 // Emscripten modules can have imports from 3 modules
                 if (moduleName == "env") {
                     resolved = getInstanceExport(emEnvModule, exportName);
@@ -181,15 +193,35 @@ namespace wasm {
                 } else {
                     logger->error("Unrecognised module: {}", moduleName);
                 }
-            } else {
-                // In non-emscripten environments we only care about the env module
-                resolved = getInstanceExport(envModule, exportName);
-            }
+            } else if(isDynamicModule) {
+                // The special cases below are the globals that are crucial to getting the
+                // dynamic linking to work. They tell the new module about its new memory region
+                if(exportName == "__memory_base") {
+                    Runtime::Global *newMemoryBase = Runtime::createGlobal(compartment, asGlobalType(type));
+                    Runtime::initializeGlobal(newMemoryBase, nextMemoryBase);
+                    resolved = asObject(newMemoryBase);
+                }
+                else if(exportName == "__table_base") {
+                    Runtime::Global *newTableBase = Runtime::createGlobal(compartment, asGlobalType(type));
+                    Runtime::initializeGlobal(newTableBase, nextTableBase);
+                    resolved = asObject(newTableBase);
+                } else if(exportName == "__stack_pointer") {
+                    Runtime::Global *newStackPointer = Runtime::createGlobal(compartment, asGlobalType(type));
+                    Runtime::initializeGlobal(newStackPointer, nextStackPointer);
+                    resolved = asObject(newStackPointer);
+                }
+                else {
+                    // Look in normal env
+                    resolved = getInstanceExport(envModule, exportName);
 
-            // If not resolved here and we have a main module, check if the main module exports it
-            // (used in dynamic linking)
-            if (!resolved && mainModule != nullptr) {
-                resolved = getInstanceExport(mainModule, exportName);
+                    // If not resolved here, check on the main module
+                    if (!resolved) {
+                        resolved = getInstanceExport(mainModule, exportName);
+                    }
+                }
+            } else {
+                // At this point we're resolving for a main module, so look in the env
+                resolved = getInstanceExport(envModule, exportName);
             }
 
             // Check whether the function has been resolved to the correct type
@@ -258,6 +290,10 @@ namespace wasm {
         }
 
         bool isEmscripten = false;
+
+        int nextMemoryBase;
+        int nextTableBase;
+        int nextStackPointer;
     private:
         // Main module (not mastered here)
         Runtime::ModuleInstance *mainModule;

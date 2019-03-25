@@ -258,9 +258,6 @@ namespace wasm {
             if (!irModule.memories.defs.empty()) {
                 throw std::runtime_error("Dynamic module trying to define memories");
             }
-
-            // Grow the table
-
         }
 
         Runtime::LinkResult linkResult = linkModule(irModule, *resolver);
@@ -287,7 +284,13 @@ namespace wasm {
         return instance;
     }
 
-    int WasmModule::dynamicLoadModule(const std::string &path) {
+    I32 WasmModule::getGlobalI32(const std::string &globalName, Runtime::Context *context) {
+        Runtime::Global *globalPtr = Runtime::asGlobal(Runtime::getInstanceExport(moduleInstance, globalName.c_str()));
+        const IR::Value &value = Runtime::getGlobalValue(context, globalPtr);
+        return value.i32;
+    }
+
+    int WasmModule::dynamicLoadModule(const std::string &path, Runtime::Context *context) {
         // Return the handle if we've already loaded this module
         if (dynamicPathToHandleMap.count(path) > 0) {
             return dynamicPathToHandleMap[path];
@@ -302,14 +305,49 @@ namespace wasm {
         std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionBytes(path);
         std::vector<uint8_t> objectBytes = functionLoader.loadFunctionObjectBytes(objFilePath);
 
-        nextHandle++;
+        // Note, must start handles at 2, otherwise dlopen can see it as an error
+        int nextHandle = 2 + dynamicModuleCount;
         std::string name = "handle_" + std::to_string(nextHandle);
 
+        // TODO - how do we properly give the dynamic lib the right stack pointer?
+        // It seems impossible to get the right stack pointer value from the module
+        // It's assigned to a different global every time and isn't labelled
+        // For now we can hack it to give it enough space
+        int stackSize = 1 * ONE_MB_PAGES;
+        int totalModuleMemSize = 4 * ONE_MB_PAGES;
+
+        if (dynamicModuleCount == 0) {
+            // Heap base is top of the stack, and data end is the bottom of the stack
+            I32 heapBase = this->getGlobalI32("__heap_base", context);
+            I32 dataEnd = this->getGlobalI32("__data_end", context);
+
+            logger->debug("Linking first dynamic module. heap_base={} and data_end={}", heapBase, dataEnd);
+
+            // Stack has a region just at the bottom of the empty region (and grows down)
+            // Memory then sits above that (and grows up)
+            resolver->nextStackPointer = heapBase + stackSize;
+            resolver->nextMemoryBase = resolver->nextStackPointer + 1;
+
+            // TODO - what should the table base be?
+            Uptr currentTableElems = Runtime::getTableNumElements(defaultTable);
+            resolver->nextTableBase = currentTableElems;
+        } else {
+            // Bump up memory base and table base from where they were last time
+            // TODO - need to use dylink section to work out how big these jumps should be
+            resolver->nextStackPointer += (totalModuleMemSize + stackSize);
+            resolver->nextMemoryBase = resolver->nextStackPointer + 1;
+            resolver->nextTableBase += 10;
+        }
+
         // Instantiate the shared module
-        Runtime::ModuleInstance *moduleInstance = createModuleInstance(sharedModule, wasmBytes, objectBytes, name,
-                                                                       false);
+        Runtime::ModuleInstance *moduleInstance = createModuleInstance(
+                sharedModule, wasmBytes, objectBytes, name, false
+        );
+
+        // Keep a record of this module
         dynamicPathToHandleMap[path] = nextHandle;
         dynamicModuleMap[nextHandle] = moduleInstance;
+        dynamicModuleCount++;
 
         logger->debug("Loaded shared module at {} with handle {}", path, nextHandle);
 

@@ -147,7 +147,6 @@ namespace wasm {
         return maskPath(originalPath);
     }
 
-
     // ---------------------------
     // System-related structs
     // ---------------------------
@@ -259,12 +258,6 @@ namespace wasm {
         U8 d_type;
         U8 d_name[256];
     };
-
-    // -------------------------
-    // Globals
-    // -------------------------
-    DEFINE_INTRINSIC_GLOBAL(env, "__memory_base", U32, memory_base, 2056);
-    DEFINE_INTRINSIC_GLOBAL(env, "__table_base", U32, table_base, 0);
 
     // ------------------------
     // FAASM-specific
@@ -1258,23 +1251,28 @@ namespace wasm {
     /**
     *  WebAssembly official docs on dynamic linking:
     *  https://webassembly.org/docs/dynamic-linking/
+    *
+    *  Tool conventions:
+    *  https://github.com/WebAssembly/tool-conventions/blob/master/DynamicLinking.md
     */
-    int s__dlopen(I32 fileNamePtr, I32 flags) {
+    int s__dlopen(I32 fileNamePtr, I32 flags, Runtime::Context *context) {
         const std::string filePath = getMaskedPathFromWasm(fileNamePtr);
 
         util::getLogger()->debug("S - _dlopen - {} {}", filePath, flags);
 
-        int handle = getExecutingModule()->dynamicLoadModule(filePath);
+        int handle = getExecutingModule()->dynamicLoadModule(filePath, context);
 
         return handle;
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlopen", I32, emscripten_dlopen, I32 fileNamePtr, I32 flags) {
-        return s__dlopen(fileNamePtr, flags);
+        Runtime::Context *context = Runtime::getContextFromRuntimeData(contextRuntimeData);
+        return s__dlopen(fileNamePtr, flags, context);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "dlopen", I32, _dlopen, I32 fileNamePtr, I32 flags) {
-        return s__dlopen(fileNamePtr, flags);
+        Runtime::Context *context = Runtime::getContextFromRuntimeData(contextRuntimeData);
+        return s__dlopen(fileNamePtr, flags, context);
     }
 
     int s__dlsym(I32 handle, I32 symbolPtr) {

@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
     mult f = (mult)dlsym(handle, "mult");
     printf("Mult func: %p\n", f);
 
-    int result = f(20, 30);
+    int result = f(25, 43);
     printf("Result: %i\n", result);
 
     return 0;
