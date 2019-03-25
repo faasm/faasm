@@ -1257,7 +1257,7 @@ namespace wasm {
     *  WebAssembly official docs on dynamic linking:
     *  https://webassembly.org/docs/dynamic-linking/
     */
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlopen", I32, emscripten_dlopen, I32 fileNamePtr, I32 flags) {
+    int s__dlopen(I32 fileNamePtr, I32 flags) {
         const std::string filePath = getMaskedPathFromWasm(fileNamePtr);
 
         util::getLogger()->debug("S - _dlopen - {} {}", filePath, flags);
@@ -1267,12 +1267,15 @@ namespace wasm {
         return handle;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "_dlopen", I32, _dlopen, I32 a, I32 b) {
-        util::getLogger()->debug("S - _dlopen - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlopen", I32, emscripten_dlopen, I32 fileNamePtr, I32 flags) {
+        return s__dlopen(fileNamePtr, flags);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlsym", I32, emscripten_dlsym, I32 handle, I32 symbolPtr) {
+    DEFINE_INTRINSIC_FUNCTION(env, "dlopen", I32, _dlopen, I32 fileNamePtr, I32 flags) {
+        return s__dlopen(fileNamePtr, flags);
+    }
+
+    int s__dlsym(I32 handle, I32 symbolPtr) {
         const std::string symbol = getStringFromWasm(symbolPtr);
         util::getLogger()->debug("S - _dlsym - {} {}", handle, symbol);
 
@@ -1281,32 +1284,42 @@ namespace wasm {
         return (I32) tableIdx;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "_dlsym", I32, _dlsym, I32 a, I32 b) {
-        util::getLogger()->debug("S - _dlsym - {} {}", a, b);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlsym", I32, emscripten_dlsym, I32 handle, I32 symbolPtr) {
+        return s__dlsym(handle, symbolPtr);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlerror", I32, emscripten_dlerror) {
+    DEFINE_INTRINSIC_FUNCTION(env, "dlsym", I32, _dlsym, I32 handle, I32 symbolPtr) {
+        return s__dlsym(handle, symbolPtr);
+    }
+
+    int s__dlerror() {
         util::getLogger()->debug("S - _dlerror");
 
         // Ignore
         return 0;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "_dlerror", I32, _dlerror) {
-        util::getLogger()->debug("S - _dlerror");
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlerror", I32, emscripten_dlerror) {
+        return s__dlerror();
     }
 
-    DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlclose", I32, emscripten_dlclose, I32 handle) {
-        util::getLogger()->debug("S - _dlclose - {}", handle);
+    DEFINE_INTRINSIC_FUNCTION(env, "dlerror", I32, dlerror) {
+        return s__dlerror();
+    }
 
+    int s__dlclose(I32 handle) {
+        util::getLogger()->debug("S - _dlclose {}", handle);
+
+        // Ignore
         return 0;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "_dlclose", I32, _dlclose, I32 handle) {
-        util::getLogger()->debug("S - _dlclose - {}", handle);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    DEFINE_INTRINSIC_FUNCTION(emEnv, "_dlclose", I32, emscripten_dlclose, I32 handle) {
+        return s__dlclose(handle);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "dlclose", I32, _dlclose, I32 handle) {
+        return s__dlclose(handle);
     }
 
     // ------------------------

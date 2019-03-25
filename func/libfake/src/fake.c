@@ -9,3 +9,8 @@ int mult(int a, int b) {
 
     return result;
 }
+
+int main() {
+    // Do nothing
+    return 0;
+}
