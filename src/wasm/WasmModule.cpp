@@ -433,13 +433,12 @@ namespace wasm {
         executingCall = &msg;
         executingCallChain = &callChain;
 
-        // Set up the call
+        // Set up the call and invoke arguments
         Runtime::Context *context = Runtime::createContext(compartment);
         std::vector<IR::Value> invokeArgs;
 
         if (this->isEmscripten()) {
             U8 *memoryBaseAddress = getMemoryBaseAddress(defaultMemory);
-
             U32 *argvOffsets = (U32 *) (memoryBaseAddress + dynamicAlloc(defaultMemory, (U32) (sizeof(U32))));
             argvOffsets[0] = 0;
             invokeArgs = {(U32) 0, (U32) ((U8 *) argvOffsets - memoryBaseAddress)};

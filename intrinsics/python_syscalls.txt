@@ -1,6 +1,0 @@
-nullFunc_iiiiid func i32->()
-nullFunc_iiiiiid func i32->()
-nullFunc_iiiiiiii func i32->()
-nullFunc_iiiiiiiii func i32->()
-nullFunc_iiiiij func i32->()
-nullFunc_viijii func i32->()

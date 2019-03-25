@@ -10,7 +10,7 @@ int main() {
 
     message::Message call;
     call.set_user("demo");
-    call.set_function("dynlink");
+    call.set_function("print");
 
     wasm::CallChain callChain(call);
 

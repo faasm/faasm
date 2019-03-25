@@ -1,5 +1,5 @@
 def generate_intrinsics():
-    with open("python_syscalls.txt", "r") as fh:
+    with open("missing_syscalls.txt", "r") as fh:
         with open("syscalls_gen.txt", "w") as out_fh:
             for line in fh:
                 line = line.strip()
@@ -52,12 +52,27 @@ def generate_intrinsics():
                 elif args_in == "(f64, i32)":
                     log_str = "\"S - {} - {{}} {{}}\", a, b".format(syscall_name)
                     arg_str = ", F64 a, I32 b"
+                elif args_in == "(i64, i64)":
+                    log_str = "\"S - {} - {{}} {{}}\", a, b".format(syscall_name)
+                    arg_str = ", I64 a, I64 b"
+                elif args_in == "(i64, i64, i64, i64)":
+                    log_str = "\"S - {} - {{}} {{}} {{}} {{}}\", a, b, c, d".format(syscall_name)
+                    arg_str = ", I64 a, I64 b, I64 c, I64 d"
+                elif args_in == "(i32, i64, i64, i64, i64)":
+                    log_str = "\"S - {} - {{}} {{}} {{}} {{}}\", a, b, c, d, e".format(syscall_name)
+                    arg_str = ", I32 a, I64 b, I64 c, I64 d, I64 e"
+                elif args_in == "(i32, f64)":
+                    log_str = "\"S - {} - {{}} {{}}\", a, b".format(syscall_name)
+                    arg_str = ", I32 a, F64 b"
+                elif args_in == "(i32, f32)":
+                    log_str = "\"S - {} - {{}} {{}}\", a, b".format(syscall_name)
+                    arg_str = ", I32 a, F32 b"
                 else:
                     print("Unrecognised line: {}\n".format(line))
                     exit(1)
 
                 output_string = [
-                    "DEFINE_INTRINSIC_FUNCTION(emEnv, \"{}\", {}, {} {}) {{\n".format(syscall_name, out_str,
+                    "DEFINE_INTRINSIC_FUNCTION(env, \"{}\", {}, {} {}) {{\n".format(syscall_name, out_str,
                                                                                      syscall_name, arg_str),
                     "\tutil::getLogger()->debug({});\n".format(log_str),
                     "\tthrowException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);\n"

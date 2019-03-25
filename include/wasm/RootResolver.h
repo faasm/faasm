@@ -87,14 +87,12 @@ namespace wasm {
         }
 
         void setUp(Runtime::Compartment *compartment, IR::Module &module) {
-            // Detect if this is an emscripten function
-            if (!module.memories.defs.empty()) {
+            // Emscripten imports tables
+            if (!module.tables.defs.empty()) {
                 isEmscripten = false;
                 this->setUpStandardToolchain(compartment, module);
             } else {
                 isEmscripten = true;
-
-                // TODO make this check better. Is it always a reliable way to detect Emscripten funcs?
                 this->setUpEmscripten(compartment, module);
             }
 
@@ -103,10 +101,17 @@ namespace wasm {
 
         void setUpStandardToolchain(Runtime::Compartment *compartment, IR::Module &module) {
             // Set up minimum memory size
-            module.memories.defs[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
-            module.memories.defs[0].type.size.max = (U64) MAX_MEMORY_PAGES;
+            module.memories.imports[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
+            module.memories.imports[0].type.size.max = (U64) MAX_MEMORY_PAGES;
 
-            envModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_env(), "env");
+            Runtime::Memory *memory = Runtime::createMemory(compartment, module.memories.imports[0].type, "env.memory");
+
+            HashMap<std::string, Runtime::Object *> extraEnvExports = {
+                    {"memory", Runtime::asObject(memory)},
+            };
+
+            envModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_env(), "env",
+                                                        extraEnvExports);
         }
 
         void setUpEmscripten(Runtime::Compartment *compartment, IR::Module &module) {
@@ -157,7 +162,7 @@ namespace wasm {
 
             bool isGlobalAccessor = exportName.rfind("g$_", 0) == 0;
             bool isAFunc = type.kind == IR::ExternKind::function;
-            if(isGlobalAccessor && isAFunc) {
+            if (isGlobalAccessor && isAFunc) {
                 logger->debug("Stubbing global accessor import {}", exportName);
                 resolved = getStubObject(exportName, type);
                 return true;
@@ -180,7 +185,7 @@ namespace wasm {
             }
 
             // If not resolved here and we have a main module, check that (used in dynamic linking)
-            if(!resolved && mainModule != nullptr) {
+            if (!resolved && mainModule != nullptr) {
                 resolved = getInstanceExport(mainModule, exportName);
             }
 
@@ -203,13 +208,10 @@ namespace wasm {
             return false;
         }
 
-        Runtime::Object* getStubObject(const std::string& exportName, IR::ExternType type) const
-        {
+        Runtime::Object *getStubObject(const std::string &exportName, IR::ExternType type) const {
             // If the import couldn't be resolved, stub it in.
-            switch(type.kind)
-            {
-                case IR::ExternKind::function:
-                {
+            switch (type.kind) {
+                case IR::ExternKind::function: {
                     // Generate a function body that just uses the unreachable op to fault if called.
                     Serialization::ArrayOutputStream codeStream;
                     IR::OperatorEncoderStream encoder(codeStream);
@@ -232,26 +234,23 @@ namespace wasm {
                     auto stubModuleInstance = instantiateModule(compartment, stubModule, {}, "importStub");
                     return getInstanceExport(stubModuleInstance, "importStub");
                 }
-                case IR::ExternKind::memory:
-                {
+                case IR::ExternKind::memory: {
                     return asObject(
                             Runtime::createMemory(compartment, asMemoryType(type), std::string(exportName)));
                 }
-                case IR::ExternKind::table:
-                {
+                case IR::ExternKind::table: {
                     return asObject(
                             Runtime::createTable(compartment, asTableType(type), std::string(exportName)));
                 }
-                case IR::ExternKind::global:
-                {
+                case IR::ExternKind::global: {
                     return asObject(Runtime::createGlobal(compartment, asGlobalType(type)));
                 }
-                case IR::ExternKind::exceptionType:
-                {
+                case IR::ExternKind::exceptionType: {
                     return asObject(
                             Runtime::createExceptionType(compartment, asExceptionType(type), "importStub"));
                 }
-                default: Errors::unreachable();
+                default:
+                    Errors::unreachable();
             };
         }
 
@@ -260,7 +259,7 @@ namespace wasm {
         // Main module (not mastered here)
         Runtime::ModuleInstance *mainModule;
 
-        Runtime::Compartment* compartment;
+        Runtime::Compartment *compartment;
 
         // Module for non-Emscripten
         Runtime::GCPointer<Runtime::ModuleInstance> envModule;

@@ -1,0 +1,17 @@
+__unordtf2 func (i64, i64, i64, i64)->i32
+__eqtf2 func (i64, i64, i64, i64)->i32
+__multf3 func (i32, i64, i64, i64, i64)->()
+__addtf3 func (i32, i64, i64, i64, i64)->()
+__subtf3 func (i32, i64, i64, i64, i64)->()
+__fixtfsi func (i64, i64)->i32
+__floatsitf func (i32, i32)->()
+__netf2 func (i64, i64, i64, i64)->i32
+__fixunstfsi func (i64, i64)->i32
+__floatunsitf func (i32, i32)->()
+__extenddftf2 func (i32, f64)->()
+__trunctfsf2 func (i64, i64)->f32
+__extendsftf2 func (i32, f32)->()
+__getf2 func (i64, i64, i64, i64)->i32
+__divtf3 func (i32, i64, i64, i64, i64)->()
+__letf2 func (i64, i64, i64, i64)->i32
+__trunctfdf2 func (i64, i64)->f64
