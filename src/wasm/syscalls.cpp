@@ -58,10 +58,6 @@ using namespace WAVM;
 namespace wasm {
     static thread_local U32 EMSCRIPTEN_ERRNO_LOCATION = 0;
 
-    void setEmscriptenErrnoLocation(U32 value) {
-        EMSCRIPTEN_ERRNO_LOCATION = value;
-    }
-
     static Intrinsics::Module envModule;
     static Intrinsics::Module emEnvModule;
     static Intrinsics::Module emAsm2wasmModule;
@@ -267,9 +263,7 @@ namespace wasm {
     // -------------------------
     // Globals
     // -------------------------
-
-    DEFINE_INTRINSIC_GLOBAL(env, "__stack_pointer", U32, stack_pointer, 0);
-    DEFINE_INTRINSIC_GLOBAL(env, "__memory_base", U32, memory_base, 1024);
+    DEFINE_INTRINSIC_GLOBAL(env, "__memory_base", U32, memory_base, 2056);
     DEFINE_INTRINSIC_GLOBAL(env, "__table_base", U32, table_base, 0);
 
     // ------------------------
@@ -2539,7 +2533,7 @@ namespace wasm {
                             "tempDoublePtr",
                             I32,
                             tempDoublePtr,
-                            MutableGlobals::address + offsetof(MutableGlobals, tempDoublePtr));
+                            EmscriptenMutableGlobals::address + offsetof(EmscriptenMutableGlobals, tempDoublePtr));
     DEFINE_INTRINSIC_GLOBAL(emEnv, "ABORT", I32, ABORT, 0);
     DEFINE_INTRINSIC_GLOBAL(emEnv, "cttz_i8", I32, cttz_i8, 0);
     DEFINE_INTRINSIC_GLOBAL(emEnv, "___dso_handle", U32, ___dso_handle, 0);
@@ -2547,17 +2541,17 @@ namespace wasm {
                             "_stderr",
                             I32,
                             _stderr,
-                            MutableGlobals::address + offsetof(MutableGlobals, _stderr));
+                            EmscriptenMutableGlobals::address + offsetof(EmscriptenMutableGlobals, _stderr));
     DEFINE_INTRINSIC_GLOBAL(emEnv,
                             "_stdin",
                             I32,
                             _stdin,
-                            MutableGlobals::address + offsetof(MutableGlobals, _stdin));
+                            EmscriptenMutableGlobals::address + offsetof(EmscriptenMutableGlobals, _stdin));
     DEFINE_INTRINSIC_GLOBAL(emEnv,
                             "_stdout",
                             I32,
                             _stdout,
-                            MutableGlobals::address + offsetof(MutableGlobals, _stdout));
+                            EmscriptenMutableGlobals::address + offsetof(EmscriptenMutableGlobals, _stdout));
 
     DEFINE_INTRINSIC_GLOBAL(emEnv, "__memory_base", U32, emscripten_memory_base, 1024);
     DEFINE_INTRINSIC_GLOBAL(emEnv, "memoryBase", U32, emscriptenMemoryBase, 1024);
@@ -2569,7 +2563,7 @@ namespace wasm {
                             "DYNAMICTOP_PTR",
                             U32,
                             DYNAMICTOP_PTR,
-                            MutableGlobals::address + offsetof(MutableGlobals, DYNAMICTOP_PTR))
+                            EmscriptenMutableGlobals::address + offsetof(EmscriptenMutableGlobals, DYNAMICTOP_PTR))
     DEFINE_INTRINSIC_GLOBAL(emEnv, "_environ", U32, em_environ, 0)
     DEFINE_INTRINSIC_GLOBAL(emEnv, "EMTSTACKTOP", U32, EMTSTACKTOP, 0)
     DEFINE_INTRINSIC_GLOBAL(emEnv, "EMT_STACK_MAX", U32, EMT_STACK_MAX, 0)

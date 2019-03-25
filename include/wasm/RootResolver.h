@@ -19,7 +19,9 @@ namespace wasm {
     const int ONE_MB_PAGES = 16;
     const int ONE_GB_PAGES = 1024 * ONE_MB_PAGES;
 
-    const int INITIAL_MEMORY_PAGES = 15 * ONE_MB_PAGES;
+    // Must make sure initial memory is big enough to fit data, stack and globals
+    // heap will always grop up from here (regardless of where the top is)
+    const int INITIAL_MEMORY_PAGES = 10 * ONE_MB_PAGES;
     const int MAX_MEMORY_PAGES = ONE_GB_PAGES;
 
     const int EMSCRIPTEN_MIN_TABLE_ELEMS = 200000;
@@ -29,17 +31,7 @@ namespace wasm {
     const int EMSCRIPTEN_STACKTOP = 64 * IR::numBytesPerPage;
     const int EMSCRIPTEN_STACK_MAX = 256 * IR::numBytesPerPage;
 
-    void setEmscriptenErrnoLocation(U32 value);
-
-    enum {
-        minStaticEmscriptenMemoryPages = 128
-    };
-
-    enum ErrNo {
-        einval = 22
-    };
-
-    struct MutableGlobals {
+    struct EmscriptenMutableGlobals {
         enum {
             address = 63 * IR::numBytesPerPage
         };
@@ -98,16 +90,24 @@ namespace wasm {
         }
 
         void setUpStandardToolchain(Runtime::Compartment *compartment, IR::Module &module) {
-            // Set up minimum memory size
+            // Set up memory
             module.memories.imports[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
             module.memories.imports[0].type.size.max = (U64) MAX_MEMORY_PAGES;
-
             Runtime::Memory *memory = Runtime::createMemory(compartment, module.memories.imports[0].type, "env.memory");
-            Runtime::Table *table = Runtime::createTable(compartment, module.tables.imports[0].type, "env.__indirect_function_table");
+
+            // Add table
+            Runtime::Table *table = Runtime::createTable(compartment, module.tables.imports[0].type,
+                                                         "env.__indirect_function_table");
+
+            // Add stack pointer
+            Runtime::Global *stackPtrGlobal = Runtime::createGlobal(compartment,
+                                                                    IR::GlobalType(IR::ValueType::i32, true));
+            Runtime::initializeGlobal(stackPtrGlobal, 4052);
 
             HashMap<std::string, Runtime::Object *> extraEnvExports = {
-                    {"memory", Runtime::asObject(memory)},
+                    {"memory",                    Runtime::asObject(memory)},
                     {"__indirect_function_table", Runtime::asObject(table)},
+                    {"__stack_pointer",           Runtime::asObject(stackPtrGlobal)},
             };
 
             envModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_env(), "env",
@@ -139,7 +139,8 @@ namespace wasm {
             emGlobalModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_emGlobal(), "emGlobal");
 
             // Note: this MUST be a reference
-            MutableGlobals &mutableGlobals = Runtime::memoryRef<MutableGlobals>(memory, MutableGlobals::address);
+            EmscriptenMutableGlobals &mutableGlobals = Runtime::memoryRef<EmscriptenMutableGlobals>(memory,
+                                                                                                    EmscriptenMutableGlobals::address);
             mutableGlobals.DYNAMICTOP_PTR = EMSCRIPTEN_STACK_MAX;
             mutableGlobals._stderr = (U32) ioStreamVMHandle::StdErr;
             mutableGlobals._stdin = (U32) ioStreamVMHandle::StdIn;
@@ -162,6 +163,7 @@ namespace wasm {
 
             bool isGlobalAccessor = exportName.rfind("g$_", 0) == 0;
             bool isAFunc = type.kind == IR::ExternKind::function;
+
             if (isGlobalAccessor && isAFunc) {
                 logger->debug("Stubbing global accessor import {}", exportName);
                 resolved = getStubObject(exportName, type);
@@ -184,7 +186,8 @@ namespace wasm {
                 resolved = getInstanceExport(envModule, exportName);
             }
 
-            // If not resolved here and we have a main module, check that (used in dynamic linking)
+            // If not resolved here and we have a main module, check if the main module exports it
+            // (used in dynamic linking)
             if (!resolved && mainModule != nullptr) {
                 resolved = getInstanceExport(mainModule, exportName);
             }

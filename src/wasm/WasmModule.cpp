@@ -82,13 +82,15 @@ namespace wasm {
         Runtime::Memory *memory = getExecutingModule()->defaultMemory;
 
         // Note that this MUST be a reference, otherwise we just update a copy that's not seen by wasm
-        MutableGlobals &mutableGlobals = Runtime::memoryRef<MutableGlobals>(memory, MutableGlobals::address);
+        EmscriptenMutableGlobals &mutableGlobals = Runtime::memoryRef<EmscriptenMutableGlobals>(memory,
+                                                                                                EmscriptenMutableGlobals::address);
         mutableGlobals.DYNAMICTOP_PTR = newValue;
     }
 
     U32 getEmscriptenDynamicTop() {
         Runtime::Memory *memory = getExecutingModule()->defaultMemory;
-        MutableGlobals &mutableGlobals = Runtime::memoryRef<MutableGlobals>(memory, MutableGlobals::address);
+        EmscriptenMutableGlobals &mutableGlobals = Runtime::memoryRef<EmscriptenMutableGlobals>(memory,
+                                                                                                EmscriptenMutableGlobals::address);
         return mutableGlobals.DYNAMICTOP_PTR;
     }
 
@@ -256,6 +258,9 @@ namespace wasm {
             if (!irModule.memories.defs.empty()) {
                 throw std::runtime_error("Dynamic module trying to define memories");
             }
+
+            // Grow the table
+
         }
 
         Runtime::LinkResult linkResult = linkModule(irModule, *resolver);
@@ -325,8 +330,7 @@ namespace wasm {
         Runtime::ModuleInstance *dynModule = dynamicModuleMap[handle];
 
         // Something puts an underscore in front of the name
-        std::string actualFuncName = "_" + funcName;
-        Runtime::Object *exportedFunc = getInstanceExport(dynModule, actualFuncName);
+        Runtime::Object *exportedFunc = getInstanceExport(dynModule, funcName);
 
         if (!exportedFunc) {
             logger->error("Unable to dynamically load function {}", funcName);
@@ -334,16 +338,15 @@ namespace wasm {
         }
 
         // Add function to the table
-        Iptr prevIdx = Runtime::growTable(defaultTable, 1);
+        int nElements = 1;
+        Iptr prevIdx = Runtime::growTable(defaultTable, nElements);
         if (prevIdx == -1) {
             throw std::runtime_error("Failed to grow table");
+        } else {
+            logger->debug("Growing table from {} elements to {}", prevIdx, prevIdx + nElements);
         }
 
-        prevIdx = 234;
         Runtime::setTableElement(defaultTable, prevIdx, exportedFunc);
-//        if(oldObject != nullptr) {
-//            throw std::runtime_error("Dynamic function has overwritten an initialised table element");
-//        }
 
         return prevIdx;
     }
@@ -451,7 +454,8 @@ namespace wasm {
                 bool isFunction = functionExport.kind == IR::ExternKind::function;
 
                 if (isFunction && !isGlobal) {
-                    Runtime::Function *function = asFunctionNullable(getInstanceExport(moduleInstance, functionExport.name));
+                    Runtime::Function *function = asFunctionNullable(
+                            getInstanceExport(moduleInstance, functionExport.name));
                     if (function) {
                         logger->info("Executing Emscripten global initialiser: {}", functionExport.name.c_str());
                         Runtime::invokeFunctionChecked(context, function, {});
@@ -467,8 +471,7 @@ namespace wasm {
                    IR::FunctionType(IR::TypeTuple{IR::ValueType::i32}, IR::TypeTuple{})) {
                 IR::ValueTuple errNoResult = Runtime::invokeFunctionChecked(context, errNoLocation, {});
                 if (errNoResult.size() == 1 && errNoResult[0].type == IR::ValueType::i32) {
-                    throw std::runtime_error("Didn't expect to get here");
-                    // emscriptenErrNoLocation = errNoResult[0].i32;
+                    throw std::runtime_error("Not supporting errno location");
                 }
             }
         }
