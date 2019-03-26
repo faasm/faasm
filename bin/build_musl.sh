@@ -2,10 +2,11 @@
 
 set -e
 
+THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 FAASM_HOME=${HOME}/faasm
 TOOL_BIN=${FAASM_HOME}/toolchain/bin
 SYSROOT=${FAASM_HOME}/toolchain/sysroot
-MUSL_DIR=${FAASM_HOME}/musl
+MUSL_DIR=${THIS_DIR}/../musl
 MUSL_BUILD_DIR=${FAASM_HOME}/musl_out
 
 CFLAGS="--sysroot=${SYSROOT} --target=wasm32-unknown-unknown"
@@ -19,18 +20,6 @@ CROSS_COMPILE="${TOOL_BIN}/llvm-"
 AR="${TOOL_BIN}/llvm-ar"
 AS="${TOOL_BIN}/llvm-as"
 RANLIB="${TOOL_BIN}/llvm-ranlib"
-
-if [ -d ${MUSL_DIR} ]; then
-   echo "Not cloning musl, updating"
-    pushd ${MUSL_DIR}
-    git pull
-    popd
-else
-    echo "Cloning musl repo"
-    pushd ${FAASM_HOME}
-    git clone https://github.com/Shillaker/musl.git
-    popd
-fi
 
 rm -rf ${MUSL_BUILD_DIR}
 mkdir -p ${MUSL_BUILD_DIR}

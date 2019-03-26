@@ -860,7 +860,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_getdents64", I32, __syscall_getdents64,
                               I32 fd, I32 direntBuf, I32 direntBufSize) {
-        return s__syscall_fcntl64(fd, direntBuf, direntBufSize);
+        return s__syscall_getdents64(fd, direntBuf, direntBufSize);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall220", I32, ___syscall220, I32 syscallNo, I32 argsPtr) {
@@ -1134,6 +1134,10 @@ namespace wasm {
         return res;
     }
 
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_mkdir", I32, __syscall_mkdir, I32 pathPtr, I32 mode) {
+        return s__syscall_mkdir(pathPtr, mode);
+    }
+
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall39", I32, ___syscall39, I32 syscallNo, I32 argsPtr) {
         U32 *args = emscriptenArgs(syscallNo, argsPtr, 2);
         return s__syscall_mkdir(args[0], args[1]);
@@ -1159,6 +1163,10 @@ namespace wasm {
         return res;
     }
 
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_rename", I32, __syscall_rename, I32 srcPtr, I32 destPtr) {
+        return s__syscall_rename(srcPtr, destPtr);
+    }
+
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall38", I32, ___syscall38, I32 syscallNo, I32 argsPtr) {
         U32 *args = emscriptenArgs(syscallNo, argsPtr, 2);
         return s__syscall_rename(args[0], args[1]);
@@ -1177,6 +1185,10 @@ namespace wasm {
         }
 
         return res;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_unlink", I32, __syscall_unlink, I32 pathPtr) {
+        return s__syscall_unlink(pathPtr);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall10", I32, ___syscall10, I32 syscallNo, I32 argsPtr) {
@@ -1240,6 +1252,10 @@ namespace wasm {
         writeNativeStatToWasmStat(&nativeStat, statBufPtr);
 
         return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_lstat64", I32, __syscall_lstat64, I32 pathPtr, I32 statBufPtr) {
+        return s__syscall_lstat64(pathPtr, statBufPtr);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall196", I32, ___syscall196, I32 syscallNo, I32 argsPtr) {
@@ -1418,12 +1434,6 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_unlink", I32, __syscall_unlink, I32 a) {
-        util::getLogger()->debug("S - unlink - {}", a);
-
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_chdir", I32, __syscall_chdir, I32 a) {
         util::getLogger()->debug("S - chdir - {}", a);
 
@@ -1432,18 +1442,6 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall_umask", I32, __syscall_umask, I32 a) {
         util::getLogger()->debug("S - umask - {}", a);
-
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_lstat64", I32, __syscall_lstat64, I32 a, I32 b) {
-        util::getLogger()->debug("S - lstat64 - {} {}", a, b);
-
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_rename", I32, __syscall_rename, I32 a, I32 b) {
-        util::getLogger()->debug("S - rename - {} {}", a, b);
 
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
@@ -2002,6 +2000,10 @@ namespace wasm {
         return FAKE_PID;
     }
 
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_getpid", I32, __syscall_getpid) {
+        return s__getpid();
+    }
+
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall20", I32, ___syscall20, I32 a, I32 b) {
         util::getLogger()->debug("S - ___syscall20 - {} {}", a, b);
         return s__getpid();
@@ -2030,6 +2032,10 @@ namespace wasm {
         return structPtr;
     }
 
+    DEFINE_INTRINSIC_FUNCTION(env, "getpwuid", I32, getpwuid, I32 uid) {
+        return s__getpwuid(uid);
+    }
+
     DEFINE_INTRINSIC_FUNCTION(emEnv, "_getpwuid", I32, _getpwuid, I32 uid) {
         return s__getpwuid(uid);
     }
@@ -2039,6 +2045,10 @@ namespace wasm {
         return FAKE_UID;
     }
 
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_getuid32", I32, __syscall_getuid32, I32 noArg) {
+        return s__getuid32();
+    }
+
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall199", I32, ___syscall199, I32 syscallNo, I32 argsPtr) {
         return s__getuid32();
     }
@@ -2046,6 +2056,10 @@ namespace wasm {
     I32 s__getgid32() {
         util::getLogger()->debug("S - getgid32");
         return FAKE_GID;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_getgid32", I32, __syscall_getgid32, I32 noArg) {
+        return s__getgid32();
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall200", I32, ___syscall200, I32 syscallNo, I32 argsPtr) {
@@ -2058,6 +2072,10 @@ namespace wasm {
         return FAKE_UID;
     }
 
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_geteuid32", I32, __syscall_geteuid32, I32 noArg) {
+        return s__geteuid32();
+    }
+
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall201", I32, ___syscall201, I32 syscallNo, I32 argsPtr) {
         return s__geteuid32();
     }
@@ -2066,6 +2084,10 @@ namespace wasm {
         util::getLogger()->debug("S - getegid32");
 
         return FAKE_GID;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_getegid32", I32, __syscall_getegid32, I32 noArg) {
+        return s__getegid32();
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "___syscall202", I32, ___syscall202, I32 syscallNo, I32 argsPtr) {
@@ -2132,7 +2154,7 @@ namespace wasm {
         return result;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "_getenv", I32, _getenv, I32 varPtr) {
+    DEFINE_INTRINSIC_FUNCTION(env, "getenv", I32, getenv, I32 varPtr) {
         return s__getenv(varPtr, false);
     }
 
@@ -2149,7 +2171,7 @@ namespace wasm {
         return 0;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "_setenv", I32, _setenv, I32 varPtr, I32 valPtr, I32 overwrite) {
+    DEFINE_INTRINSIC_FUNCTION(env, "setenv", I32, setenv, I32 varPtr, I32 valPtr, I32 overwrite) {
         return s__setenv(varPtr, valPtr, overwrite);
     }
 
@@ -2174,7 +2196,7 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "_unsetenv", I32, _unsetenv, I32 varPtr) {
+    DEFINE_INTRINSIC_FUNCTION(env, "unsetenv", I32, unsetenv, I32 varPtr) {
         return s__unsetenv(varPtr);
     }
 
