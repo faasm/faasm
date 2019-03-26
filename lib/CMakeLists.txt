@@ -35,6 +35,9 @@ set(PUBLIC_HEADERS
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     message(STATUS "Running libfaasm wasm build")
 
+    set(CMAKE_CXX_FLAGS "${LIB_COMPILER_FLAGS}")
+    set(CMAKE_C_FLAGS "${LIB_COMPILER_FLAGS}")
+
 elseif (FAASM_BUILD_TYPE STREQUAL "python")
     add_definitions(-DWASM_BUILD=1)
 

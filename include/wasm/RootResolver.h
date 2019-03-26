@@ -38,6 +38,7 @@ namespace wasm {
 
     const int INITIAL_MEMORY_PAGES = 30 * ONE_MB_PAGES;
     const int MAX_MEMORY_PAGES = ONE_GB_PAGES;
+    const int MAX_TABLE_SIZE = 500000;
 
     // Emscripten memory constants
     const int EMSCRIPTEN_MIN_TABLE_ELEMS = 200000;
@@ -95,33 +96,26 @@ namespace wasm {
         }
 
         void setUp(Runtime::Compartment *compartment, IR::Module &module) {
-            // TODO - need to work out how to distinguish between emscripten/ non-emscripten
-            isEmscripten = false;
-            this->setUpStandardToolchain(compartment, module);
-
-            // isEmscripten = true;
-            // this->setUpEmscripten(compartment, module);
+            // Emscripten imports memory, non-emscripten doesn't
+            if(module.memories.defs.empty()) {
+                isEmscripten = true;
+                this->setUpEmscripten(compartment, module);
+            } else {
+                isEmscripten = false;
+                this->setUpStandardToolchain(compartment, module);
+            }
 
             _isSetUp = true;
         }
 
         void setUpStandardToolchain(Runtime::Compartment *compartment, IR::Module &module) {
-            // Set up memory
-            module.memories.imports[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
-            module.memories.imports[0].type.size.max = (U64) MAX_MEMORY_PAGES;
-            Runtime::Memory *memory = Runtime::createMemory(compartment, module.memories.imports[0].type, "env.memory");
+            // Force memory sizes
+            module.memories.defs[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
+            module.memories.defs[0].type.size.max = (U64) MAX_MEMORY_PAGES;
 
-            // Add table
-            Runtime::Table *table = Runtime::createTable(compartment, module.tables.imports[0].type,
-                                                         "env.__indirect_function_table");
+            module.tables.defs[0].type.size.max = (U64) MAX_TABLE_SIZE;
 
-            HashMap<std::string, Runtime::Object *> extraEnvExports = {
-                    {"memory",                    Runtime::asObject(memory)},
-                    {"__indirect_function_table", Runtime::asObject(table)},
-            };
-
-            envModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_env(), "env",
-                                                      extraEnvExports);
+            envModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_env(), "env");
         }
 
         void setUpEmscripten(Runtime::Compartment *compartment, IR::Module &module) {
@@ -195,20 +189,28 @@ namespace wasm {
                 }
             } else if(isDynamicModule) {
                 // The special cases below are the globals that are crucial to getting the
-                // dynamic linking to work. They tell the new module about its new memory region
+                // dynamic linking to work. 
                 if(exportName == "__memory_base") {
+                    // This is the point at which globals will be copied in
                     Runtime::Global *newMemoryBase = Runtime::createGlobal(compartment, asGlobalType(type));
                     Runtime::initializeGlobal(newMemoryBase, nextMemoryBase);
                     resolved = asObject(newMemoryBase);
                 }
                 else if(exportName == "__table_base") {
+                    // This is the offset in the imported table this module should use
                     Runtime::Global *newTableBase = Runtime::createGlobal(compartment, asGlobalType(type));
                     Runtime::initializeGlobal(newTableBase, nextTableBase);
                     resolved = asObject(newTableBase);
                 } else if(exportName == "__stack_pointer") {
+                    // This is where the module should put its stack
                     Runtime::Global *newStackPointer = Runtime::createGlobal(compartment, asGlobalType(type));
                     Runtime::initializeGlobal(newStackPointer, nextStackPointer);
                     resolved = asObject(newStackPointer);
+                }
+                else if(exportName == "__indirect_function_table") {
+                    // This is the table shared with the main module
+                    Runtime::Table *table = Runtime::getDefaultTable(mainModule);
+                    resolved = asObject(table);
                 }
                 else {
                     // Look in normal env

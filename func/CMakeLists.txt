@@ -50,6 +50,9 @@ endif ()
 
 # Define functions for building
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
+    set(CMAKE_CXX_FLAGS "${STANDARD_EXE_FLAGS}")
+    set(CMAKE_C_FLAGS "${STANDARD_EXE_FLAGS}")
+
     # ----------------------
     # WASM build
     # ----------------------
@@ -105,11 +108,8 @@ add_subdirectory(errors)
 add_subdirectory(demo)
 add_subdirectory(sgd)
 
-if (FAASM_BUILD_TYPE STREQUAL "wasm")
-elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
-elseif (${EMSCRIPTEN})
-    add_subdirectory(python)
+# Add python build in everything but the lambda funcs
+if (FAASM_BUILD_TYPE STREQUAL "lambda-func")
 else ()
-    # Native-only
     add_subdirectory(python)
 endif ()

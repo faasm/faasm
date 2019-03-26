@@ -24,18 +24,28 @@ set(CMAKE_CXX_COMPILER_WORKS TRUE)
 
 # Compiler flags
 # NOTE: we don't want to use CMAKE_SYSROOT as this messes with absolute paths
-# NOTE: CMake will claim the linker args aren't used here, but they are
 set(WASM_SYSROOT "${TOOLCHAIN_ROOT}/sysroot")
-set(WASM_COMPILER_FLAGS "\
+set(STANDARD_EXE_FLAGS "\
     -fvisibility=default \
     --target=wasm32 \
     --sysroot=${WASM_SYSROOT} \
-    -Xlinker --import-memory \
-    -Xlinker --import-table \
     ")
 
-set(CMAKE_C_FLAGS ${WASM_COMPILER_FLAGS} CACHE STRING "" FORCE)
-set(CMAKE_CXX_FLAGS ${WASM_COMPILER_FLAGS} CACHE STRING "" FORCE)
+# Note, these need to be added explicitly for shared libs
+# CMake will claim the linker args aren't used
+# We need shared objects to import memory and table from their environment,
+# and to export their functions
+set(LIB_COMPILER_FLAGS "${STANDARD_EXE_FLAGS} \
+    -Xlinker --import-memory \
+    -Xlinker --import-table \
+    -Xlinker --shared \
+")
+
+# For executables we want to use with dynamic linking, they must export
+# all their symbols
+set(DYNLINK_EXE_FLAGS "${STANDARD_EXE_FLAGS}  \
+    -Xlinker --export-all \
+")
 
 # Force suffixes
 SET(CMAKE_EXECUTABLE_SUFFIX ".wasm")

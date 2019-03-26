@@ -3,7 +3,11 @@ project(libfake)
 
 include_directories(include)
 
-if(${EMSCRIPTEN})
+if (FAASM_BUILD_TYPE STREQUAL "wasm")
+    # Set up correct compiler flags for building a lib
+    set(CMAKE_CXX_FLAGS "${LIB_COMPILER_FLAGS}")
+    set(CMAKE_C_FLAGS "${LIB_COMPILER_FLAGS}")
+elseif(${EMSCRIPTEN})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 
     # These flags should match what's set for SIDE_LDFLAGS in pyodide
@@ -17,11 +21,6 @@ if(${EMSCRIPTEN})
         ")
 
     set(CMAKE_SHARED_LIBRARY_SUFFIX ".wasm")
-else()
-    # Attempt to get wasm-ld to produce shared object
-    set(COMPILER_FLAGS "${CMAKE_CXX_FLAGS} -Xlinker --shared")
-    set(CMAKE_CXX_FLAGS "${COMPILER_FLAGS}")
-    set(CMAKE_C_FLAGS "${COMPILER_FLAGS}")
 endif()
 
 set(BUILD_SHARED_LIBS ON)

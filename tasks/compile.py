@@ -144,6 +144,7 @@ def compile_libfake(ctx):
 
     build_cmd = [
         "cmake",
+        "-DFAASM_BUILD_TYPE=wasm",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
         "-DCMAKE_BUILD_TYPE=Release",
         ".."

@@ -7,7 +7,7 @@ TOOLCHAIN=$HOME/faasm/toolchain
 # Compile libfake
 inv compile-libfake 
 
-# Build the shared object
+# Build the shared object, shared will force it to export everything
 ARCHIVE=${TOOLCHAIN}/sysroot/lib/libfake.a
 ${TOOLCHAIN}/bin/wasm-ld \
     --whole-archive ${TOOLCHAIN}/sysroot/lib/libfake.a \
