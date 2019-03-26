@@ -1939,6 +1939,41 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_getppid", I32, __syscall_getppid , I32 a) {
+        util::getLogger()->debug("S - __syscall_getppid - {}", a);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_setregid32", I32, __syscall_setregid32 , I32 a, I32 b) {
+        util::getLogger()->debug("S - __syscall_setregid32 - {} {}", a, b);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_setreuid32", I32, __syscall_setreuid32 , I32 a, I32 b) {
+        util::getLogger()->debug("S - __syscall_setreuid32 - {} {}", a, b);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_sysinfo", I32, __syscall_sysinfo , I32 a) {
+        util::getLogger()->debug("S - __syscall_sysinfo - {}", a);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_uname", I32, __syscall_uname , I32 a) {
+        util::getLogger()->debug("S - __syscall_uname - {}", a);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_fork", I32, __syscall_fork , I32 a) {
+        util::getLogger()->debug("S - __syscall_fork - {}", a);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_execve", I32, __syscall_execve , I32 a, I32 b, I32 c) {
+        util::getLogger()->debug("S - __syscall_execve - {} {} {}", a, b, c);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
     // ------------------------
     // Signals (ignored)
     // ------------------------
@@ -2000,7 +2035,7 @@ namespace wasm {
         return FAKE_PID;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_getpid", I32, __syscall_getpid) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_getpid", I32, __syscall_getpid, I32 noArg) {
         return s__getpid();
     }
 
@@ -2154,7 +2189,7 @@ namespace wasm {
         return result;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "getenv", I32, getenv, I32 varPtr) {
+    DEFINE_INTRINSIC_FUNCTION(env, "_getenv", I32, _getenv, I32 varPtr) {
         return s__getenv(varPtr, false);
     }
 
@@ -2171,7 +2206,7 @@ namespace wasm {
         return 0;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "setenv", I32, setenv, I32 varPtr, I32 valPtr, I32 overwrite) {
+    DEFINE_INTRINSIC_FUNCTION(env, "_setenv", I32, _setenv, I32 varPtr, I32 valPtr, I32 overwrite) {
         return s__setenv(varPtr, valPtr, overwrite);
     }
 
@@ -2196,7 +2231,7 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "unsetenv", I32, unsetenv, I32 varPtr) {
+    DEFINE_INTRINSIC_FUNCTION(env, "_unsetenv", I32, _unsetenv, I32 varPtr) {
         return s__unsetenv(varPtr);
     }
 
@@ -2464,8 +2499,8 @@ namespace wasm {
         return 0;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_membarrier", I32, __syscall_membarrier, I32 a, I32 b) {
-        util::getLogger()->debug("S - membarrier - {} {}", a, b);
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_membarrier", I32, __syscall_membarrier, I32 a) {
+        util::getLogger()->debug("S - membarrier - {}", a);
 
         return 0;
     }
