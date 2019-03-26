@@ -15,7 +15,7 @@ endif ()
 # Emscripten fiddles
 if (${EMSCRIPTEN})
     # Emscripten doesn't seem to look in normal system includes so we explicitly have to tell it to
-    include_directories(/usr/local/include/)
+    # include_directories(/usr/local/include/)
 
     message(STATUS "Detected emscripten build")
 
@@ -29,13 +29,10 @@ if (${EMSCRIPTEN})
             -s MODULARIZE=1 \
             -s \"BINARYEN_METHOD='native-wasm'\" \
             -s \"BINARYEN_TRAP_MODE='clamp'\" \
-            -s TEXTDECODER=0 \
             -s ALLOW_MEMORY_GROWTH=1 \
             -s LINKABLE=1 \
-            -s MAIN_MODULE=1 \
             -s EXPORT_ALL=1 \
-            -s WASM=1 \
-            --memory-init-file 0 \
+            -O3 \
     ")
 
     # Link to emscripten libfaasm
@@ -62,7 +59,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
         set_target_properties(${exec_name} PROPERTIES OUTPUT_NAME ${exec_name}.wasm)
 
         target_link_libraries(${exec_name} ${FAASM_LIB})
-#        target_link_libraries(${exec_name} ${WASM_SYSROOT}/lib/crt1.o c c++ c++abi ${FAASM_LIB})
+        #        target_link_libraries(${exec_name} ${WASM_SYSROOT}/lib/crt1.o c c++ c++abi ${FAASM_LIB})
     endfunction(faasm_func)
 
 elseif (${EMSCRIPTEN})
