@@ -32,7 +32,7 @@ if (${EMSCRIPTEN})
             -s ALLOW_MEMORY_GROWTH=1 \
             -s LINKABLE=1 \
             -s EXPORT_ALL=1 \
-            -O3 \
+            -s LZ4=1 \
     ")
 
     # Link to emscripten libfaasm

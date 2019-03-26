@@ -209,7 +209,7 @@ namespace wasm {
         // Extract the module's exported function
         std::string entryFunc;
         if (this->isEmscripten()) {
-            entryFunc = "_main";
+            entryFunc = "main";
         } else {
             entryFunc = "_start";
         }
