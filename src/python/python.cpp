@@ -9,8 +9,8 @@ int main() {
     conf.unsafeMode = "on";
 
     message::Message call;
-    call.set_user("python");
-    call.set_function("py_hello");
+    call.set_user("demo");
+    call.set_function("simple");
 
     wasm::CallChain callChain(call);
 

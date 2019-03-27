@@ -495,8 +495,10 @@ namespace wasm {
         }
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall5", I32, __syscall_open, I32 pathPtr, I32 flags, I32 mode) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall5", I32, __syscall_open, I32 pathPtr, I32 flags, I32 mode, I32 d, I32 e, I32 f) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+        logger->debug("S - open - {} {} {} {} {} {}", pathPtr, flags, mode, d, e, f);
+
         const std::string path = getStringFromWasm(pathPtr);
         logger->debug("S - open - {} {} {}", path, flags, mode);
 
@@ -1351,8 +1353,8 @@ namespace wasm {
         throw (wasm::WasmExitException(a));
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall_exit", I32, __syscall_exit, I32 a) {
-        util::getLogger()->debug("S - exit - {}", a);
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall1", I32, __syscall_exit, I32 a, I32 b) {
+        util::getLogger()->debug("S - exit - {} {}", a, b);
         throw (wasm::WasmExitException(a));
     }
 

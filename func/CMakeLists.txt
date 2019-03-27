@@ -33,6 +33,8 @@ if (FAASM_BUILD_TYPE STREQUAL "emscripten")
 #    link_directories(/usr/local/code/faasm/lib/emscripten_lib_build/)
     set(FAASM_LIB faasm)
 
+    SET(CMAKE_EXE_LINKER_FLAGS "-Xlinker --no-entry -Xlinker --export=main")
+
     SET(CMAKE_EXECUTABLE_SUFFIX ".wasm")
 else ()
     set(FAASM_LIB faasm)

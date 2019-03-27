@@ -86,25 +86,26 @@ def _build_funcs(build_type, clean=False, func=None, cmake_build_type="Release")
 
 
 @task
-def compile_libfaasm_emscripten(ctx):
-    _do_libfaasm_build("emscripten")
+def compile_libfaasm_emscripten(ctx, clean=False):
+    _do_libfaasm_build("emscripten", clean=clean)
 
 
 @task
-def compile_libfaasm(ctx):
-    _do_libfaasm_build("wasm")
+def compile_libfaasm(ctx, clean=False):
+    _do_libfaasm_build("wasm", clean=clean)
 
 
-def _do_libfaasm_build(build_type, cmake_build_type="Release"):
+def _do_libfaasm_build(build_type, cmake_build_type="Release", clean=False):
     work_dir = join(PROJ_ROOT, "lib")
     build_dir = join(work_dir, "{}_lib_build".format(build_type))
 
-    if exists(build_dir):
+    if exists(build_dir) and clean:
         rmtree(build_dir)
+        mkdir(build_dir)
+    elif not exists(build_dir):
+        mkdir(build_dir)
 
     toolchain_file = _get_toolchain(build_type)
-
-    mkdir(build_dir)
 
     build_cmd = [
         "cmake",

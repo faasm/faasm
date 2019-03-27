@@ -156,7 +156,7 @@ namespace wasm {
         resolver->setMainModule(moduleInstance);
 
         // Extract the module's exported function
-        std::string entryFunc = "_start";
+        std::string entryFunc = "main";
 
         // Get main entrypoint function
         functionInstance = this->getFunction(entryFunc);
@@ -420,7 +420,7 @@ namespace wasm {
 
         // Set up the call and invoke arguments
         Runtime::Context *context = Runtime::createContext(compartment);
-        std::vector<IR::Value> invokeArgs;
+        std::vector<IR::Value> invokeArgs = {0, 0};
 
         int exitCode = 0;
         try {
