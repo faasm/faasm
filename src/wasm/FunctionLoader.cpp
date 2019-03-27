@@ -1,12 +1,13 @@
 #include "FunctionLoader.h"
 
-#include <WAVM/WASM/WASM.h>
-#include <WAVM/Inline/CLI.h>
-#include <WAVM/IR/Types.h>
 #include <WAVM/IR/Module.h>
-#include <WAVM/Runtime/Intrinsics.h>
+#include <WAVM/Inline/BasicTypes.h>
+#include <WAVM/Inline/CLI.h>
+#include <WAVM/Inline/Errors.h>
+#include <WAVM/Inline/Serialization.h>
+
 #include <WAVM/Runtime/Runtime.h>
-#include <WAVM/Runtime/RuntimeData.h>
+#include <WAVM/WASM/WASM.h>
 #include <WAVM/WASTParse/WASTParse.h>
 
 #include <util/config.h>

@@ -19,7 +19,6 @@ faasm_func(print print.cpp)
 faasm_func(restore restore.cpp)
 faasm_func(sizes sizes.cpp)
 faasm_func(snapshot snapshot.cpp)
-faasm_func(stackheap stackheap.cpp)
 faasm_func(stat stat.cpp)
 faasm_func(state_sync state_sync.cpp)
 faasm_func(state_async state_async.cpp)
@@ -38,6 +37,8 @@ faasm_func(x2 x2.cpp)
 # Dynamic linking - these functions need to export all
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xlinker --export-all -Xlinker --no-gc-sections")
+
+    faasm_func(stackheap stackheap.cpp)
 endif()
 
 faasm_func(dynlink dynlink.cpp)
