@@ -150,10 +150,6 @@ namespace wasm {
         return _isBound;
     }
 
-    bool WasmModule::isEmscripten() {
-        return resolver->isEmscripten;
-    }
-
     bool WasmModule::isInitialised() {
         return _isInitialised;
     }
@@ -207,12 +203,7 @@ namespace wasm {
         resolver->setMainModule(moduleInstance);
 
         // Extract the module's exported function
-        std::string entryFunc;
-        if (this->isEmscripten()) {
-            entryFunc = "main";
-        } else {
-            entryFunc = "_start";
-        }
+        std::string entryFunc = "_start";
 
         // Get main entrypoint function
         functionInstance = this->getFunction(entryFunc);
@@ -477,42 +468,6 @@ namespace wasm {
         // Set up the call and invoke arguments
         Runtime::Context *context = Runtime::createContext(compartment);
         std::vector<IR::Value> invokeArgs;
-
-        if (this->isEmscripten()) {
-            U8 *memoryBaseAddress = getMemoryBaseAddress(defaultMemory);
-            U32 *argvOffsets = (U32 *) (memoryBaseAddress + dynamicAlloc(defaultMemory, (U32) (sizeof(U32))));
-            argvOffsets[0] = 0;
-            invokeArgs = {(U32) 0, (U32) ((U8 *) argvOffsets - memoryBaseAddress)};
-
-            // Call the global initializer functions.
-            for (Uptr exportIndex = 0; exportIndex < module.exports.size(); ++exportIndex) {
-                const IR::Export &functionExport = module.exports[exportIndex];
-
-                int isGlobal = strncmp(functionExport.name.c_str(), "__GLOBAL__", 10);
-                bool isFunction = functionExport.kind == IR::ExternKind::function;
-
-                if (isFunction && !isGlobal) {
-                    Runtime::Function *function = asFunctionNullable(
-                            getInstanceExport(moduleInstance, functionExport.name));
-                    if (function) {
-                        logger->info("Executing Emscripten global initialiser: {}", functionExport.name.c_str());
-                        Runtime::invokeFunctionChecked(context, function, {});
-                    }
-                }
-            }
-
-            // Store ___errno_location.
-            Runtime::Function *errNoLocation
-                    = asFunctionNullable(getInstanceExport(moduleInstance, "___errno_location"));
-            if (errNoLocation
-                && getFunctionType(errNoLocation) ==
-                   IR::FunctionType(IR::TypeTuple{IR::ValueType::i32}, IR::TypeTuple{})) {
-                IR::ValueTuple errNoResult = Runtime::invokeFunctionChecked(context, errNoLocation, {});
-                if (errNoResult.size() == 1 && errNoResult[0].type == IR::ValueType::i32) {
-                    throw std::runtime_error("Not supporting errno location");
-                }
-            }
-        }
 
         int exitCode = 0;
         try {

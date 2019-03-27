@@ -13,7 +13,7 @@ else ()
 endif ()
 
 # Emscripten fiddles
-if (${EMSCRIPTEN})
+if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     # Emscripten doesn't seem to look in normal system includes so we explicitly have to tell it to
     # include_directories(/usr/local/include/)
 
@@ -23,23 +23,16 @@ if (${EMSCRIPTEN})
     #
     # These should match the main pyodide Makefile
     # https://github.com/iodide-project/pyodide/blob/master/Makefile
-    #
-    # We do not set MAIN_MODULE here as we are building pure WebAssembly
-    set(EM_LINKER_FLAGS "-s ERROR_ON_UNDEFINED_SYMBOLS=0 \
-            -s MODULARIZE=1 \
-            -s \"BINARYEN_METHOD='native-wasm'\" \
-            -s \"BINARYEN_TRAP_MODE='clamp'\" \
-            -s ALLOW_MEMORY_GROWTH=1 \
-            -s LINKABLE=1 \
-            -s EXPORT_ALL=1 \
-            -s LZ4=1 \
-    ")
-
+#    set(EM_LINKER_FLAGS " \
+#            --export-all \
+#            --no-entry
+#    ")
+#    set(CMAKE_EXE_LINKER_FLAGS "${EM_LINKER_FLAGS}")
+#
     # Link to emscripten libfaasm
-    link_directories(/usr/local/code/faasm/lib/emscripten_lib_build/)
-    set(FAASM_LIB libfaasm.a)
+#    link_directories(/usr/local/code/faasm/lib/emscripten_lib_build/)
+    set(FAASM_LIB faasm)
 
-    set(CMAKE_EXE_LINKER_FLAGS "${EM_LINKER_FLAGS}")
 else ()
     set(FAASM_LIB faasm)
 endif ()
@@ -62,7 +55,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
         #        target_link_libraries(${exec_name} ${WASM_SYSROOT}/lib/crt1.o c c++ c++abi ${FAASM_LIB})
     endfunction(faasm_func)
 
-elseif (${EMSCRIPTEN})
+elseif (FAASM_BUILD_TYPE STREQUAL "emscripten")
     # ----------------------
     # Emscripten build
     # ----------------------

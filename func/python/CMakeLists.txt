@@ -11,17 +11,9 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     set(ZLIB "${PYODIDE_ZLIB}")
     set(PYTHON_LIBRARIES "${PYODIDE_CPYTHON}/lib/libpython3.7.a")
     set(PYTHON_INCLUDE_DIRS "${PYODIDE_CPYTHON}/include/python3.7")
-elseif(${EMSCRIPTEN})
+elseif(FAASM_BUILD_TYPE STREQUAL "emscripten")
     set(TOOLCHAIN_ROOT "$ENV{HOME}/faasm/toolchain")
 
-    set(COMPILER_FLAGS " \
-        --sysroot=${TOOLCHAIN_ROOT}/sysroot \
-    ")
-
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMPILER_FLAGS}")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMPILER_FLAGS}")
-
-    set(ZLIB "${PYODIDE_ZLIB}")
     set(PYTHON_LIBRARIES "${PYODIDE_CPYTHON}/lib/libpython3.7.a")
     set(PYTHON_INCLUDE_DIRS "${PYODIDE_CPYTHON}/include/python3.7")
 else ()

@@ -7,7 +7,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # Set up correct compiler flags for building a lib
     set(CMAKE_CXX_FLAGS "${LIB_COMPILER_FLAGS}")
     set(CMAKE_C_FLAGS "${LIB_COMPILER_FLAGS}")
-elseif(${EMSCRIPTEN})
+elseif(FAASM_BUILD_TYPE STREQUAL "emscripten")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 
     # These flags should match what's set for SIDE_LDFLAGS in pyodide

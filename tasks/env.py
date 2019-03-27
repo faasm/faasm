@@ -21,6 +21,7 @@ EMSCRIPTEN_FUNC_BUILD_DIR = join(PROJ_ROOT, "func", "emscripten_func_build")
 PYTHON_FUNC_BUILD_DIR = join(PROJ_ROOT, "func", "python_func_build")
 
 WASM_DIR = join(PROJ_ROOT, "wasm")
+WASM_LIB_DIR = join(PROJ_ROOT, "wasm", "lib")
 
 RUNTIME_S3_BUCKET = "faasm-runtime"
 STATE_S3_BUCKET = "faasm-state"
@@ -29,27 +30,12 @@ STATE_S3_BUCKET = "faasm-state"
 AWS_ACCOUNT_ID = "733781933474"
 AWS_REGION = "eu-west-1"
 
-# ---------------------------------------------
-# Compile related
-# ---------------------------------------------
-
-WASM_LIB_DIR = join(PROJ_ROOT, "wasm", "lib")
-
-WASM_SYSROOT = join(FAASM_HOME, "toolchain", "sysroot")
-
-TARGET_TRIPLE = "wasm32-unknown-unknown-wasm"
-CONFIG_TARGET = "wasm32"
-CONFIG_HOST = "wasm32-unknown-none"
-
 PYODIDE_ROOT = "/usr/local/code/pyodide/"
-PY_EMSCRIPTEN_DIR = join(PYODIDE_ROOT, "emsdk/emsdk/emscripten/tag-1.38.22")
-PY_EMSCRIPTEN_CMAKE_TOOLCHAIN = join(PY_EMSCRIPTEN_DIR, "cmake", "Modules", "Platform", "Emscripten.cmake")
+EMSCRIPTEN_DIR = join(PYODIDE_ROOT, "emsdk/emsdk")
+EMSCRIPTEN_TOOLCHAIN = join(EMSCRIPTEN_DIR, "upstream/4138/Wack.cmake")
 
 WASM_TOOLCHAIN = join(PROJ_ROOT, "WasmToolchain.cmake")
-
-# ---------------------------------------------
-# Utility functions
-# ---------------------------------------------
+WASM_SYSROOT = join(EMSCRIPTEN_DIR, "upstream/4138/sysroot/")
 
 
 def get_wasm_func_path(user, func_name):

@@ -40,45 +40,11 @@ namespace wasm {
     const int MAX_MEMORY_PAGES = ONE_GB_PAGES;
     const int MAX_TABLE_SIZE = 500000;
 
-    // Emscripten memory constants
-    const int EMSCRIPTEN_MIN_TABLE_ELEMS = 200000;
-    const int EMSCRIPTEN_MAX_TABLE_ELEMS = 600000;
-    const int INITIAL_EMSCRIPTEN_PAGES = 1024 * ONE_MB_PAGES;
-    const int MAX_EMSCRIPTEN_PAGES = 2048 * ONE_GB_PAGES;
-    const int EMSCRIPTEN_STACKTOP = 64 * IR::numBytesPerPage;
-    const int EMSCRIPTEN_STACK_MAX = 256 * IR::numBytesPerPage;
-
-    struct EmscriptenMutableGlobals {
-        enum {
-            address = 63 * IR::numBytesPerPage
-        };
-
-        U32 DYNAMICTOP_PTR;
-        F64 tempDoublePtr;
-        I32 _stderr;
-        I32 _stdin;
-        I32 _stdout;
-    };
-
-    enum class ioStreamVMHandle {
-        StdErr = 1,
-        StdIn = 2,
-        StdOut = 3
-    };
-
-    // Standard toolchain version
     extern Intrinsics::Module &getIntrinsicModule_env();
-
-    // Emscripten versions
     extern Intrinsics::Module &getIntrinsicModule_emEnv();
-
-    extern Intrinsics::Module &getIntrinsicModule_emAsm2wasm();
-
-    extern Intrinsics::Module &getIntrinsicModule_emGlobal();
 
     struct RootResolver : Runtime::Resolver {
         explicit RootResolver(Runtime::Compartment *compartmentIn) {
-            _isSetUp = false;
             mainModule = nullptr;
             compartment = compartmentIn;
         }
@@ -87,76 +53,24 @@ namespace wasm {
             user = userIn;
         }
 
-        bool isSetUp() {
-            return _isSetUp;
-        }
-
         void setMainModule(Runtime::ModuleInstance *mainModuleIn) {
             mainModule = mainModuleIn;
         }
 
         void setUp(Runtime::Compartment *compartment, IR::Module &module) {
-            // Emscripten imports memory, non-emscripten doesn't
-            if(module.memories.defs.empty()) {
-                isEmscripten = true;
-                this->setUpEmscripten(compartment, module);
-            } else {
-                isEmscripten = false;
-                this->setUpStandardToolchain(compartment, module);
-            }
-
-            _isSetUp = true;
-        }
-
-        void setUpStandardToolchain(Runtime::Compartment *compartment, IR::Module &module) {
             // Force memory sizes
             module.memories.defs[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
             module.memories.defs[0].type.size.max = (U64) MAX_MEMORY_PAGES;
 
             module.tables.defs[0].type.size.max = (U64) MAX_TABLE_SIZE;
 
-            envModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_env(), "env");
-        }
-
-        void setUpEmscripten(Runtime::Compartment *compartment, IR::Module &module) {
-            // Memory constraints
-            module.memories.imports[0].type.size.min = (U64) INITIAL_EMSCRIPTEN_PAGES;
-            module.memories.imports[0].type.size.max = (U64) MAX_EMSCRIPTEN_PAGES;
-
-//            module.tables.imports[0].type.size.min = (U64) EMSCRIPTEN_MIN_TABLE_ELEMS;
-            module.tables.imports[0].type.size.max = (U64) EMSCRIPTEN_MAX_TABLE_ELEMS;
-
-            Runtime::Memory *memory = Runtime::createMemory(compartment, module.memories.imports[0].type, "env.memory");
-            Runtime::Table *table = Runtime::createTable(compartment, module.tables.imports[0].type, "env.table");
-
-            HashMap<std::string, Runtime::Object *> extraEnvExports = {
-                    {"memory", Runtime::asObject(memory)},
-                    {"table",  Runtime::asObject(table)},
-            };
-
-            emEnvModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_emEnv(), "env",
-                                                        extraEnvExports);
-
-            emAsm2wasmModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_emAsm2wasm(),
-                                                             "emAsm2wasm");
-
-            emGlobalModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_emGlobal(), "emGlobal");
-
-            // Note: this MUST be a reference
-            EmscriptenMutableGlobals &mutableGlobals = Runtime::memoryRef<EmscriptenMutableGlobals>(memory,
-                                                                                                    EmscriptenMutableGlobals::address);
-            mutableGlobals.DYNAMICTOP_PTR = EMSCRIPTEN_STACK_MAX;
-            mutableGlobals._stderr = (U32) ioStreamVMHandle::StdErr;
-            mutableGlobals._stdin = (U32) ioStreamVMHandle::StdIn;
-            mutableGlobals._stdout = (U32) ioStreamVMHandle::StdOut;
+            // Switching between emscripten/ non-emscripten
+            envModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_emEnv(), "env");
+            // envModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_env(), "env");
         }
 
         void cleanUp() {
             envModule = nullptr;
-
-            emEnvModule = nullptr;
-            emAsm2wasmModule = nullptr;
-            emGlobalModule = nullptr;
         }
 
         bool resolve(const std::string &moduleName,
@@ -167,27 +81,7 @@ namespace wasm {
             
             bool isDynamicModule = mainModule != nullptr;
             
-            if (isEmscripten) {
-                bool isGlobalAccessor = exportName.rfind("g$_", 0) == 0;
-                bool isAFunc = type.kind == IR::ExternKind::function;
-
-                if (isGlobalAccessor && isAFunc) {
-                    logger->debug("Stubbing global accessor import {}", exportName);
-                    resolved = getStubObject(exportName, type);
-                    return true;
-                }
-
-                // Emscripten modules can have imports from 3 modules
-                if (moduleName == "env") {
-                    resolved = getInstanceExport(emEnvModule, exportName);
-                } else if (moduleName == "asm2wasm") {
-                    resolved = getInstanceExport(emAsm2wasmModule, exportName);
-                } else if (moduleName == "global" || moduleName == "global.Math") {
-                    resolved = getInstanceExport(emGlobalModule, exportName);
-                } else {
-                    logger->error("Unrecognised module: {}", moduleName);
-                }
-            } else if(isDynamicModule) {
+            if(isDynamicModule) {
                 // The special cases below are the globals that are crucial to getting the
                 // dynamic linking to work. 
                 if(exportName == "__memory_base") {
@@ -245,54 +139,6 @@ namespace wasm {
             return false;
         }
 
-        Runtime::Object *getStubObject(const std::string &exportName, IR::ExternType type) const {
-            // If the import couldn't be resolved, stub it in.
-            switch (type.kind) {
-                case IR::ExternKind::function: {
-                    // Generate a function body that just uses the unreachable op to fault if called.
-                    Serialization::ArrayOutputStream codeStream;
-                    IR::OperatorEncoderStream encoder(codeStream);
-                    encoder.unreachable();
-                    encoder.end();
-
-                    // Generate a module for the stub function.
-                    IR::Module stubIRModule;
-                    IR::DisassemblyNames stubModuleNames;
-                    stubIRModule.types.push_back(asFunctionType(type));
-                    stubIRModule.functions.defs.push_back({{0}, {}, std::move(codeStream.getBytes()), {}});
-                    stubIRModule.exports.push_back({"importStub", IR::ExternKind::function, 0});
-                    stubModuleNames.functions.push_back({"importStub: " + exportName, {}, {}});
-                    IR::setDisassemblyNames(stubIRModule, stubModuleNames);
-                    IR::validatePreCodeSections(stubIRModule);
-                    IR::validatePostCodeSections(stubIRModule);
-
-                    // Instantiate the module and return the stub function instance.
-                    auto stubModule = Runtime::compileModule(stubIRModule);
-                    auto stubModuleInstance = instantiateModule(compartment, stubModule, {}, "importStub");
-                    return getInstanceExport(stubModuleInstance, "importStub");
-                }
-                case IR::ExternKind::memory: {
-                    return asObject(
-                            Runtime::createMemory(compartment, asMemoryType(type), std::string(exportName)));
-                }
-                case IR::ExternKind::table: {
-                    return asObject(
-                            Runtime::createTable(compartment, asTableType(type), std::string(exportName)));
-                }
-                case IR::ExternKind::global: {
-                    return asObject(Runtime::createGlobal(compartment, asGlobalType(type)));
-                }
-                case IR::ExternKind::exceptionType: {
-                    return asObject(
-                            Runtime::createExceptionType(compartment, asExceptionType(type), "importStub"));
-                }
-                default:
-                    Errors::unreachable();
-            };
-        }
-
-        bool isEmscripten = false;
-
         int nextMemoryBase;
         int nextTableBase;
         int nextStackPointer;
@@ -302,16 +148,9 @@ namespace wasm {
 
         Runtime::Compartment *compartment;
 
-        // Module for non-Emscripten
         Runtime::GCPointer<Runtime::ModuleInstance> envModule;
 
-        // Emscripten modules
-        Runtime::GCPointer<Runtime::ModuleInstance> emEnvModule;
-        Runtime::GCPointer<Runtime::ModuleInstance> emAsm2wasmModule;
-        Runtime::GCPointer<Runtime::ModuleInstance> emGlobalModule;
-
         std::string user;
-        bool _isSetUp;
     };
 
 }

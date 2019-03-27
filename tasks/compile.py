@@ -7,11 +7,11 @@ from subprocess import call
 from invoke import task
 
 from tasks.download import download_proj
-from tasks.env import PROJ_ROOT, PY_EMSCRIPTEN_CMAKE_TOOLCHAIN, PY_EMSCRIPTEN_DIR, WASM_TOOLCHAIN, WASM_SYSROOT
+from tasks.env import PROJ_ROOT, EMSCRIPTEN_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_TOOLCHAIN, WASM_SYSROOT
 
 
 def check_correct_emscripten(expected_root):
-    actual_root = environ.get("EMSCRIPTEN")
+    actual_root = environ.get("EMSDK")
 
     if not actual_root or not actual_root.startswith(expected_root):
         path_parts = expected_root.split("/")
@@ -41,19 +41,14 @@ def funcs_emscripten(context, clean=False, func=None, debug=False):
 
 
 @task
-def funcs_python(context, clean=False, func=None, debug=False):
-    _build_funcs("python", clean=clean, func=func, cmake_build_type="Debug" if debug else "Release")
-
-
-@task
 def funcs(context, clean=False, func=None):
     _build_funcs("wasm", clean=clean, func=func)
 
 
 def _get_toolchain(build_type):
-    if build_type in ["emscripten", "python"]:
-        check_correct_emscripten(PY_EMSCRIPTEN_DIR)
-        toolchain_file = PY_EMSCRIPTEN_CMAKE_TOOLCHAIN
+    if build_type in ["emscripten"]:
+        check_correct_emscripten(EMSCRIPTEN_DIR)
+        toolchain_file = EMSCRIPTEN_TOOLCHAIN
     else:
         toolchain_file = WASM_TOOLCHAIN
 
@@ -91,11 +86,6 @@ def _build_funcs(build_type, clean=False, func=None, cmake_build_type="Release")
 
 
 @task
-def compile_libfaasm_python(ctx):
-    _do_libfaasm_build("python")
-
-
-@task
 def compile_libfaasm_emscripten(ctx):
     _do_libfaasm_build("emscripten")
 
@@ -112,13 +102,15 @@ def _do_libfaasm_build(build_type, cmake_build_type="Release"):
     if exists(build_dir):
         rmtree(build_dir)
 
+    toolchain_file = _get_toolchain(build_type)
+
     mkdir(build_dir)
 
     build_cmd = [
         "cmake",
         "-DFAASM_BUILD_TYPE={}".format(build_type),
         "-DCMAKE_BUILD_TYPE={}".format(cmake_build_type),
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(toolchain_file),
         ".."
     ]
 

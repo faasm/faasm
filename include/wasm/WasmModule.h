@@ -62,8 +62,6 @@ namespace wasm {
 
         bool isBound();
 
-        bool isEmscripten();
-
         U32 mmap(U32 length);
 
         U32 mmapKey(std::shared_ptr<state::StateKeyValue> kv, U32 length);

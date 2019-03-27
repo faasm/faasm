@@ -6,11 +6,6 @@ set(CMAKE_CXX_STANDARD 17)
 # Include Faasm headers
 include_directories(${CMAKE_CURRENT_LIST_DIR})
 
-# Emscripten doesn't seem to look in normal system includes so we explicitly have to tell it to
-if (${EMSCRIPTEN})
-    include_directories(/usr/local/include/)
-endif ()
-
 set(LIB_FILES
         counter.cpp
         func.cpp
@@ -38,24 +33,10 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     set(CMAKE_CXX_FLAGS "${LIB_COMPILER_FLAGS}")
     set(CMAKE_C_FLAGS "${LIB_COMPILER_FLAGS}")
 
-elseif (FAASM_BUILD_TYPE STREQUAL "python")
+elseif (FAASM_BUILD_TYPE STREQUAL "emscripten")
     add_definitions(-DWASM_BUILD=1)
 
     set(CMAKE_SHARED_LINKER_FLAGS "-O2 \
-        -s EMULATED_FUNCTION_POINTERS=1 \
-        -s EMULATE_FUNCTION_POINTER_CASTS=1 \
-        -s SIDE_MODULE=1 \
-        -s WASM=1 \
-        -s LINKABLE=1 \
-        -s EXPORT_ALL=1 \
-        --memory-init-file 0")
-
-elseif (${EMSCRIPTEN})
-    add_definitions(-DWASM_BUILD=1)
-
-    set(CMAKE_SHARED_LINKER_FLAGS "-O2 \
-        -s SIDE_MODULE=1 \
-        -s WASM=1 \
         -s LINKABLE=1 \
         -s EXPORT_ALL=1 \
         --memory-init-file 0")
@@ -68,10 +49,10 @@ add_library(faasm STATIC ${LIB_FILES})
 set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
 install(TARGETS faasm
-        ARCHIVE DESTINATION ${WASM_SYSROOT}/lib
-        LIBRARY DESTINATION ${WASM_SYSROOT}/lib
-        RUNTIME DESTINATION ${WASM_SYSROOT}/bin
-        PUBLIC_HEADER DESTINATION ${WASM_SYSROOT}/include/faasm
+        ARCHIVE DESTINATION ${CMAKE_SYSROOT}/lib
+        LIBRARY DESTINATION ${CMAKE_SYSROOT}/lib
+        RUNTIME DESTINATION ${CMAKE_SYSROOT}/bin
+        PUBLIC_HEADER DESTINATION ${CMAKE_SYSROOT}/include/faasm
         )
 
-install(FILES libfaasm.imports DESTINATION ${WASM_SYSROOT}/lib/)
+install(FILES libfaasm.imports DESTINATION ${CMAKE_SYSROOT}/lib/)
