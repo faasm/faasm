@@ -84,13 +84,6 @@ namespace wasm {
         return args;
     }
 
-    static U32 coerce32bitAddress(Runtime::Memory *memory, Uptr address) {
-        if (address >= UINT32_MAX) {
-            throwException(Runtime::ExceptionTypes::outOfBoundsMemoryAccess, {asObject(memory), U64(address)});
-        }
-        return (U32) address;
-    }
-
     // Thread-local variables to isolate bits of environment
     static thread_local std::set<int> openFds;
 
@@ -2040,27 +2033,34 @@ namespace wasm {
         return s__getpid();
     }
 
+
     I32 s__getpwuid(I32 uid) {
         util::getLogger()->debug("S - _getpwuid - {}", uid);
 
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        WasmModule *module = getExecutingModule();
+        Runtime::Memory *memoryPtr = module->defaultMemory;
 
-        // Provision space for the new struct, username and password
-        U32 namePtr = dynamicAllocString(memoryPtr, FAKE_NAME, strlen(FAKE_NAME));
-        U32 passwordPtr = dynamicAllocString(memoryPtr, FAKE_PASSWORD, strlen(FAKE_PASSWORD));
-        U32 homePtr = dynamicAllocString(memoryPtr, FAKE_HOME, strlen(FAKE_HOME));
-        U32 structPtr = dynamicAlloc(memoryPtr, sizeof(wasm_passwd));
+        // Provision a new segment of memory big enough to hold the strings and the struct
+        size_t memSize = strlen(FAKE_NAME) + strlen(FAKE_PASSWORD) + strlen(FAKE_HOME) + sizeof(wasm_passwd);
+        U32 newMem = module->mmap(memSize);
+        char *hostNewMem = Runtime::memoryArrayPtr<char>(memoryPtr, newMem, memSize);
+
+        // Copy the strings into place
+        std::strcpy(hostNewMem, FAKE_NAME);
+        std::strcpy(hostNewMem + strlen(FAKE_NAME), FAKE_PASSWORD);
+        std::strcpy(hostNewMem + strlen(FAKE_NAME) + strlen(FAKE_PASSWORD), FAKE_HOME);
 
         // Get a pointer to it
-        wasm_passwd *wasmPasswd = &Runtime::memoryRef<wasm_passwd>(memoryPtr, (Uptr) structPtr);
+        I32 structOffset = (I32) memSize - sizeof(wasm_passwd);
+        wasm_passwd *wasmPasswd = &Runtime::memoryRef<wasm_passwd>(memoryPtr, structOffset);
 
-        wasmPasswd->pw_name = namePtr;
-        wasmPasswd->pw_passwd = passwordPtr;
+        wasmPasswd->pw_name = newMem;
+        wasmPasswd->pw_passwd = newMem + strlen(FAKE_NAME);
         wasmPasswd->pw_uid = FAKE_UID;
         wasmPasswd->pw_gid = FAKE_GID;
-        wasmPasswd->pw_dir = homePtr;
+        wasmPasswd->pw_dir = newMem + strlen(FAKE_NAME) + strlen(FAKE_PASSWORD);
 
-        return structPtr;
+        return structOffset;
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "getpwuid", I32, getpwuid, I32 uid) {
@@ -2170,24 +2170,23 @@ namespace wasm {
             }
         }
 
-        U32 result;
+        // Create the region of memory
         size_t nBytes = strlen(value) + 1;
+        U32 result = module->mmap(nBytes);
 
-        // TODO - avoid allocating a whole page just for a new string
-        result = module->mmap(nBytes);
-        char *hostAddr = Runtime::memoryArrayPtr<char>(memoryPtr, result, nBytes);
-        std::copy(value, value + nBytes, hostAddr);
-        logger->debug("Copied {}={} ({} bytes)", varName, value, nBytes);
+        // Copy value into place
+        char *hostPtr = Runtime::memoryArrayPtr<char>(memoryPtr, (Uptr) result, nBytes);
+        std::strcpy(hostPtr, value);
 
         return result;
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "_getenv", I32, _getenv, I32 varPtr) {
-        return s__getenv(varPtr, false);
+        return s__getenv(varPtr);
     }
 
     DEFINE_INTRINSIC_FUNCTION(emEnv, "getenv", I32, emscripten_getenv, I32 varPtr) {
-        return s__getenv(varPtr, true);
+        return s__getenv(varPtr);
     }
 
     I32 s__setenv(I32 varPtr, I32 valPtr, I32 overwrite) {

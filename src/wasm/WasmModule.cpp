@@ -70,53 +70,6 @@ namespace wasm {
         return pageCount;
     }
 
-    U32 dynamicAllocString(Runtime::Memory *memory, const char *str, U32 len) {
-        U32 wasmAddr = dynamicAlloc(memory, len);
-        U8 *hostAddr = Runtime::memoryArrayPtr<U8>(memory, wasmAddr, len);
-        memcpy(hostAddr, str, len);
-
-        return wasmAddr;
-    }
-
-    void setEmscriptenDynamicTop(U32 newValue) {
-        Runtime::Memory *memory = getExecutingModule()->defaultMemory;
-
-        // Note that this MUST be a reference, otherwise we just update a copy that's not seen by wasm
-        EmscriptenMutableGlobals &mutableGlobals = Runtime::memoryRef<EmscriptenMutableGlobals>(memory,
-                                                                                                EmscriptenMutableGlobals::address);
-        mutableGlobals.DYNAMICTOP_PTR = newValue;
-    }
-
-    U32 getEmscriptenDynamicTop() {
-        Runtime::Memory *memory = getExecutingModule()->defaultMemory;
-        EmscriptenMutableGlobals &mutableGlobals = Runtime::memoryRef<EmscriptenMutableGlobals>(memory,
-                                                                                                EmscriptenMutableGlobals::address);
-        return mutableGlobals.DYNAMICTOP_PTR;
-    }
-
-    /**
-     * This is an emscripten-specific operation. The dyanamictop_ptr is used by emscripten
-     * to keep track of where the top of its heap is. If dynamictop_ptr goes over the size of
-     * the available memory, we need to expand the memory (and make sure we keep dynamictop_ptr
-     * in sync.
-     */
-    U32 dynamicAlloc(Runtime::Memory *memory, U32 numBytes) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Dynamically allocating emscripten memory for {} bytes", numBytes);
-
-        // Shift the dynamic top ptr
-        const U32 allocationAddress = getEmscriptenDynamicTop();
-        const U32 endAddress = (allocationAddress + numBytes + 15) & -16;
-        setEmscriptenDynamicTop(endAddress);
-
-        const Uptr endPage = (endAddress + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
-        if (endPage >= getMemoryNumPages(memory) && endPage < getMemoryMaxPages(memory)) {
-            growMemory(memory, endPage - getMemoryNumPages(memory) + 1);
-        }
-
-        return allocationAddress;
-    }
-
     WasmModule::WasmModule() = default;
 
     WasmModule::~WasmModule() {

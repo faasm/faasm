@@ -30,14 +30,6 @@ namespace wasm {
 
     int expandMemory(U32 newSize);
 
-    U32 dynamicAllocString(Runtime::Memory *memory, const char *str, U32 len);
-
-    U32 dynamicAlloc(Runtime::Memory *memory, U32 numBytes);
-
-    void setEmscriptenDynamicTop(U32 newValue);
-
-    U32 getEmscriptenDynamicTop();
-
     Uptr getNumberOfPagesForBytes(U32 nBytes);
 
     class WasmModule {
