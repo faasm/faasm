@@ -41,7 +41,6 @@ namespace wasm {
     const int MAX_TABLE_SIZE = 500000;
 
     extern Intrinsics::Module &getIntrinsicModule_env();
-    extern Intrinsics::Module &getIntrinsicModule_emEnv();
 
     struct RootResolver : Runtime::Resolver {
         explicit RootResolver(Runtime::Compartment *compartmentIn) {
@@ -64,9 +63,7 @@ namespace wasm {
 
             module.tables.defs[0].type.size.max = (U64) MAX_TABLE_SIZE;
 
-            // Switching between emscripten/ non-emscripten
-            envModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_emEnv(), "env");
-            // envModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_env(), "env");
+            envModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_env(), "env");
         }
 
         void cleanUp() {
