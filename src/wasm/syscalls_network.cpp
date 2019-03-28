@@ -10,7 +10,6 @@
 #include <WAVM/Runtime/Intrinsics.h>
 
 namespace wasm {
-
     /** Writes changes to a native sockaddr back to a wasm sockaddr. This is important in several
      * networking syscalls that receive responses and modify arguments in place */
     void setSockAddr(sockaddr nativeSockAddr, I32 addrPtr) {
@@ -34,7 +33,7 @@ namespace wasm {
      * therefore we can be relatively comfortable passing some of the syscalls
      * straight through.
      */
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall102", I32, __syscall_socketcall, I32 call, I32 argsPtr) {
+    I32 s__socketcall(I32 call, I32 argsPtr) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
 
         // NOTE
@@ -47,9 +46,7 @@ namespace wasm {
             // ----------------------------
 
             case (SocketCalls::sc_socket): {
-                // Socket constants:
-                // https://github.com/Shillaker/musl/blob/wasm-prototype-1/include/sys/socket.h
-                // https://github.com/Shillaker/musl/blob/wasm-prototype-1/include/netinet/in.h
+                // Socket constants can be found in musl at include/sys/socket.h and include/netinet/in.h
 
                 U32 *subCallArgs = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, 3);
                 U32 domain = subCallArgs[0];
@@ -322,5 +319,4 @@ namespace wasm {
 
         return 0;
     }
-
 }

@@ -8,6 +8,19 @@
 #include <WAVM/Runtime/Intrinsics.h>
 
 namespace wasm {
+
+    I32 s__madvise(I32 address, I32 numBytes, I32 advice) {
+        util::getLogger()->debug("S - madvise - {} {} {}", address, numBytes, advice);
+
+        return 0;
+    }
+
+    I32 s__membarrier(I32 a) {
+        util::getLogger()->debug("S - membarrier - {}", a);
+
+        return 0;
+    }
+
     /**
      * We can permit mmap as a means to grow memory via anonymous mappings. As there is only one
      * address range, this may end up conflicting with other memory management for the module.
@@ -16,8 +29,7 @@ namespace wasm {
      * the offset into the file in 4096-byte units (instead of bytes, as is done by mmap). Given that we
      * ignore the offset we can just treat it like mmap
      */
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall192", I32, __syscall_mmap,
-                              U32 addr, U32 length, U32 prot, U32 flags, I32 fd, U32 offset) {
+    I32 s__mmap(I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I32 offset) {
         util::getLogger()->debug("S - mmap - {} {} {} {} {} {}", addr, length, prot, flags, fd, offset);
 
         // Note - we are ignoring the offset input
@@ -36,7 +48,7 @@ namespace wasm {
         return module->mmap(length);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall91", I32, __syscall_munmap, U32 addr, U32 length) {
+    I32 s__munmap(I32 addr, I32 length) {
         util::getLogger()->debug("S - munmap - {} {}", addr, length);
 
         Runtime::Memory *memory = getExecutingModule()->defaultMemory;
@@ -76,8 +88,7 @@ namespace wasm {
    *   - on error return current break
    *   - on success return NEW break
    */
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall45", I32, __syscall_brk, U32 addr) {
+    I32 s__brk(I32 addr) {
         util::getLogger()->debug("S - brk - {}", addr);
 
         Runtime::Memory *memory = getExecutingModule()->defaultMemory;
@@ -115,19 +126,5 @@ namespace wasm {
             // Success, return requested break
             return (U32) target;
         }
-    }
-
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall219", I32, __syscall_madvise,
-                              U32 address, U32 numBytes, U32 advice) {
-        util::getLogger()->debug("S - madvise - {} {} {}", address, numBytes, advice);
-
-        return 0;
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall375", I32, __syscall_membarrier, I32 a) {
-        util::getLogger()->debug("S - membarrier - {}", a);
-
-        return 0;
     }
 }

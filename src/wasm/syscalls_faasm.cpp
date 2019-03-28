@@ -26,15 +26,11 @@ namespace wasm {
         return kv;
     }
 
-    void s__faasm_push_state(I32 keyPtr) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state", void, __faasm_push_state, I32 keyPtr) {
         util::getLogger()->debug("S - push_state - {}", keyPtr);
 
         auto kv = getStateKV(keyPtr, 0);
         kv->pushFull();
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state", void, __faasm_push_state, I32 keyPtr) {
-        s__faasm_push_state(keyPtr);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state_partial", void, __faasm_push_state_partial, I32 keyPtr) {

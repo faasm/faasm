@@ -3,10 +3,6 @@ from os import makedirs
 from os.path import dirname, realpath, join, exists, expanduser
 from subprocess import call
 
-# -------------------------------------------
-# Misc
-# -------------------------------------------
-
 HOME_DIR = expanduser("~")
 PROJ_ROOT = dirname(dirname(realpath(__file__)))
 
@@ -16,9 +12,7 @@ FAASM_RUNTIME_ROOT = join(FAASM_STORAGE, "runtime_root")
 
 ANSIBLE_DIR = join(PROJ_ROOT, "ansible")
 
-WASM_FUNC_BUILD_DIR = join(PROJ_ROOT, "func", "wasm_func_build")
 EMSCRIPTEN_FUNC_BUILD_DIR = join(PROJ_ROOT, "func", "emscripten_func_build")
-PYTHON_FUNC_BUILD_DIR = join(PROJ_ROOT, "func", "python_func_build")
 
 WASM_DIR = join(PROJ_ROOT, "wasm")
 WASM_LIB_DIR = join(PROJ_ROOT, "wasm", "lib")

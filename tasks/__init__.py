@@ -17,11 +17,8 @@ from tasks.aws import (
     prepare_lambda_workers,
 )
 from tasks.compile import (
-    clean_build,
     funcs,
-    funcs_emscripten,
     compile_libfaasm,
-    compile_libfaasm_emscripten,
     compile_eigen,
     compile_libfake,
 )

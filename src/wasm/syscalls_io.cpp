@@ -207,8 +207,7 @@ namespace wasm {
 
         return (I32) bytesRead;
     }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall6", I32, __syscall_close, I32 fd) {
+    I32 s__close(I32 fd) {
         util::getLogger()->debug("S - close - {}", fd);
 
         // Provided the thread owns the fd, we allow closing.
@@ -221,7 +220,7 @@ namespace wasm {
     }
 
     /** Poll is ok but can pass in an array of structs. */
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall168", I32, __syscall_poll, I32 fdsPtr, I32 nfds, I32 timeout) {
+    I32 s__poll(I32 fdsPtr, I32 nfds, I32 timeout) {
         util::getLogger()->debug("S - poll - {} {} {}", fdsPtr, nfds, timeout);
 
         auto *fds = Runtime::memoryArrayPtr<pollfd>(getExecutingModule()->defaultMemory, (Uptr) fdsPtr, (Uptr) nfds);
@@ -236,8 +235,7 @@ namespace wasm {
         return pollRes;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall54", I32, __syscall_ioctl,
-                              I32 fd, I32 request, I32 argPtr, I32 d, I32 e, I32 f) {
+    I32 s__ioctl(I32 fd, I32 request, I32 argPtr, I32 d, I32 e, I32 f) {
         util::getLogger()->debug("S - ioctl - {} {} {} {} {} {}", fd, request, argPtr, d, e, f);
 
         return 0;
@@ -246,7 +244,7 @@ namespace wasm {
     /**
      * Writing is ok provided the function owns the file descriptor
      */
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall146", I32, __syscall_writev, I32 fd, I32 iov, I32 iovcnt) {
+    I32 s__writev(I32 fd, I32 iov, I32 iovcnt) {
         util::getLogger()->debug("S - writev - {} {} {}", fd, iov, iovcnt);
 
         checkThreadOwnsFd(fd);
@@ -261,7 +259,7 @@ namespace wasm {
         return (I32) count;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall145", I32, __syscall_readv, I32 fd, I32 iovecPtr, I32 iovecCount) {
+    I32 s__readv(I32 fd, I32 iovecPtr, I32 iovecCount) {
         util::getLogger()->debug("S - readv - {} {} {}", fd, iovecPtr, iovecCount);
 
         checkThreadOwnsFd(fd);
@@ -278,7 +276,7 @@ namespace wasm {
     /**
      * Writing is ok provided the function owns the file descriptor
      */
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall4", I32, __syscall_write, I32 fd, I32 bufPtr, I32 bufLen) {
+    I32 s__write(I32 fd, I32 bufPtr, I32 bufLen) {
         util::getLogger()->debug("S - write - {} {} {}", fd, bufPtr, bufLen);
 
         // Provided the thread owns the fd, we allow reading.
@@ -294,7 +292,7 @@ namespace wasm {
         return bytesWritten;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall39", I32, __syscall_mkdir, I32 pathPtr, I32 mode) {
+    I32 s__mkdir(I32 pathPtr, I32 mode) {
         const std::string fakePath = getMaskedPathFromWasm(pathPtr);
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
@@ -309,7 +307,7 @@ namespace wasm {
         return res;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall38", I32, __syscall_rename, I32 srcPtr, I32 destPtr) {
+    I32 s__rename(I32 srcPtr, I32 destPtr) {
         const std::string srcPath = getMaskedPathFromWasm(srcPtr);
         const std::string destPath = getMaskedPathFromWasm(destPtr);
 
@@ -329,7 +327,8 @@ namespace wasm {
         return res;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall10", I32, __syscall_unlink, I32 pathPtr) {
+
+    I32 s__unlink(I32 pathPtr) {
         const std::string fakePath = getMaskedPathFromWasm(pathPtr);
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
@@ -348,7 +347,7 @@ namespace wasm {
      *  We don't want to give away any real info about the filesystem, but we can just return the default
      *  stat object and catch the application later if it tries to do anything dodgy.
      */
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall197", I32, __syscall_fstat64, I32 fd, I32 statBufPtr) {
+    I32 s__fstat64(I32 fd, I32 statBufPtr) {
         util::getLogger()->debug("S - fstat64 - {} {}", fd, statBufPtr);
 
         struct stat64 nativeStat{};
@@ -358,7 +357,7 @@ namespace wasm {
         return 0;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall195", I32, __syscall_stat64, I32 pathPtr, I32 statBufPtr) {
+    I32 s__stat64(I32 pathPtr, I32 statBufPtr) {
         // Get the path
         const std::string fakePath = getMaskedPathFromWasm(pathPtr);
 
@@ -371,7 +370,7 @@ namespace wasm {
         return 0;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall196", I32, __syscall_lstat64, I32 pathPtr, I32 statBufPtr) {
+    I32 s__lstat64(I32 pathPtr, I32 statBufPtr) {
         const std::string fakePath = getMaskedPathFromWasm(pathPtr);
         util::getLogger()->debug("S - lstat - {} {}", fakePath, statBufPtr);
 
@@ -386,8 +385,7 @@ namespace wasm {
      * Although llseek is being called, musl is using it within the implementation of lseek,
      * therefore we can just use lseek as a shortcut
      */
-    DEFINE_INTRINSIC_FUNCTION(env, "__syscall140", I32, __syscall_llseek, I32 fd, I32 offsetHigh, I32 offsetLow,
-                              I32 resultPtr, I32 whence) {
+    I32 s__llseek(I32 fd, I32 offsetHigh, I32 offsetLow, I32 resultPtr, I32 whence) {
         util::getLogger()->debug("S - llseek - {} {} {} {} {}", fd, offsetHigh, offsetLow, resultPtr, whence);
 
         checkThreadOwnsFd(fd);

@@ -23,28 +23,6 @@ def check_correct_emscripten(expected_root):
         exit(1)
 
 
-@task
-def clean_build(context):
-    lib_build_dir = join(PROJ_ROOT, "lib", "wasm_lib_build")
-
-    # Clean build of library
-    rmtree(lib_build_dir)
-    compile_libfaasm(context)
-
-    # Clean build of functions
-    funcs(context, clean=True)
-
-
-@task
-def funcs_emscripten(context, clean=False, func=None, debug=False):
-    _build_funcs("emscripten", clean=clean, func=func, cmake_build_type="Debug" if debug else "Release")
-
-
-@task
-def funcs(context, clean=False, func=None):
-    _build_funcs("wasm", clean=clean, func=func)
-
-
 def _get_toolchain(build_type):
     if build_type in ["emscripten"]:
         check_correct_emscripten(EMSCRIPTEN_DIR)
@@ -55,7 +33,11 @@ def _get_toolchain(build_type):
     return toolchain_file
 
 
-def _build_funcs(build_type, clean=False, func=None, cmake_build_type="Release"):
+@task
+def funcs(context, clean=False, func=None):
+    build_type = "emscripten"
+    cmake_build_type = "Release"
+
     toolchain_file = _get_toolchain(build_type)
     func_build_dir = join(PROJ_ROOT, "func", "{}_func_build".format(build_type))
 
@@ -89,16 +71,10 @@ def _build_funcs(build_type, clean=False, func=None, cmake_build_type="Release")
 
 
 @task
-def compile_libfaasm_emscripten(ctx, clean=False):
-    _do_libfaasm_build("emscripten", clean=clean)
-
-
-@task
 def compile_libfaasm(ctx, clean=False):
-    _do_libfaasm_build("wasm", clean=clean)
+    build_type = "emscripten"
+    cmake_build_type = "Release"
 
-
-def _do_libfaasm_build(build_type, cmake_build_type="Release", clean=False):
     work_dir = join(PROJ_ROOT, "lib")
     build_dir = join(work_dir, "{}_lib_build".format(build_type))
 

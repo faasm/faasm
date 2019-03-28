@@ -3,15 +3,15 @@
 #include <sys/socket.h>
 
 namespace wasm {
-    const char *FAKE_NAME = "faasm";
-    const char *FAKE_PASSWORD = "foobar123";
-    const char *FAKE_HOME = "/";
-    const int FAKE_PID = 23;
-    const int FAKE_UID = 1;
-    const int FAKE_GID = 1;
-    const char *FALSE_ROOT = "/usr/local/faasm/runtime_root";
-    const char *HOSTS_FILE = "/usr/local/faasm/net/hosts";
-    const char *RESOLV_FILE = "/usr/local/faasm/net/resolv.conf";
+    static const char *FAKE_NAME = "faasm";
+    static const char *FAKE_PASSWORD = "foobar123";
+    static const char *FAKE_HOME = "/";
+    static const int FAKE_PID = 23;
+    static const int FAKE_UID = 1;
+    static const int FAKE_GID = 1;
+    static const char *FALSE_ROOT = "/usr/local/faasm/runtime_root";
+    static const char *HOSTS_FILE = "/usr/local/faasm/net/hosts";
+    static const char *RESOLV_FILE = "/usr/local/faasm/net/resolv.conf";
 
     void getBytesFromWasm(I32 dataPtr, I32 dataLen, uint8_t *buffer);
 
@@ -121,18 +121,28 @@ namespace wasm {
         sc_sendmmsg,
     };
 
-    // List of file descriptors held by the curren thread
+    // List of file descriptors held by the current thread
     static thread_local std::set<int> openFds;
 
     void checkThreadOwnsFd(int fd);
+
+    // Struct conversion
 
     sockaddr getSockAddr(I32 addrPtr);
 
     void writeNativeStatToWasmStat(struct stat64 *nativeStatPtr, I32 wasmStatPtr);
 
-    int executeSyscall(int syscallNumber, int a, int b, int c, int d, int e, int f, int g);
-
     iovec *wasmIovecsToNativeIovecs(I32 wasmIovecPtr, I32 wasmIovecCount);
+
+    // Faasm
+
+    std::shared_ptr<state::StateKeyValue> getStateKV(I32 keyPtr, size_t size);
+
+    std::shared_ptr<state::StateKeyValue> getStateKVRead(I32 keyPtr, size_t size, int async);
+
+    // Syscalls
+
+    int executeSyscall(int syscallNumber, int a, int b, int c, int d, int e, int f, int g);
 
     I32 s__exit(I32 a, I32 b); // 1
 
@@ -147,11 +157,54 @@ namespace wasm {
     I32 s__getegid32(); //202
 
     I32 s__open(I32 pathPtr, I32 flags, I32 mode);
+
     I32 s__dup(I32 oldFd);
+
     I32 s__fcntl64(I32 fd, I32 cmd, I32 c);
+
     I32 s__getdents64(I32 fd, I32 wasmDirentBuf, I32 wasmDirentBufLen);
+
     I32 s__getcwd(I32 bufPtr, I32 bufLen);
+
     I32 s__read(I32 fd, I32 bufPtr, I32 bufLen);
+
     I32 s__readlink(I32 pathPtr, I32 bufPtr, I32 bufLen);
 
+    I32 s__close(I32 fd);
+
+    I32 s__poll(I32 fdsPtr, I32 nfds, I32 timeout);
+
+    I32 s__ioctl(I32 fd, I32 request, I32 argPtr, I32 d, I32 e, I32 f);
+
+    I32 s__writev(I32 fd, I32 iov, I32 iovcnt);
+
+    I32 s__readv(I32 fd, I32 iovecPtr, I32 iovecCount);
+
+    I32 s__write(I32 fd, I32 bufPtr, I32 bufLen);
+
+    I32 s__mkdir(I32 pathPtr, I32 mode);
+
+    I32 s__rename(I32 srcPtr, I32 destPtr);
+
+    I32 s__unlink(I32 pathPtr);
+
+    I32 s__fstat64(I32 fd, I32 statBufPtr);
+
+    I32 s__stat64(I32 pathPtr, I32 statBufPtr);
+
+    I32 s__lstat64(I32 pathPtr, I32 statBufPtr);
+
+    I32 s__llseek(I32 fd, I32 offsetHigh, I32 offsetLow, I32 resultPtr, I32 whence);
+
+    I32 s__madvise(I32 address, I32 numBytes, I32 advice);
+
+    I32 s__membarrier(I32 a);
+
+    I32 s__mmap(I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I32 offset);
+
+    I32 s__munmap(I32 addr, I32 length);
+
+    I32 s__brk(I32 addr);
+
+    I32 s__socketcall(I32 call, I32 argsPtr);
 }

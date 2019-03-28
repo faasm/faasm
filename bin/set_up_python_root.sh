@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Pyodide
-PYODIDE_ROOT=/usr/local/code/pyodide
+PYODIDE_ROOT=/usr/local/code/faasm/pyodide
 INSTALL_DIR=${PYODIDE_ROOT}/cpython/installs/python-3.7.0
 RUNTIME_ROOT=/usr/local/faasm/runtime_root
 SITE_PACKAGES=${RUNTIME_ROOT}/lib/python3.7/site-packages/

@@ -87,22 +87,56 @@ namespace wasm {
         return executeSyscall(syscallNo, a, b, c, d, e, f, g);
     }
 
-    I32 executeSyscall(int syscallNumber, int a, int b, int c, int d, int e, int f) {
+    I32 executeSyscall(int syscallNumber, int a, int b, int c, int d, int e, int f, int g) {
         switch(syscallNumber) {
             case 1:
                 return s__exit(a, b);
             case 3:
                 return s__read(a, b, c);
+            case 4:
+                return s__write(a, b, c);
             case 5:
                 return s__open(a, b, c);
+            case 6:
+                return s__close(a);
+            case 10:
+                return s__unlink(a);
             case 20:
                 return s__getpid();
+            case 38:
+                return s__rename(a, b);
+            case 39:
+                return s__mkdir(a, b);
             case 41:
                 return s__dup(a);
+            case 45:
+                return s__brk(a);
+            case 54:
+                return s__ioctl(a, b, c, d, e, f);
             case 85:
                 return s__readlink(a, b, c);
+            case 90:
+                return s__mmap(a, b, c, d, e, f);
+            case 91:
+                return s__munmap(a, b);
+            case 102:
+                return s__socketcall(a, b);
+            case 140:
+                return s__llseek(a, b, c, d, e);
+            case 145:
+                return s__readv(a, b, c);
+            case 146:
+                return s__writev(a, b, c);
+            case 168:
+                return s__poll(a, b, c);
             case 183:
                 return s__getcwd(a, b);
+            case 195:
+                return s__stat64(a, b);
+            case 196:
+                return s__lstat64(a, b);
+            case 197:
+                return s__fstat64(a, b);
             case 199:
                 return s__getuid32();
             case 200:
@@ -111,10 +145,14 @@ namespace wasm {
                 return s__geteuid32();
             case 202:
                 return s__getegid32();
+            case 219:
+                return s__madvise(a, b, c);
             case 220:
                 return s__getdents64(a, b, c);
             case 221:
                 return s__fcntl64(a, b, c);
+            case 375:
+                return s__membarrier(a);
             default:
                 throw std::runtime_error("Unsupported system call: " + std::to_string(syscallNumber));
         }

@@ -11,30 +11,18 @@ ansible-playbook python3_7.yml --ask-become-pass
 
 ## Building CPython
 
-We build Python using [pyodide](https://github.com/iodide-project/pyodide).
+We build Python using [pyodide](https://github.com/iodide-project/pyodide) which is included as a submodule.
 
 The first pyodide build takes a very long time and can be run with their Docker set-up as described in the README.
 
 To run locally you need to do the following 
 
 ```
-cd /usr/local/code
-git clone git@github.com:iodide-project/pyodide.git
-cd pyodide
-
-# Check out a stable release
-git checkout 0.9.0
-
-./run_docker
+git submodule update
+cd pyodide/emsdk
 make
-```
-
-This will perform the build in place so you can access it from your local filesystem.
-
-Once it's finished, it might be useful to change the whole thing to be owned by you:
-
-```
-sudo chown -R $USER:$USER /usr/local/code/pyodide
+cd ../cpython
+make
 ```
 
 ## Dynamic linking
@@ -65,7 +53,7 @@ To run Python you need to set up the Faasm runtime root filesystem. To do this y
 When building you **must** use the custom pyodide emscripten:
 
 ```
-source /usr/local/code/pyodide/emsdk/emsdk/emsdk_env.sh
+source /usr/local/code/faasm/pyodide/emsdk/emsdk/emsdk_env.sh
 ```
 
 Once this is done, you can run the `upload` server and do the following:
