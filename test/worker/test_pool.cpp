@@ -444,7 +444,7 @@ namespace tests {
             expected = false;
         }
 
-        checkCallingFunctionGivesBoolOutput("getenv", expected);
+        checkCallingFunctionGivesBoolOutput("read_conf", expected);
         util::unsetEnvVar("FULL_ASYNC");
     }
 

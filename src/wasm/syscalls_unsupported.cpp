@@ -9,6 +9,11 @@
 
 namespace wasm {
 
+    I32 s__fork() {
+        util::getLogger()->debug("S - fork");
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
     // ------------------------
     // Signals (ignored)
     // ------------------------
@@ -108,6 +113,15 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "pthread_setspecific", I32, pthread_setspecific, I32 a, I32 b) {
         util::getLogger()->debug("S - pthread_setspecific - {} {}", a, b);
 
+        return 0;
+    }
+
+    // --------------------------
+    // Exceptions
+    // --------------------------
+
+    DEFINE_INTRINSIC_FUNCTION(env, "_Unwind_RaiseException", I32, _Unwind_RaiseException, I32 a) {
+        util::getLogger()->debug("S - _Unwind_RaiseException - {}", a);
         return 0;
     }
 }

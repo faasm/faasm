@@ -7,6 +7,7 @@
 #include <dirent.h>
 #include <poll.h>
 #include <sys/uio.h>
+#include <sys/ioctl.h>
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/RuntimeData.h>
@@ -238,7 +239,13 @@ namespace wasm {
     I32 s__ioctl(I32 fd, I32 request, I32 argPtr, I32 d, I32 e, I32 f) {
         util::getLogger()->debug("S - ioctl - {} {} {} {} {} {}", fd, request, argPtr, d, e, f);
 
-        return 0;
+        auto hostArgPtr = &Runtime::memoryRef<U8>(getExecutingModule()->defaultMemory, (Uptr) argPtr);
+
+        checkThreadOwnsFd(fd);
+
+        int res = ioctl(fd, request, hostArgPtr);
+
+        return res;
     }
 
     /**
@@ -397,6 +404,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "ioctl", I32, ioctl, I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - ioctl - {} {} {}", a, b, c);
+
 
         return 0;
     }

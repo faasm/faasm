@@ -48,6 +48,18 @@ namespace wasm {
     /**
      * This is the interface Emscripten provides with the LLVM wasm backend.
      */
+    DEFINE_INTRINSIC_FUNCTION(env, "__syscall", I32, __syscall, I32 syscallNo,
+            I32 argsPtr) {
+        // It seems socketcall is invoked this way, possibly with (__syscall)(102, args)
+        // If it's not socketcall, bomb out
+        if(syscallNo == 102) {
+            return s__socketcall_alt(argsPtr);
+        }
+
+        util::getLogger()->debug("Called unsupported syscall format {} {}", syscallNo, argsPtr);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall0", I32, __syscall0, I32 syscallNo) {
         return executeSyscall(syscallNo, 0, 0, 0, 0, 0, 0, 0);
     }
@@ -91,6 +103,8 @@ namespace wasm {
         switch(syscallNumber) {
             case 1:
                 return s__exit(a, b);
+            case 2:
+                return s__fork();
             case 3:
                 return s__read(a, b, c);
             case 4:
@@ -131,6 +145,9 @@ namespace wasm {
                 return s__poll(a, b, c);
             case 183:
                 return s__getcwd(a, b);
+            case 192:
+                // mmap2 is basically the same as mmap (difference is in the final argument which we ignore)
+                return s__mmap(a, b, c, d, e, f);
             case 195:
                 return s__stat64(a, b);
             case 196:

@@ -28,7 +28,6 @@ PYODIDE_ROOT = join(PROJ_ROOT, "pyodide")
 EMSCRIPTEN_DIR = join(PYODIDE_ROOT, "emsdk/emsdk")
 EMSCRIPTEN_TOOLCHAIN = join(EMSCRIPTEN_DIR, "upstream/4138/Wack.cmake")
 
-WASM_TOOLCHAIN = join(PROJ_ROOT, "WasmToolchain.cmake")
 WASM_SYSROOT = join(EMSCRIPTEN_DIR, "upstream/4138/sysroot/")
 
 

@@ -382,8 +382,11 @@ namespace tests {
     }
 
     TEST_CASE("Test getting full async from environment", "[sgd]") {
+        FaasmMemory mem;
         std::string envVar;
         bool expected;
+        util::SystemConfig &conf = util::getSystemConfig();
+
         SECTION("Check true") {
             envVar = "1";
             expected = true;
@@ -403,10 +406,10 @@ namespace tests {
             util::setEnvVar("FULL_ASYNC", envVar);
         }
 
-        bool actual = getEnvFullAsync();
+        conf.reset();
+        bool actual = getEnvFullAsync(&mem);
         REQUIRE(actual == expected);
 
         util::unsetEnvVar("FULL_ASYNC");
     }
-    
 }

@@ -77,8 +77,7 @@ namespace wasm {
         return structOffset;
     }
 
-
-    DEFINE_INTRINSIC_FUNCTION(env, "getenv", I32, getenv, I32 varPtr) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_config", void, __faasm_read_config, I32 varPtr, I32 buffer) {
         WasmModule *module = getExecutingModule();
         Runtime::Memory *memoryPtr = module->defaultMemory;
         char *varName = &Runtime::memoryRef<char>(memoryPtr, (Uptr) varPtr);
@@ -86,30 +85,11 @@ namespace wasm {
         util::SystemConfig &conf = util::getSystemConfig();
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - _getenv - {}", varName);
+        logger->debug("S - faasm_read_config - {}", varName);
 
         const char *value = "";
 
-        // Special cases
-        if (strcmp(varName, "PYTHONHASHSEED") == 0) {
-            value = "0";
-        } else if (strcmp(varName, "PYTHONVERBOSE") == 0) {
-            value = "on";
-        } else if (strcmp(varName, "PYTHONHOME") == 0) {
-            value = "/";
-        } else if (strcmp(varName, "PYTHONPATH") == 0) {
-            value = "/";
-        } else if (strcmp(varName, "OPENBLAS_MAIN_FREE") == 0) {
-            value = "1";
-        } else if (strcmp(varName, "GOTOBLAS_MAIN_FREE") == 0) {
-            value = "1";
-        } else if (strcmp(varName, "LC_CTYPE") == 0) {
-            value = "en_GB.UTF-8";
-//        } else if (strcmp(varName, "LANG") == 0) {
-//            value = "en_GB.UTF-8";
-//        } else if (strcmp(varName, "LANGUAGE") == 0) {
-//            value = "en_GB:en";
-        } else if (strcmp(varName, "FULL_ASYNC") == 0) {
+        if (strcmp(varName, "FULL_ASYNC") == 0) {
             if (conf.fullAsync == 1) {
                 value = "1";
             } else {
@@ -123,41 +103,8 @@ namespace wasm {
             }
         }
 
-        // Create the region of memory
-        size_t nBytes = strlen(value) + 1;
-        U32 result = module->mmap(nBytes);
-
-        // Copy value into place
-        char *hostPtr = Runtime::memoryArrayPtr<char>(memoryPtr, (Uptr) result, nBytes);
-        std::strcpy(hostPtr, value);
-
-        return result;
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "setenv", I32, setenv, I32 varPtr, I32 valPtr, I32 overwrite) {
-        const std::string varName = getStringFromWasm(varPtr);
-        const std::string value = getStringFromWasm(valPtr);
-
-        util::getLogger()->debug("S - setenv {} {} {}", varName, value, overwrite);
-
-        return 0;
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "putenv", I32, putenv, I32 varStringPtr) {
-        const std::string varString = getStringFromWasm(varStringPtr);
-
-        util::getLogger()->debug("S - putenv {}", varString);
-
-        return 0;
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "unsetenv", I32, unsetenv, I32 varPtr) {
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        char *varName = &Runtime::memoryRef<char>(memoryPtr, (Uptr) varPtr);
-
-        util::getLogger()->debug("S - _unsetenv {} {} {}", varName);
-
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+        char* resultBuffer = &Runtime::memoryRef<char>(memoryPtr, (Uptr) buffer);
+        std::strcpy(resultBuffer, value);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "abort", void, abort) {

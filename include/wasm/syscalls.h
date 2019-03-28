@@ -144,17 +144,19 @@ namespace wasm {
 
     int executeSyscall(int syscallNumber, int a, int b, int c, int d, int e, int f, int g);
 
-    I32 s__exit(I32 a, I32 b); // 1
+    I32 s__exit(I32 a, I32 b);
 
-    I32 s__getpid(); // 20
+    I32 s__fork();
 
-    I32 s__getuid32(); //199
+    I32 s__getpid();
 
-    I32 s__getgid32(); //200
+    I32 s__getuid32();
 
-    I32 s__geteuid32(); //201
+    I32 s__getgid32();
 
-    I32 s__getegid32(); //202
+    I32 s__geteuid32();
+
+    I32 s__getegid32();
 
     I32 s__open(I32 pathPtr, I32 flags, I32 mode);
 
@@ -207,4 +209,6 @@ namespace wasm {
     I32 s__brk(I32 addr);
 
     I32 s__socketcall(I32 call, I32 argsPtr);
+
+    I32 s__socketcall_alt(I32 argsPtr);
 }

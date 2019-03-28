@@ -28,6 +28,18 @@ namespace wasm {
         std::copy(&nativeValue, &nativeValue + 1, wasmAddrPtr);
     }
 
+    I32 s__socketcall_alt(I32 argsPtr) {
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+
+        auto args = Runtime::memoryArrayPtr<int>(memoryPtr, argsPtr, 3);
+        int call = args[0];
+        int socketCallArgsPtr = args[1];
+        util::getLogger()->debug("S - socketcall_alt - {} {}", call, socketCallArgsPtr);
+
+        // Other args will be at the next offset
+        return s__socketcall(call, socketCallArgsPtr);
+    }
+    
     /**
      * When properly isolated, functions will run in their own network namespace,
      * therefore we can be relatively comfortable passing some of the syscalls

@@ -2,15 +2,24 @@
 
 #include <util/config.h>
 
-int main() {
+int main(int argc, char *argv[]) {
     util::initLogging();
+    const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+
+    if (argc != 3) {
+        logger->error("Must provide user and function name");
+        return 1;
+    }
 
     util::SystemConfig &conf = util::getSystemConfig();
     conf.unsafeMode = "on";
 
+    std::string user = argv[1];
+    std::string function = argv[2];
+
     message::Message call;
-    call.set_user("demo");
-    call.set_function("simple");
+    call.set_user(user);
+    call.set_function(function);
 
     wasm::CallChain callChain(call);
 

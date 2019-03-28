@@ -4,17 +4,17 @@
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        float f = 7.89;
-        printf("f: %f\n", f);
-
-        double d = 4.56;
-        printf("d: %f\n", d);
+        short s = 8;
+        printf("s: %i\n", s);
 
         int i = 7;
         printf("i: %i\n", i);
 
-        short s = 8;
-        printf("s: %i\n", s);
+        float f = 7.89;
+        printf("f: %.2f\n", f);
+
+        double d = 4.56;
+        printf("d: %.2f\n", d);
 
         return 0;
     }

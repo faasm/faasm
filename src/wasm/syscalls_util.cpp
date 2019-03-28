@@ -110,7 +110,7 @@ namespace wasm {
         } else if (fd == STDERR_FILENO) {
             // logger->debug("Process interacting with stderr", fd);
         } else if (isNotOwned) {
-            logger->error("fd not owned by this thread (%i)\n", fd);
+            logger->error("fd not owned by this thread {}", fd);
             throw std::runtime_error("fd not owned by this function");
         }
     }
