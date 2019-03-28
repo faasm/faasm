@@ -3,8 +3,7 @@ from subprocess import call
 
 from invoke import task
 
-from tasks.compile import check_correct_emscripten
-from tasks.env import PROJ_ROOT, PYODIDE_ROOT, EMSCRIPTEN_DIR
+from tasks.env import PROJ_ROOT, PYODIDE_ROOT
 
 
 @task
@@ -20,14 +19,12 @@ def python_codegen(ctx):
 
 @task
 def build_pyodide_cpython(ctx):
-    check_correct_emscripten(EMSCRIPTEN_DIR)
+    print("Running make on emsdk")
+    emsdk_root = join(PYODIDE_ROOT, "emsdk")
+    call("make", cwd=emsdk_root, shell=True)
 
+    print("Running make on cpython")
     cpython_root = join(PYODIDE_ROOT, "cpython")
-
-    # Remove lib to force make to run
-    py_lib = join(cpython_root, "installs/python-3.7.0/lib/libpython3.7.a")
-    call("rm -f {}".format(py_lib), shell=True)
-
     call("make", cwd=cpython_root, shell=True)
 
 # @task

@@ -30,7 +30,7 @@ STATE_S3_BUCKET = "faasm-state"
 AWS_ACCOUNT_ID = "733781933474"
 AWS_REGION = "eu-west-1"
 
-PYODIDE_ROOT = "/usr/local/code/pyodide/"
+PYODIDE_ROOT = join(PROJ_ROOT, "pyodide")
 EMSCRIPTEN_DIR = join(PYODIDE_ROOT, "emsdk/emsdk")
 EMSCRIPTEN_TOOLCHAIN = join(EMSCRIPTEN_DIR, "upstream/4138/Wack.cmake")
 

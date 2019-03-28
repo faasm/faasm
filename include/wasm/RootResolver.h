@@ -46,6 +46,10 @@ namespace wasm {
         explicit RootResolver(Runtime::Compartment *compartmentIn) {
             mainModule = nullptr;
             compartment = compartmentIn;
+
+            nextMemoryBase = 0;
+            nextStackPointer = 0;
+            nextTableBase = 0;
         }
 
         void setUser(const std::string &userIn) {
@@ -56,14 +60,14 @@ namespace wasm {
             mainModule = mainModuleIn;
         }
 
-        void setUp(Runtime::Compartment *compartment, IR::Module &module) {
+        void setUp(Runtime::Compartment *compartmentIn, IR::Module &module) {
             // Force memory sizes
             module.memories.defs[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
             module.memories.defs[0].type.size.max = (U64) MAX_MEMORY_PAGES;
 
             module.tables.defs[0].type.size.max = (U64) MAX_TABLE_SIZE;
 
-            envModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_env(), "env");
+            envModule = Intrinsics::instantiateModule(compartmentIn, getIntrinsicModule_env(), "env");
         }
 
         void cleanUp() {
