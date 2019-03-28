@@ -74,7 +74,10 @@ def _build_funcs(build_type, clean=False, func=None, cmake_build_type="Release")
         ".."
     ]
 
-    call(" ".join(build_cmd), shell=True, cwd=func_build_dir)
+    res = call(" ".join(build_cmd), shell=True, cwd=func_build_dir)
+    if res != 0:
+        print("Failed to compile")
+        return
 
     # Allow specifying a single function
     if func:
