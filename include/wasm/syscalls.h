@@ -176,6 +176,8 @@ namespace wasm {
 
     I32 s__poll(I32 fdsPtr, I32 nfds, I32 timeout);
 
+    I32 s__poll_alt(I32 argsPtr);
+
     I32 s__ioctl(I32 fd, I32 request, I32 argPtr, I32 d, I32 e, I32 f);
 
     I32 s__writev(I32 fd, I32 iov, I32 iovcnt);

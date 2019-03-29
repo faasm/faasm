@@ -11,7 +11,7 @@ namespace faasm {
     }
 
     int exec(FaasmMemory *memory) {
-        bool fullAsync = getEnvFullAsync();
+        bool fullAsync = getEnvFullAsync(memory);
         SgdParams p = readParamsFromState(memory, PARAMS_KEY, fullAsync);
         int epochCount = faasm::getCounter(memory, EPOCH_COUNT_KEY, fullAsync);
 

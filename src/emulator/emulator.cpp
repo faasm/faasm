@@ -170,4 +170,3 @@ void __faasm_read_config(const char *varName, char *buffer) {
     }
 }
 
-

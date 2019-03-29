@@ -120,6 +120,7 @@ namespace faasm {
          * Gets values from the faasm config
          */
         void readConfig(const char *varName, char* buffer);
+
     };
 }
 

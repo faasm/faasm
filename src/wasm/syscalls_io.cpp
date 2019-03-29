@@ -220,6 +220,13 @@ namespace wasm {
         return 0;
     }
 
+    I32 s__poll_alt(I32 argsPtr) {
+        Runtime::GCPointer<Runtime::Memory> &memoryPtr = getExecutingModule()->defaultMemory;
+        auto args = Runtime::memoryArrayPtr<int>(memoryPtr, (Uptr) argsPtr, (Uptr) 3);
+
+        return s__poll(args[0], args[1], args[2]);
+    }
+    
     /** Poll is ok but can pass in an array of structs. */
     I32 s__poll(I32 fdsPtr, I32 nfds, I32 timeout) {
         util::getLogger()->debug("S - poll - {} {} {}", fdsPtr, nfds, timeout);

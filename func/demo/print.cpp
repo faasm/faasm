@@ -1,4 +1,5 @@
 #include "faasm/faasm.h"
+#include "faasm/print.h"
 
 #include <stdio.h>
 
@@ -11,10 +12,12 @@ namespace faasm {
         printf("i: %i\n", i);
 
         float f = 7.89;
-        printf("f: %.2f\n", f);
+        char * fStr = faasm::floatToStr(f);
+        printf("f: %s\n", fStr);
 
         double d = 4.56;
-        printf("d: %.2f\n", d);
+        char * dStr = faasm::floatToStr(d);
+        printf("d: %s\n", dStr);
 
         return 0;
     }

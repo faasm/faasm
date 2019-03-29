@@ -11,6 +11,7 @@ set(LIB_FILES
         func.cpp
         matrix.cpp
         memory.cpp
+        print.cpp
         random.cpp
         sgd.cpp
         time.cpp
@@ -22,6 +23,7 @@ set(PUBLIC_HEADERS
         faasm/func.h
         faasm/matrix.h
         faasm/memory.h
+        faasm/print.h
         faasm/random.h
         faasm/sgd.h
         faasm/time.h

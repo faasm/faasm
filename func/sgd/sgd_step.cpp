@@ -6,7 +6,7 @@
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        bool fullAsync = getEnvFullAsync();
+        bool fullAsync = getEnvFullAsync(memory);
 
         long inputSize = memory->getInputSize();
         auto inputBuffer = new uint8_t[inputSize];

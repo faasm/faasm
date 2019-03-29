@@ -50,13 +50,15 @@ namespace wasm {
      */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall", I32, __syscall, I32 syscallNo,
             I32 argsPtr) {
-        // It seems socketcall is invoked this way, possibly with (__syscall)(102, args)
-        // If it's not socketcall, bomb out
+        // We're aware of some syscalls being called like this,
+        // possibly with (__syscall)(sys_no, args)
         if(syscallNo == 102) {
             return s__socketcall_alt(argsPtr);
+        } else if(syscallNo == 168) {
+            return s__poll_alt(argsPtr);
         }
 
-        util::getLogger()->debug("Called unsupported syscall format {} {}", syscallNo, argsPtr);
+        util::getLogger()->error("Called unsupported syscall format {} {}", syscallNo, argsPtr);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 

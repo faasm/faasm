@@ -73,7 +73,7 @@ namespace tests {
         std::string output = execStrFunction("sgd_loss");
 
         // Expected is relative timestamp - loss
-        std::string expct = "0.00 - 1000.5000, 1.23 - 900.2200, 12.34 - 20.1000, 123.46 - 5.5000, 1234.56 - 99.9990, ";
+        std::string expct = "0.0 - 1000.500, 1.230 - 900.219, 12.340 - 20.100, 123.456 - 5.500, 1234.560 - 99.999, ";
         REQUIRE(output == expct);
 
         tearDown();
