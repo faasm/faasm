@@ -8,6 +8,10 @@
 #include <WAVM/Runtime/Intrinsics.h>
 
 namespace wasm {
+    void dynlinkLink() {
+
+    }
+
     /**
     *  WebAssembly official docs on dynamic linking:
     *  https://webassembly.org/docs/dynamic-linking/
@@ -38,14 +42,14 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "dlerror", I32, dlerror) {
         util::getLogger()->debug("S - _dlerror");
 
-// Ignore
+        // Ignore
         return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "dlclose", I32, dlclose, I32 handle) {
         util::getLogger()->debug("S - _dlclose {}", handle);
 
-// Ignore
+        // Ignore
         return 0;
     }
 }

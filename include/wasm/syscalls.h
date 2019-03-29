@@ -217,4 +217,7 @@ namespace wasm {
     I32 s__write(I32 fd, I32 bufPtr, I32 bufLen);
 
     I32 s__writev(I32 fd, I32 iov, I32 iovcnt);
+
+    // Hack to include dynlink
+    void dynlinkLink();
 }

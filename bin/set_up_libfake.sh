@@ -2,19 +2,22 @@
 
 set -e
 
-TOOLCHAIN=$HOME/faasm/toolchain
+EMSCRIPTEN=./pyodide/emsdk/emsdk/upstream/4138
+SYSROOT=${EMSCRIPTEN}/sysroot
 
 # Compile libfake
 inv compile-libfake 
 
 # Build the shared object, shared will force it to export everything
-ARCHIVE=${TOOLCHAIN}/sysroot/lib/libfake.a
-${TOOLCHAIN}/bin/wasm-ld \
-    --whole-archive ${TOOLCHAIN}/sysroot/lib/libfake.a \
-    --shared \
-    --import-memory \
-    --import-table \
-    -o /usr/local/faasm/runtime_root/libfake.so
+#${EMSCRIPTEN}/bin/wasm-ld \
+#    --whole-archive ${SYSROOT}/lib/libfake.a \
+#    --shared \
+#    --import-memory \
+#    --import-table \
+#    -o /usr/local/faasm/runtime_root/libfake.so
+
+# Copy shared object into place
+cp ${SYSROOT}/lib/libfake.so /usr/local/faasm/runtime_root/
 
 # Run codegen
 ./cmake-build-debug/bin/codegen /usr/local/faasm/runtime_root/libfake.so

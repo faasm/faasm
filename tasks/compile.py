@@ -93,18 +93,21 @@ def compile_libfaasm(ctx, clean=False):
 
 
 @task
-def compile_libfake(ctx):
+def compile_libfake(ctx, clean=False):
     _check_emscripten()
     work_dir = join(PROJ_ROOT, "func", "libfake")
 
     build_dir = join(work_dir, "build")
-    if exists(build_dir):
+
+    if exists(build_dir) and clean:
         rmtree(build_dir)
-    mkdir(build_dir)
+        mkdir(build_dir)
+    elif not exists(build_dir):
+        mkdir(build_dir)
 
     build_cmd = [
         "cmake",
-        "-DFAASM_BUILD_TYPE=wasm",
+        "-DFAASM_BUILD_TYPE=emscripten",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(EMSCRIPTEN_TOOLCHAIN),
         "-DCMAKE_BUILD_TYPE=Release",
         ".."

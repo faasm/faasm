@@ -181,4 +181,7 @@ namespace wasm {
         }
     }
 
+    void dynlinkLinkLink() {
+        dynlinkLink();
+    }
 }

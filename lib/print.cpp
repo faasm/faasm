@@ -1,7 +1,6 @@
 #include "faasm/print.h"
 
 #include <stdio.h>
-#include <cmath>
 
 namespace faasm {
     /**
@@ -11,7 +10,12 @@ namespace faasm {
         // Print to 3 decimal places
         int lhs = int(f);
 
-        int rhs = abs(int(1000 * (f - lhs)));
+        int rhs = int(1000 * (f - lhs));
+
+        // Hack because abs() doesn't compile
+        if(rhs < 0) {
+            rhs *= -1;
+        }
 
         char* res = new char[15];
         sprintf(res, "%i.%i", lhs, rhs);

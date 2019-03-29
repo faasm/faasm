@@ -37,11 +37,6 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
 
 elseif (FAASM_BUILD_TYPE STREQUAL "emscripten")
     add_definitions(-DWASM_BUILD=1)
-
-    set(CMAKE_SHARED_LINKER_FLAGS "-O2 \
-        -s LINKABLE=1 \
-        -s EXPORT_ALL=1 \
-        --memory-init-file 0")
 else ()
     add_definitions(-DWASM_BUILD=0)
 endif ()
