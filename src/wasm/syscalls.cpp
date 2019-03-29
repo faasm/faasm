@@ -56,6 +56,8 @@ namespace wasm {
             return s__socketcall_alt(argsPtr);
         } else if(syscallNo == 168) {
             return s__poll_alt(argsPtr);
+        } else if(syscallNo == 5) {
+            return s__open_alt(argsPtr);
         }
 
         util::getLogger()->error("Called unsupported syscall format {} {}", syscallNo, argsPtr);

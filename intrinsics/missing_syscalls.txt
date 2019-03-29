@@ -1,1 +1,24 @@
+zlibVersion func ()->i32
+deflateEnd func i32->i32
+deflate func (i32, i32)->i32
+inflateEnd func i32->i32
+inflate func (i32, i32)->i32
+inflateSetDictionary func (i32, i32, i32)->i32
+adler32 func (i32, i32, i32)->i32
+deflateInit_ func (i32, i32, i32, i32)->i32
 deflateInit2_ func (i32, i32, i32, i32, i32, i32, i32, i32)->i32
+deflateSetDictionary func (i32, i32, i32)->i32
+crc32 func (i32, i32, i32)->i32
+inflateInit2_ func (i32, i32, i32, i32)->i32
+getpriority func (i32, i32)->i32
+setpriority func (i32, i32, i32)->i32
+uname func i32->i32
+openpty func (i32, i32, i32, i32, i32)->i32
+forkpty func (i32, i32, i32, i32)->i32
+lockf func (i32, i32, i32)->i32
+getresuid func (i32, i32, i32)->i32
+getresgid func (i32, i32, i32)->i32
+getrusage func (i32, i32)->i32
+getrlimit func (i32, i32)->i32
+setrlimit func (i32, i32)->i32
+__copy_tls func i32->i32

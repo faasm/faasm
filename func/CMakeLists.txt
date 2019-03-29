@@ -14,30 +14,11 @@ endif ()
 
 # Emscripten fiddles
 if (FAASM_BUILD_TYPE STREQUAL "emscripten")
-    # Emscripten doesn't seem to look in normal system includes so we explicitly have to tell it to
-    # include_directories(/usr/local/include/)
-
     message(STATUS "Detected emscripten build")
-
-    # --- Emscripten python options ---
-    #
-    # These should match the main pyodide Makefile
-    # https://github.com/iodide-project/pyodide/blob/master/Makefile
-#    set(EM_LINKER_FLAGS " \
-#            --export-all \
-#            --no-entry
-#    ")
-#    set(CMAKE_EXE_LINKER_FLAGS "${EM_LINKER_FLAGS}")
-#
-    # Link to emscripten libfaasm
-#    link_directories(/usr/local/code/faasm/lib/emscripten_lib_build/)
-    set(FAASM_LIB faasm)
 
     SET(CMAKE_EXE_LINKER_FLAGS "-Xlinker --no-entry -Xlinker --export=main")
 
     SET(CMAKE_EXECUTABLE_SUFFIX ".wasm")
-else ()
-    set(FAASM_LIB faasm)
 endif ()
 
 
@@ -51,11 +32,8 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # ----------------------
     function(faasm_func exec_name file_name)
         add_executable(${exec_name} ${file_name})
-
         set_target_properties(${exec_name} PROPERTIES OUTPUT_NAME ${exec_name}.wasm)
-
-        target_link_libraries(${exec_name} ${FAASM_LIB})
-        #        target_link_libraries(${exec_name} ${WASM_SYSROOT}/lib/crt1.o c c++ c++abi ${FAASM_LIB})
+        target_link_libraries(${exec_name} faasm)
     endfunction(faasm_func)
 
 elseif (FAASM_BUILD_TYPE STREQUAL "emscripten")
@@ -65,8 +43,7 @@ elseif (FAASM_BUILD_TYPE STREQUAL "emscripten")
 
     function(faasm_func exec_name file_name)
         add_executable(${exec_name} ${file_name})
-
-        target_link_libraries(${exec_name} ${FAASM_LIB})
+        target_link_libraries(${exec_name} faasm)
     endfunction(faasm_func)
 
 elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
@@ -75,8 +52,6 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
     # ----------------------
     function(faasm_func func_name file_name)
         add_executable(${func_name}-lambda ${file_name})
-
-        # Link with Faasm library
         target_link_libraries(${func_name}-lambda lambda-func)
 
         # Add custom target to build Lambda zip file
@@ -90,9 +65,8 @@ else ()
     # ----------------------
 
     function(faasm_func exec_name file_name)
-        # Using emulator (faasm-like)
         add_executable(${exec_name} ${file_name})
-        target_link_libraries(${exec_name} ${FAASM_LIB} emulator dl)
+        target_link_libraries(${exec_name} faasm emulator dl)
     endfunction(faasm_func)
 
 endif ()
@@ -104,5 +78,5 @@ add_subdirectory(sgd)
 # Add python build in everything but the lambda funcs
 if (FAASM_BUILD_TYPE STREQUAL "lambda-func")
 else ()
-    # add_subdirectory(python)
+    add_subdirectory(python)
 endif ()

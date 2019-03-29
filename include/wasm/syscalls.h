@@ -122,7 +122,9 @@ namespace wasm {
     };
 
     // List of file descriptors held by the current thread
-    static thread_local std::set<int> openFds;
+    void addFdForThisThread(int fd);
+
+    void removeFdForThisThread(int fd);
 
     void checkThreadOwnsFd(int fd);
 
@@ -193,6 +195,8 @@ namespace wasm {
     I32 s__munmap(I32 addr, I32 length);
 
     I32 s__open(I32 pathPtr, I32 flags, I32 mode);
+
+    I32 s__open_alt(I32 argsPtr);
 
     I32 s__poll(I32 fdsPtr, I32 nfds, I32 timeout);
 

@@ -117,7 +117,7 @@ namespace wasm {
                     printf("Socket error: %i\n", sock);
                 }
 
-                openFds.insert(sock);
+                addFdForThisThread(sock);
 
                 return sock;
             }

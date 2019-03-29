@@ -16,6 +16,12 @@
 
 namespace wasm {
 
+    I32 s__open_alt(I32 argsPtr) {
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        auto args = Runtime::memoryArrayPtr<int>(memoryPtr, argsPtr, 3);
+        return s__open(args[0], args[1], args[2]);
+    }
+
     I32 s__open(I32 pathPtr, I32 flags, I32 mode) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
         const std::string path = getStringFromWasm(pathPtr);
@@ -55,7 +61,7 @@ namespace wasm {
         }
 
         if (fd > 0) {
-            openFds.insert(fd);
+            addFdForThisThread(fd);
         } else {
             // This is an error of some form
             if (!fakePath.empty()) {
@@ -74,7 +80,7 @@ namespace wasm {
         checkThreadOwnsFd(oldFd);
 
         int newFd = dup(oldFd);
-        openFds.insert(newFd);
+        addFdForThisThread(newFd);
 
         return newFd;
     }
@@ -213,7 +219,7 @@ namespace wasm {
 
         // Provided the thread owns the fd, we allow closing.
         checkThreadOwnsFd(fd);
-        openFds.erase(fd);
+        removeFdForThisThread(fd);
 
         close(fd);
 
@@ -375,13 +381,20 @@ namespace wasm {
         // Get the path
         const std::string fakePath = getMaskedPathFromWasm(pathPtr);
 
-        util::getLogger()->debug("S - stat64 - {} {}", fakePath, statBufPtr);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - stat64 - {} {}", fakePath, statBufPtr);
 
         struct stat64 nativeStat{};
-        stat64(fakePath.c_str(), &nativeStat);
-        writeNativeStatToWasmStat(&nativeStat, statBufPtr);
+        int result = stat64(fakePath.c_str(), &nativeStat);
+        if(result != 0) {
+            logger->debug("stat64 errno: {}", errno);
+        }
 
-        return 0;
+        if(result == 0) {
+            writeNativeStatToWasmStat(&nativeStat, statBufPtr);
+        }
+
+        return result;
     }
 
     I32 s__lstat64(I32 pathPtr, I32 statBufPtr) {

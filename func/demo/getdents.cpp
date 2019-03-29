@@ -7,7 +7,7 @@
 namespace faasm {
     int listDir() {
         // Native versions commented out
-        const char *dirName = "lib/python3.5";
+        const char *dirName = "lib/python3.7";
 //        const char *dirName = "/usr/lib";
 
         DIR *dirp = opendir(dirName);

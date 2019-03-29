@@ -2,16 +2,7 @@ set(FAASM_USER python)
 
 set(PYODIDE_CPYTHON "/usr/local/code/faasm/pyodide/cpython/installs/python-3.7.0")
 
-if (FAASM_BUILD_TYPE STREQUAL "wasm")
-    # These functions need to support dynamic linking
-    set(CMAKE_CXX_FLAGS "${DYNLINK_EXE_FLAGS}")
-    set(CMAKE_C_FLAGS "${DYNLINK_EXE_FLAGS}")
-
-    set(PYTHON_LIBRARIES "${PYODIDE_CPYTHON}/lib/libpython3.7.a")
-    set(PYTHON_INCLUDE_DIRS "${PYODIDE_CPYTHON}/include/python3.7")
-elseif(FAASM_BUILD_TYPE STREQUAL "emscripten")
-    set(TOOLCHAIN_ROOT "$ENV{HOME}/faasm/toolchain")
-
+if(FAASM_BUILD_TYPE STREQUAL "emscripten")
     set(PYTHON_LIBRARIES "${PYODIDE_CPYTHON}/lib/libpython3.7.a")
     set(PYTHON_INCLUDE_DIRS "${PYODIDE_CPYTHON}/include/python3.7")
 else ()

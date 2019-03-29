@@ -13,12 +13,11 @@ ansible-playbook python3_7.yml --ask-become-pass
 
 We build Python using [pyodide](https://github.com/iodide-project/pyodide) which is included as a submodule.
 
-The first pyodide build takes a very long time and can be run with their Docker set-up as described in the README.
-
-To run locally you need to do the following 
+The first pyodide build takes a while. To set things up you can do the following:
 
 ```
 git submodule update
+export EMCC_WASM_BACKEND=1
 cd pyodide/emsdk
 make
 cd ../cpython

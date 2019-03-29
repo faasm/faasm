@@ -10,6 +10,8 @@
 #include <string.h>
 
 namespace wasm {
+    static thread_local std::set<int> openFds;
+
     void getBytesFromWasm(I32 dataPtr, I32 dataLen, uint8_t *buffer) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
@@ -90,6 +92,14 @@ namespace wasm {
         wasmHostPtr->st_ctim.tv_nsec = nativeStatPtr->st_ctim.tv_nsec;
 
         wasmHostPtr->st_ino = nativeStatPtr->st_ino;
+    }
+
+    void addFdForThisThread(int fd) {
+        openFds.insert(fd);
+    }
+
+    void removeFdForThisThread(int fd) {
+        openFds.erase(fd);
     }
 
     void checkThreadOwnsFd(int fd) {
