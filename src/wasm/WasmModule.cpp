@@ -202,6 +202,10 @@ namespace wasm {
             if (!irModule.memories.defs.empty()) {
                 throw std::runtime_error("Dynamic module trying to define memories");
             }
+            
+            // Work out how many new table slots are required, then grow the main table by this amount
+            U64 newElementsRequired = irModule.tables.imports[0].type.size.min;
+            Runtime::growTable(defaultTable, newElementsRequired);
         }
 
         Runtime::LinkResult linkResult = linkModule(irModule, *resolver);
@@ -272,7 +276,8 @@ namespace wasm {
             resolver->nextStackPointer = heapBase + stackSize;
             resolver->nextMemoryBase = resolver->nextStackPointer + 1;
 
-            // TODO - what should the table base be?
+            // We set the table base here to be *at* the end of the current table, so that
+            // new elements are added after existing ones.
             Uptr currentTableElems = Runtime::getTableNumElements(defaultTable);
             resolver->nextTableBase = currentTableElems;
         } else {
@@ -284,13 +289,13 @@ namespace wasm {
         }
 
         // Instantiate the shared module
-        Runtime::ModuleInstance *moduleInstance = createModuleInstance(
+        Runtime::ModuleInstance *mod = createModuleInstance(
                 sharedModule, wasmBytes, objectBytes, name, false
         );
 
         // Keep a record of this module
         dynamicPathToHandleMap[path] = nextHandle;
-        dynamicModuleMap[nextHandle] = moduleInstance;
+        dynamicModuleMap[nextHandle] = mod;
         dynamicModuleCount++;
 
         logger->debug("Loaded shared module at {} with handle {}", path, nextHandle);

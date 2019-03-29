@@ -21,7 +21,6 @@ namespace wasm {
         return 0;
     }
 
-
     std::shared_ptr<state::StateKeyValue> getStateKV(I32 keyPtr, size_t size) {
         const std::pair<std::string, std::string> userKey = getUserKeyPairFromWasm(keyPtr);
         state::State &s = state::getGlobalState();

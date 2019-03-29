@@ -8,7 +8,14 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     set(CMAKE_CXX_FLAGS "${LIB_COMPILER_FLAGS}")
     set(CMAKE_C_FLAGS "${LIB_COMPILER_FLAGS}")
 elseif (FAASM_BUILD_TYPE STREQUAL "emscripten")
-    set(CMAKE_SHARED_LINKER_FLAGS "-Xlinker --import-memory -Xlinker --import-table")
+
+    set(CMAKE_SHARED_LINKER_FLAGS " \
+        -Xlinker --import-memory \
+        -Xlinker --import-table \
+        -Xlinker --shared \
+        -Xlinker --no-entry \
+        -Xlinker --export=mult \
+    ")
 endif ()
 
 set(BUILD_SHARED_LIBS ON)

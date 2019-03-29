@@ -38,6 +38,7 @@ namespace wasm {
 
     const int INITIAL_MEMORY_PAGES = 30 * ONE_MB_PAGES;
     const int MAX_MEMORY_PAGES = ONE_GB_PAGES;
+
     const int MAX_TABLE_SIZE = 500000;
 
     extern Intrinsics::Module &getIntrinsicModule_env();
@@ -65,6 +66,7 @@ namespace wasm {
             module.memories.defs[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
             module.memories.defs[0].type.size.max = (U64) MAX_MEMORY_PAGES;
 
+            // Note, we don't want to mess with the min table size here, just give it room to expand if need be
             module.tables.defs[0].type.size.max = (U64) MAX_TABLE_SIZE;
 
             envModule = Intrinsics::instantiateModule(compartmentIn, getIntrinsicModule_env(), "env");
@@ -103,7 +105,8 @@ namespace wasm {
                     resolved = asObject(newStackPointer);
                 }
                 else if(exportName == "__indirect_function_table") {
-                    // This is the table shared with the main module
+                    // This is the table shared with the main module. We will have
+                    // made sure it is the right size with the right offset.
                     Runtime::Table *table = Runtime::getDefaultTable(mainModule);
                     resolved = asObject(table);
                 }
