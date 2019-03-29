@@ -9,6 +9,8 @@ namespace faasm {
         char resultBuf[5];
         memory->readConfig("FULL_ASYNC", resultBuf);
 
+        printf("FULL_ASYNC=%s\n", resultBuf);
+
         uint8_t outputBuf[1];
         if (strcmp(resultBuf, "1") == 0) {
             outputBuf[0] = 1;

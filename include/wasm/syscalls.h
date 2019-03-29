@@ -144,73 +144,77 @@ namespace wasm {
 
     int executeSyscall(int syscallNumber, int a, int b, int c, int d, int e, int f, int g);
 
+    I32 s__brk(I32 addr);
+
+    I32 s__clock_gettime(I32 clockId, I32 timespecPtr);
+
+    I32 s__close(I32 fd);
+
+    I32 s__dup(I32 oldFd);
+
     I32 s__exit(I32 a, I32 b);
+
+    I32 s__fcntl64(I32 fd, I32 cmd, I32 c);
 
     I32 s__fork();
 
-    I32 s__getpid();
+    I32 s__fstat64(I32 fd, I32 statBufPtr);
 
-    I32 s__getuid32();
+    I32 s__getcwd(I32 bufPtr, I32 bufLen);
 
-    I32 s__getgid32();
+    I32 s__getdents64(I32 fd, I32 wasmDirentBuf, I32 wasmDirentBufLen);
 
     I32 s__geteuid32();
 
     I32 s__getegid32();
 
-    I32 s__open(I32 pathPtr, I32 flags, I32 mode);
+    I32 s__getgid32();
 
-    I32 s__dup(I32 oldFd);
+    I32 s__getpid();
 
-    I32 s__fcntl64(I32 fd, I32 cmd, I32 c);
+    I32 s__gettimeofday(int tvPtr, int tzPtr);
 
-    I32 s__getdents64(I32 fd, I32 wasmDirentBuf, I32 wasmDirentBufLen);
-
-    I32 s__getcwd(I32 bufPtr, I32 bufLen);
-
-    I32 s__read(I32 fd, I32 bufPtr, I32 bufLen);
-
-    I32 s__readlink(I32 pathPtr, I32 bufPtr, I32 bufLen);
-
-    I32 s__close(I32 fd);
-
-    I32 s__poll(I32 fdsPtr, I32 nfds, I32 timeout);
-
-    I32 s__poll_alt(I32 argsPtr);
+    I32 s__getuid32();
 
     I32 s__ioctl(I32 fd, I32 request, I32 argPtr, I32 d, I32 e, I32 f);
 
-    I32 s__writev(I32 fd, I32 iov, I32 iovcnt);
-
-    I32 s__readv(I32 fd, I32 iovecPtr, I32 iovecCount);
-
-    I32 s__write(I32 fd, I32 bufPtr, I32 bufLen);
-
-    I32 s__mkdir(I32 pathPtr, I32 mode);
-
-    I32 s__rename(I32 srcPtr, I32 destPtr);
-
-    I32 s__unlink(I32 pathPtr);
-
-    I32 s__fstat64(I32 fd, I32 statBufPtr);
-
-    I32 s__stat64(I32 pathPtr, I32 statBufPtr);
+    I32 s__llseek(I32 fd, I32 offsetHigh, I32 offsetLow, I32 resultPtr, I32 whence);
 
     I32 s__lstat64(I32 pathPtr, I32 statBufPtr);
-
-    I32 s__llseek(I32 fd, I32 offsetHigh, I32 offsetLow, I32 resultPtr, I32 whence);
 
     I32 s__madvise(I32 address, I32 numBytes, I32 advice);
 
     I32 s__membarrier(I32 a);
 
+    I32 s__mkdir(I32 pathPtr, I32 mode);
+
     I32 s__mmap(I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I32 offset);
 
     I32 s__munmap(I32 addr, I32 length);
 
-    I32 s__brk(I32 addr);
+    I32 s__open(I32 pathPtr, I32 flags, I32 mode);
+
+    I32 s__poll(I32 fdsPtr, I32 nfds, I32 timeout);
+
+    I32 s__poll_alt(I32 argsPtr);
+
+    I32 s__read(I32 fd, I32 bufPtr, I32 bufLen);
+
+    I32 s__readlink(I32 pathPtr, I32 bufPtr, I32 bufLen);
+
+    I32 s__readv(I32 fd, I32 iovecPtr, I32 iovecCount);
+
+    I32 s__rename(I32 srcPtr, I32 destPtr);
 
     I32 s__socketcall(I32 call, I32 argsPtr);
 
     I32 s__socketcall_alt(I32 argsPtr);
+
+    I32 s__stat64(I32 pathPtr, I32 statBufPtr);
+
+    I32 s__unlink(I32 pathPtr);
+
+    I32 s__write(I32 fd, I32 bufPtr, I32 bufLen);
+
+    I32 s__writev(I32 fd, I32 iov, I32 iovcnt);
 }

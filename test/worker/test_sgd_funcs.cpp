@@ -15,10 +15,13 @@
 using namespace worker;
 
 namespace tests {
-    static void setUp() {
+    static void setUp(bool async) {
         cleanSystem();
 
         state::getGlobalState().forceClearAll();
+
+        util::SystemConfig &conf = util::getSystemConfig();
+        conf.fullAsync = async;
 
         setEmulatorUser("sgd");
     }
@@ -49,11 +52,21 @@ namespace tests {
 
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
         const message::Message result = globalBus.getFunctionResult(call);
+        REQUIRE(result.success());
+        
         return result.outputdata();
     }
 
-    void checkSgdLosses(bool async) {
-        setUp();
+    TEST_CASE("Test sgd losses", "[worker]") {
+        bool async;
+        SECTION("Synchronous") {
+            async = false;
+        }
+        SECTION("Asynchronous") {
+            async = true;
+        }
+
+        setUp(async);
 
         // Set up params
         FaasmMemory mem;
@@ -79,16 +92,16 @@ namespace tests {
         tearDown();
     }
 
-    TEST_CASE("Test sgd losses", "[worker]") {
-        checkSgdLosses(false);
-    }
+    TEST_CASE("Test sgd barrier", "[worker]") {
+        bool async;
+        SECTION("Synchronous") {
+            async = false;
+        }
+        SECTION("Asynchronous") {
+            async = true;
+        }
 
-    TEST_CASE("Test sgd losses async", "[worker]") {
-        checkSgdLosses(true);
-    }
-
-    void checkSgdBarrier(bool async) {
-        setUp();
+        setUp(async);
 
         // Set up params
         FaasmMemory mem;
@@ -109,6 +122,8 @@ namespace tests {
         faasm::initCounter(&mem, EPOCH_COUNT_KEY, async);
         faasm::incrementCounter(&mem, EPOCH_COUNT_KEY, async);
         faasm::incrementCounter(&mem, EPOCH_COUNT_KEY, async);
+        REQUIRE(faasm::getCounter(&mem, EPOCH_COUNT_KEY, async) == 2);
+        REQUIRE(!readEpochFinished(&mem, p));
 
         // Set all as finished and set an error
         long totalErrorBytes = p.nBatches * sizeof(double);
@@ -123,11 +138,16 @@ namespace tests {
                                  sizeof(double), async);
         }
 
-        // Double check it's registering as finished
-        REQUIRE(faasm::readEpochFinished(&mem, p));
+        // Check the mean squared error comes out correctly
+        double expectedLoss = std::sqrt(totalError) / std::sqrt(p.nTrain);
+        REQUIRE(faasm::readRootMeanSquaredError(&mem, p) == expectedLoss);
 
         // Execute
         execStrFunction("sgd_barrier");
+        
+        // Check counter incremented and reported as finished
+        REQUIRE(readEpochFinished(&mem, p));
+        REQUIRE(faasm::getCounter(&mem, EPOCH_COUNT_KEY, async) == 3);
 
         // Check losses and loss timestamps are written
         size_t nBytes = p.nEpochs * sizeof(double);
@@ -136,24 +156,68 @@ namespace tests {
         uint8_t *lossTsBytes = mem.readStateOffset(LOSS_TIMESTAMPS_KEY, nBytes, offset, sizeof(double), async);
 
         double loss = *reinterpret_cast<double *>(lossBytes);
-        double expectedLoss = std::sqrt(totalError) / std::sqrt(p.nTrain);
         REQUIRE(loss == expectedLoss);
 
         double lossTs = *reinterpret_cast<double *>(lossTsBytes);
         REQUIRE(lossTs > 0);
 
-        // Check learning rate has decayed
-//        const SgdParams paramsAfter = faasm::readParamsFromState(&mem, PARAMS_KEY, async);
-//        REQUIRE(paramsAfter.learningRate == 0.8 * 0.1);
-
         tearDown();
     }
 
-    TEST_CASE("Test sgd barrier", "[worker]") {
-        checkSgdBarrier(false);
-    }
+    TEST_CASE("Test sgd finished", "[worker]") {
+        bool async;
+        int epochCount = 5;
+        int finishedCount;
+        bool expectFinished;
 
-    TEST_CASE("Test sgd barrier async", "[worker]") {
-        checkSgdBarrier(true);
+        SECTION("Synchronous") {
+            async = false;
+
+            SECTION("Finished") {
+                finishedCount = 5;
+                expectFinished = true;
+            }
+
+            SECTION("Unfinished") {
+                finishedCount = 3;
+                expectFinished = false;
+            }
+        }
+        SECTION("Asynchronous") {
+            async = true;
+
+            SECTION("Finished") {
+                finishedCount = 5;
+                expectFinished = true;
+            }
+
+            SECTION("Unfinished") {
+                finishedCount = 3;
+                expectFinished = false;
+            }
+        }
+
+        setUp(async);
+
+        // Set up params
+        FaasmMemory mem;
+        SgdParams p;
+        p.nEpochs = epochCount;
+        p.fullAsync = async;
+        faasm::writeParamsToState(&mem, PARAMS_KEY, p);
+
+        // Finish a set number of epochs
+        faasm::initCounter(&mem, EPOCH_COUNT_KEY, async);
+        for (int i = 0; i < finishedCount; i++) {
+            faasm::incrementCounter(&mem, EPOCH_COUNT_KEY, async);
+        }
+
+        // Check finished report
+        const std::string finishedResult = execStrFunction("sgd_finished");
+        if (expectFinished) {
+            REQUIRE(finishedResult == "true");
+        } else {
+            REQUIRE(finishedResult == "false");
+        }
     }
 }

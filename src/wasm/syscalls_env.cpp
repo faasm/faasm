@@ -141,13 +141,13 @@ namespace wasm {
     // ------------------------
 
     //TODO - make timing functions more secure
-    DEFINE_INTRINSIC_FUNCTION(env, "clock_gettime", I32, clock_gettime, I32 clockId, I32 resultAddress) {
-        util::getLogger()->debug("S - clock_gettime - {} {}", clockId, resultAddress);
+    I32 s__clock_gettime(I32 clockId, I32 timespecPtr) {
+        util::getLogger()->debug("S - clock_gettime - {} {}", clockId, timespecPtr);
 
         timespec ts{};
         clock_gettime(CLOCK_MONOTONIC, &ts);
 
-        auto result = &Runtime::memoryRef<wasm_timespec>(getExecutingModule()->defaultMemory, (Uptr) resultAddress);
+        auto result = &Runtime::memoryRef<wasm_timespec>(getExecutingModule()->defaultMemory, (Uptr) timespecPtr);
         result->tv_sec = I32(ts.tv_sec);
         result->tv_nsec = I32(ts.tv_nsec);
 
@@ -157,13 +157,13 @@ namespace wasm {
     /**
      * As specified in the gettimeofday man page, use of the timezone struct is obsolete and hence not supported here
      */
-    DEFINE_INTRINSIC_FUNCTION(env, "gettimeofday", I32, gettimeofday, I32 timevalPtr, I32 tzPtr) {
-        util::getLogger()->debug("S - gettimeofday - {} {}", timevalPtr, tzPtr);
+    I32 s__gettimeofday(int tvPtr, int tzPtr) {
+        util::getLogger()->debug("S - gettimeofday - {} {}", tvPtr, tzPtr);
 
         timeval tv{};
         gettimeofday(&tv, nullptr);
 
-        auto result = &Runtime::memoryRef<wasm_timeval>(getExecutingModule()->defaultMemory, (Uptr) timevalPtr);
+        auto result = &Runtime::memoryRef<wasm_timeval>(getExecutingModule()->defaultMemory, (Uptr) tvPtr);
         result->tv_sec = I32(tv.tv_sec);
         result->tv_usec = I32(tv.tv_usec);
 

@@ -129,6 +129,8 @@ namespace wasm {
                 return s__brk(a);
             case 54:
                 return s__ioctl(a, b, c, d, e, f);
+            case 78:
+                return s__gettimeofday(a, b);
             case 85:
                 return s__readlink(a, b, c);
             case 90:
@@ -170,6 +172,8 @@ namespace wasm {
                 return s__getdents64(a, b, c);
             case 221:
                 return s__fcntl64(a, b, c);
+            case 265:
+                return s__clock_gettime(a, b);
             case 375:
                 return s__membarrier(a);
             default:
