@@ -36,25 +36,7 @@ namespace tests {
         call.set_function(funcName);
         call.set_resultkey("foobar");
 
-        // Set up worker to listen for relevant function
-        WorkerThreadPool pool(1);
-        WorkerThread w(1);
-        REQUIRE(w.isInitialised());
-        REQUIRE(!w.isBound());
-
-        // Call the function
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        sch.callFunction(call);
-
-        // Process the bind and execute messages
-        w.processNextMessage();
-        w.processNextMessage();
-
-        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        const message::Message result = globalBus.getFunctionResult(call);
-        REQUIRE(result.success());
-        
-        return result.outputdata();
+        return execFunctionWithStringResult(call);
     }
 
     TEST_CASE("Test sgd losses", "[worker]") {

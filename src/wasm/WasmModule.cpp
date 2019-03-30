@@ -202,7 +202,7 @@ namespace wasm {
             if (!irModule.memories.defs.empty()) {
                 throw std::runtime_error("Dynamic module trying to define memories");
             }
-            
+
             // Work out how many new table slots are required, then grow the main table by this amount
             U64 newElementsRequired = irModule.tables.imports[0].type.size.min;
             Runtime::growTable(defaultTable, newElementsRequired);
@@ -404,6 +404,17 @@ namespace wasm {
 //        }
     }
 
+    void WasmModule::setErrno(int newValue) {
+        if (errnoLocation != 0) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->debug("Setting errno={} ({}) (errno_location={})", newValue, strerror(newValue), errnoLocation);
+
+            Runtime::memoryRef<I32>(defaultMemory, errnoLocation) = (I32) newValue;
+        } else {
+            throw std::runtime_error("Attempting to set errno without errno location set");
+        }
+    }
+
     /**
      * Executes the given function call
      */
@@ -426,6 +437,18 @@ namespace wasm {
         // Set up the call and invoke arguments
         Runtime::Context *context = Runtime::createContext(compartment);
         std::vector<IR::Value> invokeArgs = {0, 0};
+
+        // Record the errno location
+        Runtime::Function *errNoLocation = asFunctionNullable(getInstanceExport(moduleInstance, "___errno_location"));
+        if (errNoLocation) {
+            IR::ValueTuple errNoResult = Runtime::invokeFunctionChecked(context, errNoLocation, {});
+            if (errNoResult.size() == 1 && errNoResult[0].type == IR::ValueType::i32) {
+                errnoLocation = errNoResult[0].i32;
+                logger->debug("Found errno location {}", errnoLocation);
+            }
+        } else {
+            errnoLocation = ERRNO_ADDR;
+        }
 
         int exitCode = 0;
         try {

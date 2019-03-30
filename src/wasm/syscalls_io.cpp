@@ -65,9 +65,9 @@ namespace wasm {
         } else {
             // This is an error of some form
             if (!fakePath.empty()) {
-                logger->error("Failed on open - {} (masked {})", path, fakePath);
+                logger->debug("Failed to open - {} (masked {})", path, fakePath);
             } else {
-                logger->error("Failed on open - {}", path);
+                logger->debug("Failed to open - {}", path);
             }
         }
 
@@ -214,6 +214,14 @@ namespace wasm {
 
         return (I32) bytesRead;
     }
+
+    I32 s__close_alt(I32 argsPtr) {
+        Runtime::GCPointer<Runtime::Memory> &memoryPtr = getExecutingModule()->defaultMemory;
+        auto args = Runtime::memoryArrayPtr<int>(memoryPtr, (Uptr) argsPtr, (Uptr) 1);
+
+        return s__close(args[0]);
+    }
+
     I32 s__close(I32 fd) {
         util::getLogger()->debug("S - close - {}", fd);
 
@@ -377,6 +385,10 @@ namespace wasm {
         return 0;
     }
 
+    /**
+     * In spite of the man pages, it seems the wasm version of stat64 is meant to return the
+     * error code if it fails, not -1 and set errno, but we will set errno properly just in case
+     */
     I32 s__stat64(I32 pathPtr, I32 statBufPtr) {
         // Get the path
         const std::string fakePath = getMaskedPathFromWasm(pathPtr);
@@ -386,13 +398,13 @@ namespace wasm {
 
         struct stat64 nativeStat{};
         int result = stat64(fakePath.c_str(), &nativeStat);
-        if(result != 0) {
-            logger->debug("stat64 errno: {}", errno);
+        if(result < 0) {
+            int newErrno = errno;
+            getExecutingModule()->setErrno(newErrno);
+            return -newErrno;
         }
 
-        if(result == 0) {
-            writeNativeStatToWasmStat(&nativeStat, statBufPtr);
-        }
+        writeNativeStatToWasmStat(&nativeStat, statBufPtr);
 
         return result;
     }

@@ -26,16 +26,6 @@ using namespace WAVM;
  *
  * Syscall numbers can be found in musl/arch/XXX/bits/syscall.h(.in)
  *
- * Any structs passed as arguments must be re-implemented here with the following mappings
- * (respecting signed/ unsigned):
- *
- * short = I16/U16
- * long = I32/U32
- * int = I32/U32
- * char = U8
- * pointers = Uptr
- * size_t = I32
- *
  */
 
 namespace wasm {
@@ -49,19 +39,22 @@ namespace wasm {
      * This is the interface Emscripten provides with the LLVM wasm backend.
      */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall", I32, __syscall, I32 syscallNo,
-            I32 argsPtr) {
+                              I32 argsPtr) {
         // We're aware of some syscalls being called like this,
-        // possibly with (__syscall)(sys_no, args)
-        if(syscallNo == 102) {
-            return s__socketcall_alt(argsPtr);
-        } else if(syscallNo == 168) {
-            return s__poll_alt(argsPtr);
-        } else if(syscallNo == 5) {
-            return s__open_alt(argsPtr);
+        // possibly in the format (__syscall)(sys_no, args)
+        switch (syscallNo) {
+            case 5:
+                return s__open_alt(argsPtr);
+            case 6:
+                return s__close_alt(argsPtr);
+            case 102:
+                return s__socketcall_alt(argsPtr);
+            case 168:
+                return s__poll_alt(argsPtr);
+            default:
+                util::getLogger()->error("Called unsupported syscall format {} {}", syscallNo, argsPtr);
+                throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
         }
-
-        util::getLogger()->error("Called unsupported syscall format {} {}", syscallNo, argsPtr);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall0", I32, __syscall0, I32 syscallNo) {
@@ -69,7 +62,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall1", I32, __syscall1, I32 syscallNo,
-            I32 a) {
+                              I32 a) {
         return executeSyscall(syscallNo, a, 0, 0, 0, 0, 0, 0);
     }
 
@@ -104,7 +97,7 @@ namespace wasm {
     }
 
     I32 executeSyscall(int syscallNumber, int a, int b, int c, int d, int e, int f, int g) {
-        switch(syscallNumber) {
+        switch (syscallNumber) {
             case 1:
                 return s__exit(a, b);
             case 2:

@@ -24,6 +24,9 @@
 using namespace WAVM;
 
 namespace wasm {
+    // This seems to be a constant...
+    static const int ERRNO_ADDR = 31;
+
     // This is the number of pages we copy and restore for each reuse of the module.
     const int CLEAN_MEMORY_PAGES = 1;
     const int CLEAN_MEMORY_SIZE = CLEAN_MEMORY_PAGES * IR::numBytesPerPage;
@@ -70,8 +73,12 @@ namespace wasm {
 
         Runtime::Function *getFunction(const std::string &funcName);
 
+        void setErrno(int newValue);
+
     private:
         IR::Module module;
+
+        int errnoLocation = 0;
 
         int dynamicModuleCount = 0;
 

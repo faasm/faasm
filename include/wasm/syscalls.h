@@ -29,15 +29,30 @@ namespace wasm {
     // System-related structs
     // ---------------------------
 
+    /**
+     * Any structs passed as arguments must be re-implemented here with the following mappings
+     * (respecting signed/ unsigned):
+     *
+     * int64_t = I64/U64
+     * short = I16/U16
+     * long = I32/U32
+     * int = I32/U32
+     * char = U8
+     * pointers = Uptr
+     * size_t = I32
+     *
+     * You need to look at include/bits/alltypes.h in the relevant sysroot to get a lot of the types
+    */
+
     // Timing
     struct wasm_timespec {
-        I32 tv_sec;
+        I64 tv_sec;
         I32 tv_nsec;
     };
 
     // Timing
     struct wasm_timeval {
-        I32 tv_sec;
+        I64 tv_sec;
         I32 tv_usec;
     };
 
@@ -53,45 +68,59 @@ namespace wasm {
         U8 sa_data[14];
     };
 
-    // Taken from arch/wasm32/bits/stat.h in the musl port
+    // Taken from arch/wasm32/bits/stat.h
     struct wasm_stat {
-        U32 st_dev;
-        I32 __st_dev_padding;
-        I32 __st_ino_truncated;
+        U64 st_dev;
+        U64 st_ino;
+        U64 st_nlink;
+
         U32 st_mode;
-        U32 st_nlink;
         U32 st_uid;
         U32 st_gid;
-        U32 st_rdev;
-        I32 __st_rdev_padding;
-        I32 st_size;
+        U32 __pad0;
+        U64 st_rdev;
+        I64 st_size;
+
         I32 st_blksize;
-        I32 st_blocks;
+        I64 st_blocks;
+
         struct wasm_timespec st_atim;
         struct wasm_timespec st_mtim;
         struct wasm_timespec st_ctim;
-        U32 st_ino;
+
+        I64 __unused[3];
     };
 
     /**
+     * Found in pwd.h.
+     *
      * Note that char pointers are U32
      */
     struct wasm_passwd {
-        U32 pw_name;
-        U32 pw_passwd;
+        U32 pw_name; // char*
+        U32 pw_passwd; // char*
         U32 pw_uid;
         U32 pw_gid;
-        U32 pw_gecos;
-        U32 pw_dir;
-        U32 pw_shell;
+        U32 pw_gecos; // char*
+        U32 pw_dir; // char*
+        U32 pw_shell; // char*
     };
 
     /**
-     * Note, this struct type works with emscripten, but may not work with musl implementations
+     * To be sure what the target dirent struct is like, you need to look in dirent.h in
+     * the correct sysroot. Emscripten looks like:
+     *
+     * struct dirent {
+     *   ino_t d_ino;  // 64-bit
+     *   off_t d_off;  // 64-bit
+     *   unsigned short d_reclen;
+     *   unsigned char d_type;
+     *   char d_name[256];
+     * };
      */
     struct wasm_dirent64 {
-        U32 d_ino;
-        I32 d_off;
+        U64 d_ino;
+        I64 d_off;
         U16 d_reclen;
         U8 d_type;
         U8 d_name[256];
@@ -151,6 +180,8 @@ namespace wasm {
     I32 s__clock_gettime(I32 clockId, I32 timespecPtr);
 
     I32 s__close(I32 fd);
+
+    I32 s__close_alt(I32 fd);
 
     I32 s__dup(I32 oldFd);
 

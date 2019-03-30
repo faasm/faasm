@@ -16,6 +16,8 @@ endif ()
 if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     message(STATUS "Detected emscripten build")
 
+    add_definitions(-DWASM_BUILD=1)
+
     SET(CMAKE_EXE_LINKER_FLAGS "-Xlinker --no-entry -Xlinker --export=main")
 
     SET(CMAKE_EXECUTABLE_SUFFIX ".wasm")

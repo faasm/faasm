@@ -12,6 +12,15 @@
 namespace wasm {
     static thread_local std::set<int> openFds;
 
+    void setErrno(I32 errnoValue) {
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        int *hostPtr = &Runtime::memoryRef<I32>(memoryPtr, ERRNO_ADDR);
+        *hostPtr = errnoValue;
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("errno = {}", *hostPtr);
+    }
+
     void getBytesFromWasm(I32 dataPtr, I32 dataLen, uint8_t *buffer) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);

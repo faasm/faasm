@@ -428,7 +428,7 @@ namespace tests {
         checkCallingFunctionGivesBoolOutput("mmap", true);
     }
 
-    TEST_CASE("Test getenv", "[worker]") {
+    TEST_CASE("Test config", "[worker]") {
         setUp();
 
         bool expected;

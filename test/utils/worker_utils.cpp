@@ -5,6 +5,7 @@
 using namespace worker;
 
 namespace tests {
+
     WorkerThread execFunction(message::Message &call) {
         // Set up worker to listen for relevant function
         WorkerThreadPool pool(1);
@@ -35,6 +36,33 @@ namespace tests {
         REQUIRE(bindQueue->size() == 0);
 
         return w;
+    }
+
+    std::string execFunctionWithStringResult(message::Message &call) {
+        // Set up worker to listen for relevant function
+        WorkerThreadPool pool(1);
+        WorkerThread w(1);
+        REQUIRE(w.isInitialised());
+        REQUIRE(!w.isBound());
+
+        // Call the function
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        sch.callFunction(call);
+
+        // Process the bind and execute messages
+        w.processNextMessage();
+        w.processNextMessage();
+
+        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
+        const message::Message result = globalBus.getFunctionResult(call);
+        if(!result.success()) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->error("Function failed: {}", result.outputdata());
+            FAIL();
+        }
+        REQUIRE(result.success());
+
+        return result.outputdata();
     }
 }
 
