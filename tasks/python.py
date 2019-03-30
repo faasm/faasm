@@ -1,4 +1,5 @@
-from os.path import join
+from os import remove
+from os.path import join, exists
 from subprocess import call
 
 from invoke import task
@@ -18,11 +19,20 @@ def python_codegen(ctx):
 
 
 @task
-def build_pyodide_cpython(ctx):
+def build_pyodide_emsdk(ctx):
     print("Running make on emsdk")
     emsdk_root = join(PYODIDE_ROOT, "emsdk")
     call("make", cwd=emsdk_root, shell=True)
 
+
+@task
+def build_pyodide_cpython(ctx):
     print("Running make on cpython")
     cpython_root = join(PYODIDE_ROOT, "cpython")
+
+    # Remove existing lib if exists
+    lib_path = join(cpython_root, "build/3.7.0/Python-3.7.0/libpython3.7.a")
+    if exists(lib_path):
+        remove(lib_path)
+
     call("make", cwd=cpython_root, shell=True)
