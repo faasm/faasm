@@ -539,4 +539,16 @@ namespace tests {
         REQUIRE(bindQueue->size() == 0);
         REQUIRE(!redis.sismember(workerSetName, nodeId));
     }
+
+    TEST_CASE("Test argv", "[worker]") {
+        cleanSystem();
+
+        message::Message msg;
+        msg.set_user("demo");
+        msg.set_function("argv");
+        msg.set_resultkey("argv_test");
+
+        // Will fail if invalid
+        execFunction(msg);
+    }
 }

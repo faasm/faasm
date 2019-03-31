@@ -6,7 +6,7 @@ namespace faasm {
 
     int exec(FaasmMemory *memory) {
         // Test reading a file
-        FILE *fp = fopen("funcs/numpy_test.py", "r");
+        FILE *fp = fopen("include/python3.7/abstract.h", "r");
 
         char buff[2056];
         fgets(buff, 2056, (FILE *) fp);

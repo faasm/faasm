@@ -18,7 +18,11 @@ if (FAASM_BUILD_TYPE STREQUAL "emscripten")
 
     add_definitions(-DWASM_BUILD=1)
 
-    SET(CMAKE_EXE_LINKER_FLAGS "-Xlinker --no-entry -Xlinker --export=main")
+    SET(CMAKE_EXE_LINKER_FLAGS "-Xlinker --no-entry \
+    -Xlinker --export=main \
+    -Xlinker --initial-memory=31457280 \
+    -Xlinker --max-memory=1073741824 \
+    ")
 
     SET(CMAKE_EXECUTABLE_SUFFIX ".wasm")
 endif ()

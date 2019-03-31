@@ -434,9 +434,22 @@ namespace wasm {
         executingCall = &msg;
         executingCallChain = &callChain;
 
-        // Set up the call and invoke arguments
+        // Set up the context
         Runtime::Context *context = Runtime::createContext(compartment);
-        std::vector<IR::Value> invokeArgs = {0, 0};
+
+        // Set up invoke arguments just below the top of the memory (i.e. at the top of the dynamic section)
+        Uptr memTop = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
+        U32 argvStart = memTop - 20;
+        U32 argc = 0;
+
+        // Copy the function name into argv[0]
+        U32 argv0 = argvStart + sizeof(U32);
+        char *argv0Host = &Runtime::memoryRef<char>(defaultMemory, argv0);
+        strcpy(argv0Host, "function.wasm");
+
+        // Copy the offset of argv[0] into position
+        Runtime::memoryRef<U32>(defaultMemory, argvStart) = argv0;
+        std::vector<IR::Value> invokeArgs = {argc, argvStart};
 
         // Record the errno location
         Runtime::Function *errNoLocation = asFunctionNullable(getInstanceExport(moduleInstance, "___errno_location"));

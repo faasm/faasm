@@ -50,9 +50,9 @@ def funcs(context, clean=False, func=None):
 
     # Allow specifying a single function
     if func:
-        cmd = "make VERBOSE=1 {}".format(func)
+        cmd = "make -j VERBOSE=1 {}".format(func)
     else:
-        cmd = "make"
+        cmd = "make -j"
 
     call(cmd, shell=True, cwd=func_build_dir)
 
