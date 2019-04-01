@@ -16,12 +16,6 @@
 
 namespace wasm {
 
-    I32 s__open_alt(I32 argsPtr) {
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        auto args = Runtime::memoryArrayPtr<int>(memoryPtr, argsPtr, 3);
-        return s__open(args[0], args[1], args[2]);
-    }
-
     I32 s__open(I32 pathPtr, I32 flags, I32 mode) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
         const std::string path = getStringFromWasm(pathPtr);
@@ -215,13 +209,6 @@ namespace wasm {
         return (I32) bytesRead;
     }
 
-    I32 s__close_alt(I32 argsPtr) {
-        Runtime::GCPointer<Runtime::Memory> &memoryPtr = getExecutingModule()->defaultMemory;
-        auto args = Runtime::memoryArrayPtr<int>(memoryPtr, (Uptr) argsPtr, (Uptr) 1);
-
-        return s__close(args[0]);
-    }
-
     I32 s__close(I32 fd) {
         util::getLogger()->debug("S - close - {}", fd);
 
@@ -234,13 +221,6 @@ namespace wasm {
         return 0;
     }
 
-    I32 s__poll_alt(I32 argsPtr) {
-        Runtime::GCPointer<Runtime::Memory> &memoryPtr = getExecutingModule()->defaultMemory;
-        auto args = Runtime::memoryArrayPtr<int>(memoryPtr, (Uptr) argsPtr, (Uptr) 3);
-
-        return s__poll(args[0], args[1], args[2]);
-    }
-    
     /** Poll is ok but can pass in an array of structs. */
     I32 s__poll(I32 fdsPtr, I32 nfds, I32 timeout) {
         util::getLogger()->debug("S - poll - {} {} {}", fdsPtr, nfds, timeout);

@@ -26,6 +26,8 @@ using namespace WAVM;
  *
  * Syscall numbers can be found in musl/arch/XXX/bits/syscall.h(.in)
  *
+ * The full i386 table can also give hints for higher numbers:
+ * https://github.com/torvalds/linux/blob/master/arch/x86/entry/syscalls/syscall_32.tbl
  */
 
 namespace wasm {
@@ -40,17 +42,7 @@ namespace wasm {
      */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall", I32, __syscall, I32 syscallNo,
                               I32 argsPtr) {
-        // We're aware of some syscalls being called like this,
-        // possibly in the format (__syscall)(sys_no, args)
         switch (syscallNo) {
-            case 5:
-                return s__open_alt(argsPtr);
-            case 6:
-                return s__close_alt(argsPtr);
-            case 102:
-                return s__socketcall_alt(argsPtr);
-            case 168:
-                return s__poll_alt(argsPtr);
             default:
                 util::getLogger()->error("Called unsupported syscall format {} {}", syscallNo, argsPtr);
                 throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
@@ -167,6 +159,8 @@ namespace wasm {
                 return s__getdents64(a, b, c);
             case 221:
                 return s__fcntl64(a, b, c);
+            case 240:
+                return s__futex(a, b, c, d, e, f);
             case 265:
                 return s__clock_gettime(a, b);
             case 375:

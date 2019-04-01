@@ -4,3 +4,6 @@
 [submodule "pyodide"]
 	path = pyodide
 	url = git@github.com:Shillaker/pyodide
+[submodule "musl"]
+	path = musl
+	url = git@github.com:Shillaker/musl

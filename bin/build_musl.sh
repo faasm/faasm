@@ -3,11 +3,13 @@
 set -e
 
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-FAASM_HOME=${HOME}/faasm
-TOOL_BIN=${FAASM_HOME}/toolchain/bin
-SYSROOT=${FAASM_HOME}/toolchain/sysroot
+PROJ_ROOT=${THIS_DIR}/..
+EM_ROOT=${PROJ_ROOT}/pyodide/emsdk/emsdk/upstream/4583
+SYSROOT=${EM_ROOT}/sysroot
+TOOL_BIN=${EM_ROOT}/bin
+
 MUSL_DIR=${THIS_DIR}/../musl
-MUSL_BUILD_DIR=${FAASM_HOME}/musl_out
+MUSL_BUILD_DIR=/tmp/musl_out
 
 CFLAGS="--sysroot=${SYSROOT} --target=wasm32-unknown-unknown"
 CXXFLAGS="--sysroot=${SYSROOT} --target=wasm32-unknown-unknown"
@@ -31,12 +33,6 @@ echo ""
 echo "WARNING: this command may drop out the first time..."
 echo "${BUILD_CMD}"
 ${BUILD_CMD}
-
-# Set up dirs
-echo "Setting up sysroot"
-mkdir -p ${SYSROOT}/lib
-mkdir -p ${SYSROOT}/include
-mkdir -p ${SYSROOT}/include/bits
 
 # Create archive and put in place
 echo "Creating archive"

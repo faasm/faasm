@@ -13,30 +13,13 @@
 using namespace WAVM;
 
 namespace wasm {
-
-    // ------- WASM MEMORY CONSTANTS --------
-    //
-    // wasm memory is laid out as follows:
-    //
-    // |  | SP |   DATA   |   STACK   |   DYNAMIC   |   HEAP   brk ->   |
-    // 0  4    5       data_end    heap_base      initial              MAX
-    //
-    // SP = stack pointer lives at address 4 as pre-defined in the spec
-    // DATA = this holds any data segments
-    // STACK = the stack (grows downwards)
-    // DYNAMIC = fixed size empty region, can be used to create stuff on the fly (e.g. when dynamic linking)
-    // HEAP = the heap (grows upwards), the heap will grow from the edge of your initial memory boundary and up
-    //
-    // __data_end and __heap_base should be exported from the main module and will be determined dynamically.
-    // The initial memory size and max are determined when instantiating the module below.
-    //
     // Note that page size in wasm is 64kiB
     // Note also that this initial memory must be big enough to include all data, stack and dynamic
     // memory that the module will need.
     const int ONE_MB_PAGES = 16;
     const int ONE_GB_PAGES = 1024 * ONE_MB_PAGES;
 
-    const int INITIAL_MEMORY_PAGES = 30 * ONE_MB_PAGES;
+    const int INITIAL_MEMORY_PAGES = 128 * ONE_MB_PAGES;
     const int MAX_MEMORY_PAGES = ONE_GB_PAGES;
 
     const int MAX_TABLE_SIZE = 500000;

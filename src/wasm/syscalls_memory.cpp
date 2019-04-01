@@ -2,6 +2,7 @@
 #include "syscalls.h"
 
 #include <util/bytes.h>
+#include <linux/membarrier.h>
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/RuntimeData.h>
@@ -18,7 +19,19 @@ namespace wasm {
     I32 s__membarrier(I32 a) {
         util::getLogger()->debug("S - membarrier - {}", a);
 
-        return 0;
+        int res;
+        if (a == MEMBARRIER_CMD_QUERY) {
+            res = syscall(__NR_membarrier, MEMBARRIER_CMD_QUERY, 0);
+        } else if (a == MEMBARRIER_CMD_SHARED || a == MEMBARRIER_CMD_PRIVATE_EXPEDITED ||
+                   a == MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED) {
+            // We can ignore all non-query membarrier operations
+            res = 0;
+        } else {
+            util::getLogger()->error("Unexpected membarrier argument {}", a);
+            throw std::runtime_error("Invalid membarrier command");
+        }
+
+        return res;
     }
 
     std::shared_ptr<state::StateKeyValue> getStateKV(I32 keyPtr, size_t size) {

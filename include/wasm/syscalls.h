@@ -181,8 +181,6 @@ namespace wasm {
 
     I32 s__close(I32 fd);
 
-    I32 s__close_alt(I32 fd);
-
     I32 s__dup(I32 oldFd);
 
     I32 s__exit(I32 a, I32 b);
@@ -192,6 +190,8 @@ namespace wasm {
     I32 s__fork();
 
     I32 s__fstat64(I32 fd, I32 statBufPtr);
+
+    I32 s__futex(I32 uaddrPtr, I32 futex_op, I32 val, I32 timeoutPtr, I32 uaddr2Ptr, I32 other);
 
     I32 s__getcwd(I32 bufPtr, I32 bufLen);
 
@@ -227,11 +227,7 @@ namespace wasm {
 
     I32 s__open(I32 pathPtr, I32 flags, I32 mode);
 
-    I32 s__open_alt(I32 argsPtr);
-
     I32 s__poll(I32 fdsPtr, I32 nfds, I32 timeout);
-
-    I32 s__poll_alt(I32 argsPtr);
 
     I32 s__read(I32 fd, I32 bufPtr, I32 bufLen);
 
@@ -242,8 +238,6 @@ namespace wasm {
     I32 s__rename(I32 srcPtr, I32 destPtr);
 
     I32 s__socketcall(I32 call, I32 argsPtr);
-
-    I32 s__socketcall_alt(I32 argsPtr);
 
     I32 s__stat64(I32 pathPtr, I32 statBufPtr);
 

@@ -12,7 +12,6 @@ else ()
     add_definitions(-DAWS_LAMBDA=0)
 endif ()
 
-# Emscripten fiddles
 if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     message(STATUS "Detected emscripten build")
 
@@ -20,8 +19,9 @@ if (FAASM_BUILD_TYPE STREQUAL "emscripten")
 
     SET(CMAKE_EXE_LINKER_FLAGS "-Xlinker --no-entry \
     -Xlinker --export=main \
-    -Xlinker --initial-memory=31457280 \
+    -Xlinker --initial-memory=134217728 \
     -Xlinker --max-memory=1073741824 \
+    -Xlinker --threads \
     ")
 
     SET(CMAKE_EXECUTABLE_SUFFIX ".wasm")

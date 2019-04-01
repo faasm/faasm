@@ -14,6 +14,11 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
+    I32 s__futex(I32 uaddrPtr, I32 futex_op, I32 val, I32 timeoutPtr, I32 uaddr2Ptr, I32 other) {
+        util::getLogger()->debug("S - futex - {} {} {} {} {} {}", uaddrPtr, futex_op, val, timeoutPtr, uaddr2Ptr, other);
+        return 0;
+    }
+
     // ------------------------
     // Signals (ignored)
     // ------------------------
@@ -245,6 +250,11 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__copy_tls", I32, emscripten___copy_tls , I32 a) {
         util::getLogger()->debug("S - __copy_tls - {}", a);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "realpath", I32, realpath, I32 a, U32 b) {
+        util::getLogger()->debug("S - realpath - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 }
