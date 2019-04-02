@@ -124,7 +124,7 @@ namespace wasm {
         const U32 currentBreak = (U32) ((getMemoryNumPages(memory) * IR::numBytesPerPage));
 
         // Attempt the expansion
-        int expandRes = expandMemory(addr);
+        int expandRes = getExecutingModule()->brk(addr);
 
         if (expandRes == EXPAND_TOO_BIG) {
             return currentBreak;
@@ -139,7 +139,8 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "sbrk", I32, sbrk, I32 increment) {
         util::getLogger()->debug("S - sbrk - {}", increment);
 
-        Runtime::Memory *memory = getExecutingModule()->defaultMemory;
+        WasmModule *module = getExecutingModule();
+        Runtime::Memory *memory = module->defaultMemory;
         const U32 currentBreak = (U32) ((getMemoryNumPages(memory) * IR::numBytesPerPage));
 
         if (increment == 0) {
@@ -147,7 +148,7 @@ namespace wasm {
         }
 
         U32 target = currentBreak + increment;
-        int expandRes = expandMemory(target);
+        int expandRes = module->brk(target);
 
         if (expandRes == EXPAND_TOO_BIG) {
             return currentBreak;

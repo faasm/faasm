@@ -36,33 +36,6 @@ namespace wasm {
         return executingCallChain;
     }
 
-    int expandMemory(U32 newSize) {
-        Uptr targetPageCount = getNumberOfPagesForBytes(newSize);
-
-        // Work out current size
-        WasmModule *module = getExecutingModule();
-        Runtime::Memory *memory = module->defaultMemory;
-        const Uptr currentPageCount = getMemoryNumPages(memory);
-
-        // Check if expanding too far
-        Uptr maxPages = getMemoryMaxPages(memory);
-        if (targetPageCount > maxPages) {
-            return EXPAND_TOO_BIG;
-        }
-
-        // Nothing too be done if memory already big enough or new size is zero
-        if (targetPageCount <= currentPageCount || newSize == 0) {
-            return EXPAND_NO_ACTION;
-        }
-
-        Uptr expansion = targetPageCount - currentPageCount;
-
-        // Grow memory as required
-        growMemory(memory, expansion);
-
-        return EXPAND_SUCCESS;
-    }
-
     Uptr getNumberOfPagesForBytes(U32 nBytes) {
         // Round up to nearest page
         Uptr pageCount = (Uptr(nBytes) + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
@@ -265,10 +238,6 @@ namespace wasm {
         int totalModuleMemSize = 4 * ONE_MB_PAGES;
 
         if (dynamicModuleCount == 0) {
-            // Heap base is top of the stack, and data end is the bottom of the stack
-            I32 heapBase = this->getGlobalI32("__heap_base", context);
-            I32 dataEnd = this->getGlobalI32("__data_end", context);
-
             logger->debug("Linking first dynamic module. heap_base={} and data_end={}", heapBase, dataEnd);
 
             // Stack has a region just at the bottom of the empty region (and grows down)
@@ -442,6 +411,15 @@ namespace wasm {
         U32 argvStart = memTop - 20;
         U32 argc = 0;
 
+        // Extract memory boundaries
+        heapBase = this->getGlobalI32("__heap_base", context);
+        dataEnd = this->getGlobalI32("__data_end", context);
+
+        // Set up allocation variables
+        currentBrk = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
+        mallocStart = heapBase;
+        mallocEnd = currentBrk;
+
         // Copy the function name into argv[0]
         U32 argv0 = argvStart + sizeof(U32);
         char *argv0Host = &Runtime::memoryRef<char>(defaultMemory, argv0);
@@ -495,6 +473,9 @@ namespace wasm {
             throw std::runtime_error("Run out of memory to map");
         }
 
+        // Update brk
+        currentBrk = (previousPageCount + pagesRequested) * IR::numBytesPerPage;
+
         // Get pointer to mapped range
         auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);
 
@@ -540,5 +521,52 @@ namespace wasm {
 
     I32 WasmModule::posixMemalign(I32 memPtrPtr, I32 alignment, I32 size) {
         return 0;
+    }
+
+    I32 WasmModule::brk(U32 newSize) {
+        Uptr targetPageCount = getNumberOfPagesForBytes(newSize);
+
+        // Work out current size
+        const Uptr currentPageCount = getMemoryNumPages(defaultMemory);
+
+        // Check if expanding too far
+        Uptr maxPages = getMemoryMaxPages(defaultMemory);
+        if (targetPageCount > maxPages) {
+            return EXPAND_TOO_BIG;
+        }
+
+        // Nothing too be done if memory already big enough or new size is zero
+        if (targetPageCount <= currentPageCount || newSize == 0) {
+            return EXPAND_NO_ACTION;
+        }
+
+        Uptr expansion = targetPageCount - currentPageCount;
+
+        // Grow memory as required
+        Iptr prevPageCount = growMemory(defaultMemory, expansion);
+        if (prevPageCount == -1) {
+            throw std::runtime_error("Something has gone seriously wrong with brk");
+        }
+
+        // Update brk
+        currentBrk = targetPageCount * IR::numBytesPerPage;
+
+        return EXPAND_SUCCESS;
+    }
+
+    unsigned long WasmModule::getCurrentBrk() {
+        return currentBrk;
+    }
+
+    unsigned long WasmModule::getHeapBase() {
+        return heapBase;
+    }
+
+    unsigned long WasmModule::getMallocStart() {
+        return mallocStart;
+    }
+
+    unsigned long WasmModule::getMallocEnd() {
+        return mallocEnd;
     }
 }

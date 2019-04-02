@@ -31,8 +31,6 @@ namespace wasm {
     const int CLEAN_MEMORY_PAGES = 1;
     const int CLEAN_MEMORY_SIZE = CLEAN_MEMORY_PAGES * IR::numBytesPerPage;
 
-    int expandMemory(U32 newSize);
-
     Uptr getNumberOfPagesForBytes(U32 nBytes);
 
     class WasmModule {
@@ -69,6 +67,16 @@ namespace wasm {
 
         I32 posixMemalign(I32 memPtrPtr, I32 alignment, I32 size);
 
+        I32 brk(U32 newSize);
+
+        unsigned long getCurrentBrk();
+
+        unsigned long getHeapBase();
+
+        unsigned long getMallocStart();
+
+        unsigned long getMallocEnd();
+
         void snapshotFullMemory(const char *key);
 
         void restoreFullMemory(const char *key);
@@ -89,6 +97,12 @@ namespace wasm {
         int errnoLocation = 0;
 
         int dynamicModuleCount = 0;
+
+        unsigned long currentBrk = 0;
+        unsigned long heapBase = 0;
+        unsigned long dataEnd = 0;
+        unsigned long mallocStart = 0;
+        unsigned long mallocEnd = 0;
 
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
         Runtime::GCPointer<Runtime::Function> functionInstance;
