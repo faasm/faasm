@@ -6,13 +6,11 @@ if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     set(PYTHON_LIBRARIES "${PYODIDE_CPYTHON}/lib/libpython3.7.a")
     set(PYTHON_INCLUDE_DIRS "${PYODIDE_CPYTHON}/include/python3.7")
 
-#    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} \
-#    -Xlinker --export-all \
-#    -Xlinker --no-gc-sections \
-#    ")
-
+    set(EXTRA_LIBS "")
 else ()
     find_package(PythonLibs)
+
+    set(EXTRA_LIBS -lutil)
 endif ()
 
 message(STATUS "PYTHON_LIBRARIES=${PYTHON_LIBRARIES}")
@@ -21,9 +19,8 @@ message(STATUS "PYTHON_INCLUDE_DIRS=${PYTHON_INCLUDE_DIRS}")
 # Python functions
 include_directories(${PYTHON_INCLUDE_DIRS})
 
-if (FAASM_BUILD_TYPE STREQUAL "emscripten")
-    faasm_func(py_hello py_hello.cpp)
-    target_link_libraries(py_hello ${PYTHON_LIBRARIES})
-    faasm_func(py_numpy py_numpy.cpp)
-    target_link_libraries(py_numpy ${PYTHON_LIBRARIES})
-endif()
+faasm_func(py_hello py_hello.cpp)
+target_link_libraries(py_hello ${PYTHON_LIBRARIES} ${EXTRA_LIBS})
+
+faasm_func(py_numpy py_numpy.cpp)
+target_link_libraries(py_numpy ${PYTHON_LIBRARIES} ${EXTRA_LIBS})

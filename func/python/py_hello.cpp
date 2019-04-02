@@ -1,6 +1,9 @@
 #include <Python.h>
 
 int main(int argc, char *argv[]) {
+    int stdErrNo = fileno(stderr);
+    printf("Python stderr = %i\n", stdErrNo);
+
     setenv("PYTHONHOME", "/", 1);
     setenv("PYTHONPATH", "/", 1);
     setenv("PYTHONMALLOC", "malloc", 1);

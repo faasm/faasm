@@ -406,14 +406,15 @@ namespace wasm {
         // Set up the context
         Runtime::Context *context = Runtime::createContext(compartment);
 
-        // Set up invoke arguments just below the top of the memory (i.e. at the top of the dynamic section)
-        Uptr memTop = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
-        U32 argvStart = memTop - 20;
-        U32 argc = 0;
-
-        // Memory-related variables
+        // Memory-related variables (these will be the same when stack first is switched on)
+        Uptr heapTop = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
         heapBase = this->getGlobalI32("__heap_base", context);
         dataEnd = this->getGlobalI32("__data_end", context);
+        logger->debug("heap_base = {}  data_end = {}  heap_top={}", heapBase, dataEnd, heapTop);
+
+        // Set up invoke arguments just below the top of the memory (i.e. at the top of the dynamic section)
+        U32 argvStart = heapTop - 20;
+        U32 argc = 0;
 
         // Copy the function name into argv[0]
         U32 argv0 = argvStart + sizeof(U32);

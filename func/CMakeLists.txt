@@ -17,10 +17,12 @@ if (FAASM_BUILD_TYPE STREQUAL "emscripten")
 
     add_definitions(-DWASM_BUILD=1)
 
+    # NOTE the stack-first here is really important to help detect stack overflow
+    # issues. Without it the stack will overflow into the global data
     SET(CMAKE_EXE_LINKER_FLAGS "-Xlinker --no-entry \
     -Xlinker --export=main \
-    -Xlinker --initial-memory=134217728 \
     -Xlinker --max-memory=1073741824 \
+    -Xlinker --stack-first \
     -Xlinker --threads \
     ")
 

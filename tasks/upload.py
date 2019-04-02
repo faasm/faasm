@@ -6,7 +6,7 @@ from invoke import task
 from tasks.env import EMSCRIPTEN_FUNC_BUILD_DIR
 from tasks.upload_util import curl_file
 
-DIRS_TO_INCLUDE = ["demo", "errors", "sgd"]
+DIRS_TO_INCLUDE = ["demo", "errors", "sgd", "python"]
 
 
 @task

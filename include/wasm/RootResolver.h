@@ -19,7 +19,7 @@ namespace wasm {
     const int ONE_MB_PAGES = 16;
     const int ONE_GB_PAGES = 1024 * ONE_MB_PAGES;
 
-    const int INITIAL_MEMORY_PAGES = 128 * ONE_MB_PAGES;
+    const int INITIAL_MEMORY_PAGES = 1024 * ONE_MB_PAGES;
     const int MAX_MEMORY_PAGES = ONE_GB_PAGES;
 
     const int MAX_TABLE_SIZE = 500000;
@@ -46,7 +46,7 @@ namespace wasm {
 
         void setUp(Runtime::Compartment *compartmentIn, IR::Module &module) {
             // Force memory sizes
-            module.memories.defs[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
+            // module.memories.defs[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
             module.memories.defs[0].type.size.max = (U64) MAX_MEMORY_PAGES;
 
             // Note, we don't want to mess with the min table size here, just give it room to expand if need be
