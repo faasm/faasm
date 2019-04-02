@@ -23,4 +23,26 @@ namespace tests {
 
         conf.reset();
     }
+
+    TEST_CASE("Test abort", "[worker]") {
+        cleanSystem();
+
+        message::Message msg;
+        msg.set_user("demo");
+        msg.set_function("abort");
+        msg.set_resultkey("abort_test");
+
+        execFunction(msg);
+    }
+
+    TEST_CASE("Test exit", "[worker]") {
+        cleanSystem();
+
+        message::Message msg;
+        msg.set_user("demo");
+        msg.set_function("exit");
+        msg.set_resultkey("exit_test");
+
+        execFunction(msg);
+    }
 }

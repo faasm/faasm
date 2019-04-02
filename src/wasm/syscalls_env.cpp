@@ -109,7 +109,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "abort", void, abort) {
         util::getLogger()->debug("S - abort");
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+        throw (wasm::WasmExitException(0));
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "exit", void, exit, I32 a) {

@@ -3,6 +3,7 @@
 int main(int argc, char *argv[]) {
     setenv("PYTHONHOME", "/", 1);
     setenv("PYTHONPATH", "/", 1);
+    setenv("PYTHONMALLOC", "malloc", 1);
     setenv("PYTHONHASHSEED", "0", 1);
     setenv("PYTHONVERBOSE", "on", 1);
     setenv("LC_CTYPE", "en_GB.UTF-8", 1);
