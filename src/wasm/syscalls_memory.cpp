@@ -368,7 +368,7 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "malloc", I32, malloc, I32 size) {
         util::getLogger()->debug("S - malloc - {}", size);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+        return getExecutingModule()->malloc(size);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "realloc", I32, realloc, I32 ptr, I32 size) {
@@ -378,16 +378,16 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "calloc", I32, calloc, I32 nmemb, I32 size) {
         util::getLogger()->debug("S - calloc - {} {}", nmemb, size);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+        return getExecutingModule()->calloc(nmemb, size);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "free", void, free, I32 ptr) {
         util::getLogger()->debug("S - free - {}", ptr);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+        return getExecutingModule()->free(ptr);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "posix_memalign", I32, posix_memalign, I32 memPtrPtr, I32 alignment, I32 size) {
         util::getLogger()->debug("S - posix_memalign - {} {} {}", memPtrPtr, alignment, size);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+        return getExecutingModule()->posixMemalign(memPtrPtr, alignment, size);
     }
 }

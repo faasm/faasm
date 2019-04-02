@@ -526,4 +526,19 @@ namespace wasm {
         return sharedMemWasmPtrs[kv->key];
     }
 
+    I32 WasmModule::malloc(I32 size) {
+        return 0;
+    }
+
+    I32 WasmModule::calloc(I32 nmemb, I32 size) {
+        return 0;
+    }
+
+    void WasmModule::free(I32 ptr) {
+
+    }
+
+    I32 WasmModule::posixMemalign(I32 memPtrPtr, I32 alignment, I32 size) {
+        return 0;
+    }
 }

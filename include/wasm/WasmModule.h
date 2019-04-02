@@ -61,6 +61,14 @@ namespace wasm {
 
         U32 mmapKey(std::shared_ptr<state::StateKeyValue> kv, U32 length);
 
+        I32 malloc(I32 size);
+
+        I32 calloc(I32 nmemb, I32 size);
+
+        void free(I32 ptr);
+
+        I32 posixMemalign(I32 memPtrPtr, I32 alignment, I32 size);
+
         void snapshotFullMemory(const char *key);
 
         void restoreFullMemory(const char *key);
