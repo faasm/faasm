@@ -7,7 +7,7 @@ from subprocess import call
 from invoke import task
 
 from tasks.download import download_proj
-from tasks.env import PROJ_ROOT, EMSCRIPTEN_TOOLCHAIN, EMSCRIPTEN_DIR, PYODIDE_ROOT, WASM_SYSROOT
+from tasks.env import PROJ_ROOT, EMSCRIPTEN_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT
 
 
 def _check_emscripten():
@@ -55,6 +55,34 @@ def funcs(context, clean=False, func=None):
         cmd = "make -j"
 
     call(cmd, shell=True, cwd=func_build_dir)
+
+
+@task
+def compile_malloc(ctx, clean=False):
+    _check_emscripten()
+
+    work_dir = join(PROJ_ROOT, "malloc")
+    build_dir = join(work_dir, "emscripten_lib_build")
+
+    if exists(build_dir) and clean:
+        rmtree(build_dir)
+        mkdir(build_dir)
+    elif not exists(build_dir):
+        mkdir(build_dir)
+
+    build_cmd = [
+        "cmake",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(EMSCRIPTEN_TOOLCHAIN),
+        ".."
+    ]
+
+    build_cmd_str = " ".join(build_cmd)
+    print(build_cmd_str)
+
+    call(build_cmd_str, shell=True, cwd=build_dir)
+    call("make", shell=True, cwd=build_dir)
+    call("make install", shell=True, cwd=build_dir)
 
 
 @task

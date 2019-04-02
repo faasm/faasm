@@ -411,14 +411,9 @@ namespace wasm {
         U32 argvStart = memTop - 20;
         U32 argc = 0;
 
-        // Extract memory boundaries
+        // Memory-related variables
         heapBase = this->getGlobalI32("__heap_base", context);
         dataEnd = this->getGlobalI32("__data_end", context);
-
-        // Set up allocation variables
-        currentBrk = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
-        mallocStart = heapBase;
-        mallocEnd = currentBrk;
 
         // Copy the function name into argv[0]
         U32 argv0 = argvStart + sizeof(U32);
@@ -472,10 +467,7 @@ namespace wasm {
             logger->error("No memory for mapping");
             throw std::runtime_error("Run out of memory to map");
         }
-
-        // Update brk
-        currentBrk = (previousPageCount + pagesRequested) * IR::numBytesPerPage;
-
+        
         // Get pointer to mapped range
         auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);
 
@@ -507,20 +499,24 @@ namespace wasm {
         return sharedMemWasmPtrs[kv->key];
     }
 
-    I32 WasmModule::malloc(I32 size) {
-        return 0;
-    }
+    I32 WasmModule::sBrk(U32 increment) {
+        Uptr currentBrk = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
+        if(increment == 0) {
+            // Calling with zero is the same as calling brk with zero,
+            // return the current break
+            return currentBrk;
+        }
 
-    I32 WasmModule::calloc(I32 nmemb, I32 size) {
-        return 0;
-    }
+        U32 target = currentBrk + increment;
+        int brkResult = this->brk(target);
 
-    void WasmModule::free(I32 ptr) {
-
-    }
-
-    I32 WasmModule::posixMemalign(I32 memPtrPtr, I32 alignment, I32 size) {
-        return 0;
+        if(brkResult == EXPAND_SUCCESS) {
+            // Return the new break
+            Uptr newBrk = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
+            return newBrk;
+        } else {
+            return -1;
+        }
     }
 
     I32 WasmModule::brk(U32 newSize) {
@@ -548,25 +544,6 @@ namespace wasm {
             throw std::runtime_error("Something has gone seriously wrong with brk");
         }
 
-        // Update brk
-        currentBrk = targetPageCount * IR::numBytesPerPage;
-
         return EXPAND_SUCCESS;
-    }
-
-    unsigned long WasmModule::getCurrentBrk() {
-        return currentBrk;
-    }
-
-    unsigned long WasmModule::getHeapBase() {
-        return heapBase;
-    }
-
-    unsigned long WasmModule::getMallocStart() {
-        return mallocStart;
-    }
-
-    unsigned long WasmModule::getMallocEnd() {
-        return mallocEnd;
     }
 }

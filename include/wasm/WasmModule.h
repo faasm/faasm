@@ -69,13 +69,7 @@ namespace wasm {
 
         I32 brk(U32 newSize);
 
-        unsigned long getCurrentBrk();
-
-        unsigned long getHeapBase();
-
-        unsigned long getMallocStart();
-
-        unsigned long getMallocEnd();
+        I32 sBrk(U32 increment);
 
         void snapshotFullMemory(const char *key);
 
@@ -98,11 +92,8 @@ namespace wasm {
 
         int dynamicModuleCount = 0;
 
-        unsigned long currentBrk = 0;
         unsigned long heapBase = 0;
         unsigned long dataEnd = 0;
-        unsigned long mallocStart = 0;
-        unsigned long mallocEnd = 0;
 
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
         Runtime::GCPointer<Runtime::Function> functionInstance;

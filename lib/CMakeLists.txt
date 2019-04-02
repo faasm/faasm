@@ -3,7 +3,6 @@ project(libfaasm)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# Include Faasm headers
 include_directories(${CMAKE_CURRENT_LIST_DIR})
 
 set(LIB_FILES
@@ -29,19 +28,17 @@ set(PUBLIC_HEADERS
         faasm/time.h
         )
 
-if (FAASM_BUILD_TYPE STREQUAL "wasm")
-    message(STATUS "Running libfaasm wasm build")
-
-    set(CMAKE_CXX_FLAGS "${LIB_COMPILER_FLAGS}")
-    set(CMAKE_C_FLAGS "${LIB_COMPILER_FLAGS}")
-
-elseif (FAASM_BUILD_TYPE STREQUAL "emscripten")
+if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     add_definitions(-DWASM_BUILD=1)
+    set(MALLOC_LIB "dlmalloc")
 else ()
     add_definitions(-DWASM_BUILD=0)
+    set(MALLOC_LIB "")
 endif ()
 
 add_library(faasm STATIC ${LIB_FILES})
+
+target_link_libraries(faasm ${MALLOC_LIB})
 
 set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 

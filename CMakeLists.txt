@@ -121,6 +121,9 @@ else ()
     # Faasm library
     add_subdirectory(lib)
 
+    # Custom malloc
+    add_subdirectory(malloc)
+
     # Experiments
     add_subdirectory(experiment)
 

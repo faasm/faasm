@@ -29,27 +29,14 @@ endif ()
 
 
 # Define functions for building
-if (FAASM_BUILD_TYPE STREQUAL "wasm")
-    set(CMAKE_CXX_FLAGS "${STANDARD_EXE_FLAGS}")
-    set(CMAKE_C_FLAGS "${STANDARD_EXE_FLAGS}")
-
-    # ----------------------
-    # WASM build
-    # ----------------------
-    function(faasm_func exec_name file_name)
-        add_executable(${exec_name} ${file_name})
-        set_target_properties(${exec_name} PROPERTIES OUTPUT_NAME ${exec_name}.wasm)
-        target_link_libraries(${exec_name} faasm)
-    endfunction(faasm_func)
-
-elseif (FAASM_BUILD_TYPE STREQUAL "emscripten")
+if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     # ----------------------
     # Emscripten build
     # ----------------------
 
     function(faasm_func exec_name file_name)
         add_executable(${exec_name} ${file_name})
-        target_link_libraries(${exec_name} faasm)
+        target_link_libraries(${exec_name} faasm dlmalloc)
     endfunction(faasm_func)
 
 elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
@@ -62,7 +49,6 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
 
         # Add custom target to build Lambda zip file
         aws_lambda_package_target(${func_name}-lambda)
-
     endfunction(faasm_func)
 
 else ()

@@ -1,8 +1,7 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <vector>
-
+#include <malloc.h>
 
 int main(int argc, char *argv[]) {
     std::vector<int> sizes = {8, 8, 32, 4, 240, 240, 56, 4, 12, 12, 24, 24, 24, 512, 512};

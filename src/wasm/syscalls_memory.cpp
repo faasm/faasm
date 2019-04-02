@@ -124,7 +124,7 @@ namespace wasm {
         const U32 currentBreak = (U32) ((getMemoryNumPages(memory) * IR::numBytesPerPage));
 
         // Attempt the expansion
-        int expandRes = getExecutingModule()->brk(addr);
+        int expandRes = getExecutingModule()->brk(currentBreak + addr);
 
         if (expandRes == EXPAND_TOO_BIG) {
             return currentBreak;
@@ -140,22 +140,7 @@ namespace wasm {
         util::getLogger()->debug("S - sbrk - {}", increment);
 
         WasmModule *module = getExecutingModule();
-        Runtime::Memory *memory = module->defaultMemory;
-        const U32 currentBreak = (U32) ((getMemoryNumPages(memory) * IR::numBytesPerPage));
-
-        if (increment == 0) {
-            return currentBreak;
-        }
-
-        U32 target = currentBreak + increment;
-        int expandRes = module->brk(target);
-
-        if (expandRes == EXPAND_TOO_BIG) {
-            return currentBreak;
-        } else {
-            // Success, return requested break
-            return (U32) target;
-        }
+        return module->sBrk(increment);
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state", void, __faasm_push_state, I32 keyPtr) {
@@ -365,30 +350,5 @@ namespace wasm {
 
         std::string key = getStringFromWasm(keyPtr);
         module->restoreFullMemory(key.c_str());
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "malloc", I32, malloc, I32 size) {
-        util::getLogger()->debug("S - malloc - {}", size);
-        return getExecutingModule()->malloc(size);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "realloc", I32, realloc, I32 ptr, I32 size) {
-        util::getLogger()->debug("S - realloc - {} {}", ptr, size);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "calloc", I32, calloc, I32 nmemb, I32 size) {
-        util::getLogger()->debug("S - calloc - {} {}", nmemb, size);
-        return getExecutingModule()->calloc(nmemb, size);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "free", void, free, I32 ptr) {
-        util::getLogger()->debug("S - free - {}", ptr);
-        return getExecutingModule()->free(ptr);
-    }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "posix_memalign", I32, posix_memalign, I32 memPtrPtr, I32 alignment, I32 size) {
-        util::getLogger()->debug("S - posix_memalign - {} {} {}", memPtrPtr, alignment, size);
-        return getExecutingModule()->posixMemalign(memPtrPtr, alignment, size);
     }
 }

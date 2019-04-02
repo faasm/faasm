@@ -18,6 +18,7 @@ from tasks.aws import (
 )
 from tasks.compile import (
     funcs,
+    compile_malloc,
     compile_libfaasm,
     compile_eigen,
     compile_libfake,
