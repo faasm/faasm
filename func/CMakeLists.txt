@@ -17,13 +17,16 @@ if (FAASM_BUILD_TYPE STREQUAL "emscripten")
 
     add_definitions(-DWASM_BUILD=1)
 
-    # NOTE the stack-first here is really important to help detect stack overflow
-    # issues. Without it the stack will overflow into the global data
+    # -------- NOTE ----------
+    # The stack-first here is really important to help detect stack overflow
+    # issues. Without it the stack will overflow into the global data.
+    # stack-size is also crucial to bigger functions not messing up
     SET(CMAKE_EXE_LINKER_FLAGS "-Xlinker --no-entry \
     -Xlinker --export=main \
     -Xlinker --max-memory=1073741824 \
     -Xlinker --stack-first \
     -Xlinker --threads \
+    -Wl,-z,stack-size=1048576 -Wl, \
     ")
 
     SET(CMAKE_EXECUTABLE_SUFFIX ".wasm")

@@ -55,9 +55,7 @@ namespace tests {
     }
 
     TEST_CASE("Test setting up dummy data", "[sgd]") {
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
-        state::getGlobalState().forceClearAll();
+        cleanSystem();
 
         SgdParams params = getDummySgdParams();
         params.fullAsync = false;

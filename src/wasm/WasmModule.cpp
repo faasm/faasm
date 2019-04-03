@@ -107,7 +107,7 @@ namespace wasm {
     }
 
     void WasmModule::bindToFunction(const message::Message &msg) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+//        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         if (!_isInitialised) {
             throw std::runtime_error("Must initialise module before binding");
@@ -139,9 +139,9 @@ namespace wasm {
         this->defaultTable = Runtime::getDefaultTable(moduleInstance);
 
         // Snapshot initial state
-        logger->debug("Snapshotting {} pages of memory for restore", CLEAN_MEMORY_PAGES);
-        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
-        memSnapshot.createCopy(baseAddr, CLEAN_MEMORY_SIZE);
+//        logger->debug("Snapshotting {} pages of memory for restore", CLEAN_MEMORY_PAGES);
+//        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
+//        memSnapshot.createCopy(baseAddr, CLEAN_MEMORY_SIZE);
 
         // Record that this module is now bound
         _isBound = true;
@@ -354,11 +354,16 @@ namespace wasm {
     }
 
     void WasmModule::restoreMemory() {
-        this->resizeMemory(INITIAL_MEMORY_PAGES);
+        if(initialMemoryPages == 0) {
+            throw std::runtime_error("Initial memory pages not initialised");
+        }
+
+        // Shrink back to original size
+        this->resizeMemory(initialMemoryPages);
 
         // Restore initial memory in clean region
-        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
-        memSnapshot.restoreCopy(baseAddr);
+//        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
+//        memSnapshot.restoreCopy(baseAddr);
 
         // Reset shared memory variables
         sharedMemKVs.clear();
@@ -371,6 +376,22 @@ namespace wasm {
 //            void* hostPtr = sharedMemHostPtrs[p.first];
 //            kv->unmapSharedMemory(hostPtr);
 //        }
+    }
+
+    int WasmModule::getInitialMemoryPages() {
+        return initialMemoryPages;
+    }
+
+    int WasmModule::getHeapBase() {
+        return heapBase;
+    }
+
+    int WasmModule::getDataEnd() {
+        return dataEnd;
+    }
+    
+    int WasmModule::getStackTop() {
+        return stackTop;
     }
 
     void WasmModule::setErrno(int newValue) {
@@ -407,13 +428,23 @@ namespace wasm {
         Runtime::Context *context = Runtime::createContext(compartment);
 
         // Memory-related variables (these will be the same when stack first is switched on)
-        Uptr heapTop = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
+        initialMemoryPages = Runtime::getMemoryNumPages(defaultMemory);
+        Uptr initialMemorySize = initialMemoryPages * IR::numBytesPerPage;
+
         heapBase = this->getGlobalI32("__heap_base", context);
         dataEnd = this->getGlobalI32("__data_end", context);
-        logger->debug("heap_base = {}  data_end = {}  heap_top={}", heapBase, dataEnd, heapTop);
+        logger->debug("heap_base = {}  data_end = {}  heap_top={}", heapBase, dataEnd, initialMemorySize);
+
+        // The stack top variable should be the first global
+        IR::GlobalDef stackDef = module.globals.getDef(0);
+        if(!stackDef.type.isMutable) {
+            throw std::runtime_error("Found immutable stack top");
+        }
+
+        stackTop = stackDef.initializer.i32;
 
         // Set up invoke arguments just below the top of the memory (i.e. at the top of the dynamic section)
-        U32 argvStart = heapTop - 20;
+        U32 argvStart = initialMemorySize - 20;
         U32 argc = 0;
 
         // Copy the function name into argv[0]

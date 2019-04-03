@@ -59,14 +59,6 @@ namespace wasm {
 
         U32 mmapKey(std::shared_ptr<state::StateKeyValue> kv, U32 length);
 
-        I32 malloc(I32 size);
-
-        I32 calloc(I32 nmemb, I32 size);
-
-        void free(I32 ptr);
-
-        I32 posixMemalign(I32 memPtrPtr, I32 alignment, I32 size);
-
         I32 brk(U32 newSize);
 
         I32 sBrk(U32 increment);
@@ -85,6 +77,14 @@ namespace wasm {
 
         void setErrno(int newValue);
 
+        int getInitialMemoryPages();
+
+        int getHeapBase();
+
+        int getDataEnd();
+
+        int getStackTop();
+
     private:
         IR::Module module;
 
@@ -92,8 +92,10 @@ namespace wasm {
 
         int dynamicModuleCount = 0;
 
-        unsigned long heapBase = 0;
-        unsigned long dataEnd = 0;
+        int initialMemoryPages = 0;
+        int heapBase = 0;
+        int dataEnd = 0;
+        int stackTop = 0;
 
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
         Runtime::GCPointer<Runtime::Function> functionInstance;

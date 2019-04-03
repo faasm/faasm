@@ -18,9 +18,13 @@ namespace wasm {
     // memory that the module will need.
     const int ONE_MB_PAGES = 16;
     const int ONE_GB_PAGES = 1024 * ONE_MB_PAGES;
+    const int ONE_MB_BYTES = 1024 * 1024;
 
-    const int INITIAL_MEMORY_PAGES = 1024 * ONE_MB_PAGES;
+    // Stack size and max memory are hard-coded in the build
+    const int STACK_SIZE = ONE_MB_BYTES;
     const int MAX_MEMORY_PAGES = ONE_GB_PAGES;
+
+    // const int INITIAL_MEMORY_PAGES = 1024 * ONE_MB_PAGES; // Hard-coded in build
 
     const int MAX_TABLE_SIZE = 500000;
 
