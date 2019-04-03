@@ -30,7 +30,7 @@ int main() {
 
     // Initialise weights to zero
     Eigen::MatrixXd weights = faasm::zeroMatrix(1, p.nWeights);
-    bool fullAsync = getEnvFullAsync();
+    bool fullAsync = getEnvFullAsync(&memory);
     writeMatrixToState(&memory, WEIGHTS_KEY, weights, fullAsync);
 
     // Clear out existing state

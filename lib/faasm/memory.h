@@ -115,6 +115,12 @@ namespace faasm {
          * Restore the current memory from a snapshot
          */
         void restore(const char *name);
+
+        /**
+         * Gets values from the faasm config
+         */
+        void readConfig(const char *varName, char* buffer);
+
     };
 }
 

@@ -24,16 +24,12 @@
 using namespace WAVM;
 
 namespace wasm {
+    // This seems to be a constant...
+    static const int ERRNO_ADDR = 31;
+
     // This is the number of pages we copy and restore for each reuse of the module.
     const int CLEAN_MEMORY_PAGES = 1;
     const int CLEAN_MEMORY_SIZE = CLEAN_MEMORY_PAGES * IR::numBytesPerPage;
-
-    int expandMemory(U32 newSize);
-    U32 dynamicAllocString(Runtime::Memory *memory, const char* str, U32 len);
-    U32 dynamicAlloc(Runtime::Memory *memory, U32 numBytes);
-
-    void setEmscriptenDynamicTop(U32 newValue);
-    U32 getEmscriptenDynamicTop();
 
     Uptr getNumberOfPagesForBytes(U32 nBytes);
 
@@ -51,25 +47,55 @@ namespace wasm {
 
         Runtime::GCPointer<Runtime::Memory> defaultMemory;
 
+        Runtime::GCPointer<Runtime::Table> defaultTable;
+
         Runtime::GCPointer<Runtime::Compartment> compartment;
 
         bool isInitialised();
 
         bool isBound();
 
-        bool isEmscripten();
-
         U32 mmap(U32 length);
 
         U32 mmapKey(std::shared_ptr<state::StateKeyValue> kv, U32 length);
 
-        void snapshotFullMemory(const char* key);
+        I32 brk(U32 newSize);
 
-        void restoreFullMemory(const char* key);
+        I32 sBrk(U32 increment);
+
+        void snapshotFullMemory(const char *key);
+
+        void restoreFullMemory(const char *key);
 
         void restoreMemory();
+
+        int dynamicLoadModule(const std::string &path, Runtime::Context *context);
+
+        Uptr getDynamicModuleFunction(int handle, const std::string &funcName);
+
+        Runtime::Function *getFunction(const std::string &funcName);
+
+        void setErrno(int newValue);
+
+        int getInitialMemoryPages();
+
+        int getHeapBase();
+
+        int getDataEnd();
+
+        int getStackTop();
+
     private:
         IR::Module module;
+
+        int errnoLocation = 0;
+
+        int dynamicModuleCount = 0;
+
+        int initialMemoryPages = 0;
+        int heapBase = 0;
+        int dataEnd = 0;
+        int stackTop = 0;
 
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
         Runtime::GCPointer<Runtime::Function> functionInstance;
@@ -81,13 +107,29 @@ namespace wasm {
         std::string boundUser;
         std::string boundFunction;
 
+        // Shared memory regions
         std::unordered_map<std::string, I32> sharedMemWasmPtrs;
-        std::unordered_map<std::string, void*> sharedMemHostPtrs;
+        std::unordered_map<std::string, void *> sharedMemHostPtrs;
         std::unordered_map<std::string, std::shared_ptr<state::StateKeyValue>> sharedMemKVs;
+
+        // Map of dynamically loaded modules
+        std::unordered_map<std::string, int> dynamicPathToHandleMap;
+        std::unordered_map<int, Runtime::GCPointer<Runtime::ModuleInstance>> dynamicModuleMap;
 
         memory::MemorySnapshot memSnapshot;
 
         void resizeMemory(size_t targetPages);
+
+        Runtime::ModuleInstance *
+        createModuleInstance(
+                IR::Module &irModule,
+                const std::vector<uint8_t> &wasmBytes,
+                const std::vector<uint8_t> &objBytes,
+                const std::string &name,
+                bool isMainModule
+        );
+
+        I32 getGlobalI32(const std::string &globalName, Runtime::Context *context);
     };
 
     WasmModule *getExecutingModule();

@@ -6,8 +6,12 @@
 /** Attempts to open a blocked file */
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        FILE * fp;
+        FILE *fp;
         fp = fopen("/etc/passwd", "r");
+
+        if (fp == NULL) {
+            return 1;
+        }
 
         char buffer[100];
 

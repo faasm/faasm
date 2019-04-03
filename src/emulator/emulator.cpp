@@ -17,18 +17,6 @@ void resetEmulatorUser() {
     user = "demo";
 }
 
-char *_getenv(const char *var) {
-    return getenv(var);
-}
-
-int _setenv(const char *var, const char *value, int overwrite) {
-    return setenv(var, value, overwrite);
-}
-
-int _unsetenv(const char *var) {
-    return unsetenv(var);
-}
-
 std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {
     state::State &s = state::getGlobalState();
     return s.getKV(user, key, size);
@@ -152,4 +140,21 @@ void __faasm_restore_memory(const char *key) {
 
 }
 
+void __faasm_read_config(const char *varName, char *buffer) {
+    util::SystemConfig &conf = util::getSystemConfig();
+
+    if (strcmp(varName, "FULL_ASYNC") == 0) {
+        if (conf.fullAsync == 1) {
+            strcpy(buffer, "1");
+        } else {
+            strcpy(buffer, "0");
+        }
+    } else if (strcmp(varName, "FULL_SYNC") == 0) {
+        if (conf.fullSync == 1) {
+            strcpy(buffer, "1");
+        } else {
+            strcpy(buffer, "0");
+        }
+    }
+}
 

@@ -34,5 +34,7 @@ def wast(context, user, func_name):
     ]
 
     cmd = " ".join(cmd)
-    print(cmd)
     call(cmd, shell=True, cwd=func_dir)
+
+    call("head -40 {}".format(wast_path), shell=True)
+    print("vim {}".format(wast_path))

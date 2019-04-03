@@ -7,18 +7,15 @@
 using namespace Eigen;
 
 namespace faasm {
-    bool _getEnvVarBool(const char *varName) {
-        char *envVal = getenv(varName);
+    bool _getEnvVarBool(FaasmMemory *memory, const char *varName) {
+        char envVal[3];
+        memory->readConfig(varName, envVal);
 
-        if (envVal == nullptr) {
-            return false;
-        } else {
-            return strcmp(envVal, "1") == 0;
-        }
+        return strcmp(envVal, "1") == 0;
     }
 
-    bool getEnvFullSync() {
-        bool result = _getEnvVarBool("FULL_SYNC");
+    bool getEnvFullSync(FaasmMemory *memory) {
+        bool result = _getEnvVarBool(memory, "FULL_SYNC");
 
         if (result) {
             printf("SGD running full sync\n");
@@ -29,8 +26,8 @@ namespace faasm {
         return result;
     }
 
-    bool getEnvFullAsync() {
-        bool result = _getEnvVarBool("FULL_ASYNC");
+    bool getEnvFullAsync(FaasmMemory *memory) {
+        bool result = _getEnvVarBool(memory, "FULL_ASYNC");
 
         if (result) {
             printf("SGD running full async\n");
@@ -57,8 +54,8 @@ namespace faasm {
         p.batchSize = (REUTERS_N_EXAMPLES + nBatches - 1) / nBatches;
 
         // Full async or not
-        p.fullAsync = getEnvFullAsync();
-        p.fullSync = getEnvFullSync();
+        p.fullAsync = getEnvFullAsync(memory);
+        p.fullSync = getEnvFullSync(memory);
 
         // How many examples should be processed before doing a synchronous read
         // to update worker's weights

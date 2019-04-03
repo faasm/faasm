@@ -17,4 +17,5 @@ namespace tests {
     void checkMessageEquality(const message::Message &msgA, const message::Message &msgB);
 
     worker::WorkerThread execFunction(message::Message &msg);
+    std::string execFunctionWithStringResult(message::Message &msg);
 }

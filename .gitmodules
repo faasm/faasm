@@ -1,6 +1,9 @@
 [submodule "WAVM"]
     path = WAVM
     url = git@github.com:WAVM/WAVM.git
-[submodule "cpython-emscripten"]
-	path = cpython-emscripten
-	url = git@github.com:dgym/cpython-emscripten.git
+[submodule "pyodide"]
+	path = pyodide
+	url = git@github.com:Shillaker/pyodide
+[submodule "musl"]
+	path = musl
+	url = git@github.com:Shillaker/musl

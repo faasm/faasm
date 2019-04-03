@@ -6,7 +6,7 @@
 namespace faasm {
     int exec(FaasmMemory *memory) {
         // Load params
-        bool fullAsync = getEnvFullAsync();
+        bool fullAsync = getEnvFullAsync(memory);
         SgdParams p = readParamsFromState(memory, PARAMS_KEY, fullAsync);
 
         // Set per-epoch memory to zero

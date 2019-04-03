@@ -11,7 +11,6 @@ def pull(context):
         "faasm/edge",
         "faasm/data",
         "faasm/upload",
-        "faasm/toolchain",
     ]
 
     for image in images:
@@ -23,24 +22,6 @@ def pull(context):
 
         cmd = " ".join(cmd)
         call(cmd, shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def tools(context):
-    cmd = [
-        "docker",
-        "run",
-        "-v {}:/work".format(PROJ_ROOT),
-        "-v {}/faasm:/root/faasm".format(HOME_DIR),
-        "-w /work",
-        "-it",
-        "--net=host",
-        "faasm/toolchain",
-        "/bin/bash"
-    ]
-    cmd = " ".join(cmd)
-
-    call(cmd, shell=True, cwd=PROJ_ROOT)
 
 
 @task
@@ -104,18 +85,6 @@ def build_redis(context):
 @task
 def push_redis(context):
     call("docker push faasm/redis", shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def build_toolchain(context):
-    cmd = "docker build -t faasm/toolchain -f docker/toolchain.dockerfile ."
-    print(cmd)
-    call(cmd, shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def push_toolchain(context):
-    call("docker push faasm/toolchain", shell=True, cwd=PROJ_ROOT)
 
 
 @task

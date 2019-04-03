@@ -8,16 +8,11 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g")
 # set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -O0")
 # set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Oz")
 
-# set(WAVM_ENABLE_ASAN OFF)
-# set(WAVM_ENABLE_UBSAN OFF)
-# set(WAVM_ENABLE_TSAN OFF)
-
 set(FAASM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
 set(FAASM_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lib)
 set(FAASM_LAMBDA_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lambda)
 set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/WAVM/Lib)
-set(FAASM_WAVM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/WAVM/Include)
 
 # Stops WAVM compilation complaining
 add_definitions(-DDLL_EXPORT=)
@@ -44,7 +39,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 include_directories(
         ${FAASM_INCLUDE_DIR}
         ${FAASM_LIB_DIR}
-        ${FAASM_WAVM_INCLUDE_DIR} # Required for using WAVM elsewhere
         ${CMAKE_CURRENT_BINARY_DIR}/src # Required for protobuf
 )
 
@@ -127,6 +121,9 @@ else ()
     # Faasm library
     add_subdirectory(lib)
 
+    # Custom malloc
+    add_subdirectory(malloc)
+
     # Experiments
     add_subdirectory(experiment)
 
@@ -141,8 +138,8 @@ else ()
     add_subdirectory(src/memory)
     add_subdirectory(src/prof)
     add_subdirectory(src/proto)
-    add_subdirectory(src/python)
     add_subdirectory(src/redis)
+    add_subdirectory(src/runner)
     add_subdirectory(src/scheduler)
     add_subdirectory(src/state)
     add_subdirectory(src/upload)

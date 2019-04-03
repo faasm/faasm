@@ -1,11 +1,13 @@
 #include "faasm/faasm.h"
+#include "faasm/print.h"
 #include "faasm/sgd.h"
+
 
 #include <string>
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        bool fullAsync = getEnvFullAsync();
+        bool fullAsync = getEnvFullAsync(memory);
         SgdParams p = readParamsFromState(memory, PARAMS_KEY, fullAsync);
 
         // Get loss values from state
@@ -28,7 +30,9 @@ namespace faasm {
             double relativeTs = ts[l] - ts[0];
 
             // Overwrite the last null terminator
-            sprintf(lossString + offset, "%.2f - %.4f, ", relativeTs, losses[l]);
+            char* tsString = faasm::floatToStr(relativeTs);
+            char* thisLossString = faasm::floatToStr(losses[l]);
+            sprintf(lossString + offset, "%s - %s, ", tsString, thisLossString);
             offset = strlen(lossString);
         }
 

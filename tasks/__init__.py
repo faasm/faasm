@@ -17,15 +17,11 @@ from tasks.aws import (
     prepare_lambda_workers,
 )
 from tasks.compile import (
-    clean_build,
     funcs,
-    funcs_emscripten,
-    funcs_python,
+    compile_malloc,
     compile_libfaasm,
-    compile_libfaasm_emscripten,
     compile_eigen,
-    compile_eigen_emscripten,
-    compile_libcurl,
+    compile_libfake,
 )
 from tasks.docker import (
     build_all,
@@ -35,7 +31,6 @@ from tasks.docker import (
     build_redis,
     build_worker,
     build_upload,
-    build_toolchain,
     data,
     purge_images,
     push_all,
@@ -44,18 +39,13 @@ from tasks.docker import (
     push_redis,
     push_upload,
     push_worker,
-    push_toolchain,
-    tools,
     pull,
     push_base
 )
 from tasks.docker_compose import start_all, stop_all, restart_all
 from tasks.python import (
-    build_python_host,
-    build_python,
-    build_emscripten_cpython,
     build_pyodide_cpython,
-    set_up_python_root,
+    python_codegen,
 )
 from tasks.sgd import (
     begin_aws_svm,

@@ -3,35 +3,14 @@ project(libfaasm)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# Include Faasm headers
-include_directories(
-        ${CMAKE_CURRENT_LIST_DIR}
-)
+include_directories(${CMAKE_CURRENT_LIST_DIR})
 
-# Emscripten doesn't seem to look in normal system includes so we explicitly have to tell it to
-if (${EMSCRIPTEN})
-    include_directories(/usr/local/include/)
-endif()
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic -fvisibility=default")
-
-# For some incredibly annoying reason, CMake isn't picking this up from the environment
-# It's crucial for getting things to link properly so unfortunately must be set here
-if (FAASM_BUILD_TYPE STREQUAL "wasm")
-    message(STATUS "Running libfaasm wasm build")
-    add_definitions(-DWASM_BUILD=1)
-    set(CMAKE_RANLIB /toolchain/bin/llvm-ranlib)
-elseif(${EMSCRIPTEN})
-    add_definitions(-DWASM_BUILD=0)
-else()
-    add_definitions(-DWASM_BUILD=0)
-endif()
-
-add_library(faasm STATIC
+set(LIB_FILES
         counter.cpp
         func.cpp
         matrix.cpp
         memory.cpp
+        print.cpp
         random.cpp
         sgd.cpp
         time.cpp
@@ -43,27 +22,31 @@ set(PUBLIC_HEADERS
         faasm/func.h
         faasm/matrix.h
         faasm/memory.h
+        faasm/print.h
         faasm/random.h
         faasm/sgd.h
         faasm/time.h
         )
 
+if (FAASM_BUILD_TYPE STREQUAL "emscripten")
+    add_definitions(-DWASM_BUILD=1)
+    set(MALLOC_LIB "dlmalloc")
+else ()
+    add_definitions(-DWASM_BUILD=0)
+    set(MALLOC_LIB "")
+endif ()
+
+add_library(faasm STATIC ${LIB_FILES})
+
+target_link_libraries(faasm ${MALLOC_LIB})
+
 set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
-if(FAASM_BUILD_TYPE STREQUAL "wasm")
-    install(TARGETS faasm
-            ARCHIVE DESTINATION /toolchain/sysroot/lib
-            LIBRARY DESTINATION /toolchain/sysroot/lib
-            PUBLIC_HEADER DESTINATION /toolchain/sysroot/include/faasm
-            )
+install(TARGETS faasm
+        ARCHIVE DESTINATION ${CMAKE_SYSROOT}/lib
+        LIBRARY DESTINATION ${CMAKE_SYSROOT}/lib
+        RUNTIME DESTINATION ${CMAKE_SYSROOT}/bin
+        PUBLIC_HEADER DESTINATION ${CMAKE_SYSROOT}/include/faasm
+        )
 
-    # Copy imports file into place
-    install(FILES libfaasm.imports DESTINATION /toolchain/sysroot/lib/)
-else()
-    install(TARGETS faasm
-            ARCHIVE DESTINATION lib
-            LIBRARY DESTINATION lib
-            RUNTIME DESTINATION bin
-            PUBLIC_HEADER DESTINATION include/faasm
-            )
-endif()
+install(FILES libfaasm.imports DESTINATION ${CMAKE_SYSROOT}/lib/)

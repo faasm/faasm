@@ -3,38 +3,46 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include <vector>
+#include <string>
 
 namespace faasm {
-    int listDir() {
-        // Native versions commented out
-        const char *dirName = "lib/python3.5";
-//        const char *dirName = "/usr/lib";
+    int exec(FaasmMemory *memory) {
+        long inputSize = memory->getInputSize();
+        auto inputBuffer = new uint8_t[inputSize];
+        memory->getInput(inputBuffer, inputSize);
+
+        auto dirName = reinterpret_cast<char *>(inputBuffer);
 
         DIR *dirp = opendir(dirName);
-        if(dirp == nullptr) {
-            printf("Couldn't open dir %s", dirName);
+        if (dirp == nullptr) {
+            printf("Couldn't open dir %s\n", dirName);
             return 1;
         }
 
         struct dirent *dp;
+        std::string output;
+
         printf("ino        d_off            reclen   d_type   name\n");
-        while ((dp = readdir(dirp)) != NULL) {
+
+        int count = 0;
+        while ((dp = readdir(dirp)) != NULL && count < 10) {
             ino_t d_ino = dp->d_ino;
             off_t off = dp->d_off;
             unsigned short reclen = dp->d_reclen;
             unsigned char d_type = dp->d_type;
-            char *name256 = dp->d_name;
+            char *name = dp->d_name;
 
-            printf("%u   %i   %i   %u   %s\n", (unsigned int) d_ino, (int) off, reclen, d_type, name256);
-//            printf("%li   %li   %i   %u   %s\n", d_ino, off, reclen, d_type, name256);
+            output += name + std::string(",");
+
+            printf("%u   %i   %i   %u   %s\n", (unsigned int) d_ino, (int) off, reclen, d_type, name);
+            count++;
         }
 
         closedir(dirp);
 
-        return 0;
-    }
+        memory->setOutput(reinterpret_cast<const uint8_t *>(output.c_str()), output.size());
 
-    int exec(FaasmMemory *memory) {
-        return listDir();
+        return 0;
     }
 }

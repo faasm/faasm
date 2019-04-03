@@ -1,5 +1,23 @@
 {
-  "extends": "../../node_modules/assemblyscript/std/assembly.json",
+  "compilerOptions": {
+    "alwaysStrict": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noEmitOnError": true,
+    "strictNullChecks": true,
+    "experimentalDecorators": true,
+    "target": "esnext",
+    "module": "commonjs",
+    "noLib": true,
+    "allowJs": false,
+    "typeRoots": [
+      "../node_modules/assemblyscript/std/types"
+    ],
+    "types": [
+      "../node_modules/assemblyscript/std/assembly"
+    ]
+  },
   "include": [
     "./**/*.ts"
   ]

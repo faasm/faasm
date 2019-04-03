@@ -29,20 +29,20 @@ namespace tests {
         REQUIRE(outputBytes[3] == 3);
     }
 
-    TEST_CASE("Test printf doesn't fail", "[wasm]") {
-        message::Message call;
-        call.set_user("demo");
-        call.set_function("print");
-
-        wasm::CallChain callChain(call);
-
-        wasm::WasmModule module;
-        module.initialise();
-        module.bindToFunction(call);
-
-        int result = module.execute(call, callChain);
-        REQUIRE(result == 0);
-    }
+//    TEST_CASE("Test printf doesn't fail", "[wasm]") {
+//        message::Message call;
+//        call.set_user("demo");
+//        call.set_function("print");
+//
+//        wasm::CallChain callChain(call);
+//
+//        wasm::WasmModule module;
+//        module.initialise();
+//        module.bindToFunction(call);
+//
+//        int result = module.execute(call, callChain);
+//        REQUIRE(result == 0);
+//    }
 
     void executeX2(wasm::WasmModule &module) {
         message::Message call;
@@ -178,5 +178,30 @@ namespace tests {
         module.restoreMemory();
         Uptr pagesRestored = Runtime::getMemoryNumPages(module.defaultMemory);
         REQUIRE(pagesRestored == initialPages);
+    }
+
+    TEST_CASE("Test memory variables set up", "[wasm]") {
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("malloc");
+
+        wasm::WasmModule module;
+        module.initialise();
+        module.bindToFunction(call);
+        wasm::CallChain callChain(call);
+
+        module.execute(call, callChain);
+
+        int initialMemorySize = module.getInitialMemoryPages() * IR::numBytesPerPage;
+        
+        // Heap base and data end must be the same (i.e. stack going first)
+        REQUIRE(module.getHeapBase() == module.getDataEnd());
+        REQUIRE(module.getStackTop() < module.getDataEnd());
+
+        // Check stack is getting set to the expected size
+        REQUIRE(module.getStackTop() == wasm::STACK_SIZE);
+
+        // Sense check that the initial memory is set to be bigger than the heap base
+        REQUIRE(initialMemorySize > module.getHeapBase());
     }
 }

@@ -31,7 +31,7 @@ namespace data {
 
     void run(int epoch, int batchNumber) {
         FaasmMemory memory;
-        bool fullAsync = getEnvFullAsync();
+        bool fullAsync = getEnvFullAsync(&memory);
         SgdParams params = readParamsFromState(&memory, PARAMS_KEY, fullAsync);
 
         int startIdx = batchNumber * params.batchSize;

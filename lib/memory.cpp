@@ -45,6 +45,8 @@ void __faasm_snapshot_memory(const char *key);
 
 void __faasm_restore_memory(const char *key);
 
+void __faasm_read_config(const char *varName, char * buffer);
+
 #if WASM_BUILD == 1
 }  // Close extern C
 #endif
@@ -144,4 +146,8 @@ namespace faasm {
     void FaasmMemory::restore(const char *key) {
         __faasm_restore_memory(key);
     }
-};
+
+    void FaasmMemory::readConfig(const char *varName, char* buffer) {
+        __faasm_read_config(varName, buffer);
+    }
+}

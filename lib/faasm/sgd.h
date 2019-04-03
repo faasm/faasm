@@ -50,9 +50,9 @@ namespace faasm {
         int syncInterval;
     };
 
-    bool getEnvFullAsync();
+    bool getEnvFullAsync(FaasmMemory *memory);
 
-    bool getEnvFullSync();
+    bool getEnvFullSync(FaasmMemory *memory);
 
     SgdParams setUpReutersParams(FaasmMemory *memory, int nBatches, int epochs);
 

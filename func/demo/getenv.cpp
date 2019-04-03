@@ -1,36 +1,31 @@
 #include "faasm/faasm.h"
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
+
 
 namespace faasm {
-    char *printEnv(const char *varName) {
-        char *val = getenv(varName);
-
-        if (val == NULL) {
-            printf("%s=NULL\n", varName);
-        } else {
-            printf("%s=%s\n", varName, val);
-        }
-
-        return val;
-    }
-
     int exec(FaasmMemory *memory) {
-        char *actual = printEnv("FULL_ASYNC");
-        printEnv("LANG");
-        printEnv("LC_CTYPE");
-        printEnv("PYTHONHOME");
+        const char *varName = "FOOBAR";
+        char *unset = getenv(varName);
 
-        uint8_t outputBuf[1];
-        if (strcmp(actual, "1") == 0) {
-            outputBuf[0] = 1;
-        } else {
-            outputBuf[0] = 0;
+        if (unset != nullptr) {
+            printf("Was expecting %s not to be set \n", varName);
+            return 1;
         }
 
-        memory->setOutput(outputBuf, 1);
+        const char *expected = "BAZ";
+        setenv("FOOBAR", expected, 0);
+
+        char *actual = getenv(varName);
+        printf("FOOBAR=%s\n", actual);
+
+        if (strcmp(actual, "BAZ") != 0) {
+            printf("Was expecting %s to be set to %s\n", varName, expected);
+            return 1;
+        }
+
         return 0;
     }
 }

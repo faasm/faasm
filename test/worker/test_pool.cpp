@@ -428,7 +428,7 @@ namespace tests {
         checkCallingFunctionGivesBoolOutput("mmap", true);
     }
 
-    TEST_CASE("Test getenv", "[worker]") {
+    TEST_CASE("Test config", "[worker]") {
         setUp();
 
         bool expected;
@@ -444,7 +444,7 @@ namespace tests {
             expected = false;
         }
 
-        checkCallingFunctionGivesBoolOutput("getenv", expected);
+        checkCallingFunctionGivesBoolOutput("read_conf", expected);
         util::unsetEnvVar("FULL_ASYNC");
     }
 
@@ -538,5 +538,17 @@ namespace tests {
         REQUIRE(sch.getFunctionThreadCount(call) == 0);
         REQUIRE(bindQueue->size() == 0);
         REQUIRE(!redis.sismember(workerSetName, nodeId));
+    }
+
+    TEST_CASE("Test argv", "[worker]") {
+        cleanSystem();
+
+        message::Message msg;
+        msg.set_user("demo");
+        msg.set_function("argv");
+        msg.set_resultkey("argv_test");
+
+        // Will fail if invalid
+        execFunction(msg);
     }
 }

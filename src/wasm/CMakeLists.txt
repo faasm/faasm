@@ -13,11 +13,17 @@ add_library(wasm STATIC
         instance.cpp
         WasmModule.cpp
         syscalls.cpp
+        syscalls_dynlink.cpp
+        syscalls_env.cpp
+        syscalls_io.cpp
+        syscalls_memory.cpp
+        syscalls_network.cpp
+        syscalls_unsupported.cpp
+        syscalls_util.cpp
         ${HEADERS}
         )
 
-target_link_libraries(wasm scheduler memory state Logging IR WASTParse WASM Runtime)
+target_link_libraries(wasm scheduler memory state WAVM)
 
-add_executable(snapshot_runner snapshot_runner.cpp)
-target_link_libraries(snapshot_runner wasm)
-
+add_executable(codegen codegen.cpp)
+target_link_libraries(codegen wasm)

@@ -1,10 +1,10 @@
 # Faasm
 work/
-embuild/
 download/
 lambda_build/
 lambda_*_build/
 *_func_build/
+*_lib_build/
 
 # Ansible
 *.retry

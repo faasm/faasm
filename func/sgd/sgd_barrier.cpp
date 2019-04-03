@@ -2,12 +2,13 @@
 #include "faasm/faasm.h"
 #include "faasm/matrix.h"
 #include "faasm/counter.h"
+#include "faasm/print.h"
 #include "faasm/sgd.h"
 #include <unistd.h>
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        bool fullAsync = getEnvFullAsync();
+        bool fullAsync = getEnvFullAsync(memory);
         SgdParams p = readParamsFromState(memory, PARAMS_KEY, fullAsync);
 
         // Get epoch count and barrier count(starts at zero)
@@ -46,7 +47,9 @@ namespace faasm {
 
         // Drop out if finished all epochs
         if (thisEpoch >= p.nEpochs - 1) {
-            printf("SGD complete over %i epochs (time = %f, loss = %f)\n", thisEpoch, ts, loss);
+            char* tsString = faasm::floatToStr(ts);
+            char* lossString = faasm::floatToStr(ts);
+            printf("SGD complete over %i epochs (time = %s, loss = %s)\n", thisEpoch, tsString, lossString);
             return 0;
         }
 
@@ -57,7 +60,9 @@ namespace faasm {
         // Increment epoch counter
         incrementCounter(memory, EPOCH_COUNT_KEY, p.fullAsync);
         int nextEpoch = thisEpoch + 1;
-        printf("Starting epoch %i (time = %f, loss = %f)\n", nextEpoch, ts, loss);
+        char * tsString = faasm::floatToStr(ts);
+        char * lossString = faasm::floatToStr(loss);
+        printf("Starting epoch %i (time = %s, loss = %s)\n", nextEpoch, tsString, lossString);
 
         // Kick off next epoch
         memory->chainFunction("sgd_epoch");
