@@ -44,11 +44,10 @@ faasm_func(time_of_day time_of_day.cpp)
 faasm_func(random random.cpp)
 faasm_func(x2 x2.cpp)
 
-# Dynamic linking - these functions need to export all
-if (FAASM_BUILD_TYPE STREQUAL "wasm")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xlinker --export-all -Xlinker --no-gc-sections")
-
+if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     faasm_func(stackheap stackheap.cpp)
 endif()
 
+# Dynamic linking functions need to export everything
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xlinker --export-all -Xlinker --no-gc-sections")
 faasm_func(dynlink dynlink.cpp)
