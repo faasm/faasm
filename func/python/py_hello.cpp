@@ -13,6 +13,9 @@ int main(int argc, char *argv[]) {
 
     printf("Started python hello\n");
 
+    unsigned long threadIdent = PyThread_get_thread_ident();
+    printf("Thread ident: %lu\n", threadIdent);
+    
     Py_InitializeEx(0);
     printf("\n\nInitialised\n");
 
