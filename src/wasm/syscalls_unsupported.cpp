@@ -130,9 +130,14 @@ namespace wasm {
         return 0;
     }
 
+    DEFINE_INTRINSIC_FUNCTION(env, "_Unwind_DeleteException", void, _Unwind_DeleteException, I32 a) {
+        util::getLogger()->debug("S - _Unwind_DeleteException - {}", a);
+    }
+
     // --------------------------
     // Python-related dumping ground
     // --------------------------
+
     DEFINE_INTRINSIC_FUNCTION(env, "zlibVersion", I32, emscripten_zlibVersion ) {
         util::getLogger()->debug("S - zlibVersion");
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);

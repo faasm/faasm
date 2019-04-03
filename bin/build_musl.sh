@@ -37,7 +37,7 @@ ${BUILD_CMD}
 # Create archive and put in place
 echo "Creating archive"
 pushd ${MUSL_BUILD_DIR}
-llvm-ar rc libm.a
+${AR} rc libm.a
 cp libc.a libm.a crt1.o ${SYSROOT}/lib/
 popd
 

@@ -23,6 +23,7 @@ faasm_func(net net.cpp)
 faasm_func(new_obj new_obj.cpp)
 faasm_func(noop noop.cpp)
 faasm_func(print print.cpp)
+faasm_func(ptr_ptr ptr_ptr.cpp)
 faasm_func(read_conf read_conf.cpp)
 faasm_func(restore restore.cpp)
 faasm_func(simple simple.cpp)
@@ -48,6 +49,9 @@ if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     faasm_func(stackheap stackheap.cpp)
 endif()
 
-# Dynamic linking functions need to export everything
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xlinker --export-all -Xlinker --no-gc-sections")
+# Dynamic linking functions need to export everything when being build with emscripten
+if (FAASM_BUILD_TYPE STREQUAL "emscripten")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xlinker --export-all -Xlinker --no-gc-sections")
+endif()
+
 faasm_func(dynlink dynlink.cpp)
