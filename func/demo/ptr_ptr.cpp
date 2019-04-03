@@ -11,23 +11,28 @@ public:
 };
 
 void setMyClassPointer(MyClass **ptrPtr, int newInt) {
-    *ptrPtr = new MyClass(newInt);
+    MyClass *newPtr;
+
+    newPtr = new MyClass(newInt);
+
+    *ptrPtr = newPtr;
 }
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
         // Initially null pointer
-        MyClass *a;
+        MyClass *aPtr;
 
         // Set to something
-        setMyClassPointer(&a, 2);
+        MyClass **aPtrPtr = &aPtr;
+        setMyClassPointer(aPtrPtr, 2);
 
-        if(a == nullptr) {
+        if(aPtr == NULL) {
             printf("Pointer pointer causes null\n");
             return 1;
         }
 
-        if(a->myInt == 2) {
+        if(aPtr->myInt == 2) {
             printf("Pointer pointer handled properly\n");
             return 0;
         }
