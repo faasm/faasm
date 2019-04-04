@@ -6,6 +6,12 @@ if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     set(PYTHON_LIBRARIES "${PYODIDE_CPYTHON}/lib/libpython3.7d.a")
     set(PYTHON_INCLUDE_DIRS "${PYODIDE_CPYTHON}/include/python3.7d")
 
+    # Dynamic linking functions need to export everything
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -Xlinker --export-all \
+        -Xlinker --no-gc-sections \
+    ")
+
     set(EXTRA_LIBS "")
 else ()
     find_package(PythonLibs)
