@@ -223,7 +223,7 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "lockf", I32, emscripten_lockf , I32 a, I32 b, I32 c) {
+    DEFINE_INTRINSIC_FUNCTION(env, "lockf", I32, emscripten_lockf , I32 a, I32 b, I64 c) {
         util::getLogger()->debug("S - lockf - {} {} {}", a, b, c);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
