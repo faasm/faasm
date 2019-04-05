@@ -237,6 +237,18 @@ namespace wasm {
 
     I32 s__rename(I32 srcPtr, I32 destPtr);
 
+    I32 s__rt_sigprocmask(I32 how, I32 sigSetPtr, I32 oldSetPtr, I32 sigsetsize);
+
+    I32 s__sigaction(I32 a, I32 b, I32 c);
+
+    I32 s__sigaltstack(I32 ssPtr, I32 oldSsPtr);
+
+    I32 s__sigemptyset(I32 a);
+
+    I32 s__siginterrupt(I32 a, I32 b);
+
+    I32 s__signal(I32 a, I32 b);
+
     I32 s__socketcall(I32 call, I32 argsPtr);
 
     I32 s__stat64(I32 pathPtr, I32 statBufPtr);

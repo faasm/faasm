@@ -18,6 +18,7 @@ add_library(wasm STATIC
         syscalls_io.cpp
         syscalls_memory.cpp
         syscalls_network.cpp
+        syscalls_threads.cpp
         syscalls_unsupported.cpp
         syscalls_util.cpp
         ${HEADERS}
