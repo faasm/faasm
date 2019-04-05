@@ -43,10 +43,7 @@ from tasks.docker import (
     push_base
 )
 from tasks.docker_compose import start_all, stop_all, restart_all
-from tasks.python import (
-    build_pyodide_cpython,
-    python_codegen,
-)
+
 from tasks.sgd import (
     begin_aws_svm,
     deploy_sgd_wasm_lambda,
