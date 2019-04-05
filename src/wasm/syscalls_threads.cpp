@@ -12,7 +12,7 @@ namespace wasm {
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__pthread_self", I32, __pthread_self) {
-        util::getLogger()->debug("S - __pthread_self");
+        //util::getLogger()->debug("S - __pthread_self");
 
         return 1;
     }
