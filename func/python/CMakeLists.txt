@@ -7,7 +7,7 @@ if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     set(PYTHON_INCLUDE_DIRS "${PYODIDE_CPYTHON}/include/python3.7d")
 
     # Dynamic linking functions need to export everything
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+    SET(CMAKE_EXE_LINKER_FLAGS " ${CMAKE_EXE_LINKER_FLAGS}\
         -Xlinker --export-all \
         -Xlinker --no-gc-sections \
     ")

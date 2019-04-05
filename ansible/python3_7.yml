@@ -14,12 +14,11 @@
         chdir: "/tmp"
 
     - name: "Configure 3.7"
-      shell: "./configure"
+      shell: "./configure --prefix=/usr/local/faasm/python3.7"
       args:
         chdir: "/tmp/Python-3.7.0/"
 
     - name: "Install alt 3.7"
-      become: yes
       shell: "make altinstall"
       args:
         chdir: "/tmp/Python-3.7.0/"

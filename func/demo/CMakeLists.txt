@@ -52,7 +52,10 @@ endif()
 
 # Dynamic linking functions need to export everything when being build with emscripten
 if (FAASM_BUILD_TYPE STREQUAL "emscripten")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xlinker --export-all -Xlinker --no-gc-sections")
+    SET(CMAKE_EXE_LINKER_FLAGS " ${CMAKE_EXE_LINKER_FLAGS}\
+        -Xlinker --export-all \
+        -Xlinker --no-gc-sections \
+    ")
 endif()
 
 faasm_func(dynlink dynlink.cpp)
