@@ -5,7 +5,7 @@
 #include <util/func.h>
 
 namespace tests {
-    TEST_CASE("Test pointer to poitner", "[worker]") {
+    TEST_CASE("Test pointer to pointer", "[worker]") {
         cleanSystem();
 
         message::Message msg;

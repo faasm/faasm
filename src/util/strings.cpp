@@ -6,7 +6,12 @@
 namespace util {
     std::vector<std::string> tokeniseString(const std::string &input, char delimiter) {
         std::vector<std::string> results;
-        boost::split(results, input, [delimiter](char c) { return c == delimiter; });
+
+        // Create a trimmed copy
+        std::string copy(input);
+        boost::trim(copy);
+
+        boost::split(results, copy, [delimiter](char c) { return c == delimiter; });
 
         return results;
     }

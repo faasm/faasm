@@ -7,7 +7,7 @@
 namespace faasm {
     int exec(FaasmMemory *memory) {
         FILE *fp;
-        fp = fopen("/etc/passwd", "r");
+        fp = fopen("/etc/shadow", "r");
 
         if (fp == NULL) {
             return 1;

@@ -4,18 +4,15 @@
 
 #include <util/func.h>
 #include <util/config.h>
+#include <util/strings.h>
 
 
 namespace tests {
     TEST_CASE("Test gedents", "[worker]") {
         cleanSystem();
 
-        std::string dirName;
-        std::string expected;
-        SECTION("Valid directory") {
-            dirName = "lib/python3.7";
-            expected = "include,lib,..,.,";
-        }
+        // Note, our test function adds an extra comma, hence the blank
+        std::vector<std::string> expected = {"", ".", "..", "etc", "include", "lib"};
 
         util::SystemConfig &conf = util::getSystemConfig();
         conf.unsafeMode = "on";
@@ -26,7 +23,10 @@ namespace tests {
         msg.set_resultkey("getdents_test");
 
         const std::string result = execFunctionWithStringResult(msg);
-        REQUIRE(result == expected);
+        std::vector<std::string> actual = util::tokeniseString(result, ',');
+
+        std::sort(actual.begin(), actual.end());
+        REQUIRE(actual == expected);
 
         conf.reset();
     }
@@ -46,5 +46,30 @@ namespace tests {
         execFunction(msg);
 
         conf.reset();
+    }
+
+    TEST_CASE("Test demo functions", "[worker]") {
+        cleanSystem();
+
+        std::string funcName;
+
+        SECTION("fcntl") {
+            funcName = "fcntl";
+        }
+
+        SECTION("fread") {
+            funcName = "fread";
+        }
+
+        SECTION("fstat") {
+            funcName = "fstat";
+        }
+
+        message::Message msg;
+        msg.set_user("demo");
+        msg.set_function(funcName);
+        msg.set_resultkey(funcName + "_test");
+
+        execFunction(msg);
     }
 }
