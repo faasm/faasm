@@ -5,13 +5,16 @@
 namespace wasm {
     static const char *FAKE_NAME = "faasm";
     static const char *FAKE_PASSWORD = "foobar123";
-    static const char *FAKE_HOME = "/";
+    static const char *FAKE_USER = "faasm";
+    static const char *FAKE_HOME = "/home/faasm/";
+    static const char *FAKE_WORKING_DIR = "/work/";
     static const int FAKE_PID = 23;
-    static const int FAKE_UID = 1;
-    static const int FAKE_GID = 1;
+    static const int FAKE_UID = 1000;
+    static const int FAKE_GID = 1000;
     static const char *FALSE_ROOT = "/usr/local/faasm/runtime_root";
     static const char *HOSTS_FILE = "/usr/local/faasm/net/hosts";
     static const char *RESOLV_FILE = "/usr/local/faasm/net/resolv.conf";
+    static const char *PASSWD_FILE = "/usr/local/faasm/passwd";
 
     void getBytesFromWasm(I32 dataPtr, I32 dataLen, uint8_t *buffer);
 
@@ -236,6 +239,18 @@ namespace wasm {
     I32 s__readv(I32 fd, I32 iovecPtr, I32 iovecCount);
 
     I32 s__rename(I32 srcPtr, I32 destPtr);
+
+    I32 s__rt_sigprocmask(I32 how, I32 sigSetPtr, I32 oldSetPtr, I32 sigsetsize);
+
+    I32 s__sigaction(I32 a, I32 b, I32 c);
+
+    I32 s__sigaltstack(I32 ssPtr, I32 oldSsPtr);
+
+    I32 s__sigemptyset(I32 a);
+
+    I32 s__siginterrupt(I32 a, I32 b);
+
+    I32 s__signal(I32 a, I32 b);
 
     I32 s__socketcall(I32 call, I32 argsPtr);
 

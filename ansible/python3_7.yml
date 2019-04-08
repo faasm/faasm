@@ -5,21 +5,20 @@
   tasks:
     - name: "Download 3.7 dist"
       get_url:
-        url: https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tgz
-        dest: "/tmp/Python-3.7.2.tgz"
+        url: https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tgz
+        dest: "/tmp/Python-3.7.0.tgz"
 
     - name: "Unzip"
-      shell: "tar -xf Python-3.7.2.tgz"
+      shell: "tar -xf Python-3.7.0.tgz"
       args:
         chdir: "/tmp"
 
     - name: "Configure 3.7"
-      shell: "./configure --enable-optimizations"
+      shell: "./configure --prefix=/usr/local/faasm/python3.7"
       args:
-        chdir: "/tmp/Python-3.7.2/"
+        chdir: "/tmp/Python-3.7.0/"
 
     - name: "Install alt 3.7"
-      become: yes
       shell: "make altinstall"
       args:
-        chdir: "/tmp/Python-3.7.2/"
+        chdir: "/tmp/Python-3.7.0/"

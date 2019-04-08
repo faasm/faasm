@@ -8,9 +8,11 @@ faasm_func(dummy dummy.cpp)
 faasm_func(echo echo.cpp)
 faasm_func(exit exit.cpp)
 faasm_func(errno errno.cpp)
+faasm_func(fcntl fcntl.cpp)
 faasm_func(fibonacci fibonacci.cpp)
 faasm_func(fprintf fprintf.cpp)
 faasm_func(fread fread.cpp)
+faasm_func(fstat fstat.cpp)
 faasm_func(getdents getdents.cpp)
 faasm_func(getenv getenv.cpp)
 faasm_func(getpwuid getpwuid.cpp)
@@ -23,6 +25,7 @@ faasm_func(net net.cpp)
 faasm_func(new_obj new_obj.cpp)
 faasm_func(noop noop.cpp)
 faasm_func(print print.cpp)
+faasm_func(ptr_ptr ptr_ptr.cpp)
 faasm_func(read_conf read_conf.cpp)
 faasm_func(restore restore.cpp)
 faasm_func(simple simple.cpp)
@@ -44,11 +47,16 @@ faasm_func(time_of_day time_of_day.cpp)
 faasm_func(random random.cpp)
 faasm_func(x2 x2.cpp)
 
-# Dynamic linking - these functions need to export all
-if (FAASM_BUILD_TYPE STREQUAL "wasm")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xlinker --export-all -Xlinker --no-gc-sections")
-
+if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     faasm_func(stackheap stackheap.cpp)
+endif()
+
+# Dynamic linking functions need to export everything when being build with emscripten
+if (FAASM_BUILD_TYPE STREQUAL "emscripten")
+    SET(CMAKE_EXE_LINKER_FLAGS " ${CMAKE_EXE_LINKER_FLAGS}\
+        -Xlinker --export-all \
+        -Xlinker --no-gc-sections \
+    ")
 endif()
 
 faasm_func(dynlink dynlink.cpp)

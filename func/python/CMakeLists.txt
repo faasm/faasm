@@ -3,8 +3,14 @@ set(FAASM_USER python)
 set(PYODIDE_CPYTHON "/usr/local/code/faasm/pyodide/cpython/installs/python-3.7.0")
 
 if (FAASM_BUILD_TYPE STREQUAL "emscripten")
-    set(PYTHON_LIBRARIES "${PYODIDE_CPYTHON}/lib/libpython3.7.a")
-    set(PYTHON_INCLUDE_DIRS "${PYODIDE_CPYTHON}/include/python3.7")
+    set(PYTHON_LIBRARIES "${PYODIDE_CPYTHON}/lib/libpython3.7d.a")
+    set(PYTHON_INCLUDE_DIRS "${PYODIDE_CPYTHON}/include/python3.7d")
+
+    # Dynamic linking functions need to export everything
+    SET(CMAKE_EXE_LINKER_FLAGS " ${CMAKE_EXE_LINKER_FLAGS}\
+        -Xlinker --export-all \
+        -Xlinker --no-gc-sections \
+    ")
 
     set(EXTRA_LIBS "")
 else ()

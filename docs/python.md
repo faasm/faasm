@@ -2,25 +2,26 @@
 
 ## Python 3.7
 
-If you don't already have python3.7 available, you need to install it with the `python3_7.yml` playbook,
+We need a native version of exactly the right Python 3.7, _not_ necessarily the latest.
+You need to install it with the `python3_7.yml` playbook. It will install a copy of python
+at `/usr/local/faasm/python3.7`
 
 ```
 cd ansible
-ansible-playbook python3_7.yml --ask-become-pass
+ansible-playbook python3_7.yml
 ```
 
-## Building CPython
+## Building CPython and packages
 
-We build Python using [pyodide](https://github.com/iodide-project/pyodide) which is included as a submodule.
+You must make sure that you've set up the latest emscripten toolchain locally, and built our own custom musl.
 
-The first pyodide build takes a while. To set things up you can do the following:
+Once this is done, you can run the following:
 
 ```
-git submodule update
-export EMCC_WASM_BACKEND=1
-cd pyodide/emsdk
+cd pyodide/cpython
+source bash_env.sh
 make
-cd ../cpython
+cd ../packages
 make
 ```
 
@@ -67,26 +68,3 @@ inv upload-func <your user> <your func> --python
 ## Tests
 
 Can completely remove the `Lib/test` directory (and potentially anything else we don't need)
-
-## Modified functions
-
-The following functions are declared with a single object pointer, but need varargs added:
-
-```
-// From this
-static PyObject *
-func_get_name(PyFunctionObject *op)
-
-// To this
-static PyObject *
-func_get_name(PyFunctionObject *op, ...)
-```
-
-- func_get_name (funcobject.c)
-- func_set_name (funcobject.c)
-- func_get_qualname (funcobject.c)
-- func_set_qualname (funcobject.c)
-- dictitems_new (dictobject.c x2)
-- thread_PyThread_allocate_lock (_threadmodule.c)
-- thread_get_ident (_threadmodule.c)
-- stdprinter_noop (fileobject.c)

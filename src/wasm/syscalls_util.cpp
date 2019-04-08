@@ -82,8 +82,9 @@ namespace wasm {
         wasmHostPtr->st_mode = nativeStatPtr->st_mode;
         wasmHostPtr->st_nlink = nativeStatPtr->st_nlink;
 
-        wasmHostPtr->st_uid = nativeStatPtr->st_uid;
-        wasmHostPtr->st_gid = nativeStatPtr->st_gid;
+        // Fake file ownership
+        wasmHostPtr->st_uid = FAKE_UID;
+        wasmHostPtr->st_gid = FAKE_GID;
 
         wasmHostPtr->st_rdev = nativeStatPtr->st_rdev;
         wasmHostPtr->st_size = nativeStatPtr->st_size;

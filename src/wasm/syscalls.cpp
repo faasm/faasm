@@ -114,6 +114,8 @@ namespace wasm {
                 return s__dup(a);
             case 45:
                 return s__brk(a);
+            case 48:
+                return s__signal(a, b);
             case 54:
                 return s__ioctl(a, b, c, d, e, f);
             case 78:
@@ -134,8 +136,14 @@ namespace wasm {
                 return s__writev(a, b, c);
             case 168:
                 return s__poll(a, b, c);
+            case 174:
+                return s__sigaction(a, b, c);
+            case 175:
+                return s__rt_sigprocmask(a, b, c, d);
             case 183:
                 return s__getcwd(a, b);
+            case 186:
+                return s__sigaltstack(a, b);
             case 192:
                 // mmap2 is basically the same as mmap (difference is in the final argument which we ignore)
                 return s__mmap(a, b, c, d, e, f);

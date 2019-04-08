@@ -45,6 +45,9 @@ namespace wasm {
         // Here the msg input data is actually the file
         const std::string &fileBody = msg.inputdata();
 
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        logger->debug("Uploading wasm file {}", util::funcToString(msg));
         std::string outputFile = util::getFunctionFile(msg);
         std::ofstream out(outputFile);
         out.write(fileBody.c_str(), fileBody.size());
@@ -52,6 +55,7 @@ namespace wasm {
         out.close();
 
         // Build the object file from the file we've just received
+        logger->debug("Generating object file for {}", util::funcToString(msg));
         this->compileToObjectFile(msg);
     }
 

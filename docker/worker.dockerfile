@@ -2,7 +2,7 @@ FROM faasm/base
 
 # Set up dummy networking files
 WORKDIR /faasm/code/ansible
-RUN ansible-playbook net_files.yml
+RUN ansible-playbook runtime_fs.yml
 
 # Build the worker binary
 COPY . /faasm/code

@@ -1,17 +1,29 @@
 #include "faasm/faasm.h"
 
 #include <stdio.h>
+#include <string.h>
 
+/**
+ * Test reading a file that we know should be faked
+ */
 namespace faasm {
 
     int exec(FaasmMemory *memory) {
-        // Test reading a file
-        FILE *fp = fopen("include/python3.7/abstract.h", "r");
+        FILE *fp = fopen("/etc/hosts", "r");
 
         char buff[2056];
         fgets(buff, 2056, (FILE *) fp);
-        printf("READ: %s\n", buff);
+        printf("Read from /etc/hosts: \n%s\n", buff);
 
-        return 0;
+        const char* expected = "127.0.0.1\tlocalhost\n";
+
+        // Check output is as expected
+        if(strcmp(expected, buff) == 0) {
+            printf("Content of /etc/hosts as expected\n");
+            return 0;
+        } else {
+            printf("Content of /etc/hosts NOT as expected (%s)\n", buff);
+            return 1;
+        }
     }
 }

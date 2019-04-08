@@ -3,7 +3,7 @@
 - name: "Ensure directory exists"
   become: yes
   file:
-    path: "/usr/local/faasm/net"
+    path: "/usr/local/faasm/runtime_root/etc"
     state: directory
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
@@ -12,11 +12,13 @@
 
 - name: "Put network-related files in place"
   copy:
-    src: "{{ item }}"
-    dest: "/usr/local/faasm/net/{{ item }}"
+    src: "{{ item.file }}"
+    dest: "/usr/local/faasm/runtime_root/etc/{{ item.file }}"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     mode: 0644
   with_items:
-    - "hosts"
-    - "resolv.conf"
+    - {"file": "hosts", "dest": "etc/"}
+    - {"file": "resolv.conf", "dest": "etc/"}
+    - {"file": "passwd", "dest": "etc/"}
+

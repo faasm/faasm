@@ -5,8 +5,8 @@ using namespace util;
 
 namespace tests {
     TEST_CASE("Test string splitting", "[util]") {
-        std::string strA = "one string";
-        std::string strB = "another string with other stuff";
+        std::string strA = "  one string";
+        std::string strB = "another string with other stuff  ";
 
         std::vector<std::string> expectedA = {"one", "string"};
         std::vector<std::string> expectedB = {"another", "string", "with", "other", "stuff"};

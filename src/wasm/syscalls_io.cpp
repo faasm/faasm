@@ -26,14 +26,9 @@ namespace wasm {
         // Check if this is a valid path. Return a read-only handle to the file if so
         int fd;
         std::string fakePath;
-        if (path == "/etc/hosts") {
-            logger->debug("Opening dummy /etc/hosts");
-            fd = open(HOSTS_FILE, 0, 0);
-
-        } else if (path == "/etc/resolv.conf") {
-            logger->debug("Opening dummy /etc/resolv.conf");
-            fd = open(RESOLV_FILE, 0, 0);
-
+        if (path == "/etc/hosts" || path == "/etc/resolv.conf" || path == "/etc/passwd") {
+            logger->debug("Opening dummy {}", path);
+            fd = open(path.c_str(), 0, 0);
         } else if (path == "/dev/urandom") {
             //TODO avoid use of system-wide urandom
             logger->debug("Opening /dev/urandom");
@@ -80,14 +75,34 @@ namespace wasm {
     }
 
     I32 s__fcntl64(I32 fd, I32 cmd, I32 c) {
-        util::getLogger()->debug("S - fcntl64 - {} {} {}", fd, cmd, c);
+        const std::shared_ptr <spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - fcntl64 - {} {} {}", fd, cmd, c);
 
         checkThreadOwnsFd(fd);
 
-        // Allow for now
-        // TODO - is this ok?
-        fcntl(fd, cmd, c);
-        return 0;
+        util::SystemConfig &conf = util::getSystemConfig();
+
+        // Duplicating file descriptors
+        if (cmd == F_DUPFD || cmd == F_DUPFD_CLOEXEC) {
+            // Duplicating file descriptors is allowed
+            int newFd = fcntl(fd, cmd, c);
+            addFdForThisThread(newFd);
+            return newFd;
+        }
+
+        if (cmd == F_GETFL || cmd == F_GETFD || cmd == F_SETFD) {
+            // Getting file flags, file descriptor flags and setting file descriptor flags are allowed
+            return fcntl(fd, cmd, c);
+        }
+
+        // Allow everything else in unsafe mode, but block otherwise
+        if (conf.unsafeMode == "on") {
+            logger->warn("Allowing arbitrary fcntl command: {}", cmd);
+            return fcntl(fd, cmd, c);
+        } else {
+            logger->error("Using arbitrary fcntl command: {}", cmd);
+            throw std::runtime_error("Process not allowed to set file flags");
+        }
     }
 
     /**
@@ -169,15 +184,21 @@ namespace wasm {
     I32 s__getcwd(I32 bufPtr, I32 bufLen) {
         util::getLogger()->debug("S - getcwd - {} {}", bufPtr, bufLen);
 
-        // Do nothing here, we want an empty working dir.
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
 
-        return 0;
+        char *hostBuf = Runtime::memoryArrayPtr<char>(memoryPtr, (Uptr) bufPtr, (Uptr) bufLen);
+
+        // Fake working directory
+        std::strcpy(hostBuf, FAKE_WORKING_DIR);
+
+        // Note, this needs to return the buffer on success, NOT zero
+        return bufPtr;
     }
 
     /**
      * Read is ok provided the function owns the file descriptor
      */
-    I32 s__read(I32 fd, I32 bufPtr, I32 bufLen){
+    I32 s__read(I32 fd, I32 bufPtr, I32 bufLen) {
         util::getLogger()->debug("S - read - {} {} {}", fd, bufPtr, bufLen);
 
         // Provided the thread owns the fd, we allow reading.

@@ -32,7 +32,7 @@ namespace wasm {
 
     I32 s__getegid32() {
         util::getLogger()->debug("S - getegid32");
-        return FAKE_UID;
+        return FAKE_GID;
     }
 
     I32 s__exit(I32 a, I32 b) {
@@ -46,7 +46,6 @@ namespace wasm {
         // Return zero as if no confstr variables have a value set
         return 0;
     }
-
 
     DEFINE_INTRINSIC_FUNCTION(env, "getpwuid", I32, getpwuid, I32 uid) {
         util::getLogger()->debug("S - _getpwuid - {}", uid);
