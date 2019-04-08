@@ -26,14 +26,9 @@ namespace wasm {
         // Check if this is a valid path. Return a read-only handle to the file if so
         int fd;
         std::string fakePath;
-        if (path == "/etc/hosts") {
-            logger->debug("Opening dummy /etc/hosts");
-            fd = open(HOSTS_FILE, 0, 0);
-
-        } else if (path == "/etc/resolv.conf") {
-            logger->debug("Opening dummy /etc/resolv.conf");
-            fd = open(RESOLV_FILE, 0, 0);
-
+        if (path == "/etc/hosts" || path == "/etc/resolv.conf" || path == "/etc/passwd") {
+            logger->debug("Opening dummy {}", path);
+            fd = open(path.c_str(), 0, 0);
         } else if (path == "/dev/urandom") {
             //TODO avoid use of system-wide urandom
             logger->debug("Opening /dev/urandom");

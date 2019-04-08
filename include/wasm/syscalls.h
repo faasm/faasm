@@ -5,14 +5,16 @@
 namespace wasm {
     static const char *FAKE_NAME = "faasm";
     static const char *FAKE_PASSWORD = "foobar123";
-    static const char *FAKE_HOME = "/home/";
+    static const char *FAKE_USER = "faasm";
+    static const char *FAKE_HOME = "/home/faasm/";
     static const char *FAKE_WORKING_DIR = "/work/";
     static const int FAKE_PID = 23;
-    static const int FAKE_UID = 1;
-    static const int FAKE_GID = 1;
+    static const int FAKE_UID = 1000;
+    static const int FAKE_GID = 1000;
     static const char *FALSE_ROOT = "/usr/local/faasm/runtime_root";
     static const char *HOSTS_FILE = "/usr/local/faasm/net/hosts";
     static const char *RESOLV_FILE = "/usr/local/faasm/net/resolv.conf";
+    static const char *PASSWD_FILE = "/usr/local/faasm/passwd";
 
     void getBytesFromWasm(I32 dataPtr, I32 dataLen, uint8_t *buffer);
 
