@@ -18,12 +18,15 @@ You must make sure that you've set up the latest emscripten toolchain locally, a
 Once this is done, you can run the following:
 
 ```
-cd pyodide/cpython
-source bash_env.sh
+cd pyodide
+source workon.sh
+cd cpython
 make
 cd ../packages
 make
 ```
+
+*NOTE* to build packages with Pyodide requires you must use GCC as your default C compiler.
 
 ## Dynamic linking
 
@@ -49,22 +52,16 @@ To run Python you need to set up the Faasm runtime root filesystem. To do this y
 
 ## Compiling Python functions
 
-
-When building you **must** use the custom pyodide emscripten:
+When building you **must** use the Faasm shell environment:
 
 ```
-source /usr/local/code/faasm/pyodide/emsdk/emsdk/emsdk_env.sh
+# In the root of this project
+source workon.sh
 ```
 
 Once this is done, you can run the `upload` server and do the following:
 
 ```
-inv funcs-python --func=<your func>
-inv upload-func <your user> <your func> --python
+inv funcs --func=<your func>
+inv upload-func <your user> <your func>
 ```
-
-# Modifications
-
-## Tests
-
-Can completely remove the `Lib/test` directory (and potentially anything else we don't need)

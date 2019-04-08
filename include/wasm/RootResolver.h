@@ -29,6 +29,7 @@ namespace wasm {
     const int MAX_TABLE_SIZE = 500000;
 
     extern Intrinsics::Module &getIntrinsicModule_env();
+    extern Intrinsics::Module &getIntrinsicModule_GOT();
 
     struct RootResolver : Runtime::Resolver {
         explicit RootResolver(Runtime::Compartment *compartmentIn) {
@@ -57,10 +58,12 @@ namespace wasm {
             module.tables.defs[0].type.size.max = (U64) MAX_TABLE_SIZE;
 
             envModule = Intrinsics::instantiateModule(compartmentIn, getIntrinsicModule_env(), "env");
+            GOTModule = Intrinsics::instantiateModule(compartmentIn, getIntrinsicModule_GOT(), "GOT");
         }
 
         void cleanUp() {
             envModule = nullptr;
+            GOTModule = nullptr;
         }
 
         bool resolve(const std::string &moduleName,
@@ -73,8 +76,17 @@ namespace wasm {
             
             if(isDynamicModule) {
                 // The special cases below are the globals that are crucial to getting the
-                // dynamic linking to work. 
-                if(exportName == "__memory_base") {
+                // dynamic linking to work.
+                if(moduleName == "GOT.mem" && exportName == "stdout") {
+                    Runtime::Global *gotMemStdout = Runtime::createGlobal(compartment, asGlobalType(type));
+                    Runtime::initializeGlobal(gotMemStdout, 1);
+                    resolved = asObject(gotMemStdout);
+                } else if(moduleName == "GOT.func" && exportName == "__stdio_write") {
+                    Runtime::Global *gotFuncStdioWrite = Runtime::createGlobal(compartment, asGlobalType(type));
+                    Runtime::initializeGlobal(gotFuncStdioWrite, 1);
+                    resolved = asObject(gotFuncStdioWrite);
+                }
+                else if(exportName == "__memory_base") {
                     // This is the point at which globals will be copied in
                     Runtime::Global *newMemoryBase = Runtime::createGlobal(compartment, asGlobalType(type));
                     Runtime::initializeGlobal(newMemoryBase, nextMemoryBase);
@@ -140,6 +152,7 @@ namespace wasm {
         Runtime::Compartment *compartment;
 
         Runtime::GCPointer<Runtime::ModuleInstance> envModule;
+        Runtime::GCPointer<Runtime::ModuleInstance> GOTModule;
 
         std::string user;
     };

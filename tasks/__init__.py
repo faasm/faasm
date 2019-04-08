@@ -42,7 +42,15 @@ from tasks.docker import (
     pull,
     push_base
 )
-from tasks.docker_compose import start_all, stop_all, restart_all
+from tasks.docker_compose import (
+    start_all,
+    stop_all,
+    restart_all
+)
+
+from tasks.python import (
+    python_codegen
+)
 
 from tasks.sgd import (
     begin_aws_svm,

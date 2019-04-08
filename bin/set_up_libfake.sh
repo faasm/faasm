@@ -2,19 +2,10 @@
 
 set -e
 
-EMSCRIPTEN=./pyodide/emsdk/emsdk/upstream/4778
-SYSROOT=${EMSCRIPTEN}/sysroot
+SYSROOT=./pyodide/emsdk/emsdk/upstream/4778/sysroot
 
 # Compile libfake
-inv compile-libfake 
-
-# Build the shared object, shared will force it to export everything
-#${EMSCRIPTEN}/bin/wasm-ld \
-#    --whole-archive ${SYSROOT}/lib/libfake.a \
-#    --shared \
-#    --import-memory \
-#    --import-table \
-#    -o /usr/local/faasm/runtime_root/libfake.so
+inv compile-libfake --clean
 
 # Copy shared object into place
 cp ${SYSROOT}/lib/libfake.so /usr/local/faasm/runtime_root/

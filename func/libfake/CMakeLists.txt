@@ -3,22 +3,24 @@ project(libfake)
 
 include_directories(include)
 
-if (FAASM_BUILD_TYPE STREQUAL "wasm")
-    # Set up correct compiler flags for building a lib
-    set(CMAKE_CXX_FLAGS "${LIB_COMPILER_FLAGS}")
-    set(CMAKE_C_FLAGS "${LIB_COMPILER_FLAGS}")
-elseif (FAASM_BUILD_TYPE STREQUAL "emscripten")
+set(BUILD_SHARED_LIBS ON)
+
+set(COMPILER_FLAGS "-fPIC")
+
+if (FAASM_BUILD_TYPE STREQUAL "emscripten")
+    message(STATUS "Detected emscripten build")
+
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMPILER_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMPILER_FLAGS}")
 
     set(CMAKE_SHARED_LINKER_FLAGS " \
-        -Xlinker --import-memory \
-        -Xlinker --import-table \
         -Xlinker --shared \
         -Xlinker --no-entry \
+        -Xlinker --stack-first \
         -Xlinker --export=mult \
     ")
 endif ()
 
-set(BUILD_SHARED_LIBS ON)
 add_library(fake SHARED include/fake.h src/fake.c)
 set_target_properties(fake PROPERTIES PUBLIC_HEADER include/fake.h)
 
