@@ -2,7 +2,7 @@
 
 set -e
 
-EMSCRIPTEN=./pyodide/emsdk/emsdk/upstream/4717
+EMSCRIPTEN=./pyodide/emsdk/emsdk/upstream/4778
 SYSROOT=${EMSCRIPTEN}/sysroot
 
 # Compile libfake

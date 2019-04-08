@@ -11,12 +11,6 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__pthread_self", I32, __pthread_self) {
-        //util::getLogger()->debug("S - __pthread_self");
-
-        return 1;
-    }
-
     // ---------------------------------------
     // pthreads - ignored
     // ---------------------------------------

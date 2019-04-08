@@ -5,7 +5,8 @@
 namespace wasm {
     static const char *FAKE_NAME = "faasm";
     static const char *FAKE_PASSWORD = "foobar123";
-    static const char *FAKE_HOME = "/";
+    static const char *FAKE_HOME = "/home/";
+    static const char *FAKE_WORKING_DIR = "/work/";
     static const int FAKE_PID = 23;
     static const int FAKE_UID = 1;
     static const int FAKE_GID = 1;
