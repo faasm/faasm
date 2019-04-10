@@ -8,17 +8,21 @@ set(BUILD_SHARED_LIBS ON)
 if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     message(STATUS "Detected emscripten build")
 
+    # This is critical otherwise the linker tries to statically link in standard libraries
+    set(COMPILER_FLAGS "-nostdlib -nostdlib++")
+
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMPILER_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMPILER_FLAGS}")
 
+    # NOTE: --stack-first and --shared are crucial here too to getting the linker to produce a properly
+    # formatted shared object
     set(CMAKE_SHARED_LINKER_FLAGS " \
-        -Xlinker --allow-undefined \
         -Xlinker --no-entry \
         -Xlinker --stack-first \
         -Xlinker --export=mult \
-        -Xlinker --import-memory \
-        -Xlinker --import-table \
+        -Xlinker --shared \
     ")
+
 endif ()
 
 add_library(fake SHARED include/fake.h src/fake.c)

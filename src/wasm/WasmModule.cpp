@@ -107,8 +107,6 @@ namespace wasm {
     }
 
     void WasmModule::bindToFunction(const message::Message &msg) {
-//        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
         if (!_isInitialised) {
             throw std::runtime_error("Must initialise module before binding");
         } else if (_isBound) {
@@ -246,10 +244,9 @@ namespace wasm {
         resolver->nextStackPointer = dynamicStackBase;
         resolver->nextMemoryBase = dynamicHeapBase;
 
-        // To give the new module space for its table entries, we grow the default table, then tell the
-        // new module to start at the beginning of this new region
+        // The end of the current table is the place where the new module can put its elements
+        // The table itself will be grown when we instantiate the module
         Uptr currentTableElems = Runtime::getTableNumElements(defaultTable);
-        Runtime::growTable(defaultTable, DYNAMIC_MODULE_TABLE_ELEMS);
         resolver->nextTableBase = currentTableElems;
 
         logger->debug("Provisioned new dynamic module region (stack={}, heap={}, table={}",
@@ -262,7 +259,7 @@ namespace wasm {
         Runtime::ModuleInstance *mod = createModuleInstance(
                 sharedModule, wasmBytes, objectBytes, name, false
         );
-
+        
         // Keep a record of this module
         dynamicPathToHandleMap[path] = nextHandle;
         dynamicModuleMap[nextHandle] = mod;
@@ -390,7 +387,7 @@ namespace wasm {
     int WasmModule::getDataEnd() {
         return dataEnd;
     }
-    
+
     int WasmModule::getStackTop() {
         return stackTop;
     }
