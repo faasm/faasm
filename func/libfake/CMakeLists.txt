@@ -5,8 +5,6 @@ include_directories(include)
 
 set(BUILD_SHARED_LIBS ON)
 
-set(COMPILER_FLAGS "-fPIC")
-
 if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     message(STATUS "Detected emscripten build")
 
@@ -14,10 +12,12 @@ if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMPILER_FLAGS}")
 
     set(CMAKE_SHARED_LINKER_FLAGS " \
-        -Xlinker --shared \
+        -Xlinker --allow-undefined \
         -Xlinker --no-entry \
         -Xlinker --stack-first \
         -Xlinker --export=mult \
+        -Xlinker --import-memory \
+        -Xlinker --import-table \
     ")
 endif ()
 
