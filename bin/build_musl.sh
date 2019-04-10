@@ -4,7 +4,7 @@ set -e
 
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJ_ROOT=${THIS_DIR}/..
-EM_ROOT=${PROJ_ROOT}/pyodide/emsdk/emsdk/upstream/4778
+EM_ROOT=${PROJ_ROOT}/pyodide/emsdk/emsdk/upstream/4854
 SYSROOT=${EM_ROOT}/sysroot
 TOOL_BIN=${EM_ROOT}/bin
 

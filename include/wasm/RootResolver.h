@@ -24,6 +24,11 @@ namespace wasm {
     const int STACK_SIZE = ONE_MB_BYTES;
     const int MAX_MEMORY_PAGES = ONE_GB_PAGES;
 
+    // Properties of dynamic modules
+    const int DYNAMIC_MODULE_STACK_SIZE = 1 * ONE_MB_PAGES;
+    const int DYNAMIC_MODULE_HEAP_SIZE = 4 * ONE_MB_PAGES;
+    const int DYNAMIC_MODULE_TABLE_ELEMS = 100;
+
     // const int INITIAL_MEMORY_PAGES = 1024 * ONE_MB_PAGES; // Hard-coded in build
 
     const int MAX_TABLE_SIZE = 500000;
@@ -67,43 +72,46 @@ namespace wasm {
         }
 
         bool resolve(const std::string &moduleName,
-                     const std::string &exportName,
+                     const std::string &name,
                      IR::ExternType type,
                      Runtime::Object *&resolved) override {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             
-            bool isDynamicModule = mainModule != nullptr;
-            
-            if(isDynamicModule) {
+            bool isMainModule = mainModule == nullptr;
+
+            if(isMainModule) {
+                // Main module linking comes from env module
+                resolved = getInstanceExport(envModule, name);
+            } else {
                 // The special cases below are the globals that are crucial to getting the
                 // dynamic linking to work.
-                if(moduleName == "GOT.mem" && exportName == "stdout") {
+                if(moduleName == "GOT.mem" && name == "stdout") {
                     Runtime::Global *gotMemStdout = Runtime::createGlobal(compartment, asGlobalType(type));
                     Runtime::initializeGlobal(gotMemStdout, 1);
                     resolved = asObject(gotMemStdout);
-                } else if(moduleName == "GOT.func" && exportName == "__stdio_write") {
+                } else if(moduleName == "GOT.func" && name == "__stdio_write") {
                     Runtime::Global *gotFuncStdioWrite = Runtime::createGlobal(compartment, asGlobalType(type));
                     Runtime::initializeGlobal(gotFuncStdioWrite, 1);
                     resolved = asObject(gotFuncStdioWrite);
                 }
-                else if(exportName == "__memory_base") {
+                else if(name == "__memory_base") {
                     // This is the point at which globals will be copied in
                     Runtime::Global *newMemoryBase = Runtime::createGlobal(compartment, asGlobalType(type));
                     Runtime::initializeGlobal(newMemoryBase, nextMemoryBase);
                     resolved = asObject(newMemoryBase);
                 }
-                else if(exportName == "__table_base") {
+                else if(name == "__table_base") {
                     // This is the offset in the imported table this module should use
                     Runtime::Global *newTableBase = Runtime::createGlobal(compartment, asGlobalType(type));
                     Runtime::initializeGlobal(newTableBase, nextTableBase);
                     resolved = asObject(newTableBase);
-                } else if(exportName == "__stack_pointer") {
+                } else if(name == "__stack_pointer") {
                     // This is where the module should put its stack
                     Runtime::Global *newStackPointer = Runtime::createGlobal(compartment, asGlobalType(type));
                     Runtime::initializeGlobal(newStackPointer, nextStackPointer);
                     resolved = asObject(newStackPointer);
                 }
-                else if(exportName == "__indirect_function_table") {
+                else if(name == "__indirect_function_table") {
                     // This is the table shared with the main module. We will have
                     // made sure it is the right size with the right offset.
                     Runtime::Table *table = Runtime::getDefaultTable(mainModule);
@@ -111,16 +119,13 @@ namespace wasm {
                 }
                 else {
                     // Look in normal env
-                    resolved = getInstanceExport(envModule, exportName);
+                    resolved = getInstanceExport(envModule, name);
 
                     // If not resolved here, check on the main module
                     if (!resolved) {
-                        resolved = getInstanceExport(mainModule, exportName);
+                        resolved = getInstanceExport(mainModule, name);
                     }
                 }
-            } else {
-                // At this point we're resolving for a main module, so look in the env
-                resolved = getInstanceExport(envModule, exportName);
             }
 
             // Check whether the function has been resolved to the correct type
@@ -130,14 +135,14 @@ namespace wasm {
                 } else {
                     logger->error("Resolved import {}.{} to a {}, but was expecting {}",
                                   moduleName.c_str(),
-                                  exportName.c_str(),
+                                  name.c_str(),
                                   asString(getObjectType(resolved)).c_str(),
                                   asString(type).c_str());
                     return false;
                 }
             }
 
-            logger->error("Missing import {}.{} {}", moduleName, exportName, asString(type).c_str());
+            logger->error("Missing import {}.{} {}", moduleName, name, asString(type).c_str());
 
             return false;
         }

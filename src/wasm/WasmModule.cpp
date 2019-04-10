@@ -230,32 +230,33 @@ namespace wasm {
         int nextHandle = 2 + dynamicModuleCount;
         std::string name = "handle_" + std::to_string(nextHandle);
 
-        // TODO - how do we properly give the dynamic lib the right stack pointer?
-        // It seems impossible to get the right stack pointer value from the module
-        // It's assigned to a different global every time and isn't labelled
-        // For now we can hack it to give it enough space
-        int stackSize = 1 * ONE_MB_PAGES;
-        int totalModuleMemSize = 4 * ONE_MB_PAGES;
+        // Create a new region in the default memory 
+        U32 dynamicMemBase = this->mmap(DYNAMIC_MODULE_HEAP_SIZE);
 
-        if (dynamicModuleCount == 0) {
-            logger->debug("Linking first dynamic module. heap_base={} and data_end={}", heapBase, dataEnd);
+        // TODO - how do we actually pass the dynamic lib stack pointer from the main module?
+        // It seems impossible to get the right stack pointer value from the module. It's assigned to a different
+        // global every time and isn't labelled. For now we can just give it a region on the heap,
+        // but we won't be able to detect stack overflow errors.
+        //
+        // Stack has a region just at the bottom of the empty region (and grows down)
+        // Memory then sits above that (and grows up)
+        U32 dynamicHeapBase = dynamicMemBase + DYNAMIC_MODULE_STACK_SIZE;
+        U32 dynamicStackBase = dynamicHeapBase - 1;
 
-            // Stack has a region just at the bottom of the empty region (and grows down)
-            // Memory then sits above that (and grows up)
-            resolver->nextStackPointer = heapBase + stackSize;
-            resolver->nextMemoryBase = resolver->nextStackPointer + 1;
+        resolver->nextStackPointer = dynamicStackBase;
+        resolver->nextMemoryBase = dynamicHeapBase;
 
-            // We set the table base here to be *at* the end of the current table, so that
-            // new elements are added after existing ones.
-            Uptr currentTableElems = Runtime::getTableNumElements(defaultTable);
-            resolver->nextTableBase = currentTableElems;
-        } else {
-            // Bump up memory base and table base from where they were last time
-            // TODO - need to use dylink section to work out how big these jumps should be
-            resolver->nextStackPointer += (totalModuleMemSize + stackSize);
-            resolver->nextMemoryBase = resolver->nextStackPointer + 1;
-            resolver->nextTableBase += 10;
-        }
+        // To give the new module space for its table entries, we grow the default table, then tell the
+        // new module to start at the beginning of this new region
+        Uptr currentTableElems = Runtime::getTableNumElements(defaultTable);
+        Runtime::growTable(defaultTable, DYNAMIC_MODULE_TABLE_ELEMS);
+        resolver->nextTableBase = currentTableElems;
+
+        logger->debug("Provisioned new dynamic module region (stack={}, heap={}, table={}",
+                      resolver->nextStackPointer,
+                      resolver->nextMemoryBase,
+                      resolver->nextTableBase
+        );
 
         // Instantiate the shared module
         Runtime::ModuleInstance *mod = createModuleInstance(
@@ -354,7 +355,7 @@ namespace wasm {
     }
 
     void WasmModule::restoreMemory() {
-        if(initialMemoryPages == 0) {
+        if (initialMemoryPages == 0) {
             throw std::runtime_error("Initial memory pages not initialised");
         }
 
@@ -499,7 +500,7 @@ namespace wasm {
             logger->error("No memory for mapping");
             throw std::runtime_error("Run out of memory to map");
         }
-        
+
         // Get pointer to mapped range
         auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);
 
@@ -533,7 +534,7 @@ namespace wasm {
 
     I32 WasmModule::sBrk(U32 increment) {
         Uptr currentBrk = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
-        if(increment == 0) {
+        if (increment == 0) {
             // Calling with zero is the same as calling brk with zero,
             // return the current break
             return currentBrk;
@@ -542,7 +543,7 @@ namespace wasm {
         U32 target = currentBrk + increment;
         int brkResult = this->brk(target);
 
-        if(brkResult == EXPAND_SUCCESS) {
+        if (brkResult == EXPAND_SUCCESS) {
             // Return the new break
             Uptr newBrk = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
             return newBrk;

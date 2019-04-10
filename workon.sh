@@ -3,7 +3,7 @@
 source /usr/local/code/faasm/pyodide/emsdk/emsdk/emsdk_env.sh
 export EMCC_WASM_BACKEND=1
 
-WASM_BIN=/usr/local/code/faasm/pyodide/emsdk/emsdk/upstream/4778/bin
+WASM_BIN=/usr/local/code/faasm/pyodide/emsdk/emsdk/upstream/4854/bin
 export PATH=${WASM_BIN}:${PATH}
 
 if [ ! -d "venv" ]; then

@@ -2,7 +2,7 @@
 
 set -e
 
-SYSROOT=./pyodide/emsdk/emsdk/upstream/4778/sysroot
+SYSROOT=./pyodide/emsdk/emsdk/upstream/4854/sysroot
 
 # Compile libfake
 inv compile-libfake --clean
