@@ -259,7 +259,7 @@ namespace wasm {
         Runtime::ModuleInstance *mod = createModuleInstance(
                 sharedModule, wasmBytes, objectBytes, name, false
         );
-        
+
         // Keep a record of this module
         dynamicPathToHandleMap[path] = nextHandle;
         dynamicModuleMap[nextHandle] = mod;

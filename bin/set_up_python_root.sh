@@ -24,7 +24,7 @@ cp -r ${INSTALL_DIR}/* /usr/local/faasm/runtime_root
 rm /usr/local/faasm/runtime_root/lib/libpython*
 
 # Put numpy in place
-#cp -r ${NUMPY_DIR} ${SITE_PACKAGES}
+cp -r ${NUMPY_DIR} ${SITE_PACKAGES}
 
 # Put dummy functions in place
-#cp -r python/funcs ${RUNTIME_ROOT}
+cp -r python/funcs ${RUNTIME_ROOT}
