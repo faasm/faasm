@@ -48,10 +48,6 @@ from tasks.docker_compose import (
     restart_all
 )
 
-from tasks.python import (
-    python_codegen
-)
-
 from tasks.sgd import (
     begin_aws_svm,
     deploy_sgd_wasm_lambda,
@@ -68,3 +64,8 @@ from tasks.upload import (
     upload_func,
 )
 from tasks.wasm2wast import wast
+
+from tasks.toolchain import (
+    backup_emsdk,
+    restore_emsdk,
+)

@@ -176,6 +176,8 @@ namespace wasm {
                 return s__futex(a, b, c, d, e, f);
             case 265:
                 return s__clock_gettime(a, b);
+            case 355:
+                return s__getrandom(a, b, c);
             case 375:
                 return s__membarrier(a);
             default:

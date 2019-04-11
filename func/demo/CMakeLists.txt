@@ -51,12 +51,4 @@ if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     faasm_func(stackheap stackheap.cpp)
 endif()
 
-# Dynamic linking functions need to export everything when being build with emscripten
-if (FAASM_BUILD_TYPE STREQUAL "emscripten")
-    SET(CMAKE_EXE_LINKER_FLAGS " ${CMAKE_EXE_LINKER_FLAGS}\
-        -Xlinker --export-all \
-        -Xlinker --no-gc-sections \
-    ")
-endif()
-
-faasm_func(dynlink dynlink.cpp)
+faasm_dynamic_func(dynlink dynlink.cpp)

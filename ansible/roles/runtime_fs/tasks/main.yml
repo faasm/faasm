@@ -8,17 +8,16 @@
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     mode: 0775
-    recurse: yes
 
 - name: "Put network-related files in place"
   copy:
-    src: "{{ item.file }}"
-    dest: "/usr/local/faasm/runtime_root/etc/{{ item.file }}"
+    src: "{{ item }}"
+    dest: "/usr/local/faasm/runtime_root/etc/{{ item }}"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     mode: 0644
   with_items:
-    - {"file": "hosts", "dest": "etc/"}
-    - {"file": "resolv.conf", "dest": "etc/"}
-    - {"file": "passwd", "dest": "etc/"}
+    - "hosts"
+    - "resolv.conf"
+    - "passwd"
 

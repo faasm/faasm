@@ -208,7 +208,9 @@ namespace wasm {
 
     I32 s__getpid();
 
-    I32 s__gettimeofday(int tvPtr, int tzPtr);
+    I32 s__getrandom(I32 bufPtr, I32 bufLen, I32 flags);
+
+    I32 s__gettimeofday(I32 tvPtr, I32 tzPtr);
 
     I32 s__getuid32();
 

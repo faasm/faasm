@@ -13,7 +13,7 @@ ansible-playbook python3_7.yml
 
 ## Building CPython and packages
 
-You must make sure that you've set up the latest emscripten toolchain locally, and built our own custom musl.
+You must make sure that you've set up the latest emscripten toolchain locally, build libc and malloc etc.
 
 Once this is done, you can run the following:
 
@@ -26,25 +26,17 @@ cd ../packages
 make
 ```
 
-*NOTE* to build packages with Pyodide requires you must use GCC as your default C compiler.
-
 ## Dynamic linking
 
 Once this is all built we can generate the machine code up-front for all the relevant shared objects.
 
-This is hacked together a bit at the moment with the following process:
-
 ```
-# Generate the list of files (found in python/python_shared_obj.txt)
-./bin/find_python_shared_obj.sh
-
-# Run the code gen
-inv python-codegen
+./bin/python_codegen.sh
 ```
 
 ## Setting up the runtime root
 
-To run Python you need to set up the Faasm runtime root filesystem. To do this you can run:
+To make everything available at runtime, you can execute the following:
 
 ```
 ./bin/set_up_python_root.sh
@@ -55,7 +47,6 @@ To run Python you need to set up the Faasm runtime root filesystem. To do this y
 When building you **must** use the Faasm shell environment:
 
 ```
-# In the root of this project
 source workon.sh
 ```
 
