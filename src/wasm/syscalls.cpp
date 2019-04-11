@@ -32,14 +32,9 @@ using namespace WAVM;
 
 namespace wasm {
     static Intrinsics::Module envModule;
-    static Intrinsics::Module GOTModule;
 
     Intrinsics::Module &getIntrinsicModule_env() {
         return envModule;
-    }
-
-    Intrinsics::Module &getIntrinsicModule_GOT() {
-        return GOTModule;
     }
 
     /**

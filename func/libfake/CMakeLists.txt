@@ -18,9 +18,9 @@ if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     # formatted shared object
     set(CMAKE_SHARED_LINKER_FLAGS " \
         -Xlinker --no-entry \
+        -Xlinker --shared \
         -Xlinker --stack-first \
         -Xlinker --export=mult \
-        -Xlinker --shared \
     ")
 
 endif ()

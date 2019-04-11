@@ -52,7 +52,4 @@ namespace wasm {
         // Ignore
         return 0;
     }
-
-    DEFINE_INTRINSIC_GLOBAL(GOT, "stdout", I32, GOT_stdout, 1);
-    DEFINE_INTRINSIC_GLOBAL(GOT, "__stdio_write", I32, GOT__stdio_write, 1);
 }

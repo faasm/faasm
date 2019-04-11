@@ -134,7 +134,6 @@ def compile_libfake(ctx, clean=False):
         mkdir(build_dir)
 
     build_cmd = [
-        "VERBOSE=1",
         "cmake",
         "-DFAASM_BUILD_TYPE=emscripten",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(EMSCRIPTEN_TOOLCHAIN),
@@ -143,7 +142,7 @@ def compile_libfake(ctx, clean=False):
     ]
 
     call(" ".join(build_cmd), shell=True, cwd=build_dir)
-    call("make", shell=True, cwd=build_dir)
+    call("make VERBOSE=1", shell=True, cwd=build_dir)
     call("make install", shell=True, cwd=build_dir)
 
 

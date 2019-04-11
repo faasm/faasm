@@ -15,8 +15,8 @@ message(STATUS "PYTHON_INCLUDE_DIRS=${PYTHON_INCLUDE_DIRS}")
 # Python functions
 include_directories(${PYTHON_INCLUDE_DIRS})
 
-faasm_func(py_hello py_hello.cpp)
+faasm_dynamic_func(py_hello py_hello.cpp)
 target_link_libraries(py_hello ${PYTHON_LIBRARIES})
 
-faasm_func(py_numpy py_numpy.cpp)
+faasm_dynamic_func(py_numpy py_numpy.cpp)
 target_link_libraries(py_numpy ${PYTHON_LIBRARIES})

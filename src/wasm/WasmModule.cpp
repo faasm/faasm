@@ -435,7 +435,7 @@ namespace wasm {
 
         // The stack top variable should be the first global
         IR::GlobalDef stackDef = module.globals.getDef(0);
-        if(!stackDef.type.isMutable) {
+        if (!stackDef.type.isMutable) {
             throw std::runtime_error("Found immutable stack top");
         }
 

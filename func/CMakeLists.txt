@@ -51,7 +51,7 @@ if (FAASM_BUILD_TYPE STREQUAL "emscripten")
         # These are the linker flags required for functions that will also do dynamic linking.
         # We need to export all symbols to make them available to the dynamically loaded modules
         set_target_properties(${exec_name} PROPERTIES
-                LINK_FLAGS "-Xlinker --export-all -Xlinker --no-gc-sections"
+                LINK_FLAGS "-Xlinker --export-all -Xlinker --no-gc-sections -Xlinker --export-dynamic"
         )
 
     endfunction(faasm_dynamic_func)
