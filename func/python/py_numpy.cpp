@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
-
+#include <stdio.h>
 
 int main(int argc, char *argv[]) {
     // Python env vars - https://docs.python.org/3/using/cmdline.html#environment-variables
@@ -13,6 +13,10 @@ int main(int argc, char *argv[]) {
     setenv("PYTHONNOUSERSITE", "on", 1);
     setenv("LC_CTYPE", "en_GB.UTF-8", 1);
 
+    // Force import of scanf
+    int (*scanfPtr)(const char *, ...) = scanf;
+    printf("Imported scanf %p\n", scanfPtr);
+    
     Py_InitializeEx(0);
     printf("\n\nInitialised\n");
 

@@ -1,3 +1,4 @@
+import multiprocessing
 import os
 from os.path import join
 
@@ -22,6 +23,8 @@ def upload_func(ctx, user, func, host="localhost"):
 def upload_funcs(ctx, host="localhost"):
     func_dir = EMSCRIPTEN_FUNC_BUILD_DIR
 
+    to_upload = []
+
     # Walk the function directory tree
     for root, dirs, files in os.walk(func_dir):
         # Strip original dir from root
@@ -41,7 +44,11 @@ def upload_funcs(ctx, host="localhost"):
             if f.endswith(".wasm"):
                 func = f.replace(".wasm", "")
                 func_file = join(root, f)
-                print("Uploading {}/{} to host {}".format(user, func, host))
 
+                print("Uploading {}/{} to host {}".format(user, func, host))
                 url = "http://{}:8002/f/{}/{}".format(host, user, func)
-                curl_file(url, func_file)
+                to_upload.append((url, func_file))
+
+    # Pool of uploaders
+    p = multiprocessing.Pool(multiprocessing.cpu_count() - 1)
+    p.starmap(curl_file, to_upload)

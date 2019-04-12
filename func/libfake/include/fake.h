@@ -6,4 +6,6 @@ int globalIntVar = 4;
 
 int mult(int a, int b);
 
+int multReverse(int a, int b);
+
 #endif
