@@ -3,10 +3,11 @@
 
 #include <stdio.h>
 
-SharedStruct SharedStructInstance = {
+SharedStruct sharedStructInstance = {
         "Shared struct",
         10,
-        5
+        5,
+        0   // Func pointer
 };
 
 int multiply(int a, int b) {
@@ -17,5 +18,5 @@ int multiply(int a, int b) {
 }
 
 int multiplyGlobal() {
-    return SharedStructInstance.alpha * SharedStructInstance.beta;
+    return sharedStructInstance.alpha * sharedStructInstance.beta;
 }

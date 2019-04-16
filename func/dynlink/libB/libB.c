@@ -4,13 +4,25 @@
 #include <stdio.h>
 
 int divide(int a, int b) {
-    int result = a/b;
+    int result = a / b;
     printf("Dividing %i and %i to get %i\n", a, b, result);
 
     return result;
 }
 
 int divideGlobal() {
-    printf("Global struct name: %s", SharedStructInstance.name);
-    return divide(SharedStructInstance.alpha, SharedStructInstance.beta);
+    printf("Global struct name: %s", sharedStructInstance.name);
+    return divide(sharedStructInstance.alpha, sharedStructInstance.beta);
+}
+
+int invokeSharedFunc() {
+    // Invoking the function in this roundabout way is necessary to force using the GOT
+    sharedStructInstance.func = sharedFuncInstance;
+
+    int i = 4;
+    int result = sharedStructInstance.func(i);
+
+    printf("Got result from shared func: %i -> %i\n", i, result);
+
+    return result;
 }
