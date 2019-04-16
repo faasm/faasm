@@ -92,6 +92,8 @@ namespace wasm {
 
         Uptr getDynamicModuleFunction(int handle, const std::string &funcName);
 
+        int addFunctionToTable(Runtime::Object *exportedFunc);
+
         Runtime::Function *getFunction(const std::string &funcName);
 
         void setErrno(int newValue);

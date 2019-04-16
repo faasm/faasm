@@ -124,7 +124,7 @@ namespace wasm {
                 }
 
                 std::string &elemName = disassemblyNames.functions[elem.index].name;
-                int tableIdx = offset + i;
+                int tableIdx = nextTableBase + offset + i;
                 globalOffsetTableMap.insert(std::pair<std::string, int>(elemName, tableIdx));
             }
         }
@@ -143,7 +143,6 @@ namespace wasm {
 
             // Get the global definition for this export
             int i = ex.index;
-
             const IR::GlobalDef &global = mod.globals.getDef(i);
 
             // Skip if mutable or not I32
@@ -152,7 +151,7 @@ namespace wasm {
             }
 
             // Add the initialised value to the map
-            I32 value = global.initializer.i32;
+            I32 value = nextMemoryBase + global.initializer.i32;
             globalOffsetMemoryMap.insert(std::pair<std::string, int>(ex.name, value));
         }
     }
@@ -346,14 +345,19 @@ namespace wasm {
         }
 
         Runtime::ModuleInstance *dynModule = dynamicModuleMap[handle];
-
-        // Something puts an underscore in front of the name
         Runtime::Object *exportedFunc = getInstanceExport(dynModule, funcName);
 
         if (!exportedFunc) {
             logger->error("Unable to dynamically load function {}", funcName);
             throw std::runtime_error("Missing dynamic module function");
         }
+
+        int prevIdx = this->addFunctionToTable(exportedFunc);
+        return prevIdx;
+    }
+
+    int WasmModule::addFunctionToTable(Runtime::Object *exportedFunc) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Add function to the table
         int nElements = 1;
@@ -670,14 +674,28 @@ namespace wasm {
                 resolved = asObject(gotMemoryOffset);
 
             } else if (moduleName == "GOT.func") {
-                // Here we're looking up a function table offset
-                if (globalOffsetTableMap.count(name) == 0) {
-                    logger->error("Failed to look up function in GOT: {}.{}", moduleName, name);
-                    return false;
+                int tableIdx = -1;
+
+                // See if it's already in the GOT
+                if (globalOffsetTableMap.count(name) >1) {
+                    tableIdx = globalOffsetTableMap[name];
+                    logger->debug("Resolved {}.{} to {}", moduleName, name, tableIdx);
                 }
 
-                int tableIdx = globalOffsetTableMap[name];
-                logger->debug("Resolved {}.{} to {}", moduleName, name, tableIdx);
+                // Look in other imported modules
+                for(auto m : dynamicModuleMap) {
+                    Runtime::Object *resolvedFunc = getInstanceExport(m.second, name);
+                    if(resolvedFunc) {
+                        // Add the function to the map
+                        tableIdx = this->addFunctionToTable(resolvedFunc);
+                        globalOffsetTableMap.insert({name, tableIdx});
+                        break;
+                    }
+                }
+
+                if(tableIdx == -1) {
+                    return false;
+                }
 
                 // Create a global to hold the function offset
                 Runtime::Global *gotFunctionOffset = Runtime::createGlobal(compartment, asGlobalType(type));

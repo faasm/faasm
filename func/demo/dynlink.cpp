@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
     }
 
     printf("HandleA: %p\n", handleA);
-    printf("HandleB: %p\n", handleA);
+    printf("HandleB: %p\n", handleB);
 
     // Extract functions
     auto mult = (multiply)dlsym(handleA, "multiply");
@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
     auto div = (divide)dlsym(handleB, "divide");
     auto divGlobal = (divideGlobal)dlsym(handleB, "divideGlobal");
 
-    auto invokeShared = (invokeSharedFunc)dlsym(handleB, "invokeShared");
+    auto invokeShared = (invokeSharedFunc)dlsym(handleB, "invokeSharedFunc");
 
     // Call simple functions on each module
     int multResult = mult(4, 20);

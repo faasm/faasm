@@ -22,5 +22,6 @@ int multiply(int a, int b) {
 }
 
 int multiplyGlobal() {
+    printf("Multiplying struct with name: %s\n", sharedStructInstance.name);
     return sharedStructInstance.alpha * sharedStructInstance.beta;
 }

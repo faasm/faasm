@@ -11,7 +11,7 @@ int divide(int a, int b) {
 }
 
 int divideGlobal() {
-    printf("Global struct name: %s", sharedStructInstance.name);
+    printf("Dividing struct with name: %s\n", sharedStructInstance.name);
     return divide(sharedStructInstance.alpha, sharedStructInstance.beta);
 }
 
