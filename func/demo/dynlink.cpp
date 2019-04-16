@@ -5,27 +5,64 @@
 #include <pwd.h>
 #include <unistd.h>
 
-typedef int (*mult)(int, int);
+typedef int (*multiply)(int, int);
+typedef int (*multiplyGlobal)();
+
+typedef int (*divide)(int, int);
+typedef int (*divideGlobal)();
+
+typedef int (*invokeSharedFunc)();
 
 int main(int argc, char *argv[]) {
-    uid_t uid = getuid();
-    printf("UID: %i\n", uid);
+    // Open both the modules
+    void * handleA = dlopen("libfakeLibA.so", RTLD_NOW);
+    void * handleB = dlopen("libfakeLibB.so", RTLD_NOW);
 
-    // Open the module
-    void * handle = dlopen("libfake.so", RTLD_NOW);
-    if(handle == nullptr) {
-        printf("Handle is null\n");
+    if(handleA == nullptr || handleB == nullptr) {
+        printf("Importing dynamic libs failed\n");
         return 1;
     }
 
-    printf("Handle: %p\n", handle);
+    printf("HandleA: %p\n", handleA);
+    printf("HandleB: %p\n", handleA);
 
-    // Extract the function handle
-    mult f = (mult)dlsym(handle, "mult");
-    printf("Mult func: %p\n", f);
+    // Extract functions
+    auto mult = (multiply)dlsym(handleA, "multiply");
+    auto multGlobal = (multiplyGlobal)dlsym(handleA, "multiplyGlobal");
 
-    int result = f(25, 43);
-    printf("Result: %i\n", result);
+    auto div = (divide)dlsym(handleB, "divide");
+    auto divGlobal = (divideGlobal)dlsym(handleB, "divideGlobal");
+
+    auto invokeShared = (invokeSharedFunc)dlsym(handleB, "invokeShared");
+
+    // Call simple functions on each module
+    int multResult = mult(4, 20);
+    if(multResult != 80) {
+        return 1;
+    }
+
+    int divideResult = div(100, 25);
+    if(divideResult != 4) {
+        return 1;
+    }
+
+    // Call functions on each module which depend on a shared global object
+    // (Results depend on hard-coded variables in the modules)
+    int multGlobalResult = multGlobal();
+    if(multGlobalResult != 50) {
+        return 1;
+    }
+
+    int divideGlobalResult = divGlobal();
+    if(divideGlobalResult != 2) {
+        return 1;
+    }
+
+    // Call a function on one module which requires a lookup in the GOT
+    int sharedResult = invokeShared();
+    if(sharedResult != 16) {
+        return 1;
+    }
 
     return 0;
 }

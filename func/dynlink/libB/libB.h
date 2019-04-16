@@ -5,4 +5,6 @@ int divide(int a, int b);
 
 int divideGlobal();
 
+int invokeSharedFunc();
+
 #endif
