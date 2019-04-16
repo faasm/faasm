@@ -21,7 +21,6 @@ int main(int argc, char *argv[]) {
     printf("Handle: %p\n", handle);
 
     // Extract the function handle
-
     mult f = (mult)dlsym(handle, "mult");
     printf("Mult func: %p\n", f);
 

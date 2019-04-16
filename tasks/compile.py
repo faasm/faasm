@@ -123,7 +123,7 @@ def compile_libfaasm(ctx, clean=False):
 @task
 def compile_libfake(ctx, clean=False):
     _check_emscripten()
-    work_dir = join(PROJ_ROOT, "func", "libfake")
+    work_dir = join(PROJ_ROOT, "func", "dynlink")
 
     build_dir = join(work_dir, "build")
 

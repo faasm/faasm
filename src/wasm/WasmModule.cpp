@@ -121,7 +121,8 @@ namespace wasm {
             }
         }
 
-        // Build up map of initialisers for immutable globals
+        // Build up map of initialisers for immutable globals. These will just be offsets
+        // of C global variables
         for (Uptr i = 0; i < module.globals.defs.size(); i++) {
             IR::GlobalDef &global = module.globals.defs[i];
 
@@ -137,14 +138,21 @@ namespace wasm {
             globalImmutableInitialiserMap.insert(std::pair<int, int>(i, value));
         }
 
-        // Create a map of export names to their global index
+        // Create a map of export names
         for (auto &ex : module.exports) {
             if (ex.kind != IR::ExternKind::global) {
                 continue;
             }
 
+            // Record the index for this global
             std::string globalName = disassemblyNames.globals[ex.index];
             globalIndexMap.insert(std::pair<std::string, int>(ex.name, ex.index));
+
+            // Record the memory offset
+            if(globalImmutableInitialiserMap.count(ex.index) > 0) {
+                I32 value = globalImmutableInitialiserMap[ex.index];
+                globalOffsetMemoryMap.insert(std::pair<std::string, int>(ex.name, value));
+            }
         }
     }
 

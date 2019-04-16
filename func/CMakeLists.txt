@@ -92,7 +92,7 @@ endif ()
 add_subdirectory(errors)
 add_subdirectory(demo)
 add_subdirectory(sgd)
-add_subdirectory(libfake)
+add_subdirectory(dynlink)
 
 # Add python build in everything but the lambda funcs
 if (FAASM_BUILD_TYPE STREQUAL "lambda-func")
