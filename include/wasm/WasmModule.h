@@ -111,7 +111,6 @@ namespace wasm {
 
     private:
         IR::Module module;
-        IR::DisassemblyNames disassemblyNames;
 
         Runtime::GCPointer<Runtime::ModuleInstance> envModule;
 
@@ -145,8 +144,6 @@ namespace wasm {
         std::unordered_map<int, Runtime::GCPointer<Runtime::ModuleInstance>> dynamicModuleMap;
 
         // Dynamic linking stuff
-        std::unordered_map<std::string, int> globalIndexMap;
-        std::unordered_map<int, int> globalImmutableInitialiserMap;
         std::unordered_map<std::string, int> globalOffsetTableMap;
         std::unordered_map<std::string, int> globalOffsetMemoryMap;
 
@@ -154,8 +151,7 @@ namespace wasm {
 
         void resizeMemory(size_t targetPages);
 
-        void initGOT();
-        void populateGOT(Runtime::Context *context);
+        void addModuleToGOT(IR::Module &mod);
 
         Runtime::ModuleInstance *createModuleInstance(
                 IR::Module &irModule,

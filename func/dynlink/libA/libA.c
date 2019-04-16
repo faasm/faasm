@@ -10,6 +10,10 @@ SharedStruct sharedStructInstance = {
         0   // Func pointer
 };
 
+int sharedFuncInstance(int a) {
+    return a * a;
+}
+
 int multiply(int a, int b) {
     int result = a * b;
     printf("Multiplying %i and %i to get %i\n", a, b, result);

@@ -102,9 +102,17 @@ namespace wasm {
         return func;
     }
 
-    void WasmModule::initGOT() {
-        // Iterate through element segments to build map of table indices
-        for (auto &es : module.elemSegments) {
+    void WasmModule::addModuleToGOT(IR::Module &mod) {
+        // Retrieve the disassembly names to help with building the GOT
+        IR::DisassemblyNames disassemblyNames;
+        getDisassemblyNames(mod, disassemblyNames);
+
+        // ----------------------------
+        // Function entries
+        // ----------------------------
+        // Function entries in main modules are specified in the elem sections in order, so we can
+        // iterate through this to get their table indices
+        for (auto &es : mod.elemSegments) {
             I32 offset = es.baseOffset.i32;
 
             for (Uptr i = 0; i < es.elems.size(); i++) {
@@ -121,50 +129,32 @@ namespace wasm {
             }
         }
 
-        // Build up map of initialisers for immutable globals. These will just be offsets
-        // of C global variables
-        for (Uptr i = 0; i < module.globals.defs.size(); i++) {
-            IR::GlobalDef &global = module.globals.defs[i];
-
-            if (global.type.isMutable) {
-                continue;
-            }
-
-            if (global.initializer.type != IR::InitializerExpression::Type::i32_const) {
-                throw std::runtime_error("Haven't done this for non-i32_const yet");
-            }
-
-            I32 value = global.initializer.i32;
-            globalImmutableInitialiserMap.insert(std::pair<int, int>(i, value));
-        }
-
-        // Create a map of export names
-        for (auto &ex : module.exports) {
+        // ----------------------------
+        // Data entries
+        // ----------------------------
+        // Here we need to build up a map of the export's name to its initialised value.
+        // We assume the entries we care about are pointers to stuff in memory, therefore we
+        // only look at immutable i32s
+        for (auto &ex : mod.exports) {
+            // Ignore non global exports
             if (ex.kind != IR::ExternKind::global) {
                 continue;
             }
 
-            // Record the index for this global
-            std::string globalName = disassemblyNames.globals[ex.index];
-            globalIndexMap.insert(std::pair<std::string, int>(ex.name, ex.index));
+            // Get the global definition for this export
+            int i = ex.index;
 
-            // Record the memory offset
-            if(globalImmutableInitialiserMap.count(ex.index) > 0) {
-                I32 value = globalImmutableInitialiserMap[ex.index];
-                globalOffsetMemoryMap.insert(std::pair<std::string, int>(ex.name, value));
+            const IR::GlobalDef &global = mod.globals.getDef(i);
+
+            // Skip if mutable or not I32
+            if(global.type.isMutable || global.initializer.type != IR::InitializerExpression::Type::i32_const) {
+                continue;
             }
-        }
-    }
 
-    void WasmModule::populateGOT(Runtime::Context *context) {
-//        for(auto ex : mainModule->exportMap) {
-//            if(ex.value->kind == Runtime::ObjectKind::global) {
-//                Runtime::Global *g = (Runtime::Global *) ex.value;
-//                g->mutableGlobalIndex;
-//                g->initialValue;
-//                IR::UntaggedValue &mg = context->runtimeData->mutableGlobals[g->mutableGlobalIndex];
-//            }
-//        }
+            // Add the initialised value to the map
+            I32 value = global.initializer.i32;
+            globalOffsetMemoryMap.insert(std::pair<std::string, int>(ex.name, value));
+        }
     }
 
     void WasmModule::bindToFunction(const message::Message &msg) {
@@ -181,10 +171,6 @@ namespace wasm {
 
         // Create the module instance
         moduleInstance = this->createModuleInstance(module, wasmBytes, objectFileBytes, util::funcToString(msg), true);
-
-        // Initialise the GOT
-        getDisassemblyNames(module, disassemblyNames);
-        initGOT();
 
         // Extract the module's exported function
         std::string entryFunc = "main";
@@ -246,6 +232,10 @@ namespace wasm {
             Runtime::growTable(defaultTable, newElementsRequired);
         }
 
+        // Add module to GOT before linking
+        addModuleToGOT(irModule);
+
+        // Do the linking
         Runtime::LinkResult linkResult = linkModule(irModule, *this);
         if (!linkResult.success) {
             std::cerr << "Failed to link module:" << std::endl;
@@ -540,8 +530,6 @@ namespace wasm {
             errnoLocation = ERRNO_ADDR;
         }
 
-        populateGOT(context);
-
         int exitCode = 0;
         try {
             // Call the function
@@ -667,18 +655,16 @@ namespace wasm {
             resolved = getInstanceExport(envModule, name);
         } else {
             if (moduleName == "GOT.mem") {
-                // Here we're looking for a global memory offset
+                // Handle global offset table memory entries
                 if (globalOffsetMemoryMap.count(name) == 0) {
-                    // Last resort is to see if the module itself exports it as a global
-                    // TODO - build a GOT for the dynamic module?
-
-                    logger->error("Failed to look up memory offset: {}.{}", moduleName, name);
+                    logger->error("Failed to look up memory offset in GOT: {}.{}", moduleName, name);
                     return false;
                 }
 
                 int memOffset = globalOffsetMemoryMap[name];
                 logger->debug("Resolved {}.{} to {}", moduleName, name, memOffset);
 
+                // Create a global to hold the offset value
                 Runtime::Global *gotMemoryOffset = Runtime::createGlobal(compartment, asGlobalType(type));
                 Runtime::initializeGlobal(gotMemoryOffset, memOffset);
                 resolved = asObject(gotMemoryOffset);
@@ -686,51 +672,63 @@ namespace wasm {
             } else if (moduleName == "GOT.func") {
                 // Here we're looking up a function table offset
                 if (globalOffsetTableMap.count(name) == 0) {
-                    // See if the module itself exports this function
-                    // TODO - build a GOT for the dynamic module?
-
-                    logger->error("Failed to look up function table index: {}.{}", moduleName, name);
+                    logger->error("Failed to look up function in GOT: {}.{}", moduleName, name);
                     return false;
                 }
 
                 int tableIdx = globalOffsetTableMap[name];
                 logger->debug("Resolved {}.{} to {}", moduleName, name, tableIdx);
 
+                // Create a global to hold the function offset
                 Runtime::Global *gotFunctionOffset = Runtime::createGlobal(compartment, asGlobalType(type));
                 Runtime::initializeGlobal(gotFunctionOffset, tableIdx);
                 resolved = asObject(gotFunctionOffset);
+
             } else if (name == "__memory_base") {
-                // This is the point at which globals will be copied in
+                // Memory base tells the loaded module where to start its heap
                 Runtime::Global *newMemoryBase = Runtime::createGlobal(compartment, asGlobalType(type));
                 Runtime::initializeGlobal(newMemoryBase, nextMemoryBase);
                 resolved = asObject(newMemoryBase);
+
             } else if (name == "__table_base") {
-                // This is the offset in the imported table this module should use
+                // Table base tells the loaded module where to start its table entries
                 Runtime::Global *newTableBase = Runtime::createGlobal(compartment, asGlobalType(type));
                 Runtime::initializeGlobal(newTableBase, nextTableBase);
                 resolved = asObject(newTableBase);
+
             } else if (name == "__stack_pointer") {
-                // This is where the module should put its stack
+                // Stack pointer is where the loaded module should put its stack
                 Runtime::Global *newStackPointer = Runtime::createGlobal(compartment, asGlobalType(type));
                 Runtime::initializeGlobal(newStackPointer, nextStackPointer);
                 resolved = asObject(newStackPointer);
+
             } else if (name == "__indirect_function_table") {
-                // This is the table shared with the main module. We will have
-                // made sure it is the right size with the right offset.
+                // This is the name for the table imported from the main module
                 Runtime::Table *table = Runtime::getDefaultTable(moduleInstance);
                 resolved = asObject(table);
+
             } else {
-                // Look in normal env
+                // First check in normal env
                 resolved = getInstanceExport(envModule, name);
 
-                // If not resolved here, check on the main module
+                // Check the main module if not
                 if (!resolved) {
                     resolved = getInstanceExport(moduleInstance, name);
+                }
+
+                // Check other dynamically loaded modules for the export
+                if(!resolved) {
+                    for(auto &m : dynamicModuleMap) {
+                        resolved = getInstanceExport(m.second, name);
+                        if(resolved) {
+                            break;
+                        }
+                    }
                 }
             }
         }
 
-        // Check whether the function has been resolved to the correct type
+        // Check whether the target has been resolved to the correct type
         if (resolved) {
             if (isA(resolved, type)) {
                 return true;
@@ -748,5 +746,4 @@ namespace wasm {
 
         return false;
     }
-
 }
