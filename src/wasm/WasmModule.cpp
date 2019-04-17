@@ -107,6 +107,9 @@ namespace wasm {
         IR::DisassemblyNames disassemblyNames;
         getDisassemblyNames(mod, disassemblyNames);
 
+        // Keep track of which functions are in the GOT
+        std::unordered_set<std::string> functionsAdded;
+
         // ----------------------------
         // Function entries
         // ----------------------------
@@ -121,7 +124,7 @@ namespace wasm {
                 offset = nextTableBase;
             }
 
-            // Go through each elem entry and add to the table
+            // Go through each elem entry and record where in the table it's getting inserted
             for (Uptr i = 0; i < es.elems.size(); i++) {
                 const IR::Elem &elem = es.elems[i];
 
@@ -133,6 +136,7 @@ namespace wasm {
                 std::string &elemName = disassemblyNames.functions[elem.index].name;
                 int tableIdx = offset + i;
                 globalOffsetTableMap.insert({elemName, tableIdx});
+                functionsAdded.insert(elemName);
             }
         }
 
@@ -258,7 +262,7 @@ namespace wasm {
             logger->error("Failed to link module");
             throw std::runtime_error("Failed linking module");
         }
-
+        
         // Instantiate the module, i.e. create memory, tables etc.
         Runtime::ModuleRef compiledModule;
         if (!objBytes.empty()) {
@@ -274,6 +278,22 @@ namespace wasm {
                 name.c_str()
         );
 
+        // Attempt to fill gaps in missing table entries - loading module can fail here
+        if(missingGlobalOffsetEntries.size() > 0) {
+            for(auto e : missingGlobalOffsetEntries) {
+                Runtime::Object *missingFunction = getInstanceExport(instance, e.first);
+
+                if(!missingFunction) {
+                    logger->error("Could not fill gap in GOT for function: {}", e.first);
+                    throw std::runtime_error("Failed linking module on missing GOT entry");
+                }
+
+                // Fill in the empty placeholder
+                logger->debug("Filling gap in GOT for function: {} at {}", e.first, e.second);
+                Runtime::setTableElement(defaultTable, e.second, missingFunction);
+            }
+        }
+        
         return instance;
     }
 
@@ -355,13 +375,6 @@ namespace wasm {
             throw std::runtime_error("Missing dynamic module");
         }
 
-        // Function should already be in the table
-        if (globalOffsetTableMap.count(funcName) > 0) {
-            return globalOffsetTableMap[funcName];
-        } else {
-            logger->error("Unable to dynamically load function from GOT {}", funcName);
-        }
-
         // If function not in table for some reason, we need to load it
         Runtime::ModuleInstance *dynModule = dynamicModuleMap[handle];
         Runtime::Object *exportedFunc = getInstanceExport(dynModule, funcName);
@@ -376,18 +389,14 @@ namespace wasm {
     }
 
     int WasmModule::addFunctionToTable(Runtime::Object *exportedFunc) {
-        // TODO - reuse the work we've already done rather than extending the table again
-        // We've already extended the table when importing the module so either we can use the new space
-        // or the function is already in the table
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Add function to the table
-        int nElements = 1;
-        Iptr prevIdx = Runtime::growTable(defaultTable, nElements);
+        Iptr prevIdx = Runtime::growTable(defaultTable, 1);
         if (prevIdx == -1) {
             throw std::runtime_error("Failed to grow table");
         } else {
-            logger->debug("Growing table from {} elements to {}", prevIdx, prevIdx + nElements);
+            logger->debug("Growing table from {} elements to {}", prevIdx, prevIdx + 1);
         }
 
         Runtime::setTableElement(defaultTable, prevIdx, exportedFunc);
@@ -717,9 +726,13 @@ namespace wasm {
                     }
                 }
 
+                // If not found, create a placeholder to be filled in later
+                // TODO - what causes this? The module both exports _and_ has a GOT entry for the function?
                 if (tableIdx == -1) {
-                    logger->debug("Failed to look up table offset: {}.{}", moduleName, name);
-                    return false;
+                    // Create a new entry in the table and use this, but mark it to be filled later
+                    tableIdx = Runtime::growTable(defaultTable, 1);
+                    logger->warn("Adding placeholder table offset: {}.{} at {}", moduleName, name, tableIdx);
+                    missingGlobalOffsetEntries.insert({name, tableIdx});
                 }
 
                 // Create a global to hold the function offset

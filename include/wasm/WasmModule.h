@@ -28,8 +28,8 @@
 #define MAX_MEMORY_PAGES ONE_GB_PAGES
 
 // Properties of dynamic modules
-#define DYNAMIC_MODULE_STACK_SIZE 1 * ONE_MB_PAGES
-#define DYNAMIC_MODULE_HEAP_SIZE 4 * ONE_MB_PAGES
+#define DYNAMIC_MODULE_STACK_SIZE 1 * ONE_MB_BYTES
+#define DYNAMIC_MODULE_HEAP_SIZE 4 * ONE_MB_BYTES
 #define DYNAMIC_MODULE_TABLE_ELEMS 100
 
 #define MAX_TABLE_SIZE 500000
@@ -148,6 +148,7 @@ namespace wasm {
         // Dynamic linking stuff
         std::unordered_map<std::string, int> globalOffsetTableMap;
         std::unordered_map<std::string, int> globalOffsetMemoryMap;
+        std::unordered_map<std::string, int> missingGlobalOffsetEntries;
 
         memory::MemorySnapshot memSnapshot;
 

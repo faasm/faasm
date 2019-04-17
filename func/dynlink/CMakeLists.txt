@@ -15,9 +15,9 @@ if (FAASM_BUILD_TYPE STREQUAL "emscripten")
 
     # NOTE: all of these linker options are crucial to getting things to work properly
     set(CMAKE_SHARED_LINKER_FLAGS " \
-        -Xlinker --no-entry \
         -Xlinker --shared \
         -Xlinker --stack-first \
+        -Xlinker --no-entry \
         -Xlinker --export-all \
         -Xlinker --export-dynamic \
         -Xlinker --no-gc-sections \
