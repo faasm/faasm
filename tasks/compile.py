@@ -89,35 +89,37 @@ def compile_malloc(ctx, clean=False):
 def compile_libfaasm(ctx, clean=False):
     _check_emscripten()
 
-    build_type = "emscripten"
-    cmake_build_type = "Release"
+    def _do_lib_build(dir_name):
+        work_dir = join(PROJ_ROOT, dir_name)
+        build_dir = join(work_dir, "lib_build")
 
-    work_dir = join(PROJ_ROOT, "lib")
-    build_dir = join(work_dir, "{}_lib_build".format(build_type))
+        if exists(build_dir) and clean:
+            rmtree(build_dir)
+            mkdir(build_dir)
+        elif not exists(build_dir):
+            mkdir(build_dir)
 
-    if exists(build_dir) and clean:
-        rmtree(build_dir)
-        mkdir(build_dir)
-    elif not exists(build_dir):
-        mkdir(build_dir)
+        build_cmd = [
+            "cmake",
+            "-DFAASM_BUILD_TYPE=emscripten",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DCMAKE_TOOLCHAIN_FILE={}".format(EMSCRIPTEN_TOOLCHAIN),
+            ".."
+        ]
 
-    build_cmd = [
-        "cmake",
-        "-DFAASM_BUILD_TYPE={}".format(build_type),
-        "-DCMAKE_BUILD_TYPE={}".format(cmake_build_type),
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(EMSCRIPTEN_TOOLCHAIN),
-        ".."
-    ]
+        build_cmd_str = " ".join(build_cmd)
+        print(build_cmd_str)
 
-    build_cmd_str = " ".join(build_cmd)
-    print(build_cmd_str)
+        call(build_cmd_str, shell=True, cwd=build_dir)
+        call("make VERBOSE=1", shell=True, cwd=build_dir)
+        call("make install", shell=True, cwd=build_dir)
 
-    call(build_cmd_str, shell=True, cwd=build_dir)
-    call("make VERBOSE=1", shell=True, cwd=build_dir)
-    call("make install", shell=True, cwd=build_dir)
+        # Put imports file in place to avoid undefined symbols
+        if dir_name == "lib":
+            call("cp libfaasm.imports {}".format(build_dir), shell=True, cwd=work_dir)
 
-    # Put imports file in place to avoid undefined symbols
-    call("cp libfaasm.imports {}".format(build_dir), shell=True, cwd=work_dir)
+    _do_lib_build("lib")
+    _do_lib_build("python")
 
 
 @task

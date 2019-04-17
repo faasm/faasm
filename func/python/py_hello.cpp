@@ -1,11 +1,12 @@
-#include "faasm/faasm.h"
-#include "faasm/python.h"
+#include <faasm/faasm.h>
+#include <faasm/pyfaasm.h>
 
 #include <Python.h>
 
 namespace faasm {
     int exec(FaasmMemory *memory) {
-        faasm::setUpEnvironment();
+        setUpPyEnvironment();
+        setUpPyNumpy();
 
         printf("Started python hello\n");
 
