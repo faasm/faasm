@@ -124,8 +124,12 @@ namespace wasm {
                 }
 
                 std::string &elemName = disassemblyNames.functions[elem.index].name;
+
+                if(elemName == "PyMem_RawFree") {
+                    printf("foo");
+                }
                 int tableIdx = nextTableBase + offset + i;
-                globalOffsetTableMap.insert(std::pair<std::string, int>(elemName, tableIdx));
+                globalOffsetTableMap.insert({elemName, tableIdx});
             }
         }
 
@@ -152,7 +156,7 @@ namespace wasm {
 
             // Add the initialised value to the map
             I32 value = nextMemoryBase + global.initializer.i32;
-            globalOffsetMemoryMap.insert(std::pair<std::string, int>(ex.name, value));
+            globalOffsetMemoryMap.insert({ex.name, value});
         }
     }
 
@@ -685,25 +689,31 @@ namespace wasm {
             } else if (moduleName == "GOT.func") {
                 int tableIdx = -1;
 
-                // See if it's already in the GOT
-                if (globalOffsetTableMap.count(name) > 1) {
-                    tableIdx = globalOffsetTableMap[name];
-                    logger->debug("Resolved {}.{} to {}", moduleName, name, tableIdx);
+                if(name == "PyMem_RawFree") {
+                    printf("foo");
                 }
 
-                // Look in other imported modules
-                for (auto m : dynamicModuleMap) {
-                    Runtime::Object *resolvedFunc = getInstanceExport(m.second, name);
-                    if (resolvedFunc) {
-                        // Add the function to the map
-                        tableIdx = this->addFunctionToTable(resolvedFunc);
-                        globalOffsetTableMap.insert({name, tableIdx});
-                        break;
+                // See if it's already in the GOT
+                if (globalOffsetTableMap.count(name) > 0) {
+                    tableIdx = globalOffsetTableMap[name];
+                    logger->debug("Resolved {}.{} to offset {}", moduleName, name, tableIdx);
+                }
+
+                // Look in other imported modules if not found
+                if(tableIdx == -1) {
+                    for (auto m : dynamicModuleMap) {
+                        Runtime::Object *resolvedFunc = getInstanceExport(m.second, name);
+                        if (resolvedFunc) {
+                            // Add the function to the map
+                            tableIdx = this->addFunctionToTable(resolvedFunc);
+                            globalOffsetTableMap.insert({name, tableIdx});
+                            break;
+                        }
                     }
                 }
 
                 if (tableIdx == -1) {
-                    logger->debug("Failed to look up table offset in GOT {}.{}", moduleName, name);
+                    logger->debug("Failed to look up table offset: {}.{}", moduleName, name);
                     return false;
                 }
 
