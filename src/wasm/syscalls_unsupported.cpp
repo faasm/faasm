@@ -194,4 +194,29 @@ namespace wasm {
         util::getLogger()->debug("S - realpath - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "longjmp", void, longjmp, I32 a, U32 b) {
+        util::getLogger()->debug("S - longjmp - {} {}", a, b);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "setjmp", I32, setjmp, I32 a) {
+        util::getLogger()->debug("S - setjmp - {}", a);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "strtold_l", void, strtold_l, I32 a, I32 b, I32 c, I32 d) {
+        util::getLogger()->debug("S - strtold_l - {} {} {} {}", a, b, c, d);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "strpbrk", I32, strpbrk, I32 a, I32 b) {
+        util::getLogger()->debug("S - strpbrk - {} {}", a, b);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "exp2", F64, exp2, F64 a) {
+        util::getLogger()->debug("S - exp2 - {}", a);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
 }

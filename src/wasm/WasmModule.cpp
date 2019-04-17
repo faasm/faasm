@@ -146,7 +146,7 @@ namespace wasm {
             const IR::GlobalDef &global = mod.globals.getDef(i);
 
             // Skip if mutable or not I32
-            if(global.type.isMutable || global.initializer.type != IR::InitializerExpression::Type::i32_const) {
+            if (global.type.isMutable || global.initializer.type != IR::InitializerExpression::Type::i32_const) {
                 continue;
             }
 
@@ -198,6 +198,8 @@ namespace wasm {
                                      const std::string &name, bool isMainModule) {
         wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
 
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         if (functionLoader.isWasm(wasmBytes)) {
             WASM::loadBinaryModule(wasmBytes.data(), wasmBytes.size(), irModule);
         } else {
@@ -226,9 +228,18 @@ namespace wasm {
                 throw std::runtime_error("Dynamic module trying to define memories");
             }
 
-            // Work out how many new table slots are required, then grow the main table by this amount
-            U64 newElementsRequired = irModule.tables.imports[0].type.size.min;
-            Runtime::growTable(defaultTable, newElementsRequired);
+            // Extend the existing table to fit all the dynamic module's elements
+            U64 nTableElems = irModule.tables.imports[0].type.size.min;
+            logger->debug("Growing table to fit {} dynamic module elements", nTableElems);
+
+            Iptr oldTableElems = Runtime::growTable(defaultTable, nTableElems);
+            if (oldTableElems == -1) {
+                throw std::runtime_error("Failed to grow main module table");
+            }
+
+            // Now force the incoming dynamic module to accept the table from the main module
+            irModule.tables.imports[0].type.size.min = (U64) module.tables.defs[0].type.size.min;
+            irModule.tables.imports[0].type.size.max = (U64) module.tables.defs[0].type.size.max;
         }
 
         // Add module to GOT before linking
@@ -237,7 +248,7 @@ namespace wasm {
         // Do the linking
         Runtime::LinkResult linkResult = linkModule(irModule, *this);
         if (!linkResult.success) {
-            std::cerr << "Failed to link module:" << std::endl;
+            logger->error("Failed to link module");
             throw std::runtime_error("Failed linking module");
         }
 
@@ -287,25 +298,20 @@ namespace wasm {
         // Create a new region in the default memory 
         U32 dynamicMemBase = this->mmap(DYNAMIC_MODULE_HEAP_SIZE);
 
-        // TODO - how do we actually pass the dynamic lib stack pointer from the main module?
-        // It seems impossible to get the right stack pointer value from the module. It's assigned to a different
-        // global every time and isn't labelled. For now we can just give it a region on the heap,
-        // but we won't be able to detect stack overflow errors.
-        //
-        // Stack has a region just at the bottom of the empty region (and grows down)
-        // Memory then sits above that (and grows up)
+        // Give the module a stack region just at the bottom of the empty region (which will grow down)
+        // Memory sits above that (and grows up).
+        // TODO - how do we detect stack overflows here? Are we meant to share the stack pointer of the main module?
         U32 dynamicHeapBase = dynamicMemBase + DYNAMIC_MODULE_STACK_SIZE;
         U32 dynamicStackBase = dynamicHeapBase - 1;
 
         this->nextStackPointer = dynamicStackBase;
         this->nextMemoryBase = dynamicHeapBase;
 
-        // The end of the current table is the place where the new module can put its elements
-        // The table itself will be grown when we instantiate the module
+        // The end of the current table is the place where the new module can put its elements.
         Uptr currentTableElems = Runtime::getTableNumElements(defaultTable);
         this->nextTableBase = currentTableElems;
 
-        logger->debug("Provisioned new dynamic module region (stack={}, heap={}, table={}",
+        logger->debug("Provisioned new dynamic module region (stack_ptr={}, heap_base={}, table_base={}",
                       this->nextStackPointer,
                       this->nextMemoryBase,
                       this->nextTableBase
@@ -357,6 +363,9 @@ namespace wasm {
     }
 
     int WasmModule::addFunctionToTable(Runtime::Object *exportedFunc) {
+        // TODO - reuse the work we've already done rather than extending the table again
+        // We've already extended the table when importing the module so either we can use the new space
+        // or the function is already in the table
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Add function to the table
@@ -646,9 +655,9 @@ namespace wasm {
     }
 
     bool WasmModule::resolve(const std::string &moduleName,
-                 const std::string &name,
-                 IR::ExternType type,
-                 Runtime::Object *&resolved) {
+                             const std::string &name,
+                             IR::ExternType type,
+                             Runtime::Object *&resolved) {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -677,15 +686,15 @@ namespace wasm {
                 int tableIdx = -1;
 
                 // See if it's already in the GOT
-                if (globalOffsetTableMap.count(name) >1) {
+                if (globalOffsetTableMap.count(name) > 1) {
                     tableIdx = globalOffsetTableMap[name];
                     logger->debug("Resolved {}.{} to {}", moduleName, name, tableIdx);
                 }
 
                 // Look in other imported modules
-                for(auto m : dynamicModuleMap) {
+                for (auto m : dynamicModuleMap) {
                     Runtime::Object *resolvedFunc = getInstanceExport(m.second, name);
-                    if(resolvedFunc) {
+                    if (resolvedFunc) {
                         // Add the function to the map
                         tableIdx = this->addFunctionToTable(resolvedFunc);
                         globalOffsetTableMap.insert({name, tableIdx});
@@ -693,7 +702,8 @@ namespace wasm {
                     }
                 }
 
-                if(tableIdx == -1) {
+                if (tableIdx == -1) {
+                    logger->debug("Failed to look up table offset in GOT {}.{}", moduleName, name);
                     return false;
                 }
 
@@ -724,7 +734,6 @@ namespace wasm {
                 // This is the name for the table imported from the main module
                 Runtime::Table *table = Runtime::getDefaultTable(moduleInstance);
                 resolved = asObject(table);
-
             } else {
                 // First check in normal env
                 resolved = getInstanceExport(envModule, name);
@@ -735,10 +744,10 @@ namespace wasm {
                 }
 
                 // Check other dynamically loaded modules for the export
-                if(!resolved) {
-                    for(auto &m : dynamicModuleMap) {
+                if (!resolved) {
+                    for (auto &m : dynamicModuleMap) {
                         resolved = getInstanceExport(m.second, name);
-                        if(resolved) {
+                        if (resolved) {
                             break;
                         }
                     }
