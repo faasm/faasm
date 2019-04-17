@@ -102,7 +102,7 @@ namespace wasm {
         return func;
     }
 
-    void WasmModule::addModuleToGOT(IR::Module &mod) {
+    void WasmModule::addModuleToGOT(IR::Module &mod, bool isMainModule) {
         // Retrieve the disassembly names to help with building the GOT
         IR::DisassemblyNames disassemblyNames;
         getDisassemblyNames(mod, disassemblyNames);
@@ -113,8 +113,15 @@ namespace wasm {
         // Function entries in main modules are specified in the elem sections in order, so we can
         // iterate through this to get their table indices
         for (auto &es : mod.elemSegments) {
-            I32 offset = es.baseOffset.i32;
+            // Work out the offset (dynamic modules will be given this by us)
+            I32 offset;
+            if (isMainModule) {
+                offset = es.baseOffset.i32;
+            } else {
+                offset = nextTableBase;
+            }
 
+            // Go through each elem entry and add to the table
             for (Uptr i = 0; i < es.elems.size(); i++) {
                 const IR::Elem &elem = es.elems[i];
 
@@ -124,11 +131,7 @@ namespace wasm {
                 }
 
                 std::string &elemName = disassemblyNames.functions[elem.index].name;
-
-                if(elemName == "PyMem_RawFree") {
-                    printf("foo");
-                }
-                int tableIdx = nextTableBase + offset + i;
+                int tableIdx = offset + i;
                 globalOffsetTableMap.insert({elemName, tableIdx});
             }
         }
@@ -247,7 +250,7 @@ namespace wasm {
         }
 
         // Add module to GOT before linking
-        addModuleToGOT(irModule);
+        addModuleToGOT(irModule, isMainModule);
 
         // Do the linking
         Runtime::LinkResult linkResult = linkModule(irModule, *this);
@@ -346,14 +349,20 @@ namespace wasm {
     Uptr WasmModule::getDynamicModuleFunction(int handle, const std::string &funcName) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // TODO - avoid doing this if function is already in the table
-
-        // Get main entrypoint function
+        // Check the handle is valid
         if (dynamicModuleMap.count(handle) == 0) {
             logger->error("No dynamic module registered for handle {}", handle);
             throw std::runtime_error("Missing dynamic module");
         }
 
+        // Function should already be in the table
+        if (globalOffsetTableMap.count(funcName) > 0) {
+            return globalOffsetTableMap[funcName];
+        } else {
+            logger->error("Unable to dynamically load function from GOT {}", funcName);
+        }
+
+        // If function not in table for some reason, we need to load it
         Runtime::ModuleInstance *dynModule = dynamicModuleMap[handle];
         Runtime::Object *exportedFunc = getInstanceExport(dynModule, funcName);
 
@@ -689,10 +698,6 @@ namespace wasm {
             } else if (moduleName == "GOT.func") {
                 int tableIdx = -1;
 
-                if(name == "PyMem_RawFree") {
-                    printf("foo");
-                }
-
                 // See if it's already in the GOT
                 if (globalOffsetTableMap.count(name) > 0) {
                     tableIdx = globalOffsetTableMap[name];
@@ -700,7 +705,7 @@ namespace wasm {
                 }
 
                 // Look in other imported modules if not found
-                if(tableIdx == -1) {
+                if (tableIdx == -1) {
                     for (auto m : dynamicModuleMap) {
                         Runtime::Object *resolvedFunc = getInstanceExport(m.second, name);
                         if (resolvedFunc) {

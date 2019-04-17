@@ -13,13 +13,14 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMPILER_FLAGS}")
 if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     message(STATUS "Detected emscripten build")
 
-    # NOTE: --stack-first and --shared are crucial here too to getting the linker to produce a properly
-    # formatted shared object
+    # NOTE: all of these linker options are crucial to getting things to work properly
     set(CMAKE_SHARED_LINKER_FLAGS " \
         -Xlinker --no-entry \
         -Xlinker --shared \
         -Xlinker --stack-first \
         -Xlinker --export-all \
+        -Xlinker --export-dynamic \
+        -Xlinker --no-gc-sections \
     ")
 endif ()
 

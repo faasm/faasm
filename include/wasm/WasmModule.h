@@ -153,7 +153,7 @@ namespace wasm {
 
         void resizeMemory(size_t targetPages);
 
-        void addModuleToGOT(IR::Module &mod);
+        void addModuleToGOT(IR::Module &mod, bool isMainModule);
 
         Runtime::ModuleInstance *createModuleInstance(
                 IR::Module &irModule,
