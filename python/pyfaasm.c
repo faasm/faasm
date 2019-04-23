@@ -117,9 +117,9 @@ void setUpPyNumpy() {
     fprintf(devNull, "%p", atanh);
 
     // Float inverse hyperbolic
-    fprintf(devNull, "%p", asinh);
-    fprintf(devNull, "%p", acosh);
-    fprintf(devNull, "%p", atanh);
+    fprintf(devNull, "%p", asinhf);
+    fprintf(devNull, "%p", acoshf);
+    fprintf(devNull, "%p", atanhf);
 
     // Complex inverse hyperbolic
     fprintf(devNull, "%p", casinh);

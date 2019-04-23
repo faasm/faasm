@@ -111,10 +111,10 @@ namespace wasm {
         std::unordered_set<std::string> functionsAdded;
 
         // ----------------------------
-        // Function entries
+        // Table elems
         // ----------------------------
-        // Function entries in main modules are specified in the elem sections in order, so we can
-        // iterate through this to get their table indices
+        // A lot of function entries in main modules are already included in the table,
+        // so we can iterate through the elem segments to work out their index
         for (auto &es : mod.elemSegments) {
             // Work out the offset (dynamic modules will be given this by us)
             I32 offset;
@@ -278,9 +278,12 @@ namespace wasm {
                 name.c_str()
         );
 
-        // Attempt to fill gaps in missing table entries - loading module can fail here
+        // Attempt to fill gaps in missing table entries. This is *only* to see if the missing
+        // entry is exported from the dynamic module itself. I don't know how this happens but occasionally
+        // it does
         if(missingGlobalOffsetEntries.size() > 0) {
             for(auto e : missingGlobalOffsetEntries) {
+                // Check if it's an export of the module we're currently importing
                 Runtime::Object *missingFunction = getInstanceExport(instance, e.first);
 
                 if(!missingFunction) {
@@ -288,11 +291,17 @@ namespace wasm {
                     throw std::runtime_error("Failed linking module on missing GOT entry");
                 }
 
-                // Fill in the empty placeholder
+                // Put the actual function into the placeholder table location
                 logger->debug("Filling gap in GOT for function: {} at {}", e.first, e.second);
                 Runtime::setTableElement(defaultTable, e.second, missingFunction);
+
+                // Add this function to the GOT
+                globalOffsetTableMap.insert({e.first, e.second});
             }
         }
+
+        // Empty the missing entries now that they're populated
+        missingGlobalOffsetEntries.clear();
         
         return instance;
     }
@@ -707,27 +716,40 @@ namespace wasm {
             } else if (moduleName == "GOT.func") {
                 int tableIdx = -1;
 
+                if(name == "npy_aquicksort") {
+                    printf("foo");
+                }
+
                 // See if it's already in the GOT
                 if (globalOffsetTableMap.count(name) > 0) {
                     tableIdx = globalOffsetTableMap[name];
                     logger->debug("Resolved {}.{} to offset {}", moduleName, name, tableIdx);
                 }
 
-                // Look in other imported modules if not found
+                // Check in already loaded modules if not found
                 if (tableIdx == -1) {
-                    for (auto m : dynamicModuleMap) {
-                        Runtime::Object *resolvedFunc = getInstanceExport(m.second, name);
-                        if (resolvedFunc) {
-                            // Add the function to the map
-                            tableIdx = this->addFunctionToTable(resolvedFunc);
-                            globalOffsetTableMap.insert({name, tableIdx});
-                            break;
+                    // First check the main module
+                    Runtime::Object *resolvedFunc = getInstanceExport(moduleInstance, name);
+
+                    // Check other dynamic modules if not found in main module
+                    if(!resolvedFunc) {
+                        for (auto m : dynamicModuleMap) {
+                            resolvedFunc = getInstanceExport(m.second, name);
+                            if(resolvedFunc) {
+                                break;
+                            }
                         }
+                    }
+
+                    // If we've found something, add it to the table
+                    if (resolvedFunc) {
+                        tableIdx = this->addFunctionToTable(resolvedFunc);
+                        globalOffsetTableMap.insert({name, tableIdx});
                     }
                 }
 
                 // If not found, create a placeholder to be filled in later
-                // TODO - what causes this? The module both exports _and_ has a GOT entry for the function?
+                // TODO - what causes this?
                 if (tableIdx == -1) {
                     // Create a new entry in the table and use this, but mark it to be filled later
                     tableIdx = Runtime::growTable(defaultTable, 1);
