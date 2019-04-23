@@ -107,9 +107,6 @@ namespace wasm {
         IR::DisassemblyNames disassemblyNames;
         getDisassemblyNames(mod, disassemblyNames);
 
-        // Keep track of which functions are in the GOT
-        std::unordered_set<std::string> functionsAdded;
-
         // ----------------------------
         // Table elems
         // ----------------------------
@@ -136,7 +133,6 @@ namespace wasm {
                 std::string &elemName = disassemblyNames.functions[elem.index].name;
                 int tableIdx = offset + i;
                 globalOffsetTableMap.insert({elemName, tableIdx});
-                functionsAdded.insert(elemName);
             }
         }
 
@@ -239,14 +235,31 @@ namespace wasm {
                 throw std::runtime_error("Dynamic module trying to define memories");
             }
 
+            // Create a new region in the default memory
+            // Give the module a stack region just at the bottom of the empty region (which will grow down)
+            // Memory sits above that (and grows up).
+            // TODO - how do we detect stack overflows in dynamic modules? Are we meant to share the stack pointer of the main module?
+            U32 dynamicMemBase = this->mmap(DYNAMIC_MODULE_HEAP_SIZE);
+            this->nextMemoryBase = dynamicMemBase + DYNAMIC_MODULE_STACK_SIZE;
+            this->nextStackPointer = this->nextMemoryBase - 1;
+
             // Extend the existing table to fit all the dynamic module's elements
             U64 nTableElems = irModule.tables.imports[0].type.size.min;
-            logger->debug("Growing table to fit {} dynamic module elements", nTableElems);
-
             Iptr oldTableElems = Runtime::growTable(defaultTable, nTableElems);
             if (oldTableElems == -1) {
                 throw std::runtime_error("Failed to grow main module table");
             }
+            Uptr newTableElems = Runtime::getTableNumElements(defaultTable);
+
+            // The end of the current table is the place where the new module can put its elements.
+            this->nextTableBase = oldTableElems;
+
+            logger->debug("Provisioned new dynamic module region (stack_ptr={}, heap_base={}, table={}->{}",
+                          this->nextStackPointer,
+                          this->nextMemoryBase,
+                          this->nextTableBase,
+                          newTableElems
+            );
 
             // Now force the incoming dynamic module to accept the table from the main module
             irModule.tables.imports[0].type.size.min = (U64) module.tables.defs[0].type.size.min;
@@ -330,28 +343,6 @@ namespace wasm {
         // Note, must start handles at 2, otherwise dlopen can see it as an error
         int nextHandle = 2 + dynamicModuleCount;
         std::string name = "handle_" + std::to_string(nextHandle);
-
-        // Create a new region in the default memory 
-        U32 dynamicMemBase = this->mmap(DYNAMIC_MODULE_HEAP_SIZE);
-
-        // Give the module a stack region just at the bottom of the empty region (which will grow down)
-        // Memory sits above that (and grows up).
-        // TODO - how do we detect stack overflows here? Are we meant to share the stack pointer of the main module?
-        U32 dynamicHeapBase = dynamicMemBase + DYNAMIC_MODULE_STACK_SIZE;
-        U32 dynamicStackBase = dynamicHeapBase - 1;
-
-        this->nextStackPointer = dynamicStackBase;
-        this->nextMemoryBase = dynamicHeapBase;
-
-        // The end of the current table is the place where the new module can put its elements.
-        Uptr currentTableElems = Runtime::getTableNumElements(defaultTable);
-        this->nextTableBase = currentTableElems;
-
-        logger->debug("Provisioned new dynamic module region (stack_ptr={}, heap_base={}, table_base={}",
-                      this->nextStackPointer,
-                      this->nextMemoryBase,
-                      this->nextTableBase
-        );
 
         // Instantiate the shared module
         Runtime::ModuleInstance *mod = createModuleInstance(
@@ -715,10 +706,6 @@ namespace wasm {
 
             } else if (moduleName == "GOT.func") {
                 int tableIdx = -1;
-
-                if(name == "npy_aquicksort") {
-                    printf("foo");
-                }
 
                 // See if it's already in the GOT
                 if (globalOffsetTableMap.count(name) > 0) {
