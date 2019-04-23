@@ -254,7 +254,7 @@ namespace wasm {
             // The end of the current table is the place where the new module can put its elements.
             this->nextTableBase = oldTableElems;
 
-            logger->debug("Provisioned new dynamic module region (stack_ptr={}, heap_base={}, table={}->{}",
+            logger->debug("Provisioned new dynamic module region (stack_ptr={}, heap_base={}, table={}->{})",
                           this->nextStackPointer,
                           this->nextMemoryBase,
                           this->nextTableBase,
