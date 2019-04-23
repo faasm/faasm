@@ -23,8 +23,10 @@
 #define ONE_GB_PAGES 1024 * ONE_MB_PAGES
 #define ONE_MB_BYTES 1024 * 1024
 
-// Stack size and max memory are hard-coded in the build
-#define STACK_SIZE ONE_MB_BYTES
+// Note: this is *not* controlling the size provisioned by the linker, that is hard-coded in the build.
+// This variable is just here for reference and must be updated to match the value in the build.
+#define STACK_SIZE 2 * ONE_MB_BYTES
+
 #define MAX_MEMORY_PAGES ONE_GB_PAGES
 
 // Properties of dynamic modules
@@ -42,9 +44,6 @@ using namespace WAVM;
 
 namespace wasm {
     extern Intrinsics::Module &getIntrinsicModule_env();
-
-    // This seems to be a constant...
-    static const int ERRNO_ADDR = 31;
 
     // This is the number of pages we copy and restore for each reuse of the module.
     const int CLEAN_MEMORY_PAGES = 1;

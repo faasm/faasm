@@ -2,7 +2,7 @@ from os import mkdir, environ
 from os.path import exists
 from os.path import join
 from shutil import rmtree
-from subprocess import call
+from subprocess import call, check_output
 
 from invoke import task
 
@@ -87,6 +87,10 @@ def compile_malloc(ctx, clean=False):
 
 @task
 def compile_libfaasm(ctx, clean=False):
+    """
+    Build both the main Faasm library and python helper library
+    """
+
     _check_emscripten()
 
     def _do_lib_build(dir_name):
@@ -116,7 +120,7 @@ def compile_libfaasm(ctx, clean=False):
 
         # Put imports file in place to avoid undefined symbols
         if dir_name == "lib":
-            call("cp libfaasm.imports {}".format(build_dir), shell=True, cwd=work_dir)
+            check_output("cp libfaasm.imports {}".format(build_dir), shell=True, cwd=work_dir)
 
     _do_lib_build("lib")
     _do_lib_build("python")

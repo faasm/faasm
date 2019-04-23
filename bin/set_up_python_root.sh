@@ -1,5 +1,12 @@
 #!/bin/bash
 
+set -e
+
+function remove_pyc() {
+    find $1 | grep "__pycache__" | xargs rm -rf
+    find $1 | grep "\.pyc$" | xargs rm -rf
+}
+
 # Pyodide
 PYODIDE_ROOT=/usr/local/code/faasm/pyodide
 INSTALL_DIR=${PYODIDE_ROOT}/cpython/installs/python-3.7.0
@@ -14,9 +21,10 @@ rm -rf /usr/local/faasm/runtime_root/*
 sudo mkdir -p /usr/local/faasm/runtime_root
 sudo chown -R ${USER}:${USER} /usr/local/faasm/runtime_root
 
-# Clear out pyc and pycache
-find ${INSTALL_DIR} | grep "__pycache__" | xargs rm -rf
-find ${INSTALL_DIR} | grep "\.pyc$" | xargs rm -rf
+# Clear out pyc and pycache files for cpython and numpy
+remove_pyc ${INSTALL_DIR}
+remove_pyc ${NUMPY_DIR}
+
 
 cp -r ${INSTALL_DIR}/* /usr/local/faasm/runtime_root
 

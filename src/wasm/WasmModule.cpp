@@ -554,7 +554,7 @@ namespace wasm {
         std::vector<IR::Value> invokeArgs = {argc, argvStart};
 
         // Record the errno location
-        Runtime::Function *errNoLocation = asFunctionNullable(getInstanceExport(moduleInstance, "___errno_location"));
+        Runtime::Function *errNoLocation = asFunctionNullable(getInstanceExport(moduleInstance, "__errno_location"));
         if (errNoLocation) {
             IR::ValueTuple errNoResult = Runtime::invokeFunctionChecked(context, errNoLocation, {});
             if (errNoResult.size() == 1 && errNoResult[0].type == IR::ValueType::i32) {
@@ -562,7 +562,7 @@ namespace wasm {
                 logger->debug("Found errno location {}", errnoLocation);
             }
         } else {
-            errnoLocation = ERRNO_ADDR;
+            logger->warn("Did not find errno location");
         }
 
         int exitCode = 0;

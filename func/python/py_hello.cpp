@@ -6,7 +6,6 @@
 namespace faasm {
     int exec(FaasmMemory *memory) {
         setUpPyEnvironment();
-        setUpPyNumpy();
 
         printf("Started python hello\n");
 
