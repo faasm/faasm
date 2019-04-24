@@ -4,6 +4,7 @@ download/
 lambda_build/
 lambda_*_build/
 *_func_build/
+lib_build/
 *_lib_build/
 
 # Ansible

@@ -51,14 +51,13 @@ namespace wasm {
         defaultTable = nullptr;
         moduleInstance = nullptr;
         functionInstance = nullptr;
+        envModule = nullptr;
 
         for (auto const &m : dynamicModuleMap) {
             dynamicModuleMap[m.first] = nullptr;
         }
 
         if (compartment != nullptr) {
-            resolver->cleanUp();
-
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
             bool compartmentCleared = Runtime::tryCollectCompartment(std::move(compartment));
@@ -87,11 +86,8 @@ namespace wasm {
 
         compartment = Runtime::createCompartment();
 
-        resolver = new RootResolver(compartment);
-
         _isInitialised = true;
     }
-
 
     Runtime::Function *WasmModule::getFunction(const std::string &funcName) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
@@ -106,16 +102,73 @@ namespace wasm {
         return func;
     }
 
-    void WasmModule::bindToFunction(const message::Message &msg) {
-//        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+    void WasmModule::addModuleToGOT(IR::Module &mod, bool isMainModule) {
+        // Retrieve the disassembly names to help with building the GOT
+        IR::DisassemblyNames disassemblyNames;
+        getDisassemblyNames(mod, disassemblyNames);
 
+        // ----------------------------
+        // Table elems
+        // ----------------------------
+        // A lot of function entries in main modules are already included in the table,
+        // so we can iterate through the elem segments to work out their index
+        for (auto &es : mod.elemSegments) {
+            // Work out the offset (dynamic modules will be given this by us)
+            I32 offset;
+            if (isMainModule) {
+                offset = es.baseOffset.i32;
+            } else {
+                offset = nextTableBase;
+            }
+
+            // Go through each elem entry and record where in the table it's getting inserted
+            for (Uptr i = 0; i < es.elems.size(); i++) {
+                const IR::Elem &elem = es.elems[i];
+
+                // Ignore null entries
+                if (!es.isActive && elem.type == IR::Elem::Type::ref_null) {
+                    continue;
+                }
+
+                std::string &elemName = disassemblyNames.functions[elem.index].name;
+                int tableIdx = offset + i;
+                globalOffsetTableMap.insert({elemName, tableIdx});
+            }
+        }
+
+        // ----------------------------
+        // Data entries
+        // ----------------------------
+        // Here we need to build up a map of the export's name to its initialised value.
+        // We assume the entries we care about are pointers to stuff in memory, therefore we
+        // only look at immutable i32s
+        for (auto &ex : mod.exports) {
+            // Ignore non global exports
+            if (ex.kind != IR::ExternKind::global) {
+                continue;
+            }
+
+            // Get the global definition for this export
+            int i = ex.index;
+            const IR::GlobalDef &global = mod.globals.getDef(i);
+
+            // Skip if mutable or not I32
+            if (global.type.isMutable || global.initializer.type != IR::InitializerExpression::Type::i32_const) {
+                continue;
+            }
+
+            // Add the initialised value to the map
+            I32 value = nextMemoryBase + global.initializer.i32;
+            globalOffsetMemoryMap.insert({ex.name, value});
+        }
+    }
+
+    void WasmModule::bindToFunction(const message::Message &msg) {
         if (!_isInitialised) {
             throw std::runtime_error("Must initialise module before binding");
         } else if (_isBound) {
             throw std::runtime_error("Cannot bind a module twice");
         }
-
-        resolver->setUser(msg.user());
 
         // Load the function data
         wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
@@ -124,9 +177,6 @@ namespace wasm {
 
         // Create the module instance
         moduleInstance = this->createModuleInstance(module, wasmBytes, objectFileBytes, util::funcToString(msg), true);
-
-        // Add this module to the resolver for dynamic imports
-        resolver->setMainModule(moduleInstance);
 
         // Extract the module's exported function
         std::string entryFunc = "main";
@@ -155,6 +205,8 @@ namespace wasm {
                                      const std::string &name, bool isMainModule) {
         wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
 
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         if (functionLoader.isWasm(wasmBytes)) {
             WASM::loadBinaryModule(wasmBytes.data(), wasmBytes.size(), irModule);
         } else {
@@ -163,9 +215,16 @@ namespace wasm {
             WAST::reportParseErrors("wast_file", parseErrors);
         }
 
-        // If this is the main module, set up the resolver
         if (isMainModule) {
-            resolver->setUp(compartment, irModule);
+            // Force memory sizes
+            // module.memories.defs[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
+            module.memories.defs[0].type.size.max = (U64) MAX_MEMORY_PAGES;
+
+            // Note, we don't want to mess with the min table size here, just give it room to expand if need be
+            module.tables.defs[0].type.size.max = (U64) MAX_TABLE_SIZE;
+
+            // Set up intrinsics
+            envModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_env(), "env");
         } else {
             // Check that the module isn't expecting to create any memories or tables
             if (!irModule.tables.defs.empty()) {
@@ -176,17 +235,47 @@ namespace wasm {
                 throw std::runtime_error("Dynamic module trying to define memories");
             }
 
-            // Work out how many new table slots are required, then grow the main table by this amount
-            U64 newElementsRequired = irModule.tables.imports[0].type.size.min;
-            Runtime::growTable(defaultTable, newElementsRequired);
+            // Create a new region in the default memory
+            // Give the module a stack region just at the bottom of the empty region (which will grow down)
+            // Memory sits above that (and grows up).
+            // TODO - how do we detect stack overflows in dynamic modules? Are we meant to share the stack pointer of the main module?
+            U32 dynamicMemBase = this->mmap(DYNAMIC_MODULE_HEAP_SIZE);
+            this->nextMemoryBase = dynamicMemBase + DYNAMIC_MODULE_STACK_SIZE;
+            this->nextStackPointer = this->nextMemoryBase - 1;
+
+            // Extend the existing table to fit all the dynamic module's elements
+            U64 nTableElems = irModule.tables.imports[0].type.size.min;
+            Iptr oldTableElems = Runtime::growTable(defaultTable, nTableElems);
+            if (oldTableElems == -1) {
+                throw std::runtime_error("Failed to grow main module table");
+            }
+            Uptr newTableElems = Runtime::getTableNumElements(defaultTable);
+
+            // The end of the current table is the place where the new module can put its elements.
+            this->nextTableBase = oldTableElems;
+
+            logger->debug("Provisioned new dynamic module region (stack_ptr={}, heap_base={}, table={}->{})",
+                          this->nextStackPointer,
+                          this->nextMemoryBase,
+                          this->nextTableBase,
+                          newTableElems
+            );
+
+            // Now force the incoming dynamic module to accept the table from the main module
+            irModule.tables.imports[0].type.size.min = (U64) module.tables.defs[0].type.size.min;
+            irModule.tables.imports[0].type.size.max = (U64) module.tables.defs[0].type.size.max;
         }
 
-        Runtime::LinkResult linkResult = linkModule(irModule, *resolver);
+        // Add module to GOT before linking
+        addModuleToGOT(irModule, isMainModule);
+
+        // Do the linking
+        Runtime::LinkResult linkResult = linkModule(irModule, *this);
         if (!linkResult.success) {
-            std::cerr << "Failed to link module:" << std::endl;
+            logger->error("Failed to link module");
             throw std::runtime_error("Failed linking module");
         }
-
+        
         // Instantiate the module, i.e. create memory, tables etc.
         Runtime::ModuleRef compiledModule;
         if (!objBytes.empty()) {
@@ -202,6 +291,31 @@ namespace wasm {
                 name.c_str()
         );
 
+        // Attempt to fill gaps in missing table entries. This is *only* to see if the missing
+        // entry is exported from the dynamic module itself. I don't know how this happens but occasionally
+        // it does
+        if(missingGlobalOffsetEntries.size() > 0) {
+            for(auto e : missingGlobalOffsetEntries) {
+                // Check if it's an export of the module we're currently importing
+                Runtime::Object *missingFunction = getInstanceExport(instance, e.first);
+
+                if(!missingFunction) {
+                    logger->error("Could not fill gap in GOT for function: {}", e.first);
+                    throw std::runtime_error("Failed linking module on missing GOT entry");
+                }
+
+                // Put the actual function into the placeholder table location
+                logger->debug("Filling gap in GOT for function: {} at {}", e.first, e.second);
+                Runtime::setTableElement(defaultTable, e.second, missingFunction);
+
+                // Add this function to the GOT
+                globalOffsetTableMap.insert({e.first, e.second});
+            }
+        }
+
+        // Empty the missing entries now that they're populated
+        missingGlobalOffsetEntries.clear();
+        
         return instance;
     }
 
@@ -230,37 +344,17 @@ namespace wasm {
         int nextHandle = 2 + dynamicModuleCount;
         std::string name = "handle_" + std::to_string(nextHandle);
 
-        // TODO - how do we properly give the dynamic lib the right stack pointer?
-        // It seems impossible to get the right stack pointer value from the module
-        // It's assigned to a different global every time and isn't labelled
-        // For now we can hack it to give it enough space
-        int stackSize = 1 * ONE_MB_PAGES;
-        int totalModuleMemSize = 4 * ONE_MB_PAGES;
-
-        if (dynamicModuleCount == 0) {
-            logger->debug("Linking first dynamic module. heap_base={} and data_end={}", heapBase, dataEnd);
-
-            // Stack has a region just at the bottom of the empty region (and grows down)
-            // Memory then sits above that (and grows up)
-            resolver->nextStackPointer = heapBase + stackSize;
-            resolver->nextMemoryBase = resolver->nextStackPointer + 1;
-
-            // We set the table base here to be *at* the end of the current table, so that
-            // new elements are added after existing ones.
-            Uptr currentTableElems = Runtime::getTableNumElements(defaultTable);
-            resolver->nextTableBase = currentTableElems;
-        } else {
-            // Bump up memory base and table base from where they were last time
-            // TODO - need to use dylink section to work out how big these jumps should be
-            resolver->nextStackPointer += (totalModuleMemSize + stackSize);
-            resolver->nextMemoryBase = resolver->nextStackPointer + 1;
-            resolver->nextTableBase += 10;
-        }
-
         // Instantiate the shared module
         Runtime::ModuleInstance *mod = createModuleInstance(
                 sharedModule, wasmBytes, objectBytes, name, false
         );
+
+        // Call the wasm constructor function. This allows the module to perform any relevant initialisation
+        Runtime::Function *wasmCtorsFunction = asFunctionNullable(getInstanceExport(mod, "__wasm_call_ctors"));
+        if (wasmCtorsFunction) {
+            logger->debug("Executing __wasm_call_ctors for {}", path);
+            Runtime::invokeFunctionChecked(context, wasmCtorsFunction, {});
+        }
 
         // Keep a record of this module
         dynamicPathToHandleMap[path] = nextHandle;
@@ -275,17 +369,14 @@ namespace wasm {
     Uptr WasmModule::getDynamicModuleFunction(int handle, const std::string &funcName) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // TODO - avoid doing this if function is already in the table
-
-        // Get main entrypoint function
+        // Check the handle is valid
         if (dynamicModuleMap.count(handle) == 0) {
             logger->error("No dynamic module registered for handle {}", handle);
             throw std::runtime_error("Missing dynamic module");
         }
 
+        // If function not in table for some reason, we need to load it
         Runtime::ModuleInstance *dynModule = dynamicModuleMap[handle];
-
-        // Something puts an underscore in front of the name
         Runtime::Object *exportedFunc = getInstanceExport(dynModule, funcName);
 
         if (!exportedFunc) {
@@ -293,13 +384,19 @@ namespace wasm {
             throw std::runtime_error("Missing dynamic module function");
         }
 
+        int prevIdx = this->addFunctionToTable(exportedFunc);
+        return prevIdx;
+    }
+
+    int WasmModule::addFunctionToTable(Runtime::Object *exportedFunc) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         // Add function to the table
-        int nElements = 1;
-        Iptr prevIdx = Runtime::growTable(defaultTable, nElements);
+        Iptr prevIdx = Runtime::growTable(defaultTable, 1);
         if (prevIdx == -1) {
             throw std::runtime_error("Failed to grow table");
         } else {
-            logger->debug("Growing table from {} elements to {}", prevIdx, prevIdx + nElements);
+            logger->debug("Growing table from {} elements to {}", prevIdx, prevIdx + 1);
         }
 
         Runtime::setTableElement(defaultTable, prevIdx, exportedFunc);
@@ -354,7 +451,7 @@ namespace wasm {
     }
 
     void WasmModule::restoreMemory() {
-        if(initialMemoryPages == 0) {
+        if (initialMemoryPages == 0) {
             throw std::runtime_error("Initial memory pages not initialised");
         }
 
@@ -389,7 +486,7 @@ namespace wasm {
     int WasmModule::getDataEnd() {
         return dataEnd;
     }
-    
+
     int WasmModule::getStackTop() {
         return stackTop;
     }
@@ -437,7 +534,7 @@ namespace wasm {
 
         // The stack top variable should be the first global
         IR::GlobalDef stackDef = module.globals.getDef(0);
-        if(!stackDef.type.isMutable) {
+        if (!stackDef.type.isMutable) {
             throw std::runtime_error("Found immutable stack top");
         }
 
@@ -457,7 +554,7 @@ namespace wasm {
         std::vector<IR::Value> invokeArgs = {argc, argvStart};
 
         // Record the errno location
-        Runtime::Function *errNoLocation = asFunctionNullable(getInstanceExport(moduleInstance, "___errno_location"));
+        Runtime::Function *errNoLocation = asFunctionNullable(getInstanceExport(moduleInstance, "__errno_location"));
         if (errNoLocation) {
             IR::ValueTuple errNoResult = Runtime::invokeFunctionChecked(context, errNoLocation, {});
             if (errNoResult.size() == 1 && errNoResult[0].type == IR::ValueType::i32) {
@@ -465,7 +562,7 @@ namespace wasm {
                 logger->debug("Found errno location {}", errnoLocation);
             }
         } else {
-            errnoLocation = ERRNO_ADDR;
+            logger->warn("Did not find errno location");
         }
 
         int exitCode = 0;
@@ -499,7 +596,7 @@ namespace wasm {
             logger->error("No memory for mapping");
             throw std::runtime_error("Run out of memory to map");
         }
-        
+
         // Get pointer to mapped range
         auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);
 
@@ -533,7 +630,7 @@ namespace wasm {
 
     I32 WasmModule::sBrk(U32 increment) {
         Uptr currentBrk = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
-        if(increment == 0) {
+        if (increment == 0) {
             // Calling with zero is the same as calling brk with zero,
             // return the current break
             return currentBrk;
@@ -542,7 +639,7 @@ namespace wasm {
         U32 target = currentBrk + increment;
         int brkResult = this->brk(target);
 
-        if(brkResult == EXPAND_SUCCESS) {
+        if (brkResult == EXPAND_SUCCESS) {
             // Return the new break
             Uptr newBrk = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
             return newBrk;
@@ -577,5 +674,140 @@ namespace wasm {
         }
 
         return EXPAND_SUCCESS;
+    }
+
+    bool WasmModule::resolve(const std::string &moduleName,
+                             const std::string &name,
+                             IR::ExternType type,
+                             Runtime::Object *&resolved) {
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        bool isMainModule = moduleInstance == nullptr;
+
+        if (isMainModule) {
+            // Main module linking comes from env module
+            resolved = getInstanceExport(envModule, name);
+        } else {
+            if (moduleName == "GOT.mem") {
+                // Handle global offset table memory entries
+                if (globalOffsetMemoryMap.count(name) == 0) {
+                    logger->error("Failed to look up memory offset in GOT: {}.{}", moduleName, name);
+                    return false;
+                }
+
+                int memOffset = globalOffsetMemoryMap[name];
+                logger->debug("Resolved {}.{} to {}", moduleName, name, memOffset);
+
+                // Create a global to hold the offset value
+                Runtime::Global *gotMemoryOffset = Runtime::createGlobal(compartment, asGlobalType(type));
+                Runtime::initializeGlobal(gotMemoryOffset, memOffset);
+                resolved = asObject(gotMemoryOffset);
+
+            } else if (moduleName == "GOT.func") {
+                int tableIdx = -1;
+
+                // See if it's already in the GOT
+                if (globalOffsetTableMap.count(name) > 0) {
+                    tableIdx = globalOffsetTableMap[name];
+                    logger->debug("Resolved {}.{} to offset {}", moduleName, name, tableIdx);
+                }
+
+                // Check in already loaded modules if not found
+                if (tableIdx == -1) {
+                    // First check the main module
+                    Runtime::Object *resolvedFunc = getInstanceExport(moduleInstance, name);
+
+                    // Check other dynamic modules if not found in main module
+                    if(!resolvedFunc) {
+                        for (auto m : dynamicModuleMap) {
+                            resolvedFunc = getInstanceExport(m.second, name);
+                            if(resolvedFunc) {
+                                break;
+                            }
+                        }
+                    }
+
+                    // If we've found something, add it to the table
+                    if (resolvedFunc) {
+                        tableIdx = this->addFunctionToTable(resolvedFunc);
+                        globalOffsetTableMap.insert({name, tableIdx});
+                    }
+                }
+
+                // If not found, create a placeholder to be filled in later
+                // TODO - what causes this?
+                if (tableIdx == -1) {
+                    // Create a new entry in the table and use this, but mark it to be filled later
+                    tableIdx = Runtime::growTable(defaultTable, 1);
+                    logger->warn("Adding placeholder table offset: {}.{} at {}", moduleName, name, tableIdx);
+                    missingGlobalOffsetEntries.insert({name, tableIdx});
+                }
+
+                // Create a global to hold the function offset
+                Runtime::Global *gotFunctionOffset = Runtime::createGlobal(compartment, asGlobalType(type));
+                Runtime::initializeGlobal(gotFunctionOffset, tableIdx);
+                resolved = asObject(gotFunctionOffset);
+
+            } else if (name == "__memory_base") {
+                // Memory base tells the loaded module where to start its heap
+                Runtime::Global *newMemoryBase = Runtime::createGlobal(compartment, asGlobalType(type));
+                Runtime::initializeGlobal(newMemoryBase, nextMemoryBase);
+                resolved = asObject(newMemoryBase);
+
+            } else if (name == "__table_base") {
+                // Table base tells the loaded module where to start its table entries
+                Runtime::Global *newTableBase = Runtime::createGlobal(compartment, asGlobalType(type));
+                Runtime::initializeGlobal(newTableBase, nextTableBase);
+                resolved = asObject(newTableBase);
+
+            } else if (name == "__stack_pointer") {
+                // Stack pointer is where the loaded module should put its stack
+                Runtime::Global *newStackPointer = Runtime::createGlobal(compartment, asGlobalType(type));
+                Runtime::initializeGlobal(newStackPointer, nextStackPointer);
+                resolved = asObject(newStackPointer);
+
+            } else if (name == "__indirect_function_table") {
+                // This is the name for the table imported from the main module
+                Runtime::Table *table = Runtime::getDefaultTable(moduleInstance);
+                resolved = asObject(table);
+            } else {
+                // First check in normal env
+                resolved = getInstanceExport(envModule, name);
+
+                // Check the main module if not
+                if (!resolved) {
+                    resolved = getInstanceExport(moduleInstance, name);
+                }
+
+                // Check other dynamically loaded modules for the export
+                if (!resolved) {
+                    for (auto &m : dynamicModuleMap) {
+                        resolved = getInstanceExport(m.second, name);
+                        if (resolved) {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Check whether the target has been resolved to the correct type
+        if (resolved) {
+            if (isA(resolved, type)) {
+                return true;
+            } else {
+                logger->error("Resolved import {}.{} to a {}, but was expecting {}",
+                              moduleName.c_str(),
+                              name.c_str(),
+                              asString(getObjectType(resolved)).c_str(),
+                              asString(type).c_str());
+                return false;
+            }
+        }
+
+        logger->error("Missing import {}.{} {}", moduleName, name, asString(type).c_str());
+
+        return false;
     }
 }

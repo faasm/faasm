@@ -21,12 +21,13 @@ if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     # The stack-first here is really important to help detect stack overflow
     # issues. Without it the stack will overflow into the global data.
     # stack-size is also crucial to bigger functions not messing up
-    SET(CMAKE_EXE_LINKER_FLAGS "-Xlinker --no-entry \
-    -Xlinker --export=main \
-    -Xlinker --max-memory=1073741824 \
-    -Xlinker --stack-first \
-    -Xlinker --threads \
-    -Wl,-z,stack-size=1048576 -Wl, \
+    SET(CMAKE_EXE_LINKER_FLAGS "\
+        -Xlinker --no-entry \
+        -Xlinker --export=main \
+        -Xlinker --max-memory=1073741824 \
+        -Xlinker --stack-first \
+        -Xlinker --threads \
+        -Wl,-z,stack-size=2097152 -Wl, \
     ")
 
     SET(CMAKE_EXECUTABLE_SUFFIX ".wasm")
@@ -44,6 +45,17 @@ if (FAASM_BUILD_TYPE STREQUAL "emscripten")
         target_link_libraries(${exec_name} faasm dlmalloc)
     endfunction(faasm_func)
 
+    function(faasm_dynamic_func exec_name file_name)
+        faasm_func(${exec_name} ${file_name})
+
+        # These are the linker flags required for functions that will also do dynamic linking.
+        # We need to export all symbols to make them available to the dynamically loaded modules
+        set_target_properties(${exec_name} PROPERTIES
+                LINK_FLAGS "-Xlinker --export-all -Xlinker --no-gc-sections -Xlinker --export-dynamic"
+        )
+
+    endfunction(faasm_dynamic_func)
+
 elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
     # ----------------------
     # AWS Lambda build
@@ -56,6 +68,10 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
         aws_lambda_package_target(${func_name}-lambda)
     endfunction(faasm_func)
 
+    function(faasm_dynamic_func exec_name file_name)
+        faasm_func(${exec_name} ${file_name})
+    endfunction(faasm_dynamic_func)
+
 else ()
     # ----------------------
     # Native build
@@ -66,11 +82,17 @@ else ()
         target_link_libraries(${exec_name} faasm emulator dl)
     endfunction(faasm_func)
 
+    function(faasm_dynamic_func exec_name file_name)
+        faasm_func(${exec_name} ${file_name})
+        target_link_libraries(${exec_name} util)
+    endfunction(faasm_dynamic_func)
+
 endif ()
 
 add_subdirectory(errors)
 add_subdirectory(demo)
 add_subdirectory(sgd)
+add_subdirectory(dynlink)
 
 # Add python build in everything but the lambda funcs
 if (FAASM_BUILD_TYPE STREQUAL "lambda-func")

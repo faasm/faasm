@@ -5,6 +5,7 @@
 #include <util/config.h>
 
 #include <sys/time.h>
+#include <sys/random.h>
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/RuntimeData.h>
@@ -136,7 +137,7 @@ namespace wasm {
     }
 
     // ------------------------
-    // Timing - supported
+    // Timing
     // ------------------------
 
     //TODO - make timing functions more secure
@@ -167,5 +168,15 @@ namespace wasm {
         result->tv_usec = I32(tv.tv_usec);
 
         return 0;
+    }
+
+    // Random
+    I32 s__getrandom(I32 bufPtr, I32 bufLen, I32 flags) {
+        util::getLogger()->debug("S - getrandom - {} {} {}", bufPtr, bufLen, flags);
+
+        auto hostBuf = &Runtime::memoryRef<U8>(getExecutingModule()->defaultMemory, (Uptr) bufPtr);
+
+        // TODO - should we obscure this somehow?
+        return getrandom(hostBuf, bufLen, flags);
     }
 }

@@ -134,7 +134,7 @@ namespace wasm {
             // Make the native syscall. This will read in a list of dirent structs to the buffer
             // We need to read at most two native dirents. Each one will be at most 40 bytes.
             auto nativeBuf = new char[nativeBufLen];
-            long nativeBytesRead = syscall(SYS_getdents64, fd, nativeBuf, nativeBufLen);
+            unsigned long nativeBytesRead = syscall(SYS_getdents64, fd, nativeBuf, nativeBufLen);
 
             if (nativeBytesRead == 0) {
                 // No more native dirents
@@ -145,10 +145,10 @@ namespace wasm {
             }
 
             // Now we iterate through the dirents we just got back from the host
-            int nativeOffset;
+            unsigned int nativeOffset;
             for (nativeOffset = 0; nativeOffset < nativeBytesRead;) {
                 // If we're going to overshoot on the wasm buffer, we have a problem
-                if (wasmBytesRead > wasmDirentBufLen) {
+                if (wasmBytesRead > (U32)wasmDirentBufLen) {
                     throw std::runtime_error("Overshot the end of the dirent buffer");
                 }
 

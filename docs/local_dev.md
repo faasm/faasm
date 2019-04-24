@@ -2,26 +2,6 @@
 
 Below are instructions for building, testing and developing.
 
-## Emscripten
-
-We use the Emscripten wrapper to install the upstream LLVM toolchain. We do this through the pyodide project,
-so to set up you need to run:
-
-```
-git submodule init
-git submodule update
-cd pyodide/emsdk
-make
-```
-
-## Libc
-
-We use our own custom musl port, which can be built and installed by running:
-
-```
-./bin/build_musl.sh
-```
-
 ## Tools/ system deps
 
 Python, [Ansible](https://www.ansible.com/) and [Invoke](http://docs.pyinvoke.org/en/1.2/index.html) are required
@@ -103,6 +83,35 @@ To use cgroup isolation, you'll need to run:
 
 ```
 sudo ./bin/cgroup.sh
+```
+
+## Emscripten
+
+We use the Emscripten wrapper to install the upstream LLVM toolchain. We do this through the pyodide project,
+so to set up you need to run:
+
+```
+git submodule init
+git submodule update
+cd pyodide/emsdk
+make
+```
+
+## Libc
+
+We use our own custom musl port with a custom malloc, which can be built and installed by running:
+
+```
+./bin/build_musl.sh
+inv compile-malloc
+```
+
+## Libfaasm
+
+To set up our library utilities, run:
+
+```
+inv compile-libfaasm
 ```
 
 ## Docker images

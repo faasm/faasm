@@ -19,17 +19,17 @@ WASM_LIB_DIR = join(PROJ_ROOT, "wasm", "lib")
 
 RUNTIME_S3_BUCKET = "faasm-runtime"
 STATE_S3_BUCKET = "faasm-state"
+MISC_S3_BUCKET = "faasm-misc"
 
 # TODO - avoid hard-coding
 AWS_ACCOUNT_ID = "733781933474"
 AWS_REGION = "eu-west-1"
 
 PYODIDE_ROOT = join(PROJ_ROOT, "pyodide")
-EMSCRIPTEN_UPSTREAM = "4778"
 EMSCRIPTEN_DIR = join(PYODIDE_ROOT, "emsdk/emsdk")
-EMSCRIPTEN_TOOLCHAIN = join(EMSCRIPTEN_DIR, "upstream", EMSCRIPTEN_UPSTREAM, "Wack.cmake")
+EMSCRIPTEN_TOOLCHAIN = join(EMSCRIPTEN_DIR, "upstream", "latest", "Wack.cmake")
 
-WASM_SYSROOT = join(EMSCRIPTEN_DIR, "upstream", EMSCRIPTEN_UPSTREAM, "sysroot")
+WASM_SYSROOT = join(EMSCRIPTEN_DIR, "upstream", "latest", "sysroot")
 
 
 def get_wasm_func_path(user, func_name):

@@ -4,7 +4,7 @@ set -e
 
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJ_ROOT=${THIS_DIR}/..
-EM_ROOT=${PROJ_ROOT}/pyodide/emsdk/emsdk/upstream/4778
+EM_ROOT=${PROJ_ROOT}/pyodide/emsdk/emsdk/upstream/latest
 SYSROOT=${EM_ROOT}/sysroot
 TOOL_BIN=${EM_ROOT}/bin
 
@@ -14,9 +14,9 @@ MUSL_BUILD_DIR=/tmp/musl_out
 CFLAGS="--sysroot=${SYSROOT} --target=wasm32-unknown-unknown"
 CXXFLAGS="--sysroot=${SYSROOT} --target=wasm32-unknown-unknown"
 
-CC="${TOOL_BIN}/clang"
+CC="${TOOL_BIN}/wasm32-clang"
 CPP="${TOOL_BIN}/clang-cpp"
-CXX="${TOOL_BIN}/clang++"
+CXX="${TOOL_BIN}/wasm32-clang++"
 LD="${TOOL_BIN}/wasm-ld"
 CROSS_COMPILE="${TOOL_BIN}/llvm-"
 AR="${TOOL_BIN}/llvm-ar"

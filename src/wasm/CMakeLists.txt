@@ -16,6 +16,7 @@ add_library(wasm STATIC
         syscalls_dynlink.cpp
         syscalls_env.cpp
         syscalls_io.cpp
+        syscalls_maths.cpp
         syscalls_memory.cpp
         syscalls_network.cpp
         syscalls_threads.cpp

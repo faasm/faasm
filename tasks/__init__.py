@@ -42,7 +42,11 @@ from tasks.docker import (
     pull,
     push_base
 )
-from tasks.docker_compose import start_all, stop_all, restart_all
+from tasks.docker_compose import (
+    start_all,
+    stop_all,
+    restart_all
+)
 
 from tasks.sgd import (
     begin_aws_svm,
@@ -60,3 +64,8 @@ from tasks.upload import (
     upload_func,
 )
 from tasks.wasm2wast import wast
+
+from tasks.toolchain import (
+    backup_emsdk,
+    restore_emsdk,
+)

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CallChain.h"
-#include "RootResolver.h"
 
 #include <util/logging.h>
 #include <state/State.h>
@@ -17,15 +16,34 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <memory/MemorySnapshot.h>
 
+// Note that page size in wasm is 64kiB
+// Note also that this initial memory must be big enough to include all data, stack and dynamic
+// memory that the module will need.
+#define ONE_MB_PAGES 16
+#define ONE_GB_PAGES 1024 * ONE_MB_PAGES
+#define ONE_MB_BYTES 1024 * 1024
+
+// Note: this is *not* controlling the size provisioned by the linker, that is hard-coded in the build.
+// This variable is just here for reference and must be updated to match the value in the build.
+#define STACK_SIZE 2 * ONE_MB_BYTES
+
+#define MAX_MEMORY_PAGES ONE_GB_PAGES
+
+// Properties of dynamic modules
+#define DYNAMIC_MODULE_STACK_SIZE 2 * ONE_MB_BYTES
+#define DYNAMIC_MODULE_HEAP_SIZE 25 * ONE_MB_BYTES
+
+#define MAX_TABLE_SIZE 500000
+
 #define EXPAND_TOO_BIG -2
 #define EXPAND_NO_ACTION -1
 #define EXPAND_SUCCESS 0
 
 using namespace WAVM;
 
+
 namespace wasm {
-    // This seems to be a constant...
-    static const int ERRNO_ADDR = 31;
+    extern Intrinsics::Module &getIntrinsicModule_env();
 
     // This is the number of pages we copy and restore for each reuse of the module.
     const int CLEAN_MEMORY_PAGES = 1;
@@ -33,7 +51,7 @@ namespace wasm {
 
     Uptr getNumberOfPagesForBytes(U32 nBytes);
 
-    class WasmModule {
+    class WasmModule final : Runtime::Resolver {
     public:
         WasmModule();
 
@@ -73,6 +91,8 @@ namespace wasm {
 
         Uptr getDynamicModuleFunction(int handle, const std::string &funcName);
 
+        int addFunctionToTable(Runtime::Object *exportedFunc);
+
         Runtime::Function *getFunction(const std::string &funcName);
 
         void setErrno(int newValue);
@@ -85,8 +105,15 @@ namespace wasm {
 
         int getStackTop();
 
+        bool resolve(const std::string &moduleName,
+                     const std::string &name,
+                     IR::ExternType type,
+                     Runtime::Object *&resolved) override;
+
     private:
         IR::Module module;
+
+        Runtime::GCPointer<Runtime::ModuleInstance> envModule;
 
         int errnoLocation = 0;
 
@@ -96,11 +123,12 @@ namespace wasm {
         int heapBase = 0;
         int dataEnd = 0;
         int stackTop = 0;
+        int nextMemoryBase = 0;
+        int nextStackPointer = 0;
+        int nextTableBase = 0;
 
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
         Runtime::GCPointer<Runtime::Function> functionInstance;
-
-        RootResolver *resolver = nullptr;
 
         bool _isInitialised = false;
         bool _isBound = false;
@@ -116,12 +144,18 @@ namespace wasm {
         std::unordered_map<std::string, int> dynamicPathToHandleMap;
         std::unordered_map<int, Runtime::GCPointer<Runtime::ModuleInstance>> dynamicModuleMap;
 
+        // Dynamic linking stuff
+        std::unordered_map<std::string, int> globalOffsetTableMap;
+        std::unordered_map<std::string, int> globalOffsetMemoryMap;
+        std::unordered_map<std::string, int> missingGlobalOffsetEntries;
+
         memory::MemorySnapshot memSnapshot;
 
         void resizeMemory(size_t targetPages);
 
-        Runtime::ModuleInstance *
-        createModuleInstance(
+        void addModuleToGOT(IR::Module &mod, bool isMainModule);
+
+        Runtime::ModuleInstance *createModuleInstance(
                 IR::Module &irModule,
                 const std::vector<uint8_t> &wasmBytes,
                 const std::vector<uint8_t> &objBytes,

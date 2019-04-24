@@ -1,23 +1,25 @@
-#include <Python.h>
+#include <faasm/faasm.h>
+#include <faasm/pyfaasm.h>
 
+#include <Python.h>
 #include <stdio.h>
 #include <stdint.h>
 
+namespace faasm {
+    int exec(FaasmMemory *memory) {
+        setUpPyEnvironment();
+        setUpPyNumpy();
 
-int main(int argc, char *argv[]) {
-    printf("Started python hello\n");
+        Py_InitializeEx(0);
+        printf("\n\nInitialised\n");
 
-    printf("Global var: %i\n", Py_OptimizeFlag);
+        FILE *fp = fopen("funcs/numpy_test.py", "r");
+        PyRun_SimpleFile(fp, "dummy_func");
+        printf("\n\nExecuted\n");
 
-    Py_InitializeEx(0);
-    printf("\n\nInitialised\n");
+        Py_Finalize();
+        printf("Finalised\n");
 
-    FILE *fp = fopen("funcs/numpy_test.py", "r");
-    PyRun_SimpleFile(fp, "dummy_func");
-    printf("\n\nExecuted\n");
-
-    Py_Finalize();
-    printf("Finalised\n");
-
-    return 0;
+        return 0;
+    }
 }

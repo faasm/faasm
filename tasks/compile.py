@@ -2,12 +2,20 @@ from os import mkdir, environ
 from os.path import exists
 from os.path import join
 from shutil import rmtree
-from subprocess import call
+from subprocess import call, check_output
 
 from invoke import task
 
 from tasks.download import download_proj
-from tasks.env import PROJ_ROOT, EMSCRIPTEN_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT
+from tasks.env import PROJ_ROOT, EMSCRIPTEN_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT, PYODIDE_ROOT
+
+
+def _clean_dir(dir_path, clean):
+    if clean and exists(dir_path):
+        rmtree(dir_path)
+
+    if not exists(dir_path):
+        mkdir(dir_path)
 
 
 def _check_emscripten():
@@ -27,12 +35,7 @@ def funcs(context, clean=False, func=None):
     cmake_build_type = "Release"
 
     func_build_dir = join(PROJ_ROOT, "func", "{}_func_build".format(build_type))
-
-    if clean and exists(func_build_dir):
-        rmtree(func_build_dir)
-
-    if not exists(func_build_dir):
-        mkdir(func_build_dir)
+    _clean_dir(func_build_dir, clean)
 
     build_cmd = [
         "VERBOSE=1",
@@ -64,11 +67,7 @@ def compile_malloc(ctx, clean=False):
     work_dir = join(PROJ_ROOT, "malloc")
     build_dir = join(work_dir, "emscripten_lib_build")
 
-    if exists(build_dir) and clean:
-        rmtree(build_dir)
-        mkdir(build_dir)
-    elif not exists(build_dir):
-        mkdir(build_dir)
+    _clean_dir(build_dir, clean)
 
     build_cmd = [
         "cmake",
@@ -87,51 +86,49 @@ def compile_malloc(ctx, clean=False):
 
 @task
 def compile_libfaasm(ctx, clean=False):
+    """
+    Build both the main Faasm library and python helper library
+    """
+
     _check_emscripten()
 
-    build_type = "emscripten"
-    cmake_build_type = "Release"
+    def _do_lib_build(dir_name):
+        work_dir = join(PROJ_ROOT, dir_name)
+        build_dir = join(work_dir, "lib_build")
 
-    work_dir = join(PROJ_ROOT, "lib")
-    build_dir = join(work_dir, "{}_lib_build".format(build_type))
+        _clean_dir(build_dir, clean)
 
-    if exists(build_dir) and clean:
-        rmtree(build_dir)
-        mkdir(build_dir)
-    elif not exists(build_dir):
-        mkdir(build_dir)
+        build_cmd = [
+            "cmake",
+            "-DFAASM_BUILD_TYPE=emscripten",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DCMAKE_TOOLCHAIN_FILE={}".format(EMSCRIPTEN_TOOLCHAIN),
+            ".."
+        ]
 
-    build_cmd = [
-        "cmake",
-        "-DFAASM_BUILD_TYPE={}".format(build_type),
-        "-DCMAKE_BUILD_TYPE={}".format(cmake_build_type),
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(EMSCRIPTEN_TOOLCHAIN),
-        ".."
-    ]
+        build_cmd_str = " ".join(build_cmd)
+        print(build_cmd_str)
 
-    build_cmd_str = " ".join(build_cmd)
-    print(build_cmd_str)
+        call(build_cmd_str, shell=True, cwd=build_dir)
+        call("make VERBOSE=1", shell=True, cwd=build_dir)
+        call("make install", shell=True, cwd=build_dir)
 
-    call(build_cmd_str, shell=True, cwd=build_dir)
-    call("make VERBOSE=1", shell=True, cwd=build_dir)
-    call("make install", shell=True, cwd=build_dir)
+        # Put imports file in place to avoid undefined symbols
+        if dir_name == "lib":
+            check_output("cp libfaasm.imports {}".format(build_dir), shell=True, cwd=work_dir)
 
-    # Put imports file in place to avoid undefined symbols
-    call("cp libfaasm.imports {}".format(build_dir), shell=True, cwd=work_dir)
+    _do_lib_build("lib")
+    _do_lib_build("python")
 
 
 @task
 def compile_libfake(ctx, clean=False):
     _check_emscripten()
-    work_dir = join(PROJ_ROOT, "func", "libfake")
+    work_dir = join(PROJ_ROOT, "func", "dynlink")
 
     build_dir = join(work_dir, "build")
 
-    if exists(build_dir) and clean:
-        rmtree(build_dir)
-        mkdir(build_dir)
-    elif not exists(build_dir):
-        mkdir(build_dir)
+    _clean_dir(build_dir, clean)
 
     build_cmd = [
         "cmake",
@@ -142,7 +139,7 @@ def compile_libfake(ctx, clean=False):
     ]
 
     call(" ".join(build_cmd), shell=True, cwd=build_dir)
-    call("make", shell=True, cwd=build_dir)
+    call("make VERBOSE=1", shell=True, cwd=build_dir)
     call("make install", shell=True, cwd=build_dir)
 
 
@@ -155,9 +152,7 @@ def compile_eigen(ctx):
     )
 
     dest_dir = join(WASM_SYSROOT, "include", "eigen3")
-    if exists(dest_dir):
-        rmtree(dest_dir)
-    mkdir(dest_dir)
+    _clean_dir(dest_dir, True)
 
     # Eigen is header-only so we just need to copy the files in place
     src_dir = join(extract_dir, "Eigen")

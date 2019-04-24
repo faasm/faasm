@@ -2,20 +2,17 @@
 
 #include <sys/socket.h>
 
-namespace wasm {
-    static const char *FAKE_NAME = "faasm";
-    static const char *FAKE_PASSWORD = "foobar123";
-    static const char *FAKE_USER = "faasm";
-    static const char *FAKE_HOME = "/home/faasm/";
-    static const char *FAKE_WORKING_DIR = "/work/";
-    static const int FAKE_PID = 23;
-    static const int FAKE_UID = 1000;
-    static const int FAKE_GID = 1000;
-    static const char *FALSE_ROOT = "/usr/local/faasm/runtime_root";
-    static const char *HOSTS_FILE = "/usr/local/faasm/net/hosts";
-    static const char *RESOLV_FILE = "/usr/local/faasm/net/resolv.conf";
-    static const char *PASSWD_FILE = "/usr/local/faasm/passwd";
+#define FAKE_NAME "faasm"
+#define FAKE_PASSWORD  "foobar123"
+#define FAKE_HOME "/home/faasm/"
+#define FAKE_WORKING_DIR "/work/"
+#define FALSE_ROOT "/usr/local/faasm/runtime_root"
 
+#define FAKE_PID 23
+#define FAKE_UID 1000
+#define FAKE_GID 1000
+
+namespace wasm {
     void getBytesFromWasm(I32 dataPtr, I32 dataLen, uint8_t *buffer);
 
     std::vector<uint8_t> getBytesFromWasm(I32 dataPtr, I32 dataLen);
@@ -208,7 +205,9 @@ namespace wasm {
 
     I32 s__getpid();
 
-    I32 s__gettimeofday(int tvPtr, int tzPtr);
+    I32 s__getrandom(I32 bufPtr, I32 bufLen, I32 flags);
+
+    I32 s__gettimeofday(I32 tvPtr, I32 tzPtr);
 
     I32 s__getuid32();
 
@@ -262,6 +261,7 @@ namespace wasm {
 
     I32 s__writev(I32 fd, I32 iov, I32 iovcnt);
 
-    // Hack to include dynlink
+    // Hack to include other files
     void dynlinkLink();
+    void mathsLink();
 }
