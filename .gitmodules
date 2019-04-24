@@ -1,6 +1,6 @@
 [submodule "WAVM"]
     path = WAVM
-    url = git@github.com:WAVM/WAVM.git
+    url = git@github.com:Shillaker/WAVM.git
 [submodule "pyodide"]
 	path = pyodide
 	url = git@github.com:Shillaker/pyodide
