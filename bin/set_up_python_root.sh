@@ -28,15 +28,15 @@ remove_pyc ${NUMPY_DIR}
 
 # Copy everything but remove some stuff we don't want
 cp -r ${INSTALL_DIR}/* ${RUNTIME_ROOT}
-rm ${PY_RUNTIME_ROOT}/shutil.py
+#rm ${PY_RUNTIME_ROOT}/shutil.py
 
 # Remove the actual lib file
 rm ${RUNTIME_ROOT}/lib/libpython*
 
 # Put numpy in place and remove unnecessary bits
 cp -r ${NUMPY_DIR} ${SITE_PACKAGES}/
-rm -r ${SITE_PACKAGES}/numpy/tests
-rm -r ${SITE_PACKAGES}/numpy/testing
+#rm -r ${SITE_PACKAGES}/numpy/tests
+#rm -r ${SITE_PACKAGES}/numpy/testing
 
 # Put dummy functions in place
 cp -r python/funcs ${RUNTIME_ROOT}

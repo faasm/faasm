@@ -7,7 +7,15 @@ from subprocess import call, check_output
 from invoke import task
 
 from tasks.download import download_proj
-from tasks.env import PROJ_ROOT, EMSCRIPTEN_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT
+from tasks.env import PROJ_ROOT, EMSCRIPTEN_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT, PYODIDE_ROOT
+
+
+def _clean_dir(dir_path, clean):
+    if clean and exists(dir_path):
+        rmtree(dir_path)
+
+    if not exists(dir_path):
+        mkdir(dir_path)
 
 
 def _check_emscripten():
@@ -27,12 +35,7 @@ def funcs(context, clean=False, func=None):
     cmake_build_type = "Release"
 
     func_build_dir = join(PROJ_ROOT, "func", "{}_func_build".format(build_type))
-
-    if clean and exists(func_build_dir):
-        rmtree(func_build_dir)
-
-    if not exists(func_build_dir):
-        mkdir(func_build_dir)
+    _clean_dir(func_build_dir, clean)
 
     build_cmd = [
         "VERBOSE=1",
@@ -64,11 +67,7 @@ def compile_malloc(ctx, clean=False):
     work_dir = join(PROJ_ROOT, "malloc")
     build_dir = join(work_dir, "emscripten_lib_build")
 
-    if exists(build_dir) and clean:
-        rmtree(build_dir)
-        mkdir(build_dir)
-    elif not exists(build_dir):
-        mkdir(build_dir)
+    _clean_dir(build_dir, clean)
 
     build_cmd = [
         "cmake",
@@ -97,11 +96,7 @@ def compile_libfaasm(ctx, clean=False):
         work_dir = join(PROJ_ROOT, dir_name)
         build_dir = join(work_dir, "lib_build")
 
-        if exists(build_dir) and clean:
-            rmtree(build_dir)
-            mkdir(build_dir)
-        elif not exists(build_dir):
-            mkdir(build_dir)
+        _clean_dir(build_dir, clean)
 
         build_cmd = [
             "cmake",
@@ -133,11 +128,7 @@ def compile_libfake(ctx, clean=False):
 
     build_dir = join(work_dir, "build")
 
-    if exists(build_dir) and clean:
-        rmtree(build_dir)
-        mkdir(build_dir)
-    elif not exists(build_dir):
-        mkdir(build_dir)
+    _clean_dir(build_dir, clean)
 
     build_cmd = [
         "cmake",
@@ -161,9 +152,7 @@ def compile_eigen(ctx):
     )
 
     dest_dir = join(WASM_SYSROOT, "include", "eigen3")
-    if exists(dest_dir):
-        rmtree(dest_dir)
-    mkdir(dest_dir)
+    _clean_dir(dest_dir, True)
 
     # Eigen is header-only so we just need to copy the files in place
     src_dir = join(extract_dir, "Eigen")
