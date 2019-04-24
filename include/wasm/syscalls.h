@@ -261,6 +261,7 @@ namespace wasm {
 
     I32 s__writev(I32 fd, I32 iov, I32 iovcnt);
 
-    // Hack to include dynlink
+    // Hack to include other files
     void dynlinkLink();
+    void mathsLink();
 }

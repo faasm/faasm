@@ -180,7 +180,8 @@ namespace wasm {
         }
     }
 
-    void dynlinkLinkLink() {
+    void linkHook() {
         dynlinkLink();
+        mathsLink();
     }
 }

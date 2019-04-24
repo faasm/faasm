@@ -214,9 +214,4 @@ namespace wasm {
         util::getLogger()->debug("S - strpbrk - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
-
-    DEFINE_INTRINSIC_FUNCTION(env, "exp2", F64, exp2, F64 a) {
-        util::getLogger()->debug("S - exp2 - {}", a);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
 }
