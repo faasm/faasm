@@ -12,7 +12,8 @@ namespace faasm {
         Py_InitializeEx(0);
         printf("\n\nInitialised\n");
 
-        PyRun_SimpleString("print('Hello python from wasm.')");
+        FILE *fp = fopen("funcs/hello.py", "r");
+        PyRun_SimpleFile(fp, "hello_func");
         printf("\n\nExecuted\n");
 
         Py_Finalize();
