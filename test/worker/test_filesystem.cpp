@@ -12,7 +12,12 @@ namespace tests {
         cleanSystem();
 
         // Note, our test function adds an extra comma, hence the blank
-        std::vector<std::string> expected = {"", ".", "..", "etc", "include", "lib", "share"};
+        std::vector<std::string> expected = {
+                "",  "..",
+                "etc", "funcs", "include", "lib",
+                "libfakeLibA.so", "libfakeLibA.so.o", "libfakeLibB.so.o",
+                "libfakeiLibA.wast", "libfakeiLibB.wast"
+        };
 
         util::SystemConfig &conf = util::getSystemConfig();
         conf.unsafeMode = "on";
