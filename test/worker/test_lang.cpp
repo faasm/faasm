@@ -15,4 +15,26 @@ namespace tests {
 
         execFunction(msg);
     }
+
+    TEST_CASE("Test sizes", "[worker]") {
+        cleanSystem();
+
+        message::Message msg;
+        msg.set_user("demo");
+        msg.set_function("sizes");
+        msg.set_resultkey("sizes_test");
+
+        execFunction(msg);
+    }
+
+    TEST_CASE("Test stack/ heap", "[worker]") {
+        cleanSystem();
+
+        message::Message msg;
+        msg.set_user("demo");
+        msg.set_function("stackheap");
+        msg.set_resultkey("stackheap_test");
+
+        execFunction(msg);
+    }
 }

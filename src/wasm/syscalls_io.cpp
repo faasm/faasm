@@ -33,7 +33,9 @@ namespace wasm {
             //TODO avoid use of system-wide urandom
             logger->debug("Opening /dev/urandom");
             fd = open("/dev/urandom", 0, 0);
-
+        } else if(path == "/dev/null") {
+            logger->debug("Allowing access to /dev/null");
+            fd = open("/dev/null", 0, 0);
         } else if (path == "pyvenv.cfg") {
             logger->debug("Forcing non-existent pyvenv.cfg");
             return -ENOENT;
