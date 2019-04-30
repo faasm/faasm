@@ -28,40 +28,72 @@ int multiplyGlobal() {
 }
 
 int checkStack() {
-    int *heapStart = (int*) mmap(NULL, 1200 * sizeof(int), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    for(int i = 0; i < 1200; i++) {
-        heapStart[i] = i;
+    // Provision space on both the heap and stack
+    int heapSize = 1200;
+    int *heapStart = (int *) mmap(NULL, heapSize * sizeof(int), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1,
+                                  0);
+    for (int i = 0; i < heapSize; i++) {
+        heapStart[i] = 10 * i;
     }
 
-    int stackStart[100];
-    for(int i = 0; i < 100; i++) {
-        stackStart[i] = i;
+    // Make the stack space big to ensure we're getting more than 1MB
+    int minimumStack = 1024 * 1024;
+    int arraySize = minimumStack / sizeof(int);
+    int stackStart[arraySize];
+    for (int i = 0; i < arraySize; i++) {
+        stackStart[i] = 2 * i;
     }
 
-    int stackNext[50];
-    for(int i = 0; i < 100; i++) {
-        stackNext[i] = i;
+    // Add another array "above" this on the stack
+    int arraySizeB = 50;
+    int stackNext[arraySizeB];
+    for (int i = 0; i < arraySizeB; i++) {
+        stackNext[i] = 20 * i;
+    }
+
+    // Check everything is still intact (i.e. no stack overflows)
+    for (int i = 0; i < heapSize; i++) {
+        if (heapStart[i] != 10 * i) {
+            printf("Heap corrupted at %i\n", i);
+            return 1;
+        }
+    }
+
+    for (int i = 0; i < arraySize; i++) {
+        if (stackStart[i] != 2 * i) {
+            printf("First stack array corrupted at %i\n", i);
+            return 1;
+        }
+    }
+
+    for (int i = 0; i < arraySizeB; i++) {
+        if (stackNext[i] != 20 * i) {
+            printf("Second stack array corrupted at %i\n", i);
+            return 1;
+        }
     }
 
     // Check that the stack is below the heap
     int res = 0;
     long heapVsStack = &heapStart[0] - &stackStart[0];
-    long stackGrowth = &stackStart[0] - &stackNext[0];
-    if(heapVsStack < 0) {
+    if (heapVsStack < 0) {
         printf("Shared lib heap BELOW stack which is unexpected\n");
         res = 1;
     } else {
         printf("Shared lib heap above stack as expected\n");
     }
-    
+
     // Check that the stack is growing downwards below the heap
-    if(stackGrowth < 0) {
+    long stackGrowth = &stackStart[0] - &stackNext[0];
+    if (stackGrowth < 0) {
         printf("Shared lib stack growing UPWARDS which is unexpected\n");
         res = 1;
     } else {
         printf("Shared lib stack grows downwards as expected\n");
     }
 
-    munmap(heapStart, 1200 * sizeof(int));
+    printf("All stack/ heap checks completed\n");
+
+    munmap(heapStart, heapSize * sizeof(int));
     return res;
 }
