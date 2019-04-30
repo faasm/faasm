@@ -25,12 +25,12 @@
 
 // Note: this is *not* controlling the size provisioned by the linker, that is hard-coded in the build.
 // This variable is just here for reference and must be updated to match the value in the build.
-#define STACK_SIZE 2 * ONE_MB_BYTES
+#define STACK_SIZE 4 * ONE_MB_BYTES
 
 #define MAX_MEMORY_PAGES ONE_GB_PAGES
 
-// Properties of dynamic modules
-#define DYNAMIC_MODULE_STACK_SIZE 4 * ONE_MB_BYTES
+// Properties of dynamic modules - NOTE - these MUST be passed when compiling the modules themselves
+#define DYNAMIC_MODULE_STACK_SIZE 2 * ONE_MB_BYTES
 #define DYNAMIC_MODULE_HEAP_SIZE 30 * ONE_MB_BYTES
 
 #define MAX_TABLE_SIZE 500000

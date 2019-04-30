@@ -27,7 +27,7 @@ if (FAASM_BUILD_TYPE STREQUAL "emscripten")
         -Xlinker --max-memory=1073741824 \
         -Xlinker --stack-first \
         -Xlinker --threads \
-        -Wl,-z,stack-size=2097152 -Wl, \
+        -Wl,-z,stack-size=4194304 -Wl, \
     ")
 
     SET(CMAKE_EXECUTABLE_SUFFIX ".wasm")

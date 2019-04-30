@@ -17,6 +17,7 @@ if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     set(CMAKE_SHARED_LINKER_FLAGS " \
         -Xlinker --shared \
         -Xlinker --stack-first \
+        "-Wl,-z,stack-size=2097152 -Wl, " \
         -Xlinker --no-entry \
         -Xlinker --export-all \
         -Xlinker --export-dynamic \
