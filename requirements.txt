@@ -5,4 +5,5 @@ boto3
 configparser
 invoke
 numpy
+performance
 requests
