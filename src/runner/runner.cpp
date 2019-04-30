@@ -6,7 +6,7 @@ int main(int argc, char *argv[]) {
     util::initLogging();
     const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
-    if (argc != 3) {
+    if (argc < 3) {
         logger->error("Must provide user and function name");
         return 1;
     }
@@ -20,6 +20,15 @@ int main(int argc, char *argv[]) {
     message::Message call;
     call.set_user(user);
     call.set_function(function);
+
+    logger->info("Running function {}/{}", user, function);
+
+    if(argc > 3) {
+        std::string inputData = argv[3];
+        call.set_inputdata(inputData);
+
+        logger->info("Adding input data: {}", inputData);
+    }
 
     wasm::CallChain callChain(call);
 

@@ -15,8 +15,9 @@ namespace tests {
         std::vector<std::string> expected = {
                 "",  "..",
                 "etc", "funcs", "include", "lib",
-                "libfakeLibA.so", "libfakeLibA.so.o", "libfakeLibB.so.o",
-                "libfakeiLibA.wast", "libfakeiLibB.wast"
+                "libfakeLibA.so", "libfakeLibA.so.o",
+                "libfakeiLibA.wast", "libfakeiLibB.wast",
+                "share"
         };
 
         util::SystemConfig &conf = util::getSystemConfig();
