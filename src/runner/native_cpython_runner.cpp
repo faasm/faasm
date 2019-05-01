@@ -1,5 +1,4 @@
 #include <Python.h>
-#include <faasm/pyfaasm.h>
 
 int main(int argc, char *argv[]) {
     if (argc == 0) {
@@ -16,9 +15,6 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Running python function: %s\n", filePath);
-
-    setUpPyEnvironment();
-    setUpPyNumpy();
 
     Py_InitializeEx(0);
     printf("\n\nInitialised\n");
