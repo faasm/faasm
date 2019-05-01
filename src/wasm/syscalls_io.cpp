@@ -374,6 +374,13 @@ namespace wasm {
         return res;
     }
 
+    I32 s__access(I32 pathPtr, I32 mode) {
+        const std::string path = getMaskedPathFromWasm(pathPtr);
+        util::getLogger()->debug("S - access - {} {}", path, mode);
+
+        return access(path.c_str(), mode);
+    }
+
     /**
      *  We don't want to give away any real info about the filesystem, but we can just return the default
      *  stat object and catch the application later if it tries to do anything dodgy.

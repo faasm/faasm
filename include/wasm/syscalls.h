@@ -175,6 +175,8 @@ namespace wasm {
 
     int executeSyscall(int syscallNumber, int a, int b, int c, int d, int e, int f, int g);
 
+    I32 s__access(I32 pathPtr, I32 mode);
+
     I32 s__brk(I32 addr);
 
     I32 s__clock_gettime(I32 clockId, I32 timespecPtr);

@@ -10,14 +10,6 @@ namespace faasm {
         memory->getInput(buffer, inputSize);
 
         const char *funcName = reinterpret_cast<const char *>(buffer);
-        printf("Running python function: %s\n", funcName);
-
-        setUpPyEnvironment();
-        setUpPyNumpy();
-
-        Py_InitializeEx(0);
-        printf("\n\nInitialised\n");
-
         char filePath[10 + inputSize];
         strcpy(filePath, "funcs/");
         strcat(filePath, funcName);
@@ -28,11 +20,21 @@ namespace faasm {
             return 1;
         }
 
+        printf("Running python function: %s\n", filePath);
+
+        setUpPyEnvironment();
+        setUpPyNumpy();
+
+        Py_InitializeEx(0);
+        printf("\n\nInitialised\n");
+
         PyRun_SimpleFile(fp, "python_func");
         printf("\n\nExecuted\n");
 
         Py_Finalize();
         printf("Finalised\n");
+
+        fclose(fp);
 
         return 0;
     }

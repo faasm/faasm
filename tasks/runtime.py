@@ -16,6 +16,9 @@ _PACKAGES_INCLUDED = {
     "perf": {
         "path": "perf/build/perf-1.6.0/install//lib/python3.7/site-packages/perf"
     },
+    "performance": {
+        "path": "performance/build/performance-0.7.0/install/lib/python3.7/site-packages/performance",
+    },
     "six": {
         "path": "six/build/six-1.12.0/install/lib/python3.7/site-packages/six.py"
     }
