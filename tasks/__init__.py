@@ -59,6 +59,10 @@ from tasks.sgd import (
     reuters_prepare_aws,
     zero_sgd_native_lambda
 )
+from tasks.runtime import (
+    set_up_python_runtime,
+)
+
 from tasks.upload import (
     upload_funcs,
     upload_func,

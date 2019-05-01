@@ -23,6 +23,11 @@ namespace faasm {
         strcat(filePath, funcName);
 
         FILE *fp = fopen(filePath, "r");
+        if(fp == nullptr) {
+            printf("Failed to open file at %s\n", filePath);
+            return 1;
+        }
+
         PyRun_SimpleFile(fp, "python_func");
         printf("\n\nExecuted\n");
 
