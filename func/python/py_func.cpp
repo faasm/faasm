@@ -20,7 +20,7 @@ namespace faasm {
             return 1;
         }
 
-        printf("Running python function: %s\n", filePath);
+        printf("WASM python function: %s\n", filePath);
 
         setUpPyEnvironment();
         setUpPyNumpy();
