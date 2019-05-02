@@ -1,13 +1,8 @@
 #include <Python.h>
+#include <prof/prof.h>
+#include <util/logging.h>
 
-int main(int argc, char *argv[]) {
-    if (argc == 0) {
-        printf("Must provide function file path");
-        return 1;
-    }
-
-    char *filePath = argv[1];
-
+int _execPyFunction(const char* filePath) {
     FILE *fp = fopen(filePath, "r");
     if(fp == nullptr) {
         printf("Failed to open file at %s\n", filePath);
@@ -26,7 +21,24 @@ int main(int argc, char *argv[]) {
     printf("Finalised\n");
 
     fclose(fp);
+    return 0;
+}
+
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Must provide function file path\n");
+        return 1;
+    }
+
+    util::initLogging();
+
+    char *filePath = argv[1];
+
+    const util::TimePoint tp = prof::startTimer();
+
+    _execPyFunction(filePath);
+
+    prof::logEndTimer("Native function execution", tp);
 
     return 0;
-
 }

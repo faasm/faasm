@@ -12,9 +12,10 @@ namespace prof {
         util::Clock &clock = util::getGlobalClock();
         util::TimePoint end = clock.now();
 
-        long time = clock.timeDiffMicro(end, begin);
+        long micros = clock.timeDiffMicro(end, begin);
+        double millis = ((double) micros) / 1000;
 
         const std::shared_ptr<spdlog::logger> &l = util::getLogger();
-        l->trace("{} - {}", label, time);
+        l->info("TIME = {:.2f}ms ({})", millis, label);
     }
 }
