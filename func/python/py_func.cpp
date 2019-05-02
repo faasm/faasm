@@ -31,7 +31,7 @@ namespace faasm {
         PyRun_SimpleFile(fp, "python_func");
         printf("\n\nExecuted\n");
 
-        Py_Finalize();
+        Py_FinalizeEx();
         printf("Finalised\n");
 
         fclose(fp);

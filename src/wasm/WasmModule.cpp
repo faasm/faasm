@@ -188,11 +188,6 @@ namespace wasm {
         this->defaultMemory = Runtime::getDefaultMemory(moduleInstance);
         this->defaultTable = Runtime::getDefaultTable(moduleInstance);
 
-        // Snapshot initial state
-//        logger->debug("Snapshotting {} pages of memory for restore", CLEAN_MEMORY_PAGES);
-//        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
-//        memSnapshot.createCopy(baseAddr, CLEAN_MEMORY_SIZE);
-
         // Record that this module is now bound
         _isBound = true;
         boundUser = msg.user();
@@ -217,7 +212,6 @@ namespace wasm {
 
         if (isMainModule) {
             // Force memory sizes
-            // module.memories.defs[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
             module.memories.defs[0].type.size.max = (U64) MAX_MEMORY_PAGES;
 
             // Note, we don't want to mess with the min table size here, just give it room to expand if need be
@@ -275,7 +269,7 @@ namespace wasm {
             logger->error("Failed to link module");
             throw std::runtime_error("Failed linking module");
         }
-        
+
         // Instantiate the module, i.e. create memory, tables etc.
         Runtime::ModuleRef compiledModule;
         if (!objBytes.empty()) {
@@ -294,12 +288,12 @@ namespace wasm {
         // Attempt to fill gaps in missing table entries. This is *only* to see if the missing
         // entry is exported from the dynamic module itself. I don't know how this happens but occasionally
         // it does
-        if(missingGlobalOffsetEntries.size() > 0) {
-            for(auto e : missingGlobalOffsetEntries) {
+        if (missingGlobalOffsetEntries.size() > 0) {
+            for (auto e : missingGlobalOffsetEntries) {
                 // Check if it's an export of the module we're currently importing
                 Runtime::Object *missingFunction = getInstanceExport(instance, e.first);
 
-                if(!missingFunction) {
+                if (!missingFunction) {
                     logger->error("Could not fill gap in GOT for function: {}", e.first);
                     throw std::runtime_error("Failed linking module on missing GOT entry");
                 }
@@ -315,7 +309,7 @@ namespace wasm {
 
         // Empty the missing entries now that they're populated
         missingGlobalOffsetEntries.clear();
-        
+
         return instance;
     }
 
@@ -457,10 +451,6 @@ namespace wasm {
 
         // Shrink back to original size
         this->resizeMemory(initialMemoryPages);
-
-        // Restore initial memory in clean region
-//        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
-//        memSnapshot.restoreCopy(baseAddr);
 
         // Reset shared memory variables
         sharedMemKVs.clear();
@@ -719,10 +709,10 @@ namespace wasm {
                     Runtime::Object *resolvedFunc = getInstanceExport(moduleInstance, name);
 
                     // Check other dynamic modules if not found in main module
-                    if(!resolvedFunc) {
+                    if (!resolvedFunc) {
                         for (auto m : dynamicModuleMap) {
                             resolvedFunc = getInstanceExport(m.second, name);
-                            if(resolvedFunc) {
+                            if (resolvedFunc) {
                                 break;
                             }
                         }

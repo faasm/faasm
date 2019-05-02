@@ -45,10 +45,6 @@ using namespace WAVM;
 namespace wasm {
     extern Intrinsics::Module &getIntrinsicModule_env();
 
-    // This is the number of pages we copy and restore for each reuse of the module.
-    const int CLEAN_MEMORY_PAGES = 1;
-    const int CLEAN_MEMORY_SIZE = CLEAN_MEMORY_PAGES * IR::numBytesPerPage;
-
     Uptr getNumberOfPagesForBytes(U32 nBytes);
 
     class WasmModule final : Runtime::Resolver {

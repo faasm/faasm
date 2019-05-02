@@ -6,10 +6,11 @@
 #include <util/config.h>
 
 #include <fstream>
+#include <util/environment.h>
 
 #define PYTHON_USER "python"
 #define PYTHON_WASM_FUNC "py_func"
-#define OUTPUT_FILE "prof/py_bench.csv"
+#define OUTPUT_FILE "/tmp/py_bench.csv"
 
 
 void _wasmPyFunction(wasm::WasmModule &module, message::Message &call, wasm::CallChain &callChain) {
@@ -27,12 +28,12 @@ void _nativePyFunction(const std::string &pyFile) {
     printf("Running python function: %s\n", fullPath.c_str());
 
     Py_InitializeEx(0);
-    printf("\n\nInitialised\n");
+    printf("Initialised\n");
 
     PyRun_SimpleFile(fp, "python_func");
-    printf("\n\nExecuted\n");
+    printf("Executed\n");
 
-    Py_Finalize();
+    Py_FinalizeEx();
     printf("Finalised\n");
 
     fclose(fp);
@@ -48,7 +49,7 @@ int main(int argc, char *argv[]) {
     util::SystemConfig &conf = util::getSystemConfig();
     conf.unsafeMode = "on";
 
-    int nIterations = 1000;
+    int nIterations = 5;
 
     // Prepare output
     std::ofstream profOut;
@@ -72,22 +73,31 @@ int main(int argc, char *argv[]) {
         module.bindToFunction(call);
         prof::logEndTimer("WASM initialisation", tpInit);
 
-        logger->info("Running benchmark in WASM");
-
-        for (int i = 0; i < nIterations; i++) {
-            const util::TimePoint wasmTp = prof::startTimer();
-            _wasmPyFunction(module, call, callChain);
-            long wasmTime = prof::getTimeDiffMicros(wasmTp);
-            profOut << benchmark << ",wasm," << wasmTime << std::endl;
-        }
+        // Snapshot the module's memory
+        const util::TimePoint snapshotTp = prof::startTimer();
+        module.snapshotFullMemory("wasm_empty");
+        prof::logEndTimer("WASM snapshot", snapshotTp);
 
         logger->info("Running benchmark natively");
-
         for (int i = 0; i < nIterations; i++) {
-            const util::TimePoint nativeTp = prof::startTimer();
+            const util::TimePoint wasmTp = prof::startTimer();
             _nativePyFunction(benchmark);
+            long wasmTime = prof::getTimeDiffMicros(wasmTp);
+            profOut << benchmark << ",native," << wasmTime << std::endl;
+        }
+
+        logger->info("Running benchmark in WASM");
+        for (int i = 0; i < nIterations; i++) {
+            // Exec the function
+            const util::TimePoint nativeTp = prof::startTimer();
+            _wasmPyFunction(module, call, callChain);
             long nativeTime = prof::getTimeDiffMicros(nativeTp);
-            profOut << benchmark << ",native," << nativeTime << std::endl;
+            profOut << benchmark << ",wasm," << nativeTime << std::endl;
+
+            // Restore memory
+            const util::TimePoint restoreTp = prof::startTimer();
+            module.restoreFullMemory("wasm_empty");
+            prof::logEndTimer("WASM restore", restoreTp);
         }
 
         logger->info("Finished benchmark - {}", benchmark);

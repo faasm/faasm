@@ -447,15 +447,14 @@ namespace wasm {
     DEFINE_INTRINSIC_FUNCTION(env, "ioctl", I32, ioctl, I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - ioctl - {} {} {}", a, b, c);
 
-
         return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "puts", I32, puts, I32 strPtr) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        char *string = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
+        char *str = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
 
-        util::getLogger()->debug("S - puts {}", string);
+        printf("%s\n", str);
 
         return 0;
     }

@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
 
     logger->info("Running function {}/{}", user, function);
 
-    if(argc > 3) {
+    if (argc > 3) {
         std::string inputData = argv[3];
         call.set_inputdata(inputData);
 
@@ -39,7 +39,12 @@ int main(int argc, char *argv[]) {
     prof::logEndTimer("WASM initialisation", tpInit);
 
     const util::TimePoint tp = prof::startTimer();
-    
+
+    // Make 2 calls
+    module.snapshotFullMemory("nothing");
+    module.execute(call, callChain);
+
+    module.restoreFullMemory("nothing");
     module.execute(call, callChain);
 
     prof::logEndTimer("WASM function execution", tp);
