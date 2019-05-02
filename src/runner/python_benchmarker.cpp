@@ -3,11 +3,14 @@
 #include <util/logging.h>
 #include <proto/faasm.pb.h>
 #include <wasm/WasmModule.h>
-#include <easy/profiler.h>
 #include <util/config.h>
+
+#include <fstream>
 
 #define PYTHON_USER "python"
 #define PYTHON_WASM_FUNC "py_func"
+#define OUTPUT_FILE "prof/py_bench.csv"
+
 
 void _wasmPyFunction(wasm::WasmModule &module, message::Message &call, wasm::CallChain &callChain) {
     module.execute(call, callChain);
@@ -37,39 +40,61 @@ void _nativePyFunction(const std::string &pyFile) {
 
 int main(int argc, char *argv[]) {
     util::initLogging();
+    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-    std::string pyFile = "float_bench.py";
+    std::vector<std::string> benchmarks = {"float_bench.py"};
 
     // Run in unsafe mode to give Python access
     util::SystemConfig &conf = util::getSystemConfig();
     conf.unsafeMode = "on";
 
-    // Initialise wasm runtime
-    const util::TimePoint tpInit = prof::startTimer();
-    wasm::WasmModule module;
+    int nIterations = 1000;
 
-    message::Message call;
-    call.set_user(PYTHON_USER);
-    call.set_function(PYTHON_WASM_FUNC);
-    call.set_inputdata(pyFile);
-    wasm::CallChain callChain(call);
+    // Prepare output
+    std::ofstream profOut;
+    profOut.open(OUTPUT_FILE);
+    profOut << "benchmark,type,ms" << std::endl;
 
-    module.initialise();
-    module.bindToFunction(call);
-    prof::logEndTimer("WASM initialisation", tpInit);
+    for (auto const &benchmark : benchmarks) {
+        logger->info("Starting benchmark {}", benchmark);
 
-    EASY_PROFILER_ENABLE
-    EASY_FUNCTION()
+        // Initialise wasm runtime
+        const util::TimePoint tpInit = prof::startTimer();
 
-    EASY_BLOCK("Native")
-    _nativePyFunction(pyFile);
-    EASY_END_BLOCK
+        wasm::WasmModule module;
+        message::Message call;
+        call.set_user(PYTHON_USER);
+        call.set_function(PYTHON_WASM_FUNC);
+        call.set_inputdata(benchmark);
+        wasm::CallChain callChain(call);
 
-    EASY_BLOCK("WASM")
-    _wasmPyFunction(module, call, callChain);
-    //EASY_END_BLOCK; // This is not needed because all blocks are ended on destructor when closing braces met
+        module.initialise();
+        module.bindToFunction(call);
+        prof::logEndTimer("WASM initialisation", tpInit);
 
-    profiler::dumpBlocksToFile("profile.prof");
+        logger->info("Running benchmark in WASM");
+
+        for (int i = 0; i < nIterations; i++) {
+            const util::TimePoint wasmTp = prof::startTimer();
+            _wasmPyFunction(module, call, callChain);
+            long wasmTime = prof::getTimeDiffMicros(wasmTp);
+            profOut << benchmark << ",wasm," << wasmTime << std::endl;
+        }
+
+        logger->info("Running benchmark natively");
+
+        for (int i = 0; i < nIterations; i++) {
+            const util::TimePoint nativeTp = prof::startTimer();
+            _nativePyFunction(benchmark);
+            long nativeTime = prof::getTimeDiffMicros(nativeTp);
+            profOut << benchmark << ",native," << nativeTime << std::endl;
+        }
+
+        logger->info("Finished benchmark - {}", benchmark);
+    }
+
+    profOut.flush();
+    profOut.close();
 
     return 0;
 }
