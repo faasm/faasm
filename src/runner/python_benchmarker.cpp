@@ -43,13 +43,22 @@ int main(int argc, char *argv[]) {
     util::initLogging();
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-    std::vector<std::string> benchmarks = {"float_bench.py"};
+    std::vector<std::string> benchmarks = {
+            "bench_deltablue.py",
+            "bench_dulwich.py",
+            "bench_fannkuch.py",
+            "bench_float.py",
+            "bench_genshi.py",
+            "bench_go.py",
+            "bench_pyaes.py",
+    };
 
     // Run in unsafe mode to give Python access
     util::SystemConfig &conf = util::getSystemConfig();
     conf.unsafeMode = "on";
 
-    int nIterations = 5;
+    int nativeIterations = 1;
+    int wasmIterations = 1;
 
     // Prepare output
     std::ofstream profOut;
@@ -79,7 +88,7 @@ int main(int argc, char *argv[]) {
         prof::logEndTimer("WASM snapshot", snapshotTp);
 
         logger->info("Running benchmark natively");
-        for (int i = 0; i < nIterations; i++) {
+        for (int i = 0; i < nativeIterations; i++) {
             const util::TimePoint wasmTp = prof::startTimer();
             _nativePyFunction(benchmark);
             long wasmTime = prof::getTimeDiffMicros(wasmTp);
@@ -87,7 +96,7 @@ int main(int argc, char *argv[]) {
         }
 
         logger->info("Running benchmark in WASM");
-        for (int i = 0; i < nIterations; i++) {
+        for (int i = 0; i < wasmIterations; i++) {
             // Exec the function
             const util::TimePoint nativeTp = prof::startTimer();
             _wasmPyFunction(module, call, callChain);

@@ -10,6 +10,12 @@ from tasks.env import PROJ_ROOT, PYODIDE_INSTALL_DIR, FAASM_RUNTIME_ROOT, PY_RUN
 
 # TODO - avoid having to hard-code this
 _PACKAGES_INCLUDED = {
+    "dulwich": {
+        "path": "dulwich/build/dulwich-0.19.11/install/lib/python3.7/site-packages/dulwich",
+    },
+    "genshi": {
+        "path": "genshi/build/Genshi-0.7.2/install/lib/python3.7/site-packages/genshi",
+    },
     "numpy": {
         "path": "numpy/build/numpy-1.15.1/install/lib/python3.7/site-packages/numpy",
     },
@@ -25,11 +31,14 @@ _PACKAGES_INCLUDED = {
 }
 
 
-def _glob_remove(glob_pattern, recursive=False):
+def _glob_remove(glob_pattern, recursive=False, directory=False):
     print("Recursive remove: {}".format(glob_pattern))
     for filename in glob.iglob(glob_pattern, recursive=recursive):
         print("Removing {}".format(filename))
-        remove(filename)
+        if directory:
+            rmtree(filename)
+        else:
+            remove(filename)
 
 
 def _clear_pyc_files(dir_path):
@@ -37,7 +46,7 @@ def _clear_pyc_files(dir_path):
     pyc_glob = "{}/**/*.pyc".format(dir_path)
 
     _glob_remove(pyc_glob, recursive=True)
-    _glob_remove(pycache_glob, recursive=True)
+    _glob_remove(pycache_glob, recursive=True, directory=True)
 
 
 def _remove_runtime_dir(dir_name):
@@ -68,9 +77,14 @@ def set_up_python_runtime(ctx):
     runtime_site_packages = join(PY_RUNTIME_ROOT, "site-packages")
     check_output("mkdir -p {}".format(runtime_site_packages), shell=True)
 
-    print("\nCopying packages")
+    print("\nSetting up packages")
     for pkg_name, pkg_detail in _PACKAGES_INCLUDED.items():
-        print("Copying {} into place".format(pkg_name))
+        print("\n --------- {} ---------".format(pkg_name))
 
         pkg_dir = join(PYODIDE_PACKAGES, pkg_detail["path"])
+
+        print("Running codegen for {} ({})".format(pkg_name, pkg_dir))
+        check_output("/usr/local/code/faasm/bin/python_codegen.sh {}".format(pkg_dir), shell=True)
+
+        print("Copying {} into place".format(pkg_name))
         check_output("cp -r {} {}".format(pkg_dir, runtime_site_packages), shell=True)
