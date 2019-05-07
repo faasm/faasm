@@ -28,13 +28,13 @@ def _check_emscripten():
 
 
 @task
-def funcs(context, clean=False, func=None):
+def funcs(context, clean=False, func=None, debug=False):
     _check_emscripten()
 
     build_type = "emscripten"
-    cmake_build_type = "Release"
+    cmake_build_type = "Debug" if debug else "Release"
 
-    func_build_dir = join(PROJ_ROOT, "func", "{}_func_build".format(build_type))
+    func_build_dir = join(PROJ_ROOT, "func", "build".format(build_type))
     _clean_dir(func_build_dir, clean)
 
     build_cmd = [

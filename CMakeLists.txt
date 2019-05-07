@@ -19,6 +19,9 @@ set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/WAVM/Lib)
 add_definitions(-DDLL_EXPORT=)
 add_definitions(-DDLL_IMPORT=)
 
+# Switches off sigaltstack allocation on main stack (necessary for using valgrind)
+add_definitions(-DALLOCATE_SIGALTSTACK_ON_MAIN_STACK=0)
+
 # Turn off eigen parallelisation
 # add_definitions(-DEIGEN_DONT_PARALLELIZE)
 # add_definitions(-DEIGEN_NO_MALLOC)

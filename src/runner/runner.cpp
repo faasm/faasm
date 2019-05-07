@@ -40,11 +40,7 @@ int main(int argc, char *argv[]) {
 
     const util::TimePoint tp = prof::startTimer();
 
-    // Make 2 calls
     module.snapshotFullMemory("nothing");
-    module.execute(call, callChain);
-
-    module.restoreFullMemory("nothing");
     module.execute(call, callChain);
 
     prof::logEndTimer("WASM function execution", tp);
