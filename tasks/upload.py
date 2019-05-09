@@ -4,7 +4,7 @@ from os.path import join
 
 from invoke import task
 
-from tasks.env import EMSCRIPTEN_FUNC_BUILD_DIR
+from tasks.env import FUNC_BUILD_DIR
 from tasks.upload_util import curl_file
 
 DIRS_TO_INCLUDE = ["demo", "errors", "sgd", "python"]
@@ -12,7 +12,7 @@ DIRS_TO_INCLUDE = ["demo", "errors", "sgd", "python"]
 
 @task
 def upload_func(ctx, user, func, host="localhost"):
-    func_dir = EMSCRIPTEN_FUNC_BUILD_DIR
+    func_dir = FUNC_BUILD_DIR
 
     func_file = join(func_dir, user, "{}.wasm".format(func))
     url = "http://{}:8002/f/{}/{}".format(host, user, func)
@@ -21,7 +21,7 @@ def upload_func(ctx, user, func, host="localhost"):
 
 @task
 def upload_funcs(ctx, host="localhost"):
-    func_dir = EMSCRIPTEN_FUNC_BUILD_DIR
+    func_dir = FUNC_BUILD_DIR
 
     to_upload = []
 

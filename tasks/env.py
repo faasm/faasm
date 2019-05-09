@@ -11,7 +11,7 @@ FAASM_RUNTIME_ROOT = join(FAASM_STORAGE, "runtime_root")
 
 ANSIBLE_DIR = join(PROJ_ROOT, "ansible")
 
-EMSCRIPTEN_FUNC_BUILD_DIR = join(PROJ_ROOT, "func", "build")
+FUNC_BUILD_DIR = join(PROJ_ROOT, "func", "build")
 
 WASM_DIR = join(PROJ_ROOT, "wasm")
 WASM_LIB_DIR = join(PROJ_ROOT, "wasm", "lib")

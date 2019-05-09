@@ -6,6 +6,9 @@
 #include <util/memory.h>
 #include <wasm/FunctionLoader.h>
 
+#include <valgrind/valgrind.h>
+#include <valgrind/callgrind.h>
+
 #include <WAVM/WASM/WASM.h>
 #include <WAVM/Inline/CLI.h>
 #include <WAVM/IR/Types.h>
@@ -560,7 +563,11 @@ namespace wasm {
             // Call the function
             logger->debug("Invoking the function itself");
             Runtime::unwindSignalsAsExceptions([this, &context, &invokeArgs] {
+                CALLGRIND_START_INSTRUMENTATION;
+                CALLGRIND_TOGGLE_COLLECT;
                 invokeFunctionChecked(context, functionInstance, invokeArgs);
+                CALLGRIND_TOGGLE_COLLECT;
+                CALLGRIND_STOP_INSTRUMENTATION;
             });
         }
         catch (wasm::WasmExitException &e) {
