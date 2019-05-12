@@ -32,14 +32,13 @@ if(${FAASM_PROFILE})
     add_definitions(-DPRINT_DISASSEMBLY=0)
 endif()
 
-set(FAASM_CUSTOM_LLVM 0)
+set(FAASM_CUSTOM_LLVM 1)
 if(${FAASM_CUSTOM_LLVM})
     # Force using custom build of LLVM for codegen
     set(LLVM_DIR $ENV{HOME}/faasm/llvm/build/lib/cmake/llvm)
     find_package(LLVM REQUIRED CONFIG NO_DEFAULT_PATH)
 
-    add_definitions(-DWAVM_PERF_EVENTS=1)
-
+    set(WAVM_PERF_EVENTS 1)
 else()
     find_package(LLVM REQUIRED CONFIG)
 endif()
