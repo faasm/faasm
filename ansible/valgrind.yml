@@ -1,0 +1,22 @@
+---
+
+- hosts: localhost
+  gather_facts: yes
+  tasks:
+    - name: "Download the latest Valgrind release"
+      shell: "{{ item }}"
+      args:
+        chdir: "{{ ansible_env.HOME }}/faasm"
+      with_items:
+        - "wget https://sourceware.org/pub/valgrind/valgrind-3.15.0.tar.bz2"
+        - "tar -xf valgrind-3.15.0.tar.bz2"
+
+    - name: "Make and install"
+      shell: "{{ item }}"
+      args:
+        chdir: "{{ ansible_env.HOME }}/faasm/valgrind-3.15.0"
+      with_items:
+        - "mkdir -p {{ ansible_env.HOME }}/faasm/valgrind"
+        - "./configure --prefix={{ ansible_env.HOME }}/faasm/valgrind"
+        - "make"
+        - "make install"
