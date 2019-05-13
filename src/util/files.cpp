@@ -31,8 +31,8 @@ namespace util {
         // Read the data
         file.seekg(0, std::ios::beg);
         result.insert(result.begin(),
-                std::istreambuf_iterator<char>(file),
-                std::istreambuf_iterator<char>());
+                      std::istreambuf_iterator<char>(file),
+                      std::istreambuf_iterator<char>());
 
         return result;
     }
@@ -45,7 +45,7 @@ namespace util {
             throw std::runtime_error("Could not write to file");
         }
 
-        outfile.write((char*) data.data(), data.size());
+        outfile.write((char *) data.data(), data.size());
 
         outfile.close();
     }

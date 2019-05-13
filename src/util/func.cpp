@@ -10,6 +10,7 @@
 
 namespace util {
     const static std::string funcFile = "function.wasm";
+    const static std::string symFile = "function.symbols";
     const static std::string objFile = "function.o";
     const static std::string confFile = "conf.json";
 
@@ -72,6 +73,13 @@ namespace util {
     std::string getFunctionFile(const message::Message &msg) {
         auto path = getFunctionDir(msg);
         path.append(funcFile);
+
+        return path.string();
+    }
+
+    std::string getFunctionSymbolsFile(const message::Message &msg) {
+        auto path = getFunctionDir(msg);
+        path.append(symFile);
 
         return path.string();
     }

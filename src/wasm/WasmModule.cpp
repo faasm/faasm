@@ -807,4 +807,23 @@ namespace wasm {
 
         return false;
     }
+
+    std::map<std::string, std::string> WasmModule::buildDisassemblyMap() {
+        std::map<std::string, std::string> output;
+
+        IR::DisassemblyNames disassemblyNames;
+        getDisassemblyNames(module, disassemblyNames);
+        
+        for(Uptr i = 0; i < module.functions.size(); i++) {
+            bool isImport = i < module.functions.imports.size();
+            
+            std::string baseName = isImport ? "functionImport" : "functionDef";
+            std::string funcName = baseName + std::to_string(i);
+            std::string disasName = disassemblyNames.functions[i].name;
+
+            output.insert({funcName, disasName});
+        }
+
+        return output;
+    }
 }

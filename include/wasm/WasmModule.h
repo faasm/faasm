@@ -106,6 +106,8 @@ namespace wasm {
                      IR::ExternType type,
                      Runtime::Object *&resolved) override;
 
+        std::map<std::string, std::string> buildDisassemblyMap();
+
     private:
         IR::Module module;
 
