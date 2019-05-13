@@ -2,7 +2,7 @@
 
 set -e
 
-perf record -k 1 ./cmake-build-debug/bin/func_runner demo fibonacci 42
+perf record -k 1 ./cmake-build-debug/bin/python_bench bench_float.py
 
 perf inject -i perf.data -j -o perf.data.jitted
 

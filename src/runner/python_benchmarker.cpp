@@ -39,11 +39,66 @@ void _nativePyFunction(const std::string &pyFile) {
     fclose(fp);
 }
 
+void runBenchmark(const std::string &benchmark, int nNativeIterations, int nWasmIterations, std::ofstream &profOut) {
+    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+    logger->info("Starting benchmark {} ({}x native and {}x wasm)", benchmark, nNativeIterations, nWasmIterations);
+
+    // Initialise wasm runtime
+    const util::TimePoint tpInit = prof::startTimer();
+
+    wasm::WasmModule module;
+    message::Message call;
+    call.set_user(PYTHON_USER);
+    call.set_function(PYTHON_WASM_FUNC);
+    call.set_inputdata(benchmark);
+    wasm::CallChain callChain(call);
+
+    module.initialise();
+    module.bindToFunction(call);
+    prof::logEndTimer("WASM initialisation", tpInit);
+
+    // Snapshot the module's memory
+    const util::TimePoint snapshotTp = prof::startTimer();
+    module.snapshotFullMemory("wasm_empty");
+    prof::logEndTimer("WASM snapshot", snapshotTp);
+
+    logger->info("Running benchmark natively");
+    for (int i = 0; i < nNativeIterations; i++) {
+        const util::TimePoint wasmTp = prof::startTimer();
+        _nativePyFunction(benchmark);
+        long wasmTime = prof::getTimeDiffMicros(wasmTp);
+        profOut << benchmark << ",native," << wasmTime << std::endl;
+    }
+
+    logger->info("Running benchmark in WASM");
+    for (int i = 0; i < nWasmIterations; i++) {
+        // Exec the function
+        const util::TimePoint nativeTp = prof::startTimer();
+        _wasmPyFunction(module, call, callChain);
+        long nativeTime = prof::getTimeDiffMicros(nativeTp);
+        profOut << benchmark << ",wasm," << nativeTime << std::endl;
+
+        // Restore memory
+        const util::TimePoint restoreTp = prof::startTimer();
+        module.restoreFullMemory("wasm_empty");
+        prof::logEndTimer("WASM restore", restoreTp);
+    }
+
+    logger->info("Finished benchmark - {}", benchmark);
+}
+
 int main(int argc, char *argv[]) {
     util::initLogging();
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+    
+    if (argc < 2) {
+        logger->error("Must provide benchmark to run (or \"all\")");
+        return 1;
+    }
 
-    std::vector<std::string> benchmarks = {
+    std::string benchmark = argv[1];
+
+    std::vector<std::string> all_benchmarks = {
             "bench_deltablue.py",
             "bench_dulwich.py",
             "bench_fannkuch.py",
@@ -53,63 +108,30 @@ int main(int argc, char *argv[]) {
             "bench_pyaes.py",
     };
 
+    std::vector<std::string> benchmarks;
+    if(benchmark == "all") {
+        benchmarks = all_benchmarks;
+    } else if(std::find(all_benchmarks.begin(), all_benchmarks.end(), benchmark) != all_benchmarks.end()) {
+        benchmarks = {benchmark};
+    } else {
+        logger->error("Unrecognised benchmark: {}", benchmark);
+        return 1;
+    }
+
     // Run in unsafe mode to give Python access
     util::SystemConfig &conf = util::getSystemConfig();
     conf.unsafeMode = "on";
 
-    int nativeIterations = 1;
-    int wasmIterations = 1;
+    int nativeIterations = 20;
+    int wasmIterations = 20;
 
     // Prepare output
     std::ofstream profOut;
     profOut.open(OUTPUT_FILE);
     profOut << "benchmark,type,ms" << std::endl;
-
-    for (auto const &benchmark : benchmarks) {
-        logger->info("Starting benchmark {}", benchmark);
-
-        // Initialise wasm runtime
-        const util::TimePoint tpInit = prof::startTimer();
-
-        wasm::WasmModule module;
-        message::Message call;
-        call.set_user(PYTHON_USER);
-        call.set_function(PYTHON_WASM_FUNC);
-        call.set_inputdata(benchmark);
-        wasm::CallChain callChain(call);
-
-        module.initialise();
-        module.bindToFunction(call);
-        prof::logEndTimer("WASM initialisation", tpInit);
-
-        // Snapshot the module's memory
-        const util::TimePoint snapshotTp = prof::startTimer();
-        module.snapshotFullMemory("wasm_empty");
-        prof::logEndTimer("WASM snapshot", snapshotTp);
-
-        logger->info("Running benchmark natively");
-        for (int i = 0; i < nativeIterations; i++) {
-            const util::TimePoint wasmTp = prof::startTimer();
-            _nativePyFunction(benchmark);
-            long wasmTime = prof::getTimeDiffMicros(wasmTp);
-            profOut << benchmark << ",native," << wasmTime << std::endl;
-        }
-
-        logger->info("Running benchmark in WASM");
-        for (int i = 0; i < wasmIterations; i++) {
-            // Exec the function
-            const util::TimePoint nativeTp = prof::startTimer();
-            _wasmPyFunction(module, call, callChain);
-            long nativeTime = prof::getTimeDiffMicros(nativeTp);
-            profOut << benchmark << ",wasm," << nativeTime << std::endl;
-
-            // Restore memory
-            const util::TimePoint restoreTp = prof::startTimer();
-            module.restoreFullMemory("wasm_empty");
-            prof::logEndTimer("WASM restore", restoreTp);
-        }
-
-        logger->info("Finished benchmark - {}", benchmark);
+    
+    for (auto const &b : benchmarks) {
+        runBenchmark(b, nativeIterations, wasmIterations, profOut);
     }
 
     profOut.flush();
