@@ -34,6 +34,8 @@ endif()
 
 set(FAASM_CUSTOM_LLVM 1)
 if(${FAASM_CUSTOM_LLVM})
+    message(STATUS "Using custom LLVM")
+
     # Force using custom build of LLVM for codegen
     set(LLVM_DIR $ENV{HOME}/faasm/llvm/build/lib/cmake/llvm)
     find_package(LLVM REQUIRED CONFIG NO_DEFAULT_PATH)
