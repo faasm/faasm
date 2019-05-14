@@ -523,7 +523,8 @@ namespace wasm {
 
         heapBase = this->getGlobalI32("__heap_base", context);
         dataEnd = this->getGlobalI32("__data_end", context);
-        logger->debug("heap_base = {}  data_end = {}  heap_top={}", heapBase, dataEnd, initialMemorySize);
+        logger->debug("heap_base = {}  data_end = {}  heap_top={} initial_pages={}", heapBase, dataEnd,
+                initialMemorySize, initialMemoryPages);
 
         // The stack top variable should be the first global
         IR::GlobalDef stackDef = module.globals.getDef(0);

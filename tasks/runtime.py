@@ -30,6 +30,20 @@ _PACKAGES_INCLUDED = {
     }
 }
 
+_PYTHON_STL_TO_REMOVE = [
+    "asyncio",
+    "email",
+    "gzip.py",
+    "http",
+    "macpath.py",
+    "mailbox.py",
+    "mailcap.py",
+    "pdb.py",
+    "sqlite3",
+    "turtledemo",
+    "unittest",
+    "wsgiref",
+]
 
 def _glob_remove(glob_pattern, recursive=False, directory=False):
     print("Recursive remove: {}".format(glob_pattern))
@@ -68,6 +82,15 @@ def set_up_python_runtime(ctx):
 
     print("\nPutting CPython libraries in place")
     check_output("cp -r {}/* {}".format(PYODIDE_INSTALL_DIR, FAASM_RUNTIME_ROOT), shell=True)
+
+    print("\nRemoving unnecessary Python stl")
+    for filename in _PYTHON_STL_TO_REMOVE:
+        full_path = join(FAASM_RUNTIME_ROOT, "lib", "python3.7", filename)
+
+        if full_path.endswith(".py"):
+            remove(full_path)
+        else:
+            rmtree(full_path)
 
     print("\nPutting python functions in place")
     funcs_dir = join(PROJ_ROOT, "python", "funcs")
