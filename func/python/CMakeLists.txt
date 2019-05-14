@@ -4,8 +4,8 @@ set(PYODIDE_CPYTHON "/usr/local/code/faasm/pyodide/cpython/installs/python-3.7.0
 
 if (FAASM_BUILD_TYPE STREQUAL "emscripten")
     # Second terms here for zlib
-    set(PYTHON_LIBRARIES ${PYODIDE_CPYTHON}/lib/libpython3.7d.a ${PYODIDE_CPYTHON}/lib/libz.a)
-    set(PYTHON_INCLUDE_DIRS ${PYODIDE_CPYTHON}/include/python3.7d ${PYODIDE_CPYTHON}/include)
+    set(PYTHON_LIBRARIES ${PYODIDE_CPYTHON}/lib/libpython3.7.a ${PYODIDE_CPYTHON}/lib/libz.a)
+    set(PYTHON_INCLUDE_DIRS ${PYODIDE_CPYTHON}/include/python3.7 ${PYODIDE_CPYTHON}/include)
 else ()
     find_package(PythonLibs)
 endif ()
@@ -17,4 +17,9 @@ message(STATUS "PYTHON_INCLUDE_DIRS=${PYTHON_INCLUDE_DIRS}")
 include_directories(${PYTHON_INCLUDE_DIRS})
 
 faasm_dynamic_func(py_func py_func.cpp)
-target_link_libraries(py_func pyfaasm ${PYTHON_LIBRARIES})
+
+if (FAASM_BUILD_TYPE STREQUAL "emscripten")
+    target_link_libraries(py_func pyfaasm ${PYTHON_LIBRARIES})
+else()
+    target_link_libraries(py_func pyfaasm ${PYTHON_LIBRARIES} util)
+endif()

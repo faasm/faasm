@@ -14,7 +14,7 @@ _PACKAGES_INCLUDED = {
         "path": "dulwich/build/dulwich-0.19.11/install/lib/python3.7/site-packages/dulwich",
     },
     "genshi": {
-        "path": "genshi/build/Genshi-0.7.2/install/lib/python3.7/site-packages/genshi",
+        "path": "Genshi/build/Genshi-0.7.2/install/lib/python3.7/site-packages/genshi",
     },
     "numpy": {
         "path": "numpy/build/numpy-1.15.1/install/lib/python3.7/site-packages/numpy",
