@@ -13,8 +13,8 @@ if [[ ! -d "$LLVM_DIR" ]]; then
 fi
 
 # Nuke the build dir if it exists
-#rm -rf ${BUILD_DIR}
-#mkdir ${BUILD_DIR}
+rm -rf ${BUILD_DIR}
+mkdir ${BUILD_DIR}
 
 pushd ${BUILD_DIR}
 
