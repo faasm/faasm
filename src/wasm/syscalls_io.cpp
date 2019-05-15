@@ -129,7 +129,8 @@ namespace wasm {
         size_t wasmDirentSize = sizeof(wasm_dirent64);
 
         // Create a small native buffer (can't overshoot the wasm offset)
-        int nativeBufLen = 60;
+        // Note that this can cause an EINVAL error if too small
+        int nativeBufLen = 80;
 
         U32 wasmBytesRead;
         int wasmDirentCount = 0;
