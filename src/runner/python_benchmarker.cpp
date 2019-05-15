@@ -91,12 +91,14 @@ int main(int argc, char *argv[]) {
     util::initLogging();
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
     
-    if (argc < 2) {
-        logger->error("Must provide benchmark to run (or \"all\")");
+    if (argc < 4) {
+        logger->error("Usage:\npython_bench <benchmark> <nNative> <nWasm>");
         return 1;
     }
 
     std::string benchmark = argv[1];
+    int nativeIterations = std::stoi(argv[2]);
+    int wasmIterations = std::stoi(argv[3]);
 
     std::vector<std::string> all_benchmarks = {
             "bench_deltablue.py",
@@ -121,9 +123,6 @@ int main(int argc, char *argv[]) {
     // Run in unsafe mode to give Python access
     util::SystemConfig &conf = util::getSystemConfig();
     conf.unsafeMode = "on";
-
-    int nativeIterations = 20;
-    int wasmIterations = 20;
 
     // Prepare output
     std::ofstream profOut;

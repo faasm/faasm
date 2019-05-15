@@ -459,6 +459,17 @@ namespace wasm {
         return 0;
     }
 
+    DEFINE_INTRINSIC_FUNCTION(env, "putc", I32, putc, I32 c, I32 streamPtr) {
+        util::getLogger()->debug("S - putc - {} {}", c, streamPtr);
+
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        FILE *stream = &Runtime::memoryRef<FILE>(memoryPtr, (Uptr) streamPtr);
+
+        putc(c, stream);
+
+        return 0;
+    }
+
     /**
      * fprintf can provide some useful debugging info so we can just spit it to stdout
      */
