@@ -60,6 +60,7 @@ from tasks.sgd import (
     zero_sgd_native_lambda
 )
 from tasks.runtime import (
+    clear_runtime_pyc,
     set_up_python_runtime,
 )
 

@@ -51,25 +51,28 @@ namespace wasm {
     }
 
     /**
-     * We can permit mmap as a means to grow memory via anonymous mappings. As there is only one
-     * address range, this may end up conflicting with other memory management for the module.
-     *
-     * syscall 192 is mmap2, which has the same interface as mmap except that the final argument specifies
+     * Note that syscall 192 is mmap2, which has the same interface as mmap except that the final argument specifies
      * the offset into the file in 4096-byte units (instead of bytes, as is done by mmap). Given that we
      * ignore the offset we can just treat it like mmap
      */
     I32 s__mmap(I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I32 offset) {
-        util::getLogger()->debug("S - mmap - {} {} {} {} {} {}", addr, length, prot, flags, fd, offset);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - mmap - {} {} {} {} {} {}", addr, length, prot, flags, fd, offset);
 
-        // Note - we are ignoring the offset input
-
-        if (addr != 0) {
-            printf("Ignoring mmap hint at %i\n", addr);
+        // Although we are ignoring the offset we should probably
+        // double check when something explicitly requests one
+        if(offset != 0) {
+            logger->debug("WARNING: ignoring non-zero mmap offset ({})", offset);
         }
 
-        // fd != -1 is non-anonymous mapping
+        // Likewise with the address hint
+        if (addr != 0) {
+            logger->debug("WARNING: ignoring mmap hint at {}", addr);
+        }
+
+        // Don't allow using mmap for anything other than allocating memory
         if (fd != -1) {
-            throw std::runtime_error("Attempted to mmap anonymous");
+            throw std::runtime_error("Attempted to mmap file descriptor");
         }
 
         WasmModule *module = getExecutingModule();
@@ -108,10 +111,8 @@ namespace wasm {
     }
 
     /**
-   * brk should be fine to run in most cases, need to check limits on the process' memory.
-   *
-   * Details of the return value aren't particularly clear. I took info from https://linux.die.net/man/2/brk
-   * i.e.
+   * Details of what should be returned from brk aren't particularly clear. I took info from
+   * https://linux.die.net/man/2/brk i.e.
    *
    *   - on addr == 0 return current break
    *   - on error return current break

@@ -585,15 +585,17 @@ namespace wasm {
     U32 WasmModule::mmap(U32 length) {
         // Round up to page boundary
         Uptr pagesRequested = getNumberOfPagesForBytes(length);
+
         Iptr previousPageCount = growMemory(defaultMemory, pagesRequested);
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Growing memory from {} to {} WAVM pages", previousPageCount, previousPageCount + pagesRequested);
-
+        Uptr newPageCount = previousPageCount + pagesRequested;
         if (previousPageCount == -1) {
-            logger->error("No memory for mapping");
+            logger->error("No memory for mapping (growing to {} pages)", newPageCount);
             throw std::runtime_error("Run out of memory to map");
         }
+
+        logger->debug("Growing memory from {} to {} WAVM pages", previousPageCount, newPageCount);
 
         // Get pointer to mapped range
         auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);

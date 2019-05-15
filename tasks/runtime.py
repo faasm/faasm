@@ -70,6 +70,12 @@ def _remove_runtime_dir(dir_name):
 
 
 @task
+def clear_runtime_pyc(ctx):
+    print("Clearing out runtime pyc files")
+    _clear_pyc_files(FAASM_RUNTIME_ROOT)
+
+
+@task
 def set_up_python_runtime(ctx):
     print("Clearing out pyc files")
     _clear_pyc_files(PYODIDE_INSTALL_DIR)
