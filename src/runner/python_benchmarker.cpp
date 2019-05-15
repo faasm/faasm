@@ -127,7 +127,7 @@ int main(int argc, char *argv[]) {
     // Prepare output
     std::ofstream profOut;
     profOut.open(OUTPUT_FILE);
-    profOut << "benchmark,type,ms" << std::endl;
+    profOut << "benchmark,type,microseconds" << std::endl;
     
     for (auto const &b : benchmarks) {
         runBenchmark(b, nativeIterations, wasmIterations, profOut);
