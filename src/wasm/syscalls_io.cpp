@@ -8,6 +8,7 @@
 #include <poll.h>
 #include <sys/uio.h>
 #include <sys/ioctl.h>
+#include <sys/unistd.h>
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/RuntimeData.h>
@@ -129,7 +130,7 @@ namespace wasm {
         size_t wasmDirentSize = sizeof(wasm_dirent64);
 
         // Create a small native buffer (can't overshoot the wasm offset)
-        // Note that this can cause an EINVAL error if too small
+        // Note that this can cause an EINVAL error if too small for the result
         int nativeBufLen = 80;
 
         U32 wasmBytesRead;
@@ -438,17 +439,29 @@ namespace wasm {
     }
 
     /**
-     * Although llseek is being called, musl is using it within the implementation of lseek,
-     * therefore we can just use lseek as a shortcut
+     * llseek is called from the implementations of both seek and lseek. Calls
+     * to llseek can be replaced with an equivalent call to lseek, which is what
+     * musl would do in the absence of llseek.
      */
     I32 s__llseek(I32 fd, I32 offsetHigh, I32 offsetLow, I32 resultPtr, I32 whence) {
         util::getLogger()->debug("S - llseek - {} {} {} {} {}", fd, offsetHigh, offsetLow, resultPtr, whence);
 
         checkThreadOwnsFd(fd);
 
+        // The caller is expecting the result to be written to the result pointer
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        I32* hostResultPtr = &Runtime::memoryRef<I32>(memoryPtr, (Uptr) resultPtr);
+
         int res = (int) lseek(fd, offsetLow, whence);
 
-        return (I32) res;
+        // Success returns zero and failure returns -1 with correct errno set
+        if(res < 0) {
+            getExecutingModule()->setErrno(errno);
+            return -1;
+        } else {
+            *hostResultPtr = res;
+            return 0;
+        }
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "ioctl", I32, ioctl, I32 a, I32 b, I32 c) {
