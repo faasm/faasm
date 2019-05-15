@@ -33,16 +33,14 @@ namespace wasm {
             //TODO avoid use of system-wide urandom
             logger->debug("Opening /dev/urandom");
             fd = open("/dev/urandom", 0, 0);
-        } else if(path == "/dev/null") {
+        } else if (path == "/dev/null") {
             logger->debug("Allowing access to /dev/null");
             fd = open("/dev/null", 0, 0);
-        } else if (path == "pyvenv.cfg") {
-            logger->debug("Forcing non-existent pyvenv.cfg");
-            return -ENOENT;
         } else {
             fakePath = maskPath(path.c_str());
 
-            if (conf.unsafeMode == "on") {
+            if (conf.unsafeMode == "on" ||
+                (path == "/etc/hosts" || path == "/etc/resolv.conf" || path == "/etc/passwd")) {
                 logger->debug("Opening {}", fakePath);
                 fd = open(fakePath.c_str(), flags, mode);
             } else {
@@ -60,6 +58,12 @@ namespace wasm {
             } else {
                 logger->debug("Failed to open - {}", path);
             }
+
+            // It seems that some applications expect errno to be set and the return value
+            // to be the error code, whereas others expect -1 to be returned and errno to be
+            // set. We will return the error code _and_ set errno
+            int newErrno = -fd;
+            getExecutingModule()->setErrno(newErrno);
         }
 
         return fd;
@@ -77,7 +81,7 @@ namespace wasm {
     }
 
     I32 s__fcntl64(I32 fd, I32 cmd, I32 c) {
-        const std::shared_ptr <spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - fcntl64 - {} {} {}", fd, cmd, c);
 
         checkThreadOwnsFd(fd);
@@ -136,13 +140,15 @@ namespace wasm {
             // Make the native syscall. This will read in a list of dirent structs to the buffer
             // We need to read at most two native dirents. Each one will be at most 40 bytes.
             auto nativeBuf = new char[nativeBufLen];
-            unsigned long nativeBytesRead = syscall(SYS_getdents64, fd, nativeBuf, nativeBufLen);
+            long nativeBytesRead = syscall(SYS_getdents64, fd, nativeBuf, nativeBufLen);
 
             if (nativeBytesRead == 0) {
                 // No more native dirents
                 return wasmBytesRead;
             } else if (nativeBytesRead < 0) {
                 // Error reading native dirents
+                getExecutingModule()->setErrno(errno);
+
                 return (I32) nativeBytesRead;
             }
 
@@ -150,7 +156,7 @@ namespace wasm {
             unsigned int nativeOffset;
             for (nativeOffset = 0; nativeOffset < nativeBytesRead;) {
                 // If we're going to overshoot on the wasm buffer, we have a problem
-                if (wasmBytesRead > (U32)wasmDirentBufLen) {
+                if (wasmBytesRead > (U32) wasmDirentBufLen) {
                     throw std::runtime_error("Overshot the end of the dirent buffer");
                 }
 
@@ -408,7 +414,7 @@ namespace wasm {
 
         struct stat64 nativeStat{};
         int result = stat64(fakePath.c_str(), &nativeStat);
-        if(result < 0) {
+        if (result < 0) {
             int newErrno = errno;
             getExecutingModule()->setErrno(newErrno);
             return -newErrno;

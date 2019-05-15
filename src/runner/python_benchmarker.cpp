@@ -30,7 +30,7 @@ void _nativePyFunction(const std::string &pyFile) {
     Py_InitializeEx(0);
     printf("Initialised\n");
 
-    PyRun_SimpleFile(fp, "python_func");
+    PyRun_SimpleFile(fp, fullPath.c_str());
     printf("Executed\n");
 
     Py_FinalizeEx();
@@ -107,7 +107,6 @@ int main(int argc, char *argv[]) {
             "bench_float.py",
             "bench_genshi.py",
             "bench_go.py",
-            "bench_pyaes.py",
     };
 
     std::vector<std::string> benchmarks;
