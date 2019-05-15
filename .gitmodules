@@ -7,3 +7,6 @@
 [submodule "musl"]
 	path = musl
 	url = git@github.com:Shillaker/musl
+[submodule "py_performance"]
+	path = py_performance
+	url = git@github.com:python/performance.git

@@ -1,6 +1,7 @@
 #include <wasm/WasmModule.h>
 
 #include <util/config.h>
+#include <prof/prof.h>
 
 int main(int argc, char *argv[]) {
     util::initLogging();
@@ -23,18 +24,24 @@ int main(int argc, char *argv[]) {
 
     logger->info("Running function {}/{}", user, function);
 
-    if(argc > 3) {
+    if (argc > 3) {
         std::string inputData = argv[3];
         call.set_inputdata(inputData);
 
         logger->info("Adding input data: {}", inputData);
     }
 
+    const util::TimePoint tpInit = prof::startTimer();
     wasm::CallChain callChain(call);
-
     wasm::WasmModule module;
     module.initialise();
     module.bindToFunction(call);
+    prof::logEndTimer("WASM initialisation", tpInit);
 
+    const util::TimePoint tp = prof::startTimer();
+
+    module.snapshotFullMemory("nothing");
     module.execute(call, callChain);
+
+    prof::logEndTimer("WASM function execution", tp);
 }

@@ -12,7 +12,7 @@ from invoke import task
 
 from tasks.config import get_faasm_config
 from tasks.env import FAASM_HOME, PROJ_ROOT, RUNTIME_S3_BUCKET, AWS_REGION, AWS_ACCOUNT_ID, STATE_S3_BUCKET, \
-    EMSCRIPTEN_FUNC_BUILD_DIR
+    FUNC_BUILD_DIR
 from tasks.upload_util import upload_file_to_s3
 
 SDK_VERSION = "1.7.41"
@@ -364,7 +364,7 @@ def _build_system_lambda(module_name):
 @task
 def deploy_wasm_lambda_func(ctx, user, func):
     # Assume the build has already been run locally
-    wasm_file = join(EMSCRIPTEN_FUNC_BUILD_DIR, user, "{}.wasm".format(func))
+    wasm_file = join(FUNC_BUILD_DIR, user, "{}.wasm".format(func))
 
     print("Uploading {}/{} to S3".format(user, func))
 

@@ -19,6 +19,34 @@ set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/WAVM/Lib)
 add_definitions(-DDLL_EXPORT=)
 add_definitions(-DDLL_IMPORT=)
 
+set(FAASM_PROFILE 1)
+if(${FAASM_PROFILE})
+    message(STATUS "Running Faasm profile build")
+
+    add_definitions(-DKEEP_UNLOADED_MODULE_ADDRESSES_RESERVED=1)
+
+    # Switches off sigaltstack allocation on main stack (necessary for using valgrind)
+    add_definitions(-DALLOCATE_SIGALTSTACK_ON_MAIN_STACK=0)
+
+    # For debugging WAVM codegen
+    add_definitions(-DPRINT_DISASSEMBLY=0)
+endif()
+
+set(FAASM_CUSTOM_LLVM 1)
+if(${FAASM_CUSTOM_LLVM})
+    message(STATUS "Using custom LLVM")
+
+    # Force using custom build of LLVM for codegen
+    set(LLVM_DIR $ENV{HOME}/faasm/llvm/build/lib/cmake/llvm)
+    find_package(LLVM REQUIRED CONFIG NO_DEFAULT_PATH)
+
+    set(WAVM_PERF_EVENTS 1)
+else()
+    find_package(LLVM REQUIRED CONFIG)
+endif()
+
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+
 # Turn off eigen parallelisation
 # add_definitions(-DEIGEN_DONT_PARALLELIZE)
 # add_definitions(-DEIGEN_NO_MALLOC)

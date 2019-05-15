@@ -9,9 +9,9 @@ int main(int argc, char *argv[]) {
     util::initLogging();
     const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
-    if (argc != 2) {
-        logger->error("Must provide input file");
-        return 1;
+    if (argc < 2) {
+        logger->warn("No input provided to codegen");
+        return 0;
     }
 
     std::string inputFile = argv[1];

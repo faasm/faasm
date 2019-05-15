@@ -10,11 +10,7 @@ namespace memory {
 
         void create(const char * name, uint8_t *mem, size_t memSize);
 
-        void createCopy(uint8_t *mem, size_t memSize);
-
         void restore(uint8_t * target);
-
-        void restoreCopy(uint8_t *target);
 
         void clear();
 
@@ -23,6 +19,5 @@ namespace memory {
     private:
         size_t memSize;
         int memFd;
-        uint8_t *memCopy;
     };
 }

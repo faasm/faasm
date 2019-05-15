@@ -26,6 +26,15 @@ cd ../packages
 make
 ```
 
+## Adding packages
+
+Adding packages to Pyodide is described [in their docs](https://github.com/iodide-project/pyodide/blob/master/docs/new_packages.md). For just a pure Python package you can do the following:
+
+- Create a new folder in `pyodide/packages` 
+- Copy the `meta.yml` from another pure Python package (e.g. `perf`)
+- Add the right version, SHA and a link to the `.tar.gz` from PyPI (perf example [here](https://pypi.org/project/perf/))
+- From the `packages` directory run `../bin/pyodide buildpkg --package_abi=0 <your_pkg>/meta.yaml`
+
 ## Dynamic linking
 
 Once this is all built we can generate the machine code up-front for all the relevant shared objects.

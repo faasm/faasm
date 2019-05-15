@@ -7,7 +7,7 @@ from subprocess import call, check_output
 from invoke import task
 
 from tasks.download import download_proj
-from tasks.env import PROJ_ROOT, EMSCRIPTEN_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT, PYODIDE_ROOT
+from tasks.env import PROJ_ROOT, EMSCRIPTEN_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT, PYODIDE_ROOT, FUNC_BUILD_DIR
 
 
 def _clean_dir(dir_path, clean):
@@ -28,14 +28,13 @@ def _check_emscripten():
 
 
 @task
-def funcs(context, clean=False, func=None):
+def funcs(context, clean=False, func=None, debug=False):
     _check_emscripten()
 
     build_type = "emscripten"
-    cmake_build_type = "Release"
+    cmake_build_type = "Debug" if debug else "Release"
 
-    func_build_dir = join(PROJ_ROOT, "func", "{}_func_build".format(build_type))
-    _clean_dir(func_build_dir, clean)
+    _clean_dir(FUNC_BUILD_DIR, clean)
 
     build_cmd = [
         "VERBOSE=1",
@@ -46,7 +45,7 @@ def funcs(context, clean=False, func=None):
         ".."
     ]
 
-    res = call(" ".join(build_cmd), shell=True, cwd=func_build_dir)
+    res = call(" ".join(build_cmd), shell=True, cwd=FUNC_BUILD_DIR)
     if res != 0:
         print("Failed to compile")
         return
@@ -57,7 +56,7 @@ def funcs(context, clean=False, func=None):
     else:
         cmd = "make -j"
 
-    call(cmd, shell=True, cwd=func_build_dir)
+    call(cmd, shell=True, cwd=FUNC_BUILD_DIR)
 
 
 @task

@@ -45,10 +45,6 @@ using namespace WAVM;
 namespace wasm {
     extern Intrinsics::Module &getIntrinsicModule_env();
 
-    // This is the number of pages we copy and restore for each reuse of the module.
-    const int CLEAN_MEMORY_PAGES = 1;
-    const int CLEAN_MEMORY_SIZE = CLEAN_MEMORY_PAGES * IR::numBytesPerPage;
-
     Uptr getNumberOfPagesForBytes(U32 nBytes);
 
     class WasmModule final : Runtime::Resolver {
@@ -85,6 +81,8 @@ namespace wasm {
 
         void restoreFullMemory(const char *key);
 
+        void resetDynamicModules();
+
         void restoreMemory();
 
         int dynamicLoadModule(const std::string &path, Runtime::Context *context);
@@ -110,6 +108,8 @@ namespace wasm {
                      IR::ExternType type,
                      Runtime::Object *&resolved) override;
 
+        std::map<std::string, std::string> buildDisassemblyMap();
+
     private:
         IR::Module module;
 
@@ -120,6 +120,7 @@ namespace wasm {
         int dynamicModuleCount = 0;
 
         int initialMemoryPages = 0;
+        int initialTableSize = 0;
         int heapBase = 0;
         int dataEnd = 0;
         int stackTop = 0;
@@ -148,8 +149,6 @@ namespace wasm {
         std::unordered_map<std::string, int> globalOffsetTableMap;
         std::unordered_map<std::string, int> globalOffsetMemoryMap;
         std::unordered_map<std::string, int> missingGlobalOffsetEntries;
-
-        memory::MemorySnapshot memSnapshot;
 
         void resizeMemory(size_t targetPages);
 

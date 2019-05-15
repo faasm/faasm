@@ -6,6 +6,9 @@
 #include <util/memory.h>
 #include <wasm/FunctionLoader.h>
 
+#include <valgrind/valgrind.h>
+#include <valgrind/callgrind.h>
+
 #include <WAVM/WASM/WASM.h>
 #include <WAVM/Inline/CLI.h>
 #include <WAVM/IR/Types.h>
@@ -67,8 +70,6 @@ namespace wasm {
                 logger->debug("Successful GC for compartment");
             }
         }
-
-        memSnapshot.clear();
     };
 
     bool WasmModule::isBound() {
@@ -188,11 +189,6 @@ namespace wasm {
         this->defaultMemory = Runtime::getDefaultMemory(moduleInstance);
         this->defaultTable = Runtime::getDefaultTable(moduleInstance);
 
-        // Snapshot initial state
-//        logger->debug("Snapshotting {} pages of memory for restore", CLEAN_MEMORY_PAGES);
-//        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
-//        memSnapshot.createCopy(baseAddr, CLEAN_MEMORY_SIZE);
-
         // Record that this module is now bound
         _isBound = true;
         boundUser = msg.user();
@@ -217,7 +213,6 @@ namespace wasm {
 
         if (isMainModule) {
             // Force memory sizes
-            // module.memories.defs[0].type.size.min = (U64) INITIAL_MEMORY_PAGES;
             module.memories.defs[0].type.size.max = (U64) MAX_MEMORY_PAGES;
 
             // Note, we don't want to mess with the min table size here, just give it room to expand if need be
@@ -275,7 +270,7 @@ namespace wasm {
             logger->error("Failed to link module");
             throw std::runtime_error("Failed linking module");
         }
-        
+
         // Instantiate the module, i.e. create memory, tables etc.
         Runtime::ModuleRef compiledModule;
         if (!objBytes.empty()) {
@@ -294,12 +289,12 @@ namespace wasm {
         // Attempt to fill gaps in missing table entries. This is *only* to see if the missing
         // entry is exported from the dynamic module itself. I don't know how this happens but occasionally
         // it does
-        if(missingGlobalOffsetEntries.size() > 0) {
-            for(auto e : missingGlobalOffsetEntries) {
+        if (missingGlobalOffsetEntries.size() > 0) {
+            for (auto e : missingGlobalOffsetEntries) {
                 // Check if it's an export of the module we're currently importing
                 Runtime::Object *missingFunction = getInstanceExport(instance, e.first);
 
-                if(!missingFunction) {
+                if (!missingFunction) {
                     logger->error("Could not fill gap in GOT for function: {}", e.first);
                     throw std::runtime_error("Failed linking module on missing GOT entry");
                 }
@@ -315,7 +310,7 @@ namespace wasm {
 
         // Empty the missing entries now that they're populated
         missingGlobalOffsetEntries.clear();
-        
+
         return instance;
     }
 
@@ -326,13 +321,15 @@ namespace wasm {
     }
 
     int WasmModule::dynamicLoadModule(const std::string &path, Runtime::Context *context) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         // Return the handle if we've already loaded this module
         if (dynamicPathToHandleMap.count(path) > 0) {
+            logger->debug("Reusing dynamic module {}", path);
             return dynamicPathToHandleMap[path];
         }
 
         IR::Module sharedModule;
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
 
         // Get path to where machine code should be
@@ -430,6 +427,31 @@ namespace wasm {
         snapshot->restore(baseAddr);
     }
 
+    void WasmModule::resetDynamicModules() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        
+        // Restore the table to its original size
+        Uptr currentTableSize = Runtime::getTableNumElements(defaultTable);
+        Uptr elemsToShrink = currentTableSize - initialTableSize;
+        if(elemsToShrink > 0) {
+            logger->debug("Shrinking table from {} to {}", currentTableSize, initialTableSize);
+            Runtime::shrinkTable(defaultTable, elemsToShrink);
+        }
+
+        // Remove references to the modules themselves
+        for (auto const &p : dynamicPathToHandleMap) {
+            logger->debug("Unloading dynamic module {}", p.first);
+            dynamicModuleMap[p.second] = nullptr;
+        }
+
+        // Run WAVM GC
+        Runtime::collectCompartmentGarbage(compartment);
+
+        // Reset maps
+        dynamicModuleMap.clear();
+        dynamicPathToHandleMap.clear();
+    }
+
     void WasmModule::resizeMemory(size_t targetPages) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -457,10 +479,6 @@ namespace wasm {
 
         // Shrink back to original size
         this->resizeMemory(initialMemoryPages);
-
-        // Restore initial memory in clean region
-//        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
-//        memSnapshot.restoreCopy(baseAddr);
 
         // Reset shared memory variables
         sharedMemKVs.clear();
@@ -524,13 +542,17 @@ namespace wasm {
         // Set up the context
         Runtime::Context *context = Runtime::createContext(compartment);
 
-        // Memory-related variables (these will be the same when stack first is switched on)
+        // Memory-related variables
         initialMemoryPages = Runtime::getMemoryNumPages(defaultMemory);
+        initialTableSize = Runtime::getTableNumElements(defaultTable);
+        
         Uptr initialMemorySize = initialMemoryPages * IR::numBytesPerPage;
 
+        // Note that heap base and data end should be the same (provided stack-first is switched on)
         heapBase = this->getGlobalI32("__heap_base", context);
         dataEnd = this->getGlobalI32("__data_end", context);
-        logger->debug("heap_base = {}  data_end = {}  heap_top={}", heapBase, dataEnd, initialMemorySize);
+        logger->debug("heap_base = {}  data_end = {}  heap_top={} initial_pages={}", heapBase, dataEnd,
+                initialMemorySize, initialMemoryPages);
 
         // The stack top variable should be the first global
         IR::GlobalDef stackDef = module.globals.getDef(0);
@@ -570,7 +592,11 @@ namespace wasm {
             // Call the function
             logger->debug("Invoking the function itself");
             Runtime::unwindSignalsAsExceptions([this, &context, &invokeArgs] {
+                CALLGRIND_START_INSTRUMENTATION;
+                CALLGRIND_TOGGLE_COLLECT;
                 invokeFunctionChecked(context, functionInstance, invokeArgs);
+                CALLGRIND_TOGGLE_COLLECT;
+                CALLGRIND_STOP_INSTRUMENTATION;
             });
         }
         catch (wasm::WasmExitException &e) {
@@ -587,15 +613,17 @@ namespace wasm {
     U32 WasmModule::mmap(U32 length) {
         // Round up to page boundary
         Uptr pagesRequested = getNumberOfPagesForBytes(length);
+
         Iptr previousPageCount = growMemory(defaultMemory, pagesRequested);
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Growing memory from {} to {} WAVM pages", previousPageCount, previousPageCount + pagesRequested);
-
+        Uptr newPageCount = previousPageCount + pagesRequested;
         if (previousPageCount == -1) {
-            logger->error("No memory for mapping");
+            logger->error("No memory for mapping (growing to {} pages)", newPageCount);
             throw std::runtime_error("Run out of memory to map");
         }
+
+        logger->debug("Growing memory from {} to {} WAVM pages", previousPageCount, newPageCount);
 
         // Get pointer to mapped range
         auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);
@@ -719,10 +747,10 @@ namespace wasm {
                     Runtime::Object *resolvedFunc = getInstanceExport(moduleInstance, name);
 
                     // Check other dynamic modules if not found in main module
-                    if(!resolvedFunc) {
+                    if (!resolvedFunc) {
                         for (auto m : dynamicModuleMap) {
                             resolvedFunc = getInstanceExport(m.second, name);
-                            if(resolvedFunc) {
+                            if (resolvedFunc) {
                                 break;
                             }
                         }
@@ -809,5 +837,24 @@ namespace wasm {
         logger->error("Missing import {}.{} {}", moduleName, name, asString(type).c_str());
 
         return false;
+    }
+
+    std::map<std::string, std::string> WasmModule::buildDisassemblyMap() {
+        std::map<std::string, std::string> output;
+
+        IR::DisassemblyNames disassemblyNames;
+        getDisassemblyNames(module, disassemblyNames);
+        
+        for(Uptr i = 0; i < module.functions.size(); i++) {
+            bool isImport = i < module.functions.imports.size();
+            
+            std::string baseName = isImport ? "functionImport" : "functionDef";
+            std::string funcName = baseName + std::to_string(i);
+            std::string disasName = disassemblyNames.functions[i].name;
+
+            output.insert({funcName, disasName});
+        }
+
+        return output;
     }
 }

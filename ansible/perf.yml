@@ -1,0 +1,23 @@
+---
+
+- hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: "Install perf"
+      become: yes
+      apt:
+        name:
+          - linux-tools-common
+          - linux-tools-generic
+        update_cache: yes
+
+    - name: "Allow everyone to run perf"
+      become: yes
+      lineinfile:
+        path: /etc/sysctl.conf
+        regexp: '^kernel\.perf_event_paranoid'
+        line: 'kernel.perf_event_paranoid=-1'
+
+    - name: "Add permissions on this session"
+      become: yes
+      shell: "sudo sh -c 'echo -1 > /proc/sys/kernel/perf_event_paranoid'"

@@ -3,6 +3,8 @@ botocore
 boto
 boto3
 configparser
+dulwich
 invoke
 numpy
+performance
 requests

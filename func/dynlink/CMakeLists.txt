@@ -6,7 +6,7 @@ set(BUILD_SHARED_LIBS ON)
 include_directories(include)
 
 # This is critical otherwise the linker tries to statically link in standard libraries
-set(COMPILER_FLAGS "-nostdlib -nostdlib++ -fPIC")
+set(COMPILER_FLAGS "-nostdlib -fPIC")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMPILER_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMPILER_FLAGS}")
 

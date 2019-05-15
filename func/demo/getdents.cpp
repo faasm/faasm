@@ -26,7 +26,7 @@ namespace faasm {
         printf("ino        d_off            reclen   d_type   name\n");
 
         int count = 0;
-        while ((dp = readdir(dirp)) != NULL && count < 10) {
+        while ((dp = readdir(dirp)) != NULL) {
             ino_t d_ino = dp->d_ino;
             off_t off = dp->d_off;
             unsigned short reclen = dp->d_reclen;

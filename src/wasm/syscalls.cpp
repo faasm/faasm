@@ -106,6 +106,8 @@ namespace wasm {
                 return s__unlink(a);
             case 20:
                 return s__getpid();
+            case 33:
+                return s__access(a, b);
             case 38:
                 return s__rename(a, b);
             case 39:

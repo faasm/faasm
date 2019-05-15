@@ -15,9 +15,11 @@ void setUpPyEnvironment() {
     setenv("PYTHONHOME", "/", 1);
     setenv("PYTHONPATH", "/", 1);
     setenv("PYTHONHASHSEED", "0", 1);
-    setenv("PYTHONVERBOSE", "on", 1);
     setenv("PYTHONNOUSERSITE", "on", 1);
     setenv("LC_CTYPE", "en_GB.UTF-8", 1);
+
+    // Faasm-specific
+    setenv("PYTHONWASM", "1", 1);
 }
 
 void setUpPyNumpy() {

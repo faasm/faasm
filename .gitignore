@@ -6,6 +6,8 @@ lambda_*_build/
 *_func_build/
 lib_build/
 *_lib_build/
+perf.data
+perf.data.*
 
 # Ansible
 *.retry

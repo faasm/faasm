@@ -8,6 +8,7 @@
 #include <poll.h>
 #include <sys/uio.h>
 #include <sys/ioctl.h>
+#include <sys/unistd.h>
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/RuntimeData.h>
@@ -33,16 +34,14 @@ namespace wasm {
             //TODO avoid use of system-wide urandom
             logger->debug("Opening /dev/urandom");
             fd = open("/dev/urandom", 0, 0);
-        } else if(path == "/dev/null") {
+        } else if (path == "/dev/null") {
             logger->debug("Allowing access to /dev/null");
             fd = open("/dev/null", 0, 0);
-        } else if (path == "pyvenv.cfg") {
-            logger->debug("Forcing non-existent pyvenv.cfg");
-            return -ENOENT;
         } else {
             fakePath = maskPath(path.c_str());
 
-            if (conf.unsafeMode == "on") {
+            if (conf.unsafeMode == "on" ||
+                (path == "/etc/hosts" || path == "/etc/resolv.conf" || path == "/etc/passwd")) {
                 logger->debug("Opening {}", fakePath);
                 fd = open(fakePath.c_str(), flags, mode);
             } else {
@@ -60,6 +59,12 @@ namespace wasm {
             } else {
                 logger->debug("Failed to open - {}", path);
             }
+
+            // It seems that some applications expect errno to be set and the return value
+            // to be the error code, whereas others expect -1 to be returned and errno to be
+            // set. We will return the error code _and_ set errno
+            int newErrno = -fd;
+            getExecutingModule()->setErrno(newErrno);
         }
 
         return fd;
@@ -77,7 +82,7 @@ namespace wasm {
     }
 
     I32 s__fcntl64(I32 fd, I32 cmd, I32 c) {
-        const std::shared_ptr <spdlog::logger> &logger = util::getLogger();
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - fcntl64 - {} {} {}", fd, cmd, c);
 
         checkThreadOwnsFd(fd);
@@ -125,7 +130,8 @@ namespace wasm {
         size_t wasmDirentSize = sizeof(wasm_dirent64);
 
         // Create a small native buffer (can't overshoot the wasm offset)
-        int nativeBufLen = 60;
+        // Note that this can cause an EINVAL error if too small for the result
+        int nativeBufLen = 80;
 
         U32 wasmBytesRead;
         int wasmDirentCount = 0;
@@ -136,13 +142,15 @@ namespace wasm {
             // Make the native syscall. This will read in a list of dirent structs to the buffer
             // We need to read at most two native dirents. Each one will be at most 40 bytes.
             auto nativeBuf = new char[nativeBufLen];
-            unsigned long nativeBytesRead = syscall(SYS_getdents64, fd, nativeBuf, nativeBufLen);
+            long nativeBytesRead = syscall(SYS_getdents64, fd, nativeBuf, nativeBufLen);
 
             if (nativeBytesRead == 0) {
                 // No more native dirents
                 return wasmBytesRead;
             } else if (nativeBytesRead < 0) {
                 // Error reading native dirents
+                getExecutingModule()->setErrno(errno);
+
                 return (I32) nativeBytesRead;
             }
 
@@ -150,7 +158,7 @@ namespace wasm {
             unsigned int nativeOffset;
             for (nativeOffset = 0; nativeOffset < nativeBytesRead;) {
                 // If we're going to overshoot on the wasm buffer, we have a problem
-                if (wasmBytesRead > (U32)wasmDirentBufLen) {
+                if (wasmBytesRead > (U32) wasmDirentBufLen) {
                     throw std::runtime_error("Overshot the end of the dirent buffer");
                 }
 
@@ -374,6 +382,13 @@ namespace wasm {
         return res;
     }
 
+    I32 s__access(I32 pathPtr, I32 mode) {
+        const std::string path = getMaskedPathFromWasm(pathPtr);
+        util::getLogger()->debug("S - access - {} {}", path, mode);
+
+        return access(path.c_str(), mode);
+    }
+
     /**
      *  We don't want to give away any real info about the filesystem, but we can just return the default
      *  stat object and catch the application later if it tries to do anything dodgy.
@@ -401,7 +416,7 @@ namespace wasm {
 
         struct stat64 nativeStat{};
         int result = stat64(fakePath.c_str(), &nativeStat);
-        if(result < 0) {
+        if (result < 0) {
             int newErrno = errno;
             getExecutingModule()->setErrno(newErrno);
             return -newErrno;
@@ -424,31 +439,53 @@ namespace wasm {
     }
 
     /**
-     * Although llseek is being called, musl is using it within the implementation of lseek,
-     * therefore we can just use lseek as a shortcut
+     * llseek is called from the implementations of both seek and lseek. Calls
+     * to llseek can be replaced with an equivalent call to lseek, which is what
+     * musl would do in the absence of llseek.
      */
     I32 s__llseek(I32 fd, I32 offsetHigh, I32 offsetLow, I32 resultPtr, I32 whence) {
         util::getLogger()->debug("S - llseek - {} {} {} {} {}", fd, offsetHigh, offsetLow, resultPtr, whence);
 
         checkThreadOwnsFd(fd);
 
+        // The caller is expecting the result to be written to the result pointer
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        I32* hostResultPtr = &Runtime::memoryRef<I32>(memoryPtr, (Uptr) resultPtr);
+
         int res = (int) lseek(fd, offsetLow, whence);
 
-        return (I32) res;
+        // Success returns zero and failure returns -1 with correct errno set
+        if(res < 0) {
+            getExecutingModule()->setErrno(errno);
+            return -1;
+        } else {
+            *hostResultPtr = res;
+            return 0;
+        }
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "ioctl", I32, ioctl, I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - ioctl - {} {} {}", a, b, c);
-
 
         return 0;
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "puts", I32, puts, I32 strPtr) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        char *string = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
+        char *str = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
 
-        util::getLogger()->debug("S - puts {}", string);
+        printf("%s\n", str);
+
+        return 0;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "putc", I32, putc, I32 c, I32 streamPtr) {
+        util::getLogger()->debug("S - putc - {} {}", c, streamPtr);
+
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        FILE *stream = &Runtime::memoryRef<FILE>(memoryPtr, (Uptr) streamPtr);
+
+        putc(c, stream);
 
         return 0;
     }

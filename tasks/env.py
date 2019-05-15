@@ -1,4 +1,3 @@
-import os
 from os import makedirs
 from os.path import dirname, realpath, join, exists, expanduser
 from subprocess import call
@@ -12,7 +11,7 @@ FAASM_RUNTIME_ROOT = join(FAASM_STORAGE, "runtime_root")
 
 ANSIBLE_DIR = join(PROJ_ROOT, "ansible")
 
-EMSCRIPTEN_FUNC_BUILD_DIR = join(PROJ_ROOT, "func", "emscripten_func_build")
+FUNC_BUILD_DIR = join(PROJ_ROOT, "func", "build")
 
 WASM_DIR = join(PROJ_ROOT, "wasm")
 WASM_LIB_DIR = join(PROJ_ROOT, "wasm", "lib")
@@ -28,6 +27,9 @@ AWS_REGION = "eu-west-1"
 PYODIDE_ROOT = join(PROJ_ROOT, "pyodide")
 EMSCRIPTEN_DIR = join(PYODIDE_ROOT, "emsdk/emsdk")
 EMSCRIPTEN_TOOLCHAIN = join(EMSCRIPTEN_DIR, "upstream", "latest", "Wack.cmake")
+PYODIDE_PACKAGES = join(PYODIDE_ROOT, "packages")
+PYODIDE_INSTALL_DIR = join(PYODIDE_ROOT, "cpython", "installs", "python-3.7.0")
+PY_RUNTIME_ROOT = join(FAASM_RUNTIME_ROOT, "lib", "python3.7")
 
 WASM_SYSROOT = join(EMSCRIPTEN_DIR, "upstream", "latest", "sysroot")
 
