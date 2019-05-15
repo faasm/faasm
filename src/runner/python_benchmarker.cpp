@@ -108,6 +108,9 @@ int main(int argc, char *argv[]) {
             "bench_float.py",
             "bench_genshi.py",
             "bench_go.py",
+            "bench_hexiom.py",
+            "bench_json_dumps.py",
+            "bench_json_loads.py",
     };
 
     std::vector<std::string> benchmarks;
