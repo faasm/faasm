@@ -70,8 +70,6 @@ namespace wasm {
                 logger->debug("Successful GC for compartment");
             }
         }
-
-        memSnapshot.clear();
     };
 
     bool WasmModule::isBound() {
@@ -323,13 +321,15 @@ namespace wasm {
     }
 
     int WasmModule::dynamicLoadModule(const std::string &path, Runtime::Context *context) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         // Return the handle if we've already loaded this module
         if (dynamicPathToHandleMap.count(path) > 0) {
+            logger->debug("Reusing dynamic module {}", path);
             return dynamicPathToHandleMap[path];
         }
 
         IR::Module sharedModule;
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
 
         // Get path to where machine code should be
@@ -427,6 +427,31 @@ namespace wasm {
         snapshot->restore(baseAddr);
     }
 
+    void WasmModule::resetDynamicModules() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        
+        // Restore the table to its original size
+        Uptr currentTableSize = Runtime::getTableNumElements(defaultTable);
+        Uptr elemsToShrink = currentTableSize - initialTableSize;
+        if(elemsToShrink > 0) {
+            logger->debug("Shrinking table from {} to {}", currentTableSize, initialTableSize);
+            Runtime::shrinkTable(defaultTable, elemsToShrink);
+        }
+
+        // Remove references to the modules themselves
+        for (auto const &p : dynamicPathToHandleMap) {
+            logger->debug("Unloading dynamic module {}", p.first);
+            dynamicModuleMap[p.second] = nullptr;
+        }
+
+        // Run WAVM GC
+        Runtime::collectCompartmentGarbage(compartment);
+
+        // Reset maps
+        dynamicModuleMap.clear();
+        dynamicPathToHandleMap.clear();
+    }
+
     void WasmModule::resizeMemory(size_t targetPages) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -517,10 +542,13 @@ namespace wasm {
         // Set up the context
         Runtime::Context *context = Runtime::createContext(compartment);
 
-        // Memory-related variables (these will be the same when stack first is switched on)
+        // Memory-related variables
         initialMemoryPages = Runtime::getMemoryNumPages(defaultMemory);
+        initialTableSize = Runtime::getTableNumElements(defaultTable);
+        
         Uptr initialMemorySize = initialMemoryPages * IR::numBytesPerPage;
 
+        // Note that heap base and data end should be the same (provided stack-first is switched on)
         heapBase = this->getGlobalI32("__heap_base", context);
         dataEnd = this->getGlobalI32("__data_end", context);
         logger->debug("heap_base = {}  data_end = {}  heap_top={} initial_pages={}", heapBase, dataEnd,

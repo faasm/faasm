@@ -81,6 +81,7 @@ void runBenchmark(const std::string &benchmark, int nNativeIterations, int nWasm
         // Restore memory
         const util::TimePoint restoreTp = prof::startTimer();
         module.restoreFullMemory("wasm_empty");
+        module.resetDynamicModules();
         prof::logEndTimer("WASM restore", restoreTp);
     }
 

@@ -81,6 +81,8 @@ namespace wasm {
 
         void restoreFullMemory(const char *key);
 
+        void resetDynamicModules();
+
         void restoreMemory();
 
         int dynamicLoadModule(const std::string &path, Runtime::Context *context);
@@ -118,6 +120,7 @@ namespace wasm {
         int dynamicModuleCount = 0;
 
         int initialMemoryPages = 0;
+        int initialTableSize = 0;
         int heapBase = 0;
         int dataEnd = 0;
         int stackTop = 0;
@@ -146,8 +149,6 @@ namespace wasm {
         std::unordered_map<std::string, int> globalOffsetTableMap;
         std::unordered_map<std::string, int> globalOffsetMemoryMap;
         std::unordered_map<std::string, int> missingGlobalOffsetEntries;
-
-        memory::MemorySnapshot memSnapshot;
 
         void resizeMemory(size_t targetPages);
 
