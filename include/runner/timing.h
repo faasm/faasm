@@ -3,8 +3,7 @@
 #include <util/clock.h>
 #include <string>
 
-namespace prof {
-    // Timing
+namespace runner {
     util::TimePoint startTimer();
 
     long getTimeDiffMicros(const util::TimePoint &begin);

@@ -126,6 +126,18 @@ namespace wasm {
         U8 d_name[256];
     };
 
+    /**
+     * Found in bits/signal.h
+     * stack_t is used in calls to sigaltstack, either to specify a new stack
+     * or to get details about the existing
+     */
+    struct wasm_stack_t {
+        U32 ss_sp;  // void*
+        I32 ss_flags;
+        I32 ss_size;  // size_t
+    };
+
+
     // Sockets/ network
     enum SocketCalls : U32 {
         sc_socket = 1,

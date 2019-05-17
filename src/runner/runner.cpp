@@ -1,7 +1,8 @@
 #include <wasm/WasmModule.h>
 
 #include <util/config.h>
-#include <prof/prof.h>
+#include <runner/timing.h>
+
 
 int main(int argc, char *argv[]) {
     util::initLogging();
@@ -31,17 +32,17 @@ int main(int argc, char *argv[]) {
         logger->info("Adding input data: {}", inputData);
     }
 
-    const util::TimePoint tpInit = prof::startTimer();
+    const util::TimePoint tpInit = runner::startTimer();
     wasm::CallChain callChain(call);
     wasm::WasmModule module;
     module.initialise();
     module.bindToFunction(call);
-    prof::logEndTimer("WASM initialisation", tpInit);
+    runner::logEndTimer("WASM initialisation", tpInit);
 
-    const util::TimePoint tp = prof::startTimer();
+    const util::TimePoint tp = runner::startTimer();
 
     module.snapshotFullMemory("nothing");
     module.execute(call, callChain);
 
-    prof::logEndTimer("WASM function execution", tp);
+    runner::logEndTimer("WASM function execution", tp);
 }
