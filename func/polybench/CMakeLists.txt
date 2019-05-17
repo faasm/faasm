@@ -2,8 +2,8 @@ set(FAASM_USER polybench)
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/utilities)
 
-function(poly_func exec_name file_name)
-    add_executable(${exec_name} ${file_name} utilities/polybench.c utilities/polybench.h)
+function(polybench_func exec_name c_file h_file)
+    add_executable(poly_${exec_name} ${c_file} ${h_file} utilities/polybench.c utilities/polybench.h)
 
     if (FAASM_BUILD_TYPE STREQUAL "emscripten")
         set(MALLOC_LIB "dlmalloc")
@@ -11,8 +11,8 @@ function(poly_func exec_name file_name)
         set(MALLOC_LIB "")
     endif()
 
-    target_link_libraries(${exec_name} faasm ${MALLOC_LIB})
+    target_link_libraries(poly_${exec_name} faasm ${MALLOC_LIB})
 
-endfunction(faasm_func)
+endfunction(polybench_func)
 
-faasm_func(poly_covariance datamining/covariance.c)
+polybench_func(covariance datamining/covariance/covariance.c datamining/covariance/covariance.h)

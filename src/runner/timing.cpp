@@ -1,8 +1,8 @@
-#include "prof/prof.h"
+#include "runner/timing.h"
 
 #include <util/logging.h>
 
-namespace prof {
+namespace runner {
     util::TimePoint startTimer() {
         util::Clock &clock = util::getGlobalClock();
         return clock.now();

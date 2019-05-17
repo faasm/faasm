@@ -1,11 +1,23 @@
 find_package(PythonLibs)
 
+include_directories(${FAASM_INCLUDE_DIR}/runner)
+
+add_library(bench STATIC
+        timing.cpp
+        Profiler.cpp
+        PythonProfiler.cpp
+        ${FAASM_INCLUDE_DIR}/runner/Profiler.h
+        ${FAASM_INCLUDE_DIR}/runner/timing.h
+    )
+
+target_link_libraries(bench wasm util)
+
 add_executable(func_runner runner.cpp)
-target_link_libraries(func_runner wasm prof)
+target_link_libraries(func_runner bench)
 
 add_executable(func_sym map_symbols.cpp)
-target_link_libraries(func_sym wasm)
+target_link_libraries(func_sym bench)
 
 include_directories(${PYTHON_INCLUDE_DIRS})
-add_executable(python_bench python_benchmarker.cpp)
-target_link_libraries(python_bench wasm prof ${PYTHON_LIBRARIES})
+add_executable(python_bench python_bench.cpp)
+target_link_libraries(python_bench bench ${PYTHON_LIBRARIES})
