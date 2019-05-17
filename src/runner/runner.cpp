@@ -1,7 +1,8 @@
 #include <wasm/WasmModule.h>
 
 #include <util/config.h>
-#include <prof/prof.h>
+#include <runner/timing.h>
+
 
 int main(int argc, char *argv[]) {
     util::initLogging();

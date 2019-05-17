@@ -18,11 +18,6 @@ namespace wasm {
     // Signals (ignored)
     // ------------------------
 
-    I32 s__sigaltstack(I32 ssPtr, I32 oldSsPtr) {
-        util::getLogger()->debug("S - sigaltstack - {} {}", ssPtr, oldSsPtr);
-        return 0;
-    }
-
     I32 s__sigaction(I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - sigaction - {} {} {}", a, b, c);
 

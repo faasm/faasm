@@ -33,6 +33,22 @@ namespace wasm {
         return res;
     }
 
+    I32 s__sigaltstack(I32 ssPtr, I32 oldSsPtr) {
+        util::getLogger()->debug("S - sigaltstack - {} {}", ssPtr, oldSsPtr);
+
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+
+        // Extract struct pointers from wasm memory
+        // wasm_stack_t *ss = &Runtime::memoryRef<wasm_stack_t>(memoryPtr, (Uptr) ssPtr);
+        wasm_stack_t *oldSs = &Runtime::memoryRef<wasm_stack_t>(memoryPtr, (Uptr) oldSsPtr);
+
+        // Say that the old sigaltstack was disabled and null
+        oldSs->ss_sp = 0;
+        oldSs->ss_flags = SS_DISABLE;
+
+        return 0;
+    }
+
     std::shared_ptr<state::StateKeyValue> getStateKV(I32 keyPtr, size_t size) {
         const std::pair<std::string, std::string> userKey = getUserKeyPairFromWasm(keyPtr);
         state::State &s = state::getGlobalState();

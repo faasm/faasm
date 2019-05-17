@@ -27,6 +27,6 @@ namespace runner {
     public:
         explicit PythonProfiler(std::string pythonFile);
 
-        void runNative();
+        void runNative() override;
     };
 }
