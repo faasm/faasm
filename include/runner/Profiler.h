@@ -23,9 +23,16 @@ namespace runner {
         std::string outputName;
     };
 
-    class PythonProfiler: public Profiler {
+    class PythonProfiler : public Profiler {
     public:
         explicit PythonProfiler(std::string pythonFile);
+
+        void runNative() override;
+    };
+
+    class PolybenchProfiler : public Profiler {
+    public:
+        explicit PolybenchProfiler(std::string funcName);
 
         void runNative() override;
     };

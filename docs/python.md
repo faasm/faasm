@@ -13,7 +13,7 @@ ansible-playbook python3_7.yml
 
 ## Building CPython and packages
 
-You must make sure that you've set up the latest emscripten toolchain locally, build libc and malloc etc.
+You must make sure that you've set up the latest toolchain, build libc and malloc etc.
 
 Once this is done, you can run the following:
 
@@ -26,32 +26,15 @@ cd ../packages
 make
 ```
 
-## Adding packages
+## Setting up the runtime environment
 
-Adding packages to Pyodide is described [in their docs](https://github.com/iodide-project/pyodide/blob/master/docs/new_packages.md). For just a pure Python package you can do the following:
-
-- Create a new folder in `pyodide/packages` 
-- Copy the `meta.yml` from another pure Python package (e.g. `perf`)
-- Add the right version, SHA and a link to the `.tar.gz` from PyPI (perf example [here](https://pypi.org/project/perf/))
-- From the `packages` directory run `../bin/pyodide buildpkg --package_abi=0 <your_pkg>/meta.yaml`
-
-## Dynamic linking
-
-Once this is all built we can generate the machine code up-front for all the relevant shared objects.
+Once this is all built we can generate the machine code and put everything in place as follows:
 
 ```
-./bin/python_codegen.sh
+inv set-up-python-runtime
 ```
 
-## Setting up the runtime root
-
-To make everything available at runtime, you can execute the following:
-
-```
-./bin/set_up_python_root.sh
-```
-
-## Compiling Python functions
+## Compiling the Python function
 
 When building you **must** use the Faasm shell environment:
 
@@ -59,9 +42,18 @@ When building you **must** use the Faasm shell environment:
 source workon.sh
 ```
 
-Once this is done, you can run the `upload` server and do the following:
+Once this is done, you can build and upload the Python function as follows (assuming you have an upload server running)
 
 ```
-inv funcs --func=<your func>
-inv upload-func <your user> <your func>
+inv funcs --func=py_func
+inv upload-func python py_func
 ```
+
+## Adding packages
+
+Adding packages to Pyodide is described [in their docs](https://github.com/iodide-project/pyodide/blob/master/docs/new_packages.md). For just a pure Python package you can do the following:
+
+- Create a new folder in `pyodide/packages`
+- Copy the `meta.yml` from another pure Python package (e.g. `perf`)
+- Add the right version, SHA and a link to the `.tar.gz` from PyPI (perf example [here](https://pypi.org/project/perf/))
+- From the `packages` directory run `../bin/pyodide buildpkg --package_abi=0 <your_pkg>/meta.yaml`

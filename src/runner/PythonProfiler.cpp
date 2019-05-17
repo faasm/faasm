@@ -2,12 +2,6 @@
 
 #include <Python.h>
 #include <util/logging.h>
-#include <proto/faasm.pb.h>
-#include <wasm/WasmModule.h>
-#include <util/config.h>
-
-#include <fstream>
-#include <util/environment.h>
 
 #define PYTHON_USER "python"
 #define PYTHON_WASM_FUNC "py_func"

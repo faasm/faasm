@@ -28,7 +28,7 @@ def _check_emscripten():
 
 
 @task
-def funcs(context, clean=False, func=None, debug=False):
+def funcs(context, clean=False, func=None, debug=False, user=None):
     _check_emscripten()
 
     build_type = "emscripten"
@@ -51,11 +51,13 @@ def funcs(context, clean=False, func=None, debug=False):
         return
 
     # Allow specifying a single function
+    target = None
     if func:
-        cmd = "make -j VERBOSE=1 {}".format(func)
-    else:
-        cmd = "make -j"
+        target = func
+    elif user:
+        target = "{}_all_funcs".format(user)
 
+    cmd = "make -j {}".format(target) if target else "make -j"
     call(cmd, shell=True, cwd=FUNC_BUILD_DIR)
 
 
