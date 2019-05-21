@@ -32,15 +32,22 @@ RUN wget https://s3-eu-west-1.amazonaws.com/faasm-misc/emsdk.tar.gz -O emsdk.tar
 RUN tar -xf emsdk.tar.gz
 RUN rm emsdk.tar.gz
 
+# Install local python3.7 (must be exact version match with pyodide's CPython)
+RUN apt-get install zlib1g-dev
+WORKDIR /tmp
+RUN wget https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tgz
+RUN tar -xf Python-3.7.0.tgz
+WORKDIR /tmp/Python-3.7.0
+RUN ./configure --prefix=/usr/local/faasm/python3.7
+RUN make altinstall
+
 # Copy code into place
+# NOTE: do as much heavy lifting as you can *BEFORE* this to make the most of caching when rebuilding
 COPY . /usr/local/code/faasm
 WORKDIR /usr/local/code/faasm
 
-# Prepare bashrc
-WORKDIR /usr/local/code/faasm
-RUN echo ". /usr/local/code/faasm/workon.sh" >> ~/.bashrc
-
 # Build libs
+WORKDIR /usr/local/code/faasm
 RUN source workon.sh && ./bin/build_musl.sh
 RUN source workon.sh && inv compile-eigen
 RUN source workon.sh && inv compile-malloc
@@ -51,4 +58,6 @@ WORKDIR /usr/local/code/faasm/pyodide
 RUN source workon.sh && cd cpython && make
 RUN source workon.sh && cd packages && make
 
+# Prepare bashrc
+RUN echo ". /usr/local/code/faasm/workon.sh" >> ~/.bashrc
 CMD /bin/bash
