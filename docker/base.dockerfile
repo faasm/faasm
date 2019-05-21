@@ -1,8 +1,6 @@
-FROM shillaker/cpp-base
+FROM faasm/cpp-root
 
 RUN apt-get update
-RUN apt-get install -y software-properties-common
-
 RUN apt-add-repository ppa:ansible/ansible
 RUN apt-get update
 RUN apt-get install -y ansible \
@@ -42,5 +40,3 @@ RUN ansible-playbook rapidjson.yml
 WORKDIR /faasm/build
 RUN cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_BUILD_TYPE=Release /faasm/code
 RUN cmake --build . --target wavm-run
-
-

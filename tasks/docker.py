@@ -4,6 +4,7 @@ from invoke import task
 
 from tasks.env import PROJ_ROOT, HOME_DIR
 
+
 @task
 def pull(context):
     images = [
@@ -110,6 +111,26 @@ def push_worker(context):
 @task
 def build_edge(context):
     call("docker build -t faasm/edge -f docker/edge.dockerfile .", shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def build_root(context):
+    call("docker build -t faasm/cpp-root -f docker/cpp-root.dockerfile .", shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def push_root(context):
+    call("docker push faasm/cpp-root", shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def build_toolchain(context):
+    call("docker build -t faasm/toolchain -f docker/toolchain.dockerfile .", shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def push_toolchain(context):
+    call("docker push faasm/toolchain", shell=True, cwd=PROJ_ROOT)
 
 
 @task

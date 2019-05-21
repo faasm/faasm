@@ -1,4 +1,4 @@
-from os.path import join
+from os.path import join, exists
 from subprocess import call, check_output
 
 from invoke import task
@@ -34,12 +34,15 @@ def backup_emsdk(ctx):
 @task
 def restore_emsdk(ctx):
     # Nuke existing emsdk
-    print("Deleting existing emsdk")
-    _call("rm -rf emsdk")
+    if exists(EMSDK_BASE_DIR):
+        print("Deleting existing emsdk")
+        _call("rm -rf {}".format(EMSDK_BASE_DIR))
 
-    # Download
+    check_output("mkdir -p {}".format(EMSDK_BASE_DIR), shell=True)
+
+    # Download (don't use boto in case needs to be done anonymously
     print("Downloading archive")
-    download_file_from_s3(MISC_S3_BUCKET, EMSDK_TAR_NAME, EMSDK_TAR_PATH)
+    download_file_from_s3(MISC_S3_BUCKET, EMSDK_TAR_NAME, EMSDK_TAR_PATH, boto=False)
 
     # Extract
     print("Extracting archive")

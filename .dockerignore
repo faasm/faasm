@@ -1,10 +1,16 @@
-assemblyscript
-cmake-build-debug
-cmake-build-release
-docker
-docs
-k8s
-node_modules
-venv
-wasm
-work
+# CLion
+cmake-build-debug/
+cmake-build-release/
+
+# Pyodide
+pyodide/emsdk/
+pyodide/venv/
+
+# Misc project files
+assemblyscript/
+docker/
+docs/
+k8s/
+node_modules/
+venv/
+wasm/
