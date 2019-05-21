@@ -87,14 +87,27 @@ sudo ./bin/cgroup.sh
 
 ## Emscripten
 
-We use the Emscripten wrapper to install the upstream LLVM toolchain. We do this through the pyodide project,
-so to set up you need to run:
+We're currently pinned to a specific version of the `emsdk` build of the
+wasm toolchain. This is stored in S3. To pull it you can run:
 
 ```
-git submodule init
-git submodule update
+inv restore-emsdk
+```
+
+It then lives at `/usr/local/faasm/emsdk`. To update it to the latest version
+you can run:
+
+```
 cd pyodide/emsdk
+
+# Update the version in the Makefile to the latest, then...
 make
+```
+
+You can then copy this to `/usr/local/faasm/emsdk` and run:
+
+```
+inv backup-emsdk
 ```
 
 ## Libc

@@ -1,9 +1,9 @@
 #!/bin/bash
 
-source /usr/local/code/faasm/pyodide/emsdk/emsdk/emsdk_env.sh
+source /usr/local/faasm/emsdk/emsdk_env.sh
 export EMCC_WASM_BACKEND=1
 
-WASM_BIN=/usr/local/code/faasm/pyodide/emsdk/emsdk/upstream/latest/bin
+WASM_BIN=/usr/local/faasm/emsdk/upstream/latest/bin
 export PATH=${WASM_BIN}:${PATH}
 
 if [ ! -d "venv" ]; then
