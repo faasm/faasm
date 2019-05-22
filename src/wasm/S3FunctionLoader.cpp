@@ -47,6 +47,10 @@ namespace wasm {
         this->compileToObjectFile(msg);
     }
 
+    void S3FunctionLoader::uploadPythonFunction(message::Message &msg) {
+        throw std::runtime_error("Not yet implemented Python upload on S3");
+    }
+
     void S3FunctionLoader::uploadObjectBytes(const message::Message &msg, const std::vector<uint8_t> &objBytes) {
         const std::string key = util::getFunctionObjectKey(msg);
 

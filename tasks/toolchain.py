@@ -16,7 +16,7 @@ EMSDK_TAR_PATH = join(FAASM_LOCAL_DIR, EMSDK_TAR_NAME)
 def backup_emsdk(ctx):
     # Compress
     print("Creating archive of emsdk")
-    check_output("tar -cf {} emsdk".format(EMSDK_TAR_PATH), shell=True)
+    check_output("tar -cf {} emsdk".format(EMSDK_TAR_PATH), shell=True, cwd=FAASM_LOCAL_DIR)
 
     # Upload
     print("Uploading archive to S3")

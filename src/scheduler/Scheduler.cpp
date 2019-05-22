@@ -212,7 +212,6 @@ namespace scheduler {
         // If we're over the queue ratio and have capacity, need to scale up
         if (queueRatio > maxQueueRatio && nThreads < conf.maxWorkersPerFunction) {
             FullLock lock(mx);
-
             std::string funcStr = util::funcToString(msg);
 
             queueRatio = this->getFunctionQueueRatio(msg);
@@ -234,6 +233,7 @@ namespace scheduler {
                 bindMsg.set_type(message::Message_MessageType_BIND);
                 bindMsg.set_user(msg.user());
                 bindMsg.set_function(msg.function());
+                bindMsg.set_ispython(msg.ispython());
 
                 this->enqueueMessage(bindMsg);
             }

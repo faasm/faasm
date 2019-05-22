@@ -9,6 +9,7 @@
 #include <boost/filesystem.hpp>
 
 namespace util {
+    const static std::string pyFile = "function.py";
     const static std::string funcFile = "function.wasm";
     const static std::string symFile = "function.symbols";
     const static std::string objFile = "function.o";
@@ -18,6 +19,17 @@ namespace util {
         std::string funcRoot = util::getEnvVar("FUNC_ROOT", "/usr/local/code/faasm");
 
         boost::filesystem::path path(funcRoot);
+        return path;
+    }
+
+    boost::filesystem::path getPythonFunctionDir(const message::Message &msg) {
+        boost::filesystem::path path("/usr/local/faasm/runtime_root/funcs");
+
+        path.append(msg.user());
+        path.append(msg.function());
+
+        boost::filesystem::create_directories(path);
+
         return path;
     }
 
@@ -68,6 +80,13 @@ namespace util {
         key += objFile;
 
         return key;
+    }
+
+    std::string getPythonFunctionFile(const message::Message &msg) {
+        auto path = getPythonFunctionDir(msg);
+        path.append(pyFile);
+
+        return path.string();
     }
 
     std::string getFunctionFile(const message::Message &msg) {

@@ -25,6 +25,9 @@ from tasks.compile import (
 )
 from tasks.invoke import (
     invoke,
+    invoke_async,
+    py_invoke,
+    py_invoke_async,
 )
 from tasks.docker import (
     build_all,
@@ -70,11 +73,13 @@ from tasks.runtime import (
     clear_runtime_pyc,
     set_up_python_runtime,
     run_python_codegen,
+    package_python_runtime,
 )
 
 from tasks.upload import (
     upload_all,
     upload,
+    py_upload,
 )
 from tasks.wasm2wast import wast
 

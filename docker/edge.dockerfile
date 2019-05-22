@@ -20,4 +20,4 @@ COPY . /usr/local/code/faasm
 WORKDIR /faasm/build
 RUN cmake --build . --target edge
 
-CMD "/usr/local/code/faasm/build/bin/edge"
+CMD "/faasm/build/bin/edge"

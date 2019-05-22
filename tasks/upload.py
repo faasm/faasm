@@ -4,7 +4,7 @@ from os.path import join
 
 from invoke import task
 
-from tasks.env import FUNC_BUILD_DIR
+from tasks.env import FUNC_BUILD_DIR, PROJ_ROOT
 from tasks.upload_util import curl_file
 
 DIRS_TO_INCLUDE = ["demo", "errors", "sgd", "python", "polybench"]
@@ -16,6 +16,14 @@ def upload(ctx, user, func, host="127.0.0.1"):
 
     func_file = join(func_dir, user, "{}.wasm".format(func))
     url = "http://{}:8002/f/{}/{}".format(host, user, func)
+    curl_file(url, func_file)
+
+
+@task
+def py_upload(ctx, user, func, host="127.0.0.1"):
+    func_file = join(PROJ_ROOT, "func", user, "{}.py".format(func))
+
+    url = "http://{}:8002/p/{}/{}".format(host, user, func)
     curl_file(url, func_file)
 
 

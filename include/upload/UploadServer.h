@@ -25,6 +25,8 @@ namespace edge {
         static std::vector<uint8_t> getState(const http_request &request);
 
     private:
+        static void handlePythonFunctionUpload(const http_request &request);
+
         static void handleFunctionUpload(const http_request &request);
 
         static void handleStateUpload(const http_request &request);

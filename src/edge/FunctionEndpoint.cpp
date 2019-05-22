@@ -42,6 +42,9 @@ namespace edge {
 
         Routes::Post(router, "/f/:user/:function", Routes::bind(&FunctionEndpoint::handleFunctionWrapper, this));
         Routes::Post(router, "/fa/:user/:function", Routes::bind(&FunctionEndpoint::handleAsyncFunctionWrapper, this));
+        Routes::Post(router, "/p/:user/:function", Routes::bind(&FunctionEndpoint::handlePythonFunctionWrapper, this));
+        Routes::Post(router, "/pa/:user/:function",
+                     Routes::bind(&FunctionEndpoint::handleAsyncPythonFunctionWrapper, this));
     }
 
     void FunctionEndpoint::handleFunctionWrapper(const Rest::Request &request, Http::ResponseWriter response) {
@@ -55,6 +58,25 @@ namespace edge {
     void FunctionEndpoint::handleAsyncFunctionWrapper(const Rest::Request &request, Http::ResponseWriter response) {
         message::Message msg = this->buildMessageFromRequest(request);
         msg.set_isasync(true);
+
+        const std::string result = this->handleFunction(msg);
+        response.send(Http::Code::Ok, result);
+    }
+
+    void FunctionEndpoint::handlePythonFunctionWrapper(const Rest::Request &request, Http::ResponseWriter response) {
+        message::Message msg = this->buildMessageFromRequest(request);
+        msg.set_isasync(false);
+        msg.set_ispython(true);
+
+        const std::string result = this->handleFunction(msg);
+        response.send(Http::Code::Ok, result);
+    }
+
+    void
+    FunctionEndpoint::handleAsyncPythonFunctionWrapper(const Rest::Request &request, Http::ResponseWriter response) {
+        message::Message msg = this->buildMessageFromRequest(request);
+        msg.set_isasync(true);
+        msg.set_ispython(true);
 
         const std::string result = this->handleFunction(msg);
         response.send(Http::Code::Ok, result);

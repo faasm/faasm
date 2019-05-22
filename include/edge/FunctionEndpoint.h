@@ -31,6 +31,10 @@ namespace edge {
 
         void handleAsyncFunctionWrapper(const Rest::Request &request, Http::ResponseWriter response);
 
+        void handlePythonFunctionWrapper(const Rest::Request &request, Http::ResponseWriter response);
+
+        void handleAsyncPythonFunctionWrapper(const Rest::Request &request, Http::ResponseWriter response);
+
         message::Message buildMessageFromRequest(const Rest::Request &request);
     };
 }

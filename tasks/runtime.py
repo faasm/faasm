@@ -6,7 +6,12 @@ from subprocess import check_output
 
 from invoke import task
 
-from tasks.env import PROJ_ROOT, PYODIDE_INSTALL_DIR, FAASM_RUNTIME_ROOT, PY_RUNTIME_ROOT, PYODIDE_PACKAGES
+from tasks.env import PROJ_ROOT, PYODIDE_INSTALL_DIR, FAASM_RUNTIME_ROOT, PY_RUNTIME_ROOT, PYODIDE_PACKAGES, \
+    FAASM_STORAGE, MISC_S3_BUCKET
+from tasks.upload_util import upload_file_to_s3
+
+RUNTIME_TAR_NAME = "faasm_runtime_root.tar.gz"
+RUNTIME_TAR_PATH = "/tmp/{}".format(RUNTIME_TAR_NAME)
 
 # TODO - avoid having to hard-code this
 _PACKAGES_INCLUDED = {
@@ -42,10 +47,10 @@ def _glob_remove(glob_pattern, recursive=False, directory=False):
 
 
 def _clear_pyc_files(dir_path):
-    pycache_glob = "{}/**/__pycache__".format(dir_path)
     pyc_glob = "{}/**/*.pyc".format(dir_path)
-
     _glob_remove(pyc_glob, recursive=True)
+
+    pycache_glob = "{}/**/__pycache__".format(dir_path)
     _glob_remove(pycache_glob, recursive=True, directory=True)
 
 
@@ -92,6 +97,26 @@ def set_up_python_runtime(ctx):
         # Put files in place
         print("Copying {} into place".format(pkg_name))
         check_output("cp -r {} {}".format(pkg_dir, runtime_site_packages), shell=True)
+
+
+@task
+def package_python_runtime(ctx):
+    # Clear out existing object files
+    print("Removing any existing platform-specific files")
+    obj_glob = "{}/**/*.o".format(FAASM_RUNTIME_ROOT)
+    _glob_remove(obj_glob, recursive=True)
+
+    # Compress
+    print("Creating archive of faasm runtime root")
+    check_output("tar -cf {} runtime_root".format(RUNTIME_TAR_PATH), shell=True, cwd=FAASM_STORAGE)
+
+    # Upload
+    print("Uploading archive to S3")
+    upload_file_to_s3(RUNTIME_TAR_PATH, MISC_S3_BUCKET, RUNTIME_TAR_NAME)
+
+    # Remove old tar
+    print("Removing archive")
+    check_output("rm {}".format(RUNTIME_TAR_PATH))
 
 
 @task

@@ -55,7 +55,7 @@ inv compile --func=hello
 inv upload demo hello
 ```
 
-You can invoke a function via an HTTP endpoint with `curl`:
+You can invoke the function as follows:
 
 ```
 inv invoke demo hello
@@ -66,16 +66,19 @@ You should then see the response `Hello faasm!`.
 ## Running a Python function
 
 As mentioned above, Python functions are handled by executing the code in a WebAssembly-compiled version of
-CPython. We can upload and execute a Python function as follows:
+CPython. Every function is running the same underlying WebAssembly module, just dynamically loading a different
+Python file. As a result, the commands are slightly different.
+
+An example Python function is found at `funcs/python/hello.py`.
 
 ```
-inv upload-py funcs/python/hello.py
+inv py-upload python hello
 ```
 
 And invoke with:
 
 ```
-inv invoke python hello
+inv py-invoke python hello
 ```
 
 # Writing functions
