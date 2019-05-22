@@ -1,16 +1,23 @@
 # CLion
-cmake-build-debug/
-cmake-build-release/
+cmake-build-debug
+cmake-build-release
+
+# Builds
+lambda_faasm_build
+**/build/*
+**/build
 
 # Pyodide
-pyodide/emsdk/
-pyodide/venv/
+pyodide/emsdk/**/*
+pyodide/emsdk
+pyodide/venv/**/*
+pyodide/venv
 
 # Misc project files
-assemblyscript/
-docker/
-docs/
-k8s/
-node_modules/
-venv/
-wasm/
+assemblyscript
+docker
+docs
+k8s
+node_modules
+venv
+wasm

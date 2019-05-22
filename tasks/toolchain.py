@@ -1,9 +1,9 @@
 from os.path import join, exists
-from subprocess import call, check_output
+from subprocess import check_output
 
 from invoke import task
 
-from tasks.env import PYODIDE_ROOT, MISC_S3_BUCKET
+from tasks.env import MISC_S3_BUCKET
 from tasks.upload_util import upload_file_to_s3, download_file_from_s3
 
 FAASM_LOCAL_DIR = "/usr/local/faasm"

@@ -12,8 +12,8 @@ else ()
     add_definitions(-DAWS_LAMBDA=0)
 endif ()
 
-if (FAASM_BUILD_TYPE STREQUAL "emscripten")
-    message(STATUS "Detected emscripten build")
+if (FAASM_BUILD_TYPE STREQUAL "wasm")
+    message(STATUS "Detected wasm build")
 
     add_definitions(-DWASM_BUILD=1)
 
@@ -35,9 +35,9 @@ endif ()
 
 
 # Define functions for building
-if (FAASM_BUILD_TYPE STREQUAL "emscripten")
+if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # ----------------------
-    # Emscripten build
+    # Wasm build
     # ----------------------
 
     function(faasm_func exec_name file_name)

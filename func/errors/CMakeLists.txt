@@ -6,6 +6,6 @@ faasm_func(stdin_poll stdin_poll.cpp)
 faasm_func(open_blocked open_blocked.cpp)
 faasm_func(socket socket.cpp)
 
-if (FAASM_BUILD_TYPE STREQUAL "emscripten")
+if (FAASM_BUILD_TYPE STREQUAL "wasm")
     faasm_func(stackoverflow stackoverflow.cpp)
 endif()

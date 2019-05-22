@@ -1,88 +1,95 @@
 # Faasm
 
-Faasm is a high-performance multi-tenant serverless runtime.
+Faasm is a high-performance multi-tenant serverless runtime. It is intended for integration into
+other larger serverless platforms, not as a stand-alone system.
 
 By using WebAssembly to run users' code, we can combine software fault isolation with 
 standard OS tooling to provide strong security and resource isolation guarantees at low cost.
 
 This lightweight isolation enables excellent performance and allows sharing of data between 
-colocated functions through shared memory.
+colocated functions through shared memory. We can also snapshot and restore a function's memory to
+reduce initialisation time.
 
-The underlying WebAssembly execution is handled by [WAVM](https://github.com/WAVM/WAVM), 
-a server-side WebAssembly runtime which is well worth checking out.
+Faasm currently supports C/C++ and Python. C/C++ are compiled using the stanard LLVM WebAssembly toolchain,
+while Python support is offered by compiling CPython itself to WebAssembly.
 
-More detail on the internals, development and deployment is held in the 
-[wiki](https://github.com/lsds/faasm/wiki).
+Faasm uses its own custom host interface to allow functions to interact with the runtime, as well as
+provide secure access to networking and state. This is not dissimilar to WASI, but the Faasm interface focuses
+solely on a server-side POSIX environment, thus exposes more of the underlying host functionality.
+
+The WebAssembly execution and code generation is handled by [WAVM](https://github.com/WAVM/WAVM),
+an excellent server-side WebAssembly VM. The Python support is thanks to the
+[Pyodide](https://github.com/iodide-project/pyodide) project.
+
+This is primarily a research project. Other serverless WebAssembly runtimes are available.
 
 # Quick start
 
-To demonstrate a Faasm worker in action, the `docker-compose.yml` file in the root of the project will 
-set up a simple serverless system using Redis to handle both function calls and state, and the local filesystem
-to store functions. 
+You can start a simple Faasm runtime using the `docker-compose.yml` file in the root of the project. This
+creates a simple serverless system on the local machine with an `edge` container for receiving requests, an
+`upload` container for handling uploads of functions and states, and a `worker` container holding the runtime
+itself. There is also a `redis` container used for communication between the others.
 
 You can start it by running:
 
 ```
-docker-compose up -d
+docker-compose up
 ```
 
-## Compiling a simple function
+## Compiling a C++ function
 
-The `hello.cpp` file in the root of this directory shows a basic faasm function; you can
-open it and take a look at the API and format.
+C++ functions are built with CMake and held in the `func` directory. `demo/hello.cpp` is a simple hello world
+function.
 
-To compile this to WebAssembly you can run the following from the project root:
+The Faasm toolchain is packaged in the `faasm/toolchain` container and can be run with the `bin/toolchain.sh`
+script, i.e.:
 
 ```
-# Start the wasm toolchain container
-docker run -v $(pwd):/work -w /work -it faasm/toolchain
+./bin/toolchain.sh
+```
 
-# From inside the container, compile the hello.c file
-/toolchain/bin/clang++ --target=wasm32-unknown-unknown-wasm --sysroot=/toolchain/sysroot -o hello.wasm -I include/faasm -lfaasm hello.cpp
+This container has all the tooling ready to use. To compile and upload the `hello` function you an run:
 
-# Drop out of the container
-exit
+```
+inv compile --func=hello
+inv upload demo hello
+```
 
-# Upload the function
-curl -X PUT http://localhost:8002/f/dummy/hello -T hello.wasm
+You can invoke a function via an HTTP endpoint with `curl`:
 
-# Invoke the function
-curl -X POST http://localhost:8001/f/dummy/hello
+```
+inv invoke demo hello
 ```
 
 You should then see the response `Hello faasm!`.
 
-# Usage
+## Running a Python function
 
-## Functions
-
-Each function is associated with a user and has a function name. It will have two URLs:
-
-- Synchronous - `<faasm_host>/f/<user>/<function>/`
-- Asynchronous - `<faasm_host>/fa/<user>/<function>/`
-
-By `POST`ing to these URLs we can invoke the function. POSTed data forms the input data 
-for the function call.
-
-For example, with the faasm endpoint at `localhost:8001`, the `echo` function owned by 
-`demo` can be run with:
+As mentioned above, Python functions are handled by executing the code in a WebAssembly-compiled version of
+CPython. We can upload and execute a Python function as follows:
 
 ```
-curl -X POST http://localhost:8001/f/demo/echo -d "hello faasm"
+inv upload-py funcs/python/hello.py
 ```
 
-The code for this function can be found in `func/demo/echo.cpp`.
+And invoke with:
 
-## Writing Functions
+```
+inv invoke python hello
+```
 
-Functions consist of an `exec` entrypoint which takes a pointer to a `FaasmMemory` object. 
+# Writing functions
+
+## C++
+
+C++ functions consist of an `exec` entrypoint which takes a pointer to a `Faasm` object.
 This object is the interface for interacting with the Faasm runtime.
 
 ```
 #include "faasm/faasm.h"
 
 namespace faasm {
-    int exec(FaasmMemory *memory) {
+    int exec(Faasm *memory) {
         // Do something
 
         return 0;
@@ -92,9 +99,9 @@ namespace faasm {
 
 Some example functions can be found in the `func/demo` directory.
 
-### `FaasmMemory`
+## The `Faasm` object
 
-The `FaasmMemory` class allows Faasm functions to interact with the system. 
+The `Faasm` class allows Faasm functions to interact with the system.
 It has the following methods:
 
 - `getInput()` - allows functions to retrieve their input data
@@ -102,24 +109,23 @@ It has the following methods:
 - `chainFunction()` - this allows one function to invoke others
 - `readState()` and `writeState()` - allows functions to read/ write key/value state
 - `readStateOffset()` and `writeStateOffset()` - allows functions to read/ write at specific points in existing state (e.g. updating a subsection of an array)
+- `createSnap()` and `restoreSnap()` - creates/ restores a given memory snapshot for this function
 
 ## Chaining
 
-"Chaining" is when one function makes a call to another function (which must be 
-owned by the same user).
+"Chaining" is when one function makes a call to another function (which must be owned by the same user).
 
-To do this, the `chainFunction()` method on the `FaasmMemory` instance can be called. 
+To do this, the `chainFunction()` method on the `Faasm` instance can be called.
 For my function to invoke the function `foo`, (also owned by me), it can do the following:
 
 ```
 #include "faasm/faasm.h"
+#include <vector>
 
 namespace faasm {
-    int exec(FaasmMemory *memory) {
-        uint8_t funcData[] = {1, 2, 3, 4};
-        int dataLength = 4;
-
-        memory->chainFunction("foo", funcData, dataLength);
+    int exec(Faasm *memory) {
+        std::vector<int> funcData = {1, 2, 3, 4};
+        memory->chainFunction("foo", funcData, funcData.size());
 
         return 0;
     }
@@ -133,7 +139,7 @@ function has completed, these calls will go back through the main scheduler and 
 
 All of a users' functions have access to shared state. This state is implemented as a 
 simple key-value store and accessed by the functions `readState` and `writeState` on the 
-`FaasmMemory` object. Values read and written to this state must be byte arrays.
+`Faasm` object. Values read and written to this state must be byte arrays.
 
 A function accessing state will look something like:
 
@@ -141,7 +147,7 @@ A function accessing state will look something like:
 #include "faasm/faasm.h"
 
 namespace faasm {
-    int exec(FaasmMemory *memory) {
+    int exec(Faasm *memory) {
         const char *key = "my_state_key";
 
         long stateSize = 123;
@@ -162,7 +168,7 @@ namespace faasm {
 
 ### Offset state
 
-`FaasmMemory` also exposes the `readStateOffset` and `writeStateOffset` functions, 
+`Faasm` also exposes the `readStateOffset` and `writeStateOffset` functions,
 which allow reading and writing subsections of byte arrays stored against keys in the 
 key-value store.
 
@@ -190,54 +196,45 @@ curl http://localhost:8002/s/user123/my_key -X PUT -T /tmp/my_state_file
 
 Where `/tmp/my_state_file` contains binary data you wish to be inserted at your specified key.
 
-## Uploading Functions
+# Integrations
 
-To upload a function you can use `curl` to send a PUT request to the synchronous URL for the 
-given function. For example:
+Faasm aims to be pluggable so that it can integrate into other serverless platforms. This pluggability
+includes the following:
 
-- I have a Faasm endpoint running at `localhost:8002`
-- I've compiled my WebAssembly function file to `/tmp/do_something.wasm`
-- I want to upload this function to user `demo` and function name `cool_func`
+- Function input (JSON or serialised protobuf objects)
+- Function storage (S3 or NFS)
+- Message queues (Redis or SQS)
 
-I can execute:
+## AWS Lambda
+
+The Faasm runtime can be used with AWS Lambda, but requires some fiddles. This is because Faasm executes multiple
+functions in the same container, whereas Lambda takes a one-function-per-container approach. To get around
+this we can do the following:
+
+- Use the Lambda C++ runtime to create a Faasm worker Lambda
+- Have this Lambda dynamically load function code from S3 when needed
+- Create "edge" Lambdas for each function
+- Forward requests from edge Lambdas to the Faasm workers via an SQS queue
+
+## Provisioning the Lambda environment
+
+Setting up a Faasm deployment on Lambda can be done with the Ansible scripts in the `ansible` directory, namely:
 
 ```
-curl -X PUT http://localhost:8002/f/demo/cool_func/ -T /tmp/do_something.wasm
+cd ansible
+ansible-playbook aws_lambda.yml
 ```
 
-# Configuration
+This requires that you have locally configured the AWS SDK. Note that this set-up needs to create an Elasticache
+Redis instance which takes a while to provision. This Elasticache instance is also costly to maintain, so
+_make sure you tear things down once done!_. This is done with:
 
-To allow integration with a range of serverless and data processing systems, Faasm workers have a pluggable input, 
-output and state handling. These fall into the following categories:  
+```
+ansible-playbook aws_teardown.yml
+```
 
-## Function calls, inputs and outputs
+## Deploying functions to Lambda
 
-Faasm workers receive function calls as protobuf objects which are then deserialised to get the function name
-and method of handling input/ output.
+_TODO_
 
-The following options for receiving messages are available:
 
-- Redis "queues" - by specifying the `redis` mode and an associated key to listen for incoming invocations
-- SQS - by specifying the `aws` mode and an associated queue name
-- stdin pipe - by specifying the `pipe` mode
-- sockets - by specifying the `socket` mode
-
-Input and output can be handled as follows:
-
-- Redis - when in `redis` mode, the inputs and outputs will be read from and written to the same Redis instance
-- S3 - when in `s3` mode, inputs and outputs will be read from and written to the given S3 keys
-
-## Function storage
-
-To execute a function it must be available to the worker via one of the following sources:
-
-- Local filesystem - at a predefined location (which can be mapped to NFS in a distributed environment)
-- S3 - by giving an S3 bucket name
-
-## State handling
-
-Faasm workers support both mutable and immutable state accessed in either a synchronous or asynchronous manner.
-This can be handled in the following ways:
-
-- Redis - for both mutable and immutable state
-- S3 - for immutable state only

@@ -10,7 +10,7 @@ function(polybench_func exec_name dir_path)
             utilities/polybench.h
             )
 
-    if (FAASM_BUILD_TYPE STREQUAL "emscripten")
+    if (FAASM_BUILD_TYPE STREQUAL "wasm")
         set(MALLOC_LIB "dlmalloc")
     else()
         set(MALLOC_LIB "")

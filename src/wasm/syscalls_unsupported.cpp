@@ -65,62 +65,62 @@ namespace wasm {
     // Python-related dumping ground
     // --------------------------
 
-    DEFINE_INTRINSIC_FUNCTION(env, "getpriority", I32, emscripten_getpriority , I32 a, I32 b) {
+    DEFINE_INTRINSIC_FUNCTION(env, "getpriority", I32, getpriority , I32 a, I32 b) {
         util::getLogger()->debug("S - getpriority - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "setpriority", I32, emscripten_setpriority , I32 a, I32 b, I32 c) {
+    DEFINE_INTRINSIC_FUNCTION(env, "setpriority", I32, setpriority , I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - setpriority - {} {} {}", a, b, c);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "uname", I32, emscripten_uname , I32 a) {
+    DEFINE_INTRINSIC_FUNCTION(env, "uname", I32, uname , I32 a) {
         util::getLogger()->debug("S - uname - {}", a);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "openpty", I32, emscripten_openpty , I32 a, I32 b, I32 c, I32 d, I32 e) {
+    DEFINE_INTRINSIC_FUNCTION(env, "openpty", I32, openpty , I32 a, I32 b, I32 c, I32 d, I32 e) {
         util::getLogger()->debug("S - openpty - {} {} {} {} {}", a, b, c, d, e);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "forkpty", I32, emscripten_forkpty , I32 a, I32 b, I32 c, I32 d) {
+    DEFINE_INTRINSIC_FUNCTION(env, "forkpty", I32, forkpty , I32 a, I32 b, I32 c, I32 d) {
         util::getLogger()->debug("S - forkpty - {} {} {} {}", a, b, c, d);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "lockf", I32, emscripten_lockf , I32 a, I32 b, I64 c) {
+    DEFINE_INTRINSIC_FUNCTION(env, "lockf", I32, lockf , I32 a, I32 b, I64 c) {
         util::getLogger()->debug("S - lockf - {} {} {}", a, b, c);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "getresuid", I32, emscripten_getresuid , I32 a, I32 b, I32 c) {
+    DEFINE_INTRINSIC_FUNCTION(env, "getresuid", I32, getresuid , I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - getresuid - {} {} {}", a, b, c);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "getresgid", I32, emscripten_getresgid , I32 a, I32 b, I32 c) {
+    DEFINE_INTRINSIC_FUNCTION(env, "getresgid", I32, getresgid , I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - getresgid - {} {} {}", a, b, c);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "getrusage", I32, emscripten_getrusage , I32 a, I32 b) {
+    DEFINE_INTRINSIC_FUNCTION(env, "getrusage", I32, getrusage , I32 a, I32 b) {
         util::getLogger()->debug("S - getrusage - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "getrlimit", I32, emscripten_getrlimit , I32 a, I32 b) {
+    DEFINE_INTRINSIC_FUNCTION(env, "getrlimit", I32, getrlimit , I32 a, I32 b) {
         util::getLogger()->debug("S - getrlimit - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "setrlimit", I32, emscripten_setrlimit , I32 a, I32 b) {
+    DEFINE_INTRINSIC_FUNCTION(env, "setrlimit", I32, setrlimit , I32 a, I32 b) {
         util::getLogger()->debug("S - setrlimit - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__copy_tls", I32, emscripten___copy_tls , I32 a) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__copy_tls", I32, __copy_tls , I32 a) {
         util::getLogger()->debug("S - __copy_tls - {}", a);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }

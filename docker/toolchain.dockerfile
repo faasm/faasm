@@ -32,8 +32,16 @@ RUN wget https://s3-eu-west-1.amazonaws.com/faasm-misc/emsdk.tar.gz -O emsdk.tar
 RUN tar -xf emsdk.tar.gz
 RUN rm emsdk.tar.gz
 
+# Python and pyodide deps
+RUN apt-get install -y \
+    zlib1g-dev \
+    gfortran \
+    f2c \
+    libffi-dev \
+    libssl-dev \
+    libbz2-dev
+
 # Install local python3.7 (must be exact version match with pyodide's CPython)
-RUN apt-get install zlib1g-dev
 WORKDIR /tmp
 RUN wget https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tgz
 RUN tar -xf Python-3.7.0.tgz
@@ -46,17 +54,17 @@ RUN make altinstall
 COPY . /usr/local/code/faasm
 WORKDIR /usr/local/code/faasm
 
-# Build libs
+# Build CPython and python packages
+WORKDIR /usr/local/code/faasm/pyodide
+RUN source workon.sh && cd cpython && make clean && make
+RUN source workon.sh && cd packages && make clean && make
+
+# Build lib
 WORKDIR /usr/local/code/faasm
 RUN source workon.sh && ./bin/build_musl.sh
 RUN source workon.sh && inv compile-eigen
-RUN source workon.sh && inv compile-malloc
-RUN source workon.sh && inv compile-libfaasm
-
-# Build CPython and python packages
-WORKDIR /usr/local/code/faasm/pyodide
-RUN source workon.sh && cd cpython && make
-RUN source workon.sh && cd packages && make
+RUN source workon.sh && inv compile-malloc --clean
+RUN source workon.sh && inv compile-libfaasm --clean
 
 # Prepare bashrc
 RUN echo ". /usr/local/code/faasm/workon.sh" >> ~/.bashrc

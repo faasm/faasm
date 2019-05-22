@@ -7,7 +7,7 @@ from subprocess import call, check_output
 from invoke import task
 
 from tasks.download import download_proj
-from tasks.env import PROJ_ROOT, EMSCRIPTEN_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT, PYODIDE_ROOT, FUNC_BUILD_DIR
+from tasks.env import PROJ_ROOT, EMSCRIPTEN_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT, FUNC_BUILD_DIR
 
 
 def _clean_dir(dir_path, clean):
@@ -18,20 +18,20 @@ def _clean_dir(dir_path, clean):
         mkdir(dir_path)
 
 
-def _check_emscripten():
+def _check_toolchain():
     actual_root = environ.get("EMSDK")
 
     if not actual_root or not actual_root.startswith(EMSCRIPTEN_DIR):
-        print("You are not running the expected emscripten. Start a new shell and run: ")
+        print("You are not running the expected toolchain. Start a new shell and run: ")
         print("source {}".format(join(EMSCRIPTEN_DIR, "emsdk_env.sh")))
         exit(1)
 
 
 @task
 def funcs(context, clean=False, func=None, debug=False, user=None):
-    _check_emscripten()
+    _check_toolchain()
 
-    build_type = "emscripten"
+    build_type = "wasm"
     cmake_build_type = "Debug" if debug else "Release"
 
     _clean_dir(FUNC_BUILD_DIR, clean)
@@ -63,10 +63,10 @@ def funcs(context, clean=False, func=None, debug=False, user=None):
 
 @task
 def compile_malloc(ctx, clean=False):
-    _check_emscripten()
+    _check_toolchain()
 
     work_dir = join(PROJ_ROOT, "malloc")
-    build_dir = join(work_dir, "emscripten_lib_build")
+    build_dir = join(work_dir, "build")
 
     _clean_dir(build_dir, clean)
 
@@ -91,7 +91,7 @@ def compile_libfaasm(ctx, clean=False):
     Build both the main Faasm library and python helper library
     """
 
-    _check_emscripten()
+    _check_toolchain()
 
     def _do_lib_build(dir_name):
         work_dir = join(PROJ_ROOT, dir_name)
@@ -101,7 +101,7 @@ def compile_libfaasm(ctx, clean=False):
 
         build_cmd = [
             "cmake",
-            "-DFAASM_BUILD_TYPE=emscripten",
+            "-DFAASM_BUILD_TYPE=wasm",
             "-DCMAKE_BUILD_TYPE=Release",
             "-DCMAKE_TOOLCHAIN_FILE={}".format(EMSCRIPTEN_TOOLCHAIN),
             ".."
@@ -124,7 +124,7 @@ def compile_libfaasm(ctx, clean=False):
 
 @task
 def compile_libfake(ctx, clean=False):
-    _check_emscripten()
+    _check_toolchain()
     work_dir = join(PROJ_ROOT, "func", "dynlink")
 
     build_dir = join(work_dir, "build")
@@ -133,7 +133,7 @@ def compile_libfake(ctx, clean=False):
 
     build_cmd = [
         "cmake",
-        "-DFAASM_BUILD_TYPE=emscripten",
+        "-DFAASM_BUILD_TYPE=wasm",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(EMSCRIPTEN_TOOLCHAIN),
         "-DCMAKE_BUILD_TYPE=Release",
         ".."
