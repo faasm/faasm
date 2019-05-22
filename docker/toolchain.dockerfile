@@ -16,7 +16,8 @@ RUN apt-get update && apt-get install -y \
     software-properties-common \
     vim \
     wget \
-    python-dev
+    python-dev \
+    curl
 
 RUN apt-get clean autoclean
 RUN apt-get autoremove -y

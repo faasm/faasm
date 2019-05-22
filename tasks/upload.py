@@ -11,7 +11,7 @@ DIRS_TO_INCLUDE = ["demo", "errors", "sgd", "python", "polybench"]
 
 
 @task
-def upload_func(ctx, user, func, host="localhost"):
+def upload(ctx, user, func, host="127.0.0.1"):
     func_dir = FUNC_BUILD_DIR
 
     func_file = join(func_dir, user, "{}.wasm".format(func))
@@ -20,7 +20,7 @@ def upload_func(ctx, user, func, host="localhost"):
 
 
 @task
-def upload_funcs(ctx, host="localhost"):
+def upload_all(ctx, host="127.0.0.1"):
     func_dir = FUNC_BUILD_DIR
 
     to_upload = []

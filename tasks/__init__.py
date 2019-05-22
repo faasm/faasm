@@ -17,11 +17,14 @@ from tasks.aws import (
     prepare_lambda_workers,
 )
 from tasks.compile import (
-    funcs,
+    compile,
     compile_malloc,
     compile_libfaasm,
     compile_eigen,
     compile_libfake,
+)
+from tasks.invoke import (
+    invoke,
 )
 from tasks.docker import (
     build_all,
@@ -69,8 +72,8 @@ from tasks.runtime import (
 )
 
 from tasks.upload import (
-    upload_funcs,
-    upload_func,
+    upload_all,
+    upload,
 )
 from tasks.wasm2wast import wast
 

@@ -28,7 +28,7 @@ def _check_toolchain():
 
 
 @task
-def funcs(context, clean=False, func=None, debug=False, user=None):
+def compile(context, clean=False, func=None, debug=False, user=None):
     _check_toolchain()
 
     build_type = "wasm"

@@ -45,8 +45,8 @@ source workon.sh
 Once this is done, you can build and upload the Python function as follows (assuming you have an upload server running)
 
 ```
-inv funcs --func=py_func
-inv upload-func python py_func
+inv compile --func=py_func
+inv upload python py_func
 ```
 
 ## Adding packages
