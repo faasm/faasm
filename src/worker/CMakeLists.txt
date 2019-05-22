@@ -21,5 +21,9 @@ target_link_libraries(worker worker_lib)
 
 # Lambda worker
 add_executable(worker-lambda worker_lambda.cpp)
-target_link_libraries(worker-lambda worker_lib lambda)
+target_link_libraries(worker-lambda
+        aws
+        AWS::aws-lambda-runtime
+        worker_lib
+        )
 aws_lambda_package_target(worker-lambda)

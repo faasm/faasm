@@ -1,11 +1,12 @@
 FROM faasm/base
 
+COPY . /usr/local/code/faasm
+
 # Set up dummy networking files
-WORKDIR /faasm/code/ansible
+WORKDIR /usr/local/code/faasm/ansible
 RUN ansible-playbook runtime_fs.yml
 
 # Build the worker binary
-COPY . /faasm/code
 WORKDIR /faasm/build
 RUN cmake --build . --target worker
 

@@ -89,8 +89,13 @@ def set_up_python_runtime(ctx):
 
         pkg_dir = join(PYODIDE_PACKAGES, pkg_detail["path"])
 
-        print("Running codegen for {} ({})".format(pkg_name, pkg_dir))
-        check_output("/usr/local/code/faasm/bin/python_codegen.sh {}".format(pkg_dir), shell=True)
-
+        # Put files in place
         print("Copying {} into place".format(pkg_name))
         check_output("cp -r {} {}".format(pkg_dir, runtime_site_packages), shell=True)
+
+
+@task
+def run_python_codegen(ctx):
+    print("Running codegen for {}".format(PY_RUNTIME_ROOT))
+    codegen_script = join(PROJ_ROOT, "bin", "codegen_dir.sh")
+    check_output("{} {}".format(codegen_script, PY_RUNTIME_ROOT), shell=True)

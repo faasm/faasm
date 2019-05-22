@@ -7,7 +7,7 @@
       git:
         repo: "https://github.com/aws/aws-sdk-cpp.git"
         dest: "/usr/local/code/lib/aws-sdk"
-        version: 1.7.41
+        version: 1.7.108
 
     - name: "Set up build"
       shell: "mkdir -p build"

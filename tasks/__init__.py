@@ -69,6 +69,7 @@ from tasks.sgd import (
 from tasks.runtime import (
     clear_runtime_pyc,
     set_up_python_runtime,
+    run_python_codegen,
 )
 
 from tasks.upload import (
