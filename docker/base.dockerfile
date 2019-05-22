@@ -57,8 +57,9 @@ RUN make install
 
 # Rapid JSON
 WORKDIR /tmp
-RUN git https://github.com/Tencent/rapidjson
+RUN git clone https://github.com/Tencent/rapidjson
 WORKDIR /tmp/rapidjson
+RUN git checkout 2ce91b823c8b4504b9c40f99abf00917641cef6c
 WORKDIR /tmp/rapidjson/build
 RUN cmake ..
 RUN make

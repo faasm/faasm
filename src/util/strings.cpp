@@ -21,10 +21,18 @@ namespace util {
     }
 
     bool startsWith(const std::string &input, const std::string &subStr) {
-        if(subStr.empty()) {
+        if (subStr.empty()) {
             return false;
         }
 
         return input.rfind(subStr, 0) == 0;
     }
+
+    bool endsWith(std::string const &value, std::string const &ending) {
+        if (ending.size() > value.size()) {
+            return false;
+        }
+        return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+    }
+
 }

@@ -9,4 +9,6 @@ namespace util {
     bool isAllWhitespace(const std::string &input);
 
     bool startsWith(const std::string &input, const std::string &subStr);
+
+    bool endsWith(const std::string &input, const std::string &subStr);
 }
