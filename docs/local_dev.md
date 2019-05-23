@@ -137,10 +137,12 @@ inv download-python-runtime
 
 ## Docker images
 
-There are a few Docker images used to make build times quicker:
+The Docker images are structured to minimise rebuilding time. They are as follows:
 
-- `shillaker/cpp-base` - from [this repo](https://github.com/Shillaker/cpp-base), just a base image that includes clang and protobuf (as they're a pain to install).
-- `faasm/worker`, `faasm/upload` and `faasm/edge` - images used to actually run the application.
+- `faasm/cpp-base` - minimal C++ tooling and protobuf
+- `faasm/base` - includes all dependencies and WAVM
+- `faasm/worker`, `faasm/upload` and `faasm/edge` - hold the different application components
+- `faasm/toolchain` - stand-alone container holding the toolchain
 
 These can be rebuilt as follows:
 

@@ -22,7 +22,7 @@ We can compile the same functions natively as follows:
 ```
 
 The `poly_bench` executable will then run a comparison of the wasm and native versions. This must
-be invoked with your desired number of iterations for native and wasm respectively, e.g. `poly_bench 100 100`.
+be invoked with your desired number of iterations for native and wasm respectively, e.g. `poly_bench 5 5`.
 Results are currently output to `/tmp/polybench.csv`.
 
 ## Python
