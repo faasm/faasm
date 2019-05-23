@@ -21,7 +21,7 @@ add_definitions(-DDLL_EXPORT=)
 add_definitions(-DDLL_IMPORT=)
 
 # Profiling stuff
-set(FAASM_PROFILE 0)
+set(FAASM_PROFILE 1)
 if(${FAASM_PROFILE})
     message(STATUS "Running Faasm profile build")
 
@@ -35,7 +35,7 @@ if(${FAASM_PROFILE})
 endif()
 
 # Custom LLVM build (also for profiling)
-set(FAASM_CUSTOM_LLVM 0)
+set(FAASM_CUSTOM_LLVM 1)
 if(${FAASM_CUSTOM_LLVM})
     message(STATUS "Using custom LLVM")
 

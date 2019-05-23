@@ -98,6 +98,9 @@ def set_up_python_runtime(ctx):
         print("Copying {} into place".format(pkg_name))
         check_output("cp -r {} {}".format(pkg_dir, runtime_site_packages), shell=True)
 
+    # Run codegen
+    run_python_codegen(ctx)
+
 
 @task
 def package_python_runtime(ctx):

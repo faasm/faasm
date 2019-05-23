@@ -22,14 +22,44 @@ We can compile the same functions natively as follows:
 ```
 
 The `poly_bench` executable will then run a comparison of the wasm and native versions. This must
-be invoked with your desired number of iterations for native and wasm respectively, e.g. `poly_bench 5 5`.
+be invoked with your desired number of iterations for native and wasm respectively, e.g.
+
+```
+poly_bench all 5 5
+```
+
 Results are currently output to `/tmp/polybench.csv`.
+
+_Note - we had to leave out the BLAS benchmarks as BLAS is not supported in Faasm_.
+
+### Profiling Polybench/C
+
+To profile the native version of the code, you need to run `./bin/build_polybench_native.sh Debug`
+
+Then you can specify a given benchmark to run only natively:
+
+```
+perf record -k 1 poly_bench poly_ludcmp 5 0
+mv perf.data perf.data.native
+perf report -i perf.data.native
+```
+
+Provided you have set up the wasm profiling set-up as described in the profiling docs, you an do something
+similar:
+
+```
+perf record -k 1 poly_bench poly_ludcmp 0 5
+perf inject -i perf.data -j -o perf.data.wasm
+perf report -i perf.data.wasm
+```
+
+The same can be done
 
 ## Python
 
 To benchmark CPython execution we use the [Python Performance Benchmark Suite](https://github.com/python/performance).
 
-To set things up you need to look at the relevant Python docs in this directory.
+All python code runs in the same function which can be set up according to the python docs in this repo.
 
 The set of benchmarks can be run with the `py_bench` executable. You can specify a specific benchmark or a single
 benchmark, along with the number of wasm and native iterations, e.g. `py_bench all 100 100` or

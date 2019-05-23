@@ -11,13 +11,14 @@ int main(int argc, char *argv[]) {
     util::initLogging();
     const std::shared_ptr <spdlog::logger> &logger = util::getLogger();
 
-    if (argc < 3) {
-        logger->error("Usage:\npolybench <nNative> <nWasm>");
+    if (argc < 4) {
+        logger->error("Usage:\npolybench <benchmark> <nNative> <nWasm>");
         return 1;
     }
 
-    int nativeIterations = std::stoi(argv[1]);
-    int wasmIterations = std::stoi(argv[2]);
+    std::string benchmark = argv[1];
+    int nativeIterations = std::stoi(argv[2]);
+    int wasmIterations = std::stoi(argv[3]);
 
     std::vector <std::string> all_benchmarks = {
             "poly_covariance",
@@ -49,7 +50,20 @@ int main(int argc, char *argv[]) {
     profOut.open(OUTPUT_FILE);
     profOut << "benchmark,type,microseconds" << std::endl;
 
-    for (auto const &b : all_benchmarks) {
+    std::vector<std::string> benchmarks;
+
+    if(benchmark == "all") {
+        benchmarks = all_benchmarks;
+    } else {
+        if(std::find(all_benchmarks.begin(), all_benchmarks.end(), benchmark) == all_benchmarks.end()) {
+            logger->error("Invalid benchmark: {}", benchmark);
+            return 1;
+        }
+
+        benchmarks = {benchmark};
+    }
+
+    for (auto const &b : benchmarks) {
         runner::PolybenchProfiler prof(b);
         prof.runBenchmark(nativeIterations, wasmIterations, profOut);
     }
