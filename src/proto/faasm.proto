@@ -18,8 +18,9 @@ message Message {
     optional string statusKey = 5;
     optional bool success = 6;
     optional bool isAsync = 7;
+    optional bool isPython = 8;
 
-    optional bytes inputData = 8;
-    optional bytes outputData = 9;
+    optional bytes inputData = 9;
+    optional bytes outputData = 10;
 }
 

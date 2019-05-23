@@ -1,7 +1,7 @@
 FROM faasm/base
 
 # Build the upload binary
-COPY . /faasm/code
+COPY . /usr/local/code/faasm
 WORKDIR /faasm/build
 RUN cmake --build . --target upload
 

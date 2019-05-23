@@ -2,7 +2,7 @@
 
 set -e
 
-pushd /faasm/code >> /dev/null
+pushd /usr/local/code/faasm >> /dev/null
 
 echo "Setting up cgroup"
 ./bin/cgroup.sh

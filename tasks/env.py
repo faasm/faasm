@@ -6,8 +6,8 @@ HOME_DIR = expanduser("~")
 PROJ_ROOT = dirname(dirname(realpath(__file__)))
 
 FAASM_HOME = join(HOME_DIR, "faasm")
-FAASM_STORAGE = "/usr/local/faasm"
-FAASM_RUNTIME_ROOT = join(FAASM_STORAGE, "runtime_root")
+FAASM_LOCAL_DIR = "/usr/local/faasm"
+FAASM_RUNTIME_ROOT = join(FAASM_LOCAL_DIR, "runtime_root")
 
 ANSIBLE_DIR = join(PROJ_ROOT, "ansible")
 
@@ -25,7 +25,7 @@ AWS_ACCOUNT_ID = "733781933474"
 AWS_REGION = "eu-west-1"
 
 PYODIDE_ROOT = join(PROJ_ROOT, "pyodide")
-EMSCRIPTEN_DIR = join(PYODIDE_ROOT, "emsdk/emsdk")
+EMSCRIPTEN_DIR = "/usr/local/faasm/emsdk"
 EMSCRIPTEN_TOOLCHAIN = join(EMSCRIPTEN_DIR, "upstream", "latest", "Wack.cmake")
 PYODIDE_PACKAGES = join(PYODIDE_ROOT, "packages")
 PYODIDE_INSTALL_DIR = join(PYODIDE_ROOT, "cpython", "installs", "python-3.7.0")

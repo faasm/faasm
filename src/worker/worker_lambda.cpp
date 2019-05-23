@@ -5,6 +5,7 @@
 
 #include <util/json.h>
 #include <wasm/FunctionLoader.h>
+#include <wasm/codegen.h>
 
 #include <lambda/backend.h>
 
@@ -12,10 +13,11 @@
 
 using namespace aws::lambda_runtime;
 
+#define PYTHON_RUNTIME_DIRECTORY "/usr/local/faasm/runtime_root/lib/python3.7"
 
 int main() {
     util::initLogging();
-    faasm::initialiseLambdaBackend();
+    awswrapper::initSDK();
 
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -28,11 +30,22 @@ int main() {
 
         std::string message;
 
+        // Work out what sort of invocation is being requested
+        std::string target;
+        if (d.HasMember("target")) {
+            target = d["target"].GetString();
+        } else {
+            logger->error("Message must specify a target");
+            return invocation_response::failure(
+                    "Worker request must specify a type",
+                    "text/plain"
+            );
+        }
+
         // Note, to ensure we have *exactly* the same underlying architecture
         // when generating machine code, we must make sure we run codegen in the
         // same function.
-        if (d.HasMember("function")) {
-            // Codegen
+        if (target == "func-codegen") {
             message::Message msg = util::jsonToMessage(req.payload);
             logger->info("Generating object code for function {}", util::funcToString(msg));
 
@@ -41,7 +54,15 @@ int main() {
             functionLoader.compileToObjectFile(msg);
 
             message = "Codegen finished";
-        } else {
+        } else if (target == "python-codegen") {
+            message::Message msg = util::jsonToMessage(req.payload);
+            logger->info("Generating object code for directory {}", PYTHON_RUNTIME_DIRECTORY);
+
+            // Run the codegen on the Python directory
+            wasm::codeGenForDir(PYTHON_RUNTIME_DIRECTORY);
+
+            message = "Python codegen finished";
+        } else if(target == "worker"){
             // Ensure scheduler set up and this node is in global set
             scheduler::Scheduler &sch = scheduler::getScheduler();
             sch.addNodeToGlobalSet();
@@ -70,6 +91,12 @@ int main() {
 
             logger->info("Returning Lambda response");
             message = "Worker finished";
+        } else {
+            logger->error("Unrecognised target: {}", target);
+            return invocation_response::failure(
+                    "Unrecognised worker request type",
+                    "text/plain"
+            );
         }
 
         return invocation_response::success(
@@ -80,7 +107,7 @@ int main() {
 
     run_handler(handler_fn);
 
-    faasm::tearDownLambdaBackend();
+    awswrapper::cleanUpSDK();
 
     return 0;
 }

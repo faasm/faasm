@@ -28,7 +28,7 @@ set(PUBLIC_HEADERS
         faasm/time.h
         )
 
-if (FAASM_BUILD_TYPE STREQUAL "emscripten")
+if (FAASM_BUILD_TYPE STREQUAL "wasm")
     add_definitions(-DWASM_BUILD=1)
     set(MALLOC_LIB "dlmalloc")
 else ()

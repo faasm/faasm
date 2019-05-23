@@ -17,28 +17,38 @@ from tasks.aws import (
     prepare_lambda_workers,
 )
 from tasks.compile import (
-    funcs,
+    compile,
     compile_malloc,
     compile_libfaasm,
     compile_eigen,
     compile_libfake,
+)
+from tasks.invoke import (
+    invoke,
+    invoke_async,
+    py_invoke,
+    py_invoke_async,
 )
 from tasks.docker import (
     build_all,
     build_base,
     build_data,
     build_edge,
+    build_root,
     build_redis,
     build_worker,
     build_upload,
+    build_toolchain,
     data,
     purge_images,
     push_all,
     push_data,
     push_edge,
+    push_root,
     push_redis,
     push_upload,
     push_worker,
+    push_toolchain,
     pull,
     push_base
 )
@@ -62,11 +72,15 @@ from tasks.sgd import (
 from tasks.runtime import (
     clear_runtime_pyc,
     set_up_python_runtime,
+    run_python_codegen,
+    package_python_runtime,
+    download_python_runtime,
 )
 
 from tasks.upload import (
-    upload_funcs,
-    upload_func,
+    upload_all,
+    upload,
+    py_upload,
 )
 from tasks.wasm2wast import wast
 

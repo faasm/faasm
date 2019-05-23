@@ -2,7 +2,7 @@
 
 set -e
 
-SYSROOT=./pyodide/emsdk/emsdk/upstream/latest/sysroot
+SYSROOT=/usr/local/faasm/emsdk/upstream/latest/sysroot
 RUNTIME_ROOT=/usr/local/faasm/runtime_root/
 
 # Compile libfake

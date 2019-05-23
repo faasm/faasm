@@ -73,7 +73,7 @@ def generate_intrinsics():
 
                 output_string = [
                     "DEFINE_INTRINSIC_FUNCTION(env, \"{}\", {}, {} {}) {{\n".format(syscall_name, out_str,
-                                                                                     "emscripten_{}".format(syscall_name),
+                                                                                      syscall_name,
                                                                                       arg_str),
                     "\tutil::getLogger()->debug({});\n".format(log_str),
                     "\tthrowException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);\n"

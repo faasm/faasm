@@ -59,6 +59,19 @@ namespace wasm {
         this->compileToObjectFile(msg);
     }
 
+    void LocalFunctionLoader::uploadPythonFunction(message::Message & msg) {
+        // msg input data is actually the file
+        const std::string &fileBody = msg.inputdata();
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        logger->debug("Uploading python file {}", util::funcToString(msg));
+        std::string outputFile = util::getPythonFunctionFile(msg);
+        std::ofstream out(outputFile);
+        out.write(fileBody.c_str(), fileBody.size());
+        out.flush();
+        out.close();
+    }
+
     void LocalFunctionLoader::uploadObjectBytes(const message::Message &msg, const std::vector<uint8_t> &objBytes) {
         std::string objFilePath = util::getFunctionObjectFile(msg);
         this->uploadObjectBytes(objFilePath, objBytes);

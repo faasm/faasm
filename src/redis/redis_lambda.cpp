@@ -16,7 +16,7 @@ using namespace aws::lambda_runtime;
 
 int main() {
     util::initLogging();
-    faasm::initialiseLambdaBackend();
+    awswrapper::initSDK();
 
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -65,7 +65,7 @@ int main() {
 
     run_handler(handler_fn);
 
-    faasm::tearDownLambdaBackend();
+    awswrapper::cleanUpSDK();
 
     return 0;
 }

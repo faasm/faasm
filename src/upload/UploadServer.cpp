@@ -15,13 +15,19 @@ namespace edge {
         const uri uri = request.relative_uri();
         const std::vector<std::string> pathParts = uri::split_path(uri::decode(uri.path()));
 
-        bool isValid = true;
-        if (pathParts.size() != 3) {
-            isValid = false;
+        bool isValid = false;
+        if (pathParts.size() == 3) {
+            isValid = true;
         }
 
-        if (isValid && !(pathParts[0] == "f" || pathParts[0] == "fa" || pathParts[0] == "s")) {
-            isValid = false;
+        if (isValid) {
+            // Check if one of the valid path types
+            std::string pathType = pathParts[0];
+            std::vector<std::string> validTypes = {"f", "fa", "s", "p", "pa"};
+
+            if (std::find(validTypes.begin(), validTypes.end(), pathType) != validTypes.end()) {
+                isValid = true;
+            }
         }
 
         if (!isValid) {
@@ -52,6 +58,9 @@ namespace edge {
     }
 
     void UploadServer::handleGet(const http_request &request) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("GET request to {}", request.absolute_uri().to_string());
+
         const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
 
         const std::vector<uint8_t> stateBytes = getState(request);
@@ -62,9 +71,15 @@ namespace edge {
     }
 
     void UploadServer::handlePut(const http_request &request) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("PUT request to {}", request.absolute_uri().to_string());
+
         const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
-        if (pathParts[0] == "s") {
+        std::string pathType = pathParts[0];
+        if (pathType == "s") {
             handleStateUpload(request);
+        } else if (pathType == "p" || pathType == "pa") {
+            handlePythonFunctionUpload(request);
         } else {
             handleFunctionUpload(request);
         }
@@ -113,6 +128,19 @@ namespace edge {
         request.reply(status_codes::OK, "State upload complete\n");
     }
 
+    void UploadServer::handlePythonFunctionUpload(const http_request &request) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        message::Message msg = UploadServer::buildMessageFromRequest(request);
+        logger->info("Uploading Python function {}", util::funcToString(msg));
+
+        // Do the upload
+        wasm::FunctionLoader &l = wasm::getFunctionLoader();
+        l.uploadPythonFunction(msg);
+
+        request.reply(status_codes::OK, "Python function upload complete\n");
+    }
+
     void UploadServer::handleFunctionUpload(const http_request &request) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -130,32 +158,28 @@ namespace edge {
         const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
 
         if (pathParts.size() != 3) {
-            request.reply(status_codes::OK, "Invalid path (must be /f|fa/<user>/<func>/ \n");
+            request.reply(status_codes::OK, "Invalid path (must be /f|fa|p|pa/<user>/<func>/ \n");
             throw InvalidPathException();
         }
 
         // Check URI
-        if (pathParts[0] == "f" || pathParts[0] == "fa") {
-            message::Message msg;
-            msg.set_user(pathParts[1]);
-            msg.set_function(pathParts[2]);
-            msg.set_isasync(pathParts[0] == "fa");
+        message::Message msg;
+        msg.set_user(pathParts[1]);
+        msg.set_function(pathParts[2]);
+        msg.set_isasync(pathParts[0] == "fa" || pathParts[0] == "pa");
 
-            // Read request into msg input data
-            const concurrency::streams::istream bodyStream = request.body();
-            concurrency::streams::stringstreambuf inputStream;
-            bodyStream.read_to_end(inputStream).then([&inputStream, &msg](size_t size) {
-                if (size > 0) {
-                    std::string s = inputStream.collection();
-                    msg.set_inputdata(s);
-                }
+        // Read request into msg input data
+        const concurrency::streams::istream bodyStream = request.body();
+        concurrency::streams::stringstreambuf inputStream;
+        bodyStream.read_to_end(inputStream).then([&inputStream, &msg](size_t size) {
+            if (size > 0) {
+                std::string s = inputStream.collection();
+                msg.set_inputdata(s);
+            }
 
-            }).wait();
+        }).wait();
 
-            return msg;
-        }
-
-        throw InvalidPathException();
+        return msg;
     }
 };
 

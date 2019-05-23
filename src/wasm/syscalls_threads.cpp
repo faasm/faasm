@@ -73,7 +73,7 @@ namespace wasm {
         return 0;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_trylock", I32, emscripten_pthread_mutex_trylock, I32 a) {
+    DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_trylock", I32, pthread_mutex_trylock, I32 a) {
         util::getLogger()->debug("S - pthread_mutex_trylock - {}", a);
         return 0;
     }

@@ -1,13 +1,14 @@
 cmake_minimum_required(VERSION 3.8.0)
 project(faasm)
 
+# Top-level CMake config
 set(CMAKE_CXX_FLAGS "-Wall -Werror")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Address sanitizer
-# set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -O0")
-# set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Oz")
-
+# Faasm directories
 set(FAASM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
 set(FAASM_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lib)
@@ -19,7 +20,8 @@ set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/WAVM/Lib)
 add_definitions(-DDLL_EXPORT=)
 add_definitions(-DDLL_IMPORT=)
 
-set(FAASM_PROFILE 1)
+# Profiling stuff
+set(FAASM_PROFILE 0)
 if(${FAASM_PROFILE})
     message(STATUS "Running Faasm profile build")
 
@@ -32,7 +34,8 @@ if(${FAASM_PROFILE})
     add_definitions(-DPRINT_DISASSEMBLY=0)
 endif()
 
-set(FAASM_CUSTOM_LLVM 1)
+# Custom LLVM build (also for profiling)
+set(FAASM_CUSTOM_LLVM 0)
 if(${FAASM_CUSTOM_LLVM})
     message(STATUS "Using custom LLVM")
 
@@ -47,15 +50,11 @@ endif()
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 
-# Turn off eigen parallelisation
+# Eigen parallelisation
 # add_definitions(-DEIGEN_DONT_PARALLELIZE)
 # add_definitions(-DEIGEN_NO_MALLOC)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-# AWS Lambda runtime (used by all builds)
+# AWS Lambda runtime
 find_package(aws-lambda-runtime)
 
 # AWS SDK
@@ -88,7 +87,6 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-redis")
     message(STATUS "Running lambda redis build")
 
     add_subdirectory(src/aws)
-    add_subdirectory(src/lambda)
     add_subdirectory(src/proto)
     add_subdirectory(src/redis)
     add_subdirectory(src/util)
@@ -97,7 +95,6 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-state")
     message(STATUS "Running lambda state build")
 
     add_subdirectory(src/aws)
-    add_subdirectory(src/lambda)
     add_subdirectory(src/proto)
     add_subdirectory(src/redis)
     add_subdirectory(src/state)
@@ -113,7 +110,6 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-worker")
     add_subdirectory(WAVM)
 
     add_subdirectory(src/aws)
-    add_subdirectory(src/lambda)
     add_subdirectory(src/proto)
     add_subdirectory(src/redis)
     add_subdirectory(src/scheduler)
@@ -131,7 +127,6 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-dispatch")
 
     add_subdirectory(src/aws)
     add_subdirectory(src/dispatch)
-    add_subdirectory(src/lambda)
     add_subdirectory(src/proto)
     add_subdirectory(src/redis)
     add_subdirectory(src/scheduler)
@@ -158,14 +153,15 @@ else ()
     # Experiments
     add_subdirectory(experiment)
 
-    # Faasm runtime
+    # AWS-specific
     add_subdirectory(src/aws)
-    add_subdirectory(src/data)
+    add_subdirectory(src/lambda_func)
     add_subdirectory(src/dispatch)
+
+    # Faasm runtime
+    add_subdirectory(src/data)
     add_subdirectory(src/edge)
     add_subdirectory(src/emulator)
-    add_subdirectory(src/lambda)
-    add_subdirectory(src/lambda_func)
     add_subdirectory(src/memory)
     add_subdirectory(src/proto)
     add_subdirectory(src/redis)

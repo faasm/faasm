@@ -10,8 +10,8 @@ set(COMPILER_FLAGS "-nostdlib -fPIC")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMPILER_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMPILER_FLAGS}")
 
-if (FAASM_BUILD_TYPE STREQUAL "emscripten")
-    message(STATUS "Detected emscripten build")
+if (FAASM_BUILD_TYPE STREQUAL "wasm")
+    message(STATUS "Detected wasm build")
 
     # NOTE: all of these linker options are crucial to getting things to work properly
     set(CMAKE_SHARED_LINKER_FLAGS " \

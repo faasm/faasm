@@ -16,7 +16,7 @@ RUN make
 RUN sudo make install
 
 # Build the edge binary
-COPY . /faasm/code
+COPY . /usr/local/code/faasm
 WORKDIR /faasm/build
 RUN cmake --build . --target edge
 

@@ -37,9 +37,6 @@ namespace wasm {
         return envModule;
     }
 
-    /**
-     * This is the interface Emscripten provides with the LLVM wasm backend.
-     */
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall", I32, __syscall, I32 syscallNo,
                               I32 argsPtr) {
         switch (syscallNo) {

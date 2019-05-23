@@ -19,6 +19,7 @@ namespace util {
         d.AddMember("output_data", StringRef(msg.outputdata().c_str()), d.GetAllocator());
 
         d.AddMember("async", msg.isasync(), d.GetAllocator());
+        d.AddMember("python", msg.ispython(), d.GetAllocator());
 
         d.AddMember("result_key", StringRef(msg.resultkey().c_str()), d.GetAllocator());
         d.AddMember("status_key", StringRef(msg.statuskey().c_str()), d.GetAllocator());
@@ -60,6 +61,7 @@ namespace util {
         msg.set_outputdata(getStringFromJson(d, "output_data", ""));
 
         msg.set_isasync(getBoolFromJson(d, "async", false));
+        msg.set_ispython(getBoolFromJson(d, "python", false));
 
         msg.set_resultkey(getStringFromJson(d, "result_key", ""));
         msg.set_statuskey(getStringFromJson(d, "status_key", ""));

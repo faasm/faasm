@@ -6,9 +6,6 @@
 #include <util/memory.h>
 #include <wasm/FunctionLoader.h>
 
-#include <valgrind/valgrind.h>
-#include <valgrind/callgrind.h>
-
 #include <WAVM/WASM/WASM.h>
 #include <WAVM/Inline/CLI.h>
 #include <WAVM/IR/Types.h>
@@ -171,13 +168,30 @@ namespace wasm {
             throw std::runtime_error("Cannot bind a module twice");
         }
 
+        // Record that this module is now bound
+        _isBound = true;
+        boundUser = msg.user();
+        boundFunction = msg.function();
+
+        // TODO - tidy up the handling of Python functions. This is a hack
+        // Create a copy of the message to avoid messing with the original
+        message::Message msgCopy = msg;
+
+        if (msg.ispython()) {
+            std::string pyFile = msg.user() + "/" + msg.function() + ".py";
+            msgCopy.set_inputdata(pyFile);
+            msgCopy.set_user("python");
+            msgCopy.set_function("py_func");
+        }
+
         // Load the function data
         wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
-        std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionBytes(msg);
-        std::vector<uint8_t> objectFileBytes = functionLoader.loadFunctionObjectBytes(msg);
+        std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionBytes(msgCopy);
+        std::vector<uint8_t> objectFileBytes = functionLoader.loadFunctionObjectBytes(msgCopy);
 
         // Create the module instance
-        moduleInstance = this->createModuleInstance(module, wasmBytes, objectFileBytes, util::funcToString(msg), true);
+        moduleInstance = this->createModuleInstance(module, wasmBytes, objectFileBytes, util::funcToString(msgCopy),
+                                                    true);
 
         // Extract the module's exported function
         std::string entryFunc = "main";
@@ -188,11 +202,6 @@ namespace wasm {
         // Keep reference to memory and table
         this->defaultMemory = Runtime::getDefaultMemory(moduleInstance);
         this->defaultTable = Runtime::getDefaultTable(moduleInstance);
-
-        // Record that this module is now bound
-        _isBound = true;
-        boundUser = msg.user();
-        boundFunction = msg.function();
     }
 
     Runtime::ModuleInstance *
@@ -429,11 +438,11 @@ namespace wasm {
 
     void WasmModule::resetDynamicModules() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        
+
         // Restore the table to its original size
         Uptr currentTableSize = Runtime::getTableNumElements(defaultTable);
         Uptr elemsToShrink = currentTableSize - initialTableSize;
-        if(elemsToShrink > 0) {
+        if (elemsToShrink > 0) {
             logger->debug("Shrinking table from {} to {}", currentTableSize, initialTableSize);
             Runtime::shrinkTable(defaultTable, elemsToShrink);
         }
@@ -545,14 +554,14 @@ namespace wasm {
         // Memory-related variables
         initialMemoryPages = Runtime::getMemoryNumPages(defaultMemory);
         initialTableSize = Runtime::getTableNumElements(defaultTable);
-        
+
         Uptr initialMemorySize = initialMemoryPages * IR::numBytesPerPage;
 
         // Note that heap base and data end should be the same (provided stack-first is switched on)
         heapBase = this->getGlobalI32("__heap_base", context);
         dataEnd = this->getGlobalI32("__data_end", context);
         logger->debug("heap_base = {}  data_end = {}  heap_top={} initial_pages={}", heapBase, dataEnd,
-                initialMemorySize, initialMemoryPages);
+                      initialMemorySize, initialMemoryPages);
 
         // The stack top variable should be the first global
         IR::GlobalDef stackDef = module.globals.getDef(0);
@@ -592,11 +601,7 @@ namespace wasm {
             // Call the function
             logger->debug("Invoking the function itself");
             Runtime::unwindSignalsAsExceptions([this, &context, &invokeArgs] {
-                CALLGRIND_START_INSTRUMENTATION;
-                CALLGRIND_TOGGLE_COLLECT;
                 invokeFunctionChecked(context, functionInstance, invokeArgs);
-                CALLGRIND_TOGGLE_COLLECT;
-                CALLGRIND_STOP_INSTRUMENTATION;
             });
         }
         catch (wasm::WasmExitException &e) {
@@ -844,10 +849,10 @@ namespace wasm {
 
         IR::DisassemblyNames disassemblyNames;
         getDisassemblyNames(module, disassemblyNames);
-        
-        for(Uptr i = 0; i < module.functions.size(); i++) {
+
+        for (Uptr i = 0; i < module.functions.size(); i++) {
             bool isImport = i < module.functions.imports.size();
-            
+
             std::string baseName = isImport ? "functionImport" : "functionDef";
             std::string funcName = baseName + std::to_string(i);
             std::string disasName = disassemblyNames.functions[i].name;

@@ -1,13 +1,25 @@
 FROM faasm/base
 
+COPY . /usr/local/code/faasm
+
 # Set up dummy networking files
-WORKDIR /faasm/code/ansible
+WORKDIR /usr/local/code/faasm/ansible
 RUN ansible-playbook runtime_fs.yml
 
-# Build the worker binary
-COPY . /faasm/code
+# Build the worker and codegen binaries
 WORKDIR /faasm/build
 RUN cmake --build . --target worker
+RUN cmake --build . --target codegen
+
+# Get the Python runtime root from S3
+WORKDIR /usr/local/faasm
+RUN wget https://s3-eu-west-1.amazonaws.com/faasm-misc/faasm_runtime_root.tar.gz
+RUN tar -xf faasm_runtime_root.tar.gz
+RUN rm faasm_runtime_root.tar.gz
+
+# Run codegen on Python stuff
+WORKDIR /faasm/build
+RUN ./bin/codegen /usr/local/faasm/runtime_root/lib/python3.7
 
 # Set up entrypoint (for cgroups, namespaces etc.)
 COPY bin/worker-entrypoint.sh /entrypoint.sh

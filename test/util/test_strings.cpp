@@ -25,4 +25,11 @@ namespace tests {
         REQUIRE(!startsWith("foobar", "goo"));
         REQUIRE(!startsWith("foobar", ""));
     }
+
+    TEST_CASE("Test endswith", "[util]") {
+        REQUIRE(endsWith("foobar", "bar"));
+        REQUIRE(!endsWith("foobar", "foo"));
+        REQUIRE(!endsWith("foobar", "ob"));
+        REQUIRE(!endsWith("foobar", ""));
+    }
 }

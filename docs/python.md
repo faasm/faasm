@@ -13,7 +13,7 @@ ansible-playbook python3_7.yml
 
 ## Building CPython and packages
 
-You must make sure that you've set up the latest toolchain, build libc and malloc etc.
+You must make sure that you've set up the latest toolchain, build libc and malloc etc. (see local dev docs).
 
 Once this is done, you can run the following:
 
@@ -21,32 +21,43 @@ Once this is done, you can run the following:
 cd pyodide
 source workon.sh
 cd cpython
-make
+make clean && make
 cd ../packages
-make
+make clean && make
 ```
 
 ## Setting up the runtime environment
 
-Once this is all built we can generate the machine code and put everything in place as follows:
+Once this is all built we can put the relevant files in place with:
 
 ```
 inv set-up-python-runtime
 ```
 
+We then need to generate machine code for this with:
+
+```
+inv run-python-codegen
+```
+
+## Packaging the Python runtime
+
+To package the Python runtime for use on AWS and in containers, we can run the following:
+
+```
+inv package-python-runtime
+```
+
+This bundles up the required runtime files and uploads them to S3.
+
 ## Compiling the Python function
 
-When building you **must** use the Faasm shell environment:
+We use a single Faasm function to execute all Python functions. This can be built as follows:
 
 ```
 source workon.sh
-```
-
-Once this is done, you can build and upload the Python function as follows (assuming you have an upload server running)
-
-```
-inv funcs --func=py_func
-inv upload-func python py_func
+inv compile --func=py_func
+inv upload python py_func
 ```
 
 ## Adding packages

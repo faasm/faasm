@@ -18,7 +18,7 @@ using namespace aws::lambda_runtime;
 int main() {
     util::initLogging();
 
-    faasm::initialiseLambdaBackend();
+    awswrapper::initSDK();
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
     util::SystemConfig &config = util::getSystemConfig();
@@ -60,7 +60,7 @@ int main() {
 
     // Tidy up
     logger->info("Shutting down");
-    faasm::tearDownLambdaBackend();
+    awswrapper::cleanUpSDK();
 
     return 0;
 }

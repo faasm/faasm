@@ -11,6 +11,7 @@ add_library(wasm STATIC
         LocalFunctionLoader.cpp
         S3FunctionLoader.cpp
         instance.cpp
+        codegen.cpp
         WasmModule.cpp
         syscalls.cpp
         syscalls_dynlink.cpp
@@ -27,5 +28,5 @@ add_library(wasm STATIC
 
 target_link_libraries(wasm scheduler memory state WAVM)
 
-add_executable(codegen codegen.cpp)
+add_executable(codegen codegen_runner.cpp)
 target_link_libraries(codegen wasm)

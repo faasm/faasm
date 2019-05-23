@@ -15,6 +15,8 @@ namespace wasm {
 
         void uploadFunction(message::Message &msg);
 
+        void uploadPythonFunction(message::Message &msg);
+
         void uploadObjectBytes(const message::Message &msg, const std::vector<uint8_t> &objBytes);
 
         void uploadObjectBytes(const std::string &path, const std::vector<uint8_t> &objBytes);
