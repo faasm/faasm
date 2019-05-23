@@ -6,8 +6,8 @@ HOME_DIR = expanduser("~")
 PROJ_ROOT = dirname(dirname(realpath(__file__)))
 
 FAASM_HOME = join(HOME_DIR, "faasm")
-FAASM_STORAGE = "/usr/local/faasm"
-FAASM_RUNTIME_ROOT = join(FAASM_STORAGE, "runtime_root")
+FAASM_LOCAL_DIR = "/usr/local/faasm"
+FAASM_RUNTIME_ROOT = join(FAASM_LOCAL_DIR, "runtime_root")
 
 ANSIBLE_DIR = join(PROJ_ROOT, "ansible")
 

@@ -7,8 +7,8 @@ from subprocess import check_output
 from invoke import task
 
 from tasks.env import PROJ_ROOT, PYODIDE_INSTALL_DIR, FAASM_RUNTIME_ROOT, PY_RUNTIME_ROOT, PYODIDE_PACKAGES, \
-    FAASM_STORAGE, MISC_S3_BUCKET
-from tasks.upload_util import upload_file_to_s3
+    FAASM_LOCAL_DIR, MISC_S3_BUCKET
+from tasks.upload_util import upload_file_to_s3, download_file_from_s3
 
 RUNTIME_TAR_NAME = "faasm_runtime_root.tar.gz"
 RUNTIME_TAR_PATH = "/tmp/{}".format(RUNTIME_TAR_NAME)
@@ -108,7 +108,7 @@ def package_python_runtime(ctx):
 
     # Compress
     print("Creating archive of faasm runtime root")
-    check_output("tar -cf {} runtime_root".format(RUNTIME_TAR_PATH), shell=True, cwd=FAASM_STORAGE)
+    check_output("tar -cf {} runtime_root".format(RUNTIME_TAR_PATH), shell=True, cwd=FAASM_LOCAL_DIR)
 
     # Upload
     print("Uploading archive to S3")
@@ -117,6 +117,26 @@ def package_python_runtime(ctx):
     # Remove old tar
     print("Removing archive")
     check_output("rm {}".format(RUNTIME_TAR_PATH))
+
+
+@task
+def download_python_runtime(ctx):
+    # Clear out existing
+    print("Removing existing")
+    rmtree(FAASM_RUNTIME_ROOT)
+
+    # Download the bundle
+    print("Downloading from S3")
+    downloaded_tar_path = "/usr/local/faasm/{}".format(RUNTIME_TAR_NAME)
+    download_file_from_s3(MISC_S3_BUCKET, RUNTIME_TAR_NAME, downloaded_tar_path)
+
+    # Extract
+    print("Extracting")
+    check_output("tar -xf {}".format(RUNTIME_TAR_NAME), shell=True, cwd=FAASM_LOCAL_DIR)
+
+    # Run codegen
+    print("Running codegen")
+    run_python_codegen(ctx)
 
 
 @task

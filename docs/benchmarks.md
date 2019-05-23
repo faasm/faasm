@@ -9,13 +9,17 @@ The code is checked into this repository and can be compiled to wasm and uploade
 
 ```
 # Compile to wasm
-inv funcs --user=polybench --clean
+inv compile --user=polybench --clean
 
 # Upload (must have an upload server running)
-inv upload-funcs
+inv upload-all
 ```
 
-You can then build the `polybench_all_funcs` target to build the native executables.
+We can compile the same functions natively as follows:
+
+```
+./bin/build_polybench_native.sh
+```
 
 The `poly_bench` executable will then run a comparison of the wasm and native versions. This must
 be invoked with your desired number of iterations for native and wasm respectively, e.g. `poly_bench 100 100`.

@@ -127,6 +127,14 @@ To set up our library utilities, run:
 inv compile-libfaasm
 ```
 
+## Python runtime
+
+You an pull down the prepackaged python runtime using:
+
+```
+inv download-python-runtime
+```
+
 ## Docker images
 
 There are a few Docker images used to make build times quicker:
