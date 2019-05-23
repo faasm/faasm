@@ -36,10 +36,10 @@ _Note - we had to leave out the BLAS benchmarks as BLAS is not supported in Faas
 
 To profile the native version of the code, you need to run `./bin/build_polybench_native.sh Debug`
 
-Then you can specify a given benchmark to run only natively:
+Then you can directly run the native binary:
 
 ```
-perf record -k 1 poly_bench poly_ludcmp 5 0
+perf record -k 1 ./func/build_native/polybench/poly_ludcmp
 mv perf.data perf.data.native
 perf report -i perf.data.native
 ```
