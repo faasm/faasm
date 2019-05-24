@@ -1,6 +1,6 @@
 import io
 import logging
-from performance.benchmarks.bm_logging import BENCHMARKS
+from performance.benchmarks.bm_logging import BENCHMARKS, truncate_stream
 
 if __name__ == "__main__":
     stream = io.StringIO()
@@ -20,3 +20,5 @@ if __name__ == "__main__":
 
         for i in range(3):
             bench_func(loops, logger, stream)
+
+            truncate_stream(stream)

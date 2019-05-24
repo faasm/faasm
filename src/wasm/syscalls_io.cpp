@@ -90,26 +90,33 @@ namespace wasm {
         util::SystemConfig &conf = util::getSystemConfig();
 
         // Duplicating file descriptors
+        int returnValue;
         if (cmd == F_DUPFD || cmd == F_DUPFD_CLOEXEC) {
             // Duplicating file descriptors is allowed
-            int newFd = fcntl(fd, cmd, c);
-            addFdForThisThread(newFd);
-            return newFd;
-        }
+            returnValue = fcntl(fd, cmd, c);
 
-        if (cmd == F_GETFL || cmd == F_GETFD || cmd == F_SETFD) {
+            if (returnValue > 0) {
+                addFdForThisThread(returnValue);
+            }
+        } else if (cmd == F_GETFL || cmd == F_GETFD || cmd == F_SETFD) {
             // Getting file flags, file descriptor flags and setting file descriptor flags are allowed
-            return fcntl(fd, cmd, c);
-        }
-
-        // Allow everything else in unsafe mode, but block otherwise
-        if (conf.unsafeMode == "on") {
+            returnValue = fcntl(fd, cmd, c);
+        } else if (conf.unsafeMode == "on") {
+            // Allow everything else in unsafe mode, but block otherwise
             logger->warn("Allowing arbitrary fcntl command: {}", cmd);
-            return fcntl(fd, cmd, c);
+            returnValue = fcntl(fd, cmd, c);
         } else {
             logger->error("Using arbitrary fcntl command: {}", cmd);
             throw std::runtime_error("Process not allowed to set file flags");
         }
+
+        if (returnValue < 0) {
+            getExecutingModule()->setErrno(errno);
+            logger->warn("Failed fcntl call");
+            return -1;
+        }
+
+        return returnValue;
     }
 
     /**
@@ -450,12 +457,12 @@ namespace wasm {
 
         // The caller is expecting the result to be written to the result pointer
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        I32* hostResultPtr = &Runtime::memoryRef<I32>(memoryPtr, (Uptr) resultPtr);
+        I32 *hostResultPtr = &Runtime::memoryRef<I32>(memoryPtr, (Uptr) resultPtr);
 
         int res = (int) lseek(fd, offsetLow, whence);
 
         // Success returns zero and failure returns -1 with correct errno set
-        if(res < 0) {
+        if (res < 0) {
             getExecutingModule()->setErrno(errno);
             return -1;
         } else {
