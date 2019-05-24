@@ -1,11 +1,17 @@
 /**
- * Modified from Emscripten's copy of dlmalloc
+ * This is a bastardized version of dlmalloc with modifications pulled in from both
+ * the Emscripten version and the WASI sysroot version.
+ *
+ * WASI sysroot version: https://github.com/CraneStation/wasi-sysroot/tree/master/dlmalloc
+ *
+ * Only change to actual code according to the WASI sysroot commit:
+ * https://github.com/CraneStation/wasi-sysroot/commit/0df6243d52d8c46ae714bb1eadf2a29db993c504
  */
 
 #define DLMALLOC_EXPORT __attribute__((__weak__))
 
-// Explicitly allow both mmap and sbrk
-#define HAVE_MMAP 1
+// Force sbrk type memory allocation to fit wasm model
+#define HAVE_MMAP 0
 #define HAVE_MORECORE 1
 
 /* We can only grow the heap up, so don't try to trim */
@@ -17,10 +23,17 @@
 #define ABORT __builtin_unreachable()
 #endif
 
+/* Disable malloc statistics generation to reduce code size. */
+#define NO_MALLINFO 1
+#define NO_MALLOC_STATS 1
+
 #define __THROW
 #define __attribute_malloc__
 #define __wur
 
+// --------------------------------------------
+// Original file from here onwards
+// --------------------------------------------
 
 /*
  This is a version (aka dlmalloc) of malloc/free/realloc written by
@@ -4082,12 +4095,16 @@ static void* sys_alloc(mstate m, size_t nb) {
     }
     
     asize = granularity_align(nb + SYS_ALLOC_PADDING);
-    if (asize <= nb)
+    if (asize <= nb) {
+        MALLOC_FAILURE_ACTION;
         return 0; /* wraparound */
+    }
     if (m->footprint_limit != 0) {
         size_t fp = m->footprint + asize;
-        if (fp <= m->footprint || fp > m->footprint_limit)
+        if (fp <= m->footprint || fp > m->footprint_limit) {
+            MALLOC_FAILURE_ACTION;
             return 0;
+        }
     }
     
     /*

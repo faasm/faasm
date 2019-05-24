@@ -60,10 +60,7 @@ namespace wasm {
                 logger->debug("Failed to open - {}", path);
             }
 
-            // It seems that some applications expect errno to be set and the return value
-            // to be the error code, whereas others expect -1 to be returned and errno to be
-            // set. We will return the error code _and_ set errno
-            int newErrno = -fd;
+            int newErrno = errno;
             getExecutingModule()->setErrno(newErrno);
         }
 
@@ -145,20 +142,21 @@ namespace wasm {
 
         // Here we will iterate getting native dirents until we've filled up the wasm buffer supplied
         for (wasmBytesRead = 0; wasmBytesRead < wasmDirentBufLen - (2 * wasmDirentSize);) {
-
             // Make the native syscall. This will read in a list of dirent structs to the buffer
-            // We need to read at most two native dirents. Each one will be at most 40 bytes.
+            // We need to read at most two native dirents.
             auto nativeBuf = new char[nativeBufLen];
             long nativeBytesRead = syscall(SYS_getdents64, fd, nativeBuf, nativeBufLen);
 
             if (nativeBytesRead == 0) {
                 // No more native dirents
+                delete[] nativeBuf;
                 return wasmBytesRead;
             } else if (nativeBytesRead < 0) {
                 // Error reading native dirents
                 getExecutingModule()->setErrno(errno);
 
-                return (I32) nativeBytesRead;
+                delete[] nativeBuf;
+                return -1;
             }
 
             // Now we iterate through the dirents we just got back from the host
@@ -193,6 +191,8 @@ namespace wasm {
                 wasmBytesRead += wasmDirentSize;
                 wasmDirentCount++;
             }
+
+            delete[] nativeBuf;
         }
 
         return wasmBytesRead;
@@ -396,24 +396,23 @@ namespace wasm {
         return access(path.c_str(), mode);
     }
 
-    /**
-     *  We don't want to give away any real info about the filesystem, but we can just return the default
-     *  stat object and catch the application later if it tries to do anything dodgy.
-     */
     I32 s__fstat64(I32 fd, I32 statBufPtr) {
         util::getLogger()->debug("S - fstat64 - {} {}", fd, statBufPtr);
 
         struct stat64 nativeStat{};
-        fstat64(fd, &nativeStat);
+        int result = fstat64(fd, &nativeStat);
+
+        if(result < 0) {
+            int newErrno = errno;
+            getExecutingModule()->setErrno(newErrno);
+            return -1;
+        }
+
         writeNativeStatToWasmStat(&nativeStat, statBufPtr);
 
         return 0;
     }
 
-    /**
-     * In spite of the man pages, it seems the wasm version of stat64 is meant to return the
-     * error code if it fails, not -1 and set errno, but we will set errno properly just in case
-     */
     I32 s__stat64(I32 pathPtr, I32 statBufPtr) {
         // Get the path
         const std::string fakePath = getMaskedPathFromWasm(pathPtr);
@@ -423,10 +422,11 @@ namespace wasm {
 
         struct stat64 nativeStat{};
         int result = stat64(fakePath.c_str(), &nativeStat);
+
         if (result < 0) {
             int newErrno = errno;
             getExecutingModule()->setErrno(newErrno);
-            return -newErrno;
+            return -1;
         }
 
         writeNativeStatToWasmStat(&nativeStat, statBufPtr);

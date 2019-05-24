@@ -851,12 +851,14 @@ namespace wasm {
         getDisassemblyNames(module, disassemblyNames);
 
         for (Uptr i = 0; i < module.functions.size(); i++) {
-            bool isImport = i < module.functions.imports.size();
+            unsigned long nImports = module.functions.imports.size();
+            bool isImport = i < nImports;
 
+            int nameIdx = isImport ? i : i - nImports;
             std::string baseName = isImport ? "functionImport" : "functionDef";
-            std::string funcName = baseName + std::to_string(i);
-            std::string disasName = disassemblyNames.functions[i].name;
+            std::string funcName = baseName + std::to_string(nameIdx);
 
+            std::string disasName = disassemblyNames.functions[i].name;
             output.insert({funcName, disasName});
         }
 
