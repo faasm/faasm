@@ -38,7 +38,13 @@ int main(int argc, char *argv[]) {
             "bench_pidigits.py",
             "bench_pyaes.py",
             "bench_pyflate.py",
-
+            "bench_raytrace.py",
+            "bench_richards.py",
+            "bench_scimark.py",
+            "bench_spectral_norm.py",
+            "bench_telco.py",
+            "bench_unpack_sequence.py",
+            "bench_xml_etree.py",
     };
 
     std::vector<std::string> benchmarks;

@@ -46,9 +46,15 @@ Each benchmark requires porting the required dependencies, so some were unfeasib
 
 - `chameleon` - too many deps
 - `django_template` - pulls in too many dependencies
-- `hg_startup` - concerned with runtime start-up
+- `hg_startup` - runs a shell command
 - `html5lib` - dependencies (might be fine)
 - `pathlib` - requires more access to the filesystem that we support
+- `python_startup` - runs a shell command
+- `regex_compile` - needs to import several other local modules (should be possible, just fiddly)
+- SQL-related - SQLAlchemy not worth porting for now. SQLite also not supported but could be
+- `sympy` - sympy module not yet ported but could be
+- `tornado` - Tornado not ported (and don't plan to)
+
 
 ## Profiling
 
