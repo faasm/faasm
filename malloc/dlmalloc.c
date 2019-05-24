@@ -17,6 +17,9 @@
 /* We can only grow the heap up, so don't try to trim */
 #define MORECORE_CANNOT_TRIM 1
 
+// Remove time from dlmalloc
+#define LACKS_TIME_H 1
+
 #ifndef DLMALLOC_DEBUG
 /* dlmalloc has many checks, calls to abort() increase code size,
    leave them only in debug builds */

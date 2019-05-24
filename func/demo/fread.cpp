@@ -1,6 +1,7 @@
 #include "faasm/faasm.h"
 
 #include <stdio.h>
+#include <stddef.h>
 #include <string.h>
 
 /**
@@ -10,6 +11,8 @@ namespace faasm {
 
     int exec(FaasmMemory *memory) {
         FILE *fp = fopen("/etc/hosts", "r");
+
+//        printf("Size of FILE = %li\n", sizeof *fp);
 
         char buff[2056];
         fgets(buff, 2056, (FILE *) fp);
