@@ -21,6 +21,7 @@ int main(int argc, char *argv[]) {
     int wasmIterations = std::stoi(argv[3]);
 
     std::vector<std::string> all_benchmarks = {
+            "bench_chaos.py",
             "bench_deltablue.py",
             "bench_dulwich.py",
             "bench_fannkuch.py",
@@ -30,6 +31,14 @@ int main(int argc, char *argv[]) {
             "bench_hexiom.py",
             "bench_json_dumps.py",
             "bench_json_loads.py",
+            "bench_logging.py",
+            "bench_mdp.py",
+            "bench_nbody.py",
+            "bench_pickle.py",
+            "bench_pidigits.py",
+            "bench_pyaes.py",
+            "bench_pyflate.py",
+
     };
 
     std::vector<std::string> benchmarks;

@@ -30,6 +30,9 @@ _PACKAGES_INCLUDED = {
     "performance": {
         "path": "performance/build/performance-0.7.0/install/lib/python3.7/site-packages/performance",
     },
+    "pyaes": {
+        "path": "pyaes/build/pyaes-1.6.1/install/lib/python3.7/site-packages/pyaes",
+    },
     "six": {
         "path": "six/build/six-1.12.0/install/lib/python3.7/site-packages/six.py"
     }

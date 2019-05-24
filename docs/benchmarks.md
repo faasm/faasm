@@ -32,6 +32,26 @@ Results are currently output to `/tmp/polybench.csv`.
 
 _Note - we had to leave out the BLAS benchmarks as BLAS is not supported in Faasm_.
 
+## Python
+
+To benchmark CPython execution we use the [Python Performance Benchmark Suite](https://github.com/python/performance).
+
+All python code runs in the same function which can be set up according to the python docs in this repo.
+
+The set of benchmarks can be run with the `py_bench` executable. You can specify a specific benchmark or a single
+benchmark, along with the number of wasm and native iterations, e.g. `py_bench all 100 100` or
+`py_bench bench_float.py 200 200`. This will output to `/tmp/pybench.csv`.
+
+Each benchmark requires porting the required dependencies, so some were unfeasible and other were too much work:
+
+- `chameleon` - too many deps
+- `django_template` - pulls in too many dependencies
+- `hg_startup` - concerned with runtime start-up
+- `html5lib` - dependencies (might be fine)
+- `pathlib` - requires more access to the filesystem that we support
+
+## Profiling
+
 ### Profiling Polybench/C
 
 To profile the native version of the code, you need to run `./bin/build_polybench_native.sh Debug`
@@ -52,15 +72,3 @@ perf record -k 1 poly_bench poly_ludcmp 0 5
 perf inject -i perf.data -j -o perf.data.wasm
 perf report -i perf.data.wasm
 ```
-
-The same can be done
-
-## Python
-
-To benchmark CPython execution we use the [Python Performance Benchmark Suite](https://github.com/python/performance).
-
-All python code runs in the same function which can be set up according to the python docs in this repo.
-
-The set of benchmarks can be run with the `py_bench` executable. You can specify a specific benchmark or a single
-benchmark, along with the number of wasm and native iterations, e.g. `py_bench all 100 100` or
-`py_bench bench_float.py 200 200`. This will output to `/tmp/pybench.csv`.
