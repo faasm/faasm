@@ -15,7 +15,7 @@ namespace faasm {
 //        printf("Size of FILE = %li\n", sizeof *fp);
 
         char buff[2056];
-        fgets(buff, 2056, (FILE *) fp);
+        fgets(buff, 2056, fp);
         printf("Read from /etc/hosts: \n%s\n", buff);
 
         const char* expected = "127.0.0.1\tlocalhost\n";

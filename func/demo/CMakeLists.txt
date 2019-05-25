@@ -2,6 +2,7 @@ set(FAASM_USER demo)
 
 faasm_func(abort abort.cpp)
 faasm_func(argv argv.cpp)
+faasm_func(brk brk.cpp)
 faasm_func(chain chain.cpp)
 #faasm_func(curl_net curl_net.cpp)
 faasm_func(dummy dummy.cpp)

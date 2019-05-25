@@ -35,10 +35,6 @@
 
 #define MAX_TABLE_SIZE 500000
 
-#define EXPAND_TOO_BIG -2
-#define EXPAND_NO_ACTION -1
-#define EXPAND_SUCCESS 0
-
 using namespace WAVM;
 
 
@@ -72,10 +68,6 @@ namespace wasm {
         U32 mmap(U32 length);
 
         U32 mmapKey(std::shared_ptr<state::StateKeyValue> kv, U32 length);
-
-        I32 brk(U32 newSize);
-
-        I32 sBrk(U32 increment);
 
         void snapshotFullMemory(const char *key);
 

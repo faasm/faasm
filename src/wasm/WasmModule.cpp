@@ -661,54 +661,6 @@ namespace wasm {
         return sharedMemWasmPtrs[kv->key];
     }
 
-    I32 WasmModule::sBrk(U32 increment) {
-        Uptr currentBrk = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
-        if (increment == 0) {
-            // Calling with zero is the same as calling brk with zero,
-            // return the current break
-            return currentBrk;
-        }
-
-        U32 target = currentBrk + increment;
-        int brkResult = this->brk(target);
-
-        if (brkResult == EXPAND_SUCCESS) {
-            // Return the new break
-            Uptr newBrk = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
-            return newBrk;
-        } else {
-            return -1;
-        }
-    }
-
-    I32 WasmModule::brk(U32 newSize) {
-        Uptr targetPageCount = getNumberOfPagesForBytes(newSize);
-
-        // Work out current size
-        const Uptr currentPageCount = getMemoryNumPages(defaultMemory);
-
-        // Check if expanding too far
-        Uptr maxPages = getMemoryMaxPages(defaultMemory);
-        if (targetPageCount > maxPages) {
-            return EXPAND_TOO_BIG;
-        }
-
-        // Nothing too be done if memory already big enough or new size is zero
-        if (targetPageCount <= currentPageCount || newSize == 0) {
-            return EXPAND_NO_ACTION;
-        }
-
-        Uptr expansion = targetPageCount - currentPageCount;
-
-        // Grow memory as required
-        Iptr prevPageCount = growMemory(defaultMemory, expansion);
-        if (prevPageCount == -1) {
-            throw std::runtime_error("Something has gone seriously wrong with brk");
-        }
-
-        return EXPAND_SUCCESS;
-    }
-
     bool WasmModule::resolve(const std::string &moduleName,
                              const std::string &name,
                              IR::ExternType type,

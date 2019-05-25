@@ -166,6 +166,8 @@ namespace wasm {
                 return s__getdents64(a, b, c);
             case 221:
                 return s__fcntl64(a, b, c);
+            case 223:
+                return s__sbrk(a);
             case 240:
                 return s__futex(a, b, c, d, e, f);
             case 265:

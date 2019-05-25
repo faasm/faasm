@@ -255,6 +255,8 @@ namespace wasm {
 
     I32 s__rt_sigprocmask(I32 how, I32 sigSetPtr, I32 oldSetPtr, I32 sigsetsize);
 
+    I32 s__sbrk(I32 addr);
+
     I32 s__sigaction(I32 a, I32 b, I32 c);
 
     I32 s__sigaltstack(I32 ssPtr, I32 oldSsPtr);
