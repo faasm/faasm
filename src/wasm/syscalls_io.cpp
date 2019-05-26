@@ -123,6 +123,9 @@ namespace wasm {
      *
      * We try to be conservative but will throw an exception if things aren't right. A bug here
      * can be hard to find.
+     *
+     * The musl implementation of readdir seems to require returning (-1 * errno) on error, not -1
+     * as the man pages suggest.
      */
     I32 s__getdents64(I32 fd, I32 wasmDirentBuf, I32 wasmDirentBufLen) {
         util::getLogger()->debug("S - getdents64 - {} {} {}", fd, wasmDirentBuf, wasmDirentBufLen);
@@ -137,7 +140,7 @@ namespace wasm {
         // Note that this can cause an EINVAL error if too small for the result
         int nativeBufLen = 80;
 
-        U32 wasmBytesRead;
+        U32 wasmBytesRead = 0;
         int wasmDirentCount = 0;
 
         // Here we will iterate getting native dirents until we've filled up the wasm buffer supplied
@@ -147,49 +150,51 @@ namespace wasm {
             auto nativeBuf = new char[nativeBufLen];
             long nativeBytesRead = syscall(SYS_getdents64, fd, nativeBuf, nativeBufLen);
 
-            if (nativeBytesRead == 0) {
-                // No more native dirents
-                delete[] nativeBuf;
-                return wasmBytesRead;
-            } else if (nativeBytesRead < 0) {
+            if (nativeBytesRead < 0) {
                 // Error reading native dirents
-                getExecutingModule()->setErrno(errno);
+                int newErrno = errno;
+                getExecutingModule()->setErrno(newErrno);
 
                 delete[] nativeBuf;
-                return -1;
-            }
+                return -newErrno;
+            } else if(nativeBytesRead == 0) {
+                // End of directory
+                delete[] nativeBuf;
+                getExecutingModule()->setErrno(0);
+                return wasmBytesRead;
+            } else {
+                // Now we iterate through the dirents we just got back from the host
+                unsigned int nativeOffset;
+                for (nativeOffset = 0; nativeOffset < nativeBytesRead;) {
+                    // If we're going to overshoot on the wasm buffer, we have a problem (worth throwing an exception)
+                    if (wasmBytesRead > (U32) wasmDirentBufLen) {
+                        throw std::runtime_error("Overshot the end of the dirent buffer");
+                    }
 
-            // Now we iterate through the dirents we just got back from the host
-            unsigned int nativeOffset;
-            for (nativeOffset = 0; nativeOffset < nativeBytesRead;) {
-                // If we're going to overshoot on the wasm buffer, we have a problem
-                if (wasmBytesRead > (U32) wasmDirentBufLen) {
-                    throw std::runtime_error("Overshot the end of the dirent buffer");
+                    // Get a pointer to the native dirent
+                    auto d = (struct dirent64 *) (nativeBuf + nativeOffset);
+
+                    // Copy the relevant info into the wasm dirent.
+                    struct wasm_dirent64 dWasm{};
+                    dWasm.d_ino = (U32) d->d_ino;
+                    dWasm.d_off = wasmDirentCount * wasmDirentSize;
+                    dWasm.d_type = d->d_type;
+                    dWasm.d_reclen = wasmDirentSize;
+
+                    // Copy the name into place
+                    size_t nameLen = strlen(d->d_name);
+                    std::copy(d->d_name, d->d_name + nameLen, dWasm.d_name);
+
+                    // Copy the wasm dirent into place in wasm memory
+                    auto dWasmBytes = reinterpret_cast<uint8_t *>(&dWasm);
+                    std::copy(dWasmBytes, dWasmBytes + wasmDirentSize, hostWasmDirentBuf + wasmBytesRead);
+
+                    // Move offsets along
+                    nativeOffset += d->d_reclen;
+
+                    wasmBytesRead += wasmDirentSize;
+                    wasmDirentCount++;
                 }
-
-                // Get a pointer to the native dirent
-                auto d = (struct dirent64 *) (nativeBuf + nativeOffset);
-
-                // Copy the relevant info into the wasm dirent.
-                struct wasm_dirent64 dWasm{};
-                dWasm.d_ino = (U32) d->d_ino;
-                dWasm.d_off = wasmDirentCount * wasmDirentSize;
-                dWasm.d_type = d->d_type;
-                dWasm.d_reclen = wasmDirentSize;
-
-                // Copy the name into place
-                size_t nameLen = strlen(d->d_name);
-                std::copy(d->d_name, d->d_name + nameLen, dWasm.d_name);
-
-                // Copy the wasm dirent into place in wasm memory
-                auto dWasmBytes = reinterpret_cast<uint8_t *>(&dWasm);
-                std::copy(dWasmBytes, dWasmBytes + wasmDirentSize, hostWasmDirentBuf + wasmBytesRead);
-
-                // Move offsets along
-                nativeOffset += d->d_reclen;
-
-                wasmBytesRead += wasmDirentSize;
-                wasmDirentCount++;
             }
 
             delete[] nativeBuf;

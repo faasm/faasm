@@ -625,7 +625,8 @@ namespace wasm {
         Uptr newPageCount = previousPageCount + pagesRequested;
         if (previousPageCount == -1) {
             logger->error("No memory for mapping (growing to {} pages)", newPageCount);
-            throw std::runtime_error("Run out of memory to map");
+            this->setErrno(ENOMEM);
+            return -1;
         }
 
         logger->debug("Growing memory from {} to {} WAVM pages", previousPageCount, newPageCount);
