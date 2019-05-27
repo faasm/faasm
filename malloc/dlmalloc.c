@@ -4,22 +4,18 @@
 
 #define DLMALLOC_EXPORT __attribute__((__weak__))
 
-// Explicitly allow both mmap and sbrk
+// Avoid using mmap, just stick to brk/sbrk
 #define HAVE_MMAP 0
 
-/* We can only grow the heap up, so don't try to trim */
+// Don't shrink memory (can't be reclaimed anyway so not worth it)
 #define MORECORE_CANNOT_TRIM 1
 
-#ifndef DLMALLOC_DEBUG
-/* dlmalloc has many checks, calls to abort() increase code size,
-   leave them only in debug builds */
+// Remove dlmalloc has many checks and calls to abort() to reduce code size
 #define ABORT __builtin_unreachable()
-#endif
 
 #define __THROW
 #define __attribute_malloc__
 #define __wur
-
 
 /*
  This is a version (aka dlmalloc) of malloc/free/realloc written by
