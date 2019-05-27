@@ -8,10 +8,16 @@
 int main(int argc, char *argv[]) {
     int pageSize = 65536;
     void *brkInitial = sbrk(0);
+
+#if WASM_BUILD == 1
     printf("Initial = %i\n", brkInitial);
+#endif
 
     void* newRegion = sbrk(pageSize);
+
+#if WASM_BUILD == 1
     printf("New = %i\n", newRegion);
+#endif
 
     if(brkInitial != newRegion) {
         printf("sbrk not behaving as expected\n");
@@ -19,7 +25,9 @@ int main(int argc, char *argv[]) {
     }
 
     void* newRegionB = sbrk(pageSize);
+#if WASM_BUILD == 1
     printf("New = %i\n", newRegionB);
+#endif
 
     int diff = ((int*) newRegionB - (int*)newRegion) * sizeof(int);
     if(diff != pageSize) {
