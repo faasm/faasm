@@ -519,13 +519,13 @@ namespace wasm {
     }
 
     void WasmModule::setErrno(int newValue) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         if (errnoLocation != 0) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->debug("Setting errno={} ({}) (errno_location={})", newValue, strerror(newValue), errnoLocation);
 
             Runtime::memoryRef<I32>(defaultMemory, errnoLocation) = (I32) newValue;
         } else {
-            throw std::runtime_error("Attempting to set errno without errno location set");
+            logger->warn("No errno set but trying to set to {} ({})", strerror(newValue));
         }
     }
 
