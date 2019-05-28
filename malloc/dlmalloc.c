@@ -4,8 +4,9 @@
 
 #define DLMALLOC_EXPORT __attribute__((__weak__))
 
-// Avoid using mmap, just stick to brk/sbrk
-#define HAVE_MMAP 0
+// Specify whether to use mmap or brk (brk known as MORECORE here)
+#define HAVE_MMAP 1
+#define HAVE_MORECORE 0
 
 // Don't shrink memory (can't be reclaimed anyway so not worth it)
 #define MORECORE_CANNOT_TRIM 1

@@ -4,8 +4,8 @@ set(PYODIDE_CPYTHON "/usr/local/code/faasm/pyodide/cpython/installs/python-3.7.0
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # Second terms here for zlib
-    set(PYTHON_LIBRARIES ${PYODIDE_CPYTHON}/lib/libpython3.7m.a ${PYODIDE_CPYTHON}/lib/libz.a)
-    set(PYTHON_INCLUDE_DIRS ${PYODIDE_CPYTHON}/include/python3.7m ${PYODIDE_CPYTHON}/include)
+    set(PYTHON_LIBRARIES ${PYODIDE_CPYTHON}/lib/libpython3.7.a ${PYODIDE_CPYTHON}/lib/libz.a)
+    set(PYTHON_INCLUDE_DIRS ${PYODIDE_CPYTHON}/include/python3.7 ${PYODIDE_CPYTHON}/include)
 else ()
     find_package(PythonLibs)
 endif ()

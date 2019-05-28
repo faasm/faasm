@@ -628,7 +628,7 @@ namespace wasm {
             throw std::runtime_error("Run out of memory to map");
         }
 
-        logger->debug("Growing memory from {} to {} WAVM pages", previousPageCount, newPageCount);
+        logger->debug("mmap - Growing memory from {} to {} pages", previousPageCount, newPageCount);
 
         // Get pointer to mapped range
         auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);

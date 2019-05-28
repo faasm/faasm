@@ -37,4 +37,15 @@ namespace tests {
 
         execFunction(msg);
     }
+
+    TEST_CASE("Test calloc", "[worker]") {
+        cleanSystem();
+
+        message::Message msg;
+        msg.set_user("demo");
+        msg.set_function("calloc");
+        msg.set_resultkey("calloc_test");
+
+        execFunction(msg);
+    }
 }
