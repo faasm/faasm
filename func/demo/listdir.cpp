@@ -25,6 +25,7 @@ namespace faasm {
                     break;
                 } else {
                     printf("readdir failed: %s\n", strerror(errno));
+                    return 1;
                 }
             }
 

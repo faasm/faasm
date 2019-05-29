@@ -6,7 +6,7 @@
 
 // Specify whether to use mmap or brk (brk known as MORECORE here)
 #define HAVE_MMAP 1
-#define HAVE_MORECORE 0
+#define HAVE_MORECORE 1
 
 // Don't shrink memory (can't be reclaimed anyway so not worth it)
 #define MORECORE_CANNOT_TRIM 1

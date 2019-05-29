@@ -91,6 +91,9 @@ def set_up_python_runtime(ctx):
     runtime_site_packages = join(PY_RUNTIME_ROOT, "site-packages")
     check_output("mkdir -p {}".format(runtime_site_packages), shell=True)
 
+    # Create a tmp directory for work
+    check_output("mkdir -p {}".format(join(PY_RUNTIME_ROOT, "tmp")), shell=True)
+
     print("\nSetting up packages")
     for pkg_name, pkg_detail in _PACKAGES_INCLUDED.items():
         print("\n --------- {} ---------".format(pkg_name))
