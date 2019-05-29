@@ -78,3 +78,11 @@ perf record -k 1 poly_bench poly_ludcmp 0 5
 perf inject -i perf.data -j -o perf.data.wasm
 perf report -i perf.data.wasm
 ```
+
+Note that for wasm code the output of the perf reports will be funciton names like `functionDef123`.
+To generate the mapping of these names to the actual functions you can run the `func_sym` executable
+e.g.
+
+```
+func_sym polybench 3mm
+```
