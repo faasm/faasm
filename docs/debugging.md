@@ -30,4 +30,5 @@ library load.
 break functionDef1234
 ```
 
-You can then use normal gdb functionality, albeit with a lack of source information.
+You can then use normal gdb functionality, albeit with a lack of source information, e.g. view backtraces
+inspect stack frames etc.
