@@ -14,6 +14,9 @@
 // Remove dlmalloc has many checks and calls to abort() to reduce code size
 #define ABORT __builtin_unreachable()
 
+// Turn off time dependence
+#define LACKS_TIME_H 1
+
 #define __THROW
 #define __attribute_malloc__
 #define __wur

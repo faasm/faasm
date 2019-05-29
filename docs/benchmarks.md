@@ -70,7 +70,7 @@ mv perf.data perf.data.native
 perf report -i perf.data.native
 ```
 
-Provided you have set up the wasm profiling set-up as described in the profiling docs, you an do something
+Provided you have set up the wasm profiling set-up as described in the profiling docs, you can do something
 similar:
 
 ```

@@ -25,7 +25,8 @@ namespace faasm {
                     break;
                 } else {
                     printf("readdir failed: %s\n", strerror(errno));
-                    return 1;
+                    results.clear();
+                    return results;
                 }
             }
 
@@ -44,7 +45,14 @@ namespace faasm {
         const char* dirB = "/lib/python3.7/encodings/";
 
         std::vector<std::string> vecA = listDir(dirA);
+        if(vecA.empty()) {
+            printf("Error listing dir %s\n", dirA);
+        }
+
         std::vector<std::string> vecB = listDir(dirB);
+        if(vecB.empty()) {
+            printf("Error listing dir %s\n", dirB);
+        }
 
         printf("vecA = %lu\n", vecA.size());
         printf("vecB = %lu\n", vecB.size());
