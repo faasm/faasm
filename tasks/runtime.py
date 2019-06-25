@@ -30,6 +30,9 @@ _PACKAGES_INCLUDED = {
     "performance": {
         "path": "performance/build/performance-0.7.0/install/lib/python3.7/site-packages/performance",
     },
+    "pyaes": {
+        "path": "pyaes/build/pyaes-1.6.1/install/lib/python3.7/site-packages/pyaes",
+    },
     "six": {
         "path": "six/build/six-1.12.0/install/lib/python3.7/site-packages/six.py"
     }
@@ -88,6 +91,9 @@ def set_up_python_runtime(ctx):
     runtime_site_packages = join(PY_RUNTIME_ROOT, "site-packages")
     check_output("mkdir -p {}".format(runtime_site_packages), shell=True)
 
+    # Create a tmp directory for work
+    check_output("mkdir -p {}".format(join(PY_RUNTIME_ROOT, "tmp")), shell=True)
+
     print("\nSetting up packages")
     for pkg_name, pkg_detail in _PACKAGES_INCLUDED.items():
         print("\n --------- {} ---------".format(pkg_name))
@@ -97,6 +103,9 @@ def set_up_python_runtime(ctx):
         # Put files in place
         print("Copying {} into place".format(pkg_name))
         check_output("cp -r {} {}".format(pkg_dir, runtime_site_packages), shell=True)
+
+    # Run codegen
+    run_python_codegen(ctx)
 
 
 @task

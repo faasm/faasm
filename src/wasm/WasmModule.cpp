@@ -519,13 +519,13 @@ namespace wasm {
     }
 
     void WasmModule::setErrno(int newValue) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         if (errnoLocation != 0) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->debug("Setting errno={} ({}) (errno_location={})", newValue, strerror(newValue), errnoLocation);
 
             Runtime::memoryRef<I32>(defaultMemory, errnoLocation) = (I32) newValue;
         } else {
-            throw std::runtime_error("Attempting to set errno without errno location set");
+            logger->warn("No errno set but trying to set to {} ({})", strerror(newValue));
         }
     }
 
@@ -628,7 +628,7 @@ namespace wasm {
             throw std::runtime_error("Run out of memory to map");
         }
 
-        logger->debug("Growing memory from {} to {} WAVM pages", previousPageCount, newPageCount);
+        logger->debug("mmap - Growing memory from {} to {} pages", previousPageCount, newPageCount);
 
         // Get pointer to mapped range
         auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);
@@ -659,54 +659,6 @@ namespace wasm {
 
         // Return the wasm pointer
         return sharedMemWasmPtrs[kv->key];
-    }
-
-    I32 WasmModule::sBrk(U32 increment) {
-        Uptr currentBrk = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
-        if (increment == 0) {
-            // Calling with zero is the same as calling brk with zero,
-            // return the current break
-            return currentBrk;
-        }
-
-        U32 target = currentBrk + increment;
-        int brkResult = this->brk(target);
-
-        if (brkResult == EXPAND_SUCCESS) {
-            // Return the new break
-            Uptr newBrk = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
-            return newBrk;
-        } else {
-            return -1;
-        }
-    }
-
-    I32 WasmModule::brk(U32 newSize) {
-        Uptr targetPageCount = getNumberOfPagesForBytes(newSize);
-
-        // Work out current size
-        const Uptr currentPageCount = getMemoryNumPages(defaultMemory);
-
-        // Check if expanding too far
-        Uptr maxPages = getMemoryMaxPages(defaultMemory);
-        if (targetPageCount > maxPages) {
-            return EXPAND_TOO_BIG;
-        }
-
-        // Nothing too be done if memory already big enough or new size is zero
-        if (targetPageCount <= currentPageCount || newSize == 0) {
-            return EXPAND_NO_ACTION;
-        }
-
-        Uptr expansion = targetPageCount - currentPageCount;
-
-        // Grow memory as required
-        Iptr prevPageCount = growMemory(defaultMemory, expansion);
-        if (prevPageCount == -1) {
-            throw std::runtime_error("Something has gone seriously wrong with brk");
-        }
-
-        return EXPAND_SUCCESS;
     }
 
     bool WasmModule::resolve(const std::string &moduleName,
@@ -851,12 +803,14 @@ namespace wasm {
         getDisassemblyNames(module, disassemblyNames);
 
         for (Uptr i = 0; i < module.functions.size(); i++) {
-            bool isImport = i < module.functions.imports.size();
+            unsigned long nImports = module.functions.imports.size();
+            bool isImport = i < nImports;
 
+            int nameIdx = isImport ? i : i - nImports;
             std::string baseName = isImport ? "functionImport" : "functionDef";
-            std::string funcName = baseName + std::to_string(i);
-            std::string disasName = disassemblyNames.functions[i].name;
+            std::string funcName = baseName + std::to_string(nameIdx);
 
+            std::string disasName = disassemblyNames.functions[i].name;
             output.insert({funcName, disasName});
         }
 

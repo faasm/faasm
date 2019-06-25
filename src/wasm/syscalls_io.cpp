@@ -60,10 +60,7 @@ namespace wasm {
                 logger->debug("Failed to open - {}", path);
             }
 
-            // It seems that some applications expect errno to be set and the return value
-            // to be the error code, whereas others expect -1 to be returned and errno to be
-            // set. We will return the error code _and_ set errno
-            int newErrno = -fd;
+            int newErrno = errno;
             getExecutingModule()->setErrno(newErrno);
         }
 
@@ -90,26 +87,33 @@ namespace wasm {
         util::SystemConfig &conf = util::getSystemConfig();
 
         // Duplicating file descriptors
+        int returnValue;
         if (cmd == F_DUPFD || cmd == F_DUPFD_CLOEXEC) {
             // Duplicating file descriptors is allowed
-            int newFd = fcntl(fd, cmd, c);
-            addFdForThisThread(newFd);
-            return newFd;
-        }
+            returnValue = fcntl(fd, cmd, c);
 
-        if (cmd == F_GETFL || cmd == F_GETFD || cmd == F_SETFD) {
+            if (returnValue > 0) {
+                addFdForThisThread(returnValue);
+            }
+        } else if (cmd == F_GETFL || cmd == F_GETFD || cmd == F_SETFD) {
             // Getting file flags, file descriptor flags and setting file descriptor flags are allowed
-            return fcntl(fd, cmd, c);
-        }
-
-        // Allow everything else in unsafe mode, but block otherwise
-        if (conf.unsafeMode == "on") {
+            returnValue = fcntl(fd, cmd, c);
+        } else if (conf.unsafeMode == "on") {
+            // Allow everything else in unsafe mode, but block otherwise
             logger->warn("Allowing arbitrary fcntl command: {}", cmd);
-            return fcntl(fd, cmd, c);
+            returnValue = fcntl(fd, cmd, c);
         } else {
             logger->error("Using arbitrary fcntl command: {}", cmd);
             throw std::runtime_error("Process not allowed to set file flags");
         }
+
+        if (returnValue < 0) {
+            getExecutingModule()->setErrno(errno);
+            logger->warn("Failed fcntl call");
+            return -1;
+        }
+
+        return returnValue;
     }
 
     /**
@@ -119,6 +123,9 @@ namespace wasm {
      *
      * We try to be conservative but will throw an exception if things aren't right. A bug here
      * can be hard to find.
+     *
+     * The musl implementation of readdir seems to require returning (-1 * errno) on error, not -1
+     * as the man pages suggest.
      */
     I32 s__getdents64(I32 fd, I32 wasmDirentBuf, I32 wasmDirentBufLen) {
         util::getLogger()->debug("S - getdents64 - {} {} {}", fd, wasmDirentBuf, wasmDirentBufLen);
@@ -133,59 +140,64 @@ namespace wasm {
         // Note that this can cause an EINVAL error if too small for the result
         int nativeBufLen = 80;
 
-        U32 wasmBytesRead;
+        U32 wasmBytesRead = 0;
         int wasmDirentCount = 0;
 
         // Here we will iterate getting native dirents until we've filled up the wasm buffer supplied
         for (wasmBytesRead = 0; wasmBytesRead < wasmDirentBufLen - (2 * wasmDirentSize);) {
-
             // Make the native syscall. This will read in a list of dirent structs to the buffer
-            // We need to read at most two native dirents. Each one will be at most 40 bytes.
+            // We need to read at most two native dirents.
             auto nativeBuf = new char[nativeBufLen];
             long nativeBytesRead = syscall(SYS_getdents64, fd, nativeBuf, nativeBufLen);
 
-            if (nativeBytesRead == 0) {
-                // No more native dirents
-                return wasmBytesRead;
-            } else if (nativeBytesRead < 0) {
+            if (nativeBytesRead < 0) {
                 // Error reading native dirents
-                getExecutingModule()->setErrno(errno);
+                int newErrno = errno;
+                getExecutingModule()->setErrno(newErrno);
 
-                return (I32) nativeBytesRead;
-            }
+                delete[] nativeBuf;
+                return -newErrno;
+            } else if(nativeBytesRead == 0) {
+                // End of directory
+                delete[] nativeBuf;
+                getExecutingModule()->setErrno(0);
+                return wasmBytesRead;
+            } else {
+                // Now we iterate through the dirents we just got back from the host
+                unsigned int nativeOffset;
+                for (nativeOffset = 0; nativeOffset < nativeBytesRead;) {
+                    // If we're going to overshoot on the wasm buffer, we have a problem (worth throwing an exception)
+                    if (wasmBytesRead > (U32) wasmDirentBufLen) {
+                        throw std::runtime_error("Overshot the end of the dirent buffer");
+                    }
 
-            // Now we iterate through the dirents we just got back from the host
-            unsigned int nativeOffset;
-            for (nativeOffset = 0; nativeOffset < nativeBytesRead;) {
-                // If we're going to overshoot on the wasm buffer, we have a problem
-                if (wasmBytesRead > (U32) wasmDirentBufLen) {
-                    throw std::runtime_error("Overshot the end of the dirent buffer");
+                    // Get a pointer to the native dirent
+                    auto d = (struct dirent64 *) (nativeBuf + nativeOffset);
+
+                    // Copy the relevant info into the wasm dirent.
+                    struct wasm_dirent64 dWasm{};
+                    dWasm.d_ino = (U32) d->d_ino;
+                    dWasm.d_off = wasmDirentCount * wasmDirentSize;
+                    dWasm.d_type = d->d_type;
+                    dWasm.d_reclen = wasmDirentSize;
+
+                    // Copy the name into place
+                    size_t nameLen = strlen(d->d_name);
+                    std::copy(d->d_name, d->d_name + nameLen, dWasm.d_name);
+
+                    // Copy the wasm dirent into place in wasm memory
+                    auto dWasmBytes = reinterpret_cast<uint8_t *>(&dWasm);
+                    std::copy(dWasmBytes, dWasmBytes + wasmDirentSize, hostWasmDirentBuf + wasmBytesRead);
+
+                    // Move offsets along
+                    nativeOffset += d->d_reclen;
+
+                    wasmBytesRead += wasmDirentSize;
+                    wasmDirentCount++;
                 }
-
-                // Get a pointer to the native dirent
-                auto d = (struct dirent64 *) (nativeBuf + nativeOffset);
-
-                // Copy the relevant info into the wasm dirent.
-                struct wasm_dirent64 dWasm{};
-                dWasm.d_ino = (U32) d->d_ino;
-                dWasm.d_off = wasmDirentCount * wasmDirentSize;
-                dWasm.d_type = d->d_type;
-                dWasm.d_reclen = wasmDirentSize;
-
-                // Copy the name into place
-                size_t nameLen = strlen(d->d_name);
-                std::copy(d->d_name, d->d_name + nameLen, dWasm.d_name);
-
-                // Copy the wasm dirent into place in wasm memory
-                auto dWasmBytes = reinterpret_cast<uint8_t *>(&dWasm);
-                std::copy(dWasmBytes, dWasmBytes + wasmDirentSize, hostWasmDirentBuf + wasmBytesRead);
-
-                // Move offsets along
-                nativeOffset += d->d_reclen;
-
-                wasmBytesRead += wasmDirentSize;
-                wasmDirentCount++;
             }
+
+            delete[] nativeBuf;
         }
 
         return wasmBytesRead;
@@ -389,24 +401,23 @@ namespace wasm {
         return access(path.c_str(), mode);
     }
 
-    /**
-     *  We don't want to give away any real info about the filesystem, but we can just return the default
-     *  stat object and catch the application later if it tries to do anything dodgy.
-     */
     I32 s__fstat64(I32 fd, I32 statBufPtr) {
         util::getLogger()->debug("S - fstat64 - {} {}", fd, statBufPtr);
 
         struct stat64 nativeStat{};
-        fstat64(fd, &nativeStat);
+        int result = fstat64(fd, &nativeStat);
+
+        if(result < 0) {
+            int newErrno = errno;
+            getExecutingModule()->setErrno(newErrno);
+            return -1;
+        }
+
         writeNativeStatToWasmStat(&nativeStat, statBufPtr);
 
         return 0;
     }
 
-    /**
-     * In spite of the man pages, it seems the wasm version of stat64 is meant to return the
-     * error code if it fails, not -1 and set errno, but we will set errno properly just in case
-     */
     I32 s__stat64(I32 pathPtr, I32 statBufPtr) {
         // Get the path
         const std::string fakePath = getMaskedPathFromWasm(pathPtr);
@@ -416,10 +427,11 @@ namespace wasm {
 
         struct stat64 nativeStat{};
         int result = stat64(fakePath.c_str(), &nativeStat);
+
         if (result < 0) {
             int newErrno = errno;
             getExecutingModule()->setErrno(newErrno);
-            return -newErrno;
+            return -1;
         }
 
         writeNativeStatToWasmStat(&nativeStat, statBufPtr);
@@ -450,12 +462,12 @@ namespace wasm {
 
         // The caller is expecting the result to be written to the result pointer
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        I32* hostResultPtr = &Runtime::memoryRef<I32>(memoryPtr, (Uptr) resultPtr);
+        I32 *hostResultPtr = &Runtime::memoryRef<I32>(memoryPtr, (Uptr) resultPtr);
 
         int res = (int) lseek(fd, offsetLow, whence);
 
         // Success returns zero and failure returns -1 with correct errno set
-        if(res < 0) {
+        if (res < 0) {
             getExecutingModule()->setErrno(errno);
             return -1;
         } else {

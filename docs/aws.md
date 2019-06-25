@@ -63,8 +63,7 @@ with the `deploy-native-lambda-func` task, e.g. `inv deploy-native-lambda-func d
 
 ### Uploading wasm functions
 
-To upload functions as wasm, you first need to run the functions wasm build locally (`inv funcs` from inside the
-toolchain container).
+To upload functions as wasm, you first need to run the functions wasm build locally.
 
 Once this is done, you can deploy a given function to lambda with `inv deploy-wasm-lambda-func`, e.g.
 `inv deploy-wasm-lambda-func demo echo`. This will upload the function to S3, then use another lambda function to

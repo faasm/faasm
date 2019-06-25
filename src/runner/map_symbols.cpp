@@ -42,5 +42,7 @@ int main(int argc, char *argv[]) {
 
     outfile.close();
 
+    logger->info("Output at {}", outPath);
+
     return 0;
 }

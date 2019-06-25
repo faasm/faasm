@@ -12,7 +12,7 @@ namespace faasm {
         FILE *fp = fopen("/etc/hosts", "r");
 
         char buff[2056];
-        fgets(buff, 2056, (FILE *) fp);
+        fgets(buff, 2056, fp);
         printf("Read from /etc/hosts: \n%s\n", buff);
 
         const char* expected = "127.0.0.1\tlocalhost\n";

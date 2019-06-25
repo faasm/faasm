@@ -37,6 +37,17 @@ namespace tests {
         conf.reset();
     }
 
+    TEST_CASE("Test listdir", "[worker]") {
+        cleanSystem();
+
+        message::Message msg;
+        msg.set_user("demo");
+        msg.set_function("listdir");
+        msg.set_resultkey("listdir_test");
+
+        execFunction(msg);
+    }
+
     TEST_CASE("Test errno with stat64", "[worker]") {
         cleanSystem();
 

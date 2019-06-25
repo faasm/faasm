@@ -9,6 +9,15 @@
 #include <WAVM/Runtime/Intrinsics.h>
 
 namespace wasm {
+    bool isPageAligned(I32 address) {
+        Uptr addrPtr = (Uptr) address;
+        if (addrPtr & (IR::numBytesPerPage - 1)) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
     I32 s__madvise(I32 address, I32 numBytes, I32 advice) {
         util::getLogger()->debug("S - madvise - {} {} {}", address, numBytes, advice);
 
@@ -77,13 +86,13 @@ namespace wasm {
 
         // Although we are ignoring the offset we should probably
         // double check when something explicitly requests one
-        if(offset != 0) {
-            logger->debug("WARNING: ignoring non-zero mmap offset ({})", offset);
+        if (offset != 0) {
+            logger->warn("WARNING: ignoring non-zero mmap offset ({})", offset);
         }
 
         // Likewise with the address hint
         if (addr != 0) {
-            logger->debug("WARNING: ignoring mmap hint at {}", addr);
+            logger->warn("WARNING: ignoring mmap hint at {}", addr);
         }
 
         // Don't allow using mmap for anything other than allocating memory
@@ -96,68 +105,129 @@ namespace wasm {
         return module->mmap(length);
     }
 
+    /**
+     * Note - the return value required from munmap in case of error is not clear.
+     * To be safe this both sets errno and returns the (-1 * error code) (rather than
+     * either just returning the error code or returning -1 and setting errno)
+     */
     I32 s__munmap(I32 addr, I32 length) {
-        util::getLogger()->debug("S - munmap - {} {}", addr, length);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - munmap - {} {}", addr, length);
 
-        Runtime::Memory *memory = getExecutingModule()->defaultMemory;
+        WasmModule *executingModule = getExecutingModule();
+        Runtime::Memory *memory = executingModule->defaultMemory;
 
         // If not aligned or zero length, drop out
-        if (addr & (IR::numBytesPerPage - 1) || length == 0) {
+        if (!isPageAligned(addr)) {
+            logger->warn("munmap address not page-aligned ({})", addr);
+            executingModule->setErrno(EINVAL);
+            return -EINVAL;
+        } else if (length == 0) {
+            logger->warn("munmap size zero");
+            executingModule->setErrno(EINVAL);
             return -EINVAL;
         }
 
-        const Uptr basePageIndex = addr / IR::numBytesPerPage;
+        const Uptr addrPageBase = addr / IR::numBytesPerPage;
         const Uptr numPages = getNumberOfPagesForBytes(length);
 
         // Drop out if we're munmapping over the max page boundary
-        if (basePageIndex + numPages > getMemoryMaxPages(memory)) {
+        if (addrPageBase + numPages > getMemoryMaxPages(memory)) {
+            logger->warn("munmapping region over max memory pages");
+            executingModule->setErrno(EINVAL);
             return -EINVAL;
         }
 
-        // If these are the top pages of memory, shrink it, if not, unmap them
-        // Note that we won't be able to reclaim them if we're just unmapping
-        const Uptr currentPageCount = getMemoryNumPages(memory);
-        if (basePageIndex + numPages == currentPageCount) {
-            shrinkMemory(memory, numPages);
-        } else {
-            unmapMemoryPages(memory, basePageIndex, numPages);
-        }
+        // Unmap the memory
+        unmapMemoryPages(memory, addrPageBase, numPages);
 
         return 0;
     }
 
     /**
-   * Details of what should be returned from brk aren't particularly clear. I took info from
-   * https://linux.die.net/man/2/brk i.e.
-   *
-   *   - on addr == 0 return current break
-   *   - on error return current break
-   *   - on success return NEW break
-   */
-    I32 s__brk(I32 addr) {
-        util::getLogger()->debug("S - brk - {}", addr);
-
-        Runtime::Memory *memory = getExecutingModule()->defaultMemory;
-        const U32 currentBreak = (U32) ((getMemoryNumPages(memory) * IR::numBytesPerPage));
-
-        // Attempt the expansion
-        int expandRes = getExecutingModule()->brk(currentBreak + addr);
-
-        if (expandRes == EXPAND_TOO_BIG) {
-            return currentBreak;
-        } else if (expandRes == EXPAND_NO_ACTION) {
-            return currentBreak;
-        } else {
-            // Success, return requested break
-            return (U32) addr;
+     * Note that brk should only be called through the musl wrapper. We make the following
+     * assumptions (not 100% clear what the behaviour should be):
+     *
+     * - brk(0) returns the current break
+     * - returns the new break if successful
+     * - returns -1 if there's an issue and sets errno
+     *
+     * Note that we don't assume the address is page-aligned and just do nothing if there's already space
+    */
+    I32 _do_brk(I32 addr) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        if(!isPageAligned(addr)) {
+            logger->error("brk address not page-aligned ({})", addr);
+            throw std::runtime_error("brk not page-aligned");
         }
+        
+        WasmModule *module = getExecutingModule();
+        Runtime::Memory *memory = module->defaultMemory;
+
+        Uptr currentPageCount = getMemoryNumPages(memory);
+        const U32 currentBreak = (U32) (currentPageCount * IR::numBytesPerPage);
+
+        // Return current break if addr is zero
+        if (addr == 0) {
+            return currentBreak;
+        }
+
+        Uptr targetPageCount = getNumberOfPagesForBytes(addr);
+        Uptr maxPages = getMemoryMaxPages(memory);
+
+        // Check if expanding too far
+        if (targetPageCount > maxPages) {
+            module->setErrno(ENOMEM);
+            return -1;
+        }
+
+        // Nothing to be done if memory already big enough
+        if (targetPageCount <= currentPageCount) {
+            return currentBreak;
+        }
+
+        // Grow memory as required
+        Uptr expansion = targetPageCount - currentPageCount;
+        logger->debug("brk - Growing memory from {} to {} pages", currentPageCount, targetPageCount);
+        Iptr prevPageCount = growMemory(memory, expansion);
+        if (prevPageCount == -1) {
+            throw std::runtime_error("Something has gone wrong with brk logic");
+        }
+
+        // Success, return requested break (note, this might be lower than the memory we actually allocated)
+        return (U32) addr;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "sbrk", I32, sbrk, I32 increment) {
+    I32 s__brk(I32 addr) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - brk - {}", addr);
+
+        return _do_brk(addr);
+    }
+
+    I32 s__sbrk(I32 increment) {
         util::getLogger()->debug("S - sbrk - {}", increment);
 
         WasmModule *module = getExecutingModule();
-        return module->sBrk(increment);
+        Runtime::Memory *memory = module->defaultMemory;
+
+        Uptr currentPageCount = getMemoryNumPages(memory);
+        const U32 currentBreak = (U32) (currentPageCount * IR::numBytesPerPage);
+
+        // Calling sbrk with zero is the same as calling brk with zero
+        if (increment == 0) {
+            return currentBreak;
+        }
+
+        U32 target = currentBreak + increment;
+
+        // Normal brk, but we want to return the start of the region that's been created (i.e. the old break)
+        I32 brkResult = _do_brk(target);
+        if (brkResult == -1) {
+            return -1;
+        } else {
+            return currentBreak;
+        }
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state", void, __faasm_push_state, I32 keyPtr) {

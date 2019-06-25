@@ -16,8 +16,19 @@
       lineinfile:
         path: /etc/sysctl.conf
         regexp: '^kernel\.perf_event_paranoid'
-        line: 'kernel.perf_event_paranoid=-1'
+        line: "kernel.perf_event_paranoid=-1"
+
+    - name: "Turn off kptr_restrict"
+      become: yes
+      lineinfile:
+        path: /etc/sysctl.conf
+        regexp: '^kernel\.kptr_restrict'
+        line: "kernel.kptr_restrict=0"
 
     - name: "Add permissions on this session"
       become: yes
       shell: "sudo sh -c 'echo -1 > /proc/sys/kernel/perf_event_paranoid'"
+
+    - name: "Turn off kptr_restrict in this session"
+      become: yes
+      shell: "sudo sh -c 'echo 0 > /proc/sys/kernel/kptr_restrict'"
