@@ -22,6 +22,7 @@ RUN rm faasm_runtime_root.tar.gz
 # Run codegen on Python stuff
 WORKDIR /faasm/build
 RUN ./bin/codegen /usr/local/faasm/runtime_root/lib/python3.7
+RUN chown -R root:root /usr/local/faasm
 
 # Set up entrypoint (for cgroups, namespaces etc.)
 COPY bin/worker-entrypoint.sh /entrypoint.sh
