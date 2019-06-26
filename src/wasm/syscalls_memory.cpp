@@ -132,7 +132,7 @@ namespace wasm {
         const Uptr numPages = getNumberOfPagesForBytes(length);
 
         // Drop out if we're munmapping over the max page boundary
-        if (addrPageBase + numPages > getMemoryMaxPages(memory)) {
+        if (addrPageBase + numPages > getMemoryType(memory).size.max) {
             logger->warn("munmapping region over max memory pages");
             executingModule->setErrno(EINVAL);
             return -EINVAL;
@@ -173,7 +173,7 @@ namespace wasm {
         }
 
         Uptr targetPageCount = getNumberOfPagesForBytes(addr);
-        Uptr maxPages = getMemoryMaxPages(memory);
+        Uptr maxPages = getMemoryType(memory).size.max;
 
         // Check if expanding too far
         if (targetPageCount > maxPages) {

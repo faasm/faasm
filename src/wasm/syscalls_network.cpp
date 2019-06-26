@@ -34,7 +34,8 @@ namespace wasm {
      * straight through.
      */
     I32 s__socketcall(I32 call, I32 argsPtr) {
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        WasmModule *module = getExecutingModule();
+        Runtime::Memory *memoryPtr = module->defaultMemory;
 
         // NOTE
         // We don't want to support server-side socket syscalls as we expect functions
@@ -105,7 +106,7 @@ namespace wasm {
                     printf("Socket error: %i\n", sock);
                 }
 
-                addFdForThisThread(sock);
+                module->addFdForThisThread(sock);
 
                 return sock;
             }
@@ -120,7 +121,7 @@ namespace wasm {
                 util::getLogger()->debug("S - connect - {} {} {}", sockfd, addrPtr, addrLen);
 
                 // Allow connecting if thread owns socket
-                checkThreadOwnsFd(sockfd);
+                module->checkThreadOwnsFd(sockfd);
 
                 sockaddr addr = getSockAddr(addrPtr);
                 int result = connect(sockfd, &addr, sizeof(sockaddr));
@@ -146,7 +147,7 @@ namespace wasm {
                 I32 flags = subCallArgs[3];
 
                 // Make sure thread owns this socket
-                checkThreadOwnsFd(sockfd);
+                module->checkThreadOwnsFd(sockfd);
 
                 // Set up buffer
                 U8 *buf = Runtime::memoryArrayPtr<U8>(memoryPtr, bufPtr, bufLen);
@@ -206,7 +207,7 @@ namespace wasm {
                 util::getLogger()->debug("S - bind - {} {} {}", sockfd, addrPtr, addrLen);
 
                 // If thread owns fd, we can bind
-                checkThreadOwnsFd(sockfd);
+                module->checkThreadOwnsFd(sockfd);
                 int bindResult = bind(sockfd, &addr, sizeof(addr));
 
                 return (I32) bindResult;
@@ -220,7 +221,7 @@ namespace wasm {
 
                 util::getLogger()->debug("S - getsockname - {} {} {}", sockfd, addrPtr, addrLenPtr);
 
-                checkThreadOwnsFd(sockfd);
+                module->checkThreadOwnsFd(sockfd);
 
                 sockaddr nativeAddr = getSockAddr(addrPtr);
                 socklen_t nativeAddrLen = sizeof(nativeAddr);

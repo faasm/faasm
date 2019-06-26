@@ -28,9 +28,10 @@ make clean && make
 
 ## Setting up the runtime environment
 
-Once this is all built we can put the relevant files in place with:
+Once this is all built we can put the relevant files in place _in a new terminal session_ at the root of the project:
 
 ```
+source workon.sh
 inv set-up-python-runtime
 ```
 
@@ -39,16 +40,6 @@ We then need to generate machine code for this with:
 ```
 inv run-python-codegen
 ```
-
-## Packaging the Python runtime
-
-To package the Python runtime for use on AWS and in containers, we can run the following:
-
-```
-inv package-python-runtime
-```
-
-This bundles up the required runtime files and uploads them to S3.
 
 ## Compiling the Python function
 
@@ -68,3 +59,13 @@ Adding packages to Pyodide is described [in their docs](https://github.com/iodid
 - Copy the `meta.yml` from another pure Python package (e.g. `perf`)
 - Add the right version, SHA and a link to the `.tar.gz` from PyPI (perf example [here](https://pypi.org/project/perf/))
 - From the `packages` directory run `../bin/pyodide buildpkg --package_abi=0 <your_pkg>/meta.yaml`
+
+## Packaging the Python runtime
+
+To package the Python runtime for use on AWS and in containers, we can run the following:
+
+```
+inv package-python-runtime
+```
+
+This bundles up the required runtime files and uploads them to S3.

@@ -162,13 +162,6 @@ namespace wasm {
         sc_sendmmsg,
     };
 
-    // List of file descriptors held by the current thread
-    void addFdForThisThread(int fd);
-
-    void removeFdForThisThread(int fd);
-
-    void checkThreadOwnsFd(int fd);
-
     // Struct conversion
 
     sockaddr getSockAddr(I32 addrPtr);
