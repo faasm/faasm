@@ -1,6 +1,8 @@
 FROM faasm/base
 
+# Changing ownership here seems to be necessary to keep circleci happy
 COPY . /usr/local/code/faasm
+RUN chown -R root:root /usr/local/code/faasm
 
 # Set up dummy networking files
 WORKDIR /usr/local/code/faasm/ansible

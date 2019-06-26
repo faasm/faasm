@@ -2,8 +2,9 @@
 
 set -e
 
+CGROUP_USER=${SUDO_USER:-$USER}
 CGROUP=cpu:faasm
-CGROUP_USER=$(logname)
+
 echo "Setting up cgroup ${CGROUP} for ${CGROUP_USER}"
 
 cgcreate -t ${CGROUP_USER}:${CGROUP_USER} -a ${CGROUP_USER}:${CGROUP_USER} -g ${CGROUP}
