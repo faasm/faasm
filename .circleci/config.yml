@@ -14,6 +14,12 @@ jobs:
           name: "Update submodules"
           command: git submodule update --init
       - run:
+          name: "Set up cgroups"
+          command: ./bin/cgroup.sh
+      - run:
+          name: "Setting up namespaces"
+          command: ./bin/netns.sh 2
+      - run:
           name: "Build tests"
           command: mkdir build && cd build && cmake --build . --target tests
       - run:
