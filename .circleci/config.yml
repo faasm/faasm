@@ -19,4 +19,9 @@ jobs:
       - run:
           name: "Execute tests"
           command: /usr/local/code/faasm/build/bin/tests
-          
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - cpp_tests
