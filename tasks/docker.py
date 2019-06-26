@@ -114,6 +114,16 @@ def build_edge(context):
 
 
 @task
+def build_testing(context):
+    call("docker build -t faasm/testing  -f docker/testing.dockerfile .", shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def push_testing(context):
+    call("docker push faasm/testing", shell=True, cwd=PROJ_ROOT)
+
+
+@task
 def build_root(context):
     call("docker build -t faasm/cpp-root -f docker/cpp-root.dockerfile .", shell=True, cwd=PROJ_ROOT)
 

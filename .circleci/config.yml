@@ -1,0 +1,28 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: faasm:testing
+
+    jobs:
+      cpp_tests:
+        working_directory: /usr/local/code/faasm
+
+        steps:
+          - checkout
+
+          - run:
+              name: "Sync submodules"
+              command: git submodule sync
+
+          - run:
+              name: "Update submodules"
+              command: git submodule update --init
+
+          - run:
+              name: "Build tests"
+              command: mkdir build && cd build && cmake --build . --target tests
+
+          - run:
+              name: "Execute tests"
+              command: /usr/local/code/faasm/build/bin/tests
