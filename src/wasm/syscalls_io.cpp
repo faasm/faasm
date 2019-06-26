@@ -23,6 +23,7 @@ namespace wasm {
         logger->debug("S - open - {} {} {}", path, flags, mode);
 
         util::SystemConfig &conf = util::getSystemConfig();
+        WasmModule *module = getExecutingModule();
 
         // Check if this is a valid path. Return a read-only handle to the file if so
         int fd;
@@ -51,7 +52,7 @@ namespace wasm {
         }
 
         if (fd > 0) {
-            addFdForThisThread(fd);
+            module->addFdForThisThread(fd);
         } else {
             // This is an error of some form
             if (!fakePath.empty()) {
@@ -61,7 +62,8 @@ namespace wasm {
             }
 
             int newErrno = errno;
-            getExecutingModule()->setErrno(newErrno);
+
+            module->setErrno(newErrno);
         }
 
         return fd;
@@ -70,10 +72,12 @@ namespace wasm {
     I32 s__dup(I32 oldFd) {
         util::getLogger()->debug("S - dup - {}", oldFd);
 
-        checkThreadOwnsFd(oldFd);
+        WasmModule *module = getExecutingModule();
+        
+        module->checkThreadOwnsFd(oldFd);
 
         int newFd = dup(oldFd);
-        addFdForThisThread(newFd);
+        module->addFdForThisThread(newFd);
 
         return newFd;
     }
@@ -82,7 +86,9 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - fcntl64 - {} {} {}", fd, cmd, c);
 
-        checkThreadOwnsFd(fd);
+        WasmModule *module = getExecutingModule();
+
+        module->checkThreadOwnsFd(fd);
 
         util::SystemConfig &conf = util::getSystemConfig();
 
@@ -93,7 +99,7 @@ namespace wasm {
             returnValue = fcntl(fd, cmd, c);
 
             if (returnValue > 0) {
-                addFdForThisThread(returnValue);
+                module->addFdForThisThread(returnValue);
             }
         } else if (cmd == F_GETFL || cmd == F_GETFD || cmd == F_SETFD) {
             // Getting file flags, file descriptor flags and setting file descriptor flags are allowed
@@ -224,7 +230,8 @@ namespace wasm {
         util::getLogger()->debug("S - read - {} {} {}", fd, bufPtr, bufLen);
 
         // Provided the thread owns the fd, we allow reading.
-        checkThreadOwnsFd(fd);
+        WasmModule *module = getExecutingModule();
+        module->checkThreadOwnsFd(fd);
 
         // Get the buffer etc.
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
@@ -256,8 +263,9 @@ namespace wasm {
         util::getLogger()->debug("S - close - {}", fd);
 
         // Provided the thread owns the fd, we allow closing.
-        checkThreadOwnsFd(fd);
-        removeFdForThisThread(fd);
+        WasmModule *module = getExecutingModule();
+        module->checkThreadOwnsFd(fd);
+        module->removeFdForThisThread(fd);
 
         close(fd);
 
@@ -269,11 +277,12 @@ namespace wasm {
         util::getLogger()->debug("S - poll - {} {} {}", fdsPtr, nfds, timeout);
 
         auto *fds = Runtime::memoryArrayPtr<pollfd>(getExecutingModule()->defaultMemory, (Uptr) fdsPtr, (Uptr) nfds);
+        WasmModule *module = getExecutingModule();
 
         // Check this thread has permission to poll the relevant fds
         for (int i = 0; i < nfds; i++) {
             pollfd fd = fds[i];
-            checkThreadOwnsFd(fd.fd);
+            module->checkThreadOwnsFd(fd.fd);
         }
 
         int pollRes = poll(fds, (size_t) nfds, timeout);
@@ -285,7 +294,7 @@ namespace wasm {
 
         auto hostArgPtr = &Runtime::memoryRef<U8>(getExecutingModule()->defaultMemory, (Uptr) argPtr);
 
-        checkThreadOwnsFd(fd);
+        getExecutingModule()->checkThreadOwnsFd(fd);
 
         int res = ioctl(fd, request, hostArgPtr);
 
@@ -298,7 +307,7 @@ namespace wasm {
     I32 s__writev(I32 fd, I32 iov, I32 iovcnt) {
         util::getLogger()->debug("S - writev - {} {} {}", fd, iov, iovcnt);
 
-        checkThreadOwnsFd(fd);
+        getExecutingModule()->checkThreadOwnsFd(fd);
 
         iovec *nativeIovecs = wasmIovecsToNativeIovecs(iov, iovcnt);
 
@@ -313,7 +322,7 @@ namespace wasm {
     I32 s__readv(I32 fd, I32 iovecPtr, I32 iovecCount) {
         util::getLogger()->debug("S - readv - {} {} {}", fd, iovecPtr, iovecCount);
 
-        checkThreadOwnsFd(fd);
+        getExecutingModule()->checkThreadOwnsFd(fd);
 
         iovec *nativeIovecs = wasmIovecsToNativeIovecs(iovecPtr, iovecCount);
 
@@ -331,10 +340,11 @@ namespace wasm {
         util::getLogger()->debug("S - write - {} {} {}", fd, bufPtr, bufLen);
 
         // Provided the thread owns the fd, we allow reading.
-        checkThreadOwnsFd(fd);
+        WasmModule *module = getExecutingModule();
+        module->checkThreadOwnsFd(fd);
 
         // Get the buffer etc.
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = module->defaultMemory;
         U8 *buf = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufPtr, (Uptr) bufLen);
 
         // Do the actual read
@@ -458,17 +468,18 @@ namespace wasm {
     I32 s__llseek(I32 fd, I32 offsetHigh, I32 offsetLow, I32 resultPtr, I32 whence) {
         util::getLogger()->debug("S - llseek - {} {} {} {} {}", fd, offsetHigh, offsetLow, resultPtr, whence);
 
-        checkThreadOwnsFd(fd);
+        WasmModule *module = getExecutingModule();
+        module->checkThreadOwnsFd(fd);
 
         // The caller is expecting the result to be written to the result pointer
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = module->defaultMemory;
         I32 *hostResultPtr = &Runtime::memoryRef<I32>(memoryPtr, (Uptr) resultPtr);
 
         int res = (int) lseek(fd, offsetLow, whence);
 
         // Success returns zero and failure returns -1 with correct errno set
         if (res < 0) {
-            getExecutingModule()->setErrno(errno);
+            module->setErrno(errno);
             return -1;
         } else {
             *hostResultPtr = res;

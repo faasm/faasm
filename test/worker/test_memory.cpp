@@ -27,17 +27,6 @@ namespace tests {
         execFunction(msg);
     }
 
-    TEST_CASE("Test sbrk", "[worker]") {
-        cleanSystem();
-
-        message::Message msg;
-        msg.set_user("demo");
-        msg.set_function("sbrk");
-        msg.set_resultkey("sbrk_test");
-
-        execFunction(msg);
-    }
-
     TEST_CASE("Test calloc", "[worker]") {
         cleanSystem();
 

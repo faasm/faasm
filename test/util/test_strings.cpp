@@ -31,5 +31,6 @@ namespace tests {
         REQUIRE(!endsWith("foobar", "foo"));
         REQUIRE(!endsWith("foobar", "ob"));
         REQUIRE(!endsWith("foobar", ""));
+        REQUIRE(!endsWith("", "foobar"));
     }
 }

@@ -39,6 +39,10 @@ namespace tests {
         message::Message result = messageQueue.getFunctionResult(call);
         REQUIRE(!result.success());
 
+        if(expectedMsg.empty()) {
+            return;
+        }
+
         const std::string actualOutput = result.outputdata();
         bool messageIsFound = false;
         if (actualOutput.find(expectedMsg) != std::string::npos) {
@@ -67,4 +71,8 @@ namespace tests {
     TEST_CASE("Test polling stdin", "[wasm]") {
         checkError("stdin_poll", "Process interacting with stdin");
     }
+
+//    TEST_CASE("Test munmapped memory not usable", "[wasm]") {
+//        checkError("munmap", "");
+//    }
 }

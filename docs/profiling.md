@@ -7,7 +7,7 @@ To set things up you need to do the following:
 
 - Run the `perf.yml` Ansible playbook to set up `perf`
 - Create a build of LLVM with perf support by running `./bin/build/llvm_perf`
-- Modify the top-level `CMakeLists.txt` to set both `FAASM_PROFILE` and `FAASM_CUSTOM_LLVM` to `1`
+- Modify the top-level `CMakeLists.txt` to set `FAASM_CUSTOM_LLVM` to `1`
 - Rebuild the whole project
 
 Once this is done you can use perf as described [here](https://lwn.net/Articles/633846/), i.e.:

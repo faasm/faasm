@@ -10,8 +10,6 @@
 #include <string.h>
 
 namespace wasm {
-    static thread_local std::set<int> openFds;
-
     void getBytesFromWasm(I32 dataPtr, I32 dataLen, uint8_t *buffer) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
@@ -93,37 +91,6 @@ namespace wasm {
         wasmHostPtr->st_ctim.tv_nsec = nativeStatPtr->st_ctim.tv_nsec;
 
         wasmHostPtr->st_ino = nativeStatPtr->st_ino;
-    }
-
-    void addFdForThisThread(int fd) {
-        openFds.insert(fd);
-    }
-
-    void removeFdForThisThread(int fd) {
-        openFds.erase(fd);
-    }
-
-    void checkThreadOwnsFd(int fd) {
-        const std::shared_ptr<spdlog::logger> logger = util::getLogger();
-        bool isNotOwned = openFds.find(fd) == openFds.end();
-        util::SystemConfig &conf = util::getSystemConfig();
-
-        if (fd == STDIN_FILENO) {
-            if (conf.unsafeMode == "on") {
-                logger->warn("Process interacting with stdin");
-            } else {
-                logger->error("Process interacting with stdin");
-                throw std::runtime_error("Process interacting with stdin");
-            }
-        } else if (fd == STDOUT_FILENO) {
-            // Can allow stdout/ stderr through
-            // logger->debug("Process interacting with stdout", fd);
-        } else if (fd == STDERR_FILENO) {
-            // logger->debug("Process interacting with stderr", fd);
-        } else if (isNotOwned) {
-            logger->error("fd not owned by this thread {}", fd);
-            throw std::runtime_error("fd not owned by this function");
-        }
     }
 
     iovec *wasmIovecsToNativeIovecs(I32 wasmIovecPtr, I32 wasmIovecCount) {

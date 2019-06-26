@@ -31,8 +31,9 @@ namespace tests {
         const std::string result = execFunctionWithStringResult(msg);
         std::vector<std::string> actual = util::tokeniseString(result, ',');
 
-        std::sort(actual.begin(), actual.end());
-        REQUIRE(actual == expected);
+        for(auto e : expected) {
+            REQUIRE(std::find(actual.begin(), actual.end(), e) != actual.end());
+        }
 
         conf.reset();
     }

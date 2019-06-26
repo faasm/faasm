@@ -4,6 +4,7 @@
 #include <util/files.h>
 #include <util/func.h>
 #include <util/memory.h>
+#include <util/config.h>
 #include <wasm/FunctionLoader.h>
 
 #include <WAVM/WASM/WASM.h>
@@ -23,6 +24,7 @@ namespace wasm {
     static thread_local WasmModule *executingModule;
     static thread_local message::Message *executingCall;
     static thread_local CallChain *executingCallChain;
+    static thread_local std::set<int> openFds;
 
     WasmModule *getExecutingModule() {
         return executingModule;
@@ -120,8 +122,8 @@ namespace wasm {
             }
 
             // Go through each elem entry and record where in the table it's getting inserted
-            for (Uptr i = 0; i < es.elems.size(); i++) {
-                const IR::Elem &elem = es.elems[i];
+            for (Uptr i = 0; i < es.elems->size(); i++) {
+                const IR::Elem &elem = (*es.elems)[i];
 
                 // Ignore null entries
                 if (!es.isActive && elem.type == IR::Elem::Type::ref_null) {
@@ -228,7 +230,7 @@ namespace wasm {
             module.tables.defs[0].type.size.max = (U64) MAX_TABLE_SIZE;
 
             // Set up intrinsics
-            envModule = Intrinsics::instantiateModule(compartment, getIntrinsicModule_env(), "env");
+            envModule = Intrinsics::instantiateModule(compartment, {getIntrinsicModule_env()}, "env");
         } else {
             // Check that the module isn't expecting to create any memories or tables
             if (!irModule.tables.defs.empty()) {
@@ -612,6 +614,9 @@ namespace wasm {
             Runtime::destroyException(ex);
         }
 
+        // Clean up any open fds
+        this->clearFds();
+
         return exitCode;
     }
 
@@ -785,7 +790,7 @@ namespace wasm {
                 logger->error("Resolved import {}.{} to a {}, but was expecting {}",
                               moduleName.c_str(),
                               name.c_str(),
-                              asString(getObjectType(resolved)).c_str(),
+                              asString(getExternType(resolved)).c_str(),
                               asString(type).c_str());
                 return false;
             }
@@ -815,5 +820,40 @@ namespace wasm {
         }
 
         return output;
+    }
+
+    void WasmModule::addFdForThisThread(int fd) {
+        openFds.insert(fd);
+    }
+
+    void WasmModule::removeFdForThisThread(int fd) {
+        openFds.erase(fd);
+    }
+
+    void WasmModule::clearFds() {
+        openFds.clear();
+    }
+
+    void WasmModule::checkThreadOwnsFd(int fd) {
+        const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+        bool isNotOwned = openFds.find(fd) == openFds.end();
+        util::SystemConfig &conf = util::getSystemConfig();
+
+        if (fd == STDIN_FILENO) {
+            if (conf.unsafeMode == "on") {
+                logger->warn("Process interacting with stdin");
+            } else {
+                logger->error("Process interacting with stdin");
+                throw std::runtime_error("Process interacting with stdin");
+            }
+        } else if (fd == STDOUT_FILENO) {
+            // Can allow stdout/ stderr through
+            // logger->debug("Process interacting with stdout", fd);
+        } else if (fd == STDERR_FILENO) {
+            // logger->debug("Process interacting with stderr", fd);
+        } else if (isNotOwned) {
+            logger->error("fd not owned by this thread {}", fd);
+            throw std::runtime_error("fd not owned by this function");
+        }
     }
 }

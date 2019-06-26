@@ -12,11 +12,15 @@ namespace faasm {
 
         // Create an invalid fd
         sockfd += 1;
-        printf("Invalid socket fd: %i\n", sockfd);
 
         // Now try to connect
-        connect(sockfd, &addr, sizeof(addr));
+        int res = connect(sockfd, &addr, sizeof(addr));
+        if(res < 0) {
+            // This is expected
+            return 1;
+        }
 
+        printf("ERROR - shouldn't be able to connect to invalid socket %i\n", sockfd);
         return 0;
     }
 }

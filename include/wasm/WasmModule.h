@@ -39,7 +39,7 @@ using namespace WAVM;
 
 
 namespace wasm {
-    extern Intrinsics::Module &getIntrinsicModule_env();
+    extern Intrinsics::Module *getIntrinsicModule_env();
 
     Uptr getNumberOfPagesForBytes(U32 nBytes);
 
@@ -101,6 +101,14 @@ namespace wasm {
                      Runtime::Object *&resolved) override;
 
         std::map<std::string, std::string> buildDisassemblyMap();
+
+        void addFdForThisThread(int fd);
+
+        void removeFdForThisThread(int fd);
+
+        void clearFds();
+
+        void checkThreadOwnsFd(int fd);
 
     private:
         IR::Module module;
