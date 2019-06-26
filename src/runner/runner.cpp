@@ -39,10 +39,11 @@ int main(int argc, char *argv[]) {
     module.bindToFunction(call);
     runner::logEndTimer("WASM initialisation", tpInit);
 
-    const util::TimePoint tp = runner::startTimer();
-
+    const util::TimePoint tpSnap = runner::startTimer();
     module.snapshotFullMemory("nothing");
-    module.execute(call, callChain);
+    runner::logEndTimer("WASM snapshot", tpSnap);
 
+    const util::TimePoint tp = runner::startTimer();
+    module.execute(call, callChain);
     runner::logEndTimer("WASM function execution", tp);
 }

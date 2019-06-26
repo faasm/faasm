@@ -169,21 +169,35 @@ namespace tests {
         call.set_inputdata("first input");
         call.set_resultkey("test_repeat_a");
 
+        // Set up
+        WorkerThreadPool pool(1);
+        WorkerThread w(1);
+
+        // Bind to function
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        sch.callFunction(call);
+        w.processNextMessage();
+        REQUIRE(w.isBound());
+
+        // Snapshot the memory to allow restore
+        const char *snapshotKey = "repeatTestEmpty";
+        w.module->snapshotFullMemory(snapshotKey);
+
         // Run the execution
-        WorkerThread w = execFunction(call);
+        w.processNextMessage();
 
         // Check output from first invocation
-        scheduler::Scheduler &sch = scheduler::getScheduler();
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-
         message::Message resultA = globalBus.getFunctionResult(call);
         REQUIRE(resultA.outputdata() == "first input");
         REQUIRE(resultA.success());
 
+        // Restore memory
+        w.module->restoreFullMemory(snapshotKey);
+        
         // Execute again
         call.set_inputdata("second input");
         call.set_resultkey("test_repeat_b");
-
         sch.callFunction(call);
 
         w.processNextMessage();
