@@ -1,8 +1,6 @@
 FROM faasm/base
 
-# Changing ownership here seems to be necessary to keep circleci happy
 COPY . /usr/local/code/faasm
-RUN chown -R root:root /usr/local/code/faasm
 
 # Set up dummy networking files
 WORKDIR /usr/local/code/faasm/ansible
@@ -22,7 +20,6 @@ RUN rm faasm_runtime_root.tar.gz
 # Run codegen on Python stuff
 WORKDIR /faasm/build
 RUN ./bin/codegen /usr/local/faasm/runtime_root/lib/python3.7
-RUN chown -R root:root /usr/local/faasm
 
 # Set up entrypoint (for cgroups, namespaces etc.)
 COPY bin/worker-entrypoint.sh /entrypoint.sh

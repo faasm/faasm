@@ -3,6 +3,9 @@ jobs:
   cpp_tests:
     docker:
       - image: faasm/testing
+        environment:
+          THREADS_PER_WORKER=1
+
     working_directory: /usr/local/code/faasm
 
     steps:

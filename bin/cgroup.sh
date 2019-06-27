@@ -3,6 +3,8 @@
 set -e
 
 CGROUP_USER=${SUDO_USER:-$USER}
+CGROUP_USER=${CGROUP_USER:-$(whoami)}
+
 CGROUP=cpu:faasm
 
 echo "Setting up cgroup ${CGROUP} for ${CGROUP_USER}"

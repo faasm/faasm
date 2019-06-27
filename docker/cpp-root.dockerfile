@@ -45,4 +45,8 @@ RUN make
 RUN make install
 RUN ldconfig
 
+# Remove old protobuf stuff
+WORKDIR /
+RUN rm -rf /tmp/protobuf-3.6.0
+
 CMD /bin/bash
