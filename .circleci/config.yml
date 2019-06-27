@@ -5,6 +5,7 @@ jobs:
       - image: faasm/testing
         environment:
           THREADS_PER_WORKER=1
+      - image: redis
 
     working_directory: /usr/local/code/faasm
 
@@ -16,6 +17,9 @@ jobs:
       - run:
           name: "Update submodules"
           command: git submodule update --init
+      - run:
+          name: "Install Eigen"
+          command:
       - run:
           name: "Set up build dir"
           command: mkdir /usr/local/code/faasm/build

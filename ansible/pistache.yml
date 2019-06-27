@@ -6,13 +6,13 @@
     - name: "Clone Pistache"
       git:
         repo: "https://github.com/oktal/pistache.git"
-        dest: "/usr/local/code/lib/pistache"
-        update: yes
+        dest: "/tmp/pistache"
+        version: "fc16ec32e8364e5e47fb367e9fe0da05e275f5cf"
 
     - name: "Set up build"
       shell: "{{ item }}"
       args:
-        chdir: "/usr/local/code/lib/pistache"
+        chdir: "/tmp/pistache"
       with_items:
       - "git submodule update --init"
       - "mkdir -p build"
@@ -20,7 +20,7 @@
     - name: "Build"
       shell: "{{ item }}"
       args:
-        chdir: "/usr/local/code/lib/pistache/build"
+        chdir: "/tmp/pistache/build"
       with_items:
       - 'cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..'
       - "make"
@@ -30,3 +30,6 @@
       shell: "sudo make install"
       args:
         chdir: "/usr/local/code/lib/pistache/build"
+
+    - name: "Clean up"
+      shell: "rm -rf /tmp/pistache"
