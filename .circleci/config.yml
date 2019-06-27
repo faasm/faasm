@@ -17,8 +17,12 @@ jobs:
           name: "Update submodules"
           command: git submodule update --init
       - run:
+          name: "Set up build dir"
+          command: mkdir /usr/local/code/faasm/build
+      - run:
           name: "Build tests"
-          command: mkdir build && cd build && cmake --build . --target tests
+          command: cmake --build . --target tests
+          working_dir: /usr/local/code/faasm/build
       - run:
           name: "Execute tests"
           command: /usr/local/code/faasm/build/bin/tests
