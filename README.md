@@ -1,5 +1,7 @@
 # Faasm
 
+[![CircleCI](https://circleci.com/gh/lsds/Faasm.svg?style=svg)](https://circleci.com/gh/lsds/Faasm)
+
 Faasm is a high-performance multi-tenant serverless runtime. It is intended for integration into
 other larger serverless platforms, not as a stand-alone system.
 
