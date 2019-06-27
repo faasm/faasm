@@ -10,6 +10,7 @@ import boto3
 from botocore.exceptions import ClientError
 from invoke import task
 
+from tasks import upload
 from tasks.config import get_faasm_config
 from tasks.env import FAASM_HOME, PROJ_ROOT, RUNTIME_S3_BUCKET, AWS_REGION, AWS_ACCOUNT_ID, STATE_S3_BUCKET, \
     FUNC_BUILD_DIR
@@ -369,14 +370,10 @@ def _build_system_lambda(module_name):
 
 @task
 def deploy_wasm_lambda_func(ctx, user, func):
-    # Assume the build has already been run locally
-    wasm_file = join(FUNC_BUILD_DIR, user, "{}.wasm".format(func))
+    # Upload the wasm to S3
+    upload.upload(ctx, user, func, upload_s3=True)
 
-    print("Uploading {}/{} to S3".format(user, func))
-
-    s3_key = "wasm/{}/{}/function.wasm".format(user, func)
-    upload_file_to_s3(wasm_file, RUNTIME_S3_BUCKET, s3_key)
-
+    # Invoke codegen
     print("Invoking codegen lambda function for {}/{}".format(user, func))
     invoke_lambda(ctx, "faasm-worker", payload={
         "user": user,

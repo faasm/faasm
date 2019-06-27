@@ -16,6 +16,9 @@ from tasks.aws import (
     invoke_lambda_worker,
     prepare_lambda_workers,
 )
+from tasks.codegen import (
+    run_codegen,
+)
 from tasks.compile import (
     compile,
     compile_malloc,
@@ -81,8 +84,10 @@ from tasks.runtime import (
 
 from tasks.upload import (
     upload_all,
+    upload_all_s3,
     upload,
     py_upload,
+    download_all_wasm_s3,
 )
 from tasks.wasm2wast import wast
 
