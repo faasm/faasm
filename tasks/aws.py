@@ -14,6 +14,7 @@ from tasks.config import get_faasm_config
 from tasks.env import FAASM_HOME, PROJ_ROOT, RUNTIME_S3_BUCKET, AWS_REGION, AWS_ACCOUNT_ID, STATE_S3_BUCKET, \
     FUNC_BUILD_DIR
 from tasks.upload_util import upload_file_to_s3
+from tasks.zip_util import replace_in_zip
 
 SDK_VERSION = "1.7.41"
 RUNTIME_VERSION = "master"
@@ -38,7 +39,7 @@ faasm_lambda_funcs = {
         "timeout": 600,
         "concurrency": 2,
         "extra_env": {
-
+            "FAASM_COMPONENT": "worker",
         },
         "sqs": True,
     },
@@ -48,6 +49,7 @@ faasm_lambda_funcs = {
         "timeout": 60,
         "concurrency": 2,
         "extra_env": {
+            "FAASM_COMPONENT": "dispatch",
         }
     },
     "state": {
@@ -56,6 +58,7 @@ faasm_lambda_funcs = {
         "timeout": 300,
         "concurrency": 1,
         "extra_env": {
+            "FAASM_COMPONENT": "state",
             "BUCKET_NAME": STATE_S3_BUCKET,
         }
     },
@@ -65,7 +68,7 @@ faasm_lambda_funcs = {
         "timeout": 15,
         "concurrency": 1,
         "extra_env": {
-
+            "FAASM_COMPONENT": "redis",
         }
     }
 }
@@ -340,17 +343,20 @@ def _delete_lambda(lambda_name):
     )
 
 
-def _build_system_lambda(module_name):
-    build_dir = _build_lambda(module_name)
-    _create_lambda_zip(module_name, build_dir)
-
-    zip_file_path = join(
+def _build_zip_file_path(build_dir, module_name):
+    return join(
         build_dir,
         "src",
         module_name,
         "{}-lambda.zip".format(module_name)
     )
 
+
+def _build_system_lambda(module_name):
+    build_dir = _build_lambda(module_name)
+    _create_lambda_zip(module_name, build_dir)
+
+    zip_file_path = _build_zip_file_path(build_dir, module_name)
     assert exists(zip_file_path), "Could not find lambda zip at {}".format(zip_file_path)
 
     s3_key = _get_s3_key(module_name)
@@ -520,6 +526,12 @@ def _create_lambda_zip(module_name, build_dir):
     res = call("make {}".format(cmake_zip_target), cwd=build_dir, shell=True)
     if res != 0:
         raise RuntimeError("Failed to create lambda zip")
+
+    # Inject alternative bootstrap script
+    script_path = join(PROJ_ROOT, "bin", "lambda_bootstrap.sh")
+    zip_path = _build_zip_file_path(build_dir, module_name)
+    print("Replacing bootstrap script in {} with {}".format(zip_path, script_path))
+    replace_in_zip(zip_path, "bootstrap", script_path)
 
 
 def _get_s3_key(module_name):
