@@ -15,7 +15,6 @@ RUN apt-get install -y python3-dev python3-pip
 RUN pip3 install invoke requests
 
 # Set up eigen
-COPY ansible /usr/local/code/faasm/ansible
 WORKDIR /usr/local/code/faasm/ansible
 RUN ansible-playbook eigen.yml
 
