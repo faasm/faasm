@@ -7,27 +7,28 @@ jobs:
           THREADS_PER_WORKER=1
       - image: redis
 
-    working_directory: /faasm/build
+    working_directory: /usr/local/code/faasm
 
     steps:
       - checkout
       - run:
           name: "Sync submodules"
           command: git submodule sync
-          working_dir: /usr/local/code/faasm
       - run:
           name: "Update submodules"
           command: git submodule update --init
-          working_dir: /usr/local/code/faasm
       - run:
-          name: "Configure project"
+          name: "Configure out of source build"
           command: cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_BUILD_TYPE=Release /usr/local/code/faasm
+          working_dir: /faasm/build
       - run:
           name: "Build tests"
           command: cmake --build . --target tests
+          working_dir: /faasm/build
       - run:
           name: "Execute tests"
           command: ./bin/tests
+          working_dir: /faasm/build
 
 workflows:
   version: 2
