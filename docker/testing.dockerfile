@@ -22,6 +22,9 @@ RUN ansible-playbook eigen.yml
 # Set up pistache
 RUN ansible-playbook pistache.yml
 
+# Set up catch
+RUN ansible-playbook catch.yml
+
 # Fix ownership of runtime root
 RUN chown -R root:root /usr/local/faasm
 
