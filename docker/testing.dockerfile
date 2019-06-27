@@ -25,4 +25,5 @@ RUN ansible-playbook pistache.yml
 RUN chown -R root:root /usr/local/faasm
 
 # Remove any existing code (will check out and rebuild as part of circle job)
+WORKDIR /
 RUN rm -rf /usr/local/code/faasm
