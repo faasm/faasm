@@ -14,7 +14,7 @@ RUN cmake --build . --target codegen
 # Get the Python runtime root from S3
 WORKDIR /usr/local/faasm
 RUN wget https://s3-eu-west-1.amazonaws.com/faasm-misc/faasm_runtime_root.tar.gz
-RUN tar -xf faasm_runtime_root.tar.gz
+RUN tar --no-same-owner -xf faasm_runtime_root.tar.gz
 RUN rm faasm_runtime_root.tar.gz
 
 # Run codegen on Python stuff

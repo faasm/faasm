@@ -34,10 +34,10 @@ RUN ln -s /usr/bin/clang-cpp-6.0 /usr/bin/clang-cpp
 RUN ln -s /usr/bin/clang++-6.0 /usr/bin/clang++
 RUN ln -s /usr/bin/llvm-6.0 /usr/bin/llvm
 
-# Protobuf
+# Protobuf - note the "no-same-owner" here to avoid inheriting dodgy perms from archive
 WORKDIR /tmp
 RUN curl -O -L https://github.com/google/protobuf/releases/download/v3.6.0/protobuf-cpp-3.6.0.tar.gz
-RUN tar xvf protobuf-cpp-3.6.0.tar.gz
+RUN tar --no-same-owner -xf protobuf-cpp-3.6.0.tar.gz
 
 WORKDIR /tmp/protobuf-3.6.0
 RUN ./configure --prefix=/usr CC=/usr/bin/clang CPP=/usr/bin/clang-cpp CXX=/usr/bin/clang++
@@ -45,7 +45,7 @@ RUN make
 RUN make install
 RUN ldconfig
 
-# Remove old protobuf stuff
+# Remove source
 WORKDIR /
 RUN rm -rf /tmp/protobuf-3.6.0
 
