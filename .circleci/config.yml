@@ -25,7 +25,7 @@ jobs:
             -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
             -DCMAKE_C_COMPILER=/usr/bin/clang \
             -DCMAKE_BUILD_TYPE=Release \
-            ..
+            /usr/local/code/faasm/
           working_dir: /usr/local/code/faasm/build
       - run:
           name: "Build tests"
