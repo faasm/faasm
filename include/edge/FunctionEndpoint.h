@@ -16,8 +16,6 @@ namespace edge {
 
         void start();
 
-        void shutdown();
-
         std::string handleFunction(message::Message &msg);
     private:
         std::shared_ptr<Http::Endpoint> httpEndpoint;

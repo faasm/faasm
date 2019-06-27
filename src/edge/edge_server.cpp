@@ -7,12 +7,10 @@
 int main() {
     util::initLogging();
 
-    edge::FunctionEndpoint endpoint;
-    endpoint.start();
-
     awswrapper::initSDK();
 
-    endpoint.shutdown();
+    edge::FunctionEndpoint endpoint;
+    endpoint.start();
 
     return 0;
 }

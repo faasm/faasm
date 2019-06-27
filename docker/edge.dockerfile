@@ -6,7 +6,8 @@ RUN git clone https://github.com/oktal/pistache.git
 WORKDIR /tmp/pistache
 
 # Checkout a fixed commit that we know works
-RUN git checkout fc16ec32e8364e5e47fb367e9fe0da05e275f5cf
+# NOTE - make sure this matches the one in the ansible playbooks
+RUN git checkout ccf0ab860760e84832e4d484336fee477458c7d2
 
 RUN git submodule update --init
 WORKDIR /tmp/pistache/build

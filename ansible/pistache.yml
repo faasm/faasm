@@ -3,11 +3,12 @@
 - hosts: localhost
   gather_facts: no
   tasks:
+    # Note - make sure the version here matches the edge docker image
     - name: "Clone Pistache"
       git:
         repo: "https://github.com/oktal/pistache.git"
         dest: "/tmp/pistache"
-        version: "fc16ec32e8364e5e47fb367e9fe0da05e275f5cf"
+        version: "ccf0ab860760e84832e4d484336fee477458c7d2"
 
     - name: "Set up build"
       shell: "{{ item }}"
@@ -27,9 +28,12 @@
 
     - name: "Install"
       become: yes
-      shell: "sudo make install"
+      shell: "{{ item }}"
       args:
-        chdir: "/usr/local/code/lib/pistache/build"
+        chdir: "/tmp/pistache/build"
+      with_items:
+        - "sudo make install"
+        - "ldconfig"
 
     - name: "Clean up"
       shell: "rm -rf /tmp/pistache"
