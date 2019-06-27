@@ -18,9 +18,6 @@ jobs:
           name: "Update submodules"
           command: git submodule update --init
       - run:
-          name: "Install Eigen"
-          command:
-      - run:
           name: "Set up build dir"
           command: mkdir /usr/local/code/faasm/build
       - run:
