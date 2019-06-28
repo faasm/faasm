@@ -16,40 +16,12 @@ def _get_s3_key(user, func):
     return s3_key
 
 
-def _do_s3_wasm_download(user, func):
-    s3_key = _get_s3_key(user, func)
-
-    dest_dir = join(WASM_DIR, user, func)
-    if not exists(dest_dir):
-        makedirs(dest_dir)
-
-    dest_file = join(WASM_DIR, user, func, "function.wasm")
-
-    print("Downloading {}/{} from S3 to {}".format(user, func, dest_file))
-    download_file_from_s3(RUNTIME_S3_BUCKET, s3_key, dest_file)
-
-
-@task
-def download_all_wasm_s3(ctx):
-    keys = list_files_s3(RUNTIME_S3_BUCKET, "wasm")
-
-    for k in keys:
-        if not k.endswith("function.wasm"):
-            continue
-
-        k_parts = k.split("/")
-        user = k_parts[-3]
-        func = k_parts[-2]
-
-        _do_s3_wasm_download(user, func)
-
-
 @task
 def upload(ctx, user, func, host="127.0.0.1", upload_s3=False):
     func_file = join(FUNC_BUILD_DIR, user, "{}.wasm".format(func))
 
     if upload_s3:
-        print("Uploading {}/{} to S3".foramt(user, func))
+        print("Uploading {}/{} to S3".format(user, func))
         s3_key = _get_s3_key(user, func)
         upload_file_to_s3(func_file, RUNTIME_S3_BUCKET, s3_key)
     else:

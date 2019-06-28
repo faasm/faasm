@@ -42,4 +42,9 @@ workflows:
   version: 2
   build_and_test:
     jobs:
-      - cpp_tests
+      - cpp_tests:
+          filters:
+            branches:
+              only:
+                - circle.*
+                - master

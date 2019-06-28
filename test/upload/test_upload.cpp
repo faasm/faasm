@@ -84,7 +84,7 @@ namespace tests {
 
             // Ensure environment is clean before running
             std::string expectedFile = "/tmp/faasm-test/wasm/gamma/delta/function.wasm";
-            std::string expectedObjFile = "/tmp/faasm-test/wasm/gamma/delta/function.o";
+            std::string expectedObjFile = "/tmp/faasm-test/wasm/gamma/delta/function.wasm.o";
             boost::filesystem::remove(expectedFile);
             boost::filesystem::remove(expectedObjFile);
 

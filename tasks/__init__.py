@@ -87,7 +87,6 @@ from tasks.upload import (
     upload_all_s3,
     upload,
     py_upload,
-    download_all_wasm_s3,
 )
 from tasks.wasm2wast import wast
 
