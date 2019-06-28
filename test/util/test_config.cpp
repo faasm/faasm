@@ -14,8 +14,8 @@ namespace tests {
 
         // CI has to override some stuff
         if(conf.hostType == "ci") {
-            REQUIRE(conf.redisStateHost == "redis");
-            REQUIRE(conf.redisQueueHost == "redis");
+            REQUIRE(conf.redisStateHost == "localhost");
+            REQUIRE(conf.redisQueueHost == "localhost");
             REQUIRE(conf.cgroupMode == "off");
         } else {
             REQUIRE(conf.hostType == "default");

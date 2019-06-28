@@ -6,6 +6,7 @@ jobs:
         environment:
           HOST_TYPE: ci
           CGROUP_MODE: "off"
+          LOG_LEVEL: "debug"
       - image: redis
 
     working_directory: /usr/local/code/faasm
