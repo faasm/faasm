@@ -30,3 +30,9 @@ RUN chown -R root:root /usr/local/faasm
 # Remove any existing code (will check out and rebuild as part of circle job)
 WORKDIR /
 RUN rm -rf /usr/local/code/faasm
+
+# Override entrypoint with noop
+COPY bin/noop-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

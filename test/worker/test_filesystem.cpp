@@ -12,11 +12,13 @@ namespace tests {
         cleanSystem();
 
         // Note, our test function adds an extra comma, hence the blank
+        // These are all the files we _might_ see
         std::vector<std::string> expected = {
-                "",  "..",
+                "", ".", "..",
                 "etc", "funcs", "include", "lib",
-                "libfakeLibA.so", "libfakeLibA.so.o",
-                "libfakeiLibA.wast", "libfakeiLibB.wast",
+                "libfakeLibA.so", "libfakeLibB.so",
+                "libfakeiLibA.wast", "libfakeiLibB.wast", // Legacy typo
+                "libfakeLibA.wast", "libfakeLibB.wast",
                 "share"
         };
 
@@ -31,8 +33,17 @@ namespace tests {
         const std::string result = execFunctionWithStringResult(msg);
         std::vector<std::string> actual = util::tokeniseString(result, ',');
 
-        for(auto e : expected) {
-            REQUIRE(std::find(actual.begin(), actual.end(), e) != actual.end());
+        // Check we have a sensible number
+        REQUIRE(actual.size() > 3);
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        
+        for(auto &a : actual) {
+            bool isFound = std::find(expected.begin(), expected.end(), a) != expected.end();
+            if(!isFound) {
+                logger->error("Did not find {} in expected files", a);
+            }
+            REQUIRE(isFound);
         }
 
         conf.reset();

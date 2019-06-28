@@ -19,6 +19,10 @@ fi
 
 echo "Starting Faasm component $FAASM_COMPONENT"
 
+# TODO - download runtime root
+
+# TODO - run codegen on Python
+
 # This line is copied as-is
 FAASM_BINARY=$LAMBDA_TASK_ROOT/bin/$FAASM_COMPONENT-lambda
 exec $LAMBDA_TASK_ROOT/lib/ld-linux-x86-64.so.2 --library-path $LAMBDA_TASK_ROOT/lib ${FAASM_BINARY} ${_HANDLER}

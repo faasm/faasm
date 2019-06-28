@@ -1,6 +1,30 @@
-# Continuous Integration Set-up
+# Continuous Integration
 
 CI builds can be found on circle at https://circleci.com/gh/lsds/Faasm
+
+## Checking Locally
+
+To check things locally you can run the following:
+
+```
+./bin/ci_check.sh
+```
+
+This sets up the test container locally and mounts your local checkout. Inside the container you need to run:
+
+```
+/usr/local/code/faasm/bin/ci_setup.sh
+
+cd /build/faasm
+./bin/tests
+
+# After making changes
+cmake --build . --target tests && /faasm/build/bin/tests
+```
+
+It's worth double checking the `.circleci/config.yml` file to make sure the local set-up still matches.
+
+# Set-up
 
 ## Build Requirements
 

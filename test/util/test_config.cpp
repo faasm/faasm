@@ -12,7 +12,13 @@ namespace tests {
 
         REQUIRE(conf.threadsPerWorker == 5);
 
-        REQUIRE(conf.hostType == "default");
+        // CI has to override some stuff
+        if(conf.hostType != "ci") {
+            REQUIRE(conf.hostType == "default");
+            REQUIRE(conf.redisStateHost == "localhost");
+            REQUIRE(conf.redisQueueHost == "localhost");
+        }
+
         REQUIRE(conf.globalMessageBus == "redis");
         REQUIRE(conf.functionStorage == "local");
         REQUIRE(conf.serialisation == "json");
@@ -23,8 +29,6 @@ namespace tests {
         REQUIRE(conf.awsLogLevel == "off");
         REQUIRE(conf.unsafeMode == "off");
 
-        REQUIRE(conf.redisStateHost == "localhost");
-        REQUIRE(conf.redisQueueHost == "localhost");
         REQUIRE(conf.redisPort == "6379");
 
         REQUIRE(conf.maxNodes == 4);
@@ -45,6 +49,8 @@ namespace tests {
     }
 
     TEST_CASE("Test overriding system config initialisation", "[util]") {
+        std::string originalHostType = getSystemConfig().hostType;
+
         setEnvVar("THREADS_PER_WORKER", "50");
 
         setEnvVar("HOST_TYPE", "magic");
@@ -78,6 +84,7 @@ namespace tests {
         setEnvVar("FULL_ASYNC", "1");
         setEnvVar("FULL_SYNC", "12");
 
+        // Create new conf for test
         SystemConfig conf;
         REQUIRE(conf.threadsPerWorker == 50);
 
@@ -112,9 +119,11 @@ namespace tests {
         REQUIRE(conf.fullAsync == 1);
         REQUIRE(conf.fullSync == 12);
 
+        // Be careful with host type
+        setEnvVar("HOST_TYPE", originalHostType);
+
         unsetEnvVar("THREADS_PER_WORKER");
 
-        unsetEnvVar("HOST_TYPE");
         unsetEnvVar("GLOBAL_MESSAGE_BUS");
         unsetEnvVar("FUNCTION_STORAGE");
         unsetEnvVar("SERIALISATION");

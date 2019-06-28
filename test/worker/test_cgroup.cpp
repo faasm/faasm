@@ -18,6 +18,11 @@ namespace tests {
     TEST_CASE("Test cgroup on/ off", "[worker]") {
         util::SystemConfig &conf = util::getSystemConfig();
 
+        // Ignore this test in CI, not able to run privileged hence can't create cgroups
+        if(conf.hostType == "ci") {
+            return;
+        }
+
         std::string envValue;
         CgroupMode  expected;
 
@@ -47,6 +52,12 @@ namespace tests {
 
     TEST_CASE("Test adding thread to cpu controller", "[worker]") {
         util::SystemConfig &conf = util::getSystemConfig();
+
+        // Ignore this test in CI, not able to run privileged hence can't create cgroups
+        if(conf.hostType == "ci") {
+            return;
+        }
+
         REQUIRE(conf.cgroupMode == "on");
 
         // Delete the cgroup if it exists already

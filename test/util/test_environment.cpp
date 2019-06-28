@@ -17,16 +17,6 @@ namespace tests {
         REQUIRE(getEnvVar(key, "blah") == "blah");
     }
 
-    TEST_CASE("Test valid environment variables", "[util]") {
-        std::string actual = getEnvVar("LANGUAGE", "blah");
-
-        std::string expectedA("en_GB:en");
-        std::string expectedB("en_GB:utf8");
-
-        bool isEqual = (actual == expectedA) || (actual == expectedB);
-        REQUIRE(isEqual);
-    }
-
     TEST_CASE("Test empty environment variables", "[util]") {
         util::unsetEnvVar("MY_VAR");
 

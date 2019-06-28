@@ -25,5 +25,9 @@ RUN ./bin/codegen /usr/local/faasm/runtime_root/lib/python3.7
 COPY bin/worker-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+# Create user with dummy uid required by Python
+RUN groupadd -g 1000 faasm
+RUN useradd -u 1000 -g 1000 faasm
+
 ENTRYPOINT ["/entrypoint.sh"]
 CMD "/faasm/build/bin/worker"

@@ -4,7 +4,8 @@ jobs:
     docker:
       - image: faasm/testing
         environment:
-          THREADS_PER_WORKER=1
+          HOST_TYPE: ci
+          CGROUP_MODE: off
       - image: redis
 
     working_directory: /usr/local/code/faasm
@@ -18,21 +19,8 @@ jobs:
           name: "Update submodules"
           command: git submodule update --init
       - run:
-          name: "Configure out of source build"
-          command: cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_BUILD_TYPE=Release /usr/local/code/faasm
-          working_dir: /faasm/build
-      - run:
-          name: "Build codegen"
-          command: cmake --build . --target codegen
-          working_dir: /faasm/build
-      - run:
-          name: "Run codegen on wasm files"
-          command: ./bin/codegen /usr/local/code/faasm/wasm
-          working_dir: /faasm/build
-      - run:
-          name: "Build tests"
-          command: cmake --build . --target tests
-          working_dir: /faasm/build
+          name: "Set up and build"
+          command: ./bin/ci_setup.sh
       - run:
           name: "Execute tests"
           command: ./bin/tests

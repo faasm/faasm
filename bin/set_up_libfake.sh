@@ -16,5 +16,5 @@ cp ${SYSROOT}/lib/libfake*.so ${RUNTIME_ROOT}
 ./cmake-build-debug/bin/codegen ${RUNTIME_ROOT}libfakeLibB.so
 
 # Generate wast
-./cmake-build-debug/WAVM/bin/wavm-disas ${RUNTIME_ROOT}libfakeLibA.so ${RUNTIME_ROOT}libfakeiLibA.wast
-./cmake-build-debug/WAVM/bin/wavm-disas ${RUNTIME_ROOT}libfakeLibB.so ${RUNTIME_ROOT}libfakeiLibB.wast
+./cmake-build-debug/WAVM/bin/wavm-disas ${RUNTIME_ROOT}libfakeLibA.so ${RUNTIME_ROOT}libfakeLibA.wast
+./cmake-build-debug/WAVM/bin/wavm-disas ${RUNTIME_ROOT}libfakeLibB.so ${RUNTIME_ROOT}libfakeLibB.wast
