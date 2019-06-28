@@ -22,6 +22,14 @@ jobs:
           command: cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_BUILD_TYPE=Release /usr/local/code/faasm
           working_dir: /faasm/build
       - run:
+          name: "Build codegen"
+          command: cmake --build . --target codegen
+          working_dir: /faasm/build
+      - run:
+          name: "Run codegen on wasm files"
+          command: ./bin/codegen /usr/local/code/faasm/wasm
+          working_dir: /faasm/build
+      - run:
           name: "Build tests"
           command: cmake --build . --target tests
           working_dir: /faasm/build

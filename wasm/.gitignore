@@ -2,3 +2,9 @@
 *.wast
 *.o
 *.symbols
+
+# Include wasm files needed by tests
+!demo/**/function.wasm
+!errors/**/function.wasm
+!python/**/function.wasm
+!sgd/**/function.wasm
