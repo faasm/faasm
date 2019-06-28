@@ -13,10 +13,15 @@ namespace tests {
         REQUIRE(conf.threadsPerWorker == 5);
 
         // CI has to override some stuff
-        if(conf.hostType != "ci") {
+        if(conf.hostType == "ci") {
+            REQUIRE(conf.redisStateHost == "redis");
+            REQUIRE(conf.redisQueueHost == "redis");
+            REQUIRE(conf.cgroupMode == "off");
+        } else {
             REQUIRE(conf.hostType == "default");
             REQUIRE(conf.redisStateHost == "localhost");
             REQUIRE(conf.redisQueueHost == "localhost");
+            REQUIRE(conf.cgroupMode == "on");
         }
 
         REQUIRE(conf.globalMessageBus == "redis");
@@ -24,7 +29,6 @@ namespace tests {
         REQUIRE(conf.serialisation == "json");
         REQUIRE(conf.bucketName == "");
         REQUIRE(conf.queueName == "faasm-messages");
-        REQUIRE(conf.cgroupMode == "on");
         REQUIRE(conf.netNsMode == "off");
         REQUIRE(conf.awsLogLevel == "off");
         REQUIRE(conf.unsafeMode == "off");

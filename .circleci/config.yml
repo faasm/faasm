@@ -5,7 +5,7 @@ jobs:
       - image: faasm/testing
         environment:
           HOST_TYPE: ci
-          CGROUP_MODE: off
+          CGROUP_MODE: "off"
       - image: redis
 
     working_directory: /usr/local/code/faasm
