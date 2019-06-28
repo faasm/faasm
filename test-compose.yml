@@ -11,11 +11,11 @@ services:
     depends_on:
       - redis
     environment:
-      HOST_TYPE: ci
-      CGROUP_MODE: off
-      REDIS_STATE_HOST: redis
-      REDIS_QUEUE_HOST: redis
-      REDIS_PORT: 6379
+      HOST_TYPE: "ci"
+      CGROUP_MODE: "off"
+      REDIS_STATE_HOST: "redis"
+      REDIS_QUEUE_HOST: "redis"
+      REDIS_PORT: "6379"
     volumes:
       - .:/usr/local/code/faasm
     privileged: no
