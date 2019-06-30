@@ -31,11 +31,7 @@ using namespace WAVM;
  */
 
 namespace wasm {
-    static Intrinsics::Module envModule;
-
-    Intrinsics::Module *getIntrinsicModule_env() {
-        return &envModule;
-    }
+    DEFINE_INTRINSIC_MODULE(env)
 
     DEFINE_INTRINSIC_FUNCTION(env, "__syscall", I32, __syscall, I32 syscallNo,
                               I32 argsPtr) {

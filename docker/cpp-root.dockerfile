@@ -5,13 +5,13 @@ RUN apt-get install -y software-properties-common sudo wget
 
 # Install LLVM and clang
 RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
-RUN add-apt-repository "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-6.0 main"
+RUN add-apt-repository "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-8 main"
 RUN apt-get update
 RUN apt-get install -y build-essential \
-    llvm-6.0 \
-    llvm-6.0-dev \
-    llvm-6.0-tools \
-    clang-6.0
+    llvm-8 \
+    llvm-8-dev \
+    llvm-8-tools \
+    clang-8
 
 # Install other deps
 RUN apt-get install -y sudo \
@@ -29,10 +29,10 @@ RUN apt-get install -y sudo \
 RUN apt-get clean autoclean
 RUN apt-get autoremove
 # Symlinks
-RUN ln -s /usr/bin/clang-6.0 /usr/bin/clang
-RUN ln -s /usr/bin/clang-cpp-6.0 /usr/bin/clang-cpp
-RUN ln -s /usr/bin/clang++-6.0 /usr/bin/clang++
-RUN ln -s /usr/bin/llvm-6.0 /usr/bin/llvm
+RUN ln -s /usr/bin/clang-8 /usr/bin/clang
+RUN ln -s /usr/bin/clang-cpp-8 /usr/bin/clang-cpp
+RUN ln -s /usr/bin/clang++-8 /usr/bin/clang++
+RUN ln -s /usr/bin/llvm-8 /usr/bin/llvm
 
 # Protobuf - note the "no-same-owner" here to avoid inheriting dodgy perms from archive
 WORKDIR /tmp
