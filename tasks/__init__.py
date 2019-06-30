@@ -6,6 +6,7 @@ from tasks.aws import (
     list_event_sources,
     invoke_lambda,
     invoke_faasm_lambda,
+    invoke_lambda_python_codegen,
     deploy_faasm_lambda,
     delete_lambda,
     delete_faasm_lambda,

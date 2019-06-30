@@ -1,5 +1,23 @@
 # Faasm on AWS
 
+## Invocation
+
+Once the Faasm Lambda functions are deployed (as described below), you can do the following:
+
+```
+# Upload a .wasm file (after having built locally). Will run codegen after
+inv deploy-wasm-lambda-func <user> <func>
+
+# Invoke the function
+inv invoke-faasm-lambda <user> <func>
+
+# Upload the function as native code
+inv deploy-native-lambda-func <user> <func>
+
+# Invoke the native function
+inv invoke-lambda <lambda_name>
+```
+
 ## Set-up
 
 ### AWS CLI
@@ -55,19 +73,6 @@ build, upload and configure the relevant AWS Lambda functions needed to run WebA
 ```
 inv deploy-faasm-lambda
 ```
-
-### Uploading native functions
-
-Functions in the `func` directory can be compiled to machine code and deployed as native lambda functions
-with the `deploy-native-lambda-func` task, e.g. `inv deploy-native-lambda-func demo echo`.
-
-### Uploading wasm functions
-
-To upload functions as wasm, you first need to run the functions wasm build locally.
-
-Once this is done, you can deploy a given function to lambda with `inv deploy-wasm-lambda-func`, e.g.
-`inv deploy-wasm-lambda-func demo echo`. This will upload the function to S3, then use another lambda function to
-run the code generation.
 
 ### SGD
 

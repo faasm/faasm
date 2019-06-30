@@ -12,8 +12,7 @@ from invoke import task
 
 from tasks import upload
 from tasks.config import get_faasm_config
-from tasks.env import FAASM_HOME, PROJ_ROOT, RUNTIME_S3_BUCKET, AWS_REGION, AWS_ACCOUNT_ID, STATE_S3_BUCKET, \
-    FUNC_BUILD_DIR
+from tasks.env import FAASM_HOME, PROJ_ROOT, RUNTIME_S3_BUCKET, AWS_REGION, AWS_ACCOUNT_ID, STATE_S3_BUCKET
 from tasks.upload_util import upload_file_to_s3
 from tasks.zip_util import replace_in_zip
 
@@ -138,6 +137,15 @@ def purge_sqs(ctx):
     client.purge_queue(
         QueueUrl=url,
     )
+
+
+@task
+def invoke_lambda_python_codegen(ctx):
+    print("Invoking Python codegen")
+
+    invoke_lambda(ctx, "faasm-worker", payload={
+        "target": "python-codegen",
+    })
 
 
 @task
@@ -378,6 +386,7 @@ def deploy_wasm_lambda_func(ctx, user, func):
     invoke_lambda(ctx, "faasm-worker", payload={
         "user": user,
         "function": func,
+        "target": "func-codegen",
     })
 
 

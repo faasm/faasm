@@ -19,9 +19,14 @@ fi
 
 echo "Starting Faasm component $FAASM_COMPONENT"
 
-# TODO - download runtime root
+echo "Downloading runtime root"
+mkdir -p /usr/local/faasm
+pushd /usr/local/faasm
+wget https://s3-eu-west-1.amazonaws.com/faasm-misc/faasm_runtime_root.tar.gz
+tar --no-same-owner -xf faasm_runtime_root.tar.gz
+rm faasm_runtime_root.tar.gz
 
-# TODO - run codegen on Python
+popd
 
 # This line is copied as-is
 FAASM_BINARY=$LAMBDA_TASK_ROOT/bin/$FAASM_COMPONENT-lambda
