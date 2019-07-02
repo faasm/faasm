@@ -12,7 +12,7 @@ namespace util {
     const static std::string pyFile = "function.py";
     const static std::string funcFile = "function.wasm";
     const static std::string symFile = "function.symbols";
-    const static std::string objFile = "function.o";
+    const static std::string objFile = "function.wasm.o";
     const static std::string confFile = "conf.json";
 
     boost::filesystem::path getFuncRootPath() {

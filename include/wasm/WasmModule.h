@@ -39,7 +39,7 @@ using namespace WAVM;
 
 
 namespace wasm {
-    extern Intrinsics::Module *getIntrinsicModule_env();
+    DECLARE_INTRINSIC_MODULE(env)
 
     Uptr getNumberOfPagesForBytes(U32 nBytes);
 

@@ -21,13 +21,15 @@ WORKDIR /tmp
 
 # Install spdlog
 RUN wget https://github.com/gabime/spdlog/archive/v1.2.1.tar.gz
-RUN tar -xf v1.2.1.tar.gz
+RUN tar --no-same-owner -xf v1.2.1.tar.gz
 RUN mkdir spdlog-1.2.1/build
 
 WORKDIR /tmp/spdlog-1.2.1/build
 RUN cmake ..
 RUN make
 RUN make install
+
+RUN rm -rf /tmp/spdlog-1.2.1
 
 # AWS SDK
 WORKDIR /tmp
@@ -44,6 +46,8 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release \
 RUN make
 RUN make install
 
+RUN rm -rf /tmp/aws-sdk-cpp
+
 # AWS Lambda runtime
 WORKDIR /tmp
 RUN git clone https://github.com/awslabs/aws-lambda-cpp
@@ -55,6 +59,8 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release \
 RUN make
 RUN make install
 
+RUN rm -rf /tmp/aws-lambda-cpp
+
 # Rapid JSON
 WORKDIR /tmp
 RUN git clone https://github.com/Tencent/rapidjson
@@ -64,6 +70,8 @@ WORKDIR /tmp/rapidjson/build
 RUN cmake ..
 RUN make
 RUN make install
+
+RUN rm -rf /tmp/rapidjson
 
 # Put code in place but run out of tree build
 COPY . /usr/local/code/faasm

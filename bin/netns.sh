@@ -13,8 +13,8 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-N_THREADS_PER_WORKER=$1;
-echo "Setting up ${N_THREADS_PER_WORKER} namespaces"
+THREADS_PER_WORKER=$1;
+echo "Setting up ${THREADS_PER_WORKER} namespaces"
 
 egress_rate=1mbit
 egress_ceil=2mbit
@@ -98,7 +98,7 @@ function setup_ns() {
     ip netns exec ${ns_name} tc class add dev ${vif_peer} parent 1: classid 1:1 htb rate ${egress_rate} ceil ${egress_ceil}
 }
 
-for (( i=1; i<=N_THREADS_PER_WORKER; i++ ))
+for (( i=1; i<=THREADS_PER_WORKER; i++ ))
 do
     setup_ns ${i}
 done

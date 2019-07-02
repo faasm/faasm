@@ -80,22 +80,20 @@ namespace tests {
 
         SECTION("Test uploading a file") {
             // Override the function directory with junk
-            util::setEnvVar("FUNC_ROOT", "/tmp/faasm-test");
+            util::setEnvVar("FUNC_ROOT", "/tmp");
 
             // Ensure environment is clean before running
-            std::string expectedFile = "/tmp/faasm-test/wasm/gamma/delta/function.wasm";
-            std::string expectedObjFile = "/tmp/faasm-test/wasm/gamma/delta/function.o";
+            std::string expectedFile = "/tmp/wasm/gamma/delta/function.wasm";
+            std::string expectedObjFile = "/tmp/wasm/gamma/delta/function.wasm.o";
             boost::filesystem::remove(expectedFile);
             boost::filesystem::remove(expectedObjFile);
 
             std::string path = "/f/gamma/delta";
 
             // Load some valid dummy wasm bytes
-            boost::filesystem::path currentPath = boost::filesystem::current_path();
-
-            // Getting the path like this is a bit of a hack
-            currentPath.append("../../test/upload/dummy.wasm");
-            std::vector<uint8_t> wasmBytes = util::readFileToBytes(currentPath.string());
+            // TODO - hard-coded file path is a bad idea
+            std::string filePath = "/usr/local/code/faasm/test/upload/dummy.wasm";
+            std::vector<uint8_t> wasmBytes = util::readFileToBytes(filePath);
 
             // Submit PUT request
             http_request request = createRequest(path, wasmBytes);

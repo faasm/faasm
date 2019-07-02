@@ -6,6 +6,7 @@ from subprocess import check_output
 
 from invoke import task
 
+from tasks.codegen import run_codegen
 from tasks.env import PROJ_ROOT, PYODIDE_INSTALL_DIR, FAASM_RUNTIME_ROOT, PY_RUNTIME_ROOT, PYODIDE_PACKAGES, \
     FAASM_LOCAL_DIR, MISC_S3_BUCKET
 from tasks.upload_util import upload_file_to_s3, download_file_from_s3
@@ -150,22 +151,4 @@ def download_python_runtime(ctx):
 
 @task
 def run_python_codegen(ctx):
-    print("Running codegen for {}".format(PY_RUNTIME_ROOT))
-
-    possible_binaries = [
-        "cmake-build-release/bin/codegen",
-        "cmake-build-debug/bin/codegen",
-        "build/bin/codegen",
-    ]
-    possible_binaries = [join(PROJ_ROOT, p) for p in possible_binaries]
-
-    existing_binaries = [p for p in possible_binaries if exists(p)]
-    if not existing_binaries:
-        print("Could not find any codegen binaries (options = {})".format(possible_binaries))
-        exit(1)
-
-    binary = existing_binaries[0]
-    if len(existing_binaries) > 1:
-        print("WARNING: found multiple codegen binaries, taking {}".format(binary))
-
-    check_output("{} {}".format(binary, PY_RUNTIME_ROOT), shell=True)
+    run_codegen(PY_RUNTIME_ROOT)

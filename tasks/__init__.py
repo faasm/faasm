@@ -6,6 +6,7 @@ from tasks.aws import (
     list_event_sources,
     invoke_lambda,
     invoke_faasm_lambda,
+    invoke_lambda_python_codegen,
     deploy_faasm_lambda,
     delete_lambda,
     delete_faasm_lambda,
@@ -15,6 +16,9 @@ from tasks.aws import (
     purge_sqs,
     invoke_lambda_worker,
     prepare_lambda_workers,
+)
+from tasks.codegen import (
+    run_codegen,
 )
 from tasks.compile import (
     compile,
@@ -81,6 +85,7 @@ from tasks.runtime import (
 
 from tasks.upload import (
     upload_all,
+    upload_all_s3,
     upload,
     py_upload,
 )

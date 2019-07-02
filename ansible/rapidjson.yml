@@ -6,26 +6,26 @@
     - name: "Clone rapidjson repo"
       git:
         repo: "https://github.com/Tencent/rapidjson"
-        dest: "/usr/local/code/lib/rapidjson"
+        dest: "/tmp/rapidjson"
         version: "2ce91b823c8b4504b9c40f99abf00917641cef6c"
 
     - name: "Set up build"
       shell: "mkdir -p build"
       args:
-        chdir: "/usr/local/code/lib/rapidjson"
+        chdir: "/tmp/rapidjson"
 
     - name: "Prepare build"
       shell: "cmake .."
       args:
-        chdir: "/usr/local/code/lib/rapidjson/build"
+        chdir: "/tmp/rapidjson/build"
 
     - name: "Build components"
       shell: "make"
       args:
-        chdir: "/usr/local/code/lib/rapidjson/build"
+        chdir: "/tmp/rapidjson/build"
 
     - name: "Install"
       become: yes
       shell: "sudo make install"
       args:
-        chdir: "/usr/local/code/lib/rapidjson/build"
+        chdir: "/tmp/rapidjson/build"

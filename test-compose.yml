@@ -1,0 +1,21 @@
+version: "3"
+
+services:
+  redis:
+    image: redis:5
+    ports:
+      - "6377:6379"
+
+  tester:
+    image: faasm/testing:latest
+    depends_on:
+      - redis
+    environment:
+      HOST_TYPE: "ci"
+      CGROUP_MODE: "off"
+      REDIS_STATE_HOST: "redis"
+      REDIS_QUEUE_HOST: "redis"
+      REDIS_PORT: "6379"
+    volumes:
+      - .:/usr/local/code/faasm
+    privileged: no

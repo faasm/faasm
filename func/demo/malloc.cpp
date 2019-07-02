@@ -4,16 +4,16 @@
 #include <malloc.h>
 
 int main(int argc, char *argv[]) {
-    std::vector<int> sizes = {8, 8, 32, 4, 240, 240, 56, 4, 12, 12, 24, 24, 24, 512, 512};
+    std::vector<unsigned int> sizes = {8, 8, 32, 4, 240, 240, 56, 4, 12, 12, 24, 24, 24, 512, 512};
 
     // Run malloc in a loop
     void *allocs[sizes.size()];
-    for(int i = 0; i < sizes.size(); i++) {
+    for(unsigned int i = 0; i < sizes.size(); i++) {
         allocs[i] = malloc(sizes.at(i));
     }
 
     // Free everything
-    for (int i = 0; i < sizes.size(); i++) {
+    for (unsigned int i = 0; i < sizes.size(); i++) {
         free(allocs[i]);
     }
 

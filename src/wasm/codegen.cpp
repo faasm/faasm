@@ -29,7 +29,7 @@ namespace wasm {
 
         for (auto &d : iter) {
             const std::string fileName = d.path().filename().string();
-            if (util::endsWith(fileName, ".so")) {
+            if (util::endsWith(fileName, ".so") || util::endsWith(fileName, ".wasm")) {
                 codeGenForFile(d.path().string());
             }
         }

@@ -20,6 +20,17 @@ def upload_file_to_s3(file_path, s3_bucket, s3_key):
     s3.Bucket(s3_bucket).upload_file(file_path, s3_key)
 
 
+def list_files_s3(s3_bucket, prefix):
+    s3 = _get_s3()
+    b = s3.Bucket(s3_bucket)
+
+    key_strings = []
+    for k in b.objects.filter(Prefix=prefix):
+        key_strings.append(k.key)
+
+    return key_strings
+
+
 def download_file_from_s3(s3_bucket, s3_key, file_path, boto=True):
     if boto:
         s3 = _get_s3()

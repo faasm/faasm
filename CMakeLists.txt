@@ -96,6 +96,7 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-worker")
     add_subdirectory(WAVM)
 
     add_subdirectory(src/aws)
+    add_subdirectory(src/memory)
     add_subdirectory(src/proto)
     add_subdirectory(src/redis)
     add_subdirectory(src/scheduler)

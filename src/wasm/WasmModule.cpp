@@ -230,7 +230,7 @@ namespace wasm {
             module.tables.defs[0].type.size.max = (U64) MAX_TABLE_SIZE;
 
             // Set up intrinsics
-            envModule = Intrinsics::instantiateModule(compartment, {getIntrinsicModule_env()}, "env");
+            envModule = Intrinsics::instantiateModule(compartment, {INTRINSIC_MODULE_REF(env)}, "env");
         } else {
             // Check that the module isn't expecting to create any memories or tables
             if (!irModule.tables.defs.empty()) {
