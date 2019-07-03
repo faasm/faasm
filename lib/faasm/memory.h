@@ -121,6 +121,10 @@ namespace faasm {
          */
         void readConfig(const char *varName, char* buffer);
 
+        /**
+         * Returns the name of the current function being executed
+         */
+        const char* getCurrentFunctionName();
     };
 }
 
