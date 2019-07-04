@@ -11,7 +11,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Faasm directories
 set(FAASM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
-set(FAASM_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lib)
+set(FAASM_LIB_C_DIR ${CMAKE_CURRENT_LIST_DIR}/lib-c)
+set(FAASM_LIB_CPP_DIR ${CMAKE_CURRENT_LIST_DIR}/lib-cpp)
 set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/python)
 set(FAASM_LAMBDA_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lambda)
 set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/WAVM/Lib)
@@ -52,7 +53,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 include_directories(
         ${FAASM_INCLUDE_DIR}
-        ${FAASM_LIB_DIR}
+        ${FAASM_LIB_C_DIR}
+        ${FAASM_LIB_CPP_DIR}
         ${FAASM_PYTHON_LIB_DIR}
         ${CMAKE_CURRENT_BINARY_DIR}/src # Required for protobuf
 )
@@ -131,7 +133,8 @@ else ()
     add_subdirectory(func)
 
     # Faasm libraries
-    add_subdirectory(lib)
+    add_subdirectory(lib-c)
+    add_subdirectory(lib-cpp)
     add_subdirectory(python)
 
     # Custom malloc

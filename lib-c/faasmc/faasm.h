@@ -3,22 +3,16 @@
 
 // For lambda builds we need to include the lambda function interface
 // which defines its own main method etc.
+// TODO - work out how to do this in the new world
 #if AWS_LAMBDA == 1
 #include <lambda_func/interface.h>
 #else
 
-#include "faasm/memory.h"
-
-namespace faasm {
-    /**
-    * Function for faasm functions to implement
-    */
-    int exec(FaasmMemory *memory);
-}
+#include <string.h>
 
 int main(int argc, char *argv[]) {
-    faasm::FaasmMemory memory;
-    faasm::exec(&memory);
+    // Invoke the main function
+    INVOKE_FAASM_MAIN()
 
     return 0;
 }

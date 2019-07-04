@@ -2,15 +2,13 @@
 
 #include <aws/lambda-runtime/runtime.h>
 
-#include "faasm/memory.h"
-
 #include "emulator/emulator.h"
 
 using namespace aws::lambda_runtime;
 
 namespace faasm {
     // Define main Faasm entry point
-    int exec(FaasmMemory *memory);
+    int exec();
 
     // Hooks into starting/ finishing a request
     void startRequest();

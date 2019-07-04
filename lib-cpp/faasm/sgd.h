@@ -1,7 +1,7 @@
 #ifndef FAASM_SGD_H
 #define FAASM_SGD_H
 
-#include "faasm/memory.h"
+#include "faasmc/core.h"
 #include "faasm/matrix.h"
 
 using namespace Eigen;
@@ -50,18 +50,17 @@ namespace faasm {
         int syncInterval;
     };
 
-    bool getEnvFullAsync(FaasmMemory *memory);
+    bool getEnvFullAsync();
 
-    bool getEnvFullSync(FaasmMemory *memory);
+    bool getEnvFullSync();
 
-    SgdParams setUpReutersParams(FaasmMemory *memory, int nBatches, int epochs);
+    SgdParams setUpReutersParams(int nBatches, int epochs);
 
-    void writeParamsToState(FaasmMemory *memory, const char *keyName, const SgdParams &params);
+    void writeParamsToState(const char *keyName, const SgdParams &params);
 
-    SgdParams readParamsFromState(FaasmMemory *memory, const char *keyName, bool async);
+    SgdParams readParamsFromState(const char *keyName, bool async);
 
     void hingeLossWeightUpdate(
-            FaasmMemory *memory,
             const SgdParams &sgdParams,
             int epoch,
             int batchNumber,
@@ -70,34 +69,33 @@ namespace faasm {
     );
 
     void leastSquaresWeightUpdate(
-            FaasmMemory *memory,
             const SgdParams &sgdParams,
             int batchNumber,
             int startIdx,
             int endIdx
     );
 
-    void zeroErrors(FaasmMemory *memory, const SgdParams &sgdParams);
+    void zeroErrors(const SgdParams &sgdParams);
 
-    void zeroLosses(FaasmMemory *memory, const SgdParams &sgdParams);
+    void zeroLosses(const SgdParams &sgdParams);
 
-    void zeroFinished(FaasmMemory *memory, const SgdParams &sgdParams);
+    void zeroFinished(const SgdParams &sgdParams);
 
-    void writeFinishedFlag(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber);
+    void writeFinishedFlag(const SgdParams &sgdParams, int batchNumber);
 
-    void writeHingeError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
+    void writeHingeError(const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
                          const MatrixXd &prediction);
 
-    void writeSquaredError(FaasmMemory *memory, const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
+    void writeSquaredError(const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
                            const MatrixXd &prediction);
 
-    double readTotalError(FaasmMemory *memory, const SgdParams &sgdParams);
+    double readTotalError(const SgdParams &sgdParams);
 
-    double readRootMeanSquaredError(FaasmMemory *memory, const SgdParams &sgdParams);
+    double readRootMeanSquaredError(const SgdParams &sgdParams);
 
-    bool readEpochFinished(FaasmMemory *memory, const SgdParams &sgdParams);
+    bool readEpochFinished(const SgdParams &sgdParams);
 
-    void setUpDummyProblem(FaasmMemory *memory, const SgdParams &params);
+    void setUpDummyProblem(const SgdParams &params);
 }
 
 #endif

@@ -1,6 +1,6 @@
 #include "interface.h"
 
-#include "faasm/memory.h"
+#include <faasmc/core.h>
 
 #include <redis/Redis.h>
 #include <aws/LambdaWrapper.h>
@@ -58,8 +58,7 @@ int main() {
 
         // Run the normal Faasm function entry point
         logger->info("Executing the function itself");
-        auto memory = new faasm::FaasmMemory();
-        exec(memory);
+        INVOKE_FAASM_MAIN()
 
         // Return response with function output
         const std::string output = faasm::getOutput();

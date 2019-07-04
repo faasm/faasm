@@ -5,8 +5,8 @@
 
 int funcCount = 0;
 typedef int (*FuncPtr)(int);
-const char* funcNames[MAX_FUNCS] = {};
-FuncPtr funcs[MAX_FUNCS];
+const char* funcNames[MAX_FUNCS];
+FuncPtr funcs[MAX_FUNCS] = {0};
 
 /**
  * This involves some black magic to get the name of the function
@@ -14,17 +14,15 @@ FuncPtr funcs[MAX_FUNCS];
  * does the changes we require, then create an instance of it.
  * This is how we statically initialize the list
  */
-#define MY_FUNC(name, nameStr)          \
+#define MY_FUNC(name, nameStr, idx)     \
 int func_##name(int a);                 \
-class _Dummy##name {                    \
-public:                                 \
-    _Dummy##name() {                    \
-        funcNames[funcCount] = nameStr; \
-        funcs[funcCount] = func_##name; \
-        funcCount++;                    \
-    }                                   \
+int reg##name() {                       \
+    funcNames[funcCount] = nameStr;     \
+    funcs[funcCount] = func_##name;     \
+    funcCount++;                        \
+    return 1;                           \
 };                                      \
-_Dummy##name instance_##name;           \
+funcs[idx] = func_##name;               \
 const char* getName_##name() {          \
     return nameStr;                     \
 }                                       \
@@ -33,12 +31,12 @@ int func_##name(int a)
 #define INVOKE_FUNC(name, val)   func_##name(val);
 
 
-MY_FUNC(foobar, "woobar") {
+MY_FUNC(foobar, "woobar", 2) {
     printf("woobar executing. Got %i\n", a);
     return 0;
 }
 
-MY_FUNC(goobar, "joobar") {
+MY_FUNC(goobar, "joobar", 3) {
     printf("joobar executing. Got %i\n", a);
     return 0;
 }
