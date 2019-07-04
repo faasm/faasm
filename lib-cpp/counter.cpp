@@ -1,7 +1,7 @@
 #include "faasm/counter.h"
+#include "faasm/core.h"
 
 namespace faasm {
-
     void initCounter(const char *counterKey, bool async) {
         int counterBuffer[] = {0};
         auto counterBytes = reinterpret_cast<uint8_t *>(counterBuffer);

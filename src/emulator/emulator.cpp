@@ -1,15 +1,15 @@
-#include <faasmc/core.h>
+#include <faasm/host_interface.h>
 
 #include <redis/Redis.h>
 #include <state/State.h>
 
 /**
- * Local implementations of faasm calls
+ * C++ emulation of Faasm system
  */
 
 static std::string user = "demo";
 
-void setEmulatorUser(const std::string &newUser) {
+void setEmulatorUser(const char* newUser) {
     user = newUser;
 }
 
@@ -166,4 +166,3 @@ void __faasm_read_config(const char *varName, char *buffer) {
         }
     }
 }
-

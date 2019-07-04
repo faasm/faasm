@@ -1,8 +1,6 @@
 #ifndef FAASM_COUNTER_H
 #define FAASM_COUNTER_H
 
-#include <faasmc/core.h>
-
 namespace faasm {
     void initCounter(const char *counterKey, bool async);
 

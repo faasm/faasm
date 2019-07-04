@@ -1,4 +1,4 @@
-#include <faasmc/faasm.h>
+#include <faasm/faasm.h>
 
 FAASM_MAIN_FUNC() {
     uint8_t output[5];

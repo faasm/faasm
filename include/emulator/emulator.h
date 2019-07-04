@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string>
-
-void setEmulatorUser(const std::string &newUser);
+void setEmulatorUser(const char* user);
 
 void resetEmulatorUser();

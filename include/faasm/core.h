@@ -1,56 +1,8 @@
-#ifndef FAASM_CORE_H
-#define FAASM_CORE_H
+#ifndef FAASMC_CORE_H
+#define FAASMC_CORE_H
 
 #include <stdint.h>
 #include <stdbool.h>
-
-// Slots for faasm functions
-typedef int (*_FaasmFuncPtr)();
-int __attribute__((weak)) _faasm_func_0();
-int __attribute__((weak)) _faasm_func_1();
-int __attribute__((weak)) _faasm_func_2();
-int __attribute__((weak)) _faasm_func_3();
-int __attribute__((weak)) _faasm_func_4();
-int __attribute__((weak)) _faasm_func_5();
-int __attribute__((weak)) _faasm_func_6();
-int __attribute__((weak)) _faasm_func_7();
-int __attribute__((weak)) _faasm_func_8();
-int __attribute__((weak)) _faasm_func_9();
-
-// Macro for defining extra faasm functions that can be invoked
-#define FAASM_FUNC(name, idx)      \
-int name() {                       \
-    return _faasm_func_##idx();    \
-};                                 \
-int _faasm_func_##idx()
-
-// Shortcut for defining the main function
-#define FAASM_MAIN_FUNC()         \
-FAASM_FUNC(faasmMain, 0)
-
-_FaasmFuncPtr _faasmGetFunc(int idx) {
-    int (*p[10])();
-    p[0] = _faasm_func_0;
-    p[1] = _faasm_func_1;
-    p[2] = _faasm_func_2;
-    p[3] = _faasm_func_3;
-    p[4] = _faasm_func_4;
-    p[5] = _faasm_func_5;
-    p[6] = _faasm_func_6;
-    p[7] = _faasm_func_7;
-    p[8] = _faasm_func_8;
-    p[9] = _faasm_func_9;
-
-    // Get the function from the array
-    return p[idx];
-}
-
-// This is the actual Faasm entrypoint
-int exec(int idx) {
-    _FaasmFuncPtr f = _faasmGetFunc(idx);
-    // Return result
-    return f();
-}
 
 /**
 * Reads the full state at the given key
@@ -177,5 +129,34 @@ void faasmRestore(const char *name);
  * Gets values from the faasm config
  */
 void faasmReadConfig(const char *varName, char *buffer);
+
+/**
+ * Extra faasm functions
+ */
+typedef int (*_FaasmFuncPtr)();
+int __attribute__((weak)) _faasm_func_0();
+int __attribute__((weak)) _faasm_func_1();
+int __attribute__((weak)) _faasm_func_2();
+int __attribute__((weak)) _faasm_func_3();
+int __attribute__((weak)) _faasm_func_4();
+int __attribute__((weak)) _faasm_func_5();
+int __attribute__((weak)) _faasm_func_6();
+int __attribute__((weak)) _faasm_func_7();
+int __attribute__((weak)) _faasm_func_8();
+int __attribute__((weak)) _faasm_func_9();
+
+// Macro for defining extra faasm functions that can be invoked
+#define FAASM_FUNC(name, idx)      \
+int name() {                       \
+    return _faasm_func_##idx();    \
+};                                 \
+int _faasm_func_##idx()
+
+// Shortcut for defining the main function
+#define FAASM_MAIN_FUNC()         \
+FAASM_FUNC(faasmMain, 0)
+
+// This is the actual Faasm entrypoint
+int exec(int idx);
 
 #endif

@@ -121,7 +121,9 @@ int exec(int idx) {
             _faasm_func_9
     };
 
+    // This is the actual Faasm entrypoint
     _FaasmFuncPtr f = _faasm_funcs[idx];
+
     // Return result
     return f();
 }

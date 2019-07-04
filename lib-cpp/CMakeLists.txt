@@ -3,10 +3,12 @@ project(libfaasm)
 
 set(CMAKE_CXX_STANDARD 17)
 
-include_directories(${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../lib-c)
+include_directories(${CMAKE_CURRENT_LIST_DIR})
 
 set(PUBLIC_HEADERS
+        ${FAASM_INCLUDE_DIR}/faasm/core.h
         faasm/counter.h
+        faasm/faasm.h
         faasm/func.h
         faasm/matrix.h
         faasm/print.h
@@ -16,6 +18,7 @@ set(PUBLIC_HEADERS
         )
 
 set(LIB_FILES
+        core.cpp
         counter.cpp
         func.cpp
         matrix.cpp
@@ -27,8 +30,6 @@ set(LIB_FILES
 
 add_library(faasm STATIC ${LIB_FILES})
 
-target_link_libraries(faasm faasmc)
-
 set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
 install(TARGETS faasm
@@ -37,3 +38,5 @@ install(TARGETS faasm
         RUNTIME DESTINATION ${CMAKE_SYSROOT}/bin
         PUBLIC_HEADER DESTINATION ${CMAKE_SYSROOT}/include/faasm
         )
+
+install(FILES ${FAASM_INCLUDE_DIR}/faasm/faasm.imports DESTINATION ${CMAKE_SYSROOT}/lib/libfaasm.imports)

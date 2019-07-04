@@ -1,7 +1,7 @@
 #ifndef FAASM_SGD_H
 #define FAASM_SGD_H
 
-#include "faasmc/core.h"
+#include "faasm/core.h"
 #include "faasm/matrix.h"
 
 using namespace Eigen;

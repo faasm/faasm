@@ -1,4 +1,4 @@
-#include "faasmc/faasm.h"
+#include <faasm/faasm.h>
 #include <stdio.h>
 
 int dataLength = 3 * sizeof(int);

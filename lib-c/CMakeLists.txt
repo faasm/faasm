@@ -6,8 +6,7 @@ project(libfaasmc)
 include_directories(${CMAKE_CURRENT_LIST_DIR})
 
 set(PUBLIC_HEADERS
-        faasmc/faasm.h
-        faasmc/core.h
+        ${FAASM_INCLUDE_DIR}/faasm/core.h
         )
 
 set(LIB_FILES
@@ -35,4 +34,4 @@ install(TARGETS faasmc
         PUBLIC_HEADER DESTINATION ${CMAKE_SYSROOT}/include/faasmc
         )
 
-install(FILES libfaasm.imports DESTINATION ${CMAKE_SYSROOT}/lib/)
+install(FILES ${FAASM_INCLUDE_DIR}/faasm/faasm.imports DESTINATION ${CMAKE_SYSROOT}/lib/libfaasmc.imports)

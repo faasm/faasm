@@ -1,3 +1,5 @@
+# This is put in place to tell the WASM compiler to allow these functions to be imported
+
 __faasm_push_state
 __faasm_push_state_partial
 __faasm_read_state
