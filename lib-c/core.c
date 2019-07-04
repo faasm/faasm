@@ -36,6 +36,10 @@ void __faasm_write_output(const unsigned char *output, long outputLen);
 
 void __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize);
 
+void __faasm_chain_this(int idx, const unsigned char *inputData, long inputDataSize);
+
+int __faasm_get_idx();
+
 void __faasm_snapshot_memory(const char *key);
 
 void __faasm_restore_memory(const char *key);
@@ -99,7 +103,7 @@ void faasmLockStateWrite(const char *key) {
 
 void faasmUnlockStateWrite(const char *key) {
     __faasm_unlock_state_write(key);
-};
+}
 
 long faasmGetInputSize() {
     uint8_t buf[1];
@@ -110,7 +114,7 @@ long faasmGetInputSize() {
 
 void faasmGetInput(uint8_t *buffer, long bufferLen) {
     __faasm_read_input(buffer, bufferLen);
-};
+}
 
 void faasmSetOutput(const uint8_t *newOutput, long outputLen) {
     __faasm_write_output(newOutput, outputLen);
@@ -122,6 +126,18 @@ void faasmChainFunction(const char *name) {
 
 void faasmChainFunctionInput(const char *name, const uint8_t *inputData, long inputDataSize) {
     __faasm_chain_function(name, inputData, inputDataSize);
+}
+
+void faasmChainThis(int idx) {
+    faasmChainThisInput(idx, 0, 0);
+}
+
+void faasmChainThisInput(int idx, const uint8_t *inputData, long inputDataSize) {
+    __faasm_chain_this(idx, inputData, inputDataSize);
+}
+
+int faasmGetCurrentIdx() {
+    return __faasm_get_idx();
 }
 
 void faasmSnapshot(const char *key) {

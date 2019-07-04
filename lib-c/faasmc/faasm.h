@@ -9,10 +9,11 @@
 #else
 
 #include <string.h>
+#include "faasmc/core.h"
 
 int main(int argc, char *argv[]) {
     // Invoke the main function
-    INVOKE_FAASM_MAIN()
+    exec(0);
 
     return 0;
 }

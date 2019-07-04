@@ -5,6 +5,7 @@ package message;
 message Message {
     optional string user = 1;
     optional string function = 2;
+    optional int32 idx = 3;
 
     enum MessageType {
         BIND = 1;
@@ -12,15 +13,15 @@ message Message {
         KILL = 3;
     }
 
-    optional MessageType type = 3 [default = CALL];
+    optional MessageType type = 4 [default = CALL];
 
-    optional string resultKey = 4;
-    optional string statusKey = 5;
-    optional bool success = 6;
-    optional bool isAsync = 7;
-    optional bool isPython = 8;
+    optional string resultKey = 5;
+    optional string statusKey = 6;
+    optional bool success = 7;
+    optional bool isAsync = 8;
+    optional bool isPython = 9;
 
-    optional bytes inputData = 9;
-    optional bytes outputData = 10;
+    optional bytes inputData = 10;
+    optional bytes outputData = 11;
 }
 

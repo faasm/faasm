@@ -8,10 +8,15 @@ namespace wasm {
     }
 
     void CallChain::addCall(std::string user, std::string functionName, const std::vector<uint8_t> &inputData) {
+        this->addCallThis(user, functionName, 0, inputData);
+    }
+
+    void CallChain::addCallThis(std::string user, std::string functionName, int idx, const std::vector<uint8_t> &inputData) {
         message::Message msg;
         msg.set_user(user);
         msg.set_function(functionName);
         msg.set_inputdata(inputData.data(), inputData.size());
+        msg.set_idx(idx)
 
         calls.push_back(msg);
     }

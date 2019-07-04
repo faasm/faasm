@@ -14,6 +14,7 @@ add_library(wasm STATIC
         codegen.cpp
         WasmModule.cpp
         syscalls.cpp
+        syscalls_chaining.cpp
         syscalls_dynlink.cpp
         syscalls_env.cpp
         syscalls_io.cpp

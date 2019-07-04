@@ -1,4 +1,4 @@
-#include <faasm/memory.h>
+#include <faasmc/core.h>
 
 #include <redis/Redis.h>
 #include <state/State.h>
@@ -106,6 +106,15 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen) {
     std::copy(inputData.begin(), inputData.end(), buffer);
 
     return 14;
+}
+
+void __faasm_chain_this(int idx, const unsigned char *inputData, long inputDataSize) {
+
+}
+
+int __faasm_get_idx() {
+    // TODO - how can we emulate this?
+    return 0;
 }
 
 void __faasm_lock_state_read(const char *key) {

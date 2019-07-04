@@ -117,6 +117,16 @@ void __faasm_chain_function(const char *name, const unsigned char *inputData, lo
     lambda.invokeFunction(funcName, inputStr, false);
 }
 
+void __faasm_chain_this(int idx, const unsigned char *inputData, long inputDataSize) {
+    // TODO - invoke this function again with the given index
+    throw std::runtime_error("Not implemented self-chaining");
+}
+
+int __faasm_get_idx() {
+    // TODO - get this from the context somehow
+    throw std::runtime_error("Not implemented self-chaining");
+}
+
 void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, int async) {
     if (bufferLen == 0) {
         return;

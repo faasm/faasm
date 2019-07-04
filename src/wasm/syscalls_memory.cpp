@@ -409,19 +409,6 @@ namespace wasm {
         call->set_outputdata(outputData.data(), outputData.size());
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_function", void, __faasm_chain_function,
-                              I32 namePtr, I32 inputDataPtr, I32 inputDataLen) {
-        util::getLogger()->debug("S - chain_function - {} {} {}", namePtr, inputDataPtr, inputDataLen);
-
-        message::Message *call = getExecutingCall();
-        CallChain *callChain = getExecutingCallChain();
-        std::string funcName = getStringFromWasm(namePtr);
-        const std::vector<uint8_t> inputData = getBytesFromWasm(inputDataPtr, inputDataLen);
-
-        // Add this to the chain of calls
-        callChain->addCall(call->user(), funcName, inputData);
-    }
-
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_snapshot_memory", void, __faasm_snapshot_memory, I32 keyPtr) {
         util::getLogger()->debug("S - snapshot_memory - {}", keyPtr);
         WasmModule *module = getExecutingModule();
