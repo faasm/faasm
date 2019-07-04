@@ -1,3 +1,4 @@
+#include <faasm/core.h>
 #include <faasm/host_interface.h>
 
 #include <redis/Redis.h>
@@ -109,7 +110,9 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen) {
 }
 
 void __faasm_chain_this(int idx, const unsigned char *inputData, long inputDataSize) {
-
+    // Call the function directly
+    _FaasmFuncPtr f = getFaasmFunc(idx);
+    f();
 }
 
 int __faasm_get_idx() {

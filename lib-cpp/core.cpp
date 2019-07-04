@@ -107,7 +107,7 @@ void faasmReadConfig(const char *varName, char *buffer) {
     __faasm_read_config(varName, buffer);
 }
 
-int exec(int idx) {
+_FaasmFuncPtr getFaasmFunc(int idx) {
     int (*_faasm_funcs[10])() = {
             _faasm_func_0,
             _faasm_func_1,
@@ -121,9 +121,10 @@ int exec(int idx) {
             _faasm_func_9
     };
 
-    // This is the actual Faasm entrypoint
-    _FaasmFuncPtr f = _faasm_funcs[idx];
+    return _faasm_funcs[idx];
+}
 
-    // Return result
+int exec(int idx) {
+    _FaasmFuncPtr f = getFaasmFunc(idx);
     return f();
 }

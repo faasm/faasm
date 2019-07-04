@@ -156,6 +156,8 @@ int _faasm_func_##idx()
 #define FAASM_MAIN_FUNC()         \
 FAASM_FUNC(faasmMain, 0)
 
+_FaasmFuncPtr getFaasmFunc(int idx);
+
 // This is the actual Faasm entrypoint
 int exec(int idx);
 
