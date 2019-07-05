@@ -30,9 +30,6 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
         -Wl,-z,stack-size=4194304 -Wl, \
     ")
 
-    # This shouldn't be needed (.imports files alongside linked .a files should do the trick)
-    #  -Xlinker --allow-undefined-file=${CMAKE_SYSROOT}/lib/libfaasm.imports \
-
     SET(CMAKE_EXECUTABLE_SUFFIX ".wasm")
 endif ()
 
