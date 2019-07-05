@@ -1,7 +1,6 @@
 #include "faasm/core.h"
 #include "faasm/host_interface.h"
 
-
 void faasmReadState(const char *key, uint8_t *buffer, long bufferLen, bool async) {
     __faasm_read_state(key, buffer, bufferLen, (int) async);
 }

@@ -16,7 +16,7 @@ namespace wasm {
         msg.set_user(user);
         msg.set_function(functionName);
         msg.set_inputdata(inputData.data(), inputData.size());
-        msg.set_idx(idx)
+        msg.set_idx(idx);
 
         calls.push_back(msg);
     }

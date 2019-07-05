@@ -3,7 +3,6 @@
 #include <redis/Redis.h>
 #include <state/State.h>
 
-#include "faasm/memory.h"
 #include "faasm/counter.h"
 #include "utils.h"
 
@@ -16,7 +15,7 @@ namespace tests {
         state::getGlobalState().forceClearAll();
 
         const char *key = "test_counter";
-        faasmInitCounter(key, false);
+        initCounter(key, false);
 
         REQUIRE(getCounter(key, false) == 0);
 
@@ -26,7 +25,7 @@ namespace tests {
         incrementCounter(key, false);
         REQUIRE(getCounter(key, false) == 2);
 
-        faasmInitCounter(key, false);
+        initCounter(key, false);
         REQUIRE(getCounter(key, false) == 0);
 
         incrementCounter(key, false);
@@ -39,7 +38,7 @@ namespace tests {
         state::getGlobalState().forceClearAll();
 
         const char *key = "test_counter";
-        faasmInitCounter(key, false);
+        initCounter(key, false);
 
         for (int i = 0; i < 1000; i++) {
             incrementCounter(key, false);
@@ -54,7 +53,7 @@ namespace tests {
         state::getGlobalState().forceClearAll();
 
         const char *key = "test_uninit_key";
-        faasmInitCounter(key, false);
+        initCounter(key, false);
         REQUIRE(getCounter(key, false) == 0);
 
         incrementCounter(key, false);

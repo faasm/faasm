@@ -1,12 +1,15 @@
 cmake_minimum_required(VERSION 3.0)
 project(libfaasm)
 
+# ------ Faasm C++ library ------ #
+
 set(CMAKE_CXX_STANDARD 17)
 
-include_directories(${CMAKE_CURRENT_LIST_DIR})
+set(PROJ_INCLUDE ${CMAKE_CURRENT_LIST_DIR}/../include)
+include_directories(${CMAKE_CURRENT_LIST_DIR} ${PROJ_INCLUDE})
 
 set(PUBLIC_HEADERS
-        ${FAASM_INCLUDE_DIR}/faasm/core.h
+        ${PROJ_INCLUDE}/faasm/core.h
         faasm/counter.h
         faasm/faasm.h
         faasm/func.h
@@ -39,4 +42,8 @@ install(TARGETS faasm
         PUBLIC_HEADER DESTINATION ${CMAKE_SYSROOT}/include/faasm
         )
 
-install(FILES ${FAASM_INCLUDE_DIR}/faasm/faasm.imports DESTINATION ${CMAKE_SYSROOT}/lib/libfaasm.imports)
+install(
+        FILES ${PROJ_INCLUDE}/faasm/faasm.imports
+        DESTINATION ${CMAKE_SYSROOT}/lib
+        RENAME libfaasm.imports
+)

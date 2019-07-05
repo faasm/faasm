@@ -1,6 +1,3 @@
-# This is put in place to tell the WASM compiler to allow these functions to be imported
-
-# State
 __faasm_push_state
 __faasm_push_state_partial
 __faasm_read_state
@@ -15,18 +12,12 @@ __faasm_lock_state_read
 __faasm_unlock_state_read
 __faasm_lock_state_write
 __faasm_unlock_state_write
-
-# Standard functions
 __faasm_read_input
 __faasm_write_output
 __faasm_read_config
-
-# Chaining
 __faasm_chain_function
 __faasm_chain_this
 __faasm_await_call
 __faasm_get_idx
-
-# Snapshot/ restore
 __faasm_snapshot_memory
 __faasm_restore_memory

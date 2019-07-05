@@ -230,8 +230,6 @@ namespace tests {
 
         SparseMatrix<double> mat = faasm::randomSparseMatrix(5, 10, 0.4);
 
-        faasm::FaasmMemory mem;
-
         const char *key = "sparse_trip_test";
         faasm::writeSparseMatrixToState(key, mat, false);
 
@@ -248,7 +246,6 @@ namespace tests {
         const char *key = "sparse_trip_offset_test";
 
         SparseMatrix<double> mat = faasm::randomSparseMatrix(rows, cols, 0.7);
-        faasm::FaasmMemory mem;
         faasm::writeSparseMatrixToState(key, mat, async);
 
         // Check subsection

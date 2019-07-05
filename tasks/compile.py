@@ -7,7 +7,7 @@ from subprocess import call, check_output
 from invoke import task
 
 from tasks.download import download_proj
-from tasks.env import PROJ_ROOT, EMSCRIPTEN_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT, FUNC_BUILD_DIR
+from tasks.env import PROJ_ROOT, WASM_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT, FUNC_BUILD_DIR
 
 
 def _clean_dir(dir_path, clean):
@@ -40,7 +40,7 @@ def compile(context, clean=False, func=None, debug=False, user=None):
         "VERBOSE=1",
         "cmake",
         "-DFAASM_BUILD_TYPE={}".format(build_type),
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(EMSCRIPTEN_TOOLCHAIN),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
         "-DCMAKE_BUILD_TYPE={}".format(cmake_build_type),
         ".."
     ]
@@ -73,7 +73,7 @@ def compile_malloc(ctx, clean=False):
     build_cmd = [
         "cmake",
         "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(EMSCRIPTEN_TOOLCHAIN),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
         ".."
     ]
 
@@ -88,7 +88,7 @@ def compile_malloc(ctx, clean=False):
 @task
 def compile_libfaasm(ctx, clean=False):
     """
-    Build both the main Faasm library and python helper library
+    Build all Faasm libraries
     """
 
     _check_toolchain()
@@ -103,7 +103,7 @@ def compile_libfaasm(ctx, clean=False):
             "cmake",
             "-DFAASM_BUILD_TYPE=wasm",
             "-DCMAKE_BUILD_TYPE=Release",
-            "-DCMAKE_TOOLCHAIN_FILE={}".format(EMSCRIPTEN_TOOLCHAIN),
+            "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
             ".."
         ]
 
@@ -111,14 +111,15 @@ def compile_libfaasm(ctx, clean=False):
         print(build_cmd_str)
 
         call(build_cmd_str, shell=True, cwd=build_dir)
-        call("make VERBOSE=1", shell=True, cwd=build_dir)
+        call("make", shell=True, cwd=build_dir)
         call("make install", shell=True, cwd=build_dir)
 
         # Put imports file in place to avoid undefined symbols
         if dir_name == "lib":
             check_output("cp libfaasm.imports {}".format(build_dir), shell=True, cwd=work_dir)
 
-    _do_lib_build("lib")
+    _do_lib_build("lib-c")
+    _do_lib_build("lib-cpp")
     _do_lib_build("python")
 
 
@@ -134,7 +135,7 @@ def compile_libfake(ctx, clean=False):
     build_cmd = [
         "cmake",
         "-DFAASM_BUILD_TYPE=wasm",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(EMSCRIPTEN_TOOLCHAIN),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
         "-DCMAKE_BUILD_TYPE=Release",
         ".."
     ]

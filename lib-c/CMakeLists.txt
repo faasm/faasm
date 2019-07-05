@@ -3,10 +3,12 @@ project(libfaasmc)
 
 # ------ Faasm C library ------ #
 
-include_directories(${CMAKE_CURRENT_LIST_DIR})
+set(PROJ_INCLUDE ${CMAKE_CURRENT_LIST_DIR}/../include)
+
+include_directories(${PROJ_INCLUDE})
 
 set(PUBLIC_HEADERS
-        ${FAASM_INCLUDE_DIR}/faasm/core.h
+        ${PROJ_INCLUDE}/faasm/core.h
         )
 
 set(LIB_FILES
@@ -21,7 +23,7 @@ else ()
     set(MALLOC_LIB "")
 endif ()
 
-add_library(faasmc STATIC ${LIB_FILES})
+add_library(faasmc STATIC ${LIB_FILES} ${PUBLIC_HEADERS})
 
 target_link_libraries(faasmc ${MALLOC_LIB})
 
@@ -34,4 +36,8 @@ install(TARGETS faasmc
         PUBLIC_HEADER DESTINATION ${CMAKE_SYSROOT}/include/faasmc
         )
 
-install(FILES ${FAASM_INCLUDE_DIR}/faasm/faasm.imports DESTINATION ${CMAKE_SYSROOT}/lib/libfaasmc.imports)
+install(
+        FILES ${PROJ_INCLUDE}/faasm/faasm.imports
+        DESTINATION ${CMAKE_SYSROOT}/lib
+        RENAME libfaasmc.imports
+)
