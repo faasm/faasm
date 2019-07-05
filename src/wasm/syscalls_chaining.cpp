@@ -1,6 +1,8 @@
 #include "WasmModule.h"
 #include "syscalls.h"
 
+#include <scheduler/Scheduler.h>
+
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/RuntimeData.h>
 #include <WAVM/Runtime/Intrinsics.h>
@@ -27,28 +29,53 @@ namespace wasm {
         // TODO - await the call (using resultKey)
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_function", void, __faasm_chain_function,
+    int _makeChainedCall(std::string functionName, int idx, const std::vector<uint8_t> &inputData) {
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        message::Message *originalCall = getExecutingCall();
+
+        message::Message call;
+        call.set_user(originalCall->user());
+        call.set_function(functionName);
+        call.set_inputdata(inputData.data(), inputData.size());
+        call.set_idx(idx);
+
+        const std::string chainedStr = util::funcToString(call);
+        const std::string origStr = util::funcToString(*originalCall);
+
+        // TODO: Avoid this approach to recursive calls, add some option of delay in the scheduler?
+        // Wait a bit before making a recursive call
+        if (originalCall->function() == call.function()) {
+            logger->debug("Delaying chained call {} -> {}", origStr, chainedStr);
+            uint microseconds = (uint) 500 * 1000; // 500ms
+            usleep(microseconds);
+        }
+
+        logger->debug("Chaining {} -> {}", origStr, chainedStr);
+        int callId = util::addIdToMessage(call);
+        sch.callFunction(call);
+
+        return callId;
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_function", I32, __faasm_chain_function,
                               I32 namePtr, I32 inputDataPtr, I32 inputDataLen) {
         util::getLogger()->debug("S - chain_function - {} {} {}", namePtr, inputDataPtr, inputDataLen);
 
-        message::Message *call = getExecutingCall();
-        CallChain *callChain = getExecutingCallChain();
         std::string funcName = getStringFromWasm(namePtr);
         const std::vector<uint8_t> inputData = getBytesFromWasm(inputDataPtr, inputDataLen);
 
-        // Add this to the chain of calls
-        callChain->addCall(call->user(), funcName, inputData);
+        return _makeChainedCall(funcName, 0, inputData);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_this", void, __faasm_chain_this,
-                            I32 idx, I32 inputDataPtr, I32 inputDataLen) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_this", I32, __faasm_chain_this,
+                              I32 idx, I32 inputDataPtr, I32 inputDataLen) {
         util::getLogger()->debug("S - chain_this - {} {} {}", idx, inputDataPtr, inputDataLen);
 
         message::Message *call = getExecutingCall();
-        CallChain *callChain = getExecutingCallChain();
         const std::vector<uint8_t> inputData = getBytesFromWasm(inputDataPtr, inputDataLen);
 
-        // Add this to the chain of calls
-        callChain->addCallThis(call->user(), call->function(), idx, inputData);
+        return _makeChainedCall(call->function(), idx, inputData);
     }
 }

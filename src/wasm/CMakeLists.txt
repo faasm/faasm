@@ -6,7 +6,6 @@ include_directories(
 file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/wasm/*.h")
 
 add_library(wasm STATIC
-        CallChain.cpp
         FunctionLoader.cpp
         LocalFunctionLoader.cpp
         S3FunctionLoader.cpp

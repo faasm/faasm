@@ -33,7 +33,6 @@ int main(int argc, char *argv[]) {
     }
 
     const util::TimePoint tpInit = runner::startTimer();
-    wasm::CallChain callChain(call);
     wasm::WasmModule module;
     module.initialise();
     module.bindToFunction(call);
@@ -44,6 +43,6 @@ int main(int argc, char *argv[]) {
     runner::logEndTimer("WASM snapshot", tpSnap);
 
     const util::TimePoint tp = runner::startTimer();
-    module.execute(call, callChain);
+    module.execute(call);
     runner::logEndTimer("WASM function execution", tp);
 }

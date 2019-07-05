@@ -30,7 +30,6 @@ namespace runner {
         call.set_user(this->user);
         call.set_function(this->funcName);
         call.set_inputdata(this->inputData);
-        wasm::CallChain callChain(call);
 
         module.initialise();
         module.bindToFunction(call);
@@ -45,7 +44,7 @@ namespace runner {
         for (int i = 0; i < nIterations; i++) {
             // Exec the function
             const util::TimePoint nativeTp = runner::startTimer();
-            module.execute(call, callChain);
+            module.execute(call);
             long nativeTime = runner::getTimeDiffMicros(nativeTp);
 
             profOut << this->outputName << ",wasm," << nativeTime << std::endl;

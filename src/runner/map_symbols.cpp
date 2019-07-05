@@ -5,6 +5,7 @@
 #include <util/logging.h>
 #include <util/files.h>
 #include <iomanip>
+#include <util/func.h>
 
 int main(int argc, char *argv[]) {
     util::initLogging();
@@ -24,7 +25,6 @@ int main(int argc, char *argv[]) {
 
     logger->info("Disassembling function {}/{}", user, function);
 
-    wasm::CallChain callChain(call);
     wasm::WasmModule module;
     module.initialise();
     module.bindToFunction(call);
