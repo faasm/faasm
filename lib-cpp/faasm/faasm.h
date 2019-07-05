@@ -11,8 +11,8 @@
 #include "faasm/core.h"
 
 int main(int argc, char *argv[]) {
-    // Invoke the main function
-    exec(0);
+    int idx = faasmGetCurrentIdx();
+    exec(idx);
 
     return 0;
 }

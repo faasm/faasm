@@ -60,10 +60,13 @@ HOST_IFACE_FUNC
 void __faasm_write_output(const unsigned char *output, long outputLen);
 
 HOST_IFACE_FUNC
-void __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize);
+int __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize);
 
 HOST_IFACE_FUNC
-void __faasm_chain_this(int idx, const unsigned char *inputData, long inputDataSize);
+int __faasm_chain_this(int idx, const unsigned char *inputData, long inputDataSize);
+
+HOST_IFACE_FUNC
+void __faasm_await_call(int messageId);
 
 HOST_IFACE_FUNC
 int __faasm_get_idx();

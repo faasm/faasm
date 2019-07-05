@@ -514,7 +514,7 @@ namespace tests {
         message::Message call;
         call.set_user("demo");
         call.set_function("noop");
-        util::addResultKeyToMessage(call);
+        util::addIdToMessage(call);
 
         // Sense check initial scheduler set-up
         scheduler::Scheduler &sch = scheduler::getScheduler();

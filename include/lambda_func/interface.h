@@ -7,9 +7,6 @@
 using namespace aws::lambda_runtime;
 
 namespace faasm {
-    // Define main Faasm entry point
-    int exec();
-
     // Hooks into starting/ finishing a request
     void startRequest();
 

@@ -30,7 +30,7 @@ int main() {
         // Get the function
         message::Message msg = util::jsonToMessage(req.payload);
         logger->info("Queueing request to {}", util::funcToString(msg));
-        util::addResultKeyToMessage(msg);
+        util::addIdToMessage(msg);
 
         // Dispatch function
         globalBus.enqueueMessage(msg);

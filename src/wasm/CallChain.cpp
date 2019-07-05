@@ -40,7 +40,7 @@ namespace wasm {
             }
 
             logger->debug("Chaining {} -> {}", origStr, chainedStr);
-            util::addResultKeyToMessage(chainedCall);
+            util::addIdToMessage(chainedCall);
             sch.callFunction(chainedCall);
         }
 

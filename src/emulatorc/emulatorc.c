@@ -56,8 +56,9 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen) {
     return 14;
 }
 
-void __faasm_chain_this(int idx, const unsigned char *inputData, long inputDataSize) {
-
+int __faasm_chain_this(int idx, const unsigned char *inputData, long inputDataSize) {
+    // TODO - do this properly
+    return 1;
 }
 
 int __faasm_get_idx() {
@@ -84,7 +85,11 @@ void __faasm_write_output(const unsigned char *output, long outputLen) {
 
 }
 
-void __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize) {
+int __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize) {
+    return 0;
+}
+
+void __faasm_await_call(int messageId) {
 
 }
 

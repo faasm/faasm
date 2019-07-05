@@ -21,23 +21,23 @@ void faasmReadStateOffset(const char *key, long totalLen, long offset, uint8_t *
                           bool async);
 
 /**
-  * Reads a chunk of state and returns a direct pointer
-  */
+* Reads a chunk of state and returns a direct pointer
+*/
 uint8_t *faasmReadStateOffsetPtr(const char *key, long fullLen, long offset, long len, bool async);
 
 /**
- * Overwrites the state at the given key
- */
+* Overwrites the state at the given key
+*/
 void faasmWriteState(const char *key, const uint8_t *data, long dataLen, bool async);
 
 /**
- * Writes a chunk of state at the given key and offset
- */
+* Writes a chunk of state at the given key and offset
+*/
 void faasmWriteStateOffset(const char *key, long totalLen, long offset, const uint8_t *data, long dataLen, bool async);
 
 /**
- * Mark the whole value as dirty
- */
+* Mark the whole value as dirty
+*/
 void faasmFlagStateDirty(const char *key, long totalLen);
 
 /**
@@ -93,22 +93,28 @@ void faasmSetOutput(const uint8_t *newOutput, long outputLen);
 /**
  * Creates a "chained" function call to another function owned by the same user
  */
-void faasmChainFunction(const char *name);
+int faasmChainFunction(const char *name);
 
 /**
  * Chains a function with the given input data
  */
-void faasmChainFunctionInput(const char *name, const uint8_t *inputData, long inputDataSize);
+int faasmChainFunctionInput(const char *name, const uint8_t *inputData, long inputDataSize);
 
 /**
  * Chains a function from this module
  */
-void faasmChainThis(int idx);
+int faasmChainThis(int idx);
 
 /**
  * Chains a function from this module with the given input data
  */
-void faasmChainThisInput(int idx, const uint8_t *inputData, long inputDataSize);
+int faasmChainThisInput(int idx, const uint8_t *inputData, long inputDataSize);
+
+/**
+ * Blocks waiting for the call
+ */
+void faasmAwaitCall(int callId);
+
 
 /**
  * Gets the index of the current function
@@ -134,15 +140,25 @@ void faasmReadConfig(const char *varName, char *buffer);
  * Extra faasm functions
  */
 typedef int (*_FaasmFuncPtr)();
+
 int __attribute__((weak)) _faasm_func_0();
+
 int __attribute__((weak)) _faasm_func_1();
+
 int __attribute__((weak)) _faasm_func_2();
+
 int __attribute__((weak)) _faasm_func_3();
+
 int __attribute__((weak)) _faasm_func_4();
+
 int __attribute__((weak)) _faasm_func_5();
+
 int __attribute__((weak)) _faasm_func_6();
+
 int __attribute__((weak)) _faasm_func_7();
+
 int __attribute__((weak)) _faasm_func_8();
+
 int __attribute__((weak)) _faasm_func_9();
 
 // Macro for defining extra faasm functions that can be invoked

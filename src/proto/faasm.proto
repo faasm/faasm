@@ -15,13 +15,14 @@ message Message {
 
     optional MessageType type = 4 [default = CALL];
 
-    optional string resultKey = 5;
-    optional string statusKey = 6;
-    optional bool success = 7;
-    optional bool isAsync = 8;
-    optional bool isPython = 9;
+    optional int32 id = 5;
+    optional string resultKey = 6;
+    optional string statusKey = 7;
+    optional bool success = 8;
+    optional bool isAsync = 9;
+    optional bool isPython = 10;
 
-    optional bytes inputData = 10;
-    optional bytes outputData = 11;
+    optional bytes inputData = 11;
+    optional bytes outputData = 12;
 }
 

@@ -109,7 +109,7 @@ namespace edge {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Make the call
-        util::addResultKeyToMessage(msg);
+        util::addIdToMessage(msg);
         globalBus.enqueueMessage(msg);
 
         if (msg.isasync()) {

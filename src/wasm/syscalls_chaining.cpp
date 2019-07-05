@@ -19,6 +19,14 @@ namespace wasm {
         return idx;
     }
 
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_await_call", void, __faasm_await_call, I32 messageId) {
+        util::getLogger()->debug("S - await_call - {}", messageId);
+
+        std::string resultKey = util::resultKeyFromMessageId(messageId);
+
+        // TODO - await the call (using resultKey)
+    }
+
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_function", void, __faasm_chain_function,
                               I32 namePtr, I32 inputDataPtr, I32 inputDataLen) {
         util::getLogger()->debug("S - chain_function - {} {} {}", namePtr, inputDataPtr, inputDataLen);

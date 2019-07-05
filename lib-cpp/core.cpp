@@ -75,20 +75,24 @@ void faasmSetOutput(const uint8_t *newOutput, long outputLen) {
     __faasm_write_output(newOutput, outputLen);
 }
 
-void faasmChainFunction(const char *name) {
-    faasmChainFunctionInput(name, 0, 0);
+int faasmChainFunction(const char *name) {
+    return faasmChainFunctionInput(name, 0, 0);
 }
 
-void faasmChainFunctionInput(const char *name, const uint8_t *inputData, long inputDataSize) {
-    __faasm_chain_function(name, inputData, inputDataSize);
+int faasmChainFunctionInput(const char *name, const uint8_t *inputData, long inputDataSize) {
+    return __faasm_chain_function(name, inputData, inputDataSize);
 }
 
-void faasmChainThis(int idx) {
-    faasmChainThisInput(idx, 0, 0);
+int faasmChainThis(int idx) {
+    return faasmChainThisInput(idx, 0, 0);
 }
 
-void faasmChainThisInput(int idx, const uint8_t *inputData, long inputDataSize) {
-    __faasm_chain_this(idx, inputData, inputDataSize);
+void faasmAwaitCall(int messageId) {
+    __faasm_await_call(messageId);
+}
+
+int faasmChainThisInput(int idx, const uint8_t *inputData, long inputDataSize) {
+    return __faasm_chain_this(idx, inputData, inputDataSize);
 }
 
 int faasmGetCurrentIdx() {

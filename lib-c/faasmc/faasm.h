@@ -6,7 +6,8 @@
 
 int main(int argc, char *argv[]) {
     // Invoke the entrypoint function
-    exec(0);
+    int idx = faasmGetCurrentIdx();
+    exec(idx);
 
     return 0;
 }

@@ -147,11 +147,20 @@ namespace util {
         return str;
     }
 
-    void addResultKeyToMessage(message::Message &msg) {
+    int addIdToMessage(message::Message &msg) {
         // Generate a random result key
-        int randomNumber = util::randomInteger();
-        std::string resultKey = "Result_";
-        resultKey += std::to_string(randomNumber);
+        int messageId = util::randomInteger();
+        msg.set_id(messageId);
+
+        std::string resultKey = resultKeyFromMessageId(messageId);
         msg.set_resultkey(resultKey);
+
+        return messageId;
+    }
+
+    std::string resultKeyFromMessageId(int mid) {
+        std::string resultKey = "Result_";
+        resultKey += std::to_string(mid);
+        return resultKey;
     }
 }
