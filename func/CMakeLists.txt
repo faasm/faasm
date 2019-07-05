@@ -13,7 +13,7 @@ else ()
 endif ()
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
-    message(STATUS "Detected wasm build")
+    message(STATUS "Detected wasm build (sysroot=${CMAKE_SYSROOT}")
 
     add_definitions(-DWASM_BUILD=1)
 

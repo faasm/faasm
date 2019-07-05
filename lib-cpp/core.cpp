@@ -1,5 +1,8 @@
 #include "faasm/core.h"
+
+extern "C" {
 #include "faasm/host_interface.h"
+}
 
 
 void faasmReadState(const char *key, uint8_t *buffer, long bufferLen, bool async) {

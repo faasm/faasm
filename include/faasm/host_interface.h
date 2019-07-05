@@ -4,13 +4,6 @@
 // #define HOST_IFACE_FUNC __attribute__((weak))
 #define HOST_IFACE_FUNC
 
-// In a wasm build, these need to be C definitions to avoid the names getting mangled
-#if WASM_BUILD == 1
-#ifdef __cplusplus
-extern "C" {
-#endif
-#endif
-
 HOST_IFACE_FUNC
 void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, int async);
 
@@ -81,11 +74,5 @@ void __faasm_restore_memory(const char *key);
 
 HOST_IFACE_FUNC
 void __faasm_read_config(const char *varName, char *buffer);
-
-#if WASM_BUILD == 1
-#ifdef __cplusplus
-}
-#endif
-#endif
 
 #endif

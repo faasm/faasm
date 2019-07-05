@@ -1,5 +1,8 @@
 #include <faasm/core.h>
+
+extern "C" {
 #include <faasm/host_interface.h>
+}
 
 #include <redis/Redis.h>
 #include <state/State.h>
@@ -152,7 +155,7 @@ int __faasm_chain_function(const char *name, const unsigned char *inputData, lon
 }
 
 void __faasm_await_call(int messageId) {
-    
+
 }
 
 void __faasm_snapshot_memory(const char *key) {

@@ -9,6 +9,7 @@ include_directories(${PROJ_INCLUDE})
 
 set(PUBLIC_HEADERS
         ${PROJ_INCLUDE}/faasm/core.h
+        faasmc/faasm.h
         )
 
 set(LIB_FILES
