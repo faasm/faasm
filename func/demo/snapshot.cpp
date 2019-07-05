@@ -2,28 +2,26 @@
 
 #include <stdio.h>
 
-namespace faasm {
-    int increment() {
-        static int i;
-        i++;
+int increment() {
+    static int i;
+    i++;
 
-        printf("Static int: %i\n", i);
+    printf("Static int: %i\n", i);
 
-        return i;
-    }
+    return i;
+}
 
-    int exec(FaasmMemory *memory) {
-        increment();
-        increment();
-        increment();
-        int res =increment();
+FAASM_MAIN_FUNC() {
+    increment();
+    increment();
+    increment();
+    int res = increment();
 
-        // Take snapshot
-        memory->snapshot("snapshot_restore");
+    // Take snapshot
+    faasmSnapshot("snapshot_restore");
 
-        auto resBytes = reinterpret_cast<uint8_t *>(&res);
-        memory->setOutput(resBytes, sizeof(int));
+    auto resBytes = reinterpret_cast<uint8_t *>(&res);
+    faasmSetOutput(resBytes, sizeof(int));
 
-        return 0;
-    }
+    return 0;
 }

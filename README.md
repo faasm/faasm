@@ -130,7 +130,7 @@ For my function to invoke the function `foo`, (also owned by me), it can do the 
 namespace faasm {
     int exec(Faasm *memory) {
         std::vector<int> funcData = {1, 2, 3, 4};
-        memory->chainFunction("foo", funcData, funcData.size());
+        faasmChainFunction("foo", funcData, funcData.size());
 
         return 0;
     }
@@ -159,12 +159,12 @@ namespace faasm {
 
         // Read the state into a buffer
         uint8_t *myState = new uint8_t[stateSize];
-        memory->readState(key, newState, stateSize);
+        faasmReadState(key, newState, stateSize);
 
         // Do something useful, modify state
 
         // Write the updated state
-        memory->writeState(key, myState, stateSize);
+        faasmWriteState(key, myState, stateSize);
 
         return 0;
     }

@@ -3,21 +3,20 @@
 #include "faasm/counter.h"
 #include "faasm/sgd.h"
 
-namespace faasm {
-    int exec(FaasmMemory *memory) {
+FAASM_MAIN_FUNC() {
         // Load params
-        bool fullAsync = getEnvFullAsync(memory);
-        SgdParams p = readParamsFromState(memory, PARAMS_KEY, fullAsync);
+        bool fullAsync = faasm::getEnvFullAsync();
+        faasm::SgdParams p = faasm::readParamsFromState(PARAMS_KEY, fullAsync);
 
         // Set per-epoch memory to zero
-        faasm::zeroErrors(memory, p);
-        faasm::zeroFinished(memory, p);
+        faasm::zeroErrors(p);
+        faasm::zeroFinished(p);
 
         // Reset the barrier counter
-        faasm::initCounter(memory, BARRIER_COUNT_KEY, fullAsync);
+        faasm::initCounter(BARRIER_COUNT_KEY, fullAsync);
 
         // Get the epoch count
-        int epoch = faasm::getCounter(memory, EPOCH_COUNT_KEY, p.fullAsync);
+        int epoch = faasm::getCounter(EPOCH_COUNT_KEY, p.fullAsync);
 
         // Shuffle start indices for each batch
         int *batchNumbers = faasm::randomIntRange(p.nBatches);
@@ -36,11 +35,10 @@ namespace faasm {
             auto inputBytes = reinterpret_cast<const uint8_t *>(args.c_str());
 
             // Call the chained function
-            memory->chainFunction("sgd_step", inputBytes, args.size());
+            faasmChainFunctionInput("sgd_step", inputBytes, args.size());
         }
 
         delete[] batchNumbers;
 
         return 0;
     }
-}

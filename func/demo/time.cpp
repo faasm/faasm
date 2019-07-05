@@ -3,17 +3,15 @@
 
 #include <stdio.h>
 
-namespace faasm {
-    int exec(FaasmMemory *memory) {
-        double secs = getSecondsSinceEpoch();
+FAASM_MAIN_FUNC() {
+    double secs = faasm::getSecondsSinceEpoch();
 
-        size_t strLen = 8 + sizeof(double);
-        char str[strLen];
-        sprintf(str, "Seconds: %.3f", secs);
+    size_t strLen = 8 + sizeof(double);
+    char str[strLen];
+    sprintf(str, "Seconds: %.3f", secs);
 
-        auto output = reinterpret_cast<uint8_t *>(str);
-        memory->setOutput(output, strLen);
+    auto output = reinterpret_cast<uint8_t *>(str);
+    faasmSetOutput(output, strLen);
 
-        return 0;
-    }
+    return 0;
 }

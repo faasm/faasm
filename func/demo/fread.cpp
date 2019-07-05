@@ -6,24 +6,21 @@
 /**
  * Test reading a file that we know should be faked
  */
-namespace faasm {
+FAASM_MAIN_FUNC() {
+    FILE *fp = fopen("/etc/hosts", "r");
 
-    int exec(FaasmMemory *memory) {
-        FILE *fp = fopen("/etc/hosts", "r");
+    char buff[2056];
+    fgets(buff, 2056, fp);
+    printf("Read from /etc/hosts: \n%s\n", buff);
 
-        char buff[2056];
-        fgets(buff, 2056, fp);
-        printf("Read from /etc/hosts: \n%s\n", buff);
+    const char *expected = "127.0.0.1\tlocalhost\n";
 
-        const char* expected = "127.0.0.1\tlocalhost\n";
-
-        // Check output is as expected
-        if(strcmp(expected, buff) == 0) {
-            printf("Content of /etc/hosts as expected\n");
-            return 0;
-        } else {
-            printf("Content of /etc/hosts NOT as expected (%s)\n", buff);
-            return 1;
-        }
+    // Check output is as expected
+    if (strcmp(expected, buff) == 0) {
+        printf("Content of /etc/hosts as expected\n");
+        return 0;
+    } else {
+        printf("Content of /etc/hosts NOT as expected (%s)\n", buff);
+        return 1;
     }
 }
