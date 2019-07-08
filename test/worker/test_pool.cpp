@@ -168,6 +168,7 @@ namespace tests {
         call.set_function("echo");
         call.set_inputdata("first input");
         call.set_resultkey("test_repeat_a");
+        util::setMessageId(call);
 
         // Set up
         WorkerThreadPool pool(1);
@@ -198,6 +199,8 @@ namespace tests {
         // Execute again
         call.set_inputdata("second input");
         call.set_resultkey("test_repeat_b");
+        util::setMessageId(call);
+
         sch.callFunction(call);
 
         w.processNextMessage();
@@ -241,39 +244,33 @@ namespace tests {
     TEST_CASE("Test function chaining", "[worker]") {
         setUp();
 
+        util::SystemConfig &conf = util::getSystemConfig();
+        conf.boundTimeout = 1000;
+        conf.unboundTimeout = 1000;
+
         message::Message call;
         call.set_user("demo");
         call.set_function("chain");
-        call.set_resultkey("test_chain");
+        int messageId = util::setMessageId(call);
+
+        // NOTE - for this test to work we have to run multiple threads.
+        // TODO - is this necessary? Any way to avoid having threaded tests?
 
         // Set up a real worker to execute this function. Remove it from the
         // unassigned set and add to handle this function
-        WorkerThreadPool pool(1);
-        WorkerThread w(1);
-        w.bindToFunction(call);
+        WorkerThreadPool pool(4);
+        pool.startThreadPool();
 
         // Make the call
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.callFunction(call);
 
-        // Execute the worker
-        w.processNextMessage();
-
-        // Check the call executed successfully
+        // Await the call executing successfully
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(call.id());
+        message::Message result = globalBus.getFunctionResult(messageId);
         REQUIRE(result.success());
 
-        // Check the chained calls have been set up
-        message::Message chainA = checkChainCall("demo", "echo", {0, 1, 2});
-        message::Message chainB = checkChainCall("demo", "x2", {1, 2, 3});
-        message::Message chainC = checkChainCall("demo", "dummy", {2, 3, 4});
-
-        // Check bind messages also sent
-        checkBindMessage(call);
-        checkBindMessage(chainA);
-        checkBindMessage(chainB);
-        checkBindMessage(chainC);
+        pool.shutdown();
 
         tearDown();
     }
@@ -286,6 +283,7 @@ namespace tests {
         call.set_user("demo");
         call.set_function("increment");
         call.set_resultkey("test_state_incr");
+        util::setMessageId(call);
 
         // Call function
         WorkerThreadPool pool(1);
@@ -305,6 +303,7 @@ namespace tests {
         REQUIRE(resultA.outputdata() == "Counter: 001");
 
         // Call the function a second time, the state should have been incremented
+        util::setMessageId(call);
         sch.callFunction(call);
         w.processNextMessage();
 
@@ -322,6 +321,7 @@ namespace tests {
         call.set_user("demo");
         call.set_function(funcName);
         call.set_resultkey("check_state_res");
+        util::setMessageId(call);
 
         // Call function
         WorkerThreadPool pool(1);
@@ -407,6 +407,7 @@ namespace tests {
         call.set_user("demo");
         call.set_function(funcName);
         call.set_resultkey("test_" + funcName);
+        util::setMessageId(call);
 
         // Call function
         WorkerThreadPool pool(1);

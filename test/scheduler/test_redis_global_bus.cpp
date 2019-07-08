@@ -26,6 +26,7 @@ namespace tests {
         call.set_function(funcName);
         call.set_user(userName);
         call.set_inputdata(inputData);
+        util::setMessageId(call);
 
         std::string originalSerialisation = conf.serialisation;
 
@@ -58,11 +59,11 @@ namespace tests {
         }
 
         SECTION("Check reading/ writing function results") {
-            call.set_resultkey("function 123");
+            util::setMessageId(call);
             bus.setFunctionResult(call, true);
 
             // Check result has been written to the right key
-            REQUIRE(redis.listLength("function 123") == 1);
+            REQUIRE(redis.listLength(call.resultkey()) == 1);
 
             // Check that some expiry has been set
             long ttl = redis.getTtl(call.resultkey());

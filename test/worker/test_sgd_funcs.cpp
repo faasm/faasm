@@ -36,6 +36,8 @@ namespace tests {
         call.set_function(funcName);
         call.set_resultkey("foobar");
 
+        util::setMessageId(call);
+
         return execFunctionWithStringResult(call);
     }
 

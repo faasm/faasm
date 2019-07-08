@@ -63,6 +63,10 @@ namespace scheduler {
     }
 
     message::Message RedisMessageBus::getFunctionResult(int messageId) {
+        if(messageId == 0) {
+            throw std::runtime_error("Must provide non-zero message ID");
+        }
+
         std::string resultKey = util::resultKeyFromMessageId(messageId);
         std::vector<uint8_t> result = redis.dequeueBytes(resultKey);
 

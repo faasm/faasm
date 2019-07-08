@@ -15,9 +15,9 @@ namespace tests {
         // These are all the files we _might_ see
         std::vector<std::string> expected = {
                 "", ".", "..",
-                "etc", "funcs", "include", "lib",
+                "etc", "funcs", "include", "lib", "tmp",
                 "libfakeLibA.so", "libfakeLibB.so",
-                "libfakeiLibA.wast", "libfakeiLibB.wast", // Legacy typo
+                "libfakeLibA.so.o", "libfakeLibB.so.o",
                 "libfakeLibA.wast", "libfakeLibB.wast",
                 "share"
         };
@@ -29,6 +29,7 @@ namespace tests {
         msg.set_user("demo");
         msg.set_function("getdents");
         msg.set_resultkey("getdents_test");
+        util::setMessageId(msg);
 
         const std::string result = execFunctionWithStringResult(msg);
         std::vector<std::string> actual = util::tokeniseString(result, ',');

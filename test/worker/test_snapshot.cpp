@@ -28,6 +28,7 @@ namespace tests {
         snapCall.set_user("demo");
         snapCall.set_function("snapshot");
         snapCall.set_resultkey("test_snapshot");
+        util::setMessageId(snapCall);
 
         execFunction(snapCall);
         message::Message snapResult = globalBus.getFunctionResult(snapCall.id());

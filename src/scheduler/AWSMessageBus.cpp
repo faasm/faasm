@@ -69,6 +69,10 @@ namespace scheduler {
     }
 
     message::Message AWSMessageBus::getFunctionResult(int messageId) {
+        if(messageId == 0) {
+            throw std::runtime_error("Must provide non-zero message ID");
+        }
+
         const std::string &statusKey = util::statusKeyFromMessageId(messageId);
         const std::string result = s3.getKeyStr(bucketName, statusKey);
 

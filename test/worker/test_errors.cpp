@@ -30,6 +30,7 @@ namespace tests {
         call.set_user("errors");
         call.set_function(funcName);
         call.set_resultkey("error_test");
+        util::setMessageId(call);
 
         execErrorFunction(call);
 
