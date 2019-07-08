@@ -45,10 +45,10 @@ namespace wasm {
         call.set_function(functionName);
         call.set_inputdata(inputData.data(), inputData.size());
 
-        const std::string chainedStr = util::funcToString(call);
         const std::string origStr = util::funcToString(*originalCall);
 
         util::setMessageIdx(call, idx);
+        const std::string chainedStr = util::funcToString(call);
 
         // TODO: Avoid this approach to recursive calls, add some option of delay in the scheduler?
         // Wait a bit before making a recursive call

@@ -5,7 +5,6 @@ extern "C" {
 }
 
 #include <redis/Redis.h>
-#include <scheduler/Scheduler.h>
 #include <state/State.h>
 
 /**
@@ -110,12 +109,12 @@ void __faasm_push_state_partial(const char *key) {
 long __faasm_read_input(unsigned char *buffer, long bufferLen) {
     std::copy(_inputData.begin(), _inputData.end(), buffer);
 
-    return 14;
+    return bufferLen;
 }
 
 int __faasm_chain_this(int idx, const unsigned char *buffer, long bufferLen) {
     // Copy the input data
-    std::copy(buffer, buffer + bufferLen, _inputData.data());
+    _inputData = std::vector<uint8_t >(buffer, buffer+bufferLen);
 
     // Call the function directly
     _FaasmFuncPtr f = getFaasmFunc(idx);
@@ -156,10 +155,6 @@ int __faasm_chain_function(const char *name, const unsigned char *inputData, lon
 }
 
 int __faasm_await_call(int messageId) {
-    // Call scheduler as normal
-    scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
-    bus.getFunctionResult(messageId);
-
     return 0;
 }
 

@@ -1,6 +1,7 @@
 #include <catch/catch.hpp>
 
 #include <util/func.h>
+#include <util/config.h>
 #include <util/environment.h>
 #include <boost/filesystem.hpp>
 
@@ -9,6 +10,8 @@ using namespace boost::filesystem;
 namespace tests {
 
     TEST_CASE("Test retrieving function paths", "[util]") {
+        util::SystemConfig &conf = util::getSystemConfig();
+
         std::string funcName;
         SECTION("Normal func name") {
             funcName = "beta";
@@ -48,6 +51,8 @@ namespace tests {
 
         // Clear up afterwards
         util::unsetEnvVar("FUNC_ROOT");
+
+        conf.reset();
     }
 
     TEST_CASE("Test valid function check returns false for invalid function", "[util]") {

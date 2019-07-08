@@ -5,7 +5,6 @@
 #include "files.h"
 #include "json.h"
 #include "random.h"
-#include "strings.h"
 
 #include <iomanip>
 #include <sstream>
@@ -167,24 +166,27 @@ namespace util {
     }
 
     std::string addIdxToFunction(const std::string &funcName, int idx) {
-        if(idx > 0) {
+        if (idx > 0) {
             std::ostringstream os;
-            os << "__" << funcName << std::setfill('0') << std::setw(3) << idx << "__";
+            os << funcName << "__" << std::setfill('0') << std::setw(3) << idx << "__";
             return os.str();
-        }
-        else {
+        } else {
             return funcName;
         }
     }
 
     std::string stripIdxFromFunction(const std::string &funcName) {
         std::string ending = "__";
-        if(util::endsWith(funcName, ending)) {
+        if (funcName.size() < 3) {
+            return funcName;
+        }
+
+        int endingStart = funcName.size() - 2;
+        if (funcName.substr(endingStart, 2) == ending) {
             // Index suffix will be 7 characters long 
             unsigned long start = funcName.size() - 7;
-            return funcName.substr(start, 7);
-        }
-        else {
+            return funcName.substr(0, start);
+        } else {
             return funcName;
         }
     }

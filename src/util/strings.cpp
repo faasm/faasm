@@ -29,7 +29,7 @@ namespace util {
     }
 
     bool endsWith(std::string const &value, std::string const &ending) {
-        if (ending.size() == 0) {
+        if (ending.empty()) {
             return false;
         }
         else if (ending.size() > value.size()) {
