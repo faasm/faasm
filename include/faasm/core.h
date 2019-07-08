@@ -113,8 +113,7 @@ int faasmChainThisInput(int idx, const uint8_t *inputData, long inputDataSize);
 /**
  * Blocks waiting for the call
  */
-void faasmAwaitCall(int callId);
-
+int faasmAwaitCall(int callId);
 
 /**
  * Gets the index of the current function

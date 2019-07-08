@@ -61,7 +61,7 @@ HOST_IFACE_FUNC
 int __faasm_chain_this(int idx, const unsigned char *inputData, long inputDataSize);
 
 HOST_IFACE_FUNC
-void __faasm_await_call(int messageId);
+int __faasm_await_call(int messageId);
 
 HOST_IFACE_FUNC
 int __faasm_get_idx();

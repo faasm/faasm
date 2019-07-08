@@ -131,7 +131,7 @@ namespace tests {
         // Run the execution
         execFunction(call);
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(call);
+        message::Message result = globalBus.getFunctionResult(call.id());
 
         // Check output
         REQUIRE(result.outputdata() == "this is input");
@@ -151,7 +151,7 @@ namespace tests {
         // Run the execution
         execFunction(call);
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(call);
+        message::Message result = globalBus.getFunctionResult(call.id());
 
         // Check output
         REQUIRE(result.outputdata() == "Nothing to echo");
@@ -188,7 +188,7 @@ namespace tests {
 
         // Check output from first invocation
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message resultA = globalBus.getFunctionResult(call);
+        message::Message resultA = globalBus.getFunctionResult(call.id());
         REQUIRE(resultA.outputdata() == "first input");
         REQUIRE(resultA.success());
 
@@ -203,7 +203,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check output from second invocation
-        message::Message resultB = globalBus.getFunctionResult(call);
+        message::Message resultB = globalBus.getFunctionResult(call.id());
         REQUIRE(resultB.outputdata() == "second input");
         REQUIRE(resultB.success());
 
@@ -261,7 +261,7 @@ namespace tests {
 
         // Check the call executed successfully
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(call);
+        message::Message result = globalBus.getFunctionResult(call.id());
         REQUIRE(result.success());
 
         // Check the chained calls have been set up
@@ -300,7 +300,7 @@ namespace tests {
 
         // Check result
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message resultA = globalBus.getFunctionResult(call);
+        message::Message resultA = globalBus.getFunctionResult(call.id());
         REQUIRE(resultA.success());
         REQUIRE(resultA.outputdata() == "Counter: 001");
 
@@ -308,7 +308,7 @@ namespace tests {
         sch.callFunction(call);
         w.processNextMessage();
 
-        message::Message resultB = globalBus.getFunctionResult(call);
+        message::Message resultB = globalBus.getFunctionResult(call.id());
         REQUIRE(resultB.success());
         REQUIRE(resultB.outputdata() == "Counter: 002");
     }
@@ -336,7 +336,7 @@ namespace tests {
 
         // Check result
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(call);
+        message::Message result = globalBus.getFunctionResult(call.id());
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
 
@@ -421,7 +421,7 @@ namespace tests {
 
         // Check output is true
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(call);
+        message::Message result = globalBus.getFunctionResult(call.id());
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
 
@@ -514,7 +514,7 @@ namespace tests {
         message::Message call;
         call.set_user("demo");
         call.set_function("noop");
-        util::addIdToMessage(call);
+        util::setMessageId(call);
 
         // Sense check initial scheduler set-up
         scheduler::Scheduler &sch = scheduler::getScheduler();

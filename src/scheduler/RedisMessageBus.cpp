@@ -62,8 +62,9 @@ namespace scheduler {
         redis.expire(key, util::RESULT_KEY_EXPIRY);
     }
 
-    message::Message RedisMessageBus::getFunctionResult(const message::Message &msg) {
-        std::vector<uint8_t> result = redis.dequeueBytes(msg.resultkey());
+    message::Message RedisMessageBus::getFunctionResult(int messageId) {
+        std::string resultKey = util::resultKeyFromMessageId(messageId);
+        std::vector<uint8_t> result = redis.dequeueBytes(resultKey);
 
         message::Message msgResult;
         msgResult.ParseFromArray(result.data(), (int) result.size());

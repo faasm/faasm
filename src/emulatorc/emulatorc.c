@@ -89,8 +89,8 @@ int __faasm_chain_function(const char *name, const unsigned char *inputData, lon
     return 0;
 }
 
-void __faasm_await_call(int messageId) {
-
+int __faasm_await_call(int messageId) {
+    return 0;
 }
 
 void __faasm_snapshot_memory(const char *key) {

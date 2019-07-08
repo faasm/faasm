@@ -26,9 +26,17 @@ namespace util {
 
     std::string funcToString(const message::Message &msg);
 
-    int addIdToMessage(message::Message &msg);
+    int setMessageId(message::Message &msg);
 
     std::string resultKeyFromMessageId(int mid);
 
+    std::string statusKeyFromMessageId(int mid);
+
     std::vector<uint8_t> messageToBytes(const message::Message &msg);
+
+    std::string addIdxToFunction(const std::string &funcName, int idx);
+
+    std::string stripIdxFromFunction(const std::string &funcName);
+
+    void setMessageIdx(message::Message &msg, int idx);
 }

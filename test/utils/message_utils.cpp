@@ -13,6 +13,7 @@ namespace tests {
         REQUIRE(msgA.inputdata() == msgB.inputdata());
         REQUIRE(msgA.outputdata() == msgB.outputdata());
         REQUIRE(msgA.resultkey() == msgB.resultkey());
+        REQUIRE(msgA.statuskey() == msgB.statuskey());
         REQUIRE(msgA.type() == msgB.type());
     }
 }

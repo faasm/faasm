@@ -90,8 +90,8 @@ int faasmChainThis(int idx) {
     return faasmChainThisInput(idx, 0, 0);
 }
 
-void faasmAwaitCall(int messageId) {
-    __faasm_await_call(messageId);
+int faasmAwaitCall(int messageId) {
+    return __faasm_await_call(messageId);
 }
 
 int faasmChainThisInput(int idx, const uint8_t *inputData, long inputDataSize) {

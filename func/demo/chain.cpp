@@ -1,15 +1,30 @@
 #include <faasm/faasm.h>
 #include <stdio.h>
+#include <vector>
 
-int dataLength = 3 * sizeof(int);
+size_t dataLength = 3 * sizeof(int);
 
-void printChained(const char *name) {
+int checkChained(int funcIdx) {
+    // Read input
     uint8_t inputBuf[dataLength];
     faasmGetInput(inputBuf, dataLength);
-
     int *intInput = (int *) inputBuf;
 
-    printf("CHAIN %s: {%i, %i, %i}\n", name, intInput[0], intInput[1], intInput[2]);
+    std::vector<int> actual(intInput, intInput + (3 * sizeof(int)));
+
+    // Check vs expectation
+    std::vector<int> expected(3);
+    expected[0] = funcIdx;
+    expected[1] = funcIdx + 1;
+    expected[2] = funcIdx + 2;
+
+    if(actual != expected) {
+        printf("ERROR - chained input does not match expected (actual=[%i, %i, %i], expected=[%i, %i, %i])\n",
+                actual[0], actual[1], actual[2], expected[0], expected[1], expected[2]);
+        return -1;
+    }
+
+    return 0;
 }
 
 /**
@@ -18,6 +33,8 @@ void printChained(const char *name) {
 FAASM_MAIN_FUNC() {
     int nCalls = 3;
     int callIds[nCalls];
+
+    // Dispatch chained calls in a loop
     for (int i = 0; i < nCalls; i++) {
         int funcData[3];
         funcData[0] = i;
@@ -33,23 +50,23 @@ FAASM_MAIN_FUNC() {
 
     // Wait for calls to finish
     for(int callId : callIds) {
-        faasmAwaitCall(callId);
+        int result = faasmAwaitCall(callId);
+        if(result != 0) {
+            printf("Chained call %i failed\n", callId);
+        }
     }
 
     return 0;
 }
 
 FAASM_FUNC(chainOne, 1) {
-    printChained("ONE");
-    return 0;
+    return checkChained(1);
 }
 
 FAASM_FUNC(chainTwo, 2) {
-    printChained("TWO");
-    return 0;
+    return checkChained(2);
 }
 
 FAASM_FUNC(chainThree, 3) {
-    printChained("THREE");
-    return 0;
+    return checkChained(3);
 }

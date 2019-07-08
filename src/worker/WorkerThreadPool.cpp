@@ -63,7 +63,7 @@ namespace worker {
             // Will die gracefully at this point
         });
 
-        // Wait for the queue to time out
+        // Waits for the queue to time out
         globalQueueThread.join();
     }
 

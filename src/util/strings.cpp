@@ -37,5 +37,4 @@ namespace util {
         }
         return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
     }
-
 }

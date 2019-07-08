@@ -122,8 +122,9 @@ int __faasm_chain_function(const char *name, const unsigned char *inputData, lon
     return 1234;
 }
 
-void __faasm_await_call(int messageId) {
+int __faasm_await_call(int messageId) {
     // TODO - allow waiting for another function
+    return 0;
 }
 
 int __faasm_chain_this(int idx, const unsigned char *inputData, long inputDataSize) {

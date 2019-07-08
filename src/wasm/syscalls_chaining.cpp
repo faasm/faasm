@@ -21,12 +21,17 @@ namespace wasm {
         return idx;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_await_call", void, __faasm_await_call, I32 messageId) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_await_call", I32, __faasm_await_call, I32 messageId) {
         util::getLogger()->debug("S - await_call - {}", messageId);
 
-        std::string resultKey = util::resultKeyFromMessageId(messageId);
+        scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
+        const message::Message &result = bus.getFunctionResult(messageId);
 
-        // TODO - await the call (using resultKey)
+        if(result.success()) {
+            return 0;
+        } else {
+            return 1;
+        }
     }
 
     int _makeChainedCall(std::string functionName, int idx, const std::vector<uint8_t> &inputData) {
@@ -39,21 +44,22 @@ namespace wasm {
         call.set_user(originalCall->user());
         call.set_function(functionName);
         call.set_inputdata(inputData.data(), inputData.size());
-        call.set_idx(idx);
 
         const std::string chainedStr = util::funcToString(call);
         const std::string origStr = util::funcToString(*originalCall);
 
+        util::setMessageIdx(call, idx);
+
         // TODO: Avoid this approach to recursive calls, add some option of delay in the scheduler?
         // Wait a bit before making a recursive call
-        if (originalCall->function() == call.function()) {
+        if (originalCall->function() == call.function() && idx == 0) {
             logger->debug("Delaying chained call {} -> {}", origStr, chainedStr);
             uint microseconds = (uint) 500 * 1000; // 500ms
             usleep(microseconds);
         }
 
         logger->debug("Chaining {} -> {}", origStr, chainedStr);
-        int callId = util::addIdToMessage(call);
+        int callId = util::setMessageId(call);
         sch.callFunction(call);
 
         return callId;

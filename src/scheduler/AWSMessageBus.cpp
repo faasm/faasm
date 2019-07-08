@@ -68,8 +68,8 @@ namespace scheduler {
         s3.addKeyStr(conf.bucketName, resultKey, msg.outputdata());
     }
 
-    message::Message AWSMessageBus::getFunctionResult(const message::Message &msg) {
-        const std::string &statusKey = msg.statuskey();
+    message::Message AWSMessageBus::getFunctionResult(int messageId) {
+        const std::string &statusKey = util::statusKeyFromMessageId(messageId);
         const std::string result = s3.getKeyStr(bucketName, statusKey);
 
         message::Message resultMsg;

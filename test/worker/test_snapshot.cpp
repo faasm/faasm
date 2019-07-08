@@ -30,7 +30,7 @@ namespace tests {
         snapCall.set_resultkey("test_snapshot");
 
         execFunction(snapCall);
-        message::Message snapResult = globalBus.getFunctionResult(snapCall);
+        message::Message snapResult = globalBus.getFunctionResult(snapCall.id());
         REQUIRE(snapResult.success());
 
         // Execute the restore call
@@ -40,7 +40,7 @@ namespace tests {
         restoreCall.set_resultkey("test_restore");
 
         execFunction(restoreCall);
-        message::Message restoreResult = globalBus.getFunctionResult(restoreCall);
+        message::Message restoreResult = globalBus.getFunctionResult(restoreCall.id());
         REQUIRE(restoreResult.success());
 
         // Check outputs

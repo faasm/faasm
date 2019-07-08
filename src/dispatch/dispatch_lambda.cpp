@@ -30,7 +30,7 @@ int main() {
         // Get the function
         message::Message msg = util::jsonToMessage(req.payload);
         logger->info("Queueing request to {}", util::funcToString(msg));
-        util::addIdToMessage(msg);
+        util::setMessageId(msg);
 
         // Dispatch function
         globalBus.enqueueMessage(msg);
@@ -42,7 +42,7 @@ int main() {
             resultData = "Async request submitted";
         } else {
             logger->info("Sync request {}", util::funcToString(msg));
-            message::Message result = globalBus.getFunctionResult(msg);
+            message::Message result = globalBus.getFunctionResult(msg.id());
 
             logger->info("Finished request {}", util::funcToString(msg));
 

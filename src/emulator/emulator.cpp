@@ -5,6 +5,7 @@ extern "C" {
 }
 
 #include <redis/Redis.h>
+#include <scheduler/Scheduler.h>
 #include <state/State.h>
 
 /**
@@ -154,8 +155,12 @@ int __faasm_chain_function(const char *name, const unsigned char *inputData, lon
     return 1;
 }
 
-void __faasm_await_call(int messageId) {
+int __faasm_await_call(int messageId) {
+    // Call scheduler as normal
+    scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
+    bus.getFunctionResult(messageId);
 
+    return 0;
 }
 
 void __faasm_snapshot_memory(const char *key) {
