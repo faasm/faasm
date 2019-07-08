@@ -151,4 +151,4 @@ def download_python_runtime(ctx):
 
 @task
 def run_python_codegen(ctx):
-    run_codegen(PY_RUNTIME_ROOT)
+    run_codegen(ctx, PY_RUNTIME_ROOT)
