@@ -8,6 +8,14 @@
 using namespace boost::filesystem;
 
 namespace tests {
+    TEST_CASE("Test message factory", "[util]") {
+        const message::Message msg = util::messageFactory("demo", "echo");
+        REQUIRE(msg.user() == "demo");
+        REQUIRE(msg.function() == "echo");
+        REQUIRE(msg.id() > 0);
+        REQUIRE(!msg.statuskey().empty());
+        REQUIRE(!msg.resultkey().empty());
+    }
 
     TEST_CASE("Test retrieving function paths", "[util]") {
         util::SystemConfig &conf = util::getSystemConfig();

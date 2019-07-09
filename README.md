@@ -87,93 +87,126 @@ inv py-invoke python hello
 
 ## C++
 
-C++ functions consist of an `exec` entrypoint which takes a pointer to a `Faasm` object.
-This object is the interface for interacting with the Faasm runtime.
+C++ functions make use of the Faasm macros. These macros mean the code can be compiled and run natively, but
+when compiled with the toolchain, will run on Faasm.
 
 ```
 #include "faasm/faasm.h"
 
-namespace faasm {
-    int exec(Faasm *memory) {
-        // Do something
+FAASM_MAIN_FUNC() {
+    // Do something
 
-        return 0;
-    }
+    return 0;
 }
 ```
 
 Some example functions can be found in the `func/demo` directory.
 
-## The `Faasm` object
+## The Faasm API
 
-The `Faasm` class allows Faasm functions to interact with the system.
-It has the following methods:
+Faasm allows users functions to interact with the underlying system to accomplish a number of things, mainly
+accessing input and providing output, interacting with distributed state, and invoking other functions.
 
-- `getInput()` - allows functions to retrieve their input data
-- `setOutput()` - this allows functions to return output data to the caller
-- `chainFunction()` - this allows one function to invoke others
-- `readState()` and `writeState()` - allows functions to read/ write key/value state
-- `readStateOffset()` and `writeStateOffset()` - allows functions to read/ write at specific points in existing state (e.g. updating a subsection of an array)
-- `createSnap()` and `restoreSnap()` - creates/ restores a given memory snapshot for this function
+Some of the methods include:
+
+- `faasmGetInput()` - allows functions to retrieve their input data
+- `faasmSetOutput()` - this allows functions to return output data to the caller
+- `faasmChainFunction()` - this allows one function to invoke others
+- `faasmReadState()` and `writeState()` - allows functions to read/ write key/value state
+- `faasmReadStateOffset()` and `faasmWriteStateOffset()` - allows functions to read/ write at specific points in existing state (e.g. updating a subsection of an array)
+- `faasmCreateSnap()` and `faasmRestoreSnap()` - creates/ restores a given memory snapshot for this function
 
 ## Chaining
 
 "Chaining" is when one function makes a call to another function (which must be owned by the same user).
+There are two supported methods of chaining, one for invoking totally separate Faasm functions, the other for
+automatically parallelising functions in the same piece of code (useful for porting legacy applications).
 
-To do this, the `chainFunction()` method on the `Faasm` instance can be called.
-For my function to invoke the function `foo`, (also owned by me), it can do the following:
+### Chaining a different Faasm function
+
+To call different Faasm functions, `faasmChainFunction()` can be used.
+For my function to invoke the functions `foo` and `bar` (also owned by me),
+it can do the following:
 
 ```
 #include "faasm/faasm.h"
 #include <vector>
 
-namespace faasm {
-    int exec(Faasm *memory) {
-        std::vector<int> funcData = {1, 2, 3, 4};
-        faasmChainFunction("foo", funcData, funcData.size());
+FAASM_MAIN_FUNC() {
+    int fooCallId = faasmChainFunction("foo");
+    int barCallId = faasmChainFunction("bar");
 
-        return 0;
-    }
+    // Wait for both to complete (if you want)
+    faasmAwaitCall(fooCallId);
+    faasmAwaitCall(barCallId);
+
+    return 0;
 }
 ```
 
-`chainFunction()` can be called multiple times in one function. Once the original 
-function has completed, these calls will go back through the main scheduler and be executed.
+### Invoking a function from the same code
+
+An alternative approach is to bundle all code into the same Faasm function,
+then invoke bits of it in parallel.
+
+```
+#include "faasm/faasm.h"
+#include <vector>
+
+FAASM_MAIN_FUNC() {
+    int callOneId = faasmChainThis(1);
+    int callTwoId = faasmChainThis(2);
+
+    // Wait for both to complete (if you want)
+    faasmAwaitCall(callOneId);
+    faasmAwaitCall(callTwoId);
+
+    return 0;
+}
+
+FAASM_FUNC(funcOne, 1) {
+    // Do something
+    return 0;
+}
+
+FAASM_FUNC(funcTwo, 1) {
+    // Do something different
+    return 0;
+}
+```
 
 ## State
 
 All of a users' functions have access to shared state. This state is implemented as a 
-simple key-value store and accessed by the functions `readState` and `writeState` on the 
-`Faasm` object. Values read and written to this state must be byte arrays.
+simple key-value store and accessed by the functions `faasmReadState` and `faasmWriteState`.
+Values read and written to this state must be byte arrays.
 
 A function accessing state will look something like:
 
 ```
 #include "faasm/faasm.h"
 
-namespace faasm {
-    int exec(Faasm *memory) {
-        const char *key = "my_state_key";
+FAASM_MAIN_FUNC() {
+    const char *key = "my_state_key";
 
-        long stateSize = 123;
+    long stateSize = 123;
 
-        // Read the state into a buffer
-        uint8_t *myState = new uint8_t[stateSize];
-        faasmReadState(key, newState, stateSize);
+    // Read the state into a buffer
+    uint8_t *myState = new uint8_t[stateSize];
+    faasmReadState(key, newState, stateSize);
 
-        // Do something useful, modify state
+    // Do something useful, modify state
 
-        // Write the updated state
-        faasmWriteState(key, myState, stateSize);
+    // Write the updated state
+    faasmWriteState(key, myState, stateSize);
 
-        return 0;
-    }
+    return 0;
 }
 ```
 
 ### Offset state
 
-`Faasm` also exposes the `readStateOffset` and `writeStateOffset` functions,
+Faasm also exposes the `faasmReadStateOffset` and `faasmWriteStateOffset` functions,
 which allow reading and writing subsections of byte arrays stored against keys in the 
 key-value store.
 
@@ -241,5 +274,3 @@ ansible-playbook aws_teardown.yml
 ## Deploying functions to Lambda
 
 _TODO_
-
-
