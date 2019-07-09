@@ -26,17 +26,14 @@ namespace tests {
     void checkError(const std::string &funcName, const std::string &expectedMsg) {
         cleanSystem();
 
-        message::Message call;
-        call.set_user("errors");
-        call.set_function(funcName);
-        call.set_resultkey("error_test");
+        message::Message call = util::messageFactory("errors", funcName);
 
         execErrorFunction(call);
 
         // Get result
         scheduler::GlobalMessageBus &messageQueue = scheduler::getGlobalMessageBus();
 
-        message::Message result = messageQueue.getFunctionResult(call);
+        message::Message result = messageQueue.getFunctionResult(call.id());
         REQUIRE(!result.success());
 
         if(expectedMsg.empty()) {

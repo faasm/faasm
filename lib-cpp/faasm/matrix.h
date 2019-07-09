@@ -1,7 +1,7 @@
 #ifndef FAASM_MATRIX_H
 #define FAASM_MATRIX_H
 
-#include "faasm/memory.h"
+#include "faasm/core.h"
 #include "faasm/random.h"
 
 #include <eigen3/Eigen/Core>
@@ -45,7 +45,7 @@ namespace faasm {
     public:
         explicit SparseMatrixSerialiser(const SparseMatrix<double> &matIn);
 
-        void writeToState(FaasmMemory *memory, const char *key, bool async);
+        void writeToState(const char *key, bool async);
 
         static Map<const SparseMatrix<double>> readFromBytes(const SparseSizes &sizes,
                                                   uint8_t *outerBytes,
@@ -79,25 +79,25 @@ namespace faasm {
     /**
      * State
      */
-    Map<const SparseMatrix<double>> readSparseMatrixFromState(FaasmMemory *memory, const char *key, bool async);
+    Map<const SparseMatrix<double>> readSparseMatrixFromState(const char *key, bool async);
 
-    void writeSparseMatrixToState(FaasmMemory *memory, const char *key, const SparseMatrix<double> &mat,
+    void writeSparseMatrixToState(const char *key, const SparseMatrix<double> &mat,
                                   bool async);
 
-    Map<const MatrixXd> readMatrixFromState(FaasmMemory *memory, const char *key, long rows, long cols, bool async);
+    Map<const MatrixXd> readMatrixFromState(const char *key, long rows, long cols, bool async);
 
-    void readMatrixFromState(FaasmMemory *memory, const char *key, double *buffer, long rows, long cols,
+    void readMatrixFromState(const char *key, double *buffer, long rows, long cols,
                                  bool async);
 
-    void writeMatrixToState(FaasmMemory *memory, const char *key, const MatrixXd &matrix, bool async);
+    void writeMatrixToState(const char *key, const MatrixXd &matrix, bool async);
 
-    void writeMatrixToStateElement(FaasmMemory *memory, const char *key, const MatrixXd &matrix, long row, long col,
+    void writeMatrixToStateElement(const char *key, const MatrixXd &matrix, long row, long col,
                                    bool async);
 
-    Map<const MatrixXd> readMatrixColumnsFromState(FaasmMemory *memory, const char *key, long totalCols, long colStart,
+    Map<const MatrixXd> readMatrixColumnsFromState(const char *key, long totalCols, long colStart,
                                         long colEnd, long nRows, bool async);
 
-    Map<const SparseMatrix<double>> readSparseMatrixColumnsFromState(FaasmMemory *memory, const char *key, long colStart,
+    Map<const SparseMatrix<double>> readSparseMatrixColumnsFromState(const char *key, long colStart,
                                                           long colEnd, bool async);
 
     /**

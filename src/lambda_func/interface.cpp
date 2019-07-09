@@ -1,6 +1,6 @@
 #include "interface.h"
 
-#include "faasm/memory.h"
+#include <faasm/core.h>
 
 #include <redis/Redis.h>
 #include <aws/LambdaWrapper.h>
@@ -58,8 +58,9 @@ int main() {
 
         // Run the normal Faasm function entry point
         logger->info("Executing the function itself");
-        auto memory = new faasm::FaasmMemory();
-        exec(memory);
+        // TODO - pass in the right index for this function
+        // (needs to come from the invocation request)
+        exec(0);
 
         // Return response with function output
         const std::string output = faasm::getOutput();
@@ -102,7 +103,7 @@ void __faasm_write_output(const unsigned char *o, long len) {
     faasm::output = std::string(charPtr, (size_t) len);
 }
 
-void __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize) {
+int __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize) {
     awswrapper::LambdaWrapper &lambda = awswrapper::LambdaWrapper::getThreadLocal();
 
     // Note, in the lambda env, we need to prepend the username to the chained function
@@ -116,6 +117,24 @@ void __faasm_chain_function(const char *name, const unsigned char *inputData, lo
     // Convert back to a string and pass to lambda
     std::string inputStr(reinterpret_cast<const char *>(inputData), inputDataSize);
     lambda.invokeFunction(funcName, inputStr, false);
+
+    // TODO - return proper ID
+    return 1234;
+}
+
+int __faasm_await_call(int messageId) {
+    // TODO - allow waiting for another function
+    return 0;
+}
+
+int __faasm_chain_this(int idx, const unsigned char *inputData, long inputDataSize) {
+    // TODO - invoke this function again with the given index
+    throw std::runtime_error("Not implemented self-chaining");
+}
+
+int __faasm_get_idx() {
+    // TODO - get this from the context somehow
+    throw std::runtime_error("Not implemented self-chaining");
 }
 
 void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, int async) {

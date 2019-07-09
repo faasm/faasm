@@ -18,13 +18,10 @@ namespace tests {
         util::SystemConfig &conf = util::getSystemConfig();
         
         // Request function
-        message::Message call;
         std::string funcName = "my func";
         std::string userName = "some user";
         std::string inputData = "blahblah";
-
-        call.set_function(funcName);
-        call.set_user(userName);
+        message::Message call = util::messageFactory(userName, funcName);
         call.set_inputdata(inputData);
 
         std::string originalSerialisation = conf.serialisation;
@@ -58,18 +55,17 @@ namespace tests {
         }
 
         SECTION("Check reading/ writing function results") {
-            call.set_resultkey("function 123");
             bus.setFunctionResult(call, true);
 
             // Check result has been written to the right key
-            REQUIRE(redis.listLength("function 123") == 1);
+            REQUIRE(redis.listLength(call.resultkey()) == 1);
 
             // Check that some expiry has been set
             long ttl = redis.getTtl(call.resultkey());
             REQUIRE(ttl > 10);
 
             // Check retrieval method gets the same call out again
-            message::Message actualCall2 = bus.getFunctionResult(call);
+            message::Message actualCall2 = bus.getFunctionResult(call.id());
 
             call.set_success(true);
             checkMessageEquality(call, actualCall2);

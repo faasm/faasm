@@ -4,12 +4,10 @@
 /**
  * Function for load-testing with a state operation
  */
-namespace faasm {
-    int exec(FaasmMemory *memory) {
-        const char *key = "state_op";
+FAASM_MAIN_FUNC() {
+    const char *key = "state_op";
 
-        incrementCounter(memory, key, false);
+    faasm::incrementCounter(key, false);
 
-        return 0;
-    }
+    return 0;
 }

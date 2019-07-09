@@ -15,6 +15,7 @@ int main() {
     util::SystemConfig &config = util::getSystemConfig();
     config.print();
 
+    // Initialise AWS (ignored if not running in AWS)
     awswrapper::initSDK();
 
     worker::WorkerThreadPool pool(config.threadsPerWorker);
@@ -28,7 +29,7 @@ int main() {
     // State management thread
     pool.startStateThread();
 
-    // Global queue listener
+    // Global queue listener (blocks until message received or timeout)
     pool.startGlobalQueueThread();
 
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();

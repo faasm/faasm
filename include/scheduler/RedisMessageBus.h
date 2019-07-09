@@ -17,7 +17,7 @@ namespace scheduler {
 
         void setFunctionResult(message::Message &msg, bool success) override;
 
-        message::Message getFunctionResult(const message::Message &msg) override;
+        message::Message getFunctionResult(int messageId) override;
 
         void requestNewWorkerNode() override;
 

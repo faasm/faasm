@@ -13,7 +13,7 @@ else ()
 endif ()
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
-    message(STATUS "Detected wasm build")
+    message(STATUS "Detected wasm build (sysroot=${CMAKE_SYSROOT}")
 
     add_definitions(-DWASM_BUILD=1)
 
@@ -40,6 +40,11 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # Wasm build
     # ----------------------
 
+    function(faasm_func_c exec_name file_name)
+        add_executable(${exec_name} ${file_name})
+        target_link_libraries(${exec_name} faasmc dlmalloc)
+    endfunction(faasm_func_c)
+
     function(faasm_func exec_name file_name)
         add_executable(${exec_name} ${file_name})
         target_link_libraries(${exec_name} faasm dlmalloc)
@@ -60,6 +65,10 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
     # ----------------------
     # AWS Lambda build
     # ----------------------
+    function(faasm_func_c exec_name file_name)
+        # Don't support C functions on AWS Lambda
+    endfunction(faasm_func_c)
+
     function(faasm_func func_name file_name)
         add_executable(${func_name}-lambda ${file_name})
         target_link_libraries(${func_name}-lambda lambda-func)
@@ -76,6 +85,10 @@ else ()
     # ----------------------
     # Native build
     # ----------------------
+    function(faasm_func_c exec_name file_name)
+        add_executable(${exec_name} ${file_name})
+        target_link_libraries(${exec_name} faasmc emulatorc dl)
+    endfunction(faasm_func_c)
 
     function(faasm_func exec_name file_name)
         add_executable(${exec_name} ${file_name})

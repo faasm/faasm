@@ -1,7 +1,5 @@
 #pragma once
 
-#include "CallChain.h"
-
 #include <util/logging.h>
 #include <state/State.h>
 #include <proto/faasm.pb.h>
@@ -53,7 +51,7 @@ namespace wasm {
 
         void bindToFunction(const message::Message &msg);
 
-        int execute(message::Message &msg, CallChain &callChain);
+        int execute(message::Message &msg);
 
         Runtime::GCPointer<Runtime::Memory> defaultMemory;
 
@@ -168,8 +166,6 @@ namespace wasm {
     WasmModule *getExecutingModule();
 
     message::Message *getExecutingCall();
-
-    CallChain *getExecutingCallChain();
 
     class WasmExitException : public std::exception {
     public:

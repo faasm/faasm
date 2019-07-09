@@ -4,7 +4,7 @@
 
 namespace util {
     bool isPageAligned(void *ptr) {
-        return (((uintptr_t)(const void *)(ptr)) % (HOST_PAGE_SIZE) == 0);
+        return (((uintptr_t) (const void *) (ptr)) % (HOST_PAGE_SIZE) == 0);
     }
 
     size_t getRequiredHostPages(size_t nBytes) {

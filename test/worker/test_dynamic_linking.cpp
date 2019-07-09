@@ -10,11 +10,7 @@ namespace tests {
     TEST_CASE("Test dynamic linking modules", "[worker]") {
         cleanSystem();
 
-        message::Message msg;
-        msg.set_user("demo");
-        msg.set_function("dynlink");
-        msg.set_resultkey("dynlink_test");
-
+        message::Message msg = util::messageFactory("demo", "dynlink");
         execFunction(msg);
     }
 }

@@ -2,8 +2,6 @@
 
 #include <stdlib.h>
 
-namespace faasm {
-    int exec(FaasmMemory *memory) {
-        exit(0);
-    }
+FAASM_MAIN_FUNC() {
+    exit(0);
 }

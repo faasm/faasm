@@ -1,7 +1,9 @@
 #include <wasm/WasmModule.h>
 
+#include <redis/Redis.h>
 #include <util/config.h>
 #include <runner/timing.h>
+#include <worker/WorkerThreadPool.h>
 
 
 int main(int argc, char *argv[]) {
@@ -16,12 +18,18 @@ int main(int argc, char *argv[]) {
     util::SystemConfig &conf = util::getSystemConfig();
     conf.unsafeMode = "on";
 
+    // Set short timeouts to die quickly
+    conf.boundTimeout = 3000;
+    conf.unboundTimeout = 3000;
+
+    // Clear out redis
+    redis::Redis &redis = redis::Redis::getQueue();
+    redis.flushAll();
+
+    // Set up the call
     std::string user = argv[1];
     std::string function = argv[2];
-
-    message::Message call;
-    call.set_user(user);
-    call.set_function(function);
+    message::Message call = util::messageFactory(user, function);
 
     logger->info("Running function {}/{}", user, function);
 
@@ -32,18 +40,25 @@ int main(int argc, char *argv[]) {
         logger->info("Adding input data: {}", inputData);
     }
 
-    const util::TimePoint tpInit = runner::startTimer();
-    wasm::CallChain callChain(call);
-    wasm::WasmModule module;
-    module.initialise();
-    module.bindToFunction(call);
-    runner::logEndTimer("WASM initialisation", tpInit);
+    // Set up a worker pool
+    worker::WorkerThreadPool pool(4);
+    pool.startThreadPool();
 
-    const util::TimePoint tpSnap = runner::startTimer();
-    module.snapshotFullMemory("nothing");
-    runner::logEndTimer("WASM snapshot", tpSnap);
-
+    // Submit the invocation
     const util::TimePoint tp = runner::startTimer();
-    module.execute(call, callChain);
-    runner::logEndTimer("WASM function execution", tp);
+    scheduler::Scheduler &sch = scheduler::getScheduler();
+    sch.callFunction(call);
+
+    // Await the result
+    scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
+    const message::Message &result = bus.getFunctionResult(call.id());
+    if(!result.success()) {
+        throw std::runtime_error("Executing function failed");
+    }
+
+    runner::logEndTimer("Round trip execution", tp);
+
+    pool.shutdown();
+
+    return 0;
 }

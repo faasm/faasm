@@ -121,17 +121,13 @@ namespace tests {
 
     TEST_CASE("Test execution of echo function", "[worker]") {
         setUp();
-
-        message::Message call;
-        call.set_user("demo");
-        call.set_function("echo");
+        message::Message call = util::messageFactory("demo", "echo");
         call.set_inputdata("this is input");
-        call.set_resultkey("test_echo");
 
         // Run the execution
         execFunction(call);
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(call);
+        message::Message result = globalBus.getFunctionResult(call.id());
 
         // Check output
         REQUIRE(result.outputdata() == "this is input");
@@ -142,16 +138,12 @@ namespace tests {
 
     TEST_CASE("Test execution of empty echo function", "[worker]") {
         setUp();
-
-        message::Message call;
-        call.set_user("demo");
-        call.set_function("echo");
-        call.set_resultkey("test_echo_empty");
+        message::Message call = util::messageFactory("demo", "echo");
 
         // Run the execution
         execFunction(call);
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(call);
+        message::Message result = globalBus.getFunctionResult(call.id());
 
         // Check output
         REQUIRE(result.outputdata() == "Nothing to echo");
@@ -163,11 +155,8 @@ namespace tests {
     TEST_CASE("Test repeat execution of WASM module", "[worker]") {
         setUp();
 
-        message::Message call;
-        call.set_user("demo");
-        call.set_function("echo");
+        message::Message call = util::messageFactory("demo", "echo");
         call.set_inputdata("first input");
-        call.set_resultkey("test_repeat_a");
 
         // Set up
         WorkerThreadPool pool(1);
@@ -188,7 +177,7 @@ namespace tests {
 
         // Check output from first invocation
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message resultA = globalBus.getFunctionResult(call);
+        message::Message resultA = globalBus.getFunctionResult(call.id());
         REQUIRE(resultA.outputdata() == "first input");
         REQUIRE(resultA.success());
 
@@ -197,13 +186,14 @@ namespace tests {
         
         // Execute again
         call.set_inputdata("second input");
-        call.set_resultkey("test_repeat_b");
+        util::setMessageId(call);
+
         sch.callFunction(call);
 
         w.processNextMessage();
 
         // Check output from second invocation
-        message::Message resultB = globalBus.getFunctionResult(call);
+        message::Message resultB = globalBus.getFunctionResult(call.id());
         REQUIRE(resultB.outputdata() == "second input");
         REQUIRE(resultB.success());
 
@@ -222,9 +212,7 @@ namespace tests {
         scheduler::Scheduler &sch = scheduler::getScheduler();
 
         // Invoke a new call which will require a worker to bind
-        message::Message call;
-        call.set_user("demo");
-        call.set_function("echo");
+        message::Message call = util::messageFactory("demo", "echo");
         sch.callFunction(call);
 
         // Check message is on the bind queue
@@ -241,39 +229,31 @@ namespace tests {
     TEST_CASE("Test function chaining", "[worker]") {
         setUp();
 
-        message::Message call;
-        call.set_user("demo");
-        call.set_function("chain");
-        call.set_resultkey("test_chain");
+        util::SystemConfig &conf = util::getSystemConfig();
+        conf.boundTimeout = 1000;
+        conf.unboundTimeout = 1000;
+
+        message::Message call = util::messageFactory("demo", "chain");
+        int messageId = call.id();
+
+        // NOTE - for this test to work we have to run multiple threads.
+        // TODO - is this necessary? Any way to avoid having threaded tests?
 
         // Set up a real worker to execute this function. Remove it from the
         // unassigned set and add to handle this function
-        WorkerThreadPool pool(1);
-        WorkerThread w(1);
-        w.bindToFunction(call);
+        WorkerThreadPool pool(4);
+        pool.startThreadPool();
 
         // Make the call
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.callFunction(call);
 
-        // Execute the worker
-        w.processNextMessage();
-
-        // Check the call executed successfully
+        // Await the call executing successfully
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(call);
+        message::Message result = globalBus.getFunctionResult(messageId);
         REQUIRE(result.success());
 
-        // Check the chained calls have been set up
-        message::Message chainA = checkChainCall("demo", "echo", {0, 1, 2});
-        message::Message chainB = checkChainCall("demo", "x2", {1, 2, 3});
-        message::Message chainC = checkChainCall("demo", "dummy", {2, 3, 4});
-
-        // Check bind messages also sent
-        checkBindMessage(call);
-        checkBindMessage(chainA);
-        checkBindMessage(chainB);
-        checkBindMessage(chainC);
+        pool.shutdown();
 
         tearDown();
     }
@@ -282,10 +262,7 @@ namespace tests {
         setUp();
 
         // Set up the function call
-        message::Message call;
-        call.set_user("demo");
-        call.set_function("increment");
-        call.set_resultkey("test_state_incr");
+        message::Message call = util::messageFactory("demo", "increment");
 
         // Call function
         WorkerThreadPool pool(1);
@@ -300,15 +277,16 @@ namespace tests {
 
         // Check result
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message resultA = globalBus.getFunctionResult(call);
+        message::Message resultA = globalBus.getFunctionResult(call.id());
         REQUIRE(resultA.success());
         REQUIRE(resultA.outputdata() == "Counter: 001");
 
         // Call the function a second time, the state should have been incremented
+        util::setMessageId(call);
         sch.callFunction(call);
         w.processNextMessage();
 
-        message::Message resultB = globalBus.getFunctionResult(call);
+        message::Message resultB = globalBus.getFunctionResult(call.id());
         REQUIRE(resultB.success());
         REQUIRE(resultB.outputdata() == "Counter: 002");
     }
@@ -318,10 +296,7 @@ namespace tests {
         setUp();
 
         // Set up the function call
-        message::Message call;
-        call.set_user("demo");
-        call.set_function(funcName);
-        call.set_resultkey("check_state_res");
+        message::Message call = util::messageFactory("demo", funcName);
 
         // Call function
         WorkerThreadPool pool(1);
@@ -336,7 +311,7 @@ namespace tests {
 
         // Check result
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(call);
+        message::Message result = globalBus.getFunctionResult(call.id());
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
 
@@ -376,10 +351,7 @@ namespace tests {
     TEST_CASE("Test memory is reset", "[worker]") {
         cleanSystem();
 
-        message::Message call;
-        call.set_user("demo");
-        call.set_function("heap");
-        call.set_resultkey("test_heap_mem");
+        message::Message call = util::messageFactory("demo", "heap");
 
         // Call function
         WorkerThreadPool pool(1);
@@ -403,10 +375,7 @@ namespace tests {
     }
 
     void checkCallingFunctionGivesBoolOutput(const std::string &funcName, bool expected) {
-        message::Message call;
-        call.set_user("demo");
-        call.set_function(funcName);
-        call.set_resultkey("test_" + funcName);
+        message::Message call = util::messageFactory("demo", funcName);
 
         // Call function
         WorkerThreadPool pool(1);
@@ -421,7 +390,7 @@ namespace tests {
 
         // Check output is true
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(call);
+        message::Message result = globalBus.getFunctionResult(call.id());
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
 
@@ -511,10 +480,7 @@ namespace tests {
         WorkerThread w(1);
         std::string nodeId = util::getNodeId();
 
-        message::Message call;
-        call.set_user("demo");
-        call.set_function("noop");
-        util::addResultKeyToMessage(call);
+        message::Message call = util::messageFactory("demo", "noop");
 
         // Sense check initial scheduler set-up
         scheduler::Scheduler &sch = scheduler::getScheduler();
@@ -557,12 +523,7 @@ namespace tests {
     TEST_CASE("Test argv", "[worker]") {
         cleanSystem();
 
-        message::Message msg;
-        msg.set_user("demo");
-        msg.set_function("argv");
-        msg.set_resultkey("argv_test");
-
-        // Will fail if invalid
+        message::Message msg = util::messageFactory("demo", "argv");
         execFunction(msg);
     }
 }

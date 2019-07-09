@@ -180,5 +180,6 @@ namespace wasm {
     void linkHook() {
         dynlinkLink();
         mathsLink();
+        chainLink();
     }
 }

@@ -23,7 +23,6 @@ using namespace WAVM;
 namespace wasm {
     static thread_local WasmModule *executingModule;
     static thread_local message::Message *executingCall;
-    static thread_local CallChain *executingCallChain;
     static thread_local std::set<int> openFds;
 
     WasmModule *getExecutingModule() {
@@ -32,10 +31,6 @@ namespace wasm {
 
     message::Message *getExecutingCall() {
         return executingCall;
-    }
-
-    CallChain *getExecutingCallChain() {
-        return executingCallChain;
     }
 
     Uptr getNumberOfPagesForBytes(U32 nBytes) {
@@ -534,7 +529,7 @@ namespace wasm {
     /**
      * Executes the given function call
      */
-    int WasmModule::execute(message::Message &msg, CallChain &callChain) {
+    int WasmModule::execute(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         if (!_isBound) {
@@ -548,7 +543,6 @@ namespace wasm {
         // Set up shared references
         executingModule = this;
         executingCall = &msg;
-        executingCallChain = &callChain;
 
         // Set up the context
         Runtime::Context *context = Runtime::createContext(compartment);

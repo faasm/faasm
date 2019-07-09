@@ -54,7 +54,7 @@ namespace tests {
         w.processNextMessage();
 
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        const message::Message result = globalBus.getFunctionResult(call);
+        const message::Message result = globalBus.getFunctionResult(call.id());
         if(!result.success()) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Function failed: {}", result.outputdata());

@@ -8,8 +8,7 @@
 
 namespace data {
     double getRMSE(const SgdParams &p) {
-        FaasmMemory memory;
-        double rmse = faasm::readRootMeanSquaredError(&memory, p);
+        double rmse = faasm::readRootMeanSquaredError(p);
         return rmse;
     }
 
@@ -30,9 +29,8 @@ namespace data {
     }
 
     void run(int epoch, int batchNumber) {
-        FaasmMemory memory;
-        bool fullAsync = getEnvFullAsync(&memory);
-        SgdParams params = readParamsFromState(&memory, PARAMS_KEY, fullAsync);
+        bool fullAsync = getEnvFullAsync();
+        SgdParams params = readParamsFromState(PARAMS_KEY, fullAsync);
 
         int startIdx = batchNumber * params.batchSize;
         int endIdx = std::min(startIdx + params.batchSize, params.nTrain - 1);
@@ -41,6 +39,6 @@ namespace data {
         logger->info("Batch {} ({} - {}, {} examples)", batchNumber, startIdx, endIdx, endIdx - startIdx);
 
         // Perform the update
-        hingeLossWeightUpdate(&memory, params, epoch, batchNumber, startIdx, endIdx);
+        hingeLossWeightUpdate(params, epoch, batchNumber, startIdx, endIdx);
     }
 }

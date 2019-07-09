@@ -175,9 +175,8 @@ namespace worker {
         scheduler.incrementExecutingCount();
 
         // Create and execute the module
-        wasm::CallChain callChain(call);
         try {
-            module->execute(call, callChain);
+            module->execute(call);
         }
         catch (const std::exception &e) {
             std::string errorMessage = "Error: " + std::string(e.what());
@@ -185,13 +184,6 @@ namespace worker {
 
             this->finishCall(call, errorMessage);
             return errorMessage;
-        }
-
-        // Process any chained calls
-        std::string chainErrorMessage = callChain.execute();
-        if (!chainErrorMessage.empty()) {
-            this->finishCall(call, chainErrorMessage);
-            return chainErrorMessage;
         }
 
         const std::string empty;

@@ -4,47 +4,47 @@
 #include "faasm/sgd.h"
 #include "faasm/func.h"
 
-namespace faasm {
-    int exec(FaasmMemory *memory) {
-        bool fullAsync = getEnvFullAsync(memory);
+using namespace::faasm;
 
-        long inputSize = memory->getInputSize();
-        auto inputBuffer = new uint8_t[inputSize];
-        memory->getInput(inputBuffer, inputSize);
+FAASM_MAIN_FUNC() {
+    bool fullAsync = getEnvFullAsync();
 
-        const char *inputStr = reinterpret_cast<const char *>(inputBuffer);
-        int *intArgs = faasm::splitStringIntoInts(inputStr, 4);
+    long inputSize = faasmGetInputSize();
+    auto inputBuffer = new uint8_t[inputSize];
+    faasmGetInput(inputBuffer, inputSize);
 
-        int batchNumber = intArgs[0];
-        int startIdx = intArgs[1];
-        int endIdx = intArgs[2];
-        int epoch = intArgs[3];
+    const char *inputStr = reinterpret_cast<const char *>(inputBuffer);
+    int *intArgs = faasm::splitStringIntoInts(inputStr, 4);
 
-        printf("SGD step: %i %i %i %i\n", batchNumber, startIdx, endIdx, epoch);
+    int batchNumber = intArgs[0];
+    int startIdx = intArgs[1];
+    int endIdx = intArgs[2];
+    int epoch = intArgs[3];
 
-        // Load params
-        SgdParams sgdParams = readParamsFromState(memory, PARAMS_KEY, fullAsync);
+    printf("SGD step: %i %i %i %i\n", batchNumber, startIdx, endIdx, epoch);
 
-        // Perform updates
-        if (sgdParams.lossType == HINGE) {
-            printf("SGD hinge weight update\n");
-            hingeLossWeightUpdate(memory, sgdParams, epoch, batchNumber, startIdx, endIdx);
-        } else {
-            printf("SGD least squares weight update\n");
-            leastSquaresWeightUpdate(memory, sgdParams, batchNumber,startIdx, endIdx);
-        }
+    // Load params
+    SgdParams sgdParams = readParamsFromState(PARAMS_KEY, fullAsync);
 
-        // Flag that this worker has finished
-        printf("Writing finished flag\n");
-        writeFinishedFlag(memory, sgdParams, batchNumber);
-
-        // If this is the last, dispatch the barrier (will have finished by now or will do soon)
-        if (batchNumber == sgdParams.nBatches - 1) {
-            memory->chainFunction("sgd_barrier");
-        }
-
-        delete[] intArgs;
-
-        return 0;
+    // Perform updates
+    if (sgdParams.lossType == HINGE) {
+        printf("SGD hinge weight update\n");
+        hingeLossWeightUpdate(sgdParams, epoch, batchNumber, startIdx, endIdx);
+    } else {
+        printf("SGD least squares weight update\n");
+        leastSquaresWeightUpdate(sgdParams, batchNumber, startIdx, endIdx);
     }
+
+    // Flag that this worker has finished
+    printf("Writing finished flag\n");
+    writeFinishedFlag(sgdParams, batchNumber);
+
+    // If this is the last, dispatch the barrier (will have finished by now or will do soon)
+    if (batchNumber == sgdParams.nBatches - 1) {
+        faasmChainFunction("sgd_barrier");
+    }
+
+    delete[] intArgs;
+
+    return 0;
 }

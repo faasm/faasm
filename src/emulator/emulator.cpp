@@ -1,25 +1,30 @@
-#include <faasm/memory.h>
+#include <faasm/core.h>
+
+extern "C" {
+#include <faasm/host_interface.h>
+}
 
 #include <redis/Redis.h>
 #include <state/State.h>
 
 /**
- * Local implementations of faasm calls
+ * C++ emulation of Faasm system
  */
 
-static std::string user = "demo";
+static std::string _user = "demo";
+static std::vector<uint8_t> _inputData = {1, 2, 3, 4, 5};
 
-void setEmulatorUser(const std::string &newUser) {
-    user = newUser;
+void setEmulatorUser(const char* newUser) {
+    _user = newUser;
 }
 
 void resetEmulatorUser() {
-    user = "demo";
+    _user = "demo";
 }
 
 std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {
     state::State &s = state::getGlobalState();
-    return s.getKV(user, key, size);
+    return s.getKV(_user, key, size);
 }
 
 void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, int async) {
@@ -102,10 +107,26 @@ void __faasm_push_state_partial(const char *key) {
 }
 
 long __faasm_read_input(unsigned char *buffer, long bufferLen) {
-    std::vector<uint8_t> inputData = {1, 2, 3, 4, 5};
-    std::copy(inputData.begin(), inputData.end(), buffer);
+    std::copy(_inputData.begin(), _inputData.end(), buffer);
 
-    return 14;
+    return bufferLen;
+}
+
+int __faasm_chain_this(int idx, const unsigned char *buffer, long bufferLen) {
+    // Copy the input data
+    _inputData = std::vector<uint8_t >(buffer, buffer+bufferLen);
+
+    // Call the function directly
+    _FaasmFuncPtr f = getFaasmFunc(idx);
+    f();
+
+    // TODO - return a proper function ID here
+    return 1;
+}
+
+int __faasm_get_idx() {
+    // TODO - how can we emulate this?
+    return 0;
 }
 
 void __faasm_lock_state_read(const char *key) {
@@ -128,8 +149,13 @@ void __faasm_write_output(const unsigned char *output, long outputLen) {
 
 }
 
-void __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize) {
+int __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize) {
+    // TODO - do this properly
+    return 1;
+}
 
+int __faasm_await_call(int messageId) {
+    return 0;
 }
 
 void __faasm_snapshot_memory(const char *key) {
@@ -157,4 +183,3 @@ void __faasm_read_config(const char *varName, char *buffer) {
         }
     }
 }
-

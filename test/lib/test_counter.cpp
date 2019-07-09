@@ -3,7 +3,6 @@
 #include <redis/Redis.h>
 #include <state/State.h>
 
-#include "faasm/memory.h"
 #include "faasm/counter.h"
 #include "utils.h"
 
@@ -15,24 +14,22 @@ namespace tests {
         redisQueue.flushAll();
         state::getGlobalState().forceClearAll();
 
-        FaasmMemory mem;
-
         const char *key = "test_counter";
-        initCounter(&mem, key, false);
+        initCounter(key, false);
 
-        REQUIRE(getCounter(&mem, key, false) == 0);
+        REQUIRE(getCounter(key, false) == 0);
 
-        incrementCounter(&mem, key, false);
-        REQUIRE(getCounter(&mem, key, false) == 1);
+        incrementCounter(key, false);
+        REQUIRE(getCounter(key, false) == 1);
 
-        incrementCounter(&mem, key, false);
-        REQUIRE(getCounter(&mem, key, false) == 2);
+        incrementCounter(key, false);
+        REQUIRE(getCounter(key, false) == 2);
 
-        initCounter(&mem, key, false);
-        REQUIRE(getCounter(&mem, key, false) == 0);
+        initCounter(key, false);
+        REQUIRE(getCounter(key, false) == 0);
 
-        incrementCounter(&mem, key, false);
-        REQUIRE(getCounter(&mem, key, false) == 1);
+        incrementCounter(key, false);
+        REQUIRE(getCounter(key, false) == 1);
     }
 
     TEST_CASE("Test counter over big number", "[counter]") {
@@ -40,16 +37,14 @@ namespace tests {
         redisQueue.flushAll();
         state::getGlobalState().forceClearAll();
 
-        FaasmMemory mem;
-
         const char *key = "test_counter";
-        initCounter(&mem, key, false);
+        initCounter(key, false);
 
         for (int i = 0; i < 1000; i++) {
-            incrementCounter(&mem, key, false);
+            incrementCounter(key, false);
         }
 
-        REQUIRE(getCounter(&mem, key, false) == 1000);
+        REQUIRE(getCounter(key, false) == 1000);
     }
 
     TEST_CASE("Test uninitialised counter", "[counter]") {
@@ -57,13 +52,11 @@ namespace tests {
         redisQueue.flushAll();
         state::getGlobalState().forceClearAll();
 
-        FaasmMemory mem;
-
         const char *key = "test_uninit_key";
-        initCounter(&mem, key, false);
-        REQUIRE(getCounter(&mem, key, false) == 0);
+        initCounter(key, false);
+        REQUIRE(getCounter(key, false) == 0);
 
-        incrementCounter(&mem, key, false);
-        REQUIRE(getCounter(&mem, key, false) == 1);
+        incrementCounter(key, false);
+        REQUIRE(getCounter(key, false) == 1);
     }
 }

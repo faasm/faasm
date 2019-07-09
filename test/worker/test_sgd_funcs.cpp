@@ -31,10 +31,7 @@ namespace tests {
     }
 
     std::string execStrFunction(const std::string &funcName) {
-        message::Message call;
-        call.set_user("sgd");
-        call.set_function(funcName);
-        call.set_resultkey("foobar");
+        message::Message call = util::messageFactory("sgd", funcName);
 
         return execFunctionWithStringResult(call);
     }
@@ -51,18 +48,17 @@ namespace tests {
         setUp(async);
 
         // Set up params
-        FaasmMemory mem;
         SgdParams p;
         p.nEpochs = 5;
         p.fullAsync = async;
-        faasm::writeParamsToState(&mem, PARAMS_KEY, p);
+        faasm::writeParamsToState(PARAMS_KEY, p);
 
         // Set up memory
         std::vector<double> losses = {1000.5, 900.22, 20.1, 5.5, 99.999};
         std::vector<double> lossTimestamps = {10.0, 10.0 + 1.23, 10.0 + 12.34, 10.0 + 123.456, 10.0 + 1234.56};
         size_t nBytes = p.nEpochs * sizeof(double);
-        mem.writeState(LOSSES_KEY, reinterpret_cast<uint8_t *>(losses.data()), nBytes, async);
-        mem.writeState(LOSS_TIMESTAMPS_KEY, reinterpret_cast<uint8_t *>(lossTimestamps.data()), nBytes, async);
+        faasmWriteState(LOSSES_KEY, reinterpret_cast<uint8_t *>(losses.data()), nBytes, async);
+        faasmWriteState(LOSS_TIMESTAMPS_KEY, reinterpret_cast<uint8_t *>(lossTimestamps.data()), nBytes, async);
 
         // Call function
         std::string output = execStrFunction("sgd_loss");
@@ -86,7 +82,6 @@ namespace tests {
         setUp(async);
 
         // Set up params
-        FaasmMemory mem;
         SgdParams p;
         p.nEpochs = 10;
         p.nBatches = 3;
@@ -94,48 +89,48 @@ namespace tests {
         p.nTrain = 100;
         p.learningRate = 0.1;
         p.learningDecay = 0.8;
-        faasm::writeParamsToState(&mem, PARAMS_KEY, p);
+        faasm::writeParamsToState(PARAMS_KEY, p);
 
         // Zero errors and losses
-        faasm::zeroLosses(&mem, p);
-        faasm::zeroErrors(&mem, p);
+        faasm::zeroLosses(p);
+        faasm::zeroErrors(p);
 
         // Set the epoch count
-        faasm::initCounter(&mem, EPOCH_COUNT_KEY, async);
-        faasm::incrementCounter(&mem, EPOCH_COUNT_KEY, async);
-        faasm::incrementCounter(&mem, EPOCH_COUNT_KEY, async);
-        REQUIRE(faasm::getCounter(&mem, EPOCH_COUNT_KEY, async) == 2);
-        REQUIRE(!readEpochFinished(&mem, p));
+        faasm::initCounter(EPOCH_COUNT_KEY, async);
+        faasm::incrementCounter(EPOCH_COUNT_KEY, async);
+        faasm::incrementCounter(EPOCH_COUNT_KEY, async);
+        REQUIRE(faasm::getCounter(EPOCH_COUNT_KEY, async) == 2);
+        REQUIRE(!readEpochFinished(p));
 
         // Set all as finished and set an error
         long totalErrorBytes = p.nBatches * sizeof(double);
         double totalError = 0;
         for (int i = 0; i < p.nBatches; i++) {
-            faasm::writeFinishedFlag(&mem, p, i);
+            faasm::writeFinishedFlag(p, i);
 
             double error = i * 1.5;
             totalError += error;
             long offset = i * sizeof(double);
-            mem.writeStateOffset(ERRORS_KEY, totalErrorBytes, offset, reinterpret_cast<uint8_t *>(&error),
+            faasmWriteStateOffset(ERRORS_KEY, totalErrorBytes, offset, reinterpret_cast<uint8_t *>(&error),
                                  sizeof(double), async);
         }
 
         // Check the mean squared error comes out correctly
         double expectedLoss = std::sqrt(totalError) / std::sqrt(p.nTrain);
-        REQUIRE(faasm::readRootMeanSquaredError(&mem, p) == expectedLoss);
+        REQUIRE(faasm::readRootMeanSquaredError(p) == expectedLoss);
 
         // Execute
         execStrFunction("sgd_barrier");
         
         // Check counter incremented and reported as finished
-        REQUIRE(readEpochFinished(&mem, p));
-        REQUIRE(faasm::getCounter(&mem, EPOCH_COUNT_KEY, async) == 3);
+        REQUIRE(readEpochFinished(p));
+        REQUIRE(faasm::getCounter(EPOCH_COUNT_KEY, async) == 3);
 
         // Check losses and loss timestamps are written
         size_t nBytes = p.nEpochs * sizeof(double);
         int offset = 2 * sizeof(double);
-        uint8_t *lossBytes = mem.readStateOffset(LOSSES_KEY, nBytes, offset, sizeof(double), async);
-        uint8_t *lossTsBytes = mem.readStateOffset(LOSS_TIMESTAMPS_KEY, nBytes, offset, sizeof(double), async);
+        uint8_t *lossBytes = faasmReadStateOffsetPtr(LOSSES_KEY, nBytes, offset, sizeof(double), async);
+        uint8_t *lossTsBytes = faasmReadStateOffsetPtr(LOSS_TIMESTAMPS_KEY, nBytes, offset, sizeof(double), async);
 
         double loss = *reinterpret_cast<double *>(lossBytes);
         REQUIRE(loss == expectedLoss);
@@ -182,16 +177,15 @@ namespace tests {
         setUp(async);
 
         // Set up params
-        FaasmMemory mem;
         SgdParams p;
         p.nEpochs = epochCount;
         p.fullAsync = async;
-        faasm::writeParamsToState(&mem, PARAMS_KEY, p);
+        faasm::writeParamsToState(PARAMS_KEY, p);
 
         // Finish a set number of epochs
-        faasm::initCounter(&mem, EPOCH_COUNT_KEY, async);
+        faasm::initCounter(EPOCH_COUNT_KEY, async);
         for (int i = 0; i < finishedCount; i++) {
-            faasm::incrementCounter(&mem, EPOCH_COUNT_KEY, async);
+            faasm::incrementCounter(EPOCH_COUNT_KEY, async);
         }
 
         // Check finished report

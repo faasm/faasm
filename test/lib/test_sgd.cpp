@@ -44,13 +44,12 @@ namespace tests {
         SgdParams params = getDummySgdParams();
 
         const char *key = "params_test";
-        FaasmMemory mem;
 
         // Write to state
-        writeParamsToState(&mem, key, params);
+        writeParamsToState(key, params);
 
         // Read back and check
-        SgdParams actual = readParamsFromState(&mem, key, false);
+        SgdParams actual = readParamsFromState(key, false);
         checkSgdParamEquality(actual, params);
     }
 
@@ -61,19 +60,18 @@ namespace tests {
         params.fullAsync = false;
 
         // Set up the problem
-        FaasmMemory mem;
-        setUpDummyProblem(&mem, params);
+        setUpDummyProblem(params);
 
         // Check params are set up
-        SgdParams actual = readParamsFromState(&mem, PARAMS_KEY, false);
+        SgdParams actual = readParamsFromState(PARAMS_KEY, false);
         checkSgdParamEquality(actual, params);
 
         // Check weights
-        const MatrixXd actualWeights = readMatrixFromState(&mem, WEIGHTS_KEY, 1, params.nWeights, false);
+        const MatrixXd actualWeights = readMatrixFromState(WEIGHTS_KEY, 1, params.nWeights, false);
         REQUIRE(actualWeights.rows() == 1);
         REQUIRE(actualWeights.cols() == params.nWeights);
 
-        const MatrixXd actualOutputs = readMatrixFromState(&mem, OUTPUTS_KEY, params.nWeights, params.nTrain, false);
+        const MatrixXd actualOutputs = readMatrixFromState(OUTPUTS_KEY, params.nWeights, params.nTrain, false);
         REQUIRE(actualOutputs.rows() == params.nWeights);
         REQUIRE(actualOutputs.cols() == params.nTrain);
     }
@@ -82,8 +80,6 @@ namespace tests {
         redis::Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
         state::getGlobalState().forceClearAll();
-
-        FaasmMemory mem;
 
         int nWeights = 4;
         SgdParams params;
@@ -99,13 +95,13 @@ namespace tests {
         weights << 1, 2, 3, 4;
 
         // Persist weights to allow updates
-        writeMatrixToState(&mem, WEIGHTS_KEY, weights, async);
+        writeMatrixToState(WEIGHTS_KEY, weights, async);
 
         // Set up some dummy feature counts
         std::vector<int> featureCounts(4);
         std::fill(featureCounts.begin(), featureCounts.end(), 1);
         uint8_t *featureBytes = reinterpret_cast<uint8_t *>(featureCounts.data());
-        mem.writeState(FEATURE_COUNTS_KEY, featureBytes, 4 * sizeof(int), async);
+        faasmWriteState(FEATURE_COUNTS_KEY, featureBytes, 4 * sizeof(int), async);
 
         // Copy of weights for testing
         MatrixXd weightsCopy = weights;
@@ -138,7 +134,7 @@ namespace tests {
 
         // Set up inputs in state
         inputs.setFromTriplets(tripletList.begin(), tripletList.end());
-        faasm::writeSparseMatrixToState(&mem, INPUTS_KEY, inputs, async);
+        faasm::writeSparseMatrixToState(INPUTS_KEY, inputs, async);
 
         // Check what the predictions are pre-update
         MatrixXd preUpdate = weights * inputs;
@@ -151,24 +147,24 @@ namespace tests {
             MatrixXd outputs(1, 2);
             outputs << 10, 11;
 
-            faasm::writeMatrixToState(&mem, OUTPUTS_KEY, outputs, async);
-            leastSquaresWeightUpdate(&mem, params, batchNumber, startIdx, endIdx);
+            faasm::writeMatrixToState(OUTPUTS_KEY, outputs, async);
+            leastSquaresWeightUpdate(params, batchNumber, startIdx, endIdx);
         } else if (lossType == HINGE) {
             // Classification-style outputs
             MatrixXd outputs(1, 2);
             outputs << -1, 1;
 
-            faasm::writeMatrixToState(&mem, OUTPUTS_KEY, outputs, async);
+            faasm::writeMatrixToState(OUTPUTS_KEY, outputs, async);
 
             int epoch = 3;
-            hingeLossWeightUpdate(&mem, params, epoch, batchNumber, startIdx, endIdx);
+            hingeLossWeightUpdate(params, epoch, batchNumber, startIdx, endIdx);
         }
 
         // Ensure everything pushed
-        mem.pushStatePartial(WEIGHTS_KEY);
+        faasmPushStatePartial(WEIGHTS_KEY);
 
         // Check weights have been updated where necessary
-        const MatrixXd actualWeights = readMatrixFromState(&mem, WEIGHTS_KEY, 1, nWeights, async);
+        const MatrixXd actualWeights = readMatrixFromState(WEIGHTS_KEY, 1, nWeights, async);
         REQUIRE(actualWeights.rows() == 1);
         REQUIRE(actualWeights.cols() == nWeights);
 
@@ -233,12 +229,11 @@ namespace tests {
         const std::vector<uint8_t> initial = redisQueue.get(ERRORS_KEY);
         REQUIRE(initial.empty());
 
-        FaasmMemory memory;
         SgdParams params = getDummySgdParams();
         params.nBatches = 4;
 
         // Check zeroing out errors
-        zeroErrors(&memory, params);
+        zeroErrors(params);
         checkDoubleArrayInState(redisQueue, ERRORS_KEY, {0, 0, 0, 0});
 
         // Work out expectation
@@ -246,8 +241,8 @@ namespace tests {
         double expected2 = calculateSquaredError(a, b);
 
         // Write errors to memory
-        writeSquaredError(&memory, params, 0, a, b);
-        writeSquaredError(&memory, params, 2, a, b);
+        writeSquaredError(params, 0, a, b);
+        writeSquaredError(params, 2, a, b);
 
         checkDoubleArrayInState(redisQueue, ERRORS_KEY, {expected1, 0, expected2, 0});
     }
@@ -258,14 +253,13 @@ namespace tests {
 
         state::getGlobalState().forceClearAll();
 
-        FaasmMemory memory;
         SgdParams p = getDummySgdParams();
         p.nBatches = 3;
         p.nTrain = 20;
 
         // With nothing set up, error should be zero
-        zeroErrors(&memory, p);
-        double initial = faasm::readRootMeanSquaredError(&memory, p);
+        zeroErrors(p);
+        double initial = faasm::readRootMeanSquaredError(p);
         REQUIRE(initial == 0);
 
         // Write the error for two of the three batches
@@ -273,24 +267,24 @@ namespace tests {
         MatrixXd b = randomDenseMatrix(1, 5);
         double expected = calculateSquaredError(a, b);
 
-        writeSquaredError(&memory, p, 0, a, b);
-        writeSquaredError(&memory, p, 1, a, b);
+        writeSquaredError(p, 0, a, b);
+        writeSquaredError(p, 1, a, b);
 
         // Check these have been written
         checkDoubleArrayInState(redisState, ERRORS_KEY, {expected, expected, 0});
 
         // Error should just include the 2 written
         double expectedRmse1 = sqrt((2 * expected) / p.nTrain);
-        double actual1 = faasm::readRootMeanSquaredError(&memory, p);
+        double actual1 = faasm::readRootMeanSquaredError(p);
         REQUIRE(abs(actual1 - expectedRmse1) < 0.0000001);
 
         // Now write error for a third batch
-        writeSquaredError(&memory, p, 2, a, b);
+        writeSquaredError(p, 2, a, b);
         checkDoubleArrayInState(redisState, ERRORS_KEY, {expected, expected, expected});
 
         // Work out what the result should be
         double expectedRmse2 = sqrt((3 * expected) / p.nTrain);
-        double actual2 = faasm::readRootMeanSquaredError(&memory, p);
+        double actual2 = faasm::readRootMeanSquaredError(p);
         REQUIRE(abs(actual2 - expectedRmse2) < 0.0000001);
     }
 
@@ -304,27 +298,25 @@ namespace tests {
         p.nBatches = 10;
         p.nEpochs = 5;
 
-        FaasmMemory mem;
-
         // Zero and check it's worked
-        zeroLosses(&mem, p);
+        zeroLosses(p);
         checkDoubleArrayInState(redisQueue, LOSSES_KEY, {0, 0, 0, 0, 0});
         checkDoubleArrayInState(redisQueue, LOSS_TIMESTAMPS_KEY, {0, 0, 0, 0, 0});
 
         // Update with some other values
         std::vector<double> losses = {2.2, 3.3, 4.4, 5.5, 0.0};
         auto lossBytes = reinterpret_cast<uint8_t *>(losses.data());
-        mem.writeState(LOSSES_KEY, lossBytes, 5 * sizeof(double), false);
+        faasmWriteState(LOSSES_KEY, lossBytes, 5 * sizeof(double), false);
 
         std::vector<double> timestamps = {100.0, 200.2, 300.3, 1000.1, 2000.2};
         auto timestampBytes = reinterpret_cast<uint8_t *>(timestamps.data());
-        mem.writeState(LOSS_TIMESTAMPS_KEY, timestampBytes, 5 * sizeof(double), false);
+        faasmWriteState(LOSS_TIMESTAMPS_KEY, timestampBytes, 5 * sizeof(double), false);
 
         checkDoubleArrayInState(redisQueue, LOSSES_KEY, losses);
         checkDoubleArrayInState(redisQueue, LOSS_TIMESTAMPS_KEY, timestamps);
 
         // Zero again and check it's worked
-        zeroLosses(&mem, p);
+        zeroLosses(p);
         checkDoubleArrayInState(redisQueue, LOSSES_KEY, {0, 0, 0, 0, 0});
         checkDoubleArrayInState(redisQueue, LOSS_TIMESTAMPS_KEY, {0, 0, 0, 0, 0});
     }
@@ -337,19 +329,17 @@ namespace tests {
         SgdParams p = getDummySgdParams();
         p.nBatches = 3;
 
-        FaasmMemory mem;
+        zeroFinished(p);
+        REQUIRE(!readEpochFinished(p));
 
-        zeroFinished(&mem, p);
-        REQUIRE(!readEpochFinished(&mem, p));
-
-        writeFinishedFlag(&mem, p, 0);
-        writeFinishedFlag(&mem, p, 2);
-        REQUIRE(!readEpochFinished(&mem, p));
+        writeFinishedFlag(p, 0);
+        writeFinishedFlag(p, 2);
+        REQUIRE(!readEpochFinished(p));
         checkIntArrayInState(redisQueue, FINISHED_KEY, {1, 0, 1});
 
-        writeFinishedFlag(&mem, p, 1);
+        writeFinishedFlag(p, 1);
         checkIntArrayInState(redisQueue, FINISHED_KEY, {1, 1, 1});
-        REQUIRE(readEpochFinished(&mem, p));
+        REQUIRE(readEpochFinished(p));
     }
 
     TEST_CASE("Test zeroing finished flags", "[sgd]") {
@@ -361,26 +351,23 @@ namespace tests {
         SgdParams p = getDummySgdParams();
         p.nBatches = 3;
 
-        FaasmMemory mem;
-
         // Zero and check it's worked
-        zeroFinished(&mem, p);
+        zeroFinished(p);
         checkIntArrayInState(redisQueue, FINISHED_KEY, {0, 0, 0});
 
         // Update with some other values
         std::vector<int> finished = {1, 0, 1};
         auto lossBytes = reinterpret_cast<uint8_t *>(finished.data());
-        mem.writeState(FINISHED_KEY, lossBytes, 5 * sizeof(int), false);
+        faasmWriteState(FINISHED_KEY, lossBytes, 5 * sizeof(int), false);
 
         checkIntArrayInState(redisQueue, FINISHED_KEY, finished);
 
         // Zero again and check it's worked
-        zeroFinished(&mem, p);
+        zeroFinished(p);
         checkIntArrayInState(redisQueue, FINISHED_KEY, {0, 0, 0});
     }
 
     TEST_CASE("Test getting full async from environment", "[sgd]") {
-        FaasmMemory mem;
         std::string envVar;
         bool expected;
         util::SystemConfig &conf = util::getSystemConfig();
@@ -405,7 +392,7 @@ namespace tests {
         }
 
         conf.reset();
-        bool actual = getEnvFullAsync(&mem);
+        bool actual = getEnvFullAsync();
         REQUIRE(actual == expected);
 
         util::unsetEnvVar("FULL_ASYNC");

@@ -23,13 +23,11 @@ namespace tests {
         call.set_function("py_func");
         call.set_inputdata(funcName);
 
-        wasm::CallChain callChain(call);
-
         wasm::WasmModule module;
         module.initialise();
         module.bindToFunction(call);
 
-        int result = module.execute(call, callChain);
+        int result = module.execute(call);
         REQUIRE(result == 0);
 
         conf.reset();
