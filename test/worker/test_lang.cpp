@@ -7,34 +7,19 @@
 namespace tests {
     TEST_CASE("Test pointer to pointer", "[worker]") {
         cleanSystem();
-
-        message::Message msg;
-        msg.set_user("demo");
-        msg.set_function("ptr_ptr");
-        msg.set_resultkey("ptr_ptr_test");
-
+        message::Message msg = util::messageFactory("demo", "ptr_ptr");
         execFunction(msg);
     }
 
     TEST_CASE("Test sizes", "[worker]") {
         cleanSystem();
-
-        message::Message msg;
-        msg.set_user("demo");
-        msg.set_function("sizes");
-        msg.set_resultkey("sizes_test");
-
+        message::Message msg = util::messageFactory("demo", "sizes");
         execFunction(msg);
     }
 
     TEST_CASE("Test stack/ heap", "[worker]") {
         cleanSystem();
-
-        message::Message msg;
-        msg.set_user("demo");
-        msg.set_function("stackheap");
-        msg.set_resultkey("stackheap_test");
-
+        message::Message msg = util::messageFactory("demo", "stackheap");
         execFunction(msg);
     }
 }

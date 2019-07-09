@@ -28,6 +28,8 @@ namespace util {
 
     int setMessageId(message::Message &msg);
 
+    message::Message messageFactory(const std::string &user, const std::string &function);
+
     std::string resultKeyFromMessageId(int mid);
 
     std::string statusKeyFromMessageId(int mid);

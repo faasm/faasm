@@ -24,22 +24,14 @@ namespace tests {
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
 
         // Execute the snap call
-        message::Message snapCall;
-        snapCall.set_user("demo");
-        snapCall.set_function("snapshot");
-        snapCall.set_resultkey("test_snapshot");
-        util::setMessageId(snapCall);
+        message::Message snapCall = util::messageFactory("demo", "snapshot");
 
         execFunction(snapCall);
         message::Message snapResult = globalBus.getFunctionResult(snapCall.id());
         REQUIRE(snapResult.success());
 
         // Execute the restore call
-        message::Message restoreCall;
-        restoreCall.set_user("demo");
-        restoreCall.set_function("restore");
-        restoreCall.set_resultkey("test_restore");
-
+        message::Message restoreCall = util::messageFactory("demo", "restore");
         execFunction(restoreCall);
         message::Message restoreResult = globalBus.getFunctionResult(restoreCall.id());
         REQUIRE(restoreResult.success());

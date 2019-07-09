@@ -13,9 +13,6 @@ namespace tests {
         REQUIRE(w.isInitialised());
         REQUIRE(!w.isBound());
 
-        // Make sure call has message ID
-        util::setMessageId(call);
-
         scheduler::Scheduler &sch = scheduler::getScheduler();
         auto bindQueue = sch.getBindQueue();
 

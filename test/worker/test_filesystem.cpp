@@ -25,11 +25,7 @@ namespace tests {
         util::SystemConfig &conf = util::getSystemConfig();
         conf.unsafeMode = "on";
 
-        message::Message msg;
-        msg.set_user("demo");
-        msg.set_function("getdents");
-        msg.set_resultkey("getdents_test");
-        util::setMessageId(msg);
+        message::Message msg = util::messageFactory("demo", "getdents");
 
         const std::string result = execFunctionWithStringResult(msg);
         std::vector<std::string> actual = util::tokeniseString(result, ',');
@@ -53,11 +49,7 @@ namespace tests {
     TEST_CASE("Test listdir", "[worker]") {
         cleanSystem();
 
-        message::Message msg;
-        msg.set_user("demo");
-        msg.set_function("listdir");
-        msg.set_resultkey("listdir_test");
-
+        message::Message msg = util::messageFactory("demo", "listdir");
         execFunction(msg);
     }
 
@@ -67,12 +59,7 @@ namespace tests {
         util::SystemConfig &conf = util::getSystemConfig();
         conf.unsafeMode = "on";
 
-        message::Message msg;
-        msg.set_user("demo");
-        msg.set_function("errno");
-        msg.set_resultkey("errno_test");
-
-        // Will fail if invalid
+        message::Message msg = util::messageFactory("demo", "errno");
         execFunction(msg);
 
         conf.reset();
@@ -95,11 +82,7 @@ namespace tests {
             funcName = "fstat";
         }
 
-        message::Message msg;
-        msg.set_user("demo");
-        msg.set_function(funcName);
-        msg.set_resultkey(funcName + "_test");
-
+        message::Message msg = util::messageFactory("demo", funcName);
         execFunction(msg);
     }
 }

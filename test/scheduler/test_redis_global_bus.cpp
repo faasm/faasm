@@ -18,15 +18,11 @@ namespace tests {
         util::SystemConfig &conf = util::getSystemConfig();
         
         // Request function
-        message::Message call;
         std::string funcName = "my func";
         std::string userName = "some user";
         std::string inputData = "blahblah";
-
-        call.set_function(funcName);
-        call.set_user(userName);
+        message::Message call = util::messageFactory(userName, funcName);
         call.set_inputdata(inputData);
-        util::setMessageId(call);
 
         std::string originalSerialisation = conf.serialisation;
 
@@ -59,7 +55,6 @@ namespace tests {
         }
 
         SECTION("Check reading/ writing function results") {
-            util::setMessageId(call);
             bus.setFunctionResult(call, true);
 
             // Check result has been written to the right key

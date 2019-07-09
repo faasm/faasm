@@ -151,6 +151,15 @@ namespace util {
         return str;
     }
 
+    message::Message messageFactory(const std::string &user, const std::string &function) {
+        message::Message msg;
+        msg.set_user(user);
+        msg.set_function(function);
+        setMessageId(msg);
+
+        return msg;
+    }
+
     int setMessageId(message::Message &msg) {
         // Generate a random result key
         int messageId = util::randomInteger();

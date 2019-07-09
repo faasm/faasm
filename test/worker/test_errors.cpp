@@ -26,11 +26,7 @@ namespace tests {
     void checkError(const std::string &funcName, const std::string &expectedMsg) {
         cleanSystem();
 
-        message::Message call;
-        call.set_user("errors");
-        call.set_function(funcName);
-        call.set_resultkey("error_test");
-        util::setMessageId(call);
+        message::Message call = util::messageFactory("errors", funcName);
 
         execErrorFunction(call);
 

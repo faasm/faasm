@@ -29,10 +29,7 @@ int main(int argc, char *argv[]) {
     // Set up the call
     std::string user = argv[1];
     std::string function = argv[2];
-    message::Message call;
-    call.set_user(user);
-    call.set_function(function);
-    int messageId = util::setMessageId(call);
+    message::Message call = util::messageFactory(user, function);
 
     logger->info("Running function {}/{}", user, function);
 
@@ -54,7 +51,7 @@ int main(int argc, char *argv[]) {
 
     // Await the result
     scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
-    const message::Message &result = bus.getFunctionResult(messageId);
+    const message::Message &result = bus.getFunctionResult(call.id());
     if(!result.success()) {
         throw std::runtime_error("Executing function failed");
     }

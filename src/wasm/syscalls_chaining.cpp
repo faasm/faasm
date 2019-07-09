@@ -40,9 +40,7 @@ namespace wasm {
 
         message::Message *originalCall = getExecutingCall();
 
-        message::Message call;
-        call.set_user(originalCall->user());
-        call.set_function(functionName);
+        message::Message call = util::messageFactory(originalCall->user(), functionName);
         call.set_inputdata(inputData.data(), inputData.size());
 
         const std::string origStr = util::funcToString(*originalCall);
@@ -59,10 +57,9 @@ namespace wasm {
         }
 
         logger->debug("Chaining {} -> {}", origStr, chainedStr);
-        int callId = util::setMessageId(call);
         sch.callFunction(call);
 
-        return callId;
+        return call.id();
     }
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_function", I32, __faasm_chain_function,

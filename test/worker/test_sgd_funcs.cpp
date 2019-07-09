@@ -31,12 +31,7 @@ namespace tests {
     }
 
     std::string execStrFunction(const std::string &funcName) {
-        message::Message call;
-        call.set_user("sgd");
-        call.set_function(funcName);
-        call.set_resultkey("foobar");
-
-        util::setMessageId(call);
+        message::Message call = util::messageFactory("sgd", funcName);
 
         return execFunctionWithStringResult(call);
     }
