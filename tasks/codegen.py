@@ -3,7 +3,7 @@ from subprocess import check_output
 
 from invoke import task
 
-from tasks.env import PROJ_ROOT
+from tasks.env import PROJ_ROOT, FUNC_DIR
 
 
 @task
@@ -28,3 +28,8 @@ def run_codegen(ctx, dir_path):
         print("WARNING: found multiple codegen binaries, taking {}".format(binary))
 
     check_output("{} {}".format(binary, dir_path), shell=True)
+
+
+@task
+def run_wasm_codegen(ctx):
+    run_codegen(ctx, FUNC_DIR)
