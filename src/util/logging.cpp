@@ -6,8 +6,13 @@
 
 namespace  util {
     static std::shared_ptr<spdlog::logger> logger;
+    static bool isInitialised = false;
 
     void initLogging() {
+        if(isInitialised) {
+            return;
+        }
+
         logger = spdlog::stderr_color_mt("console");
 
         // Work out log level from environment
@@ -21,9 +26,15 @@ namespace  util {
         else {
             spdlog::set_level(spdlog::level::info);
         }
+
+        isInitialised = true;
     }
 
     std::shared_ptr<spdlog::logger> getLogger() {
+        if(!isInitialised) {
+            initLogging();
+        }
+        
         return logger;
     }
 }
