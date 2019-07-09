@@ -34,7 +34,7 @@ namespace  util {
         if(!isInitialised) {
             initLogging();
         }
-        
+
         return logger;
     }
 }
