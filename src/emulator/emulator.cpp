@@ -4,6 +4,7 @@ extern "C" {
 #include <faasm/host_interface.h>
 }
 
+#include <util/locks.h>
 #include <util/logging.h>
 #include <redis/Redis.h>
 #include <state/State.h>
@@ -16,9 +17,12 @@ extern "C" {
 static std::string _user = "demo";
 
 // Note thread locality here to handle multiple locally chained functions
-static thread_local std::vector<uint8_t> _inputData = {1, 2, 3, 4, 5};
+static thread_local std::vector<uint8_t> _inputData;
 static thread_local int _funcIdx = 0;
-static std::vector<std::thread> threads;
+
+static std::mutex threadsMutex;
+static std::unordered_map<int, std::thread> threads;
+static int threadCount = 1;
 
 void setEmulatorUser(const char *newUser) {
     _user = newUser;
@@ -113,6 +117,10 @@ void __faasm_push_state_partial(const char *key) {
 }
 
 long __faasm_read_input(unsigned char *buffer, long bufferLen) {
+    if(bufferLen==0) {
+        return _inputData.size();
+    }
+
     std::copy(_inputData.begin(), _inputData.end(), buffer);
 
     return bufferLen;
@@ -120,32 +128,37 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen) {
 
 int __faasm_chain_this(int idx, const unsigned char *buffer, long bufferLen) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-    logger->debug("Chaining local function {}", idx);
 
     // Create vector to hold inputs
     std::vector<uint8_t> inputs(buffer, buffer + bufferLen);
 
-    // Spawn a thread to execute the function
-    threads.emplace_back([idx, inputs] {
-        // Set up input data for this thread (thread-local)
-        _inputData = inputs;
-        _funcIdx = idx;
+    // Create a fake thread ID for this thread
+    int thisCallId;
+    {
+        util::UniqueLock threadsLock(threadsMutex);
 
-        // Invoke the function
-        _FaasmFuncPtr f = getFaasmFunc(idx);
-        f();
-    });
+        threadCount++;
+        thisCallId = threadCount;
 
-    // Value returned will be thread index in array + 1
-    int nThreads = (int) threads.size();
-    return nThreads;
+        // Spawn a thread to execute the function
+        threads.emplace(std::pair<int, std::thread>(thisCallId, [idx, inputs] {
+            // Set up input data for this thread (thread-local)
+            _inputData = inputs;
+            _funcIdx = idx;
+
+            // Invoke the function
+            _FaasmFuncPtr f = getFaasmFunc(idx);
+            f();
+        }));
+    }
+
+    logger->debug("Chained local function {} with call ID {}", idx, thisCallId);
+    return thisCallId;
 }
 
 int __faasm_await_call(int messageId) {
-    int threadIdx = messageId - 1;
-
     // Join the thread to await its completion
-    std::thread &t = threads[threadIdx];
+    std::thread &t = threads[messageId];
     t.join();
 
     return 0;
