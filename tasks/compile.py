@@ -7,7 +7,7 @@ from subprocess import call, check_output
 from invoke import task
 
 from tasks.download import download_proj
-from tasks.env import PROJ_ROOT, WASM_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT, FUNC_BUILD_DIR
+from tasks.env import PROJ_ROOT, WASM_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT, FUNC_BUILD_DIR, FAASM_INSTALL_DIR
 
 
 def _clean_dir(dir_path, clean):
@@ -86,6 +86,31 @@ def compile_malloc(ctx, clean=False):
 
 
 @task
+def install_native_libfaasm(ctx, clean=False):
+    work_dir = join(PROJ_ROOT, "lib-cpp")
+    build_dir = join(work_dir, "native_build")
+
+    _clean_dir(build_dir, clean)
+
+    if not exists(FAASM_INSTALL_DIR):
+        mkdir(FAASM_INSTALL_DIR)
+
+    build_cmd = [
+        "cmake",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_INSTALL_DIR),
+        ".."
+    ]
+
+    build_cmd_str = " ".join(build_cmd)
+    print(build_cmd_str)
+
+    call(build_cmd_str, shell=True, cwd=build_dir)
+    call("make", shell=True, cwd=build_dir)
+    call("make install", shell=True, cwd=build_dir)
+
+
+@task
 def compile_libfaasm(ctx, clean=False):
     """
     Build all Faasm libraries
@@ -118,7 +143,6 @@ def compile_libfaasm(ctx, clean=False):
         if dir_name == "lib":
             check_output("cp libfaasm.imports {}".format(build_dir), shell=True, cwd=work_dir)
 
-    _do_lib_build("lib-c")
     _do_lib_build("lib-cpp")
     _do_lib_build("python")
 

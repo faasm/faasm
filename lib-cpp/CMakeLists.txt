@@ -35,15 +35,26 @@ add_library(faasm STATIC ${LIB_FILES})
 
 set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
-install(TARGETS faasm
-        ARCHIVE DESTINATION ${CMAKE_SYSROOT}/lib
-        LIBRARY DESTINATION ${CMAKE_SYSROOT}/lib
-        RUNTIME DESTINATION ${CMAKE_SYSROOT}/bin
-        PUBLIC_HEADER DESTINATION ${CMAKE_SYSROOT}/include/faasm
-        )
+if(FAASM_BUILD_TYPE STREQUAL "wasm")
+    # Install in WASM sysroot
+    install(TARGETS faasm
+            ARCHIVE DESTINATION ${CMAKE_SYSROOT}/lib
+            LIBRARY DESTINATION ${CMAKE_SYSROOT}/lib
+            PUBLIC_HEADER DESTINATION ${CMAKE_SYSROOT}/include/faasm
+            )
 
-install(
-        FILES ${PROJ_INCLUDE}/faasm/faasm.imports
-        DESTINATION ${CMAKE_SYSROOT}/lib
-        RENAME libfaasm.imports
-)
+    # Add allowed import files
+    install(
+            FILES ${PROJ_INCLUDE}/faasm/faasm.imports
+            DESTINATION ${CMAKE_SYSROOT}/lib
+            RENAME libfaasm.imports
+    )
+else()
+    # Native install to normal location
+    install(TARGETS faasm
+            ARCHIVE DESTINATION lib
+            LIBRARY DESTINATION lib
+            PUBLIC_HEADER DESTINATION include/faasm
+            )
+endif()
+
