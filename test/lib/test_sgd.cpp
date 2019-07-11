@@ -246,10 +246,8 @@ namespace tests {
     }
 
     TEST_CASE("Test reading errors from state", "[sgd]") {
+        cleanSystem();
         redis::Redis &redisState = redis::Redis::getState();
-        redisState.flushAll();
-
-        state::getGlobalState().forceClearAll();
 
         SgdParams p = getDummySgdParams();
         p.nBatches = 3;

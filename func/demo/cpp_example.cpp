@@ -1,4 +1,4 @@
-#include <faasmc/faasm.h>
+#include <faasm/faasm.h>
 #include <iostream>
 
 FAASM_MAIN_FUNC() {

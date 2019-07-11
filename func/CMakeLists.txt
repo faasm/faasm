@@ -42,7 +42,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
 
     function(faasm_func_c exec_name file_name)
         add_executable(${exec_name} ${file_name})
-        target_link_libraries(${exec_name} faasmc dlmalloc)
+        target_link_libraries(${exec_name} faasm dlmalloc)
     endfunction(faasm_func_c)
 
     function(faasm_func exec_name file_name)
@@ -87,7 +87,7 @@ else ()
     # ----------------------
     function(faasm_func_c exec_name file_name)
         add_executable(${exec_name} ${file_name})
-        target_link_libraries(${exec_name} faasmc emulatorc dl)
+        target_link_libraries(${exec_name} faasm emulator dl)
     endfunction(faasm_func_c)
 
     function(faasm_func exec_name file_name)

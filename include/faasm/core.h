@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
 * Reads the full state at the given key
 */
@@ -175,5 +179,9 @@ _FaasmFuncPtr getFaasmFunc(int idx);
 
 // This is the actual Faasm entrypoint
 int exec(int idx);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

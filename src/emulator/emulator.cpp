@@ -1,6 +1,6 @@
-#include <faasm/core.h>
 
 extern "C" {
+#include <faasm/core.h>
 #include <faasm/host_interface.h>
 }
 

@@ -133,7 +133,6 @@ else ()
     add_subdirectory(func)
 
     # Faasm libraries
-    add_subdirectory(lib-c)
     add_subdirectory(lib-cpp)
     add_subdirectory(python)
 
