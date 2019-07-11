@@ -157,14 +157,21 @@ int __faasm_chain_this(int idx, const unsigned char *buffer, long bufferLen) {
     return thisCallId;
 }
 
-int __faasm_await_call(int messageId) {
+int __faasm_await_call(int callId) {
+    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+    // Check this is valid
+    if(threads.count(callId) == 0) {
+        logger->error("Call with id {} doesn't exist", callId);
+        throw std::runtime_error("Awaiting non-existent call");
+    }
+
     // Join the thread to await its completion
-    std::thread &t = threads[messageId];
+    std::thread &t = threads[callId];
     if(t.joinable()) {
         t.join();
     } else {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->error("Call with id {} not joinable", messageId);
+        logger->error("Call with id {} not joinable", callId);
         throw std::runtime_error("Cannot join thread");
     }
 

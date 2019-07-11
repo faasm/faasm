@@ -8,6 +8,13 @@
 
 #include <stdio.h>
 
+/* If running a native build we need to explicitly set the user on the emulator */
+#if WASM_BUILD == 1
+#else
+#include "emulator/emulator.h"
+#endif
+
+
 using namespace faasm;
 
 void epochFinished() {
@@ -43,6 +50,12 @@ void epochFinished() {
 }
 
 FAASM_MAIN_FUNC() {
+
+#if WASM_BUILD == 1
+#else
+    setEmulatorUser("sgd");
+#endif
+
     long inputSize = faasmGetInputSize();
     int nBatches;
     if (inputSize == 0) {
@@ -114,7 +127,7 @@ FAASM_FUNC(epoch, 1) {
     int *batchNumbers = faasm::randomIntRange(p.nBatches);
 
     // Chain new calls to perform the work
-    std::vector<int> workerCallIds(p.nBatches);
+    std::vector<int> workerCallIds;
     for (int w = 0; w < p.nBatches; w++) {
         int startIdx = batchNumbers[w] * p.batchSize;
 
@@ -130,6 +143,7 @@ FAASM_FUNC(epoch, 1) {
 
         // Call the chained function
         int thisCallId = faasmChainThisInput(2, inputBytes, args.size());
+        printf("Worker spawned with call ID %i\n", thisCallId);
         workerCallIds.push_back(thisCallId);
     }
 
