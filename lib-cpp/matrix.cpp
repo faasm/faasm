@@ -128,7 +128,6 @@ namespace faasm {
         faasmWriteState(keys.innerKey, innerBytes, nInnerBytes, async);
         faasmWriteState(keys.outerKey, outerBytes, nOuterBytes, async);
         faasmWriteState(keys.nonZeroKey, nonZeroBytes, nNonZeroBytes, async);
-
         faasmWriteState(keys.sizeKey, sizeBytes, nSizeBytes, async);
     }
 
@@ -171,6 +170,9 @@ namespace faasm {
         faasmReadState(keys.sizeKey, sizeBuffer, sizeof(SparseSizes), async);
         auto sizes = reinterpret_cast<SparseSizes *>(sizeBuffer);
 
+        if(sizes->cols == 0 || sizes->rows == 0) {
+            throw std::runtime_error("Loaded sparse matrix size zero");
+        }
         return *sizes;
     }
 

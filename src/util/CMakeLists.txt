@@ -19,6 +19,7 @@ add_library(util STATIC
         network.cpp
         queue.cpp
         random.cpp
+        state.cpp
         strings.cpp
         ${HEADERS})
 

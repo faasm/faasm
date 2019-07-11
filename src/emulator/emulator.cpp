@@ -14,7 +14,8 @@ extern "C" {
  * C++ emulation of Faasm system
  */
 
-static std::string _user = "demo";
+// We use an empty emulator user by default as it's easier to reason about keys in state
+static std::string _user;
 
 // Note thread locality here to handle multiple locally chained functions
 static thread_local std::vector<uint8_t> _inputData;
@@ -28,8 +29,8 @@ void setEmulatorUser(const char *newUser) {
     _user = newUser;
 }
 
-void resetEmulatorUser() {
-    _user = "demo";
+void unsetEmulatorUser() {
+    _user = "";
 }
 
 std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {
@@ -159,7 +160,13 @@ int __faasm_chain_this(int idx, const unsigned char *buffer, long bufferLen) {
 int __faasm_await_call(int messageId) {
     // Join the thread to await its completion
     std::thread &t = threads[messageId];
-    t.join();
+    if(t.joinable()) {
+        t.join();
+    } else {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->error("Call with id {} not joinable", messageId);
+        throw std::runtime_error("Cannot join thread");
+    }
 
     return 0;
 }
