@@ -8,6 +8,7 @@
 
 #include <worker/WorkerThreadPool.h>
 #include <worker/WorkerThread.h>
+#include <emulator/emulator.h>
 
 using namespace worker;
 
@@ -22,10 +23,14 @@ namespace tests {
 
         // Network ns requires root
         util::setEnvVar("NETNS_MODE", "off");
+
+        setEmulatorUser("demo");
     }
 
     static void tearDown() {
         util::unsetEnvVar("NETNS_MODE");
+
+        unsetEmulatorUser();
     }
 
     void checkBindMessage(const message::Message &expected) {

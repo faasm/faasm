@@ -6,6 +6,7 @@
 #include <redis/Redis.h>
 #include <aws/S3Wrapper.h>
 #include <wasm/FunctionLoader.h>
+#include <util/state.h>
 
 
 namespace edge {
@@ -91,7 +92,7 @@ namespace edge {
         const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
         std::string user = pathParts[1];
         std::string key = pathParts[2];
-        std::string realKey = user + "_" + key;
+        std::string realKey = util::keyForUser(user, key);
 
         logger->info("Downloading state from ({}/{})", user, key);
 
@@ -107,7 +108,7 @@ namespace edge {
         const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
         std::string user = pathParts[1];
         std::string key = pathParts[2];
-        std::string realKey = user + "_" + key;
+        std::string realKey = util::keyForUser(user, key);
 
         logger->info("Upload state to ({}/{})", user, key);
 

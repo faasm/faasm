@@ -12,7 +12,7 @@ void setEmulatorUser(const char *newUser) {
     strcpy(user, newUser);
 }
 
-void resetEmulatorUser() {
+void unsetEmulatorUser() {
     strcpy(user, defaultUser);
 }
 

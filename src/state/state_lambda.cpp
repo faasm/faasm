@@ -8,6 +8,7 @@
 
 #include <lambda/backend.h>
 #include <aws/S3Wrapper.h>
+#include <util/state.h>
 
 using namespace aws::lambda_runtime;
 
@@ -31,7 +32,7 @@ int main() {
         std::string state = msg.function();
 
         std::string s3Key = user + "/" + state;
-        std::string redisKey = user + "_" + state;
+        std::string redisKey = util::keyForUser(user, state);
 
         // Load bytes from S3
         logger->info("Uploading state from S3 {}/{}", conf.bucketName, s3Key);

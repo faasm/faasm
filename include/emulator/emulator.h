@@ -2,4 +2,4 @@
 
 void setEmulatorUser(const char* user);
 
-void resetEmulatorUser();
+void unsetEmulatorUser();

@@ -8,6 +8,7 @@
 #include <util/config.h>
 #include <state/State.h>
 #include <sys/mman.h>
+#include <util/state.h>
 
 using namespace state;
 
@@ -188,8 +189,8 @@ namespace tests {
         auto kvA = s.getKV(userA, keyA, 4);
         auto kvB = s.getKV(userB, keyB, 3);
 
-        std::string actualStateKeyA = userA + "_" + keyA;
-        std::string actualStateKeyB = userB + "_" + keyB;
+        std::string actualStateKeyA = util::keyForUser(userA, keyA);
+        std::string actualStateKeyB = util::keyForUser(userB, keyB);
 
         // Set up and push
         std::vector<uint8_t> valuesA = {0, 1, 2, 3};

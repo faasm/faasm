@@ -71,10 +71,14 @@ from tasks.sgd import (
     deploy_sgd_native_lambda,
     delete_sgd_native_lambda,
     upload_sgd_funcs,
-    reuters_upload,
-    reuters_upload_s3,
-    reuters_prepare_aws,
     zero_sgd_native_lambda
+)
+
+from tasks.sgd_data import (
+    reuters_upload_s3,
+    reuters_download_s3,
+    reuters_state_upload,
+    reuters_state_upload_s3,
 )
 from tasks.runtime import (
     clear_runtime_pyc,

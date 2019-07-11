@@ -174,7 +174,7 @@ namespace faasm {
         }
 
         // Recalculate all predictions
-        printf("Calculating error");
+        printf("Calculating error\n");
         Map<const RowVectorXd> weights(weightDataBuffer, sgdParams.nWeights);
         MatrixXd prediction = weights * inputs;
 

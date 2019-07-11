@@ -195,8 +195,7 @@ namespace tests {
 
     void checkDoubleArrayInState(redis::Redis &r, const char *key, std::vector<double> expected) {
         redis::Redis &redisQueue = redis::Redis::getQueue();
-        std::string actualKey("demo_" + std::string(key));
-        std::vector<uint8_t> actualBytes = redisQueue.get(actualKey);
+        std::vector<uint8_t> actualBytes = redisQueue.get(key);
 
         auto actualPtr = reinterpret_cast<double *>(actualBytes.data());
         std::vector<double> actual(actualPtr, actualPtr + expected.size());
@@ -206,8 +205,7 @@ namespace tests {
 
     void checkIntArrayInState(redis::Redis &r, const char *key, std::vector<int> expected) {
         redis::Redis &redisQueue = redis::Redis::getQueue();
-        std::string actualKey("demo_" + std::string(key));
-        std::vector<uint8_t> actualBytes = redisQueue.get(actualKey);
+        std::vector<uint8_t> actualBytes = redisQueue.get(key);
 
         auto actualPtr = reinterpret_cast<int *>(actualBytes.data());
         std::vector<int> actual(actualPtr, actualPtr + expected.size());

@@ -1,6 +1,7 @@
 #include "UserState.h"
 
 #include <util/locks.h>
+#include <util/state.h>
 
 using namespace util;
 
@@ -22,7 +23,7 @@ namespace state {
             // Lock on editing local state registry
             FullLock fullLock(kvMapMutex);
 
-            std::string actualKey = user + "_" + key;
+            std::string actualKey = util::keyForUser(user, key);
 
             // Double check it still doesn't exist
             if (kvMap.count(key) == 0) {

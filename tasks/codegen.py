@@ -3,7 +3,7 @@ from subprocess import check_output
 
 from invoke import task
 
-from tasks.env import PROJ_ROOT, FUNC_DIR
+from tasks.env import PROJ_ROOT, WASM_DIR
 
 
 @task
@@ -32,4 +32,4 @@ def run_codegen(ctx, dir_path):
 
 @task
 def run_wasm_codegen(ctx):
-    run_codegen(ctx, FUNC_DIR)
+    run_codegen(ctx, WASM_DIR)

@@ -7,6 +7,7 @@
 #include <aws/aws.h>
 
 #include <string>
+#include <util/state.h>
 
 namespace faasm {
     std::string input;
@@ -142,7 +143,7 @@ void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, 
         return;
     }
 
-    std::string actualKey = faasm::functionUser + "_" + key;
+    std::string actualKey = util::keyForUser(faasm::functionUser, key);
 
     redis::Redis &redis = redis::Redis::getState();
     redis.get(actualKey, buffer, bufferLen);
@@ -170,7 +171,7 @@ void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsi
     }
 
     redis::Redis &redis = redis::Redis::getState();
-    std::string actualKey = faasm::functionUser + "_" + key;
+    std::string actualKey = util::keyForUser(faasm::functionUser, key);
 
     // Note, getrange indices are inclusive, so we need to finish one before the end of the buffer
     long startIdx = offset;
@@ -197,7 +198,7 @@ void __faasm_write_state(const char *key, const uint8_t *data, long dataLen, int
         return;
     }
 
-    std::string actualKey = faasm::functionUser + "_" + key;
+    std::string actualKey = util::keyForUser(faasm::functionUser, key);
 
     redis::Redis &redis = redis::Redis::getState();
     redis.set(actualKey, data, dataLen);
@@ -209,7 +210,7 @@ void __faasm_write_state_offset(const char *key, long totalLen, long offset, con
         return;
     }
 
-    std::string actualKey = faasm::functionUser + "_" + key;
+    std::string actualKey = util::keyForUser(faasm::functionUser, key);
 
     redis::Redis &redis = redis::Redis::getState();
     redis.setRange(actualKey, offset, data, dataLen);
