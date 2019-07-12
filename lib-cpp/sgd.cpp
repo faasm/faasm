@@ -78,14 +78,9 @@ namespace faasm {
 
     SgdParams readParamsFromState(const char *keyName, bool async) {
         size_t nBytes = sizeof(SgdParams);
-        auto buffer = new uint8_t[nBytes];
-
-        faasmReadState(keyName, buffer, nBytes, async);
-
         SgdParams s{};
-        memcpy(&s, buffer, nBytes);
+        faasmReadState(keyName, reinterpret_cast<uint8_t *>(&s), nBytes, async);
 
-        delete[] buffer;
         return s;
     }
 

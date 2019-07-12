@@ -27,7 +27,7 @@ from tasks.compile import (
     compile_libfaasm,
     compile_eigen,
     compile_libfake,
-    install_native_libfaasm,
+    install_native_tools,
 )
 from tasks.invoke import (
     invoke,
