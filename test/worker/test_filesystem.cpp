@@ -19,6 +19,7 @@ namespace tests {
                 "libfakeLibA.so", "libfakeLibB.so",
                 "libfakeLibA.so.o", "libfakeLibB.so.o",
                 "libfakeLibA.wast", "libfakeLibB.wast",
+                "raytrace.ppm", "chaos.ppm",
                 "share"
         };
 

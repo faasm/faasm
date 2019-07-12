@@ -31,11 +31,11 @@ set(LIB_FILES
         time.cpp
         )
 
-add_library(faasm STATIC ${LIB_FILES})
-
-set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
 if(FAASM_BUILD_TYPE STREQUAL "wasm")
+    add_library(faasm STATIC ${LIB_FILES})
+    set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
+
     # Install in WASM sysroot
     install(TARGETS faasm
             ARCHIVE DESTINATION ${CMAKE_SYSROOT}/lib
@@ -49,8 +49,10 @@ if(FAASM_BUILD_TYPE STREQUAL "wasm")
             DESTINATION ${CMAKE_SYSROOT}/lib
             RENAME libfaasm.imports
     )
-else()
-    # Native install to normal location
+else ()
+    add_library(faasm SHARED ${LIB_FILES})
+    set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
+
     install(TARGETS faasm
             ARCHIVE DESTINATION lib
             LIBRARY DESTINATION lib

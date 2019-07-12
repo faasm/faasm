@@ -4,7 +4,7 @@ find_package(RapidJSON)
 
 file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/util/*.h")
 
-add_library(util STATIC
+set(LIB_FILES
         base64.cpp
         bytes.cpp
         config.cpp
@@ -21,7 +21,10 @@ add_library(util STATIC
         random.cpp
         state.cpp
         strings.cpp
-        ${HEADERS})
+        ${HEADERS}
+        )
+
+faasm_private_lib(util "${LIB_FILES}")
 
 target_link_libraries(
         util

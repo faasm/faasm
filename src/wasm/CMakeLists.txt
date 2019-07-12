@@ -5,7 +5,7 @@ include_directories(
 
 file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/wasm/*.h")
 
-add_library(wasm STATIC
+set(LIB_FILES
         FunctionLoader.cpp
         LocalFunctionLoader.cpp
         S3FunctionLoader.cpp
@@ -26,6 +26,7 @@ add_library(wasm STATIC
         ${HEADERS}
         )
 
+faasm_private_lib(wasm "${LIB_FILES}")
 target_link_libraries(wasm scheduler memory state WAVM)
 
 add_executable(codegen codegen_runner.cpp)
