@@ -7,3 +7,9 @@ add_library(
 )
 
 target_link_libraries(emulator scheduler state)
+
+install(TARGETS emulator
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        PUBLIC_HEADER DESTINATION include/faasm
+        )

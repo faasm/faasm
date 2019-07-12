@@ -8,6 +8,8 @@ add_library(
 
 target_link_libraries(redis util pthread hiredis)
 
+if (FAASM_BUILD_TYPE STREQUAL "native-tools")
+else()
 add_executable(redis-lambda redis_lambda.cpp)
 target_link_libraries(redis-lambda
         redis
@@ -15,3 +17,4 @@ target_link_libraries(redis-lambda
         AWS::aws-lambda-runtime
         )
 aws_lambda_package_target(redis-lambda)
+endif()

@@ -121,6 +121,21 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-dispatch")
     add_subdirectory(src/scheduler)
     add_subdirectory(src/util)
 
+elseif (FAASM_BUILD_TYPE STREQUAL "native-tools")
+    # ------------------
+    # Native tools for porting code
+    # ------------------
+
+    message(STATUS "Running native tools build")
+
+    add_subdirectory(lib-cpp)
+    add_subdirectory(src/emulator)
+    add_subdirectory(src/proto)
+    add_subdirectory(src/redis)
+    add_subdirectory(src/scheduler)
+    add_subdirectory(src/state)
+    add_subdirectory(src/util)
+
 else ()
     # ------------------
     # Standard build
@@ -151,7 +166,6 @@ else ()
     add_subdirectory(src/data)
     add_subdirectory(src/edge)
     add_subdirectory(src/emulator)
-    add_subdirectory(src/emulatorc)
     add_subdirectory(src/memory)
     add_subdirectory(src/proto)
     add_subdirectory(src/redis)

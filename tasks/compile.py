@@ -57,7 +57,7 @@ def compile(context, clean=False, func=None, debug=False, user=None):
     elif user:
         target = "{}_all_funcs".format(user)
 
-    cmd = "make -j {}".format(target) if target else "make -j"
+    cmd = "make {}".format(target) if target else "make -j"
     call(cmd, shell=True, cwd=FUNC_BUILD_DIR)
 
 
@@ -90,14 +90,12 @@ def install_native_tools(ctx, clean=False):
     if not exists(FAASM_INSTALL_DIR):
         mkdir(FAASM_INSTALL_DIR)
 
-    _install_native_libfaasm(clean)
-
-
-def _prepare_native_build(build_dir, clean=False):
+    build_dir = join(PROJ_ROOT, "native_build")
     _clean_dir(build_dir, clean)
 
     build_cmd = [
         "cmake",
+        "-DFAASM_BUILD_TYPE=native-tools",
         "-DCMAKE_BUILD_TYPE=Release",
         "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_INSTALL_DIR),
         ".."
@@ -107,22 +105,7 @@ def _prepare_native_build(build_dir, clean=False):
     print(build_cmd_str)
 
     call(build_cmd_str, shell=True, cwd=build_dir)
-
-
-def _install_native_emualtor(clean=False):
-    build_dir = join(PROJ_ROOT, "native_build")
-    _prepare_native_build(build_dir, clean=clean)
-
-    call("make", shell=True, cwd=build_dir)
-    call("make install", shell=True, cwd=build_dir)
-
-
-def _install_native_libfaasm(clean=False):
-    work_dir = join(PROJ_ROOT, "lib-cpp")
-    build_dir = join(work_dir, "native_build")
-    _prepare_native_build(build_dir, clean=clean)
-
-    call("make", shell=True, cwd=build_dir)
+    call("make -j", shell=True, cwd=build_dir)
     call("make install", shell=True, cwd=build_dir)
 
 
