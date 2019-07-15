@@ -137,6 +137,18 @@ namespace wasm {
         I32 ss_size;  // size_t
     };
 
+    /**
+     * Found in sys/utsname.h
+     * Used to convey system info via uname
+     */
+    struct wasm_utsname {
+        char sysname[65];
+        char nodename[65];
+        char release[65];
+        char version[65];
+        char machine[65];
+        char domainname[65];
+    };
 
     // Sockets/ network
     enum SocketCalls : U32 {
@@ -249,6 +261,8 @@ namespace wasm {
     I32 s__rt_sigprocmask(I32 how, I32 sigSetPtr, I32 oldSetPtr, I32 sigsetsize);
 
     I32 s__sbrk(I32 addr);
+
+    I32 s__sched_getaffinity(I32 pid, I32 cpuSetSize, I32 maskPtr);
 
     I32 s__sigaction(I32 a, I32 b, I32 c);
 

@@ -1,12 +1,11 @@
 import multiprocessing
 import os
-from os import mkdir, makedirs
-from os.path import join, exists
+from os.path import join
 
 from invoke import task
 
-from tasks.env import FUNC_BUILD_DIR, PROJ_ROOT, RUNTIME_S3_BUCKET, WASM_DIR
-from tasks.upload_util import curl_file, upload_file_to_s3, download_file_from_s3, list_files_s3
+from tasks.env import FUNC_BUILD_DIR, PROJ_ROOT, RUNTIME_S3_BUCKET
+from tasks.upload_util import curl_file, upload_file_to_s3
 
 DIRS_TO_INCLUDE = ["demo", "errors", "sgd", "python", "polybench"]
 

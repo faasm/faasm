@@ -39,4 +39,11 @@ namespace tests {
         message::Message msg = util::messageFactory("demo", "optarg");
         execFunction(msg);
     }
+
+    TEST_CASE("Test uname", "[worker]") {
+        cleanSystem();
+
+        message::Message msg = util::messageFactory("demo", "uname");
+        execFunction(msg);
+    }
 }

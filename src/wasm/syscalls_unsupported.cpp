@@ -75,11 +75,6 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "uname", I32, uname , I32 a) {
-        util::getLogger()->debug("S - uname - {}", a);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
     DEFINE_INTRINSIC_FUNCTION(env, "openpty", I32, openpty , I32 a, I32 b, I32 c, I32 d, I32 e) {
         util::getLogger()->debug("S - openpty - {} {} {} {} {}", a, b, c, d, e);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);

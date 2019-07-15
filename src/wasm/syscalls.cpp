@@ -166,6 +166,8 @@ namespace wasm {
                 return s__sbrk(a);
             case 240:
                 return s__futex(a, b, c, d, e, f);
+            case 242:
+                return s__sched_getaffinity(a, b, c);
             case 265:
                 return s__clock_gettime(a, b);
             case 355:

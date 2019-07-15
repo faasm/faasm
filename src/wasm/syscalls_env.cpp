@@ -41,6 +41,13 @@ namespace wasm {
         throw (wasm::WasmExitException(a));
     }
 
+    I32 s__sched_getaffinity(I32 pid, I32 cpuSetSize, I32 maskPtr) {
+        util::getLogger()->debug("S - sched_getaffinity - {} {} {}", pid, cpuSetSize, maskPtr);
+
+        // Ignore
+        return 0;
+    }
+
     DEFINE_INTRINSIC_FUNCTION(env, "confstr", I32, confstr, I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - confstr - {} {} {}", a, b, c);
 
@@ -134,6 +141,32 @@ namespace wasm {
         } else {
             throwException(Runtime::ExceptionTypes::calledAbort);
         }
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "uname", I32, uname , I32 bufPtr) {
+        util::getLogger()->debug("S - uname - {}", bufPtr);
+
+        // Native pointer to buffer
+        Runtime::GCPointer<Runtime::Memory> &memoryRef = getExecutingModule()->defaultMemory;
+        U8 *hostBufPtr = &Runtime::memoryRef<U8>(memoryRef, (Uptr) bufPtr);
+        
+        // Fake system info
+        // TODO - should probably give some valid stuff here in case we break something
+        wasm_utsname s {
+            .sysname="Linux",
+            .nodename="faasm",
+            .release="1.0.0",
+            .version="Faasm 123",
+            .machine="x86",   // Probably safest in 32-bit wasm env
+            .domainname="(none)"
+        };
+
+        // Copy fake info into place
+        size_t structSize = sizeof(wasm_utsname);
+        auto structPtr = reinterpret_cast<uint8_t *>(&s);
+        std::copy(structPtr, structPtr + structSize, hostBufPtr);
+
+        return 0;
     }
 
     // ------------------------
