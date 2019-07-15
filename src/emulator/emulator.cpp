@@ -118,6 +118,7 @@ void __faasm_push_state_partial(const char *key) {
 }
 
 long __faasm_read_input(unsigned char *buffer, long bufferLen) {
+    // This relies on thread-local _inputData
     if(bufferLen==0) {
         return _inputData.size();
     }
