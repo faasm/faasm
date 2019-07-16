@@ -153,6 +153,7 @@ def invoke_lambda_worker(ctx):
     print("Adding message to queue {}".format(url))
 
     message = {
+        "target": "worker",
         "submitted": str(datetime.now()),
     }
 
@@ -258,14 +259,14 @@ def prepare_lambda_workers(ctx, n_workers):
     n_workers = int(n_workers)
 
     # First take concurrency down to zero
-    lambda_concurrency(ctx, "worker", 0)
+    lambda_concurrency(ctx, "faasm-worker", 0)
     sleep(5)
 
     # Clear out the queue
     lambda_clear_queue(ctx)
 
     # Now up concurrency
-    lambda_concurrency(ctx, "worker", n_workers)
+    lambda_concurrency(ctx, "faasm-worker", n_workers)
 
     # Now trigger messages
     for i in range(n_workers):
