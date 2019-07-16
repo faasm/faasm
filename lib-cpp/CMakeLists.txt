@@ -13,10 +13,12 @@ set(PUBLIC_HEADERS
         faasm/counter.h
         faasm/faasm.h
         faasm/func.h
+        faasm/input.h
         faasm/matrix.h
         faasm/print.h
         faasm/random.h
         faasm/sgd.h
+        faasm/state.h
         faasm/time.h
         )
 
@@ -24,10 +26,12 @@ set(LIB_FILES
         core.cpp
         counter.cpp
         func.cpp
+        input.cpp
         matrix.cpp
         print.cpp
         random.cpp
         sgd.cpp
+        state.cpp
         time.cpp
         )
 

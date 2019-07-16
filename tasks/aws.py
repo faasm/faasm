@@ -14,7 +14,6 @@ from tasks import upload
 from tasks.config import get_faasm_config
 from tasks.env import FAASM_HOME, PROJ_ROOT, RUNTIME_S3_BUCKET, AWS_REGION, AWS_ACCOUNT_ID, STATE_S3_BUCKET
 from tasks.upload_util import upload_file_to_s3
-from tasks.zip_util import replace_in_zip
 
 SDK_VERSION = "1.7.41"
 RUNTIME_VERSION = "master"
@@ -315,8 +314,8 @@ def delete_faasm_lambda(ctx, func=None):
         lambda_name = faasm_lambda_funcs[func]["name"]
         _delete_lambda(lambda_name)
     else:
-        for lambda_func, _ in faasm_lambda_funcs.items():
-            _delete_lambda(lambda_func)
+        for lambda_func in faasm_lambda_funcs.values():
+            _delete_lambda(lambda_func["name"])
 
 
 def _do_system_lambda_deploy(func_name, lambda_conf):
@@ -529,15 +528,15 @@ def _do_deploy(func_name, memory=DEFAULT_LAMBDA_MEM, timeout=DEFAULT_LAMBDA_TIME
 
 def _create_lambda_zip(module_name, build_dir):
     cmake_zip_target = "aws-lambda-package-{}-lambda".format(module_name)
-    res = call("make -j {}".format(cmake_zip_target), cwd=build_dir, shell=True)
+    res = call("make {}".format(cmake_zip_target), cwd=build_dir, shell=True)
     if res != 0:
         raise RuntimeError("Failed to create lambda zip")
 
     # Inject alternative bootstrap script
-    script_path = join(PROJ_ROOT, "bin", "lambda_bootstrap.sh")
-    zip_path = _build_zip_file_path(build_dir, module_name)
-    print("Replacing bootstrap script in {} with {}".format(zip_path, script_path))
-    replace_in_zip(zip_path, "bootstrap", script_path)
+    # script_path = join(PROJ_ROOT, "bin", "lambda_bootstrap.sh")
+    # zip_path = _build_zip_file_path(build_dir, module_name)
+    # print("Replacing bootstrap script in {} with {}".format(zip_path, script_path))
+    # replace_in_zip(zip_path, "bootstrap", script_path)
 
 
 def _get_s3_key(module_name):

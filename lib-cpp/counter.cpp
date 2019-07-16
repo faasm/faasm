@@ -1,5 +1,6 @@
 #include "faasm/counter.h"
 #include "faasm/core.h"
+#include "faasm/state.h"
 
 namespace faasm {
     void initCounter(const char *counterKey, bool async) {
@@ -29,5 +30,18 @@ namespace faasm {
         faasmWriteState(counterKey, counterBytes, sizeof(int), async);
     }
 
+    void incrementCounter(const char *counterKey, int increment, bool globalLock) {
+        if(globalLock) {
+            faasmLockStateWrite(counterKey);
+        }
+
+        int val = faasm::readIntState(counterKey);
+        val += increment;
+        faasm::writeIntState(counterKey, val);
+
+        if(globalLock) {
+            faasmUnlockStateWrite(counterKey);
+        }
+    }
 }
 
