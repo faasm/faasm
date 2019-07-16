@@ -41,6 +41,20 @@ namespace wasm {
         throw (wasm::WasmExitException(a));
     }
 
+    I32 s__sched_getaffinity(I32 pid, I32 cpuSetSize, I32 maskPtr) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - sched_getaffinity - {} {} {}", pid, cpuSetSize, maskPtr);
+
+        // Native pointer to buffer
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        U8 *hostBufPtr = &Runtime::memoryRef<U8>(memoryPtr, (Uptr) maskPtr);
+
+        // Fill in a mask for the required number of processors
+        std::fill(hostBufPtr, hostBufPtr + FAKE_N_PROCESSORS, 1);
+
+        return 0;
+    }
+
     DEFINE_INTRINSIC_FUNCTION(env, "confstr", I32, confstr, I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - confstr - {} {} {}", a, b, c);
 
@@ -129,11 +143,41 @@ namespace wasm {
         util::getLogger()->debug("S - _sysconf - {}", a);
 
         util::SystemConfig &conf = util::getSystemConfig();
-        if (conf.unsafeMode == "on") {
+        if(a == _SC_NPROCESSORS_ONLN) {
+            return sysconf(a);
+        }
+        else if (conf.unsafeMode == "on") {
+            // Allowing arbitrary access in unsafe mode
             return sysconf(a);
         } else {
-            throwException(Runtime::ExceptionTypes::calledAbort);
+            throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
         }
+    }
+
+    DEFINE_INTRINSIC_FUNCTION(env, "uname", I32, uname , I32 bufPtr) {
+        util::getLogger()->debug("S - uname - {}", bufPtr);
+
+        // Native pointer to buffer
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        U8 *hostBufPtr = &Runtime::memoryRef<U8>(memoryPtr, (Uptr) bufPtr);
+        
+        // Fake system info
+        // TODO - should probably give some valid stuff here in case we break something
+        wasm_utsname s {
+            .sysname="Linux",
+            .nodename="faasm",
+            .release="1.0.0",
+            .version="Faasm 123",
+            .machine="x86",   // Probably safest in 32-bit wasm env
+            .domainname="(none)"
+        };
+
+        // Copy fake info into place
+        size_t structSize = sizeof(wasm_utsname);
+        auto structPtr = reinterpret_cast<uint8_t *>(&s);
+        std::copy(structPtr, structPtr + structSize, hostBufPtr);
+
+        return 0;
     }
 
     // ------------------------

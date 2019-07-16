@@ -17,6 +17,27 @@ set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/python)
 set(FAASM_LAMBDA_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lambda)
 set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/WAVM/Lib)
 
+option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
+option(FAASM_AWS_SUPPORT "Whether to include AWS support" ON)
+
+# Library type (for shared libraries)
+if(FAASM_STATIC_LIBS)
+    function(faasm_public_lib lib_name lib_deps)
+        add_library(${lib_name} STATIC ${lib_deps})
+    endfunction()
+    function(faasm_private_lib lib_name lib_deps)
+        add_library(${lib_name} STATIC ${lib_deps})
+    endfunction()
+else()
+    function(faasm_public_lib lib_name lib_deps)
+        add_library(${lib_name} SHARED ${lib_deps})
+    endfunction()
+    function(faasm_private_lib lib_name lib_deps)
+        add_library(${lib_name} STATIC ${lib_deps})
+        target_compile_options(${lib_name} PRIVATE "-fPIC")
+    endfunction()
+endif()
+
 # Stops WAVM compilation complaining
 add_definitions(-DDLL_EXPORT=)
 add_definitions(-DDLL_IMPORT=)
@@ -41,7 +62,7 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 # add_definitions(-DEIGEN_DONT_PARALLELIZE)
 # add_definitions(-DEIGEN_NO_MALLOC)
 
-# AWS Lambda runtime
+# AWS
 find_package(aws-lambda-runtime)
 
 # AWS SDK
@@ -121,6 +142,23 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-dispatch")
     add_subdirectory(src/scheduler)
     add_subdirectory(src/util)
 
+elseif (FAASM_BUILD_TYPE STREQUAL "native-tools")
+    # ------------------
+    # Native tools for porting code
+    # ------------------
+
+    message(STATUS "Running native tools build")
+
+    set(FAASM_LIB_TYPE SHARED)
+
+    add_subdirectory(lib-cpp)
+    add_subdirectory(src/emulator)
+    add_subdirectory(src/proto)
+    add_subdirectory(src/redis)
+    add_subdirectory(src/scheduler)
+    add_subdirectory(src/state)
+    add_subdirectory(src/util)
+
 else ()
     # ------------------
     # Standard build
@@ -133,7 +171,6 @@ else ()
     add_subdirectory(func)
 
     # Faasm libraries
-    add_subdirectory(lib-c)
     add_subdirectory(lib-cpp)
     add_subdirectory(python)
 
@@ -152,7 +189,6 @@ else ()
     add_subdirectory(src/data)
     add_subdirectory(src/edge)
     add_subdirectory(src/emulator)
-    add_subdirectory(src/emulatorc)
     add_subdirectory(src/memory)
     add_subdirectory(src/proto)
     add_subdirectory(src/redis)

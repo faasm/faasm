@@ -529,7 +529,7 @@ def _do_deploy(func_name, memory=DEFAULT_LAMBDA_MEM, timeout=DEFAULT_LAMBDA_TIME
 
 def _create_lambda_zip(module_name, build_dir):
     cmake_zip_target = "aws-lambda-package-{}-lambda".format(module_name)
-    res = call("make {}".format(cmake_zip_target), cwd=build_dir, shell=True)
+    res = call("make -j {}".format(cmake_zip_target), cwd=build_dir, shell=True)
     if res != 0:
         raise RuntimeError("Failed to create lambda zip")
 
@@ -572,9 +572,9 @@ def _build_cmake_project(build_dir, cmake_args, clean=False, target=None):
         raise RuntimeError("Building cmake project failed")
 
     if target:
-        call("make {}".format(target), cwd=build_dir, shell=True)
+        call("make -j {}".format(target), cwd=build_dir, shell=True)
     else:
-        call("make", cwd=build_dir, shell=True)
+        call("make -j", cwd=build_dir, shell=True)
 
 
 def _add_sqs_event_source(client, func_name):

@@ -20,7 +20,7 @@ _SGD_FUNCS = {
         "timeout": 30,
         "concurrency": 1,
     },
-    "svm_begin": {
+    "reuters_svm": {
         "memory": _BATCH_MEMORY,
         "timeout": _MAX_BATCH_TIME,
         "concurrency": _BATCH_CONCURRENCY,
@@ -34,7 +34,7 @@ _SGD_FUNCS = {
 
 @task
 def begin_aws_svm(ctx):
-    invoke_faasm_lambda(ctx, "sgd", "svm_begin")
+    invoke_faasm_lambda(ctx, "sgd", "reuters_svm")
 
 
 @task

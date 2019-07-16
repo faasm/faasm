@@ -32,4 +32,25 @@ namespace tests {
         message::Message msg = util::messageFactory("demo", "exit");
         execFunction(msg);
     }
+
+    TEST_CASE("Test optarg", "[worker]") {
+        cleanSystem();
+
+        message::Message msg = util::messageFactory("demo", "optarg");
+        execFunction(msg);
+    }
+
+    TEST_CASE("Test sysconf", "[worker]") {
+        cleanSystem();
+
+        message::Message msg = util::messageFactory("demo", "sysconf");
+        execFunction(msg);
+    }
+
+    TEST_CASE("Test uname", "[worker]") {
+        cleanSystem();
+
+        message::Message msg = util::messageFactory("demo", "uname");
+        execFunction(msg);
+    }
 }

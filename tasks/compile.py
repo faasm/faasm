@@ -7,7 +7,7 @@ from subprocess import call, check_output
 from invoke import task
 
 from tasks.download import download_proj
-from tasks.env import PROJ_ROOT, WASM_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT, FUNC_BUILD_DIR
+from tasks.env import PROJ_ROOT, WASM_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT, FUNC_BUILD_DIR, FAASM_INSTALL_DIR
 
 
 def _clean_dir(dir_path, clean):
@@ -57,7 +57,7 @@ def compile(context, clean=False, func=None, debug=False, user=None):
     elif user:
         target = "{}_all_funcs".format(user)
 
-    cmd = "make -j {}".format(target) if target else "make -j"
+    cmd = "make {}".format(target) if target else "make -j"
     call(cmd, shell=True, cwd=FUNC_BUILD_DIR)
 
 
@@ -82,6 +82,32 @@ def compile_malloc(ctx, clean=False):
 
     call(build_cmd_str, shell=True, cwd=build_dir)
     call("make", shell=True, cwd=build_dir)
+    call("make install", shell=True, cwd=build_dir)
+
+
+@task
+def install_native_tools(ctx, clean=False):
+    if not exists(FAASM_INSTALL_DIR):
+        mkdir(FAASM_INSTALL_DIR)
+
+    build_dir = join(PROJ_ROOT, "native_build")
+    _clean_dir(build_dir, clean)
+
+    build_cmd = [
+        "cmake",
+        "-DFAASM_BUILD_TYPE=native-tools",
+        "-DFAASM_AWS_SUPPORT=OFF",
+        "-DFAASM_STATIC_LIBS=OFF",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_INSTALL_DIR),
+        ".."
+    ]
+
+    build_cmd_str = " ".join(build_cmd)
+    print(build_cmd_str)
+
+    call(build_cmd_str, shell=True, cwd=build_dir)
+    call("make -j", shell=True, cwd=build_dir)
     call("make install", shell=True, cwd=build_dir)
 
 
@@ -118,7 +144,6 @@ def compile_libfaasm(ctx, clean=False):
         if dir_name == "lib":
             check_output("cp libfaasm.imports {}".format(build_dir), shell=True, cwd=work_dir)
 
-    _do_lib_build("lib-c")
     _do_lib_build("lib-cpp")
     _do_lib_build("python")
 

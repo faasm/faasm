@@ -19,7 +19,8 @@ namespace tests {
                 "libfakeLibA.so", "libfakeLibB.so",
                 "libfakeLibA.so.o", "libfakeLibB.so.o",
                 "libfakeLibA.wast", "libfakeLibB.wast",
-                "share"
+                "raytrace.ppm", "chaos.ppm",
+                "share", "usr"
         };
 
         util::SystemConfig &conf = util::getSystemConfig();

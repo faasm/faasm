@@ -2,6 +2,7 @@
 work/
 download/
 lambda_build/
+native_build/
 lambda_*_build/
 *_func_build/
 lib_build/

@@ -2,7 +2,7 @@ find_package(PythonLibs)
 
 include_directories(${FAASM_INCLUDE_DIR}/runner)
 
-add_library(bench STATIC
+set(LIB_FILES
         timing.cpp
         Profiler.cpp
         PythonProfiler.cpp
@@ -11,6 +11,7 @@ add_library(bench STATIC
         ${FAASM_INCLUDE_DIR}/runner/timing.h
     )
 
+faasm_private_lib(bench "${LIB_FILES}")
 target_link_libraries(bench wasm util)
 
 add_executable(func_runner runner.cpp)

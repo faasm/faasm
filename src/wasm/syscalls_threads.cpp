@@ -1,6 +1,8 @@
 #include "WasmModule.h"
 #include "syscalls.h"
 
+#include <linux/futex.h>
+
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/RuntimeData.h>
 #include <WAVM/Runtime/Intrinsics.h>
@@ -82,5 +84,42 @@ namespace wasm {
         util::getLogger()->debug("S - pthread_setspecific - {} {}", a, b);
 
         return 0;
+    }
+
+    I32 s__futex(I32 uaddrPtr, I32 futex_op, I32 val, I32 timeoutPtr, I32 uaddr2Ptr, I32 other) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        std::string opStr;
+        int returnValue = 0;
+
+        // Reference to uaddr
+        // The value pointed to by uaddr is always a four byte integer
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        I32 *actualValPtr = &Runtime::memoryRef<I32>(memoryPtr, (Uptr) uaddrPtr);
+        I32 actualVal = *actualValPtr;
+
+        if (futex_op == FUTEX_WAIT || futex_op == FUTEX_WAIT_PRIVATE) {
+            // Waiting needs to be handled using Faasm mechanisms so we ignore
+            opStr = futex_op == FUTEX_WAIT ? "FUTEX_WAIT" : "FUTEX_WAIT_PRIVATE";
+
+            // Need to set the value to be unequal to the expected, otherwise we get into a loop
+            I32 newVal = actualVal + 1;
+            std::copy(&newVal, &newVal + sizeof(I32), actualValPtr);
+
+            // val here is the expected value, we need to make sure the address still has that value
+            returnValue = 0;
+        } else if (futex_op == FUTEX_WAKE || futex_op == FUTEX_WAKE_PRIVATE) {
+            // Waking also needs to be handled with Faasm mechanisms so we also ignore
+            opStr = futex_op == FUTEX_WAKE ? "FUTEX_WAKE" : "FUTEX_WAKE_PRIVATE";
+
+            // val here means "max waiters to wake"
+            returnValue = val;
+        } else {
+            logger->error("Unsupported futex syscall with operation {}", futex_op);
+            throw std::runtime_error("Unuspported futex syscall");
+        }
+
+        logger->debug("S - futex - {} {} {} {} {} {} (uaddr = {})", uaddrPtr, opStr, val, timeoutPtr, uaddr2Ptr, other,
+                      actualVal);
+        return returnValue;
     }
 }

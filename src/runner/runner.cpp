@@ -22,6 +22,10 @@ int main(int argc, char *argv[]) {
     conf.boundTimeout = 3000;
     conf.unboundTimeout = 3000;
 
+    // Custom conf here to specify always scale out but put a limit on the workers
+    conf.maxQueueRatio = 0;
+    conf.maxWorkersPerFunction = 6;
+
     // Clear out redis
     redis::Redis &redis = redis::Redis::getQueue();
     redis.flushAll();

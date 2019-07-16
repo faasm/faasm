@@ -41,8 +41,12 @@ namespace wasm {
         } else {
             fakePath = maskPath(path.c_str());
 
+            // Unsafe mode here allows access to any files (below the runtime root dir)
             if (conf.unsafeMode == "on" ||
-                (path == "/etc/hosts" || path == "/etc/resolv.conf" || path == "/etc/passwd")) {
+                (path == "/etc/hosts" ||
+                path == "/etc/resolv.conf" ||
+                path == "/etc/passwd" ||
+                path == "/etc/localtime")) {
                 logger->debug("Opening {}", fakePath);
                 fd = open(fakePath.c_str(), flags, mode);
             } else {

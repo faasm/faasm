@@ -1,10 +1,12 @@
 include_directories(${FAASM_INCLUDE_DIR}/data)
 
-add_library(data STATIC
+set(LIB_FILES
         matrix.cpp
         local_sgd.cpp
         ${FAASM_INCLUDE_DIR}/data/data.h
-        )
+)
+
+faasm_private_lib(data "${LIB_FILES}")
 
 target_link_libraries(
         data
@@ -15,6 +17,3 @@ target_link_libraries(
 
 add_executable(reuters_parse reuters_parse.cpp)
 target_link_libraries(reuters_parse data)
-
-add_executable(reuters_svm reuters_svm.cpp)
-target_link_libraries(reuters_svm data)

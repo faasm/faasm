@@ -2,13 +2,15 @@ include_directories(${FAASM_INCLUDE_DIR}/aws)
 
 file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/aws/*.h")
 
-add_library(aws STATIC
-        aws.cpp
-        LambdaWrapper.cpp
-        S3Wrapper.cpp
-        SQSWrapper.cpp
-        ${HEADERS}
+set(LIB_FILES
+    aws.cpp
+    LambdaWrapper.cpp
+    S3Wrapper.cpp
+    SQSWrapper.cpp
+    ${HEADERS}
 )
+
+faasm_private_lib(aws "${LIB_FILES}")
 
 target_link_libraries(
         aws
