@@ -2,16 +2,43 @@
 #include "syscalls.h"
 
 #include <util/bytes.h>
+#include <linux/futex.h>
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/RuntimeData.h>
 #include <WAVM/Runtime/Intrinsics.h>
 
 namespace wasm {
-
     I32 s__futex(I32 uaddrPtr, I32 futex_op, I32 val, I32 timeoutPtr, I32 uaddr2Ptr, I32 other) {
-        util::getLogger()->debug("S - futex - {} {} {} {} {} {}", uaddrPtr, futex_op, val, timeoutPtr, uaddr2Ptr, other);
-        return 0;
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        std::string opStr;
+        int returnValue = 0;
+
+        // Reference to uaddr
+        // The value pointed to by uaddr is always a four byte integer
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        I32 actualVal = Runtime::memoryRef<I32>(memoryPtr, (Uptr) uaddrPtr);
+
+        if (futex_op == FUTEX_WAIT || futex_op == FUTEX_WAIT_PRIVATE) {
+            // Waiting needs to be handled using Faasm mechanisms so we ignore
+            opStr = futex_op == FUTEX_WAIT ? "FUTEX_WAIT" : "FUTEX_WAIT_PRIVATE";
+
+            // val here is the expected value, we need to make sure the address still has that value
+            returnValue = 0;
+        } else if (futex_op == FUTEX_WAKE || futex_op == FUTEX_WAKE_PRIVATE) {
+            // Waking also needs to be handled with Faasm mechanisms so we also ignore
+            opStr = futex_op == FUTEX_WAKE ? "FUTEX_WAKE" : "FUTEX_WAKE_PRIVATE";
+
+            // val here means "max waiters to wake"
+            returnValue = val;
+        } else {
+            logger->error("Unsupported futex syscall with operation {}", futex_op);
+            throw std::runtime_error("Unuspported futex syscall");
+        }
+
+        logger->debug("S - futex - {} {} {} {} {} {} (uaddr = {})", uaddrPtr, opStr, val, timeoutPtr, uaddr2Ptr, other,
+                actualVal);
+        return returnValue;
     }
 
     // ------------------------
@@ -65,57 +92,57 @@ namespace wasm {
     // Python-related dumping ground
     // --------------------------
 
-    DEFINE_INTRINSIC_FUNCTION(env, "getpriority", I32, getpriority , I32 a, I32 b) {
+    DEFINE_INTRINSIC_FUNCTION(env, "getpriority", I32, getpriority, I32 a, I32 b) {
         util::getLogger()->debug("S - getpriority - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "setpriority", I32, setpriority , I32 a, I32 b, I32 c) {
+    DEFINE_INTRINSIC_FUNCTION(env, "setpriority", I32, setpriority, I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - setpriority - {} {} {}", a, b, c);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "openpty", I32, openpty , I32 a, I32 b, I32 c, I32 d, I32 e) {
+    DEFINE_INTRINSIC_FUNCTION(env, "openpty", I32, openpty, I32 a, I32 b, I32 c, I32 d, I32 e) {
         util::getLogger()->debug("S - openpty - {} {} {} {} {}", a, b, c, d, e);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "forkpty", I32, forkpty , I32 a, I32 b, I32 c, I32 d) {
+    DEFINE_INTRINSIC_FUNCTION(env, "forkpty", I32, forkpty, I32 a, I32 b, I32 c, I32 d) {
         util::getLogger()->debug("S - forkpty - {} {} {} {}", a, b, c, d);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "lockf", I32, lockf , I32 a, I32 b, I64 c) {
+    DEFINE_INTRINSIC_FUNCTION(env, "lockf", I32, lockf, I32 a, I32 b, I64 c) {
         util::getLogger()->debug("S - lockf - {} {} {}", a, b, c);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "getresuid", I32, getresuid , I32 a, I32 b, I32 c) {
+    DEFINE_INTRINSIC_FUNCTION(env, "getresuid", I32, getresuid, I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - getresuid - {} {} {}", a, b, c);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "getresgid", I32, getresgid , I32 a, I32 b, I32 c) {
+    DEFINE_INTRINSIC_FUNCTION(env, "getresgid", I32, getresgid, I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - getresgid - {} {} {}", a, b, c);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "getrusage", I32, getrusage , I32 a, I32 b) {
+    DEFINE_INTRINSIC_FUNCTION(env, "getrusage", I32, getrusage, I32 a, I32 b) {
         util::getLogger()->debug("S - getrusage - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "getrlimit", I32, getrlimit , I32 a, I32 b) {
+    DEFINE_INTRINSIC_FUNCTION(env, "getrlimit", I32, getrlimit, I32 a, I32 b) {
         util::getLogger()->debug("S - getrlimit - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "setrlimit", I32, setrlimit , I32 a, I32 b) {
+    DEFINE_INTRINSIC_FUNCTION(env, "setrlimit", I32, setrlimit, I32 a, I32 b) {
         util::getLogger()->debug("S - setrlimit - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__copy_tls", I32, __copy_tls , I32 a) {
+    DEFINE_INTRINSIC_FUNCTION(env, "__copy_tls", I32, __copy_tls, I32 a) {
         util::getLogger()->debug("S - __copy_tls - {}", a);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }

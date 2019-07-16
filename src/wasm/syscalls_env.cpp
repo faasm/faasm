@@ -42,9 +42,16 @@ namespace wasm {
     }
 
     I32 s__sched_getaffinity(I32 pid, I32 cpuSetSize, I32 maskPtr) {
-        util::getLogger()->debug("S - sched_getaffinity - {} {} {}", pid, cpuSetSize, maskPtr);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - sched_getaffinity - {} {} {}", pid, cpuSetSize, maskPtr);
 
-        // Ignore
+        // Native pointer to buffer
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        U8 *hostBufPtr = &Runtime::memoryRef<U8>(memoryPtr, (Uptr) maskPtr);
+
+        // Fill in a mask for the required number of processors
+        std::fill(hostBufPtr, hostBufPtr + FAKE_N_PROCESSORS, 1);
+
         return 0;
     }
 
@@ -147,8 +154,8 @@ namespace wasm {
         util::getLogger()->debug("S - uname - {}", bufPtr);
 
         // Native pointer to buffer
-        Runtime::GCPointer<Runtime::Memory> &memoryRef = getExecutingModule()->defaultMemory;
-        U8 *hostBufPtr = &Runtime::memoryRef<U8>(memoryRef, (Uptr) bufPtr);
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        U8 *hostBufPtr = &Runtime::memoryRef<U8>(memoryPtr, (Uptr) bufPtr);
         
         // Fake system info
         // TODO - should probably give some valid stuff here in case we break something

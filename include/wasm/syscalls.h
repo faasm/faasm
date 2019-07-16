@@ -11,6 +11,7 @@
 #define FAKE_PID 23
 #define FAKE_UID 1000
 #define FAKE_GID 1000
+#define FAKE_N_PROCESSORS 4
 
 namespace wasm {
     void getBytesFromWasm(I32 dataPtr, I32 dataLen, uint8_t *buffer);

@@ -40,6 +40,13 @@ namespace tests {
         execFunction(msg);
     }
 
+    TEST_CASE("Test sysconf", "[worker]") {
+        cleanSystem();
+
+        message::Message msg = util::messageFactory("demo", "sysconf");
+        execFunction(msg);
+    }
+
     TEST_CASE("Test uname", "[worker]") {
         cleanSystem();
 
