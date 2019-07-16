@@ -143,10 +143,14 @@ namespace wasm {
         util::getLogger()->debug("S - _sysconf - {}", a);
 
         util::SystemConfig &conf = util::getSystemConfig();
-        if (conf.unsafeMode == "on") {
+        if(a == _SC_NPROCESSORS_ONLN) {
+            return sysconf(a);
+        }
+        else if (conf.unsafeMode == "on") {
+            // Allowing arbitrary access in unsafe mode
             return sysconf(a);
         } else {
-            throwException(Runtime::ExceptionTypes::calledAbort);
+            throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
         }
     }
 
