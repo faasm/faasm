@@ -5,6 +5,7 @@
 #include <proto/faasm.pb.h>
 #include <wasm/WasmModule.h>
 #include <util/config.h>
+#include <util/func.h>
 
 #include <fstream>
 #include <util/environment.h>
@@ -37,7 +38,9 @@ namespace runner {
 
         // Snapshot the module's memory
         const util::TimePoint snapshotTp = runner::startTimer();
-        module.snapshotFullMemory("wasm_empty");
+        const std::string funcStr = util::funcToString(call);
+        const std::string snapKey = util::snapshotKeyForFunction(funcStr);
+        module.snapshotFullMemory(snapKey.c_str());
         runner::logEndTimer("WASM snapshot", snapshotTp);
 
         logger->info("Running benchmark in WASM");
@@ -51,7 +54,7 @@ namespace runner {
 
             // Restore memory
             const util::TimePoint restoreTp = runner::startTimer();
-            module.restoreFullMemory("wasm_empty");
+            module.restoreFullMemory(snapKey.c_str());
             module.resetDynamicModules();
             runner::logEndTimer("WASM restore", restoreTp);
         }

@@ -67,13 +67,11 @@ namespace wasm {
 
         U32 mmapKey(std::shared_ptr<state::StateKeyValue> kv, U32 length);
 
-        void snapshotFullMemory(const char *key);
+        void snapshotFullMemory(const char* key);
 
-        void restoreFullMemory(const char *key);
+        void restoreFullMemory(const char* key);
 
         void resetDynamicModules();
-
-        void restoreMemory();
 
         int dynamicLoadModule(const std::string &path, Runtime::Context *context);
 

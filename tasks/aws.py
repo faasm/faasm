@@ -15,9 +15,6 @@ from tasks.config import get_faasm_config
 from tasks.env import FAASM_HOME, PROJ_ROOT, RUNTIME_S3_BUCKET, AWS_REGION, AWS_ACCOUNT_ID, STATE_S3_BUCKET
 from tasks.upload_util import upload_file_to_s3
 
-SDK_VERSION = "1.7.41"
-RUNTIME_VERSION = "master"
-
 INSTALL_PATH = join(FAASM_HOME, "lambda")
 
 FAASM_LAMBDA_BUILD_DIR = join(PROJ_ROOT, "lambda_faasm_build")
@@ -237,11 +234,11 @@ def invoke_lambda(ctx, lambda_name, async=False, payload=None, no_payload=False)
 
 
 @task
-def invoke_faasm_lambda(ctx, user, func, input_data="", extra_payload=None, async=False):
+def invoke_faasm_lambda(ctx, user, func, input="", extra_payload=None, async=False):
     payload = {
         "user": user,
         "function": func,
-        "input_data": input_data,
+        "input_data": input,
     }
 
     if extra_payload:
@@ -377,10 +374,13 @@ def _build_system_lambda(module_name):
 # -------------------------------------------------
 
 @task
-def deploy_wasm_lambda_func(ctx, user, func):
+def upload_wasm_lambda_func(ctx, user, func):
     # Upload the wasm to S3
     upload.upload(ctx, user, func, upload_s3=True)
 
+
+@task
+def codegen_wasm_lambda_func(ctx, user, func):
     # Invoke codegen
     print("Invoking codegen lambda function for {}/{}".format(user, func))
     invoke_lambda(ctx, "faasm-worker", payload={
@@ -388,6 +388,13 @@ def deploy_wasm_lambda_func(ctx, user, func):
         "function": func,
         "target": "func-codegen",
     })
+
+
+@task
+def deploy_wasm_lambda_func(ctx, user, func):
+    upload_wasm_lambda_func(ctx, user, func)
+
+    codegen_wasm_lambda_func(ctx, user, func)
 
 
 # -------------------------------------------------
@@ -562,7 +569,7 @@ def _build_cmake_project(build_dir, cmake_args, clean=False, target=None):
     cpp_sdk_build_cmd = [
         "cmake",
         "..",
-        "-DCMAKE_INSTALL_PREFIX={}".format(INSTALL_PATH),
+        # "-DCMAKE_INSTALL_PREFIX={}".format(INSTALL_PATH),
     ]
 
     cpp_sdk_build_cmd.extend(cmake_args)
@@ -595,7 +602,7 @@ def _add_sqs_event_source(client, func_name):
         uuid = response["EventSourceMappings"][0]["UUID"]
         print("Already have event source mapping, attempting to update UUID ", uuid)
 
-        response = client.update_event_source_mapping(
+        client.update_event_source_mapping(
             UUID=uuid,
             FunctionName=func_name,
             Enabled=True,

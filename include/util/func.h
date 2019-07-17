@@ -38,6 +38,8 @@ namespace util {
 
     std::string addIdxToFunction(const std::string &funcName, int idx);
 
+    std::string snapshotKeyForFunction(const std::string &funcName);
+
     std::string stripIdxFromFunction(const std::string &funcName);
 
     void setMessageIdx(message::Message &msg, int idx);

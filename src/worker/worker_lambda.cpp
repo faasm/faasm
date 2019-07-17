@@ -34,35 +34,35 @@ int main() {
         std::string target;
         if (d.HasMember("target")) {
             target = d["target"].GetString();
+
+            // Note, to ensure we have *exactly* the same underlying architecture
+            // when generating machine code, we must make sure we run codegen in the
+            // same function.
+            if (target == "func-codegen") {
+                message::Message msg = util::jsonToMessage(req.payload);
+                logger->info("Generating object code for function {}", util::funcToString(msg));
+
+                // Compile the function to object bytes
+                wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
+                functionLoader.compileToObjectFile(msg);
+
+                message = "Codegen finished";
+            } else if (target == "python-codegen") {
+                message::Message msg = util::jsonToMessage(req.payload);
+                logger->info("Generating object code for directory {}", PYTHON_RUNTIME_DIRECTORY);
+
+                // Run the codegen on the Python directory
+                wasm::codeGenForDir(PYTHON_RUNTIME_DIRECTORY);
+
+                message = "Python codegen finished";
+            } else {
+                logger->error("Unrecognised target: {}", target);
+                return invocation_response::failure(
+                        "Unrecognised worker request type",
+                        "text/plain"
+                );
+            }
         } else {
-            logger->error("Message must specify a target");
-            return invocation_response::failure(
-                    "Worker request must specify a type",
-                    "text/plain"
-            );
-        }
-
-        // Note, to ensure we have *exactly* the same underlying architecture
-        // when generating machine code, we must make sure we run codegen in the
-        // same function.
-        if (target == "func-codegen") {
-            message::Message msg = util::jsonToMessage(req.payload);
-            logger->info("Generating object code for function {}", util::funcToString(msg));
-
-            // Compile the function to object bytes
-            wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
-            functionLoader.compileToObjectFile(msg);
-
-            message = "Codegen finished";
-        } else if (target == "python-codegen") {
-            message::Message msg = util::jsonToMessage(req.payload);
-            logger->info("Generating object code for directory {}", PYTHON_RUNTIME_DIRECTORY);
-
-            // Run the codegen on the Python directory
-            wasm::codeGenForDir(PYTHON_RUNTIME_DIRECTORY);
-
-            message = "Python codegen finished";
-        } else if(target == "worker"){
             // Ensure scheduler set up and this node is in global set
             scheduler::Scheduler &sch = scheduler::getScheduler();
             sch.addNodeToGlobalSet();
@@ -91,12 +91,6 @@ int main() {
 
             logger->info("Returning Lambda response");
             message = "Worker finished";
-        } else {
-            logger->error("Unrecognised target: {}", target);
-            return invocation_response::failure(
-                    "Unrecognised worker request type",
-                    "text/plain"
-            );
         }
 
         return invocation_response::success(
