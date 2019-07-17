@@ -159,8 +159,10 @@ namespace tests {
         module.bindToFunction(call);
 
         const std::string funcStr = util::funcToString(call);
-        
+        const std::string snapKey = util::snapshotKeyForFunction(funcStr);
+
         Uptr initialPages = Runtime::getMemoryNumPages(module.defaultMemory);
+        module.snapshotFullMemory(snapKey.c_str());
 
         // Run it and check memory has grown
         module.execute(call);
@@ -168,8 +170,8 @@ namespace tests {
         REQUIRE(pagesAfter > initialPages);
 
         // Reset memory and check now equal
-        const std::string snapKey = util::snapshotKeyForFunction(funcStr);
         module.restoreFullMemory(snapKey.c_str());
+
         Uptr pagesRestored = Runtime::getMemoryNumPages(module.defaultMemory);
         REQUIRE(pagesRestored == initialPages);
     }
