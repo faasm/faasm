@@ -26,7 +26,7 @@ services:
     env_file:
       - docker-compose.env
     volumes:
-      - ./wasm:/usr/share/faasm/wasm
+      - /usr/share/faasm/wasm:/usr/share/faasm/wasm
     networks:
       - faasm
     privileged: yes
@@ -35,8 +35,6 @@ services:
     image: faasm/edge:latest
     ports:
       - "8001:8001"
-    volumes:
-      - ./wasm:/usr/share/faasm/wasm
     depends_on:
       - redis-queue
       - redis-state
@@ -51,7 +49,7 @@ services:
     ports:
       - "8002:8002"
     volumes:
-      - ./wasm:/usr/share/faasm/wasm
+      - /usr/share/faasm/wasm:/usr/share/faasm/wasm
     depends_on:
       - redis-queue
       - redis-state

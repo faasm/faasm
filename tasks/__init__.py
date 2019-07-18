@@ -63,9 +63,10 @@ from tasks.docker import (
     push_base
 )
 from tasks.docker_compose import (
-    start_all,
-    stop_all,
-    restart_all
+    docker_clear_queue,
+    docker_start_all,
+    docker_stop_all,
+    docker_restart_all
 )
 
 from tasks.sgd import (
