@@ -2,6 +2,7 @@
 
 set -e
 
+mkdir -p /faasm/ci-build
 pushd /faasm/ci-build
 
 echo "Configure out of source build"
