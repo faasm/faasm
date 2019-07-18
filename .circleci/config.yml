@@ -24,7 +24,7 @@ jobs:
           command: ./bin/ci_setup.sh
       - run:
           name: "Execute tests"
-          command: /faasm/build/bin/tests
+          command: /faasm/ci-build/bin/tests
 
 workflows:
   version: 2
