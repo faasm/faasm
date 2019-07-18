@@ -34,5 +34,5 @@ workflows:
           filters:
             branches:
               only:
-                - circle2
+                - circle3
                 - master
