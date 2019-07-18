@@ -76,7 +76,8 @@ namespace worker {
 
     void WorkerThread::finishCall(message::Message &call, const std::string &errorMsg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->info("Finished {}", util::funcToString(call));
+        const std::string funcStr = util::funcToString(call);
+        logger->info("Finished {}", funcStr);
 
         // Decrement execution count
         scheduler.decrementExecutingCount();
@@ -87,12 +88,13 @@ namespace worker {
         }
 
         // Set result
-        logger->debug("Setting function result for {}", util::funcToString(call));
+        logger->debug("Setting function result for {}", funcStr);
         globalBus.setFunctionResult(call, isSuccess);
 
         // Restore the module memory after the execution
-        logger->debug("Restoring memory for {}", util::funcToString(call));
-        module->restoreMemory();
+        logger->debug("Restoring memory for {}", funcStr);
+        const std::string snapshotKey = util::snapshotKeyForFunction(funcStr);
+        module->restoreFullMemory(snapshotKey.c_str());
     }
 
     void WorkerThread::bindToFunction(const message::Message &msg) {
@@ -169,10 +171,15 @@ namespace worker {
     const std::string WorkerThread::executeCall(message::Message &call) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        logger->info("WorkerThread executing {}", util::funcToString(call));
+        const std::string funcStr = util::funcToString(call);
+        logger->info("WorkerThread executing {}", funcStr);
 
         // Increment the execution count
         scheduler.incrementExecutingCount();
+
+        // Snapshot the memory
+        const std::string snapKey = util::snapshotKeyForFunction(funcStr);
+        module->snapshotFullMemory(snapKey.c_str());
 
         // Create and execute the module
         try {

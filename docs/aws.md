@@ -65,6 +65,10 @@ ansible-playbook aws_teardown.yml
 
 ## Functions
 
+### AWS Lambda CPP runtime
+
+Before deploying you must have the [Lambda CPP runtime](https://github.com/awslabs/aws-lambda-cpp) installed.
+
 ### Faasm Lambda functions
 
 To set up the requried Lambda functions for running WebAssembly, you can run the following task which will
@@ -72,6 +76,12 @@ build, upload and configure the relevant AWS Lambda functions needed to run WebA
 
 ```
 inv deploy-faasm-lambda
+```
+
+To delete them before or after, you can run:
+
+```
+inv delete-faasm-lambda
 ```
 
 ### SGD

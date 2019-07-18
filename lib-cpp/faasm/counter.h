@@ -7,6 +7,8 @@ namespace faasm {
     int getCounter(const char *counterKey, bool async);
 
     void incrementCounter(const char *counterKey, bool async);
+
+    void incrementCounter(const char *counterKey, int increment, bool globalLock);
 }
 
 #endif

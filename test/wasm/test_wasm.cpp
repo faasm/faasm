@@ -1,6 +1,7 @@
 #include <catch/catch.hpp>
 #include <wasm/WasmModule.h>
 #include <util/bytes.h>
+#include <util/func.h>
 
 namespace tests {
 
@@ -152,12 +153,16 @@ namespace tests {
         message::Message call;
         call.set_user("demo");
         call.set_function("heap");
-
+        
         wasm::WasmModule module;
         module.initialise();
         module.bindToFunction(call);
 
+        const std::string funcStr = util::funcToString(call);
+        const std::string snapKey = util::snapshotKeyForFunction(funcStr);
+
         Uptr initialPages = Runtime::getMemoryNumPages(module.defaultMemory);
+        module.snapshotFullMemory(snapKey.c_str());
 
         // Run it and check memory has grown
         module.execute(call);
@@ -165,7 +170,8 @@ namespace tests {
         REQUIRE(pagesAfter > initialPages);
 
         // Reset memory and check now equal
-        module.restoreMemory();
+        module.restoreFullMemory(snapKey.c_str());
+
         Uptr pagesRestored = Runtime::getMemoryNumPages(module.defaultMemory);
         REQUIRE(pagesRestored == initialPages);
     }

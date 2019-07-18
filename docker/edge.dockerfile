@@ -15,6 +15,7 @@ WORKDIR /tmp/pistache/build
 RUN cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..
 RUN make
 RUN sudo make install
+RUN ldconfig
 
 # Build the edge binary
 COPY . /usr/local/code/faasm

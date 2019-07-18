@@ -60,7 +60,6 @@ namespace wasm {
     }
 
     void LocalFunctionLoader::uploadPythonFunction(message::Message & msg) {
-        // msg input data is actually the file
         const std::string &fileBody = msg.inputdata();
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 

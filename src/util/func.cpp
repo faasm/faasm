@@ -65,10 +65,12 @@ namespace util {
 
     std::string getFunctionKey(const message::Message &msg) {
         std::string key = "wasm";
+        const std::string funcName = util::stripIdxFromFunction(msg.function());
+        
         key += "/";
         key += msg.user();
         key += "/";
-        key += msg.function();
+        key += funcName;
         key += "/";
         key += funcFile;
 
@@ -77,10 +79,12 @@ namespace util {
 
     std::string getFunctionObjectKey(const message::Message &msg) {
         std::string key = "wasm";
+        const std::string funcName = util::stripIdxFromFunction(msg.function());
+
         key += "/";
         key += msg.user();
         key += "/";
-        key += msg.function();
+        key += funcName;
         key += "/";
         key += objFile;
 
@@ -182,6 +186,11 @@ namespace util {
         } else {
             return funcName;
         }
+    }
+
+    std::string snapshotKeyForFunction(const std::string &funcName) {
+        std::string key = "mem_" + funcName;
+        return key;
     }
 
     std::string stripIdxFromFunction(const std::string &funcName) {

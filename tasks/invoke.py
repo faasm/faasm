@@ -2,10 +2,10 @@ import requests
 from invoke import task
 
 
-def _do_invoke(user, func, host, func_type):
+def _do_invoke(user, func, host, func_type, input=None):
     url = "http://{}:8001/{}/{}/{}".format(host, func_type, user, func)
 
-    response = requests.post(url)
+    response = requests.post(url, data=input)
 
     if response.status_code >= 400:
         print("Request failed: status = {}".format(response.status_code))
@@ -16,8 +16,8 @@ def _do_invoke(user, func, host, func_type):
 
 
 @task
-def invoke(ctx, user, func, host="127.0.0.1"):
-    _do_invoke(user, func, host, "f")
+def invoke(ctx, user, func, host="127.0.0.1", input=None):
+    _do_invoke(user, func, host, "f", input=input)
 
 
 @task

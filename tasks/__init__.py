@@ -1,4 +1,5 @@
 from tasks.aws import (
+    codegen_wasm_lambda_func,
     lambda_clear_queue,
     lambda_concurrency,
     lambda_worker_count,
@@ -16,6 +17,7 @@ from tasks.aws import (
     purge_sqs,
     invoke_lambda_worker,
     prepare_lambda_workers,
+    upload_wasm_lambda_func
 )
 from tasks.codegen import (
     run_codegen,
@@ -61,9 +63,10 @@ from tasks.docker import (
     push_base
 )
 from tasks.docker_compose import (
-    start_all,
-    stop_all,
-    restart_all
+    docker_clear_queue,
+    docker_start_all,
+    docker_stop_all,
+    docker_restart_all
 )
 
 from tasks.sgd import (

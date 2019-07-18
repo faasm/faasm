@@ -431,6 +431,22 @@ namespace wasm {
         // Do the restore
         U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
         snapshot->restore(baseAddr);
+
+        if (initialMemoryPages == 0) {
+            throw std::runtime_error("Initial memory pages not initialised");
+        }
+
+        // Reset shared memory variables
+        sharedMemKVs.clear();
+        sharedMemWasmPtrs.clear();
+        sharedMemHostPtrs.clear();
+
+        // Unmap shared memory regions
+//        for (auto const &p : sharedMemWasmPtrs) {
+//            state::StateKeyValue *kv = sharedMemKVs[p.first];
+//            void* hostPtr = sharedMemHostPtrs[p.first];
+//            kv->unmapSharedMemory(hostPtr);
+//        }
     }
 
     void WasmModule::resetDynamicModules() {
@@ -476,27 +492,6 @@ namespace wasm {
 
             Runtime::growMemory(this->defaultMemory, growSize);
         }
-    }
-
-    void WasmModule::restoreMemory() {
-        if (initialMemoryPages == 0) {
-            throw std::runtime_error("Initial memory pages not initialised");
-        }
-
-        // Shrink back to original size
-        this->resizeMemory(initialMemoryPages);
-
-        // Reset shared memory variables
-        sharedMemKVs.clear();
-        sharedMemWasmPtrs.clear();
-        sharedMemHostPtrs.clear();
-
-        // Unmap shared memory regions
-//        for (auto const &p : sharedMemWasmPtrs) {
-//            state::StateKeyValue *kv = sharedMemKVs[p.first];
-//            void* hostPtr = sharedMemHostPtrs[p.first];
-//            kv->unmapSharedMemory(hostPtr);
-//        }
     }
 
     int WasmModule::getInitialMemoryPages() {
