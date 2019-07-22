@@ -19,6 +19,9 @@ from tasks.aws import (
     prepare_lambda_workers,
     upload_wasm_lambda_func
 )
+from tasks.benchmark import (
+    runtime_bench,
+)
 from tasks.codegen import (
     run_codegen,
     run_wasm_codegen,

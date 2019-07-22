@@ -1,5 +1,18 @@
 # Benchmarks
 
+## Runtimes
+
+For efficiency measurements we want to assess the time taken and resources consumed by several different runtimes.
+To do this we need to measure the time taken, CPU cycles, peak memory and disk I/O for running a simple function
+(with a cold start).
+
+We'll measure these for a vanilla Docker container, Firecracker, Lucet and Faasm. Lucet and Faasm can only run
+WebAssembly, but Faasm runs code generation ahead of time, therefore Lucet is at a disadvantage from JITing.
+Firecracker and Docker containers can just run an unmodified native binary.
+
+We need to avoid the start-up time of any underlying runtime, so in each case we are aiming to instantiate the relevant
+sandbox, load the function, then execute it.
+
 ## Polybench/C
 
 To test pure computation against the native environment we can use the
