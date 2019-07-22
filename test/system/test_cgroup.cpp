@@ -4,7 +4,7 @@
 #include <util/files.h>
 #include <util/config.h>
 
-#include <worker/CGroup.h>
+#include <system/CGroup.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
@@ -12,7 +12,7 @@
 #include <syscall.h>
 #include <sys/types.h>
 
-using namespace worker;
+using namespace isolation;
 
 namespace tests {
     TEST_CASE("Test cgroup on/ off", "[worker]") {

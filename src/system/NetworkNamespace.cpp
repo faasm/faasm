@@ -10,7 +10,7 @@
 #include <fcntl.h>
 
 
-namespace worker {
+namespace isolation {
     NetworkNamespace::NetworkNamespace(const std::string &name) : name(name) {
         // Get which mode we're operating in
         util::SystemConfig &conf = util::getSystemConfig();

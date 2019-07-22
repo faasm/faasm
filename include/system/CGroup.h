@@ -3,7 +3,7 @@
 #include <string>
 #define BASE_CGROUP_NAME "faasm"
 
-namespace worker {
+namespace isolation {
     enum CgroupMode {
         cg_off, cg_on
     };

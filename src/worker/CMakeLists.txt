@@ -6,15 +6,13 @@ include_directories(
 file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/worker/*.h")
 
 set(LIB_FILES
-        CGroup.cpp
-        NetworkNamespace.cpp
         WorkerThread.cpp
         WorkerThreadPool.cpp
         ${HEADERS}
         )
 
 add_library(worker_lib "${LIB_FILES}")
-target_link_libraries(worker_lib wasm scheduler)
+target_link_libraries(worker_lib wasm scheduler system)
 
 # Bare metal worker
 add_executable(worker worker_main.cpp)

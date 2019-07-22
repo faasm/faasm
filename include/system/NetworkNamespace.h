@@ -3,7 +3,7 @@
 #include <string>
 #define BASE_NETNS_NAME "faasmns"
 
-namespace worker {
+namespace isolation {
     enum NetworkIsolationMode {
         ns_off, ns_on
     };

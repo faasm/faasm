@@ -1,8 +1,8 @@
 #include <wasm/WasmModule.h>
 #include <util/config.h>
 #include <runner/timing.h>
-#include <worker/NetworkNamespace.h>
-#include <worker/CGroup.h>
+#include <system/NetworkNamespace.h>
+#include <system/CGroup.h>
 
 #define USER "demo"
 #define FUNCTION "noop"
@@ -25,11 +25,11 @@ int main(int argc, char *argv[]) {
 
     // Set up network namespace
     std::string netnsName = std::string(BASE_NETNS_NAME) + "1";
-    worker::NetworkNamespace ns(netnsName);
+    isolation::NetworkNamespace ns(netnsName);
     ns.addCurrentThread();
 
     // Add this thread to the cgroup
-    worker::CGroup cgroup(BASE_CGROUP_NAME);
+    isolation::CGroup cgroup(BASE_CGROUP_NAME);
     cgroup.addCurrentThread();
 
     // Initialise wasm module

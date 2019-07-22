@@ -28,4 +28,4 @@ add_executable(poly_bench poly_bench.cpp)
 target_link_libraries(poly_bench bench)
 
 add_executable(runtime_bench runtime_bench.cpp)
-target_link_libraries(runtime_bench bench worker_lib)
+target_link_libraries(runtime_bench wasm system)
