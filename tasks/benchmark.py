@@ -11,7 +11,7 @@ N_ITERATIONS = 1000
 BENCHMARKS = {
     "faasm": {
         "cwd": "/usr/local/code/faasm",
-        "cmd": "./cmake-build-debug/bin/func_runner demo echo",
+        "cmd": "./cmake-build-release/bin/runtime_bench",
     }
 }
 
@@ -22,7 +22,39 @@ TIME_LABELS = {
 
 
 def _do_perf(bench_name, bench_details, out_csv):
-    pass
+    # Build the command with output to temp file
+    out_file = NamedTemporaryFile()
+    cmd = [
+        "perf", "stat", "-x, -e cycles,instructions -a",
+        "-o", out_file.name,
+        bench_details["cmd"],
+    ]
+
+    cmd_str = " ".join(cmd)
+    print(cmd_str)
+
+    # Execute the command
+    check_output(
+        cmd_str,
+        cwd=bench_details["cwd"],
+        shell=True,
+    )
+
+    # Read in input
+    with open(out_file.name, "r") as fh:
+        for perf_line in fh:
+            perf_line = perf_line.strip()
+            if not perf_line or perf_line.startswith("#"):
+                continue
+
+            parts = perf_line.split(",")
+            metric = parts[2]
+            value = parts[0]
+
+            if metric == "cycles":
+                out_csv.write("{},{},{}\n".format(bench_name, "cpu_cycles", value))
+
+    out_csv.close()
 
 
 def _do_time(bench_name, bench_details, out_csv):
