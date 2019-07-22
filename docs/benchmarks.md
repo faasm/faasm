@@ -6,9 +6,8 @@ For efficiency measurements we want to assess the time taken and resources consu
 To do this we need to measure the time taken, CPU cycles, peak memory and disk I/O for running a simple function
 (with a cold start).
 
-We'll measure these for a vanilla Docker container, Firecracker, Lucet and Faasm. Lucet and Faasm can only run
-WebAssembly, but Faasm runs code generation ahead of time, therefore Lucet is at a disadvantage from JITing.
-Firecracker and Docker containers can just run an unmodified native binary.
+We'll measure these for a vanilla Docker container and Faasm. Docker containers can just run an unmodified native
+binaries and Faasm will run its generated shared object.
 
 We need to avoid the start-up time of any underlying runtime, so in each case we are aiming to instantiate the relevant
 sandbox, load the function, then execute it repeatedly.
@@ -27,11 +26,30 @@ You must also have network namespaces set up:
 sudo ./bin/netns.sh
 ```
 
+For Docker you need to build the `faasm/noop` image which can be done with:
+
+```
+inv build-noop
+```
+
 ### Running
 
 ```
 inv runtime-bench
 ```
+
+### Other runtimes
+
+It would be nice to benchmark these similar overheads against Firecracker, however I haven't been able to script it
+up yet. It can be set up by running:
+
+```
+cd ansible
+ansible-playbook firecracker.yml --ask-become-pass
+```
+
+Lucet would also be interesting but it doesn't currently provide a
+[full isolation environment](https://github.com/fastly/lucet/security/policy), therefore is not really comparable.
 
 ## Polybench/C
 

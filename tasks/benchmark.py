@@ -1,17 +1,21 @@
-from pprint import pprint
 from subprocess import check_output
 from tempfile import NamedTemporaryFile
 
 from invoke import task
 
-from tasks.env import PROJ_ROOT, WASM_DIR
+from tasks.env import PROJ_ROOT
 
 N_ITERATIONS = 1000
 
+# Absolute path required for bash
+TIME_BINARY = "/usr/bin/time"
+
 BENCHMARKS = {
     "faasm": {
-        "cwd": "/usr/local/code/faasm",
         "cmd": "./cmake-build-release/bin/runtime_bench",
+    },
+    "docker": {
+        "cmd": "./bin/docker_noop.sh",
     }
 }
 
@@ -36,7 +40,7 @@ def _do_perf(bench_name, bench_details, out_csv):
     # Execute the command
     check_output(
         cmd_str,
-        cwd=bench_details["cwd"],
+        cwd=PROJ_ROOT,
         shell=True,
     )
 
@@ -54,14 +58,14 @@ def _do_perf(bench_name, bench_details, out_csv):
             if metric == "cycles":
                 out_csv.write("{},{},{}\n".format(bench_name, "cpu_cycles", value))
 
-    out_csv.close()
+    out_file.close()
 
 
 def _do_time(bench_name, bench_details, out_csv):
     # Build the command with output to temp file
     out_file = NamedTemporaryFile()
     cmd = [
-        "time",
+        TIME_BINARY,
         "-v",
         "-o", out_file.name,
         bench_details["cmd"],
@@ -73,7 +77,7 @@ def _do_time(bench_name, bench_details, out_csv):
     # Execute the command
     check_output(
         cmd_str,
-        cwd=bench_details["cwd"],
+        cwd=PROJ_ROOT,
         shell=True,
     )
 

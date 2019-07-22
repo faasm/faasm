@@ -5,7 +5,7 @@
 #include <worker/CGroup.h>
 
 #define USER "demo"
-#define FUNCTION "echo"
+#define FUNCTION "noop"
 
 /*
  * This file is used only for benchmarking the core execution and sandboxing.

@@ -109,6 +109,16 @@ def push_worker(context):
 
 
 @task
+def build_noop(context):
+    call("docker build -t faasm/noop  -f docker/noop.dockerfile .", shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def push_noop(context):
+    call("docker push faasm/noop", shell=True, cwd=PROJ_ROOT)
+
+
+@task
 def build_edge(context):
     call("docker build -t faasm/edge -f docker/edge.dockerfile .", shell=True, cwd=PROJ_ROOT)
 
