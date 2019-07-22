@@ -6,6 +6,8 @@ from invoke import task
 
 from tasks.env import PROJ_ROOT, WASM_DIR
 
+N_ITERATIONS = 1000
+
 BENCHMARKS = {
     "faasm": {
         "cwd": "/usr/local/code/faasm",
@@ -13,8 +15,13 @@ BENCHMARKS = {
     }
 }
 
+TIME_LABELS = {
+    "Elapsed (wall clock) time (h:mm:ss or m:ss)": "elapsed",
+    "Maximum resident set size (kbytes)": "max_resident_kb",
+}
 
-def _do_perf(bench_details):
+
+def _do_perf(bench_name, bench_details, out_csv):
     pass
 
 
@@ -57,15 +64,24 @@ def _do_time(bench_name, bench_details, out_csv):
 
             time_stats[label.strip()] = value.strip()
 
+    # Check return code
+    if time_stats["Exit status"] != "0":
+        raise RuntimeError("Time command failed. Time stats: {}".format(time_stats))
 
-    pprint(time_stats)
+    # Map time labels to output labels
+    for time_label, output_label in TIME_LABELS.items():
+        value = time_stats[time_label]
+        out_csv.write("{},{},{}\n".format(bench_name, output_label, value))
 
     out_file.close()
+
 
 @task
 def runtime_bench(ctx):
     csv_path = "/tmp/runtime-bench.csv"
     csv_out = open(csv_path, "w")
+
+    csv_out.write("Runtime,Measure,Value\n")
 
     for bench_name, bench_details in BENCHMARKS.items():
         print("Running bench: {}".format(bench_name))

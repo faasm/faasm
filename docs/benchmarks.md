@@ -11,7 +11,27 @@ WebAssembly, but Faasm runs code generation ahead of time, therefore Lucet is at
 Firecracker and Docker containers can just run an unmodified native binary.
 
 We need to avoid the start-up time of any underlying runtime, so in each case we are aiming to instantiate the relevant
-sandbox, load the function, then execute it.
+sandbox, load the function, then execute it repeatedly.
+
+### Set up
+
+You must have generated the object files for Faasm up-front:
+
+```
+inv run-wasm-codegen
+```
+
+You must also have network namespaces set up:
+
+```
+sudo ./bin/netns.sh
+```
+
+### Running
+
+```
+inv runtime-bench
+```
 
 ## Polybench/C
 

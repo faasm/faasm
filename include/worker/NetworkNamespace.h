@@ -1,10 +1,9 @@
 #pragma once
 
 #include <string>
+#define BASE_NETNS_NAME "faasmns"
 
 namespace worker {
-    const std::string BASE_NETNS_NAME = "faasmns";
-
     enum NetworkIsolationMode {
         ns_off, ns_on
     };
