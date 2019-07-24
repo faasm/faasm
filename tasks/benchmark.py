@@ -2,14 +2,14 @@ from decimal import Decimal
 from subprocess import call
 from tempfile import NamedTemporaryFile
 
-import pandas as pd
 from invoke import task
 
 from tasks.env import PROJ_ROOT
 
 # Absolute path to time required for bash
 TIME_BINARY = "/usr/bin/time"
-OUTPUT_FILE = "/tmp/runtime-bench.csv"
+SPEED_OUTPUT_FILE = "/tmp/runtime-bench-speed.csv"
+RESOURCE_OUTPUT_FILE = "/tmp/runtime-bench-resource.csv"
 
 BENCHMARKS = {
     "faasm": {
@@ -31,11 +31,12 @@ TIME_LABELS = {
 
 class RuntimeBenchRunner:
 
-    def __init__(self):
+    def __init__(self, output_file):
         self.n_workers = 0
         self.n_iterations = 0
+        self.do_sleep = False
 
-        self.csv_out = open(OUTPUT_FILE, "w")
+        self.csv_out = open(output_file, "w")
         self.csv_out.write(
             "Workers,Iterations,Runtime,Measure,Value,ValuePerIteration,ValuePerWorker,ValuePerIterationPerWorker\n")
 
@@ -57,10 +58,19 @@ class RuntimeBenchRunner:
             value_per_iteration_per_worker
         ))
 
-    def do_run(self, n_workers, n_iterations):
+    def do_sleep_run(self, n_workers):
         self.n_workers = n_workers
-        self.n_iterations = n_iterations
+        self.n_iterations = 1
+        self.do_sleep = True
+        self._do_run()
 
+    def do_speed_run(self, n_iterations):
+        self.n_workers = 1
+        self.n_iterations = n_iterations
+        self.do_sleep = False
+        self._do_run()
+
+    def _do_run(self):
         for runtime_name, bench_details in BENCHMARKS.items():
             print("\n------ {} ------\n".format(runtime_name))
 
@@ -77,6 +87,7 @@ class RuntimeBenchRunner:
             bench_details["cmd"],
             str(self.n_workers),
             str(self.n_iterations),
+            "1" if self.do_sleep else "0",
         ]
 
         cmd_str = " ".join(cmd)
@@ -117,6 +128,7 @@ class RuntimeBenchRunner:
             bench_details["cmd"],
             str(self.n_workers),
             str(self.n_iterations),
+            "1" if self.do_sleep else "0",
         ]
 
         cmd_str = " ".join(cmd)
@@ -166,16 +178,29 @@ class RuntimeBenchRunner:
 
 
 @task
-def runtime_bench(ctx):
-    n_workers = [1, 2, 3, 4, 5, 6, 7]
-    n_iterations = 30
-    repeats = 2
+def runtime_bench_speed(ctx):
+    n_iterations = 20
+    repeats = 4
 
-    runner = RuntimeBenchRunner()
+    runner = RuntimeBenchRunner(SPEED_OUTPUT_FILE)
 
     # Repeat runs, once for each worker
-    for w in n_workers:
+    for i in range(0, repeats):
+        runner.do_speed_run(n_iterations)
+
+    runner.done()
+
+
+@task
+def runtime_bench_mem(ctx):
+    n_workers = [1, 2, 3, 4, 5]
+    repeats = 2
+
+    runner = RuntimeBenchRunner(RESOURCE_OUTPUT_FILE)
+
+    # Repeat runs, once for each worker
+    for n_worker in n_workers:
         for i in range(0, repeats):
-            runner.do_run(w, n_iterations)
+            runner.do_sleep_run(n_worker)
 
     runner.done()

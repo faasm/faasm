@@ -223,4 +223,24 @@ namespace wasm {
         // TODO - should we obscure this somehow?
         return getrandom(hostBuf, bufLen, flags);
     }
+
+    /**
+     * We just need a way to sleep when benchmarking the runtime.
+     */
+    I32 s__nanosleep(I32 reqPtr, I32 remPtr) {
+        util::getLogger()->debug("S - nanosleep - {} {}", reqPtr, remPtr);
+
+        util::SystemConfig &conf = util::getSystemConfig();
+        if(conf.unsafeMode == "on") {
+            auto request = &Runtime::memoryRef<wasm_timespec>(getExecutingModule()->defaultMemory, (Uptr) reqPtr);
+
+            // Round up
+            sleep(request->tv_sec + 1);
+        } else {
+            // Bomb out if not in unsafe mode
+            throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+        }
+
+        return 0;
+    }
 }

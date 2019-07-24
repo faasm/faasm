@@ -5,14 +5,15 @@
 #include <system/CGroup.h>
 
 #define USER "demo"
-#define FUNCTION "noop"
+#define NOOP_FUNCTION "noop"
+#define SLEEP_FUNCTION "sleep"
 
 /*
  * This file is used only for benchmarking the core execution and sandboxing.
  * Communication with the rest of the system will be benchmarked elsewhere.
  */
 
-void _doNoop(int nIterations) {
+void _doNoop(int nIterations, bool addSleep) {
     for (int i = 0; i < nIterations; i++) {
         // Set up network namespace
         std::string netnsName = std::string(BASE_NETNS_NAME) + "1";
@@ -29,7 +30,13 @@ void _doNoop(int nIterations) {
 
         message::Message m;
         m.set_user(USER);
-        m.set_function(FUNCTION);
+
+        if(addSleep){
+            m.set_function(SLEEP_FUNCTION);
+        } else {
+            m.set_function(NOOP_FUNCTION);
+        }
+
         module.bindToFunction(m);
 
         // Execute the function
@@ -41,19 +48,20 @@ int main(int argc, char *argv[]) {
     util::initLogging();
     const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
-    if (argc < 3) {
-        logger->error("Must provide number of workers and iterations");
+    if (argc < 4) {
+        logger->error("Must provide number of workers, iterations and flag whether to sleep");
         return 1;
     }
 
     // Get args
     int nWorkers = std::stoi(argv[1]);
     int nIterations = std::stoi(argv[2]);
+    bool addSleep = std::stoi(argv[3]) > 0;
 
     logger->info("Running Faasm noop with {} workers and {} iterations", nWorkers, nIterations);
 
     util::SystemConfig &conf = util::getSystemConfig();
-    conf.unsafeMode = "off";
+    conf.unsafeMode = "on";
     conf.cgroupMode = "on";
 
     // TODO - switch this on
@@ -62,9 +70,14 @@ int main(int argc, char *argv[]) {
     // Spawn worker threads
     std::vector<std::thread> threads(nWorkers);
     for (int w = 0; w < nWorkers; w++) {
-        logger->info("Spawning Faasm thread {}", w);
-        threads.emplace_back(std::thread([nIterations] {
-            _doNoop(nIterations);
+        if(addSleep) {
+            logger->info("Spawning Faasm thread {} with sleep", w);
+        } else {
+            logger->info("Spawning Faasm thread {}", w);
+        }
+
+        threads.emplace_back(std::thread([nIterations, addSleep] {
+            _doNoop(nIterations, addSleep);
         }));
     }
 
