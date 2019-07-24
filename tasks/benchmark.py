@@ -1,6 +1,8 @@
 from decimal import Decimal
 from subprocess import check_output
 from tempfile import NamedTemporaryFile
+import pandas as pd
+import sys
 
 from invoke import task
 
@@ -8,6 +10,7 @@ from tasks.env import PROJ_ROOT
 
 # Absolute path required for bash
 TIME_BINARY = "/usr/bin/time"
+OUTPUT_FILE = "/tmp/runtime-bench.csv"
 
 BENCHMARKS = {
     "faasm": {
@@ -129,8 +132,7 @@ def _do_time(bench_name, bench_details, out_csv, n_workers, n_iterations, repeat
 
 @task
 def runtime_bench(ctx):
-    csv_path = "/tmp/runtime-bench.csv"
-    csv_out = open(csv_path, "w")
+    csv_out = open(OUTPUT_FILE, "w")
 
     csv_out.write("Run,Runtime,Measure,Value\n")
 
@@ -147,3 +149,40 @@ def runtime_bench(ctx):
             _do_perf(bench_name, bench_details, csv_out, n_workers, n_iterations, i)
 
     csv_out.close()
+
+
+@task
+def analyse_runtime_bench(ctx):
+    bench_file = "/tmp/runtime-bench.csv"
+
+    data = pd.read_csv(bench_file)
+
+    print("----- Results -----")
+    print("| {:<10} | {:<20} | {:<15} | {:<13} | {:<9} |".format("Runtime", "Measure", "Value", "Stddev", "vs. Faasm"))
+
+    _extract_stat(data, "cpu_cycles")
+    _extract_stat(data, "elapsed_seconds")
+    _extract_stat(data, "max_resident_kb")
+
+
+def _extract_stat(full_data, measure_name):
+    filtered = full_data[full_data["Measure"] == measure_name]
+    if filtered.empty:
+        raise RuntimeError("No data for {}".format(measure_name))
+
+    runtimes = filtered["Runtime"].unique()
+
+    grouped = filtered.groupby(["Runtime"])
+    median = grouped.median()
+    stddev = grouped.std()
+
+    faasm_med = median.loc["faasm"]["Value"]
+
+    for runtime in runtimes:
+        this_med = median.loc[runtime]["Value"]
+        this_std = stddev.loc[runtime]["Value"]
+        this_overhead = int(((this_med - faasm_med) / faasm_med) * 100)
+
+        # Print data
+        print("| {:<10} | {:<20} | {:<15.4f} | {:<13.4f} | {:>8}% |"
+              .format(runtime, measure_name, this_med, this_std, this_overhead))

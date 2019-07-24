@@ -7,6 +7,7 @@ dulwich
 genshi
 invoke
 numpy
+pandas
 performance
 PyOpenSSL
 requests

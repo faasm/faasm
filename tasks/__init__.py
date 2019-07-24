@@ -20,6 +20,7 @@ from tasks.aws import (
     upload_wasm_lambda_func
 )
 from tasks.benchmark import (
+    analyse_runtime_bench,
     runtime_bench,
 )
 from tasks.codegen import (
