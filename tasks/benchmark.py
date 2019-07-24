@@ -36,13 +36,26 @@ class RuntimeBenchRunner:
         self.n_iterations = 0
 
         self.csv_out = open(OUTPUT_FILE, "w")
-        self.csv_out.write("Workers,Iterations,Runtime,Measure,Value\n")
+        self.csv_out.write(
+            "Workers,Iterations,Runtime,Measure,Value,ValuePerIteration,ValuePerWorker,ValuePerIterationPerWorker\n")
 
     def done(self):
         self.csv_out.close()
 
     def _write_stat(self, bench_name, metric, value):
-        self.csv_out.write("{},{},{},{},{}\n".format(self.n_workers, self.n_iterations, bench_name, metric, value))
+        if isinstance(value, str):
+            value = Decimal(value)
+
+        value_per_iteration = value / self.n_iterations
+        value_per_worker = value / self.n_workers
+        value_per_iteration_per_worker = value_per_iteration / self.n_workers
+
+        self.csv_out.write("{},{},{},{},{},{},{},{}\n".format(
+            self.n_workers, self.n_iterations,
+            bench_name, metric, value,
+            value_per_iteration, value_per_worker,
+            value_per_iteration_per_worker
+        ))
 
     def do_run(self, n_workers, n_iterations):
         self.n_workers = n_workers
@@ -154,14 +167,16 @@ class RuntimeBenchRunner:
 
 @task
 def runtime_bench(ctx):
-    n_workers = 2
-    n_iterations = 5
-    repeats = 3
+    n_workers = [1, 2, 3, 4, 5, 6, 7]
+    n_iterations = 30
+    repeats = 2
 
     runner = RuntimeBenchRunner()
 
-    for i in range(0, repeats):
-        runner.do_run(n_workers, n_iterations)
+    # Repeat runs, once for each worker
+    for w in n_workers:
+        for i in range(0, repeats):
+            runner.do_run(w, n_iterations)
 
     runner.done()
 
@@ -173,38 +188,49 @@ def analyse_runtime_bench(ctx):
     data = pd.read_csv(bench_file)
 
     print("----- Results -----")
-    print("| {:<10} | {:<20} | {:<15} | {:<15} | {:<9} | {:<9} |"
-          .format("Runtime", "Measure", "Value", "Stddev", "vs. Faasm", "vs. thread"))
+    print("| {:<10} | {:<8} | {:<20} | {:<15} | {:<15} | {:<9} | {:<9} |"
+          .format("Runtime", "Workers", "Measure", "Value", "Stddev", "vs. Faasm", "vs. thread"))
 
-    _extract_stat(data, "cpu_cycles", per_iteration=True)
-    _extract_stat(data, "elapsed_seconds", per_iteration=True)
-    _extract_stat(data, "max_resident_kb", per_iteration=False)
+    _extract_stat(data, "cpu_cycles", per_iteration=True, per_worker=True)
+    _extract_stat(data, "elapsed_seconds", per_iteration=True, per_worker=False)
+    _extract_stat(data, "max_resident_kb", per_iteration=False, per_worker=True)
 
 
-def _extract_stat(full_data, measure_name, per_iteration=False):
+def _extract_stat(full_data, measure_name, per_iteration=False, per_worker=False):
     filtered = full_data[full_data["Measure"] == measure_name]
     if filtered.empty:
         raise RuntimeError("No data for {}".format(measure_name))
 
-    runtimes = filtered["Runtime"].unique()
+    if per_iteration and per_worker:
+        val_col = "ValuePerIterationPerWorker"
+    elif per_iteration:
+        val_col = "ValuePerIteration"
+    elif per_worker:
+        val_col = "ValuePerWorker"
+    else:
+        val_col = "Value"
 
-    grouped = filtered.groupby(["Runtime"])
+    runtimes = filtered["Runtime"].unique()
+    workers = filtered["Workers"].unique()
+
+    grouped = filtered.groupby(["Runtime", "Workers"])
     median = grouped.median()
     stddev = grouped.std()
 
-    faasm_med = median.loc["faasm"]["Value"]
-    native_med = median.loc["thread"]["Value"]
-
     for runtime in runtimes:
-        this_med = median.loc[runtime]["Value"]
-        this_std = stddev.loc[runtime]["Value"]
+        for w in workers:
+            faasm_med = median.loc[["faasm", w]][val_col][0]
+            native_med = median.loc[["thread", w]][val_col][0]
 
-        faasm_overhead = _pct_diff(this_med, faasm_med) if this_med != faasm_med else "-"
-        native_overhead = _pct_diff(this_med, native_med) if this_med != native_med else "-"
+            this_med = median.loc[[runtime, w]][val_col][0]
+            this_std = stddev.loc[[runtime, w]][val_col][0]
 
-        # Print data
-        print("| {:<10} | {:<20} | {:<15.4f} | {:<15.4f} | {:>9} | {:>9} |"
-              .format(runtime, measure_name, this_med, this_std, faasm_overhead, native_overhead))
+            faasm_overhead = _pct_diff(this_med, faasm_med) if this_med != faasm_med else "-"
+            native_overhead = _pct_diff(this_med, native_med) if this_med != native_med else "-"
+
+            # Print data
+            print("| {:<10} | {:<8} | {:<20} | {:<15.4f} | {:<15.4f} | {:>9} | {:>9} |"
+                  .format(runtime, w, measure_name, this_med, this_std, faasm_overhead, native_overhead))
 
 
 def _pct_diff(value, bench):
