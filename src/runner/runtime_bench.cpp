@@ -12,17 +12,7 @@
  * Communication with the rest of the system will be benchmarked elsewhere.
  */
 
-int main(int argc, char *argv[]) {
-    util::initLogging();
-    const std::shared_ptr<spdlog::logger> logger = util::getLogger();
-
-    util::SystemConfig &conf = util::getSystemConfig();
-    conf.unsafeMode = "off";
-    conf.cgroupMode = "on";
-
-    // TODO - switch this on
-    conf.netNsMode = "off";
-
+void _doNoop() {
     // Set up network namespace
     std::string netnsName = std::string(BASE_NETNS_NAME) + "1";
     isolation::NetworkNamespace ns(netnsName);
@@ -43,6 +33,33 @@ int main(int argc, char *argv[]) {
 
     // Execute the function
     module.execute(m);
+}
+
+int main(int argc, char *argv[]) {
+    util::initLogging();
+    const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+
+    if (argc < 3) {
+        logger->error("Must provide number of workers and iterations");
+        return 1;
+    }
+
+    // Get args
+    int nWorkers = std::stoi(argv[1]);
+    int nIterations = std::stoi(argv[2]);
+
+    logger->info("Running Faasm noop with {} workers and {} iterations", nWorkers, nIterations);
+
+    util::SystemConfig &conf = util::getSystemConfig();
+    conf.unsafeMode = "off";
+    conf.cgroupMode = "on";
+
+    // TODO - switch this on
+    conf.netNsMode = "off";
+
+    for (int i = 0; i < nIterations; i++) {
+        _doNoop();
+    }
 
     return 0;
 }
