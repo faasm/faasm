@@ -2,14 +2,19 @@
 
 set -e
 
+THIS_DIR=$(dirname $(readlink -f $0))
+INNER_SCRIPT=${THIS_DIR}/docker_noop_inner.sh
+
 N_WORKERS=$1
 N_ITERATIONS=$2
 
-echo "Running Docker noop with ${N_WORKERS} for ${N_ITERATIONS}"
+echo "Running Docker noop with ${N_WORKERS} workers for ${N_ITERATIONS}"
 
-for i in {1..${N_ITERATIONS}}
+for (( i=0; i<$N_WORKERS; i++ ))
 do
-    echo "Docker iteration $i"
-    docker run faasm/noop /faasm/noop
+    echo "Spawning background Docker noop $i"
+    ${INNER_SCRIPT} ${N_ITERATIONS} &
 done
+
+wait
 

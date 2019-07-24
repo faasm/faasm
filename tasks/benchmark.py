@@ -1,9 +1,8 @@
 from decimal import Decimal
-from subprocess import check_output
+from subprocess import call
 from tempfile import NamedTemporaryFile
-import pandas as pd
-import sys
 
+import pandas as pd
 from invoke import task
 
 from tasks.env import PROJ_ROOT
@@ -18,7 +17,10 @@ BENCHMARKS = {
     },
     "docker": {
         "cmd": "./bin/docker_noop.sh",
-    }
+    },
+    "thread": {
+        "cmd": "./cmake-build-release/bin/thread_bench",
+    },
 }
 
 TIME_LABELS = {
@@ -42,7 +44,7 @@ def _do_perf(bench_name, bench_details, out_csv, n_workers, n_iterations, repeat
     print(cmd_str)
 
     # Execute the command
-    check_output(
+    call(
         cmd_str,
         cwd=PROJ_ROOT,
         shell=True,
@@ -83,7 +85,7 @@ def _do_time(bench_name, bench_details, out_csv, n_workers, n_iterations, repeat
     print(cmd_str)
 
     # Execute the command
-    check_output(
+    call(
         cmd_str,
         cwd=PROJ_ROOT,
         shell=True,
@@ -137,14 +139,14 @@ def runtime_bench(ctx):
     csv_out.write("Run,Runtime,Measure,Value\n")
 
     n_workers = 1
-    n_iterations = 100
-    n_repeats = 10
+    n_iterations = 5
+    n_repeats = 3
 
-    for i in range(n_repeats):
-        print("Runtime benchmark repeat {}".format(i))
+    for bench_name, bench_details in BENCHMARKS.items():
+        print("\n------ {} ------\n".format(bench_name))
 
-        for bench_name, bench_details in BENCHMARKS.items():
-            print("Running bench: {}".format(bench_name))
+        for i in range(n_repeats):
+            print("Running bench: {} (repeat {})".format(bench_name, i))
             _do_time(bench_name, bench_details, csv_out, n_workers, n_iterations, i)
             _do_perf(bench_name, bench_details, csv_out, n_workers, n_iterations, i)
 
@@ -158,7 +160,8 @@ def analyse_runtime_bench(ctx):
     data = pd.read_csv(bench_file)
 
     print("----- Results -----")
-    print("| {:<10} | {:<20} | {:<15} | {:<13} | {:<9} |".format("Runtime", "Measure", "Value", "Stddev", "vs. Faasm"))
+    print("| {:<10} | {:<20} | {:<15} | {:<15} | {:<9} | {:<9} |"
+          .format("Runtime", "Measure", "Value", "Stddev", "vs. Faasm", "vs. thread"))
 
     _extract_stat(data, "cpu_cycles")
     _extract_stat(data, "elapsed_seconds")
@@ -177,12 +180,22 @@ def _extract_stat(full_data, measure_name):
     stddev = grouped.std()
 
     faasm_med = median.loc["faasm"]["Value"]
+    native_med = median.loc["thread"]["Value"]
 
     for runtime in runtimes:
         this_med = median.loc[runtime]["Value"]
         this_std = stddev.loc[runtime]["Value"]
-        this_overhead = int(((this_med - faasm_med) / faasm_med) * 100)
+
+        faasm_overhead = _pct_diff(this_med, faasm_med)
+        native_overhead = _pct_diff(this_med, native_med)
 
         # Print data
-        print("| {:<10} | {:<20} | {:<15.4f} | {:<13.4f} | {:>8}% |"
-              .format(runtime, measure_name, this_med, this_std, this_overhead))
+        print("| {:<10} | {:<20} | {:<15.4f} | {:<15.4f} | {:>8}% | {:>8}% |"
+              .format(runtime, measure_name, this_med, this_std, faasm_overhead, native_overhead))
+
+
+def _pct_diff(value, bench):
+    if bench == 0:
+        return "inf"
+
+    return int(((value - bench) / bench) * 100)

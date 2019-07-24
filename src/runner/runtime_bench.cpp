@@ -12,27 +12,29 @@
  * Communication with the rest of the system will be benchmarked elsewhere.
  */
 
-void _doNoop() {
-    // Set up network namespace
-    std::string netnsName = std::string(BASE_NETNS_NAME) + "1";
-    isolation::NetworkNamespace ns(netnsName);
-    ns.addCurrentThread();
+void _doNoop(int nIterations) {
+    for (int i = 0; i < nIterations; i++) {
+        // Set up network namespace
+        std::string netnsName = std::string(BASE_NETNS_NAME) + "1";
+        isolation::NetworkNamespace ns(netnsName);
+        ns.addCurrentThread();
 
-    // Add this thread to the cgroup
-    isolation::CGroup cgroup(BASE_CGROUP_NAME);
-    cgroup.addCurrentThread();
+        // Add this thread to the cgroup
+        isolation::CGroup cgroup(BASE_CGROUP_NAME);
+        cgroup.addCurrentThread();
 
-    // Initialise wasm module
-    wasm::WasmModule module;
-    module.initialise();
+        // Initialise wasm module
+        wasm::WasmModule module;
+        module.initialise();
 
-    message::Message m;
-    m.set_user(USER);
-    m.set_function(FUNCTION);
-    module.bindToFunction(m);
+        message::Message m;
+        m.set_user(USER);
+        m.set_function(FUNCTION);
+        module.bindToFunction(m);
 
-    // Execute the function
-    module.execute(m);
+        // Execute the function
+        module.execute(m);
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -57,8 +59,20 @@ int main(int argc, char *argv[]) {
     // TODO - switch this on
     conf.netNsMode = "off";
 
-    for (int i = 0; i < nIterations; i++) {
-        _doNoop();
+    // Spawn worker threads
+    std::vector<std::thread> threads(nWorkers);
+    for (int w = 0; w < nWorkers; w++) {
+        logger->info("Spawning Faasm thread {}", w);
+        threads.emplace_back(std::thread([nIterations] {
+            _doNoop(nIterations);
+        }));
+    }
+
+    // Rejoin
+    for(auto &t : threads) {
+        if(t.joinable()) {
+            t.join();
+        }
     }
 
     return 0;
