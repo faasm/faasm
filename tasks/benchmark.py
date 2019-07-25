@@ -121,6 +121,7 @@ class RuntimeBenchRunner:
         self._write_stat(runtime_name, "mem_bytes_uss", mem_uss)
         self._write_stat(runtime_name, "mem_bytes_pss", mem_pss)
         self._write_stat(runtime_name, "mem_bytes_rss", mem_rss)
+        self.csv_out.flush()
 
         # Rejoin the background process
         sleep_proc.join()
