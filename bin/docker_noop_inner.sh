@@ -4,7 +4,9 @@ set -e
 
 N_ITERATIONS=$1
 ADD_SLEEP=$2
-SLEEP_SECONDS=5
+
+# This has to be long enough to allow lots of containers to be started and remain running
+SLEEP_SECONDS=40
 
 for (( i=0; i<$N_ITERATIONS; i++ ))
 do

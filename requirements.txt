@@ -9,6 +9,7 @@ invoke
 numpy
 pandas
 performance
+psutil
 PyOpenSSL
 requests
 wheel

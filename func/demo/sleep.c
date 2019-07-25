@@ -4,6 +4,6 @@
  * Sleeps for a bit
  */
 int main(int argc, char *argv[]) {
-    sleep(5);
+    sleep(10);
     return 0;
 }

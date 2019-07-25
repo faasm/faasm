@@ -6,11 +6,17 @@ For efficiency measurements we want to assess the time taken and resources consu
 To do this we need to measure the time taken, CPU cycles, peak memory and disk I/O for running a simple function
 (with a cold start).
 
-We'll measure these for a vanilla Docker container and Faasm. Docker containers can just run an unmodified native
-binaries and Faasm will run its generated shared object.
+Measuring the CPU cycles and time taken can be done with `perf` and `time` respectively (in separate runs).
+To measure memory footprint we take the proportional set size (PSS) of the relevant process and all its decendants.
+To do this for Docker we need to take the PSS for the docker daemon and all of its child processes, thus capturing
+the whole cost of running Docker on the host.
 
-We need to avoid the start-up time of any underlying runtime, so in each case we are aiming to instantiate the relevant
-sandbox, load the function, then execute it repeatedly.
+Measurements are taken for a vanilla Docker container (Alpine) and Faasm, both  running a noop function.
+The Docker container will run the unmodified native binary and Faasm will run its generated shared object from the
+WebAssembly for the function.
+
+To amortize any start-up time and underlying system resources we run each for multiple iterations and varying
+numbers of workers (containers for Docker, threads for Faasm).
 
 ### Set up
 
@@ -34,8 +40,22 @@ inv build-noop
 
 ### Running
 
+The timing and CPU measurements can be taken by running:
+
 ```
-inv runtime-bench
+inv runtime-bench-time
+```
+
+The memory measurements require access to details of the Docker daemon, hence need to be run as root:
+
+```
+# Remove all Docker containers in case
+docker ps -aq | xargs rm
+
+# Run the benchmark as root
+sudo su -
+source ./workon.sh
+inv runtime-bench-mem
 ```
 
 ### Other runtimes

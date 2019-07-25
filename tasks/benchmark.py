@@ -1,10 +1,15 @@
 from decimal import Decimal
+from multiprocessing import Process
+from os.path import join
 from subprocess import call
 from tempfile import NamedTemporaryFile
 
 from invoke import task
+from time import sleep
 
 from tasks.util.env import PROJ_ROOT
+
+from tasks.util.memory import get_total_memory_for_pid, get_pid_for_name
 
 # Absolute path to time required for bash
 TIME_BINARY = "/usr/bin/time"
@@ -13,28 +18,27 @@ RESOURCE_OUTPUT_FILE = "/tmp/runtime-bench-resource.csv"
 
 BENCHMARKS = {
     "faasm": {
-        "cmd": "./cmake-build-release/bin/runtime_bench",
+        "cmd": "cmake-build-release/bin/runtime_bench",
     },
     "docker": {
-        "cmd": "./bin/docker_noop.sh",
+        "cmd": "bin/docker_noop.sh",
+        "parent_proc": "dockerd",
     },
     "thread": {
-        "cmd": "./cmake-build-release/bin/thread_bench",
+        "cmd": "cmake-build-release/bin/thread_bench",
     },
 }
 
 TIME_LABELS = {
     ("Elapsed (wall clock) time (h:mm:ss or m:ss)", "elapsed_seconds"),
-    ("Maximum resident set size (kbytes)", "max_resident_kb"),
+    # ("Maximum resident set size (kbytes)", "max_resident_kb"),
 }
 
 
 class RuntimeBenchRunner:
-
     def __init__(self, output_file):
         self.n_workers = 0
         self.n_iterations = 0
-        self.do_sleep = False
 
         self.csv_out = open(output_file, "w")
         self.csv_out.write(
@@ -58,27 +62,70 @@ class RuntimeBenchRunner:
             value_per_iteration_per_worker
         ))
 
-    def do_sleep_run(self, n_workers):
+    def do_mem_run(self, n_workers):
         self.n_workers = n_workers
         self.n_iterations = 1
-        self.do_sleep = True
-        self._do_run()
 
-    def do_speed_run(self, n_iterations):
-        self.n_workers = 1
-        self.n_iterations = n_iterations
-        self.do_sleep = False
-        self._do_run()
-
-    def _do_run(self):
         for runtime_name, bench_details in BENCHMARKS.items():
             print("\n------ {} ------\n".format(runtime_name))
 
-            print("Running for runtime: {}".format(runtime_name))
-            self._do_time(runtime_name, bench_details)
-            self._do_perf(runtime_name, bench_details)
+            print("Running memory benchmark: {}".format(runtime_name))
+            self._do_mem(runtime_name, bench_details)
 
-    def _do_perf(self, runtime_name, bench_details):
+    def do_time_run(self, n_iterations):
+        self.n_workers = 1
+        self.n_iterations = n_iterations
+
+        for runtime_name, bench_details in BENCHMARKS.items():
+            print("\n------ {} ------\n".format(runtime_name))
+
+            print("Running time benchmark: {}".format(runtime_name))
+            self._do_time_seconds(runtime_name, bench_details)
+            self._do_cpu_cycles(runtime_name, bench_details)
+
+    def _exec_cmd(self, cmd_str):
+        print(cmd_str)
+        full_cmd_str = join(PROJ_ROOT, cmd_str)
+        call(full_cmd_str, shell=True, cwd=PROJ_ROOT)
+
+    def _do_mem(self, runtime_name, bench_details):
+        # Launch the process in the background
+        cmd = [
+            bench_details["cmd"],
+            str(self.n_workers),
+            str(self.n_iterations),
+            "1",
+        ]
+        cmd_str = " ".join(cmd)
+
+        # Launch subprocess
+        sleep_proc = Process(target=self._exec_cmd, args=[cmd_str])
+        sleep_proc.start()
+
+        parent_proc = bench_details.get("parent_proc")
+        process_pid = sleep_proc.pid
+        print("Launched background process {} ({})".format(process_pid, cmd_str))
+        if parent_proc:
+            process_pid = get_pid_for_name(parent_proc)
+            print("Measuring parent process {} ({})".format(process_pid, parent_proc))
+
+        # Wait a bit. Needs to be enough to let Docker spawn all containers
+        sleep_time = 5
+        if runtime_name == "docker":
+            sleep_time = 15
+
+        sleep(sleep_time)
+
+        # Get the memory of the given process
+        mem_uss, mem_pss, mem_rss = get_total_memory_for_pid(process_pid)
+        self._write_stat(runtime_name, "mem_bytes_uss", mem_uss)
+        self._write_stat(runtime_name, "mem_bytes_pss", mem_pss)
+        self._write_stat(runtime_name, "mem_bytes_rss", mem_rss)
+
+        # Rejoin the background process
+        sleep_proc.join()
+
+    def _do_cpu_cycles(self, runtime_name, bench_details):
         # Build the command with output to temp file
         out_file = NamedTemporaryFile()
         cmd = [
@@ -87,18 +134,11 @@ class RuntimeBenchRunner:
             bench_details["cmd"],
             str(self.n_workers),
             str(self.n_iterations),
-            "1" if self.do_sleep else "0",
+            "0",
         ]
 
         cmd_str = " ".join(cmd)
-        print(cmd_str)
-
-        # Execute the command
-        call(
-            cmd_str,
-            cwd=PROJ_ROOT,
-            shell=True,
-        )
+        self._exec_cmd(cmd_str)
 
         # Read in input
         with open(out_file.name, "r") as fh:
@@ -118,7 +158,7 @@ class RuntimeBenchRunner:
 
         self.csv_out.flush()
 
-    def _do_time(self, runtime_name, bench_details):
+    def _do_time_seconds(self, runtime_name, bench_details):
         # Build the command with output to temp file
         out_file = NamedTemporaryFile()
         cmd = [
@@ -128,18 +168,11 @@ class RuntimeBenchRunner:
             bench_details["cmd"],
             str(self.n_workers),
             str(self.n_iterations),
-            "1" if self.do_sleep else "0",
+            "0",
         ]
 
         cmd_str = " ".join(cmd)
-        print(cmd_str)
-
-        # Execute the command
-        call(
-            cmd_str,
-            cwd=PROJ_ROOT,
-            shell=True,
-        )
+        self._exec_cmd(cmd_str)
 
         # Parse time stats as dictionary
         time_stats = dict()
@@ -178,7 +211,7 @@ class RuntimeBenchRunner:
 
 
 @task
-def runtime_bench_speed(ctx):
+def runtime_bench_time(ctx):
     n_iterations = 20
     repeats = 4
 
@@ -186,21 +219,39 @@ def runtime_bench_speed(ctx):
 
     # Repeat runs, once for each worker
     for i in range(0, repeats):
-        runner.do_speed_run(n_iterations)
+        runner.do_time_run(n_iterations)
 
     runner.done()
 
 
 @task
 def runtime_bench_mem(ctx):
-    n_workers = [1, 2, 3, 4, 5]
-    repeats = 2
+    n_workers = [40, 30, 20, 10, 5]
+    repeats = 1
 
     runner = RuntimeBenchRunner(RESOURCE_OUTPUT_FILE)
 
     # Repeat runs, once for each worker
     for n_worker in n_workers:
         for i in range(0, repeats):
-            runner.do_sleep_run(n_worker)
+            runner.do_mem_run(n_worker)
 
     runner.done()
+
+
+@task
+def pid_mem(ctx, pid):
+    pid = int(pid)
+    mem_bytes = get_total_memory_for_pid(pid)
+
+    mem_mb = mem_bytes / (1024 * 1024)
+    print("Memory for {} = {}MB".format(pid, mem_mb))
+
+
+@task
+def proc_mem(ctx, proc_name):
+    pid = get_pid_for_name(proc_name)
+    mem_bytes = get_total_memory_for_pid(pid)
+
+    mem_mb = mem_bytes / (1024 * 1024)
+    print("Memory for {} ({}) = {:.2f}MB".format(pid, proc_name, mem_mb))

@@ -1,9 +1,8 @@
 from os import makedirs
 from os.path import dirname, realpath, join, exists, expanduser
-from subprocess import call
 
 HOME_DIR = expanduser("~")
-PROJ_ROOT = dirname(dirname(realpath(__file__)))
+PROJ_ROOT = dirname(dirname(dirname(realpath(__file__))))
 
 FAASM_HOME = join(HOME_DIR, "faasm")
 FAASM_LOCAL_DIR = "/usr/local/faasm"

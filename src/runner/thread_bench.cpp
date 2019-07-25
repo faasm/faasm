@@ -1,9 +1,9 @@
 #include <util/logging.h>
 #include <unistd.h>
 
-void _doNoop(int nIterations, bool addSleep) {
+void _runFunction(int nIterations, bool addSleep) {
     if(addSleep) {
-        sleep(5);
+        sleep(10);
     } else {
         // Have to do something here to avoid compiler optimising it away
         int *a = (int *) malloc((nIterations + 1) * sizeof(int));
@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
     for (int w = 0; w < nWorkers; w++) {
         logger->info("Spawning native thread {}", w);
         threads.emplace_back(std::thread([nIterations, addSleep] {
-            _doNoop(nIterations, addSleep);
+            _runFunction(nIterations, addSleep);
         }));
     }
 
