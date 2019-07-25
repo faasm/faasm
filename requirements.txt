@@ -6,10 +6,13 @@ configparser
 dulwich
 genshi
 invoke
+matplotlib
 numpy
 pandas
 performance
 psutil
+pycairo
 PyOpenSSL
 requests
+scipy
 wheel

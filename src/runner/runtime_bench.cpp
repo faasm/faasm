@@ -1,8 +1,9 @@
 #include <wasm/WasmModule.h>
 #include <util/config.h>
-#include <runner/timing.h>
 #include <system/NetworkNamespace.h>
 #include <system/CGroup.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #define USER "demo"
 #define NOOP_FUNCTION "noop"

@@ -8,7 +8,6 @@ from invoke import task
 from time import sleep
 
 from tasks.util.env import PROJ_ROOT
-
 from tasks.util.memory import get_total_memory_for_pid, get_pid_for_name
 
 # Absolute path to time required for bash
@@ -117,10 +116,10 @@ class RuntimeBenchRunner:
         sleep(sleep_time)
 
         # Get the memory of the given process
-        mem_uss, mem_pss, mem_rss = get_total_memory_for_pid(process_pid)
-        self._write_stat(runtime_name, "mem_bytes_uss", mem_uss)
-        self._write_stat(runtime_name, "mem_bytes_pss", mem_pss)
-        self._write_stat(runtime_name, "mem_bytes_rss", mem_rss)
+        mem_total = get_total_memory_for_pid(process_pid)
+        for label, data in zip(mem_total.get_labels(), mem_total.get_data()):
+            self._write_stat(runtime_name, label, data)
+
         self.csv_out.flush()
 
         # Rejoin the background process
@@ -227,8 +226,8 @@ def runtime_bench_time(ctx):
 
 @task
 def runtime_bench_mem(ctx):
-    n_workers = [40, 30, 20, 10, 5]
-    repeats = 1
+    n_workers = [1, 10, 20, 30, 40, 50]
+    repeats = 2
 
     runner = RuntimeBenchRunner(RESOURCE_OUTPUT_FILE)
 
@@ -243,16 +242,15 @@ def runtime_bench_mem(ctx):
 @task
 def pid_mem(ctx, pid):
     pid = int(pid)
-    mem_bytes = get_total_memory_for_pid(pid)
-
-    mem_mb = mem_bytes / (1024 * 1024)
-    print("Memory for {} = {}MB".format(pid, mem_mb))
+    _print_pid_mem(pid)
 
 
 @task
 def proc_mem(ctx, proc_name):
     pid = get_pid_for_name(proc_name)
-    mem_bytes = get_total_memory_for_pid(pid)
+    _print_pid_mem(pid)
 
-    mem_mb = mem_bytes / (1024 * 1024)
-    print("Memory for {} ({}) = {:.2f}MB".format(pid, proc_name, mem_mb))
+
+def _print_pid_mem(pid):
+    mem_total = get_total_memory_for_pid(pid)
+    mem_total.plot()
