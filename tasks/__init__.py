@@ -22,6 +22,8 @@ from tasks.aws import (
 from tasks.benchmark import (
     runtime_bench_time,
     runtime_bench_mem,
+    plot_pid_mem,
+    plot_proc_mem,
     pid_mem,
     proc_mem,
 )

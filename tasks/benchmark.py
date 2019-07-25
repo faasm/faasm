@@ -246,11 +246,28 @@ def pid_mem(ctx, pid):
 
 
 @task
+def plot_pid_mem(ctx, pid):
+    pid = int(pid)
+    _plot_pid_mem(pid)
+
+
+@task
 def proc_mem(ctx, proc_name):
     pid = get_pid_for_name(proc_name)
     _print_pid_mem(pid)
 
 
-def _print_pid_mem(pid):
+@task
+def plot_proc_mem(ctx, proc_name):
+    pid = get_pid_for_name(proc_name)
+    _plot_pid_mem(pid)
+
+
+def _plot_pid_mem(pid):
     mem_total = get_total_memory_for_pid(pid)
     mem_total.plot()
+
+
+def _print_pid_mem(pid):
+    mem_total = get_total_memory_for_pid(pid)
+    mem_total.print()
