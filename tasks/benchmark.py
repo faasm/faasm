@@ -1,6 +1,5 @@
 from decimal import Decimal
 from multiprocessing import Process
-from os.path import join
 from subprocess import call
 from tempfile import NamedTemporaryFile
 
@@ -17,14 +16,14 @@ RESOURCE_OUTPUT_FILE = "/tmp/runtime-bench-resource.csv"
 
 BENCHMARKS = {
     "faasm": {
-        "cmd": "cmake-build-release/bin/runtime_bench",
+        "cmd": "./cmake-build-release/bin/runtime_bench",
     },
     "docker": {
-        "cmd": "bin/docker_noop.sh",
+        "cmd": "./bin/docker_noop.sh",
         "parent_proc": "dockerd",
     },
     "thread": {
-        "cmd": "cmake-build-release/bin/thread_bench",
+        "cmd": "./cmake-build-release/bin/thread_bench",
     },
 }
 
@@ -84,8 +83,7 @@ class RuntimeBenchRunner:
 
     def _exec_cmd(self, cmd_str):
         print(cmd_str)
-        full_cmd_str = join(PROJ_ROOT, cmd_str)
-        call(full_cmd_str, shell=True, cwd=PROJ_ROOT)
+        call(cmd_str, shell=True, cwd=PROJ_ROOT)
 
     def _do_mem(self, runtime_name, bench_details):
         # Launch the process in the background
