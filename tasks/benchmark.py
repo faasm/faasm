@@ -4,7 +4,7 @@ from tempfile import NamedTemporaryFile
 
 from invoke import task
 
-from tasks.env import PROJ_ROOT
+from tasks.util.env import PROJ_ROOT
 
 # Absolute path to time required for bash
 TIME_BINARY = "/usr/bin/time"

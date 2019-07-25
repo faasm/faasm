@@ -6,8 +6,8 @@ from subprocess import call, check_output
 
 from invoke import task
 
-from tasks.download import download_proj
-from tasks.env import PROJ_ROOT, WASM_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT, FUNC_BUILD_DIR, FAASM_INSTALL_DIR
+from tasks.util.download import download_proj
+from tasks.util.env import PROJ_ROOT, WASM_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT, FUNC_BUILD_DIR, FAASM_INSTALL_DIR
 
 
 def _clean_dir(dir_path, clean):

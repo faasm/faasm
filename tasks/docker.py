@@ -2,7 +2,7 @@ from subprocess import call, check_output
 
 from invoke import task
 
-from tasks.env import PROJ_ROOT, HOME_DIR
+from tasks.util.env import PROJ_ROOT, HOME_DIR
 
 
 @task

@@ -5,7 +5,7 @@ from subprocess import call
 
 from requests import get
 
-from tasks.env import FAASM_HOME
+from tasks.util.env import FAASM_HOME
 
 
 def download_proj(url, filename, extension="tar.gz", tar_args="-xvf", extract_file=None):

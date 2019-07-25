@@ -4,7 +4,7 @@ from subprocess import call
 
 from invoke import task
 
-from tasks.env import PROJ_ROOT
+from tasks.util.env import PROJ_ROOT
 
 
 @task

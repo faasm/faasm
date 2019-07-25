@@ -1,7 +1,7 @@
 #include <unistd.h>
 
 /**
- * Does nothing
+ * Sleeps for a bit
  */
 int main(int argc, char *argv[]) {
     sleep(5);

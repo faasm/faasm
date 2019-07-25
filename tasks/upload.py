@@ -4,8 +4,8 @@ from os.path import join
 
 from invoke import task
 
-from tasks.env import FUNC_BUILD_DIR, PROJ_ROOT, RUNTIME_S3_BUCKET
-from tasks.upload_util import curl_file, upload_file_to_s3
+from tasks.util.env import FUNC_BUILD_DIR, PROJ_ROOT, RUNTIME_S3_BUCKET
+from tasks.util.upload_util import curl_file, upload_file_to_s3
 
 DIRS_TO_INCLUDE = ["demo", "errors", "sgd", "python", "polybench"]
 

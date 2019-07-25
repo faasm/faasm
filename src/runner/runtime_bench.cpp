@@ -13,7 +13,7 @@
  * Communication with the rest of the system will be benchmarked elsewhere.
  */
 
-void _doNoop(int nIterations, bool addSleep) {
+void _doFuncCall(int nIterations, bool addSleep) {
     for (int i = 0; i < nIterations; i++) {
         // Set up network namespace
         std::string netnsName = std::string(BASE_NETNS_NAME) + "1";
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
         }
 
         threads.emplace_back(std::thread([nIterations, addSleep] {
-            _doNoop(nIterations, addSleep);
+            _doFuncCall(nIterations, addSleep);
         }));
     }
 

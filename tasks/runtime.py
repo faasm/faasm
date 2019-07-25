@@ -7,9 +7,9 @@ from subprocess import check_output
 from invoke import task
 
 from tasks.codegen import run_codegen
-from tasks.env import PROJ_ROOT, PYODIDE_INSTALL_DIR, FAASM_RUNTIME_ROOT, PY_RUNTIME_ROOT, PYODIDE_PACKAGES, \
+from tasks.util.env import PROJ_ROOT, PYODIDE_INSTALL_DIR, FAASM_RUNTIME_ROOT, PY_RUNTIME_ROOT, PYODIDE_PACKAGES, \
     FAASM_LOCAL_DIR, MISC_S3_BUCKET
-from tasks.upload_util import upload_file_to_s3, download_file_from_s3
+from tasks.util.upload_util import upload_file_to_s3, download_file_from_s3
 
 RUNTIME_TAR_NAME = "faasm_runtime_root.tar.gz"
 RUNTIME_TAR_PATH = "/tmp/{}".format(RUNTIME_TAR_NAME)

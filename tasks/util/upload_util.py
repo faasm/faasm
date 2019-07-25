@@ -2,7 +2,7 @@ import subprocess
 
 import boto3
 
-from tasks.env import AWS_REGION
+from tasks.util.env import AWS_REGION
 
 _s3 = None
 
