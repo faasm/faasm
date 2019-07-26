@@ -12,7 +12,7 @@
 
 using namespace boost::filesystem;
 
-namespace worker {
+namespace isolation {
     static const std::string BASE_DIR = "/sys/fs/cgroup/";
     static const std::string CG_CPU = "cpu";
 

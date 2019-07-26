@@ -27,9 +27,10 @@ RUN ansible-playbook catch.yml
 # Fix ownership of runtime root
 RUN chown -R root:root /usr/local/faasm
 
-# Remove any existing code (will check out and rebuild as part of circle job)
+# Remove any existing code/build (will check out and build as part of circle job)
 WORKDIR /
 RUN rm -rf /usr/local/code/faasm
+RUN rm -rf /faasm
 
 # Override entrypoint with noop
 COPY bin/noop-entrypoint.sh /entrypoint.sh

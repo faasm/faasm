@@ -1,9 +1,8 @@
 from os import makedirs
 from os.path import dirname, realpath, join, exists, expanduser
-from subprocess import call
 
 HOME_DIR = expanduser("~")
-PROJ_ROOT = dirname(dirname(realpath(__file__)))
+PROJ_ROOT = dirname(dirname(dirname(realpath(__file__))))
 
 FAASM_HOME = join(HOME_DIR, "faasm")
 FAASM_LOCAL_DIR = "/usr/local/faasm"
@@ -44,30 +43,3 @@ def get_wasm_func_path(user, func_name):
         makedirs(func_dir, exist_ok=True, mode=0o775)
 
     return join(func_dir, "function.wasm")
-
-
-def playbook_command(playbook_name, sudo=True, inventory=None):
-    cmd = [
-        "ansible-playbook",
-        playbook_name,
-        "--ask-become-pass" if sudo else "",
-        "-i inventory/{}".format(inventory) if inventory else "",
-    ]
-
-    cmd = " ".join(cmd)
-
-    print(cmd)
-    call(cmd, shell=True, cwd=ANSIBLE_DIR)
-
-
-def sudo_script(script_name):
-    script_path = join("bin", script_name)
-
-    cmd = [
-        "sudo",
-        "./{}".format(script_path),
-    ]
-    cmd = " ".join(cmd)
-
-    print(cmd)
-    call(cmd, shell=True, cwd=PROJ_ROOT)

@@ -5,8 +5,8 @@ from subprocess import check_output
 from invoke import task
 
 from tasks.aws import invoke_lambda
-from tasks.env import HOME_DIR, STATE_S3_BUCKET, DATA_S3_BUCKET
-from tasks.upload_util import curl_file, upload_file_to_s3, download_file_from_s3
+from tasks.util.env import HOME_DIR, STATE_S3_BUCKET, DATA_S3_BUCKET
+from tasks.util.upload_util import curl_file, upload_file_to_s3, download_file_from_s3
 
 _DATA_TAR_NAME = "reuters.tar.gz"
 _DATA_TAR_PATH = "/tmp/{}".format(_DATA_TAR_NAME)

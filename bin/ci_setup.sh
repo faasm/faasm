@@ -2,7 +2,8 @@
 
 set -e
 
-pushd /faasm/build
+mkdir -p /faasm/ci-build
+pushd /faasm/ci-build
 
 echo "Configure out of source build"
 cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_BUILD_TYPE=Debug /usr/local/code/faasm

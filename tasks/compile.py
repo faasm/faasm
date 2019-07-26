@@ -6,8 +6,8 @@ from subprocess import call, check_output
 
 from invoke import task
 
-from tasks.download import download_proj
-from tasks.env import PROJ_ROOT, WASM_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT, FUNC_BUILD_DIR, FAASM_INSTALL_DIR
+from tasks.util.download import download_proj
+from tasks.util.env import PROJ_ROOT, WASM_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT, FUNC_BUILD_DIR, FAASM_INSTALL_DIR
 
 
 def _clean_dir(dir_path, clean):
@@ -37,7 +37,6 @@ def compile(context, clean=False, func=None, debug=False, user=None):
     _clean_dir(FUNC_BUILD_DIR, clean)
 
     build_cmd = [
-        "VERBOSE=1",
         "cmake",
         "-DFAASM_BUILD_TYPE={}".format(build_type),
         "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
@@ -166,7 +165,7 @@ def compile_libfake(ctx, clean=False):
     ]
 
     call(" ".join(build_cmd), shell=True, cwd=build_dir)
-    call("make VERBOSE=1", shell=True, cwd=build_dir)
+    call("make", shell=True, cwd=build_dir)
     call("make install", shell=True, cwd=build_dir)
 
 

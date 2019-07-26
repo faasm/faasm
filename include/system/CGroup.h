@@ -1,10 +1,9 @@
 #pragma once
 
 #include <string>
+#define BASE_CGROUP_NAME "faasm"
 
-namespace worker {
-    const std::string BASE_CGROUP_NAME = "faasm";
-
+namespace isolation {
     enum CgroupMode {
         cg_off, cg_on
     };

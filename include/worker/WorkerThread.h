@@ -1,6 +1,6 @@
 #pragma once
 
-#include "NetworkNamespace.h"
+#include <system/NetworkNamespace.h>
 
 #include <util/func.h>
 #include <wasm/WasmModule.h>
@@ -36,7 +36,7 @@ namespace worker {
         bool _isBound = false;
 
         int isolationIdx;
-        std::unique_ptr<NetworkNamespace> ns;
+        std::unique_ptr<isolation::NetworkNamespace> ns;
 
         message::Message boundMessage;
 

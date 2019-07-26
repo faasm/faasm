@@ -4,7 +4,7 @@ from os.path import join, exists
 
 import boto3
 
-from tasks.env import FAASM_HOME, AWS_REGION, AWS_ACCOUNT_ID
+from tasks.util.env import FAASM_HOME, AWS_REGION, AWS_ACCOUNT_ID
 
 CONFIG_FILE = join(FAASM_HOME, "faasm.ini")
 

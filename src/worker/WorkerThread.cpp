@@ -1,10 +1,12 @@
 #include "WorkerThread.h"
 
-#include "CGroup.h"
+#include <system/CGroup.h>
+#include <system/NetworkNamespace.h>
 
 #include <scheduler/Scheduler.h>
 #include <util/config.h>
 
+using namespace isolation;
 
 namespace worker {
     WorkerThread::WorkerThread(int threadIdxIn) : threadIdx(threadIdxIn),

@@ -19,6 +19,14 @@ from tasks.aws import (
     prepare_lambda_workers,
     upload_wasm_lambda_func
 )
+from tasks.benchmark import (
+    runtime_bench_time,
+    runtime_bench_mem,
+    plot_pid_mem,
+    plot_proc_mem,
+    pid_mem,
+    proc_mem,
+)
 from tasks.codegen import (
     run_codegen,
     run_wasm_codegen,
@@ -42,6 +50,7 @@ from tasks.docker import (
     build_base,
     build_data,
     build_edge,
+    build_noop,
     build_root,
     build_redis,
     build_testing,
@@ -53,6 +62,7 @@ from tasks.docker import (
     push_all,
     push_data,
     push_edge,
+    push_noop,
     push_root,
     push_redis,
     push_testing,

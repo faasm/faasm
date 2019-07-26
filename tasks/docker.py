@@ -2,7 +2,7 @@ from subprocess import call, check_output
 
 from invoke import task
 
-from tasks.env import PROJ_ROOT, HOME_DIR
+from tasks.util.env import PROJ_ROOT, HOME_DIR
 
 
 @task
@@ -106,6 +106,16 @@ def build_worker(context):
 @task
 def push_worker(context):
     call("docker push faasm/worker", shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def build_noop(context):
+    call("docker build -t faasm/noop  -f docker/noop.dockerfile .", shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def push_noop(context):
+    call("docker push faasm/noop", shell=True, cwd=PROJ_ROOT)
 
 
 @task

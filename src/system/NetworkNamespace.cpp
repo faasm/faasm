@@ -10,7 +10,7 @@
 #include <fcntl.h>
 
 
-namespace worker {
+namespace isolation {
     NetworkNamespace::NetworkNamespace(const std::string &name) : name(name) {
         // Get which mode we're operating in
         util::SystemConfig &conf = util::getSystemConfig();
@@ -47,6 +47,7 @@ namespace worker {
         close(fd);
 
         if (result != 0) {
+            logger->error("Failed to join namespace at {} - {}", nsPath.string(), std::strerror(errno));
             std::string errorMsg = "setns failed " + std::to_string(errno);
             throw std::runtime_error(errorMsg);
         }

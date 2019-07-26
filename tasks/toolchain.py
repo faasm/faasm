@@ -3,8 +3,8 @@ from subprocess import check_output
 
 from invoke import task
 
-from tasks.env import MISC_S3_BUCKET, FAASM_LOCAL_DIR
-from tasks.upload_util import upload_file_to_s3, download_file_from_s3
+from tasks.util.env import MISC_S3_BUCKET, FAASM_LOCAL_DIR
+from tasks.util.upload_util import upload_file_to_s3, download_file_from_s3
 
 EMSDK_BASE_DIR = join(FAASM_LOCAL_DIR, "emsdk")
 EMSDK_TAR_NAME = "emsdk.tar.gz"

@@ -3,9 +3,9 @@
 #include <util/environment.h>
 #include <util/config.h>
 
-#include <worker/NetworkNamespace.h>
+#include <system/NetworkNamespace.h>
 
-using namespace worker;
+using namespace isolation;
 
 namespace tests {
 

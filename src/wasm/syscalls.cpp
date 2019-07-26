@@ -129,6 +129,8 @@ namespace wasm {
                 return s__readv(a, b, c);
             case 146:
                 return s__writev(a, b, c);
+            case 162:
+                return s__nanosleep(a, b);
             case 168:
                 return s__poll(a, b, c);
             case 174:

@@ -11,9 +11,9 @@ from botocore.exceptions import ClientError
 from invoke import task
 
 from tasks import upload
-from tasks.config import get_faasm_config
-from tasks.env import FAASM_HOME, PROJ_ROOT, RUNTIME_S3_BUCKET, AWS_REGION, AWS_ACCOUNT_ID, STATE_S3_BUCKET
-from tasks.upload_util import upload_file_to_s3
+from tasks.util.config import get_faasm_config
+from tasks.util.env import FAASM_HOME, PROJ_ROOT, RUNTIME_S3_BUCKET, AWS_REGION, AWS_ACCOUNT_ID, STATE_S3_BUCKET
+from tasks.util.upload_util import upload_file_to_s3
 
 INSTALL_PATH = join(FAASM_HOME, "lambda")
 
