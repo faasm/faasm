@@ -3,7 +3,6 @@
 
 namespace worker {
     KnativeEndpoint::KnativeEndpoint() : HttpEndpoint(8080, 4) {
-
     }
 
     void KnativeEndpoint::setHandler() {

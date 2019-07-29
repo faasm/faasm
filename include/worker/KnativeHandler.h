@@ -5,9 +5,9 @@
 using namespace Pistache;
 
 namespace worker {
-    class KnativeHandler : public Http::Handler {
+    class KnativeHandler final : public Http::Handler {
     public:
-    HTTP_PROTOTYPE(KnativeHandler)
+        HTTP_PROTOTYPE(KnativeHandler)
 
         void onRequest(const Http::Request &request, Http::ResponseWriter response);
     };
