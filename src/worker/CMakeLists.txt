@@ -37,6 +37,7 @@ add_executable(worker-knative
         KnativeHandler.cpp
         KnativeEndpoint.cpp
         worker_knative.cpp)
+
 target_link_libraries(worker-knative
         http
         worker_lib

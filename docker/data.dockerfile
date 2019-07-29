@@ -9,6 +9,6 @@ WORKDIR /usr/local/code/faasm/ansible
 RUN ansible-playbook eigen.yml
 
 WORKDIR /faasm/build
-RUN cmake --build . --target reuters
+RUN cmake --build . --target reuters -- -j
 
 CMD "/bin/bash"

@@ -84,4 +84,4 @@ RUN cmake \
     -DCMAKE_BUILD_TYPE=Release \
     /usr/local/code/faasm
 
-RUN cmake --build . --target wavm-run
+RUN cmake --build . --target wavm-run -- -j

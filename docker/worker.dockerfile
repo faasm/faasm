@@ -8,8 +8,8 @@ RUN ansible-playbook runtime_fs.yml
 
 # Build the worker and codegen binaries
 WORKDIR /faasm/build
-RUN cmake --build . --target worker
-RUN cmake --build . --target codegen
+RUN cmake --build . --target worker -- -j
+RUN cmake --build . --target codegen -- -j
 
 # Get the Python runtime root from S3
 WORKDIR /usr/local/faasm

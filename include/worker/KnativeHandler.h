@@ -9,6 +9,6 @@ namespace worker {
     public:
         HTTP_PROTOTYPE(KnativeHandler)
 
-        void onRequest(const Http::Request &request, Http::ResponseWriter response);
+        void onRequest(const Http::Request &request, Http::ResponseWriter response) override;
     };
 }

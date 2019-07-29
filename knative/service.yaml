@@ -7,7 +7,7 @@ spec:
   template:
     spec:
       containers:
-        - image: gcr.io/knative-samples/helloworld-go
+        - image: faasm/knative-worker
           env:
             - name: TARGET
               value: "  Foobar baz"

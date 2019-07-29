@@ -11,3 +11,4 @@ To get the route to the function you then run:
 ```
 ./bin/knative_route.sh
 ```
+
