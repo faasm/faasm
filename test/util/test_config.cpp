@@ -26,6 +26,7 @@ namespace tests {
 
         REQUIRE(conf.globalMessageBus == "redis");
         REQUIRE(conf.functionStorage == "local");
+        REQUIRE(conf.fileserverUrl == "");
         REQUIRE(conf.serialisation == "json");
         REQUIRE(conf.bucketName == "");
         REQUIRE(conf.queueName == "faasm-messages");
@@ -60,6 +61,7 @@ namespace tests {
         setEnvVar("HOST_TYPE", "magic");
         setEnvVar("GLOBAL_MESSAGE_BUS", "blah");
         setEnvVar("FUNCTION_STORAGE", "foobar");
+        setEnvVar("FILESERVER_URL", "www.foo.com");
         setEnvVar("SERIALISATION", "proto");
         setEnvVar("BUCKET_NAME", "foo-bucket");
         setEnvVar("QUEUE_NAME", "dummy-queue");
@@ -95,6 +97,7 @@ namespace tests {
         REQUIRE(conf.hostType == "magic");
         REQUIRE(conf.globalMessageBus == "blah");
         REQUIRE(conf.functionStorage == "foobar");
+        REQUIRE(conf.fileserverUrl == "www.foo.com");
         REQUIRE(conf.serialisation == "proto");
         REQUIRE(conf.bucketName == "foo-bucket");
         REQUIRE(conf.queueName == "dummy-queue");
@@ -130,6 +133,7 @@ namespace tests {
 
         unsetEnvVar("GLOBAL_MESSAGE_BUS");
         unsetEnvVar("FUNCTION_STORAGE");
+        unsetEnvVar("FILESERVER_URL");
         unsetEnvVar("SERIALISATION");
         unsetEnvVar("BUCKET_NAME");
         unsetEnvVar("QUEUE_NAME");

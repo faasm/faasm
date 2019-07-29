@@ -14,6 +14,7 @@ namespace util {
         const char *cstr = str.c_str();
         auto *rawBytes = reinterpret_cast<const uint8_t *>(cstr);
 
+        // Wrap in bytes vector
         std::vector<uint8_t> actual(rawBytes, rawBytes + str.length());
         return actual;
     }

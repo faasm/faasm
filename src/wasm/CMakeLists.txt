@@ -8,6 +8,7 @@ file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/wasm/*.h")
 set(LIB_FILES
         FunctionLoader.cpp
         LocalFunctionLoader.cpp
+        FileserverFunctionLoader.cpp
         S3FunctionLoader.cpp
         instance.cpp
         codegen.cpp

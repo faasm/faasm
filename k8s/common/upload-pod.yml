@@ -16,11 +16,3 @@ spec:
       envFrom:
         - configMapRef:
             name: faasm-config
-      volumeMounts:
-        - mountPath: "/usr/share/faasm"
-          name: func-vol
-  volumes:
-    - name: func-vol
-      persistentVolumeClaim:
-        claimName: func-storage-claim
-

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <util/config.h>
 #include "FunctionLoader.h"
 
 namespace wasm {

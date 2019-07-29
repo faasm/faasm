@@ -2,5 +2,10 @@
 
 set -e
 
-# More info in tutorial: https://knative.dev/docs/install/getting-started-knative-app/
-kubectl apply --filename knative/service.yaml
+THIS_DIR=$(dirname $(readlink -f $0))
+K8S_CONF_DIR=${THIS_DIR}/../k8s
+COMMON_CONF=${K8S_CONF_DIR}/common
+KNATIVE_CONF=${K8S_CONF_DIR}/knative
+
+kubectl apply -f ${COMMON_CONF}
+kubectl apply -f ${KNATIVE_CONF}

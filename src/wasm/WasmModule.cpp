@@ -8,7 +8,6 @@
 #include <wasm/FunctionLoader.h>
 
 #include <WAVM/WASM/WASM.h>
-#include <WAVM/Inline/CLI.h>
 #include <WAVM/IR/Types.h>
 #include <WAVM/IR/Module.h>
 #include <WAVM/Runtime/Intrinsics.h>

@@ -30,6 +30,7 @@ target_link_libraries(
         util
         proto
         ssl
+        curl
         crypto
         boost_system
         boost_filesystem
