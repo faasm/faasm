@@ -2,7 +2,6 @@
 
 #include <util/func.h>
 #include <util/bytes.h>
-#include <util/files.h>
 
 namespace wasm {
     S3FunctionLoader::S3FunctionLoader() : conf(util::getSystemConfig()), s3(awswrapper::S3Wrapper::getThreadLocal()) {

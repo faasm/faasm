@@ -124,6 +124,16 @@ def build_edge(context):
 
 
 @task
+def build_http(context):
+    call("docker build -t faasm/http -f docker/http.dockerfile .", shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def build_knative_worker(context):
+    call("docker build -t faasm/knative-worker -f docker/knative-worker.dockerfile .", shell=True, cwd=PROJ_ROOT)
+
+
+@task
 def build_testing(context):
     call("docker build -t faasm/testing  -f docker/testing.dockerfile .", shell=True, cwd=PROJ_ROOT)
 
@@ -141,6 +151,16 @@ def build_root(context):
 @task
 def push_root(context):
     call("docker push faasm/cpp-root", shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def push_http(context):
+    call("docker push faasm/http", shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def push_knative_worker(context):
+    call("docker push faasm/knative-worker", shell=True, cwd=PROJ_ROOT)
 
 
 @task

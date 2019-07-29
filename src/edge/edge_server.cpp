@@ -2,7 +2,6 @@
 
 #include <util/logging.h>
 #include <aws/aws.h>
-#include <pistache/http.h>
 
 int main() {
     util::initLogging();
