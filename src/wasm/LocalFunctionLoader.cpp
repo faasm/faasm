@@ -41,6 +41,13 @@ namespace wasm {
         return bytes;
     }
 
+    std::vector<uint8_t> LocalFunctionLoader::loadPythonFunction(const message::Message &msg) {
+        std::string path = util::getPythonFunctionFile(msg);
+        checkFileExists(path);
+        std::vector<uint8_t> bytes = util::readFileToBytes(path);
+        return bytes;
+    }
+
     void LocalFunctionLoader::uploadFunction(message::Message &msg) {
         // Here the msg input data is actually the file
         const std::string &fileBody = msg.inputdata();

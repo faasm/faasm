@@ -54,4 +54,9 @@ namespace util {
 
         return dataInSize;
     }
+
+    std::string bytesToString(const std::vector<uint8_t> &bytes) {
+        const std::string result = std::string(reinterpret_cast<const char*>(bytes.data()));
+        return result;
+    }
 }

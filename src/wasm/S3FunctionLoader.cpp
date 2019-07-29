@@ -35,6 +35,10 @@ namespace wasm {
         return bytes;
     }
 
+    std::vector<uint8_t> S3FunctionLoader::loadPythonFunction(const message::Message &msg) {
+        throw std::runtime_error("Loading python functions not supported with S3");
+    }
+
     void S3FunctionLoader::uploadFunction(message::Message &msg) {
         // Note, when uploading, the input data is the function body
         const std::string &inputBytes = msg.inputdata();
