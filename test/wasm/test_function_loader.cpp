@@ -2,9 +2,11 @@
 #include <wasm/FunctionLoader.h>
 
 #include <util/bytes.h>
+#include <util/environment.h>
 #include <util/func.h>
 #include <util/files.h>
 #include <util/random.h>
+#include <wasm/FileserverFunctionLoader.h>
 
 namespace tests {
     void checkResult(const std::string &filePath, const std::string &expected, const std::vector<uint8_t> &actualBytes) {
@@ -47,5 +49,38 @@ namespace tests {
         }
 
         checkResult(filePath, inputData, actualBytes);
+    }
+
+    TEST_CASE("Test invalid storage mode", "[wasm]") {
+        util::setEnvVar("FUNCTION_STORAGE", "junk");
+        util::SystemConfig &conf = util::getSystemConfig();
+        conf.reset();
+
+        REQUIRE_THROWS(wasm::getFunctionLoader());
+
+        util::unsetEnvVar("FUNCTION_STORAGE");
+        conf.reset();
+    }
+
+    TEST_CASE("Test fileserver function loader requires fileserver URL", "[wasm]") {
+        // Instantiate with no url set
+        util::setEnvVar("FUNCTION_STORAGE", "fileserver");
+        util::unsetEnvVar("FILESERVER_URL");
+        util::SystemConfig &conf = util::getSystemConfig();
+        conf.reset();
+
+        REQUIRE_THROWS(wasm::getFunctionLoader());
+
+        // Set up a URL
+        util::setEnvVar("FILESERVER_URL", "www.foo.com");
+        conf.reset();
+
+        // Check no error
+        auto loader = (wasm::FileserverFunctionLoader&) wasm::getFunctionLoader();
+        REQUIRE(loader.getFileserverUrl() == "www.foo.com");
+
+        util::unsetEnvVar("FILESERVER_URL");
+        util::unsetEnvVar("FUNCTION_STORAGE");
+        conf.reset();
     }
 }

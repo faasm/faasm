@@ -11,12 +11,10 @@
 namespace wasm {
     class FileserverFunctionLoader : public LocalFunctionLoader {
     public:
-        FileserverFunctionLoader();
-
         std::vector<uint8_t> loadFunctionBytes(const message::Message &msg);
 
         std::vector<uint8_t> loadFunctionObjectBytes(const message::Message &msg);
-    private:
-        const std::string fileserverUrl;
+
+        std::string getFileserverUrl();
     };
 };
