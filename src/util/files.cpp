@@ -72,7 +72,7 @@ namespace util {
         CURLcode res = curl_easy_perform(curl);
 
         if (res != CURLE_OK) {
-            std::string msg = std::string("Unable to get file") + url;
+            std::string msg = std::string("Unable to get file ") + url;
             throw std::runtime_error(msg.c_str());
         }
 

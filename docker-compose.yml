@@ -53,3 +53,5 @@ services:
       - docker-compose.env
     networks:
       - faasm
+    volumes:
+      - /usr/share/faasm/wasm:/usr/share/faasm/wasm
