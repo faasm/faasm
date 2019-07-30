@@ -5,6 +5,7 @@
 
 #include <redis/Redis.h>
 #include <wasm/FunctionLoader.h>
+#include <util/config.h>
 #include <util/state.h>
 
 
@@ -13,7 +14,15 @@
  */
 
 namespace edge {
-    UploadServer::UploadServer() = default;
+    UploadServer::UploadServer() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        util::SystemConfig &conf = util::getSystemConfig();
+        if(conf.functionStorage == "fileserver") {
+            logger->info("Overriding fileserver storage on upload server (as this is the fileserver)");
+            conf.functionStorage = "local";
+        }
+    }
 
     std::vector<std::string> UploadServer::getPathParts(const http_request &request) {
         const uri uri = request.relative_uri();
@@ -70,19 +79,27 @@ namespace edge {
         wasm::FunctionLoader &l = wasm::getFunctionLoader();
         std::string pathType = pathParts[0];
         std::vector<uint8_t> returnBytes;
+        message::Message msg = UploadServer::buildMessageFromRequest(request);
+
         if (pathType == "s") {
             returnBytes = getState(request);
         } else if (pathType == "p" || pathType == "pa") {
-            message::Message msg = UploadServer::buildMessageFromRequest(request);
             returnBytes = l.loadPythonFunction(msg);
+        } else if (pathType == "fo"){
+            returnBytes = l.loadFunctionObjectBytes(msg);
         } else {
-            message::Message msg = UploadServer::buildMessageFromRequest(request);
             returnBytes = l.loadFunctionBytes(msg);
         }
 
-        http_response response(status_codes::OK);
-        response.set_body(returnBytes);
-        request.reply(response);
+        if(returnBytes.empty()) {
+            http_response response(status_codes::InternalError);
+            response.set_body("Empty response");
+            request.reply(response);
+        } else {
+            http_response response(status_codes::OK);
+            response.set_body(returnBytes);
+            request.reply(response);
+        }
     }
 
     void UploadServer::handlePut(const http_request &request) {

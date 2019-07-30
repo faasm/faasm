@@ -17,7 +17,7 @@ namespace util {
     const static std::string objFile = "function.wasm.o";
     const static std::string confFile = "conf.json";
 
-    std::string getUrl(const message::Message &msg, const std::string urlPart) {
+    std::string getUrl(const message::Message &msg, const std::string &urlPart) {
         std::string rootUrl = util::getEnvVar("FILESERVER_URL", "");
         if(rootUrl.empty()) {
             throw std::runtime_error("Fileserver URL not set");

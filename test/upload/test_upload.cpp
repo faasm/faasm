@@ -51,6 +51,20 @@ namespace tests {
         REQUIRE(responseBytes == bytes);
     }
 
+    TEST_CASE("Check upload overrides fileserver storage", "[upload]") {
+        util::setEnvVar("FUNCTION_STORAGE", "fileserver");
+
+        util::SystemConfig &conf = util::getSystemConfig();
+        conf.reset();
+        REQUIRE(conf.functionStorage == "fileserver");
+
+        // Instantiate a server
+        edge::UploadServer server;
+        REQUIRE(conf.functionStorage == "local");
+
+        util::unsetEnvVar("FUNCTION_STORAGE");
+    }
+    
     TEST_CASE("Upload tests", "[upload]") {
         redis::Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
@@ -123,9 +137,13 @@ namespace tests {
             // Check object file is generated
             bool isObjFilePresent = boost::filesystem::exists(expectedObjFile);
             REQUIRE(isObjFilePresent);
+            std::vector<uint8_t> objBytes = util::readFileToBytes(expectedObjFile);
 
             // Check getting the file
             checkGet(url, wasmBytes);
+
+            // Check getting the object file
+            checkGet("/fo/gamma/delta", objBytes);
 
             util::unsetEnvVar("FUNC_ROOT");
         }

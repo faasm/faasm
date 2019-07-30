@@ -1,18 +1,14 @@
 #include "FileserverFunctionLoader.h"
 
-#include <iostream>
-#include <fstream>
-
 #include <util/func.h>
 #include <util/bytes.h>
-#include <util/logging.h>
 #include <util/files.h>
+#include <util/logging.h>
 
 namespace wasm {
     FileserverFunctionLoader::FileserverFunctionLoader() : fileserverUrl(util::getSystemConfig().fileserverUrl) {
-        if (fileserverUrl.empty()) {
-            throw std::runtime_error("Must provide a fileserver URL when running in fileserver mode");
-        }
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->info("Fileserver loader running on {}", fileserverUrl);
     }
 
     std::vector<uint8_t> FileserverFunctionLoader::loadFunctionBytes(const message::Message &msg) {
