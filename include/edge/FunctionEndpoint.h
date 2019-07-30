@@ -2,23 +2,21 @@
 
 #include <proto/faasm.pb.h>
 #include <scheduler/Scheduler.h>
-
+#include <http/HttpEndpoint.h>
 #include <pistache/http.h>
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
 
-using namespace Pistache;
 
 namespace edge {
-    class FunctionEndpoint {
+class FunctionEndpoint: public http::HttpEndpoint {
     public:
         FunctionEndpoint();
 
-        void start();
-
         std::string handleFunction(message::Message &msg);
+
+        void setHandler();
     private:
-        std::shared_ptr<Http::Endpoint> httpEndpoint;
         Rest::Router router;
 
         scheduler::GlobalMessageBus &globalBus;

@@ -14,6 +14,7 @@ namespace util {
         const char *cstr = str.c_str();
         auto *rawBytes = reinterpret_cast<const uint8_t *>(cstr);
 
+        // Wrap in bytes vector
         std::vector<uint8_t> actual(rawBytes, rawBytes + str.length());
         return actual;
     }
@@ -52,5 +53,10 @@ namespace util {
         std::copy(dataIn.data(), dataIn.data() + dataLen, buffer);
 
         return dataInSize;
+    }
+
+    std::string bytesToString(const std::vector<uint8_t> &bytes) {
+        const std::string result = std::string(reinterpret_cast<const char*>(bytes.data()));
+        return result;
     }
 }

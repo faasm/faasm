@@ -12,6 +12,10 @@ namespace util {
 
     std::string getFunctionObjectKey(const message::Message &msg);
 
+    std::string getFunctionUrl(const message::Message &msg);
+
+    std::string getFunctionObjectUrl(const message::Message &msg);
+
     std::string getFunctionFile(const message::Message &msg);
 
     std::string getPythonFunctionFile(const message::Message &msg);

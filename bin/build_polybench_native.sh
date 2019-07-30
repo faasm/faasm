@@ -19,6 +19,6 @@ mkdir -p ${BUILD_DIR}
 pushd ${BUILD_DIR} >> /dev/null
 
 cmake -DCMAKE_BUILD_TYPE=${RELEASE_TYPE} ..
-cmake --build . --target polybench_all_funcs
+cmake --build . --target polybench_all_funcs  -- -j
 
 popd

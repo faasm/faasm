@@ -18,6 +18,8 @@ namespace wasm {
 
         virtual std::vector<uint8_t> loadFunctionObjectBytes(const std::string &path) = 0;
 
+        virtual std::vector<uint8_t> loadPythonFunction(const message::Message &msg) = 0;
+
         virtual void uploadFunction(message::Message &msg) = 0;
 
         virtual void uploadPythonFunction(message::Message &msg) = 0;

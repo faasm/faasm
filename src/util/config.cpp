@@ -22,6 +22,7 @@ namespace util {
         hostType = getEnvVar("HOST_TYPE", "default");
         globalMessageBus = getEnvVar("GLOBAL_MESSAGE_BUS", "redis");
         functionStorage = getEnvVar("FUNCTION_STORAGE", "local");
+        fileserverUrl = getEnvVar("FILESERVER_URL", "");
         serialisation = getEnvVar("SERIALISATION", "json");
         bucketName = getEnvVar("BUCKET_NAME", "");
         queueName = getEnvVar("QUEUE_NAME", "faasm-messages");
@@ -77,6 +78,7 @@ namespace util {
         logger->info("HOST_TYPE                  {}", hostType);
         logger->info("GLOBAL_MESSAGE_BUS         {}", globalMessageBus);
         logger->info("FUNCTION_STORAGE           {}", functionStorage);
+        logger->info("FILESERVER_URL             {}", fileserverUrl);
         logger->info("SERIALISATION              {}", serialisation);
         logger->info("BUCKET_NAME                {}", bucketName);
         logger->info("QUEUE_NAME                 {}", queueName);

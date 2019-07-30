@@ -1,0 +1,23 @@
+apiVersion: serving.knative.dev/v1alpha1
+kind: Service
+
+# Some details on spec can be found here: https://github.com/knative/serving/blob/master/docs/spec/spec.md
+
+metadata:
+  name: faasm-test
+  namespace: default
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/class: kpa.autoscaling.knative.dev
+        autoscaling.knative.dev/metric: concurrency
+        autoscaling.knative.dev/minScale: "1" # Always have one pod running
+        autoscaling.knative.dev/maxScale: "10" # Max number of pods
+        autoscaling.knative.dev/target: "4" # In-flight requests per pod
+    spec:
+      containers:
+        - image: faasm/knative-worker
+          envFrom:
+            - configMapRef:
+                name: faasm-config

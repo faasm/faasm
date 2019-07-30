@@ -1,9 +1,19 @@
 #include <catch/catch.hpp>
 #include <util/strings.h>
+#include <util/bytes.h>
 
 using namespace util;
 
 namespace tests {
+    TEST_CASE("Test bytes to string round trip", "[util]") {
+        std::string inputStr = "abcdefghijkl12345";
+
+        const std::vector<uint8_t> bytes = util::stringToBytes(inputStr);
+        std::string actual = util::bytesToString(bytes);
+
+        REQUIRE(actual == inputStr);
+    }
+    
     TEST_CASE("Test string splitting", "[util]") {
         std::string strA = "  one string";
         std::string strB = "another string with other stuff  ";

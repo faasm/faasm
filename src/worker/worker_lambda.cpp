@@ -7,8 +7,6 @@
 #include <wasm/FunctionLoader.h>
 #include <wasm/codegen.h>
 
-#include <lambda/backend.h>
-
 #include <rapidjson/document.h>
 
 using namespace aws::lambda_runtime;

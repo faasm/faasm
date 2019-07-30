@@ -6,9 +6,7 @@ metadata:
 spec:
   selector:
     role: upload
-  type: LoadBalancer
-  externalIPs:
-    - 192.168.10.46   # NOTE: this must be changed if the master node is changed
+#  type: NodePort
   ports:
     - port: 8002
       targetPort: 8002

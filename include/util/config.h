@@ -15,6 +15,7 @@ namespace util {
         std::string hostType;
         std::string globalMessageBus;
         std::string functionStorage;
+        std::string fileserverUrl;
         std::string serialisation;
         std::string bucketName;
         std::string queueName;

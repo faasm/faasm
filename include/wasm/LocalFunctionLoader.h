@@ -1,5 +1,6 @@
 #pragma once
 
+#include <util/config.h>
 #include "FunctionLoader.h"
 
 namespace wasm {
@@ -12,6 +13,8 @@ namespace wasm {
         std::vector<uint8_t> loadFunctionObjectBytes(const message::Message &msg);
 
         std::vector<uint8_t> loadFunctionObjectBytes(const std::string &path);
+
+        std::vector<uint8_t> loadPythonFunction(const message::Message &msg);
 
         void uploadFunction(message::Message &msg);
 

@@ -17,6 +17,24 @@ namespace util {
     const static std::string objFile = "function.wasm.o";
     const static std::string confFile = "conf.json";
 
+    std::string getUrl(const message::Message &msg, const std::string &urlPart) {
+        std::string rootUrl = util::getEnvVar("FILESERVER_URL", "");
+        if(rootUrl.empty()) {
+            throw std::runtime_error("Fileserver URL not set");
+        }
+
+        std::string funcUrl = rootUrl + "/" + urlPart + "/" + msg.user() + "/" + msg.function();
+        return funcUrl;
+    }
+
+    std::string getFunctionUrl(const message::Message &msg) {
+        return getUrl(msg, "f");
+    }
+
+    std::string getFunctionObjectUrl(const message::Message &msg) {
+        return getUrl(msg, "fo");
+    }
+
     boost::filesystem::path getFuncRootPath() {
         std::string funcRoot = util::getEnvVar("FUNC_ROOT", "/usr/local/code/faasm");
 

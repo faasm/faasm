@@ -4,8 +4,9 @@
 #include <vector>
 
 namespace util {
-    // Byte handling
     std::vector<uint8_t> stringToBytes(const std::string &str);
+
+    std::string bytesToString(const std::vector<uint8_t> &bytes);
 
     void trimTrailingZeros(std::vector<uint8_t> &vectorIn);
 

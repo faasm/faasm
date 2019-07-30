@@ -2,7 +2,6 @@
 
 #include <util/func.h>
 #include <util/bytes.h>
-#include <util/files.h>
 
 namespace wasm {
     S3FunctionLoader::S3FunctionLoader() : conf(util::getSystemConfig()), s3(awswrapper::S3Wrapper::getThreadLocal()) {
@@ -34,6 +33,10 @@ namespace wasm {
 
         const std::vector<uint8_t> bytes = s3.getKeyBytes(conf.bucketName, path);
         return bytes;
+    }
+
+    std::vector<uint8_t> S3FunctionLoader::loadPythonFunction(const message::Message &msg) {
+        throw std::runtime_error("Loading python functions not supported with S3");
     }
 
     void S3FunctionLoader::uploadFunction(message::Message &msg) {

@@ -3,12 +3,15 @@ include_directories(
         ${FAASM_WAVM_SOURCE_DIR}
 )
 
-file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/worker/*.h")
+set(LIB_HEADERS
+        ${FAASM_INCLUDE_DIR}/worker/WorkerThread.h
+        ${FAASM_INCLUDE_DIR}/worker/WorkerThreadPool.h
+        )
 
 set(LIB_FILES
         WorkerThread.cpp
         WorkerThreadPool.cpp
-        ${HEADERS}
+        ${LIB_HEADERS}
         )
 
 add_library(worker_lib "${LIB_FILES}")
@@ -26,3 +29,16 @@ target_link_libraries(worker-lambda
         worker_lib
         )
 aws_lambda_package_target(worker-lambda)
+
+# Knative worker
+add_executable(worker-knative
+        ${FAASM_INCLUDE_DIR}/worker/KnativeHandler.h
+        ${FAASM_INCLUDE_DIR}/worker/KnativeEndpoint.h
+        KnativeHandler.cpp
+        KnativeEndpoint.cpp
+        worker_knative.cpp)
+
+target_link_libraries(worker-knative
+        http
+        worker_lib
+        )

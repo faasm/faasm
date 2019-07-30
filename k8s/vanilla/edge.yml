@@ -1,34 +1,31 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: worker
+  name: edge
   namespace: faasm
   labels:
     app: faasm
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app: faasm
-      role: worker
+      role: edge
   template:
     metadata:
       labels:
         app: faasm
-        role: worker
+        role: edge
     spec:
       containers:
-        - name: worker
-          image: faasm/worker
+        - name: edge
+          image: faasm/edge
           imagePullPolicy: Always
+          ports:
+            - containerPort: 8001
           envFrom:
             - configMapRef:
                 name: faasm-config
-          volumeMounts:
-            - mountPath: "/usr/share/faasm"
-              name: func-vol
-          securityContext:
-            privileged: yes
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -49,7 +46,3 @@ spec:
                       values:
                         - worker
                 topologyKey: kubernetes.io/hostname
-      volumes:
-        - name: func-vol
-          persistentVolumeClaim:
-            claimName: func-storage-claim

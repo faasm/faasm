@@ -1,12 +1,9 @@
 #include "FunctionEndpoint.h"
 
-#include <signal.h>
-
 #include <util/logging.h>
 
 #include <pistache/http.h>
 #include <pistache/router.h>
-#include <pistache/endpoint.h>
 
 #include <scheduler/Scheduler.h>
 #include <scheduler/GlobalMessageBus.h>
@@ -14,50 +11,15 @@
 using namespace Pistache;
 
 namespace edge {
-    FunctionEndpoint::FunctionEndpoint() : globalBus(scheduler::getGlobalMessageBus()) {
-        int port = 8001;
-        int threadCount = 40;
+    FunctionEndpoint::FunctionEndpoint() :
+            HttpEndpoint(8001, 40),
+            globalBus(scheduler::getGlobalMessageBus()) {
 
-        Address addr(Ipv4::any(), Port(port));
-
-        // Configure endpoint
-        auto opts = Http::Endpoint::options()
-                .threads(threadCount)
-                .flags(Tcp::Options::ReuseAddr);
-
-        httpEndpoint = std::make_shared<Http::Endpoint>(addr);
-        httpEndpoint->init(opts);
         setupRoutes();
     }
 
-    void FunctionEndpoint::start() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        // Set up signal handler
-        sigset_t signals;
-        if (sigemptyset(&signals) != 0
-            || sigaddset(&signals, SIGTERM) != 0
-            || sigaddset(&signals, SIGINT) != 0
-            || sigaddset(&signals, SIGHUP) != 0
-            || pthread_sigmask(SIG_BLOCK, &signals, nullptr) != 0) {
-
-            throw std::runtime_error("Install signal handler failed");
-        }
-
-        // Configure and start endpoint
+    void FunctionEndpoint::setHandler() {
         httpEndpoint->setHandler(router.handler());
-        httpEndpoint->serve();
-
-        // Wait for a signal
-        int signal = 0;
-        int status = sigwait(&signals, &signal);
-        if (status == 0) {
-            logger->info("Received signal: {}", signal);
-        } else {
-            logger->info("Sigwait return value: {}", signal);
-        }
-
-        httpEndpoint->shutdown();
     }
 
     void FunctionEndpoint::setupRoutes() {
@@ -141,5 +103,5 @@ namespace edge {
 
         return msg;
     }
-};
+}
 
