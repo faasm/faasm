@@ -74,7 +74,7 @@ namespace edge {
             returnBytes = getState(request);
         } else if (pathType == "p" || pathType == "pa") {
             message::Message msg = UploadServer::buildMessageFromRequest(request);
-
+            returnBytes = l.loadPythonFunction(msg);
         } else {
             message::Message msg = UploadServer::buildMessageFromRequest(request);
             returnBytes = l.loadFunctionBytes(msg);

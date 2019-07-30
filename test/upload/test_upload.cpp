@@ -1,7 +1,5 @@
 #include <catch/catch.hpp>
 
-#include "utils.h"
-
 #include <util/bytes.h>
 #include <util/environment.h>
 #include <util/files.h>
@@ -10,7 +8,6 @@
 #include <upload/UploadServer.h>
 
 #include <boost/filesystem.hpp>
-#include <unistd.h>
 
 using namespace web::http::experimental::listener;
 using namespace web::http;
@@ -29,9 +26,36 @@ namespace tests {
         return request;
     }
 
+    void checkPut(const std::string &path, const std::string &expectedFile, const std::vector<uint8_t> &bytes) {
+        // Submit PUT request
+        http_request request = createRequest(path, bytes);
+        edge::UploadServer::handlePut(request);
+
+        // Check file created
+        REQUIRE(boost::filesystem::exists(expectedFile));
+
+        // Check contents
+        std::vector<uint8_t> actualBytes = util::readFileToBytes(expectedFile);
+        REQUIRE(actualBytes == bytes);
+    }
+
+    void checkGet(const std::string &url, const std::vector<uint8_t> &bytes) {
+        std::vector<uint8_t> empty;
+        http_request request = createRequest(url, empty);
+        edge::UploadServer::handleGet(request);
+
+        http_response response = request.get_response().get();
+        const utility::string_t responseStr = response.to_string();
+
+        const std::vector<unsigned char> responseBytes = response.extract_vector().get();
+        REQUIRE(responseBytes == bytes);
+    }
+
     TEST_CASE("Upload tests", "[upload]") {
         redis::Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
+
+        std::vector<uint8_t> empty;
 
         SECTION("Test uploading state") {
             // Create multiple upload requests for different users
@@ -78,7 +102,7 @@ namespace tests {
             REQUIRE(actual == state);
         }
 
-        SECTION("Test uploading a file") {
+        SECTION("Test uploading wasm file") {
             // Override the function directory with junk
             util::setEnvVar("FUNC_ROOT", "/tmp");
 
@@ -88,28 +112,37 @@ namespace tests {
             boost::filesystem::remove(expectedFile);
             boost::filesystem::remove(expectedObjFile);
 
-            std::string path = "/f/gamma/delta";
-
             // Load some valid dummy wasm bytes
             // TODO - hard-coded file path is a bad idea
-            std::string filePath = "/usr/local/code/faasm/test/upload/dummy.wasm";
-            std::vector<uint8_t> wasmBytes = util::readFileToBytes(filePath);
+            std::vector<uint8_t> wasmBytes = util::readFileToBytes("/usr/local/code/faasm/test/upload/dummy.wasm");
 
-            // Submit PUT request
-            http_request request = createRequest(path, wasmBytes);
-            request.set_method(methods::PUT);
-            edge::UploadServer::handlePut(request);
-
-            std::vector<uint8_t> actualBytes = util::readFileToBytes(expectedFile);
-
-            // Check file is written properly
-            REQUIRE(actualBytes == wasmBytes);
+            // Check putting the file
+            std::string url = "/f/gamma/delta";
+            checkPut(url, expectedFile, wasmBytes);
 
             // Check object file is generated
             bool isObjFilePresent = boost::filesystem::exists(expectedObjFile);
             REQUIRE(isObjFilePresent);
 
+            // Check getting the file
+            checkGet(url, wasmBytes);
+
             util::unsetEnvVar("FUNC_ROOT");
+        }
+
+        SECTION("Test uploading python file") {
+            std::vector<uint8_t> fileBytes = util::readFileToBytes("/usr/local/code/faasm/test/upload/dummy.py");
+
+            // Prepare
+            std::string expectedFile = "/usr/local/faasm/runtime_root/funcs/py-test/foo/function.py";
+            boost::filesystem::remove(expectedFile);
+
+            // Check putting the file
+            std::string url = "/p/py-test/foo";
+            checkPut(url, expectedFile, fileBytes);
+
+            // Check getting the file
+            checkGet(url, fileBytes);
         }
     }
 }
