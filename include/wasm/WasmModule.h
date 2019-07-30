@@ -14,24 +14,15 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <memory/MemorySnapshot.h>
 
-// Note that page size in wasm is 64kiB
-// Note also that this initial memory must be big enough to include all data, stack and dynamic
-// memory that the module will need.
-#define ONE_MB_PAGES 16
-#define ONE_GB_PAGES 1024 * ONE_MB_PAGES
 #define ONE_MB_BYTES 1024 * 1024
 
 // Note: this is *not* controlling the size provisioned by the linker, that is hard-coded in the build.
 // This variable is just here for reference and must be updated to match the value in the build.
 #define STACK_SIZE 4 * ONE_MB_BYTES
 
-#define MAX_MEMORY_PAGES ONE_GB_PAGES
-
 // Properties of dynamic modules - NOTE - these MUST be passed when compiling the modules themselves
 #define DYNAMIC_MODULE_STACK_SIZE 2 * ONE_MB_BYTES
 #define DYNAMIC_MODULE_HEAP_SIZE 30 * ONE_MB_BYTES
-
-#define MAX_TABLE_SIZE 500000
 
 using namespace WAVM;
 
@@ -107,9 +98,9 @@ namespace wasm {
         void checkThreadOwnsFd(int fd);
 
     private:
-        IR::Module module;
-
         Runtime::GCPointer<Runtime::ModuleInstance> envModule;
+        Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
+        Runtime::GCPointer<Runtime::Function> functionInstance;
 
         int errnoLocation = 0;
 
@@ -124,8 +115,6 @@ namespace wasm {
         int nextStackPointer = 0;
         int nextTableBase = 0;
 
-        Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
-        Runtime::GCPointer<Runtime::Function> functionInstance;
 
         bool _isInitialised = false;
         bool _isBound = false;
@@ -152,10 +141,8 @@ namespace wasm {
 
         Runtime::ModuleInstance *createModuleInstance(
                 IR::Module &irModule,
-                const std::vector<uint8_t> &wasmBytes,
-                const std::vector<uint8_t> &objBytes,
                 const std::string &name,
-                bool isMainModule
+                const std::string &sharedModulePath
         );
 
         I32 getGlobalI32(const std::string &globalName, Runtime::Context *context);

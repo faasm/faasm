@@ -5,7 +5,7 @@
 #include <util/func.h>
 #include <util/memory.h>
 #include <util/config.h>
-#include <wasm/FunctionLoader.h>
+#include <wasm/IRModuleRegistry.h>
 
 #include <WAVM/WASM/WASM.h>
 #include <WAVM/IR/Types.h>
@@ -15,7 +15,6 @@
 #include <WAVM/Runtime/RuntimeData.h>
 #include <WAVM/WASTParse/WASTParse.h>
 
-#include <syscall.h>
 
 using namespace WAVM;
 
@@ -180,14 +179,9 @@ namespace wasm {
             msgCopy.set_function("py_func");
         }
 
-        // Load the function data
-        wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
-        std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionBytes(msgCopy);
-        std::vector<uint8_t> objectFileBytes = functionLoader.loadFunctionObjectBytes(msgCopy);
-
         // Create the module instance
-        moduleInstance = this->createModuleInstance(module, wasmBytes, objectFileBytes, util::funcToString(msgCopy),
-                                                    true);
+        IR::Module &module = wasm::getIRModuleRegistry().getMainModule(msg);
+        moduleInstance = this->createModuleInstance(module, util::funcToString(msgCopy), "");
 
         // Extract the module's exported function
         std::string entryFunc = "main";
@@ -201,31 +195,18 @@ namespace wasm {
     }
 
     Runtime::ModuleInstance *
-    WasmModule::createModuleInstance(IR::Module &irModule, const std::vector<uint8_t> &wasmBytes,
-                                     const std::vector<uint8_t> &objBytes,
-                                     const std::string &name, bool isMainModule) {
-        wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
-
+    WasmModule::createModuleInstance(IR::Module &irModule, const std::string &name, const std::string &sharedModulePath) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        IR::Module &mainModule = wasm::getIRModuleRegistry().getMainModule(this->boundUser, this->boundFunction);
+        Runtime::ModuleRef compiledModule;
 
-        if (functionLoader.isWasm(wasmBytes)) {
-            WASM::loadBinaryModule(wasmBytes.data(), wasmBytes.size(), irModule);
-        } else {
-            std::vector<WAST::Error> parseErrors;
-            WAST::parseModule((const char *) wasmBytes.data(), wasmBytes.size(), irModule, parseErrors);
-            WAST::reportParseErrors("wast_file", parseErrors);
-        }
-
-        if (isMainModule) {
-            // Force memory sizes
-            module.memories.defs[0].type.size.max = (U64) MAX_MEMORY_PAGES;
-
-            // Note, we don't want to mess with the min table size here, just give it room to expand if need be
-            module.tables.defs[0].type.size.max = (U64) MAX_TABLE_SIZE;
-
+        if (sharedModulePath.empty()) {
             // Set up intrinsics
             envModule = Intrinsics::instantiateModule(compartment, {INTRINSIC_MODULE_REF(env)}, "env");
+
+            compiledModule = wasm::getIRModuleRegistry().getCompiledModule(this->boundUser, this->boundFunction);
         } else {
+
             // Check that the module isn't expecting to create any memories or tables
             if (!irModule.tables.defs.empty()) {
                 throw std::runtime_error("Dynamic module trying to define tables");
@@ -262,11 +243,14 @@ namespace wasm {
             );
 
             // Now force the incoming dynamic module to accept the table from the main module
-            irModule.tables.imports[0].type.size.min = (U64) module.tables.defs[0].type.size.min;
-            irModule.tables.imports[0].type.size.max = (U64) module.tables.defs[0].type.size.max;
+            irModule.tables.imports[0].type.size.min = (U64) mainModule.tables.defs[0].type.size.min;
+            irModule.tables.imports[0].type.size.max = (U64) mainModule.tables.defs[0].type.size.max;
+
+            compiledModule = wasm::getIRModuleRegistry().getCompiledSharedModule(sharedModulePath);
         }
 
         // Add module to GOT before linking
+        bool isMainModule = !sharedModulePath.empty();
         addModuleToGOT(irModule, isMainModule);
 
         // Do the linking
@@ -274,14 +258,6 @@ namespace wasm {
         if (!linkResult.success) {
             logger->error("Failed to link module");
             throw std::runtime_error("Failed linking module");
-        }
-
-        // Instantiate the module, i.e. create memory, tables etc.
-        Runtime::ModuleRef compiledModule;
-        if (!objBytes.empty()) {
-            compiledModule = Runtime::loadPrecompiledModule(irModule, objBytes);
-        } else {
-            compiledModule = Runtime::compileModule(irModule);
         }
 
         Runtime::ModuleInstance *instance = instantiateModule(
@@ -334,22 +310,14 @@ namespace wasm {
             return dynamicPathToHandleMap[path];
         }
 
-        IR::Module sharedModule;
-        wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
-
-        // Get path to where machine code should be
-        std::string objFilePath = path + SHARED_OBJ_EXT;
-        std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionBytes(path);
-        std::vector<uint8_t> objectBytes = functionLoader.loadFunctionObjectBytes(objFilePath);
+        IR::Module sharedModule = wasm::getIRModuleRegistry().getSharedModule(path);
 
         // Note, must start handles at 2, otherwise dlopen can see it as an error
         int nextHandle = 2 + dynamicModuleCount;
         std::string name = "handle_" + std::to_string(nextHandle);
 
         // Instantiate the shared module
-        Runtime::ModuleInstance *mod = createModuleInstance(
-                sharedModule, wasmBytes, objectBytes, name, false
-        );
+        Runtime::ModuleInstance *mod = createModuleInstance(sharedModule, name, path);
 
         // Call the wasm constructor function. This allows the module to perform any relevant initialisation
         Runtime::Function *wasmCtorsFunction = asFunctionNullable(getInstanceExport(mod, "__wasm_call_ctors"));
@@ -554,7 +522,8 @@ namespace wasm {
                       initialMemorySize, initialMemoryPages);
 
         // The stack top variable should be the first global
-        IR::GlobalDef stackDef = module.globals.getDef(0);
+        IR::Module &mainModule = wasm::getIRModuleRegistry().getMainModule(msg);
+        IR::GlobalDef stackDef = mainModule.globals.getDef(0);
         if (!stackDef.type.isMutable) {
             throw std::runtime_error("Found immutable stack top");
         }
@@ -791,6 +760,8 @@ namespace wasm {
 
     std::map<std::string, std::string> WasmModule::buildDisassemblyMap() {
         std::map<std::string, std::string> output;
+
+        IR::Module &module = wasm::getIRModuleRegistry().getMainModule(this->boundUser, this->boundFunction);
 
         IR::DisassemblyNames disassemblyNames;
         getDisassemblyNames(module, disassemblyNames);
