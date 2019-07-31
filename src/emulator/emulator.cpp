@@ -25,6 +25,10 @@ static std::mutex threadsMutex;
 static std::unordered_map<int, std::thread> threads;
 static int threadCount = 1;
 
+std::string getEmulatorUser() {
+    return _user;
+}
+
 void setEmulatorUser(const char *newUser) {
     _user = newUser;
 }
@@ -35,6 +39,11 @@ void unsetEmulatorUser() {
 
 std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {
     state::State &s = state::getGlobalState();
+
+    if(_user.empty()) {
+        throw std::runtime_error("Must set a user when using the emulator state");
+    }
+
     return s.getKV(_user, key, size);
 }
 

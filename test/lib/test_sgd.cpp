@@ -9,6 +9,8 @@
 #include <redis/Redis.h>
 #include <state/State.h>
 #include <util/environment.h>
+#include <emulator/emulator.h>
+#include <util/state.h>
 
 
 using namespace faasm;
@@ -37,9 +39,7 @@ namespace tests {
     }
 
     TEST_CASE("Test serialising params round trip", "[sgd]") {
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
-        state::getGlobalState().forceClearAll();
+        cleanSystem();
 
         SgdParams params = getDummySgdParams();
 
@@ -78,8 +78,8 @@ namespace tests {
 
     void checkLossUpdates(LossType lossType, bool async) {
         redis::Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
-        state::getGlobalState().forceClearAll();
+
+        cleanSystem();
 
         int nWeights = 4;
         SgdParams params;
@@ -197,6 +197,8 @@ namespace tests {
         redis::Redis &redisQueue = redis::Redis::getQueue();
         std::vector<uint8_t> actualBytes = redisQueue.get(key);
 
+        REQUIRE(!actualBytes.empty());
+
         auto actualPtr = reinterpret_cast<double *>(actualBytes.data());
         std::vector<double> actual(actualPtr, actualPtr + expected.size());
 
@@ -215,8 +217,7 @@ namespace tests {
 
     TEST_CASE("Test writing errors to state", "[sgd]") {
         redis::Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
-        state::getGlobalState().forceClearAll();
+        cleanSystem();
 
         MatrixXd a = randomDenseMatrix(1, 5);
         MatrixXd b = randomDenseMatrix(1, 5);
@@ -247,6 +248,8 @@ namespace tests {
 
     TEST_CASE("Test reading errors from state", "[sgd]") {
         cleanSystem();
+        const std::string user = getEmulatorUser();
+
         redis::Redis &redisState = redis::Redis::getState();
 
         SgdParams p = getDummySgdParams();
@@ -267,7 +270,8 @@ namespace tests {
         writeSquaredError(p, 1, a, b);
 
         // Check these have been written
-        checkDoubleArrayInState(redisState, ERRORS_KEY, {expected, expected, 0});
+        const std::string actualKey = util::keyForUser(user, ERRORS_KEY);
+        checkDoubleArrayInState(redisState, actualKey.c_str(), {expected, expected, 0});
 
         // Error should just include the 2 written
         double expectedRmse1 = sqrt((2 * expected) / p.nTrain);
@@ -276,7 +280,7 @@ namespace tests {
 
         // Now write error for a third batch
         writeSquaredError(p, 2, a, b);
-        checkDoubleArrayInState(redisState, ERRORS_KEY, {expected, expected, expected});
+        checkDoubleArrayInState(redisState, actualKey.c_str(), {expected, expected, expected});
 
         // Work out what the result should be
         double expectedRmse2 = sqrt((3 * expected) / p.nTrain);
@@ -286,9 +290,11 @@ namespace tests {
 
     TEST_CASE("Test zeroing losses", "[sgd]") {
         redis::Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
+        cleanSystem();
 
-        state::getGlobalState().forceClearAll();
+        const std::string user = getEmulatorUser();
+        std::string lossKey = util::keyForUser(user, LOSSES_KEY);
+        std::string lossTsKey = util::keyForUser(user, LOSS_TIMESTAMPS_KEY);
 
         SgdParams p = getDummySgdParams();
         p.nBatches = 10;
@@ -296,8 +302,8 @@ namespace tests {
 
         // Zero and check it's worked
         zeroLosses(p);
-        checkDoubleArrayInState(redisQueue, LOSSES_KEY, {0, 0, 0, 0, 0});
-        checkDoubleArrayInState(redisQueue, LOSS_TIMESTAMPS_KEY, {0, 0, 0, 0, 0});
+        checkDoubleArrayInState(redisQueue, lossKey.c_str(), {0, 0, 0, 0, 0});
+        checkDoubleArrayInState(redisQueue, lossTsKey.c_str(), {0, 0, 0, 0, 0});
 
         // Update with some other values
         std::vector<double> losses = {2.2, 3.3, 4.4, 5.5, 0.0};
@@ -308,20 +314,22 @@ namespace tests {
         auto timestampBytes = reinterpret_cast<uint8_t *>(timestamps.data());
         faasmWriteState(LOSS_TIMESTAMPS_KEY, timestampBytes, 5 * sizeof(double), false);
 
-        checkDoubleArrayInState(redisQueue, LOSSES_KEY, losses);
-        checkDoubleArrayInState(redisQueue, LOSS_TIMESTAMPS_KEY, timestamps);
+        checkDoubleArrayInState(redisQueue, lossKey.c_str(), losses);
+        checkDoubleArrayInState(redisQueue, lossTsKey.c_str(), timestamps);
 
         // Zero again and check it's worked
         zeroLosses(p);
-        checkDoubleArrayInState(redisQueue, LOSSES_KEY, {0, 0, 0, 0, 0});
-        checkDoubleArrayInState(redisQueue, LOSS_TIMESTAMPS_KEY, {0, 0, 0, 0, 0});
+        checkDoubleArrayInState(redisQueue, lossKey.c_str(), {0, 0, 0, 0, 0});
+        checkDoubleArrayInState(redisQueue, lossTsKey.c_str(), {0, 0, 0, 0, 0});
     }
 
     TEST_CASE("Test setting finished flags", "[sgd]") {
         redis::Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
-        state::getGlobalState().forceClearAll();
+        cleanSystem();
+        std::string user = getEmulatorUser();
 
+        std::string finishedKey = util::keyForUser(user, FINISHED_KEY);
+        
         SgdParams p = getDummySgdParams();
         p.nBatches = 3;
 
@@ -331,18 +339,16 @@ namespace tests {
         writeFinishedFlag(p, 0);
         writeFinishedFlag(p, 2);
         REQUIRE(!readEpochFinished(p));
-        checkIntArrayInState(redisQueue, FINISHED_KEY, {1, 0, 1});
+        checkIntArrayInState(redisQueue, finishedKey.c_str(), {1, 0, 1});
 
         writeFinishedFlag(p, 1);
-        checkIntArrayInState(redisQueue, FINISHED_KEY, {1, 1, 1});
+        checkIntArrayInState(redisQueue, finishedKey.c_str(), {1, 1, 1});
         REQUIRE(readEpochFinished(p));
     }
 
     TEST_CASE("Test zeroing finished flags", "[sgd]") {
+        cleanSystem();
         redis::Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
-
-        state::getGlobalState().forceClearAll();
 
         SgdParams p = getDummySgdParams();
         p.nBatches = 3;

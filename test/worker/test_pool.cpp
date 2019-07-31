@@ -14,8 +14,8 @@ using namespace worker;
 
 namespace tests {
     static void setUp() {
-        redis::Redis::getState().flushAll();
-        redis::Redis::getQueue().flushAll();
+        cleanSystem();
+        setEmulatorUser("demo");
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.clear();
@@ -23,14 +23,12 @@ namespace tests {
 
         // Network ns requires root
         util::setEnvVar("NETNS_MODE", "off");
-
-        setEmulatorUser("demo");
     }
 
     static void tearDown() {
         util::unsetEnvVar("NETNS_MODE");
 
-        unsetEmulatorUser();
+        cleanSystem();
     }
 
     void checkBindMessage(const message::Message &expected) {

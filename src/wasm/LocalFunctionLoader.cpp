@@ -40,12 +40,17 @@ namespace wasm {
     }
 
     void LocalFunctionLoader::uploadFunction(message::Message &msg) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::string funcStr = util::funcToString(msg);
+
         // Here the msg input data is actually the file
         const std::string &fileBody = msg.inputdata();
+        if(fileBody.empty()) {
+            logger->error("Uploaded empty file to {}", funcStr);
+            throw std::runtime_error("Uploaded empty file");
+        }
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        logger->debug("Uploading wasm file {}", util::funcToString(msg));
+        logger->debug("Uploading wasm file {}", funcStr);
         std::string outputFile = util::getFunctionFile(msg);
         std::ofstream out(outputFile);
         out.write(fileBody.c_str(), fileBody.size());
@@ -53,7 +58,7 @@ namespace wasm {
         out.close();
 
         // Build the object file from the file we've just received
-        logger->debug("Generating object file for {}", util::funcToString(msg));
+        logger->debug("Generating object file for {}", funcStr);
         this->compileToObjectFile(msg);
     }
 

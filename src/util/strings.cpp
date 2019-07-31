@@ -37,4 +37,12 @@ namespace util {
         }
         return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
     }
+
+    bool contains(const std::string &input, const std::string &subStr) {
+        if (input.find(subStr) != std::string::npos) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }

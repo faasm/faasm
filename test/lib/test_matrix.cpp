@@ -7,6 +7,7 @@
 #include <state/State.h>
 
 #include <iostream>
+#include <emulator/emulator.h>
 
 using namespace Eigen;
 
@@ -51,9 +52,7 @@ namespace tests {
 
     TEST_CASE("Test updating matrix element in state", "[matrix]") {
         redis::Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
-
-        state::getGlobalState().forceClearAll();
+        cleanSystem();
 
         MatrixXd mat = buildDummyMatrix();
 
@@ -223,11 +222,7 @@ namespace tests {
     }
 
     TEST_CASE("Test sparse matrix round trip", "[matrix]") {
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
-
-        state::getGlobalState().forceClearAll();
-
+        cleanSystem();
         SparseMatrix<double> mat = faasm::randomSparseMatrix(5, 10, 0.4);
 
         const char *key = "sparse_trip_test";
@@ -238,10 +233,7 @@ namespace tests {
     }
 
     void doSparseMatrixRoundTripCheck(int rows, int cols, int colStart, int colEnd, bool async) {
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
-
-        state::getGlobalState().forceClearAll();
+        cleanSystem();
 
         const char *key = "sparse_trip_offset_test";
 

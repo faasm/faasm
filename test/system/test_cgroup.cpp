@@ -3,18 +3,21 @@
 #include <util/environment.h>
 #include <util/files.h>
 #include <util/config.h>
+#include <util/strings.h>
 
 #include <system/CGroup.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <thread>
 #include <syscall.h>
-#include <sys/types.h>
 
 using namespace isolation;
 
 namespace tests {
+    static int cgroupCheckSuccessful = 0;
+
     TEST_CASE("Test cgroup on/ off", "[worker]") {
         util::SystemConfig &conf = util::getSystemConfig();
 
@@ -50,6 +53,32 @@ namespace tests {
         conf.reset();
     }
 
+    // Need to run this check in a separate thread
+    void checkCgroupAddition() {
+        boost::filesystem::path cgroupPath("/sys/fs/cgroup");
+        cgroupPath.append("cpu");
+        cgroupPath.append(BASE_CGROUP_NAME);
+
+        REQUIRE(boost::filesystem::exists(cgroupPath));
+
+        // Add the current thread
+        // Note - it's possible that another test has already done this, so
+        // really this test should remove the thread beforehand, however,
+        // you need to be root to do this.
+        CGroup cg(BASE_CGROUP_NAME);
+        cg.addCurrentThread();
+
+        // Check this thread is in the cgroup
+        cgroupPath.append("tasks");
+        std::string tid = std::to_string((pid_t) syscall(SYS_gettid));
+        std::string fileContents = util::readFileToString(cgroupPath.string());
+
+        REQUIRE(util::contains(fileContents, tid));
+
+        // Set success
+        cgroupCheckSuccessful = 1;
+    }
+
     TEST_CASE("Test adding thread to cpu controller", "[worker]") {
         util::SystemConfig &conf = util::getSystemConfig();
 
@@ -60,24 +89,9 @@ namespace tests {
 
         REQUIRE(conf.cgroupMode == "on");
 
-        // Delete the cgroup if it exists already
-        boost::filesystem::path cgroupPath("/sys/fs/cgroup");
-        cgroupPath.append("cpu");
-        cgroupPath.append(BASE_CGROUP_NAME);
+        std::thread t(checkCgroupAddition);
+        t.join();
 
-        REQUIRE(boost::filesystem::exists(cgroupPath));
-
-        // Check tasks file is empty
-        cgroupPath.append("tasks");
-        std::string fileBefore = util::readFileToString(cgroupPath.string());
-        REQUIRE(fileBefore.empty());
-
-        // Add the current thread
-        CGroup cg(BASE_CGROUP_NAME);
-        cg.addCurrentThread();
-        auto tid = (pid_t) syscall(SYS_gettid);
-
-        std::string fileAfter = util::readFileToString(cgroupPath.string());
-        REQUIRE(boost::trim_copy(fileAfter) == std::to_string(tid));
+        REQUIRE(cgroupCheckSuccessful == 1);
     }
 }

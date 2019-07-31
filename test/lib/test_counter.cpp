@@ -2,6 +2,7 @@
 
 #include <redis/Redis.h>
 #include <state/State.h>
+#include <emulator/emulator.h>
 
 #include "faasm/counter.h"
 #include "utils.h"
@@ -34,8 +35,7 @@ namespace tests {
 
     TEST_CASE("Test counter over big number", "[counter]") {
         redis::Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
-        state::getGlobalState().forceClearAll();
+        cleanSystem();
 
         const char *key = "test_counter";
         initCounter(key, false);
@@ -48,9 +48,7 @@ namespace tests {
     }
 
     TEST_CASE("Test uninitialised counter", "[counter]") {
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-        redisQueue.flushAll();
-        state::getGlobalState().forceClearAll();
+        cleanSystem();
 
         const char *key = "test_uninit_key";
         initCounter(key, false);

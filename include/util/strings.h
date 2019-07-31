@@ -11,4 +11,6 @@ namespace util {
     bool startsWith(const std::string &input, const std::string &subStr);
 
     bool endsWith(const std::string &input, const std::string &subStr);
+
+    bool contains(const std::string &input, const std::string &subStr);
 }

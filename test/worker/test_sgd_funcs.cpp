@@ -27,7 +27,7 @@ namespace tests {
     }
 
     static void tearDown() {
-        unsetEmulatorUser();
+        cleanSystem();
     }
 
     std::string execStrFunction(const std::string &funcName) {

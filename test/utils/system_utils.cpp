@@ -5,6 +5,7 @@
 #include <redis/Redis.h>
 #include <state/State.h>
 #include <scheduler/Scheduler.h>
+#include <emulator/emulator.h>
 
 
 namespace tests {
@@ -19,5 +20,9 @@ namespace tests {
         sch.addNodeToGlobalSet();
 
         scheduler::getGlobalMessageBus().clear();
+
+        // Use an empty emulator user by default
+        unsetEmulatorUser();
+        setEmulatorUser("tester");
     }
 }
