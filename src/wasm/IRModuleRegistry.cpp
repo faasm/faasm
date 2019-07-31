@@ -1,6 +1,5 @@
 #include "IRModuleRegistry.h"
 
-#include <util/func.h>
 #include <util/locks.h>
 
 #include <WAVM/IR/Module.h>
@@ -9,6 +8,7 @@
 #include <WAVM/WASTParse/WASTParse.h>
 
 #include <wasm/FunctionLoader.h>
+#include <util/func.h>
 
 using namespace WAVM;
 
@@ -22,41 +22,41 @@ namespace wasm {
         return r;
     }
 
-    IR::Module &IRModuleRegistry::getMainModule(const std::string &user, const std::string &func) {
-        message::Message msg = util::messageFactory(user, func);
-        return this->getMainModule(msg);
+    std::string getModuleKey(const std::string &user, const std::string &func, const std::string &path) {
+        std::string key = user + "_" + func + "_" + path;
+        return key;
     }
 
-    Runtime::ModuleRef &IRModuleRegistry::getCompiledModule(const std::string &user, const std::string &func) {
-        message::Message msg = util::messageFactory(user, func);
-        return this->getCompiledModule(msg);
+    IR::Module &IRModuleRegistry::getModule(const std::string &user, const std::string &func,
+                                            const std::string &sharedLibraryPath) {
+        if (sharedLibraryPath.empty()) {
+            return getMainModule(user, func);
+        } else {
+            return getSharedModule(user, func, sharedLibraryPath);
+        }
     }
 
-    Runtime::ModuleRef &IRModuleRegistry::getCompiledModule(const message::Message &msg) {
-        const std::string key = util::funcToString(msg);
-        return compiledModuleMap[key];
+    Runtime::ModuleRef IRModuleRegistry::getCompiledModule(const std::string &user, const std::string &func,
+                                                           const std::string &sharedLibraryPath) {
+        if (sharedLibraryPath.empty()) {
+            return getCompiledMainModule(user, func);
+        } else {
+            return getCompiledSharedModule(user, func, sharedLibraryPath);
+        }
     }
 
-    Runtime::ModuleRef &IRModuleRegistry::getCompiledSharedModule(const std::string &user, const std::string &func, const std::string &path) {
-        return compiledModuleMap[path];
-    }
+    Runtime::ModuleRef IRModuleRegistry::getCompiledMainModule(const std::string &user, const std::string &func) {
+        const std::string key = getModuleKey(user, func, "");
 
-    IR::Module &IRModuleRegistry::getMainModule(const message::Message &msg) {
-        // TODO - thread safe?
-        const std::string key = util::funcToString(msg);
-        IR::Module &module = moduleMap[key];
-
-        // Check if initialised
-        if (module.exports.empty()) {
-            // Get lock and check again
+        if (compiledModuleMap.count(key) == 0) {
             util::UniqueLock registryLock(registryMutex);
-            if (module.exports.empty()) {
-                // Do initialisation
-                wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
-                std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionBytes(msg);
-                std::vector<uint8_t> objectFileBytes = functionLoader.loadFunctionObjectBytes(msg);
+            if (compiledModuleMap.count(key) == 0) {
+                IR::Module &module = moduleMap[key];
 
-                this->initialiseMainModule(module, wasmBytes, objectFileBytes);
+                wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
+
+                message::Message msg = util::messageFactory(user, func);
+                std::vector<uint8_t> objectFileBytes = functionLoader.loadFunctionObjectBytes(msg);
 
                 if (!objectFileBytes.empty()) {
                     compiledModuleMap[key] = Runtime::loadPrecompiledModule(module, objectFileBytes);
@@ -66,38 +66,77 @@ namespace wasm {
             }
         }
 
-        return module;
+        return compiledModuleMap[key];
     }
 
-    IR::Module &IRModuleRegistry::getSharedModule(const std::string &user, const std::string &func, const std::string &path) {
-        IR::Module &mainModule = this->getMainModule(user, func);
-        std::string key = user + "_" + func + "__" + path;
-        IR::Module &module = moduleMap[key];
+    Runtime::ModuleRef IRModuleRegistry::getCompiledSharedModule(
+            const std::string &user, const std::string &func,
+            const std::string &path) {
+        std::string key = getModuleKey(user, func, path);
 
-        // Check if initialised
-        if (module.exports.empty()) {
-            // Get lock and check again
+        if (compiledModuleMap.count(key) == 0) {
             util::UniqueLock registryLock(registryMutex);
-            if (module.exports.empty()) {
+            if (compiledModuleMap.count(key) == 0) {
+                IR::Module &module = moduleMap[key];
+
                 wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
-
-                // Get path to where machine code should be
                 std::string objFilePath = path + SHARED_OBJ_EXT;
-                std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionBytes(path);
-                std::vector<uint8_t> objectBytes = functionLoader.loadFunctionObjectBytes(objFilePath);
 
-                this->initialiseSharedModule(module,mainModule, wasmBytes, objectBytes);
+                std::vector<uint8_t> objectBytes = functionLoader.loadFileBytes(objFilePath);
                 compiledModuleMap[key] = Runtime::loadPrecompiledModule(module, objectBytes);
             }
         }
 
-        return module;
+        return compiledModuleMap[key];
+    }
+
+    IR::Module &IRModuleRegistry::getMainModule(const std::string &user, const std::string &func) {
+        const std::string key = getModuleKey(user, func, "");
+
+        // Check if initialised
+        if (moduleMap.count(key) == 0) {
+            // Get lock and check again
+            util::UniqueLock registryLock(registryMutex);
+            if (moduleMap.count(key) == 0) {
+                wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
+
+                message::Message msg = util::messageFactory(user, func);
+                std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionBytes(msg);
+
+                IR::Module &module = moduleMap[key];
+                this->initialiseMainModule(module, wasmBytes);
+            }
+        }
+
+        return moduleMap[key];
+    }
+
+    IR::Module &IRModuleRegistry::getSharedModule(
+            const std::string &user, const std::string &func, const std::string &path
+    ) {
+        std::string key = getModuleKey(user, func, path);
+
+        // Check if initialised
+        if (moduleMap.count(key) == 0) {
+            // Get lock and check again
+            util::UniqueLock registryLock(registryMutex);
+            if (moduleMap.count(key) == 0) {
+                wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
+
+                IR::Module &mainModule = this->getMainModule(user, func);
+
+                std::vector<uint8_t> wasmBytes = functionLoader.loadFileBytes(path);
+                IR::Module &module = moduleMap[key];
+                this->initialiseSharedModule(module, mainModule, wasmBytes);
+            }
+        }
+
+        return moduleMap[key];
     }
 
     void IRModuleRegistry::initialiseMainModule(
             IR::Module &module,
-            const std::vector<uint8_t> &wasmBytes,
-            const std::vector<uint8_t> &objBytes
+            const std::vector<uint8_t> &wasmBytes
     ) {
         wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
 
@@ -119,9 +158,8 @@ namespace wasm {
     void IRModuleRegistry::initialiseSharedModule(
             IR::Module &module,
             IR::Module &mainModule,
-            const std::vector<uint8_t> &wasmBytes,
-            const std::vector<uint8_t> &objBytes
-    ){
+            const std::vector<uint8_t> &wasmBytes
+    ) {
         WASM::loadBinaryModule(wasmBytes.data(), wasmBytes.size(), module);
 
         // Check that the module isn't expecting to create any memories or tables

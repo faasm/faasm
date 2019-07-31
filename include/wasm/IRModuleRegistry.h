@@ -16,32 +16,29 @@ using namespace WAVM;
 namespace wasm {
     class IRModuleRegistry {
     public:
+        IR::Module &getModule(const std::string &user, const std::string &func, const std::string &sharedLibraryPath);
+
+        Runtime::ModuleRef getCompiledModule(const std::string &user, const std::string &func, const std::string &sharedLibraryPath);
+
+    private:
         IR::Module &getMainModule(const std::string &user, const std::string &func);
-
-        IR::Module &getMainModule(const message::Message &msg);
-
-        Runtime::ModuleRef &getCompiledModule(const std::string &user, const std::string &func);
-
-        Runtime::ModuleRef &getCompiledModule(const message::Message &msg);
 
         IR::Module &getSharedModule(const std::string &user, const std::string &func, const std::string &path);
 
-        Runtime::ModuleRef &getCompiledSharedModule(const std::string &user, const std::string &func, const std::string &path);
+        Runtime::ModuleRef getCompiledMainModule(const std::string &user, const std::string &func);
 
-    private:
+        Runtime::ModuleRef getCompiledSharedModule(const std::string &user, const std::string &func, const std::string &path);
+
         void initialiseMainModule(
                 IR::Module &module,
-                const std::vector<uint8_t> &wasmBytes,
-                const std::vector<uint8_t> &objBytes
+                const std::vector<uint8_t> &wasmBytes
         );
 
         void initialiseSharedModule(
                 IR::Module &module,
                 IR::Module &mainModule,
-                const std::vector<uint8_t> &wasmBytes,
-                const std::vector<uint8_t> &objBytes
+                const std::vector<uint8_t> &wasmBytes
         );
-
     };
 
     IRModuleRegistry &getIRModuleRegistry();

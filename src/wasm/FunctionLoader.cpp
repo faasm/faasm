@@ -34,7 +34,7 @@ namespace wasm {
     }
 
     void FunctionLoader::compileToObjectFile(const std::string &inputPath, const std::string &outputPath) {
-        std::vector<uint8_t> bytes = this->loadFunctionBytes(inputPath);
+        std::vector<uint8_t> bytes = this->loadFileBytes(inputPath);
 
         std::vector<uint8_t> objBytes = this->doCompile(bytes);
 

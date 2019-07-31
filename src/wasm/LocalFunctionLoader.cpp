@@ -21,10 +21,10 @@ namespace wasm {
 
     std::vector<uint8_t> LocalFunctionLoader::loadFunctionBytes(const message::Message &msg) {
         std::string filePath = util::getFunctionFile(msg);
-        return this->loadFunctionObjectBytes(filePath);
+        return this->loadFileBytes(filePath);
     }
 
-    std::vector<uint8_t> LocalFunctionLoader::loadFunctionBytes(const std::string &path) {
+    std::vector<uint8_t> LocalFunctionLoader::loadFileBytes(const std::string &path) {
         checkFileExists(path);
         std::vector<uint8_t> fileBytes = util::readFileToBytes(path);
         return fileBytes;
@@ -32,13 +32,7 @@ namespace wasm {
 
     std::vector<uint8_t> LocalFunctionLoader::loadFunctionObjectBytes(const message::Message &msg) {
         std::string objectFilePath = util::getFunctionObjectFile(msg);
-        return this->loadFunctionObjectBytes(objectFilePath);
-    }
-
-    std::vector<uint8_t> LocalFunctionLoader::loadFunctionObjectBytes(const std::string &path) {
-        checkFileExists(path);
-        std::vector<uint8_t> bytes = util::readFileToBytes(path);
-        return bytes;
+        return this->loadFileBytes(objectFilePath);
     }
 
     std::vector<uint8_t> LocalFunctionLoader::loadPythonFunction(const message::Message &msg) {

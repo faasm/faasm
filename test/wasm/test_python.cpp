@@ -3,6 +3,7 @@
 #include <util/config.h>
 
 #include <wasm/WasmModule.h>
+#include <util/func.h>
 
 namespace tests {
     TEST_CASE("Test python conformance", "[wasm]") {
@@ -18,9 +19,7 @@ namespace tests {
             funcName = "numpy_test.py";
         }
 
-        message::Message call;
-        call.set_user("python");
-        call.set_function("py_func");
+        message::Message call = util::messageFactory("python", "py_func");
         call.set_inputdata(funcName);
 
         wasm::WasmModule module;

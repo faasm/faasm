@@ -12,11 +12,9 @@ namespace wasm {
     public:
         virtual std::vector<uint8_t> loadFunctionBytes(const message::Message &msg) = 0;
 
-        virtual std::vector<uint8_t> loadFunctionBytes(const std::string &path) = 0;
+        virtual std::vector<uint8_t> loadFileBytes(const std::string &path) = 0;
 
         virtual std::vector<uint8_t> loadFunctionObjectBytes(const message::Message &msg) = 0;
-
-        virtual std::vector<uint8_t> loadFunctionObjectBytes(const std::string &path) = 0;
 
         virtual std::vector<uint8_t> loadPythonFunction(const message::Message &msg) = 0;
 

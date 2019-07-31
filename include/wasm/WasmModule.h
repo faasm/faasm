@@ -140,7 +140,6 @@ namespace wasm {
         void addModuleToGOT(IR::Module &mod, bool isMainModule);
 
         Runtime::ModuleInstance *createModuleInstance(
-                IR::Module &irModule,
                 const std::string &name,
                 const std::string &sharedModulePath
         );

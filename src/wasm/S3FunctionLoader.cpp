@@ -10,12 +10,12 @@ namespace wasm {
 
     std::vector<uint8_t> S3FunctionLoader::loadFunctionBytes(const message::Message &msg) {
         const std::string key = util::getFunctionKey(msg);
-        return this->loadFunctionBytes(key);
+        return this->loadFileBytes(key);
     }
 
-    std::vector<uint8_t> S3FunctionLoader::loadFunctionBytes(const std::string &path) {
+    std::vector<uint8_t> S3FunctionLoader::loadFileBytes(const std::string &path) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Loading function bytes from {}/{}", conf.bucketName, path);
+        logger->debug("Loading bytes from {}/{}", conf.bucketName, path);
 
         const std::vector<uint8_t> bytes = s3.getKeyBytes(conf.bucketName, path);
 
@@ -24,15 +24,7 @@ namespace wasm {
 
     std::vector<uint8_t> S3FunctionLoader::loadFunctionObjectBytes(const message::Message &msg) {
         const std::string key = util::getFunctionObjectKey(msg);
-        return this->loadFunctionObjectBytes(key);
-    }
-
-    std::vector<uint8_t> S3FunctionLoader::loadFunctionObjectBytes(const std::string &path) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Loading object bytes from {}/{}", conf.bucketName, path);
-
-        const std::vector<uint8_t> bytes = s3.getKeyBytes(conf.bucketName, path);
-        return bytes;
+        return this->loadFileBytes(key);
     }
 
     std::vector<uint8_t> S3FunctionLoader::loadPythonFunction(const message::Message &msg) {

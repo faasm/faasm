@@ -180,8 +180,7 @@ namespace wasm {
         }
 
         // Create the module instance
-        IR::Module &module = wasm::getIRModuleRegistry().getMainModule(msg);
-        moduleInstance = this->createModuleInstance(module, util::funcToString(msgCopy), "");
+        moduleInstance = this->createModuleInstance(util::funcToString(msgCopy), "");
 
         // Extract the module's exported function
         std::string entryFunc = "main";
@@ -195,16 +194,16 @@ namespace wasm {
     }
 
     Runtime::ModuleInstance *
-    WasmModule::createModuleInstance(IR::Module &irModule, const std::string &name,
-                                     const std::string &sharedModulePath) {
+    WasmModule::createModuleInstance(const std::string &name, const std::string &sharedModulePath) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        Runtime::ModuleRef compiledModule;
 
-        if (sharedModulePath.empty()) {
+        IRModuleRegistry &moduleRegistry = wasm::getIRModuleRegistry();
+        IR::Module &irModule = moduleRegistry.getModule(this->boundUser, this->boundFunction, sharedModulePath);
+
+        bool isMainModule = sharedModulePath.empty();
+        if (isMainModule) {
             // Set up intrinsics
             envModule = Intrinsics::instantiateModule(compartment, {INTRINSIC_MODULE_REF(env)}, "env");
-
-            compiledModule = wasm::getIRModuleRegistry().getCompiledModule(this->boundUser, this->boundFunction);
         } else {
             // Create a new region in the default memory
             // Give the module a stack region just at the bottom of the empty region (which will grow down)
@@ -231,13 +230,9 @@ namespace wasm {
                           this->nextTableBase,
                           newTableElems
             );
-
-            compiledModule = wasm::getIRModuleRegistry().getCompiledSharedModule(this->boundUser, this->boundFunction,
-                                                                                 sharedModulePath);
         }
 
         // Add module to GOT before linking
-        bool isMainModule = !sharedModulePath.empty();
         addModuleToGOT(irModule, isMainModule);
 
         // Do the linking
@@ -247,6 +242,8 @@ namespace wasm {
             throw std::runtime_error("Failed linking module");
         }
 
+        Runtime::ModuleRef compiledModule = moduleRegistry.getCompiledModule(this->boundUser, this->boundFunction,
+                                                                             sharedModulePath);
         Runtime::ModuleInstance *instance = instantiateModule(
                 compartment,
                 compiledModule,
@@ -297,15 +294,15 @@ namespace wasm {
             return dynamicPathToHandleMap[path];
         }
 
-        IR::Module sharedModule = wasm::getIRModuleRegistry().getSharedModule(this->boundUser, this->boundFunction,
-                                                                              path);
 
         // Note, must start handles at 2, otherwise dlopen can see it as an error
         int nextHandle = 2 + dynamicModuleCount;
         std::string name = "handle_" + std::to_string(nextHandle);
 
         // Instantiate the shared module
-        Runtime::ModuleInstance *mod = createModuleInstance(sharedModule, name, path);
+        IRModuleRegistry &moduleRegistry = wasm::getIRModuleRegistry();
+        IR::Module sharedModule = moduleRegistry.getModule(this->boundUser, this->boundFunction, path);
+        Runtime::ModuleInstance *mod = createModuleInstance(name, path);
 
         // Call the wasm constructor function. This allows the module to perform any relevant initialisation
         Runtime::Function *wasmCtorsFunction = asFunctionNullable(getInstanceExport(mod, "__wasm_call_ctors"));
@@ -510,7 +507,8 @@ namespace wasm {
                       initialMemorySize, initialMemoryPages);
 
         // The stack top variable should be the first global
-        IR::Module &mainModule = wasm::getIRModuleRegistry().getMainModule(msg);
+        IRModuleRegistry &moduleRegistry = wasm::getIRModuleRegistry();
+        IR::Module &mainModule = moduleRegistry.getModule(msg.user(), msg.function(), "");
         IR::GlobalDef stackDef = mainModule.globals.getDef(0);
         if (!stackDef.type.isMutable) {
             throw std::runtime_error("Found immutable stack top");
@@ -749,7 +747,7 @@ namespace wasm {
     std::map<std::string, std::string> WasmModule::buildDisassemblyMap() {
         std::map<std::string, std::string> output;
 
-        IR::Module &module = wasm::getIRModuleRegistry().getMainModule(this->boundUser, this->boundFunction);
+        IR::Module &module = wasm::getIRModuleRegistry().getModule(this->boundUser, this->boundFunction, "");
 
         IR::DisassemblyNames disassemblyNames;
         getDisassemblyNames(module, disassemblyNames);
