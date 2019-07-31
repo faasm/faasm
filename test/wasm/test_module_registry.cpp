@@ -27,16 +27,16 @@ namespace tests {
         message::Message msgB = util::messageFactory(user, funcB);
 
         // Get once via both means
-        IR::Module &moduleRefA1 = registry.getModule(user, funcA, "");
-        Runtime::ModuleRef objRefA1 = registry.getCompiledModule(user, funcA, "");
-        IR::Module &moduleRefB1 = registry.getModule(user, funcB, "");
-        Runtime::ModuleRef objRefB1 = registry.getCompiledModule(user, funcB, "");
+        IR::Module &moduleRefA1 = registry.getMainModule(user, funcA);
+        Runtime::ModuleRef objRefA1 = registry.getCompiledMainModule(user, funcA);
+        IR::Module &moduleRefB1 = registry.getMainModule(user, funcB);
+        Runtime::ModuleRef objRefB1 = registry.getCompiledMainModule(user, funcB);
 
         // And again
-        IR::Module &moduleRefA2 = registry.getModule(user, funcA, "");
-        Runtime::ModuleRef objRefA2 = registry.getCompiledModule(user, funcA, "");
-        IR::Module &moduleRefB2 = registry.getModule(user, funcB, "");
-        Runtime::ModuleRef objRefB2 = registry.getCompiledModule(user, funcB, "");
+        IR::Module &moduleRefA2 = registry.getMainModule(user, funcA);
+        Runtime::ModuleRef objRefA2 = registry.getCompiledMainModule(user, funcA);
+        IR::Module &moduleRefB2 = registry.getMainModule(user, funcB);
+        Runtime::ModuleRef objRefB2 = registry.getCompiledMainModule(user, funcB);
 
         // Sanity check the modules
         REQUIRE(!moduleRefA1.exports.empty());
@@ -72,25 +72,20 @@ namespace tests {
         std::string pathB = "/usr/local/faasm/runtime_root/lib/python3.7/site-packages/numpy/core/umath.so";
 
         // Once
-        IR::Module &refA1 = registry.getModule(user, func, pathA);
-        Runtime::ModuleRef objRefA1 = registry.getCompiledModule(user, func, pathA);
-        IR::Module &refB1 = registry.getModule(user, func, pathB);
-        Runtime::ModuleRef objRefB1 = registry.getCompiledModule(user, func, pathB);
+        IR::Module &refA1 = registry.getSharedModule(pathA);
+        Runtime::ModuleRef objRefA1 = registry.getCompiledSharedModule(pathA);
+        IR::Module &refB1 = registry.getSharedModule(pathB);
+        Runtime::ModuleRef objRefB1 = registry.getCompiledSharedModule(pathB);
 
         // Again
-        IR::Module &refA2 = registry.getModule(user, func, pathA);
-        Runtime::ModuleRef objRefA2 = registry.getCompiledModule(user, func, pathA);
-        IR::Module &refB2 = registry.getModule(user, func, pathB);
-        Runtime::ModuleRef objRefB2 = registry.getCompiledModule(user, func, pathB);
+        IR::Module &refA2 = registry.getSharedModule(pathA);
+        Runtime::ModuleRef objRefA2 = registry.getCompiledSharedModule(pathA);
+        IR::Module &refB2 = registry.getSharedModule(pathB);
+        Runtime::ModuleRef objRefB2 = registry.getCompiledSharedModule(pathB);
 
         // Sanity checks
         REQUIRE(!refA1.exports.empty());
         REQUIRE(!refB1.exports.empty());
-
-        // Check tables are set up
-        IR::Module &mainModule = registry.getModule(user, func, "");
-        REQUIRE(refA1.tables.imports[0].type.size.min == mainModule.tables.defs[0].type.size.min);
-        REQUIRE(refA1.tables.imports[0].type.size.max == mainModule.tables.defs[0].type.size.max);
 
         // Check references are equal
         REQUIRE(std::addressof(refA1) == std::addressof(refA2));

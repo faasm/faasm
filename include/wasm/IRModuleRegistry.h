@@ -18,22 +18,19 @@ using namespace WAVM;
 namespace wasm {
     class IRModuleRegistry {
     public:
-        IR::Module &getModule(const std::string &user, const std::string &func, const std::string &sharedLibraryPath);
+        IR::Module &getModule(const std::string &user, const std::string &func, const std::string &path);
 
-        Runtime::ModuleRef getCompiledModule(const std::string &user, const std::string &func, const std::string &sharedLibraryPath);
+        IR::Module &getMainModule(const std::string &user, const std::string &func);
 
+        IR::Module &getSharedModule(const std::string &path);
+
+        Runtime::ModuleRef getCompiledMainModule(const std::string &user, const std::string &func);
+
+        Runtime::ModuleRef getCompiledSharedModule(const std::string &path);
     private:
         std::mutex registryMutex;
         std::unordered_map<std::string, IR::Module> moduleMap;
         std::unordered_map<std::string, Runtime::ModuleRef> compiledModuleMap;
-
-        IR::Module &getMainModule(const std::string &user, const std::string &func);
-
-        IR::Module &getSharedModule(const std::string &user, const std::string &func, const std::string &path);
-
-        Runtime::ModuleRef getCompiledMainModule(const std::string &user, const std::string &func);
-
-        Runtime::ModuleRef getCompiledSharedModule(const std::string &user, const std::string &func, const std::string &path);
     };
 
     IRModuleRegistry &getIRModuleRegistry();

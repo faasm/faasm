@@ -2,8 +2,6 @@
 
 #include <WAVM/IR/Module.h>
 #include <WAVM/Inline/BasicTypes.h>
-#include <WAVM/Inline/CLI.h>
-#include <WAVM/Inline/Errors.h>
 #include <WAVM/Inline/Serialization.h>
 
 #include <WAVM/Runtime/Runtime.h>
@@ -11,6 +9,7 @@
 #include <WAVM/WASTParse/WASTParse.h>
 
 #include <util/config.h>
+#include <util/func.h>
 
 using namespace WAVM;
 
@@ -28,6 +27,11 @@ namespace wasm {
     void FunctionLoader::compileToObjectFile(message::Message &msg) {
         std::vector<uint8_t> bytes = this->loadFunctionBytes(msg);
 
+        if(bytes.empty()) {
+            const std::string funcStr = util::funcToString(msg);
+            throw std::runtime_error("Loaded empty bytes for " + funcStr);
+        }
+        
         std::vector<uint8_t> objBytes = this->doCompile(bytes);
 
         this->uploadObjectBytes(msg, objBytes);
