@@ -555,6 +555,7 @@ namespace wasm {
         catch (Runtime::Exception *ex) {
             logger->error("Runtime exception: {}", Runtime::describeException(ex).c_str());
             Runtime::destroyException(ex);
+            exitCode = 1;
         }
 
         // Clean up any open fds
