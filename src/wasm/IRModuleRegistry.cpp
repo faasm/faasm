@@ -104,7 +104,18 @@ namespace wasm {
                 std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionBytes(msg);
 
                 IR::Module &module = moduleMap[key];
-                this->initialiseMainModule(module, wasmBytes);
+
+                if (functionLoader.isWasm(wasmBytes)) {
+                    WASM::loadBinaryModule(wasmBytes.data(), wasmBytes.size(), module);
+                } else {
+                    std::vector<WAST::Error> parseErrors;
+                    WAST::parseModule((const char *) wasmBytes.data(), wasmBytes.size(), module, parseErrors);
+                    WAST::reportParseErrors("wast_file", parseErrors);
+                }
+
+                // Force maximum memory and table size
+                module.memories.defs[0].type.size.max = (U64) MAX_MEMORY_PAGES;
+                module.tables.defs[0].type.size.max = (U64) MAX_TABLE_SIZE;
             }
         }
 
@@ -124,55 +135,26 @@ namespace wasm {
                 wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
 
                 IR::Module &mainModule = this->getMainModule(user, func);
-
                 std::vector<uint8_t> wasmBytes = functionLoader.loadFileBytes(path);
+
                 IR::Module &module = moduleMap[key];
-                this->initialiseSharedModule(module, mainModule, wasmBytes);
+                WASM::loadBinaryModule(wasmBytes.data(), wasmBytes.size(), module);
+
+                // Check that the module isn't expecting to create any memories or tables
+                if (!module.tables.defs.empty()) {
+                    throw std::runtime_error("Dynamic module trying to define tables");
+                }
+
+                if (!module.memories.defs.empty()) {
+                    throw std::runtime_error("Dynamic module trying to define memories");
+                }
+
+                // Now force the incoming dynamic module to accept the table from the main module
+                module.tables.imports[0].type.size.min = (U64) mainModule.tables.defs[0].type.size.min;
+                module.tables.imports[0].type.size.max = (U64) mainModule.tables.defs[0].type.size.max;
             }
         }
 
         return moduleMap[key];
-    }
-
-    void IRModuleRegistry::initialiseMainModule(
-            IR::Module &module,
-            const std::vector<uint8_t> &wasmBytes
-    ) {
-        wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
-
-        if (functionLoader.isWasm(wasmBytes)) {
-            WASM::loadBinaryModule(wasmBytes.data(), wasmBytes.size(), module);
-        } else {
-            std::vector<WAST::Error> parseErrors;
-            WAST::parseModule((const char *) wasmBytes.data(), wasmBytes.size(), module, parseErrors);
-            WAST::reportParseErrors("wast_file", parseErrors);
-        }
-
-        // Force memory sizes
-        module.memories.defs[0].type.size.max = (U64) MAX_MEMORY_PAGES;
-
-        // Note, we don't want to mess with the min table size here, just give it room to expand if need be
-        module.tables.defs[0].type.size.max = (U64) MAX_TABLE_SIZE;
-    }
-
-    void IRModuleRegistry::initialiseSharedModule(
-            IR::Module &module,
-            IR::Module &mainModule,
-            const std::vector<uint8_t> &wasmBytes
-    ) {
-        WASM::loadBinaryModule(wasmBytes.data(), wasmBytes.size(), module);
-
-        // Check that the module isn't expecting to create any memories or tables
-        if (!module.tables.defs.empty()) {
-            throw std::runtime_error("Dynamic module trying to define tables");
-        }
-
-        if (!module.memories.defs.empty()) {
-            throw std::runtime_error("Dynamic module trying to define memories");
-        }
-
-        // Now force the incoming dynamic module to accept the table from the main module
-        module.tables.imports[0].type.size.min = (U64) mainModule.tables.defs[0].type.size.min;
-        module.tables.imports[0].type.size.max = (U64) mainModule.tables.defs[0].type.size.max;
     }
 }
