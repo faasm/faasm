@@ -35,6 +35,7 @@ namespace tests {
         funcCall.set_outputdata(outputData.data(), 50);
 
         funcCall.set_isasync(true);
+        funcCall.set_ispython(true);
 
         REQUIRE(funcCall.type() == message::Message_MessageType_CALL);
         REQUIRE(user == funcCall.user());
@@ -50,7 +51,9 @@ namespace tests {
         REQUIRE(user == newFuncCall.user());
         REQUIRE(func == newFuncCall.function());
         REQUIRE(resultKey == newFuncCall.resultkey());
+
         REQUIRE(newFuncCall.isasync());
+        REQUIRE(newFuncCall.ispython());
 
         // Check input/ output data
         const std::string actualStrInput = newFuncCall.inputdata();

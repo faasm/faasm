@@ -2,12 +2,10 @@
 
 #include <util/func.h>
 #include <util/locks.h>
-#include <util/logging.h>
 
 #include <WAVM/IR/Module.h>
 #include <WAVM/WASM/WASM.h>
 #include <WAVM/IR/Types.h>
-#include <WAVM/IR/Module.h>
 #include <WAVM/WASTParse/WASTParse.h>
 
 #include <wasm/FunctionLoader.h>

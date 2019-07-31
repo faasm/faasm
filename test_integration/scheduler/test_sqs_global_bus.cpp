@@ -5,6 +5,7 @@
 #include <util/config.h>
 #include <scheduler/Scheduler.h>
 #include <scheduler/AWSMessageBus.h>
+#include "../../test/utils.h"
 
 using namespace awswrapper;
 
@@ -44,10 +45,7 @@ namespace tests {
                 actual = bus.nextMessage();
             }
 
-            REQUIRE(actual.user() == msg.user());
-            REQUIRE(actual.function() == msg.function());
-            REQUIRE(actual.inputdata() == msg.inputdata());
-            REQUIRE(actual.isasync() == msg.isasync());
+            checkMessageEquality(actual, msg);
         }
     }
 }
