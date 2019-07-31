@@ -195,9 +195,9 @@ namespace wasm {
     }
 
     Runtime::ModuleInstance *
-    WasmModule::createModuleInstance(IR::Module &irModule, const std::string &name, const std::string &sharedModulePath) {
+    WasmModule::createModuleInstance(IR::Module &irModule, const std::string &name,
+                                     const std::string &sharedModulePath) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        IR::Module &mainModule = wasm::getIRModuleRegistry().getMainModule(this->boundUser, this->boundFunction);
         Runtime::ModuleRef compiledModule;
 
         if (sharedModulePath.empty()) {
@@ -206,15 +206,6 @@ namespace wasm {
 
             compiledModule = wasm::getIRModuleRegistry().getCompiledModule(this->boundUser, this->boundFunction);
         } else {
-            // Check that the module isn't expecting to create any memories or tables
-            if (!irModule.tables.defs.empty()) {
-                throw std::runtime_error("Dynamic module trying to define tables");
-            }
-
-            if (!irModule.memories.defs.empty()) {
-                throw std::runtime_error("Dynamic module trying to define memories");
-            }
-
             // Create a new region in the default memory
             // Give the module a stack region just at the bottom of the empty region (which will grow down)
             // Memory sits above that (and grows up).
@@ -241,11 +232,8 @@ namespace wasm {
                           newTableElems
             );
 
-            // Now force the incoming dynamic module to accept the table from the main module
-            irModule.tables.imports[0].type.size.min = (U64) mainModule.tables.defs[0].type.size.min;
-            irModule.tables.imports[0].type.size.max = (U64) mainModule.tables.defs[0].type.size.max;
-
-            compiledModule = wasm::getIRModuleRegistry().getCompiledSharedModule(sharedModulePath);
+            compiledModule = wasm::getIRModuleRegistry().getCompiledSharedModule(this->boundUser, this->boundFunction,
+                                                                                 sharedModulePath);
         }
 
         // Add module to GOT before linking
@@ -309,7 +297,8 @@ namespace wasm {
             return dynamicPathToHandleMap[path];
         }
 
-        IR::Module sharedModule = wasm::getIRModuleRegistry().getSharedModule(path);
+        IR::Module sharedModule = wasm::getIRModuleRegistry().getSharedModule(this->boundUser, this->boundFunction,
+                                                                              path);
 
         // Note, must start handles at 2, otherwise dlopen can see it as an error
         int nextHandle = 2 + dynamicModuleCount;

@@ -24,16 +24,22 @@ namespace wasm {
 
         Runtime::ModuleRef &getCompiledModule(const message::Message &msg);
 
-        IR::Module &getSharedModule(const std::string &path);
+        IR::Module &getSharedModule(const std::string &user, const std::string &func, const std::string &path);
 
-        Runtime::ModuleRef &getCompiledSharedModule(const std::string &path);
+        Runtime::ModuleRef &getCompiledSharedModule(const std::string &user, const std::string &func, const std::string &path);
 
     private:
-        void initialiseIRModule(
+        void initialiseMainModule(
                 IR::Module &module,
                 const std::vector<uint8_t> &wasmBytes,
-                const std::vector<uint8_t> &objBytes,
-                bool isMainModule
+                const std::vector<uint8_t> &objBytes
+        );
+
+        void initialiseSharedModule(
+                IR::Module &module,
+                IR::Module &mainModule,
+                const std::vector<uint8_t> &wasmBytes,
+                const std::vector<uint8_t> &objBytes
         );
 
     };

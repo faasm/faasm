@@ -37,7 +37,7 @@ namespace wasm {
         return compiledModuleMap[key];
     }
 
-    Runtime::ModuleRef &IRModuleRegistry::getCompiledSharedModule(const std::string &path) {
+    Runtime::ModuleRef &IRModuleRegistry::getCompiledSharedModule(const std::string &user, const std::string &func, const std::string &path) {
         return compiledModuleMap[path];
     }
 
@@ -56,7 +56,7 @@ namespace wasm {
                 std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionBytes(msg);
                 std::vector<uint8_t> objectFileBytes = functionLoader.loadFunctionObjectBytes(msg);
 
-                this->initialiseIRModule(module, wasmBytes, objectFileBytes, true);
+                this->initialiseMainModule(module, wasmBytes, objectFileBytes);
 
                 if (!objectFileBytes.empty()) {
                     compiledModuleMap[key] = Runtime::loadPrecompiledModule(module, objectFileBytes);
@@ -69,8 +69,10 @@ namespace wasm {
         return module;
     }
 
-    IR::Module &IRModuleRegistry::getSharedModule(const std::string &path) {
-        IR::Module &module = moduleMap[path];
+    IR::Module &IRModuleRegistry::getSharedModule(const std::string &user, const std::string &func, const std::string &path) {
+        IR::Module &mainModule = this->getMainModule(user, func);
+        std::string key = user + "_" + func + "__" + path;
+        IR::Module &module = moduleMap[key];
 
         // Check if initialised
         if (module.exports.empty()) {
@@ -84,20 +86,18 @@ namespace wasm {
                 std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionBytes(path);
                 std::vector<uint8_t> objectBytes = functionLoader.loadFunctionObjectBytes(objFilePath);
 
-                this->initialiseIRModule(module, wasmBytes, objectBytes, false);
-
-                compiledModuleMap[path] = Runtime::loadPrecompiledModule(module, objectBytes);
+                this->initialiseSharedModule(module,mainModule, wasmBytes, objectBytes);
+                compiledModuleMap[key] = Runtime::loadPrecompiledModule(module, objectBytes);
             }
         }
 
         return module;
     }
 
-    void IRModuleRegistry::initialiseIRModule(
+    void IRModuleRegistry::initialiseMainModule(
             IR::Module &module,
             const std::vector<uint8_t> &wasmBytes,
-            const std::vector<uint8_t> &objBytes,
-            bool isMainModule
+            const std::vector<uint8_t> &objBytes
     ) {
         wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
 
@@ -109,12 +109,32 @@ namespace wasm {
             WAST::reportParseErrors("wast_file", parseErrors);
         }
 
-        if (isMainModule) {
-            // Force memory sizes
-            module.memories.defs[0].type.size.max = (U64) MAX_MEMORY_PAGES;
+        // Force memory sizes
+        module.memories.defs[0].type.size.max = (U64) MAX_MEMORY_PAGES;
 
-            // Note, we don't want to mess with the min table size here, just give it room to expand if need be
-            module.tables.defs[0].type.size.max = (U64) MAX_TABLE_SIZE;
+        // Note, we don't want to mess with the min table size here, just give it room to expand if need be
+        module.tables.defs[0].type.size.max = (U64) MAX_TABLE_SIZE;
+    }
+
+    void IRModuleRegistry::initialiseSharedModule(
+            IR::Module &module,
+            IR::Module &mainModule,
+            const std::vector<uint8_t> &wasmBytes,
+            const std::vector<uint8_t> &objBytes
+    ){
+        WASM::loadBinaryModule(wasmBytes.data(), wasmBytes.size(), module);
+
+        // Check that the module isn't expecting to create any memories or tables
+        if (!module.tables.defs.empty()) {
+            throw std::runtime_error("Dynamic module trying to define tables");
         }
+
+        if (!module.memories.defs.empty()) {
+            throw std::runtime_error("Dynamic module trying to define memories");
+        }
+
+        // Now force the incoming dynamic module to accept the table from the main module
+        module.tables.imports[0].type.size.min = (U64) mainModule.tables.defs[0].type.size.min;
+        module.tables.imports[0].type.size.max = (U64) mainModule.tables.defs[0].type.size.max;
     }
 }
