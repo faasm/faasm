@@ -229,10 +229,8 @@ namespace scheduler {
                 // Increment thread count here
                 threadCountMap[funcStr]++;
 
-                message::Message bindMsg;
+                message::Message bindMsg = util::messageFactory(msg.user(), msg.function());
                 bindMsg.set_type(message::Message_MessageType_BIND);
-                bindMsg.set_user(msg.user());
-                bindMsg.set_function(msg.function());
                 bindMsg.set_ispython(msg.ispython());
 
                 this->enqueueMessage(bindMsg);

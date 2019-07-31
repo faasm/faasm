@@ -206,7 +206,6 @@ namespace wasm {
 
             compiledModule = wasm::getIRModuleRegistry().getCompiledModule(this->boundUser, this->boundFunction);
         } else {
-
             // Check that the module isn't expecting to create any memories or tables
             if (!irModule.tables.defs.empty()) {
                 throw std::runtime_error("Dynamic module trying to define tables");

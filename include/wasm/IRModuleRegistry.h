@@ -31,7 +31,6 @@ namespace wasm {
     private:
         void initialiseIRModule(
                 IR::Module &module,
-                Runtime::ModuleRef &compiledModule,
                 const std::vector<uint8_t> &wasmBytes,
                 const std::vector<uint8_t> &objBytes,
                 bool isMainModule

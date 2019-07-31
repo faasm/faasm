@@ -23,18 +23,12 @@ namespace wasm {
     }
 
     IR::Module &IRModuleRegistry::getMainModule(const std::string &user, const std::string &func) {
-        message::Message msg;
-        msg.set_user(user);
-        msg.set_function(func);
-
+        message::Message msg = util::messageFactory(user, func);
         return this->getMainModule(msg);
     }
 
     Runtime::ModuleRef &IRModuleRegistry::getCompiledModule(const std::string &user, const std::string &func) {
-        message::Message msg;
-        msg.set_user(user);
-        msg.set_function(func);
-
+        message::Message msg = util::messageFactory(user, func);
         return this->getCompiledModule(msg);
     }
 
@@ -62,9 +56,13 @@ namespace wasm {
                 std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionBytes(msg);
                 std::vector<uint8_t> objectFileBytes = functionLoader.loadFunctionObjectBytes(msg);
 
-                Runtime::ModuleRef &compiledModule = compiledModuleMap[key];
-                
-                this->initialiseIRModule(module, compiledModule, wasmBytes, objectFileBytes, true);
+                this->initialiseIRModule(module, wasmBytes, objectFileBytes, true);
+
+                if (!objectFileBytes.empty()) {
+                    compiledModuleMap[key] = Runtime::loadPrecompiledModule(module, objectFileBytes);
+                } else {
+                    compiledModuleMap[key] = Runtime::compileModule(module);
+                }
             }
         }
 
@@ -79,15 +77,16 @@ namespace wasm {
             // Get lock and check again
             util::UniqueLock registryLock(registryMutex);
             if (module.exports.empty()) {
-                // Get path to where machine code should be
                 wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
+
+                // Get path to where machine code should be
                 std::string objFilePath = path + SHARED_OBJ_EXT;
                 std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionBytes(path);
                 std::vector<uint8_t> objectBytes = functionLoader.loadFunctionObjectBytes(objFilePath);
 
-                Runtime::ModuleRef &compiledModule = compiledModuleMap[path];
+                this->initialiseIRModule(module, wasmBytes, objectBytes, false);
 
-                this->initialiseIRModule(module, compiledModule, wasmBytes, objectBytes, false);
+                compiledModuleMap[path] = Runtime::loadPrecompiledModule(module, objectBytes);
             }
         }
 
@@ -96,7 +95,6 @@ namespace wasm {
 
     void IRModuleRegistry::initialiseIRModule(
             IR::Module &module,
-            Runtime::ModuleRef &compiledModule,
             const std::vector<uint8_t> &wasmBytes,
             const std::vector<uint8_t> &objBytes,
             bool isMainModule
@@ -117,12 +115,6 @@ namespace wasm {
 
             // Note, we don't want to mess with the min table size here, just give it room to expand if need be
             module.tables.defs[0].type.size.max = (U64) MAX_TABLE_SIZE;
-        }
-
-        if (!objBytes.empty()) {
-            compiledModule = Runtime::loadPrecompiledModule(module, objBytes);
-        } else {
-            compiledModule = Runtime::compileModule(module);
         }
     }
 }
