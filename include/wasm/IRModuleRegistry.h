@@ -1,7 +1,9 @@
 #pragma once
 
 #include <WAVM/Runtime/Intrinsics.h>
-#include <proto/faasm.pb.h>
+#include <WAVM/IR/Module.h>
+
+#include <mutex>
 
 // Note that page size in wasm is 64kiB
 // Note also that this initial memory must be big enough to include all data, stack and dynamic
@@ -21,6 +23,10 @@ namespace wasm {
         Runtime::ModuleRef getCompiledModule(const std::string &user, const std::string &func, const std::string &sharedLibraryPath);
 
     private:
+        std::mutex registryMutex;
+        std::unordered_map<std::string, IR::Module> moduleMap;
+        std::unordered_map<std::string, Runtime::ModuleRef> compiledModuleMap;
+
         IR::Module &getMainModule(const std::string &user, const std::string &func);
 
         IR::Module &getSharedModule(const std::string &user, const std::string &func, const std::string &path);
@@ -28,17 +34,6 @@ namespace wasm {
         Runtime::ModuleRef getCompiledMainModule(const std::string &user, const std::string &func);
 
         Runtime::ModuleRef getCompiledSharedModule(const std::string &user, const std::string &func, const std::string &path);
-
-        void initialiseMainModule(
-                IR::Module &module,
-                const std::vector<uint8_t> &wasmBytes
-        );
-
-        void initialiseSharedModule(
-                IR::Module &module,
-                IR::Module &mainModule,
-                const std::vector<uint8_t> &wasmBytes
-        );
     };
 
     IRModuleRegistry &getIRModuleRegistry();

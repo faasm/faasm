@@ -13,10 +13,6 @@
 using namespace WAVM;
 
 namespace wasm {
-    static std::mutex registryMutex;
-    static std::unordered_map<std::string, IR::Module> moduleMap;
-    static std::unordered_map<std::string, Runtime::ModuleRef> compiledModuleMap;
-
     IRModuleRegistry &getIRModuleRegistry() {
         static IRModuleRegistry r;
         return r;

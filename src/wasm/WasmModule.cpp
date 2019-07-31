@@ -204,6 +204,14 @@ namespace wasm {
         if (isMainModule) {
             // Set up intrinsics
             envModule = Intrinsics::instantiateModule(compartment, {INTRINSIC_MODULE_REF(env)}, "env");
+
+            // Make sure the stack top is as expected
+            IR::GlobalDef stackDef = irModule.globals.getDef(0);
+            if (!stackDef.type.isMutable) {
+                throw std::runtime_error("Found immutable stack top");
+            }
+
+            stackTop = stackDef.initializer.i32;
         } else {
             // Create a new region in the default memory
             // Give the module a stack region just at the bottom of the empty region (which will grow down)
@@ -300,8 +308,6 @@ namespace wasm {
         std::string name = "handle_" + std::to_string(nextHandle);
 
         // Instantiate the shared module
-        IRModuleRegistry &moduleRegistry = wasm::getIRModuleRegistry();
-        IR::Module sharedModule = moduleRegistry.getModule(this->boundUser, this->boundFunction, path);
         Runtime::ModuleInstance *mod = createModuleInstance(name, path);
 
         // Call the wasm constructor function. This allows the module to perform any relevant initialisation
@@ -505,16 +511,6 @@ namespace wasm {
         dataEnd = this->getGlobalI32("__data_end", context);
         logger->debug("heap_base = {}  data_end = {}  heap_top={} initial_pages={}", heapBase, dataEnd,
                       initialMemorySize, initialMemoryPages);
-
-        // The stack top variable should be the first global
-        IRModuleRegistry &moduleRegistry = wasm::getIRModuleRegistry();
-        IR::Module &mainModule = moduleRegistry.getModule(msg.user(), msg.function(), "");
-        IR::GlobalDef stackDef = mainModule.globals.getDef(0);
-        if (!stackDef.type.isMutable) {
-            throw std::runtime_error("Found immutable stack top");
-        }
-
-        stackTop = stackDef.initializer.i32;
 
         // Set up invoke arguments just below the top of the memory (i.e. at the top of the dynamic section)
         U32 argvStart = initialMemorySize - 20;
@@ -748,7 +744,8 @@ namespace wasm {
     std::map<std::string, std::string> WasmModule::buildDisassemblyMap() {
         std::map<std::string, std::string> output;
 
-        IR::Module &module = wasm::getIRModuleRegistry().getModule(this->boundUser, this->boundFunction, "");
+        IRModuleRegistry &moduleRegistry = wasm::getIRModuleRegistry();
+        IR::Module &module = moduleRegistry.getModule(this->boundUser, this->boundFunction, "");
 
         IR::DisassemblyNames disassemblyNames;
         getDisassemblyNames(module, disassemblyNames);

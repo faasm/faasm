@@ -1,10 +1,10 @@
 #include <catch/catch.hpp>
-#include <wasm/IRModuleRegistry.h>
 
 #include <util/bytes.h>
 #include <util/func.h>
-#include <WAVM/IR/Module.h>
 #include <util/files.h>
+
+#include <wasm/IRModuleRegistry.h>
 #include <wasm/FunctionLoader.h>
 
 namespace tests {
@@ -38,8 +38,11 @@ namespace tests {
         IR::Module &moduleRefB2 = registry.getModule(user, funcB, "");
         Runtime::ModuleRef objRefB2 = registry.getCompiledModule(user, funcB, "");
 
+        // Sanity check the modules
         REQUIRE(!moduleRefA1.exports.empty());
         REQUIRE(!moduleRefB1.exports.empty());
+        REQUIRE(moduleRefA1.memories.defs[0].type.size.max == MAX_MEMORY_PAGES);
+        REQUIRE(moduleRefA1.tables.defs[0].type.size.max == MAX_TABLE_SIZE);
 
         // Check references are equal
         REQUIRE(std::addressof(moduleRefA1) == std::addressof(moduleRefA2));
@@ -80,8 +83,14 @@ namespace tests {
         IR::Module &refB2 = registry.getModule(user, func, pathB);
         Runtime::ModuleRef objRefB2 = registry.getCompiledModule(user, func, pathB);
 
+        // Sanity checks
         REQUIRE(!refA1.exports.empty());
         REQUIRE(!refB1.exports.empty());
+
+        // Check tables are set up
+        IR::Module &mainModule = registry.getModule(user, func, "");
+        REQUIRE(refA1.tables.imports[0].type.size.min == mainModule.tables.defs[0].type.size.min);
+        REQUIRE(refA1.tables.imports[0].type.size.max == mainModule.tables.defs[0].type.size.max);
 
         // Check references are equal
         REQUIRE(std::addressof(refA1) == std::addressof(refA2));
