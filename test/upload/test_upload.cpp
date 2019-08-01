@@ -52,17 +52,17 @@ namespace tests {
     }
 
     TEST_CASE("Check upload overrides fileserver storage", "[upload]") {
-        util::setEnvVar("FUNCTION_STORAGE", "fileserver");
-
         util::SystemConfig &conf = util::getSystemConfig();
+        std::string original = util::setEnvVar("FUNCTION_STORAGE", "fileserver");
         conf.reset();
+        
         REQUIRE(conf.functionStorage == "fileserver");
 
         // Instantiate a server
         edge::UploadServer server;
         REQUIRE(conf.functionStorage == "local");
 
-        util::unsetEnvVar("FUNCTION_STORAGE");
+        util::setEnvVar("FUNCTION_STORAGE", original);
     }
     
     TEST_CASE("Upload tests", "[upload]") {

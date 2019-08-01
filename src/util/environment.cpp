@@ -17,8 +17,11 @@ namespace util {
         }
     }
 
-    void setEnvVar(const std::string &varName, const std::string &value) {
+    std::string setEnvVar(const std::string &varName, const std::string &value) {
+        std::string original = getEnvVar(varName, "");
         setenv(varName.c_str(), value.c_str(), 1);
+
+        return original;
     }
 
     void unsetEnvVar(const std::string &varName) {

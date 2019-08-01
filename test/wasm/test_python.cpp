@@ -30,4 +30,25 @@ namespace tests {
     TEST_CASE("Test numpy conformance", "[wasm]") {
         checkPythonFunction("numpy_test.py");
     }
+
+    TEST_CASE("Test repeated numpy execution", "[wasm]") {
+        util::SystemConfig &conf = util::getSystemConfig();
+        conf.unsafeMode = "on";
+
+        message::Message call = util::messageFactory("python", "py_func");
+        call.set_inputdata("numpy_test.py");
+
+        wasm::WasmModule module;
+        module.initialise();
+        module.bindToFunction(call);
+
+        int result = module.execute(call);
+        REQUIRE(result == 0);
+
+        int result1 = module.execute(call);
+        REQUIRE(result1 == 0);
+
+        int result2 = module.execute(call);
+        REQUIRE(result2 == 0);
+    }
 }

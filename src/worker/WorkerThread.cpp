@@ -92,11 +92,6 @@ namespace worker {
         // Set result
         logger->debug("Setting function result for {}", funcStr);
         globalBus.setFunctionResult(call, isSuccess);
-
-        // Restore the module memory after the execution
-        logger->debug("Restoring memory for {}", funcStr);
-        const std::string snapshotKey = util::snapshotKeyForFunction(funcStr);
-        module->restoreFullMemory(snapshotKey.c_str());
     }
 
     void WorkerThread::bindToFunction(const message::Message &msg) {
@@ -178,10 +173,6 @@ namespace worker {
 
         // Increment the execution count
         scheduler.incrementExecutingCount();
-
-        // Snapshot the memory
-        const std::string snapKey = util::snapshotKeyForFunction(funcStr);
-        module->snapshotFullMemory(snapKey.c_str());
 
         // Create and execute the module
         try {

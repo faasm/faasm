@@ -56,39 +56,39 @@ namespace tests {
     TEST_CASE("Test overriding system config initialisation", "[util]") {
         std::string originalHostType = getSystemConfig().hostType;
 
-        setEnvVar("THREADS_PER_WORKER", "50");
+        std::string threads = setEnvVar("THREADS_PER_WORKER", "50");
 
-        setEnvVar("HOST_TYPE", "magic");
-        setEnvVar("GLOBAL_MESSAGE_BUS", "blah");
-        setEnvVar("FUNCTION_STORAGE", "foobar");
-        setEnvVar("FILESERVER_URL", "www.foo.com");
-        setEnvVar("SERIALISATION", "proto");
-        setEnvVar("BUCKET_NAME", "foo-bucket");
-        setEnvVar("QUEUE_NAME", "dummy-queue");
-        setEnvVar("CGROUP_MODE", "off");
-        setEnvVar("NETNS_MODE", "on");
-        setEnvVar("AWS_LOG_LEVEL", "debug");
-        setEnvVar("UNSAFE_MODE", "on");
+        std::string hostType = setEnvVar("HOST_TYPE", "magic");
+        std::string messageBus = setEnvVar("GLOBAL_MESSAGE_BUS", "blah");
+        std::string funcStorage = setEnvVar("FUNCTION_STORAGE", "foobar");
+        std::string fileserver = setEnvVar("FILESERVER_URL", "www.foo.com");
+        std::string serialisation = setEnvVar("SERIALISATION", "proto");
+        std::string bucket = setEnvVar("BUCKET_NAME", "foo-bucket");
+        std::string queue = setEnvVar("QUEUE_NAME", "dummy-queue");
+        std::string cgMode = setEnvVar("CGROUP_MODE", "off");
+        std::string nsMode = setEnvVar("NETNS_MODE", "on");
+        std::string awsLog = setEnvVar("AWS_LOG_LEVEL", "debug");
+        std::string unsafe = setEnvVar("UNSAFE_MODE", "on");
 
-        setEnvVar("REDIS_STATE_HOST", "not-localhost");
-        setEnvVar("REDIS_QUEUE_HOST", "other-host");
-        setEnvVar("REDIS_PORT", "1234");
+        std::string redisState = setEnvVar("REDIS_STATE_HOST", "not-localhost");
+        std::string redisQueue =setEnvVar("REDIS_QUEUE_HOST", "other-host");
+        std::string redisPort =setEnvVar("REDIS_PORT", "1234");
 
-        setEnvVar("MAX_NODES", "15");
-        setEnvVar("NO_SCHEDULER", "1");
-        setEnvVar("PREWARM", "5");
-        setEnvVar("MAX_QUEUE_RATIO", "8888");
-        setEnvVar("MAX_WORKERS_PER_FUNCTION", "7777");
+        std::string maxNodes =setEnvVar("MAX_NODES", "15");
+        std::string noScheduler =setEnvVar("NO_SCHEDULER", "1");
+        std::string prewarm =setEnvVar("PREWARM", "5");
+        std::string queueRatio =setEnvVar("MAX_QUEUE_RATIO", "8888");
+        std::string workers =setEnvVar("MAX_WORKERS_PER_FUNCTION", "7777");
 
-        setEnvVar("GLOBAL_MESSAGE_TIMEOUT", "9876");
-        setEnvVar("BOUND_TIMEOUT", "6666");
-        setEnvVar("UNBOUND_TIMEOUT", "5555");
+        std::string globalTimeout =setEnvVar("GLOBAL_MESSAGE_TIMEOUT", "9876");
+        std::string boundTimeout =setEnvVar("BOUND_TIMEOUT", "6666");
+        std::string unboundTimeout =setEnvVar("UNBOUND_TIMEOUT", "5555");
 
-        setEnvVar("STATE_STALE_THRESHOLD", "4444");
-        setEnvVar("STATE_CLEAR_THRESHOLD", "3333");
-        setEnvVar("STATE_PUSH_INTERVAL", "2222");
-        setEnvVar("FULL_ASYNC", "1");
-        setEnvVar("FULL_SYNC", "12");
+        std::string staleThreshold =setEnvVar("STATE_STALE_THRESHOLD", "4444");
+        std::string clearThreshold =setEnvVar("STATE_CLEAR_THRESHOLD", "3333");
+        std::string pushInterval =setEnvVar("STATE_PUSH_INTERVAL", "2222");
+        std::string fullAsync =setEnvVar("FULL_ASYNC", "1");
+        std::string fullSync =setEnvVar("FULL_SYNC", "12");
 
         // Create new conf for test
         SystemConfig conf;
@@ -129,38 +129,38 @@ namespace tests {
         // Be careful with host type
         setEnvVar("HOST_TYPE", originalHostType);
 
-        unsetEnvVar("THREADS_PER_WORKER");
+        setEnvVar("THREADS_PER_WORKER", threads);
 
-        unsetEnvVar("GLOBAL_MESSAGE_BUS");
-        unsetEnvVar("FUNCTION_STORAGE");
-        unsetEnvVar("FILESERVER_URL");
-        unsetEnvVar("SERIALISATION");
-        unsetEnvVar("BUCKET_NAME");
-        unsetEnvVar("QUEUE_NAME");
-        unsetEnvVar("CGROUP_MODE");
-        unsetEnvVar("NETNS_MODE");
-        unsetEnvVar("AWS_LOG_LEVEL");
-        unsetEnvVar("UNSAFE_MODE");
+        setEnvVar("GLOBAL_MESSAGE_BUS", messageBus);
+        setEnvVar("FUNCTION_STORAGE", funcStorage);
+        setEnvVar("FILESERVER_URL", fileserver);
+        setEnvVar("SERIALISATION", serialisation);
+        setEnvVar("BUCKET_NAME", bucket);
+        setEnvVar("QUEUE_NAME", queue);
+        setEnvVar("CGROUP_MODE", cgMode);
+        setEnvVar("NETNS_MODE", nsMode);
+        setEnvVar("AWS_LOG_LEVEL", awsLog);
+        setEnvVar("UNSAFE_MODE", unsafe);
 
-        unsetEnvVar("REDIS_STATE_HOST");
-        unsetEnvVar("REDIS_QUEUE_HOST");
-        unsetEnvVar("REDIS_PORT");
+        setEnvVar("REDIS_STATE_HOST", redisState);
+        setEnvVar("REDIS_QUEUE_HOST", redisQueue);
+        setEnvVar("REDIS_PORT", redisPort);
 
-        unsetEnvVar("MAX_NODES");
-        unsetEnvVar("NO_SCHEDULER");
-        unsetEnvVar("PREWARM");
-        unsetEnvVar("MAX_QUEUE_RATIO");
-        unsetEnvVar("MAX_WORKERS_PER_FUNCTION");
+        setEnvVar("MAX_NODES", maxNodes);
+        setEnvVar("NO_SCHEDULER", noScheduler);
+        setEnvVar("PREWARM", prewarm);
+        setEnvVar("MAX_QUEUE_RATIO", queueRatio);
+        setEnvVar("MAX_WORKERS_PER_FUNCTION", workers);
 
-        unsetEnvVar("GLOBAL_MESSAGE_TIMEOUT");
-        unsetEnvVar("BOUND_TIMEOUT");
-        unsetEnvVar("UNBOUND_TIMEOUT");
+        setEnvVar("GLOBAL_MESSAGE_TIMEOUT", globalTimeout);
+        setEnvVar("BOUND_TIMEOUT", boundTimeout);
+        setEnvVar("UNBOUND_TIMEOUT", unboundTimeout);
 
-        unsetEnvVar("STATE_STALE_THRESHOLD");
-        unsetEnvVar("STATE_CLEAR_THRESHOLD");
-        unsetEnvVar("STATE_PUSH_INTERVAL");
-        unsetEnvVar("FULL_ASYNC");
-        unsetEnvVar("FULL_SYNC");
+        setEnvVar("STATE_STALE_THRESHOLD", staleThreshold);
+        setEnvVar("STATE_CLEAR_THRESHOLD", clearThreshold);
+        setEnvVar("STATE_PUSH_INTERVAL", pushInterval);
+        setEnvVar("FULL_ASYNC", fullAsync);
+        setEnvVar("FULL_SYNC", fullSync);
     }
 
     TEST_CASE("Check we can't have both full sync and full async on at the same time", "[conf]") {

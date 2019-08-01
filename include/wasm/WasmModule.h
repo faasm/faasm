@@ -8,6 +8,7 @@
 #include <string>
 #include <tuple>
 #include <thread>
+#include <mutex>
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
@@ -36,6 +37,8 @@ namespace wasm {
     public:
         WasmModule();
 
+        WasmModule(const WasmModule &other);
+
         ~WasmModule();
 
         void initialise();
@@ -58,12 +61,6 @@ namespace wasm {
 
         U32 mmapKey(std::shared_ptr<state::StateKeyValue> kv, U32 length);
 
-        void snapshotFullMemory(const char* key);
-
-        void restoreFullMemory(const char* key);
-
-        void resetDynamicModules();
-
         int dynamicLoadModule(const std::string &path, Runtime::Context *context);
 
         Uptr getDynamicModuleFunction(int handle, const std::string &funcName);
@@ -74,7 +71,7 @@ namespace wasm {
 
         void setErrno(int newValue);
 
-        int getInitialMemoryPages();
+        Uptr getInitialMemoryPages();
 
         int getHeapBase();
 
@@ -97,24 +94,31 @@ namespace wasm {
 
         void checkThreadOwnsFd(int fd);
 
+        std::string getBoundUser();
+
+        std::string getBoundFunction();
+
+        void snapshot(const char *key);
+
+        void restore(const char *key);
     private:
         Runtime::GCPointer<Runtime::ModuleInstance> envModule;
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
         Runtime::GCPointer<Runtime::Function> functionInstance;
 
+        // Main module
         int errnoLocation = 0;
-
-        int dynamicModuleCount = 0;
-
-        int initialMemoryPages = 0;
+        Uptr initialMemoryPages = 0;
         int initialTableSize = 0;
         int heapBase = 0;
         int dataEnd = 0;
         int stackTop = 0;
+
+        // Dynamic modules
+        int dynamicModuleCount = 0;
         int nextMemoryBase = 0;
         int nextStackPointer = 0;
         int nextTableBase = 0;
-
 
         bool _isInitialised = false;
         bool _isBound = false;
@@ -130,10 +134,16 @@ namespace wasm {
         std::unordered_map<std::string, int> dynamicPathToHandleMap;
         std::unordered_map<int, Runtime::GCPointer<Runtime::ModuleInstance>> dynamicModuleMap;
 
-        // Dynamic linking stuff
+        // Dynamic linking tables and memories
         std::unordered_map<std::string, int> globalOffsetTableMap;
         std::unordered_map<std::string, int> globalOffsetMemoryMap;
         std::unordered_map<std::string, int> missingGlobalOffsetEntries;
+
+        WasmModule &operator=(const WasmModule &other);
+
+        void cloneFrom(const WasmModule &other);
+
+        void reset();
 
         void resizeMemory(size_t targetPages);
 
@@ -159,4 +169,18 @@ namespace wasm {
 
         int exitCode;
     };
+
+    class WasmModuleRegistry {
+    public:
+        WasmModuleRegistry();
+
+        void registerModule(const std::string &key, const WasmModule &module);
+
+        WasmModule &getModule(const std::string &key);
+    private:
+        std::mutex registryMutex;
+        std::unordered_map<std::string, WasmModule> moduleMap;
+    };
+
+    WasmModuleRegistry &getWasmModuleRegistry();
 }

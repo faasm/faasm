@@ -14,7 +14,10 @@ namespace memory {
     class MemorySnapshotRegister {
     public:
         std::shared_ptr<MemorySnapshot> getSnapshot(const std::string &key);
+
+        void clear();
     private:
+        std::mutex registerMutex;
         MemorySnapshotMap snapshotMap;
     };
 

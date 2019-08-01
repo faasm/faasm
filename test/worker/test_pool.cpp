@@ -13,6 +13,8 @@
 using namespace worker;
 
 namespace tests {
+    static std::string originalNsMode;
+
     static void setUp() {
         cleanSystem();
         setEmulatorUser("demo");
@@ -22,11 +24,11 @@ namespace tests {
         sch.addNodeToGlobalSet();
 
         // Network ns requires root
-        util::setEnvVar("NETNS_MODE", "off");
+        originalNsMode = util::setEnvVar("NETNS_MODE", "off");
     }
 
     static void tearDown() {
-        util::unsetEnvVar("NETNS_MODE");
+        util::setEnvVar("NETNS_MODE", originalNsMode);
 
         cleanSystem();
     }
@@ -165,10 +167,6 @@ namespace tests {
         w.processNextMessage();
         REQUIRE(w.isBound());
 
-        // Snapshot the memory to allow restore
-        const char *snapshotKey = "repeatTestEmpty";
-        w.module->snapshotFullMemory(snapshotKey);
-
         // Run the execution
         w.processNextMessage();
 
@@ -178,9 +176,6 @@ namespace tests {
         REQUIRE(resultA.outputdata() == "first input");
         REQUIRE(resultA.success());
 
-        // Restore memory
-        w.module->restoreFullMemory(snapshotKey);
-        
         // Execute again
         call.set_inputdata("second input");
         util::setMessageId(call);

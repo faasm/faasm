@@ -1,9 +1,10 @@
 #include "MemorySnapshot.h"
 
 #include <sys/mman.h>
-#include <stdio.h>
+#include <util/locks.h>
 #include <unistd.h>
 #include <stdexcept>
+
 
 namespace memory {
     MemorySnapshot::MemorySnapshot() {
@@ -11,7 +12,24 @@ namespace memory {
         memSize = 0;
     }
 
+    bool MemorySnapshot::createIfNotExists(const char *name, uint8_t *mem, size_t memSizeIn) {
+        if (memSize == 0) {
+            util::UniqueLock lock(mx);
+            if (memSize == 0) {
+                this->doCreate(name, mem, memSizeIn);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     void MemorySnapshot::create(const char *name, uint8_t *mem, size_t memSizeIn) {
+        util::UniqueLock lock(mx);
+        this->doCreate(name, mem, memSizeIn);
+    }
+
+    void MemorySnapshot::doCreate(const char *name, uint8_t *mem, size_t memSizeIn) {
         memSize = memSizeIn;
 
         // Create an in-memory fd
@@ -34,10 +52,12 @@ namespace memory {
     }
 
     size_t MemorySnapshot::getSize() {
+        util::UniqueLock lock(mx);
         return memSize;
     }
 
     void MemorySnapshot::clear() {
+        util::UniqueLock lock(mx);
         memSize = 0;
     }
 }

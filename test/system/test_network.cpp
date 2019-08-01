@@ -11,7 +11,8 @@ namespace tests {
 
     TEST_CASE("Test basic network properties", "[worker]") {
         util::SystemConfig &conf = util::getSystemConfig();
-
+        std::string original = conf.netNsMode;
+        
         std::string envValue;
         NetworkIsolationMode expected;
         SECTION("Test network namespace on") {
@@ -34,7 +35,7 @@ namespace tests {
         REQUIRE(ns.getName() == "foo");
 
         // Reset conf
-        util::unsetEnvVar("NETNS_MODE");
+        util::setEnvVar("NETNS_MODE", original);
         conf.reset();
     }
 }

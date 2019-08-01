@@ -32,4 +32,6 @@ def run_codegen(ctx, dir_path):
 
 @task
 def run_wasm_codegen(ctx):
-    run_codegen(ctx, WASM_DIR)
+    dirs = ["demo", "errors", "python", "sgd"]
+    for d in dirs:
+        run_codegen(ctx, join(WASM_DIR, d))

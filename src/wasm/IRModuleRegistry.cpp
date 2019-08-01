@@ -51,6 +51,12 @@ namespace wasm {
         }
     }
 
+    U64 IRModuleRegistry::getSharedModuleTableSize(const std::string &user, const std::string &func,
+                                                                  const std::string &path) {
+        const std::string key = getModuleKey(user, func, path);
+        return originalTableSizes[key];
+    }
+
     Runtime::ModuleRef IRModuleRegistry::getCompiledMainModule(const std::string &user, const std::string &func) {
         const std::string key = getModuleKey(user, func, "");
 
@@ -162,6 +168,16 @@ namespace wasm {
                 if (!module.memories.defs.empty()) {
                     throw std::runtime_error("Dynamic module trying to define memories");
                 }
+
+                // TODO - avoid this hack
+                // To keep WAVM happy, we have to force the incoming dynamic module to accept the table from the
+                // main module. This modifies the shared reference, therefore we also have to preserve the original
+                // size and make available to callers.
+                this->originalTableSizes[key] = module.tables.imports[0].type.size.min;
+
+                IR::Module &mainModule = this->getMainModule(user, func);
+                module.tables.imports[0].type.size.min = (U64) mainModule.tables.defs[0].type.size.min;
+                module.tables.imports[0].type.size.max = (U64) mainModule.tables.defs[0].type.size.max;
             }
         }
 

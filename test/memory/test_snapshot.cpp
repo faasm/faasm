@@ -66,4 +66,31 @@ namespace tests {
         _compareByteRegions(regionA + 2, original + 2, len - 2);
         _compareByteRegions(regionB, original, len);
     }
+
+    TEST_CASE("Test create if not exists", "[memory]") {
+        const char *name = "my_mem2";
+        MemorySnapshotRegister &reg = getGlobalMemorySnapshotRegister();
+
+        std::shared_ptr<MemorySnapshot> snap = reg.getSnapshot(name);
+
+        std::vector<uint8_t> dataA = {0, 1, 2, 3};
+        std::vector<uint8_t> dataB = {4, 3, 2};
+
+        // First time should create
+        bool createdA = snap->createIfNotExists(name, dataA.data(), dataA.size());
+        REQUIRE(createdA);
+        REQUIRE(snap->getSize() == dataA.size());
+
+        // Second time should not
+        bool createdB = snap->createIfNotExists(name, dataB.data(), dataB.size());
+        REQUIRE(!createdB);
+        REQUIRE(snap->getSize() == dataA.size());
+
+        // Should create after clearing
+        snap->clear();
+        bool createdC = snap->createIfNotExists(name, dataB.data(), dataB.size());
+        REQUIRE(createdC);
+        REQUIRE(snap->getSize() == dataB.size());
+    }
+
 }

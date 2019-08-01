@@ -6,6 +6,7 @@
 #include <state/State.h>
 #include <scheduler/Scheduler.h>
 #include <emulator/emulator.h>
+#include <memory/MemorySnapshotRegister.h>
 
 
 namespace tests {
@@ -22,6 +23,9 @@ namespace tests {
 
         // Clear out global message bus
         scheduler::getGlobalMessageBus().clear();
+
+        // Clear memory snapshots
+        memory::getGlobalMemorySnapshotRegister().clear();
 
         // Reset system config
         util::getSystemConfig().reset();
