@@ -14,8 +14,8 @@ using namespace worker;
 
 namespace tests {
     static void setUp() {
-        redis::Redis::getState().flushAll();
-        redis::Redis::getQueue().flushAll();
+        cleanSystem();
+        setEmulatorUser("demo");
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.clear();
@@ -23,14 +23,12 @@ namespace tests {
 
         // Network ns requires root
         util::setEnvVar("NETNS_MODE", "off");
-
-        setEmulatorUser("demo");
     }
 
     static void tearDown() {
         util::unsetEnvVar("NETNS_MODE");
 
-        unsetEmulatorUser();
+        cleanSystem();
     }
 
     void checkBindMessage(const message::Message &expected) {
@@ -42,9 +40,7 @@ namespace tests {
     }
 
     message::Message checkChainCall(const std::string &user, const std::string &func, const std::string &inputData) {
-        message::Message expected;
-        expected.set_user(user);
-        expected.set_function(func);
+        message::Message expected = util::messageFactory(user, func);
         expected.set_inputdata(inputData);
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
@@ -90,9 +86,7 @@ namespace tests {
     TEST_CASE("Test binding to function", "[worker]") {
         setUp();
 
-        message::Message call;
-        call.set_user("demo");
-        call.set_function("chain");
+        message::Message call = util::messageFactory("demo", "chain");
 
         WorkerThreadPool pool(1);
         WorkerThread w(1);
@@ -106,9 +100,7 @@ namespace tests {
     TEST_CASE("Test binding to function initialises when in no-prewarm mode", "[worker]") {
         setUp();
 
-        message::Message call;
-        call.set_user("demo");
-        call.set_function("chain");
+        message::Message call = util::messageFactory("demo", "chain");
 
         util::SystemConfig &conf = util::getSystemConfig();
         conf.prewarm = 0;
@@ -462,9 +454,7 @@ namespace tests {
         WorkerThreadPool pool(5);
         REQUIRE(pool.getThreadCount() == 0);
 
-        message::Message call;
-        call.set_user("demo");
-        call.set_function("noop");
+        message::Message call = util::messageFactory("demo", "noop");
 
         // Add threads and check tokens are taken
         WorkerThread w1(pool.getThreadToken());

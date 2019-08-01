@@ -4,10 +4,10 @@
 
 namespace util {
     int randomInteger(int iStart, int iEnd) {
-        std::random_device rd;
-        std::mt19937 rng(rd());
-        std::uniform_int_distribution<int> uni(iStart, iEnd);
+        static std::random_device rd;
+        static std::mt19937 rng(rd());
 
+        std::uniform_int_distribution<int> uni(iStart, iEnd);
         int random_integer = uni(rng);
 
         return random_integer;
@@ -21,8 +21,8 @@ namespace util {
                 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                 "abcdefghijklmnopqrstuvwxyz";
 
-        std::random_device rd;
-        std::mt19937 rng(rd());
+        static std::random_device rd;
+        static std::mt19937 rng(rd());
 
         // Range cannot include last element of alphanum array as this is a null terminator
         std::uniform_int_distribution<int> uni(0, sizeof(alphanum) - 2);
@@ -32,6 +32,6 @@ namespace util {
             result[i] = alphanum[r];
         }
 
-        return std::string(result);
+        return std::string(result, result + len);
     }
 }

@@ -29,21 +29,25 @@ namespace tests {
         SECTION("Round trip checks") {
             SECTION("True boolean over JSON") {
                 call.set_isasync(true);
+                call.set_ispython(true);
                 conf.serialisation = "json";
             }
 
             SECTION("False boolean over JSON") {
                 call.set_isasync(false);
+                call.set_ispython(false);
                 conf.serialisation = "json";
             }
 
             SECTION("True boolean with protobuf") {
                 call.set_isasync(true);
+                call.set_ispython(true);
                 conf.serialisation = "proto";
             }
 
             SECTION("False boolean with protobuf") {
                 call.set_isasync(false);
+                call.set_ispython(false);
                 conf.serialisation = "proto";
             }
 

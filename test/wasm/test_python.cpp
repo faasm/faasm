@@ -3,24 +3,14 @@
 #include <util/config.h>
 
 #include <wasm/WasmModule.h>
+#include <util/func.h>
 
 namespace tests {
-    TEST_CASE("Test python conformance", "[wasm]") {
+    void checkPythonFunction(const std::string &funcName) {
         util::SystemConfig &conf = util::getSystemConfig();
         conf.unsafeMode = "on";
 
-        std::string funcName;
-        SECTION("Standard language features") {
-            funcName = "lang_test.py";
-        }
-
-        SECTION("Numpy features") {
-            funcName = "numpy_test.py";
-        }
-
-        message::Message call;
-        call.set_user("python");
-        call.set_function("py_func");
+        message::Message call = util::messageFactory("python", "py_func");
         call.set_inputdata(funcName);
 
         wasm::WasmModule module;
@@ -31,5 +21,13 @@ namespace tests {
         REQUIRE(result == 0);
 
         conf.reset();
+    }
+
+    TEST_CASE("Test python conformance", "[wasm]") {
+        checkPythonFunction("lang_test.py");
+    }
+
+    TEST_CASE("Test numpy conformance", "[wasm]") {
+        checkPythonFunction("numpy_test.py");
     }
 }

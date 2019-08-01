@@ -2,6 +2,7 @@
 
 #include <scheduler/SharingMessageBus.h>
 #include <redis/Redis.h>
+#include <utils.h>
 
 using namespace scheduler;
 using namespace redis;
@@ -22,6 +23,7 @@ namespace tests {
         msg.set_user("user a");
         msg.set_function("func a");
         msg.set_isasync(true);
+        msg.set_ispython(true);
         msg.set_inputdata(inputData);
 
         SECTION("Check sharing message with a host puts on relevant queue") {
@@ -29,10 +31,8 @@ namespace tests {
 
             REQUIRE(redis.listLength(otherNodeQueue) == 1);
             const message::Message &actual = bus.nextMessageForNode(otherNode);
-            REQUIRE(actual.user() == msg.user());
-            REQUIRE(actual.function() == msg.function());
-            REQUIRE(actual.isasync() == msg.isasync());
-            REQUIRE(actual.inputdata() == msg.inputdata());
+
+            checkMessageEquality(actual, msg);
         }
 
     }

@@ -9,7 +9,10 @@ namespace tests {
         std::string inputStr = "abcdefghijkl12345";
 
         const std::vector<uint8_t> bytes = util::stringToBytes(inputStr);
+        REQUIRE(bytes.size() == inputStr.size());
+
         std::string actual = util::bytesToString(bytes);
+        REQUIRE(actual.size() == inputStr.size());
 
         REQUIRE(actual == inputStr);
     }

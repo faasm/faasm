@@ -96,9 +96,7 @@ namespace edge {
         const std::string requestData = request.body();
 
         // Build message
-        message::Message msg;
-        msg.set_user(user);
-        msg.set_function(function);
+        message::Message msg = util::messageFactory(user, function);
         msg.set_inputdata(requestData);
 
         return msg;

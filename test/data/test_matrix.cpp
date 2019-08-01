@@ -6,6 +6,7 @@
 #include <boost/filesystem.hpp>
 #include <util/state.h>
 #include <util/files.h>
+#include <emulator/emulator.h>
 
 using namespace data;
 using namespace boost::filesystem;
@@ -30,7 +31,8 @@ namespace tests {
         const std::vector<uint8_t> fileBytes = util::readFileToBytes(filePath.string());
 
         // Write to state
-        redisState.set(key, fileBytes);
+        const std::string actualKey = util::keyForUser(user, key);
+        redisState.set(actualKey, fileBytes);
     }
 
     TEST_CASE("Check sparse matrix file round trip", "[data]") {
@@ -55,14 +57,17 @@ namespace tests {
     }
 
     TEST_CASE("Check sparse matrix file and state round trip", "[data]") {
+        cleanSystem();
+
+        // Get state keys
+        std::string user = getEmulatorUser();
+
         // Write to the file
         SparseMatrix<double> mat = faasm::randomSparseMatrix(5, 10, 0.4);
         path dummyDir = _setUp();
         SparseMatrixFileSerialiser s(mat);
         s.writeToFile(dummyDir.string());
-        
-        // Get state keys
-        std::string user = "foobar";
+
         const SparseKeys keys = faasm::getSparseKeys(user.c_str());
 
         // Write to state from files

@@ -21,40 +21,36 @@ namespace wasm {
 
     std::vector<uint8_t> LocalFunctionLoader::loadFunctionBytes(const message::Message &msg) {
         std::string filePath = util::getFunctionFile(msg);
-        return this->loadFunctionObjectBytes(filePath);
+        return this->loadFileBytes(filePath);
     }
 
-    std::vector<uint8_t> LocalFunctionLoader::loadFunctionBytes(const std::string &path) {
+    std::vector<uint8_t> LocalFunctionLoader::loadFileBytes(const std::string &path) {
         checkFileExists(path);
-        std::vector<uint8_t> fileBytes = util::readFileToBytes(path);
-        return fileBytes;
+        return util::readFileToBytes(path);
     }
 
     std::vector<uint8_t> LocalFunctionLoader::loadFunctionObjectBytes(const message::Message &msg) {
         std::string objectFilePath = util::getFunctionObjectFile(msg);
-        return this->loadFunctionObjectBytes(objectFilePath);
-    }
-
-    std::vector<uint8_t> LocalFunctionLoader::loadFunctionObjectBytes(const std::string &path) {
-        checkFileExists(path);
-        std::vector<uint8_t> bytes = util::readFileToBytes(path);
-        return bytes;
+        return this->loadFileBytes(objectFilePath);
     }
 
     std::vector<uint8_t> LocalFunctionLoader::loadPythonFunction(const message::Message &msg) {
         std::string path = util::getPythonFunctionFile(msg);
-        checkFileExists(path);
-        std::vector<uint8_t> bytes = util::readFileToBytes(path);
-        return bytes;
+        return this->loadFileBytes(path);
     }
 
     void LocalFunctionLoader::uploadFunction(message::Message &msg) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::string funcStr = util::funcToString(msg);
+
         // Here the msg input data is actually the file
         const std::string &fileBody = msg.inputdata();
+        if(fileBody.empty()) {
+            logger->error("Uploaded empty file to {}", funcStr);
+            throw std::runtime_error("Uploaded empty file");
+        }
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        logger->debug("Uploading wasm file {}", util::funcToString(msg));
+        logger->debug("Uploading wasm file {}", funcStr);
         std::string outputFile = util::getFunctionFile(msg);
         std::ofstream out(outputFile);
         out.write(fileBody.c_str(), fileBody.size());
@@ -62,7 +58,7 @@ namespace wasm {
         out.close();
 
         // Build the object file from the file we've just received
-        logger->debug("Generating object file for {}", util::funcToString(msg));
+        logger->debug("Generating object file for {}", funcStr);
         this->compileToObjectFile(msg);
     }
 

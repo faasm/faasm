@@ -9,25 +9,28 @@
 #include <state/State.h>
 #include <sys/mman.h>
 #include <util/state.h>
+#include <emulator/emulator.h>
 
 using namespace state;
 
 namespace tests {
     util::TimePoint timeNow;
-    static int i = 0;
+    static int staticCount = 0;
 
     std::shared_ptr<StateKeyValue> setupKV(size_t size) {
+        cleanSystem();
+
+        // We have to make sure emulator is using the right user
+        const std::string user = getEmulatorUser();
+
         redis::Redis &redisState = redis::Redis::getState();
+        staticCount++;
 
-        i++;
-        const std::string stateUser = "test";
-        const std::string stateKey = "state_key_" + std::to_string(i);
-
-        redisState.flushAll();
+        const std::string stateKey = "state_key_" + std::to_string(staticCount);
 
         // Get state and remove key if already exists
         State &s = getGlobalState();
-        auto kv = s.getKV(stateUser, stateKey, size);
+        auto kv = s.getKV(user, stateKey, size);
 
         // Fix time
         util::Clock &c = util::getGlobalClock();
@@ -212,8 +215,6 @@ namespace tests {
     }
 
     void checkPulling(bool async) {
-        redis::Redis &redisState = redis::Redis::getState();
-
         auto kv = setupKV(4);
         std::vector<uint8_t> values = {0, 1, 2, 3};
         util::SystemConfig &conf = util::getSystemConfig();
@@ -221,6 +222,8 @@ namespace tests {
         // Push and make sure reflected in redis
         kv->set(values.data());
         kv->pushFull();
+
+        redis::Redis &redisState = redis::Redis::getState();
         REQUIRE(redisState.get(kv->key) == values);
 
         // Now update in Redis directly

@@ -10,6 +10,7 @@ set(LIB_FILES
         LocalFunctionLoader.cpp
         FileserverFunctionLoader.cpp
         S3FunctionLoader.cpp
+        IRModuleRegistry.cpp
         instance.cpp
         codegen.cpp
         WasmModule.cpp

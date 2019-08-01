@@ -56,7 +56,10 @@ namespace util {
     }
 
     std::string bytesToString(const std::vector<uint8_t> &bytes) {
-        const std::string result = std::string(reinterpret_cast<const char*>(bytes.data()));
+        unsigned long byteLen = bytes.size();
+        const char *charPtr = reinterpret_cast<const char *>(bytes.data());
+        const std::string result = std::string(charPtr, charPtr + byteLen);
+
         return result;
     }
 }

@@ -28,6 +28,7 @@ namespace tests {
         msg.set_user("user 1");
         msg.set_function("great function");
         msg.set_isasync(true);
+        msg.set_ispython(true);
         msg.set_success(false);
         msg.set_inputdata("[0], %$ 2233 9");
         msg.set_resultkey("blahblah");
