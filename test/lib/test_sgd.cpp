@@ -225,7 +225,8 @@ namespace tests {
         MatrixXd d = randomDenseMatrix(1, 5);
 
         // Check no errors set initially
-        const std::vector<uint8_t> initial = redisQueue.get(ERRORS_KEY);
+        std::string errorKey = util::keyForUser(getEmulatorUser(), ERRORS_KEY);
+        const std::vector<uint8_t> initial = redisQueue.get(errorKey);
         REQUIRE(initial.empty());
 
         SgdParams params = getDummySgdParams();
@@ -233,7 +234,7 @@ namespace tests {
 
         // Check zeroing out errors
         zeroErrors(params);
-        checkDoubleArrayInState(redisQueue, ERRORS_KEY, {0, 0, 0, 0});
+        checkDoubleArrayInState(redisQueue, errorKey.c_str(), {0, 0, 0, 0});
 
         // Work out expectation
         double expected1 = calculateSquaredError(a, b);
@@ -243,7 +244,7 @@ namespace tests {
         writeSquaredError(params, 0, a, b);
         writeSquaredError(params, 2, a, b);
 
-        checkDoubleArrayInState(redisQueue, ERRORS_KEY, {expected1, 0, expected2, 0});
+        checkDoubleArrayInState(redisQueue, errorKey.c_str(), {expected1, 0, expected2, 0});
     }
 
     TEST_CASE("Test reading errors from state", "[sgd]") {
@@ -355,18 +356,19 @@ namespace tests {
 
         // Zero and check it's worked
         zeroFinished(p);
-        checkIntArrayInState(redisQueue, FINISHED_KEY, {0, 0, 0});
+        const char *finishedKey = util::keyForUser(getEmulatorUser(), FINISHED_KEY).c_str();
+        checkIntArrayInState(redisQueue, finishedKey, {0, 0, 0});
 
-        // Update with some other values
+        // Update with some other values (note the confusing mix of user-prepended and non-prepended keys)
         std::vector<int> finished = {1, 0, 1};
         auto lossBytes = reinterpret_cast<uint8_t *>(finished.data());
         faasmWriteState(FINISHED_KEY, lossBytes, 5 * sizeof(int), false);
 
-        checkIntArrayInState(redisQueue, FINISHED_KEY, finished);
+        checkIntArrayInState(redisQueue, finishedKey, finished);
 
         // Zero again and check it's worked
         zeroFinished(p);
-        checkIntArrayInState(redisQueue, FINISHED_KEY, {0, 0, 0});
+        checkIntArrayInState(redisQueue, finishedKey, {0, 0, 0});
     }
 
     TEST_CASE("Test getting full async from environment", "[sgd]") {

@@ -11,11 +11,6 @@ int main(int argc, char *argv[]) {
     // Clean the system
     tests::cleanSystem();
 
-    // Make sure we're using redis
-    util::SystemConfig conf = util::getSystemConfig();
-    conf.globalMessageBus = "redis";
-    conf.functionStorage = "local";
-
     int result = Catch::Session().run(argc, argv);
 
     return result;
