@@ -23,10 +23,14 @@ namespace wasm {
         Runtime::ModuleRef getCompiledModule(const std::string &user, const std::string &func,
                 const std::string &path);
 
+        U64 getSharedModuleTableSize(const std::string &user, const std::string &func,
+                                     const std::string &path);
+
     private:
         std::mutex registryMutex;
         std::unordered_map<std::string, IR::Module> moduleMap;
         std::unordered_map<std::string, Runtime::ModuleRef> compiledModuleMap;
+        std::unordered_map<std::string, int> originalTableSizes;
 
         IR::Module &getMainModule(const std::string &user, const std::string &func);
 

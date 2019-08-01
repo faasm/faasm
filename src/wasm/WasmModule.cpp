@@ -84,12 +84,12 @@ namespace wasm {
         boundFunction = other.boundFunction;
 
         // Copy module-specific info
-        if(other._isInitialised) {
+        if (other._isInitialised) {
             // Clone compartment (covers all WAVM internals)
             compartment = Runtime::cloneCompartment(other.compartment);
         }
 
-        if(other._isBound) {
+        if (other._isBound) {
             // Remap bits we need references to
             envModule = Runtime::remapToClonedCompartment(other.envModule, compartment);
             moduleInstance = Runtime::remapToClonedCompartment(other.moduleInstance, compartment);
@@ -104,7 +104,7 @@ namespace wasm {
             // Remap dynamic modules
             // TODO - double check this works
             dynamicPathToHandleMap = other.dynamicPathToHandleMap;
-            for(auto &p : other.dynamicModuleMap) {
+            for (auto &p : other.dynamicModuleMap) {
                 Runtime::ModuleInstance *newInstance = Runtime::remapToClonedCompartment(p.second, compartment);
                 dynamicModuleMap[p.first] = newInstance;
             }
@@ -267,8 +267,6 @@ namespace wasm {
 
             stackTop = stackDef.initializer.i32;
         } else {
-            IR::Module &mainModule = moduleRegistry.getModule(this->boundUser, this->boundFunction, "");
-
             // Create a new region in the default memory
             // Give the module a stack region just at the bottom of the empty region (which will grow down)
             // Memory sits above that (and grows up).
@@ -278,7 +276,8 @@ namespace wasm {
             this->nextStackPointer = this->nextMemoryBase - 1;
 
             // Extend the existing table to fit all the dynamic module's elements
-            U64 nTableElems = irModule.tables.imports[0].type.size.min;
+            U64 nTableElems = moduleRegistry.getSharedModuleTableSize(this->boundUser, this->boundFunction,
+                                                                      sharedModulePath);
             Iptr oldTableElems = Runtime::growTable(defaultTable, nTableElems);
             if (oldTableElems == -1) {
                 throw std::runtime_error("Failed to grow main module table");
@@ -294,10 +293,6 @@ namespace wasm {
                           this->nextTableBase,
                           newTableElems
             );
-
-            // Now force the incoming dynamic module to accept the table from the main module
-            irModule.tables.imports[0].type.size.min = (U64) mainModule.tables.defs[0].type.size.min;
-            irModule.tables.imports[0].type.size.max = (U64) mainModule.tables.defs[0].type.size.max;
         }
 
         // Add module to GOT before linking
@@ -311,7 +306,7 @@ namespace wasm {
         }
 
         Runtime::ModuleRef compiledModule = moduleRegistry.getCompiledModule(this->boundUser, this->boundFunction,
-                sharedModulePath);
+                                                                             sharedModulePath);
         Runtime::ModuleInstance *instance = instantiateModule(
                 compartment,
                 compiledModule,
