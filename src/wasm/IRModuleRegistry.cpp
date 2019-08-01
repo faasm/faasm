@@ -24,6 +24,33 @@ namespace wasm {
         return key;
     }
 
+    IR::Module &IRModuleRegistry::getModule(const std::string &user, const std::string &func, const std::string &path) {
+        /*
+         * Note that shared modules are currently only shared in memory across instances of the *same* function.
+         * If two different functions both load shared module A, it will be loaded into memory twice.
+         *
+         * This is currently only to do with needing to modify the table definition to fit with the importing main
+         * module, something which can probably be fixed.
+         *
+         * TODO - implement this proper sharing of modules
+         */
+
+        if (path.empty()) {
+            return this->getMainModule(user, func);
+        } else {
+            return this->getSharedModule(user, func, path);
+        }
+    }
+
+    Runtime::ModuleRef IRModuleRegistry::getCompiledModule(const std::string &user, const std::string &func,
+                                                           const std::string &path) {
+        if (path.empty()) {
+            return this->getCompiledMainModule(user, func);
+        } else {
+            return this->getCompiledSharedModule(user, func, path);
+        }
+    }
+
     Runtime::ModuleRef IRModuleRegistry::getCompiledMainModule(const std::string &user, const std::string &func) {
         const std::string key = getModuleKey(user, func, "");
 
@@ -50,8 +77,9 @@ namespace wasm {
         return compiledModuleMap[key];
     }
 
-    Runtime::ModuleRef IRModuleRegistry::getCompiledSharedModule(const std::string &path) {
-        std::string key = getModuleKey("", "", path);
+    Runtime::ModuleRef IRModuleRegistry::getCompiledSharedModule(const std::string &user, const std::string &func,
+                                                                 const std::string &path) {
+        std::string key = getModuleKey(user, func, path);
 
         if (compiledModuleMap.count(key) == 0) {
             util::UniqueLock registryLock(registryMutex);
@@ -70,14 +98,6 @@ namespace wasm {
         }
 
         return compiledModuleMap[key];
-    }
-
-    IR::Module &IRModuleRegistry::getModule(const std::string &user, const std::string &func, const std::string &path) {
-        if(path.empty()) {
-            return this->getMainModule(user, func);
-        } else {
-            return this->getSharedModule(path);
-        }
     }
 
     IR::Module &IRModuleRegistry::getMainModule(const std::string &user, const std::string &func) {
@@ -115,8 +135,9 @@ namespace wasm {
         return moduleMap[key];
     }
 
-    IR::Module &IRModuleRegistry::getSharedModule(const std::string &path) {
-        std::string key = getModuleKey("", "", path);
+    IR::Module &IRModuleRegistry::getSharedModule(const std::string &user, const std::string &func,
+                                                  const std::string &path) {
+        std::string key = getModuleKey(user, func, path);
 
         // Check if initialised
         if (moduleMap.count(key) == 0) {

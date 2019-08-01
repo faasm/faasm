@@ -215,7 +215,7 @@ namespace wasm {
 
             stackTop = stackDef.initializer.i32;
         } else {
-            IR::Module &mainModule = moduleRegistry.getMainModule(this->boundUser, this->boundFunction);
+            IR::Module &mainModule = moduleRegistry.getModule(this->boundUser, this->boundFunction, "");
 
             // Create a new region in the default memory
             // Give the module a stack region just at the bottom of the empty region (which will grow down)
@@ -258,13 +258,8 @@ namespace wasm {
             throw std::runtime_error("Failed linking module");
         }
 
-        Runtime::ModuleRef compiledModule;
-        if(isMainModule) {
-            compiledModule = moduleRegistry.getCompiledMainModule(this->boundUser, this->boundFunction);
-        } else {
-            compiledModule = moduleRegistry.getCompiledSharedModule(sharedModulePath);
-        }
-
+        Runtime::ModuleRef compiledModule = moduleRegistry.getCompiledModule(this->boundUser, this->boundFunction,
+                sharedModulePath);
         Runtime::ModuleInstance *instance = instantiateModule(
                 compartment,
                 compiledModule,
@@ -758,7 +753,7 @@ namespace wasm {
         std::map<std::string, std::string> output;
 
         IRModuleRegistry &moduleRegistry = wasm::getIRModuleRegistry();
-        IR::Module &module = moduleRegistry.getMainModule(this->boundUser, this->boundFunction);
+        IR::Module &module = moduleRegistry.getModule(this->boundUser, this->boundFunction, "");
 
         IR::DisassemblyNames disassemblyNames;
         getDisassemblyNames(module, disassemblyNames);
