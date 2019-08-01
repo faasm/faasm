@@ -62,7 +62,59 @@ namespace wasm {
                 logger->debug("Successful GC for compartment");
             }
         }
-    };
+    }
+
+    void WasmModule::cloneFrom(const WasmModule &other) {
+        // Copy basic values
+        errnoLocation = other.errnoLocation;
+        initialMemoryPages = other.initialMemoryPages;
+        initialTableSize = other.initialTableSize;
+        heapBase = other.heapBase;
+        dataEnd = other.dataEnd;
+        stackTop = other.stackTop;
+
+        dynamicModuleCount = other.dynamicModuleCount;
+        nextMemoryBase = other.nextMemoryBase;
+        nextStackPointer = other.nextStackPointer;
+        nextTableBase = other.nextTableBase;
+
+        _isInitialised = other._isInitialised;
+        _isBound = other._isBound;
+        boundUser = other.boundUser;
+        boundFunction = other.boundFunction;
+
+        // Copy module-specific info
+        if(other._isInitialised) {
+            // Clone compartment (covers all WAVM internals)
+            compartment = Runtime::cloneCompartment(other.compartment);
+        }
+
+        if(other._isBound) {
+            // Remap bits we need references to
+            envModule = Runtime::remapToClonedCompartment(other.envModule, compartment);
+            moduleInstance = Runtime::remapToClonedCompartment(other.moduleInstance, compartment);
+            functionInstance = Runtime::remapToClonedCompartment(other.functionInstance, compartment);
+
+            // Extract the memory and table again
+            this->defaultMemory = Runtime::getDefaultMemory(moduleInstance);
+            this->defaultTable = Runtime::getDefaultTable(moduleInstance);
+
+            // TODO - include shared memory state
+
+            // Remap dynamic modules
+            // TODO - double check this works
+            dynamicPathToHandleMap = other.dynamicPathToHandleMap;
+            for(auto &p : other.dynamicModuleMap) {
+                Runtime::ModuleInstance *newInstance = Runtime::remapToClonedCompartment(p.second, compartment);
+                dynamicModuleMap[p.first] = newInstance;
+            }
+
+            // Copy dynamic linking stuff
+            globalOffsetTableMap = other.globalOffsetTableMap;
+            globalOffsetMemoryMap = other.globalOffsetMemoryMap;
+            missingGlobalOffsetEntries = other.missingGlobalOffsetEntries;
+        }
+    }
 
     bool WasmModule::isBound() {
         return _isBound;
@@ -806,5 +858,13 @@ namespace wasm {
             logger->error("fd not owned by this thread {}", fd);
             throw std::runtime_error("fd not owned by this function");
         }
+    }
+
+    std::string WasmModule::getBoundUser() {
+        return boundUser;
+    }
+
+    std::string WasmModule::getBoundFunction() {
+        return boundFunction;
     }
 }

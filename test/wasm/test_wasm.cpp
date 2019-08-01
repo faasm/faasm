@@ -2,6 +2,7 @@
 #include <wasm/WasmModule.h>
 #include <util/bytes.h>
 #include <util/func.h>
+#include <util/config.h>
 
 namespace tests {
 

@@ -38,6 +38,8 @@ namespace wasm {
 
         ~WasmModule();
 
+        void cloneFrom(const WasmModule &other);
+
         void initialise();
 
         void bindToFunction(const message::Message &msg);
@@ -97,20 +99,25 @@ namespace wasm {
 
         void checkThreadOwnsFd(int fd);
 
+        std::string getBoundUser();
+
+        std::string getBoundFunction();
+
     private:
         Runtime::GCPointer<Runtime::ModuleInstance> envModule;
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
         Runtime::GCPointer<Runtime::Function> functionInstance;
 
+        // Main module
         int errnoLocation = 0;
-
-        int dynamicModuleCount = 0;
-
         int initialMemoryPages = 0;
         int initialTableSize = 0;
         int heapBase = 0;
         int dataEnd = 0;
         int stackTop = 0;
+
+        // Dynamic modules
+        int dynamicModuleCount = 0;
         int nextMemoryBase = 0;
         int nextStackPointer = 0;
         int nextTableBase = 0;
@@ -129,7 +136,7 @@ namespace wasm {
         std::unordered_map<std::string, int> dynamicPathToHandleMap;
         std::unordered_map<int, Runtime::GCPointer<Runtime::ModuleInstance>> dynamicModuleMap;
 
-        // Dynamic linking stuff
+        // Dynamic linking tables and memories
         std::unordered_map<std::string, int> globalOffsetTableMap;
         std::unordered_map<std::string, int> globalOffsetMemoryMap;
         std::unordered_map<std::string, int> missingGlobalOffsetEntries;
