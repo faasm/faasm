@@ -102,14 +102,6 @@ int faasmGetCurrentIdx() {
     return __faasm_get_idx();
 }
 
-void faasmSnapshot(const char *key) {
-    __faasm_snapshot_memory(key);
-}
-
-void faasmRestore(const char *key) {
-    __faasm_restore_memory(key);
-}
-
 void faasmReadConfig(const char *varName, char *buffer) {
     __faasm_read_config(varName, buffer);
 }

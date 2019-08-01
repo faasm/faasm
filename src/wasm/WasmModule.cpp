@@ -266,23 +266,11 @@ namespace wasm {
         // Get memory and dimensions
         U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
 
-        // Create the snapshot if not already present
+        // Create the memory snapshot if not already present
         std::string snapKey = snapshotKeyForFunction(this->boundUser, this->boundFunction);
         memory::MemorySnapshotRegister &snapRegister = memory::getGlobalMemorySnapshotRegister();
         const std::shared_ptr<memory::MemorySnapshot> snapshot = snapRegister.getSnapshot(snapKey);
         snapshot->createIfNotExists(snapKey.c_str(), baseAddr, initialMemorySize);
-    }
-
-    void WasmModule::snapshot(const char *key) {
-        WasmModuleRegistry &registry = wasm::getWasmModuleRegistry();
-        registry.registerModule(key, *this);
-    }
-
-    void WasmModule::restore(const char *key) {
-        WasmModuleRegistry &registry = wasm::getWasmModuleRegistry();
-        WasmModule &otherRef = registry.getModule(key);
-
-        this->cloneFrom(otherRef);
     }
 
     Runtime::ModuleInstance *

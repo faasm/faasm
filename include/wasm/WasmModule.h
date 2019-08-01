@@ -97,10 +97,6 @@ namespace wasm {
         std::string getBoundUser();
 
         std::string getBoundFunction();
-
-        void snapshot(const char *key);
-
-        void restore(const char *key);
     private:
         Runtime::GCPointer<Runtime::ModuleInstance> envModule;
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;

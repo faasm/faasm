@@ -125,16 +125,6 @@ int faasmAwaitCall(int callId);
 int faasmGetCurrentIdx();
 
 /**
- * Snapshots the current memory for future restore
- */
-void faasmSnapshot(const char *name);
-
-/**
- * Restore the current memory from a snapshot
- */
-void faasmRestore(const char *name);
-
-/**
  * Gets values from the faasm config
  */
 void faasmReadConfig(const char *varName, char *buffer);

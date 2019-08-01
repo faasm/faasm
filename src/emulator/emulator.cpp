@@ -218,15 +218,6 @@ int __faasm_chain_function(const char *name, const unsigned char *inputData, lon
     return 1;
 }
 
-
-void __faasm_snapshot_memory(const char *key) {
-    // This might not be possible when executing natively
-}
-
-void __faasm_restore_memory(const char *key) {
-    // This might not be possible when executing natively
-}
-
 void __faasm_read_config(const char *varName, char *buffer) {
     util::SystemConfig &conf = util::getSystemConfig();
 
