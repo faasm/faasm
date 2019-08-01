@@ -167,10 +167,6 @@ namespace tests {
         w.processNextMessage();
         REQUIRE(w.isBound());
 
-        // Snapshot the memory to allow restore
-        const char *snapshotKey = "repeatTestEmpty";
-        w.module->snapshotFullMemory(snapshotKey);
-
         // Run the execution
         w.processNextMessage();
 
@@ -180,9 +176,6 @@ namespace tests {
         REQUIRE(resultA.outputdata() == "first input");
         REQUIRE(resultA.success());
 
-        // Restore memory
-        w.module->restoreFullMemory(snapshotKey);
-        
         // Execute again
         call.set_inputdata("second input");
         util::setMessageId(call);

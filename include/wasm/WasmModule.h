@@ -60,12 +60,6 @@ namespace wasm {
 
         U32 mmapKey(std::shared_ptr<state::StateKeyValue> kv, U32 length);
 
-        void snapshotFullMemory(const char *key);
-
-        void restoreFullMemory(const char *key);
-
-        void resetDynamicModules();
-
         int dynamicLoadModule(const std::string &path, Runtime::Context *context);
 
         Uptr getDynamicModuleFunction(int handle, const std::string &funcName);
@@ -76,7 +70,7 @@ namespace wasm {
 
         void setErrno(int newValue);
 
-        int getInitialMemoryPages();
+        Uptr getInitialMemoryPages();
 
         int getHeapBase();
 
@@ -103,6 +97,9 @@ namespace wasm {
 
         std::string getBoundFunction();
 
+        void snapshot(const char *key);
+
+        void restore(const char *key);
     private:
         Runtime::GCPointer<Runtime::ModuleInstance> envModule;
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
@@ -110,7 +107,7 @@ namespace wasm {
 
         // Main module
         int errnoLocation = 0;
-        int initialMemoryPages = 0;
+        Uptr initialMemoryPages = 0;
         int initialTableSize = 0;
         int heapBase = 0;
         int dataEnd = 0;
@@ -142,6 +139,8 @@ namespace wasm {
         std::unordered_map<std::string, int> missingGlobalOffsetEntries;
 
         WasmModule &operator=(const WasmModule &other);
+
+        void reset();
 
         void resizeMemory(size_t targetPages);
 

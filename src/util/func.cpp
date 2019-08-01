@@ -206,11 +206,6 @@ namespace util {
         }
     }
 
-    std::string snapshotKeyForFunction(const std::string &funcName) {
-        std::string key = "mem_" + funcName;
-        return key;
-    }
-
     std::string stripIdxFromFunction(const std::string &funcName) {
         std::string ending = "__";
         if (funcName.size() < 3) {

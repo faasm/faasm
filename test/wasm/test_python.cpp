@@ -42,17 +42,13 @@ namespace tests {
         module.initialise();
         module.bindToFunction(call);
 
-        module.snapshotFullMemory("numpy_repeat");
         int result = module.execute(call);
         REQUIRE(result == 0);
-        module.restoreFullMemory("numpy_repeat");
 
         int result1 = module.execute(call);
         REQUIRE(result1 == 0);
-        module.restoreFullMemory("numpy_repeat");
 
         int result2 = module.execute(call);
         REQUIRE(result2 == 0);
-        module.restoreFullMemory("numpy_repeat");
     }
 }

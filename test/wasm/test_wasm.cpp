@@ -159,22 +159,12 @@ namespace tests {
         module.initialise();
         module.bindToFunction(call);
 
-        const std::string funcStr = util::funcToString(call);
-        const std::string snapKey = util::snapshotKeyForFunction(funcStr);
-
         Uptr initialPages = Runtime::getMemoryNumPages(module.defaultMemory);
-        module.snapshotFullMemory(snapKey.c_str());
 
-        // Run it and check memory has grown
+        // Run it (knowing memory will grow during execution)
         module.execute(call);
         Uptr pagesAfter = Runtime::getMemoryNumPages(module.defaultMemory);
-        REQUIRE(pagesAfter > initialPages);
-
-        // Reset memory and check now equal
-        module.restoreFullMemory(snapKey.c_str());
-
-        Uptr pagesRestored = Runtime::getMemoryNumPages(module.defaultMemory);
-        REQUIRE(pagesRestored == initialPages);
+        REQUIRE(pagesAfter == initialPages);
     }
 
     TEST_CASE("Test memory variables set up", "[wasm]") {
@@ -188,8 +178,6 @@ namespace tests {
 
         module.execute(call);
 
-        int initialMemorySize = module.getInitialMemoryPages() * IR::numBytesPerPage;
-        
         // Heap base and data end must be the same (i.e. stack going first)
         REQUIRE(module.getHeapBase() == module.getDataEnd());
         REQUIRE(module.getStackTop() < module.getDataEnd());
@@ -198,6 +186,7 @@ namespace tests {
         REQUIRE(module.getStackTop() == STACK_SIZE);
 
         // Sense check that the initial memory is set to be bigger than the heap base
-        REQUIRE(initialMemorySize > module.getHeapBase());
+        Uptr initialMemorySize = module.getInitialMemoryPages() * IR::numBytesPerPage;
+        REQUIRE(initialMemorySize > (Uptr) module.getHeapBase());
     }
 }

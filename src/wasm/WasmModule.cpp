@@ -31,6 +31,10 @@ namespace wasm {
         return executingCall;
     }
 
+    std::string snapshotKeyForFunction(const std::string &user, const std::string &func) {
+        return "mem_" + user + "_" + func;
+    }
+
     Uptr getNumberOfPagesForBytes(U32 nBytes) {
         // Round up to nearest page
         Uptr pageCount = (Uptr(nBytes) + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
@@ -247,6 +251,28 @@ namespace wasm {
         // Keep reference to memory and table
         this->defaultMemory = Runtime::getDefaultMemory(moduleInstance);
         this->defaultTable = Runtime::getDefaultTable(moduleInstance);
+
+        // Memory-related variables
+        initialMemoryPages = Runtime::getMemoryNumPages(defaultMemory);
+        initialTableSize = Runtime::getTableNumElements(defaultTable);
+        Uptr initialMemorySize = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
+
+        // Get memory and dimensions
+        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
+
+        // Create the snapshot if not already present
+        std::string snapKey = snapshotKeyForFunction(this->boundUser, this->boundFunction);
+        memory::MemorySnapshotRegister &snapRegister = memory::getGlobalMemorySnapshotRegister();
+        const std::shared_ptr<memory::MemorySnapshot> snapshot = snapRegister.getSnapshot(snapKey);
+        snapshot->createIfNotExists(snapKey.c_str(), baseAddr, initialMemorySize);
+    }
+
+    void WasmModule::snapshot(const char *key) {
+
+    }
+
+    void WasmModule::restore(const char *key) {
+
     }
 
     Runtime::ModuleInstance *
@@ -424,21 +450,15 @@ namespace wasm {
         return prevIdx;
     }
 
-    void WasmModule::snapshotFullMemory(const char *key) {
-        // Get memory and dimensions
-        Uptr currentPages = Runtime::getMemoryNumPages(this->defaultMemory);
-        Uptr memSize = currentPages * IR::numBytesPerPage;
-        U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
+    void WasmModule::reset() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Create the snapshot
-        memory::MemorySnapshotRegister &snapRegister = memory::getGlobalMemorySnapshotRegister();
-        const std::shared_ptr<memory::MemorySnapshot> snapshot = snapRegister.getSnapshot(key);
-        snapshot->create(key, baseAddr, memSize);
-    }
+        // Clean up any open fds
+        this->clearFds();
 
-    void WasmModule::restoreFullMemory(const char *key) {
-        // Retrieve the snapshot
+        // Retrieve the memory snapshot
         memory::MemorySnapshotRegister &snapRegister = memory::getGlobalMemorySnapshotRegister();
+        std::string key = snapshotKeyForFunction(this->boundUser, this->boundFunction);
         const std::shared_ptr<memory::MemorySnapshot> snapshot = snapRegister.getSnapshot(key);
 
         // Resize memory accordingly
@@ -448,10 +468,6 @@ namespace wasm {
         // Do the restore
         U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
         snapshot->restore(baseAddr);
-
-        if (initialMemoryPages == 0) {
-            throw std::runtime_error("Initial memory pages not initialised");
-        }
 
         // Reset shared memory variables
         sharedMemKVs.clear();
@@ -464,13 +480,7 @@ namespace wasm {
 //            void* hostPtr = sharedMemHostPtrs[p.first];
 //            kv->unmapSharedMemory(hostPtr);
 //        }
-
-        // TODO - handle changed tables and dynamically linked modules
-    }
-
-    void WasmModule::resetDynamicModules() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
+ 
         // Restore the table to its original size
         Uptr currentTableSize = Runtime::getTableNumElements(defaultTable);
         Uptr elemsToShrink = currentTableSize - initialTableSize;
@@ -479,7 +489,7 @@ namespace wasm {
             Runtime::shrinkTable(defaultTable, elemsToShrink);
         }
 
-        // Remove references to the modules themselves
+        // Remove references to shared modules
         for (auto const &p : dynamicPathToHandleMap) {
             logger->debug("Unloading dynamic module {}", p.first);
             dynamicModuleMap[p.second] = nullptr;
@@ -513,7 +523,7 @@ namespace wasm {
         }
     }
 
-    int WasmModule::getInitialMemoryPages() {
+    Uptr WasmModule::getInitialMemoryPages() {
         return initialMemoryPages;
     }
 
@@ -545,12 +555,13 @@ namespace wasm {
      */
     int WasmModule::execute(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::string funcStr = util::funcToString(msg);
 
         if (!_isBound) {
             throw std::runtime_error("WorkerThread must be bound before executing function");
         } else if (boundUser != msg.user() || boundFunction != msg.function()) {
             logger->error("Cannot execute {} on module bound to {}/{}",
-                          util::funcToString(msg), boundUser, boundFunction);
+                          funcStr, boundUser, boundFunction);
             throw std::runtime_error("Cannot execute function on module bound to another");
         }
 
@@ -562,9 +573,6 @@ namespace wasm {
         Runtime::Context *context = Runtime::createContext(compartment);
 
         // Memory-related variables
-        initialMemoryPages = Runtime::getMemoryNumPages(defaultMemory);
-        initialTableSize = Runtime::getTableNumElements(defaultTable);
-
         Uptr initialMemorySize = initialMemoryPages * IR::numBytesPerPage;
 
         // Note that heap base and data end should be the same (provided stack-first is switched on)
@@ -615,8 +623,8 @@ namespace wasm {
             exitCode = 1;
         }
 
-        // Clean up any open fds
-        this->clearFds();
+        // Reset ready for next execution
+        this->reset();
 
         return exitCode;
     }

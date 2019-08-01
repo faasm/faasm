@@ -36,13 +36,6 @@ namespace runner {
         module.bindToFunction(call);
         runner::logEndTimer("WASM initialisation", tpInit);
 
-        // Snapshot the module's memory
-        const util::TimePoint snapshotTp = runner::startTimer();
-        const std::string funcStr = util::funcToString(call);
-        const std::string snapKey = util::snapshotKeyForFunction(funcStr);
-        module.snapshotFullMemory(snapKey.c_str());
-        runner::logEndTimer("WASM snapshot", snapshotTp);
-
         logger->info("Running benchmark in WASM");
         for (int i = 0; i < nIterations; i++) {
             // Exec the function
@@ -51,12 +44,6 @@ namespace runner {
             long nativeTime = runner::getTimeDiffMicros(nativeTp);
 
             profOut << this->outputName << ",wasm," << nativeTime << std::endl;
-
-            // Restore memory
-            const util::TimePoint restoreTp = runner::startTimer();
-            module.restoreFullMemory(snapKey.c_str());
-            module.resetDynamicModules();
-            runner::logEndTimer("WASM restore", restoreTp);
         }
     }
 

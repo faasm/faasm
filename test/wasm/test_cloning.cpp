@@ -64,14 +64,12 @@ namespace tests {
         Uptr memAfterA1 = Runtime::getMemoryNumPages(moduleA.defaultMemory);
         Uptr memAfterB1 = Runtime::getMemoryNumPages(moduleB.defaultMemory);
         REQUIRE(memAfterB1 == memBeforeA);
-        REQUIRE(memAfterA1 > memBeforeA);
+        REQUIRE(memAfterA1 == memBeforeA);
 
         Uptr tableAfterA1 = Runtime::getTableNumElements(moduleA.defaultTable);
         Uptr tableAfterB1 = Runtime::getTableNumElements(moduleB.defaultTable);
         REQUIRE(tableAfterB1 == tableBeforeA);
-        if(func == "py_func") {
-            REQUIRE(tableAfterA1 > tableBeforeA);
-        }
+        REQUIRE(tableAfterA1 == tableBeforeA);
 
         // Execute with second module and check
         message::Message msgB = util::messageFactory(user, func);
@@ -88,15 +86,13 @@ namespace tests {
         Uptr memAfterB2 = Runtime::getMemoryNumPages(moduleB.defaultMemory);
         REQUIRE(memAfterA1 == memAfterA2);
         REQUIRE(memAfterB2 == memAfterA2);
-        REQUIRE(memAfterB2 > memBeforeB);
+        REQUIRE(memAfterB2 == memBeforeB);
 
         Uptr tableAfterA2 = Runtime::getTableNumElements(moduleA.defaultTable);
         Uptr tableAfterB2 = Runtime::getTableNumElements(moduleB.defaultTable);
         REQUIRE(tableAfterA1 == tableAfterA2);
         REQUIRE(tableAfterB2 == tableAfterA2);
-        if(func == "py_func") {
-            REQUIRE(tableAfterB2 > tableBeforeB);
-        }
+        REQUIRE(tableAfterB2 == tableBeforeB);
     }
 
     TEST_CASE("Test cloned execution on simple module", "[wasm]") {

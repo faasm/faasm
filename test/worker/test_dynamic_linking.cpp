@@ -22,18 +22,14 @@ namespace tests {
         module.bindToFunction(msg);
 
         const char *memKey = "dynlink_test";
-        module.snapshotFullMemory(memKey);
 
         int resA = module.execute(msg);
         REQUIRE(resA == 0);
-        module.restoreFullMemory(memKey);
 
         int resB = module.execute(msg);
         REQUIRE(resB == 0);
-        module.restoreFullMemory(memKey);
 
         int resC = module.execute(msg);
         REQUIRE(resC == 0);
-        module.restoreFullMemory(memKey);
     }
 }
