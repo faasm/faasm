@@ -67,12 +67,6 @@ HOST_IFACE_FUNC
 int __faasm_get_idx();
 
 HOST_IFACE_FUNC
-void __faasm_snapshot_memory(const char *key);
-
-HOST_IFACE_FUNC
-void __faasm_restore_memory(const char *key);
-
-HOST_IFACE_FUNC
 void __faasm_read_config(const char *varName, char *buffer);
 
 #endif

@@ -21,8 +21,6 @@ namespace tests {
         module.initialise();
         module.bindToFunction(msg);
 
-        const char *memKey = "dynlink_test";
-
         int resA = module.execute(msg);
         REQUIRE(resA == 0);
 

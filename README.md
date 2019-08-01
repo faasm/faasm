@@ -7,8 +7,7 @@ By using WebAssembly to run users' code, we can combine software fault isolation
 standard OS tooling to provide strong security and resource isolation guarantees at low cost.
 
 This lightweight isolation enables excellent performance and allows sharing of data between 
-colocated functions through shared memory. We can also snapshot and restore a function's memory to
-reduce initialisation time.
+colocated functions through shared memory.
 
 Faasm currently supports C/C++ and Python. C/C++ are compiled using the stanard LLVM WebAssembly toolchain,
 while Python support is offered by compiling CPython itself to WebAssembly.
@@ -118,7 +117,6 @@ Some of the methods include:
 - `faasmChainFunction()` - this allows one function to invoke others
 - `faasmReadState()` and `writeState()` - allows functions to read/ write key/value state
 - `faasmReadStateOffset()` and `faasmWriteStateOffset()` - allows functions to read/ write at specific points in existing state (e.g. updating a subsection of an array)
-- `faasmCreateSnap()` and `faasmRestoreSnap()` - creates/ restores a given memory snapshot for this function
 
 ## Chaining
 
