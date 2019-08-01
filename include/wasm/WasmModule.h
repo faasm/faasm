@@ -36,9 +36,9 @@ namespace wasm {
     public:
         WasmModule();
 
-        ~WasmModule();
+        WasmModule(const WasmModule &other);
 
-        void cloneFrom(const WasmModule &other);
+        ~WasmModule();
 
         void initialise();
 
@@ -60,9 +60,9 @@ namespace wasm {
 
         U32 mmapKey(std::shared_ptr<state::StateKeyValue> kv, U32 length);
 
-        void snapshotFullMemory(const char* key);
+        void snapshotFullMemory(const char *key);
 
-        void restoreFullMemory(const char* key);
+        void restoreFullMemory(const char *key);
 
         void resetDynamicModules();
 
@@ -140,6 +140,8 @@ namespace wasm {
         std::unordered_map<std::string, int> globalOffsetTableMap;
         std::unordered_map<std::string, int> globalOffsetMemoryMap;
         std::unordered_map<std::string, int> missingGlobalOffsetEntries;
+
+        WasmModule &operator=(const WasmModule &other);
 
         void resizeMemory(size_t targetPages);
 

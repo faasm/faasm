@@ -2,20 +2,19 @@
 #include <wasm/WasmModule.h>
 #include <util/func.h>
 #include <util/config.h>
+#include <wasm/WasmModuleRegistry.h>
 
 namespace tests {
     TEST_CASE("Test cloning empty modules doesn't break", "[wasm]") {
         wasm::WasmModule moduleA;
-        wasm::WasmModule moduleB;
-        moduleB.cloneFrom(moduleA);
+        wasm::WasmModule moduleB(moduleA);
     }
 
     TEST_CASE("Test cloning initialised modules doesn't break", "[wasm]") {
         wasm::WasmModule moduleA;
         moduleA.initialise();
 
-        wasm::WasmModule moduleB;
-        moduleB.cloneFrom(moduleA);
+        wasm::WasmModule moduleB(moduleA);
     }
 
     void _checkCloning(const std::string &user, const std::string &func, const std::string &inputA, const std::string &inputB) {
@@ -30,9 +29,7 @@ namespace tests {
         Uptr memBeforeA = Runtime::getMemoryNumPages(moduleA.defaultMemory);
         Uptr tableBeforeA = Runtime::getTableNumElements(moduleA.defaultTable);
 
-        // Clone a module and check
-        wasm::WasmModule moduleB;
-        moduleB.cloneFrom(moduleA);
+        wasm::WasmModule moduleB(moduleA);
         REQUIRE(moduleB.isInitialised());
         REQUIRE(moduleB.isBound());
         REQUIRE(moduleB.getBoundUser() == moduleA.getBoundUser());

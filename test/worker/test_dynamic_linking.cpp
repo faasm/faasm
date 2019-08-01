@@ -7,10 +7,33 @@
 namespace tests {
     // NOTE: if this is failing make sure you've set up the runtime root
     // this is necessary for the function to dynamically load the modules
-    TEST_CASE("Test dynamic linking modules", "[worker]") {
+    TEST_CASE("Test e2e execution of dynamic linking modules", "[worker]") {
         cleanSystem();
 
         message::Message msg = util::messageFactory("demo", "dynlink");
         execFunction(msg);
+    }
+
+    TEST_CASE("Test repeat execution of dynamically linked modules", "[worker]") {
+        message::Message msg = util::messageFactory("demo", "dynlink");
+
+        wasm::WasmModule module;
+        module.initialise();
+        module.bindToFunction(msg);
+
+        const char *memKey = "dynlink_test";
+        module.snapshotFullMemory(memKey);
+
+        int resA = module.execute(msg);
+        REQUIRE(resA == 0);
+        module.restoreFullMemory(memKey);
+
+        int resB = module.execute(msg);
+        REQUIRE(resB == 0);
+        module.restoreFullMemory(memKey);
+
+        int resC = module.execute(msg);
+        REQUIRE(resC == 0);
+        module.restoreFullMemory(memKey);
     }
 }

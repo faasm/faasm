@@ -40,31 +40,11 @@ namespace wasm {
 
     WasmModule::WasmModule() = default;
 
-    WasmModule::~WasmModule() {
-        // Set all reference to GC pointers to null to allow WAVM GC to clear up
-        defaultMemory = nullptr;
-        defaultTable = nullptr;
-        moduleInstance = nullptr;
-        functionInstance = nullptr;
-        envModule = nullptr;
-
-        for (auto const &m : dynamicModuleMap) {
-            dynamicModuleMap[m.first] = nullptr;
-        }
-
-        if (compartment != nullptr) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-            bool compartmentCleared = Runtime::tryCollectCompartment(std::move(compartment));
-            if (!compartmentCleared) {
-                logger->debug("Failed GC for compartment");
-            } else {
-                logger->debug("Successful GC for compartment");
-            }
-        }
+    WasmModule &WasmModule::operator=(const WasmModule &other) {
+        throw std::runtime_error("Copy assignment not supported");
     }
 
-    void WasmModule::cloneFrom(const WasmModule &other) {
+    WasmModule::WasmModule(const WasmModule &other) {
         // Copy basic values
         errnoLocation = other.errnoLocation;
         initialMemoryPages = other.initialMemoryPages;
@@ -113,6 +93,30 @@ namespace wasm {
             globalOffsetTableMap = other.globalOffsetTableMap;
             globalOffsetMemoryMap = other.globalOffsetMemoryMap;
             missingGlobalOffsetEntries = other.missingGlobalOffsetEntries;
+        }
+    }
+
+    WasmModule::~WasmModule() {
+        // Set all reference to GC pointers to null to allow WAVM GC to clear up
+        defaultMemory = nullptr;
+        defaultTable = nullptr;
+        moduleInstance = nullptr;
+        functionInstance = nullptr;
+        envModule = nullptr;
+
+        for (auto const &m : dynamicModuleMap) {
+            dynamicModuleMap[m.first] = nullptr;
+        }
+
+        if (compartment != nullptr) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+            bool compartmentCleared = Runtime::tryCollectCompartment(std::move(compartment));
+            if (!compartmentCleared) {
+                logger->debug("Failed GC for compartment");
+            } else {
+                logger->debug("Successful GC for compartment");
+            }
         }
     }
 
@@ -460,6 +464,8 @@ namespace wasm {
 //            void* hostPtr = sharedMemHostPtrs[p.first];
 //            kv->unmapSharedMemory(hostPtr);
 //        }
+
+        // TODO - handle changed tables and dynamically linked modules
     }
 
     void WasmModule::resetDynamicModules() {
