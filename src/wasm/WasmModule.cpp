@@ -1,10 +1,12 @@
 #include "WasmModule.h"
 
-#include <memory/MemorySnapshotRegister.h>
 #include <util/files.h>
 #include <util/func.h>
 #include <util/memory.h>
 #include <util/config.h>
+#include <util/locks.h>
+
+#include <memory/MemorySnapshotRegister.h>
 #include <wasm/IRModuleRegistry.h>
 
 #include <WAVM/WASM/WASM.h>
@@ -49,6 +51,10 @@ namespace wasm {
     }
 
     WasmModule::WasmModule(const WasmModule &other) {
+        cloneFrom(other);
+    }
+
+    void WasmModule::cloneFrom(const WasmModule &other) {
         // Copy basic values
         errnoLocation = other.errnoLocation;
         initialMemoryPages = other.initialMemoryPages;
@@ -268,11 +274,15 @@ namespace wasm {
     }
 
     void WasmModule::snapshot(const char *key) {
-
+        WasmModuleRegistry &registry = wasm::getWasmModuleRegistry();
+        registry.registerModule(key, *this);
     }
 
     void WasmModule::restore(const char *key) {
+        WasmModuleRegistry &registry = wasm::getWasmModuleRegistry();
+        WasmModule &otherRef = registry.getModule(key);
 
+        this->cloneFrom(otherRef);
     }
 
     Runtime::ModuleInstance *
@@ -875,5 +885,29 @@ namespace wasm {
 
     std::string WasmModule::getBoundFunction() {
         return boundFunction;
+    }
+
+    WasmModuleRegistry &getWasmModuleRegistry() {
+        static WasmModuleRegistry w;
+        return w;
+    }
+
+    WasmModuleRegistry::WasmModuleRegistry() = default;
+
+    void WasmModuleRegistry::registerModule(const std::string &key, const WasmModule &module) {
+        util::UniqueLock lock(registryMutex);
+
+        // Be careful that we create a new instance here
+        moduleMap.emplace(key, module);
+    }
+
+    WasmModule &WasmModuleRegistry::getModule(const std::string &key) {
+        util::UniqueLock lock(registryMutex);
+
+        if(moduleMap.count(key) == 0) {
+            throw std::runtime_error("Key does not exist: " + key);
+        }
+
+        return moduleMap[key];
     }
 }

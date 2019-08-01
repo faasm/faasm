@@ -8,6 +8,7 @@
 #include <string>
 #include <tuple>
 #include <thread>
+#include <mutex>
 
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
@@ -140,6 +141,8 @@ namespace wasm {
 
         WasmModule &operator=(const WasmModule &other);
 
+        void cloneFrom(const WasmModule &other);
+
         void reset();
 
         void resizeMemory(size_t targetPages);
@@ -166,4 +169,18 @@ namespace wasm {
 
         int exitCode;
     };
+
+    class WasmModuleRegistry {
+    public:
+        WasmModuleRegistry();
+
+        void registerModule(const std::string &key, const WasmModule &module);
+
+        WasmModule &getModule(const std::string &key);
+    private:
+        std::mutex registryMutex;
+        std::unordered_map<std::string, WasmModule> moduleMap;
+    };
+
+    WasmModuleRegistry &getWasmModuleRegistry();
 }

@@ -2,7 +2,6 @@
 #include <wasm/WasmModule.h>
 #include <util/func.h>
 #include <util/config.h>
-#include <wasm/WasmModuleRegistry.h>
 
 namespace tests {
     TEST_CASE("Test cloning empty modules doesn't break", "[wasm]") {

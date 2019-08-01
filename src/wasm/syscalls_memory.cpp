@@ -411,8 +411,8 @@ namespace wasm {
 
     DEFINE_INTRINSIC_FUNCTION(env, "__faasm_snapshot_memory", void, __faasm_snapshot_memory, I32 keyPtr) {
         util::getLogger()->debug("S - snapshot_memory - {}", keyPtr);
-        WasmModule *module = getExecutingModule();
 
+        WasmModule *module = getExecutingModule();
         std::string key = getStringFromWasm(keyPtr);
         module->snapshot(key.c_str());
     }
@@ -421,7 +421,6 @@ namespace wasm {
         util::getLogger()->debug("S - restore_memory - {}", keyPtr);
 
         WasmModule *module = getExecutingModule();
-
         std::string key = getStringFromWasm(keyPtr);
         module->restore(key.c_str());
     }
