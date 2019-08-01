@@ -13,6 +13,8 @@
 using namespace worker;
 
 namespace tests {
+    static std::string originalNsMode;
+
     static void setUp() {
         cleanSystem();
         setEmulatorUser("demo");
@@ -22,11 +24,11 @@ namespace tests {
         sch.addNodeToGlobalSet();
 
         // Network ns requires root
-        util::setEnvVar("NETNS_MODE", "off");
+        originalNsMode = util::setEnvVar("NETNS_MODE", "off");
     }
 
     static void tearDown() {
-        util::unsetEnvVar("NETNS_MODE");
+        util::setEnvVar("NETNS_MODE", originalNsMode);
 
         cleanSystem();
     }

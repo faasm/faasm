@@ -17,7 +17,7 @@ namespace tests {
         REQUIRE(getEnvVar(key, "blah") == "blah");
     }
 
-    TEST_CASE("Test empty environment variables", "[util]") {
+    TEST_CASE("Test setting environment variables", "[util]") {
         util::unsetEnvVar("MY_VAR");
 
         // Sanity check for empty string when env var set to empty
@@ -25,5 +25,12 @@ namespace tests {
         REQUIRE(currentValue == nullptr);
 
         REQUIRE(getEnvVar("MY_VAR", "alpha") == "alpha");
+        
+        // Check original is returned when resetting
+        const std::string original = setEnvVar("MY_VAR", "beta");
+        REQUIRE(original == "");
+
+        const std::string original2 = setEnvVar("MY_VAR", "gamma");
+        REQUIRE(original2 == "beta");
     }
 }

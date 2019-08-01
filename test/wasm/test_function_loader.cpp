@@ -61,19 +61,19 @@ namespace tests {
     }
 
     TEST_CASE("Test invalid storage mode", "[wasm]") {
-        util::setEnvVar("FUNCTION_STORAGE", "junk");
+        const std::string original = util::setEnvVar("FUNCTION_STORAGE", "junk");
         util::SystemConfig &conf = util::getSystemConfig();
         conf.reset();
 
         REQUIRE_THROWS(wasm::getFunctionLoader());
 
-        util::unsetEnvVar("FUNCTION_STORAGE");
+        util::setEnvVar("FUNCTION_STORAGE", original);
         conf.reset();
     }
 
     TEST_CASE("Test fileserver function loader requires fileserver URL", "[wasm]") {
         // Instantiate with no url set
-        util::setEnvVar("FUNCTION_STORAGE", "fileserver");
+        const std::string originalDir = util::setEnvVar("FUNCTION_STORAGE", "fileserver");
         util::unsetEnvVar("FILESERVER_URL");
         util::SystemConfig &conf = util::getSystemConfig();
         conf.reset();
@@ -88,8 +88,8 @@ namespace tests {
         auto loader = (wasm::FileserverFunctionLoader&) wasm::getFunctionLoader();
         REQUIRE(loader.getFileserverUrl() == "www.foo.com");
 
+        util::setEnvVar("FUNCTION_STORAGE", originalDir);
         util::unsetEnvVar("FILESERVER_URL");
-        util::unsetEnvVar("FUNCTION_STORAGE");
         conf.reset();
     }
 }

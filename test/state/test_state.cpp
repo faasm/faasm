@@ -23,7 +23,6 @@ namespace tests {
         // We have to make sure emulator is using the right user
         const std::string user = getEmulatorUser();
 
-        redis::Redis &redisState = redis::Redis::getState();
         staticCount++;
 
         const std::string stateKey = "state_key_" + std::to_string(staticCount);

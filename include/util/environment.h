@@ -5,7 +5,7 @@
 namespace util {
     std::string getEnvVar(const std::string &key, const std::string &deflt);
 
-    void setEnvVar(const std::string &varName, const std::string &value);
+    std::string setEnvVar(const std::string &varName, const std::string &value);
 
     void unsetEnvVar(const std::string &varName);
 }

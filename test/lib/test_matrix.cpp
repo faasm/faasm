@@ -51,7 +51,6 @@ namespace tests {
     }
 
     TEST_CASE("Test updating matrix element in state", "[matrix]") {
-        redis::Redis &redisQueue = redis::Redis::getQueue();
         cleanSystem();
 
         MatrixXd mat = buildDummyMatrix();

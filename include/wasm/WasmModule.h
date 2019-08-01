@@ -115,7 +115,6 @@ namespace wasm {
         int nextStackPointer = 0;
         int nextTableBase = 0;
 
-
         bool _isInitialised = false;
         bool _isBound = false;
         std::string boundUser;

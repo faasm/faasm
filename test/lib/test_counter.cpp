@@ -34,7 +34,6 @@ namespace tests {
     }
 
     TEST_CASE("Test counter over big number", "[counter]") {
-        redis::Redis &redisQueue = redis::Redis::getQueue();
         cleanSystem();
 
         const char *key = "test_counter";

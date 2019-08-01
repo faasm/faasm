@@ -77,8 +77,6 @@ namespace tests {
     }
 
     void checkLossUpdates(LossType lossType, bool async) {
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-
         cleanSystem();
 
         int nWeights = 4;

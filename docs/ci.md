@@ -15,7 +15,7 @@ This sets up the test container locally and mounts your local checkout. Inside t
 ```
 /usr/local/code/faasm/bin/ci_setup.sh
 
-cd /build/faasm
+cd /faasm/ci-build
 ./bin/tests
 
 # After making changes

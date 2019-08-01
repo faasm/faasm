@@ -20,6 +20,7 @@ namespace tests {
 
     TEST_CASE("Test cgroup on/ off", "[worker]") {
         util::SystemConfig &conf = util::getSystemConfig();
+        std::string original = conf.cgroupMode;
 
         // Ignore this test in CI, not able to run privileged hence can't create cgroups
         if(conf.hostType == "ci") {
@@ -49,7 +50,7 @@ namespace tests {
         REQUIRE(cg.getName() == "foo");
 
         // Reset config
-        util::unsetEnvVar("CGROUP_MODE");
+        util::setEnvVar("CGROUP_MODE", original);
         conf.reset();
     }
 
