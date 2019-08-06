@@ -26,7 +26,6 @@ int main(int argc, char *argv[]) {
     logger->info("Disassembling function {}/{}", user, function);
 
     wasm::WasmModule module;
-    module.initialise();
     module.bindToFunction(call);
 
     std::map<std::string, std::string> disasMap = module.buildDisassemblyMap();

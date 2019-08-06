@@ -32,7 +32,6 @@ namespace runner {
         call.set_function(this->funcName);
         call.set_inputdata(this->inputData);
 
-        module.initialise();
         module.bindToFunction(call);
         runner::logEndTimer("WASM initialisation", tpInit);
 

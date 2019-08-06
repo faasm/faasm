@@ -5,6 +5,7 @@
 
 #include <scheduler/Scheduler.h>
 #include <util/config.h>
+#include <zygote/ZygoteRegistry.h>
 
 using namespace isolation;
 
@@ -104,9 +105,10 @@ namespace worker {
         // Set up with scheduler
         currentQueue = scheduler.listenToQueue(msg);
 
-        // Perform the actual wasm initialisation
-        module = std::make_unique<wasm::WasmModule>();
-        module->bindToFunction(msg);
+        // Instantiate the module from its zygote
+        zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
+        wasm::WasmModule &zygote = registry.getZygote(msg);
+        module = std::make_unique<wasm::WasmModule>(zygote);
 
         _isBound = true;
     }
