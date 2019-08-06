@@ -4,7 +4,7 @@
 
 using namespace Pistache;
 
-namespace worker {
+namespace knative {
     void KnativeHandler::onRequest(const Http::Request &request, Http::ResponseWriter response) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Received request");

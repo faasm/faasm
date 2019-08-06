@@ -1,4 +1,4 @@
-#include "WorkerThreadPool.h"
+#include <worker/WorkerThreadPool.h>
 
 #include <aws/aws.h>
 #include <aws/lambda-runtime/runtime.h>

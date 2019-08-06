@@ -4,7 +4,7 @@
 
 using namespace Pistache;
 
-namespace worker {
+namespace knative {
     class KnativeEndpoint : public http::HttpEndpoint {
     public:
         KnativeEndpoint();

@@ -2,7 +2,7 @@
 
 #include <util/logging.h>
 
-using namespace worker;
+using namespace knative;
 
 int main() {
     util::initLogging();
