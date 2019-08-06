@@ -5,7 +5,7 @@
 
 #include "FunctionLoader.h"
 
-namespace wasm {
+namespace storage {
     class S3FunctionLoader: public FunctionLoader {
     public:
         S3FunctionLoader();

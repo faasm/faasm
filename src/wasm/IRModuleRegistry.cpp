@@ -8,7 +8,7 @@
 #include <WAVM/IR/Types.h>
 #include <WAVM/WASTParse/WASTParse.h>
 
-#include <wasm/FunctionLoader.h>
+#include <storage/FunctionLoader.h>
 #include <util/func.h>
 
 using namespace WAVM;
@@ -67,7 +67,7 @@ namespace wasm {
                 logger->debug("Loading compiled main module {}", key);
 
                 IR::Module &module = moduleMap[key];
-                wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
+                storage::FunctionLoader &functionLoader = storage::getFunctionLoader();
 
                 message::Message msg = util::messageFactory(user, func);
                 std::vector<uint8_t> objectFileBytes = functionLoader.loadFunctionObjectBytes(msg);
@@ -95,7 +95,7 @@ namespace wasm {
 
                 IR::Module &module = moduleMap[key];
 
-                wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
+                storage::FunctionLoader &functionLoader = storage::getFunctionLoader();
                 std::string objFilePath = path + SHARED_OBJ_EXT;
 
                 std::vector<uint8_t> objectBytes = functionLoader.loadFileBytes(objFilePath);
@@ -117,7 +117,7 @@ namespace wasm {
                 const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 logger->debug("Loading main module {}", key);
 
-                wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
+                storage::FunctionLoader &functionLoader = storage::getFunctionLoader();
 
                 message::Message msg = util::messageFactory(user, func);
                 std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionBytes(msg);
@@ -153,7 +153,7 @@ namespace wasm {
                 const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 logger->debug("Loading shared module {}", key);
 
-                wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
+                storage::FunctionLoader &functionLoader = storage::getFunctionLoader();
 
                 std::vector<uint8_t> wasmBytes = functionLoader.loadFileBytes(path);
 

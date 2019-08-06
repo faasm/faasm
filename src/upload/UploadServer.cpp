@@ -4,7 +4,7 @@
 #include <util/bytes.h>
 
 #include <redis/Redis.h>
-#include <wasm/FunctionLoader.h>
+#include <storage/FunctionLoader.h>
 #include <util/config.h>
 #include <util/state.h>
 
@@ -76,7 +76,7 @@ namespace edge {
 
         const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
 
-        wasm::FunctionLoader &l = wasm::getFunctionLoader();
+        storage::FunctionLoader &l = storage::getFunctionLoader();
         std::string pathType = pathParts[0];
         std::vector<uint8_t> returnBytes;
         message::Message msg = UploadServer::buildMessageFromRequest(request);
@@ -167,7 +167,7 @@ namespace edge {
         logger->info("Uploading Python function {}", util::funcToString(msg));
 
         // Do the upload
-        wasm::FunctionLoader &l = wasm::getFunctionLoader();
+        storage::FunctionLoader &l = storage::getFunctionLoader();
         l.uploadPythonFunction(msg);
 
         request.reply(status_codes::OK, "Python function upload complete\n");
@@ -180,7 +180,7 @@ namespace edge {
         logger->info("Uploading {}", util::funcToString(msg));
 
         // Do the upload
-        wasm::FunctionLoader &l = wasm::getFunctionLoader();
+        storage::FunctionLoader &l = storage::getFunctionLoader();
         l.uploadFunction(msg);
 
         request.reply(status_codes::OK, "Function upload complete\n");

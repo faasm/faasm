@@ -6,12 +6,7 @@ include_directories(
 file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/wasm/*.h")
 
 set(LIB_FILES
-        FunctionLoader.cpp
-        LocalFunctionLoader.cpp
-        FileserverFunctionLoader.cpp
-        S3FunctionLoader.cpp
         IRModuleRegistry.cpp
-        instance.cpp
         codegen.cpp
         WasmModule.cpp
         syscalls.cpp
@@ -29,7 +24,7 @@ set(LIB_FILES
         )
 
 faasm_private_lib(wasm "${LIB_FILES}")
-target_link_libraries(wasm scheduler memory state WAVM)
+target_link_libraries(wasm scheduler memory state storage WAVM)
 
 add_executable(codegen codegen_runner.cpp)
 target_link_libraries(codegen wasm)
