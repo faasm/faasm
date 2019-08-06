@@ -106,7 +106,6 @@ namespace worker {
 
         // Perform the actual wasm initialisation
         module = std::make_unique<wasm::WasmModule>();
-        module->initialise();
         module->bindToFunction(msg);
 
         _isBound = true;

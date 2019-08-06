@@ -18,7 +18,6 @@ namespace tests {
         message::Message msg = util::messageFactory("demo", "dynlink");
 
         wasm::WasmModule module;
-        module.initialise();
         module.bindToFunction(msg);
 
         int resA = module.execute(msg);

@@ -9,9 +9,8 @@ namespace tests {
         wasm::WasmModule moduleB(moduleA);
     }
 
-    TEST_CASE("Test cloning initialised modules doesn't break", "[wasm]") {
+    TEST_CASE("Test cloning plain modules doesn't break", "[wasm]") {
         wasm::WasmModule moduleA;
-        moduleA.initialise();
 
         wasm::WasmModule moduleB(moduleA);
     }
@@ -21,7 +20,6 @@ namespace tests {
 
         // Create and bind one module
         wasm::WasmModule moduleA;
-        moduleA.initialise();
         moduleA.bindToFunction(msgA);
 
         // Get the initial mem and table size
@@ -29,7 +27,6 @@ namespace tests {
         Uptr tableBeforeA = Runtime::getTableNumElements(moduleA.defaultTable);
 
         wasm::WasmModule moduleB(moduleA);
-        REQUIRE(moduleB.isInitialised());
         REQUIRE(moduleB.isBound());
         REQUIRE(moduleB.getBoundUser() == moduleA.getBoundUser());
         REQUIRE(moduleB.getBoundFunction() == moduleA.getBoundFunction());

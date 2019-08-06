@@ -53,8 +53,6 @@ namespace wasm {
 
         Runtime::GCPointer<Runtime::Compartment> compartment;
 
-        bool isInitialised();
-
         bool isBound();
 
         U32 mmap(U32 length);
@@ -116,7 +114,6 @@ namespace wasm {
         int nextStackPointer = 0;
         int nextTableBase = 0;
 
-        bool _isInitialised = false;
         bool _isBound = false;
         std::string boundUser;
         std::string boundFunction;

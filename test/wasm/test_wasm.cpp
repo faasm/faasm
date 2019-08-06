@@ -12,7 +12,6 @@ namespace tests {
         call.set_function("dummy");
 
         wasm::WasmModule module;
-        module.initialise();
         module.bindToFunction(call);
 
         // Execute the function
@@ -35,7 +34,6 @@ namespace tests {
 //        call.set_function("print");
 //
 //        wasm::WasmModule module;
-//        module.initialise();
 //        module.bindToFunction(call);
 //
 //        int result = module.execute(call);
@@ -69,31 +67,10 @@ namespace tests {
         call.set_function("x2");
 
         wasm::WasmModule module;
-        module.initialise();
-
         REQUIRE(!module.isBound());
 
         module.bindToFunction(call);
         REQUIRE(module.isBound());
-    }
-
-    TEST_CASE("Test binding without initialisation fails", "[wasm]") {
-        message::Message call;
-        call.set_user("demo");
-        call.set_function("x2");
-
-        wasm::WasmModule module;
-        REQUIRE_THROWS(module.bindToFunction(call));
-    }
-
-    TEST_CASE("Test initialising twice fails", "[wasm]") {
-        wasm::WasmModule module;
-        REQUIRE(!module.isInitialised());
-
-        module.initialise();
-        REQUIRE(module.isInitialised());
-
-        REQUIRE_THROWS(module.initialise());
     }
 
     TEST_CASE("Test executing WASM module with input and output", "[wasm]") {
@@ -102,7 +79,6 @@ namespace tests {
         call.set_function("x2");
 
         wasm::WasmModule module;
-        module.initialise();
         module.bindToFunction(call);
 
         // Perform first execution
@@ -119,7 +95,6 @@ namespace tests {
         callA.set_function("dummy");
 
         wasm::WasmModule module;
-        module.initialise();
         REQUIRE_THROWS(module.execute(callA));
     }
 
@@ -129,7 +104,6 @@ namespace tests {
         callA.set_function("dummy");
 
         wasm::WasmModule module;
-        module.initialise();
         module.bindToFunction(callA);
         REQUIRE_THROWS(module.bindToFunction(callA));
     }
@@ -144,7 +118,6 @@ namespace tests {
         callB.set_function("x2");
 
         wasm::WasmModule module;
-        module.initialise();
         module.bindToFunction(callA);
 
         REQUIRE_THROWS(module.execute(callB));
@@ -156,7 +129,6 @@ namespace tests {
         call.set_function("heap");
         
         wasm::WasmModule module;
-        module.initialise();
         module.bindToFunction(call);
 
         Uptr initialPages = Runtime::getMemoryNumPages(module.defaultMemory);
@@ -173,7 +145,6 @@ namespace tests {
         call.set_function("malloc");
 
         wasm::WasmModule module;
-        module.initialise();
         module.bindToFunction(call);
 
         module.execute(call);

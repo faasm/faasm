@@ -14,7 +14,6 @@ namespace tests {
         call.set_inputdata(funcName);
 
         wasm::WasmModule module;
-        module.initialise();
         module.bindToFunction(call);
 
         int result = module.execute(call);
@@ -39,7 +38,6 @@ namespace tests {
         call.set_inputdata("numpy_test.py");
 
         wasm::WasmModule module;
-        module.initialise();
         module.bindToFunction(call);
 
         int result = module.execute(call);

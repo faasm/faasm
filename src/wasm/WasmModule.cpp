@@ -68,18 +68,14 @@ namespace wasm {
         nextStackPointer = other.nextStackPointer;
         nextTableBase = other.nextTableBase;
 
-        _isInitialised = other._isInitialised;
         _isBound = other._isBound;
         boundUser = other.boundUser;
         boundFunction = other.boundFunction;
 
-        // Copy module-specific info
-        if (other._isInitialised) {
+        if (other._isBound) {
             // Clone compartment (covers all WAVM internals)
             compartment = Runtime::cloneCompartment(other.compartment);
-        }
 
-        if (other._isBound) {
             // Remap bits we need references to
             envModule = Runtime::remapToClonedCompartment(other.envModule, compartment);
             moduleInstance = Runtime::remapToClonedCompartment(other.moduleInstance, compartment);
@@ -132,20 +128,6 @@ namespace wasm {
 
     bool WasmModule::isBound() {
         return _isBound;
-    }
-
-    bool WasmModule::isInitialised() {
-        return _isInitialised;
-    }
-
-    void WasmModule::initialise() {
-        if (compartment != nullptr) {
-            throw std::runtime_error("Cannot initialise already initialised module");
-        }
-
-        compartment = Runtime::createCompartment();
-
-        _isInitialised = true;
     }
 
     Runtime::Function *WasmModule::getFunction(const std::string &funcName) {
@@ -223,11 +205,12 @@ namespace wasm {
     }
 
     void WasmModule::bindToFunction(const message::Message &msg) {
-        if (!_isInitialised) {
-            throw std::runtime_error("Must initialise module before binding");
-        } else if (_isBound) {
+        if (_isBound) {
             throw std::runtime_error("Cannot bind a module twice");
         }
+
+        // Set up the compartment
+        compartment = Runtime::createCompartment();
 
         // Record that this module is now bound
         _isBound = true;
@@ -478,7 +461,7 @@ namespace wasm {
 //            void* hostPtr = sharedMemHostPtrs[p.first];
 //            kv->unmapSharedMemory(hostPtr);
 //        }
- 
+
         // Restore the table to its original size
         Uptr currentTableSize = Runtime::getTableNumElements(defaultTable);
         Uptr elemsToShrink = currentTableSize - initialTableSize;
