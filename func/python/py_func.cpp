@@ -12,6 +12,8 @@ FAASM_ZYGOTE() {
 }
 
 FAASM_MAIN_FUNC() {
+    setUpPyEnvironment();
+
     long inputSize = faasmGetInputSize();
     uint8_t buffer[inputSize];
     faasmGetInput(buffer, inputSize);

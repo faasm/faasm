@@ -206,7 +206,20 @@ namespace wasm {
         }
     }
 
+    IR::ValueTuple WasmModule::executeFunction(Runtime::Function *func, const std::vector<IR::Value>& arguments) {
+        // Note the need to set the currently executing module
+        executingModule = this;
+
+        return Runtime::invokeFunctionChecked(executionContext, func, arguments);
+    }
+
     void WasmModule::bindToFunction(const message::Message &msg) {
+        /*
+         * NOTE - the order things happen in this function is important.
+         * The zygote function may execute non-trivial code and modify the memory,
+         * but in order to work it needs the memory, errno etc. to be set up.
+         */
+
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         if (_isBound) {
             throw std::runtime_error("Cannot bind a module twice");
@@ -238,18 +251,30 @@ namespace wasm {
         // Extract the module's exported function
         std::string entryFunc = "main";
 
-        // Get and execute zygote function
-        zygoteFunctionInstance = this->getFunction(ZYGOTE_FUNC_NAME, false);
-        if(zygoteFunctionInstance) {
-            Runtime::invokeFunctionChecked(executionContext, zygoteFunctionInstance, {});
-        }
-
         // Get main entrypoint function
         functionInstance = this->getFunction(entryFunc, true);
 
         // Keep reference to memory and table
         this->defaultMemory = Runtime::getDefaultMemory(moduleInstance);
         this->defaultTable = Runtime::getDefaultTable(moduleInstance);
+
+        // Record the errno location
+        Runtime::Function *errNoLocation = asFunctionNullable(getInstanceExport(moduleInstance, "__errno_location"));
+        if (errNoLocation) {
+            IR::ValueTuple errNoResult = executeFunction(errNoLocation, {});
+            if (errNoResult.size() == 1 && errNoResult[0].type == IR::ValueType::i32) {
+                errnoLocation = errNoResult[0].i32;
+                logger->debug("Found errno location {}", errnoLocation);
+            }
+        } else {
+            logger->warn("Did not find errno location");
+        }
+
+        // Get and execute zygote function
+        zygoteFunctionInstance = this->getFunction(ZYGOTE_FUNC_NAME, false);
+        if(zygoteFunctionInstance) {
+            executeFunction(zygoteFunctionInstance, {});
+        }
 
         // Memory-related variables
         initialMemoryPages = Runtime::getMemoryNumPages(defaultMemory);
@@ -277,18 +302,6 @@ namespace wasm {
         // Copy the offset of argv[0] into position
         Runtime::memoryRef<U32>(defaultMemory, argvStart) = argv0;
         invokeArgs = {argc, argvStart};
-
-        // Record the errno location
-        Runtime::Function *errNoLocation = asFunctionNullable(getInstanceExport(moduleInstance, "__errno_location"));
-        if (errNoLocation) {
-            IR::ValueTuple errNoResult = Runtime::invokeFunctionChecked(executionContext, errNoLocation, {});
-            if (errNoResult.size() == 1 && errNoResult[0].type == IR::ValueType::i32) {
-                errnoLocation = errNoResult[0].i32;
-                logger->debug("Found errno location {}", errnoLocation);
-            }
-        } else {
-            logger->warn("Did not find errno location");
-        }
 
         // Snapshot the context so that we can reset to this point
         baseContext = Runtime::cloneContext(executionContext, compartment);
@@ -424,7 +437,7 @@ namespace wasm {
         Runtime::Function *wasmCtorsFunction = asFunctionNullable(getInstanceExport(mod, "__wasm_call_ctors"));
         if (wasmCtorsFunction) {
             logger->debug("Executing __wasm_call_ctors for {}", path);
-            Runtime::invokeFunctionChecked(context, wasmCtorsFunction, {});
+            executeFunction(wasmCtorsFunction, {});
         }
 
         // Keep a record of this module
@@ -604,7 +617,7 @@ namespace wasm {
             // Call the function
             logger->debug("Invoking the function itself");
             Runtime::unwindSignalsAsExceptions([this] {
-                invokeFunctionChecked(executionContext, functionInstance, invokeArgs);
+                executeFunction(functionInstance, invokeArgs);
             });
         }
         catch (wasm::WasmExitException &e) {

@@ -75,6 +75,8 @@ namespace wasm {
 
         int addFunctionToTable(Runtime::Object *exportedFunc);
 
+        IR::ValueTuple executeFunction(Runtime::Function *func, const std::vector<IR::Value>& arguments);
+
         Runtime::Function *getFunction(const std::string &funcName, bool strict);
 
         void setErrno(int newValue);
