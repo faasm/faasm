@@ -19,7 +19,7 @@ namespace tests {
         REQUIRE(std::addressof(moduleA) == std::addressof(moduleB));
         REQUIRE(moduleA.isBound());
         
-        // Execute one of these functions normally and make sure zygote not used
+        // Execute the function normally and make sure zygote is not used directly
         worker::WorkerThread workerThread = execFunction(msg);
         REQUIRE(workerThread.isBound());
         REQUIRE(std::addressof(moduleA) != std::addressof(*workerThread.module));
