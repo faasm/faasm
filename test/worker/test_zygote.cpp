@@ -7,7 +7,7 @@
 namespace tests {
     TEST_CASE("Test zygote function works", "[worker]") {
         cleanSystem();
-        message::Message msg = util::messageFactory("demo", "zygote");
+        message::Message msg = util::messageFactory("demo", "zygote_check");
         execFunction(msg);
     }
 }
