@@ -1,6 +1,5 @@
 include_directories(
         ${FAASM_INCLUDE_DIR}/worker
-        ${FAASM_WAVM_SOURCE_DIR}
 )
 
 set(LIB_HEADERS
@@ -19,4 +18,3 @@ target_link_libraries(worker_lib wasm scheduler system)
 
 add_executable(worker worker_main.cpp)
 target_link_libraries(worker worker_lib)
-

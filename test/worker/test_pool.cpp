@@ -82,7 +82,11 @@ namespace tests {
 
     void checkBound(WorkerThread &w, message::Message &msg, bool isBound) {
         REQUIRE(w.isBound() == isBound);
-        REQUIRE(w.module->isBound() == isBound);
+        if(w.module) {
+            REQUIRE(w.module->isBound() == isBound);
+        } else {
+            REQUIRE(!isBound);
+        }
     }
 
     TEST_CASE("Test binding to function", "[worker]") {

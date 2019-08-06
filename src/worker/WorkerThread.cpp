@@ -50,10 +50,6 @@ namespace worker {
         CGroup cgroup(BASE_CGROUP_NAME);
         cgroup.addCurrentThread();
 
-        // Initialise wasm module
-        module = std::make_unique<wasm::WasmModule>();
-        module->initialise();
-
         _isInitialised = true;
     }
 
@@ -109,6 +105,8 @@ namespace worker {
         currentQueue = scheduler.listenToQueue(msg);
 
         // Perform the actual wasm initialisation
+        module = std::make_unique<wasm::WasmModule>();
+        module->initialise();
         module->bindToFunction(msg);
 
         _isBound = true;
