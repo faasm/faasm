@@ -5,6 +5,7 @@
 
 #include <scheduler/Scheduler.h>
 #include <util/config.h>
+#include <zygote/ZygoteRegistry.h>
 
 using namespace isolation;
 
@@ -49,10 +50,6 @@ namespace worker {
         // Add this thread to the cgroup
         CGroup cgroup(BASE_CGROUP_NAME);
         cgroup.addCurrentThread();
-
-        // Initialise wasm module
-        module = std::make_unique<wasm::WasmModule>();
-        module->initialise();
 
         _isInitialised = true;
     }
@@ -108,8 +105,10 @@ namespace worker {
         // Set up with scheduler
         currentQueue = scheduler.listenToQueue(msg);
 
-        // Perform the actual wasm initialisation
-        module->bindToFunction(msg);
+        // Instantiate the module from its zygote
+        zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
+        wasm::WasmModule &zygote = registry.getZygote(msg);
+        module = std::make_unique<wasm::WasmModule>(zygote);
 
         _isBound = true;
     }

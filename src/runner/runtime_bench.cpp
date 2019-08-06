@@ -27,8 +27,6 @@ void _doFuncCall(int nIterations, bool addSleep) {
 
         // Initialise wasm module
         wasm::WasmModule module;
-        module.initialise();
-
         message::Message m;
         m.set_user(USER);
 

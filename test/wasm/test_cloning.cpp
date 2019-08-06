@@ -9,19 +9,11 @@ namespace tests {
         wasm::WasmModule moduleB(moduleA);
     }
 
-    TEST_CASE("Test cloning initialised modules doesn't break", "[wasm]") {
-        wasm::WasmModule moduleA;
-        moduleA.initialise();
-
-        wasm::WasmModule moduleB(moduleA);
-    }
-
     void _checkCloning(const std::string &user, const std::string &func, const std::string &inputA, const std::string &inputB) {
         message::Message msgA = util::messageFactory(user, func);
 
         // Create and bind one module
         wasm::WasmModule moduleA;
-        moduleA.initialise();
         moduleA.bindToFunction(msgA);
 
         // Get the initial mem and table size
@@ -29,7 +21,6 @@ namespace tests {
         Uptr tableBeforeA = Runtime::getTableNumElements(moduleA.defaultTable);
 
         wasm::WasmModule moduleB(moduleA);
-        REQUIRE(moduleB.isInitialised());
         REQUIRE(moduleB.isBound());
         REQUIRE(moduleB.getBoundUser() == moduleA.getBoundUser());
         REQUIRE(moduleB.getBoundFunction() == moduleA.getBoundFunction());

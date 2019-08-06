@@ -24,6 +24,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     SET(CMAKE_EXE_LINKER_FLAGS "\
         -Xlinker --no-entry \
         -Xlinker --export=main \
+        -Xlinker --export=_faasm_zygote \
         -Xlinker --max-memory=1073741824 \
         -Xlinker --stack-first \
         -Xlinker --threads \

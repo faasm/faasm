@@ -3,7 +3,17 @@
 
 #include <Python.h>
 
+FAASM_ZYGOTE() {
+    setUpPyEnvironment();
+    setUpPyNumpy();
+    Py_InitializeEx(0);
+
+    printf("\n\nPython initialised\n");
+}
+
 FAASM_MAIN_FUNC() {
+    setUpPyEnvironment();
+
     long inputSize = faasmGetInputSize();
     uint8_t buffer[inputSize];
     faasmGetInput(buffer, inputSize);
@@ -20,12 +30,6 @@ FAASM_MAIN_FUNC() {
     }
 
     printf("WASM python function: %s\n", filePath);
-
-    setUpPyEnvironment();
-    setUpPyNumpy();
-
-    Py_InitializeEx(0);
-    printf("\n\nInitialised\n");
 
     PyRun_SimpleFile(fp, filePath);
     printf("\n\nExecuted\n");

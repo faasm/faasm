@@ -130,6 +130,7 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-worker")
     add_subdirectory(src/util)
     add_subdirectory(src/wasm)
     add_subdirectory(src/worker)
+    add_subdirectory(src/zygote)
 
 elseif (FAASM_BUILD_TYPE STREQUAL "lambda-dispatch")
     # ------------------
@@ -207,6 +208,7 @@ else ()
     add_subdirectory(src/util)
     add_subdirectory(src/wasm)
     add_subdirectory(src/worker)
+    add_subdirectory(src/zygote)
 
     # Tests
     add_library(catch INTERFACE)

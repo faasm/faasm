@@ -16,18 +16,6 @@ namespace tests {
 
     TEST_CASE("Test repeat execution of dynamically linked modules", "[worker]") {
         message::Message msg = util::messageFactory("demo", "dynlink");
-
-        wasm::WasmModule module;
-        module.initialise();
-        module.bindToFunction(msg);
-
-        int resA = module.execute(msg);
-        REQUIRE(resA == 0);
-
-        int resB = module.execute(msg);
-        REQUIRE(resB == 0);
-
-        int resC = module.execute(msg);
-        REQUIRE(resC == 0);
+        checkMultipleExecutions(msg, 3);
     }
 }

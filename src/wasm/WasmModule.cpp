@@ -1,6 +1,5 @@
 #include "WasmModule.h"
 
-#include <util/files.h>
 #include <util/func.h>
 #include <util/memory.h>
 #include <util/config.h>
@@ -51,10 +50,6 @@ namespace wasm {
     }
 
     WasmModule::WasmModule(const WasmModule &other) {
-        cloneFrom(other);
-    }
-
-    void WasmModule::cloneFrom(const WasmModule &other) {
         // Copy basic values
         errnoLocation = other.errnoLocation;
         initialMemoryPages = other.initialMemoryPages;
@@ -68,22 +63,22 @@ namespace wasm {
         nextStackPointer = other.nextStackPointer;
         nextTableBase = other.nextTableBase;
 
-        _isInitialised = other._isInitialised;
         _isBound = other._isBound;
         boundUser = other.boundUser;
         boundFunction = other.boundFunction;
 
-        // Copy module-specific info
-        if (other._isInitialised) {
-            // Clone compartment (covers all WAVM internals)
-            compartment = Runtime::cloneCompartment(other.compartment);
-        }
-
         if (other._isBound) {
-            // Remap bits we need references to
+            // Clone all WAVM-related bits
+            compartment = Runtime::cloneCompartment(other.compartment);
+            baseContext = Runtime::cloneContext(other.baseContext, compartment);
+            executionContext = Runtime::cloneContext(other.executionContext, compartment);
+            invokeArgs = other.invokeArgs;
+
+            // Remap parts we need specific references to
             envModule = Runtime::remapToClonedCompartment(other.envModule, compartment);
             moduleInstance = Runtime::remapToClonedCompartment(other.moduleInstance, compartment);
             functionInstance = Runtime::remapToClonedCompartment(other.functionInstance, compartment);
+            zygoteFunctionInstance = Runtime::remapToClonedCompartment(other.zygoteFunctionInstance, compartment);
 
             // Extract the memory and table again
             this->defaultMemory = Runtime::getDefaultMemory(moduleInstance);
@@ -112,7 +107,10 @@ namespace wasm {
         defaultTable = nullptr;
         moduleInstance = nullptr;
         functionInstance = nullptr;
+        zygoteFunctionInstance = nullptr;
         envModule = nullptr;
+        executionContext = nullptr;
+        baseContext = nullptr;
 
         for (auto const &m : dynamicModuleMap) {
             dynamicModuleMap[m.first] = nullptr;
@@ -134,26 +132,12 @@ namespace wasm {
         return _isBound;
     }
 
-    bool WasmModule::isInitialised() {
-        return _isInitialised;
-    }
-
-    void WasmModule::initialise() {
-        if (compartment != nullptr) {
-            throw std::runtime_error("Cannot initialise already initialised module");
-        }
-
-        compartment = Runtime::createCompartment();
-
-        _isInitialised = true;
-    }
-
-    Runtime::Function *WasmModule::getFunction(const std::string &funcName) {
+    Runtime::Function *WasmModule::getFunction(const std::string &funcName, bool strict) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Look up the function
         Runtime::Function *func = asFunctionNullable(getInstanceExport(moduleInstance, funcName));
-        if (!func) {
+        if (!func && strict) {
             logger->error("Unable to find function {}", funcName);
             throw std::runtime_error("Missing exported function");
         }
@@ -222,10 +206,22 @@ namespace wasm {
         }
     }
 
+    IR::ValueTuple WasmModule::executeFunction(Runtime::Function *func, const std::vector<IR::Value>& arguments) {
+        // Note the need to set the currently executing module
+        executingModule = this;
+
+        return Runtime::invokeFunctionChecked(executionContext, func, arguments);
+    }
+
     void WasmModule::bindToFunction(const message::Message &msg) {
-        if (!_isInitialised) {
-            throw std::runtime_error("Must initialise module before binding");
-        } else if (_isBound) {
+        /*
+         * NOTE - the order things happen in this function is important.
+         * The zygote function may execute non-trivial code and modify the memory,
+         * but in order to work it needs the memory, errno etc. to be set up.
+         */
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        if (_isBound) {
             throw std::runtime_error("Cannot bind a module twice");
         }
 
@@ -233,6 +229,10 @@ namespace wasm {
         _isBound = true;
         boundUser = msg.user();
         boundFunction = msg.function();
+
+        // Set up the compartment and context
+        compartment = Runtime::createCompartment();
+        executionContext = Runtime::createContext(compartment);
 
         // TODO - tidy up the handling of Python functions. This is a hack
         // Create a copy of the message to avoid messing with the original
@@ -252,11 +252,29 @@ namespace wasm {
         std::string entryFunc = "main";
 
         // Get main entrypoint function
-        functionInstance = this->getFunction(entryFunc);
+        functionInstance = this->getFunction(entryFunc, true);
 
         // Keep reference to memory and table
         this->defaultMemory = Runtime::getDefaultMemory(moduleInstance);
         this->defaultTable = Runtime::getDefaultTable(moduleInstance);
+
+        // Record the errno location
+        Runtime::Function *errNoLocation = asFunctionNullable(getInstanceExport(moduleInstance, "__errno_location"));
+        if (errNoLocation) {
+            IR::ValueTuple errNoResult = executeFunction(errNoLocation, {});
+            if (errNoResult.size() == 1 && errNoResult[0].type == IR::ValueType::i32) {
+                errnoLocation = errNoResult[0].i32;
+                logger->debug("Found errno location {}", errnoLocation);
+            }
+        } else {
+            logger->warn("Did not find errno location");
+        }
+
+        // Get and execute zygote function
+        zygoteFunctionInstance = this->getFunction(ZYGOTE_FUNC_NAME, false);
+        if(zygoteFunctionInstance) {
+            executeFunction(zygoteFunctionInstance, {});
+        }
 
         // Memory-related variables
         initialMemoryPages = Runtime::getMemoryNumPages(defaultMemory);
@@ -265,6 +283,28 @@ namespace wasm {
 
         // Get memory and dimensions
         U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
+
+        // Note that heap base and data end should be the same (provided stack-first is switched on)
+        heapBase = this->getGlobalI32("__heap_base", executionContext);
+        dataEnd = this->getGlobalI32("__data_end", executionContext);
+        logger->debug("heap_base = {}  data_end = {}  heap_top={} initial_pages={}", heapBase, dataEnd,
+                      initialMemorySize, initialMemoryPages);
+
+        // Set up invoke arguments just below the top of the memory (i.e. at the top of the dynamic section)
+        U32 argvStart = initialMemorySize - 20;
+        U32 argc = 0;
+
+        // Copy the function name into argv[0]
+        U32 argv0 = argvStart + sizeof(U32);
+        char *argv0Host = &Runtime::memoryRef<char>(defaultMemory, argv0);
+        strcpy(argv0Host, "function.wasm");
+
+        // Copy the offset of argv[0] into position
+        Runtime::memoryRef<U32>(defaultMemory, argvStart) = argv0;
+        invokeArgs = {argc, argvStart};
+
+        // Snapshot the context so that we can reset to this point
+        baseContext = Runtime::cloneContext(executionContext, compartment);
 
         // Create the memory snapshot if not already present
         std::string snapKey = snapshotKeyForFunction(this->boundUser, this->boundFunction);
@@ -345,7 +385,7 @@ namespace wasm {
         // Attempt to fill gaps in missing table entries. This is *only* to see if the missing
         // entry is exported from the dynamic module itself. I don't know how this happens but occasionally
         // it does
-        if (missingGlobalOffsetEntries.size() > 0) {
+        if (!missingGlobalOffsetEntries.empty()) {
             for (auto e : missingGlobalOffsetEntries) {
                 // Check if it's an export of the module we're currently importing
                 Runtime::Object *missingFunction = getInstanceExport(instance, e.first);
@@ -366,7 +406,7 @@ namespace wasm {
 
         // Empty the missing entries now that they're populated
         missingGlobalOffsetEntries.clear();
-
+        
         return instance;
     }
 
@@ -397,7 +437,7 @@ namespace wasm {
         Runtime::Function *wasmCtorsFunction = asFunctionNullable(getInstanceExport(mod, "__wasm_call_ctors"));
         if (wasmCtorsFunction) {
             logger->debug("Executing __wasm_call_ctors for {}", path);
-            Runtime::invokeFunctionChecked(context, wasmCtorsFunction, {});
+            executeFunction(wasmCtorsFunction, {});
         }
 
         // Keep a record of this module
@@ -478,7 +518,7 @@ namespace wasm {
 //            void* hostPtr = sharedMemHostPtrs[p.first];
 //            kv->unmapSharedMemory(hostPtr);
 //        }
- 
+
         // Restore the table to its original size
         Uptr currentTableSize = Runtime::getTableNumElements(defaultTable);
         Uptr elemsToShrink = currentTableSize - initialTableSize;
@@ -493,12 +533,18 @@ namespace wasm {
             dynamicModuleMap[p.second] = nullptr;
         }
 
-        // Run WAVM GC
-        Runtime::collectCompartmentGarbage(compartment);
-
         // Reset maps
         dynamicModuleMap.clear();
         dynamicPathToHandleMap.clear();
+
+        // Create a fresh execution context
+        executionContext = Runtime::cloneContext(baseContext, compartment);
+        if(executionContext == nullptr) {
+            throw std::runtime_error("Failed to clone context");
+        }
+
+        // Run WAVM GC
+        Runtime::collectCompartmentGarbage(compartment);
     }
 
     void WasmModule::resizeMemory(size_t targetPages) {
@@ -556,60 +602,22 @@ namespace wasm {
         const std::string funcStr = util::funcToString(msg);
 
         if (!_isBound) {
-            throw std::runtime_error("WorkerThread must be bound before executing function");
+            throw std::runtime_error("WasmModule must be bound before executing function");
         } else if (boundUser != msg.user() || boundFunction != msg.function()) {
             logger->error("Cannot execute {} on module bound to {}/{}",
                           funcStr, boundUser, boundFunction);
             throw std::runtime_error("Cannot execute function on module bound to another");
         }
 
-        // Set up shared references
         executingModule = this;
         executingCall = &msg;
-
-        // Set up the context
-        Runtime::Context *context = Runtime::createContext(compartment);
-
-        // Memory-related variables
-        Uptr initialMemorySize = initialMemoryPages * IR::numBytesPerPage;
-
-        // Note that heap base and data end should be the same (provided stack-first is switched on)
-        heapBase = this->getGlobalI32("__heap_base", context);
-        dataEnd = this->getGlobalI32("__data_end", context);
-        logger->debug("heap_base = {}  data_end = {}  heap_top={} initial_pages={}", heapBase, dataEnd,
-                      initialMemorySize, initialMemoryPages);
-
-        // Set up invoke arguments just below the top of the memory (i.e. at the top of the dynamic section)
-        U32 argvStart = initialMemorySize - 20;
-        U32 argc = 0;
-
-        // Copy the function name into argv[0]
-        U32 argv0 = argvStart + sizeof(U32);
-        char *argv0Host = &Runtime::memoryRef<char>(defaultMemory, argv0);
-        strcpy(argv0Host, "function.wasm");
-
-        // Copy the offset of argv[0] into position
-        Runtime::memoryRef<U32>(defaultMemory, argvStart) = argv0;
-        std::vector<IR::Value> invokeArgs = {argc, argvStart};
-
-        // Record the errno location
-        Runtime::Function *errNoLocation = asFunctionNullable(getInstanceExport(moduleInstance, "__errno_location"));
-        if (errNoLocation) {
-            IR::ValueTuple errNoResult = Runtime::invokeFunctionChecked(context, errNoLocation, {});
-            if (errNoResult.size() == 1 && errNoResult[0].type == IR::ValueType::i32) {
-                errnoLocation = errNoResult[0].i32;
-                logger->debug("Found errno location {}", errnoLocation);
-            }
-        } else {
-            logger->warn("Did not find errno location");
-        }
 
         int exitCode = 0;
         try {
             // Call the function
             logger->debug("Invoking the function itself");
-            Runtime::unwindSignalsAsExceptions([this, &context, &invokeArgs] {
-                invokeFunctionChecked(context, functionInstance, invokeArgs);
+            Runtime::unwindSignalsAsExceptions([this] {
+                executeFunction(functionInstance, invokeArgs);
             });
         }
         catch (wasm::WasmExitException &e) {

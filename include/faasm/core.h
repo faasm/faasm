@@ -154,20 +154,25 @@ int __attribute__((weak)) _faasm_func_8();
 
 int __attribute__((weak)) _faasm_func_9();
 
-// Macro for defining extra faasm functions that can be invoked
+// Macro for defining zygotes (a default fallback noop is provided)
+void __attribute__((weak)) _faasm_zygote();
+#define FAASM_ZYGOTE()      \
+void _faasm_zygote()
+
+// Macro for extra faasm functions that can be chained
 #define FAASM_FUNC(name, idx)      \
 int name() {                       \
     return _faasm_func_##idx();    \
 };                                 \
 int _faasm_func_##idx()
 
-// Shortcut for defining the main function
+// Shortcut for defining main function
 #define FAASM_MAIN_FUNC()         \
 FAASM_FUNC(faasmMain, 0)
 
 _FaasmFuncPtr getFaasmFunc(int idx);
 
-// This is the actual Faasm entrypoint
+// Faasm entrypoint
 int exec(int idx);
 
 #ifdef __cplusplus

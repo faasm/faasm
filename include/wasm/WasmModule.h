@@ -25,6 +25,10 @@
 #define DYNAMIC_MODULE_STACK_SIZE 2 * ONE_MB_BYTES
 #define DYNAMIC_MODULE_HEAP_SIZE 30 * ONE_MB_BYTES
 
+// Zygote function (must match faasm.h linked into the functions themselves)
+#define ZYGOTE_FUNC_NAME "_faasm_zygote"
+
+
 using namespace WAVM;
 
 
@@ -51,9 +55,13 @@ namespace wasm {
 
         Runtime::GCPointer<Runtime::Table> defaultTable;
 
-        Runtime::GCPointer<Runtime::Compartment> compartment;
+        Runtime::GCPointer<Runtime::Context> executionContext;
 
-        bool isInitialised();
+        Runtime::GCPointer<Runtime::Context> baseContext;
+
+        std::vector<IR::Value> invokeArgs;
+
+        Runtime::GCPointer<Runtime::Compartment> compartment;
 
         bool isBound();
 
@@ -67,7 +75,9 @@ namespace wasm {
 
         int addFunctionToTable(Runtime::Object *exportedFunc);
 
-        Runtime::Function *getFunction(const std::string &funcName);
+        IR::ValueTuple executeFunction(Runtime::Function *func, const std::vector<IR::Value>& arguments);
+
+        Runtime::Function *getFunction(const std::string &funcName, bool strict);
 
         void setErrno(int newValue);
 
@@ -101,6 +111,7 @@ namespace wasm {
         Runtime::GCPointer<Runtime::ModuleInstance> envModule;
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
         Runtime::GCPointer<Runtime::Function> functionInstance;
+        Runtime::GCPointer<Runtime::Function> zygoteFunctionInstance;
 
         // Main module
         int errnoLocation = 0;
@@ -116,7 +127,6 @@ namespace wasm {
         int nextStackPointer = 0;
         int nextTableBase = 0;
 
-        bool _isInitialised = false;
         bool _isBound = false;
         std::string boundUser;
         std::string boundFunction;
@@ -136,8 +146,6 @@ namespace wasm {
         std::unordered_map<std::string, int> missingGlobalOffsetEntries;
 
         WasmModule &operator=(const WasmModule &other);
-
-        void cloneFrom(const WasmModule &other);
 
         void reset();
 

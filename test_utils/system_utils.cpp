@@ -7,6 +7,7 @@
 #include <scheduler/Scheduler.h>
 #include <emulator/emulator.h>
 #include <memory/MemorySnapshotRegister.h>
+#include <zygote/ZygoteRegistry.h>
 
 
 namespace tests {
@@ -26,6 +27,9 @@ namespace tests {
 
         // Clear memory snapshots
         memory::getGlobalMemorySnapshotRegister().clear();
+
+        // Clear zygotes
+        zygote::getZygoteRegistry().clear();
 
         // Reset system config
         util::getSystemConfig().reset();

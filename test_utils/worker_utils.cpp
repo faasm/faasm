@@ -64,5 +64,15 @@ namespace tests {
 
         return result.outputdata();
     }
+
+    void checkMultipleExecutions(message::Message &msg, int nExecs) {
+        wasm::WasmModule module;
+        module.bindToFunction(msg);
+
+        for(int i = 0; i < nExecs; i++) {
+            int res = module.execute(msg);
+            REQUIRE(res == 0);
+        }
+    }
 }
 
