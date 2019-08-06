@@ -1,7 +1,7 @@
 #include "KnativeHandler.h"
 #include "KnativeEndpoint.h"
 
-namespace worker {
+namespace knative {
     KnativeEndpoint::KnativeEndpoint() : HttpEndpoint(8080, 4) {
     }
 

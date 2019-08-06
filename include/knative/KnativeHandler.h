@@ -4,7 +4,7 @@
 
 using namespace Pistache;
 
-namespace worker {
+namespace knative {
     class KnativeHandler final : public Http::Handler {
     public:
         HTTP_PROTOTYPE(KnativeHandler)
