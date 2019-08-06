@@ -9,12 +9,6 @@ namespace tests {
         wasm::WasmModule moduleB(moduleA);
     }
 
-    TEST_CASE("Test cloning plain modules doesn't break", "[wasm]") {
-        wasm::WasmModule moduleA;
-
-        wasm::WasmModule moduleB(moduleA);
-    }
-
     void _checkCloning(const std::string &user, const std::string &func, const std::string &inputA, const std::string &inputB) {
         message::Message msgA = util::messageFactory(user, func);
 

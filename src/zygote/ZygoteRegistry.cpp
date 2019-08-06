@@ -24,4 +24,8 @@ namespace zygote {
 
         return zygoteMap[key];
     }
+
+    void ZygoteRegistry::clear() {
+        zygoteMap.clear();
+    }
 }

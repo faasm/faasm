@@ -8,7 +8,6 @@ function(demo_func exec_name dir_path)
 endfunction(demo_func)
 
 demo_func(abort abort.cpp)
-demo_func(argv argv.cpp)
 demo_func(brk brk.cpp)
 demo_func(calloc calloc.cpp)
 demo_func(chain chain.cpp)

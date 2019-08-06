@@ -513,11 +513,4 @@ namespace tests {
         REQUIRE(bindQueue->size() == 0);
         REQUIRE(!redis.sismember(workerSetName, nodeId));
     }
-
-    TEST_CASE("Test argv", "[worker]") {
-        cleanSystem();
-
-        message::Message msg = util::messageFactory("demo", "argv");
-        execFunction(msg);
-    }
 }

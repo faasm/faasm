@@ -68,13 +68,17 @@ namespace wasm {
         boundFunction = other.boundFunction;
 
         if (other._isBound) {
-            // Clone compartment (covers all WAVM internals)
+            // Clone all WAVM-related bits
             compartment = Runtime::cloneCompartment(other.compartment);
+            baseContext = Runtime::cloneContext(other.baseContext, compartment);
+            executionContext = Runtime::cloneContext(other.executionContext, compartment);
+            invokeArgs = other.invokeArgs;
 
-            // Remap bits we need references to
+            // Remap parts we need specific references to
             envModule = Runtime::remapToClonedCompartment(other.envModule, compartment);
             moduleInstance = Runtime::remapToClonedCompartment(other.moduleInstance, compartment);
             functionInstance = Runtime::remapToClonedCompartment(other.functionInstance, compartment);
+            zygoteFunctionInstance = Runtime::remapToClonedCompartment(other.zygoteFunctionInstance, compartment);
 
             // Extract the memory and table again
             this->defaultMemory = Runtime::getDefaultMemory(moduleInstance);
@@ -213,8 +217,10 @@ namespace wasm {
         boundUser = msg.user();
         boundFunction = msg.function();
 
-        // Set up the compartment
+        // Set up the compartment and context
+        executingModule = this;
         compartment = Runtime::createCompartment();
+        executionContext = Runtime::createContext(compartment);
 
         // TODO - tidy up the handling of Python functions. This is a hack
         // Create a copy of the message to avoid messing with the original
@@ -233,6 +239,12 @@ namespace wasm {
         // Extract the module's exported function
         std::string entryFunc = "main";
 
+        // Get and execute zygote function
+        zygoteFunctionInstance = this->getFunction(ZYGOTE_FUNC_NAME, false);
+        if(zygoteFunctionInstance) {
+            Runtime::invokeFunctionChecked(executionContext, zygoteFunctionInstance, {});
+        }
+
         // Get main entrypoint function
         functionInstance = this->getFunction(entryFunc, true);
 
@@ -248,21 +260,9 @@ namespace wasm {
         // Get memory and dimensions
         U8 *baseAddr = Runtime::getMemoryBaseAddress(this->defaultMemory);
 
-        // Create the memory snapshot if not already present
-        std::string snapKey = snapshotKeyForFunction(this->boundUser, this->boundFunction);
-        memory::MemorySnapshotRegister &snapRegister = memory::getGlobalMemorySnapshotRegister();
-        const std::shared_ptr<memory::MemorySnapshot> snapshot = snapRegister.getSnapshot(snapKey);
-        snapshot->createIfNotExists(snapKey.c_str(), baseAddr, initialMemorySize);
-
-        // Set up execution context of main module
-        executingModule = this;
-
-        // Set up the base context (will be cloned)
-        baseContext = Runtime::createContext(compartment);
-
         // Note that heap base and data end should be the same (provided stack-first is switched on)
-        heapBase = this->getGlobalI32("__heap_base", baseContext);
-        dataEnd = this->getGlobalI32("__data_end", baseContext);
+        heapBase = this->getGlobalI32("__heap_base", executionContext);
+        dataEnd = this->getGlobalI32("__data_end", executionContext);
         logger->debug("heap_base = {}  data_end = {}  heap_top={} initial_pages={}", heapBase, dataEnd,
                       initialMemorySize, initialMemoryPages);
 
@@ -291,18 +291,14 @@ namespace wasm {
             logger->warn("Did not find errno location");
         }
 
-        // Get and execute zygote function
-        zygoteFunctionInstance = this->getFunction(ZYGOTE_FUNC_NAME, false);
-        if(zygoteFunctionInstance) {
-            Runtime::invokeFunctionChecked(baseContext, zygoteFunctionInstance, {});
-        }
+        // Snapshot the context so that we can reset to this point
+        baseContext = Runtime::cloneContext(executionContext, compartment);
 
-        // Now that the base context is set up, clone it for the actual execution
-        executionContext = Runtime::cloneContext(baseContext, compartment);
-
-        if(!executionContext) {
-            throw std::runtime_error("Failed to clone context");
-        }
+        // Create the memory snapshot if not already present
+        std::string snapKey = snapshotKeyForFunction(this->boundUser, this->boundFunction);
+        memory::MemorySnapshotRegister &snapRegister = memory::getGlobalMemorySnapshotRegister();
+        const std::shared_ptr<memory::MemorySnapshot> snapshot = snapRegister.getSnapshot(snapKey);
+        snapshot->createIfNotExists(snapKey.c_str(), baseAddr, initialMemorySize);
     }
 
     Runtime::ModuleInstance *
@@ -525,18 +521,18 @@ namespace wasm {
             dynamicModuleMap[p.second] = nullptr;
         }
 
-        // Run WAVM GC
-        Runtime::collectCompartmentGarbage(compartment);
-
         // Reset maps
         dynamicModuleMap.clear();
         dynamicPathToHandleMap.clear();
 
         // Create a fresh execution context
         executionContext = Runtime::cloneContext(baseContext, compartment);
-        if(!executionContext) {
+        if(executionContext == nullptr) {
             throw std::runtime_error("Failed to clone context");
         }
+
+        // Run WAVM GC
+        Runtime::collectCompartmentGarbage(compartment);
     }
 
     void WasmModule::resizeMemory(size_t targetPages) {
