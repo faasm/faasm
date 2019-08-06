@@ -4,6 +4,7 @@
 
 #include <wasm/WasmModule.h>
 #include <util/func.h>
+#include <utils.h>
 
 namespace tests {
     void checkPythonFunction(const std::string &funcName) {
@@ -37,16 +38,6 @@ namespace tests {
         message::Message call = util::messageFactory("python", "py_func");
         call.set_inputdata("numpy_test.py");
 
-        wasm::WasmModule module;
-        module.bindToFunction(call);
-
-        int result = module.execute(call);
-        REQUIRE(result == 0);
-
-        int result1 = module.execute(call);
-        REQUIRE(result1 == 0);
-
-        int result2 = module.execute(call);
-        REQUIRE(result2 == 0);
+        checkMultipleExecutions(call, 3);
     }
 }
