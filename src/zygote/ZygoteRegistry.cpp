@@ -19,9 +19,6 @@ namespace zygote {
 
                 // Bind to the function
                 module.bindToFunction(msg);
-
-                // TODO - execute the zygote function if it exists
-                // make this a method on the wasm module
             }
         }
 
