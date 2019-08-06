@@ -218,7 +218,6 @@ namespace wasm {
         boundFunction = msg.function();
 
         // Set up the compartment and context
-        executingModule = this;
         compartment = Runtime::createCompartment();
         executionContext = Runtime::createContext(compartment);
 
@@ -597,6 +596,7 @@ namespace wasm {
             throw std::runtime_error("Cannot execute function on module bound to another");
         }
 
+        executingModule = this;
         executingCall = &msg;
 
         int exitCode = 0;
