@@ -1,11 +1,11 @@
 #include <catch/catch.hpp>
-#include <wasm/FunctionLoader.h>
+#include <storage/FunctionLoader.h>
 
 #include <util/bytes.h>
 #include <util/environment.h>
 #include <util/func.h>
 #include <util/files.h>
-#include <wasm/FileserverFunctionLoader.h>
+#include <storage/FileserverFunctionLoader.h>
 
 namespace tests {
     void checkResult(const std::string &filePath, const std::vector<uint8_t> &expected, const std::vector<uint8_t> &actualBytes) {
@@ -16,7 +16,7 @@ namespace tests {
     }
 
     TEST_CASE("Test function round trip", "[wasm]") {
-        wasm::FunctionLoader &loader = wasm::getFunctionLoader();
+        storage::FunctionLoader &loader = storage::getFunctionLoader();
 
         message::Message call = util::messageFactory("test", "junk");
 
@@ -65,7 +65,7 @@ namespace tests {
         util::SystemConfig &conf = util::getSystemConfig();
         conf.reset();
 
-        REQUIRE_THROWS(wasm::getFunctionLoader());
+        REQUIRE_THROWS(storage::getFunctionLoader());
 
         util::setEnvVar("FUNCTION_STORAGE", original);
         conf.reset();
@@ -78,14 +78,14 @@ namespace tests {
         util::SystemConfig &conf = util::getSystemConfig();
         conf.reset();
 
-        REQUIRE_THROWS(wasm::getFunctionLoader());
+        REQUIRE_THROWS(storage::getFunctionLoader());
 
         // Set up a URL
         util::setEnvVar("FILESERVER_URL", "www.foo.com");
         conf.reset();
 
         // Check no error
-        auto loader = (wasm::FileserverFunctionLoader&) wasm::getFunctionLoader();
+        auto loader = (storage::FileserverFunctionLoader&) storage::getFunctionLoader();
         REQUIRE(loader.getFileserverUrl() == "www.foo.com");
 
         util::setEnvVar("FUNCTION_STORAGE", originalDir);

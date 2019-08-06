@@ -7,7 +7,7 @@
 
 #define SHARED_OBJ_EXT ".o"
 
-namespace wasm {
+namespace storage {
     class FunctionLoader {
     public:
         virtual std::vector<uint8_t> loadFunctionBytes(const message::Message &msg) = 0;

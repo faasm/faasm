@@ -8,7 +8,7 @@
  *
  * It's a stop-gap for environments that don't have decent object stores available.
  */
-namespace wasm {
+namespace storage {
     class FileserverFunctionLoader : public LocalFunctionLoader {
     public:
         std::vector<uint8_t> loadFunctionBytes(const message::Message &msg);

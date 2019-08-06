@@ -1,11 +1,10 @@
 #include <catch/catch.hpp>
+#include "utils.h"
 
-#include <aws/SQSWrapper.h>
 #include <util/func.h>
 #include <util/config.h>
 #include <scheduler/Scheduler.h>
 #include <scheduler/AWSMessageBus.h>
-#include "../../test/utils.h"
 
 using namespace awswrapper;
 

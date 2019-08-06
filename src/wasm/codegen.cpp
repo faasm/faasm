@@ -1,5 +1,5 @@
 #include <wasm/WasmModule.h>
-#include <wasm/FunctionLoader.h>
+#include <storage/FunctionLoader.h>
 
 #include <util/logging.h>
 #include <util/strings.h>
@@ -15,7 +15,7 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
         logger->info("Generating machine code for file {}", inputFile);
 
-        wasm::FunctionLoader &functionLoader = wasm::getFunctionLoader();
+        storage::FunctionLoader &functionLoader = storage::getFunctionLoader();
         std::string outputFile = inputFile + SHARED_OBJ_EXT;
         functionLoader.compileToObjectFile(inputFile, outputFile);
     }

@@ -13,7 +13,7 @@
 
 using namespace WAVM;
 
-namespace wasm {
+namespace storage {
 
     bool FunctionLoader::isWasm(const std::vector<uint8_t> &bytes) {
         static const U8 wasmMagicNumber[4] = {0x00, 0x61, 0x73, 0x6d};

@@ -3,7 +3,7 @@
 #include <util/config.h>
 #include "FunctionLoader.h"
 
-namespace wasm {
+namespace storage {
     class LocalFunctionLoader : public FunctionLoader {
     public:
         std::vector<uint8_t> loadFunctionBytes(const message::Message &msg);
