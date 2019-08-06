@@ -124,6 +124,11 @@ _FaasmFuncPtr getFaasmFunc(int idx) {
 }
 
 int exec(int idx) {
+    // Call zygote on execution of main
+    if(idx == 0) {
+        _faasm_zygote();
+    }
+
     _FaasmFuncPtr f = getFaasmFunc(idx);
     return f();
 }

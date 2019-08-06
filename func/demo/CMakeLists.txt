@@ -65,6 +65,7 @@ demo_func(time time.cpp)
 demo_func(time_of_day time_of_day.cpp)
 demo_func(uname uname.cpp)
 demo_func(x2 x2.cpp)
+demo_func(zygote_check zygote_check.cpp)
 
 faasm_dynamic_func(dynlink dynlink.cpp)
 set(ALL_DEMO_FUNCS ${ALL_DEMO_FUNCS} dynlink PARENT_SCOPE)

@@ -33,6 +33,7 @@ set(LIB_FILES
         sgd.cpp
         state.cpp
         time.cpp
+        zygote.cpp
         )
 
 
