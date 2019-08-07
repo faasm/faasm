@@ -88,10 +88,13 @@ inv py-invoke python hello
 
 # Writing functions
 
+Faasm aims to be uninvasive, allowing code to run natively _and_ in a serverless context. This is important for
+local development and testing as well as porting existing applications.
+
 ## C++
 
-C++ functions make use of the Faasm macros. These macros mean the code can be compiled and run natively, but
-when compiled with the toolchain, will run on Faasm.
+C++ functions make use of the Faasm macros. These macros mean the code can be compiled with a standard toolchain
+and run natively, but when compiled with the Faasm toolchain, will run in a serverless context.
 
 ```
 #include "faasm/faasm.h"
@@ -115,6 +118,7 @@ Some of the methods include:
 - `faasmGetInput()` - allows functions to retrieve their input data
 - `faasmSetOutput()` - this allows functions to return output data to the caller
 - `faasmChainFunction()` - this allows one function to invoke others
+- `faasmAwaitCall()` - waits for a chained function invocation to finish
 - `faasmReadState()` and `writeState()` - allows functions to read/ write key/value state
 - `faasmReadStateOffset()` and `faasmWriteStateOffset()` - allows functions to read/ write at specific points in existing state (e.g. updating a subsection of an array)
 
@@ -235,6 +239,35 @@ curl http://localhost:8002/s/user123/my_key -X PUT -T /tmp/my_state_file
 ```
 
 Where `/tmp/my_state_file` contains binary data you wish to be inserted at your specified key.
+
+## Zygotes
+
+Zygotes are a way to reduce the initialisation time of functions. They are a chunk of code that
+executes once and is then used to spawn all subsequent function invocations. The complete state of
+the function after zygote execution is duplicated for all subsequent function invocations.
+
+The zygote should be idempotent as it may be run more than once.
+
+Zygote code is marked up with the `FAASM_ZYGOTE` macro:
+
+```
+#include "faasm/faasm.h"
+
+int myGlobal;
+
+FAASM_ZYGOTE() {
+    // Run once
+    myGlobal = 5;
+}
+
+FAASM_MAIN_FUNC() {
+    // Context available to all subsequent function calls
+    printf("My global = %i\n", myGlobal);
+
+    return 0;
+}
+```
+
 
 # Integrations
 
