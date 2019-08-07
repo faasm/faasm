@@ -38,7 +38,7 @@ void _doFuncCall(int nIterations, bool addSleep) {
             m.set_function(NOOP_FUNCTION);
         }
 
-        // Execute the function from any cached zygote
+        // Execute the function from cached zygote
         wasm::WasmModule &z = zygoteRegistry.getZygote(m);
         wasm::WasmModule module(z);
         module.execute(m);

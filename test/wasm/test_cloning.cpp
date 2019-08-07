@@ -2,25 +2,29 @@
 #include <wasm/WasmModule.h>
 #include <util/func.h>
 #include <util/config.h>
+#include <WAVM/Runtime/Intrinsics.h>
+
+using namespace wasm;
 
 namespace tests {
     TEST_CASE("Test cloning empty modules doesn't break", "[wasm]") {
-        wasm::WasmModule moduleA;
-        wasm::WasmModule moduleB(moduleA);
+        WasmModule moduleA;
+        WasmModule moduleB(moduleA);
     }
 
-    void _checkCloning(const std::string &user, const std::string &func, const std::string &inputA, const std::string &inputB) {
+    void _checkCloning(const std::string &user, const std::string &func, const std::string &inputA,
+                       const std::string &inputB) {
         message::Message msgA = util::messageFactory(user, func);
 
         // Create and bind one module
-        wasm::WasmModule moduleA;
+        WasmModule moduleA;
         moduleA.bindToFunction(msgA);
 
         // Get the initial mem and table size
         Uptr memBeforeA = Runtime::getMemoryNumPages(moduleA.defaultMemory);
         Uptr tableBeforeA = Runtime::getTableNumElements(moduleA.defaultTable);
 
-        wasm::WasmModule moduleB(moduleA);
+        WasmModule moduleB(moduleA);
         REQUIRE(moduleB.isBound());
         REQUIRE(moduleB.getBoundUser() == moduleA.getBoundUser());
         REQUIRE(moduleB.getBoundFunction() == moduleA.getBoundFunction());
@@ -46,7 +50,7 @@ namespace tests {
         int retCodeA = moduleA.execute(msgA);
         REQUIRE(retCodeA == 0);
 
-        if(func == "echo") {
+        if (func == "echo") {
             REQUIRE(msgA.outputdata() == inputA);
         }
 
@@ -67,7 +71,7 @@ namespace tests {
         int retCodeB = moduleB.execute(msgB);
         REQUIRE(retCodeB == 0);
 
-        if(func == "echo") {
+        if (func == "echo") {
             REQUIRE(msgB.outputdata() == inputB);
         }
 
@@ -107,19 +111,30 @@ namespace tests {
 
         conf.unsafeMode = orig;
     }
-    
-    TEST_CASE("Test GC on cloned modules") {
+
+    TEST_CASE("Test GC on cloned modules without execution") {
         message::Message msg = util::messageFactory("demo", "echo");
 
-        wasm::WasmModule moduleA;
+        WasmModule moduleA;
         moduleA.bindToFunction(msg);
-        moduleA.execute(msg);
 
-        wasm::WasmModule moduleB(moduleA);
-        moduleB.execute(msg);
+        WasmModule moduleB(moduleA);
 
         REQUIRE(moduleA.tearDown());
         REQUIRE(moduleB.tearDown());
     }
 
+    TEST_CASE("Test GC on cloned modules with execution") {
+        message::Message msg = util::messageFactory("demo", "echo");
+
+        WasmModule moduleA;
+        moduleA.bindToFunction(msg);
+        moduleA.execute(msg);
+
+        WasmModule moduleB(moduleA);
+        moduleB.execute(msg);
+
+        REQUIRE(moduleA.tearDown());
+        REQUIRE(moduleB.tearDown());
+    }
 }
