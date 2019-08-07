@@ -268,7 +268,6 @@ FAASM_MAIN_FUNC() {
 }
 ```
 
-
 # Integrations
 
 Faasm aims to be pluggable so that it can integrate into other serverless platforms. This pluggability

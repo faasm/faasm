@@ -52,18 +52,18 @@ namespace wasm {
     }
 
     U64 IRModuleRegistry::getSharedModuleTableSize(const std::string &user, const std::string &func,
-                                                                  const std::string &path) {
+                                                   const std::string &path) {
         const std::string key = getModuleKey(user, func, path);
         return originalTableSizes[key];
     }
 
     Runtime::ModuleRef IRModuleRegistry::getCompiledMainModule(const std::string &user, const std::string &func) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::string key = getModuleKey(user, func, "");
 
         if (compiledModuleMap.count(key) == 0) {
             util::UniqueLock registryLock(registryMutex);
             if (compiledModuleMap.count(key) == 0) {
-                const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 logger->debug("Loading compiled main module {}", key);
 
                 IR::Module &module = moduleMap[key];
@@ -78,6 +78,8 @@ namespace wasm {
                     compiledModuleMap[key] = Runtime::compileModule(module);
                 }
             }
+        } else {
+            logger->debug("Using cached compiled main module {}", key);
         }
 
         return compiledModuleMap[key];
@@ -86,11 +88,11 @@ namespace wasm {
     Runtime::ModuleRef IRModuleRegistry::getCompiledSharedModule(const std::string &user, const std::string &func,
                                                                  const std::string &path) {
         std::string key = getModuleKey(user, func, path);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         if (compiledModuleMap.count(key) == 0) {
             util::UniqueLock registryLock(registryMutex);
             if (compiledModuleMap.count(key) == 0) {
-                const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 logger->debug("Loading compiled shared module {}", key);
 
                 IR::Module &module = moduleMap[key];
@@ -101,12 +103,15 @@ namespace wasm {
                 std::vector<uint8_t> objectBytes = functionLoader.loadFileBytes(objFilePath);
                 compiledModuleMap[key] = Runtime::loadPrecompiledModule(module, objectBytes);
             }
+        } else {
+            logger->debug("Using cached shared compiled module {}", key);
         }
 
         return compiledModuleMap[key];
     }
 
     IR::Module &IRModuleRegistry::getMainModule(const std::string &user, const std::string &func) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::string key = getModuleKey(user, func, "");
 
         // Check if initialised
@@ -114,7 +119,6 @@ namespace wasm {
             // Get lock and check again
             util::UniqueLock registryLock(registryMutex);
             if (moduleMap.count(key) == 0) {
-                const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 logger->debug("Loading main module {}", key);
 
                 storage::FunctionLoader &functionLoader = storage::getFunctionLoader();
@@ -136,6 +140,8 @@ namespace wasm {
                 module.memories.defs[0].type.size.max = (U64) MAX_MEMORY_PAGES;
                 module.tables.defs[0].type.size.max = (U64) MAX_TABLE_SIZE;
             }
+        } else {
+            logger->debug("Using cached main module {}", key);
         }
 
         return moduleMap[key];
@@ -144,13 +150,13 @@ namespace wasm {
     IR::Module &IRModuleRegistry::getSharedModule(const std::string &user, const std::string &func,
                                                   const std::string &path) {
         std::string key = getModuleKey(user, func, path);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Check if initialised
         if (moduleMap.count(key) == 0) {
             // Get lock and check again
             util::UniqueLock registryLock(registryMutex);
             if (moduleMap.count(key) == 0) {
-                const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 logger->debug("Loading shared module {}", key);
 
                 storage::FunctionLoader &functionLoader = storage::getFunctionLoader();
@@ -169,7 +175,7 @@ namespace wasm {
                     throw std::runtime_error("Dynamic module trying to define memories");
                 }
 
-                // TODO - avoid this hack
+                // TODO - better way to handle this? Modify WAVM?
                 // To keep WAVM happy, we have to force the incoming dynamic module to accept the table from the
                 // main module. This modifies the shared reference, therefore we also have to preserve the original
                 // size and make available to callers.
@@ -179,6 +185,8 @@ namespace wasm {
                 module.tables.imports[0].type.size.min = (U64) mainModule.tables.defs[0].type.size.min;
                 module.tables.imports[0].type.size.max = (U64) mainModule.tables.defs[0].type.size.max;
             }
+        } else {
+            logger->debug("Loading cached shared module {}", key);
         }
 
         return moduleMap[key];

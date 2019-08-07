@@ -8,5 +8,5 @@ RUN apk add gcc musl-dev g++
 
 WORKDIR /faasm/
 
-COPY func/demo/noop.cpp .
-RUN g++ noop.cpp -o noop
+COPY func/demo/noop.c .
+RUN gcc noop.c -o noop

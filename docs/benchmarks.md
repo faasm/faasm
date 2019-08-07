@@ -4,9 +4,9 @@
 
 For efficiency measurements we want to assess the time taken and resources consumed by several different runtimes. To do this we need to measure the time taken, CPU cycles, peak memory and disk I/O for running a simple function (with a cold start).
 
-Measuring the CPU cycles and time taken can be done with `perf` and `time` respectively (in separate runs). To measure memory footprint we take the footprint of the relevant process and all its decendants. To do this for Docker we need to take the footprint of the docker daemon and all of its child processes, thus capturing the whole cost of running Docker on the host.
+Measuring the CPU cycles and time taken can be done with `perf` and `time` respectively (in separate runs). To measure memory footprint we take the footprint of the relevant process and all its descendants. To do this for Docker we need to take the footprint of the docker daemon and all of its child processes, thus capturing the whole cost of running Docker on the host.
 
-Measurements are taken for a vanilla Docker container (Alpine) and Faasm, both  running a noop function. The Docker container will run the unmodified native binary and Faasm will run its generated shared object from the WebAssembly for the function.
+Measurements are taken for a vanilla Docker container (Alpine) and Faasm, both running a noop function. The Docker container will run the unmodified native binary and Faasm will run its generated shared object from the WebAssembly for the function.
 
 To amortize any start-up time and underlying system resources we run each for multiple iterations and varying numbers of workers (containers for Docker, threads for Faasm).
 
@@ -30,13 +30,7 @@ You must have generated the object files for Faasm up-front:
 inv run-wasm-codegen
 ```
 
-As well as the `runtime_bench` and `thread_bench` targets from this project.
-
-You must also have network namespaces set up:
-
-```
-sudo ./bin/netns.sh
-```
+As well as built the `runtime_bench` and `thread_bench` targets from this project.
 
 For Docker you need to build the `faasm/noop` image which can be done with:
 
@@ -52,17 +46,22 @@ The timing and CPU measurements can be taken by running:
 inv runtime-bench-time
 ```
 
+Results are written to `/tmp/runtime-bench-speed.csv`.
+
 The memory measurements require access to details of the Docker daemon, hence need to be run as root:
 
 ```
 # Remove all Docker containers in case
-docker ps -aq | xargs rm
+docker ps -aq | xargs docker rm
 
 # Run the benchmark as root
-sudo su -
-source ./workon.sh
+sudo su
+source workon.sh
 inv runtime-bench-mem
 ```
+
+Results are written to `/tmp/runtime-bench-resource.csv`.
+
 
 ### Other runtimes
 
