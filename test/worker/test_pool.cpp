@@ -128,13 +128,7 @@ namespace tests {
         call.set_inputdata("this is input");
 
         // Run the execution
-        execFunction(call);
-        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(call.id());
-
-        // Check output
-        REQUIRE(result.outputdata() == "this is input");
-        REQUIRE(result.success());
+        execFunction(call, "this is input");
 
         tearDown();
     }
@@ -145,12 +139,6 @@ namespace tests {
 
         // Run the execution
         execFunction(call);
-        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(call.id());
-
-        // Check output
-        REQUIRE(result.outputdata() == "Nothing to echo");
-        REQUIRE(result.success());
 
         tearDown();
     }
@@ -176,7 +164,7 @@ namespace tests {
 
         // Check output from first invocation
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message resultA = globalBus.getFunctionResult(call.id());
+        message::Message resultA = globalBus.getFunctionResult(call.id(), 1);
         REQUIRE(resultA.outputdata() == "first input");
         REQUIRE(resultA.success());
 
@@ -189,7 +177,7 @@ namespace tests {
         w.processNextMessage();
 
         // Check output from second invocation
-        message::Message resultB = globalBus.getFunctionResult(call.id());
+        message::Message resultB = globalBus.getFunctionResult(call.id(), 1);
         REQUIRE(resultB.outputdata() == "second input");
         REQUIRE(resultB.success());
 
@@ -246,7 +234,7 @@ namespace tests {
 
         // Await the call executing successfully
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(messageId);
+        message::Message result = globalBus.getFunctionResult(messageId, 1);
         REQUIRE(result.success());
 
         pool.shutdown();
@@ -273,7 +261,7 @@ namespace tests {
 
         // Check result
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message resultA = globalBus.getFunctionResult(call.id());
+        message::Message resultA = globalBus.getFunctionResult(call.id(), 1);
         REQUIRE(resultA.success());
         REQUIRE(resultA.outputdata() == "Counter: 001");
 
@@ -282,7 +270,7 @@ namespace tests {
         sch.callFunction(call);
         w.processNextMessage();
 
-        message::Message resultB = globalBus.getFunctionResult(call.id());
+        message::Message resultB = globalBus.getFunctionResult(call.id(), 1);
         REQUIRE(resultB.success());
         REQUIRE(resultB.outputdata() == "Counter: 002");
     }
@@ -307,7 +295,7 @@ namespace tests {
 
         // Check result
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(call.id());
+        message::Message result = globalBus.getFunctionResult(call.id(), 1);
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
 
@@ -386,7 +374,7 @@ namespace tests {
 
         // Check output is true
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(call.id());
+        message::Message result = globalBus.getFunctionResult(call.id(), 1);
         REQUIRE(result.success());
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
 

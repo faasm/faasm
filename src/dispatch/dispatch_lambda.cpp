@@ -26,7 +26,7 @@ int main() {
 
     scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
 
-    auto handler_fn = [&logger, &globalBus](aws::lambda_runtime::invocation_request const &req) {
+    auto handler_fn = [&logger, &globalBus, &config](aws::lambda_runtime::invocation_request const &req) {
         // Get the function
         message::Message msg = util::jsonToMessage(req.payload);
         logger->info("Queueing request to {}", util::funcToString(msg));
@@ -42,7 +42,7 @@ int main() {
             resultData = "Async request submitted";
         } else {
             logger->info("Sync request {}", util::funcToString(msg));
-            message::Message result = globalBus.getFunctionResult(msg.id());
+            message::Message result = globalBus.getFunctionResult(msg.id(), config.globalMessageTimeout);
 
             logger->info("Finished request {}", util::funcToString(msg));
 

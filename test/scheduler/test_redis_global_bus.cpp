@@ -69,7 +69,7 @@ namespace tests {
             REQUIRE(ttl > 10);
 
             // Check retrieval method gets the same call out again
-            message::Message actualCall2 = bus.getFunctionResult(call.id());
+            message::Message actualCall2 = bus.getFunctionResult(call.id(), 1);
 
             call.set_success(true);
             checkMessageEquality(call, actualCall2);

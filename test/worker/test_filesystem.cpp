@@ -50,8 +50,13 @@ namespace tests {
     TEST_CASE("Test listdir", "[worker]") {
         cleanSystem();
 
+        util::SystemConfig &conf = util::getSystemConfig();
+        conf.unsafeMode = "on";
+        
         message::Message msg = util::messageFactory("demo", "listdir");
         execFunction(msg);
+
+        conf.reset();
     }
 
     TEST_CASE("Test errno with stat64", "[worker]") {
