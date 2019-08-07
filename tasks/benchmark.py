@@ -17,13 +17,16 @@ RESOURCE_OUTPUT_FILE = "/tmp/runtime-bench-resource.csv"
 BENCHMARKS = {
     "faasm": {
         "cmd": "./cmake-build-release/bin/runtime_bench",
+        "iteration_multiplier": 100,
     },
     "docker": {
         "cmd": "./bin/docker_noop.sh",
         "parent_proc": "dockerd",
+        "iteration_multiplier": 1,
     },
     "thread": {
         "cmd": "./cmake-build-release/bin/thread_bench",
+        "iteration_multiplier": 100,
     },
 }
 
@@ -77,13 +80,19 @@ class RuntimeBenchRunner:
         for runtime_name, bench_details in BENCHMARKS.items():
             print("\n------ {} ------\n".format(runtime_name))
 
+            # Scale up iterations
+            self.n_iterations = self.n_iterations * bench_details["iteration_multiplier"]
+
             print("Running time benchmark: {}".format(runtime_name))
             self._do_time_seconds(runtime_name, bench_details)
             self._do_cpu_cycles(runtime_name, bench_details)
 
     def _exec_cmd(self, cmd_str):
         print(cmd_str)
-        call(cmd_str, shell=True, cwd=PROJ_ROOT)
+        ret_code = call(cmd_str, shell=True, cwd=PROJ_ROOT)
+
+        if ret_code != 0:
+            raise RuntimeError("Command failed: {}".format(ret_code))
 
     def _do_mem(self, runtime_name, bench_details):
         # Launch the process in the background

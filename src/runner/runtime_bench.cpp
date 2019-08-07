@@ -15,34 +15,33 @@
  * Communication with the rest of the system will be benchmarked elsewhere.
  */
 
-void _doFuncCall(int nIterations, bool addSleep) {
+// This is what a worker thread does but without any of the queue interaction
+void _doFuncCall(bool addSleep) {
     zygote::ZygoteRegistry &zygoteRegistry = zygote::getZygoteRegistry();
-    
-    for (int i = 0; i < nIterations; i++) {
-        // Set up network namespace
-        std::string netnsName = std::string(BASE_NETNS_NAME) + "1";
-        isolation::NetworkNamespace ns(netnsName);
-        ns.addCurrentThread();
 
-        // Add this thread to the cgroup
-        isolation::CGroup cgroup(BASE_CGROUP_NAME);
-        cgroup.addCurrentThread();
+    // Set up network namespace
+    std::string netnsName = std::string(BASE_NETNS_NAME) + "1";
+    isolation::NetworkNamespace ns(netnsName);
+    ns.addCurrentThread();
 
-        // Set up function call
-        message::Message m;
-        m.set_user(USER);
+    // Add this thread to the cgroup
+    isolation::CGroup cgroup(BASE_CGROUP_NAME);
+    cgroup.addCurrentThread();
 
-        if(addSleep){
-            m.set_function(SLEEP_FUNCTION);
-        } else {
-            m.set_function(NOOP_FUNCTION);
-        }
+    // Set up function call
+    message::Message m;
+    m.set_user(USER);
 
-        // Execute the function from cached zygote
-        wasm::WasmModule &z = zygoteRegistry.getZygote(m);
-        wasm::WasmModule module(z);
-        module.execute(m);
+    if (addSleep) {
+        m.set_function(SLEEP_FUNCTION);
+    } else {
+        m.set_function(NOOP_FUNCTION);
     }
+
+    // Execute the function from cached zygote
+    wasm::WasmModule &z = zygoteRegistry.getZygote(m);
+    wasm::WasmModule module(z);
+    module.execute(m);
 }
 
 int main(int argc, char *argv[]) {
@@ -59,7 +58,7 @@ int main(int argc, char *argv[]) {
     int nIterations = std::stoi(argv[2]);
     bool addSleep = std::stoi(argv[3]) > 0;
 
-    logger->info("Running Faasm noop with {} workers and {} iterations", nWorkers, nIterations);
+    logger->info("Running Faasm benchmark with {} workers and {} iterations", nWorkers, nIterations);
 
     util::SystemConfig &conf = util::getSystemConfig();
     conf.unsafeMode = "on";
@@ -68,23 +67,43 @@ int main(int argc, char *argv[]) {
     // TODO - switch this on
     conf.netNsMode = "off";
 
-    // Spawn worker threads
-    std::vector<std::thread> threads(nWorkers);
-    for (int w = 0; w < nWorkers; w++) {
-        if(addSleep) {
-            logger->info("Spawning Faasm thread {} with sleep", w);
-        } else {
-            logger->info("Spawning Faasm thread {}", w);
+    // If running workers in parallel, each worker is a thread running a single invocation
+    if (nWorkers > 1) {
+        if (nIterations != 1 || !addSleep) {
+            logger->error("Expected multiple workers running one function iteration with a sleep");
+            return 1;
         }
 
-        threads.emplace_back(std::thread([nIterations, addSleep] {
-            _doFuncCall(nIterations, addSleep);
-        }));
-    }
+        // Spawn worker threads to run the task in parallel
+        std::vector<std::thread> threads(nWorkers);
 
-    // Rejoin
-    for(auto &t : threads) {
-        if(t.joinable()) {
+        for (int w = 0; w < nWorkers; w++) {
+            logger->info("Running worker {}", w);
+            threads.emplace_back(std::thread([addSleep] {
+                _doFuncCall(addSleep);
+            }));
+        }
+
+        // Rejoin
+        for (auto &t : threads) {
+            if (t.joinable()) {
+                t.join();
+            }
+        }
+    } else {
+        if (nWorkers != 1 || addSleep) {
+            logger->error("Expected one worker with multiple iterations without sleep");
+            return 1;
+        }
+
+        // For each iteration we want to spawn a thread and execute the function
+        for (int i = 0; i < nIterations; i++) {
+            logger->info("Running iteration {}", i);
+
+            std::thread t([addSleep] {
+                _doFuncCall(addSleep);
+            });
+
             t.join();
         }
     }
