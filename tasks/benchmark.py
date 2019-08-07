@@ -75,13 +75,12 @@ class RuntimeBenchRunner:
 
     def do_time_run(self, n_iterations):
         self.n_workers = 1
-        self.n_iterations = n_iterations
 
         for runtime_name, bench_details in BENCHMARKS.items():
             print("\n------ {} ------\n".format(runtime_name))
 
             # Scale up iterations
-            self.n_iterations = self.n_iterations * bench_details["iteration_multiplier"]
+            self.n_iterations = n_iterations * bench_details["iteration_multiplier"]
 
             print("Running time benchmark: {}".format(runtime_name))
             self._do_time_seconds(runtime_name, bench_details)
@@ -219,14 +218,11 @@ class RuntimeBenchRunner:
 
 @task
 def runtime_bench_time(ctx):
-    n_iterations = 20
-    repeats = 2
+    n_iterations = 10
 
     runner = RuntimeBenchRunner(SPEED_OUTPUT_FILE)
 
-    # Repeat runs, once for each worker
-    for i in range(0, repeats):
-        runner.do_time_run(n_iterations)
+    runner.do_time_run(n_iterations)
 
     runner.done()
 
