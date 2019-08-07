@@ -140,10 +140,7 @@ namespace tests {
     }
 
     TEST_CASE("Test memory variables set up", "[wasm]") {
-        message::Message call;
-        call.set_user("demo");
-        call.set_function("malloc");
-
+        message::Message call = util::messageFactory("demo", "malloc");
         wasm::WasmModule module;
         module.bindToFunction(call);
 
@@ -159,5 +156,24 @@ namespace tests {
         // Sense check that the initial memory is set to be bigger than the heap base
         Uptr initialMemorySize = module.getInitialMemoryPages() * IR::numBytesPerPage;
         REQUIRE(initialMemorySize > (Uptr) module.getHeapBase());
+    }
+
+    TEST_CASE("Test GC", "[wasm]") {
+        wasm::WasmModule module;
+        message::Message call = util::messageFactory("demo", "malloc");
+
+        SECTION("Plain module"){
+            // Do nothing
+        }
+        SECTION("Bound but not executed module"){
+            module.bindToFunction(call);
+        }
+        SECTION("Executed module"){
+            module.bindToFunction(call);
+            module.execute(call);
+        }
+
+        bool success = module.tearDown();
+        REQUIRE(success);
     }
 }

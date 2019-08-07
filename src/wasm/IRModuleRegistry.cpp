@@ -24,6 +24,16 @@ namespace wasm {
         return key;
     }
 
+    int IRModuleRegistry::getModuleCount(const std::string &key) {
+        util::SharedLock lock(registryMutex);
+        return moduleMap.count(key);
+    }
+
+    int IRModuleRegistry::getCompiledModuleCount(const std::string &key) {
+        util::SharedLock lock(registryMutex);
+        return compiledModuleMap.count(key);
+    }
+
     IR::Module &IRModuleRegistry::getModule(const std::string &user, const std::string &func, const std::string &path) {
         /*
          * Note that shared modules are currently only shared in memory across instances of the *same* function.
@@ -61,8 +71,8 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::string key = getModuleKey(user, func, "");
 
-        if (compiledModuleMap.count(key) == 0) {
-            util::UniqueLock registryLock(registryMutex);
+        if (getCompiledModuleCount(key) == 0) {
+            util::FullLock registryLock(registryMutex);
             if (compiledModuleMap.count(key) == 0) {
                 logger->debug("Loading compiled main module {}", key);
 
@@ -90,8 +100,8 @@ namespace wasm {
         std::string key = getModuleKey(user, func, path);
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        if (compiledModuleMap.count(key) == 0) {
-            util::UniqueLock registryLock(registryMutex);
+        if (getCompiledModuleCount(key) == 0) {
+            util::FullLock registryLock(registryMutex);
             if (compiledModuleMap.count(key) == 0) {
                 logger->debug("Loading compiled shared module {}", key);
 
@@ -115,9 +125,8 @@ namespace wasm {
         const std::string key = getModuleKey(user, func, "");
 
         // Check if initialised
-        if (moduleMap.count(key) == 0) {
-            // Get lock and check again
-            util::UniqueLock registryLock(registryMutex);
+        if (getModuleCount(key) == 0) {
+            util::FullLock registryLock(registryMutex);
             if (moduleMap.count(key) == 0) {
                 logger->debug("Loading main module {}", key);
 
@@ -153,9 +162,8 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Check if initialised
-        if (moduleMap.count(key) == 0) {
-            // Get lock and check again
-            util::UniqueLock registryLock(registryMutex);
+        if (getModuleCount(key) == 0) {
+            util::FullLock lock(registryMutex);
             if (moduleMap.count(key) == 0) {
                 logger->debug("Loading shared module {}", key);
 

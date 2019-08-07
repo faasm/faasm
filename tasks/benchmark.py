@@ -211,7 +211,7 @@ class RuntimeBenchRunner:
 @task
 def runtime_bench_time(ctx):
     n_iterations = 20
-    repeats = 4
+    repeats = 2
 
     runner = RuntimeBenchRunner(SPEED_OUTPUT_FILE)
 

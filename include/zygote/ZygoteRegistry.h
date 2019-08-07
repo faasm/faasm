@@ -10,8 +10,10 @@ namespace zygote {
         void clear();
 
     private:
-        std::mutex mx;
+        std::shared_mutex mx;
         std::unordered_map<std::string, wasm::WasmModule> zygoteMap;
+
+        int getZygoteCount(const std::string &key);
     };
 
     ZygoteRegistry &getZygoteRegistry();

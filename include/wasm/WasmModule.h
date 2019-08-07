@@ -27,6 +27,7 @@
 
 // Zygote function (must match faasm.h linked into the functions themselves)
 #define ZYGOTE_FUNC_NAME "_faasm_zygote"
+#define ENTRY_FUNC_NAME "main"
 
 
 using namespace WAVM;
@@ -107,6 +108,8 @@ namespace wasm {
         std::string getBoundUser();
 
         std::string getBoundFunction();
+
+        bool tearDown();
     private:
         Runtime::GCPointer<Runtime::ModuleInstance> envModule;
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;

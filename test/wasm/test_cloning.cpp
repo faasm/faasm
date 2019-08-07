@@ -107,5 +107,19 @@ namespace tests {
 
         conf.unsafeMode = orig;
     }
+    
+    TEST_CASE("Test GC on cloned modules") {
+        message::Message msg = util::messageFactory("demo", "echo");
+
+        wasm::WasmModule moduleA;
+        moduleA.bindToFunction(msg);
+        moduleA.execute(msg);
+
+        wasm::WasmModule moduleB(moduleA);
+        moduleB.execute(msg);
+
+        REQUIRE(moduleA.tearDown());
+        REQUIRE(moduleB.tearDown());
+    }
 
 }

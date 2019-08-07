@@ -2,6 +2,7 @@
 #include <util/config.h>
 #include <system/NetworkNamespace.h>
 #include <system/CGroup.h>
+#include <zygote/ZygoteRegistry.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 
@@ -15,6 +16,8 @@
  */
 
 void _doFuncCall(int nIterations, bool addSleep) {
+    zygote::ZygoteRegistry &zygoteRegistry = zygote::getZygoteRegistry();
+    
     for (int i = 0; i < nIterations; i++) {
         // Set up network namespace
         std::string netnsName = std::string(BASE_NETNS_NAME) + "1";
@@ -25,8 +28,7 @@ void _doFuncCall(int nIterations, bool addSleep) {
         isolation::CGroup cgroup(BASE_CGROUP_NAME);
         cgroup.addCurrentThread();
 
-        // Initialise wasm module
-        wasm::WasmModule module;
+        // Set up function call
         message::Message m;
         m.set_user(USER);
 
@@ -36,9 +38,9 @@ void _doFuncCall(int nIterations, bool addSleep) {
             m.set_function(NOOP_FUNCTION);
         }
 
-        module.bindToFunction(m);
-
-        // Execute the function
+        // Execute the function from any cached zygote
+        wasm::WasmModule &z = zygoteRegistry.getZygote(m);
+        wasm::WasmModule module(z);
         module.execute(m);
     }
 }
