@@ -71,24 +71,27 @@ namespace tests {
         conf.reset();
     }
 
-    TEST_CASE("Test demo functions", "[worker]") {
+    TEST_CASE("Test fcntl", "[worker]") {
+        cleanSystem();
+        message::Message msg = util::messageFactory("demo", "fcntl");
+        execFunction(msg);
+    }
+
+    TEST_CASE("Test fread", "[worker]") {
+        cleanSystem();
+        message::Message msg = util::messageFactory("demo", "fread");
+        execFunction(msg);
+    }
+
+    TEST_CASE("Test fstat", "[worker]") {
         cleanSystem();
 
-        std::string funcName;
+        util::SystemConfig &conf = util::getSystemConfig();
+        conf.unsafeMode = "on";
 
-        SECTION("fcntl") {
-            funcName = "fcntl";
-        }
-
-        SECTION("fread") {
-            funcName = "fread";
-        }
-
-        SECTION("fstat") {
-            funcName = "fstat";
-        }
-
-        message::Message msg = util::messageFactory("demo", funcName);
+        message::Message msg = util::messageFactory("demo", "fstat");
         execFunction(msg);
+
+        conf.reset();
     }
 }

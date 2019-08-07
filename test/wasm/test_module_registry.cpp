@@ -67,6 +67,9 @@ namespace tests {
         std::string user = "demo";
         std::string func = "echo";
 
+        // Must get main module first
+        registry.getModule(user, func, "");
+
         // Two valid shared libs
         std::string pathA = "/usr/local/faasm/runtime_root/lib/python3.7/site-packages/numpy/core/multiarray.so";
         std::string pathB = "/usr/local/faasm/runtime_root/lib/python3.7/site-packages/numpy/core/umath.so";
