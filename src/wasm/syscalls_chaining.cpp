@@ -25,7 +25,7 @@ namespace wasm {
         util::getLogger()->debug("S - await_call - {}", messageId);
 
         scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
-        const message::Message &result = bus.getFunctionResult(messageId);
+        const message::Message &result = bus.getFunctionResult(messageId, CHAINED_CALL_TIMEOUT);
 
         if(result.success()) {
             return 0;

@@ -19,9 +19,11 @@ from tasks.aws import (
     prepare_lambda_workers,
     upload_wasm_lambda_func
 )
-from tasks.benchmark import (
-    runtime_bench_time,
-    runtime_bench_mem,
+from tasks.time_bench import (
+    bench_time,
+)
+from tasks.mem_bench import (
+    bench_mem,
     plot_pid_mem,
     plot_proc_mem,
     pid_mem,

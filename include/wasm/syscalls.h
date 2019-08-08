@@ -2,6 +2,8 @@
 
 #include <sys/socket.h>
 
+#define CHAINED_CALL_TIMEOUT 30000
+
 #define FAKE_NAME "faasm"
 #define FAKE_PASSWORD  "foobar123"
 #define FAKE_HOME "/home/faasm/"

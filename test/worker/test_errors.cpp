@@ -33,7 +33,7 @@ namespace tests {
         // Get result
         scheduler::GlobalMessageBus &messageQueue = scheduler::getGlobalMessageBus();
 
-        message::Message result = messageQueue.getFunctionResult(call.id());
+        message::Message result = messageQueue.getFunctionResult(call.id(), 1);
         REQUIRE(!result.success());
 
         if(expectedMsg.empty()) {

@@ -30,7 +30,7 @@ You must have generated the object files for Faasm up-front:
 inv run-wasm-codegen
 ```
 
-As well as built the `runtime_bench` and `thread_bench` targets from this project.
+As well as built the `bench_mem`, `bench_time`, `thread_bench_mem` and `thread_bench_time` targets from this project.
 
 For Docker you need to build the `faasm/noop` image which can be done with:
 
@@ -43,10 +43,10 @@ inv build-noop
 The timing and CPU measurements can be taken by running:
 
 ```
-inv runtime-bench-time
+inv bench-time
 ```
 
-Results are written to `/tmp/runtime-bench-speed.csv`.
+Results are written to `/tmp/runtime-bench-time.csv`.
 
 The memory measurements require access to details of the Docker daemon, hence need to be run as root:
 
@@ -57,10 +57,10 @@ docker ps -aq | xargs docker rm
 # Run the benchmark as root
 sudo su
 source workon.sh
-inv runtime-bench-mem
+inv bench-mem
 ```
 
-Results are written to `/tmp/runtime-bench-resource.csv`.
+Results are written to `/tmp/runtime-bench-mem.csv`.
 
 
 ### Other runtimes

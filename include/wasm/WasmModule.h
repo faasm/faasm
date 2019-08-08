@@ -113,8 +113,11 @@ namespace wasm {
     private:
         Runtime::GCPointer<Runtime::ModuleInstance> envModule;
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
-        Runtime::GCPointer<Runtime::Function> functionInstance;
-        Runtime::GCPointer<Runtime::Function> zygoteFunctionInstance;
+
+        // Note: we don't use GCPointers for the function instances as there are tied
+        // to the lifecycle of the underlying module
+        Runtime::Function *functionInstance;
+        Runtime::Function *zygoteFunctionInstance;
 
         // Main module
         int errnoLocation = 0;

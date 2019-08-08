@@ -78,9 +78,10 @@ namespace wasm {
             envModule = Runtime::remapToClonedCompartment(other.envModule, compartment);
             moduleInstance = Runtime::remapToClonedCompartment(other.moduleInstance, compartment);
 
-            // WAVM cloning doesn't create a new function, hence we have to do it manually
-            functionInstance = getFunction(ENTRY_FUNC_NAME, true);
-            zygoteFunctionInstance = getFunction(ZYGOTE_FUNC_NAME, false);
+            // NOTE: although we are using the remapping functions here, the function
+            // variables are just pointers (and are returned directly)
+            functionInstance = Runtime::remapToClonedCompartment(other.functionInstance, compartment);
+            zygoteFunctionInstance = Runtime::remapToClonedCompartment(other.zygoteFunctionInstance, compartment);
 
             // Extract the memory and table again
             defaultMemory = Runtime::getDefaultMemory(moduleInstance);

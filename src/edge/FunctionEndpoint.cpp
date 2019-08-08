@@ -78,8 +78,9 @@ namespace edge {
             logger->info("Async request {}", util::funcToString(msg));
             return "Async request submitted";
         } else {
+            util::SystemConfig &conf = util::getSystemConfig();
             logger->info("Sync request {}", util::funcToString(msg));
-            message::Message result = globalBus.getFunctionResult(msg.id());
+            message::Message result = globalBus.getFunctionResult(msg.id(), conf.globalMessageTimeout);
 
             logger->info("Finished request {}", util::funcToString(msg));
 

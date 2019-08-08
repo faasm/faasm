@@ -15,7 +15,7 @@ namespace scheduler {
 
         virtual void setFunctionResult(message::Message &msg, bool success) = 0;
 
-        virtual message::Message getFunctionResult(int messageId) = 0;
+        virtual message::Message getFunctionResult(int messageId, int timeout) = 0;
 
         virtual void requestNewWorkerNode() = 0;
 

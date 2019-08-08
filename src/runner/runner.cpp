@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
 
     // Await the result
     scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
-    const message::Message &result = bus.getFunctionResult(call.id());
+    const message::Message &result = bus.getFunctionResult(call.id(), 20000);
     if(!result.success()) {
         throw std::runtime_error("Executing function failed");
     }

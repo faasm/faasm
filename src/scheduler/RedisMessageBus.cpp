@@ -62,13 +62,13 @@ namespace scheduler {
         redis.expire(key, util::RESULT_KEY_EXPIRY);
     }
 
-    message::Message RedisMessageBus::getFunctionResult(int messageId) {
+    message::Message RedisMessageBus::getFunctionResult(int messageId, int timeout) {
         if(messageId == 0) {
             throw std::runtime_error("Must provide non-zero message ID");
         }
 
         std::string resultKey = util::resultKeyFromMessageId(messageId);
-        std::vector<uint8_t> result = redis.dequeueBytes(resultKey);
+        std::vector<uint8_t> result = redis.dequeueBytes(resultKey, timeout);
 
         message::Message msgResult;
         msgResult.ParseFromArray(result.data(), (int) result.size());

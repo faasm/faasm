@@ -189,7 +189,8 @@ namespace wasm {
                 // size and make available to callers.
                 this->originalTableSizes[key] = module.tables.imports[0].type.size.min;
 
-                IR::Module &mainModule = this->getMainModule(user, func);
+                const std::string mainKey = getModuleKey(user, func, "");
+                IR::Module &mainModule = moduleMap[mainKey];
                 module.tables.imports[0].type.size.min = (U64) mainModule.tables.defs[0].type.size.min;
                 module.tables.imports[0].type.size.max = (U64) mainModule.tables.defs[0].type.size.max;
             }

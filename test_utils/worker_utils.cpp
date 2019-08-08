@@ -6,7 +6,7 @@ using namespace worker;
 
 namespace tests {
 
-    WorkerThread execFunction(message::Message &call) {
+    WorkerThread execFunction(message::Message &call, const std::string &expectedOutput) {
         // Set up worker to listen for relevant function
         WorkerThreadPool pool(1);
         WorkerThread w(1);
@@ -35,6 +35,15 @@ namespace tests {
         REQUIRE(sch.getFunctionThreadCount(call) == 1);
         REQUIRE(bindQueue->size() == 0);
 
+        // Check success
+        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
+        message::Message result = globalBus.getFunctionResult(call.id(), 1);
+        REQUIRE(result.success());
+
+        if(!expectedOutput.empty()) {
+            REQUIRE(result.outputdata() == expectedOutput);
+        }
+
         return w;
     }
 
@@ -54,7 +63,7 @@ namespace tests {
         w.processNextMessage();
 
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        const message::Message result = globalBus.getFunctionResult(call.id());
+        const message::Message result = globalBus.getFunctionResult(call.id(), 1);
         if(!result.success()) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Function failed: {}", result.outputdata());
