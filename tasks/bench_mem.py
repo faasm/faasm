@@ -23,6 +23,7 @@ def _exec_cmd(cmd_str):
 def bench_mem(ctx):
     n_workers_list = [5, 10]
 
+    # Sleep time here needs to be around half the sleep of the process so we catch it in the middle
     benches = [
         ("faasm", "./cmake-build-release/bin/bench_mem", None, 5),
         ("docker", "./bin/docker_noop_mem.sh", "dockerd", 15),
@@ -50,11 +51,12 @@ def bench_mem(ctx):
 
             process_pid = sleep_proc.pid
             print("Launched background process {} ({})".format(process_pid, cmd_str))
+
+            sleep(sleep_time)
+
             if parent_proc:
                 process_pid = get_pid_for_name(parent_proc)
                 print("Measuring parent process {} ({})".format(process_pid, parent_proc))
-
-            sleep(sleep_time)
 
             # Get the memory of the given process
             mem_total = get_total_memory_for_pid(process_pid)

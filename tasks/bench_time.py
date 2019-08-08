@@ -13,9 +13,9 @@ OUTPUT_FILE = "/tmp/runtime-bench-time.csv"
 @task
 def bench_time(ctx):
     benches = [
-        ("faasm", "./cmake-build-release/bin/bench_time", 100),
+        ("faasm", "./cmake-build-release/bin/bench_time", 1000),
         ("docker", "./bin/docker_noop_time.sh", 5),
-        ("thread", "./cmake-build-release/bin/thread_bench_time", 100),
+        ("thread", "./cmake-build-release/bin/thread_bench_time", 1000),
     ]
 
     csv_out = open(OUTPUT_FILE, "w")

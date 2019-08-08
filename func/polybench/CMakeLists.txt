@@ -11,9 +11,9 @@ function(polybench_func exec_name dir_path)
             )
 
     if (FAASM_BUILD_TYPE STREQUAL "wasm")
-        set(EXTRA_LIBS "dlmalloc")
+        set(EXTRA_LIBS dlmalloc)
     else()
-        set(EXTRA_LIBS "m")
+        set(EXTRA_LIBS m emulator)
     endif()
 
     target_link_libraries(poly_${exec_name} faasm ${EXTRA_LIBS})
