@@ -25,6 +25,8 @@ static std::mutex threadsMutex;
 static std::unordered_map<int, std::thread> threads;
 static int threadCount = 1;
 
+#define DUMMY_USER "emulated"
+
 std::string getEmulatorUser() {
     return _user;
 }
@@ -41,7 +43,9 @@ std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {
     state::State &s = state::getGlobalState();
 
     if(_user.empty()) {
-        throw std::runtime_error("Must set a user when using the emulator state");
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Setting dummy emulator user {}", DUMMY_USER);
+        setEmulatorUser(DUMMY_USER);
     }
 
     return s.getKV(_user, key, size);
