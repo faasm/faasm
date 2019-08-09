@@ -1,6 +1,5 @@
+import matplotlib.pyplot as plt
 import psutil
-from psutil import process_iter
-import matplotlib.pyplot as plt;
 
 plt.rcdefaults()
 import numpy as np
@@ -63,34 +62,26 @@ class MemTotal:
         plt.show()
 
 
-def get_pid_for_name(proc_part):
-    procs = [p for p in process_iter(attrs=["pid", "name"]) if proc_part in p.info["name"]]
-
-    n_procs = len(procs)
-    if n_procs == 0:
-        raise RuntimeError("Could not find process {}".format(proc_part))
-
-    if n_procs > 1:
-        raise RuntimeError("Found {} processes {}".format(n_procs, proc_part))
-
-    proc = procs[0]
-    return proc.pid
-
-
-def get_total_memory_for_pid(pid):
-    p = psutil.Process(pid=pid)
+def get_total_memory_for_pids(pids):
     m = MemTotal()
 
-    _get_memory_for_process(p, m)
+    for pid in pids:
+        p = psutil.Process(pid=pid)
 
-    print("{}\n{}".format(m.get_labels(), m.get_data()))
+        _get_memory_for_process(p, m)
+
+        print("{}\n{}".format(m.get_labels(), m.get_data()))
 
     return m
 
 
+def get_total_memory_for_pid(pid):
+    return get_total_memory_for_pids([pid])
+
+
 def _get_memory_for_process(process, m):
     mem_info = process.memory_full_info()
-    print("PID {} = {}".format(process.pid, mem_info))
+    print("PID {} ({}) = {}".format(process.name(), process.pid, mem_info))
 
     m.add_mem_info(mem_info)
 

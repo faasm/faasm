@@ -37,6 +37,10 @@ namespace util {
         redisQueueHost = getEnvVar("REDIS_QUEUE_HOST", "localhost");
         redisPort = getEnvVar("REDIS_PORT", "6379");
 
+        // Caching
+        zygoteMode = getEnvVar("ZYGOTE_MODE", "on");
+        irCacheMode = getEnvVar("IR_CACHE_MODE", "on");
+
         // Scheduling
         maxNodes = this->getSystemConfIntParam("MAX_NODES", "4");
         noScheduler = this->getSystemConfIntParam("NO_SCHEDULER", "0");
@@ -92,6 +96,10 @@ namespace util {
         logger->info("REDIS_STATE_HOST           {}", redisStateHost);
         logger->info("REDIS_QUEUE_HOST           {}", redisQueueHost);
         logger->info("REDIS_PORT                 {}", redisPort);
+
+        logger->info("--- Caching ---");
+        logger->info("ZYGOTE_MODE                {}", zygoteMode);
+        logger->info("IR_CACHE_MODE              {}", irCacheMode);
 
         logger->info("--- Scheduling ---");
         logger->info("MAX_NODES                  {}", maxNodes);

@@ -4,6 +4,7 @@
 #include <WAVM/IR/Module.h>
 
 #include <shared_mutex>
+#include <util/config.h>
 
 // Note that page size in wasm is 64kiB
 // Note also that this initial memory must be big enough to include all data, stack and dynamic
@@ -18,6 +19,8 @@ using namespace WAVM;
 namespace wasm {
     class IRModuleRegistry {
     public:
+        IRModuleRegistry();
+
         IR::Module &getModule(const std::string &user, const std::string &func, const std::string &path);
 
         Runtime::ModuleRef getCompiledModule(const std::string &user, const std::string &func,
@@ -31,6 +34,8 @@ namespace wasm {
         std::unordered_map<std::string, IR::Module> moduleMap;
         std::unordered_map<std::string, Runtime::ModuleRef> compiledModuleMap;
         std::unordered_map<std::string, int> originalTableSizes;
+
+        util::SystemConfig &conf;
 
         int getModuleCount(const std::string &key);
 

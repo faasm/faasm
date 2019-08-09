@@ -30,7 +30,7 @@ You must have generated the object files for Faasm up-front:
 inv run-wasm-codegen
 ```
 
-As well as built the `bench_mem`, `bench_time`, `thread_bench_mem` and `thread_bench_time` targets from this project.
+As well as release builds for the `bench_mem`, `bench_time`, `thread_bench_mem` and `thread_bench_time` targets from this project.
 
 For Docker you need to build the `faasm/noop` image which can be done with:
 

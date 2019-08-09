@@ -26,6 +26,9 @@ int main(int argc, char *argv[]) {
     // TODO - switch this on
     conf.netNsMode = "off";
 
+    // Zygote mode adds a small time overhead
+    conf.zygoteMode = "off";
+
     // For each iteration we want to spawn a thread and execute the function
     // (to introduce the overhead we'd see in the real application)
     for (int i = 0; i < nIterations; i++) {
