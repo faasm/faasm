@@ -39,8 +39,6 @@ namespace runner {
             wasm::WasmModule &z = zygoteRegistry.getZygote(m);
 
             wasm::WasmModule module(z);
-            wasm::WasmModule moduleB(z);
-
             module.execute(m);
         } else {
             logger->info("Executing function {}/{} normally", user, func);
@@ -48,10 +46,6 @@ namespace runner {
             // Execute the function normally
             wasm::WasmModule module;
             module.bindToFunction(m);
-
-            wasm::WasmModule moduleB;
-            moduleB.bindToFunction(m);
-
             module.execute(m);
         }
     }
