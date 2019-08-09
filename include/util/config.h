@@ -30,6 +30,10 @@ namespace util {
         std::string redisQueueHost;
         std::string redisPort;
 
+        // Caching
+        std::string zygoteMode;
+        std::string irCacheMode;
+
         // Scheduling
         int maxNodes;
         int threadsPerWorker;

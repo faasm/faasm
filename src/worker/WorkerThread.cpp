@@ -105,10 +105,19 @@ namespace worker {
         // Set up with scheduler
         currentQueue = scheduler.listenToQueue(msg);
 
-        // Instantiate the module from its zygote
-        zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
-        wasm::WasmModule &zygote = registry.getZygote(msg);
-        module = std::make_unique<wasm::WasmModule>(zygote);
+        util::SystemConfig &config = util::getSystemConfig();
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        if (config.zygoteMode == "on") {
+            // Instantiate the module from its zygote
+            logger->debug("Using zygote registry to bind to function");
+            zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
+            wasm::WasmModule &zygote = registry.getZygote(msg);
+            module = std::make_unique<wasm::WasmModule>(zygote);
+        } else {
+            logger->debug("Not using zygote registry to bind to function");
+            module = std::make_unique<wasm::WasmModule>();
+            module->bindToFunction(msg);
+        }
 
         _isBound = true;
     }

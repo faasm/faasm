@@ -27,6 +27,9 @@ int main(int argc, char *argv[]) {
     // TODO - switch this on
     conf.netNsMode = "off";
 
+    // Zygote mode increases memory footprint of each new sandbox
+    conf.zygoteMode = "off";
+
     // Spawn worker threads to run the task in parallel
     std::vector<std::thread> threads(nWorkers);
     for (int w = 0; w < nWorkers; w++) {

@@ -14,6 +14,10 @@
 using namespace WAVM;
 
 namespace wasm {
+    IRModuleRegistry::IRModuleRegistry() : conf(util::getSystemConfig()) {
+
+    }
+
     IRModuleRegistry &getIRModuleRegistry() {
         static IRModuleRegistry r;
         return r;

@@ -81,7 +81,7 @@ def get_total_memory_for_pid(pid):
 
 def _get_memory_for_process(process, m):
     mem_info = process.memory_full_info()
-    print("PID {} = {}".format(process.pid, mem_info))
+    print("PID {} ({}) = {}".format(process.name(), process.pid, mem_info))
 
     m.add_mem_info(mem_info)
 
