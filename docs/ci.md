@@ -12,5 +12,5 @@ source workon.sh
 inv build-worker build-testing
 
 # Execute the tests in the container with Docker Compose
-docker-compose -f test-compose.yml run tester /faasm/build/bin/tests
+docker-compose -f test-compose.yml run tester /usr/local/code/faasm/bin/ci_run.sh
 ```

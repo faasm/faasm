@@ -31,14 +31,5 @@ RUN chown -R root:root /usr/local/faasm
 WORKDIR /faasm/build
 RUN cmake --build . --target tests -- -j
 
-# Run codegen on wasm files (in working dir)
-RUN ./bin/codegen /usr/local/code/faasm/wasm/demo
-RUN ./bin/codegen /usr/local/code/faasm/wasm/errors
-RUN ./bin/codegen /usr/local/code/faasm/wasm/python
-RUN ./bin/codegen /usr/local/code/faasm/wasm/sgd
-
-# Run codegen on Python files
-RUN ./bin/codegen /usr/local/faasm/runtime_root/lib/python3.7
-
 # Command to run the tests
 CMD /faasm/build/bin/tests
