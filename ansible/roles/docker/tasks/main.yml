@@ -1,0 +1,27 @@
+---
+
+- name: "Docker system deps"
+  become: yes
+  apt:
+    name:
+      - "apt-transport-https"
+      - "ca-certificates"
+      - "curl"
+      - "gnupg2"
+      - "software-properties-common"
+    update_cache: yes
+
+- name: "Add Docker GPG key"
+  become: yes
+  apt_key: url=https://download.docker.com/linux/ubuntu/gpg
+
+- name: "Add Docker APT repository"
+  become: yes
+  apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution|lower }} {{ ansible_distribution_release }} stable"
+
+- name: "Install Docker"
+  become: yes
+  apt:
+    name: docker-ce
+    update_cache: yes

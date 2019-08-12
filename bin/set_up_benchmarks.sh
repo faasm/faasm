@@ -20,4 +20,7 @@ cmake --build . --target bench_time -- -j
 cmake --build . --target thread_bench_mem -- -j
 cmake --build . --target thread_bench_time -- -j
 
+# Build docker image
+docker build -t faasm/noop -f docker/noop.dockerfile
+
 popd
