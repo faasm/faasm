@@ -74,7 +74,7 @@ ensure consistent interface naming (`eth0` for main public interface). If your p
 This script will then set up the namespaces
 
 ```
-sudo ./bin/netns.sh
+sudo ./bin/netns.sh 20
 ```
 
 ## Cgroups

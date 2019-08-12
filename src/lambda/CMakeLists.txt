@@ -6,4 +6,6 @@ target_link_libraries(worker-lambda
         worker_lib
         )
 
+if(FAASM_AWS_SUPPORT)
 aws_lambda_package_target(worker-lambda)
+endif()

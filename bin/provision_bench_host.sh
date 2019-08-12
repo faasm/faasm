@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 PROJ_ROOT=$(dirname $(dirname $(readlink -f $0)))
 ANSIBLE_DIR=${PROJ_ROOT}/ansible
 

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 WORKING_DIR=${HOME}/faasm/bench
 SOURCE_DIR=/usr/local/code/faasm
 

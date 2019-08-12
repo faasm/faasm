@@ -1,0 +1,27 @@
+---
+
+- name: "Install deps with apt"
+  become: yes
+  apt:
+    name:
+      - cmake
+      - libz-dev
+      - libboost-dev
+      - libcpprest-dev
+      - libhiredis-dev
+      - libcgroup-dev
+      - libcurl4-openssl-dev
+      - cgroup-tools
+      - cgroup-bin
+      - iproute2
+      - iptables
+      - valgrind
+      - kcachegrind
+      - redis-server
+      - redis-tools
+      - python-dev
+      - python-pip
+      - python3-dev
+      - python3-pip
+    state: present
+

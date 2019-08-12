@@ -1,0 +1,38 @@
+---
+
+- name: "Check if rapidjson installed"
+  stat:
+    path: /usr/local/include/rapidjson
+  register: rj_stat
+
+- name: "Clone rapidjson repo"
+  git:
+    repo: "https://github.com/Tencent/rapidjson"
+    dest: "/tmp/rapidjson"
+    version: "2ce91b823c8b4504b9c40f99abf00917641cef6c"
+  when: rj_stat.stat.exists == False
+
+- name: "Set up build"
+  shell: "mkdir -p build"
+  args:
+    chdir: "/tmp/rapidjson"
+  when: rj_stat.stat.exists == False
+
+- name: "Prepare build"
+  shell: "cmake .."
+  args:
+    chdir: "/tmp/rapidjson/build"
+  when: rj_stat.stat.exists == False
+
+- name: "Build components"
+  shell: "make"
+  args:
+    chdir: "/tmp/rapidjson/build"
+  when: rj_stat.stat.exists == False
+
+- name: "Install"
+  become: yes
+  shell: "sudo make install"
+  args:
+    chdir: "/tmp/rapidjson/build"
+  when: rj_stat.stat.exists == False

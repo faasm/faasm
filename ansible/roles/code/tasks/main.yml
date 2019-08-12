@@ -19,3 +19,4 @@
     repo: "https://github.com/lsds/Faasm.git"
     dest: /usr/local/code/faasm
     version: genomics-5
+    update: yes

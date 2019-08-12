@@ -1,0 +1,30 @@
+---
+
+- name: "Check if AWS SDK installed"
+  stat:
+    path: /usr/local/include/aws
+  register: aws_stat
+
+- name: "Clone AWS SDK repo"
+  git:
+    repo: "https://github.com/aws/aws-sdk-cpp.git"
+    dest: "/tmp/aws-sdk"
+    version: 1.7.108
+  when: aws_stat.stat.exists == False
+
+- name: "Set up build"
+  shell: "mkdir -p build"
+  args:
+    chdir: "/tmp/aws-sdk"
+  when: aws_stat.stat.exists == False
+
+- name: "Prepare build"
+  become: yes
+  shell: "{{ item }}"
+  args:
+    chdir: "/tmp/aws-sdk/build"
+  with_items:
+    - 'cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_ONLY="lambda;s3;sqs" -DENABLE_TESTING=OFF -DBUILD_SHARED_LIBS=OFF -DCUSTOM_MEMORY_MANAGEMENT=OFF ..'
+    - "make"
+    - "make install"
+  when: aws_stat.stat.exists == False
