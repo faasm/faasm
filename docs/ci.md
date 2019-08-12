@@ -15,8 +15,9 @@ inv build-worker build-testing
 docker-compose -f test-compose.yml run tester /usr/local/code/faasm/bin/ci_run.sh
 ```
 
-If things don't work, you can attach to the container:
+If things don't work, you can attach to the container and run the tests:
 
 ```
 docker-compose -f test-compose.yml run tester /bin/bash
+/usr/local/code/faasm/bin/ci_run.sh
 ```

@@ -16,7 +16,7 @@ services:
       REDIS_STATE_HOST: "redis"
       REDIS_QUEUE_HOST: "redis"
       REDIS_PORT: "6379"
-      THREADS_PER_WORKER: 20
+      THREADS_PER_WORKER: 5
     volumes:
       - .:/usr/local/code/faasm
     privileged: yes
