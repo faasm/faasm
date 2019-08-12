@@ -12,23 +12,26 @@ def get_docker_parent_pids():
     This will be containerd on some systems, dockerd on others
     """
 
-    pids = []
+    # Get dockerd (which should always be running)
+    dockerd_pid = get_pid_for_name("dockerd")
+
+    # Check if docker-containerd is present
+    docker_containerd_options = _get_pids_for_name("docker-containerd")
+    if docker_containerd_options:
+        print("Found docker-containerd, assuming dockerd is parent")
+        return [dockerd_pid]
 
     # Check if containerd is present
     containerd_name = "containerd"
     containerd_options = _get_pids_for_name(containerd_name)
 
     if len(containerd_options) == 1:
-        pids.append(containerd_options[0].pid)
+        return [dockerd_pid, containerd_options[0].pid]
 
     elif len(containerd_options) > 1:
         raise RuntimeError("Found more than one process matching {}".format(containerd_name))
 
-    # Get dockerd (which should always be running)
-    dockerd_pid = get_pid_for_name("dockerd")
-    pids.append(dockerd_pid)
-
-    return pids
+    raise RuntimeError("Could not work out parent docker process")
 
 
 def get_pid_for_name(proc_part):

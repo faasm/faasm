@@ -2,6 +2,10 @@
 
 set -e
 
+# Note, this must work well with the benchmark sleep time
+# It must be long enough to spawn lots of containers
+SLEEP_TIME=60
+
 THIS_DIR=$(dirname $(readlink -f $0))
 INNER_SCRIPT=${THIS_DIR}/docker_noop_mem_inner.sh
 
@@ -14,7 +18,7 @@ do
     echo "Spawning background Docker $i"
 
     # This sleep has to be long enough to allow lots of containers to be started and remain running
-    docker run faasm/noop sleep 30 &
+    docker run faasm/noop sleep ${SLEEP_TIME} &
 done
 
 wait
