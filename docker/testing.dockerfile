@@ -8,11 +8,16 @@ RUN apt-get install -y \
     ssh \
     tar \
     gzip \
-    ca-certificates
+    ca-certificates \
+    libcairo2-dev
 
 # Set up requests
 RUN apt-get install -y python3-dev python3-pip
 RUN pip3 install invoke requests
+
+# Install other python deps
+WORKDIR /usr/local/code/faasm
+RUN pip3 install -r requirements.txt
 
 # Set up eigen
 WORKDIR /usr/local/code/faasm/ansible
@@ -23,6 +28,10 @@ RUN ansible-playbook pistache.yml
 
 # Set up catch
 RUN ansible-playbook catch.yml
+
+# Download toolchain
+WORKDIR /usr/local/code/faasm
+RUN inv restore-emsdk
 
 # Fix ownership of runtime root
 RUN chown -R root:root /usr/local/faasm

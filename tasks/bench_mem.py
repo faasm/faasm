@@ -1,11 +1,12 @@
 from decimal import Decimal
 from multiprocessing import Process
+from os.path import join
 from subprocess import call
 from time import sleep
 
 from invoke import task
 
-from tasks.util.env import PROJ_ROOT
+from tasks.util.env import PROJ_ROOT, BENCHMARK_BUILD
 from tasks.util.memory import get_total_memory_for_pid, get_total_memory_for_pids
 from tasks.util.process import get_docker_parent_pids, get_pid_for_name
 
@@ -26,7 +27,8 @@ def bench_mem(ctx, runtime=None):
 
     # Sleep time here needs to be around 0.5/0.75x the sleep of the process so we catch when everything is up
     faasm_bench = (
-        "faasm", "./cmake-build-release/bin/bench_mem",
+        "faasm",
+        join(BENCHMARK_BUILD, "bin", "bench_mem"),
         "bench_mem",
         [2000, 1800, 1600, 1400, 1200, 1000, 800, 600, 400, 200, 1],
         15
@@ -40,14 +42,20 @@ def bench_mem(ctx, runtime=None):
         70,
     )
 
-    # thread_bench = ("thread", "./cmake-build-release/bin/thread_bench_mem", "thread_bench_mem", 5)
+    thread_bench = (
+        "thread",
+        join(BENCHMARK_BUILD, "bin", "thread_bench_mem"),
+        "thread_bench_mem",
+        [2000, 1800, 1600, 1400, 1200, 1000, 800, 600, 400, 200, 1],
+        5
+    )
 
     if runtime == "faasm":
         benches = [faasm_bench]
     elif runtime == "docker":
         benches = [docker_bench]
     else:
-        benches = [faasm_bench, docker_bench]
+        benches = [faasm_bench, docker_bench, thread_bench]
 
     csv_out = open(OUTPUT_FILE, "w")
     csv_out.write("Runtime,Measure,Value,Workers,ValuePerWorker\n")
@@ -58,11 +66,11 @@ def bench_mem(ctx, runtime=None):
                 print("BENCH: {} - {} workers".format(bench_name, n_workers))
 
                 # Launch the process in the background
-                cmd = [
+                cmd_str = [
                     cmd,
                     str(n_workers),
                 ]
-                cmd_str = " ".join(cmd)
+                cmd_str = " ".join(cmd_str)
 
                 # Launch subprocess
                 sleep_proc = Process(target=_exec_cmd, args=[cmd_str])

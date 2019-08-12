@@ -2,22 +2,5 @@
 
 - hosts: localhost
   gather_facts: no
-  tasks:
-    - name: "Download the spdlog release"
-      shell: "{{ item }}"
-      args:
-        chdir: "/tmp"
-      with_items:
-        - "wget https://github.com/gabime/spdlog/archive/v1.2.1.tar.gz"
-        - "tar -xf v1.2.1.tar.gz"
-        - "mkdir spdlog-1.2.1/build"
-
-    - name: "Make and install"
-      become: yes
-      shell: "{{ item }}"
-      args:
-        chdir: "/tmp/spdlog-1.2.1/build"
-      with_items:
-        - "cmake .."
-        - "make"
-        - "make install"
+  roles:
+    - spdlog

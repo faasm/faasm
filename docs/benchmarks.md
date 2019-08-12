@@ -24,13 +24,26 @@ The Faasm memory footprint is quite a lot larger than standard threads running t
 
 ### Set up
 
-You must have generated the object files for Faasm up-front:
+To run on a remote machine, you need to set up an inventory file at
+`ansible/inventory/benchmark.yml`, e.g.
 
 ```
-inv run-wasm-codegen
+[all]
+my.hostname.blah
 ```
 
-As well as release builds for the `bench_mem`, `bench_time`, `thread_bench_mem` and `thread_bench_time` targets from this project.
+You can then set up the machine with:
+
+```
+./bin/provision_bench_host.sh
+```
+
+Once the host is fully set up, you can SSH onto it and run:
+
+```
+cd /usr/local/code/faasm
+./bin/set_up_benchmarks.sh
+```
 
 For Docker you need to build the `faasm/noop` image which can be done with:
 

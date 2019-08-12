@@ -2,6 +2,12 @@
 
 set -e
 
+pushd /usr/local/code/faasm
+echo "Set up local tooling"
+source workon.sh
+./bin/set_up_libfake.sh
+popd
+
 echo "Run codegen on wasm files"
 /faasm/build/bin/codegen /usr/local/code/faasm/wasm/demo
 /faasm/build/bin/codegen /usr/local/code/faasm/wasm/errors

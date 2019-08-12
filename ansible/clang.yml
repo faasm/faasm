@@ -2,34 +2,5 @@
 
 - hosts: localhost
   gather_facts: no
-  tasks:
-    - name: "Add clang apt key"
-      become: yes
-      apt_key:
-        url: "https://apt.llvm.org/llvm-snapshot.gpg.key"
-        state: present
-
-    - name: "Add clang repo"
-      become: yes
-      apt_repository:
-        repo: deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main
-        state: present
-
-    - name: "Install clang and other deps"
-      become: yes
-      apt:
-        name:
-          - clang-6.0
-          - build-essential
-        update_cache: yes
-
-    - name: "Symlinks"
-      become: yes
-      file:
-        state: link
-        src: "/usr/bin/{{ item }}-6.0"
-        dest: "/usr/bin/{{ item }}"
-      with_items:
-      - "clang"
-      - "clang++"
-      - "clang-cpp"
+  roles:
+    - clang

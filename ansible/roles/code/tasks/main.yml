@@ -1,0 +1,19 @@
+---
+
+- name: "Set up directory"
+  become: yes
+  file:
+    path: "/usr/local/code"
+    state: directory
+    mode: 0777
+
+- name: "Install git"
+  become: yes
+  apt:
+    name:
+      - git
+
+- name: "Check out code"
+  git:
+    repo: "https://github.com/lsds/Faasm.git"
+    dest: /usr/local/code/faasm

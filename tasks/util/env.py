@@ -9,7 +9,7 @@ FAASM_LOCAL_DIR = "/usr/local/faasm"
 FAASM_RUNTIME_ROOT = join(FAASM_LOCAL_DIR, "runtime_root")
 FAASM_INSTALL_DIR = join(FAASM_LOCAL_DIR, "install")
 
-ANSIBLE_DIR = join(PROJ_ROOT, "ansible")
+BENCHMARK_BUILD = join(HOME_DIR, "faasm", "bench")
 
 FUNC_DIR = join(PROJ_ROOT, "func")
 FUNC_BUILD_DIR = join(FUNC_DIR, "build")
