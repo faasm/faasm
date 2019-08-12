@@ -10,6 +10,7 @@ pushd ${WORKING_DIR}
 cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
     -DCMAKE_C_COMPILER=/usr/bin/clang \
     -DCMAKE_BUILD_TYPE=Release \
+    -DFAASM_AWS_SUPPORT=OFF \
     /usr/local/code/faasm
 
 # Build benchmarks
