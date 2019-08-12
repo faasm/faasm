@@ -5,7 +5,7 @@
 First you need to install libfaasm natively:
 
 ```
-inv install-native-libfaasm
+inv install-native-tools
 ```
 
 Then clone the [genomics code repo](git@github.com:Shillaker/gem3-mapper.git) and run the following:

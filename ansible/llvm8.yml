@@ -2,18 +2,5 @@
 
 - hosts: localhost
   gather_facts: no
-  tasks:
-    - name: "Add LLVM 8 repo"
-      become: yes
-      apt_repository:
-        repo: deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-8 main
-        state: present
-
-    - name: "Install llvm and other deps"
-      become: yes
-      apt:
-        name:
-          - llvm-8
-          - llvm-8-dev
-          - llvm-8-tools
-        update_cache: yes
+  roles:
+    - llvm

@@ -1,0 +1,21 @@
+---
+
+- name: "Set up directory"
+  become: yes
+  file:
+    path: "/usr/local/code"
+    state: directory
+    mode: 0777
+
+- name: "Install system deps"
+  become: yes
+  apt:
+    name:
+      - cmake
+      - git
+
+- name: "Check out code"
+  git:
+    repo: "https://github.com/lsds/Faasm.git"
+    dest: /usr/local/code/faasm
+    update: yes

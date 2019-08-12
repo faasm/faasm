@@ -8,4 +8,6 @@ target_link_libraries(dispatch-lambda
         scheduler
     )
 
-aws_lambda_package_target(dispatch-lambda)
+if(FAASM_AWS_SUPPORT)
+    aws_lambda_package_target(dispatch-lambda)
+endif()

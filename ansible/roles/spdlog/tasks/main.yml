@@ -1,0 +1,27 @@
+---
+
+- name: "Check if spdlog installed"
+  stat:
+    path: /usr/local/include/spdlog
+  register: sl_stat
+
+- name: "Download the spdlog release"
+  shell: "{{ item }}"
+  args:
+    chdir: "/tmp"
+  with_items:
+    - "wget https://github.com/gabime/spdlog/archive/v1.2.1.tar.gz"
+    - "tar -xf v1.2.1.tar.gz"
+    - "mkdir spdlog-1.2.1/build"
+  when: sl_stat.stat.exists == False
+
+- name: "Make and install"
+  become: yes
+  shell: "{{ item }}"
+  args:
+    chdir: "/tmp/spdlog-1.2.1/build"
+  with_items:
+    - "cmake .."
+    - "make"
+    - "make install"
+  when: sl_stat.stat.exists == False

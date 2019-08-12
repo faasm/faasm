@@ -24,7 +24,6 @@ from tasks.bench_time import (
 )
 from tasks.bench_mem import (
     bench_mem,
-    bench_mem_faasm,
     plot_pid_mem,
     plot_proc_mem,
     pid_mem,

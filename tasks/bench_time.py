@@ -1,21 +1,22 @@
 from decimal import Decimal
+from os.path import join
 from subprocess import call
 from tempfile import NamedTemporaryFile
 
 from invoke import task
 
-from tasks.util.env import PROJ_ROOT
+from tasks.util.env import PROJ_ROOT, BENCHMARK_BUILD, RESULT_DIR
 
 TIME_BINARY = "/usr/bin/time"
-OUTPUT_FILE = "/tmp/runtime-bench-time.csv"
+OUTPUT_FILE = join(RESULT_DIR, "runtime-bench-time.csv")
 
 
 @task
 def bench_time(ctx):
     benches = [
-        ("faasm", "./cmake-build-release/bin/bench_time", 1000),
+        ("faasm", join(BENCHMARK_BUILD, "bin", "bench_time"), 1000),
         ("docker", "./bin/docker_noop_time.sh", 5),
-        ("thread", "./cmake-build-release/bin/thread_bench_time", 1000),
+        ("thread", join(BENCHMARK_BUILD, "bin", "thread_bench_time"), 1000),
     ]
 
     csv_out = open(OUTPUT_FILE, "w")

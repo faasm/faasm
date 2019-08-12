@@ -1,0 +1,14 @@
+language: c++
+
+dist: xenial
+
+services:
+  - docker
+
+# Build the latest images
+before_install:
+  - "docker build -t faasm/worker -f docker/worker.dockerfile ."
+  - "docker build -t faasm/worker -f docker/testing.dockerfile ."
+
+script:
+  - "docker-compose -f test-compose.yml run tester /faasm/build/bin/tests"

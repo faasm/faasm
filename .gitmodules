@@ -1,12 +1,9 @@
 [submodule "WAVM"]
     path = WAVM
-    url = git@github.com:Shillaker/WAVM.git
+    url = https://github.com/Shillaker/WAVM.git
 [submodule "pyodide"]
 	path = pyodide
-	url = git@github.com:Shillaker/pyodide
+	url = https://github.com/Shillaker/pyodide.git
 [submodule "musl"]
 	path = musl
-	url = git@github.com:Shillaker/musl
-[submodule "py_performance"]
-	path = py_performance
-	url = git@github.com:python/performance.git
+	url = https://github.com/Shillaker/musl
