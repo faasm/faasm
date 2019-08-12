@@ -27,12 +27,6 @@ RUN pip3 install -U pip
 COPY requirements.txt /tmp/requirements.txt
 RUN pip3 install -r /tmp/requirements.txt
 
-# Download the toolchain
-WORKDIR /usr/local/faasm
-RUN wget https://s3-eu-west-1.amazonaws.com/faasm-misc/emsdk.tar.gz -O emsdk.tar.gz
-RUN tar -xf emsdk.tar.gz
-RUN rm emsdk.tar.gz
-
 # Python and pyodide deps
 RUN apt-get install -y \
     zlib1g-dev \
@@ -54,6 +48,10 @@ RUN make altinstall
 # NOTE: do as much heavy lifting as you can *BEFORE* this to make the most of caching when rebuilding
 COPY . /usr/local/code/faasm
 WORKDIR /usr/local/code/faasm
+
+# Download the toolchain
+WORKDIR /usr/local/code/faasm/ansible
+RUN ansible-playbook emsdk.yml
 
 # Build CPython and python packages
 WORKDIR /usr/local/code/faasm/pyodide

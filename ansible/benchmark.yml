@@ -6,13 +6,14 @@
     - name: 'install python'
       raw: 'sudo apt-get -y install python'
   roles:
-    - llvm
-    - clang
-    - protobuf
-    - perf
-    - linux
-    - code
-    - python
-    - spdlog
-    - rapidjson
-    - aws_sdk
+#    - llvm
+#    - clang
+#    - protobuf
+#    - perf
+#    - linux
+#    - code
+#    - python
+#    - spdlog
+#    - rapidjson
+#    - aws_sdk
+    - emsdk
