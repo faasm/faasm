@@ -23,30 +23,38 @@ def _exec_cmd(cmd_str):
 @task
 def bench_mem(ctx, runtime=None):
     repeats = 3
-    n_workers_list = [100, 75, 50, 25, 1]
 
     # Sleep time here needs to be around 0.5/0.75x the sleep of the process so we catch when everything is up
-    faasm_bench = ("faasm", "./cmake-build-release/bin/bench_mem", "bench_mem", 5)
-    docker_bench = ("docker", "./bin/docker_noop_mem.sh", None, 40)
-    thread_bench = ("thread", "./cmake-build-release/bin/thread_bench_mem", "thread_bench_mem", 5)
+    faasm_bench = (
+        "faasm", "./cmake-build-release/bin/bench_mem",
+        "bench_mem",
+        [2000, 1800, 1600, 1400, 1200, 1000, 800, 600, 400, 200, 1],
+        15
+    )
+
+    docker_bench = (
+        "docker",
+        "./bin/docker_noop_mem.sh",
+        None,
+        [240, 220, 200, 180, 160, 140, 120, 100, 80, 60, 40, 1],
+        70,
+    )
+
+    # thread_bench = ("thread", "./cmake-build-release/bin/thread_bench_mem", "thread_bench_mem", 5)
 
     if runtime == "faasm":
         benches = [faasm_bench]
     elif runtime == "docker":
         benches = [docker_bench]
     else:
-        benches = [faasm_bench, docker_bench, thread_bench]
+        benches = [faasm_bench, docker_bench]
 
-    _do_bench_mem(n_workers_list, benches, repeats)
-
-
-def _do_bench_mem(n_workers_list, benches, repeats):
     csv_out = open(OUTPUT_FILE, "w")
     csv_out.write("Runtime,Measure,Value,Workers,ValuePerWorker\n")
 
     for r in range(0, repeats):
-        for n_workers in n_workers_list:
-            for bench_name, cmd, process_name, sleep_time in benches:
+        for bench_name, cmd, process_name, n_workers_list, sleep_time in benches:
+            for n_workers in n_workers_list:
                 print("BENCH: {} - {} workers".format(bench_name, n_workers))
 
                 # Launch the process in the background

@@ -4,7 +4,7 @@ set -e
 
 # Note, this must work well with the benchmark sleep time
 # It must be long enough to spawn lots of containers
-SLEEP_TIME=60
+SLEEP_TIME=90
 
 THIS_DIR=$(dirname $(readlink -f $0))
 INNER_SCRIPT=${THIS_DIR}/docker_noop_mem_inner.sh

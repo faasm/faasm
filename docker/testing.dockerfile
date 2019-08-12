@@ -1,6 +1,6 @@
 FROM faasm/worker
 
-# Make sure circle requirements exist
+# Make sure CI-related requirements exist
 RUN apt-get update
 RUN apt-get install -y apt-transport-https
 RUN apt-get install -y \
@@ -27,13 +27,18 @@ RUN ansible-playbook catch.yml
 # Fix ownership of runtime root
 RUN chown -R root:root /usr/local/faasm
 
-# Remove any existing code/build (will check out and build as part of circle job)
-WORKDIR /
-RUN rm -rf /usr/local/code/faasm
-RUN rm -rf /faasm
+# Build the tests
+WORKDIR /faasm/build
+RUN cmake --build . --target tests -- -j
 
-# Override entrypoint with noop
-COPY bin/noop-entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Run codegen on wasm files (in working dir)
+RUN ./bin/codegen /usr/local/code/faasm/wasm/demo
+RUN ./bin/codegen /usr/local/code/faasm/wasm/errors
+RUN ./bin/codegen /usr/local/code/faasm/wasm/python
+RUN ./bin/codegen /usr/local/code/faasm/wasm/sgd
 
-ENTRYPOINT ["/entrypoint.sh"]
+# Run codegen on Python files
+RUN ./bin/codegen /usr/local/faasm/runtime_root/lib/python3.7
+
+# Command to run the tests
+CMD /faasm/build/bin/tests
