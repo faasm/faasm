@@ -10,5 +10,6 @@
 #    - clang
 #    - protobuf
 #    - perf
-    - code
-    - python
+#    - code
+#    - python
+    - cmake

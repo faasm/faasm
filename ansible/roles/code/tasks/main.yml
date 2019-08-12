@@ -7,13 +7,15 @@
     state: directory
     mode: 0777
 
-- name: "Install git"
+- name: "Install system deps"
   become: yes
   apt:
     name:
+      - cmake
       - git
 
 - name: "Check out code"
   git:
     repo: "https://github.com/lsds/Faasm.git"
     dest: /usr/local/code/faasm
+    version: genomics-5

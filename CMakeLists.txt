@@ -62,11 +62,13 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 # add_definitions(-DEIGEN_DONT_PARALLELIZE)
 # add_definitions(-DEIGEN_NO_MALLOC)
 
+if(FAASM_AWS_SUPPORT)
 # AWS
 find_package(aws-lambda-runtime)
 
 # AWS SDK
 find_package(AWSSDK REQUIRED COMPONENTS lambda s3 sqs)
+endif()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
