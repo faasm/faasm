@@ -59,7 +59,7 @@ The timing and CPU measurements can be taken by running:
 inv bench-time
 ```
 
-Results are written to `/tmp/runtime-bench-time.csv`.
+Results are written to `~/faasm/results/runtime-bench-time.csv`.
 
 The memory measurements require access to details of the Docker daemon, hence need to be run as root:
 
@@ -73,7 +73,7 @@ source workon.sh
 inv bench-mem
 ```
 
-Results are written to `/tmp/runtime-bench-mem.csv`.
+Results are written to `~/faasm/results/runtime-bench-mem.csv`.
 
 
 ### Other runtimes

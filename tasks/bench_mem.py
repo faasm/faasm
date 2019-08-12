@@ -6,11 +6,11 @@ from time import sleep
 
 from invoke import task
 
-from tasks.util.env import PROJ_ROOT, BENCHMARK_BUILD
+from tasks.util.env import PROJ_ROOT, BENCHMARK_BUILD, RESULT_DIR
 from tasks.util.memory import get_total_memory_for_pid, get_total_memory_for_pids
 from tasks.util.process import get_docker_parent_pids, get_pid_for_name
 
-OUTPUT_FILE = "/tmp/runtime-bench-mem.csv"
+OUTPUT_FILE = join(RESULT_DIR, "runtime-bench-mem.csv")
 
 
 def _exec_cmd(cmd_str):

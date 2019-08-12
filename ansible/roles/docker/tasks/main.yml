@@ -25,3 +25,7 @@
   apt:
     name: docker-ce
     update_cache: yes
+
+- name: "Add user to group"
+  become: yes
+  user: name={{ ansible_env.USER }} groups=docker append=yes

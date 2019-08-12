@@ -5,10 +5,11 @@ from tempfile import NamedTemporaryFile
 
 from invoke import task
 
-from tasks.util.env import PROJ_ROOT, BENCHMARK_BUILD
+from tasks.util.env import PROJ_ROOT, BENCHMARK_BUILD, RESULT_DIR
 
 TIME_BINARY = "/usr/bin/time"
-OUTPUT_FILE = "/tmp/runtime-bench-time.csv"
+OUTPUT_FILE = join(RESULT_DIR, "runtime-bench-time.csv")
+
 
 @task
 def bench_time(ctx):

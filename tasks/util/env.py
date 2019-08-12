@@ -10,6 +10,7 @@ FAASM_RUNTIME_ROOT = join(FAASM_LOCAL_DIR, "runtime_root")
 FAASM_INSTALL_DIR = join(FAASM_LOCAL_DIR, "install")
 
 BENCHMARK_BUILD = join(HOME_DIR, "faasm", "bench")
+RESULT_DIR = join(FAASM_HOME, "results")
 
 FUNC_DIR = join(PROJ_ROOT, "func")
 FUNC_BUILD_DIR = join(FUNC_DIR, "build")
