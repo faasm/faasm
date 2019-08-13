@@ -8,7 +8,6 @@ services:
 branches:
   only:
   - master
-  - bench-6
 
 # Build the latest images
 before_install:
