@@ -103,7 +103,7 @@ def _run_docker_bench(n_workers, csv_out):
     batch_remainder = n_workers % batch_size
     n_batches = n_workers // batch_size + (batch_remainder > 0)
     for b in range(n_batches):
-        if b == n_batches - 1:
+        if (b == n_batches - 1) and (batch_remainder > 0):
             this_batch_size = batch_remainder
         else:
             this_batch_size = batch_size
