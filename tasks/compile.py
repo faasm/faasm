@@ -6,8 +6,11 @@ from subprocess import call, check_output
 
 from invoke import task
 
+from tasks import run_codegen
+from tasks.util.codegen import find_codegen_binary
 from tasks.util.download import download_proj
-from tasks.util.env import PROJ_ROOT, WASM_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT, FUNC_BUILD_DIR, FAASM_INSTALL_DIR
+from tasks.util.env import PROJ_ROOT, WASM_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT, FUNC_BUILD_DIR, FAASM_INSTALL_DIR, \
+    FAASM_RUNTIME_ROOT
 
 
 def _clean_dir(dir_path, clean):
@@ -167,6 +170,22 @@ def compile_libfake(ctx, clean=False):
     call(" ".join(build_cmd), shell=True, cwd=build_dir)
     call("make", shell=True, cwd=build_dir)
     call("make install", shell=True, cwd=build_dir)
+
+    # Copy shared object into place
+    sysroot_files = join(WASM_SYSROOT, "lib", "libfake*.so")
+    call("cp {} {}".format(sysroot_files, FAASM_RUNTIME_ROOT), shell=True)
+
+    # Run codegen
+    shared_objs = [
+        join(FAASM_RUNTIME_ROOT, "libfakeLibA.so"),
+        join(FAASM_RUNTIME_ROOT, "libfakeLibB.so"),
+    ]
+
+    binary = find_codegen_binary()
+
+    for so in shared_objs:
+        print("Running codegen for {}".format(so))
+        check_output("{} {}".format(binary, so), shell=True)
 
 
 @task
