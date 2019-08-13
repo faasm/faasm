@@ -13,7 +13,6 @@ branches:
 # Build the latest images
 before_install:
   - "docker pull faasm/base"
-  - "docker ps -aq | xargs docker rm"
   - "docker build -t faasm/worker -f docker/worker.dockerfile ."
   - "docker build -t faasm/worker -f docker/testing.dockerfile ."
 
