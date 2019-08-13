@@ -37,7 +37,7 @@ def download_file_from_s3(s3_bucket, s3_key, file_path, boto=True):
         s3.Bucket(s3_bucket).download_file(s3_key, file_path)
     else:
         url = "https://s3-{}.amazonaws.com/{}/{}".format(AWS_REGION, s3_bucket, s3_key)
-        cmd = "wget {} -O {}".format(url, file_path)
+        cmd = "wget -q {} -O {}".format(url, file_path)
         subprocess.check_output(cmd, shell=True)
 
 

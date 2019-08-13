@@ -14,7 +14,7 @@ branches:
 before_install:
   - "docker pull faasm/base"
   - "docker build -t faasm/worker -f docker/worker.dockerfile ."
-  - "docker build -t faasm/worker -f docker/testing.dockerfile ."
+  - "docker build -t faasm/testing -f docker/testing.dockerfile ."
 
 script:
   - "docker-compose -f test-compose.yml run tester /usr/local/code/faasm/bin/ci_run.sh"
