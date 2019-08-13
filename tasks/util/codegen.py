@@ -5,9 +5,10 @@ from tasks.util.env import PROJ_ROOT, HOME_DIR
 
 def find_codegen_binary():
     possible_binaries = [
-        join(HOME_DIR, "faasm", "bench", "bin", "codegen"),
-        join(PROJ_ROOT, "cmake-build-release/bin/codegen"),
-        join(PROJ_ROOT, "cmake-build-debug/bin/codegen"),
+        "/faasm/build/bin/codegen",  # Containers
+        join(HOME_DIR, "faasm", "bench", "bin", "codegen"),  # Benchmarks
+        join(PROJ_ROOT, "cmake-build-release/bin/codegen"),  # CLion
+        join(PROJ_ROOT, "cmake-build-debug/bin/codegen"),  # CLion
         join(PROJ_ROOT, "build/bin/codegen"),
         join(PROJ_ROOT, "bin/codegen"),
     ]
