@@ -1,6 +1,7 @@
 from decimal import Decimal
 from multiprocessing import Process
-from os.path import join
+from os.path import exists, join
+from os import makedirs
 from subprocess import call
 from time import sleep
 
@@ -30,7 +31,7 @@ def bench_mem(ctx, runtime=None):
         "faasm",
         join(BENCHMARK_BUILD, "bin", "bench_mem"),
         "bench_mem",
-        [2000, 1800, 1600, 1400, 1200, 1000, 800, 600, 400, 200, 1],
+        [1, 200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000],
         15
     )
 
@@ -38,7 +39,7 @@ def bench_mem(ctx, runtime=None):
         "docker",
         "./bin/docker_noop_mem.sh",
         None,
-        [240, 220, 200, 180, 160, 140, 120, 100, 80, 60, 40, 1],
+        [1, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240],
         70,
     )
 
@@ -46,7 +47,7 @@ def bench_mem(ctx, runtime=None):
         "thread",
         join(BENCHMARK_BUILD, "bin", "thread_bench_mem"),
         "thread_bench_mem",
-        [2000, 1800, 1600, 1400, 1200, 1000, 800, 600, 400, 200, 1],
+        [1, 200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000],
         5
     )
 
@@ -56,6 +57,9 @@ def bench_mem(ctx, runtime=None):
         benches = [docker_bench]
     else:
         benches = [faasm_bench, docker_bench, thread_bench]
+
+    if not exists(RESULT_DIR):
+        makedirs(RESULT_DIR)
 
     csv_out = open(OUTPUT_FILE, "w")
     csv_out.write("Runtime,Measure,Value,Workers,ValuePerWorker\n")
