@@ -19,5 +19,3 @@ echo "Run codegen on python files"
 
 echo "Execute tests"
 /faasm/build/bin/tests
-
-popd
