@@ -5,10 +5,15 @@ dist: xenial
 services:
   - docker
 
+branches:
+  only:
+  - master
+  - bench-6
+
 # Build the latest images
 before_install:
   - "docker build -t faasm/worker -f docker/worker.dockerfile ."
   - "docker build -t faasm/worker -f docker/testing.dockerfile ."
 
 script:
-  - "docker-compose -f test-compose.yml run tester /faasm/build/bin/tests"
+  - "docker-compose -f test-compose.yml run tester /usr/local/code/faasm/bin/ci_run.sh"
