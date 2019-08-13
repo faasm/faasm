@@ -12,7 +12,7 @@ services:
       - redis
     environment:
       HOST_TYPE: "ci"
-      CGROUP_MODE: "off"
+      CGROUP_MODE: "on"
       REDIS_STATE_HOST: "redis"
       REDIS_QUEUE_HOST: "redis"
       REDIS_PORT: "6379"

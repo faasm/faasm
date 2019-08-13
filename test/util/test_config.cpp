@@ -14,16 +14,15 @@ namespace tests {
 
         // CI has to override some stuff
         if(conf.hostType == "ci") {
-            REQUIRE(conf.redisStateHost == "localhost");
-            REQUIRE(conf.redisQueueHost == "localhost");
-            REQUIRE(conf.cgroupMode == "off");
+            REQUIRE(conf.redisStateHost == "redis");
+            REQUIRE(conf.redisQueueHost == "redis");
         } else {
-            REQUIRE(conf.hostType == "default");
             REQUIRE(conf.redisStateHost == "localhost");
             REQUIRE(conf.redisQueueHost == "localhost");
-            REQUIRE(conf.cgroupMode == "on");
+            REQUIRE(conf.hostType == "default");
         }
 
+        REQUIRE(conf.cgroupMode == "on");
         REQUIRE(conf.globalMessageBus == "redis");
         REQUIRE(conf.functionStorage == "local");
         REQUIRE(conf.fileserverUrl == "");
