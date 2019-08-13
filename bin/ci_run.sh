@@ -3,9 +3,9 @@
 set -e
 
 pushd /usr/local/code/faasm
-echo "Set up local tooling"
+echo "Set up libfake"
 source workon.sh
-./bin/set_up_libfake.sh
+inv compile-libfake --clean
 popd
 
 echo "Run codegen on wasm files"
@@ -19,5 +19,3 @@ echo "Run codegen on python files"
 
 echo "Execute tests"
 /faasm/build/bin/tests
-
-popd

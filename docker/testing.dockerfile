@@ -9,7 +9,9 @@ RUN apt-get install -y \
     tar \
     gzip \
     ca-certificates \
-    libcairo2-dev
+    libcairo2-dev \
+    python3-dev \
+    python3-venv
 
 # Set up requests
 RUN apt-get install -y python3-dev python3-pip

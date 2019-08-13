@@ -38,7 +38,7 @@ RUN apt-get install -y \
 
 # Install local python3.7 (must be exact version match with pyodide's CPython)
 WORKDIR /tmp
-RUN wget https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tgz
+RUN wget -q https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tgz
 RUN tar -xf Python-3.7.0.tgz
 WORKDIR /tmp/Python-3.7.0
 RUN ./configure --prefix=/usr/local/faasm/python3.7

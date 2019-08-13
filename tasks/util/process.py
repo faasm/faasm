@@ -1,8 +1,14 @@
 from psutil import process_iter
 
 
-def _get_pids_for_name(proc_part):
-    procs = [p for p in process_iter(attrs=["pid", "name"]) if proc_part in p.info["name"]]
+def _get_pids_for_name(proc_part, exact=False):
+    procs = []
+    for p in process_iter(attrs=["pid", "name"]):
+        if exact and p.info["name"] == proc_part:
+            procs.append(p)
+        elif not exact and proc_part in p.info["name"]:
+            procs.append(p)
+
     return procs
 
 
@@ -23,7 +29,7 @@ def get_docker_parent_pids():
 
     # Check if containerd is present
     containerd_name = "containerd"
-    containerd_options = _get_pids_for_name(containerd_name)
+    containerd_options = _get_pids_for_name(containerd_name, exact=True)
 
     if len(containerd_options) == 1:
         return [dockerd_pid, containerd_options[0].pid]

@@ -20,7 +20,7 @@ RUN apt-get install -y ansible \
 WORKDIR /tmp
 
 # Install spdlog
-RUN wget https://github.com/gabime/spdlog/archive/v1.2.1.tar.gz
+RUN wget -q https://github.com/gabime/spdlog/archive/v1.2.1.tar.gz
 RUN tar --no-same-owner -xf v1.2.1.tar.gz
 RUN mkdir spdlog-1.2.1/build
 
