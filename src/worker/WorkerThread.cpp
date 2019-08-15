@@ -5,6 +5,7 @@
 
 #include <scheduler/Scheduler.h>
 #include <util/config.h>
+#include <util/timing.h>
 #include <zygote/ZygoteRegistry.h>
 
 using namespace isolation;
@@ -109,10 +110,12 @@ namespace worker {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         if (config.zygoteMode == "on") {
             // Instantiate the module from its zygote
+            PROF_START(zygoteRestore)
             logger->debug("Using zygote registry to bind to function");
             zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
             wasm::WasmModule &zygote = registry.getZygote(msg);
             module = std::make_unique<wasm::WasmModule>(zygote);
+            PROF_END(zygoteRestore)
         } else {
             logger->debug("Not using zygote registry to bind to function");
             module = std::make_unique<wasm::WasmModule>();

@@ -4,6 +4,7 @@
 
 #include <util/environment.h>
 #include <util/logging.h>
+#include <util/timing.h>
 #include <util/config.h>
 
 #include <errno.h>
@@ -61,6 +62,7 @@ namespace isolation {
             return;
         }
 
+        PROF_START(netNsAdd)
         logger->debug("Adding thread to network ns: {}", name);
 
         // Open path to the namespace
@@ -68,6 +70,7 @@ namespace isolation {
         nsPath.append(name);
 
         joinNamespace(nsPath);
+        PROF_END(netNsAdd)
     };
 
     void NetworkNamespace::removeCurrentThread() {

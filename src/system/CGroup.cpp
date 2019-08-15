@@ -1,8 +1,8 @@
 #include "CGroup.h"
 
-#include <util/environment.h>
 #include <util/logging.h>
 #include <util/config.h>
+#include <util/timing.h>
 
 #include <mutex>
 
@@ -64,6 +64,7 @@ namespace isolation {
             return;
         }
 
+        PROF_START(cGroupAdd)
         // Get lock and add to controllers
         std::scoped_lock<std::mutex> guard(groupMutex);
 
@@ -75,5 +76,6 @@ namespace isolation {
 
             addCurrentThreadToTasks(tasksPath);
         }
+        PROF_END(cGroupAdd)
     }
 }

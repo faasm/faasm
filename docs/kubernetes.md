@@ -49,12 +49,12 @@ inv knative-invoke --host=<your k8s host> --port=<your invoke port> <user> <func
 To look at the logs for the faasm containers:
 
 ```
-# Find the faasm-xxx pod
-kubectl get pods --namespace=faasm
+# Find the faasm-worker-xxx pod
+kubectl --namespace=faasm get pods
 
 # Get the logs for the user-container part and queue proxy
-kubectl logs faasm-xxx user-container --namespace faasm
-kubectl logs faasm-xxx queue-proxy --namespace faasm
+kubectl --namespace=faasm logs faasm-worker-xxx user-container
+kubectl --namespace=faasm logs faasm-worker-xxx queue-proxy
 ```
 
 # Isolation and privileges

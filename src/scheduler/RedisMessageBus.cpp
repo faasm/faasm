@@ -2,6 +2,7 @@
 
 #include <util/logging.h>
 #include <util/json.h>
+#include <util/timing.h>
 
 namespace scheduler {
     RedisMessageBus::RedisMessageBus() : redis(redis::Redis::getQueue()) {
@@ -67,11 +68,15 @@ namespace scheduler {
             throw std::runtime_error("Must provide non-zero message ID");
         }
 
+        PROF_START(redisFuncResult)
+
         std::string resultKey = util::resultKeyFromMessageId(messageId);
         std::vector<uint8_t> result = redis.dequeueBytes(resultKey, timeout);
 
         message::Message msgResult;
         msgResult.ParseFromArray(result.data(), (int) result.size());
+
+        PROF_END(redisFuncResult)
 
         return msgResult;
     }

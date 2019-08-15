@@ -1,6 +1,7 @@
 #include "KnativeHandler.h"
 
 #include <util/logging.h>
+#include <util/timing.h>
 #include <util/json.h>
 #include <scheduler/Scheduler.h>
 
@@ -14,6 +15,8 @@ namespace knative {
     void KnativeHandler::onRequest(const Http::Request &request, Http::ResponseWriter response) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Received request");
+
+        PROF_START(knativeRoundTrip)
 
         // Parse message from JSON in request
         const std::string requestStr = request.body();
@@ -33,5 +36,7 @@ namespace knative {
         const message::Message result = globalBus.getFunctionResult(msg.id(), conf.globalMessageTimeout);
 
         response.send(Http::Code::Ok, result.outputdata() + "\n");
+
+        PROF_END(knativeRoundTrip)
     }
 }

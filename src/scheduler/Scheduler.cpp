@@ -2,6 +2,7 @@
 
 #include <util/logging.h>
 #include <util/random.h>
+#include <util/timing.h>
 #include <scheduler/SharingMessageBus.h>
 
 using namespace util;
@@ -174,6 +175,7 @@ namespace scheduler {
     }
 
     void Scheduler::callFunction(message::Message &msg) {
+        PROF_START(scheduleCall)
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         std::string bestNode = this->getBestNodeForFunction(msg);
@@ -191,6 +193,8 @@ namespace scheduler {
 
             sharingBus.shareMessageWithNode(bestNode, msg);
         }
+
+        PROF_END(scheduleCall)
     }
 
     void Scheduler::addWarmThreads(const message::Message &msg) {

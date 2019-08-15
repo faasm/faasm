@@ -1,4 +1,5 @@
 #include "json.h"
+#include "timing.h"
 
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
@@ -50,6 +51,8 @@ namespace util {
     }
 
     message::Message jsonToMessage(const std::string &jsonIn) {
+        PROF_START(jsonDecode)
+
         Document d;
         d.Parse(jsonIn.c_str());
 
@@ -67,6 +70,8 @@ namespace util {
         msg.set_statuskey(getStringFromJson(d, "status_key", ""));
 
         msg.set_type(message::Message_MessageType_CALL);
+
+        PROF_END(jsonDecode)
 
         return msg;
     }

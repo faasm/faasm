@@ -2,7 +2,7 @@
 
 #include <redis/Redis.h>
 #include <util/config.h>
-#include <runner/timing.h>
+#include <util/timing.h>
 #include <worker/WorkerThreadPool.h>
 
 
@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
     pool.startThreadPool();
 
     // Submit the invocation
-    const util::TimePoint tp = runner::startTimer();
+    PROF_START(roundTrip)
     scheduler::Scheduler &sch = scheduler::getScheduler();
     sch.callFunction(call);
 
@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
         throw std::runtime_error("Executing function failed");
     }
 
-    runner::logEndTimer("Round trip execution", tp);
+    PROF_END(roundTrip)
 
     pool.shutdown();
 

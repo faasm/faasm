@@ -21,6 +21,7 @@ set(LIB_FILES
         random.cpp
         state.cpp
         strings.cpp
+        timing.cpp
         ${HEADERS}
         )
 
