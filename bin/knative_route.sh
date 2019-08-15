@@ -41,7 +41,11 @@ echo "-----        Upload        -----"
 echo "--------------------------------"
 echo ""
 UPLOAD_IP=$(kubectl get --namespace=faasm service upload  --output 'jsonpath={.spec.clusterIP}')
+UPLOAD_EXTERNAL_IP=$(kubectl get --namespace=faasm service upload  --output 'jsonpath={.spec.externalIPs[0]}')
 UPLOAD_PORT=8002
 
 echo "curl -X PUT http://${UPLOAD_IP}:${UPLOAD_PORT}/f/<user>/<func> -T <wasm_file>"
+echo ""
+echo "External host:"
+echo "${UPLOAD_EXTERNAL_IP}"
 echo ""
