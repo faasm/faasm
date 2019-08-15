@@ -6,7 +6,10 @@ in the `k8s` directory. This has the following components.
 ## Knative Set-up
 
 Provided you have an accessible Kubernetes cluster (and can run `kubectl` to access it), you can deploy Faasm
-as follows:
+as follows.
+
+If you're deploying remotely then you need to update the `externalIPs` field in the `upload-service.yml` file
+to match your k8s master node.
 
 ```
 # Local (NodePorts for services)
@@ -24,7 +27,7 @@ Once everything has started up, you can get the relevant URLs as follows:
 
 ## Uploading functions
 
-Once you have the upload URL you can upload functions using the tasks in this repo (from your k8s master).
+Once you have the upload URL you can upload functions using the tasks in this repo.
 
 ```
 source workon.sh

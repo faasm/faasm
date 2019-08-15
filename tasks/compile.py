@@ -173,6 +173,10 @@ def compile_libfake(ctx, clean=False):
 
     # Copy shared object into place
     sysroot_files = join(WASM_SYSROOT, "lib", "libfake*.so")
+
+    if not exists(FAASM_RUNTIME_ROOT):
+        mkdir(FAASM_RUNTIME_ROOT)
+
     call("cp {} {}".format(sysroot_files, FAASM_RUNTIME_ROOT), shell=True)
 
     # Run codegen
