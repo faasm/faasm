@@ -3,9 +3,11 @@ kind: Service
 
 # Some details on spec can be found here: https://github.com/knative/serving/blob/master/docs/spec/spec.md
 
+# Note that config maps don't seem to play well with knative, need to specify env vars in-line
+
 metadata:
   name: faasm-test
-  namespace: default
+  namespace: faasm
 spec:
   template:
     metadata:
@@ -18,6 +20,40 @@ spec:
     spec:
       containers:
         - image: faasm/knative-worker
-          envFrom:
-            - configMapRef:
-                name: faasm-config
+          env:
+            - name: REDIS_STATE_HOST
+              value: redis-state
+            - name: REDIS_QUEUE_HOST
+              value: redis-queue
+            - name: REDIS_PORT
+              value: "6379"
+            - name: FUNCTION_STORAGE
+              value: "fileserver"
+            - name: FILESERVER_URL
+              value: "http://upload:8002"
+            - name: LOG_LEVEL
+              value: "debug"
+            - name: CGROUP_MODE
+              value: "off"
+            - name: NETNS_MODE
+              value: "off"
+            - name: THREADS_PER_WORKER
+              value: "20"
+            - name: MAX_QUEUE_RATIO
+              value: "1"
+            - name: MAX_WORKERS_PER_FUNCTION
+              value: "20"
+            - name: GLOBAL_MESSAGE_TIMEOUT
+              value: "300000"
+            - name: BOUND_TIMEOUT
+              value: "300"
+            - name: UNBOUND_TIMEOUT
+              value: "5000"
+            - name: STATE_STALE_THRESHOLD
+              value: "60000"
+            - name: STATE_CLEAR_THRESHOLD
+              value: "300000"
+            - name: STATE_PUSH_INTERVALL
+              value: "500"
+            - name: FULL_ASYNC
+              value: "0"

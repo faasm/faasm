@@ -13,21 +13,13 @@ directory. This has the following components:
 
 ## Using a Kubernetes deployment
 
-Once deployed, the quickest way to play with a Kubernetes deployment is to SSH onto the master node and get the URL for the `edge` service:
+Once deployed, the quickest way to play with a Kubernetes deployment is to SSH onto the master node and get the URL for
+the `edge` and `upload` services:
 
 ```
 kubectl get service edge --namespace=faasm
+kubectl get service upload --namespace=faasm
 ```
-
-You can then hit one of the dummy functions with:
-
-```
-curl -X POST http://<endpoint_ip>:8080/f/demo/echo/ -d "hello world"
-```
-
-## Function storage
-
-All `worker` pods need access to the wasm binaries and object files. For now these are held on an NFS share hosted on the master Kubernetes node. This could be replaced by an object store in future.
 
 # Isolation and privileges
 
