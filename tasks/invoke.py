@@ -26,8 +26,8 @@ def invoke(ctx, user, func, host="127.0.0.1", input=None):
 
 
 @task
-def knative_invoke(ctx, user, func, host="127.0.0.1", input=None):
-    url = "http://{}:8080/".format(host, user, func)
+def knative_invoke(ctx, user, func, host="127.0.0.1", port=8080, input=None):
+    url = "http://{}:{}/".format(host, port)
 
     msg = {
         "user": user,

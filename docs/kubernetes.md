@@ -25,6 +25,8 @@ Once everything has started up, you can get the relevant URLs as follows (on the
 ./bin/knative_route.sh
 ```
 
+From here you need to note the invocation IP and port.
+
 ## Uploading functions
 
 Once you have the upload URL you can upload functions using the tasks in this repo.
@@ -32,6 +34,14 @@ Once you have the upload URL you can upload functions using the tasks in this re
 ```
 source workon.sh
 inv upload --host=<your k8s host> <user> <func>
+```
+
+## Invoking functions
+
+Invoking functions is a little different to normal Faasm functions and looks like:
+
+```
+inv knative-invoke --host=<your k8s host> --port=<your invoke port> <user> <func>
 ```
 
 ## Troubleshooting
