@@ -46,9 +46,9 @@ spec:
             - name: GLOBAL_MESSAGE_TIMEOUT
               value: "300000"
             - name: BOUND_TIMEOUT
-              value: "300"
+              value: "300000"
             - name: UNBOUND_TIMEOUT
-              value: "5000"
+              value: "600000"
             - name: STATE_STALE_THRESHOLD
               value: "60000"
             - name: STATE_CLEAR_THRESHOLD
