@@ -30,3 +30,7 @@ echo ""
 echo "----- Curl -----"
 echo "CMD: "
 echo "curl -H 'Host: ${FUNC_HOST}' http://${HOST}"
+
+echo ""
+echo "----- Upload -----"
+kubectl get service upload --namespace=faasm
