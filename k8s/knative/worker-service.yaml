@@ -6,7 +6,7 @@ kind: Service
 # Note that config maps don't seem to play well with knative, need to specify env vars in-line
 
 metadata:
-  name: faasm-test
+  name: faasm-worker
   namespace: faasm
 spec:
   template:
@@ -38,11 +38,11 @@ spec:
             - name: NETNS_MODE
               value: "off"
             - name: THREADS_PER_WORKER
-              value: "20"
+              value: "10"
             - name: MAX_QUEUE_RATIO
               value: "1"
             - name: MAX_WORKERS_PER_FUNCTION
-              value: "20"
+              value: "10"
             - name: GLOBAL_MESSAGE_TIMEOUT
               value: "300000"
             - name: BOUND_TIMEOUT

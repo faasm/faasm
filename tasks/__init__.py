@@ -46,6 +46,7 @@ from tasks.invoke import (
     invoke_async,
     py_invoke,
     py_invoke_async,
+    knative_invoke,
 )
 from tasks.docker import (
     build_all,

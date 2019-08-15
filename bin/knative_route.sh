@@ -1,6 +1,6 @@
 #!/bin/bash
 
-FUNC_NAME=faasm-test
+FUNC_NAME=faasm-worker
 FUNC_HOST=${FUNC_NAME}.faasm.example.com
 
 set -e

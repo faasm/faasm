@@ -1,10 +1,10 @@
+from json import dumps
+
 import requests
 from invoke import task
 
 
-def _do_invoke(user, func, host, func_type, input=None):
-    url = "http://{}:8001/{}/{}/{}".format(host, func_type, user, func)
-
+def _do_post(url, input):
     response = requests.post(url, data=input)
 
     if response.status_code >= 400:
@@ -15,21 +15,41 @@ def _do_invoke(user, func, host, func_type, input=None):
         print("Empty response")
 
 
+def _do_invoke(user, func, host, port, func_type, input=None):
+    url = "http://{}:{}/{}/{}/{}".format(host, port, func_type, user, func)
+    _do_post(url, input)
+
+
 @task
 def invoke(ctx, user, func, host="127.0.0.1", input=None):
-    _do_invoke(user, func, host, "f", input=input)
+    _do_invoke(user, func, host, 8001, "f", input=input)
+
+
+@task
+def knative_invoke(ctx, user, func, host="127.0.0.1", input=None):
+    url = "http://{}:8080/f/{}/{}".format(host, user, func)
+
+    msg = {
+        "user": user,
+        "function": func,
+    }
+
+    if input:
+        msg["input_data"] = input
+
+    _do_post(url, dumps(msg))
 
 
 @task
 def py_invoke(ctx, user, func, host="127.0.0.1"):
-    _do_invoke(user, func, host, "p")
+    _do_invoke(user, func, host, 8001, "p")
 
 
 @task
 def invoke_async(ctx, user, func, host="127.0.0.1"):
-    _do_invoke(user, func, host, "fa")
+    _do_invoke(user, func, host, 8001, "fa")
 
 
 @task
 def py_invoke_async(ctx, user, func, host="127.0.0.1"):
-    _do_invoke(user, func, host, "pa")
+    _do_invoke(user, func, host, 8001, "pa")
