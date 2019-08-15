@@ -9,13 +9,26 @@ Provided you have an accessible Kubernetes cluster (and can run `kubectl` to acc
 as follows:
 
 ```
-./bin/knative_deploy.sh
+# Local (NodePorts for services)
+./bin/knative_deploy.sh local
+
+# Remote (LoadBalancers for service)
+./bin/knative_deploy.sh remote
 ```
 
 Once everything has started up, you can get the relevant URLs as follows:
 
 ```
 ./bin/knative_route.sh
+```
+
+## Uploading functions
+
+Once you have the upload URL you can upload functions using the tasks in this repo (from your k8s master).
+
+```
+source workon.sh
+inv upload --host=<your k8s host> <user> <func>
 ```
 
 ## Troubleshooting
