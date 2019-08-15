@@ -45,7 +45,11 @@ UPLOAD_EXTERNAL_IP=$(kubectl get --namespace=faasm service upload  --output 'jso
 UPLOAD_PORT=8002
 
 echo "curl -X PUT http://${UPLOAD_IP}:${UPLOAD_PORT}/f/<user>/<func> -T <wasm_file>"
+
 echo ""
-echo "External host:"
+echo "--------------------------------"
+echo "-----    External host     -----"
+echo "--------------------------------"
+echo ""
 echo "${UPLOAD_EXTERNAL_IP}"
 echo ""
