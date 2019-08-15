@@ -5,21 +5,21 @@ in the `k8s` directory. This has the following components.
 
 ## Knative Set-up
 
-Provided you have an accessible Kubernetes cluster (and can run `kubectl` to access it), you can deploy Faasm
-as follows.
+Provided you have an accessible Kubernetes cluster (cloud provider, local Minikube, bare metal etc.)
+with Knative installed, you can deploy Faasm as follows.
 
 If you're deploying remotely then you need to update the `externalIPs` field in the `upload-service.yml` file
-to match your k8s master node.
+to match your k8s master node. On a cloud provider you may need to modify the external `LoadBalancer`s.
 
 ```
 # Local (NodePorts for services)
 ./bin/knative_deploy.sh local
 
-# Remote (LoadBalancers for service)
+# Remote (LoadBalancers for service). Run on master node
 ./bin/knative_deploy.sh remote
 ```
 
-Once everything has started up, you can get the relevant URLs as follows:
+Once everything has started up, you can get the relevant URLs as follows (on the master node):
 
 ```
 ./bin/knative_route.sh
