@@ -3,6 +3,10 @@ from json import dumps
 import requests
 from invoke import task
 
+# NOTE: Using python to do this is slow compared with running curl
+# directly on the command line (or some other purpose-built tool).
+# As a result this mustn't be used for performance testing
+
 
 def _do_post(url, input, headers=None):
     response = requests.post(url, data=input, headers=headers)
