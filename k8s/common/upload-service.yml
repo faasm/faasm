@@ -6,7 +6,7 @@ metadata:
 spec:
   selector:
     role: upload
-#  type: NodePort
+  type: NodePort
   ports:
     - port: 8002
       targetPort: 8002
