@@ -20,8 +20,17 @@ namespace knative {
 
         // Parse message from JSON in request
         const std::string requestStr = request.body();
+
+        const std::string responseStr = handleFunction(requestStr);
+
+        response.send(Http::Code::Ok, responseStr);
+
+        PROF_END(knativeRoundTrip)
+    }
+
+    std::string KnativeHandler::handleFunction(const std::string &requestStr) {
         if (requestStr.empty()) {
-            response.send(Http::Code::Bad_Request, "Must provide user/ function as JSON");
+            return "Empty request";
         }
 
         // Parse the message
@@ -33,10 +42,11 @@ namespace knative {
         sch.callFunction(msg);
 
         // Await result on global bus (may have been executed on a different worker)
-        const message::Message result = globalBus.getFunctionResult(msg.id(), conf.globalMessageTimeout);
-
-        response.send(Http::Code::Ok, result.outputdata() + "\n");
-
-        PROF_END(knativeRoundTrip)
+        if (msg.isasync()) {
+            return "Async request received";
+        } else {
+            const message::Message result = globalBus.getFunctionResult(msg.id(), conf.globalMessageTimeout);
+            return result.outputdata() + "\n";
+        }
     }
 }
