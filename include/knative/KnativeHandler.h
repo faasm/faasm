@@ -4,7 +4,7 @@
 #include <scheduler/GlobalMessageBus.h>
 
 namespace knative {
-    class KnativeHandler final : public Pistache::Http::Handler {
+    class KnativeHandler : public Pistache::Http::Handler {
     public:
         KnativeHandler();
 

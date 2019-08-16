@@ -16,8 +16,8 @@ namespace edge {
         setupRoutes();
     }
 
-    void FunctionEndpoint::setHandler() {
-        httpEndpoint->setHandler(router.handler());
+    std::shared_ptr<Pistache::Http::Handler> FunctionEndpoint::getHandler() {
+        return router.handler();
     }
 
     void FunctionEndpoint::setupRoutes() {

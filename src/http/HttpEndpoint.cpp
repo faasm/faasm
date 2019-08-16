@@ -1,22 +1,14 @@
 #include "HttpEndpoint.h"
 
 #include <util/logging.h>
-#include <pistache/http.h>
+#include <pistache/listener.h>
 #include <pistache/endpoint.h>
 #include <signal.h>
 
 
 namespace http {
-    HttpEndpoint::HttpEndpoint(int port, int threadCount) {
-        Pistache::Address addr(Pistache::Ipv4::any(), Pistache::Port(port));
+    HttpEndpoint::HttpEndpoint(int portIn, int threadCountIn): port(portIn), threadCount(threadCountIn) {
 
-        // Configure endpoint
-        auto opts = Pistache::Http::Endpoint::options()
-                .threads(threadCount)
-                .flags(Pistache::Tcp::Options::ReuseAddr);
-
-        httpEndpoint = std::make_shared<Pistache::Http::Endpoint>(addr);
-        httpEndpoint->init(opts);
     }
 
     void HttpEndpoint::start() {
@@ -33,9 +25,19 @@ namespace http {
             throw std::runtime_error("Install signal handler failed");
         }
 
+        Pistache::Address addr(Pistache::Ipv4::any(), Pistache::Port(this->port));
+
+        // Configure endpoint
+        auto opts = Pistache::Http::Endpoint::options()
+                .threads(threadCount)
+                .flags(Pistache::Tcp::Options::ReuseAddr);
+
+        Pistache::Http::Endpoint httpEndpoint(addr);
+        httpEndpoint.init(opts);
+
         // Configure and start endpoint
-        this->setHandler();
-        httpEndpoint->serve();
+        httpEndpoint.setHandler(this->getHandler());
+        httpEndpoint.serve();
 
         // Wait for a signal
         int signal = 0;
@@ -46,7 +48,7 @@ namespace http {
             logger->info("Sigwait return value: {}", signal);
         }
 
-        httpEndpoint->shutdown();
+        httpEndpoint.shutdown();
     }
 
 }

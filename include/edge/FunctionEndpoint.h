@@ -15,7 +15,7 @@ namespace edge {
 
         std::string handleFunction(message::Message &msg);
 
-        void setHandler();
+        std::shared_ptr<Pistache::Http::Handler> getHandler() override;
 
     private:
         Pistache::Rest::Router router;

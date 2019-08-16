@@ -5,7 +5,7 @@ namespace knative {
     KnativeEndpoint::KnativeEndpoint() : HttpEndpoint(8080, 8) {
     }
 
-    void KnativeEndpoint::setHandler() {
-        httpEndpoint->setHandler(Pistache::Http::make_handler<KnativeHandler>());
+    std::shared_ptr<Pistache::Http::Handler> KnativeEndpoint::getHandler() {
+        return Pistache::Http::make_handler<KnativeHandler>();
     }
 }

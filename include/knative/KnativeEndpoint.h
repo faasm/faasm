@@ -7,6 +7,6 @@ namespace knative {
     public:
         KnativeEndpoint();
 
-        void setHandler();
+        std::shared_ptr<Pistache::Http::Handler> getHandler() override;
     };
 }
