@@ -41,10 +41,33 @@ namespace tests {
         REQUIRE(actual.function() == "echo");
     }
 
-    TEST_CASE("Test invalid knative invocation", "[knative]") {
+    TEST_CASE("Test empty knative invocation", "[knative]") {
         knative::KnativeHandler handler;
         std::string actual = handler.handleFunction("");
 
         REQUIRE(actual == "Empty request");
+    }
+
+    TEST_CASE("Test empty JSON knative invocation", "[knative]") {
+        message::Message call;
+        call.set_isasync(true);
+
+        std::string expected;
+
+        SECTION("Empty user") {
+            expected = "Empty user";
+            call.set_function("echo");
+        }
+
+        SECTION("Empty function") {
+            expected = "Empty function";
+            call.set_user("demo");
+        }
+
+        knative::KnativeHandler handler;
+        const std::string &requestStr = util::messageToJson(call);
+        std::string actual = handler.handleFunction(requestStr);
+
+        REQUIRE(actual == expected);
     }
 }

@@ -14,7 +14,7 @@ namespace knative {
 
     void KnativeHandler::onRequest(const Http::Request &request, Http::ResponseWriter response) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Received request");
+        logger->debug("Knative handler received request");
 
         PROF_START(knativeRoundTrip)
 
@@ -23,6 +23,7 @@ namespace knative {
 
         const std::string responseStr = handleFunction(requestStr);
 
+        logger->debug("Knative request finished: {}", responseStr);
         response.send(Http::Code::Ok, responseStr);
 
         PROF_END(knativeRoundTrip)
@@ -35,6 +36,13 @@ namespace knative {
 
         // Parse the message
         message::Message msg = util::jsonToMessage(requestStr);
+
+        if(msg.user().empty()) {
+            return "Empty user";
+        } else if (msg.function().empty()) {
+            return "Empty function";
+        }
+
         util::setMessageId(msg);
 
         // Schedule it
