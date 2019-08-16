@@ -15,7 +15,7 @@ set(LIB_FILES
         ${LIB_HEADERS}
         )
 
-add_library(worker_lib "${LIB_FILES}")
+faasm_private_lib(worker_lib "${LIB_FILES}")
 target_link_libraries(worker_lib wasm zygote scheduler system)
 
 add_executable(worker worker_main.cpp)

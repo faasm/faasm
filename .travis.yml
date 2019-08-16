@@ -17,3 +17,8 @@ before_install:
 
 script:
   - "docker-compose -f test-compose.yml run tester /usr/local/code/faasm/bin/ci_run.sh"
+
+notifications:
+  email:
+    on_success: never
+    on_failure: always

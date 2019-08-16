@@ -13,6 +13,8 @@ namespace knative {
         HTTP_PROTOTYPE(KnativeHandler)
 
         void onRequest(const Http::Request &request, Http::ResponseWriter response) override;
+
+        std::string handleFunction(const std::string &requestStr);
     private:
         scheduler::GlobalMessageBus &globalBus;
         util::SystemConfig &conf;
