@@ -4,6 +4,7 @@ from json import dumps
 import requests
 from invoke import task
 
+
 # NOTE: Using python to do this is slow compared with running curl
 # directly on the command line (or some other purpose-built tool).
 # As a result this mustn't be used for performance testing
@@ -26,8 +27,19 @@ def _do_invoke(user, func, host, port, func_type, input=None):
 
 
 @task
-def invoke(ctx, user, func, host="127.0.0.1", input=None):
-    _do_invoke(user, func, host, 8001, "f", input=input)
+def invoke(ctx, user, func, host="127.0.0.1", input=None, parallel=False, loops=1):
+    for l in range(loops):
+        if (loops > 1):
+            print("LOOP {}".format(l))
+
+        if parallel:
+            n_workers = multiprocessing.cpu_count() - 1
+            p = multiprocessing.Pool(n_workers)
+
+            args_list = [(user, func, host, 8001, "f", input) for _ in range(n_workers)]
+            p.starmap(_do_invoke, args_list)
+        else:
+            _do_invoke(user, func, host, 8001, "f", input=input)
 
 
 @task
