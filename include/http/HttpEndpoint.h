@@ -2,8 +2,6 @@
 #include <pistache/http.h>
 #include <pistache/endpoint.h>
 
-using namespace Pistache;
-
 namespace http {
     class HttpEndpoint {
     public:
@@ -12,6 +10,6 @@ namespace http {
 
         virtual void setHandler() = 0;
     protected:
-        std::shared_ptr<Http::Endpoint> httpEndpoint;
+        std::shared_ptr<Pistache::Http::Endpoint> httpEndpoint;
     };
 }

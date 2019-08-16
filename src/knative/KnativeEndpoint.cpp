@@ -2,10 +2,10 @@
 #include "KnativeEndpoint.h"
 
 namespace knative {
-    KnativeEndpoint::KnativeEndpoint() : HttpEndpoint(8080, 4) {
+    KnativeEndpoint::KnativeEndpoint() : HttpEndpoint(8080, 8) {
     }
 
     void KnativeEndpoint::setHandler() {
-        httpEndpoint->setHandler(std::make_shared<KnativeHandler>());
+        httpEndpoint->setHandler(Http::make_handler<KnativeHandler>());
     }
 }
