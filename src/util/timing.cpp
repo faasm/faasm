@@ -1,8 +1,8 @@
-#include "runner/timing.h"
+#include "timing.h"
 
 #include <util/logging.h>
 
-namespace runner {
+namespace util {
     util::TimePoint startTimer() {
         util::Clock &clock = util::getGlobalClock();
         return clock.now();
@@ -25,6 +25,6 @@ namespace runner {
     void logEndTimer(const std::string &label, const util::TimePoint &begin) {
         double millis = getTimeDiffMillis(begin);
         const std::shared_ptr<spdlog::logger> &l = util::getLogger();
-        l->info("TIME = {:.2f}ms ({})", millis, label);
+        l->trace("TIME = {:.2f}ms ({})", millis, label);
     }
 }

@@ -1,45 +1,76 @@
 # Set-up and usage
 
-Faasm can be deployed to Kubernetes to create a distributed set-up. The configuration files are found in the `k8s`
-directory. This has the following components:
+Faasm can be deployed to Kubernetes and Knative to create a distributed set-up. The configuration files are found
+in the `k8s` directory. This has the following components.
 
-- A load balancer handling incoming calls
-- Multiple `edge` pods
-- A `redis-queue` pod
-- A `redis-state` pod
-- Multiple `worker` pods
-- An `upload` pod
-- A system-wide `ConfigMap` to hold environment variables
+## Knative Set-up
 
-## Using a Kubernetes deployment
+Provided you have an accessible Kubernetes cluster (cloud provider, local Minikube, bare metal etc.)
+with Knative installed, you can deploy Faasm as follows.
 
-Once deployed, the quickest way to play with a Kubernetes deployment is to SSH onto the master node and get the URL for the `edge` service:
+If you're deploying remotely then you need to update the `externalIPs` field in the `upload-service.yml` file
+to match your k8s master node. On a cloud provider you may need to modify the external `LoadBalancer`s.
 
 ```
-kubectl get service edge --namespace=faasm
+# Local (NodePorts for services)
+./bin/knative_deploy.sh local
+
+# Remote (LoadBalancers for service). Run on master node
+./bin/knative_deploy.sh remote
 ```
 
-You can then hit one of the dummy functions with:
+Once everything has started up, you can get the relevant URLs as follows (on the master node):
 
 ```
-curl -X POST http://<endpoint_ip>:8080/f/demo/echo/ -d "hello world"
+./bin/knative_route.sh
 ```
 
-## Function storage
+From here you need to note the invocation IP and port.
 
-All `worker` pods need access to the wasm binaries and object files. For now these are held on an NFS share hosted on the master Kubernetes node. This could be replaced by an object store in future.
+## Uploading functions
+
+Once you have the upload URL you can upload functions using the tasks in this repo.
+
+```
+source workon.sh
+inv upload --host=<your k8s host> <user> <func>
+```
+
+## Invoking functions
+
+Invoking functions is a little different to normal Faasm functions and looks like:
+
+```
+inv knative-invoke --host=<your k8s host> --port=<your invoke port> <user> <func>
+```
+
+## Troubleshooting
+
+To look at the logs for the faasm containers:
+
+```
+# Find the faasm-worker-xxx pod
+kubectl --namespace=faasm get pods
+
+# Get the logs for the user-container part and queue proxy
+kubectl --namespace=faasm logs faasm-worker-xxx user-container
+kubectl --namespace=faasm logs faasm-worker-xxx queue-proxy
+```
 
 # Isolation and privileges
 
-Faasm uses namespaces and cgroups to achieve isolation, therefore containers running Faasm workers need privileges that they don't otherwise have. The current solution to this is to run containers in `privileged` mode. This gives the containers a lot of privileges on the host machine, something that could be improved in future (i.e. selecting the minimal set of privileges and only applying them).
+Faasm uses namespaces and cgroups to achieve isolation, therefore containers running Faasm workers need privileges
+that they don't otherwise have. The current solution to this is to run containers in `privileged` mode. This may not
+be available on certain clusters, in which case you'll need to set `CGROUP_MODE=off` and `NETNS_MODE=off` in the
+container config.
 
-## Docker host set-up
+## Redis-related set-up
 
-### Redis-related set-up
+There are a couple of tweaks required to handle running Redis, as detailed in the
+[Redis admin docs](https://redis.io/topics/admin).
 
-There are a couple of tweaks required to handle running Redis, as detailed in the [Redis admin docs](https://redis.io/topics/admin).
-
-First you can turn off transparent huge pages (add `transparent_hugepage=never` to `GRUB_CMDLINE_LINUX` in `/etc/default/grub` and run `sudo update-grub`).
+First you can turn off transparent huge pages (add `transparent_hugepage=never` to `GRUB_CMDLINE_LINUX`
+in `/etc/default/grub` and run `sudo update-grub`).
 
 Then if testing under very high throughput you can set the following in `etc/sysctl.conf`:
 

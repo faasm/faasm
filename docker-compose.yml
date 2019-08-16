@@ -18,29 +18,43 @@ services:
     networks:
       - faasm
 
-  worker:
-    image: faasm/worker:latest
-    depends_on:
-      - redis-queue
-      - redis-state
-    env_file:
-      - docker-compose.env
-    networks:
-      - faasm
-    privileged: yes
+#  worker:
+#    image: faasm/worker:latest
+#    depends_on:
+#      - redis-queue
+#      - redis-state
+#    env_file:
+#      - docker-compose.env
+#    networks:
+#      - faasm
+#    privileged: yes
+#
+#  edge:
+#    image: faasm/edge:latest
+#    ports:
+#      - "8001:8001"
+#    depends_on:
+#      - redis-queue
+#      - redis-state
+#      - worker
+#    env_file:
+#      - docker-compose.env
+#    networks:
+#      - faasm
 
-  edge:
-    image: faasm/edge:latest
-    ports:
-      - "8001:8001"
+  # Knative worker replaces the worker and edge
+  knative-worker:
+    image: faasm/knative-worker:latest
     depends_on:
       - redis-queue
       - redis-state
-      - worker
     env_file:
       - docker-compose.env
     networks:
       - faasm
+    ports:
+      - "8080:8080"
+    privileged: yes
 
   upload:
     image: faasm/upload:latest

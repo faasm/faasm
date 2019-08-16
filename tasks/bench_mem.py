@@ -44,7 +44,7 @@ def bench_mem(ctx, runtime=None):
                 )
 
         if runtime == "docker" or runtime is None:
-            for n_workers in [1, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240]:
+            for n_workers in [1, 300, 600, 900]:
                 _run_docker_bench(
                     n_workers,
                     csv_out,
@@ -97,13 +97,22 @@ def _run_sleep_bench(bench_name, n_workers, cmd, sleep_time, process_name, csv_o
 
 
 def _run_docker_bench(n_workers, csv_out):
-    start_cmd = "./bin/docker_mem_start.sh {}".format(n_workers)
-    end_cmd = "./bin/docker_mem_end.sh"
-
     # Kick off the process
-    start_ret_code = call(start_cmd, shell=True, cwd=PROJ_ROOT)
-    if start_ret_code != 0:
-        raise RuntimeError("Start Docker benchmark failed")
+    # Do this in batches otherwise things can get overloaded
+    batch_size = 50
+    batch_remainder = n_workers % batch_size
+    n_batches = n_workers // batch_size + (batch_remainder > 0)
+    for b in range(n_batches):
+        if (b == n_batches - 1) and (batch_remainder > 0):
+            this_batch_size = batch_remainder
+        else:
+            this_batch_size = batch_size
+
+        start_cmd = "./bin/docker_mem_start.sh {}".format(this_batch_size)
+        print("Kicking off Docker batch size {}".format(this_batch_size))
+        start_ret_code = call(start_cmd, shell=True, cwd=PROJ_ROOT)
+        if start_ret_code != 0:
+            raise RuntimeError("Start Docker benchmark failed")
 
     # Get total mem and write
     pids = get_docker_parent_pids()
@@ -121,6 +130,7 @@ def _run_docker_bench(n_workers, csv_out):
     csv_out.flush()
 
     # Finish
+    end_cmd = "./bin/docker_mem_end.sh"
     end_ret_code = call(end_cmd, shell=True, cwd=PROJ_ROOT)
     if end_ret_code != 0:
         raise RuntimeError("Ending Docker benchmark failed")

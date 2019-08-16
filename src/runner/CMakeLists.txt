@@ -7,10 +7,8 @@ set(LIB_FILES
         Profiler.cpp
         PythonProfiler.cpp
         PolybenchProfiler.cpp
-        timing.cpp
         ${FAASM_INCLUDE_DIR}/runner/function.h
         ${FAASM_INCLUDE_DIR}/runner/Profiler.h
-        ${FAASM_INCLUDE_DIR}/runner/timing.h
         )
 
 faasm_private_lib(bench "${LIB_FILES}")

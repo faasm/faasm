@@ -2,6 +2,7 @@
 
 #include <util/func.h>
 #include <util/memory.h>
+#include <util/timing.h>
 #include <util/config.h>
 #include <util/locks.h>
 
@@ -50,6 +51,8 @@ namespace wasm {
     }
 
     WasmModule::WasmModule(const WasmModule &other) {
+        PROF_START(wasmClone)
+
         // Copy basic values
         errnoLocation = other.errnoLocation;
         initialMemoryPages = other.initialMemoryPages;
@@ -102,6 +105,8 @@ namespace wasm {
             globalOffsetMemoryMap = other.globalOffsetMemoryMap;
             missingGlobalOffsetEntries = other.missingGlobalOffsetEntries;
         }
+
+        PROF_END(wasmClone)
     }
 
     WasmModule::~WasmModule() {
@@ -205,6 +210,8 @@ namespace wasm {
             throw std::runtime_error("Cannot bind a module twice");
         }
 
+        PROF_START(wasmBind)
+
         // Record that this module is now bound
         _isBound = true;
         boundUser = msg.user();
@@ -281,19 +288,26 @@ namespace wasm {
         invokeArgs = {argc, argvStart};
 
         // Snapshot the context so that we can reset to this point
+        PROF_START(wasmCloneContext)
         baseContext = Runtime::cloneContext(executionContext, compartment);
+        PROF_END(wasmCloneContext)
 
         // Create the memory snapshot if not already present
+        PROF_START(wasmMemSnapshot)
         std::string snapKey = snapshotKeyForFunction(boundUser, boundFunction);
         memory::MemorySnapshotRegister &snapRegister = memory::getGlobalMemorySnapshotRegister();
         const std::shared_ptr<memory::MemorySnapshot> snapshot = snapRegister.getSnapshot(snapKey);
         snapshot->createIfNotExists(snapKey.c_str(), baseAddr, initialMemorySize);
+        PROF_END(wasmMemSnapshot)
+
+        PROF_END(wasmBind)
     }
 
     Runtime::ModuleInstance *
     WasmModule::createModuleInstance(const std::string &name, const std::string &sharedModulePath) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
+        PROF_START(wasmCreateModule)
         IRModuleRegistry &moduleRegistry = wasm::getIRModuleRegistry();
         bool isMainModule = sharedModulePath.empty();
 
@@ -384,6 +398,8 @@ namespace wasm {
         // Empty the missing entries now that they're populated
         missingGlobalOffsetEntries.clear();
 
+        PROF_END(wasmCreateModule)
+
         return instance;
     }
 
@@ -401,7 +417,6 @@ namespace wasm {
             logger->debug("Reusing dynamic module {}", path);
             return dynamicPathToHandleMap[path];
         }
-
 
         // Note, must start handles at 2, otherwise dlopen can see it as an error
         int nextHandle = 2 + dynamicModuleCount;
@@ -466,6 +481,8 @@ namespace wasm {
     }
 
     void WasmModule::reset() {
+        PROF_START(wasmReset)
+
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Clean up any open fds
@@ -522,9 +539,13 @@ namespace wasm {
 
         // Run WAVM GC
         Runtime::collectCompartmentGarbage(compartment);
+
+        PROF_END(wasmReset)
     }
 
     bool WasmModule::tearDown() {
+        PROF_START(wasmTearDown)
+
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Set all reference to GC pointers to null to allow WAVM GC to clear up
@@ -554,6 +575,8 @@ namespace wasm {
         } else {
             logger->debug("Successful GC for compartment");
         }
+
+        PROF_END(wasmTearDown)
 
         return compartmentCleared;
     }

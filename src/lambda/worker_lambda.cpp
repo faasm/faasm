@@ -1,4 +1,4 @@
-#include <worker/WorkerThreadPool.h>
+#include <worker/WorkerMain.h>
 
 #include <aws/aws.h>
 #include <aws/lambda-runtime/runtime.h>
@@ -19,10 +19,7 @@ int main() {
 
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-    util::SystemConfig &config = util::getSystemConfig();
-    config.print();
-
-    auto handler_fn = [&config, &logger](aws::lambda_runtime::invocation_request const &req) {
+    auto handler_fn = [&logger](aws::lambda_runtime::invocation_request const &req) {
         rapidjson::Document d;
         d.Parse(req.payload.c_str());
 
@@ -61,31 +58,16 @@ int main() {
                 );
             }
         } else {
-            // Ensure scheduler set up and this node is in global set
-            scheduler::Scheduler &sch = scheduler::getScheduler();
-            sch.addNodeToGlobalSet();
+            worker::WorkerMain w;
 
-            // Initialise worker pool
-            logger->info("Initialising thread pool with {} workers", config.threadsPerWorker);
-            worker::WorkerThreadPool pool(config.threadsPerWorker);
+            w.setShareWork(false);
+            w.setSyncState(false);
 
-            // Start up the thread pool
-            logger->info("Listening for requests for {}ms", config.globalMessageTimeout);
-            pool.startThreadPool();
+            w.startBackground();
 
-            // Work sharing thread
-            // pool.startSharingThread();
+            w.awaitGlobalQueue();
 
-            // State management thread
-            // pool.startStateThread();
-
-            pool.startGlobalQueueThread();
-
-            logger->info("Removing node from global set");
-            sch.clear();
-
-            // Wait for the pool to properly shut down
-            pool.shutdown();
+            w.shutdown();
 
             logger->info("Returning Lambda response");
             message = "Worker finished";

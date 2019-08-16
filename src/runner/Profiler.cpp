@@ -1,6 +1,6 @@
 #include "Profiler.h"
 
-#include <runner/timing.h>
+#include <util/timing.h>
 #include <util/logging.h>
 #include <proto/faasm.pb.h>
 #include <wasm/WasmModule.h>
@@ -24,7 +24,7 @@ namespace runner {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Initialise wasm runtime
-        const util::TimePoint tpInit = runner::startTimer();
+        const util::TimePoint tpInit = util::startTimer();
 
         wasm::WasmModule module;
         message::Message call;
@@ -33,14 +33,14 @@ namespace runner {
         call.set_inputdata(this->inputData);
 
         module.bindToFunction(call);
-        runner::logEndTimer("WASM initialisation", tpInit);
+        util::logEndTimer("WASM initialisation", tpInit);
 
         logger->info("Running benchmark in WASM");
         for (int i = 0; i < nIterations; i++) {
             // Exec the function
-            const util::TimePoint nativeTp = runner::startTimer();
+            const util::TimePoint nativeTp = util::startTimer();
             module.execute(call);
-            long nativeTime = runner::getTimeDiffMicros(nativeTp);
+            long nativeTime = util::getTimeDiffMicros(nativeTp);
 
             profOut << this->outputName << ",wasm," << nativeTime << std::endl;
         }
@@ -53,9 +53,9 @@ namespace runner {
 
         logger->info("Running benchmark natively");
         for (int i = 0; i < nNativeIterations; i++) {
-            const util::TimePoint wasmTp = runner::startTimer();
+            const util::TimePoint wasmTp = util::startTimer();
             runNative();
-            long nativeTime = runner::getTimeDiffMicros(wasmTp);
+            long nativeTime = util::getTimeDiffMicros(wasmTp);
             profOut << this->outputName << ",native," << nativeTime << std::endl;
         }
 
