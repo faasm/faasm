@@ -3,16 +3,14 @@
 #include <pistache/http.h>
 #include <scheduler/GlobalMessageBus.h>
 
-using namespace Pistache;
-
 namespace knative {
-    class KnativeHandler final : public Http::Handler {
+    class KnativeHandler final : public Pistache::Http::Handler {
     public:
         KnativeHandler();
 
         HTTP_PROTOTYPE(KnativeHandler)
 
-        void onRequest(const Http::Request &request, Http::ResponseWriter response) override;
+        void onRequest(const Pistache::Http::Request &request, Pistache::Http::ResponseWriter response) override;
 
         std::string handleFunction(const std::string &requestStr);
     private:

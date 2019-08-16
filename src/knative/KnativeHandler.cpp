@@ -5,14 +5,12 @@
 #include <util/json.h>
 #include <scheduler/Scheduler.h>
 
-using namespace Pistache;
-
 namespace knative {
     KnativeHandler::KnativeHandler() : globalBus(scheduler::getGlobalMessageBus()), conf(util::getSystemConfig()) {
 
     }
 
-    void KnativeHandler::onRequest(const Http::Request &request, Http::ResponseWriter response) {
+    void KnativeHandler::onRequest(const Pistache::Http::Request &request, Pistache::Http::ResponseWriter response) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Knative handler received request");
 
@@ -24,9 +22,9 @@ namespace knative {
         const std::string responseStr = handleFunction(requestStr);
 
         logger->debug("Knative request finished: {}", responseStr);
-        response.send(Http::Code::Ok, responseStr);
 
         PROF_END(knativeRoundTrip)
+        response.send(Pistache::Http::Code::Ok, responseStr);
     }
 
     std::string KnativeHandler::handleFunction(const std::string &requestStr) {

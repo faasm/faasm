@@ -6,6 +6,6 @@ namespace knative {
     }
 
     void KnativeEndpoint::setHandler() {
-        httpEndpoint->setHandler(Http::make_handler<KnativeHandler>());
+        httpEndpoint->setHandler(Pistache::Http::make_handler<KnativeHandler>());
     }
 }

@@ -6,18 +6,16 @@
 #include <signal.h>
 
 
-using namespace Pistache;
-
 namespace http {
     HttpEndpoint::HttpEndpoint(int port, int threadCount) {
-        Address addr(Ipv4::any(), Port(port));
+        Pistache::Address addr(Pistache::Ipv4::any(), Pistache::Port(port));
 
         // Configure endpoint
-        auto opts = Http::Endpoint::options()
+        auto opts = Pistache::Http::Endpoint::options()
                 .threads(threadCount)
-                .flags(Tcp::Options::ReuseAddr);
+                .flags(Pistache::Tcp::Options::ReuseAddr);
 
-        httpEndpoint = std::make_shared<Http::Endpoint>(addr);
+        httpEndpoint = std::make_shared<Pistache::Http::Endpoint>(addr);
         httpEndpoint->init(opts);
     }
 
