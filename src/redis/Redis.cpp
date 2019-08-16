@@ -469,6 +469,8 @@ namespace redis {
 
         if (reply == nullptr || reply->type == REDIS_REPLY_NIL) {
             throw RedisNoResponseException();
+        } else if (reply->type != REDIS_REPLY_ARRAY) {
+            throw std::runtime_error("Expected array response from BLPOP but got " + std::to_string(reply->type));
         }
 
         size_t nResults = reply->elements;
