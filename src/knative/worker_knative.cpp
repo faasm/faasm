@@ -6,7 +6,7 @@
 using namespace knative;
 
 int main() {
-    util::initLogging();
+    util::initLogging ();
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
     // Start the worker
