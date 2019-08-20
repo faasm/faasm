@@ -2,7 +2,7 @@
 #include "KnativeEndpoint.h"
 
 namespace knative {
-    KnativeEndpoint::KnativeEndpoint() : HttpEndpoint(8080, 8) {
+    KnativeEndpoint::KnativeEndpoint() : Endpoint(8080, 8) {
     }
 
     std::shared_ptr<Pistache::Http::Handler> KnativeEndpoint::getHandler() {

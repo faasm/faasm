@@ -10,7 +10,7 @@
 
 namespace edge {
     FunctionEndpoint::FunctionEndpoint() :
-            HttpEndpoint(8001, 40),
+            Endpoint(8001, 40),
             globalBus(scheduler::getGlobalMessageBus()) {
 
         setupRoutes();

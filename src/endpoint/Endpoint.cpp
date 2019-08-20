@@ -1,4 +1,4 @@
-#include "HttpEndpoint.h"
+#include "Endpoint.h"
 
 #include <util/logging.h>
 #include <pistache/listener.h>
@@ -6,13 +6,15 @@
 #include <signal.h>
 
 
-namespace http {
-    HttpEndpoint::HttpEndpoint(int portIn, int threadCountIn): port(portIn), threadCount(threadCountIn) {
+namespace endpoint {
+    Endpoint::Endpoint(int portIn, int threadCountIn): port(portIn), threadCount(threadCountIn) {
 
     }
 
-    void HttpEndpoint::start() {
+    void Endpoint::start() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        logger->info("Starting HTTP endpoint");
 
         // Set up signal handler
         sigset_t signals;

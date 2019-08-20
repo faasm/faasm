@@ -2,10 +2,10 @@
 #include <pistache/http.h>
 #include <pistache/endpoint.h>
 
-namespace http {
-    class HttpEndpoint {
+namespace endpoint {
+    class Endpoint {
     public:
-        HttpEndpoint(int port, int threadCount);
+        Endpoint(int port, int threadCount);
         void start();
 
         virtual std::shared_ptr<Pistache::Http::Handler> getHandler() = 0;

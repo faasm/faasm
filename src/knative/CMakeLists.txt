@@ -16,7 +16,7 @@ add_executable(worker_knative
         )
 
 target_link_libraries(worker_knative
-        http
+        endpoint
         worker_lib
         worker_knative_lib
         )
@@ -26,7 +26,7 @@ add_executable(concurrency_test
         )
 
 target_link_libraries(concurrency_test
-        http
+        endpoint
         worker_lib
         worker_knative_lib
         )

@@ -2,14 +2,14 @@
 
 #include <proto/faasm.pb.h>
 #include <scheduler/Scheduler.h>
-#include <http/HttpEndpoint.h>
+#include <endpoint/Endpoint.h>
 #include <pistache/http.h>
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
 
 
 namespace edge {
-    class FunctionEndpoint : public http::HttpEndpoint {
+    class FunctionEndpoint : public endpoint::Endpoint {
     public:
         FunctionEndpoint();
 

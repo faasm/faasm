@@ -1,9 +1,9 @@
 #pragma once
 
-#include <http/HttpEndpoint.h>
+#include <endpoint/Endpoint.h>
 
 namespace knative {
-    class KnativeEndpoint : public http::HttpEndpoint {
+    class KnativeEndpoint : public endpoint::Endpoint {
     public:
         KnativeEndpoint();
 
