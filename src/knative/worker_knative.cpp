@@ -9,11 +9,11 @@ int main() {
     util::initLogging ();
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-    // Start the worker
+    // Start the worker pool
     worker::WorkerMain w;
     w.startBackground();
 
-    // Start endpoint (listening for requests)
+    // Start endpoint (will also have multiple threads)
     logger->info("Starting knative endpoint");
     KnativeEndpoint endpoint;
     endpoint.start();

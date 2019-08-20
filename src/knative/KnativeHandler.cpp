@@ -4,6 +4,7 @@
 #include <util/timing.h>
 #include <util/json.h>
 #include <scheduler/Scheduler.h>
+#include <sys/types.h>
 
 namespace knative {
     KnativeHandler::KnativeHandler() : globalBus(scheduler::getGlobalMessageBus()), conf(util::getSystemConfig()) {
@@ -28,6 +29,8 @@ namespace knative {
     }
 
     std::string KnativeHandler::handleFunction(const std::string &requestStr) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         if (requestStr.empty()) {
             return "Empty request";
         }
@@ -43,6 +46,10 @@ namespace knative {
 
         util::setMessageId(msg);
 
+        auto tid = (pid_t) syscall(SYS_gettid);
+
+        logger->debug("Knative {} scheduling {} - {}", tid, util::funcToString(msg), msg.id());
+
         // Schedule it
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.callFunction(msg);
@@ -51,7 +58,10 @@ namespace knative {
         if (msg.isasync()) {
             return "Async request received";
         } else {
+            logger->debug("Knative {} awaiting {} - {}", tid, util::funcToString(msg), msg.id());
             const message::Message result = globalBus.getFunctionResult(msg.id(), conf.globalMessageTimeout);
+            logger->debug("Knative {} result {} - {}",  tid,util::funcToString(msg), msg.id());
+
             return result.outputdata() + "\n";
         }
     }
