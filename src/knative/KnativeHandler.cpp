@@ -54,8 +54,8 @@ namespace knative {
 
         auto tid = (pid_t) syscall(SYS_gettid);
 
-        const std::string funcStr = util::funcToString(msg);
-        logger->debug("Knative {} scheduling {} - {}", tid, funcStr, msg.id());
+        const std::string funcStr = util::funcToString(msg, true);
+        logger->debug("Knative thread {} scheduling {}", tid, funcStr);
 
         // Schedule it
         scheduler::Scheduler &sch = scheduler::getScheduler();
@@ -65,12 +65,12 @@ namespace knative {
         if (msg.isasync()) {
             return "Async request received";
         } else {
-            logger->debug("Knative {} awaiting {} - {} ({})", tid, funcStr, msg.id(), conf.globalMessageTimeout);
+            logger->debug("Knative thread {} awaiting {}", tid, funcStr);
 
             try {
                 scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
                 const message::Message result = globalBus.getFunctionResult(msg.id(), conf.globalMessageTimeout);
-                logger->debug("Knative {} result {} - {}", tid, funcStr, msg.id());
+                logger->debug("Knative thread {} result {}", tid, funcStr);
 
                 return result.outputdata() + "\n";
             } catch (redis::RedisNoResponseException &ex) {

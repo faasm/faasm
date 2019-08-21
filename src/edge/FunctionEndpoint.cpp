@@ -79,15 +79,17 @@ namespace edge {
         util::setMessageId(msg);
         globalBus.enqueueMessage(msg);
 
+        const std::string funcStr = util::funcToString(msg, true);
+
         if (msg.isasync()) {
-            logger->info("Async request {}", util::funcToString(msg));
+            logger->info("Async request {}", funcStr);
             return "Async request submitted";
         } else {
             util::SystemConfig &conf = util::getSystemConfig();
-            logger->info("Sync request {}", util::funcToString(msg));
+            logger->info("Sync request {}", funcStr);
             message::Message result = globalBus.getFunctionResult(msg.id(), conf.globalMessageTimeout);
 
-            logger->info("Finished request {}", util::funcToString(msg));
+            logger->info("Finished request {}", funcStr);
 
             return result.outputdata() + "\n";
         }

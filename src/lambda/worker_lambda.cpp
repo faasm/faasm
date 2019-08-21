@@ -35,7 +35,9 @@ int main() {
             // same function.
             if (target == "func-codegen") {
                 message::Message msg = util::jsonToMessage(req.payload);
-                logger->info("Generating object code for function {}", util::funcToString(msg));
+
+                const std::string funcStr = util::funcToString(msg, false);
+                logger->info("Generating object code for function {}", funcStr);
 
                 // Compile the function to object bytes
                 storage::FunctionLoader &functionLoader = storage::getFunctionLoader();

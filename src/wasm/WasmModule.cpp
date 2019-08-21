@@ -233,7 +233,7 @@ namespace wasm {
         }
 
         // Create the module instance
-        moduleInstance = createModuleInstance(util::funcToString(msgCopy), "");
+        moduleInstance = createModuleInstance(util::funcToString(msgCopy, false), "");
 
         // Get main entrypoint function
         functionInstance = getFunction(ENTRY_FUNC_NAME, true);
@@ -633,11 +633,11 @@ namespace wasm {
      */
     int WasmModule::execute(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        const std::string funcStr = util::funcToString(msg);
 
         if (!_isBound) {
             throw std::runtime_error("WasmModule must be bound before executing function");
         } else if (boundUser != msg.user() || boundFunction != msg.function()) {
+            const std::string funcStr = util::funcToString(msg, true);
             logger->error("Cannot execute {} on module bound to {}/{}",
                           funcStr, boundUser, boundFunction);
             throw std::runtime_error("Cannot execute function on module bound to another");

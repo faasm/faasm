@@ -28,7 +28,7 @@ namespace util {
 
     bool isValidFunction(const message::Message &msg);
 
-    std::string funcToString(const message::Message &msg);
+    std::string funcToString(const message::Message &msg, bool includeId);
 
     unsigned int setMessageId(message::Message &msg);
 

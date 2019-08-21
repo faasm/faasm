@@ -17,7 +17,7 @@ namespace zygote {
 
     wasm::WasmModule &ZygoteRegistry::getZygote(const message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        const std::string &key = util::funcToString(msg);
+        const std::string &key = util::funcToString(msg, false);
 
         if(getZygoteCount(key) == 0) {
             util::FullLock lock(mx);

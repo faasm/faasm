@@ -28,7 +28,7 @@ namespace storage {
         std::vector<uint8_t> bytes = this->loadFunctionBytes(msg);
 
         if(bytes.empty()) {
-            const std::string funcStr = util::funcToString(msg);
+            const std::string funcStr = util::funcToString(msg, false);
             throw std::runtime_error("Loaded empty bytes for " + funcStr);
         }
         

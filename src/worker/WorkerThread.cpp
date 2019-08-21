@@ -76,7 +76,7 @@ namespace worker {
 
     void WorkerThread::finishCall(message::Message &call, const std::string &errorMsg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        const std::string funcStr = util::funcToString(call);
+        const std::string funcStr = util::funcToString(call, true);
         logger->info("Finished {}", funcStr);
 
         // Decrement execution count
@@ -88,7 +88,7 @@ namespace worker {
         }
 
         // Set result
-        logger->debug("Setting function result for {} {}", funcStr, call.id());
+        logger->debug("Setting function result for {}", funcStr);
         globalBus.setFunctionResult(call, isSuccess);
     }
 
@@ -167,7 +167,7 @@ namespace worker {
         // Handle the message
         std::string errorMessage;
         if (msg.type() == message::Message_MessageType_BIND) {
-            logger->info("Worker {} binding to {}", id, util::funcToString(msg));
+            logger->info("Worker {} binding to {}", id, util::funcToString(msg, false));
             this->bindToFunction(msg);
         } else {
             errorMessage = this->executeCall(msg);
@@ -179,8 +179,8 @@ namespace worker {
     const std::string WorkerThread::executeCall(message::Message &call) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        const std::string funcStr = util::funcToString(call);
-        logger->info("WorkerThread executing {} {}", funcStr, call.id());
+        const std::string funcStr = util::funcToString(call, true);
+        logger->info("WorkerThread executing {}", funcStr);
 
         // Increment the execution count
         scheduler.incrementExecutingCount();

@@ -169,8 +169,12 @@ namespace util {
         return inputData;
     }
 
-    std::string funcToString(const message::Message &msg) {
+    std::string funcToString(const message::Message &msg, bool includeId) {
         std::string str = msg.user() + "/" + msg.function();
+
+        if(includeId) {
+            str += ":" + std::to_string(msg.id());
+        }
         return str;
     }
 

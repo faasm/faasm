@@ -29,7 +29,8 @@ int main() {
     auto handler_fn = [&logger, &globalBus, &config](aws::lambda_runtime::invocation_request const &req) {
         // Get the function
         message::Message msg = util::jsonToMessage(req.payload);
-        logger->info("Queueing request to {}", util::funcToString(msg));
+        const std::string funcStr = util::funcToString(msg, true);
+        logger->info("Queueing request to {}", funcStr);
         util::setMessageId(msg);
 
         // Dispatch function
@@ -38,13 +39,13 @@ int main() {
         // Handle sync/ async Faasm requests accordingly
         std::string resultData = "Function dispatched";
         if (msg.isasync()) {
-            logger->info("Async request {}", util::funcToString(msg));
+            logger->info("Async request {}", funcStr);
             resultData = "Async request submitted";
         } else {
-            logger->info("Sync request {}", util::funcToString(msg));
+            logger->info("Sync request {}", funcStr);
             message::Message result = globalBus.getFunctionResult(msg.id(), config.globalMessageTimeout);
 
-            logger->info("Finished request {}", util::funcToString(msg));
+            logger->info("Finished request {}", funcStr);
 
             resultData = result.outputdata();
         }
