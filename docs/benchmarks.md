@@ -73,8 +73,7 @@ source workon.sh
 inv bench-mem
 ```
 
-Results are written to `~/faasm/results/runtime-bench-mem.csv`.
-
+Results are written to `/root/faasm/results/runtime-bench-mem.csv` (assuming your root home is `/root`).
 
 ### Other runtimes
 
