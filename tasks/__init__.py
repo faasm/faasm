@@ -28,6 +28,7 @@ from tasks.bench_mem import (
     plot_proc_mem,
     pid_mem,
     proc_mem,
+    spawn_containers,
 )
 from tasks.codegen import (
     run_codegen,

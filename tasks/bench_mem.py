@@ -23,6 +23,11 @@ def _exec_cmd(cmd_str):
 
 
 @task
+def spawn_containers(ctx, n_containers):
+    _start_docker_mem(int(n_containers))
+
+
+@task
 def bench_mem(ctx, runtime=None):
     if not exists(RESULT_DIR):
         makedirs(RESULT_DIR)
@@ -96,12 +101,13 @@ def _run_sleep_bench(bench_name, n_workers, cmd, sleep_time, process_name, csv_o
     sleep_proc.join()
 
 
-def _run_docker_bench(n_workers, csv_out):
+def _start_docker_mem(n_workers):
     # Kick off the process
     # Do this in batches otherwise things can get overloaded
     batch_size = 50
     batch_remainder = n_workers % batch_size
     n_batches = n_workers // batch_size + (batch_remainder > 0)
+
     for b in range(n_batches):
         if (b == n_batches - 1) and (batch_remainder > 0):
             this_batch_size = batch_remainder
@@ -113,6 +119,10 @@ def _run_docker_bench(n_workers, csv_out):
         start_ret_code = call(start_cmd, shell=True, cwd=PROJ_ROOT)
         if start_ret_code != 0:
             raise RuntimeError("Start Docker benchmark failed")
+
+
+def _run_docker_bench(n_workers, csv_out):
+    _start_docker_mem(n_workers)
 
     # Get total mem and write
     pids = get_docker_parent_pids()
