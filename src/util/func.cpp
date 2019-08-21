@@ -184,6 +184,10 @@ namespace util {
     }
 
     unsigned int setMessageId(message::Message &msg) {
+        if(msg.id() > 0) {
+            throw std::runtime_error("Message already has ID");
+        }
+
         // Generate a random result key
         unsigned int messageId = util::generateGid();
         msg.set_id(messageId);

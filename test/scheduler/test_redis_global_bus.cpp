@@ -16,7 +16,7 @@ namespace tests {
         redis::Redis &redis = redis::Redis::getQueue();
         GlobalMessageBus &bus = getGlobalMessageBus();
         util::SystemConfig &conf = util::getSystemConfig();
-        
+
         // Request function
         std::string funcName = "my func";
         std::string userName = "some user";
@@ -76,5 +76,69 @@ namespace tests {
         }
 
         conf.serialisation = originalSerialisation;
+    }
+
+    TEST_CASE("Check multithreaded function results", "[scheduler]") {
+        cleanSystem();
+
+        int nWorkers = 5;
+        int nWorkerMessages = 8;
+
+        int nWaiters = 10;
+        int nWaiterMessages = 4;
+
+        // Sanity check
+        REQUIRE((nWaiters * nWaiterMessages) == (nWorkers * nWorkerMessages));
+        
+        std::vector<std::thread> waiterThreads;
+        std::vector<std::thread> workerThreads;
+
+        // Create waiters that will submit messages and await their results
+        for (int i = 0; i < nWaiters; i++) {
+            waiterThreads.emplace_back([nWaiterMessages] {
+                Scheduler &sch = scheduler::getScheduler();
+                GlobalMessageBus &bus = getGlobalMessageBus();
+
+                message::Message msg = util::messageFactory("demo", "echo");
+
+                // Put invocation on local queue and await global result
+                for(int m = 0; m < nWaiterMessages; m++) {
+                    sch.enqueueMessage(msg);
+                    bus.getFunctionResult(msg.id(), 5000);
+                }
+            });
+        }
+
+        // Create workers that will dequeue messages and set success
+        for (int i = 0; i < nWorkers; i++) {
+            workerThreads.emplace_back([nWorkerMessages] {
+                Scheduler &sch = scheduler::getScheduler();
+                GlobalMessageBus &bus = getGlobalMessageBus();
+
+                message::Message dummyMsg = util::messageFactory("demo", "echo");
+                const std::shared_ptr<InMemoryMessageQueue> &queue = sch.getFunctionQueue(dummyMsg);
+
+                // Listen to local queue, set result on global bus
+                for(int m = 0; m < nWorkerMessages; m++) {
+                    message::Message msg = queue->dequeue(5000);
+                    bus.setFunctionResult(msg, true);
+                }
+            });
+        }
+
+        // Wait for all the threads to finish
+        for(auto &w : waiterThreads) {
+            if(w.joinable()) {
+                w.join();
+            }
+        }
+
+        for(auto &w : workerThreads) {
+            if(w.joinable()) {
+                w.join();
+            }
+        }
+
+        // If we get here then things work properly
     }
 }

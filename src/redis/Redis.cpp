@@ -459,6 +459,13 @@ namespace redis {
         // NOTE: Here we must be careful with the input and specify bytes rather than a string
         // otherwise an encoded false boolean can be treated as a string terminator
         auto reply = (redisReply *) redisCommand(context, "RPUSH %s %b", queueName.c_str(), value.data(), value.size());
+
+        if(reply->type != REDIS_REPLY_INTEGER) {
+            throw std::runtime_error("Failed to enqueue bytes. Reply type = " + std::to_string(reply->type));
+        } else if(reply->integer <= 0) {
+            throw std::runtime_error("Failed to enqueue bytes. Length = " + std::to_string(reply->integer));
+        }
+
         freeReplyObject(reply);
     }
 

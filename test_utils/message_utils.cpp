@@ -6,6 +6,8 @@ using namespace faasm;
 
 namespace tests {
     void checkMessageEquality(const message::Message &msgA, const message::Message &msgB) {
+        REQUIRE(msgA.id() == msgB.id());
+
         REQUIRE(msgA.user() == msgB.user());
         REQUIRE(msgA.function() == msgB.function());
         REQUIRE(msgA.isasync() == msgB.isasync());

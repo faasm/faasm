@@ -170,6 +170,7 @@ namespace tests {
 
         // Execute again
         call.set_inputdata("second input");
+        call.set_id(0);
         util::setMessageId(call);
 
         sch.callFunction(call);
@@ -266,6 +267,7 @@ namespace tests {
         REQUIRE(resultA.outputdata() == "Counter: 001");
 
         // Call the function a second time, the state should have been incremented
+        call.set_id(0);
         util::setMessageId(call);
         sch.callFunction(call);
         w.processNextMessage();

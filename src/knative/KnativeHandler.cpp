@@ -4,7 +4,6 @@
 #include <util/timing.h>
 #include <util/json.h>
 #include <scheduler/Scheduler.h>
-#include <sys/types.h>
 
 namespace knative {
     KnativeHandler::KnativeHandler() : globalBus(scheduler::getGlobalMessageBus()), conf(util::getSystemConfig()) {
