@@ -10,8 +10,7 @@
 
 namespace edge {
     FunctionEndpoint::FunctionEndpoint() :
-            Endpoint(8001, 40),
-            globalBus(scheduler::getGlobalMessageBus()) {
+            Endpoint(8001, 40) {
 
         setupRoutes();
     }
@@ -77,6 +76,7 @@ namespace edge {
 
         // Make the call
         util::setMessageId(msg);
+        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
         globalBus.enqueueMessage(msg);
 
         const std::string funcStr = util::funcToString(msg, true);
