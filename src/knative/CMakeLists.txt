@@ -20,13 +20,3 @@ target_link_libraries(worker_knative
         worker_lib
         worker_knative_lib
         )
-
-add_executable(concurrency_test
-        concurrency_test.cpp
-        )
-
-target_link_libraries(concurrency_test
-        endpoint
-        worker_lib
-        worker_knative_lib
-        )

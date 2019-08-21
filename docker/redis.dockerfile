@@ -1,7 +1,7 @@
 FROM redis:5
 
 # Put config in place
-COPY docker/redis.conf /redis.conf
+COPY conf/redis.conf /redis.conf
 
 # Add entrypoint script which will handle IPs changing
 COPY bin/redis-entrypoint.sh /entrypoint.sh

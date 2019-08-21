@@ -16,7 +16,7 @@ before_install:
   - "docker build -t faasm/testing -f docker/testing.dockerfile ."
 
 script:
-  - "docker-compose -f test-compose.yml run tester /usr/local/code/faasm/bin/ci_run.sh"
+  - "docker-compose -f docker-compose-test.yml run tester /usr/local/code/faasm/bin/ci_run.sh"
 
 notifications:
   email:
