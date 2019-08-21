@@ -1,7 +1,9 @@
+import multiprocessing
 from json import dumps
 
 import requests
 from invoke import task
+
 
 # NOTE: Using python to do this is slow compared with running curl
 # directly on the command line (or some other purpose-built tool).
@@ -25,12 +27,23 @@ def _do_invoke(user, func, host, port, func_type, input=None):
 
 
 @task
-def invoke(ctx, user, func, host="127.0.0.1", input=None):
-    _do_invoke(user, func, host, 8001, "f", input=input)
+def invoke(ctx, user, func, host="127.0.0.1", input=None, parallel=False, loops=1):
+    for l in range(loops):
+        if (loops > 1):
+            print("LOOP {}".format(l))
+
+        if parallel:
+            n_workers = multiprocessing.cpu_count() - 1
+            p = multiprocessing.Pool(n_workers)
+
+            args_list = [(user, func, host, 8001, "f", input) for _ in range(n_workers)]
+            p.starmap(_do_invoke, args_list)
+        else:
+            _do_invoke(user, func, host, 8001, "f", input=input)
 
 
 @task
-def knative_invoke(ctx, user, func, host="127.0.0.1", port=8080, input=None):
+def knative_invoke(ctx, user, func, host="127.0.0.1", port=8080, input=None, parallel=False, loops=1):
     url = "http://{}:{}/".format(host, port)
 
     msg = {
@@ -46,7 +59,19 @@ def knative_invoke(ctx, user, func, host="127.0.0.1", port=8080, input=None):
         "Host": "faasm-worker.faasm.example.com"
     }
 
-    _do_post(url, dumps(msg), headers=headers)
+    msg_json = dumps(msg)
+    for l in range(loops):
+        if loops > 1:
+            print("LOOP {}".format(l))
+
+        if parallel:
+            n_workers = multiprocessing.cpu_count() - 1
+            p = multiprocessing.Pool(n_workers)
+
+            args_list = [(url, msg_json, headers) for _ in range(n_workers)]
+            p.starmap(_do_post, args_list)
+        else:
+            _do_post(url, msg_json, headers=headers)
 
 
 @task

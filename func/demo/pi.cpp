@@ -25,14 +25,14 @@ FAASM_MAIN_FUNC() {
     faasm::writeIntState(COUNT_KEY, 0);
 
     // Dispatch chained calls in a loop
-    std::vector<int> callIds;
+    std::vector<unsigned int> callIds;
     for (int i = 0; i < nWorkers; i++) {
-        int callId = faasmChainThis(1);
+        unsigned int callId = faasmChainThis(1);
         callIds.push_back(callId);
     }
 
     // Wait for calls to finish
-    for (int callId : callIds) {
+    for (unsigned int callId : callIds) {
         faasmAwaitCall(callId);
     }
 

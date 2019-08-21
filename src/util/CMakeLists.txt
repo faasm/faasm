@@ -12,6 +12,7 @@ set(LIB_FILES
         environment.cpp
         files.cpp
         func.cpp
+        gids.cpp
         hash.cpp
         json.cpp
         logging.cpp

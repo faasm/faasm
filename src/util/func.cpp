@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <sstream>
 #include <boost/filesystem.hpp>
+#include <util/gids.h>
 
 namespace util {
     const static std::string pyFile = "function.py";
@@ -168,8 +169,12 @@ namespace util {
         return inputData;
     }
 
-    std::string funcToString(const message::Message &msg) {
+    std::string funcToString(const message::Message &msg, bool includeId) {
         std::string str = msg.user() + "/" + msg.function();
+
+        if(includeId) {
+            str += ":" + std::to_string(msg.id());
+        }
         return str;
     }
 
@@ -182,9 +187,13 @@ namespace util {
         return msg;
     }
 
-    int setMessageId(message::Message &msg) {
+    unsigned int setMessageId(message::Message &msg) {
+        if(msg.id() > 0) {
+            throw std::runtime_error("Message already has ID");
+        }
+
         // Generate a random result key
-        int messageId = util::randomInteger();
+        unsigned int messageId = util::generateGid();
         msg.set_id(messageId);
 
         std::string resultKey = resultKeyFromMessageId(messageId);
@@ -229,13 +238,13 @@ namespace util {
         msg.set_function(addIdxToFunction(msg.function(), idx));
     }
 
-    std::string resultKeyFromMessageId(int mid) {
+    std::string resultKeyFromMessageId(unsigned int mid) {
         std::string k = "result_";
         k += std::to_string(mid);
         return k;
     }
 
-    std::string statusKeyFromMessageId(int mid) {
+    std::string statusKeyFromMessageId(unsigned int mid) {
         std::string k = "status_";
         k += std::to_string(mid);
         return k;

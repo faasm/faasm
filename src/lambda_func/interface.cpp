@@ -104,7 +104,7 @@ void __faasm_write_output(const unsigned char *o, long len) {
     faasm::output = std::string(charPtr, (size_t) len);
 }
 
-int __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize) {
+unsigned int __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize) {
     awswrapper::LambdaWrapper &lambda = awswrapper::LambdaWrapper::getThreadLocal();
 
     // Note, in the lambda env, we need to prepend the username to the chained function
@@ -123,12 +123,12 @@ int __faasm_chain_function(const char *name, const unsigned char *inputData, lon
     return 1234;
 }
 
-int __faasm_await_call(int messageId) {
+int __faasm_await_call(unsigned int messageId) {
     // TODO - allow waiting for another function
     return 0;
 }
 
-int __faasm_chain_this(int idx, const unsigned char *inputData, long inputDataSize) {
+unsigned int __faasm_chain_this(int idx, const unsigned char *inputData, long inputDataSize) {
     // TODO - invoke this function again with the given index
     throw std::runtime_error("Not implemented self-chaining");
 }

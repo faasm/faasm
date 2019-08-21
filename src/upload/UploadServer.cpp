@@ -164,7 +164,7 @@ namespace edge {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         message::Message msg = UploadServer::buildMessageFromRequest(request);
-        logger->info("Uploading Python function {}", util::funcToString(msg));
+        logger->info("Uploading Python function {}", util::funcToString(msg, false));
 
         // Do the upload
         storage::FunctionLoader &l = storage::getFunctionLoader();
@@ -177,7 +177,7 @@ namespace edge {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         message::Message msg = UploadServer::buildMessageFromRequest(request);
-        logger->info("Uploading {}", util::funcToString(msg));
+        logger->info("Uploading {}", util::funcToString(msg, false));
 
         // Do the upload
         storage::FunctionLoader &l = storage::getFunctionLoader();

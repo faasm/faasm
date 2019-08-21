@@ -51,7 +51,7 @@ namespace worker {
                 try {
                     message::Message msg = bus.nextMessage(conf.globalMessageTimeout);
 
-                    logger->debug("Got invocation for {} on {}", util::funcToString(msg), conf.queueName);
+                    logger->debug("Got invocation for {} on {}", util::funcToString(msg, true), conf.queueName);
                     sch.callFunction(msg);
                 }
                 catch (scheduler::GlobalMessageBusNoMessageException &ex) {

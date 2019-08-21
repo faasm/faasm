@@ -2,35 +2,39 @@
 
 #include <proto/faasm.pb.h>
 #include <scheduler/Scheduler.h>
-#include <http/HttpEndpoint.h>
+#include <endpoint/Endpoint.h>
 #include <pistache/http.h>
 #include <pistache/router.h>
 #include <pistache/endpoint.h>
 
 
 namespace edge {
-class FunctionEndpoint: public http::HttpEndpoint {
+    class FunctionEndpoint : public endpoint::Endpoint {
     public:
         FunctionEndpoint();
 
         std::string handleFunction(message::Message &msg);
 
-        void setHandler();
+        std::shared_ptr<Pistache::Http::Handler> getHandler() override;
+
     private:
-        Rest::Router router;
+        Pistache::Rest::Router router;
 
         scheduler::GlobalMessageBus &globalBus;
 
         void setupRoutes();
 
-        void handleFunctionWrapper(const Rest::Request &request, Http::ResponseWriter response);
+        void handleFunctionWrapper(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response);
 
-        void handleAsyncFunctionWrapper(const Rest::Request &request, Http::ResponseWriter response);
+        void handleAsyncFunctionWrapper(const Pistache::Rest::Request &request,
+                                        Pistache::Http::ResponseWriter response);
 
-        void handlePythonFunctionWrapper(const Rest::Request &request, Http::ResponseWriter response);
+        void handlePythonFunctionWrapper(const Pistache::Rest::Request &request,
+                                         Pistache::Http::ResponseWriter response);
 
-        void handleAsyncPythonFunctionWrapper(const Rest::Request &request, Http::ResponseWriter response);
+        void handleAsyncPythonFunctionWrapper(const Pistache::Rest::Request &request,
+                                              Pistache::Http::ResponseWriter response);
 
-        message::Message buildMessageFromRequest(const Rest::Request &request);
+        message::Message buildMessageFromRequest(const Pistache::Rest::Request &request);
     };
 }

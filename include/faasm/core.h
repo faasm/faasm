@@ -97,27 +97,27 @@ void faasmSetOutput(const uint8_t *newOutput, long outputLen);
 /**
  * Creates a "chained" function call to another function owned by the same user
  */
-int faasmChainFunction(const char *name);
+unsigned int faasmChainFunction(const char *name);
 
 /**
  * Chains a function with the given input data
  */
-int faasmChainFunctionInput(const char *name, const uint8_t *inputData, long inputDataSize);
+unsigned int faasmChainFunctionInput(const char *name, const uint8_t *inputData, long inputDataSize);
 
 /**
  * Chains a function from this module
  */
-int faasmChainThis(int idx);
+unsigned int faasmChainThis(int idx);
 
 /**
  * Chains a function from this module with the given input data
  */
-int faasmChainThisInput(int idx, const uint8_t *inputData, long inputDataSize);
+unsigned int faasmChainThisInput(int idx, const uint8_t *inputData, long inputDataSize);
 
 /**
  * Blocks waiting for the call
  */
-int faasmAwaitCall(int callId);
+unsigned int faasmAwaitCall(unsigned int callId);
 
 /**
  * Gets the index of the current function

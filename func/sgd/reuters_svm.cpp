@@ -101,7 +101,7 @@ FAASM_MAIN_FUNC() {
     initCounter(EPOCH_COUNT_KEY, p.fullAsync);
     for (int i = 0; i < p.nEpochs; i++) {
         printf("Chaining epoch call\n");
-        int epochCallId = faasmChainThis(1);
+        unsigned int epochCallId = faasmChainThis(1);
         faasmAwaitCall(epochCallId);
 
         // Epoch finished at this point
@@ -142,7 +142,7 @@ FAASM_FUNC(epoch, 1) {
         auto inputBytes = reinterpret_cast<const uint8_t *>(args.c_str());
 
         // Call the chained function
-        int thisCallId = faasmChainThisInput(2, inputBytes, args.size());
+        unsigned int thisCallId = faasmChainThisInput(2, inputBytes, args.size());
         printf("Worker spawned with call ID %i\n", thisCallId);
         workerCallIds.push_back(thisCallId);
     }

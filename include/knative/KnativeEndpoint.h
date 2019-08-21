@@ -1,14 +1,12 @@
 #pragma once
 
-#include <http/HttpEndpoint.h>
-
-using namespace Pistache;
+#include <endpoint/Endpoint.h>
 
 namespace knative {
-    class KnativeEndpoint : public http::HttpEndpoint {
+    class KnativeEndpoint : public endpoint::Endpoint {
     public:
         KnativeEndpoint();
 
-        void setHandler();
+        std::shared_ptr<Pistache::Http::Handler> getHandler() override;
     };
 }

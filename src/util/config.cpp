@@ -2,6 +2,14 @@
 #include "environment.h"
 #include "logging.h"
 #include "random.h"
+#include "locks.h"
+
+#include <functional>
+#include <mutex>
+
+static std::string nodeId;
+static std::size_t nodeIdHash;
+static std::mutex nodeIdMx;
 
 
 namespace util {
@@ -122,14 +130,29 @@ namespace util {
         logger->info("FULL_SYNC                  {}", fullSync);
     }
 
-    std::string getNodeId() {
-        static std::string nodeId;
 
+    void _setNodeId() {
+        // This needs to be thread-safe to get a consistent nodeId for all threads on the same host
+        // We assume cross-host collisions are not going to happen (depends on random string function)
         if(nodeId.empty()) {
-            // Generate random node ID
-            nodeId = util::randomString(20);
-        }
+            util::UniqueLock lock(nodeIdMx);
+            if(nodeId.empty()) {
+                // Generate random node ID
+                nodeId = util::randomString(20);
 
+                // Store the hash for unique ints
+                nodeIdHash = std::hash<std::string>{}(nodeId);
+            }
+        }
+    }
+
+    std::string getNodeId() {
+        _setNodeId();
         return nodeId;
+    }
+
+    std::size_t getNodeIdHash() {
+        _setNodeId();
+        return nodeIdHash;
     }
 }

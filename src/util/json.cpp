@@ -13,6 +13,8 @@ namespace util {
         Document d;
         d.SetObject();
 
+        d.AddMember("id", msg.id(), d.GetAllocator());
+
         d.AddMember("user", StringRef(msg.user().c_str()), d.GetAllocator());
         d.AddMember("function", StringRef(msg.function().c_str()), d.GetAllocator());
 
@@ -41,6 +43,15 @@ namespace util {
         return it->value.GetBool();
     }
 
+    int getIntFromJson(Document &doc, const std::string &key, int dflt) {
+        Value::MemberIterator it = doc.FindMember(key.c_str());
+        if (it == doc.MemberEnd()) {
+            return dflt;
+        }
+
+        return it->value.GetInt();
+    }
+
     std::string getStringFromJson(Document &doc, const std::string &key, const std::string &dflt) {
         Value::MemberIterator it = doc.FindMember(key.c_str());
         if (it == doc.MemberEnd()) {
@@ -57,6 +68,8 @@ namespace util {
         d.Parse(jsonIn.c_str());
 
         message::Message msg;
+        msg.set_id(getIntFromJson(d, "id", 0));
+
         msg.set_user(getStringFromJson(d, "user", ""));
         msg.set_function(getStringFromJson(d, "function", ""));
 

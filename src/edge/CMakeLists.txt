@@ -9,7 +9,7 @@ faasm_private_lib(edge_lib "${LIB_FILES}")
 
 target_link_libraries(edge_lib
         scheduler
-        http
+        endpoint
         )
 
 add_executable(edge edge_server.cpp)

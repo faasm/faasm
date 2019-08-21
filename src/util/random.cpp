@@ -3,16 +3,6 @@
 #include <random>
 
 namespace util {
-    int randomInteger(int iStart, int iEnd) {
-        static std::random_device rd;
-        static std::mt19937 rng(rd());
-
-        std::uniform_int_distribution<int> uni(iStart, iEnd);
-        int random_integer = uni(rng);
-
-        return random_integer;
-    }
-
     std::string randomString(int len) {
         char result[len];
 

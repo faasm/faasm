@@ -170,6 +170,7 @@ namespace tests {
 
         // Execute again
         call.set_inputdata("second input");
+        call.set_id(0);
         util::setMessageId(call);
 
         sch.callFunction(call);
@@ -218,7 +219,7 @@ namespace tests {
         conf.unboundTimeout = 1000;
 
         message::Message call = util::messageFactory("demo", "chain");
-        int messageId = call.id();
+        unsigned int messageId = call.id();
 
         // NOTE - for this test to work we have to run multiple threads.
         // TODO - is this necessary? Any way to avoid having threaded tests?
@@ -266,6 +267,7 @@ namespace tests {
         REQUIRE(resultA.outputdata() == "Counter: 001");
 
         // Call the function a second time, the state should have been incremented
+        call.set_id(0);
         util::setMessageId(call);
         sch.callFunction(call);
         w.processNextMessage();

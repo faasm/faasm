@@ -4,7 +4,7 @@
 
 using namespace faasm;
 
-namespace tests {
+    namespace tests {
     TEST_CASE("Test random integer", "[random]") {
         // Slightly sketch to be testing a random number like this but probably a necessary evil.
         int topEnd = 1000;

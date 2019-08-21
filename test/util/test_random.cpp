@@ -1,5 +1,8 @@
 #include <catch/catch.hpp>
 
+#include <set>
+#include <thread>
+#include <util/logging.h>
 #include "util/random.h"
 
 using namespace util;

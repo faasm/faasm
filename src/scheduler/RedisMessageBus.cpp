@@ -63,7 +63,7 @@ namespace scheduler {
         redis.expire(key, util::RESULT_KEY_EXPIRY);
     }
 
-    message::Message RedisMessageBus::getFunctionResult(int messageId, int timeout) {
+    message::Message RedisMessageBus::getFunctionResult(unsigned int messageId, int timeout) {
         if(messageId == 0) {
             throw std::runtime_error("Must provide non-zero message ID");
         }

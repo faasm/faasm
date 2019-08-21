@@ -18,6 +18,8 @@ namespace tests {
         msg.set_inputdata("[0], %$ 2233 9");
         msg.set_resultkey("blahblah");
 
+        util::setMessageId(msg);
+
         std::string jsonString = util::messageToJson(msg);
 
         message::Message actual = util::jsonToMessage(jsonString);

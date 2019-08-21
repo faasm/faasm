@@ -78,8 +78,6 @@ namespace scheduler {
     }
 
     void Scheduler::enqueueMessage(const message::Message &msg) {
-        std::string funcStr = util::funcToString(msg);
-
         if (msg.type() == message::Message_MessageType_BIND) {
             bindQueue->enqueue(msg);
         } else {
@@ -90,13 +88,13 @@ namespace scheduler {
 
     // Not thread-safe
     long Scheduler::getFunctionThreadCount(const message::Message &msg) {
-        std::string funcStr = util::funcToString(msg);
+        std::string funcStr = util::funcToString(msg, false);
         return threadCountMap[funcStr];
     }
 
     // Not thread-safe
     double Scheduler::getFunctionQueueRatio(const message::Message &msg) {
-        std::string funcStr = util::funcToString(msg);
+        std::string funcStr = util::funcToString(msg, false);
 
         long threadCount = threadCountMap[funcStr];
         long queueLength = this->getFunctionQueue(msg)->size();
@@ -110,14 +108,12 @@ namespace scheduler {
 
     // Not thread-safe
     long Scheduler::getFunctionQueueLength(const message::Message &msg) {
-        std::string funcStr = util::funcToString(msg);
         auto q = this->getFunctionQueue(msg);
-
         return q->size();
     }
 
     std::shared_ptr<InMemoryMessageQueue> Scheduler::getFunctionQueue(const message::Message &msg) {
-        std::string funcStr = util::funcToString(msg);
+        std::string funcStr = util::funcToString(msg, false);
         if (queueMap.count(funcStr) == 0) {
             util::FullLock lock(mx);
 
@@ -134,15 +130,13 @@ namespace scheduler {
     std::shared_ptr<InMemoryMessageQueue> Scheduler::listenToQueue(const message::Message &msg) {
         // Note: don't need to increment thread count here as that's done when we
         // dispatch the bind message
-        std::string funcStr = util::funcToString(msg);
-
         auto q = this->getFunctionQueue(msg);
 
         return q;
     }
 
     void Scheduler::stopListeningToQueue(const message::Message &msg) {
-        std::string funcStr = util::funcToString(msg);
+        std::string funcStr = util::funcToString(msg, false);
 
         {
             util::FullLock lock(mx);
@@ -156,7 +150,7 @@ namespace scheduler {
     }
 
     std::string Scheduler::getFunctionWarmSetName(const message::Message &msg) {
-        std::string funcStr = util::funcToString(msg);
+        std::string funcStr = util::funcToString(msg, false);
         return this->getFunctionWarmSetNameFromStr(funcStr);
     }
 
@@ -179,8 +173,10 @@ namespace scheduler {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         std::string bestNode = this->getBestNodeForFunction(msg);
+        const std::string funcStr = util::funcToString(msg, true);
+        
         if (bestNode == nodeId) {
-            logger->debug("Executing {} locally", util::funcToString(msg));
+            logger->debug("Executing {} {} locally", funcStr, msg.id());
 
             // Enqueue the message locally
             this->enqueueMessage(msg);
@@ -189,7 +185,7 @@ namespace scheduler {
             this->addWarmThreads(msg);
         } else {
             // Share with other node
-            logger->debug("Sharing {} call with {}", util::funcToString(msg), bestNode);
+            logger->debug("Sharing {} {} call with {}", funcStr, msg.id(), bestNode);
 
             sharingBus.shareMessageWithNode(bestNode, msg);
         }
@@ -211,27 +207,28 @@ namespace scheduler {
         double queueRatio = this->getFunctionQueueRatio(msg);
         double nThreads = this->getFunctionThreadCount(msg);
 
-        logger->debug("{} queue ratio = {} threads = {}", util::funcToString(msg), queueRatio, nThreads);
+        const std::string funcStrNoId = util::funcToString(msg, false);
+        const std::string funcStrWithId = util::funcToString(msg, true);
+        logger->debug("{} queue ratio = {} threads = {}", funcStrWithId, queueRatio, nThreads);
 
         // If we're over the queue ratio and have capacity, need to scale up
         if (queueRatio > maxQueueRatio && nThreads < conf.maxWorkersPerFunction) {
             FullLock lock(mx);
-            std::string funcStr = util::funcToString(msg);
 
             queueRatio = this->getFunctionQueueRatio(msg);
             nThreads = this->getFunctionThreadCount(msg);
 
             // Double check condition
             if (queueRatio > maxQueueRatio && nThreads < conf.maxWorkersPerFunction) {
-                logger->debug("Scaling up {} to {} threads", util::funcToString(msg), nThreads + 1);
+                logger->debug("Scaling up {} to {} threads", funcStrWithId, nThreads + 1);
 
                 // If this is the first thread on this node, add it to the warm set for this function
                 if (nThreads == 0) {
-                    this->addNodeToWarmSet(funcStr);
+                    this->addNodeToWarmSet(funcStrNoId);
                 }
 
                 // Increment thread count here
-                threadCountMap[funcStr]++;
+                threadCountMap[funcStrNoId]++;
 
                 message::Message bindMsg = util::messageFactory(msg.user(), msg.function());
                 bindMsg.set_type(message::Message_MessageType_BIND);
@@ -248,7 +245,7 @@ namespace scheduler {
         // If we're ignoring the scheduling, just put it on this node regardless
         bool ignoreScheduler = conf.noScheduler == 1;
         if (ignoreScheduler) {
-            logger->debug("Ignoring scheduler and queueing {} locally", util::funcToString(msg));
+            logger->debug("Ignoring scheduler and queueing {} locally", util::funcToString(msg, true));
             return nodeId;
         }
 

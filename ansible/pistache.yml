@@ -3,12 +3,11 @@
 - hosts: localhost
   gather_facts: no
   tasks:
-    # Note - make sure the version here matches the edge docker image
     - name: "Clone Pistache"
       git:
         repo: "https://github.com/oktal/pistache.git"
         dest: "/tmp/pistache"
-        version: "ccf0ab860760e84832e4d484336fee477458c7d2"
+        version: "2ef937c434810858e05d446e97acbdd6cc1a5a36"
 
     - name: "Set up build"
       shell: "{{ item }}"

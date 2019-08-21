@@ -6,6 +6,7 @@
 #include <util/random.h>
 
 #include <thread>
+#include <util/gids.h>
 
 namespace redis {
 
@@ -352,7 +353,7 @@ namespace redis {
 
     long Redis::acquireConditionalLock(const std::string &key, long expectedValue) {
         std::string lockKey = key + "_lock";
-        int lockId = util::randomInteger(0, 100000);
+        unsigned int lockId = util::generateGid();
 
         // Invoke the script
         auto reply = (redisReply *) redisCommand(
@@ -377,7 +378,7 @@ namespace redis {
     long Redis::acquireLock(const std::string &key, int expirySeconds) {
         // Implementation of single host redlock algorithm
         // https://redis.io/topics/distlock
-        int lockId = util::randomInteger(0, 100000);
+        unsigned int lockId = util::generateGid();
 
         std::string lockKey = key + "_lock";
 
@@ -458,17 +459,25 @@ namespace redis {
         // NOTE: Here we must be careful with the input and specify bytes rather than a string
         // otherwise an encoded false boolean can be treated as a string terminator
         auto reply = (redisReply *) redisCommand(context, "RPUSH %s %b", queueName.c_str(), value.data(), value.size());
+
+        if(reply->type != REDIS_REPLY_INTEGER) {
+            throw std::runtime_error("Failed to enqueue bytes. Reply type = " + std::to_string(reply->type));
+        } else if(reply->integer <= 0) {
+            throw std::runtime_error("Failed to enqueue bytes. Length = " + std::to_string(reply->integer));
+        }
+
         freeReplyObject(reply);
     }
 
     redisReply *Redis::dequeueBase(const std::string &queueName, int timeoutMs) {
         // Note, timeouts need to be converted into seconds
         int timeoutSecs = timeoutMs / 1000;
-
         auto reply = (redisReply *) redisCommand(context, "BLPOP %s %d", queueName.c_str(), timeoutSecs);
 
         if (reply == nullptr || reply->type == REDIS_REPLY_NIL) {
             throw RedisNoResponseException();
+        } else if (reply->type != REDIS_REPLY_ARRAY) {
+            throw std::runtime_error("Expected array response from BLPOP but got " + std::to_string(reply->type));
         }
 
         size_t nResults = reply->elements;

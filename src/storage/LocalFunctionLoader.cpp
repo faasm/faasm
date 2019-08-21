@@ -40,7 +40,7 @@ namespace storage {
 
     void LocalFunctionLoader::uploadFunction(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        const std::string funcStr = util::funcToString(msg);
+        const std::string funcStr = util::funcToString(msg, false);
 
         // Here the msg input data is actually the file
         const std::string &fileBody = msg.inputdata();
@@ -65,7 +65,7 @@ namespace storage {
         const std::string &fileBody = msg.inputdata();
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        logger->debug("Uploading python file {}", util::funcToString(msg));
+        logger->debug("Uploading python file {}", util::funcToString(msg, false));
         std::string outputFile = util::getPythonFunctionFile(msg);
         std::ofstream out(outputFile);
         out.write(fileBody.c_str(), fileBody.size());
