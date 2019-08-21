@@ -176,7 +176,7 @@ namespace scheduler {
         const std::string funcStr = util::funcToString(msg, true);
         
         if (bestNode == nodeId) {
-            logger->debug("Executing {} {} locally", funcStr, msg.id());
+            logger->debug("Executing {} locally", funcStr);
 
             // Enqueue the message locally
             this->enqueueMessage(msg);
@@ -185,7 +185,7 @@ namespace scheduler {
             this->addWarmThreads(msg);
         } else {
             // Share with other node
-            logger->debug("Sharing {} {} call with {}", funcStr, msg.id(), bestNode);
+            logger->debug("Sharing {} call with {}", funcStr, bestNode);
 
             sharingBus.shareMessageWithNode(bestNode, msg);
         }
@@ -207,9 +207,8 @@ namespace scheduler {
         double queueRatio = this->getFunctionQueueRatio(msg);
         double nThreads = this->getFunctionThreadCount(msg);
 
-        const std::string funcStrNoId = util::funcToString(msg, false);
-        const std::string funcStrWithId = util::funcToString(msg, true);
-        logger->debug("{} queue ratio = {} threads = {}", funcStrWithId, queueRatio, nThreads);
+        const std::string funcStr = util::funcToString(msg, false);
+        logger->debug("{} queue ratio = {} threads = {}", funcStr, queueRatio, nThreads);
 
         // If we're over the queue ratio and have capacity, need to scale up
         if (queueRatio > maxQueueRatio && nThreads < conf.maxWorkersPerFunction) {
@@ -220,15 +219,15 @@ namespace scheduler {
 
             // Double check condition
             if (queueRatio > maxQueueRatio && nThreads < conf.maxWorkersPerFunction) {
-                logger->debug("Scaling up {} to {} threads", funcStrWithId, nThreads + 1);
+                logger->debug("Scaling up {} to {} threads", funcStr, nThreads + 1);
 
                 // If this is the first thread on this node, add it to the warm set for this function
                 if (nThreads == 0) {
-                    this->addNodeToWarmSet(funcStrNoId);
+                    this->addNodeToWarmSet(funcStr);
                 }
 
                 // Increment thread count here
-                threadCountMap[funcStrNoId]++;
+                threadCountMap[funcStr]++;
 
                 message::Message bindMsg = util::messageFactory(msg.user(), msg.function());
                 bindMsg.set_type(message::Message_MessageType_BIND);

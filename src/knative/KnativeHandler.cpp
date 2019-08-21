@@ -28,8 +28,6 @@ namespace knative {
 
         const std::string responseStr = handleFunction(requestStr);
 
-        logger->debug("Knative request finished: {}", responseStr);
-
         PROF_END(knativeRoundTrip)
         response.send(Pistache::Http::Code::Ok, responseStr);
     }

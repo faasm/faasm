@@ -20,8 +20,6 @@ namespace edge {
     private:
         Pistache::Rest::Router router;
 
-        scheduler::GlobalMessageBus &globalBus;
-
         void setupRoutes();
 
         void handleFunctionWrapper(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response);
