@@ -141,7 +141,7 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen) {
     return bufferLen;
 }
 
-int __faasm_chain_this(int idx, const unsigned char *buffer, long bufferLen) {
+unsigned int __faasm_chain_this(int idx, const unsigned char *buffer, long bufferLen) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
     // Create vector to hold inputs
@@ -171,7 +171,7 @@ int __faasm_chain_this(int idx, const unsigned char *buffer, long bufferLen) {
     return thisCallId;
 }
 
-int __faasm_await_call(int callId) {
+int __faasm_await_call(unsigned int callId) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
     // Check this is valid
@@ -217,7 +217,7 @@ void __faasm_write_output(const unsigned char *output, long outputLen) {
 
 }
 
-int __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize) {
+unsigned int __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize) {
     // This might not be possible when executing natively
     return 1;
 }

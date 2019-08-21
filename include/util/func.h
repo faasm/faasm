@@ -30,13 +30,13 @@ namespace util {
 
     std::string funcToString(const message::Message &msg);
 
-    int setMessageId(message::Message &msg);
+    unsigned int setMessageId(message::Message &msg);
 
     message::Message messageFactory(const std::string &user, const std::string &function);
 
-    std::string resultKeyFromMessageId(int mid);
+    std::string resultKeyFromMessageId(unsigned int mid);
 
-    std::string statusKeyFromMessageId(int mid);
+    std::string statusKeyFromMessageId(unsigned int mid);
 
     std::vector<uint8_t> messageToBytes(const message::Message &msg);
 

@@ -68,7 +68,7 @@ namespace scheduler {
         s3.addKeyStr(conf.bucketName, resultKey, msg.outputdata());
     }
 
-    message::Message AWSMessageBus::getFunctionResult(int messageId, int timeout) {
+    message::Message AWSMessageBus::getFunctionResult(unsigned int messageId, int timeout) {
         if(messageId == 0) {
             throw std::runtime_error("Must provide non-zero message ID");
         }

@@ -50,13 +50,13 @@ FAASM_MAIN_FUNC() {
         funcData[2] = funcIdx + 2;
 
         // Chain the call
-        int callId = faasmChainThisInput(funcIdx, (uint8_t *) funcData, dataLength);
+        unsigned int callId = faasmChainThisInput(funcIdx, (uint8_t *) funcData, dataLength);
         callIds[i] = callId;
     }
 
     // Wait for calls to finish
     for(int callId : callIds) {
-        int result = faasmAwaitCall(callId);
+        unsigned int result = faasmAwaitCall(callId);
 
         if(result != 0) {
             printf("Chained call failed\n");

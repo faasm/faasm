@@ -88,7 +88,7 @@ namespace worker {
         }
 
         // Set result
-        logger->debug("Setting function result for {}", funcStr);
+        logger->debug("Setting function result for {} {}", funcStr, call.id());
         globalBus.setFunctionResult(call, isSuccess);
     }
 

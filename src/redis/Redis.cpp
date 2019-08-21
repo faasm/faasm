@@ -6,6 +6,7 @@
 #include <util/random.h>
 
 #include <thread>
+#include <util/gids.h>
 
 namespace redis {
 
@@ -352,7 +353,7 @@ namespace redis {
 
     long Redis::acquireConditionalLock(const std::string &key, long expectedValue) {
         std::string lockKey = key + "_lock";
-        int lockId = util::randomInteger(0, 100000);
+        unsigned int lockId = util::generateGid();
 
         // Invoke the script
         auto reply = (redisReply *) redisCommand(
@@ -377,7 +378,7 @@ namespace redis {
     long Redis::acquireLock(const std::string &key, int expirySeconds) {
         // Implementation of single host redlock algorithm
         // https://redis.io/topics/distlock
-        int lockId = util::randomInteger(0, 100000);
+        unsigned int lockId = util::generateGid();
 
         std::string lockKey = key + "_lock";
 

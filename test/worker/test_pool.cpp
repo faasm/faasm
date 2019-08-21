@@ -218,7 +218,7 @@ namespace tests {
         conf.unboundTimeout = 1000;
 
         message::Message call = util::messageFactory("demo", "chain");
-        int messageId = call.id();
+        unsigned int messageId = call.id();
 
         // NOTE - for this test to work we have to run multiple threads.
         // TODO - is this necessary? Any way to avoid having threaded tests?
