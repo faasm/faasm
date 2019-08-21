@@ -466,4 +466,46 @@ namespace tests {
 
         REQUIRE(actualB == expected);
     }
+    
+    TEST_CASE("Test dequeue after enqueue", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
+        redisQueue.flushAll();
+        bool success = false;
+        redisQueue.enqueue("foobar", "baz");
+
+        std::thread t([&redisQueue, &success] {
+            std::string res = redisQueue.dequeue("foobar");
+            success = res == "baz";
+        });
+
+        if(t.joinable()) {
+            t.join();
+        }
+
+        REQUIRE(success);
+    }
+
+    TEST_CASE("Test enqueue after dequeue") {
+        Redis &redisQueue = Redis::getQueue();
+        redisQueue.flushAll();
+
+        // Start thread blocking on dequeue
+        bool success = false;
+        std::thread t([&success] {
+            Redis &rq = Redis::getQueue();
+            std::string res = rq.dequeue("foobar");
+            success = res == "baz";
+        });
+
+        // Wait a bit (assume the waiting thread will get to block by now)
+        sleep(1);
+        redisQueue.enqueue("foobar", "baz");
+
+        // If this hangs, the redis client isn't dequeueing after an enqueue is sent.
+        if(t.joinable()) {
+            t.join();
+        }
+
+        REQUIRE(success);
+    }
 }

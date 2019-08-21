@@ -16,7 +16,6 @@ namespace knative {
 
         std::string handleFunction(const std::string &requestStr);
     private:
-        scheduler::GlobalMessageBus &globalBus;
         util::SystemConfig &conf;
     };
 }

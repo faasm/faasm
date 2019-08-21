@@ -472,7 +472,6 @@ namespace redis {
     redisReply *Redis::dequeueBase(const std::string &queueName, int timeoutMs) {
         // Note, timeouts need to be converted into seconds
         int timeoutSecs = timeoutMs / 1000;
-
         auto reply = (redisReply *) redisCommand(context, "BLPOP %s %d", queueName.c_str(), timeoutSecs);
 
         if (reply == nullptr || reply->type == REDIS_REPLY_NIL) {
@@ -485,9 +484,6 @@ namespace redis {
 
         if (nResults > 2) {
             throw std::runtime_error("Returned more than one pair of dequeued values");
-        }
-        if(nResults == 0) {
-            throw std::runtime_error("Dequeued empty result");
         }
 
         return reply;

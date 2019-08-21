@@ -6,7 +6,7 @@
 #include <scheduler/Scheduler.h>
 
 namespace knative {
-    KnativeHandler::KnativeHandler() : globalBus(scheduler::getGlobalMessageBus()), conf(util::getSystemConfig()) {
+    KnativeHandler::KnativeHandler() : conf(util::getSystemConfig()) {
 
     }
 
@@ -68,6 +68,7 @@ namespace knative {
             logger->debug("Knative {} awaiting {} - {} ({})", tid, funcStr, msg.id(), conf.globalMessageTimeout);
 
             try {
+                scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
                 const message::Message result = globalBus.getFunctionResult(msg.id(), conf.globalMessageTimeout);
                 logger->debug("Knative {} result {} - {}", tid, funcStr, msg.id());
 
