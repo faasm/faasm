@@ -44,7 +44,7 @@ def bench_mem(ctx, runtime=None):
                 )
 
         if runtime == "docker" or runtime is None:
-            for n_workers in [1, 300, 600, 900]:
+            for n_workers in [2000]:
                 _run_docker_bench(
                     n_workers,
                     csv_out,
