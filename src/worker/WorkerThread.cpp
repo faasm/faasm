@@ -180,7 +180,7 @@ namespace worker {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         const std::string funcStr = util::funcToString(call);
-        logger->info("WorkerThread executing {}", funcStr);
+        logger->info("WorkerThread executing {} {}", funcStr, call.id());
 
         // Increment the execution count
         scheduler.incrementExecutingCount();

@@ -11,6 +11,7 @@ from invoke import task
 
 
 def _do_post(url, input, headers=None):
+    print("POST: {}".format(url))
     response = requests.post(url, data=input, headers=headers)
 
     if response.status_code >= 400:

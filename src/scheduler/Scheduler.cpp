@@ -78,8 +78,6 @@ namespace scheduler {
     }
 
     void Scheduler::enqueueMessage(const message::Message &msg) {
-        std::string funcStr = util::funcToString(msg);
-
         if (msg.type() == message::Message_MessageType_BIND) {
             bindQueue->enqueue(msg);
         } else {
@@ -180,7 +178,7 @@ namespace scheduler {
 
         std::string bestNode = this->getBestNodeForFunction(msg);
         if (bestNode == nodeId) {
-            logger->debug("Executing {} locally", util::funcToString(msg));
+            logger->debug("Executing {} {} locally", util::funcToString(msg), msg.id());
 
             // Enqueue the message locally
             this->enqueueMessage(msg);
@@ -189,7 +187,7 @@ namespace scheduler {
             this->addWarmThreads(msg);
         } else {
             // Share with other node
-            logger->debug("Sharing {} call with {}", util::funcToString(msg), bestNode);
+            logger->debug("Sharing {} {} call with {}", util::funcToString(msg), msg.id(), bestNode);
 
             sharingBus.shareMessageWithNode(bestNode, msg);
         }

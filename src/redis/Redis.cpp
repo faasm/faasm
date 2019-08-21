@@ -486,6 +486,9 @@ namespace redis {
         if (nResults > 2) {
             throw std::runtime_error("Returned more than one pair of dequeued values");
         }
+        if(nResults == 0) {
+            throw std::runtime_error("Dequeued empty result");
+        }
 
         return reply;
     }

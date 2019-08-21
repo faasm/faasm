@@ -32,6 +32,7 @@ namespace endpoint {
         // Configure endpoint
         auto opts = Pistache::Http::Endpoint::options()
                 .threads(threadCount)
+                .backlog(256)
                 .flags(Pistache::Tcp::Options::ReuseAddr);
 
         Pistache::Http::Endpoint httpEndpoint(addr);

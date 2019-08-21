@@ -10,6 +10,8 @@ namespace knative {
 
         HTTP_PROTOTYPE(KnativeHandler)
 
+        void onTimeout(const Pistache::Http::Request& request, Pistache::Http::ResponseWriter writer) override;
+
         void onRequest(const Pistache::Http::Request &request, Pistache::Http::ResponseWriter response) override;
 
         std::string handleFunction(const std::string &requestStr);
