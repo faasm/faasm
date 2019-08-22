@@ -88,6 +88,59 @@ ansible-playbook firecracker.yml --ask-become-pass
 Lucet would also be interesting but it doesn't currently provide a
 [full isolation environment](https://github.com/fastly/lucet/security/policy), therefore is not really comparable.
 
+## Capacity
+
+Capacity measurements are a little risky as they may kill your machine from OOM errors. We are trying to work out what the maximum number of concurrent workers we can sustain on a given box is for both Faasm and Docker.
+
+### Docker
+
+Spawning lots of Docker containers at once can lead to big memory/ CPU spikes, so we need to build up the numbers slowly. This can be done with:
+
+```
+# Spawn 10 workers
+inv spawn-docker-containers 10
+```
+
+We can only have 1023 Docker containers on a single Docker network (due to the limit on virtual bridges), so we can either run them all on the `host` network, or create a couple of bigger networks, e.g.
+
+```
+# Create 2 networks
+docker network create bench-1
+docker network create bench-2
+
+# Spawn 600 on each
+inv spawn-docker-containers 600 --network=bench-1
+inv spawn-docker-containers 600 --network=bench-2
+
+# Check resource levels
+
+# Finish
+inv kill-containers
+```
+
+By keeping a close eye on the memory usage on the box you should be able to push the number of containers up to about 1700 with 16GiB of RAM.
+
+### Faasm
+
+Because WAVM allocates so much virtual memory to each module we need to divide the workers across a couple of processes (to avoid the hard 128TiB per-process virtual memory limit).
+
+To keep the functions hanging around we can use the `demo/lock` function which sits around waiting for a lock file at `/usr/local/faasm/runtime_root/tmp/demo.lock`. It'll drop out once this is done with.
+
+To spawn lots of workers in a couple of processes we can do the following:
+
+```
+# Spawn two batches
+inv spawn-faasm 1000
+inv spawn-faasm 1000
+
+# Check resources
+
+# Finish
+inv kill-faasm
+```
+
+
+
 ## Polybench/C
 
 To test pure computation against the native environment we can use the

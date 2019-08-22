@@ -29,6 +29,9 @@ from tasks.bench_mem import (
     pid_mem,
     proc_mem,
     spawn_containers,
+    kill_containers,
+    spawn_faasm,
+    kill_faasm,
 )
 from tasks.codegen import (
     run_codegen,

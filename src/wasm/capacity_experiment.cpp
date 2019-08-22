@@ -20,7 +20,7 @@ int main() {
 
     // Each process seems to be able to handle ~2000
     int nModules = 2000;
-    int nProcesses = 10;
+    int nProcesses = 50;
     for (int p = 0; p < nProcesses; p++) {
         pid_t pid = fork();
 
