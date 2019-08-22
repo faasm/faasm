@@ -11,7 +11,7 @@ int main() {
     long tibiByte = kibiByte * kibiByte * kibiByte * kibiByte;
 
     long long targetBytes = (long long) targetTb * tibiByte;
-    int nLoops = 10000;
+    int nLoops = 5000;
 
     long numBytes = targetBytes / nLoops;
     printf("%i loops mmapping %li bytes\n", nLoops, numBytes);
