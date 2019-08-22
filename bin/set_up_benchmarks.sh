@@ -20,6 +20,7 @@ cmake --build . --target bench_mem -- -j
 cmake --build . --target bench_time -- -j
 cmake --build . --target thread_bench_mem -- -j
 cmake --build . --target thread_bench_time -- -j
+cmake --build . --target mem_experiment -- -j
 
 # Generate codegen
 ./bin/codegen /usr/local/code/faasm/wasm/demo/noop
