@@ -16,7 +16,9 @@ do
     echo "Spawning background Docker $i"
 
     # Start a long-running container in the background
-    docker run --network host -di faasm/noop /bin/sh &
+    # docker run --network host -di faasm/noop /bin/sh &
+    # docker run -di faasm/noop /bin/sh &
+    docker run --network bench -di faasm/noop /bin/sh &
 done
 
 wait
