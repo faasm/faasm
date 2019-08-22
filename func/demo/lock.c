@@ -2,8 +2,8 @@
 #include <unistd.h>
 #include <stdio.h>
 
-#define SLEEP_TIME 10
-#define MAX_SLEEPS 10
+#define SLEEP_TIME 30
+#define MAX_SLEEPS 100
 #define LOCK_FILE "/tmp/demo.lock"
 
 /**
