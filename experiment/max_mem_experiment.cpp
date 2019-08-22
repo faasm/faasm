@@ -17,7 +17,7 @@ int main() {
     printf("%i loops mmapping %li bytes\n", nLoops, numBytes);
 
     for (int i = 0; i < nLoops; i++) {
-        void *result = mmap(nullptr, numBytes, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        void *result = mmap(nullptr, numBytes, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
         if (result == MAP_FAILED) {
             long limit = i * numBytes;
             long tbLimit = limit / tibiByte;
