@@ -3,6 +3,7 @@
 #include <cstring>
 #include <errno.h>
 
+// Script to determine the per-process virtual memory limit on the system
 
 int main() {
     float targetTb = 130.0;
@@ -11,7 +12,7 @@ int main() {
     long tibiByte = kibiByte * kibiByte * kibiByte * kibiByte;
 
     long long targetBytes = (long long) targetTb * tibiByte;
-    int nLoops = 5000;
+    int nLoops = 100000;
 
     long numBytes = targetBytes / nLoops;
     printf("%i loops mmapping %li bytes\n", nLoops, numBytes);
@@ -19,9 +20,9 @@ int main() {
     for (int i = 0; i < nLoops; i++) {
         void *result = mmap(nullptr, numBytes, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
         if (result == MAP_FAILED) {
-            long limit = i * numBytes;
-            long tbLimit = limit / tibiByte;
-            printf("Failed mapping on loop %i (%s)\nLimit = %liTiB\n", i, strerror(errno), tbLimit);
+            long byteLimit = i * numBytes;
+            long tbLimit = byteLimit / tibiByte;
+            printf("Failed mapping on loop %i (%s)\nLimit = %liTiB (%liB)\n", i, strerror(errno), tbLimit, byteLimit);
             return 1;
         }
     }
