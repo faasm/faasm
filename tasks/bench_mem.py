@@ -1,5 +1,6 @@
 from decimal import Decimal
 from multiprocessing import Process
+import os
 from os import makedirs, remove
 from os.path import exists, join
 from subprocess import call
@@ -30,18 +31,14 @@ def spawn_containers(ctx, n_containers, network="host"):
 
 
 @task
-def kill_containers():
+def kill_containers(ctx):
     _stop_docker_mem()
 
 
 @task
 def spawn_faasm(ctx, n_workers):
     func_name = "lock"
-    cmd = [
-        join(BENCHMARK_BUILD, "bin", "bench_mem"),
-        func_name,
-        str(n_workers),
-    ]
+    n_workers = int(n_workers)
 
     # Prepare lock file
     if not exists(FAASM_LOCK_DIR):
@@ -50,10 +47,22 @@ def spawn_faasm(ctx, n_workers):
     # Create the lock file
     open(FAASM_LOCK_FILE, "w")
 
-    print("Kicking off Faasm containers")
-    cmd_str = " ".join(cmd)
-    bg_proc = Process(target=_exec_cmd, args=[cmd_str])
-    bg_proc.start()
+    print("Kicking off Faasm containers in batches")
+
+    def _do_faasm_spawn(n):
+        cmd = [
+            join(BENCHMARK_BUILD, "bin", "bench_mem"),
+            func_name,
+            str(n),
+        ]
+        cmd_str = " ".join(cmd)
+
+        os.environ["LOG_LEVEL"] = "off"
+        bg_proc = Process(target=_exec_cmd, args=[cmd_str])
+        bg_proc.start()
+        sleep(4)
+
+    _run_function_in_batches(n_workers, 2000, _do_faasm_spawn)
 
 
 @task
@@ -135,12 +144,9 @@ def _run_sleep_bench(bench_name, n_workers, cmd, sleep_time, process_name, csv_o
     sleep_proc.join()
 
 
-def _start_docker_mem(n_workers, network):
-    # Kick off the process
-    # Do this in batches otherwise things can get overloaded
-    batch_size = 50
-    batch_remainder = n_workers % batch_size
-    n_batches = n_workers // batch_size + (batch_remainder > 0)
+def _run_function_in_batches(n_total, batch_size, func):
+    batch_remainder = n_total % batch_size
+    n_batches = n_total // batch_size + (batch_remainder > 0)
 
     for b in range(n_batches):
         if (b == n_batches - 1) and (batch_remainder > 0):
@@ -148,11 +154,18 @@ def _start_docker_mem(n_workers, network):
         else:
             this_batch_size = batch_size
 
-        start_cmd = "./bin/docker_mem_start.sh {} {}".format(network, this_batch_size)
-        print("Kicking off Docker batch size {} on network {}".format(this_batch_size, network))
+        func(this_batch_size)
+
+
+def _start_docker_mem(n_workers, network):
+    def _do_docker_mem(n):
+        start_cmd = "./bin/docker_mem_start.sh {} {}".format(network, n)
+        print("Kicking off Docker batch size {} on network {}".format(n, network))
         start_ret_code = call(start_cmd, shell=True, cwd=PROJ_ROOT)
         if start_ret_code != 0:
             raise RuntimeError("Start Docker benchmark failed")
+
+    _run_function_in_batches(n_workers, 50, _do_docker_mem)
 
 
 def _run_docker_bench(n_workers, csv_out):

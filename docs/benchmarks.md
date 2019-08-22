@@ -124,22 +124,19 @@ By keeping a close eye on the memory usage on the box you should be able to push
 
 Because WAVM allocates so much virtual memory to each module we need to divide the workers across a couple of processes (to avoid the hard 128TiB per-process virtual memory limit).
 
-To keep the functions hanging around we can use the `demo/lock` function which sits around waiting for a lock file at `/usr/local/faasm/runtime_root/tmp/demo.lock`. It'll drop out once this is done with.
+To keep the functions hanging around we can use the `demo/lock` function which sits around waiting for a lock file at `/usr/local/faasm/runtime_root/tmp/demo.lock`. It'll drop out once this has been removed.
 
-To spawn lots of workers in a couple of processes we can do the following:
+To spawn a large number of workers we can do the following:
 
 ```
-# Spawn two batches
-inv spawn-faasm 1000
-inv spawn-faasm 1000
+# Spawn lots of workers in one terminal (will wait until killed)
+inv spawn-faasm 50000
 
 # Check resources
 
-# Finish
+# Finish in another, watch original terminate
 inv kill-faasm
 ```
-
-
 
 ## Polybench/C
 
