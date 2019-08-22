@@ -60,7 +60,7 @@ def spawn_faasm(ctx, n_workers):
         os.environ["LOG_LEVEL"] = "off"
         bg_proc = Process(target=_exec_cmd, args=[cmd_str])
         bg_proc.start()
-        sleep(4)
+        sleep(10)
 
     _run_function_in_batches(n_workers, 2000, _do_faasm_spawn)
 
