@@ -14,8 +14,8 @@ NAMESPACE=testerns1
 VIF_NAME=tester1
 VIF_PEER=testerp1
 
-EGRESS_LIMIT=20
-INGRESS_LIMIT=10
+EGRESS_LIMIT=100
+INGRESS_LIMIT=200
 
 THIS_DIR=$(dirname $(readlink -f $0))
 INNER_SCRIPT=${THIS_DIR}/netns_inner.sh
@@ -44,7 +44,6 @@ echo ""
 echo "------------------------------------"
 echo "Connection speed inside"
 echo "------------------------------------"
-echo ""
 
 echo ""
 echo "---- Egress ----"
