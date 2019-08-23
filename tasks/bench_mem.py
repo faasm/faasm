@@ -1,8 +1,8 @@
+import os
 from decimal import Decimal
 from multiprocessing import Process
-import os
-from os import makedirs, remove
 from os import makedirs, environ
+from os import remove
 from os.path import exists, join
 from subprocess import call
 from time import sleep
