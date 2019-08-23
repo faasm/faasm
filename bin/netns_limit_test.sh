@@ -2,8 +2,8 @@
 
 set -e
 
-if [ -z "$1" ] || [ -z "$2" ]; then
-    echo "Must provide iperf3 server IP and namespace number"
+if [ -z "$1" ]; then
+    echo "Must provide iperf3 server IP"
     exit 1
 fi
 
