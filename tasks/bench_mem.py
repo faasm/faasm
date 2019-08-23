@@ -18,8 +18,8 @@ FAASM_LOCK_DIR = "/usr/local/faasm/runtime_root/tmp"
 FAASM_LOCK_FILE = join(FAASM_LOCK_DIR, "demo.lock")
 
 FAASM_ENV = {
-    "CGROUP_MODE": "on",
-    "NETNS_MODE": "on",
+    "CGROUP_MODE": "off",
+    "NETNS_MODE": "off",
 }
 
 
