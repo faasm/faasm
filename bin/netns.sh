@@ -31,20 +31,28 @@ function setup_ns() {
     vif_name=faasm$1
     vif_peer=faasmp$1        
 
-    
+    # Limit of 256 per byte of IP. Addresses in the given namespaces will be as follows:
+    # n=[0,255]   -> 10.200.n.0
+    # n=[256,511] -> 10.201.n.0
+    # n=[512,767] -> 10.202.n.0
+    # etc.
+    part_one=$((200 + $1/256))
+    part_two=$(($1 % 256))
 
-    base_ip=10.200.$1.0
-    vif_ip=10.200.$1.1
-    vif_peer_ip=10.200.$1.2
+    base_ip=10.$part_one.$part_two.0
+    vif_ip=10.$part_one.$part_two.1
+    vif_peer_ip=10.$part_one.$part_two.2
 
     ns_file="/var/run/netns/${ns_name}"
     if [ -f "$ns_file" ]
     then
-        echo "Namespace ${ns_name} already exists. Removing"
-        ip netns delete ${ns_name}
+        #echo "Namespace ${ns_name} already exists. Removing"
+        #ip netns delete ${ns_name}
+        echo "Namespace ${ns_name} already exists"
+        return
     fi
 
-    echo "Setting up namespace ${ns_name}"
+    echo "Setting up namespace ${ns_name} (${base_ip})"
 
     # -------------------------
     # Namespace
