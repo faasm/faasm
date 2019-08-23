@@ -4,14 +4,14 @@ set -e
 
 if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ] || [ -z "$5" ]; then
     echo "Usage:"
-    echo "netns_inner.sh <prefix> <count> <egress_kb> <ingress_kb> <ip_base>"
+    echo "netns_inner.sh <prefix> <count> <egress_Mbit> <ingress_Mbit> <ip_base>"
     exit 1
 fi
 
 prefix=$1
 count=$2
-egress_rate=$3kbit
-ingress_rate=$4kbit
+egress_rate=$3Mbit
+ingress_rate=$4Mbit
 ip_base=$5
 
 echo "----- Creating namespaces -----"
