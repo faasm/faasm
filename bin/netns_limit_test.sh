@@ -22,7 +22,7 @@ INNER_SCRIPT=${THIS_DIR}/netns_inner.sh
 CHECK_SCRIPT=${THIS_DIR}/netns_check.sh
 
 # Create the namespace
-${INNER_SCRIPT} ${PREFIX} 1 ${EGRESS_LIMIT} ${INGRESS_LIMIT} 300
+${INNER_SCRIPT} ${PREFIX} 1 ${EGRESS_LIMIT} ${INGRESS_LIMIT} 10
 
 # Run the check
 ${CHECK_SCRIPT} ${PREFIX} 1
