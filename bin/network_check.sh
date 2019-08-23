@@ -2,68 +2,77 @@
 
 set -e
 
-if [ -z "$1" ]; then
-    echo "Must provide iperf3 server IP"
+if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Must provide iperf3 server IP and namespace number"
     exit 1
 fi
 
 SERVER_IP=$1
 
+PREFIX=tester
+EGRESS_LIMIT=20
+INGRESS_LIMIT=10
+
+NAMESPACE=testerns1
+VIF_NAME=faasm1
+VIF_PEER=faasmp1
+
+THIS_DIR=$(dirname $(readlink -f $0))
+INNER_SCRIPT=${THIS_DIR}/netns_inner.sh
+
+# Create the namespaces
+${INNER_SCRIPT} ${PREFIX} 3 ${EGRESS_LIMIT} ${INGRESS_LIMIT} 300
+
+# Check ingress qdisc (i.e. egress on interface outside the namespace)
+echo "-----------------------------"
+echo "Traffic shaping qdisc"
+echo "-----------------------------"
+echo ""
+echo "---- Outside ----"
+tc qdisc show dev ${VIF_NAME}
+
+echo ""
+echo "---- Inside ----"
+sudo ip netns exec ${NAMESPACE} tc qdisc show dev ${VIF_PEER}
+
+echo "-----------------------------"
+echo "Traffic shaping rate limit"
+echo "-----------------------------"
+echo ""
+
+echo "---- Outside ----"
+tc class show dev ${VIF_NAME}
+
+echo ""
+echo "---- Inside ----"
+sudo ip netns exec ${NAMESPACE} tc class show dev ${VIF_PEER}
+
+echo ""
 echo "------------------------------------"
-echo "Normal connection speed"
+echo "Connection speed outside"
 echo "------------------------------------"
 
+echo ""
 echo "---- Egress ----"
 iperf3 -c ${SERVER_IP}
 
+echo ""
 echo "---- Ingress ----"
 iperf3 -R -c ${SERVER_IP}
 
 echo "------------------------------------"
-echo "Simultaneous network namespace tests"
+echo "Connection speed inside"
 echo "------------------------------------"
 echo ""
 
-sudo ip netns exec faasmns1 iperf3 -c ${SERVER_IP} > /tmp/ns1.out 2>&1 &
-sudo ip netns exec faasmns2 iperf3 -c ${SERVER_IP} > /tmp/ns2.out 2>&1 &
-sudo ip netns exec faasmns3 iperf3 -c ${SERVER_IP} > /tmp/ns3.out 2>&1 &
-
-wait
-
-echo "------------------------------------"
-echo "Egress results"
-echo "------------------------------------"
+echo ""
+echo "---- Egress ----"
+sudo ip netns exec ${NAMESPACE} iperf3 -c ${SERVER_IP}
 
 echo ""
-echo "---- faasmns1 ----"
-cat /tmp/ns1.out
+echo "---- Ingress ----"
+
+sudo ip netns exec ${NAMESPACE} iperf3 -R -c ${SERVER_IP}
 
 echo ""
-echo "---- faasmns2 ----"
-cat /tmp/ns2.out
-
-echo ""
-echo "---- faasmns3 ----"
-cat /tmp/ns3.out
-
-echo "------------------------------------"
-echo "Ingress results"
-echo "------------------------------------"
-
-sudo ip netns exec faasmns1 iperf3 -R -c ${SERVER_IP} > /tmp/ns1.out 2>&1 &
-sudo ip netns exec faasmns2 iperf3 -R -c ${SERVER_IP} > /tmp/ns2.out 2>&1 &
-sudo ip netns exec faasmns3 iperf3 -R -c ${SERVER_IP} > /tmp/ns3.out 2>&1 &
-
-wait
-
-echo ""
-echo "---- faasmns1 ----"
-cat /tmp/ns1.out
-
-echo ""
-echo "---- faasmns2 ----"
-cat /tmp/ns2.out
-
-echo ""
-echo "---- faasmns3 ----"
-cat /tmp/ns3.out
+echo "Done"
