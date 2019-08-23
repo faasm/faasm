@@ -17,6 +17,11 @@ OUTPUT_FILE = join(RESULT_DIR, "runtime-bench-mem.csv")
 FAASM_LOCK_DIR = "/usr/local/faasm/runtime_root/tmp"
 FAASM_LOCK_FILE = join(FAASM_LOCK_DIR, "demo.lock")
 
+FAASM_ENV = {
+    "CGROUP_MODE": "on",
+    "NETNS_MODE": "on",
+}
+
 
 def _exec_cmd(cmd_str):
     print(cmd_str)
@@ -58,7 +63,9 @@ def spawn_faasm(ctx, n_workers):
         ]
         cmd_str = " ".join(cmd)
 
+        os.environ.update(FAASM_ENV)
         os.environ["LOG_LEVEL"] = "off"
+
         bg_proc = Process(target=_exec_cmd, args=[cmd_str])
         bg_proc.start()
 
@@ -92,10 +99,7 @@ def bench_mem(ctx, runtime=None):
                     15,
                     "bench_mem",
                     csv_out,
-                    env={
-                        "CGROUP_MODE": "off",
-                        "NETNS_MODE": "off",
-                    }
+                    env=FAASM_ENV,
                 )
 
         if runtime == "docker" or runtime is None:

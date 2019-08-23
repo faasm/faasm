@@ -31,6 +31,8 @@ function setup_ns() {
     vif_name=faasm$1
     vif_peer=faasmp$1        
 
+    
+
     base_ip=10.200.$1.0
     vif_ip=10.200.$1.1
     vif_peer_ip=10.200.$1.2
