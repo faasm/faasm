@@ -130,12 +130,23 @@ To spawn a large number of workers we can do the following:
 
 ```
 # Spawn lots of workers in one terminal (will wait until killed)
-inv spawn-faasm 50000
+inv spawn-faasm 8000
 
 # Check resources
 
 # Finish in another, watch original terminate
 inv kill-faasm
+```
+
+When pushing workers over 10000 you need to force Redis to accept more connections either using the client or by editing `/etc/redis/redis.conf`:
+
+```
+# Redis clients
+redis-cli
+config set maxclients 50000
+
+# Launch Faasm workers
+inv spawn-faasm 20000
 ```
 
 ## Polybench/C
