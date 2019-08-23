@@ -23,6 +23,9 @@ FAASM_ENV = {
 }
 
 
+FAASM_BATCH_SIZE = 200
+FAASM_SLEEP_TIME = 1
+
 def _exec_cmd(cmd_str):
     print(cmd_str)
     ret_code = call(cmd_str, shell=True, cwd=PROJ_ROOT)
@@ -70,9 +73,9 @@ def spawn_faasm(ctx, n_workers):
         bg_proc.start()
 
         # It seems this is required to let things catch up
-        sleep(30)
+        sleep(FAASM_SLEEP_TIME)
 
-    _run_function_in_batches(n_workers, 2000, _do_faasm_spawn)
+    _run_function_in_batches(n_workers, FAASM_BATCH_SIZE, _do_faasm_spawn)
 
 
 @task
