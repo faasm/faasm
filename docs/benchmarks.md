@@ -118,6 +118,8 @@ inv spawn-docker-containers 600 --network=bench-2
 inv kill-containers
 ```
 
+Docker may also be limited by the `TasksMax` parameter in `/lib/systemd/system/docker.service` (or equivalent). This can be set to `infinity`.
+
 By keeping a close eye on the memory usage on the box you should be able to push the number of containers up to about 1700 with 16GiB of RAM.
 
 ### Faasm
@@ -129,12 +131,16 @@ To keep the functions hanging around we can use the `demo/lock` function which s
 To spawn a large number of workers we can do the following:
 
 ```
+# Run as root to dodge any user-specific process/ thread limits
+sudo su
+source workon.sh
+
 # Spawn lots of workers in one terminal (will wait until killed)
-inv spawn-faasm 8000
+inv spawn-faasm 50000
 
 # Check resources
 
-# Finish in another, watch original terminate
+# Make sure lock file definitely gone
 inv kill-faasm
 ```
 
@@ -148,6 +154,8 @@ config set maxclients 50000
 # Launch Faasm workers
 inv spawn-faasm 20000
 ```
+
+If there is enough memory on the box, both Faasm and Docker will eventually be limited by the     max threads in the system (`cat /proc/sys/kernel/threads-max`).
 
 ## Polybench/C
 
