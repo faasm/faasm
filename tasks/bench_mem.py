@@ -2,6 +2,7 @@ from decimal import Decimal
 from multiprocessing import Process
 import os
 from os import makedirs, remove
+from os import makedirs, environ
 from os.path import exists, join
 from subprocess import call
 from time import sleep
@@ -90,7 +91,11 @@ def bench_mem(ctx, runtime=None):
                     "{} {}".format(join(BENCHMARK_BUILD, "bin", "bench_mem"), "sleep"),
                     15,
                     "bench_mem",
-                    csv_out
+                    csv_out,
+                    env={
+                        "CGROUP_MODE": "off",
+                        "NETNS_MODE": "off",
+                    }
                 )
 
         if runtime == "docker" or runtime is None:
@@ -112,7 +117,7 @@ def bench_mem(ctx, runtime=None):
                 )
 
 
-def _run_sleep_bench(bench_name, n_workers, cmd, sleep_time, process_name, csv_out):
+def _run_sleep_bench(bench_name, n_workers, cmd, sleep_time, process_name, csv_out, env=None):
     print("BENCH: {} - {} workers".format(bench_name, n_workers))
 
     # Launch the process in the background
@@ -121,6 +126,10 @@ def _run_sleep_bench(bench_name, n_workers, cmd, sleep_time, process_name, csv_o
         str(n_workers),
     ]
     cmd_str = " ".join(cmd_str)
+
+    # Set up environment
+    for param, value in env.items():
+        environ[param] = value
 
     # Launch subprocess
     sleep_proc = Process(target=_exec_cmd, args=[cmd_str])

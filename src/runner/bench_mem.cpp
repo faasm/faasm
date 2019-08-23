@@ -23,10 +23,6 @@ int main(int argc, char *argv[]) {
     util::SystemConfig &conf = util::getSystemConfig();
     conf.unsafeMode = "on";
 
-    // TODO - switch these on
-    conf.cgroupMode = "off";
-    conf.netNsMode = "off";
-
     // Zygote mode increases memory footprint of each new sandbox
     conf.zygoteMode = "off";
 
