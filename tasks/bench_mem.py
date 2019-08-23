@@ -4,7 +4,7 @@ from multiprocessing import Process
 from os import makedirs, environ
 from os import remove
 from os.path import exists, join
-from subprocess import call
+from subprocess import call, check_output
 from time import sleep
 
 from invoke import task
@@ -42,6 +42,15 @@ def spawn_containers(ctx, n_containers, network="host"):
 @task
 def kill_containers(ctx):
     _stop_docker_mem()
+
+
+@task
+def container_count(ctx):
+    res = check_output("docker ps -q", shell=True).decode("utf-8")
+    ids = res.split("\n")
+    ids = [i for i in ids if i]
+
+    print("Docker containers: {}".format(len(ids)))
 
 
 @task
@@ -84,7 +93,7 @@ def kill_faasm(ctx):
 
 
 @task
-def faasm_thread_count(ctx):
+def faasm_count(ctx):
     threads = count_threads_for_name("bench_mem", exact=True, exclude_main=True)
     print("Faasm threads = {}".format(threads))
 

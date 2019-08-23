@@ -30,9 +30,10 @@ from tasks.bench_mem import (
     proc_mem,
     spawn_containers,
     kill_containers,
+    container_count,
     spawn_faasm,
     kill_faasm,
-    faasm_thread_count,
+    faasm_count,
 )
 from tasks.codegen import (
     run_codegen,
