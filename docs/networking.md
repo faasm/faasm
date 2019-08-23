@@ -20,7 +20,24 @@ user_code <- veth_peer <- | namespace | <- veth <- eth0 <- network
 
 ## Testing
 
-To run tests on both ingress and egress we need two remote machines, each with `iperf3` installed (_not_ `iperf`). Note that both must have _at least one public nameserver listed in `/etc/resolv.conf`_ e.g.:
+### Quick check
+
+To run a quick check on the Faasm namespaces you can run:
+
+```
+# Create ten namespaces
+sudo ./bin/netns.sh 10
+
+# Check one or two
+sudo ./bin/netns_check.sh faasm 1
+sudo ./bin/netns_check.sh faasm 5
+```
+
+You can then make sure the limits are set up properly.
+
+### Limits test
+
+To run a fuller test on both ingress and egress we need two remote machines, each with `iperf3` installed (_not_ `iperf`). Note that both must have _at least one public nameserver listed in `/etc/resolv.conf`_ e.g.:
 
 ```
 nameserver   8.8.8.8
@@ -39,7 +56,7 @@ iperf3 -s
 The test itself can be run with the script in this repo on the other machine:
 
 ```
-sudo ./bin/network_check.sh <server_ip>
+sudo ./bin/netns_limit_test.sh <server_ip>
 ```
 
 Note that for the actual system we use a permissive limit on ingress/egress (>1MiB) so to run the test we need to create an artificially restrictive namespace.

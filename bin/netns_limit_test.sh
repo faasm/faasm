@@ -10,42 +10,22 @@ fi
 SERVER_IP=$1
 
 PREFIX=tester
+NAMESPACE=testerns1
+VIF_NAME=tester1
+VIF_PEER=testerp1
+
 EGRESS_LIMIT=20
 INGRESS_LIMIT=10
 
-NAMESPACE=testerns1
-VIF_NAME=faasm1
-VIF_PEER=faasmp1
-
 THIS_DIR=$(dirname $(readlink -f $0))
 INNER_SCRIPT=${THIS_DIR}/netns_inner.sh
+CHECK_SCRIPT=${THIS_DIR}/netns_check.sh
 
-# Create the namespaces
-${INNER_SCRIPT} ${PREFIX} 3 ${EGRESS_LIMIT} ${INGRESS_LIMIT} 300
+# Create the namespace
+${INNER_SCRIPT} ${PREFIX} 1 ${EGRESS_LIMIT} ${INGRESS_LIMIT} 300
 
-# Check ingress qdisc (i.e. egress on interface outside the namespace)
-echo "-----------------------------"
-echo "Traffic shaping qdisc"
-echo "-----------------------------"
-echo ""
-echo "---- Outside ----"
-tc qdisc show dev ${VIF_NAME}
-
-echo ""
-echo "---- Inside ----"
-sudo ip netns exec ${NAMESPACE} tc qdisc show dev ${VIF_PEER}
-
-echo "-----------------------------"
-echo "Traffic shaping rate limit"
-echo "-----------------------------"
-echo ""
-
-echo "---- Outside ----"
-tc class show dev ${VIF_NAME}
-
-echo ""
-echo "---- Inside ----"
-sudo ip netns exec ${NAMESPACE} tc class show dev ${VIF_PEER}
+# Run the check
+${CHECK_SCRIPT} ${PREFIX} 1
 
 echo ""
 echo "------------------------------------"
@@ -60,6 +40,7 @@ echo ""
 echo "---- Ingress ----"
 iperf3 -R -c ${SERVER_IP}
 
+echo ""
 echo "------------------------------------"
 echo "Connection speed inside"
 echo "------------------------------------"
