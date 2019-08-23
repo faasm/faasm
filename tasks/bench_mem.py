@@ -11,7 +11,7 @@ from invoke import task
 
 from tasks.util.env import PROJ_ROOT, BENCHMARK_BUILD, RESULT_DIR
 from tasks.util.memory import get_total_memory_for_pid, get_total_memory_for_pids
-from tasks.util.process import get_docker_parent_pids, get_pid_for_name
+from tasks.util.process import get_docker_parent_pids, get_pid_for_name, count_threads_for_name
 
 OUTPUT_FILE = join(RESULT_DIR, "runtime-bench-mem.csv")
 FAASM_LOCK_DIR = "/usr/local/faasm/runtime_root/tmp"
@@ -78,6 +78,12 @@ def spawn_faasm(ctx, n_workers):
 @task
 def kill_faasm(ctx):
     remove(FAASM_LOCK_FILE)
+
+
+@task
+def faasm_thread_count(ctx):
+    threads = count_threads_for_name("bench_mem", exact=True, exclude_main=True)
+    print("Faasm threads = {}".format(threads))
 
 
 @task

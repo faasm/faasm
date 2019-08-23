@@ -1,6 +1,20 @@
 from psutil import process_iter
 
 
+def count_threads_for_name(proc_part, exact=False, exclude_main=False):
+    procs = _get_pids_for_name(proc_part, exact=exact)
+
+    n_threads = 0
+    for p in procs:
+        n_threads += p.num_threads()
+
+        # Discount the main thread if required
+        if exclude_main:
+            n_threads -= 1
+
+    return n_threads
+
+
 def _get_pids_for_name(proc_part, exact=False):
     procs = []
     for p in process_iter(attrs=["pid", "name"]):

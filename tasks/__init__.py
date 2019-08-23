@@ -32,6 +32,7 @@ from tasks.bench_mem import (
     kill_containers,
     spawn_faasm,
     kill_faasm,
+    faasm_thread_count,
 )
 from tasks.codegen import (
     run_codegen,
