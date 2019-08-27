@@ -57,6 +57,8 @@ def _write_tpt_lat(runtime_name, csv_out):
 
 @task
 def bench_tpt(ctx, runtime=None):
+    repeats = 3
+
     if not exists(RESULT_DIR):
         makedirs(RESULT_DIR)
 
@@ -66,42 +68,45 @@ def bench_tpt(ctx, runtime=None):
 
     set_benchmark_env()
 
-    if runtime == "faasm" or runtime is None:
-        # NOTE: both are in millis
-        delays = ["2000", "1000", "500", "250", "125", "72", "36", "18", "9", "1"]
-        runtime = "20000"
+    for r in range(repeats):
+        print("Throughput benchmark repeat {}".format(r))
 
-        for delay in delays:
-            # Run the bench
-            cmd = [
-                join(BENCHMARK_BUILD, "bin", "bench_tpt"),
-                delay,
-                runtime,
-            ]
-            cmd_str = " ".join(cmd)
+        if runtime == "faasm" or runtime is None:
+            # NOTE: both are in millis
+            delays = ["2000", "1500", "1000", "500", "250", "125", "75", "50", "25", "15", "10", "5", "1"]
+            runtime_length = "10000"
 
-            _exec_cmd(cmd_str)
+            for delay in delays:
+                # Run the bench
+                cmd = [
+                    join(BENCHMARK_BUILD, "bin", "bench_tpt"),
+                    delay,
+                    runtime_length,
+                ]
+                cmd_str = " ".join(cmd)
 
-            # Write the result
-            _write_tpt_lat("faasm", csv_out)
+                _exec_cmd(cmd_str)
 
-    elif runtime == "docker" or runtime is None:
-        # NOTE - Docker tpt script needs delay in a seconds string and runtime in millis
-        delays = ["2", "1", "0.5", "0.25"]
-        runtime = "20000"
+                # Write the result
+                _write_tpt_lat("faasm", csv_out)
 
-        for delay in delays:
-            # Run the bench
-            cmd = [
-                join(PROJ_ROOT, "bin", "docker_tpt.sh"),
-                delay,
-                runtime,
-            ]
-            cmd_str = " ".join(cmd)
+        if runtime == "docker" or runtime is None:
+            # NOTE - Docker tpt script needs delay in a seconds string and runtime in millis
+            delays = ["2", "1.5", "1.25", "1", "0.75", "0.5", "0.25", "0.1"]
+            runtime_length = "15000"
 
-            _exec_cmd(cmd_str)
+            for delay in delays:
+                # Run the bench
+                cmd = [
+                    join(PROJ_ROOT, "bin", "docker_tpt.sh"),
+                    delay,
+                    runtime_length,
+                ]
+                cmd_str = " ".join(cmd)
 
-            # Write the result
-            _write_tpt_lat("docker", csv_out)
+                _exec_cmd(cmd_str)
+
+                # Write the result
+                _write_tpt_lat("docker", csv_out)
 
     csv_out.close()

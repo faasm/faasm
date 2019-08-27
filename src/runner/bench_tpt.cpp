@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
     int requestDelay = std::stoi(argv[1]);
     int duration = std::stoi(argv[2]);
 
-    std::cout << "Running throughput bench with delay=" << requestDelay << "ms and duration=" << duration << "ms"
+    std::cout << "Faasm throughput bench with delay=" << requestDelay << "ms and duration=" << duration << "ms"
               << std::endl;
 
     // Set up files

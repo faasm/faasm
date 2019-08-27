@@ -10,18 +10,6 @@ Measurements are taken for a vanilla Docker container (Alpine) and Faasm, both r
 
 To amortize any start-up time and underlying system resources we run each for multiple iterations and varying numbers of workers (containers for Docker, threads for Faasm).
 
-### Memory
-
-What we mean by "footprint" is worth clarifying. The resident set size (RSS) is often used, however this double counts memory shared between two processes. A more appropriate measure is the proportional set size (PSS), which spreads the "cost" of any shared memory between those sharing it. 
-
-For a multi-threaded single process like Faasm these two values are (almost) the same. For Docker though, it makes a big difference depending on the containers in question.
-
-Docker containers from the same image will share the same layered filesystem. This means binaries and shared libraries are mapped into shared memory shared between the containers. If we have two containers from the same image, their PSS will be much lower than the sum of their RSS. If we have two containers from totally different images, the sum of their PSS will be much closer to the sum of their RSS.
-
-In a multi-tenant environment the containers being run will likely be heterogeneous to some extent, but not completely. In our experiments we use container from exacly the same image, thus showing a big difference between PSS and RSS. The real world impact would be somewhere between these two.  
-
-The Faasm memory footprint is quite a lot larger than standard threads running the same native code. Aside from the base cost of loading the libraries for the runtime itself, the incremental cost of adding more workers comes from the extra heap space. This heap space is taken up by the LLVM objects created by the JITing, WAVM objects holding the module definition, memories, tables and functions, plus the actual linear memory of the functions themselves.
-
 ### Set up
 
 To run on a remote machine, you need to set up an inventory file at
@@ -50,6 +38,18 @@ For Docker you need to build the `faasm/noop` image which can be done with:
 ```
 inv build-noop
 ```
+
+### Memory
+
+What we mean by "footprint" is worth clarifying. The resident set size (RSS) is often used, however this double counts memory shared between two processes. A more appropriate measure is the proportional set size (PSS), which spreads the "cost" of any shared memory between those sharing it. 
+
+For a multi-threaded single process like Faasm these two values are (almost) the same. For Docker though, it makes a big difference depending on the containers in question.
+
+Docker containers from the same image will share the same layered filesystem. This means binaries and shared libraries are mapped into shared memory shared between the containers. If we have two containers from the same image, their PSS will be much lower than the sum of their RSS. If we have two containers from totally different images, the sum of their PSS will be much closer to the sum of their RSS.
+
+In a multi-tenant environment the containers being run will likely be heterogeneous to some extent, but not completely. In our experiments we use container from exacly the same image, thus showing a big difference between PSS and RSS. The real world impact would be somewhere between these two.  
+
+The Faasm memory footprint is quite a lot larger than standard threads running the same native code. Aside from the base cost of loading the libraries for the runtime itself, the incremental cost of adding more workers comes from the extra heap space. This heap space is taken up by the LLVM objects created by the JITing, WAVM objects holding the module definition, memories, tables and functions, plus the actual linear memory of the functions themselves.
 
 ### Running
 
@@ -156,6 +156,19 @@ inv spawn-faasm 20000
 ```
 
 If there is enough memory on the box, both Faasm and Docker will eventually be limited by the     max threads in the system (`cat /proc/sys/kernel/threads-max`).
+
+## Throughput
+
+To asses the throughput capacity of both Faasm and Docker, we want to execute increasing numbers of functions per second. With Faasm this means executing a noop function over and over, and Docker executing a noop inside a minimal container. We are not including the removal of the Docker container in the Docker numbers (as this would be done periodically in the background).
+
+To run the throughput benchmark you can run:
+
+```
+source workon.sh
+inv bench-tpt
+```
+
+The results will be output at `~/faasm/results/runtime-bench-tpt.csv`.
 
 ## Polybench/C
 
