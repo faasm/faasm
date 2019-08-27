@@ -2,12 +2,8 @@
 
 set -e
 
-if [ -z "$1" ]; then
-    echo "Must provide name of docker network"
-    exit 1
-fi
-if [ -z "$2" ]; then
-    echo "Must provide number of workers"
+if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Must provide name of docker network and the number of workers"
     exit 1
 fi
 

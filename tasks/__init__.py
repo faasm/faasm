@@ -22,6 +22,9 @@ from tasks.aws import (
 from tasks.bench_time import (
     bench_time,
 )
+from tasks.bench_tpt import (
+    bench_tpt,
+)
 from tasks.bench_mem import (
     bench_mem,
     plot_pid_mem,
