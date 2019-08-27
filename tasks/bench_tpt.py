@@ -24,7 +24,7 @@ def _numbers_from_file(file_path):
     return values
 
 
-def _write_tpt_lat(runtime_name, csv_out, tolerance=0):
+def _write_tpt_lat(run_num, runtime_name, csv_out, tolerance=0):
     tpt_file = "/tmp/{}_tpt.log".format(runtime_name)
     lat_file = "/tmp/{}_lat.log".format(runtime_name)
     duration_file = "/tmp/{}_duration.log".format(runtime_name)
@@ -51,7 +51,8 @@ def _write_tpt_lat(runtime_name, csv_out, tolerance=0):
     lat_99 = np.percentile(lats, 99)
 
     csv_out.write(
-        "{},{:.2f},{:.2f},{:.2f},{:.2f},{:.2f}\n".format(runtime_name, duration, tpt, lat_median, lat_90, lat_99))
+        "{},{},{:.2f},{:.2f},{:.2f},{:.2f},{:.2f}\n".format(run_num, runtime_name, duration, tpt, lat_median, lat_90,
+                                                            lat_99))
 
     csv_out.flush()
 
@@ -64,7 +65,7 @@ def bench_tpt(ctx, runtime=None):
         makedirs(RESULT_DIR)
 
     csv_out = open(OUTPUT_FILE, "w")
-    csv_out.write("Runtime,Duration,Throughput,LatencyMed,Latency90,Latency99\n")
+    csv_out.write("RunNum,Runtime,Duration,Throughput,LatencyMed,Latency90,Latency99\n")
     csv_out.flush()
 
     set_benchmark_env()
@@ -89,7 +90,7 @@ def bench_tpt(ctx, runtime=None):
                 _exec_cmd(cmd_str)
 
                 # Write the result
-                _write_tpt_lat("docker", csv_out, tolerance=5)
+                _write_tpt_lat(r, "docker", csv_out, tolerance=5)
 
         if runtime == "faasm" or runtime is None:
             # NOTE: both are in millis
@@ -108,6 +109,6 @@ def bench_tpt(ctx, runtime=None):
                 _exec_cmd(cmd_str)
 
                 # Write the result
-                _write_tpt_lat("faasm", csv_out)
+                _write_tpt_lat(r, "faasm", csv_out)
 
     csv_out.close()
