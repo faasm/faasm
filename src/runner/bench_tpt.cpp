@@ -31,6 +31,13 @@ void _execFunction() {
 
 
 int main(int argc, char *argv[]) {
+    // Set up conf
+    util::SystemConfig &conf = util::getSystemConfig();
+    conf.logLevel = "off";
+    conf.cgroupMode = "on";
+    conf.netNsMode = "off";
+    conf.zygoteMode = "off";
+
     util::initLogging();
     const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
@@ -39,17 +46,15 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    // Pre-flight
+    _execFunction();
+
     // Get args
     int requestDelay = std::stoi(argv[1]);
     int duration = std::stoi(argv[2]);
 
-    logger->info("Running Faasm throughput bench with delay={}ms and duration={}ms", requestDelay, duration);
-
-    // Set up conf
-    util::SystemConfig &conf = util::getSystemConfig();
-    conf.cgroupMode = "on";
-    conf.netNsMode = "off";
-    conf.zygoteMode = "off";
+    std::cout << "Running throughput bench with delay=" << requestDelay << "ms and duration=" << duration << "ms"
+              << std::endl;
 
     // Set up files
     remove(LAT_LOG_FILE);
@@ -60,7 +65,7 @@ int main(int argc, char *argv[]) {
 
     const util::TimePoint &startTimer = util::startTimer();
     double elapsed = 0;
-    int requestCount = 0;
+    int requestCount = 1;
 
     std::vector<std::thread> threads;
 
@@ -70,13 +75,13 @@ int main(int argc, char *argv[]) {
 
         // Log to throughput file
         tptFile << elapsed << " REQUEST " << requestCount << std::endl;
+        requestCount++;
 
         // Sleep
         usleep(requestDelay * 1000);
 
         // Update elapsed
         elapsed = util::getTimeDiffMillis(startTimer);
-        std::cout << "ELAPSED = " << elapsed << std::endl;
     }
 
     // Wait for any stragglers
