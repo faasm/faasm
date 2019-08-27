@@ -20,15 +20,6 @@ int main(int argc, char *argv[]) {
 
     logger->info("Running Faasm benchmark with {} iterations", nIterations);
 
-    util::SystemConfig &conf = util::getSystemConfig();
-    conf.cgroupMode = "on";
-
-    // TODO - switch this on
-    conf.netNsMode = "off";
-
-    // Zygote mode adds a small time overhead
-    conf.zygoteMode = "off";
-
     // For each iteration we want to spawn a thread and execute the function
     // (to introduce the overhead we'd see in the real application)
     for (int i = 0; i < nIterations; i++) {

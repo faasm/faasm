@@ -5,7 +5,7 @@ from tempfile import NamedTemporaryFile
 
 from invoke import task
 
-from tasks.util.env import PROJ_ROOT, BENCHMARK_BUILD, RESULT_DIR
+from tasks.util.env import PROJ_ROOT, BENCHMARK_BUILD, RESULT_DIR, set_benchmark_env
 
 TIME_BINARY = "/usr/bin/time"
 OUTPUT_FILE = join(RESULT_DIR, "runtime-bench-time.csv")
@@ -30,6 +30,7 @@ def bench_time(ctx):
 
 def _exec_cmd(cmd_str):
     print(cmd_str)
+    set_benchmark_env()
     ret_code = call(cmd_str, shell=True, cwd=PROJ_ROOT)
 
     if ret_code != 0:

@@ -22,12 +22,21 @@ from tasks.aws import (
 from tasks.bench_time import (
     bench_time,
 )
+from tasks.bench_tpt import (
+    bench_tpt,
+)
 from tasks.bench_mem import (
     bench_mem,
     plot_pid_mem,
     plot_proc_mem,
     pid_mem,
     proc_mem,
+    spawn_containers,
+    kill_containers,
+    container_count,
+    spawn_faasm,
+    kill_faasm,
+    faasm_count,
 )
 from tasks.codegen import (
     run_codegen,

@@ -23,6 +23,9 @@ namespace  util {
         else if(conf.logLevel == "trace") {
             spdlog::set_level(spdlog::level::trace);
         }
+        else if(conf.logLevel == "off") {
+            spdlog::set_level(spdlog::level::off);
+        }
         else {
             spdlog::set_level(spdlog::level::info);
         }

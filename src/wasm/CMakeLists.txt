@@ -28,3 +28,6 @@ target_link_libraries(wasm scheduler memory state storage WAVM)
 
 add_executable(codegen codegen_runner.cpp)
 target_link_libraries(codegen wasm)
+
+add_executable(capacity_experiment capacity_experiment.cpp)
+target_link_libraries(capacity_experiment wasm)

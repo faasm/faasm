@@ -33,6 +33,9 @@ target_link_libraries(bench_mem bench wasm zygote system)
 add_executable(bench_time bench_time.cpp)
 target_link_libraries(bench_time bench wasm zygote system)
 
+add_executable(bench_tpt bench_tpt.cpp)
+target_link_libraries(bench_tpt bench wasm zygote system)
+
 add_executable(thread_bench_mem thread_bench_mem.cpp)
 target_link_libraries(thread_bench_mem util)
 
