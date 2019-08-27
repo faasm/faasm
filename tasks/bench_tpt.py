@@ -24,7 +24,7 @@ def _numbers_from_file(file_path):
     return values
 
 
-def _write_tpt_lat(runtime_name, csv_out):
+def _write_tpt_lat(runtime_name, csv_out, tolerance=0):
     tpt_file = "/tmp/{}_tpt.log".format(runtime_name)
     lat_file = "/tmp/{}_lat.log".format(runtime_name)
     duration_file = "/tmp/{}_duration.log".format(runtime_name)
@@ -35,8 +35,9 @@ def _write_tpt_lat(runtime_name, csv_out):
 
     n_times = len(times)
     n_lats = len(lats)
-    msg = "Requests and latencies count doesn't match ({} vs {})".format(n_times, n_lats)
-    assert n_times == n_lats, msg
+    n_diff = abs(n_times - n_lats)
+    msg = "Requests and latencies count doesn't match within tolerance ({} vs {})".format(n_times, n_lats)
+    assert n_diff <= tolerance, msg
 
     assert len(durations) == 1, "Found multiple durations"
     duration = float(durations[0])
@@ -92,7 +93,7 @@ def bench_tpt(ctx, runtime=None):
 
         if runtime == "docker" or runtime is None:
             # NOTE - Docker tpt script needs delay in a seconds string and runtime in millis
-            delays = ["2", "1.5", "1.25", "1", "0.75", "0.5", "0.25", "0.1"]
+            delays = ["2", "1.5", "1.25", "1", "0.75", "0.5", "0.25"]
             runtime_length = "15000"
 
             for delay in delays:
@@ -107,6 +108,6 @@ def bench_tpt(ctx, runtime=None):
                 _exec_cmd(cmd_str)
 
                 # Write the result
-                _write_tpt_lat("docker", csv_out)
+                _write_tpt_lat("docker", csv_out, tolerance=5)
 
     csv_out.close()
