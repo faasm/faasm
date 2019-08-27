@@ -72,25 +72,6 @@ def bench_tpt(ctx, runtime=None):
     for r in range(repeats):
         print("Throughput benchmark repeat {}".format(r))
 
-        if runtime == "faasm" or runtime is None:
-            # NOTE: both are in millis
-            delays = ["2000", "1500", "1000", "500", "250", "125", "75", "50", "25", "15", "10", "5", "1"]
-            runtime_length = "10000"
-
-            for delay in delays:
-                # Run the bench
-                cmd = [
-                    join(BENCHMARK_BUILD, "bin", "bench_tpt"),
-                    delay,
-                    runtime_length,
-                ]
-                cmd_str = " ".join(cmd)
-
-                _exec_cmd(cmd_str)
-
-                # Write the result
-                _write_tpt_lat("faasm", csv_out)
-
         if runtime == "docker" or runtime is None:
             # NOTE - Docker tpt script needs delay in a seconds string and runtime in millis
             delays = ["2", "1.5", "1.25", "1", "0.75", "0.5", "0.25"]
@@ -109,5 +90,24 @@ def bench_tpt(ctx, runtime=None):
 
                 # Write the result
                 _write_tpt_lat("docker", csv_out, tolerance=5)
+
+        if runtime == "faasm" or runtime is None:
+            # NOTE: both are in millis
+            delays = ["2000", "1500", "1000", "500", "250", "125", "75", "50", "25", "15", "10", "5", "1"]
+            runtime_length = "10000"
+
+            for delay in delays:
+                # Run the bench
+                cmd = [
+                    join(BENCHMARK_BUILD, "bin", "bench_tpt"),
+                    delay,
+                    runtime_length,
+                ]
+                cmd_str = " ".join(cmd)
+
+                _exec_cmd(cmd_str)
+
+                # Write the result
+                _write_tpt_lat("faasm", csv_out)
 
     csv_out.close()
