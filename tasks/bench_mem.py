@@ -9,7 +9,7 @@ from time import sleep
 
 from invoke import task
 
-from tasks.util.env import PROJ_ROOT, BENCHMARK_BUILD, RESULT_DIR
+from tasks.util.env import PROJ_ROOT, BENCHMARK_BUILD, RESULT_DIR, set_benchmark_env
 from tasks.util.memory import get_total_memory_for_pid, get_total_memory_for_pids
 from tasks.util.process import get_docker_parent_pids, get_pid_for_name, count_threads_for_name
 
@@ -17,14 +17,9 @@ OUTPUT_FILE = join(RESULT_DIR, "runtime-bench-mem.csv")
 FAASM_LOCK_DIR = "/usr/local/faasm/runtime_root/tmp"
 FAASM_LOCK_FILE = join(FAASM_LOCK_DIR, "demo.lock")
 
-FAASM_ENV = {
-    "CGROUP_MODE": "off",
-    "NETNS_MODE": "off",
-}
-
-
 FAASM_BATCH_SIZE = 200
 FAASM_SLEEP_TIME = 1
+
 
 def _exec_cmd(cmd_str):
     print(cmd_str)
@@ -75,8 +70,7 @@ def spawn_faasm(ctx, n_workers):
         ]
         cmd_str = " ".join(cmd)
 
-        os.environ.update(FAASM_ENV)
-        os.environ["LOG_LEVEL"] = "off"
+        set_benchmark_env()
 
         bg_proc = Process(target=_exec_cmd, args=[cmd_str])
         bg_proc.start()

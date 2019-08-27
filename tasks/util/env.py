@@ -1,4 +1,4 @@
-from os import makedirs
+from os import makedirs, environ
 from os.path import dirname, realpath, join, exists, expanduser
 
 HOME_DIR = expanduser("~")
@@ -11,6 +11,14 @@ FAASM_INSTALL_DIR = join(FAASM_LOCAL_DIR, "install")
 
 BENCHMARK_BUILD = join(HOME_DIR, "faasm", "bench")
 RESULT_DIR = join(FAASM_HOME, "results")
+BENCHMARK_ENV = {
+    "CGROUP_MODE": "off",
+    "NETNS_MODE": "off",
+    "UNSAFE_MODE": "on",
+    "ZYGOTE_MODE": "off",
+    "GLOBAL_MESSAGE_TIMEOUT": "120000",
+    "LOG_LEVEL": "off",
+}
 
 FUNC_DIR = join(PROJ_ROOT, "func")
 FUNC_BUILD_DIR = join(FUNC_DIR, "build")
@@ -44,3 +52,7 @@ def get_wasm_func_path(user, func_name):
         makedirs(func_dir, exist_ok=True, mode=0o775)
 
     return join(func_dir, "function.wasm")
+
+
+def set_benchmark_env():
+    environ.update(BENCHMARK_ENV)
