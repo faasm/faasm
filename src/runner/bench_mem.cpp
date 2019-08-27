@@ -20,15 +20,6 @@ int main(int argc, char *argv[]) {
 
     logger->info("Running benchmark on demo/{} with {} workers", function, nWorkers);
 
-    util::SystemConfig &conf = util::getSystemConfig();
-    conf.unsafeMode = "on";
-
-    // Zygote mode increases memory footprint of each new sandbox
-    conf.zygoteMode = "off";
-
-    // Make sure this is long enough to allow things to run their course
-    conf.globalMessageTimeout = 120000;
-
     // Spawn worker threads to run the task in parallel
     std::vector<std::thread> threads(nWorkers);
     for (int w = 0; w < nWorkers; w++) {

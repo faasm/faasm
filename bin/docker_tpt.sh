@@ -19,8 +19,10 @@ echo "Starting Docker throughput with delay=${request_delay_s}s and duration=${d
 # Set up log files
 tpt_log_file=/tmp/docker_tpt.log
 lat_file=/tmp/docker_lat.log
+duration_file=/tmp/docker_duration.log
 echo "" > ${tpt_log_file}
 echo "" > ${lat_file}
+echo "" > ${duration_file}
 
 # Note careful use of date here (https://unix.stackexchange.com/a/123764)
 start_ms=$(date +%s%3N)
@@ -49,5 +51,10 @@ done
 # Wait for finishing processes
 wait
 
-echo "Finished after ${elapsed_ms}ms and made ${request_count} requests."
+# Write final duration
+now_ms=$(date +%s%3N)
+final_duration_ms=$(( now_ms - start_ms ))
+echo "${final_duration_ms} DURATION" >> ${duration_file}
+
+echo "Finished after ${final_duration_ms}ms and made ${request_count} requests."
 

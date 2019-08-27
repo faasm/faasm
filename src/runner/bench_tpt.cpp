@@ -3,14 +3,16 @@
 #include <util/timing.h>
 #include <util/locks.h>
 #include <runner/function.h>
-#include <stdio.h>
 #include <fstream>
+#include <unistd.h>
 
 #define USER "demo"
 #define FUNCTION "noop"
 
 #define TPT_LOG_FILE "/tmp/faasm_tpt.log"
 #define LAT_LOG_FILE "/tmp/faasm_lat.log"
+#define DURATION_LOG_FILE "/tmp/faasm_duration.log"
+
 
 static std::mutex latFileMx;
 
@@ -24,20 +26,17 @@ void _execFunction() {
     std::ofstream latFile;
     latFile.open(LAT_LOG_FILE, std::ios_base::app);
 
-    // Write to latency file with lock
-    util::UniqueLock lock(latFileMx);
-    latFile << elapsedMillis << " LATENCY" << std::endl;
+    {
+        // Write to latency file with lock
+        util::UniqueLock lock(latFileMx);
+        latFile << elapsedMillis << " LATENCY" << std::endl;
+    }
+
+    latFile.close();
 }
 
 
 int main(int argc, char *argv[]) {
-    // Set up conf
-    util::SystemConfig &conf = util::getSystemConfig();
-    conf.logLevel = "off";
-    conf.cgroupMode = "on";
-    conf.netNsMode = "off";
-    conf.zygoteMode = "off";
-
     util::initLogging();
     const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
@@ -57,8 +56,9 @@ int main(int argc, char *argv[]) {
               << std::endl;
 
     // Set up files
-    remove(LAT_LOG_FILE);
-    remove(TPT_LOG_FILE);
+    truncate(LAT_LOG_FILE, 0);
+    truncate(TPT_LOG_FILE, 0);
+    truncate(DURATION_LOG_FILE, 0);
 
     std::ofstream tptFile;
     tptFile.open(TPT_LOG_FILE, std::ios_base::app);
@@ -84,6 +84,8 @@ int main(int argc, char *argv[]) {
         elapsed = util::getTimeDiffMillis(startTimer);
     }
 
+    tptFile.close();
+
     // Wait for any stragglers
     for (auto &t : threads) {
         if (t.joinable()) {
@@ -91,7 +93,14 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    std::cout << "Finished";
+    // Write final duration
+    double finalDuration = util::getTimeDiffMillis(startTimer);
+    std::ofstream durationFile;
+    durationFile.open(DURATION_LOG_FILE, std::ios_base::app);
+    durationFile << finalDuration << " DURATION " << std::endl;
+    durationFile.close();
+
+    std::cout << "Finished after " << finalDuration << "ms and " << requestCount << " requests.";
 
     return 0;
 }

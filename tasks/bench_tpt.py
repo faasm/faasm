@@ -1,8 +1,8 @@
-import numpy as np
 from os import makedirs
 from os.path import join, exists
 from subprocess import call
 
+import numpy as np
 from invoke import task
 
 from tasks.util.env import RESULT_DIR, PROJ_ROOT, set_benchmark_env, BENCHMARK_BUILD
@@ -19,25 +19,40 @@ def _exec_cmd(cmd_str):
         raise RuntimeError("Command failed: {}".format(ret_code))
 
 
+def _numbers_from_file(file_path):
+    values = [float(l.split(" ")[0]) for l in open(file_path) if l.strip()]
+    return values
+
+
 def _write_tpt_lat(runtime_name, csv_out):
     tpt_file = "/tmp/{}_tpt.log".format(runtime_name)
     lat_file = "/tmp/{}_lat.log".format(runtime_name)
+    duration_file = "/tmp/{}_duration.log".format(runtime_name)
 
-    times = [int(t.split(" ")[0]) for t in open(tpt_file)]
-    lats = [float(l.split(" ")[0]) for l in open(lat_file)]
+    times = _numbers_from_file(tpt_file)
+    lats = _numbers_from_file(lat_file)
+    durations = _numbers_from_file(duration_file)
 
     n_times = len(times)
     n_lats = len(lats)
     msg = "Requests and latencies count doesn't match ({} vs {})".format(n_times, n_lats)
     assert n_times == n_lats, msg
 
-    duration = np.max(times)
-    tpt = duration / n_times
+    assert len(durations) == 1, "Found multiple durations"
+    duration = float(durations[0])
+
+    # Throughput should be per second
+    tpt = n_times / (duration / 1000)
+
+    # Other stats
     lat_median = np.median(lats)
     lat_90 = np.percentile(lats, 90)
     lat_99 = np.percentile(lats, 99)
 
-    csv_out.write("{},{},{},{},{}\n".format(runtime_name, tpt, lat_median, lat_90, lat_99))
+    csv_out.write(
+        "{},{:.2f},{:.2f},{:.2f},{:.2f},{:.2f}\n".format(runtime_name, duration, tpt, lat_median, lat_90, lat_99))
+
+    csv_out.flush()
 
 
 @task
@@ -46,7 +61,8 @@ def bench_tpt(ctx, runtime=None):
         makedirs(RESULT_DIR)
 
     csv_out = open(OUTPUT_FILE, "w")
-    csv_out.write("Runtime,Throughput,LatencyMed,Latency90,Latency99\n")
+    csv_out.write("Runtime,Duration,Throughput,LatencyMed,Latency90,Latency99\n")
+    csv_out.flush()
 
     set_benchmark_env()
 
@@ -71,7 +87,7 @@ def bench_tpt(ctx, runtime=None):
 
     elif runtime == "docker" or runtime is None:
         # NOTE - Docker tpt script needs delay in a seconds string and runtime in millis
-        delays = ["2", "1", "0.5", "0.25", "0.12", "0.06"]
+        delays = ["2", "1", "0.5", "0.25"]
         runtime = "20000"
 
         for delay in delays:
