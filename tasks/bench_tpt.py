@@ -1,6 +1,7 @@
 from os import makedirs
 from os.path import join, exists
 from subprocess import call
+from decimal import Decimal
 
 import numpy as np
 from invoke import task
@@ -24,7 +25,7 @@ def _numbers_from_file(file_path):
     return values
 
 
-def _write_tpt_lat(run_num, runtime_name, csv_out, tolerance=0):
+def _write_tpt_lat(run_num, runtime_name, target_tpt, csv_out, tolerance=0):
     tpt_file = "/tmp/{}_tpt.log".format(runtime_name)
     lat_file = "/tmp/{}_lat.log".format(runtime_name)
     duration_file = "/tmp/{}_duration.log".format(runtime_name)
@@ -51,21 +52,29 @@ def _write_tpt_lat(run_num, runtime_name, csv_out, tolerance=0):
     lat_99 = np.percentile(lats, 99)
 
     csv_out.write(
-        "{},{},{:.2f},{:.2f},{:.2f},{:.2f},{:.2f}\n".format(run_num, runtime_name, duration, tpt, lat_median, lat_90,
-                                                            lat_99))
+        "{},{},{:.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.2f}\n".format(
+            run_num,
+            runtime_name,
+            duration,
+            target_tpt,
+            tpt,
+            lat_median,
+            lat_90,
+            lat_99,
+        ))
 
     csv_out.flush()
 
 
 @task
 def bench_tpt(ctx, runtime=None):
-    repeats = 3
+    repeats = 2
 
     if not exists(RESULT_DIR):
         makedirs(RESULT_DIR)
 
     csv_out = open(OUTPUT_FILE, "w")
-    csv_out.write("RunNum,Runtime,Duration,Throughput,LatencyMed,Latency90,Latency99\n")
+    csv_out.write("RunNum,Runtime,Duration,TargetThroughput,Throughput,LatencyMed,Latency90,Latency99\n")
     csv_out.flush()
 
     set_benchmark_env()
@@ -75,10 +84,22 @@ def bench_tpt(ctx, runtime=None):
 
         if runtime == "docker" or runtime is None:
             # NOTE - Docker tpt script needs delay in a seconds string and runtime in millis
-            delays = ["2", "1.5", "1.25", "1", "0.75", "0.5", "0.25"]
-            runtime_length = "15000"
+            runs = [
+                ("10", "30000"),
+                ("8", "30000"),
+                ("6", "25000"),
+                ("4", "20000"),
+                ("2", "15000"),
+                ("1.5", "15000"),
+                ("1.25", "15000"),
+                ("1", "15000"),
+                ("0.75", "15000"),
+                ("0.5", "15000"),
+                ("0.25", "15000"),
+                ("0.15", "15000"),
+            ]
 
-            for delay in delays:
+            for delay, runtime_length in runs:
                 # Run the bench
                 cmd = [
                     join(PROJ_ROOT, "bin", "docker_tpt.sh"),
@@ -90,14 +111,28 @@ def bench_tpt(ctx, runtime=None):
                 _exec_cmd(cmd_str)
 
                 # Write the result
-                _write_tpt_lat(r, "docker", csv_out, tolerance=5)
+                target_tpt = Decimal("1") / Decimal(delay)
+                _write_tpt_lat(r, "docker", target_tpt, csv_out, tolerance=5)
 
         if runtime == "faasm" or runtime is None:
-            # NOTE: both are in millis
-            delays = ["2000", "1500", "1000", "500", "250", "125", "75", "50", "25", "15", "10", "5", "1"]
-            runtime_length = "10000"
+            # NOTE: both are in microseconds
+            runs = [
+                ("10000000", "30000"),
+                ("6000000", "20000"),
+                ("2000000", "15000"),
+                ("1000000", "15000"),
+                ("500000", "15000"),
+                ("250000", "15000"),
+                ("100000", "10000"),
+                ("50000", "10000"),
+                ("25000", "10000"),
+                ("10000", "10000"),
+                ("5000", "10000"),
+                ("1000", "10000"),
+                ("750", "10000"),
+            ]
 
-            for delay in delays:
+            for delay, runtime_length in runs:
                 # Run the bench
                 cmd = [
                     join(BENCHMARK_BUILD, "bin", "bench_tpt"),
@@ -109,6 +144,7 @@ def bench_tpt(ctx, runtime=None):
                 _exec_cmd(cmd_str)
 
                 # Write the result
-                _write_tpt_lat(r, "faasm", csv_out)
+                target_tpt = (Decimal("1000000")) / Decimal(delay)
+                _write_tpt_lat(r, "faasm", target_tpt, csv_out)
 
     csv_out.close()

@@ -52,7 +52,8 @@ int main(int argc, char *argv[]) {
     int requestDelay = std::stoi(argv[1]);
     int duration = std::stoi(argv[2]);
 
-    std::cout << "Faasm throughput bench with delay=" << requestDelay << "ms and duration=" << duration << "ms"
+    std::cout << "Faasm throughput bench with delay=" << requestDelay << "microseconds and duration="
+              << duration << "ms"
               << std::endl;
 
     // Set up files
@@ -78,7 +79,7 @@ int main(int argc, char *argv[]) {
         requestCount++;
 
         // Sleep
-        usleep(requestDelay * 1000);
+        usleep(requestDelay);
 
         // Update elapsed
         elapsed = util::getTimeDiffMillis(startTimer);
@@ -100,7 +101,7 @@ int main(int argc, char *argv[]) {
     durationFile << finalDuration << " DURATION " << std::endl;
     durationFile.close();
 
-    std::cout << "Finished after " << finalDuration << "ms and " << requestCount << " requests.";
+    std::cout << "Finished after " << finalDuration << "ms and " << requestCount << " requests." << std::endl;
 
     return 0;
 }
