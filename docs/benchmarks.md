@@ -126,6 +126,34 @@ By keeping a close eye on the memory usage on the box you should be able to push
 
 Because WAVM allocates so much virtual memory to each module we need to divide the workers across a couple of processes (to avoid the hard 128TiB per-process virtual memory limit).
 
+There may also be system limits that start to bite when spawning lots of threads, to give enough headroom you can edit `/etc/security/limits.conf` and add the following:
+
+```
+<your_user>       soft    nproc       120000
+<your_user>       hard    nproc       120000
+<your_user>       hard    core        unlimited
+<your_user>       soft    core        unlimited
+<your_user>       soft    memlock     4194304
+<your_user>       hard    memlock     4194304
+<your_user>       soft    stack       4194304
+<your_user>       hard    stack       4194304
+<your_user>       soft    rss         unlimited
+<your_user>       soft    locks       unlimited
+<your_user>       soft    nofile      100000
+<your_user>       soft    sigpending  100000
+<your_user>       hard    sigpending  100000
+<your_user>       soft    msgqueue    1073741824
+<your_user>       hard    msgqueue    1073741824
+```
+
+Systemd _may_ also have its own limits on the number of threads, which can be found by running:
+
+```
+ls /etc/systemd/*.conf | xargs grep Tasks
+```
+
+You need to set any occurrences of `UserTasksMax` (or anything similar) to `infinity`. You'll then need to restart.
+
 To keep the functions hanging around we can use the `demo/lock` function which sits around waiting for a lock file at `/usr/local/faasm/runtime_root/tmp/demo.lock`. It'll drop out once this has been removed.
 
 To spawn a large number of workers we can do the following:
@@ -144,18 +172,17 @@ inv spawn-faasm 50000
 inv kill-faasm
 ```
 
-When pushing workers over 10000 you need to force Redis to accept more connections either using the client or by editing `/etc/redis/redis.conf`:
+If there is enough memory on the box, both Faasm and Docker will eventually be limited by the     max threads in the system (`cat /proc/sys/kernel/threads-max`).
+
+### Redis
+
+Although it shouldn't be involved in the capactiy benchmark, Redis has a default limit of 10000 clients. To raise this you can use the client or edit `/etc/redis/redis.conf`:
 
 ```
 # Redis clients
 redis-cli
 config set maxclients 50000
-
-# Launch Faasm workers
-inv spawn-faasm 20000
 ```
-
-If there is enough memory on the box, both Faasm and Docker will eventually be limited by the     max threads in the system (`cat /proc/sys/kernel/threads-max`).
 
 ## Throughput
 
