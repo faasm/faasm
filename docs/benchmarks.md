@@ -124,35 +124,21 @@ By keeping a close eye on the memory usage on the box you should be able to push
 
 ### Faasm
 
+_System Limits_
+
+This value will likely be the thing that limits the capacity for Faasm, rather than the application itself.
+
+Other than this, various system limits may start to bite when spawning lots of threads. You can check how many threads your system can currently spawn using:
+
+```
+inv max-threads
+```
+
+If this is low (i.e. below 30k) you may want to check values in `ulimit -a` and `systemctl show` to spot if anything is noticeably restrictive.
+
 Because WAVM allocates so much virtual memory to each module we need to divide the workers across a couple of processes (to avoid the hard 128TiB per-process virtual memory limit).
 
-There may also be system limits that start to bite when spawning lots of threads, to give enough headroom you can edit `/etc/security/limits.conf` and add the following:
-
-```
-*       soft    nproc       120000
-*       hard    nproc       120000
-*       hard    core        unlimited
-*       soft    core        unlimited
-*       soft    memlock     4194304
-*       hard    memlock     4194304
-*       soft    stack       unlimited
-*       hard    stack       unlimited
-*       soft    rss         unlimited
-*       soft    locks       unlimited
-*       soft    nofile      100000
-*       soft    sigpending  100000
-*       hard    sigpending  100000
-*       soft    msgqueue    1073741824
-*       hard    msgqueue    1073741824
-```
-
-Systemd _may_ also have its own limits on the number of threads, which can be found by running:
-
-```
-ls /etc/systemd/*.conf | xargs grep Tasks
-```
-
-You need to set any occurrences of `UserTasksMax` (or anything similar) to `infinity`. You'll then need to restart.
+_Running the Faasm capcity experiments_
 
 To keep the functions hanging around we can use the `demo/lock` function which sits around waiting for a lock file at `/usr/local/faasm/runtime_root/tmp/demo.lock`. It'll drop out once this has been removed.
 
