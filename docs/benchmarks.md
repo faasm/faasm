@@ -90,7 +90,7 @@ Lucet would also be interesting but it doesn't currently provide a
 
 ## Capacity
 
-Capacity measurements are a little risky as they may kill your machine from OOM errors. We are trying to work out what the maximum number of concurrent workers we can sustain on a given box is for both Faasm and Docker.
+Capacity measurements aim to work out the maximum number of concurrent workers we can sustain on a given box for both Faasm and Docker.
 
 ### Docker
 
@@ -135,6 +135,8 @@ inv max-threads
 ```
 
 If this is low (i.e. below 30k) you may want to check values in `ulimit -a` and `systemctl show` to spot if anything is noticeably restrictive.
+
+The `kernel.pid_max` setting may also be relevant, as will `vm.max_map_count`.
 
 Because WAVM allocates so much virtual memory to each module we need to divide the workers across a couple of processes (to avoid the hard 128TiB per-process virtual memory limit).
 
