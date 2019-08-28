@@ -129,21 +129,21 @@ Because WAVM allocates so much virtual memory to each module we need to divide t
 There may also be system limits that start to bite when spawning lots of threads, to give enough headroom you can edit `/etc/security/limits.conf` and add the following:
 
 ```
-<your_user>       soft    nproc       120000
-<your_user>       hard    nproc       120000
-<your_user>       hard    core        unlimited
-<your_user>       soft    core        unlimited
-<your_user>       soft    memlock     4194304
-<your_user>       hard    memlock     4194304
-<your_user>       soft    stack       4194304
-<your_user>       hard    stack       4194304
-<your_user>       soft    rss         unlimited
-<your_user>       soft    locks       unlimited
-<your_user>       soft    nofile      100000
-<your_user>       soft    sigpending  100000
-<your_user>       hard    sigpending  100000
-<your_user>       soft    msgqueue    1073741824
-<your_user>       hard    msgqueue    1073741824
+*       soft    nproc       120000
+*       hard    nproc       120000
+*       hard    core        unlimited
+*       soft    core        unlimited
+*       soft    memlock     4194304
+*       hard    memlock     4194304
+*       soft    stack       unlimited
+*       hard    stack       unlimited
+*       soft    rss         unlimited
+*       soft    locks       unlimited
+*       soft    nofile      100000
+*       soft    sigpending  100000
+*       hard    sigpending  100000
+*       soft    msgqueue    1073741824
+*       hard    msgqueue    1073741824
 ```
 
 Systemd _may_ also have its own limits on the number of threads, which can be found by running:

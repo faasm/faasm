@@ -4,7 +4,8 @@
 #include <system_error>
 #include <iostream>
 
-#define SLEEP_SECONDS 10
+#define SLEEP_SECONDS 30
+#define N_THREADS 50000
 
 static std::vector<std::thread> threads;
 
@@ -22,13 +23,12 @@ bool _doThreadSpawn() {
 }
 
 int main() {
-    int nThreads = 50000;
-    threads.reserve(nThreads);
+    threads.reserve(N_THREADS);
 
     int failureCount = 0;
     bool totalFailure = false;
 
-    for (int i = 0; i < nThreads; i++) {
+    for (int i = 0; i < N_THREADS; i++) {
         bool success = _doThreadSpawn();
 
         // Try again a few times
@@ -69,5 +69,5 @@ int main() {
 
     std::cout << "Successful threads = " << threads.size() << std::endl;
 
-    std::cout << "Finished with " << failureCount << " failures out of " << nThreads << std::endl;
+    std::cout << "Finished with " << failureCount << " failures out of " << N_THREADS << std::endl;
 }
