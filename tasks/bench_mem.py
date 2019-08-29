@@ -8,7 +8,7 @@ from time import sleep
 
 from invoke import task
 
-from tasks.util.env import PROJ_ROOT, BENCHMARK_BUILD, RESULT_DIR
+from tasks.util.env import PROJ_ROOT, BENCHMARK_BUILD, RESULT_DIR, set_benchmark_env
 from tasks.util.memory import get_total_memory_for_pid, get_total_memory_for_pids
 from tasks.util.process import get_docker_parent_pids, get_pid_for_name, count_threads_for_name
 
@@ -68,6 +68,7 @@ def bench_mem(ctx, runtime=None):
 
     for repeat in range(0, 3):
         if runtime == "faasm" or runtime is None:
+
             # Sleep time here needs to be around 0.5/0.75x the sleep of the process so we catch when everything is up
             for n_workers in [1, 200]:
                 _run_sleep_bench(
@@ -77,7 +78,6 @@ def bench_mem(ctx, runtime=None):
                     15,
                     "bench_mem",
                     csv_out,
-                    env=FAASM_ENV,
                 )
 
         if runtime == "docker" or runtime is None:
@@ -99,7 +99,7 @@ def bench_mem(ctx, runtime=None):
                 )
 
 
-def _run_sleep_bench(bench_name, n_workers, cmd, sleep_time, process_name, csv_out, env=None):
+def _run_sleep_bench(bench_name, n_workers, cmd, sleep_time, process_name, csv_out):
     print("BENCH: {} - {} workers".format(bench_name, n_workers))
 
     # Launch the process in the background
@@ -110,8 +110,7 @@ def _run_sleep_bench(bench_name, n_workers, cmd, sleep_time, process_name, csv_o
     cmd_str = " ".join(cmd_str)
 
     # Set up environment
-    for param, value in env.items():
-        environ[param] = value
+    set_benchmark_env()
 
     # Launch subprocess
     sleep_proc = Process(target=_exec_cmd, args=[cmd_str])

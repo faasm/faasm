@@ -1,7 +1,6 @@
 #include "function.h"
 
 #include <wasm/WasmModule.h>
-#include <util/config.h>
 
 #define USER "demo"
 
@@ -17,6 +16,9 @@ int main(int argc, char *argv[]) {
     // Get args
     std::string function(argv[1]);
     int nWorkers = std::stoi(argv[2]);
+
+    // Pre-flight
+    runner::benchmarkExecutor(USER, function);
 
     logger->info("Running benchmark on demo/{} with {} workers", function, nWorkers);
 

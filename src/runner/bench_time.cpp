@@ -15,6 +15,9 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    // Pre-flight
+    runner::benchmarkExecutor(USER, FUNCTION);
+
     // Get args
     int nIterations = std::stoi(argv[1]);
 
