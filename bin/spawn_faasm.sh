@@ -14,7 +14,7 @@ export ZYGOTE_MODE=off
 export LOG_LEVEL=off 
 export UNSAFE_MODE=on
 
-spawn_script="${HOME}/faasm/bench/bin/bench_mem sleep"
+spawn_script="${HOME}/faasm/bench/bin/bench_mem sleep_long"
 
 n_threads=$1
 batch_size=1000

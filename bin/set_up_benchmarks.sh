@@ -28,7 +28,8 @@ cmake --build . --target rlimit_experiment -- -j
 # Generate codegen
 ./bin/codegen /usr/local/code/faasm/wasm/demo/noop
 ./bin/codegen /usr/local/code/faasm/wasm/demo/lock
-./bin/codegen /usr/local/code/faasm/wasm/demo/sleep
+./bin/codegen /usr/local/code/faasm/wasm/demo/sleep_long
+./bin/codegen /usr/local/code/faasm/wasm/demo/sleep_short
 
 popd
 

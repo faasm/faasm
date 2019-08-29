@@ -66,15 +66,15 @@ def bench_mem(ctx, runtime=None):
     csv_out = open(OUTPUT_FILE, "w")
     csv_out.write("Runtime,Measure,Value,Workers,ValuePerWorker\n")
 
-    for repeat in range(0, 3):
+    for repeat in range(0, 1):
         if runtime == "faasm" or runtime is None:
 
             # Sleep time here needs to be around 0.5/0.75x the sleep of the process so we catch when everything is up
-            for n_workers in [1, 200]:
+            for n_workers in [1, 200, 1000, 2000]:
                 _run_sleep_bench(
                     "faasm",
                     n_workers,
-                    "{} {}".format(join(BENCHMARK_BUILD, "bin", "bench_mem"), "sleep"),
+                    "{} {}".format(join(BENCHMARK_BUILD, "bin", "bench_mem"), "sleep_short"),
                     15,
                     "bench_mem",
                     csv_out,
@@ -88,7 +88,7 @@ def bench_mem(ctx, runtime=None):
                 )
 
         if runtime is None:
-            for n_workers in [1, 200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000]:
+            for n_workers in [100, 200, 300, 500]:
                 _run_sleep_bench(
                     "thread",
                     n_workers,
