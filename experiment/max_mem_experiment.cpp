@@ -2,8 +2,9 @@
 #include <stdio.h>
 #include <cstring>
 #include <errno.h>
+#include <unistd.h>
 
-// Script to determine the per-process virtual memory limit on the system
+// Script to determine the  virtual memory limit on the system
 
 int main() {
     float targetTb = 130.0;
@@ -22,7 +23,10 @@ int main() {
         if (result == MAP_FAILED) {
             long byteLimit = i * numBytes;
             long tbLimit = byteLimit / tibiByte;
-            printf("Failed mapping on loop %i (%s)\nLimit = %liTiB (%liB)\n", i, strerror(errno), tbLimit, byteLimit);
+            printf("Failed mapping on loop %i (%s)\n", i, strerror(errno));
+            printf("Limit = %liTiB (%liB)\n", tbLimit, byteLimit);
+
+            usleep(10*1000*1000);
             return 1;
         }
     }

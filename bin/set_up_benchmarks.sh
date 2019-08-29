@@ -22,6 +22,7 @@ cmake --build . --target bench_tpt -- -j
 cmake --build . --target thread_bench_mem -- -j
 cmake --build . --target thread_bench_time -- -j
 cmake --build . --target max_thread_experiment -- -j
+cmake --build . --target max_mem_experiment -- -j
 cmake --build . --target rlimit_experiment -- -j
 
 # Generate codegen

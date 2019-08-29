@@ -1,6 +1,6 @@
 #include <unistd.h>
 
-#define SLEEP_TIME 25
+#define SLEEP_TIME 120
 
 /**
  * Sleeps for a bit

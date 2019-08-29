@@ -15,21 +15,25 @@ namespace runner {
     void benchmarkExecutor(const std::string &user, const std::string &func) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Set up network namespace
-        std::string netnsName = std::string(BASE_NETNS_NAME) + "1";
-        isolation::NetworkNamespace ns(netnsName);
-        ns.addCurrentThread();
+        util::SystemConfig &conf = util::getSystemConfig();
 
-        // Add this thread to the cgroup
-        isolation::CGroup cgroup(BASE_CGROUP_NAME);
-        cgroup.addCurrentThread();
+        // Set up network namespace
+        if(conf.netNsMode == "on") {
+            std::string netnsName = std::string(BASE_NETNS_NAME) + "1";
+            isolation::NetworkNamespace ns(netnsName);
+            ns.addCurrentThread();
+        }
+
+        if(conf.cgroupMode == "on") {
+            // Add this thread to the cgroup
+            isolation::CGroup cgroup(BASE_CGROUP_NAME);
+            cgroup.addCurrentThread();
+        }
 
         // Set up function call
         message::Message m;
         m.set_user(user);
         m.set_function(func);
-
-        util::SystemConfig &conf = util::getSystemConfig();
 
         if(conf.zygoteMode == "on") {
             logger->info("Executing function {}/{} from zygote", user, func);

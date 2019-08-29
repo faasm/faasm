@@ -155,12 +155,14 @@ To keep the functions hanging around we can use the `demo/lock` function which s
 To spawn a large number of workers we can do the following:
 
 ```
-# Run as root to dodge any user-specific process/ thread limits
-sudo su
 source workon.sh
 
 # Spawn lots of workers in one terminal (will wait until killed)
-inv spawn-faasm 50000
+ulimit -u 120000
+./bin/spawn-faasm 50000
+
+# Print thread count
+inv faasm-count
 
 # Check resources
 
