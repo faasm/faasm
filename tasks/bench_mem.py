@@ -1,4 +1,3 @@
-import os
 from decimal import Decimal
 from multiprocessing import Process
 from os import makedirs, environ
@@ -9,7 +8,7 @@ from time import sleep
 
 from invoke import task
 
-from tasks.util.env import PROJ_ROOT, BENCHMARK_BUILD, RESULT_DIR, set_benchmark_env
+from tasks.util.env import PROJ_ROOT, BENCHMARK_BUILD, RESULT_DIR
 from tasks.util.memory import get_total_memory_for_pid, get_total_memory_for_pids
 from tasks.util.process import get_docker_parent_pids, get_pid_for_name, count_threads_for_name
 
@@ -46,39 +45,6 @@ def container_count(ctx):
     ids = [i for i in ids if i]
 
     print("Docker containers: {}".format(len(ids)))
-
-
-@task
-def spawn_faasm(ctx, n_workers):
-    func_name = "lock"
-    n_workers = int(n_workers)
-
-    # Prepare lock file
-    if not exists(FAASM_LOCK_DIR):
-        makedirs(FAASM_LOCK_DIR)
-
-    # Create the lock file
-    open(FAASM_LOCK_FILE, "w")
-
-    print("Kicking off Faasm containers in batches")
-
-    def _do_faasm_spawn(n):
-        cmd = [
-            join(BENCHMARK_BUILD, "bin", "bench_mem"),
-            func_name,
-            str(n),
-        ]
-        cmd_str = " ".join(cmd)
-
-        set_benchmark_env()
-
-        bg_proc = Process(target=_exec_cmd, args=[cmd_str])
-        bg_proc.start()
-
-        # It seems this is required to let things catch up
-        sleep(FAASM_SLEEP_TIME)
-
-    _run_function_in_batches(n_workers, FAASM_BATCH_SIZE, _do_faasm_spawn)
 
 
 @task

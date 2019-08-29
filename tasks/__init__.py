@@ -37,7 +37,6 @@ from tasks.bench_mem import (
     spawn_containers,
     kill_containers,
     container_count,
-    spawn_faasm,
     kill_faasm,
     faasm_count,
 )

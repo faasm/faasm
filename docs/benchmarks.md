@@ -159,16 +159,16 @@ To spawn a large number of workers we can do the following:
 source workon.sh
 
 # Spawn lots of workers in one terminal (will wait until killed)
-ulimit -u 120000
-./bin/spawn-faasm 50000
+./bin/spawn_faasm.sh 65000
 
 # Print thread count
 inv faasm-count
 
 # Check resources
 
-# Make sure lock file definitely gone
-inv kill-faasm
+# Kill and check
+pkill -f bench_mem
+inv faasm-count
 ```
 
 If there is enough memory on the box, both Faasm and Docker will eventually be limited by the     max threads in the system (`cat /proc/sys/kernel/threads-max`).
