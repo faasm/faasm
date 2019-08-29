@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <unistd.h>
 
-// Script to determine the  virtual memory limit on the system
+// Script to determine the per-process virtual memory limit on the system
 
 int main() {
     float targetTb = 130.0;
