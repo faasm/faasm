@@ -94,11 +94,11 @@ Capacity measurements aim to work out the maximum number of concurrent workers w
 
 ### Docker
 
-Spawning lots of Docker containers at once can lead to big memory/ CPU spikes, so we need to build up the numbers slowly. This can be done with:
+Spawning lots of Docker containers at once can lead to big memory/ CPU spikes, so we need to build up the numbers slowly. This can be done with the task:
 
 ```
-# Spawn 10 workers
-inv spawn-docker-containers 10
+# Spawn 100 containers
+inv spawn-docker-containers 100
 ```
 
 We can only have 1023 Docker containers on a single Docker network (due to the limit on virtual bridges), so we can either run them all on the `host` network, or create a couple of bigger networks, e.g.
@@ -126,21 +126,23 @@ By keeping a close eye on the memory usage on the box you should be able to push
 
 _System Limits_
 
-This value will likely be the thing that limits the capacity for Faasm, rather than the application itself.
+System limits will normally limit the capacity for Faasm workers rather than the application itself.
 
-Other than this, various system limits may start to bite when spawning lots of threads. You can check how many threads your system can currently spawn using:
+The most likely will be limits on the max number of threads, which you can test using:
 
 ```
 inv max-threads
 ```
 
-If this is low (i.e. below 30k) you may want to check values in `ulimit -a` and `systemctl show` to spot if anything is noticeably restrictive.
+This will show both the system max and what you can currently reach. If this is low you can do the following:
 
-The `kernel.pid_max` setting may also be relevant, as will `vm.max_map_count`.
-
-Because WAVM allocates so much virtual memory to each module we need to divide the workers across a couple of processes (to avoid the hard 128TiB per-process virtual memory limit).
+- Switch off any `systemd` accounting (add `DefaultTasksAccounting=no` in `/etc/systemd/system.conf` and restart)
+- Raise the `nproc` and `stack` limits with `ulimit` (may require editing `/etc/security/limits.conf` to raise hard limits)
+- Increase `kernel.pid_max` and `vm.max_map_count` via `sysctl`
 
 _Running the Faasm capcity experiments_
+
+Because WAVM allocates so much virtual memory to each module we need to divide the workers across a couple of processes (to avoid the hard 128TiB per-process virtual memory limit).
 
 To keep the functions hanging around we can use the `demo/lock` function which sits around waiting for a lock file at `/usr/local/faasm/runtime_root/tmp/demo.lock`. It'll drop out once this has been removed.
 

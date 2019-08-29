@@ -28,7 +28,7 @@ int main() {
     for (int i = 0; i < N_THREADS; i++) {
         bool success = _doThreadSpawn();
         if(!success) {
-            std::cout << "Max threads = " << i << std::endl;
+            std::cout << "Actual max threads = " << i << std::endl;
             break;
         }
     }
