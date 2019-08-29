@@ -68,7 +68,7 @@ def _write_tpt_lat(run_num, runtime_name, target_tpt, csv_out, tolerance=0):
 
 @task
 def bench_tpt(ctx, runtime=None):
-    repeats = 2
+    repeats = 3
 
     if not exists(RESULT_DIR):
         makedirs(RESULT_DIR)
@@ -80,7 +80,7 @@ def bench_tpt(ctx, runtime=None):
     set_benchmark_env()
 
     for r in range(repeats):
-        print("Throughput benchmark repeat {}".format(r))
+        print("Throughput benchmark repeat {}".format(r + 1))
 
         if runtime == "docker" or runtime is None:
             # NOTE - Docker tpt script needs delay in a seconds string and runtime in millis
