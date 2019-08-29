@@ -70,7 +70,7 @@ def bench_mem(ctx, runtime=None):
         if runtime == "faasm" or runtime is None:
 
             # Sleep time here needs to be around 0.5/0.75x the sleep of the process so we catch when everything is up
-            for n_workers in [1, 200, 1000, 2000]:
+            for n_workers in [500, 1000, 2000]:
                 _run_sleep_bench(
                     "faasm",
                     n_workers,
@@ -81,14 +81,14 @@ def bench_mem(ctx, runtime=None):
                 )
 
         if runtime == "docker" or runtime is None:
-            for n_workers in [10, 20]:
+            for n_workers in [100, 200, 300]:
                 _run_docker_bench(
                     n_workers,
                     csv_out,
                 )
 
         if runtime is None:
-            for n_workers in [100, 200, 300, 500]:
+            for n_workers in [1000, 2000, 3000]:
                 _run_sleep_bench(
                     "thread",
                     n_workers,
