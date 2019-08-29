@@ -15,7 +15,7 @@ bool _doThreadSpawn() {
             sleep(SLEEP_SECONDS);
         });
     } catch (std::system_error &e) {
-        // std::cerr << "What: " << e.what() << "  Code: " << e.code() << std::endl;
+        std::cerr << "What: " << e.what() << "  Code: " << e.code() << std::endl;
         return false;
     }
 

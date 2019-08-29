@@ -131,14 +131,20 @@ System limits will normally limit the capacity for Faasm workers rather than the
 The most likely will be limits on the max number of threads, which you can test using:
 
 ```
+# Note, ulimit will fail if your hard limit is too low
+ulimit -u 120000
+
 inv max-threads
 ```
 
 This will show both the system max and what you can currently reach. If this is low you can do the following:
 
-- Switch off any `systemd` accounting (add `DefaultTasksAccounting=no` in `/etc/systemd/system.conf` and restart)
-- Raise the `nproc` and `stack` limits with `ulimit` (may require editing `/etc/security/limits.conf` to raise hard limits)
-- Increase `kernel.pid_max` and `vm.max_map_count` via `sysctl`
+- Switch off any `systemd` accounting (add `DefaultTasksAccounting=no` in `/etc/systemd/system.conf`)
+- Set `UserTasksMax=infinity` in `/etc/systemd/logind.conf`
+- Bump up system limits by setting `kernel.pid_max=150000` and `vm.max_map_count=1000000` via `sysctl`
+- Restart
+- In the shell you're running the test, raise the `nproc` and `stack` limits with `ulimit`
+- You may need to edit `/etc/security/limits.conf` to raise hard limits if you can't raise the `ulimit` values high enough
 
 _Running the Faasm capcity experiments_
 
