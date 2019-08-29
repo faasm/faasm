@@ -1,11 +1,8 @@
 #include <unistd.h>
 
-#define SLEEP_TIME 120
+#define SLEEP_TIME_SECONDS 600
 
-/**
- * Sleeps for a bit
- */
 int main(int argc, char *argv[]) {
-    sleep(SLEEP_TIME);
+    sleep(SLEEP_TIME_SECONDS);
     return 0;
 }

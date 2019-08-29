@@ -62,7 +62,7 @@ do
   echo "$command"
   $command &
 
-  sleep 0.5
+  sleep 5 
 done
 
 # Wait for things to finish
