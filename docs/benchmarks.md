@@ -12,8 +12,7 @@ To amortize any start-up time and underlying system resources we run each for mu
 
 ### Set up
 
-To run on a remote machine, you need to set up an inventory file at
-`ansible/inventory/benchmark.yml`, e.g.
+To run on a remote machine, you need to set up an inventory file at `ansible/inventory/benchmark.yml`, e.g.
 
 ```
 [all]
@@ -25,6 +24,8 @@ You can then set up the machine with:
 ```
 ./bin/provision_bench_host.sh
 ```
+
+You'll need to restart the host once Ansible has finished.
 
 Once the host is fully set up, you can SSH onto it and run:
 

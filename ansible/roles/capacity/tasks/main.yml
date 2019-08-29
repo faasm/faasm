@@ -1,0 +1,30 @@
+---
+
+- name: "Raise kernel.pid_max limit"
+  become: yes
+  lineinfile:
+    path: /etc/sysctl.conf
+    regexp: '^kernel\.pid_max'
+    line: "kernel.pid_max=150000"
+
+- name: "Raise vm.max_map_count limit"
+  become: yes
+  lineinfile:
+    path: /etc/sysctl.conf
+    regexp: '^vm\.max_map_count'
+    line: "vm.max_map_count=5000000"
+
+- name: "Copy config files into place"
+  become: yes
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: "root"
+    group: "root"
+    mode: 0644
+  with_items:
+    - {"src": "limits.conf", "dest": "/etc/security/limits.conf"}
+    - {"src": "logind.conf", "dest": "/etc/systemd/logind.conf"}
+    - {"src": "system.conf", "dest": "/etc/systemd/system.conf"}
+
+
