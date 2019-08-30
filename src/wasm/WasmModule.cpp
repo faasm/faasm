@@ -14,7 +14,6 @@
 #include <WAVM/IR/Module.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
-#include <WAVM/Runtime/RuntimeData.h>
 #include <WAVM/WASTParse/WASTParse.h>
 
 
@@ -150,11 +149,11 @@ namespace wasm {
             }
 
             // Go through each elem entry and record where in the table it's getting inserted
-            for (Uptr i = 0; i < es.elems->size(); i++) {
-                const IR::Elem &elem = (*es.elems)[i];
+            for (Uptr i = 0; i < es.contents->elemExprs.size(); i++) {
+                IR::ElemExpr &elem = (es.contents->elemExprs)[i];
 
                 // Ignore null entries
-                if (!es.isActive && elem.type == IR::Elem::Type::ref_null) {
+                if (elem.type == IR::ElemExpr::Type::ref_null) {
                     continue;
                 }
 
@@ -191,11 +190,16 @@ namespace wasm {
         }
     }
 
-    IR::ValueTuple WasmModule::executeFunction(Runtime::Function *func, const std::vector<IR::Value> &arguments) {
+    void WasmModule::executeFunction(
+            Runtime::Function *func,
+            IR::FunctionType funcType,
+            const std::vector<IR::Value> &arguments,
+            std::vector<IR::Value> &results
+    ) {
         // Note the need to set the currently executing module
         executingModule = this;
 
-        return Runtime::invokeFunctionChecked(executionContext, func, arguments);
+        Runtime::invokeFunction(executionContext, func, funcType, arguments.data(), results.data());
     }
 
     void WasmModule::bindToFunction(const message::Message &msg) {
@@ -245,7 +249,13 @@ namespace wasm {
         // Record the errno location
         Runtime::Function *errNoLocation = asFunctionNullable(getInstanceExport(moduleInstance, "__errno_location"));
         if (errNoLocation) {
-            IR::ValueTuple errNoResult = executeFunction(errNoLocation, {});
+            std::vector<IR::Value> errNoResult(1);
+            executeFunction(
+                    errNoLocation,
+                    IR::FunctionType({IR::ValueType::i32}, {}),
+                    {},
+                    errNoResult
+            );
             if (errNoResult.size() == 1 && errNoResult[0].type == IR::ValueType::i32) {
                 errnoLocation = errNoResult[0].i32;
                 logger->debug("Found errno location {}", errnoLocation);
@@ -257,7 +267,14 @@ namespace wasm {
         // Get and execute zygote function
         zygoteFunctionInstance = getFunction(ZYGOTE_FUNC_NAME, false);
         if (zygoteFunctionInstance) {
-            executeFunction(zygoteFunctionInstance, {});
+            std::vector<IR::Value> results;
+            const IR::FunctionType funcType = Runtime::getFunctionType(zygoteFunctionInstance);
+            executeFunction(
+                    zygoteFunctionInstance,
+                    funcType,
+                    {},
+                    results
+            );
         }
 
         // Memory-related variables
@@ -316,7 +333,7 @@ namespace wasm {
         IR::Module &irModule = moduleRegistry.getModule(boundUser, boundFunction, sharedModulePath);
         if (isMainModule) {
             // Set up intrinsics
-            envModule = Intrinsics::instantiateModule(compartment, {INTRINSIC_MODULE_REF(env)}, "env");
+            envModule = Intrinsics::instantiateModule(compartment, {WAVM_INTRINSIC_MODULE_REF(env)}, "env");
 
             // Make sure the stack top is as expected
             IR::GlobalDef stackDef = irModule.globals.getDef(0);
@@ -429,7 +446,13 @@ namespace wasm {
         Runtime::Function *wasmCtorsFunction = asFunctionNullable(getInstanceExport(mod, "__wasm_call_ctors"));
         if (wasmCtorsFunction) {
             logger->debug("Executing __wasm_call_ctors for {}", path);
-            executeFunction(wasmCtorsFunction, {});
+            std::vector<IR::Value> empty;
+            executeFunction(
+                    wasmCtorsFunction,
+                    IR::FunctionType({}, {}),
+                    {},
+                    empty
+            );
         }
 
         // Keep a record of this module
@@ -518,7 +541,9 @@ namespace wasm {
         Uptr elemsToShrink = currentTableSize - initialTableSize;
         if (elemsToShrink > 0) {
             logger->debug("Shrinking table from {} to {}", currentTableSize, initialTableSize);
-            Runtime::shrinkTable(defaultTable, elemsToShrink);
+
+            // TODO - what to do now shrinkTable has been removed?
+            // Runtime::shrinkTable(defaultTable, elemsToShrink);
         }
 
         // Remove references to shared modules
@@ -565,7 +590,7 @@ namespace wasm {
             dynamicModuleMap[m.first] = nullptr;
         }
 
-        if(compartment == nullptr) {
+        if (compartment == nullptr) {
             return true;
         }
 
@@ -591,7 +616,8 @@ namespace wasm {
             Uptr shrinkSize = currentPages - targetPages;
             logger->debug("Shrinking memory by {} pages", shrinkSize);
 
-            Runtime::shrinkMemory(defaultMemory, shrinkSize);
+            // TODO - what to do now shrinkMemory has been removed?
+            // Runtime::shrinkMemory(defaultMemory, shrinkSize);
 
         } else if (targetPages > currentPages) {
             Uptr growSize = targetPages - currentPages;
@@ -650,17 +676,26 @@ namespace wasm {
         try {
             // Call the function
             logger->debug("Invoking the function itself");
-            Runtime::unwindSignalsAsExceptions([this] {
-                executeFunction(functionInstance, invokeArgs);
+
+            Runtime::catchRuntimeExceptions([this] {
+                std::vector<IR::Value> results(1);
+                executeFunction(
+                        functionInstance,
+                        IR::FunctionType(
+                                {IR::ValueType::i32},
+                                {IR::ValueType::i32, IR::ValueType::i32}
+                        ),
+                        invokeArgs,
+                        results
+                );
+            }, [](Runtime::Exception *exception) {
+                // Treat any unhandled exception as a fatal error.
+                Errors::fatalf("Runtime exception: %s",
+                               describeException(exception).c_str());
             });
         }
         catch (wasm::WasmExitException &e) {
             exitCode = e.exitCode;
-        }
-        catch (Runtime::Exception *ex) {
-            logger->error("Runtime exception: {}", Runtime::describeException(ex).c_str());
-            Runtime::destroyException(ex);
-            exitCode = 1;
         }
 
         // Reset ready for next execution

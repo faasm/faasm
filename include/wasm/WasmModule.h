@@ -34,7 +34,7 @@ using namespace WAVM;
 
 
 namespace wasm {
-    DECLARE_INTRINSIC_MODULE(env)
+    WAVM_DECLARE_INTRINSIC_MODULE(env)
 
     Uptr getNumberOfPagesForBytes(U32 nBytes);
 
@@ -76,7 +76,12 @@ namespace wasm {
 
         int addFunctionToTable(Runtime::Object *exportedFunc);
 
-        IR::ValueTuple executeFunction(Runtime::Function *func, const std::vector<IR::Value>& arguments);
+        void executeFunction(
+                Runtime::Function *func,
+                IR::FunctionType funcType,
+                const std::vector<IR::Value> &arguments,
+                std::vector<IR::Value> &results
+        );
 
         Runtime::Function *getFunction(const std::string &funcName, bool strict);
 
@@ -110,6 +115,7 @@ namespace wasm {
         std::string getBoundFunction();
 
         bool tearDown();
+
     private:
         Runtime::GCPointer<Runtime::ModuleInstance> envModule;
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
@@ -187,6 +193,7 @@ namespace wasm {
         void registerModule(const std::string &key, const WasmModule &module);
 
         WasmModule &getModule(const std::string &key);
+
     private:
         std::mutex registryMutex;
         std::unordered_map<std::string, WasmModule> moduleMap;

@@ -49,7 +49,9 @@ namespace storage {
         IR::Module moduleIR;
         if (this->isWasm(bytes)) {
             // Handle WASM
-            bool success = WASM::loadBinaryModule(bytes.data(), bytes.size(), moduleIR);
+            Serialization::MemoryInputStream inputStream(bytes.data(), bytes.size());
+            WASM::LoadError loadError;
+            bool success = WASM::loadBinaryModule(inputStream, moduleIR, &loadError);
             if (!success) {
                 throw std::runtime_error("Failed to parse wasm binary");
             }

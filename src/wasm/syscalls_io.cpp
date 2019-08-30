@@ -11,7 +11,6 @@
 #include <sys/unistd.h>
 
 #include <WAVM/Runtime/Runtime.h>
-#include <WAVM/Runtime/RuntimeData.h>
 #include <WAVM/Runtime/Intrinsics.h>
 
 
@@ -491,13 +490,13 @@ namespace wasm {
         }
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "ioctl", I32, ioctl, I32 a, I32 b, I32 c) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "ioctl", I32, ioctl, I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - ioctl - {} {} {}", a, b, c);
 
         return 0;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "puts", I32, puts, I32 strPtr) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "puts", I32, puts, I32 strPtr) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         char *str = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
 
@@ -506,7 +505,7 @@ namespace wasm {
         return 0;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "putc", I32, putc, I32 c, I32 streamPtr) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "putc", I32, putc, I32 c, I32 streamPtr) {
         util::getLogger()->debug("S - putc - {} {}", c, streamPtr);
 
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
@@ -520,7 +519,7 @@ namespace wasm {
     /**
      * fprintf can provide some useful debugging info so we can just spit it to stdout
      */
-    DEFINE_INTRINSIC_FUNCTION(env, "vfprintf", I32, vfprintf, I32 fd, U32 formatPtr, I32 argList) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "vfprintf", I32, vfprintf, I32 fd, U32 formatPtr, I32 argList) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         const char *format = &Runtime::memoryRef<char>(memoryPtr, (Uptr) formatPtr);
         std::cout << "S - vfprintf - " << format << std::endl;

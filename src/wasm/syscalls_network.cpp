@@ -6,7 +6,6 @@
 #include <netdb.h>
 
 #include <WAVM/Runtime/Runtime.h>
-#include <WAVM/Runtime/RuntimeData.h>
 #include <WAVM/Runtime/Intrinsics.h>
 
 namespace wasm {
@@ -314,7 +313,7 @@ namespace wasm {
         return 0;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "gethostbyname", I32, _gethostbyname, I32 hostnamePtr) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "gethostbyname", I32, _gethostbyname, I32 hostnamePtr) {
         const std::string hostname = getStringFromWasm(hostnamePtr);
         util::getLogger()->debug("S - gethostbyname {}", hostname);
 

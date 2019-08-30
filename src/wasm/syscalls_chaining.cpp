@@ -4,7 +4,6 @@
 #include <scheduler/Scheduler.h>
 
 #include <WAVM/Runtime/Runtime.h>
-#include <WAVM/Runtime/RuntimeData.h>
 #include <WAVM/Runtime/Intrinsics.h>
 
 namespace wasm {
@@ -12,7 +11,7 @@ namespace wasm {
 
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_idx", I32, __faasm_get_idx) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_idx", I32, __faasm_get_idx) {
         util::getLogger()->debug("S - get_idx");
 
         message::Message *call = getExecutingCall();
@@ -21,7 +20,7 @@ namespace wasm {
         return idx;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_await_call", I32, __faasm_await_call, U32 messageId) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_await_call", I32, __faasm_await_call, U32 messageId) {
         util::getLogger()->debug("S - await_call - {}", messageId);
 
         scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
@@ -62,7 +61,7 @@ namespace wasm {
         return call.id();
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_function", U32, __faasm_chain_function,
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_function", U32, __faasm_chain_function,
                               I32 namePtr, I32 inputDataPtr, I32 inputDataLen) {
         util::getLogger()->debug("S - chain_function - {} {} {}", namePtr, inputDataPtr, inputDataLen);
 
@@ -72,7 +71,7 @@ namespace wasm {
         return _makeChainedCall(funcName, 0, inputData);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_this", U32, __faasm_chain_this,
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_this", U32, __faasm_chain_this,
                               I32 idx, I32 inputDataPtr, I32 inputDataLen) {
         util::getLogger()->debug("S - chain_this - {} {} {}", idx, inputDataPtr, inputDataLen);
 
