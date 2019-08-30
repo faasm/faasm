@@ -21,6 +21,7 @@
   apt:
     name:
       - clang-8
+      - clang-tools-8
       - build-essential
     update_cache: yes
 
@@ -34,3 +35,5 @@
     - "clang"
     - "clang++"
     - "clang-cpp"
+    - "wasm-ld"
+
