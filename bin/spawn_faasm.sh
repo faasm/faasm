@@ -7,10 +7,17 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-spawn_script="${HOME}/faasm/bench/bin/bench_mem lock"
+# Faasm env
+export CGROUP_MODE=off
+export NETNS_MODE=off
+export ZYGOTE_MODE=off
+export LOG_LEVEL=off 
+export UNSAFE_MODE=on
+
+spawn_script="${HOME}/faasm/bench/bin/bench_mem sleep_long"
 
 n_threads=$1
-batch_size=2000
+batch_size=1000
 
 n_batches=$(( n_threads / batch_size ))
 overshoot=$(( n_threads % batch_size ))
@@ -20,6 +27,17 @@ else
   overshoot=$batch_size
 fi
 
+# Bump up ulimit
+echo "Attempting to bump up limits..."
+echo ""
+
+ulimit -u $(( n_threads + 1000 ))
+ulimit -i $(( n_threads + 1000 ))
+
+echo "New limits:"
+ulimit -aS
+
+echo ""
 echo "Running $n_threads in $n_batches batches"
 
 # Create the lock file
@@ -43,6 +61,8 @@ do
   command="$spawn_script $this_batch"
   echo "$command"
   $command &
+
+  sleep 5 
 done
 
 # Wait for things to finish

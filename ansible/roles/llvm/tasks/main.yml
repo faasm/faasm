@@ -3,7 +3,7 @@
 - name: "Add LLVM 8 repo"
   become: yes
   apt_repository:
-    repo: deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-8 main
+    repo: "deb http://apt.llvm.org/{{ ansible_distribution_release }}/ llvm-toolchain-{{ ansible_distribution_release }}-8 main"
     state: present
 
 - name: "Install llvm and other deps"

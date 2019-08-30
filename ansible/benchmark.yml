@@ -18,3 +18,4 @@
     - aws_sdk
     - emsdk
     - docker
+    - capacity

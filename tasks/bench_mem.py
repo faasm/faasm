@@ -1,4 +1,3 @@
-import os
 from decimal import Decimal
 from multiprocessing import Process
 from os import makedirs, environ
@@ -49,39 +48,6 @@ def container_count(ctx):
 
 
 @task
-def spawn_faasm(ctx, n_workers):
-    func_name = "lock"
-    n_workers = int(n_workers)
-
-    # Prepare lock file
-    if not exists(FAASM_LOCK_DIR):
-        makedirs(FAASM_LOCK_DIR)
-
-    # Create the lock file
-    open(FAASM_LOCK_FILE, "w")
-
-    print("Kicking off Faasm containers in batches")
-
-    def _do_faasm_spawn(n):
-        cmd = [
-            join(BENCHMARK_BUILD, "bin", "bench_mem"),
-            func_name,
-            str(n),
-        ]
-        cmd_str = " ".join(cmd)
-
-        set_benchmark_env()
-
-        bg_proc = Process(target=_exec_cmd, args=[cmd_str])
-        bg_proc.start()
-
-        # It seems this is required to let things catch up
-        sleep(FAASM_SLEEP_TIME)
-
-    _run_function_in_batches(n_workers, FAASM_BATCH_SIZE, _do_faasm_spawn)
-
-
-@task
 def kill_faasm(ctx):
     remove(FAASM_LOCK_FILE)
 
@@ -100,29 +66,29 @@ def bench_mem(ctx, runtime=None):
     csv_out = open(OUTPUT_FILE, "w")
     csv_out.write("Runtime,Measure,Value,Workers,ValuePerWorker\n")
 
-    for repeat in range(0, 3):
+    for repeat in range(0, 1):
         if runtime == "faasm" or runtime is None:
+
             # Sleep time here needs to be around 0.5/0.75x the sleep of the process so we catch when everything is up
-            for n_workers in [1, 200]:
+            for n_workers in [500, 1000, 2000]:
                 _run_sleep_bench(
                     "faasm",
                     n_workers,
-                    "{} {}".format(join(BENCHMARK_BUILD, "bin", "bench_mem"), "sleep"),
+                    "{} {}".format(join(BENCHMARK_BUILD, "bin", "bench_mem"), "sleep_short"),
                     15,
                     "bench_mem",
                     csv_out,
-                    env=FAASM_ENV,
                 )
 
         if runtime == "docker" or runtime is None:
-            for n_workers in [10, 20]:
+            for n_workers in [100, 200, 300]:
                 _run_docker_bench(
                     n_workers,
                     csv_out,
                 )
 
         if runtime is None:
-            for n_workers in [1, 200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000]:
+            for n_workers in [1000, 2000, 3000]:
                 _run_sleep_bench(
                     "thread",
                     n_workers,
@@ -133,7 +99,7 @@ def bench_mem(ctx, runtime=None):
                 )
 
 
-def _run_sleep_bench(bench_name, n_workers, cmd, sleep_time, process_name, csv_out, env=None):
+def _run_sleep_bench(bench_name, n_workers, cmd, sleep_time, process_name, csv_out):
     print("BENCH: {} - {} workers".format(bench_name, n_workers))
 
     # Launch the process in the background
@@ -144,8 +110,7 @@ def _run_sleep_bench(bench_name, n_workers, cmd, sleep_time, process_name, csv_o
     cmd_str = " ".join(cmd_str)
 
     # Set up environment
-    for param, value in env.items():
-        environ[param] = value
+    set_benchmark_env()
 
     # Launch subprocess
     sleep_proc = Process(target=_exec_cmd, args=[cmd_str])

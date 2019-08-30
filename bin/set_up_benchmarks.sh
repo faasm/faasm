@@ -21,11 +21,15 @@ cmake --build . --target bench_time -- -j
 cmake --build . --target bench_tpt -- -j
 cmake --build . --target thread_bench_mem -- -j
 cmake --build . --target thread_bench_time -- -j
+cmake --build . --target max_thread_experiment -- -j
+cmake --build . --target max_mem_experiment -- -j
+cmake --build . --target rlimit_experiment -- -j
 
 # Generate codegen
 ./bin/codegen /usr/local/code/faasm/wasm/demo/noop
 ./bin/codegen /usr/local/code/faasm/wasm/demo/lock
-./bin/codegen /usr/local/code/faasm/wasm/demo/sleep
+./bin/codegen /usr/local/code/faasm/wasm/demo/sleep_long
+./bin/codegen /usr/local/code/faasm/wasm/demo/sleep_short
 
 popd
 

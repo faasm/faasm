@@ -12,8 +12,7 @@ To amortize any start-up time and underlying system resources we run each for mu
 
 ### Set up
 
-To run on a remote machine, you need to set up an inventory file at
-`ansible/inventory/benchmark.yml`, e.g.
+To run on a remote machine, you need to set up an inventory file at `ansible/inventory/benchmark.yml`, e.g.
 
 ```
 [all]
@@ -25,6 +24,8 @@ You can then set up the machine with:
 ```
 ./bin/provision_bench_host.sh
 ```
+
+You'll need to restart the host once Ansible has finished.
 
 Once the host is fully set up, you can SSH onto it and run:
 
@@ -90,15 +91,15 @@ Lucet would also be interesting but it doesn't currently provide a
 
 ## Capacity
 
-Capacity measurements are a little risky as they may kill your machine from OOM errors. We are trying to work out what the maximum number of concurrent workers we can sustain on a given box is for both Faasm and Docker.
+Capacity measurements aim to work out the maximum number of concurrent workers we can sustain on a given box for both Faasm and Docker.
 
 ### Docker
 
-Spawning lots of Docker containers at once can lead to big memory/ CPU spikes, so we need to build up the numbers slowly. This can be done with:
+Spawning lots of Docker containers at once can lead to big memory/ CPU spikes, so we need to build up the numbers slowly. This can be done with the task:
 
 ```
-# Spawn 10 workers
-inv spawn-docker-containers 10
+# Spawn 100 containers
+inv spawn-docker-containers 100
 ```
 
 We can only have 1023 Docker containers on a single Docker network (due to the limit on virtual bridges), so we can either run them all on the `host` network, or create a couple of bigger networks, e.g.
@@ -124,6 +125,30 @@ By keeping a close eye on the memory usage on the box you should be able to push
 
 ### Faasm
 
+_System Limits_
+
+System limits will normally limit the capacity for Faasm workers rather than the application itself.
+
+The most likely will be limits on the max number of threads, which you can test using:
+
+```
+# Note, ulimit will fail if your hard limit is too low
+ulimit -u 120000
+
+inv max-threads
+```
+
+This will show both the system max and what you can currently reach. If this is low you can do the following:
+
+- Switch off any `systemd` accounting (add `DefaultTasksAccounting=no` in `/etc/systemd/system.conf`)
+- Set `UserTasksMax=infinity` in `/etc/systemd/logind.conf`
+- Bump up system limits by setting `kernel.pid_max=150000` and `vm.max_map_count=1000000` via `sysctl`
+- Restart
+- In the shell you're running the test, raise the `nproc` and `stack` limits with `ulimit`
+- You may need to edit `/etc/security/limits.conf` to raise hard limits if you can't raise the `ulimit` values high enough
+
+_Running the Faasm capcity experiments_
+
 Because WAVM allocates so much virtual memory to each module we need to divide the workers across a couple of processes (to avoid the hard 128TiB per-process virtual memory limit).
 
 To keep the functions hanging around we can use the `demo/lock` function which sits around waiting for a lock file at `/usr/local/faasm/runtime_root/tmp/demo.lock`. It'll drop out once this has been removed.
@@ -131,31 +156,32 @@ To keep the functions hanging around we can use the `demo/lock` function which s
 To spawn a large number of workers we can do the following:
 
 ```
-# Run as root to dodge any user-specific process/ thread limits
-sudo su
 source workon.sh
 
 # Spawn lots of workers in one terminal (will wait until killed)
-inv spawn-faasm 50000
+./bin/spawn_faasm.sh 65000
+
+# Print thread count
+inv faasm-count
 
 # Check resources
 
-# Make sure lock file definitely gone
-inv kill-faasm
+# Kill and check
+pkill -f bench_mem
+inv faasm-count
 ```
 
-When pushing workers over 10000 you need to force Redis to accept more connections either using the client or by editing `/etc/redis/redis.conf`:
+If there is enough memory on the box, both Faasm and Docker will eventually be limited by the     max threads in the system (`cat /proc/sys/kernel/threads-max`).
+
+### Redis
+
+Although it shouldn't be involved in the capactiy benchmark, Redis has a default limit of 10000 clients. To raise this you can use the client or edit `/etc/redis/redis.conf`:
 
 ```
 # Redis clients
 redis-cli
 config set maxclients 50000
-
-# Launch Faasm workers
-inv spawn-faasm 20000
 ```
-
-If there is enough memory on the box, both Faasm and Docker will eventually be limited by the     max threads in the system (`cat /proc/sys/kernel/threads-max`).
 
 ## Throughput
 

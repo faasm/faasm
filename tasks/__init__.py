@@ -19,6 +19,9 @@ from tasks.aws import (
     prepare_lambda_workers,
     upload_wasm_lambda_func
 )
+from tasks.bench_capacity import (
+    max_threads,
+)
 from tasks.bench_time import (
     bench_time,
 )
@@ -34,7 +37,6 @@ from tasks.bench_mem import (
     spawn_containers,
     kill_containers,
     container_count,
-    spawn_faasm,
     kill_faasm,
     faasm_count,
 )
