@@ -13,4 +13,24 @@
       - llvm-8
       - llvm-8-dev
       - llvm-8-tools
+      - lld-8
     update_cache: yes
+
+- name: "Install clang and other deps"
+  become: yes
+  apt:
+    name:
+      - clang-8
+      - build-essential
+    update_cache: yes
+
+- name: "Symlinks"
+  become: yes
+  file:
+    state: link
+    src: "/usr/bin/{{ item }}-8"
+    dest: "/usr/bin/{{ item }}"
+  with_items:
+    - "clang"
+    - "clang++"
+    - "clang-cpp"

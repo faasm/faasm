@@ -6,7 +6,6 @@ from subprocess import call, check_output
 
 from invoke import task
 
-from tasks import run_codegen
 from tasks.util.codegen import find_codegen_binary
 from tasks.util.download import download_proj
 from tasks.util.env import PROJ_ROOT, WASM_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT, FUNC_BUILD_DIR, FAASM_INSTALL_DIR, \
