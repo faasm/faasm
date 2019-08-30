@@ -2,17 +2,22 @@
 #include <faasm/pyfaasm.h>
 
 #include <Python.h>
+//
+//FAASM_ZYGOTE() {
+//    setUpPyEnvironment();
+//    setUpPyNumpy();
+//    Py_InitializeEx(0);
+//
+//    printf("\n\nPython initialised\n");
+//}
 
-FAASM_ZYGOTE() {
+FAASM_MAIN_FUNC() {
     setUpPyEnvironment();
+
     setUpPyNumpy();
     Py_InitializeEx(0);
 
     printf("\n\nPython initialised\n");
-}
-
-FAASM_MAIN_FUNC() {
-    setUpPyEnvironment();
 
     long inputSize = faasmGetInputSize();
     uint8_t buffer[inputSize];

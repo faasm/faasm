@@ -5,7 +5,6 @@ int globalA = 0;
 int globalB = 2;
 
 FAASM_ZYGOTE() {
-    // Perform operation that will show if it's done more than once
     globalA += 5;
     globalB += 100;
 }

@@ -688,10 +688,10 @@ namespace wasm {
                         invokeArgs,
                         results
                 );
-            }, [](Runtime::Exception *exception) {
-                // Treat any unhandled exception as a fatal error.
-                Errors::fatalf("Runtime exception: %s",
-                               describeException(exception).c_str());
+            }, [&logger, &exitCode](Runtime::Exception *ex) {
+                logger->error("Runtime exception: {}", Runtime::describeException(ex).c_str());
+                Runtime::destroyException(ex);
+                exitCode = 1;
             });
         }
         catch (wasm::WasmExitException &e) {
