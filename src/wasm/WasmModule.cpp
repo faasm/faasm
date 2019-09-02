@@ -460,6 +460,15 @@ namespace wasm {
         return nextHandle;
     }
 
+    Runtime::ModuleInstance *WasmModule::getDynamicModule(int handle) {
+        if (dynamicModuleMap.count(handle) == 0) {
+            throw std::runtime_error("Missing dynamic module");
+        }
+
+        Runtime::ModuleInstance *dynModule = dynamicModuleMap[handle];
+        return dynModule;
+    }
+
     Uptr WasmModule::getDynamicModuleFunction(int handle, const std::string &funcName) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
