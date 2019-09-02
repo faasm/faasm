@@ -11,14 +11,21 @@ namespace tests {
     std::string pythonModuleA = basePath + "/multiarray.so";
     std::string pythonModuleB = basePath + "/umath.so";
 
+    // These are hard-coded functions whose offsets we know
     std::string mainFunc = "PyInit_array";
     std::string funcA = "PyArray_Max";
-    std::string funcB = "PyInit_umath";
-
-    // These are hard-coded as the relative offsets in the given modules
+    std::string funcB = "LONG_maximum";
     int mainFuncOffset = 1433;
     int funcAOffset = 3242;
-    int funcBOffset = 500;
+    int funcBOffset = 617;
+
+    // These are hard-coded pointers whose offsets we know
+    std::string mainData = "PyBool_Type";
+    std::string dataA = "PyArray_API";
+    std::string dataB = "PyUFunc_API";
+    int mainDataOffset = 6438608;
+    int dataAOffset = 10460832;
+    int dataBOffset = 41746432;
 
     // NOTE - 6 extra table entries are created for each module loaded (not sure from where)
     int extraFuncsPerModule = 6;
@@ -40,6 +47,7 @@ namespace tests {
         // --- Module One ---
         int handleA = module.dynamicLoadModule(pythonModuleA, module.executionContext);
         REQUIRE(handleA >= 2);
+        REQUIRE(module.getDynamicModuleCount() == 1);
 
         U64 moduleTableSizeA = registry.getSharedModuleTableSize("python", "py_func", pythonModuleA);
 
@@ -76,6 +84,7 @@ namespace tests {
         // --- Module Two ---
         int handleB = module.dynamicLoadModule(pythonModuleB, module.executionContext);
         REQUIRE(handleB == handleA + 1);
+        REQUIRE(module.getDynamicModuleCount() == 2);
 
         U64 moduleTableSizeB = registry.getSharedModuleTableSize("python", "py_func", pythonModuleB);
 
@@ -118,6 +127,11 @@ namespace tests {
         REQUIRE(funcObj->mutableData->debugName == expectedName);
     }
 
+    void checkDataInGOT(wasm::WasmModule &module, const std::string &dataName, int expectedOffset) {
+        int actualOffset = module.getDataOffsetFromGOT(dataName);
+        REQUIRE(actualOffset == expectedOffset);
+    }
+
     TEST_CASE("Test GOT population", "[wasm]") {
         util::SystemConfig &conf = util::getSystemConfig();
         conf.unsafeMode = "on";
@@ -153,6 +167,10 @@ namespace tests {
         checkFuncInGOT(module, funcA, expectedIdxA, expectedNameA);
         checkFuncInGOT(module, funcB, expectedIdxB, expectedNameB);
 
+        checkDataInGOT(module, mainData, mainDataOffset);
+        checkDataInGOT(module, dataA, dataAOffset);
+        checkDataInGOT(module, dataB, dataBOffset);
+
         // Sense check
         REQUIRE(tableSizeAfterA > initialTableSize);
         REQUIRE(tableSizeAfterB > tableSizeAfterA);
@@ -164,5 +182,40 @@ namespace tests {
         REQUIRE(expectedIdxB < tableSizeAfterB);
 
         conf.reset();
+    }
+
+    void resolveGlobalI32(wasm::WasmModule &module, const std::string &moduleName, const std::string &name, I32 expected) {
+        IR::GlobalType globalType;
+        Runtime::Object* importObj;
+        module.resolve(moduleName, name, globalType, importObj);
+        Runtime::Global *thisGlobal = Runtime::asGlobal(importObj);
+        const IR::Value &value = Runtime::getGlobalValue(module.executionContext, thisGlobal);
+        REQUIRE(value.i32 == expected);
+    }
+
+    TEST_CASE("Test resolving dynamic module imports", "[wasm]") {
+        util::SystemConfig &conf = util::getSystemConfig();
+        conf.unsafeMode = "on";
+
+        // Bind to Python function
+        message::Message msg = util::messageFactory("python", "py_func");
+        wasm::WasmModule module;
+        module.bindToFunction(msg);
+
+        // Load a dynamic module
+        module.dynamicLoadModule(pythonModuleA, module.executionContext);
+
+        // Check values resolve to what we'd expect
+        resolveGlobalI32(module, "foo", "__memory_base", module.getNextMemoryBase());
+        resolveGlobalI32(module, "foo", "__stack_pointer", module.getNextStackPointer());
+        resolveGlobalI32(module, "foo", "__table_base", module.getNextTableBase());
+        
+        // Check indirect function table resolves to default table
+        IR::TableType tableType;
+        Runtime::Object* importedTable;
+        module.resolve("foo", "__indirect_function_table", tableType, importedTable);
+        Runtime::Table *table = Runtime::asTable(importedTable);
+
+        REQUIRE(table == module.defaultTable);
     }
 }

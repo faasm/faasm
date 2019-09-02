@@ -962,6 +962,8 @@ namespace wasm {
 
     int WasmModule::getFunctionOffsetFromGOT(const std::string &funcName) {
         if(globalOffsetTableMap.count(funcName) == 0) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->error("Function not found in GOT - {}", funcName);
             throw std::runtime_error("Function not found in GOT");
         }
 
@@ -970,6 +972,8 @@ namespace wasm {
 
     int WasmModule::getDataOffsetFromGOT(const std::string &name) {
         if(globalOffsetMemoryMap.count(name) == 0) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->error("Data not found in GOT - {}", name);
             throw std::runtime_error("Memory not found in GOT");
         }
 
