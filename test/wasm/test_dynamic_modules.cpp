@@ -2,11 +2,31 @@
 #include "utils.h"
 #include <wasm/WasmModule.h>
 #include <wasm/syscalls.h>
+#include <WAVM/Runtime/RuntimeData.h>
+#include <wasm/IRModuleRegistry.h>
 
 namespace tests {
+    // Prepare a couple of numpy modules to load
+    std::string basePath = std::string(FALSE_ROOT) + "/lib/python3.7/site-packages/numpy/core";
+    std::string pythonModuleA = basePath + "/multiarray.so";
+    std::string pythonModuleB = basePath + "/umath.so";
+
+    std::string mainFunc = "PyInit_array";
+    std::string funcA = "PyArray_Max";
+    std::string funcB = "PyInit_umath";
+
+    // These are hard-coded as the relative offsets in the given modules
+    int mainFuncOffset = 1433;
+    int funcAOffset = 3242;
+    int funcBOffset = 500;
+
+    // NOTE - 6 extra table entries are created for each module loaded (not sure from where)
+    int extraFuncsPerModule = 6;
+
     TEST_CASE("Test dynamic load/ function lookup", "[wasm]") {
         util::SystemConfig &conf = util::getSystemConfig();
         conf.unsafeMode = "on";
+        wasm::IRModuleRegistry &registry = wasm::getIRModuleRegistry();
 
         // Bind to Python function
         message::Message msg = util::messageFactory("python", "py_func");
@@ -14,23 +34,18 @@ namespace tests {
         module.bindToFunction(msg);
 
         // Get initial sizes
-        int initialTableSize = Runtime::getTableNumElements(module.defaultTable);
+        Uptr initialTableSize = Runtime::getTableNumElements(module.defaultTable);
         Uptr initialMemSize = Runtime::getMemoryNumPages(module.defaultMemory) * IR::numBytesPerPage;
-
-        // Prepare a couple of numpy modules to load
-        std::string basePath = std::string(FALSE_ROOT) + "/lib/python3.7/site-packages/numpy/core";
-        std::string pythonModuleA = basePath + "/multiarray.so";
-        std::string pythonModuleB = basePath + "/umath.so";
-        int numFuncsA = 3830;
-        int numFuncsB = 1482;
 
         // --- Module One ---
         int handleA = module.dynamicLoadModule(pythonModuleA, module.executionContext);
         REQUIRE(handleA >= 2);
 
+        U64 moduleTableSizeA = registry.getSharedModuleTableSize("python", "py_func", pythonModuleA);
+
         // Check the table size has grown to fit the new functions
-        int tableSizeAfterA = Runtime::getTableNumElements(module.defaultTable);
-        REQUIRE(tableSizeAfterA == initialTableSize + numFuncsA);
+        Uptr tableSizeAfterA = Runtime::getTableNumElements(module.defaultTable);
+        REQUIRE(tableSizeAfterA == initialTableSize + moduleTableSizeA + extraFuncsPerModule);
 
         // Check that the new module table starts above the old one
         int tableBaseA = module.getNextTableBase();
@@ -54,7 +69,7 @@ namespace tests {
         REQUIRE_THROWS(module.getDynamicModuleFunction(handleA, "foo"));
 
         // Load a valid function and check table grows to fit it
-        module.getDynamicModuleFunction(handleA, "PyArray_Max");
+        module.getDynamicModuleFunction(handleA, funcA);
         int tableSizeAfterAFunc = Runtime::getTableNumElements(module.defaultTable);
         REQUIRE(tableSizeAfterAFunc == tableSizeAfterA + 1);
 
@@ -62,9 +77,11 @@ namespace tests {
         int handleB = module.dynamicLoadModule(pythonModuleB, module.executionContext);
         REQUIRE(handleB == handleA + 1);
 
+        U64 moduleTableSizeB = registry.getSharedModuleTableSize("python", "py_func", pythonModuleB);
+
         // Check the table
-        int tableSizeAfterB = Runtime::getTableNumElements(module.defaultTable);
-        REQUIRE(tableSizeAfterB == tableSizeAfterAFunc + numFuncsB);
+        Uptr tableSizeAfterB = Runtime::getTableNumElements(module.defaultTable);
+        REQUIRE(tableSizeAfterB == tableSizeAfterAFunc + moduleTableSizeB + (2 * extraFuncsPerModule));
 
         int tableBaseB = module.getNextTableBase();
         REQUIRE(tableBaseB == tableSizeAfterAFunc);
@@ -83,11 +100,22 @@ namespace tests {
         REQUIRE_THROWS(module.getDynamicModuleFunction(handleB, "bar"));
 
         // Check a valid function
-        module.getDynamicModuleFunction(handleB, "PyInit_umath");
-        int numElemsAfterB = Runtime::getTableNumElements(module.defaultTable);
+        module.getDynamicModuleFunction(handleB, funcB);
+        Uptr numElemsAfterB = Runtime::getTableNumElements(module.defaultTable);
         REQUIRE(numElemsAfterB == tableSizeAfterB + 1);
 
         conf.reset();
+    }
+
+    void checkFuncInGOT(wasm::WasmModule &module, const std::string &funcName, int expectedIdx,
+            const std::string &expectedName) {
+        int funcIdx = module.getFunctionOffsetFromGOT(funcName);
+        REQUIRE(funcIdx == expectedIdx);
+
+        Runtime::Object *tableElem = Runtime::getTableElement(module.defaultTable, funcIdx);
+        Runtime::Function *funcObj = Runtime::asFunction(tableElem);
+        
+        REQUIRE(funcObj->mutableData->debugName == expectedName);
     }
 
     TEST_CASE("Test GOT population", "[wasm]") {
@@ -99,9 +127,41 @@ namespace tests {
         wasm::WasmModule module;
         module.bindToFunction(msg);
 
+        Uptr initialTableSize = Runtime::getTableNumElements(module.defaultTable);
+
+        // Load a couple of dynamic modules
+        int handleA = module.dynamicLoadModule(pythonModuleA, module.executionContext);
+        Uptr tableSizeAfterA = Runtime::getTableNumElements(module.defaultTable);
+
+        int handleB = module.dynamicLoadModule(pythonModuleB, module.executionContext);
+        Uptr tableSizeAfterB = Runtime::getTableNumElements(module.defaultTable);
+
         // Check invalid entries don't work
         REQUIRE_THROWS(module.getFunctionOffsetFromGOT("foobar"));
         REQUIRE_THROWS(module.getDataOffsetFromGOT("foobaz"));
+
+        // Check some known functions
+        Uptr expectedMainIdx = mainFuncOffset;
+        Uptr expectedIdxA = initialTableSize + extraFuncsPerModule + funcAOffset;
+        Uptr expectedIdxB = tableSizeAfterA + extraFuncsPerModule + funcBOffset;
+
+        std::string expectedNameMain = "wasm!python/py_func!" + mainFunc;
+        std::string expectedNameA = "wasm!handle_" + std::to_string(handleA) + "!" + funcA;
+        std::string expectedNameB = "wasm!handle_" + std::to_string(handleB) + "!" + funcB;
+
+        checkFuncInGOT(module, mainFunc, expectedMainIdx, expectedNameMain);
+        checkFuncInGOT(module, funcA, expectedIdxA, expectedNameA);
+        checkFuncInGOT(module, funcB, expectedIdxB, expectedNameB);
+
+        // Sense check
+        REQUIRE(tableSizeAfterA > initialTableSize);
+        REQUIRE(tableSizeAfterB > tableSizeAfterA);
+
+        REQUIRE(expectedMainIdx < initialTableSize);
+        REQUIRE(expectedIdxA > initialTableSize);
+        REQUIRE(expectedIdxA < tableSizeAfterA);
+        REQUIRE(expectedIdxB > tableSizeAfterA);
+        REQUIRE(expectedIdxB < tableSizeAfterB);
 
         conf.reset();
     }
