@@ -161,16 +161,10 @@ namespace wasm {
             }
 
             // Go through each elem entry and record where in the table it's getting inserted
-            for (Uptr i = 0; i < es.contents->elemExprs.size(); i++) {
-                IR::ElemExpr &elem = (es.contents->elemExprs)[i];
-
-                // Ignore null entries
-                if (elem.type == IR::ElemExpr::Type::ref_null) {
-                    continue;
-                }
-
+            for (int i = 0; i < es.contents->elemIndices.size(); i++) {
+                unsigned long elemIdx = es.contents->elemIndices[i];
                 // Work out the function's name, then add it to our GOT
-                std::string &elemName = disassemblyNames.functions[elem.index].name;
+                std::string &elemName = disassemblyNames.functions[elemIdx].name;
                 int tableIdx = offset + i;
                 globalOffsetTableMap.insert({elemName, tableIdx});
             }
@@ -205,13 +199,13 @@ namespace wasm {
     void WasmModule::executeFunction(
             Runtime::Function *func,
             IR::FunctionType funcType,
-            const std::vector<IR::Value> &arguments,
-            std::vector<IR::Value> &results
+            const std::vector<IR::UntaggedValue> &arguments,
+            IR::UntaggedValue &result
     ) {
         // Note the need to set the currently executing module
         executingModule = this;
 
-        Runtime::invokeFunction(executionContext, func, funcType, arguments.data(), results.data());
+        Runtime::invokeFunction(executionContext, func, funcType, arguments.data(), &result);
     }
 
     void WasmModule::bindToFunction(const message::Message &msg) {
@@ -261,17 +255,16 @@ namespace wasm {
         // Record the errno location
         Runtime::Function *errNoLocation = asFunctionNullable(getInstanceExport(moduleInstance, "__errno_location"));
         if (errNoLocation) {
-            std::vector<IR::Value> errNoResult(1);
+            IR::UntaggedValue errNoResult;
             executeFunction(
                     errNoLocation,
                     IR::FunctionType({IR::ValueType::i32}, {}),
                     {},
                     errNoResult
             );
-            if (errNoResult.size() == 1 && errNoResult[0].type == IR::ValueType::i32) {
-                errnoLocation = errNoResult[0].i32;
-                logger->debug("Found errno location {}", errnoLocation);
-            }
+
+            errnoLocation = errNoResult.i32;
+            logger->debug("Found errno location {}", errnoLocation);
         } else {
             logger->warn("Did not find errno location");
         }
@@ -279,13 +272,13 @@ namespace wasm {
         // Get and execute zygote function
         zygoteFunctionInstance = getFunction(ZYGOTE_FUNC_NAME, false);
         if (zygoteFunctionInstance) {
-            std::vector<IR::Value> results;
+            IR::UntaggedValue result;
             const IR::FunctionType funcType = Runtime::getFunctionType(zygoteFunctionInstance);
             executeFunction(
                     zygoteFunctionInstance,
                     funcType,
                     {},
-                    results
+                    result
             );
         }
 
@@ -300,8 +293,8 @@ namespace wasm {
         // Note that heap base and data end should be the same (provided stack-first is switched on)
         heapBase = getGlobalI32("__heap_base", executionContext);
         dataEnd = getGlobalI32("__data_end", executionContext);
-        logger->debug("heap_base = {}  data_end = {}  heap_top={} initial_pages={}", heapBase, dataEnd,
-                      initialMemorySize, initialMemoryPages);
+        logger->debug("heap_base={} data_end={} heap_top={} initial_pages={} initial_table={}", heapBase, dataEnd,
+                      initialMemorySize, initialMemoryPages, initialTableSize);
 
         // Set up invoke arguments just below the top of the memory (i.e. at the top of the dynamic section)
         U32 argvStart = initialMemorySize - 20;
@@ -369,8 +362,9 @@ namespace wasm {
             U64 nTableElems = moduleRegistry.getSharedModuleTableSize(boundUser, boundFunction,
                                                                       sharedModulePath);
 
-            Iptr oldTableElems = Runtime::growTable(defaultTable, nTableElems);
-            if (oldTableElems == -1) {
+            Uptr oldTableElems = 0;
+            bool success = Runtime::growTable(defaultTable, nTableElems, &oldTableElems);
+            if (!success) {
                 throw std::runtime_error("Failed to grow main module table");
             }
             Uptr newTableElems = Runtime::getTableNumElements(defaultTable);
@@ -464,12 +458,12 @@ namespace wasm {
         Runtime::Function *wasmCtorsFunction = asFunctionNullable(getInstanceExport(mod, "__wasm_call_ctors"));
         if (wasmCtorsFunction) {
             logger->debug("Executing __wasm_call_ctors for {}", path);
-            std::vector<IR::Value> empty;
+            IR::UntaggedValue result;
             executeFunction(
                     wasmCtorsFunction,
                     IR::FunctionType({}, {}),
                     {},
-                    empty
+                    result
             );
         }
 
@@ -518,8 +512,9 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Add function to the table
-        Iptr prevIdx = Runtime::growTable(defaultTable, 1);
-        if (prevIdx == -1) {
+        Uptr prevIdx;
+        bool success = Runtime::growTable(defaultTable, 1, &prevIdx);
+        if (!success) {
             throw std::runtime_error("Failed to grow table");
         } else {
             logger->debug("Growing table from {} elements to {}", prevIdx, prevIdx + 1);
@@ -677,7 +672,7 @@ namespace wasm {
 
             Runtime::memoryRef<I32>(defaultMemory, errnoLocation) = (I32) newValue;
         } else {
-            logger->warn("No errno set but trying to set to {} ({})", strerror(newValue));
+            logger->warn("No errno location but trying to set to {} ({})", strerror(newValue));
         }
     }
 
@@ -704,8 +699,9 @@ namespace wasm {
             // Call the function
             logger->debug("Invoking the function itself");
 
-            Runtime::catchRuntimeExceptions([this] {
-                std::vector<IR::Value> results(1);
+            Runtime::catchRuntimeExceptions([this, &exitCode] {
+                IR::UntaggedValue result;
+
                 executeFunction(
                         functionInstance,
                         IR::FunctionType(
@@ -713,8 +709,10 @@ namespace wasm {
                                 {IR::ValueType::i32, IR::ValueType::i32}
                         ),
                         invokeArgs,
-                        results
+                        result
                 );
+
+                exitCode = result.i32;
             }, [&logger, &exitCode](Runtime::Exception *ex) {
                 logger->error("Runtime exception: {}", Runtime::describeException(ex).c_str());
                 Runtime::destroyException(ex);
@@ -735,11 +733,12 @@ namespace wasm {
         // Round up to page boundary
         Uptr pagesRequested = getNumberOfPagesForBytes(length);
 
-        Iptr previousPageCount = growMemory(defaultMemory, pagesRequested);
+        Uptr previousPageCount;
+        bool success = growMemory(defaultMemory, pagesRequested, &previousPageCount);
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         Uptr newPageCount = previousPageCount + pagesRequested;
-        if (previousPageCount == -1) {
+        if (!success) {
             logger->error("No memory for mapping (growing to {} pages)", newPageCount);
             throw std::runtime_error("Run out of memory to map");
         }
@@ -840,7 +839,15 @@ namespace wasm {
                 // TODO - what causes this?
                 if (tableIdx == -1) {
                     // Create a new entry in the table and use this, but mark it to be filled later
-                    tableIdx = Runtime::growTable(defaultTable, 1);
+                    Uptr newIdx;
+                    bool success = Runtime::growTable(defaultTable, 1, &newIdx);
+
+                    if(!success) {
+                        throw std::runtime_error("Failed to grow table");
+                    }
+
+                    tableIdx = (int) newIdx;
+
                     logger->warn("Adding placeholder table offset: {}.{} at {}", moduleName, name, tableIdx);
                     missingGlobalOffsetEntries.insert({name, tableIdx});
                 }
@@ -996,7 +1003,7 @@ namespace wasm {
     }
 
     int WasmModule::getFunctionOffsetFromGOT(const std::string &funcName) {
-        if(globalOffsetTableMap.count(funcName) == 0) {
+        if (globalOffsetTableMap.count(funcName) == 0) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Function not found in GOT - {}", funcName);
             throw std::runtime_error("Function not found in GOT");
@@ -1006,7 +1013,7 @@ namespace wasm {
     }
 
     int WasmModule::getDataOffsetFromGOT(const std::string &name) {
-        if(globalOffsetMemoryMap.count(name) == 0) {
+        if (globalOffsetMemoryMap.count(name) == 0) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Data not found in GOT - {}", name);
             throw std::runtime_error("Memory not found in GOT");

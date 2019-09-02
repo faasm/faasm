@@ -25,6 +25,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
         -Xlinker --no-entry \
         -Xlinker --export=main \
         -Xlinker --export=_faasm_zygote \
+        -Xlinker --export=__errno_location \
         -Xlinker --max-memory=1073741824 \
         -Xlinker --stack-first \
         -Xlinker --threads \

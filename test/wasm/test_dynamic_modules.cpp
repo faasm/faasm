@@ -26,7 +26,7 @@ namespace tests {
     int dataAOffset = 10460832;
     int dataBOffset = 41746432;
 
-    // NOTE - 6 extra table entries are created for each module loaded (not sure from where)
+    // NOTE - extra table entries are created for each module loaded (not sure from where)
     int extraFuncsPerModule = 6;
 
     TEST_CASE("Test dynamic load/ function lookup", "[wasm]") {

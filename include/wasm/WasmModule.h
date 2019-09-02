@@ -60,7 +60,7 @@ namespace wasm {
 
         Runtime::GCPointer<Runtime::Context> baseContext;
 
-        std::vector<IR::Value> invokeArgs;
+        std::vector<IR::UntaggedValue> invokeArgs;
 
         Runtime::GCPointer<Runtime::Compartment> compartment;
 
@@ -81,8 +81,8 @@ namespace wasm {
         void executeFunction(
                 Runtime::Function *func,
                 IR::FunctionType funcType,
-                const std::vector<IR::Value> &arguments,
-                std::vector<IR::Value> &results
+                const std::vector<IR::UntaggedValue> &arguments,
+                IR::UntaggedValue &result
         );
 
         Runtime::Function *getFunction(const std::string &funcName, bool strict);

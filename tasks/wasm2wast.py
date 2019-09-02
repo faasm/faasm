@@ -24,10 +24,11 @@ def wast(context, user, func_name):
     if exists(wast_path):
         remove(wast_path)
 
-    disassemble_bin = join(PROJ_ROOT, "cmake-build-debug", "WAVM", "bin", "wavm-disas")
+    disassemble_bin = join(PROJ_ROOT, "cmake-build-debug", "WAVM", "bin", "wavm")
 
     cmd = [
         disassemble_bin,
+        "disassemble",
         wasm_path,
         wast_path,
         "--enable-quoted-names"
