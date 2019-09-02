@@ -4,13 +4,6 @@
 #include <wasm/syscalls.h>
 
 namespace tests {
-    I32 _getGlobalI32FromModule(Runtime::ModuleInstance *moduleInstance, const std::string &globalName,
-                                Runtime::Context *context) {
-        Runtime::Global *globalPtr = Runtime::asGlobal(Runtime::getInstanceExport(moduleInstance, globalName.c_str()));
-        const IR::Value &value = Runtime::getGlobalValue(context, globalPtr);
-        return value.i32;
-    }
-
     TEST_CASE("Test dynamic load/ function lookup", "[wasm]") {
         util::SystemConfig &conf = util::getSystemConfig();
         conf.unsafeMode = "on";
@@ -21,7 +14,7 @@ namespace tests {
         module.bindToFunction(msg);
 
         // Get initial sizes
-        int intiailTableSize = Runtime::getTableNumElements(module.defaultTable);
+        int initialTableSize = Runtime::getTableNumElements(module.defaultTable);
         Uptr initialMemSize = Runtime::getMemoryNumPages(module.defaultMemory) * IR::numBytesPerPage;
 
         // Prepare a couple of numpy modules to load
@@ -29,67 +22,70 @@ namespace tests {
         std::string pythonModuleA = basePath + "/multiarray.so";
         std::string pythonModuleB = basePath + "/umath.so";
         int numFuncsA = 3830;
-        int numFuncsB = 1234;
+        int numFuncsB = 1482;
 
         // --- Module One ---
         int handleA = module.dynamicLoadModule(pythonModuleA, module.executionContext);
         REQUIRE(handleA >= 2);
 
         // Check the table size has grown to fit the new functions
-        int numElemsA = Runtime::getTableNumElements(module.defaultTable);
-        REQUIRE(numElemsA == intiailTableSize + numFuncsA);
+        int tableSizeAfterA = Runtime::getTableNumElements(module.defaultTable);
+        REQUIRE(tableSizeAfterA == initialTableSize + numFuncsA);
 
-        // Check the memory has grown
-        Uptr memSizeA = Runtime::getMemoryNumPages(module.defaultMemory) * IR::numBytesPerPage;
-        REQUIRE(memSizeA == initialMemSize + DYNAMIC_MODULE_HEAP_SIZE);
+        // Check that the new module table starts above the old one
+        int tableBaseA = module.getNextTableBase();
+        REQUIRE(tableBaseA == initialTableSize);
 
-        // Check the new module heap starts at the top of the memory
-        Runtime::ModuleInstance *moduleInstanceA = module.getDynamicModule(handleA);
-        I32 heapBaseA = _getGlobalI32FromModule(moduleInstanceA, "__heap_base", module.executionContext);
-        REQUIRE(heapBaseA == initialMemSize + DYNAMIC_MODULE_HEAP_SIZE);
+        // Check the memory has grown sufficiently
+        Uptr memSizeAfterA = Runtime::getMemoryNumPages(module.defaultMemory) * IR::numBytesPerPage;
+        REQUIRE(memSizeAfterA == initialMemSize + DYNAMIC_MODULE_HEAP_SIZE);
 
-        // Check that the new module stack pointer is at the bottom of this region
-        I32 stackPointerA = _getGlobalI32FromModule(moduleInstanceA, "__stack_pointer", module.executionContext);
-        REQUIRE(stackPointerA == initialMemSize + DYNAMIC_MODULE_STACK_SIZE);
-        REQUIRE(stackPointerA < heapBaseA);
+        // Check the stack is at the bottom of this region, and the heap is just above it
+
+        // NOTE - ideally we'd actually query the value directly in the module, but
+        // can't get access to it (as it's an import resolved at link time).
+        int heapBaseA = module.getNextMemoryBase();
+        int stackPointerA = module.getNextStackPointer();
+
+        REQUIRE(heapBaseA == initialMemSize + DYNAMIC_MODULE_STACK_SIZE);
+        REQUIRE(stackPointerA == heapBaseA - 1);
 
         // Check we can't load an invalid function
         REQUIRE_THROWS(module.getDynamicModuleFunction(handleA, "foo"));
 
         // Load a valid function and check table grows to fit it
         module.getDynamicModuleFunction(handleA, "PyArray_Max");
-        int numElemsAfterA = Runtime::getTableNumElements(module.defaultTable);
-        REQUIRE(numElemsAfterA == numElemsA + 1);
+        int tableSizeAfterAFunc = Runtime::getTableNumElements(module.defaultTable);
+        REQUIRE(tableSizeAfterAFunc == tableSizeAfterA + 1);
 
         // --- Module Two ---
         int handleB = module.dynamicLoadModule(pythonModuleB, module.executionContext);
         REQUIRE(handleB == handleA + 1);
 
-        // Check the table size has grown to fit the new functions
-        int numElemsB = Runtime::getTableNumElements(module.defaultTable);
-        REQUIRE(numElemsB == intiailTableSize + numFuncsA + numFuncsB + 1);
+        // Check the table
+        int tableSizeAfterB = Runtime::getTableNumElements(module.defaultTable);
+        REQUIRE(tableSizeAfterB == tableSizeAfterAFunc + numFuncsB);
 
-        // Check the memory has grown
-        Uptr memSizeB = Runtime::getMemoryNumPages(module.defaultMemory) * IR::numBytesPerPage;
-        REQUIRE(memSizeB == initialMemSize + (2 * DYNAMIC_MODULE_HEAP_SIZE));
+        int tableBaseB = module.getNextTableBase();
+        REQUIRE(tableBaseB == tableSizeAfterAFunc);
 
-        // Check the new module heap starts at the top of the memory
-        Runtime::ModuleInstance *moduleInstanceB = module.getDynamicModule(handleB);
-        I32 heapBaseB = _getGlobalI32FromModule(moduleInstanceB, "__heap_base", module.executionContext);
-        REQUIRE(heapBaseB == initialMemSize + (2 * DYNAMIC_MODULE_HEAP_SIZE));
+        // Check the memory
+        Uptr memSizeAfterB = Runtime::getMemoryNumPages(module.defaultMemory) * IR::numBytesPerPage;
+        REQUIRE(memSizeAfterB == memSizeAfterA + DYNAMIC_MODULE_HEAP_SIZE);
 
-        // Check that the new module stack pointer is at the bottom of this region
-        I32 stackPointerB = _getGlobalI32FromModule(moduleInstanceB, "__stack_pointer", module.executionContext);
-        REQUIRE(stackPointerB == initialMemSize + DYNAMIC_MODULE_HEAP_SIZE + DYNAMIC_MODULE_STACK_SIZE);
-        REQUIRE(stackPointerB < heapBaseB);
+        int heapBaseB = module.getNextMemoryBase();
+        int stackPointerB = module.getNextStackPointer();
 
-        // Check we can't load an invalid function
+        REQUIRE(heapBaseB == memSizeAfterA + DYNAMIC_MODULE_STACK_SIZE);
+        REQUIRE(stackPointerB == heapBaseB - 1);
+
+        // Check invalid function
         REQUIRE_THROWS(module.getDynamicModuleFunction(handleB, "bar"));
 
-        // Load a valid function and check table grows to fit it
-        module.getDynamicModuleFunction(handleB, "PyNumber_Add");
+        // Check a valid function
+        module.getDynamicModuleFunction(handleB, "PyInit_umath");
         int numElemsAfterB = Runtime::getTableNumElements(module.defaultTable);
-        REQUIRE(numElemsAfterB == numElemsB + 1);
+        REQUIRE(numElemsAfterB == tableSizeAfterB + 1);
 
         conf.reset();
     }

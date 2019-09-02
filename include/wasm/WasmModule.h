@@ -114,6 +114,15 @@ namespace wasm {
         I32 getGlobalI32(const std::string &globalName, Runtime::Context *context);
 
         bool tearDown();
+
+        int getDynamicModuleCount();
+
+        int getNextMemoryBase();
+
+        int getNextStackPointer();
+
+        int getNextTableBase();
+
     private:
         Runtime::GCPointer<Runtime::ModuleInstance> envModule;
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;

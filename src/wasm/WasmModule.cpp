@@ -341,8 +341,8 @@ namespace wasm {
             // A dynamic module needs the same resources as a main module but we need to manually
             // create them
 
-            // Give the module a stack region just at the bottom of the empty region (which will grow down)
-            // Memory sits above that (and grows up).
+            // Give the module a chunk of memory and stack region just at the bottom of the
+            // new memory (which will grow down). The memory sits above that (and grows up).
             // TODO - how do we detect stack overflows in dynamic modules? Are we meant to share the stack pointer of the main module?
             U32 dynamicMemBase = this->mmap(DYNAMIC_MODULE_HEAP_SIZE);
             nextMemoryBase = dynamicMemBase + DYNAMIC_MODULE_STACK_SIZE;
@@ -592,7 +592,7 @@ namespace wasm {
             dynamicModuleMap[m.first] = nullptr;
         }
 
-        if(compartment == nullptr) {
+        if (compartment == nullptr) {
             return true;
         }
 
@@ -899,6 +899,22 @@ namespace wasm {
         }
 
         return output;
+    }
+
+    int WasmModule::getDynamicModuleCount() {
+        return dynamicModuleCount;
+    }
+
+    int WasmModule::getNextMemoryBase() {
+        return nextMemoryBase;
+    }
+
+    int WasmModule::getNextStackPointer() {
+        return nextStackPointer;
+    }
+
+    int WasmModule::getNextTableBase() {
+        return nextTableBase;
     }
 
     void WasmModule::addFdForThisThread(int fd) {
