@@ -2,7 +2,6 @@
 #include "utils.h"
 #include <wasm/WasmModule.h>
 #include <wasm/syscalls.h>
-#include <WAVM/Runtime/RuntimeData.h>
 #include <wasm/IRModuleRegistry.h>
 
 namespace tests {
@@ -123,8 +122,8 @@ namespace tests {
 
         Runtime::Object *tableElem = Runtime::getTableElement(module.defaultTable, funcIdx);
         Runtime::Function *funcObj = Runtime::asFunction(tableElem);
-        
-        REQUIRE(funcObj->mutableData->debugName == expectedName);
+
+        REQUIRE(Runtime::getFunctionDebugName(funcObj) == expectedName);
     }
 
     void checkDataInGOT(wasm::WasmModule &module, const std::string &dataName, int expectedOffset) {
