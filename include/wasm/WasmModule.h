@@ -72,6 +72,8 @@ namespace wasm {
 
         int dynamicLoadModule(const std::string &path, Runtime::Context *context);
 
+        Runtime::ModuleInstance *getDynamicModule(int handle);
+
         Uptr getDynamicModuleFunction(int handle, const std::string &funcName);
 
         int addFunctionToTable(Runtime::Object *exportedFunc);
@@ -109,7 +111,22 @@ namespace wasm {
 
         std::string getBoundFunction();
 
+        I32 getGlobalI32(const std::string &globalName, Runtime::Context *context);
+
         bool tearDown();
+
+        int getDynamicModuleCount();
+
+        int getNextMemoryBase();
+
+        int getNextStackPointer();
+
+        int getNextTableBase();
+
+        int getFunctionOffsetFromGOT(const std::string &funcName);
+
+        int getDataOffsetFromGOT(const std::string &name);
+
     private:
         Runtime::GCPointer<Runtime::ModuleInstance> envModule;
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
@@ -163,8 +180,6 @@ namespace wasm {
                 const std::string &name,
                 const std::string &sharedModulePath
         );
-
-        I32 getGlobalI32(const std::string &globalName, Runtime::Context *context);
     };
 
     WasmModule *getExecutingModule();

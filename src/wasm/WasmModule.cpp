@@ -131,6 +131,13 @@ namespace wasm {
     }
 
     void WasmModule::addModuleToGOT(IR::Module &mod, bool isMainModule) {
+        // This function is **critical** for dynamic linking to work properly, but the underlying
+        // spec is still in flux so it may break. The wasm dynamic linking docs can be found here:
+        // https://github.com/WebAssembly/tool-conventions/blob/master/DynamicLinking.md
+        //
+        // To handle dynamically loaded modules, we need to provide a "global offset table (GOT)" which
+        // holds offsets to all the functions and data the modules may need to access.
+
         // Retrieve the disassembly names to help with building the GOT
         IR::DisassemblyNames disassemblyNames;
         getDisassemblyNames(mod, disassemblyNames);
@@ -138,14 +145,19 @@ namespace wasm {
         // ----------------------------
         // Table elems
         // ----------------------------
-        // A lot of function entries in main modules are already included in the table,
-        // so we can iterate through the elem segments to work out their index
+        // Here we need to inspect the module's table, and add all the entires along with
+        // their offsets into our GOT.
+        //
+        // Here we iterate through the table definition from the module, working out the offsets
+        // as we go.
         for (auto &es : mod.elemSegments) {
-            // Work out the offset (dynamic modules will be given this by us)
+            // Work out the offset
             I32 offset;
             if (isMainModule) {
+                // Main modules specify the offsets
                 offset = es.baseOffset.i32;
             } else {
+                // We control the base offset for dynamically loaded modules
                 offset = nextTableBase;
             }
 
@@ -158,6 +170,7 @@ namespace wasm {
                     continue;
                 }
 
+                // Work out the function's name, then add it to our GOT
                 std::string &elemName = disassemblyNames.functions[elem.index].name;
                 int tableIdx = offset + i;
                 globalOffsetTableMap.insert({elemName, tableIdx});
@@ -167,9 +180,8 @@ namespace wasm {
         // ----------------------------
         // Data entries
         // ----------------------------
-        // Here we need to build up a map of the export's name to its initialised value.
-        // We assume the entries we care about are pointers to stuff in memory, therefore we
-        // only look at immutable i32s
+        // The data part of the GOT needs to map exports to their initialised value.
+        // We only look at immutable i32s as this table seems to be mostly used for pointers.
         for (auto &ex : mod.exports) {
             // Ignore non global exports
             if (ex.kind != IR::ExternKind::global) {
@@ -326,24 +338,27 @@ namespace wasm {
 
             stackTop = stackDef.initializer.i32;
         } else {
-            // Create a new region in the default memory
-            // Give the module a stack region just at the bottom of the empty region (which will grow down)
-            // Memory sits above that (and grows up).
+            // A dynamic module needs the same resources as a main module but we need to manually
+            // create them
+
+            // Give the module a chunk of memory and stack region just at the bottom of the
+            // new memory (which will grow down). The memory sits above that (and grows up).
             // TODO - how do we detect stack overflows in dynamic modules? Are we meant to share the stack pointer of the main module?
             U32 dynamicMemBase = this->mmap(DYNAMIC_MODULE_HEAP_SIZE);
             nextMemoryBase = dynamicMemBase + DYNAMIC_MODULE_STACK_SIZE;
             nextStackPointer = nextMemoryBase - 1;
 
-            // Extend the existing table to fit all the dynamic module's elements
+            // Extend the existing table to fit all the new elements from the dynamic module
             U64 nTableElems = moduleRegistry.getSharedModuleTableSize(boundUser, boundFunction,
                                                                       sharedModulePath);
+
             Iptr oldTableElems = Runtime::growTable(defaultTable, nTableElems);
             if (oldTableElems == -1) {
                 throw std::runtime_error("Failed to grow main module table");
             }
             Uptr newTableElems = Runtime::getTableNumElements(defaultTable);
 
-            // The end of the current table is the place where the new module can put its elements.
+            // Set the base of the new module's table to be the top of the existing one.
             nextTableBase = oldTableElems;
 
             logger->debug("Provisioned new dynamic module region (stack_ptr={}, heap_base={}, table={}->{})",
@@ -373,8 +388,8 @@ namespace wasm {
                 name.c_str()
         );
 
-        // Attempt to fill gaps in missing table entries. This is *only* to see if the missing
-        // entry is exported from the dynamic module itself. I don't know how this happens but occasionally
+        // Here there may be some entries missing from the GOT that we need to patch up. They may
+        // be exported from the dynamic module itself. I don't know how this happens but occasionally
         // it does
         if (!missingGlobalOffsetEntries.empty()) {
             for (auto e : missingGlobalOffsetEntries) {
@@ -410,6 +425,9 @@ namespace wasm {
     }
 
     int WasmModule::dynamicLoadModule(const std::string &path, Runtime::Context *context) {
+        // This function is essentially dlopen. See the comments around the GOT function
+        // for more detail on the dynamic linking approach.
+
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Return the handle if we've already loaded this module
@@ -440,6 +458,15 @@ namespace wasm {
         logger->debug("Loaded shared module at {} with handle {}", path, nextHandle);
 
         return nextHandle;
+    }
+
+    Runtime::ModuleInstance *WasmModule::getDynamicModule(int handle) {
+        if (dynamicModuleMap.count(handle) == 0) {
+            throw std::runtime_error("Missing dynamic module");
+        }
+
+        Runtime::ModuleInstance *dynModule = dynamicModuleMap[handle];
+        return dynModule;
     }
 
     Uptr WasmModule::getDynamicModuleFunction(int handle, const std::string &funcName) {
@@ -565,7 +592,7 @@ namespace wasm {
             dynamicModuleMap[m.first] = nullptr;
         }
 
-        if(compartment == nullptr) {
+        if (compartment == nullptr) {
             return true;
         }
 
@@ -874,6 +901,22 @@ namespace wasm {
         return output;
     }
 
+    int WasmModule::getDynamicModuleCount() {
+        return dynamicModuleCount;
+    }
+
+    int WasmModule::getNextMemoryBase() {
+        return nextMemoryBase;
+    }
+
+    int WasmModule::getNextStackPointer() {
+        return nextStackPointer;
+    }
+
+    int WasmModule::getNextTableBase() {
+        return nextTableBase;
+    }
+
     void WasmModule::addFdForThisThread(int fd) {
         openFds.insert(fd);
     }
@@ -915,6 +958,26 @@ namespace wasm {
 
     std::string WasmModule::getBoundFunction() {
         return boundFunction;
+    }
+
+    int WasmModule::getFunctionOffsetFromGOT(const std::string &funcName) {
+        if(globalOffsetTableMap.count(funcName) == 0) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->error("Function not found in GOT - {}", funcName);
+            throw std::runtime_error("Function not found in GOT");
+        }
+
+        return globalOffsetTableMap[funcName];
+    }
+
+    int WasmModule::getDataOffsetFromGOT(const std::string &name) {
+        if(globalOffsetMemoryMap.count(name) == 0) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->error("Data not found in GOT - {}", name);
+            throw std::runtime_error("Memory not found in GOT");
+        }
+
+        return globalOffsetMemoryMap[name];
     }
 
     WasmModuleRegistry &getWasmModuleRegistry() {
