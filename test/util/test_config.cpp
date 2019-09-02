@@ -73,7 +73,6 @@ namespace tests {
         std::string redisQueue =setEnvVar("REDIS_QUEUE_HOST", "other-host");
         std::string redisPort =setEnvVar("REDIS_PORT", "1234");
 
-        std::string zygoteMode = setEnvVar("ZYGOTE_MODE", "foo-zygote");
         std::string irCacheMode = setEnvVar("IR_CACHE_MODE", "foo-ir-cache");
 
         std::string maxNodes =setEnvVar("MAX_NODES", "15");
@@ -112,7 +111,6 @@ namespace tests {
         REQUIRE(conf.redisQueueHost == "other-host");
         REQUIRE(conf.redisPort == "1234");
 
-        REQUIRE(conf.zygoteMode == "foo-zygote");
         REQUIRE(conf.irCacheMode == "foo-ir-cache");
 
         REQUIRE(conf.maxNodes == 15);
@@ -151,7 +149,6 @@ namespace tests {
         setEnvVar("REDIS_QUEUE_HOST", redisQueue);
         setEnvVar("REDIS_PORT", redisPort);
 
-        setEnvVar("ZYGOTE_MODE", zygoteMode);
         setEnvVar("IR_CACHE_MODE", irCacheMode);
 
         setEnvVar("MAX_NODES", maxNodes);

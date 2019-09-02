@@ -90,6 +90,12 @@ namespace worker {
         // Set result
         logger->debug("Setting function result for {}", funcStr);
         globalBus.setFunctionResult(call, isSuccess);
+
+        // Restore from zygote
+        logger->debug("Resetting module {} from zygote", funcStr);
+        zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
+        wasm::WasmModule &zygote = registry.getZygote(call);
+        *module = zygote;
     }
 
     void WorkerThread::bindToFunction(const message::Message &msg) {
@@ -106,21 +112,14 @@ namespace worker {
         // Set up with scheduler
         currentQueue = scheduler.listenToQueue(msg);
 
-        util::SystemConfig &config = util::getSystemConfig();
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        if (config.zygoteMode == "on") {
-            // Instantiate the module from its zygote
-            PROF_START(zygoteRestore)
-            logger->debug("Using zygote registry to bind to function");
-            zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
-            wasm::WasmModule &zygote = registry.getZygote(msg);
-            module = std::make_unique<wasm::WasmModule>(zygote);
-            PROF_END(zygoteRestore)
-        } else {
-            logger->debug("Not using zygote registry to bind to function");
-            module = std::make_unique<wasm::WasmModule>();
-            module->bindToFunction(msg);
-        }
+        // Instantiate the module from its zygote
+        PROF_START(zygoteCreate)
+
+        zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
+        wasm::WasmModule &zygote = registry.getZygote(msg);
+        module = std::make_unique<wasm::WasmModule>(zygote);
+
+        PROF_END(zygoteCreate)
 
         _isBound = true;
     }

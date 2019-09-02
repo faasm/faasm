@@ -9,6 +9,7 @@
 
 #include <fstream>
 #include <util/environment.h>
+#include <zygote/ZygoteRegistry.h>
 
 namespace runner {
     Profiler::Profiler(const std::string userIn, const std::string funcNameIn, const std::string inputDataIn) : user(
@@ -25,14 +26,16 @@ namespace runner {
 
         // Initialise wasm runtime
         const util::TimePoint tpInit = util::startTimer();
-
-        wasm::WasmModule module;
+        
         message::Message call;
         call.set_user(this->user);
         call.set_function(this->funcName);
         call.set_inputdata(this->inputData);
 
-        module.bindToFunction(call);
+        zygote::ZygoteRegistry &zygoteReg = zygote::getZygoteRegistry();
+        wasm::WasmModule &zygote = zygoteReg.getZygote(call);
+
+        wasm::WasmModule module(zygote);
         util::logEndTimer("WASM initialisation", tpInit);
 
         logger->info("Running benchmark in WASM");
@@ -43,6 +46,9 @@ namespace runner {
             long nativeTime = util::getTimeDiffMicros(nativeTp);
 
             profOut << this->outputName << ",wasm," << nativeTime << std::endl;
+
+            // Reset
+            module = zygote;
         }
     }
 

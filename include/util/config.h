@@ -33,7 +33,6 @@ namespace util {
         std::string redisPort;
 
         // Caching
-        std::string zygoteMode;
         std::string irCacheMode;
 
         // Scheduling

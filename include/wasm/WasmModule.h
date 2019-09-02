@@ -13,7 +13,7 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
 #include <WAVM/Runtime/Runtime.h>
-#include <memory/MemorySnapshot.h>
+//#include <memory/MemorySnapshot.h>
 
 #define ONE_MB_BYTES 1024 * 1024
 
@@ -44,6 +44,8 @@ namespace wasm {
 
         WasmModule(const WasmModule &other);
 
+        WasmModule &operator=(const WasmModule &other);
+
         ~WasmModule();
 
         void initialise();
@@ -57,8 +59,6 @@ namespace wasm {
         Runtime::GCPointer<Runtime::Table> defaultTable;
 
         Runtime::GCPointer<Runtime::Context> executionContext;
-
-        Runtime::GCPointer<Runtime::Context> baseContext;
 
         std::vector<IR::UntaggedValue> invokeArgs;
 
@@ -173,11 +173,9 @@ namespace wasm {
         std::unordered_map<std::string, int> globalOffsetMemoryMap;
         std::unordered_map<std::string, int> missingGlobalOffsetEntries;
 
-        WasmModule &operator=(const WasmModule &other);
-
         void reset();
 
-        void resizeMemory(size_t targetPages);
+        void clone(const WasmModule &other);
 
         void addModuleToGOT(IR::Module &mod, bool isMainModule);
 
@@ -199,19 +197,4 @@ namespace wasm {
 
         int exitCode;
     };
-
-    class WasmModuleRegistry {
-    public:
-        WasmModuleRegistry();
-
-        void registerModule(const std::string &key, const WasmModule &module);
-
-        WasmModule &getModule(const std::string &key);
-
-    private:
-        std::mutex registryMutex;
-        std::unordered_map<std::string, WasmModule> moduleMap;
-    };
-
-    WasmModuleRegistry &getWasmModuleRegistry();
 }

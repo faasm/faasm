@@ -35,22 +35,13 @@ namespace runner {
         m.set_user(user);
         m.set_function(func);
 
-        if(conf.zygoteMode == "on") {
-            logger->info("Executing function {}/{} from zygote", user, func);
+        logger->info("Executing function {}/{} from zygote", user, func);
 
-            // Execute the function from cached zygote
-            zygote::ZygoteRegistry &zygoteRegistry = zygote::getZygoteRegistry();
-            wasm::WasmModule &z = zygoteRegistry.getZygote(m);
+        // Execute the function from cached zygote
+        zygote::ZygoteRegistry &zygoteRegistry = zygote::getZygoteRegistry();
+        wasm::WasmModule &z = zygoteRegistry.getZygote(m);
 
-            wasm::WasmModule module(z);
-            module.execute(m);
-        } else {
-            logger->info("Executing function {}/{} normally", user, func);
-
-            // Execute the function normally
-            wasm::WasmModule module;
-            module.bindToFunction(m);
-            module.execute(m);
-        }
+        wasm::WasmModule module(z);
+        module.execute(m);
     }
 }

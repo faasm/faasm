@@ -3,6 +3,7 @@
 #include <util/bytes.h>
 #include <util/func.h>
 #include <util/config.h>
+#include <zygote/ZygoteRegistry.h>
 
 namespace tests {
 
@@ -73,19 +74,28 @@ namespace tests {
         REQUIRE(module.isBound());
     }
 
-    TEST_CASE("Test executing WASM module with input and output", "[wasm]") {
+    TEST_CASE("Test repeat execution on simple WASM module", "[wasm]") {
         message::Message call;
         call.set_user("demo");
         call.set_function("x2");
 
-        wasm::WasmModule module;
-        module.bindToFunction(call);
+        zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
+        wasm::WasmModule &zygote = registry.getZygote(call);
+        
+        wasm::WasmModule module(zygote);
 
         // Perform first execution
         executeX2(module);
 
+        // Reset
+        module = zygote;
+
         // Perform repeat executions on same module
         executeX2(module);
+
+        // Reset
+        module = zygote;
+
         executeX2(module);
     }
 
@@ -127,14 +137,19 @@ namespace tests {
         message::Message call;
         call.set_user("demo");
         call.set_function("heap");
+
+        zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
+        wasm::WasmModule &zygote = registry.getZygote(call);
         
-        wasm::WasmModule module;
-        module.bindToFunction(call);
+        wasm::WasmModule module(zygote);
 
         Uptr initialPages = Runtime::getMemoryNumPages(module.defaultMemory);
 
         // Run it (knowing memory will grow during execution)
         module.execute(call);
+        
+        module = zygote;
+
         Uptr pagesAfter = Runtime::getMemoryNumPages(module.defaultMemory);
         REQUIRE(pagesAfter == initialPages);
     }

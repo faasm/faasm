@@ -6,11 +6,11 @@
 #include <util/config.h>
 #include <util/locks.h>
 
-#include <memory/MemorySnapshotRegister.h>
 #include <wasm/IRModuleRegistry.h>
 
 #include <WAVM/WASM/WASM.h>
 #include <WAVM/IR/Types.h>
+#include <WAVM/Platform/Memory.h>
 #include <WAVM/IR/Module.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
@@ -32,9 +32,9 @@ namespace wasm {
         return executingCall;
     }
 
-    std::string snapshotKeyForFunction(const std::string &user, const std::string &func) {
-        return "mem_" + user + "_" + func;
-    }
+//    std::string snapshotKeyForFunction(const std::string &user, const std::string &func) {
+//        return "mem_" + user + "_" + func;
+//    }
 
     Uptr getNumberOfPagesForBytes(U32 nBytes) {
         // Round up to nearest page
@@ -46,11 +46,58 @@ namespace wasm {
     WasmModule::WasmModule() = default;
 
     WasmModule &WasmModule::operator=(const WasmModule &other) {
-        throw std::runtime_error("Copy assignment not supported");
+        PROF_START(wasmAssign)
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        // Reset shared memory variables
+        sharedMemKVs.clear();
+        sharedMemWasmPtrs.clear();
+        sharedMemHostPtrs.clear();
+
+        // Unmap shared memory regions
+//        for (auto const &p : sharedMemWasmPtrs) {
+//            state::StateKeyValue *kv = sharedMemKVs[p.first];
+//            void* hostPtr = sharedMemHostPtrs[p.first];
+//            kv->unmapSharedMemory(hostPtr);
+//        }
+
+        // Remove references to shared modules
+        for (auto const &p : dynamicPathToHandleMap) {
+            logger->debug("Unloading dynamic module {}", p.first);
+            dynamicModuleMap[p.second] = nullptr;
+        }
+
+        // Reset maps
+        dynamicModuleMap.clear();
+        dynamicPathToHandleMap.clear();
+
+        // Clear up garbage on old compartment
+        if(compartment != nullptr) {
+            Runtime::collectCompartmentGarbage(compartment);
+        }
+
+        // Do the clone
+        clone(other);
+
+        PROF_END(wasmAssign)
+
+        return *this;
     }
 
     WasmModule::WasmModule(const WasmModule &other) {
         PROF_START(wasmClone)
+
+        // Do the clone
+        clone(other);
+
+        PROF_END(wasmClone)
+    }
+
+    void WasmModule::clone(const WasmModule &other) {
+        // -----------
+        // TODO - optimise if these are the same function
+        // -----------
 
         // Copy basic values
         errnoLocation = other.errnoLocation;
@@ -70,13 +117,12 @@ namespace wasm {
         boundFunction = other.boundFunction;
 
         if (other._isBound) {
-            // Clone all WAVM-related bits
+            // Clone compartment and context
             compartment = Runtime::cloneCompartment(other.compartment);
-            baseContext = Runtime::cloneContext(other.baseContext, compartment);
             executionContext = Runtime::cloneContext(other.executionContext, compartment);
-            invokeArgs = other.invokeArgs;
 
             // Remap parts we need specific references to
+            invokeArgs = other.invokeArgs;
             envModule = Runtime::remapToClonedCompartment(other.envModule, compartment);
             moduleInstance = Runtime::remapToClonedCompartment(other.moduleInstance, compartment);
 
@@ -104,8 +150,6 @@ namespace wasm {
             globalOffsetMemoryMap = other.globalOffsetMemoryMap;
             missingGlobalOffsetEntries = other.missingGlobalOffsetEntries;
         }
-
-        PROF_END(wasmClone)
     }
 
     WasmModule::~WasmModule() {
@@ -287,9 +331,6 @@ namespace wasm {
         initialTableSize = Runtime::getTableNumElements(defaultTable);
         Uptr initialMemorySize = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
 
-        // Get memory and dimensions
-        U8 *baseAddr = Runtime::getMemoryBaseAddress(defaultMemory);
-
         // Note that heap base and data end should be the same (provided stack-first is switched on)
         heapBase = getGlobalI32("__heap_base", executionContext);
         dataEnd = getGlobalI32("__data_end", executionContext);
@@ -308,19 +349,6 @@ namespace wasm {
         // Copy the offset of argv[0] into position
         Runtime::memoryRef<U32>(defaultMemory, argvStart) = argv0;
         invokeArgs = {argc, argvStart};
-
-        // Snapshot the context so that we can reset to this point
-        PROF_START(wasmCloneContext)
-        baseContext = Runtime::cloneContext(executionContext, compartment);
-        PROF_END(wasmCloneContext)
-
-        // Create the memory snapshot if not already present
-        PROF_START(wasmMemSnapshot)
-        std::string snapKey = snapshotKeyForFunction(boundUser, boundFunction);
-        memory::MemorySnapshotRegister &snapRegister = memory::getGlobalMemorySnapshotRegister();
-        const std::shared_ptr<memory::MemorySnapshot> snapshot = snapRegister.getSnapshot(snapKey);
-        snapshot->createIfNotExists(snapKey.c_str(), baseAddr, initialMemorySize);
-        PROF_END(wasmMemSnapshot)
 
         PROF_END(wasmBind)
     }
@@ -525,71 +553,6 @@ namespace wasm {
         return prevIdx;
     }
 
-    void WasmModule::reset() {
-        PROF_START(wasmReset)
-
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        // Clean up any open fds
-        clearFds();
-
-        // Retrieve the memory snapshot
-        memory::MemorySnapshotRegister &snapRegister = memory::getGlobalMemorySnapshotRegister();
-        std::string key = snapshotKeyForFunction(boundUser, boundFunction);
-        const std::shared_ptr<memory::MemorySnapshot> snapshot = snapRegister.getSnapshot(key);
-
-        // Resize memory accordingly
-        size_t wasmPages = (snapshot->getSize() + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
-        resizeMemory(wasmPages);
-
-        // Do the restore
-        U8 *baseAddr = Runtime::getMemoryBaseAddress(defaultMemory);
-        snapshot->restore(baseAddr);
-
-        // Reset shared memory variables
-        sharedMemKVs.clear();
-        sharedMemWasmPtrs.clear();
-        sharedMemHostPtrs.clear();
-
-        // Unmap shared memory regions
-//        for (auto const &p : sharedMemWasmPtrs) {
-//            state::StateKeyValue *kv = sharedMemKVs[p.first];
-//            void* hostPtr = sharedMemHostPtrs[p.first];
-//            kv->unmapSharedMemory(hostPtr);
-//        }
-
-        // Restore the table to its original size
-        Uptr currentTableSize = Runtime::getTableNumElements(defaultTable);
-        Uptr elemsToShrink = currentTableSize - initialTableSize;
-        if (elemsToShrink > 0) {
-            logger->debug("Shrinking table from {} to {}", currentTableSize, initialTableSize);
-
-            // TODO - what to do now shrinkTable has been removed?
-            // Runtime::shrinkTable(defaultTable, elemsToShrink);
-        }
-
-        // Remove references to shared modules
-        for (auto const &p : dynamicPathToHandleMap) {
-            logger->debug("Unloading dynamic module {}", p.first);
-            dynamicModuleMap[p.second] = nullptr;
-        }
-
-        // Reset maps
-        dynamicModuleMap.clear();
-        dynamicPathToHandleMap.clear();
-
-        // Create a fresh execution context
-        executionContext = Runtime::cloneContext(baseContext, compartment);
-        if (executionContext == nullptr) {
-            throw std::runtime_error("Failed to clone context");
-        }
-
-        // Run WAVM GC
-        Runtime::collectCompartmentGarbage(compartment);
-
-        PROF_END(wasmReset)
-    }
-
     bool WasmModule::tearDown() {
         PROF_START(wasmTearDown)
 
@@ -606,7 +569,6 @@ namespace wasm {
         envModule = nullptr;
 
         executionContext = nullptr;
-        baseContext = nullptr;
 
         for (auto const &m : dynamicModuleMap) {
             dynamicModuleMap[m.first] = nullptr;
@@ -626,27 +588,6 @@ namespace wasm {
         PROF_END(wasmTearDown)
 
         return compartmentCleared;
-    }
-
-    void WasmModule::resizeMemory(size_t targetPages) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        // Get current size
-        Uptr currentPages = Runtime::getMemoryNumPages(defaultMemory);
-
-        if (currentPages > targetPages) {
-            Uptr shrinkSize = currentPages - targetPages;
-            logger->debug("Shrinking memory by {} pages", shrinkSize);
-
-            // TODO - what to do now shrinkMemory has been removed?
-            // Runtime::shrinkMemory(defaultMemory, shrinkSize);
-
-        } else if (targetPages > currentPages) {
-            Uptr growSize = targetPages - currentPages;
-            logger->debug("Growing memory by {} pages", growSize);
-
-            Runtime::growMemory(defaultMemory, growSize);
-        }
     }
 
     Uptr WasmModule::getInitialMemoryPages() {
@@ -722,9 +663,6 @@ namespace wasm {
         catch (wasm::WasmExitException &e) {
             exitCode = e.exitCode;
         }
-
-        // Reset ready for next execution
-        reset();
 
         return exitCode;
     }
@@ -1020,29 +958,5 @@ namespace wasm {
         }
 
         return globalOffsetMemoryMap[name];
-    }
-
-    WasmModuleRegistry &getWasmModuleRegistry() {
-        static WasmModuleRegistry w;
-        return w;
-    }
-
-    WasmModuleRegistry::WasmModuleRegistry() = default;
-
-    void WasmModuleRegistry::registerModule(const std::string &key, const WasmModule &module) {
-        util::UniqueLock lock(registryMutex);
-
-        // Be careful that we create a new instance here
-        moduleMap.emplace(key, module);
-    }
-
-    WasmModule &WasmModuleRegistry::getModule(const std::string &key) {
-        util::UniqueLock lock(registryMutex);
-
-        if (moduleMap.count(key) == 0) {
-            throw std::runtime_error("Key does not exist: " + key);
-        }
-
-        return moduleMap[key];
     }
 }
