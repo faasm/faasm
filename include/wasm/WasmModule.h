@@ -123,6 +123,10 @@ namespace wasm {
 
         int getNextTableBase();
 
+        int getFunctionOffsetFromGOT(const std::string &funcName);
+
+        int getDataOffsetFromGOT(const std::string &name);
+
     private:
         Runtime::GCPointer<Runtime::ModuleInstance> envModule;
         Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;

@@ -89,4 +89,20 @@ namespace tests {
 
         conf.reset();
     }
+
+    TEST_CASE("Test GOT population", "[wasm]") {
+        util::SystemConfig &conf = util::getSystemConfig();
+        conf.unsafeMode = "on";
+
+        // Bind to Python function
+        message::Message msg = util::messageFactory("python", "py_func");
+        wasm::WasmModule module;
+        module.bindToFunction(msg);
+
+        // Check invalid entries don't work
+        REQUIRE_THROWS(module.getFunctionOffsetFromGOT("foobar"));
+        REQUIRE_THROWS(module.getDataOffsetFromGOT("foobaz"));
+
+        conf.reset();
+    }
 }

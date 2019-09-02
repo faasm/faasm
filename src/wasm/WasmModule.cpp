@@ -960,6 +960,22 @@ namespace wasm {
         return boundFunction;
     }
 
+    int WasmModule::getFunctionOffsetFromGOT(const std::string &funcName) {
+        if(globalOffsetTableMap.count(funcName) == 0) {
+            throw std::runtime_error("Function not found in GOT");
+        }
+
+        return globalOffsetTableMap[funcName];
+    }
+
+    int WasmModule::getDataOffsetFromGOT(const std::string &name) {
+        if(globalOffsetMemoryMap.count(name) == 0) {
+            throw std::runtime_error("Memory not found in GOT");
+        }
+
+        return globalOffsetMemoryMap[name];
+    }
+
     WasmModuleRegistry &getWasmModuleRegistry() {
         static WasmModuleRegistry w;
         return w;
