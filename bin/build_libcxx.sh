@@ -6,7 +6,7 @@ THIS_DIR=$(dirname $(readlink -f $0))
 PROJ_ROOT=${THIS_DIR}/..
 LLVM_DIR=${PROJ_ROOT}/llvm-project
 
-WASM_TOOLCHAIN=${PROJ_ROOT}/LLVMToolchain.cmake
+WASM_TOOLCHAIN=${PROJ_ROOT}/toolchain/LLVMToolchain.cmake
 INSTALL_DIR=/usr/local/faasm/llvm-sysroot
 
 pushd ${LLVM_DIR}
