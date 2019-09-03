@@ -205,3 +205,23 @@ def compile_eigen(ctx):
     # Eigen is header-only so we just need to copy the files in place
     src_dir = join(extract_dir, "Eigen")
     call("cp -r {} {}".format(src_dir, dest_dir), shell=True)
+
+
+@task
+def compile_onnx(ctx, clean=False):
+    _check_toolchain()
+    work_dir = join(PROJ_ROOT, "onnxjs", "src")
+    build_dir = join(work_dir, "build")
+
+    _clean_dir(build_dir, clean)
+
+    build_cmd = [
+        "cmake",
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
+        "-DCMAKE_BUILD_TYPE=Release",
+        ".."
+    ]
+
+    call(" ".join(build_cmd), shell=True, cwd=build_dir)
+    call("make", shell=True, cwd=build_dir)
+    call("make install", shell=True, cwd=build_dir)

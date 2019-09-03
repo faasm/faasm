@@ -191,6 +191,9 @@ else ()
     add_subdirectory(src/lambda_func)
     add_subdirectory(src/dispatch)
 
+    # ONNX
+    add_subdirectory(onnxjs/src)
+
     # Faasm runtime
     add_subdirectory(src/data)
     add_subdirectory(src/edge)
