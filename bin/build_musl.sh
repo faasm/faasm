@@ -3,35 +3,49 @@
 set -e
 
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-EM_ROOT=/usr/local/faasm/emsdk/upstream/latest
-SYSROOT=${EM_ROOT}/sysroot
-TOOL_BIN=${EM_ROOT}/bin
+
+if [ "$1" == "llvm" ]; then
+  SYSROOT=/usr/local/faasm/llvm-sysroot
+  CLANG_DIR=/usr/bin
+else
+  # Normal emsdk stuff
+  EM_ROOT=/usr/local/faasm/emsdk/upstream/latest
+  SYSROOT=${EM_ROOT}/sysroot
+  CLANG_DIR=${EM_ROOT}/bin
+
+fi
+
+mkdir -p ${SYSROOT}
+
+TARGET="wasm32-unknown-unknown"
+CC="${CLANG_DIR}/clang"
+CXX="${CLANG_DIR}/clang++"
+CROSS_COMPILE="${CLANG_DIR}/llvm-"
+CPP="${CLANG_DIR}/clang-cpp"
+LD="${CLANG_DIR}/wasm-ld"
+AR="${CLANG_DIR}/llvm-ar"
+AS="${CLANG_DIR}/llvm-as"
+RANLIB="${CLANG_DIR}/llvm-ranlib"
 
 MUSL_DIR=${THIS_DIR}/../musl
 MUSL_BUILD_DIR=/tmp/musl_out
 
-CFLAGS="--sysroot=${SYSROOT} --target=wasm32-unknown-unknown"
-CXXFLAGS="--sysroot=${SYSROOT} --target=wasm32-unknown-unknown"
-
-CC="${TOOL_BIN}/wasm32-clang"
-CPP="${TOOL_BIN}/clang-cpp"
-CXX="${TOOL_BIN}/wasm32-clang++"
-LD="${TOOL_BIN}/wasm-ld"
-CROSS_COMPILE="${TOOL_BIN}/llvm-"
-AR="${TOOL_BIN}/llvm-ar"
-AS="${TOOL_BIN}/llvm-as"
-RANLIB="${TOOL_BIN}/llvm-ranlib"
+CFLAGS="--sysroot=${SYSROOT} --target=${TARGET}"
+CXXFLAGS="--sysroot=${SYSROOT} --target=${TARGET}"
 
 rm -rf ${MUSL_BUILD_DIR}
 mkdir -p ${MUSL_BUILD_DIR}
 
 echo "Building musl at ${MUSL_DIR} to ${MUSL_BUILD_DIR}"
-BUILD_CMD="python2 ${MUSL_DIR}/libc.py --compile-to-wasm --clang_dir=${TOOL_BIN} --binaryen_dir="" --musl=${MUSL_DIR} --out=${MUSL_BUILD_DIR}/libc.a"
+BUILD_CMD="python2 ${MUSL_DIR}/libc.py --compile-to-wasm --clang_dir=${CLANG_DIR} --binaryen_dir="" --musl=${MUSL_DIR} --out=${MUSL_BUILD_DIR}/libc.a"
 
 echo ""
 echo "WARNING: this command may drop out the first time..."
 echo "${BUILD_CMD}"
 ${BUILD_CMD}
+
+mkdir -p ${SYSROOT}/lib
+mkdir -p ${SYSROOT}/include/bits
 
 # Create archive and put in place
 echo "Creating archive"
