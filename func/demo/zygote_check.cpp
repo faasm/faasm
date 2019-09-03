@@ -7,6 +7,8 @@ int globalB = 2;
 FAASM_ZYGOTE() {
     globalA += 5;
     globalB += 100;
+
+    return 0;
 }
 
 /**

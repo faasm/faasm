@@ -18,13 +18,13 @@ namespace runner {
         util::SystemConfig &conf = util::getSystemConfig();
 
         // Set up network namespace
-        if(conf.netNsMode == "on") {
+        if (conf.netNsMode == "on") {
             std::string netnsName = std::string(BASE_NETNS_NAME) + "1";
             isolation::NetworkNamespace ns(netnsName);
             ns.addCurrentThread();
         }
 
-        if(conf.cgroupMode == "on") {
+        if (conf.cgroupMode == "on") {
             // Add this thread to the cgroup
             isolation::CGroup cgroup(BASE_CGROUP_NAME);
             cgroup.addCurrentThread();
@@ -35,13 +35,10 @@ namespace runner {
         m.set_user(user);
         m.set_function(func);
 
-        logger->info("Executing function {}/{} from zygote", user, func);
+        logger->info("Executing function {}/{}", user, func);
 
-        // Execute the function from cached zygote
-        zygote::ZygoteRegistry &zygoteRegistry = zygote::getZygoteRegistry();
-        wasm::WasmModule &z = zygoteRegistry.getZygote(m);
-
-        wasm::WasmModule module(z);
+        wasm::WasmModule module;
+        module.bindToFunction(m);
         module.execute(m);
     }
 }

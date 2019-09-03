@@ -13,6 +13,11 @@ namespace tests {
 
         WasmModule moduleC;
         moduleC = moduleA;
+
+        // Check clear-up
+        REQUIRE(moduleA.tearDown());
+        REQUIRE(moduleB.tearDown());
+        REQUIRE(moduleC.tearDown());
     }
 
     void
@@ -100,6 +105,10 @@ namespace tests {
 
         REQUIRE(tableAfterB2 == tableAfterA2);
         REQUIRE(tableAfterA1 == tableAfterA2);
+
+        // Check successful clean-up
+        REQUIRE(moduleA.tearDown());
+        REQUIRE(moduleB.tearDown());
     }
 
     void _checkCopyConstructor(const std::string &user, const std::string &func, const std::string &inputA,

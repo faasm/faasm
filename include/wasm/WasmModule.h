@@ -13,7 +13,6 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
 #include <WAVM/Runtime/Runtime.h>
-//#include <memory/MemorySnapshot.h>
 
 #define ONE_MB_BYTES 1024 * 1024
 
@@ -64,7 +63,7 @@ namespace wasm {
 
         Runtime::GCPointer<Runtime::Compartment> compartment;
 
-        bool isBound();
+        const bool isBound();
 
         U32 mmap(U32 length);
 

@@ -32,10 +32,6 @@ namespace wasm {
         return executingCall;
     }
 
-//    std::string snapshotKeyForFunction(const std::string &user, const std::string &func) {
-//        return "mem_" + user + "_" + func;
-//    }
-
     Uptr getNumberOfPagesForBytes(U32 nBytes) {
         // Round up to nearest page
         Uptr pageCount = (Uptr(nBytes) + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
@@ -46,60 +42,35 @@ namespace wasm {
     WasmModule::WasmModule() = default;
 
     WasmModule &WasmModule::operator=(const WasmModule &other) {
-        PROF_START(wasmAssign)
-
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        // Reset shared memory variables
-        sharedMemKVs.clear();
-        sharedMemWasmPtrs.clear();
-        sharedMemHostPtrs.clear();
-
-        // Unmap shared memory regions
-//        for (auto const &p : sharedMemWasmPtrs) {
-//            state::StateKeyValue *kv = sharedMemKVs[p.first];
-//            void* hostPtr = sharedMemHostPtrs[p.first];
-//            kv->unmapSharedMemory(hostPtr);
-//        }
-
-        // Remove references to shared modules
-        for (auto const &p : dynamicPathToHandleMap) {
-            logger->debug("Unloading dynamic module {}", p.first);
-            dynamicModuleMap[p.second] = nullptr;
-        }
-
-        // Reset maps
-        dynamicModuleMap.clear();
-        dynamicPathToHandleMap.clear();
-
-        // Clear up garbage on old compartment
-        if(compartment != nullptr) {
-            Runtime::collectCompartmentGarbage(compartment);
-        }
+        PROF_START(wasmAssignOp)
 
         // Do the clone
         clone(other);
 
-        PROF_END(wasmAssign)
+        PROF_END(wasmAssignOp)
 
         return *this;
     }
 
     WasmModule::WasmModule(const WasmModule &other) {
-        PROF_START(wasmClone)
+        PROF_START(wasmCopyConstruct)
 
         // Do the clone
         clone(other);
 
-        PROF_END(wasmClone)
+        PROF_END(wasmCopyConstruct)
     }
 
     void WasmModule::clone(const WasmModule &other) {
         // -----------
-        // TODO - optimise if these are the same function
+        // TODO - optimise if these are the same function?
         // -----------
 
-        // Copy basic values
+        // Tear down if we are bound
+        if(this->_isBound) {
+            tearDown();
+        }
+
         errnoLocation = other.errnoLocation;
         initialMemoryPages = other.initialMemoryPages;
         initialTableSize = other.initialTableSize;
@@ -135,7 +106,11 @@ namespace wasm {
             defaultMemory = Runtime::getDefaultMemory(moduleInstance);
             defaultTable = Runtime::getDefaultTable(moduleInstance);
 
-            // TODO - include shared memory state
+            // TODO - double check this works
+            // Reset shared memory variables
+            sharedMemKVs = other.sharedMemKVs;
+            sharedMemWasmPtrs = other.sharedMemWasmPtrs;
+            sharedMemHostPtrs = other.sharedMemHostPtrs;
 
             // Remap dynamic modules
             // TODO - double check this works
@@ -152,11 +127,63 @@ namespace wasm {
         }
     }
 
+    bool WasmModule::tearDown() {
+        PROF_START(wasmTearDown)
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        // --- Faasm stuff ---
+
+        sharedMemKVs.clear();
+        sharedMemWasmPtrs.clear();
+        sharedMemHostPtrs.clear();
+
+        globalOffsetTableMap.clear();
+        globalOffsetMemoryMap.clear();
+        missingGlobalOffsetEntries.clear();
+
+        dynamicPathToHandleMap.clear();
+        for (auto const &m : dynamicModuleMap) {
+            dynamicModuleMap[m.first] = nullptr;
+        }
+        dynamicModuleMap.clear();
+
+        // --- WAVM stuff ---
+
+        // Set all reference to GC pointers to null to allow WAVM GC to clear up
+        defaultMemory = nullptr;
+        defaultTable = nullptr;
+        moduleInstance = nullptr;
+
+        functionInstance = nullptr;
+        zygoteFunctionInstance = nullptr;
+
+        envModule = nullptr;
+
+        executionContext = nullptr;
+
+        if (compartment == nullptr) {
+            return true;
+        }
+
+        bool compartmentCleared = Runtime::tryCollectCompartment(std::move(compartment));
+        if (!compartmentCleared) {
+            logger->debug("Failed GC for compartment");
+        } else {
+            logger->debug("Successful GC for compartment");
+        }
+
+        PROF_END(wasmTearDown)
+
+        return compartmentCleared;
+    }
+
+
     WasmModule::~WasmModule() {
         tearDown();
     }
 
-    bool WasmModule::isBound() {
+    const bool WasmModule::isBound() {
         return _isBound;
     }
 
@@ -324,6 +351,11 @@ namespace wasm {
                     {},
                     result
             );
+
+            if(result.i32 != 0) {
+                logger->error("Zygote for {}/{} failed with return code {}", boundUser, boundFunction, result.i32);
+                throw std::runtime_error("Zygote failed");
+            }
         }
 
         // Memory-related variables
@@ -553,43 +585,6 @@ namespace wasm {
         return prevIdx;
     }
 
-    bool WasmModule::tearDown() {
-        PROF_START(wasmTearDown)
-
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        // Set all reference to GC pointers to null to allow WAVM GC to clear up
-        defaultMemory = nullptr;
-        defaultTable = nullptr;
-        moduleInstance = nullptr;
-
-        functionInstance = nullptr;
-        zygoteFunctionInstance = nullptr;
-
-        envModule = nullptr;
-
-        executionContext = nullptr;
-
-        for (auto const &m : dynamicModuleMap) {
-            dynamicModuleMap[m.first] = nullptr;
-        }
-
-        if (compartment == nullptr) {
-            return true;
-        }
-
-        bool compartmentCleared = Runtime::tryCollectCompartment(std::move(compartment));
-        if (!compartmentCleared) {
-            logger->debug("Failed GC for compartment");
-        } else {
-            logger->debug("Successful GC for compartment");
-        }
-
-        PROF_END(wasmTearDown)
-
-        return compartmentCleared;
-    }
-
     Uptr WasmModule::getInitialMemoryPages() {
         return initialMemoryPages;
     }
@@ -780,7 +775,7 @@ namespace wasm {
                     Uptr newIdx;
                     bool success = Runtime::growTable(defaultTable, 1, &newIdx);
 
-                    if(!success) {
+                    if (!success) {
                         throw std::runtime_error("Failed to grow table");
                     }
 
