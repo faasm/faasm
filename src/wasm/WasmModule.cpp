@@ -6,15 +6,14 @@
 #include <util/config.h>
 #include <util/locks.h>
 
-#include <memory/MemorySnapshotRegister.h>
 #include <wasm/IRModuleRegistry.h>
 
 #include <WAVM/WASM/WASM.h>
 #include <WAVM/IR/Types.h>
+#include <WAVM/Platform/Memory.h>
 #include <WAVM/IR/Module.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
-#include <WAVM/Runtime/RuntimeData.h>
 #include <WAVM/WASTParse/WASTParse.h>
 
 
@@ -33,10 +32,6 @@ namespace wasm {
         return executingCall;
     }
 
-    std::string snapshotKeyForFunction(const std::string &user, const std::string &func) {
-        return "mem_" + user + "_" + func;
-    }
-
     Uptr getNumberOfPagesForBytes(U32 nBytes) {
         // Round up to nearest page
         Uptr pageCount = (Uptr(nBytes) + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
@@ -47,13 +42,35 @@ namespace wasm {
     WasmModule::WasmModule() = default;
 
     WasmModule &WasmModule::operator=(const WasmModule &other) {
-        throw std::runtime_error("Copy assignment not supported");
+        PROF_START(wasmAssignOp)
+
+        // Do the clone
+        clone(other);
+
+        PROF_END(wasmAssignOp)
+
+        return *this;
     }
 
     WasmModule::WasmModule(const WasmModule &other) {
-        PROF_START(wasmClone)
+        PROF_START(wasmCopyConstruct)
 
-        // Copy basic values
+        // Do the clone
+        clone(other);
+
+        PROF_END(wasmCopyConstruct)
+    }
+
+    void WasmModule::clone(const WasmModule &other) {
+        // -----------
+        // TODO - optimise if these are the same function?
+        // -----------
+
+        // Tear down if we are bound
+        if(this->_isBound) {
+            tearDown();
+        }
+
         errnoLocation = other.errnoLocation;
         initialMemoryPages = other.initialMemoryPages;
         initialTableSize = other.initialTableSize;
@@ -71,13 +88,12 @@ namespace wasm {
         boundFunction = other.boundFunction;
 
         if (other._isBound) {
-            // Clone all WAVM-related bits
+            // Clone compartment and context
             compartment = Runtime::cloneCompartment(other.compartment);
-            baseContext = Runtime::cloneContext(other.baseContext, compartment);
             executionContext = Runtime::cloneContext(other.executionContext, compartment);
-            invokeArgs = other.invokeArgs;
 
             // Remap parts we need specific references to
+            invokeArgs = other.invokeArgs;
             envModule = Runtime::remapToClonedCompartment(other.envModule, compartment);
             moduleInstance = Runtime::remapToClonedCompartment(other.moduleInstance, compartment);
 
@@ -90,7 +106,11 @@ namespace wasm {
             defaultMemory = Runtime::getDefaultMemory(moduleInstance);
             defaultTable = Runtime::getDefaultTable(moduleInstance);
 
-            // TODO - include shared memory state
+            // TODO - double check this works
+            // Reset shared memory variables
+            sharedMemKVs = other.sharedMemKVs;
+            sharedMemWasmPtrs = other.sharedMemWasmPtrs;
+            sharedMemHostPtrs = other.sharedMemHostPtrs;
 
             // Remap dynamic modules
             // TODO - double check this works
@@ -105,15 +125,65 @@ namespace wasm {
             globalOffsetMemoryMap = other.globalOffsetMemoryMap;
             missingGlobalOffsetEntries = other.missingGlobalOffsetEntries;
         }
-
-        PROF_END(wasmClone)
     }
+
+    bool WasmModule::tearDown() {
+        PROF_START(wasmTearDown)
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        // --- Faasm stuff ---
+
+        sharedMemKVs.clear();
+        sharedMemWasmPtrs.clear();
+        sharedMemHostPtrs.clear();
+
+        globalOffsetTableMap.clear();
+        globalOffsetMemoryMap.clear();
+        missingGlobalOffsetEntries.clear();
+
+        dynamicPathToHandleMap.clear();
+        for (auto const &m : dynamicModuleMap) {
+            dynamicModuleMap[m.first] = nullptr;
+        }
+        dynamicModuleMap.clear();
+
+        // --- WAVM stuff ---
+
+        // Set all reference to GC pointers to null to allow WAVM GC to clear up
+        defaultMemory = nullptr;
+        defaultTable = nullptr;
+        moduleInstance = nullptr;
+
+        functionInstance = nullptr;
+        zygoteFunctionInstance = nullptr;
+
+        envModule = nullptr;
+
+        executionContext = nullptr;
+
+        if (compartment == nullptr) {
+            return true;
+        }
+
+        bool compartmentCleared = Runtime::tryCollectCompartment(std::move(compartment));
+        if (!compartmentCleared) {
+            logger->debug("Failed GC for compartment");
+        } else {
+            logger->debug("Successful GC for compartment");
+        }
+
+        PROF_END(wasmTearDown)
+
+        return compartmentCleared;
+    }
+
 
     WasmModule::~WasmModule() {
         tearDown();
     }
 
-    bool WasmModule::isBound() {
+    const bool WasmModule::isBound() {
         return _isBound;
     }
 
@@ -162,16 +232,10 @@ namespace wasm {
             }
 
             // Go through each elem entry and record where in the table it's getting inserted
-            for (Uptr i = 0; i < es.elems->size(); i++) {
-                const IR::Elem &elem = (*es.elems)[i];
-
-                // Ignore null entries
-                if (!es.isActive && elem.type == IR::Elem::Type::ref_null) {
-                    continue;
-                }
-
+            for (int i = 0; i < es.contents->elemIndices.size(); i++) {
+                unsigned long elemIdx = es.contents->elemIndices[i];
                 // Work out the function's name, then add it to our GOT
-                std::string &elemName = disassemblyNames.functions[elem.index].name;
+                std::string &elemName = disassemblyNames.functions[elemIdx].name;
                 int tableIdx = offset + i;
                 globalOffsetTableMap.insert({elemName, tableIdx});
             }
@@ -203,11 +267,16 @@ namespace wasm {
         }
     }
 
-    IR::ValueTuple WasmModule::executeFunction(Runtime::Function *func, const std::vector<IR::Value> &arguments) {
+    void WasmModule::executeFunction(
+            Runtime::Function *func,
+            IR::FunctionType funcType,
+            const std::vector<IR::UntaggedValue> &arguments,
+            IR::UntaggedValue &result
+    ) {
         // Note the need to set the currently executing module
         executingModule = this;
 
-        return Runtime::invokeFunctionChecked(executionContext, func, arguments);
+        Runtime::invokeFunction(executionContext, func, funcType, arguments.data(), &result);
     }
 
     void WasmModule::bindToFunction(const message::Message &msg) {
@@ -222,14 +291,13 @@ namespace wasm {
             throw std::runtime_error("Cannot bind a module twice");
         }
 
-        PROF_START(wasmBind)
-
         // Record that this module is now bound
         _isBound = true;
         boundUser = msg.user();
         boundFunction = msg.function();
 
         // Set up the compartment and context
+        PROF_START(wasmContext)
         compartment = Runtime::createCompartment();
         executionContext = Runtime::createContext(compartment);
 
@@ -244,8 +312,12 @@ namespace wasm {
             msgCopy.set_function("py_func");
         }
 
+        PROF_END(wasmContext)
+
         // Create the module instance
         moduleInstance = createModuleInstance(util::funcToString(msgCopy, false), "");
+
+        PROF_START(wasmBind)
 
         // Get main entrypoint function
         functionInstance = getFunction(ENTRY_FUNC_NAME, true);
@@ -257,11 +329,16 @@ namespace wasm {
         // Record the errno location
         Runtime::Function *errNoLocation = asFunctionNullable(getInstanceExport(moduleInstance, "__errno_location"));
         if (errNoLocation) {
-            IR::ValueTuple errNoResult = executeFunction(errNoLocation, {});
-            if (errNoResult.size() == 1 && errNoResult[0].type == IR::ValueType::i32) {
-                errnoLocation = errNoResult[0].i32;
-                logger->debug("Found errno location {}", errnoLocation);
-            }
+            IR::UntaggedValue errNoResult;
+            executeFunction(
+                    errNoLocation,
+                    IR::FunctionType({IR::ValueType::i32}, {}),
+                    {},
+                    errNoResult
+            );
+
+            errnoLocation = errNoResult.i32;
+            logger->debug("Found errno location {}", errnoLocation);
         } else {
             logger->warn("Did not find errno location");
         }
@@ -269,7 +346,19 @@ namespace wasm {
         // Get and execute zygote function
         zygoteFunctionInstance = getFunction(ZYGOTE_FUNC_NAME, false);
         if (zygoteFunctionInstance) {
-            executeFunction(zygoteFunctionInstance, {});
+            IR::UntaggedValue result;
+            const IR::FunctionType funcType = Runtime::getFunctionType(zygoteFunctionInstance);
+            executeFunction(
+                    zygoteFunctionInstance,
+                    funcType,
+                    {},
+                    result
+            );
+
+            if(result.i32 != 0) {
+                logger->error("Zygote for {}/{} failed with return code {}", boundUser, boundFunction, result.i32);
+                throw std::runtime_error("Zygote failed");
+            }
         }
 
         // Memory-related variables
@@ -277,14 +366,11 @@ namespace wasm {
         initialTableSize = Runtime::getTableNumElements(defaultTable);
         Uptr initialMemorySize = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
 
-        // Get memory and dimensions
-        U8 *baseAddr = Runtime::getMemoryBaseAddress(defaultMemory);
-
         // Note that heap base and data end should be the same (provided stack-first is switched on)
         heapBase = getGlobalI32("__heap_base", executionContext);
         dataEnd = getGlobalI32("__data_end", executionContext);
-        logger->debug("heap_base = {}  data_end = {}  heap_top={} initial_pages={}", heapBase, dataEnd,
-                      initialMemorySize, initialMemoryPages);
+        logger->debug("heap_base={} data_end={} heap_top={} initial_pages={} initial_table={}", heapBase, dataEnd,
+                      initialMemorySize, initialMemoryPages, initialTableSize);
 
         // Set up invoke arguments just below the top of the memory (i.e. at the top of the dynamic section)
         U32 argvStart = initialMemorySize - 20;
@@ -298,19 +384,6 @@ namespace wasm {
         // Copy the offset of argv[0] into position
         Runtime::memoryRef<U32>(defaultMemory, argvStart) = argv0;
         invokeArgs = {argc, argvStart};
-
-        // Snapshot the context so that we can reset to this point
-        PROF_START(wasmCloneContext)
-        baseContext = Runtime::cloneContext(executionContext, compartment);
-        PROF_END(wasmCloneContext)
-
-        // Create the memory snapshot if not already present
-        PROF_START(wasmMemSnapshot)
-        std::string snapKey = snapshotKeyForFunction(boundUser, boundFunction);
-        memory::MemorySnapshotRegister &snapRegister = memory::getGlobalMemorySnapshotRegister();
-        const std::shared_ptr<memory::MemorySnapshot> snapshot = snapRegister.getSnapshot(snapKey);
-        snapshot->createIfNotExists(snapKey.c_str(), baseAddr, initialMemorySize);
-        PROF_END(wasmMemSnapshot)
 
         PROF_END(wasmBind)
     }
@@ -328,7 +401,7 @@ namespace wasm {
         IR::Module &irModule = moduleRegistry.getModule(boundUser, boundFunction, sharedModulePath);
         if (isMainModule) {
             // Set up intrinsics
-            envModule = Intrinsics::instantiateModule(compartment, {INTRINSIC_MODULE_REF(env)}, "env");
+            envModule = Intrinsics::instantiateModule(compartment, {WAVM_INTRINSIC_MODULE_REF(env)}, "env");
 
             // Make sure the stack top is as expected
             IR::GlobalDef stackDef = irModule.globals.getDef(0);
@@ -352,8 +425,9 @@ namespace wasm {
             U64 nTableElems = moduleRegistry.getSharedModuleTableSize(boundUser, boundFunction,
                                                                       sharedModulePath);
 
-            Iptr oldTableElems = Runtime::growTable(defaultTable, nTableElems);
-            if (oldTableElems == -1) {
+            Uptr oldTableElems = 0;
+            bool success = Runtime::growTable(defaultTable, nTableElems, &oldTableElems);
+            if (!success) {
                 throw std::runtime_error("Failed to grow main module table");
             }
             Uptr newTableElems = Runtime::getTableNumElements(defaultTable);
@@ -447,7 +521,13 @@ namespace wasm {
         Runtime::Function *wasmCtorsFunction = asFunctionNullable(getInstanceExport(mod, "__wasm_call_ctors"));
         if (wasmCtorsFunction) {
             logger->debug("Executing __wasm_call_ctors for {}", path);
-            executeFunction(wasmCtorsFunction, {});
+            IR::UntaggedValue result;
+            executeFunction(
+                    wasmCtorsFunction,
+                    IR::FunctionType({}, {}),
+                    {},
+                    result
+            );
         }
 
         // Keep a record of this module
@@ -495,8 +575,9 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Add function to the table
-        Iptr prevIdx = Runtime::growTable(defaultTable, 1);
-        if (prevIdx == -1) {
+        Uptr prevIdx;
+        bool success = Runtime::growTable(defaultTable, 1, &prevIdx);
+        if (!success) {
             throw std::runtime_error("Failed to grow table");
         } else {
             logger->debug("Growing table from {} elements to {}", prevIdx, prevIdx + 1);
@@ -505,127 +586,6 @@ namespace wasm {
         Runtime::setTableElement(defaultTable, prevIdx, exportedFunc);
 
         return prevIdx;
-    }
-
-    void WasmModule::reset() {
-        PROF_START(wasmReset)
-
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        // Clean up any open fds
-        clearFds();
-
-        // Retrieve the memory snapshot
-        memory::MemorySnapshotRegister &snapRegister = memory::getGlobalMemorySnapshotRegister();
-        std::string key = snapshotKeyForFunction(boundUser, boundFunction);
-        const std::shared_ptr<memory::MemorySnapshot> snapshot = snapRegister.getSnapshot(key);
-
-        // Resize memory accordingly
-        size_t wasmPages = (snapshot->getSize() + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
-        resizeMemory(wasmPages);
-
-        // Do the restore
-        U8 *baseAddr = Runtime::getMemoryBaseAddress(defaultMemory);
-        snapshot->restore(baseAddr);
-
-        // Reset shared memory variables
-        sharedMemKVs.clear();
-        sharedMemWasmPtrs.clear();
-        sharedMemHostPtrs.clear();
-
-        // Unmap shared memory regions
-//        for (auto const &p : sharedMemWasmPtrs) {
-//            state::StateKeyValue *kv = sharedMemKVs[p.first];
-//            void* hostPtr = sharedMemHostPtrs[p.first];
-//            kv->unmapSharedMemory(hostPtr);
-//        }
-
-        // Restore the table to its original size
-        Uptr currentTableSize = Runtime::getTableNumElements(defaultTable);
-        Uptr elemsToShrink = currentTableSize - initialTableSize;
-        if (elemsToShrink > 0) {
-            logger->debug("Shrinking table from {} to {}", currentTableSize, initialTableSize);
-            Runtime::shrinkTable(defaultTable, elemsToShrink);
-        }
-
-        // Remove references to shared modules
-        for (auto const &p : dynamicPathToHandleMap) {
-            logger->debug("Unloading dynamic module {}", p.first);
-            dynamicModuleMap[p.second] = nullptr;
-        }
-
-        // Reset maps
-        dynamicModuleMap.clear();
-        dynamicPathToHandleMap.clear();
-
-        // Create a fresh execution context
-        executionContext = Runtime::cloneContext(baseContext, compartment);
-        if (executionContext == nullptr) {
-            throw std::runtime_error("Failed to clone context");
-        }
-
-        // Run WAVM GC
-        Runtime::collectCompartmentGarbage(compartment);
-
-        PROF_END(wasmReset)
-    }
-
-    bool WasmModule::tearDown() {
-        PROF_START(wasmTearDown)
-
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        // Set all reference to GC pointers to null to allow WAVM GC to clear up
-        defaultMemory = nullptr;
-        defaultTable = nullptr;
-        moduleInstance = nullptr;
-
-        functionInstance = nullptr;
-        zygoteFunctionInstance = nullptr;
-
-        envModule = nullptr;
-
-        executionContext = nullptr;
-        baseContext = nullptr;
-
-        for (auto const &m : dynamicModuleMap) {
-            dynamicModuleMap[m.first] = nullptr;
-        }
-
-        if (compartment == nullptr) {
-            return true;
-        }
-
-        bool compartmentCleared = Runtime::tryCollectCompartment(std::move(compartment));
-        if (!compartmentCleared) {
-            logger->debug("Failed GC for compartment");
-        } else {
-            logger->debug("Successful GC for compartment");
-        }
-
-        PROF_END(wasmTearDown)
-
-        return compartmentCleared;
-    }
-
-    void WasmModule::resizeMemory(size_t targetPages) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        // Get current size
-        Uptr currentPages = Runtime::getMemoryNumPages(defaultMemory);
-
-        if (currentPages > targetPages) {
-            Uptr shrinkSize = currentPages - targetPages;
-            logger->debug("Shrinking memory by {} pages", shrinkSize);
-
-            Runtime::shrinkMemory(defaultMemory, shrinkSize);
-
-        } else if (targetPages > currentPages) {
-            Uptr growSize = targetPages - currentPages;
-            logger->debug("Growing memory by {} pages", growSize);
-
-            Runtime::growMemory(defaultMemory, growSize);
-        }
     }
 
     Uptr WasmModule::getInitialMemoryPages() {
@@ -651,7 +611,7 @@ namespace wasm {
 
             Runtime::memoryRef<I32>(defaultMemory, errnoLocation) = (I32) newValue;
         } else {
-            logger->warn("No errno set but trying to set to {} ({})", strerror(newValue));
+            logger->warn("No errno location but trying to set to {} ({})", strerror(newValue));
         }
     }
 
@@ -677,21 +637,30 @@ namespace wasm {
         try {
             // Call the function
             logger->debug("Invoking the function itself");
-            Runtime::unwindSignalsAsExceptions([this] {
-                executeFunction(functionInstance, invokeArgs);
+
+            Runtime::catchRuntimeExceptions([this, &exitCode] {
+                IR::UntaggedValue result;
+
+                executeFunction(
+                        functionInstance,
+                        IR::FunctionType(
+                                {IR::ValueType::i32},
+                                {IR::ValueType::i32, IR::ValueType::i32}
+                        ),
+                        invokeArgs,
+                        result
+                );
+
+                exitCode = result.i32;
+            }, [&logger, &exitCode](Runtime::Exception *ex) {
+                logger->error("Runtime exception: {}", Runtime::describeException(ex).c_str());
+                Runtime::destroyException(ex);
+                exitCode = 1;
             });
         }
         catch (wasm::WasmExitException &e) {
             exitCode = e.exitCode;
         }
-        catch (Runtime::Exception *ex) {
-            logger->error("Runtime exception: {}", Runtime::describeException(ex).c_str());
-            Runtime::destroyException(ex);
-            exitCode = 1;
-        }
-
-        // Reset ready for next execution
-        reset();
 
         return exitCode;
     }
@@ -700,11 +669,12 @@ namespace wasm {
         // Round up to page boundary
         Uptr pagesRequested = getNumberOfPagesForBytes(length);
 
-        Iptr previousPageCount = growMemory(defaultMemory, pagesRequested);
+        Uptr previousPageCount;
+        bool success = growMemory(defaultMemory, pagesRequested, &previousPageCount);
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         Uptr newPageCount = previousPageCount + pagesRequested;
-        if (previousPageCount == -1) {
+        if (!success) {
             logger->error("No memory for mapping (growing to {} pages)", newPageCount);
             throw std::runtime_error("Run out of memory to map");
         }
@@ -805,7 +775,15 @@ namespace wasm {
                 // TODO - what causes this?
                 if (tableIdx == -1) {
                     // Create a new entry in the table and use this, but mark it to be filled later
-                    tableIdx = Runtime::growTable(defaultTable, 1);
+                    Uptr newIdx;
+                    bool success = Runtime::growTable(defaultTable, 1, &newIdx);
+
+                    if (!success) {
+                        throw std::runtime_error("Failed to grow table");
+                    }
+
+                    tableIdx = (int) newIdx;
+
                     logger->warn("Adding placeholder table offset: {}.{} at {}", moduleName, name, tableIdx);
                     missingGlobalOffsetEntries.insert({name, tableIdx});
                 }
@@ -961,7 +939,7 @@ namespace wasm {
     }
 
     int WasmModule::getFunctionOffsetFromGOT(const std::string &funcName) {
-        if(globalOffsetTableMap.count(funcName) == 0) {
+        if (globalOffsetTableMap.count(funcName) == 0) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Function not found in GOT - {}", funcName);
             throw std::runtime_error("Function not found in GOT");
@@ -971,36 +949,12 @@ namespace wasm {
     }
 
     int WasmModule::getDataOffsetFromGOT(const std::string &name) {
-        if(globalOffsetMemoryMap.count(name) == 0) {
+        if (globalOffsetMemoryMap.count(name) == 0) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Data not found in GOT - {}", name);
             throw std::runtime_error("Memory not found in GOT");
         }
 
         return globalOffsetMemoryMap[name];
-    }
-
-    WasmModuleRegistry &getWasmModuleRegistry() {
-        static WasmModuleRegistry w;
-        return w;
-    }
-
-    WasmModuleRegistry::WasmModuleRegistry() = default;
-
-    void WasmModuleRegistry::registerModule(const std::string &key, const WasmModule &module) {
-        util::UniqueLock lock(registryMutex);
-
-        // Be careful that we create a new instance here
-        moduleMap.emplace(key, module);
-    }
-
-    WasmModule &WasmModuleRegistry::getModule(const std::string &key) {
-        util::UniqueLock lock(registryMutex);
-
-        if (moduleMap.count(key) == 0) {
-            throw std::runtime_error("Key does not exist: " + key);
-        }
-
-        return moduleMap[key];
     }
 }

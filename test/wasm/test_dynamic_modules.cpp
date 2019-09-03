@@ -2,7 +2,6 @@
 #include "utils.h"
 #include <wasm/WasmModule.h>
 #include <wasm/syscalls.h>
-#include <WAVM/Runtime/RuntimeData.h>
 #include <wasm/IRModuleRegistry.h>
 
 namespace tests {
@@ -27,7 +26,7 @@ namespace tests {
     int dataAOffset = 10460832;
     int dataBOffset = 41746432;
 
-    // NOTE - 6 extra table entries are created for each module loaded (not sure from where)
+    // NOTE - extra table entries are created for each module loaded (not sure from where)
     int extraFuncsPerModule = 6;
 
     TEST_CASE("Test dynamic load/ function lookup", "[wasm]") {
@@ -123,8 +122,8 @@ namespace tests {
 
         Runtime::Object *tableElem = Runtime::getTableElement(module.defaultTable, funcIdx);
         Runtime::Function *funcObj = Runtime::asFunction(tableElem);
-        
-        REQUIRE(funcObj->mutableData->debugName == expectedName);
+
+        REQUIRE(Runtime::getFunctionDebugName(funcObj) == expectedName);
     }
 
     void checkDataInGOT(wasm::WasmModule &module, const std::string &dataName, int expectedOffset) {

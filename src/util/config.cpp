@@ -46,7 +46,6 @@ namespace util {
         redisPort = getEnvVar("REDIS_PORT", "6379");
 
         // Caching
-        zygoteMode = getEnvVar("ZYGOTE_MODE", "on");
         irCacheMode = getEnvVar("IR_CACHE_MODE", "on");
 
         // Scheduling
@@ -106,7 +105,6 @@ namespace util {
         logger->info("REDIS_PORT                 {}", redisPort);
 
         logger->info("--- Caching ---");
-        logger->info("ZYGOTE_MODE                {}", zygoteMode);
         logger->info("IR_CACHE_MODE              {}", irCacheMode);
 
         logger->info("--- Scheduling ---");

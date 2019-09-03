@@ -8,7 +8,6 @@
 #include <sys/random.h>
 
 #include <WAVM/Runtime/Runtime.h>
-#include <WAVM/Runtime/RuntimeData.h>
 #include <WAVM/Runtime/Intrinsics.h>
 
 namespace wasm {
@@ -55,14 +54,14 @@ namespace wasm {
         return 0;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "confstr", I32, confstr, I32 a, I32 b, I32 c) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "confstr", I32, confstr, I32 a, I32 b, I32 c) {
         util::getLogger()->debug("S - confstr - {} {} {}", a, b, c);
 
         // Return zero as if no confstr variables have a value set
         return 0;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "getpwuid", I32, getpwuid, I32 uid) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getpwuid", I32, getpwuid, I32 uid) {
         util::getLogger()->debug("S - _getpwuid - {}", uid);
 
         WasmModule *module = getExecutingModule();
@@ -91,7 +90,7 @@ namespace wasm {
         return structOffset;
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_config", void, __faasm_read_config, I32 varPtr, I32 buffer) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_config", void, __faasm_read_config, I32 varPtr, I32 buffer) {
         WasmModule *module = getExecutingModule();
         Runtime::Memory *memoryPtr = module->defaultMemory;
         char *varName = &Runtime::memoryRef<char>(memoryPtr, (Uptr) varPtr);
@@ -121,17 +120,17 @@ namespace wasm {
         std::strcpy(resultBuffer, value);
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "abort", void, abort) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "abort", void, abort) {
         util::getLogger()->debug("S - abort");
         throw (wasm::WasmExitException(0));
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "exit", void, exit, I32 a) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "exit", void, exit, I32 a) {
         util::getLogger()->debug("S - exit - {}", a);
         throw (wasm::WasmExitException(a));
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "_Exit", void, _Exit, I32 a) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "_Exit", void, _Exit, I32 a) {
         util::getLogger()->debug("S - _Exit - {}", a);
         throw (wasm::WasmExitException(a));
     }
@@ -139,7 +138,7 @@ namespace wasm {
     /**
      * Allowing straight-through access to sysconf my not be wise. Should revisit this.
      */
-    DEFINE_INTRINSIC_FUNCTION(env, "sysconf", I32, _sysconf, I32 a) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "sysconf", I32, _sysconf, I32 a) {
         util::getLogger()->debug("S - _sysconf - {}", a);
 
         util::SystemConfig &conf = util::getSystemConfig();
@@ -154,7 +153,7 @@ namespace wasm {
         }
     }
 
-    DEFINE_INTRINSIC_FUNCTION(env, "uname", I32, uname , I32 bufPtr) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "uname", I32, uname , I32 bufPtr) {
         util::getLogger()->debug("S - uname - {}", bufPtr);
 
         // Native pointer to buffer

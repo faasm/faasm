@@ -27,7 +27,7 @@ def _do_invoke(user, func, host, port, func_type, input=None):
 
 
 @task
-def invoke(ctx, user, func, host="127.0.0.1", input=None, parallel=False, loops=1):
+def invoke(ctx, user, func, host="127.0.0.1", port=8001, input=None, parallel=False, loops=1):
     for l in range(loops):
         if (loops > 1):
             print("LOOP {}".format(l))
@@ -36,10 +36,10 @@ def invoke(ctx, user, func, host="127.0.0.1", input=None, parallel=False, loops=
             n_workers = multiprocessing.cpu_count() - 1
             p = multiprocessing.Pool(n_workers)
 
-            args_list = [(user, func, host, 8001, "f", input) for _ in range(n_workers)]
+            args_list = [(user, func, host, port, "f", input) for _ in range(n_workers)]
             p.starmap(_do_invoke, args_list)
         else:
-            _do_invoke(user, func, host, 8001, "f", input=input)
+            _do_invoke(user, func, host, port, "f", input=input)
 
 
 @task

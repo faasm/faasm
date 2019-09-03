@@ -260,6 +260,8 @@ int myGlobal;
 FAASM_ZYGOTE() {
     // Run once
     myGlobal = 5;
+
+    return 0;
 }
 
 FAASM_MAIN_FUNC() {

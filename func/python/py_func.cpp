@@ -9,6 +9,8 @@ FAASM_ZYGOTE() {
     Py_InitializeEx(0);
 
     printf("\n\nPython initialised\n");
+
+    return 0;
 }
 
 FAASM_MAIN_FUNC() {

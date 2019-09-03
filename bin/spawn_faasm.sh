@@ -10,7 +10,6 @@ fi
 # Faasm env
 export CGROUP_MODE=off
 export NETNS_MODE=off
-export ZYGOTE_MODE=off
 export LOG_LEVEL=off 
 export UNSAFE_MODE=on
 

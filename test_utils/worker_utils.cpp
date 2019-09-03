@@ -1,4 +1,5 @@
 #include <catch/catch.hpp>
+#include <zygote/ZygoteRegistry.h>
 
 #include "utils.h"
 
@@ -75,12 +76,17 @@ namespace tests {
     }
 
     void checkMultipleExecutions(message::Message &msg, int nExecs) {
-        wasm::WasmModule module;
-        module.bindToFunction(msg);
+        zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
+        wasm::WasmModule &zygote = registry.getZygote(msg);
+
+        wasm::WasmModule module(zygote);
 
         for(int i = 0; i < nExecs; i++) {
             int res = module.execute(msg);
             REQUIRE(res == 0);
+
+            // Reset
+            module = zygote;
         }
     }
 }

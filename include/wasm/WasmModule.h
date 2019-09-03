@@ -13,7 +13,6 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Linker.h>
 #include <WAVM/Runtime/Runtime.h>
-#include <memory/MemorySnapshot.h>
 
 #define ONE_MB_BYTES 1024 * 1024
 
@@ -34,7 +33,7 @@ using namespace WAVM;
 
 
 namespace wasm {
-    DECLARE_INTRINSIC_MODULE(env)
+    WAVM_DECLARE_INTRINSIC_MODULE(env)
 
     Uptr getNumberOfPagesForBytes(U32 nBytes);
 
@@ -43,6 +42,8 @@ namespace wasm {
         WasmModule();
 
         WasmModule(const WasmModule &other);
+
+        WasmModule &operator=(const WasmModule &other);
 
         ~WasmModule();
 
@@ -58,13 +59,11 @@ namespace wasm {
 
         Runtime::GCPointer<Runtime::Context> executionContext;
 
-        Runtime::GCPointer<Runtime::Context> baseContext;
-
-        std::vector<IR::Value> invokeArgs;
+        std::vector<IR::UntaggedValue> invokeArgs;
 
         Runtime::GCPointer<Runtime::Compartment> compartment;
 
-        bool isBound();
+        const bool isBound();
 
         U32 mmap(U32 length);
 
@@ -78,7 +77,12 @@ namespace wasm {
 
         int addFunctionToTable(Runtime::Object *exportedFunc);
 
-        IR::ValueTuple executeFunction(Runtime::Function *func, const std::vector<IR::Value>& arguments);
+        void executeFunction(
+                Runtime::Function *func,
+                IR::FunctionType funcType,
+                const std::vector<IR::UntaggedValue> &arguments,
+                IR::UntaggedValue &result
+        );
 
         Runtime::Function *getFunction(const std::string &funcName, bool strict);
 
@@ -168,11 +172,9 @@ namespace wasm {
         std::unordered_map<std::string, int> globalOffsetMemoryMap;
         std::unordered_map<std::string, int> missingGlobalOffsetEntries;
 
-        WasmModule &operator=(const WasmModule &other);
-
         void reset();
 
-        void resizeMemory(size_t targetPages);
+        void clone(const WasmModule &other);
 
         void addModuleToGOT(IR::Module &mod, bool isMainModule);
 
@@ -194,18 +196,4 @@ namespace wasm {
 
         int exitCode;
     };
-
-    class WasmModuleRegistry {
-    public:
-        WasmModuleRegistry();
-
-        void registerModule(const std::string &key, const WasmModule &module);
-
-        WasmModule &getModule(const std::string &key);
-    private:
-        std::mutex registryMutex;
-        std::unordered_map<std::string, WasmModule> moduleMap;
-    };
-
-    WasmModuleRegistry &getWasmModuleRegistry();
 }

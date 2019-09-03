@@ -155,9 +155,9 @@ int __attribute__((weak)) _faasm_func_8();
 int __attribute__((weak)) _faasm_func_9();
 
 // Macro for defining zygotes (a default fallback noop is provided)
-void __attribute__((weak)) _faasm_zygote();
+int __attribute__((weak)) _faasm_zygote();
 #define FAASM_ZYGOTE()      \
-void _faasm_zygote()
+int _faasm_zygote()
 
 // Macro for extra faasm functions that can be chained
 #define FAASM_FUNC(name, idx)      \
