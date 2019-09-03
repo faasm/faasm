@@ -11,13 +11,19 @@ RUN apt-get install -y build-essential \
     llvm-8 \
     llvm-8-dev \
     llvm-8-tools \
-    clang-8
+    clang-8 \
+    make
+
+# Install latest cmake
+RUN apt remove --purge --auto-remove cmake
+WORKDIR /usr/local/lib/cmake-3.15.0
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.15.0/cmake-3.15.0-Linux-x86_64.sh
+RUN chmod +x cmake-3.15.0-Linux-x86_64.sh
+RUN ./cmake-3.15.0-Linux-x86_64.sh --skip-license --prefix=/usr/local
 
 # Install other deps
 RUN apt-get install -y sudo \
     libboost-all-dev \
-    make \
-    cmake \
     ninja-build \
     git \
     curl \
