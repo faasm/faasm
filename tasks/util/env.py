@@ -15,7 +15,6 @@ BENCHMARK_ENV = {
     "CGROUP_MODE": "off",
     "NETNS_MODE": "off",
     "UNSAFE_MODE": "on",
-    "ZYGOTE_MODE": "off",
     "GLOBAL_MESSAGE_TIMEOUT": "120000",
     "LOG_LEVEL": "off",
 }

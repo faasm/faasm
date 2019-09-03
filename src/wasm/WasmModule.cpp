@@ -291,14 +291,13 @@ namespace wasm {
             throw std::runtime_error("Cannot bind a module twice");
         }
 
-        PROF_START(wasmBind)
-
         // Record that this module is now bound
         _isBound = true;
         boundUser = msg.user();
         boundFunction = msg.function();
 
         // Set up the compartment and context
+        PROF_START(wasmContext)
         compartment = Runtime::createCompartment();
         executionContext = Runtime::createContext(compartment);
 
@@ -313,8 +312,12 @@ namespace wasm {
             msgCopy.set_function("py_func");
         }
 
+        PROF_END(wasmContext)
+
         // Create the module instance
         moduleInstance = createModuleInstance(util::funcToString(msgCopy, false), "");
+
+        PROF_START(wasmBind)
 
         // Get main entrypoint function
         functionInstance = getFunction(ENTRY_FUNC_NAME, true);

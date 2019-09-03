@@ -12,7 +12,7 @@ set(LIB_FILES
         )
 
 faasm_private_lib(bench "${LIB_FILES}")
-target_link_libraries(bench wasm util)
+target_link_libraries(bench wasm util zygote)
 
 add_executable(func_runner runner.cpp)
 target_link_libraries(func_runner bench worker_lib)
