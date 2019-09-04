@@ -13,7 +13,15 @@ LLVM_CONFIG=$(BUILD_DIR)/llvm/bin/llvm-config
 
 default: build
 
-clean:
+.PHONY: clean-libs
+clean-libs:
+	rm $(BUILD_DIR)/libc.BUILT
+	rm -rf $(BUILD_DIR)/compiler-rt $(BUILD_DIR)/compiler-rt.BUILT
+	rm -rf $(BUILD_DIR)/libcxx $(BUILD_DIR)/libcxx.BUILT
+	rm -rf $(BUILD_DIR)/libcxxabi $(BUILD_DIR)/libcxxabi.BUILT
+
+.PHONY: clean-all
+clean-all:
 	rm -rf $(BUILD_DIR) $(PREFIX)
 
 $(BUILD_DIR)/llvm.BUILT:
@@ -81,6 +89,7 @@ $(BUILD_DIR)/libcxx.BUILT: $(BUILD_DIR)/compiler-rt.BUILT
 		-DLIBCXX_BUILD_EXTERNAL_THREAD_LIBRARY:BOOL=OFF \
 		-DLIBCXX_HAS_WIN32_THREAD_API:BOOL=OFF \
 		-DLIBCXX_ENABLE_SHARED:BOOL=OFF \
+		-DLIBCXX_ENABLE_PIC:BOOL=OFF \
 		-DLIBCXX_ENABLE_EXPERIMENTAL_LIBRARY:BOOL=OFF \
 		-DLIBCXX_ENABLE_EXCEPTIONS:BOOL=OFF \
 		-DLIBCXX_ENABLE_FILESYSTEM:BOOL=ON \
