@@ -6,7 +6,7 @@ THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if [ "$1" == "llvm" ]; then
   SYSROOT=/usr/local/faasm/llvm-sysroot
-  CLANG_DIR=/usr/bin
+  CLANG_DIR=${THIS_DIR}/../toolchain/install/bin
 else
   # Normal emsdk stuff
   EM_ROOT=/usr/local/faasm/emsdk/upstream/latest

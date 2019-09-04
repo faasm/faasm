@@ -1,6 +1,6 @@
-ROOT_DIR=${CURDIR}
-LLVM_PROJ_DIR=$(ROOT_DIR)/../llvm-project
-TOOLCHAIN_DIR=$(ROOT_DIR)/../toolchain
+PROJ_ROOT=${CURDIR}/..
+LLVM_PROJ_DIR=$(PROJ_ROOT)/llvm-project
+TOOLCHAIN_DIR=$(PROJ_ROOT)/toolchain
 TOOLCHAIN_FILE=$(TOOLCHAIN_DIR)/FaasmToolchain.cmake
 
 LLVM_CONFIG=/usr/bin/llvm-config-9
@@ -41,7 +41,11 @@ $(BUILD_DIR)/llvm.BUILT:
 		llvm-config
 	touch $(BUILD_DIR)/llvm.BUILT
 
-$(BUILD_DIR)/compiler-rt.BUILT: $(BUILD_DIR)/llvm.BUILT
+$(BUILD_DIR)/libc.BUILT: $(BUILD_DIR)/llvm.BUILT
+	cd $(PROJ_ROOT); ./bin/build_musl.sh llvm
+	touch build/wasi-libc.BUILT
+
+$(BUILD_DIR)/compiler-rt.BUILT: $(BUILD_DIR)/libc.BUILT
 	mkdir -p $(BUILD_DIR)/compiler-rt
 	cd $(BUILD_DIR)/compiler-rt; cmake -G Ninja \
 	    -DLLVM_ENABLE_PROJECTS="compiler-rt" \
@@ -119,5 +123,5 @@ $(BUILD_DIR)/libcxxabi.BUILT: $(BUILD_DIR)/libcxx.BUILT
 	ninja -v -C $(BUILD_DIR)/libcxxabi install
 	touch $(BUILD_DIR)/libcxxabi.BUILT
 
-build: $(BUILD_DIR)/llvm.BUILT $(BUILD_DIR)/compiler-rt.BUILT $(BUILD_DIR)/libcxxabi.BUILT $(BUILD_DIR)/libcxx.BUILT
+build: $(BUILD_DIR)/llvm.BUILT $(BUILD_DIR)/libc.BUILT $(BUILD_DIR)/compiler-rt.BUILT $(BUILD_DIR)/libcxxabi.BUILT $(BUILD_DIR)/libcxx.BUILT
 
