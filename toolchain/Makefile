@@ -1,19 +1,47 @@
 ROOT_DIR=${CURDIR}
 LLVM_PROJ_DIR=$(ROOT_DIR)/../llvm-project
-TOOLCHAIN_FILE=$(ROOT_DIR)/../toolchain/LLVMToolchain.cmake
+TOOLCHAIN_DIR=$(ROOT_DIR)/../toolchain
+TOOLCHAIN_FILE=$(TOOLCHAIN_DIR)/FaasmToolchain.cmake
+
 LLVM_CONFIG=/usr/bin/llvm-config-9
 
 FAASM_SYSROOT=/usr/local/faasm/llvm-sysroot
 
-PREFIX=$(LLVM_PROJ_DIR)/install
 BUILD_DIR=$(LLVM_PROJ_DIR)/build
+PREFIX=$(TOOLCHAIN_DIR)/install
 
 default: build
 
 clean:
 	rm -rf $(BUILD_DIR) $(PREFIX)
 
-$(BUILD_DIR)/compiler-rt.BUILT:
+$(BUILD_DIR)/llvm.BUILT:
+	mkdir -p $(BUILD_DIR)/llvm
+	cd $(BUILD_DIR)/llvm; cmake -G Ninja \
+		-DCMAKE_BUILD_TYPE=MinSizeRel \
+		-DCMAKE_INSTALL_PREFIX=$(PREFIX) \
+		-DLLVM_TARGETS_TO_BUILD=WebAssembly \
+		-DLLVM_DEFAULT_TARGET_TRIPLE=wasm32 \
+		-DLLVM_EXTERNAL_CLANG_SOURCE_DIR=$(LLVM_PROJ_DIR)/clang \
+		-DLLVM_EXTERNAL_LLD_SOURCE_DIR=$(LLVM_PROJ_DIR)/lld \
+		-DLLVM_ENABLE_PROJECTS="lld;clang" \
+		-DDEFAULT_SYSROOT=$(FAASM_SYSROOT) \
+		$(LLVM_PROJ_DIR)/llvm
+	ninja -v -C $(BUILD_DIR)/llvm \
+		install-clang \
+		install-lld \
+		install-llc \
+		install-llvm-ar \
+		install-llvm-ranlib \
+		install-llvm-dwarfdump \
+		install-clang-resource-headers
+		install-clang-headers \
+		install-llvm-nm \
+		install-llvm-size \
+		llvm-config
+	touch $(BUILD_DIR)/llvm.BUILT
+
+$(BUILD_DIR)/compiler-rt.BUILT: $(BUILD_DIR)/llvm.BUILT
 	mkdir -p $(BUILD_DIR)/compiler-rt
 	cd $(BUILD_DIR)/compiler-rt; cmake -G Ninja \
 	    -DLLVM_ENABLE_PROJECTS="compiler-rt" \
@@ -91,5 +119,5 @@ $(BUILD_DIR)/libcxxabi.BUILT: $(BUILD_DIR)/libcxx.BUILT
 	ninja -v -C $(BUILD_DIR)/libcxxabi install
 	touch $(BUILD_DIR)/libcxxabi.BUILT
 
-build: $(BUILD_DIR)/compiler-rt.BUILT $(BUILD_DIR)/libcxxabi.BUILT $(BUILD_DIR)/libcxx.BUILT
+build: $(BUILD_DIR)/llvm.BUILT $(BUILD_DIR)/compiler-rt.BUILT $(BUILD_DIR)/libcxxabi.BUILT $(BUILD_DIR)/libcxx.BUILT
 

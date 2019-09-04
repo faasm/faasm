@@ -1,0 +1,32 @@
+cmake_minimum_required(VERSION 3.4.0)
+
+set(INSTALL_DIR /usr/local/code/faasm/toolchain/install)
+set(FAASM_SYSROOT /usr/local/faasm/llvm-sysroot)
+
+set(EXE_SUFFIX "")
+
+set(CMAKE_C_COMPILER ${INSTALL_DIR}/bin/clang)
+set(CMAKE_CXX_COMPILER ${INSTALL_DIR}/bin/clang++-9)
+
+set(CMAKE_AR ${INSTALL_DIR}/llvm-ar CACHE STRING "faasm-sdk build")
+set(CMAKE_NM ${INSTALL_DIR}/llvm-nm CACHE STRING "faasm-sdk build")
+set(CMAKE_RANLIB ${INSTALL_DIR}/llvm-ranlib CACHE STRING "faasm-sdk build")
+set(CMAKE_LD ${INSTALL_DIR}/wasm-ld CACHE STRING "faasm-sdk build")
+set(CMAKE_C_COMPILER_TARGET wasm32 CACHE STRING "faasm-sdk build")
+set(CMAKE_CXX_COMPILER_TARGET wasm32 CACHE STRING "faasm-sdk build")
+
+set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} --sysroot=${FAASM_SYSROOT})
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} --sysroot=${FAASM_SYSROOT})
+set(CMAKE_SYSROOT ${FAASM_SYSROOT} CACHE STRING "faasm-sdk build")
+
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_VERSION 1)
+set(CMAKE_SYSTEM_PROCESSOR wasm32)
+
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+
+set(CMAKE_C_COMPILER_WORKS ON)
+set(CMAKE_CXX_COMPILER_WORKS ON)
