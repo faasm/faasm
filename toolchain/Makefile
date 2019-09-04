@@ -1,7 +1,7 @@
 ROOT_DIR=${CURDIR}
 LLVM_PROJ_DIR=$(ROOT_DIR)/../llvm-project
 TOOLCHAIN_FILE=$(ROOT_DIR)/../toolchain/LLVMToolchain.cmake
-LLVM_CONFIG=/usr/bin/llvm-config-8
+LLVM_CONFIG=/usr/bin/llvm-config-9
 
 FAASM_SYSROOT=/usr/local/faasm/llvm-sysroot
 
@@ -11,21 +11,27 @@ BUILD_DIR=$(LLVM_PROJ_DIR)/build
 default: build
 
 clean:
-	rm -rf build $(PREFIX)
+	rm -rf $(BUILD_DIR) $(PREFIX)
 
 $(BUILD_DIR)/compiler-rt.BUILT:
 	mkdir -p $(BUILD_DIR)/compiler-rt
 	cd $(BUILD_DIR)/compiler-rt; cmake -G Ninja \
+	    -DLLVM_ENABLE_PROJECTS="compiler-rt" \
 		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 		-DCMAKE_TOOLCHAIN_FILE=$(TOOLCHAIN_FILE) \
+		-DCMAKE_INSTALL_PREFIX=$(PREFIX) \
+		-DCMAKE_CXX_COMPILER_WORKS=ON \
+        -DCMAKE_C_COMPILER_WORKS=ON \
 		-DLLVM_CONFIG_PATH=$(LLVM_CONFIG) \
-		-DCOMPILER_RT_BAREMETAL_BUILD=On \
+		-DCOMPILER_RT_BUILD_BUILTINS=OFF \
+		-DCOMPILER_RT_BUILD_SANITIZERS=OFF \
 		-DCOMPILER_RT_BUILD_XRAY=OFF \
+		-DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
+		-DCOMPILER_RT_BUILD_PROFILE=OFF \
+		-DCOMPILER_RT_BAREMETAL_BUILD=ON \
 		-DCOMPILER_RT_INCLUDE_TESTS=OFF \
 		-DCOMPILER_RT_HAS_FPIC_FLAG=OFF \
 		-DCOMPILER_RT_ENABLE_IOS=OFF \
-		-DCOMPILER_RT_DEFAULT_TARGET_ONLY=On \
-		-DCMAKE_INSTALL_PREFIX=$(PREFIX) \
 		$(LLVM_PROJ_DIR)/compiler-rt/lib/builtins
 	ninja -v -C $(BUILD_DIR)/compiler-rt install
 	touch $(BUILD_DIR)/compiler-rt.BUILT
