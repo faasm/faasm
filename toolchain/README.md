@@ -26,14 +26,23 @@ make
 
 This takes ages as it builds a whole LLVM toolchain.
 
-To rebuild, there are two options. The first is just rebuilding the libs, i.e. libcxx, libc etc.
+## Rebuilding
+
+To rebuild, there differet options. The first is just rebuilding libc:
+
+```
+make clean-libc
+make
+```
+
+Another is rebuilding all the libs, i.e. libc, libcxx, libcxxabi and compiler-rt:
 
 ```
 make clean-libs
 make
 ```
 
-The second is to rebuild EVERYTHING, including Clang. This takes ages and is only necessary if you need to change the underlying LLVM or Clang configuration (rare):
+The final option is to rebuild EVERYTHING, including Clang. This takes ages and is only necessary if you need to change the underlying LLVM or Clang configuration (rare):
 
 ```
 make clean-all

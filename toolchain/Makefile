@@ -13,9 +13,12 @@ LLVM_CONFIG=$(BUILD_DIR)/llvm/bin/llvm-config
 
 default: build
 
-.PHONY: clean-libs
-clean-libs:
+.PHONY: clean-libc
+clean-libc:
 	rm $(BUILD_DIR)/libc.BUILT
+
+.PHONY: clean-libs
+clean-libs: clean-libc
 	rm -rf $(BUILD_DIR)/compiler-rt $(BUILD_DIR)/compiler-rt.BUILT
 	rm -rf $(BUILD_DIR)/libcxx $(BUILD_DIR)/libcxx.BUILT
 	rm -rf $(BUILD_DIR)/libcxxabi $(BUILD_DIR)/libcxxabi.BUILT

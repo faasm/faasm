@@ -11,7 +11,7 @@ set(CMAKE_CXX_FLAGS "-fPIC -nostdlib ${CMAKE_CXX_FLAGS}")
 
 # According to this LLVM bug: https://bugs.llvm.org/show_bug.cgi?id=42714
 # ONLY the wasm32-unknown-emscripten triple supports fPIC wasm, so we must override
-# whatever is already set
+# whatever is already sets
 set(CMAKE_C_COMPILER_TARGET wasm32-unknown-emscripten)
 set(CMAKE_CXX_COMPILER_TARGET wasm32-unknown-emscripten)
 
