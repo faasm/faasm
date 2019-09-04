@@ -123,5 +123,9 @@ $(BUILD_DIR)/libcxxabi.BUILT: $(BUILD_DIR)/libcxx.BUILT
 	ninja -v -C $(BUILD_DIR)/libcxxabi install
 	touch $(BUILD_DIR)/libcxxabi.BUILT
 
-build: $(BUILD_DIR)/llvm.BUILT $(BUILD_DIR)/libc.BUILT $(BUILD_DIR)/compiler-rt.BUILT $(BUILD_DIR)/libcxxabi.BUILT $(BUILD_DIR)/libcxx.BUILT
+.PHONY: extras
+extras: $(BUILD_DIR)/libcxxabi.BUILT
+	cp $(TOOLCHAIN_DIR)/sysroot_extras/* $(FAASM_SYSROOT)/lib/
+
+build: $(BUILD_DIR)/llvm.BUILT $(BUILD_DIR)/libc.BUILT $(BUILD_DIR)/compiler-rt.BUILT $(BUILD_DIR)/libcxxabi.BUILT $(BUILD_DIR)/libcxx.BUILT extras
 

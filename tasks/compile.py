@@ -1,4 +1,4 @@
-from os import mkdir, environ
+from os import mkdir
 from os.path import exists
 from os.path import join
 from shutil import rmtree
@@ -8,7 +8,7 @@ from invoke import task
 
 from tasks.util.codegen import find_codegen_binary
 from tasks.util.download import download_proj
-from tasks.util.env import PROJ_ROOT, WASM_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT, FUNC_BUILD_DIR, FAASM_INSTALL_DIR, \
+from tasks.util.env import PROJ_ROOT, WASM_TOOLCHAIN, WASM_SYSROOT, FUNC_BUILD_DIR, FAASM_INSTALL_DIR, \
     FAASM_RUNTIME_ROOT
 
 
@@ -20,19 +20,8 @@ def _clean_dir(dir_path, clean):
         mkdir(dir_path)
 
 
-def _check_toolchain():
-    actual_root = environ.get("EMSDK")
-
-    if not actual_root or not actual_root.startswith(EMSCRIPTEN_DIR):
-        print("You are not running the expected toolchain. Start a new shell and run: ")
-        print("source {}".format(join(EMSCRIPTEN_DIR, "emsdk_env.sh")))
-        exit(1)
-
-
 @task
 def compile(context, clean=False, func=None, debug=False, user=None):
-    _check_toolchain()
-
     build_type = "wasm"
     cmake_build_type = "Debug" if debug else "Release"
 
@@ -64,8 +53,6 @@ def compile(context, clean=False, func=None, debug=False, user=None):
 
 @task
 def compile_malloc(ctx, clean=False):
-    _check_toolchain()
-
     work_dir = join(PROJ_ROOT, "malloc")
     build_dir = join(work_dir, "build")
 
@@ -118,8 +105,6 @@ def compile_libfaasm(ctx, clean=False):
     Build all Faasm libraries
     """
 
-    _check_toolchain()
-
     def _do_lib_build(dir_name):
         work_dir = join(PROJ_ROOT, dir_name)
         build_dir = join(work_dir, "lib_build")
@@ -151,9 +136,7 @@ def compile_libfaasm(ctx, clean=False):
 
 @task
 def compile_libfake(ctx, clean=False):
-    _check_toolchain()
     work_dir = join(PROJ_ROOT, "func", "dynlink")
-
     build_dir = join(work_dir, "build")
 
     _clean_dir(build_dir, clean)
@@ -163,6 +146,7 @@ def compile_libfake(ctx, clean=False):
         "-DFAASM_BUILD_TYPE=wasm",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
         "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_INSTALL_PREFIX={}".format(WASM_SYSROOT),
         ".."
     ]
 
@@ -209,7 +193,6 @@ def compile_eigen(ctx):
 
 @task
 def compile_onnx(ctx, clean=False):
-    _check_toolchain()
     work_dir = join(PROJ_ROOT, "onnxjs", "src")
     build_dir = join(work_dir, "build")
 

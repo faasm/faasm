@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.4.0)
 
-set(INSTALL_DIR /usr/local/code/faasm/toolchain/install/bin)
+set(TOOLCHAIN_ROOT ${CMAKE_CURRENT_LIST_DIR})
+set(INSTALL_DIR ${TOOLCHAIN_ROOT}/install/bin)
+
 set(FAASM_SYSROOT /usr/local/faasm/llvm-sysroot)
 
 set(EXE_SUFFIX "")
@@ -19,6 +21,8 @@ set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} --sysroot=${FAASM_SYSROOT})
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} --sysroot=${FAASM_SYSROOT})
 set(CMAKE_SYSROOT ${FAASM_SYSROOT} CACHE STRING "faasm-sdk build")
 
+# Note that system name and processor here are crucial
+# Setting system name automatically switches on cross-compiling
 set(CMAKE_SYSTEM_NAME Wasm)
 set(CMAKE_SYSTEM_VERSION 1)
 set(CMAKE_SYSTEM_PROCESSOR wasm32)

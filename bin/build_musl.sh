@@ -4,16 +4,14 @@ set -e
 
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-if [ "$1" == "llvm" ]; then
-  SYSROOT=/usr/local/faasm/llvm-sysroot
-  CLANG_DIR=${THIS_DIR}/../toolchain/install/bin
-else
-  # Normal emsdk stuff
-  EM_ROOT=/usr/local/faasm/emsdk/upstream/latest
-  SYSROOT=${EM_ROOT}/sysroot
-  CLANG_DIR=${EM_ROOT}/bin
+# LLVM
+SYSROOT=/usr/local/faasm/llvm-sysroot
+CLANG_DIR=${THIS_DIR}/../toolchain/install/bin
 
-fi
+# Emsdk stuff
+# EM_ROOT=/usr/local/faasm/emsdk/upstream/latest
+# SYSROOT=${EM_ROOT}/sysroot
+# CLANG_DIR=${EM_ROOT}/bin
 
 mkdir -p ${SYSROOT}
 

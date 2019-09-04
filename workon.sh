@@ -1,10 +1,10 @@
 #!/bin/bash
 
-source /usr/local/faasm/emsdk/emsdk_env.sh
-export EMCC_WASM_BACKEND=1
+#source /usr/local/faasm/emsdk/emsdk_env.sh
+#export EMCC_WASM_BACKEND=1
 
-WASM_BIN=/usr/local/faasm/emsdk/upstream/latest/bin
-export PATH=${WASM_BIN}:${PATH}
+#WASM_BIN=/usr/local/faasm/emsdk/upstream/latest/bin
+#export PATH=${WASM_BIN}:${PATH}
 
 if [ ! -d "venv" ]; then
     python3 -m venv venv
