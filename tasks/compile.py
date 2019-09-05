@@ -9,7 +9,7 @@ from invoke import task
 from tasks.util.codegen import find_codegen_binary
 from tasks.util.download import download_proj
 from tasks.util.env import PROJ_ROOT, FAASM_TOOLCHAIN_FILE, FAASM_SYSROOT, FUNC_BUILD_DIR, FAASM_INSTALL_DIR, \
-    FAASM_RUNTIME_ROOT
+    FAASM_RUNTIME_ROOT, FAASM_HOME
 
 
 def _clean_dir(dir_path, clean):
@@ -179,18 +179,33 @@ def compile_libfake(ctx, clean=False):
 
 @task
 def compile_eigen(ctx):
-    extract_dir, build_dir = download_proj(
-        "http://bitbucket.org/eigen/eigen/get/3.3.7.tar.gz",
-        "3.3.7",
-        extract_file="eigen-eigen-323c052e1731"
-    )
+    working_dir = "/tmp"
+    eigen_dir = join(working_dir, "eigen3")
+    eigen_build_dir = join(eigen_dir, "build")
 
-    dest_dir = join(FAASM_SYSROOT, "include", "eigen3")
-    _clean_dir(dest_dir, True)
+    if not exists(eigen_dir):
+        mkdir(eigen_dir)
+        call("git checkout git@github.com:eigenteam/eigen-git-mirror.git eigen3",
+             shell=True, cwd=working_dir)
+        call("git checkout 32864b0f746c4397198f325fb657327a5d2af604",
+             shell=True, cwd=eigen_dir)
 
-    # Eigen is header-only so we just need to copy the files in place
-    src_dir = join(extract_dir, "Eigen")
-    call("cp -r {} {}".format(src_dir, dest_dir), shell=True)
+    if exists(eigen_build_dir):
+        rmtree(eigen_build_dir)
+
+    mkdir(eigen_build_dir)
+    cmd = [
+        "cmake",
+        "-DFAASM_BUILD_TYPE=Release",
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_SYSROOT),
+        ".."
+    ]
+    cmd_string = " ".join(cmd)
+
+    call(cmd_string, shell=True, cwd=eigen_build_dir)
+    call("make install", shell=True, cwd=eigen_build_dir)
 
 
 @task

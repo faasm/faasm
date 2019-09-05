@@ -17,9 +17,15 @@ set(CMAKE_LD ${INSTALL_DIR}/wasm-ld CACHE STRING "faasm-sdk build")
 set(CMAKE_C_COMPILER_TARGET wasm32 CACHE STRING "faasm-sdk build")
 set(CMAKE_CXX_COMPILER_TARGET wasm32 CACHE STRING "faasm-sdk build")
 
-set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} --sysroot=${FAASM_SYSROOT})
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} --sysroot=${FAASM_SYSROOT})
+set(FAASM_COMPILER_FLAGS "--sysroot=${FAASM_SYSROOT} -I${FAASM_SYSROOT}/include/eigen3")
+set(FAASM_LINKER_FLAGS "-ldlmalloc")
+
 set(CMAKE_SYSROOT ${FAASM_SYSROOT} CACHE STRING "faasm-sdk build")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${FAASM_COMPILER_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FAASM_COMPILER_FLAGS}")
+
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${FAASM_LINKER_FLAGS}")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${FAASM_LINKER_FLAGS}")
 
 # Note that system name and processor here are crucial
 # Setting system name automatically switches on cross-compiling

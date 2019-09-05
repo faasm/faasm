@@ -3,26 +3,27 @@
 - hosts: localhost
   gather_facts: no
   tasks:
-    - name: "Download Eigen3 source"
-      get_url:
-        url: "http://bitbucket.org/eigen/eigen/get/3.3.7.tar.gz"
-        dest: "/tmp/eigen.tar.gz"
-
-    - name: "Extract"
-      shell: "tar -xf eigen.tar.gz"
-      args:
-        chdir: "/tmp"
+    - name: "Checkout eigen3 source"
+      git:
+        accept_hostkey: yes
+        repo: "git@github.com:eigenteam/eigen-git-mirror.git"
+        dest: "/tmp/eigen3"
+        clone: yes
+        update: yes
+        version: "32864b0f746c4397198f325fb657327a5d2af604"
 
     - name: "Create build dir"
       file:
-        path: "/tmp/eigen-eigen-323c052e1731/build"
+        path: "/tmp/eigen3/build"
         state: directory
 
-    - name: "Make and install"
-      become: yes
-      shell: "{{ item }}"
+    - name: "Cmake"
+      shell: "cmake -DCMAKE_BUILD_TYPE=Release .."
       args:
-        chdir: "/tmp/eigen-eigen-323c052e1731/build"
-      with_items:
-        - "cmake .."
-        - "make install"
+        chdir: "/tmp/eigen3/build"
+
+    - name: "Install"
+      become: yes
+      shell: "make install"
+      args:
+        chdir: "/tmp/eigen3/build"
