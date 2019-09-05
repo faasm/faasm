@@ -35,12 +35,14 @@ AWS_ACCOUNT_ID = "733781933474"
 AWS_REGION = "eu-west-1"
 
 PYODIDE_ROOT = join(PROJ_ROOT, "pyodide")
-WASM_TOOLCHAIN = join(PROJ_ROOT, "toolchain", "FaasmToolchain.cmake")
 PYODIDE_PACKAGES = join(PYODIDE_ROOT, "packages")
 PYODIDE_INSTALL_DIR = join(PYODIDE_ROOT, "cpython", "installs", "python-3.7.0")
 PY_RUNTIME_ROOT = join(FAASM_RUNTIME_ROOT, "lib", "python3.7")
 
-WASM_SYSROOT = join(FAASM_LOCAL_DIR, "llvm-sysroot")
+TOOLCHAIN_ROOT = join(PROJ_ROOT, "toolchain")
+FAASM_TOOLCHAIN_FILE = join(TOOLCHAIN_ROOT, "FaasmToolchain.cmake")
+EMSDK_TOOLCHAIN_FILE = join(TOOLCHAIN_ROOT, "EmsdkToolchain.cmake")
+FAASM_SYSROOT = join(FAASM_LOCAL_DIR, "llvm-sysroot")
 
 
 def get_wasm_func_path(user, func_name):

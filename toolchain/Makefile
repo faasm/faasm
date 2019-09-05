@@ -71,7 +71,8 @@ $(BUILD_DIR)/compiler-rt.BUILT: $(BUILD_DIR)/libc.BUILT
 		-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
 		$(LLVM_PROJ_DIR)/compiler-rt/lib/builtins
 	ninja -v -C $(BUILD_DIR)/compiler-rt install
-	cp -R $(ROOT_DIR)/$(BUILD_DIR)/llvm/lib/clang $(PREFIX)/lib/
+	cp -R $(BUILD_DIR)/llvm/lib/clang $(PREFIX)/lib/
+	cp $(PREFIX)/lib/clang/$(CLANG_VERSION)/lib/wasm/* $(PREFIX)/lib/clang/$(CLANG_VERSION)/lib/
 	touch $(BUILD_DIR)/compiler-rt.BUILT
 
 $(BUILD_DIR)/libcxx.BUILT: $(BUILD_DIR)/compiler-rt.BUILT
@@ -83,6 +84,7 @@ $(BUILD_DIR)/libcxx.BUILT: $(BUILD_DIR)/compiler-rt.BUILT
         -DCMAKE_C_COMPILER_WORKS=ON \
 		-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
 		-DCMAKE_INSTALL_PREFIX=$(FAASM_SYSROOT) \
+		-DLLVM_COMPILER_CHECKED=ON \
 		-DLLVM_CONFIG_PATH=$(LLVM_CONFIG) \
 		-DLIBCXX_HAVE_CXX_ATOMICS_WITHOUT_LIB=ON \
 		-DLIBCXX_USE_COMPILER_RT=ON \

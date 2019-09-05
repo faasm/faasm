@@ -8,7 +8,7 @@ from invoke import task
 
 from tasks.util.codegen import find_codegen_binary
 from tasks.util.download import download_proj
-from tasks.util.env import PROJ_ROOT, WASM_TOOLCHAIN, WASM_SYSROOT, FUNC_BUILD_DIR, FAASM_INSTALL_DIR, \
+from tasks.util.env import PROJ_ROOT, FAASM_TOOLCHAIN_FILE, FAASM_SYSROOT, FUNC_BUILD_DIR, FAASM_INSTALL_DIR, \
     FAASM_RUNTIME_ROOT
 
 
@@ -30,7 +30,7 @@ def compile(context, clean=False, func=None, debug=False, user=None):
     build_cmd = [
         "cmake",
         "-DFAASM_BUILD_TYPE={}".format(build_type),
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE={}".format(cmake_build_type),
         ".."
     ]
@@ -61,7 +61,7 @@ def compile_malloc(ctx, clean=False):
     build_cmd = [
         "cmake",
         "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         ".."
     ]
 
@@ -115,7 +115,7 @@ def compile_libfaasm(ctx, clean=False):
             "cmake",
             "-DFAASM_BUILD_TYPE=wasm",
             "-DCMAKE_BUILD_TYPE=Release",
-            "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
+            "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
             ".."
         ]
 
@@ -141,21 +141,23 @@ def compile_libfake(ctx, clean=False):
 
     _clean_dir(build_dir, clean)
 
+    # NOTE - here we must use the emsdk toolchain to build PIC
+    # shared libraries
     build_cmd = [
         "cmake",
         "-DFAASM_BUILD_TYPE=wasm",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_INSTALL_PREFIX={}".format(WASM_SYSROOT),
+        "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_SYSROOT),
         ".."
     ]
 
     call(" ".join(build_cmd), shell=True, cwd=build_dir)
-    call("make", shell=True, cwd=build_dir)
+    call("make VERBOSE=1 ", shell=True, cwd=build_dir)
     call("make install", shell=True, cwd=build_dir)
 
     # Copy shared object into place
-    sysroot_files = join(WASM_SYSROOT, "lib", "libfake*.so")
+    sysroot_files = join(FAASM_SYSROOT, "lib", "libfake*.so")
 
     if not exists(FAASM_RUNTIME_ROOT):
         mkdir(FAASM_RUNTIME_ROOT)
@@ -183,7 +185,7 @@ def compile_eigen(ctx):
         extract_file="eigen-eigen-323c052e1731"
     )
 
-    dest_dir = join(WASM_SYSROOT, "include", "eigen3")
+    dest_dir = join(FAASM_SYSROOT, "include", "eigen3")
     _clean_dir(dest_dir, True)
 
     # Eigen is header-only so we just need to copy the files in place
@@ -200,7 +202,7 @@ def compile_onnx(ctx, clean=False):
 
     build_cmd = [
         "cmake",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE=Release",
         ".."
     ]
