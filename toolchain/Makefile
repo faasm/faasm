@@ -10,6 +10,7 @@ FAASM_SYSROOT=/usr/local/faasm/llvm-sysroot
 BUILD_DIR=$(LLVM_PROJ_DIR)/build
 PREFIX=$(TOOLCHAIN_DIR)/install
 LLVM_CONFIG=$(BUILD_DIR)/llvm/bin/llvm-config
+AR=$(BUILD_DIR)/llvm/bin/llvm-ar
 
 default: build
 
@@ -53,6 +54,7 @@ $(BUILD_DIR)/llvm.BUILT:
 
 $(BUILD_DIR)/libc.BUILT: $(BUILD_DIR)/llvm.BUILT
 	cd $(PROJ_ROOT); ./bin/build_musl.sh llvm
+	cd $(FAASM_SYSROOT)/lib; $(AR) rc libpthread.a
 	touch $(BUILD_DIR)/libc.BUILT
 
 $(BUILD_DIR)/compiler-rt.BUILT: $(BUILD_DIR)/libc.BUILT
