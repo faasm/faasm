@@ -184,9 +184,11 @@ def compile_eigen(ctx):
     eigen_build_dir = join(eigen_dir, "build")
 
     if not exists(eigen_dir):
-        mkdir(eigen_dir)
-        call("git checkout git@github.com:eigenteam/eigen-git-mirror.git eigen3",
+        print("Checkout eigen")
+        call("git clone git@github.com:eigenteam/eigen-git-mirror.git eigen3",
              shell=True, cwd=working_dir)
+
+        print("Checkout specific eigen commit")
         call("git checkout 32864b0f746c4397198f325fb657327a5d2af604",
              shell=True, cwd=eigen_dir)
 
