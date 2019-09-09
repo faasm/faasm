@@ -185,8 +185,9 @@ def compile_eigen(ctx):
         call("git clone git@github.com:eigenteam/eigen-git-mirror.git eigen3",
              shell=True, cwd=working_dir)
 
+        # Make sure this commit hash matches the one in the Ansible task
         print("Checkout specific eigen commit")
-        call("git checkout 32864b0f746c4397198f325fb657327a5d2af604",
+        call("git checkout 0bdcefe7257e0a7c328c8440b85617e4ad75f3cf",
              shell=True, cwd=eigen_dir)
 
     if exists(eigen_build_dir):
@@ -209,34 +210,68 @@ def compile_eigen(ctx):
 
 @task
 def compile_onnx(ctx, clean=False):
+    _do_compile_onnx_runtime(False)
+
+
+@task
+def compile_onnx_native(ctx):
+    _do_compile_onnx_runtime(True)
+
+
+def _do_compile_onnx_runtime(native):
     work_dir = join(PROJ_ROOT, "onnxruntime")
-    build_dir = join(work_dir, "build", "wasm")
+
+    if native:
+        build_dir = join(work_dir, "build", "native")
+        eigen_path = "/usr/local/include/eigen3"
+    else:
+        build_dir = join(work_dir, "build", "wasm")
+        eigen_path = join(FAASM_SYSROOT, "include", "eigen3")
 
     # _clean_dir(build_dir, clean)
 
-    eigen_path = join(FAASM_SYSROOT, "include", "eigen3")
-
     # See the script itself for more info on options (onnxruntime/tools/ci_build/build.py)
     # More docs in the repo too: https://github.com/microsoft/onnxruntime/blob/master/BUILD.md
-    build_cmd = [
-        "python3", "tools/ci_build/build.py",
-        "--update",
-        "--build",
-        "--wasm",
+    script_args = [
+        "--cmake_path={}".format(LATEST_CMAKE),
         "--use_preinstalled_eigen",
         "--eigen_path={}".format(eigen_path),
-        "--cmake_path={}".format(LATEST_CMAKE),
         "--build_dir={}".format(build_dir),
         "--skip_onnx_tests",
+        "--parallel",
     ]
+
+    # Add wasm flag
+    if not native:
+        script_args.append("--wasm")
 
     # Check if we've already cloned the onnxruntime subprojects (and skip if so)
     cmake_submodule_checkout = join(PROJ_ROOT, "onnxruntime", "cmake", "external", "protobuf", "cmake")
     if exists(cmake_submodule_checkout):
-        build_cmd.append("--skip_submodule_sync")
+        script_args.append("--skip_submodule_sync")
     else:
         call("git submodule update --init --recursive", cwd=work_dir)
 
+    # Run the main build
+    build_cmd = [
+        "python3", "tools/ci_build/build.py",
+        "--update",
+        "--build",
+    ]
+    build_cmd.extend(script_args)
     build_cmd_str = " ".join(build_cmd)
     print(build_cmd_str)
-    call(build_cmd_str, shell=True, cwd=work_dir)
+    res = call(build_cmd_str, shell=True, cwd=work_dir)
+    if res != 0:
+        print("Build command failed")
+        exit(1)
+
+    # Build the shared lib
+    shared_lib_cmd = [
+        "python3", "tools/ci_build/build.py",
+        "--build_shared_lib",
+    ]
+    shared_lib_cmd.extend(script_args)
+    shared_lib_cmd_str = " ".join(shared_lib_cmd)
+    print(shared_lib_cmd_str)
+    call(shared_lib_cmd_str, shell=True, cwd=work_dir)

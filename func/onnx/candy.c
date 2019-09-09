@@ -1,13 +1,9 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License.
 #include "onnxruntime/core/session/onnxruntime_c_api.h"
 #include "providers.h"
 #include <stdio.h>
 #include <assert.h>
 #include <png.h>
-#ifdef _WIN32
-#include <objbase.h>
-#endif
+
 #define ORT_ABORT_ON_ERROR(expr)                         \
   do {                                                   \
     OrtStatus* onnx_status = (expr);                     \
@@ -151,12 +147,8 @@ int run_inference(OrtSession* session, const ORTCHAR_T* input_file, const ORTCHA
     size_t input_width;
     float* model_input;
     size_t model_input_ele_count;
-#ifdef _WIN32
-    char* output_file_p = convert_string(output_file);
-  char* input_file_p = convert_string(input_file);
-#else
+
     char* input_file_p = input_file;
-#endif
     if (read_png_file(input_file_p, &input_height, &input_width, &model_input, &model_input_ele_count) != 0) {
         return -1;
     }
@@ -195,10 +187,7 @@ int run_inference(OrtSession* session, const ORTCHAR_T* input_file, const ORTCHA
     OrtReleaseValue(output_tensor);
     OrtReleaseValue(input_tensor);
     free(model_input);
-#ifdef _WIN32
-    free(input_file_p);
-  free(output_file_p);
-#endif  // _WIN32
+
     return ret;
 }
 
@@ -210,26 +199,13 @@ void verify_input_output_count(OrtSession* session) {
     assert(count == 1);
 }
 
-#ifdef USE_CUDA
-void enable_cuda(OrtSessionOptions* session_options) {
-  ORT_ABORT_ON_ERROR(OrtSessionOptionsAppendExecutionProvider_CUDA(session_options, 0));
-}
-#endif
 
-#ifdef _WIN32
-int wmain(int argc, wchar_t* argv[]) {
-#else
 int main(int argc, char* argv[]) {
-#endif
     if (argc < 4) {
         usage();
         return -1;
     }
-#ifdef _WIN32
-    //CoInitializeEx is only needed if Windows Image Component will be used in this program for image loading/saving.
-  HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
-  if (!SUCCEEDED(hr)) return -1;
-#endif
+
     ORTCHAR_T* model_path = argv[1];
     ORTCHAR_T* input_file = argv[2];
     ORTCHAR_T* output_file = argv[3];
@@ -237,9 +213,7 @@ int main(int argc, char* argv[]) {
     ORT_ABORT_ON_ERROR(OrtCreateEnv(ORT_LOGGING_LEVEL_WARNING, "test", &env));
     OrtSessionOptions* session_options;
     ORT_ABORT_ON_ERROR(OrtCreateSessionOptions(&session_options));
-#ifdef USE_CUDA
-    enable_cuda(session_options);
-#endif
+
     OrtSession* session;
     ORT_ABORT_ON_ERROR(OrtCreateSession(env, model_path, session_options, &session));
     verify_input_output_count(session);
@@ -250,8 +224,6 @@ int main(int argc, char* argv[]) {
     if (ret != 0) {
         fprintf(stderr, "fail\n");
     }
-#ifdef _WIN32
-    CoUninitialize();
-#endif
+
     return ret;
 }
