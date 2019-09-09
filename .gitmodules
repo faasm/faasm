@@ -14,3 +14,6 @@
 [submodule "llvm-project"]
 	path = llvm-project
 	url = https://github.com/llvm/llvm-project.git
+[submodule "onnxruntime"]
+	path = onnxruntime
+	url = git@github.com:Shillaker/onnxruntime

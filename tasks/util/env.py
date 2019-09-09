@@ -44,6 +44,8 @@ FAASM_TOOLCHAIN_FILE = join(TOOLCHAIN_ROOT, "FaasmToolchain.cmake")
 EMSDK_TOOLCHAIN_FILE = join(TOOLCHAIN_ROOT, "EmsdkToolchain.cmake")
 FAASM_SYSROOT = join(FAASM_LOCAL_DIR, "llvm-sysroot")
 
+LATEST_CMAKE = "/usr/local/lib/cmake-3.15/bin/cmake"
+
 
 def get_wasm_func_path(user, func_name):
     func_dir = join(WASM_DIR, user, func_name)

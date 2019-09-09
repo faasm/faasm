@@ -7,9 +7,8 @@ from subprocess import call, check_output
 from invoke import task
 
 from tasks.util.codegen import find_codegen_binary
-from tasks.util.download import download_proj
 from tasks.util.env import PROJ_ROOT, FAASM_TOOLCHAIN_FILE, FAASM_SYSROOT, FUNC_BUILD_DIR, FAASM_INSTALL_DIR, \
-    FAASM_RUNTIME_ROOT, FAASM_HOME
+    FAASM_RUNTIME_ROOT, LATEST_CMAKE
 
 
 def _clean_dir(dir_path, clean):
@@ -212,18 +211,34 @@ def compile_eigen(ctx):
 
 @task
 def compile_onnx(ctx, clean=False):
-    work_dir = join(PROJ_ROOT, "onnxjs", "src")
-    build_dir = join(work_dir, "build")
+    work_dir = join(PROJ_ROOT, "onnxruntime")
+    build_dir = join(work_dir, "build", "wasm")
 
-    _clean_dir(build_dir, clean)
+    # _clean_dir(build_dir, clean)
 
+    eigen_path = join(FAASM_SYSROOT, "include", "eigen3")
+
+    # See the script itself for more info on options (onnxruntime/tools/ci_build/build.py)
+    # More docs in the repo too: https://github.com/microsoft/onnxruntime/blob/master/BUILD.md
     build_cmd = [
-        "cmake",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
-        "-DCMAKE_BUILD_TYPE=Release",
-        ".."
+        "python3", "tools/ci_build/build.py",
+        "--update",
+        "--build",
+        "--wasm",
+        "--use_preinstalled_eigen",
+        "--eigen_path={}".format(eigen_path),
+        "--cmake_path={}".format(LATEST_CMAKE),
+        "--build_dir={}".format(build_dir),
+        "--skip_onnx_tests",
     ]
 
-    call(" ".join(build_cmd), shell=True, cwd=build_dir)
-    call("make", shell=True, cwd=build_dir)
-    call("make install", shell=True, cwd=build_dir)
+    # Check if we've already cloned the onnxruntime subprojects (and skip if so)
+    cmake_submodule_checkout = join(PROJ_ROOT, "onnxruntime", "cmake", "external", "protobuf", "cmake")
+    if exists(cmake_submodule_checkout):
+        build_cmd.append("--skip_submodule_sync")
+    else:
+        call("git submodule update --init --recursive", cwd=work_dir)
+
+    build_cmd_str = " ".join(build_cmd)
+    print(build_cmd_str)
+    call(build_cmd_str, shell=True, cwd=work_dir)
