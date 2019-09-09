@@ -140,8 +140,6 @@ def compile_libfake(ctx, clean=False):
 
     _clean_dir(build_dir, clean)
 
-    # NOTE - here we must use the emsdk toolchain to build PIC
-    # shared libraries
     build_cmd = [
         "cmake",
         "-DFAASM_BUILD_TYPE=wasm",

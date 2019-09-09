@@ -4,13 +4,8 @@
 #include "faasm/core.h"
 #include "faasm/random.h"
 
-#if WASM_BUILD == 1
-#include <Eigen/Core>
-#include <Eigen/SparseCore>
-#else
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/SparseCore>
-#endif
 
 using namespace Eigen;
 
