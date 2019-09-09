@@ -241,7 +241,7 @@ def _do_compile_onnx_runtime(native):
         "--parallel",
     ]
 
-    # Add wasm flag
+    # Add wasm flag in wasm build
     if not native:
         script_args.append("--wasm")
 
@@ -257,6 +257,7 @@ def _do_compile_onnx_runtime(native):
         "python3", "tools/ci_build/build.py",
         "--update",
         "--build",
+        "--build_shared_lib",
     ]
     build_cmd.extend(script_args)
     build_cmd_str = " ".join(build_cmd)
@@ -265,13 +266,3 @@ def _do_compile_onnx_runtime(native):
     if res != 0:
         print("Build command failed")
         exit(1)
-
-    # Build the shared lib
-    shared_lib_cmd = [
-        "python3", "tools/ci_build/build.py",
-        "--build_shared_lib",
-    ]
-    shared_lib_cmd.extend(script_args)
-    shared_lib_cmd_str = " ".join(shared_lib_cmd)
-    print(shared_lib_cmd_str)
-    call(shared_lib_cmd_str, shell=True, cwd=work_dir)
