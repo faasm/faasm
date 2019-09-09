@@ -1,5 +1,5 @@
 #include "onnxruntime/core/session/onnxruntime_c_api.h"
-#include "providers.h"
+#include "onnxruntime/core/providers/cpu/cpu_provider_factory.h"
 #include <stdio.h>
 #include <assert.h>
 #include <png.h>
@@ -127,21 +127,6 @@ static int write_tensor_to_png_file(OrtValue* tensor, const char* output_file) {
 
 static void usage() { printf("usage: <model_path> <input_file> <output_file> \n"); }
 
-static char* convert_string(const wchar_t* input) {
-    size_t src_len = wcslen(input) + 1;
-    if (src_len > INT_MAX) {
-        printf("size overflow\n");
-        abort();
-    }
-    const int len = WideCharToMultiByte(CP_ACP, 0, input, (int)src_len, NULL, 0, NULL, NULL);
-    assert(len > 0);
-    char* ret = (char*)malloc(len);
-    assert(ret != NULL);
-    const int r = WideCharToMultiByte(CP_ACP, 0, input, (int)src_len, ret, len, NULL, NULL);
-    assert(len == r);
-    return ret;
-}
-
 int run_inference(OrtSession* session, const ORTCHAR_T* input_file, const ORTCHAR_T* output_file) {
     size_t input_height;
     size_t input_width;
@@ -149,6 +134,7 @@ int run_inference(OrtSession* session, const ORTCHAR_T* input_file, const ORTCHA
     size_t model_input_ele_count;
 
     char* input_file_p = input_file;
+    char* output_file_p = output_file;
     if (read_png_file(input_file_p, &input_height, &input_width, &model_input, &model_input_ele_count) != 0) {
         return -1;
     }
@@ -157,7 +143,7 @@ int run_inference(OrtSession* session, const ORTCHAR_T* input_file, const ORTCHA
         free(model_input);
         return -1;
     }
-    OrtMemoryInfo* allocator_info;
+    OrtAllocatorInfo* allocator_info;
     ORT_ABORT_ON_ERROR(OrtCreateCpuAllocatorInfo(OrtArenaAllocator, OrtMemTypeDefault, &allocator_info));
     const int64_t input_shape[] = {1, 3, 720, 720};
     const size_t input_shape_len = sizeof(input_shape) / sizeof(input_shape[0]);
@@ -171,7 +157,7 @@ int run_inference(OrtSession* session, const ORTCHAR_T* input_file, const ORTCHA
     int is_tensor;
     ORT_ABORT_ON_ERROR(OrtIsTensor(input_tensor, &is_tensor));
     assert(is_tensor);
-    OrtReleaseMemoryInfo(allocator_info);
+    OrtReleaseAllocatorInfo(allocator_info);
     const char* input_names[] = {"inputImage"};
     const char* output_names[] = {"outputImage"};
     OrtValue* output_tensor = NULL;

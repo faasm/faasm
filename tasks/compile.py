@@ -241,9 +241,11 @@ def _do_compile_onnx_runtime(native):
         "--parallel",
     ]
 
-    # Add wasm flag in wasm build
+    # Wasm-specific
     if not native:
-        script_args.append("--wasm")
+        script_args.extend([
+            "--wasm",
+        ])
 
     # Check if we've already cloned the onnxruntime subprojects (and skip if so)
     cmake_submodule_checkout = join(PROJ_ROOT, "onnxruntime", "cmake", "external", "protobuf", "cmake")
@@ -258,6 +260,7 @@ def _do_compile_onnx_runtime(native):
         "--update",
         "--build",
         "--build_shared_lib",
+        "--config=RelWithDebInfo"
     ]
     build_cmd.extend(script_args)
     build_cmd_str = " ".join(build_cmd)
@@ -266,3 +269,7 @@ def _do_compile_onnx_runtime(native):
     if res != 0:
         print("Build command failed")
         exit(1)
+
+    # Do the install
+    make_dir = join(build_dir, "Debug")
+    call("make install", cwd=make_dir)

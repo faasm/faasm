@@ -17,3 +17,9 @@
 [submodule "onnxruntime"]
 	path = onnxruntime
 	url = git@github.com:Shillaker/onnxruntime
+[submodule "libpng"]
+	path = libpng
+	url = git@github.com:glennrp/libpng.git
+[submodule "zlib"]
+	path = zlib
+	url = git@github.com:madler/zlib.git
