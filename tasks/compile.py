@@ -255,12 +255,13 @@ def _do_compile_onnx_runtime(native):
         call("git submodule update --init --recursive", cwd=work_dir)
 
     # Run the main build
+    build_type = "RelWithDebInfo"
     build_cmd = [
         "python3", "tools/ci_build/build.py",
         "--update",
         "--build",
         "--build_shared_lib",
-        "--config=RelWithDebInfo"
+        "--config={}".format(build_type)
     ]
     build_cmd.extend(script_args)
     build_cmd_str = " ".join(build_cmd)
@@ -271,5 +272,5 @@ def _do_compile_onnx_runtime(native):
         exit(1)
 
     # Do the install
-    make_dir = join(build_dir, "Debug")
-    call("make install", cwd=make_dir)
+    make_dir = join(build_dir, build_type)
+    call("make install", cwd=make_dir, shell=True)

@@ -8,7 +8,7 @@
 cmake_minimum_required(VERSION 3.4.0)
 
 set(EMSDK_ROOT /usr/local/faasm/emsdk/upstream/latest)
-set(FAASM_SYSROOT /usr/local/faasm/llvm-sysroot)
+set(FAASM_SYSROOT ${EMSDK_ROOT}/sysroot)
 
 set(EXE_SUFFIX "")
 
