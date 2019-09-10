@@ -127,7 +127,7 @@ static int write_tensor_to_png_file(OrtValue* tensor, const char* output_file) {
 
 static void usage() { printf("usage: <model_path> <input_file> <output_file> \n"); }
 
-int run_inference(OrtSession* session, const ORTCHAR_T* input_file, const ORTCHAR_T* output_file) {
+int run_inference(OrtSession* session, ORTCHAR_T* input_file, ORTCHAR_T* output_file) {
     size_t input_height;
     size_t input_width;
     float* model_input;

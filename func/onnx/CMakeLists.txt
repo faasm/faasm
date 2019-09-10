@@ -8,15 +8,22 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
             /usr/local/faasm/llvm-sysroot/include/onnxruntime/core/session
     )
 
-    set(EXTRA_LIBS onnxruntime png)
+    set(ONNX_LIBS
+            libonnxruntime_common.a
+            libonnxruntime_framework.a
+            libonnxruntime_graph.a
+            libonnxruntime_optimizer.a
+            libonnxruntime_providers.a
+            libonnxruntime_session.a
+            )
 else ()
     include_directories(
             /usr/local/include/onnxruntime
             /usr/local/include/onnxruntime/core/session
     )
 
-    set(EXTRA_LIBS /usr/local/lib/libonnxruntime.so.0.5.0 png)
+    set(ONNX_LIBS /usr/local/lib/libonnxruntime.so.0.5.0 png)
 endif ()
 
-faasm_func_c(candy candy.c)
-target_link_libraries(candy ${EXTRA_LIBS})
+faasm_func(candy candy.cpp)
+target_link_libraries(candy ${ONNX_LIBS} png)

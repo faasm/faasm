@@ -260,9 +260,12 @@ def _do_compile_onnx_runtime(native):
         "python3", "tools/ci_build/build.py",
         "--update",
         "--build",
-        "--build_shared_lib",
         "--config={}".format(build_type)
     ]
+
+    if native:
+        build_cmd.append("--build_shared_lib")
+
     build_cmd.extend(script_args)
     build_cmd_str = " ".join(build_cmd)
     print(build_cmd_str)
