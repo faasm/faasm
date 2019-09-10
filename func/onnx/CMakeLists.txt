@@ -9,12 +9,14 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     )
 
     set(ONNX_LIBS
-            libonnxruntime_common.a
-            libonnxruntime_framework.a
-            libonnxruntime_graph.a
-            libonnxruntime_optimizer.a
-            libonnxruntime_providers.a
-            libonnxruntime_session.a
+            onnx
+            onnx_proto
+            onnxruntime_common
+            onnxruntime_framework
+            onnxruntime_graph
+            onnxruntime_optimizer
+            onnxruntime_providers
+            onnxruntime_session
             )
 else ()
     include_directories(
