@@ -8,11 +8,6 @@ THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 SYSROOT=/usr/local/faasm/llvm-sysroot
 CLANG_DIR=${THIS_DIR}/../toolchain/install/bin
 
-# Emsdk stuff
-# EM_ROOT=/usr/local/faasm/emsdk/upstream/latest
-# SYSROOT=${EM_ROOT}/sysroot
-# CLANG_DIR=${EM_ROOT}/bin
-
 mkdir -p ${SYSROOT}
 
 TARGET="wasm32-unknown-unknown"

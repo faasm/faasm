@@ -23,3 +23,6 @@
 [submodule "zlib"]
 	path = zlib
 	url = git@github.com:madler/zlib.git
+[submodule "gem3-mapper"]
+	path = gem3-mapper
+	url = git@github.com:Shillaker/gem3-mapper.git
