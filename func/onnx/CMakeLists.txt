@@ -17,6 +17,8 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
             onnxruntime_optimizer
             onnxruntime_providers
             onnxruntime_session
+            onnxruntime_util
+            protobuf-lite
             )
 else ()
     include_directories(

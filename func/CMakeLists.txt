@@ -31,6 +31,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
         -Xlinker --max-memory=1073741824 \
         -Xlinker --stack-first \
         -Xlinker --threads \
+        -Xlinker --no-check-features \
         -Wl,-z,stack-size=4194304 -Wl, \
     ")
 

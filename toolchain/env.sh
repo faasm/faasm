@@ -13,7 +13,7 @@ export WASM_LDFLAGS="-Xlinker --stack-first"
 
 export WASM_BUILD=wasm32
 export WASM_HOST=wasm32-unknown-none
+export WASM_HOST_UNKNOWN=wasm32-unknown-unknown
 
-export WASM_CFLAGS="--sysroot=${WASM_SYSROOT} -ldlmalloc --target=${WASM_TRIPLE}"
-
+export WASM_CFLAGS="--sysroot=${WASM_SYSROOT}"
 
