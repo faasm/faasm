@@ -10,7 +10,6 @@
 [submodule "onnxjs"]
 	path = onnxjs
 	url = git@github.com:Shillaker/onnxjs
-
 [submodule "llvm-project"]
 	path = llvm-project
 	url = https://github.com/llvm/llvm-project.git

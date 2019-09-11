@@ -18,6 +18,16 @@ assemblyscript
 docker
 docs
 k8s
+native_build
 node_modules
+toolchain/install
 venv
 wasm
+
+# Submodules
+gem3-mapper
+libpng
+llvm-project
+onnxjs
+onnxruntime
+zlib
