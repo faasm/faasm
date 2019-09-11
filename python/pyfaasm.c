@@ -25,6 +25,12 @@ void setUpPyEnvironment() {
 void setUpPyNumpy() {
     FILE *devNull = fopen("/dev/null", "w");
 
+    // NOTE - we need to include a call to fiprintf to make
+    // the emscripten stuff work
+#if WASM_BUILD == 1
+    fiprintf(devNull, "%s", "blah");
+#endif
+
     // I/O
     fprintf(devNull, "%p", scanf);
     fprintf(devNull, "%p", fscanf);

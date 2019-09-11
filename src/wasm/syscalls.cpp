@@ -15,15 +15,15 @@ using namespace WAVM;
  * USEFUL NOTES
  *
  * The wasm syscall interface varies across toolchains. To work out what's going on
- * locate the musl port you're compiling against (e.g. in the emscripten sysroot), and
+ * locate the libc you're compiling against, and
  * look at
- *   - musl//src/internal/syscall.h
- *   - musl/arch/XXX/syscall_arch.h
- *   - musl/arch/XXX/libc.imports
+ *   - src/internal/syscall.h
+ *   - arch/XXX/syscall_arch.h
+ *   - arch/XXX/libc.imports
  *
- * where XXX is either wasm32 or emscripten.
+ * where XXX is probably wasm32.
  *
- * Syscall numbers can be found in musl/arch/XXX/bits/syscall.h(.in)
+ * Syscall numbers can be found in arch/XXX/bits/syscall.h(.in)
  *
  * The full i386 table can also give hints for higher numbers:
  * https://github.com/torvalds/linux/blob/master/arch/x86/entry/syscalls/syscall_32.tbl

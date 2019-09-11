@@ -3,7 +3,7 @@ project(faasm-malloc)
 
 include_directories(${CMAKE_CURRENT_LIST_DIR})
 
-#set(CMAKE_C_FLAGS "${CMAKE_FLAGS} -O3")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 
 add_library(dlmalloc STATIC dlmalloc.c)
 

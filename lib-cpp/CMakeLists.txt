@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 project(libfaasm)
 
-# ------ Faasm C++ library ------ #
+# ------ Faasm C/C++ library ------ #
 
 set(CMAKE_CXX_STANDARD 17)
 

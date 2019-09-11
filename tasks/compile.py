@@ -1,4 +1,4 @@
-from os import mkdir, environ
+from os import mkdir
 from os.path import exists
 from os.path import join
 from shutil import rmtree
@@ -7,9 +7,8 @@ from subprocess import call, check_output
 from invoke import task
 
 from tasks.util.codegen import find_codegen_binary
-from tasks.util.download import download_proj
-from tasks.util.env import PROJ_ROOT, WASM_TOOLCHAIN, EMSCRIPTEN_DIR, WASM_SYSROOT, FUNC_BUILD_DIR, FAASM_INSTALL_DIR, \
-    FAASM_RUNTIME_ROOT
+from tasks.util.env import PROJ_ROOT, FAASM_TOOLCHAIN_FILE, FAASM_SYSROOT, FUNC_BUILD_DIR, FAASM_INSTALL_DIR, \
+    FAASM_RUNTIME_ROOT, LATEST_CMAKE
 
 
 def _clean_dir(dir_path, clean):
@@ -20,19 +19,8 @@ def _clean_dir(dir_path, clean):
         mkdir(dir_path)
 
 
-def _check_toolchain():
-    actual_root = environ.get("EMSDK")
-
-    if not actual_root or not actual_root.startswith(EMSCRIPTEN_DIR):
-        print("You are not running the expected toolchain. Start a new shell and run: ")
-        print("source {}".format(join(EMSCRIPTEN_DIR, "emsdk_env.sh")))
-        exit(1)
-
-
 @task
 def compile(context, clean=False, func=None, debug=False, user=None):
-    _check_toolchain()
-
     build_type = "wasm"
     cmake_build_type = "Debug" if debug else "Release"
 
@@ -41,7 +29,7 @@ def compile(context, clean=False, func=None, debug=False, user=None):
     build_cmd = [
         "cmake",
         "-DFAASM_BUILD_TYPE={}".format(build_type),
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE={}".format(cmake_build_type),
         ".."
     ]
@@ -64,8 +52,6 @@ def compile(context, clean=False, func=None, debug=False, user=None):
 
 @task
 def compile_malloc(ctx, clean=False):
-    _check_toolchain()
-
     work_dir = join(PROJ_ROOT, "malloc")
     build_dir = join(work_dir, "build")
 
@@ -74,7 +60,7 @@ def compile_malloc(ctx, clean=False):
     build_cmd = [
         "cmake",
         "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         ".."
     ]
 
@@ -118,8 +104,6 @@ def compile_libfaasm(ctx, clean=False):
     Build all Faasm libraries
     """
 
-    _check_toolchain()
-
     def _do_lib_build(dir_name):
         work_dir = join(PROJ_ROOT, dir_name)
         build_dir = join(work_dir, "lib_build")
@@ -130,7 +114,7 @@ def compile_libfaasm(ctx, clean=False):
             "cmake",
             "-DFAASM_BUILD_TYPE=wasm",
             "-DCMAKE_BUILD_TYPE=Release",
-            "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
+            "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
             ".."
         ]
 
@@ -151,9 +135,7 @@ def compile_libfaasm(ctx, clean=False):
 
 @task
 def compile_libfake(ctx, clean=False):
-    _check_toolchain()
     work_dir = join(PROJ_ROOT, "func", "dynlink")
-
     build_dir = join(work_dir, "build")
 
     _clean_dir(build_dir, clean)
@@ -161,17 +143,18 @@ def compile_libfake(ctx, clean=False):
     build_cmd = [
         "cmake",
         "-DFAASM_BUILD_TYPE=wasm",
-        "-DCMAKE_TOOLCHAIN_FILE={}".format(WASM_TOOLCHAIN),
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_SYSROOT),
         ".."
     ]
 
     call(" ".join(build_cmd), shell=True, cwd=build_dir)
-    call("make", shell=True, cwd=build_dir)
+    call("make VERBOSE=1 ", shell=True, cwd=build_dir)
     call("make install", shell=True, cwd=build_dir)
 
     # Copy shared object into place
-    sysroot_files = join(WASM_SYSROOT, "lib", "libfake*.so")
+    sysroot_files = join(FAASM_SYSROOT, "lib", "libfake*.so")
 
     if not exists(FAASM_RUNTIME_ROOT):
         mkdir(FAASM_RUNTIME_ROOT)
@@ -193,15 +176,104 @@ def compile_libfake(ctx, clean=False):
 
 @task
 def compile_eigen(ctx):
-    extract_dir, build_dir = download_proj(
-        "http://bitbucket.org/eigen/eigen/get/3.3.7.tar.gz",
-        "3.3.7",
-        extract_file="eigen-eigen-323c052e1731"
-    )
+    working_dir = "/tmp"
+    eigen_dir = join(working_dir, "eigen3")
+    eigen_build_dir = join(eigen_dir, "build")
 
-    dest_dir = join(WASM_SYSROOT, "include", "eigen3")
-    _clean_dir(dest_dir, True)
+    if not exists(eigen_dir):
+        print("Checkout eigen")
+        call("git clone git@github.com:eigenteam/eigen-git-mirror.git eigen3",
+             shell=True, cwd=working_dir)
 
-    # Eigen is header-only so we just need to copy the files in place
-    src_dir = join(extract_dir, "Eigen")
-    call("cp -r {} {}".format(src_dir, dest_dir), shell=True)
+        # Make sure this commit hash matches the one in the Ansible task
+        print("Checkout specific eigen commit")
+        call("git checkout 0bdcefe7257e0a7c328c8440b85617e4ad75f3cf",
+             shell=True, cwd=eigen_dir)
+
+    if exists(eigen_build_dir):
+        rmtree(eigen_build_dir)
+
+    mkdir(eigen_build_dir)
+    cmd = [
+        "cmake",
+        "-DFAASM_BUILD_TYPE=Release",
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_SYSROOT),
+        ".."
+    ]
+    cmd_string = " ".join(cmd)
+
+    call(cmd_string, shell=True, cwd=eigen_build_dir)
+    call("make install", shell=True, cwd=eigen_build_dir)
+
+
+@task
+def compile_onnx(ctx, clean=False):
+    _do_compile_onnx_runtime(False)
+
+
+@task
+def compile_onnx_native(ctx):
+    _do_compile_onnx_runtime(True)
+
+
+def _do_compile_onnx_runtime(native):
+    work_dir = join(PROJ_ROOT, "onnxruntime")
+
+    if native:
+        build_dir = join(work_dir, "build", "native")
+        eigen_path = "/usr/local/include/eigen3"
+    else:
+        build_dir = join(work_dir, "build", "wasm")
+        eigen_path = join(FAASM_SYSROOT, "include", "eigen3")
+
+    # _clean_dir(build_dir, clean)
+
+    # See the script itself for more info on options (onnxruntime/tools/ci_build/build.py)
+    # More docs in the repo too: https://github.com/microsoft/onnxruntime/blob/master/BUILD.md
+    script_args = [
+        "--cmake_path={}".format(LATEST_CMAKE),
+        "--use_preinstalled_eigen",
+        "--eigen_path={}".format(eigen_path),
+        "--build_dir={}".format(build_dir),
+        "--skip_onnx_tests",
+        "--parallel",
+    ]
+
+    # Wasm-specific
+    if not native:
+        script_args.extend([
+            "--wasm",
+        ])
+
+    # Check if we've already cloned the onnxruntime subprojects (and skip if so)
+    cmake_submodule_checkout = join(PROJ_ROOT, "onnxruntime", "cmake", "external", "protobuf", "cmake")
+    if exists(cmake_submodule_checkout):
+        script_args.append("--skip_submodule_sync")
+    else:
+        call("git submodule update --init --recursive", cwd=work_dir)
+
+    # Run the main build
+    build_type = "RelWithDebInfo"
+    build_cmd = [
+        "python3", "tools/ci_build/build.py",
+        "--update",
+        "--build",
+        "--config={}".format(build_type)
+    ]
+
+    if native:
+        build_cmd.append("--build_shared_lib")
+
+    build_cmd.extend(script_args)
+    build_cmd_str = " ".join(build_cmd)
+    print(build_cmd_str)
+    res = call(build_cmd_str, shell=True, cwd=work_dir)
+    if res != 0:
+        print("Build command failed")
+        exit(1)
+
+    # Do the install
+    make_dir = join(build_dir, build_type)
+    call("make install", cwd=make_dir, shell=True)

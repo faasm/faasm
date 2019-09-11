@@ -6,6 +6,9 @@
 #include <pwd.h>
 #include <unistd.h>
 
+// Note that the includes here are important for exporting functions required
+// by the dynamically linked modules
+
 typedef int (*multiply)(int, int);
 typedef int (*multiplyGlobal)();
 
@@ -20,7 +23,14 @@ int main(int argc, char *argv[]) {
     // Need mmap/ munmap in libA so must include here
     void* dummyPtr = mmap(NULL, 10 * sizeof(int), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     munmap(dummyPtr, 10 * sizeof(int));
+
+#if WASM_BUILD == 1
+    // iprintf is an Emscripten-specific function which we need to include
+    // to keep the dynamically linked libraries happy
+    iprintf("mmaped location %p\n", dummyPtr);
+#else
     printf("mmaped location %p\n", dummyPtr);
+#endif
 
     // Open both the modules
     void * handleA = dlopen("libfakeLibA.so", RTLD_NOW);

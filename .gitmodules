@@ -7,3 +7,21 @@
 [submodule "musl"]
 	path = musl
 	url = https://github.com/Shillaker/musl
+[submodule "onnxjs"]
+	path = onnxjs
+	url = git@github.com:Shillaker/onnxjs
+[submodule "llvm-project"]
+	path = llvm-project
+	url = https://github.com/llvm/llvm-project.git
+[submodule "onnxruntime"]
+	path = onnxruntime
+	url = git@github.com:Shillaker/onnxruntime
+[submodule "libpng"]
+	path = libpng
+	url = git@github.com:glennrp/libpng.git
+[submodule "zlib"]
+	path = zlib
+	url = git@github.com:madler/zlib.git
+[submodule "gem3-mapper"]
+	path = gem3-mapper
+	url = git@github.com:Shillaker/gem3-mapper.git

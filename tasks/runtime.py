@@ -126,7 +126,7 @@ def package_python_runtime(ctx):
 
     # Remove old tar
     print("Removing archive")
-    check_output("rm {}".format(RUNTIME_TAR_PATH))
+    check_output("rm {}".format(RUNTIME_TAR_PATH), shell=True)
 
 
 @task

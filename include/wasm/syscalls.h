@@ -111,7 +111,7 @@ namespace wasm {
 
     /**
      * To be sure what the target dirent struct is like, you need to look in dirent.h in
-     * the correct sysroot. Emscripten looks like:
+     * the correct sysroot. Wasm libc looks like:
      *
      * struct dirent {
      *   ino_t d_ino;  // 64-bit

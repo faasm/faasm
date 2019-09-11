@@ -12,6 +12,8 @@ if(FAASM_BUILD_TYPE STREQUAL "wasm")
     add_library(pyfaasm STATIC ${LIB_FILES})
     set_target_properties(pyfaasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
+    add_definitions(-DWASM_BUILD=1)
+
     install(TARGETS pyfaasm
             ARCHIVE DESTINATION ${CMAKE_SYSROOT}/lib
             LIBRARY DESTINATION ${CMAKE_SYSROOT}/lib

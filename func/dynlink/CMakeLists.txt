@@ -6,11 +6,16 @@ set(BUILD_SHARED_LIBS ON)
 include_directories(include)
 
 # This is critical otherwise the linker tries to statically link in standard libraries
-set(COMPILER_FLAGS "-nostdlib -fPIC")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMPILER_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMPILER_FLAGS}")
+set(CMAKE_C_FLAGS "-fPIC -nostdlib ${CMAKE_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "-fPIC -nostdlib ${CMAKE_CXX_FLAGS}")
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
+    # NOTE: According to this LLVM bug: https://bugs.llvm.org/show_bug.cgi?id=42714
+    # ONLY the wasm32-unknown-emscripten triple supports fPIC wasm, so we must override
+    # whatever is already sets
+    set(CMAKE_C_COMPILER_TARGET wasm32-unknown-emscripten)
+    set(CMAKE_CXX_COMPILER_TARGET wasm32-unknown-emscripten)
+
     message(STATUS "Detected wasm build")
 
     # NOTE: all of these linker options are crucial to getting things to work properly

@@ -1,39 +1,40 @@
 ---
 
-- name: "Add LLVM 8 repo"
+- name: "Add LLVM 9 repo"
   become: yes
   apt_repository:
-    repo: "deb http://apt.llvm.org/{{ ansible_distribution_release }}/ llvm-toolchain-{{ ansible_distribution_release }}-8 main"
+    repo: "deb http://apt.llvm.org/{{ ansible_distribution_release }}/ llvm-toolchain-{{ ansible_distribution_release }}-9 main"
     state: present
 
 - name: "Install llvm and other deps"
   become: yes
   apt:
     name:
-      - llvm-8
-      - llvm-8-dev
-      - llvm-8-tools
-      - lld-8
+      - llvm-9
+      - llvm-9-dev
+      - llvm-9-tools
+      - lld-9
     update_cache: yes
 
 - name: "Install clang and other deps"
   become: yes
   apt:
     name:
-      - clang-8
-      - clang-tools-8
-      - build-essential
+      - clang-9
+      - clang-tools-9
+      - libclang-9-dev
     update_cache: yes
 
 - name: "Symlinks"
   become: yes
   file:
     state: link
-    src: "/usr/bin/{{ item }}-8"
+    src: "/usr/bin/{{ item }}-9"
     dest: "/usr/bin/{{ item }}"
   with_items:
     - "clang"
     - "clang++"
     - "clang-cpp"
     - "wasm-ld"
+    - "llvm-ar"
 

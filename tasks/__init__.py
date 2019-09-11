@@ -48,6 +48,8 @@ from tasks.compile import (
     compile,
     compile_malloc,
     compile_libfaasm,
+    compile_onnx,
+    compile_onnx_native,
     compile_eigen,
     compile_libfake,
     install_native_tools,

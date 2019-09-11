@@ -26,9 +26,12 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
         -Xlinker --export=main \
         -Xlinker --export=_faasm_zygote \
         -Xlinker --export=__errno_location \
+        -Xlinker --export=__data_end \
+        -Xlinker --export=__heap_base \
         -Xlinker --max-memory=1073741824 \
         -Xlinker --stack-first \
         -Xlinker --threads \
+        -Xlinker --no-check-features \
         -Wl,-z,stack-size=4194304 -Wl, \
     ")
 
@@ -108,6 +111,7 @@ add_subdirectory(errors)
 add_subdirectory(demo)
 add_subdirectory(sgd)
 add_subdirectory(dynlink)
+add_subdirectory(onnx)
 add_subdirectory(polybench)
 
 # Add python build in everything but the lambda funcs
