@@ -33,6 +33,12 @@ namespace edge {
         void handleAsyncPythonFunctionWrapper(const Pistache::Rest::Request &request,
                                               Pistache::Http::ResponseWriter response);
 
+        void handleTypescriptFunctionWrapper(const Pistache::Rest::Request &request,
+                                         Pistache::Http::ResponseWriter response);
+
+        void handleAsyncTypescriptFunctionWrapper(const Pistache::Rest::Request &request,
+                                              Pistache::Http::ResponseWriter response);
+
         message::Message buildMessageFromRequest(const Pistache::Rest::Request &request);
     };
 }

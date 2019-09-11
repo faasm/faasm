@@ -293,4 +293,5 @@ namespace wasm {
     void dynlinkLink();
     void mathsLink();
     void chainLink();
+    void faasmLink();
 }

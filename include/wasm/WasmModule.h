@@ -35,6 +35,8 @@ using namespace WAVM;
 namespace wasm {
     WAVM_DECLARE_INTRINSIC_MODULE(env)
 
+    WAVM_DECLARE_INTRINSIC_MODULE(tsenv)
+
     Uptr getNumberOfPagesForBytes(U32 nBytes);
 
     class WasmModule final : Runtime::Resolver {
@@ -88,8 +90,6 @@ namespace wasm {
 
         void setErrno(int newValue);
 
-        Uptr getInitialMemoryPages();
-
         int getHeapBase();
 
         int getDataEnd();
@@ -114,6 +114,10 @@ namespace wasm {
         std::string getBoundUser();
 
         std::string getBoundFunction();
+
+        bool getBoundIsPython();
+
+        bool getBoundIsTypescript();
 
         I32 getGlobalI32(const std::string &globalName, Runtime::Context *context);
 
@@ -142,8 +146,6 @@ namespace wasm {
 
         // Main module
         int errnoLocation = 0;
-        Uptr initialMemoryPages = 0;
-        int initialTableSize = 0;
         int heapBase = 0;
         int dataEnd = 0;
         int stackTop = 0;
@@ -157,6 +159,8 @@ namespace wasm {
         bool _isBound = false;
         std::string boundUser;
         std::string boundFunction;
+        bool boundIsPython = false;
+        bool boundIsTypescript = false;
 
         // Shared memory regions
         std::unordered_map<std::string, I32> sharedMemWasmPtrs;

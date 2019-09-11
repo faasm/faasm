@@ -151,9 +151,13 @@ namespace wasm {
                     WAST::reportParseErrors("wast_file", parseErrors);
                 }
 
-                // Force maximum memory and table size
+                // Force maximum size
                 module.memories.defs[0].type.size.max = (U64) MAX_MEMORY_PAGES;
-                module.tables.defs[0].type.size.max = (U64) MAX_TABLE_SIZE;
+
+                // Typescript modules don't seem to define a table
+                if(!module.tables.defs.empty()) {
+                    module.tables.defs[0].type.size.max = (U64) MAX_TABLE_SIZE;
+                }
             }
         } else {
             logger->debug("Using cached main module {}", key);

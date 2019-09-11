@@ -36,6 +36,13 @@ def py_upload(ctx, user, func, host="127.0.0.1"):
     curl_file(url, func_file)
 
 
+@task
+def ts_upload(ctx, func, host="127.0.0.1"):
+    func_file = join(PROJ_ROOT, "typescript", "build", "{}.wasm".format(func))
+    url = "http://{}:8002/f/t/{}".format(host, func)
+    curl_file(url, func_file)
+
+
 def _do_upload_all(host=None, upload_s3=False):
     func_dir = FUNC_BUILD_DIR
 

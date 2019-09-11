@@ -30,24 +30,28 @@ namespace tests {
             SECTION("True boolean over JSON") {
                 call.set_isasync(true);
                 call.set_ispython(true);
+                call.set_istypescript(true);
                 conf.serialisation = "json";
             }
 
             SECTION("False boolean over JSON") {
                 call.set_isasync(false);
                 call.set_ispython(false);
+                call.set_istypescript(false);
                 conf.serialisation = "json";
             }
 
             SECTION("True boolean with protobuf") {
                 call.set_isasync(true);
                 call.set_ispython(true);
+                call.set_istypescript(true);
                 conf.serialisation = "proto";
             }
 
             SECTION("False boolean with protobuf") {
                 call.set_isasync(false);
                 call.set_ispython(false);
+                call.set_istypescript(false);
                 conf.serialisation = "proto";
             }
 

@@ -18,11 +18,12 @@ namespace tests {
     int funcAOffset = 3242;
     int funcBOffset = 617;
 
-    // These are hard-coded pointers whose offsets we know
+    // These are hard-coded pointers whose offsets we know.
+    // This should only change if we change the toolchain
     std::string mainData = "PyBool_Type";
     std::string dataA = "PyArray_API";
     std::string dataB = "PyUFunc_API";
-    int mainDataOffset = 6438608;
+    int mainDataOffset = 6439024;
     int dataAOffset = 10460832;
     int dataBOffset = 41746432;
 

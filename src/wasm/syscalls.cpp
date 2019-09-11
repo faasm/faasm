@@ -184,5 +184,6 @@ namespace wasm {
         dynlinkLink();
         mathsLink();
         chainLink();
+        faasmLink();
     }
 }

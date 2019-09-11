@@ -1,8 +1,5 @@
-import "../node_modules/assemblyscript/std/assembly/allocator/system"  // Import the system memory allocator
-
 declare function __faasm_read_input(ptr: i32, len: i32): i32;
 declare function __faasm_write_output(ptr: i32, len: i32): void;
-
 
 export namespace faasm {
     export function getInput(): Uint8Array {

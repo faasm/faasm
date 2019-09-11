@@ -125,6 +125,7 @@ from tasks.upload import (
     upload_all_s3,
     upload,
     py_upload,
+    ts_upload,
 )
 from tasks.wasm2wast import wast
 

@@ -19,6 +19,6 @@ To build Typescript functions to wasm you can run:
 
 ```
 cd assemblyscript
-npm run asbuild
+npm run asbuild <func_name>
 ```
 

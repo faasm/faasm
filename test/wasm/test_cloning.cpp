@@ -33,6 +33,8 @@ namespace tests {
         REQUIRE(moduleB.isBound());
         REQUIRE(moduleB.getBoundUser() == moduleA.getBoundUser());
         REQUIRE(moduleB.getBoundFunction() == moduleA.getBoundFunction());
+        REQUIRE(moduleB.getBoundIsPython() == moduleA.getBoundIsPython());
+        REQUIRE(moduleB.getBoundIsTypescript() == moduleA.getBoundIsTypescript());
 
         // Check module B memory and table
         Uptr memBeforeB = Runtime::getMemoryNumPages(moduleB.defaultMemory);
@@ -135,6 +137,21 @@ namespace tests {
 
     TEST_CASE("Test cloned execution on simple module", "[wasm]") {
         std::string user = "demo";
+        std::string func = "echo";
+        std::string inputA = "aaa";
+        std::string inputB = "bbb";
+
+        SECTION("copy") {
+            _checkCopyConstructor(user, func, inputA, inputB);
+        }
+
+        SECTION("assignment") {
+            _checkAssignmentOperator(user, func, inputA, inputB);
+        }
+    }
+
+    TEST_CASE("Test cloned execution on typescript module", "[wasm]") {
+        std::string user = "ts";
         std::string func = "echo";
         std::string inputA = "aaa";
         std::string inputB = "bbb";

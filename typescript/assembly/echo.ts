@@ -1,4 +1,4 @@
-import {faasm} from "../faasm/env";
+import {faasm} from "./env";
 
 export function _asMain(): i32 {
   var inputData:Uint8Array = faasm.getInput();

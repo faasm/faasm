@@ -21,8 +21,9 @@ message Message {
     optional bool success = 8;
     optional bool isAsync = 9;
     optional bool isPython = 10;
+    optional bool isTypescript = 11;
 
-    optional bytes inputData = 11;
-    optional bytes outputData = 12;
+    optional bytes inputData = 12;
+    optional bytes outputData = 13;
 }
 
