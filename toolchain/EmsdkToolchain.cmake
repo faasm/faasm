@@ -1,14 +1,10 @@
-# NOTE - this is the legacy emscripten upstream toolchain which is
-# only needed for building shared libraries.
-#
-# Once fPIC support is added for wasm32 targets we can switch over to using the
-# main Faasm toolchain. See the wasm-ld issue here:
-# https://bugs.llvm.org/show_bug.cgi?id=42714
+# NOTE - this is the legacy emscripten upstream toolchain which should
+# no longer be needed.
 
 cmake_minimum_required(VERSION 3.4.0)
 
 set(EMSDK_ROOT /usr/local/faasm/emsdk/upstream/latest)
-set(FAASM_SYSROOT ${EMSDK_ROOT}/sysroot)
+set(EMSDK_SYSROOT ${EMSDK_ROOT}/sysroot)
 
 set(EXE_SUFFIX "")
 
@@ -26,8 +22,8 @@ set(UNIX 1)
 set(CMAKE_C_COMPILER_TARGET ${triple})
 set(CMAKE_CXX_COMPILER_TARGET ${triple})
 
-set(CMAKE_SYSROOT ${FAASM_SYSROOT})
-set(CMAKE_STAGING_PREFIX ${FAASM_SYSROOT})
+set(CMAKE_SYSROOT ${EMSDK_SYSROOT})
+set(CMAKE_STAGING_PREFIX ${EMSDK_SYSROOT})
 
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
