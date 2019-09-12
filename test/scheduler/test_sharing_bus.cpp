@@ -24,6 +24,7 @@ namespace tests {
         msg.set_function("func a");
         msg.set_isasync(true);
         msg.set_ispython(true);
+        msg.set_istypescript(true);
         msg.set_inputdata(inputData);
 
         SECTION("Check sharing message with a host puts on relevant queue") {

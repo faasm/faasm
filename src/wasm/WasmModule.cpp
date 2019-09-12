@@ -67,13 +67,11 @@ namespace wasm {
         // -----------
 
         // Tear down if we are bound
-        if(this->_isBound) {
+        if (this->_isBound) {
             tearDown();
         }
 
         errnoLocation = other.errnoLocation;
-        initialMemoryPages = other.initialMemoryPages;
-        initialTableSize = other.initialTableSize;
         heapBase = other.heapBase;
         dataEnd = other.dataEnd;
         stackTop = other.stackTop;
@@ -86,6 +84,8 @@ namespace wasm {
         _isBound = other._isBound;
         boundUser = other.boundUser;
         boundFunction = other.boundFunction;
+        boundIsPython = other.boundIsPython;
+        boundIsTypescript = other.boundIsTypescript;
 
         if (other._isBound) {
             // Clone compartment and context
@@ -295,6 +295,8 @@ namespace wasm {
         _isBound = true;
         boundUser = msg.user();
         boundFunction = msg.function();
+        boundIsPython = msg.ispython();
+        boundIsTypescript = msg.istypescript();
 
         // Set up the compartment and context
         PROF_START(wasmContext)
@@ -305,11 +307,16 @@ namespace wasm {
         // Create a copy of the message to avoid messing with the original
         message::Message msgCopy = msg;
 
-        if (msg.ispython()) {
+        if (boundIsPython) {
+            logger->debug("Detected python function {}/{}", boundUser, boundFunction);
             std::string pyFile = msg.user() + "/" + msg.function() + ".py";
             msgCopy.set_inputdata(pyFile);
             msgCopy.set_user("python");
             msgCopy.set_function("py_func");
+        } else if(boundIsTypescript) {
+            logger->debug("Detected typescript function {}/{}", boundUser, boundFunction);
+        } else {
+            logger->debug("Detected C/C++ function {}/{}", boundUser, boundFunction);
         }
 
         PROF_END(wasmContext)
@@ -320,7 +327,11 @@ namespace wasm {
         PROF_START(wasmBind)
 
         // Get main entrypoint function
-        functionInstance = getFunction(ENTRY_FUNC_NAME, true);
+        std::string mainFuncName(ENTRY_FUNC_NAME);
+        if (boundIsTypescript) {
+            mainFuncName = "_asMain";
+        }
+        functionInstance = getFunction(mainFuncName, true);
 
         // Keep reference to memory and table
         defaultMemory = Runtime::getDefaultMemory(moduleInstance);
@@ -355,35 +366,39 @@ namespace wasm {
                     result
             );
 
-            if(result.i32 != 0) {
+            if (result.i32 != 0) {
                 logger->error("Zygote for {}/{} failed with return code {}", boundUser, boundFunction, result.i32);
                 throw std::runtime_error("Zygote failed");
             }
         }
 
-        // Memory-related variables
-        initialMemoryPages = Runtime::getMemoryNumPages(defaultMemory);
-        initialTableSize = Runtime::getTableNumElements(defaultTable);
-        Uptr initialMemorySize = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
+        // Typescript doesn't export memory info, nor does it require
+        // setting up argv/argc
+        if (!boundIsTypescript) {
+            // Note that heap base and data end should be the same (provided stack-first is switched on)
+            heapBase = getGlobalI32("__heap_base", executionContext);
+            dataEnd = getGlobalI32("__data_end", executionContext);
 
-        // Note that heap base and data end should be the same (provided stack-first is switched on)
-        heapBase = getGlobalI32("__heap_base", executionContext);
-        dataEnd = getGlobalI32("__data_end", executionContext);
-        logger->debug("heap_base={} data_end={} heap_top={} initial_pages={} initial_table={}", heapBase, dataEnd,
-                      initialMemorySize, initialMemoryPages, initialTableSize);
+            Uptr initialTableSize = Runtime::getTableNumElements(defaultTable);
+            Uptr initialMemorySize = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
+            Uptr initialMemoryPages = Runtime::getMemoryNumPages(defaultMemory);
 
-        // Set up invoke arguments just below the top of the memory (i.e. at the top of the dynamic section)
-        U32 argvStart = initialMemorySize - 20;
-        U32 argc = 0;
+            logger->debug("heap_base={} data_end={} heap_top={} initial_pages={} initial_table={}", heapBase, dataEnd,
+                          initialMemorySize, initialMemoryPages, initialTableSize);
 
-        // Copy the function name into argv[0]
-        U32 argv0 = argvStart + sizeof(U32);
-        char *argv0Host = &Runtime::memoryRef<char>(defaultMemory, argv0);
-        strcpy(argv0Host, "function.wasm");
+            // Set up invoke arguments just below the top of the memory (i.e. at the top of the dynamic section)
+            U32 argvStart = initialMemorySize - 20;
+            U32 argc = 0;
 
-        // Copy the offset of argv[0] into position
-        Runtime::memoryRef<U32>(defaultMemory, argvStart) = argv0;
-        invokeArgs = {argc, argvStart};
+            // Copy the function name into argv[0]
+            U32 argv0 = argvStart + sizeof(U32);
+            char *argv0Host = &Runtime::memoryRef<char>(defaultMemory, argv0);
+            strcpy(argv0Host, "function.wasm");
+
+            // Copy the offset of argv[0] into position
+            Runtime::memoryRef<U32>(defaultMemory, argvStart) = argv0;
+            invokeArgs = {argc, argvStart};
+        }
 
         PROF_END(wasmBind)
     }
@@ -401,7 +416,21 @@ namespace wasm {
         IR::Module &irModule = moduleRegistry.getModule(boundUser, boundFunction, sharedModulePath);
         if (isMainModule) {
             // Set up intrinsics
-            envModule = Intrinsics::instantiateModule(compartment, {WAVM_INTRINSIC_MODULE_REF(env)}, "env");
+            if (boundIsTypescript) {
+                // Special typescript env
+                envModule = Intrinsics::instantiateModule(
+                        compartment,
+                        {WAVM_INTRINSIC_MODULE_REF(tsenv)},
+                        "env"
+                );
+            } else {
+                // Normal (C/C++) env
+                envModule = Intrinsics::instantiateModule(
+                        compartment,
+                        {WAVM_INTRINSIC_MODULE_REF(env)},
+                        "env"
+                );
+            }
 
             // Make sure the stack top is as expected
             IR::GlobalDef stackDef = irModule.globals.getDef(0);
@@ -588,10 +617,6 @@ namespace wasm {
         return prevIdx;
     }
 
-    Uptr WasmModule::getInitialMemoryPages() {
-        return initialMemoryPages;
-    }
-
     int WasmModule::getHeapBase() {
         return heapBase;
     }
@@ -636,20 +661,34 @@ namespace wasm {
         int exitCode = 0;
         try {
             // Call the function
-            logger->debug("Invoking the function itself");
 
-            Runtime::catchRuntimeExceptions([this, &exitCode] {
+            Runtime::catchRuntimeExceptions([this, &exitCode, &logger] {
                 IR::UntaggedValue result;
 
-                executeFunction(
-                        functionInstance,
-                        IR::FunctionType(
-                                {IR::ValueType::i32},
-                                {IR::ValueType::i32, IR::ValueType::i32}
-                        ),
-                        invokeArgs,
-                        result
-                );
+                // Different function signature for different languages
+                if (boundIsTypescript) {
+                    logger->debug("Invoking typescript function");
+                    executeFunction(
+                            functionInstance,
+                            IR::FunctionType(
+                                    {IR::ValueType::i32},
+                                    {}
+                            ),
+                            {},
+                            result
+                    );
+                } else {
+                    logger->debug("Invoking C/C++ function");
+                    executeFunction(
+                            functionInstance,
+                            IR::FunctionType(
+                                    {IR::ValueType::i32},
+                                    {IR::ValueType::i32, IR::ValueType::i32}
+                            ),
+                            invokeArgs,
+                            result
+                    );
+                }
 
                 exitCode = result.i32;
             }, [&logger, &exitCode](Runtime::Exception *ex) {
@@ -936,6 +975,14 @@ namespace wasm {
 
     std::string WasmModule::getBoundFunction() {
         return boundFunction;
+    }
+
+    bool WasmModule::getBoundIsPython() {
+        return boundIsPython;
+    }
+
+    bool WasmModule::getBoundIsTypescript() {
+        return boundIsTypescript;
     }
 
     int WasmModule::getFunctionOffsetFromGOT(const std::string &funcName) {

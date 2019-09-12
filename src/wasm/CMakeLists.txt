@@ -13,6 +13,7 @@ set(LIB_FILES
         syscalls_chaining.cpp
         syscalls_dynlink.cpp
         syscalls_env.cpp
+        syscalls_faasm.cpp
         syscalls_io.cpp
         syscalls_maths.cpp
         syscalls_memory.cpp
@@ -20,6 +21,7 @@ set(LIB_FILES
         syscalls_threads.cpp
         syscalls_unsupported.cpp
         syscalls_util.cpp
+        ts_syscalls.cpp
         ${HEADERS}
         )
 

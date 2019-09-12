@@ -22,27 +22,39 @@ namespace tests {
 
     void
     _doChecks(wasm::WasmModule &moduleA, wasm::WasmModule &moduleB, const std::string &user, const std::string &func,
-              const std::string &inputA,
-              const std::string &inputB) {
+              const std::string &inputA,              const std::string &inputB, bool isTypescript) {
         message::Message msgA = util::messageFactory(user, func);
 
         // Get the initial mem and table size
         Uptr memBeforeA = Runtime::getMemoryNumPages(moduleA.defaultMemory);
-        Uptr tableBeforeA = Runtime::getTableNumElements(moduleA.defaultTable);
+        Uptr tableBeforeA;
+
+        if (!isTypescript) {
+            tableBeforeA = Runtime::getTableNumElements(moduleA.defaultTable);
+        }
 
         REQUIRE(moduleB.isBound());
         REQUIRE(moduleB.getBoundUser() == moduleA.getBoundUser());
         REQUIRE(moduleB.getBoundFunction() == moduleA.getBoundFunction());
+        REQUIRE(moduleB.getBoundIsPython() == moduleA.getBoundIsPython());
+        REQUIRE(moduleB.getBoundIsTypescript() == moduleA.getBoundIsTypescript());
 
         // Check module B memory and table
         Uptr memBeforeB = Runtime::getMemoryNumPages(moduleB.defaultMemory);
-        Uptr tableBeforeB = Runtime::getTableNumElements(moduleB.defaultTable);
+        Uptr tableBeforeB;
+
+        if (!isTypescript) {
+            tableBeforeB = Runtime::getTableNumElements(moduleB.defaultTable);
+            REQUIRE(tableBeforeB == tableBeforeA);
+
+            // Check tables are different
+            REQUIRE(moduleA.defaultTable != moduleB.defaultTable);
+        }
+
         REQUIRE(memBeforeB == memBeforeA);
-        REQUIRE(tableBeforeB == tableBeforeA);
 
         // Check important parts are actually different
         REQUIRE(moduleA.defaultMemory != moduleB.defaultMemory);
-        REQUIRE(moduleA.defaultTable != moduleB.defaultTable);
         REQUIRE(moduleA.compartment != moduleB.compartment);
 
         // Check base memory addresses are different
@@ -59,23 +71,31 @@ namespace tests {
             REQUIRE(msgA.outputdata() == inputA);
         }
 
-        // Check memory has grown in the one that's executed
+        // Check memory has grown in the one that's executed (unless it's typescript)
         Uptr memAfterA1 = Runtime::getMemoryNumPages(moduleA.defaultMemory);
         Uptr memAfterB1 = Runtime::getMemoryNumPages(moduleB.defaultMemory);
-        REQUIRE(memAfterA1 > memBeforeA);
         REQUIRE(memAfterB1 == memBeforeA);
 
-        // Check tables
-        Uptr tableAfterA1 = Runtime::getTableNumElements(moduleA.defaultTable);
-        Uptr tableAfterB1 = Runtime::getTableNumElements(moduleB.defaultTable);
-
-        if(func == "py_func") {
-            REQUIRE(tableAfterA1 > tableBeforeA);
+        if(isTypescript) {
+            REQUIRE(memAfterA1 == memBeforeA);
         } else {
-            REQUIRE(tableAfterA1 == tableBeforeA);
+            REQUIRE(memAfterA1 > memBeforeA);
         }
 
-        REQUIRE(tableAfterB1 == tableBeforeA);
+        // Check tables
+        Uptr tableAfterA1;
+        if (!isTypescript) {
+            tableAfterA1 = Runtime::getTableNumElements(moduleA.defaultTable);
+            Uptr tableAfterB1 = Runtime::getTableNumElements(moduleB.defaultTable);
+
+            if (func == "py_func") {
+                REQUIRE(tableAfterA1 > tableBeforeA);
+            } else {
+                REQUIRE(tableAfterA1 == tableBeforeA);
+            }
+
+            REQUIRE(tableAfterB1 == tableBeforeA);
+        }
 
         // Execute with second module and check
         message::Message msgB = util::messageFactory(user, func);
@@ -90,21 +110,26 @@ namespace tests {
         // Check memory sizes
         Uptr memAfterA2 = Runtime::getMemoryNumPages(moduleA.defaultMemory);
         Uptr memAfterB2 = Runtime::getMemoryNumPages(moduleB.defaultMemory);
-        REQUIRE(memAfterB2 > memBeforeB);
         REQUIRE(memAfterB2 == memAfterA2);
         REQUIRE(memAfterA1 == memAfterA2);
 
-        Uptr tableAfterA2 = Runtime::getTableNumElements(moduleA.defaultTable);
-        Uptr tableAfterB2 = Runtime::getTableNumElements(moduleB.defaultTable);
-
-        if(func == "py_func") {
-            REQUIRE(tableAfterB2 > tableBeforeB);
+        if(isTypescript) {
+            REQUIRE(memAfterB2 == memBeforeB);
         } else {
-            REQUIRE(tableAfterB2 == tableBeforeB);
-        }
+            REQUIRE(memAfterB2 > memBeforeB);
 
-        REQUIRE(tableAfterB2 == tableAfterA2);
-        REQUIRE(tableAfterA1 == tableAfterA2);
+            Uptr tableAfterA2 = Runtime::getTableNumElements(moduleA.defaultTable);
+            Uptr tableAfterB2 = Runtime::getTableNumElements(moduleB.defaultTable);
+
+            if (func == "py_func") {
+                REQUIRE(tableAfterB2 > tableBeforeB);
+            } else {
+                REQUIRE(tableAfterB2 == tableBeforeB);
+            }
+
+            REQUIRE(tableAfterB2 == tableAfterA2);
+            REQUIRE(tableAfterA1 == tableAfterA2);
+        }
 
         // Check successful clean-up
         REQUIRE(moduleA.tearDown());
@@ -112,25 +137,32 @@ namespace tests {
     }
 
     void _checkCopyConstructor(const std::string &user, const std::string &func, const std::string &inputA,
-                               const std::string &inputB) {
+                               const std::string &inputB, bool isTypescript) {
         message::Message msgA = util::messageFactory(user, func);
+
+        if (isTypescript) {
+            msgA.set_istypescript(true);
+        }
+
         WasmModule moduleA;
         moduleA.bindToFunction(msgA);
 
         WasmModule moduleB(moduleA);
 
-        _doChecks(moduleA, moduleB, user, func, inputA, inputB);
+        _doChecks(moduleA, moduleB, user, func, inputA, inputB, isTypescript);
     }
 
     void _checkAssignmentOperator(const std::string &user, const std::string &func, const std::string &inputA,
-                                  const std::string &inputB) {
+                                  const std::string &inputB, bool isTypescript) {
         message::Message msgA = util::messageFactory(user, func);
+        msgA.set_istypescript(isTypescript);
+
         WasmModule moduleA;
         moduleA.bindToFunction(msgA);
 
         WasmModule moduleB = moduleA;
 
-        _doChecks(moduleA, moduleB, user, func, inputA, inputB);
+        _doChecks(moduleA, moduleB, user, func, inputA, inputB, isTypescript);
     }
 
     TEST_CASE("Test cloned execution on simple module", "[wasm]") {
@@ -140,11 +172,26 @@ namespace tests {
         std::string inputB = "bbb";
 
         SECTION("copy") {
-            _checkCopyConstructor(user, func, inputA, inputB);
+            _checkCopyConstructor(user, func, inputA, inputB, false);
         }
 
         SECTION("assignment") {
-            _checkAssignmentOperator(user, func, inputA, inputB);
+            _checkAssignmentOperator(user, func, inputA, inputB, false);
+        }
+    }
+
+    TEST_CASE("Test cloned execution on typescript module", "[wasm]") {
+        std::string user = "ts";
+        std::string func = "echo";
+        std::string inputA = "aaa";
+        std::string inputB = "bbb";
+
+        SECTION("copy") {
+            _checkCopyConstructor(user, func, inputA, inputB, true);
+        }
+
+        SECTION("assignment") {
+            _checkAssignmentOperator(user, func, inputA, inputB, true);
         }
     }
 
@@ -158,10 +205,10 @@ namespace tests {
         std::string input = "numpy_test.py";
 
         SECTION("copy") {
-            _checkCopyConstructor(user, func, input, input);
+            _checkCopyConstructor(user, func, input, input, false);
         }
         SECTION("assignment") {
-            _checkAssignmentOperator(user, func, input, input);
+            _checkAssignmentOperator(user, func, input, input, false);
         }
 
         conf.unsafeMode = orig;

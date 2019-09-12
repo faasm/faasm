@@ -46,13 +46,23 @@ from tasks.codegen import (
 )
 from tasks.compile import (
     compile,
+)
+from tasks.compile_libs import (
     compile_malloc,
     compile_libfaasm,
-    compile_onnx,
-    compile_onnx_native,
     compile_eigen,
     compile_libfake,
     install_native_tools,
+)
+from tasks.compile_onnxruntime import (
+    compile_onnx,
+    compile_onnx_native,
+)
+from tasks.compile_onnxjs import (
+    compile_onnxjs,
+)
+from tasks.compile_ts import (
+    ts_compile,
 )
 from tasks.invoke import (
     invoke,
@@ -125,6 +135,7 @@ from tasks.upload import (
     upload_all_s3,
     upload,
     py_upload,
+    ts_upload,
 )
 from tasks.wasm2wast import wast
 

@@ -169,7 +169,7 @@ namespace tests {
         REQUIRE(module.getStackTop() == STACK_SIZE);
 
         // Sense check that the initial memory is set to be bigger than the heap base
-        Uptr initialMemorySize = module.getInitialMemoryPages() * IR::numBytesPerPage;
+        Uptr initialMemorySize = Runtime::getMemoryNumPages(module.defaultMemory)* IR::numBytesPerPage;
         REQUIRE(initialMemorySize > (Uptr) module.getHeapBase());
     }
 

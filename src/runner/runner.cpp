@@ -35,6 +35,10 @@ int main(int argc, char *argv[]) {
     std::string function = argv[2];
     message::Message call = util::messageFactory(user, function);
 
+    if(user == "ts") {
+        call.set_istypescript(true);
+    }
+
     logger->info("Running function {}/{}", user, function);
 
     if (argc > 3) {

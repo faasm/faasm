@@ -68,4 +68,7 @@ To package the Python runtime for use on AWS and in containers, we can run the f
 inv package-python-runtime
 ```
 
+_WARNING_ this nukes all the object files in your current `runtime_root` so you'll need to regenerate them and 
+run tests to make sure it's worked.
+
 This bundles up the required runtime files and uploads them to S3.

@@ -10,12 +10,13 @@
     - name: "Update npm"
       become: yes
       shell: "npm install -g npm"
+    
+    - name: "Install uglifyjs"
+      become: yes
+      shell: "npm install -g uglify-js@1"
 
     - name: "Install assemblyscript"
       shell: "npm install --save-dev AssemblyScript/assemblyscript"
       args:
-        chdir: "/usr/local/code/faasm/assemblyscript"
+        chdir: "/usr/local/code/faasm/typescript"
 
-    - name: "Install uglifyjs"
-      become: yes
-      shell: "npm install -g uglify-js@1"
