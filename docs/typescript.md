@@ -1,6 +1,6 @@
 # Typescript 
 
-Typescript WebAssembly support is called [assemblyscript](https://github.com/AssemblyScript/assemblyscript).
+Typescript WebAssembly support is added through [assemblyscript](https://github.com/AssemblyScript/assemblyscript).
 
 ## Set-up
 
@@ -11,14 +11,19 @@ cd ansible
 ansible-playbook assemblyscript.yml --ask-become-pass
 ```
 
-This will install both nodejs and assemblyscript.
-
 ## Building functions
+
+The Typescript functions live at `typescript/assembly`. 
 
 To build Typescript functions to wasm you can run:
 
 ```
-cd assemblyscript
-npm run asbuild <func_name>
+source workon.sh
+inv ts-compile <func_name>
 ```
 
+You can then upload them to Faasm (provided an upload server is running):
+
+```
+inv ts-upload <func_name>
+```
