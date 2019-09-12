@@ -51,6 +51,30 @@ def compile(context, clean=False, func=None, debug=False, user=None):
 
 
 @task
+def ts_compile(context, func, optimize=True):
+    ts_dir = join(PROJ_ROOT, "typescript")
+    asc_binary = join(ts_dir, "node_modules", "assemblyscript", "bin", "asc")
+
+    cmd = [
+        asc_binary,
+        "assembly/{}.ts".format(func),
+        "-b build/{}.wasm".format(func),
+        "-t build/{}.wast".format(func),
+        "--sourceMap",
+        "--validate",
+    ]
+
+    if optimize:
+        cmd.append("--optimize")
+    else:
+        cmd.append("--debug")
+
+    cmd_string = " ".join(cmd)
+    print(cmd_string)
+    call(cmd_string, cwd=ts_dir, shell=True)
+
+
+@task
 def compile_malloc(ctx, clean=False):
     work_dir = join(PROJ_ROOT, "malloc")
     build_dir = join(work_dir, "build")

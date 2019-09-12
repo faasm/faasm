@@ -80,6 +80,11 @@ def py_invoke(ctx, user, func, host="127.0.0.1"):
 
 
 @task
+def ts_invoke(ctx, user, func, host="127.0.0.1"):
+    _do_invoke(user, func, host, 8001, "t")
+
+
+@task
 def invoke_async(ctx, user, func, host="127.0.0.1"):
     _do_invoke(user, func, host, 8001, "fa")
 

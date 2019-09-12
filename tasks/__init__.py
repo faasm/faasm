@@ -52,6 +52,7 @@ from tasks.compile import (
     compile_onnx_native,
     compile_eigen,
     compile_libfake,
+    ts_compile,
     install_native_tools,
 )
 from tasks.invoke import (

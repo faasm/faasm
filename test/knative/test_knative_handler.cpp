@@ -15,15 +15,35 @@ namespace tests {
         // Note - must be async to avoid needing a result
         message::Message call;
         call.set_isasync(true);
-        call.set_user("demo");
-        call.set_function("echo");
+        std::string user;
+        std::string function;
 
-        SECTION("With input") {
-            call.set_inputdata("foobar");
-        }
-        SECTION("No input") {
+        SECTION("C/C++") {
+            user = "demo";
+            function = "echo";
 
+            SECTION("With input") {
+                call.set_inputdata("foobar");
+            }
+            SECTION("No input") {
+
+            }
         }
+        SECTION("Typescript") {
+            user = "ts";
+            function = "echo";
+            call.set_istypescript(true);
+
+            SECTION("With input") {
+                call.set_inputdata("foobar");
+            }
+            SECTION("No input") {
+
+            }
+        }
+
+        call.set_user(user);
+        call.set_function(function);
 
         const std::string &requestStr = util::messageToJson(call);
 
@@ -37,8 +57,8 @@ namespace tests {
         REQUIRE(sch.getBindQueue()->size() == 1);
         message::Message actual = sch.getBindQueue()->dequeue();
 
-        REQUIRE(actual.user() == "demo");
-        REQUIRE(actual.function() == "echo");
+        REQUIRE(actual.user() == user);
+        REQUIRE(actual.function() == function);
     }
 
     TEST_CASE("Test empty knative invocation", "[knative]") {
