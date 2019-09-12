@@ -25,3 +25,6 @@
 [submodule "gem3-mapper"]
 	path = gem3-mapper
 	url = https://github.com/Shillaker/gem3-mapper.git
+[submodule "third-party/tensorflow"]
+	path = third-party/tensorflow
+	url = https://github.com/tensorflow/tensorflow.git
