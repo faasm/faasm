@@ -28,3 +28,12 @@
 [submodule "third-party/tensorflow"]
 	path = third-party/tensorflow
 	url = https://github.com/tensorflow/tensorflow.git
+[submodule "third-party/flatbuffers"]
+	path = third-party/flatbuffers
+	url = https://github.com/google/flatbuffers.git
+[submodule "third-party/gemmlowp"]
+	path = third-party/gemmlowp
+	url = https://github.com/google/gemmlowp.git
+[submodule "third-party/farmhash"]
+	path = third-party/farmhash
+	url = https://github.com/google/farmhash

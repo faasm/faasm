@@ -168,3 +168,38 @@ def compile_eigen(ctx):
 
     call(cmd_string, shell=True, cwd=eigen_build_dir)
     call("make install", shell=True, cwd=eigen_build_dir)
+
+
+@task
+def compile_gemmlowp(ctx):
+    # gemmlowp is header-only
+    working_dir = "/tmp"
+    gemm_dir = "/tmp/gemmlowp"
+    dest_dir = join(FAASM_SYSROOT, "include", "gemmlowp")
+
+    # These are the dirs from the gemmlowp repo to include
+    include_dirs = [
+        "meta",
+        "public",
+        "profiling",
+        "fixedpoint",
+        "internal",
+    ]
+
+    if not exists(gemm_dir):
+        print("Checkout gemmlowp")
+        call("git clone https://github.com/google/gemmlowp.git gemmlowp", cwd=working_dir, shell=True)
+
+    if not exists(dest_dir):
+        mkdir(dest_dir)
+
+    for dir_name in include_dirs:
+        dir_path = join(gemm_dir, dir_name)
+        dest_path = join(dest_dir, dir_name)
+
+        if exists(dest_path):
+            print("Deleting existing {}".format(dest_path))
+            rmtree(dest_path)
+
+        print("Copying {} to {}".format(dir_path, dest_path))
+        call("cp -r {} {}".format(dir_path, dest_path), shell=True)
