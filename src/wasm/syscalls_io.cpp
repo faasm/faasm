@@ -323,14 +323,19 @@ namespace wasm {
     }
 
     I32 s__readv(I32 fd, I32 iovecPtr, I32 iovecCount) {
-        util::getLogger()->debug("S - readv - {} {} {}", fd, iovecPtr, iovecCount);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - readv - {} {} {}", fd, iovecPtr, iovecCount);
 
         getExecutingModule()->checkThreadOwnsFd(fd);
 
         iovec *nativeIovecs = wasmIovecsToNativeIovecs(iovecPtr, iovecCount);
 
         int bytesRead = readv(fd, nativeIovecs, iovecCount);
-
+        if(bytesRead == -1) {
+            logger->error("Failed readv {} - {}", errno, strerror(errno));
+            throw std::runtime_error("Failed readv");
+        }
+        
         delete[] nativeIovecs;
 
         return bytesRead;

@@ -35,9 +35,6 @@
 
 namespace tflite {
     namespace label_image {
-
-        double get_us(struct timeval t) { return (t.tv_sec * 1000000 + t.tv_usec); }
-
         using TfLiteDelegatePtr = tflite::Interpreter::TfLiteDelegatePtr;
         using TfLiteDelegatePtrMap = std::map<std::string, TfLiteDelegatePtr>;
 
@@ -106,15 +103,20 @@ namespace tflite {
             int image_width = 224;
             int image_height = 224;
             int image_channels = 3;
+            printf("Reading in image %s\n", s->input_bmp_name.c_str());
             std::vector<uint8_t> in = read_bmp(s->input_bmp_name, &image_width,
                                                &image_height, &image_channels, s);
+            printf("Finished reading in image %s\n", s->input_bmp_name.c_str());
 
             int input = interpreter->inputs()[0];
 
             const std::vector<int> inputs = interpreter->inputs();
-            const std::vector<int> outputs = interpreter->outputs();
 
             auto delegates_ = GetDelegates(s);
+            if(delegates_.empty()) {
+                printf("No delegates to apply\n");
+            }
+
             for (const auto &delegate : delegates_) {
                 if (interpreter->ModifyGraphWithDelegate(delegate.second.get()) !=
                     kTfLiteOk) {
@@ -124,11 +126,11 @@ namespace tflite {
                 }
             }
 
+            printf("Allocating tensors\n");
             if (interpreter->AllocateTensors() != kTfLiteOk) {
                 printf("Failed to allocate tensors!\n");
             }
-
-            if (s->verbose) PrintInterpreterState(interpreter.get());
+            printf("Finished allocating tensors\n");
 
             // get input dimension from the input tensor metadata
             // assuming one input only
@@ -154,35 +156,51 @@ namespace tflite {
                     exit(-1);
             }
 
-            auto profiler =
-                    absl::make_unique<profiling::Profiler>(s->max_profiling_buffer_entries);
-            interpreter->SetProfiler(profiler.get());
+//            auto profiler =
+//                    absl::make_unique<profiling::Profiler>(s->max_profiling_buffer_entries);
+//            interpreter->SetProfiler(profiler.get());
 
-            if (s->loop_count > 1)
+            if (s->loop_count > 1) {
                 for (int i = 0; i < s->number_of_warmup_runs; i++) {
                     if (interpreter->Invoke() != kTfLiteOk) {
                         printf("Failed to invoke tflite!\n");
                     }
                 }
+            }
 
             struct timeval start_time, stop_time;
+            printf("Invoking interpreter in a loop\n");
             gettimeofday(&start_time, nullptr);
             for (int i = 0; i < s->loop_count; i++) {
+                printf("Interpreter invoke %i\n", i);
                 if (interpreter->Invoke() != kTfLiteOk) {
                     printf("Failed to invoke tflite!\n");
                 }
             }
+
             gettimeofday(&stop_time, nullptr);
-            printf("invoked \n");
-            printf("average time: %fms\n", (get_us(stop_time) - get_us(start_time)) / (s->loop_count * 1000));
+            printf("Finished invoking\n");
 
             const float threshold = 0.001f;
 
-            std::vector<std::pair<float, int>> top_results;
+            printf("Checking outputs\n");
+            std::vector<int> outputs = interpreter->outputs();
+            printf("Got outputs\n");
 
-            int output = interpreter->outputs()[0];
+            unsigned long outputsSize = outputs.size();
+            printf("Outputs size %lu\n", outputsSize);
+
+            if(outputsSize == 0) {
+                printf("Empty result from interpreter\n");
+                exit(1);
+            }
+
+            int output = outputs[0];
+            printf("Output zero %i\n", output);
             TfLiteIntArray *output_dims = interpreter->tensor(output)->dims;
+
             // assume output dims to be something like (1, 1, ... ,size)
+            std::vector<std::pair<float, int>> top_results;
             auto output_size = output_dims->data[output_dims->size - 1];
             switch (interpreter->tensor(output)->type) {
                 case kTfLiteFloat32:
@@ -196,14 +214,23 @@ namespace tflite {
                     break;
                 default:
                     printf("cannot handle output type %i yet\n", interpreter->tensor(input)->type);
-                    exit(-1);
+                    exit(1);
+            }
+
+            if(top_results.empty()) {
+                printf("No top results found\n");
+                exit(1);
+            } else {
+                printf("Found %li top results\n", top_results.size());
             }
 
             std::vector<string> labels;
             size_t label_count;
 
-            if (ReadLabelsFile(s->labels_file_name, &labels, &label_count) != kTfLiteOk)
+            if (ReadLabelsFile(s->labels_file_name, &labels, &label_count) != kTfLiteOk) {
+                printf("Failed reading labels file: %s\n", s->labels_file_name.c_str());
                 exit(-1);
+            }
 
             for (const auto &result : top_results) {
                 const float confidence = result.first;
@@ -224,7 +251,7 @@ namespace tflite {
 
             Settings s;
             s.accel = false;
-            s.loop_count = 10;
+            s.loop_count = 1;
             s.input_bmp_name = imagePath;
             s.labels_file_name = labelsPath;
             s.model_name = modelsPath;
