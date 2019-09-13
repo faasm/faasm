@@ -33,8 +33,14 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_MODULE(env)
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "syscall", I32, syscall, I32 syscallNo, I32 argsPtr) {
-        util::getLogger()->error("Called unsupported syscall format {} {}", syscallNo, argsPtr);
-        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+        switch(syscallNo) {
+            case 224:
+                // gettid
+                return executeSyscall(224, 0, 0, 0, 0, 0, 0, 0);
+            default:
+                util::getLogger()->error("Called unsupported syscall format {} {}", syscallNo, argsPtr);
+                throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+        }
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__syscall", I32, __syscall, I32 syscallNo, I32 argsPtr) {
@@ -166,6 +172,8 @@ namespace wasm {
                 return s__fcntl64(a, b, c);
             case 223:
                 return s__sbrk(a);
+            case 224:
+                return s__gettid();
             case 240:
                 return s__futex(a, b, c, d, e, f);
             case 242:

@@ -11,6 +11,10 @@
 #include <WAVM/Runtime/Intrinsics.h>
 
 namespace wasm {
+    I32 s__gettid() {
+        return FAKE_TID;
+    }
+
     I32 s__getpid() {
         return FAKE_PID;
     }
@@ -69,7 +73,7 @@ namespace wasm {
 
         // Provision a new segment of memory big enough to hold the strings and the struct
         size_t memSize = strlen(FAKE_NAME) + strlen(FAKE_PASSWORD) + strlen(FAKE_HOME) + sizeof(wasm_passwd);
-        U32 newMem = module->mmap(memSize);
+        U32 newMem = module->mmapMemory(memSize);
         char *hostNewMem = Runtime::memoryArrayPtr<char>(memoryPtr, newMem, memSize);
 
         // Copy the strings into place

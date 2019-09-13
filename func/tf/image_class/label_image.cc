@@ -32,7 +32,6 @@
 #include "tensorflow/lite/string_util.h"
 #include "tensorflow/lite/tools/evaluation/utils.h"
 
-#define LOG(x) std::cerr
 
 namespace tflite {
     namespace label_image {
@@ -55,7 +54,7 @@ namespace tflite {
                                     size_t *found_label_count) {
             std::ifstream file(file_name);
             if (!file) {
-                LOG(FATAL) << "Labels file " << file_name << " not found\n";
+                printf("Labels file %s not found\n", file_name.c_str());
                 return kTfLiteError;
             }
             result->clear();
@@ -71,25 +70,9 @@ namespace tflite {
             return kTfLiteOk;
         }
 
-        void PrintProfilingInfo(const profiling::ProfileEvent *e, uint32_t op_index,
-                                TfLiteRegistration registration) {
-            // output something like
-            // time (ms) , Node xxx, OpCode xxx, symblic name
-            //      5.352, Node   5, OpCode   4, DEPTHWISE_CONV_2D
-
-            LOG(INFO) << std::fixed << std::setw(10) << std::setprecision(3)
-                      << (e->end_timestamp_us - e->begin_timestamp_us) / 1000.0
-                      << ", Node " << std::setw(3) << std::setprecision(3) << op_index
-                      << ", OpCode " << std::setw(3) << std::setprecision(3)
-                      << registration.builtin_code << ", "
-                      << EnumNameBuiltinOperator(
-                              static_cast<BuiltinOperator>(registration.builtin_code))
-                      << "\n";
-        }
-
         void RunInference(Settings *s) {
             if (!s->model_name.c_str()) {
-                LOG(ERROR) << "no model file name\n";
+                printf("no model file name\n");
                 exit(-1);
             }
 
@@ -97,41 +80,24 @@ namespace tflite {
             std::unique_ptr<tflite::Interpreter> interpreter;
             model = tflite::FlatBufferModel::BuildFromFile(s->model_name.c_str());
             if (!model) {
-                LOG(FATAL) << "\nFailed to mmap model " << s->model_name << "\n";
+                printf("\nFailed to mmap model %s\n", s->model_name.c_str());
                 exit(-1);
             }
             s->model = model.get();
-            LOG(INFO) << "Loaded model " << s->model_name << "\n";
+            printf("Loaded model %s\n", s->model_name.c_str());
             model->error_reporter();
-            LOG(INFO) << "resolved reporter\n";
+            printf("Resolved reporter\n");
 
             tflite::ops::builtin::BuiltinOpResolver resolver;
 
             tflite::InterpreterBuilder(*model, resolver)(&interpreter);
             if (!interpreter) {
-                LOG(FATAL) << "Failed to construct interpreter\n";
+                printf("Failed to construct interpreter\n");
                 exit(-1);
             }
 
             interpreter->UseNNAPI(s->old_accel);
             interpreter->SetAllowFp16PrecisionForFp32(s->allow_fp16);
-
-            if (s->verbose) {
-                LOG(INFO) << "tensors size: " << interpreter->tensors_size() << "\n";
-                LOG(INFO) << "nodes size: " << interpreter->nodes_size() << "\n";
-                LOG(INFO) << "inputs: " << interpreter->inputs().size() << "\n";
-                LOG(INFO) << "input(0) name: " << interpreter->GetInputName(0) << "\n";
-
-                int t_size = interpreter->tensors_size();
-                for (int i = 0; i < t_size; i++) {
-                    if (interpreter->tensor(i)->name)
-                        LOG(INFO) << i << ": " << interpreter->tensor(i)->name << ", "
-                                  << interpreter->tensor(i)->bytes << ", "
-                                  << interpreter->tensor(i)->type << ", "
-                                  << interpreter->tensor(i)->params.scale << ", "
-                                  << interpreter->tensor(i)->params.zero_point << "\n";
-                }
-            }
 
             if (s->number_of_threads != -1) {
                 interpreter->SetNumThreads(s->number_of_threads);
@@ -144,28 +110,22 @@ namespace tflite {
                                                &image_height, &image_channels, s);
 
             int input = interpreter->inputs()[0];
-            if (s->verbose) LOG(INFO) << "input: " << input << "\n";
 
             const std::vector<int> inputs = interpreter->inputs();
             const std::vector<int> outputs = interpreter->outputs();
-
-            if (s->verbose) {
-                LOG(INFO) << "number of inputs: " << inputs.size() << "\n";
-                LOG(INFO) << "number of outputs: " << outputs.size() << "\n";
-            }
 
             auto delegates_ = GetDelegates(s);
             for (const auto &delegate : delegates_) {
                 if (interpreter->ModifyGraphWithDelegate(delegate.second.get()) !=
                     kTfLiteOk) {
-                    LOG(FATAL) << "Failed to apply " << delegate.first << " delegate.";
+                    printf("Failed to apply delegate\n");
                 } else {
-                    LOG(INFO) << "Applied " << delegate.first << " delegate.";
+                    printf("Applied %s delegate\n", delegate.first.c_str());
                 }
             }
 
             if (interpreter->AllocateTensors() != kTfLiteOk) {
-                LOG(FATAL) << "Failed to allocate tensors!";
+                printf("Failed to allocate tensors!\n");
             }
 
             if (s->verbose) PrintInterpreterState(interpreter.get());
@@ -190,8 +150,7 @@ namespace tflite {
                                     wanted_width, wanted_channels, s);
                     break;
                 default:
-                    LOG(FATAL) << "cannot handle input type "
-                               << interpreter->tensor(input)->type << " yet";
+                    printf("cannot handle input type %i yet\n", interpreter->tensor(input)->type);
                     exit(-1);
             }
 
@@ -199,11 +158,10 @@ namespace tflite {
                     absl::make_unique<profiling::Profiler>(s->max_profiling_buffer_entries);
             interpreter->SetProfiler(profiler.get());
 
-            if (s->profiling) profiler->StartProfiling();
             if (s->loop_count > 1)
                 for (int i = 0; i < s->number_of_warmup_runs; i++) {
                     if (interpreter->Invoke() != kTfLiteOk) {
-                        LOG(FATAL) << "Failed to invoke tflite!\n";
+                        printf("Failed to invoke tflite!\n");
                     }
                 }
 
@@ -211,26 +169,12 @@ namespace tflite {
             gettimeofday(&start_time, nullptr);
             for (int i = 0; i < s->loop_count; i++) {
                 if (interpreter->Invoke() != kTfLiteOk) {
-                    LOG(FATAL) << "Failed to invoke tflite!\n";
+                    printf("Failed to invoke tflite!\n");
                 }
             }
             gettimeofday(&stop_time, nullptr);
-            LOG(INFO) << "invoked \n";
-            LOG(INFO) << "average time: "
-                      << (get_us(stop_time) - get_us(start_time)) / (s->loop_count * 1000)
-                      << " ms \n";
-
-            if (s->profiling) {
-                profiler->StopProfiling();
-                auto profile_events = profiler->GetProfileEvents();
-                for (int i = 0; i < profile_events.size(); i++) {
-                    auto op_index = profile_events[i]->event_metadata;
-                    const auto node_and_registration =
-                            interpreter->node_and_registration(op_index);
-                    const TfLiteRegistration registration = node_and_registration->second;
-                    PrintProfilingInfo(profile_events[i], op_index, registration);
-                }
-            }
+            printf("invoked \n");
+            printf("average time: %fms\n", (get_us(stop_time) - get_us(start_time)) / (s->loop_count * 1000));
 
             const float threshold = 0.001f;
 
@@ -251,8 +195,7 @@ namespace tflite {
                                        &top_results, false);
                     break;
                 default:
-                    LOG(FATAL) << "cannot handle output type "
-                               << interpreter->tensor(input)->type << " yet";
+                    printf("cannot handle output type %i yet\n", interpreter->tensor(input)->type);
                     exit(-1);
             }
 
@@ -265,13 +208,13 @@ namespace tflite {
             for (const auto &result : top_results) {
                 const float confidence = result.first;
                 const int index = result.second;
-                LOG(INFO) << confidence << ": " << index << " " << labels[index] << "\n";
+                printf("%f: %i %s\n", confidence, index, labels[index].c_str());
             }
         }
 
         int Main(int argc, char **argv) {
 # if WASM_BUILD == 1
-            std::string dataDir = "/runtime_data/";
+            std::string dataDir = "/data/";
 #else
             std::string dataDir = "/usr/local/code/faasm/func/tf/data/";
 #endif

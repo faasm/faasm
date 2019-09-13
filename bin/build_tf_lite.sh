@@ -58,7 +58,8 @@ else
       TARGET_ARCH=${WASM_TARGET} \
       LIBS=${LIBS} \
       LDOPTS=${LDOPTS} \
-      BUILD_WITH_NNAPI=OFF \
+      BUILD_WITH_NNAPI=false \
+      BUILD_WITH_MMAP=false \
       -C "${TF_DIR}" \
       -f tensorflow/lite/tools/make/Makefile
 fi

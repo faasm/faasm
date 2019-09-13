@@ -67,7 +67,9 @@ namespace wasm {
 
         const bool isBound();
 
-        U32 mmap(U32 length);
+        U32 mmapMemory(U32 length);
+
+        U32 mmapFile(U32 fp, U32 length);
 
         U32 mmapKey(std::shared_ptr<state::StateKeyValue> kv, U32 length);
 

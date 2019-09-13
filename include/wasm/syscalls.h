@@ -11,6 +11,7 @@
 #define FALSE_ROOT "/usr/local/faasm/runtime_root"
 
 #define FAKE_PID 23
+#define FAKE_TID 66
 #define FAKE_UID 1000
 #define FAKE_GID 1000
 #define FAKE_N_PROCESSORS 4
@@ -226,6 +227,8 @@ namespace wasm {
     I32 s__getgid32();
 
     I32 s__getpid();
+
+    I32 s__gettid();
 
     I32 s__getrandom(I32 bufPtr, I32 bufLen, I32 flags);
 

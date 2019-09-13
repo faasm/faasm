@@ -6,6 +6,7 @@
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
+#include <util/config.h>
 
 namespace wasm {
     bool isPageAligned(I32 address) {
@@ -83,6 +84,9 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - mmap - {} {} {} {} {} {}", addr, length, prot, flags, fd, offset);
 
+        // TODO - support other types of mmap, e.g. mmapping in files
+        // Currently we assume mmap is always asking for more heap
+
         // Although we are ignoring the offset we should probably
         // double check when something explicitly requests one
         if (offset != 0) {
@@ -94,14 +98,19 @@ namespace wasm {
             logger->warn("WARNING: ignoring mmap hint at {}", addr);
         }
 
-        // Don't allow using mmap for anything other than allocating memory
-        if (fd != -1) {
-            throw std::runtime_error("Attempted to mmap file descriptor");
-        }
-
         WasmModule *module = getExecutingModule();
 
-        return module->mmap(length);
+        // If in unsafe mode we can think about allowing mmapping of file descriptors
+        util::SystemConfig &conf = util::getSystemConfig();
+        if (fd != -1) {
+            if (conf.unsafeMode == "on") {
+                return module->mmapFile(fd, length);
+            } else {
+                throw std::runtime_error("Attempted to mmap file descriptor");
+            }
+        }
+
+        return module->mmapMemory(length);
     }
 
     /**
@@ -155,11 +164,11 @@ namespace wasm {
     */
     I32 _do_brk(I32 addr) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        if(!isPageAligned(addr)) {
+        if (!isPageAligned(addr)) {
             logger->error("brk address not page-aligned ({})", addr);
             throw std::runtime_error("brk not page-aligned");
         }
-        
+
         WasmModule *module = getExecutingModule();
         Runtime::Memory *memory = module->defaultMemory;
 
