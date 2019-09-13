@@ -37,3 +37,6 @@
 [submodule "third-party/farmhash"]
 	path = third-party/farmhash
 	url = https://github.com/google/farmhash
+[submodule "third-party/abseil-cpp"]
+	path = third-party/abseil-cpp
+	url = https://github.com/abseil/abseil-cpp.git

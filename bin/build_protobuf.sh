@@ -15,7 +15,7 @@ LOCAL_PROTOC=/usr/bin/protoc
 
 pushd ${PROTOBUF_DIR}
 
-if [[ -z configure ]]; then
+if [[ ! -f configure ]]; then
     ./autogen.sh
 fi
 
