@@ -16,8 +16,11 @@ def _get_s3_key(user, func):
 
 
 @task
-def upload(ctx, user, func, host="127.0.0.1", upload_s3=False):
-    func_file = join(FUNC_BUILD_DIR, user, "{}.wasm".format(func))
+def upload(ctx, user, func, host="127.0.0.1", upload_s3=False, subdir=None):
+    if subdir:
+        func_file = join(FUNC_BUILD_DIR, user, subdir, "{}.wasm".format(func))
+    else:
+        func_file = join(FUNC_BUILD_DIR, user, "{}.wasm".format(func))
 
     if upload_s3:
         print("Uploading {}/{} to S3".format(user, func))

@@ -137,4 +137,14 @@ namespace wasm {
         util::getLogger()->debug("S - strpbrk - {} {}", a, b);
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__cxa_allocate_exception", I32, __cxa_allocate_exception, I32 a) {
+        util::getLogger()->debug("S - __cxa_allocate_exception - {}", a);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__cxa_throw", void, __cxa_throw, I32 a, I32 b, I32 c) {
+        util::getLogger()->debug("S - __cxa_throw - {} {} {}", a, b, c);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
 }

@@ -32,13 +32,14 @@ using namespace WAVM;
 namespace wasm {
     WAVM_DEFINE_INTRINSIC_MODULE(env)
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__syscall", I32, __syscall, I32 syscallNo,
-                              I32 argsPtr) {
-        switch (syscallNo) {
-            default:
-                util::getLogger()->error("Called unsupported syscall format {} {}", syscallNo, argsPtr);
-                throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-        }
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "syscall", I32, syscall, I32 syscallNo, I32 argsPtr) {
+        util::getLogger()->error("Called unsupported syscall format {} {}", syscallNo, argsPtr);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__syscall", I32, __syscall, I32 syscallNo, I32 argsPtr) {
+        util::getLogger()->error("Called unsupported syscall format {} {}", syscallNo, argsPtr);
+        throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__syscall0", I32, __syscall0, I32 syscallNo) {
@@ -46,37 +47,37 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__syscall1", I32, __syscall1, I32 syscallNo,
-                              I32 a) {
+                                   I32 a) {
         return executeSyscall(syscallNo, a, 0, 0, 0, 0, 0, 0);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__syscall2", I32, __syscall2, I32 syscallNo,
-                              I32 a, I32 b) {
+                                   I32 a, I32 b) {
         return executeSyscall(syscallNo, a, b, 0, 0, 0, 0, 0);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__syscall3", I32, __syscall3, I32 syscallNo,
-                              I32 a, I32 b, I32 c) {
+                                   I32 a, I32 b, I32 c) {
         return executeSyscall(syscallNo, a, b, c, 0, 0, 0, 0);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__syscall4", I32, __syscall4, I32 syscallNo,
-                              I32 a, I32 b, I32 c, I32 d) {
+                                   I32 a, I32 b, I32 c, I32 d) {
         return executeSyscall(syscallNo, a, b, c, d, 0, 0, 0);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__syscall5", I32, __syscall5, I32 syscallNo,
-                              I32 a, I32 b, I32 c, I32 d, I32 e) {
+                                   I32 a, I32 b, I32 c, I32 d, I32 e) {
         return executeSyscall(syscallNo, a, b, c, d, e, 0, 0);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__syscall6", I32, __syscall6, I32 syscallNo,
-                              I32 a, I32 b, I32 c, I32 d, I32 e, I32 f) {
+                                   I32 a, I32 b, I32 c, I32 d, I32 e, I32 f) {
         return executeSyscall(syscallNo, a, b, c, d, e, f, 0);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__syscall7", I32, __syscall7, I32 syscallNo,
-                              I32 a, I32 b, I32 c, I32 d, I32 e, I32 f, I32 g) {
+                                   I32 a, I32 b, I32 c, I32 d, I32 e, I32 f, I32 g) {
         return executeSyscall(syscallNo, a, b, c, d, e, f, g);
     }
 
