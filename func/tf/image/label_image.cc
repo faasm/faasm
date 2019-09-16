@@ -22,7 +22,6 @@
 
 #include "absl/memory/memory.h"
 
-#include "bitmap_helpers.h"
 #include "get_top_n.h"
 
 #include "tensorflow/lite/delegates/nnapi/nnapi_delegate.h"
@@ -89,6 +88,7 @@ int main(int argc, char **argv) {
     s.model_name = modelsPath;
     s.number_of_threads = -1;
     s.number_of_warmup_runs = 0;
+    s.allow_fp16 = true;
 
     FAASM_PROF_START(buildModel)
     std::unique_ptr<tflite::FlatBufferModel> model;
@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
     FAASM_PROF_END(buildInterpreter)
 
     interpreter->UseNNAPI(false);
-    interpreter->SetAllowFp16PrecisionForFp32(false);
+    interpreter->SetAllowFp16PrecisionForFp32(true);
     interpreter->SetNumThreads(1);
 
     FAASM_PROF_START(readImage)
@@ -152,40 +152,20 @@ int main(int argc, char **argv) {
     int wanted_channels = dims->data[3];
 
     FAASM_PROF_START(resizeImage)
-    switch (interpreter->tensor(input)->type) {
-        case kTfLiteFloat32:
-            printf("Input type: kTfLiteFloat32\n");
-            s.input_floating = true;
-            tflite::label_image::resize<float>(
-                    interpreter->typed_tensor<float>(input),
-                    in.data(),
-                    image_height,
-                    image_width,
-                    image_channels,
-                    wanted_height,
-                    wanted_width,
-                    wanted_channels,
-                    &s
-            );
-            break;
-        case kTfLiteUInt8:
-            printf("Input type: kTfLiteUInt8\n");
-            tflite::label_image::resize<uint8_t>(
-                    interpreter->typed_tensor<uint8_t>(input),
-                    in.data(),
-                    image_height,
-                    image_width,
-                    image_channels,
-                    wanted_height,
-                    wanted_width,
-                    wanted_channels,
-                    &s
-            );
-            break;
-        default:
-            printf("Cannot handle input type %i yet\n", interpreter->tensor(input)->type);
-            exit(-1);
-    }
+
+    s.input_floating = true;
+    tflite::label_image::resize(
+            interpreter->typed_tensor<float>(input),
+            in.data(),
+            image_height,
+            image_width,
+            image_channels,
+            wanted_height,
+            wanted_width,
+            wanted_channels,
+            &s
+    );
+
     FAASM_PROF_END(resizeImage)
 
     FAASM_PROF_START(warmUpRuns)
@@ -199,69 +179,44 @@ int main(int argc, char **argv) {
     FAASM_PROF_END(warmUpRuns)
 
     FAASM_PROF_START(interpreterLoop)
-    struct timeval start_time, stop_time;
     printf("Invoking interpreter in a loop\n");
-    gettimeofday(&start_time, nullptr);
     for (int i = 0; i < s.loop_count; i++) {
         printf("Interpreter invoke %i\n", i);
+
         if (interpreter->Invoke() != kTfLiteOk) {
             printf("Failed to invoke tflite!\n");
         }
     }
     FAASM_PROF_END(interpreterLoop)
 
-    gettimeofday(&stop_time, nullptr);
     printf("Finished invoking\n");
 
-    const float threshold = 0.001f;
-
-    printf("Checking outputs\n");
     std::vector<int> outputs = interpreter->outputs();
-    printf("Got outputs\n");
-
     unsigned long outputsSize = outputs.size();
-    printf("Outputs size %lu\n", outputsSize);
-
     if (outputsSize == 0) {
         printf("Empty result from interpreter\n");
         exit(1);
     }
 
     int output = outputs[0];
-    printf("Output zero %i\n", output);
     TfLiteIntArray *output_dims = interpreter->tensor(output)->dims;
 
-    FAASM_PROF_START(getTopResults)
     // assume output dims to be something like (1, 1, ... ,size)
+    FAASM_PROF_START(getTopResults)
+
+    const float threshold = 0.001f;
     std::vector<std::pair<float, int>> top_results;
     auto output_size = output_dims->data[output_dims->size - 1];
-    switch (interpreter->tensor(output)->type) {
-        case kTfLiteFloat32:
-            printf("Output type: kTfLiteFloat32\n");
-            tflite::label_image::get_top_n<float>(
-                    interpreter->typed_output_tensor<float>(0),
-                    output_size,
-                    s.number_of_results,
-                    threshold,
-                    &top_results,
-                    true
-            );
-            break;
-        case kTfLiteUInt8:
-            printf("Output type: kTfLiteUInt8\n");
-            tflite::label_image::get_top_n<uint8_t>(
-                    interpreter->typed_output_tensor<uint8_t>(0),
-                    output_size,
-                    s.number_of_results,
-                    threshold,
-                    &top_results,
-                    false
-            );
-            break;
-        default:
-            printf("Cannot handle output type %i yet\n", interpreter->tensor(input)->type);
-            exit(1);
-    }
+
+    tflite::label_image::get_top_n<float>(
+            interpreter->typed_output_tensor<float>(0),
+            output_size,
+            s.number_of_results,
+            threshold,
+            &top_results,
+            true
+    );
+
     FAASM_PROF_END(getTopResults)
 
     if (top_results.empty()) {
