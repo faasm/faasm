@@ -1,12 +1,16 @@
 /**
- * Modified from Emscripten's copy of dlmalloc
+ * NOTE:
+ * This is a bastardised version of the Emscripten and WASI copies of
+ * dlmalloc. Originals at:
+ *
+ * WASI - https://github.com/CraneStation/wasi-libc/blob/master/dlmalloc/src/dlmalloc.c
+ * Emscripten - https://github.com/emscripten-core/emscripten/blob/incoming/system/lib/dlmalloc.c
  */
 
 #define DLMALLOC_EXPORT __attribute__((__weak__))
 
 // Specify whether to use mmap or brk (brk known as MORECORE here)
-#define HAVE_MMAP 1
-#define HAVE_MORECORE 1
+#define HAVE_MMAP 0
 
 // Don't shrink memory (can't be reclaimed anyway so not worth it)
 #define MORECORE_CANNOT_TRIM 1
@@ -14,8 +18,19 @@
 // Remove dlmalloc has many checks and calls to abort() to reduce code size
 #define ABORT __builtin_unreachable()
 
-// Turn off time dependence
+// Turn off time dependence (i.e. deterministic)
 #define LACKS_TIME_H 1
+
+/* Disable malloc statistics generation to reduce code size. */
+#define NO_MALLINFO 1
+#define NO_MALLOC_STATS 1
+
+/* Align malloc regions to 16, to avoid unaligned SIMD accesses. */
+#define MALLOC_ALIGNMENT 16
+
+/* Explicitly disable locking */
+#define USE_LOCKS 0
+#define USE_SPIN_LOCKS 0
 
 #define __THROW
 #define __attribute_malloc__

@@ -11,7 +11,7 @@ function(polybench_func exec_name dir_path)
             )
 
     if (FAASM_BUILD_TYPE STREQUAL "wasm")
-        set(EXTRA_LIBS dlmalloc)
+        set(EXTRA_LIBS faasm dlmalloc)
     else()
         set(EXTRA_LIBS m)
     endif()

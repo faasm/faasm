@@ -30,6 +30,8 @@ fi
 
 pushd ${TF_LITE_DIR}
 
+# Branch here for native/ wasm builds
+
 if [[ "$BUILD_TYPE" == "native" ]]; then
   make -j 4 \
       VERBOSE=1 \
@@ -37,6 +39,7 @@ if [[ "$BUILD_TYPE" == "native" ]]; then
       BUILD_WITH_NNAPI=OFF \
       -C "${TF_DIR}" \
       -f tensorflow/lite/tools/make/Makefile
+
 else
   source ${FAASM_TOOLCHAIN}/env.sh
 
@@ -56,6 +59,7 @@ else
       MINIMAL_SRCS= \
       TARGET=${WASM_HOST} \
       TARGET_ARCH=${WASM_TARGET} \
+      BUILD_WITH_MMAP=false \
       LIBS=${LIBS} \
       LDOPTS=${LDOPTS} \
       -C "${TF_DIR}" \

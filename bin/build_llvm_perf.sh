@@ -9,12 +9,16 @@ BUILD_DIR=${LLVM_DIR}/build
 mkdir -p ${FAASM_DIR}
 if [[ ! -d "$LLVM_DIR" ]]; then
     git clone https://github.com/llvm/llvm-project ${LLVM_DIR}
-    git checkout llvmorg-8.0.0
+    pushd ${LLVM_DIR}
+    git checkout llvmorg-9.0.0-rc3
+    popd
 fi
 
-# Nuke the build dir if it exists
-rm -rf ${BUILD_DIR}
-mkdir ${BUILD_DIR}
+# Clear build dir
+# rm -rf ${BUILD_DIR}
+
+# Make the build dir if it exists
+mkdir -p ${BUILD_DIR}
 
 pushd ${BUILD_DIR}
 

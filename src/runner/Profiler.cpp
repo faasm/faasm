@@ -65,7 +65,6 @@ namespace runner {
             profOut << this->outputName << ",native," << nativeTime << std::endl;
         }
 
-        logger->info("Running benchmark in WASM");
         this->runWasm(nWasmIterations, profOut);
 
         logger->info("Finished benchmark - {}", this->outputName);

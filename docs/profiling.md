@@ -13,8 +13,11 @@ To set things up you need to do the following:
 Once this is done you can use perf as described [here](https://lwn.net/Articles/633846/), i.e.:
 
 ```
-# Do the profiling
+# Do the profiling, e.g.
 perf record -k 1 func_runner <user> <function>
+
+# OR
+perf record -k 1 poly_bench poly_heat-3d 0 10
 
 # Inject the JIT dumps into
 perf inject -i perf.data -j -o perf.data.jitted
