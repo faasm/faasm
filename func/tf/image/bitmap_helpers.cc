@@ -51,7 +51,7 @@ namespace tflite {
         }
 
         std::vector<uint8_t> read_bmp(const std::string &input_bmp_name, int *width,
-                                      int *height, int *channels, Settings *s) {
+                                      int *height, int *channels) {
 
             FILE* f = fopen(input_bmp_name.c_str(), "rb");
             unsigned char info[54];

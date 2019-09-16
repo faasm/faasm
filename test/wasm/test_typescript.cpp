@@ -8,9 +8,7 @@
 namespace tests {
 
     TEST_CASE("Test executing Typescript module with input and output", "[wasm]") {
-        message::Message call;
-        call.set_user("ts");
-        call.set_function("echo");
+        message::Message call = util::messageFactory("ts", "echo");
         call.set_istypescript(true);
 
         std::string inputData = "Typescript echo test";

@@ -32,16 +32,12 @@
 #include "tensorflow/lite/string_util.h"
 #include "tensorflow/lite/tools/evaluation/utils.h"
 
+#include <faasm/time.h>
 
 namespace tflite {
     namespace label_image {
         using TfLiteDelegatePtr = tflite::Interpreter::TfLiteDelegatePtr;
         using TfLiteDelegatePtrMap = std::map<std::string, TfLiteDelegatePtr>;
-
-        TfLiteDelegatePtrMap GetDelegates(Settings *s) {
-            TfLiteDelegatePtrMap delegates;
-            return delegates;
-        }
 
         // Takes a file name, and loads a list of labels from it, one per line, and
         // returns a vector of the strings. It pads with empty strings so the length
@@ -49,6 +45,8 @@ namespace tflite {
         TfLiteStatus ReadLabelsFile(const string &file_name,
                                     std::vector<string> *result,
                                     size_t *found_label_count) {
+            FAASM_PROF_START(labelsFile)
+
             std::ifstream file(file_name);
             if (!file) {
                 printf("Labels file %s not found\n", file_name.c_str());
@@ -66,6 +64,8 @@ namespace tflite {
             while (result->size() % padding) {
                 result->emplace_back();
             }
+
+            FAASM_PROF_END(labelsFile)
             return kTfLiteOk;
         }
     }
@@ -87,35 +87,40 @@ int main(int argc, char **argv) {
     s.input_bmp_name = imagePath;
     s.labels_file_name = labelsPath;
     s.model_name = modelsPath;
-    s.number_of_threads = 1;
+    s.number_of_threads = -1;
+    s.number_of_warmup_runs = 0;
 
+    FAASM_PROF_START(buildModel)
     std::unique_ptr<tflite::FlatBufferModel> model;
     std::unique_ptr<tflite::Interpreter> interpreter;
     model = tflite::FlatBufferModel::BuildFromFile(s.model_name.c_str());
+    FAASM_PROF_END(buildModel)
 
     if (!model) {
         printf("\nFailed to mmap model %s\n", s.model_name.c_str());
         exit(-1);
     }
 
+    FAASM_PROF_START(getModel)
     s.model = model.get();
     printf("Loaded model %s\n", s.model_name.c_str());
     model->error_reporter();
+    FAASM_PROF_END(getModel)
 
+    FAASM_PROF_START(buildInterpreter)
     tflite::ops::builtin::BuiltinOpResolver resolver;
     tflite::InterpreterBuilder(*model, resolver)(&interpreter);
     if (!interpreter) {
         printf("Failed to construct interpreter\n");
         exit(-1);
     }
+    FAASM_PROF_END(buildInterpreter)
 
-    interpreter->UseNNAPI(s.old_accel);
-    interpreter->SetAllowFp16PrecisionForFp32(s.allow_fp16);
+    interpreter->UseNNAPI(false);
+    interpreter->SetAllowFp16PrecisionForFp32(false);
+    interpreter->SetNumThreads(1);
 
-    if (s.number_of_threads != -1) {
-        interpreter->SetNumThreads(s.number_of_threads);
-    }
-
+    FAASM_PROF_START(readImage)
     int image_width = 224;
     int image_height = 224;
     int image_channels = 3;
@@ -124,28 +129,14 @@ int main(int argc, char **argv) {
             s.input_bmp_name,
             &image_width,
             &image_height,
-            &image_channels,
-            &s
+            &image_channels
     );
     printf("Finished reading in image %s\n", s.input_bmp_name.c_str());
     printf("Got w, h, c: %i, %i, %i\n", image_width, image_height, image_channels);
+    FAASM_PROF_END(readImage)
 
     int input = interpreter->inputs()[0];
     const std::vector<int> inputs = interpreter->inputs();
-
-    auto delegates_ = tflite::label_image::GetDelegates(&s);
-    if (delegates_.empty()) {
-        printf("No delegates to apply\n");
-    }
-
-    for (const auto &delegate : delegates_) {
-        if (interpreter->ModifyGraphWithDelegate(delegate.second.get()) !=
-            kTfLiteOk) {
-            printf("Failed to apply delegate\n");
-        } else {
-            printf("Applied %s delegate\n", delegate.first.c_str());
-        }
-    }
 
     printf("Allocating tensors\n");
     if (interpreter->AllocateTensors() != kTfLiteOk) {
@@ -160,6 +151,7 @@ int main(int argc, char **argv) {
     int wanted_width = dims->data[2];
     int wanted_channels = dims->data[3];
 
+    FAASM_PROF_START(resizeImage)
     switch (interpreter->tensor(input)->type) {
         case kTfLiteFloat32:
             printf("Input type: kTfLiteFloat32\n");
@@ -194,7 +186,9 @@ int main(int argc, char **argv) {
             printf("Cannot handle input type %i yet\n", interpreter->tensor(input)->type);
             exit(-1);
     }
+    FAASM_PROF_END(resizeImage)
 
+    FAASM_PROF_START(warmUpRuns)
     if (s.loop_count > 1) {
         for (int i = 0; i < s.number_of_warmup_runs; i++) {
             if (interpreter->Invoke() != kTfLiteOk) {
@@ -202,7 +196,9 @@ int main(int argc, char **argv) {
             }
         }
     }
+    FAASM_PROF_END(warmUpRuns)
 
+    FAASM_PROF_START(interpreterLoop)
     struct timeval start_time, stop_time;
     printf("Invoking interpreter in a loop\n");
     gettimeofday(&start_time, nullptr);
@@ -212,6 +208,7 @@ int main(int argc, char **argv) {
             printf("Failed to invoke tflite!\n");
         }
     }
+    FAASM_PROF_END(interpreterLoop)
 
     gettimeofday(&stop_time, nullptr);
     printf("Finished invoking\n");
@@ -234,6 +231,7 @@ int main(int argc, char **argv) {
     printf("Output zero %i\n", output);
     TfLiteIntArray *output_dims = interpreter->tensor(output)->dims;
 
+    FAASM_PROF_START(getTopResults)
     // assume output dims to be something like (1, 1, ... ,size)
     std::vector<std::pair<float, int>> top_results;
     auto output_size = output_dims->data[output_dims->size - 1];
@@ -264,6 +262,7 @@ int main(int argc, char **argv) {
             printf("Cannot handle output type %i yet\n", interpreter->tensor(input)->type);
             exit(1);
     }
+    FAASM_PROF_END(getTopResults)
 
     if (top_results.empty()) {
         printf("No top results found\n");
@@ -275,6 +274,7 @@ int main(int argc, char **argv) {
     std::vector<std::string> labels;
     size_t label_count;
 
+    FAASM_PROF_START(readLabels)
     if (tflite::label_image::ReadLabelsFile(
             s.labels_file_name,
             &labels,
@@ -283,6 +283,7 @@ int main(int argc, char **argv) {
         printf("Failed reading labels file: %s\n", s.labels_file_name.c_str());
         exit(-1);
     }
+    FAASM_PROF_END(readLabels)
 
     for (const auto &result : top_results) {
         const float confidence = result.first;

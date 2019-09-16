@@ -8,9 +8,7 @@
 namespace tests {
 
     TEST_CASE("Test executing WASM module with no input", "[wasm]") {
-        message::Message call;
-        call.set_user("demo");
-        call.set_function("dummy");
+        message::Message call = util::messageFactory("demo", "dummy");
 
         wasm::WasmModule module;
         module.bindToFunction(call);

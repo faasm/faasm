@@ -44,6 +44,7 @@ namespace wasm {
      * char = U8
      * pointers = Uptr
      * size_t = I32
+     * time_t = I64
      *
      * You need to look at include/bits/alltypes.h in the relevant sysroot to get a lot of the types
     */
