@@ -17,6 +17,9 @@ target_link_libraries(bench wasm util zygote)
 add_executable(func_runner runner.cpp)
 target_link_libraries(func_runner bench worker_lib)
 
+add_executable(simple_runner simple_runner.cpp)
+target_link_libraries(simple_runner bench worker_lib)
+
 add_executable(func_sym map_symbols.cpp)
 target_link_libraries(func_sym bench)
 

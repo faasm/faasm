@@ -117,13 +117,8 @@ namespace tests {
     }
 
     TEST_CASE("Test repeat execution with different function fails", "[wasm]") {
-        message::Message callA;
-        callA.set_user("demo");
-        callA.set_function("dummy");
-
-        message::Message callB;
-        callB.set_user("demo");
-        callB.set_function("x2");
+        message::Message callA = util::messageFactory("demo", "dummy");
+        message::Message callB = util::messageFactory("demo", "x2");
 
         wasm::WasmModule module;
         module.bindToFunction(callA);
@@ -132,9 +127,7 @@ namespace tests {
     }
 
     TEST_CASE("Test reclaiming memory", "[wasm]") {
-        message::Message call;
-        call.set_user("demo");
-        call.set_function("heap");
+        message::Message call = util::messageFactory("demo", "heap");
 
         zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
         wasm::WasmModule &zygote = registry.getZygote(call);
@@ -188,5 +181,24 @@ namespace tests {
 
         bool success = module.tearDown();
         REQUIRE(success);
+    }
+
+    TEST_CASE("Test disassemble module", "[wasm]") {
+        message::Message call = util::messageFactory("demo", "echo");
+        wasm::WasmModule module;
+        module.bindToFunction(call);
+
+        std::map<std::string, std::string> disasMap = module.buildDisassemblyMap();
+
+        // This may fail because it's too brittle in which case we can do something more flexible
+
+        // Check a few known definitions
+        REQUIRE(disasMap["functionDef0"] == "main");
+        REQUIRE(disasMap["functionDef1"] == "_faasm_func_0");
+        REQUIRE(disasMap["functionDef2"] == "faasmGetInputSize");
+
+        // Check a couple of imports
+        REQUIRE(disasMap["functionImport3"] == "__syscall6");
+        REQUIRE(disasMap["functionImport4"] == "__syscall1");
     }
 }
