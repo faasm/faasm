@@ -81,6 +81,8 @@ namespace wasm {
                 logger->debug("Loading compiled main module {}", key);
 
                 IR::Module &module = moduleMap[key];
+                module.featureSpec.simd = true;
+
                 storage::FunctionLoader &functionLoader = storage::getFunctionLoader();
 
                 message::Message msg = util::messageFactory(user, func);
@@ -110,6 +112,7 @@ namespace wasm {
                 logger->debug("Loading compiled shared module {}", key);
 
                 IR::Module &module = moduleMap[key];
+                module.featureSpec.simd = true;
 
                 storage::FunctionLoader &functionLoader = storage::getFunctionLoader();
                 std::string objFilePath = path + SHARED_OBJ_EXT;
@@ -140,6 +143,7 @@ namespace wasm {
                 std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionBytes(msg);
 
                 IR::Module &module = moduleMap[key];
+                module.featureSpec.simd = true;
 
                 if (functionLoader.isWasm(wasmBytes)) {
                     Serialization::MemoryInputStream inputStream(wasmBytes.data(), wasmBytes.size());
@@ -182,6 +186,8 @@ namespace wasm {
                 std::vector<uint8_t> wasmBytes = functionLoader.loadFileBytes(path);
 
                 IR::Module &module = moduleMap[key];
+                module.featureSpec.simd = true;
+
                 Serialization::MemoryInputStream inputStream(wasmBytes.data(), wasmBytes.size());
                 WASM::LoadError loadError;
                 WASM::loadBinaryModule(inputStream, module, &loadError);
