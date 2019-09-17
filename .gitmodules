@@ -27,7 +27,7 @@
 	url = https://github.com/Shillaker/gem3-mapper.git
 [submodule "third-party/tensorflow"]
 	path = third-party/tensorflow
-	url = https://github.com/tensorflow/tensorflow.git
+	url = https://github.com/Shillaker/tensorflow.git
 [submodule "third-party/flatbuffers"]
 	path = third-party/flatbuffers
 	url = https://github.com/google/flatbuffers.git
