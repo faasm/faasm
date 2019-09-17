@@ -38,12 +38,9 @@ else()
     endfunction()
 endif()
 
-# WAVM configuration
-if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    # Turn off unwind on release builds (potential performance gain?)
-    set(WAVM_ENABLE_UNWIND OFF CACHE BOOL "Disable WAVM unwind")
-else()
-endif()
+# NOTE - this will switch off stack traces
+# Turn off WAVM unwind (potential performance gain?)
+set(WAVM_ENABLE_UNWIND OFF CACHE BOOL "Disable WAVM unwind")
 
 # Stops WAVM compilation complaining
 add_definitions(-DDLL_EXPORT=)

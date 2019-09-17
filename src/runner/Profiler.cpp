@@ -27,9 +27,7 @@ namespace runner {
         // Initialise wasm runtime
         const util::TimePoint tpInit = util::startTimer();
         
-        message::Message call;
-        call.set_user(this->user);
-        call.set_function(this->funcName);
+        message::Message call = util::messageFactory(this->user, this->funcName);
         call.set_inputdata(this->inputData);
 
         zygote::ZygoteRegistry &zygoteReg = zygote::getZygoteRegistry();
