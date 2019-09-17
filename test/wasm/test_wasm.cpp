@@ -198,7 +198,7 @@ namespace tests {
         REQUIRE(disasMap["functionDef2"] == "faasmGetInputSize");
 
         // Check a couple of imports
-        REQUIRE(disasMap["functionImport3"] == "__syscall6");
-        REQUIRE(disasMap["functionImport4"] == "__syscall1");
+        REQUIRE(disasMap["functionImport3"] == "__syscall1");
+        REQUIRE(disasMap["functionImport4"] == "__syscall3");
     }
 }

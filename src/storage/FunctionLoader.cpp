@@ -62,7 +62,7 @@ namespace storage {
         } else {
             std::vector<WAST::Error> parseErrors;
             bool success = WAST::parseModule((const char *) bytes.data(), bytes.size(), moduleIR, parseErrors);
-            WAST::reportParseErrors("wast_file", parseErrors);
+            WAST::reportParseErrors("wast_file", (const char*)bytes.data(), parseErrors);
 
             if (!success) {
                 throw std::runtime_error("Failed to parse wast file");

@@ -148,7 +148,7 @@ namespace wasm {
                 } else {
                     std::vector<WAST::Error> parseErrors;
                     WAST::parseModule((const char *) wasmBytes.data(), wasmBytes.size(), module, parseErrors);
-                    WAST::reportParseErrors("wast_file", parseErrors);
+                    WAST::reportParseErrors("wast_file", (const char *) wasmBytes.data(), parseErrors);
                 }
 
                 // Force maximum size
