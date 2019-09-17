@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
     s.input_bmp_name = imagePath;
     s.labels_file_name = labelsPath;
     s.model_name = modelsPath;
-    s.number_of_threads = -1;
+    s.number_of_threads = 1;
     s.number_of_warmup_runs = 0;
     s.allow_fp16 = true;
 

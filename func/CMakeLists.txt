@@ -15,6 +15,10 @@ endif ()
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     message(STATUS "Detected wasm build (sysroot=${CMAKE_SYSROOT}")
 
+    # Eigen definitions
+    add_definitions(-DEIGEN_VECTORIZE_SSE2=1)
+
+    # Notify code of wasm build
     add_definitions(-DWASM_BUILD=1)
 
     # -------- NOTE ----------

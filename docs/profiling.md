@@ -31,3 +31,7 @@ Provided the perf notifier is working, this will label functions like `function1
 ```
 ./func_sym <user> <function>
 ```
+
+The output should be at `wasm/<user>/<function>/function.symbols`.
+
+Note that if the perf notifier isn't working, check that the code isn't getting excluded by the pre-processor by looking at the WAVM `LLVMModule.cpp` file.

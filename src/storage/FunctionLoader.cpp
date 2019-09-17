@@ -47,6 +47,10 @@ namespace storage {
 
     std::vector<uint8_t> FunctionLoader::doCompile(std::vector<uint8_t> &bytes) {
         IR::Module moduleIR;
+
+        // Explicitly allow simd support
+        moduleIR.featureSpec.simd = true;
+
         if (this->isWasm(bytes)) {
             // Handle WASM
             Serialization::MemoryInputStream inputStream(bytes.data(), bytes.size());

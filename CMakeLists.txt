@@ -38,6 +38,9 @@ else()
     endfunction()
 endif()
 
+# WAVM configuration
+set(WAVM_ENABLE_UNWIND OFF CACHE BOOL "Disable WAVM unwind")
+
 # Stops WAVM compilation complaining
 add_definitions(-DDLL_EXPORT=)
 add_definitions(-DDLL_IMPORT=)
