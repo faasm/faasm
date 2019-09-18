@@ -4,7 +4,7 @@
 #include "stdio.h"
 
 FAASM_MAIN_FUNC() {
-    Eigen::internal::QuadPacket a;
+    Packet a;
     Eigen::internal::QuadPacket b;
     Eigen::internal::padd(a, b);
     return 0;

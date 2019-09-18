@@ -23,7 +23,7 @@ set(CMAKE_CXX_COMPILER_TARGET wasm32 CACHE STRING "faasm build")
 set(CMAKE_DL_LIBS "")
 
 # Note: see Clang wasm-specific flags at https://clang.llvm.org/docs/ClangCommandLineReference.html#webassembly
-set(FAASM_ARCH_FLAGS "-msimd128 -msimd128 -munimplemented-simd128")
+set(FAASM_ARCH_FLAGS "-msimd128 -munimplemented-simd128")
 #add_definitions(-D__SSE2__=1)
 add_definitions(-DEIGEN_DONT_VECTORIZE=1)
 set(FAASM_COMPILER_FLAGS "--sysroot=${FAASM_SYSROOT} ${FAASM_ARCH_FLAGS}")
