@@ -9,7 +9,7 @@ from invoke import task
 from tasks.compile import clean_dir
 from tasks.util.codegen import find_codegen_binary
 from tasks.util.env import PROJ_ROOT, FAASM_TOOLCHAIN_FILE, FAASM_SYSROOT, FAASM_INSTALL_DIR, \
-    FAASM_RUNTIME_ROOT
+    FAASM_RUNTIME_ROOT, THIRD_PARTY_DIR
 
 
 @task
@@ -138,19 +138,7 @@ def compile_libfake(ctx, clean=False):
 
 @task
 def compile_eigen(ctx):
-    working_dir = "/tmp"
-    eigen_dir = join(working_dir, "eigen3")
-    eigen_build_dir = join(eigen_dir, "build")
-
-    if not exists(eigen_dir):
-        print("Checkout eigen")
-        call("git clone git@github.com:eigenteam/eigen-git-mirror.git eigen3",
-             shell=True, cwd=working_dir)
-
-        # Make sure this commit hash matches the one in the Ansible task
-        print("Checkout specific eigen commit")
-        call("git checkout 0bdcefe7257e0a7c328c8440b85617e4ad75f3cf",
-             shell=True, cwd=eigen_dir)
+    eigen_build_dir = join(THIRD_PARTY_DIR, "eigen", "build")
 
     if exists(eigen_build_dir):
         rmtree(eigen_build_dir)
@@ -169,37 +157,37 @@ def compile_eigen(ctx):
     call(cmd_string, shell=True, cwd=eigen_build_dir)
     call("make install", shell=True, cwd=eigen_build_dir)
 
-
-@task
-def compile_gemmlowp(ctx):
-    # gemmlowp is header-only
-    working_dir = "/tmp"
-    gemm_dir = "/tmp/gemmlowp"
-    dest_dir = join(FAASM_SYSROOT, "include", "gemmlowp")
-
-    # These are the dirs from the gemmlowp repo to include
-    include_dirs = [
-        "meta",
-        "public",
-        "profiling",
-        "fixedpoint",
-        "internal",
-    ]
-
-    if not exists(gemm_dir):
-        print("Checkout gemmlowp")
-        call("git clone https://github.com/google/gemmlowp.git gemmlowp", cwd=working_dir, shell=True)
-
-    if not exists(dest_dir):
-        mkdir(dest_dir)
-
-    for dir_name in include_dirs:
-        dir_path = join(gemm_dir, dir_name)
-        dest_path = join(dest_dir, dir_name)
-
-        if exists(dest_path):
-            print("Deleting existing {}".format(dest_path))
-            rmtree(dest_path)
-
-        print("Copying {} to {}".format(dir_path, dest_path))
-        call("cp -r {} {}".format(dir_path, dest_path), shell=True)
+#
+# @task
+# def compile_gemmlowp(ctx):
+#     # gemmlowp is header-only
+#     working_dir = "/tmp"
+#     gemm_dir = "/tmp/gemmlowp"
+#     dest_dir = join(FAASM_SYSROOT, "include", "gemmlowp")
+#
+#     # These are the dirs from the gemmlowp repo to include
+#     include_dirs = [
+#         "meta",
+#         "public",
+#         "profiling",
+#         "fixedpoint",
+#         "internal",
+#     ]
+#
+#     if not exists(gemm_dir):
+#         print("Checkout gemmlowp")
+#         call("git clone https://github.com/google/gemmlowp.git gemmlowp", cwd=working_dir, shell=True)
+#
+#     if not exists(dest_dir):
+#         mkdir(dest_dir)
+#
+#     for dir_name in include_dirs:
+#         dir_path = join(gemm_dir, dir_name)
+#         dest_path = join(dest_dir, dir_name)
+#
+#         if exists(dest_path):
+#             print("Deleting existing {}".format(dest_path))
+#             rmtree(dest_path)
+#
+#         print("Copying {} to {}".format(dir_path, dest_path))
+#         call("cp -r {} {}".format(dir_path, dest_path), shell=True)

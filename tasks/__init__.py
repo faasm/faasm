@@ -51,7 +51,6 @@ from tasks.compile_libs import (
     compile_malloc,
     compile_libfaasm,
     compile_eigen,
-    compile_gemmlowp,
     compile_libfake,
     install_native_tools,
 )

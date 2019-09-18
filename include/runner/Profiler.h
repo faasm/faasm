@@ -8,6 +8,8 @@ namespace runner {
     public:
         Profiler(std::string user, std::string funcName, std::string inputData);
 
+        void preflightWasm();
+
         void runBenchmark(int nNativeIterations, int nWasmIterations, std::ofstream &profOut);
 
         void runWasm(int nIterations, std::ofstream &profOut);
@@ -33,6 +35,13 @@ namespace runner {
     class PolybenchProfiler : public Profiler {
     public:
         explicit PolybenchProfiler(std::string funcName);
+
+        void runNative() override;
+    };
+
+    class GenericFunctionProfiler : public Profiler {
+    public:
+        GenericFunctionProfiler(std::string userIn, std::string funcName);
 
         void runNative() override;
     };

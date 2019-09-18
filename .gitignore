@@ -17,6 +17,9 @@ perf.data.*
 # Node
 node_modules/
 
+# Assembly
+*.asm
+
 # C
 
 # Prerequisites

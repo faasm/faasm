@@ -3,28 +3,23 @@
 - hosts: localhost
   gather_facts: no
   tasks:
-    # Make sure this commit hash matches the one in the Python task
-    - name: "Checkout eigen3 source"
-      git:
-        accept_hostkey: yes
-        repo: "git@github.com:eigenteam/eigen-git-mirror.git"
-        dest: "/tmp/eigen3-native"
-        clone: yes
-        update: yes
-        version: "0bdcefe7257e0a7c328c8440b85617e4ad75f3cf"
+    - name: "Remove build dir"
+      file:
+        path: "/usr/local/code/faasm/third-party/eigen/native-build"
+        state: absent
 
     - name: "Create build dir"
       file:
-        path: "/tmp/eigen3-native/build"
+        path: "/usr/local/code/faasm/third-party/eigen/native-build"
         state: directory
 
     - name: "Cmake"
       shell: "cmake -DCMAKE_BUILD_TYPE=Release .."
       args:
-        chdir: "/tmp/eigen3-native/build"
+        chdir: "/usr/local/code/faasm/third-party/eigen/native-build"
 
     - name: "Install"
       become: yes
       shell: "make install"
       args:
-        chdir: "/tmp/eigen3-native/build"
+        chdir: "/usr/local/code/faasm/third-party/eigen/native-build"

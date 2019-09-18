@@ -3,8 +3,12 @@
 *.o
 *.symbols
 
+bench.csv
+
 # Include wasm files needed by tests
 !demo/**/function.wasm
 !errors/**/function.wasm
 !python/**/function.wasm
 !sgd/**/function.wasm
+!tf/**/function.wasm
+!ts/**/function.wasm

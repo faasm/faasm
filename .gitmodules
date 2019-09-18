@@ -40,3 +40,6 @@
 [submodule "third-party/abseil-cpp"]
 	path = third-party/abseil-cpp
 	url = https://github.com/abseil/abseil-cpp.git
+[submodule "third-party/eigen"]
+	path = third-party/eigen
+	url = https://github.com/eigenteam/eigen-git-mirror

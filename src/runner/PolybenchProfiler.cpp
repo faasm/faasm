@@ -12,9 +12,9 @@ namespace runner {
     }
 
     void PolybenchProfiler::runNative() {
-        // TODO - avoid use of system here
         std::string execPath = std::string(BINARY_DIR) + funcName;
 
+        // TODO - is it possible to avoid system here?
         system(execPath.c_str());
     }
 }
