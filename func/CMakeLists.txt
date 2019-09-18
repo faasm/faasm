@@ -3,6 +3,11 @@ project(faasm-func)
 
 set(CMAKE_CXX_STANDARD 17)
 
+# Explicitly disable eigen vectorization to make fair comparison
+add_definitions(-DEIGEN_DONT_VECTORIZE=1)
+add_definitions(-DEIGEN_DONT_PARALLELIZE=1)
+add_definitions(-DEIGEN_MAX_ALIGN_BYTES=32)
+
 if (FAASM_BUILD_TYPE STREQUAL "lambda-func")
     add_definitions(-DAWS_LAMBDA=1)
 
@@ -94,12 +99,14 @@ else ()
     # ----------------------
     # Native build
     # ----------------------
+
     function(faasm_func_c exec_name file_name)
         add_executable(${exec_name} ${file_name})
         target_link_libraries(${exec_name} faasm emulator dl)
     endfunction(faasm_func_c)
 
     function(faasm_func exec_name file_name)
+        add_definitions(-DEIGEN_DONT_VECTORIZE=1)
         add_executable(${exec_name} ${file_name})
         target_link_libraries(${exec_name} faasm emulator dl)
     endfunction(faasm_func)

@@ -29,9 +29,6 @@ else()
         target_link_libraries(${exec_name}
                 /usr/local/code/faasm/third-party/tensorflow/tensorflow/lite/tools/make/gen/linux_x86_64/lib/libtensorflow-lite.a)
     endfunction(tf_func)
-
-    # Explicitly disable vectorization in native build for performance comparison
-    add_definitions(-DEIGEN_DONT_VECTORIZE=1)
 endif()
 
 tf_func(minimal minimal.cpp)
