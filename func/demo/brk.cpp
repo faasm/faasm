@@ -9,13 +9,13 @@ int main(int argc, char *argv[]) {
     int pageSize = 65536;
     void *brkInitial = sbrk(0);
 
-#if __WASM__ == 1
+#if __wasm__ == 1
     printf("Initial = %i\n", brkInitial);
 #endif
 
     void* newRegion = sbrk(pageSize);
 
-#if __WASM__ == 1
+#if __wasm__ == 1
     printf("New = %i\n", newRegion);
 #endif
 
@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
     }
 
     void* newRegionB = sbrk(pageSize);
-#if __WASM__ == 1
+#if __wasm__ == 1
     printf("New = %i\n", newRegionB);
 #endif
 

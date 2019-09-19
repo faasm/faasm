@@ -127,7 +127,7 @@ int exec(int idx) {
     // If we're in a wasm build, we don't need to invoke the zygote function as it will
     // have been called as part of the initialisation process.
     // In a native context we just execute it for every (main) function invocation
-#if __WASM__ == 1
+#if __wasm__ == 1
 #else
     if(idx == 0) {
         _faasm_zygote();

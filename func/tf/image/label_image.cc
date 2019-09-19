@@ -71,7 +71,7 @@ namespace tflite {
 }
 
 int main(int argc, char **argv) {
-# if __WASM__ == 1
+# if __wasm__ == 1
     std::string dataDir = "/data/";
 #else
     std::string dataDir = "/usr/local/code/faasm/func/tf/data/";

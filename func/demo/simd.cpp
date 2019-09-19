@@ -15,6 +15,18 @@ FAASM_MAIN_FUNC() {
     printf("EIGEN_MIN_ALIGN_BYTES = %i\n", EIGEN_MIN_ALIGN_BYTES);
     printf("EIGEN_ARCH_WANTS_STACK_ALIGNMENT = %i\n", EIGEN_ARCH_WANTS_STACK_ALIGNMENT);
 
+#ifdef __wasm__
+    printf("__wasm__\n");
+#endif
+
+#ifdef __wasm_simd128__
+    printf("__wasm_simd128__\n");
+#endif
+
+#ifdef __wasm_unimplemented_simd128__
+    printf("__wasm_unimplemented_simd128__\n");
+#endif
+
 #ifdef EIGEN_DONT_ALIGN
     printf("EIGEN_DONT_ALIGN\n");
 #endif

@@ -24,7 +24,10 @@ set(CMAKE_DL_LIBS "")
 
 # Note: see Clang wasm-specific flags at https://clang.llvm.org/docs/ClangCommandLineReference.html#webassembly
 set(FAASM_ARCH_FLAGS "-msimd128 -munimplemented-simd128")
-#add_definitions(-DEIGEN_DONT_VECTORIZE=1)
+
+# Explicitly disable eigen parallelisation
+add_definitions(-DEIGEN_DONT_PARALLELIZE=1)
+
 set(FAASM_COMPILER_FLAGS "--sysroot=${FAASM_SYSROOT} ${FAASM_ARCH_FLAGS}")
 
 set(CMAKE_SYSROOT ${FAASM_SYSROOT} CACHE STRING "faasm build")

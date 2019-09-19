@@ -11,7 +11,7 @@
  * It's also important to sense-check these numbers by running the function vs the native host.
  */
 int compareSwithS64(struct stat &s, struct stat64 &s64) {
-#if __WASM__ == 1
+#if __wasm__ == 1
     printf("st_dev: %llu\n", s.st_dev);
     printf("st_dev: %llu\n", s64.st_dev);
 
@@ -48,7 +48,7 @@ int compareSwithS64(struct stat &s, struct stat64 &s64) {
     if (s.st_uid != s64.st_uid) return 1;
     if (s.st_gid != s64.st_gid) return 1;
 
-#if __WASM__ == 1
+#if __wasm__ == 1
     printf("st_rdev: %llu\n", s.st_rdev);
     printf("st_rdev: %llu\n", s64.st_rdev);
 
@@ -67,7 +67,7 @@ int compareSwithS64(struct stat &s, struct stat64 &s64) {
 
     printf("st_blksize: %li\n", s.st_blksize);
     printf("st_blksize: %li\n", s64.st_blksize);
-#if __WASM__ == 1
+#if __wasm__ == 1
     printf("st_blocks: %lli\n", s.st_blocks);
     printf("st_blocks: %lli\n", s64.st_blocks);
 #else
@@ -78,7 +78,7 @@ int compareSwithS64(struct stat &s, struct stat64 &s64) {
     if (s.st_blksize != s64.st_blksize) return 1;
     if (s.st_blocks != s64.st_blocks) return 1;
 
-#if __WASM__ == 1
+#if __wasm__ == 1
     printf("st_atim.tv_sec: %lli\n", s.st_atim.tv_sec);
     printf("st_atim.tv_sec: %lli\n", s64.st_atim.tv_sec);
 
@@ -120,7 +120,7 @@ FAASM_MAIN_FUNC() {
     struct stat sA{}, sB{};
     struct stat64 s64A{}, s64B{};
 
-#if __WASM__
+#if __wasm__
     const char *path = "/lib/python3.7/multiprocessing";
 #else
     const char *path = "/usr/local/faasm/runtime_root/lib/python3.7/multiprocessing";

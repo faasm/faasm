@@ -3,11 +3,6 @@ project(faasm-func)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# Explicitly disable eigen vectorization to make fair comparison
-add_definitions(-DEIGEN_DONT_VECTORIZE=1)
-add_definitions(-DEIGEN_DONT_PARALLELIZE=1)
-add_definitions(-DEIGEN_MAX_ALIGN_BYTES=32)
-
 if (FAASM_BUILD_TYPE STREQUAL "lambda-func")
     add_definitions(-DAWS_LAMBDA=1)
 
@@ -22,9 +17,6 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
 
     # Eigen definitions
     # add_definitions(-DEIGEN_VECTORIZE_SSE2=1)
-
-    # Notify code of wasm build
-    add_definitions(-D__WASM__=1)
 
     # -------- NOTE ----------
     # The stack-first here is really important to help detect stack overflow
