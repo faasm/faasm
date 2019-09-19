@@ -15,7 +15,7 @@ set(FAASM_LIB_C_DIR ${CMAKE_CURRENT_LIST_DIR}/lib-c)
 set(FAASM_LIB_CPP_DIR ${CMAKE_CURRENT_LIST_DIR}/lib-cpp)
 set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/python)
 set(FAASM_LAMBDA_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lambda)
-set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/WAVM/Lib)
+set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
 
 option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 option(FAASM_AWS_SUPPORT "Whether to include AWS support" ON)
@@ -123,7 +123,7 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-worker")
 
     message(STATUS "Running lambda worker build")
 
-    add_subdirectory(WAVM)
+    add_subdirectory(third-party/WAVM)
 
     add_subdirectory(src/aws)
     add_subdirectory(src/lambda)
@@ -176,7 +176,7 @@ else ()
     # ------------------
 
     # WAVM
-    add_subdirectory(WAVM)
+    add_subdirectory(third-party/WAVM)
 
     # Faasm functions
     add_subdirectory(func)
@@ -186,7 +186,7 @@ else ()
     add_subdirectory(python)
 
     # Custom malloc
-    add_subdirectory(malloc)
+    add_subdirectory(third-party/malloc)
 
     # Experiments
     add_subdirectory(experiment)

@@ -85,30 +85,9 @@ To use cgroup isolation, you'll need to run:
 sudo ./bin/cgroup.sh
 ```
 
-## Emscripten
+## Toolchain
 
-We're currently pinned to a specific version of the `emsdk` build of the
-wasm toolchain. This is stored in S3. To pull it you can run:
-
-```
-inv restore-emsdk
-```
-
-It then lives at `/usr/local/faasm/emsdk`. To update it to the latest version
-you can run:
-
-```
-cd pyodide/emsdk
-
-# Update the version in the Makefile to the latest, then...
-make
-```
-
-You can then copy this to `/usr/local/faasm/emsdk` and run:
-
-```
-inv backup-emsdk
-```
+The Faasm toolchain currently requires a custom build of LLVM. Set-up instructions can be found in the README of the `toolchain` dir in this project.
 
 ## Libc
 

@@ -14,7 +14,7 @@ from tasks.util.env import PROJ_ROOT, FAASM_TOOLCHAIN_FILE, FAASM_SYSROOT, FAASM
 
 @task
 def compile_malloc(ctx, clean=False):
-    work_dir = join(PROJ_ROOT, "malloc")
+    work_dir = join(PROJ_ROOT, "third-party", "malloc")
     build_dir = join(work_dir, "build")
 
     clean_dir(build_dir, clean)

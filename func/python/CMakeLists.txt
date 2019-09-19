@@ -1,6 +1,6 @@
 set(FAASM_USER python)
 
-set(PYODIDE_CPYTHON "/usr/local/code/faasm/pyodide/cpython/installs/python-3.7.0")
+set(PYODIDE_CPYTHON "/usr/local/code/faasm/third-party/pyodide/cpython/installs/python-3.7.0")
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # Second terms here for zlib

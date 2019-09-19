@@ -18,7 +18,7 @@ You must make sure that you've set up the latest toolchain, build libc and mallo
 Once this is done, you can run the following:
 
 ```
-cd pyodide
+cd third-party/pyodide
 source workon.sh
 cd cpython
 make clean && make
@@ -63,7 +63,7 @@ Adding packages to Pyodide is described [in their docs](https://github.com/iodid
 You can also try their helper script which is just:
 
 ```
-cd pyodide
+cd third-party/pyodide
 bin/pyodide mkpkg <pypi_pkg>
 ```
 
