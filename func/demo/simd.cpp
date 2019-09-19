@@ -10,8 +10,25 @@ FAASM_MAIN_FUNC() {
     const char* eigenInstrSets = Eigen::SimdInstructionSetsInUse();
     printf("Eigen SIMD instruction sets: %s\n", eigenInstrSets);
 
+    printf("EIGEN_MAX_ALIGN_BYTES = %i\n", EIGEN_MAX_ALIGN_BYTES);
+    printf("EIGEN_IDEAL_MAX_ALIGN_BYTES = %i\n", EIGEN_IDEAL_MAX_ALIGN_BYTES);
+    printf("EIGEN_MIN_ALIGN_BYTES = %i\n", EIGEN_MIN_ALIGN_BYTES);
+    printf("EIGEN_ARCH_WANTS_STACK_ALIGNMENT = %i\n", EIGEN_ARCH_WANTS_STACK_ALIGNMENT);
+
+#ifdef EIGEN_DONT_ALIGN
+    printf("EIGEN_DONT_ALIGN\n");
+#endif
+
+#ifdef EIGEN_HAS_FP16_C
+    printf("EIGEN_HAS_FP16_C\n");
+#endif
+
 #ifdef EIGEN_GPUCC
     printf("EIGEN_DONT_VECTORIZE\n");
+#endif
+
+#ifdef EIGEN_VECTORIZE_WASM
+    printf("EIGEN_VECTORIZE_WASM\n");
 #endif
 
 #ifdef EIGEN_SSE2_ON_NON_MSVC_BUT_NOT_OLD_GCC
