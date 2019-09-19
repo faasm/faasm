@@ -8,9 +8,10 @@ First you need to install libfaasm natively:
 inv install-native-tools
 ```
 
-Then clone the [genomics code repo](git@github.com:Shillaker/gem3-mapper.git) and run the following:
+One that's set up, you can run the following:
 
 ```
+cd third-party/gem3-mapper
 ./native_build.sh
 ```
 
@@ -18,5 +19,10 @@ You can then run the code normally as described in the repo.
 
 ## WASM
 
-TBC
+To build for WASM, you can run:
+
+```
+cd third-party/gem3-mapper
+./wasm_build.sh
+```
 
