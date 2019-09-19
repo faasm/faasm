@@ -15,7 +15,7 @@ from tasks.util.env import PROJ_ROOT, FAASM_TOOLCHAIN_FILE, FAASM_SYSROOT, FAASM
 @task
 def compile_malloc(ctx, clean=False):
     work_dir = join(PROJ_ROOT, "third-party", "malloc")
-    build_dir = join(work_dir, "build")
+    build_dir = join(PROJ_ROOT, "build", "malloc")
 
     clean_dir(build_dir, clean)
 
@@ -23,7 +23,7 @@ def compile_malloc(ctx, clean=False):
         "cmake",
         "-DCMAKE_BUILD_TYPE=Release",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
-        ".."
+        work_dir,
     ]
 
     build_cmd_str = " ".join(build_cmd)
@@ -49,7 +49,7 @@ def install_native_tools(ctx, clean=False):
         "-DFAASM_STATIC_LIBS=OFF",
         "-DCMAKE_BUILD_TYPE=Release",
         "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_INSTALL_DIR),
-        ".."
+        PROJ_ROOT,
     ]
 
     build_cmd_str = " ".join(build_cmd)
@@ -77,7 +77,7 @@ def compile_libfaasm(ctx, clean=False):
             "-DFAASM_BUILD_TYPE=wasm",
             "-DCMAKE_BUILD_TYPE=Release",
             "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
-            ".."
+            work_dir,
         ]
 
         build_cmd_str = " ".join(build_cmd)
@@ -98,7 +98,7 @@ def compile_libfaasm(ctx, clean=False):
 @task
 def compile_libfake(ctx, clean=False):
     work_dir = join(PROJ_ROOT, "func", "dynlink")
-    build_dir = join(work_dir, "build")
+    build_dir = join(PROJ_ROOT, "build", "libfake")
 
     clean_dir(build_dir, clean)
 
@@ -108,7 +108,7 @@ def compile_libfake(ctx, clean=False):
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE=Release",
         "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_SYSROOT),
-        ".."
+        work_dir,
     ]
 
     call(" ".join(build_cmd), shell=True, cwd=build_dir)
@@ -138,24 +138,25 @@ def compile_libfake(ctx, clean=False):
 
 @task
 def compile_eigen(ctx):
-    eigen_build_dir = join(THIRD_PARTY_DIR, "eigen", "build")
+    work_dir = join(THIRD_PARTY_DIR, "eigen")
+    build_dir = join(PROJ_ROOT, "build", "eigen")
 
-    if exists(eigen_build_dir):
-        rmtree(eigen_build_dir)
+    if exists(build_dir):
+        rmtree(build_dir)
 
-    mkdir(eigen_build_dir)
+    mkdir(build_dir)
     cmd = [
         "cmake",
         "-DFAASM_BUILD_TYPE=Release",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE=Release",
         "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_SYSROOT),
-        ".."
+        work_dir
     ]
     cmd_string = " ".join(cmd)
 
-    call(cmd_string, shell=True, cwd=eigen_build_dir)
-    call("make install", shell=True, cwd=eigen_build_dir)
+    call(cmd_string, shell=True, cwd=build_dir)
+    call("make install", shell=True, cwd=build_dir)
 
 #
 # @task

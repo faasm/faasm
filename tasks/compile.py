@@ -2,7 +2,7 @@ from subprocess import call
 
 from invoke import task
 
-from tasks.util.env import FAASM_TOOLCHAIN_FILE, FUNC_BUILD_DIR
+from tasks.util.env import FAASM_TOOLCHAIN_FILE, FUNC_BUILD_DIR, FUNC_DIR
 from tasks.util.files import clean_dir
 
 
@@ -18,7 +18,7 @@ def compile(context, clean=False, func=None, debug=False, user=None):
         "-DFAASM_BUILD_TYPE={}".format(build_type),
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE={}".format(cmake_build_type),
-        ".."
+        FUNC_DIR,
     ]
 
     res = call(" ".join(build_cmd), shell=True, cwd=FUNC_BUILD_DIR)
