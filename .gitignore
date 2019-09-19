@@ -11,6 +11,7 @@ lib_build/
 *_lib_build/
 perf.data
 perf.data.*
+spec_cpu/
 
 # Ansible
 *.retry

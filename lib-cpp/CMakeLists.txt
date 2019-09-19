@@ -41,7 +41,7 @@ if(FAASM_BUILD_TYPE STREQUAL "wasm")
     add_library(faasm STATIC ${LIB_FILES})
     set_target_properties(faasm PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
-    add_definitions(-DWASM_BUILD=1)
+    add_definitions(-D__WASM__=1)
 
     # Install in WASM sysroot
     install(TARGETS faasm

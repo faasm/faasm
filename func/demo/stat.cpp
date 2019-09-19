@@ -9,7 +9,7 @@ FAASM_MAIN_FUNC() {
     struct stat64 s{};
 
     // NOTE: in the wasm world the struct has different types, so print whines here if we don't branch
-#if WASM_BUILD == 1
+#if __WASM__ == 1
 
     stat64("/", &s);
     printf("st_dev: %llu\n", s.st_dev);

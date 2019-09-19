@@ -24,7 +24,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # add_definitions(-DEIGEN_VECTORIZE_SSE2=1)
 
     # Notify code of wasm build
-    add_definitions(-DWASM_BUILD=1)
+    add_definitions(-D__WASM__=1)
 
     # -------- NOTE ----------
     # The stack-first here is really important to help detect stack overflow
