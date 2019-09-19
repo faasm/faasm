@@ -3,16 +3,15 @@ cmake-build-debug
 cmake-build-release
 
 # Builds
-lambda_faasm_build
-**/build/*
-**/build
+build/
+build/*
+build/**/*
 
 # Misc project files
 assemblyscript
 docker
 docs
 k8s
-native_build
 node_modules
 toolchain/install
 venv

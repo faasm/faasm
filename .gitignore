@@ -2,13 +2,7 @@
 perf/
 work/
 download/
-lambda_build/
-build_native/
-native_build/
-lambda_*_build/
-*_func_build/
-lib_build/
-*_lib_build/
+build/
 perf.data
 perf.data.*
 spec_cpu/

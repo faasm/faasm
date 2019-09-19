@@ -12,7 +12,7 @@ echo "Running release type ${RELEASE_TYPE}"
 
 THIS_DIR=$(dirname $(readlink -f $0))
 
-BUILD_DIR=${THIS_DIR}/../func/build_native
+BUILD_DIR=${THIS_DIR}/../build/polybench_native
 rm -rf ${BUILD_DIR}
 mkdir -p ${BUILD_DIR}
 

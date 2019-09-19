@@ -21,7 +21,7 @@ BENCHMARK_ENV = {
 }
 
 FUNC_DIR = join(PROJ_ROOT, "func")
-FUNC_BUILD_DIR = join(FUNC_DIR, "build")
+FUNC_BUILD_DIR = join(PROJ_ROOT, "build", "func")
 
 WASM_DIR = join(PROJ_ROOT, "wasm")
 WASM_LIB_DIR = join(PROJ_ROOT, "wasm", "lib")

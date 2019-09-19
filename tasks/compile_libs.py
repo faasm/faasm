@@ -39,7 +39,7 @@ def install_native_tools(ctx, clean=False):
     if not exists(FAASM_INSTALL_DIR):
         mkdir(FAASM_INSTALL_DIR)
 
-    build_dir = join(PROJ_ROOT, "native_build")
+    build_dir = join(PROJ_ROOT, "build", "native_tools")
     clean_dir(build_dir, clean)
 
     build_cmd = [
@@ -68,7 +68,7 @@ def compile_libfaasm(ctx, clean=False):
 
     def _do_lib_build(dir_name):
         work_dir = join(PROJ_ROOT, dir_name)
-        build_dir = join(work_dir, "lib_build")
+        build_dir = join(PROJ_ROOT, "build", dir_name)
 
         clean_dir(build_dir, clean)
 
