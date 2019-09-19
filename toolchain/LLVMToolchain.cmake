@@ -1,9 +1,7 @@
 cmake_minimum_required(VERSION 3.4.0)
 
 set(TOOLCHAIN_ROOT ${CMAKE_CURRENT_LIST_DIR})
-set(INSTALL_DIR ${TOOLCHAIN_ROOT}/install/bin)
-
-set(FAASM_SYSROOT /usr/local/faasm/llvm-sysroot)
+set(INSTALL_DIR /usr/bin)
 
 set(EXE_SUFFIX "")
 
@@ -20,19 +18,14 @@ set(CMAKE_LDSHARED ${INSTALL_DIR}/wasm-ld CACHE STRING "faasm build")
 set(CMAKE_C_COMPILER_TARGET wasm32 CACHE STRING "faasm build")
 set(CMAKE_CXX_COMPILER_TARGET wasm32 CACHE STRING "faasm build")
 
-set(CMAKE_DL_LIBS "")
+set(CMAKE_SYSROOT /usr/local/faasm/llvm-sysroot CACHE STRING "faasm build")
 
-# Note: see Clang wasm-specific flags at https://clang.llvm.org/docs/ClangCommandLineReference.html#webassembly
-set(FAASM_ARCH_FLAGS "-msimd128")
+set(COMPILER_FLAGS "-msimd128 -munimplemented-simd128")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMPILER_FLAGS}" CACHE STRING "faasm build")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMPILER_FLAGS}" CACHE STRING "faasm build")
 
 # Explicitly disable eigen parallelisation
 add_definitions(-DEIGEN_DONT_PARALLELIZE=1)
-
-set(FAASM_COMPILER_FLAGS "--sysroot=${FAASM_SYSROOT} ${FAASM_ARCH_FLAGS}")
-
-set(CMAKE_SYSROOT ${FAASM_SYSROOT} CACHE STRING "faasm build")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${FAASM_COMPILER_FLAGS}" CACHE STRING "faasm build")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FAASM_COMPILER_FLAGS}" CACHE STRING "faasm build")
 
 # Note that system name and processor here are crucial
 # Setting system name automatically switches on cross-compiling

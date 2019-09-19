@@ -1,6 +1,3 @@
-[submodule "llvm-project"]
-	path = llvm-project
-	url = https://github.com/llvm/llvm-project.git
 [submodule "third-party/tensorflow"]
 	path = third-party/tensorflow
 	url = https://github.com/Shillaker/tensorflow.git
@@ -37,3 +34,6 @@
 [submodule "third-party/musl"]
 	path = third-party/musl
 	url = https://github.com/Shillaker/musl
+[submodule "third-party/llvm-project"]
+	path = third-party/llvm-project
+	url = https://github.com/llvm/llvm-project.git

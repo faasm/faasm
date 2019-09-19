@@ -12,6 +12,10 @@ Shared libraries must be built with `-fPIC`, but this is only supported with `--
 
 You will need to set this target explicitly the relevant CMake/ Makefile (as the default is `wasm32`).
 
+## SIMD
+
+SIMD support is also in flux but possible to switch on with `-msimd128` and `-munimplemented-simd128`.
+
 ## Building
 
 To build from scratch you just need to be in the `toolchain` directory, then run:
@@ -45,4 +49,9 @@ make clean-all
 make
 ```
 
+## Troubleshooting
+
+If a given project fails you need to go to the build dir (e.g. for `libcxx` this would be `third-party/llvm-project/build/libcxx`) then look at `CMakeFiles/CMakeError.log` and `CMakeFiles/CMakeOutput.log`.
+
+One thing to check for is the magic `libclang_rt.builtins-wasm32.tar.gz` file. This should get built by the build process but if you need to fiddle with it you can download it as part of the [WASI SDK Release](https://github.com/CraneStation/wasi-sdk/releases).
 
