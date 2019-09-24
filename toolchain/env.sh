@@ -16,6 +16,6 @@ export WASM_BUILD=wasm32
 export WASM_HOST=wasm32-unknown-none
 export WASM_HOST_UNKNOWN=wasm32-unknown-unknown
 
-export WASM_CFLAGS="-Oz --sysroot=${WASM_SYSROOT} -msimd128"
-export WASM_CXXFLAGS="-Oz --sysroot=${WASM_SYSROOT} -msimd128"
+export WASM_CFLAGS="-O3 --sysroot=${WASM_SYSROOT} -msimd128"
+export WASM_CXXFLAGS="-O3 --sysroot=${WASM_SYSROOT} -msimd128"
 

@@ -71,6 +71,11 @@ demo_func(uname uname.cpp)
 demo_func(x2 x2.cpp)
 demo_func(zygote_check zygote_check.cpp)
 
+# WASM-only functions
+if(FAASM_BUILD_TYPE STREQUAL "wasm")
+    demo_func(eigen_vec eigen_vec.cpp)
+endif()
+
 faasm_dynamic_func(dynlink dynlink.cpp)
 set(ALL_DEMO_FUNCS ${ALL_DEMO_FUNCS} dynlink PARENT_SCOPE)
 
@@ -79,3 +84,4 @@ add_custom_target(demo_all_funcs DEPENDS ${ALL_DEMO_FUNCS})
 
 add_definitions(-DWASM_PROF=1)
 demo_func(float_perf float_perf.cpp)
+

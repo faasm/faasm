@@ -47,18 +47,16 @@ def ts_upload(ctx, func, host="127.0.0.1"):
 
 
 def _do_upload_all(host=None, upload_s3=False):
-    func_dir = FUNC_BUILD_DIR
-
     to_upload = []
 
     # Walk the function directory tree
-    for root, dirs, files in os.walk(func_dir):
+    for root, dirs, files in os.walk(FUNC_BUILD_DIR):
         # Strip original dir from root
-        rel_path = root.replace(func_dir, "")
+        rel_path = root.replace(FUNC_BUILD_DIR, "")
         rel_path = rel_path.strip("/")
 
         path_parts = rel_path.split("/")
-        if len(path_parts) != 1:
+        if not path_parts:
             continue
 
         if path_parts[0] not in DIRS_TO_INCLUDE:

@@ -26,8 +26,7 @@ def compile(context, clean=False, func=None, debug=False, user=None):
         print("Failed to compile")
         return
 
-    # Allow specifying a single function
-    target = None
+    target = ""
     if func:
         target = func
     elif user:
