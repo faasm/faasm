@@ -8,10 +8,14 @@
 
 using namespace Eigen::internal;
 
-#define compareLane(a, b, idx) wasm_f32x4_extract_lane(a, idx) == wasm_f32x4_extract_lane(b, idx);
+bool approxCompare(float a, float b) {
+    return truncf(1000.0f * a) == truncf(1000.0f * b);
+}
+
+#define compareLane(a, b, idx) approxCompare(wasm_f32x4_extract_lane(a, idx), wasm_f32x4_extract_lane(b, idx));
 
 void printPacket(const Packet4f &a) {
-    printf("Packet4f[%.2f, %.2f, %.2f, %.2f]",
+    printf("Packet4f[%.3f, %.3f, %.3f, %.3f]",
            wasm_f32x4_extract_lane(a, 0),
            wasm_f32x4_extract_lane(a, 1),
            wasm_f32x4_extract_lane(a, 2),
@@ -20,7 +24,7 @@ void printPacket(const Packet4f &a) {
 }
 
 void printComplex(const Packet2cf &a) {
-    printf("Packet2cf[%.2f + %.2fi, %.2f + %.2fi]",
+    printf("Packet2cf[%.3f + %.3fi, %.3f + %.3fi]",
            wasm_f32x4_extract_lane(a.v, 0),
            wasm_f32x4_extract_lane(a.v, 1),
            wasm_f32x4_extract_lane(a.v, 2),
@@ -37,7 +41,7 @@ bool checkPacket4fEquals(const Packet4f &a, const Packet4f &b) {
     if(!isEqual) {
         printf("Packets not equal: ");
         printPacket(a);
-        printf("!= ");
+        printf(" != ");
         printPacket(b);
         printf("\n");
     }
@@ -74,6 +78,8 @@ bool checkMultiplication() {
 
     if(isEqual) {
         printf("Vectorized multiplication OK\n");
+    } else {
+        printf("Vectorized multiplication NOT OK\n");
     }
 
     return isEqual;
@@ -83,7 +89,7 @@ bool checkAddition() {
     Packet4f a = wasm_f32x4_make(10.0f, 27.0f, 15.0f, 0.0f);
     Packet4f b = wasm_f32x4_make(2.0f, -9.0f, 7.5f, 4.0f);
 
-    Packet4f expected = wasm_f32x4_make(12.0f, 22.0f, 22.5f, 4.0f);
+    Packet4f expected = wasm_f32x4_make(12.0f, 18.0f, 22.5f, 4.0f);
 
     Packet4f c = padd<Packet4f>(a, b);
 
@@ -91,13 +97,15 @@ bool checkAddition() {
 
     if(isEqual) {
         printf("Vectorized addition OK\n");
+    } else {
+        printf("Vectorized addition NOT OK\n");
     }
 
     return isEqual;
 }
 
 bool checkXOR() {
-    const v128_t mask = wasm_i32x4_const(-0, 0, -0, 0);
+    const v128_t mask = wasm_f32x4_const(-0.0f, 0.0f, -0.0f, 0.0f);
     Packet4f a = wasm_f32x4_make(5.5f, 6.6f, 7.7f, 8.8f);
     Packet4f expected = wasm_f32x4_make(-5.5f, 6.6f, -7.7f, 8.8f);
 
@@ -107,6 +115,8 @@ bool checkXOR() {
 
     if(isEqual) {
         printf("Vectorized XOR OK\n");
+    } else {
+        printf("Vectorized XOR NOT OK\n");
     }
 
     return isEqual;
@@ -125,6 +135,8 @@ bool checkDivision() {
 
     if(isEqual) {
         printf("Vectorized division OK\n");
+    } else {
+        printf("Vectorized division NOT OK\n");
     }
 
     return isEqual;
@@ -146,6 +158,8 @@ bool checkTranspose() {
 
     if(isEqual) {
         printf("Vectorized transpose OK\n");
+    } else {
+        printf("Vectorized transpose NOT OK\n");
     }
 
     return isEqual;
@@ -161,6 +175,8 @@ bool checkComplexConj() {
 
     if(isEqual) {
         printf("Vectorized complex conjugate OK\n");
+    } else {
+        printf("Vectorized complex conjugate NOT OK\n");
     }
 
     return isEqual;
@@ -170,13 +186,15 @@ bool checkComplexMult() {
     Packet2cf a(wasm_f32x4_make(1, 2, 3, 4));
     Packet2cf b(wasm_f32x4_make(5, 6, 8, 7));
 
-    Packet2cf expected(wasm_f32x4_make(-7, 26, 3, 53));
+    Packet2cf expected(wasm_f32x4_make(-7, 16, -4, 53));
 
     Packet2cf actual = pmul(a, b);
     bool isEqual = checkPacket2cfEquals(actual, expected);
 
     if(isEqual) {
         printf("Vectorized complex multiplication OK\n");
+    } else {
+        printf("Vectorized complex multiplication NOT OK\n");
     }
 
     return isEqual;
