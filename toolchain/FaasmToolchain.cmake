@@ -28,11 +28,12 @@ set(FAASM_ARCH_FLAGS "-msimd128")
 # Explicitly disable eigen parallelisation
 add_definitions(-DEIGEN_DONT_PARALLELIZE=1)
 
+set(FAASM_OPTIMIZATION "-Oz")
 set(FAASM_COMPILER_FLAGS "--sysroot=${FAASM_SYSROOT} ${FAASM_ARCH_FLAGS}")
 
 set(CMAKE_SYSROOT ${FAASM_SYSROOT} CACHE STRING "faasm build")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${FAASM_COMPILER_FLAGS}" CACHE STRING "faasm build")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FAASM_COMPILER_FLAGS}" CACHE STRING "faasm build")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${FAASM_OPTIMIZATION} ${FAASM_COMPILER_FLAGS}" CACHE STRING "faasm build")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FAASM_OPTIMIZATION} ${FAASM_COMPILER_FLAGS}" CACHE STRING "faasm build")
 
 # Note that system name and processor here are crucial
 # Setting system name automatically switches on cross-compiling
