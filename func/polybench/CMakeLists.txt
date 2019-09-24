@@ -11,12 +11,10 @@ function(polybench_func exec_name dir_path)
             )
 
     if (FAASM_BUILD_TYPE STREQUAL "wasm")
-        set(EXTRA_LIBS faasm dlmalloc)
+        target_link_libraries(poly_${exec_name} faasm dlmalloc)
     else()
-        set(EXTRA_LIBS m)
+        target_link_libraries(poly_${exec_name} m)
     endif()
-
-    target_link_libraries(poly_${exec_name} ${EXTRA_LIBS})
 
     # Add this func to the list of all functions
     set(ALL_POLY_FUNCS ${ALL_POLY_FUNCS} poly_${exec_name} PARENT_SCOPE)

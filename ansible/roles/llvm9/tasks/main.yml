@@ -37,4 +37,5 @@
     - "clang-cpp"
     - "wasm-ld"
     - "llvm-ar"
+    - "lld"
 

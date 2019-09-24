@@ -4,7 +4,7 @@
 
 #define POLYBENCH_USER "polybench"
 
-#define BINARY_DIR "/usr/local/code/faasm/func/build_native/polybench/"
+#define BINARY_DIR "/usr/local/code/faasm/build/polybench_native/"
 
 namespace runner {
     PolybenchProfiler::PolybenchProfiler(std::string funcName) : Profiler(POLYBENCH_USER, funcName, "") {
