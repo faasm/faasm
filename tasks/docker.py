@@ -58,26 +58,6 @@ def data(context):
 
 
 @task
-def build_all(context):
-    build_base(context)
-
-    build_worker(context)
-    build_edge(context)
-    build_upload(context)
-    build_data(context)
-
-
-@task
-def push_all(context):
-    push_base(context)
-
-    push_worker(context)
-    push_edge(context)
-    push_upload(context)
-    push_data(context)
-
-
-@task
 def build_redis(context):
     cmd = "docker build -t faasm/redis -f docker/redis.dockerfile ."
     call(cmd, shell=True, cwd=PROJ_ROOT)

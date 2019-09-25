@@ -8,7 +8,7 @@ from invoke import task
 from tasks.python import set_up_python_runtime, run_python_codegen
 from tasks.tensorflow import set_up_tensorflow_data
 from tasks.util.env import FAASM_RUNTIME_ROOT, FAASM_LOCAL_DIR, MISC_S3_BUCKET, ANSIBLE_ROOT
-from tasks.util.upload_util import upload_file_to_s3, download_file_from_s3
+from tasks.util.upload_util import upload_file_to_s3, download_tar_from_s3
 
 RUNTIME_TAR_NAME = "faasm_runtime_root.tar.gz"
 RUNTIME_TAR_PATH = "/tmp/{}".format(RUNTIME_TAR_NAME)
@@ -65,12 +65,7 @@ def download_runtime_root(ctx):
 
     # Download the bundle
     print("Downloading from S3")
-    downloaded_tar_path = "/usr/local/faasm/{}".format(RUNTIME_TAR_NAME)
-    download_file_from_s3(MISC_S3_BUCKET, RUNTIME_TAR_NAME, downloaded_tar_path)
-
-    # Extract
-    print("Extracting")
-    check_output("tar -xf {}".format(RUNTIME_TAR_NAME), shell=True, cwd=FAASM_LOCAL_DIR)
+    download_tar_from_s3(MISC_S3_BUCKET, RUNTIME_TAR_NAME, FAASM_LOCAL_DIR, boto=False)
 
     # Run codegen
     print("Running codegen")

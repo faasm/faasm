@@ -224,7 +224,4 @@ else ()
     add_subdirectory(test)
     add_subdirectory(test_utils)
     add_subdirectory(test_integration)
-
-    # Eigen
-    add_subdirectory(third-party/eigen)
 endif ()

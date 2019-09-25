@@ -1,11 +1,11 @@
-from os import remove
+from os import remove, mkdir
 from os.path import join, exists
 from subprocess import check_output
 
 from invoke import task
 
 from tasks.util.env import MISC_S3_BUCKET, TOOLCHAIN_ROOT, FAASM_LOCAL_DIR, FAASM_SYSROOT
-from tasks.util.upload_util import upload_file_to_s3, download_file_from_s3
+from tasks.util.upload_util import upload_file_to_s3, download_tar_from_s3
 
 TOOLCHAIN_INSTALL = join(TOOLCHAIN_ROOT, "install")
 TOOLCHAIN_TAR_NAME = "faasm-toolchain.tar.gz"
@@ -31,6 +31,7 @@ def backup_toolchain(ctx):
     remove(TOOLCHAIN_TAR_PATH)
     remove(SYSROOT_TAR_PATH)
 
+
 @task
 def download_toolchain(ctx):
     # Nuke existing toolchain and sysroot
@@ -42,15 +43,13 @@ def download_toolchain(ctx):
         print("Deleting existing sysroot at {}".format(FAASM_SYSROOT))
         check_output("rm -rf {}".format(FAASM_SYSROOT), shell=True)
 
+    if not exists(FAASM_LOCAL_DIR):
+        mkdir(FAASM_LOCAL_DIR)
+
     # Download (note not using Boto)
     print("Downloading archives")
-    download_file_from_s3(MISC_S3_BUCKET, TOOLCHAIN_TAR_NAME, TOOLCHAIN_TAR_PATH, boto=False)
-    download_file_from_s3(MISC_S3_BUCKET, SYSROOT_TAR_NAME, SYSROOT_TAR_PATH, boto=False)
-
-    # Extract
-    print("Extracting archives")
-    check_output("tar -xf {}".format(TOOLCHAIN_TAR_NAME), cwd=TOOLCHAIN_ROOT, shell=True)
-    check_output("tar -xf {}".format(SYSROOT_TAR_NAME), cwd=FAASM_LOCAL_DIR, shell=True)
+    download_tar_from_s3(MISC_S3_BUCKET, TOOLCHAIN_TAR_NAME, TOOLCHAIN_ROOT, boto=False)
+    download_tar_from_s3(MISC_S3_BUCKET, SYSROOT_TAR_NAME, FAASM_LOCAL_DIR, boto=False)
 
     print("Removing archives")
     remove(TOOLCHAIN_TAR_PATH)

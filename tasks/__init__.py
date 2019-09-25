@@ -71,7 +71,6 @@ from tasks.invoke import (
     knative_invoke,
 )
 from tasks.docker import (
-    build_all,
     build_base,
     build_data,
     build_edge,
@@ -85,7 +84,6 @@ from tasks.docker import (
     build_toolchain,
     data,
     purge_images,
-    push_all,
     push_data,
     push_edge,
     push_knative_worker,
