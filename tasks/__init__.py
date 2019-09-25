@@ -52,7 +52,13 @@ from tasks.compile_libs import (
     compile_libfaasm,
     compile_eigen,
     compile_libfake,
+    compile_libpng,
+    compile_zlib,
     install_native_tools,
+)
+from tasks.compile_tensorflow import (
+    compile_tf_lite,
+    compile_tf_lite_native,
 )
 from tasks.compile_ts import (
     ts_compile,

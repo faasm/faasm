@@ -137,4 +137,3 @@ inv build-worker build-edge build-upload
 
 Tests can be run with the `tests` target of this project.
 
-If things are failing you can run `bin/set_up_local.sh` to rerun a couple of tidy-ups.

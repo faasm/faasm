@@ -1,6 +1,6 @@
 from os import mkdir
 from os.path import exists, join
-from subprocess import call
+from subprocess import check_output
 
 from invoke import task
 
@@ -15,4 +15,4 @@ def set_up_tensorflow_data(ctx):
     if not exists(data_dir):
         mkdir(data_dir)
 
-    call("cp {}/* {}/".format(source_data, data_dir), shell=True)
+    check_output("cp {}/* {}/".format(source_data, data_dir), shell=True)

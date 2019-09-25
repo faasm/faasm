@@ -44,7 +44,7 @@ This takes ages as it builds a whole LLVM toolchain.
 
 ## Rebuilding Toolchain
 
-To rebuild, there differet options. The first is just rebuilding libc:
+To rebuild, there different options. The first is just rebuilding libc:
 
 ```
 make clean-libc
@@ -72,6 +72,8 @@ If you've built a new toolchain and need to update the remote version:
 ```
 inv backup-toolchain
 ```
+
+Note that this will copy your local version of the sysroot too.
 
 ## Troubleshooting the build
 
