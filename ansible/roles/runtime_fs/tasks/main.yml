@@ -1,7 +1,6 @@
 ---
 
 - name: "Ensure directory exists"
-  become: yes
   file:
     path: "/usr/local/faasm/runtime_root/etc"
     state: directory

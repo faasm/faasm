@@ -1,4 +1,3 @@
-import glob
 from os import remove
 from os.path import join, exists
 from shutil import rmtree
@@ -7,12 +6,8 @@ from subprocess import check_output
 from invoke import task
 
 from tasks.codegen import run_codegen
-from tasks.util.env import PROJ_ROOT, PYODIDE_INSTALL_DIR, FAASM_RUNTIME_ROOT, PY_RUNTIME_ROOT, PYODIDE_PACKAGES, \
-    FAASM_LOCAL_DIR, MISC_S3_BUCKET
-from tasks.util.upload_util import upload_file_to_s3, download_file_from_s3
-
-RUNTIME_TAR_NAME = "faasm_runtime_root.tar.gz"
-RUNTIME_TAR_PATH = "/tmp/{}".format(RUNTIME_TAR_NAME)
+from tasks.util.env import PROJ_ROOT, PYODIDE_INSTALL_DIR, FAASM_RUNTIME_ROOT, PY_RUNTIME_ROOT, PYODIDE_PACKAGES
+from tasks.util.files import glob_remove
 
 # TODO - avoid having to hard-code this
 _PACKAGES_INCLUDED = {
@@ -40,22 +35,12 @@ _PACKAGES_INCLUDED = {
 }
 
 
-def _glob_remove(glob_pattern, recursive=False, directory=False):
-    print("Recursive remove: {}".format(glob_pattern))
-    for filename in glob.iglob(glob_pattern, recursive=recursive):
-        print("Removing {}".format(filename))
-        if directory:
-            rmtree(filename)
-        else:
-            remove(filename)
-
-
 def _clear_pyc_files(dir_path):
     pyc_glob = "{}/**/*.pyc".format(dir_path)
-    _glob_remove(pyc_glob, recursive=True)
+    glob_remove(pyc_glob, recursive=True)
 
     pycache_glob = "{}/**/__pycache__".format(dir_path)
-    _glob_remove(pycache_glob, recursive=True, directory=True)
+    glob_remove(pycache_glob, recursive=True, directory=True)
 
 
 def _remove_runtime_dir(dir_name):
@@ -106,46 +91,6 @@ def set_up_python_runtime(ctx):
         check_output("cp -r {} {}".format(pkg_dir, runtime_site_packages), shell=True)
 
     # Run codegen
-    run_python_codegen(ctx)
-
-
-@task
-def package_python_runtime(ctx):
-    # Clear out existing object files
-    print("Removing any existing platform-specific files")
-    obj_glob = "{}/**/*.o".format(FAASM_RUNTIME_ROOT)
-    _glob_remove(obj_glob, recursive=True)
-
-    # Compress
-    print("Creating archive of faasm runtime root")
-    check_output("tar -cf {} runtime_root".format(RUNTIME_TAR_PATH), shell=True, cwd=FAASM_LOCAL_DIR)
-
-    # Upload
-    print("Uploading archive to S3")
-    upload_file_to_s3(RUNTIME_TAR_PATH, MISC_S3_BUCKET, RUNTIME_TAR_NAME)
-
-    # Remove old tar
-    print("Removing archive")
-    check_output("rm {}".format(RUNTIME_TAR_PATH), shell=True)
-
-
-@task
-def download_python_runtime(ctx):
-    # Clear out existing
-    print("Removing existing")
-    rmtree(FAASM_RUNTIME_ROOT)
-
-    # Download the bundle
-    print("Downloading from S3")
-    downloaded_tar_path = "/usr/local/faasm/{}".format(RUNTIME_TAR_NAME)
-    download_file_from_s3(MISC_S3_BUCKET, RUNTIME_TAR_NAME, downloaded_tar_path)
-
-    # Extract
-    print("Extracting")
-    check_output("tar -xf {}".format(RUNTIME_TAR_NAME), shell=True, cwd=FAASM_LOCAL_DIR)
-
-    # Run codegen
-    print("Running codegen")
     run_python_codegen(ctx)
 
 

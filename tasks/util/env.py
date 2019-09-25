@@ -4,6 +4,7 @@ from os.path import dirname, realpath, join, exists, expanduser
 HOME_DIR = expanduser("~")
 PROJ_ROOT = dirname(dirname(dirname(realpath(__file__))))
 THIRD_PARTY_DIR = join(PROJ_ROOT, "third-party")
+ANSIBLE_ROOT = join(PROJ_ROOT, "ansible")
 
 FAASM_HOME = join(HOME_DIR, "faasm")
 FAASM_LOCAL_DIR = "/usr/local/faasm"

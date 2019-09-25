@@ -1,45 +1,46 @@
+from os import remove
 from os.path import join, exists
 from subprocess import check_output
 
 from invoke import task
 
-from tasks.util.env import MISC_S3_BUCKET, FAASM_LOCAL_DIR
+from tasks.util.env import MISC_S3_BUCKET, TOOLCHAIN_ROOT
 from tasks.util.upload_util import upload_file_to_s3, download_file_from_s3
 
-EMSDK_BASE_DIR = join(FAASM_LOCAL_DIR, "emsdk")
-EMSDK_TAR_NAME = "emsdk.tar.gz"
-EMSDK_TAR_PATH = join(FAASM_LOCAL_DIR, EMSDK_TAR_NAME)
+TOOLCHAIN_INSTALL = join(TOOLCHAIN_ROOT, "install")
+TAR_NAME = "faasm-toolchain.tar.gz"
+TAR_PATH = join(TOOLCHAIN_ROOT, TAR_NAME)
 
 
 @task
-def backup_emsdk(ctx):
+def backup_toolchain(ctx):
     # Compress
-    print("Creating archive of emsdk")
-    check_output("tar -cf {} emsdk".format(EMSDK_TAR_PATH), shell=True, cwd=FAASM_LOCAL_DIR)
+    print("Creating archive of Faasm toolchain")
+    check_output("tar -cf {} install".format(TAR_NAME), shell=True, cwd=TOOLCHAIN_ROOT)
 
     # Upload
     print("Uploading archive to S3")
-    upload_file_to_s3(EMSDK_TAR_PATH, MISC_S3_BUCKET, EMSDK_TAR_NAME)
+    upload_file_to_s3(TAR_PATH, MISC_S3_BUCKET, TAR_NAME)
 
     # Remove old tar
     print("Removing archive")
-    check_output("rm {}".format(EMSDK_TAR_PATH))
+    remove(TAR_PATH)
 
 
 @task
-def restore_emsdk(ctx):
-    # Nuke existing emsdk
-    if exists(EMSDK_BASE_DIR):
-        print("Deleting existing emsdk")
-        check_output("rm -rf {}".format(EMSDK_BASE_DIR), shell=True)
+def download_toolchain(ctx):
+    # Nuke existing toolchain
+    if exists(TOOLCHAIN_INSTALL):
+        print("Deleting existing toolchain at {}".format(TOOLCHAIN_INSTALL))
+        check_output("rm -rf {}".format(TOOLCHAIN_INSTALL), shell=True)
 
-    # Download (don't use boto in case needs to be done anonymously
+    # Download (note not using Boto)
     print("Downloading archive")
-    download_file_from_s3(MISC_S3_BUCKET, EMSDK_TAR_NAME, EMSDK_TAR_PATH, boto=False)
+    download_file_from_s3(MISC_S3_BUCKET, TAR_NAME, TAR_PATH, boto=False)
 
     # Extract
     print("Extracting archive")
-    check_output("tar -xf {}".format(EMSDK_TAR_NAME), cwd=FAASM_LOCAL_DIR, shell=True)
+    check_output("tar -xf {}".format(TAR_NAME), cwd=TOOLCHAIN_ROOT, shell=True)
 
     print("Removing archive")
-    check_output("rm {}".format(EMSDK_TAR_PATH), shell=True)
+    remove(TAR_PATH)

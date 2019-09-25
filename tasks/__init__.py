@@ -115,12 +115,19 @@ from tasks.sgd_data import (
     reuters_state_upload,
     reuters_state_upload_s3,
 )
-from tasks.runtime import (
+from tasks.python import (
     clear_runtime_pyc,
     set_up_python_runtime,
     run_python_codegen,
-    package_python_runtime,
-    download_python_runtime,
+)
+
+from tasks.package import (
+    package_runtime_root,
+    download_runtime_root,
+)
+
+from tasks.tensorflow import (
+    set_up_tensorflow_data
 )
 
 from tasks.upload import (
@@ -133,6 +140,6 @@ from tasks.upload import (
 from tasks.wasm2wast import wast
 
 from tasks.toolchain import (
-    backup_emsdk,
-    restore_emsdk,
+    backup_toolchain,
+    download_toolchain,
 )
