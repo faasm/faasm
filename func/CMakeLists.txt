@@ -15,7 +15,8 @@ endif ()
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     message(STATUS "Detected wasm build (sysroot=${CMAKE_SYSROOT}")
 
-    add_definitions(-DWASM_BUILD=1)
+    # Eigen definitions
+    # add_definitions(-DEIGEN_VECTORIZE_SSE2=1)
 
     # -------- NOTE ----------
     # The stack-first here is really important to help detect stack overflow
@@ -90,12 +91,14 @@ else ()
     # ----------------------
     # Native build
     # ----------------------
+
     function(faasm_func_c exec_name file_name)
         add_executable(${exec_name} ${file_name})
         target_link_libraries(${exec_name} faasm emulator dl)
     endfunction(faasm_func_c)
 
     function(faasm_func exec_name file_name)
+        add_definitions(-DEIGEN_DONT_VECTORIZE=1)
         add_executable(${exec_name} ${file_name})
         target_link_libraries(${exec_name} faasm emulator dl)
     endfunction(faasm_func)
@@ -109,10 +112,10 @@ endif ()
 
 add_subdirectory(errors)
 add_subdirectory(demo)
-add_subdirectory(sgd)
 add_subdirectory(dynlink)
-add_subdirectory(onnx)
 add_subdirectory(polybench)
+add_subdirectory(sgd)
+add_subdirectory(tf)
 
 # Add python build in everything but the lambda funcs
 if (FAASM_BUILD_TYPE STREQUAL "lambda-func")

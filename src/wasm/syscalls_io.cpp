@@ -26,11 +26,8 @@ namespace wasm {
 
         // Check if this is a valid path. Return a read-only handle to the file if so
         int fd;
-        std::string fakePath;
-        if (path == "/etc/hosts" || path == "/etc/resolv.conf" || path == "/etc/passwd") {
-            logger->debug("Opening dummy {}", path);
-            fd = open(path.c_str(), 0, 0);
-        } else if (path == "/dev/urandom") {
+        std::string fakePath = maskPath(path);
+        if (path == "/dev/urandom") {
             //TODO avoid use of system-wide urandom
             logger->debug("Opening /dev/urandom");
             fd = open("/dev/urandom", 0, 0);
@@ -38,18 +35,17 @@ namespace wasm {
             logger->debug("Allowing access to /dev/null");
             fd = open("/dev/null", 0, 0);
         } else {
-            fakePath = maskPath(path.c_str());
-
             // Unsafe mode here allows access to any files (below the runtime root dir)
             if (conf.unsafeMode == "on" ||
                 (path == "/etc/hosts" ||
                 path == "/etc/resolv.conf" ||
                 path == "/etc/passwd" ||
                 path == "/etc/localtime")) {
-                logger->debug("Opening {}", fakePath);
+
+                logger->debug("Opening {} (requested {})", fakePath, path);
                 fd = open(fakePath.c_str(), flags, mode);
             } else {
-                logger->error("Opening arbitrary path {}", fakePath);
+                logger->error("Opening arbitrary path {} (requested {})", fakePath, path);
                 throw std::runtime_error("Opening arbitrary path");
             }
         }
@@ -323,14 +319,19 @@ namespace wasm {
     }
 
     I32 s__readv(I32 fd, I32 iovecPtr, I32 iovecCount) {
-        util::getLogger()->debug("S - readv - {} {} {}", fd, iovecPtr, iovecCount);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - readv - {} {} {}", fd, iovecPtr, iovecCount);
 
         getExecutingModule()->checkThreadOwnsFd(fd);
 
         iovec *nativeIovecs = wasmIovecsToNativeIovecs(iovecPtr, iovecCount);
 
         int bytesRead = readv(fd, nativeIovecs, iovecCount);
-
+        if(bytesRead == -1) {
+            logger->error("Failed readv {} - {}", errno, strerror(errno));
+            throw std::runtime_error("Failed readv");
+        }
+        
         delete[] nativeIovecs;
 
         return bytesRead;

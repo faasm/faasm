@@ -15,7 +15,7 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/WASTParse/WASTParse.h>
-
+#include <sys/mman.h>
 
 using namespace WAVM;
 
@@ -313,7 +313,7 @@ namespace wasm {
             msgCopy.set_inputdata(pyFile);
             msgCopy.set_user("python");
             msgCopy.set_function("py_func");
-        } else if(boundIsTypescript) {
+        } else if (boundIsTypescript) {
             logger->debug("Detected typescript function {}/{}", boundUser, boundFunction);
         } else {
             logger->debug("Detected C/C++ function {}/{}", boundUser, boundFunction);
@@ -446,7 +446,7 @@ namespace wasm {
             // Give the module a chunk of memory and stack region just at the bottom of the
             // new memory (which will grow down). The memory sits above that (and grows up).
             // TODO - how do we detect stack overflows in dynamic modules? Are we meant to share the stack pointer of the main module?
-            U32 dynamicMemBase = this->mmap(DYNAMIC_MODULE_HEAP_SIZE);
+            U32 dynamicMemBase = mmapMemory(DYNAMIC_MODULE_HEAP_SIZE);
             nextMemoryBase = dynamicMemBase + DYNAMIC_MODULE_STACK_SIZE;
             nextStackPointer = nextMemoryBase - 1;
 
@@ -704,7 +704,29 @@ namespace wasm {
         return exitCode;
     }
 
-    U32 WasmModule::mmap(U32 length) {
+    U32 WasmModule::mmapFile(U32 fd, U32 length) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        // mmap the memory region
+        U32 wasmPtr = mmapMemory(length);
+        U32 *targetPtr = &Runtime::memoryRef<U32>(defaultMemory, wasmPtr);
+
+        // Unmap and remap the memory
+        munmap(targetPtr, length);
+        U32 *mmappedPtr = (U32 *) mmap(targetPtr, length, PROT_READ, MAP_SHARED, fd, 0);
+        if(mmappedPtr == MAP_FAILED) {
+            logger->error("Failed mmapping file descriptor {} ({} - {})", fd, errno, strerror(errno));
+            throw std::runtime_error("Unable to map file");
+        }
+
+        if (mmappedPtr != targetPtr) {
+            throw std::runtime_error("Unable to map file into required location");
+        }
+
+        return wasmPtr;
+    }
+
+    U32 WasmModule::mmapMemory(U32 length) {
         // Round up to page boundary
         Uptr pagesRequested = getNumberOfPagesForBytes(length);
 
@@ -730,7 +752,7 @@ namespace wasm {
         // See if we need to initialise this mapping or if it already exists
         if (sharedMemWasmPtrs.count(kv->key) == 0) {
             // Create memory region for this module
-            U32 wasmPtr = this->mmap(length);
+            U32 wasmPtr = this->mmapMemory(length);
 
             // Do the mapping from the central shared region
             U8 *hostMemPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmPtr);

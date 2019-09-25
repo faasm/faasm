@@ -20,7 +20,7 @@ AR="${CLANG_DIR}/llvm-ar"
 AS="${CLANG_DIR}/llvm-as"
 RANLIB="${CLANG_DIR}/llvm-ranlib"
 
-MUSL_DIR=${THIS_DIR}/../musl
+MUSL_DIR=${THIS_DIR}/../third-party/musl
 MUSL_BUILD_DIR=/tmp/musl_out
 
 CFLAGS="--sysroot=${SYSROOT} --target=${TARGET}"

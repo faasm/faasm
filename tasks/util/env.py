@@ -3,6 +3,7 @@ from os.path import dirname, realpath, join, exists, expanduser
 
 HOME_DIR = expanduser("~")
 PROJ_ROOT = dirname(dirname(dirname(realpath(__file__))))
+THIRD_PARTY_DIR = join(PROJ_ROOT, "third-party")
 
 FAASM_HOME = join(HOME_DIR, "faasm")
 FAASM_LOCAL_DIR = "/usr/local/faasm"
@@ -20,7 +21,7 @@ BENCHMARK_ENV = {
 }
 
 FUNC_DIR = join(PROJ_ROOT, "func")
-FUNC_BUILD_DIR = join(FUNC_DIR, "build")
+FUNC_BUILD_DIR = join(PROJ_ROOT, "build", "func")
 
 WASM_DIR = join(PROJ_ROOT, "wasm")
 WASM_LIB_DIR = join(PROJ_ROOT, "wasm", "lib")
@@ -34,7 +35,7 @@ DATA_S3_BUCKET = "faasm-data"
 AWS_ACCOUNT_ID = "733781933474"
 AWS_REGION = "eu-west-1"
 
-PYODIDE_ROOT = join(PROJ_ROOT, "pyodide")
+PYODIDE_ROOT = join(PROJ_ROOT, "third-party", "pyodide")
 PYODIDE_PACKAGES = join(PYODIDE_ROOT, "packages")
 PYODIDE_INSTALL_DIR = join(PYODIDE_ROOT, "cpython", "installs", "python-3.7.0")
 PY_RUNTIME_ROOT = join(FAASM_RUNTIME_ROOT, "lib", "python3.7")

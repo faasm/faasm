@@ -7,6 +7,7 @@ set(LIB_FILES
         Profiler.cpp
         PythonProfiler.cpp
         PolybenchProfiler.cpp
+        GenericFunctionProfiler.cpp
         ${FAASM_INCLUDE_DIR}/runner/function.h
         ${FAASM_INCLUDE_DIR}/runner/Profiler.h
         )
@@ -16,6 +17,9 @@ target_link_libraries(bench wasm util zygote)
 
 add_executable(func_runner runner.cpp)
 target_link_libraries(func_runner bench worker_lib)
+
+add_executable(simple_runner simple_runner.cpp)
+target_link_libraries(simple_runner bench worker_lib)
 
 add_executable(func_sym map_symbols.cpp)
 target_link_libraries(func_sym bench)
@@ -29,6 +33,9 @@ target_link_libraries(poly_bench bench)
 
 add_executable(bench_mem bench_mem.cpp)
 target_link_libraries(bench_mem bench wasm zygote system)
+
+add_executable(bench_func bench_func.cpp)
+target_link_libraries(bench_func bench wasm zygote system)
 
 add_executable(bench_time bench_time.cpp)
 target_link_libraries(bench_time bench wasm zygote system)

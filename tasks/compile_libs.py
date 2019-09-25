@@ -9,13 +9,13 @@ from invoke import task
 from tasks.compile import clean_dir
 from tasks.util.codegen import find_codegen_binary
 from tasks.util.env import PROJ_ROOT, FAASM_TOOLCHAIN_FILE, FAASM_SYSROOT, FAASM_INSTALL_DIR, \
-    FAASM_RUNTIME_ROOT
+    FAASM_RUNTIME_ROOT, THIRD_PARTY_DIR
 
 
 @task
 def compile_malloc(ctx, clean=False):
-    work_dir = join(PROJ_ROOT, "malloc")
-    build_dir = join(work_dir, "build")
+    work_dir = join(PROJ_ROOT, "third-party", "malloc")
+    build_dir = join(PROJ_ROOT, "build", "malloc")
 
     clean_dir(build_dir, clean)
 
@@ -23,7 +23,7 @@ def compile_malloc(ctx, clean=False):
         "cmake",
         "-DCMAKE_BUILD_TYPE=Release",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
-        ".."
+        work_dir,
     ]
 
     build_cmd_str = " ".join(build_cmd)
@@ -39,7 +39,7 @@ def install_native_tools(ctx, clean=False):
     if not exists(FAASM_INSTALL_DIR):
         mkdir(FAASM_INSTALL_DIR)
 
-    build_dir = join(PROJ_ROOT, "native_build")
+    build_dir = join(PROJ_ROOT, "build", "native_tools")
     clean_dir(build_dir, clean)
 
     build_cmd = [
@@ -49,7 +49,7 @@ def install_native_tools(ctx, clean=False):
         "-DFAASM_STATIC_LIBS=OFF",
         "-DCMAKE_BUILD_TYPE=Release",
         "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_INSTALL_DIR),
-        ".."
+        PROJ_ROOT,
     ]
 
     build_cmd_str = " ".join(build_cmd)
@@ -68,7 +68,7 @@ def compile_libfaasm(ctx, clean=False):
 
     def _do_lib_build(dir_name):
         work_dir = join(PROJ_ROOT, dir_name)
-        build_dir = join(work_dir, "lib_build")
+        build_dir = join(PROJ_ROOT, "build", dir_name)
 
         clean_dir(build_dir, clean)
 
@@ -77,7 +77,7 @@ def compile_libfaasm(ctx, clean=False):
             "-DFAASM_BUILD_TYPE=wasm",
             "-DCMAKE_BUILD_TYPE=Release",
             "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
-            ".."
+            work_dir,
         ]
 
         build_cmd_str = " ".join(build_cmd)
@@ -98,7 +98,7 @@ def compile_libfaasm(ctx, clean=False):
 @task
 def compile_libfake(ctx, clean=False):
     work_dir = join(PROJ_ROOT, "func", "dynlink")
-    build_dir = join(work_dir, "build")
+    build_dir = join(PROJ_ROOT, "build", "libfake")
 
     clean_dir(build_dir, clean)
 
@@ -108,7 +108,7 @@ def compile_libfake(ctx, clean=False):
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE=Release",
         "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_SYSROOT),
-        ".."
+        work_dir,
     ]
 
     call(" ".join(build_cmd), shell=True, cwd=build_dir)
@@ -138,33 +138,57 @@ def compile_libfake(ctx, clean=False):
 
 @task
 def compile_eigen(ctx):
-    working_dir = "/tmp"
-    eigen_dir = join(working_dir, "eigen3")
-    eigen_build_dir = join(eigen_dir, "build")
+    work_dir = join(THIRD_PARTY_DIR, "eigen")
+    build_dir = join(PROJ_ROOT, "build", "eigen")
 
-    if not exists(eigen_dir):
-        print("Checkout eigen")
-        call("git clone git@github.com:eigenteam/eigen-git-mirror.git eigen3",
-             shell=True, cwd=working_dir)
+    if exists(build_dir):
+        rmtree(build_dir)
 
-        # Make sure this commit hash matches the one in the Ansible task
-        print("Checkout specific eigen commit")
-        call("git checkout 0bdcefe7257e0a7c328c8440b85617e4ad75f3cf",
-             shell=True, cwd=eigen_dir)
-
-    if exists(eigen_build_dir):
-        rmtree(eigen_build_dir)
-
-    mkdir(eigen_build_dir)
+    mkdir(build_dir)
     cmd = [
         "cmake",
         "-DFAASM_BUILD_TYPE=Release",
         "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
         "-DCMAKE_BUILD_TYPE=Release",
         "-DCMAKE_INSTALL_PREFIX={}".format(FAASM_SYSROOT),
-        ".."
+        work_dir
     ]
     cmd_string = " ".join(cmd)
 
-    call(cmd_string, shell=True, cwd=eigen_build_dir)
-    call("make install", shell=True, cwd=eigen_build_dir)
+    call(cmd_string, shell=True, cwd=build_dir)
+    call("make install", shell=True, cwd=build_dir)
+
+#
+# @task
+# def compile_gemmlowp(ctx):
+#     # gemmlowp is header-only
+#     working_dir = "/tmp"
+#     gemm_dir = "/tmp/gemmlowp"
+#     dest_dir = join(FAASM_SYSROOT, "include", "gemmlowp")
+#
+#     # These are the dirs from the gemmlowp repo to include
+#     include_dirs = [
+#         "meta",
+#         "public",
+#         "profiling",
+#         "fixedpoint",
+#         "internal",
+#     ]
+#
+#     if not exists(gemm_dir):
+#         print("Checkout gemmlowp")
+#         call("git clone https://github.com/google/gemmlowp.git gemmlowp", cwd=working_dir, shell=True)
+#
+#     if not exists(dest_dir):
+#         mkdir(dest_dir)
+#
+#     for dir_name in include_dirs:
+#         dir_path = join(gemm_dir, dir_name)
+#         dest_path = join(dest_dir, dir_name)
+#
+#         if exists(dest_path):
+#             print("Deleting existing {}".format(dest_path))
+#             rmtree(dest_path)
+#
+#         print("Copying {} to {}".format(dir_path, dest_path))
+#         call("cp -r {} {}".format(dir_path, dest_path), shell=True)

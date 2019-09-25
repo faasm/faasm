@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
     void* dummyPtr = mmap(NULL, 10 * sizeof(int), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     munmap(dummyPtr, 10 * sizeof(int));
 
-#if WASM_BUILD == 1
+#if __wasm__ == 1
     // iprintf is an Emscripten-specific function which we need to include
     // to keep the dynamically linked libraries happy
     iprintf("mmaped location %p\n", dummyPtr);

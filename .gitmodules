@@ -1,27 +1,39 @@
-[submodule "WAVM"]
-	path = WAVM
-	url = https://github.com/Shillaker/WAVM.git
-[submodule "pyodide"]
-	path = pyodide
-	url = https://github.com/Shillaker/pyodide.git
-[submodule "musl"]
-	path = musl
-	url = https://github.com/Shillaker/musl.git
-[submodule "onnxjs"]
-	path = onnxjs
-	url = https://github.com/Shillaker/onnxjs.git
-[submodule "llvm-project"]
-	path = llvm-project
-	url = https://github.com/llvm/llvm-project.git
-[submodule "onnxruntime"]
-	path = onnxruntime
-	url = https://github.com/Shillaker/onnxruntime.git
-[submodule "libpng"]
-	path = libpng
-	url = https://github.com/glennrp/libpng.git
-[submodule "zlib"]
-	path = zlib
-	url = https://github.com/madler/zlib.git
-[submodule "gem3-mapper"]
-	path = gem3-mapper
+[submodule "third-party/tensorflow"]
+	path = third-party/tensorflow
+	url = https://github.com/Shillaker/tensorflow.git
+[submodule "third-party/flatbuffers"]
+	path = third-party/flatbuffers
+	url = https://github.com/google/flatbuffers.git
+[submodule "third-party/gemmlowp"]
+	path = third-party/gemmlowp
+	url = https://github.com/google/gemmlowp.git
+[submodule "third-party/farmhash"]
+	path = third-party/farmhash
+	url = https://github.com/google/farmhash
+[submodule "third-party/abseil-cpp"]
+	path = third-party/abseil-cpp
+	url = https://github.com/abseil/abseil-cpp.git
+[submodule "third-party/eigen"]
+	path = third-party/eigen
+	url = https://github.com/eigenteam/eigen-git-mirror
+[submodule "third-party/gem3-mapper"]
+	path = third-party/gem3-mapper
 	url = https://github.com/Shillaker/gem3-mapper.git
+[submodule "third-party/WAVM"]
+	path = third-party/WAVM
+	url = https://github.com/Shillaker/WAVM.git
+[submodule "third-party/libpng"]
+	path = third-party/libpng
+	url = https://github.com/glennrp/libpng.git
+[submodule "third-party/pyodide"]
+	path = third-party/pyodide
+	url = https://github.com/Shillaker/pyodide
+[submodule "third-party/zlib"]
+	path = third-party/zlib
+	url = https://github.com/madler/zlib.git
+[submodule "third-party/musl"]
+	path = third-party/musl
+	url = https://github.com/Shillaker/musl
+[submodule "third-party/llvm-project"]
+	path = third-party/llvm-project
+	url = https://github.com/llvm/llvm-project.git

@@ -54,7 +54,7 @@ WORKDIR /usr/local/code/faasm/ansible
 RUN ansible-playbook emsdk.yml
 
 # Build CPython and python packages
-WORKDIR /usr/local/code/faasm/pyodide
+WORKDIR /usr/local/code/faasm/third-party/pyodide
 RUN source workon.sh && cd cpython && make clean && make
 RUN source workon.sh && cd packages && make clean && make
 

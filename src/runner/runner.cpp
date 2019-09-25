@@ -19,8 +19,9 @@ int main(int argc, char *argv[]) {
     conf.unsafeMode = "on";
 
     // Set short timeouts to die quickly
-    conf.boundTimeout = 3000;
-    conf.unboundTimeout = 3000;
+    conf.boundTimeout = 60000;
+    conf.unboundTimeout = 60000;
+    conf.globalMessageTimeout = 60000;
 
     // Custom conf here to specify always scale out but put a limit on the workers
     conf.maxQueueRatio = 0;
@@ -59,7 +60,7 @@ int main(int argc, char *argv[]) {
 
     // Await the result
     scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
-    const message::Message &result = bus.getFunctionResult(call.id(), 20000);
+    const message::Message &result = bus.getFunctionResult(call.id(), conf.globalMessageTimeout);
     if(!result.success()) {
         throw std::runtime_error("Executing function failed");
     }

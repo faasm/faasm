@@ -47,6 +47,10 @@ namespace storage {
 
     std::vector<uint8_t> FunctionLoader::doCompile(std::vector<uint8_t> &bytes) {
         IR::Module moduleIR;
+
+        // Explicitly allow simd support
+        moduleIR.featureSpec.simd = true;
+
         if (this->isWasm(bytes)) {
             // Handle WASM
             Serialization::MemoryInputStream inputStream(bytes.data(), bytes.size());
@@ -58,7 +62,7 @@ namespace storage {
         } else {
             std::vector<WAST::Error> parseErrors;
             bool success = WAST::parseModule((const char *) bytes.data(), bytes.size(), moduleIR, parseErrors);
-            WAST::reportParseErrors("wast_file", parseErrors);
+            WAST::reportParseErrors("wast_file", (const char*)bytes.data(), parseErrors);
 
             if (!success) {
                 throw std::runtime_error("Failed to parse wast file");

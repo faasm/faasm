@@ -44,6 +44,12 @@ namespace tests {
         REQUIRE(moduleRefA1.memories.defs[0].type.size.max == MAX_MEMORY_PAGES);
         REQUIRE(moduleRefA1.tables.defs[0].type.size.max == MAX_TABLE_SIZE);
 
+        // Check simd
+        REQUIRE(moduleRefA1.featureSpec.simd);
+        REQUIRE(moduleRefA2.featureSpec.simd);
+        REQUIRE(moduleRefB1.featureSpec.simd);
+        REQUIRE(moduleRefB2.featureSpec.simd);
+
         // Check references are equal
         REQUIRE(std::addressof(moduleRefA1) == std::addressof(moduleRefA2));
         REQUIRE(objRefA1 == objRefA2);
@@ -89,6 +95,12 @@ namespace tests {
         // Sanity checks
         REQUIRE(!refA1.exports.empty());
         REQUIRE(!refB1.exports.empty());
+
+        // Check simd enabled
+        REQUIRE(refA1.featureSpec.simd);
+        REQUIRE(refA2.featureSpec.simd);
+        REQUIRE(refB1.featureSpec.simd);
+        REQUIRE(refB2.featureSpec.simd);
 
         // Check references are equal
         REQUIRE(std::addressof(refA1) == std::addressof(refA2));

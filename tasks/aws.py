@@ -17,7 +17,7 @@ from tasks.util.upload_util import upload_file_to_s3
 
 INSTALL_PATH = join(FAASM_HOME, "lambda")
 
-FAASM_LAMBDA_BUILD_DIR = join(PROJ_ROOT, "lambda_faasm_build")
+FAASM_LAMBDA_BUILD_DIR = join(PROJ_ROOT, "build", "lambda_faasm")
 
 AWS_LAMBDA_ROLE = "faasm-lambda-role"
 

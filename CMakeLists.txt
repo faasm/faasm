@@ -15,7 +15,7 @@ set(FAASM_LIB_C_DIR ${CMAKE_CURRENT_LIST_DIR}/lib-c)
 set(FAASM_LIB_CPP_DIR ${CMAKE_CURRENT_LIST_DIR}/lib-cpp)
 set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/python)
 set(FAASM_LAMBDA_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lambda)
-set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/WAVM/Lib)
+set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
 
 option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
 option(FAASM_AWS_SUPPORT "Whether to include AWS support" ON)
@@ -38,12 +38,16 @@ else()
     endfunction()
 endif()
 
+# NOTE - this will switch off stack traces
+# Turn off WAVM unwind (potential performance gain?)
+set(WAVM_ENABLE_UNWIND OFF CACHE BOOL "Disable WAVM unwind")
+
 # Stops WAVM compilation complaining
 add_definitions(-DDLL_EXPORT=)
 add_definitions(-DDLL_IMPORT=)
 
 # Custom LLVM build (also for profiling)
-set(FAASM_CUSTOM_LLVM 0)
+set(FAASM_CUSTOM_LLVM 1)
 if(${FAASM_CUSTOM_LLVM})
     message(STATUS "Using custom LLVM")
 
@@ -51,7 +55,8 @@ if(${FAASM_CUSTOM_LLVM})
     set(LLVM_DIR $ENV{HOME}/faasm/llvm/build/lib/cmake/llvm)
     find_package(LLVM REQUIRED CONFIG NO_DEFAULT_PATH)
 
-    set(WAVM_PERF_EVENTS 1)
+    set(WAVM_PERF_LIBS 1)
+    add_definitions(-DWAVM_PERF_EVENTS=1)
 else()
     find_package(LLVM REQUIRED CONFIG)
 endif()
@@ -118,7 +123,7 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-worker")
 
     message(STATUS "Running lambda worker build")
 
-    add_subdirectory(WAVM)
+    add_subdirectory(third-party/WAVM)
 
     add_subdirectory(src/aws)
     add_subdirectory(src/lambda)
@@ -171,7 +176,7 @@ else ()
     # ------------------
 
     # WAVM
-    add_subdirectory(WAVM)
+    add_subdirectory(third-party/WAVM)
 
     # Faasm functions
     add_subdirectory(func)
@@ -181,7 +186,7 @@ else ()
     add_subdirectory(python)
 
     # Custom malloc
-    add_subdirectory(malloc)
+    add_subdirectory(third-party/malloc)
 
     # Experiments
     add_subdirectory(experiment)
@@ -217,4 +222,7 @@ else ()
     add_subdirectory(test)
     add_subdirectory(test_utils)
     add_subdirectory(test_integration)
+
+    # Eigen
+    add_subdirectory(third-party/eigen)
 endif ()

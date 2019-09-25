@@ -21,7 +21,7 @@ namespace tests {
                 "libfakeLibA.wast", "libfakeLibB.wast",
                 "libfakeiLibA.wast", "libfakeiLibB.wast",
                 "raytrace.ppm", "chaos.ppm",
-                "share", "usr"
+                "share", "usr", "data",
         };
 
         util::SystemConfig &conf = util::getSystemConfig();

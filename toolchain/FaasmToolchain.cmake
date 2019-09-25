@@ -12,21 +12,26 @@ set(UNIX 1)
 set(CMAKE_C_COMPILER ${INSTALL_DIR}/clang)
 set(CMAKE_CXX_COMPILER ${INSTALL_DIR}/clang++)
 
-set(CMAKE_AR ${INSTALL_DIR}/llvm-ar CACHE STRING "faasm-sdk build")
-set(CMAKE_NM ${INSTALL_DIR}/llvm-nm CACHE STRING "faasm-sdk build")
-set(CMAKE_RANLIB ${INSTALL_DIR}/llvm-ranlib CACHE STRING "faasm-sdk build")
-set(CMAKE_LD ${INSTALL_DIR}/wasm-ld CACHE STRING "faasm-sdk build")
-set(CMAKE_LDSHARED ${INSTALL_DIR}/wasm-ld CACHE STRING "faasm-sdk build")
-set(CMAKE_C_COMPILER_TARGET wasm32 CACHE STRING "faasm-sdk build")
-set(CMAKE_CXX_COMPILER_TARGET wasm32 CACHE STRING "faasm-sdk build")
+set(CMAKE_AR ${INSTALL_DIR}/llvm-ar CACHE STRING "faasm build")
+set(CMAKE_NM ${INSTALL_DIR}/llvm-nm CACHE STRING "faasm build")
+set(CMAKE_RANLIB ${INSTALL_DIR}/llvm-ranlib CACHE STRING "faasm build")
+set(CMAKE_LD ${INSTALL_DIR}/wasm-ld CACHE STRING "faasm build")
+set(CMAKE_LDSHARED ${INSTALL_DIR}/wasm-ld CACHE STRING "faasm build")
+set(CMAKE_C_COMPILER_TARGET wasm32 CACHE STRING "faasm build")
+set(CMAKE_CXX_COMPILER_TARGET wasm32 CACHE STRING "faasm build")
 
 set(CMAKE_DL_LIBS "")
 
-set(FAASM_COMPILER_FLAGS "--sysroot=${FAASM_SYSROOT} -I${FAASM_SYSROOT}/include/eigen3")
+# Explicitly disable eigen parallelisation
+add_definitions(-DEIGEN_DONT_PARALLELIZE=1)
 
-set(CMAKE_SYSROOT ${FAASM_SYSROOT} CACHE STRING "faasm-sdk build")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${FAASM_COMPILER_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FAASM_COMPILER_FLAGS}")
+# Note: see Clang wasm-specific flags at https://clang.llvm.org/docs/ClangCommandLineReference.html#webassembly
+# Note the optimisation level. We want to keep vectorization so stick with O3
+set(FAASM_COMPILER_FLAGS "-O3 -msimd128 --sysroot=${FAASM_SYSROOT}")
+
+set(CMAKE_SYSROOT ${FAASM_SYSROOT} CACHE STRING "faasm build")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${FAASM_COMPILER_FLAGS}" CACHE STRING "faasm build")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FAASM_COMPILER_FLAGS}" CACHE STRING "faasm build")
 
 # Note that system name and processor here are crucial
 # Setting system name automatically switches on cross-compiling

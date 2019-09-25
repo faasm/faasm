@@ -11,6 +11,10 @@
 #include <WAVM/Runtime/Intrinsics.h>
 
 namespace wasm {
+    I32 s__gettid() {
+        return FAKE_TID;
+    }
+
     I32 s__getpid() {
         return FAKE_PID;
     }
@@ -69,7 +73,7 @@ namespace wasm {
 
         // Provision a new segment of memory big enough to hold the strings and the struct
         size_t memSize = strlen(FAKE_NAME) + strlen(FAKE_PASSWORD) + strlen(FAKE_HOME) + sizeof(wasm_passwd);
-        U32 newMem = module->mmap(memSize);
+        U32 newMem = module->mmapMemory(memSize);
         char *hostNewMem = Runtime::memoryArrayPtr<char>(memoryPtr, newMem, memSize);
 
         // Copy the strings into place
@@ -116,7 +120,7 @@ namespace wasm {
             }
         }
 
-        char* resultBuffer = &Runtime::memoryRef<char>(memoryPtr, (Uptr) buffer);
+        char *resultBuffer = &Runtime::memoryRef<char>(memoryPtr, (Uptr) buffer);
         std::strcpy(resultBuffer, value);
     }
 
@@ -142,10 +146,9 @@ namespace wasm {
         util::getLogger()->debug("S - _sysconf - {}", a);
 
         util::SystemConfig &conf = util::getSystemConfig();
-        if(a == _SC_NPROCESSORS_ONLN) {
+        if (a == _SC_NPROCESSORS_ONLN) {
             return sysconf(a);
-        }
-        else if (conf.unsafeMode == "on") {
+        } else if (conf.unsafeMode == "on") {
             // Allowing arbitrary access in unsafe mode
             return sysconf(a);
         } else {
@@ -153,22 +156,22 @@ namespace wasm {
         }
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "uname", I32, uname , I32 bufPtr) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "uname", I32, uname, I32 bufPtr) {
         util::getLogger()->debug("S - uname - {}", bufPtr);
 
         // Native pointer to buffer
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *hostBufPtr = &Runtime::memoryRef<U8>(memoryPtr, (Uptr) bufPtr);
-        
+
         // Fake system info
         // TODO - should probably give some valid stuff here in case we break something
-        wasm_utsname s {
-            .sysname="Linux",
-            .nodename="faasm",
-            .release="1.0.0",
-            .version="Faasm 123",
-            .machine="x86",   // Probably safest in 32-bit wasm env
-            .domainname="(none)"
+        wasm_utsname s{
+                .sysname="Linux",
+                .nodename="faasm",
+                .release="1.0.0",
+                .version="Faasm 123",
+                .machine="x86",   // Probably safest in 32-bit wasm env
+                .domainname="(none)"
         };
 
         // Copy fake info into place
@@ -188,10 +191,15 @@ namespace wasm {
         util::getLogger()->debug("S - clock_gettime - {} {}", clockId, timespecPtr);
 
         timespec ts{};
-        clock_gettime(CLOCK_MONOTONIC, &ts);
+        int retVal = clock_gettime(clockId, &ts);
+        if (retVal == -1) {
+            util::getLogger()->error("Clock type not supported - %i (%s)\n", errno, strerror(errno));
+            getExecutingModule()->setErrno(errno);
+            return -1;
+        }
 
         auto result = &Runtime::memoryRef<wasm_timespec>(getExecutingModule()->defaultMemory, (Uptr) timespecPtr);
-        result->tv_sec = I32(ts.tv_sec);
+        result->tv_sec = I64(ts.tv_sec);
         result->tv_nsec = I32(ts.tv_nsec);
 
         return 0;
@@ -230,7 +238,7 @@ namespace wasm {
         util::getLogger()->debug("S - nanosleep - {} {}", reqPtr, remPtr);
 
         util::SystemConfig &conf = util::getSystemConfig();
-        if(conf.unsafeMode == "on") {
+        if (conf.unsafeMode == "on") {
             auto request = &Runtime::memoryRef<wasm_timespec>(getExecutingModule()->defaultMemory, (Uptr) reqPtr);
 
             // Round up

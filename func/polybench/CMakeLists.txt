@@ -2,6 +2,14 @@ set(FAASM_USER polybench)
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/utilities)
 
+if (FAASM_BUILD_TYPE STREQUAL "wasm")
+    # NOTE - at the time of writing this switch greatly improved performance.
+    # BUT - we can't compile everything with it as it'll break other stuff that
+    # tries to use the unimplemented functionality
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -munimplemented-simd128")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -munimplemented-simd128")
+endif()
+
 function(polybench_func exec_name dir_path)
     add_executable(poly_${exec_name}
             ${dir_path}/${exec_name}/${exec_name}.c
@@ -11,12 +19,10 @@ function(polybench_func exec_name dir_path)
             )
 
     if (FAASM_BUILD_TYPE STREQUAL "wasm")
-        set(EXTRA_LIBS dlmalloc)
+        target_link_libraries(poly_${exec_name} faasm dlmalloc)
     else()
-        set(EXTRA_LIBS m)
+        target_link_libraries(poly_${exec_name} m)
     endif()
-
-    target_link_libraries(poly_${exec_name} ${EXTRA_LIBS})
 
     # Add this func to the list of all functions
     set(ALL_POLY_FUNCS ${ALL_POLY_FUNCS} poly_${exec_name} PARENT_SCOPE)

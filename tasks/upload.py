@@ -7,7 +7,7 @@ from invoke import task
 from tasks.util.env import FUNC_BUILD_DIR, PROJ_ROOT, RUNTIME_S3_BUCKET
 from tasks.util.upload_util import curl_file, upload_file_to_s3
 
-DIRS_TO_INCLUDE = ["demo", "errors", "onnx", "python", "polybench", "sgd"]
+DIRS_TO_INCLUDE = ["demo", "errors", "python", "polybench", "sgd", "tf"]
 
 
 def _get_s3_key(user, func):
@@ -16,8 +16,11 @@ def _get_s3_key(user, func):
 
 
 @task
-def upload(ctx, user, func, host="127.0.0.1", upload_s3=False):
-    func_file = join(FUNC_BUILD_DIR, user, "{}.wasm".format(func))
+def upload(ctx, user, func, host="127.0.0.1", upload_s3=False, subdir=None):
+    if subdir:
+        func_file = join(FUNC_BUILD_DIR, user, subdir, "{}.wasm".format(func))
+    else:
+        func_file = join(FUNC_BUILD_DIR, user, "{}.wasm".format(func))
 
     if upload_s3:
         print("Uploading {}/{} to S3".format(user, func))
@@ -44,18 +47,16 @@ def ts_upload(ctx, func, host="127.0.0.1"):
 
 
 def _do_upload_all(host=None, upload_s3=False):
-    func_dir = FUNC_BUILD_DIR
-
     to_upload = []
 
     # Walk the function directory tree
-    for root, dirs, files in os.walk(func_dir):
+    for root, dirs, files in os.walk(FUNC_BUILD_DIR):
         # Strip original dir from root
-        rel_path = root.replace(func_dir, "")
+        rel_path = root.replace(FUNC_BUILD_DIR, "")
         rel_path = rel_path.strip("/")
 
         path_parts = rel_path.split("/")
-        if len(path_parts) != 1:
+        if not path_parts:
             continue
 
         if path_parts[0] not in DIRS_TO_INCLUDE:

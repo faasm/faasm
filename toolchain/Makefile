@@ -1,5 +1,5 @@
 PROJ_ROOT=${CURDIR}/..
-LLVM_PROJ_DIR=$(PROJ_ROOT)/llvm-project
+LLVM_PROJ_DIR=$(PROJ_ROOT)/third-party/llvm-project
 TOOLCHAIN_DIR=$(PROJ_ROOT)/toolchain
 TOOLCHAIN_FILE=$(TOOLCHAIN_DIR)/FaasmToolchain.cmake
 
