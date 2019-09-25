@@ -11,14 +11,15 @@ _s3 = None
 def _get_s3():
     global _s3
     if _s3 is None:
-        _s3 = boto3.resource('s3', region_name=AWS_REGION)
+        _s3 = boto3.resource("s3", region_name=AWS_REGION)
 
     return _s3
 
 
-def upload_file_to_s3(file_path, s3_bucket, s3_key):
+def upload_file_to_s3(file_path, s3_bucket, s3_key, public=False):
     s3 = _get_s3()
-    s3.Bucket(s3_bucket).upload_file(file_path, s3_key)
+    kwargs = {"ExtraArgs": {"ACL": "public-read"}} if public else {}
+    s3.Bucket(s3_bucket).upload_file(file_path, s3_key, **kwargs)
 
 
 def list_files_s3(s3_bucket, prefix):

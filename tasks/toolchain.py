@@ -23,8 +23,8 @@ def backup_toolchain(ctx):
 
     # Upload
     print("Uploading archives to S3")
-    upload_file_to_s3(TOOLCHAIN_TAR_PATH, MISC_S3_BUCKET, TOOLCHAIN_TAR_NAME)
-    upload_file_to_s3(SYSROOT_TAR_PATH, MISC_S3_BUCKET, SYSROOT_TAR_NAME)
+    upload_file_to_s3(TOOLCHAIN_TAR_PATH, MISC_S3_BUCKET, TOOLCHAIN_TAR_NAME, public=True)
+    upload_file_to_s3(SYSROOT_TAR_PATH, MISC_S3_BUCKET, SYSROOT_TAR_NAME, public=True)
 
     # Remove old tar
     print("Removing archives")

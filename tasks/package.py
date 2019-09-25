@@ -50,7 +50,7 @@ def package_runtime_root(ctx):
 
     # Upload
     print("Uploading archive to S3")
-    upload_file_to_s3(RUNTIME_TAR_PATH, MISC_S3_BUCKET, RUNTIME_TAR_NAME)
+    upload_file_to_s3(RUNTIME_TAR_PATH, MISC_S3_BUCKET, RUNTIME_TAR_NAME, public=True)
 
     # Remove old tar
     print("Removing archive")
