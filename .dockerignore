@@ -15,7 +15,10 @@ k8s
 node_modules
 typescript
 venv
+
+# WebAssembly - some functions have special status
 wasm
+!wasm/python/py_func/function.wasm
 
 # Toolchain
 toolchain/install

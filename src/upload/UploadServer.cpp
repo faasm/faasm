@@ -9,10 +9,6 @@
 #include <util/state.h>
 
 
-/*
- * GET requests retrieve the function file or
- */
-
 namespace edge {
     UploadServer::UploadServer() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();

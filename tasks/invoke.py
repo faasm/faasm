@@ -23,13 +23,14 @@ def _do_post(url, input, headers=None):
 
 def _do_invoke(user, func, host, port, func_type, input=None):
     url = "http://{}:{}/{}/{}/{}".format(host, port, func_type, user, func)
+    print("Invoking {}".format(url))
     _do_post(url, input)
 
 
 @task
 def invoke(ctx, user, func, host="127.0.0.1", port=8001, input=None, parallel=False, loops=1):
     for l in range(loops):
-        if (loops > 1):
+        if loops > 1:
             print("LOOP {}".format(l))
 
         if parallel:
