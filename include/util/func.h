@@ -1,13 +1,12 @@
 #pragma once
 
 #include <proto/faasm.pb.h>
-#include "FunctionConfig.h"
 #include <string>
 #include <vector>
 
-namespace util {
-    FunctionConfig getFunctionConfig(const message::Message &msg);
+#define SHARED_OBJ_EXT ".o"
 
+namespace util {
     std::string getFunctionKey(const message::Message &msg);
 
     std::string getFunctionObjectKey(const message::Message &msg);
@@ -24,7 +23,9 @@ namespace util {
 
     std::string getFunctionObjectFile(const message::Message &msg);
 
-    std::string getFunctionConfigFile(const message::Message &msg);
+    std::string getSharedObjectFile(const std::string &realPath);
+
+    std::string getSharedObjectObjectFile(const std::string &realPath);
 
     bool isValidFunction(const message::Message &msg);
 

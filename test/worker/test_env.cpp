@@ -11,7 +11,7 @@ namespace tests {
         cleanSystem();
 
         util::SystemConfig &conf = util::getSystemConfig();
-        conf.unsafeMode = "on";
+        conf.fsMode = "on";
 
         message::Message msg = util::messageFactory("demo", "getenv");
         execFunction(msg);

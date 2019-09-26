@@ -38,7 +38,7 @@ namespace util {
         netNsMode = getEnvVar("NETNS_MODE", "off");
         logLevel = getEnvVar("LOG_LEVEL", "info");
         awsLogLevel = getEnvVar("AWS_LOG_LEVEL", "off");
-        unsafeMode = getEnvVar("UNSAFE_MODE", "off");
+        fsMode = getEnvVar("FS_MODE", "off");
 
         // Redis
         redisStateHost = getEnvVar("REDIS_STATE_HOST", "localhost");
@@ -66,6 +66,10 @@ namespace util {
         statePushInterval = this->getSystemConfIntParam("STATE_PUSH_INTERVAL", "500");
         fullAsync = this->getSystemConfIntParam("FULL_ASYNC", "0");
         fullSync = this->getSystemConfIntParam("FULL_SYNC", "0");
+
+        // Filesystem storage
+        functionDir = getEnvVar("FUNC_DIR", "/usr/local/code/faasm/wasm");
+        objectFileDir = getEnvVar("OBJ_DIR", "/usr/local/faasm/object");
 
         if(fullAsync == 1 && fullSync == 1) {
             throw std::runtime_error("Can't have both full async and full sync on");
@@ -97,7 +101,7 @@ namespace util {
         logger->info("NETNS_MODE                 {}", netNsMode);
         logger->info("LOG_LEVEL                  {}", logLevel);
         logger->info("AWS_LOG_LEVEL              {}", awsLogLevel);
-        logger->info("UNSAFE_MODE                {}", unsafeMode);
+        logger->info("FS_MODE                {}", fsMode);
 
         logger->info("--- Redis ---");
         logger->info("REDIS_STATE_HOST           {}", redisStateHost);
@@ -126,8 +130,11 @@ namespace util {
         logger->info("STATE_PUSH_INTERVAL        {}", statePushInterval);
         logger->info("FULL_ASYNC                 {}", fullAsync);
         logger->info("FULL_SYNC                  {}", fullSync);
-    }
 
+        logger->info("--- Storage ---");
+        logger->info("FUNC_DIR      {}", functionDir);
+        logger->info("OBJ_DIR       {}", objectFileDir);
+    }
 
     void _setNodeId() {
         // This needs to be thread-safe to get a consistent nodeId for all threads on the same host

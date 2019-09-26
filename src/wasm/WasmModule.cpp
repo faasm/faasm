@@ -971,15 +971,9 @@ namespace wasm {
     void WasmModule::checkThreadOwnsFd(int fd) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
         bool isNotOwned = openFds.find(fd) == openFds.end();
-        util::SystemConfig &conf = util::getSystemConfig();
 
         if (fd == STDIN_FILENO) {
-            if (conf.unsafeMode == "on") {
-                logger->warn("Process interacting with stdin");
-            } else {
-                logger->error("Process interacting with stdin");
-                throw std::runtime_error("Process interacting with stdin");
-            }
+            logger->warn("Process interacting with stdin");
         } else if (fd == STDOUT_FILENO) {
             // Can allow stdout/ stderr through
             // logger->debug("Process interacting with stdout", fd);

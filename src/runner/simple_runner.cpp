@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
     }
 
     util::SystemConfig &conf = util::getSystemConfig();
-    conf.unsafeMode = "on";
+    conf.fsMode = "on";
 
     std::string user = argv[1];
     std::string function = argv[2];

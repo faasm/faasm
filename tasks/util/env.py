@@ -16,7 +16,7 @@ RESULT_DIR = join(FAASM_HOME, "results")
 BENCHMARK_ENV = {
     "CGROUP_MODE": "off",
     "NETNS_MODE": "off",
-    "UNSAFE_MODE": "on",
+    "FS_MODE": "on",
     "GLOBAL_MESSAGE_TIMEOUT": "120000",
     "LOG_LEVEL": "off",
 }

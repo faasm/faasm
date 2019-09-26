@@ -57,3 +57,5 @@ spec:
               value: "500"
             - name: FULL_ASYNC
               value: "0"
+            - name: FS_MODE
+              value: "on"

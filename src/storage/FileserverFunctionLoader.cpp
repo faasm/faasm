@@ -4,9 +4,15 @@
 #include <util/bytes.h>
 #include <util/files.h>
 #include <util/logging.h>
+#include <util/config.h>
+
 
 namespace storage {
-    std::vector<uint8_t> _loadBytes(const std::string &url) {
+    std::string FileserverFunctionLoader::getFileserverUrl() {
+        return util::getSystemConfig().fileserverUrl;
+    }
+
+    std::vector<uint8_t> _loadBytesFromUrl(const std::string &url) {
         const std::vector<uint8_t> fileBytes = util::readFileFromUrl(url);
 
         if (fileBytes.empty()) {
@@ -17,17 +23,25 @@ namespace storage {
         return fileBytes;
     }
 
-    std::vector<uint8_t> FileserverFunctionLoader::loadFunctionBytes(const message::Message &msg) {
+    std::vector<uint8_t> FileserverFunctionLoader::loadFunctionWasm(const message::Message &msg) {
         std::string url = util::getFunctionUrl(msg);
-        return _loadBytes(url);
+        return _loadBytesFromUrl(url);
     }
 
-    std::vector<uint8_t> FileserverFunctionLoader::loadFunctionObjectBytes(const message::Message &msg) {
+    std::vector<uint8_t> FileserverFunctionLoader::loadFunctionObjectFile(const message::Message &msg) {
         std::string url = util::getFunctionObjectUrl(msg);
-        return _loadBytes(url);
+        return _loadBytesFromUrl(url);
     }
 
-    std::string FileserverFunctionLoader::getFileserverUrl() {
-        return util::getSystemConfig().fileserverUrl;
+    std::vector<uint8_t> FileserverFunctionLoader::loadSharedObjectWasm(const std::string &path) {
+
+    }
+
+    std::vector<uint8_t> FileserverFunctionLoader::loadSharedObjectObjectFile(const std::string &path) {
+
+    }
+
+    std::vector<uint8_t> FileserverFunctionLoader::loadPythonFunctionFile(const message::Message &msg) {
+
     }
 }

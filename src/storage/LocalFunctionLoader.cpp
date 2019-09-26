@@ -18,24 +18,34 @@ namespace storage {
         }
     }
 
-    std::vector<uint8_t> LocalFunctionLoader::loadFunctionBytes(const message::Message &msg) {
-        std::string filePath = util::getFunctionFile(msg);
-        return this->loadFileBytes(filePath);
-    }
-
-    std::vector<uint8_t> LocalFunctionLoader::loadFileBytes(const std::string &path) {
+    std::vector<uint8_t> loadFileBytes(const std::string &path) {
         checkFileExists(path);
         return util::readFileToBytes(path);
     }
 
-    std::vector<uint8_t> LocalFunctionLoader::loadFunctionObjectBytes(const message::Message &msg) {
-        std::string objectFilePath = util::getFunctionObjectFile(msg);
-        return this->loadFileBytes(objectFilePath);
+    std::vector<uint8_t> LocalFunctionLoader::loadFunctionWasm(const message::Message &msg) {
+        std::string filePath = util::getFunctionFile(msg);
+        return loadFileBytes(filePath);
     }
 
-    std::vector<uint8_t> LocalFunctionLoader::loadPythonFunction(const message::Message &msg) {
+    std::vector<uint8_t> LocalFunctionLoader::loadFunctionObjectFile(const message::Message &msg) {
+        std::string objectFilePath = util::getFunctionObjectFile(msg);
+        return loadFileBytes(objectFilePath);
+    }
+
+    std::vector<uint8_t> LocalFunctionLoader::loadSharedObjectObjectFile(const std::string &path) {
+        std::string objFilePath = util::getSharedObjectObjectFile(path);
+        return loadFileBytes(objFilePath);
+    }
+
+    std::vector<uint8_t> LocalFunctionLoader::loadSharedObjectWasm(const std::string &path) {
+        const std::string wasmPath = util::getSharedObjectFile(path);
+        return loadFileBytes(wasmPath);
+    }
+
+    std::vector<uint8_t> LocalFunctionLoader::loadPythonFunctionFile(const message::Message &msg) {
         std::string path = util::getPythonFunctionFile(msg);
-        return this->loadFileBytes(path);
+        return loadFileBytes(path);
     }
 
     void LocalFunctionLoader::uploadFunction(message::Message &msg) {
@@ -58,7 +68,7 @@ namespace storage {
 
         // Build the object file from the file we've just received
         logger->debug("Generating object file for {}", funcStr);
-        this->compileToObjectFile(msg);
+        codegenForFunction(msg);
     }
 
     void LocalFunctionLoader::uploadPythonFunction(message::Message & msg) {
@@ -73,13 +83,13 @@ namespace storage {
         out.close();
     }
 
-    void LocalFunctionLoader::uploadObjectBytes(const message::Message &msg, const std::vector<uint8_t> &objBytes) {
+    void LocalFunctionLoader::uploadFunctionObjectFile(const message::Message &msg, const std::vector<uint8_t> &objBytes) {
         std::string objFilePath = util::getFunctionObjectFile(msg);
-        this->uploadObjectBytes(objFilePath, objBytes);
+        util::writeBytesToFile(objFilePath, objBytes);
     }
 
-    void LocalFunctionLoader::uploadObjectBytes(const std::string &path, const std::vector<uint8_t> &objBytes) {
-        util::writeBytesToFile(path, objBytes);
+    void LocalFunctionLoader::uploadSharedObjectObjectFile(const std::string &path, const std::vector<uint8_t> &objBytes) {
+        std::string outputPath = util::getSharedObjectObjectFile(path);
+        util::writeBytesToFile(outputPath, objBytes);
     }
-
 }

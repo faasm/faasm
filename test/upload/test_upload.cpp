@@ -118,7 +118,9 @@ namespace tests {
 
         SECTION("Test uploading wasm file") {
             // Override the function directory with junk
-            util::setEnvVar("FUNC_ROOT", "/tmp");
+            util::SystemConfig &conf = util::getSystemConfig();
+            std::string orig =  conf.functionDir;
+            conf.functionDir =  "/tmp";
 
             // Ensure environment is clean before running
             std::string expectedFile = "/tmp/wasm/gamma/delta/function.wasm";
@@ -145,7 +147,7 @@ namespace tests {
             // Check getting the object file
             checkGet("/fo/gamma/delta", objBytes);
 
-            util::unsetEnvVar("FUNC_ROOT");
+            conf.functionDir = orig;
         }
 
         SECTION("Test uploading python file") {

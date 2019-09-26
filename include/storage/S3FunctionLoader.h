@@ -18,6 +18,8 @@ namespace storage {
 
         std::vector<uint8_t> loadPythonFunction(const message::Message &msg);
 
+        std::string getObjectPath(const std::string &realPath);
+
         void uploadFunction(message::Message &msg);
 
         void uploadPythonFunction(message::Message &msg);

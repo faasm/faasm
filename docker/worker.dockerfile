@@ -13,9 +13,6 @@ WORKDIR /faasm/build
 RUN cmake --build . --target worker -- -j
 RUN cmake --build . --target codegen -- -j
 
-# Run codegen on Python stuff
-RUN ./bin/codegen /usr/local/faasm/runtime_root/lib/python3.7
-
 # Set up entrypoint (for cgroups, namespaces etc.)
 COPY bin/worker-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

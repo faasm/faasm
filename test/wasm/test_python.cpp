@@ -9,7 +9,7 @@
 namespace tests {
     void checkPythonFunction(const std::string &funcName) {
         util::SystemConfig &conf = util::getSystemConfig();
-        conf.unsafeMode = "on";
+        conf.fsMode = "on";
 
         message::Message call = util::messageFactory("python", "py_func");
         call.set_inputdata(funcName);
@@ -33,7 +33,7 @@ namespace tests {
 
     TEST_CASE("Test repeated numpy execution", "[wasm]") {
         util::SystemConfig &conf = util::getSystemConfig();
-        conf.unsafeMode = "on";
+        conf.fsMode = "on";
 
         message::Message call = util::messageFactory("python", "py_func");
         call.set_inputdata("numpy_test.py");

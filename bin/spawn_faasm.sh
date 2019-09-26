@@ -11,7 +11,7 @@ fi
 export CGROUP_MODE=off
 export NETNS_MODE=off
 export LOG_LEVEL=off 
-export UNSAFE_MODE=on
+export FS_MODE=on
 
 spawn_script="${HOME}/faasm/bench/bin/bench_mem sleep_long"
 

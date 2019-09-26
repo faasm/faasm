@@ -37,12 +37,14 @@ namespace storage {
         this->uploadObjectBytes(msg, objBytes);
     }
 
-    void FunctionLoader::compileToObjectFile(const std::string &inputPath, const std::string &outputPath) {
+    void FunctionLoader::compileToObjectFile(const std::string &inputPath) {
+        // Generate the machine code
         std::vector<uint8_t> bytes = this->loadFileBytes(inputPath);
-
         std::vector<uint8_t> objBytes = this->doCompile(bytes);
 
-        this->uploadObjectBytes(outputPath, objBytes);
+        // Do the upload
+        std::string objectFilePath = this->getObjectPath(inputPath);
+        this->uploadObjectBytes(objectFilePath, objBytes);
     }
 
     std::vector<uint8_t> FunctionLoader::doCompile(std::vector<uint8_t> &bytes) {

@@ -197,8 +197,8 @@ namespace tests {
 
     TEST_CASE("Test cloned execution on complex module", "[wasm]") {
         util::SystemConfig &conf = util::getSystemConfig();
-        std::string orig = conf.unsafeMode;
-        conf.unsafeMode = "on";
+        std::string orig = conf.fsMode;
+        conf.fsMode = "on";
 
         std::string user = "python";
         std::string func = "py_func";
@@ -211,7 +211,7 @@ namespace tests {
             _checkAssignmentOperator(user, func, input, input, false);
         }
 
-        conf.unsafeMode = orig;
+        conf.fsMode = orig;
     }
 
     TEST_CASE("Test GC on cloned modules without execution") {

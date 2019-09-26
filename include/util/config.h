@@ -25,7 +25,7 @@ namespace util {
         std::string netNsMode;
         std::string logLevel;
         std::string awsLogLevel;
-        std::string unsafeMode;
+        std::string fsMode;
 
         // Redis
         std::string redisStateHost;
@@ -54,6 +54,10 @@ namespace util {
         int statePushInterval;
         int fullAsync;
         int fullSync;
+
+        // Filesystem storage
+        std::string functionDir;
+        std::string objectFileDir;
 
         SystemConfig();
 

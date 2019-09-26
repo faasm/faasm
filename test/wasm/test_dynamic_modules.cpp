@@ -32,7 +32,7 @@ namespace tests {
 
     TEST_CASE("Test dynamic load/ function lookup", "[wasm]") {
         util::SystemConfig &conf = util::getSystemConfig();
-        conf.unsafeMode = "on";
+        conf.fsMode = "on";
         wasm::IRModuleRegistry &registry = wasm::getIRModuleRegistry();
 
         // Bind to Python function
@@ -134,7 +134,7 @@ namespace tests {
 
     TEST_CASE("Test GOT population", "[wasm]") {
         util::SystemConfig &conf = util::getSystemConfig();
-        conf.unsafeMode = "on";
+        conf.fsMode = "on";
 
         // Bind to Python function
         message::Message msg = util::messageFactory("python", "py_func");
@@ -195,7 +195,7 @@ namespace tests {
 
     TEST_CASE("Test resolving dynamic module imports", "[wasm]") {
         util::SystemConfig &conf = util::getSystemConfig();
-        conf.unsafeMode = "on";
+        conf.fsMode = "on";
 
         // Bind to Python function
         message::Message msg = util::messageFactory("python", "py_func");

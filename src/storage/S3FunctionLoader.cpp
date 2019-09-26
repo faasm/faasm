@@ -31,6 +31,11 @@ namespace storage {
         throw std::runtime_error("Loading python functions not supported with S3");
     }
 
+    std::string S3FunctionLoader::getObjectPath(const std::string &realPath) {
+        // Don't need to modify anything for S3
+        return realPath;
+    }
+
     void S3FunctionLoader::uploadFunction(message::Message &msg) {
         // Note, when uploading, the input data is the function body
         const std::string &inputBytes = msg.inputdata();

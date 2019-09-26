@@ -143,15 +143,13 @@ namespace wasm {
      * Allowing straight-through access to sysconf my not be wise. Should revisit this.
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "sysconf", I32, _sysconf, I32 a) {
-        util::getLogger()->debug("S - _sysconf - {}", a);
-
-        util::SystemConfig &conf = util::getSystemConfig();
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - _sysconf - {}", a);
+        
         if (a == _SC_NPROCESSORS_ONLN) {
             return sysconf(a);
-        } else if (conf.unsafeMode == "on") {
-            // Allowing arbitrary access in unsafe mode
-            return sysconf(a);
         } else {
+            logger->error("Called sysconf with unsupported param - {}", a);
             throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
         }
     }
@@ -232,21 +230,16 @@ namespace wasm {
     }
 
     /**
-     * We just need a way to sleep when benchmarking the runtime.
+     * Allow sleep for now
      */
     I32 s__nanosleep(I32 reqPtr, I32 remPtr) {
         util::getLogger()->debug("S - nanosleep - {} {}", reqPtr, remPtr);
 
-        util::SystemConfig &conf = util::getSystemConfig();
-        if (conf.unsafeMode == "on") {
-            auto request = &Runtime::memoryRef<wasm_timespec>(getExecutingModule()->defaultMemory, (Uptr) reqPtr);
+        auto request = &Runtime::memoryRef<wasm_timespec>(getExecutingModule()->defaultMemory, (Uptr) reqPtr);
 
-            // Round up
-            sleep(request->tv_sec + 1);
-        } else {
-            // Bomb out if not in unsafe mode
-            throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-        }
+        // TODO - is this ok? Should we allow?
+        // Round up
+        sleep(request->tv_sec + 1);
 
         return 0;
     }

@@ -33,4 +33,5 @@ perf.*
 # Submodules
 third-party
 !third-party/malloc
+!third-party/eigen
 !third-party/WAVM

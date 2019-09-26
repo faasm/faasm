@@ -31,7 +31,7 @@ namespace tests {
         REQUIRE(conf.queueName == "faasm-messages");
         REQUIRE(conf.netNsMode == "off");
         REQUIRE(conf.awsLogLevel == "off");
-        REQUIRE(conf.unsafeMode == "off");
+        REQUIRE(conf.fsMode == "off");
 
         REQUIRE(conf.redisPort == "6379");
 
@@ -67,7 +67,7 @@ namespace tests {
         std::string cgMode = setEnvVar("CGROUP_MODE", "off");
         std::string nsMode = setEnvVar("NETNS_MODE", "on");
         std::string awsLog = setEnvVar("AWS_LOG_LEVEL", "debug");
-        std::string unsafe = setEnvVar("UNSAFE_MODE", "on");
+        std::string unsafe = setEnvVar("FS_MODE", "on");
 
         std::string redisState = setEnvVar("REDIS_STATE_HOST", "not-localhost");
         std::string redisQueue =setEnvVar("REDIS_QUEUE_HOST", "other-host");
@@ -91,6 +91,9 @@ namespace tests {
         std::string fullAsync =setEnvVar("FULL_ASYNC", "1");
         std::string fullSync =setEnvVar("FULL_SYNC", "12");
 
+        std::string funcDir = setEnvVar("FUNC_DIR","/tmp/foo");
+        std::string objDir = setEnvVar("OBJ_DIR", "/tmp/bar");
+
         // Create new conf for test
         SystemConfig conf;
         REQUIRE(conf.threadsPerWorker == 50);
@@ -105,7 +108,7 @@ namespace tests {
         REQUIRE(conf.cgroupMode == "off");
         REQUIRE(conf.netNsMode == "on");
         REQUIRE(conf.awsLogLevel == "debug");
-        REQUIRE(conf.unsafeMode == "on");
+        REQUIRE(conf.fsMode == "on");
 
         REQUIRE(conf.redisStateHost == "not-localhost");
         REQUIRE(conf.redisQueueHost == "other-host");
@@ -129,6 +132,9 @@ namespace tests {
         REQUIRE(conf.fullAsync == 1);
         REQUIRE(conf.fullSync == 12);
 
+        REQUIRE(conf.functionDir == funcDir);
+        REQUIRE(conf.objectFileDir == objDir);
+
         // Be careful with host type
         setEnvVar("HOST_TYPE", originalHostType);
 
@@ -143,7 +149,7 @@ namespace tests {
         setEnvVar("CGROUP_MODE", cgMode);
         setEnvVar("NETNS_MODE", nsMode);
         setEnvVar("AWS_LOG_LEVEL", awsLog);
-        setEnvVar("UNSAFE_MODE", unsafe);
+        setEnvVar("FS_MODE", unsafe);
 
         setEnvVar("REDIS_STATE_HOST", redisState);
         setEnvVar("REDIS_QUEUE_HOST", redisQueue);
@@ -166,6 +172,9 @@ namespace tests {
         setEnvVar("STATE_PUSH_INTERVAL", pushInterval);
         setEnvVar("FULL_ASYNC", fullAsync);
         setEnvVar("FULL_SYNC", fullSync);
+
+        setEnvVar("FUNC_DIR", funcDir);
+        setEnvVar("OBJ_DIR", objDir);
     }
 
     TEST_CASE("Check we can't have both full sync and full async on at the same time", "[conf]") {

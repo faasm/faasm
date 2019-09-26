@@ -36,7 +36,7 @@ namespace wasm {
             fd = open("/dev/null", 0, 0);
         } else {
             // Unsafe mode here allows access to any files (below the runtime root dir)
-            if (conf.unsafeMode == "on" ||
+            if (conf.fsMode == "on" ||
                 (path == "/etc/hosts" ||
                 path == "/etc/resolv.conf" ||
                 path == "/etc/passwd" ||
@@ -103,7 +103,7 @@ namespace wasm {
         } else if (cmd == F_GETFL || cmd == F_GETFD || cmd == F_SETFD) {
             // Getting file flags, file descriptor flags and setting file descriptor flags are allowed
             returnValue = fcntl(fd, cmd, c);
-        } else if (conf.unsafeMode == "on") {
+        } else if (conf.fsMode == "on") {
             // Allow everything else in unsafe mode, but block otherwise
             logger->warn("Allowing arbitrary fcntl command: {}", cmd);
             returnValue = fcntl(fd, cmd, c);
