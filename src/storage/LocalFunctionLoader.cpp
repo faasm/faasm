@@ -39,8 +39,7 @@ namespace storage {
     }
 
     std::vector<uint8_t> LocalFunctionLoader::loadSharedObjectWasm(const std::string &path) {
-        const std::string wasmPath = util::getSharedObjectFile(path);
-        return loadFileBytes(wasmPath);
+        return loadFileBytes(path);
     }
 
     std::vector<uint8_t> LocalFunctionLoader::loadPythonFunctionFile(const message::Message &msg) {

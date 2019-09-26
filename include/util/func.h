@@ -23,8 +23,6 @@ namespace util {
 
     std::string getFunctionObjectFile(const message::Message &msg);
 
-    std::string getSharedObjectFile(const std::string &realPath);
-
     std::string getSharedObjectObjectFile(const std::string &realPath);
 
     bool isValidFunction(const message::Message &msg);

@@ -8,11 +8,6 @@ namespace storage {
 
     }
 
-    std::vector<uint8_t> S3FunctionLoader::loadFunctionBytes(const message::Message &msg) {
-        const std::string key = util::getFunctionKey(msg);
-        return this->loadFileBytes(key);
-    }
-
     std::vector<uint8_t> S3FunctionLoader::loadFileBytes(const std::string &path) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Loading bytes from {}/{}", conf.bucketName, path);
@@ -22,18 +17,26 @@ namespace storage {
         return bytes;
     }
 
-    std::vector<uint8_t> S3FunctionLoader::loadFunctionObjectBytes(const message::Message &msg) {
+    std::vector<uint8_t> S3FunctionLoader::loadFunctionWasm(const message::Message &msg) {
+        const std::string key = util::getFunctionKey(msg);
+        return this->loadFileBytes(key);
+    }
+
+    std::vector<uint8_t> S3FunctionLoader::loadSharedObjectWasm(const std::string &path) {
+        throw std::runtime_error("Not implemented for S3 function loader");
+    }
+
+    std::vector<uint8_t> S3FunctionLoader::loadFunctionObjectFile(const message::Message &msg) {
         const std::string key = util::getFunctionObjectKey(msg);
         return this->loadFileBytes(key);
     }
 
-    std::vector<uint8_t> S3FunctionLoader::loadPythonFunction(const message::Message &msg) {
-        throw std::runtime_error("Loading python functions not supported with S3");
+    std::vector<uint8_t> S3FunctionLoader::loadSharedObjectObjectFile(const std::string &path) {
+        throw std::runtime_error("Not implemented for S3 function loader");
     }
 
-    std::string S3FunctionLoader::getObjectPath(const std::string &realPath) {
-        // Don't need to modify anything for S3
-        return realPath;
+    std::vector<uint8_t> S3FunctionLoader::loadPythonFunctionFile(const message::Message &msg) {
+        throw std::runtime_error("Loading python functions not supported with S3");
     }
 
     void S3FunctionLoader::uploadFunction(message::Message &msg) {
@@ -44,22 +47,25 @@ namespace storage {
         s3.addKeyStr(conf.bucketName, key, inputBytes);
 
         // Build the object file from the file we've just received
-        this->compileToObjectFile(msg);
+        this->codegenForFunction(msg);
     }
 
     void S3FunctionLoader::uploadPythonFunction(message::Message &msg) {
         throw std::runtime_error("Not yet implemented Python upload on S3");
     }
 
-    void S3FunctionLoader::uploadObjectBytes(const message::Message &msg, const std::vector<uint8_t> &objBytes) {
+    void S3FunctionLoader::uploadFunctionObjectFile(const message::Message &msg, const std::vector<uint8_t> &objBytes) {
         const std::string key = util::getFunctionObjectKey(msg);
 
-        this->uploadObjectBytes(key, objBytes);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Uploading function object bytes to {}/{}", conf.bucketName, key);
+
+        s3.addKeyBytes(conf.bucketName, key, objBytes);
     }
 
-    void S3FunctionLoader::uploadObjectBytes(const std::string &path, const std::vector<uint8_t> &objBytes) {
+    void S3FunctionLoader::uploadSharedObjectObjectFile(const std::string &path, const std::vector<uint8_t> &objBytes) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Uploading object bytes to {}/{}", conf.bucketName, path);
+        logger->debug("Uploading shared object object bytes to {}/{}", conf.bucketName, path);
 
         s3.addKeyBytes(conf.bucketName, path, objBytes);
     }

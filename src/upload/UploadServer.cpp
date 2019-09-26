@@ -80,11 +80,11 @@ namespace edge {
         if (pathType == "s") {
             returnBytes = getState(request);
         } else if (pathType == "p" || pathType == "pa") {
-            returnBytes = l.loadPythonFunction(msg);
+            returnBytes = l.loadPythonFunctionFile(msg);
         } else if (pathType == "fo"){
-            returnBytes = l.loadFunctionObjectBytes(msg);
+            returnBytes = l.loadFunctionObjectFile(msg);
         } else {
-            returnBytes = l.loadFunctionBytes(msg);
+            returnBytes = l.loadFunctionWasm(msg);
         }
 
         if(returnBytes.empty()) {

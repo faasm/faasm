@@ -11,7 +11,7 @@ RUN rm faasm_runtime_root.tar.gz
 
 # Build the upload and codegen targets
 RUN cmake --build . --target upload -- -j
-RUN cmake --build . --target codegen -- -j
+RUN cmake --build . --target codegen_shared_obj -- -j
 
 # Set up entrypoint
 COPY bin/upload-entrypoint.sh /entrypoint.sh

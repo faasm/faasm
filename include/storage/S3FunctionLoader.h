@@ -10,25 +10,27 @@ namespace storage {
     public:
         S3FunctionLoader();
 
-        std::vector<uint8_t> loadFunctionBytes(const message::Message &msg);
+        std::vector<uint8_t> loadFunctionWasm(const message::Message &msg) override;
 
-        std::vector<uint8_t> loadFileBytes(const std::string &path);
+        std::vector<uint8_t> loadSharedObjectWasm(const std::string &path) override;
 
-        std::vector<uint8_t> loadFunctionObjectBytes(const message::Message &msg);
+        std::vector<uint8_t> loadFunctionObjectFile(const message::Message &msg) override;
 
-        std::vector<uint8_t> loadPythonFunction(const message::Message &msg);
+        std::vector<uint8_t> loadSharedObjectObjectFile(const std::string &path) override;
 
-        std::string getObjectPath(const std::string &realPath);
+        std::vector<uint8_t> loadPythonFunctionFile(const message::Message &msg) override;
 
-        void uploadFunction(message::Message &msg);
+        void uploadFunction(message::Message &msg) override;
 
-        void uploadPythonFunction(message::Message &msg);
+        void uploadPythonFunction(message::Message &msg) override;
 
-        void uploadObjectBytes(const message::Message &msg, const std::vector<uint8_t> &objBytes);
+        void uploadFunctionObjectFile(const message::Message &msg, const std::vector<uint8_t> &objBytes) override;
 
-        void uploadObjectBytes(const std::string &path, const std::vector<uint8_t> &objBytes);
+        void uploadSharedObjectObjectFile(const std::string &path, const std::vector<uint8_t> &objBytes) override;
     private:
         util::SystemConfig &conf;
         awswrapper::S3Wrapper &s3;
+
+        std::vector<uint8_t> loadFileBytes(const std::string &path);
     };
 };

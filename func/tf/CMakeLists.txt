@@ -21,7 +21,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     function(tf_func exec_name dir_path)
         faasm_func(${exec_name} ${dir_path})
         target_link_libraries(${exec_name}
-                /usr/local/code/faasm/third-party/tensorflow/tensorflow/lite/tools/make/gen/wasm32-unknown-none_/lib/libtensorflow-lite.a)
+                /usr/local/code/faasm/third-party/tensorflow/tensorflow/lite/tools/make/gen/wasm32-unknown-none_x86_64/lib/libtensorflow-lite.a)
     endfunction(tf_func)
 else()
     function(tf_func exec_name dir_path)

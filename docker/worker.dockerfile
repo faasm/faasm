@@ -8,10 +8,9 @@ RUN wget -q https://s3-eu-west-1.amazonaws.com/faasm-misc/faasm_runtime_root.tar
 RUN tar --no-same-owner -xf faasm_runtime_root.tar.gz
 RUN rm faasm_runtime_root.tar.gz
 
-# Build the worker and codegen binaries
+# Build the worker binary
 WORKDIR /faasm/build
 RUN cmake --build . --target worker -- -j
-RUN cmake --build . --target codegen -- -j
 
 # Set up entrypoint (for cgroups, namespaces etc.)
 COPY bin/worker-entrypoint.sh /entrypoint.sh

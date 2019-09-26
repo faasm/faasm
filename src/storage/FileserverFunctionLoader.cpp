@@ -34,14 +34,14 @@ namespace storage {
     }
 
     std::vector<uint8_t> FileserverFunctionLoader::loadSharedObjectWasm(const std::string &path) {
-
+        throw std::runtime_error("Not implemented for fileserver loader");
     }
 
     std::vector<uint8_t> FileserverFunctionLoader::loadSharedObjectObjectFile(const std::string &path) {
-
+        throw std::runtime_error("Not implemented for fileserver loader");
     }
 
     std::vector<uint8_t> FileserverFunctionLoader::loadPythonFunctionFile(const message::Message &msg) {
-
+        throw std::runtime_error("Not implemented for fileserver loader");
     }
 }

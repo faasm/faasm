@@ -7,7 +7,6 @@ file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/wasm/*.h")
 
 set(LIB_FILES
         IRModuleRegistry.cpp
-        codegen.cpp
         WasmModule.cpp
         syscalls.cpp
         syscalls_chaining.cpp
@@ -28,8 +27,11 @@ set(LIB_FILES
 faasm_private_lib(wasm "${LIB_FILES}")
 target_link_libraries(wasm scheduler memory state storage libWAVM)
 
-add_executable(codegen codegen_runner.cpp)
-target_link_libraries(codegen wasm)
+add_executable(codegen_shared_obj codegen_shared_obj.cpp)
+target_link_libraries(codegen_shared_obj wasm)
+
+add_executable(codegen_func codegen_func.cpp)
+target_link_libraries(codegen_func wasm)
 
 add_executable(capacity_experiment capacity_experiment.cpp)
 target_link_libraries(capacity_experiment wasm)

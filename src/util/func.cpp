@@ -76,11 +76,7 @@ namespace util {
 
     bool isValidFunction(const message::Message &msg) {
         auto path = getFunctionDir(msg, false);
-
-        // Check object file exists
-        path.append(objFile);
         bool isValid = boost::filesystem::exists(path);
-
         return isValid;
     }
 
@@ -140,7 +136,7 @@ namespace util {
         return path.string();
     }
 
-    std::string getSharedObjectFile(const std::string &realPath) {
+    std::string getSharedObjectObjectFile(const std::string &realPath) {
         boost::filesystem::directory_entry f(realPath);
         const std::string directory = f.path().parent_path().string();
         const std::string fileName = f.path().filename().string();
@@ -156,15 +152,9 @@ namespace util {
 
         // Add the filename
         std::string outputFile = objPath.append(fileName).string();
+        outputFile += SHARED_OBJ_EXT;
 
         return outputFile;
-    }
-
-    std::string getSharedObjectObjectFile(const std::string &realPath) {
-        std::string path = getSharedObjectFile(realPath);
-        path += SHARED_OBJ_EXT;
-
-        return path;
     }
 
     std::vector<uint8_t> messageToBytes(const message::Message &msg) {

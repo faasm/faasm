@@ -27,13 +27,12 @@ namespace storage {
 
         virtual void uploadSharedObjectObjectFile(const std::string &path, const std::vector<uint8_t> &objBytes) = 0;
 
-    protected:
+        bool isWasm(const std::vector<uint8_t> &bytes);
+
         void codegenForFunction(message::Message &msg);
 
         void codegenForSharedObject(const std::string &inputPath);
-
-        bool isWasm(const std::vector<uint8_t> &bytes);
-
+    protected:
         std::vector<uint8_t> doCodegen(std::vector<uint8_t> &bytes);
     };
 
