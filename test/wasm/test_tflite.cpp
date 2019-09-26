@@ -14,7 +14,7 @@ namespace tests {
 
         message::Message call;
         call.set_user("tf");
-        call.set_function("tf_image");
+        call.set_function("image");
 
         wasm::WasmModule module;
         module.bindToFunction(call);
