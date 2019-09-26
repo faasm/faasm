@@ -1,11 +1,10 @@
-from os import remove
 from os.path import join, exists
 from shutil import rmtree
 from subprocess import check_output
 
 from invoke import task
 
-from tasks.codegen import run_codegen
+from tasks.util.codegen import find_codegen_shared_lib
 from tasks.util.env import PROJ_ROOT, PYODIDE_INSTALL_DIR, FAASM_RUNTIME_ROOT, PY_RUNTIME_ROOT, PYODIDE_PACKAGES
 from tasks.util.files import glob_remove
 
@@ -96,4 +95,5 @@ def set_up_python_runtime(ctx):
 
 @task
 def run_python_codegen(ctx):
-    run_codegen(ctx, PY_RUNTIME_ROOT)
+    binary = find_codegen_shared_lib()
+    check_output("{} {}".format(binary, PY_RUNTIME_ROOT), shell=True)

@@ -41,7 +41,7 @@ int main() {
 
                 // Compile the function to object bytes
                 storage::FunctionLoader &functionLoader = storage::getFunctionLoader();
-                functionLoader.compileToObjectFile(msg);
+                functionLoader.codegenForFunction(msg);
 
                 message = "Codegen finished";
             } else if (target == "python-codegen") {
@@ -49,7 +49,7 @@ int main() {
                 logger->info("Generating object code for directory {}", PYTHON_RUNTIME_DIRECTORY);
 
                 // Run the codegen on the Python directory
-                wasm::codeGenForDir(PYTHON_RUNTIME_DIRECTORY);
+                throw std::runtime_error("NOT YET IMPLEMENTED");
 
                 message = "Python codegen finished";
             } else {

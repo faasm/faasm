@@ -7,27 +7,14 @@
 
 using namespace boost::filesystem;
 
-int main(int argc, char *argv[]) {
-    util::initLogging();
+
+void codegenForDirectory(std::string &inputPath) {
     const std::shared_ptr<spdlog::logger> logger = util::getLogger();
-
-    if (argc < 2) {
-        logger->error("Must provide path to shared object dir");
-        return 1;
-    }
-
-    std::string dirPath = argv[1];
-    if (!is_directory(dirPath)) {
-        logger->error("Must provide directory to codegen");
-        return 1;
-    }
-
-    logger->info("Running codegen on {}", dirPath);
-
+    logger->info("Running codegen on directory {}", inputPath);
     storage::FunctionLoader &loader = storage::getFunctionLoader();
 
     // Iterate through the directory
-    path inputFilePath(dirPath);
+    path inputFilePath(inputPath);
     recursive_directory_iterator iter(inputFilePath), end;
     std::mutex mx;
 
@@ -71,5 +58,23 @@ int main(int argc, char *argv[]) {
         if (t.joinable()) {
             t.join();
         }
+    }
+}
+
+int main(int argc, char *argv[]) {
+    util::initLogging();
+    const std::shared_ptr<spdlog::logger> logger = util::getLogger();
+
+    if (argc < 2) {
+        logger->error("Must provide path to shared object dir");
+        return 1;
+    }
+
+    std::string inputPath = argv[1];
+    if (is_directory(inputPath)) {
+        codegenForDirectory(inputPath);
+    } else {
+        storage::FunctionLoader &loader = storage::getFunctionLoader();
+        loader.codegenForSharedObject(inputPath);
     }
 }

@@ -75,6 +75,10 @@ namespace util {
     }
 
     bool isValidFunction(const message::Message &msg) {
+        if(msg.user().empty() || msg.function().empty()) {
+            return false;
+        }
+
         auto path = getFunctionDir(msg, false);
         bool isValid = boost::filesystem::exists(path);
         return isValid;

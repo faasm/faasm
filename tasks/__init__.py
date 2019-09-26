@@ -40,10 +40,6 @@ from tasks.bench_mem import (
     kill_faasm,
     faasm_count,
 )
-from tasks.codegen import (
-    run_codegen,
-    run_wasm_codegen,
-)
 from tasks.compile import (
     compile,
 )

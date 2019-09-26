@@ -65,10 +65,6 @@ namespace tests {
         checkError("multi_poll", "fd not owned by this function");
     }
 
-    TEST_CASE("Test polling stdin", "[wasm]") {
-        checkError("stdin_poll", "Process interacting with stdin");
-    }
-
 //    TEST_CASE("Test munmapped memory not usable", "[wasm]") {
 //        checkError("munmap", "");
 //    }

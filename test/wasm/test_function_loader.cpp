@@ -6,13 +6,15 @@
 #include <util/func.h>
 #include <util/files.h>
 #include <storage/FileserverFunctionLoader.h>
+#include <util/config.h>
 
 namespace tests {
-    void checkResult(const std::string &filePath, const std::vector<uint8_t> &expected, const std::vector<uint8_t> &actualBytes) {
+    void checkResult(const std::string &filePath, const std::vector<uint8_t> &expected,
+                     const std::vector<uint8_t> &actualBytes) {
         std::vector<uint8_t> actualBytesFromFile = util::readFileToBytes(filePath);
 
         REQUIRE(actualBytesFromFile == actualBytes);
-        REQUIRE(actualBytes== expected);
+        REQUIRE(actualBytes == expected);
     }
 
     TEST_CASE("Test function round trip", "[wasm]") {
@@ -23,6 +25,7 @@ namespace tests {
         std::string filePath;
         std::vector<uint8_t> actualBytes;
         std::vector<uint8_t> expectedBytes;
+
         SECTION("Function file") {
             // Need to upload valid data so use real function file
             message::Message realMsg = util::messageFactory("demo", "x2");
@@ -34,7 +37,7 @@ namespace tests {
             loader.uploadFunction(call);
 
             filePath = util::getFunctionFile(call);
-            actualBytes = loader.loadFunctionBytes(call);
+            actualBytes = loader.loadFunctionWasm(call);
         }
 
         SECTION("Python function") {
@@ -45,16 +48,16 @@ namespace tests {
             loader.uploadPythonFunction(call);
 
             filePath = util::getPythonFunctionFile(call);
-            actualBytes = loader.loadPythonFunction(call);
+            actualBytes = loader.loadPythonFunctionFile(call);
         }
 
         SECTION("Object file") {
             expectedBytes = {8, 7, 6, 5, 4};
 
-            loader.uploadObjectBytes(call, expectedBytes);
+            loader.uploadFunctionObjectFile(call, expectedBytes);
 
             filePath = util::getFunctionObjectFile(call);
-            actualBytes = loader.loadFunctionObjectBytes(call);
+            actualBytes = loader.loadFunctionObjectFile(call);
         }
 
         checkResult(filePath, expectedBytes, actualBytes);
@@ -85,7 +88,7 @@ namespace tests {
         conf.reset();
 
         // Check no error
-        auto loader = (storage::FileserverFunctionLoader&) storage::getFunctionLoader();
+        auto loader = (storage::FileserverFunctionLoader &) storage::getFunctionLoader();
         REQUIRE(loader.getFileserverUrl() == "www.foo.com");
 
         util::setEnvVar("FUNCTION_STORAGE", originalDir);

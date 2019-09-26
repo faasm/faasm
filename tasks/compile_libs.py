@@ -7,7 +7,7 @@ from subprocess import call, check_output
 from invoke import task
 
 from tasks.compile import clean_dir
-from tasks.util.codegen import find_codegen_binary
+from tasks.util.codegen import find_codegen_shared_lib
 from tasks.util.env import PROJ_ROOT, FAASM_TOOLCHAIN_FILE, FAASM_SYSROOT, FAASM_INSTALL_DIR, \
     FAASM_RUNTIME_ROOT, THIRD_PARTY_DIR
 from toolchain.python_env import WASM_SYSROOT, WASM_HOST, WASM_BUILD, \
@@ -137,7 +137,7 @@ def compile_libfake(ctx, clean=False):
         join(FAASM_RUNTIME_ROOT, "libfakeLibB.so"),
     ]
 
-    binary = find_codegen_binary()
+    binary = find_codegen_shared_lib()
 
     for so in shared_objs:
         print("Running codegen for {}".format(so))

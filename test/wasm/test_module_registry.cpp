@@ -113,9 +113,9 @@ namespace tests {
         REQUIRE(objRefA1 != objRefB1);
 
         // Check object code loaded matches file
-        std::string objPathA = pathA + SHARED_OBJ_EXT;
-        std::string objPathB = pathB + SHARED_OBJ_EXT;
-
+        std::string objPathA = util::getSharedObjectObjectFile(pathA);
+        std::string objPathB = util::getSharedObjectObjectFile(pathB);
+        
         checkObjCode(objRefA1, objPathA);
         checkObjCode(objRefB1, objPathB);
     }

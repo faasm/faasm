@@ -120,11 +120,12 @@ namespace tests {
             // Override the function directory with junk
             util::SystemConfig &conf = util::getSystemConfig();
             std::string orig =  conf.functionDir;
-            conf.functionDir =  "/tmp";
+            conf.functionDir =  "/tmp/func";
+            conf.objectFileDir =  "/tmp/obj";
 
             // Ensure environment is clean before running
-            std::string expectedFile = "/tmp/wasm/gamma/delta/function.wasm";
-            std::string expectedObjFile = "/tmp/wasm/gamma/delta/function.wasm.o";
+            std::string expectedFile = "/tmp/func/gamma/delta/function.wasm";
+            std::string expectedObjFile = "/tmp/obj/gamma/delta/function.wasm.o";
             boost::filesystem::remove(expectedFile);
             boost::filesystem::remove(expectedObjFile);
 

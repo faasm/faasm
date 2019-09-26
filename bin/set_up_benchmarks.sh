@@ -25,11 +25,11 @@ cmake --build . --target max_thread_experiment -- -j
 cmake --build . --target max_mem_experiment -- -j
 cmake --build . --target rlimit_experiment -- -j
 
-# Generate codegen
-./bin/codegen /usr/local/code/faasm/wasm/demo/noop
-./bin/codegen /usr/local/code/faasm/wasm/demo/lock
-./bin/codegen /usr/local/code/faasm/wasm/demo/sleep_long
-./bin/codegen /usr/local/code/faasm/wasm/demo/sleep_short
+# Run codegen for functions
+./bin/codegen_func demo noop
+./bin/codegen_func demo lock
+./bin/codegen_func demo sleep_long
+./bin/codegen_func demo sleep_short
 
 popd
 

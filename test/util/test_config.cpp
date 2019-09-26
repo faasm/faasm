@@ -132,8 +132,8 @@ namespace tests {
         REQUIRE(conf.fullAsync == 1);
         REQUIRE(conf.fullSync == 12);
 
-        REQUIRE(conf.functionDir == funcDir);
-        REQUIRE(conf.objectFileDir == objDir);
+        REQUIRE(conf.functionDir == "/tmp/foo");
+        REQUIRE(conf.objectFileDir == "/tmp/bar");
 
         // Be careful with host type
         setEnvVar("HOST_TYPE", originalHostType);

@@ -26,6 +26,10 @@ int main(int argc, char *argv[]) {
     // Set up function call
     message::Message m = util::messageFactory(user, function);
 
+    if(user == "ts") {
+        m.set_istypescript(true);
+    }
+
     // Create the module
     zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
     wasm::WasmModule &zygote = registry.getZygote(m);

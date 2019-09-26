@@ -42,7 +42,7 @@ def py_upload(ctx, user, func, host="127.0.0.1"):
 @task
 def ts_upload(ctx, func, host="127.0.0.1"):
     func_file = join(PROJ_ROOT, "typescript", "build", "{}.wasm".format(func))
-    url = "http://{}:8002/f/t/{}".format(host, func)
+    url = "http://{}:8002/f/ts/{}".format(host, func)
     curl_file(url, func_file)
 
 
