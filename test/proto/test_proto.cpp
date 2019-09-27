@@ -24,12 +24,18 @@ namespace tests {
         std::string func = "foobar func";
         std::string resultKey = "dummy result";
 
+        std::string pyUser = "python user";
+        std::string pyFunc = "python func";
+
         std::vector<uint8_t> inputData = createInput(0, 100);
         std::vector<uint8_t> outputData = createInput(120, 50);
 
         funcCall.set_user(user);
         funcCall.set_function(func);
         funcCall.set_resultkey(resultKey);
+
+        funcCall.set_pythonuser(pyUser);
+        funcCall.set_pythonfunction(pyFunc);
 
         funcCall.set_inputdata(inputData.data(), 100);
         funcCall.set_outputdata(outputData.data(), 50);
@@ -52,6 +58,9 @@ namespace tests {
         REQUIRE(user == newFuncCall.user());
         REQUIRE(func == newFuncCall.function());
         REQUIRE(resultKey == newFuncCall.resultkey());
+
+        REQUIRE(pyUser == newFuncCall.pythonuser());
+        REQUIRE(pyFunc == newFuncCall.pythonfunction());
 
         REQUIRE(newFuncCall.isasync());
         REQUIRE(newFuncCall.ispython());

@@ -10,6 +10,8 @@ namespace tests {
 
         REQUIRE(msgA.user() == msgB.user());
         REQUIRE(msgA.function() == msgB.function());
+        REQUIRE(msgA.pythonuser() == msgB.pythonuser());
+        REQUIRE(msgA.pythonfunction() == msgB.pythonfunction());
         REQUIRE(msgA.isasync() == msgB.isasync());
         REQUIRE(msgA.ispython() == msgB.ispython());
         REQUIRE(msgA.istypescript() == msgB.istypescript());
