@@ -55,7 +55,7 @@ namespace tests {
         util::SystemConfig &conf = util::getSystemConfig();
         std::string original = util::setEnvVar("FUNCTION_STORAGE", "fileserver");
         conf.reset();
-        
+
         REQUIRE(conf.functionStorage == "fileserver");
 
         // Instantiate a server
@@ -64,7 +64,7 @@ namespace tests {
 
         util::setEnvVar("FUNCTION_STORAGE", original);
     }
-    
+
     TEST_CASE("Upload tests", "[upload]") {
         redis::Redis &redisQueue = redis::Redis::getQueue();
         redisQueue.flushAll();
@@ -119,10 +119,10 @@ namespace tests {
         SECTION("Test uploading wasm file") {
             // Override the function directory with junk
             util::SystemConfig &conf = util::getSystemConfig();
-            std::string origFuncDir =  conf.functionDir;
-            std::string origObjDir =  conf.objectFileDir;
-            conf.functionDir =  "/tmp/func";
-            conf.objectFileDir =  "/tmp/obj";
+            std::string origFuncDir = conf.functionDir;
+            std::string origObjDir = conf.objectFileDir;
+            conf.functionDir = "/tmp/func";
+            conf.objectFileDir = "/tmp/obj";
 
             // Ensure environment is clean before running
             std::string expectedFile = "/tmp/func/gamma/delta/function.wasm";
@@ -167,5 +167,54 @@ namespace tests {
             // Check getting the file
             checkGet(url, fileBytes);
         }
+    }
+
+    TEST_CASE("Function fileserver test", "[upload]") {
+        std::string urlPath;
+        std::string user = "demo";
+        std::string funcName = "echo";
+        std::string expectedFilePath;
+
+        SECTION("Function wasm") {
+            urlPath = "/f";
+            expectedFilePath = "/usr/local/code/faasm/wasm/demo/echo/function.wasm";
+        }
+        SECTION("Function object file") {
+            urlPath = "/fo";
+            expectedFilePath = "/usr/local/faasm/object/demo/echo/function.wasm.o";
+        }
+
+        std::string url = urlPath + "/" + user + "/" + funcName;
+        const std::vector<uint8_t> &expected = util::readFileToBytes(expectedFilePath);
+        checkGet(url, expected);
+    }
+
+    TEST_CASE("Shared object fileserver test", "[upload]") {
+        std::string urlPath;
+        std::string filePath = "/usr/local/faasm/runtime_root/lib/python3.7/site-packages/numpy/core/multiarray.so";
+        std::string expectedFilePath;
+
+        SECTION("Shared object wasm") {
+            urlPath = "/sobjwasm";
+            expectedFilePath = filePath;
+        }
+        SECTION("Shared object object file") {
+            urlPath = "/sobjobj";
+            expectedFilePath = "/usr/local/faasm/object/usr/local/faasm/runtime_root/lib/python3.7/site-packages/numpy/core/multiarray.so.o";
+        }
+
+        http_request request = createRequest(urlPath);
+        http_headers &h = request.headers();
+        h.add(SHARED_OBJ_HEADER, filePath);
+
+        // Submit request
+        edge::UploadServer::handleGet(request);
+        http_response response = request.get_response().get();
+        const utility::string_t responseStr = response.to_string();
+
+        const std::vector<uint8_t> &expected = util::readFileToBytes(expectedFilePath);
+
+        const std::vector<unsigned char> responseBytes = response.extract_vector().get();
+        REQUIRE(responseBytes == expected);
     }
 }

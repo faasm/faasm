@@ -12,8 +12,14 @@ namespace storage {
         return util::getSystemConfig().fileserverUrl;
     }
 
-    std::vector<uint8_t> _loadBytesFromUrl(const std::string &url) {
-        const std::vector<uint8_t> fileBytes = util::readFileFromUrl(url);
+    std::vector<uint8_t> _loadSharedObjBytesFromUrl(const std::string &url, const std::string &path) {
+        std::string header;
+
+        if (!path.empty()) {
+            header = std::string(SHARED_OBJ_HEADER) + ":" + path;
+        }
+
+        const std::vector<uint8_t> fileBytes = util::readFileFromUrlWithHeader(url, header);
 
         if (fileBytes.empty()) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
@@ -21,6 +27,10 @@ namespace storage {
             throw std::runtime_error("Empty response from URL");
         }
         return fileBytes;
+    }
+
+    std::vector<uint8_t> _loadBytesFromUrl(const std::string &url) {
+        return _loadSharedObjBytesFromUrl(url, "");
     }
 
     std::vector<uint8_t> FileserverFunctionLoader::loadFunctionWasm(const message::Message &msg) {
@@ -34,11 +44,13 @@ namespace storage {
     }
 
     std::vector<uint8_t> FileserverFunctionLoader::loadSharedObjectWasm(const std::string &path) {
-        throw std::runtime_error("Not implemented for fileserver loader");
+        std::string url = util::getSharedObjectUrl();
+        return _loadSharedObjBytesFromUrl(url, path);
     }
 
     std::vector<uint8_t> FileserverFunctionLoader::loadSharedObjectObjectFile(const std::string &path) {
-        throw std::runtime_error("Not implemented for fileserver loader");
+        std::string url = util::getSharedObjectObjectUrl();
+        return _loadSharedObjBytesFromUrl(url, path);
     }
 
     std::vector<uint8_t> FileserverFunctionLoader::loadPythonFunctionFile(const message::Message &msg) {

@@ -7,14 +7,24 @@
 #include <storage/FunctionLoader.h>
 #include <util/config.h>
 #include <util/state.h>
+#include <util/files.h>
 
 
 namespace edge {
+    std::string getHeaderFromRequest(const http_request &request, const std::string &key) {
+        http_headers headers = request.headers();
+        if (headers.has(key)) {
+            return headers[key];
+        } else {
+            return "";
+        }
+    }
+
     UploadServer::UploadServer() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         util::SystemConfig &conf = util::getSystemConfig();
-        if(conf.functionStorage == "fileserver") {
+        if (conf.functionStorage == "fileserver") {
             logger->info("Overriding fileserver storage on upload server (as this is the fileserver)");
             conf.functionStorage = "local";
         }
@@ -24,27 +34,23 @@ namespace edge {
         const uri uri = request.relative_uri();
         const std::vector<std::string> pathParts = uri::split_path(uri::decode(uri.path()));
 
-        bool isValid = false;
+        // Detect valid URLs
         if (pathParts.size() == 3) {
-            isValid = true;
-        }
-
-        if (isValid) {
             // Check if one of the valid path types
             std::string pathType = pathParts[0];
-            std::vector<std::string> validTypes = {"f", "fa", "s", "p", "pa"};
+            std::vector<std::string> validTypes = {"f", "fo", "fa", "s", "p", "pa"};
 
             if (std::find(validTypes.begin(), validTypes.end(), pathType) != validTypes.end()) {
-                isValid = true;
+                return pathParts;
+            }
+        } else if (pathParts.size() == 1) {
+            if (pathParts[0] == "sobjwasm" || pathParts[0] == "sobjobj") {
+                return pathParts;
             }
         }
 
-        if (!isValid) {
-            request.reply(status_codes::OK, "Invalid path\n");
-            throw InvalidPathException();
-        }
-
-        return pathParts;
+        request.reply(status_codes::OK, "Invalid path\n");
+        throw InvalidPathException();
     }
 
     void UploadServer::listen(const std::string &port) {
@@ -75,19 +81,29 @@ namespace edge {
         storage::FunctionLoader &l = storage::getFunctionLoader();
         std::string pathType = pathParts[0];
         std::vector<uint8_t> returnBytes;
-        message::Message msg = UploadServer::buildMessageFromRequest(request);
 
-        if (pathType == "s") {
-            returnBytes = getState(request);
-        } else if (pathType == "p" || pathType == "pa") {
-            returnBytes = l.loadPythonFunctionFile(msg);
-        } else if (pathType == "fo"){
-            returnBytes = l.loadFunctionObjectFile(msg);
+        if (pathType == "sobjwasm" || pathType == "sobjobj") {
+            std::string sharedObjPath = getHeaderFromRequest(request, SHARED_OBJ_HEADER);
+            if (pathType == "sobjwasm") {
+                returnBytes = l.loadSharedObjectWasm(sharedObjPath);
+            } else {
+                returnBytes = l.loadSharedObjectObjectFile(sharedObjPath);
+            }
         } else {
-            returnBytes = l.loadFunctionWasm(msg);
+            message::Message msg = UploadServer::buildMessageFromRequest(request);
+
+            if (pathType == "s") {
+                returnBytes = getState(request);
+            } else if (pathType == "p" || pathType == "pa") {
+                returnBytes = l.loadPythonFunctionFile(msg);
+            } else if (pathType == "fo") {
+                returnBytes = l.loadFunctionObjectFile(msg);
+            } else {
+                returnBytes = l.loadFunctionWasm(msg);
+            }
         }
 
-        if(returnBytes.empty()) {
+        if (returnBytes.empty()) {
             http_response response(status_codes::InternalError);
             response.set_body("Empty response");
             request.reply(response);

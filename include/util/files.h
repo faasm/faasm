@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#define SHARED_OBJ_HEADER "SharedObjPath"
+
 namespace util {
     std::string readFileToString(const std::string &path);
 
@@ -11,4 +13,8 @@ namespace util {
     void writeBytesToFile(const std::string &path, const std::vector<uint8_t> &data);
 
     std::vector<uint8_t> readFileFromUrl(const std::string &url);
+
+    std::vector<uint8_t> readFileFromUrlWithHeader(
+            const std::string &url,
+            const std::string &header);
 }
