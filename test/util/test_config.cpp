@@ -92,6 +92,7 @@ namespace tests {
         std::string fullSync =setEnvVar("FULL_SYNC", "12");
 
         std::string funcDir = setEnvVar("FUNC_DIR","/tmp/foo");
+        std::string pythonFuncDir = setEnvVar("PYTHON_FUNC_DIR","/tmp/par");
         std::string objDir = setEnvVar("OBJ_DIR", "/tmp/bar");
 
         // Create new conf for test
@@ -133,6 +134,7 @@ namespace tests {
         REQUIRE(conf.fullSync == 12);
 
         REQUIRE(conf.functionDir == "/tmp/foo");
+        REQUIRE(conf.pythonFunctionDir == "/tmp/par");
         REQUIRE(conf.objectFileDir == "/tmp/bar");
 
         // Be careful with host type
@@ -174,6 +176,7 @@ namespace tests {
         setEnvVar("FULL_SYNC", fullSync);
 
         setEnvVar("FUNC_DIR", funcDir);
+        setEnvVar("PYTHON_FUNC_DIR", pythonFuncDir);
         setEnvVar("OBJ_DIR", objDir);
     }
 

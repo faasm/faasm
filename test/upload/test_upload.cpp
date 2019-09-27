@@ -157,7 +157,8 @@ namespace tests {
             std::vector<uint8_t> fileBytes = util::readFileToBytes("/usr/local/code/faasm/test/upload/dummy.py");
 
             // Prepare
-            std::string expectedFile = "/usr/local/faasm/runtime_root/funcs/py-test/foo/function.py";
+            util::SystemConfig &conf = util::getSystemConfig();
+            std::string expectedFile = conf.pythonFunctionDir + "/py-test/foo/function.py";
             boost::filesystem::remove(expectedFile);
 
             // Check putting the file
@@ -185,6 +186,17 @@ namespace tests {
         }
 
         std::string url = urlPath + "/" + user + "/" + funcName;
+        const std::vector<uint8_t> &expected = util::readFileToBytes(expectedFilePath);
+        checkGet(url, expected);
+    }
+
+    TEST_CASE("Python fileserver test", "[upload]") {
+        std::string urlPath;
+        std::string user = "python";
+        std::string funcName = "hello";
+        std::string expectedFilePath = util::getSystemConfig().pythonFunctionDir + "/" + user + "/" + funcName + "/function.py";
+
+        std::string url = "p/" + user + "/" + funcName;
         const std::vector<uint8_t> &expected = util::readFileToBytes(expectedFilePath);
         checkGet(url, expected);
     }

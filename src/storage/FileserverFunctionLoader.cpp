@@ -54,6 +54,7 @@ namespace storage {
     }
 
     std::vector<uint8_t> FileserverFunctionLoader::loadPythonFunctionFile(const message::Message &msg) {
-        throw std::runtime_error("Not implemented for fileserver loader");
+        std::string url = util::getPythonFunctionUrl(msg);
+        return _loadBytesFromUrl(url);
     }
 }

@@ -293,32 +293,38 @@ namespace wasm {
 
         // Record that this module is now bound
         _isBound = true;
-        boundUser = msg.user();
-        boundFunction = msg.function();
         boundIsPython = msg.ispython();
         boundIsTypescript = msg.istypescript();
 
-        // Set up the compartment and context
-        PROF_START(wasmContext)
-        compartment = Runtime::createCompartment();
-        executionContext = Runtime::createContext(compartment);
-
-        // TODO - tidy up the handling of Python functions. This is a hack
-        // Create a copy of the message to avoid messing with the original
-        message::Message msgCopy = msg;
-
         if (boundIsPython) {
             logger->debug("Detected python function {}/{}", boundUser, boundFunction);
-            std::string pyFile = msg.user() + "/" + msg.function() + ".py";
-            msgCopy.set_inputdata(pyFile);
-            msgCopy.set_user("python");
-            msgCopy.set_function("py_func");
         } else if (boundIsTypescript) {
             logger->debug("Detected typescript function {}/{}", boundUser, boundFunction);
         } else {
             logger->debug("Detected C/C++ function {}/{}", boundUser, boundFunction);
         }
 
+        // Create a copy of the message to avoid messing with the original
+        message::Message msgCopy = msg;
+
+        // TODO - tidy up the handling of Python functions. This is a hack
+        if(boundIsPython) {
+            boundUser = "python";
+            boundFunction = "py_func";
+
+            std::string pyFile = msg.user() + "/" + msg.function() + ".py";
+            msgCopy.set_inputdata(pyFile);
+            msgCopy.set_user("python");
+            msgCopy.set_function("py_func");
+        } else {
+            boundUser = msg.user();
+            boundFunction = msg.function();
+        }
+
+        // Set up the compartment and context
+        PROF_START(wasmContext)
+        compartment = Runtime::createCompartment();
+        executionContext = Runtime::createContext(compartment);
         PROF_END(wasmContext)
 
         // Create the module instance

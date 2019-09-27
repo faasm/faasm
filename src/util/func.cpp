@@ -52,8 +52,12 @@ namespace util {
         return getUrl(msg, "fo");
     }
 
+    std::string getPythonFunctionUrl(const message::Message &msg) {
+        return getUrl(msg, "p");
+    }
+
     boost::filesystem::path getPythonFunctionDir(const message::Message &msg) {
-        boost::filesystem::path path("/usr/local/faasm/runtime_root/funcs");
+        boost::filesystem::path path(util::getSystemConfig().pythonFunctionDir);
 
         path.append(msg.user());
         path.append(msg.function());
