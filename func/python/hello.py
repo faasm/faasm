@@ -1,3 +1,3 @@
+import sys
 
-if __name__ == "__main__":
-    print("Hello Faasm!")
+print("Hello! Running Python version {}".format(sys.version))

@@ -69,8 +69,10 @@ def set_up_python_runtime(ctx):
     check_output("cp -r {}/* {}".format(PYODIDE_INSTALL_DIR, FAASM_RUNTIME_ROOT), shell=True)
 
     print("\nPutting python functions in place")
-    funcs_dir = join(PROJ_ROOT, "python", "funcs")
-    check_output("cp -r {} {}".format(funcs_dir, FAASM_RUNTIME_ROOT), shell=True)
+    funcs_dir = join(PROJ_ROOT, "func", "python")
+    runtime_func_dir = join(FAASM_RUNTIME_ROOT, "funcs", "python")
+    check_output("mkdir -p {}".format(runtime_func_dir), shell=True)
+    check_output("cp {}/*.py {}".format(funcs_dir, runtime_func_dir), shell=True)
 
     # Set up files in runtime root
     runtime_site_packages = join(PY_RUNTIME_ROOT, "site-packages")
