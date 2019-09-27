@@ -79,13 +79,13 @@ Python file. As a result, the commands are slightly different.
 An example Python function is found at `funcs/python/hello.py`.
 
 ```
-inv py-upload python hello
+inv upload --py python hello
 ```
 
 And invoke with:
 
 ```
-inv py-invoke python hello
+inv invoke --py python hello
 ```
 
 # Writing functions

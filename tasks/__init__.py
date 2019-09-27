@@ -61,10 +61,6 @@ from tasks.compile_ts import (
 )
 from tasks.invoke import (
     invoke,
-    invoke_async,
-    py_invoke,
-    py_invoke_async,
-    knative_invoke,
 )
 from tasks.docker import (
     docker_build_base,
@@ -134,8 +130,6 @@ from tasks.upload import (
     upload_all,
     upload_all_s3,
     upload,
-    py_upload,
-    ts_upload,
 )
 from tasks.wasm2wast import wast
 

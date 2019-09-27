@@ -208,6 +208,14 @@ namespace util {
         return msg;
     }
 
+    void convertMessageToPython(message::Message &msg) {
+        std::string filename = msg.user() + "/" + msg.function() + ".py";
+        msg.set_inputdata(filename);
+        msg.set_user("python");
+        msg.set_function("py_func");
+        msg.set_ispython(true);
+    }
+
     unsigned int setMessageId(message::Message &msg) {
         if(msg.id() > 0) {
             throw std::runtime_error("Message already has ID");

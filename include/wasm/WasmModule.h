@@ -117,8 +117,6 @@ namespace wasm {
 
         std::string getBoundFunction();
 
-        bool getBoundIsPython();
-
         bool getBoundIsTypescript();
 
         I32 getGlobalI32(const std::string &globalName, Runtime::Context *context);
@@ -161,7 +159,6 @@ namespace wasm {
         bool _isBound = false;
         std::string boundUser;
         std::string boundFunction;
-        bool boundIsPython = false;
         bool boundIsTypescript = false;
 
         // Shared memory regions

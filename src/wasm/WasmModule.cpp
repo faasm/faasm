@@ -84,7 +84,6 @@ namespace wasm {
         _isBound = other._isBound;
         boundUser = other.boundUser;
         boundFunction = other.boundFunction;
-        boundIsPython = other.boundIsPython;
         boundIsTypescript = other.boundIsTypescript;
 
         if (other._isBound) {
@@ -293,33 +292,13 @@ namespace wasm {
 
         // Record that this module is now bound
         _isBound = true;
-        boundIsPython = msg.ispython();
         boundIsTypescript = msg.istypescript();
-
-        if (boundIsPython) {
-            logger->debug("Detected python function {}/{}", boundUser, boundFunction);
-        } else if (boundIsTypescript) {
-            logger->debug("Detected typescript function {}/{}", boundUser, boundFunction);
-        } else {
-            logger->debug("Detected C/C++ function {}/{}", boundUser, boundFunction);
-        }
 
         // Create a copy of the message to avoid messing with the original
         message::Message msgCopy = msg;
 
-        // TODO - tidy up the handling of Python functions. This is a hack
-        if(boundIsPython) {
-            boundUser = "python";
-            boundFunction = "py_func";
-
-            std::string pyFile = msg.user() + "/" + msg.function() + ".py";
-            msgCopy.set_inputdata(pyFile);
-            msgCopy.set_user("python");
-            msgCopy.set_function("py_func");
-        } else {
-            boundUser = msg.user();
-            boundFunction = msg.function();
-        }
+        boundUser = msg.user();
+        boundFunction = msg.function();
 
         // Set up the compartment and context
         PROF_START(wasmContext)
@@ -1000,10 +979,6 @@ namespace wasm {
 
     std::string WasmModule::getBoundFunction() {
         return boundFunction;
-    }
-
-    bool WasmModule::getBoundIsPython() {
-        return boundIsPython;
     }
 
     bool WasmModule::getBoundIsTypescript() {

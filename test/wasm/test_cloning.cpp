@@ -36,7 +36,6 @@ namespace tests {
         REQUIRE(moduleB.isBound());
         REQUIRE(moduleB.getBoundUser() == moduleA.getBoundUser());
         REQUIRE(moduleB.getBoundFunction() == moduleA.getBoundFunction());
-        REQUIRE(moduleB.getBoundIsPython() == moduleA.getBoundIsPython());
         REQUIRE(moduleB.getBoundIsTypescript() == moduleA.getBoundIsTypescript());
 
         // Check module B memory and table

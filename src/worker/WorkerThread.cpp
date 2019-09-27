@@ -162,7 +162,7 @@ namespace worker {
 
         // Wait for next message (note, timeout in ms)
         message::Message msg = currentQueue->dequeue(timeoutMs);
-
+        
         // Handle the message
         std::string errorMessage;
         if (msg.type() == message::Message_MessageType_BIND) {

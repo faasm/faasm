@@ -28,23 +28,25 @@ def _do_invoke(user, func, host, port, func_type, input=None):
 
 
 @task
-def invoke(ctx, user, func, host="127.0.0.1", port=8001, input=None, parallel=False, loops=1):
-    for l in range(loops):
-        if loops > 1:
-            print("LOOP {}".format(l))
+def invoke(ctx, user, func,
+           host="127.0.0.1", port=8001,
+           input=None,
+           parallel=False, loops=1,
+           py=False,
+           ts=False,
+           async=False,
+           knative=False
+           ):
+    if py:
+        prefix = "p"
+    elif ts:
+        prefix = "t"
+    else:
+        prefix = "f"
 
-        if parallel:
-            n_workers = multiprocessing.cpu_count() - 1
-            p = multiprocessing.Pool(n_workers)
+    if async:
+        prefix += "a"
 
-            args_list = [(user, func, host, port, "f", input) for _ in range(n_workers)]
-            p.starmap(_do_invoke, args_list)
-        else:
-            _do_invoke(user, func, host, port, "f", input=input)
-
-
-@task
-def knative_invoke(ctx, user, func, host="127.0.0.1", port=8080, input=None, parallel=False, loops=1):
     url = "http://{}:{}/".format(host, port)
 
     msg = {
@@ -55,12 +57,13 @@ def knative_invoke(ctx, user, func, host="127.0.0.1", port=8080, input=None, par
     if input:
         msg["input_data"] = input
 
-    # Knative requires specifying which function in the header
+    # For knative must specify which function in the header
     headers = {
         "Host": "faasm-worker.faasm.example.com"
     }
 
     msg_json = dumps(msg)
+
     for l in range(loops):
         if loops > 1:
             print("LOOP {}".format(l))
@@ -69,27 +72,15 @@ def knative_invoke(ctx, user, func, host="127.0.0.1", port=8080, input=None, par
             n_workers = multiprocessing.cpu_count() - 1
             p = multiprocessing.Pool(n_workers)
 
-            args_list = [(url, msg_json, headers) for _ in range(n_workers)]
-            p.starmap(_do_post, args_list)
+            if knative:
+                args_list = [(url, msg_json, headers) for _ in range(n_workers)]
+            else:
+                args_list = [(user, func, host, port, prefix, input) for _ in range(n_workers)]
+
+            p.starmap(_do_invoke, args_list)
         else:
-            _do_post(url, msg_json, headers=headers)
 
-
-@task
-def py_invoke(ctx, user, func, host="127.0.0.1"):
-    _do_invoke(user, func, host, 8001, "p")
-
-
-@task
-def ts_invoke(ctx, user, func, host="127.0.0.1"):
-    _do_invoke(user, func, host, 8001, "t")
-
-
-@task
-def invoke_async(ctx, user, func, host="127.0.0.1"):
-    _do_invoke(user, func, host, 8001, "fa")
-
-
-@task
-def py_invoke_async(ctx, user, func, host="127.0.0.1"):
-    _do_invoke(user, func, host, 8001, "pa")
+            if knative:
+                _do_post(url, msg_json, headers=headers)
+            else:
+                _do_invoke(user, func, host, port, prefix, input=input)

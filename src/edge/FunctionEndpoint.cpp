@@ -66,7 +66,8 @@ namespace edge {
                                                        Pistache::Http::ResponseWriter response) {
         message::Message msg = this->buildMessageFromRequest(request);
         msg.set_isasync(false);
-        msg.set_ispython(true);
+
+        util::convertMessageToPython(msg);
 
         const std::string result = this->handleFunction(msg);
         response.send(Pistache::Http::Code::Ok, result);
