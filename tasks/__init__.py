@@ -142,4 +142,5 @@ from tasks.wasm2wast import wast
 from tasks.toolchain import (
     backup_toolchain,
     download_toolchain,
+    run_local_codegen,
 )

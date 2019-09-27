@@ -3,10 +3,10 @@ from os.path import join, exists
 from tasks.util.env import PROJ_ROOT, HOME_DIR
 
 
-def find_codegen_shared_lib():
+def _do_find_codegen(bin_name):
     possible_binaries = [
-        "/faasm/build/bin/codegen_shared_obj",  # Containers
-        join(PROJ_ROOT, "cmake-build-debug/bin/codegen_shared_obj"),  # CLion
+        "/faasm/build/bin/{}".format(bin_name),  # Containers
+        join(PROJ_ROOT, "cmake-build-debug/bin/{}".format(bin_name)),  # CLion
     ]
 
     existing_binaries = [p for p in possible_binaries if exists(p)]
@@ -19,3 +19,11 @@ def find_codegen_shared_lib():
         print("WARNING: found multiple codegen binaries, taking {}".format(binary))
 
     return binary
+
+
+def find_codegen_shared_lib():
+    return _do_find_codegen("codegen_shared_obj")
+
+
+def find_codegen_func():
+    return _do_find_codegen("codegen_func")

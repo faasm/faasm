@@ -1,10 +1,12 @@
+from multiprocessing.pool import Pool
 from os import remove, mkdir
 from os.path import join, exists
 from subprocess import check_output
 
 from invoke import task
 
-from tasks.util.env import MISC_S3_BUCKET, TOOLCHAIN_ROOT, FAASM_LOCAL_DIR, FAASM_SYSROOT
+from tasks.util.codegen import find_codegen_func, find_codegen_shared_lib
+from tasks.util.env import MISC_S3_BUCKET, TOOLCHAIN_ROOT, FAASM_LOCAL_DIR, FAASM_SYSROOT, FAASM_RUNTIME_ROOT
 from tasks.util.upload_util import upload_file_to_s3, download_tar_from_s3
 
 TOOLCHAIN_INSTALL = join(TOOLCHAIN_ROOT, "install")
@@ -13,6 +15,29 @@ TOOLCHAIN_TAR_PATH = join(TOOLCHAIN_ROOT, TOOLCHAIN_TAR_NAME)
 
 SYSROOT_TAR_NAME = "faasm-sysroot.tar.gz"
 SYSROOT_TAR_PATH = join(FAASM_LOCAL_DIR, SYSROOT_TAR_NAME)
+
+
+def _do_codegen_for_user(user):
+    print("Running codegen for user {}".format(user))
+
+    binary = find_codegen_func()
+    check_output("{} {}".format(binary, user), shell=True)
+
+
+@task
+def run_local_codegen(ctx):
+    _do_codegen_for_user("demo")
+    _do_codegen_for_user("errors")
+
+    # Run these in parallel
+    p = Pool(3)
+    users = ["python", "sgd", "tf"]
+    p.map(_do_codegen_for_user, users)
+
+    print("Running codegen on python shared objects")
+    binary = find_codegen_shared_lib()
+    shared_obj_dir = join(FAASM_RUNTIME_ROOT, "lib", "python3.7")
+    check_output("{} {}".format(binary, shared_obj_dir), shell=True)
 
 
 @task
