@@ -1,7 +1,6 @@
 FROM faasm/base
 
 COPY . /usr/local/code/faasm
-WORKDIR /faasm/build
 
 # Get the runtime root from S3
 WORKDIR /usr/local/faasm
@@ -10,6 +9,7 @@ RUN tar --no-same-owner -xf faasm_runtime_root.tar.gz
 RUN rm faasm_runtime_root.tar.gz
 
 # Build the upload and codegen targets
+WORKDIR /faasm/build
 RUN cmake --build . --target upload -- -j
 RUN cmake --build . --target codegen_shared_obj -- -j
 RUN cmake --build . --target codegen_func -- -j

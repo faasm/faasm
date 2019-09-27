@@ -75,4 +75,5 @@ services:
     networks:
       - faasm-knative
     volumes:
-      - /usr/share/faasm/wasm:/usr/share/faasm/wasm
+      - /usr/local/faasm/object:/usr/local/faasm/object
+      - /usr/local/code/faasm/wasm:/usr/local/code/faasm/wasm
