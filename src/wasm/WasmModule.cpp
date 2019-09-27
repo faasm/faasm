@@ -232,11 +232,11 @@ namespace wasm {
             }
 
             // Go through each elem entry and record where in the table it's getting inserted
-            for (int i = 0; i < es.contents->elemIndices.size(); i++) {
+            for (size_t i = 0; i < es.contents->elemIndices.size(); i++) {
                 unsigned long elemIdx = es.contents->elemIndices[i];
                 // Work out the function's name, then add it to our GOT
                 std::string &elemName = disassemblyNames.functions[elemIdx].name;
-                int tableIdx = offset + i;
+                Uptr tableIdx = offset + i;
                 globalOffsetTableMap.insert({elemName, tableIdx});
             }
         }
@@ -596,24 +596,27 @@ namespace wasm {
             throw std::runtime_error("Missing dynamic module function");
         }
 
-        int prevIdx = addFunctionToTable(exportedFunc);
-        return prevIdx;
+        Uptr tableIdx = addFunctionToTable(exportedFunc);
+
+        logger->debug("Resolved function {} to index {}", funcName, tableIdx);
+        return tableIdx;
     }
 
-    int WasmModule::addFunctionToTable(Runtime::Object *exportedFunc) {
+    Uptr WasmModule::addFunctionToTable(Runtime::Object *exportedFunc) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Add function to the table
         Uptr prevIdx;
         bool success = Runtime::growTable(defaultTable, 1, &prevIdx);
         if (!success) {
+            logger->error("Failed to grow table from {} elements to {}", prevIdx, prevIdx + 1);
             throw std::runtime_error("Failed to grow table");
-        } else {
-            logger->debug("Growing table from {} elements to {}", prevIdx, prevIdx + 1);
         }
 
-        Runtime::setTableElement(defaultTable, prevIdx, exportedFunc);
+        Uptr newElements = Runtime::getTableNumElements(defaultTable);
+        logger->debug("Table grown from {} elements to {}", prevIdx, newElements);
 
+        Runtime::setTableElement(defaultTable, prevIdx, exportedFunc);
         return prevIdx;
     }
 

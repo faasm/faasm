@@ -79,7 +79,7 @@ namespace wasm {
 
         Uptr getDynamicModuleFunction(int handle, const std::string &funcName);
 
-        int addFunctionToTable(Runtime::Object *exportedFunc);
+        Uptr addFunctionToTable(Runtime::Object *exportedFunc);
 
         void executeFunction(
                 Runtime::Function *func,
@@ -174,7 +174,7 @@ namespace wasm {
         std::unordered_map<int, Runtime::GCPointer<Runtime::ModuleInstance>> dynamicModuleMap;
 
         // Dynamic linking tables and memories
-        std::unordered_map<std::string, int> globalOffsetTableMap;
+        std::unordered_map<std::string, Uptr> globalOffsetTableMap;
         std::unordered_map<std::string, int> globalOffsetMemoryMap;
         std::unordered_map<std::string, int> missingGlobalOffsetEntries;
 

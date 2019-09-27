@@ -15,7 +15,7 @@ cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
     /usr/local/code/faasm
 
 # Build benchmarks
-cmake --build . --target codegen -- -j
+cmake --build . --target codegen_func -- -j
 cmake --build . --target bench_mem -- -j
 cmake --build . --target bench_time -- -j
 cmake --build . --target bench_tpt -- -j

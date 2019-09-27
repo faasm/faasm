@@ -29,11 +29,11 @@ int main(int argc, char *argv[]) {
         std::string user = argv[1];
         std::string func = argv[2];
 
-        logger->error("Running codegen for function {}/{}", user, func);
+        logger->info("Running codegen for function {}/{}", user, func);
         codegenForFunc(user, func);
     } else if (argc == 2) {
         std::string user = argv[1];
-        logger->error("Running codegen for user {}", user);
+        logger->info("Running codegen for user {}", user);
 
         util::SystemConfig &conf = util::getSystemConfig();
         boost::filesystem::path path(conf.functionDir);

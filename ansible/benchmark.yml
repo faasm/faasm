@@ -15,6 +15,5 @@
     - spdlog
     - rapidjson
     - aws_sdk
-    - emsdk
     - docker
     - capacity

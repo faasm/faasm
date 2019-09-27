@@ -119,7 +119,8 @@ namespace tests {
         SECTION("Test uploading wasm file") {
             // Override the function directory with junk
             util::SystemConfig &conf = util::getSystemConfig();
-            std::string orig =  conf.functionDir;
+            std::string origFuncDir =  conf.functionDir;
+            std::string origObjDir =  conf.objectFileDir;
             conf.functionDir =  "/tmp/func";
             conf.objectFileDir =  "/tmp/obj";
 
@@ -148,7 +149,8 @@ namespace tests {
             // Check getting the object file
             checkGet("/fo/gamma/delta", objBytes);
 
-            conf.functionDir = orig;
+            conf.functionDir = origFuncDir;
+            conf.objectFileDir = origObjDir;
         }
 
         SECTION("Test uploading python file") {

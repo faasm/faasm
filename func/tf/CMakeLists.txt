@@ -31,6 +31,4 @@ else()
     endfunction(tf_func)
 endif()
 
-tf_func(minimal minimal.cpp)
-
 add_subdirectory(image)
