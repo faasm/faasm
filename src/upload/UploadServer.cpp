@@ -74,7 +74,6 @@ namespace edge {
 
     void UploadServer::handleGet(const http_request &request) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("GET request to {}", request.absolute_uri().to_string());
 
         const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
 
@@ -82,14 +81,20 @@ namespace edge {
         std::string pathType = pathParts[0];
         std::vector<uint8_t> returnBytes;
 
+        const utility::string_t &uri = request.absolute_uri().to_string();
+
         if (pathType == "sobjwasm" || pathType == "sobjobj") {
             std::string sharedObjPath = getHeaderFromRequest(request, SHARED_OBJ_HEADER);
+
+            logger->debug("GET request to {} ({})", uri, sharedObjPath);
             if (pathType == "sobjwasm") {
                 returnBytes = l.loadSharedObjectWasm(sharedObjPath);
             } else {
                 returnBytes = l.loadSharedObjectObjectFile(sharedObjPath);
             }
         } else {
+            logger->debug("GET request to {}", uri);
+
             message::Message msg = UploadServer::buildMessageFromRequest(request);
 
             if (pathType == "s") {
