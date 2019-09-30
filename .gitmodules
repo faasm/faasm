@@ -15,7 +15,7 @@
 	url = https://github.com/glennrp/libpng.git
 [submodule "third-party/pyodide"]
 	path = third-party/pyodide
-	url = https://github.com/Shillaker/pyodide
+	url = http://github.com/Shillaker/pyodide.git
 [submodule "third-party/zlib"]
 	path = third-party/zlib
 	url = https://github.com/madler/zlib.git

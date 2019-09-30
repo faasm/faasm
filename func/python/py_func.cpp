@@ -21,8 +21,8 @@ FAASM_MAIN_FUNC() {
     faasmGetInput(buffer, inputSize);
 
     const char *funcName = reinterpret_cast<const char *>(buffer);
-    char filePath[10 + inputSize];
-    strcpy(filePath, "funcs/");
+    char filePath[15 + inputSize];
+    strcpy(filePath, "funcs/python/");
     strcat(filePath, funcName);
 
     FILE *fp = fopen(filePath, "r");

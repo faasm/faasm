@@ -17,7 +17,7 @@ BACKUP_LOCATION = join(FAASM_LOCAL_DIR, "runtime_root_backup")
 
 
 @task
-def package_runtime_root(ctx):
+def backup_runtime_root(ctx):
     # Nuke the existing runtime root
     if exists(FAASM_RUNTIME_ROOT):
         print("Moving existing runtime root to {}".format(BACKUP_LOCATION))

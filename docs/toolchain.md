@@ -29,7 +29,7 @@ inv download-runtime-root
 To build, package and upload the runtime root, you can run:
 
 ```
-inv package-runtime-root
+inv backup-runtime-root
 ```
 
 ## Building Toolchain
