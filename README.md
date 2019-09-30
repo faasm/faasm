@@ -34,13 +34,7 @@ itself. There is also a `redis` container used for communication between the oth
 You can start it by running:
 
 ```
-docker-compose up -d
-```
-
-To view logs for a given component:
-
-```
-docker-compose logs --tail=200 -f worker
+docker-compose up
 ```
 
 ## Compiling a C++ function

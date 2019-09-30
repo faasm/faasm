@@ -29,7 +29,7 @@ def _do_invoke(user, func, host, port, func_type, input=None):
 
 @task
 def invoke(ctx, user, func,
-           host="127.0.0.1", port=8001,
+           host="127.0.0.1",
            input=None,
            parallel=False, loops=1,
            py=False,
@@ -47,12 +47,17 @@ def invoke(ctx, user, func,
     if async:
         prefix += "a"
 
+    port = 8080 if knative else 8001
+
     url = "http://{}:{}/".format(host, port)
 
     msg = {
         "user": user,
         "function": func,
     }
+
+    if py:
+        msg["python"] = True
 
     if input:
         msg["input_data"] = input
