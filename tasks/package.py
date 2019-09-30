@@ -60,8 +60,11 @@ def package_runtime_root(ctx):
 @task
 def download_runtime_root(ctx):
     # Clear out existing
-    print("Removing existing")
-    rmtree(FAASM_RUNTIME_ROOT)
+    if exists(FAASM_RUNTIME_ROOT):
+        print("Removing existing")
+        rmtree(FAASM_RUNTIME_ROOT)
+
+    mkdir(FAASM_RUNTIME_ROOT)
 
     # Download the bundle
     print("Downloading from S3")

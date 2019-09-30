@@ -1,4 +1,4 @@
-from os import mkdir
+from os import mkdir, makedirs
 from os.path import exists
 from os.path import join
 from shutil import rmtree
@@ -151,8 +151,8 @@ def compile_eigen(ctx):
 
     if exists(build_dir):
         rmtree(build_dir)
+    makedirs(build_dir)
 
-    mkdir(build_dir)
     cmd = [
         "cmake",
         "-DFAASM_BUILD_TYPE=Release",

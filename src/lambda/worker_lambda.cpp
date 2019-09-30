@@ -5,7 +5,6 @@
 
 #include <util/json.h>
 #include <storage/FunctionLoader.h>
-#include <wasm/codegen.h>
 
 #include <rapidjson/document.h>
 

@@ -79,8 +79,8 @@ namespace tests {
         loader.uploadFunction(msg);
         
         // Download again
-        const std::vector<uint8_t> &actualWasmBytes = loader.loadFunctionBytes(msg);
-        const std::vector<uint8_t> &actualObjectBytes = loader.loadFunctionObjectBytes(msg);
+        const std::vector<uint8_t> &actualWasmBytes = loader.loadFunctionWasm(msg);
+        const std::vector<uint8_t> &actualObjectBytes = loader.loadFunctionObjectFile(msg);
         REQUIRE(actualWasmBytes == wasmBytes);
         REQUIRE(actualObjectBytes == objectBytes);
 
@@ -91,8 +91,8 @@ namespace tests {
         // Download in a different thread and check for any thread-local issues
         std::thread t([&msg, &wasmBytes, &objectBytes]{
             storage::FunctionLoader &l = storage::getFunctionLoader();
-            const std::vector<uint8_t> &actualWasmBytes2 = l.loadFunctionBytes(msg);
-            const std::vector<uint8_t> &actualObjectBytes2 = l.loadFunctionObjectBytes(msg);
+            const std::vector<uint8_t> &actualWasmBytes2 = l.loadFunctionWasm(msg);
+            const std::vector<uint8_t> &actualObjectBytes2 = l.loadFunctionObjectFile(msg);
             REQUIRE(actualWasmBytes2 == wasmBytes);
             REQUIRE(actualObjectBytes2 == objectBytes);
         });

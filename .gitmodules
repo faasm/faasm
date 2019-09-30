@@ -1,21 +1,9 @@
 [submodule "third-party/tensorflow"]
 	path = third-party/tensorflow
 	url = https://github.com/Shillaker/tensorflow.git
-[submodule "third-party/flatbuffers"]
-	path = third-party/flatbuffers
-	url = https://github.com/google/flatbuffers.git
-[submodule "third-party/gemmlowp"]
-	path = third-party/gemmlowp
-	url = https://github.com/google/gemmlowp.git
-[submodule "third-party/farmhash"]
-	path = third-party/farmhash
-	url = https://github.com/google/farmhash
-[submodule "third-party/abseil-cpp"]
-	path = third-party/abseil-cpp
-	url = https://github.com/abseil/abseil-cpp.git
 [submodule "third-party/eigen"]
 	path = third-party/eigen
-	url = https://github.com/eigenteam/eigen-git-mirror
+	url = https://github.com/Shillaker/eigen-git-mirror
 [submodule "third-party/gem3-mapper"]
 	path = third-party/gem3-mapper
 	url = https://github.com/Shillaker/gem3-mapper.git
