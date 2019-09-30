@@ -90,8 +90,6 @@ namespace wasm {
 
         Runtime::Function *getFunction(const std::string &funcName, bool strict);
 
-        void setErrno(int newValue);
-
         int getHeapBase();
 
         int getDataEnd();

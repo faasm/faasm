@@ -60,9 +60,7 @@ namespace wasm {
                 logger->debug("Failed to open - {}", path);
             }
 
-            int newErrno = errno;
-
-            module->setErrno(newErrno);
+            return -errno;
         }
 
         return fd;
@@ -113,9 +111,8 @@ namespace wasm {
         }
 
         if (returnValue < 0) {
-            getExecutingModule()->setErrno(errno);
             logger->warn("Failed fcntl call");
-            return -1;
+            return -errno;
         }
 
         return returnValue;
@@ -158,14 +155,11 @@ namespace wasm {
             if (nativeBytesRead < 0) {
                 // Error reading native dirents
                 int newErrno = errno;
-                getExecutingModule()->setErrno(newErrno);
-
                 delete[] nativeBuf;
                 return -newErrno;
             } else if(nativeBytesRead == 0) {
                 // End of directory
                 delete[] nativeBuf;
-                getExecutingModule()->setErrno(0);
                 return wasmBytesRead;
             } else {
                 // Now we iterate through the dirents we just got back from the host
@@ -423,8 +417,7 @@ namespace wasm {
 
         if(result < 0) {
             int newErrno = errno;
-            getExecutingModule()->setErrno(newErrno);
-            return -1;
+            return -newErrno;
         }
 
         writeNativeStatToWasmStat(&nativeStat, statBufPtr);
@@ -443,9 +436,7 @@ namespace wasm {
         int result = stat64(fakePath.c_str(), &nativeStat);
 
         if (result < 0) {
-            int newErrno = errno;
-            getExecutingModule()->setErrno(newErrno);
-            return -1;
+            return -errno;
         }
 
         writeNativeStatToWasmStat(&nativeStat, statBufPtr);
@@ -481,10 +472,9 @@ namespace wasm {
 
         int res = (int) lseek(fd, offsetLow, whence);
 
-        // Success returns zero and failure returns -1 with correct errno set
+        // Success returns zero and failure returns negative errno
         if (res < 0) {
-            module->setErrno(errno);
-            return -1;
+            return -errno;
         } else {
             *hostResultPtr = res;
             return 0;
