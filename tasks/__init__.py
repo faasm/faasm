@@ -56,9 +56,6 @@ from tasks.compile_tensorflow import (
     compile_tf_lite,
     compile_tf_lite_native,
 )
-from tasks.compile_ts import (
-    ts_compile,
-)
 from tasks.invoke import (
     invoke,
 )

@@ -202,7 +202,7 @@ namespace tests {
 
         std::string user = "python";
         std::string func = "py_func";
-        std::string input = "numpy_test.py";
+        std::string input = "numpy_test";
 
         SECTION("copy") {
             _checkCopyConstructor(user, func, input, input, false);
