@@ -8,6 +8,7 @@
 #include <upload/UploadServer.h>
 
 #include <boost/filesystem.hpp>
+#include <storage/FunctionLoader.h>
 
 using namespace web::http::experimental::listener;
 using namespace web::http;
@@ -53,16 +54,14 @@ namespace tests {
 
     TEST_CASE("Check upload overrides fileserver storage", "[upload]") {
         util::SystemConfig &conf = util::getSystemConfig();
-        std::string original = util::setEnvVar("FUNCTION_STORAGE", "fileserver");
-        conf.reset();
-
-        REQUIRE(conf.functionStorage == "fileserver");
+        std::string original = conf.functionStorage;
+        conf.functionStorage = "fileserver";
 
         // Instantiate a server
         edge::UploadServer server;
         REQUIRE(conf.functionStorage == "local");
 
-        util::setEnvVar("FUNCTION_STORAGE", original);
+        conf.functionStorage = original;
     }
 
     TEST_CASE("Upload tests", "[upload]") {
@@ -193,11 +192,18 @@ namespace tests {
     TEST_CASE("Python fileserver test", "[upload]") {
         std::string urlPath;
         std::string user = "python";
-        std::string funcName = "hello";
-        std::string expectedFilePath = util::getSystemConfig().pythonFunctionDir + "/" + user + "/" + funcName + "/function.py";
+        std::string funcName = "foobar";
 
+        // Upload a dummy function
+        std::vector<uint8_t> expected = {0, 2, 4, 1, 3};
+        message::Message msg = util::messageFactory(user, funcName);
+        msg.set_inputdata(util::bytesToString(expected));
+
+        storage::FunctionLoader &loader = storage::getFunctionLoader();
+        loader.uploadPythonFunction(msg);
+        
+        // Check file exists as expected
         std::string url = "p/" + user + "/" + funcName;
-        const std::vector<uint8_t> &expected = util::readFileToBytes(expectedFilePath);
         checkGet(url, expected);
     }
 

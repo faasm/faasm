@@ -3,11 +3,13 @@
 set -e
 
 pushd /usr/local/code/faasm
-echo "Set up libfake"
+
 source workon.sh
 
+# Set up libfake for tests
 inv compile-libfake --clean
 
+# Run codegen on all files used locally
 inv run-local-codegen
 
 popd

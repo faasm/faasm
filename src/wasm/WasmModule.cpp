@@ -71,7 +71,6 @@ namespace wasm {
             tearDown();
         }
 
-        errnoLocation = other.errnoLocation;
         heapBase = other.heapBase;
         dataEnd = other.dataEnd;
         stackTop = other.stackTop;
@@ -322,23 +321,6 @@ namespace wasm {
         // Keep reference to memory and table
         defaultMemory = Runtime::getDefaultMemory(moduleInstance);
         defaultTable = Runtime::getDefaultTable(moduleInstance);
-
-        // Record the errno location
-        Runtime::Function *errNoLocation = asFunctionNullable(getInstanceExport(moduleInstance, "__errno_location"));
-        if (errNoLocation) {
-            IR::UntaggedValue errNoResult;
-            executeFunction(
-                    errNoLocation,
-                    IR::FunctionType({IR::ValueType::i32}, {}),
-                    {},
-                    errNoResult
-            );
-
-            errnoLocation = errNoResult.i32;
-            logger->debug("Found errno location {}", errnoLocation);
-        } else {
-            logger->warn("Did not find errno location");
-        }
 
         // Get and execute zygote function
         zygoteFunctionInstance = getFunction(ZYGOTE_FUNC_NAME, false);

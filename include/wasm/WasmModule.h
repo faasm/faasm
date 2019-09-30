@@ -143,7 +143,6 @@ namespace wasm {
         Runtime::Function *zygoteFunctionInstance;
 
         // Main module
-        int errnoLocation = 0;
         int heapBase = 0;
         int dataEnd = 0;
         int stackTop = 0;

@@ -21,3 +21,16 @@ If things don't work, you can attach to the container and run the tests:
 docker-compose -f docker-compose-test.yml run tester /bin/bash
 /usr/local/code/faasm/bin/ci_run.sh
 ```
+
+You can run individual tests with Catch syntax, e.g.
+
+```
+/faasm/build/bin/tests -d yes --order lex "Python fileserver test"
+```
+
+You can rebuild tests while in the container as follows:
+
+```
+cd /faasm/build
+cmake --build . --target tests -- -j
+```
