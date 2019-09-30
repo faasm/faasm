@@ -23,7 +23,7 @@ namespace tests {
     std::string mainData = "PyBool_Type";
     std::string dataA = "PyArray_API";
     std::string dataB = "PyUFunc_API";
-    int mainDataOffset = 6438608;
+    int mainDataOffset = 6438592;
     int dataAOffset = 10460832;
     int dataBOffset = 41746432;
 
@@ -36,7 +36,7 @@ namespace tests {
         wasm::IRModuleRegistry &registry = wasm::getIRModuleRegistry();
 
         // Bind to Python function
-        message::Message msg = util::messageFactory("python", "py_func");
+        message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         wasm::WasmModule module;
         module.bindToFunction(msg);
 
@@ -49,7 +49,7 @@ namespace tests {
         REQUIRE(handleA >= 2);
         REQUIRE(module.getDynamicModuleCount() == 1);
 
-        U64 moduleTableSizeA = registry.getSharedModuleTableSize("python", "py_func", pythonModuleA);
+        U64 moduleTableSizeA = registry.getSharedModuleTableSize(PYTHON_USER, PYTHON_FUNC, pythonModuleA);
 
         // Check the table size has grown to fit the new functions
         Uptr tableSizeAfterA = Runtime::getTableNumElements(module.defaultTable);
@@ -86,7 +86,7 @@ namespace tests {
         REQUIRE(handleB == handleA + 1);
         REQUIRE(module.getDynamicModuleCount() == 2);
 
-        U64 moduleTableSizeB = registry.getSharedModuleTableSize("python", "py_func", pythonModuleB);
+        U64 moduleTableSizeB = registry.getSharedModuleTableSize(PYTHON_USER, PYTHON_FUNC, pythonModuleB);
 
         // Check the table
         Uptr tableSizeAfterB = Runtime::getTableNumElements(module.defaultTable);
@@ -137,7 +137,7 @@ namespace tests {
         conf.fsMode = "on";
 
         // Bind to Python function
-        message::Message msg = util::messageFactory("python", "py_func");
+        message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         wasm::WasmModule module;
         module.bindToFunction(msg);
 
@@ -198,7 +198,7 @@ namespace tests {
         conf.fsMode = "on";
 
         // Bind to Python function
-        message::Message msg = util::messageFactory("python", "py_func");
+        message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         wasm::WasmModule module;
         module.bindToFunction(msg);
 

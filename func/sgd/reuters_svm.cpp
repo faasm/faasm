@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 /* If running a native build we need to explicitly set the user on the emulator */
-#if __wasm__ == 1
+#ifdef __wasm__
 #else
 #include "emulator/emulator.h"
 #endif
@@ -51,7 +51,7 @@ void epochFinished() {
 
 FAASM_MAIN_FUNC() {
 
-#if __wasm__ == 1
+#ifdef __wasm__
 #else
     setEmulatorUser("sgd");
 #endif

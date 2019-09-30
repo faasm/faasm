@@ -275,6 +275,7 @@ namespace wasm {
         // Note the need to set the currently executing module
         executingModule = this;
 
+        // Function expects a result array so pass pointer to single value
         Runtime::invokeFunction(executionContext, func, funcType, arguments.data(), &result);
     }
 
@@ -360,9 +361,14 @@ namespace wasm {
         // Typescript doesn't export memory info, nor does it require
         // setting up argv/argc
         if (!boundIsTypescript) {
-            // Note that heap base and data end should be the same (provided stack-first is switched on)
             heapBase = getGlobalI32("__heap_base", executionContext);
             dataEnd = getGlobalI32("__data_end", executionContext);
+
+            // Note that heap base and data end should be the same (provided stack-first is switched on)
+            if(heapBase != dataEnd) {
+                logger->error("Expected heap base and data end to be equal but were {} and {}", heapBase, dataEnd);
+                throw std::runtime_error("Heap base and data end are different");
+            }
 
             Uptr initialTableSize = Runtime::getTableNumElements(defaultTable);
             Uptr initialMemorySize = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
@@ -624,7 +630,8 @@ namespace wasm {
 
             Runtime::memoryRef<I32>(defaultMemory, errnoLocation) = (I32) newValue;
         } else {
-            logger->warn("No errno location but trying to set to {} ({})", strerror(newValue));
+            logger->error("No errno location but trying to set to {} ({})", strerror(newValue));
+            throw std::runtime_error("Setting errno when no errno location found");
         }
     }
 

@@ -185,8 +185,9 @@ namespace worker {
         scheduler.incrementExecutingCount();
 
         // Create and execute the module
+        int exitCode = 0;
         try {
-            module->execute(call);
+            exitCode = module->execute(call);
         }
         catch (const std::exception &e) {
             std::string errorMessage = "Error: " + std::string(e.what());
@@ -196,9 +197,13 @@ namespace worker {
             return errorMessage;
         }
 
-        const std::string empty;
-        this->finishCall(call, empty);
+        std::string errorMessage;
 
-        return empty;
+        if(exitCode != 0) {
+            errorMessage = "Non-zero exit code: " + std::to_string(exitCode);
+        }
+
+        this->finishCall(call, errorMessage);
+        return errorMessage;
     }
 }

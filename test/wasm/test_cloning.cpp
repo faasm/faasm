@@ -87,7 +87,7 @@ namespace tests {
             tableAfterA1 = Runtime::getTableNumElements(moduleA.defaultTable);
             Uptr tableAfterB1 = Runtime::getTableNumElements(moduleB.defaultTable);
 
-            if (func == "py_func") {
+            if (func == PYTHON_FUNC) {
                 REQUIRE(tableAfterA1 > tableBeforeA);
             } else {
                 REQUIRE(tableAfterA1 == tableBeforeA);
@@ -120,7 +120,7 @@ namespace tests {
             Uptr tableAfterA2 = Runtime::getTableNumElements(moduleA.defaultTable);
             Uptr tableAfterB2 = Runtime::getTableNumElements(moduleB.defaultTable);
 
-            if (func == "py_func") {
+            if (func == PYTHON_FUNC) {
                 REQUIRE(tableAfterB2 > tableBeforeB);
             } else {
                 REQUIRE(tableAfterB2 == tableBeforeB);
@@ -200,9 +200,9 @@ namespace tests {
         std::string orig = conf.fsMode;
         conf.fsMode = "on";
 
-        std::string user = "python";
-        std::string func = "py_func";
-        std::string input = "numpy_test";
+        std::string user = PYTHON_USER;
+        std::string func = PYTHON_FUNC;
+        std::string input = std::string(PYTHON_USER) + "/numpy_test/function.py";
 
         SECTION("copy") {
             _checkCopyConstructor(user, func, input, input, false);

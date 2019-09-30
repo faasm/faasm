@@ -12,6 +12,7 @@
 #include <util/gids.h>
 #include <util/config.h>
 
+
 namespace util {
     const static std::string pyFile = "function.py";
     const static std::string funcFile = "function.wasm";
@@ -209,10 +210,10 @@ namespace util {
     }
 
     void convertMessageToPython(message::Message &msg) {
-        std::string filename = msg.user() + "/" + msg.function() + ".py";
+        std::string filename = msg.user() + "/" + msg.function() + "/function.py";
         msg.set_inputdata(filename);
-        msg.set_user("python");
-        msg.set_function("py_func");
+        msg.set_user(PYTHON_USER);
+        msg.set_function(PYTHON_FUNC);
         msg.set_ispython(true);
     }
 

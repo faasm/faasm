@@ -6,6 +6,9 @@
 
 #define SHARED_OBJ_EXT ".o"
 
+#define PYTHON_USER "python"
+#define PYTHON_FUNC "py_func"
+
 namespace util {
     std::string getFunctionKey(const message::Message &msg);
 

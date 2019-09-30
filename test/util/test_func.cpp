@@ -130,4 +130,15 @@ namespace tests {
         REQUIRE(util::stripIdxFromFunction("foobar__001__") == "foobar");
         REQUIRE(util::stripIdxFromFunction("foobar__123__") == "foobar");
     }
+    
+    TEST_CASE("Test converting message to python", "[util]") {
+        message::Message msg = util::messageFactory("foo", "bar");
+
+        util::convertMessageToPython(msg);
+
+        REQUIRE(msg.ispython());
+        REQUIRE(msg.inputdata() == "foo/bar/function.py");
+        REQUIRE(msg.user() == PYTHON_USER);
+        REQUIRE(msg.function() == PYTHON_FUNC);
+    }
 }

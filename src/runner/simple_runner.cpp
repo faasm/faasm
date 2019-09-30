@@ -42,8 +42,12 @@ int main(int argc, char *argv[]) {
         logger->info("Run {} - {}/{} ", i, user, function);
 
         PROF_START(execution)
-        module.execute(m);
+        int result = module.execute(m);
         PROF_END(execution)
+
+        if(result != 0) {
+            throw std::runtime_error("Non-zero return code");
+        }
 
         // Reset using zygote
         module = zygote;

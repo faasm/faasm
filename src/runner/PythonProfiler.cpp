@@ -2,12 +2,10 @@
 
 #include <Python.h>
 #include <util/logging.h>
-
-#define PYTHON_USER "python"
-#define PYTHON_WASM_FUNC "py_func"
+#include <util/func.h>
 
 namespace runner {
-    PythonProfiler::PythonProfiler(std::string pythonFile) : Profiler(PYTHON_USER, PYTHON_WASM_FUNC, pythonFile) {
+    PythonProfiler::PythonProfiler(std::string pythonFile) : Profiler(PYTHON_USER, PYTHON_FUNC, pythonFile) {
 
     }
 
