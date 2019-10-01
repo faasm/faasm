@@ -7,7 +7,7 @@
 #include <memory>
 #include <shared_mutex>
 
-#define SHARED_FILE_PREFIX "faasm"
+#define SHARED_FILE_PREFIX "faasm-shared"
 
 namespace storage {
     std::string maskPath(const std::string &originalPath);
@@ -40,7 +40,7 @@ namespace storage {
 
         SharedFile &getFile(const std::string &path);
 
-        int openVfsFile(const std::string &path, int flags, int mode);
+        int openSharedFile(const std::string &path, int flags, int mode);
 
         int openLocalFile(const std::string &path, int flags, int mode);
     };

@@ -12,6 +12,7 @@ set(PUBLIC_HEADERS
         ${PROJ_INCLUDE}/faasm/core.h
         faasm/counter.h
         faasm/faasm.h
+        faasm/files.h
         faasm/func.h
         faasm/input.h
         faasm/matrix.h
@@ -25,6 +26,7 @@ set(PUBLIC_HEADERS
 set(LIB_FILES
         core.cpp
         counter.cpp
+        files.cpp
         func.cpp
         input.cpp
         matrix.cpp

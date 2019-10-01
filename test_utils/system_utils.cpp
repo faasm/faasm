@@ -9,10 +9,13 @@
 #include <memory/MemorySnapshotRegister.h>
 #include <zygote/ZygoteRegistry.h>
 #include <storage/SharedFilesManager.h>
+#include <boost/filesystem.hpp>
 
 
 namespace tests {
     void cleanSystem() {
+        util::SystemConfig &conf = util::getSystemConfig();
+        
         // Clear out state
         redis::Redis::getState().flushAll();
         redis::Redis::getQueue().flushAll();
@@ -20,7 +23,10 @@ namespace tests {
 
         // Clear shared files
         storage::getSharedFilesManager().clear();
-
+        
+        // Nuke shared files
+        boost::filesystem::remove_all(conf.sharedFilesDir);
+        
         // Reset scheduler
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.clear();
@@ -36,7 +42,7 @@ namespace tests {
         zygote::getZygoteRegistry().clear();
 
         // Reset system config
-        util::getSystemConfig().reset();
+        conf.reset();
 
         // Set emulator user
         unsetEmulatorUser();

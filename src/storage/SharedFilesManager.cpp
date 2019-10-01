@@ -11,10 +11,6 @@
 #include <util/files.h>
 
 namespace storage {
-    // ---------------------------------
-    // Shared file manager
-    // ---------------------------------
-
     std::string maskPath(const std::string &originalPath) {
         util::SystemConfig &conf = util::getSystemConfig();
         boost::filesystem::path p(conf.runtimeFilesDir);
@@ -42,13 +38,13 @@ namespace storage {
     int SharedFilesManager::openFile(const std::string &path, int flags, int mode) {
         bool isVfs = util::startsWith(path, SHARED_FILE_PREFIX);
         if (isVfs) {
-            return openVfsFile(path, flags, mode);
+            return openSharedFile(path, flags, mode);
         } else {
             return openLocalFile(path, flags, mode);
         }
     }
 
-    int SharedFilesManager::openVfsFile(const std::string &path, int flags, int mode) {
+    int SharedFilesManager::openSharedFile(const std::string &path, int flags, int mode) {
         SharedFile &vf = getFile(path);
         return vf.openFile(path, flags, mode);
     }
@@ -115,6 +111,8 @@ namespace storage {
     // ---------------------------------
 
     int SharedFile::openFile(const std::string &path, int flags, int mode) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         const std::string maskedPath = maskSharedPath(path);
 
         // If not checked, do the check and persist
@@ -126,6 +124,7 @@ namespace storage {
             if (state == NOT_CHECKED) {
                 if (boost::filesystem::exists(maskedPath)) {
                     // If already exists on filesystem, just mark it as such
+                    logger->debug("Shared file found on filesystem {} ({})", path, maskedPath);
                     state = EXISTS;
                 } else {
                     // Use file loader if not already in place
@@ -134,6 +133,7 @@ namespace storage {
 
                     // Handle non-existent file
                     if (bytes.empty()) {
+                        logger->debug("Shared file could not be loaded {} ({})", path, maskedPath);
                         state = NOT_EXISTS;
                         return -ENOENT;
                     }
@@ -148,6 +148,7 @@ namespace storage {
                     util::writeBytesToFile(maskedPath, bytes);
 
                     // Record that this exists
+                    logger->debug("Shared file loaded and written locally {} ({})", path, maskedPath);
                     state = EXISTS;
                 }
             }
@@ -157,8 +158,10 @@ namespace storage {
         {
             util::SharedLock sharedLock(fileMutex);
             if (state == NOT_EXISTS) {
+                logger->debug("Shared file does not exist locally {} ({})", path, maskedPath);
                 return -ENOENT;
             } else if (state == EXISTS) {
+                logger->debug("Opening shared file locally {} ({})", path, maskedPath);
                 return open(maskedPath.c_str(), flags, mode);
             } else {
                 throw std::runtime_error("File checked but not left in non-existent or existent state");
