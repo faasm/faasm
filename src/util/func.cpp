@@ -45,6 +45,11 @@ namespace util {
         return rootUrl + "/sobjobj";
     }
 
+    std::string getSharedFileUrl() {
+        std::string rootUrl = getRootUrl();
+        return rootUrl + "/file";
+    }
+
     std::string getFunctionUrl(const message::Message &msg) {
         return getUrl(msg, "f");
     }
@@ -179,6 +184,19 @@ namespace util {
         outputFile += SHARED_OBJ_EXT;
 
         return outputFile;
+    }
+
+    std::string getSharedFileFile(const std::string &path) {
+        SystemConfig &conf = util::getSystemConfig();
+
+        boost::filesystem::path p(conf.sharedFilesStorageDir);
+        p.append(path);
+
+        if(!boost::filesystem::exists(p.parent_path())) {
+            boost::filesystem::create_directories(p.parent_path());
+        }
+
+        return p.string();
     }
 
     std::vector<uint8_t> messageToBytes(const message::Message &msg) {

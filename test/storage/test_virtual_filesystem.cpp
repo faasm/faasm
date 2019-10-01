@@ -4,13 +4,16 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <storage/VirtualFilesystem.h>
+#include <storage/SharedFilesManager.h>
+#include <boost/filesystem.hpp>
+#include <storage/FileLoader.h>
+#include <util/files.h>
 
 using namespace storage;
 
 namespace tests {
     TEST_CASE("Check loading local files", "[storage]") {
-        VirtualFilesystem &vfs = getVirtualFilesystem();
+        SharedFilesManager &vfs = getSharedFilesManager();
         vfs.clear();
 
         util::SystemConfig &conf = util::getSystemConfig();
@@ -53,5 +56,58 @@ namespace tests {
         }
 
         conf.fsMode = original;
+    }
+
+    TEST_CASE("Check loading shared files", "[storage]") {
+        SharedFilesManager &vfs = getSharedFilesManager();
+        vfs.clear();
+
+        util::SystemConfig &conf = util::getSystemConfig();
+
+        std::vector<uint8_t> expectedBytes = {6, 5, 4, 0, 1};
+        std::string relativePath = std::string(VFS_PREFIX) + "/test/valid_shared_file.txt";
+        bool valid;
+
+        // Prepare paths for both copies of file
+        std::string storagePath = conf.sharedFilesStorageDir + "/" + relativePath;
+        std::string usedPath = conf.sharedFilesDir + "/" + relativePath;
+
+        // Clear up beforehand
+        if (boost::filesystem::exists(storagePath)) {
+            boost::filesystem::remove(storagePath);
+        }
+
+        if (boost::filesystem::exists(usedPath)) {
+            boost::filesystem::remove(usedPath);
+        }
+
+        SECTION("Valid shared file") {
+            FileLoader &loader = storage::getFileLoader();
+            loader.uploadSharedFile(relativePath, expectedBytes);
+            valid = true;
+        }
+        SECTION("Invalid shared file") {
+            valid = false;
+        }
+
+        // Open the shared file
+        int fd = vfs.openFile(relativePath, O_RDONLY, 0);
+
+        if (!valid) {
+            REQUIRE(fd == -ENOENT);
+        } else {
+            REQUIRE(fd > 0);
+
+            std::vector<uint8_t> actualStored = util::readFileToBytes(storagePath);
+            std::vector<uint8_t> actualUsed = util::readFileToBytes(usedPath);
+
+            // Read from the fd
+            std::vector<uint8_t> actual(5);
+            read(fd, actual.data(), 5);
+
+            // Check this matches the stored and used versions
+            REQUIRE(actual == actualStored);
+            REQUIRE(actual == actualUsed);
+        }
     }
 }

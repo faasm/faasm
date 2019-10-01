@@ -1,4 +1,4 @@
-#include "VirtualFilesystem.h"
+#include "SharedFilesManager.h"
 
 #include <util/config.h>
 #include <storage/FileLoader.h>
@@ -12,7 +12,7 @@
 
 namespace storage {
     // ---------------------------------
-    // Virtual filesystem
+    // Shared file manager
     // ---------------------------------
 
     std::string maskPath(const std::string &originalPath) {
@@ -22,7 +22,14 @@ namespace storage {
         return p.string();
     }
 
-    VirtualFile &VirtualFilesystem::getFile(const std::string &path) {
+    std::string maskSharedPath(const std::string &originalPath) {
+        util::SystemConfig &conf = util::getSystemConfig();
+        boost::filesystem::path p(conf.sharedFilesDir);
+        p.append(originalPath);
+        return p.string();
+    }
+
+    SharedFile &SharedFilesManager::getFile(const std::string &path) {
         if (vfsMap.count(path) == 0) {
             util::FullLock fullLock(vfsMapMutex);
 
@@ -32,7 +39,7 @@ namespace storage {
         return vfsMap[path];
     }
 
-    int VirtualFilesystem::openFile(const std::string &path, int flags, int mode) {
+    int SharedFilesManager::openFile(const std::string &path, int flags, int mode) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         util::SystemConfig &conf = util::getSystemConfig();
@@ -42,7 +49,7 @@ namespace storage {
         int fd;
 
         if (isVfs) {
-            VirtualFile &vf = getFile(path);
+            SharedFile &vf = getFile(path);
             return vf.openFile(path, flags, mode);
 
         } else if (path == "/dev/urandom") {
@@ -79,7 +86,7 @@ namespace storage {
         return fd;
     }
 
-    void VirtualFilesystem::clear() {
+    void SharedFilesManager::clear() {
         util::FullLock lock(vfsMapMutex);
 
         // Delete all the referenced files
@@ -97,11 +104,11 @@ namespace storage {
     }
 
     // ---------------------------------
-    // Virtual file
+    // Shared file
     // ---------------------------------
 
-    int VirtualFile::openFile(const std::string &path, int flags, int mode) {
-        const std::string maskedPath = maskPath(path);
+    int SharedFile::openFile(const std::string &path, int flags, int mode) {
+        const std::string maskedPath = maskSharedPath(path);
 
         // If not checked, do the check and persist
         if (state == NOT_CHECKED) {

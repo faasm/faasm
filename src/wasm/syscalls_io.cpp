@@ -13,7 +13,7 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <storage/FileLoader.h>
-#include <storage/VirtualFilesystem.h>
+#include <storage/SharedFilesManager.h>
 
 
 namespace wasm {
@@ -23,7 +23,7 @@ namespace wasm {
         const std::string path = getStringFromWasm(pathPtr);
         logger->debug("S - open - {} {} {}", path, flags, mode);
 
-        storage::VirtualFilesystem &vfs = storage::getVirtualFilesystem();
+        storage::SharedFilesManager &vfs = storage::getSharedFilesManager();
         int fd = vfs.openFile(path, flags, mode);
 
         // NOTE: virtual filesystem will return the negative errno associated

@@ -23,9 +23,7 @@ namespace storage {
 
         std::vector<uint8_t> loadPythonFunctionFile(const message::Message &msg) override;
 
-        std::vector<uint8_t> loadSharedFile(const std::string &path) override {
-            throw std::runtime_error("Not implemented for fileserver function loader");
-        }
+        std::vector<uint8_t> loadSharedFile(const std::string &path) override;
 
         void uploadFunction(message::Message &msg) override {
             throw std::runtime_error("Not implemented for fileserver function loader");

@@ -11,7 +11,7 @@
 
 namespace storage {
     void checkFileExists(const std::string &path) {
-        if(!boost::filesystem::exists(path)) {
+        if (!boost::filesystem::exists(path)) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("File {} does not exist", path);
             throw std::runtime_error("Expected file does not exist");
@@ -47,13 +47,24 @@ namespace storage {
         return loadFileBytes(path);
     }
 
+    std::vector<uint8_t> LocalFileLoader::loadSharedFile(const std::string &path) {
+        const std::string fullPath = util::getSharedFileFile(path);
+
+        if (!boost::filesystem::exists(fullPath)) {
+            std::vector<uint8_t> empty;
+            return empty;
+        }
+
+        return loadFileBytes(fullPath);
+    }
+
     void LocalFileLoader::uploadFunction(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::string funcStr = util::funcToString(msg, false);
 
         // Here the msg input data is actually the file
         const std::string &fileBody = msg.inputdata();
-        if(fileBody.empty()) {
+        if (fileBody.empty()) {
             logger->error("Uploaded empty file to {}", funcStr);
             throw std::runtime_error("Uploaded empty file");
         }
@@ -70,7 +81,7 @@ namespace storage {
         codegenForFunction(msg);
     }
 
-    void LocalFileLoader::uploadPythonFunction(message::Message & msg) {
+    void LocalFileLoader::uploadPythonFunction(message::Message &msg) {
         const std::string &fileBody = msg.inputdata();
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -90,5 +101,10 @@ namespace storage {
     void LocalFileLoader::uploadSharedObjectObjectFile(const std::string &path, const std::vector<uint8_t> &objBytes) {
         std::string outputPath = util::getSharedObjectObjectFile(path);
         util::writeBytesToFile(outputPath, objBytes);
+    }
+
+    void LocalFileLoader::uploadSharedFile(const std::string &path, const std::vector<uint8_t> &objBytes) {
+        const std::string fullPath = util::getSharedFileFile(path);
+        util::writeBytesToFile(fullPath, objBytes);
     }
 }

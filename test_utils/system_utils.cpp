@@ -8,7 +8,7 @@
 #include <emulator/emulator.h>
 #include <memory/MemorySnapshotRegister.h>
 #include <zygote/ZygoteRegistry.h>
-#include <storage/VirtualFilesystem.h>
+#include <storage/SharedFilesManager.h>
 
 
 namespace tests {
@@ -19,7 +19,7 @@ namespace tests {
         state::getGlobalState().forceClearAll();
 
         // Clear VFS
-        storage::getVirtualFilesystem().clear();
+        storage::getSharedFilesManager().clear();
 
         // Reset scheduler
         scheduler::Scheduler &sch = scheduler::getScheduler();

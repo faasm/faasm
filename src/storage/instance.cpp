@@ -3,7 +3,7 @@
 #include "LocalFileLoader.h"
 #include "FileserverFileLoader.h"
 #include "S3FileLoader.h"
-#include "VirtualFilesystem.h"
+#include "SharedFilesManager.h"
 
 namespace storage {
     FileLoader &getFileLoader() {
@@ -26,9 +26,9 @@ namespace storage {
         }
     }
 
-    VirtualFilesystem &getVirtualFilesystem() {
+    SharedFilesManager &getSharedFilesManager() {
         // Note - not thread-local but internally thread-safe
-        static VirtualFilesystem vfs;
+        static SharedFilesManager vfs;
         return vfs;
     }
 }

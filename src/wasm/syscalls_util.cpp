@@ -6,7 +6,7 @@
 #include <util/config.h>
 
 #include <boost/filesystem.hpp>
-#include <storage/VirtualFilesystem.h>
+#include <storage/SharedFilesManager.h>
 
 
 namespace wasm {

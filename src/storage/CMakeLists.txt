@@ -10,7 +10,7 @@ set(LIB_FILES
         LocalFileLoader.cpp
         FileserverFileLoader.cpp
         S3FileLoader.cpp
-        VirtualFilesystem.cpp
+        SharedFilesManager.cpp
         instance.cpp
         ${HEADERS}
         )

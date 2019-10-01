@@ -24,6 +24,8 @@ namespace util {
 
     std::string getSharedObjectObjectUrl();
 
+    std::string getSharedFileUrl();
+
     std::string getFunctionFile(const message::Message &msg);
 
     std::string getPythonFunctionFile(const message::Message &msg);
@@ -33,6 +35,8 @@ namespace util {
     std::string getFunctionObjectFile(const message::Message &msg);
 
     std::string getSharedObjectObjectFile(const std::string &realPath);
+
+    std::string getSharedFileFile(const std::string &path);
 
     bool isValidFunction(const message::Message &msg);
 

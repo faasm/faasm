@@ -16,7 +16,7 @@ namespace storage {
         std::string header;
 
         if (!path.empty()) {
-            header = std::string(SHARED_OBJ_HEADER) + ":" + path;
+            header = std::string(FILE_PATH_HEADER) + ":" + path;
         }
 
         const std::vector<uint8_t> fileBytes = util::readFileFromUrlWithHeader(url, header);
@@ -55,6 +55,11 @@ namespace storage {
 
     std::vector<uint8_t> FileserverFileLoader::loadPythonFunctionFile(const message::Message &msg) {
         std::string url = util::getPythonFunctionUrl(msg);
+        return _loadBytesFromUrl(url);
+    }
+
+    std::vector<uint8_t> FileserverFileLoader::loadSharedFile(const std::string &path) {
+        std::string url = util::getSharedFileUrl();
         return _loadBytesFromUrl(url);
     }
 }

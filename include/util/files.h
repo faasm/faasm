@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#define SHARED_OBJ_HEADER "SharedObjPath"
+#define FILE_PATH_HEADER "FilePath"
 
 namespace util {
     std::string readFileToString(const std::string &path);

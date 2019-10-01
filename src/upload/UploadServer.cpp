@@ -44,7 +44,7 @@ namespace edge {
                 return pathParts;
             }
         } else if (pathParts.size() == 1) {
-            if (pathParts[0] == "sobjwasm" || pathParts[0] == "sobjobj") {
+            if (pathParts[0] == "sobjwasm" || pathParts[0] == "sobjobj" || pathParts[0] == "file") {
                 return pathParts;
             }
         }
@@ -83,14 +83,16 @@ namespace edge {
 
         const utility::string_t &uri = request.absolute_uri().to_string();
 
-        if (pathType == "sobjwasm" || pathType == "sobjobj") {
-            std::string sharedObjPath = getHeaderFromRequest(request, SHARED_OBJ_HEADER);
+        if (pathType == "sobjwasm" || pathType == "sobjobj" || pathType == "file") {
+            std::string filePath = getHeaderFromRequest(request, FILE_PATH_HEADER);
 
-            logger->debug("GET request to {} ({})", uri, sharedObjPath);
+            logger->debug("GET request to {} ({})", uri, filePath);
             if (pathType == "sobjwasm") {
-                returnBytes = l.loadSharedObjectWasm(sharedObjPath);
+                returnBytes = l.loadSharedObjectWasm(filePath);
+            } else if(pathType == "sobjobj") {
+                returnBytes = l.loadSharedObjectObjectFile(filePath);
             } else {
-                returnBytes = l.loadSharedObjectObjectFile(sharedObjPath);
+                returnBytes = l.loadSharedFile(filePath);
             }
         } else {
             logger->debug("GET request to {}", uri);

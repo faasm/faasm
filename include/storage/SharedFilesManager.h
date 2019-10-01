@@ -18,7 +18,7 @@ namespace storage {
         EXISTS
     };
 
-    class VirtualFile {
+    class SharedFile {
     public:
         FileState state = NOT_CHECKED;
 
@@ -27,17 +27,17 @@ namespace storage {
         std::shared_mutex fileMutex;
     };
 
-    class VirtualFilesystem {
+    class SharedFilesManager {
     public:
         int openFile(const std::string &path, int flags, int mode);
 
         void clear();
     private:
-        std::unordered_map<std::string, VirtualFile> vfsMap;
+        std::unordered_map<std::string, SharedFile> vfsMap;
         std::shared_mutex vfsMapMutex;
 
-        VirtualFile& getFile(const std::string &path);
+        SharedFile& getFile(const std::string &path);
     };
 
-    VirtualFilesystem &getVirtualFilesystem();
+    SharedFilesManager &getSharedFilesManager();
 }

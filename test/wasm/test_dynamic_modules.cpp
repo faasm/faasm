@@ -2,7 +2,7 @@
 #include "utils.h"
 #include <wasm/WasmModule.h>
 #include <wasm/IRModuleRegistry.h>
-#include <storage/VirtualFilesystem.h>
+#include <storage/SharedFilesManager.h>
 
 namespace tests {
 
