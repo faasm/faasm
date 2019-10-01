@@ -13,6 +13,7 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <storage/FunctionLoader.h>
+#include <storage/VirtualFilesystem.h>
 
 
 namespace wasm {
@@ -22,44 +23,14 @@ namespace wasm {
         const std::string path = getStringFromWasm(pathPtr);
         logger->debug("S - open - {} {} {}", path, flags, mode);
 
-        WasmModule *module = getExecutingModule();
+        storage::VirtualFilesystem &vfs = storage::getVirtualFilesystem();
+        int fd = vfs.openFile(path, flags, mode);
 
-        // Here we have some special cases which will be available on the local filesystem
-        // Otherwise we will go to the file loader
-        int fd;
-        std::string fakePath = maskPath(path);
-        if (path == "/dev/urandom") {
-            //TODO avoid use of system-wide urandom
-            logger->debug("Opening /dev/urandom");
-            fd = open("/dev/urandom", 0, 0);
-        } else if (path == "/dev/null") {
-            logger->debug("Allowing access to /dev/null");
-            fd = open("/dev/null", 0, 0);
-        } else if (path == "/etc/hosts" ||
-                   path == "/etc/resolv.conf" ||
-                   path == "/etc/passwd" ||
-                   path == "/etc/localtime") {
-
-            logger->debug("Opening {} (requested {})", fakePath, path);
-            fd = open(fakePath.c_str(), flags, mode);
-        } else {
-            // Go to file loader
-            logger->error("Attempting to open shared file {}", path);
-            storage::FunctionLoader &loader = storage::getFunctionLoader();
-            fd = loader.loadSharedFile(path);
-        }
-
-        if (fd > 0) {
+        // NOTE: virtual filesystem will return the negative errno associated
+        // with any failed operations
+        if(fd > 0) {
+            WasmModule *module = getExecutingModule();
             module->addFdForThisThread(fd);
-        } else {
-            // This is an error of some form
-            if (!fakePath.empty()) {
-                logger->debug("Failed to open - {} (masked {})", path, fakePath);
-            } else {
-                logger->debug("Failed to open - {}", path);
-            }
-
-            return -errno;
         }
 
         return fd;

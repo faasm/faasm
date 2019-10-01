@@ -7,14 +7,21 @@
 #include <memory>
 #include <shared_mutex>
 
+#define VFS_PREFIX "faasm"
+#define RUNTIME_FILES_ROOT "/usr/local/faasm/runtime_root"
+
 namespace storage {
+    enum FileState {
+        NOT_CHECKED,
+        NOT_EXISTS,
+        EXISTS
+    };
+
     class VirtualFile {
     public:
-        bool exists;
+        FileState state = NOT_CHECKED;
 
-        int getFd();
-
-        void doLoad(const std::string &path);
+        int openFile(const std::string &path, int flags, int mode);
     private:
         std::shared_mutex fileMutex;
     };
@@ -24,10 +31,9 @@ namespace storage {
 
     class VirtualFilesystem {
     public:
-        int loadSharedFile(const std::string &path);
+        std::string maskPath(const std::string &originalPath);
 
-        bool fileIsLoaded(const std::string &path);
-
+        int openFile(const std::string &path, int flags, int mode);
     private:
         VfsMap vfsMap;
         std::shared_mutex vfsMapMutex;

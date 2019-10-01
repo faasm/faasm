@@ -20,6 +20,7 @@
 using namespace WAVM;
 
 namespace wasm {
+    // Using TLS here to isolate between executing functions
     static thread_local WasmModule *executingModule;
     static thread_local message::Message *executingCall;
     static thread_local std::set<int> openFds;

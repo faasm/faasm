@@ -27,7 +27,8 @@ namespace storage {
     }
 
     VirtualFilesystem &getVirtualFilesystem() {
-        static thread_local VirtualFilesystem vfs;
+        // Note - not thread-local but internally thread-safe
+        static VirtualFilesystem vfs;
         return vfs;
     }
 }

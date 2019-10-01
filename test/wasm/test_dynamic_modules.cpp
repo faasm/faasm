@@ -1,12 +1,12 @@
 #include <catch/catch.hpp>
 #include "utils.h"
 #include <wasm/WasmModule.h>
-#include <wasm/syscalls.h>
 #include <wasm/IRModuleRegistry.h>
+#include <storage/VirtualFilesystem.h>
 
 namespace tests {
     // Prepare a couple of numpy modules to load
-    std::string basePath = std::string(FALSE_ROOT) + "/lib/python3.7/site-packages/numpy/core";
+    std::string basePath = std::string(RUNTIME_FILES_ROOT) + "/lib/python3.7/site-packages/numpy/core";
     std::string pythonModuleA = basePath + "/multiarray.so";
     std::string pythonModuleB = basePath + "/umath.so";
 

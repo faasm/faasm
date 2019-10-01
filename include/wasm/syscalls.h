@@ -8,7 +8,6 @@
 #define FAKE_PASSWORD  "foobar123"
 #define FAKE_HOME "/home/faasm/"
 #define FAKE_WORKING_DIR "/work/"
-#define FALSE_ROOT "/usr/local/faasm/runtime_root"
 
 #define FAKE_PID 23
 #define FAKE_TID 66
@@ -24,8 +23,6 @@ namespace wasm {
     std::string getStringFromWasm(I32 strPtr);
 
     std::pair<std::string, std::string> getUserKeyPairFromWasm(I32 keyPtr);
-
-    std::string maskPath(std::string originalPath);
 
     std::string getMaskedPathFromWasm(I32 strPtr);
 
