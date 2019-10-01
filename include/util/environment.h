@@ -8,4 +8,6 @@ namespace util {
     std::string setEnvVar(const std::string &varName, const std::string &value);
 
     void unsetEnvVar(const std::string &varName);
+
+    unsigned int getUsableCores();
 }

@@ -103,7 +103,7 @@ namespace wasm {
         // If in unsafe mode we can think about allowing mmapping of file descriptors
         util::SystemConfig &conf = util::getSystemConfig();
         if (fd != -1) {
-            if (conf.unsafeMode == "on") {
+            if (conf.fsMode == "on") {
                 return module->mmapFile(fd, length);
             } else {
                 throw std::runtime_error("Attempted to mmap file descriptor");
@@ -128,11 +128,9 @@ namespace wasm {
         // If not aligned or zero length, drop out
         if (!isPageAligned(addr)) {
             logger->warn("munmap address not page-aligned ({})", addr);
-            executingModule->setErrno(EINVAL);
             return -EINVAL;
         } else if (length == 0) {
             logger->warn("munmap size zero");
-            executingModule->setErrno(EINVAL);
             return -EINVAL;
         }
 
@@ -142,7 +140,6 @@ namespace wasm {
         // Drop out if we're munmapping over the max page boundary
         if (addrPageBase + numPages > getMemoryType(memory).size.max) {
             logger->warn("munmapping region over max memory pages");
-            executingModule->setErrno(EINVAL);
             return -EINVAL;
         }
 
@@ -185,8 +182,7 @@ namespace wasm {
 
         // Check if expanding too far
         if (targetPageCount > maxPages) {
-            module->setErrno(ENOMEM);
-            return -1;
+            return -ENOMEM;
         }
 
         // Nothing to be done if memory already big enough

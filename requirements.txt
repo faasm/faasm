@@ -4,16 +4,14 @@ botocore
 boto
 boto3
 configparser
+cryptography
 dulwich
 genshi
 invoke
 matplotlib
 numpy
-pandas
 performance
 psutil
-pycairo
 PyOpenSSL
 requests
-scipy
 wheel

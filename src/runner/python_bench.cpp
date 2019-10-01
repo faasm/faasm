@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
 
     // Run in unsafe mode to give Python access
     util::SystemConfig &conf = util::getSystemConfig();
-    conf.unsafeMode = "on";
+    conf.fsMode = "on";
 
     // Prepare output
     std::ofstream profOut;

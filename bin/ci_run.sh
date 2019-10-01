@@ -3,19 +3,16 @@
 set -e
 
 pushd /usr/local/code/faasm
-echo "Set up libfake"
+
 source workon.sh
+
+# Set up libfake for tests
 inv compile-libfake --clean
+
+# Run codegen on all files used locally
+inv run-local-codegen
+
 popd
-
-echo "Run codegen on wasm files"
-/faasm/build/bin/codegen /usr/local/code/faasm/wasm/demo
-/faasm/build/bin/codegen /usr/local/code/faasm/wasm/errors
-/faasm/build/bin/codegen /usr/local/code/faasm/wasm/python
-/faasm/build/bin/codegen /usr/local/code/faasm/wasm/sgd
-
-echo "Run codegen on python files"
-/faasm/build/bin/codegen /usr/local/faasm/runtime_root/lib/python3.7
 
 echo "Execute tests"
 /faasm/build/bin/tests

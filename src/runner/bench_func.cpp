@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
     int wasmIterations = std::stoi(argv[4]);
 
     util::SystemConfig &conf = util::getSystemConfig();
-    conf.unsafeMode = "on";
+    conf.fsMode = "on";
 
     std::string outfile = std::string("/usr/local/code/faasm/wasm/") + user + "/" + funcName + "/bench.csv";
 

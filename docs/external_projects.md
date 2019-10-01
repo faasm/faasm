@@ -31,12 +31,4 @@ This should print `Hi external`.
 
 To compile to wasm you need to set up the toolchain:
 
-```
-source workon.sh
-
-./bin/set_up_local.sh
-
-inv restore-emsdk
-```
-
 TBC

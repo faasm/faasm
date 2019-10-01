@@ -79,7 +79,7 @@ namespace wasm {
 
         Uptr getDynamicModuleFunction(int handle, const std::string &funcName);
 
-        int addFunctionToTable(Runtime::Object *exportedFunc);
+        Uptr addFunctionToTable(Runtime::Object *exportedFunc);
 
         void executeFunction(
                 Runtime::Function *func,
@@ -89,8 +89,6 @@ namespace wasm {
         );
 
         Runtime::Function *getFunction(const std::string &funcName, bool strict);
-
-        void setErrno(int newValue);
 
         int getHeapBase();
 
@@ -116,8 +114,6 @@ namespace wasm {
         std::string getBoundUser();
 
         std::string getBoundFunction();
-
-        bool getBoundIsPython();
 
         bool getBoundIsTypescript();
 
@@ -147,7 +143,6 @@ namespace wasm {
         Runtime::Function *zygoteFunctionInstance;
 
         // Main module
-        int errnoLocation = 0;
         int heapBase = 0;
         int dataEnd = 0;
         int stackTop = 0;
@@ -161,7 +156,6 @@ namespace wasm {
         bool _isBound = false;
         std::string boundUser;
         std::string boundFunction;
-        bool boundIsPython = false;
         bool boundIsTypescript = false;
 
         // Shared memory regions
@@ -174,7 +168,7 @@ namespace wasm {
         std::unordered_map<int, Runtime::GCPointer<Runtime::ModuleInstance>> dynamicModuleMap;
 
         // Dynamic linking tables and memories
-        std::unordered_map<std::string, int> globalOffsetTableMap;
+        std::unordered_map<std::string, Uptr> globalOffsetTableMap;
         std::unordered_map<std::string, int> globalOffsetMemoryMap;
         std::unordered_map<std::string, int> missingGlobalOffsetEntries;
 

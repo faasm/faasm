@@ -20,10 +20,9 @@ FAASM_MAIN_FUNC() {
     uint8_t buffer[inputSize];
     faasmGetInput(buffer, inputSize);
 
-    const char *funcName = reinterpret_cast<const char *>(buffer);
+    const char *funcPath = reinterpret_cast<const char *>(buffer);
     char filePath[10 + inputSize];
-    strcpy(filePath, "funcs/");
-    strcat(filePath, funcName);
+    sprintf(filePath, "funcs/%s", funcPath);
 
     FILE *fp = fopen(filePath, "r");
     if (fp == nullptr) {

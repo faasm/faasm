@@ -12,9 +12,7 @@
 
 int main(int argc, char *argv[]) {
     int idx = faasmGetCurrentIdx();
-    exec(idx);
-
-    return 0;
+    return exec(idx);
 }
 
 #endif

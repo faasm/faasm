@@ -24,28 +24,29 @@ namespace storage {
         }
     }
 
-    void FunctionLoader::compileToObjectFile(message::Message &msg) {
-        std::vector<uint8_t> bytes = this->loadFunctionBytes(msg);
+    void FunctionLoader::codegenForFunction(message::Message &msg) {
+        std::vector<uint8_t> bytes = loadFunctionWasm(msg);
 
         if(bytes.empty()) {
             const std::string funcStr = util::funcToString(msg, false);
             throw std::runtime_error("Loaded empty bytes for " + funcStr);
         }
         
-        std::vector<uint8_t> objBytes = this->doCompile(bytes);
+        std::vector<uint8_t> objBytes = doCodegen(bytes);
 
-        this->uploadObjectBytes(msg, objBytes);
+        uploadFunctionObjectFile(msg, objBytes);
     }
 
-    void FunctionLoader::compileToObjectFile(const std::string &inputPath, const std::string &outputPath) {
-        std::vector<uint8_t> bytes = this->loadFileBytes(inputPath);
+    void FunctionLoader::codegenForSharedObject(const std::string &inputPath) {
+        // Generate the machine code
+        std::vector<uint8_t> bytes = loadSharedObjectWasm(inputPath);
+        std::vector<uint8_t> objBytes = doCodegen(bytes);
 
-        std::vector<uint8_t> objBytes = this->doCompile(bytes);
-
-        this->uploadObjectBytes(outputPath, objBytes);
+        // Do the upload
+        uploadSharedObjectObjectFile(inputPath, objBytes);
     }
 
-    std::vector<uint8_t> FunctionLoader::doCompile(std::vector<uint8_t> &bytes) {
+    std::vector<uint8_t> FunctionLoader::doCodegen(std::vector<uint8_t> &bytes) {
         IR::Module moduleIR;
 
         // Explicitly allow simd support

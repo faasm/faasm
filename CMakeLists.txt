@@ -47,7 +47,7 @@ add_definitions(-DDLL_EXPORT=)
 add_definitions(-DDLL_IMPORT=)
 
 # Custom LLVM build (also for profiling)
-set(FAASM_CUSTOM_LLVM 1)
+set(FAASM_CUSTOM_LLVM 0)
 if(${FAASM_CUSTOM_LLVM})
     message(STATUS "Using custom LLVM")
 
@@ -58,6 +58,8 @@ if(${FAASM_CUSTOM_LLVM})
     set(WAVM_PERF_LIBS 1)
     add_definitions(-DWAVM_PERF_EVENTS=1)
 else()
+    # Use LLVM 8 explicitly for the lib parts (i.e. codegen)
+    set(LLVM_DIR /usr/lib/llvm-8)
     find_package(LLVM REQUIRED CONFIG)
 endif()
 
@@ -222,7 +224,4 @@ else ()
     add_subdirectory(test)
     add_subdirectory(test_utils)
     add_subdirectory(test_integration)
-
-    # Eigen
-    add_subdirectory(third-party/eigen)
 endif ()

@@ -4,6 +4,7 @@ from os.path import dirname, realpath, join, exists, expanduser
 HOME_DIR = expanduser("~")
 PROJ_ROOT = dirname(dirname(dirname(realpath(__file__))))
 THIRD_PARTY_DIR = join(PROJ_ROOT, "third-party")
+ANSIBLE_ROOT = join(PROJ_ROOT, "ansible")
 
 FAASM_HOME = join(HOME_DIR, "faasm")
 FAASM_LOCAL_DIR = "/usr/local/faasm"
@@ -15,7 +16,7 @@ RESULT_DIR = join(FAASM_HOME, "results")
 BENCHMARK_ENV = {
     "CGROUP_MODE": "off",
     "NETNS_MODE": "off",
-    "UNSAFE_MODE": "on",
+    "FS_MODE": "on",
     "GLOBAL_MESSAGE_TIMEOUT": "120000",
     "LOG_LEVEL": "off",
 }
@@ -42,7 +43,6 @@ PY_RUNTIME_ROOT = join(FAASM_RUNTIME_ROOT, "lib", "python3.7")
 
 TOOLCHAIN_ROOT = join(PROJ_ROOT, "toolchain")
 FAASM_TOOLCHAIN_FILE = join(TOOLCHAIN_ROOT, "FaasmToolchain.cmake")
-EMSDK_TOOLCHAIN_FILE = join(TOOLCHAIN_ROOT, "EmsdkToolchain.cmake")
 FAASM_SYSROOT = join(FAASM_LOCAL_DIR, "llvm-sysroot")
 
 LATEST_CMAKE = "/usr/local/lib/cmake-3.15/bin/cmake"

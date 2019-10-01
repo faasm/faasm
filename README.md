@@ -34,13 +34,7 @@ itself. There is also a `redis` container used for communication between the oth
 You can start it by running:
 
 ```
-docker-compose up -d
-```
-
-To view logs for a given component:
-
-```
-docker-compose logs --tail=200 -f worker
+docker-compose up
 ```
 
 ## Compiling a C++ function
@@ -79,13 +73,13 @@ Python file. As a result, the commands are slightly different.
 An example Python function is found at `funcs/python/hello.py`.
 
 ```
-inv py-upload python hello
+inv upload --py python hello
 ```
 
 And invoke with:
 
 ```
-inv py-invoke python hello
+inv invoke --py python hello
 ```
 
 # Writing functions

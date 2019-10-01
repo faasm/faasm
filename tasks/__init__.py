@@ -40,10 +40,6 @@ from tasks.bench_mem import (
     kill_faasm,
     faasm_count,
 )
-from tasks.codegen import (
-    run_codegen,
-    run_wasm_codegen,
-)
 from tasks.compile import (
     compile,
 )
@@ -52,46 +48,43 @@ from tasks.compile_libs import (
     compile_libfaasm,
     compile_eigen,
     compile_libfake,
+    compile_libpng,
+    compile_zlib,
     install_native_tools,
 )
-from tasks.compile_ts import (
-    ts_compile,
+from tasks.compile_tensorflow import (
+    compile_tf_lite,
+    compile_tf_lite_native,
 )
 from tasks.invoke import (
     invoke,
-    invoke_async,
-    py_invoke,
-    py_invoke_async,
-    knative_invoke,
 )
 from tasks.docker import (
-    build_all,
-    build_base,
-    build_data,
-    build_edge,
-    build_knative_worker,
-    build_noop,
-    build_root,
-    build_redis,
-    build_testing,
-    build_upload,
-    build_worker,
-    build_toolchain,
+    docker_build_base,
+    docker_build_data,
+    docker_build_edge,
+    docker_build_knative,
+    docker_build_noop,
+    docker_build_root,
+    docker_build_redis,
+    docker_build_testing,
+    docker_build_upload,
+    docker_build_worker,
+    docker_build_toolchain,
     data,
     purge_images,
-    push_all,
-    push_data,
-    push_edge,
-    push_knative_worker,
-    push_noop,
-    push_root,
-    push_redis,
-    push_testing,
-    push_upload,
-    push_worker,
-    push_toolchain,
+    docker_push_data,
+    docker_push_edge,
+    docker_push_knative,
+    docker_push_noop,
+    docker_push_root,
+    docker_push_redis,
+    docker_push_testing,
+    docker_push_upload,
+    docker_push_worker,
+    docker_push_toolchain,
     pull,
-    push_base
+    docker_push_base,
 )
 from tasks.docker_compose import (
     docker_clear_queue,
@@ -115,24 +108,30 @@ from tasks.sgd_data import (
     reuters_state_upload,
     reuters_state_upload_s3,
 )
-from tasks.runtime import (
+from tasks.python import (
     clear_runtime_pyc,
     set_up_python_runtime,
     run_python_codegen,
-    package_python_runtime,
-    download_python_runtime,
+)
+
+from tasks.runtime import (
+    backup_runtime_root,
+    download_runtime_root,
+)
+
+from tasks.tensorflow import (
+    set_up_tensorflow_data
 )
 
 from tasks.upload import (
     upload_all,
     upload_all_s3,
     upload,
-    py_upload,
-    ts_upload,
 )
 from tasks.wasm2wast import wast
 
 from tasks.toolchain import (
-    backup_emsdk,
-    restore_emsdk,
+    backup_toolchain,
+    download_toolchain,
+    run_local_codegen,
 )

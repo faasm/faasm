@@ -5,7 +5,9 @@ download/
 build/
 perf.data
 perf.data.*
-spec_cpu/
+
+# SPEC
+third-party/spec_cpu/
 
 # Ansible
 *.retry

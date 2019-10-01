@@ -19,11 +19,11 @@ To build Typescript functions to wasm you can run:
 
 ```
 source workon.sh
-inv ts-compile <func_name>
+inv compile --ts --func=<func_name>
 ```
 
 You can then upload them to Faasm (provided an upload server is running):
 
 ```
-inv ts-upload <func_name>
+inv upload --ts ts <func_name>
 ```

@@ -35,11 +35,11 @@ namespace tests {
 
         // Set up dummy environment
         std::string dummyRoot = "/tmp/foo/bar";
-        util::setEnvVar("FUNC_ROOT", dummyRoot);
+        std::string orig = conf.functionDir;
+        conf.functionDir = dummyRoot;
 
         // Create root path
         path funcDir(dummyRoot);
-        funcDir.append("wasm");
         create_directories(funcDir);
 
         // Make sure existing directories don't exist
@@ -58,9 +58,7 @@ namespace tests {
         REQUIRE(actual == funcFile.string());
 
         // Clear up afterwards
-        util::unsetEnvVar("FUNC_ROOT");
-
-        conf.reset();
+        conf.functionDir = orig;
     }
 
     TEST_CASE("Test valid function check returns false for invalid function", "[util]") {
@@ -86,15 +84,6 @@ namespace tests {
         validCall.set_function("echo");
 
         REQUIRE(util::isValidFunction(validCall));
-    }
-
-    TEST_CASE("Test getting default function config", "[util]") {
-        message::Message validCall;
-        validCall.set_user("demo");
-        validCall.set_function("echo");
-
-        const util::FunctionConfig &actual = util::getFunctionConfig(validCall);
-        REQUIRE(actual.runtime == "wasm");
     }
 
     TEST_CASE("Test adding id to message", "[util]") {
@@ -140,5 +129,16 @@ namespace tests {
         REQUIRE(util::stripIdxFromFunction("foobar123") == "foobar123");
         REQUIRE(util::stripIdxFromFunction("foobar__001__") == "foobar");
         REQUIRE(util::stripIdxFromFunction("foobar__123__") == "foobar");
+    }
+    
+    TEST_CASE("Test converting message to python", "[util]") {
+        message::Message msg = util::messageFactory("foo", "bar");
+
+        util::convertMessageToPython(msg);
+
+        REQUIRE(msg.ispython());
+        REQUIRE(msg.inputdata() == "foo/bar/function.py");
+        REQUIRE(msg.user() == PYTHON_USER);
+        REQUIRE(msg.function() == PYTHON_FUNC);
     }
 }

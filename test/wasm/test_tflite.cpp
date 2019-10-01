@@ -8,13 +8,13 @@
 namespace tests {
     TEST_CASE("Test executing tensorflow lite model", "[wasm]") {
         util::SystemConfig &conf = util::getSystemConfig();
-        std::string original = conf.unsafeMode;
+        std::string original = conf.fsMode;
 
-        conf.unsafeMode = "on";
+        conf.fsMode = "on";
 
         message::Message call;
         call.set_user("tf");
-        call.set_function("tf_image");
+        call.set_function("image");
 
         wasm::WasmModule module;
         module.bindToFunction(call);
@@ -22,6 +22,6 @@ namespace tests {
         int result = module.execute(call);
         REQUIRE(result == 0);
 
-        conf.unsafeMode = original;
+        conf.fsMode = original;
     }
 }

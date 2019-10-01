@@ -86,7 +86,7 @@ namespace wasm {
                 storage::FunctionLoader &functionLoader = storage::getFunctionLoader();
 
                 message::Message msg = util::messageFactory(user, func);
-                std::vector<uint8_t> objectFileBytes = functionLoader.loadFunctionObjectBytes(msg);
+                std::vector<uint8_t> objectFileBytes = functionLoader.loadFunctionObjectFile(msg);
 
                 if (!objectFileBytes.empty()) {
                     compiledModuleMap[key] = Runtime::loadPrecompiledModule(module, objectFileBytes);
@@ -115,9 +115,7 @@ namespace wasm {
                 module.featureSpec.simd = true;
 
                 storage::FunctionLoader &functionLoader = storage::getFunctionLoader();
-                std::string objFilePath = path + SHARED_OBJ_EXT;
-
-                std::vector<uint8_t> objectBytes = functionLoader.loadFileBytes(objFilePath);
+                std::vector<uint8_t> objectBytes = functionLoader.loadSharedObjectObjectFile(path);
                 compiledModuleMap[key] = Runtime::loadPrecompiledModule(module, objectBytes);
             }
         } else {
@@ -140,7 +138,7 @@ namespace wasm {
                 storage::FunctionLoader &functionLoader = storage::getFunctionLoader();
 
                 message::Message msg = util::messageFactory(user, func);
-                std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionBytes(msg);
+                std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionWasm(msg);
 
                 IR::Module &module = moduleMap[key];
                 module.featureSpec.simd = true;
@@ -183,7 +181,7 @@ namespace wasm {
 
                 storage::FunctionLoader &functionLoader = storage::getFunctionLoader();
 
-                std::vector<uint8_t> wasmBytes = functionLoader.loadFileBytes(path);
+                std::vector<uint8_t> wasmBytes = functionLoader.loadSharedObjectWasm(path);
 
                 IR::Module &module = moduleMap[key];
                 module.featureSpec.simd = true;

@@ -61,12 +61,26 @@ namespace util {
     }
 
     std::vector<uint8_t> readFileFromUrl(const std::string &url) {
+        return readFileFromUrlWithHeader(url, "");
+    }
+
+    std::vector<uint8_t> readFileFromUrlWithHeader(
+            const std::string &url,
+            const std::string &header) {
+
         void* curl = curl_easy_init();
 
         std::stringstream out;
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &out);
+
+        // Add header
+        if(!header.empty()) {
+            struct curl_slist *chunk = nullptr;
+            chunk = curl_slist_append(chunk, header.c_str());
+            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+        }
 
         // Make the request
         CURLcode res = curl_easy_perform(curl);

@@ -1,5 +1,7 @@
 #include "environment.h"
 
+#include <thread>
+
 namespace util {
     std::string getEnvVar(std::string const &key, std::string const &deflt) {
         char const *val = getenv(key.c_str());
@@ -26,5 +28,16 @@ namespace util {
 
     void unsetEnvVar(const std::string &varName) {
         unsetenv(varName.c_str());
+    }
+
+    unsigned int getUsableCores() {
+        unsigned int nCores = std::thread::hardware_concurrency();
+
+        // Returns zero when unable to detect
+        if(nCores == 0) {
+            throw std::runtime_error("Unable to detect number of cores");
+        }
+
+        return nCores - 1;
     }
 }

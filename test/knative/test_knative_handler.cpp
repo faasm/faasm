@@ -18,6 +18,8 @@ namespace tests {
         std::string user;
         std::string function;
 
+        message::Message expectedCall;
+
         SECTION("C/C++") {
             user = "demo";
             function = "echo";
@@ -28,6 +30,8 @@ namespace tests {
             SECTION("No input") {
 
             }
+
+            expectedCall = call;
         }
         SECTION("Typescript") {
             user = "ts";
@@ -40,6 +44,13 @@ namespace tests {
             SECTION("No input") {
 
             }
+
+            expectedCall = call;
+        }
+        SECTION("Python") {
+            user = "python";
+            function = "hello";
+            call.set_ispython(true);
         }
 
         call.set_user(user);
@@ -52,13 +63,18 @@ namespace tests {
         handler.handleFunction(requestStr);
 
         // Check function count has increased and bind message sent
+        expectedCall = call;
+        if (user == "python") {
+            util::convertMessageToPython(expectedCall);
+        }
+
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        REQUIRE(sch.getFunctionQueueLength(call) == 1);
+        REQUIRE(sch.getFunctionQueueLength(expectedCall) == 1);
         REQUIRE(sch.getBindQueue()->size() == 1);
         message::Message actual = sch.getBindQueue()->dequeue();
 
-        REQUIRE(actual.user() == user);
-        REQUIRE(actual.function() == function);
+        REQUIRE(actual.user() == expectedCall.user());
+        REQUIRE(actual.function() == expectedCall.function());
     }
 
     TEST_CASE("Test empty knative invocation", "[knative]") {

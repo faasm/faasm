@@ -123,18 +123,7 @@ The Docker images are structured to minimise rebuilding time. They are as follow
 - `faasm/worker`, `faasm/upload` and `faasm/edge` - hold the different application components
 - `faasm/toolchain` - stand-alone container holding the toolchain
 
-These can be rebuilt as follows:
-
-```
-# Build base container if any changes to WAVM or library dependencies
-inv build-base
-
-# Build the containers themselves
-inv build-worker build-edge build-upload
-```
-
 ## Tests
 
 Tests can be run with the `tests` target of this project.
 
-If things are failing you can run `bin/set_up_local.sh` to rerun a couple of tidy-ups.

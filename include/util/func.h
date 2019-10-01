@@ -1,13 +1,15 @@
 #pragma once
 
 #include <proto/faasm.pb.h>
-#include "FunctionConfig.h"
 #include <string>
 #include <vector>
 
-namespace util {
-    FunctionConfig getFunctionConfig(const message::Message &msg);
+#define SHARED_OBJ_EXT ".o"
 
+#define PYTHON_USER "python"
+#define PYTHON_FUNC "py_func"
+
+namespace util {
     std::string getFunctionKey(const message::Message &msg);
 
     std::string getFunctionObjectKey(const message::Message &msg);
@@ -15,6 +17,12 @@ namespace util {
     std::string getFunctionUrl(const message::Message &msg);
 
     std::string getFunctionObjectUrl(const message::Message &msg);
+
+    std::string getPythonFunctionUrl(const message::Message &msg);
+
+    std::string getSharedObjectUrl();
+
+    std::string getSharedObjectObjectUrl();
 
     std::string getFunctionFile(const message::Message &msg);
 
@@ -24,7 +32,7 @@ namespace util {
 
     std::string getFunctionObjectFile(const message::Message &msg);
 
-    std::string getFunctionConfigFile(const message::Message &msg);
+    std::string getSharedObjectObjectFile(const std::string &realPath);
 
     bool isValidFunction(const message::Message &msg);
 
@@ -33,6 +41,8 @@ namespace util {
     unsigned int setMessageId(message::Message &msg);
 
     message::Message messageFactory(const std::string &user, const std::string &function);
+
+    void convertMessageToPython(message::Message &msg);
 
     std::string resultKeyFromMessageId(unsigned int mid);
 

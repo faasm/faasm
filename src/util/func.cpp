@@ -10,6 +10,8 @@
 #include <sstream>
 #include <boost/filesystem.hpp>
 #include <util/gids.h>
+#include <util/config.h>
+
 
 namespace util {
     const static std::string pyFile = "function.py";
@@ -18,14 +20,29 @@ namespace util {
     const static std::string objFile = "function.wasm.o";
     const static std::string confFile = "conf.json";
 
-    std::string getUrl(const message::Message &msg, const std::string &urlPart) {
+    std::string getRootUrl() {
         std::string rootUrl = util::getEnvVar("FILESERVER_URL", "");
         if(rootUrl.empty()) {
             throw std::runtime_error("Fileserver URL not set");
         }
 
+        return rootUrl;
+    }
+
+    std::string getUrl(const message::Message &msg, const std::string &urlPart) {
+        std::string rootUrl = getRootUrl();
         std::string funcUrl = rootUrl + "/" + urlPart + "/" + msg.user() + "/" + msg.function();
         return funcUrl;
+    }
+
+    std::string getSharedObjectUrl() {
+        std::string rootUrl = getRootUrl();
+        return rootUrl + "/sobjwasm";
+    }
+
+    std::string getSharedObjectObjectUrl() {
+        std::string rootUrl = getRootUrl();
+        return rootUrl + "/sobjobj";
     }
 
     std::string getFunctionUrl(const message::Message &msg) {
@@ -36,15 +53,12 @@ namespace util {
         return getUrl(msg, "fo");
     }
 
-    boost::filesystem::path getFuncRootPath() {
-        std::string funcRoot = util::getEnvVar("FUNC_ROOT", "/usr/local/code/faasm");
-
-        boost::filesystem::path path(funcRoot);
-        return path;
+    std::string getPythonFunctionUrl(const message::Message &msg) {
+        return getUrl(msg, "p");
     }
 
     boost::filesystem::path getPythonFunctionDir(const message::Message &msg) {
-        boost::filesystem::path path("/usr/local/faasm/runtime_root/funcs");
+        boost::filesystem::path path(util::getSystemConfig().pythonFunctionDir);
 
         path.append(msg.user());
         path.append(msg.function());
@@ -54,10 +68,8 @@ namespace util {
         return path;
     }
 
-    boost::filesystem::path getFunctionDir(const message::Message &msg, bool create = true) {
-        auto path = getFuncRootPath();
-
-        path.append("wasm");
+    boost::filesystem::path _doGetDir(std::string baseDir, const message::Message &msg, bool create) {
+        boost::filesystem::path path(baseDir);
         path.append(msg.user());
 
         // Strip out anything at the end with an extra index
@@ -71,14 +83,24 @@ namespace util {
 
         return path;
     }
+    
+    boost::filesystem::path getFunctionDir(const message::Message &msg, bool create = true) {
+        SystemConfig &conf = util::getSystemConfig();
+        return _doGetDir(conf.functionDir, msg, create);
+    }
+
+    boost::filesystem::path getObjectDir(const message::Message &msg, bool create = true) {
+        SystemConfig &conf = util::getSystemConfig();
+        return _doGetDir(conf.objectFileDir, msg, create);
+    }
 
     bool isValidFunction(const message::Message &msg) {
+        if(msg.user().empty() || msg.function().empty()) {
+            return false;
+        }
+
         auto path = getFunctionDir(msg, false);
-
-        // Check object file exists
-        path.append(objFile);
         bool isValid = boost::filesystem::exists(path);
-
         return isValid;
     }
 
@@ -131,32 +153,32 @@ namespace util {
         return path.string();
     }
 
-    std::string getFunctionConfigFile(const message::Message &msg) {
-        auto path = getFunctionDir(msg);
-        path.append(confFile);
-
-        return path.string();
-    }
-
     std::string getFunctionObjectFile(const message::Message &msg) {
-        auto path = getFunctionDir(msg);
+        auto path = getObjectDir(msg);
         path.append(objFile);
 
         return path.string();
     }
 
-    FunctionConfig getFunctionConfig(const message::Message &msg) {
-        auto path = getFunctionConfigFile(msg);
-        if (boost::filesystem::exists(path)) {
-            const std::string &jsonBody = readFileToString(path);
+    std::string getSharedObjectObjectFile(const std::string &realPath) {
+        boost::filesystem::directory_entry f(realPath);
+        const std::string directory = f.path().parent_path().string();
+        const std::string fileName = f.path().filename().string();
 
-            FunctionConfig conf = jsonToFunctionConfig(jsonBody);
-            return conf;
-        } else {
-            // Return default if no config exists
-            FunctionConfig conf;
-            return conf;
-        }
+        // Work out the final destination for the object file. This will be the
+        // object path with the directory of the original file appended
+        util::SystemConfig &conf = util::getSystemConfig();
+        boost::filesystem::path objPath(conf.objectFileDir);
+        objPath.append(directory);
+
+        // Create directory (if necessary)
+        create_directories(objPath);
+
+        // Add the filename
+        std::string outputFile = objPath.append(fileName).string();
+        outputFile += SHARED_OBJ_EXT;
+
+        return outputFile;
     }
 
     std::vector<uint8_t> messageToBytes(const message::Message &msg) {
@@ -185,6 +207,14 @@ namespace util {
         setMessageId(msg);
 
         return msg;
+    }
+
+    void convertMessageToPython(message::Message &msg) {
+        std::string filename = msg.user() + "/" + msg.function() + "/function.py";
+        msg.set_inputdata(filename);
+        msg.set_user(PYTHON_USER);
+        msg.set_function(PYTHON_FUNC);
+        msg.set_ispython(true);
     }
 
     unsigned int setMessageId(message::Message &msg) {

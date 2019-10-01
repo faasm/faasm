@@ -71,7 +71,6 @@ namespace wasm {
             tearDown();
         }
 
-        errnoLocation = other.errnoLocation;
         heapBase = other.heapBase;
         dataEnd = other.dataEnd;
         stackTop = other.stackTop;
@@ -84,7 +83,6 @@ namespace wasm {
         _isBound = other._isBound;
         boundUser = other.boundUser;
         boundFunction = other.boundFunction;
-        boundIsPython = other.boundIsPython;
         boundIsTypescript = other.boundIsTypescript;
 
         if (other._isBound) {
@@ -232,11 +230,11 @@ namespace wasm {
             }
 
             // Go through each elem entry and record where in the table it's getting inserted
-            for (int i = 0; i < es.contents->elemIndices.size(); i++) {
+            for (size_t i = 0; i < es.contents->elemIndices.size(); i++) {
                 unsigned long elemIdx = es.contents->elemIndices[i];
                 // Work out the function's name, then add it to our GOT
                 std::string &elemName = disassemblyNames.functions[elemIdx].name;
-                int tableIdx = offset + i;
+                Uptr tableIdx = offset + i;
                 globalOffsetTableMap.insert({elemName, tableIdx});
             }
         }
@@ -276,6 +274,7 @@ namespace wasm {
         // Note the need to set the currently executing module
         executingModule = this;
 
+        // Function expects a result array so pass pointer to single value
         Runtime::invokeFunction(executionContext, func, funcType, arguments.data(), &result);
     }
 
@@ -293,32 +292,18 @@ namespace wasm {
 
         // Record that this module is now bound
         _isBound = true;
+        boundIsTypescript = msg.istypescript();
+
+        // Create a copy of the message to avoid messing with the original
+        message::Message msgCopy = msg;
+
         boundUser = msg.user();
         boundFunction = msg.function();
-        boundIsPython = msg.ispython();
-        boundIsTypescript = msg.istypescript();
 
         // Set up the compartment and context
         PROF_START(wasmContext)
         compartment = Runtime::createCompartment();
         executionContext = Runtime::createContext(compartment);
-
-        // TODO - tidy up the handling of Python functions. This is a hack
-        // Create a copy of the message to avoid messing with the original
-        message::Message msgCopy = msg;
-
-        if (boundIsPython) {
-            logger->debug("Detected python function {}/{}", boundUser, boundFunction);
-            std::string pyFile = msg.user() + "/" + msg.function() + ".py";
-            msgCopy.set_inputdata(pyFile);
-            msgCopy.set_user("python");
-            msgCopy.set_function("py_func");
-        } else if (boundIsTypescript) {
-            logger->debug("Detected typescript function {}/{}", boundUser, boundFunction);
-        } else {
-            logger->debug("Detected C/C++ function {}/{}", boundUser, boundFunction);
-        }
-
         PROF_END(wasmContext)
 
         // Create the module instance
@@ -336,23 +321,6 @@ namespace wasm {
         // Keep reference to memory and table
         defaultMemory = Runtime::getDefaultMemory(moduleInstance);
         defaultTable = Runtime::getDefaultTable(moduleInstance);
-
-        // Record the errno location
-        Runtime::Function *errNoLocation = asFunctionNullable(getInstanceExport(moduleInstance, "__errno_location"));
-        if (errNoLocation) {
-            IR::UntaggedValue errNoResult;
-            executeFunction(
-                    errNoLocation,
-                    IR::FunctionType({IR::ValueType::i32}, {}),
-                    {},
-                    errNoResult
-            );
-
-            errnoLocation = errNoResult.i32;
-            logger->debug("Found errno location {}", errnoLocation);
-        } else {
-            logger->warn("Did not find errno location");
-        }
 
         // Get and execute zygote function
         zygoteFunctionInstance = getFunction(ZYGOTE_FUNC_NAME, false);
@@ -375,9 +343,14 @@ namespace wasm {
         // Typescript doesn't export memory info, nor does it require
         // setting up argv/argc
         if (!boundIsTypescript) {
-            // Note that heap base and data end should be the same (provided stack-first is switched on)
             heapBase = getGlobalI32("__heap_base", executionContext);
             dataEnd = getGlobalI32("__data_end", executionContext);
+
+            // Note that heap base and data end should be the same (provided stack-first is switched on)
+            if(heapBase != dataEnd) {
+                logger->error("Expected heap base and data end to be equal but were {} and {}", heapBase, dataEnd);
+                throw std::runtime_error("Heap base and data end are different");
+            }
 
             Uptr initialTableSize = Runtime::getTableNumElements(defaultTable);
             Uptr initialMemorySize = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
@@ -596,24 +569,27 @@ namespace wasm {
             throw std::runtime_error("Missing dynamic module function");
         }
 
-        int prevIdx = addFunctionToTable(exportedFunc);
-        return prevIdx;
+        Uptr tableIdx = addFunctionToTable(exportedFunc);
+
+        logger->debug("Resolved function {} to index {}", funcName, tableIdx);
+        return tableIdx;
     }
 
-    int WasmModule::addFunctionToTable(Runtime::Object *exportedFunc) {
+    Uptr WasmModule::addFunctionToTable(Runtime::Object *exportedFunc) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Add function to the table
         Uptr prevIdx;
         bool success = Runtime::growTable(defaultTable, 1, &prevIdx);
         if (!success) {
+            logger->error("Failed to grow table from {} elements to {}", prevIdx, prevIdx + 1);
             throw std::runtime_error("Failed to grow table");
-        } else {
-            logger->debug("Growing table from {} elements to {}", prevIdx, prevIdx + 1);
         }
 
-        Runtime::setTableElement(defaultTable, prevIdx, exportedFunc);
+        Uptr newElements = Runtime::getTableNumElements(defaultTable);
+        logger->debug("Table grown from {} elements to {}", prevIdx, newElements);
 
+        Runtime::setTableElement(defaultTable, prevIdx, exportedFunc);
         return prevIdx;
     }
 
@@ -627,17 +603,6 @@ namespace wasm {
 
     int WasmModule::getStackTop() {
         return stackTop;
-    }
-
-    void WasmModule::setErrno(int newValue) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        if (errnoLocation != 0) {
-            logger->debug("Setting errno={} ({}) (errno_location={})", newValue, strerror(newValue), errnoLocation);
-
-            Runtime::memoryRef<I32>(defaultMemory, errnoLocation) = (I32) newValue;
-        } else {
-            logger->warn("No errno location but trying to set to {} ({})", strerror(newValue));
-        }
     }
 
     /**
@@ -971,15 +936,9 @@ namespace wasm {
     void WasmModule::checkThreadOwnsFd(int fd) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
         bool isNotOwned = openFds.find(fd) == openFds.end();
-        util::SystemConfig &conf = util::getSystemConfig();
 
         if (fd == STDIN_FILENO) {
-            if (conf.unsafeMode == "on") {
-                logger->warn("Process interacting with stdin");
-            } else {
-                logger->error("Process interacting with stdin");
-                throw std::runtime_error("Process interacting with stdin");
-            }
+            logger->warn("Process interacting with stdin");
         } else if (fd == STDOUT_FILENO) {
             // Can allow stdout/ stderr through
             // logger->debug("Process interacting with stdout", fd);
@@ -997,10 +956,6 @@ namespace wasm {
 
     std::string WasmModule::getBoundFunction() {
         return boundFunction;
-    }
-
-    bool WasmModule::getBoundIsPython() {
-        return boundIsPython;
     }
 
     bool WasmModule::getBoundIsTypescript() {

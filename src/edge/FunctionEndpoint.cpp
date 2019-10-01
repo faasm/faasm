@@ -39,8 +39,9 @@ namespace edge {
                                      Pistache::Rest::Routes::bind(&FunctionEndpoint::handleTypescriptFunctionWrapper,
                                                                   this));
         Pistache::Rest::Routes::Post(router, "/ta/:user/:function",
-                                     Pistache::Rest::Routes::bind(&FunctionEndpoint::handleAsyncTypescriptFunctionWrapper,
-                                                                  this));
+                                     Pistache::Rest::Routes::bind(
+                                             &FunctionEndpoint::handleAsyncTypescriptFunctionWrapper,
+                                             this));
     }
 
     void FunctionEndpoint::handleFunctionWrapper(const Pistache::Rest::Request &request,
@@ -65,7 +66,8 @@ namespace edge {
                                                        Pistache::Http::ResponseWriter response) {
         message::Message msg = this->buildMessageFromRequest(request);
         msg.set_isasync(false);
-        msg.set_ispython(true);
+
+        util::convertMessageToPython(msg);
 
         const std::string result = this->handleFunction(msg);
         response.send(Pistache::Http::Code::Ok, result);
@@ -76,14 +78,15 @@ namespace edge {
                                                        Pistache::Http::ResponseWriter response) {
         message::Message msg = this->buildMessageFromRequest(request);
         msg.set_isasync(true);
-        msg.set_ispython(true);
+
+        util::convertMessageToPython(msg);
 
         const std::string result = this->handleFunction(msg);
         response.send(Pistache::Http::Code::Ok, result);
     }
 
     void FunctionEndpoint::handleTypescriptFunctionWrapper(const Pistache::Rest::Request &request,
-                                         Pistache::Http::ResponseWriter response) {
+                                                           Pistache::Http::ResponseWriter response) {
         message::Message msg = this->buildMessageFromRequest(request);
         msg.set_isasync(false);
         msg.set_istypescript(true);
@@ -93,7 +96,7 @@ namespace edge {
     }
 
     void FunctionEndpoint::handleAsyncTypescriptFunctionWrapper(const Pistache::Rest::Request &request,
-                                              Pistache::Http::ResponseWriter response) {
+                                                                Pistache::Http::ResponseWriter response) {
         message::Message msg = this->buildMessageFromRequest(request);
         msg.set_isasync(true);
         msg.set_istypescript(true);
@@ -102,13 +105,10 @@ namespace edge {
         response.send(Pistache::Http::Code::Ok, result);
     }
 
-
-
     std::string FunctionEndpoint::handleFunction(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Make the call
-        util::setMessageId(msg);
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
         globalBus.enqueueMessage(msg);
 

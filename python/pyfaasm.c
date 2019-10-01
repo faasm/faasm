@@ -27,7 +27,7 @@ void setUpPyNumpy() {
 
     // NOTE - we need to include a call to fiprintf to make
     // the emscripten stuff work
-#if __wasm__ == 1
+#ifdef __wasm__
     fiprintf(devNull, "%s", "blah");
 #endif
 

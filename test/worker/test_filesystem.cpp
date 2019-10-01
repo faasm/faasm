@@ -25,7 +25,7 @@ namespace tests {
         };
 
         util::SystemConfig &conf = util::getSystemConfig();
-        conf.unsafeMode = "on";
+        conf.fsMode = "on";
 
         message::Message msg = util::messageFactory("demo", "getdents");
 
@@ -52,7 +52,7 @@ namespace tests {
         cleanSystem();
 
         util::SystemConfig &conf = util::getSystemConfig();
-        conf.unsafeMode = "on";
+        conf.fsMode = "on";
         
         message::Message msg = util::messageFactory("demo", "listdir");
         execFunction(msg);
@@ -63,13 +63,8 @@ namespace tests {
     TEST_CASE("Test errno with stat64", "[worker]") {
         cleanSystem();
 
-        util::SystemConfig &conf = util::getSystemConfig();
-        conf.unsafeMode = "on";
-
         message::Message msg = util::messageFactory("demo", "errno");
         execFunction(msg);
-
-        conf.reset();
     }
 
     TEST_CASE("Test fcntl", "[worker]") {
@@ -88,7 +83,7 @@ namespace tests {
         cleanSystem();
 
         util::SystemConfig &conf = util::getSystemConfig();
-        conf.unsafeMode = "on";
+        conf.fsMode = "on";
 
         message::Message msg = util::messageFactory("demo", "fstat");
         execFunction(msg);

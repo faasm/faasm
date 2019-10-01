@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
     }
 
     util::SystemConfig &conf = util::getSystemConfig();
-    conf.unsafeMode = "on";
+    conf.fsMode = "on";
 
     std::string user = argv[1];
     std::string function = argv[2];
@@ -25,6 +25,10 @@ int main(int argc, char *argv[]) {
 
     // Set up function call
     message::Message m = util::messageFactory(user, function);
+
+    if(user == "ts") {
+        m.set_istypescript(true);
+    }
 
     // Create the module
     zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
@@ -38,8 +42,12 @@ int main(int argc, char *argv[]) {
         logger->info("Run {} - {}/{} ", i, user, function);
 
         PROF_START(execution)
-        module.execute(m);
+        int result = module.execute(m);
         PROF_END(execution)
+
+        if(result != 0) {
+            throw std::runtime_error("Non-zero return code");
+        }
 
         // Reset using zygote
         module = zygote;

@@ -1,4 +1,4 @@
-from os import mkdir
+from os import mkdir, makedirs
 from os.path import exists
 from os.path import join
 from shutil import rmtree
@@ -7,9 +7,17 @@ from subprocess import call, check_output
 from invoke import task
 
 from tasks.compile import clean_dir
-from tasks.util.codegen import find_codegen_binary
+from tasks.util.codegen import find_codegen_shared_lib
 from tasks.util.env import PROJ_ROOT, FAASM_TOOLCHAIN_FILE, FAASM_SYSROOT, FAASM_INSTALL_DIR, \
     FAASM_RUNTIME_ROOT, THIRD_PARTY_DIR
+from toolchain.python_env import WASM_SYSROOT, WASM_HOST, WASM_BUILD, \
+    BASE_CONFIG_CMD, BASE_CONFIG_FLAGS
+
+
+@task
+def compile_libc(ctx):
+    check_output("./bin/build_musl.sh", shell=True, cwd=PROJ_ROOT)
+    compile_malloc(ctx, clean=True)
 
 
 @task
@@ -129,7 +137,7 @@ def compile_libfake(ctx, clean=False):
         join(FAASM_RUNTIME_ROOT, "libfakeLibB.so"),
     ]
 
-    binary = find_codegen_binary()
+    binary = find_codegen_shared_lib()
 
     for so in shared_objs:
         print("Running codegen for {}".format(so))
@@ -143,8 +151,8 @@ def compile_eigen(ctx):
 
     if exists(build_dir):
         rmtree(build_dir)
+    makedirs(build_dir)
 
-    mkdir(build_dir)
     cmd = [
         "cmake",
         "-DFAASM_BUILD_TYPE=Release",
@@ -158,37 +166,37 @@ def compile_eigen(ctx):
     call(cmd_string, shell=True, cwd=build_dir)
     call("make install", shell=True, cwd=build_dir)
 
-#
-# @task
-# def compile_gemmlowp(ctx):
-#     # gemmlowp is header-only
-#     working_dir = "/tmp"
-#     gemm_dir = "/tmp/gemmlowp"
-#     dest_dir = join(FAASM_SYSROOT, "include", "gemmlowp")
-#
-#     # These are the dirs from the gemmlowp repo to include
-#     include_dirs = [
-#         "meta",
-#         "public",
-#         "profiling",
-#         "fixedpoint",
-#         "internal",
-#     ]
-#
-#     if not exists(gemm_dir):
-#         print("Checkout gemmlowp")
-#         call("git clone https://github.com/google/gemmlowp.git gemmlowp", cwd=working_dir, shell=True)
-#
-#     if not exists(dest_dir):
-#         mkdir(dest_dir)
-#
-#     for dir_name in include_dirs:
-#         dir_path = join(gemm_dir, dir_name)
-#         dest_path = join(dest_dir, dir_name)
-#
-#         if exists(dest_path):
-#             print("Deleting existing {}".format(dest_path))
-#             rmtree(dest_path)
-#
-#         print("Copying {} to {}".format(dir_path, dest_path))
-#         call("cp -r {} {}".format(dir_path, dest_path), shell=True)
+
+@task
+def compile_libpng(ctx):
+    workdir = join(PROJ_ROOT, "third-party", "libpng")
+
+    config_cmd = BASE_CONFIG_CMD
+    config_cmd.extend(BASE_CONFIG_FLAGS)
+    config_cmd.extend([
+        "./configure",
+        "--build={}".format(WASM_BUILD),
+        "--host={}".format(WASM_HOST),
+        "--prefix={}".format(WASM_SYSROOT),
+    ])
+
+    check_output(" ".join(config_cmd), shell=True, cwd=workdir)
+    check_output("make", shell=True, cwd=workdir)
+    check_output("make install", shell=True, cwd=workdir)
+
+
+@task
+def compile_zlib(ctx):
+    workdir = join(PROJ_ROOT, "third-party", "zlib")
+
+    config_cmd = BASE_CONFIG_CMD
+    config_cmd.extend(BASE_CONFIG_FLAGS)
+    config_cmd.extend([
+        "./configure",
+        "--static",
+        "--prefix={}".format(WASM_SYSROOT),
+    ])
+
+    check_output(" ".join(config_cmd), shell=True, cwd=workdir)
+    check_output("make", shell=True, cwd=workdir)
+    check_output("make install", shell=True, cwd=workdir)

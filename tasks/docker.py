@@ -58,131 +58,111 @@ def data(context):
 
 
 @task
-def build_all(context):
-    build_base(context)
-
-    build_worker(context)
-    build_edge(context)
-    build_upload(context)
-    build_data(context)
-
-
-@task
-def push_all(context):
-    push_base(context)
-
-    push_worker(context)
-    push_edge(context)
-    push_upload(context)
-    push_data(context)
-
-
-@task
-def build_redis(context):
+def docker_build_redis(context):
     cmd = "docker build -t faasm/redis -f docker/redis.dockerfile ."
     call(cmd, shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def push_redis(context):
+def docker_push_redis(context):
     call("docker push faasm/redis", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def build_base(context):
+def docker_build_base(context):
     call("docker build -t faasm/base -f docker/base.dockerfile .", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def push_base(context):
+def docker_push_base(context):
     call("docker push faasm/base", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def build_worker(context):
+def docker_build_worker(context):
     call("docker build -t faasm/worker  -f docker/worker.dockerfile .", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def push_worker(context):
+def docker_push_worker(context):
     call("docker push faasm/worker", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def build_noop(context):
+def docker_build_noop(context):
     call("docker build -t faasm/noop  -f docker/noop.dockerfile .", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def push_noop(context):
+def docker_push_noop(context):
     call("docker push faasm/noop", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def build_edge(context):
+def docker_build_edge(context):
     call("docker build -t faasm/edge -f docker/edge.dockerfile .", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def build_knative_worker(context):
+def docker_build_knative(context):
     call("docker build -t faasm/knative-worker -f docker/knative-worker.dockerfile .", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def build_testing(context):
+def docker_build_testing(context):
     call("docker build -t faasm/testing  -f docker/testing.dockerfile .", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def push_testing(context):
+def docker_push_testing(context):
     call("docker push faasm/testing", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def build_root(context):
+def docker_build_root(context):
     call("docker build -t faasm/cpp-root -f docker/cpp-root.dockerfile .", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def push_root(context):
+def docker_push_root(context):
     call("docker push faasm/cpp-root", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def push_knative_worker(context):
+def docker_push_knative(context):
     call("docker push faasm/knative-worker", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def build_toolchain(context):
+def docker_build_toolchain(context):
     call("docker build -t faasm/toolchain -f docker/toolchain.dockerfile .", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def push_toolchain(context):
+def docker_push_toolchain(context):
     call("docker push faasm/toolchain", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def push_edge(context):
+def docker_push_edge(context):
     call("docker push faasm/edge", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def build_upload(context):
+def docker_build_upload(context):
     call("docker build -t faasm/upload  -f docker/upload.dockerfile .", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def push_upload(context):
+def docker_push_upload(context):
     call("docker push faasm/upload", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def build_data(context):
+def docker_build_data(context):
     call("docker build -t faasm/data  -f docker/data.dockerfile .", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def push_data(context):
+def docker_push_data(context):
     call("docker push faasm/data", shell=True, cwd=PROJ_ROOT)

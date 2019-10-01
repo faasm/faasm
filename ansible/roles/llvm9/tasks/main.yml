@@ -14,6 +14,7 @@
       - llvm-9-dev
       - llvm-9-tools
       - lld-9
+      - lldb-9
     update_cache: yes
 
 - name: "Install clang and other deps"
@@ -38,4 +39,3 @@
     - "wasm-ld"
     - "llvm-ar"
     - "lld"
-
