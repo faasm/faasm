@@ -8,7 +8,6 @@
 #include <shared_mutex>
 
 #define VFS_PREFIX "faasm"
-#define RUNTIME_FILES_ROOT "/usr/local/faasm/runtime_root"
 
 namespace storage {
     std::string maskPath(const std::string &originalPath);

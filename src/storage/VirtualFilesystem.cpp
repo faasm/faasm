@@ -16,7 +16,8 @@ namespace storage {
     // ---------------------------------
 
     std::string maskPath(const std::string &originalPath) {
-        boost::filesystem::path p(RUNTIME_FILES_ROOT);
+        util::SystemConfig &conf = util::getSystemConfig();
+        boost::filesystem::path p(conf.runtimeFilesDir);
         p.append(originalPath);
         return p.string();
     }

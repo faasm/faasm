@@ -59,6 +59,7 @@ namespace util {
         std::string functionDir;
         std::string pythonFunctionDir;
         std::string objectFileDir;
+        std::string runtimeFilesDir;
 
         SystemConfig();
 

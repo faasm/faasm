@@ -94,6 +94,7 @@ namespace tests {
         std::string funcDir = setEnvVar("FUNC_DIR","/tmp/foo");
         std::string pythonFuncDir = setEnvVar("PYTHON_FUNC_DIR","/tmp/par");
         std::string objDir = setEnvVar("OBJ_DIR", "/tmp/bar");
+        std::string runtimeDir = setEnvVar("RUNTIME_FILES_DIR", "/tmp/rara");
 
         // Create new conf for test
         SystemConfig conf;
@@ -136,6 +137,7 @@ namespace tests {
         REQUIRE(conf.functionDir == "/tmp/foo");
         REQUIRE(conf.pythonFunctionDir == "/tmp/par");
         REQUIRE(conf.objectFileDir == "/tmp/bar");
+        REQUIRE(conf.runtimeFilesDir == "/tmp/rara");
 
         // Be careful with host type
         setEnvVar("HOST_TYPE", originalHostType);
@@ -178,6 +180,7 @@ namespace tests {
         setEnvVar("FUNC_DIR", funcDir);
         setEnvVar("PYTHON_FUNC_DIR", pythonFuncDir);
         setEnvVar("OBJ_DIR", objDir);
+        setEnvVar("RUNTIME_FILES_DIR", runtimeDir);
     }
 
     TEST_CASE("Check we can't have both full sync and full async on at the same time", "[conf]") {
