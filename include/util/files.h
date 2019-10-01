@@ -4,6 +4,7 @@
 #include <vector>
 
 #define FILE_PATH_HEADER "FilePath"
+#define EMPTY_FILE_RESPONSE "Empty response"
 
 namespace util {
     std::string readFileToString(const std::string &path);
@@ -17,4 +18,7 @@ namespace util {
     std::vector<uint8_t> readFileFromUrlWithHeader(
             const std::string &url,
             const std::string &header);
+
+    class FileNotFoundAtUrlException : public std::exception {
+    };
 }

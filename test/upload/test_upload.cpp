@@ -268,14 +268,16 @@ namespace tests {
         edge::UploadServer::handleGet(request);
         http_response response = request.get_response().get();
         const utility::string_t responseStr = response.to_string();
+
         const std::vector<unsigned char> responseBytes = response.extract_vector().get();
 
         if(valid) {
             // Check we get back what we wrote in the file
+            REQUIRE(response.status_code() == status_codes::OK);
             REQUIRE(responseBytes == fileBytes);
         } else {
-            // Check response is empty
-            REQUIRE(responseBytes.empty());
+            // Check response is an error
+            REQUIRE(response.status_code() == status_codes::InternalError);
         }
     }
 }

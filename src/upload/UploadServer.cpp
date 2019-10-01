@@ -112,7 +112,7 @@ namespace edge {
 
         if (returnBytes.empty()) {
             http_response response(status_codes::InternalError);
-            response.set_body("Empty response");
+            response.set_body(EMPTY_FILE_RESPONSE);
             request.reply(response);
         } else {
             http_response response(status_codes::OK);

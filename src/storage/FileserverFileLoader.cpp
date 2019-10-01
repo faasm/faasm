@@ -19,13 +19,20 @@ namespace storage {
             header = std::string(FILE_PATH_HEADER) + ":" + path;
         }
 
-        const std::vector<uint8_t> fileBytes = util::readFileFromUrlWithHeader(url, header);
+        std::vector<uint8_t> fileBytes;
+
+        try {
+            util::readFileFromUrlWithHeader(url, header);
+        } catch(util::FileNotFoundAtUrlException &e) {
+            // Leave empty if file not found
+        }
 
         if (fileBytes.empty()) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Empty response for file at {}", url);
             throw std::runtime_error("Empty response from URL");
         }
+
         return fileBytes;
     }
 
