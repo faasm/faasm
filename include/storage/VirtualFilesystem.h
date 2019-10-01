@@ -11,6 +11,8 @@
 #define RUNTIME_FILES_ROOT "/usr/local/faasm/runtime_root"
 
 namespace storage {
+    std::string maskPath(const std::string &originalPath);
+
     enum FileState {
         NOT_CHECKED,
         NOT_EXISTS,
@@ -26,16 +28,11 @@ namespace storage {
         std::shared_mutex fileMutex;
     };
 
-    typedef std::unordered_map<std::string, VirtualFile> VfsMap;
-    typedef std::pair<std::string, VirtualFile> VfsPair;
-
     class VirtualFilesystem {
     public:
-        std::string maskPath(const std::string &originalPath);
-
         int openFile(const std::string &path, int flags, int mode);
     private:
-        VfsMap vfsMap;
+        std::unordered_map<std::string, VirtualFile> vfsMap;
         std::shared_mutex vfsMapMutex;
 
         VirtualFile& getFile(const std::string &path);

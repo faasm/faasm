@@ -8,13 +8,14 @@
 #include <fcntl.h>
 #include <util/strings.h>
 #include <util/logging.h>
+#include <util/files.h>
 
 namespace storage {
     // ---------------------------------
     // Virtual filesystem
     // ---------------------------------
 
-    std::string VirtualFilesystem::maskPath(const std::string &originalPath) {
+    std::string maskPath(const std::string &originalPath) {
         boost::filesystem::path p(RUNTIME_FILES_ROOT);
         p.append(originalPath);
         return p.string();
@@ -74,37 +75,48 @@ namespace storage {
     // ---------------------------------
 
     int VirtualFile::openFile(const std::string &path, int flags, int mode) {
-        switch(state) {
-            case NOT_EXISTS: {
-                return -ENOENT;
-            }
-            case EXISTS: {
-                // TODO - handle existing file (lock free?)
-                util::SharedLock sharedLock(fileMutex);
-                return 0;
-            }
-            case NOT_CHECKED: {
-                // Get a full lock to load the file
-                util::FullLock fullLock(fileMutex);
+        const std::string maskedPath = maskPath(path);
 
-                // Load
-                FileLoader &loader = getFileLoader();
-                const std::vector<uint8_t> bytes = loader.loadSharedFile(path);
+        // If not checked, do the check and persist
+        if(state == NOT_CHECKED) {
+            // Get a full lock to do the checking
+            util::FullLock fullLock(fileMutex);
 
-                // Handle non-existent file
-                if(bytes.empty()) {
-                    state = NOT_EXISTS;
-                    return -ENOENT;
+            // Double check condition once got full lock
+            if(state == NOT_CHECKED) {
+                if(boost::filesystem::exists(maskedPath)) {
+                    // If already exists on filesystem, just mark it as such
+                    state = EXISTS;
+                } else {
+                    // Use file loader if not already in place
+                    FileLoader &loader = getFileLoader();
+                    const std::vector<uint8_t> bytes = loader.loadSharedFile(path);
+
+                    // Handle non-existent file
+                    if(bytes.empty()) {
+                        state = NOT_EXISTS;
+                        return -ENOENT;
+                    }
+
+                    // Write to local filesystem
+                    util::writeBytesToFile(maskedPath, bytes);
+
+                    // Record that this exists
+                    state = EXISTS;
                 }
-
-                // Write file to local filesystem
-
-
-                return 0;
             }
-            default:
-                throw std::runtime_error("Unexpected file state");
+        }
+
+        // Shared lock for cases when file has been checked
+        {
+            util::SharedLock sharedLock(fileMutex);
+            if (state == NOT_EXISTS) {
+                return -ENOENT;
+            } else if (state == EXISTS) {
+                return open(maskedPath.c_str(), flags, mode);
+            } else {
+                throw std::runtime_error("File checked but not left in non-existent or existent state");
+            }
         }
     }
 }
-

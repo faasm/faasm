@@ -41,8 +41,7 @@ namespace wasm {
 
     std::string getMaskedPathFromWasm(I32 strPtr) {
         const std::string originalPath = getStringFromWasm(strPtr);
-
-        return storage::getVirtualFilesystem().maskPath(originalPath);
+        return storage::maskPath(originalPath);
     }
 
     /** Translates a wasm sockaddr into a native sockaddr */
