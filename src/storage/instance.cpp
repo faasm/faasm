@@ -3,6 +3,7 @@
 #include "LocalFunctionLoader.h"
 #include "FileserverFunctionLoader.h"
 #include "S3FunctionLoader.h"
+#include "VirtualFilesystem.h"
 
 namespace storage {
     FunctionLoader &getFunctionLoader() {
@@ -23,5 +24,10 @@ namespace storage {
         } else {
             throw std::runtime_error("Invalid function storage mode");
         }
+    }
+
+    VirtualFilesystem &getVirtualFilesystem() {
+        static thread_local VirtualFilesystem vfs;
+        return vfs;
     }
 }

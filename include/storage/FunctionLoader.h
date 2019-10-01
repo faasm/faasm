@@ -19,6 +19,8 @@ namespace storage {
 
         virtual std::vector<uint8_t> loadPythonFunctionFile(const message::Message &msg) = 0;
 
+        virtual std::vector<uint8_t> loadSharedFile(const std::string &path) = 0;
+
         virtual void uploadFunction(message::Message &msg) = 0;
 
         virtual void uploadPythonFunction(message::Message &msg) = 0;
@@ -26,6 +28,8 @@ namespace storage {
         virtual void uploadFunctionObjectFile(const message::Message &msg, const std::vector<uint8_t> &objBytes) = 0;
 
         virtual void uploadSharedObjectObjectFile(const std::string &path, const std::vector<uint8_t> &objBytes) = 0;
+
+        virtual void uploadSharedFile(const std::string &path, const std::vector<uint8_t> &fileBytes) = 0;
 
         bool isWasm(const std::vector<uint8_t> &bytes);
 

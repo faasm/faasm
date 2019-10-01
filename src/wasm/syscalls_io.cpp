@@ -12,6 +12,7 @@
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
+#include <storage/FunctionLoader.h>
 
 
 namespace wasm {
@@ -21,10 +22,10 @@ namespace wasm {
         const std::string path = getStringFromWasm(pathPtr);
         logger->debug("S - open - {} {} {}", path, flags, mode);
 
-        util::SystemConfig &conf = util::getSystemConfig();
         WasmModule *module = getExecutingModule();
 
-        // Check if this is a valid path. Return a read-only handle to the file if so
+        // Here we have some special cases which will be available on the local filesystem
+        // Otherwise we will go to the file loader
         int fd;
         std::string fakePath = maskPath(path);
         if (path == "/dev/urandom") {
@@ -34,20 +35,18 @@ namespace wasm {
         } else if (path == "/dev/null") {
             logger->debug("Allowing access to /dev/null");
             fd = open("/dev/null", 0, 0);
-        } else {
-            // Unsafe mode here allows access to any files (below the runtime root dir)
-            if (conf.fsMode == "on" ||
-                (path == "/etc/hosts" ||
-                path == "/etc/resolv.conf" ||
-                path == "/etc/passwd" ||
-                path == "/etc/localtime")) {
+        } else if (path == "/etc/hosts" ||
+                   path == "/etc/resolv.conf" ||
+                   path == "/etc/passwd" ||
+                   path == "/etc/localtime") {
 
-                logger->debug("Opening {} (requested {})", fakePath, path);
-                fd = open(fakePath.c_str(), flags, mode);
-            } else {
-                logger->error("Opening arbitrary path {} (requested {})", fakePath, path);
-                throw std::runtime_error("Opening arbitrary path");
-            }
+            logger->debug("Opening {} (requested {})", fakePath, path);
+            fd = open(fakePath.c_str(), flags, mode);
+        } else {
+            // Go to file loader
+            logger->error("Attempting to open shared file {}", path);
+            storage::FunctionLoader &loader = storage::getFunctionLoader();
+            fd = loader.loadSharedFile(path);
         }
 
         if (fd > 0) {
@@ -70,7 +69,7 @@ namespace wasm {
         util::getLogger()->debug("S - dup - {}", oldFd);
 
         WasmModule *module = getExecutingModule();
-        
+
         module->checkThreadOwnsFd(oldFd);
 
         int newFd = dup(oldFd);
@@ -157,7 +156,7 @@ namespace wasm {
                 int newErrno = errno;
                 delete[] nativeBuf;
                 return -newErrno;
-            } else if(nativeBytesRead == 0) {
+            } else if (nativeBytesRead == 0) {
                 // End of directory
                 delete[] nativeBuf;
                 return wasmBytesRead;
@@ -321,11 +320,11 @@ namespace wasm {
         iovec *nativeIovecs = wasmIovecsToNativeIovecs(iovecPtr, iovecCount);
 
         int bytesRead = readv(fd, nativeIovecs, iovecCount);
-        if(bytesRead == -1) {
+        if (bytesRead == -1) {
             logger->error("Failed readv {} - {}", errno, strerror(errno));
             throw std::runtime_error("Failed readv");
         }
-        
+
         delete[] nativeIovecs;
 
         return bytesRead;
@@ -415,7 +414,7 @@ namespace wasm {
         struct stat64 nativeStat{};
         int result = fstat64(fd, &nativeStat);
 
-        if(result < 0) {
+        if (result < 0) {
             int newErrno = errno;
             return -newErrno;
         }

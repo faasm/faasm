@@ -10,6 +10,7 @@ set(LIB_FILES
         LocalFunctionLoader.cpp
         FileserverFunctionLoader.cpp
         S3FunctionLoader.cpp
+        VirtualFilesystem.cpp
         instance.cpp
         ${HEADERS}
         )
