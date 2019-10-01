@@ -1,6 +1,6 @@
 # Faasm
 
-[![Build Status](https://travis-ci.com/lsds/Faasm.svg?branch=master)](https://travis-ci.com/lsds/Faasm)
+[![Build Status](https://travis-ci.org/lsds/Faasm.svg?branch=master)](https://travis-ci.org/lsds/Faasm)
 
 Faasm is a high-performance multi-tenant serverless runtime. It is intended for integration into
 other larger serverless platforms, not as a stand-alone system.
