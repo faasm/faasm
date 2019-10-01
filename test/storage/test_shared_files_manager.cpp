@@ -13,8 +13,8 @@ using namespace storage;
 
 namespace tests {
     TEST_CASE("Check loading local files", "[storage]") {
-        SharedFilesManager &vfs = getSharedFilesManager();
-        vfs.clear();
+        SharedFilesManager &sfm = getSharedFilesManager();
+        sfm.clear();
 
         util::SystemConfig &conf = util::getSystemConfig();
         std::string original = conf.fsMode;
@@ -25,12 +25,12 @@ namespace tests {
 
         SECTION("Valid file but FS mode off") {
             conf.fsMode = "off";
-            REQUIRE_THROWS(vfs.openFile(validPath, O_RDONLY, 0));
+            REQUIRE_THROWS(sfm.openFile(validPath, O_RDONLY, 0));
         }
         SECTION("Valid file with FS mode on") {
             conf.fsMode = "on";
 
-            int fd = vfs.openFile(validPath, O_RDONLY, 0);
+            int fd = sfm.openFile(validPath, O_RDONLY, 0);
             REQUIRE(fd > 0);
 
             // Read in from the returned descriptor
@@ -46,12 +46,12 @@ namespace tests {
         }
         SECTION("Non-existent with FS mode off") {
             conf.fsMode = "off";
-            REQUIRE_THROWS(vfs.openFile(invalidPath, O_RDONLY, 0));
+            REQUIRE_THROWS(sfm.openFile(invalidPath, O_RDONLY, 0));
         }
         SECTION("Non-existent with FS mode on") {
             std::string path = "/foobar/123/blah";
             conf.fsMode = "on";
-            int fd = vfs.openFile(invalidPath, O_RDONLY, 0);
+            int fd = sfm.openFile(invalidPath, O_RDONLY, 0);
             REQUIRE(fd == -ENOENT);
         }
 
@@ -59,13 +59,13 @@ namespace tests {
     }
 
     TEST_CASE("Check loading shared files", "[storage]") {
-        SharedFilesManager &vfs = getSharedFilesManager();
-        vfs.clear();
+        SharedFilesManager &sfm = getSharedFilesManager();
+        sfm.clear();
 
         util::SystemConfig &conf = util::getSystemConfig();
 
         std::vector<uint8_t> expectedBytes = {6, 5, 4, 0, 1};
-        std::string relativePath = std::string(VFS_PREFIX) + "/test/valid_shared_file.txt";
+        std::string relativePath = std::string(SHARED_FILE_PREFIX) + "/test/valid_shared_file.txt";
         bool valid;
 
         // Prepare paths for both copies of file
@@ -91,7 +91,7 @@ namespace tests {
         }
 
         // Open the shared file
-        int fd = vfs.openFile(relativePath, O_RDONLY, 0);
+        int fd = sfm.openFile(relativePath, O_RDONLY, 0);
 
         if (!valid) {
             REQUIRE(fd == -ENOENT);

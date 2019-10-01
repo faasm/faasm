@@ -28,7 +28,7 @@ namespace storage {
 
     SharedFilesManager &getSharedFilesManager() {
         // Note - not thread-local but internally thread-safe
-        static SharedFilesManager vfs;
-        return vfs;
+        static SharedFilesManager m;
+        return m;
     }
 }

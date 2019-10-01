@@ -23,8 +23,8 @@ namespace wasm {
         const std::string path = getStringFromWasm(pathPtr);
         logger->debug("S - open - {} {} {}", path, flags, mode);
 
-        storage::SharedFilesManager &vfs = storage::getSharedFilesManager();
-        int fd = vfs.openFile(path, flags, mode);
+        storage::SharedFilesManager &sfm = storage::getSharedFilesManager();
+        int fd = sfm.openFile(path, flags, mode);
 
         // NOTE: virtual filesystem will return the negative errno associated
         // with any failed operations

@@ -30,29 +30,36 @@ namespace storage {
     }
 
     SharedFile &SharedFilesManager::getFile(const std::string &path) {
-        if (vfsMap.count(path) == 0) {
-            util::FullLock fullLock(vfsMapMutex);
+        if (sharedFileMap.count(path) == 0) {
+            util::FullLock fullLock(sharedFileMapMutex);
 
-            return vfsMap[path];
+            return sharedFileMap[path];
         }
 
-        return vfsMap[path];
+        return sharedFileMap[path];
     }
 
     int SharedFilesManager::openFile(const std::string &path, int flags, int mode) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        bool isVfs = util::startsWith(path, SHARED_FILE_PREFIX);
+        if (isVfs) {
+            return openVfsFile(path, flags, mode);
+        } else {
+            return openLocalFile(path, flags, mode);
+        }
+    }
 
+    int SharedFilesManager::openVfsFile(const std::string &path, int flags, int mode) {
+        SharedFile &vf = getFile(path);
+        return vf.openFile(path, flags, mode);
+    }
+
+    int SharedFilesManager::openLocalFile(const std::string &path, int flags, int mode) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         util::SystemConfig &conf = util::getSystemConfig();
 
-        std::string fakePath = maskPath(path);
-        bool isVfs = util::startsWith(path, VFS_PREFIX);
         int fd;
-
-        if (isVfs) {
-            SharedFile &vf = getFile(path);
-            return vf.openFile(path, flags, mode);
-
-        } else if (path == "/dev/urandom") {
+        std::string fakePath = maskPath(path);
+        if (path == "/dev/urandom") {
             //TODO avoid use of system-wide urandom
             logger->debug("Opening /dev/urandom");
             fd = open("/dev/urandom", 0, 0);
@@ -87,10 +94,10 @@ namespace storage {
     }
 
     void SharedFilesManager::clear() {
-        util::FullLock lock(vfsMapMutex);
+        util::FullLock lock(sharedFileMapMutex);
 
         // Delete all the referenced files
-        for (auto &mapPair : vfsMap) {
+        for (auto &mapPair : sharedFileMap) {
             const std::string maskedPath = maskPath(mapPair.first);
             boost::filesystem::path p(maskedPath);
 
@@ -100,7 +107,7 @@ namespace storage {
         }
 
         // Clear the map
-        vfsMap.clear();
+        sharedFileMap.clear();
     }
 
     // ---------------------------------

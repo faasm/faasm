@@ -18,7 +18,7 @@ namespace tests {
         redis::Redis::getQueue().flushAll();
         state::getGlobalState().forceClearAll();
 
-        // Clear VFS
+        // Clear shared files
         storage::getSharedFilesManager().clear();
 
         // Reset scheduler

@@ -7,7 +7,7 @@
 #include <memory>
 #include <shared_mutex>
 
-#define VFS_PREFIX "faasm"
+#define SHARED_FILE_PREFIX "faasm"
 
 namespace storage {
     std::string maskPath(const std::string &originalPath);
@@ -23,6 +23,7 @@ namespace storage {
         FileState state = NOT_CHECKED;
 
         int openFile(const std::string &path, int flags, int mode);
+
     private:
         std::shared_mutex fileMutex;
     };
@@ -32,11 +33,16 @@ namespace storage {
         int openFile(const std::string &path, int flags, int mode);
 
         void clear();
-    private:
-        std::unordered_map<std::string, SharedFile> vfsMap;
-        std::shared_mutex vfsMapMutex;
 
-        SharedFile& getFile(const std::string &path);
+    private:
+        std::unordered_map<std::string, SharedFile> sharedFileMap;
+        std::shared_mutex sharedFileMapMutex;
+
+        SharedFile &getFile(const std::string &path);
+
+        int openVfsFile(const std::string &path, int flags, int mode);
+
+        int openLocalFile(const std::string &path, int flags, int mode);
     };
 
     SharedFilesManager &getSharedFilesManager();
