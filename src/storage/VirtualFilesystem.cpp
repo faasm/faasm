@@ -38,36 +38,61 @@ namespace storage {
 
         std::string fakePath = maskPath(path);
         bool isVfs = util::startsWith(path, VFS_PREFIX);
+        int fd;
 
-        if(isVfs) {
+        if (isVfs) {
             VirtualFile &vf = getFile(path);
             return vf.openFile(path, flags, mode);
 
         } else if (path == "/dev/urandom") {
             //TODO avoid use of system-wide urandom
             logger->debug("Opening /dev/urandom");
-            return open("/dev/urandom", 0, 0);
+            fd = open("/dev/urandom", 0, 0);
 
         } else if (path == "/dev/null") {
             logger->debug("Allowing access to /dev/null");
-            return open("/dev/null", 0, 0);
-            
+            fd = open("/dev/null", 0, 0);
+
         } else if (path == "/etc/hosts" ||
                    path == "/etc/resolv.conf" ||
                    path == "/etc/passwd" ||
                    path == "/etc/localtime") {
 
             logger->debug("Opening {} (requested {})", fakePath, path);
-            return open(fakePath.c_str(), flags, mode);
+            fd = open(fakePath.c_str(), flags, mode);
 
-        } else if(conf.fsMode == "on") {
+        } else if (conf.fsMode == "on") {
             logger->debug("Arbitrary access to local file {}", fakePath);
-            return open(fakePath.c_str(), flags, mode);
+            fd = open(fakePath.c_str(), flags, mode);
 
         } else {
             logger->error("Opening arbitrary path {} (requested {})", fakePath, path);
             throw std::runtime_error("Opening arbitrary path");
         }
+
+        // NOTE - musl expects us to return the negative errno, not -1
+        if (fd < 0) {
+            return -errno;
+        }
+
+        return fd;
+    }
+
+    void VirtualFilesystem::clear() {
+        util::FullLock lock(vfsMapMutex);
+
+        // Delete all the referenced files
+        for (auto &mapPair : vfsMap) {
+            const std::string maskedPath = maskPath(mapPair.first);
+            boost::filesystem::path p(maskedPath);
+
+            if (boost::filesystem::exists(p)) {
+                boost::filesystem::remove(p);
+            }
+        }
+
+        // Clear the map
+        vfsMap.clear();
     }
 
     // ---------------------------------
@@ -78,13 +103,13 @@ namespace storage {
         const std::string maskedPath = maskPath(path);
 
         // If not checked, do the check and persist
-        if(state == NOT_CHECKED) {
+        if (state == NOT_CHECKED) {
             // Get a full lock to do the checking
             util::FullLock fullLock(fileMutex);
 
             // Double check condition once got full lock
-            if(state == NOT_CHECKED) {
-                if(boost::filesystem::exists(maskedPath)) {
+            if (state == NOT_CHECKED) {
+                if (boost::filesystem::exists(maskedPath)) {
                     // If already exists on filesystem, just mark it as such
                     state = EXISTS;
                 } else {
@@ -93,12 +118,18 @@ namespace storage {
                     const std::vector<uint8_t> bytes = loader.loadSharedFile(path);
 
                     // Handle non-existent file
-                    if(bytes.empty()) {
+                    if (bytes.empty()) {
                         state = NOT_EXISTS;
                         return -ENOENT;
                     }
 
-                    // Write to local filesystem
+                    // Create directories if necessary
+                    boost::filesystem::path p(maskedPath);
+                    if (p.has_parent_path()) {
+                        boost::filesystem::create_directories(p.parent_path());
+                    }
+
+                    // Write to file
                     util::writeBytesToFile(maskedPath, bytes);
 
                     // Record that this exists

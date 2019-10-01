@@ -31,6 +31,8 @@ namespace storage {
     class VirtualFilesystem {
     public:
         int openFile(const std::string &path, int flags, int mode);
+
+        void clear();
     private:
         std::unordered_map<std::string, VirtualFile> vfsMap;
         std::shared_mutex vfsMapMutex;

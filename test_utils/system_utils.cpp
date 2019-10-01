@@ -8,6 +8,7 @@
 #include <emulator/emulator.h>
 #include <memory/MemorySnapshotRegister.h>
 #include <zygote/ZygoteRegistry.h>
+#include <storage/VirtualFilesystem.h>
 
 
 namespace tests {
@@ -16,6 +17,9 @@ namespace tests {
         redis::Redis::getState().flushAll();
         redis::Redis::getQueue().flushAll();
         state::getGlobalState().forceClearAll();
+
+        // Clear VFS
+        storage::getVirtualFilesystem().clear();
 
         // Reset scheduler
         scheduler::Scheduler &sch = scheduler::getScheduler();
