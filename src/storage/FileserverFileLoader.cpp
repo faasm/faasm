@@ -1,4 +1,4 @@
-#include "FileserverFunctionLoader.h"
+#include "FileserverFileLoader.h"
 
 #include <util/func.h>
 #include <util/bytes.h>
@@ -8,7 +8,7 @@
 
 
 namespace storage {
-    std::string FileserverFunctionLoader::getFileserverUrl() {
+    std::string FileserverFileLoader::getFileserverUrl() {
         return util::getSystemConfig().fileserverUrl;
     }
 
@@ -33,27 +33,27 @@ namespace storage {
         return _loadSharedObjBytesFromUrl(url, "");
     }
 
-    std::vector<uint8_t> FileserverFunctionLoader::loadFunctionWasm(const message::Message &msg) {
+    std::vector<uint8_t> FileserverFileLoader::loadFunctionWasm(const message::Message &msg) {
         std::string url = util::getFunctionUrl(msg);
         return _loadBytesFromUrl(url);
     }
 
-    std::vector<uint8_t> FileserverFunctionLoader::loadFunctionObjectFile(const message::Message &msg) {
+    std::vector<uint8_t> FileserverFileLoader::loadFunctionObjectFile(const message::Message &msg) {
         std::string url = util::getFunctionObjectUrl(msg);
         return _loadBytesFromUrl(url);
     }
 
-    std::vector<uint8_t> FileserverFunctionLoader::loadSharedObjectWasm(const std::string &path) {
+    std::vector<uint8_t> FileserverFileLoader::loadSharedObjectWasm(const std::string &path) {
         std::string url = util::getSharedObjectUrl();
         return _loadSharedObjBytesFromUrl(url, path);
     }
 
-    std::vector<uint8_t> FileserverFunctionLoader::loadSharedObjectObjectFile(const std::string &path) {
+    std::vector<uint8_t> FileserverFileLoader::loadSharedObjectObjectFile(const std::string &path) {
         std::string url = util::getSharedObjectObjectUrl();
         return _loadSharedObjBytesFromUrl(url, path);
     }
 
-    std::vector<uint8_t> FileserverFunctionLoader::loadPythonFunctionFile(const message::Message &msg) {
+    std::vector<uint8_t> FileserverFileLoader::loadPythonFunctionFile(const message::Message &msg) {
         std::string url = util::getPythonFunctionUrl(msg);
         return _loadBytesFromUrl(url);
     }

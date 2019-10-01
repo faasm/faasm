@@ -1,4 +1,4 @@
-#include "FunctionLoader.h"
+#include "FileLoader.h"
 
 #include <WAVM/IR/Module.h>
 #include <WAVM/Inline/BasicTypes.h>
@@ -15,7 +15,7 @@ using namespace WAVM;
 
 namespace storage {
 
-    bool FunctionLoader::isWasm(const std::vector<uint8_t> &bytes) {
+    bool FileLoader::isWasm(const std::vector<uint8_t> &bytes) {
         static const U8 wasmMagicNumber[4] = {0x00, 0x61, 0x73, 0x6d};
         if (bytes.size() >= 4 && !memcmp(bytes.data(), wasmMagicNumber, 4)) {
             return true;
@@ -24,7 +24,7 @@ namespace storage {
         }
     }
 
-    void FunctionLoader::codegenForFunction(message::Message &msg) {
+    void FileLoader::codegenForFunction(message::Message &msg) {
         std::vector<uint8_t> bytes = loadFunctionWasm(msg);
 
         if(bytes.empty()) {
@@ -37,7 +37,7 @@ namespace storage {
         uploadFunctionObjectFile(msg, objBytes);
     }
 
-    void FunctionLoader::codegenForSharedObject(const std::string &inputPath) {
+    void FileLoader::codegenForSharedObject(const std::string &inputPath) {
         // Generate the machine code
         std::vector<uint8_t> bytes = loadSharedObjectWasm(inputPath);
         std::vector<uint8_t> objBytes = doCodegen(bytes);
@@ -46,7 +46,7 @@ namespace storage {
         uploadSharedObjectObjectFile(inputPath, objBytes);
     }
 
-    std::vector<uint8_t> FunctionLoader::doCodegen(std::vector<uint8_t> &bytes) {
+    std::vector<uint8_t> FileLoader::doCodegen(std::vector<uint8_t> &bytes) {
         IR::Module moduleIR;
 
         // Explicitly allow simd support

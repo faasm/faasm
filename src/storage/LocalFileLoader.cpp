@@ -1,4 +1,4 @@
-#include "LocalFunctionLoader.h"
+#include "LocalFileLoader.h"
 
 #include <iostream>
 
@@ -23,31 +23,31 @@ namespace storage {
         return util::readFileToBytes(path);
     }
 
-    std::vector<uint8_t> LocalFunctionLoader::loadFunctionWasm(const message::Message &msg) {
+    std::vector<uint8_t> LocalFileLoader::loadFunctionWasm(const message::Message &msg) {
         std::string filePath = util::getFunctionFile(msg);
         return loadFileBytes(filePath);
     }
 
-    std::vector<uint8_t> LocalFunctionLoader::loadFunctionObjectFile(const message::Message &msg) {
+    std::vector<uint8_t> LocalFileLoader::loadFunctionObjectFile(const message::Message &msg) {
         std::string objectFilePath = util::getFunctionObjectFile(msg);
         return loadFileBytes(objectFilePath);
     }
 
-    std::vector<uint8_t> LocalFunctionLoader::loadSharedObjectObjectFile(const std::string &path) {
+    std::vector<uint8_t> LocalFileLoader::loadSharedObjectObjectFile(const std::string &path) {
         std::string objFilePath = util::getSharedObjectObjectFile(path);
         return loadFileBytes(objFilePath);
     }
 
-    std::vector<uint8_t> LocalFunctionLoader::loadSharedObjectWasm(const std::string &path) {
+    std::vector<uint8_t> LocalFileLoader::loadSharedObjectWasm(const std::string &path) {
         return loadFileBytes(path);
     }
 
-    std::vector<uint8_t> LocalFunctionLoader::loadPythonFunctionFile(const message::Message &msg) {
+    std::vector<uint8_t> LocalFileLoader::loadPythonFunctionFile(const message::Message &msg) {
         std::string path = util::getPythonFunctionFile(msg);
         return loadFileBytes(path);
     }
 
-    void LocalFunctionLoader::uploadFunction(message::Message &msg) {
+    void LocalFileLoader::uploadFunction(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::string funcStr = util::funcToString(msg, false);
 
@@ -70,7 +70,7 @@ namespace storage {
         codegenForFunction(msg);
     }
 
-    void LocalFunctionLoader::uploadPythonFunction(message::Message & msg) {
+    void LocalFileLoader::uploadPythonFunction(message::Message & msg) {
         const std::string &fileBody = msg.inputdata();
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -82,12 +82,12 @@ namespace storage {
         out.close();
     }
 
-    void LocalFunctionLoader::uploadFunctionObjectFile(const message::Message &msg, const std::vector<uint8_t> &objBytes) {
+    void LocalFileLoader::uploadFunctionObjectFile(const message::Message &msg, const std::vector<uint8_t> &objBytes) {
         std::string objFilePath = util::getFunctionObjectFile(msg);
         util::writeBytesToFile(objFilePath, objBytes);
     }
 
-    void LocalFunctionLoader::uploadSharedObjectObjectFile(const std::string &path, const std::vector<uint8_t> &objBytes) {
+    void LocalFileLoader::uploadSharedObjectObjectFile(const std::string &path, const std::vector<uint8_t> &objBytes) {
         std::string outputPath = util::getSharedObjectObjectFile(path);
         util::writeBytesToFile(outputPath, objBytes);
     }

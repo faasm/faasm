@@ -7,7 +7,7 @@
 
 
 namespace storage {
-    class FunctionLoader {
+    class FileLoader {
     public:
         virtual std::vector<uint8_t> loadFunctionWasm(const message::Message &msg) = 0;
 
@@ -40,5 +40,5 @@ namespace storage {
         std::vector<uint8_t> doCodegen(std::vector<uint8_t> &bytes);
     };
 
-    FunctionLoader &getFunctionLoader();
+    FileLoader &getFileLoader();
 };

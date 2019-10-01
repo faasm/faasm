@@ -1,6 +1,6 @@
 #include <util/logging.h>
 #include <boost/filesystem.hpp>
-#include <storage/FunctionLoader.h>
+#include <storage/FileLoader.h>
 #include <util/environment.h>
 #include <util/locks.h>
 #include <util/strings.h>
@@ -11,7 +11,7 @@ using namespace boost::filesystem;
 void codegenForDirectory(std::string &inputPath) {
     const std::shared_ptr<spdlog::logger> logger = util::getLogger();
     logger->info("Running codegen on directory {}", inputPath);
-    storage::FunctionLoader &loader = storage::getFunctionLoader();
+    storage::FileLoader &loader = storage::getFileLoader();
 
     // Iterate through the directory
     path inputFilePath(inputPath);
@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
     if (is_directory(inputPath)) {
         codegenForDirectory(inputPath);
     } else {
-        storage::FunctionLoader &loader = storage::getFunctionLoader();
+        storage::FileLoader &loader = storage::getFileLoader();
         loader.codegenForSharedObject(inputPath);
     }
 }

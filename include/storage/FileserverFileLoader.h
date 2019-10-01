@@ -1,6 +1,6 @@
 #pragma once
 
-#include "FunctionLoader.h"
+#include "FileLoader.h"
 
 /**
  * This is a class that overrides *only* the loading of wasm and object files.
@@ -9,7 +9,7 @@
  * It's a stop-gap for environments that don't have decent object stores available.
  */
 namespace storage {
-    class FileserverFunctionLoader : public FunctionLoader {
+    class FileserverFileLoader : public FileLoader {
     public:
         std::string getFileserverUrl();
 

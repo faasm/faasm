@@ -1,7 +1,7 @@
 #include "VirtualFilesystem.h"
 
 #include <util/config.h>
-#include <storage/FunctionLoader.h>
+#include <storage/FileLoader.h>
 #include <boost/filesystem.hpp>
 #include <util/locks.h>
 
@@ -88,7 +88,7 @@ namespace storage {
                 util::FullLock fullLock(fileMutex);
 
                 // Load
-                FunctionLoader &loader = getFunctionLoader();
+                FileLoader &loader = getFileLoader();
                 const std::vector<uint8_t> bytes = loader.loadSharedFile(path);
 
                 // Handle non-existent file

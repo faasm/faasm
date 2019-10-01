@@ -8,7 +8,7 @@
 #include <upload/UploadServer.h>
 
 #include <boost/filesystem.hpp>
-#include <storage/FunctionLoader.h>
+#include <storage/FileLoader.h>
 
 using namespace web::http::experimental::listener;
 using namespace web::http;
@@ -199,7 +199,7 @@ namespace tests {
         message::Message msg = util::messageFactory(user, funcName);
         msg.set_inputdata(util::bytesToString(expected));
 
-        storage::FunctionLoader &loader = storage::getFunctionLoader();
+        storage::FileLoader &loader = storage::getFileLoader();
         loader.uploadPythonFunction(msg);
         
         // Check file exists as expected

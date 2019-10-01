@@ -4,7 +4,7 @@
 #include <aws/lambda-runtime/runtime.h>
 
 #include <util/json.h>
-#include <storage/FunctionLoader.h>
+#include <storage/FileLoader.h>
 
 #include <rapidjson/document.h>
 
@@ -39,7 +39,7 @@ int main() {
                 logger->info("Generating object code for function {}", funcStr);
 
                 // Compile the function to object bytes
-                storage::FunctionLoader &functionLoader = storage::getFunctionLoader();
+                storage::FileLoader &functionLoader = storage::getFileLoader();
                 functionLoader.codegenForFunction(msg);
 
                 message = "Codegen finished";

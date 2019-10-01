@@ -12,7 +12,7 @@
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
-#include <storage/FunctionLoader.h>
+#include <storage/FileLoader.h>
 #include <storage/VirtualFilesystem.h>
 
 
