@@ -5,14 +5,10 @@
 #include <dirent.h>
 #include <vector>
 #include <string>
+#include <faasm/input.h>
 
 FAASM_MAIN_FUNC() {
-    long inputSize = faasmGetInputSize();
-    auto inputBuffer = new uint8_t[inputSize];
-    faasmGetInput(inputBuffer, inputSize);
-
-    auto dirName = reinterpret_cast<char *>(inputBuffer);
-
+    const char* dirName = faasm::getStringInput("");
     DIR *dirp = opendir(dirName);
     if (dirp == nullptr) {
         printf("Couldn't open dir %s\n", dirName);

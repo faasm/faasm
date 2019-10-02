@@ -1,20 +1,21 @@
 #include "faasm/faasm.h"
+#include "faasm/input.h"
 
 #include <stdio.h>
 #include <string.h>
 
 FAASM_MAIN_FUNC() {
-    long inputSize = faasmGetInputSize();
-    auto inputBuffer = new uint8_t[inputSize];
-    faasmGetInput(inputBuffer, inputSize);
+    const char* inputStr = faasm::getStringInput("");
 
-    auto inputStr = reinterpret_cast<char *>(inputBuffer);
     const char* expected = "http://www.foobar.com";
+    int retVal;
     if(strcmp(inputStr, expected) != 0) {
         printf("Expected %s but got %s\n", expected, inputStr);
-        return 1;
+        retVal = 1;
     } else {
         printf("Expected %s and got %s\n", expected, inputStr);
-        return 0;
+        retVal = 0;
     }
+
+    return retVal;
 }

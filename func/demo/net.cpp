@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <netdb.h>
 #include <string.h>
+#include <faasm/input.h>
 
 /**
  * Takes in url as argument and returns content as output
@@ -14,11 +15,7 @@
 FAASM_MAIN_FUNC() {
     struct addrinfo *hostInfo, hints;
 
-    long inputSize = faasmGetInputSize();
-    auto inputBuffer = new uint8_t[inputSize];
-    faasmGetInput(inputBuffer, inputSize);
-
-    char *url = reinterpret_cast<char *>(inputBuffer);
+    const char *url = faasm::getStringInput("");
 
     hints.ai_family = AF_INET;
 

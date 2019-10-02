@@ -1,27 +1,24 @@
 #include "faasm/faasm.h"
 #include "faasm/files.h"
+#include "faasm/input.h"
 
-#include <string>
 #include <stdio.h>
 
 /**
  * Test reading a shared file
  */
 FAASM_MAIN_FUNC() {
-    long inputSize = faasmGetInputSize();
-    auto inputBuffer = new uint8_t[inputSize];
-    faasmGetInput(inputBuffer, inputSize);
+    const char* inputStr = faasm::getStringInput("");
 
     // Open the file
-    auto inputPath = reinterpret_cast<char *>(inputBuffer);
-    char *content = faasm::readFileToString(inputPath);
+    char *content = faasm::readFileToString(inputStr);
     if (content == nullptr) {
-        printf("Failed to open file at %s\n", inputPath);
+        printf("Failed to open file at %s\n", inputStr);
         return 1;
     }
 
     // Write file content as output
-    long length = faasm::getFileLength(inputPath);
+    long length = faasm::getFileLength(inputStr);
     faasmSetOutput(reinterpret_cast<uint8_t *>(content), length);
 
     return 0;
