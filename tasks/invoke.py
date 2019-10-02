@@ -35,7 +35,8 @@ def invoke(ctx, user, func,
            py=False,
            ts=False,
            async=False,
-           knative=False
+           knative=True,
+           legacy=False
            ):
     if py:
         prefix = "p"
@@ -79,13 +80,17 @@ def invoke(ctx, user, func,
 
             if knative:
                 args_list = [(url, msg_json, headers) for _ in range(n_workers)]
-            else:
+            elif legacy:
                 args_list = [(user, func, host, port, prefix, input) for _ in range(n_workers)]
+            else:
+                raise RuntimeError("Must specify knative or legacy")
 
             p.starmap(_do_invoke, args_list)
         else:
 
             if knative:
                 _do_post(url, msg_json, headers=headers)
-            else:
+            elif legacy:
                 _do_invoke(user, func, host, port, prefix, input=input)
+            else:
+                raise RuntimeError("Must specify knative or legacy")

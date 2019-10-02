@@ -63,6 +63,6 @@ namespace storage {
 
     std::vector<uint8_t> FileserverFileLoader::loadSharedFile(const std::string &path) {
         std::string url = util::getSharedFileUrl();
-        return _doLoadFromUrl(url, "");
+        return _doLoadFromUrl(url, path);
     }
 }
