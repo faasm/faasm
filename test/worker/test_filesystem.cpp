@@ -15,13 +15,9 @@ namespace tests {
         // These are all the files we _might_ see
         std::vector<std::string> expected = {
                 "", ".", "..",
-                "etc", "funcs", "include", "lib", "tmp",
-                "libfakeLibA.so", "libfakeLibB.so",
-                "libfakeLibA.so.o", "libfakeLibB.so.o",
-                "libfakeLibA.wast", "libfakeLibB.wast",
-                "libfakeiLibA.wast", "libfakeiLibB.wast",
+                "etc", "include", "lib", "tmp",
                 "raytrace.ppm", "chaos.ppm",
-                "share", "usr", "data",
+                "share", "usr"
         };
 
         util::SystemConfig &conf = util::getSystemConfig();

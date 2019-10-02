@@ -3,6 +3,7 @@
 #include <Python.h>
 #include <util/logging.h>
 #include <util/func.h>
+#include <util/config.h>
 
 namespace runner {
     PythonProfiler::PythonProfiler(std::string pythonFile) : Profiler(PYTHON_USER, PYTHON_FUNC, pythonFile) {
@@ -10,9 +11,12 @@ namespace runner {
     }
 
     void PythonProfiler::runNative() {
-        std::string pyFile = this->inputData;
-        std::string fullPath = std::string("/usr/local/code/faasm/python/funcs/") + pyFile;
+        // Get path to file
+        std::string pyFunc = this->inputData;
+        const message::Message msg = util::messageFactory(PYTHON_USER, pyFunc);
+        std::string fullPath = util::getPythonFunctionFile(msg);
 
+        // Try to open it
         FILE *fp = fopen(fullPath.c_str(), "r");
         if (fp == nullptr) {
             throw std::runtime_error("Failed to open python file");

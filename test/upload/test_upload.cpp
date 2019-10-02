@@ -158,7 +158,8 @@ namespace tests {
 
             // Prepare
             util::SystemConfig &conf = util::getSystemConfig();
-            std::string expectedFile = conf.pythonFunctionDir + "/py-test/foo/function.py";
+            message::Message msg = util::messageFactory("py-test", "foo");
+            std::string expectedFile = util::getPythonFunctionFile(msg);
             boost::filesystem::remove(expectedFile);
 
             // Check putting the file

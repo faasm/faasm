@@ -8,6 +8,8 @@
 
 #define PYTHON_USER "python"
 #define PYTHON_FUNC "py_func"
+#define PYTHON_FUNC_DIR "pyfuncs"
+
 
 namespace util {
     std::string getFunctionKey(const message::Message &msg);

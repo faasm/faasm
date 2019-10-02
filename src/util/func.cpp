@@ -63,8 +63,11 @@ namespace util {
     }
 
     boost::filesystem::path getPythonFunctionDir(const message::Message &msg) {
-        boost::filesystem::path path(util::getSystemConfig().pythonFunctionDir);
+        // Note - Python functions are stored as shared files so they're
+        // accessible to the executing wasm
+        boost::filesystem::path path(util::getSystemConfig().sharedFilesStorageDir);
 
+        path.append(PYTHON_FUNC_DIR);
         path.append(msg.user());
         path.append(msg.function());
 

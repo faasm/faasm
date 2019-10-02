@@ -5,7 +5,8 @@ from subprocess import check_output
 from invoke import task
 
 from tasks.util.codegen import find_codegen_shared_lib
-from tasks.util.env import PROJ_ROOT, PYODIDE_INSTALL_DIR, FAASM_RUNTIME_ROOT, PY_RUNTIME_ROOT, PYODIDE_PACKAGES
+from tasks.util.env import PROJ_ROOT, PYODIDE_INSTALL_DIR, FAASM_RUNTIME_ROOT, PY_RUNTIME_ROOT, PYODIDE_PACKAGES, \
+    FAASM_SHARED_ROOT
 from tasks.util.files import glob_remove
 
 # TODO - avoid having to hard-code this
@@ -61,9 +62,13 @@ def set_up_python_runtime(ctx):
     _clear_pyc_files(PYODIDE_PACKAGES)
 
     print("\nRemoving any existing runtime files")
-    _remove_runtime_dir("funcs")
     _remove_runtime_dir("include")
     _remove_runtime_dir("lib")
+
+    print("\nRemoving any existing python functions")
+    funcs_dir = join(FAASM_SHARED_ROOT, "pyfuncs")
+    if exists(funcs_dir):
+        rmtree(funcs_dir)
 
     print("\nPutting CPython libraries in place")
     check_output("cp -r {}/* {}".format(PYODIDE_INSTALL_DIR, FAASM_RUNTIME_ROOT), shell=True)

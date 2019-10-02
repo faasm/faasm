@@ -86,19 +86,12 @@ namespace storage {
     }
 
     void SharedFilesManager::clear() {
-        util::FullLock lock(sharedFileMapMutex);
-
-        // Delete all the referenced files
-        for (auto &mapPair : sharedFileMap) {
-            const std::string maskedPath = maskPath(mapPair.first);
-            boost::filesystem::path p(maskedPath);
-
-            if (boost::filesystem::exists(p)) {
-                boost::filesystem::remove(p);
-            }
-        }
+        // Just nuke the whole shared directory
+        util::SystemConfig &conf = util::getSystemConfig();
+        boost::filesystem::remove_all(conf.sharedFilesDir);
 
         // Clear the map
+        util::FullLock lock(sharedFileMapMutex);
         sharedFileMap.clear();
     }
 

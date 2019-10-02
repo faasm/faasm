@@ -92,7 +92,6 @@ namespace tests {
         std::string fullSync =setEnvVar("FULL_SYNC", "12");
 
         std::string funcDir = setEnvVar("FUNC_DIR","/tmp/foo");
-        std::string pythonFuncDir = setEnvVar("PYTHON_FUNC_DIR","/tmp/par");
         std::string objDir = setEnvVar("OBJ_DIR", "/tmp/bar");
         std::string runtimeDir = setEnvVar("RUNTIME_FILES_DIR", "/tmp/rara");
         std::string sharedDir = setEnvVar("SHARED_FILES_DIR", "/tmp/sss");
@@ -137,7 +136,6 @@ namespace tests {
         REQUIRE(conf.fullSync == 12);
 
         REQUIRE(conf.functionDir == "/tmp/foo");
-        REQUIRE(conf.pythonFunctionDir == "/tmp/par");
         REQUIRE(conf.objectFileDir == "/tmp/bar");
         REQUIRE(conf.runtimeFilesDir == "/tmp/rara");
         REQUIRE(conf.sharedFilesDir == "/tmp/sss");
@@ -182,7 +180,6 @@ namespace tests {
         setEnvVar("FULL_SYNC", fullSync);
 
         setEnvVar("FUNC_DIR", funcDir);
-        setEnvVar("PYTHON_FUNC_DIR", pythonFuncDir);
         setEnvVar("OBJ_DIR", objDir);
         setEnvVar("RUNTIME_FILES_DIR", runtimeDir);
         setEnvVar("SHARED_FILES_DIR", sharedDir);

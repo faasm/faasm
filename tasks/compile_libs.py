@@ -126,15 +126,16 @@ def compile_libfake(ctx, clean=False):
     # Copy shared object into place
     sysroot_files = join(FAASM_SYSROOT, "lib", "libfake*.so")
 
-    if not exists(FAASM_RUNTIME_ROOT):
-        mkdir(FAASM_RUNTIME_ROOT)
+    runtime_lib_dir = join(FAASM_RUNTIME_ROOT, "lib")
+    if not exists(runtime_lib_dir):
+        mkdir(runtime_lib_dir)
 
-    call("cp {} {}".format(sysroot_files, FAASM_RUNTIME_ROOT), shell=True)
+    call("cp {} {}".format(sysroot_files, runtime_lib_dir), shell=True)
 
     # Run codegen
     shared_objs = [
-        join(FAASM_RUNTIME_ROOT, "libfakeLibA.so"),
-        join(FAASM_RUNTIME_ROOT, "libfakeLibB.so"),
+        join(FAASM_RUNTIME_ROOT, "lib", "libfakeLibA.so"),
+        join(FAASM_RUNTIME_ROOT, "lib", "libfakeLibB.so"),
     ]
 
     binary = find_codegen_shared_lib()

@@ -3,6 +3,8 @@
 
 #include <Python.h>
 
+#define PYTHON_FUNC_DIR "faasm-shared/pyfuncs/"
+
 FAASM_ZYGOTE() {
     setUpPyEnvironment();
     setUpPyNumpy();
@@ -20,9 +22,10 @@ FAASM_MAIN_FUNC() {
     uint8_t buffer[inputSize];
     faasmGetInput(buffer, inputSize);
 
-    const char *funcPath = reinterpret_cast<const char *>(buffer);
-    char filePath[10 + inputSize];
-    sprintf(filePath, "funcs/%s", funcPath);
+    // Work out path to shared python file
+    const char *funcName = reinterpret_cast<const char *>(buffer);
+    char filePath[25 + inputSize];
+    sprintf(filePath, "%s%s", PYTHON_FUNC_DIR, funcName);
 
     FILE *fp = fopen(filePath, "r");
     if (fp == nullptr) {
