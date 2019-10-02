@@ -166,8 +166,14 @@ namespace worker {
         // Handle the message
         std::string errorMessage;
         if (msg.type() == message::Message_MessageType_BIND) {
-            logger->info("Worker {} binding to {}", id, util::funcToString(msg, false));
-            this->bindToFunction(msg);
+            const std::string funcStr = util::funcToString(msg, false);
+            logger->info("Worker {} binding to {}", id, funcStr);
+
+            try{
+                this->bindToFunction(msg);
+            } catch(util::InvalidFunctionException &e) {
+                errorMessage = "Invalid function: " + funcStr;
+            }
         } else {
             errorMessage = this->executeCall(msg);
         }

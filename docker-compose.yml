@@ -9,14 +9,14 @@ networks:
 
 services:
   redis-state:
-    image: redis:5
+    image: faasm/redis
     ports:
       - "6378:6379"
     networks:
       - faasm-knative
 
   redis-queue:
-    image: redis:5
+    image: faasm/redis
     ports:
       - "6377:6379"
     networks:
@@ -76,4 +76,4 @@ services:
       - faasm-knative
     volumes:
       - /usr/local/faasm/:/usr/local/faasm/
-      - /usr/local/code/faasm/wasm:/usr/local/code/faasm/wasm
+      - /usr/local/code/faasm/wasm/:/usr/local/code/faasm/wasm/

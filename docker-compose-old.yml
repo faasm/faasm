@@ -5,14 +5,14 @@ networks:
 
 services:
   redis-state:
-    image: redis:5
+    image: faasm/redis
     ports:
       - "6378:6379"
     networks:
       - faasm
 
   redis-queue:
-    image: redis:5
+    image: faasm/redis
     ports:
       - "6377:6379"
     networks:

@@ -61,4 +61,7 @@ namespace util {
     std::string stripIdxFromFunction(const std::string &funcName);
 
     void setMessageIdx(message::Message &msg, int idx);
+
+    class InvalidFunctionException : public std::exception {
+    };
 }
