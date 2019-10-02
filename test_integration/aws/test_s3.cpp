@@ -4,7 +4,7 @@
 #include <util/func.h>
 #include <util/files.h>
 #include <aws/S3Wrapper.h>
-#include <storage/FunctionLoader.h>
+#include <storage/FileLoader.h>
 
 using namespace awswrapper;
 
@@ -73,7 +73,7 @@ namespace tests {
         const std::string &objPath = util::getFunctionObjectFile(msg);
         const std::vector<uint8_t> &objectBytes = util::readFileToBytes(objPath);
 
-        storage::FunctionLoader &loader = storage::getFunctionLoader();
+        storage::FileLoader &loader = storage::getFileLoader();
 
         // Do both uploads
         loader.uploadFunction(msg);
@@ -90,7 +90,7 @@ namespace tests {
 
         // Download in a different thread and check for any thread-local issues
         std::thread t([&msg, &wasmBytes, &objectBytes]{
-            storage::FunctionLoader &l = storage::getFunctionLoader();
+            storage::FileLoader &l = storage::getFileLoader();
             const std::vector<uint8_t> &actualWasmBytes2 = l.loadFunctionWasm(msg);
             const std::vector<uint8_t> &actualObjectBytes2 = l.loadFunctionObjectFile(msg);
             REQUIRE(actualWasmBytes2 == wasmBytes);

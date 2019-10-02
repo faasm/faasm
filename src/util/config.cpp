@@ -69,8 +69,10 @@ namespace util {
 
         // Filesystem storage
         functionDir = getEnvVar("FUNC_DIR", "/usr/local/code/faasm/wasm");
-        pythonFunctionDir = getEnvVar("PYTHON_FUNC_DIR", "/usr/local/faasm/runtime_root/funcs");
         objectFileDir = getEnvVar("OBJ_DIR", "/usr/local/faasm/object");
+        runtimeFilesDir = getEnvVar("RUNTIME_FILES_DIR", "/usr/local/faasm/runtime_root");
+        sharedFilesDir = getEnvVar("SHARED_FILES_DIR", "/usr/local/faasm/shared");
+        sharedFilesStorageDir = getEnvVar("SHARED_FILES_STORAGE_DIR", "/usr/local/faasm/shared_store");
 
         if(fullAsync == 1 && fullSync == 1) {
             throw std::runtime_error("Can't have both full async and full sync on");
@@ -133,9 +135,11 @@ namespace util {
         logger->info("FULL_SYNC                  {}", fullSync);
 
         logger->info("--- Storage ---");
-        logger->info("FUNC_DIR        {}", functionDir);
-        logger->info("PYTHON_FUNC_DIR {}", pythonFunctionDir);
-        logger->info("OBJ_DIR         {}", objectFileDir);
+        logger->info("FUNC_DIR                  {}", functionDir);
+        logger->info("OBJ_DIR                   {}", objectFileDir);
+        logger->info("RUNTIME_FILES_DIR         {}", runtimeFilesDir);
+        logger->info("SHARED_FILES_DIR          {}", sharedFilesDir);
+        logger->info("SHARED_FILES_STORAGE_DIR  {}", sharedFilesStorageDir);
     }
 
     void _setNodeId() {

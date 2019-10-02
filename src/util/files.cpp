@@ -55,8 +55,8 @@ namespace util {
     }
 
     size_t write_data(void *ptr, size_t size, size_t nmemb, void *stream) {
-        std::string data((const char*) ptr, (size_t) size * nmemb);
-        *((std::stringstream*) stream) << data;
+        std::string data((const char *) ptr, (size_t) size * nmemb);
+        *((std::stringstream *) stream) << data;
         return size * nmemb;
     }
 
@@ -68,15 +68,16 @@ namespace util {
             const std::string &url,
             const std::string &header) {
 
-        void* curl = curl_easy_init();
+        void *curl = curl_easy_init();
 
         std::stringstream out;
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &out);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 1000);
 
         // Add header
-        if(!header.empty()) {
+        if (!header.empty()) {
             struct curl_slist *chunk = nullptr;
             chunk = curl_slist_append(chunk, header.c_str());
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
@@ -84,13 +85,13 @@ namespace util {
 
         // Make the request
         CURLcode res = curl_easy_perform(curl);
+        curl_easy_cleanup(curl);
 
-        if (res != CURLE_OK) {
+        if (res != CURLE_OK || out.str().empty()) {
             std::string msg = std::string("Unable to get file ") + url;
-            throw std::runtime_error(msg.c_str());
+            throw FileNotFoundAtUrlException();
         }
 
-        curl_easy_cleanup(curl);
         return util::stringToBytes(out.str());
     }
 }

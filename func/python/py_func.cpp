@@ -2,6 +2,9 @@
 #include <faasm/pyfaasm.h>
 
 #include <Python.h>
+#include <faasm/input.h>
+
+#define PYTHON_FUNC_DIR "faasm://pyfuncs/"
 
 FAASM_ZYGOTE() {
     setUpPyEnvironment();
@@ -16,13 +19,9 @@ FAASM_ZYGOTE() {
 FAASM_MAIN_FUNC() {
     setUpPyEnvironment();
 
-    long inputSize = faasmGetInputSize();
-    uint8_t buffer[inputSize];
-    faasmGetInput(buffer, inputSize);
-
-    const char *funcPath = reinterpret_cast<const char *>(buffer);
-    char filePath[10 + inputSize];
-    sprintf(filePath, "funcs/%s", funcPath);
+    const char* funcName = faasm::getStringInput("");
+    char filePath[25 + strlen(funcName)];
+    sprintf(filePath, "%s%s", PYTHON_FUNC_DIR, funcName);
 
     FILE *fp = fopen(filePath, "r");
     if (fp == nullptr) {

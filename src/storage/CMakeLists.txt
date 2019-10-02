@@ -6,10 +6,11 @@ include_directories(
 file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/storage/*.h")
 
 set(LIB_FILES
-        FunctionLoader.cpp
-        LocalFunctionLoader.cpp
-        FileserverFunctionLoader.cpp
-        S3FunctionLoader.cpp
+        FileLoader.cpp
+        LocalFileLoader.cpp
+        FileserverFileLoader.cpp
+        S3FileLoader.cpp
+        SharedFilesManager.cpp
         instance.cpp
         ${HEADERS}
         )

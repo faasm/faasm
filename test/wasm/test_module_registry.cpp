@@ -5,7 +5,7 @@
 #include <util/files.h>
 
 #include <wasm/IRModuleRegistry.h>
-#include <storage/FunctionLoader.h>
+#include <storage/FileLoader.h>
 
 namespace tests {
     void checkObjCode(const Runtime::ModuleRef moduleRef, const std::string &path) {

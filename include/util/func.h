@@ -8,6 +8,8 @@
 
 #define PYTHON_USER "python"
 #define PYTHON_FUNC "py_func"
+#define PYTHON_FUNC_DIR "pyfuncs"
+
 
 namespace util {
     std::string getFunctionKey(const message::Message &msg);
@@ -24,6 +26,8 @@ namespace util {
 
     std::string getSharedObjectObjectUrl();
 
+    std::string getSharedFileUrl();
+
     std::string getFunctionFile(const message::Message &msg);
 
     std::string getPythonFunctionFile(const message::Message &msg);
@@ -33,6 +37,8 @@ namespace util {
     std::string getFunctionObjectFile(const message::Message &msg);
 
     std::string getSharedObjectObjectFile(const std::string &realPath);
+
+    std::string getSharedFileFile(const std::string &path);
 
     bool isValidFunction(const message::Message &msg);
 
@@ -55,4 +61,7 @@ namespace util {
     std::string stripIdxFromFunction(const std::string &funcName);
 
     void setMessageIdx(message::Message &msg, int idx);
+
+    class InvalidFunctionException : public std::exception {
+    };
 }

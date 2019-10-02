@@ -45,6 +45,11 @@ namespace util {
         return rootUrl + "/sobjobj";
     }
 
+    std::string getSharedFileUrl() {
+        std::string rootUrl = getRootUrl();
+        return rootUrl + "/file";
+    }
+
     std::string getFunctionUrl(const message::Message &msg) {
         return getUrl(msg, "f");
     }
@@ -58,8 +63,11 @@ namespace util {
     }
 
     boost::filesystem::path getPythonFunctionDir(const message::Message &msg) {
-        boost::filesystem::path path(util::getSystemConfig().pythonFunctionDir);
+        // Note - Python functions are stored as shared files so they're
+        // accessible to the executing wasm
+        boost::filesystem::path path(util::getSystemConfig().sharedFilesStorageDir);
 
+        path.append(PYTHON_FUNC_DIR);
         path.append(msg.user());
         path.append(msg.function());
 
@@ -179,6 +187,19 @@ namespace util {
         outputFile += SHARED_OBJ_EXT;
 
         return outputFile;
+    }
+
+    std::string getSharedFileFile(const std::string &path) {
+        SystemConfig &conf = util::getSystemConfig();
+
+        boost::filesystem::path p(conf.sharedFilesStorageDir);
+        p.append(path);
+
+        if(!boost::filesystem::exists(p.parent_path())) {
+            boost::filesystem::create_directories(p.parent_path());
+        }
+
+        return p.string();
     }
 
     std::vector<uint8_t> messageToBytes(const message::Message &msg) {

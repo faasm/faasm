@@ -8,7 +8,7 @@
 #include <WAVM/IR/Types.h>
 #include <WAVM/WASTParse/WASTParse.h>
 
-#include <storage/FunctionLoader.h>
+#include <storage/FileLoader.h>
 #include <util/func.h>
 
 using namespace WAVM;
@@ -83,7 +83,7 @@ namespace wasm {
                 IR::Module &module = moduleMap[key];
                 module.featureSpec.simd = true;
 
-                storage::FunctionLoader &functionLoader = storage::getFunctionLoader();
+                storage::FileLoader &functionLoader = storage::getFileLoader();
 
                 message::Message msg = util::messageFactory(user, func);
                 std::vector<uint8_t> objectFileBytes = functionLoader.loadFunctionObjectFile(msg);
@@ -114,7 +114,7 @@ namespace wasm {
                 IR::Module &module = moduleMap[key];
                 module.featureSpec.simd = true;
 
-                storage::FunctionLoader &functionLoader = storage::getFunctionLoader();
+                storage::FileLoader &functionLoader = storage::getFileLoader();
                 std::vector<uint8_t> objectBytes = functionLoader.loadSharedObjectObjectFile(path);
                 compiledModuleMap[key] = Runtime::loadPrecompiledModule(module, objectBytes);
             }
@@ -135,7 +135,7 @@ namespace wasm {
             if (moduleMap.count(key) == 0) {
                 logger->debug("Loading main module {}", key);
 
-                storage::FunctionLoader &functionLoader = storage::getFunctionLoader();
+                storage::FileLoader &functionLoader = storage::getFileLoader();
 
                 message::Message msg = util::messageFactory(user, func);
                 std::vector<uint8_t> wasmBytes = functionLoader.loadFunctionWasm(msg);
@@ -179,7 +179,7 @@ namespace wasm {
             if (moduleMap.count(key) == 0) {
                 logger->debug("Loading shared module {}", key);
 
-                storage::FunctionLoader &functionLoader = storage::getFunctionLoader();
+                storage::FileLoader &functionLoader = storage::getFileLoader();
 
                 std::vector<uint8_t> wasmBytes = functionLoader.loadSharedObjectWasm(path);
 

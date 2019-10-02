@@ -4,7 +4,7 @@
 #include <util/bytes.h>
 
 #include <redis/Redis.h>
-#include <storage/FunctionLoader.h>
+#include <storage/FileLoader.h>
 #include <util/config.h>
 #include <util/state.h>
 #include <util/files.h>
@@ -44,7 +44,7 @@ namespace edge {
                 return pathParts;
             }
         } else if (pathParts.size() == 1) {
-            if (pathParts[0] == "sobjwasm" || pathParts[0] == "sobjobj") {
+            if (pathParts[0] == "sobjwasm" || pathParts[0] == "sobjobj" || pathParts[0] == "file") {
                 return pathParts;
             }
         }
@@ -77,20 +77,22 @@ namespace edge {
 
         const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
 
-        storage::FunctionLoader &l = storage::getFunctionLoader();
+        storage::FileLoader &l = storage::getFileLoader();
         std::string pathType = pathParts[0];
         std::vector<uint8_t> returnBytes;
 
         const utility::string_t &uri = request.absolute_uri().to_string();
 
-        if (pathType == "sobjwasm" || pathType == "sobjobj") {
-            std::string sharedObjPath = getHeaderFromRequest(request, SHARED_OBJ_HEADER);
+        if (pathType == "sobjwasm" || pathType == "sobjobj" || pathType == "file") {
+            std::string filePath = getHeaderFromRequest(request, FILE_PATH_HEADER);
 
-            logger->debug("GET request to {} ({})", uri, sharedObjPath);
+            logger->debug("GET request to {} ({})", uri, filePath);
             if (pathType == "sobjwasm") {
-                returnBytes = l.loadSharedObjectWasm(sharedObjPath);
+                returnBytes = l.loadSharedObjectWasm(filePath);
+            } else if(pathType == "sobjobj") {
+                returnBytes = l.loadSharedObjectObjectFile(filePath);
             } else {
-                returnBytes = l.loadSharedObjectObjectFile(sharedObjPath);
+                returnBytes = l.loadSharedFile(filePath);
             }
         } else {
             logger->debug("GET request to {}", uri);
@@ -110,7 +112,7 @@ namespace edge {
 
         if (returnBytes.empty()) {
             http_response response(status_codes::InternalError);
-            response.set_body("Empty response");
+            response.set_body(EMPTY_FILE_RESPONSE);
             request.reply(response);
         } else {
             http_response response(status_codes::OK);
@@ -184,7 +186,7 @@ namespace edge {
         logger->info("Uploading Python function {}", util::funcToString(msg, false));
 
         // Do the upload
-        storage::FunctionLoader &l = storage::getFunctionLoader();
+        storage::FileLoader &l = storage::getFileLoader();
         l.uploadPythonFunction(msg);
 
         request.reply(status_codes::OK, "Python function upload complete\n");
@@ -197,7 +199,7 @@ namespace edge {
         logger->info("Uploading {}", util::funcToString(msg, false));
 
         // Do the upload
-        storage::FunctionLoader &l = storage::getFunctionLoader();
+        storage::FileLoader &l = storage::getFileLoader();
         l.uploadFunction(msg);
 
         request.reply(status_codes::OK, "Function upload complete\n");

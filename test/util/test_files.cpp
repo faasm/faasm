@@ -27,4 +27,9 @@ namespace tests {
 
         REQUIRE(actualBytes == expectedBytes);
     }
+
+    TEST_CASE("Test reading from an invalid URL", "[util]") {
+        std::string url = "https://www.aklskafkjdfkh.com/foo.txt";
+        REQUIRE_THROWS_AS(util::readFileFromUrl(url), util::FileNotFoundAtUrlException);
+    }
 }

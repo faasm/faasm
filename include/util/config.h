@@ -57,8 +57,10 @@ namespace util {
 
         // Filesystem storage
         std::string functionDir;
-        std::string pythonFunctionDir;
         std::string objectFileDir;
+        std::string runtimeFilesDir;
+        std::string sharedFilesDir;
+        std::string sharedFilesStorageDir;
 
         SystemConfig();
 

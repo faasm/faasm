@@ -6,8 +6,8 @@
 #include <util/config.h>
 
 #include <boost/filesystem.hpp>
-#include <stdio.h>
-#include <string.h>
+#include <storage/SharedFilesManager.h>
+
 
 namespace wasm {
     void getBytesFromWasm(I32 dataPtr, I32 dataLen, uint8_t *buffer) {
@@ -39,18 +39,10 @@ namespace wasm {
         return std::pair<std::string, std::string>(call->user(), key);
     }
 
-    std::string maskPath(std::string originalPath) {
-        boost::filesystem::path p(FALSE_ROOT);
-        p.append(originalPath);
-        return p.string();
-    }
-
     std::string getMaskedPathFromWasm(I32 strPtr) {
         const std::string originalPath = getStringFromWasm(strPtr);
-
-        return maskPath(originalPath);
+        return storage::maskPath(originalPath);
     }
-
 
     /** Translates a wasm sockaddr into a native sockaddr */
     sockaddr getSockAddr(I32 addrPtr) {

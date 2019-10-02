@@ -3,7 +3,10 @@
 
 namespace faasm {
     int getIntInput(int defaultValue);
-    void setStringOutput(const char* val);
+
+    const char* getStringInput(const char* defaultValue);
+
+    void setStringOutput(const char *val);
 }
 
 #endif

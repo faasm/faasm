@@ -1,7 +1,7 @@
 #include <util/logging.h>
 #include <boost/filesystem.hpp>
 #include <util/func.h>
-#include <storage/FunctionLoader.h>
+#include <storage/FileLoader.h>
 #include <util/config.h>
 #include <util/environment.h>
 #include <util/locks.h>
@@ -17,7 +17,7 @@ void codegenForFunc(const std::string &user, const std::string &func) {
     }
 
     logger->info("Generating machine code for {}/{}", user, func);
-    storage::FunctionLoader &loader = storage::getFunctionLoader();
+    storage::FileLoader &loader = storage::getFileLoader();
     loader.codegenForFunction(msg);
 }
 

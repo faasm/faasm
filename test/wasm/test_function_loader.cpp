@@ -1,11 +1,11 @@
 #include <catch/catch.hpp>
-#include <storage/FunctionLoader.h>
+#include <storage/FileLoader.h>
 
 #include <util/bytes.h>
 #include <util/environment.h>
 #include <util/func.h>
 #include <util/files.h>
-#include <storage/FileserverFunctionLoader.h>
+#include <storage/FileserverFileLoader.h>
 #include <util/config.h>
 
 namespace tests {
@@ -18,7 +18,7 @@ namespace tests {
     }
 
     TEST_CASE("Test function round trip", "[wasm]") {
-        storage::FunctionLoader &loader = storage::getFunctionLoader();
+        storage::FileLoader &loader = storage::getFileLoader();
 
         message::Message call = util::messageFactory("test", "junk");
 
@@ -68,7 +68,7 @@ namespace tests {
         util::SystemConfig &conf = util::getSystemConfig();
         conf.reset();
 
-        REQUIRE_THROWS(storage::getFunctionLoader());
+        REQUIRE_THROWS(storage::getFileLoader());
 
         util::setEnvVar("FUNCTION_STORAGE", original);
         conf.reset();
@@ -81,14 +81,14 @@ namespace tests {
         util::SystemConfig &conf = util::getSystemConfig();
         conf.reset();
 
-        REQUIRE_THROWS(storage::getFunctionLoader());
+        REQUIRE_THROWS(storage::getFileLoader());
 
         // Set up a URL
         util::setEnvVar("FILESERVER_URL", "www.foo.com");
         conf.reset();
 
         // Check no error
-        auto loader = (storage::FileserverFunctionLoader &) storage::getFunctionLoader();
+        auto loader = (storage::FileserverFileLoader &) storage::getFileLoader();
         REQUIRE(loader.getFileserverUrl() == "www.foo.com");
 
         util::setEnvVar("FUNCTION_STORAGE", originalDir);

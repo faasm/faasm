@@ -1,4 +1,5 @@
 #include "faasm/faasm.h"
+#include "faasm/input.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -7,22 +8,20 @@
  * Writes the input to the output
  */
 FAASM_MAIN_FUNC() {
-    long inputSize = faasmGetInputSize();
+    const char* inputStr = faasm::getStringInput("");
+    size_t inputLen = strlen(inputStr);
 
     // Handle empty input
-    if (inputSize == 0) {
+    if (inputLen == 0) {
         const char *output = "Nothing to echo";
         auto bytesOutput = reinterpret_cast<const uint8_t *>(output);
         faasmSetOutput(bytesOutput, strlen(output));
         return 0;
     }
 
-    auto inputBuffer = new uint8_t[inputSize];
-    faasmGetInput(inputBuffer, inputSize);
-
-    auto inputStr = reinterpret_cast<char *>(inputBuffer);
     printf("Echoing %s\n", inputStr);
 
-    faasmSetOutput(inputBuffer, inputSize);
+    faasmSetOutput(reinterpret_cast<const uint8_t *>(inputStr), inputLen);
+
     return 0;
 }

@@ -1,12 +1,14 @@
 #include <catch/catch.hpp>
 #include "utils.h"
 #include <wasm/WasmModule.h>
-#include <wasm/syscalls.h>
 #include <wasm/IRModuleRegistry.h>
+#include <storage/SharedFilesManager.h>
 
 namespace tests {
+
     // Prepare a couple of numpy modules to load
-    std::string basePath = std::string(FALSE_ROOT) + "/lib/python3.7/site-packages/numpy/core";
+    util::SystemConfig &conf = util::getSystemConfig();
+    std::string basePath = conf.runtimeFilesDir + "/lib/python3.7/site-packages/numpy/core";
     std::string pythonModuleA = basePath + "/multiarray.so";
     std::string pythonModuleB = basePath + "/umath.so";
 
@@ -23,7 +25,7 @@ namespace tests {
     std::string mainData = "PyBool_Type";
     std::string dataA = "PyArray_API";
     std::string dataB = "PyUFunc_API";
-    int mainDataOffset = 6438592;
+    int mainDataOffset = 6439872;
     int dataAOffset = 10460832;
     int dataBOffset = 41746432;
 

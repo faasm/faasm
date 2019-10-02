@@ -1,5 +1,6 @@
 #include "faasm/faasm.h"
 #include <string>
+#include <faasm/input.h>
 
 /**
  * Deliberately inefficient fibonacci calculation for testing CPU hogs
@@ -15,13 +16,7 @@ int doFib(int n) {
 }
 
 FAASM_MAIN_FUNC() {
-    long inputSize = sizeof(int);
-
-    uint8_t inputBuffer[inputSize];
-    faasmGetInput(inputBuffer, inputSize);
-    char *fibNumStr = reinterpret_cast<char *>(inputBuffer);
-
-    int fibNum = std::stoi(fibNumStr);
+    int fibNum = faasm::getIntInput(2);
     int result = doFib(fibNum);
 
     std::string output = "Fibonacci " + std::to_string(fibNum) + " = " + std::to_string(result);

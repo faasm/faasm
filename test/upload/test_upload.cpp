@@ -8,7 +8,8 @@
 #include <upload/UploadServer.h>
 
 #include <boost/filesystem.hpp>
-#include <storage/FunctionLoader.h>
+#include <storage/FileLoader.h>
+#include <storage/SharedFilesManager.h>
 
 using namespace web::http::experimental::listener;
 using namespace web::http;
@@ -157,7 +158,8 @@ namespace tests {
 
             // Prepare
             util::SystemConfig &conf = util::getSystemConfig();
-            std::string expectedFile = conf.pythonFunctionDir + "/py-test/foo/function.py";
+            message::Message msg = util::messageFactory("py-test", "foo");
+            std::string expectedFile = util::getPythonFunctionFile(msg);
             boost::filesystem::remove(expectedFile);
 
             // Check putting the file
@@ -199,7 +201,7 @@ namespace tests {
         message::Message msg = util::messageFactory(user, funcName);
         msg.set_inputdata(util::bytesToString(expected));
 
-        storage::FunctionLoader &loader = storage::getFunctionLoader();
+        storage::FileLoader &loader = storage::getFileLoader();
         loader.uploadPythonFunction(msg);
         
         // Check file exists as expected
@@ -223,7 +225,7 @@ namespace tests {
 
         http_request request = createRequest(urlPath);
         http_headers &h = request.headers();
-        h.add(SHARED_OBJ_HEADER, filePath);
+        h.add(FILE_PATH_HEADER, filePath);
 
         // Submit request
         edge::UploadServer::handleGet(request);
@@ -234,5 +236,49 @@ namespace tests {
 
         const std::vector<unsigned char> responseBytes = response.extract_vector().get();
         REQUIRE(responseBytes == expected);
+    }
+
+    TEST_CASE("Shared file fileserver test", "[upload]") {
+        std::string relativePath = "test/fileserver.txt";
+        std::vector<uint8_t> fileBytes = {3, 4, 5, 0, 1, 2, 3};
+
+        std::string fullPath = util::getSharedFileFile(relativePath);
+        if(boost::filesystem::exists(fullPath)) {
+            boost::filesystem::remove(fullPath);
+        }
+
+        storage::FileLoader &loader = storage::getFileLoader();
+        bool valid;
+
+        SECTION("Valid file") {
+            loader.uploadSharedFile(relativePath, fileBytes);
+            valid = true;
+        }
+
+        SECTION("Invalid file") {
+            valid = false;
+        }
+
+        // Prepare the request
+        std::string urlPath = "/file";
+        http_request request = createRequest(urlPath);
+        http_headers &h = request.headers();
+        h.add(FILE_PATH_HEADER, relativePath);
+
+        // Submit request and get response data
+        edge::UploadServer::handleGet(request);
+        http_response response = request.get_response().get();
+        const utility::string_t responseStr = response.to_string();
+
+        const std::vector<unsigned char> responseBytes = response.extract_vector().get();
+
+        if(valid) {
+            // Check we get back what we wrote in the file
+            REQUIRE(response.status_code() == status_codes::OK);
+            REQUIRE(responseBytes == fileBytes);
+        } else {
+            // Check response is an error
+            REQUIRE(response.status_code() == status_codes::InternalError);
+        }
     }
 }
