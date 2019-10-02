@@ -36,17 +36,13 @@ namespace storage {
     }
 
     int SharedFilesManager::openFile(const std::string &path, int flags, int mode) {
-        bool isVfs = util::startsWith(path, SHARED_FILE_PREFIX);
-        if (isVfs) {
-            return openSharedFile(path, flags, mode);
+        bool isShared = util::startsWith(path, SHARED_FILE_PREFIX);
+        if (isShared) {
+            SharedFile &sf = getFile(path);
+            return sf.openFile(path, flags, mode);
         } else {
             return openLocalFile(path, flags, mode);
         }
-    }
-
-    int SharedFilesManager::openSharedFile(const std::string &path, int flags, int mode) {
-        SharedFile &vf = getFile(path);
-        return vf.openFile(path, flags, mode);
     }
 
     int SharedFilesManager::openLocalFile(const std::string &path, int flags, int mode) {

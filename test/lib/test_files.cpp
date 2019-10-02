@@ -11,9 +11,11 @@ namespace tests {
         std::string path("/etc/hosts");
 
         const char* actual = faasm::readFileToString(path.c_str());
-
         std::string expected = util::readFileToString(path);
 
         REQUIRE(actual == expected);
+
+        long actualLength = faasm::getFileLength(path.c_str());
+        REQUIRE(actualLength == expected.size());
     }
 }

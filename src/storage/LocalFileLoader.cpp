@@ -51,6 +51,8 @@ namespace storage {
         const std::string fullPath = util::getSharedFileFile(path);
 
         if (!boost::filesystem::exists(fullPath)) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->debug("Local file loader could not find file at {}", fullPath);
             std::vector<uint8_t> empty;
             return empty;
         }

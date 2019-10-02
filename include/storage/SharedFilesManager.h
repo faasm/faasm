@@ -40,8 +40,6 @@ namespace storage {
 
         SharedFile &getFile(const std::string &path);
 
-        int openSharedFile(const std::string &path, int flags, int mode);
-
         int openLocalFile(const std::string &path, int flags, int mode);
     };
 

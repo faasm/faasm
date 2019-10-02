@@ -1,19 +1,22 @@
 #include "faasm/files.h"
 
 #include <stdio.h>
+
+#include <fcntl.h>
 #include <malloc.h>
+#include <sys/stat.h>
 
 namespace faasm {
     long getFileLength(const char *path) {
-        FILE *f = fopen(path, "rb");
-
-        if (f == nullptr) {
+        int fd = open(path, O_RDONLY);
+        if (fd == -1) {
             return -1;
         }
 
-        // Work out file length
-        fseek(f, 0, SEEK_END);
-        return ftell(f);
+        struct stat s{};
+        fstat(fd, &s);
+
+        return s.st_size;
     }
 
     char *readFileToString(const char *path) {
