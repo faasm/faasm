@@ -107,6 +107,9 @@ def docker_build_edge(context):
 def docker_build_knative(context):
     call("docker build -t faasm/knative-worker -f docker/knative-worker.dockerfile .", shell=True, cwd=PROJ_ROOT)
 
+@task
+def docker_build_ibm(context):
+    call("docker build -t faasm/ibm-worker -f docker/ibm-worker.dockerfile .", shell=True, cwd=PROJ_ROOT)
 
 @task
 def docker_build_testing(context):
@@ -131,6 +134,11 @@ def docker_push_root(context):
 @task
 def docker_push_knative(context):
     call("docker push faasm/knative-worker", shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def docker_push_ibm(context):
+    call("docker push faasm/ibm-worker", shell=True, cwd=PROJ_ROOT)
 
 
 @task

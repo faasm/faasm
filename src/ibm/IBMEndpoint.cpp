@@ -28,11 +28,29 @@ namespace ibm {
     }
 
     void IBMEndpoint::handleInit(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response) {
+        const std::string requestStr = request.body();
 
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->info("INIT REQUEST - {}", requestStr);
+
+        rapidjson::Document requestJson;
+        requestJson.Parse(requestStr.c_str());
+
+        const std::string &responseStr = buildResponse(true, "Initialised");
+        response.send(Pistache::Http::Code::Ok, responseStr);
     }
 
     void IBMEndpoint::handleCall(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response) {
+        const std::string requestStr = request.body();
 
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->info("CALL REQUEST - {}", requestStr);
+
+        rapidjson::Document requestJson;
+        requestJson.Parse(requestStr.c_str());
+
+        const std::string &responseStr = buildResponse(true, "Invoked");
+        response.send(Pistache::Http::Code::Ok, responseStr);
     }
 
     std::string IBMEndpoint::buildResponse(bool success, const std::string &msg) {
@@ -42,6 +60,9 @@ namespace ibm {
         int statusCode = 200;
         if (!success) {
             statusCode = 500;
+            d.AddMember("error", rapidjson::StringRef(msg.c_str()), d.GetAllocator());
+        } else {
+            d.AddMember("result", rapidjson::StringRef(msg.c_str()), d.GetAllocator());
         }
 
         d.AddMember("status_code", statusCode, d.GetAllocator());

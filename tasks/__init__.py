@@ -63,6 +63,7 @@ from tasks.docker import (
     docker_build_base,
     docker_build_data,
     docker_build_edge,
+    docker_build_ibm,
     docker_build_knative,
     docker_build_noop,
     docker_build_root,
@@ -75,6 +76,7 @@ from tasks.docker import (
     purge_images,
     docker_push_data,
     docker_push_edge,
+    docker_push_ibm,
     docker_push_knative,
     docker_push_noop,
     docker_push_root,
@@ -134,4 +136,9 @@ from tasks.toolchain import (
     backup_toolchain,
     download_toolchain,
     run_local_codegen,
+)
+from tasks.ibm import (
+    ibm_deploy_worker,
+    ibm_invoke_worker,
+    ibm_list,
 )

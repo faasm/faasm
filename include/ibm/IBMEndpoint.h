@@ -12,14 +12,15 @@ namespace ibm {
         IBMEndpoint();
 
         std::shared_ptr<Pistache::Http::Handler> getHandler() override;
-    private:
-        Pistache::Rest::Router router;
-
-        void setupRoutes();
 
         void handleInit(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response);
 
         void handleCall(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response);
+
+    private:
+        Pistache::Rest::Router router;
+
+        void setupRoutes();
 
         std::string buildResponse(bool success, const std::string &msg);
     };
