@@ -31,8 +31,7 @@ namespace util {
     bool endsWith(std::string const &value, std::string const &ending) {
         if (ending.empty()) {
             return false;
-        }
-        else if (ending.size() > value.size()) {
+        } else if (ending.size() > value.size()) {
             return false;
         }
         return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
@@ -44,5 +43,17 @@ namespace util {
         } else {
             return false;
         }
+    }
+
+    std::string removeSubstr(const std::string &input, const std::string &toErase) {
+        std::string output = input;
+
+        size_t pos = output.find(toErase);
+
+        if (pos != std::string::npos) {
+            output.erase(pos, toErase.length());
+        }
+
+        return output;
     }
 }

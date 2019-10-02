@@ -13,7 +13,7 @@ FAASM_MAIN_FUNC() {
     faasmGetInput(inputBuffer, inputSize);
 
     // Open the file
-    char *inputPath = reinterpret_cast<char *>(inputBuffer);
+    auto inputPath = reinterpret_cast<char *>(inputBuffer);
     char *content = faasm::readFileToString(inputPath);
     if (content == nullptr) {
         printf("Failed to open file at %s\n", inputPath);

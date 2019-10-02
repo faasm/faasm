@@ -7,7 +7,7 @@
 #include <memory>
 #include <shared_mutex>
 
-#define SHARED_FILE_PREFIX "faasm-shared"
+#define SHARED_FILE_PREFIX "faasm://"
 
 namespace storage {
     std::string maskPath(const std::string &originalPath);

@@ -13,4 +13,6 @@ namespace util {
     bool endsWith(const std::string &input, const std::string &subStr);
 
     bool contains(const std::string &input, const std::string &subStr);
+
+    std::string removeSubstr(const std::string &input, const std::string &toErase);
 }

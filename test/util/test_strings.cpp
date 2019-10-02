@@ -46,4 +46,11 @@ namespace tests {
         REQUIRE(!endsWith("foobar", ""));
         REQUIRE(!endsWith("", "foobar"));
     }
+
+    TEST_CASE("Test remove substr", "[util]") {
+        REQUIRE(removeSubstr("blah foobar", "blah") == " foobar");
+        REQUIRE(removeSubstr("blahblah", "") == "blahblah");
+        REQUIRE(removeSubstr("", "foobar") == "");
+        REQUIRE(removeSubstr("foo bar baz", "bar") == "foo  baz");
+    }
 }

@@ -16,7 +16,7 @@ namespace tests {
         cleanSystem();
 
         // Set up a dummy file
-        std::string relativePath = std::string(SHARED_FILE_PREFIX) + "/test/shared-wasm.txt";
+        std::string relativePath = "test/shared-wasm.txt";
         std::string fullPath = util::getSharedFileFile(relativePath);
         if (boost::filesystem::exists(fullPath)) {
             boost::filesystem::remove(fullPath);
@@ -28,7 +28,8 @@ namespace tests {
 
         // Set up the function
         message::Message call = util::messageFactory("demo", "shared_file");
-        call.set_inputdata(relativePath);
+        std::string sharedPath = std::string(SHARED_FILE_PREFIX) + relativePath;
+        call.set_inputdata(sharedPath);
 
         std::string actual = execFunctionWithStringResult(call);
         REQUIRE(actual == expected);

@@ -67,4 +67,29 @@ namespace tests {
         REQUIRE(recvBuf[2] == 0);
     }
 
+    TEST_CASE("Test safe copy with long buffer and other chars", "[util]") {
+        std::string input = "abc/def.com";
+        const std::vector<uint8_t> inputBytes = util::stringToBytes(input);
+
+        uint8_t buffer[20];
+        safeCopyToBuffer(inputBytes, buffer, 20);
+
+        // Check cast back to char
+        REQUIRE('a' == (char)buffer[0]);
+        REQUIRE('b' == (char)buffer[1]);
+        REQUIRE('c' == (char)buffer[2]);
+        REQUIRE('/' == (char)buffer[3]);
+        REQUIRE('d' == (char)buffer[4]);
+        REQUIRE('e' == (char)buffer[5]);
+        REQUIRE('f' == (char)buffer[6]);
+        REQUIRE('.' == (char)buffer[7]);
+        REQUIRE('c' == (char)buffer[8]);
+        REQUIRE('o' == (char)buffer[9]);
+        REQUIRE('m' == (char)buffer[10]);
+        
+        // Check conversion back to string
+        char *actualStr = reinterpret_cast<char *>(buffer);
+        REQUIRE(input == actualStr);
+    }
+
 }

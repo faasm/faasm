@@ -38,8 +38,9 @@ namespace storage {
     int SharedFilesManager::openFile(const std::string &path, int flags, int mode) {
         bool isShared = util::startsWith(path, SHARED_FILE_PREFIX);
         if (isShared) {
-            SharedFile &sf = getFile(path);
-            return sf.openFile(path, flags, mode);
+            std::string stripped = util::removeSubstr(path, SHARED_FILE_PREFIX);
+            SharedFile &sf = getFile(stripped);
+            return sf.openFile(stripped, flags, mode);
         } else {
             return openLocalFile(path, flags, mode);
         }

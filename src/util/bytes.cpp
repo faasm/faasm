@@ -34,25 +34,24 @@ namespace util {
     }
 
     int safeCopyToBuffer(const std::vector<uint8_t> &dataIn, uint8_t *buffer, int bufferLen) {
-        int dataInSize = (int) dataIn.size();
+        int dataSize = (int) dataIn.size();
 
         if (bufferLen <= 0) {
-            return dataInSize;
+            return dataSize;
         }
 
         if(dataIn.empty()) {
             return 0;
         }
 
-        // Handle buffer longer than actual data
-        int dataLen = bufferLen;
-        if (dataInSize < bufferLen) {
-            dataLen = dataInSize;
+        // Handle short buffer
+        if (dataSize > bufferLen) {
+            dataSize = bufferLen;
         }
 
-        std::copy(dataIn.data(), dataIn.data() + dataLen, buffer);
+        std::copy(dataIn.data(), dataIn.data() + dataSize, buffer);
 
-        return dataInSize;
+        return dataSize;
     }
 
     std::string bytesToString(const std::vector<uint8_t> &bytes) {

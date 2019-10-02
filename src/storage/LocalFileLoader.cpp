@@ -87,8 +87,8 @@ namespace storage {
         const std::string &fileBody = msg.inputdata();
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        logger->debug("Uploading python file {}", util::funcToString(msg, false));
         std::string outputFile = util::getPythonFunctionFile(msg);
+        logger->debug("Uploading python file {} to {}", util::funcToString(msg, false), outputFile);
         std::ofstream out(outputFile);
         out.write(fileBody.c_str(), fileBody.size());
         out.flush();

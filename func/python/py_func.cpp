@@ -3,7 +3,7 @@
 
 #include <Python.h>
 
-#define PYTHON_FUNC_DIR "faasm-shared/pyfuncs/"
+#define PYTHON_FUNC_DIR "faasm://pyfuncs/"
 
 FAASM_ZYGOTE() {
     setUpPyEnvironment();

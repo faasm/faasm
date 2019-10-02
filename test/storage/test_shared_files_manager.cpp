@@ -65,7 +65,8 @@ namespace tests {
         util::SystemConfig &conf = util::getSystemConfig();
 
         std::vector<uint8_t> expectedBytes = {6, 5, 4, 0, 1};
-        std::string relativePath = std::string(SHARED_FILE_PREFIX) + "/test/valid_shared_file.txt";
+        std::string relativePath = "test/valid_shared_file.txt";
+        std::string sharedPath = std::string(SHARED_FILE_PREFIX) + relativePath;
         bool valid;
 
         // Prepare paths for both copies of file
@@ -91,7 +92,7 @@ namespace tests {
         }
 
         // Open the shared file
-        int fd = sfm.openFile(relativePath, O_RDONLY, 0);
+        int fd = sfm.openFile(sharedPath, O_RDONLY, 0);
 
         if (!valid) {
             REQUIRE(fd == -ENOENT);

@@ -122,13 +122,24 @@ namespace tests {
         conf.prewarm = 1;
     }
 
+    TEST_CASE("Test fixed input with colon", "[worker]") {
+        setUp();
+        message::Message call = util::messageFactory("demo", "check_input");
+        call.set_inputdata("http://www.foobar.com");
+
+        execFunction(call);
+        tearDown();
+    }
+
     TEST_CASE("Test execution of echo function", "[worker]") {
         setUp();
         message::Message call = util::messageFactory("demo", "echo");
-        call.set_inputdata("this is input");
+        std::string inputData = "http://www.testinput/foo.com";
+        call.set_inputdata(inputData.c_str());
 
         // Run the execution
-        execFunction(call, "this is input");
+        const std::string actual = execFunctionWithStringResult(call);
+        REQUIRE(actual == inputData);
 
         tearDown();
     }
