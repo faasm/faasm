@@ -49,11 +49,21 @@ def ibm_create_buckets(ctx):
 
 @task
 def ibm_deploy_worker(ctx, update=False):
+    config = get_faasm_config()
+    redis_host = config["IBM"]["redis_host"]
+    api_key = config["IBM"]["api_key"]
+
     cmd = [
         "ibmcloud",
         "fn",
         "action",
         "update" if update else "create",
+        "--param FUNCTION_STORAGE ibm",
+        "--param REDIS_QUEUE_HOST {}".format(redis_host),
+        "--param REDIS_QUEUE_HOST {}".format(redis_host),
+        "--param IBM_API_KEY {}".format(api_key),
+        "--param CGROUP_MODE off",
+        "--param NETNS_MODE off",
         "faasm-worker",
         "--docker",
         "faasm/ibm-worker:latest"
