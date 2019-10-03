@@ -53,13 +53,22 @@ def ibm_create_buckets(ctx):
 
 
 @task
-def ibm_deploy_worker(ctx):
-    config = get_ibm_pywren_config()
-    ibmcf = pywren.ibm_cf_executor(config=config)
-    ibmcf.call_async(add_seven, 3)
-    print(ibmcf.get_result())
+def ibm_deploy_worker(ctx, update=False):
+    cmd = [
+        "ibmcloud",
+        "fn",
+        "action",
+        "update" if update else "create",
+        "faasm-worker",
+        "--docker",
+        "faasm/ibm-worker:latest"
+    ]
 
-    # ibm.cf_client.create_action(config, IBM_WORKER_NAME, IBM_WORKER_IMAGE, memory=256, timeout=20000)
+    cmd_string = " ".join(cmd)
+    print(cmd_string)
+    check_output(cmd_string, shell=True)
+
+    print("Done")
 
 
 @task
