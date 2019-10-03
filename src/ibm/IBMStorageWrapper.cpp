@@ -2,17 +2,13 @@
 
 #include <curl/curl.h>
 #include <curl/easy.h>
-
-#include <iostream>
-#include <fstream>
 #include <sstream>
 #include <util/logging.h>
 
 #include <rapidjson/document.h>
-#include <rapidjson/writer.h>
 #include <rapidjson/stringbuffer.h>
 
-using namespace rapidjson;
+#include <util/bytes.h>
 
 
 namespace ibm {
@@ -25,6 +21,11 @@ namespace ibm {
     // The ID is the last part _after_ the space (something like abc123-abcd-1234-3434-abcd123dcba)
     //
     // The API key is an IAM API key that has access to the storage instance.
+
+    struct PutData {
+        uint8_t *dataPtr;
+        size_t remainingLen;
+    };
 
     size_t writeStringCallback(void *ptr, size_t size, size_t nmemb, void *stream) {
         std::string data((const char *) ptr, (size_t) size * nmemb);
@@ -42,8 +43,29 @@ namespace ibm {
         return chunkSize;
     }
 
-    std::string getStringFromJson(Document &doc, const std::string &key) {
-        Value::MemberIterator it = doc.FindMember(key.c_str());
+    size_t readBytesCallback(void *ptr, size_t size, size_t nmemb, void *rawPutDataPtr) {
+        size_t requestedSize = nmemb * size;
+
+        auto putDataPtr = (PutData *) rawPutDataPtr;
+        size_t toCopy;
+        if (putDataPtr->remainingLen < requestedSize) {
+            toCopy = putDataPtr->remainingLen;
+        } else {
+            toCopy = requestedSize;
+        }
+
+        // Do the copy
+        std::copy(putDataPtr->dataPtr, putDataPtr->dataPtr + toCopy, (uint8_t *) ptr);
+
+        // Update the put data struct
+        putDataPtr->remainingLen -= toCopy;
+        putDataPtr->dataPtr += toCopy;
+
+        return toCopy;
+    }
+
+    std::string getStringFromJson(rapidjson::Document &doc, const std::string &key) {
+        rapidjson::Value::MemberIterator it = doc.FindMember(key.c_str());
 
         if (it == doc.MemberEnd()) {
             return "";
@@ -61,6 +83,7 @@ namespace ibm {
         void *curl = curl_easy_init();
 
         std::stringstream out;
+        curl_easy_setopt(curl, CURLOPT_POST, 1L);
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeStringCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &out);
@@ -98,6 +121,40 @@ namespace ibm {
 
         std::string result = out.str();
         return result;
+    }
+
+    void IBMStorageWrapper::doPutBytes(const std::string &url, const std::vector<uint8_t> &bytes) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("PUT {}", url);
+
+        void *curl = curl_easy_init();
+
+        curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+
+        PutData pd{};
+        pd.dataPtr = (uint8_t *) bytes.data();
+        pd.remainingLen = bytes.size();
+
+        curl_easy_setopt(curl, CURLOPT_READFUNCTION, readBytesCallback);
+        curl_easy_setopt(curl, CURLOPT_READDATA, &pd);
+        curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, (curl_off_t) bytes.size());
+
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 10000);
+
+        // Add headers
+        struct curl_slist *chunk = nullptr;
+        chunk = curl_slist_append(chunk, authTokenHeader.c_str());
+        chunk = curl_slist_append(chunk, "Content-Type: application/octet-stream");
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+        // Make the request
+        CURLcode res = curl_easy_perform(curl);
+        curl_easy_cleanup(curl);
+
+        if (res != CURLE_OK) {
+            logger->error("PUT {} failed (curl status {})", url, res);
+        }
     }
 
     std::vector<uint8_t> IBMStorageWrapper::doGetBytes(const std::string &url) {
@@ -145,7 +202,7 @@ namespace ibm {
 
         std::string responseStr = doPost(TOKEN_URL, headers, postData);
 
-        Document d;
+        rapidjson::Document d;
         d.Parse(responseStr.c_str());
         authToken = getStringFromJson(d, "access_token");
         authTokenHeader = "Authorization: bearer " + authToken;
@@ -162,19 +219,22 @@ namespace ibm {
         initialiseAuthToken();
     }
 
+    std::string getKeyUrl(const std::string &bucketName, const std::string &key) {
+        return "https://" + std::string(STORAGE_ENDPOINT) + "/" + bucketName + "/" + key;
+    }
+
     void
     IBMStorageWrapper::addKeyStr(const std::string &bucketName, const std::string &key, const std::string &content) {
-
+        std::vector<uint8_t> bytes = util::stringToBytes(content);
+        doPutBytes(getKeyUrl(bucketName, key), bytes);
     }
 
     void IBMStorageWrapper::addKeyBytes(const std::string &bucketName, const std::string &key,
                                         const std::vector<uint8_t> &bytes) {
-
+        doPutBytes(getKeyUrl(bucketName, key), bytes);
     }
 
-    std::vector<uint8_t> IBMStorageWrapper::loadKeyBytes(const std::string &bucketName, const std::string &key) {
-        std::vector<uint8_t> bytes;
-        std::string url = "https://" + std::string(STORAGE_ENDPOINT) + "/" + bucketName + "/" + key;
-        return doGetBytes(url);
+    std::vector<uint8_t> IBMStorageWrapper::getKeyBytes(const std::string &bucketName, const std::string &key) {
+        return doGetBytes(getKeyUrl(bucketName, key));
     }
 }

@@ -18,10 +18,10 @@ namespace ibm {
 
         void addKeyBytes(const std::string &bucketName, const std::string &key, const std::vector<uint8_t> &bytes);
 
-
         std::string getAuthToken();
 
-        std::vector<uint8_t> loadKeyBytes(const std::string &bucketName, const std::string &key);
+        std::vector<uint8_t> getKeyBytes(const std::string &bucketName, const std::string &key);
+
     private:
         std::string apiKey;
         std::string storageId;
@@ -30,7 +30,7 @@ namespace ibm {
 
         void initialiseAuthToken();
 
-        std::string doGetStr(const std::string &url);
+        void doPutBytes(const std::string &url, const std::vector<uint8_t> &bytes);
 
         std::vector<uint8_t> doGetBytes(const std::string &url);
 

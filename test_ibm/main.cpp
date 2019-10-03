@@ -9,6 +9,7 @@
 int main(int argc, char *argv[]) {
     util::SystemConfig &conf = util::getSystemConfig();
     conf.functionStorage = "ibm";
+    conf.bucketName = "faasm-test";
 
     util::initLogging();
 

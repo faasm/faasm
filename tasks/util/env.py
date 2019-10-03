@@ -36,6 +36,7 @@ RUNTIME_S3_BUCKET = "faasm-runtime"
 STATE_S3_BUCKET = "faasm-state"
 MISC_S3_BUCKET = "faasm-misc"
 DATA_S3_BUCKET = "faasm-data"
+TEST_S3_BUCKET = "faasm-test"
 
 # TODO - avoid hard-coding
 AWS_ACCOUNT_ID = "733781933474"

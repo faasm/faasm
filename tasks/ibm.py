@@ -3,7 +3,7 @@ from subprocess import check_output, call
 from invoke import task
 
 from tasks.util.config import get_faasm_config
-from tasks.util.env import RUNTIME_S3_BUCKET, STATE_S3_BUCKET, MISC_S3_BUCKET, DATA_S3_BUCKET
+from tasks.util.env import RUNTIME_S3_BUCKET, STATE_S3_BUCKET, MISC_S3_BUCKET, DATA_S3_BUCKET, TEST_S3_BUCKET
 from tasks.util.ibm import IBM_PYWREN_BUCKET
 
 
@@ -39,6 +39,7 @@ def ibm_create_buckets(ctx):
         STATE_S3_BUCKET,
         MISC_S3_BUCKET,
         DATA_S3_BUCKET,
+        TEST_S3_BUCKET,
     ]
 
     for bucket_name in bucket_names:

@@ -16,7 +16,7 @@ namespace storage {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Loading bytes from {}/{}", conf.bucketName, path);
 
-        return storageWrapper.loadKeyBytes(conf.bucketName, path);
+        return storageWrapper.getKeyBytes(conf.bucketName, path);
     }
 
     std::vector<uint8_t> IBMFileLoader::loadFunctionWasm(const message::Message &msg) {

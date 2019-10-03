@@ -11,6 +11,10 @@ add_executable(
         ${TEST_FILES}
 )
 
-target_link_libraries(tests_ibm test_utils scheduler wasm)
+target_link_libraries(tests_ibm
+        test_utils
+        scheduler
+        worker_ibm_lib
+        )
 
 add_test(NAME integration_tests COMMAND "tests_ibm/tests")
