@@ -13,5 +13,6 @@ numpy
 performance
 psutil
 PyOpenSSL
+pywren-ibm-cloud
 requests
 wheel

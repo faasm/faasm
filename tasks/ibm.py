@@ -1,7 +1,19 @@
-import subprocess
 from subprocess import check_output
 
 from invoke import task
+from pywren_ibm_cloud.libs.ibm.cloudfunctions_client import CloudFunctionsClient
+
+
+def _get_ibm_config(ctx):
+    config = {'pywren' : {'storage_bucket' : 'BUCKET_NAME'},
+
+              'ibm_cf':  {'endpoint': 'HOST',
+                          'namespace': 'NAMESPACE',
+                          'api_key': 'API_KEY'},
+
+              'ibm_cos': {'endpoint': 'REGION_ENDPOINT',
+                          'api_key': 'API_KEY'}}
+
 
 
 @task
@@ -25,6 +37,8 @@ def ibm_deploy_worker(ctx, update=False):
 
 @task
 def ibm_invoke_worker(ctx):
+    cf = CloudFunctionsClient()
+
     cmd = [
         "ibmcloud",
         "fn",
