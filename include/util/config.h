@@ -62,6 +62,10 @@ namespace util {
         std::string sharedFilesDir;
         std::string sharedFilesStorageDir;
 
+        // IBM
+        std::string ibmApiKey;
+        std::string ibmStorageId;
+
         SystemConfig();
 
         void print();

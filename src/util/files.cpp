@@ -54,7 +54,7 @@ namespace util {
         outfile.close();
     }
 
-    size_t write_data(void *ptr, size_t size, size_t nmemb, void *stream) {
+    size_t writeDataCallback(void *ptr, size_t size, size_t nmemb, void *stream) {
         std::string data((const char *) ptr, (size_t) size * nmemb);
         *((std::stringstream *) stream) << data;
         return size * nmemb;
@@ -72,7 +72,7 @@ namespace util {
 
         std::stringstream out;
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeDataCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &out);
         curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 1000);
 

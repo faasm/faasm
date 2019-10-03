@@ -1,16 +1,10 @@
 from subprocess import check_output, call
 
 from invoke import task
-from pywren_ibm_cloud.compute.backends.ibm_cf.ibm_cf import IBMCloudFunctionsBackend
 
 from tasks.util.config import get_faasm_config
-from tasks.util.env import FAASM_RUNTIME_ROOT, RUNTIME_S3_BUCKET, STATE_S3_BUCKET, MISC_S3_BUCKET, DATA_S3_BUCKET
-from tasks.util.ibm import get_ibm_pywren_config, IBM_WORKER_NAME, IBM_WORKER_IMAGE, IBM_PYWREN_BUCKET
-import pywren_ibm_cloud as pywren
-
-
-def add_seven(x):
-    return x + 7
+from tasks.util.env import RUNTIME_S3_BUCKET, STATE_S3_BUCKET, MISC_S3_BUCKET, DATA_S3_BUCKET
+from tasks.util.ibm import IBM_PYWREN_BUCKET
 
 
 @task

@@ -4,7 +4,9 @@ include_directories(
 
 set(LIB_FILES
         ${FAASM_INCLUDE_DIR}/ibm/IBMEndpoint.h
+        ${FAASM_INCLUDE_DIR}/ibm/IBMStorageWrapper.h
         IBMEndpoint.cpp
+        IBMStorageWrapper.cpp
         )
 
 faasm_private_lib(worker_ibm_lib "${LIB_FILES}")

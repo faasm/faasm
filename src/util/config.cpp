@@ -74,6 +74,9 @@ namespace util {
         sharedFilesDir = getEnvVar("SHARED_FILES_DIR", "/usr/local/faasm/shared");
         sharedFilesStorageDir = getEnvVar("SHARED_FILES_STORAGE_DIR", "/usr/local/faasm/shared_store");
 
+        ibmApiKey = getEnvVar("IBM_API_KEY", "");
+        ibmStorageId = getEnvVar("IBM_STORAGE_ID", "");
+
         if(fullAsync == 1 && fullSync == 1) {
             throw std::runtime_error("Can't have both full async and full sync on");
         }
@@ -140,6 +143,10 @@ namespace util {
         logger->info("RUNTIME_FILES_DIR         {}", runtimeFilesDir);
         logger->info("SHARED_FILES_DIR          {}", sharedFilesDir);
         logger->info("SHARED_FILES_STORAGE_DIR  {}", sharedFilesStorageDir);
+
+        logger->info("--- IBM ---");
+        logger->info("IBM_API_KEY     {}", ibmApiKey);
+        logger->info("IBM_STORAGE_ID  {}", ibmStorageId);
     }
 
     void _setNodeId() {

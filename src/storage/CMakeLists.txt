@@ -9,6 +9,7 @@ set(LIB_FILES
         FileLoader.cpp
         LocalFileLoader.cpp
         FileserverFileLoader.cpp
+        IBMFileLoader.cpp
         S3FileLoader.cpp
         SharedFilesManager.cpp
         instance.cpp
