@@ -6,7 +6,6 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <unordered_map>
 #include <util/logging.h>
 
 #include <rapidjson/document.h>
@@ -27,10 +26,20 @@ namespace ibm {
     //
     // The API key is an IAM API key that has access to the storage instance.
 
-    size_t writeDataCallback(void *ptr, size_t size, size_t nmemb, void *stream) {
+    size_t writeStringCallback(void *ptr, size_t size, size_t nmemb, void *stream) {
         std::string data((const char *) ptr, (size_t) size * nmemb);
         *((std::stringstream *) stream) << data;
         return size * nmemb;
+    }
+
+    size_t writeBytesCallback(void *rawDataptr, size_t size, size_t nmemb, void *rawVecPtr) {
+        size_t chunkSize = size * nmemb;
+
+        auto vecPtr = (std::vector<uint8_t> *) rawVecPtr;
+        auto dataPtr = (uint8_t *) rawDataptr;
+        vecPtr->insert(vecPtr->end(), dataPtr, dataPtr + chunkSize);
+
+        return chunkSize;
     }
 
     std::string getStringFromJson(Document &doc, const std::string &key) {
@@ -43,16 +52,17 @@ namespace ibm {
         return it->value.GetString();
     }
 
-    std::string doPost(const std::string &url, const std::vector<std::string> &headers,
-                       const std::unordered_map<std::string, std::string> &postData) {
+    std::string IBMStorageWrapper::doPost(const std::string &url, const std::vector<std::string> &headers,
+                                          const std::unordered_map<std::string, std::string> &postData) {
+
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Posting to {}", url);
+        logger->debug("POST {}", url);
 
         void *curl = curl_easy_init();
 
         std::stringstream out;
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeDataCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeStringCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &out);
         curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 10000);
 
@@ -86,7 +96,36 @@ namespace ibm {
             logger->error("Post to {} failed (status {})", url, res);
         }
 
-        return out.str();
+        std::string result = out.str();
+        return result;
+    }
+
+    std::vector<uint8_t> IBMStorageWrapper::doGetBytes(const std::string &url) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("GET {}", url);
+
+        void *curl = curl_easy_init();
+
+        std::vector<uint8_t> bytes;
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeBytesCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &bytes);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 10000);
+
+        // Add auth header
+        struct curl_slist *chunk = nullptr;
+        chunk = curl_slist_append(chunk, authTokenHeader.c_str());
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+        // Make the request
+        CURLcode res = curl_easy_perform(curl);
+        curl_easy_cleanup(curl);
+
+        if (res != CURLE_OK) {
+            logger->error("GET {} failed (curl status {})", url, res);
+        }
+
+        return bytes;
     }
 
     std::string IBMStorageWrapper::getAuthToken() {
@@ -104,11 +143,12 @@ namespace ibm {
         postData.emplace("response_type", "cloud_iam");
         postData.emplace("grant_type", "urn:ibm:params:oauth:grant-type:apikey");
 
-        std::string responseStr = doPost(tokenUrl, headers, postData);
-        
+        std::string responseStr = doPost(TOKEN_URL, headers, postData);
+
         Document d;
         d.Parse(responseStr.c_str());
         authToken = getStringFromJson(d, "access_token");
+        authTokenHeader = "Authorization: bearer " + authToken;
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->info("Got auth token from IBM: {}", authToken);
@@ -134,6 +174,7 @@ namespace ibm {
 
     std::vector<uint8_t> IBMStorageWrapper::loadKeyBytes(const std::string &bucketName, const std::string &key) {
         std::vector<uint8_t> bytes;
-        return bytes;
+        std::string url = "https://" + std::string(STORAGE_ENDPOINT) + "/" + bucketName + "/" + key;
+        return doGetBytes(url);
     }
 }

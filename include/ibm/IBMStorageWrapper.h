@@ -2,6 +2,11 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
+
+
+#define TOKEN_URL "https://iam.cloud.ibm.com/identity/token"
+#define STORAGE_ENDPOINT "s3.eu-gb.cloud-object-storage.appdomain.cloud"
 
 namespace ibm {
 
@@ -13,15 +18,23 @@ namespace ibm {
 
         void addKeyBytes(const std::string &bucketName, const std::string &key, const std::vector<uint8_t> &bytes);
 
+
         std::string getAuthToken();
 
         std::vector<uint8_t> loadKeyBytes(const std::string &bucketName, const std::string &key);
     private:
-        const std::string tokenUrl = "https://iam.cloud.ibm.com/identity/token";
         std::string apiKey;
         std::string storageId;
         std::string authToken;
+        std::string authTokenHeader;
 
         void initialiseAuthToken();
+
+        std::string doGetStr(const std::string &url);
+
+        std::vector<uint8_t> doGetBytes(const std::string &url);
+
+        std::string doPost(const std::string &url, const std::vector<std::string> &headers,
+                           const std::unordered_map<std::string, std::string> &postData);
     };
 }
