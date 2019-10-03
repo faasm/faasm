@@ -64,7 +64,6 @@ namespace util {
 
         // IBM
         std::string ibmApiKey;
-        std::string ibmStorageId;
 
         SystemConfig();
 

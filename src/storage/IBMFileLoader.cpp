@@ -8,7 +8,7 @@
 
 namespace storage {
     IBMFileLoader::IBMFileLoader() : conf(util::getSystemConfig()),
-        storageWrapper(conf.ibmApiKey, conf.ibmStorageId) {
+        storageWrapper(conf.ibmApiKey) {
 
     }
 

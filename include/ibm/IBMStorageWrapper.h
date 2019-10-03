@@ -12,7 +12,7 @@ namespace ibm {
 
     class IBMStorageWrapper {
     public:
-        IBMStorageWrapper(const std::string &apiKey, const std::string &storageId);
+        IBMStorageWrapper(const std::string &apiKey);
 
         void addKeyStr(const std::string &bucketName, const std::string &key, const std::string &content);
 
@@ -24,7 +24,6 @@ namespace ibm {
 
     private:
         std::string apiKey;
-        std::string storageId;
         std::string authToken;
         std::string authTokenHeader;
 

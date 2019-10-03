@@ -98,7 +98,6 @@ namespace tests {
         std::string sharedStorageDir = setEnvVar("SHARED_FILES_STORAGE_DIR", "/tmp/sss_store");
 
         std::string ibmApi = setEnvVar("IBM_API_KEY", "ibm-123");
-        std::string ibmStorage = setEnvVar("IBM_STORAGE_ID", "ibm-456");
 
         // Create new conf for test
         SystemConfig conf;
@@ -145,7 +144,6 @@ namespace tests {
         REQUIRE(conf.sharedFilesStorageDir == "/tmp/sss_store");
 
         REQUIRE(conf.ibmApiKey == "ibm-123");
-        REQUIRE(conf.ibmStorageId == "ibm-456");
 
         // Be careful with host type
         setEnvVar("HOST_TYPE", originalHostType);
@@ -192,7 +190,6 @@ namespace tests {
         setEnvVar("SHARED_FILES_STORAGE_DIR", sharedStorageDir);
 
         setEnvVar("IBM_API_KEY", ibmApi);
-        setEnvVar("IBM_STORAGE_ID", ibmStorage);
     }
 
     TEST_CASE("Check we can't have both full sync and full async on at the same time", "[conf]") {

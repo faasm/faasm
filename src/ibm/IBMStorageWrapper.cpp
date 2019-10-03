@@ -212,9 +212,8 @@ namespace ibm {
     }
 
 
-    IBMStorageWrapper::IBMStorageWrapper(const std::string &apiKeyIn, const std::string &storageIdIn) {
+    IBMStorageWrapper::IBMStorageWrapper(const std::string &apiKeyIn) {
         apiKey = apiKeyIn;
-        storageId = storageIdIn;
 
         initialiseAuthToken();
     }
