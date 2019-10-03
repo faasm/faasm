@@ -97,7 +97,10 @@ from tasks.docker_compose import (
 from tasks.ibm import (
     ibm_deploy_worker,
     ibm_invoke_worker,
+    ibm_create_buckets,
     ibm_list,
+    ibm_login,
+    ibm_set_up_cos,
 )
 from tasks.invoke import (
     invoke,

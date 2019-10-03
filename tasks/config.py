@@ -29,8 +29,3 @@ def generate_aws_config(ctx):
 
     with open(FAASM_CONFIG_FILE, "w") as fh:
         config.write(fh)
-
-
-@task
-def generate_pywren_config(ctx):
-    pass
