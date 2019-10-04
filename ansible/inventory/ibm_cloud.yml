@@ -1,3 +1,0 @@
-[redis]
-159.8.180.190   ansible_ssh_user=root   # DEDICATED
-169.50.81.146   ansible_ssh_user=root   # SHARED
