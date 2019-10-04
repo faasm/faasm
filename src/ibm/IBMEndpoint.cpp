@@ -18,6 +18,10 @@ namespace ibm {
         return router.handler();
     }
 
+    void IBMEndpoint::stop() {
+        workerMain->shutdown();
+    }
+
     void IBMEndpoint::setupRoutes() {
         Pistache::Rest::Routes::Post(router, "/init",
                                      Pistache::Rest::Routes::bind(&IBMEndpoint::handleInit, this));
@@ -33,9 +37,19 @@ namespace ibm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->info("INIT REQUEST - {}", requestStr);
 
+        // Parse the request
         rapidjson::Document requestJson;
         requestJson.Parse(requestStr.c_str());
 
+        // Set up the config
+        util::SystemConfig &conf = util::getSystemConfig();
+        conf.cgroupMode = "off";
+        conf.netNsMode = "off";
+
+        // Start up the worker
+        // workerMain->startBackground();
+
+        // Return a response
         const std::string &responseStr = buildResponse(true, "Initialised");
         response.send(Pistache::Http::Code::Ok, responseStr);
     }

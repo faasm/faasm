@@ -11,12 +11,8 @@ set(LIB_FILES
 
 faasm_private_lib(worker_ibm_lib "${LIB_FILES}")
 
-add_executable(worker_ibm
-        worker_ibm.cpp
-        )
+target_link_libraries(worker_ibm_lib endpoint worker_lib)
 
-target_link_libraries(worker_ibm
-        endpoint
-        worker_lib
-        worker_ibm_lib
-        )
+add_executable(worker_ibm worker_ibm.cpp)
+
+target_link_libraries(worker_ibm worker_ibm_lib)

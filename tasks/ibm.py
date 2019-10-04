@@ -55,6 +55,8 @@ def ibm_deploy_worker(ctx, update=False):
     redis_host = config["IBM"]["redis_host"]
     api_key = config["IBM"]["api_key"]
 
+    # Note that concurrency here is _intra_ container, i.e. how many concurrent
+    # invocations can each container support
     cmd = [
         "ibmcloud",
         "fn",
@@ -66,16 +68,37 @@ def ibm_deploy_worker(ctx, update=False):
         "--param IBM_API_KEY {}".format(api_key),
         "--param CGROUP_MODE off",
         "--param NETNS_MODE off",
+        "--memory 1024",
+        "--timeout 30000",
+        "--concurrency 100",
         "faasm-worker",
         "--docker",
-        "faasm/ibm-worker:latest"
+        "faasm/ibm-worker:0.1.1"
     ]
 
     cmd_string = " ".join(cmd)
     print(cmd_string)
-    check_output(cmd_string, shell=True)
+    call(cmd_string, shell=True)
 
     print("Done")
+
+
+@task
+def ibm_delete_worker(ctx, update=False):
+    cmd = [
+        "ibmcloud",
+        "fn",
+        "action",
+        "delete",
+        "faasm-worker",
+    ]
+
+    cmd_string = " ".join(cmd)
+    print(cmd_string)
+    call(cmd_string, shell=True)
+
+    print("Done")
+
 
 
 @task

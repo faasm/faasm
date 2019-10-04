@@ -11,4 +11,9 @@ COPY . /usr/local/code/faasm
 WORKDIR /faasm/build
 RUN cmake --build . --target worker_ibm -- -j
 
+# Put the entrypoint in place
+COPY bin/ibm-worker-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
 CMD "/faasm/build/bin/worker_ibm"
