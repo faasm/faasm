@@ -101,6 +101,7 @@ from tasks.ibm import (
     ibm_list,
     ibm_login,
     ibm_set_up_cos,
+    ibm_set_up_redis,
 )
 from tasks.invoke import (
     invoke,

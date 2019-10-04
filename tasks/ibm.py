@@ -1,9 +1,11 @@
+from os.path import join
 from subprocess import check_output, call
 
 from invoke import task
 
 from tasks.util.config import get_faasm_config
-from tasks.util.env import RUNTIME_S3_BUCKET, STATE_S3_BUCKET, MISC_S3_BUCKET, DATA_S3_BUCKET, TEST_S3_BUCKET
+from tasks.util.env import RUNTIME_S3_BUCKET, STATE_S3_BUCKET, MISC_S3_BUCKET, DATA_S3_BUCKET, TEST_S3_BUCKET, \
+    ANSIBLE_ROOT
 from tasks.util.ibm import IBM_PYWREN_BUCKET
 
 
@@ -106,3 +108,14 @@ def ibm_list(ctx):
     print(cmd_string)
     check_output(cmd_string, shell=True)
     print("Done")
+
+
+@task
+def ibm_set_up_redis(ctx):
+    cmd = [
+        "ansible-playbook",
+        "-i", join(ANSIBLE_ROOT, "inventory/ibm_cloud.yml"),
+        "redis_vm.yml",
+    ]
+
+    call(" ".join(cmd), cwd=ANSIBLE_ROOT, shell=True)

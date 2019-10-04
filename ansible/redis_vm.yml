@@ -1,0 +1,6 @@
+---
+
+- hosts: redis
+  gather_facts: yes
+  roles:
+    - redis_vm
