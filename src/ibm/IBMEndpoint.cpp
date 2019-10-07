@@ -35,7 +35,7 @@ namespace ibm {
         try {
             value = getStringFromJson(d, key);
         } catch (util::JsonFieldNotFound &ex) {
-            util::getLogger()->warn("Did not get parameter {} although expected it");
+            util::getLogger()->warn("Did not get parameter {} although expected it", key);
             return;
         }
 
@@ -117,6 +117,8 @@ namespace ibm {
         if (!started) {
             util::UniqueLock lock(startedMutex);
             if (!started) {
+                logger->info("Starting worker pool");
+
                 // Set up the environment
                 util::SystemConfig &conf = util::getSystemConfig();
                 setConfPropertyFromJson(requestJson, "IBM_API_KEY", conf.ibmApiKey);
@@ -151,6 +153,7 @@ namespace ibm {
         // Do the actual execution
         if (responseMsg.empty()) {
             if (callMode == "codegen") {
+                logger->info("Handling codegen {}", util::funcToString(msg, false));
                 storage::FileLoader &loader = storage::getFileLoader();
 
                 try {

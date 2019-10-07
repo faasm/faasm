@@ -1,6 +1,9 @@
+import pprint
+from json import dumps
 from os.path import join
 from subprocess import check_output, call
 
+import requests
 from invoke import task
 
 from tasks.util.config import get_faasm_config
@@ -113,8 +116,25 @@ def ibm_clear_redis(ctx):
 
 
 @task
-def ibm_codegen(ctx, user, func):
-    _do_invoke(user, func, "codegen", "")
+def ibm_codegen(ctx, user, func, local=False):
+    if local:
+        payload = {
+            "value": {
+                "user": user,
+                "function": func,
+                "mode": "codegen",
+            }
+        }
+
+        response = requests.post("http://localhost:8080/run/", json=payload)
+        if response.status_code != 200:
+            print("Error: {}".format(response.status_code))
+            pprint.pprint(response.json())
+        else:
+            response_data = response.json()
+            print(response_data["result"])
+    else:
+        _do_invoke(user, func, "codegen", "")
 
 
 @task
