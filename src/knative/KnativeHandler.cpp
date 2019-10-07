@@ -25,8 +25,14 @@ namespace knative {
 
         // Parse message from JSON in request
         const std::string requestStr = request.body();
-        std::string responseStr;
+        std::string responseStr = handleFunction(requestStr);
 
+        PROF_END(knativeRoundTrip)
+        response.send(Pistache::Http::Code::Ok, responseStr);
+    }
+
+    std::string KnativeHandler::handleFunction(const std::string &requestStr) {
+        std::string responseStr;
         if (requestStr.empty()) {
             responseStr = "Empty request";
         } else {
@@ -34,7 +40,6 @@ namespace knative {
             responseStr = executeFunction(msg);
         }
 
-        PROF_END(knativeRoundTrip)
-        response.send(Pistache::Http::Code::Ok, responseStr);
+        return responseStr;
     }
 }

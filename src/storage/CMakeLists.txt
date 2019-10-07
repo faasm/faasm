@@ -10,6 +10,7 @@ set(LIB_FILES
         LocalFileLoader.cpp
         FileserverFileLoader.cpp
         IBMFileLoader.cpp
+        IBMStorageWrapper.cpp
         S3FileLoader.cpp
         SharedFilesManager.cpp
         instance.cpp

@@ -3,7 +3,7 @@ include_directories(
 )
 
 set(LIB_HEADERS
-        ${FAASM_INCLUDE_DIR}/worker/WorkerHttpHandler.h
+        ${FAASM_INCLUDE_DIR}/worker/WorkerHttpMixin.h
         ${FAASM_INCLUDE_DIR}/worker/WorkerMain.h
         ${FAASM_INCLUDE_DIR}/worker/WorkerThread.h
         ${FAASM_INCLUDE_DIR}/worker/WorkerThreadPool.h

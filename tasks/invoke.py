@@ -1,13 +1,14 @@
 import multiprocessing
+import pprint
 from json import dumps
 
 import requests
 from invoke import task
 
-
 # NOTE: Using python to do this is slow compared with running curl
 # directly on the command line (or some other purpose-built tool).
 # As a result this mustn't be used for performance testing
+from tasks.util.config import get_faasm_config
 
 
 def _do_post(url, input, headers=None):
@@ -36,21 +37,29 @@ def invoke(ctx, user, func,
            ts=False,
            async=False,
            knative=True,
+           ibm=False,
            legacy=False
            ):
-    if py:
-        prefix = "p"
-    elif ts:
-        prefix = "t"
+
+    if legacy:
+        if py:
+            prefix = "p"
+        elif ts:
+            prefix = "t"
+        else:
+            prefix = "f"
+
+        if async:
+            prefix += "a"
     else:
-        prefix = "f"
+        prefix = None
 
-    if async:
-        prefix += "a"
-
-    port = 8080 if knative else 8001
+    port = 8080 if knative or ibm else 8001
 
     url = "http://{}:{}/".format(host, port)
+
+    if ibm:
+        url += "run/"
 
     msg = {
         "user": user,
@@ -68,7 +77,25 @@ def invoke(ctx, user, func,
         "Host": "faasm-worker.faasm.example.com"
     }
 
+    # IBM-specific message format
+    if ibm:
+        faasm_conf = get_faasm_config()
+        msg.update({
+            "IBM_API_KEY": faasm_conf["IBM"]["api_key"],
+            "REDIS_QUEUE_HOST": faasm_conf["IBM"]["redis_host_public"],
+            "REDIS_STATE_HOST": faasm_conf["IBM"]["redis_host_public"],
+        })
+
+        # Message needs to be nested
+        msg = {
+            "value": msg,
+        }
+
     msg_json = dumps(msg)
+
+    # IBM must call init
+    if ibm:
+        _do_post("http://{}:{}/init/".format(host, port), msg_json)
 
     for l in range(loops):
         if loops > 1:
@@ -78,7 +105,7 @@ def invoke(ctx, user, func,
             n_workers = multiprocessing.cpu_count() - 1
             p = multiprocessing.Pool(n_workers)
 
-            if knative:
+            if ibm or knative:
                 args_list = [(url, msg_json, headers) for _ in range(n_workers)]
             elif legacy:
                 args_list = [(user, func, host, port, prefix, input) for _ in range(n_workers)]
@@ -88,7 +115,7 @@ def invoke(ctx, user, func,
             p.starmap(_do_invoke, args_list)
         else:
 
-            if knative:
+            if ibm or knative:
                 _do_post(url, msg_json, headers=headers)
             elif legacy:
                 _do_invoke(user, func, host, port, prefix, input=input)

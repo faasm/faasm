@@ -95,6 +95,7 @@ from tasks.docker_compose import (
     docker_restart_all
 )
 from tasks.ibm import (
+    ibm_clear_redis,
     ibm_delete_worker,
     ibm_deploy_worker,
     ibm_invoke_worker,

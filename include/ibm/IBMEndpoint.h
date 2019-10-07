@@ -19,6 +19,10 @@ namespace ibm {
 
         void handleCall(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response);
 
+        std::string doHandleInit(const std::string &requestStr);
+
+        std::string doHandleCall(const std::string &requestStr);
+
         void stop();
 
     private:

@@ -52,7 +52,7 @@ def ibm_create_buckets(ctx):
 @task
 def ibm_deploy_worker(ctx, update=False):
     config = get_faasm_config()
-    redis_host = config["IBM"]["redis_host"]
+    redis_host = config["IBM"]["redis_host_private"]
     api_key = config["IBM"]["api_key"]
 
     # Note that concurrency here is _intra_ container, i.e. how many concurrent
@@ -99,6 +99,17 @@ def ibm_delete_worker(ctx, update=False):
 
     print("Done")
 
+
+@task
+def ibm_clear_redis(ctx):
+    faasm_conf = get_faasm_config()
+    cmd = [
+        "redis-cli",
+        "-h {}".format(faasm_conf["IBM"]["redis_host_public"]),
+        "flushall"
+    ]
+
+    call(" ".join(cmd), shell=True)
 
 
 @task

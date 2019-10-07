@@ -3,12 +3,13 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <mutex>
 
 
 #define TOKEN_URL "https://iam.cloud.ibm.com/identity/token"
 #define STORAGE_ENDPOINT "s3.eu-gb.cloud-object-storage.appdomain.cloud"
 
-namespace ibm {
+namespace storage {
 
     class IBMStorageWrapper {
     public:
@@ -24,6 +25,7 @@ namespace ibm {
 
     private:
         std::string apiKey;
+        std::mutex authTokenMutex;
         std::string authToken;
         std::string authTokenHeader;
 

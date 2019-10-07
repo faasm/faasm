@@ -2,7 +2,7 @@
 
 #include "FileLoader.h"
 #include <util/config.h>
-#include <ibm/IBMStorageWrapper.h>
+#include <storage/IBMStorageWrapper.h>
 
 
 namespace storage {
@@ -37,7 +37,7 @@ namespace storage {
         }
     private:
         util::SystemConfig &conf;
-        ibm::IBMStorageWrapper storageWrapper;
+        storage::IBMStorageWrapper storageWrapper;
 
         std::vector<uint8_t> loadFileBytes(const std::string &path);
     };

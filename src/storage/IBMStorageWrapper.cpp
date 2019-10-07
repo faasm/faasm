@@ -9,9 +9,10 @@
 #include <rapidjson/stringbuffer.h>
 
 #include <util/bytes.h>
+#include <util/locks.h>
 
 
-namespace ibm {
+namespace storage {
     // cURL API notes: https://cloud.ibm.com/docs/services/cloud-object-storage/cli?topic=cloud-object-storage-curl
     //
     // The ID used here is for the faasm-storage service instance in your IBM cloud account.
@@ -190,25 +191,39 @@ namespace ibm {
     }
 
     void IBMStorageWrapper::initialiseAuthToken() {
-        std::vector<std::string> headers = {
-                "Accept: application/json",
-                "Content-Type: application/x-www-form-urlencoded"
-        };
-
-        std::unordered_map<std::string, std::string> postData;
-        postData.emplace("apikey", apiKey);
-        postData.emplace("response_type", "cloud_iam");
-        postData.emplace("grant_type", "urn:ibm:params:oauth:grant-type:apikey");
-
-        std::string responseStr = doPost(TOKEN_URL, headers, postData);
-
-        rapidjson::Document d;
-        d.Parse(responseStr.c_str());
-        authToken = getStringFromJson(d, "access_token");
-        authTokenHeader = "Authorization: bearer " + authToken;
-
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->info("Got auth token from IBM: {}", authToken);
+
+        if (authToken.empty()) {
+            util::UniqueLock lock(authTokenMutex);
+            if (!authToken.empty()) {
+                return;
+            }
+
+            std::vector<std::string> headers = {
+                    "Accept: application/json",
+                    "Content-Type: application/x-www-form-urlencoded"
+            };
+
+            std::unordered_map<std::string, std::string> postData;
+            postData.emplace("apikey", apiKey);
+            postData.emplace("response_type", "cloud_iam");
+            postData.emplace("grant_type", "urn:ibm:params:oauth:grant-type:apikey");
+
+            std::string responseStr = doPost(TOKEN_URL, headers, postData);
+
+            rapidjson::Document d;
+            d.Parse(responseStr.c_str());
+            authToken = getStringFromJson(d, "access_token");
+            authTokenHeader = "Authorization: bearer " + authToken;
+
+            if (authToken.empty()) {
+                logger->error("Got empty auth token back from IBM");
+            }
+
+            logger->info("Got auth token from IBM: {}", authToken);
+        } else {
+            logger->debug("Using cached auth token from IBM");
+        }
     }
 
 

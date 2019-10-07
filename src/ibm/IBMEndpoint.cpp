@@ -13,7 +13,9 @@
 namespace ibm {
     std::string getStringFromJson(rapidjson::Document &d, const std::string &key) {
         rapidjson::Value::MemberIterator it = d["value"].FindMember(key.c_str());
-        if (it == d.MemberEnd()) {
+        if (it == d["value"].MemberEnd()) {
+            throw util::JsonFieldNotFound();
+        } else if(it->value.IsNull()) {
             throw util::JsonFieldNotFound();
         } else {
             return it->value.GetString();
@@ -59,12 +61,14 @@ namespace ibm {
     void IBMEndpoint::handleInit(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response) {
         const std::string requestStr = request.body();
 
+        // Return a response
+        const std::string responseStr = doHandleInit(requestStr);
+        response.send(Pistache::Http::Code::Ok, responseStr);
+    }
+
+    std::string IBMEndpoint::doHandleInit(const std::string &requestStr) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->info("INIT REQUEST - {}", requestStr);
-
-        // Parse the request
-        rapidjson::Document requestJson;
-        requestJson.Parse(requestStr.c_str());
 
         // Set up the config
         util::SystemConfig &conf = util::getSystemConfig();
@@ -74,14 +78,20 @@ namespace ibm {
 
         // Return a response
         const std::string &responseStr = buildResponse(true, "Initialised");
-        response.send(Pistache::Http::Code::Ok, responseStr);
+        return responseStr;
     }
 
     void IBMEndpoint::handleCall(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response) {
         PROF_START(ibmRoundTrip)
 
         const std::string requestStr = request.body();
+        const std::string responseStr = doHandleCall(requestStr);
 
+        PROF_END(ibmRoundTrip)
+        response.send(Pistache::Http::Code::Ok, responseStr);
+    }
+
+    std::string IBMEndpoint::doHandleCall(const std::string &requestStr) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->info("CALL REQUEST - {}", requestStr);
 
@@ -129,9 +139,7 @@ namespace ibm {
         }
 
         const std::string &responseStr = buildResponse(true, responseMsg);
-
-        PROF_END(ibmRoundTrip)
-        response.send(Pistache::Http::Code::Ok, responseStr);
+        return responseStr;
     }
 
     std::string IBMEndpoint::buildResponse(bool success, const std::string &msg) {

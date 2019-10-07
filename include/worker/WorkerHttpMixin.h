@@ -6,6 +6,6 @@
 namespace worker {
     class WorkerHttpMixin {
     public:
-        virtual std::string executeFunction(message::Message &msg) = 0;
+        std::string executeFunction(message::Message &msg);
     };
 }
