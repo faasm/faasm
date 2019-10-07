@@ -64,7 +64,7 @@ def ibm_deploy_worker(ctx, update=False):
         "update" if update else "create",
         "--param FUNCTION_STORAGE ibm",
         "--param REDIS_QUEUE_HOST {}".format(redis_host),
-        "--param REDIS_QUEUE_HOST {}".format(redis_host),
+        "--param REDIS_STATE_HOST {}".format(redis_host),
         "--param IBM_API_KEY {}".format(api_key),
         "--param CGROUP_MODE off",
         "--param NETNS_MODE off",

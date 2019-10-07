@@ -25,59 +25,16 @@ namespace knative {
 
         // Parse message from JSON in request
         const std::string requestStr = request.body();
+        std::string responseStr;
 
-        const std::string responseStr = handleFunction(requestStr);
+        if (requestStr.empty()) {
+            responseStr = "Empty request";
+        } else {
+            message::Message msg = util::jsonToMessage(requestStr);
+            responseStr = executeFunction(msg);
+        }
 
         PROF_END(knativeRoundTrip)
         response.send(Pistache::Http::Code::Ok, responseStr);
-    }
-
-    std::string KnativeHandler::handleFunction(const std::string &requestStr) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        if (requestStr.empty()) {
-            return "Empty request";
-        }
-
-        // Parse the message
-        message::Message msg = util::jsonToMessage(requestStr);
-
-        if (msg.user().empty()) {
-            return "Empty user";
-        } else if (msg.function().empty()) {
-            return "Empty function";
-        }
-
-        if(msg.ispython()) {
-            util::convertMessageToPython(msg);
-        }
-
-        util::setMessageId(msg);
-
-        auto tid = (pid_t) syscall(SYS_gettid);
-
-        const std::string funcStr = util::funcToString(msg, true);
-        logger->debug("Knative thread {} scheduling {}", tid, funcStr);
-
-        // Schedule it
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        sch.callFunction(msg);
-
-        // Await result on global bus (may have been executed on a different worker)
-        if (msg.isasync()) {
-            return "Async request received";
-        } else {
-            logger->debug("Knative thread {} awaiting {}", tid, funcStr);
-
-            try {
-                scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-                const message::Message result = globalBus.getFunctionResult(msg.id(), conf.globalMessageTimeout);
-                logger->debug("Knative thread {} result {}", tid, funcStr);
-
-                return result.outputdata() + "\n";
-            } catch (redis::RedisNoResponseException &ex) {
-                return "No response from function\n";
-            }
-        }
     }
 }

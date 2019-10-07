@@ -5,10 +5,11 @@
 #include <pistache/http.h>
 #include <pistache/router.h>
 #include <worker/WorkerMain.h>
+#include <worker/WorkerHttpMixin.h>
 
 
 namespace ibm {
-    class IBMEndpoint : public endpoint::Endpoint {
+    class IBMEndpoint : public endpoint::Endpoint, worker::WorkerHttpMixin {
     public:
         IBMEndpoint();
 
@@ -19,9 +20,13 @@ namespace ibm {
         void handleCall(const Pistache::Rest::Request &request, Pistache::Http::ResponseWriter response);
 
         void stop();
+
     private:
         Pistache::Rest::Router router;
         worker::WorkerMain *workerMain;
+
+        std::mutex startedMutex;
+        bool started = false;
 
         void setupRoutes();
 
