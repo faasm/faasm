@@ -1,9 +1,13 @@
 import subprocess
 from os.path import join
+from subprocess import call
 
 import boto3
 
+from tasks.util.config import get_faasm_config
 from tasks.util.env import AWS_REGION
+import ibm_boto3
+from ibm_botocore.client import Config, ClientError
 
 _s3 = None
 
@@ -20,6 +24,17 @@ def upload_file_to_s3(file_path, s3_bucket, s3_key, public=False):
     s3 = _get_s3()
     kwargs = {"ExtraArgs": {"ACL": "public-read"}} if public else {}
     s3.Bucket(s3_bucket).upload_file(file_path, s3_key, **kwargs)
+
+
+def upload_file_to_ibm(file_path, bucket_name, key):
+    cmd = [
+        "ibmcloud", "cos", "put-object",
+        "--bucket", bucket_name,
+        "--key", key,
+        "--body", file_path,
+    ]
+
+    call(" ".join(cmd), shell=True)
 
 
 def list_files_s3(s3_bucket, prefix):

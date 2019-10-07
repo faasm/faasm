@@ -34,12 +34,12 @@ namespace worker {
         if (msg.isasync()) {
             return "Async request received";
         } else {
-            logger->debug("Knative thread {} awaiting {}", tid, funcStr);
+            logger->debug("Worker thread {} awaiting {}", tid, funcStr);
 
             try {
                 scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
                 const message::Message result = globalBus.getFunctionResult(msg.id(), conf.globalMessageTimeout);
-                logger->debug("Knative thread {} result {}", tid, funcStr);
+                logger->debug("Worker thread {} result {}", tid, funcStr);
 
                 return result.outputdata() + "\n";
             } catch (redis::RedisNoResponseException &ex) {

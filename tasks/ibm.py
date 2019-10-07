@@ -70,7 +70,7 @@ def ibm_deploy_worker(ctx, update=False):
         "--param NETNS_MODE off",
         "--memory 1024",
         "--timeout 30000",
-        "--concurrency 100",
+        "--concurrency 20",
         "faasm-worker",
         "--docker",
         "faasm/ibm-worker:0.1.1"

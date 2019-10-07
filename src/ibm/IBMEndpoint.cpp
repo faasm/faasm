@@ -9,16 +9,23 @@
 #include <rapidjson/writer.h>
 #include <rapidjson/stringbuffer.h>
 #include <util/json.h>
+#include <storage/FileLoader.h>
+
 
 namespace ibm {
     std::string getStringFromJson(rapidjson::Document &d, const std::string &key) {
         rapidjson::Value::MemberIterator it = d["value"].FindMember(key.c_str());
         if (it == d["value"].MemberEnd()) {
             throw util::JsonFieldNotFound();
-        } else if(it->value.IsNull()) {
+        } else if (it->value.IsNull()) {
             throw util::JsonFieldNotFound();
         } else {
-            return it->value.GetString();
+            std::string strVal = it->value.GetString();
+            if (strVal.empty()) {
+                throw util::JsonFieldNotFound();
+            }
+
+            return strVal;
         }
     }
 
@@ -75,6 +82,7 @@ namespace ibm {
         conf.cgroupMode = "off";
         conf.netNsMode = "off";
         conf.functionStorage = "ibm";
+        conf.bucketName = "faasm-runtime";
 
         // Return a response
         const std::string &responseStr = buildResponse(true, "Initialised");
@@ -97,6 +105,13 @@ namespace ibm {
 
         rapidjson::Document requestJson;
         requestJson.Parse(requestStr.c_str());
+
+        std::string callMode;
+        try {
+            callMode = getStringFromJson(requestJson, "mode");
+        } catch (util::JsonFieldNotFound &ex) {
+            callMode = "";
+        }
 
         // Start up the worker if not started already
         if (!started) {
@@ -134,8 +149,22 @@ namespace ibm {
         }
 
         // Do the actual execution
-        if(responseMsg.empty()) {
-            responseMsg = executeFunction(msg);
+        if (responseMsg.empty()) {
+            if (callMode == "codegen") {
+                storage::FileLoader &loader = storage::getFileLoader();
+
+                try {
+                    loader.codegenForFunction(msg);
+                    responseMsg = "Codegen successful";
+                } catch (std::runtime_error &ex) {
+                    responseMsg = "Failed running codegen";
+                }
+
+            } else if (callMode == "invoke" || callMode.empty()) {
+                responseMsg = executeFunction(msg);
+            } else {
+                responseMsg = "Invalid call mode";
+            }
         }
 
         const std::string &responseStr = buildResponse(true, responseMsg);
