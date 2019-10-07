@@ -96,9 +96,10 @@ from tasks.docker_compose import (
 )
 from tasks.ibm import (
     ibm_clear_redis,
+    ibm_codegen,
     ibm_delete_worker,
     ibm_deploy_worker,
-    ibm_invoke_worker,
+    ibm_invoke,
     ibm_create_buckets,
     ibm_list,
     ibm_login,

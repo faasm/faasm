@@ -3,10 +3,12 @@
 #include "utils.h"
 #include <ibm/IBMEndpoint.h>
 
+#include <faasm/files.h>
 #include <scheduler/GlobalMessageBus.h>
 #include <rapidjson/pointer.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
+#include <boost/filesystem.hpp>
 
 using namespace Pistache;
 using namespace rapidjson;
@@ -109,5 +111,24 @@ namespace tests {
         }
 
         checkIbmResponse(d, expected, 200);
+    }
+
+    TEST_CASE("Test codegen", "[ibm]") {
+        std::string expected = "Codegen successful";
+
+        // Make sure obj file doesn't exist
+        const message::Message msg = util::messageFactory("demo", "ibm_test");
+        const std::string objFilePath = util::getFunctionObjectFile(msg);
+        boost::filesystem::remove(objFilePath);
+
+        // Run the codegen
+        Document d = createJsonRequest("demo", "ibm_test", "codegen");
+        checkIbmResponse(d, expected, 200);
+
+        // Check file is now there
+        REQUIRE(boost::filesystem::exists(objFilePath));
+
+        // Check there's something in it
+        REQUIRE(faasm::getFileLength(objFilePath.c_str()) > 0);
     }
 }

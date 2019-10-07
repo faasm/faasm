@@ -113,19 +113,32 @@ def ibm_clear_redis(ctx):
 
 
 @task
-def ibm_invoke_worker(ctx):
+def ibm_codegen(ctx, user, func):
+    _do_invoke(user, func, "codegen", "")
+
+
+@task
+def ibm_invoke(ctx, user, func, input=None):
+    _do_invoke(user, func, "invoke", input)
+
+
+def _do_invoke(user, func, mode, input):
     cmd = [
         "ibmcloud",
         "fn",
         "action",
         "invoke",
         "--blocking",
-        "faasm-worker"
+        "--param", "user", user,
+        "--param", "function", func,
+        "--param", "mode", mode,
+        "--param", "input", input,
+        "faasm-worker",
     ]
 
     cmd_string = " ".join(cmd)
     print(cmd_string)
-    check_output(cmd_string, shell=True)
+    call(cmd_string, shell=True)
     print("Done")
 
 
