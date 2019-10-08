@@ -23,9 +23,6 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8001
-          envFrom:
-            - configMapRef:
-                name: faasm-config
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
