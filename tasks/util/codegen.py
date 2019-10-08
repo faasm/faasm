@@ -6,6 +6,7 @@ from tasks.util.env import PROJ_ROOT, HOME_DIR
 def _do_find_codegen(bin_name):
     possible_binaries = [
         "/faasm/build/bin/{}".format(bin_name),  # Containers
+        join(PROJ_ROOT, "build/bin/{}".format(bin_name)),  # Local builds
         join(PROJ_ROOT, "cmake-build-debug/bin/{}".format(bin_name)),  # CLion
     ]
 

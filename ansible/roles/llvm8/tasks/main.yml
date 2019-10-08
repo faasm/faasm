@@ -11,6 +11,7 @@
   apt:
     name:
       - llvm-8
+      - libllvm8
       - llvm-8-dev
       - llvm-8-tools
       - lld-8
