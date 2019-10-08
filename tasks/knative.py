@@ -1,3 +1,4 @@
+import os
 from os.path import join
 from subprocess import call
 
@@ -38,7 +39,7 @@ def k8s_deploy(ctx, local=False, bare_metal=False, ibm=False):
 
     faasm_conf = get_faasm_config()
 
-    shell_env = {}
+    shell_env = os.environ.copy()
 
     worker_annotations = [
         "autoscaling.knative.dev/class=kpa.autoscaling.knative.dev",

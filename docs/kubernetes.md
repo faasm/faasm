@@ -17,7 +17,7 @@ To deploy, you can run:
 inv k8s-deploy --local
 
 # Remote bare-metal (must be run on master node)
-inv k8s-deploy --bare_metal
+inv k8s-deploy --bare-metal
 
 # IBM Cloud
 inv k8s-deploy --ibm
