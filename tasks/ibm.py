@@ -26,6 +26,13 @@ def ibm_login(ctx):
 
 
 @task
+def ibm_ssh_redis(ctx):
+    config = get_faasm_config()
+    cmd = ["ssh", "root@{}".format(config["IBM"]["redis_host_public"])]
+    call(" ".join(cmd), shell=True)
+
+
+@task
 def ibm_set_up_cos(ctx):
     cmd = ["ibmcloud", "cos", "config", "auth", "iam"]
     call(" ".join(cmd), shell=True)

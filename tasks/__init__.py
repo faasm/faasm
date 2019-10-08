@@ -105,6 +105,7 @@ from tasks.ibm import (
     ibm_login,
     ibm_set_up_cos,
     ibm_set_up_redis,
+    ibm_ssh_redis,
 )
 from tasks.invoke import (
     invoke,
