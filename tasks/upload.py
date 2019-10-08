@@ -20,7 +20,7 @@ def _get_s3_key(user, func):
 @task
 def upload(ctx, user, func, host="127.0.0.1",
            s3=False, ibm=False, subdir=None,
-           py=False, ts=False, built=True):
+           py=False, ts=False, prebuilt=False):
     if py:
         func_file = join(PROJ_ROOT, "func", user, "{}.py".format(func))
 
@@ -31,7 +31,7 @@ def upload(ctx, user, func, host="127.0.0.1",
         url = "http://{}:8002/f/ts/{}".format(host, func)
         curl_file(url, func_file)
     else:
-        base_dir = FUNC_BUILD_DIR if built else WASM_DIR
+        base_dir = WASM_DIR if prebuilt else FUNC_BUILD_DIR
 
         if subdir:
             func_file = join(base_dir, user, subdir, "{}.wasm".format(func))
@@ -51,15 +51,15 @@ def upload(ctx, user, func, host="127.0.0.1",
             curl_file(url, func_file)
 
 
-def _do_upload_all(host=None, upload_s3=False, py=False, built=True):
+def _do_upload_all(host=None, upload_s3=False, py=False, prebuilt=True):
     to_upload = []
 
     if py:
         dir_to_walk = FUNC_DIR
-    elif built:
-        dir_to_walk = FUNC_BUILD_DIR
-    else:
+    elif prebuilt:
         dir_to_walk = WASM_DIR
+    else:
+        dir_to_walk = FUNC_BUILD_DIR
 
     extension = ".py" if py else ".wasm"
     url_part = "p" if py else "f"
@@ -102,8 +102,8 @@ def _do_upload_all(host=None, upload_s3=False, py=False, built=True):
 
 
 @task
-def upload_all(ctx, host="127.0.0.1", py=False):
-    _do_upload_all(host=host, py=py)
+def upload_all(ctx, host="127.0.0.1", py=False, prebuilt=False):
+    _do_upload_all(host=host, py=py, prebuilt=prebuilt)
 
 
 @task
