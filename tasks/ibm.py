@@ -110,18 +110,6 @@ def ibm_delete_worker(ctx, update=False):
 
 
 @task
-def ibm_clear_redis(ctx):
-    faasm_conf = get_faasm_config()
-    cmd = [
-        "redis-cli",
-        "-h {}".format(faasm_conf["IBM"]["redis_host_public"]),
-        "flushall"
-    ]
-
-    call(" ".join(cmd), shell=True)
-
-
-@task
 def ibm_codegen(ctx, user, func, local=False):
     if local:
         payload = {

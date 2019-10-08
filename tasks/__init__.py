@@ -89,13 +89,11 @@ from tasks.docker import (
     docker_push_base,
 )
 from tasks.docker_compose import (
-    docker_clear_queue,
     docker_start_all,
     docker_stop_all,
     docker_restart_all
 )
 from tasks.ibm import (
-    ibm_clear_redis,
     ibm_codegen,
     ibm_delete_worker,
     ibm_deploy_worker,
@@ -152,4 +150,9 @@ from tasks.upload import (
     upload_all_s3,
     upload,
 )
-from tasks.wasm2wast import wast
+from tasks.wasm2wast import (
+    wast
+)
+from tasks.redis import (
+    redis_clear_queue
+)

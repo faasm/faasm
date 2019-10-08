@@ -45,7 +45,7 @@ inv upload --host=<your k8s host> <user> <func>
 Invoking functions is a little different to normal Faasm functions and looks like:
 
 ```
-inv knative-invoke --host=<your k8s host> --port=<your invoke port> <user> <func>
+inv invoke --host=<your k8s host> --port=<your invoke port> <user> <func>
 ```
 
 ## Troubleshooting
