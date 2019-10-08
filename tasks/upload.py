@@ -35,6 +35,8 @@ def upload(ctx, user, func, host="127.0.0.1",
 
         if subdir:
             func_file = join(base_dir, user, subdir, "{}.wasm".format(func))
+        elif prebuilt:
+            func_file = join(base_dir, user, func, "function.wasm")
         else:
             func_file = join(base_dir, user, "{}.wasm".format(func))
 
@@ -51,13 +53,11 @@ def upload(ctx, user, func, host="127.0.0.1",
             curl_file(url, func_file)
 
 
-def _do_upload_all(host=None, port=8002, upload_s3=False, py=False, prebuilt=True):
+def _do_upload_all(host=None, port=8002, upload_s3=False, py=False):
     to_upload = []
 
     if py:
         dir_to_walk = FUNC_DIR
-    elif prebuilt:
-        dir_to_walk = WASM_DIR
     else:
         dir_to_walk = FUNC_BUILD_DIR
 
@@ -102,8 +102,8 @@ def _do_upload_all(host=None, port=8002, upload_s3=False, py=False, prebuilt=Tru
 
 
 @task
-def upload_all(ctx, host="127.0.0.1", port=8002, py=False, prebuilt=False):
-    _do_upload_all(host=host, port=port, py=py, prebuilt=prebuilt)
+def upload_all(ctx, host="127.0.0.1", port=8002, py=False):
+    _do_upload_all(host=host, port=port, py=py)
 
 
 @task

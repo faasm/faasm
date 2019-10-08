@@ -36,8 +36,9 @@ From here you need to note the invocation IP and port.
 Once you have the upload URL you can upload functions using the tasks in this repo.
 
 ```
+# Note, --prebuilt uses the functions checked into the repo
 source workon.sh
-inv upload --host=<your k8s host> <user> <func>
+inv upload --host=<your k8s host> --prebuilt <user> <func>
 ```
 
 ## Invoking functions
