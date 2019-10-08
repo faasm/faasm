@@ -1,0 +1,43 @@
+---
+
+- name: "Install packages"
+  become: yes
+  apt:
+    name:
+      - redis-server
+      - hugepages
+    state: present
+
+- name: "Turn off hugepages"
+  become: yes
+  shell: "sudo hugeadm --thp-never"
+
+- name: "Set up kernel params"
+  become: yes
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+  with_items:
+    - { name: "net.core.somaxconn", value: "65535"}
+    - { name: "vm.overcommit_memory", value: "1"}
+#    - { name: "net.ipv4.tcp_tw_recycle", value: "1"}
+#    - { name: "net.ipv4.tcp_tw_reuse", value: "1"}
+#    - { name: "net.ipv4.tcp_fin_timeout", value: "15"}
+
+- name: "Make triple sure this has been reloaded"
+  become: yes
+  shell: "sysctl -p"
+
+- name: "Copy redis.conf"
+  copy:
+    src: "redis.conf"
+    dest: /etc/redis/redis.conf
+  notify: restart-redis
+
+- name: "Start on boot"
+  service:
+    name: redis-server
+    state: started
+    enabled: yes

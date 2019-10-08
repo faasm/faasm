@@ -6,11 +6,15 @@ include_directories(
 )
 
 add_executable(
-        integration_tests
+        tests_ibm
         main.cpp
         ${TEST_FILES}
 )
 
-target_link_libraries(integration_tests test_utils scheduler wasm aws)
+target_link_libraries(tests_ibm
+        test_utils
+        scheduler
+        worker_ibm_lib
+        )
 
-add_test(NAME integration_tests COMMAND "integration_test/tests")
+add_test(NAME integration_tests COMMAND "tests_ibm/tests")

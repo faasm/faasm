@@ -6,8 +6,13 @@ RUN wget -q https://s3-eu-west-1.amazonaws.com/faasm-misc/faasm_runtime_root.tar
 RUN tar --no-same-owner -xf faasm_runtime_root.tar.gz
 RUN rm faasm_runtime_root.tar.gz
 
-# Build the worker binary
 COPY . /usr/local/code/faasm
+
+# Install pistache for HTTP
+WORKDIR /usr/local/code/faasm/ansible
+RUN ansible-playbook pistache.yml
+
+# Build the worker binary
 WORKDIR /faasm/build
 RUN cmake --build . --target worker -- -j
 

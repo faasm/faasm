@@ -7,11 +7,13 @@ configparser
 cryptography
 dulwich
 genshi
+ibm-cos-sdk
 invoke
 matplotlib
 numpy
 performance
 psutil
 PyOpenSSL
+pywren-ibm-cloud
 requests
 wheel

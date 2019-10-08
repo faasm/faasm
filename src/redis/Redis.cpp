@@ -43,8 +43,13 @@ namespace redis {
 
     std::string RedisInstance::loadScript(redisContext *context, const std::string &scriptBody) {
         auto reply = (redisReply *) redisCommand(context, "SCRIPT LOAD %s", scriptBody.c_str());
+
+        if(reply == nullptr) {
+            throw std::runtime_error("Error loading script from Redis");
+        }
+
         if (reply->type == REDIS_REPLY_ERROR) {
-            throw (std::runtime_error(reply->str));
+            throw std::runtime_error(reply->str);
         }
 
         std::string scriptSha = reply->str;

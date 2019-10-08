@@ -1,4 +1,5 @@
 #include <util/config.h>
+#include <storage/IBMFileLoader.h>
 
 #include "LocalFileLoader.h"
 #include "FileserverFileLoader.h"
@@ -14,6 +15,9 @@ namespace storage {
             return fl;
         } else if (conf.functionStorage == "s3") {
             static thread_local S3FileLoader fl;
+            return fl;
+        } else if(conf.functionStorage == "ibm") {
+            static thread_local IBMFileLoader fl;
             return fl;
         } else if (conf.functionStorage == "fileserver") {
             static thread_local FileserverFileLoader fl;

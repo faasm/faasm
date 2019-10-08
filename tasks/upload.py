@@ -5,7 +5,7 @@ from os.path import join
 from invoke import task
 
 from tasks.util.env import FUNC_BUILD_DIR, PROJ_ROOT, RUNTIME_S3_BUCKET, FUNC_DIR
-from tasks.util.upload_util import curl_file, upload_file_to_s3
+from tasks.util.upload_util import curl_file, upload_file_to_s3, upload_file_to_ibm
 
 DIRS_TO_INCLUDE = ["demo", "errors", "python", "polybench", "sgd", "tf"]
 
@@ -19,7 +19,7 @@ def _get_s3_key(user, func):
 
 @task
 def upload(ctx, user, func, host="127.0.0.1",
-           upload_s3=False, subdir=None,
+           s3=False, ibm=False, subdir=None,
            py=False, ts=False):
     if py:
         func_file = join(PROJ_ROOT, "func", user, "{}.py".format(func))
@@ -36,10 +36,14 @@ def upload(ctx, user, func, host="127.0.0.1",
         else:
             func_file = join(FUNC_BUILD_DIR, user, "{}.wasm".format(func))
 
-        if upload_s3:
+        if s3:
             print("Uploading {}/{} to S3".format(user, func))
             s3_key = _get_s3_key(user, func)
             upload_file_to_s3(func_file, RUNTIME_S3_BUCKET, s3_key)
+        if ibm:
+            print("Uploading {}/{} to IBM cloud storage".format(user, func))
+            ibm_key = _get_s3_key(user, func)
+            upload_file_to_ibm(func_file, RUNTIME_S3_BUCKET, ibm_key)
         else:
             url = "http://{}:8002/f/{}/{}".format(host, user, func)
             curl_file(url, func_file)

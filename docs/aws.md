@@ -53,8 +53,13 @@ There's an Ansible task that will set up all the relevant bits. You need to modi
 in `ansible/roles/aws/defaults/main.yml` to match your account, then run:
 
 ```
+# Set up the infra
 cd ansible
 ansible-playbook aws_infra.yml
+
+# Set up local config file
+cd ..
+inv generate-aws-config
 ```
 
 You can then use the corresponding task to tear down the components (Elasticache can be expensive):
