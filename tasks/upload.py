@@ -51,7 +51,7 @@ def upload(ctx, user, func, host="127.0.0.1",
             curl_file(url, func_file)
 
 
-def _do_upload_all(host=None, upload_s3=False, py=False, prebuilt=True):
+def _do_upload_all(host=None, port=8002, upload_s3=False, py=False, prebuilt=True):
     to_upload = []
 
     if py:
@@ -93,7 +93,7 @@ def _do_upload_all(host=None, upload_s3=False, py=False, prebuilt=True):
                     upload_file_to_s3(func_file, RUNTIME_S3_BUCKET, s3_key)
                 else:
                     print("Uploading {}/{} to host {}".format(user, func, host))
-                    url = "http://{}:8002/{}/{}/{}".format(host, url_part, user, func)
+                    url = "http://{}:{}/{}/{}/{}".format(host, port, url_part, user, func)
                     to_upload.append((url, func_file))
 
     # Pool of uploaders
@@ -102,8 +102,8 @@ def _do_upload_all(host=None, upload_s3=False, py=False, prebuilt=True):
 
 
 @task
-def upload_all(ctx, host="127.0.0.1", py=False, prebuilt=False):
-    _do_upload_all(host=host, py=py, prebuilt=prebuilt)
+def upload_all(ctx, host="127.0.0.1", port=8002, py=False, prebuilt=False):
+    _do_upload_all(host=host, port=port, py=py, prebuilt=prebuilt)
 
 
 @task
