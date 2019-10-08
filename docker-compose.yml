@@ -22,7 +22,7 @@ services:
     networks:
       - faasm-knative
 
-  knative-worker-1:
+  worker-1:
     image: faasm/knative-worker:latest
     depends_on:
       - redis-queue
@@ -36,7 +36,7 @@ services:
       faasm-knative:
         ipv4_address: 172.28.1.2
 
-  knative-worker-2:
+  worker-2:
     image: faasm/knative-worker:latest
     depends_on:
       - redis-queue
@@ -55,8 +55,8 @@ services:
       context: .
       dockerfile: docker/local-proxy.dockerfile
     depends_on:
-      - knative-worker-1
-      - knative-worker-2
+      - worker-1
+      - worker-2
     ports:
       - "8080:8080"
     networks:

@@ -1,0 +1,36 @@
+---
+
+- hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: "Add apt keys"
+      become: yes
+      apt_key:
+        url: "{{ item }}"
+        state: present
+      with_items:
+        - "https://packages.cloud.google.com/apt/doc/apt-key.gpg"
+
+    - name: "Add repos"
+      become: yes
+      apt_repository:
+        repo: "{{ item }}"
+        state: present
+      with_items:
+        - "deb http://apt.kubernetes.io/ kubernetes-xenial main"
+
+    - name: "Install k8s tools"
+      become: yes
+      apt:
+        update_cache: yes
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+
+    - name: "Download the knative client"
+      become: yes
+      get_url:
+        url: "https://storage.googleapis.com/knative-nightly/client/latest/kn-linux-amd64"
+        mode: "0755"
+        dest: "/usr/local/bin/kn"

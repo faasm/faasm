@@ -1,5 +1,4 @@
 import multiprocessing
-import pprint
 from json import dumps
 
 import requests
@@ -32,7 +31,8 @@ def _do_invoke(user, func, host, port, func_type, input=None):
 def invoke(ctx, user, func,
            host="127.0.0.1",
            input=None,
-           parallel=False, loops=1,
+           parallel=False,
+           loops=1,
            py=False,
            ts=False,
            async=False,
@@ -40,6 +40,8 @@ def invoke(ctx, user, func,
            ibm=False,
            legacy=False
            ):
+
+    faasm_config = get_faasm_config()
 
     if legacy:
         if py:
@@ -56,10 +58,10 @@ def invoke(ctx, user, func,
 
     port = 8080 if knative or ibm else 8001
 
-    url = "http://{}:{}/".format(host, port)
-
     if ibm:
-        url += "run/"
+        host = faasm_config["IBM"]["k8s_subdomain"]
+
+    url = "http://{}:{}/".format(host, port)
 
     msg = {
         "user": user,

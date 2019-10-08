@@ -9,7 +9,7 @@ from invoke import task
 from tasks.util.config import get_faasm_config
 from tasks.util.env import RUNTIME_S3_BUCKET, STATE_S3_BUCKET, MISC_S3_BUCKET, DATA_S3_BUCKET, TEST_S3_BUCKET, \
     ANSIBLE_ROOT
-from tasks.util.ibm import IBM_PYWREN_BUCKET
+from tasks.util.ibm import get_ibm_kubeconfig
 
 
 @task
@@ -46,7 +46,6 @@ def ibm_set_up_cos(ctx):
 @task
 def ibm_create_buckets(ctx):
     bucket_names = [
-        IBM_PYWREN_BUCKET,
         RUNTIME_S3_BUCKET,
         STATE_S3_BUCKET,
         MISC_S3_BUCKET,
@@ -193,3 +192,32 @@ def ibm_set_up_redis(ctx):
     ]
 
     call(" ".join(cmd), cwd=ANSIBLE_ROOT, shell=True)
+
+
+@task
+def ibm_k8s_add_knative(ctx):
+    faasm_conf = get_faasm_config()
+
+    print("Enabling knative")
+    cmd = [
+        "ibmcloud", "ks", "cluster-addon-enable", "knative", "--cluster", faasm_conf["IBM"]["k8s_cluster_id"],
+    ]
+
+    call(" ".join(cmd), shell=True)
+
+
+@task
+def ibm_k8s_config(ctx):
+    faasm_conf = get_faasm_config()
+
+    print("Getting cluster config")
+    cmd = [
+        "ibmcloud", "ks", "cluster", "config", "--cluster", faasm_conf["IBM"]["k8s_cluster_id"]
+    ]
+
+    call(" ".join(cmd), shell=True)
+
+
+@task
+def ibm_print_kubeconf(ctx):
+    print("export KUBECONFIG={}".format(get_ibm_kubeconfig()))

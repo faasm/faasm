@@ -100,7 +100,10 @@ from tasks.ibm import (
     ibm_delete_worker,
     ibm_deploy_worker,
     ibm_invoke,
+    ibm_k8s_add_knative,
+    ibm_k8s_config,
     ibm_create_buckets,
+    ibm_print_kubeconf,
     ibm_list,
     ibm_login,
     ibm_set_up_cos,
@@ -109,6 +112,9 @@ from tasks.ibm import (
 )
 from tasks.invoke import (
     invoke,
+)
+from tasks.knative import (
+    k8s_deploy,
 )
 from tasks.python import (
     clear_runtime_pyc,
