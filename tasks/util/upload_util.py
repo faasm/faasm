@@ -4,10 +4,7 @@ from subprocess import call
 
 import boto3
 
-from tasks.util.config import get_faasm_config
 from tasks.util.env import AWS_REGION
-import ibm_boto3
-from ibm_botocore.client import Config, ClientError
 
 _s3 = None
 
