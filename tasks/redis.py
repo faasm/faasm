@@ -34,6 +34,7 @@ def redis_clear_queue(ctx, docker_compose=False, knative=False, ibm=False):
         cmd = ["redis-cli", "flushall"]
 
     cmd_string = " ".join(cmd)
+    print(cmd_string)
     ret_code = call(" ".join(cmd), shell=True, cwd=PROJ_ROOT)
 
     if ret_code != 0:
