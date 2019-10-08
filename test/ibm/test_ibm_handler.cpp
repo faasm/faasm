@@ -30,6 +30,7 @@ namespace tests {
 
         std::string requestStr;
         ibm::IBMEndpoint endpoint;
+        endpoint.testMode = true;
         endpoint.doHandleInit(requestStr);
 
         REQUIRE(conf.functionStorage == "ibm");
@@ -56,12 +57,16 @@ namespace tests {
     }
 
     void checkIbmResponse(Document &d, const std::string &expectedText, int expectedStatusCode) {
+        // Make sure it's async
+        d["value"].AddMember("async", true, d.GetAllocator());
+
         StringBuffer sb;
         Writer<StringBuffer> writer(sb);
         d.Accept(writer);
         std::string jsonStr = sb.GetString();
 
         ibm::IBMEndpoint endpoint;
+        endpoint.testMode = true;
         const std::string actual = endpoint.doHandleCall(jsonStr);
 
         Document d2;
@@ -77,40 +82,52 @@ namespace tests {
         cleanSystem();
 
         Document d = createJsonRequest("demo", "echo", "invoke");
+        std::string expected = "Async request received";
 
-        std::string expected;
         SECTION("No input") {
-            expected = "Nothing to echo\n";
+
         }
 
         SECTION("With input") {
             d["value"].AddMember("input", StringRef("foobarbaz"), d.GetAllocator());
-            expected = "foobarbaz\n";
         }
 
+        message::Message msg = util::messageFactory("demo", "echo");
         checkIbmResponse(d, expected, 200);
+
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        REQUIRE(sch.getFunctionQueueLength(msg) == 1);
+        REQUIRE(sch.getBindQueue()->size() == 1);
     }
 
     TEST_CASE("Test invalid invocations", "[ibm]") {
         Document d;
         std::string expected;
+        message::Message msg;
 
         SECTION("No user") {
-            d = createJsonRequest("", "function", "invoke");
+            msg = util::messageFactory("", "echo");
+            d = createJsonRequest("", "echo", "invoke");
             expected = "User and function must be present in request";
         }
 
         SECTION("No function") {
+            msg = util::messageFactory("demo", "");
             d = createJsonRequest("demo", "", "invoke");
             expected = "User and function must be present in request";
         }
 
         SECTION("Invalid mode") {
+            msg = util::messageFactory("demo", "echo");
             d = createJsonRequest("demo", "echo", "afafaf");
             expected = "Invalid call mode";
         }
 
         checkIbmResponse(d, expected, 200);
+
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        REQUIRE(sch.getFunctionQueueLength(msg) == 0);
+        REQUIRE(sch.getBindQueue()->size() == 0);
     }
 
     TEST_CASE("Test codegen", "[ibm]") {

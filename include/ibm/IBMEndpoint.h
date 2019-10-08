@@ -25,6 +25,7 @@ namespace ibm {
 
         void stop();
 
+        bool testMode = false;
     private:
         Pistache::Rest::Router router;
         worker::WorkerMain *workerMain;

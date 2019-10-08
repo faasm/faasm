@@ -114,7 +114,7 @@ namespace ibm {
         }
 
         // Start up the worker if not started already
-        if (!started) {
+        if (!started && !testMode) {
             util::UniqueLock lock(startedMutex);
             if (!started) {
                 logger->info("Starting worker pool");
@@ -148,6 +148,12 @@ namespace ibm {
             msg.set_inputdata(getStringFromJson(requestJson, "input"));
         } catch (util::JsonFieldNotFound &ex) {
             // Fine to have no input
+        }
+
+        // Check for async
+        rapidjson::Value::MemberIterator it = requestJson["value"].FindMember("async");
+        if (it != requestJson["value"].MemberEnd()) {
+            msg.set_isasync(it->value.GetBool());
         }
 
         // Do the actual execution
