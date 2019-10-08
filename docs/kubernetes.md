@@ -36,9 +36,14 @@ From here you need to note the invocation IP and port.
 Once you have the upload URL you can upload functions using the tasks in this repo.
 
 ```
-# Note, --prebuilt uses the functions checked into the repo
 source workon.sh
-inv upload --host=<your k8s host> --prebuilt <user> <func>
+
+# C++ functions
+# Note, --prebuilt uses the functions checked into the repo
+inv upload --host=<upload IP> --prebuilt <user> <func>
+
+# All Python functions
+inv upload-all --host=<upload IP> --py
 ```
 
 ## Invoking functions
@@ -47,6 +52,14 @@ Invoking functions is a little different to normal Faasm functions and looks lik
 
 ```
 inv invoke --host=<your k8s host> --port=<your invoke port> <user> <func>
+```
+
+## Flushing Redis
+
+When workers die or are killed, you'll need to clear the queue:
+
+```
+inv redis-clear-queue --knative
 ```
 
 ## Troubleshooting
