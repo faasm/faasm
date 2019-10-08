@@ -15,15 +15,16 @@ ansible-playbook assemblyscript.yml --ask-become-pass
 
 The Typescript functions live at `typescript/assembly`. 
 
-To build Typescript functions to wasm you can run:
+To build Typescript the `echo` function you can run:
 
 ```
 source workon.sh
-inv compile --ts --func=<func_name>
+inv compile --ts --func=echo
 ```
 
 You can then upload them to Faasm (provided an upload server is running):
 
 ```
-inv upload --ts ts <func_name>
+inv upload --ts ts echo
 ```
+

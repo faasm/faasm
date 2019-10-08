@@ -157,7 +157,6 @@ namespace tests {
             std::vector<uint8_t> fileBytes = util::readFileToBytes("/usr/local/code/faasm/test/upload/dummy.py");
 
             // Prepare
-            util::SystemConfig &conf = util::getSystemConfig();
             message::Message msg = util::messageFactory("py-test", "foo");
             std::string expectedFile = util::getPythonFunctionFile(msg);
             boost::filesystem::remove(expectedFile);

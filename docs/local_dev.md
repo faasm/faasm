@@ -4,8 +4,7 @@ Below are instructions for building, testing and developing.
 
 ## Tools/ system deps
 
-Python, [Ansible](https://www.ansible.com/) and [Invoke](http://docs.pyinvoke.org/en/1.2/index.html) are required
-along with a couple of system dependencies.
+Python, [Ansible](https://www.ansible.com/) and [Invoke](http://docs.pyinvoke.org/en/1.2/index.html) are required along with a couple of system dependencies.
 
 The easiest way to install all of them is as follows:
 
@@ -87,43 +86,60 @@ sudo ./bin/cgroup.sh
 
 ## Toolchain
 
-The Faasm toolchain currently requires a custom build of LLVM. Set-up instructions can be found in the README of the `toolchain` dir in this project.
-
-## Libc
-
-We use our own custom musl port with a custom malloc, which can be built and installed by running:
+The Faasm toolchain currently requires a custom build of LLVM. More info can be found in the `toolchain.md` file in this project. You need to run:
 
 ```
-./bin/build_musl.sh
-inv compile-malloc
+inv download-toolchain
 ```
 
-## Libfaasm
+## Codegen and Upload
 
-To set up our library utilities, run:
+To run the next parts you'll need to build the following targets:
+
+- `codegen_func`
+- `codgen_shared_obj`
+- `upload` 
+
+If doing an out of tree build with CMake, put it in a new `build` subdirectory so the python scripts can find the executables.
+
+## Codegen for C++ functions
+
+To run the codegen for all the C++ functions:
 
 ```
-inv compile-libfaasm
+inv run-local-codegen
 ```
 
-## Python runtime
+## Runtime files and Python
 
-You an pull down the prepackaged python runtime using:
+You can pull down the prepackaged python runtime and required runtime files with:
 
 ```
 inv download-python-runtime
 ```
 
-## Docker images
+You then need to build the `upload` target and run it (to start an upload server), then you can upload the Python functions with:
 
-The Docker images are structured to minimise rebuilding time. They are as follows:
+```
+inv upload-all --py
+```
 
-- `faasm/cpp-base` - minimal C++ tooling and protobuf
-- `faasm/base` - includes all dependencies and WAVM
-- `faasm/worker`, `faasm/upload` and `faasm/edge` - hold the different application components
-- `faasm/toolchain` - stand-alone container holding the toolchain
+## Tensorflow data
+
+To allow running the demo TensorFlow function, you need to run:
+
+```
+inv set-up-tensorflow-data
+```
+
+## Typescript
+
+You can set up the Typescript function according to the `typescript.md` doc.
 
 ## Tests
 
-Tests can be run with the `tests` target of this project.
+Once everything is set up you can generate the test files and run the tests via the `tests` target:
 
+```
+inv compile-libfake
+```
