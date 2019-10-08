@@ -113,6 +113,7 @@ from tasks.invoke import (
 )
 from tasks.knative import (
     k8s_deploy,
+    k8s_delete_worker,
 )
 from tasks.python import (
     clear_runtime_pyc,
