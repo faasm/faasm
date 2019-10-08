@@ -30,6 +30,7 @@ def _do_invoke(user, func, host, port, func_type, input=None):
 @task
 def invoke(ctx, user, func,
            host="127.0.0.1",
+           port=None,
            input=None,
            parallel=False,
            loops=1,
@@ -56,7 +57,7 @@ def invoke(ctx, user, func,
     else:
         prefix = None
 
-    port = 8080 if knative or ibm else 8001
+    port = port if port else (8080 if knative or ibm else 8001)
 
     if ibm:
         host = faasm_config["IBM"]["k8s_subdomain"]

@@ -32,9 +32,21 @@ def _kubectl_apply(path, env=None):
 
 
 @task
+def k8s_delete_worker(ctx):
+    cmd = [
+        "kn", "service", "delete", "faasm-worker", "--namespace=faasm"
+    ]
+
+    cmd_str = " ".join(cmd)
+    print(cmd_str)
+    call(cmd_str, shell=True)
+
+
+
+@task
 def k8s_deploy(ctx, local=False, bare_metal=False, ibm=False):
     if not local and not bare_metal and not ibm:
-        print("Must provide one flag from local, bare_metal and ibm")
+        print("Must provide one flag from local, bare-metal and ibm")
         return
 
     faasm_conf = get_faasm_config()
@@ -49,7 +61,7 @@ def k8s_deploy(ctx, local=False, bare_metal=False, ibm=False):
         "autoscaling.knative.dev/target=4",  # In-flight requests per pod
     ]
 
-    worker_image = "faasm/knative-worker:latest"
+    worker_image = "faasm/knative-worker"
 
     worker_env = {
         "REDIS_STATE_HOST": "redis-state",
@@ -73,6 +85,11 @@ def k8s_deploy(ctx, local=False, bare_metal=False, ibm=False):
         worker_env.update({
             "FUNCTION_STORAGE": "ibm",
             "IBM_API_KEY": faasm_conf["IBM"]["api_key"],
+        })
+    elif bare_metal:
+        worker_env.update({
+            "FUNCTION_STORAGE": "fileserver",
+            "FILESERVER_URL": "http://upload:8002"
         })
 
     # Deploy the other K8s stuff (e.g. redis)
