@@ -2,34 +2,25 @@
 
 [![Build Status](https://travis-ci.org/lsds/Faasm.svg?branch=master)](https://travis-ci.org/lsds/Faasm)
 
-Faasm is a high-performance multi-tenant serverless runtime. It is intended for integration into
-other larger serverless platforms, not as a stand-alone system.
+Faasm is a high-performance multi-tenant serverless runtime. It is intended for integration into other serverless platforms, not as a stand-alone system.
 
 By using WebAssembly to run users' code, we can combine software fault isolation with 
-standard OS tooling to provide strong security and resource isolation guarantees at low cost.
+standard OS tooling to provide security and resource isolation guarantees at low cost.
 
-This lightweight isolation enables excellent performance and allows sharing of data between 
-colocated functions through shared memory.
+This lightweight isolation enables excellent performance and allows sharing of data between colocated functions through shared memory.
 
-Faasm currently supports C/C++ and Python. C/C++ are compiled using the stanard LLVM WebAssembly toolchain,
-while Python support is offered by compiling CPython itself to WebAssembly.
+Faasm currently supports C/C++ and Python. C/C++ are compiled using the stanard LLVM WebAssembly toolchain, while Python support is offered by compiling CPython itself to WebAssembly.
 
-Faasm uses its own custom host interface to allow functions to interact with the runtime, as well as
-provide secure access to networking and state. This is not dissimilar to WASI, but the Faasm interface focuses
-solely on a server-side POSIX environment, thus exposes more of the underlying host functionality.
+Faasm uses its own custom host interface to allow functions to interact with the runtime, as well as provide secure access to networking and state. This is not dissimilar to WASI, but the Faasm interface focuses solely on a server-side POSIX environment, thus exposes more of the underlying host functionality.
 
-The WebAssembly execution and code generation is handled by [WAVM](https://github.com/WAVM/WAVM),
-an excellent server-side WebAssembly VM. The Python support is thanks to the
+The WebAssembly execution and code generation is handled by [WAVM](https://github.com/WAVM/WAVM), an excellent server-side WebAssembly VM. The Python support is thanks to the
 [Pyodide](https://github.com/iodide-project/pyodide) project.
 
 This is primarily a research project. Other serverless WebAssembly runtimes are available.
 
 # Quick start
 
-You can start a simple Faasm runtime using the `docker-compose.yml` file in the root of the project. This
-creates a simple serverless system on the local machine with an `edge` container for receiving requests, an
-`upload` container for handling uploads of functions and states, and a `worker` container holding the runtime
-itself. There is also a `redis` container used for communication between the others.
+You can start a simple Faasm runtime using the `docker-compose.yml` file in the root of the project. This creates a couple of worker instances as well as an upload endpoint for receiving function data and state. There is also a Redis container used for communication between the workers.
 
 You can start it by running:
 
@@ -39,11 +30,9 @@ docker-compose up
 
 ## Compiling a C++ function
 
-C++ functions are built with CMake and held in the `func` directory. `demo/hello.cpp` is a simple hello world
-function.
+C++ functions are built with CMake and held in the `func` directory. `demo/hello.cpp` is a simple hello world function.
 
-The Faasm toolchain is packaged in the `faasm/toolchain` container and can be run with the `bin/toolchain.sh`
-script, i.e.:
+The Faasm toolchain is packaged in the `faasm/toolchain` container and can be run with the `bin/toolchain.sh` script, i.e.:
 
 ```
 ./bin/toolchain.sh
@@ -66,11 +55,9 @@ You should then see the response `Hello faasm!`.
 
 ## Running a Python function
 
-As mentioned above, Python functions are handled by executing the code in a WebAssembly-compiled version of
-CPython. Every function is running the same underlying WebAssembly module, just dynamically loading a different
-Python file. As a result, the commands are slightly different.
+As mentioned above, Python functions are handled by executing the code in a WebAssembly-compiled version of CPython. Every function is running the same underlying WebAssembly module, just dynamically loading a different Python file. As a result, the commands are slightly different.
 
-An example Python function is found at `funcs/python/hello.py`.
+An example Python function is found at `funcs/python/hello.py`. This can be uploaded with:
 
 ```
 inv upload --py python hello
@@ -84,13 +71,11 @@ inv invoke --py python hello
 
 # Writing functions
 
-Faasm aims to be uninvasive, allowing code to run natively _and_ in a serverless context. This is important for
-local development and testing as well as porting existing applications.
+Faasm aims to be uninvasive, allowing code to run natively _and_ in a serverless context. This is important for local development and testing as well as porting existing applications.
 
 ## C++
 
-C++ functions make use of the Faasm macros. These macros mean the code can be compiled with a standard toolchain
-and run natively, but when compiled with the Faasm toolchain, will run in a serverless context.
+C++ functions make use of the Faasm macros. These macros mean the code can be compiled with a standard toolchain and run natively, but when compiled with the Faasm toolchain, will run in a serverless context.
 
 ```
 #include "faasm/faasm.h"
@@ -106,8 +91,7 @@ Some example functions can be found in the `func/demo` directory.
 
 ## The Faasm API
 
-Faasm allows users functions to interact with the underlying system to accomplish a number of things, mainly
-accessing input and providing output, interacting with distributed state, and invoking other functions.
+Faasm allows users functions to interact with the underlying system to accomplish a number of things e.g. accessing input and output, interacting with distributed state, and invoking other functions.
 
 Some of the methods include:
 
@@ -120,9 +104,7 @@ Some of the methods include:
 
 ## Chaining
 
-"Chaining" is when one function makes a call to another function (which must be owned by the same user).
-There are two supported methods of chaining, one for invoking totally separate Faasm functions, the other for
-automatically parallelising functions in the same piece of code (useful for porting legacy applications).
+"Chaining" is when one function makes a call to another function (which must be owned by the same user). There are two supported methods of chaining, one for invoking totally separate Faasm functions, the other for automatically parallelising functions in the same piece of code (useful for porting legacy applications).
 
 ### Chaining a different Faasm function
 
@@ -180,8 +162,9 @@ FAASM_FUNC(funcTwo, 1) {
 ## State
 
 All of a users' functions have access to shared state. This state is implemented as a 
-simple key-value store and accessed by the functions `faasmReadState` and `faasmWriteState`.
-Values read and written to this state must be byte arrays.
+simple key-value store and accessed by the functions `faasmReadState` and `faasmWriteState`. Values read and written to this state must be byte arrays.
+
+State can be dealt with in a read-only or lock-free manner (and shared in regions of shared memory with colocated functions), or via synchronous distributed locks.
 
 A function accessing state will look something like:
 
@@ -227,8 +210,7 @@ This can be called with:
 curl http://localhost:8002/s/user123/my_key -X PUT -d "your data"
 ```
 
-This state can then be accessed in your functions using the specified key. For larger state, 
-you can also upload a file:
+This state can then be accessed in your functions using the specified key. For larger state, you can also upload a file:
 
 ```
 curl http://localhost:8002/s/user123/my_key -X PUT -T /tmp/my_state_file
@@ -236,15 +218,13 @@ curl http://localhost:8002/s/user123/my_key -X PUT -T /tmp/my_state_file
 
 Where `/tmp/my_state_file` contains binary data you wish to be inserted at your specified key.
 
-## Zygotes
+## Proto-functions
 
-Zygotes are a way to reduce the initialisation time of functions. They are a chunk of code that
-executes once and is then used to spawn all subsequent function invocations. The complete state of
-the function after zygote execution is duplicated for all subsequent function invocations.
+Proto-functions are a way to reduce the initialisation time of functions. They are a chunk of code that executes once and is then used to spawn all subsequent function invocations. The complete state of the function after proto-function execution is duplicated for all subsequent function invocations.
 
-The zygote should be idempotent as it may be run more than once.
+The proto-function should be idempotent as it may be run more than once.
 
-Zygote code is marked up with the `FAASM_ZYGOTE` macro:
+Proto-function code is marked up with the `FAASM_ZYGOTE` macro:
 
 ```
 #include "faasm/faasm.h"
@@ -266,43 +246,12 @@ FAASM_MAIN_FUNC() {
 }
 ```
 
+# Scheduling and Work Sharing
+
+Faasm workers schedule tasks via a standard work-sharing approach. This means function calls are distributed randomly, and workers will hand them off to another worker if that worker is better suited to execute it. This means functions will always be run by the same worker (hence able to share local in-memory state), provided resources are available.
+
+In auto-scaling environments such as KNative, the workers will auto-scale to meet demand.
+
 # Integrations
 
-Faasm aims to be pluggable so that it can integrate into other serverless platforms. This pluggability
-includes the following:
-
-- Function input (JSON or serialised protobuf objects)
-- Function storage (S3 or NFS)
-- Message queues (Redis or SQS)
-
-## AWS Lambda
-
-The Faasm runtime can be used with AWS Lambda, but requires some fiddles. This is because Faasm executes multiple
-functions in the same container, whereas Lambda takes a one-function-per-container approach. To get around
-this we can do the following:
-
-- Use the Lambda C++ runtime to create a Faasm worker Lambda
-- Have this Lambda dynamically load function code from S3 when needed
-- Create "edge" Lambdas for each function
-- Forward requests from edge Lambdas to the Faasm workers via an SQS queue
-
-## Provisioning the Lambda environment
-
-Setting up a Faasm deployment on Lambda can be done with the Ansible scripts in the `ansible` directory, namely:
-
-```
-cd ansible
-ansible-playbook aws_lambda.yml
-```
-
-This requires that you have locally configured the AWS SDK. Note that this set-up needs to create an Elasticache
-Redis instance which takes a while to provision. This Elasticache instance is also costly to maintain, so
-_make sure you tear things down once done!_. This is done with:
-
-```
-ansible-playbook aws_teardown.yml
-```
-
-## Deploying functions to Lambda
-
-_TODO_
+Faasm's recommended integration is with [KNative](https://cloud.google.com/knative/), although it also works with AWS Lambda and IBM Cloud Functions. For more information consult the `docs` folder.
