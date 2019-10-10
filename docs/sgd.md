@@ -37,7 +37,19 @@ inv reuters-state-upload-s3
 inv reuters-prepare-aws
 ```
 
-## Parsing from scratch (one off)
+## Invoking the function
+
+You can invoke the process with:
+
+```
+inv invoke sgd reuters_svm
+```
+
+## Native run
+
+To run the SGD code natively, you need to download the pre-processed data, upload it to the local Redis state storage, then build and execute the main SGD function natively.
+
+# Preparing data from scratch (one off)
 
 To actually generate the parsed data in the first place, we must use exactly the same RCV1 data as the original
 Hogwild experiments. The original code can be found on their [website](http://i.stanford.edu/hazy/victor/Hogwild/).
@@ -59,6 +71,3 @@ cd /usr/local/code/hogwild
 inv reuters-upload-s3
 ```
 
-## Native run
-
-To run the SGD code natively, you need to download the pre-processed data, upload it to the local Redis state storage, then build and execute the main SGD function natively.

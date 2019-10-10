@@ -114,6 +114,12 @@ namespace tests {
 
         REQUIRE(msg.idx() == 22);
         REQUIRE(msg.function() == "foobar__022__");
+
+        // Run on already indexed message
+        util::setMessageIdx(msg, 44);
+
+        REQUIRE(msg.idx() == 44);
+        REQUIRE(msg.function() == "foobar__044__");
     }
 
     TEST_CASE("Test adding idx to function name", "[util]") {

@@ -285,8 +285,10 @@ namespace util {
     void setMessageIdx(message::Message &msg, int idx) {
         msg.set_idx(idx);
 
-        // Must also modify the function name
-        msg.set_function(addIdxToFunction(msg.function(), idx));
+        // Must also modify the function name and tolerate chained calls
+        // from other chained calls
+        const std::string baseFuncName = util::stripIdxFromFunction(msg.function());
+        msg.set_function(addIdxToFunction(baseFuncName, idx));
     }
 
     std::string resultKeyFromMessageId(unsigned int mid) {
