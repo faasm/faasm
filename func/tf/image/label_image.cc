@@ -32,6 +32,7 @@
 #include "tensorflow/lite/tools/evaluation/utils.h"
 
 #include <faasm/time.h>
+#include <faasm/input.h>
 
 namespace tflite {
     namespace label_image {
@@ -240,11 +241,14 @@ int main(int argc, char **argv) {
     }
     FAASM_PROF_END(readLabels)
 
+    std::string outputStr;
     for (const auto &result : top_results) {
         const float confidence = result.first;
         const int index = result.second;
         printf("%f: %i %s\n", confidence, index, labels[index].c_str());
+        outputStr += std::to_string(confidence) + ": " + std::to_string(index) + " " + labels[index] + "\n";
     }
 
+    faasm::setStringOutput(outputStr.c_str());
     return 0;
 }

@@ -14,6 +14,9 @@ namespace storage {
 
     std::vector<uint8_t> _doLoadFromUrl(const std::string &url, const std::string &path) {
         std::string header;
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        logger->debug("Loading from fileserver at {}", url);
 
         if (!path.empty()) {
             header = std::string(FILE_PATH_HEADER) + ":" + path;
@@ -28,7 +31,6 @@ namespace storage {
         }
 
         if (fileBytes.empty()) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Empty response for file at {}", url);
             throw util::InvalidFunctionException();
         }

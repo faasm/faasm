@@ -27,11 +27,23 @@ This requires a number of shared files to be available, so once you have an envi
 inv set-up-tensorflow-data
 ```
 
-Then to compile, upload and execute the function:
+You can use the prebuilt function with:
+
+```
+inv upload tf image --prebuilt
+```
+
+Or compile and upload yourself:
 
 ```
 inv compile --func=image
 inv upload tf image --subdir=image
+```
+
+Then you can invoke it with:
+
+```
 inv invoke tf image
 ```
+
 
