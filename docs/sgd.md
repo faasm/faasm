@@ -17,7 +17,7 @@ inv reuters-download-s3
 
 ## State upload
 
-Once you have the parse data, this can put into the relevant state store:
+This can put into the relevant state store:
 
 ```
 # Locally (make sure upload server is running)

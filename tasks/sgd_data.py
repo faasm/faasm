@@ -6,6 +6,7 @@ from invoke import task
 
 from tasks.aws import invoke_lambda
 from tasks.util.env import HOME_DIR, STATE_S3_BUCKET, DATA_S3_BUCKET
+from tasks.util.state import upload_binary_state, upload_sparse_matrix
 from tasks.util.upload_util import curl_file, upload_file_to_s3, download_file_from_s3
 
 _DATA_TAR_NAME = "reuters.tar.gz"
@@ -13,7 +14,6 @@ _DATA_TAR_PATH = "/tmp/{}".format(_DATA_TAR_NAME)
 _DATA_DIR = join(HOME_DIR, "faasm", "data")
 _TAR_DIR_NAME = "reuters"
 _FULL_DATA_DIR = join(_DATA_DIR, _TAR_DIR_NAME)
-
 
 _ALL_REUTERS_STATE_KEYS = [
     "feature_counts",
@@ -23,10 +23,6 @@ _ALL_REUTERS_STATE_KEYS = [
     "inputs_size",
     "inputs_vals",
     "outputs",
-]
-
-_SPARSE_MATRIX_PARTS = [
-    "vals", "innr", "outr", "size", "nonz"
 ]
 
 
@@ -56,7 +52,7 @@ def reuters_upload_s3(ctx):
 def reuters_download_s3(ctx):
     """
     Downloads Reuters data
-    # """
+    """
     # Clear out existing
     print("Removing existing")
     rmtree(join(_DATA_DIR, _TAR_DIR_NAME))
@@ -99,32 +95,12 @@ def _do_reuters_upload(host=None, s3_bucket=None):
     user = "sgd"
 
     # Upload the matrix data
-    _upload_sparse_matrix(user, "inputs", _FULL_DATA_DIR, host=host, s3_bucket=s3_bucket)
+    upload_sparse_matrix(user, "inputs", _FULL_DATA_DIR, host=host, s3_bucket=s3_bucket)
 
     # Upload the categories data
     cat_path = join(_FULL_DATA_DIR, "outputs")
-    _upload_binary_file(user, "outputs", cat_path, host=host, s3_bucket=s3_bucket)
+    upload_binary_state(user, "outputs", cat_path, host=host, s3_bucket=s3_bucket)
 
     # Upload the feature counts
     counts_path = join(_FULL_DATA_DIR, "feature_counts")
-    _upload_binary_file(user, "feature_counts", counts_path, host=host, s3_bucket=s3_bucket)
-
-
-def _upload_sparse_matrix(user, key, directory, host=None, s3_bucket=None):
-    for f in _SPARSE_MATRIX_PARTS:
-        this_key = "{}_{}".format(key, f)
-        file_path = join(directory, f)
-
-        _upload_binary_file(user, this_key, file_path, host=host, s3_bucket=s3_bucket)
-
-
-def _upload_binary_file(user, key, binary_file, host=None, s3_bucket=None):
-    print("Uploading binary file at {} for user {}".format(binary_file, user))
-
-    if s3_bucket:
-        s3_key = "{}/{}".format(user, key)
-        print("Uploading matrix binary to S3 {} -> {}/{}".format(key, s3_bucket, s3_key))
-        upload_file_to_s3(binary_file, s3_bucket, s3_key)
-    else:
-        url = "http://{}:8002/s/{}/{}".format(host, user, key)
-        curl_file(url, binary_file)
+    upload_binary_state(user, "feature_counts", counts_path, host=host, s3_bucket=s3_bucket)
