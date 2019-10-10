@@ -33,7 +33,7 @@ namespace wasm {
         }
     }
 
-    int _makeChainedCall(std::string functionName, int idx, const std::vector<uint8_t> &inputData) {
+    int _makeChainedCall(const std::string &functionName, int idx, const std::vector<uint8_t> &inputData) {
         scheduler::Scheduler &sch = scheduler::getScheduler();
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -41,19 +41,10 @@ namespace wasm {
 
         message::Message call = util::messageFactory(originalCall->user(), functionName);
         call.set_inputdata(inputData.data(), inputData.size());
+        call.set_idx(idx);
 
         const std::string origStr = util::funcToString(*originalCall, false);
-
-        util::setMessageIdx(call, idx);
         const std::string chainedStr = util::funcToString(call, false);
-
-        // TODO: Avoid this approach to recursive calls, add some option of delay in the scheduler?
-        // Wait a bit before making a recursive call
-        if (originalCall->function() == call.function() && idx == 0) {
-            logger->debug("Delaying chained call {} -> {}", origStr, chainedStr);
-            uint microseconds = (uint) 500 * 1000; // 500ms
-            usleep(microseconds);
-        }
 
         logger->debug("Chaining {} -> {}", origStr, chainedStr);
         sch.callFunction(call);

@@ -195,17 +195,23 @@ namespace scheduler {
 
     void Scheduler::addWarmThreads(const message::Message &msg) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
-        // Get the max queue ratio for this function
-        int maxQueueRatio = conf.maxQueueRatio;
 
-        // TODO make this configurable
-        if (msg.function() == "sgd_step") {
-            // No queueing
-            maxQueueRatio = 0;
+        // Get the max queue ratio. When this is a normal call,
+        // this will be the standard config value. When executing a chained
+        // call we want to scale out immediately if possible
+        bool isChained = msg.idx() > 0;
+        int maxQueueRatio;
+
+        if(isChained) {
+            // Want an immediately available thread, i.e. queue ratio < 1
+            maxQueueRatio = 1.0;
+        } else {
+            // Otherwise default
+            maxQueueRatio = conf.maxQueueRatio;
         }
 
         double queueRatio = this->getFunctionQueueRatio(msg);
-        double nThreads = this->getFunctionThreadCount(msg);
+        long nThreads = this->getFunctionThreadCount(msg);
 
         const std::string funcStr = util::funcToString(msg, false);
         logger->debug("{} queue ratio = {} threads = {}", funcStr, queueRatio, nThreads);
@@ -243,8 +249,7 @@ namespace scheduler {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
         // If we're ignoring the scheduling, just put it on this node regardless
-        bool ignoreScheduler = conf.noScheduler == 1;
-        if (ignoreScheduler) {
+        if (conf.noScheduler == 1) {
             logger->debug("Ignoring scheduler and queueing {} locally", util::funcToString(msg, true));
             return nodeId;
         }
@@ -254,13 +259,15 @@ namespace scheduler {
         {
             SharedLock lock(mx);
 
-            // If we have some warm threads below the max, we can handle locally
+            // Get the thread count for this function on this node
             long threadCount = this->getFunctionThreadCount(msg);
+
+            // If we have some warm threads below the max, we can handle locally
             if (threadCount > 0 && threadCount < conf.maxWorkersPerFunction) {
                 return nodeId;
-            } else if (threadCount == conf.maxWorkersPerFunction) {
-                // If we're at the max workers, we want to saturate so that all are full,
-                // i.e. we want to get up to the maximum queue ratio
+            } else if (threadCount >= conf.maxWorkersPerFunction) {
+                // If we're at/ above the max workers, we want to saturate so that all
+                // are full, i.e. we want to get up to the maximum queue ratio
                 double queueRatio = this->getFunctionQueueRatio(msg);
 
                 if (queueRatio >= conf.maxQueueRatio) {

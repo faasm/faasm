@@ -16,14 +16,14 @@ namespace zygote {
     }
 
     std::string ZygoteRegistry::getZygoteKey(const message::Message &msg) {
-        std::string funcName = util::stripIdxFromFunction(msg.function());
-        std::string key = msg.user() + "/" + funcName;
+        // Double check any indexes removed
+        std::string key = msg.user() + "/" + msg.function();
         return key;
     }
 
     wasm::WasmModule &ZygoteRegistry::getZygote(const message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        const std::string &key = getZygoteKey(msg);
+        const std::string key = getZygoteKey(msg);
 
         if (getZygoteCount(key) == 0) {
             util::FullLock lock(mx);

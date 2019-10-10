@@ -283,7 +283,7 @@ namespace wasm {
         /*
          * NOTE - the order things happen in this function is important.
          * The zygote function may execute non-trivial code and modify the memory,
-         * but in order to work it needs the memory, errno etc. to be set up.
+         * but in order to work it needs the memory etc. to be set up.
          */
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
@@ -348,7 +348,7 @@ namespace wasm {
             dataEnd = getGlobalI32("__data_end", executionContext);
 
             // Note that heap base and data end should be the same (provided stack-first is switched on)
-            if(heapBase != dataEnd) {
+            if (heapBase != dataEnd) {
                 logger->error("Expected heap base and data end to be equal but were {} and {}", heapBase, dataEnd);
                 throw std::runtime_error("Heap base and data end are different");
             }
@@ -612,17 +612,15 @@ namespace wasm {
     int WasmModule::execute(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Any chained functions that are chained from a shared parent
-        // will be executing the same code
-        const std::string funcName = util::stripIdxFromFunction(msg.function());
-        
         if (!_isBound) {
             throw std::runtime_error("WasmModule must be bound before executing function");
-        } else if (boundUser != msg.user() || boundFunction != funcName) {
-            const std::string funcStr = util::funcToString(msg, true);
-            logger->error("Cannot execute {} on module bound to {}/{}",
-                          funcStr, boundUser, boundFunction);
-            throw std::runtime_error("Cannot execute function on module bound to another");
+        } else {
+            if (boundUser != msg.user() || boundFunction != msg.function()) {
+                const std::string funcStr = util::funcToString(msg, true);
+                logger->error("Cannot execute {} on module bound to {}/{}",
+                              funcStr, boundUser, boundFunction);
+                throw std::runtime_error("Cannot execute function on module bound to another");
+            }
         }
 
         executingModule = this;
@@ -684,7 +682,7 @@ namespace wasm {
         // Unmap and remap the memory
         munmap(targetPtr, length);
         U32 *mmappedPtr = (U32 *) mmap(targetPtr, length, PROT_READ, MAP_SHARED, fd, 0);
-        if(mmappedPtr == MAP_FAILED) {
+        if (mmappedPtr == MAP_FAILED) {
             logger->error("Failed mmapping file descriptor {} ({} - {})", fd, errno, strerror(errno));
             throw std::runtime_error("Unable to map file");
         }

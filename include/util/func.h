@@ -56,12 +56,6 @@ namespace util {
 
     std::vector<uint8_t> messageToBytes(const message::Message &msg);
 
-    std::string addIdxToFunction(const std::string &funcName, int idx);
-
-    std::string stripIdxFromFunction(const std::string &funcName);
-
-    void setMessageIdx(message::Message &msg, int idx);
-
     class InvalidFunctionException : public std::exception {
     };
 }

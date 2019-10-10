@@ -2,7 +2,6 @@
 
 #include <util/func.h>
 #include <util/config.h>
-#include <util/environment.h>
 #include <boost/filesystem.hpp>
 
 using namespace boost::filesystem;
@@ -103,40 +102,6 @@ namespace tests {
         REQUIRE(msg.statuskey() == expectedStatusKey);
     }
 
-    TEST_CASE("Test adding idx to message", "[util]") {
-        message::Message msg;
-        msg.set_function("foobar");
-
-        REQUIRE(msg.idx() == 0);
-        REQUIRE(msg.function() == "foobar");
-
-        util::setMessageIdx(msg, 22);
-
-        REQUIRE(msg.idx() == 22);
-        REQUIRE(msg.function() == "foobar__022__");
-
-        // Run on already indexed message
-        util::setMessageIdx(msg, 44);
-
-        REQUIRE(msg.idx() == 44);
-        REQUIRE(msg.function() == "foobar__044__");
-    }
-
-    TEST_CASE("Test adding idx to function name", "[util]") {
-        REQUIRE(util::addIdxToFunction("foobar", 0) == "foobar");
-        REQUIRE(util::addIdxToFunction("foobar", 1) == "foobar__001__");
-        REQUIRE(util::addIdxToFunction("foobar", 5) == "foobar__005__");
-        REQUIRE(util::addIdxToFunction("foobar", 11) == "foobar__011__");
-        REQUIRE(util::addIdxToFunction("foobar", 321) == "foobar__321__");
-    }
-
-    TEST_CASE("Test stripping idx from funciton name", "[util]") {
-        REQUIRE(util::stripIdxFromFunction("foobar") == "foobar");
-        REQUIRE(util::stripIdxFromFunction("foobar123") == "foobar123");
-        REQUIRE(util::stripIdxFromFunction("foobar__001__") == "foobar");
-        REQUIRE(util::stripIdxFromFunction("foobar__123__") == "foobar");
-    }
-    
     TEST_CASE("Test converting message to python", "[util]") {
         message::Message msg = util::messageFactory("foo", "bar");
 
