@@ -612,9 +612,13 @@ namespace wasm {
     int WasmModule::execute(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
+        // Any chained functions that are chained from a shared parent
+        // will be executing the same code
+        const std::string funcName = util::stripIdxFromFunction(msg.function());
+        
         if (!_isBound) {
             throw std::runtime_error("WasmModule must be bound before executing function");
-        } else if (boundUser != msg.user() || boundFunction != msg.function()) {
+        } else if (boundUser != msg.user() || boundFunction != funcName) {
             const std::string funcStr = util::funcToString(msg, true);
             logger->error("Cannot execute {} on module bound to {}/{}",
                           funcStr, boundUser, boundFunction);

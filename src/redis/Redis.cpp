@@ -16,7 +16,7 @@ namespace redis {
         if (role == STATE) {
             hostname = conf.redisStateHost;
             ip = util::getIPFromHostname(hostname);
-
+            database = conf.redisStateDb;
         } else {
             hostname = conf.redisQueueHost;
             ip = util::getIPFromHostname(hostname);
@@ -71,8 +71,20 @@ namespace redis {
 
             throw std::runtime_error("Failed to connect to redis");
         }
+        
+        if(instance.database != 0) {
+            void *selectReply = redisCommand(context, "SELECT %i", instance.database);
 
-        printf("Connected to redis host %s at %s:%i\n", instance.hostname.c_str(), instance.ip.c_str(), instance.port);
+            if(selectReply == nullptr) {
+                printf("Failed to switch to redis database %i\n", instance.database);
+                throw std::runtime_error("Failed to switch redis database");
+            }
+
+            freeReplyObject(selectReply);
+        }
+
+        printf("Connected to redis %i host %s at %s:%i\n", instance.database, instance.hostname.c_str(), 
+                instance.ip.c_str(), instance.port);
     }
 
     Redis::~Redis() {

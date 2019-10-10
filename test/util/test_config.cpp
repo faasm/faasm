@@ -13,7 +13,7 @@ namespace tests {
         REQUIRE(conf.threadsPerWorker == 5);
 
         // CI has to override some stuff
-        if(conf.hostType == "ci") {
+        if (conf.hostType == "ci") {
             REQUIRE(conf.redisStateHost == "redis");
             REQUIRE(conf.redisQueueHost == "redis");
         } else {
@@ -34,6 +34,7 @@ namespace tests {
         REQUIRE(conf.fsMode == "off");
 
         REQUIRE(conf.redisPort == "6379");
+        REQUIRE(conf.redisStateDb == 0);
 
         REQUIRE(conf.maxNodes == 4);
         REQUIRE(conf.noScheduler == 0);
@@ -70,28 +71,29 @@ namespace tests {
         std::string fsMode = setEnvVar("FS_MODE", "on");
 
         std::string redisState = setEnvVar("REDIS_STATE_HOST", "not-localhost");
-        std::string redisQueue =setEnvVar("REDIS_QUEUE_HOST", "other-host");
-        std::string redisPort =setEnvVar("REDIS_PORT", "1234");
+        std::string redisQueue = setEnvVar("REDIS_QUEUE_HOST", "other-host");
+        std::string redisPort = setEnvVar("REDIS_PORT", "1234");
+        std::string redisStateDb = setEnvVar("REDIS_STATE_DB", "8");
 
         std::string irCacheMode = setEnvVar("IR_CACHE_MODE", "foo-ir-cache");
 
-        std::string maxNodes =setEnvVar("MAX_NODES", "15");
-        std::string noScheduler =setEnvVar("NO_SCHEDULER", "1");
-        std::string prewarm =setEnvVar("PREWARM", "5");
-        std::string queueRatio =setEnvVar("MAX_QUEUE_RATIO", "8888");
-        std::string workers =setEnvVar("MAX_WORKERS_PER_FUNCTION", "7777");
+        std::string maxNodes = setEnvVar("MAX_NODES", "15");
+        std::string noScheduler = setEnvVar("NO_SCHEDULER", "1");
+        std::string prewarm = setEnvVar("PREWARM", "5");
+        std::string queueRatio = setEnvVar("MAX_QUEUE_RATIO", "8888");
+        std::string workers = setEnvVar("MAX_WORKERS_PER_FUNCTION", "7777");
 
-        std::string globalTimeout =setEnvVar("GLOBAL_MESSAGE_TIMEOUT", "9876");
-        std::string boundTimeout =setEnvVar("BOUND_TIMEOUT", "6666");
-        std::string unboundTimeout =setEnvVar("UNBOUND_TIMEOUT", "5555");
+        std::string globalTimeout = setEnvVar("GLOBAL_MESSAGE_TIMEOUT", "9876");
+        std::string boundTimeout = setEnvVar("BOUND_TIMEOUT", "6666");
+        std::string unboundTimeout = setEnvVar("UNBOUND_TIMEOUT", "5555");
 
-        std::string staleThreshold =setEnvVar("STATE_STALE_THRESHOLD", "4444");
-        std::string clearThreshold =setEnvVar("STATE_CLEAR_THRESHOLD", "3333");
-        std::string pushInterval =setEnvVar("STATE_PUSH_INTERVAL", "2222");
-        std::string fullAsync =setEnvVar("FULL_ASYNC", "1");
-        std::string fullSync =setEnvVar("FULL_SYNC", "12");
+        std::string staleThreshold = setEnvVar("STATE_STALE_THRESHOLD", "4444");
+        std::string clearThreshold = setEnvVar("STATE_CLEAR_THRESHOLD", "3333");
+        std::string pushInterval = setEnvVar("STATE_PUSH_INTERVAL", "2222");
+        std::string fullAsync = setEnvVar("FULL_ASYNC", "1");
+        std::string fullSync = setEnvVar("FULL_SYNC", "12");
 
-        std::string funcDir = setEnvVar("FUNC_DIR","/tmp/foo");
+        std::string funcDir = setEnvVar("FUNC_DIR", "/tmp/foo");
         std::string objDir = setEnvVar("OBJ_DIR", "/tmp/bar");
         std::string runtimeDir = setEnvVar("RUNTIME_FILES_DIR", "/tmp/rara");
         std::string sharedDir = setEnvVar("SHARED_FILES_DIR", "/tmp/sss");
@@ -118,6 +120,7 @@ namespace tests {
         REQUIRE(conf.redisStateHost == "not-localhost");
         REQUIRE(conf.redisQueueHost == "other-host");
         REQUIRE(conf.redisPort == "1234");
+        REQUIRE(conf.redisStateDb == 8);
 
         REQUIRE(conf.irCacheMode == "foo-ir-cache");
 
@@ -164,6 +167,7 @@ namespace tests {
         setEnvVar("REDIS_STATE_HOST", redisState);
         setEnvVar("REDIS_QUEUE_HOST", redisQueue);
         setEnvVar("REDIS_PORT", redisPort);
+        setEnvVar("REDIS_STATE_DB", redisStateDb);
 
         setEnvVar("IR_CACHE_MODE", irCacheMode);
 

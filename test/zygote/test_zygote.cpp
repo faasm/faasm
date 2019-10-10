@@ -9,7 +9,15 @@ namespace tests {
     TEST_CASE("Test creating zygotes", "[zygote]") {
         cleanSystem();
 
-        message::Message msg = util::messageFactory("demo", "echo");
+        message::Message msg;
+        SECTION("Standard function") {
+            msg = util::messageFactory("demo", "echo");
+        }
+        
+        SECTION("Chained function") {
+            const std::string funcName = util::addIdxToFunction("echo", 3);
+            msg = util::messageFactory("demo", funcName);
+        }
         
         zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
         wasm::WasmModule &moduleA = registry.getZygote(msg);

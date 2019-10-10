@@ -44,6 +44,7 @@ namespace util {
         redisStateHost = getEnvVar("REDIS_STATE_HOST", "localhost");
         redisQueueHost = getEnvVar("REDIS_QUEUE_HOST", "localhost");
         redisPort = getEnvVar("REDIS_PORT", "6379");
+        redisStateDb = this->getSystemConfIntParam("REDIS_STATE_DB", "0");
 
         // Caching
         irCacheMode = getEnvVar("IR_CACHE_MODE", "on");
@@ -112,6 +113,7 @@ namespace util {
         logger->info("REDIS_STATE_HOST           {}", redisStateHost);
         logger->info("REDIS_QUEUE_HOST           {}", redisQueueHost);
         logger->info("REDIS_PORT                 {}", redisPort);
+        logger->info("REDIS_STATE_DB             {}", redisStateDb);
 
         logger->info("--- Caching ---");
         logger->info("IR_CACHE_MODE              {}", irCacheMode);
