@@ -67,7 +67,7 @@ namespace tests {
         std::string cgMode = setEnvVar("CGROUP_MODE", "off");
         std::string nsMode = setEnvVar("NETNS_MODE", "on");
         std::string awsLog = setEnvVar("AWS_LOG_LEVEL", "debug");
-        std::string unsafe = setEnvVar("FS_MODE", "on");
+        std::string fsMode = setEnvVar("FS_MODE", "on");
 
         std::string redisState = setEnvVar("REDIS_STATE_HOST", "not-localhost");
         std::string redisQueue =setEnvVar("REDIS_QUEUE_HOST", "other-host");
@@ -159,7 +159,7 @@ namespace tests {
         setEnvVar("CGROUP_MODE", cgMode);
         setEnvVar("NETNS_MODE", nsMode);
         setEnvVar("AWS_LOG_LEVEL", awsLog);
-        setEnvVar("FS_MODE", unsafe);
+        setEnvVar("FS_MODE", fsMode);
 
         setEnvVar("REDIS_STATE_HOST", redisState);
         setEnvVar("REDIS_QUEUE_HOST", redisQueue);
