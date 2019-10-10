@@ -270,7 +270,16 @@ namespace scheduler {
                 // are full, i.e. we want to get up to the maximum queue ratio
                 double queueRatio = this->getFunctionQueueRatio(msg);
 
-                if (queueRatio >= conf.maxQueueRatio) {
+                // UNLESS we have a chained function, in which case we share if we don't
+                // have an immediately available worker locally
+                int maxQueueRatio;
+                if(msg.idx() > 0) {
+                    maxQueueRatio = 1;
+                } else {
+                    maxQueueRatio = conf.maxQueueRatio;
+                }
+
+                if (queueRatio >= maxQueueRatio) {
                     // Only exclude when we've saturated the last worker
                     excludeThisNode = true;
                 }
