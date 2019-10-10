@@ -15,6 +15,12 @@ To download the pre-processed data from S3, run the following:
 inv reuters-download-s3
 ```
 
+If running on a remote host you can then move the files:
+
+```
+scp -r ~/faasm/data <USER>@<HOST>:/home/<USER>/faasm/data
+```
+
 ## State upload
 
 This can put into the relevant state store:
@@ -55,5 +61,4 @@ inv reuters-upload-s3
 
 ## Native run
 
-To run the SGD code natively, you need to download the pre-processed data, upload it to the local Redis state
-storage, then build and execute the main SGD function natively.
+To run the SGD code natively, you need to download the pre-processed data, upload it to the local Redis state storage, then build and execute the main SGD function natively.

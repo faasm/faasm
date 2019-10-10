@@ -29,7 +29,6 @@ COPY requirements.txt /tmp/requirements.txt
 RUN pip3 install -r /tmp/requirements.txt
 
 # Copy code into place
-# NOTE: do as much heavy lifting as you can *BEFORE* this to make the most of caching when rebuilding
 COPY . /usr/local/code/faasm
 WORKDIR /usr/local/code/faasm
 
