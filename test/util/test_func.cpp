@@ -19,14 +19,7 @@ namespace tests {
     TEST_CASE("Test retrieving function paths", "[util]") {
         util::SystemConfig &conf = util::getSystemConfig();
 
-        std::string funcName;
-        SECTION("Normal func name") {
-            funcName = "beta";
-        }
-
-        SECTION("Func name with idx") {
-            funcName = "beta__001__";
-        }
+        std::string funcName = "beta";
 
         message::Message call;
         call.set_user("alpha");
