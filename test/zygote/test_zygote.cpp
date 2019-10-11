@@ -9,18 +9,8 @@ namespace tests {
     TEST_CASE("Test creating zygotes", "[zygote]") {
         cleanSystem();
 
-        message::Message msgA;
-        message::Message msgB;
-        SECTION("Standard function") {
-            msgA = util::messageFactory("demo", "echo");
-        }
-
-        SECTION("Chained function") {
-            msgA = util::messageFactory("demo", "echo");
-            msgA.set_idx(9);
-        }
-
-        msgB = util::messageFactory("demo", "echo");
+        message::Message msgA = util::messageFactory("demo", "echo");
+        message::Message msgB = util::messageFactory("demo", "echo");
 
         zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
         wasm::WasmModule &moduleA = registry.getZygote(msgA);
