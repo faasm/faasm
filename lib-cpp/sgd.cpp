@@ -41,7 +41,6 @@ namespace faasm {
     SgdParams setUpReutersParams(int nBatches, int epochs) {
         // Set up reuters params
         SgdParams p;
-        p.lossType = HINGE;
         p.nWeights = REUTERS_N_FEATURES;
         p.nTrain = REUTERS_N_EXAMPLES;
         p.learningRate = REUTERS_LEARNING_RATE;
@@ -177,56 +176,6 @@ namespace faasm {
         writeHingeError(sgdParams, batchNumber, outputs, prediction);
     }
 
-    void leastSquaresWeightUpdate(const SgdParams &sgdParams, int batchNumber,
-                                  int startIdx, int endIdx) {
-
-        // Always load the inputs and outputs async (as they should be constant)
-        Map<const SparseMatrix<double>> inputs = readSparseMatrixColumnsFromState(INPUTS_KEY, startIdx, endIdx,
-                                                                                  true);
-        Map<const MatrixXd> outputs = readMatrixColumnsFromState(OUTPUTS_KEY, sgdParams.nTrain, startIdx,
-                                                                 endIdx, 1,
-                                                                 true);
-
-        auto weightData = new double[sgdParams.nWeights];
-        readMatrixFromState(WEIGHTS_KEY, weightData, 1, sgdParams.nWeights, true);
-        Map<MatrixXd> weights(weightData, 1, sgdParams.nWeights);
-
-        // Work out error
-        MatrixXd actual = weights * inputs;
-        MatrixXd error = actual - outputs;
-
-        // Calculate gradient
-        long batchSize = inputs.cols();
-        MatrixXd gradient = (2.0 / batchSize) * (error * inputs.transpose());
-
-        // Update weights based on gradient
-        for (int w = 0; w < sgdParams.nWeights; w++) {
-            double thisGradient = gradient(0, w);
-
-            // Skip if this weight has not contributed
-            if (abs(thisGradient) < 0.00000001) {
-                continue;
-            }
-
-            // Make the update
-            weights(0, w) -= sgdParams.learningRate * thisGradient;
-            writeMatrixToStateElement(WEIGHTS_KEY, weights, 0, w, true);
-        }
-
-        // Make sure all updates have been pushed if we're not running in full async mode
-        if (!sgdParams.fullAsync) {
-            faasmPushStatePartial(WEIGHTS_KEY);
-        }
-
-        // Recalculate the result and return
-        MatrixXd prediction = weights * inputs;
-
-        delete[] weightData;
-
-        // Persist error for these examples
-        writeSquaredError(sgdParams, batchNumber, outputs, prediction);
-    }
-
     void zeroDoubleArray(const char *key, long len, bool async) {
         // Set buffer to zero
         auto buffer = new double[len];
@@ -250,26 +199,8 @@ namespace faasm {
         delete[] buffer;
     }
 
-    void writeFinishedFlag(const SgdParams &sgdParams, int batchNumber) {
-        long totalBytes = sgdParams.nBatches * sizeof(int);
-        int finished = 1;
-        auto finishedBytes = reinterpret_cast<uint8_t *>(&finished);
-        long offset = batchNumber * sizeof(int);
-
-        faasmWriteStateOffset(FINISHED_KEY, totalBytes, offset, finishedBytes, sizeof(int), sgdParams.fullAsync);
-    }
-
-    void zeroFinished(const SgdParams &sgdParams) {
-        zeroIntArray(FINISHED_KEY, sgdParams.nBatches, sgdParams.fullAsync);
-    }
-
     void zeroErrors(const SgdParams &sgdParams) {
         zeroDoubleArray(ERRORS_KEY, sgdParams.nBatches, sgdParams.fullAsync);
-    }
-
-    void zeroLosses(const SgdParams &sgdParams) {
-        zeroDoubleArray(LOSSES_KEY, sgdParams.nEpochs, sgdParams.fullAsync);
-        zeroDoubleArray(LOSS_TIMESTAMPS_KEY, sgdParams.nEpochs, sgdParams.fullAsync);
     }
 
     void _writeError(const SgdParams &sgdParams, int batchNumber, double error) {
@@ -280,7 +211,7 @@ namespace faasm {
 
         // Write (going async if in full async mode)
         faasmWriteStateOffset(ERRORS_KEY, totalBytes, offset, squaredErrorBytes, sizeof(double),
-                                 sgdParams.fullAsync);
+                              sgdParams.fullAsync);
     }
 
     void writeHingeError(const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
@@ -289,58 +220,21 @@ namespace faasm {
         _writeError(sgdParams, batchNumber, err);
     }
 
-    void writeSquaredError(const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
-                           const MatrixXd &prediction) {
-        double err = calculateSquaredError(prediction, actual);
-        _writeError(sgdParams, batchNumber, err);
-    }
-
-    bool readEpochFinished(const SgdParams &sgdParams) {
-        // Load finished flags from state
-        const size_t nBytes = sgdParams.nBatches * sizeof(int);
-        auto buffer = new uint8_t[nBytes];
-
-        // Read in
-        faasmReadState(FINISHED_KEY, buffer, nBytes, sgdParams.fullAsync);
-
-        auto flags = reinterpret_cast<int *>(buffer);
-
-        // Iterate through all the batches to see if finished
-        bool allFinished = true;
-        auto isFinished = new bool[sgdParams.nBatches];
-        for (int i = 0; i < sgdParams.nBatches; i++) {
-            int flag = flags[i];
-
-            // If flag is zero, we've not finished
-            isFinished[i] = flag > 0;
-
-            if (flag == 0) {
-                allFinished = false;
-            }
-        }
-
-        delete[] isFinished;
-        delete[] buffer;
-        return allFinished;
-    }
-
     double readTotalError(const SgdParams &sgdParams) {
         // Load errors from state
-        const size_t nBytes = sgdParams.nBatches * sizeof(double);
-        auto buffer = new uint8_t[nBytes];
+        auto errors = new double[sgdParams.nBatches];
+        size_t sizeErrors = sgdParams.nBatches * sizeof(double);
 
         // Allow fully async
-        faasmReadState(ERRORS_KEY, buffer, nBytes, sgdParams.fullAsync);
+        faasmReadState(ERRORS_KEY, (uint8_t *) errors, sizeErrors, sgdParams.fullAsync);
 
         // Iterate through and sum up
-        auto errors = reinterpret_cast<double *>(buffer);
         double totalError = 0;
         for (int i = 0; i < sgdParams.nBatches; i++) {
-            double error = errors[i];
-            totalError += error;
+            totalError += errors[i];
         }
 
-        delete[] buffer;
+        delete[] errors;
 
         return totalError;
     }

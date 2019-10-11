@@ -23,22 +23,18 @@ FAASM_MAIN_FUNC() {
     setEmulatorUser("sgd");
 #endif
 
-    int nBatches = faasm::getIntInput(4);
-    printf("SVM running %i batches \n", nBatches);
+    int nWorkers = faasm::getIntInput(4);
+    printf("SVM running %i batches \n", nWorkers);
 
     // Prepare params
     printf("Setting up SVM params\n");
     int epochs = 20;
-    faasm::SgdParams p = setUpReutersParams(nBatches, epochs);
+    faasm::SgdParams p = setUpReutersParams(nWorkers, epochs);
 
     // Initialise weights
     printf("Initialising weights with zeros\n");
     Eigen::MatrixXd weights = zeroMatrix(1, p.nWeights);
     writeMatrixToState(WEIGHTS_KEY, weights, p.fullAsync);
-
-    // Zero the losses
-    printf("Zeroing losses\n");
-    zeroLosses(p);
 
     // If running full async, we need to make sure the inputs and outputs are loaded fully into memory
     if (p.fullAsync) {
@@ -64,11 +60,11 @@ FAASM_MAIN_FUNC() {
         faasm::zeroErrors(p);
 
         // Shuffle start indices for each batch
-        int *batchNumbers = faasm::randomIntRange(nBatches);
+        int *batchNumbers = faasm::randomIntRange(nWorkers);
 
         // Run workers in a loop
-        auto workerCallIds = new unsigned int[nBatches];
-        for (int w = 0; w < nBatches; w++) {
+        auto workerCallIds = new unsigned int[nWorkers];
+        for (int w = 0; w < nWorkers; w++) {
             int startIdx = batchNumbers[w] * p.batchSize;
 
             // Make sure we don't overshoot
@@ -82,7 +78,7 @@ FAASM_MAIN_FUNC() {
         }
 
         // Wait for all workers to finish
-        for (int w = 0; w < nBatches; w++) {
+        for (int w = 0; w < nWorkers; w++) {
             faasmAwaitCall(workerCallIds[w]);
         }
 
