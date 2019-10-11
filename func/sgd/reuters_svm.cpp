@@ -72,7 +72,11 @@ FAASM_MAIN_FUNC() {
 
             // Chain the call
             int inputData[4] = {w, startIdx, endIdx, thisEpoch};
-            unsigned int workerCallId = faasmChainThisInput(1, (uint8_t *) inputData, 4 * sizeof(int));
+            unsigned int workerCallId = faasmChainThisInput(
+                    1,
+                    reinterpret_cast<uint8_t *>(inputData),
+                    4 * sizeof(int)
+            );
             printf("Worker spawned with call ID %i\n", workerCallId);
             workerCallIds[w] = workerCallId;
         }
@@ -86,6 +90,7 @@ FAASM_MAIN_FUNC() {
         delete[] workerCallIds;
 
         // Record the time and loss for this epoch
+        printf("Calculating epoch loss for epoch %i\n", thisEpoch);
         double ts = faasm::getSecondsSinceEpoch();
         double loss = faasm::readRootMeanSquaredError(p);
 
@@ -113,7 +118,10 @@ FAASM_FUNC(step, 1) {
     // Read in input
     long inputSize = 4 * sizeof(int);
     int inputBuffer[4];
-    faasmGetInput((uint8_t *) inputBuffer, inputSize);
+    faasmGetInput(
+            reinterpret_cast< uint8_t *>(inputBuffer),
+            inputSize
+    );
 
     int batchNumber = inputBuffer[0];
     int startIdx = inputBuffer[1];

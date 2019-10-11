@@ -9,8 +9,8 @@ from tasks.util.env import PROJ_ROOT
 
 
 @task
-def redis_clear_queue(ctx, docker_compose=False, knative=False, ibm=False):
-    if docker_compose:
+def redis_clear_queue(ctx, docker=False, knative=False, ibm=False):
+    if docker:
         cmd = [
             "docker-compose", "exec", "redis-queue", "redis-cli", "flushall"
         ]

@@ -226,7 +226,7 @@ namespace faasm {
         size_t sizeErrors = sgdParams.nBatches * sizeof(double);
 
         // Allow fully async
-        faasmReadState(ERRORS_KEY, (uint8_t *) errors, sizeErrors, sgdParams.fullAsync);
+        faasmReadState(ERRORS_KEY, reinterpret_cast<uint8_t *>(errors), sizeErrors, sgdParams.fullAsync);
 
         // Iterate through and sum up
         double totalError = 0;
