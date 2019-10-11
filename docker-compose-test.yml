@@ -2,7 +2,7 @@ version: "3"
 
 services:
   redis:
-    image: faasm/redis
+    image: faasm/redis:latest
     ports:
       - "6377:6379"
 

@@ -26,7 +26,7 @@ scp -r ~/faasm/data <USER>@<HOST>:/home/<USER>/faasm/data
 This can put into the relevant state store:
 
 ```
-# Locally (make sure upload server is running)
+# Locally (make sure containers are running)
 inv reuters-state-upload localhost
 
 # K8s
@@ -38,6 +38,12 @@ inv reuters-prepare-aws
 ```
 
 ## Invoking the function
+
+First make sure the latest function is in place:
+
+```
+inv upload sgd reuters_svm --prebuilt
+```
 
 You can invoke the process with:
 

@@ -9,11 +9,10 @@ branches:
   only:
   - master
 
-# Build the latest images
+# Pull the latest images
 before_install:
-  - "docker pull faasm/base"
-  - "docker build -t faasm/worker -f docker/worker.dockerfile ."
-  - "docker build -t faasm/testing -f docker/testing.dockerfile ."
+  - "docker pull faasm/testing"
+  - "docker pull faasm/redis"
 
 script:
   - "docker-compose -f docker-compose-test.yml run tester /usr/local/code/faasm/bin/ci_run.sh"
