@@ -69,10 +69,25 @@ namespace scheduler {
         }
 
         std::string resultKey = util::resultKeyFromMessageId(messageId);
-        std::vector<uint8_t> result = redis.dequeueBytes(resultKey, timeout);
+
+        std::vector<uint8_t> result;
+        if(timeout == 0) {
+            try {
+                result = redis.get(resultKey);
+            } catch (redis::RedisNoResponseException &ex) {
+                // Result is empty if nothing found
+            }
+        } else {
+            result = redis.dequeueBytes(resultKey, timeout);
+        }
 
         message::Message msgResult;
-        msgResult.ParseFromArray(result.data(), (int) result.size());
+
+        if(result.empty()) {
+            msgResult.set_type(message::Message_MessageType_EMPTY);
+        } else {
+            msgResult.ParseFromArray(result.data(), (int) result.size());
+        }
 
         return msgResult;
     }

@@ -46,6 +46,8 @@ namespace util {
 
     unsigned int setMessageId(message::Message &msg);
 
+    std::string buildAsyncResponse(const message::Message &msg);
+
     message::Message messageFactory(const std::string &user, const std::string &function);
 
     void convertMessageToPython(message::Message &msg);

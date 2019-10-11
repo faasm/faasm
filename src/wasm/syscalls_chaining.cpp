@@ -24,13 +24,22 @@ namespace wasm {
         util::getLogger()->debug("S - await_call - {}", messageId);
 
         scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
-        const message::Message &result = bus.getFunctionResult(messageId, CHAINED_CALL_TIMEOUT);
 
-        if(result.success()) {
-            return 0;
-        } else {
+        try {
+            const message::Message result = bus.getFunctionResult(messageId, CHAINED_CALL_TIMEOUT);
+
+            if (result.success()) {
+                return 0;
+            }
+        } catch (redis::RedisNoResponseException &ex) {
+            util::getLogger()->error("Timed out waiting for chained call: {}", messageId);
+            return 1;
+        } catch (std::exception &ex) {
+            util::getLogger()->error("Non-timeout exception waiting for chained call: {}", ex.what());
             return 1;
         }
+
+        return 1;
     }
 
     int _makeChainedCall(const std::string &functionName, int idx, const std::vector<uint8_t> &inputData) {
@@ -53,7 +62,7 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_function", U32, __faasm_chain_function,
-                              I32 namePtr, I32 inputDataPtr, I32 inputDataLen) {
+                                   I32 namePtr, I32 inputDataPtr, I32 inputDataLen) {
         util::getLogger()->debug("S - chain_function - {} {} {}", namePtr, inputDataPtr, inputDataLen);
 
         std::string funcName = getStringFromWasm(namePtr);
@@ -63,7 +72,7 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_this", U32, __faasm_chain_this,
-                              I32 idx, I32 inputDataPtr, I32 inputDataLen) {
+                                   I32 idx, I32 inputDataPtr, I32 inputDataLen) {
         util::getLogger()->debug("S - chain_this - {} {} {}", idx, inputDataPtr, inputDataLen);
 
         message::Message *call = getExecutingCall();

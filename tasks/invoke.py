@@ -39,7 +39,8 @@ def invoke(ctx, user, func,
            async=False,
            knative=True,
            ibm=False,
-           legacy=False
+           legacy=False,
+           status=False,
            ):
 
     faasm_config = get_faasm_config()
@@ -67,6 +68,8 @@ def invoke(ctx, user, func,
     msg = {
         "user": user,
         "function": func,
+        "async": async,
+        "status": status,
     }
 
     if py:

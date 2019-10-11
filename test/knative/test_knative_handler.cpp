@@ -60,7 +60,7 @@ namespace tests {
 
         // Handle the function
         knative::KnativeHandler handler;
-        handler.handleFunction(requestStr);
+        const std::string responseStr = handler.handleFunction(requestStr);
 
         // Check function count has increased and bind message sent
         expectedCall = call;
@@ -71,10 +71,16 @@ namespace tests {
         scheduler::Scheduler &sch = scheduler::getScheduler();
         REQUIRE(sch.getFunctionQueueLength(expectedCall) == 1);
         REQUIRE(sch.getBindQueue()->size() == 1);
-        message::Message actual = sch.getBindQueue()->dequeue();
 
-        REQUIRE(actual.user() == expectedCall.user());
-        REQUIRE(actual.function() == expectedCall.function());
+        message::Message actualBind = sch.getBindQueue()->dequeue();
+        REQUIRE(actualBind.user() == expectedCall.user());
+        REQUIRE(actualBind.function() == expectedCall.function());
+
+        // Check actual call has right details including the ID returned to the caller
+        message::Message actualCall = sch.getFunctionQueue(expectedCall)->dequeue();
+        REQUIRE(actualCall.user() == expectedCall.user());
+        REQUIRE(actualCall.function() == expectedCall.function());
+        REQUIRE(actualCall.id() == std::stoi(responseStr));
     }
 
     TEST_CASE("Test empty knative invocation", "[knative]") {

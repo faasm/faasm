@@ -182,12 +182,21 @@ namespace redis {
 
     void Redis::get(const std::string &key, uint8_t *buffer, size_t size) {
         auto reply = (redisReply *) redisCommand(context, "GET %s", key.c_str());
+
+        if(reply == nullptr) {
+            throw RedisNoResponseException();
+        }
+
         getBytesFromReply(reply, buffer, size);
         freeReplyObject(reply);
     }
 
     std::vector<uint8_t> Redis::get(const std::string &key) {
         auto reply = (redisReply *) redisCommand(context, "GET %s", key.c_str());
+
+        if(reply == nullptr) {
+            throw RedisNoResponseException();
+        }
 
         const std::vector<uint8_t> replyBytes = getBytesFromReply(reply);
         freeReplyObject(reply);

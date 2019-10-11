@@ -73,6 +73,10 @@ namespace scheduler {
             throw std::runtime_error("Must provide non-zero message ID");
         }
 
+        if(timeout == 0) {
+            throw std::runtime_error("Not yet implemented instant response");
+        }
+
         const std::string &statusKey = util::statusKeyFromMessageId(messageId);
         const std::string result = s3.getKeyStr(bucketName, statusKey);
 

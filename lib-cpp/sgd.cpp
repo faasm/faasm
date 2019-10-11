@@ -168,7 +168,6 @@ namespace faasm {
         }
 
         // Recalculate all predictions
-        printf("Calculating error\n");
         Map<const RowVectorXd> weights(weightDataBuffer, sgdParams.nWeights);
         MatrixXd prediction = weights * inputs;
 
@@ -184,57 +183,48 @@ namespace faasm {
         // Write zeroed buffer to state
         auto bytes = reinterpret_cast<uint8_t *>(buffer);
         faasmWriteState(key, bytes, len * sizeof(double), async);
-
-        delete[] buffer;
-    }
-
-    void zeroIntArray(const char *key, long len, bool async) {
-        // Set buffer to zero
-        auto buffer = new int[len];
-        std::fill(buffer, buffer + len, 0);
-
-        // Write zeroed buffer to state
-        auto bytes = reinterpret_cast<uint8_t *>(buffer);
-        faasmWriteState(key, bytes, len * sizeof(int), async);
-        delete[] buffer;
     }
 
     void zeroErrors(const SgdParams &sgdParams) {
         zeroDoubleArray(ERRORS_KEY, sgdParams.nBatches, sgdParams.fullAsync);
     }
 
-    void _writeError(const SgdParams &sgdParams, int batchNumber, double error) {
-        auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&error);
+    void writeHingeError(const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
+                         const MatrixXd &prediction) {
+        double err = calculateHingeError(prediction, actual);
+        auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&err);
 
         long offset = batchNumber * sizeof(double);
         long totalBytes = sgdParams.nBatches * sizeof(double);
 
-        // Write (going async if in full async mode)
-        faasmWriteStateOffset(ERRORS_KEY, totalBytes, offset, squaredErrorBytes, sizeof(double),
-                              sgdParams.fullAsync);
-    }
-
-    void writeHingeError(const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
-                         const MatrixXd &prediction) {
-        double err = calculateHingeError(prediction, actual);
-        _writeError(sgdParams, batchNumber, err);
+        faasmWriteStateOffset(
+                ERRORS_KEY,
+                totalBytes,
+                offset,
+                squaredErrorBytes,
+                sizeof(double),
+                sgdParams.fullAsync
+        );
     }
 
     double readTotalError(const SgdParams &sgdParams) {
         // Load errors from state
-        auto errors = new double[sgdParams.nBatches];
+        auto *errors = new double[sgdParams.nBatches];
         size_t sizeErrors = sgdParams.nBatches * sizeof(double);
 
         // Allow fully async
-        faasmReadState(ERRORS_KEY, reinterpret_cast<uint8_t *>(errors), sizeErrors, sgdParams.fullAsync);
+        faasmReadState(
+                ERRORS_KEY,
+                reinterpret_cast<uint8_t *>(errors),
+                sizeErrors,
+                sgdParams.fullAsync
+        );
 
         // Iterate through and sum up
         double totalError = 0;
         for (int i = 0; i < sgdParams.nBatches; i++) {
             totalError += errors[i];
         }
-
-        delete[] errors;
 
         return totalError;
     }

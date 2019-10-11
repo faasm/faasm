@@ -23,7 +23,7 @@ FAASM_MAIN_FUNC() {
     setEmulatorUser("sgd");
 #endif
 
-    int nWorkers = faasm::getIntInput(4);
+    int nWorkers = faasm::getIntInput(1);
     printf("SVM running %i batches \n", nWorkers);
 
     // Prepare params
@@ -83,11 +83,12 @@ FAASM_MAIN_FUNC() {
 
         // Wait for all workers to finish
         for (int w = 0; w < nWorkers; w++) {
-            faasmAwaitCall(workerCallIds[w]);
+            unsigned int res = faasmAwaitCall(workerCallIds[w]);
+            if(res != 0) {
+                printf("Chained call %i failed\n", res);
+                return 1;
+            }
         }
-
-        delete[] batchNumbers;
-        delete[] workerCallIds;
 
         // Record the time and loss for this epoch
         printf("Calculating epoch loss for epoch %i\n", thisEpoch);

@@ -74,15 +74,20 @@ namespace tests {
         std::string resultMsg = d2.FindMember("result")->value.GetString();
         int actualStatusCode = d2.FindMember("status_code")->value.GetInt();
 
-        REQUIRE(resultMsg == expectedText);
         REQUIRE(actualStatusCode == expectedStatusCode);
+
+        if (expectedText == "ASYNCID") {
+            // In this case we're expecting an async ID message ID so hard to check
+        } else {
+            REQUIRE(resultMsg == expectedText);
+        }
     }
 
     TEST_CASE("Test invoking", "[ibm]") {
         cleanSystem();
 
         Document d = createJsonRequest("demo", "echo", "invoke");
-        std::string expected = "Async request received";
+        std::string expected = "ASYNCID";
 
         SECTION("No input") {
 

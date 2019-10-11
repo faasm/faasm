@@ -220,6 +220,14 @@ namespace util {
         return str;
     }
 
+    std::string buildAsyncResponse(const message::Message &msg) {
+        if(msg.id() == 0) {
+            throw std::runtime_error("Message must have id to build async response");
+        }
+
+        return std::to_string(msg.id());
+    }
+
     message::Message messageFactory(const std::string &user, const std::string &function) {
         message::Message msg;
         msg.set_user(user);

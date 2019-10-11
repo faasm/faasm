@@ -46,12 +46,13 @@ namespace tests {
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
 
         edge::FunctionEndpoint endpoint;
-        endpoint.handleFunction(call);
+        const std::string responseStr = endpoint.handleFunction(call);
 
         const message::Message actual = globalBus.nextMessage();
 
         REQUIRE(actual.user() == user);
         REQUIRE(actual.function() == func);
         REQUIRE(actual.inputdata() == inputData);
+        REQUIRE(actual.id() == std::stoi(responseStr));
     }
 }
