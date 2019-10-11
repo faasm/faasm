@@ -30,8 +30,6 @@ namespace tests {
             SECTION("No input") {
 
             }
-
-            expectedCall = call;
         }
         SECTION("Typescript") {
             user = "ts";
@@ -44,8 +42,6 @@ namespace tests {
             SECTION("No input") {
 
             }
-
-            expectedCall = call;
         }
         SECTION("Python") {
             user = "python";
@@ -111,5 +107,44 @@ namespace tests {
         std::string actual = handler.handleFunction(requestStr);
 
         REQUIRE(actual == expected);
+    }
+
+    TEST_CASE("Check getting function status from knative", "[knative]") {
+        cleanSystem();
+
+        scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
+
+        // Create a message
+        message::Message msg = util::messageFactory("demo", "echo");
+
+        std::string expectedOutput;
+        SECTION("Running") {
+            expectedOutput = "RUNNING";
+        }
+
+        SECTION("Failure") {
+            std::string errorMsg = "I have failed";
+            msg.set_outputdata(errorMsg);
+            bus.setFunctionResult(msg, false);
+
+            expectedOutput = "FAILED: " + errorMsg;
+        }
+
+        SECTION("Success") {
+            std::string errorMsg = "I have succeeded";
+            msg.set_outputdata(errorMsg);
+            bus.setFunctionResult(msg, true);
+
+            expectedOutput = "SUCCESS: " + errorMsg;
+        }
+
+        msg.set_isstatusrequest(true);
+
+        knative::KnativeHandler handler;
+        const std::string &requestStr = util::messageToJson(msg);
+        std::string actual = handler.handleFunction(requestStr);
+
+        REQUIRE(actual == expectedOutput);
+
     }
 }

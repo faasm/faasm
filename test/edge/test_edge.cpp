@@ -9,7 +9,6 @@ using namespace Pistache;
 namespace tests {
     TEST_CASE("Test invoking a function", "[edge]") {
         cleanSystem();
-        message::Message call;
 
         std::string user;
         std::string func;
@@ -36,10 +35,8 @@ namespace tests {
         }
 
         // Note - must be async to avoid needing a result
+        message::Message call = util::messageFactory(user, func);
         call.set_isasync(true);
-
-        call.set_user(user);
-        call.set_function(func);
         call.set_inputdata(inputData);
 
         // Get global bus

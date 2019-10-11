@@ -41,6 +41,7 @@ def invoke(ctx, user, func,
            ibm=False,
            legacy=False,
            status=False,
+           callid=None
            ):
 
     faasm_config = get_faasm_config()
@@ -69,8 +70,12 @@ def invoke(ctx, user, func,
         "user": user,
         "function": func,
         "async": async,
-        "status": status,
     }
+
+    if status:
+        assert callid is not None, "If requesting status must provide call ID too"
+        msg["status"] = True
+        msg["id"] = int(callid)
 
     if py:
         msg["python"] = True

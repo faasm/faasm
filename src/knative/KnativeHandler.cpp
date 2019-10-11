@@ -4,7 +4,6 @@
 #include <util/timing.h>
 #include <util/json.h>
 #include <scheduler/Scheduler.h>
-#include <rapidjson/document.h>
 
 namespace knative {
     KnativeHandler::KnativeHandler() : conf(util::getSystemConfig()) {
@@ -38,7 +37,7 @@ namespace knative {
             responseStr = "Empty request";
         } else {
             message::Message msg = util::jsonToMessage(requestStr);
-            if(msg.issstatusrequest()) {
+            if(msg.isstatusrequest()) {
                 responseStr = getMessageStatus(msg);
             } else {
                 responseStr = executeFunction(msg);

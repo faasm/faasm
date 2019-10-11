@@ -71,14 +71,14 @@ namespace scheduler {
         std::string resultKey = util::resultKeyFromMessageId(messageId);
 
         std::vector<uint8_t> result;
-        if(timeout == 0) {
-            try {
-                result = redis.get(resultKey);
-            } catch (redis::RedisNoResponseException &ex) {
-                // Result is empty if nothing found
-            }
-        } else {
+        try {
             result = redis.dequeueBytes(resultKey, timeout);
+        } catch (redis::RedisNoResponseException &ex) {
+            if(timeout == 0) {
+                // Ok for no response when just getting status
+            } else {
+                throw;
+            }
         }
 
         message::Message msgResult;

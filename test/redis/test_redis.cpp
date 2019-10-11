@@ -466,26 +466,44 @@ namespace tests {
 
         REQUIRE(actualB == expected);
     }
-    
+
+    TEST_CASE("Test non-blocking dequeue on empty", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
+        redisQueue.flushAll();
+
+        REQUIRE_THROWS_AS(redisQueue.dequeue("foobar", 0), redis::RedisNoResponseException);
+
+        REQUIRE_THROWS_AS(redisQueue.dequeueBytes("foobar", 0), redis::RedisNoResponseException);
+    }
+
     TEST_CASE("Test dequeue after enqueue", "[redis]") {
         Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
         bool success = false;
         redisQueue.enqueue("foobar", "baz");
 
-        std::thread t([&redisQueue, &success] {
-            std::string res = redisQueue.dequeue("foobar");
+        int timeout;
+        SECTION("Zero timeout") {
+            timeout = 0;
+        }
+
+        SECTION("Nonzero timeout") {
+            timeout = 500;
+        }
+
+        std::thread t([&redisQueue, &success, &timeout] {
+            std::string res = redisQueue.dequeue("foobar", timeout);
             success = res == "baz";
         });
 
-        if(t.joinable()) {
+        if (t.joinable()) {
             t.join();
         }
 
         REQUIRE(success);
     }
 
-    TEST_CASE("Test enqueue after dequeue") {
+    TEST_CASE("Test enqueue after blocking dequeue") {
         Redis &redisQueue = Redis::getQueue();
         redisQueue.flushAll();
 
@@ -502,7 +520,7 @@ namespace tests {
         redisQueue.enqueue("foobar", "baz");
 
         // If this hangs, the redis client isn't dequeueing after an enqueue is sent.
-        if(t.joinable()) {
+        if (t.joinable()) {
             t.join();
         }
 
