@@ -102,3 +102,8 @@ net.core.somaxconn = 65535
 # Memory-related
 vm.overcommit_memory=1
 ```
+
+# Links/ Notes
+
+- Knative tutorial - https://github.com/meteatamel/knative-tutorial
+- Samples in different languages at: https://knative.dev/docs/serving/samples/

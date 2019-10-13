@@ -8,6 +8,7 @@ if (FAASM_BUILD_TYPE STREQUAL "lambda-func")
 
     # Add faasm lambda headers
     include_directories(${FAASM_LAMBDA_LIB_DIR})
+elseif()
 else ()
     add_definitions(-DAWS_LAMBDA=0)
 endif ()

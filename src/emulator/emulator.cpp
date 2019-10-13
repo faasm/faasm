@@ -19,6 +19,7 @@ static std::string _user;
 
 // Note thread locality here to handle multiple locally chained functions
 static thread_local std::vector<uint8_t> _inputData;
+static thread_local std::vector<uint8_t> _outputData;
 static thread_local int _funcIdx = 0;
 
 static std::mutex threadsMutex;
@@ -26,6 +27,10 @@ static std::unordered_map<int, std::thread> threads;
 static int threadCount = 1;
 
 #define DUMMY_USER "emulated"
+
+std::vector<uint8_t> getEmulatorOutputData() {
+    return _outputData;
+}
 
 std::string getEmulatorUser() {
     return _user;
