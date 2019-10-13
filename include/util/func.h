@@ -46,6 +46,8 @@ namespace util {
 
     unsigned int setMessageId(message::Message &msg);
 
+    std::string buildAsyncResponse(const message::Message &msg);
+
     message::Message messageFactory(const std::string &user, const std::string &function);
 
     void convertMessageToPython(message::Message &msg);
@@ -55,12 +57,6 @@ namespace util {
     std::string statusKeyFromMessageId(unsigned int mid);
 
     std::vector<uint8_t> messageToBytes(const message::Message &msg);
-
-    std::string addIdxToFunction(const std::string &funcName, int idx);
-
-    std::string stripIdxFromFunction(const std::string &funcName);
-
-    void setMessageIdx(message::Message &msg, int idx);
 
     class InvalidFunctionException : public std::exception {
     };

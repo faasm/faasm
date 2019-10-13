@@ -85,6 +85,7 @@ set(ALL_DEMO_FUNCS ${ALL_DEMO_FUNCS} dynlink PARENT_SCOPE)
 # Custom target to group all the demo functions
 add_custom_target(demo_all_funcs DEPENDS ${ALL_DEMO_FUNCS})
 
+# Turn on WASM profiling
 add_definitions(-DWASM_PROF=1)
 demo_func(float_perf float_perf.cpp)
 

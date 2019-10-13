@@ -47,6 +47,8 @@ namespace edge {
             if (pathParts[0] == "sobjwasm" || pathParts[0] == "sobjobj" || pathParts[0] == "file") {
                 return pathParts;
             }
+        } else if(pathParts.size() > 0 && pathParts[0] == "file") {
+            return pathParts;
         }
 
         request.reply(status_codes::OK, "Invalid path\n");
@@ -89,7 +91,7 @@ namespace edge {
             logger->debug("GET request to {} ({})", uri, filePath);
             if (pathType == "sobjwasm") {
                 returnBytes = l.loadSharedObjectWasm(filePath);
-            } else if(pathType == "sobjobj") {
+            } else if (pathType == "sobjobj") {
                 returnBytes = l.loadSharedObjectObjectFile(filePath);
             } else {
                 returnBytes = l.loadSharedFile(filePath);
@@ -131,6 +133,8 @@ namespace edge {
             handleStateUpload(request);
         } else if (pathType == "p" || pathType == "pa") {
             handlePythonFunctionUpload(request);
+        } else if (pathType == "file") {
+            handleSharedFileUpload(request);
         } else {
             handleFunctionUpload(request);
         }
@@ -192,6 +196,26 @@ namespace edge {
         request.reply(status_codes::OK, "Python function upload complete\n");
     }
 
+    void UploadServer::handleSharedFileUpload(const http_request &request) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        std::string filePath = getHeaderFromRequest(request, FILE_PATH_HEADER);
+        logger->info("Uploading shared file {}", filePath);
+
+        const concurrency::streams::istream bodyStream = request.body();
+        concurrency::streams::stringstreambuf inputStream;
+        bodyStream.read_to_end(inputStream).then([&inputStream, &filePath](size_t size) {
+            if (size > 0) {
+                std::string s = inputStream.collection();
+                const std::vector<uint8_t> bytesData = util::stringToBytes(s);
+                storage::FileLoader &l = storage::getFileLoader();
+                l.uploadSharedFile(filePath, bytesData);
+            }
+
+        }).wait();
+
+        request.reply(status_codes::OK, "Shared file uploaded\n");
+    }
+
     void UploadServer::handleFunctionUpload(const http_request &request) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -232,5 +256,5 @@ namespace edge {
 
         return msg;
     }
-};
+}
 

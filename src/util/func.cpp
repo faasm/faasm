@@ -31,7 +31,9 @@ namespace util {
 
     std::string getUrl(const message::Message &msg, const std::string &urlPart) {
         std::string rootUrl = getRootUrl();
+
         std::string funcUrl = rootUrl + "/" + urlPart + "/" + msg.user() + "/" + msg.function();
+
         return funcUrl;
     }
 
@@ -79,10 +81,7 @@ namespace util {
     boost::filesystem::path _doGetDir(std::string baseDir, const message::Message &msg, bool create) {
         boost::filesystem::path path(baseDir);
         path.append(msg.user());
-
-        // Strip out anything at the end with an extra index
-        std::string funcName = stripIdxFromFunction(msg.function());
-        path.append(funcName);
+        path.append(msg.function());
 
         // Create directory if doesn't exist
         if (create) {
@@ -114,12 +113,11 @@ namespace util {
 
     std::string getFunctionKey(const message::Message &msg) {
         std::string key = "wasm";
-        const std::string funcName = util::stripIdxFromFunction(msg.function());
-        
+
         key += "/";
         key += msg.user();
         key += "/";
-        key += funcName;
+        key += msg.function();
         key += "/";
         key += funcFile;
 
@@ -128,12 +126,11 @@ namespace util {
 
     std::string getFunctionObjectKey(const message::Message &msg) {
         std::string key = "wasm";
-        const std::string funcName = util::stripIdxFromFunction(msg.function());
 
         key += "/";
         key += msg.user();
         key += "/";
-        key += funcName;
+        key += msg.function();
         key += "/";
         key += objFile;
 
@@ -221,6 +218,14 @@ namespace util {
         return str;
     }
 
+    std::string buildAsyncResponse(const message::Message &msg) {
+        if(msg.id() == 0) {
+            throw std::runtime_error("Message must have id to build async response");
+        }
+
+        return std::to_string(msg.id());
+    }
+
     message::Message messageFactory(const std::string &user, const std::string &function) {
         message::Message msg;
         msg.set_user(user);
@@ -254,39 +259,6 @@ namespace util {
         msg.set_statuskey(statusKey);
 
         return messageId;
-    }
-
-    std::string addIdxToFunction(const std::string &funcName, int idx) {
-        if (idx > 0) {
-            std::ostringstream os;
-            os << funcName << "__" << std::setfill('0') << std::setw(3) << idx << "__";
-            return os.str();
-        } else {
-            return funcName;
-        }
-    }
-
-    std::string stripIdxFromFunction(const std::string &funcName) {
-        std::string ending = "__";
-        if (funcName.size() < 3) {
-            return funcName;
-        }
-
-        int endingStart = funcName.size() - 2;
-        if (funcName.substr(endingStart, 2) == ending) {
-            // Index suffix will be 7 characters long 
-            unsigned long start = funcName.size() - 7;
-            return funcName.substr(0, start);
-        } else {
-            return funcName;
-        }
-    }
-
-    void setMessageIdx(message::Message &msg, int idx) {
-        msg.set_idx(idx);
-
-        // Must also modify the function name
-        msg.set_function(addIdxToFunction(msg.function(), idx));
     }
 
     std::string resultKeyFromMessageId(unsigned int mid) {

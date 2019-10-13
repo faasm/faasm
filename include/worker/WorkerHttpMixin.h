@@ -6,6 +6,8 @@
 namespace worker {
     class WorkerHttpMixin {
     public:
+        std::string getMessageStatus(message::Message &msg);
+
         std::string executeFunction(message::Message &msg);
     };
 }

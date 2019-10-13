@@ -168,6 +168,30 @@ namespace tests {
             // Check getting the file
             checkGet(url, fileBytes);
         }
+
+        SECTION("Test uploading shared file") {
+            const char *realPath = "/usr/local/code/faasm/test/upload/dummy_file.txt";
+            std::vector<uint8_t> fileBytes = util::readFileToBytes(realPath);
+
+            // Clear out any existing
+            const char *relativePath = "test/dummy_file.txt";
+            std::string fullPath = util::getSharedFileFile(relativePath);
+            if (boost::filesystem::exists(fullPath)) {
+                boost::filesystem::remove(fullPath);
+            }
+
+            // Check putting the file
+            std::string url = "/file";
+            http_request request = createRequest(url, fileBytes);
+            http_headers &h = request.headers();
+            h.add(FILE_PATH_HEADER, relativePath);
+            edge::UploadServer::handlePut(request);
+
+            // Check file
+            REQUIRE(boost::filesystem::exists(fullPath));
+            std::vector<uint8_t> actualBytes = util::readFileToBytes(fullPath);
+            REQUIRE(actualBytes == fileBytes);
+        }
     }
 
     TEST_CASE("Function fileserver test", "[upload]") {
@@ -202,7 +226,7 @@ namespace tests {
 
         storage::FileLoader &loader = storage::getFileLoader();
         loader.uploadPythonFunction(msg);
-        
+
         // Check file exists as expected
         std::string url = "p/" + user + "/" + funcName;
         checkGet(url, expected);
@@ -242,7 +266,7 @@ namespace tests {
         std::vector<uint8_t> fileBytes = {3, 4, 5, 0, 1, 2, 3};
 
         std::string fullPath = util::getSharedFileFile(relativePath);
-        if(boost::filesystem::exists(fullPath)) {
+        if (boost::filesystem::exists(fullPath)) {
             boost::filesystem::remove(fullPath);
         }
 
@@ -271,7 +295,7 @@ namespace tests {
 
         const std::vector<unsigned char> responseBytes = response.extract_vector().get();
 
-        if(valid) {
+        if (valid) {
             // Check we get back what we wrote in the file
             REQUIRE(response.status_code() == status_codes::OK);
             REQUIRE(responseBytes == fileBytes);

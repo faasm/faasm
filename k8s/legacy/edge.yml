@@ -1,31 +1,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: worker
+  name: edge
   namespace: faasm
   labels:
     app: faasm
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app: faasm
-      role: worker
+      role: edge
   template:
     metadata:
       labels:
         app: faasm
-        role: worker
+        role: edge
     spec:
       containers:
-        - name: worker
-          image: faasm/worker
+        - name: edge
+          image: faasm/edge
           imagePullPolicy: Always
-          envFrom:
-            - configMapRef:
-                name: faasm-config
-          securityContext:
-            privileged: yes
+          ports:
+            - containerPort: 8001
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:

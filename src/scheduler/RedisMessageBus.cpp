@@ -51,7 +51,7 @@ namespace scheduler {
         msg.set_success(success);
 
         std::string key = msg.resultkey();
-        if(key.empty()) {
+        if (key.empty()) {
             throw std::runtime_error("Result key empty. Cannot publish result");
         }
 
@@ -63,18 +63,44 @@ namespace scheduler {
         redis.expire(key, util::RESULT_KEY_EXPIRY);
     }
 
-    message::Message RedisMessageBus::getFunctionResult(unsigned int messageId, int timeout) {
-        if(messageId == 0) {
+    message::Message RedisMessageBus::getFunctionResult(unsigned int messageId, int timeoutMs) {
+        if (messageId == 0) {
             throw std::runtime_error("Must provide non-zero message ID");
         }
 
+        bool isBlocking = timeoutMs > 0;
+
         std::string resultKey = util::resultKeyFromMessageId(messageId);
-        std::vector<uint8_t> result = redis.dequeueBytes(resultKey, timeout);
 
-        message::Message msgResult;
-        msgResult.ParseFromArray(result.data(), (int) result.size());
+        if (isBlocking) {
+            // Blocking version will throw an exception when timing out which is handled
+            // by the caller.
+            std::vector<uint8_t> result = redis.dequeueBytes(resultKey, timeoutMs);
+            message::Message msgResult;
+            msgResult.ParseFromArray(result.data(), (int) result.size());
 
-        return msgResult;
+            return msgResult;
+        } else {
+            // Non-blocking version will tolerate empty responses, therefore we handle
+            // the exception here
+            std::vector<uint8_t> result;
+            try {
+                result = redis.dequeueBytes(resultKey, timeoutMs);
+            } catch (redis::RedisNoResponseException &ex) {
+                // Ok for no response when not blocking
+            }
+
+            message::Message msgResult;
+            if (result.empty()) {
+                // Empty result has special type
+                msgResult.set_type(message::Message_MessageType_EMPTY);
+            } else {
+                // Normal response if we get something from redis
+                msgResult.ParseFromArray(result.data(), (int) result.size());
+            }
+
+            return msgResult;
+        }
     }
 
     void RedisMessageBus::requestNewWorkerNode() {

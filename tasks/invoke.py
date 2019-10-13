@@ -1,25 +1,31 @@
 import multiprocessing
-import pprint
 from json import dumps
+from time import sleep
 
 import requests
 from invoke import task
 
-# NOTE: Using python to do this is slow compared with running curl
-# directly on the command line (or some other purpose-built tool).
-# As a result this mustn't be used for performance testing
 from tasks.util.config import get_faasm_config
 
+KNATIVE_HEADERS = {
+    "Host": "faasm-worker.faasm.example.com"
+}
 
-def _do_post(url, input, headers=None):
+
+def _do_post(url, input, headers=None, quiet=False):
+    # NOTE: Using python to do this is slow compared with running curl
+    # directly on the command line (or some other purpose-built tool).
+    # As a result this mustn't be used for performance testing
     response = requests.post(url, data=input, headers=headers)
 
     if response.status_code >= 400:
         print("Request failed: status = {}".format(response.status_code))
-    elif response.text:
+    elif response.text and not quiet:
         print(response.text)
-    else:
+    elif not quiet:
         print("Empty response")
+
+    return response.text
 
 
 def _do_invoke(user, func, host, port, func_type, input=None):
@@ -28,19 +34,46 @@ def _do_invoke(user, func, host, port, func_type, input=None):
     _do_post(url, input)
 
 
+def _do_status_call(call_id, host, port, quiet=False):
+    # NOTE - this only works for knative
+
+    url = "http://{}:{}/".format(host, port)
+
+    msg = {
+        "status": True,
+        "id": call_id,
+    }
+
+    return _do_post(url, dumps(msg), headers=KNATIVE_HEADERS, quiet=quiet)
+
+
 @task
 def invoke(ctx, user, func,
            host="127.0.0.1",
+           port=None,
            input=None,
-           parallel=False, loops=1,
+           parallel=False,
+           loops=1,
            py=False,
            ts=False,
            async=False,
            knative=True,
            ibm=False,
-           legacy=False
+           legacy=False,
+           poll=False
            ):
+    # IBM special config
+    if ibm:
+        faasm_config = get_faasm_config()
+        host = faasm_config["IBM"]["k8s_subdomain"]
 
+    port = port if port else (8080 if knative or ibm else 8001)
+
+    # Polling always requires async
+    if poll:
+        async = True
+
+    # Legacy requires special URLs
     if legacy:
         if py:
             prefix = "p"
@@ -54,16 +87,13 @@ def invoke(ctx, user, func,
     else:
         prefix = None
 
-    port = 8080 if knative or ibm else 8001
-
+    # Create URL and message
     url = "http://{}:{}/".format(host, port)
-
-    if ibm:
-        url += "run/"
 
     msg = {
         "user": user,
         "function": func,
+        "async": async,
     }
 
     if py:
@@ -71,11 +101,6 @@ def invoke(ctx, user, func,
 
     if input:
         msg["input_data"] = input
-
-    # For knative must specify which function in the header
-    headers = {
-        "Host": "faasm-worker.faasm.example.com"
-    }
 
     # IBM-specific message format
     if ibm:
@@ -93,9 +118,12 @@ def invoke(ctx, user, func,
 
     msg_json = dumps(msg)
 
-    # IBM must call init
+    # IBM must call init first
     if ibm:
         _do_post("http://{}:{}/init/".format(host, port), msg_json)
+
+    if parallel and poll:
+        raise RuntimeError("Cannot run poll and parallel")
 
     for l in range(loops):
         if loops > 1:
@@ -106,18 +134,49 @@ def invoke(ctx, user, func,
             p = multiprocessing.Pool(n_workers)
 
             if ibm or knative:
-                args_list = [(url, msg_json, headers) for _ in range(n_workers)]
+                args_list = [(url, msg_json, KNATIVE_HEADERS) for _ in range(n_workers)]
             elif legacy:
                 args_list = [(user, func, host, port, prefix, input) for _ in range(n_workers)]
             else:
-                raise RuntimeError("Must specify knative or legacy")
+                raise RuntimeError("Must specify knative, IBM or legacy")
 
             p.starmap(_do_invoke, args_list)
-        else:
+        elif poll:
+            if not knative:
+                raise RuntimeError("Poll only supported for knative")
 
+            # Submit initial async call
+            async_result = _do_post(url, msg_json, headers=KNATIVE_HEADERS, quiet=True)
+            try:
+                call_id = int(async_result)
+            except ValueError:
+                print("Could not parse async reponse to int: {}".format(async_result))
+                return 1
+
+            print("\n---- Polling {} ----".format(call_id))
+
+            # Poll status until we get success/ failure
+            result = ""
+            count = 0
+            while not result.startswith("SUCCESS") and not result.startswith("FAILED"):
+                count += 1
+                sleep(2)
+
+                result = _do_status_call(call_id, host, port, quiet=True)
+                print("\nPOLL {} - {}".format(count, result))
+
+            print("\n---- Finished {} ----\n".format(call_id))
+            print(result)
+
+        else:
             if ibm or knative:
-                _do_post(url, msg_json, headers=headers)
+                _do_post(url, msg_json, headers=KNATIVE_HEADERS)
             elif legacy:
                 _do_invoke(user, func, host, port, prefix, input=input)
             else:
                 raise RuntimeError("Must specify knative or legacy")
+
+
+@task
+def status(ctx, call_id, host="127.0.0.1", port=8080):
+    _do_status_call(call_id, host, port)

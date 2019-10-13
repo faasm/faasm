@@ -4,13 +4,18 @@ set -e
 
 pushd /usr/local/code/faasm
 
-source workon.sh
-
 # Set up libfake for tests
 inv compile-libfake --clean
 
-# Run codegen on all files used locally
+# Run codegen on all functions held locally
 inv run-local-codegen
+
+# Set Python and the runtime root
+inv set-up-python-runtime
+inv upload-all --py --host=upload
+
+# Set up TF data
+inv set-up-tensorflow-data --host=upload
 
 popd
 

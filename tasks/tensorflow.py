@@ -1,18 +1,18 @@
-from os import makedirs
-from os.path import exists, join
-from subprocess import check_output
+from os import walk
+from os.path import join
 
 from invoke import task
 
-from tasks.util.env import FUNC_DIR, FAASM_SHARED_STORAGE_ROOT
+from tasks.util.env import FUNC_DIR
+from tasks.util.state import upload_shared_file
 
 
 @task
-def set_up_tensorflow_data(ctx):
-    data_dir = join(FAASM_SHARED_STORAGE_ROOT, "tfdata")
+def set_up_tensorflow_data(ctx, host="localhost"):
     source_data = join(FUNC_DIR, "tf", "data")
 
-    if not exists(data_dir):
-        makedirs(data_dir)
-
-    check_output("cp {}/* {}/".format(source_data, data_dir), shell=True)
+    for root, dirs, files in walk(source_data):
+        for filename in files:
+            file_path = join(source_data, filename)
+            shared_path = "tfdata/{}".format(filename)
+            upload_shared_file(host, file_path, shared_path)

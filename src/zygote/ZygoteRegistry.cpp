@@ -15,13 +15,18 @@ namespace zygote {
         return count;
     }
 
+    std::string ZygoteRegistry::getZygoteKey(const message::Message &msg) {
+        std::string key = msg.user() + "/" + msg.function();
+        return key;
+    }
+
     wasm::WasmModule &ZygoteRegistry::getZygote(const message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        const std::string &key = util::funcToString(msg, false);
+        const std::string key = getZygoteKey(msg);
 
-        if(getZygoteCount(key) == 0) {
+        if (getZygoteCount(key) == 0) {
             util::FullLock lock(mx);
-            if(zygoteMap.count(key) == 0) {
+            if (zygoteMap.count(key) == 0) {
                 logger->debug("Creating new zygote for {}", key);
                 // Instantiate the module
                 wasm::WasmModule &module = zygoteMap[key];

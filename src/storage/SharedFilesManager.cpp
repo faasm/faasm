@@ -118,6 +118,8 @@ namespace storage {
                     state = EXISTS;
                 } else {
                     // Use file loader if not already in place
+                    logger->debug("Using file loader for shared file {}", path);
+
                     FileLoader &loader = getFileLoader();
                     const std::vector<uint8_t> bytes = loader.loadSharedFile(path);
 

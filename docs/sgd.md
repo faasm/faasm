@@ -15,12 +15,18 @@ To download the pre-processed data from S3, run the following:
 inv reuters-download-s3
 ```
 
-## State upload
-
-Once you have the parse data, this can put into the relevant state store:
+If running on a remote host you can then move the files:
 
 ```
-# Locally (make sure upload server is running)
+scp -r ~/faasm/data <USER>@<HOST>:/home/<USER>/faasm/data
+```
+
+## State upload
+
+This can put into the relevant state store:
+
+```
+# Locally (make sure containers are running)
 inv reuters-state-upload localhost
 
 # K8s
@@ -31,7 +37,25 @@ inv reuters-state-upload-s3
 inv reuters-prepare-aws
 ```
 
-## Parsing from scratch (one off)
+## Invoking the function
+
+First make sure the latest function is in place:
+
+```
+inv upload sgd reuters_svm --prebuilt
+```
+
+You can invoke the process with:
+
+```
+inv invoke sgd reuters_svm
+```
+
+## Native run
+
+To run the SGD code natively, you need to download the pre-processed data, upload it to the local Redis state storage, then build and execute the main SGD function natively.
+
+# Preparing data from scratch (one off)
 
 To actually generate the parsed data in the first place, we must use exactly the same RCV1 data as the original
 Hogwild experiments. The original code can be found on their [website](http://i.stanford.edu/hazy/victor/Hogwild/).
@@ -53,7 +77,3 @@ cd /usr/local/code/hogwild
 inv reuters-upload-s3
 ```
 
-## Native run
-
-To run the SGD code natively, you need to download the pre-processed data, upload it to the local Redis state
-storage, then build and execute the main SGD function natively.

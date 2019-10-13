@@ -15,12 +15,11 @@ namespace redis {
 
         if (role == STATE) {
             hostname = conf.redisStateHost;
-            ip = util::getIPFromHostname(hostname);
-
         } else {
             hostname = conf.redisQueueHost;
-            ip = util::getIPFromHostname(hostname);
         }
+
+        ip = util::getIPFromHostname(hostname);
 
         std::string portStr = conf.redisPort;
         port = std::stoi(portStr);
@@ -44,7 +43,7 @@ namespace redis {
     std::string RedisInstance::loadScript(redisContext *context, const std::string &scriptBody) {
         auto reply = (redisReply *) redisCommand(context, "SCRIPT LOAD %s", scriptBody.c_str());
 
-        if(reply == nullptr) {
+        if (reply == nullptr) {
             throw std::runtime_error("Error loading script from Redis");
         }
 
@@ -71,8 +70,6 @@ namespace redis {
 
             throw std::runtime_error("Failed to connect to redis");
         }
-
-        printf("Connected to redis host %s at %s:%i\n", instance.hostname.c_str(), instance.ip.c_str(), instance.port);
     }
 
     Redis::~Redis() {
@@ -170,6 +167,7 @@ namespace redis {
 
     void Redis::get(const std::string &key, uint8_t *buffer, size_t size) {
         auto reply = (redisReply *) redisCommand(context, "GET %s", key.c_str());
+
         getBytesFromReply(reply, buffer, size);
         freeReplyObject(reply);
     }
@@ -465,9 +463,9 @@ namespace redis {
         // otherwise an encoded false boolean can be treated as a string terminator
         auto reply = (redisReply *) redisCommand(context, "RPUSH %s %b", queueName.c_str(), value.data(), value.size());
 
-        if(reply->type != REDIS_REPLY_INTEGER) {
+        if (reply->type != REDIS_REPLY_INTEGER) {
             throw std::runtime_error("Failed to enqueue bytes. Reply type = " + std::to_string(reply->type));
-        } else if(reply->integer <= 0) {
+        } else if (reply->integer <= 0) {
             throw std::runtime_error("Failed to enqueue bytes. Length = " + std::to_string(reply->integer));
         }
 
@@ -475,30 +473,52 @@ namespace redis {
     }
 
     redisReply *Redis::dequeueBase(const std::string &queueName, int timeoutMs) {
-        // Note, timeouts need to be converted into seconds
-        int timeoutSecs = timeoutMs / 1000;
-        auto reply = (redisReply *) redisCommand(context, "BLPOP %s %d", queueName.c_str(), timeoutSecs);
+        // NOTE - we contradict the default redis behaviour here by doing a non-blocking pop when
+        // timeout is zero (rather than infinite as in Redis)
+        bool isBlocking = timeoutMs > 0;
 
-        if (reply == nullptr || reply->type == REDIS_REPLY_NIL) {
-            throw RedisNoResponseException();
-        } else if (reply->type != REDIS_REPLY_ARRAY) {
-            throw std::runtime_error("Expected array response from BLPOP but got " + std::to_string(reply->type));
+        redisReply *reply;
+        if (isBlocking) {
+            // Note, timeouts need to be converted into seconds
+            int timeoutSecs = timeoutMs / 1000;
+            reply = (redisReply *) redisCommand(context, "BLPOP %s %d", queueName.c_str(), timeoutSecs);
+        } else {
+            // LPOP is non-blocking
+            reply = (redisReply *) redisCommand(context, "LPOP %s", queueName.c_str());
         }
 
-        size_t nResults = reply->elements;
+        // Check if we got anything
+        if (reply == nullptr || reply->type == REDIS_REPLY_NIL) {
+            throw RedisNoResponseException();
+        }
 
-        if (nResults > 2) {
-            throw std::runtime_error("Returned more than one pair of dequeued values");
+        // Should get an array when doing a blpop, check it.
+        if (isBlocking) {
+            if (reply->type != REDIS_REPLY_ARRAY) {
+                throw std::runtime_error("Expected array response from BLPOP but got " + std::to_string(reply->type));
+            }
+
+            size_t nResults = reply->elements;
+
+            if (nResults > 2) {
+                throw std::runtime_error("Returned more than one pair of dequeued values");
+            }
         }
 
         return reply;
     }
 
     std::string Redis::dequeue(const std::string &queueName, int timeoutMs) {
+        bool isBlocking = timeoutMs > 0;
         redisReply *reply = this->dequeueBase(queueName, timeoutMs);
 
-        redisReply *r = reply->element[1];
-        std::string result(r->str);
+        std::string result;
+        if (isBlocking) {
+            redisReply *r = reply->element[1];
+            result = r->str;
+        } else {
+            result = reply->str;
+        }
 
         freeReplyObject(reply);
 
@@ -506,12 +526,18 @@ namespace redis {
     }
 
     std::vector<uint8_t> Redis::dequeueBytes(const std::string &queueName, int timeoutMs) {
+        bool isBlocking = timeoutMs > 0;
         redisReply *reply = this->dequeueBase(queueName, timeoutMs);
 
-        // Note, BLPOP will return the queue name and the value returned (elements 0 and 1)
-        redisReply *r = reply->element[1];
+        std::vector<uint8_t> replyBytes;
+        if (isBlocking) {
+            // BLPOP will return the queue name and the value returned (elements 0 and 1)
+            redisReply *r = reply->element[1];
+            replyBytes = getBytesFromReply(r);
+        } else {
+            replyBytes = getBytesFromReply(reply);
+        }
 
-        const std::vector<uint8_t> replyBytes = getBytesFromReply(r);
         freeReplyObject(reply);
 
         return replyBytes;

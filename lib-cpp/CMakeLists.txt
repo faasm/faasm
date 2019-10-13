@@ -13,7 +13,6 @@ set(PUBLIC_HEADERS
         faasm/counter.h
         faasm/faasm.h
         faasm/files.h
-        faasm/func.h
         faasm/input.h
         faasm/matrix.h
         faasm/print.h
@@ -27,7 +26,6 @@ set(LIB_FILES
         core.cpp
         counter.cpp
         files.cpp
-        func.cpp
         input.cpp
         matrix.cpp
         print.cpp

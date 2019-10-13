@@ -2,7 +2,8 @@
 
 #include <sys/socket.h>
 
-#define CHAINED_CALL_TIMEOUT 30000
+// Make this long enough for long data processing stuff
+#define CHAINED_CALL_TIMEOUT 120000
 
 #define FAKE_NAME "faasm"
 #define FAKE_PASSWORD  "foobar123"

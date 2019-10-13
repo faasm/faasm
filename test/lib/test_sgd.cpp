@@ -76,12 +76,11 @@ namespace tests {
         REQUIRE(actualOutputs.cols() == params.nTrain);
     }
 
-    void checkLossUpdates(LossType lossType, bool async) {
+    void checkLossUpdates(bool async) {
         cleanSystem();
 
         int nWeights = 4;
         SgdParams params;
-        params.lossType = lossType;
         params.nWeights = nWeights;
         params.learningRate = 0.1;
         params.nBatches = 1;
@@ -108,27 +107,15 @@ namespace tests {
         SparseMatrix<double> inputs(nWeights, 2);
         std::vector<Triplet<double>> tripletList;
 
-        if (lossType == RMSE) {
-            // Inputs to look like this:
-            // 3 3
-            // 0 1
-            // 2 0
-            // 0 0
-            tripletList.emplace_back(Triplet<double>(0, 0, 3));
-            tripletList.emplace_back(Triplet<double>(0, 1, 3));
-            tripletList.emplace_back(Triplet<double>(1, 1, 1));
-            tripletList.emplace_back(Triplet<double>(2, 0, 2));
-        } else if (lossType == HINGE) {
-            // Inputs to look like this:
-            // -3.2  3.1
-            // 0     -1.5
-            // 2.9   0
-            // 0     0
-            tripletList.emplace_back(Triplet<double>(0, 0, -3.2));
-            tripletList.emplace_back(Triplet<double>(0, 1, 3.1));
-            tripletList.emplace_back(Triplet<double>(1, 1, -1.5));
-            tripletList.emplace_back(Triplet<double>(2, 0, 2.9));
-        }
+        // Inputs to look like this:
+        // -3.2  3.1
+        // 0     -1.5
+        // 2.9   0
+        // 0     0
+        tripletList.emplace_back(Triplet<double>(0, 0, -3.2));
+        tripletList.emplace_back(Triplet<double>(0, 1, 3.1));
+        tripletList.emplace_back(Triplet<double>(1, 1, -1.5));
+        tripletList.emplace_back(Triplet<double>(2, 0, 2.9));
 
         // Set up inputs in state
         inputs.setFromTriplets(tripletList.begin(), tripletList.end());
@@ -141,22 +128,15 @@ namespace tests {
         int batchNumber = 0;
         int startIdx = 0;
         int endIdx = 2;
-        if (lossType == RMSE) {
-            MatrixXd outputs(1, 2);
-            outputs << 10, 11;
 
-            faasm::writeMatrixToState(OUTPUTS_KEY, outputs, async);
-            leastSquaresWeightUpdate(params, batchNumber, startIdx, endIdx);
-        } else if (lossType == HINGE) {
-            // Classification-style outputs
-            MatrixXd outputs(1, 2);
-            outputs << -1, 1;
+        // Classification-style outputs
+        MatrixXd outputs(1, 2);
+        outputs << -1, 1;
 
-            faasm::writeMatrixToState(OUTPUTS_KEY, outputs, async);
+        faasm::writeMatrixToState(OUTPUTS_KEY, outputs, async);
 
-            int epoch = 3;
-            hingeLossWeightUpdate(params, epoch, batchNumber, startIdx, endIdx);
-        }
+        int epoch = 3;
+        hingeLossWeightUpdate(params, epoch, batchNumber, startIdx, endIdx);
 
         // Ensure everything pushed
         faasmPushStatePartial(WEIGHTS_KEY);
@@ -175,20 +155,12 @@ namespace tests {
         REQUIRE(actualWeights(0, 3) == weightsCopy(0, 3));
     }
 
-    TEST_CASE("Test least squares updates", "[sgd]") {
-        checkLossUpdates(RMSE, false);
-    }
-
-    TEST_CASE("Test least squares updates async", "[sgd]") {
-        checkLossUpdates(RMSE, true);
-    }
-
     TEST_CASE("Test hinge loss updates", "[sgd]") {
-        checkLossUpdates(HINGE, false);
+        checkLossUpdates(false);
     }
 
     TEST_CASE("Test hinge loss updates async", "[sgd]") {
-        checkLossUpdates(HINGE, true);
+        checkLossUpdates(true);
     }
 
     void checkDoubleArrayInState(redis::Redis &r, const char *key, std::vector<double> expected) {
@@ -199,16 +171,6 @@ namespace tests {
 
         auto actualPtr = reinterpret_cast<double *>(actualBytes.data());
         std::vector<double> actual(actualPtr, actualPtr + expected.size());
-
-        REQUIRE(actual == expected);
-    }
-
-    void checkIntArrayInState(redis::Redis &r, const char *key, std::vector<int> expected) {
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-        std::vector<uint8_t> actualBytes = redisQueue.get(key);
-
-        auto actualPtr = reinterpret_cast<int *>(actualBytes.data());
-        std::vector<int> actual(actualPtr, actualPtr + expected.size());
 
         REQUIRE(actual == expected);
     }
@@ -235,12 +197,12 @@ namespace tests {
         checkDoubleArrayInState(redisQueue, errorKey.c_str(), {0, 0, 0, 0});
 
         // Work out expectation
-        double expected1 = calculateSquaredError(a, b);
-        double expected2 = calculateSquaredError(a, b);
+        double expected1 = calculateHingeError(a, b);
+        double expected2 = calculateHingeError(a, b);
 
         // Write errors to memory
-        writeSquaredError(params, 0, a, b);
-        writeSquaredError(params, 2, a, b);
+        writeHingeError(params, 0, a, b);
+        writeHingeError(params, 2, a, b);
 
         checkDoubleArrayInState(redisQueue, errorKey.c_str(), {expected1, 0, expected2, 0});
     }
@@ -263,10 +225,10 @@ namespace tests {
         // Write the error for two of the three batches
         MatrixXd a = randomDenseMatrix(1, 5);
         MatrixXd b = randomDenseMatrix(1, 5);
-        double expected = calculateSquaredError(a, b);
+        double expected = calculateHingeError(a, b);
 
-        writeSquaredError(p, 0, a, b);
-        writeSquaredError(p, 1, a, b);
+        writeHingeError(p, 0, a, b);
+        writeHingeError(p, 1, a, b);
 
         // Check these have been written
         const std::string actualKey = util::keyForUser(user, ERRORS_KEY);
@@ -278,95 +240,13 @@ namespace tests {
         REQUIRE(abs(actual1 - expectedRmse1) < 0.0000001);
 
         // Now write error for a third batch
-        writeSquaredError(p, 2, a, b);
+        writeHingeError(p, 2, a, b);
         checkDoubleArrayInState(redisState, actualKey.c_str(), {expected, expected, expected});
 
         // Work out what the result should be
         double expectedRmse2 = sqrt((3 * expected) / p.nTrain);
         double actual2 = faasm::readRootMeanSquaredError(p);
         REQUIRE(abs(actual2 - expectedRmse2) < 0.0000001);
-    }
-
-    TEST_CASE("Test zeroing losses", "[sgd]") {
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-        cleanSystem();
-
-        const std::string user = getEmulatorUser();
-        std::string lossKey = util::keyForUser(user, LOSSES_KEY);
-        std::string lossTsKey = util::keyForUser(user, LOSS_TIMESTAMPS_KEY);
-
-        SgdParams p = getDummySgdParams();
-        p.nBatches = 10;
-        p.nEpochs = 5;
-
-        // Zero and check it's worked
-        zeroLosses(p);
-        checkDoubleArrayInState(redisQueue, lossKey.c_str(), {0, 0, 0, 0, 0});
-        checkDoubleArrayInState(redisQueue, lossTsKey.c_str(), {0, 0, 0, 0, 0});
-
-        // Update with some other values
-        std::vector<double> losses = {2.2, 3.3, 4.4, 5.5, 0.0};
-        auto lossBytes = reinterpret_cast<uint8_t *>(losses.data());
-        faasmWriteState(LOSSES_KEY, lossBytes, 5 * sizeof(double), false);
-
-        std::vector<double> timestamps = {100.0, 200.2, 300.3, 1000.1, 2000.2};
-        auto timestampBytes = reinterpret_cast<uint8_t *>(timestamps.data());
-        faasmWriteState(LOSS_TIMESTAMPS_KEY, timestampBytes, 5 * sizeof(double), false);
-
-        checkDoubleArrayInState(redisQueue, lossKey.c_str(), losses);
-        checkDoubleArrayInState(redisQueue, lossTsKey.c_str(), timestamps);
-
-        // Zero again and check it's worked
-        zeroLosses(p);
-        checkDoubleArrayInState(redisQueue, lossKey.c_str(), {0, 0, 0, 0, 0});
-        checkDoubleArrayInState(redisQueue, lossTsKey.c_str(), {0, 0, 0, 0, 0});
-    }
-
-    TEST_CASE("Test setting finished flags", "[sgd]") {
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-        cleanSystem();
-        std::string user = getEmulatorUser();
-
-        std::string finishedKey = util::keyForUser(user, FINISHED_KEY);
-        
-        SgdParams p = getDummySgdParams();
-        p.nBatches = 3;
-
-        zeroFinished(p);
-        REQUIRE(!readEpochFinished(p));
-
-        writeFinishedFlag(p, 0);
-        writeFinishedFlag(p, 2);
-        REQUIRE(!readEpochFinished(p));
-        checkIntArrayInState(redisQueue, finishedKey.c_str(), {1, 0, 1});
-
-        writeFinishedFlag(p, 1);
-        checkIntArrayInState(redisQueue, finishedKey.c_str(), {1, 1, 1});
-        REQUIRE(readEpochFinished(p));
-    }
-
-    TEST_CASE("Test zeroing finished flags", "[sgd]") {
-        cleanSystem();
-        redis::Redis &redisQueue = redis::Redis::getQueue();
-
-        SgdParams p = getDummySgdParams();
-        p.nBatches = 3;
-
-        // Zero and check it's worked
-        zeroFinished(p);
-        const char *finishedKey = util::keyForUser(getEmulatorUser(), FINISHED_KEY).c_str();
-        checkIntArrayInState(redisQueue, finishedKey, {0, 0, 0});
-
-        // Update with some other values (note the confusing mix of user-prepended and non-prepended keys)
-        std::vector<int> finished = {1, 0, 1};
-        auto lossBytes = reinterpret_cast<uint8_t *>(finished.data());
-        faasmWriteState(FINISHED_KEY, lossBytes, 5 * sizeof(int), false);
-
-        checkIntArrayInState(redisQueue, finishedKey, finished);
-
-        // Zero again and check it's worked
-        zeroFinished(p);
-        checkIntArrayInState(redisQueue, finishedKey, {0, 0, 0});
     }
 
     TEST_CASE("Test getting full async from environment", "[sgd]") {

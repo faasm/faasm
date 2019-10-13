@@ -10,16 +10,6 @@ _BATCH_MEMORY = 128
 _BATCH_CONCURRENCY = 200
 
 _SGD_FUNCS = {
-    "sgd_finished": {
-        "memory": 128,
-        "timeout": 30,
-        "concurrency": 1,
-    },
-    "sgd_loss": {
-        "memory": 128,
-        "timeout": 30,
-        "concurrency": 1,
-    },
     "reuters_svm": {
         "memory": _BATCH_MEMORY,
         "timeout": _MAX_BATCH_TIME,

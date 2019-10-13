@@ -116,7 +116,7 @@ namespace edge {
 
         if (msg.isasync()) {
             logger->info("Async request {}", funcStr);
-            return "Async request submitted";
+            return util::buildAsyncResponse(msg);
         } else {
             util::SystemConfig &conf = util::getSystemConfig();
             logger->info("Sync request {}", funcStr);

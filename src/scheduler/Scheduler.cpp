@@ -161,6 +161,20 @@ namespace scheduler {
     std::shared_ptr<InMemoryMessageQueue> Scheduler::getBindQueue() {
         return bindQueue;
     }
+    
+    int getMaxQueueRatio(const message::Message &msg) {
+        // When this is a normal call the max queue ratio will be the standard config value.
+        // When executing a chained call we want to execute immediately if there's a free thread,
+        // or scale out immediately.
+
+        bool isChained = msg.idx() > 0;
+        if(isChained) {
+            return 1;
+        } else {
+            SystemConfig &conf = util::getSystemConfig();
+            return conf.maxQueueRatio;
+        }
+    }
 
     Scheduler &getScheduler() {
         // This is *global* and must be shared across threads
@@ -195,30 +209,24 @@ namespace scheduler {
 
     void Scheduler::addWarmThreads(const message::Message &msg) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
-        // Get the max queue ratio for this function
-        int maxQueueRatio = conf.maxQueueRatio;
 
-        // TODO make this configurable
-        if (msg.function() == "sgd_step") {
-            // No queueing
-            maxQueueRatio = 0;
-        }
+        int maxQueueRatio = getMaxQueueRatio(msg);
 
         double queueRatio = this->getFunctionQueueRatio(msg);
-        double nThreads = this->getFunctionThreadCount(msg);
+        long nThreads = this->getFunctionThreadCount(msg);
 
         const std::string funcStr = util::funcToString(msg, false);
-        logger->debug("{} queue ratio = {} threads = {}", funcStr, queueRatio, nThreads);
+        logger->debug("{} queue ratio = {} (max {}) threads = {}", funcStr, queueRatio, maxQueueRatio, nThreads);
 
-        // If we're over the queue ratio and have capacity, need to scale up
-        if (queueRatio > maxQueueRatio && nThreads < conf.maxWorkersPerFunction) {
+        // If we're over or at the queue ratio and have capacity, need to scale up
+        if (queueRatio >= maxQueueRatio && nThreads < conf.maxWorkersPerFunction) {
             FullLock lock(mx);
 
             queueRatio = this->getFunctionQueueRatio(msg);
             nThreads = this->getFunctionThreadCount(msg);
 
             // Double check condition
-            if (queueRatio > maxQueueRatio && nThreads < conf.maxWorkersPerFunction) {
+            if (queueRatio >= maxQueueRatio && nThreads < conf.maxWorkersPerFunction) {
                 logger->debug("Scaling up {} to {} threads", funcStr, nThreads + 1);
 
                 // If this is the first thread on this node, add it to the warm set for this function
@@ -229,6 +237,7 @@ namespace scheduler {
                 // Increment thread count here
                 threadCountMap[funcStr]++;
 
+                // Send bind message (i.e. request a thread)
                 message::Message bindMsg = util::messageFactory(msg.user(), msg.function());
                 bindMsg.set_type(message::Message_MessageType_BIND);
                 bindMsg.set_ispython(msg.ispython());
@@ -243,8 +252,7 @@ namespace scheduler {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
         // If we're ignoring the scheduling, just put it on this node regardless
-        bool ignoreScheduler = conf.noScheduler == 1;
-        if (ignoreScheduler) {
+        if (conf.noScheduler == 1) {
             logger->debug("Ignoring scheduler and queueing {} locally", util::funcToString(msg, true));
             return nodeId;
         }
@@ -254,16 +262,19 @@ namespace scheduler {
         {
             SharedLock lock(mx);
 
-            // If we have some warm threads below the max, we can handle locally
+            // Get the thread count for this function on this node
             long threadCount = this->getFunctionThreadCount(msg);
+
+            // If we have some warm threads below the max, we can handle locally
             if (threadCount > 0 && threadCount < conf.maxWorkersPerFunction) {
                 return nodeId;
-            } else if (threadCount == conf.maxWorkersPerFunction) {
-                // If we're at the max workers, we want to saturate so that all are full,
-                // i.e. we want to get up to the maximum queue ratio
+            } else if (threadCount >= conf.maxWorkersPerFunction) {
+                // If we're at/ above the max workers, we want to saturate so that all
+                // are full, i.e. we want to get up to the maximum queue ratio
                 double queueRatio = this->getFunctionQueueRatio(msg);
+                int maxQueueRatio = getMaxQueueRatio(msg);
 
-                if (queueRatio >= conf.maxQueueRatio) {
+                if (queueRatio >= maxQueueRatio) {
                     // Only exclude when we've saturated the last worker
                     excludeThisNode = true;
                 }

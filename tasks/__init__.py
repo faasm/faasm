@@ -89,18 +89,19 @@ from tasks.docker import (
     docker_push_base,
 )
 from tasks.docker_compose import (
-    docker_clear_queue,
     docker_start_all,
     docker_stop_all,
     docker_restart_all
 )
 from tasks.ibm import (
-    ibm_clear_redis,
     ibm_codegen,
     ibm_delete_worker,
     ibm_deploy_worker,
     ibm_invoke,
+    ibm_k8s_add_knative,
+    ibm_k8s_config,
     ibm_create_buckets,
+    ibm_print_kubeconf,
     ibm_list,
     ibm_login,
     ibm_set_up_cos,
@@ -109,6 +110,11 @@ from tasks.ibm import (
 )
 from tasks.invoke import (
     invoke,
+    status,
+)
+from tasks.knative import (
+    k8s_deploy,
+    k8s_delete_worker,
 )
 from tasks.python import (
     clear_runtime_pyc,
@@ -146,4 +152,9 @@ from tasks.upload import (
     upload_all_s3,
     upload,
 )
-from tasks.wasm2wast import wast
+from tasks.wasm2wast import (
+    wast
+)
+from tasks.redis import (
+    redis_clear_queue
+)

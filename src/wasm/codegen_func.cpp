@@ -33,9 +33,10 @@ int main(int argc, char *argv[]) {
         codegenForFunc(user, func);
     } else if (argc == 2) {
         std::string user = argv[1];
-        logger->info("Running codegen for user {}", user);
 
         util::SystemConfig &conf = util::getSystemConfig();
+        logger->info("Running codegen for user {} on dir {}", user, conf.functionDir);
+
         boost::filesystem::path path(conf.functionDir);
         path.append(user);
 

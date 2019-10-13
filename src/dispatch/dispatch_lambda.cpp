@@ -45,7 +45,7 @@ int main() {
         std::string resultData = "Function dispatched";
         if (msg.isasync()) {
             logger->info("Async request {}", funcStr);
-            resultData = "Async request submitted";
+            resultData = util::buildAsyncResponse(msg);
         } else {
             logger->info("Sync request {}", funcStr);
             message::Message result = globalBus.getFunctionResult(msg.id(), config.globalMessageTimeout);

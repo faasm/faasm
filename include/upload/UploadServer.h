@@ -30,6 +30,8 @@ namespace edge {
         static void handleFunctionUpload(const http_request &request);
 
         static void handleStateUpload(const http_request &request);
+
+        static void handleSharedFileUpload(const http_request &request);
     };
 
     class InvalidPathException : public std::exception {

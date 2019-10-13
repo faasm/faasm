@@ -53,11 +53,13 @@ namespace tests {
         std::string otherNodeA = "node A";
         SharingMessageBus &sharingBus = SharingMessageBus::getInstance();
 
-        message::Message call;
-        call.set_user("user a");
-        call.set_function("function a");
+        message::Message call = util::messageFactory("user a", "function a");
+        message::Message chainedCall = util::messageFactory("user a", "function a");
+        chainedCall.set_idx(3);
 
         util::SystemConfig &conf = util::getSystemConfig();
+        int originalMaxQueueRatio = conf.maxQueueRatio;
+        conf.maxQueueRatio = 8;
 
         SECTION("Test worker finishing and node removal") {
             // Sanity check to see that the node is in the global set but not the set for the function
@@ -66,7 +68,7 @@ namespace tests {
             REQUIRE(!redis.sismember(funcSet, nodeId));
 
             // Call the function enough to get multiple workers set up
-            int requiredCalls = conf.maxQueueRatio * 2;
+            int requiredCalls = (conf.maxQueueRatio * 2) - 1;
             for (int i = 0; i < requiredCalls; i++) {
                 sch.callFunction(call);
             }
@@ -170,7 +172,7 @@ namespace tests {
         SECTION("Test calling function which breaches queue ratio sends bind message") {
             // Saturate up to the number of max queued calls
             auto bindQueue = sch.getBindQueue();
-            int nCalls = conf.maxQueueRatio;
+            int nCalls = conf.maxQueueRatio - 1;
             for (int i = 0; i < nCalls; i++) {
                 sch.callFunction(call);
 
@@ -189,7 +191,30 @@ namespace tests {
             redis.flushAll();
         }
 
-        SECTION("node choice checks") {
+        SECTION("Test chained calls use lower queue ratio") {
+            // Add a few normal calls below the normal queue ratio but
+            // above the chained queue ratio (i.e. 1)
+            auto bindQueue = sch.getBindQueue();
+            int nCalls = conf.maxQueueRatio - 3;
+            for (int i = 0; i < nCalls; i++) {
+                sch.callFunction(call);
+            }
+
+            // Dispatch another and check that a bind message is still not sent
+            sch.callFunction(call);
+            REQUIRE(bindQueue->size() == 1);
+            REQUIRE(sch.getFunctionQueueLength(call) == nCalls + 1);
+
+            // Now dispatch a chained call and check that it causes another bind,
+            // and is put on the same queue as the normal messages
+            sch.callFunction(chainedCall);
+            REQUIRE(bindQueue->size() == 2);
+            REQUIRE(sch.getFunctionQueueLength(call) == nCalls + 2);
+
+            redis.flushAll();
+        }
+
+        SECTION("Node choice checks") {
             redis.sadd(GLOBAL_NODE_SET, otherNodeA);
 
             SECTION("Test function which breaches queue ratio but has no capacity fails over") {
@@ -231,6 +256,20 @@ namespace tests {
                 redis.flushAll();
             }
 
+            SECTION("Test chained function fails over at lower limit") {
+                // Make a few calls but still below the normal limit
+                int nCalls = (conf.maxWorkersPerFunction * conf.maxQueueRatio) - 2;
+                for (int i = 0; i < nCalls; i++) {
+                    sch.callFunction(call);
+                }
+
+                // Check "best node" is still this node
+                REQUIRE(sch.getBestNodeForFunction(call) == nodeId);
+
+                // Check "best node" for a chained call is the other node
+                REQUIRE(sch.getBestNodeForFunction(chainedCall) != nodeId);
+            }
+
             SECTION("Test scheduler requests scale-out when no options") {
                 // Clear out worker set and just add this node
                 redis.flushAll();
@@ -254,7 +293,7 @@ namespace tests {
                 // Check scale-out request has been made
                 REQUIRE(globalBus.getScaleoutRequestCount() == 1);
             }
-            
+
             SECTION("Test scheduler adds node ID to global set when starting up") {
                 REQUIRE(!nodeId.empty());
                 REQUIRE(redis.sismember(GLOBAL_NODE_SET, nodeId));
@@ -304,6 +343,8 @@ namespace tests {
                 REQUIRE(sch.getBestNodeForFunction(call) == nodeId);
             }
         }
+
+        conf.maxQueueRatio = originalMaxQueueRatio;
     }
 
     TEST_CASE("Test scheduler execution count", "[scheduler]") {

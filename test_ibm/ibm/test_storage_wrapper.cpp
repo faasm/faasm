@@ -1,9 +1,9 @@
 #include <catch/catch.hpp>
 
-#include <ibm/IBMStorageWrapper.h>
+#include <storage/IBMStorageWrapper.h>
 #include <util/config.h>
 
-using namespace ibm;
+using namespace storage;
 
 namespace tests {
     TEST_CASE("Test authentication", "[ibm]") {

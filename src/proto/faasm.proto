@@ -14,6 +14,7 @@ message Message {
         BIND = 1;
         CALL = 2;
         KILL = 3;
+        EMPTY = 4;
     }
 
     optional MessageType type = 6 [default = CALL];
@@ -25,7 +26,8 @@ message Message {
     optional bool isAsync = 11;
     optional bool isPython = 12;
     optional bool isTypescript = 13;
+    optional bool isStatusRequest = 14;
 
-    optional bytes inputData = 14;
-    optional bytes outputData = 15;
+    optional bytes inputData = 15;
+    optional bytes outputData = 16;
 }

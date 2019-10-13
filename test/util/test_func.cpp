@@ -2,7 +2,6 @@
 
 #include <util/func.h>
 #include <util/config.h>
-#include <util/environment.h>
 #include <boost/filesystem.hpp>
 
 using namespace boost::filesystem;
@@ -20,14 +19,7 @@ namespace tests {
     TEST_CASE("Test retrieving function paths", "[util]") {
         util::SystemConfig &conf = util::getSystemConfig();
 
-        std::string funcName;
-        SECTION("Normal func name") {
-            funcName = "beta";
-        }
-
-        SECTION("Func name with idx") {
-            funcName = "beta__001__";
-        }
+        std::string funcName = "beta";
 
         message::Message call;
         call.set_user("alpha");
@@ -103,34 +95,6 @@ namespace tests {
         REQUIRE(msg.statuskey() == expectedStatusKey);
     }
 
-    TEST_CASE("Test adding idx to message", "[util]") {
-        message::Message msg;
-        msg.set_function("foobar");
-
-        REQUIRE(msg.idx() == 0);
-        REQUIRE(msg.function() == "foobar");
-
-        util::setMessageIdx(msg, 22);
-
-        REQUIRE(msg.idx() == 22);
-        REQUIRE(msg.function() == "foobar__022__");
-    }
-
-    TEST_CASE("Test adding idx to function name", "[util]") {
-        REQUIRE(util::addIdxToFunction("foobar", 0) == "foobar");
-        REQUIRE(util::addIdxToFunction("foobar", 1) == "foobar__001__");
-        REQUIRE(util::addIdxToFunction("foobar", 5) == "foobar__005__");
-        REQUIRE(util::addIdxToFunction("foobar", 11) == "foobar__011__");
-        REQUIRE(util::addIdxToFunction("foobar", 321) == "foobar__321__");
-    }
-
-    TEST_CASE("Test stripping idx from funciton name", "[util]") {
-        REQUIRE(util::stripIdxFromFunction("foobar") == "foobar");
-        REQUIRE(util::stripIdxFromFunction("foobar123") == "foobar123");
-        REQUIRE(util::stripIdxFromFunction("foobar__001__") == "foobar");
-        REQUIRE(util::stripIdxFromFunction("foobar__123__") == "foobar");
-    }
-    
     TEST_CASE("Test converting message to python", "[util]") {
         message::Message msg = util::messageFactory("foo", "bar");
 
@@ -140,5 +104,14 @@ namespace tests {
         REQUIRE(msg.inputdata() == "foo/bar/function.py");
         REQUIRE(msg.user() == PYTHON_USER);
         REQUIRE(msg.function() == PYTHON_FUNC);
+    }
+
+    TEST_CASE("Test creating async response") {
+        message::Message msg = util::messageFactory("foo", "bar");
+
+        const std::string expected = std::to_string(msg.id());
+        const std::string actual = util::buildAsyncResponse(msg);
+
+        REQUIRE(expected == actual);
     }
 }

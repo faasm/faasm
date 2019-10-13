@@ -1,22 +1,26 @@
 # Set-up and usage
 
-Faasm can be deployed to Kubernetes and Knative to create a distributed set-up. The configuration files are found
-in the `k8s` directory. This has the following components.
+Faasm can be deployed to Kubernetes and Knative to create a distributed set-up. The configuration files are found in the `k8s` directory.
 
 ## Knative Set-up
 
-Provided you have an accessible Kubernetes cluster (cloud provider, local Minikube, bare metal etc.)
-with Knative installed, you can deploy Faasm as follows.
+Provided you have an accessible Kubernetes cluster (cloud provider, local Minikube, bare metal etc.) with Knative installed, you can deploy Faasm as follows.
 
-If you're deploying remotely then you need to update the `externalIPs` field in the `upload-service.yml` file
-to match your k8s master node. On a cloud provider you may need to modify the external `LoadBalancer`s.
+If you're deploying on a bare-metal cluster then you need to update the `externalIPs` field in the `upload-service.yml` file to match your k8s master node. 
+
+On a cloud provider you should be provided with an endpoint which will handle the external connectivity.
+
+To deploy, you can run:
 
 ```
-# Local (NodePorts for services)
-./bin/knative_deploy.sh local
+# Local
+inv k8s-deploy --local
 
-# Remote (LoadBalancers for service). Run on master node
-./bin/knative_deploy.sh remote
+# Remote bare-metal (must be run on master node)
+inv k8s-deploy --bare-metal
+
+# IBM Cloud
+inv k8s-deploy --ibm
 ```
 
 Once everything has started up, you can get the relevant URLs as follows (on the master node):
@@ -33,7 +37,13 @@ Once you have the upload URL you can upload functions using the tasks in this re
 
 ```
 source workon.sh
-inv upload --host=<your k8s host> <user> <func>
+
+# C++ functions
+# Note, --prebuilt uses the functions checked into the repo
+inv upload --host=<upload IP> --prebuilt <user> <func>
+
+# All Python functions
+inv upload-all --host=<upload IP> --py
 ```
 
 ## Invoking functions
@@ -41,7 +51,15 @@ inv upload --host=<your k8s host> <user> <func>
 Invoking functions is a little different to normal Faasm functions and looks like:
 
 ```
-inv knative-invoke --host=<your k8s host> --port=<your invoke port> <user> <func>
+inv invoke --host=<your k8s host> --port=<your invoke port> <user> <func>
+```
+
+## Flushing Redis
+
+When workers die or are killed, you'll need to clear the queue:
+
+```
+inv redis-clear-queue --knative
 ```
 
 ## Troubleshooting

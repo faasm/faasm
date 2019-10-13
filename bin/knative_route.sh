@@ -19,7 +19,7 @@ kubectl get svc istio-ingressgateway --namespace istio-system
 echo ""
 echo "-----    Function Route    -----"
 echo ""
-kubectl --namespace faasm get route ${FUNC_NAME}
+kn service list --namespace faasm 
 
 # Get IP and host for the K8s master node
 MASTER_IP=$(kubectl get node  --output 'jsonpath={.items[0].status.addresses[0].address}')

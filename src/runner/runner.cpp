@@ -23,8 +23,7 @@ int main(int argc, char *argv[]) {
     conf.unboundTimeout = 60000;
     conf.globalMessageTimeout = 60000;
 
-    // Custom conf here to specify always scale out but put a limit on the workers
-    conf.maxQueueRatio = 0;
+    // Make sure we have enough space for chained calls
     conf.maxWorkersPerFunction = 6;
 
     // Clear out redis

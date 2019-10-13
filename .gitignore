@@ -112,3 +112,6 @@ dkms.conf
 __pycache__/
 *.pyc
 venv/
+
+# Kubernetes
+.kube/

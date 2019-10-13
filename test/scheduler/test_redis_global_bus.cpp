@@ -145,4 +145,52 @@ namespace tests {
 
         // If we get here then things work properly
     }
+
+    TEST_CASE("Check getting function status", "[scheduler]") {
+        cleanSystem();
+        
+        GlobalMessageBus &bus = getGlobalMessageBus();
+        
+        // Create a message
+
+        std::string expectedOutput;
+        bool expectedSuccess;
+        message::Message_MessageType expectedType;
+
+        message::Message msg;
+        SECTION("Running") {
+            msg = util::messageFactory("demo", "echo");
+            expectedSuccess = false;
+            expectedType = message::Message_MessageType_EMPTY;
+        }
+
+        SECTION("Failure") {
+            msg = util::messageFactory("demo", "echo");
+
+            expectedOutput = "I have failed";
+            msg.set_outputdata(expectedOutput);
+            bus.setFunctionResult(msg, false);
+
+            expectedSuccess = false;
+            expectedType = message::Message_MessageType_CALL;
+        }
+
+        SECTION("Success") {
+            msg = util::messageFactory("demo", "echo");
+
+            expectedOutput = "I have succeeded";
+            msg.set_outputdata(expectedOutput);
+            bus.setFunctionResult(msg, true);
+
+            expectedSuccess = true;
+            expectedType = message::Message_MessageType_CALL;
+        }
+
+        // Check status when nothing has been written 
+        const message::Message result = bus.getFunctionResult(msg.id(), 0);
+
+        REQUIRE(result.type() == expectedType);
+        REQUIRE(result.success() == expectedSuccess);
+        REQUIRE(result.outputdata() == expectedOutput);
+    }
 }

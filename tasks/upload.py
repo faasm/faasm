@@ -4,7 +4,7 @@ from os.path import join
 
 from invoke import task
 
-from tasks.util.env import FUNC_BUILD_DIR, PROJ_ROOT, RUNTIME_S3_BUCKET, FUNC_DIR
+from tasks.util.env import FUNC_BUILD_DIR, PROJ_ROOT, RUNTIME_S3_BUCKET, FUNC_DIR, WASM_DIR
 from tasks.util.upload_util import curl_file, upload_file_to_s3, upload_file_to_ibm
 
 DIRS_TO_INCLUDE = ["demo", "errors", "python", "polybench", "sgd", "tf"]
@@ -20,7 +20,7 @@ def _get_s3_key(user, func):
 @task
 def upload(ctx, user, func, host="127.0.0.1",
            s3=False, ibm=False, subdir=None,
-           py=False, ts=False):
+           py=False, ts=False, prebuilt=False):
     if py:
         func_file = join(PROJ_ROOT, "func", user, "{}.py".format(func))
 
@@ -31,10 +31,14 @@ def upload(ctx, user, func, host="127.0.0.1",
         url = "http://{}:8002/f/ts/{}".format(host, func)
         curl_file(url, func_file)
     else:
+        base_dir = WASM_DIR if prebuilt else FUNC_BUILD_DIR
+
         if subdir:
-            func_file = join(FUNC_BUILD_DIR, user, subdir, "{}.wasm".format(func))
+            func_file = join(base_dir, user, subdir, "{}.wasm".format(func))
+        elif prebuilt:
+            func_file = join(base_dir, user, func, "function.wasm")
         else:
-            func_file = join(FUNC_BUILD_DIR, user, "{}.wasm".format(func))
+            func_file = join(base_dir, user, "{}.wasm".format(func))
 
         if s3:
             print("Uploading {}/{} to S3".format(user, func))
@@ -49,10 +53,14 @@ def upload(ctx, user, func, host="127.0.0.1",
             curl_file(url, func_file)
 
 
-def _do_upload_all(host=None, upload_s3=False, py=False):
+def _do_upload_all(host=None, port=8002, upload_s3=False, py=False):
     to_upload = []
 
-    dir_to_walk = FUNC_DIR if py else FUNC_BUILD_DIR
+    if py:
+        dir_to_walk = FUNC_DIR
+    else:
+        dir_to_walk = FUNC_BUILD_DIR
+
     extension = ".py" if py else ".wasm"
     url_part = "p" if py else "f"
 
@@ -85,7 +93,7 @@ def _do_upload_all(host=None, upload_s3=False, py=False):
                     upload_file_to_s3(func_file, RUNTIME_S3_BUCKET, s3_key)
                 else:
                     print("Uploading {}/{} to host {}".format(user, func, host))
-                    url = "http://{}:8002/{}/{}/{}".format(host, url_part, user, func)
+                    url = "http://{}:{}/{}/{}/{}".format(host, port, url_part, user, func)
                     to_upload.append((url, func_file))
 
     # Pool of uploaders
@@ -94,8 +102,8 @@ def _do_upload_all(host=None, upload_s3=False, py=False):
 
 
 @task
-def upload_all(ctx, host="127.0.0.1", py=False):
-    _do_upload_all(host=host, py=py)
+def upload_all(ctx, host="127.0.0.1", port=8002, py=False):
+    _do_upload_all(host=host, port=port, py=py)
 
 
 @task

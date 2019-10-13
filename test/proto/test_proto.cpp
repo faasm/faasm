@@ -43,8 +43,11 @@ namespace tests {
         funcCall.set_isasync(true);
         funcCall.set_ispython(true);
         funcCall.set_istypescript(true);
+        funcCall.set_isstatusrequest(true);
 
-        REQUIRE(funcCall.type() == message::Message_MessageType_CALL);
+        funcCall.set_type(message::Message_MessageType_BIND);
+
+        REQUIRE(funcCall.type() == message::Message_MessageType_BIND);
         REQUIRE(user == funcCall.user());
         REQUIRE(func == funcCall.function());
         REQUIRE(resultKey == funcCall.resultkey());
@@ -58,6 +61,7 @@ namespace tests {
         REQUIRE(user == newFuncCall.user());
         REQUIRE(func == newFuncCall.function());
         REQUIRE(resultKey == newFuncCall.resultkey());
+        REQUIRE(message::Message_MessageType_BIND == newFuncCall.type());
 
         REQUIRE(pyUser == newFuncCall.pythonuser());
         REQUIRE(pyFunc == newFuncCall.pythonfunction());
@@ -65,6 +69,7 @@ namespace tests {
         REQUIRE(newFuncCall.isasync());
         REQUIRE(newFuncCall.ispython());
         REQUIRE(newFuncCall.istypescript());
+        REQUIRE(newFuncCall.isstatusrequest());
 
         // Check input/ output data
         const std::string actualStrInput = newFuncCall.inputdata();

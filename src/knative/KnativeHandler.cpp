@@ -37,7 +37,11 @@ namespace knative {
             responseStr = "Empty request";
         } else {
             message::Message msg = util::jsonToMessage(requestStr);
-            responseStr = executeFunction(msg);
+            if(msg.isstatusrequest()) {
+                responseStr = getMessageStatus(msg);
+            } else {
+                responseStr = executeFunction(msg);
+            }
         }
 
         return responseStr;
