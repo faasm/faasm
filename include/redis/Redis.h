@@ -25,7 +25,6 @@ namespace redis {
         std::string ip;
         std::string hostname;
         int port;
-        int database = 0;
     private:
         RedisRole role;
 

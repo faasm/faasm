@@ -81,8 +81,6 @@ namespace util {
     boost::filesystem::path _doGetDir(std::string baseDir, const message::Message &msg, bool create) {
         boost::filesystem::path path(baseDir);
         path.append(msg.user());
-
-        // Strip out anything at the end with an extra index
         path.append(msg.function());
 
         // Create directory if doesn't exist

@@ -6,12 +6,6 @@
 
 namespace worker {
     std::string WorkerHttpMixin::getMessageStatus(message::Message &msg) {
-        if (msg.user().empty()) {
-            return "Empty user";
-        } else if (msg.function().empty()) {
-            return "Empty function";
-        }
-
         // Get message with no delay
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
         const message::Message result = globalBus.getFunctionResult(msg.id(), 0);

@@ -110,6 +110,7 @@ from tasks.ibm import (
 )
 from tasks.invoke import (
     invoke,
+    status,
 )
 from tasks.knative import (
     k8s_deploy,

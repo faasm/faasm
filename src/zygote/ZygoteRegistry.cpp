@@ -16,7 +16,6 @@ namespace zygote {
     }
 
     std::string ZygoteRegistry::getZygoteKey(const message::Message &msg) {
-        // Double check any indexes removed
         std::string key = msg.user() + "/" + msg.function();
         return key;
     }

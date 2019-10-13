@@ -9,8 +9,13 @@ namespace tests {
     TEST_CASE("Test creating zygotes", "[zygote]") {
         cleanSystem();
 
-        message::Message msgA = util::messageFactory("demo", "echo");
-        message::Message msgB = util::messageFactory("demo", "echo");
+        message::Message msgA = util::messageFactory("demo", "chain");
+        message::Message msgB = util::messageFactory("demo", "chain");
+
+        // Want to check things with chained calls, so need to fake up input to a chained func
+        msgA.set_idx(1);
+        int input[3] = {1, 2, 3};
+        msgA.set_inputdata(reinterpret_cast<uint8_t *>(input), 3 * sizeof(int));
 
         zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
         wasm::WasmModule &moduleA = registry.getZygote(msgA);
