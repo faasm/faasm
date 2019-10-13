@@ -1,10 +1,10 @@
 #include "KnativeNativeHandler.h"
+#include "knative_emulator.h"
 
 #include <faasm/core.h>
-#include <emulator/emulator.h>
-
 #include <util/logging.h>
 #include <util/timing.h>
+#include <util/bytes.h>
 
 
 namespace knative_native {
@@ -16,7 +16,9 @@ namespace knative_native {
 
         PROF_START(knativeNativeRoundTrip)
 
-        // TODO - set input from request data
+        // Get input from request
+        const std::string requestStr = request.body();
+        setEmulatorInputData(util::stringToBytes(requestStr));
 
         // Invoke the native function
         exec(0);

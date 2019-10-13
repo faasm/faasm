@@ -1,11 +1,12 @@
 import os
-from os.path import join
+from os.path import join, exists
 from subprocess import call
 
 from invoke import task
 
 from tasks.util.config import get_faasm_config
 from tasks.util.env import PROJ_ROOT
+from tasks.util.files import clean_dir
 from tasks.util.ibm import get_ibm_kubeconfig
 
 K8S_DIR = join(PROJ_ROOT, "k8s")
@@ -40,7 +41,6 @@ def k8s_delete_worker(ctx):
     cmd_str = " ".join(cmd)
     print(cmd_str)
     call(cmd_str, shell=True)
-
 
 
 @task
@@ -122,3 +122,41 @@ def k8s_deploy(ctx, local=False, bare_metal=False, ibm=False):
     cmd_string = " ".join(cmd)
     print(cmd_string)
     call(cmd_string, shell=True, env=shell_env)
+
+
+@task
+def build_knative_native(ctx, user, function, host=False, clean=False):
+    if host:
+        build_dir = join(PROJ_ROOT, "build", "knative_native")
+        target = "{}-knative".format(function)
+
+        clean_dir(build_dir, clean)
+
+        cmd = [
+            "cmake",
+            "-DCMAKE_CXX_COMPILER=/usr/bin/clang++",
+            "-DCMAKE_C_COMPILER=/usr/bin/clang",
+            "-DFAASM_BUILD_TYPE=knative-native",
+            "-DCMAKE_BUILD_TYPE=Release",
+            PROJ_ROOT
+        ]
+        call(" ".join(cmd), cwd=build_dir, shell=True)
+
+        make_cmd = "cmake --build . --target {} -- -j".format(target)
+        call(make_cmd, cwd=build_dir, shell=True)
+
+    else:
+        tag_name = "faasm/{}-knative".format(function)
+        cmd = [
+            "docker",
+            "build",
+            "-t", tag_name,
+            "--build-arg", "user={}".format(user),
+            "--build-arg", "func={}".format(function),
+            "-f", "docker/knative-native.dockerfile",
+            "."
+        ]
+
+        cmd_string = " ".join(cmd)
+        print(cmd_string)
+        call(cmd_string, shell=True, cwd=PROJ_ROOT)

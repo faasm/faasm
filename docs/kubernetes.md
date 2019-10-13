@@ -48,7 +48,7 @@ inv upload-all --host=<upload IP> --py
 
 ## Invoking functions
 
-Invoking functions is a little different to normal Faasm functions and looks like:
+To invoke functions you need to provide the relevant host and port:
 
 ```
 inv invoke --host=<your k8s host> --port=<your invoke port> <user> <func>
@@ -61,6 +61,16 @@ When workers die or are killed, you'll need to clear the queue:
 ```
 inv redis-clear-queue --knative
 ```
+
+## Uploading and running native functions
+
+For benchmarking we need to run the functions natively. This can be done by running:
+
+```
+inv build-knative-native <user> <function>
+```
+
+This will use a parameterised Dockerfile to create a container that runs the given function natively.
 
 ## Troubleshooting
 

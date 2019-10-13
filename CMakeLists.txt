@@ -14,7 +14,6 @@ set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
 set(FAASM_LIB_C_DIR ${CMAKE_CURRENT_LIST_DIR}/lib-c)
 set(FAASM_LIB_CPP_DIR ${CMAKE_CURRENT_LIST_DIR}/lib-cpp)
 set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/python)
-set(FAASM_LAMBDA_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lambda)
 set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
 
 option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
@@ -93,11 +92,24 @@ include_directories(
         ${CMAKE_CURRENT_BINARY_DIR}/src # Required for protobuf
 )
 
-if (FAASM_BUILD_TYPE STREQUAL "lambda-func")
+if (FAASM_BUILD_TYPE STREQUAL "knative-native")
+    message(STATUS "Running knative native build")
+
+    add_subdirectory(func)
+    add_subdirectory(lib-cpp)
+
+    add_subdirectory(src/emulator)
+    add_subdirectory(src/endpoint)
+    add_subdirectory(src/knative_native)
+    add_subdirectory(src/proto)
+    add_subdirectory(src/redis)
+    add_subdirectory(src/util)
+
+elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
     message(STATUS "Running lambda function build")
 
     add_subdirectory(func)
-    add_subdirectory(lib)
+    add_subdirectory(lib-cpp)
 
     add_subdirectory(src/aws)
     add_subdirectory(src/lambda_func)
