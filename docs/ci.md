@@ -19,6 +19,7 @@ If things don't work, you can attach to the container and run the tests:
 
 ```
 docker-compose -f docker-compose-test.yml run tester /bin/bash
+
 /usr/local/code/faasm/bin/ci_run.sh
 ```
 

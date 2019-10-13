@@ -115,7 +115,8 @@ inv run-local-codegen
 You can pull down the prepackaged python runtime and required runtime files with:
 
 ```
-inv download-python-runtime
+inv download-runtime-root
+inv set-up-python-runtime
 ```
 
 You then need to build the `upload` target and run it (to start an upload server), then you can upload the Python functions with:

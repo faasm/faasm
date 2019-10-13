@@ -12,6 +12,7 @@ branches:
 # Pull the latest images
 before_install:
   - "docker pull faasm/testing"
+  - "docker pull faasm/upload"
   - "docker pull faasm/redis"
 
 script:

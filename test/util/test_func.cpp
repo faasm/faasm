@@ -105,4 +105,13 @@ namespace tests {
         REQUIRE(msg.user() == PYTHON_USER);
         REQUIRE(msg.function() == PYTHON_FUNC);
     }
+
+    TEST_CASE("Test creating async response") {
+        message::Message msg = util::messageFactory("foo", "bar");
+
+        const std::string expected = std::to_string(msg.id());
+        const std::string actual = util::buildAsyncResponse(msg);
+
+        REQUIRE(expected == actual);
+    }
 }

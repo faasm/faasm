@@ -6,17 +6,34 @@ services:
     ports:
       - "6377:6379"
 
+  upload:
+    image: faasm/upload:latest
+    ports:
+      - "8002:8002"
+    depends_on:
+      - redis
+    environment:
+      HOST_TYPE: "ci"
+      REDIS_STATE_HOST: "redis"
+      REDIS_QUEUE_HOST: "redis"
+      LOG_LEVEL: debug
+    volumes:
+      - .:/usr/local/code/faasm
+      - /usr/local/faasm/:/usr/local/faasm/
+
   tester:
     image: faasm/testing:latest
     depends_on:
       - redis
+      - upload
     environment:
       HOST_TYPE: "ci"
       CGROUP_MODE: "on"
       REDIS_STATE_HOST: "redis"
       REDIS_QUEUE_HOST: "redis"
-      REDIS_PORT: "6379"
       THREADS_PER_WORKER: 5
+      LOG_LEVEL: debug
     volumes:
       - .:/usr/local/code/faasm
+      - /usr/local/faasm/:/usr/local/faasm/
     privileged: yes
