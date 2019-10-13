@@ -100,8 +100,8 @@ elseif (FAASM_BUILD_TYPE STREQUAL "knative-native")
         add_executable(${func_name}-knative ${file_name})
         target_link_libraries(
                 ${func_name}-knative
-                knative_native
                 faasm
+                knative_native
         )
     endfunction(faasm_func_c)
 

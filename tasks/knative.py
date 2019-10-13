@@ -137,7 +137,7 @@ def build_knative_native(ctx, user, function, host=False, clean=False):
             "-DCMAKE_CXX_COMPILER=/usr/bin/clang++",
             "-DCMAKE_C_COMPILER=/usr/bin/clang",
             "-DFAASM_BUILD_TYPE=knative-native",
-            "-DCMAKE_BUILD_TYPE=Release",
+            "-DCMAKE_BUILD_TYPE=Debug",
             PROJ_ROOT
         ]
         call(" ".join(cmd), cwd=build_dir, shell=True)
