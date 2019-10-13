@@ -34,7 +34,6 @@ namespace tests {
         REQUIRE(conf.fsMode == "off");
 
         REQUIRE(conf.redisPort == "6379");
-        REQUIRE(conf.redisStateDb == 0);
 
         REQUIRE(conf.maxNodes == 4);
         REQUIRE(conf.noScheduler == 0);
@@ -73,7 +72,6 @@ namespace tests {
         std::string redisState = setEnvVar("REDIS_STATE_HOST", "not-localhost");
         std::string redisQueue = setEnvVar("REDIS_QUEUE_HOST", "other-host");
         std::string redisPort = setEnvVar("REDIS_PORT", "1234");
-        std::string redisStateDb = setEnvVar("REDIS_STATE_DB", "8");
 
         std::string irCacheMode = setEnvVar("IR_CACHE_MODE", "foo-ir-cache");
 
@@ -120,7 +118,6 @@ namespace tests {
         REQUIRE(conf.redisStateHost == "not-localhost");
         REQUIRE(conf.redisQueueHost == "other-host");
         REQUIRE(conf.redisPort == "1234");
-        REQUIRE(conf.redisStateDb == 8);
 
         REQUIRE(conf.irCacheMode == "foo-ir-cache");
 
@@ -167,7 +164,6 @@ namespace tests {
         setEnvVar("REDIS_STATE_HOST", redisState);
         setEnvVar("REDIS_QUEUE_HOST", redisQueue);
         setEnvVar("REDIS_PORT", redisPort);
-        setEnvVar("REDIS_STATE_DB", redisStateDb);
 
         setEnvVar("IR_CACHE_MODE", irCacheMode);
 

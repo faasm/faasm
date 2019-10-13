@@ -31,7 +31,6 @@ namespace util {
         std::string redisStateHost;
         std::string redisQueueHost;
         std::string redisPort;
-        int redisStateDb;
 
         // Caching
         std::string irCacheMode;

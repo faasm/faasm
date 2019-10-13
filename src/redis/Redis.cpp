@@ -15,12 +15,11 @@ namespace redis {
 
         if (role == STATE) {
             hostname = conf.redisStateHost;
-            ip = util::getIPFromHostname(hostname);
-            database = conf.redisStateDb;
         } else {
             hostname = conf.redisQueueHost;
-            ip = util::getIPFromHostname(hostname);
         }
+
+        ip = util::getIPFromHostname(hostname);
 
         std::string portStr = conf.redisPort;
         port = std::stoi(portStr);
