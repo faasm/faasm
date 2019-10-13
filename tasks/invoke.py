@@ -12,7 +12,7 @@ KNATIVE_HEADERS = {
 }
 
 
-def _do_post(url, input, headers=None):
+def _do_post(url, input, headers=None, quiet=False):
     # NOTE: Using python to do this is slow compared with running curl
     # directly on the command line (or some other purpose-built tool).
     # As a result this mustn't be used for performance testing
@@ -20,9 +20,9 @@ def _do_post(url, input, headers=None):
 
     if response.status_code >= 400:
         print("Request failed: status = {}".format(response.status_code))
-    elif response.text:
+    elif response.text and not quiet:
         print(response.text)
-    else:
+    elif not quiet:
         print("Empty response")
 
     return response.text
@@ -34,7 +34,7 @@ def _do_invoke(user, func, host, port, func_type, input=None):
     _do_post(url, input)
 
 
-def _do_status_call(call_id, host, port):
+def _do_status_call(call_id, host, port, quiet=False):
     # NOTE - this only works for knative
 
     url = "http://{}:{}/".format(host, port)
@@ -44,7 +44,7 @@ def _do_status_call(call_id, host, port):
         "id": call_id,
     }
 
-    return _do_post(url, dumps(msg), headers=KNATIVE_HEADERS)
+    return _do_post(url, dumps(msg), headers=KNATIVE_HEADERS, quiet=quiet)
 
 
 @task
@@ -146,22 +146,27 @@ def invoke(ctx, user, func,
                 raise RuntimeError("Poll only supported for knative")
 
             # Submit initial async call
-            async_result = _do_post(url, msg_json, headers=KNATIVE_HEADERS)
+            async_result = _do_post(url, msg_json, headers=KNATIVE_HEADERS, quiet=True)
             try:
                 call_id = int(async_result)
             except ValueError:
                 print("Could not parse async reponse to int: {}".format(async_result))
                 return 1
 
+            print("\n---- Polling {} ----".format(call_id))
+
             # Poll status until we get success/ failure
-            result = None
+            result = ""
+            count = 0
             while not result.startswith("SUCCESS") and not result.startswith("FAILED"):
-                sleep(5)
+                count += 1
+                sleep(2)
 
-                result = _do_status_call(call_id, host, port)
-                print("Status {} = {}".format(call_id, result))
+                result = _do_status_call(call_id, host, port, quiet=True)
+                print("\nPOLL {} - {}".format(count, result))
 
-            print("Finished call {}:\n{}".format(call_id, result))
+            print("\n---- Finished {} ----\n".format(call_id))
+            print(result)
 
         else:
             if ibm or knative:
