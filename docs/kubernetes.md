@@ -50,10 +50,10 @@ source workon.sh
 
 # C++ functions
 # Note, --prebuilt uses the functions checked into the repo
-inv upload --host=<upload IP> --prebuilt <user> <func>
+inv upload --prebuilt <user> <func>
 
 # All Python functions
-inv upload-all --host=<upload IP> --py
+inv upload-all --py
 ```
 
 ## Invoking functions
@@ -61,7 +61,7 @@ inv upload-all --host=<upload IP> --py
 To invoke functions you need to provide the relevant host and port:
 
 ```
-inv invoke --host=<your k8s host> --port=<your invoke port> <user> <func>
+inv invoke <user> <func>
 ```
 
 ## Flushing Redis
@@ -85,8 +85,11 @@ This will use a parameterised Dockerfile to create a container that runs the giv
 You can test locally with:
 
 ```
-# Start the container
+# Build the container
 inv build-knative-native <user> <function> --host
+
+# Start the container
+inv knative-native-local <user> <function>
 
 # Submit a request
 curl http://localhost:8080
@@ -97,7 +100,7 @@ Once you're happy you can run the following on your machine with knative access:
 ```
 inv deploy-knative-native <user> <function>
 
-inv invoke --native --host=<k8s host> --port=<invoke port> <user> <function>
+inv invoke --native <user> <function>
 ```
 
 Given that these will scale from zero, it may take a while on the first invocation.
@@ -147,3 +150,4 @@ vm.overcommit_memory=1
 
 - Knative tutorial - https://github.com/meteatamel/knative-tutorial
 - Samples in different languages at: https://knative.dev/docs/serving/samples/
+
