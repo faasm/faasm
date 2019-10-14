@@ -94,6 +94,7 @@ from tasks.knative import (
     k8s_delete_worker,
     build_knative_native,
     knative_native_local,
+    deploy_knative_native,
 )
 from tasks.python import (
     clear_runtime_pyc,

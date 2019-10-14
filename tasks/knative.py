@@ -164,7 +164,9 @@ def _deploy_knative_fn(name, image, annotations, extra_args, extra_env=None, she
     print(cmd_string)
 
     shell_env_dict = os.environ.copy()
-    shell_env_dict.update(shell_env)
+    if shell_env:
+        shell_env_dict.update(shell_env)
+
     call(cmd_string, shell=True, env=shell_env_dict)
 
 
