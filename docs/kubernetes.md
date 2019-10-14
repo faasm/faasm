@@ -87,8 +87,10 @@ Once you're happy you can run the following on your machine with knative access:
 ```
 inv deploy-knative-native <user> <function>
 
-inv invoke <user> <function> --native
+inv invoke --native --host=<k8s host> --port=<invoke port> <user> <function>
 ```
+
+Given that these will scale from zero, it may take a while on the first invocation.
 
 ## Troubleshooting
 

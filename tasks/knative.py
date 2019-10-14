@@ -47,10 +47,10 @@ NATIVE_WORKER_ARGS = [
     "--concurrency-limit=1",  # Native executors handle one request at a time
 ]
 
-NATIVE_WORKER_PREFIX = "faasm-"
+KNATIVE_FUNC_PREFIX = "faasm-"
 NATIVE_WORKER_IMAGE_PREFIX = "faasm/knative-native-"
 
-FAASM_WORKER_NAME = "faasm-worker"
+FAASM_WORKER_NAME = "{}worker".format(KNATIVE_FUNC_PREFIX)
 FAASM_WORKER_IMAGE = "faasm/knative-worker"
 
 KNATIVE_ENV = {
@@ -83,13 +83,7 @@ def _kubectl_apply(path, env=None):
 
 @task
 def k8s_delete_worker(ctx):
-    cmd = [
-        "kn", "service", "delete", "faasm-worker", "--namespace=faasm"
-    ]
-
-    cmd_str = " ".join(cmd)
-    print(cmd_str)
-    call(cmd_str, shell=True)
+    _delete_knative_fn("worker")
 
 
 @task
@@ -135,6 +129,17 @@ def k8s_deploy(ctx, local=False, bare_metal=False, ibm=False):
         extra_env=extra_env,
         shell_env=shell_env
     )
+
+
+def _delete_knative_fn(name):
+    name = "{}{}".format(KNATIVE_FUNC_PREFIX, name)
+    cmd = [
+        "kn", "service", "delete", name, "--namespace=faasm"
+    ]
+
+    cmd_str = " ".join(cmd)
+    print(cmd_str)
+    call(cmd_str, shell=True)
 
 
 def _deploy_knative_fn(name, image, annotations, extra_args, extra_env=None, shell_env=None):
@@ -220,7 +225,7 @@ def build_knative_native(ctx, user, function, host=False, clean=False, nopush=Fa
 
 @task
 def deploy_knative_native(ctx, user, function):
-    name = "{}{}".format(NATIVE_WORKER_PREFIX, function)
+    name = "{}{}".format(KNATIVE_FUNC_PREFIX, function)
     image = "{}{}".format(NATIVE_WORKER_IMAGE_PREFIX, function)
 
     _deploy_knative_fn(
@@ -229,6 +234,11 @@ def deploy_knative_native(ctx, user, function):
         NATIVE_WORKER_ANNOTATIONS,
         NATIVE_WORKER_ARGS,
     )
+
+
+@task
+def delete_knative_native(ctx, user, function):
+    _delete_knative_fn(function)
 
 
 @task
