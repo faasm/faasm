@@ -92,7 +92,7 @@ inv build-knative-native <user> <function> --nopush
 inv knative-native-local <user> <function>
 
 # Submit a request
-curl http://localhost:8080
+inv invoke user function --native
 ```
 
 Once you're happy you can run the following on your machine with knative access:

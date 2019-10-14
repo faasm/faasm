@@ -39,7 +39,8 @@ namespace knative_native {
         setEmulatorInputData(inputBytes);
 
         // Invoke the native function
-        exec(0);
+        logger->debug("Executing function index {}", msg.idx());
+        exec(msg.idx());
 
         // Get the output
         const std::vector<uint8_t> outputData = getEmulatorOutputData();
