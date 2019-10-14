@@ -295,6 +295,7 @@ unsigned int _chain_this_knative(int idx, const unsigned char *buffer, long buff
     }
 
     int portInt = std::stoi(port);
+    logger->debug("Detected invoke at {}:{}", host, portInt);
 
     // Build the message to dispatch
     message::Message msg = util::messageFactory(_user, _function);
@@ -307,7 +308,7 @@ unsigned int _chain_this_knative(int idx, const unsigned char *buffer, long buff
 
         // Spawn a thread to execute the function
         // Use the message ID as the key so we can join it when awaiting
-        threads.emplace(std::pair<int, std::thread>(msg.id(), [&host, &portInt, &msg] {
+        threads.emplace(std::pair<int, std::thread>(msg.id(), [host, portInt, msg] {
             util::postJsonFunctionCall(host, portInt, msg);
         }));
     }

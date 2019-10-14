@@ -2,17 +2,19 @@
 
 #include <util/bytes.h>
 
-#include <curl/easy.h>
 #include <curl/curl.h>
+#include <curl/easy.h>
 
-#include <iostream>
 #include <sstream>
+#include <util/logging.h>
+#include <util/json.h>
+#include <util/func.h>
 
 #define CHAINED_CALL_TIMEOUT 120000
 
 
 namespace util {
-    size_t writeDataCallback(void *ptr, size_t size, size_t nmemb, void *stream) {
+    size_t dataCallback(void *ptr, size_t size, size_t nmemb, void *stream) {
         std::string data((const char *) ptr, (size_t) size * nmemb);
         *((std::stringstream *) stream) << data;
         return size * nmemb;
@@ -20,20 +22,30 @@ namespace util {
 
     std::string postJsonFunctionCall(const std::string &host, int port, const message::Message &msg) {
         std::string url = "http://" + host + ":" + std::to_string(port);
-
+        
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::string funcStr = util::funcToString(msg, true);
+        logger->debug("Posting function {} to {}", funcStr, url);
+        
         void *curl = curl_easy_init();
 
         std::stringstream out;
+        curl_easy_setopt(curl, CURLOPT_POST, 1L);
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeDataCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, dataCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &out);
         curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, CHAINED_CALL_TIMEOUT);
 
-        // Add header
+        // Add header for knative calls
         std::string knativeHeader = "Host: faasm-" + msg.function() + ".faasm.example.com";
         struct curl_slist *chunk = nullptr;
         chunk = curl_slist_append(chunk, knativeHeader.c_str());
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+        // Add the message as JSON
+        const std::string msgJson = util::messageToJson(msg);
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, msgJson.c_str());
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, -1L);
 
         // Make the request
         CURLcode res = curl_easy_perform(curl);

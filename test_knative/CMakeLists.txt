@@ -6,11 +6,15 @@ include_directories(
 )
 
 add_executable(
-        tests_aws
+        tests_knative
         main.cpp
         ${TEST_FILES}
 )
 
-target_link_libraries(tests_aws test_utils scheduler wasm aws)
+target_link_libraries(tests_knative
+        test_utils
+        emulator
+        knative_native
+        )
 
-add_test(NAME aws_tests COMMAND "tests_aws/tests")
+add_test(NAME knative_tests COMMAND "tests_knative/tests")

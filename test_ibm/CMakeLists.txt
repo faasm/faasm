@@ -17,4 +17,4 @@ target_link_libraries(tests_ibm
         worker_ibm_lib
         )
 
-add_test(NAME integration_tests COMMAND "tests_ibm/tests")
+add_test(NAME ibm_tests COMMAND "tests_ibm/tests")
