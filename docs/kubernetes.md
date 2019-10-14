@@ -64,7 +64,7 @@ inv redis-clear-queue --knative
 
 ## Uploading and running native functions
 
-For benchmarking we need to run the functions natively. This can be done by running:
+For benchmarking we need to run the functions in a more "normal" serverless way (i.e. natively in a container). To build the relevant container:
 
 ```
 inv build-knative-native <user> <function>
@@ -72,10 +72,20 @@ inv build-knative-native <user> <function>
 
 This will use a parameterised Dockerfile to create a container that runs the given function natively.
 
-You can test the build locally with:
+You can test locally with:
 
 ```
+# Start the container
 inv build-knative-native <user> <function> --host
+
+# Submit a request
+curl http://localhost:8080
+```
+
+Once you're happy you can run the following on your machine with knative access:
+
+```
+inv deploy-knative-native <user> <function>
 ```
 
 ## Troubleshooting
