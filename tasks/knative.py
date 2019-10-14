@@ -79,7 +79,7 @@ def _kubectl_apply(path, env=None):
     cmd_str = " ".join(cmd)
     print(cmd_str)
 
-    ret_code = call(cmd_str, shell=True, env=env)
+    ret_code = call(cmd_str, shell=True, env=shell_env_dict)
 
     if ret_code != 0:
         raise RuntimeError("Command failed: {}".format(cmd_str))
