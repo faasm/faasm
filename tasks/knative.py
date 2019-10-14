@@ -72,6 +72,10 @@ def _kubectl_apply(path, env=None):
         "kubectl", "apply", "-f", path
     ]
 
+    shell_env_dict = os.environ.copy()
+    if env:
+        shell_env_dict.update(env)
+
     cmd_str = " ".join(cmd)
     print(cmd_str)
 
