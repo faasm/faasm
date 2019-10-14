@@ -216,8 +216,8 @@ def build_knative_native(ctx, user, function, host=False, clean=False, nopush=Fa
             "build",
             "--no-cache" if clean else "",
             "-t", tag_name,
-            "--build-arg", "USER={}".format(user),
-            "--build-arg", "FUNC={}".format(function),
+            "--build-arg", "FAASM_USER={}".format(user),
+            "--build-arg", "FAASM_FUNC={}".format(function),
             "-f", "docker/knative-native.dockerfile",
             "."
         ]
