@@ -23,13 +23,23 @@ inv k8s-deploy --bare-metal
 inv k8s-deploy --ibm
 ```
 
-Once everything has started up, you can get the relevant URLs as follows (on the master node):
+Once everything has started up, you can get the relevant URLs as follows (on the master node), then populate your
+`~/faasm/faasm.ini` file as described below.
+
+## Config file
+
+To avoid typing in hostnames and ports over and over, you can populate a section of your `~/faasm/faasm.ini` file.
+To get the values, run `./bin/knative_route.sh` which should print out something like:
 
 ```
-./bin/knative_route.sh
+[Kubernetes]
+invoke_host = ...   # Usually the IP of your master node
+inoke_port = ...    # E.g. 31380
+upload_host = ...   # IP of the upload service
+upload_port = ...   # Usually 8002
 ```
 
-From here you need to note the invocation IP and port.
+You can then copy-paste this.
 
 ## Uploading functions
 

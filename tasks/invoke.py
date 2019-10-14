@@ -67,12 +67,18 @@ def invoke(ctx, user, func,
            legacy=False,
            poll=False
            ):
-    # IBM special config
-    if ibm:
-        faasm_config = get_faasm_config()
-        host = faasm_config["IBM"]["k8s_subdomain"]
+    faasm_config = get_faasm_config()
 
-    port = port if port else (8080 if knative or ibm else 8001)
+    # Provider-specific stuff
+    if ibm:
+        host = faasm_config["IBM"]["k8s_subdomain"]
+        port = 8080
+    elif knative and faasm_config.has_section("Kubernetes"):
+        host = faasm_config["Kubernetes"].get("invoke_host", "localhost")
+        port = faasm_config["Kubernetes"].get("invoke_port", 8080)
+    else:
+        host = "localhost"
+        port = 8080
 
     # Polling always requires async
     if poll:
