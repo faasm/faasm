@@ -17,6 +17,54 @@ COMMON_CONF = join(K8S_DIR, "common")
 IBM_CONF = join(K8S_DIR, "ibm")
 LEGACY_CONF = join(K8S_DIR, "legacy")
 
+# Notes on Knative client
+# https://github.com/knative/client/blob/master/docs/cmd/kn_service_create.md
+#
+# Configuring the scheduler: https://knative.dev/docs/serving/configuring-the-autoscaler/
+#
+
+FAASM_WORKER_ANNOTATIONS = [
+    "autoscaling.knative.dev/class=kpa.autoscaling.knative.dev",
+    "autoscaling.knative.dev/metric=concurrency",
+    "autoscaling.knative.dev/minScale=1",  # Always have one pod running
+    "autoscaling.knative.dev/maxScale=10",  # Max pods
+]
+
+NATIVE_WORKER_ANNOTATIONS = [
+    "autoscaling.knative.dev/class=kpa.autoscaling.knative.dev",
+    "autoscaling.knative.dev/metric=concurrency",
+    "autoscaling.knative.dev/minScale=0",  # Scale from zero
+    "autoscaling.knative.dev/maxScale=10",  # Max pods
+]
+
+FAASM_WORKER_ARGS = [
+    "--concurrency-limit=4",  # Hard limit on number of requests to be handled by a single replica
+    "--concurrency-target=4",  # Recommended scale-out (defaults to concurrency-limit)
+]
+
+NATIVE_WORKER_ARGS = [
+    "--concurrency-limit=1",  # Native executors handle one request at a time
+]
+
+NATIVE_WORKER_PREFIX = "faasm-"
+NATIVE_WORKER_IMAGE_PREFIX = "faasm/knative-native-"
+
+FAASM_WORKER_NAME = "faasm-worker"
+FAASM_WORKER_IMAGE = "faasm/knative-worker"
+
+KNATIVE_ENV = {
+    "REDIS_STATE_HOST": "redis-state",
+    "REDIS_QUEUE_HOST": "redis-queue",
+    "FUNCTION_STORAGE": "fileserver",
+    "LOG_LEVEL": "debug",
+    "CGROUP_MODE": "off",
+    "NETNS_MODE": "off",
+    "THREADS_PER_WORKER": "10",
+    "MAX_QUEUE_RATIO": "1",
+    "MAX_WORKERS_PER_FUNCTION": "10",
+    "FS_MODE": "on",
+}
+
 
 def _kubectl_apply(path, env=None):
     cmd = [
@@ -51,46 +99,21 @@ def k8s_deploy(ctx, local=False, bare_metal=False, ibm=False):
 
     faasm_conf = get_faasm_config()
 
-    shell_env = os.environ.copy()
-
-    worker_annotations = [
-        "autoscaling.knative.dev/class=kpa.autoscaling.knative.dev",
-        "autoscaling.knative.dev/metric=concurrency",
-        "autoscaling.knative.dev/minScale=1",  # Always have one pod running
-        "autoscaling.knative.dev/maxScale=10",  # Max number of pods
-        "autoscaling.knative.dev/target=4",  # In-flight requests per pod
-    ]
-
-    worker_image = "faasm/knative-worker"
-
-    worker_env = {
-        "REDIS_STATE_HOST": "redis-state",
-        "REDIS_QUEUE_HOST": "redis-queue",
-        "FUNCTION_STORAGE": "fileserver",
-        "LOG_LEVEL": "debug",
-        "CGROUP_MODE": "off",
-        "NETNS_MODE": "off",
-        "THREADS_PER_WORKER": "10",
-        "MAX_QUEUE_RATIO": "1",
-        "MAX_WORKERS_PER_FUNCTION": "10",
-        "FS_MODE": "on",
-    }
-
+    shell_env = {}
+    extra_env = {}
     if ibm:
         # IBM requires specifying custom kubeconfig
-        shell_env = {
-            "KUBECONFIG": get_ibm_kubeconfig(),
-        }
+        shell_env["KUBECONFIG"] = get_ibm_kubeconfig()
 
-        worker_env.update({
+        extra_env = {
             "FUNCTION_STORAGE": "ibm",
             "IBM_API_KEY": faasm_conf["IBM"]["api_key"],
-        })
+        }
     elif bare_metal:
-        worker_env.update({
+        extra_env = {
             "FUNCTION_STORAGE": "fileserver",
             "FILESERVER_URL": "http://upload:8002"
-        })
+        }
 
     # Deploy the other K8s stuff (e.g. redis)
     _kubectl_apply(join(COMMON_CONF, "namespace.yml"), env=shell_env)
@@ -103,25 +126,45 @@ def k8s_deploy(ctx, local=False, bare_metal=False, ibm=False):
         _kubectl_apply(BARE_METAL_CONF)
         _kubectl_apply(BARE_METAL_REMOTE_CONF)
 
-    # Deploy the worker itself
+    _deploy_knative_fn(
+        FAASM_WORKER_NAME,
+        FAASM_WORKER_IMAGE,
+        FAASM_WORKER_ANNOTATIONS,
+        FAASM_WORKER_ARGS,
+        extra_env=extra_env,
+        shell_env=shell_env
+    )
+
+
+def _deploy_knative_fn(name, image, annotations, extra_args, extra_env=None, shell_env=None):
     cmd = [
-        "kn", "service", "create", "faasm-worker",
-        "--image", worker_image,
+        "kn", "service", "create", name,
+        "--image", image,
         "--namespace", "faasm",
         "--force",
     ]
 
+    cmd.extend(extra_args)
+
     # Add annotations
-    for annotation in worker_annotations:
+    for annotation in annotations:
         cmd.append("--annotation {}".format(annotation))
 
-    # Add environment
-    for key, value in worker_env.items():
+    # Add standard environment
+    for key, value in KNATIVE_ENV.items():
+        cmd.append("--env {}={}".format(key, value))
+
+    # Add extra environment
+    extra_env = extra_env if extra_env else {}
+    for key, value in extra_env.items():
         cmd.append("--env {}={}".format(key, value))
 
     cmd_string = " ".join(cmd)
     print(cmd_string)
-    call(cmd_string, shell=True, env=shell_env)
+
+    shell_env_dict = os.environ.copy()
+    shell_env_dict.update(shell_env)
+    call(cmd_string, shell=True, env=shell_env_dict)
 
 
 @task
@@ -146,6 +189,7 @@ def build_knative_native(ctx, user, function, host=False, clean=False):
         call(make_cmd, cwd=build_dir, shell=True)
 
     else:
+        # Build the container
         tag_name = "faasm/{}-knative".format(function)
         cmd = [
             "docker",
@@ -160,3 +204,20 @@ def build_knative_native(ctx, user, function, host=False, clean=False):
         cmd_string = " ".join(cmd)
         print(cmd_string)
         call(cmd_string, shell=True, cwd=PROJ_ROOT)
+
+        # Push the container
+        cmd = "docker push {}".format(tag_name)
+        call(cmd, shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def deploy_knative_native(ctx, user, function, host=False, clean=False):
+    name = "{}{}".format(NATIVE_WORKER_PREFIX, function)
+    image = "{}{}".format(NATIVE_WORKER_IMAGE_PREFIX, function)
+
+    _deploy_knative_fn(
+        name,
+        image,
+        NATIVE_WORKER_ANNOTATIONS,
+        NATIVE_WORKER_ARGS,
+    )
