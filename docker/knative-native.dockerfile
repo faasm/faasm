@@ -1,10 +1,12 @@
 FROM faasm/knative-native-base
 
 ARG FUNC
+ARG USER
 ENV FUNC=$FUNC
+ENV USER=$USER
 
 # Copy function code into place
-COPY func/ /usr/local/code/faasm/func/
+COPY func/${USER}/ /usr/local/code/faasm/func/${USER}/
 
 # Build the function
 WORKDIR /faasm/build

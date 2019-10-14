@@ -197,6 +197,7 @@ def build_knative_native(ctx, user, function, host=False, clean=False, nopush=Fa
             "build",
             "--no-cache" if clean else "",
             "-t", tag_name,
+            "--build-arg", "USER={}".format(user),
             "--build-arg", "FUNC={}".format(function),
             "-f", "docker/knative-native.dockerfile",
             "."
@@ -204,7 +205,10 @@ def build_knative_native(ctx, user, function, host=False, clean=False, nopush=Fa
 
         cmd_string = " ".join(cmd)
         print(cmd_string)
-        call(cmd_string, shell=True, cwd=PROJ_ROOT)
+        res = call(cmd_string, shell=True, cwd=PROJ_ROOT)
+        if res != 0:
+            print("Building container failed")
+            return 1
 
         # Push the container
         if not nopush:
