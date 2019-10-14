@@ -86,6 +86,8 @@ Once you're happy you can run the following on your machine with knative access:
 
 ```
 inv deploy-knative-native <user> <function>
+
+inv invoke <user> <function> --native
 ```
 
 ## Troubleshooting

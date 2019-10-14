@@ -7,9 +7,11 @@ from invoke import task
 
 from tasks.util.config import get_faasm_config
 
-KNATIVE_HEADERS = {
-    "Host": "faasm-worker.faasm.example.com"
-}
+
+def _get_knative_headers(func_name):
+    return {
+        "Host": "faasm-{}.faasm.example.com".format(func_name)
+    }
 
 
 def _do_post(url, input, headers=None, quiet=False):
@@ -44,7 +46,9 @@ def _do_status_call(call_id, host, port, quiet=False):
         "id": call_id,
     }
 
-    return _do_post(url, dumps(msg), headers=KNATIVE_HEADERS, quiet=quiet)
+    # Function name here is "faasm-worker"
+    headers = _get_knative_headers("worker")
+    return _do_post(url, dumps(msg), headers=headers, quiet=quiet)
 
 
 @task
@@ -58,6 +62,7 @@ def invoke(ctx, user, func,
            ts=False,
            async=False,
            knative=True,
+           native=False,
            ibm=False,
            legacy=False,
            poll=False
@@ -116,7 +121,11 @@ def invoke(ctx, user, func,
             "value": msg,
         }
 
-    msg_json = dumps(msg)
+    if native:
+        # If we're running a native function we just pass the input direct
+        msg_json = input
+    else:
+        msg_json = dumps(msg)
 
     # IBM must call init first
     if ibm:
@@ -124,6 +133,14 @@ def invoke(ctx, user, func,
 
     if parallel and poll:
         raise RuntimeError("Cannot run poll and parallel")
+
+    # Knative must pass custom headers
+    if knative and native:
+        headers = _get_knative_headers(func)
+    elif knative:
+        headers = _get_knative_headers("worker")
+    else:
+        headers = {}
 
     for l in range(loops):
         if loops > 1:
@@ -134,7 +151,7 @@ def invoke(ctx, user, func,
             p = multiprocessing.Pool(n_workers)
 
             if ibm or knative:
-                args_list = [(url, msg_json, KNATIVE_HEADERS) for _ in range(n_workers)]
+                args_list = [(url, msg_json, headers) for _ in range(n_workers)]
             elif legacy:
                 args_list = [(user, func, host, port, prefix, input) for _ in range(n_workers)]
             else:
@@ -146,7 +163,7 @@ def invoke(ctx, user, func,
                 raise RuntimeError("Poll only supported for knative")
 
             # Submit initial async call
-            async_result = _do_post(url, msg_json, headers=KNATIVE_HEADERS, quiet=True)
+            async_result = _do_post(url, msg_json, headers=headers, quiet=True)
             try:
                 call_id = int(async_result)
             except ValueError:
@@ -170,7 +187,7 @@ def invoke(ctx, user, func,
 
         else:
             if ibm or knative:
-                _do_post(url, msg_json, headers=KNATIVE_HEADERS)
+                _do_post(url, msg_json, headers=headers)
             elif legacy:
                 _do_invoke(user, func, host, port, prefix, input=input)
             else:
