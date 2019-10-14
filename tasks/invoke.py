@@ -9,6 +9,8 @@ from tasks.util.config import get_faasm_config
 
 
 def _get_knative_headers(func_name):
+    func_name = func_name.replace("_", "-")
+
     return {
         "Host": "faasm-{}.faasm.example.com".format(func_name)
     }
