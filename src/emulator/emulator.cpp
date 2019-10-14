@@ -10,6 +10,9 @@ extern "C" {
 #include <state/State.h>
 #include <thread>
 #include <util/state.h>
+#include <util/func.h>
+#include <util/chaining.h>
+#include <util/environment.h>
 
 /**
  * C++ emulation of Faasm system
@@ -17,6 +20,7 @@ extern "C" {
 
 // We use an empty emulator user by default as it's easier to reason about keys in state
 static std::string _user;
+static std::string _function;
 
 // Note thread locality here to handle multiple locally chained functions
 static thread_local std::vector<uint8_t> _inputData;
@@ -32,6 +36,8 @@ static int threadCount = 1;
 void resetEmulator() {
     _outputData.clear();
     _inputData.clear();
+
+    _function = "";
 
     threads.clear();
     threadCount = 1;
@@ -51,6 +57,14 @@ std::string getEmulatorUser() {
 
 void setEmulatorUser(const char *newUser) {
     _user = newUser;
+}
+
+std::string getEmulatorFunction() {
+    return _function;
+}
+
+void setEmulatorFunction(const char *newFunction) {
+    _function = newFunction;
 }
 
 void unsetEmulatorUser() {
@@ -239,11 +253,7 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen) {
     return bufferLen;
 }
 
-unsigned int __faasm_chain_this(int idx, const unsigned char *buffer, long bufferLen) {
-    if (isSimpleEmulation()) {
-        throw std::runtime_error("Not yet implemented");
-    }
-
+unsigned int _chain_this_local(int idx, const unsigned char *buffer, long bufferLen) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
     // Create vector to hold inputs
@@ -273,11 +283,52 @@ unsigned int __faasm_chain_this(int idx, const unsigned char *buffer, long buffe
     return thisCallId;
 }
 
-int __faasm_await_call(unsigned int callId) {
-    if (isSimpleEmulation()) {
-        throw std::runtime_error("Not yet implemented");
+unsigned int _chain_this_knative(int idx, const unsigned char *buffer, long bufferLen) {
+    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+    const std::string host = util::getEnvVar("FAASM_INVOKE_HOST", "");
+    const std::string port = util::getEnvVar("FAASM_INVOKE_PORT", "");
+
+    if(host.empty() || port.empty()) {
+        logger->error("Expected FAASM_INVOKE_HOST and FAASM_INVOKE_PORT to be set");
+        throw std::runtime_error("Missing invoke host and port");
     }
 
+    int portInt = std::stoi(port);
+
+    // Build the message to dispatch
+    message::Message msg = util::messageFactory(_user, _function);
+    msg.set_idx(idx);
+    msg.set_inputdata(buffer, bufferLen);
+
+    // Make the call in a thread in the background
+    {
+        util::UniqueLock threadsLock(threadsMutex);
+
+        // Spawn a thread to execute the function
+        // Use the message ID as the key so we can join it when awaiting
+        threads.emplace(std::pair<int, std::thread>(msg.id(), [&host, &portInt, &msg] {
+            util::postJsonFunctionCall(host, portInt, msg);
+        }));
+    }
+
+    const std::string funcStr = util::funcToString(msg, true);
+    logger->debug("Requested knative function {}", funcStr);
+
+    return msg.id();
+}
+
+unsigned int __faasm_chain_this(int idx, const unsigned char *buffer, long bufferLen) {
+    util::SystemConfig &conf = util::getSystemConfig();
+    if (conf.hostType == "knative") {
+        return _chain_this_knative(idx, buffer, bufferLen);
+    } else {
+        return _chain_this_local(idx, buffer, bufferLen);
+    }
+}
+
+
+int __faasm_await_call(unsigned int callId) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
     // Check this is valid

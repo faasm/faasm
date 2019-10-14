@@ -237,11 +237,25 @@ def build_knative_native(ctx, user, function, host=False, clean=False, nopush=Fa
 
 @task
 def deploy_knative_native(ctx, user, function):
+    faasm_config = get_faasm_config()
+
+    if not faasm_config.has_section("Kubernetes"):
+        print("Must have faasm config set up with kubernetes section")
+        return 1
+
+    # Host and port required for chaining native functions
+    invoke_host = faasm_config["Kubernetes"]["invoke_host"]
+    invoke_port = faasm_config["Kubernetes"]["invoke_port"]
+
     _deploy_knative_fn(
         _fn_name(function),
         _native_image_name(function),
         NATIVE_WORKER_ANNOTATIONS,
         NATIVE_WORKER_ARGS,
+        extra_env={
+            "FAASM_INVOKE_HOST": invoke_host,
+            "FAASM_INVOKE_PORT": invoke_port,
+        }
     )
 
 

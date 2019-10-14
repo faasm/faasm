@@ -7,6 +7,7 @@ file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/util/*.h")
 set(LIB_FILES
         base64.cpp
         bytes.cpp
+        chaining.cpp
         config.cpp
         clock.cpp
         environment.cpp

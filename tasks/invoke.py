@@ -129,11 +129,7 @@ def invoke(ctx, user, func,
             "value": msg,
         }
 
-    if native:
-        # If we're running a native function we just pass the input direct
-        msg_json = input
-    else:
-        msg_json = dumps(msg)
+    msg_json = dumps(msg)
 
     # IBM must call init first
     if ibm:

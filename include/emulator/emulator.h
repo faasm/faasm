@@ -10,4 +10,8 @@ std::string getEmulatorUser();
 
 void setEmulatorUser(const char* user);
 
+std::string getEmulatorFunction();
+
+void setEmulatorFunction(const char *newFunction);
+
 void unsetEmulatorUser();
