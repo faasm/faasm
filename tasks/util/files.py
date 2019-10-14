@@ -9,7 +9,7 @@ def clean_dir(dir_path, clean):
         rmtree(dir_path)
 
     if not exists(dir_path):
-        makedirs(dir_path, recursive=True)
+        makedirs(dir_path)
 
 
 def glob_remove(glob_pattern, recursive=False, directory=False):

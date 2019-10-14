@@ -247,6 +247,7 @@ def deploy_knative_native(ctx, user, function):
 
 @task
 def delete_knative_native(ctx, user, function):
+    function = function.replace("_", "-")
     _delete_knative_fn(function)
 
 
