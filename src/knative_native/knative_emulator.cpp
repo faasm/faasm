@@ -1,5 +1,8 @@
 #include "knative_emulator.h"
 
+#include <redis/Redis.h>
+#include <util/state.h>
+
 extern "C" {
 #include <faasm/core.h>
 #include <faasm/host_interface.h>
@@ -7,6 +10,7 @@ extern "C" {
 
 static std::vector<uint8_t> outputData;
 static std::vector<uint8_t> inputData;
+static std::string currentUser = "demo";
 
 namespace knative_native {
     std::vector<uint8_t> getEmulatorOutputData() {
@@ -15,6 +19,10 @@ namespace knative_native {
 
     void setEmulatorInputData(const std::vector<uint8_t> &inputIn) {
         inputData = inputIn;
+    }
+
+    void setEmulatorUser(const std::string &userIn) {
+        currentUser = userIn;
     }
 }
 
@@ -34,37 +42,60 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen) {
 }
 
 void __faasm_write_output(const unsigned char *output, long outputLen) {
+    if (outputLen == 0) {
+        return;
+    }
+
     outputData = std::vector<uint8_t>(output, output + outputLen);
 }
 
 
 void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, int async) {
-    // TODO
+    if (bufferLen == 0) {
+        return;
+    }
+
+    std::string actualKey = util::keyForUser(currentUser, key);
+    redis::Redis &redis = redis::Redis::getState();
+    redis.get(actualKey, buffer, bufferLen);
 }
 
 unsigned char *__faasm_read_state_ptr(const char *key, long totalLen, int async) {
-    // TODO
-    return nullptr;
+    redis::Redis &redis = redis::Redis::getState();
+    auto ptr = new unsigned char[totalLen];
+
+    std::string actualKey = util::keyForUser(currentUser, key);
+    redis.get(actualKey, ptr, totalLen);
+    return ptr;
 }
 
 
 void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsigned char *buffer, long bufferLen,
                                int async) {
-    // TODO
+    redis::Redis &redis = redis::Redis::getState();
+    std::string actualKey = util::keyForUser(currentUser, key);
+    redis.getRange(actualKey, buffer, bufferLen, offset, offset + bufferLen);
 }
 
 unsigned char *__faasm_read_state_offset_ptr(const char *key, long totalLen, long offset, long len, int async) {
-    // TODO
-    return nullptr;
+    redis::Redis &redis = redis::Redis::getState();
+    auto ptr = new unsigned char[len];
+    std::string actualKey = util::keyForUser(currentUser, key);
+    redis.getRange(actualKey, ptr, len, offset, offset + len);
+    return ptr;
 }
 
 void __faasm_write_state(const char *key, const uint8_t *data, long dataLen, int async) {
-    // TODO
+    redis::Redis &redis = redis::Redis::getState();
+    std::string actualKey = util::keyForUser(currentUser, key);
+    redis.set(actualKey, data, dataLen);
 }
 
 void __faasm_write_state_offset(const char *key, long totalLen, long offset, const unsigned char *data, long dataLen,
                                 int async) {
-    // TODO
+    redis::Redis &redis = redis::Redis::getState();
+    std::string actualKey = util::keyForUser(currentUser, key);
+    redis.setRange(actualKey, offset, data, dataLen);
 }
 
 void __faasm_flag_state_dirty(const char *key, long totalLen) {
@@ -83,7 +114,6 @@ void __faasm_push_state_partial(const char *key) {
     // Ignore
 }
 
-
 unsigned int __faasm_chain_this(int idx, const unsigned char *buffer, long bufferLen) {
     // TODO - invoke with knative interface
     return 0;
@@ -99,7 +129,7 @@ int __faasm_get_idx() {
     return 0;
 }
 
-unsigned int __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize) {
+unsigned int __faasm_chain_function(const char *name, const unsigned char *buffer, long bufferSize) {
     // TODO - is this needed?
     return 1;
 }

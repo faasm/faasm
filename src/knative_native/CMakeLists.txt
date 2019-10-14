@@ -13,4 +13,4 @@ set(LIB_FILES
 
 faasm_private_lib(knative_native "${LIB_FILES}")
 
-target_link_libraries(knative_native endpoint)
+target_link_libraries(knative_native endpoint redis)

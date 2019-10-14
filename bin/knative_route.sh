@@ -17,7 +17,7 @@ UPLOAD_PORT=8002
 echo ""
 echo "-----        Invoke        -----"
 echo ""
-echo "curl -H 'Host: ${FUNC_HOST}' http://${MASTER_HOST}"
+echo "curl -H 'Host: ${FUNC_HEADER}' http://${MASTER_HOST}"
 
 echo ""
 echo "-----        Upload        -----"
