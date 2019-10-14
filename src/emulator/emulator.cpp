@@ -9,6 +9,7 @@ extern "C" {
 #include <redis/Redis.h>
 #include <state/State.h>
 #include <thread>
+#include <util/state.h>
 
 /**
  * C++ emulation of Faasm system
@@ -28,8 +29,20 @@ static int threadCount = 1;
 
 #define DUMMY_USER "emulated"
 
+void resetEmulator() {
+    _outputData.clear();
+    _inputData.clear();
+
+    threads.clear();
+    threadCount = 1;
+}
+
 std::vector<uint8_t> getEmulatorOutputData() {
     return _outputData;
+}
+
+void setEmulatorInputData(const std::vector<uint8_t> &inputIn) {
+    _inputData = inputIn;
 }
 
 std::string getEmulatorUser() {
@@ -44,10 +57,15 @@ void unsetEmulatorUser() {
     _user = "";
 }
 
+bool isSimpleEmulation() {
+    util::SystemConfig &conf = util::getSystemConfig();
+    return conf.hostType == "knative";
+}
+
 std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {
     state::State &s = state::getGlobalState();
 
-    if(_user.empty()) {
+    if (_user.empty()) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Setting dummy emulator user {}", DUMMY_USER);
         setEmulatorUser(DUMMY_USER);
@@ -56,97 +74,176 @@ std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {
     return s.getKV(_user, key, size);
 }
 
+void __faasm_write_output(const unsigned char *output, long outputLen) {
+    _outputData = std::vector<uint8_t>(output, output + outputLen);
+}
+
+
 void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, int async) {
-    auto kv = getKv(key, bufferLen);
+    if (bufferLen == 0) {
+        return;
+    }
 
-    bool isAsync = async == 1;
-    kv->pull(isAsync);
+    if (isSimpleEmulation()) {
+        std::string actualKey = util::keyForUser(_user, key);
+        redis::Redis &redis = redis::Redis::getState();
+        redis.get(actualKey, buffer, bufferLen);
+    } else {
+        // State-backed
+        auto kv = getKv(key, bufferLen);
 
-    kv->get(buffer);
+        bool isAsync = async == 1;
+        kv->pull(isAsync);
+
+        kv->get(buffer);
+    }
 }
 
 unsigned char *__faasm_read_state_ptr(const char *key, long totalLen, int async) {
-    auto kv = getKv(key, totalLen);
+    if (isSimpleEmulation()) {
+        auto ptr = new unsigned char[totalLen];
+        __faasm_read_state(key, ptr, totalLen, async);
 
-    bool isAsync = async == 1;
-    kv->pull(isAsync);
+        return ptr;
+    } else {
+        auto kv = getKv(key, totalLen);
 
-    return kv->get();
+        bool isAsync = async == 1;
+        kv->pull(isAsync);
+
+        return kv->get();
+    }
 }
 
 
 void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsigned char *buffer, long bufferLen,
                                int async) {
-    auto kv = getKv(key, totalLen);
+    if (isSimpleEmulation()) {
+        redis::Redis &redis = redis::Redis::getState();
+        std::string actualKey = util::keyForUser(_user, key);
 
-    bool isAsync = async == 1;
-    kv->pull(isAsync);
+        // Note, getrange indices are inclusive, so we need to finish one before the end of the buffer
+        long startIdx = offset;
+        long endIdx = offset + bufferLen - 1;
+        redis.getRange(actualKey, buffer, bufferLen, startIdx, endIdx);
+    } else {
+        auto kv = getKv(key, totalLen);
 
-    kv->getSegment(offset, buffer, bufferLen);
+        bool isAsync = async == 1;
+        kv->pull(isAsync);
+
+        kv->getSegment(offset, buffer, bufferLen);
+    }
 }
 
 unsigned char *__faasm_read_state_offset_ptr(const char *key, long totalLen, long offset, long len, int async) {
-    auto kv = getKv(key, totalLen);
+    if (isSimpleEmulation()) {
+        auto ptr = new unsigned char[len];
+        __faasm_read_state_offset(key, totalLen, offset, ptr, len, async);
 
-    bool isAsync = async == 1;
-    kv->pull(isAsync);
+        return ptr;
+    } else {
+        auto kv = getKv(key, totalLen);
 
-    return kv->getSegment(offset, len);
+        bool isAsync = async == 1;
+        kv->pull(isAsync);
+
+        return kv->getSegment(offset, len);
+    }
 }
 
 void __faasm_write_state(const char *key, const uint8_t *data, long dataLen, int async) {
-    auto kv = getKv(key, dataLen);
-    kv->set(data);
+    if (isSimpleEmulation()) {
+        redis::Redis &redis = redis::Redis::getState();
+        std::string actualKey = util::keyForUser(_user, key);
+        redis.set(actualKey, data, dataLen);
 
-    if (async == 0) {
-        kv->pushFull();
+    } else {
+        auto kv = getKv(key, dataLen);
+        kv->set(data);
+
+        if (async == 0) {
+            kv->pushFull();
+        }
     }
 }
 
 void __faasm_write_state_offset(const char *key, long totalLen, long offset, const unsigned char *data, long dataLen,
                                 int async) {
-    auto kv = getKv(key, totalLen);
+    if (isSimpleEmulation()) {
+        redis::Redis &redis = redis::Redis::getState();
+        std::string actualKey = util::keyForUser(_user, key);
 
-    kv->setSegment(offset, data, dataLen);
+        redis.setRange(actualKey, offset, data, dataLen);
+    } else {
+        auto kv = getKv(key, totalLen);
 
-    if (async == 0) {
-        kv->pushPartial();
+        kv->setSegment(offset, data, dataLen);
+
+        if (async == 0) {
+            kv->pushPartial();
+        }
     }
 }
 
 void __faasm_flag_state_dirty(const char *key, long totalLen) {
-    auto kv = getKv(key, totalLen);
-    kv->flagFullValueDirty();
+    if (isSimpleEmulation()) {
+        // Ignore
+    } else {
+        auto kv = getKv(key, totalLen);
+        kv->flagFullValueDirty();
+    }
 }
 
 void __faasm_flag_state_offset_dirty(const char *key, long totalLen, long offset, long dataLen) {
-    auto kv = getKv(key, totalLen);
-    kv->flagSegmentDirty(offset, dataLen);
+    if (isSimpleEmulation()) {
+        // Ignore
+    } else {
+        auto kv = getKv(key, totalLen);
+        kv->flagSegmentDirty(offset, dataLen);
+    }
 }
 
 
 void __faasm_push_state(const char *key) {
-    auto kv = getKv(key, 0);
-    kv->pushFull();
+    if (isSimpleEmulation()) {
+        // Ignore
+    } else {
+        auto kv = getKv(key, 0);
+        kv->pushFull();
+    }
 }
 
 void __faasm_push_state_partial(const char *key) {
-    auto kv = getKv(key, 0);
-    kv->pushPartial();
+    if (isSimpleEmulation()) {
+        // Ignore
+    } else {
+        auto kv = getKv(key, 0);
+        kv->pushPartial();
+    }
 }
 
 long __faasm_read_input(unsigned char *buffer, long bufferLen) {
+    long inputLen = _inputData.size();
+
     // This relies on thread-local _inputData
-    if(bufferLen==0) {
-        return _inputData.size();
+    if (bufferLen == 0) {
+        return inputLen;
+    }
+
+    if (inputLen == 0) {
+        return 0;
     }
 
     std::copy(_inputData.begin(), _inputData.end(), buffer);
-
     return bufferLen;
 }
 
 unsigned int __faasm_chain_this(int idx, const unsigned char *buffer, long bufferLen) {
+    if (isSimpleEmulation()) {
+        throw std::runtime_error("Not yet implemented");
+    }
+
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
     // Create vector to hold inputs
@@ -177,17 +274,21 @@ unsigned int __faasm_chain_this(int idx, const unsigned char *buffer, long buffe
 }
 
 int __faasm_await_call(unsigned int callId) {
+    if (isSimpleEmulation()) {
+        throw std::runtime_error("Not yet implemented");
+    }
+
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
     // Check this is valid
-    if(threads.count(callId) == 0) {
+    if (threads.count(callId) == 0) {
         logger->error("Call with id {} doesn't exist", callId);
         throw std::runtime_error("Awaiting non-existent call");
     }
 
     // Join the thread to await its completion
     std::thread &t = threads[callId];
-    if(t.joinable()) {
+    if (t.joinable()) {
         t.join();
     } else {
         logger->error("Call with id {} not joinable", callId);
@@ -215,10 +316,6 @@ void __faasm_lock_state_write(const char *key) {
 }
 
 void __faasm_unlock_state_write(const char *key) {
-
-}
-
-void __faasm_write_output(const unsigned char *output, long outputLen) {
 
 }
 

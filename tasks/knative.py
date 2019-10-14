@@ -57,6 +57,7 @@ KNATIVE_ENV = {
     "REDIS_STATE_HOST": "redis-state",
     "REDIS_QUEUE_HOST": "redis-queue",
     "FUNCTION_STORAGE": "fileserver",
+    "HOST_TYPE": "knative",
     "LOG_LEVEL": "debug",
     "CGROUP_MODE": "off",
     "NETNS_MODE": "off",

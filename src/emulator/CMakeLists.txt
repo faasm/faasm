@@ -7,7 +7,7 @@ set(LIB_FILES
 
 faasm_public_lib(emulator "${LIB_FILES}")
 
-target_link_libraries(emulator scheduler state)
+target_link_libraries(emulator state)
 
 install(TARGETS emulator
         ARCHIVE DESTINATION lib

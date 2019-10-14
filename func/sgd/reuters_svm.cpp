@@ -8,9 +8,6 @@
 
 /* If running a native build we need to explicitly set the user on the emulator */
 #ifdef __wasm__
-#elseif KNATIVE_NATIVE == 1
-
-#include <knative_native/interface.h>
 #else
 
 #include "emulator/emulator.h"
@@ -22,8 +19,6 @@ using namespace faasm;
 FAASM_MAIN_FUNC() {
 
 #ifdef __wasm__
-#elseif KNATIVE_NATIVE == 1
-    setEmulatorUser("sgd");
 #else
     setEmulatorUser("sgd");
 #endif

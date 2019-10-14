@@ -103,6 +103,7 @@ if (FAASM_BUILD_TYPE STREQUAL "knative-native")
     add_subdirectory(src/knative_native)
     add_subdirectory(src/proto)
     add_subdirectory(src/redis)
+    add_subdirectory(src/state)
     add_subdirectory(src/util)
 
 elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")

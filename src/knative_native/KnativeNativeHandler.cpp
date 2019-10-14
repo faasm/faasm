@@ -1,5 +1,6 @@
 #include "KnativeNativeHandler.h"
-#include "knative_emulator.h"
+
+#include <emulator/emulator.h>
 
 #include <faasm/core.h>
 #include <util/logging.h>
