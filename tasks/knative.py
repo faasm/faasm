@@ -68,6 +68,14 @@ KNATIVE_ENV = {
 }
 
 
+def _fn_name(function):
+    return "{}{}".format(KNATIVE_FUNC_PREFIX, function.replace("_", "-"))
+
+
+def _native_image_name(function):
+    return "{}{}".format(NATIVE_WORKER_IMAGE_PREFIX, function)
+
+
 def _kubectl_apply(path, env=None):
     cmd = [
         "kubectl", "apply", "-f", path
@@ -137,9 +145,8 @@ def k8s_deploy(ctx, local=False, bare_metal=False, ibm=False):
 
 
 def _delete_knative_fn(name):
-    name = "{}{}".format(KNATIVE_FUNC_PREFIX, name)
     cmd = [
-        "kn", "service", "delete", name, "--namespace=faasm"
+        "kn", "service", "delete", _fn_name(name), "--namespace=faasm"
     ]
 
     cmd_str = " ".join(cmd)
@@ -230,12 +237,9 @@ def build_knative_native(ctx, user, function, host=False, clean=False, nopush=Fa
 
 @task
 def deploy_knative_native(ctx, user, function):
-    name = "{}{}".format(KNATIVE_FUNC_PREFIX, function)
-    image = "{}{}".format(NATIVE_WORKER_IMAGE_PREFIX, function)
-
     _deploy_knative_fn(
-        name,
-        image,
+        _fn_name(function),
+        _native_image_name(function),
         NATIVE_WORKER_ANNOTATIONS,
         NATIVE_WORKER_ARGS,
     )
@@ -248,8 +252,7 @@ def delete_knative_native(ctx, user, function):
 
 @task
 def knative_native_local(ctx, user, function):
-    image = "{}{}".format(NATIVE_WORKER_IMAGE_PREFIX, function)
-
-    cmd = "docker run -p 8080:8080 {}".format(image)
+    img_name = _native_image_name(function)
+    cmd = "docker run -p 8080:8080 --env LOG_LEVEL=debug {}".format(img_name)
     print(cmd)
     call(cmd, shell=True, cwd=PROJ_ROOT)

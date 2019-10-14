@@ -86,7 +86,7 @@ You can test locally with:
 
 ```
 # Build the container
-inv build-knative-native <user> <function> --host
+inv build-knative-native <user> <function> --nopush
 
 # Start the container
 inv knative-native-local <user> <function>
