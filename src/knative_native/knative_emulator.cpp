@@ -5,10 +5,10 @@ extern "C" {
 #include <faasm/host_interface.h>
 }
 
-namespace knative_native {
-    static std::vector<uint8_t> outputData;
-    static std::vector<uint8_t> inputData;
+static std::vector<uint8_t> outputData;
+static std::vector<uint8_t> inputData;
 
+namespace knative_native {
     std::vector<uint8_t> getEmulatorOutputData() {
         return outputData;
     }
@@ -16,6 +16,25 @@ namespace knative_native {
     void setEmulatorInputData(const std::vector<uint8_t> &inputIn) {
         inputData = inputIn;
     }
+}
+
+long __faasm_read_input(unsigned char *buffer, long bufferLen) {
+    long inputLen = inputData.size();
+
+    if (bufferLen == 0) {
+        return inputLen;
+    }
+
+    if (inputLen == 0) {
+        return 0;
+    }
+
+    std::copy(inputData.data(), inputData.data() + inputLen, buffer);
+    return bufferLen;
+}
+
+void __faasm_write_output(const unsigned char *output, long outputLen) {
+    outputData = std::vector<uint8_t>(output, output + outputLen);
 }
 
 
@@ -64,10 +83,6 @@ void __faasm_push_state_partial(const char *key) {
     // Ignore
 }
 
-long __faasm_read_input(unsigned char *buffer, long bufferLen) {
-    std::copy(knative_native::inputData.begin(), knative_native::inputData.end(), buffer);
-    return bufferLen;
-}
 
 unsigned int __faasm_chain_this(int idx, const unsigned char *buffer, long bufferLen) {
     // TODO - invoke with knative interface
@@ -106,9 +121,5 @@ void __faasm_lock_state_write(const char *key) {
 }
 
 void __faasm_unlock_state_write(const char *key) {
-
-}
-
-void __faasm_write_output(const unsigned char *output, long outputLen) {
 
 }

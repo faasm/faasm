@@ -1,5 +1,5 @@
 from multiprocessing.pool import Pool
-from os import remove, mkdir
+from os import remove, makedirs
 from os.path import join, exists
 from subprocess import check_output
 
@@ -69,7 +69,7 @@ def download_toolchain(ctx):
         check_output("rm -rf {}".format(FAASM_SYSROOT), shell=True)
 
     if not exists(FAASM_LOCAL_DIR):
-        mkdir(FAASM_LOCAL_DIR)
+        makedirs(FAASM_LOCAL_DIR)
 
     # Download (note not using Boto)
     print("Downloading archives")

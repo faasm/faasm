@@ -22,6 +22,7 @@ namespace endpoint {
             || sigaddset(&signals, SIGTERM) != 0
             || sigaddset(&signals, SIGINT) != 0
             || sigaddset(&signals, SIGHUP) != 0
+            || sigaddset(&signals, SIGQUIT) != 0
             || pthread_sigmask(SIG_BLOCK, &signals, nullptr) != 0) {
 
             throw std::runtime_error("Install signal handler failed");
@@ -40,9 +41,10 @@ namespace endpoint {
 
         // Configure and start endpoint
         httpEndpoint.setHandler(this->getHandler());
-        httpEndpoint.serve();
+        httpEndpoint.serveThreaded();
 
         // Wait for a signal
+        logger->info("Awaiting signal");
         int signal = 0;
         int status = sigwait(&signals, &signal);
         if (status == 0) {

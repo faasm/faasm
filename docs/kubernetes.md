@@ -72,6 +72,12 @@ inv build-knative-native <user> <function>
 
 This will use a parameterised Dockerfile to create a container that runs the given function natively.
 
+You can test the build locally with:
+
+```
+inv build-knative-native <user> <function> --host
+```
+
 ## Troubleshooting
 
 To look at the logs for the faasm containers:

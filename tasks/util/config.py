@@ -1,5 +1,5 @@
 import configparser
-from os import mkdir
+from os import makedirs
 from os.path import exists
 
 from tasks.util.env import FAASM_CONFIG_FILE, FAASM_HOME
@@ -7,7 +7,7 @@ from tasks.util.env import FAASM_CONFIG_FILE, FAASM_HOME
 
 def get_faasm_config():
     if not exists(FAASM_HOME):
-        mkdir(FAASM_HOME)
+        makedirs(FAASM_HOME)
 
     config = configparser.ConfigParser()
 

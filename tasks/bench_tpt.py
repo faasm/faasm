@@ -1,7 +1,7 @@
+from decimal import Decimal
 from os import makedirs
 from os.path import join, exists
 from subprocess import call
-from decimal import Decimal
 
 import numpy as np
 from invoke import task

@@ -1,5 +1,5 @@
 import glob
-from os import mkdir, remove
+from os import makedirs, remove, makedirs
 from os.path import exists
 from shutil import rmtree
 
@@ -9,7 +9,7 @@ def clean_dir(dir_path, clean):
         rmtree(dir_path)
 
     if not exists(dir_path):
-        mkdir(dir_path)
+        makedirs(dir_path, recursive=True)
 
 
 def glob_remove(glob_pattern, recursive=False, directory=False):

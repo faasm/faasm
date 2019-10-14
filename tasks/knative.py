@@ -17,6 +17,7 @@ COMMON_CONF = join(K8S_DIR, "common")
 IBM_CONF = join(K8S_DIR, "ibm")
 LEGACY_CONF = join(K8S_DIR, "legacy")
 
+#
 # Notes on Knative client
 # https://github.com/knative/client/blob/master/docs/cmd/kn_service_create.md
 #
@@ -168,7 +169,7 @@ def _deploy_knative_fn(name, image, annotations, extra_args, extra_env=None, she
 
 
 @task
-def build_knative_native(ctx, user, function, host=False, clean=False):
+def build_knative_native(ctx, user, function, host=False, clean=False, nopush=False):
     if host:
         build_dir = join(PROJ_ROOT, "build", "knative_native")
         target = "{}-knative".format(function)
@@ -190,13 +191,13 @@ def build_knative_native(ctx, user, function, host=False, clean=False):
 
     else:
         # Build the container
-        tag_name = "faasm/{}-knative".format(function)
+        tag_name = "{}{}".format(NATIVE_WORKER_IMAGE_PREFIX, function)
         cmd = [
             "docker",
             "build",
+            "--no-cache" if clean else "",
             "-t", tag_name,
-            "--build-arg", "user={}".format(user),
-            "--build-arg", "func={}".format(function),
+            "--build-arg", "FUNC={}".format(function),
             "-f", "docker/knative-native.dockerfile",
             "."
         ]
@@ -206,12 +207,13 @@ def build_knative_native(ctx, user, function, host=False, clean=False):
         call(cmd_string, shell=True, cwd=PROJ_ROOT)
 
         # Push the container
-        cmd = "docker push {}".format(tag_name)
-        call(cmd, shell=True, cwd=PROJ_ROOT)
+        if not nopush:
+            cmd = "docker push {}".format(tag_name)
+            call(cmd, shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def deploy_knative_native(ctx, user, function, host=False, clean=False):
+def deploy_knative_native(ctx, user, function):
     name = "{}{}".format(NATIVE_WORKER_PREFIX, function)
     image = "{}{}".format(NATIVE_WORKER_IMAGE_PREFIX, function)
 
@@ -221,3 +223,12 @@ def deploy_knative_native(ctx, user, function, host=False, clean=False):
         NATIVE_WORKER_ANNOTATIONS,
         NATIVE_WORKER_ARGS,
     )
+
+
+@task
+def knative_native_local(ctx, user, function):
+    image = "{}{}".format(NATIVE_WORKER_IMAGE_PREFIX, function)
+
+    cmd = "docker run -p 8080:8080 {}".format(image)
+    print(cmd)
+    call(cmd, shell=True, cwd=PROJ_ROOT)

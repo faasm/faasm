@@ -1,4 +1,4 @@
-from os import mkdir, remove
+from os import makedirs, remove
 from os.path import exists, join
 from shutil import rmtree
 from subprocess import check_output, call
@@ -27,7 +27,7 @@ def backup_runtime_root(ctx):
         call("mv {} {}".format(FAASM_RUNTIME_ROOT, BACKUP_LOCATION), shell=True)
 
     print("Creating new runtime root dir")
-    mkdir(FAASM_RUNTIME_ROOT)
+    makedirs(FAASM_RUNTIME_ROOT)
 
     # Run the Ansible set-up script
     ret = call("ansible-playbook runtime_fs.yml", cwd=ANSIBLE_ROOT, shell=True)
@@ -42,7 +42,7 @@ def backup_runtime_root(ctx):
     set_up_tensorflow_data(ctx)
 
     # Create a tmp directory
-    mkdir(join(FAASM_RUNTIME_ROOT, "tmp"))
+    makedirs(join(FAASM_RUNTIME_ROOT, "tmp"))
 
     # Compress
     print("Creating archive of Faasm runtime root")
@@ -64,7 +64,7 @@ def download_runtime_root(ctx):
         print("Removing existing")
         rmtree(FAASM_RUNTIME_ROOT)
 
-    mkdir(FAASM_RUNTIME_ROOT)
+    makedirs(FAASM_RUNTIME_ROOT)
 
     # Download the bundle
     print("Downloading from S3")

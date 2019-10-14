@@ -1,6 +1,6 @@
 from datetime import datetime
 from json import dumps
-from os import mkdir
+from os import makedirs
 from os.path import join, exists
 from shutil import rmtree
 from subprocess import call
@@ -564,7 +564,7 @@ def _build_cmake_project(build_dir, cmake_args, clean=False, target=None):
 
     # Create build dir if necessary
     if not exists(build_dir):
-        mkdir(build_dir)
+        makedirs(build_dir)
 
     cpp_sdk_build_cmd = [
         "cmake",

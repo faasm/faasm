@@ -1,28 +1,9 @@
+from os.path import join, exists
 from subprocess import call, check_output
 
 from invoke import task
 
 from tasks.util.env import PROJ_ROOT, HOME_DIR
-
-
-@task
-def pull(context):
-    images = [
-        "faasm/worker",
-        "faasm/edge",
-        "faasm/data",
-        "faasm/upload",
-    ]
-
-    for image in images:
-        cmd = [
-            "docker",
-            "pull",
-            image
-        ]
-
-        cmd = " ".join(cmd)
-        call(cmd, shell=True, cwd=PROJ_ROOT)
 
 
 @task
@@ -57,124 +38,37 @@ def data(context):
     call(cmd, shell=True, cwd=PROJ_ROOT)
 
 
+def _check_valid_container(container):
+    dockerfile = join(PROJ_ROOT, "docker", "{}.dockerfile".format(container))
+
+    if not exists(dockerfile):
+        print("Could not find dockerfile at {}".format(dockerfile))
+        raise RuntimeError("Invalid container: {}".format(container))
+
+    return dockerfile
+
+
 @task
-def docker_build_redis(context):
-    cmd = "docker build -t faasm/redis -f docker/redis.dockerfile ."
+def docker_build(ctx, container, version=None, nocache=False):
+    dockerfile = _check_valid_container(container)
+
+    if version:
+        tag_name = "faasm/{}:{}".format(container, version)
+    else:
+        tag_name = "faasm/{}".format(container)
+
+    if nocache:
+        no_cache_str = "--no-cache"
+    else:
+        no_cache_str = ""
+
+    cmd = "docker build {} -t {} -f {} .".format(no_cache_str, tag_name, dockerfile)
+    print(cmd)
     call(cmd, shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def docker_push_redis(context):
-    call("docker push faasm/redis", shell=True, cwd=PROJ_ROOT)
+def docker_push(context, container):
+    _check_valid_container(container)
 
-
-@task
-def docker_build_base(context):
-    call("docker build -t faasm/base -f docker/base.dockerfile .", shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def docker_push_base(context):
-    call("docker push faasm/base", shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def docker_build_worker(context):
-    call("docker build -t faasm/worker  -f docker/worker.dockerfile .", shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def docker_push_worker(context):
-    call("docker push faasm/worker", shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def docker_build_noop(context):
-    call("docker build -t faasm/noop  -f docker/noop.dockerfile .", shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def docker_push_noop(context):
-    call("docker push faasm/noop", shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def docker_build_edge(context):
-    call("docker build -t faasm/edge -f docker/edge.dockerfile .", shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def docker_build_knative(context):
-    call("docker build -t faasm/knative-worker -f docker/knative-worker.dockerfile .", shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def docker_build_ibm(context, version="latest"):
-    tag_name = "faasm/ibm-worker:{}".format(version)
-    call("docker build -t {} -f docker/ibm-worker.dockerfile .".format(tag_name), shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def docker_build_testing(context):
-    call("docker build -t faasm/testing  -f docker/testing.dockerfile .", shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def docker_push_testing(context):
-    call("docker push faasm/testing", shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def docker_build_root(context):
-    call("docker build -t faasm/cpp-root -f docker/cpp-root.dockerfile .", shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def docker_push_root(context):
-    call("docker push faasm/cpp-root", shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def docker_push_knative(context):
-    call("docker push faasm/knative-worker", shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def docker_push_ibm(context, version="latest"):
-    tag_name = "faasm/ibm-worker:{}".format(version)
-    call("docker push {}".format(tag_name), shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def docker_build_toolchain(context):
-    call("docker build -t faasm/toolchain -f docker/toolchain.dockerfile .", shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def docker_push_toolchain(context):
-    call("docker push faasm/toolchain", shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def docker_push_edge(context):
-    call("docker push faasm/edge", shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def docker_build_upload(context):
-    call("docker build -t faasm/upload  -f docker/upload.dockerfile .", shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def docker_push_upload(context):
-    call("docker push faasm/upload", shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def docker_build_data(context):
-    call("docker build -t faasm/data  -f docker/data.dockerfile .", shell=True, cwd=PROJ_ROOT)
-
-
-@task
-def docker_push_data(context):
-    call("docker push faasm/data", shell=True, cwd=PROJ_ROOT)
+    call("docker push faasm/{}".format(container), shell=True, cwd=PROJ_ROOT)

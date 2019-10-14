@@ -1,4 +1,4 @@
-from os import mkdir, makedirs
+from os import makedirs
 from os.path import exists
 from os.path import join
 from shutil import rmtree
@@ -45,7 +45,7 @@ def compile_malloc(ctx, clean=False):
 @task
 def install_native_tools(ctx, clean=False):
     if not exists(FAASM_INSTALL_DIR):
-        mkdir(FAASM_INSTALL_DIR)
+        makedirs(FAASM_INSTALL_DIR)
 
     build_dir = join(PROJ_ROOT, "build", "native_tools")
     clean_dir(build_dir, clean)
@@ -128,7 +128,7 @@ def compile_libfake(ctx, clean=False):
 
     runtime_lib_dir = join(FAASM_RUNTIME_ROOT, "lib")
     if not exists(runtime_lib_dir):
-        mkdir(runtime_lib_dir)
+        makedirs(runtime_lib_dir)
 
     call("cp {} {}".format(sysroot_files, runtime_lib_dir), shell=True)
 

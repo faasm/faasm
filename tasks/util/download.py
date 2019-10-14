@@ -1,4 +1,4 @@
-from os import mkdir
+from os import makedirs
 from os.path import exists
 from os.path import join
 from subprocess import call
@@ -10,7 +10,7 @@ from tasks.util.env import FAASM_HOME
 
 def download_proj(url, filename, extension="tar.gz", tar_args="-xvf", extract_file=None):
     if not exists(FAASM_HOME):
-        mkdir(FAASM_HOME)
+        makedirs(FAASM_HOME)
 
     extract_dir = join(FAASM_HOME, extract_file) if extract_file else join(FAASM_HOME, filename)
     tar_filename = "{}.{}".format(filename, extension)
@@ -33,6 +33,6 @@ def download_proj(url, filename, extension="tar.gz", tar_args="-xvf", extract_fi
 
     # Create build dir
     if not exists(build_dir):
-        mkdir(build_dir)
+        makedirs(build_dir)
 
     return extract_dir, build_dir
