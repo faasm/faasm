@@ -25,14 +25,10 @@ LEGACY_CONF = join(K8S_DIR, "legacy")
 #
 
 FAASM_WORKER_ANNOTATIONS = [
-    "autoscaling.knative.dev/class=kpa.autoscaling.knative.dev",
-    "autoscaling.knative.dev/metric=concurrency",
     "autoscaling.knative.dev/enable-scale-to-zero=false",
 ]
 
 NATIVE_WORKER_ANNOTATIONS = [
-    "autoscaling.knative.dev/class=kpa.autoscaling.knative.dev",
-    "autoscaling.knative.dev/metric=concurrency",
     "autoscaling.knative.dev/enable-scale-to-zero=true",
 ]
 
