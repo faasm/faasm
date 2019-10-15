@@ -27,23 +27,25 @@ LEGACY_CONF = join(K8S_DIR, "legacy")
 FAASM_WORKER_ANNOTATIONS = [
     "autoscaling.knative.dev/class=kpa.autoscaling.knative.dev",
     "autoscaling.knative.dev/metric=concurrency",
-    "autoscaling.knative.dev/minScale=1",  # Always have one pod running
-    "autoscaling.knative.dev/maxScale=10",  # Max pods
+    "autoscaling.knative.dev/enable-scale-to-zero=false",
 ]
 
 NATIVE_WORKER_ANNOTATIONS = [
     "autoscaling.knative.dev/class=kpa.autoscaling.knative.dev",
     "autoscaling.knative.dev/metric=concurrency",
-    "autoscaling.knative.dev/minScale=0",  # Scale from zero
-    "autoscaling.knative.dev/maxScale=10",  # Max pods
+    "autoscaling.knative.dev/enable-scale-to-zero=true",
 ]
 
 FAASM_WORKER_ARGS = [
+    "--min-scale=1",  # Always keep one copy
+    "--max-scale=20",  # Max number of copies
     "--concurrency-limit=4",  # Hard limit on number of requests to be handled by a single replica
     "--concurrency-target=4",  # Recommended scale-out (defaults to concurrency-limit)
 ]
 
 NATIVE_WORKER_ARGS = [
+    "--min-scale=0",  # Allow scale to zero
+    "--max-scale=5",  # Max number of copies
     "--concurrency-limit=1",  # Native executors handle one request at a time
 ]
 

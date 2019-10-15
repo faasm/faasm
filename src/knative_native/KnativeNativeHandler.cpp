@@ -6,7 +6,6 @@
 #include <util/logging.h>
 #include <util/bytes.h>
 #include <util/json.h>
-#include <util/func.h>
 #include <util/environment.h>
 
 
