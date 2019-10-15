@@ -1,5 +1,4 @@
 #include <faasm/faasm.h>
-#include <faasm/input.h>
 #include <stdio.h>
 
 #define INPUT_VAL 42

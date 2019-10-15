@@ -268,6 +268,15 @@ def delete_knative_native(ctx, user, function):
 @task
 def knative_native_local(ctx, user, function):
     img_name = _native_image_name(function)
-    cmd = "docker run -p 8080:8080 --env LOG_LEVEL=debug {}".format(img_name)
-    print(cmd)
-    call(cmd, shell=True, cwd=PROJ_ROOT)
+    cmd = [
+        "docker", "run",
+        "-p 8080:8080",
+        "--env LOG_LEVEL=debug",
+        "--env FAASM_INVOKE_HOST=127.0.0.1",
+        "--env FAASM_INVOKE_PORT=8080",
+        img_name
+    ]
+
+    cmd_string = " ".join(cmd)
+    print(cmd_string)
+    call(cmd_string, shell=True, cwd=PROJ_ROOT)

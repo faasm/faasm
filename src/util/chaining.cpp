@@ -25,7 +25,6 @@ namespace util {
         
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::string funcStr = util::funcToString(msg, true);
-        logger->debug("Posting function {} to {}", funcStr, url);
         
         void *curl = curl_easy_init();
 
@@ -36,8 +35,11 @@ namespace util {
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &out);
         curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, CHAINED_CALL_TIMEOUT);
 
-        // Add header for knative calls
-        std::string knativeHeader = "Host: faasm-" + msg.function() + ".faasm.example.com";
+        // Add header for knative calls. Unfortunately we need to replace underscores with hyphens
+        std::string cleanedFuncName = msg.function();
+        std::replace(cleanedFuncName.begin(), cleanedFuncName.end(), '_', '-');
+        std::string knativeHeader = "Host: faasm-" + cleanedFuncName + ".faasm.example.com";
+
         struct curl_slist *chunk = nullptr;
         chunk = curl_slist_append(chunk, knativeHeader.c_str());
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
@@ -46,6 +48,8 @@ namespace util {
         const std::string msgJson = util::messageToJson(msg);
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, msgJson.c_str());
         curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, -1L);
+
+        logger->debug("Posting function {} to {} ({})", funcStr, url, knativeHeader);
 
         // Make the request
         CURLcode res = curl_easy_perform(curl);

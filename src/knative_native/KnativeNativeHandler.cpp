@@ -32,7 +32,6 @@ namespace knative_native {
         // Parse the JSON input
         const std::string requestStr = request.body();
         message::Message msg = util::jsonToMessage(requestStr);
-        util::setMessageId(msg);
         
         // Set the input to the function
         const std::vector<uint8_t> inputBytes = util::stringToBytes(msg.inputdata());
@@ -44,8 +43,13 @@ namespace knative_native {
         exec(msg.idx());
 
         // Get the output
+        std::string outputStr;
         const std::vector<uint8_t> outputData = getEmulatorOutputData();
-        auto outputStr = reinterpret_cast<const char*>(outputData.data());
+        if(outputData.empty()) {
+            outputStr = "Empty output";
+        } else {
+            outputStr = std::string(reinterpret_cast<const char*>(outputData.data()));
+        }
 
         response.send(Pistache::Http::Code::Ok, outputStr);
     }

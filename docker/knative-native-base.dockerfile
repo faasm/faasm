@@ -5,11 +5,6 @@ RUN apt-get install libpython3-dev
 
 COPY . /usr/local/code/faasm
 
-# Install native dependencies
-WORKDIR /usr/local/code/faasm/ansible
-RUN ansible-playbook pistache.yml
-RUN ansible-playbook eigen.yml
-
 # Nuke and recreate the build dir
 WORKDIR /tmp
 RUN rm -rf /faasm/build
@@ -25,5 +20,8 @@ RUN cmake \
 
 # Build the library
 RUN cmake --build . --target knative_native -- -j
+
+# Build the JSON call tester
+RUN cmake --build . --target post_json_call -- -j
 
 CMD "/bin/bash"

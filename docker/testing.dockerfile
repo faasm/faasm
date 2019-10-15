@@ -23,12 +23,6 @@ RUN pip3 install -r requirements.txt
 
 # Set up eigen
 WORKDIR /usr/local/code/faasm/ansible
-RUN ansible-playbook eigen.yml
-
-# Set up pistache
-RUN ansible-playbook pistache.yml
-
-# Set up catch
 RUN ansible-playbook catch.yml
 
 # Download toolchain
