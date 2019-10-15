@@ -36,14 +36,14 @@ FAASM_WORKER_ARGS = [
     "--min-scale=1",  # Always keep one worker
     "--max-scale=20",  # Max number of workers
     "--concurrency-limit=4",  # How many requests can be handled by a given worker
-    "--concurrency-target=100",  # Soft limit on number of concurrent requests
+    "--concurrency-target=4",  # Soft limit on number of concurrent requests
 ]
 
 NATIVE_WORKER_ARGS = [
     "--min-scale=0",  # Allow scale to zero
     "--max-scale=10",  # Max number of workers
     "--concurrency-limit=1",  # Native executors handle one request at a time
-    "--concurrency-target=20",  # Soft limit on number of concurrent requests
+    "--concurrency-target=1",  # Soft limit on number of concurrent requests
 ]
 
 KNATIVE_FUNC_PREFIX = "faasm-"

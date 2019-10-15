@@ -20,6 +20,7 @@ def _do_post(url, input, headers=None, quiet=False):
     # NOTE: Using python to do this is slow compared with running curl
     # directly on the command line (or some other purpose-built tool).
     # As a result this mustn't be used for performance testing
+    print("POST: {}".format(url))
     response = requests.post(url, data=input, headers=headers)
 
     if response.status_code >= 400:
