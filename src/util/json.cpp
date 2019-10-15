@@ -18,6 +18,7 @@ namespace util {
 
         d.AddMember("user", StringRef(msg.user().c_str()), d.GetAllocator());
         d.AddMember("function", StringRef(msg.function().c_str()), d.GetAllocator());
+        d.AddMember("index", msg.idx(), d.GetAllocator());
 
         d.AddMember("input_data", StringRef(msg.inputdata().c_str()), d.GetAllocator());
         d.AddMember("output_data", StringRef(msg.outputdata().c_str()), d.GetAllocator());
@@ -75,6 +76,7 @@ namespace util {
 
         msg.set_user(getStringFromJson(d, "user", ""));
         msg.set_function(getStringFromJson(d, "function", ""));
+        msg.set_idx(getIntFromJson(d, "index", 0));
 
         msg.set_inputdata(getStringFromJson(d, "input_data", ""));
         msg.set_outputdata(getStringFromJson(d, "output_data", ""));
