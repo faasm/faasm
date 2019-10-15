@@ -30,6 +30,8 @@ namespace knative_native {
 
         // Parse the JSON input
         const std::string requestStr = request.body();
+        logger->debug("Knative native request: {}", requestStr);
+
         message::Message msg = util::jsonToMessage(requestStr);
         
         // Set the input to the function
