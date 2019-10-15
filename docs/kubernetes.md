@@ -106,7 +106,7 @@ inv invoke --native <user> <function>
 
 Given that these will scale from zero, it may take a while on the first invocation.
 
-For anything that requires chaining we must run it asynchronously so that things don't get clogged up.
+**Note** For anything that requires chaining we must run it asynchronously so that things don't get clogged up.
 To do this:
 
 ```
