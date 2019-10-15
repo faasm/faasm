@@ -24,12 +24,16 @@ LEGACY_CONF = join(K8S_DIR, "legacy")
 # Configuring the scheduler: https://knative.dev/docs/serving/configuring-the-autoscaler/
 #
 
+# TODO: Use the knative autoscaler rather than hard-coding a number of workers
+
 FAASM_WORKER_ANNOTATIONS = [
     "autoscaling.knative.dev/enable-scale-to-zero=false",
+    "autoscaling.knative.dev/stable-window=30s",
 ]
 
 NATIVE_WORKER_ANNOTATIONS = [
     "autoscaling.knative.dev/enable-scale-to-zero=true",
+    "autoscaling.knative.dev/stable-window=20s",
 ]
 
 FAASM_WORKER_ARGS = [
