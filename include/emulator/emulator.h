@@ -6,6 +6,8 @@ void resetEmulator();
 
 void setEmulatorInputData(const std::vector<uint8_t> &inputIn);
 
+void setEmulatorFunctionIdx(int idx);
+
 std::string getEmulatorUser();
 
 void setEmulatorUser(const char* user);

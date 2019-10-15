@@ -51,6 +51,10 @@ void setEmulatorInputData(const std::vector<uint8_t> &inputIn) {
     _inputData = inputIn;
 }
 
+void setEmulatorFunctionIdx(int idx) {
+    _funcIdx = idx;
+}
+
 std::string getEmulatorUser() {
     return _user;
 }

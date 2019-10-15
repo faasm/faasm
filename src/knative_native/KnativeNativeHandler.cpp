@@ -37,6 +37,7 @@ namespace knative_native {
         // Set the input to the function
         const std::vector<uint8_t> inputBytes = util::stringToBytes(msg.inputdata());
         setEmulatorInputData(inputBytes);
+        setEmulatorFunctionIdx(msg.idx());
 
         // Invoke the native function
         logger->debug("Executing function index {}", msg.idx());
