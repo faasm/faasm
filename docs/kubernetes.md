@@ -74,7 +74,8 @@ inv redis-clear-queue --knative
 
 ## Uploading and running native functions
 
-For benchmarking we need to run the functions in a more "normal" serverless way (i.e. natively in a container). To build the relevant container:
+For benchmarking we need to run the functions in a more "normal" serverless way (i.e. natively in a container).
+To build the relevant container:
 
 ```
 inv build-knative-native <user> <function>
@@ -104,6 +105,13 @@ inv invoke --native <user> <function>
 ```
 
 Given that these will scale from zero, it may take a while on the first invocation.
+
+For anything that requires chaining we must run it asynchronously so that things don't get clogged up.
+To do this:
+
+```
+inv invoke --native --poll <user> <function>
+```
 
 ## Troubleshooting
 

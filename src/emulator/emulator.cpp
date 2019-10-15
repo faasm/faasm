@@ -306,7 +306,10 @@ unsigned int _chain_this_knative(int idx, const unsigned char *buffer, long buff
     msg.set_idx(idx);
     msg.set_inputdata(buffer, bufferLen);
 
-    // Make the call in a thread in the background
+    // We will be awaiting the response in a thread in the background, therefore this must _not_ be async
+    msg.set_isasync(false);
+
+    // Make the call in a thread in the background so we can continue
     {
         util::UniqueLock threadsLock(threadsMutex);
 

@@ -2,10 +2,10 @@
 
 #include <pistache/http.h>
 #include <scheduler/GlobalMessageBus.h>
-#include <worker/WorkerHttpMixin.h>
+#include <scheduler/SchedulerHttpMixin.h>
 
 namespace knative {
-    class KnativeHandler : public Pistache::Http::Handler, worker::WorkerHttpMixin {
+    class KnativeHandler : public Pistache::Http::Handler, scheduler::SchedulerHttpMixin {
     public:
         KnativeHandler();
 

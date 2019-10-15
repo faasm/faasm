@@ -1,4 +1,5 @@
 import os
+from copy import copy
 from os.path import join, exists
 from subprocess import call
 
@@ -37,18 +38,25 @@ NATIVE_WORKER_ANNOTATIONS = [
 ]
 
 FAASM_WORKER_ARGS = [
-    "--min-scale=1",  # Always keep one worker
+    "--min-scale=2",  # Always keep two workers
     "--max-scale=20",  # Max number of workers
     "--concurrency-limit=4",  # How many requests can be handled by a given worker
-    "--concurrency-target=4",  # Soft limit on number of concurrent requests
 ]
 
-NATIVE_WORKER_ARGS = [
-    "--min-scale=0",  # Allow scale to zero
-    "--max-scale=10",  # Max number of workers
-    "--concurrency-limit=1",  # Native executors handle one request at a time
-    "--concurrency-target=1",  # Soft limit on number of concurrent requests
-]
+# Allow custom fixed numbers of workers for certain functions
+# Expressed as (min, max)
+NATIVE_WORKER_ARGS = {
+    "reuters_svm": [
+        "--min-scale=10",
+        "--max-scale=10",
+        "--concurrency-limit=1",
+    ],
+    "default": [
+        "--min-scale=1",
+        "--max-scale=3",
+        "--concurrency-limit=1",  # Native executors handle one request at a time
+    ]
+}
 
 KNATIVE_FUNC_PREFIX = "faasm-"
 NATIVE_WORKER_IMAGE_PREFIX = "faasm/knative-native-"
@@ -204,6 +212,7 @@ def build_knative_native(ctx, user, function, host=False, clean=False, nopush=Fa
             "-DCMAKE_C_COMPILER=/usr/bin/clang",
             "-DFAASM_BUILD_TYPE=knative-native",
             "-DCMAKE_BUILD_TYPE=Debug",
+            "-DFAASM_AWS_SUPPORT=OFF",
             PROJ_ROOT
         ]
         call(" ".join(cmd), cwd=build_dir, shell=True)
@@ -250,11 +259,16 @@ def deploy_knative_native(ctx, user, function):
     invoke_host = faasm_config["Kubernetes"]["invoke_host"]
     invoke_port = faasm_config["Kubernetes"]["invoke_port"]
 
+    # Allow overriding func args for specific functions
+    func_args = NATIVE_WORKER_ARGS.get(function)
+    if not func_args:
+        func_args = NATIVE_WORKER_ARGS["default"]
+
     _deploy_knative_fn(
         _fn_name(function),
         _native_image_name(function),
         NATIVE_WORKER_ANNOTATIONS,
-        NATIVE_WORKER_ARGS,
+        func_args,
         extra_env={
             "FAASM_INVOKE_HOST": invoke_host,
             "FAASM_INVOKE_PORT": invoke_port,

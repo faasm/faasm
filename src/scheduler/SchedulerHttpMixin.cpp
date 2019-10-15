@@ -1,25 +1,25 @@
-#include "WorkerHttpMixin.h"
+#include "SchedulerHttpMixin.h"
+#include "Scheduler.h"
 
 #include <util/logging.h>
 #include <util/timing.h>
-#include <scheduler/Scheduler.h>
 
-namespace worker {
-    std::string WorkerHttpMixin::getMessageStatus(message::Message &msg) {
+namespace scheduler {
+    std::string SchedulerHttpMixin::getMessageStatus(message::Message &msg) {
         // Get message with no delay
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
         const message::Message result = globalBus.getFunctionResult(msg.id(), 0);
 
-        if(result.type() == message::Message_MessageType_EMPTY) {
+        if (result.type() == message::Message_MessageType_EMPTY) {
             return "RUNNING";
-        } else if(result.success()) {
+        } else if (result.success()) {
             return "SUCCESS: " + result.outputdata();
         } else {
             return "FAILED: " + result.outputdata();
         }
     }
-    
-    std::string WorkerHttpMixin::executeFunction(message::Message &msg) {
+
+    std::string SchedulerHttpMixin::executeFunction(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         util::SystemConfig &conf = util::getSystemConfig();
 

@@ -5,11 +5,11 @@
 #include <pistache/http.h>
 #include <pistache/router.h>
 #include <worker/WorkerMain.h>
-#include <worker/WorkerHttpMixin.h>
+#include <scheduler/SchedulerHttpMixin.h>
 
 
 namespace ibm {
-    class IBMEndpoint : public endpoint::Endpoint, worker::WorkerHttpMixin {
+    class IBMEndpoint : public endpoint::Endpoint, scheduler::SchedulerHttpMixin {
     public:
         IBMEndpoint();
 

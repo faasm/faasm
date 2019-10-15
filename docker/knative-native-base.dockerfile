@@ -16,6 +16,7 @@ RUN cmake \
     -DCMAKE_C_COMPILER=/usr/bin/clang \
     -DFAASM_BUILD_TYPE=knative-native \
     -DCMAKE_BUILD_TYPE=Release \
+    -DFAASM_AWS_SUPPORT=OFF \
     /usr/local/code/faasm
 
 # Build the library

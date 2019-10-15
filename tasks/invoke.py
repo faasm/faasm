@@ -56,7 +56,7 @@ def _do_status_call(call_id, host, port, quiet=False):
 
 @task
 def invoke(ctx, user, func,
-           host="127.0.0.1",
+           host=None,
            port=None,
            input=None,
            parallel=False,
@@ -80,8 +80,8 @@ def invoke(ctx, user, func,
         host = faasm_config["Kubernetes"].get("invoke_host", "localhost")
         port = faasm_config["Kubernetes"].get("invoke_port", 8080)
     else:
-        host = "localhost"
-        port = 8080
+        host = host if host else "127.0.0.1"
+        port = port if port else 8080
 
     # Polling always requires async
     if poll:

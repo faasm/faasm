@@ -12,4 +12,4 @@ set(
 
 faasm_private_lib(knative_native "${LIB_FILES}")
 
-target_link_libraries(knative_native endpoint emulator)
+target_link_libraries(knative_native endpoint emulator scheduler)
