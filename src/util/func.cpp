@@ -244,8 +244,9 @@ namespace util {
     }
 
     unsigned int setMessageId(message::Message &msg) {
+        // Assume if message has an ID it's been done properly
         if(msg.id() > 0) {
-            throw std::runtime_error("Message already has ID");
+            return msg.id();
         }
 
         // Generate a random result key

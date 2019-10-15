@@ -1,6 +1,5 @@
 import os
-from copy import copy
-from os.path import join, exists
+from os.path import join
 from subprocess import call
 
 from invoke import task
@@ -52,8 +51,8 @@ NATIVE_WORKER_ARGS = {
         "--concurrency-limit=1",
     ],
     "default": [
-        "--min-scale=1",
-        "--max-scale=3",
+        "--min-scale=2",
+        "--max-scale=4",
         "--concurrency-limit=1",  # Native executors handle one request at a time
     ]
 }

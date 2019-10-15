@@ -38,6 +38,7 @@ namespace knative_native {
         logger->debug("Knative native request: {}", requestStr);
 
         message::Message msg = util::jsonToMessage(requestStr);
+        util::setMessageId(msg);
 
         // Set the input to the function
         const std::vector<uint8_t> inputBytes = util::stringToBytes(msg.inputdata());

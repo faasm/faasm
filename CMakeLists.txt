@@ -78,6 +78,8 @@ find_package(aws-lambda-runtime)
 
 # AWS SDK
 find_package(AWSSDK REQUIRED COMPONENTS lambda s3 sqs)
+
+add_definitions("-DAWS_SUPPORT=1")
 endif()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -103,6 +105,7 @@ if (FAASM_BUILD_TYPE STREQUAL "knative-native")
     add_subdirectory(src/knative_native)
     add_subdirectory(src/proto)
     add_subdirectory(src/redis)
+    add_subdirectory(src/scheduler)
     add_subdirectory(src/state)
     add_subdirectory(src/util)
 
