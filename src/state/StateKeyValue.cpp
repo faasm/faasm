@@ -33,27 +33,11 @@ namespace state {
 
         // State over the clear threshold is removed from local
         idleThreshold = conf.stateClearThreshold;
-
-        // Whether to run in fully async mode
-        fullAsync = conf.fullAsync > 0;
     }
 
     void StateKeyValue::pull(bool async) {
         this->updateLastInteraction();
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
-
-        // If in full async mode, we won't do an asynchronous pull at all, we just
-        // want to initialise storage
-        if (async && fullAsync) {
-            logger->debug("Skipping async pull in full async mode for {}", key);
-
-            if(_empty) {
-                initialiseStorage();
-                _empty = false;
-            }
-
-            return;
-        }
 
         // Initialise if new
         if (_empty) {
@@ -368,10 +352,6 @@ namespace state {
     }
 
     void StateKeyValue::pushFull() {
-        if (fullAsync) {
-            throw std::runtime_error("Shouldn't be pushing in full async mode.");
-        }
-
         // Ignore if not dirty
         if (!isWholeValueDirty) {
             return;
@@ -404,10 +384,6 @@ namespace state {
     }
 
     void StateKeyValue::pushPartial() {
-        if (fullAsync) {
-            throw std::runtime_error("Shouldn't be pushing in full async mode.");
-        }
-
         // Ignore if the whole value is dirty or not partially dirty
         if (isWholeValueDirty || !isPartiallyDirty) {
             return;

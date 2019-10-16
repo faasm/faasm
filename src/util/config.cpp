@@ -64,8 +64,6 @@ namespace util {
         stateStaleThreshold = this->getSystemConfIntParam("STATE_STALE_THRESHOLD", "60000");
         stateClearThreshold = this->getSystemConfIntParam("STATE_CLEAR_THRESHOLD", "300000");
         statePushInterval = this->getSystemConfIntParam("STATE_PUSH_INTERVAL", "500");
-        fullAsync = this->getSystemConfIntParam("FULL_ASYNC", "0");
-        fullSync = this->getSystemConfIntParam("FULL_SYNC", "0");
 
         // Filesystem storage
         functionDir = getEnvVar("FUNC_DIR", "/usr/local/code/faasm/wasm");
@@ -75,10 +73,6 @@ namespace util {
         sharedFilesStorageDir = getEnvVar("SHARED_FILES_STORAGE_DIR", "/usr/local/faasm/shared_store");
 
         ibmApiKey = getEnvVar("IBM_API_KEY", "");
-
-        if(fullAsync == 1 && fullSync == 1) {
-            throw std::runtime_error("Can't have both full async and full sync on");
-        }
     }
 
     int SystemConfig::getSystemConfIntParam(const char *name, const char *defaultValue) {
@@ -133,8 +127,6 @@ namespace util {
         logger->info("STATE_STALE_THRESHOLD      {}", stateStaleThreshold);
         logger->info("STATE_CLEAR_THRESHOLD      {}", stateClearThreshold);
         logger->info("STATE_PUSH_INTERVAL        {}", statePushInterval);
-        logger->info("FULL_ASYNC                 {}", fullAsync);
-        logger->info("FULL_SYNC                  {}", fullSync);
 
         logger->info("--- Storage ---");
         logger->info("FUNC_DIR                  {}", functionDir);

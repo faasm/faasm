@@ -52,8 +52,6 @@ namespace util {
         int stateStaleThreshold;
         int stateClearThreshold;
         int statePushInterval;
-        int fullAsync;
-        int fullSync;
 
         // Filesystem storage
         std::string functionDir;

@@ -25,7 +25,6 @@ namespace tests {
         params.nWeights = 3;
         params.learningRate = 0.1;
         params.nEpochs = 2;
-        params.fullAsync = false;
 
         return params;
     }
@@ -57,7 +56,6 @@ namespace tests {
         cleanSystem();
 
         SgdParams params = getDummySgdParams();
-        params.fullAsync = false;
 
         // Set up the problem
         setUpDummyProblem(params);

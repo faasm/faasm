@@ -23,7 +23,7 @@ FAASM_MAIN_FUNC() {
     setEmulatorUser("sgd");
 #endif
 
-    int nWorkers = faasm::getIntInput(8);
+    int nWorkers = faasm::getIntInput(4);
     printf("SVM running %i batches \n", nWorkers);
 
     // Prepare params
@@ -34,10 +34,10 @@ FAASM_MAIN_FUNC() {
     // Initialise weights
     printf("Initialising weights with zeros\n");
     Eigen::MatrixXd weights = zeroMatrix(1, p.nWeights);
-    writeMatrixToState(WEIGHTS_KEY, weights, p.fullAsync);
+    writeMatrixToState(WEIGHTS_KEY, weights);
 
-    // If running full async, we need to make sure the inputs and outputs are loaded fully into memory
-    if (p.fullAsync) {
+    // If never syncing, make sure stuff is loaded into memory
+    if (p.syncInterval == -1) {
         printf("Loading inputs into local memory\n");
         readSparseMatrixFromState(INPUTS_KEY, false);
 
@@ -132,7 +132,6 @@ FAASM_FUNC(step, 1) {
     printf("SGD step: %i %i %i %i\n", batchNumber, startIdx, endIdx, epoch);
 
     // Load params
-    bool fullAsync = getEnvFullAsync();
     SgdParams sgdParams = readParamsFromState(PARAMS_KEY, fullAsync);
 
     // Perform updates

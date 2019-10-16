@@ -102,10 +102,6 @@ int faasmGetCurrentIdx() {
     return __faasm_get_idx();
 }
 
-void faasmReadConfig(const char *varName, char *buffer) {
-    __faasm_read_config(varName, buffer);
-}
-
 _FaasmFuncPtr getFaasmFunc(int idx) {
     int (*_faasm_funcs[10])() = {
             _faasm_func_0,

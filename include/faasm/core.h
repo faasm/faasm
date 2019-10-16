@@ -125,11 +125,6 @@ unsigned int faasmAwaitCall(unsigned int callId);
 int faasmGetCurrentIdx();
 
 /**
- * Gets values from the faasm config
- */
-void faasmReadConfig(const char *varName, char *buffer);
-
-/**
  * Extra faasm functions
  */
 typedef int (*_FaasmFuncPtr)();

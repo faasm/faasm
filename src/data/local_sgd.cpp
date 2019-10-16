@@ -29,8 +29,7 @@ namespace data {
     }
 
     void run(int epoch, int batchNumber) {
-        bool fullAsync = getEnvFullAsync();
-        SgdParams params = readParamsFromState(PARAMS_KEY, fullAsync);
+        SgdParams params = readParamsFromState(PARAMS_KEY);
 
         int startIdx = batchNumber * params.batchSize;
         int endIdx = std::min(startIdx + params.batchSize, params.nTrain - 1);

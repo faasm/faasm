@@ -89,8 +89,6 @@ def _get_lambda_env():
         "NO_SCHEDULER": "1",
         "GLOBAL_MESSAGE_BUS": "redis",
         "AWS_LOG_LEVEL": "info",
-        "FULL_ASYNC": "0",
-        "FULL_SYNC": "1",
         "GLOBAL_MESSAGE_TIMEOUT": "120000",
         "UNBOUND_TIMEOUT": "30000",
         "THREADS_PER_WORKER": "10",

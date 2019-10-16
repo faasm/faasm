@@ -278,7 +278,6 @@ def deploy_knative_native(ctx, user, function):
         extra_env={
             "FAASM_INVOKE_HOST": invoke_host,
             "FAASM_INVOKE_PORT": invoke_port,
-            "FULL_SYNC": "1",  # Don't use any Faasm state operations, always operate synchronously
         }
     )
 

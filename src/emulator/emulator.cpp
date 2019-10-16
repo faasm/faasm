@@ -439,21 +439,3 @@ unsigned int __faasm_chain_function(const char *name, const unsigned char *input
     // This might not be possible when executing natively
     return 1;
 }
-
-void __faasm_read_config(const char *varName, char *buffer) {
-    util::SystemConfig &conf = util::getSystemConfig();
-
-    if (strcmp(varName, "FULL_ASYNC") == 0) {
-        if (conf.fullAsync == 1) {
-            strcpy(buffer, "1");
-        } else {
-            strcpy(buffer, "0");
-        }
-    } else if (strcmp(varName, "FULL_SYNC") == 0) {
-        if (conf.fullSync == 1) {
-            strcpy(buffer, "1");
-        } else {
-            strcpy(buffer, "0");
-        }
-    }
-}

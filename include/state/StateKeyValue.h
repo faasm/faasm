@@ -71,8 +71,6 @@ namespace state {
         bool isPartiallyDirty;
         std::vector<bool> dirtyFlags;
 
-        bool fullAsync;
-
         std::shared_mutex valueMutex;
 
         util::TimePoint lastPull;
