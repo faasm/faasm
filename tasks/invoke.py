@@ -41,21 +41,6 @@ def _do_invoke(user, func, host, port, func_type, input=None):
     _do_post(url, input)
 
 
-def _do_status_call(call_id, host, port, quiet=False):
-    # NOTE - this only works for knative
-
-    url = "http://{}:{}/".format(host, port)
-
-    msg = {
-        "status": True,
-        "id": call_id,
-    }
-
-    # Function name here is "faasm-worker"
-    headers = _get_knative_headers("worker")
-    return _do_post(url, dumps(msg), headers=headers, quiet=quiet)
-
-
 @task
 def invoke(ctx, user, func,
            host=None,
@@ -179,6 +164,12 @@ def invoke(ctx, user, func,
                 print("Could not parse async reponse to int: {}".format(async_result))
                 return 1
 
+            status_msg = {
+                "status": True,
+                "id": call_id,
+            }
+            status_msg_json = dumps(status_msg)
+
             print("\n---- Polling {} ----".format(call_id))
 
             # Poll status until we get success/ failure
@@ -188,7 +179,7 @@ def invoke(ctx, user, func,
                 count += 1
                 sleep(2)
 
-                result = _do_status_call(call_id, host, port, quiet=True)
+                result = _do_post(url, status_msg_json, headers=headers, quiet=True)
                 print("\nPOLL {} - {}".format(count, result))
 
             print("\n---- Finished {} ----\n".format(call_id))
@@ -204,5 +195,25 @@ def invoke(ctx, user, func,
 
 
 @task
-def status(ctx, call_id, host="127.0.0.1", port=8080):
-    _do_status_call(call_id, host, port)
+def status(ctx, user, func, call_id, native=False):
+    faasm_config = get_faasm_config()
+    host = faasm_config["Kubernetes"].get("invoke_host", "localhost")
+    port = faasm_config["Kubernetes"].get("invoke_port", 8080)
+
+    status_msg = {
+        "status": True,
+        "id": call_id,
+    }
+
+    status_msg_json = dumps(status_msg)
+
+    if native:
+        headers = _get_knative_headers(func)
+    else:
+        headers = _get_knative_headers("worker")
+
+    url = "http://{}".format(host)
+    if not port == "80":
+        url += ":{}".format(port)
+
+    _do_post(url, status_msg_json, headers=headers)
