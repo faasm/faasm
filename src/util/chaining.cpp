@@ -52,6 +52,7 @@ namespace util {
         curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, -1L);
 
         logger->debug("Posting function {} to {} ({})", funcStr, url, knativeHeader);
+        logger->debug("Posted function JSON {}", msgJson);
 
         // Make the request
         CURLcode res = curl_easy_perform(curl);

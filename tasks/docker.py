@@ -64,7 +64,9 @@ def docker_build(ctx, container, version=None, nocache=False):
 
     cmd = "docker build {} -t {} -f {} .".format(no_cache_str, tag_name, dockerfile)
     print(cmd)
-    call(cmd, shell=True, cwd=PROJ_ROOT)
+    res = call(cmd, shell=True, cwd=PROJ_ROOT)
+    if res != 0:
+        raise RuntimeError("Failed docker build for {}".format(tag_name))
 
 
 @task

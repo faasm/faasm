@@ -84,7 +84,7 @@ FAASM_MAIN_FUNC() {
         // Wait for all workers to finish
         for (int w = 0; w < nWorkers; w++) {
             unsigned int res = faasmAwaitCall(workerCallIds[w]);
-            if(res != 0) {
+            if (res != 0) {
                 printf("Chained call %i failed\n", res);
                 return 1;
             }
@@ -120,7 +120,7 @@ FAASM_FUNC(step, 1) {
     long inputSize = 4 * sizeof(int);
     int inputBuffer[4];
     faasmGetInput(
-            reinterpret_cast< uint8_t *>(inputBuffer),
+            reinterpret_cast<uint8_t *>(inputBuffer),
             inputSize
     );
 

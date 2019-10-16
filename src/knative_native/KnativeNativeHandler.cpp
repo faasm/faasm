@@ -80,6 +80,9 @@ namespace knative_native {
             }
         }
 
+        // Make sure we flush stdout
+        fflush(stdout);
+
         response.send(Pistache::Http::Code::Ok, outputStr);
     }
 }
