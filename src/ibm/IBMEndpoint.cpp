@@ -20,7 +20,7 @@ namespace ibm {
         } else if (it->value.IsNull()) {
             throw util::JsonFieldNotFound();
         } else {
-            std::string strVal = it->value.GetString();
+            std::string strVal(it->value.GetString(), it->value.GetString() + it->value.GetStringLength());
             if (strVal.empty()) {
                 throw util::JsonFieldNotFound();
             }

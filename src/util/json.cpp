@@ -13,10 +13,10 @@ namespace util {
     std::string messageToJson(const message::Message &msg) {
         Document d;
         d.SetObject();
-        MemoryPoolAllocator<> &a = d.GetAllocator();
+        Document::AllocatorType& a = d.GetAllocator();
 
         // Need to be explicit with strings here to make a copy _and_ make sure we specify the length
-        // to include any null-terminators
+        // to include any null-terminators from bytes
         d.AddMember("id", msg.id(), a);
         d.AddMember("user", Value(msg.user().c_str(), msg.user().size(), a).Move(), a);
         d.AddMember("function", Value(msg.function().c_str(), msg.function().size(), a).Move(), a);
@@ -64,7 +64,8 @@ namespace util {
             return dflt;
         }
 
-        return it->value.GetString();
+        const char *valuePtr = it->value.GetString();
+        return std::string(valuePtr, valuePtr + it->value.GetStringLength());
     }
 
     message::Message jsonToMessage(const std::string &jsonIn) {

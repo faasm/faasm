@@ -72,7 +72,7 @@ namespace storage {
             return "";
         }
 
-        return it->value.GetString();
+        return std::string(it->value.GetString(), it->value.GetString() + it->value.GetStringLength());
     }
 
     std::string IBMStorageWrapper::doPost(const std::string &url, const std::vector<std::string> &headers,
