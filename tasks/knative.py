@@ -47,8 +47,8 @@ FAASM_WORKER_ARGS = [
 # Expressed as (min, max)
 NATIVE_WORKER_ARGS = {
     "reuters_svm": [
-        "--min-scale=10",
-        "--max-scale=10",
+        "--min-scale=20",     # Currently we have 8 machines all with 4 cores
+        "--max-scale=20",
         "--concurrency-limit=1",
     ],
     "default": [
