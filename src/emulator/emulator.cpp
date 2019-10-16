@@ -318,8 +318,8 @@ unsigned int _chain_this_local(int idx, const unsigned char *buffer, long buffer
         // Spawn a thread to execute the function
         threads.emplace(std::pair<int, std::thread>(thisCallId, [idx, inputs] {
             // Set up input data for this thread (thread-local)
-            _inputData = inputs;
-            _funcIdx = idx;
+            setEmulatorInputData(inputs);
+            setEmulatorFunctionIdx(idx);
 
             // Invoke the function
             _FaasmFuncPtr f = getFaasmFunc(idx);
@@ -411,7 +411,11 @@ int __faasm_await_call(unsigned int callId) {
 
 int __faasm_get_idx() {
     // Relies on thread-local idx
-    return _funcIdx;
+    if(isSimpleEmulation()) {
+        return _funcIdx;
+    } else {
+        return _threadLocalfuncIdx;
+    }
 }
 
 void __faasm_lock_state_read(const char *key) {
