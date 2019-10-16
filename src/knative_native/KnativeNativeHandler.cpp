@@ -48,9 +48,10 @@ namespace knative_native {
         // Invoke the native function
         std::string outputStr;
         if (msg.isstatusrequest()) {
-            logger->debug("Getting status for function {}", util::funcToString(msg, true));
+            logger->debug("Getting status for function {}", msg.id());
             outputStr = getMessageStatus(msg);
         }
+
         if (msg.isasync()) {
             logger->debug("Executing function index {} async", msg.idx());
 

@@ -164,12 +164,6 @@ def invoke(ctx, user, func,
                 print("Could not parse async reponse to int: {}".format(async_result))
                 return 1
 
-            status_msg = {
-                "status": True,
-                "id": call_id,
-            }
-            status_msg_json = dumps(status_msg)
-
             print("\n---- Polling {} ----".format(call_id))
 
             # Poll status until we get success/ failure
@@ -179,7 +173,7 @@ def invoke(ctx, user, func,
                 count += 1
                 sleep(2)
 
-                result = _do_post(url, status_msg_json, headers=headers, quiet=True)
+                result = _do_status_call(call_id, host, port, quiet=True)
                 print("\nPOLL {} - {}".format(count, result))
 
             print("\n---- Finished {} ----\n".format(call_id))
@@ -195,25 +189,23 @@ def invoke(ctx, user, func,
 
 
 @task
-def status(ctx, user, func, call_id, native=False):
+def status(ctx, call_id, host="127.0.0.1", port=8080):
     faasm_config = get_faasm_config()
     host = faasm_config["Kubernetes"].get("invoke_host", "localhost")
     port = faasm_config["Kubernetes"].get("invoke_port", 8080)
+    _do_status_call(call_id, host, port)
 
-    status_msg = {
+
+def _do_status_call(call_id, host, port, quiet=False):
+    url = "http://{}".format(host)
+    if port != 80:
+        url += ":{}/".format(port)
+
+    msg = {
         "status": True,
         "id": call_id,
     }
 
-    status_msg_json = dumps(status_msg)
-
-    if native:
-        headers = _get_knative_headers(func)
-    else:
-        headers = _get_knative_headers("worker")
-
-    url = "http://{}".format(host)
-    if not port == "80":
-        url += ":{}".format(port)
-
-    _do_post(url, status_msg_json, headers=headers)
+    # Can always use the faasm worker for getting status
+    headers = _get_knative_headers("worker")
+    return _do_post(url, dumps(msg), headers=headers, quiet=quiet)
