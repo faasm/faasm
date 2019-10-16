@@ -1,4 +1,5 @@
 import os
+from copy import copy
 from os.path import join
 from subprocess import call
 
@@ -66,7 +67,6 @@ FAASM_WORKER_IMAGE = "faasm/knative-worker"
 KNATIVE_ENV = {
     "REDIS_STATE_HOST": "redis-state",
     "REDIS_QUEUE_HOST": "redis-queue",
-    "FUNCTION_STORAGE": "fileserver",
     "HOST_TYPE": "knative",
     "LOG_LEVEL": "debug",
     "CGROUP_MODE": "off",
@@ -130,8 +130,15 @@ def k8s_deploy(ctx, local=False, bare_metal=False, ibm=False):
     elif bare_metal:
         extra_env = {
             "FUNCTION_STORAGE": "fileserver",
-            "FILESERVER_URL": "http://upload:8002"
+            "FILESERVER_URL": "http://upload:8002",
         }
+
+    # State timings for knative environment
+    extra_env.update({
+        "STATE_STALE_THRESHOLD": "60000",
+        "STATE_CLEAR_THRESHOLD": "300000",
+        "STATE_PUSH_INTERVAL": "1000",
+    })
 
     # Deploy the other K8s stuff (e.g. redis)
     _kubectl_apply(join(COMMON_CONF, "namespace.yml"), env=shell_env)
@@ -271,6 +278,7 @@ def deploy_knative_native(ctx, user, function):
         extra_env={
             "FAASM_INVOKE_HOST": invoke_host,
             "FAASM_INVOKE_PORT": invoke_port,
+            "FULL_SYNC": "1",  # Don't use any Faasm state operations, always operate synchronously
         }
     )
 

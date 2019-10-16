@@ -23,7 +23,7 @@ FAASM_MAIN_FUNC() {
     setEmulatorUser("sgd");
 #endif
 
-    int nWorkers = faasm::getIntInput(1);
+    int nWorkers = faasm::getIntInput(8);
     printf("SVM running %i batches \n", nWorkers);
 
     // Prepare params

@@ -150,7 +150,7 @@ namespace faasm {
 
                     faasmWriteStateOffset(WEIGHTS_KEY, nWeightBytes, offset, weightBytes, sizeof(double), false);
                 } else if (!sgdParams.fullAsync) {
-                    // Flag that this segment is dirty if async
+                    // Flag that this segment is dirty unless running fully async
                     size_t offset = it.row() * sizeof(double);
                     faasmFlagStateOffsetDirty(WEIGHTS_KEY, nWeightBytes, offset, sizeof(double));
                 }

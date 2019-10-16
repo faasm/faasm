@@ -214,7 +214,8 @@ void __faasm_write_state(const char *key, const uint8_t *data, long dataLen, int
 
 void __faasm_write_state_offset(const char *key, long totalLen, long offset, const unsigned char *data, long dataLen,
                                 int async) {
-    util::getLogger()->debug("E - write_state_offset {} {} {} {}", key, totalLen, offset, dataLen);
+    // Avoid excessive logging
+    // util::getLogger()->debug("E - write_state_offset {} {} {} {}", key, totalLen, offset, dataLen);
     if (isSimpleEmulation()) {
         redis::Redis &redis = redis::Redis::getState();
         std::string actualKey = util::keyForUser(_user, key);
