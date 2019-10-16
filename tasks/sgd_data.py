@@ -72,7 +72,7 @@ def reuters_download_s3(ctx):
 # -------------------------------------------------
 
 @task
-def reuters_state_upload(ctx, host, knative=True):
+def reuters_state_upload(ctx, host=None, knative=True):
     _do_reuters_upload(host=host, knative=knative)
 
 
@@ -92,7 +92,7 @@ def reuters_prepare_aws(ctx):
 
 
 def _do_reuters_upload(host=None, s3_bucket=None, knative=False):
-    assert host or s3_bucket, "Must give a host, S3 bucket or knative"
+    assert host or s3_bucket or knative, "Must give a host, S3 bucket or knative"
     user = "sgd"
 
     faasm_conf = get_faasm_config()
