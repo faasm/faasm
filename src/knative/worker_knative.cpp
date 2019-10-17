@@ -11,6 +11,7 @@ int main() {
 
     // Start the worker pool
     worker::WorkerMain w;
+    w.setSyncState(false);
     w.startBackground();
 
     // Start endpoint (will also have multiple threads)

@@ -132,7 +132,7 @@ FAASM_FUNC(step, 1) {
     printf("SGD step: %i %i %i %i\n", batchNumber, startIdx, endIdx, epoch);
 
     // Load params
-    SgdParams sgdParams = readParamsFromState(PARAMS_KEY, fullAsync);
+    SgdParams sgdParams = readParamsFromState(PARAMS_KEY);
 
     // Perform updates
     hingeLossWeightUpdate(sgdParams, epoch, batchNumber, startIdx, endIdx);

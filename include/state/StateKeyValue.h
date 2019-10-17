@@ -42,7 +42,7 @@ namespace state {
 
         void unmapSharedMemory(void *mappedAddr);
 
-        void pull(bool async);
+        void pull();
 
         void pushFull();
 
@@ -73,11 +73,6 @@ namespace state {
 
         std::shared_mutex valueMutex;
 
-        util::TimePoint lastPull;
-        util::TimePoint lastInteraction;
-        long staleThreshold;
-        long idleThreshold;
-
         size_t valueSize;
         size_t sharedMemSize;
         void *sharedMemory;
@@ -87,12 +82,6 @@ namespace state {
         void initialiseStorage();
 
         void doRemoteRead();
-
-        void updateLastInteraction();
-
-        bool isStale(const util::TimePoint &now);
-
-        bool isIdle(const util::TimePoint &now);
 
         void preGet();
 

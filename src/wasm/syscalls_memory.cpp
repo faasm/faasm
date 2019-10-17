@@ -66,15 +66,6 @@ namespace wasm {
         return kv;
     }
 
-    std::shared_ptr<state::StateKeyValue> getStateKVRead(I32 keyPtr, size_t size, int async) {
-        auto kv = getStateKV(keyPtr, size);
-
-        bool isAsync = async == 1;
-        kv->pull(isAsync);
-
-        return kv;
-    }
-
     /**
      * Note that syscall 192 is mmap2, which has the same interface as mmap except that the final argument specifies
      * the offset into the file in 4096-byte units (instead of bytes, as is done by mmap). Given that we

@@ -138,7 +138,7 @@ int __faasm_get_idx() {
     throw std::runtime_error("Not implemented self-chaining");
 }
 
-void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, int async) {
+void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) {
     if (bufferLen == 0) {
         return;
     }
@@ -150,7 +150,7 @@ void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, 
 }
 
 
-unsigned char *__faasm_read_state_ptr(const char *key, long totalLen, int async) {
+unsigned char *__faasm_read_state_ptr(const char *key, long totalLen) {
     // This is basically the same as a normal state read in the one-function-per-container
     // model. Every read is synchronous and will never hit local memory
 
@@ -158,14 +158,13 @@ unsigned char *__faasm_read_state_ptr(const char *key, long totalLen, int async)
     faasm::stateValues.emplace_back(totalLen);
     uint8_t *bytePtr = faasm::stateValues.back().data();
 
-    __faasm_read_state(key, bytePtr, totalLen, async);
+    __faasm_read_state(key, bytePtr, totalLen);
 
     // Return pointer to the buffer
     return bytePtr;
 }
 
-void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsigned char *buffer, long bufferLen,
-                               int async) {
+void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsigned char *buffer, long bufferLen) {
     if (bufferLen == 0) {
         return;
     }
@@ -179,7 +178,7 @@ void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsi
     redis.getRange(actualKey, buffer, bufferLen, startIdx, endIdx);
 }
 
-unsigned char *__faasm_read_state_offset_ptr(const char *key, long totalLen, long offset, long len, int async) {
+unsigned char *__faasm_read_state_offset_ptr(const char *key, long totalLen, long offset, long len) {
     // Again this is pretty much the same as the non-ptr version when running as a single function
     // however, we don't need to reserve the full space
 
@@ -187,13 +186,13 @@ unsigned char *__faasm_read_state_offset_ptr(const char *key, long totalLen, lon
     faasm::stateValues.emplace_back(len);
     uint8_t *bytePtr = faasm::stateValues.back().data();
 
-    __faasm_read_state_offset(key, totalLen, offset, bytePtr, len, async);
+    __faasm_read_state_offset(key, totalLen, offset, bytePtr, len);
 
     // Return pointer to the buffer
     return bytePtr;
 }
 
-void __faasm_write_state(const char *key, const uint8_t *data, long dataLen, int async) {
+void __faasm_write_state(const char *key, const uint8_t *data, long dataLen) {
     if (dataLen == 0) {
         return;
     }
@@ -204,8 +203,7 @@ void __faasm_write_state(const char *key, const uint8_t *data, long dataLen, int
     redis.set(actualKey, data, dataLen);
 }
 
-void __faasm_write_state_offset(const char *key, long totalLen, long offset, const unsigned char *data, long dataLen,
-                                int async) {
+void __faasm_write_state_offset(const char *key, long totalLen, long offset, const unsigned char *data, long dataLen) {
     if (dataLen == 0) {
         return;
     }
@@ -231,6 +229,10 @@ void __faasm_push_state(const char *key) {
 }
 
 void __faasm_push_state_partial(const char *key) {
+
+}
+
+void __faasm_pull_state(const char *key) {
 
 }
 

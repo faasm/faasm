@@ -26,17 +26,9 @@ namespace state {
         isWholeValueDirty = false;
         isPartiallyDirty = false;
         _empty = true;
-
-        // Gets over the stale threshold trigger a pull from remote
-        const SystemConfig &conf = getSystemConfig();
-        staleThreshold = conf.stateStaleThreshold;
-
-        // State over the clear threshold is removed from local
-        idleThreshold = conf.stateClearThreshold;
     }
 
-    void StateKeyValue::pull(bool async) {
-        this->updateLastInteraction();
+    void StateKeyValue::pull() {
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         // Initialise if new
@@ -54,30 +46,6 @@ namespace state {
 
             return;
         }
-
-        if (async) {
-            // Check staleness
-            Clock &clock = getGlobalClock();
-            const TimePoint now = clock.now();
-
-            // If stale, try to update from remote
-            if (this->isStale(now)) {
-                // Unique lock on the whole value while loading
-                FullLock lock(valueMutex);
-
-                // Double check staleness
-                if (this->isStale(now)) {
-                    logger->debug("Refreshing stale state for {}", key);
-                    doRemoteRead();
-                }
-            }
-
-        } else {
-            FullLock lock(valueMutex);
-
-            logger->debug("Sync read for state {}", key);
-            doRemoteRead();
-        }
     }
 
     void StateKeyValue::doRemoteRead() {
@@ -93,30 +61,6 @@ namespace state {
         logger->debug("Reading from remote for {}", key);
 
         redis.get(key, static_cast<uint8_t *>(sharedMemory), valueSize);
-
-        Clock &clock = getGlobalClock();
-        const TimePoint now = clock.now();
-        lastPull = now;
-
-        this->updateLastInteraction();
-    }
-
-    void StateKeyValue::updateLastInteraction() {
-        Clock &clock = getGlobalClock();
-        const TimePoint now = clock.now();
-        lastInteraction = now;
-    }
-
-    bool StateKeyValue::isStale(const TimePoint &now) {
-        Clock &clock = getGlobalClock();
-        long age = clock.timeDiff(now, lastPull);
-        return age > staleThreshold;
-    }
-
-    bool StateKeyValue::isIdle(const TimePoint &now) {
-        Clock &clock = getGlobalClock();
-        long idleTime = clock.timeDiff(now, lastInteraction);
-        return idleTime > idleThreshold;
     }
 
     long StateKeyValue::waitOnRemoteLock() {
@@ -148,8 +92,6 @@ namespace state {
         if (this->empty()) {
             throw std::runtime_error("Must pull before accessing state");
         }
-
-        this->updateLastInteraction();
     }
 
     void StateKeyValue::get(uint8_t *buffer) {
@@ -196,8 +138,6 @@ namespace state {
     }
 
     void StateKeyValue::set(const uint8_t *buffer) {
-        this->updateLastInteraction();
-
         // Unique lock for setting the whole value
         FullLock lock(valueMutex);
 
@@ -212,8 +152,6 @@ namespace state {
     }
 
     void StateKeyValue::setSegment(long offset, const uint8_t *buffer, size_t length) {
-        this->updateLastInteraction();
-
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         // Check we're in bounds
@@ -260,24 +198,14 @@ namespace state {
     }
 
     void StateKeyValue::clear() {
-        // Check age since last interaction
-        Clock &c = getGlobalClock();
-        TimePoint now = c.now();
+        // Unique lock on the whole value while clearing
+        FullLock lock(valueMutex);
 
-        // If over clear threshold, remove
-        if (this->isIdle(now) && !_empty) {
-            // Unique lock on the whole value while clearing
-            FullLock lock(valueMutex);
+        const std::shared_ptr<spdlog::logger> &logger = getLogger();
+        logger->debug("Clearing value {}", key);
 
-            // Double check still over the threshold
-            if (this->isIdle(now)) {
-                const std::shared_ptr<spdlog::logger> &logger = getLogger();
-                logger->debug("Clearing unused value {}", key);
-
-                // Set flag to say this is effectively new again
-                _empty = true;
-            }
-        }
+        // Set flag to say this is effectively new again
+        _empty = true;
     }
 
     bool StateKeyValue::empty() {
@@ -370,10 +298,6 @@ namespace state {
 
         redis::Redis &redis = redis::Redis::getState();
         redis.set(key, static_cast<uint8_t *>(sharedMemory), valueSize);
-
-        // Reset (as we're setting the full value, we've effectively pulled)
-        Clock &clock = getGlobalClock();
-        lastPull = clock.now();
 
         // Remove any dirty flags
         isWholeValueDirty = false;

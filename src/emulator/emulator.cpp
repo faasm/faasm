@@ -118,7 +118,7 @@ void __faasm_write_output(const unsigned char *output, long outputLen) {
 }
 
 
-void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, int async) {
+void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) {
     util::getLogger()->debug("E - read_state {} {}", key, bufferLen);
     if (bufferLen == 0) {
         return;
@@ -132,33 +132,26 @@ void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen, 
         // State-backed
         auto kv = getKv(key, bufferLen);
 
-        bool isAsync = async == 1;
-        kv->pull(isAsync);
-
+        kv->pull();
         kv->get(buffer);
     }
 }
 
-unsigned char *__faasm_read_state_ptr(const char *key, long totalLen, int async) {
+unsigned char *__faasm_read_state_ptr(const char *key, long totalLen) {
     util::getLogger()->debug("E - read_state_ptr {} {}", key, totalLen);
     if (isSimpleEmulation()) {
         auto ptr = new unsigned char[totalLen];
-        __faasm_read_state(key, ptr, totalLen, async);
+        __faasm_read_state(key, ptr, totalLen);
 
         return ptr;
     } else {
         auto kv = getKv(key, totalLen);
-
-        bool isAsync = async == 1;
-        kv->pull(isAsync);
-
         return kv->get();
     }
 }
 
 
-void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsigned char *buffer, long bufferLen,
-                               int async) {
+void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsigned char *buffer, long bufferLen) {
     util::getLogger()->debug("E - read_state_offset {} {} {} {}", key, totalLen, offset, bufferLen);
     if (isSimpleEmulation()) {
         redis::Redis &redis = redis::Redis::getState();
@@ -170,32 +163,24 @@ void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsi
         redis.getRange(actualKey, buffer, bufferLen, startIdx, endIdx);
     } else {
         auto kv = getKv(key, totalLen);
-
-        bool isAsync = async == 1;
-        kv->pull(isAsync);
-
         kv->getSegment(offset, buffer, bufferLen);
     }
 }
 
-unsigned char *__faasm_read_state_offset_ptr(const char *key, long totalLen, long offset, long len, int async) {
+unsigned char *__faasm_read_state_offset_ptr(const char *key, long totalLen, long offset, long len) {
     util::getLogger()->debug("E - read_state_offset_ptr {} {} {} {}", key, totalLen, offset, len);
     if (isSimpleEmulation()) {
         auto ptr = new unsigned char[len];
-        __faasm_read_state_offset(key, totalLen, offset, ptr, len, async);
+        __faasm_read_state_offset(key, totalLen, offset, ptr, len);
 
         return ptr;
     } else {
         auto kv = getKv(key, totalLen);
-
-        bool isAsync = async == 1;
-        kv->pull(isAsync);
-
         return kv->getSegment(offset, len);
     }
 }
 
-void __faasm_write_state(const char *key, const uint8_t *data, long dataLen, int async) {
+void __faasm_write_state(const char *key, const uint8_t *data, long dataLen) {
     util::getLogger()->debug("E - write_state {} {}", key, dataLen);
     if (isSimpleEmulation()) {
         redis::Redis &redis = redis::Redis::getState();
@@ -205,15 +190,10 @@ void __faasm_write_state(const char *key, const uint8_t *data, long dataLen, int
     } else {
         auto kv = getKv(key, dataLen);
         kv->set(data);
-
-        if (async == 0) {
-            kv->pushFull();
-        }
     }
 }
 
-void __faasm_write_state_offset(const char *key, long totalLen, long offset, const unsigned char *data, long dataLen,
-                                int async) {
+void __faasm_write_state_offset(const char *key, long totalLen, long offset, const unsigned char *data, long dataLen) {
     // Avoid excessive logging
     // util::getLogger()->debug("E - write_state_offset {} {} {} {}", key, totalLen, offset, dataLen);
     if (isSimpleEmulation()) {
@@ -225,10 +205,6 @@ void __faasm_write_state_offset(const char *key, long totalLen, long offset, con
         auto kv = getKv(key, totalLen);
 
         kv->setSegment(offset, data, dataLen);
-
-        if (async == 0) {
-            kv->pushPartial();
-        }
     }
 }
 
@@ -270,6 +246,16 @@ void __faasm_push_state_partial(const char *key) {
     } else {
         auto kv = getKv(key, 0);
         kv->pushPartial();
+    }
+}
+
+void __faasm_pull_state(const char *key) {
+    util::getLogger()->debug("E - pull_state {}", key);
+    if (isSimpleEmulation()) {
+        // Ignore
+    } else {
+        auto kv = getKv(key, 0);
+        kv->pull();
     }
 }
 

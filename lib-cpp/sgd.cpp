@@ -25,7 +25,6 @@ namespace faasm {
         // to update worker's weights
         p.syncInterval = REUTERS_SYNC_INTERVAL;
 
-        // Write params (will take async/ not from params themselves)
         printf("Writing SVM params to state\n");
         writeParamsToState(PARAMS_KEY, p);
 
@@ -36,14 +35,13 @@ namespace faasm {
         size_t nBytes = sizeof(SgdParams);
         auto bytePtr = reinterpret_cast<const uint8_t *>(&params);
 
-        // Allow full async
-        faasmWriteState(keyName, bytePtr, nBytes, true);
+        faasmWriteState(keyName, bytePtr, nBytes);
     }
 
-    SgdParams readParamsFromState(const char *keyName, bool async) {
+    SgdParams readParamsFromState(const char *keyName) {
         size_t nBytes = sizeof(SgdParams);
         SgdParams s{};
-        faasmReadState(keyName, reinterpret_cast<uint8_t *>(&s), nBytes, async);
+        faasmReadState(keyName, reinterpret_cast<uint8_t *>(&s), nBytes);
 
         return s;
     }
@@ -63,13 +61,13 @@ namespace faasm {
 
         // Load the weights
         size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
-        uint8_t *weightDataByteBuffer = faasmReadStatePtr(WEIGHTS_KEY, nWeightBytes, true);
+        uint8_t *weightDataByteBuffer = faasmReadStatePtr(WEIGHTS_KEY, nWeightBytes);
 
         auto weightDataBuffer = reinterpret_cast<double *>(weightDataByteBuffer);
 
         // Read in the feature counts (will be constant)
         size_t nFeatureCountBytes = sgdParams.nWeights * sizeof(int);
-        uint8_t *featureCountByteBuffer = faasmReadStatePtr(FEATURE_COUNTS_KEY, nFeatureCountBytes, true);
+        uint8_t *featureCountByteBuffer = faasmReadStatePtr(FEATURE_COUNTS_KEY, nFeatureCountBytes);
         auto featureCountBuffer = reinterpret_cast<int *>(featureCountByteBuffer);
 
         // Shuffle examples in this batch
@@ -145,14 +143,14 @@ namespace faasm {
         writeHingeError(sgdParams, batchNumber, outputs, prediction);
     }
 
-    void zeroDoubleArray(const char *key, long len, bool async) {
+    void zeroDoubleArray(const char *key, long len) {
         // Set buffer to zero
         auto buffer = new double[len];
         std::fill(buffer, buffer + len, 0);
 
         // Write zeroed buffer to state
         auto bytes = reinterpret_cast<uint8_t *>(buffer);
-        faasmWriteState(key, bytes, len * sizeof(double), async);
+        faasmWriteState(key, bytes, len * sizeof(double));
     }
 
     void zeroErrors(const SgdParams &sgdParams) {
@@ -181,7 +179,6 @@ namespace faasm {
         auto *errors = new double[sgdParams.nBatches];
         size_t sizeErrors = sgdParams.nBatches * sizeof(double);
 
-        // Allow fully async
         faasmReadState(
                 ERRORS_KEY,
                 reinterpret_cast<uint8_t *>(errors),

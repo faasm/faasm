@@ -5,30 +5,28 @@ extern "C" {
 }
 
 
-void faasmReadState(const char *key, uint8_t *buffer, long bufferLen, bool async) {
-    __faasm_read_state(key, buffer, bufferLen, (int) async);
+void faasmReadState(const char *key, uint8_t *buffer, long bufferLen) {
+    __faasm_read_state(key, buffer, bufferLen);
 }
 
-uint8_t *faasmReadStatePtr(const char *key, long totalLen, bool async) {
-    return __faasm_read_state_ptr(key, totalLen, (int) async);
+uint8_t *faasmReadStatePtr(const char *key, long totalLen) {
+    return __faasm_read_state_ptr(key, totalLen);
 }
 
-void faasmReadStateOffset(const char *key, long fullLen, long offset, uint8_t *buffer, long bufferLen,
-                          bool async) {
-    __faasm_read_state_offset(key, fullLen, offset, buffer, bufferLen, (int) async);
+void faasmReadStateOffset(const char *key, long fullLen, long offset, uint8_t *buffer, long bufferLen) {
+    __faasm_read_state_offset(key, fullLen, offset, buffer, bufferLen);
 }
 
-uint8_t *faasmReadStateOffsetPtr(const char *key, long fullLen, long offset, long len, bool async) {
-    return __faasm_read_state_offset_ptr(key, fullLen, offset, len, (int) async);
+uint8_t *faasmReadStateOffsetPtr(const char *key, long fullLen, long offset, long len) {
+    return __faasm_read_state_offset_ptr(key, fullLen, offset, len);
 }
 
-void faasmWriteState(const char *key, const uint8_t *data, long dataLen, bool async) {
-    __faasm_write_state(key, data, dataLen, (int) async);
+void faasmWriteState(const char *key, const uint8_t *data, long dataLen) {
+    __faasm_write_state(key, data, dataLen);
 }
 
-void faasmWriteStateOffset(const char *key, long totalLen, long offset, const uint8_t *data, long dataLen,
-                           bool async) {
-    __faasm_write_state_offset(key, totalLen, offset, data, dataLen, (int) async);
+void faasmWriteStateOffset(const char *key, long totalLen, long offset, const uint8_t *data, long dataLen) {
+    __faasm_write_state_offset(key, totalLen, offset, data, dataLen);
 }
 
 void faasmFlagStateDirty(const char *key, long totalLen) {
@@ -45,6 +43,10 @@ void faasmPushState(const char *key) {
 
 void faasmPushStatePartial(const char *key) {
     __faasm_push_state_partial(key);
+}
+
+void faasmPullState(const char *key) {
+    __faasm_pull_state(key);
 }
 
 void faasmLockStateRead(const char *key) {

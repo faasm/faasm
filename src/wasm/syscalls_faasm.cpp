@@ -26,6 +26,13 @@ namespace wasm {
         kv->pushPartial();
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_pull_state", void, __faasm_pull_state, I32 keyPtr) {
+        util::getLogger()->debug("S - pull_state - {}", keyPtr);
+
+        auto kv = getStateKV(keyPtr, 0);
+        kv->pull(true);
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_lock_state_read", void, __faasm_lock_state_read, I32 keyPtr) {
         util::getLogger()->debug("S - lock_state_read - {}", keyPtr);
 
@@ -55,9 +62,9 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state", void, __faasm_write_state,
-                                   I32 keyPtr, I32 dataPtr, I32 dataLen, I32 async) {
+                                   I32 keyPtr, I32 dataPtr, I32 dataLen) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - write_state - {} {} {} {}", keyPtr, dataPtr, dataLen, async);
+        logger->debug("S - write_state - {} {} {}", keyPtr, dataPtr, dataLen);
 
         auto kv = getStateKV(keyPtr, dataLen);
 
@@ -66,17 +73,12 @@ namespace wasm {
 
         logger->debug("Writing state length {} to key {}", dataLen, kv->key);
         kv->set(data);
-
-        // Push if synchronous
-        if (async == 0) {
-            kv->pushFull();
-        }
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_offset", void, __faasm_write_state_offset,
-                                   I32 keyPtr, I32 totalLen, I32 offset, I32 dataPtr, I32 dataLen, I32 async) {
-        util::getLogger()->debug("S - write_state_offset - {} {} {} {} {} {}", keyPtr, totalLen, offset, dataPtr,
-                                 dataLen, async);
+                                   I32 keyPtr, I32 totalLen, I32 offset, I32 dataPtr, I32 dataLen) {
+        util::getLogger()->debug("S - write_state_offset - {} {} {} {} {}", keyPtr, totalLen, offset, dataPtr,
+                                 dataLen);
 
         auto kv = getStateKV(keyPtr, totalLen);
 
@@ -84,18 +86,13 @@ namespace wasm {
         U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
 
         kv->setSegment(offset, data, dataLen);
-
-        // Push if synchronous
-        if (async == 0) {
-            kv->pushPartial();
-        }
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state", void, __faasm_read_state,
-                                   I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 async) {
-        util::getLogger()->debug("S - read_state - {} {} {} {}", keyPtr, bufferPtr, bufferLen, async);
+                                   I32 keyPtr, I32 bufferPtr, I32 bufferLen) {
+        util::getLogger()->debug("S - read_state - {} {} {}", keyPtr, bufferPtr, bufferLen);
 
-        auto kv = getStateKVRead(keyPtr, bufferLen, async);
+        auto kv = getStateKv(keyPtr, bufferLen);
 
         // Copy to straight to buffer
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
@@ -104,10 +101,10 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_ptr", I32, __faasm_read_state_ptr,
-                                   I32 keyPtr, I32 totalLen, I32 async) {
-        util::getLogger()->debug("S - read_state - {} {} {}", keyPtr, totalLen, async);
+                                   I32 keyPtr, I32 totalLen) {
+        util::getLogger()->debug("S - read_state - {} {}", keyPtr, totalLen);
 
-        auto kv = getStateKVRead(keyPtr, totalLen, async);
+        auto kv = getStateKv(keyPtr, totalLen);
 
         // Map shared memory
         WasmModule *module = getExecutingModule();
@@ -117,11 +114,11 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset", void, __faasm_read_state_offset,
-                                   I32 keyPtr, I32 totalLen, I32 offset, I32 bufferPtr, I32 bufferLen, I32 async) {
+                                   I32 keyPtr, I32 totalLen, I32 offset, I32 bufferPtr, I32 bufferLen) {
         util::getLogger()->debug("S - read_state_offset - {} {} {} {} {}", keyPtr, totalLen, offset, bufferPtr,
                                  bufferLen);
 
-        auto kv = getStateKVRead(keyPtr, totalLen, async);
+        auto kv = getStateKv(keyPtr, totalLen);
 
         // Copy to straight to buffer
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
@@ -130,10 +127,10 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset_ptr", I32, __faasm_read_state_offset_ptr,
-                                   I32 keyPtr, I32 totalLen, I32 offset, I32 len, I32 async) {
-        util::getLogger()->debug("S - read_state_offset_ptr - {} {} {} {} {}", keyPtr, totalLen, offset, len, async);
+                                   I32 keyPtr, I32 totalLen, I32 offset, I32 len) {
+        util::getLogger()->debug("S - read_state_offset_ptr - {} {} {} {} {}", keyPtr, totalLen, offset, len);
 
-        auto kv = getStateKVRead(keyPtr, totalLen, async);
+        auto kv = getStateKv(keyPtr, totalLen);
 
         // Map whole key in shared memory
         WasmModule *module = getExecutingModule();
