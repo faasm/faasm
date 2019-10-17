@@ -25,14 +25,13 @@ namespace tests {
     void _readFileWriteState(const std::string &user, path dummyDir, const std::string &matrixPart, const std::string &key) {
         redis::Redis &redisState = redis::Redis::getState();
 
-        // Read in bytes
+        // Read in from file
         path filePath = dummyDir;
         filePath.append(matrixPart);
         const std::vector<uint8_t> fileBytes = util::readFileToBytes(filePath.string());
 
         // Write to state
-        const std::string actualKey = util::keyForUser(user, key);
-        redisState.set(actualKey, fileBytes);
+        redisState.set(key, fileBytes);
     }
 
     TEST_CASE("Check sparse matrix file round trip", "[data]") {

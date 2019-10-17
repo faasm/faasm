@@ -51,7 +51,7 @@ namespace state {
             return;
         }
 
-        // Initialise the data array with zeroes
+        // Initialise the storage if empty
         if (_empty) {
             initialiseStorage();
         }
@@ -259,6 +259,10 @@ namespace state {
     void StateKeyValue::initialiseStorage() {
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
+        if(sharedMemSize == 0) {
+            throw StateKeyValueException("Initialising storage without a size for " + key);
+        }
+
         // Create shared memory region
         sharedMemory = mmap(nullptr, sharedMemSize, PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
         if (sharedMemory == MAP_FAILED) {
@@ -275,7 +279,7 @@ namespace state {
 
     void StateKeyValue::pushFull() {
         // Ignore if not dirty
-        if (!isWholeValueDirty) {
+        if (!isWholeValueDirty and !isPartiallyDirty) {
             return;
         }
 
@@ -283,7 +287,7 @@ namespace state {
         FullLock fullLock(valueMutex);
 
         // Double check condition
-        if (!isWholeValueDirty) {
+        if (!isWholeValueDirty and !isPartiallyDirty) {
             return;
         }
 

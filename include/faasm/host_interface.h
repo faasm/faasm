@@ -35,7 +35,7 @@ HOST_IFACE_FUNC
 void __faasm_push_state_partial(const char *key);
 
 HOST_IFACE_FUNC
-void __faasm_pull_state(const char *key);
+void __faasm_pull_state(const char *key, long stateLen);
 
 HOST_IFACE_FUNC
 void __faasm_lock_state_read(const char *key);

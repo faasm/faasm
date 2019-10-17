@@ -34,9 +34,9 @@ namespace faasm {
         int syncInterval;
     };
 
-    SgdParams setUpReutersParams(int nBatches, int epochs);
+    SgdParams setUpReutersParams(int nBatches, int epochs, bool push);
 
-    void writeParamsToState(const char *keyName, const SgdParams &params);
+    void writeParamsToState(const char *keyName, const SgdParams &params, bool push);
 
     SgdParams readParamsFromState(const char *keyName);
 
@@ -48,7 +48,7 @@ namespace faasm {
             int endIdx
     );
 
-    void zeroErrors(const SgdParams &sgdParams);
+    void zeroErrors(const SgdParams &sgdParams, bool push);
 
     void writeHingeError(const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
                          const MatrixXd &prediction);

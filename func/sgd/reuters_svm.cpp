@@ -29,12 +29,12 @@ FAASM_MAIN_FUNC() {
     // Prepare params
     printf("Setting up SVM params\n");
     int epochs = 20;
-    faasm::SgdParams p = setUpReutersParams(nWorkers, epochs);
+    faasm::SgdParams p = setUpReutersParams(nWorkers, epochs, true);
 
     // Initialise weights
     printf("Initialising weights with zeros\n");
     Eigen::MatrixXd weights = zeroMatrix(1, p.nWeights);
-    writeMatrixToState(WEIGHTS_KEY, weights);
+    writeMatrixToState(WEIGHTS_KEY, weights, true);
 
     // Prepare string for output
     std::string output;
@@ -44,7 +44,7 @@ FAASM_MAIN_FUNC() {
         printf("Running SVM epoch %i\n", thisEpoch);
 
         // Zero the errors for this epoch
-        faasm::zeroErrors(p);
+        faasm::zeroErrors(p, true);
 
         // Shuffle start indices for each batch
         int *batchNumbers = faasm::randomIntRange(nWorkers);

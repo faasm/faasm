@@ -232,7 +232,7 @@ void __faasm_push_state_partial(const char *key) {
 
 }
 
-void __faasm_pull_state(const char *key) {
+void __faasm_pull_state(const char *key, long stateLen) {
 
 }
 

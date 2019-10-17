@@ -318,15 +318,6 @@ namespace tests {
         REQUIRE(redisQueue.get(keyName) == expectedRedis);
     }
 
-    TEST_CASE("Test synchronous state", "[worker]") {
-        checkStateExample(
-                "state_sync",
-                "demo_state_example",
-                {0, 1, 2, 3},
-                {0, 1, 2, 3}
-        );
-    }
-
     TEST_CASE("Test asynchronous state", "[worker]") {
         checkStateExample(
                 "state_async",

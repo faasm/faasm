@@ -175,13 +175,14 @@ namespace faasm {
     }
 
     SparseSizes readSparseSizes(const SparseKeys &keys, bool pull) {
-        uint8_t sizeBuffer[sizeof(SparseSizes)];
+        size_t sizesLen = sizeof(SparseSizes);
 
         if (pull) {
-            faasmPullState(keys.sizeKey);
+            faasmPullState(keys.sizeKey, sizesLen);
         }
 
-        faasmReadState(keys.sizeKey, sizeBuffer, sizeof(SparseSizes));
+        uint8_t sizeBuffer[sizesLen];
+        faasmReadState(keys.sizeKey, sizeBuffer, sizesLen);
         auto sizes = reinterpret_cast<SparseSizes *>(sizeBuffer);
 
         if (sizes->cols == 0 || sizes->rows == 0) {
@@ -194,16 +195,17 @@ namespace faasm {
         SparseKeys keys = getSparseKeys(key);
         SparseSizes sizes = readSparseSizes(keys, pull);
 
+        // Read data into buffers if necessary
+        if (pull) {
+            faasmPullState(keys.outerKey, sizes.outerLen);
+            faasmPullState(keys.innerKey, sizes.innerLen);
+            faasmPullState(keys.valueKey, sizes.valuesLen);
+            faasmPullState(keys.nonZeroKey, sizes.nonZeroLen);
+        }
+
         auto outerBytes = new uint8_t[sizes.outerLen];
         auto innerBytes = new uint8_t[sizes.innerLen];
         auto valuesBytes = new uint8_t[sizes.valuesLen];
-
-        // Read data into buffers
-        if (pull) {
-            faasmPullState(keys.outerKey);
-            faasmPullState(keys.innerKey);
-            faasmPullState(keys.valueKey);
-        }
 
         faasmReadState(keys.outerKey, outerBytes, sizes.outerLen);
         faasmReadState(keys.innerKey, innerBytes, sizes.innerLen);
@@ -298,11 +300,11 @@ namespace faasm {
     /**
      * Reads a matrix from state
      */
-    Map<const MatrixXd> readMatrixFromState(const char *key, long rows, long cols) {
+    Map<const MatrixXd> readMatrixFromState(const char *key, long rows, long cols, bool pull) {
         long nDoubles = rows * cols;
 
         auto buffer = new double[nDoubles];
-        readMatrixFromState(key, buffer, rows, cols);
+        readMatrixFromState(key, buffer, rows, cols, pull);
 
         Map<const MatrixXd> mat(buffer, rows, cols);
 
@@ -312,11 +314,13 @@ namespace faasm {
     /** 
      * Reads a matrix from state directly into the given buffer
      */
-    void readMatrixFromState(const char *key, double *buffer, long rows, long cols) {
-
+    void readMatrixFromState(const char *key, double *buffer, long rows, long cols, bool pull) {
         size_t nBytes = rows * cols * sizeof(double);
         auto byteBuffer = reinterpret_cast<uint8_t *>(buffer);
 
+        if(pull) {
+            faasmPullState(key, nBytes);
+        }
         faasmReadState(key, byteBuffer, nBytes);
     }
 

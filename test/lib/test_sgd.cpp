@@ -45,11 +45,9 @@ namespace tests {
         const char *key = "params_test";
 
         // Write to state
-        writeParamsToState(key, params);
-        faasmPushState(key);
+        writeParamsToState(key, params, true);
 
         // Read back and check
-        faasmPullState(key);
         SgdParams actual = readParamsFromState(key);
         checkSgdParamEquality(actual, params);
     }
@@ -57,9 +55,8 @@ namespace tests {
     TEST_CASE("Test setting up dummy data", "[sgd]") {
         cleanSystem();
 
-        SgdParams params = getDummySgdParams();
-
         // Set up the problem
+        SgdParams params = getDummySgdParams();
         setUpDummyProblem(params);
 
         // Check params are set up
@@ -67,11 +64,11 @@ namespace tests {
         checkSgdParamEquality(actual, params);
 
         // Check weights
-        const MatrixXd actualWeights = readMatrixFromState(WEIGHTS_KEY, 1, params.nWeights);
+        const MatrixXd actualWeights = readMatrixFromState(WEIGHTS_KEY, 1, params.nWeights, true);
         REQUIRE(actualWeights.rows() == 1);
         REQUIRE(actualWeights.cols() == params.nWeights);
 
-        const MatrixXd actualOutputs = readMatrixFromState(OUTPUTS_KEY, params.nWeights, params.nTrain);
+        const MatrixXd actualOutputs = readMatrixFromState(OUTPUTS_KEY, params.nWeights, params.nTrain, true);
         REQUIRE(actualOutputs.rows() == params.nWeights);
         REQUIRE(actualOutputs.cols() == params.nTrain);
     }
@@ -92,17 +89,15 @@ namespace tests {
         weights << 1, 2, 3, 4;
 
         // Persist weights to allow updates
-        writeMatrixToState(WEIGHTS_KEY, weights);
-        if(!async) {
-            faasmPushState(WEIGHTS_KEY);
-        }
+        bool pushPull = !async;
+        writeMatrixToState(WEIGHTS_KEY, weights, pushPull);
 
         // Set up some dummy feature counts
         std::vector<int> featureCounts(4);
         std::fill(featureCounts.begin(), featureCounts.end(), 1);
         uint8_t *featureBytes = reinterpret_cast<uint8_t *>(featureCounts.data());
         faasmWriteState(FEATURE_COUNTS_KEY, featureBytes, 4 * sizeof(int));
-        if(!async) {
+        if(pushPull) {
             faasmPushState(FEATURE_COUNTS_KEY);
         }
 
@@ -125,7 +120,7 @@ namespace tests {
 
         // Set up inputs in state
         inputs.setFromTriplets(tripletList.begin(), tripletList.end());
-        faasm::writeSparseMatrixToState(INPUTS_KEY, inputs, !async);
+        faasm::writeSparseMatrixToState(INPUTS_KEY, inputs, pushPull);
 
         // Check what the predictions are pre-update
         MatrixXd preUpdate = weights * inputs;
@@ -139,10 +134,7 @@ namespace tests {
         MatrixXd outputs(1, 2);
         outputs << -1, 1;
 
-        faasm::writeMatrixToState(OUTPUTS_KEY, outputs);
-        if(!async) {
-            faasmPushState(OUTPUTS_KEY);
-        }
+        faasm::writeMatrixToState(OUTPUTS_KEY, outputs, pushPull);
 
         int epoch = 3;
         hingeLossWeightUpdate(params, epoch, batchNumber, startIdx, endIdx);
@@ -151,10 +143,7 @@ namespace tests {
         faasmPushStatePartial(WEIGHTS_KEY);
 
         // Check weights have been updated where necessary
-        if(!async) {
-            faasmPullState(WEIGHTS_KEY);
-        }
-        const MatrixXd actualWeights = readMatrixFromState(WEIGHTS_KEY, 1, nWeights);
+        const MatrixXd actualWeights = readMatrixFromState(WEIGHTS_KEY, 1, nWeights, pushPull);
         REQUIRE(actualWeights.rows() == 1);
         REQUIRE(actualWeights.cols() == nWeights);
 
@@ -205,7 +194,7 @@ namespace tests {
         params.nBatches = 4;
 
         // Check zeroing out errors
-        zeroErrors(params);
+        zeroErrors(params, true);
         checkDoubleArrayInState(redisQueue, errorKey.c_str(), {0, 0, 0, 0});
 
         // Work out expectation
@@ -215,6 +204,7 @@ namespace tests {
         // Write errors to memory
         writeHingeError(params, 0, a, b);
         writeHingeError(params, 2, a, b);
+        faasmPushState(ERRORS_KEY);
 
         checkDoubleArrayInState(redisQueue, errorKey.c_str(), {expected1, 0, expected2, 0});
     }
@@ -230,7 +220,8 @@ namespace tests {
         p.nTrain = 20;
 
         // With nothing set up, error should be zero
-        zeroErrors(p);
+        zeroErrors(p, true);
+
         double initial = faasm::readRootMeanSquaredError(p);
         REQUIRE(initial == 0);
 
@@ -241,6 +232,7 @@ namespace tests {
 
         writeHingeError(p, 0, a, b);
         writeHingeError(p, 1, a, b);
+        faasmPushState(ERRORS_KEY);
 
         // Check these have been written
         const std::string actualKey = util::keyForUser(user, ERRORS_KEY);
@@ -253,6 +245,7 @@ namespace tests {
 
         // Now write error for a third batch
         writeHingeError(p, 2, a, b);
+        faasmPushState(ERRORS_KEY);
         checkDoubleArrayInState(redisState, actualKey.c_str(), {expected, expected, expected});
 
         // Work out what the result should be

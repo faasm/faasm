@@ -83,18 +83,19 @@ namespace faasm {
 
     void writeSparseMatrixToState(const char *key, const SparseMatrix<double> &mat, bool push);
 
-    Map<const MatrixXd> readMatrixFromState(const char *key, long rows, long cols);
+    Map<const MatrixXd> readMatrixFromState(const char *key, long rows, long cols, bool pull);
 
-    void readMatrixFromState(const char *key, double *buffer, long rows, long cols);
+    void readMatrixFromState(const char *key, double *buffer, long rows, long cols, bool pull);
 
-    void writeMatrixToState(const char *key, const MatrixXd &matrix);
+    void writeMatrixToState(const char *key, const MatrixXd &matrix, bool push);
 
-    void writeMatrixToStateElement(const char *key, const MatrixXd &matrix, long row, long col);
+    void writeMatrixToStateElement(const char *key, const MatrixXd &matrix, long row, long col, bool push);
 
     Map<const MatrixXd> readMatrixColumnsFromState(const char *key, long totalCols, long colStart,
-                                                   long colEnd, long nRows);
+                                                   long colEnd, long nRows, bool pull);
 
-    Map<const SparseMatrix<double>> readSparseMatrixColumnsFromState(const char *key, long colStart, long colEnd);
+    Map<const SparseMatrix<double>> readSparseMatrixColumnsFromState(const char *key, long colStart, long colEnd,
+            bool pull);
 
     /**
      * Manipulation

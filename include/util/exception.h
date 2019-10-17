@@ -15,7 +15,7 @@ namespace util {
             return _message.c_str();
         }
 
-    private:
+    protected:
         std::string _message;
     };
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <util/clock.h>
+#include <util/exception.h>
 
 #include <atomic>
 #include <shared_mutex>
@@ -88,4 +89,11 @@ namespace state {
 
     typedef std::unordered_map<std::string, std::shared_ptr<StateKeyValue>> KVMap;
     typedef std::pair<std::string, std::shared_ptr<StateKeyValue>> KVPair;
+
+class StateKeyValueException : public std::runtime_error {
+    public:
+        explicit StateKeyValueException(const std::string& message): runtime_error(message) {
+
+        }
+    };
 }

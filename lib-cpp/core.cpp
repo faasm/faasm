@@ -45,8 +45,8 @@ void faasmPushStatePartial(const char *key) {
     __faasm_push_state_partial(key);
 }
 
-void faasmPullState(const char *key) {
-    __faasm_pull_state(key);
+void faasmPullState(const char *key, long stateLen) {
+    __faasm_pull_state(key, stateLen);
 }
 
 void faasmLockStateRead(const char *key) {

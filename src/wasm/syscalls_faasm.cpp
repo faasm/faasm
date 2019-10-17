@@ -26,10 +26,10 @@ namespace wasm {
         kv->pushPartial();
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_pull_state", void, __faasm_pull_state, I32 keyPtr) {
-        util::getLogger()->debug("S - pull_state - {}", keyPtr);
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_pull_state", void, __faasm_pull_state, I32 keyPtr, I32 stateLen) {
+        util::getLogger()->debug("S - pull_state - {} {}", keyPtr, stateLen);
 
-        auto kv = getStateKV(keyPtr, 0);
+        auto kv = getStateKV(keyPtr, stateLen);
         kv->pull();
     }
 

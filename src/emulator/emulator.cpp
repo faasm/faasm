@@ -54,13 +54,13 @@ void resetEmulator() {
     threadCount = 1;
 }
 
-bool isSimpleEmulation() {
+bool noThreadLocal() {
     util::SystemConfig &conf = util::getSystemConfig();
     return conf.hostType == "knative";
 }
 
 std::vector<uint8_t> getEmulatorOutputData() {
-    if (isSimpleEmulation()) {
+    if (noThreadLocal()) {
         return _outputData;
     } else {
         return _threadLocalOutputData;
@@ -124,146 +124,78 @@ void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) 
         return;
     }
 
-    if (isSimpleEmulation()) {
-        std::string actualKey = util::keyForUser(_user, key);
-        redis::Redis &redis = redis::Redis::getState();
-        redis.get(actualKey, buffer, bufferLen);
-    } else {
-        // State-backed
-        auto kv = getKv(key, bufferLen);
-
-        kv->pull();
-        kv->get(buffer);
-    }
+    auto kv = getKv(key, bufferLen);
+    kv->get(buffer);
 }
 
 unsigned char *__faasm_read_state_ptr(const char *key, long totalLen) {
     util::getLogger()->debug("E - read_state_ptr {} {}", key, totalLen);
-    if (isSimpleEmulation()) {
-        auto ptr = new unsigned char[totalLen];
-        __faasm_read_state(key, ptr, totalLen);
-
-        return ptr;
-    } else {
-        auto kv = getKv(key, totalLen);
-        return kv->get();
-    }
+    auto kv = getKv(key, totalLen);
+    return kv->get();
 }
 
 
 void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsigned char *buffer, long bufferLen) {
     util::getLogger()->debug("E - read_state_offset {} {} {} {}", key, totalLen, offset, bufferLen);
-    if (isSimpleEmulation()) {
-        redis::Redis &redis = redis::Redis::getState();
-        std::string actualKey = util::keyForUser(_user, key);
-
-        // Note, getrange indices are inclusive, so we need to finish one before the end of the buffer
-        long startIdx = offset;
-        long endIdx = offset + bufferLen - 1;
-        redis.getRange(actualKey, buffer, bufferLen, startIdx, endIdx);
-    } else {
-        auto kv = getKv(key, totalLen);
-        kv->getSegment(offset, buffer, bufferLen);
-    }
+    auto kv = getKv(key, totalLen);
+    kv->getSegment(offset, buffer, bufferLen);
 }
 
 unsigned char *__faasm_read_state_offset_ptr(const char *key, long totalLen, long offset, long len) {
     util::getLogger()->debug("E - read_state_offset_ptr {} {} {} {}", key, totalLen, offset, len);
-    if (isSimpleEmulation()) {
-        auto ptr = new unsigned char[len];
-        __faasm_read_state_offset(key, totalLen, offset, ptr, len);
-
-        return ptr;
-    } else {
-        auto kv = getKv(key, totalLen);
-        return kv->getSegment(offset, len);
-    }
+    auto kv = getKv(key, totalLen);
+    return kv->getSegment(offset, len);
 }
 
 void __faasm_write_state(const char *key, const uint8_t *data, long dataLen) {
     util::getLogger()->debug("E - write_state {} {}", key, dataLen);
-    if (isSimpleEmulation()) {
-        redis::Redis &redis = redis::Redis::getState();
-        std::string actualKey = util::keyForUser(_user, key);
-        redis.set(actualKey, data, dataLen);
-
-    } else {
-        auto kv = getKv(key, dataLen);
-        kv->set(data);
-    }
+    auto kv = getKv(key, dataLen);
+    kv->set(data);
 }
 
 void __faasm_write_state_offset(const char *key, long totalLen, long offset, const unsigned char *data, long dataLen) {
     // Avoid excessive logging
     // util::getLogger()->debug("E - write_state_offset {} {} {} {}", key, totalLen, offset, dataLen);
-    if (isSimpleEmulation()) {
-        redis::Redis &redis = redis::Redis::getState();
-        std::string actualKey = util::keyForUser(_user, key);
-
-        redis.setRange(actualKey, offset, data, dataLen);
-    } else {
-        auto kv = getKv(key, totalLen);
-
-        kv->setSegment(offset, data, dataLen);
-    }
+    auto kv = getKv(key, totalLen);
+    kv->setSegment(offset, data, dataLen);
 }
 
 void __faasm_flag_state_dirty(const char *key, long totalLen) {
     util::getLogger()->debug("E - flag_state_dirty {} {}", key, totalLen);
-    if (isSimpleEmulation()) {
-        // Ignore
-    } else {
-        auto kv = getKv(key, totalLen);
-        kv->flagFullValueDirty();
-    }
+    auto kv = getKv(key, totalLen);
+    kv->flagFullValueDirty();
 }
 
 void __faasm_flag_state_offset_dirty(const char *key, long totalLen, long offset, long dataLen) {
     util::getLogger()->debug("E - flag_state_offset_dirty {} {} {} {}", key, totalLen, offset, dataLen);
-    if (isSimpleEmulation()) {
-        // Ignore
-    } else {
-        auto kv = getKv(key, totalLen);
-        kv->flagSegmentDirty(offset, dataLen);
-    }
+    auto kv = getKv(key, totalLen);
+    kv->flagSegmentDirty(offset, dataLen);
 }
 
 
 void __faasm_push_state(const char *key) {
     util::getLogger()->debug("E - push_state {}", key);
-    if (isSimpleEmulation()) {
-        // Ignore
-    } else {
-        auto kv = getKv(key, 0);
-        kv->pushFull();
-    }
+    auto kv = getKv(key, 0);
+    kv->pushFull();
 }
 
 void __faasm_push_state_partial(const char *key) {
     util::getLogger()->debug("E - push_state_partial {}", key);
-    if (isSimpleEmulation()) {
-        // Ignore
-    } else {
-        auto kv = getKv(key, 0);
-        kv->pushPartial();
-    }
+    auto kv = getKv(key, 0);
+    kv->pushPartial();
 }
 
-void __faasm_pull_state(const char *key) {
+void __faasm_pull_state(const char *key, long stateLen) {
     util::getLogger()->debug("E - pull_state {}", key);
-    if (isSimpleEmulation()) {
-        // Ignore
-    } else {
-        auto kv = getKv(key, 0);
-        kv->pull();
-    }
+    auto kv = getKv(key, stateLen);
+    kv->pull();
 }
 
 long __faasm_read_input(unsigned char *buffer, long bufferLen) {
     util::getLogger()->debug("E - read_input len {}", bufferLen);
 
     long inputLen;
-    if (isSimpleEmulation()) {
+    if (noThreadLocal()) {
         inputLen = _inputData.size();
     } else {
         inputLen = _threadLocalInputData.size();
@@ -278,7 +210,7 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen) {
         return 0;
     }
 
-    if (isSimpleEmulation()) {
+    if (noThreadLocal()) {
         std::copy(_inputData.begin(), _inputData.end(), buffer);
     } else {
         std::copy(_threadLocalInputData.begin(), _threadLocalInputData.end(), buffer);
@@ -398,7 +330,7 @@ int __faasm_await_call(unsigned int callId) {
 
 int __faasm_get_idx() {
     // Relies on thread-local idx
-    if(isSimpleEmulation()) {
+    if (noThreadLocal()) {
         return _funcIdx;
     } else {
         return _threadLocalfuncIdx;
