@@ -31,11 +31,6 @@ namespace tests {
         State &s = getGlobalState();
         auto kv = s.getKV(user, stateKey, size);
 
-        // Fix time
-        util::Clock &c = util::getGlobalClock();
-        timeNow = c.now();
-        c.setFakeNow(timeNow);
-
         return kv;
     }
 
@@ -43,11 +38,9 @@ namespace tests {
         redis::Redis &redisState = redis::Redis::getState();
         auto kv = setupKV(5);
 
-        // Get (should do nothing)
         std::vector<uint8_t> actual(5);
         std::vector<uint8_t> expected = {0, 0, 0, 0, 0};
 
-        kv->pull(true);
         kv->get(actual.data());
         REQUIRE(actual == expected);
 
@@ -230,23 +223,16 @@ namespace tests {
         redisState.set(kv->key, newValues);
 
         // Get and check whether the remote is pulled
+        if(!async) {
+            kv->pull();
+        }
+
         std::vector<uint8_t> actual(4);
-        kv->pull(async);
         kv->get(actual.data());
 
         if (async) {
             REQUIRE(actual == values);
         } else {
-            REQUIRE(actual == newValues);
-        }
-
-        // Now advance time and make sure new value is retrieved for async
-        util::Clock &c = util::getGlobalClock();
-        long bigStep = conf.stateStaleThreshold + 100;
-        if (async) {
-            c.setFakeNow(timeNow + std::chrono::milliseconds(bigStep));
-            kv->pull(true);
-            kv->get(actual.data());
             REQUIRE(actual == newValues);
         }
     }
@@ -281,102 +267,6 @@ namespace tests {
         kv->set(newValues2.data());
         kv->pushFull();
         REQUIRE(redisState.get(kv->key) == newValues2);
-    }
-
-    TEST_CASE("Test stale values cleared", "[state]") {
-        auto kv = setupKV(4);
-
-        util::Clock &c = util::getGlobalClock();
-
-        std::vector<uint8_t> value = {0, 1, 2, 3};
-
-        // Push value to redis
-        kv->set(value.data());
-        kv->pushFull();
-
-        // Try clearing, check nothing happens
-        kv->clear();
-        std::vector<uint8_t> actual(4);
-        kv->get(actual.data());
-        REQUIRE(actual == value);
-
-        // Advance time a bit, check it doesn't get cleared
-        std::chrono::seconds secsSmall(1);
-        util::TimePoint newNow = timeNow + secsSmall;
-        c.setFakeNow(newNow);
-
-        kv->clear();
-        REQUIRE(!kv->empty());
-
-        // Advance time a lot and check it does get cleared
-        std::chrono::seconds secsBig(1000);
-        newNow = timeNow + secsBig;
-        c.setFakeNow(newNow);
-
-        kv->clear();
-        REQUIRE(kv->empty());
-    }
-
-    void checkActionResetsIdleness(std::string actionType) {
-        auto kv = setupKV(3);
-
-        util::Clock &c = util::getGlobalClock();
-
-        // Check not idle by default (i.e. won't get cleared)
-        std::vector<uint8_t> values = {1, 2, 3};
-        kv->set(values.data());
-        kv->pushFull();
-        kv->clear();
-
-        REQUIRE(!kv->empty());
-
-        // Move time on, but then perform some action
-        c.setFakeNow(timeNow + std::chrono::seconds(180));
-
-        std::vector<uint8_t> actual;
-        if (actionType == "get") {
-            actual.reserve(3);
-            kv->get(actual.data());
-        } else if (actionType == "getSegment") {
-            actual.reserve(2);
-            kv->getSegment(1, actual.data(), 2);
-        } else if (actionType == "set") {
-            actual = {4, 5, 6};
-            kv->set(actual.data());
-        } else if (actionType == "setSegment") {
-            actual = {4, 4};
-            kv->setSegment(1, actual.data(), 2);
-        } else {
-            throw std::runtime_error("Unrecognised action type");
-        }
-
-        // Try clearing, check not cleared
-        kv->clear();
-
-        // Check not counted as stale
-        REQUIRE(!kv->empty());
-
-        // Move time on again without any action, check is stale and gets cleared
-        c.setFakeNow(timeNow + std::chrono::seconds(1000));
-        kv->clear();
-        REQUIRE(kv->empty());
-
-    }
-
-    TEST_CASE("Check idleness reset with get", "[state]") {
-        checkActionResetsIdleness("get");
-    }
-
-    TEST_CASE("Check idleness reset with getSegment", "[state]") {
-        checkActionResetsIdleness("getSegment");
-    }
-
-    TEST_CASE("Check idleness reset with set", "[state]") {
-        checkActionResetsIdleness("set");
-    }
-
-    TEST_CASE("Check idleness reset with setSegment", "[state]") {
-        checkActionResetsIdleness("setSegment");
     }
 
     TEST_CASE("Test mapping shared memory", "[state]") {
@@ -465,10 +355,7 @@ namespace tests {
         REQUIRE(segmentB[1] == 1);
     }
 
-    TEST_CASE("Test pulling in full async mode") {
-        util::setEnvVar("FULL_ASYNC", "1");
-        util::getSystemConfig().reset();
-
+    TEST_CASE("Test pulling") {
         auto kv = setupKV(6);
         REQUIRE(kv->empty());
         REQUIRE(kv->size() == 6);
@@ -480,27 +367,14 @@ namespace tests {
 
         std::vector<uint8_t> expected;
 
-        SECTION("Check pull ignored when async and full async") {
-            // Pull and check storage is initialised
-            kv->pull(true);
-            REQUIRE(!kv->empty());
-            REQUIRE(kv->size() == 6);
-            expected = {0, 0, 0, 0, 0, 0};
-        }
+        // Pull and check storage is initialised
+        kv->pull();
+        REQUIRE(!kv->empty());
+        REQUIRE(kv->size() == 6);
 
-        SECTION("Check pull respected when not async but in full async mode") {
-            // Pull and check storage is initialised
-            kv->pull(false);
-            REQUIRE(!kv->empty());
-            REQUIRE(kv->size() == 6);
-            expected = {0, 1, 2, 3, 4, 5};
-        }
-
+        expected = {0, 1, 2, 3, 4, 5};
         uint8_t *actualBytes = kv->get();
         std::vector<uint8_t > actual(actualBytes, actualBytes + 6);
         REQUIRE(actual == expected);
-        
-        util::unsetEnvVar("FULL_ASYNC");
-        util::getSystemConfig().reset();
     }
 }
