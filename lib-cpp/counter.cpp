@@ -1,8 +1,19 @@
 #include "faasm/counter.h"
 #include "faasm/core.h"
-#include "faasm/state.h"
 
 namespace faasm {
+    void writeIntState(const char* key, int val) {
+        auto ptr = reinterpret_cast<uint8_t*>(&val);
+        faasmWriteState(key, ptr, sizeof(int));
+    }
+
+    int readIntState(const char *key) {
+        int val;
+        auto buf = reinterpret_cast<uint8_t *>(&val);
+        faasmReadState(key, buf, sizeof(int));
+        return val;
+    }
+
     void initCounter(const char *counterKey) {
         int counterBuffer[] = {0};
         auto counterBytes = reinterpret_cast<uint8_t *>(counterBuffer);
@@ -35,9 +46,9 @@ namespace faasm {
             faasmLockStateWrite(counterKey);
         }
 
-        int val = faasm::readIntState(counterKey);
+        int val = readIntState(counterKey);
         val += increment;
-        faasm::writeIntState(counterKey, val);
+        writeIntState(counterKey, val);
 
         if(globalLock) {
             faasmUnlockStateWrite(counterKey);

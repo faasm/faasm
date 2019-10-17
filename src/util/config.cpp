@@ -60,11 +60,6 @@ namespace util {
         boundTimeout = this->getSystemConfIntParam("BOUND_TIMEOUT", "30000");
         unboundTimeout = this->getSystemConfIntParam("UNBOUND_TIMEOUT", "60000");
 
-        // State timeouts (all in millis)
-        stateStaleThreshold = this->getSystemConfIntParam("STATE_STALE_THRESHOLD", "60000");
-        stateClearThreshold = this->getSystemConfIntParam("STATE_CLEAR_THRESHOLD", "300000");
-        statePushInterval = this->getSystemConfIntParam("STATE_PUSH_INTERVAL", "500");
-
         // Filesystem storage
         functionDir = getEnvVar("FUNC_DIR", "/usr/local/code/faasm/wasm");
         objectFileDir = getEnvVar("OBJ_DIR", "/usr/local/faasm/object");
@@ -122,11 +117,6 @@ namespace util {
         logger->info("GLOBAL_MESSAGE_TIMEOUT     {}", globalMessageTimeout);
         logger->info("BOUND_TIMEOUT              {}", boundTimeout);
         logger->info("UNBOUND_TIMEOUT            {}", unboundTimeout);
-
-        logger->info("--- State ---");
-        logger->info("STATE_STALE_THRESHOLD      {}", stateStaleThreshold);
-        logger->info("STATE_CLEAR_THRESHOLD      {}", stateClearThreshold);
-        logger->info("STATE_PUSH_INTERVAL        {}", statePushInterval);
 
         logger->info("--- Storage ---");
         logger->info("FUNC_DIR                  {}", functionDir);

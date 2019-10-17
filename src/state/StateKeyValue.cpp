@@ -30,25 +30,27 @@ namespace state {
 
     void StateKeyValue::pull() {
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
-
-        // Initialise if new
-        if (_empty) {
-            // Unique lock on the whole value while loading
-            FullLock lock(valueMutex);
-
-            // Double check assumption
-            if (_empty) {
-                logger->debug("Initialising state for {}", key);
-
-                doRemoteRead();
-                _empty = false;
-            }
-
-            return;
-        }
+        logger->debug("Pulling state for {}", key);
+        pullImpl(false);
     }
 
-    void StateKeyValue::doRemoteRead() {
+    void StateKeyValue::pullImpl(bool onlyIfEmpty) {
+        // Drop out if we already have the data and we don't care about updating
+        {
+            SharedLock lock(valueMutex);
+            if(onlyIfEmpty && !_empty) {
+                return;
+            }
+        }
+
+        // Unique lock on the whole value
+        FullLock lock(valueMutex);
+
+        // Check condition again
+        if(onlyIfEmpty && !_empty) {
+            return;
+        }
+
         // Initialise the data array with zeroes
         if (_empty) {
             initialiseStorage();
@@ -56,11 +58,9 @@ namespace state {
 
         // Read from the remote
         redis::Redis &redis = redis::Redis::getState();
-
-        const std::shared_ptr<spdlog::logger> &logger = getLogger();
-        logger->debug("Reading from remote for {}", key);
-
         redis.get(key, static_cast<uint8_t *>(sharedMemory), valueSize);
+
+        _empty = false;
     }
 
     long StateKeyValue::waitOnRemoteLock() {
@@ -88,14 +88,8 @@ namespace state {
         return remoteLockId;
     }
 
-    void StateKeyValue::preGet() {
-        if (this->empty()) {
-            throw std::runtime_error("Must pull before accessing state");
-        }
-    }
-
     void StateKeyValue::get(uint8_t *buffer) {
-        this->preGet();
+        pullImpl(true);
 
         SharedLock lock(valueMutex);
 
@@ -104,7 +98,7 @@ namespace state {
     }
 
     uint8_t *StateKeyValue::get() {
-        this->preGet();
+        pullImpl(true);
 
         SharedLock lock(valueMutex);
 
@@ -112,7 +106,7 @@ namespace state {
     }
 
     void StateKeyValue::getSegment(long offset, uint8_t *buffer, size_t length) {
-        this->preGet();
+        pullImpl(true);
 
         SharedLock lock(valueMutex);
 
@@ -129,7 +123,7 @@ namespace state {
     }
 
     uint8_t *StateKeyValue::getSegment(long offset, long len) {
-        this->preGet();
+        pullImpl(true);
 
         SharedLock lock(valueMutex);
 

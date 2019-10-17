@@ -17,11 +17,8 @@ namespace worker {
 
         void setShareWork(bool in);
 
-        void setSyncState(bool in);
-
     private:
         bool shareWork = true;
-        bool syncState = true;
 
         util::SystemConfig &conf;
         worker::WorkerThreadPool pool;

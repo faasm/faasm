@@ -36,19 +36,6 @@ FAASM_MAIN_FUNC() {
     Eigen::MatrixXd weights = zeroMatrix(1, p.nWeights);
     writeMatrixToState(WEIGHTS_KEY, weights);
 
-    // If never syncing, make sure stuff is loaded into memory
-    if (p.syncInterval == -1) {
-        printf("Loading inputs into local memory\n");
-        readSparseMatrixFromState(INPUTS_KEY, false);
-
-        printf("Loading outputs into local memory\n");
-        readMatrixFromState(OUTPUTS_KEY, p.nTrain, 1, false);
-
-        printf("Loading feature counts into local memory\n");
-        size_t nFeatureCountBytes = p.nWeights * sizeof(int);
-        faasmReadStatePtr(FEATURE_COUNTS_KEY, nFeatureCountBytes, false);
-    }
-
     // Prepare string for output
     std::string output;
 

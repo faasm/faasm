@@ -40,10 +40,12 @@ namespace tests {
 
         // Write to a dummy key
         const char *stateKey = "test_matrix_state";
-        faasm::writeMatrixToState(stateKey, mat, false);
+        faasm::writeMatrixToState(stateKey, mat);
+        faasmPushState(stateKey);
 
         // Retrieve from redis and check it's still the same
-        Map<const MatrixXd> afterState = faasm::readMatrixFromState(stateKey, 2, 3, false);
+        faasmPullState(stateKey);
+        Map<const MatrixXd> afterState = faasm::readMatrixFromState(stateKey, 2, 3);
 
         REQUIRE(afterState.rows() == 2);
         REQUIRE(afterState.cols() == 3);
@@ -57,19 +59,23 @@ namespace tests {
 
         // Write full state to a dummy key
         const char *stateKey = "test_matrix_elem_state";
-        faasm::writeMatrixToState(stateKey, mat, false);
+        faasm::writeMatrixToState(stateKey, mat);
+        faasmPushState(stateKey);
 
         // Update the matrix in memory
         mat(0, 2) = 3.3;
         mat(1, 1) = 10.5;
 
         // Update single elements
-        faasm::writeMatrixToStateElement(stateKey, mat, 0, 2, false);
-        faasm::writeMatrixToStateElement(stateKey, mat, 1, 1, false);
+        faasm::writeMatrixToStateElement(stateKey, mat, 0, 2);
+        faasmPushState(stateKey);
+        faasm::writeMatrixToStateElement(stateKey, mat, 1, 1);
+        faasmPushState(stateKey);
 
         // Retrieve from redis and check it matches the one in memory
         MatrixXd afterState(2, 3);
-        faasm::readMatrixFromState(stateKey, afterState.data(), 2, 3, false);
+        faasmPullState(stateKey);
+        faasm::readMatrixFromState(stateKey, afterState.data(), 2, 3);
 
         REQUIRE(afterState.rows() == 2);
         REQUIRE(afterState.cols() == 3);
@@ -96,12 +102,18 @@ namespace tests {
 
         // Write full state to a dummy key
         const char *stateKey = "test_matrix_cols_state";
-        faasm::writeMatrixToState(stateKey, mat, async);
+        faasm::writeMatrixToState(stateKey, mat);
+        if(!async) {
+            faasmPushState(stateKey);
+        }
 
         // Read a subset of columns (exclusive)
         long startCol = 1;
         long endCol = 4;
-        Map<const MatrixXd> actual = faasm::readMatrixColumnsFromState(stateKey, nCols, startCol, endCol, nRows, async);
+        if(!async) {
+            faasmPullState(stateKey);
+        }
+        Map<const MatrixXd> actual = faasm::readMatrixColumnsFromState(stateKey, nCols, startCol, endCol, nRows);
 
         REQUIRE(actual.rows() == nRows);
         REQUIRE(actual.cols() == 3);
@@ -225,9 +237,11 @@ namespace tests {
         SparseMatrix<double> mat = faasm::randomSparseMatrix(5, 10, 0.4);
 
         const char *key = "sparse_trip_test";
-        faasm::writeSparseMatrixToState(key, mat, false);
+        faasm::writeSparseMatrixToState(key, mat);
+        faasmPushState(key);
 
-        Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixFromState(key, false);
+        faasmPullState(key);
+        Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixFromState(key);
         checkSparseMatrixEquality(mat, actual);
     }
 
@@ -237,13 +251,19 @@ namespace tests {
         const char *key = "sparse_trip_offset_test";
 
         SparseMatrix<double> mat = faasm::randomSparseMatrix(rows, cols, 0.7);
-        faasm::writeSparseMatrixToState(key, mat, async);
+        faasm::writeSparseMatrixToState(key, mat);
+        if(!async) {
+            faasmPushState(key);
+        }
 
         // Check subsection
         SparseMatrix<double> expected = mat.block(0, colStart, rows, colEnd - colStart);
 
         // Read a subsection
-        Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixColumnsFromState(key, colStart, colEnd, async);
+        if(!async) {
+            faasmPullState(key);
+        }
+        Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixColumnsFromState(key, colStart, colEnd);
         checkSparseMatrixEquality(actual, expected);
     }
 

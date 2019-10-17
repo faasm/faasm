@@ -44,10 +44,6 @@ namespace tests {
         REQUIRE(conf.globalMessageTimeout == 60000);
         REQUIRE(conf.boundTimeout == 30000);
         REQUIRE(conf.unboundTimeout == 60000);
-
-        REQUIRE(conf.stateStaleThreshold == 60000);
-        REQUIRE(conf.stateClearThreshold == 300000);
-        REQUIRE(conf.statePushInterval == 500);
     }
 
     TEST_CASE("Test overriding system config initialisation", "[util]") {
@@ -82,10 +78,6 @@ namespace tests {
         std::string globalTimeout = setEnvVar("GLOBAL_MESSAGE_TIMEOUT", "9876");
         std::string boundTimeout = setEnvVar("BOUND_TIMEOUT", "6666");
         std::string unboundTimeout = setEnvVar("UNBOUND_TIMEOUT", "5555");
-
-        std::string staleThreshold = setEnvVar("STATE_STALE_THRESHOLD", "4444");
-        std::string clearThreshold = setEnvVar("STATE_CLEAR_THRESHOLD", "3333");
-        std::string pushInterval = setEnvVar("STATE_PUSH_INTERVAL", "2222");
 
         std::string funcDir = setEnvVar("FUNC_DIR", "/tmp/foo");
         std::string objDir = setEnvVar("OBJ_DIR", "/tmp/bar");
@@ -126,11 +118,7 @@ namespace tests {
         REQUIRE(conf.globalMessageTimeout == 9876);
         REQUIRE(conf.boundTimeout == 6666);
         REQUIRE(conf.unboundTimeout == 5555);
-
-        REQUIRE(conf.stateStaleThreshold == 4444);
-        REQUIRE(conf.stateClearThreshold == 3333);
-        REQUIRE(conf.statePushInterval == 2222);
-
+        
         REQUIRE(conf.functionDir == "/tmp/foo");
         REQUIRE(conf.objectFileDir == "/tmp/bar");
         REQUIRE(conf.runtimeFilesDir == "/tmp/rara");
@@ -170,10 +158,6 @@ namespace tests {
         setEnvVar("GLOBAL_MESSAGE_TIMEOUT", globalTimeout);
         setEnvVar("BOUND_TIMEOUT", boundTimeout);
         setEnvVar("UNBOUND_TIMEOUT", unboundTimeout);
-
-        setEnvVar("STATE_STALE_THRESHOLD", staleThreshold);
-        setEnvVar("STATE_CLEAR_THRESHOLD", clearThreshold);
-        setEnvVar("STATE_PUSH_INTERVAL", pushInterval);
 
         setEnvVar("FUNC_DIR", funcDir);
         setEnvVar("OBJ_DIR", objDir);

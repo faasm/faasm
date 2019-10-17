@@ -8,9 +8,10 @@
 FAASM_MAIN_FUNC() {
     const char *key = "incr_example";
 
-    faasm::incrementCounter(key, false);
+    faasm::incrementCounter(key);
+    faasmPushState(key);
 
-    int count = faasm::getCounter(key, false);
+    int count = faasm::getCounter(key);
 
     // Return message
     char output[13];

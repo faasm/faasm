@@ -41,7 +41,8 @@ namespace tests {
 
         SECTION("Read/ write state") {
             std::string key = "foobar";
-            faasmWriteState(key.c_str(), dummyBytes.data(), dummyLen, false);
+            faasmWriteState(key.c_str(), dummyBytes.data(), dummyLen);
+            faasmPushState(key.c_str());
 
             // Check written to Redis
             const std::string actualKey = util::keyForUser(getEmulatorUser(), key);
@@ -50,7 +51,7 @@ namespace tests {
 
             // Check reading from state
             std::vector<uint8_t> actual(dummyLen);
-            faasmReadState(key.c_str(), actual.data(), dummyLen, false);
+            faasmReadState(key.c_str(), actual.data(), dummyLen);
             REQUIRE(actual == dummyBytes);
         }
 
@@ -59,7 +60,7 @@ namespace tests {
             std::vector<uint8_t> offsetData = {7, 6, 5};
             long offset = 2;
             long dataLen = 3;
-            faasmWriteStateOffset(key.c_str(), dummyLen, offset, offsetData.data(), dataLen, false);
+            faasmWriteStateOffset(key.c_str(), dummyLen, offset, offsetData.data(), dataLen);
 
             // Check written to Redis
             const std::string actualKey = util::keyForUser(getEmulatorUser(), key);
@@ -69,7 +70,7 @@ namespace tests {
 
             // Check reading from state
             std::vector<uint8_t> actual(dataLen);
-            faasmReadStateOffset(key.c_str(), dummyLen, offset, actual.data(), dataLen, false);
+            faasmReadStateOffset(key.c_str(), dummyLen, offset, actual.data(), dataLen);
             REQUIRE(actual == offsetData);
         }
 

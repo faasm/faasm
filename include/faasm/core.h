@@ -59,6 +59,11 @@ void faasmPushState(const char *key);
 void faasmPushStatePartial(const char *key);
 
 /**
+ * Forces a pull of state
+ */
+void faasmPullState(const char *key);
+
+/**
 * Acquires a read lock for the given state
 */
 void faasmLockStateRead(const char *key);

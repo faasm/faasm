@@ -4,8 +4,8 @@
 FAASM_MAIN_FUNC() {
     const char *key = "state_shared_example";
 
-    uint8_t *actualA = faasmReadStatePtr(key, 7, true);
-    uint8_t *actualB = faasmReadStatePtr(key, 7, true);
+    uint8_t *actualA = faasmReadStatePtr(key, 7);
+    uint8_t *actualB = faasmReadStatePtr(key, 7);
 
     // Write to memory only
     for (int i = 0; i < 7; i++) {

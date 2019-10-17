@@ -48,11 +48,6 @@ namespace util {
         int unboundTimeout;
         int boundTimeout;
 
-        // State
-        int stateStaleThreshold;
-        int stateClearThreshold;
-        int statePushInterval;
-
         // Filesystem storage
         std::string functionDir;
         std::string objectFileDir;

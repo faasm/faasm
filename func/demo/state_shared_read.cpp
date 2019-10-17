@@ -3,7 +3,7 @@
 
 FAASM_MAIN_FUNC() {
     const char *key = "state_shared_example";
-    uint8_t *actual = faasmReadStatePtr(key, 7, true);
+    uint8_t *actual = faasmReadStatePtr(key, 7);
 
     // Check that state has expected value
     uint8_t expected[7] = {5, 5, 5, 5, 5, 5, 5};

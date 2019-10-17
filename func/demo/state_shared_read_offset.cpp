@@ -3,7 +3,7 @@
 
 FAASM_MAIN_FUNC() {
     const char *key = "state_shared_offset_example";
-    uint8_t *actual = faasmReadStateOffsetPtr(key, 7, 2, 3, true);
+    uint8_t *actual = faasmReadStateOffsetPtr(key, 7, 2, 3);
 
     // Check that state has expected value
     uint8_t expected[7] = {6, 7, 8};

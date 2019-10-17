@@ -16,44 +16,44 @@ namespace tests {
         state::getGlobalState().forceClearAll();
 
         const char *key = "test_counter";
-        initCounter(key, false);
+        initCounter(key);
 
-        REQUIRE(getCounter(key, false) == 0);
+        REQUIRE(getCounter(key) == 0);
 
-        incrementCounter(key, false);
-        REQUIRE(getCounter(key, false) == 1);
+        incrementCounter(key);
+        REQUIRE(getCounter(key) == 1);
 
-        incrementCounter(key, false);
-        REQUIRE(getCounter(key, false) == 2);
+        incrementCounter(key);
+        REQUIRE(getCounter(key) == 2);
 
-        initCounter(key, false);
-        REQUIRE(getCounter(key, false) == 0);
+        initCounter(key);
+        REQUIRE(getCounter(key) == 0);
 
-        incrementCounter(key, false);
-        REQUIRE(getCounter(key, false) == 1);
+        incrementCounter(key);
+        REQUIRE(getCounter(key) == 1);
     }
 
     TEST_CASE("Test counter over big number", "[counter]") {
         cleanSystem();
 
         const char *key = "test_counter";
-        initCounter(key, false);
+        initCounter(key);
 
         for (int i = 0; i < 1000; i++) {
-            incrementCounter(key, false);
+            incrementCounter(key);
         }
 
-        REQUIRE(getCounter(key, false) == 1000);
+        REQUIRE(getCounter(key) == 1000);
     }
 
     TEST_CASE("Test uninitialised counter", "[counter]") {
         cleanSystem();
 
         const char *key = "test_uninit_key";
-        initCounter(key, false);
-        REQUIRE(getCounter(key, false) == 0);
+        initCounter(key);
+        REQUIRE(getCounter(key) == 0);
 
-        incrementCounter(key, false);
-        REQUIRE(getCounter(key, false) == 1);
+        incrementCounter(key);
+        REQUIRE(getCounter(key) == 1);
     }
 }

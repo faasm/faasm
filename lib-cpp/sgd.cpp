@@ -49,15 +49,13 @@ namespace faasm {
     void hingeLossWeightUpdate(const SgdParams &sgdParams, int epoch, int batchNumber,
                                int startIdx, int endIdx) {
 
-        // Load this batch of inputs
+        // Load this batch of inputs (read-only)
         printf("Loading inputs %i - %i\n", startIdx, endIdx);
-        Map<const SparseMatrix<double>> inputs = readSparseMatrixColumnsFromState(INPUTS_KEY,
-                                                                                  startIdx, endIdx, true);
+        Map<const SparseMatrix<double>> inputs = readSparseMatrixColumnsFromState(INPUTS_KEY, startIdx, endIdx);
 
-        // Load this batch of outputs
+        // Load this batch of outputs (read-only)
         printf("Loading outputs %i - %i\n", startIdx, endIdx);
-        Map<const MatrixXd> outputs = readMatrixColumnsFromState(OUTPUTS_KEY, sgdParams.nTrain,
-                                                                 startIdx, endIdx, 1, true);
+        Map<const MatrixXd> outputs = readMatrixColumnsFromState(OUTPUTS_KEY, sgdParams.nTrain, startIdx, endIdx, 1);
 
         // Load the weights
         size_t nWeightBytes = sgdParams.nWeights * sizeof(double);

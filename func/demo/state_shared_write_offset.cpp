@@ -4,8 +4,8 @@
 FAASM_MAIN_FUNC() {
     const char *key = "state_shared_offset_example";
 
-    uint8_t *chunkA = faasmReadStateOffsetPtr(key, 7, 2, 3, true);
-    uint8_t *chunkB = faasmReadStateOffsetPtr(key, 7, 2, 3, true);
+    uint8_t *chunkA = faasmReadStateOffsetPtr(key, 7, 2, 3);
+    uint8_t *chunkB = faasmReadStateOffsetPtr(key, 7, 2, 3);
 
     // Write to memory only
     chunkA[0] = 6;

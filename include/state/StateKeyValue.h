@@ -81,9 +81,7 @@ namespace state {
 
         void initialiseStorage();
 
-        void doRemoteRead();
-
-        void preGet();
+        void pullImpl(bool onlyIfEmpty);
 
         long waitOnRemoteLock();
     };
