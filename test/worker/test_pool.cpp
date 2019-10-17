@@ -408,26 +408,6 @@ namespace tests {
         checkCallingFunctionGivesBoolOutput("mmap", true);
     }
 
-    TEST_CASE("Test config", "[worker]") {
-        setUp();
-
-        bool expected;
-        SECTION("With full async true") {
-            util::setEnvVar("FULL_ASYNC", "1");
-            util::getSystemConfig().reset();
-            expected = true;
-        }
-
-        SECTION("With full async false") {
-            util::setEnvVar("FULL_ASYNC", "0");
-            util::getSystemConfig().reset();
-            expected = false;
-        }
-
-        checkCallingFunctionGivesBoolOutput("read_conf", expected);
-        util::unsetEnvVar("FULL_ASYNC");
-    }
-
     TEST_CASE("Test shared state write pointers", "[worker]") {
         setUp();
 
