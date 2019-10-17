@@ -22,7 +22,7 @@ namespace tests {
         return dummyDir;
     }
 
-    void _readFileWriteState(const std::string &user, path dummyDir, const std::string &matrixPart, const std::string &key) {
+    void _readFileWriteState(path dummyDir, const std::string &matrixPart, const std::string &key) {
         redis::Redis &redisState = redis::Redis::getState();
 
         // Read in from file
@@ -31,7 +31,10 @@ namespace tests {
         const std::vector<uint8_t> fileBytes = util::readFileToBytes(filePath.string());
 
         // Write to state
-        redisState.set(key, fileBytes);
+        const std::string user = getEmulatorUser();
+        const std::shared_ptr<state::StateKeyValue> kv = state::getGlobalState().getKV(user, key, fileBytes.size());
+        kv->set(fileBytes.data());
+        kv->pushFull();
     }
 
     TEST_CASE("Check sparse matrix file round trip", "[data]") {
@@ -40,7 +43,7 @@ namespace tests {
         path dummyDir = _setUp();
         SparseMatrixFileSerialiser s(mat);
         s.writeToFile(dummyDir.string());
-        
+
         // Load sizes and check they still match
         path sizePath = dummyDir;
         sizePath.append("size");
@@ -58,8 +61,7 @@ namespace tests {
     TEST_CASE("Check sparse matrix file and state round trip", "[data]") {
         cleanSystem();
 
-        // Get state keys
-        std::string user = getEmulatorUser();
+        std::string key = "sparse_mat_round_trip";
 
         // Write to the file
         SparseMatrix<double> mat = faasm::randomSparseMatrix(5, 10, 0.4);
@@ -67,17 +69,16 @@ namespace tests {
         SparseMatrixFileSerialiser s(mat);
         s.writeToFile(dummyDir.string());
 
-        const SparseKeys keys = faasm::getSparseKeys(user.c_str());
-
         // Write to state from files
-        _readFileWriteState(user, dummyDir, "vals", keys.valueKey);
-        _readFileWriteState(user, dummyDir, "innr", keys.innerKey);
-        _readFileWriteState(user, dummyDir, "outr", keys.outerKey);
-        _readFileWriteState(user, dummyDir, "size", keys.sizeKey);
-        _readFileWriteState(user, dummyDir, "nonz", keys.nonZeroKey);
+        const SparseKeys keys = faasm::getSparseKeys(key.c_str());
+        _readFileWriteState(dummyDir, "vals", keys.valueKey);
+        _readFileWriteState(dummyDir, "innr", keys.innerKey);
+        _readFileWriteState(dummyDir, "outr", keys.outerKey);
+        _readFileWriteState(dummyDir, "size", keys.sizeKey);
+        _readFileWriteState(dummyDir, "nonz", keys.nonZeroKey);
 
         // Load matrix from state
-        const Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixFromState(user.c_str(), true);
+        const Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixFromState(key.c_str(), true);
         checkSparseMatrixEquality(mat, actual);
     }
 }

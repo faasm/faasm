@@ -8,6 +8,7 @@
 #include <util/config.h>
 #include <util/state.h>
 #include <util/files.h>
+#include <state/State.h>
 
 
 namespace edge {

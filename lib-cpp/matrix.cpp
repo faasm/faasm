@@ -222,13 +222,22 @@ namespace faasm {
     /**
      *  Reads a subset of a sparse matrix from state. The start/ end columns are *exclusive*
      */
-    Map<const SparseMatrix<double>> readSparseMatrixColumnsFromState(const char *key, long colStart, long colEnd) {
+    Map<const SparseMatrix<double>> readSparseMatrixColumnsFromState(const char *key, long colStart, long colEnd,
+                                                                     bool pull) {
         // This depends heavily on the Eigen sparse matrix representation which is documented here:
         // https://eigen.tuxfamily.org/dox/group__TutorialSparse.html
 
         // Read in the full matrix properties
         SparseKeys keys = getSparseKeys(key);
         SparseSizes sizes = readSparseSizes(keys, false);
+
+        // Pull if necessary
+        if (pull) {
+            faasmPullState(keys.innerKey, sizes.innerLen);
+            faasmPullState(keys.outerKey, sizes.outerLen);
+            faasmPullState(keys.valueKey, sizes.valuesLen);
+            faasmPullState(keys.nonZeroKey, sizes.nonZeroLen);
+        }
 
         long nCols = colEnd - colStart;
         size_t colBytes = nCols * sizeof(int);
@@ -290,11 +299,15 @@ namespace faasm {
     /**
      * Writes a matrix to state
      */
-    void writeMatrixToState(const char *key, const MatrixXd &matrix) {
+    void writeMatrixToState(const char *key, const MatrixXd &matrix, bool push) {
         size_t nBytes = matrix.rows() * matrix.cols() * sizeof(double);
         auto byteArray = reinterpret_cast<const uint8_t *>(matrix.data());
 
         faasmWriteState(key, byteArray, nBytes);
+
+        if (push) {
+            faasmPushState(key);
+        }
     }
 
     /**
@@ -318,7 +331,7 @@ namespace faasm {
         size_t nBytes = rows * cols * sizeof(double);
         auto byteBuffer = reinterpret_cast<uint8_t *>(buffer);
 
-        if(pull) {
+        if (pull) {
             faasmPullState(key, nBytes);
         }
         faasmReadState(key, byteBuffer, nBytes);
@@ -336,7 +349,7 @@ namespace faasm {
     /** 
      * Updates a specific element in state 
      */
-    void writeMatrixToStateElement(const char *key, const MatrixXd &matrix, long row, long col) {
+    void writeMatrixToStateElement(const char *key, const MatrixXd &matrix, long row, long col, bool push) {
         // Work out total size of this matrix
         size_t totalBytes = matrix.rows() * matrix.cols() * sizeof(double);
 
@@ -349,13 +362,17 @@ namespace faasm {
         size_t nBytes = sizeof(double);
 
         faasmWriteStateOffset(key, totalBytes, (size_t) byteIdx, byteValue, nBytes);
+
+        if (push) {
+            faasmPushStatePartial(key);
+        }
     }
 
     /**
      * Reads a subset of full columns from state. Columns are *exclusive*
      */
     Map<const MatrixXd> readMatrixColumnsFromState(const char *key, long totalCols, long colStart,
-                                                   long colEnd, long nRows) {
+                                                   long colEnd, long nRows, bool pull) {
         long nCols = colEnd - colStart;
 
         long startIdx = matrixByteIndex(0, colStart, nRows);
@@ -363,6 +380,11 @@ namespace faasm {
 
         long bufferLen = endIdx - startIdx;
         long totalLen = totalCols * nRows * sizeof(double);
+
+        if (pull) {
+            faasmPullState(key, totalLen);
+        }
+
         uint8_t *buffer = faasmReadStateOffsetPtr(key, totalLen, startIdx, bufferLen);
 
         auto doubleArray = reinterpret_cast<double *>(buffer);

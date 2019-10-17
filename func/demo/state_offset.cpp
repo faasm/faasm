@@ -17,7 +17,7 @@ FAASM_MAIN_FUNC() {
     faasmPushState(key);
 
     // Read 5, 5, 6, 6, 4
-    faasmPullState(key);
+    faasmPullState(key, 7);
     uint8_t readValuePartial[5];
     faasmReadStateOffset(key, 7, 0, readValuePartial, 5);
 

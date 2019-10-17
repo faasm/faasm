@@ -1,5 +1,5 @@
 #include <faasm/faasm.h>
-#include <stdio.h>
+
 
 FAASM_MAIN_FUNC() {
     const char *key = "state_shared_offset_example";

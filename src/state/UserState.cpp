@@ -23,6 +23,7 @@ namespace state {
             // Lock on editing local state registry
             FullLock fullLock(kvMapMutex);
 
+            // Always mask keys with the user
             std::string actualKey = util::keyForUser(user, key);
 
             // Double check it still doesn't exist

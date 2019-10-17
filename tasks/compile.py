@@ -38,7 +38,11 @@ def compile(context, clean=False, func=None, debug=False, user=None, ts=False):
         target = "{}_all_funcs".format(user)
 
     cmd = "VERBOSE=1 make {}".format(target) if target else "make -j"
-    call(cmd, shell=True, cwd=FUNC_BUILD_DIR)
+    res = call(cmd, shell=True, cwd=FUNC_BUILD_DIR)
+
+    if res != 0:
+        print("Failed to make")
+        return
 
 
 def _ts_compile(func, optimize=True):

@@ -29,7 +29,7 @@ namespace data {
     }
 
     void run(int epoch, int batchNumber) {
-        SgdParams params = readParamsFromState(PARAMS_KEY);
+        SgdParams params = readParamsFromState(PARAMS_KEY, true);
 
         int startIdx = batchNumber * params.batchSize;
         int endIdx = std::min(startIdx + params.batchSize, params.nTrain - 1);

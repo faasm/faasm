@@ -106,6 +106,8 @@ namespace tests {
     }
 
     TEST_CASE("Test invalid invocations", "[ibm]") {
+        cleanSystem();
+
         Document d;
         std::string expected;
         message::Message msg;

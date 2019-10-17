@@ -48,7 +48,7 @@ namespace tests {
         writeParamsToState(key, params, true);
 
         // Read back and check
-        SgdParams actual = readParamsFromState(key);
+        SgdParams actual = readParamsFromState(key, true);
         checkSgdParamEquality(actual, params);
     }
 
@@ -60,7 +60,7 @@ namespace tests {
         setUpDummyProblem(params);
 
         // Check params are set up
-        SgdParams actual = readParamsFromState(PARAMS_KEY);
+        SgdParams actual = readParamsFromState(PARAMS_KEY, true);
         checkSgdParamEquality(actual, params);
 
         // Check weights

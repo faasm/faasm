@@ -38,7 +38,7 @@ namespace faasm {
 
     void writeParamsToState(const char *keyName, const SgdParams &params, bool push);
 
-    SgdParams readParamsFromState(const char *keyName);
+    SgdParams readParamsFromState(const char *keyName, bool pull);
 
     void hingeLossWeightUpdate(
             const SgdParams &sgdParams,
