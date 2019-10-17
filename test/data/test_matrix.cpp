@@ -78,7 +78,7 @@ namespace tests {
         _readFileWriteState(user, dummyDir, "nonz", keys.nonZeroKey);
 
         // Load matrix from state
-        const Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixFromState(user.c_str());
+        const Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixFromState(user.c_str(), true);
         checkSparseMatrixEquality(mat, actual);
     }
 }

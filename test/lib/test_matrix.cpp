@@ -237,11 +237,10 @@ namespace tests {
         SparseMatrix<double> mat = faasm::randomSparseMatrix(5, 10, 0.4);
 
         const char *key = "sparse_trip_test";
-        faasm::writeSparseMatrixToState(key, mat);
-        faasmPushState(key);
+        faasm::writeSparseMatrixToState(key, mat, true);
 
         faasmPullState(key);
-        Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixFromState(key);
+        Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixFromState(key, true);
         checkSparseMatrixEquality(mat, actual);
     }
 
@@ -251,10 +250,7 @@ namespace tests {
         const char *key = "sparse_trip_offset_test";
 
         SparseMatrix<double> mat = faasm::randomSparseMatrix(rows, cols, 0.7);
-        faasm::writeSparseMatrixToState(key, mat);
-        if(!async) {
-            faasmPushState(key);
-        }
+        faasm::writeSparseMatrixToState(key, mat, !async);
 
         // Check subsection
         SparseMatrix<double> expected = mat.block(0, colStart, rows, colEnd - colStart);

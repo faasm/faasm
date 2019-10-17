@@ -125,10 +125,7 @@ namespace tests {
 
         // Set up inputs in state
         inputs.setFromTriplets(tripletList.begin(), tripletList.end());
-        faasm::writeSparseMatrixToState(INPUTS_KEY, inputs);
-        if(!async) {
-            faasmPushState(INPUTS_KEY);
-        }
+        faasm::writeSparseMatrixToState(INPUTS_KEY, inputs, !async);
 
         // Check what the predictions are pre-update
         MatrixXd preUpdate = weights * inputs;

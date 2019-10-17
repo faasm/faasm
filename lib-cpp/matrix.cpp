@@ -121,7 +121,7 @@ namespace faasm {
         nSizeBytes = sizeof(SparseSizes);
     }
 
-    void SparseMatrixSerialiser::writeToState(const char *key) {
+    void SparseMatrixSerialiser::writeToState(const char *key, bool push) {
         SparseKeys keys = getSparseKeys(key);
 
         faasmWriteState(keys.valueKey, valueBytes, nValueBytes);
@@ -129,6 +129,14 @@ namespace faasm {
         faasmWriteState(keys.outerKey, outerBytes, nOuterBytes);
         faasmWriteState(keys.nonZeroKey, nonZeroBytes, nNonZeroBytes);
         faasmWriteState(keys.sizeKey, sizeBytes, nSizeBytes);
+
+        if (push) {
+            faasmPushState(keys.valueKey);
+            faasmPushState(keys.innerKey);
+            faasmPushState(keys.outerKey);
+            faasmPushState(keys.nonZeroKey);
+            faasmPushState(keys.sizeKey);
+        }
     }
 
     Map<const SparseMatrix<double>> SparseMatrixSerialiser::readFromBytes(
@@ -160,31 +168,43 @@ namespace faasm {
     }
 
     void writeSparseMatrixToState(const char *key,
-                                  const SparseMatrix<double> &mat) {
+                                  const SparseMatrix<double> &mat,
+                                  bool push) {
         SparseMatrixSerialiser serialiser(mat);
-        serialiser.writeToState(key);
+        serialiser.writeToState(key, push);
     }
 
-    SparseSizes readSparseSizes(const SparseKeys &keys) {
+    SparseSizes readSparseSizes(const SparseKeys &keys, bool pull) {
         uint8_t sizeBuffer[sizeof(SparseSizes)];
+
+        if (pull) {
+            faasmPullState(keys.sizeKey);
+        }
+
         faasmReadState(keys.sizeKey, sizeBuffer, sizeof(SparseSizes));
         auto sizes = reinterpret_cast<SparseSizes *>(sizeBuffer);
 
-        if(sizes->cols == 0 || sizes->rows == 0) {
+        if (sizes->cols == 0 || sizes->rows == 0) {
             throw std::runtime_error("Loaded sparse matrix size zero");
         }
         return *sizes;
     }
 
-    Map<const SparseMatrix<double>> readSparseMatrixFromState(const char *key) {
+    Map<const SparseMatrix<double>> readSparseMatrixFromState(const char *key, bool pull) {
         SparseKeys keys = getSparseKeys(key);
-        SparseSizes sizes = readSparseSizes(keys);
+        SparseSizes sizes = readSparseSizes(keys, pull);
 
         auto outerBytes = new uint8_t[sizes.outerLen];
         auto innerBytes = new uint8_t[sizes.innerLen];
         auto valuesBytes = new uint8_t[sizes.valuesLen];
 
         // Read data into buffers
+        if (pull) {
+            faasmPullState(keys.outerKey);
+            faasmPullState(keys.innerKey);
+            faasmPullState(keys.valueKey);
+        }
+
         faasmReadState(keys.outerKey, outerBytes, sizes.outerLen);
         faasmReadState(keys.innerKey, innerBytes, sizes.innerLen);
         faasmReadState(keys.valueKey, valuesBytes, sizes.valuesLen);
@@ -200,14 +220,13 @@ namespace faasm {
     /**
      *  Reads a subset of a sparse matrix from state. The start/ end columns are *exclusive*
      */
-    Map<const SparseMatrix<double>> readSparseMatrixColumnsFromState(const char *key,
-                                                                     long colStart, long colEnd) {
+    Map<const SparseMatrix<double>> readSparseMatrixColumnsFromState(const char *key, long colStart, long colEnd) {
         // This depends heavily on the Eigen sparse matrix representation which is documented here:
         // https://eigen.tuxfamily.org/dox/group__TutorialSparse.html
 
         // Read in the full matrix properties
         SparseKeys keys = getSparseKeys(key);
-        SparseSizes sizes = readSparseSizes(keys);
+        SparseSizes sizes = readSparseSizes(keys, false);
 
         long nCols = colEnd - colStart;
         size_t colBytes = nCols * sizeof(int);

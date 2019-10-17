@@ -45,12 +45,12 @@ namespace faasm {
     public:
         explicit SparseMatrixSerialiser(const SparseMatrix<double> &matIn);
 
-        void writeToState(const char *key);
+        void writeToState(const char *key, bool push);
 
         static Map<const SparseMatrix<double>> readFromBytes(const SparseSizes &sizes,
-                                                  uint8_t *outerBytes,
-                                                  uint8_t *innerBytes,
-                                                  uint8_t *valuesBytes);
+                                                             uint8_t *outerBytes,
+                                                             uint8_t *innerBytes,
+                                                             uint8_t *valuesBytes);
 
         ~SparseMatrixSerialiser();
 
@@ -79,9 +79,9 @@ namespace faasm {
     /**
      * State
      */
-    Map<const SparseMatrix<double>> readSparseMatrixFromState(const char *key);
+    Map<const SparseMatrix<double>> readSparseMatrixFromState(const char *key, bool pull);
 
-    void writeSparseMatrixToState(const char *key, const SparseMatrix<double> &mat);
+    void writeSparseMatrixToState(const char *key, const SparseMatrix<double> &mat, bool push);
 
     Map<const MatrixXd> readMatrixFromState(const char *key, long rows, long cols);
 
@@ -92,10 +92,9 @@ namespace faasm {
     void writeMatrixToStateElement(const char *key, const MatrixXd &matrix, long row, long col);
 
     Map<const MatrixXd> readMatrixColumnsFromState(const char *key, long totalCols, long colStart,
-                                        long colEnd, long nRows);
+                                                   long colEnd, long nRows);
 
-    Map<const SparseMatrix<double>> readSparseMatrixColumnsFromState(const char *key, long colStart,
-                                                          long colEnd);
+    Map<const SparseMatrix<double>> readSparseMatrixColumnsFromState(const char *key, long colStart, long colEnd);
 
     /**
      * Manipulation

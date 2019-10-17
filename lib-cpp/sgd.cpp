@@ -213,9 +213,9 @@ namespace faasm {
         Eigen::MatrixXd weights = randomDenseMatrix(1, params.nWeights);
 
         // Write all data to memory
-        writeSparseMatrixToState(INPUTS_KEY, inputs);
-        writeMatrixToState(OUTPUTS_KEY, outputs);
-        writeMatrixToState(WEIGHTS_KEY, weights);
+        writeSparseMatrixToState(INPUTS_KEY, inputs, true);
+        writeMatrixToState(OUTPUTS_KEY, outputs, true);
+        writeMatrixToState(WEIGHTS_KEY, weights, true);
     }
 }
 
