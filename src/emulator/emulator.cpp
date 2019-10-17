@@ -167,7 +167,8 @@ void __faasm_flag_state_dirty(const char *key, long totalLen) {
 }
 
 void __faasm_flag_state_offset_dirty(const char *key, long totalLen, long offset, long dataLen) {
-    util::getLogger()->debug("E - flag_state_offset_dirty {} {} {} {}", key, totalLen, offset, dataLen);
+    // Avoid excessive logging
+    // util::getLogger()->debug("E - flag_state_offset_dirty {} {} {} {}", key, totalLen, offset, dataLen);
     auto kv = getKv(key, totalLen);
     kv->flagSegmentDirty(offset, dataLen);
 }

@@ -88,7 +88,7 @@ namespace faasm {
             int col = cols[c];
 
             double thisOutput = outputs.coeff(0, col);
-
+            // Iterate through the non-null rows in this column
             double thisPrediction = 0.0;
             for (Map<const SparseMatrix<double>>::InnerIterator it(inputs, col); it; ++it) {
                 double weight = weightDataBuffer[it.row()];
@@ -117,6 +117,11 @@ namespace faasm {
 
                 // --------- Update -----------
 
+                // Ignore if we're not syncing
+                if(sgdParams.syncInterval < 0) {
+                    continue;
+                }
+
                 // Mark this value as dirty
                 size_t offset = it.row() * sizeof(double);
                 faasmFlagStateOffsetDirty(WEIGHTS_KEY, nWeightBytes, offset, sizeof(double));
@@ -132,8 +137,10 @@ namespace faasm {
                     continue;
                 }
             }
+        }
 
-            // Final sync
+        // Final sync if we're doing syncs
+        if(sgdParams.syncInterval >= 0) {
             faasmPushStatePartial(WEIGHTS_KEY);
         }
 

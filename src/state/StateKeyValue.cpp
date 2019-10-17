@@ -188,7 +188,7 @@ namespace state {
     void StateKeyValue::flagSegmentDirty(long offset, long len) {
         SharedLock lock(valueMutex);
         isPartiallyDirty = true;
-        std::fill(dirtyFlags.begin() + offset, dirtyFlags.begin() + offset + len, true);
+        memset(dirtyFlags + offset, 1, len);
     }
 
     void StateKeyValue::clear() {
@@ -200,6 +200,9 @@ namespace state {
 
         // Set flag to say this is effectively new again
         _empty = true;
+
+        delete[] dirtyFlags;
+        dirtyFlags = nullptr;
     }
 
     bool StateKeyValue::empty() {
@@ -274,7 +277,7 @@ namespace state {
         logger->debug("Mmapped {} pages of shared storage for {}", sharedMemSize / HOST_PAGE_SIZE, key);
 
         // Set up dirty flags
-        dirtyFlags.resize(valueSize);
+        dirtyFlags = new short[valueSize];
     }
 
     void StateKeyValue::pushFull() {
@@ -301,7 +304,7 @@ namespace state {
         isWholeValueDirty = false;
         if(isPartiallyDirty) {
             isPartiallyDirty = false;
-            std::fill(dirtyFlags.begin(), dirtyFlags.end(), false);
+            memset(dirtyFlags, 0, valueSize);
         }
     }
 
@@ -323,7 +326,7 @@ namespace state {
             return;
         }
 
-        logger->debug("Got remote lock for {} with id {}", key, remoteLockId);
+        // logger->debug("Got remote lock for {} with id {}", key, remoteLockId);
 
         // TODO Potential locking issues here.
         // If we get the remote lock, then have to wait a long time for the local
@@ -331,7 +334,7 @@ namespace state {
         // the value, and we end up clashing.
 
         // Create copy of the dirty flags and clear the old version
-        std::vector<bool> dirtyFlagsCopy(valueSize);
+        bool * dirtyFlagsCopy = new bool[valueSize];
         {
             FullLock lock(valueMutex);
 
@@ -342,11 +345,11 @@ namespace state {
                 return;
             }
 
-            std::copy(dirtyFlags.begin(), dirtyFlags.end(), dirtyFlagsCopy.begin());
+            std::copy(dirtyFlags, dirtyFlags + valueSize, dirtyFlagsCopy);
 
             // Reset dirty flags
             isPartiallyDirty = false;
-            std::fill(dirtyFlags.begin(), dirtyFlags.end(), false);
+            memset(dirtyFlags, 0, valueSize);
         }
 
         // Don't need any more local locking here
@@ -358,21 +361,21 @@ namespace state {
         // Go through all dirty flags and update value
 
         // Find first true flag
-        auto start = std::find(dirtyFlagsCopy.begin(), dirtyFlagsCopy.end(), true);
+        auto start = std::find(dirtyFlagsCopy, dirtyFlagsCopy + valueSize, 1);
 
         // While we still have more segments
-        while (start != dirtyFlagsCopy.end()) {
+        while (start != dirtyFlagsCopy + valueSize) {
             // Find next false
-            auto end = std::find(start + 1, dirtyFlagsCopy.end(), false);
+            auto end = std::find(start + 1, dirtyFlagsCopy + valueSize, 0);
 
-            // Our indices are inclusive here
+            // Copy the dirty parts into the new value
             long size = end - start;
-            long offset = start - dirtyFlagsCopy.begin();
+            long offset = start - dirtyFlagsCopy;
             uint8_t *ptr = static_cast<uint8_t *>(sharedMemory) + offset;
             std::copy(ptr, ptr + size, tempBuff + offset);
 
             // Find next true
-            start = std::find(end + 1, dirtyFlagsCopy.end(), true);
+            start = std::find(end + 1, dirtyFlagsCopy + valueSize, true);
         }
 
         // Set whole value back again

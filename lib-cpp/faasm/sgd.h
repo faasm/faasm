@@ -14,11 +14,21 @@ using namespace Eigen;
 #define ERRORS_KEY "errors"
 
 // Reuters-specific
-#define REUTERS_N_FEATURES 47236
-#define REUTERS_N_EXAMPLES 781265
+// Note that the sync interval determines how often workers will
+// sync with the remote storage. There are about 60 million updates
+// to be performed in each epoch, and a possible 47k features on which
+// these updates can occur. With lots of colocated workers these syncs
+// can be relatively infrequent, but with lots of distributed workers the
+// syncs need to be more frequent.
+//
+// Sync interval of -1 means no syncing
 #define REUTERS_LEARNING_RATE 0.1
 #define REUTERS_LEARNING_DECAY 0.8
-#define REUTERS_SYNC_INTERVAL 30000
+#define REUTERS_N_FEATURES 47236
+#define REUTERS_N_EXAMPLES 781265
+
+// #define REUTERS_SYNC_INTERVAL -1
+#define REUTERS_SYNC_INTERVAL 60000000
 
 
 namespace faasm {

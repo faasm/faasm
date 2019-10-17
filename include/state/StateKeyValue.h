@@ -70,7 +70,7 @@ namespace state {
     private:
         bool isWholeValueDirty;
         bool isPartiallyDirty;
-        std::vector<bool> dirtyFlags;
+        short *dirtyFlags;
 
         std::shared_mutex valueMutex;
 
