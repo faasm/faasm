@@ -16,13 +16,13 @@ namespace ibm {
     std::string getStringFromJson(rapidjson::Document &d, const std::string &key) {
         rapidjson::Value::MemberIterator it = d["value"].FindMember(key.c_str());
         if (it == d["value"].MemberEnd()) {
-            throw util::JsonFieldNotFound();
+            throw util::JsonFieldNotFound("Key not found: " + key);
         } else if (it->value.IsNull()) {
-            throw util::JsonFieldNotFound();
+            throw util::JsonFieldNotFound("Key is null: " + key);
         } else {
             std::string strVal(it->value.GetString(), it->value.GetString() + it->value.GetStringLength());
             if (strVal.empty()) {
-                throw util::JsonFieldNotFound();
+                throw util::JsonFieldNotFound("Value is empty: " + key);
             }
 
             return strVal;

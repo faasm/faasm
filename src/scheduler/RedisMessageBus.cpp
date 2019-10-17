@@ -43,7 +43,7 @@ namespace scheduler {
             }
         }
         catch (redis::RedisNoResponseException &ex) {
-            throw GlobalMessageBusNoMessageException();
+            throw GlobalMessageBusNoMessageException("No message from global bus");
         }
     }
 

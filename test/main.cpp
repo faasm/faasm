@@ -2,7 +2,6 @@
 
 #include <catch/catch.hpp>
 #include <util/logging.h>
-#include <util/config.h>
 #include "utils.h"
 
 int main(int argc, char *argv[]) {

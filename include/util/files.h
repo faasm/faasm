@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include "exception.h"
 
 #define FILE_PATH_HEADER "FilePath"
 #define EMPTY_FILE_RESPONSE "Empty response"
@@ -19,6 +20,10 @@ namespace util {
             const std::string &url,
             const std::string &header);
 
-    class FileNotFoundAtUrlException : public std::exception {
+    class FileNotFoundAtUrlException : public util::FaasmException {
+    public:
+        explicit FileNotFoundAtUrlException(std::string message): FaasmException(std::move(message)) {
+
+        }
     };
 }

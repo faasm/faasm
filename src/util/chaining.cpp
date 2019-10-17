@@ -59,7 +59,8 @@ namespace util {
         curl_easy_cleanup(curl);
 
         if (res != CURLE_OK || out.str().empty()) {
-            throw ChainedCallFailedException();
+            std::string errMsg = "Chained call to " + url + " failed";
+            throw ChainedCallFailedException(errMsg);
         }
 
         return out.str();

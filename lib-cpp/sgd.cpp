@@ -214,8 +214,11 @@ namespace faasm {
 
         // Write all data to memory
         writeSparseMatrixToState(INPUTS_KEY, inputs, true);
-        writeMatrixToState(OUTPUTS_KEY, outputs, true);
-        writeMatrixToState(WEIGHTS_KEY, weights, true);
+        writeMatrixToState(OUTPUTS_KEY, outputs);
+        writeMatrixToState(WEIGHTS_KEY, weights);
+
+        faasmPushState(OUTPUTS_KEY);
+        faasmPushState(WEIGHTS_KEY);
     }
 }
 

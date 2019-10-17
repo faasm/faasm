@@ -52,7 +52,7 @@ namespace edge {
         }
 
         request.reply(status_codes::OK, "Invalid path\n");
-        throw InvalidPathException();
+        throw InvalidPathException("Invalid request path");
     }
 
     void UploadServer::listen(const std::string &port) {
@@ -233,8 +233,9 @@ namespace edge {
         const std::vector<std::string> pathParts = UploadServer::getPathParts(request);
 
         if (pathParts.size() != 3) {
-            request.reply(status_codes::OK, "Invalid path (must be /f|fa|p|pa/<user>/<func>/ \n");
-            throw InvalidPathException();
+            const char *msg = "Invalid path (must be /f|fa|p|pa/<user>/<func>/ \n";
+            request.reply(status_codes::OK, msg);
+            throw InvalidPathException(msg);
         }
 
         // Check URI

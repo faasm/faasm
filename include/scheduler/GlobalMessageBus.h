@@ -1,6 +1,7 @@
 #pragma once
 
 #include <util/config.h>
+#include <util/exception.h>
 #include <util/func.h>
 #include <util/queue.h>
 
@@ -29,6 +30,10 @@ namespace scheduler {
         const util::SystemConfig &conf;
     };
 
-    class GlobalMessageBusNoMessageException : public std::exception {
+    class GlobalMessageBusNoMessageException : public util::FaasmException {
+    public:
+        explicit GlobalMessageBusNoMessageException(std::string message): FaasmException(std::move(message)) {
+
+        }
     };
 }
