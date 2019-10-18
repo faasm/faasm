@@ -16,6 +16,7 @@
 
 using namespace faasm;
 
+
 FAASM_MAIN_FUNC() {
 
 #ifdef __wasm__
@@ -38,7 +39,8 @@ FAASM_MAIN_FUNC() {
     writeMatrixToState(MASK_KEY, zeros, true);
 
     // Prepare string for output
-    std::string output;
+    std::string output = "\n";
+    double tsZero = 0;
 
     // Run epochs and workers in a loop
     for (int thisEpoch = 0; thisEpoch < epochs; thisEpoch++) {
@@ -78,21 +80,23 @@ FAASM_MAIN_FUNC() {
             }
         }
 
-        // Record the time and loss for this epoch
-        printf("Calculating epoch loss for epoch %i\n", thisEpoch);
-        double ts = faasm::getSecondsSinceEpoch();
-        double loss = faasm::readRootMeanSquaredError(p);
-
-        output += std::to_string(thisEpoch) + ": " + std::to_string(ts) + ": " + std::to_string(loss);
-        if (thisEpoch != epochs - 1) {
-            output += ",";
-        }
-
         // Decay learning rate (apparently hogwild doesn't actually do this although it takes in the param)
         // p.learningRate = p.learningRate * p.learningDecay;
         // writeParamsToState(PARAMS_KEY, p);
 
-        printf("Finished epoch %i (time = %.2f, loss = %.2f)\n", thisEpoch, ts, loss);
+        printf("Calculating epoch loss for epoch %i\n", thisEpoch);
+        // Rebase timestamp
+        double ts = faasm::getSecondsSinceEpoch();
+        if(tsZero == 0) {
+            tsZero = ts;
+        }
+        ts -= tsZero;
+
+        double loss = faasm::readRootMeanSquaredError(p);
+
+        output += std::to_string(ts) + " " + std::to_string(loss) + "\n";
+
+        printf("EPOCH %i (time = %.2f, loss = %.2f)\n", thisEpoch, ts, loss);
     }
 
     printf("Finished SVM: %s\n", output.c_str());

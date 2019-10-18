@@ -69,9 +69,13 @@ namespace faasm {
         Map<const MatrixXd> outputs = readMatrixColumnsFromState(OUTPUTS_KEY, sgdParams.nTrain, startIdx, endIdx, 1,
                                                                  false);
 
-        // Load the weights and mask
+        // Load the weights
         size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
         uint8_t *weightDataByteBuffer = faasmReadStatePtr(WEIGHTS_KEY, nWeightBytes);
+
+        // Load the mask - this is always zeroed in state so must be pulled
+        // TODO - Async conflict
+        faasmPullState(MASK_KEY, nWeightBytes);
         uint8_t *weightMaskBytes = faasmReadStatePtr(MASK_KEY, nWeightBytes);
 
         auto weightDataBuffer = reinterpret_cast<double *>(weightDataByteBuffer);
@@ -132,6 +136,7 @@ namespace faasm {
                 updateCount++;
                 bool syncNeeded = (updateCount > 0) && (updateCount % sgdParams.syncInterval) == 0;
                 if (syncNeeded) {
+                    // TODO - Async conflict
                     // Sync the updates
                     faasmFlagStateDirty(WEIGHTS_KEY, nWeightBytes);
                     faasmPushStatePartialMask(WEIGHTS_KEY, MASK_KEY);
@@ -142,6 +147,7 @@ namespace faasm {
             }
         }
 
+        // TODO - Async conflict
         // Final sync if we're doing syncs
         if (sgdParams.syncInterval >= 0) {
             faasmFlagStateDirty(WEIGHTS_KEY, nWeightBytes);
