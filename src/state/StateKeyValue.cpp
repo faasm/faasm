@@ -10,9 +10,8 @@
 
 using namespace util;
 
-#define FLAG_ON   0b11111111
-
 namespace state {
+    static uint8_t  flagOn = 0b11111111;
 
     /**
      * Key/value
@@ -188,16 +187,18 @@ namespace state {
     }
 
     void StateKeyValue::zeroDirtyFlags() {
-        memset(dirtyFlags, 0, valueSize * sizeof(uint8_t));
+        memset(dirtyFlags, 0, valueSize);
     }
 
     void StateKeyValue::flagSegmentDirty(long offset, long len) {
         if (!isPartiallyDirty) isPartiallyDirty = true;
 
         SharedLock lock(valueMutex);
-        for (long i = 0; i < len; i++) {
-            dirtyFlags[offset + i] = FLAG_ON;
-        }
+
+        memset(dirtyFlags + offset, flagOn, len);
+//        for (long i = 0; i < len; i++) {
+//            dirtyFlags[offset + i] |= flagOn;
+//        }
     }
 
     void StateKeyValue::clear() {

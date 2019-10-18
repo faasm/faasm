@@ -98,6 +98,7 @@ namespace tests {
     }
 
     TEST_CASE("Test marking segments dirty", "[state]") {
+        cleanSystem();
         redis::Redis &redisState = redis::Redis::getState();
         auto kv = setupKV(10);
 
@@ -106,32 +107,33 @@ namespace tests {
         kv->set(values.data());
         kv->pushFull();
 
-        // Get pointer, update
+        // Get pointer and update in memory only
         uint8_t *ptr = kv->get();
         ptr[0] = 8;
         ptr[5] = 7;
-        kv->pushPartial();
 
-        // Check nothing happens
+        // Push partial and check nothing happens (as nothing is marked, no push/ pull will occur)
+        kv->pushPartial();
         REQUIRE(redisState.get(kv->key) == values);
 
-        // Mark region as dirty, check update happens
+        // Mark one region as dirty, do push and check update happens
         kv->flagSegmentDirty(0, 2);
         kv->pushPartial();
         values.at(0) = 8;
         REQUIRE(redisState.get(kv->key) == values);
 
-        // Mark other region and check also updated
-        kv->flagSegmentDirty(5, 6);
-        kv->pushPartial();
-        values.at(5) = 7;
-        REQUIRE(redisState.get(kv->key) == values);
+        // Make sure the memory has now been updated to reflect the remote as well
+        // (losing our local change not marked as dirty)
+        std::vector<uint8_t> actualMemory(ptr, ptr + values.size());
+        REQUIRE(actualMemory == values);
     }
 
-
     TEST_CASE("Test marking multiple segments dirty", "[state]") {
+        cleanSystem();
+
         redis::Redis &redisState = redis::Redis::getState();
         auto kv = setupKV(20);
+        const char* key = kv->key.c_str();
 
         // Set up and push
         std::vector<uint8_t> values = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -156,23 +158,23 @@ namespace tests {
 
         // Mark regions as dirty
         kv->flagSegmentDirty(1, 3);
-        kv->flagSegmentDirty(10, 11);
-        kv->flagSegmentDirty(14, 17);
+        kv->flagSegmentDirty(10, 2);
+        kv->flagSegmentDirty(14, 4);
 
         // Update one non-overlapping value in state
         std::vector<uint8_t> directA = {2, 2};
-        redisState.setRange(kv->key, 6, directA.data(), 2);
+        redisState.setRange(key, 6, directA.data(), 2);
 
         // Update one overlapping value in state
         std::vector<uint8_t> directB = {6, 6, 6, 6, 6};
-        redisState.setRange(kv->key, 0, directB.data(), 5);
+        redisState.setRange(key, 0, directB.data(), 5);
 
         // Check all updates are taken and the state ones take precedence
         std::vector<uint8_t> expected = {6, 1, 2, 3, 6, 0, 2, 2, 0, 0, 4, 5, 0, 0, 7, 7, 7, 7, 0, 0};
 
         // Push and check that with no pull we're up to date
         kv->pushPartial();
-        REQUIRE(redisState.get(kv->key) == expected);
+        REQUIRE(redisState.get(key) == expected);
     }
 
     TEST_CASE("Test set segment cannot be out of bounds", "[state]") {
