@@ -22,8 +22,7 @@ namespace state {
         sharedMemSize = nHostPages * HOST_PAGE_SIZE;
         sharedMemory = nullptr;
 
-        isWholeValueDirty = false;
-        isPartiallyDirty = false;
+        isDirty = false;
         _empty = true;
     }
 
@@ -140,7 +139,7 @@ namespace state {
 
         // Copy data into shared region
         std::copy(buffer, buffer + valueSize, static_cast<uint8_t *>(sharedMemory));
-        isWholeValueDirty = true;
+        isDirty = true;
         _empty = false;
     }
 
@@ -180,19 +179,23 @@ namespace state {
         flagSegmentDirty(offset, length);
     }
 
-    void StateKeyValue::flagFullValueDirty() {
-        isWholeValueDirty = true;
+    void StateKeyValue::flagDirty() {
+        isDirty = true;
     }
 
-    void StateKeyValue::zeroDirtyFlags() {
-        memset(dirtyFlags, 0, valueSize);
+    void StateKeyValue::zeroDirtyMask() {
+        memset(dirtyMask, 0, valueSize);
+    }
+
+    void StateKeyValue::zeroValue() {
+        util::FullLock lock(valueMutex);
+
+        memset(sharedMemory, 0, valueSize);
     }
 
     inline void StateKeyValue::flagSegmentDirty(long offset, long len) {
-        memset(dirtyFlags + offset, 0b11111111, len);
-//        for (long i = 0; i < len; i++) {
-//            dirtyFlags[offset + i] |= flagOn;
-//        }
+        isDirty |= true;
+        memset(((uint8_t *) dirtyMask) + offset, 0b11111111, len);
     }
 
     void StateKeyValue::clear() {
@@ -267,7 +270,7 @@ namespace state {
             throw StateKeyValueException("Initialising storage without a size for " + key);
         }
 
-        // Create shared memory region
+        // Create shared memory region for the value
         sharedMemory = mmap(nullptr, sharedMemSize, PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
         if (sharedMemory == MAP_FAILED) {
             logger->debug("Mmapping of storage size {} failed. errno: {}", sharedMemSize, errno);
@@ -278,13 +281,13 @@ namespace state {
         logger->debug("Mmapped {} pages of shared storage for {}", sharedMemSize / HOST_PAGE_SIZE, key);
 
         // Set up dirty flags
-        dirtyFlags = new uint8_t[valueSize];
-        zeroDirtyFlags();
+        dirtyMask = new uint8_t[valueSize];
+        zeroDirtyMask();
     }
 
     void StateKeyValue::pushFull() {
         // Ignore if not dirty
-        if (!isWholeValueDirty and !isPartiallyDirty) {
+        if (!isDirty) {
             return;
         }
 
@@ -292,7 +295,7 @@ namespace state {
         FullLock fullLock(valueMutex);
 
         // Double check condition
-        if (!isWholeValueDirty and !isPartiallyDirty) {
+        if (!isDirty) {
             return;
         }
 
@@ -303,31 +306,50 @@ namespace state {
         redis.set(key, static_cast<uint8_t *>(sharedMemory), valueSize);
 
         // Remove any dirty flags
-        isWholeValueDirty = false;
-        if (isPartiallyDirty) {
-            isPartiallyDirty = false;
-            zeroDirtyFlags();
+        isDirty = false;
+        zeroDirtyMask();
+    }
+
+    void StateKeyValue::pushPartialMask(std::shared_ptr<StateKeyValue> maskKv) {
+        uint8_t *maskPtr = maskKv->get();
+
+        if (maskKv->valueSize != valueSize) {
+            std::string msg =
+                    "Different sizes: mask=" + std::to_string(maskKv->valueSize) +
+                    " and value=" + std::to_string(valueSize);
+
+            throw StateKeyValueException(msg);
         }
+
+        doPushPartial(maskPtr);
     }
 
     void StateKeyValue::pushPartial() {
-        // Ignore if the whole value is dirty or not partially dirty
-        if (isWholeValueDirty || !isPartiallyDirty) {
+        auto dirtyMaskBytes = reinterpret_cast<uint8_t *>(dirtyMask);
+        doPushPartial(dirtyMaskBytes);
+    }
+
+    void StateKeyValue::doPushPartial(const uint8_t *dirtyMaskBytes) {
+        // Ignore if not dirty
+        if (!isDirty) {
             return;
         }
 
-        const std::shared_ptr<spdlog::logger> &logger = getLogger();
+        // We need a full lock while doing this, mainly to ensure no other threads start
+        // the same process
+        FullLock lock(valueMutex);
+
+        // Double check condition
+        if (!isDirty) {
+            return;
+        }
 
         // Attempt to lock the value remotely
         redis::Redis &redis = redis::Redis::getState();
         long remoteLockId = this->waitOnRemoteLock();
 
-        // TODO Potential locking issues here.
-        // If we get the remote lock, then have to wait a long time for the local
-        // value lock, the remote one may have expired by the time we get to updating
-        // the value, and we end up clashing.
-
         // If we don't get remote lock, just skip this push and wait for next one
+        const std::shared_ptr<spdlog::logger> &logger = getLogger();
         if (remoteLockId <= 0) {
             logger->debug("Failed to acquire remote lock for {}", key);
             return;
@@ -337,36 +359,27 @@ namespace state {
         auto tempBuff = new uint8_t[valueSize];
         redis.get(key, tempBuff, valueSize);
 
-        // Full lock while editing our copy
+        // Take the remote value for any non-dirty parts of our copy
         auto sharedMemBytes = reinterpret_cast<uint8_t *>(sharedMemory);
-        {
-            FullLock lock(valueMutex);
-
-            // Double check condition (if it's all dirty or not partially dirty, ignore)
-            if (isWholeValueDirty || !isPartiallyDirty) {
-                logger->debug("Released remote lock (doing nothing) for {} with id {}", key, remoteLockId);
-                redis.releaseLock(key, remoteLockId);
-                return;
-            }
-
-            // Take the remote value for any non-dirty parts of our copy
-            for (unsigned long i = 0; i < valueSize; i++) {
-                sharedMemBytes[i] = (sharedMemBytes[i] & dirtyFlags[i]) + (tempBuff[i] & ~dirtyFlags[i]);
-            }
+        for (unsigned long i = 0; i < valueSize; i++) {
+            sharedMemBytes[i] = (sharedMemBytes[i] & dirtyMaskBytes[i]) + (tempBuff[i] & ~dirtyMaskBytes[i]);
         }
 
-//        delete[] tempBuff;
+        delete[] tempBuff;
 
         // Set whole value back again
         logger->debug("Pushing partial state for {}", key);
         redis.set(key, sharedMemBytes, valueSize);
 
+        // Mark as no longer dirty
+        isDirty = false;
+
+        // Zero the mask
+        memset((void *) dirtyMaskBytes, 0, valueSize);
+
         // Release remote lock
         redis.releaseLock(key, remoteLockId);
         logger->debug("Released remote lock for {} with id {}", key, remoteLockId);
-
-        // Clean up
-        zeroDirtyFlags();
     }
 
     void StateKeyValue::lockRead() {

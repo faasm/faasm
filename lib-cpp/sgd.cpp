@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <algorithm>
 #include <string.h>
+#include <faasm/state.h>
 
 using namespace Eigen;
 
@@ -68,11 +69,13 @@ namespace faasm {
         Map<const MatrixXd> outputs = readMatrixColumnsFromState(OUTPUTS_KEY, sgdParams.nTrain, startIdx, endIdx, 1,
                                                                  false);
 
-        // Load the weights
+        // Load the weights and mask
         size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
         uint8_t *weightDataByteBuffer = faasmReadStatePtr(WEIGHTS_KEY, nWeightBytes);
+        uint8_t *weightMaskBytes = faasmReadStatePtr(MASK_KEY, nWeightBytes);
 
         auto weightDataBuffer = reinterpret_cast<double *>(weightDataByteBuffer);
+        auto weightMask = reinterpret_cast<unsigned int *>(weightMaskBytes);
 
         // Read in the feature counts (will be constant)
         size_t nFeatureCountBytes = sgdParams.nWeights * sizeof(int);
@@ -118,20 +121,20 @@ namespace faasm {
                 // --------- Update -----------
 
                 // Ignore if we're not syncing
-                if(sgdParams.syncInterval < 0) {
+                if (sgdParams.syncInterval < 0) {
                     continue;
                 }
 
-                // Mark this value as dirty
-                size_t offset = it.row() * sizeof(double);
-                faasmFlagStateOffsetDirty(WEIGHTS_KEY, nWeightBytes, offset, sizeof(double));
+                // Set mask for this value being dirty
+                faasm::maskDouble(weightMask, thisFeature);
 
                 // Increment the update count and work out if we need to do a sync
                 updateCount++;
                 bool syncNeeded = (updateCount > 0) && (updateCount % sgdParams.syncInterval) == 0;
                 if (syncNeeded) {
                     // Sync the updates
-                    faasmPushStatePartial(WEIGHTS_KEY);
+                    faasmFlagStateDirty(WEIGHTS_KEY, nWeightBytes);
+                    faasmPushStatePartialMask(WEIGHTS_KEY, MASK_KEY);
                 } else {
                     // No sync required
                     continue;
@@ -140,8 +143,9 @@ namespace faasm {
         }
 
         // Final sync if we're doing syncs
-        if(sgdParams.syncInterval >= 0) {
-            faasmPushStatePartial(WEIGHTS_KEY);
+        if (sgdParams.syncInterval >= 0) {
+            faasmFlagStateDirty(WEIGHTS_KEY, nWeightBytes);
+            faasmPushStatePartialMask(WEIGHTS_KEY, MASK_KEY);
         }
 
         // Recalculate all predictions
@@ -163,7 +167,7 @@ namespace faasm {
         auto bytes = reinterpret_cast<uint8_t *>(buffer);
         faasmWriteState(ERRORS_KEY, bytes, len * sizeof(double));
 
-        if(push) {
+        if (push) {
             faasmPushState(ERRORS_KEY);
         }
     }

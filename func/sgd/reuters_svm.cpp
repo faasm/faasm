@@ -31,10 +31,11 @@ FAASM_MAIN_FUNC() {
     int epochs = 20;
     faasm::SgdParams p = setUpReutersParams(nWorkers, epochs, true);
 
-    // Initialise weights
+    // Initialise weights and mask
     printf("Initialising weights with zeros\n");
-    Eigen::MatrixXd weights = zeroMatrix(1, p.nWeights);
-    writeMatrixToState(WEIGHTS_KEY, weights, true);
+    Eigen::MatrixXd zeros = zeroMatrix(1, p.nWeights);
+    writeMatrixToState(WEIGHTS_KEY, zeros, true);
+    writeMatrixToState(MASK_KEY, zeros, true);
 
     // Prepare string for output
     std::string output;

@@ -26,6 +26,15 @@ namespace wasm {
         kv->pushPartial();
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state_partial_mask", void, __faasm_push_state_partial_mask,
+            I32 keyPtr, I32 maskKeyPtr) {
+        util::getLogger()->debug("S - push_state_partial_mask - {}", keyPtr, maskKeyPtr);
+
+        auto kv = getStateKV(keyPtr, 0);
+        auto maskKv = getStateKV(maskKeyPtr, 0);
+        kv->pushPartialMask(maskKv);
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_pull_state", void, __faasm_pull_state, I32 keyPtr, I32 stateLen) {
         util::getLogger()->debug("S - pull_state - {} {}", keyPtr, stateLen);
 
@@ -141,13 +150,12 @@ namespace wasm {
         return offsetPtr;
     }
 
-
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_flag_state_dirty", void, __faasm_flag_state_dirty,
                                    I32 keyPtr, I32 totalLen) {
         util::getLogger()->debug("S - __faasm_flag_state_dirty - {} {}", keyPtr, totalLen);
 
         auto kv = getStateKV(keyPtr, totalLen);
-        kv->flagFullValueDirty();
+        kv->flagDirty();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_flag_state_offset_dirty", void, __faasm_flag_state_offset_dirty,

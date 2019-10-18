@@ -24,8 +24,6 @@ namespace state {
         unsigned int remoteLockWaitTime = 500;
         unsigned int remoteLockMaxRetries = 10;
 
-        uint8_t* dirtyFlags = nullptr;
-
         explicit StateKeyValue(const std::string &keyIn, size_t sizeIn);
 
         const std::string key;
@@ -52,6 +50,8 @@ namespace state {
 
         void pushPartial();
 
+        void pushPartialMask(std::shared_ptr<StateKeyValue> maskKv);
+
         void clear();
 
         void lockRead();
@@ -62,7 +62,9 @@ namespace state {
 
         void unlockWrite();
 
-        void flagFullValueDirty();
+        void flagDirty();
+
+        void zeroValue();
 
         void flagSegmentDirty(long offset, long len);
 
@@ -71,24 +73,26 @@ namespace state {
         size_t size();
 
     private:
-        bool isWholeValueDirty;
-        bool isPartiallyDirty;
+        bool isDirty;
 
         std::shared_mutex valueMutex;
 
         size_t valueSize;
         size_t sharedMemSize;
         void *sharedMemory;
+        void* dirtyMask;
 
         std::atomic<bool> _empty;
 
-        void zeroDirtyFlags();
+        void zeroDirtyMask();
 
         void initialiseStorage();
 
         void pullImpl(bool onlyIfEmpty);
 
         long waitOnRemoteLock();
+
+        void doPushPartial(const uint8_t *dirtyMaskBytes);
     };
 
     typedef std::unordered_map<std::string, std::shared_ptr<StateKeyValue>> KVMap;

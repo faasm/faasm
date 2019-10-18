@@ -1,5 +1,6 @@
 __faasm_push_state
 __faasm_push_state_partial
+__faasm_push_state_partial_mask
 __faasm_pull_state
 __faasm_read_state
 __faasm_read_state_ptr

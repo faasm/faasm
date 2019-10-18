@@ -232,6 +232,10 @@ void __faasm_push_state_partial(const char *key) {
 
 }
 
+void __faasm_push_state_partial_mask(const char *key, const char *maskKey) {
+
+}
+
 void __faasm_pull_state(const char *key, long stateLen) {
 
 }

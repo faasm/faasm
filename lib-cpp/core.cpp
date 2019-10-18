@@ -45,6 +45,10 @@ void faasmPushStatePartial(const char *key) {
     __faasm_push_state_partial(key);
 }
 
+void faasmPushStatePartialMask(const char *key, const char* maskKey) {
+    __faasm_push_state_partial_mask(key, maskKey);
+}
+
 void faasmPullState(const char *key, long stateLen) {
     __faasm_pull_state(key, stateLen);
 }

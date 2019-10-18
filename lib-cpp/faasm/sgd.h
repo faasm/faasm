@@ -7,6 +7,7 @@
 using namespace Eigen;
 
 #define WEIGHTS_KEY "weights"
+#define MASK_KEY "weights_mask"
 #define INPUTS_KEY "inputs"
 #define FEATURE_COUNTS_KEY "feature_counts"
 #define OUTPUTS_KEY "outputs"

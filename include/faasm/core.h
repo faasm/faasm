@@ -59,6 +59,11 @@ void faasmPushState(const char *key);
 void faasmPushStatePartial(const char *key);
 
 /**
+ * Forces a push of any partial state updates with the given mask
+*/
+void faasmPushStatePartialMask(const char *key, const char *maskKey);
+
+/**
  * Forces a pull of state
  */
 void faasmPullState(const char *key, long stateLen);

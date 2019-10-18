@@ -3,6 +3,8 @@
 #include <iostream>
 #include <typeinfo>
 
+#define DOUBLE_BYTES 0b1111111111111111111111111111111111111111111111111111111111111111
+
 template<typename T>
 void checkSizeOf(size_t expected, const char *name) {
     size_t actual = sizeof(T);
@@ -13,19 +15,36 @@ void checkSizeOf(size_t expected, const char *name) {
 }
 
 FAASM_MAIN_FUNC() {
+    double d = DOUBLE_BYTES;
+    printf("Double: %f\n", d);
+
     checkSizeOf<double>(8, "double");
+
     checkSizeOf<float>(4, "float");
     checkSizeOf<int>(4, "int");
+
+#ifdef __wasm__
     checkSizeOf<long>(4, "long");
     checkSizeOf<long long>(8, "long long");
+#else
+    checkSizeOf<long>(8, "long");
+    checkSizeOf<long long>(8, "long long");
+#endif
+
     checkSizeOf<short>(2, "short");
     checkSizeOf<char>(1, "char");
-
     checkSizeOf<off_t>(8, "off_t");
-    checkSizeOf<uintptr_t>(4, "uintptr_t");
-    checkSizeOf<intptr_t>(4, "intptr_t");
-    checkSizeOf<size_t>(4, "size_t");
-    checkSizeOf<void *>(4, "void *");
+
+#ifdef __wasm__
+    int ptrSize = 4;
+#else
+    int ptrSize = 8;
+#endif
+
+    checkSizeOf<uintptr_t>(ptrSize, "uintptr_t");
+    checkSizeOf<intptr_t>(ptrSize, "intptr_t");
+    checkSizeOf<void *>(ptrSize, "void *");
+    checkSizeOf<size_t>(ptrSize, "size_t");
 
     return 0;
 }

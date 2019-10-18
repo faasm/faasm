@@ -18,6 +18,7 @@ set(PUBLIC_HEADERS
         faasm/print.h
         faasm/random.h
         faasm/sgd.h
+        faasm/state.h
         faasm/time.h
         )
 
@@ -30,6 +31,7 @@ set(LIB_FILES
         print.cpp
         random.cpp
         sgd.cpp
+        state.cpp
         time.cpp
         zygote.cpp
         )
