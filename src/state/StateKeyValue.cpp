@@ -11,8 +11,6 @@
 using namespace util;
 
 namespace state {
-    static uint8_t  flagOn = 0b11111111;
-
     /**
      * Key/value
      */
@@ -179,7 +177,7 @@ namespace state {
             std::copy(buffer, buffer + length, bytePtr + offset);
         }
 
-        this->flagSegmentDirty(offset, length);
+        flagSegmentDirty(offset, length);
     }
 
     void StateKeyValue::flagFullValueDirty() {
@@ -190,12 +188,8 @@ namespace state {
         memset(dirtyFlags, 0, valueSize);
     }
 
-    void StateKeyValue::flagSegmentDirty(long offset, long len) {
-        if (!isPartiallyDirty) isPartiallyDirty = true;
-
-        SharedLock lock(valueMutex);
-
-        memset(dirtyFlags + offset, flagOn, len);
+    inline void StateKeyValue::flagSegmentDirty(long offset, long len) {
+        memset(dirtyFlags + offset, 0b11111111, len);
 //        for (long i = 0; i < len; i++) {
 //            dirtyFlags[offset + i] |= flagOn;
 //        }

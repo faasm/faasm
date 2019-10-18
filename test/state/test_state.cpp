@@ -112,10 +112,6 @@ namespace tests {
         ptr[0] = 8;
         ptr[5] = 7;
 
-        // Push partial and check nothing happens (as nothing is marked, no push/ pull will occur)
-        kv->pushPartial();
-        REQUIRE(redisState.get(kv->key) == values);
-
         // Mark one region as dirty, do push and check update happens
         kv->flagSegmentDirty(0, 2);
         kv->pushPartial();

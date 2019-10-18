@@ -24,6 +24,8 @@ namespace state {
         unsigned int remoteLockWaitTime = 500;
         unsigned int remoteLockMaxRetries = 10;
 
+        uint8_t* dirtyFlags = nullptr;
+
         explicit StateKeyValue(const std::string &keyIn, size_t sizeIn);
 
         const std::string key;
@@ -71,7 +73,6 @@ namespace state {
     private:
         bool isWholeValueDirty;
         bool isPartiallyDirty;
-        uint8_t* dirtyFlags = nullptr;
 
         std::shared_mutex valueMutex;
 
