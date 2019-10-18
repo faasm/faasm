@@ -8,8 +8,6 @@ namespace worker {
     public:
         explicit WorkerThreadPool(int nThreads);
 
-        void startStateThread();
-
         void startGlobalQueueThread();
 
         void startSharingThread();

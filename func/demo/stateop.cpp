@@ -7,7 +7,8 @@
 FAASM_MAIN_FUNC() {
     const char *key = "state_op";
 
-    faasm::incrementCounter(key, false);
+    faasm::incrementCounter(key);
+    faasmPushState(key);
 
     return 0;
 }

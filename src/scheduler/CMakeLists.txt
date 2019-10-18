@@ -7,6 +7,7 @@ set(HEADERS
         ${FAASM_INCLUDE_DIR}/scheduler/InMemoryMessageQueue.h
         ${FAASM_INCLUDE_DIR}/scheduler/RedisMessageBus.h
         ${FAASM_INCLUDE_DIR}/scheduler/Scheduler.h
+        ${FAASM_INCLUDE_DIR}/scheduler/SchedulerHttpMixin.h
         ${FAASM_INCLUDE_DIR}/scheduler/SharingMessageBus.h
 )
 
@@ -14,6 +15,7 @@ set(LIB_FILES
         GlobalMessageBus.cpp
         RedisMessageBus.cpp
         Scheduler.cpp
+        SchedulerHttpMixin.cpp
         SharingMessageBus.cpp
         ${HEADERS}
 )

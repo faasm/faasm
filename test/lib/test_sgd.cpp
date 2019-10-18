@@ -25,7 +25,6 @@ namespace tests {
         params.nWeights = 3;
         params.learningRate = 0.1;
         params.nEpochs = 2;
-        params.fullAsync = false;
 
         return params;
     }
@@ -46,37 +45,35 @@ namespace tests {
         const char *key = "params_test";
 
         // Write to state
-        writeParamsToState(key, params);
+        writeParamsToState(key, params, true);
 
         // Read back and check
-        SgdParams actual = readParamsFromState(key, false);
+        SgdParams actual = readParamsFromState(key, true);
         checkSgdParamEquality(actual, params);
     }
 
     TEST_CASE("Test setting up dummy data", "[sgd]") {
         cleanSystem();
 
-        SgdParams params = getDummySgdParams();
-        params.fullAsync = false;
-
         // Set up the problem
+        SgdParams params = getDummySgdParams();
         setUpDummyProblem(params);
 
         // Check params are set up
-        SgdParams actual = readParamsFromState(PARAMS_KEY, false);
+        SgdParams actual = readParamsFromState(PARAMS_KEY, true);
         checkSgdParamEquality(actual, params);
 
         // Check weights
-        const MatrixXd actualWeights = readMatrixFromState(WEIGHTS_KEY, 1, params.nWeights, false);
+        const MatrixXd actualWeights = readMatrixFromState(WEIGHTS_KEY, 1, params.nWeights, true);
         REQUIRE(actualWeights.rows() == 1);
         REQUIRE(actualWeights.cols() == params.nWeights);
 
-        const MatrixXd actualOutputs = readMatrixFromState(OUTPUTS_KEY, params.nWeights, params.nTrain, false);
+        const MatrixXd actualOutputs = readMatrixFromState(OUTPUTS_KEY, params.nWeights, params.nTrain, true);
         REQUIRE(actualOutputs.rows() == params.nWeights);
         REQUIRE(actualOutputs.cols() == params.nTrain);
     }
 
-    void checkLossUpdates(bool async) {
+    TEST_CASE("Test hinge loss updates", "[sgd]") {
         cleanSystem();
 
         int nWeights = 4;
@@ -92,13 +89,14 @@ namespace tests {
         weights << 1, 2, 3, 4;
 
         // Persist weights to allow updates
-        writeMatrixToState(WEIGHTS_KEY, weights, async);
+        writeMatrixToState(WEIGHTS_KEY, weights, true);
 
         // Set up some dummy feature counts
         std::vector<int> featureCounts(4);
         std::fill(featureCounts.begin(), featureCounts.end(), 1);
         uint8_t *featureBytes = reinterpret_cast<uint8_t *>(featureCounts.data());
-        faasmWriteState(FEATURE_COUNTS_KEY, featureBytes, 4 * sizeof(int), async);
+        faasmWriteState(FEATURE_COUNTS_KEY, featureBytes, 4 * sizeof(int));
+        faasmPushState(FEATURE_COUNTS_KEY);
 
         // Copy of weights for testing
         MatrixXd weightsCopy = weights;
@@ -119,7 +117,7 @@ namespace tests {
 
         // Set up inputs in state
         inputs.setFromTriplets(tripletList.begin(), tripletList.end());
-        faasm::writeSparseMatrixToState(INPUTS_KEY, inputs, async);
+        faasm::writeSparseMatrixToState(INPUTS_KEY, inputs, true);
 
         // Check what the predictions are pre-update
         MatrixXd preUpdate = weights * inputs;
@@ -133,7 +131,7 @@ namespace tests {
         MatrixXd outputs(1, 2);
         outputs << -1, 1;
 
-        faasm::writeMatrixToState(OUTPUTS_KEY, outputs, async);
+        faasm::writeMatrixToState(OUTPUTS_KEY, outputs, true);
 
         int epoch = 3;
         hingeLossWeightUpdate(params, epoch, batchNumber, startIdx, endIdx);
@@ -142,7 +140,7 @@ namespace tests {
         faasmPushStatePartial(WEIGHTS_KEY);
 
         // Check weights have been updated where necessary
-        const MatrixXd actualWeights = readMatrixFromState(WEIGHTS_KEY, 1, nWeights, async);
+        const MatrixXd actualWeights = readMatrixFromState(WEIGHTS_KEY, 1, nWeights, true);
         REQUIRE(actualWeights.rows() == 1);
         REQUIRE(actualWeights.cols() == nWeights);
 
@@ -153,14 +151,6 @@ namespace tests {
 
         // Where no input values, weights should remain the same
         REQUIRE(actualWeights(0, 3) == weightsCopy(0, 3));
-    }
-
-    TEST_CASE("Test hinge loss updates", "[sgd]") {
-        checkLossUpdates(false);
-    }
-
-    TEST_CASE("Test hinge loss updates async", "[sgd]") {
-        checkLossUpdates(true);
     }
 
     void checkDoubleArrayInState(redis::Redis &r, const char *key, std::vector<double> expected) {
@@ -193,7 +183,7 @@ namespace tests {
         params.nBatches = 4;
 
         // Check zeroing out errors
-        zeroErrors(params);
+        zeroErrors(params, true);
         checkDoubleArrayInState(redisQueue, errorKey.c_str(), {0, 0, 0, 0});
 
         // Work out expectation
@@ -203,6 +193,7 @@ namespace tests {
         // Write errors to memory
         writeHingeError(params, 0, a, b);
         writeHingeError(params, 2, a, b);
+        faasmPushState(ERRORS_KEY);
 
         checkDoubleArrayInState(redisQueue, errorKey.c_str(), {expected1, 0, expected2, 0});
     }
@@ -218,7 +209,8 @@ namespace tests {
         p.nTrain = 20;
 
         // With nothing set up, error should be zero
-        zeroErrors(p);
+        zeroErrors(p, true);
+
         double initial = faasm::readRootMeanSquaredError(p);
         REQUIRE(initial == 0);
 
@@ -229,6 +221,7 @@ namespace tests {
 
         writeHingeError(p, 0, a, b);
         writeHingeError(p, 1, a, b);
+        faasmPushState(ERRORS_KEY);
 
         // Check these have been written
         const std::string actualKey = util::keyForUser(user, ERRORS_KEY);
@@ -241,42 +234,12 @@ namespace tests {
 
         // Now write error for a third batch
         writeHingeError(p, 2, a, b);
+        faasmPushState(ERRORS_KEY);
         checkDoubleArrayInState(redisState, actualKey.c_str(), {expected, expected, expected});
 
         // Work out what the result should be
         double expectedRmse2 = sqrt((3 * expected) / p.nTrain);
         double actual2 = faasm::readRootMeanSquaredError(p);
         REQUIRE(abs(actual2 - expectedRmse2) < 0.0000001);
-    }
-
-    TEST_CASE("Test getting full async from environment", "[sgd]") {
-        std::string envVar;
-        bool expected;
-        util::SystemConfig &conf = util::getSystemConfig();
-
-        SECTION("Check true") {
-            envVar = "1";
-            expected = true;
-        }
-        SECTION("Check false") {
-            envVar = "0";
-            expected = false;
-        }
-        SECTION("Check NULL") {
-            envVar = "";
-            expected = false;
-        }
-
-        if(envVar.empty()) {
-            util::unsetEnvVar("FULL_ASYNC");
-        } else {
-            util::setEnvVar("FULL_ASYNC", envVar);
-        }
-
-        conf.reset();
-        bool actual = getEnvFullAsync();
-        REQUIRE(actual == expected);
-
-        util::unsetEnvVar("FULL_ASYNC");
     }
 }

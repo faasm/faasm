@@ -19,13 +19,6 @@ namespace state {
         return s;
     }
 
-    void State::pushAll() {
-        // Run the sync for all users' state
-        for (const auto &iter: userStateMap) {
-            iter.second->pushAll();
-        }
-    }
-
     void State::forceClearAll() {
         userStateMap.clear();
     }

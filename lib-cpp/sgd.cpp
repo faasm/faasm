@@ -3,42 +3,12 @@
 #include <stddef.h>
 #include <algorithm>
 #include <string.h>
+#include <faasm/state.h>
 
 using namespace Eigen;
 
 namespace faasm {
-    bool _getEnvVarBool(const char *varName) {
-        char envVal[3];
-        faasmReadConfig(varName, envVal);
-
-        return strcmp(envVal, "1") == 0;
-    }
-
-    bool getEnvFullSync() {
-        bool result = _getEnvVarBool("FULL_SYNC");
-
-        if (result) {
-            printf("SGD running full sync\n");
-        } else {
-            printf("SGD not running full sync\n");
-        }
-
-        return result;
-    }
-
-    bool getEnvFullAsync() {
-        bool result = _getEnvVarBool("FULL_ASYNC");
-
-        if (result) {
-            printf("SGD running full async\n");
-        } else {
-            printf("SGD not running full async\n");
-        }
-
-        return result;
-    }
-
-    SgdParams setUpReutersParams(int nBatches, int epochs) {
+    SgdParams setUpReutersParams(int nBatches, int epochs, bool push) {
         // Set up reuters params
         SgdParams p;
         p.nWeights = REUTERS_N_FEATURES;
@@ -52,71 +22,80 @@ namespace faasm {
         p.nBatches = nBatches;
         p.batchSize = (REUTERS_N_EXAMPLES + nBatches - 1) / nBatches;
 
-        // Full async or not
-        p.fullAsync = getEnvFullAsync();
-        p.fullSync = getEnvFullSync();
-
         // How many examples should be processed before doing a synchronous read
         // to update worker's weights
         p.syncInterval = REUTERS_SYNC_INTERVAL;
 
-        // Write params (will take async/ not from params themselves)
         printf("Writing SVM params to state\n");
-        writeParamsToState(PARAMS_KEY, p);
+        writeParamsToState(PARAMS_KEY, p, push);
 
         return p;
     }
 
-    void writeParamsToState(const char *keyName, const SgdParams &params) {
+    void writeParamsToState(const char *keyName, const SgdParams &params, bool push) {
         size_t nBytes = sizeof(SgdParams);
         auto bytePtr = reinterpret_cast<const uint8_t *>(&params);
 
-        // Allow full async
-        faasmWriteState(keyName, bytePtr, nBytes, params.fullAsync);
+        faasmWriteState(keyName, bytePtr, nBytes);
+
+        if (push) {
+            faasmPushState(keyName);
+        }
     }
 
-    SgdParams readParamsFromState(const char *keyName, bool async) {
+    SgdParams readParamsFromState(const char *keyName, bool pull) {
         size_t nBytes = sizeof(SgdParams);
+
+        if (pull) {
+            faasmPullState(keyName, nBytes);
+        }
+
         SgdParams s{};
-        faasmReadState(keyName, reinterpret_cast<uint8_t *>(&s), nBytes, async);
+        faasmReadState(keyName, reinterpret_cast<uint8_t *>(&s), nBytes);
 
         return s;
     }
 
     void hingeLossWeightUpdate(const SgdParams &sgdParams, int epoch, int batchNumber,
                                int startIdx, int endIdx) {
+        /* Note this is always asynchronous with pushes decided based on the params */
 
-        // Load this batch of inputs
+        // Load this batch of inputs (read-only)
         printf("Loading inputs %i - %i\n", startIdx, endIdx);
-        Map<const SparseMatrix<double>> inputs = readSparseMatrixColumnsFromState(INPUTS_KEY,
-                                                                                  startIdx, endIdx, true);
+        Map<const SparseMatrix<double>> inputs = readSparseMatrixColumnsFromState(INPUTS_KEY, startIdx, endIdx, false);
 
-        // Load this batch of outputs
+        // Load this batch of outputs (read-only)
         printf("Loading outputs %i - %i\n", startIdx, endIdx);
-        Map<const MatrixXd> outputs = readMatrixColumnsFromState(OUTPUTS_KEY, sgdParams.nTrain,
-                                                                 startIdx, endIdx, 1, true);
+        Map<const MatrixXd> outputs = readMatrixColumnsFromState(OUTPUTS_KEY, sgdParams.nTrain, startIdx, endIdx, 1,
+                                                                 false);
 
         // Load the weights
         size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
-        uint8_t *weightDataByteBuffer = faasmReadStatePtr(WEIGHTS_KEY, nWeightBytes, true);
+        uint8_t *weightDataByteBuffer = faasmReadStatePtr(WEIGHTS_KEY, nWeightBytes);
+
+        // Load the mask - this is always zeroed in state so must be pulled
+        // TODO - Async conflict
+        faasmPullState(MASK_KEY, nWeightBytes);
+        uint8_t *weightMaskBytes = faasmReadStatePtr(MASK_KEY, nWeightBytes);
 
         auto weightDataBuffer = reinterpret_cast<double *>(weightDataByteBuffer);
+        auto weightMask = reinterpret_cast<unsigned int *>(weightMaskBytes);
 
         // Read in the feature counts (will be constant)
         size_t nFeatureCountBytes = sgdParams.nWeights * sizeof(int);
-        uint8_t *featureCountByteBuffer = faasmReadStatePtr(FEATURE_COUNTS_KEY, nFeatureCountBytes, true);
+        uint8_t *featureCountByteBuffer = faasmReadStatePtr(FEATURE_COUNTS_KEY, nFeatureCountBytes);
         auto featureCountBuffer = reinterpret_cast<int *>(featureCountByteBuffer);
 
         // Shuffle examples in this batch
         int *cols = randomIntRange(inputs.outerSize());
 
         // Iterate through all training examples (i.e. columns)
-        int exampleCount = 0;
+        int updateCount = 0;
         for (int c = 0; c < inputs.outerSize(); ++c) {
             int col = cols[c];
 
             double thisOutput = outputs.coeff(0, col);
-
+            // Iterate through the non-null rows in this column
             double thisPrediction = 0.0;
             for (Map<const SparseMatrix<double>>::InnerIterator it(inputs, col); it; ++it) {
                 double weight = weightDataBuffer[it.row()];
@@ -129,6 +108,8 @@ namespace faasm {
 
             // Iterate through all non-zero input values in this column and update the relevant weight accordingly
             for (Map<const SparseMatrix<double>>::InnerIterator it(inputs, col); it; ++it) {
+                // --------- Calculation -----------
+
                 // Get the value and associated weight
                 long thisFeature = it.row();
 
@@ -141,30 +122,36 @@ namespace faasm {
                 int thisFeatureCount = featureCountBuffer[thisFeature];
                 weightDataBuffer[thisFeature] *= 1 - constScalar / thisFeatureCount;
 
-                // Handle updates differently for full sync/ async/ full async
-                if (sgdParams.fullSync) {
-                    // Write offset synchronously on every loop if running full sync
-                    size_t offset = it.row() * sizeof(double);
-                    double *thisWeightPtr = &weightDataBuffer[thisFeature];
-                    auto weightBytes = reinterpret_cast<uint8_t *>(thisWeightPtr);
+                // --------- Update -----------
 
-                    faasmWriteStateOffset(WEIGHTS_KEY, nWeightBytes, offset, weightBytes, sizeof(double), false);
-                } else if (!sgdParams.fullAsync) {
-                    // Flag that this segment is dirty if async
-                    size_t offset = it.row() * sizeof(double);
-                    faasmFlagStateOffsetDirty(WEIGHTS_KEY, nWeightBytes, offset, sizeof(double));
+                // Ignore if we're not syncing
+                if (sgdParams.syncInterval < 0) {
+                    continue;
+                }
+
+                // Set mask for this value being dirty
+                faasm::maskDouble(weightMask, thisFeature);
+
+                // Increment the update count and work out if we need to do a sync
+                updateCount++;
+                bool syncNeeded = (updateCount > 0) && (updateCount % sgdParams.syncInterval) == 0;
+                if (syncNeeded) {
+                    // TODO - Async conflict
+                    // Sync the updates
+                    faasmFlagStateDirty(WEIGHTS_KEY, nWeightBytes);
+                    faasmPushStatePartialMask(WEIGHTS_KEY, MASK_KEY);
+                } else {
+                    // No sync required
+                    continue;
                 }
             }
+        }
 
-            // If we're running in normal async mode, do a write (of the dirty segments)
-            // This will both push local writes, and pull in the latest updates
-            if (!sgdParams.fullSync && !sgdParams.fullAsync) {
-                exampleCount++;
-                bool isSyncNeeded = (exampleCount > 0) && ((exampleCount % sgdParams.syncInterval) == 0);
-                if (isSyncNeeded) {
-                    faasmPushStatePartial(WEIGHTS_KEY);
-                }
-            }
+        // TODO - Async conflict
+        // Final sync if we're doing syncs
+        if (sgdParams.syncInterval >= 0) {
+            faasmFlagStateDirty(WEIGHTS_KEY, nWeightBytes);
+            faasmPushStatePartialMask(WEIGHTS_KEY, MASK_KEY);
         }
 
         // Recalculate all predictions
@@ -175,18 +162,20 @@ namespace faasm {
         writeHingeError(sgdParams, batchNumber, outputs, prediction);
     }
 
-    void zeroDoubleArray(const char *key, long len, bool async) {
+    void zeroErrors(const SgdParams &sgdParams, bool push) {
+        long len = sgdParams.nBatches;
+
         // Set buffer to zero
         auto buffer = new double[len];
         std::fill(buffer, buffer + len, 0);
 
         // Write zeroed buffer to state
         auto bytes = reinterpret_cast<uint8_t *>(buffer);
-        faasmWriteState(key, bytes, len * sizeof(double), async);
-    }
+        faasmWriteState(ERRORS_KEY, bytes, len * sizeof(double));
 
-    void zeroErrors(const SgdParams &sgdParams) {
-        zeroDoubleArray(ERRORS_KEY, sgdParams.nBatches, sgdParams.fullAsync);
+        if (push) {
+            faasmPushState(ERRORS_KEY);
+        }
     }
 
     void writeHingeError(const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
@@ -202,8 +191,7 @@ namespace faasm {
                 totalBytes,
                 offset,
                 squaredErrorBytes,
-                sizeof(double),
-                sgdParams.fullAsync
+                sizeof(double)
         );
     }
 
@@ -212,12 +200,10 @@ namespace faasm {
         auto *errors = new double[sgdParams.nBatches];
         size_t sizeErrors = sgdParams.nBatches * sizeof(double);
 
-        // Allow fully async
         faasmReadState(
                 ERRORS_KEY,
                 reinterpret_cast<uint8_t *>(errors),
-                sizeErrors,
-                sgdParams.fullAsync
+                sizeErrors
         );
 
         // Iterate through and sum up
@@ -239,7 +225,7 @@ namespace faasm {
 
     void setUpDummyProblem(const SgdParams &params) {
         // Persis the parameters
-        writeParamsToState(PARAMS_KEY, params);
+        writeParamsToState(PARAMS_KEY, params, true);
 
         // Create fake training data as dot product of the matrix of training input data and the real weight vector
         Eigen::MatrixXd realWeights = randomDenseMatrix(1, params.nWeights);
@@ -250,9 +236,9 @@ namespace faasm {
         Eigen::MatrixXd weights = randomDenseMatrix(1, params.nWeights);
 
         // Write all data to memory
-        writeSparseMatrixToState(INPUTS_KEY, inputs, params.fullAsync);
-        writeMatrixToState(OUTPUTS_KEY, outputs, params.fullAsync);
-        writeMatrixToState(WEIGHTS_KEY, weights, params.fullAsync);
+        writeSparseMatrixToState(INPUTS_KEY, inputs, true);
+        writeMatrixToState(OUTPUTS_KEY, outputs, true);
+        writeMatrixToState(WEIGHTS_KEY, weights, true);
     }
 }
 

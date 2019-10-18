@@ -44,6 +44,7 @@ from tasks.compile import (
     compile,
 )
 from tasks.compile_libs import (
+    compile_libc,
     compile_malloc,
     compile_libfaasm,
     compile_eigen,
@@ -60,33 +61,10 @@ from tasks.config import (
     create_faasm_config
 )
 from tasks.docker import (
-    docker_build_base,
-    docker_build_data,
-    docker_build_edge,
-    docker_build_ibm,
-    docker_build_knative,
-    docker_build_noop,
-    docker_build_root,
-    docker_build_redis,
-    docker_build_testing,
-    docker_build_upload,
-    docker_build_worker,
-    docker_build_toolchain,
+    docker_build,
+    docker_push,
     data,
     purge_images,
-    docker_push_data,
-    docker_push_edge,
-    docker_push_ibm,
-    docker_push_knative,
-    docker_push_noop,
-    docker_push_root,
-    docker_push_redis,
-    docker_push_testing,
-    docker_push_upload,
-    docker_push_worker,
-    docker_push_toolchain,
-    pull,
-    docker_push_base,
 )
 from tasks.docker_compose import (
     docker_start_all,
@@ -115,6 +93,10 @@ from tasks.invoke import (
 from tasks.knative import (
     k8s_deploy,
     k8s_delete_worker,
+    build_knative_native,
+    knative_native_local,
+    deploy_knative_native,
+    delete_knative_native,
 )
 from tasks.python import (
     clear_runtime_pyc,
@@ -144,6 +126,7 @@ from tasks.tensorflow import (
 )
 from tasks.toolchain import (
     backup_toolchain,
+    backup_sysroot,
     download_toolchain,
     run_local_codegen,
 )

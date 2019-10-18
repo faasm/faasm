@@ -1,5 +1,5 @@
 from multiprocessing.pool import Pool
-from os import remove, mkdir
+from os import remove, makedirs
 from os.path import join, exists
 from subprocess import check_output
 
@@ -42,18 +42,31 @@ def run_local_codegen(ctx):
 
 @task
 def backup_toolchain(ctx):
-    print("Creating archives of Faasm toolchain and sysroot")
+    backup_sysroot(ctx)
+
+    print("Creating archive of Faasm toolchain")
     check_output("tar -cf {} install".format(TOOLCHAIN_TAR_NAME), shell=True, cwd=TOOLCHAIN_ROOT)
+
+    # Upload
+    print("Uploading archive to S3")
+    upload_file_to_s3(TOOLCHAIN_TAR_PATH, MISC_S3_BUCKET, TOOLCHAIN_TAR_NAME, public=True)
+
+    # Remove old tar
+    print("Removing archive")
+    remove(TOOLCHAIN_TAR_PATH)
+
+
+@task
+def backup_sysroot(ctx):
+    print("Creating archive of Faasm sysroot")
     check_output("tar -cf {} llvm-sysroot".format(SYSROOT_TAR_NAME), shell=True, cwd=FAASM_LOCAL_DIR)
 
     # Upload
-    print("Uploading archives to S3")
-    upload_file_to_s3(TOOLCHAIN_TAR_PATH, MISC_S3_BUCKET, TOOLCHAIN_TAR_NAME, public=True)
+    print("Uploading archive to S3")
     upload_file_to_s3(SYSROOT_TAR_PATH, MISC_S3_BUCKET, SYSROOT_TAR_NAME, public=True)
 
     # Remove old tar
-    print("Removing archives")
-    remove(TOOLCHAIN_TAR_PATH)
+    print("Removing archive")
     remove(SYSROOT_TAR_PATH)
 
 
@@ -69,7 +82,7 @@ def download_toolchain(ctx):
         check_output("rm -rf {}".format(FAASM_SYSROOT), shell=True)
 
     if not exists(FAASM_LOCAL_DIR):
-        mkdir(FAASM_LOCAL_DIR)
+        makedirs(FAASM_LOCAL_DIR)
 
     # Download (note not using Boto)
     print("Downloading archives")

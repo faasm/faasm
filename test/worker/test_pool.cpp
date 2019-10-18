@@ -318,15 +318,6 @@ namespace tests {
         REQUIRE(redisQueue.get(keyName) == expectedRedis);
     }
 
-    TEST_CASE("Test synchronous state", "[worker]") {
-        checkStateExample(
-                "state_sync",
-                "demo_state_example",
-                {0, 1, 2, 3},
-                {0, 1, 2, 3}
-        );
-    }
-
     TEST_CASE("Test asynchronous state", "[worker]") {
         checkStateExample(
                 "state_async",
@@ -406,26 +397,6 @@ namespace tests {
         setUp();
 
         checkCallingFunctionGivesBoolOutput("mmap", true);
-    }
-
-    TEST_CASE("Test config", "[worker]") {
-        setUp();
-
-        bool expected;
-        SECTION("With full async true") {
-            util::setEnvVar("FULL_ASYNC", "1");
-            util::getSystemConfig().reset();
-            expected = true;
-        }
-
-        SECTION("With full async false") {
-            util::setEnvVar("FULL_ASYNC", "0");
-            util::getSystemConfig().reset();
-            expected = false;
-        }
-
-        checkCallingFunctionGivesBoolOutput("read_conf", expected);
-        util::unsetEnvVar("FULL_ASYNC");
     }
 
     TEST_CASE("Test shared state write pointers", "[worker]") {

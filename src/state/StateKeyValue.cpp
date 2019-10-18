@@ -11,7 +11,6 @@
 using namespace util;
 
 namespace state {
-
     /**
      * Key/value
      */
@@ -23,116 +22,43 @@ namespace state {
         sharedMemSize = nHostPages * HOST_PAGE_SIZE;
         sharedMemory = nullptr;
 
-        isWholeValueDirty = false;
-        isPartiallyDirty = false;
+        isDirty = false;
         _empty = true;
-
-        // Gets over the stale threshold trigger a pull from remote
-        const SystemConfig &conf = getSystemConfig();
-        staleThreshold = conf.stateStaleThreshold;
-
-        // State over the clear threshold is removed from local
-        idleThreshold = conf.stateClearThreshold;
-
-        // Whether to run in fully async mode
-        fullAsync = conf.fullAsync > 0;
     }
 
-    void StateKeyValue::pull(bool async) {
-        this->updateLastInteraction();
+    void StateKeyValue::pull() {
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
-
-        // If in full async mode, we won't do an asynchronous pull at all, we just
-        // want to initialise storage
-        if (async && fullAsync) {
-            logger->debug("Skipping async pull in full async mode for {}", key);
-
-            if(_empty) {
-                initialiseStorage();
-                _empty = false;
-            }
-
-            return;
-        }
-
-        // Initialise if new
-        if (_empty) {
-            // Unique lock on the whole value while loading
-            FullLock lock(valueMutex);
-
-            // Double check assumption
-            if (_empty) {
-                logger->debug("Initialising state for {}", key);
-
-                doRemoteRead();
-                _empty = false;
-            }
-
-            return;
-        }
-
-        if (async) {
-            // Check staleness
-            Clock &clock = getGlobalClock();
-            const TimePoint now = clock.now();
-
-            // If stale, try to update from remote
-            if (this->isStale(now)) {
-                // Unique lock on the whole value while loading
-                FullLock lock(valueMutex);
-
-                // Double check staleness
-                if (this->isStale(now)) {
-                    logger->debug("Refreshing stale state for {}", key);
-                    doRemoteRead();
-                }
-            }
-
-        } else {
-            FullLock lock(valueMutex);
-
-            logger->debug("Sync read for state {}", key);
-            doRemoteRead();
-        }
+        logger->debug("Pulling state for {}", key);
+        pullImpl(false);
     }
 
-    void StateKeyValue::doRemoteRead() {
-        // Initialise the data array with zeroes
+    void StateKeyValue::pullImpl(bool onlyIfEmpty) {
+        // Drop out if we already have the data and we don't care about updating
+        {
+            SharedLock lock(valueMutex);
+            if (onlyIfEmpty && !_empty) {
+                return;
+            }
+        }
+
+        // Unique lock on the whole value
+        FullLock lock(valueMutex);
+
+        // Check condition again
+        if (onlyIfEmpty && !_empty) {
+            return;
+        }
+
+        // Initialise the storage if empty
         if (_empty) {
             initialiseStorage();
         }
 
         // Read from the remote
         redis::Redis &redis = redis::Redis::getState();
-
-        const std::shared_ptr<spdlog::logger> &logger = getLogger();
-        logger->debug("Reading from remote for {}", key);
-
         redis.get(key, static_cast<uint8_t *>(sharedMemory), valueSize);
 
-        Clock &clock = getGlobalClock();
-        const TimePoint now = clock.now();
-        lastPull = now;
-
-        this->updateLastInteraction();
-    }
-
-    void StateKeyValue::updateLastInteraction() {
-        Clock &clock = getGlobalClock();
-        const TimePoint now = clock.now();
-        lastInteraction = now;
-    }
-
-    bool StateKeyValue::isStale(const TimePoint &now) {
-        Clock &clock = getGlobalClock();
-        long age = clock.timeDiff(now, lastPull);
-        return age > staleThreshold;
-    }
-
-    bool StateKeyValue::isIdle(const TimePoint &now) {
-        Clock &clock = getGlobalClock();
-        long idleTime = clock.timeDiff(now, lastInteraction);
-        return idleTime > idleThreshold;
+        _empty = false;
     }
 
     long StateKeyValue::waitOnRemoteLock() {
@@ -160,16 +86,8 @@ namespace state {
         return remoteLockId;
     }
 
-    void StateKeyValue::preGet() {
-        if (this->empty()) {
-            throw std::runtime_error("Must pull before accessing state");
-        }
-
-        this->updateLastInteraction();
-    }
-
     void StateKeyValue::get(uint8_t *buffer) {
-        this->preGet();
+        pullImpl(true);
 
         SharedLock lock(valueMutex);
 
@@ -178,7 +96,7 @@ namespace state {
     }
 
     uint8_t *StateKeyValue::get() {
-        this->preGet();
+        pullImpl(true);
 
         SharedLock lock(valueMutex);
 
@@ -186,7 +104,7 @@ namespace state {
     }
 
     void StateKeyValue::getSegment(long offset, uint8_t *buffer, size_t length) {
-        this->preGet();
+        pullImpl(true);
 
         SharedLock lock(valueMutex);
 
@@ -203,7 +121,7 @@ namespace state {
     }
 
     uint8_t *StateKeyValue::getSegment(long offset, long len) {
-        this->preGet();
+        pullImpl(true);
 
         SharedLock lock(valueMutex);
 
@@ -212,8 +130,6 @@ namespace state {
     }
 
     void StateKeyValue::set(const uint8_t *buffer) {
-        this->updateLastInteraction();
-
         // Unique lock for setting the whole value
         FullLock lock(valueMutex);
 
@@ -223,13 +139,11 @@ namespace state {
 
         // Copy data into shared region
         std::copy(buffer, buffer + valueSize, static_cast<uint8_t *>(sharedMemory));
-        isWholeValueDirty = true;
+        isDirty = true;
         _empty = false;
     }
 
     void StateKeyValue::setSegment(long offset, const uint8_t *buffer, size_t length) {
-        this->updateLastInteraction();
-
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         // Check we're in bounds
@@ -262,38 +176,37 @@ namespace state {
             std::copy(buffer, buffer + length, bytePtr + offset);
         }
 
-        this->flagSegmentDirty(offset, length);
+        flagSegmentDirty(offset, length);
     }
 
-    void StateKeyValue::flagFullValueDirty() {
-        isWholeValueDirty = true;
+    void StateKeyValue::flagDirty() {
+        isDirty = true;
+    }
+
+    void StateKeyValue::zeroDirtyMask() {
+        memset(dirtyMask, 0, valueSize);
+    }
+
+    void StateKeyValue::zeroValue() {
+        util::FullLock lock(valueMutex);
+
+        memset(sharedMemory, 0, valueSize);
     }
 
     void StateKeyValue::flagSegmentDirty(long offset, long len) {
-        SharedLock lock(valueMutex);
-        isPartiallyDirty = true;
-        std::fill(dirtyFlags.begin() + offset, dirtyFlags.begin() + offset + len, true);
+        isDirty |= true;
+        memset(((uint8_t *) dirtyMask) + offset, 0b11111111, len);
     }
 
     void StateKeyValue::clear() {
-        // Check age since last interaction
-        Clock &c = getGlobalClock();
-        TimePoint now = c.now();
+        // Unique lock on the whole value while clearing
+        FullLock lock(valueMutex);
 
-        // If over clear threshold, remove
-        if (this->isIdle(now) && !_empty) {
-            // Unique lock on the whole value while clearing
-            FullLock lock(valueMutex);
+        const std::shared_ptr<spdlog::logger> &logger = getLogger();
+        logger->debug("Clearing value {}", key);
 
-            // Double check still over the threshold
-            if (this->isIdle(now)) {
-                const std::shared_ptr<spdlog::logger> &logger = getLogger();
-                logger->debug("Clearing unused value {}", key);
-
-                // Set flag to say this is effectively new again
-                _empty = true;
-            }
-        }
+        // Set flag to say this is effectively new again
+        _empty = true;
     }
 
     bool StateKeyValue::empty() {
@@ -305,6 +218,8 @@ namespace state {
     }
 
     void StateKeyValue::mapSharedMemory(void *newAddr) {
+        pullImpl(true);
+
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         if (!isPageAligned(newAddr)) {
@@ -317,8 +232,8 @@ namespace state {
         // Remap our existing shared memory onto this new region
         void *result = mremap(sharedMemory, 0, sharedMemSize, MREMAP_FIXED | MREMAP_MAYMOVE, newAddr);
         if (result == MAP_FAILED) {
-            logger->error("Failed to map shared memory at {} with size {}. errno: {}",
-                          sharedMemory, sharedMemSize, errno);
+            logger->error("Failed to map shared memory for {} at {} with size {}. errno: {}",
+                          key, sharedMemory, sharedMemSize, errno);
 
             throw std::runtime_error("Failed mapping shared memory");
         }
@@ -353,7 +268,11 @@ namespace state {
     void StateKeyValue::initialiseStorage() {
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
-        // Create shared memory region
+        if (sharedMemSize == 0) {
+            throw StateKeyValueException("Initialising storage without a size for " + key);
+        }
+
+        // Create shared memory region for the value
         sharedMemory = mmap(nullptr, sharedMemSize, PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
         if (sharedMemory == MAP_FAILED) {
             logger->debug("Mmapping of storage size {} failed. errno: {}", sharedMemSize, errno);
@@ -364,16 +283,13 @@ namespace state {
         logger->debug("Mmapped {} pages of shared storage for {}", sharedMemSize / HOST_PAGE_SIZE, key);
 
         // Set up dirty flags
-        dirtyFlags.resize(valueSize);
+        dirtyMask = new uint8_t[valueSize];
+        zeroDirtyMask();
     }
 
     void StateKeyValue::pushFull() {
-        if (fullAsync) {
-            throw std::runtime_error("Shouldn't be pushing in full async mode.");
-        }
-
         // Ignore if not dirty
-        if (!isWholeValueDirty) {
+        if (!isDirty) {
             return;
         }
 
@@ -381,7 +297,7 @@ namespace state {
         FullLock fullLock(valueMutex);
 
         // Double check condition
-        if (!isWholeValueDirty) {
+        if (!isDirty) {
             return;
         }
 
@@ -391,94 +307,76 @@ namespace state {
         redis::Redis &redis = redis::Redis::getState();
         redis.set(key, static_cast<uint8_t *>(sharedMemory), valueSize);
 
-        // Reset (as we're setting the full value, we've effectively pulled)
-        Clock &clock = getGlobalClock();
-        lastPull = clock.now();
-
         // Remove any dirty flags
-        isWholeValueDirty = false;
-        if(isPartiallyDirty) {
-            isPartiallyDirty = false;
-            std::fill(dirtyFlags.begin(), dirtyFlags.end(), false);
+        isDirty = false;
+        zeroDirtyMask();
+    }
+
+    void StateKeyValue::pushPartialMask(const std::shared_ptr<StateKeyValue> &maskKv) {
+        if (maskKv->valueSize != valueSize) {
+            std::string msg =
+                    "Different sizes: mask=" + std::to_string(maskKv->valueSize) +
+                    " and value=" + std::to_string(valueSize);
+
+            throw StateKeyValueException(msg);
         }
+
+        uint8_t *maskPtr = maskKv->get();
+        doPushPartial(maskPtr);
     }
 
     void StateKeyValue::pushPartial() {
-        if (fullAsync) {
-            throw std::runtime_error("Shouldn't be pushing in full async mode.");
-        }
+        auto dirtyMaskBytes = reinterpret_cast<uint8_t *>(dirtyMask);
+        doPushPartial(dirtyMaskBytes);
+    }
 
-        // Ignore if the whole value is dirty or not partially dirty
-        if (isWholeValueDirty || !isPartiallyDirty) {
+    void StateKeyValue::doPushPartial(const uint8_t *dirtyMaskBytes) {
+        // Ignore if not dirty
+        if (!isDirty) {
             return;
         }
 
-        const std::shared_ptr<spdlog::logger> &logger = getLogger();
+        // We need a full lock while doing this, mainly to ensure no other threads start
+        // the same process
+        FullLock lock(valueMutex);
+
+        // Double check condition
+        if (!isDirty) {
+            return;
+        }
 
         // Attempt to lock the value remotely
         redis::Redis &redis = redis::Redis::getState();
         long remoteLockId = this->waitOnRemoteLock();
 
         // If we don't get remote lock, just skip this push and wait for next one
+        const std::shared_ptr<spdlog::logger> &logger = getLogger();
         if (remoteLockId <= 0) {
             logger->debug("Failed to acquire remote lock for {}", key);
             return;
         }
 
-        logger->debug("Got remote lock for {} with id {}", key, remoteLockId);
-
-        // TODO Potential locking issues here.
-        // If we get the remote lock, then have to wait a long time for the local
-        // value lock, the remote one may have expired by the time we get to updating
-        // the value, and we end up clashing.
-
-        // Create copy of the dirty flags and clear the old version
-        std::vector<bool> dirtyFlagsCopy(valueSize);
-        {
-            FullLock lock(valueMutex);
-
-            // Double check condition
-            if (isWholeValueDirty || !isPartiallyDirty) {
-                logger->debug("Released remote lock (doing nothing) for {} with id {}", key, remoteLockId);
-                redis.releaseLock(key, remoteLockId);
-                return;
-            }
-
-            std::copy(dirtyFlags.begin(), dirtyFlags.end(), dirtyFlagsCopy.begin());
-
-            // Reset dirty flags
-            isPartiallyDirty = false;
-            std::fill(dirtyFlags.begin(), dirtyFlags.end(), false);
-        }
-
-        // Don't need any more local locking here
+        // Load remote version
         auto tempBuff = new uint8_t[valueSize];
         redis.get(key, tempBuff, valueSize);
 
-        logger->debug("Pushing partial state for {}", key);
-
-        // Go through all dirty flags and update value
-
-        // Find first true flag
-        auto start = std::find(dirtyFlagsCopy.begin(), dirtyFlagsCopy.end(), true);
-
-        // While we still have more segments
-        while (start != dirtyFlagsCopy.end()) {
-            // Find next false
-            auto end = std::find(start + 1, dirtyFlagsCopy.end(), false);
-
-            // Our indices are inclusive here
-            long size = end - start;
-            long offset = start - dirtyFlagsCopy.begin();
-            uint8_t *ptr = static_cast<uint8_t *>(sharedMemory) + offset;
-            std::copy(ptr, ptr + size, tempBuff + offset);
-
-            // Find next true
-            start = std::find(end + 1, dirtyFlagsCopy.end(), true);
+        // Take the remote value for any non-dirty parts of our copy
+        auto sharedMemBytes = reinterpret_cast<uint8_t *>(sharedMemory);
+        for (unsigned long i = 0; i < valueSize; i++) {
+            sharedMemBytes[i] = (sharedMemBytes[i] & dirtyMaskBytes[i]) + (tempBuff[i] & ~dirtyMaskBytes[i]);
         }
 
+        delete[] tempBuff;
+
         // Set whole value back again
-        redis.set(key, tempBuff, valueSize);
+        logger->debug("Pushing partial state for {}", key);
+        redis.set(key, sharedMemBytes, valueSize);
+
+        // Mark as no longer dirty
+        isDirty = false;
+
+        // Zero the mask
+        memset((void *) dirtyMaskBytes, 0, valueSize);
 
         // Release remote lock
         redis.releaseLock(key, remoteLockId);

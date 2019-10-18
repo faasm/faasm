@@ -17,12 +17,13 @@ namespace state {
     std::shared_ptr<StateKeyValue> UserState::getValue(const std::string &key, size_t size) {
         if (kvMap.count(key) == 0) {
             if (size == 0) {
-                throw std::runtime_error("Must provide a size when getting a value that's not already present");
+                throw StateKeyValueException("Uninitialized value for key " + key);
             }
 
             // Lock on editing local state registry
             FullLock fullLock(kvMapMutex);
 
+            // Always mask keys with the user
             std::string actualKey = util::keyForUser(user, key);
 
             // Double check it still doesn't exist
@@ -34,21 +35,5 @@ namespace state {
         }
 
         return kvMap[key];
-    }
-
-    void UserState::pushAll() {
-        // Iterate through all key-values
-        SharedLock sharedLock(kvMapMutex);
-
-        for (const auto &kv : kvMap) {
-            // Attempt to push partial updates
-            kv.second->pushPartial();
-
-            // Attempt to push partial updates
-            kv.second->pushFull();
-
-            // Attempt to clear (will be ignored if not relevant)
-            kv.second->clear();
-        }
     }
 }

@@ -48,9 +48,11 @@ namespace wasm {
 
         message::Message *originalCall = getExecutingCall();
 
+        // Chained calls should always be asynchronous as we don't sit around waiting for the result
         message::Message call = util::messageFactory(originalCall->user(), functionName);
         call.set_inputdata(inputData.data(), inputData.size());
         call.set_idx(idx);
+        call.set_isasync(true);
 
         const std::string origStr = util::funcToString(*originalCall, false);
         const std::string chainedStr = util::funcToString(call, false);

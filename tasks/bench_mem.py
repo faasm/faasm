@@ -1,6 +1,6 @@
 from decimal import Decimal
 from multiprocessing import Process
-from os import makedirs, environ
+from os import makedirs
 from os import remove
 from os.path import exists, join
 from subprocess import call, check_output

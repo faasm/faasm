@@ -1,6 +1,7 @@
 #pragma once
 
 #include <util/config.h>
+#include <util/exception.h>
 
 #include <hiredis/hiredis.h>
 #include <unordered_set>
@@ -162,6 +163,10 @@ namespace redis {
         redisReply* dequeueBase(const std::string &queueName, int timeout);
     };
 
-    class RedisNoResponseException : public std::exception {
+    class RedisNoResponseException : public util::FaasmException {
+    public:
+        explicit RedisNoResponseException(std::string message): FaasmException(std::move(message)) {
+
+        }
     };
 };

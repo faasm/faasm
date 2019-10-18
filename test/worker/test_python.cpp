@@ -8,6 +8,8 @@
 
 namespace tests {
     void checkPythonFunction(const std::string &funcName) {
+        cleanSystem();
+
         util::SystemConfig &conf = util::getSystemConfig();
         conf.fsMode = "on";
 

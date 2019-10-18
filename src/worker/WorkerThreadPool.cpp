@@ -17,26 +17,6 @@ namespace worker {
         redis::Redis::getState().ping();
     }
 
-    void WorkerThreadPool::startStateThread() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        util::SystemConfig &conf = util::getSystemConfig();
-
-        if (!conf.fullAsync) {
-            logger->info("Starting state sync thread");
-
-            stateThread = std::thread([this, conf] {
-                state::State &state = state::getGlobalState();
-
-                while (!this->isShutdown()) {
-                    // usleep takes microseconds
-                    usleep(1000 * conf.statePushInterval);
-
-                    state.pushAll();
-                }
-            });
-        }
-    }
-
     void WorkerThreadPool::startGlobalQueueThread() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         util::SystemConfig &conf = util::getSystemConfig();

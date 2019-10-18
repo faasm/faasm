@@ -22,11 +22,6 @@ namespace worker {
         if(shareWork) {
             pool.startSharingThread();
         }
-
-        // State sync
-        if(syncState) {
-            pool.startStateThread();
-        }
     }
 
     void WorkerMain::awaitGlobalQueue() {
@@ -45,9 +40,5 @@ namespace worker {
 
     void WorkerMain::setShareWork(bool in) {
         shareWork = in;
-    }
-
-    void WorkerMain::setSyncState(bool in) {
-        syncState = in;
     }
 }

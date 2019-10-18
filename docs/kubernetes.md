@@ -23,13 +23,23 @@ inv k8s-deploy --bare-metal
 inv k8s-deploy --ibm
 ```
 
-Once everything has started up, you can get the relevant URLs as follows (on the master node):
+Once everything has started up, you can get the relevant URLs as follows (on the master node), then populate your
+`~/faasm/faasm.ini` file as described below.
+
+## Config file
+
+To avoid typing in hostnames and ports over and over, you can populate a section of your `~/faasm/faasm.ini` file.
+To get the values, run `./bin/knative_route.sh` which should print out something like:
 
 ```
-./bin/knative_route.sh
+[Kubernetes]
+invoke_host = ...   # Usually the IP of your master node
+inoke_port = ...    # E.g. 31380
+upload_host = ...   # IP of the upload service
+upload_port = ...   # Usually 8002
 ```
 
-From here you need to note the invocation IP and port.
+You can then copy-paste this.
 
 ## Uploading functions
 
@@ -40,18 +50,18 @@ source workon.sh
 
 # C++ functions
 # Note, --prebuilt uses the functions checked into the repo
-inv upload --host=<upload IP> --prebuilt <user> <func>
+inv upload --prebuilt <user> <func>
 
 # All Python functions
-inv upload-all --host=<upload IP> --py
+inv upload-all --py
 ```
 
 ## Invoking functions
 
-Invoking functions is a little different to normal Faasm functions and looks like:
+To invoke functions you need to provide the relevant host and port:
 
 ```
-inv invoke --host=<your k8s host> --port=<your invoke port> <user> <func>
+inv invoke <user> <func>
 ```
 
 ## Flushing Redis
@@ -60,6 +70,47 @@ When workers die or are killed, you'll need to clear the queue:
 
 ```
 inv redis-clear-queue --knative
+```
+
+## Uploading and running native functions
+
+For benchmarking we need to run the functions in a more "normal" serverless way (i.e. natively in a container).
+To build the relevant container:
+
+```
+inv build-knative-native <user> <function>
+```
+
+This will use a parameterised Dockerfile to create a container that runs the given function natively.
+
+You can test locally with:
+
+```
+# Build the container
+inv build-knative-native <user> <function> --nopush
+
+# Start the container
+inv knative-native-local <user> <function>
+
+# Submit a request
+inv invoke user function --native
+```
+
+Once you're happy you can run the following on your machine with knative access:
+
+```
+inv deploy-knative-native <user> <function>
+
+inv invoke --native <user> <function>
+```
+
+Given that these will scale from zero, it may take a while on the first invocation.
+
+**Note** For anything that requires chaining we must run it asynchronously so that things don't get clogged up.
+To do this:
+
+```
+inv invoke --native --poll <user> <function>
 ```
 
 ## Troubleshooting
@@ -102,3 +153,9 @@ net.core.somaxconn = 65535
 # Memory-related
 vm.overcommit_memory=1
 ```
+
+# Links/ Notes
+
+- Knative tutorial - https://github.com/meteatamel/knative-tutorial
+- Samples in different languages at: https://knative.dev/docs/serving/samples/
+

@@ -489,7 +489,7 @@ namespace redis {
 
         // Check if we got anything
         if (reply == nullptr || reply->type == REDIS_REPLY_NIL) {
-            throw RedisNoResponseException();
+            throw RedisNoResponseException("No response from Redis dequeue for queue " + queueName);
         }
 
         // Should get an array when doing a blpop, check it.

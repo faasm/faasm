@@ -11,33 +11,32 @@ extern "C" {
 /**
 * Reads the full state at the given key
 */
-void faasmReadState(const char *key, unsigned char *buffer, long bufferLen, bool async);
+void faasmReadState(const char *key, unsigned char *buffer, long bufferLen);
 
 /**
 * Reads the full state and returns a direct pointer
 */
-uint8_t *faasmReadStatePtr(const char *key, long totalLen, bool async);
+uint8_t *faasmReadStatePtr(const char *key, long totalLen);
 
 /**
 * Reads a chunk of state at the given key and offset
 */
-void faasmReadStateOffset(const char *key, long totalLen, long offset, uint8_t *buffer, long bufferLen,
-                          bool async);
+void faasmReadStateOffset(const char *key, long totalLen, long offset, uint8_t *buffer, long bufferLen);
 
 /**
 * Reads a chunk of state and returns a direct pointer
 */
-uint8_t *faasmReadStateOffsetPtr(const char *key, long fullLen, long offset, long len, bool async);
+uint8_t *faasmReadStateOffsetPtr(const char *key, long fullLen, long offset, long len);
 
 /**
 * Overwrites the state at the given key
 */
-void faasmWriteState(const char *key, const uint8_t *data, long dataLen, bool async);
+void faasmWriteState(const char *key, const uint8_t *data, long dataLen);
 
 /**
 * Writes a chunk of state at the given key and offset
 */
-void faasmWriteStateOffset(const char *key, long totalLen, long offset, const uint8_t *data, long dataLen, bool async);
+void faasmWriteStateOffset(const char *key, long totalLen, long offset, const uint8_t *data, long dataLen);
 
 /**
 * Mark the whole value as dirty
@@ -58,6 +57,16 @@ void faasmPushState(const char *key);
  * Forces a push of any partial state updates
  */
 void faasmPushStatePartial(const char *key);
+
+/**
+ * Forces a push of any partial state updates with the given mask
+*/
+void faasmPushStatePartialMask(const char *key, const char *maskKey);
+
+/**
+ * Forces a pull of state
+ */
+void faasmPullState(const char *key, long stateLen);
 
 /**
 * Acquires a read lock for the given state
@@ -123,11 +132,6 @@ unsigned int faasmAwaitCall(unsigned int callId);
  * Gets the index of the current function
  */
 int faasmGetCurrentIdx();
-
-/**
- * Gets values from the faasm config
- */
-void faasmReadConfig(const char *varName, char *buffer);
 
 /**
  * Extra faasm functions

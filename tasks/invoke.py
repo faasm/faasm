@@ -7,15 +7,22 @@ from invoke import task
 
 from tasks.util.config import get_faasm_config
 
-KNATIVE_HEADERS = {
-    "Host": "faasm-worker.faasm.example.com"
-}
+
+def _get_knative_headers(func_name):
+    func_name = func_name.replace("_", "-")
+
+    return {
+        "Host": "faasm-{}.faasm.example.com".format(func_name)
+    }
 
 
 def _do_post(url, input, headers=None, quiet=False):
     # NOTE: Using python to do this is slow compared with running curl
     # directly on the command line (or some other purpose-built tool).
     # As a result this mustn't be used for performance testing
+    print("POST URL    : {}".format(url))
+    print("POST Headers: {}".format(headers))
+    print("POST Data   : {}".format(input)) 
     response = requests.post(url, data=input, headers=headers)
 
     if response.status_code >= 400:
@@ -34,22 +41,9 @@ def _do_invoke(user, func, host, port, func_type, input=None):
     _do_post(url, input)
 
 
-def _do_status_call(call_id, host, port, quiet=False):
-    # NOTE - this only works for knative
-
-    url = "http://{}:{}/".format(host, port)
-
-    msg = {
-        "status": True,
-        "id": call_id,
-    }
-
-    return _do_post(url, dumps(msg), headers=KNATIVE_HEADERS, quiet=quiet)
-
-
 @task
 def invoke(ctx, user, func,
-           host="127.0.0.1",
+           host=None,
            port=None,
            input=None,
            parallel=False,
@@ -58,16 +52,23 @@ def invoke(ctx, user, func,
            ts=False,
            async=False,
            knative=True,
+           native=False,
            ibm=False,
            legacy=False,
            poll=False
            ):
-    # IBM special config
-    if ibm:
-        faasm_config = get_faasm_config()
-        host = faasm_config["IBM"]["k8s_subdomain"]
+    faasm_config = get_faasm_config()
 
-    port = port if port else (8080 if knative or ibm else 8001)
+    # Provider-specific stuff
+    if ibm:
+        host = faasm_config["IBM"]["k8s_subdomain"]
+        port = 8080
+    elif knative and faasm_config.has_section("Kubernetes"):
+        host = faasm_config["Kubernetes"].get("invoke_host", "localhost")
+        port = faasm_config["Kubernetes"].get("invoke_port", 8080)
+    else:
+        host = host if host else "127.0.0.1"
+        port = port if port else 8080
 
     # Polling always requires async
     if poll:
@@ -88,7 +89,9 @@ def invoke(ctx, user, func,
         prefix = None
 
     # Create URL and message
-    url = "http://{}:{}/".format(host, port)
+    url = "http://{}".format(host)
+    if not port == "80":
+        url += ":{}".format(port)
 
     msg = {
         "user": user,
@@ -125,6 +128,14 @@ def invoke(ctx, user, func,
     if parallel and poll:
         raise RuntimeError("Cannot run poll and parallel")
 
+    # Knative must pass custom headers
+    if knative and native:
+        headers = _get_knative_headers(func)
+    elif knative:
+        headers = _get_knative_headers("worker")
+    else:
+        headers = {}
+
     for l in range(loops):
         if loops > 1:
             print("LOOP {}".format(l))
@@ -134,7 +145,7 @@ def invoke(ctx, user, func,
             p = multiprocessing.Pool(n_workers)
 
             if ibm or knative:
-                args_list = [(url, msg_json, KNATIVE_HEADERS) for _ in range(n_workers)]
+                args_list = [(url, msg_json, headers) for _ in range(n_workers)]
             elif legacy:
                 args_list = [(user, func, host, port, prefix, input) for _ in range(n_workers)]
             else:
@@ -146,7 +157,7 @@ def invoke(ctx, user, func,
                 raise RuntimeError("Poll only supported for knative")
 
             # Submit initial async call
-            async_result = _do_post(url, msg_json, headers=KNATIVE_HEADERS, quiet=True)
+            async_result = _do_post(url, msg_json, headers=headers, quiet=True)
             try:
                 call_id = int(async_result)
             except ValueError:
@@ -170,7 +181,7 @@ def invoke(ctx, user, func,
 
         else:
             if ibm or knative:
-                _do_post(url, msg_json, headers=KNATIVE_HEADERS)
+                _do_post(url, msg_json, headers=headers)
             elif legacy:
                 _do_invoke(user, func, host, port, prefix, input=input)
             else:
@@ -179,4 +190,22 @@ def invoke(ctx, user, func,
 
 @task
 def status(ctx, call_id, host="127.0.0.1", port=8080):
+    faasm_config = get_faasm_config()
+    host = faasm_config["Kubernetes"].get("invoke_host", "localhost")
+    port = faasm_config["Kubernetes"].get("invoke_port", 8080)
     _do_status_call(call_id, host, port)
+
+
+def _do_status_call(call_id, host, port, quiet=False):
+    url = "http://{}".format(host)
+    if port != 80:
+        url += ":{}/".format(port)
+
+    msg = {
+        "status": True,
+        "id": call_id,
+    }
+
+    # Can always use the faasm worker for getting status
+    headers = _get_knative_headers("worker")
+    return _do_post(url, dumps(msg), headers=headers, quiet=quiet)

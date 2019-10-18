@@ -3,6 +3,7 @@
 
 #include <proto/faasm.pb.h>
 #include <util/bytes.h>
+#include <utils.h>
 
 namespace tests {
 
@@ -80,5 +81,30 @@ namespace tests {
 
         REQUIRE(inputData == actualBytesInput);
         REQUIRE(outputData == actualBytesOutput);
+    }
+
+    TEST_CASE("Test protobuf byte handling", "[proto]") {
+        // One message with null terminators, one without
+        message::Message msgA;
+        std::vector<uint8_t> bytesA = {0, 0, 1, 1, 0, 0, 2, 2};
+        msgA.set_inputdata(bytesA.data(), bytesA.size());
+
+        message::Message msgB;
+        std::vector<uint8_t> bytesB = {1, 1, 1, 1, 1, 1, 2, 2};
+        msgB.set_inputdata(bytesB.data(), bytesB.size());
+
+        std::string serialisedA = msgA.SerializeAsString();
+        std::string serialisedB = msgB.SerializeAsString();
+
+        REQUIRE(serialisedA.size() == serialisedB.size());
+
+        message::Message newMsgA;
+        newMsgA.ParseFromString(serialisedA);
+
+        message::Message newMsgB;
+        newMsgB.ParseFromString(serialisedB);
+
+        checkMessageEquality(msgA, newMsgA);
+        checkMessageEquality(msgB, newMsgB);
     }
 }

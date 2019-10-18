@@ -1,21 +1,33 @@
 #include <faasm/faasm.h>
 #include <stdio.h>
+#include <vector>
 
 FAASM_MAIN_FUNC() {
     const char *key = "state_shared_example";
 
-    uint8_t *actualA = faasmReadStatePtr(key, 7, true);
-    uint8_t *actualB = faasmReadStatePtr(key, 7, true);
+    // Write an empty value
+    std::vector<uint8_t> bytes = {0, 0, 0, 0, 0, 0, 0};
+    unsigned long bytesLen = bytes.size();
+    faasmWriteState(key, bytes.data(), bytesLen);
 
-    // Write to memory only
-    for (int i = 0; i < 7; i++) {
-        actualA[i] = 5;
+    // Get two pointers to the memory
+    uint8_t *actualA = faasmReadStatePtr(key, bytesLen);
+    uint8_t *actualB = faasmReadStatePtr(key, bytesLen);
+
+    // Write to one pointer
+    uint8_t newValue = 5;
+    for (unsigned long i = 0; i < bytesLen; i++) {
+        actualA[i] = newValue;
     }
 
-    // Check that shared state always points to same place
-    bool pointersMatch = actualA == actualB;
-    uint8_t output[1] = {(uint8_t) pointersMatch};
-    faasmSetOutput(output, 1);
+    // Check update seen by other
+    bool success = actualA == actualB;
+    for (unsigned long i = 0; i < bytesLen; i++) {
+        success &= (actualB[i] == newValue);
+    }
+
+    // Check that pointers are also equal
+    faasmSetOutput(reinterpret_cast<uint8_t *>(&success), 1);
 
     return 0;
 }

@@ -34,6 +34,10 @@ namespace edge {
         static void handleSharedFileUpload(const http_request &request);
     };
 
-    class InvalidPathException : public std::exception {
+    class InvalidPathException : public util::FaasmException {
+    public:
+        explicit InvalidPathException(std::string message): FaasmException(std::move(message)) {
+
+        }
     };
 }

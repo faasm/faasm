@@ -1,10 +1,11 @@
 #ifndef FAASM_STATE_H
 #define FAASM_STATE_H
 
-namespace faasm {
-    void writeIntState(const char *key, int val);
+#define BIT_MASK_8 0b11111111
+#define BIT_MASK_32 0b11111111111111111111111111111111
 
-    int readIntState(const char *key);
+namespace faasm {
+    void maskDouble(unsigned int *maskArray, unsigned long idx);
 }
 
 #endif

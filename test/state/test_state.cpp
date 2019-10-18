@@ -10,6 +10,7 @@
 #include <sys/mman.h>
 #include <util/state.h>
 #include <emulator/emulator.h>
+#include <faasm/state.h>
 
 using namespace state;
 
@@ -31,11 +32,6 @@ namespace tests {
         State &s = getGlobalState();
         auto kv = s.getKV(user, stateKey, size);
 
-        // Fix time
-        util::Clock &c = util::getGlobalClock();
-        timeNow = c.now();
-        c.setFakeNow(timeNow);
-
         return kv;
     }
 
@@ -43,11 +39,9 @@ namespace tests {
         redis::Redis &redisState = redis::Redis::getState();
         auto kv = setupKV(5);
 
-        // Get (should do nothing)
         std::vector<uint8_t> actual(5);
         std::vector<uint8_t> expected = {0, 0, 0, 0, 0};
 
-        kv->pull(true);
         kv->get(actual.data());
         REQUIRE(actual == expected);
 
@@ -105,6 +99,7 @@ namespace tests {
     }
 
     TEST_CASE("Test marking segments dirty", "[state]") {
+        cleanSystem();
         redis::Redis &redisState = redis::Redis::getState();
         auto kv = setupKV(10);
 
@@ -113,28 +108,71 @@ namespace tests {
         kv->set(values.data());
         kv->pushFull();
 
-        // Get pointer, update
+        // Get pointer and update in memory only
         uint8_t *ptr = kv->get();
         ptr[0] = 8;
         ptr[5] = 7;
-        kv->pushPartial();
 
-        // Check nothing happens
-        REQUIRE(redisState.get(kv->key) == values);
-
-        // Mark region as dirty, check update happens
+        // Mark one region as dirty, do push and check update happens
         kv->flagSegmentDirty(0, 2);
         kv->pushPartial();
         values.at(0) = 8;
         REQUIRE(redisState.get(kv->key) == values);
 
-        // Mark other region and check also updated
-        kv->flagSegmentDirty(5, 6);
-        kv->pushPartial();
-        values.at(5) = 7;
-        REQUIRE(redisState.get(kv->key) == values);
+        // Make sure the memory has now been updated to reflect the remote as well
+        // (losing our local change not marked as dirty)
+        std::vector<uint8_t> actualMemory(ptr, ptr + values.size());
+        REQUIRE(actualMemory == values);
     }
 
+    TEST_CASE("Test marking multiple segments dirty", "[state]") {
+        cleanSystem();
+
+        redis::Redis &redisState = redis::Redis::getState();
+        auto kv = setupKV(20);
+        const char* key = kv->key.c_str();
+
+        // Set up and push
+        std::vector<uint8_t> values = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        kv->set(values.data());
+        kv->pushFull();
+
+        // Get pointer
+        uint8_t *statePtr = kv->get();
+
+        // Update a couple of areas
+        statePtr[1] = 1;
+        statePtr[2] = 2;
+        statePtr[3] = 3;
+
+        statePtr[10] = 4;
+        statePtr[11] = 5;
+
+        statePtr[14] = 7;
+        statePtr[15] = 7;
+        statePtr[16] = 7;
+        statePtr[17] = 7;
+
+        // Mark regions as dirty
+        kv->flagSegmentDirty(1, 3);
+        kv->flagSegmentDirty(10, 2);
+        kv->flagSegmentDirty(14, 4);
+
+        // Update one non-overlapping value in state
+        std::vector<uint8_t> directA = {2, 2};
+        redisState.setRange(key, 6, directA.data(), 2);
+
+        // Update one overlapping value in state
+        std::vector<uint8_t> directB = {6, 6, 6, 6, 6};
+        redisState.setRange(key, 0, directB.data(), 5);
+
+        // Check all updates are taken and the state ones take precedence
+        std::vector<uint8_t> expected = {6, 1, 2, 3, 6, 0, 2, 2, 0, 0, 4, 5, 0, 0, 7, 7, 7, 7, 0, 0};
+
+        // Push and check that with no pull we're up to date
+        kv->pushPartial();
+        REQUIRE(redisState.get(key) == expected);
+    }
 
     TEST_CASE("Test set segment cannot be out of bounds", "[state]") {
         auto kv = setupKV(2);
@@ -178,45 +216,63 @@ namespace tests {
         expected = {6, 1, 2, 3, 6};
         REQUIRE(redisState.get(kv->key) == expected);
     }
-
-    TEST_CASE("Test pushing all state", "[state]") {
+    
+    TEST_CASE("Test push partial with mask", "[state]") {
+        cleanSystem();
+        
         redis::Redis &redisState = redis::Redis::getState();
+        
+        // Create two key-values of same size
+        size_t stateSize = 4 * sizeof(double);
+        std::shared_ptr<StateKeyValue> kvData = setupKV(stateSize);
+        std::shared_ptr<StateKeyValue> kvMask = setupKV(stateSize);
+        
+        // Set up value in memory
+        uint8_t *dataBytePtr = kvData->get();
+        auto dataDoublePtr = reinterpret_cast<double*>(dataBytePtr);
+        dataDoublePtr[0] = 1.2345;
+        dataDoublePtr[1] = 12.345;
+        dataDoublePtr[2] = 987.6543;
+        dataDoublePtr[3] = 10987654.3;
+        
+        // Push 
+        kvData->flagDirty();
+        kvData->pushFull();
+        
+        // Check round trip
+        std::vector<uint8_t> actualValue = redisState.get(kvData->key);
+        std::vector<uint8_t> expectedValue(dataBytePtr, dataBytePtr + stateSize);
 
-        State s;
-        std::string userA = "test_a";
-        std::string userB = "test_b";
-        std::string keyA = "multi_push_a";
-        std::string keyB = "multi_push_b";
+        REQUIRE(actualValue == expectedValue);
 
-        auto kvA = s.getKV(userA, keyA, 4);
-        auto kvB = s.getKV(userB, keyB, 3);
+        // Now update a couple of elements in memory
+        dataDoublePtr[1] = 11.11;
+        dataDoublePtr[2] = 222.222;
+        dataDoublePtr[3] = 3333.3333;
+        kvData->flagDirty();
 
-        std::string actualStateKeyA = util::keyForUser(userA, keyA);
-        std::string actualStateKeyB = util::keyForUser(userB, keyB);
+        // Mask two as having changed
+        uint8_t *maskBytePtr = kvMask->get();
+        auto maskIntPtr = reinterpret_cast<unsigned int *>(maskBytePtr);
+        faasm::maskDouble(maskIntPtr, 1);
+        faasm::maskDouble(maskIntPtr, 3);
 
-        // Set up and push
-        std::vector<uint8_t> valuesA = {0, 1, 2, 3};
-        std::vector<uint8_t> valuesB = {4, 5, 6};
+        // Expected value will be a mix of new and old
+        std::vector<double> expected = {
+                1.2345,    // Old
+                11.11,     // New (updated in memory and masked)
+                987.6543,  // Old (updated in memory but not masked)
+                3333.3333  // New (updated in memory and masked)
+        };
 
-        kvA->set(valuesA.data());
-        kvB->set(valuesB.data());
-
-        // Check neither in redis
-        REQUIRE(redisState.get(keyA).empty());
-        REQUIRE(redisState.get(keyB).empty());
-
-        // Push all
-        s.pushAll();
-
-        // Check both now in redis
-        REQUIRE(redisState.get(actualStateKeyA) == valuesA);
-        REQUIRE(redisState.get(actualStateKeyB) == valuesB);
+        std::vector<uint8_t> actualValue2 = redisState.get(kvData->key);
+        auto expectedBytePtr = reinterpret_cast<uint8_t *>(expected.data());
+        std::vector<uint8_t> expectedBytes(expectedBytePtr, expectedBytePtr + stateSize);
     }
 
     void checkPulling(bool async) {
         auto kv = setupKV(4);
         std::vector<uint8_t> values = {0, 1, 2, 3};
-        util::SystemConfig &conf = util::getSystemConfig();
 
         // Push and make sure reflected in redis
         kv->set(values.data());
@@ -230,23 +286,16 @@ namespace tests {
         redisState.set(kv->key, newValues);
 
         // Get and check whether the remote is pulled
+        if(!async) {
+            kv->pull();
+        }
+
         std::vector<uint8_t> actual(4);
-        kv->pull(async);
         kv->get(actual.data());
 
         if (async) {
             REQUIRE(actual == values);
         } else {
-            REQUIRE(actual == newValues);
-        }
-
-        // Now advance time and make sure new value is retrieved for async
-        util::Clock &c = util::getGlobalClock();
-        long bigStep = conf.stateStaleThreshold + 100;
-        if (async) {
-            c.setFakeNow(timeNow + std::chrono::milliseconds(bigStep));
-            kv->pull(true);
-            kv->get(actual.data());
             REQUIRE(actual == newValues);
         }
     }
@@ -281,102 +330,6 @@ namespace tests {
         kv->set(newValues2.data());
         kv->pushFull();
         REQUIRE(redisState.get(kv->key) == newValues2);
-    }
-
-    TEST_CASE("Test stale values cleared", "[state]") {
-        auto kv = setupKV(4);
-
-        util::Clock &c = util::getGlobalClock();
-
-        std::vector<uint8_t> value = {0, 1, 2, 3};
-
-        // Push value to redis
-        kv->set(value.data());
-        kv->pushFull();
-
-        // Try clearing, check nothing happens
-        kv->clear();
-        std::vector<uint8_t> actual(4);
-        kv->get(actual.data());
-        REQUIRE(actual == value);
-
-        // Advance time a bit, check it doesn't get cleared
-        std::chrono::seconds secsSmall(1);
-        util::TimePoint newNow = timeNow + secsSmall;
-        c.setFakeNow(newNow);
-
-        kv->clear();
-        REQUIRE(!kv->empty());
-
-        // Advance time a lot and check it does get cleared
-        std::chrono::seconds secsBig(1000);
-        newNow = timeNow + secsBig;
-        c.setFakeNow(newNow);
-
-        kv->clear();
-        REQUIRE(kv->empty());
-    }
-
-    void checkActionResetsIdleness(std::string actionType) {
-        auto kv = setupKV(3);
-
-        util::Clock &c = util::getGlobalClock();
-
-        // Check not idle by default (i.e. won't get cleared)
-        std::vector<uint8_t> values = {1, 2, 3};
-        kv->set(values.data());
-        kv->pushFull();
-        kv->clear();
-
-        REQUIRE(!kv->empty());
-
-        // Move time on, but then perform some action
-        c.setFakeNow(timeNow + std::chrono::seconds(180));
-
-        std::vector<uint8_t> actual;
-        if (actionType == "get") {
-            actual.reserve(3);
-            kv->get(actual.data());
-        } else if (actionType == "getSegment") {
-            actual.reserve(2);
-            kv->getSegment(1, actual.data(), 2);
-        } else if (actionType == "set") {
-            actual = {4, 5, 6};
-            kv->set(actual.data());
-        } else if (actionType == "setSegment") {
-            actual = {4, 4};
-            kv->setSegment(1, actual.data(), 2);
-        } else {
-            throw std::runtime_error("Unrecognised action type");
-        }
-
-        // Try clearing, check not cleared
-        kv->clear();
-
-        // Check not counted as stale
-        REQUIRE(!kv->empty());
-
-        // Move time on again without any action, check is stale and gets cleared
-        c.setFakeNow(timeNow + std::chrono::seconds(1000));
-        kv->clear();
-        REQUIRE(kv->empty());
-
-    }
-
-    TEST_CASE("Check idleness reset with get", "[state]") {
-        checkActionResetsIdleness("get");
-    }
-
-    TEST_CASE("Check idleness reset with getSegment", "[state]") {
-        checkActionResetsIdleness("getSegment");
-    }
-
-    TEST_CASE("Check idleness reset with set", "[state]") {
-        checkActionResetsIdleness("set");
-    }
-
-    TEST_CASE("Check idleness reset with setSegment", "[state]") {
-        checkActionResetsIdleness("setSegment");
     }
 
     TEST_CASE("Test mapping shared memory", "[state]") {
@@ -428,6 +381,24 @@ namespace tests {
         }
     }
 
+    TEST_CASE("Test mapping shared memory pulls if not initialised", "[state]") {
+        // Set up the KV
+        auto kv = setupKV(5);
+        
+        // Write value direct to redis
+        std::vector<uint8_t> value = {0, 1, 2, 3, 4};
+        redis::Redis &redisState = redis::Redis::getState();
+        redisState.set(kv->key, value.data(), 5);
+
+        // Try to map the kv
+        void *mappedRegion = mmap(nullptr, 5, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        kv->mapSharedMemory(mappedRegion);
+
+        auto byteRegion = static_cast<uint8_t *>(mappedRegion);
+        std::vector<uint8_t> actualValue(byteRegion, byteRegion + 5);
+        REQUIRE(actualValue == value);
+    }
+    
     TEST_CASE("Test mapping shared memory offsets", "[state]") {
         // Set up the KV
         auto kv = setupKV(7);
@@ -465,10 +436,7 @@ namespace tests {
         REQUIRE(segmentB[1] == 1);
     }
 
-    TEST_CASE("Test pulling in full async mode") {
-        util::setEnvVar("FULL_ASYNC", "1");
-        util::getSystemConfig().reset();
-
+    TEST_CASE("Test pulling") {
         auto kv = setupKV(6);
         REQUIRE(kv->empty());
         REQUIRE(kv->size() == 6);
@@ -480,27 +448,14 @@ namespace tests {
 
         std::vector<uint8_t> expected;
 
-        SECTION("Check pull ignored when async and full async") {
-            // Pull and check storage is initialised
-            kv->pull(true);
-            REQUIRE(!kv->empty());
-            REQUIRE(kv->size() == 6);
-            expected = {0, 0, 0, 0, 0, 0};
-        }
+        // Pull and check storage is initialised
+        kv->pull();
+        REQUIRE(!kv->empty());
+        REQUIRE(kv->size() == 6);
 
-        SECTION("Check pull respected when not async but in full async mode") {
-            // Pull and check storage is initialised
-            kv->pull(false);
-            REQUIRE(!kv->empty());
-            REQUIRE(kv->size() == 6);
-            expected = {0, 1, 2, 3, 4, 5};
-        }
-
+        expected = {0, 1, 2, 3, 4, 5};
         uint8_t *actualBytes = kv->get();
         std::vector<uint8_t > actual(actualBytes, actualBytes + 6);
         REQUIRE(actual == expected);
-        
-        util::unsetEnvVar("FULL_ASYNC");
-        util::getSystemConfig().reset();
     }
 }

@@ -18,17 +18,13 @@ RUN apt-get install -y python3-dev python3-pip
 RUN pip3 install invoke requests
 
 # Install other python deps
-WORKDIR /usr/local/code/faasm
-RUN pip3 install -r requirements.txt
+COPY requirements.txt /tmp/requirements.txt
+RUN pip3 install -r /tmp/requirements.txt
 
-# Set up eigen
+COPY . /usr/local/code/faasm
+
+# Set up Catch
 WORKDIR /usr/local/code/faasm/ansible
-RUN ansible-playbook eigen.yml
-
-# Set up pistache
-RUN ansible-playbook pistache.yml
-
-# Set up catch
 RUN ansible-playbook catch.yml
 
 # Download toolchain

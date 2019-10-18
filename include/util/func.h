@@ -3,6 +3,7 @@
 #include <proto/faasm.pb.h>
 #include <string>
 #include <vector>
+#include "exception.h"
 
 #define SHARED_OBJ_EXT ".o"
 
@@ -58,6 +59,10 @@ namespace util {
 
     std::vector<uint8_t> messageToBytes(const message::Message &msg);
 
-    class InvalidFunctionException : public std::exception {
+    class InvalidFunctionException : public util::FaasmException {
+    public:
+        explicit InvalidFunctionException(std::string message): FaasmException(std::move(message)) {
+
+        }
     };
 }

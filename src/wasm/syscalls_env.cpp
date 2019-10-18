@@ -94,36 +94,6 @@ namespace wasm {
         return structOffset;
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_config", void, __faasm_read_config, I32 varPtr, I32 buffer) {
-        WasmModule *module = getExecutingModule();
-        Runtime::Memory *memoryPtr = module->defaultMemory;
-        char *varName = &Runtime::memoryRef<char>(memoryPtr, (Uptr) varPtr);
-
-        util::SystemConfig &conf = util::getSystemConfig();
-
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - faasm_read_config - {}", varName);
-
-        const char *value = "";
-
-        if (strcmp(varName, "FULL_ASYNC") == 0) {
-            if (conf.fullAsync == 1) {
-                value = "1";
-            } else {
-                value = "0";
-            }
-        } else if (strcmp(varName, "FULL_SYNC") == 0) {
-            if (conf.fullSync == 1) {
-                value = "1";
-            } else {
-                value = "0";
-            }
-        }
-
-        char *resultBuffer = &Runtime::memoryRef<char>(memoryPtr, (Uptr) buffer);
-        std::strcpy(resultBuffer, value);
-    }
-
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "abort", void, abort) {
         util::getLogger()->debug("S - abort");
         throw (wasm::WasmExitException(0));

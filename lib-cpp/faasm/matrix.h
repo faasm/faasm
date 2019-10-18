@@ -45,12 +45,12 @@ namespace faasm {
     public:
         explicit SparseMatrixSerialiser(const SparseMatrix<double> &matIn);
 
-        void writeToState(const char *key, bool async);
+        void writeToState(const char *key, bool push);
 
         static Map<const SparseMatrix<double>> readFromBytes(const SparseSizes &sizes,
-                                                  uint8_t *outerBytes,
-                                                  uint8_t *innerBytes,
-                                                  uint8_t *valuesBytes);
+                                                             uint8_t *outerBytes,
+                                                             uint8_t *innerBytes,
+                                                             uint8_t *valuesBytes);
 
         ~SparseMatrixSerialiser();
 
@@ -79,26 +79,23 @@ namespace faasm {
     /**
      * State
      */
-    Map<const SparseMatrix<double>> readSparseMatrixFromState(const char *key, bool async);
+    Map<const SparseMatrix<double>> readSparseMatrixFromState(const char *key, bool pull);
 
-    void writeSparseMatrixToState(const char *key, const SparseMatrix<double> &mat,
-                                  bool async);
+    void writeSparseMatrixToState(const char *key, const SparseMatrix<double> &mat, bool push);
 
-    Map<const MatrixXd> readMatrixFromState(const char *key, long rows, long cols, bool async);
+    Map<const MatrixXd> readMatrixFromState(const char *key, long rows, long cols, bool pull);
 
-    void readMatrixFromState(const char *key, double *buffer, long rows, long cols,
-                                 bool async);
+    void readMatrixFromState(const char *key, double *buffer, long rows, long cols, bool pull);
 
-    void writeMatrixToState(const char *key, const MatrixXd &matrix, bool async);
+    void writeMatrixToState(const char *key, const MatrixXd &matrix, bool push);
 
-    void writeMatrixToStateElement(const char *key, const MatrixXd &matrix, long row, long col,
-                                   bool async);
+    void writeMatrixToStateElement(const char *key, const MatrixXd &matrix, long row, long col, bool push);
 
     Map<const MatrixXd> readMatrixColumnsFromState(const char *key, long totalCols, long colStart,
-                                        long colEnd, long nRows, bool async);
+                                                   long colEnd, long nRows, bool pull);
 
-    Map<const SparseMatrix<double>> readSparseMatrixColumnsFromState(const char *key, long colStart,
-                                                          long colEnd, bool async);
+    Map<const SparseMatrix<double>> readSparseMatrixColumnsFromState(const char *key, long colStart, long colEnd,
+            bool pull);
 
     /**
      * Manipulation

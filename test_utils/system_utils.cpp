@@ -52,6 +52,7 @@ namespace tests {
 
         // Set emulator user
         unsetEmulatorUser();
+        resetEmulator();
         setEmulatorUser("tester");
     }
 }

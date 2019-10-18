@@ -13,22 +13,25 @@ namespace util {
     std::string messageToJson(const message::Message &msg) {
         Document d;
         d.SetObject();
+        Document::AllocatorType& a = d.GetAllocator();
 
-        d.AddMember("id", msg.id(), d.GetAllocator());
+        // Need to be explicit with strings here to make a copy _and_ make sure we specify the length
+        // to include any null-terminators from bytes
+        d.AddMember("id", msg.id(), a);
+        d.AddMember("user", Value(msg.user().c_str(), msg.user().size(), a).Move(), a);
+        d.AddMember("function", Value(msg.function().c_str(), msg.function().size(), a).Move(), a);
+        d.AddMember("index", msg.idx(), a);
 
-        d.AddMember("user", StringRef(msg.user().c_str()), d.GetAllocator());
-        d.AddMember("function", StringRef(msg.function().c_str()), d.GetAllocator());
+        d.AddMember("input_data", Value(msg.inputdata().c_str(), msg.inputdata().size(), a).Move(), a);
+        d.AddMember("output_data", Value(msg.outputdata().c_str(), msg.outputdata().size(), a).Move(), a);
 
-        d.AddMember("input_data", StringRef(msg.inputdata().c_str()), d.GetAllocator());
-        d.AddMember("output_data", StringRef(msg.outputdata().c_str()), d.GetAllocator());
+        d.AddMember("async", msg.isasync(), a);
+        d.AddMember("python", msg.ispython(), a);
+        d.AddMember("typescript", msg.istypescript(), a);
+        d.AddMember("status", msg.isstatusrequest(), a);
 
-        d.AddMember("async", msg.isasync(), d.GetAllocator());
-        d.AddMember("python", msg.ispython(), d.GetAllocator());
-        d.AddMember("typescript", msg.istypescript(), d.GetAllocator());
-        d.AddMember("status", msg.isstatusrequest(), d.GetAllocator());
-
-        d.AddMember("result_key", StringRef(msg.resultkey().c_str()), d.GetAllocator());
-        d.AddMember("status_key", StringRef(msg.statuskey().c_str()), d.GetAllocator());
+        d.AddMember("result_key", Value(msg.resultkey().c_str(), msg.resultkey().size()).Move(), a);
+        d.AddMember("status_key", Value(msg.statuskey().c_str(), msg.statuskey().size()).Move(), a);
 
         StringBuffer sb;
         Writer<StringBuffer> writer(sb);
@@ -61,20 +64,23 @@ namespace util {
             return dflt;
         }
 
-        return it->value.GetString();
+        const char *valuePtr = it->value.GetString();
+        return std::string(valuePtr, valuePtr + it->value.GetStringLength());
     }
 
     message::Message jsonToMessage(const std::string &jsonIn) {
         PROF_START(jsonDecode)
 
+        MemoryStream ms(jsonIn.c_str(), jsonIn.size());
         Document d;
-        d.Parse(jsonIn.c_str());
+        d.ParseStream(ms);
 
         message::Message msg;
         msg.set_id(getIntFromJson(d, "id", 0));
 
         msg.set_user(getStringFromJson(d, "user", ""));
         msg.set_function(getStringFromJson(d, "function", ""));
+        msg.set_idx(getIntFromJson(d, "index", 0));
 
         msg.set_inputdata(getStringFromJson(d, "input_data", ""));
         msg.set_outputdata(getStringFromJson(d, "output_data", ""));

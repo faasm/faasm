@@ -31,8 +31,9 @@ namespace storage {
         }
 
         if (fileBytes.empty()) {
-            logger->error("Empty response for file at {}", url);
-            throw util::InvalidFunctionException();
+            std::string errMsg ="Empty response for file at " + url;
+            logger->error(errMsg);
+            throw util::InvalidFunctionException(errMsg);
         }
 
         return fileBytes;

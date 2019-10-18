@@ -1,11 +1,16 @@
 #pragma once
 
 #include "locks.h"
+#include "exception.h"
 
 #include <queue>
 
 namespace util {
-    class QueueTimeoutException : public std::exception {
+    class QueueTimeoutException : public util::FaasmException {
+    public:
+        explicit QueueTimeoutException(std::string message): FaasmException(std::move(message)) {
+
+        }
     };
 
     template<typename T>
@@ -28,7 +33,7 @@ namespace util {
 
                     // Work out if this has returned due to timeout expiring
                     if (returnVal == std::cv_status::timeout) {
-                        throw QueueTimeoutException();
+                        throw QueueTimeoutException("Queue timeout");
                     }
                 } else {
                     cv.wait(lock);

@@ -4,6 +4,7 @@ from os.path import join
 
 from invoke import task
 
+from tasks.util.config import get_faasm_config
 from tasks.util.env import FUNC_BUILD_DIR, PROJ_ROOT, RUNTIME_S3_BUCKET, FUNC_DIR, WASM_DIR
 from tasks.util.upload_util import curl_file, upload_file_to_s3, upload_file_to_ibm
 
@@ -17,18 +18,33 @@ def _get_s3_key(user, func):
     return s3_key
 
 
+def _get_host_port(host_in, port_in):
+    faasm_config = get_faasm_config()
+
+    if not host_in and faasm_config.has_section("Kubernetes"):
+        host = faasm_config["Kubernetes"].get("upload_host", "127.0.0.1")
+        port = faasm_config["Kubernetes"].get("upload_port", 8002)
+    else:
+        host = "127.0.0.1"
+        port = port_in if port_in else 8002
+
+    return host, port
+
+
 @task
-def upload(ctx, user, func, host="127.0.0.1",
+def upload(ctx, user, func, host=None,
            s3=False, ibm=False, subdir=None,
            py=False, ts=False, prebuilt=False):
+    host, port = _get_host_port(host, None)
+
     if py:
         func_file = join(PROJ_ROOT, "func", user, "{}.py".format(func))
 
-        url = "http://{}:8002/p/{}/{}".format(host, user, func)
+        url = "http://{}:{}/p/{}/{}".format(host, port, user, func)
         curl_file(url, func_file)
     elif ts:
         func_file = join(PROJ_ROOT, "typescript", "build", "{}.wasm".format(func))
-        url = "http://{}:8002/f/ts/{}".format(host, func)
+        url = "http://{}:{}/f/ts/{}".format(host, port, func)
         curl_file(url, func_file)
     else:
         base_dir = WASM_DIR if prebuilt else FUNC_BUILD_DIR
@@ -49,11 +65,11 @@ def upload(ctx, user, func, host="127.0.0.1",
             ibm_key = _get_s3_key(user, func)
             upload_file_to_ibm(func_file, RUNTIME_S3_BUCKET, ibm_key)
         else:
-            url = "http://{}:8002/f/{}/{}".format(host, user, func)
+            url = "http://{}:{}/f/{}/{}".format(host, port, user, func)
             curl_file(url, func_file)
 
 
-def _do_upload_all(host=None, port=8002, upload_s3=False, py=False):
+def _do_upload_all(host=None, port=None, upload_s3=False, py=False):
     to_upload = []
 
     if py:
@@ -102,7 +118,8 @@ def _do_upload_all(host=None, port=8002, upload_s3=False, py=False):
 
 
 @task
-def upload_all(ctx, host="127.0.0.1", port=8002, py=False):
+def upload_all(ctx, host=None, port=None, py=False):
+    host, port = _get_host_port(host, port)
     _do_upload_all(host=host, port=port, py=py)
 
 

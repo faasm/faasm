@@ -62,7 +62,6 @@ int main() {
             worker::WorkerMain w;
 
             w.setShareWork(false);
-            w.setSyncState(false);
 
             w.startBackground();
 

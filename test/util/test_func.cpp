@@ -79,20 +79,51 @@ namespace tests {
     }
 
     TEST_CASE("Test adding id to message", "[util]") {
+        message::Message msgA;
+        message::Message msgB;
+
+        REQUIRE(msgA.id() == 0);
+        REQUIRE(msgA.resultkey().empty());
+        REQUIRE(msgA.statuskey().empty());
+
+        REQUIRE(msgB.id() == 0);
+        REQUIRE(msgB.resultkey().empty());
+        REQUIRE(msgB.statuskey().empty());
+
+        util::setMessageId(msgA);
+        util::setMessageId(msgB);
+
+        REQUIRE(msgA.id() > 0);
+        REQUIRE(msgB.id() > 0);
+        REQUIRE(msgB.id() > msgA.id());
+        
+        std::string expectedResultKeyA = std::string("result_" + std::to_string(msgA.id()));
+        std::string expectedStatusKeyA = std::string("status_" + std::to_string(msgA.id()));
+        REQUIRE(msgA.resultkey() == expectedResultKeyA);
+        REQUIRE(msgA.statuskey() == expectedStatusKeyA);
+
+        std::string expectedResultKeyB = std::string("result_" + std::to_string(msgB.id()));
+        std::string expectedStatusKeyB = std::string("status_" + std::to_string(msgB.id()));
+        REQUIRE(msgB.resultkey() == expectedResultKeyB);
+        REQUIRE(msgB.statuskey() == expectedStatusKeyB);
+    }
+    
+    TEST_CASE("Test adding ID to message with an existing ID") {
         message::Message msg;
-
-        REQUIRE(msg.id() == 0);
-        REQUIRE(msg.resultkey().empty());
-        REQUIRE(msg.statuskey().empty());
-
         util::setMessageId(msg);
 
-        REQUIRE(msg.id() > 0);
+        int originalId = msg.id();
+        std::string originalStatusKey = msg.statuskey();
+        std::string originalResultKey = msg.resultkey();
 
-        std::string expectedResultKey = std::string("result_" + std::to_string(msg.id()));
-        std::string expectedStatusKey = std::string("status_" + std::to_string(msg.id()));
-        REQUIRE(msg.resultkey() == expectedResultKey);
-        REQUIRE(msg.statuskey() == expectedStatusKey);
+        util::setMessageId(msg);
+        int afterId = msg.id();
+        std::string afterStatusKey = msg.statuskey();
+        std::string afterResultKey = msg.resultkey();
+
+        REQUIRE(afterId == originalId);
+        REQUIRE(afterStatusKey == originalStatusKey);
+        REQUIRE(afterResultKey == originalResultKey);
     }
 
     TEST_CASE("Test converting message to python", "[util]") {

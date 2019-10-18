@@ -13,4 +13,4 @@ add_executable(
 
 target_link_libraries(tests_aws test_utils scheduler wasm aws)
 
-add_test(NAME integration_tests COMMAND "tests_aws/tests")
+add_test(NAME aws_tests COMMAND "tests_aws/tests")

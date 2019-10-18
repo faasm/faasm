@@ -1,14 +1,18 @@
 #ifndef _FAASM_H
 #define _FAASM_H
 
-// For lambda builds we need to include the lambda function interface
-// which defines its own main method etc.
-// TODO - work out how to do this in the new world
-#if AWS_LAMBDA == 1
-#include <lambda_func/interface.h>
-#else
-
 #include "faasm/core.h"
+
+// For different integrations we need to provide different entry
+// points. These must define their own main() method which ensures
+// exec() eventually gets called
+#if AWS_LAMBDA == 1
+
+#include <lambda_func/interface.h>
+#elif KNATIVE_NATIVE == 1
+
+#include <knative_native/interface.h>
+#else
 
 int main(int argc, char *argv[]) {
     int idx = faasmGetCurrentIdx();

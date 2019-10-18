@@ -7,4 +7,4 @@ set(LIB_FILES
 
 faasm_private_lib(endpoint "${LIB_FILES}")
 
-target_link_libraries(endpoint pistache)
+target_link_libraries(endpoint pistache pthread util)

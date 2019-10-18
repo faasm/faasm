@@ -17,7 +17,14 @@ namespace tests {
         msg.set_istypescript(true);
         msg.set_isstatusrequest(true);
 
-        msg.set_inputdata("[0], %$ 2233 9");
+        SECTION("Dodgy characters") {
+            msg.set_inputdata("[0], %$ 2233 9");
+        }
+        SECTION("Bytes") {
+            std::vector<uint8_t> bytes = {0, 0, 1, 1, 0, 2, 2, 3, 3, 4, 4};
+            msg.set_inputdata(bytes.data(), bytes.size());
+        }
+
         msg.set_resultkey("blahblah");
 
         util::setMessageId(msg);

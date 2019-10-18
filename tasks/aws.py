@@ -1,6 +1,6 @@
 from datetime import datetime
 from json import dumps
-from os import mkdir
+from os import makedirs
 from os.path import join, exists
 from shutil import rmtree
 from subprocess import call
@@ -89,8 +89,6 @@ def _get_lambda_env():
         "NO_SCHEDULER": "1",
         "GLOBAL_MESSAGE_BUS": "redis",
         "AWS_LOG_LEVEL": "info",
-        "FULL_ASYNC": "0",
-        "FULL_SYNC": "1",
         "GLOBAL_MESSAGE_TIMEOUT": "120000",
         "UNBOUND_TIMEOUT": "30000",
         "THREADS_PER_WORKER": "10",
@@ -564,7 +562,7 @@ def _build_cmake_project(build_dir, cmake_args, clean=False, target=None):
 
     # Create build dir if necessary
     if not exists(build_dir):
-        mkdir(build_dir)
+        makedirs(build_dir)
 
     cpp_sdk_build_cmd = [
         "cmake",

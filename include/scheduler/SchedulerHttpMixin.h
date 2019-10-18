@@ -3,8 +3,8 @@
 #include <string>
 #include <proto/faasm.pb.h>
 
-namespace worker {
-    class WorkerHttpMixin {
+namespace scheduler {
+    class SchedulerHttpMixin {
     public:
         std::string getMessageStatus(message::Message &msg);
 

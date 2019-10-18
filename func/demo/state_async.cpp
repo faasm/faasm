@@ -5,15 +5,15 @@ FAASM_MAIN_FUNC() {
 
     // Read and write async
     uint8_t value[4] = {3, 2, 1, 0};
-    faasmWriteState(key, value, 4, true);
+    faasmWriteState(key, value, 4);
 
     uint8_t readValueAsync[4];
-    faasmReadState(key, readValueAsync, 4, true);
+    faasmReadState(key, readValueAsync, 4);
 
-    // Push synchronously and read again
+    // Push and read again
     faasmPushState(key);
     uint8_t readValueSync[4];
-    faasmReadState(key, readValueSync, 4, false);
+    faasmReadState(key, readValueSync, 4);
 
     // Check things are equal
     uint8_t equal[4];

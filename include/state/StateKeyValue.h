@@ -1,6 +1,7 @@
 #pragma once
 
 #include <util/clock.h>
+#include <util/exception.h>
 
 #include <atomic>
 #include <shared_mutex>
@@ -42,11 +43,13 @@ namespace state {
 
         void unmapSharedMemory(void *mappedAddr);
 
-        void pull(bool async);
+        void pull();
 
         void pushFull();
 
         void pushPartial();
+
+        void pushPartialMask(const std::shared_ptr<StateKeyValue> &maskKv);
 
         void clear();
 
@@ -58,7 +61,9 @@ namespace state {
 
         void unlockWrite();
 
-        void flagFullValueDirty();
+        void flagDirty();
+
+        void zeroValue();
 
         void flagSegmentDirty(long offset, long len);
 
@@ -67,40 +72,35 @@ namespace state {
         size_t size();
 
     private:
-        bool isWholeValueDirty;
-        bool isPartiallyDirty;
-        std::vector<bool> dirtyFlags;
-
-        bool fullAsync;
+        bool isDirty;
 
         std::shared_mutex valueMutex;
-
-        util::TimePoint lastPull;
-        util::TimePoint lastInteraction;
-        long staleThreshold;
-        long idleThreshold;
 
         size_t valueSize;
         size_t sharedMemSize;
         void *sharedMemory;
+        void* dirtyMask;
 
         std::atomic<bool> _empty;
 
+        void zeroDirtyMask();
+
         void initialiseStorage();
 
-        void doRemoteRead();
-
-        void updateLastInteraction();
-
-        bool isStale(const util::TimePoint &now);
-
-        bool isIdle(const util::TimePoint &now);
-
-        void preGet();
+        void pullImpl(bool onlyIfEmpty);
 
         long waitOnRemoteLock();
+
+        void doPushPartial(const uint8_t *dirtyMaskBytes);
     };
 
     typedef std::unordered_map<std::string, std::shared_ptr<StateKeyValue>> KVMap;
     typedef std::pair<std::string, std::shared_ptr<StateKeyValue>> KVPair;
+
+class StateKeyValueException : public std::runtime_error {
+    public:
+        explicit StateKeyValueException(const std::string& message): runtime_error(message) {
+
+        }
+    };
 }

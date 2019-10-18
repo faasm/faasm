@@ -7,6 +7,7 @@
 using namespace Eigen;
 
 #define WEIGHTS_KEY "weights"
+#define MASK_KEY "weights_mask"
 #define INPUTS_KEY "inputs"
 #define FEATURE_COUNTS_KEY "feature_counts"
 #define OUTPUTS_KEY "outputs"
@@ -14,11 +15,20 @@ using namespace Eigen;
 #define ERRORS_KEY "errors"
 
 // Reuters-specific
-#define REUTERS_N_FEATURES 47236
-#define REUTERS_N_EXAMPLES 781265
+// Note that the sync interval determines how often workers will
+// sync with the remote storage. There are just under 60 million updates
+// to be performed in each epoch, and a possible 47k features on which
+// these updates can occur. With lots of colocated workers these syncs
+// can be relatively infrequent, but with lots of distributed workers the
+// syncs need to be more frequent.
+//
+// Sync interval of -1 means no syncing
 #define REUTERS_LEARNING_RATE 0.1
 #define REUTERS_LEARNING_DECAY 0.8
-#define REUTERS_SYNC_INTERVAL 30000
+#define REUTERS_N_FEATURES 47236
+#define REUTERS_N_EXAMPLES 781265
+
+#define REUTERS_SYNC_INTERVAL 500000
 
 
 namespace faasm {
@@ -31,20 +41,14 @@ namespace faasm {
         float mu = 1.0;
         float learningDecay;
         int nEpochs;
-        bool fullAsync;
-        bool fullSync;
         int syncInterval;
     };
 
-    bool getEnvFullAsync();
+    SgdParams setUpReutersParams(int nBatches, int epochs, bool push);
 
-    bool getEnvFullSync();
+    void writeParamsToState(const char *keyName, const SgdParams &params, bool push);
 
-    SgdParams setUpReutersParams(int nBatches, int epochs);
-
-    void writeParamsToState(const char *keyName, const SgdParams &params);
-
-    SgdParams readParamsFromState(const char *keyName, bool async);
+    SgdParams readParamsFromState(const char *keyName, bool pull);
 
     void hingeLossWeightUpdate(
             const SgdParams &sgdParams,
@@ -54,7 +58,7 @@ namespace faasm {
             int endIdx
     );
 
-    void zeroErrors(const SgdParams &sgdParams);
+    void zeroErrors(const SgdParams &sgdParams, bool push);
 
     void writeHingeError(const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
                          const MatrixXd &prediction);

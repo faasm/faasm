@@ -16,6 +16,7 @@
 
 using namespace faasm;
 
+
 FAASM_MAIN_FUNC() {
 
 #ifdef __wasm__
@@ -23,41 +24,30 @@ FAASM_MAIN_FUNC() {
     setEmulatorUser("sgd");
 #endif
 
-    int nWorkers = faasm::getIntInput(1);
+    int nWorkers = faasm::getIntInput(4);
     printf("SVM running %i batches \n", nWorkers);
 
     // Prepare params
     printf("Setting up SVM params\n");
     int epochs = 20;
-    faasm::SgdParams p = setUpReutersParams(nWorkers, epochs);
+    faasm::SgdParams p = setUpReutersParams(nWorkers, epochs, true);
 
-    // Initialise weights
+    // Initialise weights and mask
     printf("Initialising weights with zeros\n");
-    Eigen::MatrixXd weights = zeroMatrix(1, p.nWeights);
-    writeMatrixToState(WEIGHTS_KEY, weights, p.fullAsync);
-
-    // If running full async, we need to make sure the inputs and outputs are loaded fully into memory
-    if (p.fullAsync) {
-        printf("Loading inputs into local memory\n");
-        readSparseMatrixFromState(INPUTS_KEY, false);
-
-        printf("Loading outputs into local memory\n");
-        readMatrixFromState(OUTPUTS_KEY, p.nTrain, 1, false);
-
-        printf("Loading feature counts into local memory\n");
-        size_t nFeatureCountBytes = p.nWeights * sizeof(int);
-        faasmReadStatePtr(FEATURE_COUNTS_KEY, nFeatureCountBytes, false);
-    }
+    Eigen::MatrixXd zeros = zeroMatrix(1, p.nWeights);
+    writeMatrixToState(WEIGHTS_KEY, zeros, true);
+    writeMatrixToState(MASK_KEY, zeros, true);
 
     // Prepare string for output
-    std::string output;
+    std::string output = "\n";
+    double tsZero = 0;
 
     // Run epochs and workers in a loop
     for (int thisEpoch = 0; thisEpoch < epochs; thisEpoch++) {
         printf("Running SVM epoch %i\n", thisEpoch);
 
         // Zero the errors for this epoch
-        faasm::zeroErrors(p);
+        faasm::zeroErrors(p, true);
 
         // Shuffle start indices for each batch
         int *batchNumbers = faasm::randomIntRange(nWorkers);
@@ -84,27 +74,29 @@ FAASM_MAIN_FUNC() {
         // Wait for all workers to finish
         for (int w = 0; w < nWorkers; w++) {
             unsigned int res = faasmAwaitCall(workerCallIds[w]);
-            if(res != 0) {
+            if (res != 0) {
                 printf("Chained call %i failed\n", res);
                 return 1;
             }
-        }
-
-        // Record the time and loss for this epoch
-        printf("Calculating epoch loss for epoch %i\n", thisEpoch);
-        double ts = faasm::getSecondsSinceEpoch();
-        double loss = faasm::readRootMeanSquaredError(p);
-
-        output += std::to_string(thisEpoch) + ": " + std::to_string(ts) + ": " + std::to_string(loss);
-        if (thisEpoch != epochs - 1) {
-            output += ",";
         }
 
         // Decay learning rate (apparently hogwild doesn't actually do this although it takes in the param)
         // p.learningRate = p.learningRate * p.learningDecay;
         // writeParamsToState(PARAMS_KEY, p);
 
-        printf("Finished epoch %i (time = %.2f, loss = %.2f)\n", thisEpoch, ts, loss);
+        printf("Calculating epoch loss for epoch %i\n", thisEpoch);
+        // Rebase timestamp
+        double ts = faasm::getSecondsSinceEpoch();
+        if(tsZero == 0) {
+            tsZero = ts;
+        }
+        ts -= tsZero;
+
+        double loss = faasm::readRootMeanSquaredError(p);
+
+        output += std::to_string(ts) + " " + std::to_string(loss) + "\n";
+
+        printf("EPOCH %i (time = %.2f, loss = %.2f)\n", thisEpoch, ts, loss);
     }
 
     printf("Finished SVM: %s\n", output.c_str());
@@ -120,7 +112,7 @@ FAASM_FUNC(step, 1) {
     long inputSize = 4 * sizeof(int);
     int inputBuffer[4];
     faasmGetInput(
-            reinterpret_cast< uint8_t *>(inputBuffer),
+            reinterpret_cast<uint8_t *>(inputBuffer),
             inputSize
     );
 
@@ -132,8 +124,7 @@ FAASM_FUNC(step, 1) {
     printf("SGD step: %i %i %i %i\n", batchNumber, startIdx, endIdx, epoch);
 
     // Load params
-    bool fullAsync = getEnvFullAsync();
-    SgdParams sgdParams = readParamsFromState(PARAMS_KEY, fullAsync);
+    SgdParams sgdParams = readParamsFromState(PARAMS_KEY, false);
 
     // Perform updates
     hingeLossWeightUpdate(sgdParams, epoch, batchNumber, startIdx, endIdx);

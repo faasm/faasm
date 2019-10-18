@@ -3,13 +3,18 @@ project(faasm-func)
 
 set(CMAKE_CXX_STANDARD 17)
 
+# Lambda-specific stuff
 if (FAASM_BUILD_TYPE STREQUAL "lambda-func")
     add_definitions(-DAWS_LAMBDA=1)
-
-    # Add faasm lambda headers
-    include_directories(${FAASM_LAMBDA_LIB_DIR})
 else ()
     add_definitions(-DAWS_LAMBDA=0)
+endif ()
+
+# Knative native-specific stuff
+if (FAASM_BUILD_TYPE STREQUAL "knative-native")
+    add_definitions(-DKNATIVE_NATIVE=1)
+else ()
+    add_definitions(-DKNATIVE_NATIVE=0)
 endif ()
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
@@ -46,24 +51,24 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # Wasm build
     # ----------------------
 
-    function(faasm_func_c exec_name file_name)
-        add_executable(${exec_name} ${file_name})
-        target_link_libraries(${exec_name} faasm dlmalloc)
+    function(faasm_func_c func_name file_name)
+        add_executable(${func_name} ${file_name})
+        target_link_libraries(${func_name} faasm dlmalloc)
     endfunction(faasm_func_c)
 
-    function(faasm_func exec_name file_name)
-        add_executable(${exec_name} ${file_name})
-        target_link_libraries(${exec_name} faasm dlmalloc)
+    function(faasm_func func_name file_name)
+        add_executable(${func_name} ${file_name})
+        target_link_libraries(${func_name} faasm dlmalloc)
     endfunction(faasm_func)
 
-    function(faasm_dynamic_func exec_name file_name)
-        faasm_func(${exec_name} ${file_name})
+    function(faasm_dynamic_func func_name file_name)
+        faasm_func(${func_name} ${file_name})
 
         # These are the linker flags required for functions that will also do dynamic linking.
         # We need to export all symbols to make them available to the dynamically loaded modules
-        set_target_properties(${exec_name} PROPERTIES
+        set_target_properties(${func_name} PROPERTIES
                 LINK_FLAGS "-Xlinker --export-all -Xlinker --no-gc-sections -Xlinker --export-dynamic"
-        )
+                )
 
     endfunction(faasm_dynamic_func)
 
@@ -71,7 +76,7 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
     # ----------------------
     # AWS Lambda build
     # ----------------------
-    function(faasm_func_c exec_name file_name)
+    function(faasm_func_c func_name file_name)
         # Don't support C functions on AWS Lambda
     endfunction(faasm_func_c)
 
@@ -83,8 +88,29 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-func")
         aws_lambda_package_target(${func_name}-lambda)
     endfunction(faasm_func)
 
-    function(faasm_dynamic_func exec_name file_name)
-        faasm_func(${exec_name} ${file_name})
+    function(faasm_dynamic_func func_name file_name)
+        faasm_func(${func_name} ${file_name})
+    endfunction(faasm_dynamic_func)
+
+elseif (FAASM_BUILD_TYPE STREQUAL "knative-native")
+    # ----------------------
+    # Knative native build
+    # ----------------------
+    function(faasm_func_c func_name file_name)
+        add_executable(${func_name}-knative ${file_name})
+        target_link_libraries(
+                ${func_name}-knative
+                faasm
+                knative_native
+        )
+    endfunction(faasm_func_c)
+
+    function(faasm_func func_name file_name)
+        faasm_func_c(${func_name} ${file_name})
+    endfunction(faasm_func)
+
+    function(faasm_dynamic_func func_name file_name)
+        faasm_func(${func_name} ${file_name})
     endfunction(faasm_dynamic_func)
 
 else ()
@@ -92,20 +118,18 @@ else ()
     # Native build
     # ----------------------
 
-    function(faasm_func_c exec_name file_name)
-        add_executable(${exec_name} ${file_name})
-        target_link_libraries(${exec_name} faasm emulator dl)
+    function(faasm_func_c func_name file_name)
+        add_executable(${func_name} ${file_name})
+        target_link_libraries(${func_name} faasm emulator dl)
     endfunction(faasm_func_c)
 
-    function(faasm_func exec_name file_name)
-        add_definitions(-DEIGEN_DONT_VECTORIZE=1)
-        add_executable(${exec_name} ${file_name})
-        target_link_libraries(${exec_name} faasm emulator dl)
+    function(faasm_func func_name file_name)
+        faasm_func_c(${func_name} ${file_name})
     endfunction(faasm_func)
 
-    function(faasm_dynamic_func exec_name file_name)
-        faasm_func(${exec_name} ${file_name})
-        target_link_libraries(${exec_name} util)
+    function(faasm_dynamic_func func_name file_name)
+        faasm_func(${func_name} ${file_name})
+        target_link_libraries(${func_name} util)
     endfunction(faasm_dynamic_func)
 
 endif ()
@@ -115,10 +139,11 @@ add_subdirectory(demo)
 add_subdirectory(dynlink)
 add_subdirectory(polybench)
 add_subdirectory(sgd)
-add_subdirectory(tf)
 
-# Add python build in everything but the lambda funcs
+# Skip certain builds with some build types
 if (FAASM_BUILD_TYPE STREQUAL "lambda-func")
+elseif (FAASM_BUILD_TYPE STREQUAL "knative-native")
 else ()
+    add_subdirectory(tf)
     add_subdirectory(python)
 endif ()

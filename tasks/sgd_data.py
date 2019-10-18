@@ -5,6 +5,7 @@ from subprocess import check_output
 from invoke import task
 
 from tasks.aws import invoke_lambda
+from tasks.util.config import get_faasm_config
 from tasks.util.env import HOME_DIR, STATE_S3_BUCKET, DATA_S3_BUCKET
 from tasks.util.state import upload_binary_state, upload_sparse_matrix
 from tasks.util.upload_util import curl_file, upload_file_to_s3, download_file_from_s3
@@ -71,8 +72,8 @@ def reuters_download_s3(ctx):
 # -------------------------------------------------
 
 @task
-def reuters_state_upload(ctx, host):
-    _do_reuters_upload(host=host)
+def reuters_state_upload(ctx, host=None, knative=True):
+    _do_reuters_upload(host=host, knative=knative)
 
 
 @task
@@ -90,9 +91,16 @@ def reuters_prepare_aws(ctx):
         })
 
 
-def _do_reuters_upload(host=None, s3_bucket=None):
-    assert host or s3_bucket, "Must give a host or S3 bucket"
+def _do_reuters_upload(host=None, s3_bucket=None, knative=False):
+    assert host or s3_bucket or knative, "Must give a host, S3 bucket or knative"
     user = "sgd"
+
+    faasm_conf = get_faasm_config()
+    if knative:
+        if not faasm_conf.has_section("Kubernetes"):
+            host = host if host else "localhost"
+        else:
+            host = faasm_conf["Kubernetes"]["upload_host"]
 
     # Upload the matrix data
     upload_sparse_matrix(user, "inputs", _FULL_DATA_DIR, host=host, s3_bucket=s3_bucket)

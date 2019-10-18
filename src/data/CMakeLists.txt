@@ -2,7 +2,6 @@ include_directories(${FAASM_INCLUDE_DIR}/data)
 
 set(LIB_FILES
         matrix.cpp
-        local_sgd.cpp
         ${FAASM_INCLUDE_DIR}/data/data.h
 )
 

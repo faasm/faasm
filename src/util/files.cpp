@@ -89,7 +89,7 @@ namespace util {
 
         if (res != CURLE_OK || out.str().empty()) {
             std::string msg = std::string("Unable to get file ") + url;
-            throw FileNotFoundAtUrlException();
+            throw FileNotFoundAtUrlException(msg);
         }
 
         return util::stringToBytes(out.str());
