@@ -4,6 +4,7 @@
 #include <util/exception.h>
 
 #include <atomic>
+#include <bitset>
 #include <shared_mutex>
 #include <string>
 #include <unordered_map>
@@ -70,7 +71,7 @@ namespace state {
     private:
         bool isWholeValueDirty;
         bool isPartiallyDirty;
-        short *dirtyFlags;
+        uint8_t* dirtyFlags = nullptr;
 
         std::shared_mutex valueMutex;
 
@@ -79,6 +80,8 @@ namespace state {
         void *sharedMemory;
 
         std::atomic<bool> _empty;
+
+        void zeroDirtyFlags();
 
         void initialiseStorage();
 

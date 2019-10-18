@@ -129,6 +129,52 @@ namespace tests {
     }
 
 
+    TEST_CASE("Test marking multiple segments dirty", "[state]") {
+        redis::Redis &redisState = redis::Redis::getState();
+        auto kv = setupKV(20);
+
+        // Set up and push
+        std::vector<uint8_t> values = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        kv->set(values.data());
+        kv->pushFull();
+
+        // Get pointer
+        uint8_t *statePtr = kv->get();
+
+        // Update a couple of areas
+        statePtr[1] = 1;
+        statePtr[2] = 2;
+        statePtr[3] = 3;
+
+        statePtr[10] = 4;
+        statePtr[11] = 5;
+
+        statePtr[14] = 7;
+        statePtr[15] = 7;
+        statePtr[16] = 7;
+        statePtr[17] = 7;
+
+        // Mark regions as dirty
+        kv->flagSegmentDirty(1, 3);
+        kv->flagSegmentDirty(10, 11);
+        kv->flagSegmentDirty(14, 17);
+
+        // Update one non-overlapping value in state
+        std::vector<uint8_t> directA = {2, 2};
+        redisState.setRange(kv->key, 6, directA.data(), 2);
+
+        // Update one overlapping value in state
+        std::vector<uint8_t> directB = {6, 6, 6, 6, 6};
+        redisState.setRange(kv->key, 0, directB.data(), 5);
+
+        // Check all updates are taken and the state ones take precedence
+        std::vector<uint8_t> expected = {6, 1, 2, 3, 6, 0, 2, 2, 0, 0, 4, 5, 0, 0, 7, 7, 7, 7, 0, 0};
+
+        // Push and check that with no pull we're up to date
+        kv->pushPartial();
+        REQUIRE(redisState.get(kv->key) == expected);
+    }
+
     TEST_CASE("Test set segment cannot be out of bounds", "[state]") {
         auto kv = setupKV(2);
 

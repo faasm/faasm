@@ -10,6 +10,8 @@
 
 using namespace util;
 
+#define FLAG_ON   0b11111111
+
 namespace state {
 
     /**
@@ -38,7 +40,7 @@ namespace state {
         // Drop out if we already have the data and we don't care about updating
         {
             SharedLock lock(valueMutex);
-            if(onlyIfEmpty && !_empty) {
+            if (onlyIfEmpty && !_empty) {
                 return;
             }
         }
@@ -47,7 +49,7 @@ namespace state {
         FullLock lock(valueMutex);
 
         // Check condition again
-        if(onlyIfEmpty && !_empty) {
+        if (onlyIfEmpty && !_empty) {
             return;
         }
 
@@ -185,10 +187,17 @@ namespace state {
         isWholeValueDirty = true;
     }
 
+    void StateKeyValue::zeroDirtyFlags() {
+        memset(dirtyFlags, 0, valueSize * sizeof(uint8_t));
+    }
+
     void StateKeyValue::flagSegmentDirty(long offset, long len) {
+        if (!isPartiallyDirty) isPartiallyDirty = true;
+
         SharedLock lock(valueMutex);
-        isPartiallyDirty = true;
-        memset(dirtyFlags + offset, 1, len);
+        for (long i = 0; i < len; i++) {
+            dirtyFlags[offset + i] = FLAG_ON;
+        }
     }
 
     void StateKeyValue::clear() {
@@ -200,9 +209,6 @@ namespace state {
 
         // Set flag to say this is effectively new again
         _empty = true;
-
-        delete[] dirtyFlags;
-        dirtyFlags = nullptr;
     }
 
     bool StateKeyValue::empty() {
@@ -262,7 +268,7 @@ namespace state {
     void StateKeyValue::initialiseStorage() {
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
-        if(sharedMemSize == 0) {
+        if (sharedMemSize == 0) {
             throw StateKeyValueException("Initialising storage without a size for " + key);
         }
 
@@ -277,7 +283,8 @@ namespace state {
         logger->debug("Mmapped {} pages of shared storage for {}", sharedMemSize / HOST_PAGE_SIZE, key);
 
         // Set up dirty flags
-        dirtyFlags = new short[valueSize];
+        dirtyFlags = new uint8_t[valueSize];
+        zeroDirtyFlags();
     }
 
     void StateKeyValue::pushFull() {
@@ -302,9 +309,9 @@ namespace state {
 
         // Remove any dirty flags
         isWholeValueDirty = false;
-        if(isPartiallyDirty) {
+        if (isPartiallyDirty) {
             isPartiallyDirty = false;
-            memset(dirtyFlags, 0, valueSize);
+            zeroDirtyFlags();
         }
     }
 
@@ -320,70 +327,51 @@ namespace state {
         redis::Redis &redis = redis::Redis::getState();
         long remoteLockId = this->waitOnRemoteLock();
 
+        // TODO Potential locking issues here.
+        // If we get the remote lock, then have to wait a long time for the local
+        // value lock, the remote one may have expired by the time we get to updating
+        // the value, and we end up clashing.
+
         // If we don't get remote lock, just skip this push and wait for next one
         if (remoteLockId <= 0) {
             logger->debug("Failed to acquire remote lock for {}", key);
             return;
         }
 
-        // logger->debug("Got remote lock for {} with id {}", key, remoteLockId);
+        // Load remote version
+        auto tempBuff = new uint8_t[valueSize];
+        redis.get(key, tempBuff, valueSize);
 
-        // TODO Potential locking issues here.
-        // If we get the remote lock, then have to wait a long time for the local
-        // value lock, the remote one may have expired by the time we get to updating
-        // the value, and we end up clashing.
-
-        // Create copy of the dirty flags and clear the old version
-        bool * dirtyFlagsCopy = new bool[valueSize];
+        // Full lock while editing our copy
+        auto sharedMemBytes = reinterpret_cast<uint8_t *>(sharedMemory);
         {
             FullLock lock(valueMutex);
 
-            // Double check condition
+            // Double check condition (if it's all dirty or not partially dirty, ignore)
             if (isWholeValueDirty || !isPartiallyDirty) {
                 logger->debug("Released remote lock (doing nothing) for {} with id {}", key, remoteLockId);
                 redis.releaseLock(key, remoteLockId);
                 return;
             }
 
-            std::copy(dirtyFlags, dirtyFlags + valueSize, dirtyFlagsCopy);
-
-            // Reset dirty flags
-            isPartiallyDirty = false;
-            memset(dirtyFlags, 0, valueSize);
+            // Take the remote value for any non-dirty parts of our copy
+            for (unsigned long i = 0; i < valueSize; i++) {
+                sharedMemBytes[i] = (sharedMemBytes[i] & dirtyFlags[i]) + (tempBuff[i] & ~dirtyFlags[i]);
+            }
         }
 
-        // Don't need any more local locking here
-        auto tempBuff = new uint8_t[valueSize];
-        redis.get(key, tempBuff, valueSize);
-
-        logger->debug("Pushing partial state for {}", key);
-
-        // Go through all dirty flags and update value
-
-        // Find first true flag
-        auto start = std::find(dirtyFlagsCopy, dirtyFlagsCopy + valueSize, 1);
-
-        // While we still have more segments
-        while (start != dirtyFlagsCopy + valueSize) {
-            // Find next false
-            auto end = std::find(start + 1, dirtyFlagsCopy + valueSize, 0);
-
-            // Copy the dirty parts into the new value
-            long size = end - start;
-            long offset = start - dirtyFlagsCopy;
-            uint8_t *ptr = static_cast<uint8_t *>(sharedMemory) + offset;
-            std::copy(ptr, ptr + size, tempBuff + offset);
-
-            // Find next true
-            start = std::find(end + 1, dirtyFlagsCopy + valueSize, true);
-        }
+//        delete[] tempBuff;
 
         // Set whole value back again
-        redis.set(key, tempBuff, valueSize);
+        logger->debug("Pushing partial state for {}", key);
+        redis.set(key, sharedMemBytes, valueSize);
 
         // Release remote lock
         redis.releaseLock(key, remoteLockId);
         logger->debug("Released remote lock for {} with id {}", key, remoteLockId);
+
+        // Clean up
+        zeroDirtyFlags();
     }
 
     void StateKeyValue::lockRead() {
