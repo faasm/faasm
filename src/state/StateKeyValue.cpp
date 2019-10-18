@@ -310,9 +310,7 @@ namespace state {
         zeroDirtyMask();
     }
 
-    void StateKeyValue::pushPartialMask(std::shared_ptr<StateKeyValue> maskKv) {
-        uint8_t *maskPtr = maskKv->get();
-
+    void StateKeyValue::pushPartialMask(const std::shared_ptr<StateKeyValue> &maskKv) {
         if (maskKv->valueSize != valueSize) {
             std::string msg =
                     "Different sizes: mask=" + std::to_string(maskKv->valueSize) +
@@ -321,6 +319,7 @@ namespace state {
             throw StateKeyValueException(msg);
         }
 
+        uint8_t *maskPtr = maskKv->get();
         doPushPartial(maskPtr);
     }
 

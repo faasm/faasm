@@ -36,20 +36,4 @@ namespace state {
 
         return kvMap[key];
     }
-
-    void UserState::pushAll() {
-        // Iterate through all key-values
-        SharedLock sharedLock(kvMapMutex);
-
-        for (const auto &kv : kvMap) {
-            // Attempt to push partial updates
-            kv.second->pushPartial();
-
-            // Attempt to push partial updates
-            kv.second->pushFull();
-
-            // Attempt to clear (will be ignored if not relevant)
-            kv.second->clear();
-        }
-    }
 }

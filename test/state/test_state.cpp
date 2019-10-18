@@ -10,6 +10,7 @@
 #include <sys/mman.h>
 #include <util/state.h>
 #include <emulator/emulator.h>
+#include <faasm/state.h>
 
 using namespace state;
 
@@ -215,39 +216,58 @@ namespace tests {
         expected = {6, 1, 2, 3, 6};
         REQUIRE(redisState.get(kv->key) == expected);
     }
-
-    TEST_CASE("Test pushing all state", "[state]") {
+    
+    TEST_CASE("Test push partial with mask", "[state]") {
+        cleanSystem();
+        
         redis::Redis &redisState = redis::Redis::getState();
+        
+        // Create two key-values of same size
+        size_t stateSize = 4 * sizeof(double);
+        std::shared_ptr<StateKeyValue> kvData = setupKV(stateSize);
+        std::shared_ptr<StateKeyValue> kvMask = setupKV(stateSize);
+        
+        // Set up value in memory
+        uint8_t *dataBytePtr = kvData->get();
+        auto dataDoublePtr = reinterpret_cast<double*>(dataBytePtr);
+        dataDoublePtr[0] = 1.2345;
+        dataDoublePtr[1] = 12.345;
+        dataDoublePtr[2] = 987.6543;
+        dataDoublePtr[3] = 10987654.3;
+        
+        // Push 
+        kvData->flagDirty();
+        kvData->pushFull();
+        
+        // Check round trip
+        std::vector<uint8_t> actualValue = redisState.get(kvData->key);
+        std::vector<uint8_t> expectedValue(dataBytePtr, dataBytePtr + stateSize);
 
-        State s;
-        std::string userA = "test_a";
-        std::string userB = "test_b";
-        std::string keyA = "multi_push_a";
-        std::string keyB = "multi_push_b";
+        REQUIRE(actualValue == expectedValue);
 
-        auto kvA = s.getKV(userA, keyA, 4);
-        auto kvB = s.getKV(userB, keyB, 3);
+        // Now update a couple of elements in memory
+        dataDoublePtr[1] = 11.11;
+        dataDoublePtr[2] = 222.222;
+        dataDoublePtr[3] = 3333.3333;
+        kvData->flagDirty();
 
-        std::string actualStateKeyA = util::keyForUser(userA, keyA);
-        std::string actualStateKeyB = util::keyForUser(userB, keyB);
+        // Mask two as having changed
+        uint8_t *maskBytePtr = kvMask->get();
+        auto maskIntPtr = reinterpret_cast<unsigned int *>(maskBytePtr);
+        faasm::maskDouble(maskIntPtr, 1);
+        faasm::maskDouble(maskIntPtr, 3);
 
-        // Set up and push
-        std::vector<uint8_t> valuesA = {0, 1, 2, 3};
-        std::vector<uint8_t> valuesB = {4, 5, 6};
+        // Expected value will be a mix of new and old
+        std::vector<double> expected = {
+                1.2345,    // Old
+                11.11,     // New (updated in memory and masked)
+                987.6543,  // Old (updated in memory but not masked)
+                3333.3333  // New (updated in memory and masked)
+        };
 
-        kvA->set(valuesA.data());
-        kvB->set(valuesB.data());
-
-        // Check neither in redis
-        REQUIRE(redisState.get(keyA).empty());
-        REQUIRE(redisState.get(keyB).empty());
-
-        // Push all
-        s.pushAll();
-
-        // Check both now in redis
-        REQUIRE(redisState.get(actualStateKeyA) == valuesA);
-        REQUIRE(redisState.get(actualStateKeyB) == valuesB);
+        std::vector<uint8_t> actualValue2 = redisState.get(kvData->key);
+        auto expectedBytePtr = reinterpret_cast<uint8_t *>(expected.data());
+        std::vector<uint8_t> expectedBytes(expectedBytePtr, expectedBytePtr + stateSize);
     }
 
     void checkPulling(bool async) {

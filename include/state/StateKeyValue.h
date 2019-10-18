@@ -4,7 +4,6 @@
 #include <util/exception.h>
 
 #include <atomic>
-#include <bitset>
 #include <shared_mutex>
 #include <string>
 #include <unordered_map>
@@ -50,7 +49,7 @@ namespace state {
 
         void pushPartial();
 
-        void pushPartialMask(std::shared_ptr<StateKeyValue> maskKv);
+        void pushPartialMask(const std::shared_ptr<StateKeyValue> &maskKv);
 
         void clear();
 

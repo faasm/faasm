@@ -3,8 +3,6 @@
 #include <iostream>
 #include <typeinfo>
 
-#define DOUBLE_BYTES 0b1111111111111111111111111111111111111111111111111111111111111111
-
 template<typename T>
 void checkSizeOf(size_t expected, const char *name) {
     size_t actual = sizeof(T);
@@ -15,9 +13,6 @@ void checkSizeOf(size_t expected, const char *name) {
 }
 
 FAASM_MAIN_FUNC() {
-    double d = DOUBLE_BYTES;
-    printf("Double: %f\n", d);
-
     checkSizeOf<double>(8, "double");
 
     checkSizeOf<float>(4, "float");

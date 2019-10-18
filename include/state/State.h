@@ -12,8 +12,6 @@ namespace state {
 
         std::shared_ptr<UserState> getUserState(const std::string &user);
 
-        void pushAll();
-
         void forceClearAll();
 
     private:
