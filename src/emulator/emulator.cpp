@@ -161,7 +161,8 @@ void __faasm_write_state_offset(const char *key, long totalLen, long offset, con
 }
 
 void __faasm_flag_state_dirty(const char *key, long totalLen) {
-    util::getLogger()->debug("E - flag_state_dirty {} {}", key, totalLen);
+    // Avoid excessive logging
+    // util::getLogger()->debug("E - flag_state_dirty {} {}", key, totalLen);
     auto kv = getKv(key, totalLen);
     kv->flagDirty();
 }
@@ -175,7 +176,8 @@ void __faasm_flag_state_offset_dirty(const char *key, long totalLen, long offset
 
 
 void __faasm_push_state_partial_mask(const char *key, const char *maskKey) {
-    util::getLogger()->debug("E - set_dirty_mask {}", key, maskKey);
+    // Avoid excessive logging
+    // util::getLogger()->debug("E - push_state_partial_mask {}", key, maskKey);
     auto kv = getKv(key, 0);
     auto maskKv = getKv(maskKey, 0);
 
