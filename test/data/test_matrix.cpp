@@ -23,8 +23,6 @@ namespace tests {
     }
 
     void _readFileWriteState(path dummyDir, const std::string &matrixPart, const std::string &key) {
-        redis::Redis &redisState = redis::Redis::getState();
-
         // Read in from file
         path filePath = dummyDir;
         filePath.append(matrixPart);

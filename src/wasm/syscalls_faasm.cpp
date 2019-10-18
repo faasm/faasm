@@ -2,7 +2,7 @@
 #include "syscalls.h"
 
 #include <util/bytes.h>
-#include <linux/membarrier.h>
+#include <state/StateKeyValue.h>
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>

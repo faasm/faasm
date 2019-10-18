@@ -193,7 +193,7 @@ namespace state {
         memset(sharedMemory, 0, valueSize);
     }
 
-    inline void StateKeyValue::flagSegmentDirty(long offset, long len) {
+    void StateKeyValue::flagSegmentDirty(long offset, long len) {
         isDirty |= true;
         memset(((uint8_t *) dirtyMask) + offset, 0b11111111, len);
     }
@@ -218,6 +218,8 @@ namespace state {
     }
 
     void StateKeyValue::mapSharedMemory(void *newAddr) {
+        pullImpl(true);
+
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         if (!isPageAligned(newAddr)) {
@@ -230,8 +232,8 @@ namespace state {
         // Remap our existing shared memory onto this new region
         void *result = mremap(sharedMemory, 0, sharedMemSize, MREMAP_FIXED | MREMAP_MAYMOVE, newAddr);
         if (result == MAP_FAILED) {
-            logger->error("Failed to map shared memory at {} with size {}. errno: {}",
-                          sharedMemory, sharedMemSize, errno);
+            logger->error("Failed to map shared memory for {} at {} with size {}. errno: {}",
+                          key, sharedMemory, sharedMemSize, errno);
 
             throw std::runtime_error("Failed mapping shared memory");
         }

@@ -273,7 +273,6 @@ namespace tests {
     void checkPulling(bool async) {
         auto kv = setupKV(4);
         std::vector<uint8_t> values = {0, 1, 2, 3};
-        util::SystemConfig &conf = util::getSystemConfig();
 
         // Push and make sure reflected in redis
         kv->set(values.data());
@@ -382,6 +381,24 @@ namespace tests {
         }
     }
 
+    TEST_CASE("Test mapping shared memory pulls if not initialised", "[state]") {
+        // Set up the KV
+        auto kv = setupKV(5);
+        
+        // Write value direct to redis
+        std::vector<uint8_t> value = {0, 1, 2, 3, 4};
+        redis::Redis &redisState = redis::Redis::getState();
+        redisState.set(kv->key, value.data(), 5);
+
+        // Try to map the kv
+        void *mappedRegion = mmap(nullptr, 5, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        kv->mapSharedMemory(mappedRegion);
+
+        auto byteRegion = static_cast<uint8_t *>(mappedRegion);
+        std::vector<uint8_t> actualValue(byteRegion, byteRegion + 5);
+        REQUIRE(actualValue == value);
+    }
+    
     TEST_CASE("Test mapping shared memory offsets", "[state]") {
         // Set up the KV
         auto kv = setupKV(7);

@@ -16,7 +16,7 @@ set(LIB_FILES
         )
 
 faasm_private_lib(worker_lib "${LIB_FILES}")
-target_link_libraries(worker_lib wasm zygote scheduler system libWAVM)
+target_link_libraries(worker_lib wasm zygote system)
 
 add_executable(worker worker_main.cpp)
 target_link_libraries(worker worker_lib)
