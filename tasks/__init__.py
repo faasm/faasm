@@ -126,6 +126,7 @@ from tasks.tensorflow import (
 )
 from tasks.toolchain import (
     backup_toolchain,
+    backup_sysroot,
     download_toolchain,
     run_local_codegen,
 )

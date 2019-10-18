@@ -73,7 +73,7 @@ namespace tests {
         REQUIRE(actualOutputs.cols() == params.nTrain);
     }
 
-    void checkLossUpdates(bool async) {
+    TEST_CASE("Test hinge loss updates", "[sgd]") {
         cleanSystem();
 
         int nWeights = 4;
@@ -89,17 +89,14 @@ namespace tests {
         weights << 1, 2, 3, 4;
 
         // Persist weights to allow updates
-        bool pushPull = !async;
-        writeMatrixToState(WEIGHTS_KEY, weights, pushPull);
+        writeMatrixToState(WEIGHTS_KEY, weights, true);
 
         // Set up some dummy feature counts
         std::vector<int> featureCounts(4);
         std::fill(featureCounts.begin(), featureCounts.end(), 1);
         uint8_t *featureBytes = reinterpret_cast<uint8_t *>(featureCounts.data());
         faasmWriteState(FEATURE_COUNTS_KEY, featureBytes, 4 * sizeof(int));
-        if(pushPull) {
-            faasmPushState(FEATURE_COUNTS_KEY);
-        }
+        faasmPushState(FEATURE_COUNTS_KEY);
 
         // Copy of weights for testing
         MatrixXd weightsCopy = weights;
@@ -120,7 +117,7 @@ namespace tests {
 
         // Set up inputs in state
         inputs.setFromTriplets(tripletList.begin(), tripletList.end());
-        faasm::writeSparseMatrixToState(INPUTS_KEY, inputs, pushPull);
+        faasm::writeSparseMatrixToState(INPUTS_KEY, inputs, true);
 
         // Check what the predictions are pre-update
         MatrixXd preUpdate = weights * inputs;
@@ -134,7 +131,7 @@ namespace tests {
         MatrixXd outputs(1, 2);
         outputs << -1, 1;
 
-        faasm::writeMatrixToState(OUTPUTS_KEY, outputs, pushPull);
+        faasm::writeMatrixToState(OUTPUTS_KEY, outputs, true);
 
         int epoch = 3;
         hingeLossWeightUpdate(params, epoch, batchNumber, startIdx, endIdx);
@@ -143,7 +140,7 @@ namespace tests {
         faasmPushStatePartial(WEIGHTS_KEY);
 
         // Check weights have been updated where necessary
-        const MatrixXd actualWeights = readMatrixFromState(WEIGHTS_KEY, 1, nWeights, pushPull);
+        const MatrixXd actualWeights = readMatrixFromState(WEIGHTS_KEY, 1, nWeights, true);
         REQUIRE(actualWeights.rows() == 1);
         REQUIRE(actualWeights.cols() == nWeights);
 
@@ -154,14 +151,6 @@ namespace tests {
 
         // Where no input values, weights should remain the same
         REQUIRE(actualWeights(0, 3) == weightsCopy(0, 3));
-    }
-
-    TEST_CASE("Test hinge loss updates", "[sgd]") {
-        checkLossUpdates(false);
-    }
-
-    TEST_CASE("Test hinge loss updates async", "[sgd]") {
-        checkLossUpdates(true);
     }
 
     void checkDoubleArrayInState(redis::Redis &r, const char *key, std::vector<double> expected) {
