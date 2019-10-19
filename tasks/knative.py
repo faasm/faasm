@@ -37,8 +37,8 @@ NATIVE_WORKER_ANNOTATIONS = [
 ]
 
 FAASM_WORKER_ARGS = [
-    "--min-scale=10",  # Always keep two workers
-    "--max-scale=20",  # Max number of workers
+    "--min-scale=10",  # Fixed number of workers (max one per host)
+    "--max-scale=10",  # Max number of workers
     "--concurrency-limit=4",  # How many requests can be handled by a given worker
 ]
 
@@ -46,13 +46,13 @@ FAASM_WORKER_ARGS = [
 # Expressed as (min, max)
 NATIVE_WORKER_ARGS = {
     "reuters_svm": [
-        "--min-scale=10",   # As each executes one thread, we can have multiple per machine
-        "--max-scale=10",
+        "--min-scale=20",   # As each executes one thread, we can have multiple per machine
+        "--max-scale=20",
         "--concurrency-limit=1",
     ],
     "default": [
         "--min-scale=2",
-        "--max-scale=4",
+        "--max-scale=2",
         "--concurrency-limit=1",  # Native executors handle one request at a time
     ]
 }
