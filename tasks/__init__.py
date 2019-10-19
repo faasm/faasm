@@ -91,8 +91,8 @@ from tasks.invoke import (
     status,
 )
 from tasks.knative import (
-    k8s_deploy,
-    k8s_delete_worker,
+    deploy_knative,
+    delete_knative_worker,
     build_knative_native,
     knative_native_local,
     deploy_knative_native,

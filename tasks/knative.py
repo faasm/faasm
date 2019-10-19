@@ -1,5 +1,4 @@
 import os
-from copy import copy
 from os.path import join
 from subprocess import call
 
@@ -38,7 +37,7 @@ NATIVE_WORKER_ANNOTATIONS = [
 ]
 
 FAASM_WORKER_ARGS = [
-    "--min-scale=2",  # Always keep two workers
+    "--min-scale=10",  # Always keep two workers
     "--max-scale=20",  # Max number of workers
     "--concurrency-limit=4",  # How many requests can be handled by a given worker
 ]
@@ -47,8 +46,8 @@ FAASM_WORKER_ARGS = [
 # Expressed as (min, max)
 NATIVE_WORKER_ARGS = {
     "reuters_svm": [
-        "--min-scale=20",     # Currently we have 8 machines all with 4 cores
-        "--max-scale=20",
+        "--min-scale=10",     # Currently we have 8 machines all with 4 cores
+        "--max-scale=10",
         "--concurrency-limit=1",
     ],
     "default": [
@@ -105,12 +104,12 @@ def _kubectl_apply(path, env=None):
 
 
 @task
-def k8s_delete_worker(ctx):
+def delete_knative_worker(ctx):
     _delete_knative_fn("worker")
 
 
 @task
-def k8s_deploy(ctx, local=False, bare_metal=False, ibm=False):
+def deploy_knative(ctx, local=False, bare_metal=False, ibm=False):
     if not local and not bare_metal and not ibm:
         print("Must provide one flag from local, bare-metal and ibm")
         return
