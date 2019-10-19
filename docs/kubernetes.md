@@ -121,9 +121,15 @@ To look at the logs for the faasm containers:
 # Find the faasm-worker-xxx pod
 kubectl --namespace=faasm get pods
 
-# Get the logs for the user-container part and queue proxy
-kubectl --namespace=faasm logs faasm-worker-xxx user-container
-kubectl --namespace=faasm logs faasm-worker-xxx queue-proxy
+# Tail the logs for a specific pod
+kubectl -n faasm logs -f faasm-worker-xxx user-container
+
+# Tail the logs for all containers in the deployment
+# You only need to specify the max-log-requests if you have more than 5 containers
+kubectl -n faasm logs -f -c user-container -l serving.knative.dev/service=faasm-worker --max-log-requests=<N_CONTAINERS>
+
+# Get all logs from the given deployment (add a very large --tail)
+kubectl -n faasm logs --tail=100000 -c user-container -l serving.knative.dev/service=faasm-worker --max-log-requests=10 > /tmp/out.log
 ```
 
 # Isolation and privileges
