@@ -451,7 +451,7 @@ namespace tests {
         // Sense check initial scheduler set-up
         scheduler::Scheduler &sch = scheduler::getScheduler();
         auto bindQueue = sch.getBindQueue();
-        REQUIRE(sch.getFunctionQueueLength(call) == 0);
+        REQUIRE(sch.getFunctionInFlightCount(call) == 0);
         REQUIRE(sch.getFunctionThreadCount(call) == 0);
         REQUIRE(bindQueue->size() == 0);
 
@@ -460,7 +460,7 @@ namespace tests {
 
         // Check scheduler set-up
         const std::string workerSetName = sch.getFunctionWarmSetName(call);
-        REQUIRE(sch.getFunctionQueueLength(call) == 1);
+        REQUIRE(sch.getFunctionInFlightCount(call) == 1);
         REQUIRE(sch.getFunctionThreadCount(call) == 1);
         REQUIRE(bindQueue->size() == 1);
         REQUIRE(redis.sismember(workerSetName, nodeId));
@@ -468,19 +468,19 @@ namespace tests {
         // Bind the thread and check it's now registered
         w.processNextMessage();
         REQUIRE(w.isBound());
-        REQUIRE(sch.getFunctionQueueLength(call) == 1);
+        REQUIRE(sch.getFunctionInFlightCount(call) == 1);
         REQUIRE(sch.getFunctionThreadCount(call) == 1);
         REQUIRE(bindQueue->size() == 0);
 
         // Execute function and check thread still registered
         w.processNextMessage();
-        REQUIRE(sch.getFunctionQueueLength(call) == 0);
+        REQUIRE(sch.getFunctionInFlightCount(call) == 0);
         REQUIRE(sch.getFunctionThreadCount(call) == 1);
         REQUIRE(bindQueue->size() == 0);
 
         // Finish thread and check things are reset
         w.finish();
-        REQUIRE(sch.getFunctionQueueLength(call) == 0);
+        REQUIRE(sch.getFunctionInFlightCount(call) == 0);
         REQUIRE(sch.getFunctionThreadCount(call) == 0);
         REQUIRE(bindQueue->size() == 0);
         REQUIRE(!redis.sismember(workerSetName, nodeId));

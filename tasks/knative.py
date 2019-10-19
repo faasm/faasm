@@ -46,7 +46,7 @@ FAASM_WORKER_ARGS = [
 # Expressed as (min, max)
 NATIVE_WORKER_ARGS = {
     "reuters_svm": [
-        "--min-scale=20",   # As each executes one thread, we can have multiple per machine
+        "--min-scale=20",  # As each executes one thread, we can have multiple per machine
         "--max-scale=20",
         "--concurrency-limit=1",
     ],
@@ -63,6 +63,8 @@ NATIVE_WORKER_IMAGE_PREFIX = "faasm/knative-native-"
 FAASM_WORKER_NAME = "{}worker".format(KNATIVE_FUNC_PREFIX)
 FAASM_WORKER_IMAGE = "faasm/knative-worker"
 
+ONE_MIN = 60000
+
 KNATIVE_ENV = {
     "REDIS_STATE_HOST": "redis-state",
     "REDIS_QUEUE_HOST": "redis-queue",
@@ -70,10 +72,13 @@ KNATIVE_ENV = {
     "LOG_LEVEL": "debug",
     "CGROUP_MODE": "off",
     "NETNS_MODE": "off",
-    "MAX_QUEUE_RATIO": "1",
+    "MAX_IN_FLIGHT_RATIO": "1",
     "MAX_WORKERS_PER_FUNCTION": "4",  # This limit is per-host. We only want one instance per core
     "THREADS_PER_WORKER": "10",
     "FS_MODE": "on",
+    "BOUND_TIMEOUT": str(2 * ONE_MIN),  # How long a bound worker sticks around for
+    "UNBOUND_TIMEOUT": str(10 * ONE_MIN),  # How long an unbound worker sticks around for
+    "GLOBAL_MESSAGE_TIMEOUT": str(2 * ONE_MIN),  # How long things wait for messages on global bus
 }
 
 

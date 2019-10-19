@@ -52,7 +52,7 @@ namespace util {
         maxNodes = this->getSystemConfIntParam("MAX_NODES", "4");
         noScheduler = this->getSystemConfIntParam("NO_SCHEDULER", "0");
         prewarm = this->getSystemConfIntParam("PREWARM", "1");
-        maxQueueRatio = this->getSystemConfIntParam("MAX_QUEUE_RATIO", "3");
+        maxInFlightRatio = this->getSystemConfIntParam("MAX_IN_FLIGHT_RATIO", "3");
         maxWorkersPerFunction = this->getSystemConfIntParam("MAX_WORKERS_PER_FUNCTION", "10");
 
         // Worker-related timeouts (all in seconds)
@@ -110,7 +110,7 @@ namespace util {
         logger->info("THREADS_PER_WORKER         {}", threadsPerWorker);
         logger->info("NO_SCHEDULER               {}", noScheduler);
         logger->info("PREWARM                    {}", prewarm);
-        logger->info("MAX_QUEUE_RATIO            {}", maxQueueRatio);
+        logger->info("MAX_IN_FLIGHT_RATIO        {}", maxInFlightRatio);
         logger->info("MAX_WORKERS_PER_FUNCTION   {}", maxWorkersPerFunction);
 
         logger->info("--- Timeouts ---");

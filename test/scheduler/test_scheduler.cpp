@@ -58,8 +58,8 @@ namespace tests {
         chainedCall.set_idx(3);
 
         util::SystemConfig &conf = util::getSystemConfig();
-        int originalMaxQueueRatio = conf.maxQueueRatio;
-        conf.maxQueueRatio = 8;
+        int originalmaxInFlightRatio = conf.maxInFlightRatio;
+        conf.maxInFlightRatio = 8;
 
         SECTION("Test worker finishing and node removal") {
             // Sanity check to see that the node is in the global set but not the set for the function
@@ -68,40 +68,40 @@ namespace tests {
             REQUIRE(!redis.sismember(funcSet, nodeId));
 
             // Call the function enough to get multiple workers set up
-            int requiredCalls = (conf.maxQueueRatio * 2) - 1;
+            int requiredCalls = (conf.maxInFlightRatio * 2) - 1;
             for (int i = 0; i < requiredCalls; i++) {
                 sch.callFunction(call);
             }
 
             // Check node is now part of function's set
             REQUIRE(redis.sismember(funcSet, nodeId));
-            REQUIRE(sch.getFunctionQueueLength(call) == requiredCalls);
+            REQUIRE(sch.getFunctionInFlightCount(call) == requiredCalls);
             REQUIRE(sch.getBindQueue()->size() == 2);
 
             // Notify that a worker has finished, count decremented by one and worker is still member of function set
-            sch.stopListeningToQueue(call);
+            sch.notifyThreadFinished(call);
             REQUIRE(redis.sismember(funcSet, nodeId));
-            REQUIRE(sch.getFunctionQueueLength(call) == requiredCalls);
+            REQUIRE(sch.getFunctionInFlightCount(call) == requiredCalls);
             REQUIRE(sch.getFunctionThreadCount(call) == 1);
 
             // Notify that another worker has finished, check count is decremented and node removed from function set
             // (but still in global set)
-            sch.stopListeningToQueue(call);
+            sch.notifyThreadFinished(call);
             REQUIRE(redis.sismember(GLOBAL_NODE_SET, nodeId));
             REQUIRE(!redis.sismember(funcSet, nodeId));
-            REQUIRE(sch.getFunctionQueueLength(call) == requiredCalls);
+            REQUIRE(sch.getFunctionInFlightCount(call) == requiredCalls);
             REQUIRE(sch.getFunctionThreadCount(call) == 0);
         }
 
         SECTION("Test calling function with no workers sends bind message") {
-            REQUIRE(sch.getFunctionQueueLength(call) == 0);
+            REQUIRE(sch.getFunctionInFlightCount(call) == 0);
             REQUIRE(sch.getFunctionThreadCount(call) == 0);
 
             // Call the function
             sch.callFunction(call);
 
             // Check function count has increased and bind message sent
-            REQUIRE(sch.getFunctionQueueLength(call) == 1);
+            REQUIRE(sch.getFunctionInFlightCount(call) == 1);
             REQUIRE(sch.getBindQueue()->size() == 1);
             message::Message actual = sch.getBindQueue()->dequeue();
 
@@ -129,9 +129,9 @@ namespace tests {
             sch.callFunction(callB);
 
             // Check that calls are queued
-            REQUIRE(sch.getFunctionQueueLength(callA) == 1);
+            REQUIRE(sch.getFunctionInFlightCount(callA) == 1);
             REQUIRE(sch.getFunctionThreadCount(callA) == 1);
-            REQUIRE(sch.getFunctionQueueLength(callB) == 1);
+            REQUIRE(sch.getFunctionInFlightCount(callB) == 1);
             REQUIRE(sch.getFunctionThreadCount(callB) == 1);
             REQUIRE(sch.getBindQueue()->size() == 2);
 
@@ -154,7 +154,7 @@ namespace tests {
         SECTION("Test calling function with existing workers does not send bind message") {
             // Call the function and check thread count is incremented while bind message sent
             sch.callFunction(call);
-            REQUIRE(sch.getFunctionQueueLength(call) == 1);
+            REQUIRE(sch.getFunctionInFlightCount(call) == 1);
             REQUIRE(sch.getFunctionThreadCount(call) == 1);
             REQUIRE(sch.getBindQueue()->size() == 1);
 
@@ -162,17 +162,17 @@ namespace tests {
             sch.callFunction(call);
 
             // Check function call has been added, but no new bind messages
-            REQUIRE(sch.getFunctionQueueLength(call) == 2);
+            REQUIRE(sch.getFunctionInFlightCount(call) == 2);
             REQUIRE(sch.getFunctionThreadCount(call) == 1);
             REQUIRE(sch.getBindQueue()->size() == 1);
 
             redis.flushAll();
         }
 
-        SECTION("Test calling function which breaches queue ratio sends bind message") {
+        SECTION("Test calling function which breaches in-flight ratio sends bind message") {
             // Saturate up to the number of max queued calls
             auto bindQueue = sch.getBindQueue();
-            int nCalls = conf.maxQueueRatio - 1;
+            int nCalls = conf.maxInFlightRatio - 1;
             for (int i = 0; i < nCalls; i++) {
                 sch.callFunction(call);
 
@@ -180,22 +180,22 @@ namespace tests {
                 REQUIRE(bindQueue->size() == 1);
 
                 // Check call queued
-                REQUIRE(sch.getFunctionQueueLength(call) == i + 1);
+                REQUIRE(sch.getFunctionInFlightCount(call) == i + 1);
             }
 
             // Dispatch another and check that a bind message is sent
             sch.callFunction(call);
             REQUIRE(bindQueue->size() == 2);
-            REQUIRE(sch.getFunctionQueueLength(call) == nCalls + 1);
+            REQUIRE(sch.getFunctionInFlightCount(call) == nCalls + 1);
 
             redis.flushAll();
         }
 
-        SECTION("Test chained calls use lower queue ratio") {
-            // Add a few normal calls below the normal queue ratio but
-            // above the chained queue ratio (i.e. 1)
+        SECTION("Test chained calls use lower in-flight ratio") {
+            // Add a few normal calls below the normal in-flight ratio but
+            // above the chained in-flight ratio (i.e. 1)
             auto bindQueue = sch.getBindQueue();
-            int nCalls = conf.maxQueueRatio - 3;
+            int nCalls = conf.maxInFlightRatio - 3;
             for (int i = 0; i < nCalls; i++) {
                 sch.callFunction(call);
             }
@@ -203,13 +203,13 @@ namespace tests {
             // Dispatch another and check that a bind message is still not sent
             sch.callFunction(call);
             REQUIRE(bindQueue->size() == 1);
-            REQUIRE(sch.getFunctionQueueLength(call) == nCalls + 1);
+            REQUIRE(sch.getFunctionInFlightCount(call) == nCalls + 1);
 
             // Now dispatch a chained call and check that it causes another bind,
             // and is put on the same queue as the normal messages
             sch.callFunction(chainedCall);
             REQUIRE(bindQueue->size() == 2);
-            REQUIRE(sch.getFunctionQueueLength(call) == nCalls + 2);
+            REQUIRE(sch.getFunctionInFlightCount(call) == nCalls + 2);
 
             redis.flushAll();
         }
@@ -217,9 +217,9 @@ namespace tests {
         SECTION("Node choice checks") {
             redis.sadd(GLOBAL_NODE_SET, otherNodeA);
 
-            SECTION("Test function which breaches queue ratio but has no capacity fails over") {
+            SECTION("Test function which breaches in-flight ratio but has no capacity fails over") {
                 // Make calls up to the limit
-                int nCalls = conf.maxWorkersPerFunction * conf.maxQueueRatio;
+                int nCalls = conf.maxWorkersPerFunction * conf.maxInFlightRatio;
                 for (int i = 0; i < nCalls; i++) {
                     sch.callFunction(call);
                 }
@@ -230,7 +230,7 @@ namespace tests {
                 REQUIRE(sch.getFunctionThreadCount(call) == conf.maxWorkersPerFunction);
 
                 // Check calls have been queued
-                REQUIRE(sch.getFunctionQueueLength(call) == nCalls);
+                REQUIRE(sch.getFunctionInFlightCount(call) == nCalls);
 
                 // Check "best node" is now different
                 REQUIRE(sch.getBestNodeForFunction(call) != nodeId);
@@ -251,14 +251,14 @@ namespace tests {
                 // Check not added to local queues
                 REQUIRE(bindQueue->size() == conf.maxWorkersPerFunction);
                 REQUIRE(sch.getFunctionThreadCount(call) == conf.maxWorkersPerFunction);
-                REQUIRE(sch.getFunctionQueueLength(call) == nCalls);
+                REQUIRE(sch.getFunctionInFlightCount(call) == nCalls);
 
                 redis.flushAll();
             }
 
             SECTION("Test chained function fails over at lower limit") {
                 // Make a few calls but still below the normal limit
-                int nCalls = (conf.maxWorkersPerFunction * conf.maxQueueRatio) - 2;
+                int nCalls = (conf.maxWorkersPerFunction * conf.maxInFlightRatio) - 2;
                 for (int i = 0; i < nCalls; i++) {
                     sch.callFunction(call);
                 }
@@ -268,30 +268,6 @@ namespace tests {
 
                 // Check "best node" for a chained call is the other node
                 REQUIRE(sch.getBestNodeForFunction(chainedCall) != nodeId);
-            }
-
-            SECTION("Test scheduler requests scale-out when no options") {
-                // Clear out worker set and just add this node
-                redis.flushAll();
-                redis.sadd(GLOBAL_NODE_SET, nodeId);
-
-                GlobalMessageBus &globalBus = getGlobalMessageBus();
-                globalBus.clear();
-
-                REQUIRE(sch.getGlobalSetSize() == 1);
-                REQUIRE(globalBus.getScaleoutRequestCount() == 0);
-
-                // Saturate this node
-                int nCalls = conf.maxWorkersPerFunction * conf.maxQueueRatio;
-                for (int i = 0; i < nCalls; i++) {
-                    sch.callFunction(call);
-                }
-
-                // Make another request
-                sch.callFunction(call);
-
-                // Check scale-out request has been made
-                REQUIRE(globalBus.getScaleoutRequestCount() == 1);
             }
 
             SECTION("Test scheduler adds node ID to global set when starting up") {
@@ -344,75 +320,7 @@ namespace tests {
             }
         }
 
-        conf.maxQueueRatio = originalMaxQueueRatio;
-    }
-
-    TEST_CASE("Test scheduler execution count", "[scheduler]") {
-        cleanSystem();
-
-        Scheduler &sch = scheduler::getScheduler();
-
-        REQUIRE(sch.getExecutingCount() == 0);
-
-        sch.incrementExecutingCount();
-        sch.incrementExecutingCount();
-
-        REQUIRE(sch.getExecutingCount() == 2);
-
-        sch.decrementExecutingCount();
-
-        REQUIRE(sch.getExecutingCount() == 1);
-
-        // Try to decrement below zero
-        sch.decrementExecutingCount();
-        sch.decrementExecutingCount();
-        sch.decrementExecutingCount();
-
-        REQUIRE(sch.getExecutingCount() == 0);
-    }
-
-    TEST_CASE("Test scaling out", "[scheduler]") {
-        cleanSystem();
-        Scheduler &sch = scheduler::getScheduler();
-        GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        Redis &redis = redis::Redis::getQueue();
-        util::SystemConfig &conf = util::getSystemConfig();
-
-        // Check there are no workers and no scale-out requests initially
-        redis.flushAll();
-        REQUIRE(sch.getGlobalSetSize() == 0);
-        REQUIRE(globalBus.getScaleoutRequestCount() == 0);
-
-        SECTION("Check scale out requested when none preset") {
-            // Request a scale-out (should always dispatch only one request at a time regardless of the target)
-            sch.scaleOut(4);
-
-            REQUIRE(globalBus.getScaleoutRequestCount() == 1);
-        }
-
-        SECTION("Check scale out ignored when already over target") {
-            // Add some random workers
-            redis.sadd(GLOBAL_NODE_SET, "foo");
-            redis.sadd(GLOBAL_NODE_SET, "bar");
-
-            // Request a scale-out (should always dispatch only one request at a time regardless of the target)
-            sch.scaleOut(2);
-
-            REQUIRE(globalBus.getScaleoutRequestCount() == 0);
-        }
-
-        SECTION("Check scale out ignored when at max") {
-            // Add workers up to the limit
-            for (int i = 0; i < conf.maxNodes; i++) {
-                std::string workerName = "foo" + std::to_string(i);
-                redis.sadd(GLOBAL_NODE_SET, workerName);
-            }
-
-            // Request a scale-out over the max
-            sch.scaleOut(conf.maxNodes + 1);
-
-            REQUIRE(globalBus.getScaleoutRequestCount() == 0);
-        }
+        conf.maxInFlightRatio = originalmaxInFlightRatio;
     }
 
     TEST_CASE("Test message recording of scheduling decisions", "[scheduler]") {
@@ -424,11 +332,11 @@ namespace tests {
         std::string otherNodeA = "node A";
 
         util::SystemConfig &conf = util::getSystemConfig();
-        int maxQueueRatio = conf.maxQueueRatio;
+        int maxInFlightRatio = conf.maxInFlightRatio;
         int maxWorkers = conf.maxWorkersPerFunction;
 
         // Add calls to saturate the first node
-        int requiredCalls = maxQueueRatio * maxWorkers;
+        int requiredCalls = maxInFlightRatio * maxWorkers;
         for (int i = 0; i < requiredCalls; i++) {
             message::Message msgA = util::messageFactory("demo", "chain_simple");
             sch.callFunction(msgA);
@@ -472,7 +380,7 @@ namespace tests {
 
         // Add calls to saturate the first node
         util::SystemConfig &conf = util::getSystemConfig();
-        int requiredCalls = conf.maxQueueRatio * conf.maxWorkersPerFunction;
+        int requiredCalls = conf.maxInFlightRatio * conf.maxWorkersPerFunction;
         for (int i = 0; i < requiredCalls; i++) {
             sch.callFunction(msg);
         }
@@ -493,5 +401,43 @@ namespace tests {
         // Check host not changes and hops increased
         REQUIRE(msgWithHops.schedulednode() == "Some other node");
         REQUIRE(msgWithHops.hops() == 6);
+    }
+
+    TEST_CASE("Test worker removes itself from warm set when sharing") {
+        cleanSystem();
+        Scheduler &sch = scheduler::getScheduler();
+        SharingMessageBus &sharingBus = SharingMessageBus::getInstance();
+
+        std::string thisNodeId = util::getNodeId();
+        std::string otherNode = "other node";
+        message::Message msg = util::messageFactory("demo", "chain_simple");
+
+        // Add both to the global set
+        Redis &redis = redis::Redis::getQueue();
+        redis.sadd(GLOBAL_NODE_SET, thisNodeId);
+        redis.sadd(GLOBAL_NODE_SET, otherNode);
+
+        // Add a call and make sure we're in the warm set
+        sch.callFunction(msg);
+        const std::string warmSetName = sch.getFunctionWarmSetName(msg);
+        REQUIRE(redis.sismember(warmSetName, thisNodeId));
+
+        // Now saturate up to the point we're about to fail over
+        util::SystemConfig &conf = util::getSystemConfig();
+        int requiredCalls = conf.maxInFlightRatio * conf.maxWorkersPerFunction - 2;
+        for (int i = 0; i < requiredCalls; i++) {
+            sch.callFunction(msg);
+        }
+
+        // Check we're still the best node
+        REQUIRE(sch.getBestNodeForFunction(msg) == thisNodeId);
+
+        // Add another call, check we're no longer the best
+        sch.callFunction(msg);
+        REQUIRE(sch.getBestNodeForFunction(msg) == otherNode);
+
+        // Make another call and check we're no longer in the warm set
+        sch.callFunction(msg);
+        REQUIRE(!redis.sismember(warmSetName, thisNodeId));
     }
 }

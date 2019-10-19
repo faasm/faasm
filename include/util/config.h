@@ -40,7 +40,7 @@ namespace util {
         int threadsPerWorker;
         int noScheduler;
         int prewarm;
-        int maxQueueRatio;
+        int maxInFlightRatio;
         int maxWorkersPerFunction;
 
         // Worker-related timeouts

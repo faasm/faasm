@@ -19,14 +19,9 @@ namespace scheduler {
 
         message::Message getFunctionResult(unsigned int messageId, int timeoutMs) override;
 
-        void requestNewWorkerNode() override;
-
-        int getScaleoutRequestCount() override;
-
         void clear() override;
 
     private:
         redis::Redis &redis;
-        int scaleOutRequests;
     };
 }

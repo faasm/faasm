@@ -19,20 +19,20 @@ namespace tests {
 
         // Call the function, checking that everything is set up
         sch.callFunction(call);
-        REQUIRE(sch.getFunctionQueueLength(call) == 1);
+        REQUIRE(sch.getFunctionInFlightCount(call) == 1);
         REQUIRE(sch.getFunctionThreadCount(call) == 1);
         REQUIRE(bindQueue->size() == 1);
 
         // Process the bind message
         w.processNextMessage();
         REQUIRE(w.isBound());
-        REQUIRE(sch.getFunctionQueueLength(call) == 1);
+        REQUIRE(sch.getFunctionInFlightCount(call) == 1);
         REQUIRE(sch.getFunctionThreadCount(call) == 1);
         REQUIRE(bindQueue->size() == 0);
 
         // Now execute the function
         w.processNextMessage();
-        REQUIRE(sch.getFunctionQueueLength(call) == 0);
+        REQUIRE(sch.getFunctionInFlightCount(call) == 0);
         REQUIRE(sch.getFunctionThreadCount(call) == 1);
         REQUIRE(bindQueue->size() == 0);
 
