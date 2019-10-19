@@ -414,4 +414,84 @@ namespace tests {
             REQUIRE(globalBus.getScaleoutRequestCount() == 0);
         }
     }
+
+    TEST_CASE("Test message recording of scheduling decisions", "[scheduler]") {
+        cleanSystem();
+        Scheduler &sch = scheduler::getScheduler();
+        SharingMessageBus &sharingBus = SharingMessageBus::getInstance();
+
+        std::string thisNodeId = util::getNodeId();
+        std::string otherNodeA = "node A";
+
+        util::SystemConfig &conf = util::getSystemConfig();
+        int maxQueueRatio = conf.maxQueueRatio;
+        int maxWorkers = conf.maxWorkersPerFunction;
+
+        // Add calls to saturate the first node
+        int requiredCalls = maxQueueRatio * maxWorkers;
+        for (int i = 0; i < requiredCalls; i++) {
+            message::Message msgA = util::messageFactory("demo", "chain_simple");
+            sch.callFunction(msgA);
+
+            // Check scheduling info
+            REQUIRE(msgA.schedulednode() == thisNodeId);
+            REQUIRE(msgA.hops() == 0);
+            REQUIRE(msgA.executednode().empty());
+        }
+
+        // Now add the other node to the warm set and make
+        // sure calls are sent there
+        message::Message msgB = util::messageFactory("demo", "chain_simple");
+        const std::string warmSet = sch.getFunctionWarmSetName(msgB);
+        Redis &redis = redis::Redis::getQueue();
+        redis.sadd(warmSet, otherNodeA);
+
+        for (int i = 0; i < 3; i++) {
+            message::Message msgC = util::messageFactory("demo", "chain_simple");
+            sch.callFunction(msgC);
+
+            // Check scheduling info
+            REQUIRE(msgC.schedulednode() == otherNodeA);
+            REQUIRE(msgC.hops() == 1);
+            REQUIRE(msgC.executednode().empty());
+
+            // Check actual message bus
+            message::Message actualShare = sharingBus.nextMessageForNode(otherNodeA);
+        }
+    }
+
+    TEST_CASE("Test multiple hops", "[scheduler]") {
+        cleanSystem();
+        Scheduler &sch = scheduler::getScheduler();
+        SharingMessageBus &sharingBus = SharingMessageBus::getInstance();
+
+        std::string thisNodeId = util::getNodeId();
+        std::string otherNodeA = "node A";
+
+        message::Message msg = util::messageFactory("demo", "chain_simple");
+
+        // Add calls to saturate the first node
+        util::SystemConfig &conf = util::getSystemConfig();
+        int requiredCalls = conf.maxQueueRatio * conf.maxWorkersPerFunction;
+        for (int i = 0; i < requiredCalls; i++) {
+            sch.callFunction(msg);
+        }
+
+        // Add other node to warm set
+        const std::string warmSet = sch.getFunctionWarmSetName(msg);
+        Redis &redis = redis::Redis::getQueue();
+        redis.sadd(warmSet, otherNodeA);
+
+        // Now create a message that's already got a scheduled node and hops
+        message::Message msgWithHops = util::messageFactory("demo", "chain_simple");
+        msgWithHops.set_schedulednode("Some other node");
+        msgWithHops.set_hops(5);
+
+        // Schedule the call
+        sch.callFunction(msgWithHops);
+
+        // Check host not changes and hops increased
+        REQUIRE(msgWithHops.schedulednode() == "Some other node");
+        REQUIRE(msgWithHops.hops() == 6);
+    }
 }

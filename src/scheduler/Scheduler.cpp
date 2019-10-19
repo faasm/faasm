@@ -161,14 +161,14 @@ namespace scheduler {
     std::shared_ptr<InMemoryMessageQueue> Scheduler::getBindQueue() {
         return bindQueue;
     }
-    
+
     int getMaxQueueRatio(const message::Message &msg) {
         // When this is a normal call the max queue ratio will be the standard config value.
         // When executing a chained call we want to execute immediately if there's a free thread,
         // or scale out immediately.
 
         bool isChained = msg.idx() > 0;
-        if(isChained) {
+        if (isChained) {
             return 1;
         } else {
             SystemConfig &conf = util::getSystemConfig();
@@ -186,9 +186,16 @@ namespace scheduler {
         PROF_START(scheduleCall)
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
+        std::string thisNodeId = util::getNodeId();
         std::string bestNode = this->getBestNodeForFunction(msg);
         const std::string funcStr = util::funcToString(msg, true);
-        
+
+        // If this is the first time the message has been scheduled, mark this
+        // as the scheduled node
+        if (msg.schedulednode().empty()) {
+            msg.set_schedulednode(bestNode);
+        }
+
         if (bestNode == nodeId) {
             logger->debug("Executing {} locally", funcStr);
 
@@ -198,9 +205,11 @@ namespace scheduler {
             // Add more threads if necessary
             this->addWarmThreads(msg);
         } else {
-            // Share with other node
-            logger->debug("Sharing {} call with {}", funcStr, bestNode);
+            // Increment the number of hops
+            msg.set_hops(msg.hops() + 1);
 
+            // Share with other node
+            logger->debug("Node {} sharing {} with {} ({} hops)", thisNodeId, funcStr, bestNode, msg.hops());
             sharingBus.shareMessageWithNode(bestNode, msg);
         }
 

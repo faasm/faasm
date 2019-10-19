@@ -46,7 +46,7 @@ FAASM_WORKER_ARGS = [
 # Expressed as (min, max)
 NATIVE_WORKER_ARGS = {
     "reuters_svm": [
-        "--min-scale=10",     # Currently we have 8 machines all with 4 cores
+        "--min-scale=10",   # As each executes one thread, we can have multiple per machine
         "--max-scale=10",
         "--concurrency-limit=1",
     ],
@@ -70,9 +70,9 @@ KNATIVE_ENV = {
     "LOG_LEVEL": "debug",
     "CGROUP_MODE": "off",
     "NETNS_MODE": "off",
-    "THREADS_PER_WORKER": "10",
     "MAX_QUEUE_RATIO": "1",
-    "MAX_WORKERS_PER_FUNCTION": "10",
+    "MAX_WORKERS_PER_FUNCTION": "4",  # This limit is per-host. We only want one instance per core
+    "THREADS_PER_WORKER": "10",
     "FS_MODE": "on",
 }
 

@@ -57,8 +57,8 @@ namespace wasm {
         const std::string origStr = util::funcToString(*originalCall, false);
         const std::string chainedStr = util::funcToString(call, false);
 
-        logger->debug("Chaining {} -> {}", origStr, chainedStr);
         sch.callFunction(call);
+        logger->debug("Chained {} (@{}) -> {} (@{})", origStr, util::getNodeId(), chainedStr, call.schedulednode());
 
         return call.id();
     }

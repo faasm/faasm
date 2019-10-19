@@ -57,6 +57,9 @@ namespace worker {
 
             while (!this->isShutdown()) {
                 try {
+                    // This calls the scheduler, which will always attempt
+                    // to execute locally. However, if not possible, this will
+                    // again share the message, increasing the hops
                     message::Message msg = sharingBus.nextMessageForThisNode();
                     sch.callFunction(msg);
                 }

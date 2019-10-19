@@ -156,12 +156,14 @@ namespace tests {
         std::string expectedOutput;
         bool expectedSuccess;
         message::Message_MessageType expectedType;
+        std::string expectedNodeId = util::getNodeId();
 
         message::Message msg;
         SECTION("Running") {
             msg = util::messageFactory("demo", "echo");
             expectedSuccess = false;
             expectedType = message::Message_MessageType_EMPTY;
+            expectedNodeId = "";
         }
 
         SECTION("Failure") {
@@ -192,5 +194,6 @@ namespace tests {
         REQUIRE(result.type() == expectedType);
         REQUIRE(result.success() == expectedSuccess);
         REQUIRE(result.outputdata() == expectedOutput);
+        REQUIRE(result.executednode() == expectedNodeId);
     }
 }
