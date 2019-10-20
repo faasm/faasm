@@ -7,9 +7,6 @@ message Message {
     optional string function = 2;
     optional int32 idx = 3;
 
-    optional string pythonUser = 4;
-    optional string pythonFunction = 5;
-
     enum MessageType {
         BIND = 1;
         CALL = 2;
@@ -17,17 +14,25 @@ message Message {
         EMPTY = 4;
     }
 
-    optional MessageType type = 6 [default = CALL];
+    optional MessageType type = 4 [default = CALL];
 
-    optional int32 id = 7;
-    optional string resultKey = 8;
-    optional string statusKey = 9;
-    optional bool success = 10;
-    optional bool isAsync = 11;
-    optional bool isPython = 12;
-    optional bool isTypescript = 13;
-    optional bool isStatusRequest = 14;
+    optional int32 id = 5;
+    optional string resultKey = 6;
+    optional string statusKey = 7;
 
-    optional bytes inputData = 15;
-    optional bytes outputData = 16;
+    optional string scheduledNode = 8;
+    optional int32 hops = 9;
+    optional string executedNode = 10;
+
+    optional bool success = 11;
+    optional bool isAsync = 12;
+    optional bool isPython = 13;
+    optional bool isTypescript = 14;
+    optional bool isStatusRequest = 15;
+
+    optional bytes inputData = 16;
+    optional bytes outputData = 17;
+
+    optional string pythonUser = 18;
+    optional string pythonFunction = 19;
 }

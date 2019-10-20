@@ -23,17 +23,11 @@ namespace scheduler {
 
         message::Message getFunctionResult(unsigned int messageId, int timeout) override;
 
-        void requestNewWorkerNode() override;
-
-        int getScaleoutRequestCount() override;
-
         void clear() override;
     private:
         awswrapper::SQSWrapper &sqs;
         awswrapper::S3Wrapper &s3;
         awswrapper::LambdaWrapper &lambda;
         const std::string bucketName;
-
-        int scaleoutRequestCount;
     };
 }

@@ -101,7 +101,7 @@ namespace tests {
         checkIbmResponse(d, expected, 200);
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        REQUIRE(sch.getFunctionQueueLength(msg) == 1);
+        REQUIRE(sch.getFunctionInFlightCount(msg) == 1);
         REQUIRE(sch.getBindQueue()->size() == 1);
     }
 
@@ -133,7 +133,7 @@ namespace tests {
         checkIbmResponse(d, expected, 200);
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        REQUIRE(sch.getFunctionQueueLength(msg) == 0);
+        REQUIRE(sch.getFunctionInFlightCount(msg) == 0);
         REQUIRE(sch.getBindQueue()->size() == 0);
     }
 

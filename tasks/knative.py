@@ -1,5 +1,4 @@
 import os
-from copy import copy
 from os.path import join
 from subprocess import call
 
@@ -38,8 +37,8 @@ NATIVE_WORKER_ANNOTATIONS = [
 ]
 
 FAASM_WORKER_ARGS = [
-    "--min-scale=2",  # Always keep two workers
-    "--max-scale=20",  # Max number of workers
+    "--min-scale=10",  # Fixed number of workers (max one per host)
+    "--max-scale=10",  # Max number of workers
     "--concurrency-limit=4",  # How many requests can be handled by a given worker
 ]
 
@@ -47,13 +46,13 @@ FAASM_WORKER_ARGS = [
 # Expressed as (min, max)
 NATIVE_WORKER_ARGS = {
     "reuters_svm": [
-        "--min-scale=20",     # Currently we have 8 machines all with 4 cores
+        "--min-scale=20",  # As each executes one thread, we can have multiple per machine
         "--max-scale=20",
         "--concurrency-limit=1",
     ],
     "default": [
         "--min-scale=2",
-        "--max-scale=4",
+        "--max-scale=2",
         "--concurrency-limit=1",  # Native executors handle one request at a time
     ]
 }
@@ -64,6 +63,8 @@ NATIVE_WORKER_IMAGE_PREFIX = "faasm/knative-native-"
 FAASM_WORKER_NAME = "{}worker".format(KNATIVE_FUNC_PREFIX)
 FAASM_WORKER_IMAGE = "faasm/knative-worker"
 
+ONE_MIN = 60000
+
 KNATIVE_ENV = {
     "REDIS_STATE_HOST": "redis-state",
     "REDIS_QUEUE_HOST": "redis-queue",
@@ -71,10 +72,13 @@ KNATIVE_ENV = {
     "LOG_LEVEL": "debug",
     "CGROUP_MODE": "off",
     "NETNS_MODE": "off",
+    "MAX_IN_FLIGHT_RATIO": "1",
+    "MAX_WORKERS_PER_FUNCTION": "4",  # This limit is per-host. We only want one instance per core
     "THREADS_PER_WORKER": "10",
-    "MAX_QUEUE_RATIO": "1",
-    "MAX_WORKERS_PER_FUNCTION": "10",
     "FS_MODE": "on",
+    "BOUND_TIMEOUT": str(2 * ONE_MIN),  # How long a bound worker sticks around for
+    "UNBOUND_TIMEOUT": str(10 * ONE_MIN),  # How long an unbound worker sticks around for
+    "GLOBAL_MESSAGE_TIMEOUT": str(2 * ONE_MIN),  # How long things wait for messages on global bus
 }
 
 
@@ -105,12 +109,12 @@ def _kubectl_apply(path, env=None):
 
 
 @task
-def k8s_delete_worker(ctx):
+def delete_knative_worker(ctx):
     _delete_knative_fn("worker")
 
 
 @task
-def k8s_deploy(ctx, local=False, bare_metal=False, ibm=False):
+def deploy_knative(ctx, local=False, bare_metal=False, ibm=False):
     if not local and not bare_metal and not ibm:
         print("Must provide one flag from local, bare-metal and ibm")
         return

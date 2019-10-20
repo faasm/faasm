@@ -10,7 +10,7 @@ namespace scheduler {
     }
 
     std::string getSharingQueueNameForNode(const std::string &nodeId) {
-        return "sharing_" + nodeId;
+        return SHARING_QUEUE_PREFIX + nodeId;
     }
 
     SharingMessageBus::SharingMessageBus() : conf(util::getSystemConfig()),

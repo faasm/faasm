@@ -38,7 +38,7 @@ namespace tests {
         REQUIRE(conf.maxNodes == 4);
         REQUIRE(conf.noScheduler == 0);
         REQUIRE(conf.prewarm == 1);
-        REQUIRE(conf.maxQueueRatio == 3);
+        REQUIRE(conf.maxInFlightRatio == 3);
         REQUIRE(conf.maxWorkersPerFunction == 10);
 
         REQUIRE(conf.globalMessageTimeout == 60000);
@@ -72,7 +72,7 @@ namespace tests {
         std::string maxNodes = setEnvVar("MAX_NODES", "15");
         std::string noScheduler = setEnvVar("NO_SCHEDULER", "1");
         std::string prewarm = setEnvVar("PREWARM", "5");
-        std::string queueRatio = setEnvVar("MAX_QUEUE_RATIO", "8888");
+        std::string inFlightRatio = setEnvVar("MAX_IN_FLIGHT_RATIO", "8888");
         std::string workers = setEnvVar("MAX_WORKERS_PER_FUNCTION", "7777");
 
         std::string globalTimeout = setEnvVar("GLOBAL_MESSAGE_TIMEOUT", "9876");
@@ -112,7 +112,7 @@ namespace tests {
         REQUIRE(conf.maxNodes == 15);
         REQUIRE(conf.noScheduler == 1);
         REQUIRE(conf.prewarm == 5);
-        REQUIRE(conf.maxQueueRatio == 8888);
+        REQUIRE(conf.maxInFlightRatio == 8888);
         REQUIRE(conf.maxWorkersPerFunction == 7777);
 
         REQUIRE(conf.globalMessageTimeout == 9876);
@@ -152,7 +152,7 @@ namespace tests {
         setEnvVar("MAX_NODES", maxNodes);
         setEnvVar("NO_SCHEDULER", noScheduler);
         setEnvVar("PREWARM", prewarm);
-        setEnvVar("MAX_QUEUE_RATIO", queueRatio);
+        setEnvVar("MAX_IN_FLIGHT_RATIO", inFlightRatio);
         setEnvVar("MAX_WORKERS_PER_FUNCTION", workers);
 
         setEnvVar("GLOBAL_MESSAGE_TIMEOUT", globalTimeout);

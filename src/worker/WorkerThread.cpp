@@ -69,8 +69,8 @@ namespace worker {
         }
 
         if (_isBound) {
-            // Notifiy scheduler if this thread was bound to a function
-            scheduler.stopListeningToQueue(boundMessage);
+            // Notify scheduler if this thread was bound to a function
+            scheduler.notifyThreadFinished(boundMessage);
         }
     }
 
@@ -78,9 +78,6 @@ namespace worker {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::string funcStr = util::funcToString(call, true);
         logger->info("Finished {}", funcStr);
-
-        // Decrement execution count
-        scheduler.decrementExecutingCount();
 
         bool isSuccess = errorMsg.empty();
         if (!isSuccess) {
@@ -96,6 +93,9 @@ namespace worker {
         zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
         wasm::WasmModule &zygote = registry.getZygote(call);
         *module = zygote;
+
+        // Notify the scheduler
+        scheduler.notifyCallFinished(call);
     }
 
     void WorkerThread::bindToFunction(const message::Message &msg) {
@@ -109,8 +109,8 @@ namespace worker {
 
         boundMessage = msg;
 
-        // Set up with scheduler
-        currentQueue = scheduler.listenToQueue(msg);
+        // Get queue from the scheduler
+        currentQueue = scheduler.getFunctionQueue(msg);
 
         // Instantiate the module from its zygote
         PROF_START(zygoteCreate)
@@ -186,9 +186,6 @@ namespace worker {
 
         const std::string funcStr = util::funcToString(call, true);
         logger->info("WorkerThread executing {}", funcStr);
-
-        // Increment the execution count
-        scheduler.incrementExecutingCount();
 
         // Create and execute the module
         int exitCode = 0;

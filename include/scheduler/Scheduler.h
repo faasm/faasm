@@ -11,8 +11,16 @@
 #include <redis/Redis.h>
 
 #define GLOBAL_NODE_SET "available_workers"
+#define IN_FLIGHT_RATIO_ZERO 10000.0
 
 namespace scheduler {
+    // Note - default opinion should be maybe
+    enum SchedulerOpinion {
+        MAYBE,
+        YES,
+        NO
+    };
+
     class Scheduler {
     public:
         Scheduler();
@@ -23,11 +31,15 @@ namespace scheduler {
 
         void enqueueMessage(const message::Message &msg);
 
-        std::shared_ptr<InMemoryMessageQueue> listenToQueue(const message::Message &msg);
-
         std::shared_ptr<InMemoryMessageQueue> getFunctionQueue(const message::Message &msg);
 
-        void stopListeningToQueue(const message::Message &msg);
+        void notifyCallFinished(const message::Message &msg);
+
+        void notifyThreadFinished(const message::Message &msg);
+
+        void notifyAwaiting(const message::Message &msg);
+
+        void notifyFinishedAwaiting(const message::Message &msg);
 
         std::shared_ptr<InMemoryMessageQueue> getBindQueue();
 
@@ -39,27 +51,19 @@ namespace scheduler {
 
         long getFunctionThreadCount(const message::Message &msg);
 
-        double getFunctionQueueRatio(const message::Message &msg);
+        double getFunctionInFlightRatio(const message::Message &msg);
 
-        long getFunctionQueueLength(const message::Message &msg);
+        long getFunctionInFlightCount(const message::Message &msg);
 
         void addNodeToGlobalSet();
-
-        long getGlobalSetSize();
 
         void addNodeToWarmSet(const std::string &funcStr);
 
         void removeNodeFromWarmSet(const std::string &funcStr);
-
-        int getExecutingCount();
-
-        void incrementExecutingCount();
-
-        void decrementExecutingCount();
-
-        void scaleOut(int targetCount);
     private:
         std::string nodeId;
+
+        void updateOpinion(const message::Message &msg);
 
         void removeNodeFromGlobalSet();
 
@@ -69,12 +73,11 @@ namespace scheduler {
 
         std::shared_ptr<InMemoryMessageQueue> bindQueue;
 
+        std::shared_mutex mx;
         std::unordered_map<std::string, std::shared_ptr<InMemoryMessageQueue>> queueMap;
         std::unordered_map<std::string, long> threadCountMap;
-        std::shared_mutex mx;
-
-        std::shared_mutex execCountMutex;
-        int execCount = 0;
+        std::unordered_map<std::string, long> inFlightCountMap;
+        std::unordered_map<std::string, SchedulerOpinion> opinionMap;
 
         SharingMessageBus &sharingBus;
     };

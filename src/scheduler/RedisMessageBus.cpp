@@ -50,6 +50,9 @@ namespace scheduler {
     void RedisMessageBus::setFunctionResult(message::Message &msg, bool success) {
         msg.set_success(success);
 
+        // Record which node did the execution
+        msg.set_executednode(util::getNodeId());
+        
         std::string key = msg.resultkey();
         if (key.empty()) {
             throw std::runtime_error("Result key empty. Cannot publish result");
@@ -103,18 +106,6 @@ namespace scheduler {
         }
     }
 
-    void RedisMessageBus::requestNewWorkerNode() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->info("Ignoring request to scale out");
-
-        scaleOutRequests++;
-    }
-
-    int RedisMessageBus::getScaleoutRequestCount() {
-        return scaleOutRequests;
-    }
-
     void RedisMessageBus::clear() {
-        scaleOutRequests = 0;
     }
 }

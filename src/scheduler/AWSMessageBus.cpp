@@ -85,22 +85,6 @@ namespace scheduler {
         return resultMsg;
     }
 
-    void AWSMessageBus::requestNewWorkerNode() {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->info("Requesting scale-up of lambda function {} via SQS", WORKER_LAMBDA_NAME);
-
-        // Send blank message on SQS
-        const std::string url = sqs.getQueueUrl(conf.queueName);
-        sqs.sendMessage(url, "");
-
-        scaleoutRequestCount++;
-    }
-
-    int AWSMessageBus::getScaleoutRequestCount() {
-        return scaleoutRequestCount;
-    }
-
     void AWSMessageBus::clear() {
-        scaleoutRequestCount = 0;
     }
 }

@@ -65,7 +65,7 @@ namespace tests {
         }
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        REQUIRE(sch.getFunctionQueueLength(expectedCall) == 1);
+        REQUIRE(sch.getFunctionInFlightCount(expectedCall) == 1);
         REQUIRE(sch.getBindQueue()->size() == 1);
 
         message::Message actualBind = sch.getBindQueue()->dequeue();
