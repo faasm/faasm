@@ -28,7 +28,7 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state_partial_mask", void, __faasm_push_state_partial_mask,
             I32 keyPtr, I32 maskKeyPtr) {
-        util::getLogger()->debug("S - push_state_partial_mask - {}", keyPtr, maskKeyPtr);
+        util::getLogger()->debug("S - push_state_partial_mask - {} {}", keyPtr, maskKeyPtr);
 
         auto kv = getStateKV(keyPtr, 0);
         auto maskKv = getStateKV(maskKeyPtr, 0);
