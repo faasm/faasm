@@ -8,30 +8,6 @@
 using namespace Eigen;
 
 namespace faasm {
-    SgdParams setUpReutersParams(int nBatches, int epochs, bool push) {
-        // Set up reuters params
-        SgdParams p;
-        p.nWeights = REUTERS_N_FEATURES;
-        p.nTrain = REUTERS_N_EXAMPLES;
-        p.learningRate = REUTERS_LEARNING_RATE;
-        p.learningDecay = REUTERS_LEARNING_DECAY;
-        p.nEpochs = epochs;
-        p.mu = 1.0;
-
-        // Round up number of batches
-        p.nBatches = nBatches;
-        p.batchSize = (REUTERS_N_EXAMPLES + nBatches - 1) / nBatches;
-
-        // How many examples should be processed before doing a synchronous read
-        // to update worker's weights
-        p.syncInterval = REUTERS_SYNC_INTERVAL;
-
-        printf("Writing SVM params to state\n");
-        writeParamsToState(PARAMS_KEY, p, push);
-
-        return p;
-    }
-
     void writeParamsToState(const char *keyName, const SgdParams &params, bool push) {
         size_t nBytes = sizeof(SgdParams);
         auto bytePtr = reinterpret_cast<const uint8_t *>(&params);

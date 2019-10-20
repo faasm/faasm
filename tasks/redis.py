@@ -8,8 +8,12 @@ from tasks.util.config import get_faasm_config
 from tasks.util.env import PROJ_ROOT
 
 
-def _do_redis_command(sub_cmd, docker, knative, ibm):
-    if docker:
+def _do_redis_command(sub_cmd, local, docker, knative, ibm):
+    if local:
+        cmd = [
+            "redis-cli", sub_cmd
+        ]
+    elif docker:
         cmd = [
             "docker-compose", "exec", "redis-queue", "redis-cli", sub_cmd
         ]
@@ -41,16 +45,16 @@ def _do_redis_command(sub_cmd, docker, knative, ibm):
 
 
 @task
-def redis_clear_queue(ctx, docker=False, knative=True, ibm=False):
-    _do_redis_command("flushall", docker, knative, ibm)
+def redis_clear_queue(ctx, local=False, docker=False, knative=True, ibm=False):
+    _do_redis_command("flushall", local, docker, knative, ibm)
 
 
 @task
-def redis_all_workers(ctx, docker=False, knative=True, ibm=False):
-    _do_redis_command("smembers available_workers", docker, knative, ibm)
+def redis_all_workers(ctx, local=False, docker=False, knative=True, ibm=False):
+    _do_redis_command("smembers available_workers", local, docker, knative, ibm)
 
 
 @task
-def redis_func_workers(ctx, user, func, docker=False, knative=True, ibm=False):
+def redis_func_workers(ctx, user, func, local=False, docker=False, knative=True, ibm=False):
     worker_set_name = "w_{}/{}".format(user, func)
-    _do_redis_command("smembers {}".format(worker_set_name), docker, knative, ibm)
+    _do_redis_command("smembers {}".format(worker_set_name), local, docker, knative, ibm)

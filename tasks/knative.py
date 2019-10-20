@@ -114,15 +114,10 @@ def delete_knative_worker(ctx):
 
 
 @task
-def deploy_knative(ctx, local=False, bare_metal=False, ibm=False):
-    if not local and not bare_metal and not ibm:
-        print("Must provide one flag from local, bare-metal and ibm")
-        return
-
+def deploy_knative(ctx, local=False, ibm=False):
     faasm_conf = get_faasm_config()
 
     shell_env = {}
-    extra_env = {}
     if ibm:
         # IBM requires specifying custom kubeconfig
         shell_env["KUBECONFIG"] = get_ibm_kubeconfig()
@@ -131,7 +126,7 @@ def deploy_knative(ctx, local=False, bare_metal=False, ibm=False):
             "FUNCTION_STORAGE": "ibm",
             "IBM_API_KEY": faasm_conf["IBM"]["api_key"],
         }
-    elif bare_metal:
+    else:
         extra_env = {
             "FUNCTION_STORAGE": "fileserver",
             "FILESERVER_URL": "http://upload:8002",
@@ -151,7 +146,7 @@ def deploy_knative(ctx, local=False, bare_metal=False, ibm=False):
     if local:
         _kubectl_apply(BARE_METAL_CONF)
         _kubectl_apply(LOCAL_CONF)
-    elif bare_metal:
+    else:
         _kubectl_apply(BARE_METAL_CONF)
         _kubectl_apply(BARE_METAL_REMOTE_CONF)
 
@@ -301,6 +296,7 @@ def knative_native_local(ctx, user, function):
         "--env LOG_LEVEL=debug",
         "--env FAASM_INVOKE_HOST=127.0.0.1",
         "--env FAASM_INVOKE_PORT=8080",
+        "--env HOST_TYPE=knative",
         img_name
     ]
 

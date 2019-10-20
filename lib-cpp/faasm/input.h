@@ -7,6 +7,8 @@ namespace faasm {
     const char* getStringInput(const char* defaultValue);
 
     void setStringOutput(const char *val);
+
+    int* parseStringToIntArray(const char* inStr, int expected);
 }
 
 #endif

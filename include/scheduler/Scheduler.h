@@ -27,6 +27,8 @@ namespace scheduler {
 
         void callFunction(message::Message &msg);
 
+        SchedulerOpinion getOpinion(const message::Message &msg);
+
         std::string getBestNodeForFunction(const message::Message &msg);
 
         void enqueueMessage(const message::Message &msg);

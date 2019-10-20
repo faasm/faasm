@@ -318,6 +318,11 @@ namespace scheduler {
         }
     }
 
+    SchedulerOpinion Scheduler::getOpinion(const message::Message &msg) {
+        const std::string funcStr = funcToString(msg, false);
+        return opinionMap[funcStr];
+    }
+    
     std::string Scheduler::getBestNodeForFunction(const message::Message &msg) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
