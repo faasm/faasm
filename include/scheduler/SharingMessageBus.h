@@ -4,8 +4,11 @@
 #include <util/queue.h>
 #include <redis/Redis.h>
 
+#define SHARING_QUEUE_PREFIX "sharing_"
 
 namespace scheduler {
+    std::string getSharingQueueNameForNode(const std::string &nodeId);
+
     class SharingMessageBus {
     public:
         SharingMessageBus();

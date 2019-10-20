@@ -22,7 +22,6 @@ namespace tests {
         Redis &redis = Redis::getQueue();
 
         Scheduler s;
-
         funcSet = s.getFunctionWarmSetName(call);
 
         // Check initial set-up
@@ -68,7 +67,7 @@ namespace tests {
             REQUIRE(!redis.sismember(funcSet, nodeId));
 
             // Call the function enough to get multiple workers set up
-            int requiredCalls = (conf.maxInFlightRatio * 2) - 1;
+            int requiredCalls = (conf.maxInFlightRatio * 2) - 3;
             for (int i = 0; i < requiredCalls; i++) {
                 sch.callFunction(call);
             }
@@ -170,13 +169,13 @@ namespace tests {
         }
 
         SECTION("Test calling function which breaches in-flight ratio sends bind message") {
-            // Saturate up to the number of max queued calls
+            // Saturate up to just below the max in flight
             auto bindQueue = sch.getBindQueue();
             int nCalls = conf.maxInFlightRatio - 1;
             for (int i = 0; i < nCalls; i++) {
                 sch.callFunction(call);
 
-                // Check only one bind message is ever sent
+                // Check only one bind message has been sent
                 REQUIRE(bindQueue->size() == 1);
 
                 // Check call queued
@@ -191,38 +190,18 @@ namespace tests {
             redis.flushAll();
         }
 
-        SECTION("Test chained calls use lower in-flight ratio") {
-            // Add a few normal calls below the normal in-flight ratio but
-            // above the chained in-flight ratio (i.e. 1)
-            auto bindQueue = sch.getBindQueue();
-            int nCalls = conf.maxInFlightRatio - 3;
-            for (int i = 0; i < nCalls; i++) {
-                sch.callFunction(call);
-            }
-
-            // Dispatch another and check that a bind message is still not sent
-            sch.callFunction(call);
-            REQUIRE(bindQueue->size() == 1);
-            REQUIRE(sch.getFunctionInFlightCount(call) == nCalls + 1);
-
-            // Now dispatch a chained call and check that it causes another bind,
-            // and is put on the same queue as the normal messages
-            sch.callFunction(chainedCall);
-            REQUIRE(bindQueue->size() == 2);
-            REQUIRE(sch.getFunctionInFlightCount(call) == nCalls + 2);
-
-            redis.flushAll();
-        }
-
         SECTION("Node choice checks") {
             redis.sadd(GLOBAL_NODE_SET, otherNodeA);
 
             SECTION("Test function which breaches in-flight ratio but has no capacity fails over") {
-                // Make calls up to the limit
-                int nCalls = conf.maxWorkersPerFunction * conf.maxInFlightRatio;
+                // Make calls up to just below the limit
+                int nCalls = (conf.maxWorkersPerFunction * conf.maxInFlightRatio) - 1;
                 for (int i = 0; i < nCalls; i++) {
                     sch.callFunction(call);
                 }
+
+                // Check we're still the best option
+                REQUIRE(sch.getBestNodeForFunction(call) == nodeId);
 
                 // Check local workers requested
                 auto bindQueue = sch.getBindQueue();
@@ -232,12 +211,17 @@ namespace tests {
                 // Check calls have been queued
                 REQUIRE(sch.getFunctionInFlightCount(call) == nCalls);
 
-                // Check "best node" is now different
+                // Make another call and check best node is now different
+                sch.callFunction(call);
                 REQUIRE(sch.getBestNodeForFunction(call) != nodeId);
+                REQUIRE(sch.getFunctionInFlightCount(call) == nCalls + 1);
 
                 // Call more and check calls are shared elsewhere
                 sch.callFunction(call);
                 sch.callFunction(call);
+
+                const std::string sharingQueue = getSharingQueueNameForNode(otherNodeA);
+                REQUIRE(redis.listLength(sharingQueue) == 2);
 
                 message::Message actualA = sharingBus.nextMessageForNode(otherNodeA);
                 message::Message actualB = sharingBus.nextMessageForNode(otherNodeA);
@@ -251,23 +235,9 @@ namespace tests {
                 // Check not added to local queues
                 REQUIRE(bindQueue->size() == conf.maxWorkersPerFunction);
                 REQUIRE(sch.getFunctionThreadCount(call) == conf.maxWorkersPerFunction);
-                REQUIRE(sch.getFunctionInFlightCount(call) == nCalls);
+                REQUIRE(sch.getFunctionInFlightCount(call) == nCalls + 1);
 
                 redis.flushAll();
-            }
-
-            SECTION("Test chained function fails over at lower limit") {
-                // Make a few calls but still below the normal limit
-                int nCalls = (conf.maxWorkersPerFunction * conf.maxInFlightRatio) - 2;
-                for (int i = 0; i < nCalls; i++) {
-                    sch.callFunction(call);
-                }
-
-                // Check "best node" is still this node
-                REQUIRE(sch.getBestNodeForFunction(call) == nodeId);
-
-                // Check "best node" for a chained call is the other node
-                REQUIRE(sch.getBestNodeForFunction(chainedCall) != nodeId);
             }
 
             SECTION("Test scheduler adds node ID to global set when starting up") {

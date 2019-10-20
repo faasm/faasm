@@ -76,7 +76,7 @@ namespace scheduler {
         long inFlightCount = getFunctionInFlightCount(msg);
 
         if (threadCount == 0) {
-            return 100000.0;
+            return MAX_IN_FLIGHT_RATIO;
         }
 
         return ((double) inFlightCount) / threadCount;
@@ -89,9 +89,8 @@ namespace scheduler {
     std::shared_ptr<InMemoryMessageQueue> Scheduler::getFunctionQueue(const message::Message &msg) {
         std::string funcStr = util::funcToString(msg, false);
 
+        // This will be called from within something holding the lock
         if (queueMap.count(funcStr) == 0) {
-            util::FullLock lock(mx);
-
             if (queueMap.count(funcStr) == 0) {
                 auto mq = new InMemoryMessageQueue();
                 queueMap.emplace(InMemoryMessageQueuePair(funcStr, mq));
@@ -254,10 +253,6 @@ namespace scheduler {
         double inFlightRatio = this->getFunctionInFlightRatio(msg);
         int maxInFlightRatio = conf.maxInFlightRatio;
         bool isInFlightRatioBreached = inFlightRatio >= maxInFlightRatio;
-
-        if (opinionMap.count(funcStr) == 0) {
-            opinionMap[funcStr] = MAYBE;
-        }
 
         SchedulerOpinion newOpinion;
 

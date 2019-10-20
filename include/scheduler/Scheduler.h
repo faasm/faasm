@@ -11,11 +11,13 @@
 #include <redis/Redis.h>
 
 #define GLOBAL_NODE_SET "available_workers"
+#define MAX_IN_FLIGHT_RATIO 10000.0
 
 namespace scheduler {
+    // Note - default opinion should be maybe
     enum SchedulerOpinion {
-        YES,
         MAYBE,
+        YES,
         NO
     };
 

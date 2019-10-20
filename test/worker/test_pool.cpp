@@ -459,13 +459,13 @@ namespace tests {
         sch.callFunction(call);
 
         // Check scheduler set-up
-        const std::string workerSetName = sch.getFunctionWarmSetName(call);
+        const std::string warmSetName = sch.getFunctionWarmSetName(call);
         REQUIRE(sch.getFunctionInFlightCount(call) == 1);
         REQUIRE(sch.getFunctionThreadCount(call) == 1);
         REQUIRE(bindQueue->size() == 1);
-        REQUIRE(redis.sismember(workerSetName, nodeId));
+        REQUIRE(redis.sismember(warmSetName, nodeId));
 
-        // Bind the thread and check it's now registered
+        // Bind the thread and check it's now registered but in-flight decreased
         w.processNextMessage();
         REQUIRE(w.isBound());
         REQUIRE(sch.getFunctionInFlightCount(call) == 1);
@@ -476,13 +476,15 @@ namespace tests {
         w.processNextMessage();
         REQUIRE(sch.getFunctionInFlightCount(call) == 0);
         REQUIRE(sch.getFunctionThreadCount(call) == 1);
+        REQUIRE(sch.getFunctionInFlightRatio(call) == 0);
         REQUIRE(bindQueue->size() == 0);
 
         // Finish thread and check things are reset
         w.finish();
         REQUIRE(sch.getFunctionInFlightCount(call) == 0);
         REQUIRE(sch.getFunctionThreadCount(call) == 0);
+        REQUIRE(sch.getFunctionInFlightRatio(call) == MAX_IN_FLIGHT_RATIO);
         REQUIRE(bindQueue->size() == 0);
-        REQUIRE(!redis.sismember(workerSetName, nodeId));
+        REQUIRE(!redis.sismember(warmSetName, nodeId));
     }
 }
