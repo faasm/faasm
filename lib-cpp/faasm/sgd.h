@@ -28,7 +28,7 @@ using namespace Eigen;
 #define REUTERS_N_FEATURES 47236
 #define REUTERS_N_EXAMPLES 781265
 
-#define REUTERS_SYNC_INTERVAL 500000
+#define REUTERS_SYNC_INTERVAL 50000
 
 
 namespace faasm {
