@@ -58,7 +58,7 @@ namespace tests {
         chainedCall.set_idx(3);
 
         util::SystemConfig &conf = util::getSystemConfig();
-        int originalmaxInFlightRatio = conf.maxInFlightRatio;
+        int originalMaxInFlightRatio = conf.maxInFlightRatio;
         conf.maxInFlightRatio = 8;
 
         SECTION("Test worker finishing and node removal") {
@@ -320,7 +320,7 @@ namespace tests {
             }
         }
 
-        conf.maxInFlightRatio = originalmaxInFlightRatio;
+        conf.maxInFlightRatio = originalMaxInFlightRatio;
     }
 
     TEST_CASE("Test message recording of scheduling decisions", "[scheduler]") {

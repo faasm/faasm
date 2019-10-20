@@ -122,6 +122,33 @@ namespace scheduler {
         }
     }
 
+    void Scheduler::notifyAwaiting(const message::Message &msg) {
+        std::string funcStr = util::funcToString(msg, false);
+
+        // When a thread is awaiting a call, we can reduce the thread count
+        // as it's doing a non-blocking wait, then we can potentially add more
+        {
+            util::FullLock lock(mx);
+            threadCountMap[funcStr]--;
+
+            addWarmThreads(msg);
+
+            updateOpinion(msg);
+        }
+    }
+
+    void Scheduler::notifyFinishedAwaiting(const message::Message &msg) {
+        std::string funcStr = util::funcToString(msg, false);
+
+        // When a thread returns from awaiting, we can increase the thread count again
+        {
+            util::FullLock lock(mx);
+            threadCountMap[funcStr]++;
+
+            updateOpinion(msg);
+        }
+    }
+
     std::string Scheduler::getFunctionWarmSetName(const message::Message &msg) {
         std::string funcStr = util::funcToString(msg, false);
         return this->getFunctionWarmSetNameFromStr(funcStr);
@@ -133,20 +160,6 @@ namespace scheduler {
 
     std::shared_ptr<InMemoryMessageQueue> Scheduler::getBindQueue() {
         return bindQueue;
-    }
-
-    int getMaxInFlightRatio(const message::Message &msg) {
-        // When this is a normal message the ratio will be the standard config value.
-        // When executing a chained call we want to execute immediately if there's a free thread,
-        // or scale out immediately.
-
-        bool isChained = msg.idx() > 0;
-        if (isChained) {
-            return 1;
-        } else {
-            SystemConfig &conf = util::getSystemConfig();
-            return conf.maxInFlightRatio;
-        }
     }
 
     Scheduler &getScheduler() {
@@ -203,7 +216,7 @@ namespace scheduler {
     void Scheduler::addWarmThreads(const message::Message &msg) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
-        int maxInFlightRatio = getMaxInFlightRatio(msg);
+        int maxInFlightRatio = conf.maxInFlightRatio;
         double inFlightRatio = this->getFunctionInFlightRatio(msg);
         long nThreads = this->getFunctionThreadCount(msg);
 
@@ -239,7 +252,7 @@ namespace scheduler {
 
         // Check the in-flight ratio
         double inFlightRatio = this->getFunctionInFlightRatio(msg);
-        int maxInFlightRatio = getMaxInFlightRatio(msg);
+        int maxInFlightRatio = conf.maxInFlightRatio;
         bool isInFlightRatioBreached = inFlightRatio >= maxInFlightRatio;
 
         if (opinionMap.count(funcStr) == 0) {

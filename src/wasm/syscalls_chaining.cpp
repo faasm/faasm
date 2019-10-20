@@ -24,22 +24,28 @@ namespace wasm {
         util::getLogger()->debug("S - await_call - {}", messageId);
 
         scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
+        scheduler::Scheduler &scheduler = scheduler::getScheduler();
+        
+        // Free this thread
+        message::Message *msg = getExecutingCall();
+        scheduler.notifyAwaiting(*msg);
 
+        int returnCode = 1;
         try {
             const message::Message result = bus.getFunctionResult(messageId, CHAINED_CALL_TIMEOUT);
 
             if (result.success()) {
-                return 0;
+                returnCode = 0;
             }
         } catch (redis::RedisNoResponseException &ex) {
             util::getLogger()->error("Timed out waiting for chained call: {}", messageId);
-            return 1;
         } catch (std::exception &ex) {
             util::getLogger()->error("Non-timeout exception waiting for chained call: {}", ex.what());
-            return 1;
         }
 
-        return 1;
+        scheduler.notifyFinishedAwaiting(*msg);
+
+        return returnCode;
     }
 
     int _makeChainedCall(const std::string &functionName, int idx, const std::vector<uint8_t> &inputData) {

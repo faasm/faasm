@@ -35,6 +35,10 @@ namespace scheduler {
 
         void notifyThreadFinished(const message::Message &msg);
 
+        void notifyAwaiting(const message::Message &msg);
+
+        void notifyFinishedAwaiting(const message::Message &msg);
+
         std::shared_ptr<InMemoryMessageQueue> getBindQueue();
 
         std::string getFunctionWarmSetName(const message::Message &msg);
