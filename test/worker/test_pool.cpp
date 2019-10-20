@@ -476,7 +476,7 @@ namespace tests {
         w.finish();
         REQUIRE(sch.getFunctionInFlightCount(call) == 0);
         REQUIRE(sch.getFunctionThreadCount(call) == 0);
-        REQUIRE(sch.getFunctionInFlightRatio(call) == MAX_IN_FLIGHT_RATIO);
+        REQUIRE(sch.getFunctionInFlightRatio(call) == IN_FLIGHT_RATIO_ZERO);
         REQUIRE(bindQueue->size() == 0);
         REQUIRE(!redis.sismember(warmSetName, nodeId));
     }

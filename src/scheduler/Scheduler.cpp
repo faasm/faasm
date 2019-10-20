@@ -76,7 +76,7 @@ namespace scheduler {
         long inFlightCount = getFunctionInFlightCount(msg);
 
         if (threadCount == 0) {
-            return MAX_IN_FLIGHT_RATIO;
+            return IN_FLIGHT_RATIO_ZERO;
         }
 
         return ((double) inFlightCount) / threadCount;

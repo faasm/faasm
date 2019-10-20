@@ -11,7 +11,7 @@
 #include <redis/Redis.h>
 
 #define GLOBAL_NODE_SET "available_workers"
-#define MAX_IN_FLIGHT_RATIO 10000.0
+#define IN_FLIGHT_RATIO_ZERO 10000.0
 
 namespace scheduler {
     // Note - default opinion should be maybe
