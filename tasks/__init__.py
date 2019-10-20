@@ -92,7 +92,6 @@ from tasks.invoke import (
 )
 from tasks.knative import (
     deploy_knative,
-    redeploy_knative,
     delete_knative_worker,
     build_knative_native,
     knative_native_local,

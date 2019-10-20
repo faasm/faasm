@@ -190,11 +190,14 @@ namespace tests {
         double expected1 = calculateHingeError(a, b);
         double expected2 = calculateHingeError(a, b);
 
-        // Write errors to memory
-        writeHingeError(params, 0, a, b);
-        writeHingeError(params, 2, a, b);
-        faasmPushState(ERRORS_KEY);
+        // Write one error to memory
+        writeHingeError(params, 0, a, b, false);
 
+        // Check nothing in state
+        checkDoubleArrayInState(redisQueue, errorKey.c_str(), {0, 0, 0, 0});
+
+        // Write another with push and check both persisted
+        writeHingeError(params, 2, a, b, true);
         checkDoubleArrayInState(redisQueue, errorKey.c_str(), {expected1, 0, expected2, 0});
     }
 
@@ -211,7 +214,7 @@ namespace tests {
         // With nothing set up, error should be zero
         zeroErrors(p, true);
 
-        double initial = faasm::readRootMeanSquaredError(p);
+        double initial = faasm::readRootMeanSquaredError(p, true);
         REQUIRE(initial == 0);
 
         // Write the error for two of the three batches
@@ -219,27 +222,27 @@ namespace tests {
         MatrixXd b = randomDenseMatrix(1, 5);
         double expected = calculateHingeError(a, b);
 
-        writeHingeError(p, 0, a, b);
-        writeHingeError(p, 1, a, b);
-        faasmPushState(ERRORS_KEY);
+        // Write first, check nothing written
+        writeHingeError(p, 0, a, b, false);
+        const std::string actualKey = util::keyForUser(user, ERRORS_KEY);
+        checkDoubleArrayInState(redisState, actualKey.c_str(), {0, 0, 0});
 
         // Check these have been written
-        const std::string actualKey = util::keyForUser(user, ERRORS_KEY);
+        writeHingeError(p, 1, a, b, true);
         checkDoubleArrayInState(redisState, actualKey.c_str(), {expected, expected, 0});
 
         // Error should just include the 2 written
         double expectedRmse1 = sqrt((2 * expected) / p.nTrain);
-        double actual1 = faasm::readRootMeanSquaredError(p);
+        double actual1 = faasm::readRootMeanSquaredError(p, true);
         REQUIRE(abs(actual1 - expectedRmse1) < 0.0000001);
 
         // Now write error for a third batch
-        writeHingeError(p, 2, a, b);
-        faasmPushState(ERRORS_KEY);
+        writeHingeError(p, 2, a, b, true);
         checkDoubleArrayInState(redisState, actualKey.c_str(), {expected, expected, expected});
 
         // Work out what the result should be
         double expectedRmse2 = sqrt((3 * expected) / p.nTrain);
-        double actual2 = faasm::readRootMeanSquaredError(p);
+        double actual2 = faasm::readRootMeanSquaredError(p, true);
         REQUIRE(abs(actual2 - expectedRmse2) < 0.0000001);
     }
 }

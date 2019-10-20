@@ -347,7 +347,7 @@ namespace state {
 
         // Attempt to lock the value remotely
         redis::Redis &redis = redis::Redis::getState();
-        long remoteLockId = this->waitOnRemoteLock();
+        long remoteLockId = waitOnRemoteLock();
 
         // If we don't get remote lock, just skip this push and wait for next one
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
@@ -372,15 +372,15 @@ namespace state {
         logger->debug("Pushing partial state for {}", key);
         redis.set(key, sharedMemBytes, valueSize);
 
+        // Release remote lock
+        redis.releaseLock(key, remoteLockId);
+        logger->debug("Released remote lock for {} with id {}", key, remoteLockId);
+
         // Mark as no longer dirty
         isDirty = false;
 
         // Zero the mask
         memset((void *) dirtyMaskBytes, 0, valueSize);
-
-        // Release remote lock
-        redis.releaseLock(key, remoteLockId);
-        logger->debug("Released remote lock for {} with id {}", key, remoteLockId);
     }
 
     void StateKeyValue::lockRead() {

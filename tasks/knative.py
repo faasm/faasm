@@ -4,7 +4,6 @@ from subprocess import call
 
 from invoke import task
 
-from tasks import redis_clear_queue
 from tasks.util.config import get_faasm_config
 from tasks.util.env import PROJ_ROOT
 from tasks.util.files import clean_dir
@@ -112,13 +111,6 @@ def _kubectl_apply(path, env=None):
 @task
 def delete_knative_worker(ctx):
     _delete_knative_fn("worker")
-
-
-@task
-def redeploy_knative(ctx):
-    delete_knative_worker(ctx)
-    redis_clear_queue(ctx)
-    deploy_knative(ctx)
 
 
 @task

@@ -45,22 +45,22 @@ namespace faasm {
         Map<const MatrixXd> outputs = readMatrixColumnsFromState(OUTPUTS_KEY, sgdParams.nTrain, startIdx, endIdx, 1,
                                                                  false);
 
-        // Load the weights
-        size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
-        uint8_t *weightDataByteBuffer = faasmReadStatePtr(WEIGHTS_KEY, nWeightBytes);
-
-        // Load the mask - this is always zeroed in state so must be pulled
-        // TODO - Async conflict
-        faasmPullState(MASK_KEY, nWeightBytes);
-        uint8_t *weightMaskBytes = faasmReadStatePtr(MASK_KEY, nWeightBytes);
-
-        auto weightDataBuffer = reinterpret_cast<double *>(weightDataByteBuffer);
-        auto weightMask = reinterpret_cast<unsigned int *>(weightMaskBytes);
-
         // Read in the feature counts (will be constant)
         size_t nFeatureCountBytes = sgdParams.nWeights * sizeof(int);
         uint8_t *featureCountByteBuffer = faasmReadStatePtr(FEATURE_COUNTS_KEY, nFeatureCountBytes);
         auto featureCountBuffer = reinterpret_cast<int *>(featureCountByteBuffer);
+
+        // TODO - Async conflict
+        // Pull both the weights and the mask to make sure we're up to date
+        size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
+        faasmPullState(WEIGHTS_KEY, nWeightBytes);
+        faasmPullState(MASK_KEY, nWeightBytes);
+
+        // Get pointers to the weights and mask
+        uint8_t *weightDataByteBuffer = faasmReadStatePtr(WEIGHTS_KEY, nWeightBytes);
+        uint8_t *weightMaskBytes = faasmReadStatePtr(MASK_KEY, nWeightBytes);
+        auto weightDataBuffer = reinterpret_cast<double *>(weightDataByteBuffer);
+        auto weightMask = reinterpret_cast<unsigned int *>(weightMaskBytes);
 
         // Shuffle examples in this batch
         int *cols = randomIntRange(inputs.outerSize());
@@ -134,8 +134,8 @@ namespace faasm {
         Map<const RowVectorXd> weights(weightDataBuffer, sgdParams.nWeights);
         MatrixXd prediction = weights * inputs;
 
-        // Persist error
-        writeHingeError(sgdParams, batchNumber, outputs, prediction);
+        // Write error
+        writeHingeError(sgdParams, batchNumber, outputs, prediction, true);
     }
 
     void zeroErrors(const SgdParams &sgdParams, bool push) {
@@ -155,7 +155,7 @@ namespace faasm {
     }
 
     void writeHingeError(const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
-                         const MatrixXd &prediction) {
+                         const MatrixXd &prediction, bool push) {
         double err = calculateHingeError(prediction, actual);
         auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&err);
 
@@ -169,12 +169,20 @@ namespace faasm {
                 squaredErrorBytes,
                 sizeof(double)
         );
+
+        if (push) {
+            faasmPushStatePartial(ERRORS_KEY);
+        }
     }
 
-    double readTotalError(const SgdParams &sgdParams) {
+    double readTotalError(const SgdParams &sgdParams, bool pull) {
         // Load errors from state
         auto *errors = new double[sgdParams.nBatches];
         size_t sizeErrors = sgdParams.nBatches * sizeof(double);
+
+        if (pull) {
+            faasmPullState(ERRORS_KEY, sizeErrors);
+        }
 
         faasmReadState(
                 ERRORS_KEY,
@@ -191,8 +199,8 @@ namespace faasm {
         return totalError;
     }
 
-    double readRootMeanSquaredError(const SgdParams &sgdParams) {
-        double totalSquaredError = readTotalError(sgdParams);
+    double readRootMeanSquaredError(const SgdParams &sgdParams, bool pull) {
+        double totalSquaredError = readTotalError(sgdParams, pull);
 
         // Calculate the mean squared error across all batches
         double rmse = std::sqrt(totalSquaredError) / std::sqrt(sgdParams.nTrain);
