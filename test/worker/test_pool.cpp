@@ -33,28 +33,6 @@ namespace tests {
         cleanSystem();
     }
 
-    void checkBindMessage(const message::Message &expected) {
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        const message::Message actual = sch.getBindQueue()->dequeue();
-
-        REQUIRE(actual.user() == expected.user());
-        REQUIRE(actual.function() == expected.function());
-    }
-
-    message::Message checkChainCall(const std::string &user, const std::string &func, const std::string &inputData) {
-        message::Message expected = util::messageFactory(user, func);
-        expected.set_inputdata(inputData);
-
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        message::Message actual = sch.getFunctionQueue(expected)->dequeue();
-
-        REQUIRE(actual.user() == expected.user());
-        REQUIRE(actual.function() == expected.function());
-        REQUIRE(actual.inputdata() == expected.inputdata());
-
-        return expected;
-    }
-
     TEST_CASE("Test worker initially pre-warmed", "[worker]") {
         setUp();
 
@@ -248,6 +226,21 @@ namespace tests {
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
         message::Message result = globalBus.getFunctionResult(messageId, 1);
         REQUIRE(result.success());
+
+        // Check that we've scaled up to the max functions
+        REQUIRE(sch.getFunctionThreadCount(call) == 4);
+
+        // Call again
+        message::Message call2 = util::messageFactory("demo", "chain");
+        unsigned int messageId2 = call2.id();
+        sch.callFunction(call2);
+
+        // Await the call executing successfully
+        message::Message result2 = globalBus.getFunctionResult(messageId2, 1);
+        REQUIRE(result2.success());
+
+        // Check that we've not scaled up further
+        REQUIRE(sch.getFunctionThreadCount(call2) == 4);
 
         pool.shutdown();
 

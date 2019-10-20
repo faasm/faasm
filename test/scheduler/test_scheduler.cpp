@@ -410,4 +410,23 @@ namespace tests {
         sch.callFunction(msg);
         REQUIRE(!redis.sismember(warmSetName, thisNodeId));
     }
+
+    TEST_CASE("Test awaiting/ finished awaiting", "[scheduler]") {
+        cleanSystem();
+        Scheduler &sch = scheduler::getScheduler();
+        message::Message msg = util::messageFactory("demo", "chain_simple");
+
+        // Check calling function first adds another thread
+        REQUIRE(sch.getFunctionThreadCount(msg) == 0);
+        sch.callFunction(msg);
+        REQUIRE(sch.getFunctionThreadCount(msg) == 1);
+
+        // Check notifying of awaiting doesn't actually reduce this (as one is removed and one added)
+        sch.notifyAwaiting(msg);
+        REQUIRE(sch.getFunctionThreadCount(msg) == 1);
+
+        // Check notifying of awaiting finished puts this up again
+        sch.notifyFinishedAwaiting(msg);
+        REQUIRE(sch.getFunctionThreadCount(msg) == 2);
+    }
 }

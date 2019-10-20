@@ -240,6 +240,20 @@ namespace scheduler {
         }
     }
 
+    std::string opinionStr(const SchedulerOpinion &o) {
+        switch (o) {
+            case (MAYBE): {
+                return "MAYBE";
+            }
+            case (YES): {
+                return "YES";
+            }
+            case (NO): {
+                return "NO";
+            }
+        }
+    }
+
     void Scheduler::updateOpinion(const message::Message &msg) {
         // Lock-free, should be called when lock held
         const std::string funcStr = util::funcToString(msg, false);
@@ -273,7 +287,10 @@ namespace scheduler {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         SchedulerOpinion currentOpinion = opinionMap[funcStr];
         if (newOpinion != currentOpinion) {
-            logger->debug("Updating opinion of function {} from {} to {}", funcStr, currentOpinion, newOpinion);
+            std::string newOpinionStr = opinionStr(newOpinion);
+            std::string currentOpinionStr = opinionStr(currentOpinion);
+
+            logger->debug("Updating opinion of function {} from {} to {}", funcStr, currentOpinionStr, newOpinionStr);
 
             if (newOpinion == NO) {
                 // Moving to no means we want to switch off from all decisions
@@ -344,6 +361,10 @@ namespace scheduler {
             return *allOptions.begin();
         } else {
             // Give up and try to execute locally
+            double inFlightRatio = getFunctionInFlightRatio(msg);
+            const std::string oStr = opinionStr(thisOpinion);
+            logger->warn("{} overloaded for {}. IF ratio {}, opinion {}", nodeId, funcStrNoId, inFlightRatio,
+                         oStr);
             return nodeId;
         }
     }
