@@ -44,6 +44,11 @@ void faasmWriteState(const char *key, const uint8_t *data, long dataLen);
 void faasmAppendState(const char *key, const uint8_t *data, long dataLen);
 
 /**
+ * Clears the appended state
+ */
+void faasmClearAppendedState(const char *key);
+
+/**
 * Writes a chunk of state at the given key and offset
 */
 void faasmWriteStateOffset(const char *key, long totalLen, long offset, const uint8_t *data, long dataLen);

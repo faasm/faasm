@@ -220,7 +220,11 @@ void __faasm_append_state(const char *key, const unsigned char *data, long dataL
 
 }
 
-void __faasm_read_appended_state(const char *key, const unsigned char *data, long dataLen, long nElems) {
+void __faasm_read_appended_state(const char *key, unsigned char *data, long dataLen, long nElems) {
+
+}
+
+void __faasm_clear_appended_state(const char *key) {
 
 }
 

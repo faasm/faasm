@@ -93,8 +93,8 @@ FAASM_MAIN_FUNC() {
     for (int thisEpoch = 0; thisEpoch < epochs; thisEpoch++) {
         printf("Running SVM epoch %i\n", thisEpoch);
 
-        // Zero the errors for this epoch
-        faasm::zeroErrors(p, true);
+        // Clear the errors
+        faasmClearAppendedState(ERRORS_KEY);
 
         // Shuffle start indices for each batch
         int *batchNumbers = faasm::randomIntRange(nWorkers);
@@ -139,7 +139,7 @@ FAASM_MAIN_FUNC() {
         }
         ts -= tsZero;
 
-        // Read loss (always pull)
+        // Read loss
         double loss = faasm::readRootMeanSquaredError(p);
 
         output += std::to_string(ts) + " " + std::to_string(loss) + "\n";
