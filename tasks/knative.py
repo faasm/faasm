@@ -132,13 +132,6 @@ def deploy_knative(ctx, local=False, ibm=False):
             "FILESERVER_URL": "http://upload:8002",
         }
 
-    # State timings for knative environment
-    extra_env.update({
-        "STATE_STALE_THRESHOLD": "60000",
-        "STATE_CLEAR_THRESHOLD": "300000",
-        "STATE_PUSH_INTERVAL": "1000",
-    })
-
     # Deploy the other K8s stuff (e.g. redis)
     _kubectl_apply(join(COMMON_CONF, "namespace.yml"), env=shell_env)
     _kubectl_apply(COMMON_CONF, env=shell_env)
