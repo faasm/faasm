@@ -99,6 +99,7 @@ if (FAASM_BUILD_TYPE STREQUAL "knative-native")
 
     add_subdirectory(func)
     add_subdirectory(lib-cpp)
+    add_subdirectory(python)
 
     add_subdirectory(src/emulator)
     add_subdirectory(src/endpoint)

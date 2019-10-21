@@ -109,8 +109,17 @@ def _kubectl_apply(path, env=None):
 
 
 @task
-def delete_knative_worker(ctx):
-    _delete_knative_fn("worker")
+def delete_knative_worker(ctx, hard=False):
+    if hard:
+        _delete_knative_fn("worker")
+    else:
+        # Clear redis queue
+        flush_cmd = "kubectl exec -n faasm redis-queue -- redis-cli flushall"
+        call(flush_cmd, shell=True)
+
+        # Delete the pods (they'll respawn)
+        cmd = "kubectl -n faasm delete pods -l serving.knative.dev/service=faasm-worker --wait=false"
+        call(cmd, shell=True)
 
 
 @task

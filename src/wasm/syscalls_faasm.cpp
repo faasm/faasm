@@ -213,9 +213,10 @@ namespace wasm {
         kv->flagSegmentDirty(offset, len);
     }
 
-    I32 _readInputImpl(I32 bufferPtr, I32 bufferLen, const std::string &value, bool addTerminator) {
+    I32 _readInputImpl(I32 bufferPtr, I32 bufferLen) {
         // Get the input
-        std::vector<uint8_t> inputBytes = util::stringToBytes(value);
+        message::Message *call = getExecutingCall();
+        std::vector<uint8_t> inputBytes = util::stringToBytes(call->inputdata());
 
         // If nothing, return nothing
         if (inputBytes.empty()) {
@@ -227,25 +228,20 @@ namespace wasm {
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
 
         int inputSize = util::safeCopyToBuffer(inputBytes, buffer, bufferLen);
-
-        if(addTerminator) {
-            buffer[value.size()] = '\0';
-        }
-
         return inputSize;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_input", I32, __faasm_read_input, I32 bufferPtr, I32 bufferLen) {
         util::getLogger()->debug("S - read_input - {} {}", bufferPtr, bufferLen);
 
-        return _readInputImpl(bufferPtr, bufferLen, getExecutingCall()->inputdata(), false);
+        return _readInputImpl(bufferPtr, bufferLen);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(tsenv, "__faasm_read_input", I32, __ts_faasm_read_input, I32 bufferPtr,
                                    I32 bufferLen) {
         util::getLogger()->debug("TS - read_input - {} {}", bufferPtr, bufferLen);
 
-        return _readInputImpl(bufferPtr, bufferLen, getExecutingCall()->inputdata(), false);
+        return _readInputImpl(bufferPtr, bufferLen);
     }
 
     void _writeOutputImpl(I32 outputPtr, I32 outputLen) {
@@ -266,15 +262,30 @@ namespace wasm {
         _writeOutputImpl(outputPtr, outputLen);
     }
 
+    void _readPythonInput(I32 buffPtr, I32 buffLen, const std::string &value) {
+        // If nothing ignore
+        if (value.empty()) {
+            return;
+        }
+
+        // Copy value into WASM
+        U8 *buffer = Runtime::memoryArrayPtr<U8>(getExecutingModule()->defaultMemory, (Uptr) buffPtr, (Uptr) buffLen);
+        std::vector<uint8_t> bytes = util::stringToBytes(value);
+        std::copy(bytes.begin(), bytes.end(), buffer);
+
+        // Add null terminator
+        buffer[value.size()] = '\0';
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_py_user", void, __faasm_get_py_user, I32 bufferPtr, I32 bufferLen) {
         util::getLogger()->debug("S - get_py_user - {} {}", bufferPtr, bufferLen);
         std::string value = getExecutingCall()->pythonuser();
-        _readInputImpl(bufferPtr, bufferLen, value, true);
+        _readPythonInput(bufferPtr, bufferLen, value);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_py_func", void, __faasm_get_py_func, I32 bufferPtr, I32 bufferLen) {
         util::getLogger()->debug("S - get_py_func - {} {}", bufferPtr, bufferLen);
         std::string value = getExecutingCall()->pythonfunction();
-        _readInputImpl(bufferPtr, bufferLen, value, true);
+        _readPythonInput(bufferPtr, bufferLen, value);
     }
 }
