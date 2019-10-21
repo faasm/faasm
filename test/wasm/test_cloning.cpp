@@ -7,6 +7,14 @@
 using namespace wasm;
 
 namespace tests {
+    void convertMsgToPython(message::Message &msg) {
+        msg.set_pythonuser(msg.user());
+        msg.set_pythonfunction(msg.function());
+        msg.set_user(PYTHON_USER);
+        msg.set_function(PYTHON_FUNC);
+        msg.set_ispython(true);
+    }
+
     TEST_CASE("Test cloning empty modules doesn't break", "[wasm]") {
         WasmModule moduleA;
         WasmModule moduleB(moduleA);
@@ -22,8 +30,11 @@ namespace tests {
 
     void
     _doChecks(wasm::WasmModule &moduleA, wasm::WasmModule &moduleB, const std::string &user, const std::string &func,
-              const std::string &inputA,              const std::string &inputB, bool isTypescript) {
+              const std::string &inputA,              const std::string &inputB, bool isTypescript, bool isPython) {
         message::Message msgA = util::messageFactory(user, func);
+        if(isPython) {
+            convertMsgToPython(msgA);
+        }
 
         // Get the initial mem and table size
         Uptr memBeforeA = Runtime::getMemoryNumPages(moduleA.defaultMemory);
@@ -87,7 +98,7 @@ namespace tests {
             tableAfterA1 = Runtime::getTableNumElements(moduleA.defaultTable);
             Uptr tableAfterB1 = Runtime::getTableNumElements(moduleB.defaultTable);
 
-            if (func == PYTHON_FUNC) {
+            if (isPython) {
                 REQUIRE(tableAfterA1 > tableBeforeA);
             } else {
                 REQUIRE(tableAfterA1 == tableBeforeA);
@@ -98,6 +109,11 @@ namespace tests {
 
         // Execute with second module and check
         message::Message msgB = util::messageFactory(user, func);
+
+        if(isPython) {
+            convertMsgToPython(msgB);
+        }
+
         msgB.set_inputdata(inputB);
         int retCodeB = moduleB.execute(msgB);
         REQUIRE(retCodeB == 0);
@@ -120,7 +136,7 @@ namespace tests {
             Uptr tableAfterA2 = Runtime::getTableNumElements(moduleA.defaultTable);
             Uptr tableAfterB2 = Runtime::getTableNumElements(moduleB.defaultTable);
 
-            if (func == PYTHON_FUNC) {
+            if (isPython) {
                 REQUIRE(tableAfterB2 > tableBeforeB);
             } else {
                 REQUIRE(tableAfterB2 == tableBeforeB);
@@ -136,8 +152,12 @@ namespace tests {
     }
 
     void _checkCopyConstructor(const std::string &user, const std::string &func, const std::string &inputA,
-                               const std::string &inputB, bool isTypescript) {
+                               const std::string &inputB, bool isTypescript, bool isPython) {
         message::Message msgA = util::messageFactory(user, func);
+
+        if(isPython) {
+            convertMsgToPython(msgA);
+        }
 
         if (isTypescript) {
             msgA.set_istypescript(true);
@@ -147,21 +167,23 @@ namespace tests {
         moduleA.bindToFunction(msgA);
 
         WasmModule moduleB(moduleA);
-
-        _doChecks(moduleA, moduleB, user, func, inputA, inputB, isTypescript);
+        _doChecks(moduleA, moduleB, user, func, inputA, inputB, isTypescript, isPython);
     }
 
     void _checkAssignmentOperator(const std::string &user, const std::string &func, const std::string &inputA,
-                                  const std::string &inputB, bool isTypescript) {
+                                  const std::string &inputB, bool isTypescript, bool isPython) {
         message::Message msgA = util::messageFactory(user, func);
         msgA.set_istypescript(isTypescript);
+
+        if(isPython) {
+            convertMsgToPython(msgA);
+        }
 
         WasmModule moduleA;
         moduleA.bindToFunction(msgA);
 
         WasmModule moduleB = moduleA;
-
-        _doChecks(moduleA, moduleB, user, func, inputA, inputB, isTypescript);
+        _doChecks(moduleA, moduleB, user, func, inputA, inputB, isTypescript, isPython);
     }
 
     TEST_CASE("Test cloned execution on simple module", "[wasm]") {
@@ -171,11 +193,11 @@ namespace tests {
         std::string inputB = "bbb";
 
         SECTION("copy") {
-            _checkCopyConstructor(user, func, inputA, inputB, false);
+            _checkCopyConstructor(user, func, inputA, inputB, false, false);
         }
 
         SECTION("assignment") {
-            _checkAssignmentOperator(user, func, inputA, inputB, false);
+            _checkAssignmentOperator(user, func, inputA, inputB, false, false);
         }
     }
 
@@ -200,15 +222,15 @@ namespace tests {
         std::string orig = conf.fsMode;
         conf.fsMode = "on";
 
-        std::string user = PYTHON_USER;
-        std::string func = PYTHON_FUNC;
-        std::string input = std::string(PYTHON_USER) + "/numpy_test/function.py";
+        std::string user = "python";
+        std::string func = "numpy_test";
+        std::string input;
 
         SECTION("copy") {
-            _checkCopyConstructor(user, func, input, input, false);
+            _checkCopyConstructor(user, func, input, input, false, true);
         }
         SECTION("assignment") {
-            _checkAssignmentOperator(user, func, input, input, false);
+            _checkAssignmentOperator(user, func, input, input, false, true);
         }
 
         conf.fsMode = orig;

@@ -33,7 +33,7 @@ void faasmReadAppendedState(const char *key, uint8_t *buffer, long bufferLen, lo
     __faasm_read_appended_state(key, buffer, bufferLen, nElems);
 }
 
-void faasmClearAppendedState(const char*key) {
+void faasmClearAppendedState(const char *key) {
     __faasm_clear_appended_state(key);
 }
 
@@ -57,7 +57,7 @@ void faasmPushStatePartial(const char *key) {
     __faasm_push_state_partial(key);
 }
 
-void faasmPushStatePartialMask(const char *key, const char* maskKey) {
+void faasmPushStatePartialMask(const char *key, const char *maskKey) {
     __faasm_push_state_partial_mask(key, maskKey);
 }
 
@@ -120,6 +120,19 @@ int faasmGetCurrentIdx() {
     return __faasm_get_idx();
 }
 
+char* faasmGetPythonUser() {
+    char* user = new char[20];
+     __faasm_get_py_user(reinterpret_cast<uint8_t *>(user), 20);
+     return user;
+}
+
+char* faasmGetPythonFunc() {
+    char* funcName = new char[20];
+     __faasm_get_py_func(reinterpret_cast<uint8_t *>(funcName), 20);
+     return funcName;
+}
+
+
 _FaasmFuncPtr getFaasmFunc(int idx) {
     int (*_faasm_funcs[10])() = {
             _faasm_func_0,
@@ -143,7 +156,7 @@ int exec(int idx) {
     // In a native context we just execute it for every (main) function invocation
 #ifdef __wasm__
 #else
-    if(idx == 0) {
+    if (idx == 0) {
         _faasm_zygote();
     }
 #endif

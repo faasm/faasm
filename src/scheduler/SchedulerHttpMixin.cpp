@@ -29,10 +29,6 @@ namespace scheduler {
             return "Empty function";
         }
 
-        if (msg.ispython()) {
-            util::convertMessageToPython(msg);
-        }
-
         util::setMessageId(msg);
 
         auto tid = (pid_t) syscall(SYS_gettid);

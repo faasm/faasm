@@ -13,8 +13,10 @@ namespace tests {
         util::SystemConfig &conf = util::getSystemConfig();
         conf.fsMode = "on";
 
-        message::Message call = util::messageFactory("python", funcName);
-        util::convertMessageToPython(call);
+        message::Message call = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+        call.set_pythonuser("python");
+        call.set_pythonfunction(funcName);
+        call.set_ispython(true);
 
         execFunction(call);
 
@@ -33,8 +35,10 @@ namespace tests {
         util::SystemConfig &conf = util::getSystemConfig();
         conf.fsMode = "on";
 
-        message::Message call = util::messageFactory("python", "numpy_test");
-        util::convertMessageToPython(call);
+        message::Message call = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+        call.set_pythonuser("python");
+        call.set_pythonfunction("numpy_test");
+        call.set_ispython(true);
 
         checkMultipleExecutions(call, 3);
     }

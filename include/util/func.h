@@ -51,8 +51,6 @@ namespace util {
 
     message::Message messageFactory(const std::string &user, const std::string &function);
 
-    void convertMessageToPython(message::Message &msg);
-
     std::string resultKeyFromMessageId(unsigned int mid);
 
     std::string statusKeyFromMessageId(unsigned int mid);

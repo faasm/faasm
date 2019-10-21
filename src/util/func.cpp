@@ -235,14 +235,6 @@ namespace util {
         return msg;
     }
 
-    void convertMessageToPython(message::Message &msg) {
-        std::string filename = msg.user() + "/" + msg.function() + "/function.py";
-        msg.set_inputdata(filename);
-        msg.set_user(PYTHON_USER);
-        msg.set_function(PYTHON_FUNC);
-        msg.set_ispython(true);
-    }
-
     unsigned int setMessageId(message::Message &msg) {
         // Assume if message has an ID it's been done properly
         if(msg.id() > 0) {

@@ -19,9 +19,11 @@ FAASM_ZYGOTE() {
 FAASM_MAIN_FUNC() {
     setUpPyEnvironment();
 
-    const char* funcName = faasm::getStringInput("");
-    char filePath[25 + strlen(funcName)];
-    sprintf(filePath, "%s%s", PYTHON_FUNC_DIR, funcName);
+    char *user = faasmGetPythonUser();
+    char *funcName = faasmGetPythonFunc();
+
+    auto filePath = new char[50 + strlen(funcName)];
+    sprintf(filePath, "%s%s/%s/function.py", PYTHON_FUNC_DIR, user, funcName);
 
     FILE *fp = fopen(filePath, "r");
     if (fp == nullptr) {

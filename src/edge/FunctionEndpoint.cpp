@@ -62,12 +62,21 @@ namespace edge {
         response.send(Pistache::Http::Code::Ok, result);
     }
 
+    void convertMessageToPython(message::Message &msg) {
+        msg.set_ispython(true);
+        msg.set_pythonfunction(msg.function());
+        msg.set_pythonuser(msg.user());
+
+        msg.set_user(PYTHON_USER);
+        msg.set_function(PYTHON_FUNC);
+    }
+
     void FunctionEndpoint::handlePythonFunctionWrapper(const Pistache::Rest::Request &request,
                                                        Pistache::Http::ResponseWriter response) {
         message::Message msg = this->buildMessageFromRequest(request);
         msg.set_isasync(false);
 
-        util::convertMessageToPython(msg);
+        convertMessageToPython(msg);
 
         const std::string result = this->handleFunction(msg);
         response.send(Pistache::Http::Code::Ok, result);
@@ -79,7 +88,7 @@ namespace edge {
         message::Message msg = this->buildMessageFromRequest(request);
         msg.set_isasync(true);
 
-        util::convertMessageToPython(msg);
+        convertMessageToPython(msg);
 
         const std::string result = this->handleFunction(msg);
         response.send(Pistache::Http::Code::Ok, result);

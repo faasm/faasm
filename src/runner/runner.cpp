@@ -37,10 +37,7 @@ int main(int argc, char *argv[]) {
 
     if (user == "ts") {
         call.set_istypescript(true);
-    } else if (user == "python") {
-        util::convertMessageToPython(call);
     }
-
     logger->info("Running function {}/{}", user, function);
 
     if (argc > 3) {
