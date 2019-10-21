@@ -6,6 +6,7 @@
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
+#include <redis/Redis.h>
 
 namespace wasm {
     void faasmLink() {
@@ -84,6 +85,20 @@ namespace wasm {
         kv->set(data);
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_append_state", void, __faasm_append_state,
+                                   I32 keyPtr, I32 dataPtr, I32 dataLen) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - append_state - {} {} {}", keyPtr, dataPtr, dataLen);
+
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
+        std::vector<uint8_t> bytes(data, data + dataLen);
+
+        char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
+        redis::Redis &redis = redis::Redis::getState();
+        redis.enqueueBytes(key, bytes);
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_offset", void, __faasm_write_state_offset,
                                    I32 keyPtr, I32 totalLen, I32 offset, I32 dataPtr, I32 dataLen) {
         util::getLogger()->debug("S - write_state_offset - {} {} {} {} {}", keyPtr, totalLen, offset, dataPtr,
@@ -107,6 +122,19 @@ namespace wasm {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
         kv->get(buffer);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_appended_state", void, __faasm_read_appended_state,
+                                   I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 nElems) {
+        util::getLogger()->debug("S - read_appended_state - {} {} {} {}", keyPtr, bufferPtr, bufferLen, nElems);
+
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
+        U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
+
+        // Dequeue straight to buffer
+        redis::Redis &redis = redis::Redis::getState();
+        redis.dequeueMultiple(key, buffer, bufferLen, nElems);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_ptr", I32, __faasm_read_state_ptr,

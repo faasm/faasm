@@ -165,6 +165,18 @@ namespace tests {
         REQUIRE(actual == expected);
     }
 
+    void checkAppendOnlyInState(redis::Redis &r, const char *key, long nDoubles, std::vector<double> expected) {
+        redis::Redis &redisQueue = redis::Redis::getQueue();
+        std::vector<uint8_t> actualBytes = redisQueue.dequeueBytes(key);
+
+        REQUIRE(!actualBytes.empty());
+
+        auto actualPtr = reinterpret_cast<double *>(actualBytes.data());
+        std::vector<double> actual(actualPtr, actualPtr + expected.size());
+
+        REQUIRE(actual == expected);
+    }
+
     TEST_CASE("Test writing errors to state", "[sgd]") {
         redis::Redis &redisQueue = redis::Redis::getQueue();
         cleanSystem();
@@ -214,7 +226,7 @@ namespace tests {
         // With nothing set up, error should be zero
         zeroErrors(p, true);
 
-        double initial = faasm::readRootMeanSquaredError(p, true);
+        double initial = faasm::readRootMeanSquaredError(p);
         REQUIRE(initial == 0);
 
         // Write the error for two of the three batches
@@ -222,18 +234,16 @@ namespace tests {
         MatrixXd b = randomDenseMatrix(1, 5);
         double expected = calculateHingeError(a, b);
 
-        // Write first, check nothing written
-        writeHingeError(p, 0, a, b, false);
-        const std::string actualKey = util::keyForUser(user, ERRORS_KEY);
-        checkDoubleArrayInState(redisState, actualKey.c_str(), {0, 0, 0});
+        // Write errors
+        writeHingeError(p, 0, a, b);
+        writeHingeError(p, 1, a, b);
 
-        // Check these have been written
-        writeHingeError(p, 1, a, b, true);
+        const std::string actualKey = util::keyForUser(user, ERRORS_KEY);
         checkDoubleArrayInState(redisState, actualKey.c_str(), {expected, expected, 0});
 
         // Error should just include the 2 written
         double expectedRmse1 = sqrt((2 * expected) / p.nTrain);
-        double actual1 = faasm::readRootMeanSquaredError(p, true);
+        double actual1 = faasm::readRootMeanSquaredError(p);
         REQUIRE(abs(actual1 - expectedRmse1) < 0.0000001);
 
         // Now write error for a third batch

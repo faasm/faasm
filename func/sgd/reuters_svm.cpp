@@ -140,7 +140,7 @@ FAASM_MAIN_FUNC() {
         ts -= tsZero;
 
         // Read loss (always pull)
-        double loss = faasm::readRootMeanSquaredError(p, true);
+        double loss = faasm::readRootMeanSquaredError(p);
 
         output += std::to_string(ts) + " " + std::to_string(loss) + "\n";
 

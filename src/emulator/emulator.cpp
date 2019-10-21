@@ -128,6 +128,14 @@ void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen) 
     kv->get(buffer);
 }
 
+void __faasm_read_appended_state(const char *key, unsigned char *buffer, long bufferLen, long nElems) {
+    util::getLogger()->debug("E - read_appended_state {} {} {}", key, bufferLen, nElems);
+
+    // Read straight into buffer
+    redis::Redis &redis = redis::Redis::getState();
+    redis.dequeueMultiple(key, buffer, bufferLen, nElems);
+}
+
 unsigned char *__faasm_read_state_ptr(const char *key, long totalLen) {
     util::getLogger()->debug("E - read_state_ptr {} {}", key, totalLen);
     auto kv = getKv(key, totalLen);
@@ -151,6 +159,13 @@ void __faasm_write_state(const char *key, const uint8_t *data, long dataLen) {
     util::getLogger()->debug("E - write_state {} {}", key, dataLen);
     auto kv = getKv(key, dataLen);
     kv->set(data);
+}
+
+void __faasm_append_state(const char *key, const uint8_t *data, long dataLen) {
+    util::getLogger()->debug("E - append_state {} {}", key, dataLen);
+    redis::Redis &redis = redis::Redis::getState();
+    std::vector<uint8_t> bytes(data, data + dataLen);
+    redis.enqueueBytes(key, bytes);
 }
 
 void __faasm_write_state_offset(const char *key, long totalLen, long offset, const unsigned char *data, long dataLen) {

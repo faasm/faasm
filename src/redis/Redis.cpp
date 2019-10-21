@@ -525,6 +525,25 @@ namespace redis {
         return result;
     }
 
+    void Redis::dequeueMultiple(const std::string &queueName, uint8_t *buff, long buffLen, long nElems) {
+        // NOTE - much like other range stuff with redis, this is *INCLUSIVE*
+        auto reply = (redisReply *) redisCommand(context, "LRANGE %s 0 %i", queueName.c_str(), nElems);
+
+        long offset = 0;
+        for (size_t i = 0; i < reply->elements; i++) {
+            redisReply *r = reply->element[i];
+            std::copy(r->str + offset, r->str + offset + r->len, buff);
+            offset += r->len;
+        }
+
+        if (offset > buffLen) {
+            throw std::runtime_error("Copied over end of buffer (copied " + std::to_string(offset)
+                                     + " buffer " + std::to_string(buffLen) + ")");
+        }
+
+        freeReplyObject(reply);
+    }
+
     std::vector<uint8_t> Redis::dequeueBytes(const std::string &queueName, int timeoutMs) {
         bool isBlocking = timeoutMs > 0;
         redisReply *reply = this->dequeueBase(queueName, timeoutMs);

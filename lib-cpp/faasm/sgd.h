@@ -42,11 +42,11 @@ namespace faasm {
     void zeroErrors(const SgdParams &sgdParams, bool push);
 
     void writeHingeError(const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
-                         const MatrixXd &prediction, bool push);
+                         const MatrixXd &prediction);
 
-    double readTotalError(const SgdParams &sgdParams, bool pull);
+    double readTotalError(const SgdParams &sgdParams);
 
-    double readRootMeanSquaredError(const SgdParams &sgdParams, bool pull);
+    double readRootMeanSquaredError(const SgdParams &sgdParams);
 
     void setUpDummyProblem(const SgdParams &params);
 }

@@ -135,7 +135,7 @@ namespace faasm {
         MatrixXd prediction = weights * inputs;
 
         // Write error
-        writeHingeError(sgdParams, batchNumber, outputs, prediction, true);
+        writeHingeError(sgdParams, batchNumber, outputs, prediction);
     }
 
     void zeroErrors(const SgdParams &sgdParams, bool push) {
@@ -155,39 +155,27 @@ namespace faasm {
     }
 
     void writeHingeError(const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
-                         const MatrixXd &prediction, bool push) {
+                         const MatrixXd &prediction) {
         double err = calculateHingeError(prediction, actual);
         auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&err);
 
-        long offset = batchNumber * sizeof(double);
-        long totalBytes = sgdParams.nBatches * sizeof(double);
-
-        faasmWriteStateOffset(
+        faasmAppendState(
                 ERRORS_KEY,
-                totalBytes,
-                offset,
                 squaredErrorBytes,
                 sizeof(double)
         );
-
-        if (push) {
-            faasmPushStatePartial(ERRORS_KEY);
-        }
     }
 
-    double readTotalError(const SgdParams &sgdParams, bool pull) {
+    double readTotalError(const SgdParams &sgdParams) {
         // Load errors from state
         auto *errors = new double[sgdParams.nBatches];
         size_t sizeErrors = sgdParams.nBatches * sizeof(double);
 
-        if (pull) {
-            faasmPullState(ERRORS_KEY, sizeErrors);
-        }
-
-        faasmReadState(
+        faasmReadAppendedState(
                 ERRORS_KEY,
                 reinterpret_cast<uint8_t *>(errors),
-                sizeErrors
+                sizeErrors,
+                sgdParams.nBatches
         );
 
         // Iterate through and sum up
@@ -199,8 +187,8 @@ namespace faasm {
         return totalError;
     }
 
-    double readRootMeanSquaredError(const SgdParams &sgdParams, bool pull) {
-        double totalSquaredError = readTotalError(sgdParams, pull);
+    double readRootMeanSquaredError(const SgdParams &sgdParams) {
+        double totalSquaredError = readTotalError(sgdParams);
 
         // Calculate the mean squared error across all batches
         double rmse = std::sqrt(totalSquaredError) / std::sqrt(sgdParams.nTrain);

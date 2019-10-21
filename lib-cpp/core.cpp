@@ -9,6 +9,10 @@ void faasmReadState(const char *key, uint8_t *buffer, long bufferLen) {
     __faasm_read_state(key, buffer, bufferLen);
 }
 
+void faasmReadAppendedState(const char *key, uint8_t *buffer, long bufferLen, long nElems) {
+    __faasm_read_appended_state(key, buffer, bufferLen, nElems);
+}
+
 uint8_t *faasmReadStatePtr(const char *key, long totalLen) {
     return __faasm_read_state_ptr(key, totalLen);
 }
@@ -23,6 +27,10 @@ uint8_t *faasmReadStateOffsetPtr(const char *key, long fullLen, long offset, lon
 
 void faasmWriteState(const char *key, const uint8_t *data, long dataLen) {
     __faasm_write_state(key, data, dataLen);
+}
+
+void faasmAppendState(const char *key, const uint8_t *data, long dataLen) {
+    __faasm_append_state(key, data, dataLen);
 }
 
 void faasmWriteStateOffset(const char *key, long totalLen, long offset, const uint8_t *data, long dataLen) {
