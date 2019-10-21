@@ -166,7 +166,7 @@ namespace faasm {
         );
 
         // Iterate through and sum up
-        double totalError = 0;
+        double totalError = 0.0;
         for (int i = 0; i < sgdParams.nBatches; i++) {
             totalError += errors[i];
         }
