@@ -267,3 +267,9 @@ void __faasm_lock_state_write(const char *key) {
 void __faasm_unlock_state_write(const char *key) {
 
 }
+
+void __faasm_get_py_user(unsigned char *buffer, long bufferLen) {
+}
+
+void __faasm_get_py_func(unsigned char *buffer, long bufferLen) {
+}

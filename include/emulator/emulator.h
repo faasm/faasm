@@ -16,4 +16,12 @@ std::string getEmulatorFunction();
 
 void setEmulatorFunction(const char *newFunction);
 
+std::string getEmulatorPythonUser();
+
+void setEmulatorPythonUser(const char* user);
+
+std::string getEmulatorPythonFunction();
+
+void setEmulatorPythonFunction(const char *newFunction);
+
 void unsetEmulatorUser();

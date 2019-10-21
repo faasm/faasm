@@ -46,14 +46,13 @@ namespace knative_native {
         const std::vector<uint8_t> inputBytes = util::stringToBytes(msg.inputdata());
         setEmulatorInputData(inputBytes);
 
-        // Invoke the native function
+        // Respond to message status
         std::string outputStr;
         if (msg.isstatusrequest()) {
             logger->debug("Getting status for function {}", msg.id());
             outputStr = getMessageStatus(msg);
         }
-
-        if (msg.isasync()) {
+        else if (msg.isasync()) {
             logger->debug("Executing function index {} async", msg.idx());
 
             // Execute async message in detached thread

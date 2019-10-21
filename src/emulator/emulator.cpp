@@ -14,6 +14,7 @@ extern "C" {
 #include <util/chaining.h>
 #include <util/environment.h>
 #include <util/json.h>
+#include <util/bytes.h>
 
 /**
  * C++ emulation of Faasm system
@@ -22,6 +23,8 @@ extern "C" {
 // We use an empty emulator user by default as it's easier to reason about keys in state
 static std::string _user;
 static std::string _function;
+static std::string _pythonUser;
+static std::string _pythonFunction;
 
 // Note thread locality here to handle multiple locally chained functions
 static thread_local std::vector<uint8_t> _threadLocalInputData;
@@ -95,6 +98,22 @@ void setEmulatorFunction(const char *newFunction) {
 
 void unsetEmulatorUser() {
     _user = "";
+}
+
+std::string getEmulatorPythonUser() {
+    return _pythonUser;
+}
+
+void setEmulatorPythonUser(const char *newUser) {
+    _pythonUser = newUser;
+}
+
+std::string getEmulatorPythonFunction() {
+    return _pythonFunction;
+}
+
+void setEmulatorPythonFunction(const char *newFunction) {
+    _pythonFunction = newFunction;
 }
 
 std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {
@@ -393,4 +412,14 @@ void __faasm_unlock_state_write(const char *key) {
 unsigned int __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize) {
     // This might not be possible when executing natively
     return 1;
+}
+
+void __faasm_get_py_user(unsigned char *buffer, long bufferLen) {
+    const std::vector<uint8_t> bytes = util::stringToBytes(_pythonUser);
+    std::copy(bytes.data(), bytes.data() + bytes.size(), buffer);
+}
+
+void __faasm_get_py_func(unsigned char *buffer, long bufferLen) {
+    const std::vector<uint8_t> bytes = util::stringToBytes(_pythonFunction);
+    std::copy(bytes.data(), bytes.data() + bytes.size(), buffer);
 }

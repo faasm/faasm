@@ -13,7 +13,7 @@ namespace util {
     std::string messageToJson(const message::Message &msg) {
         Document d;
         d.SetObject();
-        Document::AllocatorType& a = d.GetAllocator();
+        Document::AllocatorType &a = d.GetAllocator();
 
         // Need to be explicit with strings here to make a copy _and_ make sure we specify the length
         // to include any null-terminators from bytes
@@ -21,6 +21,9 @@ namespace util {
         d.AddMember("user", Value(msg.user().c_str(), msg.user().size(), a).Move(), a);
         d.AddMember("function", Value(msg.function().c_str(), msg.function().size(), a).Move(), a);
         d.AddMember("index", msg.idx(), a);
+
+        d.AddMember("py_user", Value(msg.pythonuser().c_str(), msg.pythonuser().size(), a).Move(), a);
+        d.AddMember("py_function", Value(msg.pythonfunction().c_str(), msg.pythonfunction().size(), a).Move(), a);
 
         d.AddMember("input_data", Value(msg.inputdata().c_str(), msg.inputdata().size(), a).Move(), a);
         d.AddMember("output_data", Value(msg.outputdata().c_str(), msg.outputdata().size(), a).Move(), a);
@@ -77,10 +80,12 @@ namespace util {
 
         message::Message msg;
         msg.set_id(getIntFromJson(d, "id", 0));
-
         msg.set_user(getStringFromJson(d, "user", ""));
         msg.set_function(getStringFromJson(d, "function", ""));
         msg.set_idx(getIntFromJson(d, "index", 0));
+
+        msg.set_pythonuser(getStringFromJson(d, "py_user", ""));
+        msg.set_pythonfunction(getStringFromJson(d, "py_func", ""));
 
         msg.set_inputdata(getStringFromJson(d, "input_data", ""));
         msg.set_outputdata(getStringFromJson(d, "output_data", ""));

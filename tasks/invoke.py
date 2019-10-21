@@ -6,6 +6,7 @@ import requests
 from invoke import task
 
 from tasks.util.config import get_faasm_config
+from tasks.util.env import PYTHON_USER, PYTHON_FUNC
 
 
 def _get_knative_headers(func_name):
@@ -49,14 +50,13 @@ def invoke(ctx, user, func,
            parallel=False,
            loops=1,
            py=False,
-           ts=False,
            async=False,
            knative=True,
            native=False,
            ibm=False,
-           legacy=False,
            poll=False
            ):
+
     faasm_config = get_faasm_config()
 
     # Provider-specific stuff
@@ -74,33 +74,25 @@ def invoke(ctx, user, func,
     if poll:
         async = True
 
-    # Legacy requires special URLs
-    if legacy:
-        if py:
-            prefix = "p"
-        elif ts:
-            prefix = "t"
-        else:
-            prefix = "f"
-
-        if async:
-            prefix += "a"
-    else:
-        prefix = None
-
     # Create URL and message
     url = "http://{}".format(host)
     if not port == "80":
         url += ":{}".format(port)
 
-    msg = {
-        "user": user,
-        "function": func,
-        "async": async,
-    }
-
     if py:
-        msg["python"] = True
+        msg = {
+            "user": PYTHON_USER,
+            "function": PYTHON_FUNC,
+            "async": async,
+            "py_user": user,
+            "py_func": func,
+        }
+    else:
+        msg = {
+            "user": user,
+            "function": func,
+            "async": async,
+        }
 
     if input:
         msg["input_data"] = input
