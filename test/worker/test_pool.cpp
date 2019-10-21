@@ -60,7 +60,7 @@ namespace tests {
 
     void checkBound(WorkerThread &w, message::Message &msg, bool isBound) {
         REQUIRE(w.isBound() == isBound);
-        if(w.module) {
+        if (w.module) {
             REQUIRE(w.module->isBound() == isBound);
         } else {
             REQUIRE(!isBound);
@@ -245,6 +245,39 @@ namespace tests {
         pool.shutdown();
 
         tearDown();
+    }
+
+    void execFuncWithPool(const std::string &user, const std::string &func) {
+        setUp();
+
+        util::SystemConfig &conf = util::getSystemConfig();
+        conf.boundTimeout = 1000;
+        conf.unboundTimeout = 1000;
+
+        message::Message call = util::messageFactory(user, func);
+        unsigned int messageId = call.id();
+
+        // Set up a real worker to execute this function. Remove it from the
+        // unassigned set and add to handle this function
+        WorkerThreadPool pool(4);
+        pool.startThreadPool();
+
+        // Make the call
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        sch.callFunction(call);
+
+        // Await the call executing successfully
+        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
+        message::Message result = globalBus.getFunctionResult(messageId, 1);
+        REQUIRE(result.success());
+
+        pool.shutdown();
+
+        tearDown();
+    }
+
+    TEST_CASE("Test appended state", "[state]") {
+        execFuncWithPool("demo", "state_append");
     }
 
     TEST_CASE("Test repeat invocation with state", "[worker]") {
@@ -480,4 +513,5 @@ namespace tests {
         REQUIRE(bindQueue->size() == 0);
         REQUIRE(!redis.sismember(warmSetName, nodeId));
     }
+
 }

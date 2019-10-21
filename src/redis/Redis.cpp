@@ -527,12 +527,12 @@ namespace redis {
 
     void Redis::dequeueMultiple(const std::string &queueName, uint8_t *buff, long buffLen, long nElems) {
         // NOTE - much like other range stuff with redis, this is *INCLUSIVE*
-        auto reply = (redisReply *) redisCommand(context, "LRANGE %s 0 %i", queueName.c_str(), nElems);
+        auto reply = (redisReply *) redisCommand(context, "LRANGE %s 0 %i", queueName.c_str(), nElems - 1);
 
         long offset = 0;
         for (size_t i = 0; i < reply->elements; i++) {
             redisReply *r = reply->element[i];
-            std::copy(r->str + offset, r->str + offset + r->len, buff + offset);
+            std::copy(r->str, r->str + r->len, buff + offset);
             offset += r->len;
         }
 

@@ -113,8 +113,7 @@ namespace wasm {
         redis::Redis &redis = redis::Redis::getState();
         const std::string actualKey = util::keyForUser(getExecutingCall()->user(), key);
 
-        // NOTE - redis uses inclusive ranges, need to subtract one
-        redis.dequeueMultiple(actualKey, buffer, bufferLen, nElems - 1);
+        redis.dequeueMultiple(actualKey, buffer, bufferLen, nElems);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_clear_appended_state", void, __faasm_clear_appended_state,

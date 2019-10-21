@@ -1,8 +1,19 @@
 #ifndef FAASM_INPUT_H
 #define FAASM_INPUT_H
 
+#include "faasm/core.h"
+
 namespace faasm {
-    int getIntInput(int defaultValue);
+    template<typename T>
+    T getTypedInput(T defaultValue) {
+        if (faasmGetInputSize() == 0) {
+            return defaultValue;
+        }
+
+        T inputBuff;
+        faasmGetInput(reinterpret_cast<uint8_t *>(&inputBuff), sizeof(T));
+        return inputBuff;
+    }
 
     const char* getStringInput(const char* defaultValue);
 

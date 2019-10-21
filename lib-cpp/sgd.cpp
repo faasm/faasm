@@ -138,22 +138,6 @@ namespace faasm {
         writeHingeError(sgdParams, batchNumber, outputs, prediction);
     }
 
-    void zeroErrors(const SgdParams &sgdParams, bool push) {
-        long len = sgdParams.nBatches;
-
-        // Set buffer to zero
-        auto buffer = new double[len];
-        std::fill(buffer, buffer + len, 0);
-
-        // Write zeroed buffer to state
-        auto bytes = reinterpret_cast<uint8_t *>(buffer);
-        faasmWriteState(ERRORS_KEY, bytes, len * sizeof(double));
-
-        if (push) {
-            faasmPushState(ERRORS_KEY);
-        }
-    }
-
     void writeHingeError(const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
                          const MatrixXd &prediction) {
         double err = calculateHingeError(prediction, actual);
@@ -170,6 +154,9 @@ namespace faasm {
         // Load errors from state
         auto *errors = new double[sgdParams.nBatches];
         size_t sizeErrors = sgdParams.nBatches * sizeof(double);
+
+        // Make sure filled with zeros
+        memset(errors, 0, sizeErrors);
 
         faasmReadAppendedState(
                 ERRORS_KEY,

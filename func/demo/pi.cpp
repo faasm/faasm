@@ -13,7 +13,7 @@
  * Parallel estimation of pi
  */
 FAASM_MAIN_FUNC() {
-    int nWorkers = faasm::getIntInput(4);
+    int nWorkers = faasm::getTypedInput<int>(4);
 
     // Write chunk size to state
     int chunkSize = N_GUESSES / nWorkers;
@@ -45,7 +45,7 @@ FAASM_MAIN_FUNC() {
 }
 
 FAASM_FUNC(piStep, 1) {
-    int chunkSize = faasm::getIntInput(0);
+    int chunkSize = faasm::getTypedInput<int>(0);
     if(chunkSize == 0) {
         printf("Didn't get told a chunk size\n");
         return 1;

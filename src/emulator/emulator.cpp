@@ -169,8 +169,7 @@ void __faasm_read_appended_state(const char *key, unsigned char *buffer, long bu
     redis::Redis &redis = redis::Redis::getState();
     const std::string actualKey = util::keyForUser(getEmulatorUser(), key);
 
-    // NOTE - redis uses inclusive ranges, need to subtract one
-    redis.dequeueMultiple(actualKey, buffer, bufferLen, nElems - 1);
+    redis.dequeueMultiple(actualKey, buffer, bufferLen, nElems);
 }
 
 void __faasm_clear_appended_state(const char *key) {

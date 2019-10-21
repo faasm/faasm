@@ -6,18 +6,6 @@
 #include <string>
 
 namespace faasm {
-    int getIntInput(int defaultValue) {
-        if (!faasmGetInputSize()) {
-            return defaultValue;
-        }
-
-        uint8_t inputBuffer[sizeof(int)];
-        faasmGetInput(inputBuffer, sizeof(int));
-        char *strIn = reinterpret_cast<char *>(inputBuffer);
-
-        return std::stoi(strIn);
-    }
-
     const char *getStringInput(const char *defaultValue) {
         long inputSize = faasmGetInputSize();
         if (inputSize == 0) {

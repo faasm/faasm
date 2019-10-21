@@ -39,8 +39,6 @@ namespace faasm {
             int endIdx
     );
 
-    void zeroErrors(const SgdParams &sgdParams, bool push);
-
     void writeHingeError(const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
                          const MatrixXd &prediction);
 
