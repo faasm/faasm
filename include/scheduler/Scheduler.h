@@ -27,6 +27,8 @@ namespace scheduler {
 
         void callFunction(message::Message &msg);
 
+        SchedulerOpinion getOpinion(const message::Message &msg);
+
         std::string getBestNodeForFunction(const message::Message &msg);
 
         void enqueueMessage(const message::Message &msg);
@@ -57,15 +59,16 @@ namespace scheduler {
 
         void addNodeToGlobalSet();
 
+        void removeNodeFromGlobalSet();
+
         void addNodeToWarmSet(const std::string &funcStr);
 
         void removeNodeFromWarmSet(const std::string &funcStr);
+
     private:
         std::string nodeId;
 
         void updateOpinion(const message::Message &msg);
-
-        void removeNodeFromGlobalSet();
 
         void addWarmThreads(const message::Message &msg);
 

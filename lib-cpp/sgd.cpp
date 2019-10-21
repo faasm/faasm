@@ -8,30 +8,6 @@
 using namespace Eigen;
 
 namespace faasm {
-    SgdParams setUpReutersParams(int nBatches, int epochs, bool push) {
-        // Set up reuters params
-        SgdParams p;
-        p.nWeights = REUTERS_N_FEATURES;
-        p.nTrain = REUTERS_N_EXAMPLES;
-        p.learningRate = REUTERS_LEARNING_RATE;
-        p.learningDecay = REUTERS_LEARNING_DECAY;
-        p.nEpochs = epochs;
-        p.mu = 1.0;
-
-        // Round up number of batches
-        p.nBatches = nBatches;
-        p.batchSize = (REUTERS_N_EXAMPLES + nBatches - 1) / nBatches;
-
-        // How many examples should be processed before doing a synchronous read
-        // to update worker's weights
-        p.syncInterval = REUTERS_SYNC_INTERVAL;
-
-        printf("Writing SVM params to state\n");
-        writeParamsToState(PARAMS_KEY, p, push);
-
-        return p;
-    }
-
     void writeParamsToState(const char *keyName, const SgdParams &params, bool push) {
         size_t nBytes = sizeof(SgdParams);
         auto bytePtr = reinterpret_cast<const uint8_t *>(&params);
@@ -69,22 +45,22 @@ namespace faasm {
         Map<const MatrixXd> outputs = readMatrixColumnsFromState(OUTPUTS_KEY, sgdParams.nTrain, startIdx, endIdx, 1,
                                                                  false);
 
-        // Load the weights
-        size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
-        uint8_t *weightDataByteBuffer = faasmReadStatePtr(WEIGHTS_KEY, nWeightBytes);
-
-        // Load the mask - this is always zeroed in state so must be pulled
-        // TODO - Async conflict
-        faasmPullState(MASK_KEY, nWeightBytes);
-        uint8_t *weightMaskBytes = faasmReadStatePtr(MASK_KEY, nWeightBytes);
-
-        auto weightDataBuffer = reinterpret_cast<double *>(weightDataByteBuffer);
-        auto weightMask = reinterpret_cast<unsigned int *>(weightMaskBytes);
-
         // Read in the feature counts (will be constant)
         size_t nFeatureCountBytes = sgdParams.nWeights * sizeof(int);
         uint8_t *featureCountByteBuffer = faasmReadStatePtr(FEATURE_COUNTS_KEY, nFeatureCountBytes);
         auto featureCountBuffer = reinterpret_cast<int *>(featureCountByteBuffer);
+
+        // TODO - Async conflict
+        // Pull both the weights and the mask to make sure we're up to date
+        size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
+        faasmPullState(WEIGHTS_KEY, nWeightBytes);
+        faasmPullState(MASK_KEY, nWeightBytes);
+
+        // Get pointers to the weights and mask
+        uint8_t *weightDataByteBuffer = faasmReadStatePtr(WEIGHTS_KEY, nWeightBytes);
+        uint8_t *weightMaskBytes = faasmReadStatePtr(MASK_KEY, nWeightBytes);
+        auto weightDataBuffer = reinterpret_cast<double *>(weightDataByteBuffer);
+        auto weightMask = reinterpret_cast<unsigned int *>(weightMaskBytes);
 
         // Shuffle examples in this batch
         int *cols = randomIntRange(inputs.outerSize());
@@ -158,24 +134,8 @@ namespace faasm {
         Map<const RowVectorXd> weights(weightDataBuffer, sgdParams.nWeights);
         MatrixXd prediction = weights * inputs;
 
-        // Persist error
+        // Write error
         writeHingeError(sgdParams, batchNumber, outputs, prediction);
-    }
-
-    void zeroErrors(const SgdParams &sgdParams, bool push) {
-        long len = sgdParams.nBatches;
-
-        // Set buffer to zero
-        auto buffer = new double[len];
-        std::fill(buffer, buffer + len, 0);
-
-        // Write zeroed buffer to state
-        auto bytes = reinterpret_cast<uint8_t *>(buffer);
-        faasmWriteState(ERRORS_KEY, bytes, len * sizeof(double));
-
-        if (push) {
-            faasmPushState(ERRORS_KEY);
-        }
     }
 
     void writeHingeError(const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
@@ -183,13 +143,8 @@ namespace faasm {
         double err = calculateHingeError(prediction, actual);
         auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&err);
 
-        long offset = batchNumber * sizeof(double);
-        long totalBytes = sgdParams.nBatches * sizeof(double);
-
-        faasmWriteStateOffset(
+        faasmAppendState(
                 ERRORS_KEY,
-                totalBytes,
-                offset,
                 squaredErrorBytes,
                 sizeof(double)
         );
@@ -200,10 +155,14 @@ namespace faasm {
         auto *errors = new double[sgdParams.nBatches];
         size_t sizeErrors = sgdParams.nBatches * sizeof(double);
 
-        faasmReadState(
+        // Make sure filled with zeros
+        memset(errors, 0, sizeErrors);
+
+        faasmReadAppendedState(
                 ERRORS_KEY,
                 reinterpret_cast<uint8_t *>(errors),
-                sizeErrors
+                sizeErrors,
+                sgdParams.nBatches
         );
 
         // Iterate through and sum up

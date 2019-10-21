@@ -429,4 +429,26 @@ namespace tests {
         sch.notifyFinishedAwaiting(msg);
         REQUIRE(sch.getFunctionThreadCount(msg) == 2);
     }
+
+    TEST_CASE("Test opinion still YES when nothing in flight", "[scheduler]") {
+        cleanSystem();
+        Scheduler &sch = scheduler::getScheduler();
+        message::Message msg = util::messageFactory("demo", "chain_simple");
+
+        // Check opinion is maybe initially
+        REQUIRE(sch.getOpinion(msg) == SchedulerOpinion::MAYBE);
+        REQUIRE(sch.getFunctionThreadCount(msg) == 0);
+
+        // Call one function and make sure opinion is YES
+        sch.callFunction(msg);
+        REQUIRE(sch.getFunctionThreadCount(msg) == 1);
+        REQUIRE(sch.getFunctionInFlightCount(msg) == 1);
+        REQUIRE(sch.getOpinion(msg) == SchedulerOpinion::YES);
+
+        // Notify finished with call
+        sch.notifyCallFinished(msg);
+        REQUIRE(sch.getFunctionThreadCount(msg) == 1);
+        REQUIRE(sch.getFunctionInFlightCount(msg) == 0);
+        REQUIRE(sch.getOpinion(msg) == SchedulerOpinion::YES);
+    }
 }

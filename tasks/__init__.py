@@ -139,5 +139,7 @@ from tasks.wasm2wast import (
     wast
 )
 from tasks.redis import (
-    redis_clear_queue
+    redis_clear_queue,
+    redis_all_workers,
+    redis_func_workers,
 )

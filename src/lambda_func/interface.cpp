@@ -216,6 +216,18 @@ void __faasm_write_state_offset(const char *key, long totalLen, long offset, con
 
 // Ignore everything from here?
 
+void __faasm_append_state(const char *key, const unsigned char *data, long dataLen) {
+
+}
+
+void __faasm_read_appended_state(const char *key, unsigned char *data, long dataLen, long nElems) {
+
+}
+
+void __faasm_clear_appended_state(const char *key) {
+
+}
+
 void __faasm_flag_state_dirty(const char *key, long totalLen) {
 
 }

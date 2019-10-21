@@ -14,6 +14,11 @@ extern "C" {
 void faasmReadState(const char *key, unsigned char *buffer, long bufferLen);
 
 /**
+* Reads append-only state
+*/
+void faasmReadAppendedState(const char *key, uint8_t *buffer, long bufferLen, long nElems);
+
+/**
 * Reads the full state and returns a direct pointer
 */
 uint8_t *faasmReadStatePtr(const char *key, long totalLen);
@@ -32,6 +37,16 @@ uint8_t *faasmReadStateOffsetPtr(const char *key, long fullLen, long offset, lon
 * Overwrites the state at the given key
 */
 void faasmWriteState(const char *key, const uint8_t *data, long dataLen);
+
+/**
+ * Writes to append-only state
+ */
+void faasmAppendState(const char *key, const uint8_t *data, long dataLen);
+
+/**
+ * Clears the appended state
+ */
+void faasmClearAppendedState(const char *key);
 
 /**
 * Writes a chunk of state at the given key and offset

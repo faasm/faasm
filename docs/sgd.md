@@ -45,10 +45,17 @@ First make sure the latest function is in place:
 inv upload sgd reuters_svm --prebuilt
 ```
 
-You can invoke the process with:
+Clear the worker set if you've restarted the application:
 
 ```
-inv invoke sgd reuters_svm
+inv redis-clear-queue
+```
+
+Invoke the process with:
+
+```
+# input = number of worker processes to run
+inv invoke sgd reuters_svm --input=10 --poll
 ```
 
 ## Native run

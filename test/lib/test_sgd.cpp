@@ -153,9 +153,11 @@ namespace tests {
         REQUIRE(actualWeights(0, 3) == weightsCopy(0, 3));
     }
 
-    void checkDoubleArrayInState(redis::Redis &r, const char *key, std::vector<double> expected) {
+    void checkAppendOnlyInState(redis::Redis &r, const char *key, long nDoubles, std::vector<double> expected) {
         redis::Redis &redisQueue = redis::Redis::getQueue();
-        std::vector<uint8_t> actualBytes = redisQueue.get(key);
+        size_t bufferSize = nDoubles * sizeof(double);
+        std::vector<uint8_t> actualBytes(bufferSize);
+        redisQueue.dequeueMultiple(key, actualBytes.data(), bufferSize, nDoubles);
 
         REQUIRE(!actualBytes.empty());
 
@@ -183,19 +185,16 @@ namespace tests {
         params.nBatches = 4;
 
         // Check zeroing out errors
-        zeroErrors(params, true);
-        checkDoubleArrayInState(redisQueue, errorKey.c_str(), {0, 0, 0, 0});
+        faasmClearAppendedState(ERRORS_KEY);
 
         // Work out expectation
         double expected1 = calculateHingeError(a, b);
         double expected2 = calculateHingeError(a, b);
 
-        // Write errors to memory
+        // Write and check
         writeHingeError(params, 0, a, b);
         writeHingeError(params, 2, a, b);
-        faasmPushState(ERRORS_KEY);
-
-        checkDoubleArrayInState(redisQueue, errorKey.c_str(), {expected1, 0, expected2, 0});
+        checkAppendOnlyInState(redisQueue, errorKey.c_str(), 2, {expected1, expected2});
     }
 
     TEST_CASE("Test reading errors from state", "[sgd]") {
@@ -209,7 +208,7 @@ namespace tests {
         p.nTrain = 20;
 
         // With nothing set up, error should be zero
-        zeroErrors(p, true);
+        redisState.del(ERRORS_KEY);
 
         double initial = faasm::readRootMeanSquaredError(p);
         REQUIRE(initial == 0);
@@ -219,13 +218,12 @@ namespace tests {
         MatrixXd b = randomDenseMatrix(1, 5);
         double expected = calculateHingeError(a, b);
 
+        // Write errors
         writeHingeError(p, 0, a, b);
         writeHingeError(p, 1, a, b);
-        faasmPushState(ERRORS_KEY);
 
-        // Check these have been written
         const std::string actualKey = util::keyForUser(user, ERRORS_KEY);
-        checkDoubleArrayInState(redisState, actualKey.c_str(), {expected, expected, 0});
+        checkAppendOnlyInState(redisState, actualKey.c_str(), 2, {expected, expected});
 
         // Error should just include the 2 written
         double expectedRmse1 = sqrt((2 * expected) / p.nTrain);
@@ -234,8 +232,7 @@ namespace tests {
 
         // Now write error for a third batch
         writeHingeError(p, 2, a, b);
-        faasmPushState(ERRORS_KEY);
-        checkDoubleArrayInState(redisState, actualKey.c_str(), {expected, expected, expected});
+        checkAppendOnlyInState(redisState, actualKey.c_str(), 3, {expected, expected, expected});
 
         // Work out what the result should be
         double expectedRmse2 = sqrt((3 * expected) / p.nTrain);

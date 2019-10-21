@@ -25,6 +25,18 @@ void faasmWriteState(const char *key, const uint8_t *data, long dataLen) {
     __faasm_write_state(key, data, dataLen);
 }
 
+void faasmAppendState(const char *key, const uint8_t *data, long dataLen) {
+    __faasm_append_state(key, data, dataLen);
+}
+
+void faasmReadAppendedState(const char *key, uint8_t *buffer, long bufferLen, long nElems) {
+    __faasm_read_appended_state(key, buffer, bufferLen, nElems);
+}
+
+void faasmClearAppendedState(const char*key) {
+    __faasm_clear_appended_state(key);
+}
+
 void faasmWriteStateOffset(const char *key, long totalLen, long offset, const uint8_t *data, long dataLen) {
     __faasm_write_state_offset(key, totalLen, offset, data, dataLen);
 }

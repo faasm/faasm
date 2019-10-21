@@ -6,6 +6,8 @@
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
+#include <redis/Redis.h>
+#include <util/state.h>
 
 namespace wasm {
     void faasmLink() {
@@ -27,8 +29,8 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_push_state_partial_mask", void, __faasm_push_state_partial_mask,
-            I32 keyPtr, I32 maskKeyPtr) {
-        util::getLogger()->debug("S - push_state_partial_mask - {}", keyPtr, maskKeyPtr);
+                                   I32 keyPtr, I32 maskKeyPtr) {
+        util::getLogger()->debug("S - push_state_partial_mask - {} {}", keyPtr, maskKeyPtr);
 
         auto kv = getStateKV(keyPtr, 0);
         auto maskKv = getStateKV(maskKeyPtr, 0);
@@ -82,6 +84,49 @@ namespace wasm {
 
         logger->debug("Writing state length {} to key {}", dataLen, kv->key);
         kv->set(data);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_append_state", void, __faasm_append_state,
+                                   I32 keyPtr, I32 dataPtr, I32 dataLen) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - append_state - {} {} {}", keyPtr, dataPtr, dataLen);
+
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        U8 *data = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) dataPtr, (Uptr) dataLen);
+        std::vector<uint8_t> bytes(data, data + dataLen);
+
+        char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
+        const std::string actualKey = util::keyForUser(getExecutingCall()->user(), key);
+        redis::Redis &redis = redis::Redis::getState();
+        redis.enqueueBytes(actualKey, bytes);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_appended_state", void, __faasm_read_appended_state,
+                                   I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 nElems) {
+        util::getLogger()->debug("S - read_appended_state - {} {} {} {}", keyPtr, bufferPtr, bufferLen, nElems);
+
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
+        U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
+
+        // Dequeue straight to buffer
+        redis::Redis &redis = redis::Redis::getState();
+        const std::string actualKey = util::keyForUser(getExecutingCall()->user(), key);
+
+        redis.dequeueMultiple(actualKey, buffer, bufferLen, nElems);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_clear_appended_state", void, __faasm_clear_appended_state,
+                                   I32 keyPtr) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - clear_appended_state - {}", keyPtr);
+
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
+        const std::string actualKey = util::keyForUser(getExecutingCall()->user(), key);
+
+        redis::Redis &redis = redis::Redis::getState();
+        redis.del(actualKey);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_offset", void, __faasm_write_state_offset,

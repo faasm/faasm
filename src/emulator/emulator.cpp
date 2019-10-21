@@ -153,6 +153,32 @@ void __faasm_write_state(const char *key, const uint8_t *data, long dataLen) {
     kv->set(data);
 }
 
+void __faasm_append_state(const char *key, const uint8_t *data, long dataLen) {
+    util::getLogger()->debug("E - append_state {} {}", key, dataLen);
+    redis::Redis &redis = redis::Redis::getState();
+    std::vector<uint8_t> bytes(data, data + dataLen);
+
+    const std::string actualKey = util::keyForUser(getEmulatorUser(), key);
+    redis.enqueueBytes(actualKey, bytes);
+}
+
+void __faasm_read_appended_state(const char *key, unsigned char *buffer, long bufferLen, long nElems) {
+    util::getLogger()->debug("E - read_appended_state {} {} {}", key, bufferLen, nElems);
+
+    // Read straight into buffer
+    redis::Redis &redis = redis::Redis::getState();
+    const std::string actualKey = util::keyForUser(getEmulatorUser(), key);
+
+    redis.dequeueMultiple(actualKey, buffer, bufferLen, nElems);
+}
+
+void __faasm_clear_appended_state(const char *key) {
+    util::getLogger()->debug("E - clear_appended_state {}", key);
+    redis::Redis &redis = redis::Redis::getState();
+    const std::string actualKey = util::keyForUser(getEmulatorUser(), key);
+    redis.del(actualKey);
+}
+
 void __faasm_write_state_offset(const char *key, long totalLen, long offset, const unsigned char *data, long dataLen) {
     // Avoid excessive logging
     // util::getLogger()->debug("E - write_state_offset {} {} {} {}", key, totalLen, offset, dataLen);

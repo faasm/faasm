@@ -14,6 +14,15 @@ HOST_IFACE_FUNC
 void __faasm_write_state(const char *key, const unsigned char *data, long dataLen);
 
 HOST_IFACE_FUNC
+void __faasm_append_state(const char *key, const unsigned char *data, long dataLen);
+
+HOST_IFACE_FUNC
+void __faasm_read_appended_state(const char *key, unsigned char *data, long dataLen, long nElems);
+
+HOST_IFACE_FUNC
+void __faasm_clear_appended_state(const char *key);
+
+HOST_IFACE_FUNC
 void __faasm_write_state_offset(const char *key, long totalLen, long offset, const unsigned char *data, long dataLen);
 
 HOST_IFACE_FUNC

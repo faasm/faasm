@@ -69,13 +69,13 @@ def upload(ctx, user, func, host=None,
             curl_file(url, func_file)
 
 
-def _do_upload_all(host=None, port=None, upload_s3=False, py=False):
+def _do_upload_all(host=None, port=None, upload_s3=False, py=False, prebuilt=False):
     to_upload = []
 
     if py:
         dir_to_walk = FUNC_DIR
     else:
-        dir_to_walk = FUNC_BUILD_DIR
+        dir_to_walk = WASM_DIR if prebuilt else FUNC_BUILD_DIR
 
     extension = ".py" if py else ".wasm"
     url_part = "p" if py else "f"
@@ -118,9 +118,9 @@ def _do_upload_all(host=None, port=None, upload_s3=False, py=False):
 
 
 @task
-def upload_all(ctx, host=None, port=None, py=False):
+def upload_all(ctx, host=None, port=None, py=False, prebuilt=False):
     host, port = _get_host_port(host, port)
-    _do_upload_all(host=host, port=port, py=py)
+    _do_upload_all(host=host, port=port, py=py, prebuilt=prebuilt)
 
 
 @task

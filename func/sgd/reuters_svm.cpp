@@ -16,6 +16,39 @@
 
 using namespace faasm;
 
+#define REUTERS_LEARNING_RATE 0.1
+#define REUTERS_LEARNING_DECAY 0.8
+#define REUTERS_N_FEATURES 47236
+#define REUTERS_N_EXAMPLES 781265
+
+
+SgdParams setUpReutersParams(int nBatches, int syncInterval, int epochs) {
+    // Set up reuters params
+    SgdParams p;
+    p.nWeights = REUTERS_N_FEATURES;
+    p.nTrain = REUTERS_N_EXAMPLES;
+    p.learningRate = REUTERS_LEARNING_RATE;
+    p.learningDecay = REUTERS_LEARNING_DECAY;
+    p.nEpochs = epochs;
+    p.mu = 1.0;
+
+    // Round up number of batches
+    p.nBatches = nBatches;
+    p.batchSize = (REUTERS_N_EXAMPLES + nBatches - 1) / nBatches;
+
+    // Note that the sync interval determines how often workers will
+    // sync with the remote storage. There are just under 60 million updates
+    // to be performed in each epoch, and a possible 47k features on which
+    // these updates can occur. With lots of colocated workers these syncs
+    // can be relatively infrequent, but with lots of distributed workers the
+    // syncs need to be more frequent.
+    //
+    // Sync interval of -1 means no syncing
+    p.syncInterval = syncInterval;
+
+    return p;
+}
+
 
 FAASM_MAIN_FUNC() {
 
@@ -24,13 +57,27 @@ FAASM_MAIN_FUNC() {
     setEmulatorUser("sgd");
 #endif
 
-    int nWorkers = faasm::getIntInput(4);
-    printf("SVM running %i batches \n", nWorkers);
+    long inputSize = faasmGetInputSize();
+    if (inputSize == 0) {
+        const char *message = "Must provide two ints for input, workers and sync interval";
+        setStringOutput(message);
+        printf("%s\n", message);
+        return 1;
+    }
+
+    const char *input = faasm::getStringInput("");
+    printf("SVM input: %s\n", input);
+    int *intInput = faasm::parseStringToIntArray(input, 2);
+
+    int nWorkers = intInput[0];
+    int syncInterval = intInput[1];
+    int epochs = 20;
+    printf("SVM running %i epochs with %i workers and sync interval %i \n", epochs, nWorkers, syncInterval);
 
     // Prepare params
-    printf("Setting up SVM params\n");
-    int epochs = 20;
-    faasm::SgdParams p = setUpReutersParams(nWorkers, epochs, true);
+    printf("Writing SVM params to state\n");
+    faasm::SgdParams p = setUpReutersParams(nWorkers, syncInterval, epochs);
+    writeParamsToState(PARAMS_KEY, p, true);
 
     // Initialise weights and mask
     printf("Initialising weights with zeros\n");
@@ -46,8 +93,8 @@ FAASM_MAIN_FUNC() {
     for (int thisEpoch = 0; thisEpoch < epochs; thisEpoch++) {
         printf("Running SVM epoch %i\n", thisEpoch);
 
-        // Zero the errors for this epoch
-        faasm::zeroErrors(p, true);
+        // Clear the errors
+        faasmClearAppendedState(ERRORS_KEY);
 
         // Shuffle start indices for each batch
         int *batchNumbers = faasm::randomIntRange(nWorkers);
@@ -87,11 +134,12 @@ FAASM_MAIN_FUNC() {
         printf("Calculating epoch loss for epoch %i\n", thisEpoch);
         // Rebase timestamp
         double ts = faasm::getSecondsSinceEpoch();
-        if(tsZero == 0) {
+        if (tsZero == 0) {
             tsZero = ts;
         }
         ts -= tsZero;
 
+        // Read loss
         double loss = faasm::readRootMeanSquaredError(p);
 
         output += std::to_string(ts) + " " + std::to_string(loss) + "\n";

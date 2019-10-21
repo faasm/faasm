@@ -16,7 +16,7 @@ int doFib(int n) {
 }
 
 FAASM_MAIN_FUNC() {
-    int fibNum = faasm::getIntInput(2);
+    int fibNum = faasm::getTypedInput<int>(2);
     int result = doFib(fibNum);
 
     std::string output = "Fibonacci " + std::to_string(fibNum) + " = " + std::to_string(result);

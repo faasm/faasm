@@ -153,6 +153,8 @@ namespace redis {
 
         std::vector<uint8_t> dequeueBytes(const std::string &queueName, int timeout = util::DEFAULT_TIMEOUT);
 
+        void dequeueMultiple(const std::string &queueName, uint8_t *buff, long buffLen, long nElems);
+
     private:
         explicit Redis(const RedisInstance &instance);
 

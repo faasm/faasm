@@ -526,4 +526,73 @@ namespace tests {
 
         REQUIRE(success);
     }
+
+    TEST_CASE("Test enqueue and dequeue multiple") {
+        Redis &redisQueue = Redis::getQueue();
+        redisQueue.flushAll();
+
+        std::string key = "dummyQueue";
+
+        std::string stringA = "aaa";
+        std::string stringB = "bbbbb 123 BBBB bb";
+        std::string stringC = "   cccc    9999  ";
+        std::string stringD = "  dd    ";
+
+        const std::vector<uint8_t> bytesA = util::stringToBytes(stringA);
+        const std::vector<uint8_t> bytesB = util::stringToBytes(stringB);
+        const std::vector<uint8_t> bytesC = util::stringToBytes(stringC);
+        const std::vector<uint8_t> bytesD = util::stringToBytes(stringD);
+
+        // Enqueue different length strings
+        redisQueue.enqueueBytes(key, bytesA);
+        redisQueue.enqueueBytes(key, bytesB);
+        redisQueue.enqueueBytes(key, bytesC);
+        redisQueue.enqueueBytes(key, bytesD);
+
+        // Sanity check
+        REQUIRE(redisQueue.listLength(key) == 4);
+
+        // Try dequeueing the first two
+        std::vector<uint8_t> expected(0);
+        expected.insert(expected.begin(), bytesA.begin(), bytesA.end());
+        expected.insert(expected.begin() + bytesA.size(), bytesB.begin(), bytesB.end());
+
+        std::vector<uint8_t> actual(bytesA.size() + bytesB.size());
+        redisQueue.dequeueMultiple(key, actual.data(), actual.size(), 2);
+        REQUIRE(actual == expected);
+
+        // Try dequeueing all
+        std::vector<uint8_t> expectedAll(0);
+        expectedAll.insert(expectedAll.begin(), bytesA.begin(), bytesA.end());
+        expectedAll.insert(expectedAll.begin() + bytesA.size(),
+                        bytesB.begin(), bytesB.end());
+        expectedAll.insert(expectedAll.begin() + bytesA.size() + bytesB.size(),
+                        bytesC.begin(), bytesC.end());
+        expectedAll.insert(expectedAll.begin() + bytesA.size() + bytesB.size() + bytesC.size(),
+                        bytesD.begin(), bytesD.end());
+
+        std::vector<uint8_t> actualAll(bytesA.size() + bytesB.size() + bytesC.size() + bytesD.size());
+        redisQueue.dequeueMultiple(key, actualAll.data(), actualAll.size(), 4);
+        REQUIRE(actualAll == expectedAll);
+    }
+
+    TEST_CASE("Test dequeue multiple empty") {
+        Redis &redisQueue = Redis::getQueue();
+        redisQueue.flushAll();
+
+        std::string key = "dummyQueueEmpty";
+
+        // Make sure it's deleted
+        redisQueue.del(key);
+
+        // Sanity check
+        REQUIRE(redisQueue.listLength(key) ==0);
+
+        // Try dequeueing something
+        std::vector<uint8_t> actual = {0, 0, 0, 0};
+        std::vector<uint8_t> expected = {0, 0, 0, 0};
+        redisQueue.dequeueMultiple(key, actual.data(), actual.size(), 4);
+
+        REQUIRE(actual == expected);
+    }
 }

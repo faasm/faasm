@@ -49,7 +49,7 @@ def _check_valid_container(container):
 
 
 @task
-def docker_build(ctx, container, version=None, nocache=False):
+def docker_build(ctx, container, version=None, nocache=False, push=False):
     dockerfile = _check_valid_container(container)
 
     if version:
@@ -67,6 +67,9 @@ def docker_build(ctx, container, version=None, nocache=False):
     res = call(cmd, shell=True, cwd=PROJ_ROOT)
     if res != 0:
         raise RuntimeError("Failed docker build for {}".format(tag_name))
+
+    if push:
+        docker_push(ctx, container)
 
 
 @task

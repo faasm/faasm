@@ -5,6 +5,9 @@ __faasm_pull_state
 __faasm_read_state
 __faasm_read_state_ptr
 __faasm_write_state
+__faasm_append_state
+__faasm_read_appended_state
+__faasm_clear_appended_state
 __faasm_write_state_offset
 __faasm_flag_state_dirty
 __faasm_flag_state_offset_dirty

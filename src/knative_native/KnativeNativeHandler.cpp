@@ -39,11 +39,12 @@ namespace knative_native {
 
         message::Message msg = util::jsonToMessage(requestStr);
         util::setMessageId(msg);
+        setEmulatorFunctionIdx(msg.idx());
 
         // Set the input to the function
+        logger->debug("Knative native input: {}", msg.inputdata());
         const std::vector<uint8_t> inputBytes = util::stringToBytes(msg.inputdata());
         setEmulatorInputData(inputBytes);
-        setEmulatorFunctionIdx(msg.idx());
 
         // Invoke the native function
         std::string outputStr;
