@@ -532,7 +532,7 @@ namespace redis {
         long offset = 0;
         for (size_t i = 0; i < reply->elements; i++) {
             redisReply *r = reply->element[i];
-            std::copy(r->str + offset, r->str + offset + r->len, buff);
+            std::copy(r->str + offset, r->str + offset + r->len, buff + offset);
             offset += r->len;
         }
 

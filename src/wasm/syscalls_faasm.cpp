@@ -101,6 +101,22 @@ namespace wasm {
         redis.enqueueBytes(actualKey, bytes);
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_appended_state", void, __faasm_read_appended_state,
+                                   I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 nElems) {
+        util::getLogger()->debug("S - read_appended_state - {} {} {} {}", keyPtr, bufferPtr, bufferLen, nElems);
+
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
+        U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
+
+        // Dequeue straight to buffer
+        redis::Redis &redis = redis::Redis::getState();
+        const std::string actualKey = util::keyForUser(getExecutingCall()->user(), key);
+
+        // NOTE - redis uses inclusive ranges, need to subtract one
+        redis.dequeueMultiple(actualKey, buffer, bufferLen, nElems - 1);
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_clear_appended_state", void, __faasm_clear_appended_state,
                                    I32 keyPtr) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
@@ -137,20 +153,6 @@ namespace wasm {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
         kv->get(buffer);
-    }
-
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_appended_state", void, __faasm_read_appended_state,
-                                   I32 keyPtr, I32 bufferPtr, I32 bufferLen, I32 nElems) {
-        util::getLogger()->debug("S - read_appended_state - {} {} {} {}", keyPtr, bufferPtr, bufferLen, nElems);
-
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        char *key = &Runtime::memoryRef<char>(memoryPtr, (Uptr) keyPtr);
-        U8 *buffer = Runtime::memoryArrayPtr<U8>(memoryPtr, (Uptr) bufferPtr, (Uptr) bufferLen);
-
-        // Dequeue straight to buffer
-        redis::Redis &redis = redis::Redis::getState();
-        const std::string actualKey = util::keyForUser(getExecutingCall()->user(), key);
-        redis.dequeueMultiple(actualKey, buffer, bufferLen, nElems);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_ptr", I32, __faasm_read_state_ptr,
