@@ -1,85 +1,42 @@
-from botocore.exceptions import ClientError
+from os import mkdir
+from os.path import exists, join
+from shutil import rmtree
+
 from invoke import task
 
-from tasks.aws import invoke_faasm_lambda, deploy_native_lambda_func, deploy_wasm_lambda_func, \
-    lambda_concurrency, delete_lambda
-from tasks.upload import upload
-
-_MAX_BATCH_TIME = 180
-_BATCH_MEMORY = 128
-_BATCH_CONCURRENCY = 200
-
-_SGD_FUNCS = {
-    "reuters_svm": {
-        "memory": _BATCH_MEMORY,
-        "timeout": _MAX_BATCH_TIME,
-        "concurrency": _BATCH_CONCURRENCY,
-    },
-}
-
-
-# -------------------------------------------------
-# AWS interaction with SGD
-# -------------------------------------------------
-
-@task
-def begin_aws_svm(ctx):
-    invoke_faasm_lambda(ctx, "sgd", "reuters_svm")
+from tasks.util.invoke import invoke_impl
 
 
 @task
-def upload_sgd_funcs(ctx, host="localhost"):
-    for func_name in _SGD_FUNCS:
-        upload(ctx, "sgd", func_name, host=host)
+def sgd_experiment(ctx):
+    workers = [2, 6, 10, 14, 18, 22, 26, 30, 34, 38]
+    intervals = [60000000, 600000, 60000]
+
+    for w in workers:
+        for i in intervals:
+            _do_call(w, i)
 
 
-@task
-def deploy_sgd_wasm_lambda(ctx):
-    for func_name, func_spec in _SGD_FUNCS.items():
-        print("Deploying wasm {}".format(func_name))
-
-        deploy_wasm_lambda_func(ctx, "sgd", func_name)
-
-
-@task
-def deploy_sgd_native_lambda(ctx, func=None):
-    if func:
-        _do_func_deploy(ctx, func, _SGD_FUNCS[func])
-    else:
-        for func_name, func_spec in _SGD_FUNCS.items():
-            _do_func_deploy(ctx, func_name, func_spec)
-
-
-@task
-def zero_sgd_native_lambda(ctx):
-    for func_name, func_spec in _SGD_FUNCS.items():
-        lambda_concurrency(ctx, "sgd-{}".format(func_name), 0)
-
-
-def _do_func_deploy(ctx, func_name, func_spec):
-    print("Deploying native {}".format(func_name))
-
-    deploy_native_lambda_func(
-        ctx,
-        "sgd", func_name,
-        memory=func_spec["memory"],
-        timeout=func_spec["timeout"],
-        concurrency=func_spec["concurrency"],
+def _do_call(n_workers, interval):
+    success, output = invoke_impl(
+        "sgd", "reuters_svm",
+        poll=True, knative=True,
+        input="{} {}".format(n_workers, interval)
     )
 
+    if not success:
+        print("FAILED on {} {}".format(n_workers, interval))
 
-@task
-def delete_sgd_native_lambda(ctx, func=None):
-    if func:
-        _do_delete(ctx, func)
-    else:
-        for func_name, func_spec in _SGD_FUNCS.items():
-            _do_delete(ctx, func_name)
+    output_dir = "/usr/local/code/serverless-problem/measurement/committed/sgd"
+    if not exists(output_dir):
+        mkdir(output_dir)
 
+    folder_name = "SYSTEM_FAASM_WORKERS_{}_INTERVAL_{}_logs".format(n_workers, interval)
+    result_dir = join(output_dir, folder_name)
+    if exists(result_dir):
+        rmtree(result_dir)
+    mkdir(result_dir)
 
-def _do_delete(ctx, func_name):
-    lambda_name = "sgd-{}".format(func_name)
-    try:
-        delete_lambda(ctx, lambda_name)
-    except ClientError:
-        print("Failed to delete {}. Continuing".format(lambda_name))
+    output_file = join(result_dir, "NODE_0_SGD_LOSS.log")
+    with open(output_file, "w") as fh:
+        fh.write(output)

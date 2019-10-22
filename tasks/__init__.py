@@ -108,13 +108,16 @@ from tasks.runtime import (
     backup_runtime_root,
     download_runtime_root,
 )
-from tasks.sgd import (
+from tasks.aws_sgd import (
     begin_aws_svm,
     deploy_sgd_wasm_lambda,
     deploy_sgd_native_lambda,
     delete_sgd_native_lambda,
     upload_sgd_funcs,
     zero_sgd_native_lambda
+)
+from tasks.sgd import (
+    sgd_experiment,
 )
 from tasks.sgd_data import (
     reuters_upload_s3,
