@@ -17,11 +17,10 @@ namespace state {
     class StateKeyValue {
     public:
         // Remote lock timeout in seconds
-        unsigned int remoteLockTimeout = 5;
+        unsigned int remoteLockTimeout = 1;
 
         // Remote lock sleep time in milliseconds
-        unsigned int remoteLockWaitTime = 500;
-        unsigned int remoteLockMaxRetries = 10;
+        unsigned int remoteLockMaxRetries = 3;
 
         explicit StateKeyValue(const std::string &keyIn, size_t sizeIn);
 

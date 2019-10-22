@@ -85,8 +85,8 @@ namespace state {
                 break;
             }
 
-            // usleep in microseconds
-            usleep(remoteLockWaitTime * 1000);
+            // Sleep for 1ms
+            usleep(1000);
 
             remoteLockId = redis.acquireLock(key, remoteLockTimeout);
             retryCount++;
@@ -372,6 +372,11 @@ namespace state {
         // Attempt to lock the value remotely
         redis::Redis &redis = redis::Redis::getState();
         long remoteLockId = waitOnRemoteLock();
+
+        // Double check condition again after getting remote lock
+        if (!isDirty) {
+            return;
+        }
 
         // If we don't get remote lock, just skip this push and wait for next one
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
