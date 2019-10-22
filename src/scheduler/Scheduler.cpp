@@ -4,6 +4,7 @@
 #include <util/random.h>
 #include <util/timing.h>
 #include <scheduler/SharingMessageBus.h>
+#include <random>
 
 using namespace util;
 
@@ -76,7 +77,7 @@ namespace scheduler {
         long inFlightCount = getFunctionInFlightCount(msg);
 
         if (threadCount == 0) {
-            return IN_FLIGHT_RATIO_ZERO;
+            return 0;
         }
 
         return ((double) inFlightCount) / threadCount;
@@ -222,8 +223,12 @@ namespace scheduler {
         const std::string funcStr = util::funcToString(msg, false);
         logger->debug("{} IF ratio = {} (max {}) threads = {}", funcStr, inFlightRatio, maxInFlightRatio, nThreads);
 
-        // If we're over or at the in-flight ratio and have capacity, need to scale up
-        bool needToScale = inFlightRatio >= maxInFlightRatio && nThreads < conf.maxWorkersPerFunction;
+        // If we have no threads OR if we've got threads and are at or over the in-flight ratio
+        // and have capacity, then we need to scale up
+        bool needToScale = false;
+        needToScale |= nThreads == 0;
+        needToScale |= inFlightRatio >= maxInFlightRatio && nThreads < conf.maxWorkersPerFunction;
+
         if (needToScale) {
             logger->debug("Scaling up {} to {} threads", funcStr, nThreads + 1);
 
@@ -270,17 +275,19 @@ namespace scheduler {
 
         SchedulerOpinion newOpinion;
 
-        if (threadCount == 0) {
-            // If we have no threads yet, we're a maybe
-            newOpinion = MAYBE;
-        } else if (hasWarmThreads && !atMaxThreads) {
-            // If we've got space for more threads, we're a yes (regardless of queue length)
+        if (isInFlightRatioBreached) {
+            if (atMaxThreads) {
+                // If in-flight ratio is breached and we're at the max, we're a definite NO
+                newOpinion = NO;
+            } else {
+                // If in-flight ratio is breached but we can add more threads, we're a YES
+                newOpinion = YES;
+            }
+        } else if (hasWarmThreads) {
+            // If we've not breached the in-flight ratio and we have some warm threads, we're a YES
             newOpinion = YES;
-        } else if (isInFlightRatioBreached && atMaxThreads) {
-            // If in-flight ratio is breached and we're at the max, we're a definite no
-            newOpinion = NO;
         } else {
-            // All other scenarios are a maybe
+            // If we have no threads we're a maybe
             newOpinion = MAYBE;
         }
 
@@ -290,24 +297,34 @@ namespace scheduler {
             std::string newOpinionStr = opinionStr(newOpinion);
             std::string currentOpinionStr = opinionStr(currentOpinion);
 
-            logger->debug("Updating opinion of function {} from {} to {}", funcStr, currentOpinionStr, newOpinionStr);
+            logger->debug(
+                    "{} updating {} from {} to {} (threads={} ({}), IF ratio={} ({}))",
+                    nodeId,
+                    funcStr,
+                    currentOpinionStr,
+                    newOpinionStr,
+                    threadCount,
+                    conf.maxWorkersPerFunction,
+                    inFlightRatio,
+                    maxInFlightRatio
+            );
 
             if (newOpinion == NO) {
                 // Moving to no means we want to switch off from all decisions
                 removeNodeFromWarmSet(funcStr);
                 removeNodeFromGlobalSet();
             } else if (newOpinion == MAYBE && currentOpinion == NO) {
-                // Rejoin the global set
+                // Rejoin the global set if we're now a maybe when previously a no
                 addNodeToGlobalSet();
             } else if (newOpinion == MAYBE && currentOpinion == YES) {
-                // Stay in the global set, but not in the warm
+                // Stay in the global set, but not in the warm if we've gone back to maybe from yes
                 removeNodeFromWarmSet(funcStr);
             } else if (newOpinion == YES && currentOpinion == NO) {
-                // Rejoin everything
+                // Rejoin everything if we're into a yes state from a no
                 addNodeToWarmSet(funcStr);
                 addNodeToGlobalSet();
             } else if (newOpinion == YES && currentOpinion == MAYBE) {
-                // Join the warm set
+                // Join the warm set if we've become yes from maybe
                 addNodeToWarmSet(funcStr);
             } else {
                 throw std::logic_error("Should not be able to reach this point");
@@ -322,7 +339,7 @@ namespace scheduler {
         const std::string funcStr = funcToString(msg, false);
         return opinionMap[funcStr];
     }
-    
+
     std::string Scheduler::getBestNodeForFunction(const message::Message &msg) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
@@ -347,9 +364,9 @@ namespace scheduler {
         // Remove this node from the warm options
         warmOptions.erase(nodeId);
 
-        // If we have warm options, pick one of those
+        // If we have warm options, pick a random one
         if (!warmOptions.empty()) {
-            return *warmOptions.begin();
+            return util::randomStringFromSet(warmOptions);
         }
 
         // If there are no other warm options and we're a maybe, accept on this node
@@ -363,7 +380,7 @@ namespace scheduler {
 
         if (!allOptions.empty()) {
             // Pick a random option from all nodes
-            return *allOptions.begin();
+            return util::randomStringFromSet(allOptions);
         } else {
             // Give up and try to execute locally
             double inFlightRatio = getFunctionInFlightRatio(msg);

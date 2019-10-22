@@ -126,17 +126,6 @@ namespace tests {
         REQUIRE(afterResultKey == originalResultKey);
     }
 
-    TEST_CASE("Test converting message to python", "[util]") {
-        message::Message msg = util::messageFactory("foo", "bar");
-
-        util::convertMessageToPython(msg);
-
-        REQUIRE(msg.ispython());
-        REQUIRE(msg.inputdata() == "foo/bar/function.py");
-        REQUIRE(msg.user() == PYTHON_USER);
-        REQUIRE(msg.function() == PYTHON_FUNC);
-    }
-
     TEST_CASE("Test creating async response") {
         message::Message msg = util::messageFactory("foo", "bar");
 

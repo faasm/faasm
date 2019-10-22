@@ -66,7 +66,6 @@ FAASM_MAIN_FUNC() {
     }
 
     const char *input = faasm::getStringInput("");
-    printf("SVM input: %s\n", input);
     int *intInput = faasm::parseStringToIntArray(input, 2);
 
     int nWorkers = intInput[0];
@@ -86,10 +85,11 @@ FAASM_MAIN_FUNC() {
     writeMatrixToState(MASK_KEY, zeros, true);
 
     // Prepare string for output
-    std::string output = "\n";
-    double tsZero = 0;
+    auto losses = new double[epochs];
+    auto timestamps = new double[epochs];
 
     // Run epochs and workers in a loop
+    double tsZero = 0;
     for (int thisEpoch = 0; thisEpoch < epochs; thisEpoch++) {
         printf("Running SVM epoch %i\n", thisEpoch);
 
@@ -114,7 +114,7 @@ FAASM_MAIN_FUNC() {
                     reinterpret_cast<uint8_t *>(inputData),
                     4 * sizeof(int)
             );
-            printf("Worker spawned with call ID %i\n", workerCallId);
+            printf("Worker %i [%i-%i] with ID %i\n", w, startIdx, endIdx, workerCallId);
             workerCallIds[w] = workerCallId;
         }
 
@@ -131,7 +131,6 @@ FAASM_MAIN_FUNC() {
         // p.learningRate = p.learningRate * p.learningDecay;
         // writeParamsToState(PARAMS_KEY, p);
 
-        printf("Calculating epoch loss for epoch %i\n", thisEpoch);
         // Rebase timestamp
         double ts = faasm::getSecondsSinceEpoch();
         if (tsZero == 0) {
@@ -142,15 +141,21 @@ FAASM_MAIN_FUNC() {
         // Read loss
         double loss = faasm::readRootMeanSquaredError(p);
 
-        output += std::to_string(ts) + " " + std::to_string(loss) + "\n";
-
         printf("EPOCH %i (time = %.2f, loss = %.2f)\n", thisEpoch, ts, loss);
+
+        losses[thisEpoch] = loss;
+        timestamps[thisEpoch] = ts;
     }
 
-    printf("Finished SVM: %s\n", output.c_str());
+    // Once finished, build a string of the outputs
+    size_t outputLen = 0;
+    int charWidth = 15;
+    auto output = new char[charWidth * epochs];
+    for(int e = 0; e < epochs; e++) {
+        outputLen += sprintf(output + outputLen, "\n%.4f %.4f\n", timestamps[e], losses[e]);
+    }
 
-    // Once finished, we want to return the full output details
-    faasm::setStringOutput(output.c_str());
+    faasm::setStringOutput(output);
 
     return 0;
 }
@@ -158,11 +163,8 @@ FAASM_MAIN_FUNC() {
 FAASM_FUNC(step, 1) {
     // Read in input
     long inputSize = 4 * sizeof(int);
-    int inputBuffer[4];
-    faasmGetInput(
-            reinterpret_cast<uint8_t *>(inputBuffer),
-            inputSize
-    );
+    auto inputBuffer = new int[4];
+    faasmGetInput(reinterpret_cast<uint8_t *>(inputBuffer), inputSize);
 
     int batchNumber = inputBuffer[0];
     int startIdx = inputBuffer[1];
@@ -175,7 +177,7 @@ FAASM_FUNC(step, 1) {
     SgdParams sgdParams = readParamsFromState(PARAMS_KEY, false);
 
     // Perform updates
-    hingeLossWeightUpdate(sgdParams, epoch, batchNumber, startIdx, endIdx);
+    hingeLossWeightUpdate(sgdParams, startIdx, endIdx);
 
     return 0;
 }

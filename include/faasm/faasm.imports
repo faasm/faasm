@@ -23,3 +23,5 @@ __faasm_chain_function
 __faasm_chain_this
 __faasm_await_call
 __faasm_get_idx
+__faasm_get_py_user
+__faasm_get_py_func

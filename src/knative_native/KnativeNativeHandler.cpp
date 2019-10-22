@@ -46,14 +46,22 @@ namespace knative_native {
         const std::vector<uint8_t> inputBytes = util::stringToBytes(msg.inputdata());
         setEmulatorInputData(inputBytes);
 
-        // Invoke the native function
         std::string outputStr;
         if (msg.isstatusrequest()) {
+            // Message status request
             logger->debug("Getting status for function {}", msg.id());
             outputStr = getMessageStatus(msg);
         }
+        else if(msg.ispython()) {
+            setEmulatorPythonUser(msg.pythonuser().c_str());
+            setEmulatorPythonFunction(msg.pythonfunction().c_str());
 
-        if (msg.isasync()) {
+            logger->debug("Executing Python function {}/{}", msg.pythonuser(), msg.pythonfunction());
+
+            // This will be linked to the python executable
+            exec(0);
+        }
+        else if (msg.isasync()) {
             logger->debug("Executing function index {} async", msg.idx());
 
             // Execute async message in detached thread

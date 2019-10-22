@@ -84,6 +84,9 @@ namespace worker {
             call.set_outputdata(errorMsg);
         }
 
+        // Notify the scheduler *before* setting the result
+        scheduler.notifyCallFinished(call);
+
         // Set result
         logger->debug("Setting function result for {}", funcStr);
         globalBus.setFunctionResult(call, isSuccess);
@@ -93,9 +96,6 @@ namespace worker {
         zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
         wasm::WasmModule &zygote = registry.getZygote(call);
         *module = zygote;
-
-        // Notify the scheduler
-        scheduler.notifyCallFinished(call);
     }
 
     void WorkerThread::bindToFunction(const message::Message &msg) {

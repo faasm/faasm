@@ -20,6 +20,8 @@ faasm_dynamic_func(py_func py_func.cpp)
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     target_link_libraries(py_func pyfaasm ${PYTHON_LIBRARIES})
+elseif (FAASM_BUILD_TYPE STREQUAL "knative-native")
+    target_link_libraries(py_func-knative pyfaasm ${PYTHON_LIBRARIES} util)
 else()
     target_link_libraries(py_func pyfaasm ${PYTHON_LIBRARIES} util)
 endif()

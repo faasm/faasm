@@ -12,7 +12,7 @@ namespace faasm {
             return defaultValue;
         }
 
-        auto inputBuffer = (uint8_t *) malloc(inputSize + 1);
+        auto inputBuffer = new uint8_t[inputSize + 1];
         faasmGetInput(inputBuffer, inputSize);
 
         // Force null-termination
@@ -41,8 +41,6 @@ namespace faasm {
             nextSubstr = strtok(NULL, " ");
             i++;
         }
-
-        delete[] strCopy;
 
         return result;
     }

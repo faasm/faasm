@@ -2,9 +2,9 @@
 #include <faasm/pyfaasm.h>
 
 #include <Python.h>
-#include <faasm/input.h>
 
-#define PYTHON_FUNC_DIR "faasm://pyfuncs/"
+#define WASM_PYTHON_FUNC_PREFIX "faasm://pyfuncs/"
+#define NATIVE_PYTHON_FUNC_PREFIX "/usr/local/code/faasm/func/"
 
 FAASM_ZYGOTE() {
     setUpPyEnvironment();
@@ -19,9 +19,16 @@ FAASM_ZYGOTE() {
 FAASM_MAIN_FUNC() {
     setUpPyEnvironment();
 
-    const char* funcName = faasm::getStringInput("");
-    char filePath[25 + strlen(funcName)];
-    sprintf(filePath, "%s%s", PYTHON_FUNC_DIR, funcName);
+    char *user = faasmGetPythonUser();
+    char *funcName = faasmGetPythonFunc();
+
+    auto filePath = new char[50 + strlen(funcName)];
+
+#ifdef __wasm__
+    sprintf(filePath, "%s%s/%s/function.py", WASM_PYTHON_FUNC_PREFIX, user, funcName);
+#else
+    sprintf(filePath, "%s%s/%s.py", NATIVE_PYTHON_FUNC_PREFIX, user, funcName);
+#endif
 
     FILE *fp = fopen(filePath, "r");
     if (fp == nullptr) {

@@ -123,7 +123,6 @@ namespace tests {
         MatrixXd preUpdate = weights * inputs;
 
         // Now run the actual updates and check the impact
-        int batchNumber = 0;
         int startIdx = 0;
         int endIdx = 2;
 
@@ -133,8 +132,7 @@ namespace tests {
 
         faasm::writeMatrixToState(OUTPUTS_KEY, outputs, true);
 
-        int epoch = 3;
-        hingeLossWeightUpdate(params, epoch, batchNumber, startIdx, endIdx);
+        hingeLossWeightUpdate(params, startIdx, endIdx);
 
         // Ensure everything pushed
         faasmPushStatePartial(WEIGHTS_KEY);
@@ -192,8 +190,8 @@ namespace tests {
         double expected2 = calculateHingeError(a, b);
 
         // Write and check
-        writeHingeError(params, 0, a, b);
-        writeHingeError(params, 2, a, b);
+        writeHingeError(params, a, b);
+        writeHingeError(params, a, b);
         checkAppendOnlyInState(redisQueue, errorKey.c_str(), 2, {expected1, expected2});
     }
 
@@ -219,8 +217,8 @@ namespace tests {
         double expected = calculateHingeError(a, b);
 
         // Write errors
-        writeHingeError(p, 0, a, b);
-        writeHingeError(p, 1, a, b);
+        writeHingeError(p, a, b);
+        writeHingeError(p, a, b);
 
         const std::string actualKey = util::keyForUser(user, ERRORS_KEY);
         checkAppendOnlyInState(redisState, actualKey.c_str(), 2, {expected, expected});
@@ -231,7 +229,7 @@ namespace tests {
         REQUIRE(abs(actual1 - expectedRmse1) < 0.0000001);
 
         // Now write error for a third batch
-        writeHingeError(p, 2, a, b);
+        writeHingeError(p, a, b);
         checkAppendOnlyInState(redisState, actualKey.c_str(), 3, {expected, expected, expected});
 
         // Work out what the result should be

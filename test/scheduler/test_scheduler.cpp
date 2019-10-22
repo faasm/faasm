@@ -341,7 +341,6 @@ namespace tests {
     TEST_CASE("Test multiple hops", "[scheduler]") {
         cleanSystem();
         Scheduler &sch = scheduler::getScheduler();
-        SharingMessageBus &sharingBus = SharingMessageBus::getInstance();
 
         std::string thisNodeId = util::getNodeId();
         std::string otherNodeA = "node A";
@@ -376,7 +375,6 @@ namespace tests {
     TEST_CASE("Test worker removes itself from warm set when sharing") {
         cleanSystem();
         Scheduler &sch = scheduler::getScheduler();
-        SharingMessageBus &sharingBus = SharingMessageBus::getInstance();
 
         std::string thisNodeId = util::getNodeId();
         std::string otherNode = "other node";
@@ -448,6 +446,34 @@ namespace tests {
         // Notify finished with call
         sch.notifyCallFinished(msg);
         REQUIRE(sch.getFunctionThreadCount(msg) == 1);
+        REQUIRE(sch.getFunctionInFlightCount(msg) == 0);
+        REQUIRE(sch.getOpinion(msg) == SchedulerOpinion::YES);
+    }
+
+    TEST_CASE("Test opinion still YES when nothing in flight and at max threads", "[scheduler]") {
+        cleanSystem();
+        util::SystemConfig &conf = util::getSystemConfig();
+        Scheduler &sch = scheduler::getScheduler();
+        message::Message msg = util::messageFactory("demo", "chain_simple");
+
+        // Check opinion is maybe initially
+        REQUIRE(sch.getOpinion(msg) == SchedulerOpinion::MAYBE);
+        REQUIRE(sch.getFunctionThreadCount(msg) == 0);
+
+        // Saturate and make sure opinion is NO
+        int nCalls = conf.maxWorkersPerFunction * conf.maxInFlightRatio;
+        for(int i = 0; i < nCalls; i++) {
+            sch.callFunction(msg);
+        }
+        REQUIRE(sch.getFunctionThreadCount(msg) == conf.maxWorkersPerFunction);
+        REQUIRE(sch.getFunctionInFlightCount(msg) == nCalls);
+        REQUIRE(sch.getOpinion(msg) == SchedulerOpinion::NO);
+
+        // Notify all calls finished
+        for(int i = 0; i < nCalls; i++) {
+            sch.notifyCallFinished(msg);
+        }
+        REQUIRE(sch.getFunctionThreadCount(msg) == conf.maxWorkersPerFunction);
         REQUIRE(sch.getFunctionInFlightCount(msg) == 0);
         REQUIRE(sch.getOpinion(msg) == SchedulerOpinion::YES);
     }

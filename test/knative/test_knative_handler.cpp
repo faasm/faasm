@@ -18,8 +18,6 @@ namespace tests {
         std::string user;
         std::string function;
 
-        message::Message expectedCall;
-
         SECTION("C/C++") {
             user = "demo";
             function = "echo";
@@ -44,8 +42,10 @@ namespace tests {
             }
         }
         SECTION("Python") {
-            user = "python";
-            function = "hello";
+            user = PYTHON_USER;
+            function = PYTHON_FUNC;
+            call.set_pythonuser("python");
+            call.set_pythonfunction("hello");
             call.set_ispython(true);
         }
 
@@ -59,23 +59,18 @@ namespace tests {
         const std::string responseStr = handler.handleFunction(requestStr);
 
         // Check function count has increased and bind message sent
-        expectedCall = call;
-        if (user == "python") {
-            util::convertMessageToPython(expectedCall);
-        }
-
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        REQUIRE(sch.getFunctionInFlightCount(expectedCall) == 1);
+        REQUIRE(sch.getFunctionInFlightCount(call) == 1);
         REQUIRE(sch.getBindQueue()->size() == 1);
 
         message::Message actualBind = sch.getBindQueue()->dequeue();
-        REQUIRE(actualBind.user() == expectedCall.user());
-        REQUIRE(actualBind.function() == expectedCall.function());
+        REQUIRE(actualBind.user() == call.user());
+        REQUIRE(actualBind.function() == call.function());
 
         // Check actual call has right details including the ID returned to the caller
-        message::Message actualCall = sch.getFunctionQueue(expectedCall)->dequeue();
-        REQUIRE(actualCall.user() == expectedCall.user());
-        REQUIRE(actualCall.function() == expectedCall.function());
+        message::Message actualCall = sch.getFunctionQueue(call)->dequeue();
+        REQUIRE(actualCall.user() == call.user());
+        REQUIRE(actualCall.function() == call.function());
         REQUIRE(actualCall.id() == std::stoi(responseStr));
     }
 

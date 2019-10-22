@@ -182,7 +182,7 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset_ptr", I32, __faasm_read_state_offset_ptr,
                                    I32 keyPtr, I32 totalLen, I32 offset, I32 len) {
-        util::getLogger()->debug("S - read_state_offset_ptr - {} {} {} {} {}", keyPtr, totalLen, offset, len);
+        util::getLogger()->debug("S - read_state_offset_ptr - {} {} {} {}", keyPtr, totalLen, offset, len);
 
         auto kv = getStateKV(keyPtr, totalLen);
 
@@ -260,5 +260,32 @@ namespace wasm {
                                    I32 outputLen) {
         util::getLogger()->debug("TS - write_output - {} {}", outputPtr, outputLen);
         _writeOutputImpl(outputPtr, outputLen);
+    }
+
+    void _readPythonInput(I32 buffPtr, I32 buffLen, const std::string &value) {
+        // If nothing ignore
+        if (value.empty()) {
+            return;
+        }
+
+        // Copy value into WASM
+        U8 *buffer = Runtime::memoryArrayPtr<U8>(getExecutingModule()->defaultMemory, (Uptr) buffPtr, (Uptr) buffLen);
+        std::vector<uint8_t> bytes = util::stringToBytes(value);
+        std::copy(bytes.begin(), bytes.end(), buffer);
+
+        // Add null terminator
+        buffer[value.size()] = '\0';
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_py_user", void, __faasm_get_py_user, I32 bufferPtr, I32 bufferLen) {
+        util::getLogger()->debug("S - get_py_user - {} {}", bufferPtr, bufferLen);
+        std::string value = getExecutingCall()->pythonuser();
+        _readPythonInput(bufferPtr, bufferLen, value);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_py_func", void, __faasm_get_py_func, I32 bufferPtr, I32 bufferLen) {
+        util::getLogger()->debug("S - get_py_func - {} {}", bufferPtr, bufferLen);
+        std::string value = getExecutingCall()->pythonfunction();
+        _readPythonInput(bufferPtr, bufferLen, value);
     }
 }

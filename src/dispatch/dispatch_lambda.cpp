@@ -30,10 +30,6 @@ int main() {
         // Get the function
         message::Message msg = util::jsonToMessage(req.payload);
 
-        if(msg.ispython()) {
-            util::convertMessageToPython(msg);
-        }
-
         const std::string funcStr = util::funcToString(msg, true);
         logger->info("Queueing request to {}", funcStr);
         util::setMessageId(msg);

@@ -20,6 +20,7 @@ namespace endpoint {
         sigset_t signals;
         if (sigemptyset(&signals) != 0
             || sigaddset(&signals, SIGTERM) != 0
+            || sigaddset(&signals, SIGKILL) != 0
             || sigaddset(&signals, SIGINT) != 0
             || sigaddset(&signals, SIGHUP) != 0
             || sigaddset(&signals, SIGQUIT) != 0

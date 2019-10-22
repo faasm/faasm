@@ -149,6 +149,16 @@ unsigned int faasmAwaitCall(unsigned int callId);
 int faasmGetCurrentIdx();
 
 /**
+ * Returns the python user
+ */
+char* faasmGetPythonUser();
+
+/**
+ * Returns the python function
+ */
+char* faasmGetPythonFunc();
+
+/**
  * Extra faasm functions
  */
 typedef int (*_FaasmFuncPtr)();

@@ -1,5 +1,3 @@
-from os import remove
-from os.path import exists, join
 from subprocess import call
 
 from invoke import task
