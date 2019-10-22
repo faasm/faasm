@@ -234,7 +234,8 @@ namespace redis {
 
         if(reply->integer != size) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            logger->error("Failed SETRANGE {} - {}", key.c_str(), reply->str);
+            logger->error("Failed SETRANGE {} - ({} vs {})", key.c_str(), reply->integer, size);
+            throw std::runtime_error("Failed SETRANGE " + key);
         }
 
         freeReplyObject(reply);
@@ -252,6 +253,7 @@ namespace redis {
             if(reply == nullptr || ((redisReply*)reply)->type == REDIS_REPLY_ERROR) {
                 const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 logger->error("Failed pipeline call {}", p);
+                throw std::runtime_error("Failed pipeline call " + std::to_string(p));
             }
 
             freeReplyObject(reply);
