@@ -4,11 +4,9 @@
 
 #include <redis/Redis.h>
 #include <util/memory.h>
-#include <util/environment.h>
 #include <util/config.h>
 #include <state/State.h>
 #include <sys/mman.h>
-#include <util/state.h>
 #include <emulator/emulator.h>
 #include <faasm/state.h>
 

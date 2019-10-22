@@ -96,6 +96,10 @@ namespace redis {
 
         void setRange(const std::string &key, long offset, const uint8_t *value, size_t size);
 
+        void setRangePipeline(const std::string &key, long offset, const uint8_t *value, size_t size);
+
+        void flushPipeline(long pipelineLength);
+
         void getRange(const std::string &key, uint8_t *buffer, size_t bufferLen, long start, long end);
 
         void sadd(const std::string &key, const std::string &value);

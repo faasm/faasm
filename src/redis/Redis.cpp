@@ -234,6 +234,17 @@ namespace redis {
         freeReplyObject(reply);
     }
 
+    void Redis::setRangePipeline(const std::string &key, long offset, const uint8_t *value, size_t size) {
+        redisAppendCommand(context, "SETRANGE %s %li %b", key.c_str(), offset, value, size);
+    }
+
+    void Redis::flushPipeline(long pipelineLength) {
+        void *reply;
+        for(long p = 0; p < pipelineLength; p++) {
+            redisGetReply(context, &reply);
+        }
+    }
+
     void Redis::sadd(const std::string &key, const std::string &value) {
         auto reply = (redisReply *) redisCommand(context, "SADD %s %s", key.c_str(), value.c_str());
         freeReplyObject(reply);

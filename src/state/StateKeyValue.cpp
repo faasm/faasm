@@ -11,6 +11,8 @@
 
 using namespace util;
 
+#define PIPELINE
+
 namespace state {
     /**
      * Key/value
@@ -360,17 +362,72 @@ namespace state {
 
         PROF_START(pushPartial)
 
+        redis::Redis &redis = redis::Redis::getState();
+
         // We need a full lock while doing this, mainly to ensure no other threads start
         // the same process
         FullLock lock(valueMutex);
 
+#ifdef PIPELINE
         // Double check condition
         if (!isDirty) {
             return;
         }
 
+        // Create a placeholder for the copy
+        auto writeValue = new uint8_t[valueSize];
+        memset((void *) writeValue, 0, valueSize);
+
+        // Fill this with the dirty bytes
+        auto sharedMemoryBytes = reinterpret_cast<uint8_t *>(sharedMemory);
+        for (unsigned long i = 0; i < valueSize; i++) {
+            writeValue[i] = sharedMemoryBytes[i] & dirtyMaskBytes[i];
+        }
+
+        // Iterate through and pipeline the results
+        long updateCount = 0;
+        long startIdx = 0;
+        bool isOn = false;
+        for (long i = 0; i < valueSize; i++) {
+            if (!isOn && writeValue[i] != 0) {
+                isOn = true;
+                startIdx = i;
+            }
+
+            if (isOn && writeValue[i] == 0) {
+                isOn = false;
+                long length = i - startIdx;
+
+                // Pipeline the change
+                redis.setRangePipeline(key, startIdx, writeValue + startIdx, length);
+                updateCount++;
+            }
+        }
+
+        // Zero the mask now that we're finished
+        memset((void *) dirtyMaskBytes, 0, valueSize);
+
+        // Write a final chunk
+        if (isOn) {
+            unsigned long length = valueSize - startIdx;
+            redis.setRangePipeline(key, startIdx, writeValue + startIdx, length);
+            updateCount++;
+        }
+
+        // Flush the pipeline
+        redis.flushPipeline(updateCount);
+
+        // Read the latest value
+        redis.get(key, static_cast<uint8_t *>(sharedMemory), valueSize);
+
+        // Delete temporary variable
+        delete[] writeValue;
+#else
+        // Double check condition
+        if (!isDirty) {
+            return;
+        }
         // Attempt to lock the value remotely
-        redis::Redis &redis = redis::Redis::getState();
         long remoteLockId = waitOnRemoteLock();
 
         // Double check condition again after getting remote lock
@@ -405,11 +462,11 @@ namespace state {
         redis.releaseLock(key, remoteLockId);
         logger->debug("Released remote lock for {} with id {}", key, remoteLockId);
 
-        // Mark as no longer dirty
-        isDirty = false;
-
         // Zero the mask
         memset((void *) dirtyMaskBytes, 0, valueSize);
+#endif
+        // Mark as no longer dirty
+        isDirty = false;
 
         PROF_END(pushPartial)
     }
