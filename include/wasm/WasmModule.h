@@ -160,8 +160,6 @@ namespace wasm {
 
         // Shared memory regions
         std::unordered_map<std::string, I32> sharedMemWasmPtrs;
-        std::unordered_map<std::string, void *> sharedMemHostPtrs;
-        std::unordered_map<std::string, std::shared_ptr<state::StateKeyValue>> sharedMemKVs;
 
         // Map of dynamically loaded modules
         std::unordered_map<std::string, int> dynamicPathToHandleMap;

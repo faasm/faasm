@@ -55,12 +55,20 @@ namespace worker {
             scheduler::SharingMessageBus &sharingBus = scheduler::SharingMessageBus::getInstance();
             scheduler::Scheduler &sch = scheduler::getScheduler();
 
+            const std::string nodeId = util::getNodeId();
+
             while (!this->isShutdown()) {
+                const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 try {
                     // This calls the scheduler, which will always attempt
                     // to execute locally. However, if not possible, this will
                     // again share the message, increasing the hops
                     message::Message msg = sharingBus.nextMessageForThisNode();
+
+                    const std::string funcStr = util::funcToString(msg, true);
+                    logger->debug("{} received shared call {} (scheduled for {})", nodeId, funcStr,
+                                  msg.schedulednode());
+
                     sch.callFunction(msg);
                 }
                 catch (redis::RedisNoResponseException &ex) {

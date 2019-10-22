@@ -15,7 +15,6 @@
 using namespace state;
 
 namespace tests {
-    util::TimePoint timeNow;
     static int staticCount = 0;
 
     std::shared_ptr<StateKeyValue> setupKV(size_t size) {

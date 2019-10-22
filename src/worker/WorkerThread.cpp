@@ -25,23 +25,6 @@ namespace worker {
         // Listen to bind queue by default
         currentQueue = scheduler.getBindQueue();
 
-        // Prewarm if necessary
-        util::SystemConfig &conf = util::getSystemConfig();
-        if (conf.prewarm == 0) {
-            logger->debug("No prewarm for worker {}", id);
-        } else {
-            this->initialise();
-        }
-    }
-
-    void WorkerThread::initialise() {
-        if (_isInitialised) {
-            throw std::runtime_error("Should not be initialising an already initialised thread");
-        }
-
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("Initialising worker {}", id);
-
         // Set up network namespace
         isolationIdx = threadIdx + 1;
         std::string netnsName = BASE_NETNS_NAME + std::to_string(isolationIdx);
@@ -51,12 +34,6 @@ namespace worker {
         // Add this thread to the cgroup
         CGroup cgroup(BASE_CGROUP_NAME);
         cgroup.addCurrentThread();
-
-        _isInitialised = true;
-    }
-
-    const bool WorkerThread::isInitialised() {
-        return _isInitialised;
     }
 
     const bool WorkerThread::isBound() {
@@ -64,9 +41,7 @@ namespace worker {
     }
 
     void WorkerThread::finish() {
-        if (_isInitialised) {
-            ns->removeCurrentThread();
-        }
+        ns->removeCurrentThread();
 
         if (_isBound) {
             // Notify scheduler if this thread was bound to a function
@@ -99,10 +74,6 @@ namespace worker {
     }
 
     void WorkerThread::bindToFunction(const message::Message &msg) {
-        if (!_isInitialised) {
-            this->initialise();
-        }
-
         if (_isBound) {
             throw std::runtime_error("Cannot bind worker thread more than once");
         }
@@ -148,7 +119,7 @@ namespace worker {
         this->finish();
     }
 
-    const std::string WorkerThread::processNextMessage() {
+    std::string WorkerThread::processNextMessage() {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Work out which timeout

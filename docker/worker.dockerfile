@@ -11,6 +11,8 @@ COPY . /usr/local/code/faasm
 # Build the worker binary
 WORKDIR /faasm/build
 RUN cmake --build . --target worker -- -j
+RUN cmake --build . --target codegen_shared_obj -- -j
+RUN cmake --build . --target codegen_func -- -j
 
 # Set up entrypoint (for cgroups, namespaces etc.)
 COPY bin/worker-entrypoint.sh /entrypoint.sh

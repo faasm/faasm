@@ -6,15 +6,23 @@
 #include <util/logging.h>
 #include <util/config.h>
 
+#include <boost/filesystem.hpp>
+
 
 namespace storage {
     std::string FileserverFileLoader::getFileserverUrl() {
         return util::getSystemConfig().fileserverUrl;
     }
 
-    std::vector<uint8_t> _doLoadFromUrl(const std::string &url, const std::string &path) {
+    std::vector<uint8_t> _doLoad(const std::string &url, const std::string &path, const std::string &storagePath) {
         std::string header;
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        // Shortcut if already exists
+        if(boost::filesystem::exists(storagePath)) {
+            logger->debug("Loading from filesystem at {}", storagePath);
+            return util::readFileToBytes(storagePath);
+        }
 
         logger->debug("Loading from fileserver at {}", url);
 
@@ -36,36 +44,45 @@ namespace storage {
             throw util::InvalidFunctionException(errMsg);
         }
 
+        // Write to file
+        logger->debug("Writing file to filesystem at {}", storagePath);
+        util::writeBytesToFile(storagePath, fileBytes);
+
         return fileBytes;
     }
 
     std::vector<uint8_t> FileserverFileLoader::loadFunctionWasm(const message::Message &msg) {
         std::string url = util::getFunctionUrl(msg);
-        return _doLoadFromUrl(url, "");
+        std::string filePath = util::getFunctionFile(msg);
+        return _doLoad(url, "", filePath);
     }
 
     std::vector<uint8_t> FileserverFileLoader::loadFunctionObjectFile(const message::Message &msg) {
         std::string url = util::getFunctionObjectUrl(msg);
-        return _doLoadFromUrl(url, "");
-    }
-
-    std::vector<uint8_t> FileserverFileLoader::loadSharedObjectWasm(const std::string &path) {
-        std::string url = util::getSharedObjectUrl();
-        return _doLoadFromUrl(url, path);
+        std::string objectFilePath = util::getFunctionObjectFile(msg);
+        return _doLoad(url, "", objectFilePath);
     }
 
     std::vector<uint8_t> FileserverFileLoader::loadSharedObjectObjectFile(const std::string &path) {
         std::string url = util::getSharedObjectObjectUrl();
-        return _doLoadFromUrl(url, path);
+        std::string objFilePath = util::getSharedObjectObjectFile(path);
+        return _doLoad(url, path, objFilePath);
+    }
+
+    std::vector<uint8_t> FileserverFileLoader::loadSharedObjectWasm(const std::string &path) {
+        std::string url = util::getSharedObjectUrl();
+        return _doLoad(url, path, path);
     }
 
     std::vector<uint8_t> FileserverFileLoader::loadPythonFunctionFile(const message::Message &msg) {
+        std::string path = util::getPythonFunctionFile(msg);
         std::string url = util::getPythonFunctionUrl(msg);
-        return _doLoadFromUrl(url, "");
+        return _doLoad(url, "", path);
     }
 
     std::vector<uint8_t> FileserverFileLoader::loadSharedFile(const std::string &path) {
         std::string url = util::getSharedFileUrl();
-        return _doLoadFromUrl(url, path);
+        const std::string fullPath = util::getSharedFileFile(path);
+        return _doLoad(url, path, fullPath);
     }
 }
