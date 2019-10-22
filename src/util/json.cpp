@@ -21,9 +21,10 @@ namespace util {
         d.AddMember("user", Value(msg.user().c_str(), msg.user().size(), a).Move(), a);
         d.AddMember("function", Value(msg.function().c_str(), msg.function().size(), a).Move(), a);
         d.AddMember("index", msg.idx(), a);
+        d.AddMember("hops", msg.hops(), a);
 
         d.AddMember("py_user", Value(msg.pythonuser().c_str(), msg.pythonuser().size(), a).Move(), a);
-        d.AddMember("py_function", Value(msg.pythonfunction().c_str(), msg.pythonfunction().size(), a).Move(), a);
+        d.AddMember("py_func", Value(msg.pythonfunction().c_str(), msg.pythonfunction().size(), a).Move(), a);
 
         d.AddMember("input_data", Value(msg.inputdata().c_str(), msg.inputdata().size(), a).Move(), a);
         d.AddMember("output_data", Value(msg.outputdata().c_str(), msg.outputdata().size(), a).Move(), a);
@@ -83,6 +84,7 @@ namespace util {
         msg.set_user(getStringFromJson(d, "user", ""));
         msg.set_function(getStringFromJson(d, "function", ""));
         msg.set_idx(getIntFromJson(d, "index", 0));
+        msg.set_hops(getIntFromJson(d, "hops", 0));
 
         msg.set_pythonuser(getStringFromJson(d, "py_user", ""));
         msg.set_pythonfunction(getStringFromJson(d, "py_func", ""));

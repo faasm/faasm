@@ -449,4 +449,32 @@ namespace tests {
         REQUIRE(sch.getFunctionInFlightCount(msg) == 0);
         REQUIRE(sch.getOpinion(msg) == SchedulerOpinion::YES);
     }
+
+    TEST_CASE("Test opinion still YES when nothing in flight and at max threads", "[scheduler]") {
+        cleanSystem();
+        util::SystemConfig &conf = util::getSystemConfig();
+        Scheduler &sch = scheduler::getScheduler();
+        message::Message msg = util::messageFactory("demo", "chain_simple");
+
+        // Check opinion is maybe initially
+        REQUIRE(sch.getOpinion(msg) == SchedulerOpinion::MAYBE);
+        REQUIRE(sch.getFunctionThreadCount(msg) == 0);
+
+        // Saturate and make sure opinion is NO
+        int nCalls = conf.maxWorkersPerFunction * conf.maxInFlightRatio;
+        for(int i = 0; i < nCalls; i++) {
+            sch.callFunction(msg);
+        }
+        REQUIRE(sch.getFunctionThreadCount(msg) == conf.maxWorkersPerFunction);
+        REQUIRE(sch.getFunctionInFlightCount(msg) == nCalls);
+        REQUIRE(sch.getOpinion(msg) == SchedulerOpinion::NO);
+
+        // Notify all calls finished
+        for(int i = 0; i < nCalls; i++) {
+            sch.notifyCallFinished(msg);
+        }
+        REQUIRE(sch.getFunctionThreadCount(msg) == conf.maxWorkersPerFunction);
+        REQUIRE(sch.getFunctionInFlightCount(msg) == 0);
+        REQUIRE(sch.getOpinion(msg) == SchedulerOpinion::YES);
+    }
 }

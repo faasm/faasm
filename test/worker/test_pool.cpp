@@ -509,7 +509,7 @@ namespace tests {
         w.finish();
         REQUIRE(sch.getFunctionInFlightCount(call) == 0);
         REQUIRE(sch.getFunctionThreadCount(call) == 0);
-        REQUIRE(sch.getFunctionInFlightRatio(call) == IN_FLIGHT_RATIO_ZERO);
+        REQUIRE(sch.getFunctionInFlightRatio(call) == 0);
         REQUIRE(bindQueue->size() == 0);
         REQUIRE(!redis.sismember(warmSetName, nodeId));
     }

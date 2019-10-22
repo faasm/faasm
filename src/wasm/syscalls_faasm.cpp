@@ -182,7 +182,7 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state_offset_ptr", I32, __faasm_read_state_offset_ptr,
                                    I32 keyPtr, I32 totalLen, I32 offset, I32 len) {
-        util::getLogger()->debug("S - read_state_offset_ptr - {} {} {} {} {}", keyPtr, totalLen, offset, len);
+        util::getLogger()->debug("S - read_state_offset_ptr - {} {} {} {}", keyPtr, totalLen, offset, len);
 
         auto kv = getStateKV(keyPtr, totalLen);
 

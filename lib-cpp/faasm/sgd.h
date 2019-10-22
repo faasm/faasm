@@ -31,16 +31,9 @@ namespace faasm {
 
     SgdParams readParamsFromState(const char *keyName, bool pull);
 
-    void hingeLossWeightUpdate(
-            const SgdParams &sgdParams,
-            int epoch,
-            int batchNumber,
-            int startIdx,
-            int endIdx
-    );
+    void hingeLossWeightUpdate(const SgdParams &sgdParams, int startIdx, int endIdx);
 
-    void writeHingeError(const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
-                         const MatrixXd &prediction);
+    void writeHingeError(const SgdParams &sgdParams, const MatrixXd &actual, const MatrixXd &prediction);
 
     double readTotalError(const SgdParams &sgdParams);
 

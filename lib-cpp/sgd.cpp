@@ -32,8 +32,7 @@ namespace faasm {
         return s;
     }
 
-    void hingeLossWeightUpdate(const SgdParams &sgdParams, int epoch, int batchNumber,
-                               int startIdx, int endIdx) {
+    void hingeLossWeightUpdate(const SgdParams &sgdParams, int startIdx, int endIdx) {
         /* Note this is always asynchronous with pushes decided based on the params */
 
         // Load this batch of inputs (read-only)
@@ -135,11 +134,10 @@ namespace faasm {
         MatrixXd prediction = weights * inputs;
 
         // Write error
-        writeHingeError(sgdParams, batchNumber, outputs, prediction);
+        writeHingeError(sgdParams, outputs, prediction);
     }
 
-    void writeHingeError(const SgdParams &sgdParams, int batchNumber, const MatrixXd &actual,
-                         const MatrixXd &prediction) {
+    void writeHingeError(const SgdParams &sgdParams, const MatrixXd &actual, const MatrixXd &prediction) {
         double err = calculateHingeError(prediction, actual);
         auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&err);
 

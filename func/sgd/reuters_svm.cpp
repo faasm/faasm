@@ -66,7 +66,6 @@ FAASM_MAIN_FUNC() {
     }
 
     const char *input = faasm::getStringInput("");
-    printf("SVM input: %s\n", input);
     int *intInput = faasm::parseStringToIntArray(input, 2);
 
     int nWorkers = intInput[0];
@@ -164,7 +163,7 @@ FAASM_MAIN_FUNC() {
 FAASM_FUNC(step, 1) {
     // Read in input
     long inputSize = 4 * sizeof(int);
-    int inputBuffer[4];
+    auto inputBuffer = new int[4];
     faasmGetInput(reinterpret_cast<uint8_t *>(inputBuffer), inputSize);
 
     int batchNumber = inputBuffer[0];
@@ -178,7 +177,7 @@ FAASM_FUNC(step, 1) {
     SgdParams sgdParams = readParamsFromState(PARAMS_KEY, false);
 
     // Perform updates
-    hingeLossWeightUpdate(sgdParams, epoch, batchNumber, startIdx, endIdx);
+    hingeLossWeightUpdate(sgdParams, startIdx, endIdx);
 
     return 0;
 }
