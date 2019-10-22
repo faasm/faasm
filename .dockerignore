@@ -19,6 +19,8 @@ venv
 # WebAssembly - some functions have special status
 wasm
 !wasm/python/py_func/function.wasm
+!wasm/sgd/reuters_svm/function.wasm
+!wasm/tf/image/function.wasm
 
 # Toolchain
 toolchain/install

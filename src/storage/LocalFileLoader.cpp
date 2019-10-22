@@ -10,19 +10,6 @@
 #include <boost/filesystem.hpp>
 
 namespace storage {
-    void checkFileExists(const std::string &path) {
-        if (!boost::filesystem::exists(path)) {
-            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            logger->error("File {} does not exist", path);
-            throw std::runtime_error("Expected file does not exist");
-        }
-    }
-
-    std::vector<uint8_t> loadFileBytes(const std::string &path) {
-        checkFileExists(path);
-        return util::readFileToBytes(path);
-    }
-
     std::vector<uint8_t> LocalFileLoader::loadFunctionWasm(const message::Message &msg) {
         std::string filePath = util::getFunctionFile(msg);
         return loadFileBytes(filePath);

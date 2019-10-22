@@ -10,6 +10,11 @@
 
 #include <util/config.h>
 #include <util/func.h>
+#include <util/files.h>
+#include <util/logging.h>
+
+#include <boost/filesystem.hpp>
+
 
 using namespace WAVM;
 
@@ -76,5 +81,16 @@ namespace storage {
         return objBytes;
     }
 
+    void checkFileExists(const std::string &path) {
+        if (!boost::filesystem::exists(path)) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->error("File {} does not exist", path);
+            throw std::runtime_error("Expected file does not exist");
+        }
+    }
 
+    std::vector<uint8_t> loadFileBytes(const std::string &path) {
+        checkFileExists(path);
+        return util::readFileToBytes(path);
+    }
 }

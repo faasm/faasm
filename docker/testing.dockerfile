@@ -37,8 +37,6 @@ RUN chown -R root:root /usr/local/faasm
 # Build the tests and codegen
 WORKDIR /faasm/build
 RUN cmake --build . --target tests -- -j
-RUN cmake --build . --target codegen_shared_obj -- -j
-RUN cmake --build . --target codegen_func -- -j
 
 # Command to run the tests
 CMD /faasm/build/bin/tests

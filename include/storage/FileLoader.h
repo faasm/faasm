@@ -41,4 +41,8 @@ namespace storage {
     };
 
     FileLoader &getFileLoader();
+
+    void checkFileExists(const std::string &path);
+
+    std::vector<uint8_t> loadFileBytes(const std::string &path);
 };
