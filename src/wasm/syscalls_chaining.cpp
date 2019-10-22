@@ -54,7 +54,7 @@ namespace wasm {
 
         message::Message *originalCall = getExecutingCall();
 
-        // Chained calls should always be asynchronous as we don't sit around waiting for the result
+        // Chained calls should be asynchronous as we will wait for the result on the message queue
         message::Message call = util::messageFactory(originalCall->user(), functionName);
         call.set_inputdata(inputData.data(), inputData.size());
         call.set_idx(idx);
@@ -64,7 +64,7 @@ namespace wasm {
         const std::string chainedStr = util::funcToString(call, false);
 
         sch.callFunction(call);
-        logger->debug("Chained {} (@{}) -> {} (@{})", origStr, util::getNodeId(), chainedStr, call.schedulednode());
+        logger->debug("Chained {} ({}) -> {} ({})", origStr, util::getNodeId(), chainedStr, call.schedulednode());
 
         return call.id();
     }

@@ -107,9 +107,7 @@ namespace wasm {
 
             // TODO - double check this works
             // Reset shared memory variables
-            sharedMemKVs = other.sharedMemKVs;
             sharedMemWasmPtrs = other.sharedMemWasmPtrs;
-            sharedMemHostPtrs = other.sharedMemHostPtrs;
 
             // Remap dynamic modules
             // TODO - double check this works
@@ -132,10 +130,7 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // --- Faasm stuff ---
-
-        sharedMemKVs.clear();
         sharedMemWasmPtrs.clear();
-        sharedMemHostPtrs.clear();
 
         globalOffsetTableMap.clear();
         globalOffsetMemoryMap.clear();
@@ -717,7 +712,7 @@ namespace wasm {
     }
 
     U32 WasmModule::mmapKey(const std::shared_ptr<state::StateKeyValue> kv, U32 length) {
-        // See if we need to initialise this mapping or if it already exists
+        // See if this is the first time the module has seen this key
         if (sharedMemWasmPtrs.count(kv->key) == 0) {
             // Create memory region for this module
             U32 wasmPtr = this->mmapMemory(length);
@@ -733,8 +728,6 @@ namespace wasm {
 
             // Remember the kv and pointer
             sharedMemWasmPtrs.insert(std::pair<std::string, I32>(kv->key, wasmPtr));
-            sharedMemHostPtrs.insert(std::pair<std::string, void *>(kv->key, voidPtr));
-            sharedMemKVs.insert(std::pair<std::string, std::shared_ptr<state::StateKeyValue>>(kv->key, kv));
         }
 
         // Return the wasm pointer

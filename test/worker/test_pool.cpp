@@ -39,23 +39,6 @@ namespace tests {
         WorkerThreadPool pool(1);
         WorkerThread w(1);
         REQUIRE(!w.isBound());
-        REQUIRE(w.isInitialised());
-    }
-
-    TEST_CASE("Test worker not pre-warmed if not in prewarm mode", "[worker]") {
-        setUp();
-
-        util::SystemConfig &conf = util::getSystemConfig();
-        conf.prewarm = 0;
-
-        WorkerThreadPool pool(1);
-
-        WorkerThread w(1);
-
-        REQUIRE(!w.isBound());
-        REQUIRE(!w.isInitialised());
-
-        conf.prewarm = 1;
     }
 
     void checkBound(WorkerThread &w, message::Message &msg, bool isBound) {
@@ -74,30 +57,10 @@ namespace tests {
 
         WorkerThreadPool pool(1);
         WorkerThread w(1);
-        REQUIRE(w.isInitialised());
         checkBound(w, call, false);
 
         w.bindToFunction(call);
         checkBound(w, call, true);
-    }
-
-    TEST_CASE("Test binding to function initialises when in no-prewarm mode", "[worker]") {
-        setUp();
-
-        message::Message call = util::messageFactory("demo", "chain");
-
-        util::SystemConfig &conf = util::getSystemConfig();
-        conf.prewarm = 0;
-
-        WorkerThreadPool pool(1);
-        WorkerThread w(1);
-        REQUIRE(!w.isInitialised());
-
-        w.bindToFunction(call);
-        REQUIRE(w.isInitialised());
-        checkBound(w, call, true);
-
-        conf.prewarm = 1;
     }
 
     TEST_CASE("Test fixed input with colon", "[worker]") {
@@ -177,11 +140,10 @@ namespace tests {
     TEST_CASE("Test bind message causes worker to bind", "[worker]") {
         setUp();
 
-        // Create worker and check it's prewarm
+        // Create worker
         WorkerThreadPool pool(1);
         WorkerThread w(1);
         REQUIRE(!w.isBound());
-        REQUIRE(w.isInitialised());
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
 

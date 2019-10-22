@@ -13,17 +13,13 @@ namespace worker {
     public:
         explicit WorkerThread(int threadIdx);
 
-        void initialise();
-
         void bindToFunction(const message::Message &msg);
 
         void run();
 
-        const bool isInitialised();
-
         const bool isBound();
 
-        const std::string processNextMessage();
+        std::string processNextMessage();
 
         void finish();
 
@@ -32,7 +28,6 @@ namespace worker {
 
         const int threadIdx;
     private:
-        bool _isInitialised = false;
         bool _isBound = false;
 
         int isolationIdx;

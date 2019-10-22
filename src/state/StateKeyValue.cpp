@@ -55,6 +55,9 @@ namespace state {
         }
 
         // Read from the remote
+        const std::shared_ptr<spdlog::logger> &logger = getLogger();
+        logger->debug("Pulling remote value for {}", key);
+
         redis::Redis &redis = redis::Redis::getState();
         redis.get(key, static_cast<uint8_t *>(sharedMemory), valueSize);
 

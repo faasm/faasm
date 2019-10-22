@@ -11,7 +11,6 @@ namespace tests {
         // Set up worker to listen for relevant function
         WorkerThreadPool pool(1);
         WorkerThread w(1);
-        REQUIRE(w.isInitialised());
         REQUIRE(!w.isBound());
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
@@ -52,7 +51,6 @@ namespace tests {
         // Set up worker to listen for relevant function
         WorkerThreadPool pool(1);
         WorkerThread w(1);
-        REQUIRE(w.isInitialised());
         REQUIRE(!w.isBound());
 
         // Call the function

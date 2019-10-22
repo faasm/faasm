@@ -51,7 +51,6 @@ namespace util {
         // Scheduling
         maxNodes = this->getSystemConfIntParam("MAX_NODES", "4");
         noScheduler = this->getSystemConfIntParam("NO_SCHEDULER", "0");
-        prewarm = this->getSystemConfIntParam("PREWARM", "1");
         maxInFlightRatio = this->getSystemConfIntParam("MAX_IN_FLIGHT_RATIO", "3");
         maxWorkersPerFunction = this->getSystemConfIntParam("MAX_WORKERS_PER_FUNCTION", "10");
 
@@ -109,7 +108,6 @@ namespace util {
         logger->info("MAX_NODES                  {}", maxNodes);
         logger->info("THREADS_PER_WORKER         {}", threadsPerWorker);
         logger->info("NO_SCHEDULER               {}", noScheduler);
-        logger->info("PREWARM                    {}", prewarm);
         logger->info("MAX_IN_FLIGHT_RATIO        {}", maxInFlightRatio);
         logger->info("MAX_WORKERS_PER_FUNCTION   {}", maxWorkersPerFunction);
 

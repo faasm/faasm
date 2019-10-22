@@ -39,7 +39,6 @@ namespace util {
         int maxNodes;
         int threadsPerWorker;
         int noScheduler;
-        int prewarm;
         int maxInFlightRatio;
         int maxWorkersPerFunction;
 
