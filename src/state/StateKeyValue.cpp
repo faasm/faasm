@@ -5,6 +5,7 @@
 #include <util/memory.h>
 #include <util/locks.h>
 #include <util/logging.h>
+#include <util/timing.h>
 
 #include <sys/mman.h>
 
@@ -41,6 +42,8 @@ namespace state {
             }
         }
 
+        PROF_START(statePull)
+
         // Unique lock on the whole value
         FullLock lock(valueMutex);
 
@@ -62,9 +65,12 @@ namespace state {
         redis.get(key, static_cast<uint8_t *>(sharedMemory), valueSize);
 
         _empty = false;
+
+        PROF_END(statePull)
     }
 
     long StateKeyValue::waitOnRemoteLock() {
+        PROF_START(remoteLock)
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         redis::Redis &redis = redis::Redis::getState();
@@ -86,6 +92,7 @@ namespace state {
             retryCount++;
         }
 
+        PROF_END(remoteLock)
         return remoteLockId;
     }
 
@@ -223,6 +230,8 @@ namespace state {
     void StateKeyValue::mapSharedMemory(void *newAddr) {
         pullImpl(true);
 
+        PROF_START(mapSharedMem)
+
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         if (!isPageAligned(newAddr)) {
@@ -247,6 +256,8 @@ namespace state {
 
             throw std::runtime_error("Misaligned shared memory mapping");
         }
+
+        PROF_END(mapSharedMem)
     }
 
     void StateKeyValue::unmapSharedMemory(void *mappedAddr) {
@@ -269,6 +280,8 @@ namespace state {
     }
 
     void StateKeyValue::initialiseStorage() {
+        PROF_START(initialiseStorage)
+
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         if (sharedMemSize == 0) {
@@ -288,6 +301,8 @@ namespace state {
         // Set up dirty flags
         dirtyMask = new uint8_t[valueSize];
         zeroDirtyMask();
+
+        PROF_END(initialiseStorage)
     }
 
     void StateKeyValue::pushFull() {
@@ -295,6 +310,8 @@ namespace state {
         if (!isDirty) {
             return;
         }
+
+        PROF_START(pushFull)
 
         // Get full lock for complete push
         FullLock fullLock(valueMutex);
@@ -313,6 +330,8 @@ namespace state {
         // Remove any dirty flags
         isDirty = false;
         zeroDirtyMask();
+
+        PROF_END(pushFull)
     }
 
     void StateKeyValue::pushPartialMask(const std::shared_ptr<StateKeyValue> &maskKv) {
@@ -338,6 +357,8 @@ namespace state {
         if (!isDirty) {
             return;
         }
+
+        PROF_START(pushPartial)
 
         // We need a full lock while doing this, mainly to ensure no other threads start
         // the same process
@@ -384,6 +405,8 @@ namespace state {
 
         // Zero the mask
         memset((void *) dirtyMaskBytes, 0, valueSize);
+
+        PROF_END(pushPartial)
     }
 
     void StateKeyValue::lockRead() {

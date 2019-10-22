@@ -44,10 +44,12 @@ else()
     set(WAVM_ENABLE_UNWIND OFF CACHE BOOL "WAVM unwind")
 endif()
 
-
 # Stops WAVM compilation complaining
 add_definitions(-DDLL_EXPORT=)
 add_definitions(-DDLL_IMPORT=)
+
+# Faasm profiling
+add_definitions(-DFAASM_PROFILE_ON=1)
 
 # Custom LLVM build (also for profiling)
 set(FAASM_CUSTOM_LLVM 0)
