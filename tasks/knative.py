@@ -118,7 +118,8 @@ def delete_knative_worker(ctx, hard=False):
         call(flush_cmd, shell=True)
 
         # Delete the pods (they'll respawn)
-        cmd = "kubectl -n faasm delete pods -l serving.knative.dev/service=faasm-worker --wait=false"
+        label = "serving.knative.dev/service=faasm-worker"
+        cmd = "kubectl -n faasm delete pods -l {} --wait=false --now".format(label)
         call(cmd, shell=True)
 
 

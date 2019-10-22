@@ -341,7 +341,6 @@ namespace tests {
     TEST_CASE("Test multiple hops", "[scheduler]") {
         cleanSystem();
         Scheduler &sch = scheduler::getScheduler();
-        SharingMessageBus &sharingBus = SharingMessageBus::getInstance();
 
         std::string thisNodeId = util::getNodeId();
         std::string otherNodeA = "node A";
@@ -376,7 +375,6 @@ namespace tests {
     TEST_CASE("Test worker removes itself from warm set when sharing") {
         cleanSystem();
         Scheduler &sch = scheduler::getScheduler();
-        SharingMessageBus &sharingBus = SharingMessageBus::getInstance();
 
         std::string thisNodeId = util::getNodeId();
         std::string otherNode = "other node";

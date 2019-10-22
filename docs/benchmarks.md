@@ -37,7 +37,7 @@ cd /usr/local/code/faasm
 For Docker you need to build the `faasm/noop` image which can be done with:
 
 ```
-inv docker-build noop
+inv docker-build -c noop
 ```
 
 ### Memory
