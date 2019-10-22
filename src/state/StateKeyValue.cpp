@@ -355,6 +355,8 @@ namespace state {
     }
 
     void StateKeyValue::doPushPartial(const uint8_t *dirtyMaskBytes) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         // Ignore if not dirty
         if (!isDirty) {
             return;
@@ -371,6 +373,7 @@ namespace state {
 #ifdef PIPELINE
         // Double check condition
         if (!isDirty) {
+            logger->debug("Ignoring partial push on {}", key);
             return;
         }
 
@@ -384,6 +387,9 @@ namespace state {
             writeValue[i] = sharedMemoryBytes[i] & dirtyMaskBytes[i];
         }
 
+        // Zero the mask now that we're finished with it
+        memset((void *) dirtyMaskBytes, 0, valueSize);
+
         // Iterate through and pipeline the results
         long updateCount = 0;
         long startIdx = 0;
@@ -392,9 +398,7 @@ namespace state {
             if (!isOn && writeValue[i] != 0) {
                 isOn = true;
                 startIdx = i;
-            }
-
-            if (isOn && writeValue[i] == 0) {
+            } else if (isOn && writeValue[i] == 0) {
                 isOn = false;
                 long length = i - startIdx;
 
@@ -404,9 +408,6 @@ namespace state {
             }
         }
 
-        // Zero the mask now that we're finished
-        memset((void *) dirtyMaskBytes, 0, valueSize);
-
         // Write a final chunk
         if (isOn) {
             unsigned long length = valueSize - startIdx;
@@ -415,9 +416,11 @@ namespace state {
         }
 
         // Flush the pipeline
+        logger->debug("Pipelined {} updates on {}", updateCount, key);
         redis.flushPipeline(updateCount);
 
         // Read the latest value
+        logger->debug("Pulling from remote for {}", key);
         redis.get(key, static_cast<uint8_t *>(sharedMemory), valueSize);
 
         // Delete temporary variable

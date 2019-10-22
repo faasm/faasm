@@ -231,6 +231,12 @@ namespace redis {
     void Redis::setRange(const std::string &key, long offset, const uint8_t *value, size_t size) {
         auto reply = (redisReply *) redisCommand(context, "SETRANGE %s %li %b", key.c_str(), offset, value,
                                                  size);
+
+        if(reply->integer != size) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->error("Failed SETRANGE {} - {}", key.c_str(), reply->str);
+        }
+
         freeReplyObject(reply);
     }
 
@@ -242,6 +248,13 @@ namespace redis {
         void *reply;
         for(long p = 0; p < pipelineLength; p++) {
             redisGetReply(context, &reply);
+
+            if(reply == nullptr || ((redisReply*)reply)->type == REDIS_REPLY_ERROR) {
+                const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+                logger->error("Failed pipeline call {}", p);
+            }
+
+            freeReplyObject(reply);
         }
     }
 
