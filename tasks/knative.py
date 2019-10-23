@@ -46,8 +46,8 @@ FAASM_WORKER_ARGS = [
 # Expressed as (min, max)
 NATIVE_WORKER_ARGS = {
     "reuters_svm": [
-        "--min-scale=20",  # As each executes one thread, we can have multiple per machine
-        "--max-scale=20",
+        "--min-scale=40",  # As each executes one thread, we can have multiple per machine
+        "--max-scale=40",
         "--concurrency-limit=1",
     ],
     "default": [
