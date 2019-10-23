@@ -149,7 +149,7 @@ FAASM_MAIN_FUNC() {
 
     // Once finished, build a string of the outputs
     size_t outputLen = 0;
-    int charWidth = 15;
+    int charWidth = 20;
     auto output = new char[charWidth * epochs];
     for(int e = 0; e < epochs; e++) {
         outputLen += sprintf(output + outputLen, "\n%.4f %.4f\n", timestamps[e], losses[e]);

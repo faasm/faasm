@@ -232,9 +232,9 @@ namespace redis {
         auto reply = (redisReply *) redisCommand(context, "SETRANGE %s %li %b", key.c_str(), offset, value,
                                                  size);
 
-        if(reply->integer != size) {
+        if(reply->type != REDIS_REPLY_INTEGER) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-            logger->error("Failed SETRANGE {} - ({} vs {})", key.c_str(), reply->integer, size);
+            logger->error("Failed SETRANGE {}", key);
             throw std::runtime_error("Failed SETRANGE " + key);
         }
 

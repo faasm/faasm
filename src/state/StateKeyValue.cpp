@@ -376,44 +376,40 @@ namespace state {
             logger->debug("Ignoring partial push on {}", key);
             return;
         }
-
-        // Create a placeholder for the copy
-        auto writeValue = new uint8_t[valueSize];
-        memset((void *) writeValue, 0, valueSize);
-
-        // Fill this with the dirty bytes
+        // Iterate through and pipeline the dirty segments
         auto sharedMemoryBytes = reinterpret_cast<uint8_t *>(sharedMemory);
-        for (unsigned long i = 0; i < valueSize; i++) {
-            writeValue[i] = sharedMemoryBytes[i] & dirtyMaskBytes[i];
-        }
-
-        // Zero the mask now that we're finished with it
-        memset((void *) dirtyMaskBytes, 0, valueSize);
-
-        // Iterate through and pipeline the results
         long updateCount = 0;
         long startIdx = 0;
         bool isOn = false;
-        for (long i = 0; i < valueSize; i++) {
-            if (!isOn && writeValue[i] != 0) {
-                isOn = true;
-                startIdx = i;
-            } else if (isOn && writeValue[i] == 0) {
-                isOn = false;
-                long length = i - startIdx;
 
-                // Pipeline the change
-                redis.setRangePipeline(key, startIdx, writeValue + startIdx, length);
-                updateCount++;
+        for (long i = 0; i < valueSize; i++) {
+            if (dirtyMaskBytes[i] == 0) {
+                // If we encounter an "off" mask and we're "on", switch off and write the segment
+                if(isOn) {
+                    isOn = false;
+
+                    // Pipeline the change
+                    unsigned long length = i - startIdx;
+                    redis.setRangePipeline(key, startIdx, sharedMemoryBytes + startIdx, length);
+                    updateCount++;
+                }
+            } else {
+                if(!isOn) {
+                    isOn = true;
+                    startIdx = i;
+                }
             }
         }
 
         // Write a final chunk
         if (isOn) {
             unsigned long length = valueSize - startIdx;
-            redis.setRangePipeline(key, startIdx, writeValue + startIdx, length);
+            redis.setRangePipeline(key, startIdx, sharedMemoryBytes + startIdx, length);
             updateCount++;
         }
+
+        // Zero the mask now that we're finished with it
+        memset((void *) dirtyMaskBytes, 0, valueSize);
 
         // Flush the pipeline
         logger->debug("Pipelined {} updates on {}", updateCount, key);
@@ -421,10 +417,8 @@ namespace state {
 
         // Read the latest value
         logger->debug("Pulling from remote for {}", key);
-        redis.get(key, static_cast<uint8_t *>(sharedMemory), valueSize);
+        redis.get(key, sharedMemoryBytes, valueSize);
 
-        // Delete temporary variable
-        delete[] writeValue;
 #else
         // Double check condition
         if (!isDirty) {

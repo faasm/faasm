@@ -604,7 +604,6 @@ namespace tests {
         redisQueue.del(key);
 
         std::vector<uint8_t> actual = {0, 0, 0, 0, 0, 0, 0, 0, 0};
-        redisQueue.set(key, actual);
 
         std::vector<uint8_t> updateA = {1, 1};
         std::vector<uint8_t> updateB = {2, 2, 2};
