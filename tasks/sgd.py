@@ -4,6 +4,7 @@ from shutil import rmtree
 
 from invoke import task
 
+from tasks.util.env import FAASM_HOME
 from tasks.util.invoke import invoke_impl
 
 
@@ -28,7 +29,7 @@ def _do_call(n_workers, interval, native):
     if not success:
         print("FAILED on {} {}".format(n_workers, interval))
 
-    output_dir = "/usr/local/code/serverless-problem/measurement/committed/sgd"
+    output_dir = join(FAASM_HOME, "sgd_results")
     if not exists(output_dir):
         mkdir(output_dir)
 

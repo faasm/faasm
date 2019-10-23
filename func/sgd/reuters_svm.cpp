@@ -155,6 +155,9 @@ FAASM_MAIN_FUNC() {
         outputLen += sprintf(output + outputLen, "\n%.4f %.4f\n", timestamps[e], losses[e]);
     }
 
+    // Force null terminator
+    output[outputLen] = '\0';
+
     faasm::setStringOutput(output);
 
     return 0;
