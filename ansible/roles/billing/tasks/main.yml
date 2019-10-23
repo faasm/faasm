@@ -1,0 +1,28 @@
+---
+
+- name: "System deps"
+  become: yes
+  apt:
+    name:
+      - python3-dev
+      - python3-pip
+
+- name: "Upgrade pip"
+  become: yes
+  shell: "pip3 install -U pip"
+
+- name: "Python deps"
+  become: yes
+  shell: "pip3 install psutil"
+
+- name: "Add directory"
+  file:
+    path: "/tmp/billing"
+    state: directory
+    mode: 0777
+
+- name: "Put monitoring script in place"
+  copy:
+    src: "metrics.py"
+    dest: "/tmp/billing/metrics.py"
+    mode: 0777

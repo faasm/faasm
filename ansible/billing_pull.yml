@@ -1,0 +1,23 @@
+---
+
+- hosts: localhost
+  tasks:
+    - name: "Recreate download location"
+      shell: "rm -rf /tmp/billing && mkdir -p /tmp/billing"
+
+- hosts: all
+  gather_facts: no
+  tasks:
+    - name: "Stop billing"
+      shell: "pkill -f metrics.py"
+      ignore_errors: yes
+
+    - name: "Download metrics file"
+      fetch:
+        src: "/tmp/billing/metrics.log"
+        dest: "/tmp/billing/{{ inventory_hostname }}.log"
+        validate_checksum: no
+        flat: yes
+
+    - name: "Delete remote metrics"
+      shell: "rm -f /tmp/billing/metrics.log"
