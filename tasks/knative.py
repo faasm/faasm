@@ -46,8 +46,8 @@ FAASM_WORKER_ARGS = [
 # Expressed as (min, max)
 NATIVE_WORKER_ARGS = {
     "reuters_svm": [
-        "--min-scale=20",  # As each executes one thread, we can have multiple per machine
-        "--max-scale=20",
+        "--min-scale=40",  # As each executes one thread, we can have multiple per machine
+        "--max-scale=40",
         "--concurrency-limit=1",
     ],
     "default": [
@@ -69,7 +69,7 @@ KNATIVE_ENV = {
     "REDIS_STATE_HOST": "redis-state",
     "REDIS_QUEUE_HOST": "redis-queue",
     "HOST_TYPE": "knative",
-    "LOG_LEVEL": "debug",
+    "LOG_LEVEL": "trace",
     "CGROUP_MODE": "off",
     "NETNS_MODE": "off",
     "MAX_IN_FLIGHT_RATIO": "1",

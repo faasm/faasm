@@ -71,6 +71,7 @@ namespace knative_native {
                 // Set result of request
                 scheduler::GlobalMessageBus &messageBus = scheduler::getGlobalMessageBus();
                 message::Message resultMsg = msg;
+                resultMsg.set_outputdata(getEmulatorOutputDataString());
                 messageBus.setFunctionResult(resultMsg, true);
             });
 
@@ -82,12 +83,7 @@ namespace knative_native {
             exec(msg.idx());
 
             // Get the output
-            const std::vector<uint8_t> outputData = getEmulatorOutputData();
-            if (outputData.empty()) {
-                outputStr = "Empty output";
-            } else {
-                outputStr = std::string(reinterpret_cast<const char *>(outputData.data()));
-            }
+            outputStr = getEmulatorOutputDataString();
         }
 
         // Make sure we flush stdout

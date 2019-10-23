@@ -595,4 +595,30 @@ namespace tests {
 
         REQUIRE(actual == expected);
     }
+
+    TEST_CASE("Test range set pipeline") {
+        Redis &redisQueue = Redis::getQueue();
+        redisQueue.flushAll();
+
+        std::string key = "dummyPipeline";
+        redisQueue.del(key);
+
+        std::vector<uint8_t> actual = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+        std::vector<uint8_t> updateA = {1, 1};
+        std::vector<uint8_t> updateB = {2, 2, 2};
+        std::vector<uint8_t> updateC = {8, 8};
+        std::vector<uint8_t> updateD = {4};
+        redisQueue.setRangePipeline(key, 0, updateA.data(), 2);
+        redisQueue.setRangePipeline(key, 2, updateB.data(), 3);
+        redisQueue.setRangePipeline(key, 6, updateC.data(), 2);
+        redisQueue.setRangePipeline(key, 1, updateD.data(), 1);
+
+        redisQueue.flushPipeline(4);
+
+        std::vector<uint8_t> expected = {1, 4, 2, 2, 2, 0, 8, 8, 0};
+
+        redisQueue.get(key, actual.data(), actual.size());
+        REQUIRE(actual == expected);
+    }
 }

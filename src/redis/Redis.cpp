@@ -231,7 +231,33 @@ namespace redis {
     void Redis::setRange(const std::string &key, long offset, const uint8_t *value, size_t size) {
         auto reply = (redisReply *) redisCommand(context, "SETRANGE %s %li %b", key.c_str(), offset, value,
                                                  size);
+
+        if(reply->type != REDIS_REPLY_INTEGER) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->error("Failed SETRANGE {}", key);
+            throw std::runtime_error("Failed SETRANGE " + key);
+        }
+
         freeReplyObject(reply);
+    }
+
+    void Redis::setRangePipeline(const std::string &key, long offset, const uint8_t *value, size_t size) {
+        redisAppendCommand(context, "SETRANGE %s %li %b", key.c_str(), offset, value, size);
+    }
+
+    void Redis::flushPipeline(long pipelineLength) {
+        void *reply;
+        for(long p = 0; p < pipelineLength; p++) {
+            redisGetReply(context, &reply);
+
+            if(reply == nullptr || ((redisReply*)reply)->type == REDIS_REPLY_ERROR) {
+                const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+                logger->error("Failed pipeline call {}", p);
+                throw std::runtime_error("Failed pipeline call " + std::to_string(p));
+            }
+
+            freeReplyObject(reply);
+        }
     }
 
     void Redis::sadd(const std::string &key, const std::string &value) {

@@ -5,10 +5,13 @@
 #include <util/memory.h>
 #include <util/locks.h>
 #include <util/logging.h>
+#include <util/timing.h>
 
 #include <sys/mman.h>
 
 using namespace util;
+
+#define PIPELINE
 
 namespace state {
     /**
@@ -41,6 +44,8 @@ namespace state {
             }
         }
 
+        PROF_START(statePull)
+
         // Unique lock on the whole value
         FullLock lock(valueMutex);
 
@@ -62,9 +67,12 @@ namespace state {
         redis.get(key, static_cast<uint8_t *>(sharedMemory), valueSize);
 
         _empty = false;
+
+        PROF_END(statePull)
     }
 
     long StateKeyValue::waitOnRemoteLock() {
+        PROF_START(remoteLock)
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         redis::Redis &redis = redis::Redis::getState();
@@ -79,13 +87,14 @@ namespace state {
                 break;
             }
 
-            // usleep in microseconds
-            usleep(remoteLockWaitTime * 1000);
+            // Sleep for 1ms
+            usleep(1000);
 
             remoteLockId = redis.acquireLock(key, remoteLockTimeout);
             retryCount++;
         }
 
+        PROF_END(remoteLock)
         return remoteLockId;
     }
 
@@ -223,6 +232,8 @@ namespace state {
     void StateKeyValue::mapSharedMemory(void *newAddr) {
         pullImpl(true);
 
+        PROF_START(mapSharedMem)
+
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         if (!isPageAligned(newAddr)) {
@@ -247,6 +258,8 @@ namespace state {
 
             throw std::runtime_error("Misaligned shared memory mapping");
         }
+
+        PROF_END(mapSharedMem)
     }
 
     void StateKeyValue::unmapSharedMemory(void *mappedAddr) {
@@ -269,6 +282,8 @@ namespace state {
     }
 
     void StateKeyValue::initialiseStorage() {
+        PROF_START(initialiseStorage)
+
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         if (sharedMemSize == 0) {
@@ -288,6 +303,8 @@ namespace state {
         // Set up dirty flags
         dirtyMask = new uint8_t[valueSize];
         zeroDirtyMask();
+
+        PROF_END(initialiseStorage)
     }
 
     void StateKeyValue::pushFull() {
@@ -295,6 +312,8 @@ namespace state {
         if (!isDirty) {
             return;
         }
+
+        PROF_START(pushFull)
 
         // Get full lock for complete push
         FullLock fullLock(valueMutex);
@@ -313,6 +332,8 @@ namespace state {
         // Remove any dirty flags
         isDirty = false;
         zeroDirtyMask();
+
+        PROF_END(pushFull)
     }
 
     void StateKeyValue::pushPartialMask(const std::shared_ptr<StateKeyValue> &maskKv) {
@@ -334,23 +355,82 @@ namespace state {
     }
 
     void StateKeyValue::doPushPartial(const uint8_t *dirtyMaskBytes) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         // Ignore if not dirty
         if (!isDirty) {
             return;
         }
 
+        PROF_START(pushPartial)
+
+        redis::Redis &redis = redis::Redis::getState();
+
         // We need a full lock while doing this, mainly to ensure no other threads start
         // the same process
         FullLock lock(valueMutex);
 
+#ifdef PIPELINE
+        // Double check condition
+        if (!isDirty) {
+            logger->debug("Ignoring partial push on {}", key);
+            return;
+        }
+        // Iterate through and pipeline the dirty segments
+        auto sharedMemoryBytes = reinterpret_cast<uint8_t *>(sharedMemory);
+        long updateCount = 0;
+        long startIdx = 0;
+        bool isOn = false;
+
+        for (long i = 0; i < valueSize; i++) {
+            if (dirtyMaskBytes[i] == 0) {
+                // If we encounter an "off" mask and we're "on", switch off and write the segment
+                if(isOn) {
+                    isOn = false;
+
+                    // Pipeline the change
+                    unsigned long length = i - startIdx;
+                    redis.setRangePipeline(key, startIdx, sharedMemoryBytes + startIdx, length);
+                    updateCount++;
+                }
+            } else {
+                if(!isOn) {
+                    isOn = true;
+                    startIdx = i;
+                }
+            }
+        }
+
+        // Write a final chunk
+        if (isOn) {
+            unsigned long length = valueSize - startIdx;
+            redis.setRangePipeline(key, startIdx, sharedMemoryBytes + startIdx, length);
+            updateCount++;
+        }
+
+        // Zero the mask now that we're finished with it
+        memset((void *) dirtyMaskBytes, 0, valueSize);
+
+        // Flush the pipeline
+        logger->debug("Pipelined {} updates on {}", updateCount, key);
+        redis.flushPipeline(updateCount);
+
+        // Read the latest value
+        logger->debug("Pulling from remote for {}", key);
+        redis.get(key, sharedMemoryBytes, valueSize);
+
+#else
         // Double check condition
         if (!isDirty) {
             return;
         }
-
         // Attempt to lock the value remotely
-        redis::Redis &redis = redis::Redis::getState();
         long remoteLockId = waitOnRemoteLock();
+
+        // Double check condition again after getting remote lock
+        if (!isDirty) {
+            return;
+        }
 
         // If we don't get remote lock, just skip this push and wait for next one
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
@@ -379,11 +459,13 @@ namespace state {
         redis.releaseLock(key, remoteLockId);
         logger->debug("Released remote lock for {} with id {}", key, remoteLockId);
 
+        // Zero the mask
+        memset((void *) dirtyMaskBytes, 0, valueSize);
+#endif
         // Mark as no longer dirty
         isDirty = false;
 
-        // Zero the mask
-        memset((void *) dirtyMaskBytes, 0, valueSize);
+        PROF_END(pushPartial)
     }
 
     void StateKeyValue::lockRead() {

@@ -4,11 +4,9 @@
 
 #include <redis/Redis.h>
 #include <util/memory.h>
-#include <util/environment.h>
 #include <util/config.h>
 #include <state/State.h>
 #include <sys/mman.h>
-#include <util/state.h>
 #include <emulator/emulator.h>
 #include <faasm/state.h>
 
@@ -129,7 +127,7 @@ namespace tests {
 
         redis::Redis &redisState = redis::Redis::getState();
         auto kv = setupKV(20);
-        const char* key = kv->key.c_str();
+        const char *key = kv->key.c_str();
 
         // Set up and push
         std::vector<uint8_t> values = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -171,6 +169,56 @@ namespace tests {
         // Push and check that with no pull we're up to date
         kv->pushPartial();
         REQUIRE(redisState.get(key) == expected);
+    }
+
+    TEST_CASE("Test doubles partial", "[state]") {
+        cleanSystem();
+
+        redis::Redis &redisState = redis::Redis::getState();
+        long nDoubles = 20;
+        long nBytes = nDoubles * sizeof(double);
+        auto kv = setupKV(nBytes);
+        const char *key = kv->key.c_str();
+
+        // Set up both with zeroes initiall
+        std::vector<double> expected(nDoubles);
+        std::vector<uint8_t> actualBytes(nBytes);
+        memset(expected.data(), 0, nBytes);
+        memset(actualBytes.data(), 0, nBytes);
+
+        // Push zeroes to state
+        kv->set(actualBytes.data());
+        kv->pushFull();
+        
+        // Update some elements in both and flag dirty
+        auto actualPtr = reinterpret_cast<double *>(kv->get());
+        auto expectedPtr = expected.data();
+        actualPtr[0] = 123.456;
+        expectedPtr[0] = 123.456;
+        kv->flagSegmentDirty(0, sizeof(double));
+        
+        actualPtr[1] = -100304.223;
+        expectedPtr[1] = -100304.223;
+        kv->flagSegmentDirty(1 * sizeof(double), sizeof(double));
+        
+        actualPtr[9] = 6090293.222;
+        expectedPtr[9] = 6090293.222;
+        kv->flagSegmentDirty(9 * sizeof(double), sizeof(double));
+        
+        actualPtr[13] = -123.444;
+        expectedPtr[13] = -123.444;
+        kv->flagSegmentDirty(13 * sizeof(double), sizeof(double));
+        
+        // Push and check that with no pull we're up to date
+        kv->pushPartial();
+        auto postPushDoublePtr = reinterpret_cast<double *>(kv->get());
+        std::vector<double> actualPostPush(postPushDoublePtr, postPushDoublePtr + nDoubles);
+        REQUIRE(expected == actualPostPush);
+        
+        // Also check redis
+        std::vector<double> actualFromRedis(nDoubles);
+        redisState.get(key, reinterpret_cast<uint8_t *>(actualFromRedis.data()), nBytes);
+        REQUIRE(expected == actualFromRedis);
     }
 
     TEST_CASE("Test set segment cannot be out of bounds", "[state]") {
@@ -215,29 +263,29 @@ namespace tests {
         expected = {6, 1, 2, 3, 6};
         REQUIRE(redisState.get(kv->key) == expected);
     }
-    
+
     TEST_CASE("Test push partial with mask", "[state]") {
         cleanSystem();
-        
+
         redis::Redis &redisState = redis::Redis::getState();
-        
+
         // Create two key-values of same size
         size_t stateSize = 4 * sizeof(double);
         std::shared_ptr<StateKeyValue> kvData = setupKV(stateSize);
         std::shared_ptr<StateKeyValue> kvMask = setupKV(stateSize);
-        
+
         // Set up value in memory
         uint8_t *dataBytePtr = kvData->get();
-        auto dataDoublePtr = reinterpret_cast<double*>(dataBytePtr);
+        auto dataDoublePtr = reinterpret_cast<double *>(dataBytePtr);
         dataDoublePtr[0] = 1.2345;
         dataDoublePtr[1] = 12.345;
         dataDoublePtr[2] = 987.6543;
         dataDoublePtr[3] = 10987654.3;
-        
+
         // Push 
         kvData->flagDirty();
         kvData->pushFull();
-        
+
         // Check round trip
         std::vector<uint8_t> actualValue = redisState.get(kvData->key);
         std::vector<uint8_t> expectedValue(dataBytePtr, dataBytePtr + stateSize);
@@ -285,7 +333,7 @@ namespace tests {
         redisState.set(kv->key, newValues);
 
         // Get and check whether the remote is pulled
-        if(!async) {
+        if (!async) {
             kv->pull();
         }
 
@@ -383,7 +431,7 @@ namespace tests {
     TEST_CASE("Test mapping shared memory pulls if not initialised", "[state]") {
         // Set up the KV
         auto kv = setupKV(5);
-        
+
         // Write value direct to redis
         std::vector<uint8_t> value = {0, 1, 2, 3, 4};
         redis::Redis &redisState = redis::Redis::getState();
@@ -397,7 +445,7 @@ namespace tests {
         std::vector<uint8_t> actualValue(byteRegion, byteRegion + 5);
         REQUIRE(actualValue == value);
     }
-    
+
     TEST_CASE("Test mapping shared memory offsets", "[state]") {
         // Set up the KV
         auto kv = setupKV(7);
@@ -439,7 +487,7 @@ namespace tests {
         auto kv = setupKV(6);
         REQUIRE(kv->empty());
         REQUIRE(kv->size() == 6);
-        
+
         // Set up value in Redis
         redis::Redis &redisState = redis::Redis::getState();
         std::vector<uint8_t> value = {0, 1, 2, 3, 4, 5};
@@ -454,7 +502,7 @@ namespace tests {
 
         expected = {0, 1, 2, 3, 4, 5};
         uint8_t *actualBytes = kv->get();
-        std::vector<uint8_t > actual(actualBytes, actualBytes + 6);
+        std::vector<uint8_t> actual(actualBytes, actualBytes + 6);
         REQUIRE(actual == expected);
     }
 }

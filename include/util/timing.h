@@ -3,12 +3,12 @@
 #include <util/clock.h>
 #include <string>
 
-#ifdef NDEBUG
-#define PROF_START(name)
-#define PROF_END(name)
-#else
+#ifdef FAASM_PROFILE_ON
 #define PROF_START(name) const util::TimePoint name = util::startTimer();
 #define PROF_END(name) util::logEndTimer(#name, name);
+#else
+#define PROF_START(name)
+#define PROF_END(name)
 #endif
 
 namespace util {

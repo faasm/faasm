@@ -70,6 +70,18 @@ std::vector<uint8_t> getEmulatorOutputData() {
     }
 }
 
+std::string getEmulatorOutputDataString() {
+    const std::vector<uint8_t> outputData = getEmulatorOutputData();
+    std::string outputStr;
+    if (outputData.empty()) {
+        outputStr = "Empty output";
+    } else {
+        outputStr = std::string(reinterpret_cast<const char *>(outputData.data()));
+    }
+
+    return outputStr;
+}
+
 void setEmulatorInputData(const std::vector<uint8_t> &inputIn) {
     _inputData = inputIn;
     _threadLocalInputData = inputIn;

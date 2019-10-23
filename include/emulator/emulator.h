@@ -2,6 +2,8 @@
 
 std::vector<uint8_t> getEmulatorOutputData();
 
+std::string getEmulatorOutputDataString();
+
 void resetEmulator();
 
 void setEmulatorInputData(const std::vector<uint8_t> &inputIn);

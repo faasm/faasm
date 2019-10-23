@@ -4,34 +4,37 @@ from shutil import rmtree
 
 from invoke import task
 
+from tasks.util.env import FAASM_HOME
 from tasks.util.invoke import invoke_impl
 
 
 @task
-def sgd_experiment(ctx):
+def sgd_experiment(ctx, native=False):
     workers = [2, 6, 10, 14, 18, 22, 26, 30, 34, 38]
     intervals = [600000, 60000]
 
     for w in workers:
         for i in intervals:
-            _do_call(w, i)
+            _do_call(w, i, native)
 
 
-def _do_call(n_workers, interval):
+def _do_call(n_workers, interval, native):
     success, output = invoke_impl(
         "sgd", "reuters_svm",
         poll=True, knative=True,
-        input="{} {}".format(n_workers, interval)
+        input="{} {}".format(n_workers, interval),
+        native=native,
     )
 
     if not success:
         print("FAILED on {} {}".format(n_workers, interval))
 
-    output_dir = "/usr/local/code/serverless-problem/measurement/committed/sgd"
+    output_dir = join(FAASM_HOME, "sgd_results")
     if not exists(output_dir):
         mkdir(output_dir)
 
-    folder_name = "SYSTEM_FAASM_WORKERS_{}_INTERVAL_{}_logs".format(n_workers, interval)
+    system = "NATIVE" if native else "FAASM"
+    folder_name = "SYSTEM_{}_WORKERS_{}_INTERVAL_{}_logs".format(system, n_workers, interval)
     result_dir = join(output_dir, folder_name)
     if exists(result_dir):
         rmtree(result_dir)
