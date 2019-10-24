@@ -49,17 +49,16 @@ namespace faasm {
         uint8_t *featureCountByteBuffer = faasmReadStatePtr(FEATURE_COUNTS_KEY, nFeatureCountBytes);
         auto featureCountBuffer = reinterpret_cast<int *>(featureCountByteBuffer);
 
-        // TODO - Async conflict
-        // Pull both the weights and the mask to make sure we're up to date
-        size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
-        faasmPullState(WEIGHTS_KEY, nWeightBytes);
-        faasmPullState(MASK_KEY, nWeightBytes);
-
         // Get pointers to the weights and mask
+        size_t nWeightBytes = sgdParams.nWeights * sizeof(double);
         uint8_t *weightDataByteBuffer = faasmReadStatePtr(WEIGHTS_KEY, nWeightBytes);
         uint8_t *weightMaskBytes = faasmReadStatePtr(MASK_KEY, nWeightBytes);
         auto weightDataBuffer = reinterpret_cast<double *>(weightDataByteBuffer);
         auto weightMask = reinterpret_cast<unsigned int *>(weightMaskBytes);
+
+        // TODO - async conflict
+        // Zero the mask
+        memset(weightMaskBytes, 0, nWeightBytes);
 
         // Shuffle examples in this batch
         int *cols = randomIntRange(inputs.outerSize());

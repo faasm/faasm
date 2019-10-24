@@ -2,9 +2,11 @@ from os import mkdir, listdir
 from os.path import exists, join
 from shutil import rmtree
 from subprocess import call
+from time import sleep
 
 from invoke import task
 
+from tasks import deploy_knative, deploy_knative_native
 from tasks.util.billing import start_billing, pull_billing, parse_billing
 from tasks.util.env import FAASM_HOME
 from tasks.util.invoke import invoke_impl
@@ -13,21 +15,22 @@ LOCAL_RESULT_DIR = join(FAASM_HOME, "sgd_results")
 
 
 @task
-def sgd_experiment(ctx, native=False, both=False):
-    workers = [2, 6, 10, 14, 18, 22, 26, 30, 34, 38]
-    intervals = [60000]
-
-    # WASM-based run
+def sgd_experiment(ctx, workers, interval, native=False, both=False):
+    # WASM run
     if not native:
-        for w in workers:
-            for i in intervals:
-                _do_call(w, i, False)
+        n_replicas = (workers + 4 // 2) // 4
+        deploy_knative(ctx, n_replicas)
+
+        sleep(20)
+        _do_call(workers, interval, False)
 
     # Native run
     if native or both:
-        for w in workers:
-            for i in intervals:
-                _do_call(w, i, True)
+        n_replicas = workers
+        deploy_knative_native(ctx, "sgd", "reuters_svm", n_replicas)
+
+        sleep(20)
+        _do_call(workers, interval, True)
 
 
 def _do_call(n_workers, interval, native):
