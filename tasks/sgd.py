@@ -1,13 +1,15 @@
-from os import mkdir
+from os import mkdir, listdir
 from os.path import exists, join
 from shutil import rmtree
 from subprocess import call
 
 from invoke import task
 
-from tasks.util.billing import start_billing, pull_billing
+from tasks.util.billing import start_billing, pull_billing, parse_billing
 from tasks.util.env import FAASM_HOME
 from tasks.util.invoke import invoke_impl
+
+LOCAL_RESULT_DIR = join(FAASM_HOME, "sgd_results")
 
 
 @task
@@ -57,3 +59,21 @@ def _do_call(n_workers, interval, native):
     res = call("cp -r /tmp/billing {}/".format(result_dir), shell=True)
     if res != 0:
         raise RuntimeError("Failed to put billing files in place")
+
+
+@task
+def sgd_pull_results(ctx, host, user):
+    if exists(LOCAL_RESULT_DIR):
+        rmtree(LOCAL_RESULT_DIR)
+
+    cmd = "scp -r {}@{}:/home/{}/faasm/sgd_results {}".format(user, host, user, FAASM_HOME)
+
+    call(cmd, shell=True)
+
+
+@task
+def sgd_parse_results(ctx):
+    for dir_name in listdir(LOCAL_RESULT_DIR):
+        print("Parsing results for {}".format(dir_name))
+        billing_result_dir = join(LOCAL_RESULT_DIR, dir_name, "billing", "results")
+        parse_billing(billing_result_dir)

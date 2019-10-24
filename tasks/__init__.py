@@ -118,6 +118,8 @@ from tasks.aws_sgd import (
 )
 from tasks.sgd import (
     sgd_experiment,
+    sgd_pull_results,
+    sgd_parse_results,
 )
 from tasks.sgd_data import (
     reuters_upload_s3,
