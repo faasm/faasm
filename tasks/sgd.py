@@ -13,7 +13,7 @@ from tasks.util.invoke import invoke_impl
 @task
 def sgd_experiment(ctx, native=False):
     workers = [2, 6]
-    intervals = [600000, 60000]
+    intervals = [60000]
 
     for w in workers:
         for i in intervals:
