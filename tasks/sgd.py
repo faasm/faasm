@@ -13,13 +13,21 @@ LOCAL_RESULT_DIR = join(FAASM_HOME, "sgd_results")
 
 
 @task
-def sgd_experiment(ctx, native=False):
-    workers = [2, 6]
+def sgd_experiment(ctx, native=False, both=False):
+    workers = [2, 6, 10, 14, 18, 22, 26, 30, 34, 38]
     intervals = [60000]
 
-    for w in workers:
-        for i in intervals:
-            _do_call(w, i, native)
+    # WASM-based run
+    if not native:
+        for w in workers:
+            for i in intervals:
+                _do_call(w, i, False)
+
+    # Native run
+    if native or both:
+        for w in workers:
+            for i in intervals:
+                _do_call(w, i, True)
 
 
 def _do_call(n_workers, interval, native):
