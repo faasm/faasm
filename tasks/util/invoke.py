@@ -33,6 +33,7 @@ def invoke_impl(user, func,
                 native=False,
                 ibm=False,
                 poll=False):
+
     faasm_config = get_faasm_config()
 
     # Provider-specific stuff

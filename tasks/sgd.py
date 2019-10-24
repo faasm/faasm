@@ -1,16 +1,18 @@
 from os import mkdir
 from os.path import exists, join
 from shutil import rmtree
+from subprocess import call
 
 from invoke import task
 
+from tasks.util.billing import start_billing, pull_billing
 from tasks.util.env import FAASM_HOME
 from tasks.util.invoke import invoke_impl
 
 
 @task
 def sgd_experiment(ctx, native=False):
-    workers = [2, 6, 10, 14, 18, 22, 26, 30, 34, 38]
+    workers = [2, 6]
     intervals = [600000, 60000]
 
     for w in workers:
@@ -19,12 +21,19 @@ def sgd_experiment(ctx, native=False):
 
 
 def _do_call(n_workers, interval, native):
+    # Start the billing scripts
+    start_billing()
+
+    # Run the request
     success, output = invoke_impl(
         "sgd", "reuters_svm",
         poll=True, knative=True,
         input="{} {}".format(n_workers, interval),
         native=native,
     )
+
+    # Pull the billing info
+    pull_billing()
 
     if not success:
         print("FAILED on {} {}".format(n_workers, interval))
@@ -43,3 +52,8 @@ def _do_call(n_workers, interval, native):
     output_file = join(result_dir, "NODE_0_SGD_LOSS.log")
     with open(output_file, "w") as fh:
         fh.write(output)
+
+    # Copy billing directory into place
+    res = call("cp -r /tmp/billing {}/".format(result_dir))
+    if res != 0:
+        raise RuntimeError("Failed to put billing files in place")
