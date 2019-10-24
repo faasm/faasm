@@ -103,7 +103,7 @@ def delete_knative_worker(ctx, hard=False):
 
 
 @task
-def deploy_knative(ctx, replicas, concurrency=4, local=False, ibm=False):
+def deploy_knative(ctx, replicas, local=False, ibm=False):
     faasm_conf = get_faasm_config()
 
     shell_env = {}
@@ -136,7 +136,7 @@ def deploy_knative(ctx, replicas, concurrency=4, local=False, ibm=False):
         FAASM_WORKER_NAME,
         FAASM_WORKER_IMAGE,
         replicas,
-        concurrency,
+        4,
         FAASM_WORKER_ANNOTATIONS,
         extra_env=extra_env,
         shell_env=shell_env

@@ -111,10 +111,6 @@ class SystemStatsMonitor(object):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--truncate', default=False, action='store_true')
-    args = parser.parse_args()
-
     if not exists(OUTPUT_DIR):
         makedirs(OUTPUT_DIR)
 
