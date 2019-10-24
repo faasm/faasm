@@ -51,23 +51,46 @@ class SystemStatsMonitor(object):
             ("DISK_WRITE_MB", disk.write_bytes / ONE_MB),
         ])
 
-        # CPU
+        # CPU percent
         cpu_pct = psutil.cpu_percent(percpu=False)
         cpu_pct_per_cpu = psutil.cpu_percent(percpu=True)
-        cpu_times = psutil.cpu_times(percpu=False)
-        cpu_times_pct = psutil.cpu_times_percent(percpu=False)
+        stats.append(("CPU_PCT", cpu_pct))
+        for cpu_idx, p in enumerate(cpu_pct_per_cpu):
+            stats.append(("CPU_{}_PCT".format(cpu_idx), p))
 
+        # CPU times
+        cpu_times = psutil.cpu_times(percpu=False)
+        cpu_times_per_cpu = psutil.cpu_times(percpu=True)
         stats.extend([
-            ("CPU_PCT", cpu_pct),
-            ("CPU_PCT_IOWAIT", cpu_times_pct.iowait),
-            ("CPU_PCT_IDLE", cpu_times_pct.idle),
+            ("CPU_TIME_IDLE", cpu_times.idle),
             ("CPU_TIME_IOWAIT", cpu_times.iowait),
             ("CPU_TIME_USER", cpu_times.user),
             ("CPU_TIME_SYSTEM", cpu_times.system),
         ])
+        for cpu_idx, t in enumerate(cpu_times_per_cpu):
+            stats.extend([
+                ("CPU_{}_TIME_IDLE".format(cpu_idx), t.idle),
+                ("CPU_{}_TIME_IOWAIT".format(cpu_idx), t.iowait),
+                ("CPU_{}_TIME_USER".format(cpu_idx), t.user),
+                ("CPU_{}_TIME_SYSTEM".format(cpu_idx), t.system),
+            ])
 
-        for cpu_num, cpu_pct in enumerate(cpu_pct_per_cpu):
-            stats.append(("CPU_{}_PCT".format(cpu_num), cpu_pct))
+        # CPU percent
+        cpu_times_pct = psutil.cpu_times_percent(percpu=False)
+        cpu_times_pct_per_cpu = psutil.cpu_times_percent(percpu=True)
+        stats.extend([
+            ("CPU_PCT_IDLE", cpu_times_pct.idle),
+            ("CPU_PCT_IOWAIT", cpu_times_pct.iowait),
+            ("CPU_PCT_USER", cpu_times_pct.user),
+            ("CPU_PCT_SYSTEM", cpu_times_pct.system),
+        ])
+        for cpu_idx, p in enumerate(cpu_times_pct_per_cpu):
+            stats.extend([
+                ("CPU_{}_PCT_IDLE".format(cpu_idx), p.idle),
+                ("CPU_{}_PCT_IOWAIT".format(cpu_idx), p.iowait),
+                ("CPU_{}_PCT_USER".format(cpu_idx), p.user),
+                ("CPU_{}_PCT_SYSTEM".format(cpu_idx), p.system),
+            ])
 
         # NETWORK
         network = psutil.net_io_counters(pernic=False)

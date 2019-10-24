@@ -83,5 +83,6 @@ def sgd_pull_results(ctx, host, user):
 def sgd_parse_results(ctx):
     for dir_name in listdir(LOCAL_RESULT_DIR):
         print("Parsing results for {}".format(dir_name))
-        billing_result_dir = join(LOCAL_RESULT_DIR, dir_name, "billing", "results")
-        parse_billing(billing_result_dir)
+        parent_dir = join(LOCAL_RESULT_DIR, dir_name)
+        billing_result_dir = join(parent_dir, "billing", "results")
+        parse_billing(billing_result_dir, parent_dir)
