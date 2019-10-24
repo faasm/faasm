@@ -12,7 +12,7 @@ def _ansible_playbook(playbook_name):
 
     cmd_str = " ".join(cmd)
     print(cmd_str)
-    res = call(cmd_str, cwd=ANSIBLE_ROOT)
+    res = call(cmd_str, cwd=ANSIBLE_ROOT, shell=True)
     if res != 0:
         print("Ansible command failed: {}".format(cmd_str))
         raise RuntimeError("Ansible command failed: {}".format(cmd_str))

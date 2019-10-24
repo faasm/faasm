@@ -54,6 +54,6 @@ def _do_call(n_workers, interval, native):
         fh.write(output)
 
     # Copy billing directory into place
-    res = call("cp -r /tmp/billing {}/".format(result_dir))
+    res = call("cp -r /tmp/billing {}/".format(result_dir), shell=True)
     if res != 0:
         raise RuntimeError("Failed to put billing files in place")
