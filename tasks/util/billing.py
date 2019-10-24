@@ -4,8 +4,6 @@ from os import listdir
 from os.path import join, basename, normpath
 from subprocess import call
 
-import numpy as np
-
 from tasks.util.env import ANSIBLE_ROOT
 
 
@@ -64,20 +62,30 @@ def parse_billing(result_dir, summary_out_dir):
     total_cpu_iowait = _total_diff_across_all(results, "CPU_TIME_IOWAIT")
     total_cpu_idle = _total_diff_across_all(results, "CPU_TIME_IDLE")
     total_disk_write = _total_diff_across_all(results, "DISK_WRITE_MB")
+    total_used_mem = _total_diff_min_max_across_all(results, "MEMORY_USED")
 
     with open(summary_out_file, "w") as fh:
-        fh.write("WORKERS  {}\n".format(n_workers))
-        fh.write("NET_SENT_MB  {}\n".format(total_net_sent))
-        fh.write("DISK_WRITE_MB  {}\n".format(total_disk_write))
-        fh.write("CPU_USER  {}\n".format(total_cpu_user))
-        fh.write("CPU_IOWAIT  {}\n".format(total_cpu_iowait))
-        fh.write("CPU_IDLE  {}\n".format(total_cpu_idle))
+        fh.write("WORKERS {}\n".format(n_workers))
+        fh.write("NET_SENT_MB {}\n".format(total_net_sent))
+        fh.write("DISK_WRITE_MB {}\n".format(total_disk_write))
+        fh.write("CPU_USER {}\n".format(total_cpu_user))
+        fh.write("CPU_IOWAIT {}\n".format(total_cpu_iowait))
+        fh.write("CPU_IDLE {}\n".format(total_cpu_idle))
+        fh.write("PEAK_MEMORY {}\n".format(total_used_mem))
 
 
 def _total_diff_across_all(results, metric_name):
     total_val = 0
     for host, stats in results.items():
         total_val += _get_diff_metric(stats, metric_name)
+
+    return total_val
+
+
+def _total_diff_min_max_across_all(results, metric_name):
+    total_val = 0
+    for host, stats in results.items():
+        total_val += _get_min_max_diff_metric(stats, metric_name)
 
     return total_val
 
@@ -95,13 +103,6 @@ def _get_min_max_diff_metric(host_stats, metric_name):
 
     values = [m[1] for m in metric_data]
     return max(values) - min(values)
-
-
-def _get_avg_metric(host_stats, metric_name):
-    metric_data = host_stats[metric_name]
-
-    values = [m[1] for m in metric_data]
-    return np.mean(values)
 
 
 def _get_value_from_run_name(run_name, variable):
