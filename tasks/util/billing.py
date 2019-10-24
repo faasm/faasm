@@ -57,16 +57,18 @@ def parse_billing(result_dir, summary_out_dir):
 
                 results[hostname][metric].append((timestamp, value))
 
-    total_net_sent = _total_diff_across_all(results, "NET_SENT_MB")
-    total_cpu_user = _total_diff_across_all(results, "CPU_TIME_USER")
-    total_cpu_iowait = _total_diff_across_all(results, "CPU_TIME_IOWAIT")
-    total_cpu_idle = _total_diff_across_all(results, "CPU_TIME_IDLE")
-    total_disk_write = _total_diff_across_all(results, "DISK_WRITE_MB")
+    total_net_sent = _total_diff_min_max_across_all(results, "NET_SENT_MB")
+    total_net_recv = _total_diff_min_max_across_all(results, "NET_RECV_MB")
+    total_cpu_user = _total_diff_min_max_across_all(results, "CPU_TIME_USER")
+    total_cpu_iowait = _total_diff_min_max_across_all(results, "CPU_TIME_IOWAIT")
+    total_cpu_idle = _total_diff_min_max_across_all(results, "CPU_TIME_IDLE")
+    total_disk_write = _total_diff_min_max_across_all(results, "DISK_WRITE_MB")
     total_used_mem = _total_diff_min_max_across_all(results, "MEMORY_USED")
 
     with open(summary_out_file, "w") as fh:
         fh.write("WORKERS {}\n".format(n_workers))
         fh.write("NET_SENT_MB {}\n".format(total_net_sent))
+        fh.write("NET_RECV_MB {}\n".format(total_net_recv))
         fh.write("DISK_WRITE_MB {}\n".format(total_disk_write))
         fh.write("CPU_USER {}\n".format(total_cpu_user))
         fh.write("CPU_IOWAIT {}\n".format(total_cpu_iowait))

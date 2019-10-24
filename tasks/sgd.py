@@ -2,11 +2,9 @@ from os import mkdir, listdir
 from os.path import exists, join
 from shutil import rmtree
 from subprocess import call
-from time import sleep
 
 from invoke import task
 
-from tasks import deploy_knative, deploy_knative_native
 from tasks.util.billing import start_billing, pull_billing, parse_billing
 from tasks.util.env import FAASM_HOME
 from tasks.util.invoke import invoke_impl
