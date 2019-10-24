@@ -3,7 +3,7 @@
 - hosts: localhost
   tasks:
     - name: "Recreate download location"
-      shell: "rm -rf /tmp/billing && mkdir -p /tmp/billing"
+      shell: "rm -rf /tmp/billing/results && mkdir -p /tmp/billing/results"
 
 - hosts: all
   gather_facts: no
@@ -15,7 +15,7 @@
     - name: "Download metrics file"
       fetch:
         src: "/tmp/billing/metrics.log"
-        dest: "/tmp/billing/{{ inventory_hostname }}.log"
+        dest: "/tmp/billing/results/{{ inventory_hostname }}.log"
         validate_checksum: no
         flat: yes
 
