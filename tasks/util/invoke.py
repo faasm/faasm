@@ -63,6 +63,7 @@ def invoke_impl(user, func,
             "async": async,
             "py_user": user,
             "py_func": func,
+            "python": True,
         }
     else:
         msg = {
