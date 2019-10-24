@@ -18,18 +18,10 @@ LOCAL_RESULT_DIR = join(FAASM_HOME, "sgd_results")
 def sgd_experiment(ctx, workers, interval, native=False, both=False):
     # WASM run
     if not native:
-        n_replicas = (workers + 4 // 2) // 4
-        deploy_knative(ctx, n_replicas)
-
-        sleep(20)
         _do_call(workers, interval, False)
 
     # Native run
     if native or both:
-        n_replicas = workers
-        deploy_knative_native(ctx, "sgd", "reuters_svm", n_replicas)
-
-        sleep(20)
         _do_call(workers, interval, True)
 
 
