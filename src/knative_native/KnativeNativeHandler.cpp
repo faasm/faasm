@@ -9,29 +9,31 @@
 #include <util/environment.h>
 #include <util/func.h>
 #include <scheduler/Scheduler.h>
+#include <Python.h>
+
+#include <utility>
+
+#define NATIVE_PYTHON_FUNC_PREFIX "/usr/local/code/faasm/func/"
 
 
 namespace knative_native {
-    KnativeNativeHandler::KnativeNativeHandler() = default;
+    KnativeNativeHandler::KnativeNativeHandler(
+            std::string userIn,
+            std::string funcIn
+            ) : user(std::move(userIn)), func(std::move(funcIn)) {
+
+    }
 
     void KnativeNativeHandler::onRequest(
             const Pistache::Http::Request &request,
             Pistache::Http::ResponseWriter response
-            ) {
+    ) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        const std::string funcName = util::getEnvVar("FAASM_FUNC", "");
-        const std::string user = util::getEnvVar("FAASM_USER", "");
-
-        if (funcName.empty() || user.empty()) {
-            logger->error("Expected to find FAASM_FUNC and FAASM_USER environment variables");
-            throw std::runtime_error("Need to set FAASM_USER and FAASM_FUNC");
-        }
-
         // Set up what user/ function we're running
-        logger->debug("Knative native request to {}/{}", user, funcName);
+        logger->debug("Knative native request to {}/{}", user, func);
         setEmulatorUser(user.c_str());
-        setEmulatorFunction(funcName.c_str());
+        setEmulatorFunction(func.c_str());
 
         // Parse the JSON input
         const std::string requestStr = request.body();
@@ -51,28 +53,34 @@ namespace knative_native {
             // Message status request
             logger->debug("Getting status for function {}", msg.id());
             outputStr = getMessageStatus(msg);
-        }
-        else if(msg.ispython()) {
+        } else if (msg.ispython()) {
             setEmulatorPythonUser(msg.pythonuser().c_str());
             setEmulatorPythonFunction(msg.pythonfunction().c_str());
 
-            logger->debug("Executing Python function {}/{}", msg.pythonuser(), msg.pythonfunction());
+            if (msg.isasync()) {
+                logger->debug("Executing async Python function {}/{}", msg.pythonuser(), msg.pythonfunction());
 
-            // This will be linked to the python executable
-            exec(0);
-        }
-        else if (msg.isasync()) {
+                // Execute async message in detached thread
+                std::thread t([msg] {
+                    executePythonFunction();
+                    setAsyncResult(msg);
+                });
+
+                t.detach();
+
+                outputStr = util::buildAsyncResponse(msg);
+            } else {
+                logger->debug("Executing Python function {}/{}", msg.pythonuser(), msg.pythonfunction());
+                executePythonFunction();
+            }
+
+        } else if (msg.isasync()) {
             logger->debug("Executing function index {} async", msg.idx());
 
             // Execute async message in detached thread
             std::thread t([msg] {
                 exec(msg.idx());
-
-                // Set result of request
-                scheduler::GlobalMessageBus &messageBus = scheduler::getGlobalMessageBus();
-                message::Message resultMsg = msg;
-                resultMsg.set_outputdata(getEmulatorOutputDataString());
-                messageBus.setFunctionResult(resultMsg, true);
+                setAsyncResult(msg);
             });
 
             t.detach();
@@ -90,5 +98,31 @@ namespace knative_native {
         fflush(stdout);
 
         response.send(Pistache::Http::Code::Ok, outputStr);
+    }
+
+    void executePythonFunction() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        std::string funcPath =
+                NATIVE_PYTHON_FUNC_PREFIX + getEmulatorPythonUser() + "/" + getEmulatorPythonFunction() + ".py";
+
+        FILE *fp = fopen(funcPath.c_str(), "r");
+        if (fp == nullptr) {
+            logger->error("Failed to open python file at {}", funcPath);
+        } else {
+            // Execute the function
+            PyRun_SimpleFile(fp, funcPath.c_str());
+            fclose(fp);
+        }
+
+        printf("Finalised\n");
+    }
+
+    void setAsyncResult(const message::Message &msg) {
+        // Set result of request
+        scheduler::GlobalMessageBus &messageBus = scheduler::getGlobalMessageBus();
+        message::Message resultMsg = msg;
+        resultMsg.set_outputdata(getEmulatorOutputDataString());
+        messageBus.setFunctionResult(resultMsg, true);
     }
 }

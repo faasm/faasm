@@ -6,10 +6,18 @@
 namespace knative_native {
     class KnativeNativeHandler : public Pistache::Http::Handler, scheduler::SchedulerHttpMixin {
     public:
-        KnativeNativeHandler();
+        KnativeNativeHandler(std::string userIn, std::string funcIn);
 
         HTTP_PROTOTYPE(KnativeNativeHandler)
 
         void onRequest(const Pistache::Http::Request &request, Pistache::Http::ResponseWriter response) override;
+    private:
+        const std::string user;
+        const std::string func;
     };
+
+    void executePythonFunction();
+
+    void setAsyncResult(const message::Message &msg);
+
 }
