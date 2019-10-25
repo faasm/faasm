@@ -25,3 +25,6 @@
 [submodule "third-party/llvm-project"]
 	path = third-party/llvm-project
 	url = https://github.com/llvm/llvm-project.git
+[submodule "third-party/pyfaasm"]
+	path = third-party/pyfaasm
+	url = https://github.com/Shillaker/pyfaasm.git
