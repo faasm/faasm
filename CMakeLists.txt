@@ -13,6 +13,7 @@ set(FAASM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(FAASM_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include)
 set(FAASM_LIB_C_DIR ${CMAKE_CURRENT_LIST_DIR}/lib-c)
 set(FAASM_LIB_CPP_DIR ${CMAKE_CURRENT_LIST_DIR}/lib-cpp)
+set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lib-pyinit)
 set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
 
 option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
@@ -37,7 +38,7 @@ else()
 endif()
 
 # Switch on WAVM stack traces in debug (potential performance gain?)
-if(CMAKE_BUILD_TYPE MATCHES DEBUG)
+if(CMAKE_BUILD_TYPE MATCHES Debug)
     set(WAVM_ENABLE_UNWIND ON CACHE BOOL "WAVM unwind")
 else()
     set(WAVM_ENABLE_UNWIND OFF CACHE BOOL "WAVM unwind")
@@ -91,6 +92,7 @@ include_directories(
         ${FAASM_INCLUDE_DIR}
         ${FAASM_LIB_C_DIR}
         ${FAASM_LIB_CPP_DIR}
+        ${FAASM_PYTHON_LIB_DIR}
         ${CMAKE_CURRENT_BINARY_DIR}/src # Required for protobuf
 )
 
@@ -99,6 +101,7 @@ if (FAASM_BUILD_TYPE STREQUAL "knative-native")
 
     add_subdirectory(func)
     add_subdirectory(lib-cpp)
+    add_subdirectory(lib-pyinit)
 
     add_subdirectory(src/emulator)
     add_subdirectory(src/endpoint)
@@ -205,6 +208,7 @@ else ()
 
     # Faasm libraries
     add_subdirectory(lib-cpp)
+    add_subdirectory(lib-pyinit)
 
     # Custom malloc
     add_subdirectory(third-party/malloc)

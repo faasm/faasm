@@ -29,6 +29,9 @@ _PACKAGES_INCLUDED = {
     "pyaes": {
         "path": "pyaes/build/pyaes-1.6.1/install/lib/python3.7/site-packages/pyaes",
     },
+    "pyfaasm": {
+        "path": "pyfaasm/build/pyfaasm-0.0.3/install/lib/python3.7/site-packages",
+    },
     "six": {
         "path": "six/build/six-1.12.0/install/lib/python3.7/site-packages/six.py"
     }
@@ -53,6 +56,24 @@ def _remove_runtime_dir(dir_name):
 def clear_runtime_pyc(ctx):
     print("Clearing out runtime pyc files")
     _clear_pyc_files(FAASM_RUNTIME_ROOT)
+
+
+@task
+def set_up_python_package(ctx, pkg_name):
+    _do_set_up_python_packages([pkg_name])
+
+
+def _do_set_up_python_packages(package_names):
+    for pkg_name in package_names:
+        print("\n --------- {} ---------".format(pkg_name))
+
+        pkg_detail = _PACKAGES_INCLUDED[pkg_name]
+        pkg_dir = join(PYODIDE_PACKAGES, pkg_detail["path"])
+
+        # Put files in place
+        print("Copying {} into place".format(pkg_name))
+        runtime_site_packages = join(PY_RUNTIME_ROOT, "site-packages")
+        check_output("cp -r {} {}".format(pkg_dir, runtime_site_packages), shell=True)
 
 
 @task
@@ -81,14 +102,7 @@ def set_up_python_runtime(ctx):
     check_output("mkdir -p {}".format(join(PY_RUNTIME_ROOT, "tmp")), shell=True)
 
     print("\nSetting up packages")
-    for pkg_name, pkg_detail in _PACKAGES_INCLUDED.items():
-        print("\n --------- {} ---------".format(pkg_name))
-
-        pkg_dir = join(PYODIDE_PACKAGES, pkg_detail["path"])
-
-        # Put files in place
-        print("Copying {} into place".format(pkg_name))
-        check_output("cp -r {} {}".format(pkg_dir, runtime_site_packages), shell=True)
+    _do_set_up_python_packages(_PACKAGES_INCLUDED.keys())
 
     # Run codegen
     run_python_codegen(ctx)

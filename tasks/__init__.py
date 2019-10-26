@@ -102,6 +102,7 @@ from tasks.knative import (
 from tasks.python import (
     clear_runtime_pyc,
     set_up_python_runtime,
+    set_up_python_package,
     run_python_codegen,
 )
 from tasks.runtime import (

@@ -95,12 +95,8 @@ def compile_libfaasm(ctx, clean=False):
         call("make", shell=True, cwd=build_dir)
         call("make install", shell=True, cwd=build_dir)
 
-        # Put imports file in place to avoid undefined symbols
-        if dir_name == "lib":
-            check_output("cp libfaasm.imports {}".format(build_dir), shell=True, cwd=work_dir)
-
     _do_lib_build("lib-cpp")
-    _do_lib_build("python")
+    _do_lib_build("lib-pyinit")
 
 
 @task

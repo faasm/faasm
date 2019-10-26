@@ -38,7 +38,19 @@ int main(int argc, char *argv[]) {
     if (user == "ts") {
         call.set_istypescript(true);
     }
-    logger->info("Running function {}/{}", user, function);
+
+    if (user == "python") {
+        call.set_ispython(true);
+        call.set_pythonfunction(function);
+        call.set_pythonuser(user);
+
+        call.set_user(PYTHON_USER);
+        call.set_function(PYTHON_FUNC);
+
+        logger->info("Running Python function {}/{}", user, function);
+    } else {
+        logger->info("Running function {}/{}", user, function);
+    }
 
     if (argc > 3) {
         std::string inputData = argv[3];
