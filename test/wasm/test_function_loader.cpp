@@ -40,17 +40,6 @@ namespace tests {
             actualBytes = loader.loadFunctionWasm(call);
         }
 
-        SECTION("Python function") {
-            // Python file can be junk
-            expectedBytes = {1, 2, 3, 4, 5};
-
-            call.set_inputdata(util::bytesToString(expectedBytes));
-            loader.uploadPythonFunction(call);
-
-            filePath = util::getPythonFunctionFile(call);
-            actualBytes = loader.loadPythonFunctionFile(call);
-        }
-
         SECTION("Object file") {
             expectedBytes = {8, 7, 6, 5, 4};
 

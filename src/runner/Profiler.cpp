@@ -14,11 +14,7 @@
 namespace runner {
     Profiler::Profiler(const std::string userIn, const std::string funcNameIn, const std::string inputDataIn) : user(
             userIn), funcName(funcNameIn), inputData(inputDataIn) {
-        if (inputDataIn.empty()) {
-            outputName = funcNameIn;
-        } else {
-            outputName = inputDataIn;
-        }
+        outputName = funcNameIn;
     }
 
     void Profiler::preflightWasm() {
@@ -35,11 +31,12 @@ namespace runner {
         const util::TimePoint tpInit = util::startTimer();
         
         message::Message call = util::messageFactory(this->user, this->funcName);
+        call.set_pythonuser(this->pythonUser);
+        call.set_pythonfunction(this->pythonFunction);
         call.set_inputdata(this->inputData);
 
         zygote::ZygoteRegistry &zygoteReg = zygote::getZygoteRegistry();
         wasm::WasmModule &zygote = zygoteReg.getZygote(call);
-
 
         logger->info("Running benchmark in WASM");
         for (int i = 0; i < nIterations; i++) {

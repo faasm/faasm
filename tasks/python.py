@@ -30,7 +30,7 @@ _PACKAGES_INCLUDED = {
         "path": "pyaes/build/pyaes-1.6.1/install/lib/python3.7/site-packages/pyaes",
     },
     "pyfaasm": {
-        "path": "pyfaasm/build/pyfaasm-0.0.3/install/lib/python3.7/site-packages",
+        "path": "pyfaasm/build/pyfaasm-0.0.4/install/lib/python3.7/site-packages",
     },
     "six": {
         "path": "six/build/six-1.12.0/install/lib/python3.7/site-packages/six.py"

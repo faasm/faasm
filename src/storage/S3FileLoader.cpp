@@ -35,10 +35,6 @@ namespace storage {
         throw std::runtime_error("Not implemented for S3 function loader");
     }
 
-    std::vector<uint8_t> S3FileLoader::loadPythonFunctionFile(const message::Message &msg) {
-        throw std::runtime_error("Loading python functions not supported with S3");
-    }
-
     void S3FileLoader::uploadFunction(message::Message &msg) {
         // Note, when uploading, the input data is the function body
         const std::string &inputBytes = msg.inputdata();

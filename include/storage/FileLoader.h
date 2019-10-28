@@ -17,8 +17,6 @@ namespace storage {
 
         virtual std::vector<uint8_t> loadSharedObjectObjectFile(const std::string &path) = 0;
 
-        virtual std::vector<uint8_t> loadPythonFunctionFile(const message::Message &msg) = 0;
-
         virtual std::vector<uint8_t> loadSharedFile(const std::string &path) = 0;
 
         virtual void uploadFunction(message::Message &msg) = 0;

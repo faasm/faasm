@@ -37,10 +37,6 @@ namespace storage {
         throw std::runtime_error("Not implemented for IBM function loader");
     }
 
-    std::vector<uint8_t> IBMFileLoader::loadPythonFunctionFile(const message::Message &msg) {
-        throw std::runtime_error("Loading python functions not supported with IBM");
-    }
-
     void IBMFileLoader::uploadFunction(message::Message &msg) {
         // Note, when uploading, the input data is the function body
         const std::string &inputBytes = msg.inputdata();

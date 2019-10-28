@@ -20,14 +20,16 @@ namespace runner {
         const std::string user;
         const std::string funcName;
         const std::string inputData;
+        std::string pythonUser;
+        std::string pythonFunction;
 
-    private:
+    protected:
         std::string outputName;
     };
 
     class PythonProfiler : public Profiler {
     public:
-        explicit PythonProfiler(std::string pythonFile);
+        explicit PythonProfiler(std::string pythonFunc);
 
         void runNative() override;
     };

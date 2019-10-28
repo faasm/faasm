@@ -76,19 +76,6 @@ inv bench-mem
 
 Results are written to `/root/faasm/results/runtime-bench-mem.csv` (assuming your root home is `/root`).
 
-### Other runtimes
-
-It would be nice to benchmark these similar overheads against Firecracker, however I haven't been able to script it
-up yet. It can be set up by running:
-
-```
-cd ansible
-ansible-playbook firecracker.yml --ask-become-pass
-```
-
-Lucet would also be interesting but it doesn't currently provide a
-[full isolation environment](https://github.com/fastly/lucet/security/policy), therefore is not really comparable.
-
 ## Capacity
 
 Capacity measurements aim to work out the maximum number of concurrent workers we can sustain on a given box for both Faasm and Docker.
