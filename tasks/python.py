@@ -62,6 +62,16 @@ def clear_runtime_pyc(ctx):
 def set_up_python_package(ctx, pkg_name):
     _do_set_up_python_packages([pkg_name])
 
+    # Run codegen for just this package
+    binary = find_codegen_shared_lib()
+    pkg_install_dir = join(PY_RUNTIME_ROOT, "site-packages", pkg_name)
+
+    if not exists(pkg_install_dir):
+        print("Expected to find package installed at {}".format(pkg_install_dir))
+        return 1
+
+    check_output("{} {}".format(binary, pkg_install_dir), shell=True)
+
 
 def _do_set_up_python_packages(package_names):
     for pkg_name in package_names:
