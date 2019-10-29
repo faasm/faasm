@@ -382,7 +382,7 @@ namespace state {
         long startIdx = 0;
         bool isOn = false;
 
-        for (long i = 0; i < valueSize; i++) {
+        for (size_t i = 0; i < valueSize; i++) {
             if (dirtyMaskBytes[i] == 0) {
                 // If we encounter an "off" mask and we're "on", switch off and write the segment
                 if(isOn) {
