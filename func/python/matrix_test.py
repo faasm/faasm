@@ -1,5 +1,9 @@
 import numpy as np
 
+import redis
+
+r = redis.Redis()
+
 
 def _subdivide_matrix(m):
     n = m.shape[0]
@@ -23,7 +27,12 @@ def _reconstruct_matrix(m_a, m_b, m_c, m_d):
     )
 
 
-def _divide_and_conquer_multiply(a, b):
+def _dnc_multiply(a_key, b_key, mat_size):
+    a_bytes = r.get(a_key)
+    b_bytes = r.get(b_key)
+    a = np.frombuffer(a_bytes).reshape(mat_size, mat_size)
+    b = np.frombuffer(b_bytes).reshape(mat_size, mat_size)
+
     n = a.shape[0]
 
     # Do naive divide and conquer
@@ -32,10 +41,11 @@ def _divide_and_conquer_multiply(a, b):
 
     # Keep dividing and conquering down to a limit
     if n > 4:
-        r_a = _divide_and_conquer_multiply(m_aa, m_ba) + _divide_and_conquer_multiply(m_ab, m_bc)
-        r_b = _divide_and_conquer_multiply(m_aa, m_bb) + _divide_and_conquer_multiply(m_ab, m_bd)
-        r_c = _divide_and_conquer_multiply(m_ac, m_ba) + _divide_and_conquer_multiply(m_ad, m_bc)
-        r_d = _divide_and_conquer_multiply(m_ac, m_bb) + _divide_and_conquer_multiply(m_ad, m_bd)
+        sub_size = mat_size / 2
+        r_a = _dnc_multiply(m_aa, m_ba, sub_size) + _dnc_multiply(m_ab, m_bc, sub_size)
+        r_b = _dnc_multiply(m_aa, m_bb, sub_size) + _dnc_multiply(m_ab, m_bd, sub_size)
+        r_c = _dnc_multiply(m_ac, m_ba, sub_size) + _dnc_multiply(m_ad, m_bc, sub_size)
+        r_d = _dnc_multiply(m_ac, m_bb, sub_size) + _dnc_multiply(m_ad, m_bd, sub_size)
     else:
         r_a = np.dot(m_aa, m_ba) + np.dot(m_ab, m_bc)
         r_b = np.dot(m_aa, m_bb) + np.dot(m_ab, m_bd)
@@ -72,7 +82,9 @@ def main():
     expected = np.dot(a, b)
 
     # Do divide and conquer multiplication
-    actual = _divide_and_conquer_multiply(a, b)
+    r.set("mat_a", a.tobytes())
+    r.set("mat_b", b.tobytes())
+    actual = _dnc_multiply("mat_a", "mat_b", a.shape[0])
 
     # Print results
     print("\nEXPECTED\n {}".format(expected))

@@ -7,6 +7,7 @@ configparser
 cryptography
 dulwich
 genshi
+hiredis
 ibm-cos-sdk
 invoke
 matplotlib
@@ -16,5 +17,6 @@ psutil
 PyOpenSSL
 pywren-ibm-cloud
 pyfaasm
+redis
 requests
 wheel
