@@ -5,7 +5,11 @@ import redis
 r = redis.Redis()
 
 
-def _subdivide_matrix(m):
+def _k(initial, mat_size):
+    return "{}_{}".format(initial, mat_size)
+
+
+def _subdivide_matrix(initial, m):
     n = m.shape[0]
     half_n = n // 2
 
@@ -14,7 +18,17 @@ def _subdivide_matrix(m):
     m_c = m[half_n:n, 0:half_n]
     m_d = m[half_n:n, half_n:n]
 
-    return m_a, m_b, m_c, m_d
+    k_a = _k("{}_{}".format(initial, "a"), half_n)
+    k_b = _k("{}_{}".format(initial, "b"), half_n)
+    k_c = _k("{}_{}".format(initial, "c"), half_n)
+    k_d = _k("{}_{}".format(initial, "d"), half_n)
+
+    r.set(k_a, m_a.tobytes())
+    r.set(k_b, m_b.tobytes())
+    r.set(k_c, m_c.tobytes())
+    r.set(k_d, m_d.tobytes())
+
+    return k_a, k_b, k_c, k_d
 
 
 def _reconstruct_matrix(m_a, m_b, m_c, m_d):
@@ -27,26 +41,39 @@ def _reconstruct_matrix(m_a, m_b, m_c, m_d):
     )
 
 
+def _load_mat(key, mat_size):
+    bytes = r.get(key)
+    return np.frombuffer(bytes).reshape(mat_size, mat_size)
+
+
 def _dnc_multiply(a_key, b_key, mat_size):
-    a_bytes = r.get(a_key)
-    b_bytes = r.get(b_key)
-    a = np.frombuffer(a_bytes).reshape(mat_size, mat_size)
-    b = np.frombuffer(b_bytes).reshape(mat_size, mat_size)
+    a = _load_mat(a_key, mat_size)
+    b = _load_mat(b_key, mat_size)
 
     n = a.shape[0]
 
     # Do naive divide and conquer
-    m_aa, m_ab, m_ac, m_ad = _subdivide_matrix(a)
-    m_ba, m_bb, m_bc, m_bd = _subdivide_matrix(b)
+    k_aa, k_ab, k_ac, k_ad = _subdivide_matrix("a", a)
+    k_ba, k_bb, k_bc, k_bd = _subdivide_matrix("b", b)
 
     # Keep dividing and conquering down to a limit
+    sub_size = mat_size // 2
     if n > 4:
-        sub_size = mat_size / 2
-        r_a = _dnc_multiply(m_aa, m_ba, sub_size) + _dnc_multiply(m_ab, m_bc, sub_size)
-        r_b = _dnc_multiply(m_aa, m_bb, sub_size) + _dnc_multiply(m_ab, m_bd, sub_size)
-        r_c = _dnc_multiply(m_ac, m_ba, sub_size) + _dnc_multiply(m_ad, m_bc, sub_size)
-        r_d = _dnc_multiply(m_ac, m_bb, sub_size) + _dnc_multiply(m_ad, m_bd, sub_size)
+        r_a = _dnc_multiply(k_aa, k_ba, sub_size) + _dnc_multiply(k_ab, k_bc, sub_size)
+        r_b = _dnc_multiply(k_aa, k_bb, sub_size) + _dnc_multiply(k_ab, k_bd, sub_size)
+        r_c = _dnc_multiply(k_ac, k_ba, sub_size) + _dnc_multiply(k_ad, k_bc, sub_size)
+        r_d = _dnc_multiply(k_ac, k_bb, sub_size) + _dnc_multiply(k_ad, k_bd, sub_size)
     else:
+        m_aa = _load_mat(k_aa, sub_size)
+        m_ab = _load_mat(k_ab, sub_size)
+        m_ac = _load_mat(k_ac, sub_size)
+        m_ad = _load_mat(k_ad, sub_size)
+
+        m_ba = _load_mat(k_ba, sub_size)
+        m_bb = _load_mat(k_bb, sub_size)
+        m_bc = _load_mat(k_bc, sub_size)
+        m_bd = _load_mat(k_bd, sub_size)
+
         r_a = np.dot(m_aa, m_ba) + np.dot(m_ab, m_bc)
         r_b = np.dot(m_aa, m_bb) + np.dot(m_ab, m_bd)
         r_c = np.dot(m_ac, m_ba) + np.dot(m_ad, m_bc)
@@ -56,16 +83,16 @@ def _dnc_multiply(a_key, b_key, mat_size):
 
 
 def main():
-    # Do normal matrix multiplication
+    # Note, numpy assumes floats by default
     a = np.array((
-        [1, 2, 3, 4, 5, 6, 7, 8],
-        [9, 10, 11, 12, 13, 14, 15, 16],
-        [17, 18, 19, 20, 21, 22, 23, 24],
-        [25, 26, 27, 28, 29, 30, 31, 32],
-        [33, 34, 35, 36, 37, 38, 39, 40],
-        [41, 42, 43, 44, 45, 46, 47, 48],
-        [49, 50, 51, 52, 53, 54, 55, 56],
-        [57, 58, 59, 60, 61, 62, 63, 64],
+        [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+        [9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0],
+        [17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0],
+        [25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, 32.0],
+        [33.0, 34.0, 35.0, 36.0, 37.0, 38.0, 39.0, 40.0],
+        [41.0, 42.0, 43.0, 44.0, 45.0, 46.0, 47.0, 48.0],
+        [49.0, 50.0, 51.0, 52.0, 53.0, 54.0, 55.0, 56.0],
+        [57.0, 58.0, 59.0, 60.0, 61.0, 62.0, 63.0, 64.0],
     ))
 
     b = np.array((
