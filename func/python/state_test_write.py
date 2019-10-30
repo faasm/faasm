@@ -16,7 +16,7 @@ def _check_full_value(expected):
     if actual != expected:
         msg = "Mismatch: actual {}, expected {})".format(actual, expected)
         print(msg)
-        raise RuntimeError(msg)
+        exit(1)
 
 
 # Set the full value initially
@@ -39,3 +39,5 @@ if actualSegment != segment:
     msg = "Mismatched segment: actual {}, expected {})".format(actualSegment, segment)
     print(msg)
     raise RuntimeError(msg)
+
+print("Successful Python state writing check")
