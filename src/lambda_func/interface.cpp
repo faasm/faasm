@@ -104,25 +104,6 @@ void __faasm_write_output(const unsigned char *o, long len) {
     faasm::output = std::string(charPtr, (size_t) len);
 }
 
-unsigned int __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize) {
-    awswrapper::LambdaWrapper &lambda = awswrapper::LambdaWrapper::getThreadLocal();
-
-    // Note, in the lambda env, we need to prepend the username to the chained function
-    std::string funcName = faasm::functionUser + "-" + std::string(name);
-
-    // HACK if SGD barrier, delay
-    if (funcName == "sgd-sgd_barrier") {
-        usleep(1000 * 500);
-    }
-
-    // Convert back to a string and pass to lambda
-    std::string inputStr(reinterpret_cast<const char *>(inputData), inputDataSize);
-    lambda.invokeFunction(funcName, inputStr, false);
-
-    // TODO - return proper ID
-    return 1234;
-}
-
 int __faasm_await_call(unsigned int messageId) {
     // TODO - allow waiting for another function
     return 0;
@@ -133,7 +114,17 @@ unsigned int __faasm_chain_this(int idx, const unsigned char *inputData, long in
     throw std::runtime_error("Not implemented self-chaining");
 }
 
+unsigned int __faasm_chain_py(int idx, const unsigned char *inputData, long inputDataSize) {
+    // TODO - invoke this function again with the given index
+    throw std::runtime_error("Not implemented py-chaining");
+}
+
 int __faasm_get_idx() {
+    // TODO - get this from the context somehow
+    throw std::runtime_error("Not implemented self-chaining");
+}
+
+int __faasm_get_py_idx() {
     // TODO - get this from the context somehow
     throw std::runtime_error("Not implemented self-chaining");
 }
