@@ -6,16 +6,32 @@
 #define WASM_PYTHON_FUNC_PREFIX "faasm://pyfuncs/"
 #define NATIVE_PYTHON_FUNC_PREFIX "/usr/local/code/faasm/func/"
 
+static PyObject* numpyModule = NULL;
+
+//#ifdef __wasm__
+//#else
+//#include <emulator/emulator.h>
+//#endif
+
 FAASM_ZYGOTE() {
+//#ifdef __wasm__
+//#else
+//    setEmulatorPythonUser("python");
+//    setEmulatorPythonFunction("hello");
+//#endif
+
     setUpPyEnvironment();
     Py_InitializeEx(0);
 
     setUpPyNumpy();
 
     // Import numpy up front
-    // PyImport_ImportModule("numpy");
-
-    printf("\n\nPython initialised\n");
+    numpyModule = PyImport_ImportModule("numpy");
+    if(!numpyModule) {
+        printf("\nFailed to import numpy\n");
+    } else {
+        printf("\nPython initialised with numpy\n");
+    }
 
     return 0;
 }

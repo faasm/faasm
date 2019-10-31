@@ -61,7 +61,8 @@ namespace tests {
 
         // Check the memory has grown sufficiently
         Uptr memSizeAfterA = Runtime::getMemoryNumPages(module.defaultMemory) * IR::numBytesPerPage;
-        REQUIRE(memSizeAfterA == initialMemSize + DYNAMIC_MODULE_HEAP_SIZE);
+        Uptr heapSize = DYNAMIC_MODULE_HEAP_PAGES * IR::numBytesPerPage;
+        REQUIRE(memSizeAfterA == initialMemSize + heapSize);
 
         // Check the stack is at the bottom of this region, and the heap is just above it
 
@@ -97,7 +98,7 @@ namespace tests {
 
         // Check the memory
         Uptr memSizeAfterB = Runtime::getMemoryNumPages(module.defaultMemory) * IR::numBytesPerPage;
-        REQUIRE(memSizeAfterB == memSizeAfterA + DYNAMIC_MODULE_HEAP_SIZE);
+        REQUIRE(memSizeAfterB == memSizeAfterA + heapSize);
 
         int heapBaseB = module.getNextMemoryBase();
         int stackPointerB = module.getNextStackPointer();

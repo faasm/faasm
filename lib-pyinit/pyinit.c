@@ -11,6 +11,7 @@
 #include <complex.h>
 
 void setUpPyEnvironment() {
+#ifdef __wasm__
     // Python env vars - https://docs.python.org/3/using/cmdline.html#environment-variables
     setenv("PYTHONHOME", "/", 1);
     setenv("PYTHONPATH", "/", 1);
@@ -20,6 +21,8 @@ void setUpPyEnvironment() {
 
     // Faasm-specific
     setenv("PYTHONWASM", "1", 1);
+#else
+#endif
 }
 
 void setUpPyNumpy() {
