@@ -336,6 +336,8 @@ unsigned int _chain_this_knative(int idx, const unsigned char *buffer, long buff
     message::Message msg = util::messageFactory(_user, _function);
     msg.set_idx(idx);
     msg.set_inputdata(buffer, bufferLen);
+    msg.set_pythonuser(_pythonUser);
+    msg.set_pythonfunction(_pythonFunction);
 
     // We will be awaiting the response in a thread in the background, therefore this must _not_ be async
     msg.set_isasync(false);
