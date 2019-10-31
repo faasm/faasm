@@ -17,19 +17,12 @@ namespace tests {
         sfm.clear();
 
         util::SystemConfig &conf = util::getSystemConfig();
-        std::string original = conf.fsMode;
 
         std::string validPath = "include/python3.7m/Python.h";
         std::string maskedValidPath = maskPath(validPath);
         std::string invalidPath = "/foobar/123/blah";
 
-        SECTION("Valid file but FS mode off") {
-            conf.fsMode = "off";
-            REQUIRE_THROWS(sfm.openFile(validPath, O_RDONLY, 0));
-        }
-        SECTION("Valid file with FS mode on") {
-            conf.fsMode = "on";
-
+        SECTION("Valid file") {
             int fd = sfm.openFile(validPath, O_RDONLY, 0);
             REQUIRE(fd > 0);
 
@@ -44,18 +37,12 @@ namespace tests {
 
             REQUIRE(actual == expected);
         }
-        SECTION("Non-existent with FS mode off") {
-            conf.fsMode = "off";
-            REQUIRE_THROWS(sfm.openFile(invalidPath, O_RDONLY, 0));
-        }
-        SECTION("Non-existent with FS mode on") {
+
+        SECTION("Non-existent") {
             std::string path = "/foobar/123/blah";
-            conf.fsMode = "on";
             int fd = sfm.openFile(invalidPath, O_RDONLY, 0);
             REQUIRE(fd == -ENOENT);
         }
-
-        conf.fsMode = original;
     }
 
     TEST_CASE("Check loading shared files", "[storage]") {

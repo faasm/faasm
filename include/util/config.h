@@ -25,7 +25,6 @@ namespace util {
         std::string netNsMode;
         std::string logLevel;
         std::string awsLogLevel;
-        std::string fsMode;
 
         // Redis
         std::string redisStateHost;

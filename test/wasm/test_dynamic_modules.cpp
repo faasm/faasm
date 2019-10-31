@@ -25,7 +25,7 @@ namespace tests {
     std::string mainData = "PyBool_Type";
     std::string dataA = "PyArray_API";
     std::string dataB = "PyUFunc_API";
-    int mainDataOffset = 6438704;
+    int mainDataOffset = 6438736;
     int dataAOffset = 10460832;
     int dataBOffset = 41746432;
 
@@ -33,8 +33,6 @@ namespace tests {
     int extraFuncsPerModule = 6;
 
     TEST_CASE("Test dynamic load/ function lookup", "[wasm]") {
-        util::SystemConfig &conf = util::getSystemConfig();
-        conf.fsMode = "on";
         wasm::IRModuleRegistry &registry = wasm::getIRModuleRegistry();
 
         // Bind to Python function
@@ -135,9 +133,6 @@ namespace tests {
     }
 
     TEST_CASE("Test GOT population", "[wasm]") {
-        util::SystemConfig &conf = util::getSystemConfig();
-        conf.fsMode = "on";
-
         // Bind to Python function
         message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         wasm::WasmModule module;
@@ -196,9 +191,6 @@ namespace tests {
     }
 
     TEST_CASE("Test resolving dynamic module imports", "[wasm]") {
-        util::SystemConfig &conf = util::getSystemConfig();
-        conf.fsMode = "on";
-
         // Bind to Python function
         message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         wasm::WasmModule module;

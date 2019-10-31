@@ -74,12 +74,6 @@ namespace storage {
         return _doLoad(url, path, path);
     }
 
-    std::vector<uint8_t> FileserverFileLoader::loadPythonFunctionFile(const message::Message &msg) {
-        std::string path = util::getPythonFunctionFile(msg);
-        std::string url = util::getPythonFunctionUrl(msg);
-        return _doLoad(url, "", path);
-    }
-
     std::vector<uint8_t> FileserverFileLoader::loadSharedFile(const std::string &path) {
         std::string url = util::getSharedFileUrl();
         const std::string fullPath = util::getSharedFileFile(path);

@@ -5,7 +5,7 @@ set -e
 pushd /faasm/build >> /dev/null
 
 # Run codegen for some functions
-ORIGINAL_STORAGE=$FUNCTION_STORAGE
+ORIGINAL_FUNCTION_STORAGE=$FUNCTION_STORAGE
 export FUNCTION_STORAGE=local
 echo "Temporarily changing function storage from ${ORIGINAL_FUNCTION_STORAGE} to local"
 

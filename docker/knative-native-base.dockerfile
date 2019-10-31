@@ -3,6 +3,9 @@ FROM faasm/base
 # Install python lib for python functions
 RUN apt-get install libpython3-dev
 
+# Install pyfaasm for interacting with emulator
+RUN pip install pyfaasm
+
 COPY . /usr/local/code/faasm
 
 # Nuke and recreate the build dir

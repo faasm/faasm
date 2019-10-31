@@ -35,4 +35,5 @@ message Message {
 
     optional string pythonUser = 18;
     optional string pythonFunction = 19;
+    optional int32 pythonIdx = 20;
 }

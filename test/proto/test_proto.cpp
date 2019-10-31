@@ -27,6 +27,7 @@ namespace tests {
 
         std::string pyUser = "python user";
         std::string pyFunc = "python func";
+        int pyIdx = 11;
 
         std::vector<uint8_t> inputData = createInput(0, 100);
         std::vector<uint8_t> outputData = createInput(120, 50);
@@ -37,6 +38,7 @@ namespace tests {
 
         funcCall.set_pythonuser(pyUser);
         funcCall.set_pythonfunction(pyFunc);
+        funcCall.set_pythonidx(pyIdx);
 
         funcCall.set_inputdata(inputData.data(), 100);
         funcCall.set_outputdata(outputData.data(), 50);
@@ -66,6 +68,7 @@ namespace tests {
 
         REQUIRE(pyUser == newFuncCall.pythonuser());
         REQUIRE(pyFunc == newFuncCall.pythonfunction());
+        REQUIRE(pyIdx == newFuncCall.pythonidx());
 
         REQUIRE(newFuncCall.isasync());
         REQUIRE(newFuncCall.ispython());

@@ -38,7 +38,6 @@ namespace util {
         netNsMode = getEnvVar("NETNS_MODE", "off");
         logLevel = getEnvVar("LOG_LEVEL", "info");
         awsLogLevel = getEnvVar("AWS_LOG_LEVEL", "off");
-        fsMode = getEnvVar("FS_MODE", "off");
 
         // Redis
         redisStateHost = getEnvVar("REDIS_STATE_HOST", "localhost");
@@ -94,7 +93,6 @@ namespace util {
         logger->info("NETNS_MODE                 {}", netNsMode);
         logger->info("LOG_LEVEL                  {}", logLevel);
         logger->info("AWS_LOG_LEVEL              {}", awsLogLevel);
-        logger->info("FS_MODE                {}", fsMode);
 
         logger->info("--- Redis ---");
         logger->info("REDIS_STATE_HOST           {}", redisStateHost);

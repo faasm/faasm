@@ -256,6 +256,8 @@ namespace scheduler {
             case (NO): {
                 return "NO";
             }
+            default:
+                return "UNKNOWN";
         }
     }
 

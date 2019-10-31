@@ -153,22 +153,6 @@ namespace tests {
             conf.objectFileDir = origObjDir;
         }
 
-        SECTION("Test uploading python file") {
-            std::vector<uint8_t> fileBytes = util::readFileToBytes("/usr/local/code/faasm/test/upload/dummy.py");
-
-            // Prepare
-            message::Message msg = util::messageFactory("py-test", "foo");
-            std::string expectedFile = util::getPythonFunctionFile(msg);
-            boost::filesystem::remove(expectedFile);
-
-            // Check putting the file
-            std::string url = "/p/py-test/foo";
-            checkPut(url, expectedFile, fileBytes);
-
-            // Check getting the file
-            checkGet(url, fileBytes);
-        }
-
         SECTION("Test uploading shared file") {
             const char *realPath = "/usr/local/code/faasm/test/upload/dummy_file.txt";
             std::vector<uint8_t> fileBytes = util::readFileToBytes(realPath);
@@ -228,8 +212,10 @@ namespace tests {
         loader.uploadPythonFunction(msg);
 
         // Check file exists as expected
-        std::string url = "p/" + user + "/" + funcName;
-        checkGet(url, expected);
+        const message::Message tempMsg = util::messageFactory("python", "foobar");
+        const std::string filePath = util::getPythonFunctionFile(tempMsg);
+        const std::vector<uint8_t> actualBytes = util::readFileToBytes(filePath);
+        REQUIRE(actualBytes == expected);
     }
 
     TEST_CASE("Shared object fileserver test", "[upload]") {

@@ -104,8 +104,6 @@ namespace edge {
 
             if (pathType == "s") {
                 returnBytes = getState(request);
-            } else if (pathType == "p" || pathType == "pa") {
-                returnBytes = l.loadPythonFunctionFile(msg);
             } else if (pathType == "fo") {
                 returnBytes = l.loadFunctionObjectFile(msg);
             } else {

@@ -30,11 +30,13 @@ static std::string _pythonFunction;
 static thread_local std::vector<uint8_t> _threadLocalInputData;
 static thread_local std::vector<uint8_t> _threadLocalOutputData;
 static thread_local int _threadLocalfuncIdx = 0;
+static thread_local int _threadLocalPyIdx = 0;
 
 // Note thread locality here to handle multiple locally chained functions
 static std::vector<uint8_t> _inputData;
 static std::vector<uint8_t> _outputData;
 static int _funcIdx = 0;
+static int _pyIdx = 0;
 
 static std::mutex threadsMutex;
 static std::unordered_map<int, std::thread> threads;
@@ -118,6 +120,11 @@ std::string getEmulatorPythonUser() {
 
 void setEmulatorPythonUser(const char *newUser) {
     _pythonUser = newUser;
+}
+
+void setEmulatorPyIdx(int idx) {
+    _pyIdx = idx;
+    _threadLocalPyIdx = idx;
 }
 
 std::string getEmulatorPythonFunction() {
@@ -287,9 +294,13 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen) {
     return bufferLen;
 }
 
-unsigned int _chain_this_local(int idx, const unsigned char *buffer, long bufferLen) {
+unsigned int _chain_local(int idx, int pyIdx, const unsigned char *buffer, long bufferLen) {
     util::getLogger()->debug("E - chain_this_local idx {} input len {}", idx, bufferLen);
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+    if(pyIdx > 0) {
+        throw std::runtime_error("Not yet implemented");
+    }
 
     // Create vector to hold inputs
     std::vector<uint8_t> inputs(buffer, buffer + bufferLen);
@@ -318,7 +329,7 @@ unsigned int _chain_this_local(int idx, const unsigned char *buffer, long buffer
     return thisCallId;
 }
 
-unsigned int _chain_this_knative(int idx, const unsigned char *buffer, long bufferLen) {
+unsigned int _chain_knative(int idx, int pyIdx, const unsigned char *buffer, long bufferLen) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
     logger->debug("E - chain_this_knative idx {} input len {}", idx, bufferLen);
 
@@ -336,6 +347,9 @@ unsigned int _chain_this_knative(int idx, const unsigned char *buffer, long buff
     message::Message msg = util::messageFactory(_user, _function);
     msg.set_idx(idx);
     msg.set_inputdata(buffer, bufferLen);
+    msg.set_pythonuser(_pythonUser);
+    msg.set_pythonfunction(_pythonFunction);
+    msg.set_pythonidx(pyIdx);
 
     // We will be awaiting the response in a thread in the background, therefore this must _not_ be async
     msg.set_isasync(false);
@@ -367,9 +381,18 @@ unsigned int _chain_this_knative(int idx, const unsigned char *buffer, long buff
 unsigned int __faasm_chain_this(int idx, const unsigned char *buffer, long bufferLen) {
     util::SystemConfig &conf = util::getSystemConfig();
     if (conf.hostType == "knative") {
-        return _chain_this_knative(idx, buffer, bufferLen);
+        return _chain_knative(idx, 0, buffer, bufferLen);
     } else {
-        return _chain_this_local(idx, buffer, bufferLen);
+        return _chain_local(idx, 0, buffer, bufferLen);
+    }
+}
+
+unsigned int __faasm_chain_py(int idx, const unsigned char *buffer, long bufferLen) {
+    util::SystemConfig &conf = util::getSystemConfig();
+    if (conf.hostType == "knative") {
+        return _chain_knative(0, idx, buffer, bufferLen);
+    } else {
+        return _chain_local(0, idx, buffer, bufferLen);
     }
 }
 
@@ -405,6 +428,14 @@ int __faasm_get_idx() {
     }
 }
 
+int __faasm_get_py_idx() {
+    if (noThreadLocal()) {
+        return _pyIdx;
+    } else {
+        return _threadLocalPyIdx;
+    }
+}
+
 void __faasm_lock_state_read(const char *key) {
 
 }
@@ -419,11 +450,6 @@ void __faasm_lock_state_write(const char *key) {
 
 void __faasm_unlock_state_write(const char *key) {
 
-}
-
-unsigned int __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize) {
-    // This might not be possible when executing natively
-    return 1;
 }
 
 void __faasm_get_py_user(unsigned char *buffer, long bufferLen) {

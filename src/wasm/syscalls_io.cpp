@@ -57,8 +57,6 @@ namespace wasm {
 
         module->checkThreadOwnsFd(fd);
 
-        util::SystemConfig &conf = util::getSystemConfig();
-
         // Duplicating file descriptors
         int returnValue;
         if (cmd == F_DUPFD || cmd == F_DUPFD_CLOEXEC) {
@@ -71,13 +69,9 @@ namespace wasm {
         } else if (cmd == F_GETFL || cmd == F_GETFD || cmd == F_SETFD) {
             // Getting file flags, file descriptor flags and setting file descriptor flags are allowed
             returnValue = fcntl(fd, cmd, c);
-        } else if (conf.fsMode == "on") {
-            // Allow everything else in unsafe mode, but block otherwise
+        } else {
             logger->warn("Allowing arbitrary fcntl command: {}", cmd);
             returnValue = fcntl(fd, cmd, c);
-        } else {
-            logger->error("Using arbitrary fcntl command: {}", cmd);
-            throw std::runtime_error("Process not allowed to set file flags");
         }
 
         if (returnValue < 0) {

@@ -21,30 +21,30 @@ int main(int argc, char *argv[]) {
     int wasmIterations = std::stoi(argv[3]);
 
     std::vector<std::string> all_benchmarks = {
-            "bench_chaos.py",
-            "bench_deltablue.py",
-            "bench_dulwich.py",
-            "bench_fannkuch.py",
-            "bench_float.py",
-            "bench_genshi.py",
-            "bench_go.py",
-            "bench_hexiom.py",
-            "bench_json_dumps.py",
-            "bench_json_loads.py",
-            "bench_logging.py",
-            "bench_mdp.py",
-            "bench_nbody.py",
-            "bench_pickle.py",
-            "bench_pidigits.py",
-            "bench_pyaes.py",
-            "bench_pyflate.py",
-            "bench_raytrace.py",
-            "bench_richards.py",
-            "bench_scimark.py",
-            "bench_spectral_norm.py",
-            "bench_telco.py",
-            "bench_unpack_sequence.py",
-            "bench_xml_etree.py",
+            "bench_chaos",
+            "bench_deltablue",
+            "bench_dulwich",
+            "bench_fannkuch",
+            "bench_float",
+            "bench_genshi",
+            "bench_go",
+            "bench_hexiom",
+            "bench_json_dumps",
+            "bench_json_loads",
+            "bench_logging",
+            "bench_mdp",
+            "bench_nbody",
+            "bench_pickle",
+            "bench_pidigits",
+            "bench_pyaes",
+            "bench_pyflate",
+            "bench_raytrace",
+            "bench_richards",
+            "bench_scimark",
+            "bench_spectral_norm",
+            "bench_telco",
+            "bench_unpack_sequence",
+            "bench_xml_etree",
     };
 
     std::vector<std::string> benchmarks;
@@ -56,10 +56,6 @@ int main(int argc, char *argv[]) {
         logger->error("Unrecognised benchmark: {}", benchmark);
         return 1;
     }
-
-    // Run in unsafe mode to give Python access
-    util::SystemConfig &conf = util::getSystemConfig();
-    conf.fsMode = "on";
 
     // Prepare output
     std::ofstream profOut;

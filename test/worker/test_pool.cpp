@@ -209,14 +209,13 @@ namespace tests {
         tearDown();
     }
 
-    void execFuncWithPool(const std::string &user, const std::string &func) {
+    void execFuncWithPool(message::Message &call) {
         setUp();
 
         util::SystemConfig &conf = util::getSystemConfig();
         conf.boundTimeout = 1000;
         conf.unboundTimeout = 1000;
 
-        message::Message call = util::messageFactory(user, func);
         unsigned int messageId = call.id();
 
         // Set up a real worker to execute this function. Remove it from the
@@ -238,8 +237,20 @@ namespace tests {
         tearDown();
     }
 
-    TEST_CASE("Test appended state", "[state]") {
-        execFuncWithPool("demo", "state_append");
+    TEST_CASE("Test appended state", "[worker]") {
+        message::Message call = util::messageFactory("demo", "state_append");
+        execFuncWithPool(call);
+    }
+
+    TEST_CASE("Test python chaining", "[worker]") {
+        util::SystemConfig &conf = util::getSystemConfig();
+
+        message::Message call = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+        call.set_pythonuser("python");
+        call.set_pythonfunction("chain");
+        call.set_ispython(true);
+
+        execFuncWithPool(call);
     }
 
     TEST_CASE("Test repeat invocation with state", "[worker]") {

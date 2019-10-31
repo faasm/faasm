@@ -29,11 +29,6 @@ namespace storage {
         return loadFileBytes(path);
     }
 
-    std::vector<uint8_t> LocalFileLoader::loadPythonFunctionFile(const message::Message &msg) {
-        std::string path = util::getPythonFunctionFile(msg);
-        return loadFileBytes(path);
-    }
-
     std::vector<uint8_t> LocalFileLoader::loadSharedFile(const std::string &path) {
         const std::string fullPath = util::getSharedFileFile(path);
 

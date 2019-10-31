@@ -10,13 +10,8 @@ namespace tests {
     TEST_CASE("Test getenv", "[worker]") {
         cleanSystem();
 
-        util::SystemConfig &conf = util::getSystemConfig();
-        conf.fsMode = "on";
-
         message::Message msg = util::messageFactory("demo", "getenv");
         execFunction(msg);
-
-        conf.reset();
     }
 
     TEST_CASE("Test abort", "[worker]") {

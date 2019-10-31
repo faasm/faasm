@@ -3,25 +3,12 @@
 #include <util/bytes.h>
 #include <util/func.h>
 #include <util/config.h>
+#include <utils.h>
 
 
 namespace tests {
     TEST_CASE("Test executing tensorflow lite model", "[wasm]") {
-        util::SystemConfig &conf = util::getSystemConfig();
-        std::string original = conf.fsMode;
-
-        conf.fsMode = "on";
-
-        message::Message call;
-        call.set_user("tf");
-        call.set_function("image");
-
-        wasm::WasmModule module;
-        module.bindToFunction(call);
-
-        int result = module.execute(call);
-        REQUIRE(result == 0);
-
-        conf.fsMode = original;
+        message::Message call = util::messageFactory("tf", "image");
+        execFunction(call);
     }
 }

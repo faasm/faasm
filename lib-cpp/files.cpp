@@ -32,11 +32,16 @@ namespace faasm {
         }
 
         // Read in file
+        size_t res = 0;
         auto buffer = (char *) malloc(length);
         if (buffer) {
-            fread(buffer, 1, length, f);
+            res = fread(buffer, 1, length, f);
         }
         fclose(f);
+
+        if (res == 0) {
+            return nullptr;
+        }
 
         return buffer;
     }

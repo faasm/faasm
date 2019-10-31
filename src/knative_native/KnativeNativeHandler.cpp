@@ -56,6 +56,7 @@ namespace knative_native {
         } else if (msg.ispython()) {
             setEmulatorPythonUser(msg.pythonuser().c_str());
             setEmulatorPythonFunction(msg.pythonfunction().c_str());
+            setEmulatorPyIdx(msg.pythonidx());
 
             if (msg.isasync()) {
                 logger->debug("Executing async Python function {}/{}", msg.pythonuser(), msg.pythonfunction());

@@ -6,14 +6,15 @@
 #include <util/config.h>
 
 namespace runner {
-    PythonProfiler::PythonProfiler(std::string pythonFile) : Profiler(PYTHON_USER, PYTHON_FUNC, pythonFile) {
-
+    PythonProfiler::PythonProfiler(std::string pythonFunc) : Profiler(PYTHON_USER, PYTHON_FUNC, "") {
+        this->pythonUser = "python";
+        this->pythonFunction = pythonFunc;
+        outputName = pythonFunc;
     }
 
     void PythonProfiler::runNative() {
         // Get path to file
-        std::string pyFunc = this->inputData;
-        const message::Message msg = util::messageFactory(PYTHON_USER, pyFunc);
+        message::Message msg = util::messageFactory(pythonUser, pythonFunction);
         std::string fullPath = util::getPythonFunctionFile(msg);
 
         // Try to open it

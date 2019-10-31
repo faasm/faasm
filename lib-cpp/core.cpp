@@ -96,18 +96,6 @@ void faasmSetOutput(const uint8_t *newOutput, long outputLen) {
     __faasm_write_output(newOutput, outputLen);
 }
 
-unsigned int faasmChainFunction(const char *name) {
-    return faasmChainFunctionInput(name, 0, 0);
-}
-
-unsigned int faasmChainFunctionInput(const char *name, const uint8_t *inputData, long inputDataSize) {
-    return __faasm_chain_function(name, inputData, inputDataSize);
-}
-
-unsigned int faasmChainThis(int idx) {
-    return faasmChainThisInput(idx, 0, 0);
-}
-
 unsigned int faasmAwaitCall(unsigned int messageId) {
     return __faasm_await_call(messageId);
 }
@@ -131,7 +119,6 @@ char* faasmGetPythonFunc() {
      __faasm_get_py_func(reinterpret_cast<uint8_t *>(funcName), 20);
      return funcName;
 }
-
 
 _FaasmFuncPtr getFaasmFunc(int idx) {
     int (*_faasm_funcs[10])() = {

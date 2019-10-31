@@ -1,5 +1,5 @@
 #include <faasm/faasm.h>
-#include <faasm/pyfaasm.h>
+#include <faasm/pyinit.h>
 
 #include <Python.h>
 
@@ -8,8 +8,12 @@
 
 FAASM_ZYGOTE() {
     setUpPyEnvironment();
-    setUpPyNumpy();
     Py_InitializeEx(0);
+
+    setUpPyNumpy();
+
+    // Import numpy up front
+    // PyImport_ImportModule("numpy");
 
     printf("\n\nPython initialised\n");
 
@@ -21,6 +25,8 @@ FAASM_MAIN_FUNC() {
 
     char *user = faasmGetPythonUser();
     char *funcName = faasmGetPythonFunc();
+
+    printf("Running Python function %s/%s\n", user, funcName);
 
     auto filePath = new char[50 + strlen(funcName)];
 
