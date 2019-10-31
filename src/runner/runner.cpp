@@ -16,7 +16,6 @@ int main(int argc, char *argv[]) {
     }
 
     util::SystemConfig &conf = util::getSystemConfig();
-    conf.fsMode = "on";
 
     // Set short timeouts to die quickly
     conf.boundTimeout = 60000;

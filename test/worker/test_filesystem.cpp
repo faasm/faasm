@@ -20,9 +20,6 @@ namespace tests {
                 "share", "usr"
         };
 
-        util::SystemConfig &conf = util::getSystemConfig();
-        conf.fsMode = "on";
-
         message::Message msg = util::messageFactory("demo", "getdents");
 
         const std::string result = execFunctionWithStringResult(msg);
@@ -40,20 +37,13 @@ namespace tests {
             }
             REQUIRE(isFound);
         }
-
-        conf.reset();
     }
 
     TEST_CASE("Test listdir", "[worker]") {
         cleanSystem();
 
-        util::SystemConfig &conf = util::getSystemConfig();
-        conf.fsMode = "on";
-        
         message::Message msg = util::messageFactory("demo", "listdir");
         execFunction(msg);
-
-        conf.reset();
     }
 
     TEST_CASE("Test errno with stat64", "[worker]") {
@@ -78,12 +68,7 @@ namespace tests {
     TEST_CASE("Test fstat", "[worker]") {
         cleanSystem();
 
-        util::SystemConfig &conf = util::getSystemConfig();
-        conf.fsMode = "on";
-
         message::Message msg = util::messageFactory("demo", "fstat");
         execFunction(msg);
-
-        conf.reset();
     }
 }

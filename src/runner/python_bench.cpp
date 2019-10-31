@@ -57,10 +57,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Run in unsafe mode to give Python access
-    util::SystemConfig &conf = util::getSystemConfig();
-    conf.fsMode = "on";
-
     // Prepare output
     std::ofstream profOut;
     profOut.open(OUTPUT_FILE);

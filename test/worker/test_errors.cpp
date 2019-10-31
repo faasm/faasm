@@ -53,10 +53,6 @@ namespace tests {
         REQUIRE(messageIsFound);
     }
 
-    TEST_CASE("Test opening blocked path", "[wasm]") {
-        checkError("open_blocked", "Opening arbitrary path");
-    }
-
     TEST_CASE("Test connecting to socket not owned by function", "[wasm]") {
         checkError("socket", "fd not owned by this function");
     }

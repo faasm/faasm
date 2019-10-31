@@ -19,9 +19,6 @@ int main(int argc, char *argv[]) {
     int nativeIterations = std::stoi(argv[3]);
     int wasmIterations = std::stoi(argv[4]);
 
-    util::SystemConfig &conf = util::getSystemConfig();
-    conf.fsMode = "on";
-
     std::string outfile = std::string("/usr/local/code/faasm/wasm/") + user + "/" + funcName + "/bench.csv";
 
     std::ofstream profOut;

@@ -39,7 +39,6 @@ services:
       - LOG_LEVEL=debug
       - CGROUP_MODE=on
       - NETNS_MODE=off
-      - FS_MODE=on
       - REDIS_STATE_HOST=redis-state
       - REDIS_QUEUE_HOST=redis-queue
       - THREADS_PER_WORKER=5
@@ -64,7 +63,6 @@ services:
       - LOG_LEVEL=debug
       - CGROUP_MODE=on
       - NETNS_MODE=off
-      - FS_MODE=on
       - REDIS_STATE_HOST=redis-state
       - REDIS_QUEUE_HOST=redis-queue
       - THREADS_PER_WORKER=5

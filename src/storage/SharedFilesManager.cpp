@@ -48,7 +48,6 @@ namespace storage {
 
     int SharedFilesManager::openLocalFile(const std::string &path, int flags, int mode) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        util::SystemConfig &conf = util::getSystemConfig();
 
         int fd;
         std::string fakePath = maskPath(path);
@@ -69,15 +68,10 @@ namespace storage {
             logger->debug("Opening {} (requested {})", fakePath, path);
             fd = open(fakePath.c_str(), flags, mode);
 
-        } else if (conf.fsMode == "on") {
+        } else {
             logger->debug("Arbitrary access to local file {}", fakePath);
             fd = open(fakePath.c_str(), flags, mode);
-
-        } else {
-            logger->error("Opening arbitrary path {} (requested {})", fakePath, path);
-            throw std::runtime_error("Opening arbitrary path");
         }
-
         // NOTE - musl expects us to return the negative errno, not -1
         if (fd < 0) {
             return -errno;

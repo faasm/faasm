@@ -92,13 +92,8 @@ namespace wasm {
         WasmModule *module = getExecutingModule();
 
         // If in unsafe mode we can think about allowing mmapping of file descriptors
-        util::SystemConfig &conf = util::getSystemConfig();
         if (fd != -1) {
-            if (conf.fsMode == "on") {
-                return module->mmapFile(fd, length);
-            } else {
-                throw std::runtime_error("Attempted to mmap file descriptor");
-            }
+            return module->mmapFile(fd, length);
         }
 
         return module->mmapMemory(length);

@@ -10,17 +10,12 @@ namespace tests {
     void checkPythonFunction(const std::string &funcName) {
         cleanSystem();
 
-        util::SystemConfig &conf = util::getSystemConfig();
-        conf.fsMode = "on";
-
         message::Message call = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         call.set_pythonuser("python");
         call.set_pythonfunction(funcName);
         call.set_ispython(true);
 
         execFunction(call);
-
-        conf.reset();
     }
 
     TEST_CASE("Test python conformance", "[worker]") {
@@ -32,9 +27,6 @@ namespace tests {
     }
 
     TEST_CASE("Test repeated numpy execution", "[worker]") {
-        util::SystemConfig &conf = util::getSystemConfig();
-        conf.fsMode = "on";
-
         message::Message call = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         call.set_pythonuser("python");
         call.set_pythonfunction("numpy_test");
@@ -46,9 +38,6 @@ namespace tests {
     TEST_CASE("Test echo", "[worker]") {
         cleanSystem();
 
-        util::SystemConfig &conf = util::getSystemConfig();
-        conf.fsMode = "on";
-
         std::string input = "foobar blah blah";
         message::Message call = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         call.set_pythonuser("python");
@@ -58,15 +47,10 @@ namespace tests {
 
         std::string result = execFunctionWithStringResult(call);
         REQUIRE(result == input);
-
-        conf.reset();
     }
 
     TEST_CASE("Test python state write/ read", "[worker]") {
         cleanSystem();
-
-        util::SystemConfig &conf = util::getSystemConfig();
-        conf.fsMode = "on";
 
         // Run the state write function
         message::Message writeCall = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
@@ -90,7 +74,5 @@ namespace tests {
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
         message::Message result = globalBus.getFunctionResult(readCall.id(), 1);
         REQUIRE(result.success());
-
-        conf.reset();
     }
 }

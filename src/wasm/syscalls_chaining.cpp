@@ -68,9 +68,11 @@ namespace wasm {
         call.set_inputdata(inputData.data(), inputData.size());
         call.set_idx(idx);
         call.set_isasync(true);
+
         call.set_pythonuser(originalCall->pythonuser());
         call.set_pythonfunction(originalCall->pythonfunction());
         call.set_pythonidx(pyIdx);
+        call.set_ispython(originalCall->ispython());
 
         const std::string origStr = util::funcToString(*originalCall, false);
         const std::string chainedStr = util::funcToString(call, false);
