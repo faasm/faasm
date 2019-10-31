@@ -5,7 +5,6 @@ from pyfaasm.matrix import divide_and_conquer, distributed_divide_and_conquer, M
 
 # This is the Faasm entry point. If we've been chained,
 # we need to invoke the worker, otherwise run the main function
-print("Getting function index for matrix multiplication")
 idx = getFunctionIdx()
 
 if idx == 0:
@@ -19,6 +18,5 @@ else:
     # Run the worker
     print("Running matrix multiplication worker")
     input_bytes = getInput()
-    print("Got input bytes: {}".format(input_bytes))
     distributed_divide_and_conquer(input_bytes)
 
