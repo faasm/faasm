@@ -1,8 +1,10 @@
+import datetime
 from abc import abstractmethod
 from os import mkdir, listdir
 from os.path import exists, join
 from shutil import rmtree
 from subprocess import call
+from time import time
 
 from invoke import task
 
@@ -14,11 +16,14 @@ from tasks.util.invoke import invoke_impl
 class ExperimentRunner(object):
     user = None
     func = None
+    is_python = False
+
     result_file_name = None
     local_results_dir = None
 
     def __init__(self, input_data=None):
         self.input_data = input_data
+        self.no_billing = False
 
     @abstractmethod
     def get_result_dir_name(self, system):
@@ -49,7 +54,9 @@ class ExperimentRunner(object):
             billing_result_dir = join(parent_dir, "billing", "results")
             parse_billing(billing_result_dir, parent_dir)
 
-    def run(self, both, native):
+    def run(self, both, native, nobill=False):
+        self.no_billing = nobill
+
         if not native:
             self.run_wasm()
 
@@ -63,19 +70,27 @@ class ExperimentRunner(object):
         self._do_run(True)
 
     def _do_run(self, native):
-        # Start the billing scripts
-        start_billing()
+        if not self.no_billing:
+            # Start the billing scripts
+            start_billing()
+
+        # Start the timer
+        run_start = time()
 
         # Run the request
         success, output = invoke_impl(
             self.user, self.func,
             poll=True, knative=True,
             input=self.input_data,
-            native=native,
+            native=native, py=self.is_python,
         )
 
-        # Pull the billing info
-        pull_billing()
+        # Finish the timer
+        run_time_ms = (time() - run_start) * 1000.0
+
+        if not self.no_billing:
+            # Pull the billing info
+            pull_billing()
 
         if not success:
             print("FAILED on {}".format(self.input_data))
@@ -91,14 +106,21 @@ class ExperimentRunner(object):
             rmtree(result_dir)
         mkdir(result_dir)
 
+        # Write the running time
+        output_file = join(result_dir, "RUN_TIME.log")
+        with open(output_file, "w") as fh:
+            fh.write("{}ms".format(run_time_ms))
+
+        # Write the output from the function
         output_file = join(result_dir, self.result_file_name)
         with open(output_file, "w") as fh:
             fh.write(output)
 
         # Copy billing directory into place
-        res = call("cp -r /tmp/billing {}/".format(result_dir), shell=True)
-        if res != 0:
-            raise RuntimeError("Failed to put billing files in place")
+        if not self.no_billing:
+            res = call("cp -r /tmp/billing {}/".format(result_dir), shell=True)
+            if res != 0:
+                raise RuntimeError("Failed to put billing files in place")
 
 
 # -------------------------------------
@@ -145,6 +167,7 @@ def sgd_parse_results(ctx):
 class MatrixExperimentRunner(ExperimentRunner):
     user = "python"
     func = "mat_mul"
+    is_python = True
     result_file_name = "NODE_0_MAT_MUL.log"
 
     def __init__(self, mat_size, n_splits):
@@ -159,9 +182,9 @@ class MatrixExperimentRunner(ExperimentRunner):
 
 
 @task
-def matrix_experiment(ctx, mat_size, n_splits, native=False, both=False):
+def matrix_experiment(ctx, mat_size, n_splits, native=False, both=False, nobill=False):
     runner = MatrixExperimentRunner(mat_size, n_splits)
-    runner.run(both, native)
+    runner.run(both, native, nobill=nobill)
 
 
 @task
