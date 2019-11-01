@@ -2,6 +2,7 @@
 
 #include <util/config.h>
 #include <util/logging.h>
+#include <zygote/ZygoteRegistry.h>
 
 namespace worker {
     WorkerMain::WorkerMain() : conf(util::getSystemConfig()),
@@ -21,6 +22,14 @@ namespace worker {
         // Work sharing
         if(shareWork) {
             pool.startSharingThread();
+        }
+
+        // Python preload
+        if(conf.pythonPreload == "on") {
+            zygote::ZygoteRegistry &zygoteRegistry = zygote::getZygoteRegistry();
+            message::Message pyMsg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+            pyMsg.set_ispython(true);
+            zygoteRegistry.getZygote(pyMsg);
         }
     }
 
