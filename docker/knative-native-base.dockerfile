@@ -10,6 +10,8 @@ RUN pip3 install -U pip
 # Install Faasm native tools
 WORKDIR /faasm/native_tools
 
+COPY . /usr/local/code/faasm
+
 RUN cmake \
     -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
     -DCMAKE_C_COMPILER=/usr/bin/clang \
@@ -45,5 +47,8 @@ RUN cmake --build . --target knative_native -- -j
 
 # Build the JSON call tester
 RUN cmake --build . --target post_json_call -- -j
+
+# Build the native runner for py funcs
+RUN cmake --build . --target knative_native_runner -- -j
 
 CMD "/bin/bash"

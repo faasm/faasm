@@ -10,6 +10,7 @@
 #include <util/func.h>
 #include <scheduler/Scheduler.h>
 #include <Python.h>
+#include <shared_mutex>
 
 #include <utility>
 
@@ -17,11 +18,14 @@
 
 
 namespace knative_native {
+    std::shared_mutex coldMx;
+
     KnativeNativeHandler::KnativeNativeHandler(
             std::string userIn,
             std::string funcIn
             ) : user(std::move(userIn)), func(std::move(funcIn)) {
 
+        isCold = true;
     }
 
     void KnativeNativeHandler::onRequest(
@@ -29,6 +33,22 @@ namespace knative_native {
             Pistache::Http::ResponseWriter response
     ) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        // Simulate cold start if this is first request
+        if(isCold) {
+            util::FullLock lock(coldMx);
+
+            if(isCold) {
+                logger->info("Simulating cold start");
+
+                std::string coldStartStr = util::getEnvVar("COLD_START_DELAY_MS", "1000");
+                long coldStartMs = std::stol(coldStartStr);
+                usleep(coldStartMs * 1000);
+                isCold = false;
+            }
+        } else {
+            logger->info("Warm start");
+        }
 
         // Set up what user/ function we're running
         logger->debug("Knative native request to {}/{}", user, func);
