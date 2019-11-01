@@ -98,12 +98,7 @@ namespace tests {
             tableAfterA1 = Runtime::getTableNumElements(moduleA.defaultTable);
             Uptr tableAfterB1 = Runtime::getTableNumElements(moduleB.defaultTable);
 
-            if (isPython) {
-                REQUIRE(tableAfterA1 > tableBeforeA);
-            } else {
-                REQUIRE(tableAfterA1 == tableBeforeA);
-            }
-
+            REQUIRE(tableAfterA1 == tableBeforeA);
             REQUIRE(tableAfterB1 == tableBeforeA);
         }
 
@@ -136,12 +131,7 @@ namespace tests {
             Uptr tableAfterA2 = Runtime::getTableNumElements(moduleA.defaultTable);
             Uptr tableAfterB2 = Runtime::getTableNumElements(moduleB.defaultTable);
 
-            if (isPython) {
-                REQUIRE(tableAfterB2 > tableBeforeB);
-            } else {
-                REQUIRE(tableAfterB2 == tableBeforeB);
-            }
-
+            REQUIRE(tableAfterB2 == tableBeforeB);
             REQUIRE(tableAfterB2 == tableAfterA2);
             REQUIRE(tableAfterA1 == tableAfterA2);
         }

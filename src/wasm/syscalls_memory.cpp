@@ -99,38 +99,37 @@ namespace wasm {
         return module->mmapMemory(length);
     }
 
-    /**
-     * Note - the return value required from munmap in case of error is not clear.
-     * To be safe this both sets errno and returns the (-1 * error code) (rather than
-     * either just returning the error code or returning -1 and setting errno)
+    /*
+     * Although we let things call munmap, we don't actually want to bother as the memory can't
+     * be reused for that module anyway
      */
     I32 s__munmap(I32 addr, I32 length) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - munmap - {} {}", addr, length);
+        logger->debug("S - munmap - {} {} (IGNORED)", addr, length);
 
-        WasmModule *executingModule = getExecutingModule();
-        Runtime::Memory *memory = executingModule->defaultMemory;
-
-        // If not aligned or zero length, drop out
-        if (!isPageAligned(addr)) {
-            logger->warn("munmap address not page-aligned ({})", addr);
-            return -EINVAL;
-        } else if (length == 0) {
-            logger->warn("munmap size zero");
-            return -EINVAL;
-        }
-
-        const Uptr addrPageBase = addr / IR::numBytesPerPage;
-        const Uptr numPages = getNumberOfPagesForBytes(length);
-
-        // Drop out if we're munmapping over the max page boundary
-        if (addrPageBase + numPages > getMemoryType(memory).size.max) {
-            logger->warn("munmapping region over max memory pages");
-            return -EINVAL;
-        }
-
-        // Unmap the memory
-        unmapMemoryPages(memory, addrPageBase, numPages);
+//        WasmModule *executingModule = getExecutingModule();
+//        Runtime::Memory *memory = executingModule->defaultMemory;
+//
+//        // If not aligned or zero length, drop out
+//        if (!isPageAligned(addr)) {
+//            logger->warn("munmap address not page-aligned ({})", addr);
+//            return -EINVAL;
+//        } else if (length == 0) {
+//            logger->warn("munmap size zero");
+//            return -EINVAL;
+//        }
+//
+//        const Uptr addrPageBase = addr / IR::numBytesPerPage;
+//        const Uptr numPages = getNumberOfPagesForBytes(length);
+//
+//        // Drop out if we're munmapping over the max page boundary
+//        if (addrPageBase + numPages > getMemoryType(memory).size.max) {
+//            logger->warn("munmapping region over max memory pages");
+//            return -EINVAL;
+//        }
+//
+//        // Unmap the memory
+//        unmapMemoryPages(memory, addrPageBase, numPages);
 
         return 0;
     }
