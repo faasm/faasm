@@ -23,12 +23,12 @@ services:
       - REDIS_STATE_HOST=redis-state
       - REDIS_QUEUE_HOST=redis-queue
 
-  worker1:
+  worker:
     image: faasm/knative-worker:latest
     depends_on:
       - upload
-    ports:
-      - 8080
+    expose:
+      - "8080"
     privileged: yes
     volumes:
       - /usr/local/faasm/:/usr/local/faasm/
@@ -46,35 +46,11 @@ services:
       - MAX_WORKERS_PER_FUNCTION=4
       - GLOBAL_MESSAGE_TIMEOUT=600000
 
-  worker2:
-    image: faasm/knative-worker:latest
-    depends_on:
-      - upload
-    ports:
-      - 8080
-    privileged: yes
+  nginx:
+    image: nginx:latest
     volumes:
-      - /usr/local/faasm/:/usr/local/faasm/
-      - /usr/local/code/faasm/wasm/:/usr/local/code/faasm/wasm/
-    environment:
-      - FUNCTION_STORAGE=fileserver
-      - FILESERVER_URL=http://upload:8002
-      - LOG_LEVEL=debug
-      - CGROUP_MODE=on
-      - NETNS_MODE=off
-      - REDIS_STATE_HOST=redis-state
-      - REDIS_QUEUE_HOST=redis-queue
-      - THREADS_PER_WORKER=5
-      - MAX_IN_FLIGHT_RATIO=1
-      - MAX_WORKERS_PER_FUNCTION=4
-      - GLOBAL_MESSAGE_TIMEOUT=600000
-
-  proxy:
-    build:
-      context: .
-      dockerfile: docker/local-proxy.dockerfile
+      - ./conf/nginx-local.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - worker-1
-      - worker-2
+      - worker
     ports:
       - "8080:8080"

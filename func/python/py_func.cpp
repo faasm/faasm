@@ -18,9 +18,17 @@ FAASM_ZYGOTE() {
     if(!numpyModule) {
         printf("\nFailed to import numpy\n");
     } else {
-        printf("\nPython initialised with numpy\n");
+        printf("\nPython initialised numpy\n");
     }
 #endif
+
+    // Import pyfaasm
+    PyObject* pyfaasmModule = PyImport_ImportModule("pyfaasm");
+    if(!pyfaasmModule) {
+        printf("\nFailed to import pyfaasm\n");
+    } else {
+        printf("\nPython initialised pyfaasm\n");
+    }
 
     return 0;
 }
