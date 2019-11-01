@@ -25,6 +25,7 @@ namespace util {
         std::string netNsMode;
         std::string logLevel;
         std::string awsLogLevel;
+        std::string pythonPreload;
 
         // Redis
         std::string redisStateHost;

@@ -1,8 +1,12 @@
 #ifndef FAASM_HOST_INTERFACE_H
 #define FAASM_HOST_INTERFACE_H
 
-// #define HOST_IFACE_FUNC __attribute__((weak))
+#ifdef __wasm__
 #define HOST_IFACE_FUNC
+#else
+//#define HOST_IFACE_FUNC __attribute__((weak))
+#define HOST_IFACE_FUNC
+#endif
 
 HOST_IFACE_FUNC
 void __faasm_read_state(const char *key, unsigned char *buffer, long bufferLen);

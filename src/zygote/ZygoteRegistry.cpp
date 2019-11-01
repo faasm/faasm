@@ -33,6 +33,8 @@ namespace zygote {
 
                 // Bind to the function
                 module.bindToFunction(msg);
+            } else {
+                logger->debug("Using cached zygote for {}", key);
             }
         } else {
             logger->debug("Using cached zygote for {}", key);

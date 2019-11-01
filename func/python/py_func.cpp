@@ -12,10 +12,23 @@ FAASM_ZYGOTE() {
 
     setUpPyNumpy();
 
+#if PRELOAD_NUMPY == 1
     // Import numpy up front
-    // PyImport_ImportModule("numpy");
+    PyObject* numpyModule = PyImport_ImportModule("numpy");
+    if(!numpyModule) {
+        printf("\nFailed to import numpy\n");
+    } else {
+        printf("\nPython initialised numpy\n");
+    }
+#endif
 
-    printf("\n\nPython initialised\n");
+    // Import pyfaasm
+    PyObject* pyfaasmModule = PyImport_ImportModule("pyfaasm");
+    if(!pyfaasmModule) {
+        printf("\nFailed to import pyfaasm\n");
+    } else {
+        printf("\nPython initialised pyfaasm\n");
+    }
 
     return 0;
 }
@@ -25,8 +38,6 @@ FAASM_MAIN_FUNC() {
 
     char *user = faasmGetPythonUser();
     char *funcName = faasmGetPythonFunc();
-
-    printf("Running Python function %s/%s\n", user, funcName);
 
     auto filePath = new char[50 + strlen(funcName)];
 
@@ -45,11 +56,7 @@ FAASM_MAIN_FUNC() {
     printf("WASM python function: %s\n", filePath);
 
     PyRun_SimpleFile(fp, filePath);
-    printf("\n\nExecuted\n");
-
     Py_FinalizeEx();
-    printf("Finalised\n");
-
     fclose(fp);
 
     return 0;

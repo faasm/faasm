@@ -25,7 +25,7 @@ namespace scheduler {
     public:
         Scheduler();
 
-        void callFunction(message::Message &msg);
+        void callFunction(message::Message &msg, bool forceLocal=false);
 
         SchedulerOpinion getOpinion(const message::Message &msg);
 

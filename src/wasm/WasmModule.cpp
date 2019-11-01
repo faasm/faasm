@@ -63,12 +63,8 @@ namespace wasm {
     }
 
     void WasmModule::clone(const WasmModule &other) {
-        // -----------
-        // TODO - optimise if these are the same function?
-        // -----------
-
-        // Tear down if we are bound
-        if (this->_isBound) {
+        // If bound, we want to reclaim all the memory we'd created before cloning from the zygote
+        if(_isBound) {
             tearDown();
         }
 
@@ -290,9 +286,6 @@ namespace wasm {
         _isBound = true;
         boundIsTypescript = msg.istypescript();
 
-        // Create a copy of the message to avoid messing with the original
-        message::Message msgCopy = msg;
-
         boundUser = msg.user();
         boundFunction = msg.function();
 
@@ -303,7 +296,7 @@ namespace wasm {
         PROF_END(wasmContext)
 
         // Create the module instance
-        moduleInstance = createModuleInstance(util::funcToString(msgCopy, false), "");
+        moduleInstance = createModuleInstance(util::funcToString(msg, false), "");
 
         PROF_START(wasmBind)
 
@@ -360,12 +353,12 @@ namespace wasm {
             U32 argc = 0;
 
             // Copy the function name into argv[0]
-            U32 argv0 = argvStart + sizeof(U32);
-            char *argv0Host = &Runtime::memoryRef<char>(defaultMemory, argv0);
-            strcpy(argv0Host, "function.wasm");
-
-            // Copy the offset of argv[0] into position
-            Runtime::memoryRef<U32>(defaultMemory, argvStart) = argv0;
+//            U32 argv0 = argvStart + sizeof(U32);
+//            char *argv0Host = &Runtime::memoryRef<char>(defaultMemory, argv0);
+//            strcpy(argv0Host, "function.wasm");
+//
+//            // Copy the offset of argv[0] into position
+//            Runtime::memoryRef<U32>(defaultMemory, argvStart) = argv0;
             invokeArgs = {argc, argvStart};
         }
 
@@ -415,7 +408,7 @@ namespace wasm {
             // Give the module a chunk of memory and stack region just at the bottom of the
             // new memory (which will grow down). The memory sits above that (and grows up).
             // TODO - how do we detect stack overflows in dynamic modules? Are we meant to share the stack pointer of the main module?
-            U32 dynamicMemBase = mmapMemory(DYNAMIC_MODULE_HEAP_SIZE);
+            U32 dynamicMemBase = mmapPages(DYNAMIC_MODULE_HEAP_PAGES);
             nextMemoryBase = dynamicMemBase + DYNAMIC_MODULE_STACK_SIZE;
             nextStackPointer = nextMemoryBase - 1;
 
@@ -453,12 +446,15 @@ namespace wasm {
 
         Runtime::ModuleRef compiledModule = moduleRegistry.getCompiledModule(boundUser, boundFunction,
                                                                              sharedModulePath);
+
+        logger->info("Instantiating module {}/{}  {}", boundUser, boundFunction, sharedModulePath);
         Runtime::ModuleInstance *instance = instantiateModule(
                 compartment,
                 compiledModule,
                 std::move(linkResult.resolvedImports),
                 name.c_str()
         );
+        logger->info("Finished instantiating module {}/{}  {}", boundUser, boundFunction, sharedModulePath);
 
         // Here there may be some entries missing from the GOT that we need to patch up. They may
         // be exported from the dynamic module itself. I don't know how this happens but occasionally
@@ -692,12 +688,15 @@ namespace wasm {
     U32 WasmModule::mmapMemory(U32 length) {
         // Round up to page boundary
         Uptr pagesRequested = getNumberOfPagesForBytes(length);
+        return mmapPages(pagesRequested);
+    }
 
+    U32 WasmModule::mmapPages(U32 pages) {
         Uptr previousPageCount;
-        bool success = growMemory(defaultMemory, pagesRequested, &previousPageCount);
+        bool success = growMemory(defaultMemory, pages, &previousPageCount);
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        Uptr newPageCount = previousPageCount + pagesRequested;
+        Uptr newPageCount = previousPageCount + pages;
         if (!success) {
             logger->error("No memory for mapping (growing to {} pages)", newPageCount);
             throw std::runtime_error("Run out of memory to map");

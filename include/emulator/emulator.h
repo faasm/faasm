@@ -1,5 +1,8 @@
 #pragma once
 
+#include <vector>
+#include <string>
+
 std::vector<uint8_t> getEmulatorOutputData();
 
 std::string getEmulatorOutputDataString();

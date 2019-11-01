@@ -7,7 +7,11 @@ set(LIB_FILES
 
 faasm_public_lib(emulator "${LIB_FILES}")
 
-target_link_libraries(emulator faasm state)
+if (FAASM_BUILD_TYPE STREQUAL "native-tools")
+    target_link_libraries(emulator faasm state)
+else()
+    target_link_libraries(emulator state)
+endif()
 
 install(TARGETS emulator
         ARCHIVE DESTINATION lib

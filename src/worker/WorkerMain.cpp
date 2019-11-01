@@ -10,6 +10,22 @@ namespace worker {
 
     }
 
+    void WorkerMain::preparePythonRuntime() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->info("Preparing python runtime");
+
+        message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
+        msg.set_ispython(true);
+        msg.set_pythonuser("python");
+        msg.set_pythonfunction("hello");
+        util::setMessageId(msg);
+
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        sch.callFunction(msg, true);
+
+        logger->info("Python runtime prepared");
+    }
+
     void WorkerMain::startBackground() {
         scheduler.addNodeToGlobalSet();
 
@@ -21,6 +37,10 @@ namespace worker {
         // Work sharing
         if(shareWork) {
             pool.startSharingThread();
+        }
+
+        if(conf.pythonPreload == "on") {
+            preparePythonRuntime();
         }
     }
 

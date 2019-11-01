@@ -2,6 +2,8 @@
 
 #include "WorkerThreadPool.h"
 
+#include <wasm/WasmModule.h>
+
 #include <util/config.h>
 
 namespace worker {
@@ -10,6 +12,8 @@ namespace worker {
         WorkerMain();
 
         void startBackground();
+
+        void preparePythonRuntime();
 
         void awaitGlobalQueue();
 
@@ -23,6 +27,5 @@ namespace worker {
         util::SystemConfig &conf;
         worker::WorkerThreadPool pool;
         scheduler::Scheduler &scheduler;
-
     };
 }

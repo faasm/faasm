@@ -25,7 +25,11 @@ You can start a simple Faasm runtime using the `docker-compose.yml` file in the 
 You can start it by running:
 
 ```
+# Single worker
 docker-compose up
+
+# Three workers
+docker-compose up --scale worker=3
 ```
 
 ## Compiling a C++ function

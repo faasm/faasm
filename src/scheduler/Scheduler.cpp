@@ -168,14 +168,19 @@ namespace scheduler {
         return scheduler;
     }
 
-    void Scheduler::callFunction(message::Message &msg) {
+    void Scheduler::callFunction(message::Message &msg, bool forceLocal) {
         util::FullLock lock(mx);
         PROF_START(scheduleCall)
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Get the best node
-        std::string bestNode = this->getBestNodeForFunction(msg);
+        std::string bestNode;
+        if(forceLocal) {
+            bestNode = nodeId;
+        } else {
+            bestNode = this->getBestNodeForFunction(msg);
+        }
 
         // Mark if this is the first scheduling decision made on this message
         if (msg.schedulednode().empty()) {

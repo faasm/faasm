@@ -81,6 +81,9 @@ namespace worker {
     }
 
     void WorkerThreadPool::startThreadPool() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->info("Starting worker thread pool");
+
         // Spawn worker threads until we've hit the worker limit, thus creating a pool
         // that will replenish when one releases its token
         poolThread = std::thread([this] {

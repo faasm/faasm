@@ -21,8 +21,9 @@
 #define STACK_SIZE 4 * ONE_MB_BYTES
 
 // Properties of dynamic modules - NOTE - these MUST be passed when compiling the modules themselves
+// Heap size must be wasm-module-page-aligned. One page is 64kB so 480 pages is 30MB
 #define DYNAMIC_MODULE_STACK_SIZE 2 * ONE_MB_BYTES
-#define DYNAMIC_MODULE_HEAP_SIZE 30 * ONE_MB_BYTES
+#define DYNAMIC_MODULE_HEAP_PAGES 480
 
 // Zygote function (must match faasm.h linked into the functions themselves)
 #define ZYGOTE_FUNC_NAME "_faasm_zygote"
@@ -49,8 +50,6 @@ namespace wasm {
 
         ~WasmModule();
 
-        void initialise();
-
         void bindToFunction(const message::Message &msg);
 
         int execute(message::Message &msg);
@@ -68,6 +67,8 @@ namespace wasm {
         const bool isBound();
 
         U32 mmapMemory(U32 length);
+
+        U32 mmapPages(U32 pages);
 
         U32 mmapFile(U32 fp, U32 length);
 

@@ -117,10 +117,13 @@ from tasks.aws_sgd import (
     upload_sgd_funcs,
     zero_sgd_native_lambda
 )
-from tasks.sgd import (
+from tasks.experiments import (
     sgd_experiment,
     sgd_pull_results,
     sgd_parse_results,
+    matrix_experiment,
+    matrix_pull_results,
+    matrix_parse_results,
 )
 from tasks.sgd_data import (
     reuters_upload_s3,

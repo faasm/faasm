@@ -16,7 +16,6 @@ performance
 psutil
 PyOpenSSL
 pywren-ibm-cloud
-pyfaasm
 redis
 requests
 wheel
