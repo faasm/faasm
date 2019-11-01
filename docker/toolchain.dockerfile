@@ -34,7 +34,6 @@ WORKDIR /usr/local/code/faasm
 
 # Download the toolchain
 RUN inv download-toolchain
-RUN inv download-runtime-root
 
 # Prepare bashrc
 RUN echo ". /usr/local/code/faasm/workon.sh" >> ~/.bashrc

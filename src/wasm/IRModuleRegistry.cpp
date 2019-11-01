@@ -78,13 +78,10 @@ namespace wasm {
         if (getCompiledModuleCount(key) == 0) {
             util::FullLock registryLock(registryMutex);
             if (compiledModuleMap.count(key) == 0) {
-                logger->debug("Loading compiled main module {}", key);
-
                 IR::Module &module = moduleMap[key];
                 module.featureSpec.simd = true;
 
                 storage::FileLoader &functionLoader = storage::getFileLoader();
-
                 message::Message msg = util::messageFactory(user, func);
                 std::vector<uint8_t> objectFileBytes = functionLoader.loadFunctionObjectFile(msg);
 

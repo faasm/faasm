@@ -10,6 +10,7 @@ int main() {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
     // Start the worker pool
+    logger->info("Starting worker pool in the background");
     worker::WorkerMain w;
     w.startBackground();
 
