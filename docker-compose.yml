@@ -23,7 +23,7 @@ services:
       - REDIS_STATE_HOST=redis-state
       - REDIS_QUEUE_HOST=redis-queue
 
-  worker-1:
+  worker1:
     image: faasm/knative-worker:latest
     depends_on:
       - upload
@@ -46,7 +46,7 @@ services:
       - MAX_WORKERS_PER_FUNCTION=4
       - GLOBAL_MESSAGE_TIMEOUT=600000
 
-  worker-2:
+  worker2:
     image: faasm/knative-worker:latest
     depends_on:
       - upload
