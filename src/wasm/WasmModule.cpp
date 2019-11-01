@@ -63,6 +63,11 @@ namespace wasm {
     }
 
     void WasmModule::clone(const WasmModule &other) {
+        // If bound, we want to reclaim all the memory we'd created before cloning from the zygote
+        if(_isBound) {
+            tearDown();
+        }
+
         heapBase = other.heapBase;
         dataEnd = other.dataEnd;
         stackTop = other.stackTop;
