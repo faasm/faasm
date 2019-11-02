@@ -347,11 +347,11 @@ namespace tests {
         }
     }
 
-    TEST_CASE("Test async pulling only happens when stale", "[state]") {
+    TEST_CASE("Test async pulling", "[state]") {
         checkPulling(true);
     }
 
-    TEST_CASE("Test sync pulling always happens", "[state]") {
+    TEST_CASE("Test sync pulling", "[state]") {
         checkPulling(false);
     }
 
@@ -448,7 +448,7 @@ namespace tests {
         REQUIRE(actualValue == value);
     }
 
-    TEST_CASE("Test mapping shared memory offsets", "[state]") {
+    TEST_CASE("Test mapping small shared memory offsets", "[state]") {
         // Set up the KV
         auto kv = setupKV(7);
         std::vector<uint8_t> value = {0, 1, 2, 3, 4, 5, 6};
@@ -458,7 +458,7 @@ namespace tests {
         void *mappedRegionA = mmap(nullptr, util::HOST_PAGE_SIZE, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         void *mappedRegionB = mmap(nullptr, util::HOST_PAGE_SIZE, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         
-        // Map them so small segments of the shared memory
+        // Map them to small segments of the shared memory
         kv->mapSharedMemory(mappedRegionA, 1, 2);
         kv->mapSharedMemory(mappedRegionB, 4, 3);
         
@@ -486,6 +486,41 @@ namespace tests {
 
         byteRegionA[5] = 1;
         REQUIRE(segmentB[1] == 1);
+    }
+
+    TEST_CASE("Test mapping bigger uninitialized shared memory offsets", "[state]") {
+        // Define some larger chunks
+        size_t chunkSize = (2 * util::HOST_PAGE_SIZE) + 15;
+        size_t mappingSize = 3*util::HOST_PAGE_SIZE;
+
+        // Set up a larger total value
+        size_t totalSize = (10 * util::HOST_PAGE_SIZE) + 15;
+        auto kv = setupKV(totalSize);
+
+        // Write ones to storage
+        std::vector<uint8_t> value(totalSize);
+        std::fill(value.data(), value.data() + totalSize, 1);
+        redis::Redis &redisState = redis::Redis::getState();
+        redisState.set(kv->key, value);
+
+        // Map a couple of segments in host memory (as would be done by the wasm module)
+        void *mappedRegionA = mmap(nullptr, mappingSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        void *mappedRegionB = mmap(nullptr, mappingSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+        // Map these to different overlapping offsets
+        size_t offsetA = (6 * util::HOST_PAGE_SIZE) - 3; // Slightly below a page boundary
+        size_t offsetB = (2 * util::HOST_PAGE_SIZE) + 10; // Slightly above a page boundary
+
+        kv->mapSharedMemory(mappedRegionA, offsetA, chunkSize);
+        kv->mapSharedMemory(mappedRegionB, offsetB, chunkSize);
+
+        // Get a byte pointer to each
+        auto byteRegionA = static_cast<uint8_t *>(mappedRegionA);
+        auto byteRegionB = static_cast<uint8_t *>(mappedRegionB);
+
+        // Get pointers to these segments
+        uint8_t *segmentA = kv->getSegment(offsetA, chunkSize);
+        uint8_t *segmentB = kv->getSegment(offsetB, chunkSize);
     }
 
     TEST_CASE("Test pulling") {

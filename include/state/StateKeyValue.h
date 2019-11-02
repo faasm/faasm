@@ -38,7 +38,7 @@ namespace state {
 
         void setSegment(long offset, const uint8_t *buffer, size_t length);
 
-        void mapSharedMemory(void *newAddr, long offset, size_t length);
+        long mapSharedMemory(void *newAddr, long offset, size_t length);
 
         void unmapSharedMemory(void *mappedAddr);
 

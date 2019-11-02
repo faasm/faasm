@@ -9,5 +9,5 @@ namespace util {
 
     size_t getRequiredHostPages(size_t nBytes);
 
-    size_t roundOffsetDownToPage(size_t offset);
+    size_t alignOffsetDown(size_t offset);
 }

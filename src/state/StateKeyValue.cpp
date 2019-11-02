@@ -56,7 +56,7 @@ namespace state {
 
         // Initialise the storage if empty
         if (_empty) {
-            if(isSegment) {
+            if (isSegment) {
                 initialiseStorage(false);
                 allocateSegment(offset, length);
             } else {
@@ -243,7 +243,7 @@ namespace state {
         return valueSize;
     }
 
-    void StateKeyValue::mapSharedMemory(void *newAddr, long offset, size_t length) {
+    long StateKeyValue::mapSharedMemory(void *newAddr, long offset, size_t length) {
         pullImpl(true, offset, length);
 
         PROF_START(mapSharedMem)
@@ -257,16 +257,21 @@ namespace state {
 
         FullLock lock(valueMutex);
 
-        // Page-align the offset and length 
-        size_t alignedOffset = util::roundOffsetDownToPage(offset);
-        size_t alignedLength = util::getRequiredHostPages(length);
-        
-        // Remap our existing shared memory onto this new region
-        void *memBytes = (uint8_t*) sharedMemory + alignedOffset;
+        // Page-align the offset
+        size_t alignedOffset = util::alignOffsetDown(offset);
+
+        // Work out what shift this page alignment has caused
+        long pageOffset = (offset - alignedOffset);
+
+        // Align the length of the mapping
+        size_t alignedLength = pageOffset + length;
+
+        // Remap the relevant pages of shared memory onto the new region
+        void *memBytes = (uint8_t *) sharedMemory + alignedOffset;
         void *result = mremap(memBytes, 0, alignedLength, MREMAP_FIXED | MREMAP_MAYMOVE, newAddr);
         if (result == MAP_FAILED) {
             logger->error("Failed mapping for {} at {} with size {}. errno: {} ({})",
-                          key, sharedMemory, sharedMemSize, errno, strerror(errno));
+                          key, offset, length, errno, strerror(errno));
 
             throw std::runtime_error("Failed mapping shared memory");
         }
@@ -279,6 +284,9 @@ namespace state {
         }
 
         PROF_END(mapSharedMem)
+
+        // Return the location of the offset in the new memory
+        return pageOffset;
     }
 
     void StateKeyValue::unmapSharedMemory(void *mappedAddr) {
@@ -303,17 +311,19 @@ namespace state {
     void StateKeyValue::allocateSegment(long offset, size_t length) {
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
-        // Round down the offset
-        long alignedOffset = util::roundOffsetDownToPage(offset);
+        // Work out the aligned region to allocate
+        long alignedOffset = util::alignOffsetDown(offset);
+        long alignedLength = (offset - alignedOffset) + length;
 
         uint8_t *memBytes = ((uint8_t *) sharedMemory + alignedOffset);
-        int res = mprotect(memBytes, length, PROT_WRITE);
+        int res = mprotect(memBytes, alignedLength, PROT_WRITE);
         if (res != 0) {
             logger->debug("Mmapping of storage size {} failed. errno: {}", sharedMemSize, errno);
 
             throw std::runtime_error("Failed mapping memory for KV");
         } else {
-            logger->debug("Allocated segment {} to {}", offset, offset + length);
+            logger->debug("Allocated segment {}-{} ({}-{})", offset, offset + length, alignedOffset,
+                          alignedOffset + alignedLength);
         }
     }
 

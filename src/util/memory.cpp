@@ -13,10 +13,10 @@ namespace util {
         return nHostPages;
     }
 
-    size_t roundOffsetDownToPage(size_t offset) {
+    size_t alignOffsetDown(size_t offset) {
         // Relying on integer division rounding down
         size_t nHostPages = offset / util::HOST_PAGE_SIZE;
-        return nHostPages;
+        return nHostPages * util::HOST_PAGE_SIZE;
     }
 }
 

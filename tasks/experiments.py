@@ -144,9 +144,9 @@ class SGDExperimentRunner(ExperimentRunner):
 
 
 @task
-def sgd_experiment(ctx, workers, interval, native=False):
+def sgd_experiment(ctx, workers, interval, native=False, nobill=False):
     runner = SGDExperimentRunner(workers, interval)
-    runner.run(native)
+    runner.run(native, nobill=nobill)
 
 
 @task

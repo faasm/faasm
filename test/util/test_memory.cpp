@@ -6,13 +6,13 @@ using namespace util;
 namespace tests {
 
     TEST_CASE("Test rounding down offsets to page size", "[memory]") {
-        REQUIRE(util::roundOffsetDownToPage(2 * util::HOST_PAGE_SIZE) == 2);
-        REQUIRE(util::roundOffsetDownToPage(2 * util::HOST_PAGE_SIZE + 25) == 2);
+        REQUIRE(util::alignOffsetDown(2 * util::HOST_PAGE_SIZE) == 2 * util::HOST_PAGE_SIZE);
+        REQUIRE(util::alignOffsetDown(2 * util::HOST_PAGE_SIZE + 25) == 2 * util::HOST_PAGE_SIZE);
 
-        REQUIRE(util::roundOffsetDownToPage(0) == 0);
-        REQUIRE(util::roundOffsetDownToPage(22) == 0);
+        REQUIRE(util::alignOffsetDown(0) == 0);
+        REQUIRE(util::alignOffsetDown(22) == 0);
 
-        REQUIRE(util::roundOffsetDownToPage(867 * util::HOST_PAGE_SIZE) == 867);
-        REQUIRE(util::roundOffsetDownToPage(867 * util::HOST_PAGE_SIZE - 1) == 866);
+        REQUIRE(util::alignOffsetDown(867 * util::HOST_PAGE_SIZE) == 867 * util::HOST_PAGE_SIZE);
+        REQUIRE(util::alignOffsetDown(867 * util::HOST_PAGE_SIZE - 1) == 866 * util::HOST_PAGE_SIZE);
     }
 }
