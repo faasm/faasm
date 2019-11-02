@@ -394,9 +394,10 @@ namespace tests {
         int memSize = 2 * util::HOST_PAGE_SIZE;
         void *mappedRegionA = mmap(nullptr, memSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         auto byteRegionA = static_cast<uint8_t *>(mappedRegionA);
-        kv->mapSharedMemory(mappedRegionA);
+        kv->mapSharedMemory(mappedRegionA, 0, memSize);
+
         void *mappedRegionB = mmap(nullptr, memSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-        kv->mapSharedMemory(mappedRegionB);
+        kv->mapSharedMemory(mappedRegionB, 0, memSize);
         auto byteRegionB = static_cast<uint8_t *>(mappedRegionB);
 
         // Check shared memory regions reflect state
@@ -430,19 +431,20 @@ namespace tests {
 
     TEST_CASE("Test mapping shared memory pulls if not initialised", "[state]") {
         // Set up the KV
-        auto kv = setupKV(5);
+        int length = 5;
+        auto kv = setupKV(length);
 
         // Write value direct to redis
         std::vector<uint8_t> value = {0, 1, 2, 3, 4};
         redis::Redis &redisState = redis::Redis::getState();
-        redisState.set(kv->key, value.data(), 5);
+        redisState.set(kv->key, value.data(), length);
 
         // Try to map the kv
-        void *mappedRegion = mmap(nullptr, 5, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-        kv->mapSharedMemory(mappedRegion);
+        void *mappedRegion = mmap(nullptr, length, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        kv->mapSharedMemory(mappedRegion, 0, length);
 
         auto byteRegion = static_cast<uint8_t *>(mappedRegion);
-        std::vector<uint8_t> actualValue(byteRegion, byteRegion + 5);
+        std::vector<uint8_t> actualValue(byteRegion, byteRegion + length);
         REQUIRE(actualValue == value);
     }
 
@@ -452,11 +454,14 @@ namespace tests {
         std::vector<uint8_t> value = {0, 1, 2, 3, 4, 5, 6};
         kv->set(value.data());
 
-        // Map a shared region
+        // Map a single page of host memory
         void *mappedRegionA = mmap(nullptr, util::HOST_PAGE_SIZE, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         void *mappedRegionB = mmap(nullptr, util::HOST_PAGE_SIZE, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-        kv->mapSharedMemory(mappedRegionA);
-        kv->mapSharedMemory(mappedRegionB);
+        
+        // Map them so small segments of the shared memory
+        kv->mapSharedMemory(mappedRegionA, 1, 2);
+        kv->mapSharedMemory(mappedRegionB, 4, 3);
+        
         auto byteRegionA = static_cast<uint8_t *>(mappedRegionA);
         auto byteRegionB = static_cast<uint8_t *>(mappedRegionB);
 

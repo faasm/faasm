@@ -38,7 +38,7 @@ namespace state {
 
         void setSegment(long offset, const uint8_t *buffer, size_t length);
 
-        void mapSharedMemory(void *newAddr);
+        void mapSharedMemory(void *newAddr, long offset, size_t length);
 
         void unmapSharedMemory(void *mappedAddr);
 
@@ -84,9 +84,11 @@ namespace state {
 
         void zeroDirtyMask();
 
-        void initialiseStorage();
+        void initialiseStorage(bool allocate);
 
-        void pullImpl(bool onlyIfEmpty);
+        void allocateSegment(long offset, size_t length);
+
+        void pullImpl(bool onlyIfEmpty, long offset, size_t length);
 
         long waitOnRemoteLock();
 

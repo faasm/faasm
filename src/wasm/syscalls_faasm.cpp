@@ -162,7 +162,7 @@ namespace wasm {
 
         // Map shared memory
         WasmModule *module = getExecutingModule();
-        U32 wasmPtr = module->mmapKey(kv, totalLen);
+        U32 wasmPtr = module->mmapKey(kv, 0, totalLen);
 
         return wasmPtr;
     }
@@ -188,7 +188,7 @@ namespace wasm {
 
         // Map whole key in shared memory
         WasmModule *module = getExecutingModule();
-        U32 wasmPtr = module->mmapKey(kv, totalLen);
+        U32 wasmPtr = module->mmapKey(kv, offset, len);
 
         // Return pointer to offset region
         I32 offsetPtr = wasmPtr + offset;

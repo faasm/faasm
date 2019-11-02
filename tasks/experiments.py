@@ -54,14 +54,14 @@ class ExperimentRunner(object):
             billing_result_dir = join(parent_dir, "billing", "results")
             parse_billing(billing_result_dir, parent_dir)
 
-    def run(self, both, native, nobill=False):
+    def run(self, native, nobill=False):
         self.no_billing = nobill
 
-        if not native:
+        if native:
+            self.run_native()
+        else:
             self.run_wasm()
 
-        if native or both:
-            self.run_native()
 
     def run_wasm(self):
         self._do_run(False)
@@ -144,9 +144,9 @@ class SGDExperimentRunner(ExperimentRunner):
 
 
 @task
-def sgd_experiment(ctx, workers, interval, native=False, both=False):
+def sgd_experiment(ctx, workers, interval, native=False):
     runner = SGDExperimentRunner(workers, interval)
-    runner.run(both, native)
+    runner.run(native)
 
 
 @task
@@ -182,9 +182,9 @@ class MatrixExperimentRunner(ExperimentRunner):
 
 
 @task
-def matrix_experiment(ctx, mat_size, n_splits, native=False, both=False, nobill=False):
+def matrix_experiment(ctx, mat_size, n_splits, native=False, nobill=False):
     runner = MatrixExperimentRunner(mat_size, n_splits)
-    runner.run(both, native, nobill=nobill)
+    runner.run(native, nobill=nobill)
 
 
 @task

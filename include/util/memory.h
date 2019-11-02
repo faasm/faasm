@@ -8,4 +8,6 @@ namespace util {
     bool isPageAligned(void *ptr);
 
     size_t getRequiredHostPages(size_t nBytes);
+
+    size_t roundOffsetDownToPage(size_t offset);
 }

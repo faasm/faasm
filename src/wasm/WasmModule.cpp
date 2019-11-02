@@ -710,20 +710,21 @@ namespace wasm {
         return mappedRangePtr;
     }
 
-    U32 WasmModule::mmapKey(const std::shared_ptr<state::StateKeyValue> kv, U32 length) {
+    U32 WasmModule::mmapKey(const std::shared_ptr<state::StateKeyValue> kv, long offset, U32 length) {
         // See if this is the first time the module has seen this key
         if (sharedMemWasmPtrs.count(kv->key) == 0) {
             // Create memory region for this module
             U32 wasmPtr = this->mmapMemory(length);
 
-            // Do the mapping from the central shared region
+            // Check we can get the WASM memory
             U8 *hostMemPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmPtr);
             if (!util::isPageAligned(hostMemPtr)) {
                 throw std::runtime_error("WAVM memory not page aligned");
             }
 
+            // Map the WASM memory to the host memory
             void *voidPtr = static_cast<void *>(hostMemPtr);
-            kv->mapSharedMemory(voidPtr);
+            kv->mapSharedMemory(voidPtr, offset, length);
 
             // Remember the kv and pointer
             sharedMemWasmPtrs.insert(std::pair<std::string, I32>(kv->key, wasmPtr));

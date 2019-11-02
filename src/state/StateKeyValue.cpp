@@ -11,8 +11,6 @@
 
 using namespace util;
 
-#define PIPELINE
-
 namespace state {
     /**
      * Key/value
@@ -32,11 +30,14 @@ namespace state {
     void StateKeyValue::pull() {
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
         logger->debug("Pulling state for {}", key);
-        pullImpl(false);
+        pullImpl(false, 0, sharedMemSize);
     }
 
-    void StateKeyValue::pullImpl(bool onlyIfEmpty) {
+    void StateKeyValue::pullImpl(bool onlyIfEmpty, long offset, size_t length) {
+        bool isSegment = offset > 0;
+
         // Drop out if we already have the data and we don't care about updating
+        // TODO - how does this work with offsets?
         {
             SharedLock lock(valueMutex);
             if (onlyIfEmpty && !_empty) {
@@ -44,10 +45,9 @@ namespace state {
             }
         }
 
-        PROF_START(statePull)
-
         // Unique lock on the whole value
         FullLock lock(valueMutex);
+        PROF_START(statePull)
 
         // Check condition again
         if (onlyIfEmpty && !_empty) {
@@ -56,15 +56,28 @@ namespace state {
 
         // Initialise the storage if empty
         if (_empty) {
-            initialiseStorage();
+            if(isSegment) {
+                initialiseStorage(false);
+                allocateSegment(offset, length);
+            } else {
+                initialiseStorage(true);
+            }
         }
 
         // Read from the remote
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
-        logger->debug("Pulling remote value for {}", key);
-
         redis::Redis &redis = redis::Redis::getState();
-        redis.get(key, static_cast<uint8_t *>(sharedMemory), valueSize);
+        auto memoryBytes = static_cast<uint8_t *>(sharedMemory);
+        if (isSegment) {
+            logger->debug("Pulling remote segment ({}-{}) for {}", offset, offset + length, key);
+
+            // Note - redis ranges are inclusive, so we need to knock one off
+            size_t rangeEnd = offset + length - 1;
+            redis.getRange(key, memoryBytes + offset, length, offset, rangeEnd);
+        } else {
+            logger->debug("Pulling remote value for {}", key);
+            redis.get(key, memoryBytes, valueSize);
+        }
 
         _empty = false;
 
@@ -99,7 +112,7 @@ namespace state {
     }
 
     void StateKeyValue::get(uint8_t *buffer) {
-        pullImpl(true);
+        pullImpl(true, 0, sharedMemSize);
 
         SharedLock lock(valueMutex);
 
@@ -108,7 +121,7 @@ namespace state {
     }
 
     uint8_t *StateKeyValue::get() {
-        pullImpl(true);
+        pullImpl(true, 0, sharedMemSize);
 
         SharedLock lock(valueMutex);
 
@@ -116,7 +129,7 @@ namespace state {
     }
 
     void StateKeyValue::getSegment(long offset, uint8_t *buffer, size_t length) {
-        pullImpl(true);
+        pullImpl(true, offset, length);
 
         SharedLock lock(valueMutex);
 
@@ -133,7 +146,7 @@ namespace state {
     }
 
     uint8_t *StateKeyValue::getSegment(long offset, long len) {
-        pullImpl(true);
+        pullImpl(true, offset, len);
 
         SharedLock lock(valueMutex);
 
@@ -146,7 +159,7 @@ namespace state {
         FullLock lock(valueMutex);
 
         if (sharedMemory == nullptr) {
-            initialiseStorage();
+            initialiseStorage(true);
         }
 
         // Copy data into shared region
@@ -165,12 +178,13 @@ namespace state {
             throw std::runtime_error("Attempting to set segment out of bounds");
         }
 
-        // If empty, set to full size
+        // If empty, allocate only the region we need
         if (sharedMemory == nullptr) {
             FullLock lock(valueMutex);
 
             if (sharedMemory == nullptr) {
-                initialiseStorage();
+                initialiseStorage(false);
+                allocateSegment(offset, length);
                 _empty = false;
             }
         }
@@ -229,8 +243,8 @@ namespace state {
         return valueSize;
     }
 
-    void StateKeyValue::mapSharedMemory(void *newAddr) {
-        pullImpl(true);
+    void StateKeyValue::mapSharedMemory(void *newAddr, long offset, size_t length) {
+        pullImpl(true, offset, length);
 
         PROF_START(mapSharedMem)
 
@@ -243,11 +257,16 @@ namespace state {
 
         FullLock lock(valueMutex);
 
+        // Page-align the offset and length 
+        size_t alignedOffset = util::roundOffsetDownToPage(offset);
+        size_t alignedLength = util::getRequiredHostPages(length);
+        
         // Remap our existing shared memory onto this new region
-        void *result = mremap(sharedMemory, 0, sharedMemSize, MREMAP_FIXED | MREMAP_MAYMOVE, newAddr);
+        void *memBytes = (uint8_t*) sharedMemory + alignedOffset;
+        void *result = mremap(memBytes, 0, alignedLength, MREMAP_FIXED | MREMAP_MAYMOVE, newAddr);
         if (result == MAP_FAILED) {
-            logger->error("Failed to map shared memory for {} at {} with size {}. errno: {}",
-                          key, sharedMemory, sharedMemSize, errno);
+            logger->error("Failed mapping for {} at {} with size {}. errno: {} ({})",
+                          key, sharedMemory, sharedMemSize, errno, strerror(errno));
 
             throw std::runtime_error("Failed mapping shared memory");
         }
@@ -281,7 +300,24 @@ namespace state {
         }
     }
 
-    void StateKeyValue::initialiseStorage() {
+    void StateKeyValue::allocateSegment(long offset, size_t length) {
+        const std::shared_ptr<spdlog::logger> &logger = getLogger();
+
+        // Round down the offset
+        long alignedOffset = util::roundOffsetDownToPage(offset);
+
+        uint8_t *memBytes = ((uint8_t *) sharedMemory + alignedOffset);
+        int res = mprotect(memBytes, length, PROT_WRITE);
+        if (res != 0) {
+            logger->debug("Mmapping of storage size {} failed. errno: {}", sharedMemSize, errno);
+
+            throw std::runtime_error("Failed mapping memory for KV");
+        } else {
+            logger->debug("Allocated segment {} to {}", offset, offset + length);
+        }
+    }
+
+    void StateKeyValue::initialiseStorage(bool allocate) {
         PROF_START(initialiseStorage)
 
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
@@ -290,8 +326,14 @@ namespace state {
             throw StateKeyValueException("Initialising storage without a size for " + key);
         }
 
+        // Note - only make memory writable if we want to allocate it fully up-front
+        int prot = PROT_NONE;
+        if (allocate) {
+            prot = PROT_WRITE;
+        }
+
         // Create shared memory region for the value
-        sharedMemory = mmap(nullptr, sharedMemSize, PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+        sharedMemory = mmap(nullptr, sharedMemSize, prot, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
         if (sharedMemory == MAP_FAILED) {
             logger->debug("Mmapping of storage size {} failed. errno: {}", sharedMemSize, errno);
 
@@ -370,7 +412,6 @@ namespace state {
         // the same process
         FullLock lock(valueMutex);
 
-#ifdef PIPELINE
         // Double check condition
         if (!isDirty) {
             logger->debug("Ignoring partial push on {}", key);
@@ -385,7 +426,7 @@ namespace state {
         for (size_t i = 0; i < valueSize; i++) {
             if (dirtyMaskBytes[i] == 0) {
                 // If we encounter an "off" mask and we're "on", switch off and write the segment
-                if(isOn) {
+                if (isOn) {
                     isOn = false;
 
                     // Pipeline the change
@@ -394,7 +435,7 @@ namespace state {
                     updateCount++;
                 }
             } else {
-                if(!isOn) {
+                if (!isOn) {
                     isOn = true;
                     startIdx = i;
                 }
@@ -419,49 +460,6 @@ namespace state {
         logger->debug("Pulling from remote for {}", key);
         redis.get(key, sharedMemoryBytes, valueSize);
 
-#else
-        // Double check condition
-        if (!isDirty) {
-            return;
-        }
-        // Attempt to lock the value remotely
-        long remoteLockId = waitOnRemoteLock();
-
-        // Double check condition again after getting remote lock
-        if (!isDirty) {
-            return;
-        }
-
-        // If we don't get remote lock, just skip this push and wait for next one
-        const std::shared_ptr<spdlog::logger> &logger = getLogger();
-        if (remoteLockId <= 0) {
-            logger->debug("Failed to acquire remote lock for {}", key);
-            return;
-        }
-
-        // Load remote version
-        auto tempBuff = new uint8_t[valueSize];
-        redis.get(key, tempBuff, valueSize);
-
-        // Take the remote value for any non-dirty parts of our copy
-        auto sharedMemBytes = reinterpret_cast<uint8_t *>(sharedMemory);
-        for (unsigned long i = 0; i < valueSize; i++) {
-            sharedMemBytes[i] = (sharedMemBytes[i] & dirtyMaskBytes[i]) + (tempBuff[i] & ~dirtyMaskBytes[i]);
-        }
-
-        delete[] tempBuff;
-
-        // Set whole value back again
-        logger->debug("Pushing partial state for {}", key);
-        redis.set(key, sharedMemBytes, valueSize);
-
-        // Release remote lock
-        redis.releaseLock(key, remoteLockId);
-        logger->debug("Released remote lock for {} with id {}", key, remoteLockId);
-
-        // Zero the mask
-        memset((void *) dirtyMaskBytes, 0, valueSize);
-#endif
         // Mark as no longer dirty
         isDirty = false;
 
