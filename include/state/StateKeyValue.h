@@ -66,6 +66,8 @@ namespace state {
 
         void flagSegmentDirty(long offset, long len);
 
+        void flagSegmentAllocated(long offset, long len);
+
         bool empty();
 
         size_t size();
@@ -79,18 +81,25 @@ namespace state {
         size_t sharedMemSize;
         void *sharedMemory;
         void* dirtyMask;
+        void* allocatedMask;
 
-        std::atomic<bool> _empty;
+        std::atomic<bool> _fullyAllocated;
 
         void zeroDirtyMask();
+
+        void zeroAllocatedMask();
 
         void initialiseStorage(bool allocate);
 
         void allocateSegment(long offset, size_t length);
 
-        void pullImpl(bool onlyIfEmpty, long offset, size_t length);
+        void pullImpl(bool onlyIfEmpty);
+
+        void pullSegmentImpl(bool onlyIfEmpty, long offset, size_t length);
 
         long waitOnRemoteLock();
+
+        bool isSegmentAllocated(long offset, size_t length);
 
         void doPushPartial(const uint8_t *dirtyMaskBytes);
     };
