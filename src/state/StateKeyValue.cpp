@@ -89,7 +89,7 @@ namespace state {
         // Drop out if we already have the data and we don't care about updating
         if (onlyIfEmpty) {
             SharedLock lock(valueMutex);
-            if (isSegmentAllocated(offset, length)) {
+            if (_fullyAllocated || isSegmentAllocated(offset, length)) {
                 return;
             }
         }
@@ -101,7 +101,7 @@ namespace state {
         // Check condition again
         bool segmentAllocated = isSegmentAllocated(offset, length);
         if (onlyIfEmpty) {
-            if (segmentAllocated) {
+            if (_fullyAllocated || segmentAllocated) {
                 return;
             }
         }
@@ -120,6 +120,8 @@ namespace state {
         // Note - redis ranges are inclusive, so we need to knock one off
         size_t rangeEnd = offset + length - 1;
         redis.getRange(key, memoryBytes + offset, length, offset, rangeEnd);
+
+        logger->debug("Pulled remote segment ({}-{}) for {}", offset, offset + length, key);
 
         PROF_END(stateSegmentPull);
     }
@@ -394,7 +396,11 @@ namespace state {
             throw std::runtime_error("Failed mapping memory for KV");
         }
 
-        logger->debug("Mmapped {} pages of shared storage for {}", sharedMemSize / HOST_PAGE_SIZE, key);
+        if(allocate) {
+            logger->debug("Allocated {} pages of shared storage for {}", sharedMemSize / HOST_PAGE_SIZE, key);
+        } else {
+            logger->debug("Reserved {} pages of shared storage for {}", sharedMemSize / HOST_PAGE_SIZE, key);
+        }
 
         // Flag that allocation has happened
         if (allocate) {
