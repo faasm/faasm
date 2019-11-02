@@ -101,6 +101,11 @@ namespace tests {
         bool pushPull = !async;
         faasm::writeMatrixToState(stateKey, mat, pushPull);
 
+        if (pushPull) {
+            // Flush everything to force it to do a partial pull
+            state::getGlobalState().forceClearAll();
+        }
+
         // Read a subset of columns (exclusive)
         long startCol = 1;
         long endCol = 4;
@@ -247,11 +252,24 @@ namespace tests {
         // Check subsection
         SparseMatrix<double> expected = mat.block(0, colStart, rows, colEnd - colStart);
 
+        // Nuke everything locally
+        if (pushPull) {
+            state::getGlobalState().forceClearAll();
+        }
+
         // Read a subsection
-        faasm::readSparseMatrixFromState(key, pushPull);
         Map<const SparseMatrix<double>> actual = faasm::readSparseMatrixColumnsFromState(key, colStart, colEnd,
                                                                                          pushPull);
         checkSparseMatrixEquality(actual, expected);
+
+        // Nuke everything locally
+        if (pushPull) {
+            state::getGlobalState().forceClearAll();
+        }
+
+        // Read the whole thing and check
+        Map<const SparseMatrix<double>> actualFull = faasm::readSparseMatrixFromState(key, pushPull);
+        checkSparseMatrixEquality(actualFull, mat);
     }
 
     void checkSparseMatrixRoundTrip(int rows, int cols, int colStart, int colEnd) {
@@ -274,5 +292,9 @@ namespace tests {
 
     TEST_CASE("Test sparse matrix offset first column", "[matrix]") {
         checkSparseMatrixRoundTrip(10, 15, 0, 1);
+    }
+
+    TEST_CASE("Test big sparse matrix", "[matrix]") {
+        checkSparseMatrixRoundTrip(4000, 300, 123, 150);
     }
 }

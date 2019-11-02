@@ -121,9 +121,7 @@ namespace state {
         size_t rangeEnd = offset + length - 1;
         redis.getRange(key, memoryBytes + offset, length, offset, rangeEnd);
 
-        logger->debug("Pulled remote segment ({}-{}) for {}", offset, offset + length, key);
-
-        PROF_END(stateSegmentPull);
+        PROF_END(stateSegmentPull)
     }
 
     long StateKeyValue::waitOnRemoteLock() {
@@ -302,7 +300,7 @@ namespace state {
         size_t length= nPages * util::HOST_PAGE_SIZE;
 
         // Pull the value
-        if (pagesOffset > 0) {
+        if (pagesOffset > 0 || length < valueSize) {
             pullSegmentImpl(true, offset, length);
         } else {
             pullImpl(true);
