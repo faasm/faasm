@@ -231,17 +231,12 @@ namespace faasm {
         SparseKeys keys = getSparseKeys(key);
         SparseSizes sizes = readSparseSizes(keys, false);
 
-        // Make sure full state is in memory
+        // Make sure full state is in memory if need be
         if (pull) {
             faasmPullState(keys.innerKey, sizes.innerLen);
             faasmPullState(keys.outerKey, sizes.outerLen);
             faasmPullState(keys.valueKey, sizes.valuesLen);
             faasmPullState(keys.nonZeroKey, sizes.nonZeroLen);
-        } else {
-            faasmReadStatePtr(keys.innerKey, sizes.innerLen);
-            faasmReadStatePtr(keys.outerKey, sizes.outerLen);
-            faasmReadStatePtr(keys.valueKey, sizes.valuesLen);
-            faasmReadStatePtr(keys.nonZeroKey, sizes.nonZeroLen);
         }
 
         long nCols = colEnd - colStart;
@@ -389,8 +384,6 @@ namespace faasm {
         // Ensure full state is pulled
         if (pull) {
             faasmPullState(key, totalLen);
-        } else {
-            faasmReadStatePtr(key, totalLen);
         }
 
         uint8_t *buffer = faasmReadStateOffsetPtr(key, totalLen, startIdx, bufferLen);

@@ -189,10 +189,7 @@ namespace wasm {
         // Map whole key in shared memory
         WasmModule *module = getExecutingModule();
         U32 wasmPtr = module->mmapKey(kv, offset, len);
-
-        // Return pointer to offset region
-        I32 offsetPtr = wasmPtr + offset;
-        return offsetPtr;
+        return wasmPtr;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_flag_state_dirty", void, __faasm_flag_state_dirty,
