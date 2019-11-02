@@ -108,7 +108,6 @@ namespace state {
 
         // Initialise the storage if empty
         if (!segmentAllocated) {
-            initialiseStorage(false);
             allocateSegment(offset, length);
         }
 
@@ -223,7 +222,6 @@ namespace state {
             FullLock lock(valueMutex);
 
             if (!isSegmentAllocated(offset, length)) {
-                initialiseStorage(false);
                 allocateSegment(offset, length);
             }
         }
@@ -288,36 +286,31 @@ namespace state {
         return valueSize;
     }
 
-    long StateKeyValue::mapSharedMemory(void *newAddr, long offset, size_t length) {
-        if (offset > 0) {
+    void StateKeyValue::mapSharedMemory(void *destination, long pagesOffset, long nPages) {
+        PROF_START(mapSharedMem)
+        const std::shared_ptr<spdlog::logger> &logger = getLogger();
+
+        if (!isPageAligned(destination)) {
+            logger->error("Non-aligned destination for shared mapping of {}", key);
+            throw std::runtime_error("Mapping misaligned shared memory");
+        }
+
+        // Check everything lines up first of all
+        size_t offset = pagesOffset * util::HOST_PAGE_SIZE;
+        size_t length= nPages * util::HOST_PAGE_SIZE;
+
+        // Pull the value
+        if (pagesOffset > 0) {
             pullSegmentImpl(true, offset, length);
         } else {
             pullImpl(true);
         }
 
-        PROF_START(mapSharedMem)
-
-        const std::shared_ptr<spdlog::logger> &logger = getLogger();
-
-        if (!isPageAligned(newAddr)) {
-            logger->error("Attempting to map non-page-aligned memory at {} for {}", newAddr, key);
-            throw std::runtime_error("Mapping misaligned shared memory");
-        }
-
         FullLock lock(valueMutex);
 
-        // Page-align the offset
-        size_t alignedOffset = util::alignOffsetDown(offset);
-
-        // Work out what shift this page alignment has caused
-        long pageOffset = (offset - alignedOffset);
-
-        // Align the length of the mapping
-        size_t alignedLength = pageOffset + length;
-
         // Remap the relevant pages of shared memory onto the new region
-        void *memBytes = (uint8_t *) sharedMemory + alignedOffset;
-        void *result = mremap(memBytes, 0, alignedLength, MREMAP_FIXED | MREMAP_MAYMOVE, newAddr);
+        void *sharedMemoryStart = (uint8_t *) sharedMemory + offset;
+        void *result = mremap(sharedMemoryStart, 0, length, MREMAP_FIXED | MREMAP_MAYMOVE, destination);
         if (result == MAP_FAILED) {
             logger->error("Failed mapping for {} at {} with size {}. errno: {} ({})",
                           key, offset, length, errno, strerror(errno));
@@ -325,17 +318,12 @@ namespace state {
             throw std::runtime_error("Failed mapping shared memory");
         }
 
-        if (newAddr != result) {
-            logger->error("New mapped addr doesn't match required {} != {}",
-                          newAddr, result);
-
+        if (destination != result) {
+            logger->error("New mapped addr doesn't match required {} != {}", destination, result);
             throw std::runtime_error("Misaligned shared memory mapping");
         }
 
         PROF_END(mapSharedMem)
-
-        // Return the location of the offset in the new memory
-        return pageOffset;
     }
 
     void StateKeyValue::unmapSharedMemory(void *mappedAddr) {
@@ -358,6 +346,8 @@ namespace state {
     }
 
     void StateKeyValue::allocateSegment(long offset, size_t length) {
+        initialiseStorage(false);
+
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
         // Work out the aligned region to allocate
@@ -380,7 +370,7 @@ namespace state {
         PROF_START(initialiseStorage)
 
         // Don't need to initialise twice
-        if(sharedMemory != nullptr) {
+        if (sharedMemory != nullptr) {
             return;
         }
 

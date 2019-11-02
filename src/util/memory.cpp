@@ -13,9 +13,14 @@ namespace util {
         return nHostPages;
     }
 
+    size_t getRequiredHostPagesRoundDown(size_t nBytes) {
+        size_t nHostPages = nBytes / util::HOST_PAGE_SIZE;
+        return nHostPages;
+    }
+
     size_t alignOffsetDown(size_t offset) {
         // Relying on integer division rounding down
-        size_t nHostPages = offset / util::HOST_PAGE_SIZE;
+        size_t nHostPages = getRequiredHostPagesRoundDown(offset);
         return nHostPages * util::HOST_PAGE_SIZE;
     }
 }

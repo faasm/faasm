@@ -394,10 +394,10 @@ namespace tests {
         int memSize = 2 * util::HOST_PAGE_SIZE;
         void *mappedRegionA = mmap(nullptr, memSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         auto byteRegionA = static_cast<uint8_t *>(mappedRegionA);
-        kv->mapSharedMemory(mappedRegionA, 0, memSize);
+        kv->mapSharedMemory(mappedRegionA, 0, 2);
 
         void *mappedRegionB = mmap(nullptr, memSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-        kv->mapSharedMemory(mappedRegionB, 0, memSize);
+        kv->mapSharedMemory(mappedRegionB, 0, 2);
         auto byteRegionB = static_cast<uint8_t *>(mappedRegionB);
 
         // Check shared memory regions reflect state
@@ -440,8 +440,8 @@ namespace tests {
         redisState.set(kv->key, value.data(), length);
 
         // Try to map the kv
-        void *mappedRegion = mmap(nullptr, length, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-        kv->mapSharedMemory(mappedRegion, 0, length);
+        void *mappedRegion = mmap(nullptr, util::HOST_PAGE_SIZE, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        kv->mapSharedMemory(mappedRegion, 0, 1);
 
         auto byteRegion = static_cast<uint8_t *>(mappedRegion);
         std::vector<uint8_t> actualValue(byteRegion, byteRegion + length);
@@ -459,8 +459,8 @@ namespace tests {
         void *mappedRegionB = mmap(nullptr, util::HOST_PAGE_SIZE, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
         // Map them to small segments of the shared memory
-        kv->mapSharedMemory(mappedRegionA, 1, 2);
-        kv->mapSharedMemory(mappedRegionB, 4, 3);
+        kv->mapSharedMemory(mappedRegionA, 0, 1);
+        kv->mapSharedMemory(mappedRegionB, 0, 1);
 
         auto byteRegionA = static_cast<uint8_t *>(mappedRegionA);
         auto byteRegionB = static_cast<uint8_t *>(mappedRegionB);
@@ -490,7 +490,6 @@ namespace tests {
 
     TEST_CASE("Test mapping bigger uninitialized shared memory offsets", "[state]") {
         // Define some larger chunks
-        size_t chunkSize = (2 * util::HOST_PAGE_SIZE) + 15;
         size_t mappingSize = 3 * util::HOST_PAGE_SIZE;
 
         // Set up a larger total value
@@ -507,16 +506,9 @@ namespace tests {
         void *mappedRegionA = mmap(nullptr, mappingSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         void *mappedRegionB = mmap(nullptr, mappingSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-        // Map these to different overlapping offsets
-        size_t offsetA = (5 * util::HOST_PAGE_SIZE) - 3; // Slightly below a page boundary
-        size_t offsetB = (1 * util::HOST_PAGE_SIZE) + 10; // Slightly above a page boundary
-
         // Do the mapping and check they're reporting the correct offset
-        long actualOffsetA = kv->mapSharedMemory(mappedRegionA, offsetA, chunkSize);
-        long actualOffsetB = kv->mapSharedMemory(mappedRegionB, offsetB, chunkSize);
-
-        REQUIRE(actualOffsetA == util::HOST_PAGE_SIZE - 3);
-        REQUIRE(actualOffsetB == 10);
+        kv->mapSharedMemory(mappedRegionA, 6, 3);
+        kv->mapSharedMemory(mappedRegionB, 2, 3);
 
         // Get a byte pointer to each
         auto byteRegionA = static_cast<uint8_t *>(mappedRegionA);
@@ -527,6 +519,8 @@ namespace tests {
         byteRegionB[9] = 9;
 
         // Get pointers to these segments
+        size_t offsetA = (6 * util::HOST_PAGE_SIZE);
+        size_t offsetB = (2 * util::HOST_PAGE_SIZE);
         uint8_t *segmentA = kv->getSegment(offsetA, 10);
         uint8_t *segmentB = kv->getSegment(offsetB, 10);
 
@@ -534,9 +528,6 @@ namespace tests {
         REQUIRE(segmentB[0] == 1);
         REQUIRE(segmentA[5] == 5);
         REQUIRE(segmentB[9] == 9);
-
-        REQUIRE(byteRegionA[actualOffsetA] == 1);
-        REQUIRE(byteRegionB[actualOffsetB] == 1);
     }
 
     TEST_CASE("Test pulling") {
