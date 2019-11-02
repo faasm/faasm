@@ -189,32 +189,32 @@ namespace tests {
         // Push zeroes to state
         kv->set(actualBytes.data());
         kv->pushFull();
-        
+
         // Update some elements in both and flag dirty
         auto actualPtr = reinterpret_cast<double *>(kv->get());
         auto expectedPtr = expected.data();
         actualPtr[0] = 123.456;
         expectedPtr[0] = 123.456;
         kv->flagSegmentDirty(0, sizeof(double));
-        
+
         actualPtr[1] = -100304.223;
         expectedPtr[1] = -100304.223;
         kv->flagSegmentDirty(1 * sizeof(double), sizeof(double));
-        
+
         actualPtr[9] = 6090293.222;
         expectedPtr[9] = 6090293.222;
         kv->flagSegmentDirty(9 * sizeof(double), sizeof(double));
-        
+
         actualPtr[13] = -123.444;
         expectedPtr[13] = -123.444;
         kv->flagSegmentDirty(13 * sizeof(double), sizeof(double));
-        
+
         // Push and check that with no pull we're up to date
         kv->pushPartial();
         auto postPushDoublePtr = reinterpret_cast<double *>(kv->get());
         std::vector<double> actualPostPush(postPushDoublePtr, postPushDoublePtr + nDoubles);
         REQUIRE(expected == actualPostPush);
-        
+
         // Also check redis
         std::vector<double> actualFromRedis(nDoubles);
         redisState.get(key, reinterpret_cast<uint8_t *>(actualFromRedis.data()), nBytes);
@@ -457,11 +457,11 @@ namespace tests {
         // Map a single page of host memory
         void *mappedRegionA = mmap(nullptr, util::HOST_PAGE_SIZE, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         void *mappedRegionB = mmap(nullptr, util::HOST_PAGE_SIZE, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-        
+
         // Map them to small segments of the shared memory
         kv->mapSharedMemory(mappedRegionA, 1, 2);
         kv->mapSharedMemory(mappedRegionB, 4, 3);
-        
+
         auto byteRegionA = static_cast<uint8_t *>(mappedRegionA);
         auto byteRegionB = static_cast<uint8_t *>(mappedRegionB);
 
@@ -491,7 +491,7 @@ namespace tests {
     TEST_CASE("Test mapping bigger uninitialized shared memory offsets", "[state]") {
         // Define some larger chunks
         size_t chunkSize = (2 * util::HOST_PAGE_SIZE) + 15;
-        size_t mappingSize = 3*util::HOST_PAGE_SIZE;
+        size_t mappingSize = 3 * util::HOST_PAGE_SIZE;
 
         // Set up a larger total value
         size_t totalSize = (10 * util::HOST_PAGE_SIZE) + 15;
@@ -508,24 +508,39 @@ namespace tests {
         void *mappedRegionB = mmap(nullptr, mappingSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
         // Map these to different overlapping offsets
-        size_t offsetA = (6 * util::HOST_PAGE_SIZE) - 3; // Slightly below a page boundary
-        size_t offsetB = (2 * util::HOST_PAGE_SIZE) + 10; // Slightly above a page boundary
+        size_t offsetA = (5 * util::HOST_PAGE_SIZE) - 3; // Slightly below a page boundary
+        size_t offsetB = (1 * util::HOST_PAGE_SIZE) + 10; // Slightly above a page boundary
 
-        kv->mapSharedMemory(mappedRegionA, offsetA, chunkSize);
-        kv->mapSharedMemory(mappedRegionB, offsetB, chunkSize);
+        // Do the mapping and check they're reporting the correct offset
+        long actualOffsetA = kv->mapSharedMemory(mappedRegionA, offsetA, chunkSize);
+        long actualOffsetB = kv->mapSharedMemory(mappedRegionB, offsetB, chunkSize);
+
+        REQUIRE(actualOffsetA == util::HOST_PAGE_SIZE - 3);
+        REQUIRE(actualOffsetB == 10);
 
         // Get a byte pointer to each
         auto byteRegionA = static_cast<uint8_t *>(mappedRegionA);
         auto byteRegionB = static_cast<uint8_t *>(mappedRegionB);
 
+        // Write something to each one
+        byteRegionA[5] = 5;
+        byteRegionB[9] = 9;
+
         // Get pointers to these segments
-        uint8_t *segmentA = kv->getSegment(offsetA, chunkSize);
-        uint8_t *segmentB = kv->getSegment(offsetB, chunkSize);
+        uint8_t *segmentA = kv->getSegment(offsetA, 10);
+        uint8_t *segmentB = kv->getSegment(offsetB, 10);
+
+        REQUIRE(segmentA[0] == 1);
+        REQUIRE(segmentB[0] == 1);
+        REQUIRE(segmentA[5] == 5);
+        REQUIRE(segmentB[9] == 9);
+
+        REQUIRE(byteRegionA[actualOffsetA] == 1);
+        REQUIRE(byteRegionB[actualOffsetB] == 1);
     }
 
     TEST_CASE("Test pulling") {
         auto kv = setupKV(6);
-        REQUIRE(kv->empty());
         REQUIRE(kv->size() == 6);
 
         // Set up value in Redis
@@ -537,7 +552,6 @@ namespace tests {
 
         // Pull and check storage is initialised
         kv->pull();
-        REQUIRE(!kv->empty());
         REQUIRE(kv->size() == 6);
 
         expected = {0, 1, 2, 3, 4, 5};

@@ -25,6 +25,13 @@ namespace state {
 
         isDirty = false;
         _fullyAllocated = false;
+
+        // Set up flags
+        dirtyMask = new uint8_t[valueSize];
+        zeroDirtyMask();
+
+        allocatedMask = new uint8_t[valueSize];
+        zeroAllocatedMask();
     }
 
     void StateKeyValue::pull() {
@@ -398,13 +405,6 @@ namespace state {
         }
 
         logger->debug("Mmapped {} pages of shared storage for {}", sharedMemSize / HOST_PAGE_SIZE, key);
-
-        // Set up flags
-        dirtyMask = new uint8_t[valueSize];
-        zeroDirtyMask();
-
-        allocatedMask = new uint8_t[valueSize];
-        zeroAllocatedMask();
 
         // Flag that allocation has happened
         if (allocate) {
