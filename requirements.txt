@@ -6,6 +6,7 @@ boto3
 configparser
 cryptography
 dulwich
+flask
 genshi
 hiredis
 ibm-cos-sdk

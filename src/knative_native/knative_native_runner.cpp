@@ -1,7 +1,7 @@
 #include <faasm/faasm.h>
 
-// This is only needed for executing C++ functions natively.
-// Python funcs can just sit there using the basic endpoint
-void exec() {
-    printf("Dummy exec\n");
+// This is a dummy placeholder that ought not to get executed
+FAASM_MAIN_FUNC() {
+    printf("I should not be getting executed\n");
+    return 0;
 }

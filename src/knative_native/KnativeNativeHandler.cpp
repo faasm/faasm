@@ -64,9 +64,13 @@ namespace knative_native {
         setEmulatorFunctionIdx(msg.idx());
 
         // Set the input to the function
-        logger->debug("Knative native input: {}", msg.inputdata());
-        const std::vector<uint8_t> inputBytes = util::stringToBytes(msg.inputdata());
-        setEmulatorInputData(inputBytes);
+        if(msg.inputdata().empty()) {
+            logger->debug("Knative native no input");
+        } else {
+            logger->debug("Knative native input: {}", msg.inputdata());
+            const std::vector<uint8_t> inputBytes = util::stringToBytes(msg.inputdata());
+            setEmulatorInputData(inputBytes);
+        }
 
         std::string outputStr;
         if (msg.isstatusrequest()) {

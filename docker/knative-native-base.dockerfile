@@ -19,7 +19,7 @@ RUN cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -DFAASM_AWS_SUPPORT=OFF \
     -DFAASM_STATIC_LIBS=OFF \
-    -DCMAKE_INSTALL_PREFIX=/usr/local/faasm/install \
+    -DCMAKE_INSTALL_PREFIX=/usr/local \
     /usr/local/code/faasm
 
 RUN make -j

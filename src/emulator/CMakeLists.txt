@@ -18,7 +18,3 @@ install(TARGETS emulator
         LIBRARY DESTINATION lib
         PUBLIC_HEADER DESTINATION include/faasm
         )
-
-add_executable(post_json_call post_json_call.cpp)
-
-target_link_libraries(post_json_call util)

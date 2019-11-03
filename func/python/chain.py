@@ -1,8 +1,7 @@
-from pyfaasm.core import getFunctionIdx, getInput, chainThisWithInput, registerFunction, IS_NATIVE_PYTHON, awaitCall
+from pyfaasm.core import getFunctionIdx, getInput, chainThisWithInput, registerFunction, PYTHON_LOCAL_CHAINING, awaitCall
 
-idx = getFunctionIdx()
-print("Got function index {}".format(idx))
-
+def register_funcs():
+    pass
 
 def chainOne(input_bytes):
     expected = b'1234'
@@ -18,29 +17,37 @@ def chainTwo(input_bytes):
         exit(1)
 
 
-if IS_NATIVE_PYTHON:
-    print("Running native python")
-    registerFunction(1, chainOne)
-    registerFunction(2, chainTwo)
-else:
-    print("Not running native python")
+def main_func():
+    idx = getFunctionIdx()
+    print("Got function index {}".format(idx))
 
-if idx == 0:
-    print("Main chaining entry point")
-    call_a = chainThisWithInput(1, b'1234')
-    call_b = chainThisWithInput(2, b'5678')
+    if PYTHON_LOCAL_CHAINING:
+        print("Running native python")
+        registerFunction(1, chainOne)
+        registerFunction(2, chainTwo)
+    else:
+        print("Not running native python")
 
-    print("Awaiting calls {} and {}".format(call_a, call_b))
+    if idx == 0:
+        print("Main chaining entry point")
+        call_a = chainThisWithInput(1, b'1234')
+        call_b = chainThisWithInput(2, b'5678')
 
-    res_a = awaitCall(call_a)
-    res_b = awaitCall(call_b)
+        print("Awaiting calls {} and {}".format(call_a, call_b))
 
-    if res_a != 0 or res_b != 0:
-        print("Chained functions failed: {} {}".format(res_a, res_b))
-        exit(1)
+        res_a = awaitCall(call_a)
+        res_b = awaitCall(call_b)
 
-elif idx == 1:
-    chainOne(getInput())
+        if res_a != 0 or res_b != 0:
+            print("Chained functions failed: {} {}".format(res_a, res_b))
+            exit(1)
 
-elif idx == 2:
-    chainTwo(getInput())
+    elif idx == 1:
+        chainOne(getInput())
+
+    elif idx == 2:
+        chainTwo(getInput())
+
+
+if __name__ == "__main__":
+    main_func()
