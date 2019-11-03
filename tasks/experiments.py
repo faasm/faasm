@@ -181,8 +181,12 @@ class MatrixExperimentRunner(ExperimentRunner):
 
 
 @task
+def upload_matrix_state(ctx, mat_size, n_splits, knative=False):
+    set_up_matrix_data(mat_size, n_splits, knative=knative)
+
+
+@task
 def matrix_experiment(ctx, mat_size, n_splits, native=False, nobill=False, knative=False):
-    # Set up data
     set_up_matrix_data(mat_size, n_splits, knative=knative)
 
     # Run the experiment

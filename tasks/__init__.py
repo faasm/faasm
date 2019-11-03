@@ -124,6 +124,7 @@ from tasks.experiments import (
     matrix_experiment,
     matrix_pull_results,
     matrix_parse_results,
+    upload_matrix_state,
 )
 from tasks.sgd_data import (
     reuters_upload_s3,
