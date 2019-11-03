@@ -516,8 +516,10 @@ namespace state {
         redis.flushPipeline(updateCount);
 
         // Read the latest value
-        logger->debug("Pulling from remote for {}", key);
-        redis.get(key, sharedMemoryBytes, valueSize);
+        if(_fullyAllocated) {
+            logger->debug("Pulling from remote on partial push for {}", key);
+            redis.get(key, sharedMemoryBytes, valueSize);
+        }
 
         // Mark as no longer dirty
         isDirty = false;

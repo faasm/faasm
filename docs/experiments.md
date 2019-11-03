@@ -7,7 +7,7 @@ Everything must be cleared away between runs to make sure stuff doesn't bleed ac
 
 ## Data
 
-The SGD experiment data must be set up beforehand. See the `sgd.md` notes.
+The SGD experiment data must be set up once ahead of time. See the `sgd.md` notes.
 
 ## Executing
 

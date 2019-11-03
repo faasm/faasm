@@ -1,4 +1,3 @@
-import datetime
 from abc import abstractmethod
 from os import mkdir, listdir
 from os.path import exists, join
@@ -11,6 +10,7 @@ from invoke import task
 from tasks.util.billing import start_billing, pull_billing, parse_billing
 from tasks.util.env import FAASM_HOME
 from tasks.util.invoke import invoke_impl
+from tasks.util.matrix_data import set_up_matrix_data
 
 
 class ExperimentRunner(object):
@@ -61,7 +61,6 @@ class ExperimentRunner(object):
             self.run_native()
         else:
             self.run_wasm()
-
 
     def run_wasm(self):
         self._do_run(False)
@@ -171,7 +170,7 @@ class MatrixExperimentRunner(ExperimentRunner):
     result_file_name = "NODE_0_MAT_MUL.log"
 
     def __init__(self, mat_size, n_splits):
-        super().__init__("{} {}".format(mat_size, n_splits))
+        super().__init__(None)
 
         self.mat_size = mat_size
         self.n_splits = n_splits
@@ -182,7 +181,11 @@ class MatrixExperimentRunner(ExperimentRunner):
 
 
 @task
-def matrix_experiment(ctx, mat_size, n_splits, native=False, nobill=False):
+def matrix_experiment(ctx, mat_size, n_splits, native=False, nobill=False, knative=False):
+    # Set up data
+    set_up_matrix_data(mat_size, n_splits, knative=knative)
+
+    # Run the experiment
     runner = MatrixExperimentRunner(mat_size, n_splits)
     runner.run(native, nobill=nobill)
 
