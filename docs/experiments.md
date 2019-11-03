@@ -20,10 +20,10 @@ We need to run the native version and the wasm version. This looks like:
 inv deploy-knative-native sgd reuters_svm 10
 
 # Native matrices
-inv deploy-knative-native python mat_mul 10
+inv deploy-knative-native-python 10
 
 # Wasm
-inv deploy knative 10
+inv deploy-knative 10
 
 # ---- Wait ----
 watch kn -n faasm service list
@@ -49,7 +49,7 @@ inv matrix-experiment 10000 3
 inv delete-knative-native sgd reuters_svm
 
 # Native matrices
-inv delete-knative-native python mat_mul
+inv delete-knative-native-python
 
 # Wasm
 inv delete-knative-worker
