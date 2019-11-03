@@ -89,11 +89,9 @@ def invoke_impl(user, func,
             "value": msg,
         }
 
-    msg_json = dumps(msg)
-
     # IBM must call init first
     if ibm:
-        do_post("http://{}:{}/init/".format(host, port), msg_json)
+        do_post("http://{}:{}/init/".format(host, port), msg)
 
     if parallel and poll:
         raise RuntimeError("Cannot run poll and parallel")
@@ -115,7 +113,7 @@ def invoke_impl(user, func,
             p = multiprocessing.Pool(n_workers)
 
             if ibm or knative:
-                args_list = [(url, msg_json, headers) for _ in range(n_workers)]
+                args_list = [(url, msg, headers) for _ in range(n_workers)]
             else:
                 raise RuntimeError("Must specify knative, IBM or legacy")
 
@@ -125,7 +123,7 @@ def invoke_impl(user, func,
                 raise RuntimeError("Poll only supported for knative")
 
             # Submit initial async call
-            async_result = do_post(url, msg_json, headers=headers, quiet=True)
+            async_result = do_post(url, msg, headers=headers, quiet=True)
             try:
                 call_id = int(async_result)
             except ValueError:
@@ -159,7 +157,7 @@ def invoke_impl(user, func,
 
         else:
             if ibm or knative:
-                return do_post(url, msg_json, headers=headers)
+                return do_post(url, msg, headers=headers)
             else:
                 raise RuntimeError("Must specify knative or legacy")
 
