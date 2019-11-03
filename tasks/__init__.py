@@ -121,7 +121,7 @@ from tasks.aws_sgd import (
     upload_sgd_funcs,
     zero_sgd_native_lambda
 )
-from tasks.sgd_data import (
+from tasks.experiment_data import (
     reuters_upload_s3,
     reuters_download_s3,
     reuters_state_upload,
@@ -149,17 +149,20 @@ from tasks.redis import (
     redis_all_workers,
     redis_func_workers,
 )
+from tasks.experiments import (
+    sgd_experiment,
+    sgd_pull_results,
+    sgd_parse_results,
+    matrix_experiment,
+    matrix_pull_results,
+    matrix_parse_results,
+    upload_matrix_state,
+)
 
 try:
     import pyfaasm
-    from tasks.experiments import (
-        sgd_experiment,
-        sgd_pull_results,
-        sgd_parse_results,
-        matrix_experiment,
-        matrix_pull_results,
-        matrix_parse_results,
-        upload_matrix_state,
+    from tasks.matrix_data import (
+        generate_all_matrix_data,
     )
 except:
     pass

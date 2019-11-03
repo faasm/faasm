@@ -10,7 +10,6 @@ from invoke import task
 from tasks.util.billing import start_billing, pull_billing, parse_billing
 from tasks.util.env import FAASM_HOME
 from tasks.util.invoke import invoke_impl
-from tasks.util.matrix_data import set_up_matrix_data
 
 
 class ExperimentRunner(object):
@@ -182,12 +181,12 @@ class MatrixExperimentRunner(ExperimentRunner):
 
 @task
 def upload_matrix_state(ctx, mat_size, n_splits, knative=False):
-    set_up_matrix_data(mat_size, n_splits, knative=knative)
+    generate_matrix_data(mat_size, n_splits, knative=knative)
 
 
 @task
 def matrix_experiment(ctx, mat_size, n_splits, native=False, nobill=False, knative=False):
-    set_up_matrix_data(mat_size, n_splits, knative=knative)
+    generate_matrix_data(mat_size, n_splits, knative=knative)
 
     # Run the experiment
     runner = MatrixExperimentRunner(mat_size, n_splits)

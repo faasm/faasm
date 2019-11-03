@@ -15,7 +15,7 @@ matplotlib
 numpy
 performance
 psutil
-pyfaasm
+# Explicitly don't put pyfaasm here, install separately
 PyOpenSSL
 pywren-ibm-cloud
 redis
