@@ -2,6 +2,7 @@
 extern "C" {
 #include <faasm/core.h>
 #include <faasm/host_interface.h>
+#include <emulator/emulator_api.h>
 }
 
 #include <util/locks.h>
@@ -15,6 +16,7 @@ extern "C" {
 #include <util/environment.h>
 #include <util/json.h>
 #include <util/bytes.h>
+#include <scheduler/Scheduler.h>
 
 /**
  * C++ emulation of Faasm system
@@ -102,6 +104,31 @@ void setEmulatorUser(const char *newUser) {
     _user = newUser;
 }
 
+char *emulatorGetCallStatus(unsigned int messageId) {
+    // Get message with no delay
+    scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
+    const message::Message result = globalBus.getFunctionResult(messageId, 0);
+
+    char *strResult = new char[20];
+    if (result.type() == message::Message_MessageType_EMPTY) {
+        sprintf(strResult, "RUNNING");
+    } else if (result.success()) {
+        sprintf(strResult, "SUCCESS");
+    } else {
+        sprintf(strResult, "FAILED");
+    }
+
+    return strResult;
+}
+
+void emulatorSetCallStatus(unsigned int messageId, bool success) {
+    scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
+    const message::Message tempMsg = util::messageFactory(getEmulatorUser(), _function);
+    
+    globalBus.setFunctionResult(tempMsg, success);
+}
+
+
 std::string getEmulatorFunction() {
     return _function;
 }
@@ -134,6 +161,22 @@ std::string getEmulatorPythonFunction() {
 void setEmulatorPythonFunction(const char *newFunction) {
     _pythonFunction = newFunction;
 }
+
+
+void setEmulatedMessage(const char *messageJson) {
+    const message::Message msg = util::jsonToMessage(messageJson);
+
+    setEmulatorUser(msg.user().c_str());
+    setEmulatorFunction(msg.function().c_str());
+    setEmulatorFunctionIdx(msg.idx());
+
+    setEmulatorInputData(util::stringToBytes(msg.inputdata()));
+
+    setEmulatorPythonUser(msg.pythonuser().c_str());
+    setEmulatorPythonFunction(msg.pythonfunction().c_str());
+    setEmulatorPyIdx(msg.pythonidx());
+}
+
 
 std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {
     state::State &s = state::getGlobalState();
@@ -298,7 +341,7 @@ unsigned int _chain_local(int idx, int pyIdx, const unsigned char *buffer, long 
     util::getLogger()->debug("E - chain_this_local idx {} input len {}", idx, bufferLen);
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-    if(pyIdx > 0) {
+    if (pyIdx > 0) {
         throw std::runtime_error("Not yet implemented");
     }
 
@@ -395,7 +438,6 @@ unsigned int __faasm_chain_py(int idx, const unsigned char *buffer, long bufferL
         return _chain_local(0, idx, buffer, bufferLen);
     }
 }
-
 
 int __faasm_await_call(unsigned int callId) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();

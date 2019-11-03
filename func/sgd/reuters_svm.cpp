@@ -10,7 +10,7 @@
 #ifdef __wasm__
 #else
 
-#include "emulator/emulator.h"
+#include "emulator/emulator_api.h"
 
 #endif
 

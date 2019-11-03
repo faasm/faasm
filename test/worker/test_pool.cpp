@@ -8,7 +8,7 @@
 
 #include <worker/WorkerThreadPool.h>
 #include <worker/WorkerThread.h>
-#include <emulator/emulator.h>
+#include <emulator/emulator_api.h>
 
 using namespace worker;
 

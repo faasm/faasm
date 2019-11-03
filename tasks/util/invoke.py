@@ -18,7 +18,7 @@ def _get_knative_headers(func_name):
 def _do_invoke(user, func, host, port, func_type, input=None):
     url = "http://{}:{}/{}/{}/{}".format(host, port, func_type, user, func)
     print("Invoking {}".format(url))
-    do_post(url, input)
+    do_post(url, input, json=True)
 
 
 def invoke_impl(user, func,
@@ -91,7 +91,7 @@ def invoke_impl(user, func,
 
     # IBM must call init first
     if ibm:
-        do_post("http://{}:{}/init/".format(host, port), msg)
+        do_post("http://{}:{}/init/".format(host, port), msg, json=True)
 
     if parallel and poll:
         raise RuntimeError("Cannot run poll and parallel")
@@ -123,7 +123,7 @@ def invoke_impl(user, func,
                 raise RuntimeError("Poll only supported for knative")
 
             # Submit initial async call
-            async_result = do_post(url, msg, headers=headers, quiet=True)
+            async_result = do_post(url, msg, headers=headers, quiet=True, json=True)
             try:
                 call_id = int(async_result)
             except ValueError:
@@ -157,7 +157,7 @@ def invoke_impl(user, func,
 
         else:
             if ibm or knative:
-                return do_post(url, msg, headers=headers)
+                return do_post(url, msg, headers=headers, json=True)
             else:
                 raise RuntimeError("Must specify knative or legacy")
 
@@ -174,4 +174,4 @@ def status_call_impl(call_id, host, port, quiet=False):
 
     # Can always use the faasm worker for getting status
     headers = _get_knative_headers("worker")
-    return do_post(url, dumps(msg), headers=headers, quiet=quiet)
+    return do_post(url, dumps(msg), headers=headers, quiet=quiet, json=True)

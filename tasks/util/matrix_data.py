@@ -4,7 +4,7 @@ from os.path import join, exists
 import numpy as np
 from numpy import int32
 from pyfaasm.matrix import SUBMATRICES_KEY_A, SUBMATRICES_KEY_B, load_matrix_conf_from_state, RESULT_MATRIX_KEY, \
-    subdivide_matrix_into_file, MATRIX_CONF_STATE_KEY
+    subdivide_matrix_into_file, MATRIX_CONF_STATE_KEY, write_matrix_params_to_state
 
 from tasks.util.config import get_faasm_config
 from tasks.util.env import HOME_DIR
@@ -20,6 +20,10 @@ RESULT_FILE = join(MATRIX_DATA_DIR, "result")
 def set_up_matrix_data(matrix_size, n_splits, host="localhost", knative=False):
     matrix_size = int(matrix_size)
     n_splits = int(n_splits)
+
+    # Set up parameters locally (needed to run pyfaasm)
+    write_matrix_params_to_state(matrix_size, n_splits)
+    load_matrix_conf_from_state()
 
     # Write params to file
     print("Setting up {}x{} matrix with {} splits".format(matrix_size, matrix_size, n_splits))

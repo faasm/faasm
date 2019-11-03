@@ -3,6 +3,7 @@
 #include <util/config.h>
 #include <emulator/emulator.h>
 #include <faasm/core.h>
+#include <emulator/emulator_api.h>
 
 namespace tests {
     TEST_CASE("Test invoking function with emulator chaining", "[knative]") {
