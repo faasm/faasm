@@ -38,7 +38,8 @@ namespace knative {
         } else {
             message::Message msg = util::jsonToMessage(requestStr);
             if(msg.isstatusrequest()) {
-                responseStr = getMessageStatus(msg);
+                scheduler::GlobalMessageBus &msgBus = scheduler::getGlobalMessageBus();
+                responseStr = msgBus.getMessageStatus(msg.id());
             } else {
                 responseStr = executeFunction(msg);
             }

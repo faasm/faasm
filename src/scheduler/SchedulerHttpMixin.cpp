@@ -5,20 +5,6 @@
 #include <util/timing.h>
 
 namespace scheduler {
-    std::string SchedulerHttpMixin::getMessageStatus(message::Message &msg) {
-        // Get message with no delay
-        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        const message::Message result = globalBus.getFunctionResult(msg.id(), 0);
-
-        if (result.type() == message::Message_MessageType_EMPTY) {
-            return "RUNNING";
-        } else if (result.success()) {
-            return "SUCCESS: " + result.outputdata();
-        } else {
-            return "FAILED: " + result.outputdata();
-        }
-    }
-
     std::string SchedulerHttpMixin::executeFunction(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         util::SystemConfig &conf = util::getSystemConfig();

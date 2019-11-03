@@ -56,6 +56,10 @@ namespace scheduler {
         return this->nextMessage();
     }
 
+    std::string AWSMessageBus::getMessageStatus(unsigned int messageId) {
+        throw std::runtime_error("Not implemented");
+    }
+
     void AWSMessageBus::setFunctionResult(message::Message &msg, bool success) {
         // TODO - avoid writing output data in status?
         // Write status
@@ -69,11 +73,11 @@ namespace scheduler {
     }
 
     message::Message AWSMessageBus::getFunctionResult(unsigned int messageId, int timeout) {
-        if(messageId == 0) {
+        if (messageId == 0) {
             throw std::runtime_error("Must provide non-zero message ID");
         }
 
-        if(timeout == 0) {
+        if (timeout == 0) {
             throw std::runtime_error("Not yet implemented instant response");
         }
 

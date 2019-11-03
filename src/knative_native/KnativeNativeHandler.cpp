@@ -48,33 +48,21 @@ namespace knative_native {
             logger->info("Warm start");
         }
 
-        // Set up what user/ function we're running
-        logger->debug("Knative native request to {}/{}", user, func);
-        setEmulatorUser(user.c_str());
-        setEmulatorFunction(func.c_str());
-
-        // Parse the JSON input
+        // Set up the function
         const std::string requestStr = request.body();
-        logger->debug("Knative native request: {}", requestStr);
-
         message::Message msg = util::jsonToMessage(requestStr);
         util::setMessageId(msg);
-        setEmulatorFunctionIdx(msg.idx());
+        setEmulatedMessage(requestStr.c_str());
 
-        // Set the input to the function
-        if (msg.inputdata().empty()) {
-            logger->debug("Knative native no input");
-        } else {
-            logger->debug("Knative native input: {}", msg.inputdata());
-            const std::vector<uint8_t> inputBytes = util::stringToBytes(msg.inputdata());
-            setEmulatorInputData(inputBytes);
-        }
+        // Parse the JSON input
+        logger->debug("Knative native request: {}", requestStr);
 
         std::string outputStr;
         if (msg.isstatusrequest()) {
             // Message status request
             logger->debug("Getting status for function {}", msg.id());
-            outputStr = getMessageStatus(msg);
+            scheduler::GlobalMessageBus &msgBus = scheduler::getGlobalMessageBus();
+            outputStr = msgBus.getMessageStatus(msg.id());
         } else if (msg.isasync()) {
             logger->debug("Executing function index {} async", msg.idx());
 

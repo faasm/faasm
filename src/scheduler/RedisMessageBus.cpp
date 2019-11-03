@@ -52,7 +52,7 @@ namespace scheduler {
 
         // Record which node did the execution
         msg.set_executednode(util::getNodeId());
-        
+
         std::string key = msg.resultkey();
         if (key.empty()) {
             throw std::runtime_error("Result key empty. Cannot publish result");
@@ -106,6 +106,20 @@ namespace scheduler {
         }
     }
 
+
+    std::string RedisMessageBus::getMessageStatus(unsigned int messageId) {
+        const message::Message result = getFunctionResult(messageId, 0);
+
+        if (result.type() == message::Message_MessageType_EMPTY) {
+            return "RUNNING";
+        } else if (result.success()) {
+            return "SUCCESS: " + result.outputdata();
+        } else {
+            return "FAILED: " + result.outputdata();
+        }
+    }
+
     void RedisMessageBus::clear() {
     }
+
 }

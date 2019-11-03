@@ -19,11 +19,14 @@ namespace scheduler {
 
         message::Message nextMessage(int timeout) override;
 
+        std::string getMessageStatus(unsigned int messageId) override;
+
         void setFunctionResult(message::Message &msg, bool success) override;
 
         message::Message getFunctionResult(unsigned int messageId, int timeout) override;
 
         void clear() override;
+
     private:
         awswrapper::SQSWrapper &sqs;
         awswrapper::S3Wrapper &s3;

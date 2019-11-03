@@ -107,24 +107,17 @@ void setEmulatorUser(const char *newUser) {
 char *emulatorGetCallStatus(unsigned int messageId) {
     // Get message with no delay
     scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-    const message::Message result = globalBus.getFunctionResult(messageId, 0);
+    const std::string msgStatus = globalBus.getMessageStatus(messageId);
 
-    char *strResult = new char[20];
-    if (result.type() == message::Message_MessageType_EMPTY) {
-        sprintf(strResult, "RUNNING");
-    } else if (result.success()) {
-        sprintf(strResult, "SUCCESS");
-    } else {
-        sprintf(strResult, "FAILED");
-    }
-
-    return strResult;
+    char* result = new char[msgStatus.size()];
+    strcpy(result, msgStatus.c_str());
+    return result;
 }
 
-void emulatorSetCallStatus(unsigned int messageId, bool success) {
+void emulatorSetCallStatus(bool success) {
     scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
     const message::Message tempMsg = util::messageFactory(getEmulatorUser(), _function);
-    
+
     globalBus.setFunctionResult(tempMsg, success);
 }
 
@@ -164,17 +157,25 @@ void setEmulatorPythonFunction(const char *newFunction) {
 
 
 void setEmulatedMessage(const char *messageJson) {
+    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
     const message::Message msg = util::jsonToMessage(messageJson);
 
     setEmulatorUser(msg.user().c_str());
     setEmulatorFunction(msg.function().c_str());
     setEmulatorFunctionIdx(msg.idx());
 
-    setEmulatorInputData(util::stringToBytes(msg.inputdata()));
-
     setEmulatorPythonUser(msg.pythonuser().c_str());
     setEmulatorPythonFunction(msg.pythonfunction().c_str());
     setEmulatorPyIdx(msg.pythonidx());
+
+    // Set the input to the function
+    if (msg.inputdata().empty()) {
+        logger->debug("Knative native no input");
+    } else {
+        logger->debug("Knative native input: {}", msg.inputdata());
+        const std::vector<uint8_t> inputBytes = util::stringToBytes(msg.inputdata());
+        setEmulatorInputData(inputBytes);
+    }
 }
 
 
