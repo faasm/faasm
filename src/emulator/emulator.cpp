@@ -5,6 +5,7 @@ extern "C" {
 #include <emulator/emulator_api.h>
 }
 
+#include <emulator/emulator.h>
 #include <util/locks.h>
 #include <util/logging.h>
 #include <redis/Redis.h>
@@ -23,22 +24,8 @@ extern "C" {
  */
 
 // We use an empty emulator user by default as it's easier to reason about keys in state
-static std::string _user;
-static std::string _function;
-static std::string _pythonUser;
-static std::string _pythonFunction;
-
-// Note thread locality here to handle multiple locally chained functions
-static thread_local std::vector<uint8_t> _threadLocalInputData;
-static thread_local std::vector<uint8_t> _threadLocalOutputData;
-static thread_local int _threadLocalfuncIdx = 0;
-static thread_local int _threadLocalPyIdx = 0;
-
-// Note thread locality here to handle multiple locally chained functions
-static std::vector<uint8_t> _inputData;
-static std::vector<uint8_t> _outputData;
-static int _funcIdx = 0;
-static int _pyIdx = 0;
+static message::Message _emulatedCall = message::Message();
+static thread_local message::Message _threadLocalEmulatedCall = message::Message();
 
 static std::mutex threadsMutex;
 static std::unordered_map<int, std::thread> threads;
@@ -47,15 +34,8 @@ static int threadCount = 1;
 #define DUMMY_USER "emulated"
 
 void resetEmulator() {
-    _outputData.clear();
-    _inputData.clear();
-    _threadLocalOutputData.clear();
-    _threadLocalInputData.clear();
-
-    _funcIdx = 0;
-    _threadLocalfuncIdx = 0;
-
-    _function = "";
+    _emulatedCall = message::Message();
+    _threadLocalEmulatedCall = message::Message();
 
     threads.clear();
     threadCount = 1;
@@ -68,9 +48,9 @@ bool noThreadLocal() {
 
 std::vector<uint8_t> getEmulatorOutputData() {
     if (noThreadLocal()) {
-        return _outputData;
+        return util::stringToBytes(_emulatedCall.outputdata());
     } else {
-        return _threadLocalOutputData;
+        return util::stringToBytes(_threadLocalEmulatedCall.outputdata());
     }
 }
 
@@ -86,117 +66,56 @@ std::string getEmulatorOutputDataString() {
     return outputStr;
 }
 
-void setEmulatorInputData(const std::vector<uint8_t> &inputIn) {
-    _inputData = inputIn;
-    _threadLocalInputData = inputIn;
-}
-
-void setEmulatorFunctionIdx(int idx) {
-    _funcIdx = idx;
-    _threadLocalfuncIdx = idx;
-}
 
 std::string getEmulatorUser() {
-    return _user;
+    return _emulatedCall.user();
 }
 
 void setEmulatorUser(const char *newUser) {
-    _user = newUser;
+    _emulatedCall.set_user(newUser);
 }
 
-char *emulatorGetCallStatus(unsigned int messageId) {
-    // Get message with no delay
+char *emulatorGetAsyncResponse() {
+    const std::string responseStr = util::buildAsyncResponse(_emulatedCall);
+    char *responseData = new char[responseStr.size()];
+    strcpy(responseData, responseStr.c_str());
+    return responseData;
+}
+
+void emulatorSetCallStatus(int success) {
     scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-    const std::string msgStatus = globalBus.getMessageStatus(messageId);
-
-    char* result = new char[msgStatus.size()];
-    strcpy(result, msgStatus.c_str());
-    return result;
+    globalBus.setFunctionResult(_emulatedCall, success == 1);
 }
 
-void emulatorSetCallStatus(bool success) {
-    scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-    const message::Message tempMsg = util::messageFactory(getEmulatorUser(), _function);
-
-    globalBus.setFunctionResult(tempMsg, success);
-}
-
-
-std::string getEmulatorFunction() {
-    return _function;
-}
-
-void setEmulatorFunction(const char *newFunction) {
-    _function = newFunction;
-}
-
-void unsetEmulatorUser() {
-    _user = "";
-}
-
-std::string getEmulatorPythonUser() {
-    return _pythonUser;
-}
-
-void setEmulatorPythonUser(const char *newUser) {
-    _pythonUser = newUser;
-}
-
-void setEmulatorPyIdx(int idx) {
-    _pyIdx = idx;
-    _threadLocalPyIdx = idx;
-}
-
-std::string getEmulatorPythonFunction() {
-    return _pythonFunction;
-}
-
-void setEmulatorPythonFunction(const char *newFunction) {
-    _pythonFunction = newFunction;
-}
-
-
-void setEmulatedMessage(const char *messageJson) {
-    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+void setEmulatedMessageFromJson(const char *messageJson) {
     const message::Message msg = util::jsonToMessage(messageJson);
-
-    setEmulatorUser(msg.user().c_str());
-    setEmulatorFunction(msg.function().c_str());
-    setEmulatorFunctionIdx(msg.idx());
-
-    setEmulatorPythonUser(msg.pythonuser().c_str());
-    setEmulatorPythonFunction(msg.pythonfunction().c_str());
-    setEmulatorPyIdx(msg.pythonidx());
-
-    // Set the input to the function
-    if (msg.inputdata().empty()) {
-        logger->debug("Knative native no input");
-    } else {
-        logger->debug("Knative native input: {}", msg.inputdata());
-        const std::vector<uint8_t> inputBytes = util::stringToBytes(msg.inputdata());
-        setEmulatorInputData(inputBytes);
-    }
+    setEmulatedMessage(msg);
 }
 
+void setEmulatedMessage(const message::Message &msg) {
+    message::Message msgCopy = msg;
+    util::setMessageId(msgCopy);
+
+    _emulatedCall = msgCopy;
+    _threadLocalEmulatedCall = msgCopy;
+}
 
 std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {
     state::State &s = state::getGlobalState();
 
-    if (_user.empty()) {
+    if (_emulatedCall.user().empty()) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Setting dummy emulator user {}", DUMMY_USER);
         setEmulatorUser(DUMMY_USER);
     }
 
-    return s.getKV(_user, key, size);
+    return s.getKV(_emulatedCall.user(), key, size);
 }
 
 void __faasm_write_output(const unsigned char *output, long outputLen) {
     util::getLogger()->debug("E - write_output {} {}", output, outputLen);
-    const std::vector<uint8_t> outputVec = std::vector<uint8_t>(output, output + outputLen);
-
-    _outputData = outputVec;
-    _threadLocalOutputData = outputVec;
+    _emulatedCall.set_outputdata(output, outputLen);
+    _threadLocalEmulatedCall.set_outputdata(output, outputLen);
 }
 
 
@@ -315,9 +234,9 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen) {
 
     long inputLen;
     if (noThreadLocal()) {
-        inputLen = _inputData.size();
+        inputLen = _emulatedCall.inputdata().size();
     } else {
-        inputLen = _threadLocalInputData.size();
+        inputLen = _threadLocalEmulatedCall.inputdata().size();
     }
 
     // This relies on thread-local _inputData
@@ -330,9 +249,9 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen) {
     }
 
     if (noThreadLocal()) {
-        std::copy(_inputData.begin(), _inputData.end(), buffer);
+        std::copy(_emulatedCall.inputdata().begin(), _emulatedCall.inputdata().end(), buffer);
     } else {
-        std::copy(_threadLocalInputData.begin(), _threadLocalInputData.end(), buffer);
+        std::copy(_threadLocalEmulatedCall.inputdata().begin(), _threadLocalEmulatedCall.inputdata().end(), buffer);
     }
 
     return bufferLen;
@@ -346,9 +265,6 @@ unsigned int _chain_local(int idx, int pyIdx, const unsigned char *buffer, long 
         throw std::runtime_error("Not yet implemented");
     }
 
-    // Create vector to hold inputs
-    std::vector<uint8_t> inputs(buffer, buffer + bufferLen);
-
     // Create a fake thread ID for this thread
     int thisCallId;
     {
@@ -358,10 +274,10 @@ unsigned int _chain_local(int idx, int pyIdx, const unsigned char *buffer, long 
         thisCallId = threadCount;
 
         // Spawn a thread to execute the function
-        threads.emplace(std::pair<int, std::thread>(thisCallId, [idx, inputs] {
+        threads.emplace(std::pair<int, std::thread>(thisCallId, [idx, buffer, bufferLen] {
             // Set up input data for this thread (thread-local)
-            setEmulatorInputData(inputs);
-            setEmulatorFunctionIdx(idx);
+            _threadLocalEmulatedCall.set_inputdata(buffer, bufferLen);
+            _threadLocalEmulatedCall.set_idx(idx);
 
             // Invoke the function
             _FaasmFuncPtr f = getFaasmFunc(idx);
@@ -388,11 +304,9 @@ unsigned int _chain_knative(int idx, int pyIdx, const unsigned char *buffer, lon
     int portInt = std::stoi(port);
 
     // Build the message to dispatch
-    message::Message msg = util::messageFactory(_user, _function);
+    message::Message msg = _emulatedCall;
     msg.set_idx(idx);
     msg.set_inputdata(buffer, bufferLen);
-    msg.set_pythonuser(_pythonUser);
-    msg.set_pythonfunction(_pythonFunction);
     msg.set_pythonidx(pyIdx);
 
     // We will be awaiting the response in a thread in the background, therefore this must _not_ be async
@@ -411,7 +325,6 @@ unsigned int _chain_knative(int idx, int pyIdx, const unsigned char *buffer, lon
         // Spawn a thread to execute the function
         // Use the message ID as the key so we can join it when awaiting
         threads.emplace(std::pair<int, std::thread>(msg.id(), [host, portInt, msg] {
-
             util::postJsonFunctionCall(host, portInt, msg);
         }));
     }
@@ -465,17 +378,17 @@ int __faasm_await_call(unsigned int callId) {
 int __faasm_get_idx() {
     // Relies on thread-local idx
     if (noThreadLocal()) {
-        return _funcIdx;
+        return _emulatedCall.idx();
     } else {
-        return _threadLocalfuncIdx;
+        return _threadLocalEmulatedCall.idx();
     }
 }
 
 int __faasm_get_py_idx() {
     if (noThreadLocal()) {
-        return _pyIdx;
+        return _emulatedCall.pythonidx();
     } else {
-        return _threadLocalPyIdx;
+        return _threadLocalEmulatedCall.pythonidx();
     }
 }
 
@@ -496,11 +409,11 @@ void __faasm_unlock_state_write(const char *key) {
 }
 
 void __faasm_get_py_user(unsigned char *buffer, long bufferLen) {
-    const std::vector<uint8_t> bytes = util::stringToBytes(_pythonUser);
+    const std::vector<uint8_t> bytes = util::stringToBytes(_emulatedCall.pythonuser());
     std::copy(bytes.data(), bytes.data() + bytes.size(), buffer);
 }
 
 void __faasm_get_py_func(unsigned char *buffer, long bufferLen) {
-    const std::vector<uint8_t> bytes = util::stringToBytes(_pythonFunction);
+    const std::vector<uint8_t> bytes = util::stringToBytes(_emulatedCall.pythonfunction());
     std::copy(bytes.data(), bytes.data() + bytes.size(), buffer);
 }

@@ -1,12 +1,10 @@
 #ifndef FAASM_EMULATOR_API_H
 #define FAASM_EMULATOR_API_H
 
-void setEmulatedMessage(const char *msgJson);
+void setEmulatedMessageFromJson(const char *msgJson);
 
-char *emulatorGetCallStatus(unsigned int messageId);
+char* emulatorGetAsyncResponse();
 
-void emulatorSetCallStatus(unsigned int messageId, bool success);
-
-void setEmulatorUser(const char *user);
+void emulatorSetCallStatus(int success);
 
 #endif

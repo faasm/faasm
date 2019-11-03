@@ -51,19 +51,13 @@ namespace knative_native {
         // Set up the function
         const std::string requestStr = request.body();
         message::Message msg = util::jsonToMessage(requestStr);
-        util::setMessageId(msg);
-        setEmulatedMessage(requestStr.c_str());
+        setEmulatedMessage(msg);
 
         // Parse the JSON input
         logger->debug("Knative native request: {}", requestStr);
 
         std::string outputStr;
-        if (msg.isstatusrequest()) {
-            // Message status request
-            logger->debug("Getting status for function {}", msg.id());
-            scheduler::GlobalMessageBus &msgBus = scheduler::getGlobalMessageBus();
-            outputStr = msgBus.getMessageStatus(msg.id());
-        } else if (msg.isasync()) {
+        if (msg.isasync()) {
             logger->debug("Executing function index {} async", msg.idx());
 
             // Execute async message in detached thread

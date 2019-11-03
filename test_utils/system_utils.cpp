@@ -52,7 +52,6 @@ namespace tests {
         m.clearFds();
 
         // Set emulator user
-        unsetEmulatorUser();
         resetEmulator();
         setEmulatorUser("tester");
     }

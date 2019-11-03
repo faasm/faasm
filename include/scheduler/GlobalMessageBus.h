@@ -14,7 +14,7 @@ namespace scheduler {
 
         virtual message::Message nextMessage(int timeout) = 0;
 
-        virtual std::string getMessageStatus(unsigned int messageId);
+        virtual std::string getMessageStatus(unsigned int messageId) = 0;
 
         virtual void setFunctionResult(message::Message &msg, bool success) = 0;
 
