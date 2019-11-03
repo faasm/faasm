@@ -15,6 +15,7 @@ matplotlib
 numpy
 performance
 psutil
+pyfaasm
 PyOpenSSL
 pywren-ibm-cloud
 redis
