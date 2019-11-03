@@ -194,12 +194,33 @@ def _deploy_knative_fn(name, image, replicas, concurrency, annotations, extra_en
 
 
 @task
-def build_knative_native(ctx, user, function, host=False, clean=False, nopush=False, py=False):
-    if host:
-        if py:
-            print("Can't build python funcs for the host")
-            return 1
+def build_knative_native_python(ctx, clean=False, nopush=False):
+    tag_name = "faasm/knative-native-python"
+    cmd = [
+        "docker",
+        "build",
+        "--no-cache" if clean else "",
+        "-t", tag_name,
+        "-f", "docker/knative-native-python.dockerfile",
+        "."
+    ]
 
+    cmd_string = " ".join(cmd)
+    print(cmd_string)
+    res = call(cmd_string, shell=True, cwd=PROJ_ROOT)
+    if res != 0:
+        print("Building container failed")
+        return 1
+
+    # Push the container
+    if not nopush:
+        cmd = "docker push {}".format(tag_name)
+        call(cmd, shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def build_knative_native(ctx, user, function, host=False, clean=False, nopush=False):
+    if host:
         build_dir = join(PROJ_ROOT, "build", "knative_native")
         target = "{}-knative".format(function)
 
@@ -219,31 +240,18 @@ def build_knative_native(ctx, user, function, host=False, clean=False, nopush=Fa
         make_cmd = "cmake --build . --target {} -- -j".format(target)
         call(make_cmd, cwd=build_dir, shell=True)
     else:
-        if py:
-            tag_name = _native_image_name(function, True)
-            cmd = [
-                "docker",
-                "build",
-                "--no-cache" if clean else "",
-                "-t", tag_name,
-                "--build-arg", "PY_USER={}".format(user),
-                "--build-arg", "PY_FUNC={}".format(function),
-                "-f", "docker/knative-native-python.dockerfile",
-                "."
-            ]
-        else:
-            # Build the container
-            tag_name = _native_image_name(function, False)
-            cmd = [
-                "docker",
-                "build",
-                "--no-cache" if clean else "",
-                "-t", tag_name,
-                "--build-arg", "FAASM_USER={}".format(user),
-                "--build-arg", "FAASM_FUNC={}".format(function),
-                "-f", "docker/knative-native.dockerfile",
-                "."
-            ]
+        # Build the container
+        tag_name = _native_image_name(function, False)
+        cmd = [
+            "docker",
+            "build",
+            "--no-cache" if clean else "",
+            "-t", tag_name,
+            "--build-arg", "FAASM_USER={}".format(user),
+            "--build-arg", "FAASM_FUNC={}".format(function),
+            "-f", "docker/knative-native.dockerfile",
+            "."
+        ]
 
         cmd_string = " ".join(cmd)
         print(cmd_string)

@@ -1,13 +1,23 @@
 FROM faasm/knative-native-base
 
-ARG PY_FUNC
-ARG PY_USER
-ENV PY_FUNC=$PY_FUNC
-ENV PY_USER=$PY_USER
 ENV FAASM_FUNC=py_func
 ENV FAASM_USER=python
+ENV LD_LIBRARY_PATH=/usr/local/lib
 
-# Copy function file into place
-COPY func/${PY_USER}/${PY_FUNC}.py /usr/local/faasm/shared_store/pyfuncs/${PY_USER}/${PY_FUNC}/function.py
+WORKDIR /usr/local/code/faasm
 
-CMD /faasm/build/bin/knative_native_runner
+# Install python deps
+RUN apt-get install -y libpython3-dev \
+    python3-dev \
+    python3-pip
+
+RUN pip3 install -U pip
+
+RUN pip3 install flask \
+    numpy \
+    pyfaasm \
+    redis
+
+WORKDIR /usr/local/code/faasm/func
+COPY func/knative_native.py .
+CMD python3 knative_native.py

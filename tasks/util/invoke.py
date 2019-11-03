@@ -174,4 +174,4 @@ def status_call_impl(call_id, host, port, quiet=False):
 
     # Can always use the faasm worker for getting status
     headers = _get_knative_headers("worker")
-    return do_post(url, dumps(msg), headers=headers, quiet=quiet, json=True)
+    return do_post(url, msg, headers=headers, quiet=quiet, json=True)

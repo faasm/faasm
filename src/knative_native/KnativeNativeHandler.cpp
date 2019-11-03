@@ -63,7 +63,7 @@ namespace knative_native {
             // Execute async message in detached thread
             std::thread t([msg] {
                 exec(msg.idx());
-                setAsyncResult(msg);
+                emulatorSetCallStatus(1);
             });
 
             t.detach();
@@ -81,13 +81,5 @@ namespace knative_native {
         fflush(stdout);
 
         response.send(Pistache::Http::Code::Ok, outputStr);
-    }
-
-    void setAsyncResult(const message::Message &msg) {
-        // Set result of request
-        scheduler::GlobalMessageBus &messageBus = scheduler::getGlobalMessageBus();
-        message::Message resultMsg = msg;
-        resultMsg.set_outputdata(getEmulatorOutputDataString());
-        messageBus.setFunctionResult(resultMsg, true);
     }
 }

@@ -84,7 +84,9 @@ char *emulatorGetAsyncResponse() {
 
 void emulatorSetCallStatus(int success) {
     scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-    globalBus.setFunctionResult(_emulatedCall, success == 1);
+    message::Message resultMsg = _emulatedCall;
+    resultMsg.set_outputdata(getEmulatorOutputDataString());
+    globalBus.setFunctionResult(resultMsg, success == 1);
 }
 
 void setEmulatedMessageFromJson(const char *messageJson) {

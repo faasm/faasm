@@ -95,6 +95,7 @@ from tasks.knative import (
     deploy_knative,
     delete_knative_worker,
     build_knative_native,
+    build_knative_native_python,
     knative_native_local,
     deploy_knative_native,
     delete_knative_native,
