@@ -28,7 +28,11 @@ inv matrix-upload-s3
 Then on the client machine:
 
 ```
+# With S3 access
 inv matrix-download-s3
+
+# Direct SCP from local machine
+scp -r ~/faasm/data/matrix <USER>@<HOST>:/home/<USER>/faasm/data/matrix
 ```
 
 ## Executing
