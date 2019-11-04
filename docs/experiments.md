@@ -7,13 +7,40 @@ Everything must be cleared away between runs to make sure stuff doesn't bleed ac
 
 ## Data
 
-The SGD experiment data must be set up once ahead of time. See the `sgd.md` notes.
+Data should be generated and uploaded ahead of time.
+
+For details of the SGD experiment data see `sgd.md` notes.
+
+The matrix experiment data needs to be generated in bulk locally, uploaded to S3 then downloaded on the client machine.
+
+You must have the native tooling and pyfaasm installed to generate it up front (but this doesn't need to be done
+if it's already in S3):
+
+```
+# Generate it
+inv install-native-tools
+inv generate-all-matrix-data
+
+# Upload (note - >4GB)
+inv matrix-upload-s3
+```
+
+Then on the client machine:
+
+```
+inv matrix-download-s3
+```
 
 ## Executing
 
 We need to run the native version and the wasm version. This looks like:
 
 ```
+# ---- Data upload ----
+
+# SGD
+inv reuters-state-upload
+
 # ---- Deploy containers ----
 
 # Native SGD
@@ -38,10 +65,12 @@ inv sgd-experiment --native 10 60000
 inv sgd-experiment 10 60000
 
 # Native matrices
-inv matrix-experiment --native 10000 3
+inv matrix-state-upload 1000 3
+inv matrix-experiment --native 1000 3
 
 # Wasm matrices
-inv matrix-experiment 10000 3
+inv matrix-state-upload 1000 3
+inv matrix-experiment 1000 3
 
 # ---- Clean up ----
 
