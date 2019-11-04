@@ -1,3 +1,5 @@
+import sys
+
 from tasks.aws import (
     codegen_wasm_lambda_func,
     lambda_clear_queue,
@@ -97,7 +99,9 @@ from tasks.knative import (
     build_knative_native,
     knative_native_local,
     deploy_knative_native,
+    deploy_knative_native_python,
     delete_knative_native,
+    delete_knative_native_python,
 )
 from tasks.python import (
     clear_runtime_pyc,
@@ -117,19 +121,14 @@ from tasks.aws_sgd import (
     upload_sgd_funcs,
     zero_sgd_native_lambda
 )
-from tasks.experiments import (
-    sgd_experiment,
-    sgd_pull_results,
-    sgd_parse_results,
-    matrix_experiment,
-    matrix_pull_results,
-    matrix_parse_results,
-)
-from tasks.sgd_data import (
+from tasks.experiment_data import (
     reuters_upload_s3,
+    matrix_upload_s3,
     reuters_download_s3,
+    matrix_download_s3,
     reuters_state_upload,
     reuters_state_upload_s3,
+    matrix_state_upload,
 )
 from tasks.tensorflow import (
     set_up_tensorflow_data
@@ -153,3 +152,21 @@ from tasks.redis import (
     redis_all_workers,
     redis_func_workers,
 )
+from tasks.experiments import (
+    sgd_experiment,
+    sgd_pull_results,
+    sgd_parse_results,
+    matrix_experiment,
+    matrix_pull_results,
+    matrix_parse_results,
+)
+
+# Can only generate matrix data with things installed
+try:
+    import pyfaasm
+    from tasks.matrix_data import (
+        generate_all_matrix_data,
+        generate_matrix_data,
+    )
+except:
+    pass

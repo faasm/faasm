@@ -59,9 +59,7 @@ You should then see the response `Hello faasm!`.
 
 ## Running a Python function
 
-As mentioned above, Python functions are handled by executing the code in a WebAssembly-compiled version of CPython. Every function is running the same underlying WebAssembly module, just dynamically loading a different Python file. As a result, the commands are slightly different.
-
-An example Python function is found at `funcs/python/hello.py`. This can be uploaded with:
+An example Python function is found at `func/python/hello.py`. This can be uploaded with:
 
 ```
 inv upload --py python hello

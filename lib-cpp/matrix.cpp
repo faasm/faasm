@@ -231,7 +231,7 @@ namespace faasm {
         SparseKeys keys = getSparseKeys(key);
         SparseSizes sizes = readSparseSizes(keys, false);
 
-        // Pull if necessary
+        // Make sure full state is in memory if need be
         if (pull) {
             faasmPullState(keys.innerKey, sizes.innerLen);
             faasmPullState(keys.outerKey, sizes.outerLen);
@@ -381,6 +381,7 @@ namespace faasm {
         long bufferLen = endIdx - startIdx;
         long totalLen = totalCols * nRows * sizeof(double);
 
+        // Ensure full state is pulled
         if (pull) {
             faasmPullState(key, totalLen);
         }

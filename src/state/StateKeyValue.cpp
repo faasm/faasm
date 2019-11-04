@@ -11,8 +11,6 @@
 
 using namespace util;
 
-#define PIPELINE
-
 namespace state {
     /**
      * Key/value
@@ -26,7 +24,14 @@ namespace state {
         sharedMemory = nullptr;
 
         isDirty = false;
-        _empty = true;
+        _fullyAllocated = false;
+
+        // Set up flags
+        dirtyMask = new uint8_t[valueSize];
+        zeroDirtyMask();
+
+        allocatedMask = new uint8_t[valueSize];
+        zeroAllocatedMask();
     }
 
     void StateKeyValue::pull() {
@@ -35,40 +40,86 @@ namespace state {
         pullImpl(false);
     }
 
+    bool StateKeyValue::isSegmentAllocated(long offset, size_t length) {
+        // TODO - more efficient way of checking this
+        auto allocatedMaskBytes = reinterpret_cast<uint8_t *>(allocatedMask);
+        for (size_t i = 0; i < length; i++) {
+            if (allocatedMaskBytes[offset + i] == 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     void StateKeyValue::pullImpl(bool onlyIfEmpty) {
         // Drop out if we already have the data and we don't care about updating
         {
             SharedLock lock(valueMutex);
-            if (onlyIfEmpty && !_empty) {
+            if (onlyIfEmpty && _fullyAllocated) {
                 return;
             }
         }
 
-        PROF_START(statePull)
-
         // Unique lock on the whole value
         FullLock lock(valueMutex);
+        PROF_START(statePull)
+
+        if (onlyIfEmpty && _fullyAllocated) {
+            return;
+        }
+
+        // Initialise storage if necessary
+        if (!_fullyAllocated) {
+            initialiseStorage(true);
+        }
+
+        const std::shared_ptr<spdlog::logger> &logger = getLogger();
+        redis::Redis &redis = redis::Redis::getState();
+
+        // Read from the remote
+        logger->debug("Pulling remote value for {}", key);
+        auto memoryBytes = static_cast<uint8_t *>(sharedMemory);
+        redis.get(key, memoryBytes, valueSize);
+
+        PROF_END(statePull)
+    }
+
+    void StateKeyValue::pullSegmentImpl(bool onlyIfEmpty, long offset, size_t length) {
+        // Drop out if we already have the data and we don't care about updating
+        {
+            SharedLock lock(valueMutex);
+            if (onlyIfEmpty && (_fullyAllocated || isSegmentAllocated(offset, length))) {
+                return;
+            }
+        }
+
+        // Unique lock
+        FullLock lock(valueMutex);
+        PROF_START(stateSegmentPull)
 
         // Check condition again
-        if (onlyIfEmpty && !_empty) {
+        bool segmentAllocated = isSegmentAllocated(offset, length);
+        if (onlyIfEmpty && (_fullyAllocated || segmentAllocated)) {
             return;
         }
 
         // Initialise the storage if empty
-        if (_empty) {
-            initialiseStorage();
+        if (!segmentAllocated) {
+            allocateSegment(offset, length);
         }
 
-        // Read from the remote
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
-        logger->debug("Pulling remote value for {}", key);
-
         redis::Redis &redis = redis::Redis::getState();
-        redis.get(key, static_cast<uint8_t *>(sharedMemory), valueSize);
 
-        _empty = false;
+        // Note - redis ranges are inclusive, so we need to knock one off
+        size_t rangeEnd = offset + length - 1;
 
-        PROF_END(statePull)
+        // Read from the remote
+        logger->debug("Pulling remote segment ({}-{}) for {}", offset, offset + length, key);
+        auto memoryBytes = static_cast<uint8_t *>(sharedMemory);
+        redis.getRange(key, memoryBytes + offset, length, offset, rangeEnd);
+
+        PROF_END(stateSegmentPull)
     }
 
     long StateKeyValue::waitOnRemoteLock() {
@@ -116,7 +167,7 @@ namespace state {
     }
 
     void StateKeyValue::getSegment(long offset, uint8_t *buffer, size_t length) {
-        pullImpl(true);
+        pullSegmentImpl(true, offset, length);
 
         SharedLock lock(valueMutex);
 
@@ -133,7 +184,7 @@ namespace state {
     }
 
     uint8_t *StateKeyValue::getSegment(long offset, long len) {
-        pullImpl(true);
+        pullSegmentImpl(true, offset, len);
 
         SharedLock lock(valueMutex);
 
@@ -146,13 +197,12 @@ namespace state {
         FullLock lock(valueMutex);
 
         if (sharedMemory == nullptr) {
-            initialiseStorage();
+            initialiseStorage(true);
         }
 
         // Copy data into shared region
         std::copy(buffer, buffer + valueSize, static_cast<uint8_t *>(sharedMemory));
         isDirty = true;
-        _empty = false;
     }
 
     void StateKeyValue::setSegment(long offset, const uint8_t *buffer, size_t length) {
@@ -165,13 +215,12 @@ namespace state {
             throw std::runtime_error("Attempting to set segment out of bounds");
         }
 
-        // If empty, set to full size
-        if (sharedMemory == nullptr) {
+        // If necessary, allocate the memory
+        if (!isSegmentAllocated(offset, length)) {
             FullLock lock(valueMutex);
 
-            if (sharedMemory == nullptr) {
-                initialiseStorage();
-                _empty = false;
+            if (!isSegmentAllocated(offset, length)) {
+                allocateSegment(offset, length);
             }
         }
 
@@ -199,6 +248,10 @@ namespace state {
         memset(dirtyMask, 0, valueSize);
     }
 
+    void StateKeyValue::zeroAllocatedMask() {
+        memset(allocatedMask, 0, valueSize);
+    }
+
     void StateKeyValue::zeroValue() {
         util::FullLock lock(valueMutex);
 
@@ -210,6 +263,10 @@ namespace state {
         memset(((uint8_t *) dirtyMask) + offset, 0b11111111, len);
     }
 
+    void StateKeyValue::flagSegmentAllocated(long offset, long len) {
+        memset(((uint8_t *) allocatedMask) + offset, 0b11111111, len);
+    }
+
     void StateKeyValue::clear() {
         // Unique lock on the whole value while clearing
         FullLock lock(valueMutex);
@@ -218,44 +275,49 @@ namespace state {
         logger->debug("Clearing value {}", key);
 
         // Set flag to say this is effectively new again
-        _empty = true;
-    }
-
-    bool StateKeyValue::empty() {
-        return _empty;
+        _fullyAllocated = false;
+        zeroDirtyMask();
+        zeroAllocatedMask();
     }
 
     size_t StateKeyValue::size() {
         return valueSize;
     }
 
-    void StateKeyValue::mapSharedMemory(void *newAddr) {
-        pullImpl(true);
-
+    void StateKeyValue::mapSharedMemory(void *destination, long pagesOffset, long nPages) {
         PROF_START(mapSharedMem)
-
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
-        if (!isPageAligned(newAddr)) {
-            logger->error("Attempting to map non-page-aligned memory at {} for {}", newAddr, key);
+        if (!isPageAligned(destination)) {
+            logger->error("Non-aligned destination for shared mapping of {}", key);
             throw std::runtime_error("Mapping misaligned shared memory");
+        }
+
+        // Check everything lines up first of all
+        size_t offset = pagesOffset * util::HOST_PAGE_SIZE;
+        size_t length = nPages * util::HOST_PAGE_SIZE;
+
+        // Pull the value
+        if (pagesOffset > 0 || length < valueSize) {
+            pullSegmentImpl(true, offset, length);
+        } else {
+            pullImpl(true);
         }
 
         FullLock lock(valueMutex);
 
-        // Remap our existing shared memory onto this new region
-        void *result = mremap(sharedMemory, 0, sharedMemSize, MREMAP_FIXED | MREMAP_MAYMOVE, newAddr);
+        // Remap the relevant pages of shared memory onto the new region
+        void *sharedMemoryStart = (uint8_t *) sharedMemory + offset;
+        void *result = mremap(sharedMemoryStart, 0, length, MREMAP_FIXED | MREMAP_MAYMOVE, destination);
         if (result == MAP_FAILED) {
-            logger->error("Failed to map shared memory for {} at {} with size {}. errno: {}",
-                          key, sharedMemory, sharedMemSize, errno);
+            logger->error("Failed mapping for {} at {} with size {}. errno: {} ({})",
+                          key, offset, length, errno, strerror(errno));
 
             throw std::runtime_error("Failed mapping shared memory");
         }
 
-        if (newAddr != result) {
-            logger->error("New mapped addr doesn't match required {} != {}",
-                          newAddr, result);
-
+        if (destination != result) {
+            logger->error("New mapped addr doesn't match required {} != {}", destination, result);
             throw std::runtime_error("Misaligned shared memory mapping");
         }
 
@@ -281,8 +343,34 @@ namespace state {
         }
     }
 
-    void StateKeyValue::initialiseStorage() {
+    void StateKeyValue::allocateSegment(long offset, size_t length) {
+        initialiseStorage(false);
+
+        const std::shared_ptr<spdlog::logger> &logger = getLogger();
+
+        // Work out the aligned region to allocate
+        long alignedOffset = util::alignOffsetDown(offset);
+        long alignedLength = (offset - alignedOffset) + length;
+
+        uint8_t *memBytes = ((uint8_t *) sharedMemory + alignedOffset);
+        int res = mprotect(memBytes, alignedLength, PROT_WRITE);
+        if (res != 0) {
+            logger->debug("Mmapping of storage size {} failed. errno: {}", sharedMemSize, errno);
+
+            throw std::runtime_error("Failed mapping memory for KV");
+        }
+
+        // Flag the segment as allocated
+        flagSegmentAllocated(offset, length);
+    }
+
+    void StateKeyValue::initialiseStorage(bool allocate) {
         PROF_START(initialiseStorage)
+
+        // Don't need to initialise twice
+        if (sharedMemory != nullptr) {
+            return;
+        }
 
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
 
@@ -290,19 +378,30 @@ namespace state {
             throw StateKeyValueException("Initialising storage without a size for " + key);
         }
 
+        // Note - only make memory writable if we want to allocate it fully up-front
+        int prot = PROT_NONE;
+        if (allocate) {
+            prot = PROT_WRITE;
+        }
+
         // Create shared memory region for the value
-        sharedMemory = mmap(nullptr, sharedMemSize, PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+        sharedMemory = mmap(nullptr, sharedMemSize, prot, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
         if (sharedMemory == MAP_FAILED) {
             logger->debug("Mmapping of storage size {} failed. errno: {}", sharedMemSize, errno);
 
             throw std::runtime_error("Failed mapping memory for KV");
         }
 
-        logger->debug("Mmapped {} pages of shared storage for {}", sharedMemSize / HOST_PAGE_SIZE, key);
+        if (allocate) {
+            logger->debug("Allocated {} pages of shared storage for {}", sharedMemSize / HOST_PAGE_SIZE, key);
+        } else {
+            logger->debug("Reserved {} pages of shared storage for {}", sharedMemSize / HOST_PAGE_SIZE, key);
+        }
 
-        // Set up dirty flags
-        dirtyMask = new uint8_t[valueSize];
-        zeroDirtyMask();
+        // Flag that allocation has happened
+        if (allocate) {
+            _fullyAllocated = true;
+        }
 
         PROF_END(initialiseStorage)
     }
@@ -370,7 +469,6 @@ namespace state {
         // the same process
         FullLock lock(valueMutex);
 
-#ifdef PIPELINE
         // Double check condition
         if (!isDirty) {
             logger->debug("Ignoring partial push on {}", key);
@@ -385,7 +483,7 @@ namespace state {
         for (size_t i = 0; i < valueSize; i++) {
             if (dirtyMaskBytes[i] == 0) {
                 // If we encounter an "off" mask and we're "on", switch off and write the segment
-                if(isOn) {
+                if (isOn) {
                     isOn = false;
 
                     // Pipeline the change
@@ -394,7 +492,7 @@ namespace state {
                     updateCount++;
                 }
             } else {
-                if(!isOn) {
+                if (!isOn) {
                     isOn = true;
                     startIdx = i;
                 }
@@ -416,52 +514,11 @@ namespace state {
         redis.flushPipeline(updateCount);
 
         // Read the latest value
-        logger->debug("Pulling from remote for {}", key);
-        redis.get(key, sharedMemoryBytes, valueSize);
-
-#else
-        // Double check condition
-        if (!isDirty) {
-            return;
-        }
-        // Attempt to lock the value remotely
-        long remoteLockId = waitOnRemoteLock();
-
-        // Double check condition again after getting remote lock
-        if (!isDirty) {
-            return;
+        if (_fullyAllocated) {
+            logger->debug("Pulling from remote on partial push for {}", key);
+            redis.get(key, sharedMemoryBytes, valueSize);
         }
 
-        // If we don't get remote lock, just skip this push and wait for next one
-        const std::shared_ptr<spdlog::logger> &logger = getLogger();
-        if (remoteLockId <= 0) {
-            logger->debug("Failed to acquire remote lock for {}", key);
-            return;
-        }
-
-        // Load remote version
-        auto tempBuff = new uint8_t[valueSize];
-        redis.get(key, tempBuff, valueSize);
-
-        // Take the remote value for any non-dirty parts of our copy
-        auto sharedMemBytes = reinterpret_cast<uint8_t *>(sharedMemory);
-        for (unsigned long i = 0; i < valueSize; i++) {
-            sharedMemBytes[i] = (sharedMemBytes[i] & dirtyMaskBytes[i]) + (tempBuff[i] & ~dirtyMaskBytes[i]);
-        }
-
-        delete[] tempBuff;
-
-        // Set whole value back again
-        logger->debug("Pushing partial state for {}", key);
-        redis.set(key, sharedMemBytes, valueSize);
-
-        // Release remote lock
-        redis.releaseLock(key, remoteLockId);
-        logger->debug("Released remote lock for {} with id {}", key, remoteLockId);
-
-        // Zero the mask
-        memset((void *) dirtyMaskBytes, 0, valueSize);
-#endif
         // Mark as no longer dirty
         isDirty = false;
 

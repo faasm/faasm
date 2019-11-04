@@ -710,22 +710,27 @@ namespace wasm {
         return mappedRangePtr;
     }
 
-    U32 WasmModule::mmapKey(const std::shared_ptr<state::StateKeyValue> kv, U32 length) {
+    U32 WasmModule::mmapKey(const std::shared_ptr<state::StateKeyValue> kv, long offset, U32 length) {
         // See if this is the first time the module has seen this key
         if (sharedMemWasmPtrs.count(kv->key) == 0) {
-            // Create memory region for this module
-            U32 wasmPtr = this->mmapMemory(length);
+            size_t alignedOffset = util::alignOffsetDown(offset);
+            size_t offsetFromStart = offset - alignedOffset;
 
-            // Do the mapping from the central shared region
-            U8 *hostMemPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmPtr);
-            if (!util::isPageAligned(hostMemPtr)) {
-                throw std::runtime_error("WAVM memory not page aligned");
-            }
+            // Work out how many bytes are needed to contain the result once it's been page aligned
+            size_t bytesLength = offsetFromStart + length;
 
+            // Create new memory region that's big enough
+            U32 wasmMemoryRegion = this->mmapMemory(bytesLength);
+            U8 *hostMemPtr = &Runtime::memoryRef<U8>(defaultMemory, wasmMemoryRegion);
+
+            // Map the WASM memory to the shared value
             void *voidPtr = static_cast<void *>(hostMemPtr);
-            kv->mapSharedMemory(voidPtr);
+            long offsetPages = util::getRequiredHostPagesRoundDown(offset);
+            long nPages = util::getRequiredHostPages(bytesLength);
+            kv->mapSharedMemory(voidPtr, offsetPages, nPages);
 
             // Remember the kv and pointer
+            U32 wasmPtr = wasmMemoryRegion + offsetFromStart;
             sharedMemWasmPtrs.insert(std::pair<std::string, I32>(kv->key, wasmPtr));
         }
 

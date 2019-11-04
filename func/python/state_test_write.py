@@ -1,43 +1,48 @@
-from pyfaasm.core import getState, getStateOffset, setState, setStateOffset, pushState, pullState
+from pyfaasm.core import getState, getStateOffset, setState, setStateOffset, pushState, pullState, pushStatePartial
 
 key = "pyStateTest"
-valueLen = 10
-fullValue = b'0123456789'
+value_len = 10
+full_value = b'0123456789'
 
 segment = b'999'
 offset = 2
-segmentLen = 3
-modifiedValue = b'0199956789'
+segment_len = 3
+modified_value = b'0199956789'
 
 
 def _check_full_value(expected):
-    pullState(key, valueLen)
-    actual = getState(key, valueLen)
+    pullState(key, value_len)
+    actual = getState(key, value_len)
     if actual != expected:
         msg = "Mismatch: actual {}, expected {})".format(actual, expected)
         print(msg)
         exit(1)
 
 
-# Set the full value initially
-setState(key, fullValue)
-pushState(key)
+def main_func():
+    # Set the full value initially
+    setState(key, full_value)
+    pushState(key)
 
-# Check the full value has been written
-_check_full_value(fullValue)
+    # Check the full value has been written
+    _check_full_value(full_value)
 
-# Update a segment
-setStateOffset(key, valueLen, offset, segment)
-pushState(key)
+    # Update a segment
+    setStateOffset(key, value_len, offset, segment)
+    pushStatePartial(key)
 
-# Check the full value again
-_check_full_value(modifiedValue)
+    # Check the full value again
+    _check_full_value(modified_value)
 
-# Check just the segment
-actualSegment = getStateOffset(key, valueLen, offset, segmentLen)
-if actualSegment != segment:
-    msg = "Mismatched segment: actual {}, expected {})".format(actualSegment, segment)
-    print(msg)
-    raise RuntimeError(msg)
+    # Check just the segment
+    actual_segment = getStateOffset(key, value_len, offset, segment_len)
+    if actual_segment != segment:
+        msg = "Mismatched segment: actual {}, expected {})".format(actual_segment, segment)
+        print(msg)
+        raise RuntimeError(msg)
 
-print("Successful Python state writing check")
+    print("Successful Python state writing check")
+
+
+if __name__ == "__main__":
+    main_func()

@@ -1,24 +1,23 @@
 include_directories(${FAASM_INCLUDE_DIR}/emulator)
 
-set(LIB_FILES
-    emulator.cpp
-    ${FAASM_INCLUDE_DIR}/emulator/emulator.h
+set(PUBLIC_HEADERS
+        ${FAASM_INCLUDE_DIR}/emulator/emulator.h
+        ${FAASM_INCLUDE_DIR}/emulator/emulator_api.h
 )
+set(LIB_FILES emulator.cpp)
 
 faasm_public_lib(emulator "${LIB_FILES}")
+set_target_properties(emulator PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
+
 
 if (FAASM_BUILD_TYPE STREQUAL "native-tools")
-    target_link_libraries(emulator faasm state)
-else()
-    target_link_libraries(emulator state)
-endif()
+    target_link_libraries(emulator faasm scheduler state)
+else ()
+    target_link_libraries(emulator scheduler state)
+endif ()
 
 install(TARGETS emulator
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
         PUBLIC_HEADER DESTINATION include/faasm
         )
-
-add_executable(post_json_call post_json_call.cpp)
-
-target_link_libraries(post_json_call util)

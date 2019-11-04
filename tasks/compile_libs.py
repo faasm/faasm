@@ -65,7 +65,7 @@ def install_native_tools(ctx, clean=False):
 
     call(build_cmd_str, shell=True, cwd=build_dir)
     call("make -j", shell=True, cwd=build_dir)
-    call("make install", shell=True, cwd=build_dir)
+    call("sudo make install", shell=True, cwd=build_dir)
 
 
 @task

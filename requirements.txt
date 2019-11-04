@@ -6,6 +6,7 @@ boto3
 configparser
 cryptography
 dulwich
+flask
 genshi
 hiredis
 ibm-cos-sdk
@@ -14,6 +15,7 @@ matplotlib
 numpy
 performance
 psutil
+# Explicitly don't put pyfaasm here, install separately
 PyOpenSSL
 pywren-ibm-cloud
 redis

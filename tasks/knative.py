@@ -1,5 +1,5 @@
-from os.path import join
 import os
+from os.path import join
 from subprocess import call
 
 from invoke import task
@@ -37,9 +37,11 @@ NATIVE_WORKER_ANNOTATIONS = [
 ]
 
 KNATIVE_FUNC_PREFIX = "faasm-"
-KNATIVE_FUNC_PREFIX_PY = "faasm-py-"
+
 NATIVE_WORKER_IMAGE_PREFIX = "faasm/knative-native-"
-NATIVE_WORKER_IMAGE_PREFIX_PY = "faasm/knative-native-py-"
+
+KNATIVE_NATIVE_PY_NAME = "{}python".format(KNATIVE_FUNC_PREFIX)
+KNATIVE_NATIVE_PY_IMAGE = "faasm/knative-native-python"
 
 FAASM_WORKER_NAME = "{}worker".format(KNATIVE_FUNC_PREFIX)
 FAASM_WORKER_IMAGE = "faasm/knative-worker"
@@ -62,14 +64,12 @@ KNATIVE_ENV = {
 }
 
 
-def _fn_name(function, py):
-    prefix = KNATIVE_FUNC_PREFIX_PY if py else KNATIVE_FUNC_PREFIX
-    return "{}{}".format(prefix, function.replace("_", "-"))
+def _fn_name(function):
+    return "{}{}".format(KNATIVE_FUNC_PREFIX, function.replace("_", "-"))
 
 
-def _native_image_name(function, py):
-    prefix = NATIVE_WORKER_IMAGE_PREFIX_PY if py else NATIVE_WORKER_IMAGE_PREFIX
-    return "{}{}".format(prefix, function)
+def _native_image_name(function):
+    return "{}{}".format(NATIVE_WORKER_IMAGE_PREFIX, function)
 
 
 def _kubectl_apply(path, env=None):
@@ -146,9 +146,9 @@ def deploy_knative(ctx, replicas, local=False, ibm=False):
     )
 
 
-def _delete_knative_fn(name, py):
+def _delete_knative_fn(name):
     cmd = [
-        "kn", "service", "delete", _fn_name(name, py), "--namespace=faasm"
+        "kn", "service", "delete", _fn_name(name), "--namespace=faasm"
     ]
 
     cmd_str = " ".join(cmd)
@@ -194,12 +194,8 @@ def _deploy_knative_fn(name, image, replicas, concurrency, annotations, extra_en
 
 
 @task
-def build_knative_native(ctx, user, function, host=False, clean=False, nopush=False, py=False):
+def build_knative_native(ctx, user, function, host=False, clean=False, nopush=False):
     if host:
-        if py:
-            print("Can't build python funcs for the host")
-            return 1
-
         build_dir = join(PROJ_ROOT, "build", "knative_native")
         target = "{}-knative".format(function)
 
@@ -219,31 +215,18 @@ def build_knative_native(ctx, user, function, host=False, clean=False, nopush=Fa
         make_cmd = "cmake --build . --target {} -- -j".format(target)
         call(make_cmd, cwd=build_dir, shell=True)
     else:
-        if py:
-            tag_name = _native_image_name(function, True)
-            cmd = [
-                "docker",
-                "build",
-                "--no-cache" if clean else "",
-                "-t", tag_name,
-                "--build-arg", "PY_USER={}".format(user),
-                "--build-arg", "PY_FUNC={}".format(function),
-                "-f", "docker/knative-native-python.dockerfile",
-                "."
-            ]
-        else:
-            # Build the container
-            tag_name = _native_image_name(function, False)
-            cmd = [
-                "docker",
-                "build",
-                "--no-cache" if clean else "",
-                "-t", tag_name,
-                "--build-arg", "FAASM_USER={}".format(user),
-                "--build-arg", "FAASM_FUNC={}".format(function),
-                "-f", "docker/knative-native.dockerfile",
-                "."
-            ]
+        # Build the container
+        tag_name = _native_image_name(function)
+        cmd = [
+            "docker",
+            "build",
+            "--no-cache" if clean else "",
+            "-t", tag_name,
+            "--build-arg", "FAASM_USER={}".format(user),
+            "--build-arg", "FAASM_FUNC={}".format(function),
+            "-f", "docker/knative-native.dockerfile",
+            "."
+        ]
 
         cmd_string = " ".join(cmd)
         print(cmd_string)
@@ -259,20 +242,31 @@ def build_knative_native(ctx, user, function, host=False, clean=False, nopush=Fa
 
 
 @task
-def deploy_knative_native(ctx, user, function, replicas, py=False):
-    faasm_config = get_faasm_config()
+def deploy_knative_native(ctx, user, function, replicas):
+    func_name = _fn_name(function)
+    image_name = _native_image_name(function)
+    _do_deploy_knative_native(func_name, image_name, replicas)
 
+
+@task
+def deploy_knative_native_python(ctx, replicas):
+    func_name = KNATIVE_NATIVE_PY_NAME
+    image_name = KNATIVE_NATIVE_PY_IMAGE
+    _do_deploy_knative_native(func_name, image_name, replicas)
+
+
+def _do_deploy_knative_native(func_name, image_name, replicas):
+    faasm_config = get_faasm_config()
     if not faasm_config.has_section("Kubernetes"):
         print("Must have faasm config set up with kubernetes section")
         return 1
-
     # Host and port required for chaining native functions
     invoke_host = faasm_config["Kubernetes"]["invoke_host"]
     invoke_port = faasm_config["Kubernetes"]["invoke_port"]
 
     _deploy_knative_fn(
-        _fn_name(function, py),
-        _native_image_name(function, py),
+        func_name,
+        image_name,
         replicas,
         1,
         NATIVE_WORKER_ANNOTATIONS,
@@ -284,13 +278,18 @@ def deploy_knative_native(ctx, user, function, replicas, py=False):
 
 
 @task
-def delete_knative_native(ctx, user, function, py=False):
-    _delete_knative_fn(function, py)
+def delete_knative_native(ctx, user, function):
+    _delete_knative_fn(function)
 
 
 @task
-def knative_native_local(ctx, user, function, py=False):
-    img_name = _native_image_name(function, py)
+def delete_knative_native_python(ctx):
+    _delete_knative_fn("python")
+
+
+@task
+def knative_native_local(ctx, user, function):
+    img_name = _native_image_name(function)
 
     cmd = [
         "docker", "run",

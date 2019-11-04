@@ -6,8 +6,6 @@
 namespace scheduler {
     class SchedulerHttpMixin {
     public:
-        std::string getMessageStatus(message::Message &msg);
-
         std::string executeFunction(message::Message &msg);
     };
 }

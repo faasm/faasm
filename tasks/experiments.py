@@ -1,4 +1,3 @@
-import datetime
 from abc import abstractmethod
 from os import mkdir, listdir
 from os.path import exists, join
@@ -54,14 +53,13 @@ class ExperimentRunner(object):
             billing_result_dir = join(parent_dir, "billing", "results")
             parse_billing(billing_result_dir, parent_dir)
 
-    def run(self, both, native, nobill=False):
+    def run(self, native, nobill=False):
         self.no_billing = nobill
 
-        if not native:
-            self.run_wasm()
-
-        if native or both:
+        if native:
             self.run_native()
+        else:
+            self.run_wasm()
 
     def run_wasm(self):
         self._do_run(False)
@@ -144,9 +142,9 @@ class SGDExperimentRunner(ExperimentRunner):
 
 
 @task
-def sgd_experiment(ctx, workers, interval, native=False, both=False):
+def sgd_experiment(ctx, workers, interval, native=False, nobill=False):
     runner = SGDExperimentRunner(workers, interval)
-    runner.run(both, native)
+    runner.run(native, nobill=nobill)
 
 
 @task
@@ -171,7 +169,7 @@ class MatrixExperimentRunner(ExperimentRunner):
     result_file_name = "NODE_0_MAT_MUL.log"
 
     def __init__(self, mat_size, n_splits):
-        super().__init__("{} {}".format(mat_size, n_splits))
+        super().__init__(None)
 
         self.mat_size = mat_size
         self.n_splits = n_splits
@@ -182,9 +180,9 @@ class MatrixExperimentRunner(ExperimentRunner):
 
 
 @task
-def matrix_experiment(ctx, mat_size, n_splits, native=False, both=False, nobill=False):
+def matrix_experiment(ctx, mat_size, n_splits, native=False, nobill=False):
     runner = MatrixExperimentRunner(mat_size, n_splits)
-    runner.run(both, native, nobill=nobill)
+    runner.run(native, nobill=nobill)
 
 
 @task

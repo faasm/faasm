@@ -162,7 +162,7 @@ namespace wasm {
 
         // Map shared memory
         WasmModule *module = getExecutingModule();
-        U32 wasmPtr = module->mmapKey(kv, totalLen);
+        U32 wasmPtr = module->mmapKey(kv, 0, totalLen);
 
         return wasmPtr;
     }
@@ -188,11 +188,8 @@ namespace wasm {
 
         // Map whole key in shared memory
         WasmModule *module = getExecutingModule();
-        U32 wasmPtr = module->mmapKey(kv, totalLen);
-
-        // Return pointer to offset region
-        I32 offsetPtr = wasmPtr + offset;
-        return offsetPtr;
+        U32 wasmPtr = module->mmapKey(kv, offset, len);
+        return wasmPtr;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_flag_state_dirty", void, __faasm_flag_state_dirty,
@@ -277,15 +274,33 @@ namespace wasm {
         buffer[value.size()] = '\0';
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_py_user", void, __faasm_get_py_user, I32 bufferPtr, I32 bufferLen) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_py_user", void, __faasm_get_py_user, I32 bufferPtr,
+                                   I32 bufferLen) {
         util::getLogger()->debug("S - get_py_user - {} {}", bufferPtr, bufferLen);
         std::string value = getExecutingCall()->pythonuser();
         _readPythonInput(bufferPtr, bufferLen, value);
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_py_func", void, __faasm_get_py_func, I32 bufferPtr, I32 bufferLen) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_get_py_func", void, __faasm_get_py_func, I32 bufferPtr,
+                                   I32 bufferLen) {
         util::getLogger()->debug("S - get_py_func - {} {}", bufferPtr, bufferLen);
         std::string value = getExecutingCall()->pythonfunction();
         _readPythonInput(bufferPtr, bufferLen, value);
+    }
+
+    // Emulator API, should not be called from wasm but needs to be present for linking
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "setEmulatedMessageFromJson", void, setEmulatedMessageFromJson, I32 msgPtr) {
+        util::getLogger()->debug("S - setEmulatedMessageFromJson - {}", msgPtr);
+        throw std::runtime_error("Should not be calling emulator functions from wasm");
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "emulatorGetAsyncResponse", I32, emulatorGetAsyncResponse) {
+        util::getLogger()->debug("S - emulatorGetAsyncResponse");
+        throw std::runtime_error("Should not be calling emulator functions from wasm");
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "emulatorSetCallStatus", void, emulatorSetCallStatus, I32 success) {
+        util::getLogger()->debug("S - emulatorSetCallStatus {}", success);
+        throw std::runtime_error("Should not be calling emulator functions from wasm");
     }
 }

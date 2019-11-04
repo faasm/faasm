@@ -8,6 +8,7 @@
 
 #include <worker/WorkerThreadPool.h>
 #include <worker/WorkerThread.h>
+#include <emulator/emulator_api.h>
 #include <emulator/emulator.h>
 
 using namespace worker;
@@ -17,7 +18,9 @@ namespace tests {
 
     static void setUp() {
         cleanSystem();
-        setEmulatorUser("demo");
+
+        message::Message call = util::messageFactory("demo", "chain");
+        setEmulatedMessage(call);
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.clear();
@@ -54,6 +57,7 @@ namespace tests {
         setUp();
 
         message::Message call = util::messageFactory("demo", "chain");
+        setEmulatedMessage(call);
 
         WorkerThreadPool pool(1);
         WorkerThread w(1);
@@ -67,6 +71,7 @@ namespace tests {
         setUp();
         message::Message call = util::messageFactory("demo", "check_input");
         call.set_inputdata("http://www.foobar.com");
+        setEmulatedMessage(call);
 
         execFunction(call);
         tearDown();
@@ -77,6 +82,7 @@ namespace tests {
         message::Message call = util::messageFactory("demo", "echo");
         std::string inputData = "http://www.testinput/foo.com";
         call.set_inputdata(inputData.c_str());
+        setEmulatedMessage(call);
 
         // Run the execution
         const std::string actual = execFunctionWithStringResult(call);
@@ -88,6 +94,7 @@ namespace tests {
     TEST_CASE("Test execution of empty echo function", "[worker]") {
         setUp();
         message::Message call = util::messageFactory("demo", "echo");
+        setEmulatedMessage(call);
 
         // Run the execution
         execFunction(call);
@@ -100,6 +107,7 @@ namespace tests {
 
         message::Message call = util::messageFactory("demo", "echo");
         call.set_inputdata("first input");
+        setEmulatedMessage(call);
 
         // Set up
         WorkerThreadPool pool(1);
@@ -124,6 +132,7 @@ namespace tests {
         call.set_inputdata("second input");
         call.set_id(0);
         util::setMessageId(call);
+        setEmulatedMessage(call);
 
         sch.callFunction(call);
 
@@ -149,6 +158,8 @@ namespace tests {
 
         // Invoke a new call which will require a worker to bind
         message::Message call = util::messageFactory("demo", "echo");
+        setEmulatedMessage(call);
+
         sch.callFunction(call);
 
         // Check message is on the bind queue
@@ -171,6 +182,7 @@ namespace tests {
 
         message::Message call = util::messageFactory("demo", "chain");
         unsigned int messageId = call.id();
+        setEmulatedMessage(call);
 
         // NOTE - for this test to work we have to run multiple threads.
         // TODO - is this necessary? Any way to avoid having threaded tests?
@@ -195,6 +207,8 @@ namespace tests {
         // Call again
         message::Message call2 = util::messageFactory("demo", "chain");
         unsigned int messageId2 = call2.id();
+        setEmulatedMessage(call2);
+
         sch.callFunction(call2);
 
         // Await the call executing successfully
@@ -217,6 +231,7 @@ namespace tests {
         conf.unboundTimeout = 1000;
 
         unsigned int messageId = call.id();
+        setEmulatedMessage(call);
 
         // Set up a real worker to execute this function. Remove it from the
         // unassigned set and add to handle this function
@@ -258,6 +273,7 @@ namespace tests {
 
         // Set up the function call
         message::Message call = util::messageFactory("demo", "increment");
+        setEmulatedMessage(call);
 
         // Call function
         WorkerThreadPool pool(1);
@@ -279,6 +295,8 @@ namespace tests {
         // Call the function a second time, the state should have been incremented
         call.set_id(0);
         util::setMessageId(call);
+        setEmulatedMessage(call);
+
         sch.callFunction(call);
         w.processNextMessage();
 
@@ -293,6 +311,7 @@ namespace tests {
 
         // Set up the function call
         message::Message call = util::messageFactory("demo", funcName);
+        setEmulatedMessage(call);
 
         // Call function
         WorkerThreadPool pool(1);
@@ -339,6 +358,7 @@ namespace tests {
         cleanSystem();
 
         message::Message call = util::messageFactory("demo", "heap");
+        setEmulatedMessage(call);
 
         // Call function
         WorkerThreadPool pool(1);
@@ -363,6 +383,7 @@ namespace tests {
 
     void checkCallingFunctionGivesBoolOutput(const std::string &funcName, bool expected) {
         message::Message call = util::messageFactory("demo", funcName);
+        setEmulatedMessage(call);
 
         // Call function
         WorkerThreadPool pool(1);
@@ -425,6 +446,7 @@ namespace tests {
         REQUIRE(pool.getThreadCount() == 0);
 
         message::Message call = util::messageFactory("demo", "noop");
+        setEmulatedMessage(call);
 
         // Add threads and check tokens are taken
         WorkerThread w1(pool.getThreadToken());
@@ -446,6 +468,7 @@ namespace tests {
         std::string nodeId = util::getNodeId();
 
         message::Message call = util::messageFactory("demo", "noop");
+        setEmulatedMessage(call);
 
         // Sense check initial scheduler set-up
         scheduler::Scheduler &sch = scheduler::getScheduler();

@@ -3,11 +3,13 @@
 #include <util/config.h>
 #include <emulator/emulator.h>
 #include <faasm/core.h>
+#include <emulator/emulator_api.h>
+#include <util/func.h>
 
 namespace tests {
     TEST_CASE("Test invoking function with emulator chaining", "[knative]") {
-        setEmulatorUser("demo");
-        setEmulatorFunction("chain");
+        const message::Message call = util::messageFactory("demo", "chain");
+        setEmulatedMessage(call);
 
         std::vector<uint8_t> inputOne = {1, 2, 3};
         std::vector<uint8_t> inputTwo = {2, 3, 4};

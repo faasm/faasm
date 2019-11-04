@@ -6,6 +6,7 @@
 #include <emulator/emulator.h>
 #include <faasm/core.h>
 #include <util/state.h>
+#include <emulator/emulator_api.h>
 
 
 namespace tests {
@@ -21,14 +22,18 @@ namespace tests {
         std::vector<uint8_t> dummyBytes = {0, 1, 2, 3, 4, 5, 6, 7, 8};
         long dummyLen = dummyBytes.size();
 
+        message::Message call = util::messageFactory("demo", "echo");
+
         SECTION("Output data") {
+            setEmulatedMessage(call);
             faasmSetOutput(dummyBytes.data(), dummyLen);
             const std::vector<uint8_t> actual = getEmulatorOutputData();
             REQUIRE(actual == dummyBytes);
         }
 
         SECTION("Input data") {
-            setEmulatorInputData(dummyBytes);
+            call.set_inputdata(dummyBytes.data(), dummyBytes.size());
+            setEmulatedMessage(call);
 
             long actual = faasmGetInputSize();
             REQUIRE(actual == dummyLen);
@@ -40,6 +45,8 @@ namespace tests {
         }
 
         SECTION("Read/ write state") {
+            setEmulatedMessage(call);
+
             std::string key = "foobar";
             faasmWriteState(key.c_str(), dummyBytes.data(), dummyLen);
             faasmPushState(key.c_str());
@@ -56,6 +63,8 @@ namespace tests {
         }
 
         SECTION("Read/ write state offset") {
+            setEmulatedMessage(call);
+
             std::string key = "foobar_off";
             std::vector<uint8_t> offsetData = {7, 6, 5};
             long offset = 2;

@@ -6,20 +6,7 @@
 
 #include <stdio.h>
 
-/* If running a native build we need to explicitly set the user on the emulator */
-#ifdef __wasm__
-#else
-
-#include "emulator/emulator.h"
-
-#endif
-
 using namespace faasm;
-
-#define REUTERS_LEARNING_RATE 0.1
-#define REUTERS_LEARNING_DECAY 0.8
-#define REUTERS_N_FEATURES 47236
-#define REUTERS_N_EXAMPLES 781265
 
 
 SgdParams setUpReutersParams(int nBatches, int syncInterval, int epochs) {
@@ -51,12 +38,6 @@ SgdParams setUpReutersParams(int nBatches, int syncInterval, int epochs) {
 
 
 FAASM_MAIN_FUNC() {
-
-#ifdef __wasm__
-#else
-    setEmulatorUser("sgd");
-#endif
-
     long inputSize = faasmGetInputSize();
     if (inputSize == 0) {
         const char *message = "Must provide two ints for input, workers and sync interval";

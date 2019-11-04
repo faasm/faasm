@@ -31,8 +31,7 @@ services:
       - "8080"
     privileged: yes
     volumes:
-      - /usr/local/faasm/:/usr/local/faasm/
-      - /usr/local/code/faasm/wasm/:/usr/local/code/faasm/wasm/
+      - /usr/local/faasm/object:/usr/local/faasm/object
     environment:
       - FUNCTION_STORAGE=fileserver
       - FILESERVER_URL=http://upload:8002

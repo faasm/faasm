@@ -18,7 +18,4 @@ namespace knative_native {
     };
 
     void executePythonFunction();
-
-    void setAsyncResult(const message::Message &msg);
-
 }

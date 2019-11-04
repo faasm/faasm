@@ -18,22 +18,19 @@ def _get_knative_headers(func_name):
 def _do_invoke(user, func, host, port, func_type, input=None):
     url = "http://{}:{}/{}/{}/{}".format(host, port, func_type, user, func)
     print("Invoking {}".format(url))
-    do_post(url, input)
+    do_post(url, input, json=True)
 
 
 def invoke_impl(user, func,
                 host=None,
                 port=None,
                 input=None,
-                parallel=False,
-                loops=1,
                 py=False,
                 async=False,
                 knative=True,
                 native=False,
                 ibm=False,
                 poll=False):
-
     faasm_config = get_faasm_config()
 
     # Provider-specific stuff
@@ -89,14 +86,9 @@ def invoke_impl(user, func,
             "value": msg,
         }
 
-    msg_json = dumps(msg)
-
     # IBM must call init first
     if ibm:
-        do_post("http://{}:{}/init/".format(host, port), msg_json)
-
-    if parallel and poll:
-        raise RuntimeError("Cannot run poll and parallel")
+        do_post("http://{}:{}/init/".format(host, port), msg, json=True)
 
     # Knative must pass custom headers
     if knative and native:
@@ -106,62 +98,48 @@ def invoke_impl(user, func,
     else:
         headers = {}
 
-    for l in range(loops):
-        if loops > 1:
-            print("LOOP {}".format(l))
+    if poll:
+        if not knative:
+            raise RuntimeError("Poll only supported for knative")
 
-        if parallel:
-            n_workers = multiprocessing.cpu_count() - 1
-            p = multiprocessing.Pool(n_workers)
+        # Submit initial async call
+        async_result = do_post(url, msg, headers=headers, quiet=True, json=True)
+        try:
+            call_id = int(async_result)
+        except ValueError:
+            print("Could not parse async reponse to int: {}".format(async_result))
+            return 1
 
-            if ibm or knative:
-                args_list = [(url, msg_json, headers) for _ in range(n_workers)]
-            else:
-                raise RuntimeError("Must specify knative, IBM or legacy")
+        print("\n---- Polling {} ----".format(call_id))
 
-            p.starmap(_do_invoke, args_list)
-        elif poll:
-            if not knative:
-                raise RuntimeError("Poll only supported for knative")
+        # Poll status until we get success/ failure
+        result = ""
+        count = 0
+        while not result.startswith("SUCCESS") and not result.startswith("FAILED"):
+            count += 1
+            sleep(2)
 
-            # Submit initial async call
-            async_result = do_post(url, msg_json, headers=headers, quiet=True)
-            try:
-                call_id = int(async_result)
-            except ValueError:
-                print("Could not parse async reponse to int: {}".format(async_result))
-                return 1
+            result = status_call_impl(call_id, host, port, quiet=True)
+            print("\nPOLL {} - {}".format(count, result))
 
-            print("\n---- Polling {} ----".format(call_id))
+        print("\n---- Finished {} ----\n".format(call_id))
+        print(result)
 
-            # Poll status until we get success/ failure
-            result = ""
-            count = 0
-            while not result.startswith("SUCCESS") and not result.startswith("FAILED"):
-                count += 1
-                sleep(2)
-
-                result = status_call_impl(call_id, host, port, quiet=True)
-                print("\nPOLL {} - {}".format(count, result))
-
-            print("\n---- Finished {} ----\n".format(call_id))
-            print(result)
-
-            if result.startswith("SUCCESS"):
-                prefix = "SUCCESS:"
-                success = True
-            else:
-                prefix = "FAILED:"
-                success = False
-
-            result = result.replace(prefix, "")
-            return success, result
-
+        if result.startswith("SUCCESS"):
+            prefix = "SUCCESS:"
+            success = True
         else:
-            if ibm or knative:
-                return do_post(url, msg_json, headers=headers)
-            else:
-                raise RuntimeError("Must specify knative or legacy")
+            prefix = "FAILED:"
+            success = False
+
+        result = result.replace(prefix, "")
+        return success, result
+
+    else:
+        if ibm or knative:
+            return do_post(url, msg, headers=headers, json=True)
+        else:
+            raise RuntimeError("Must specify knative or ibm")
 
 
 def status_call_impl(call_id, host, port, quiet=False):
@@ -176,4 +154,4 @@ def status_call_impl(call_id, host, port, quiet=False):
 
     # Can always use the faasm worker for getting status
     headers = _get_knative_headers("worker")
-    return do_post(url, dumps(msg), headers=headers, quiet=quiet)
+    return do_post(url, msg, headers=headers, quiet=quiet, json=True)
