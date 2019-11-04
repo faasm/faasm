@@ -11,8 +11,6 @@ def invoke(ctx, user, func,
            host=None,
            port=None,
            input=None,
-           parallel=False,
-           loops=1,
            py=False,
            async=False,
            knative=True,
@@ -20,7 +18,7 @@ def invoke(ctx, user, func,
            ibm=False,
            poll=False
            ):
-    invoke_impl(user, func, host=host, port=port, input=input, parallel=parallel, loops=loops, py=py, async=async,
+    invoke_impl(user, func, host=host, port=port, input=input, py=py, async=async,
                 knative=knative, native=native, ibm=ibm, poll=poll)
 
 

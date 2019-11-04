@@ -1,8 +1,12 @@
 import sys
 
+from pyfaasm.core import setOutput
+
 
 def main_func():
-    print("Hello! Running Python version {}".format(sys.version))
+    output = "Hello! Running Python version {}".format(sys.version)
+    print(output)
+    setOutput(output.encode("utf-8"))
 
 
 if __name__ == "__main__":
