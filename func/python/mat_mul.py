@@ -1,6 +1,5 @@
 from pyfaasm.core import getFunctionIdx, getInput
-from pyfaasm.matrix import divide_and_conquer, distributed_divide_and_conquer, \
-    load_matrix_conf_from_state, MatrixConf
+from pyfaasm.matrix import divide_and_conquer, distributed_divide_and_conquer
 
 
 def main_func():
@@ -9,13 +8,7 @@ def main_func():
     idx = getFunctionIdx()
 
     if idx == 0:
-        load_matrix_conf_from_state()
-        print("Running matrix multiplication for  up {}x{} matrix with {} splits".format(
-            MatrixConf.matrix_size,
-            MatrixConf.matrix_size,
-            MatrixConf.n_splits
-        ))
-
+        print("Kicking off divide and conquer")
         divide_and_conquer()
     else:
         # Run the worker

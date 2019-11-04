@@ -3,10 +3,12 @@ from shutil import rmtree
 from subprocess import check_output
 
 from invoke import task
+from tasks.util.matrices import RESULT_MATRIX_KEY, SUBMATRICES_KEY_A, SUBMATRICES_KEY_B, MATRIX_CONF_STATE_KEY
 
 from tasks.aws import invoke_lambda
 from tasks.util.config import get_faasm_config
 from tasks.util.env import HOME_DIR, STATE_S3_BUCKET, DATA_S3_BUCKET
+from tasks.util.matrices import get_params_file, get_mat_a_file, get_mat_b_file, get_result_file
 from tasks.util.state import upload_binary_state, upload_sparse_matrix
 from tasks.util.upload_util import upload_file_to_s3, download_file_from_s3
 
@@ -28,7 +30,7 @@ _ALL_REUTERS_STATE_KEYS = [
 
 
 # -------------------------------------------------
-# RAW DATA
+# REUTERS - S3
 # -------------------------------------------------
 
 @task
@@ -68,7 +70,7 @@ def reuters_download_s3(ctx):
 
 
 # -------------------------------------------------
-# STATE MANAGEMENT
+# REUTERS UPLOAD
 # -------------------------------------------------
 
 @task
@@ -91,16 +93,22 @@ def reuters_prepare_aws(ctx):
         })
 
 
-def _do_reuters_upload(host=None, s3_bucket=None, knative=False):
-    assert host or s3_bucket or knative, "Must give a host, S3 bucket or knative"
-    user = "sgd"
-
+def _get_upload_host(knative, host):
     faasm_conf = get_faasm_config()
     if knative:
         if not faasm_conf.has_section("Kubernetes"):
             host = host if host else "localhost"
         else:
             host = faasm_conf["Kubernetes"]["upload_host"]
+
+    return host
+
+
+def _do_reuters_upload(host=None, s3_bucket=None, knative=False):
+    assert host or s3_bucket or knative, "Must give a host, S3 bucket or knative"
+    user = "sgd"
+
+    host = _get_upload_host(knative, host)
 
     # Upload the matrix data
     upload_sparse_matrix(user, "inputs", _FULL_DATA_DIR, host=host, s3_bucket=s3_bucket)
@@ -112,3 +120,21 @@ def _do_reuters_upload(host=None, s3_bucket=None, knative=False):
     # Upload the feature counts
     counts_path = join(_FULL_DATA_DIR, "feature_counts")
     upload_binary_state(user, "feature_counts", counts_path, host=host, s3_bucket=s3_bucket)
+
+
+# -------------------------------------------------
+# MATRIX UPLOAD
+# -------------------------------------------------
+
+@task
+def matrix_state_upload(ctx, mat_size, n_splits, host=None, knative=True):
+    user = "python"
+
+    host = _get_upload_host(knative, host)
+
+    upload_binary_state(user, MATRIX_CONF_STATE_KEY, get_params_file(mat_size, n_splits), host=host)
+
+    upload_binary_state(user, SUBMATRICES_KEY_A, get_mat_a_file(mat_size, n_splits), host=host)
+    upload_binary_state(user, SUBMATRICES_KEY_B, get_mat_b_file(mat_size, n_splits), host=host)
+
+    upload_binary_state(user, RESULT_MATRIX_KEY, get_result_file(mat_size, n_splits), host=host)

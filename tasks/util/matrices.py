@@ -3,6 +3,11 @@ from os.path import join, exists
 
 from tasks.util.env import HOME_DIR
 
+# NOTE - THESE HAVE TO MATCH PYFAASM
+SUBMATRICES_KEY_A = "submatrices_a"
+SUBMATRICES_KEY_B = "submatrices_b"
+RESULT_MATRIX_KEY = "result_matrix"
+MATRIX_CONF_STATE_KEY = "matrix_state"
 
 MATRIX_DATA_DIR = join(HOME_DIR, "faasm", "data", "matrix")
 MATRIX_A_FILE = join(MATRIX_DATA_DIR, "mat_a")

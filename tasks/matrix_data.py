@@ -1,28 +1,31 @@
 import numpy as np
+from invoke import task
 from numpy import int32
-from pyfaasm.matrix import load_matrix_conf_from_state, subdivide_matrix_into_file, write_matrix_params_to_state
+from pyfaasm.config import set_up_config
+from pyfaasm.matrix_data import subdivide_matrix_into_file
 
 from tasks.util.matrices import get_params_file, get_mat_a_file, get_mat_b_file, get_result_file
 
 
-def generate_all_matrix_data():
+@task
+def generate_all_matrix_data(ctx):
     splits = [3, 4]
     sizes = [1000, 2000, 3000, 4000, 5000, 6000]
     for n_splits in splits:
         for matrix_size in sizes:
-            generate_matrix_data(matrix_size, n_splits)
+            generate_matrix_data(ctx, matrix_size, n_splits)
 
 
-def generate_matrix_data(matrix_size, n_splits):
+@task
+def generate_matrix_data(ctx, matrix_size, n_splits):
     matrix_size = int(matrix_size)
     n_splits = int(n_splits)
 
     # Set up parameters locally (needed to run pyfaasm)
-    write_matrix_params_to_state(matrix_size, n_splits)
-    load_matrix_conf_from_state()
+    set_up_config(matrix_size, n_splits)
 
     # Write params to file
-    print("Setting up {}x{} matrix with {} splits".format(matrix_size, matrix_size, n_splits))
+    print("Generating {}x{} matrix with {} splits".format(matrix_size, matrix_size, n_splits))
     params = np.array((matrix_size, n_splits), dtype=int32)
     with open(get_params_file(matrix_size, n_splits), "wb") as fh:
         fh.write(params.tobytes())

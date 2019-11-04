@@ -126,6 +126,7 @@ from tasks.experiment_data import (
     reuters_download_s3,
     reuters_state_upload,
     reuters_state_upload_s3,
+    matrix_state_upload,
 )
 from tasks.tensorflow import (
     set_up_tensorflow_data
@@ -159,10 +160,12 @@ from tasks.experiments import (
     upload_matrix_state,
 )
 
+# Can only generate matrix data with things installed
 try:
     import pyfaasm
     from tasks.matrix_data import (
         generate_all_matrix_data,
+        generate_matrix_data,
     )
 except:
     pass
