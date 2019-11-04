@@ -123,7 +123,9 @@ from tasks.aws_sgd import (
 )
 from tasks.experiment_data import (
     reuters_upload_s3,
+    matrix_upload_s3,
     reuters_download_s3,
+    matrix_download_s3,
     reuters_state_upload,
     reuters_state_upload_s3,
     matrix_state_upload,

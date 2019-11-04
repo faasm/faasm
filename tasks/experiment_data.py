@@ -3,20 +3,26 @@ from shutil import rmtree
 from subprocess import check_output
 
 from invoke import task
-from tasks.util.matrices import RESULT_MATRIX_KEY, SUBMATRICES_KEY_A, SUBMATRICES_KEY_B, MATRIX_CONF_STATE_KEY
 
 from tasks.aws import invoke_lambda
 from tasks.util.config import get_faasm_config
 from tasks.util.env import HOME_DIR, STATE_S3_BUCKET, DATA_S3_BUCKET
+from tasks.util.matrices import RESULT_MATRIX_KEY, SUBMATRICES_KEY_A, SUBMATRICES_KEY_B, MATRIX_CONF_STATE_KEY
 from tasks.util.matrices import get_params_file, get_mat_a_file, get_mat_b_file, get_result_file
 from tasks.util.state import upload_binary_state, upload_sparse_matrix
 from tasks.util.upload_util import upload_file_to_s3, download_file_from_s3
 
-_DATA_TAR_NAME = "reuters.tar.gz"
-_DATA_TAR_PATH = "/tmp/{}".format(_DATA_TAR_NAME)
-_DATA_DIR = join(HOME_DIR, "faasm", "data")
-_TAR_DIR_NAME = "reuters"
-_FULL_DATA_DIR = join(_DATA_DIR, _TAR_DIR_NAME)
+_FAASM_DATA_DIR = join(HOME_DIR, "faasm", "data")
+
+_REUTERS_TAR_NAME = "reuters.tar.gz"
+_REUTERS_TAR_PATH = "/tmp/{}".format(_REUTERS_TAR_NAME)
+_REUTERS_TAR_DIR_NAME = "reuters"
+_REUTERS_DATA_DIR = join(_FAASM_DATA_DIR, _REUTERS_TAR_DIR_NAME)
+
+_MATRIX_TAR_NAME = "matrix.tar.gz"
+_MATRIX_TAR_PATH = "/tmp/{}".format(_MATRIX_TAR_NAME)
+_MATRIX_TAR_DIR_NAME = "matrix"
+_MATRIX_DATA_DIR = join(_FAASM_DATA_DIR, _MATRIX_TAR_DIR_NAME)
 
 _ALL_REUTERS_STATE_KEYS = [
     "feature_counts",
@@ -35,38 +41,50 @@ _ALL_REUTERS_STATE_KEYS = [
 
 @task
 def reuters_upload_s3(ctx):
-    """
-    Uploads Reuters data having been parsed from the original Hogwild dataset
-    """
+    _do_s3_upload(_REUTERS_TAR_PATH, _REUTERS_TAR_DIR_NAME, _REUTERS_TAR_NAME)
+
+
+@task
+def matrix_upload_s3(ctx):
+    _do_s3_upload(_MATRIX_TAR_PATH, _MATRIX_TAR_DIR_NAME, _MATRIX_TAR_NAME)
+
+
+def _do_s3_upload(tar_path, tar_dir, tar_name):
     # Compress
-    print("Creating archive of Reuters data")
-    check_output("tar -cf {} {}".format(_DATA_TAR_PATH, _TAR_DIR_NAME), shell=True, cwd=_DATA_DIR)
+    print("Creating archive of data {}".format(tar_path))
+    check_output("tar -cf {} {}".format(tar_path, tar_dir), shell=True, cwd=_FAASM_DATA_DIR)
 
     # Upload
     print("Uploading archive to S3")
-    upload_file_to_s3(_DATA_TAR_PATH, DATA_S3_BUCKET, _DATA_TAR_NAME)
+    upload_file_to_s3(tar_path, DATA_S3_BUCKET, tar_name)
 
     # Remove old tar
     print("Removing archive")
-    check_output("rm {}".format(_DATA_TAR_PATH), shell=True)
+    check_output("rm {}".format(tar_path), shell=True)
 
 
 @task
 def reuters_download_s3(ctx):
-    """
-    Downloads Reuters data
-    """
+    _do_s3_download(_REUTERS_TAR_PATH, _REUTERS_TAR_DIR_NAME, _REUTERS_TAR_NAME)
+
+
+@task
+def matrix_download_s3(ctx):
+    _do_s3_download(_MATRIX_TAR_PATH, _MATRIX_TAR_DIR_NAME, _MATRIX_TAR_NAME)
+
+
+def _do_s3_download(tar_path, tar_dir, tar_name):
     # Clear out existing
-    print("Removing existing")
-    rmtree(join(_DATA_DIR, _TAR_DIR_NAME))
+    print("Removing existing {}".format(tar_dir))
+    rmtree(join(_FAASM_DATA_DIR, tar_dir))
 
     # Download the bundle
-    print("Downloading from S3")
-    download_file_from_s3(DATA_S3_BUCKET, _DATA_TAR_NAME, _DATA_TAR_PATH)
+    print("Downloading from S3 to {}".format(tar_path))
+    download_file_from_s3(DATA_S3_BUCKET, tar_name, tar_path)
 
     # Extract
     print("Extracting")
-    check_output("tar -xf {}".format(_DATA_TAR_PATH), shell=True, cwd=_DATA_DIR)
+    check_output("tar -xf {}".format(tar_path), shell=True, cwd=_FAASM_DATA_DIR)
 
 
 # -------------------------------------------------
@@ -111,14 +129,14 @@ def _do_reuters_upload(host=None, s3_bucket=None, knative=False):
     host = _get_upload_host(knative, host)
 
     # Upload the matrix data
-    upload_sparse_matrix(user, "inputs", _FULL_DATA_DIR, host=host, s3_bucket=s3_bucket)
+    upload_sparse_matrix(user, "inputs", _REUTERS_DATA_DIR, host=host, s3_bucket=s3_bucket)
 
     # Upload the categories data
-    cat_path = join(_FULL_DATA_DIR, "outputs")
+    cat_path = join(_REUTERS_DATA_DIR, "outputs")
     upload_binary_state(user, "outputs", cat_path, host=host, s3_bucket=s3_bucket)
 
     # Upload the feature counts
-    counts_path = join(_FULL_DATA_DIR, "feature_counts")
+    counts_path = join(_REUTERS_DATA_DIR, "feature_counts")
     upload_binary_state(user, "feature_counts", counts_path, host=host, s3_bucket=s3_bucket)
 
 
