@@ -53,9 +53,9 @@ namespace state {
 
     void StateKeyValue::pullImpl(bool onlyIfEmpty) {
         // Drop out if we already have the data and we don't care about updating
-        if (onlyIfEmpty) {
+        {
             SharedLock lock(valueMutex);
-            if (_fullyAllocated) {
+            if (onlyIfEmpty && _fullyAllocated) {
                 return;
             }
         }
@@ -64,10 +64,8 @@ namespace state {
         FullLock lock(valueMutex);
         PROF_START(statePull)
 
-        if (onlyIfEmpty) {
-            if (_fullyAllocated) {
-                return;
-            }
+        if (onlyIfEmpty && _fullyAllocated) {
+            return;
         }
 
         // Initialise storage if necessary
@@ -75,11 +73,12 @@ namespace state {
             initialiseStorage(true);
         }
 
-        // Read from the remote
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
         redis::Redis &redis = redis::Redis::getState();
-        auto memoryBytes = static_cast<uint8_t *>(sharedMemory);
+
+        // Read from the remote
         logger->debug("Pulling remote value for {}", key);
+        auto memoryBytes = static_cast<uint8_t *>(sharedMemory);
         redis.get(key, memoryBytes, valueSize);
 
         PROF_END(statePull)
@@ -87,9 +86,9 @@ namespace state {
 
     void StateKeyValue::pullSegmentImpl(bool onlyIfEmpty, long offset, size_t length) {
         // Drop out if we already have the data and we don't care about updating
-        if (onlyIfEmpty) {
+        {
             SharedLock lock(valueMutex);
-            if (_fullyAllocated || isSegmentAllocated(offset, length)) {
+            if (onlyIfEmpty && (_fullyAllocated || isSegmentAllocated(offset, length))) {
                 return;
             }
         }
@@ -100,10 +99,8 @@ namespace state {
 
         // Check condition again
         bool segmentAllocated = isSegmentAllocated(offset, length);
-        if (onlyIfEmpty) {
-            if (_fullyAllocated || segmentAllocated) {
-                return;
-            }
+        if (onlyIfEmpty && (_fullyAllocated || segmentAllocated)) {
+            return;
         }
 
         // Initialise the storage if empty
@@ -111,14 +108,15 @@ namespace state {
             allocateSegment(offset, length);
         }
 
-        // Read from the remote
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
         redis::Redis &redis = redis::Redis::getState();
-        auto memoryBytes = static_cast<uint8_t *>(sharedMemory);
-        logger->debug("Pulling remote segment ({}-{}) for {}", offset, offset + length, key);
 
         // Note - redis ranges are inclusive, so we need to knock one off
         size_t rangeEnd = offset + length - 1;
+
+        // Read from the remote
+        logger->debug("Pulling remote segment ({}-{}) for {}", offset, offset + length, key);
+        auto memoryBytes = static_cast<uint8_t *>(sharedMemory);
         redis.getRange(key, memoryBytes + offset, length, offset, rangeEnd);
 
         PROF_END(stateSegmentPull)
@@ -297,7 +295,7 @@ namespace state {
 
         // Check everything lines up first of all
         size_t offset = pagesOffset * util::HOST_PAGE_SIZE;
-        size_t length= nPages * util::HOST_PAGE_SIZE;
+        size_t length = nPages * util::HOST_PAGE_SIZE;
 
         // Pull the value
         if (pagesOffset > 0 || length < valueSize) {
@@ -394,7 +392,7 @@ namespace state {
             throw std::runtime_error("Failed mapping memory for KV");
         }
 
-        if(allocate) {
+        if (allocate) {
             logger->debug("Allocated {} pages of shared storage for {}", sharedMemSize / HOST_PAGE_SIZE, key);
         } else {
             logger->debug("Reserved {} pages of shared storage for {}", sharedMemSize / HOST_PAGE_SIZE, key);
@@ -516,7 +514,7 @@ namespace state {
         redis.flushPipeline(updateCount);
 
         // Read the latest value
-        if(_fullyAllocated) {
+        if (_fullyAllocated) {
             logger->debug("Pulling from remote on partial push for {}", key);
             redis.get(key, sharedMemoryBytes, valueSize);
         }

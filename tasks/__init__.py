@@ -159,7 +159,6 @@ from tasks.experiments import (
     matrix_experiment,
     matrix_pull_results,
     matrix_parse_results,
-    upload_matrix_state,
 )
 
 # Can only generate matrix data with things installed

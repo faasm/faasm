@@ -1,7 +1,6 @@
-from pyfaasm.core import getFunctionIdx, getInput, chainThisWithInput, registerFunction, PYTHON_LOCAL_CHAINING, awaitCall
+from pyfaasm.core import getFunctionIdx, getInput, chainThisWithInput, registerFunction, PYTHON_LOCAL_CHAINING, \
+    awaitCall
 
-def register_funcs():
-    pass
 
 def chainOne(input_bytes):
     expected = b'1234'

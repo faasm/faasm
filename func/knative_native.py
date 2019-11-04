@@ -32,7 +32,7 @@ def handle_message(json_data):
     mod = __import__(module_name, fromlist=[""])
 
     if json_data.get("async", False):
-        # Use emulator to dispatch in the background
+        # Run in background if async request
         func_thread = threading.Thread(target=execute_main, args=[mod])
         func_thread.start()
 

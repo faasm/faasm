@@ -53,7 +53,6 @@ namespace knative_native {
         message::Message msg = util::jsonToMessage(requestStr);
         setEmulatedMessage(msg);
 
-        // Parse the JSON input
         logger->debug("Knative native request: {}", requestStr);
 
         std::string outputStr;

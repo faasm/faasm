@@ -97,17 +97,11 @@ elseif (FAASM_BUILD_TYPE STREQUAL "knative-native")
     # Knative native build
     # ----------------------
     function(faasm_func_c func_name file_name)
-        # All knative native funcs need to be linked with Python libs
-        find_package(PythonLibs)
-        include_directories(${PYTHON_INCLUDE_DIRS})
-
         add_executable(${func_name}-knative ${file_name})
         target_link_libraries(
                 ${func_name}-knative
                 faasm
                 knative_native
-                pyinit
-                ${PYTHON_LIBRARIES}
         )
     endfunction(faasm_func_c)
 

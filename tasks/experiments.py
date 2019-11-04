@@ -180,12 +180,6 @@ class MatrixExperimentRunner(ExperimentRunner):
 
 
 @task
-def upload_matrix_state(ctx, mat_size, n_splits, knative=False):
-    # TODO - this should already exist on the host
-    pass
-
-
-@task
 def matrix_experiment(ctx, mat_size, n_splits, native=False, nobill=False):
     runner = MatrixExperimentRunner(mat_size, n_splits)
     runner.run(native, nobill=nobill)
