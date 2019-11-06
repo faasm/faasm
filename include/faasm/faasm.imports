@@ -26,3 +26,4 @@ __faasm_get_py_user
 __faasm_get_py_func
 __faasm_get_py_idx
 __faasm_chain_py
+__faasm_conf_flag

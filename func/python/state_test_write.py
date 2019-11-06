@@ -37,9 +37,9 @@ def main_func():
     # Check just the segment
     actual_segment = getStateOffset(key, value_len, offset, segment_len)
     if actual_segment != segment:
-        msg = "Mismatched segment: actual {}, expected {})".format(actual_segment, segment)
+        msg = "Mismatched segment: actual {}, expected {}".format(actual_segment, segment)
         print(msg)
-        raise RuntimeError(msg)
+        exit(1)
 
     print("Successful Python state writing check")
 

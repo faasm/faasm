@@ -711,8 +711,11 @@ namespace wasm {
     }
 
     U32 WasmModule::mmapKey(const std::shared_ptr<state::StateKeyValue> kv, long offset, U32 length) {
+        // Create a key for this specific offset and length and cache the pointer once done
+        std::string regionKey = kv->key + "_" + std::to_string(offset) + "_" + std::to_string(length);
+
         // See if this is the first time the module has seen this key
-        if (sharedMemWasmPtrs.count(kv->key) == 0) {
+        if (sharedMemWasmPtrs.count(regionKey) == 0) {
             size_t alignedOffset = util::alignOffsetDown(offset);
             size_t offsetFromStart = offset - alignedOffset;
 
@@ -731,11 +734,11 @@ namespace wasm {
 
             // Remember the kv and pointer
             U32 wasmPtr = wasmMemoryRegion + offsetFromStart;
-            sharedMemWasmPtrs.insert(std::pair<std::string, I32>(kv->key, wasmPtr));
+            sharedMemWasmPtrs.insert(std::pair<std::string, I32>(regionKey, wasmPtr));
         }
 
         // Return the wasm pointer
-        return sharedMemWasmPtrs[kv->key];
+        return sharedMemWasmPtrs[regionKey];
     }
 
     bool WasmModule::resolve(const std::string &moduleName,

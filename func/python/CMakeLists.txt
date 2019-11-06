@@ -16,7 +16,6 @@ message(STATUS "PYTHON_INCLUDE_DIRS=${PYTHON_INCLUDE_DIRS}")
 # Python functions
 include_directories(${PYTHON_INCLUDE_DIRS})
 
-add_definitions("-DPRELOAD_NUMPY=1")
 faasm_dynamic_func(py_func py_func.cpp)
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")

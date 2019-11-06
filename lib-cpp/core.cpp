@@ -120,6 +120,10 @@ char* faasmGetPythonFunc() {
      return funcName;
 }
 
+unsigned int getConfFlag(const char* key) {
+    return __faasm_conf_flag(key);
+}
+
 _FaasmFuncPtr getFaasmFunc(int idx) {
     int (*_faasm_funcs[10])() = {
             _faasm_func_0,

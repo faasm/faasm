@@ -264,3 +264,7 @@ void __faasm_get_py_user(unsigned char *buffer, long bufferLen) {
 
 void __faasm_get_py_func(unsigned char *buffer, long bufferLen) {
 }
+
+unsigned int __faasm_conf_flag(const char* key) {
+    return 0;
+}

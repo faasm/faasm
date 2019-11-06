@@ -92,4 +92,7 @@ int __faasm_get_py_idx();
 HOST_IFACE_FUNC
 unsigned int __faasm_chain_py(int idx, const unsigned char *inputData, long inputDataSize);
 
+HOST_IFACE_FUNC
+unsigned int __faasm_conf_flag(const char* key);
+
 #endif
