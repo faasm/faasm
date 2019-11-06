@@ -2,6 +2,10 @@ language: c++
 
 dist: xenial
 
+# We want to clone only the submodules we need for the build
+git:
+  submodules: false
+
 services:
   - docker
 
