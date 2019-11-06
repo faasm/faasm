@@ -6,11 +6,29 @@
 
 namespace tests {
 
-    // Prepare a couple of numpy modules to load
-    util::SystemConfig &conf = util::getSystemConfig();
-    std::string basePath = conf.runtimeFilesDir + "/lib/python3.7/site-packages/numpy/core";
-    std::string pythonModuleA = basePath + "/multiarray.so";
-    std::string pythonModuleB = basePath + "/umath.so";
+    /*
+     * NOTE - tests in this file are quite brittle as they have hard-coded
+     * table and data locations. This is good when it works, as it checks the
+     * dynamic loading of Python modules is as expected. There may be a better
+     * way though.
+     */
+    std::string getBaseModulePath() {
+        util::SystemConfig &conf = util::getSystemConfig();
+        std::string basePath = conf.runtimeFilesDir + "/lib/python3.7/site-packages/numpy/core";
+        return basePath;
+    }
+    
+    std::string getPythonModuleA() {
+        const std::string basePath = getBaseModulePath();
+        std::string pythonModuleA = basePath + "/multiarray.so";
+        return pythonModuleA;
+    }
+
+    std::string getPythonModuleB() {
+        const std::string basePath = getBaseModulePath();
+        std::string pythonModuleB = basePath + "/umath.so";
+        return pythonModuleB;
+    }
 
     // These are hard-coded functions whose offsets we know
     std::string mainFunc = "PyInit_array";
@@ -25,7 +43,7 @@ namespace tests {
     std::string mainData = "PyBool_Type";
     std::string dataA = "PyArray_API";
     std::string dataB = "PyUFunc_API";
-    int mainDataOffset = 6438736;
+    int mainDataOffset = 6438800;
     int dataAOffset = 10460832;
     int dataBOffset = 41746432;
 
@@ -33,6 +51,11 @@ namespace tests {
     int extraFuncsPerModule = 6;
 
     TEST_CASE("Test dynamic load/ function lookup", "[wasm]") {
+        // Need to force python function _not_ to load numpy up front
+        util::SystemConfig &conf = util::getSystemConfig();
+        std::string preloadBefore = conf.pythonPreload;
+        conf.pythonPreload = "off";
+
         wasm::IRModuleRegistry &registry = wasm::getIRModuleRegistry();
 
         // Bind to Python function
@@ -45,11 +68,12 @@ namespace tests {
         Uptr initialMemSize = Runtime::getMemoryNumPages(module.defaultMemory) * IR::numBytesPerPage;
 
         // --- Module One ---
-        int handleA = module.dynamicLoadModule(pythonModuleA, module.executionContext);
+        std::string modulePathA = getPythonModuleA();
+        int handleA = module.dynamicLoadModule(modulePathA, module.executionContext);
         REQUIRE(handleA >= 2);
         REQUIRE(module.getDynamicModuleCount() == 1);
 
-        U64 moduleTableSizeA = registry.getSharedModuleTableSize(PYTHON_USER, PYTHON_FUNC, pythonModuleA);
+        U64 moduleTableSizeA = registry.getSharedModuleTableSize(PYTHON_USER, PYTHON_FUNC, modulePathA);
 
         // Check the table size has grown to fit the new functions
         Uptr tableSizeAfterA = Runtime::getTableNumElements(module.defaultTable);
@@ -83,11 +107,12 @@ namespace tests {
         REQUIRE(tableSizeAfterAFunc == tableSizeAfterA + 1);
 
         // --- Module Two ---
-        int handleB = module.dynamicLoadModule(pythonModuleB, module.executionContext);
+        std::string modulePathB = getPythonModuleB();
+        int handleB = module.dynamicLoadModule(modulePathB, module.executionContext);
         REQUIRE(handleB == handleA + 1);
         REQUIRE(module.getDynamicModuleCount() == 2);
 
-        U64 moduleTableSizeB = registry.getSharedModuleTableSize(PYTHON_USER, PYTHON_FUNC, pythonModuleB);
+        U64 moduleTableSizeB = registry.getSharedModuleTableSize(PYTHON_USER, PYTHON_FUNC, modulePathB);
 
         // Check the table
         Uptr tableSizeAfterB = Runtime::getTableNumElements(module.defaultTable);
@@ -114,7 +139,7 @@ namespace tests {
         Uptr numElemsAfterB = Runtime::getTableNumElements(module.defaultTable);
         REQUIRE(numElemsAfterB == tableSizeAfterB + 1);
 
-        conf.reset();
+        conf.pythonPreload = preloadBefore;
     }
 
     void checkFuncInGOT(wasm::WasmModule &module, const std::string &funcName, int expectedIdx,
@@ -134,6 +159,10 @@ namespace tests {
     }
 
     TEST_CASE("Test GOT population", "[wasm]") {
+        util::SystemConfig &conf = util::getSystemConfig();
+        std::string preloadBefore = conf.pythonPreload;
+        conf.pythonPreload = "off";
+
         // Bind to Python function
         message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         wasm::WasmModule module;
@@ -142,10 +171,12 @@ namespace tests {
         Uptr initialTableSize = Runtime::getTableNumElements(module.defaultTable);
 
         // Load a couple of dynamic modules
-        int handleA = module.dynamicLoadModule(pythonModuleA, module.executionContext);
+        std::string modulePathA = getPythonModuleA();
+        int handleA = module.dynamicLoadModule(modulePathA, module.executionContext);
         Uptr tableSizeAfterA = Runtime::getTableNumElements(module.defaultTable);
 
-        int handleB = module.dynamicLoadModule(pythonModuleB, module.executionContext);
+        std::string modulePathB = getPythonModuleB();
+        int handleB = module.dynamicLoadModule(modulePathB, module.executionContext);
         Uptr tableSizeAfterB = Runtime::getTableNumElements(module.defaultTable);
 
         // Check invalid entries don't work
@@ -179,7 +210,7 @@ namespace tests {
         REQUIRE(expectedIdxB > tableSizeAfterA);
         REQUIRE(expectedIdxB < tableSizeAfterB);
 
-        conf.reset();
+        conf.pythonPreload = preloadBefore;
     }
 
     void resolveGlobalI32(wasm::WasmModule &module, const std::string &moduleName, const std::string &name, I32 expected) {
@@ -192,13 +223,18 @@ namespace tests {
     }
 
     TEST_CASE("Test resolving dynamic module imports", "[wasm]") {
+        util::SystemConfig &conf = util::getSystemConfig();
+        std::string preloadBefore = conf.pythonPreload;
+        conf.pythonPreload = "off";
+
         // Bind to Python function
         message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         wasm::WasmModule module;
         module.bindToFunction(msg);
 
         // Load a dynamic module
-        module.dynamicLoadModule(pythonModuleA, module.executionContext);
+        std::string modulePathA = getPythonModuleA();
+        module.dynamicLoadModule(modulePathA, module.executionContext);
 
         // Check values resolve to what we'd expect
         resolveGlobalI32(module, "foo", "__memory_base", module.getNextMemoryBase());
@@ -212,5 +248,7 @@ namespace tests {
         Runtime::Table *table = Runtime::asTable(importedTable);
 
         REQUIRE(table == module.defaultTable);
+
+        conf.pythonPreload = preloadBefore;
     }
 }
