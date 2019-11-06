@@ -19,10 +19,10 @@ inv run-local-codegen
 
 # Set Python and the runtime root
 inv set-up-python-runtime
-inv upload-all --py --host=upload
+inv upload-all --py --local-copy
 
 # Set up TF data
-inv set-up-tensorflow-data --host=upload
+inv set-up-tensorflow-data --local-copy
 
 popd
 

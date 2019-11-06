@@ -21,6 +21,9 @@ RUN pip3 install invoke requests
 COPY requirements.txt /tmp/requirements.txt
 RUN pip3 install -r /tmp/requirements.txt
 
+# Clear out
+RUN rm -rf /tmp/*
+
 COPY . /usr/local/code/faasm
 
 # Set up Catch
