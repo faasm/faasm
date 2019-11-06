@@ -14,11 +14,10 @@ inv download-toolchain
 # Set up libfake for tests
 inv compile-libfake --clean
 
-# Run codegen on all functions held locally
+# Run codegen on local stuff
 inv run-local-codegen
 
 # Set Python and the runtime root
-inv set-up-python-runtime
 inv upload-all --py --local-copy
 
 # Set up TF data
