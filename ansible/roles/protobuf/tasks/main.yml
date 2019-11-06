@@ -36,3 +36,11 @@
     - "make install"
     - "ldconfig"
   when: pb_stat.stat.exists == False
+
+- name: "Clean up"
+  file:
+    state: absent
+    path: "{{ item }}"
+  with_items:
+    - "/tmp/protobuf-cpp-3.6.0.tar.gz"
+    - "/tmp/protobuf-cpp-3.6.0"

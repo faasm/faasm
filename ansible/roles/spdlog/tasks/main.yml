@@ -25,3 +25,8 @@
     - "make"
     - "make install"
   when: sl_stat.stat.exists == False
+
+- name: "Clean up"
+  file:
+    state: absent
+    path: "/tmp/spdlog-1.2.1"

@@ -44,5 +44,10 @@ RUN pip3 install pyfaasm
 WORKDIR /faasm/build
 RUN cmake --build . --target tests -- -j
 
+# Remove worker entrypoint
+COPY bin/noop-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+
 # Command to run the tests
 CMD /faasm/build/bin/tests

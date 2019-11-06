@@ -4,6 +4,10 @@ set -e
 
 pushd /usr/local/code/faasm
 
+# Set up cgroup and namespaces
+./bin/cgroup.sh
+./bin/netns.sh 5
+
 # Set up libfake for tests
 inv compile-libfake --clean
 

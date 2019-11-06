@@ -1,5 +1,3 @@
-import sys
-
 from tasks.aws import (
     codegen_wasm_lambda_func,
     lambda_clear_queue,

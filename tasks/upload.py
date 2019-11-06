@@ -25,7 +25,7 @@ def _get_host_port(host_in, port_in):
         host = faasm_config["Kubernetes"].get("upload_host", "127.0.0.1")
         port = faasm_config["Kubernetes"].get("upload_port", 8002)
     else:
-        host = "127.0.0.1"
+        host = host_in if host_in else "127.0.0.1"
         port = port_in if port_in else 8002
 
     return host, port
