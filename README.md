@@ -24,7 +24,7 @@ You can start a simple Faasm runtime using the `docker-compose.yml` file in the 
 
 You can start it by running:
 
-```
+```bash
 # Single worker
 docker-compose up
 
@@ -38,20 +38,20 @@ C++ functions are built with CMake and held in the `func` directory. `demo/hello
 
 The Faasm toolchain is packaged in the `faasm/toolchain` container and can be run with the `bin/toolchain.sh` script, i.e.:
 
-```
+```bash
 ./bin/toolchain.sh
 ```
 
 This container has all the tooling ready to use. To compile and upload the `hello` function you an run:
 
-```
+```bash
 inv compile --func=hello
 inv upload demo hello
 ```
 
 You can invoke the function as follows:
 
-```
+```bash
 inv invoke demo hello
 ```
 
@@ -61,13 +61,13 @@ You should then see the response `Hello faasm!`.
 
 An example Python function is found at `func/python/hello.py`. This can be uploaded with:
 
-```
+```bash
 inv upload --py python hello
 ```
 
 And invoke with:
 
-```
+```bash
 inv invoke --py python hello
 ```
 
@@ -79,7 +79,7 @@ Faasm aims to be uninvasive, allowing code to run natively _and_ in a serverless
 
 In C++ functions make use of the Faasm macros. These macros mean the code can be compiled with a standard toolchain and run natively, but when compiled with the Faasm toolchain, will run in a serverless context.
 
-```
+```c++
 #include "faasm/faasm.h"
 
 FAASM_MAIN_FUNC() {
@@ -116,7 +116,7 @@ Python functions interact with the Faasm API via [pyfaasm](https://github.com/Sh
 
 Multiple functions can be defined in the same file, invoke each other and await results. For example:
 
-```
+```c++
 #include "faasm/faasm.h"
 #include <vector>
 
@@ -146,7 +146,7 @@ FAASM_MAIN_FUNC() {
 
 In Python this looks like:
 
-```
+```python
 from pyfaasm.code import await_call, chain_this, faasm_func, faasm_main
 
 @faasm_func(1)
@@ -166,9 +166,9 @@ def main_func():
     await_call(call_two)
 ```
 
-Chaining can also be done across functions defined separately:
+Chaining can also be done across functions defined separately, e.g. in C++:
 
-```
+```c++
 #include "faasm/faasm.h"
 
 FAASM_MAIN_FUNC() {
@@ -188,7 +188,7 @@ State can be dealt with in a read-only or lock-free manner (and shared in region
 
 A function accessing state will look something like:
 
-```
+```c++
 #include "faasm/faasm.h"
 
 FAASM_MAIN_FUNC() {
@@ -220,14 +220,14 @@ This can be useful for implementing distributed iterative algorithms.
 
 If you need to prepopulate state for your functions you can use the state upload endpoint. This can be called with:
 
-```
+```bash
 # Format /s/<username>/<key>
 curl http://localhost:8002/s/user123/my_key -X PUT -d "your data"
 ```
 
 This state can then be accessed in your functions using the specified key. For larger state, you can also upload a file:
 
-```
+```bash
 curl http://localhost:8002/s/user123/my_key -X PUT -T /tmp/my_state_file
 ```
 
@@ -241,7 +241,7 @@ The proto-function should be idempotent as it may be run more than once.
 
 Proto-function code is marked up with the `FAASM_ZYGOTE` macro:
 
-```
+```c++
 #include "faasm/faasm.h"
 
 int myGlobal;
