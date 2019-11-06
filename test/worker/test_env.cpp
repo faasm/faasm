@@ -14,6 +14,13 @@ namespace tests {
         execFunction(msg);
     }
 
+    TEST_CASE("Test conf flags", "[worker]") {
+        cleanSystem();
+
+        message::Message msg = util::messageFactory("demo", "conf_flags");
+        execFunction(msg);
+    }
+
     TEST_CASE("Test abort", "[worker]") {
         cleanSystem();
 

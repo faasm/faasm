@@ -36,3 +36,8 @@
   args:
     chdir: "/tmp/rapidjson/build"
   when: rj_stat.stat.exists == False
+
+- name: "Clean up"
+  file:
+    state: absent
+    path: "/tmp/rapidjson"

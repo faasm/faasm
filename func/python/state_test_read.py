@@ -1,32 +1,29 @@
 from pyfaasm.core import getState, getStateOffset
 
 
+def _check_segment(key, offset, length, expected):
+    actual = getStateOffset(key, length, offset, length)
+    if actual != expected:
+        msg = "Mismatched segment: actual {}, expected {})".format(actual, expected)
+        print(msg)
+        exit(1)
+
+
 def main_func():
     key = "pyStateTest"
-    valueLen = 10
+    value_len = 10
     expected = b'0199956789'
 
     # Check the full value
-    actual = getState(key, valueLen)
+    actual = getState(key, value_len)
     if actual != expected:
-        msg = "Mismatch: actual {}, expected {})".format(actual, expected)
+        msg = "Mismatch: actual {}, expected {}".format(actual, expected)
         print(msg)
         exit(1)
 
     # Check a couple of segments
-    actualSegmentA = getStateOffset(key, valueLen, 0, 3)
-    expectedA = b'019'
-    if actualSegmentA != expectedA:
-        msg = "Mismatched segment: actual {}, expected {})".format(actualSegmentA, expectedA)
-        print(msg)
-        exit(1)
-
-    actualSegmentB = getStateOffset(key, valueLen, 4, 4)
-    expectedB = b'9567'
-    if actualSegmentB != expectedB:
-        msg = "Mismatched segment: actual {}, expected {})".format(actualSegmentB, expectedB)
-        print(msg)
-        exit(1)
+    _check_segment(key, 0, 3, b'019')
+    _check_segment(key, 4, 4, b'9567')
 
     print("Successful Python state reading check")
 

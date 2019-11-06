@@ -24,7 +24,7 @@ You can start a simple Faasm runtime using the `docker-compose.yml` file in the 
 
 You can start it by running:
 
-```
+```bash
 # Single worker
 docker-compose up
 
@@ -38,20 +38,20 @@ C++ functions are built with CMake and held in the `func` directory. `demo/hello
 
 The Faasm toolchain is packaged in the `faasm/toolchain` container and can be run with the `bin/toolchain.sh` script, i.e.:
 
-```
+```bash
 ./bin/toolchain.sh
 ```
 
 This container has all the tooling ready to use. To compile and upload the `hello` function you an run:
 
-```
+```bash
 inv compile --func=hello
 inv upload demo hello
 ```
 
 You can invoke the function as follows:
 
-```
+```bash
 inv invoke demo hello
 ```
 
@@ -61,13 +61,13 @@ You should then see the response `Hello faasm!`.
 
 An example Python function is found at `func/python/hello.py`. This can be uploaded with:
 
-```
+```bash
 inv upload --py python hello
 ```
 
 And invoke with:
 
-```
+```bash
 inv invoke --py python hello
 ```
 
@@ -77,9 +77,9 @@ Faasm aims to be uninvasive, allowing code to run natively _and_ in a serverless
 
 ## C++
 
-C++ functions make use of the Faasm macros. These macros mean the code can be compiled with a standard toolchain and run natively, but when compiled with the Faasm toolchain, will run in a serverless context.
+In C++ functions make use of the Faasm macros. These macros mean the code can be compiled with a standard toolchain and run natively, but when compiled with the Faasm toolchain, will run in a serverless context.
 
-```
+```c++
 #include "faasm/faasm.h"
 
 FAASM_MAIN_FUNC() {
@@ -91,7 +91,7 @@ FAASM_MAIN_FUNC() {
 
 Some example functions can be found in the `func/demo` directory.
 
-## The Faasm API
+## C++ API
 
 Faasm allows users functions to interact with the underlying system to accomplish a number of things e.g. accessing input and output, interacting with distributed state, and invoking other functions.
 
@@ -104,81 +104,98 @@ Some of the methods include:
 - `faasmReadState()` and `writeState()` - allows functions to read/ write key/value state
 - `faasmReadStateOffset()` and `faasmWriteStateOffset()` - allows functions to read/ write at specific points in existing state (e.g. updating a subsection of an array)
 
+## Python API
+
+Python functions interact with the Faasm API via [pyfaasm](https://github.com/Shillaker/pyfaasm), a module with a C-extension providing the relevant bindings to the C++ API.
+
 ## Chaining
 
 "Chaining" is when one function makes a call to another function (which must be owned by the same user). There are two supported methods of chaining, one for invoking totally separate Faasm functions, the other for automatically parallelising functions in the same piece of code (useful for porting legacy applications).
 
-### Chaining a different Faasm function
+### Chaining a function
 
-To call different Faasm functions, `faasmChainFunction()` can be used.
-For my function to invoke the functions `foo` and `bar` (also owned by me),
-it can do the following:
+Multiple functions can be defined in the same file, invoke each other and await results. For example:
 
-```
+```c++
 #include "faasm/faasm.h"
 #include <vector>
 
-FAASM_MAIN_FUNC() {
-    int fooCallId = faasmChainFunction("foo");
-    int barCallId = faasmChainFunction("bar");
-
-    // Wait for both to complete (if you want)
-    faasmAwaitCall(fooCallId);
-    faasmAwaitCall(barCallId);
-
+// Define some function to be chained
+FAASM_FUNC(funcOne, 1) {
     return 0;
 }
-```
 
-### Invoking a function from the same code
+// Define another function to be chained
+FAASM_FUNC(funcTwo, 2) {
+    return 0;
+}
 
-An alternative approach is to bundle all code into the same Faasm function,
-then invoke bits of it in parallel.
-
-```
-#include "faasm/faasm.h"
-#include <vector>
-
+// Define the main function
 FAASM_MAIN_FUNC() {
+    // Chain calls to the other functions
     int callOneId = faasmChainThis(1);
     int callTwoId = faasmChainThis(2);
 
-    // Wait for both to complete (if you want)
+    // Await results
     faasmAwaitCall(callOneId);
     faasmAwaitCall(callTwoId);
 
     return 0;
 }
+```
 
-FAASM_FUNC(funcOne, 1) {
-    // Do something
-    return 0;
-}
+In Python this looks like:
 
-FAASM_FUNC(funcTwo, 1) {
-    // Do something different
+```python
+from pyfaasm.code import await_call, chain_this, faasm_func, faasm_main
+
+@faasm_func(1)
+def func_one():
+    pass
+
+@faasm_func(2)
+def func_two():
+    pass
+
+@faasm_main
+def main_func():
+    call_one = chain_this(1)
+    call_two = chain_this(2)
+
+    await_call(call_one)
+    await_call(call_two)
+```
+
+Chaining can also be done across functions defined separately, e.g. in C++:
+
+```c++
+#include "faasm/faasm.h"
+
+FAASM_MAIN_FUNC() {
+    // Chain a call to my other function named "other-func"
+    int callId = faasmChainFunction("other-func");
+    faasmAwaitCall(callId);
+
     return 0;
 }
 ```
 
 ## State
 
-All of a users' functions have access to shared state. This state is implemented as a 
-simple key-value store and accessed by the functions `faasmReadState` and `faasmWriteState`. Values read and written to this state must be byte arrays.
+All of a users' functions have access to shared state. This state is implemented as a simple key-value store and accessed by the functions `faasmReadState` and `faasmWriteState`. Values read and written to this state must be byte arrays.
 
 State can be dealt with in a read-only or lock-free manner (and shared in regions of shared memory with colocated functions), or via synchronous distributed locks.
 
 A function accessing state will look something like:
 
-```
+```c++
 #include "faasm/faasm.h"
 
 FAASM_MAIN_FUNC() {
     const char *key = "my_state_key";
 
-    long stateSize = 123;
-
     // Read the state into a buffer
+    long stateSize = 123;
     uint8_t *myState = new uint8_t[stateSize];
     faasmReadState(key, newState, stateSize);
 
@@ -193,28 +210,24 @@ FAASM_MAIN_FUNC() {
 
 ### Offset state
 
-Faasm also exposes the `faasmReadStateOffset` and `faasmWriteStateOffset` functions,
-which allow reading and writing subsections of byte arrays stored against keys in the 
-key-value store.
+Faasm also exposes the `faasmReadStateOffset` and `faasmWriteStateOffset` functions, which allow reading and writing subsections of byte arrays stored against keys in the key-value store.
 
-For example, if I have an array of 100 bytes stored in memory, I can read bytes 15-20, 
-then update them separately.
+For example, if I have an array of 100 bytes stored in memory, I can read bytes 15-20, then update them separately.
 
 This can be useful for implementing distributed iterative algorithms.
 
 ### Uploading state
 
-If you need to prepopulate state for your functions you can use the state upload endpoint. 
-This can be called with:
+If you need to prepopulate state for your functions you can use the state upload endpoint. This can be called with:
 
-```
+```bash
 # Format /s/<username>/<key>
 curl http://localhost:8002/s/user123/my_key -X PUT -d "your data"
 ```
 
 This state can then be accessed in your functions using the specified key. For larger state, you can also upload a file:
 
-```
+```bash
 curl http://localhost:8002/s/user123/my_key -X PUT -T /tmp/my_state_file
 ```
 
@@ -228,7 +241,7 @@ The proto-function should be idempotent as it may be run more than once.
 
 Proto-function code is marked up with the `FAASM_ZYGOTE` macro:
 
-```
+```c++
 #include "faasm/faasm.h"
 
 int myGlobal;

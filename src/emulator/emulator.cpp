@@ -419,3 +419,7 @@ void __faasm_get_py_func(unsigned char *buffer, long bufferLen) {
     const std::vector<uint8_t> bytes = util::stringToBytes(_emulatedCall.pythonfunction());
     std::copy(bytes.data(), bytes.data() + bytes.size(), buffer);
 }
+
+unsigned int __faasm_conf_flag(const char* key) {
+    return 0;
+}

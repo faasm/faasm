@@ -288,6 +288,27 @@ namespace wasm {
         _readPythonInput(bufferPtr, bufferLen, value);
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_conf_flag", U32, __faasm_conf_flag, I32 keyPtr) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - conf_flag - {}", keyPtr);
+
+        util::SystemConfig &conf = util::getSystemConfig();
+        const std::string key = getStringFromWasm(keyPtr);
+
+        if (key == "PRELOAD_NUMPY") {
+            return conf.pythonPreload == "on";
+        } else if (key == "ALWAYS_ON") {
+            // For testing
+            return 1;
+        } else if (key == "ALWAYS_OFF") {
+            // For testing
+            return 0;
+        } else {
+            logger->warn("Unknown conf flag: {}", key);
+            return 0;
+        }
+    }
+
     // Emulator API, should not be called from wasm but needs to be present for linking
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "setEmulatedMessageFromJson", void, setEmulatedMessageFromJson, I32 msgPtr) {
         util::getLogger()->debug("S - setEmulatedMessageFromJson - {}", msgPtr);

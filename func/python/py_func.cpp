@@ -12,15 +12,16 @@ FAASM_ZYGOTE() {
 
     setUpPyNumpy();
 
-#if PRELOAD_NUMPY == 1
-    // Import numpy up front
-    PyObject* numpyModule = PyImport_ImportModule("numpy");
-    if(!numpyModule) {
-        printf("\nFailed to import numpy\n");
-    } else {
-        printf("\nPython initialised numpy\n");
+    unsigned int preloadNumpy = getConfFlag("PRELOAD_NUMPY");
+    if(preloadNumpy == 1) {
+        // Import numpy up front
+        PyObject* numpyModule = PyImport_ImportModule("numpy");
+        if(!numpyModule) {
+            printf("\nFailed to import numpy\n");
+        } else {
+            printf("\nPython initialised numpy\n");
+        }
     }
-#endif
 
     // Import pyfaasm
     PyObject* pyfaasmModule = PyImport_ImportModule("pyfaasm");

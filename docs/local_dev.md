@@ -116,13 +116,13 @@ You can pull down the prepackaged python runtime and required runtime files with
 
 ```
 inv download-runtime-root
-inv set-up-python-runtime
+inv run-local-codegen
 ```
 
-You then need to build the `upload` target and run it (to start an upload server), then you can upload the Python functions with:
+You can then put the Python functions in place with:
 
 ```
-inv upload-all --py
+inv upload-all --py --local-copy
 ```
 
 ## Tensorflow data
@@ -130,12 +130,8 @@ inv upload-all --py
 To allow running the demo TensorFlow function, you need to run:
 
 ```
-inv set-up-tensorflow-data
+inv set-up-tensorflow-data --local-copy
 ```
-
-## Typescript
-
-You can set up the Typescript function according to the `typescript.md` doc.
 
 ## Tests
 

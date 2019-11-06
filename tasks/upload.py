@@ -1,11 +1,13 @@
 import multiprocessing
 import os
-from os.path import join
+from os import makedirs
+from os.path import join, exists
+from subprocess import call
 
 from invoke import task
 
 from tasks.util.config import get_faasm_config
-from tasks.util.env import FUNC_BUILD_DIR, PROJ_ROOT, RUNTIME_S3_BUCKET, FUNC_DIR, WASM_DIR
+from tasks.util.env import FUNC_BUILD_DIR, PROJ_ROOT, RUNTIME_S3_BUCKET, FUNC_DIR, WASM_DIR, FAASM_SHARED_STORAGE_ROOT
 from tasks.util.upload_util import curl_file, upload_file_to_s3, upload_file_to_ibm
 
 DIRS_TO_INCLUDE = ["demo", "errors", "python", "polybench", "sgd", "tf"]
@@ -25,7 +27,7 @@ def _get_host_port(host_in, port_in):
         host = faasm_config["Kubernetes"].get("upload_host", "127.0.0.1")
         port = faasm_config["Kubernetes"].get("upload_port", 8002)
     else:
-        host = "127.0.0.1"
+        host = host_in if host_in else "127.0.0.1"
         port = port_in if port_in else 8002
 
     return host, port
@@ -69,7 +71,7 @@ def upload(ctx, user, func, host=None,
             curl_file(url, func_file)
 
 
-def _do_upload_all(host=None, port=None, upload_s3=False, py=False, prebuilt=False):
+def _do_upload_all(host=None, port=None, upload_s3=False, py=False, prebuilt=False, local_copy=False):
     to_upload = []
 
     if py:
@@ -82,6 +84,12 @@ def _do_upload_all(host=None, port=None, upload_s3=False, py=False, prebuilt=Fal
 
     if upload_s3 and py:
         raise RuntimeError("Not yet implemented python and S3 upload")
+
+    if local_copy and not py:
+        raise RuntimeError("Not yet implemented local copy for non-python")
+    else:
+        storage_dir = join(FAASM_SHARED_STORAGE_ROOT, "pyfuncs")
+        makedirs(storage_dir)
 
     # Walk the function directory tree
     for root, dirs, files in os.walk(dir_to_walk):
@@ -107,10 +115,22 @@ def _do_upload_all(host=None, port=None, upload_s3=False, py=False, prebuilt=Fal
                     print("Uploading {}/{} to S3".format(user, func))
                     s3_key = _get_s3_key(user, func)
                     upload_file_to_s3(func_file, RUNTIME_S3_BUCKET, s3_key)
+                elif local_copy:
+                    # Copy files directly into place
+                    func_storage_dir = join(storage_dir, user, func)
+                    if not exists(func_storage_dir):
+                        makedirs(func_storage_dir)
+
+                    dest_file = join(func_storage_dir, "function.py")
+                    call("cp {} {}".format(func_file, dest_file), shell=True)
                 else:
                     print("Uploading {}/{} to host {}".format(user, func, host))
                     url = "http://{}:{}/{}/{}/{}".format(host, port, url_part, user, func)
                     to_upload.append((url, func_file))
+
+    # Drop out if already done local copy
+    if local_copy:
+        return
 
     # Pool of uploaders
     p = multiprocessing.Pool(multiprocessing.cpu_count() - 1)
@@ -118,9 +138,9 @@ def _do_upload_all(host=None, port=None, upload_s3=False, py=False, prebuilt=Fal
 
 
 @task
-def upload_all(ctx, host=None, port=None, py=False, prebuilt=False):
+def upload_all(ctx, host=None, port=None, py=False, prebuilt=False, local_copy=False):
     host, port = _get_host_port(host, port)
-    _do_upload_all(host=host, port=port, py=py, prebuilt=prebuilt)
+    _do_upload_all(host=host, port=port, py=py, prebuilt=prebuilt, local_copy=local_copy)
 
 
 @task

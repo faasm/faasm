@@ -33,3 +33,8 @@
   args:
     chdir: "/tmp/aws-sdk/build"
   when: aws_stat.stat.exists == False
+
+- name: "Clean up"
+  file:
+    state: absent
+    path: "/tmp/aws-sdk"
