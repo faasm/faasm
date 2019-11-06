@@ -27,14 +27,11 @@ COPY . /usr/local/code/faasm
 WORKDIR /usr/local/code/faasm/ansible
 RUN ansible-playbook catch.yml
 
-# Download toolchain
-WORKDIR /usr/local/code/faasm
-RUN inv download-toolchain
-
 # Fix ownership of runtime root
 RUN chown -R root:root /usr/local/faasm
 
 # Build the local tooling
+WORKDIR /usr/local/code/faasm
 RUN inv install-native-tools
 
 # Install pyfaasm

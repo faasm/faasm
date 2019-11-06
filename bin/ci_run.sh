@@ -8,6 +8,9 @@ pushd /usr/local/code/faasm
 ./bin/cgroup.sh
 ./bin/netns.sh 5
 
+# Download the toolchain
+inv download-toolchain
+
 # Set up libfake for tests
 inv compile-libfake --clean
 
