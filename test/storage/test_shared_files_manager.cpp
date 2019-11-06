@@ -16,8 +16,6 @@ namespace tests {
         SharedFilesManager &sfm = getSharedFilesManager();
         sfm.clear();
 
-        util::SystemConfig &conf = util::getSystemConfig();
-
         std::string validPath = "include/python3.7m/Python.h";
         std::string maskedValidPath = maskPath(validPath);
         std::string invalidPath = "/foobar/123/blah";

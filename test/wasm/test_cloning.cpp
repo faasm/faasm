@@ -208,8 +208,6 @@ namespace tests {
 //    }
 
     TEST_CASE("Test cloned execution on complex module", "[wasm]") {
-        util::SystemConfig &conf = util::getSystemConfig();
-
         std::string user = "python";
         std::string func = "numpy_test";
         std::string input;

@@ -16,7 +16,7 @@ node_modules
 typescript
 venv
 
-# WebAssembly - some functions have special status
+# WebAssembly - benchmark functions have special status
 wasm
 !wasm/python/py_func/function.wasm
 !wasm/sgd/reuters_svm/function.wasm

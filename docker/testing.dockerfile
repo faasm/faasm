@@ -34,7 +34,13 @@ RUN inv download-toolchain
 # Fix ownership of runtime root
 RUN chown -R root:root /usr/local/faasm
 
-# Build the tests and codegen
+# Build the local tooling
+RUN inv install-native-tools
+
+# Install pyfaasm
+RUN pip3 install pyfaasm
+
+# Build the tests
 WORKDIR /faasm/build
 RUN cmake --build . --target tests -- -j
 

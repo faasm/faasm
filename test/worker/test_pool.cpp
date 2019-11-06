@@ -258,8 +258,6 @@ namespace tests {
     }
 
     TEST_CASE("Test python chaining", "[worker]") {
-        util::SystemConfig &conf = util::getSystemConfig();
-
         message::Message call = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         call.set_pythonuser("python");
         call.set_pythonfunction("chain");
