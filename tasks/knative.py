@@ -290,7 +290,16 @@ def delete_knative_native_python(ctx):
 @task
 def knative_native_local(ctx, user, function):
     img_name = _native_image_name(function)
+    _do_knative_native_local(img_name)
 
+
+@task
+def knative_native_python_local(ctx):
+    img_name = "faasm/knative-native-python"
+    _do_knative_native_local(img_name)
+
+
+def _do_knative_native_local(img_name):
     cmd = [
         "docker", "run",
         "-p 8080:8080",

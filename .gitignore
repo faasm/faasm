@@ -18,6 +18,9 @@ node_modules/
 # Assembly
 *.asm
 
+# Vim
+*.swp
+
 # C
 
 # Prerequisites
