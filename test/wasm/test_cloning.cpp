@@ -92,13 +92,18 @@ namespace tests {
             REQUIRE(memAfterA1 > memBeforeA);
         }
 
-        // Check tables
+        // Check tables have grown if it's python
         Uptr tableAfterA1;
         if (!isTypescript) {
             tableAfterA1 = Runtime::getTableNumElements(moduleA.defaultTable);
             Uptr tableAfterB1 = Runtime::getTableNumElements(moduleB.defaultTable);
 
-            REQUIRE(tableAfterA1 == tableBeforeA);
+            if(isPython) {
+                REQUIRE(tableAfterA1 > tableBeforeA);
+            } else {
+                REQUIRE(tableAfterA1 == tableBeforeA);
+            }
+
             REQUIRE(tableAfterB1 == tableBeforeA);
         }
 
@@ -131,7 +136,12 @@ namespace tests {
             Uptr tableAfterA2 = Runtime::getTableNumElements(moduleA.defaultTable);
             Uptr tableAfterB2 = Runtime::getTableNumElements(moduleB.defaultTable);
 
-            REQUIRE(tableAfterB2 == tableBeforeB);
+            if(isPython) {
+                REQUIRE(tableAfterB2 > tableBeforeB);
+            } else {
+                REQUIRE(tableAfterB2 == tableBeforeB);
+            }
+
             REQUIRE(tableAfterB2 == tableAfterA2);
             REQUIRE(tableAfterA1 == tableAfterA2);
         }
@@ -208,6 +218,10 @@ namespace tests {
 //    }
 
     TEST_CASE("Test cloned execution on complex module", "[wasm]") {
+        util::SystemConfig &conf = util::getSystemConfig();
+        std::string preloadVal = conf.pythonPreload;
+        conf.pythonPreload = "off";
+        
         std::string user = "python";
         std::string func = "numpy_test";
         std::string input;
@@ -218,6 +232,8 @@ namespace tests {
         SECTION("assignment") {
             _checkAssignmentOperator(user, func, input, input, false, true);
         }
+
+        conf.pythonPreload = preloadVal;
     }
 
     TEST_CASE("Test GC on cloned modules without execution") {

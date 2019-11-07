@@ -89,7 +89,8 @@ def _do_upload_all(host=None, port=None, upload_s3=False, py=False, prebuilt=Fal
         raise RuntimeError("Not yet implemented local copy for non-python")
     else:
         storage_dir = join(FAASM_SHARED_STORAGE_ROOT, "pyfuncs")
-        makedirs(storage_dir)
+        if not exists(storage_dir):
+            makedirs(storage_dir)
 
     # Walk the function directory tree
     for root, dirs, files in os.walk(dir_to_walk):
