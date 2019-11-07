@@ -27,10 +27,10 @@ namespace state {
         _fullyAllocated = false;
 
         // Set up flags
-        dirtyMask = new uint8_t[valueSize];
+        dirtyMask = new uint8_t[sharedMemSize];
         zeroDirtyMask();
 
-        allocatedMask = new uint8_t[valueSize];
+        allocatedMask = new uint8_t[sharedMemSize];
         zeroAllocatedMask();
     }
 
@@ -215,13 +215,11 @@ namespace state {
             throw std::runtime_error("Attempting to set segment out of bounds");
         }
 
+        FullLock lock(valueMutex);
+
         // If necessary, allocate the memory
         if (!isSegmentAllocated(offset, length)) {
-            FullLock lock(valueMutex);
-
-            if (!isSegmentAllocated(offset, length)) {
-                allocateSegment(offset, length);
-            }
+            allocateSegment(offset, length);
         }
 
         // Check size
@@ -230,12 +228,9 @@ namespace state {
             throw std::runtime_error("Setting state segment too big for container");
         }
 
-        // Copy data into shared region
-        {
-            SharedLock lock(valueMutex);
-            auto bytePtr = static_cast<uint8_t *>(sharedMemory);
-            std::copy(buffer, buffer + length, bytePtr + offset);
-        }
+        // Do the copy
+        auto bytePtr = static_cast<uint8_t *>(sharedMemory);
+        std::copy(buffer, buffer + length, bytePtr + offset);
 
         flagSegmentDirty(offset, length);
     }
@@ -265,6 +260,14 @@ namespace state {
 
     void StateKeyValue::flagSegmentAllocated(long offset, long len) {
         memset(((uint8_t *) allocatedMask) + offset, 0b11111111, len);
+    }
+
+    std::string StateKeyValue::getRegionKey(long offset, long length) {
+        util::SharedLock lock(valueMutex);
+
+        std::string regionKey = key + "_" + std::to_string(offset) + "_" + std::to_string(length);
+
+        return regionKey;
     }
 
     void StateKeyValue::clear() {
@@ -307,8 +310,8 @@ namespace state {
         FullLock lock(valueMutex);
 
         // Remap the relevant pages of shared memory onto the new region
-        void *sharedMemoryStart = (uint8_t *) sharedMemory + offset;
-        void *result = mremap(sharedMemoryStart, 0, length, MREMAP_FIXED | MREMAP_MAYMOVE, destination);
+        auto sharedMemoryBytes = reinterpret_cast<uint8_t *>(sharedMemory);
+        void *result = mremap(sharedMemoryBytes + offset, 0, length, MREMAP_FIXED | MREMAP_MAYMOVE, destination);
         if (result == MAP_FAILED) {
             logger->error("Failed mapping for {} at {} with size {}. errno: {} ({})",
                           key, offset, length, errno, strerror(errno));
@@ -350,10 +353,10 @@ namespace state {
 
         // Work out the aligned region to allocate
         long alignedOffset = util::alignOffsetDown(offset);
-        long alignedLength = (offset - alignedOffset) + length;
+        long alignedLength = (offset - alignedOffset) + (long) length;
 
-        uint8_t *memBytes = ((uint8_t *) sharedMemory + alignedOffset);
-        int res = mprotect(memBytes, alignedLength, PROT_WRITE);
+        auto memBytes = reinterpret_cast<uint8_t *>(sharedMemory);
+        int res = mprotect(memBytes + alignedOffset, alignedLength, PROT_WRITE);
         if (res != 0) {
             logger->debug("Mmapping of storage size {} failed. errno: {}", sharedMemSize, errno);
 
@@ -361,7 +364,7 @@ namespace state {
         }
 
         // Flag the segment as allocated
-        flagSegmentAllocated(offset, length);
+        flagSegmentAllocated(alignedOffset, alignedLength);
     }
 
     void StateKeyValue::initialiseStorage(bool allocate) {
@@ -392,10 +395,11 @@ namespace state {
             throw std::runtime_error("Failed mapping memory for KV");
         }
 
+        size_t nPages = sharedMemSize / HOST_PAGE_SIZE;
         if (allocate) {
-            logger->debug("Allocated {} pages of shared storage for {}", sharedMemSize / HOST_PAGE_SIZE, key);
+            logger->debug("Allocated {} pages of shared storage for {}", nPages, key);
         } else {
-            logger->debug("Reserved {} pages of shared storage for {}", sharedMemSize / HOST_PAGE_SIZE, key);
+            logger->debug("Reserved {} pages of shared storage for {}", nPages, key);
         }
 
         // Flag that allocation has happened

@@ -232,7 +232,7 @@ namespace redis {
         auto reply = (redisReply *) redisCommand(context, "SETRANGE %s %li %b", key.c_str(), offset, value,
                                                  size);
 
-        if(reply->type != REDIS_REPLY_INTEGER) {
+        if (reply->type != REDIS_REPLY_INTEGER) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Failed SETRANGE {}", key);
             throw std::runtime_error("Failed SETRANGE " + key);
@@ -247,10 +247,10 @@ namespace redis {
 
     void Redis::flushPipeline(long pipelineLength) {
         void *reply;
-        for(long p = 0; p < pipelineLength; p++) {
+        for (long p = 0; p < pipelineLength; p++) {
             redisGetReply(context, &reply);
 
-            if(reply == nullptr || ((redisReply*)reply)->type == REDIS_REPLY_ERROR) {
+            if (reply == nullptr || ((redisReply *) reply)->type == REDIS_REPLY_ERROR) {
                 const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 logger->error("Failed pipeline call {}", p);
                 throw std::runtime_error("Failed pipeline call " + std::to_string(p));
@@ -369,6 +369,13 @@ namespace redis {
      * Note that start/end are both inclusive
      */
     void Redis::getRange(const std::string &key, uint8_t *buffer, size_t bufferLen, long start, long end) {
+        if ((end - start) > bufferLen) {
+            throw std::runtime_error(
+                    "Getting range too long for buffer " +
+                    std::to_string(start) + " - " + std::to_string(end) +
+                    " into buffer" + std::to_string(bufferLen));
+        }
+
         auto reply = (redisReply *) redisCommand(context, "GETRANGE %s %li %li", key.c_str(), start, end);
 
         // Importantly getrange is inclusive so we need to be checking the buffer length

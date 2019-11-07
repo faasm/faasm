@@ -72,6 +72,8 @@ namespace state {
 
         size_t size();
 
+        std::string getRegionKey(long regionStart, long regionEnd);
+
     private:
         bool isDirty;
 

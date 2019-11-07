@@ -64,7 +64,7 @@ namespace wasm {
 
     void WasmModule::clone(const WasmModule &other) {
         // If bound, we want to reclaim all the memory we'd created before cloning from the zygote
-        if(_isBound) {
+        if (_isBound) {
             tearDown();
         }
 
@@ -710,9 +710,9 @@ namespace wasm {
         return mappedRangePtr;
     }
 
-    U32 WasmModule::mmapKey(const std::shared_ptr<state::StateKeyValue> kv, long offset, U32 length) {
+    U32 WasmModule::mmapKey(const std::shared_ptr<state::StateKeyValue> &kv, long offset, U32 length) {
         // Create a key for this specific offset and length and cache the pointer once done
-        std::string regionKey = kv->key + "_" + std::to_string(offset) + "_" + std::to_string(length);
+        const std::string regionKey = kv->getRegionKey(offset, length);
 
         // See if this is the first time the module has seen this key
         if (sharedMemWasmPtrs.count(regionKey) == 0) {
