@@ -72,7 +72,7 @@ namespace state {
 
         size_t size();
 
-        std::string getRegionKey(long regionStart, long regionEnd);
+        std::string getSegmentKey(long offset, long length);
 
     private:
         bool isDirty;

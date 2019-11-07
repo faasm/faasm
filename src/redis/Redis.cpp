@@ -369,7 +369,8 @@ namespace redis {
      * Note that start/end are both inclusive
      */
     void Redis::getRange(const std::string &key, uint8_t *buffer, size_t bufferLen, long start, long end) {
-        if ((end - start) > bufferLen) {
+        size_t rangeLen = (size_t) end - start;
+        if (rangeLen > bufferLen) {
             throw std::runtime_error(
                     "Getting range too long for buffer " +
                     std::to_string(start) + " - " + std::to_string(end) +

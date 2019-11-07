@@ -262,7 +262,7 @@ namespace state {
         memset(((uint8_t *) allocatedMask) + offset, 0b11111111, len);
     }
 
-    std::string StateKeyValue::getRegionKey(long offset, long length) {
+    std::string StateKeyValue::getSegmentKey(long offset, long length) {
         util::SharedLock lock(valueMutex);
 
         std::string regionKey = key + "_" + std::to_string(offset) + "_" + std::to_string(length);

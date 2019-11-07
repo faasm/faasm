@@ -36,13 +36,8 @@ namespace state {
 
         // Always mask keys with the user
         std::string actualKey = util::keyForUser(user, key);
-
-        // Double check it still doesn't exist
-        if (kvMap.count(key) == 0) {
-            auto kv = new StateKeyValue(actualKey, size);
-
-            kvMap.emplace(KVPair(key, kv));
-        }
+        auto kv = new StateKeyValue(actualKey, size);
+        kvMap.emplace(KVPair(key, kv));
 
         return kvMap[key];
     }
