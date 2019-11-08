@@ -56,4 +56,8 @@ namespace util {
 
         return output;
     }
+
+    bool stringIsInt(const std::string &input) {
+        return !input.empty() && input.find_first_not_of("0123456789") == std::string::npos;
+    }
 }

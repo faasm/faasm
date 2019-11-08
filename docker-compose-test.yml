@@ -16,7 +16,7 @@ services:
       REDIS_STATE_HOST: "redis"
       REDIS_QUEUE_HOST: "redis"
       THREADS_PER_WORKER: 5
-      LOG_LEVEL: debug
+      LOG_LEVEL: info
     volumes:
       - .:/usr/local/code/faasm
     privileged: yes

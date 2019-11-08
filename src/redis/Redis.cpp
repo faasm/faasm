@@ -372,9 +372,8 @@ namespace redis {
         size_t rangeLen = (size_t) end - start;
         if (rangeLen > bufferLen) {
             throw std::runtime_error(
-                    "Getting range too long for buffer " +
-                    std::to_string(start) + " - " + std::to_string(end) +
-                    " into buffer" + std::to_string(bufferLen));
+                    "Range " + std::to_string(start) + "-" + std::to_string(end) +
+                    " too long for buffer length " + std::to_string(bufferLen));
         }
 
         auto reply = (redisReply *) redisCommand(context, "GETRANGE %s %li %li", key.c_str(), start, end);

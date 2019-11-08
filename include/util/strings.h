@@ -15,4 +15,6 @@ namespace util {
     bool contains(const std::string &input, const std::string &subStr);
 
     std::string removeSubstr(const std::string &input, const std::string &toErase);
+
+    bool stringIsInt(const std::string &input);
 }

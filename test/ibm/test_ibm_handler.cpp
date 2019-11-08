@@ -9,6 +9,7 @@
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 #include <boost/filesystem.hpp>
+#include <util/strings.h>
 
 using namespace Pistache;
 using namespace rapidjson;
@@ -77,7 +78,11 @@ namespace tests {
         REQUIRE(actualStatusCode == expectedStatusCode);
 
         if (expectedText == "ASYNCID") {
-            // In this case we're expecting an async ID message ID so hard to check
+            // In this case we're expecting an async ID message ID
+            if (!util::stringIsInt(resultMsg)) {
+                std::string failMsg = "Did not get an int response to async call: " + resultMsg;
+                FAIL(failMsg);
+            }
         } else {
             REQUIRE(resultMsg == expectedText);
         }
