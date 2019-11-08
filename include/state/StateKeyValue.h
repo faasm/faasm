@@ -72,6 +72,8 @@ namespace state {
 
         size_t size();
 
+        std::string getSegmentKey(long offset, long length);
+
     private:
         bool isDirty;
 

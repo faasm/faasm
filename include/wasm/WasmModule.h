@@ -72,7 +72,7 @@ namespace wasm {
 
         U32 mmapFile(U32 fp, U32 length);
 
-        U32 mmapKey(std::shared_ptr<state::StateKeyValue> kv, long offset, U32 length);
+        U32 mmapKey(const std::shared_ptr<state::StateKeyValue> &kv, long offset, U32 length);
 
         int dynamicLoadModule(const std::string &path, Runtime::Context *context);
 

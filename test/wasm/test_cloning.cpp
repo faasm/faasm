@@ -32,34 +32,37 @@ namespace tests {
     _doChecks(wasm::WasmModule &moduleA, wasm::WasmModule &moduleB, const std::string &user, const std::string &func,
               const std::string &inputA,              const std::string &inputB, bool isTypescript, bool isPython) {
         message::Message msgA = util::messageFactory(user, func);
+        message::Message msgB = util::messageFactory(user, func);
+
+        msgA.set_inputdata(inputA);
+        msgB.set_inputdata(inputB);
+
         if(isPython) {
             convertMsgToPython(msgA);
+            convertMsgToPython(msgB);
         }
 
         // Get the initial mem and table size
         Uptr memBeforeA = Runtime::getMemoryNumPages(moduleA.defaultMemory);
-        Uptr tableBeforeA;
+        Uptr memBeforeB = Runtime::getMemoryNumPages(moduleB.defaultMemory);
 
+        Uptr tableBeforeB;
+        Uptr tableBeforeA;
         if (!isTypescript) {
             tableBeforeA = Runtime::getTableNumElements(moduleA.defaultTable);
-        }
-
-        REQUIRE(moduleB.isBound());
-        REQUIRE(moduleB.getBoundUser() == moduleA.getBoundUser());
-        REQUIRE(moduleB.getBoundFunction() == moduleA.getBoundFunction());
-        REQUIRE(moduleB.getBoundIsTypescript() == moduleA.getBoundIsTypescript());
-
-        // Check module B memory and table
-        Uptr memBeforeB = Runtime::getMemoryNumPages(moduleB.defaultMemory);
-        Uptr tableBeforeB;
-
-        if (!isTypescript) {
             tableBeforeB = Runtime::getTableNumElements(moduleB.defaultTable);
+
             REQUIRE(tableBeforeB == tableBeforeA);
 
             // Check tables are different
             REQUIRE(moduleA.defaultTable != moduleB.defaultTable);
         }
+
+        // Check basic properties
+        REQUIRE(moduleB.isBound());
+        REQUIRE(moduleB.getBoundUser() == moduleA.getBoundUser());
+        REQUIRE(moduleB.getBoundFunction() == moduleA.getBoundFunction());
+        REQUIRE(moduleB.getBoundIsTypescript() == moduleA.getBoundIsTypescript());
 
         REQUIRE(memBeforeB == memBeforeA);
 
@@ -73,7 +76,6 @@ namespace tests {
         REQUIRE(baseA != baseB);
 
         // Execute the function with the first module and check it works
-        msgA.set_inputdata(inputA);
         int retCodeA = moduleA.execute(msgA);
         REQUIRE(retCodeA == 0);
 
@@ -92,24 +94,22 @@ namespace tests {
             REQUIRE(memAfterA1 > memBeforeA);
         }
 
-        // Check tables
+        // Check tables (should have grown for Python and not for other)
         Uptr tableAfterA1;
         if (!isTypescript) {
             tableAfterA1 = Runtime::getTableNumElements(moduleA.defaultTable);
             Uptr tableAfterB1 = Runtime::getTableNumElements(moduleB.defaultTable);
 
-            REQUIRE(tableAfterA1 == tableBeforeA);
+            if(isPython) {
+                REQUIRE(tableAfterA1 > tableBeforeA);
+            } else {
+                REQUIRE(tableAfterA1 == tableBeforeA);
+            }
+
             REQUIRE(tableAfterB1 == tableBeforeA);
         }
 
-        // Execute with second module and check
-        message::Message msgB = util::messageFactory(user, func);
-
-        if(isPython) {
-            convertMsgToPython(msgB);
-        }
-
-        msgB.set_inputdata(inputB);
+        // Execute with second module
         int retCodeB = moduleB.execute(msgB);
         REQUIRE(retCodeB == 0);
 
@@ -131,7 +131,12 @@ namespace tests {
             Uptr tableAfterA2 = Runtime::getTableNumElements(moduleA.defaultTable);
             Uptr tableAfterB2 = Runtime::getTableNumElements(moduleB.defaultTable);
 
-            REQUIRE(tableAfterB2 == tableBeforeB);
+            if(isPython) {
+                REQUIRE(tableAfterB2 > tableBeforeB);
+            } else {
+                REQUIRE(tableAfterB2 == tableBeforeB);
+            }
+
             REQUIRE(tableAfterB2 == tableAfterA2);
             REQUIRE(tableAfterA1 == tableAfterA2);
         }
@@ -208,6 +213,10 @@ namespace tests {
 //    }
 
     TEST_CASE("Test cloned execution on complex module", "[wasm]") {
+        util::SystemConfig &conf = util::getSystemConfig();
+        std::string preloadVal = conf.pythonPreload;
+        conf.pythonPreload = "off";
+        
         std::string user = "python";
         std::string func = "numpy_test";
         std::string input;
@@ -218,6 +227,8 @@ namespace tests {
         SECTION("assignment") {
             _checkAssignmentOperator(user, func, input, input, false, true);
         }
+
+        conf.pythonPreload = preloadVal;
     }
 
     TEST_CASE("Test GC on cloned modules without execution") {

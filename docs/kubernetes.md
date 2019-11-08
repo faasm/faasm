@@ -74,6 +74,8 @@ inv redis-clear-queue --knative
 
 ## Uploading and running native functions
 
+### C++
+
 For benchmarking we need to run the functions in a more "normal" serverless way (i.e. natively in a container).
 To build the relevant container:
 
@@ -81,9 +83,7 @@ To build the relevant container:
 inv build-knative-native <user> <function>
 ```
 
-This will use a parameterised Dockerfile to create a container that runs the given function natively.
-
-You can test locally with:
+This will use a parameterised Dockerfile to create a container that runs the given function natively. You can test locally with:
 
 ```
 # Build the container
@@ -104,13 +104,32 @@ inv deploy-knative-native <user> <function>
 inv invoke --native <user> <function>
 ```
 
-Given that these will scale from zero, it may take a while on the first invocation.
-
 **Note** For anything that requires chaining we must run it asynchronously so that things don't get clogged up.
 To do this:
 
 ```
 inv invoke --native --poll <user> <function>
+```
+
+### Python
+
+To run Python functions natively we use pyfaasm and a standard Flask-based knative Python executor. This can be found at `func/knative_native.py`. We can build the container with:
+
+```
+inv docker-build -c knative-native-python --push
+```
+
+To check things locally:
+
+```
+inv knative-native-python-local
+inv invoke python hello --py
+```
+
+To deploy, from the machine with k8s access:
+
+```
+inv deploy-knative-native-python
 ```
 
 ## Troubleshooting

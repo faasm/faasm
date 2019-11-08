@@ -168,12 +168,14 @@ namespace tests {
 
             uint8_t buffer[3];
 
+            std::string expected = "Range 4-8 too long for buffer length 3";
+
             bool testPassed = false;
             try {
                 redisQueue.getRange(key, buffer, 3, 4, 8);
             } catch (std::runtime_error &ex) {
-                const char *msg = ex.what();
-                REQUIRE(strcmp(msg, "Reading value too big for buffer") == 0);
+                std::string msg = ex.what();
+                REQUIRE(msg == expected);
                 testPassed = true;
             }
 

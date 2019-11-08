@@ -53,4 +53,14 @@ namespace tests {
         REQUIRE(removeSubstr("", "foobar") == "");
         REQUIRE(removeSubstr("foo bar baz", "bar") == "foo  baz");
     }
+
+    TEST_CASE("Test string is int", "[util]") {
+        REQUIRE(stringIsInt("12345"));
+        REQUIRE(stringIsInt("0"));
+
+        REQUIRE(!stringIsInt(" 12345"));
+        REQUIRE(!stringIsInt("123 "));
+        REQUIRE(!stringIsInt("abcd"));
+        REQUIRE(!stringIsInt("12a33"));
+    }
 }

@@ -2,6 +2,8 @@
 
 CI builds can be found on Travis.
 
+Note that we have to build and push the `testing` container _before_ the build runs. This is because building the container from scratch on Travis takes a while.
+
 ## Checking Locally
 
 To check things locally you can run the following:
