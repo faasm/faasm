@@ -1,5 +1,3 @@
-from json import dumps
-
 from invoke import task
 
 from tasks.util.config import get_faasm_config

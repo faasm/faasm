@@ -92,7 +92,10 @@ def invoke_impl(user, func,
 
     # Knative must pass custom headers
     if knative and native:
-        headers = _get_knative_headers(func)
+        if py:
+            headers = _get_knative_headers("python")
+        else:
+            headers = _get_knative_headers(func)
     elif knative:
         headers = _get_knative_headers("worker")
     else:
