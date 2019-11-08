@@ -1,3 +1,4 @@
+import logging
 import os
 import threading
 from decimal import Decimal
@@ -10,6 +11,8 @@ from pyfaasm.core import getOutput, setEmulatorMessage, emulatorSetStatus, emula
 app = Flask(__name__)
 
 is_cold_start = True
+
+logging.basicConfig(level=logging.INFO)
 
 
 def execute_main(mod):
@@ -25,7 +28,7 @@ def handle_message(json_data):
     func = json_data["py_func"]
     idx = json_data.get("py_idx", 0)
 
-    print("Executing {}/{} (idx {})".format(user, func, idx))
+    app.logger.info("Executing {}/{} (idx {})".format(user, func, idx))
 
     # Assume function is in the current path
     module_name = "{}.{}".format(user, func)
@@ -56,12 +59,14 @@ def run_func():
     if is_cold_start:
         delay_str = os.environ.get("COLD_START_DELAY_MS", "1000")
         delay_seconds = Decimal(delay_str) / 1000
-        print("Simulating cold start for {} seconds".format(delay_seconds))
+        app.logger.info("Simulating cold start for {} seconds".format(delay_seconds))
 
         sleep(delay_seconds)
         is_cold_start = False
 
     json_data = request.get_json()
+    app.logger.info("Knative request: {}".format(json_data))
+
     return handle_message(json_data)
 
 

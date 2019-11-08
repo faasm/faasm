@@ -100,6 +100,9 @@ void setEmulatedMessage(const message::Message &msg) {
 
     _emulatedCall = msgCopy;
     _threadLocalEmulatedCall = msgCopy;
+
+    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+    logger->debug("Emulator set to {}/{}", _emulatedCall.user(), _emulatedCall.function());
 }
 
 std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {
