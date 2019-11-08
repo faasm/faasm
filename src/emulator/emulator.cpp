@@ -309,9 +309,14 @@ unsigned int _chain_knative(int idx, int pyIdx, const unsigned char *buffer, lon
     int portInt = std::stoi(port);
 
     // Build the message to dispatch
-    message::Message msg = _emulatedCall;
+    message::Message msg = util::messageFactory(_emulatedCall.user(), _emulatedCall.function());
+    util::setMessageId(msg);
+
     msg.set_idx(idx);
     msg.set_inputdata(buffer, bufferLen);
+    msg.set_ispython(_emulatedCall.ispython());
+    msg.set_pythonuser(_emulatedCall.pythonuser());
+    msg.set_pythonfunction(_emulatedCall.pythonfunction());
     msg.set_pythonidx(pyIdx);
 
     // We will be awaiting the response in a thread in the background, therefore this must _not_ be async
