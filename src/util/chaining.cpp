@@ -21,8 +21,13 @@ namespace util {
     }
 
     std::string postJsonFunctionCall(const std::string &host, int port, const message::Message &msg) {
-        std::string cleanedFuncName = msg.function();
-        std::replace(cleanedFuncName.begin(), cleanedFuncName.end(), '_', '-');
+        std::string cleanedFuncName;
+        if(msg.ispython()) {
+            cleanedFuncName = "python";
+        } else {
+            cleanedFuncName = msg.function();
+            std::replace(cleanedFuncName.begin(), cleanedFuncName.end(), '_', '-');
+        }
 
         std::string url = "http://" + host + ":" + std::to_string(port);
         // std::string url = "http://faasm-" + cleanedFuncName + ".faasm.svc.cluster.local";

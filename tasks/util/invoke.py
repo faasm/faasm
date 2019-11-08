@@ -110,8 +110,7 @@ def invoke_impl(user, func,
         try:
             call_id = int(async_result)
         except ValueError:
-            print("Could not parse async reponse to int: {}".format(async_result))
-            return 1
+            raise RuntimeError("Could not parse async reponse to int: {}".format(async_result))
 
         print("\n---- Polling {} ----".format(call_id))
 
