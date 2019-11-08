@@ -47,12 +47,13 @@ namespace tests {
         Document d;
         d.SetObject();
 
+        Document::AllocatorType &a = d.GetAllocator();
         rapidjson::Value valueObject(rapidjson::kObjectType);
-        d.AddMember("value", valueObject, d.GetAllocator());
+        d.AddMember("value", valueObject, a);
 
-        d["value"].AddMember("user", StringRef(user.c_str()), d.GetAllocator());
-        d["value"].AddMember("function", StringRef(function.c_str()), d.GetAllocator());
-        d["value"].AddMember("mode", StringRef(mode.c_str()), d.GetAllocator());
+        d["value"].AddMember("user", Value(user.c_str(), user.size(), a).Move(), a);
+        d["value"].AddMember("function", Value(function.c_str(), function.size(), a).Move(), a);
+        d["value"].AddMember("mode", Value(mode.c_str(), mode.size(), a).Move(), a);
 
         return d;
     }
@@ -99,7 +100,9 @@ namespace tests {
         }
 
         SECTION("With input") {
-            d["value"].AddMember("input", StringRef("foobarbaz"), d.GetAllocator());
+            std::string input = "foobarbaz";
+            d["value"].AddMember("input", Value(input.c_str(), input.size(), d.GetAllocator()).Move(),
+                                 d.GetAllocator());
         }
 
         message::Message msg = util::messageFactory("demo", "echo");

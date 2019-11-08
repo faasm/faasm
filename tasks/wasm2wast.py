@@ -24,7 +24,7 @@ def wast(context, user, func_name):
     if exists(wast_path):
         remove(wast_path)
 
-    disassemble_bin = join(PROJ_ROOT, "cmake-build-debug", "WAVM", "bin", "wavm")
+    disassemble_bin = join(PROJ_ROOT, "cmake-build-debug", "third-party", "WAVM", "bin", "wavm")
 
     cmd = [
         disassemble_bin,
