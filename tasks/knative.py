@@ -97,7 +97,7 @@ def delete_knative_worker(ctx, hard=False):
     call(flush_cmd, shell=True)
 
     if hard:
-        _delete_knative_fn("worker", False)
+        _delete_knative_fn("worker")
     else:
         # Delete the pods (they'll respawn)
         label = "serving.knative.dev/service=faasm-worker"
