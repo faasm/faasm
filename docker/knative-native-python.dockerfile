@@ -14,10 +14,13 @@ RUN apt-get install -y libpython3-dev \
 RUN pip3 install -U pip
 
 RUN pip3 install flask \
+    gunicorn \
     numpy \
     pyfaasm \
     redis
 
 WORKDIR /usr/local/code/faasm/func
 COPY func/knative_native.py .
-CMD python3 knative_native.py
+COPY func/run_knative_native.sh .
+
+CMD ./run_knative_native.sh
