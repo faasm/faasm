@@ -2,6 +2,7 @@
 
 extern "C" {
 #include <emulator/emulator_api.h>
+#include <faasm/host_interface.h>
 }
 
 #include "utils.h"
@@ -10,6 +11,7 @@ extern "C" {
 #include <emulator/emulator.h>
 #include <faasm/core.h>
 #include <util/state.h>
+#include <util/json.h>
 
 
 namespace tests {
@@ -26,7 +28,7 @@ namespace tests {
         long dummyLen = dummyBytes.size();
 
         message::Message call = util::messageFactory("demo", "echo");
-
+        
         SECTION("Output data") {
             setEmulatedMessage(call);
             faasmSetOutput(dummyBytes.data(), dummyLen);
@@ -97,5 +99,58 @@ namespace tests {
 
     TEST_CASE("Test state emulation complex", "[emulator]") {
         _doEmulationTest("default");
+    }
+    
+    TEST_CASE("Test emulator setting function result", "[emulator]") {
+        message::Message call = util::messageFactory("demo", "echo");
+        util::setMessageId(call);
+
+        util::SystemConfig &conf = util::getSystemConfig();
+        std::string originalHostType = conf.hostType;
+        conf.hostType = "knative";
+
+        int inputVal = 0;
+        bool useJson = false;
+        SECTION("Failure") {
+            inputVal = 0;
+
+            SECTION("Failure and JSON") {
+                useJson = true;
+            }
+            SECTION("Failure and not JSON") {
+                useJson = false;
+            }
+        }
+
+        SECTION("Success") {
+            inputVal = 1;
+
+            SECTION("Success and JSON") {
+                useJson = true;
+            }
+            SECTION("Success and not JSON") {
+                useJson = false;
+            }
+        }
+
+        if(useJson) {
+            const std::string jsonStr = util::messageToJson(call);
+            setEmulatedMessageFromJson(jsonStr.c_str());
+        } else {
+            setEmulatedMessage(call);
+        }
+        
+        emulatorSetCallStatus(inputVal);
+
+        // Call the await call function directly
+        int resultCode = __faasm_await_call(call.id());
+
+        if(inputVal == 1) {
+            REQUIRE(resultCode == 0);
+        } else {
+            REQUIRE(resultCode == 1);
+        }
+
+        conf.hostType = originalHostType;
     }
 }

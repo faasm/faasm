@@ -48,8 +48,8 @@ namespace util {
         std::string knativeHeader = "Host: faasm-" + cleanedFuncName + ".faasm.example.com";
 
         struct curl_slist *chunk = nullptr;
+        chunk = curl_slist_append(chunk, "Content-type: application/json");
         chunk = curl_slist_append(chunk, knativeHeader.c_str());
-        chunk = curl_slist_append(chunk, "Content-Type: application/json");
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
 
         // Add the message as JSON

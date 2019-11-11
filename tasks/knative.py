@@ -1,11 +1,12 @@
 import os
+from copy import copy
 from os.path import join
 from subprocess import call
 
 from invoke import task
 
 from tasks.util.config import get_faasm_config
-from tasks.util.env import PROJ_ROOT
+from tasks.util.env import PROJ_ROOT, FUNC_DIR
 from tasks.util.files import clean_dir
 from tasks.util.ibm import get_ibm_kubeconfig
 
@@ -294,9 +295,21 @@ def knative_native_local(ctx, user, function):
 
 
 @task
-def knative_native_python_local(ctx):
-    img_name = "faasm/knative-native-python"
-    _do_knative_native_local(img_name)
+def knative_native_python_local(ctx, host=False):
+    if host:
+        working_dir = FUNC_DIR
+        env = copy(os.environ)
+        env.update({
+            "LOG_LEVEL": "debug",
+            "FAASM_INVOKE_HOST": "0.0.0.0",
+            "FAASM_INVOKE_PORT": "8080",
+            "HOST_TYPE": "knative",
+        })
+
+        call("./run_knative_native.sh", cwd=working_dir, env=env, shell=True)
+    else:
+        img_name = "faasm/knative-native-python"
+        _do_knative_native_local(img_name)
 
 
 def _do_knative_native_local(img_name):

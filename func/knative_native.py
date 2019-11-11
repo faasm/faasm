@@ -41,8 +41,8 @@ def handle_message(json_data):
 
         return emulatorGetAsyncResponse()
     else:
-        # Run the function
-        mod.main_func()
+        # Run in main thread
+        execute_main(mod)
 
         # Return the output
         func_output = getOutput()
@@ -56,6 +56,9 @@ def handle_message(json_data):
 @app.route('/', methods=["GET", "POST"])
 def run_func():
     global is_cold_start
+
+    setLocalInputOutput(True)
+
     if is_cold_start:
         delay_str = os.environ.get("COLD_START_DELAY_MS", "1000")
         delay_seconds = Decimal(delay_str) / 1000
@@ -68,8 +71,3 @@ def run_func():
     app.logger.info("Knative request: {}".format(json_data))
 
     return handle_message(json_data)
-
-
-if __name__ == "__main__":
-    setLocalInputOutput(True)
-    app.run(debug=True, threaded=True, host='0.0.0.0', port=8080)

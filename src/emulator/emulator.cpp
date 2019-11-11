@@ -23,9 +23,8 @@ extern "C" {
  * C++ emulation of Faasm system
  */
 
-// We use an empty emulator user by default as it's easier to reason about keys in state
-static message::Message _emulatedCall = message::Message();
-static thread_local message::Message _threadLocalEmulatedCall = message::Message();
+// Note thread-locality here
+static thread_local message::Message _emulatedCall = message::Message();
 
 static std::mutex threadsMutex;
 static std::unordered_map<int, std::thread> threads;
@@ -35,23 +34,12 @@ static int threadCount = 1;
 
 void resetEmulator() {
     _emulatedCall = message::Message();
-    _threadLocalEmulatedCall = message::Message();
-
     threads.clear();
     threadCount = 1;
 }
 
-bool noThreadLocal() {
-    util::SystemConfig &conf = util::getSystemConfig();
-    return conf.hostType == "knative";
-}
-
 std::vector<uint8_t> getEmulatorOutputData() {
-    if (noThreadLocal()) {
-        return util::stringToBytes(_emulatedCall.outputdata());
-    } else {
-        return util::stringToBytes(_threadLocalEmulatedCall.outputdata());
-    }
+    return util::stringToBytes(_emulatedCall.outputdata());
 }
 
 std::string getEmulatorOutputDataString() {
@@ -83,10 +71,20 @@ char *emulatorGetAsyncResponse() {
 }
 
 void emulatorSetCallStatus(int success) {
-    scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
+    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+    bool isSuccess = success == 1;
     message::Message resultMsg = _emulatedCall;
+
+    const std::string funcStr = util::funcToString(resultMsg, true);
+    if (isSuccess) {
+        logger->debug("Setting success status for {}", funcStr);
+    } else {
+        logger->debug("Setting failed status for {}", funcStr);
+    }
+
+    scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
     resultMsg.set_outputdata(getEmulatorOutputDataString());
-    globalBus.setFunctionResult(resultMsg, success == 1);
+    globalBus.setFunctionResult(resultMsg, isSuccess);
 }
 
 void setEmulatedMessageFromJson(const char *messageJson) {
@@ -99,10 +97,10 @@ void setEmulatedMessage(const message::Message &msg) {
     util::setMessageId(msgCopy);
 
     _emulatedCall = msgCopy;
-    _threadLocalEmulatedCall = msgCopy;
 
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-    logger->debug("Emulator set to {}/{}", _emulatedCall.user(), _emulatedCall.function());
+    const std::string funcStr = util::funcToString(_emulatedCall, true);
+    logger->debug("Emulator set to {}", funcStr);
 }
 
 std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {
@@ -120,7 +118,6 @@ std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {
 void __faasm_write_output(const unsigned char *output, long outputLen) {
     util::getLogger()->debug("E - write_output {} {}", output, outputLen);
     _emulatedCall.set_outputdata(output, outputLen);
-    _threadLocalEmulatedCall.set_outputdata(output, outputLen);
 }
 
 
@@ -238,11 +235,7 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen) {
     util::getLogger()->debug("E - read_input len {}", bufferLen);
 
     long inputLen;
-    if (noThreadLocal()) {
-        inputLen = _emulatedCall.inputdata().size();
-    } else {
-        inputLen = _threadLocalEmulatedCall.inputdata().size();
-    }
+    inputLen = _emulatedCall.inputdata().size();
 
     // This relies on thread-local _inputData
     if (bufferLen == 0) {
@@ -253,11 +246,7 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen) {
         return 0;
     }
 
-    if (noThreadLocal()) {
-        std::copy(_emulatedCall.inputdata().begin(), _emulatedCall.inputdata().end(), buffer);
-    } else {
-        std::copy(_threadLocalEmulatedCall.inputdata().begin(), _threadLocalEmulatedCall.inputdata().end(), buffer);
-    }
+    std::copy(_emulatedCall.inputdata().begin(), _emulatedCall.inputdata().end(), buffer);
 
     return bufferLen;
 }
@@ -281,8 +270,8 @@ unsigned int _chain_local(int idx, int pyIdx, const unsigned char *buffer, long 
         // Spawn a thread to execute the function
         threads.emplace(std::pair<int, std::thread>(thisCallId, [idx, buffer, bufferLen] {
             // Set up input data for this thread (thread-local)
-            _threadLocalEmulatedCall.set_inputdata(buffer, bufferLen);
-            _threadLocalEmulatedCall.set_idx(idx);
+            _emulatedCall.set_inputdata(buffer, bufferLen);
+            _emulatedCall.set_idx(idx);
 
             // Invoke the function
             _FaasmFuncPtr f = getFaasmFunc(idx);
@@ -367,6 +356,8 @@ int _await_call_knative(unsigned int callId) {
         logger->error("Non-timeout exception waiting for chained call: {}", ex.what());
     }
 
+    logger->debug("Await returned {} for {}", returnCode, callId);
+
     return returnCode;
 }
 
@@ -402,20 +393,11 @@ int __faasm_await_call(unsigned int callId) {
 }
 
 int __faasm_get_idx() {
-    // Relies on thread-local idx
-    if (noThreadLocal()) {
-        return _emulatedCall.idx();
-    } else {
-        return _threadLocalEmulatedCall.idx();
-    }
+    return _emulatedCall.idx();
 }
 
 int __faasm_get_py_idx() {
-    if (noThreadLocal()) {
-        return _emulatedCall.pythonidx();
-    } else {
-        return _threadLocalEmulatedCall.pythonidx();
-    }
+    return _emulatedCall.pythonidx();
 }
 
 void __faasm_lock_state_read(const char *key) {
