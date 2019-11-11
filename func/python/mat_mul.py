@@ -11,7 +11,8 @@ def main_func():
         print("Kicking off divide and conquer")
         divide_and_conquer()
 
-        setOutput("Matrix multiplication finished")
+        output = "Matrix multiplication finished"
+        setOutput(output.encode("utf-8"))
     else:
         # Run the worker
         print("Running matrix multiplication worker")
