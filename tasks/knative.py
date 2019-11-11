@@ -304,7 +304,7 @@ def _do_knative_native_local(img_name):
         "docker", "run",
         "-p 8080:8080",
         "--env LOG_LEVEL=debug",
-        "--env FAASM_INVOKE_HOST=127.0.0.1",
+        "--env FAASM_INVOKE_HOST=0.0.0.0",
         "--env FAASM_INVOKE_PORT=8080",
         "--env HOST_TYPE=knative",
         img_name

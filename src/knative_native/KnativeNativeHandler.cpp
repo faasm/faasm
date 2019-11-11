@@ -1,11 +1,13 @@
 #include "KnativeNativeHandler.h"
 
-#include <emulator/emulator.h>
+extern "C" {
 #include <emulator/emulator_api.h>
+}
+
+#include <emulator/emulator.h>
 
 #include <faasm/core.h>
 #include <util/logging.h>
-#include <util/bytes.h>
 #include <util/json.h>
 #include <util/environment.h>
 #include <util/func.h>

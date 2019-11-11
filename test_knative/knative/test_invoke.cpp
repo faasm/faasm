@@ -3,7 +3,6 @@
 #include <util/config.h>
 #include <emulator/emulator.h>
 #include <faasm/core.h>
-#include <emulator/emulator_api.h>
 #include <util/func.h>
 
 namespace tests {

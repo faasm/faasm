@@ -49,6 +49,7 @@ namespace util {
 
         struct curl_slist *chunk = nullptr;
         chunk = curl_slist_append(chunk, knativeHeader.c_str());
+        chunk = curl_slist_append(chunk, "Content-Type: application/json");
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
 
         // Add the message as JSON

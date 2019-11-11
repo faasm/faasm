@@ -1,12 +1,15 @@
 #include <catch/catch.hpp>
 
+extern "C" {
+#include <emulator/emulator_api.h>
+}
+
 #include "utils.h"
 
 #include <redis/Redis.h>
 #include <emulator/emulator.h>
 #include <faasm/core.h>
 #include <util/state.h>
-#include <emulator/emulator_api.h>
 
 
 namespace tests {

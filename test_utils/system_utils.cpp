@@ -1,5 +1,9 @@
 #include <catch/catch.hpp>
 
+extern "C" {
+#include <emulator/emulator_api.h>
+}
+
 #include "utils.h"
 
 #include <redis/Redis.h>
@@ -10,7 +14,6 @@
 #include <zygote/ZygoteRegistry.h>
 #include <storage/SharedFilesManager.h>
 #include <boost/filesystem.hpp>
-#include <emulator/emulator_api.h>
 
 
 namespace tests {
