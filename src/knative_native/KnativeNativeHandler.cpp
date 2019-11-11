@@ -53,7 +53,10 @@ namespace knative_native {
         // Set up the function
         const std::string requestStr = request.body();
         message::Message msg = util::jsonToMessage(requestStr);
-        setEmulatedMessage(msg);
+        unsigned int messageId = setEmulatedMessage(msg);
+
+        // Make sure the message ID is set for potentially passing into a thread
+        msg.set_id(messageId);
 
         logger->debug("Knative native request: {}", requestStr);
 
@@ -63,6 +66,10 @@ namespace knative_native {
 
             // Execute async message in detached thread
             std::thread t([msg] {
+                // Set up message in this thread
+                setEmulatedMessage(msg);
+
+                // Run it
                 exec(msg.idx());
                 emulatorSetCallStatus(1);
             });

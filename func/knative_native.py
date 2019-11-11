@@ -51,7 +51,9 @@ def run_func():
     app.logger.info("Knative request: {}".format(json_data))
 
     # Set up this main thread with the emulator
-    setEmulatorMessage(dumps(json_data))
+    # Make sure to pass on the message ID for child threads
+    msgId = setEmulatorMessage(dumps(json_data))
+    json_data["id"] = msgId
 
     if json_data.get("async", False):
         # Run in background if async request

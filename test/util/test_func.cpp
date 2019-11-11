@@ -124,6 +124,13 @@ namespace tests {
         REQUIRE(afterId == originalId);
         REQUIRE(afterStatusKey == originalStatusKey);
         REQUIRE(afterResultKey == originalResultKey);
+
+        // Unset the status key and result key, then make sure they get re-set
+        msg.set_statuskey("");
+        msg.set_resultkey("");
+        util::setMessageId(msg);
+        REQUIRE(msg.statuskey() == originalStatusKey);
+        REQUIRE(msg.resultkey() == originalResultKey);
     }
 
     TEST_CASE("Test creating async response") {

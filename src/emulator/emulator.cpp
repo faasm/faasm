@@ -87,20 +87,22 @@ void emulatorSetCallStatus(int success) {
     globalBus.setFunctionResult(resultMsg, isSuccess);
 }
 
-void setEmulatedMessageFromJson(const char *messageJson) {
+unsigned int setEmulatedMessageFromJson(const char *messageJson) {
     const message::Message msg = util::jsonToMessage(messageJson);
-    setEmulatedMessage(msg);
+    return setEmulatedMessage(msg);
 }
 
-void setEmulatedMessage(const message::Message &msg) {
+unsigned int setEmulatedMessage(const message::Message &msg) {
     message::Message msgCopy = msg;
-    util::setMessageId(msgCopy);
+    unsigned int msgId = util::setMessageId(msgCopy);
 
     _emulatedCall = msgCopy;
 
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
     const std::string funcStr = util::funcToString(_emulatedCall, true);
     logger->debug("Emulator set to {}", funcStr);
+
+    return msgId;
 }
 
 std::shared_ptr<state::StateKeyValue> getKv(const char *key, size_t size) {

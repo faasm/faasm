@@ -22,7 +22,7 @@ namespace util {
 
     std::string getRootUrl() {
         std::string rootUrl = util::getEnvVar("FILESERVER_URL", "");
-        if(rootUrl.empty()) {
+        if (rootUrl.empty()) {
             throw std::runtime_error("Fileserver URL not set");
         }
 
@@ -90,7 +90,7 @@ namespace util {
 
         return path;
     }
-    
+
     boost::filesystem::path getFunctionDir(const message::Message &msg, bool create = true) {
         SystemConfig &conf = util::getSystemConfig();
         return _doGetDir(conf.functionDir, msg, create);
@@ -102,7 +102,7 @@ namespace util {
     }
 
     bool isValidFunction(const message::Message &msg) {
-        if(msg.user().empty() || msg.function().empty()) {
+        if (msg.user().empty() || msg.function().empty()) {
             return false;
         }
 
@@ -192,7 +192,7 @@ namespace util {
         boost::filesystem::path p(conf.sharedFilesStorageDir);
         p.append(path);
 
-        if(!boost::filesystem::exists(p.parent_path())) {
+        if (!boost::filesystem::exists(p.parent_path())) {
             boost::filesystem::create_directories(p.parent_path());
         }
 
@@ -212,14 +212,14 @@ namespace util {
     std::string funcToString(const message::Message &msg, bool includeId) {
         std::string str = msg.user() + "/" + msg.function();
 
-        if(includeId) {
+        if (includeId) {
             str += ":" + std::to_string(msg.id());
         }
         return str;
     }
 
     std::string buildAsyncResponse(const message::Message &msg) {
-        if(msg.id() == 0) {
+        if (msg.id() == 0) {
             throw std::runtime_error("Message must have id to build async response");
         }
 
@@ -236,14 +236,15 @@ namespace util {
     }
 
     unsigned int setMessageId(message::Message &msg) {
-        // Assume if message has an ID it's been done properly
-        if(msg.id() > 0) {
+        // If message already has an ID, just make sure the keys are set up
+        unsigned int messageId;
+        if (msg.id() > 0) {
             return msg.id();
+        } else {
+            // Generate a random ID
+            messageId = util::generateGid();
+            msg.set_id(messageId);
         }
-
-        // Generate a random result key
-        unsigned int messageId = util::generateGid();
-        msg.set_id(messageId);
 
         std::string resultKey = resultKeyFromMessageId(messageId);
         msg.set_resultkey(resultKey);

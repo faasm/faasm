@@ -4,7 +4,7 @@
 #include <string>
 #include <proto/faasm.pb.h>
 
-void setEmulatedMessage(const message::Message &msg);
+unsigned int setEmulatedMessage(const message::Message &msg);
 
 void resetEmulator();
 

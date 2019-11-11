@@ -1,7 +1,7 @@
 #ifndef FAASM_EMULATOR_API_H
 #define FAASM_EMULATOR_API_H
 
-void setEmulatedMessageFromJson(const char *msgJson);
+unsigned int setEmulatedMessageFromJson(const char *msgJson);
 
 char* emulatorGetAsyncResponse();
 
