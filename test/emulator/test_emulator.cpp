@@ -133,13 +133,15 @@ namespace tests {
             }
         }
 
+        unsigned int messageId = 0;
         if(useJson) {
             const std::string jsonStr = util::messageToJson(call);
-            setEmulatedMessageFromJson(jsonStr.c_str());
+            messageId = setEmulatedMessageFromJson(jsonStr.c_str());
         } else {
-            setEmulatedMessage(call);
+            messageId = setEmulatedMessage(call);
         }
-        
+
+        REQUIRE(messageId > 0);
         emulatorSetCallStatus(inputVal);
 
         // Call the await call function directly
