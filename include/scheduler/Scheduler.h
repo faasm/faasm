@@ -11,7 +11,10 @@
 #include <redis/Redis.h>
 
 #define GLOBAL_NODE_SET "available_workers"
-#define IN_FLIGHT_RATIO_ZERO 10000.0
+
+// Make this long enough for long data processing stuff
+#define CHAINED_CALL_TIMEOUT 120000
+
 
 namespace scheduler {
     // Note - default opinion should be maybe

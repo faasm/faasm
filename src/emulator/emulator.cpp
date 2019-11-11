@@ -319,29 +319,16 @@ unsigned int _chain_knative(int idx, int pyIdx, const unsigned char *buffer, lon
     msg.set_pythonfunction(_emulatedCall.pythonfunction());
     msg.set_pythonidx(pyIdx);
 
-    // We will be awaiting the response in a thread in the background, therefore this must _not_ be async
-    msg.set_isasync(false);
+    // Chained calls are always async and can be awaited by the caller
+    msg.set_isasync(true);
 
-    logger->debug("Invoking endpoint at {}:{}", host, portInt);
-    logger->debug("Invoking JSON : {}", util::messageToJson(msg));
+    logger->debug("POST {}:{} ({})", host, portInt, util::messageToJson(msg));
 
     // Flush stdout before chaining
     fflush(stdout);
 
-    // Make the call in a thread in the background so we can continue
-    {
-        util::UniqueLock threadsLock(threadsMutex);
-
-        // Spawn a thread to execute the function
-        // Use the message ID as the key so we can join it when awaiting
-        threads.emplace(std::pair<int, std::thread>(msg.id(), [host, portInt, msg] {
-            util::postJsonFunctionCall(host, portInt, msg);
-        }));
-    }
-
-    const std::string funcStr = util::funcToString(msg, true);
-    logger->debug("Requested knative function {}", funcStr);
-
+    // Make the call
+    util::postJsonFunctionCall(host, portInt, msg);
     return msg.id();
 }
 
@@ -363,9 +350,29 @@ unsigned int __faasm_chain_py(int idx, const unsigned char *buffer, long bufferL
     }
 }
 
-int __faasm_await_call(unsigned int callId) {
+int _await_call_knative(unsigned int callId) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-    logger->debug("E - await_call {}", callId);
+    logger->debug("E - await_call_knative {}", callId);
+
+    scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
+    int returnCode = 1;
+    try {
+        const message::Message result = bus.getFunctionResult(callId, CHAINED_CALL_TIMEOUT);
+        if (result.success()) {
+            returnCode = 0;
+        }
+    } catch (redis::RedisNoResponseException &ex) {
+        logger->error("Timed out waiting for chained call: {}", callId);
+    } catch (std::exception &ex) {
+        logger->error("Non-timeout exception waiting for chained call: {}", ex.what());
+    }
+
+    return returnCode;
+}
+
+int _await_call_local(unsigned int callId) {
+    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+    logger->debug("E - await_call_local {}", callId);
 
     // Check this is valid
     if (threads.count(callId) == 0) {
@@ -383,6 +390,15 @@ int __faasm_await_call(unsigned int callId) {
     }
 
     return 0;
+}
+
+int __faasm_await_call(unsigned int callId) {
+    util::SystemConfig &conf = util::getSystemConfig();
+    if (conf.hostType == "knative") {
+        return _await_call_knative(callId);
+    } else {
+        return _await_call_local(callId);
+    }
 }
 
 int __faasm_get_idx() {
@@ -428,6 +444,6 @@ void __faasm_get_py_func(unsigned char *buffer, long bufferLen) {
     std::copy(bytes.data(), bytes.data() + bytes.size(), buffer);
 }
 
-unsigned int __faasm_conf_flag(const char* key) {
+unsigned int __faasm_conf_flag(const char *key) {
     return 0;
 }
