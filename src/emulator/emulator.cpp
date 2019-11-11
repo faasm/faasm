@@ -93,10 +93,8 @@ unsigned int setEmulatedMessageFromJson(const char *messageJson) {
 }
 
 unsigned int setEmulatedMessage(const message::Message &msg) {
-    message::Message msgCopy = msg;
-    unsigned int msgId = util::setMessageId(msgCopy);
-
-    _emulatedCall = msgCopy;
+    _emulatedCall = msg;
+    unsigned int msgId = util::setMessageId(_emulatedCall);
 
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
     const std::string funcStr = util::funcToString(_emulatedCall, true);

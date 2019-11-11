@@ -124,13 +124,18 @@ namespace tests {
         REQUIRE(afterId == originalId);
         REQUIRE(afterStatusKey == originalStatusKey);
         REQUIRE(afterResultKey == originalResultKey);
+    }
 
-        // Unset the status key and result key, then make sure they get re-set
+    TEST_CASE("Check message with ID already set still gets result key and status key", "[util]") {
+        message::Message msg;
+        int msgId = 1234;
+        msg.set_id(msgId);
         msg.set_statuskey("");
         msg.set_resultkey("");
+
         util::setMessageId(msg);
-        REQUIRE(msg.statuskey() == originalStatusKey);
-        REQUIRE(msg.resultkey() == originalResultKey);
+        REQUIRE(msg.statuskey() == util::statusKeyFromMessageId(msgId));
+        REQUIRE(msg.resultkey() == util::resultKeyFromMessageId(msgId));
     }
 
     TEST_CASE("Test creating async response") {

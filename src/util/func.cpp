@@ -239,7 +239,7 @@ namespace util {
         // If message already has an ID, just make sure the keys are set up
         unsigned int messageId;
         if (msg.id() > 0) {
-            return msg.id();
+            messageId = msg.id();
         } else {
             // Generate a random ID
             messageId = util::generateGid();
