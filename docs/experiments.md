@@ -70,11 +70,11 @@ inv sgd-experiment 10 60000
 
 # Native matrices
 inv matrix-state-upload 1000 3
-inv matrix-experiment --native 1000 3
+inv matrix-experiment --native 10 1000 3
 
 # Wasm matrices
 inv matrix-state-upload 1000 3
-inv matrix-experiment 1000 3
+inv matrix-experiment 10 1000 3
 
 # ---- Clean up ----
 
