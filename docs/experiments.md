@@ -84,7 +84,10 @@ inv delete-knative-native sgd reuters_svm
 # Native matrices
 inv delete-knative-native-python
 
-# Wasm
+# Wasm - flush workers
+inv flush
+
+# Wasm - hard delete
 inv delete-knative-worker
 ```
 

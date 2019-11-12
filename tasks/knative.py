@@ -9,6 +9,7 @@ from tasks.util.config import get_faasm_config
 from tasks.util.env import PROJ_ROOT, FUNC_DIR
 from tasks.util.files import clean_dir
 from tasks.util.ibm import get_ibm_kubeconfig
+from tasks.util.kubernetes import get_kubernetes_host_port
 
 K8S_DIR = join(PROJ_ROOT, "k8s")
 BARE_METAL_CONF = join(K8S_DIR, "bare-metal")
@@ -48,6 +49,7 @@ FAASM_WORKER_NAME = "{}worker".format(KNATIVE_FUNC_PREFIX)
 FAASM_WORKER_IMAGE = "faasm/knative-worker"
 
 ONE_MIN = 60000
+THIRTY_SECS = 30000
 
 KNATIVE_ENV = {
     "REDIS_STATE_HOST": "redis-state",
@@ -59,7 +61,7 @@ KNATIVE_ENV = {
     "MAX_IN_FLIGHT_RATIO": "1",
     "MAX_WORKERS_PER_FUNCTION": "4",  # This limit is per-host. We only want one instance per core
     "THREADS_PER_WORKER": "5",  # This is how many threads are available in total per host (across all functions)
-    "BOUND_TIMEOUT": str(2 * ONE_MIN),  # How long a bound worker sticks around for
+    "BOUND_TIMEOUT": str(THIRTY_SECS),  # How long a bound worker sticks around for
     "UNBOUND_TIMEOUT": str(10 * ONE_MIN),  # How long an unbound worker sticks around for
     "GLOBAL_MESSAGE_TIMEOUT": str(2 * ONE_MIN),  # How long things wait for messages on global bus
 }
@@ -261,9 +263,9 @@ def _do_deploy_knative_native(func_name, image_name, replicas):
     if not faasm_config.has_section("Kubernetes"):
         print("Must have faasm config set up with kubernetes section")
         return 1
+
     # Host and port required for chaining native functions
-    invoke_host = faasm_config["Kubernetes"]["invoke_host"]
-    invoke_port = faasm_config["Kubernetes"]["invoke_port"]
+    invoke_host, invoke_port = get_kubernetes_host_port()
 
     _deploy_knative_fn(
         func_name,

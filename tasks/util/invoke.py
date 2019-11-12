@@ -5,6 +5,7 @@ from time import sleep
 from tasks.util.config import get_faasm_config
 from tasks.util.env import PYTHON_USER, PYTHON_FUNC
 from tasks.util.http import do_post
+from tasks.util.kubernetes import get_kubernetes_host_port
 
 
 def _get_knative_headers(func_name):
@@ -37,14 +38,14 @@ def invoke_impl(user, func,
     if ibm:
         host = faasm_config["IBM"]["k8s_subdomain"]
         port = 8080
-    elif knative and faasm_config.has_section("Kubernetes"):
-        host = faasm_config["Kubernetes"].get("invoke_host", "localhost")
-        port = faasm_config["Kubernetes"].get("invoke_port", 8080)
-    else:
-        host = host if host else "127.0.0.1"
-        port = port if port else 8080
+    elif knative:
+        host, port = get_kubernetes_host_port()
 
-        # Polling always requires async
+    # Defaults
+    host = host if host else "127.0.0.1"
+    port = port if port else 8080
+
+    # Polling always requires async
     if poll:
         async = True
 
@@ -144,15 +145,25 @@ def invoke_impl(user, func,
             raise RuntimeError("Must specify knative or ibm")
 
 
-def status_call_impl(call_id, host, port, quiet=False):
-    url = "http://{}".format(host)
-    if port != 80:
-        url += ":{}/".format(port)
+def flush_call_impl(host, port):
+    msg = {
+        "flush": True,
+    }
+    return _do_single_call(host, port, msg, False)
 
+
+def status_call_impl(call_id, host, port, quiet=False):
     msg = {
         "status": True,
         "id": call_id,
     }
+    return _do_single_call(host, port, msg, quiet)
+
+
+def _do_single_call(host, port, msg, quiet):
+    url = "http://{}".format(host)
+    if port != 80:
+        url += ":{}/".format(port)
 
     # Can always use the faasm worker for getting status
     headers = _get_knative_headers("worker")
