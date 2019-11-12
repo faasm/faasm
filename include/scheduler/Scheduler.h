@@ -60,6 +60,8 @@ namespace scheduler {
 
         long getFunctionInFlightCount(const message::Message &msg);
 
+        void addNodeToGlobalSet(const std::string &node);
+
         void addNodeToGlobalSet();
 
         void removeNodeFromGlobalSet();

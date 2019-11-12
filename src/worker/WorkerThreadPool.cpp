@@ -4,6 +4,7 @@
 
 #include <scheduler/GlobalMessageBus.h>
 #include <scheduler/SharingMessageBus.h>
+#include <worker/worker.h>
 
 namespace worker {
 
@@ -60,11 +61,17 @@ namespace worker {
             while (!this->isShutdown()) {
                 const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 try {
+                    message::Message msg = sharingBus.nextMessageForThisNode();
+
+                    // Clear out this worker node if we've received a flush message
+                    if(msg.isflushrequest()) {
+                        flushWorkerHost();
+                        continue;
+                    }
+
                     // This calls the scheduler, which will always attempt
                     // to execute locally. However, if not possible, this will
                     // again share the message, increasing the hops
-                    message::Message msg = sharingBus.nextMessageForThisNode();
-
                     const std::string funcStr = util::funcToString(msg, true);
                     logger->debug("{} received shared call {} (scheduled for {})", nodeId, funcStr,
                                   msg.schedulednode());

@@ -142,4 +142,34 @@ namespace tests {
         REQUIRE(actual == expectedOutput);
 
     }
+    
+    void checkFlushMessageShared(const std::string &node, const message::Message &msg) {
+        scheduler::SharingMessageBus &sharingBus = scheduler::SharingMessageBus::getInstance();
+        const message::Message actual = sharingBus.nextMessageForNode(node);
+        REQUIRE(actual.isflushrequest());
+    }
+    
+    TEST_CASE("Test broadcasting flush message", "[knative]") {
+        cleanSystem();
+
+        // Set up some dummy nodes and add to global set
+        std::string thisNode = util::getNodeId();
+        std::string nodeA = "node_a";
+        std::string nodeB = "node_b";
+
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        sch.addNodeToGlobalSet(nodeA);
+        sch.addNodeToGlobalSet(nodeB);
+        
+        message::Message msg;
+        msg.set_isflushrequest(true);
+        
+        knative::KnativeHandler handler;
+        const std::string &requestStr = util::messageToJson(msg);
+        std::string actual = handler.handleFunction(requestStr);
+
+        checkFlushMessageShared(thisNode, msg);
+        checkFlushMessageShared(nodeA, msg);
+        checkFlushMessageShared(nodeB, msg);
+    }
 }

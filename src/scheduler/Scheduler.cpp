@@ -19,6 +19,11 @@ namespace scheduler {
         bindQueue = std::make_shared<InMemoryMessageQueue>();
     }
 
+    void Scheduler::addNodeToGlobalSet(const std::string &node) {
+        redis::Redis &redis = redis::Redis::getQueue();
+        redis.sadd(GLOBAL_NODE_SET, node);
+    }
+
     void Scheduler::addNodeToGlobalSet() {
         redis::Redis &redis = redis::Redis::getQueue();
         redis.sadd(GLOBAL_NODE_SET, nodeId);

@@ -29,11 +29,12 @@ message Message {
     optional bool isPython = 13;
     optional bool isTypescript = 14;
     optional bool isStatusRequest = 15;
+    optional bool isFlushRequest = 16;
 
-    optional bytes inputData = 16;
-    optional bytes outputData = 17;
+    optional bytes inputData = 17;
+    optional bytes outputData = 18;
 
-    optional string pythonUser = 18;
-    optional string pythonFunction = 19;
-    optional int32 pythonIdx = 20;
+    optional string pythonUser = 19;
+    optional string pythonFunction = 20;
+    optional int32 pythonIdx = 21;
 }

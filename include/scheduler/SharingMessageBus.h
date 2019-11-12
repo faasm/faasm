@@ -20,6 +20,8 @@ namespace scheduler {
         message::Message nextMessageForThisNode();
 
         void shareMessageWithNode(const std::string &nodeId, const message::Message &msg);
+
+        void broadcastMessage(const message::Message &msg);
     private:
         util::SystemConfig &conf;
         std::string thisNodeId;

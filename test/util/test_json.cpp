@@ -23,6 +23,7 @@ namespace tests {
         msg.set_ispython(true);
         msg.set_istypescript(true);
         msg.set_isstatusrequest(true);
+        msg.set_isflushrequest(true);
 
         msg.set_resultkey("this is a result");
         msg.set_statuskey("this is a status");

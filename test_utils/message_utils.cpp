@@ -19,6 +19,7 @@ namespace tests {
         REQUIRE(msgA.ispython() == msgB.ispython());
         REQUIRE(msgA.istypescript() == msgB.istypescript());
         REQUIRE(msgA.isstatusrequest() == msgB.isstatusrequest());
+        REQUIRE(msgA.isflushrequest() == msgB.isflushrequest());
         REQUIRE(msgA.success() == msgB.success());
         REQUIRE(msgA.inputdata() == msgB.inputdata());
         REQUIRE(msgA.outputdata() == msgB.outputdata());
