@@ -157,6 +157,7 @@ from tasks.experiments import (
     sgd_pull_results,
     sgd_parse_results,
     matrix_experiment,
+    matrix_experiment_multi,
     matrix_pull_results,
     matrix_parse_results,
 )

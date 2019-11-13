@@ -40,11 +40,14 @@ def run_func():
     setLocalInputOutput(True)
 
     if is_cold_start:
-        delay_str = os.environ.get("COLD_START_DELAY_MS", "1000")
-        delay_seconds = Decimal(delay_str) / 1000
-        app.logger.info("Simulating cold start for {} seconds".format(delay_seconds))
+        # Simulate cold start if necessary
+        delay_str = os.environ.get("COLD_START_DELAY_MS", "0")
+        if delay_str != "0":
+            delay_seconds = Decimal(delay_str) / 1000
+            app.logger.info("Simulating cold start for {} seconds".format(delay_seconds))
 
-        sleep(delay_seconds)
+            sleep(delay_seconds)
+
         is_cold_start = False
 
     json_data = request.get_json()

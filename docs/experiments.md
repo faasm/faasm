@@ -35,60 +35,67 @@ inv matrix-download-s3
 scp -r ~/faasm/data/matrix <USER>@<HOST>:/home/<USER>/faasm/data/matrix
 ```
 
-## Executing
-
-We need to run the native version and the wasm version. This looks like:
+## SGD
 
 ```
-# ---- Data upload ----
-
-# SGD
+# -- Prepare --
+# Upload data (one off)
 inv reuters-state-upload
 
-# ---- Deploy containers ----
+# -- Deploy --
 
-# Native SGD
-inv deploy-knative-native sgd reuters_svm 10
+# Vary number of workers on each run
+export N_WORKERS=10
 
-# Native matrices
-inv deploy-knative-native-python 10
+# Native containers
+inv deploy-knative-native sgd reuters_svm $N_WORKERS
 
 # Wasm
-inv deploy-knative 10
+inv deploy-knative $N_WORKERS
 
-# ---- Wait ----
+# -- Wait --
+
 watch kn -n faasm service list
 watch kubectl -n faasm get pods
 
-# ---- Run ----
+# -- Run experiment --
 
 # Native SGD
-inv sgd-experiment --native 10 60000
+inv sgd-experiment --native $N_WORKERS 60000
 
 # Wasm SGD
-inv sgd-experiment 10 60000
+inv sgd-experiment $N_WORKERS 60000
 
-# Native matrices
-inv matrix-state-upload 1000 3
-inv matrix-experiment --native 10 1000 3
-
-# Wasm matrices
-inv matrix-state-upload 1000 3
-inv matrix-experiment 10 1000 3
-
-# ---- Clean up ----
+# -- Clean up --
 
 # Native SGD
 inv delete-knative-native sgd reuters_svm
 
-# Native matrices
-inv delete-knative-native-python
+# Wasm
+inv delete-knative-worker --hard
+```
 
-# Wasm - flush workers
-inv flush
+## Matrices
 
-# Wasm - hard delete
-inv delete-knative-worker
+```
+# Number of workers kept the same throughout
+export N_WORKERS
+
+# -- Deploy --
+
+# Native
+inv deploy-knative-native-python $N_WORKERS
+
+# Wasm
+inv deploy-knative $N_WORKERS
+
+# -- Run experiment --
+
+# Native
+inv matrix-experiment-multi $N_WORKERS --native
+
+# Wasm
+inv matrix-experiment-multi $N_WORKERS
 ```
 
 ## Results

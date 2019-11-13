@@ -3,10 +3,11 @@ from os import mkdir, listdir
 from os.path import exists, join
 from shutil import rmtree
 from subprocess import call
-from time import time
+from time import time, sleep
 
 from invoke import task
 
+from tasks import delete_knative_native_python, matrix_state_upload, delete_knative_worker, flush
 from tasks.util.billing import start_billing, pull_billing, parse_billing
 from tasks.util.env import FAASM_HOME
 from tasks.util.invoke import invoke_impl
@@ -184,6 +185,24 @@ class MatrixExperimentRunner(ExperimentRunner):
         folder_name = "SYSTEM_{}_MATRIX_{}_SPLITS_{}_WORKERS_{}_logs".format(system, self.mat_size, self.n_splits,
                                                                              self.n_workers)
         return folder_name
+
+
+@task
+def matrix_experiment_multi(ctx, n_workers, native=False, nobill=False):
+    mat_sizes = [1000, 2000, 3000, 4000, 5000]
+    n_splits_list = [3, 4]
+
+    for mat_size in mat_sizes:
+        for n_splits in n_splits_list:
+            if native:
+                delete_knative_native_python(ctx, hard=False)
+                sleep(40)
+            else:
+                flush(ctx)
+                sleep(30)
+
+            matrix_state_upload(ctx, mat_size, n_splits)
+            matrix_experiment(ctx, n_workers, mat_size, n_splits, native=native, nobill=nobill)
 
 
 @task
