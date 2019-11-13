@@ -17,6 +17,8 @@ class ExperimentRunner(object):
     func = None
     is_python = False
 
+    poll_interval = 1000
+
     result_file_name = None
     local_results_dir = None
 
@@ -78,7 +80,8 @@ class ExperimentRunner(object):
         # Run the request
         success, output = invoke_impl(
             self.user, self.func,
-            poll=True, knative=True,
+            poll=True, poll_interval_ms=self.poll_interval,
+            knative=True,
             input=self.input_data,
             native=native, py=self.is_python,
         )
@@ -167,6 +170,8 @@ class MatrixExperimentRunner(ExperimentRunner):
     func = "mat_mul"
     is_python = True
     result_file_name = "NODE_0_MAT_MUL.log"
+
+    poll_interval = 500
 
     def __init__(self, n_workers, mat_size, n_splits):
         super().__init__(None)
