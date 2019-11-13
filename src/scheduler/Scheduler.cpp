@@ -19,6 +19,11 @@ namespace scheduler {
         bindQueue = std::make_shared<InMemoryMessageQueue>();
     }
 
+    void Scheduler::addNodeToGlobalSet(const std::string &node) {
+        redis::Redis &redis = redis::Redis::getQueue();
+        redis.sadd(GLOBAL_NODE_SET, node);
+    }
+
     void Scheduler::addNodeToGlobalSet() {
         redis::Redis &redis = redis::Redis::getQueue();
         redis.sadd(GLOBAL_NODE_SET, nodeId);
@@ -42,11 +47,12 @@ namespace scheduler {
     }
 
     void Scheduler::clear() {
-        // Remove each node from the relevant warm sets
+        // Remove this node from all the global warm sets
         for (const auto &iter: queueMap) {
             this->removeNodeFromWarmSet(iter.first);
         }
 
+        // Clear anything in the bind queue
         bindQueue->reset();
         queueMap.clear();
         threadCountMap.clear();
@@ -106,7 +112,7 @@ namespace scheduler {
 
         // Decrement the in-flight count
         const std::string funcStr = util::funcToString(msg, false);
-        inFlightCountMap[funcStr]--;
+        inFlightCountMap[funcStr] = std::max(inFlightCountMap[funcStr] - 1 , 0L);
 
         updateOpinion(msg);
     }
@@ -116,7 +122,7 @@ namespace scheduler {
 
         {
             util::FullLock lock(mx);
-            threadCountMap[funcStr]--;
+            threadCountMap[funcStr] = std::max(threadCountMap[funcStr] - 1 , 0L);
 
             updateOpinion(msg);
         }
@@ -129,7 +135,7 @@ namespace scheduler {
         // as it's doing a non-blocking wait, then we can potentially add more
         {
             util::FullLock lock(mx);
-            threadCountMap[funcStr]--;
+            threadCountMap[funcStr] = std::max(threadCountMap[funcStr] - 1 , 0L);
 
             addWarmThreads(msg);
 

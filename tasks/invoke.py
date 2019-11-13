@@ -1,9 +1,7 @@
-from json import dumps
-
 from invoke import task
 
-from tasks.util.config import get_faasm_config
-from tasks.util.invoke import invoke_impl, status_call_impl
+from tasks.util.invoke import invoke_impl, status_call_impl, flush_call_impl
+from tasks.util.kubernetes import get_kubernetes_host_port
 
 
 @task
@@ -23,8 +21,18 @@ def invoke(ctx, user, func,
 
 
 @task
-def status(ctx, call_id, host="127.0.0.1", port=8080):
-    faasm_config = get_faasm_config()
-    host = faasm_config["Kubernetes"].get("invoke_host", "localhost")
-    port = faasm_config["Kubernetes"].get("invoke_port", 8080)
+def status(ctx, call_id, host=None, port=None):
+    k8s_host, k8s_port = get_kubernetes_host_port()
+    host = host if host else k8s_host
+    port = port if port else k8s_port
+
     status_call_impl(call_id, host, port)
+
+
+@task
+def flush(ctx):
+    host, port = get_kubernetes_host_port()
+    host = host if host else "127.0.0.1"
+    port = port if port else 8080
+
+    flush_call_impl(host, port)

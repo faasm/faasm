@@ -34,6 +34,7 @@ namespace util {
         d.AddMember("python", msg.ispython(), a);
         d.AddMember("typescript", msg.istypescript(), a);
         d.AddMember("status", msg.isstatusrequest(), a);
+        d.AddMember("flush", msg.isflushrequest(), a);
 
         d.AddMember("result_key", Value(msg.resultkey().c_str(), msg.resultkey().size()).Move(), a);
         d.AddMember("status_key", Value(msg.statuskey().c_str(), msg.statuskey().size()).Move(), a);
@@ -98,6 +99,7 @@ namespace util {
         msg.set_ispython(getBoolFromJson(d, "python", false));
         msg.set_istypescript(getBoolFromJson(d, "typescript", false));
         msg.set_isstatusrequest(getBoolFromJson(d, "status", false));
+        msg.set_isflushrequest(getBoolFromJson(d, "flush", false));
 
         msg.set_resultkey(getStringFromJson(d, "result_key", ""));
         msg.set_statuskey(getStringFromJson(d, "status_key", ""));

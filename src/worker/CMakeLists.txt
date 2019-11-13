@@ -3,12 +3,14 @@ include_directories(
 )
 
 set(LIB_HEADERS
+        ${FAASM_INCLUDE_DIR}/worker/worker.h
         ${FAASM_INCLUDE_DIR}/worker/WorkerMain.h
         ${FAASM_INCLUDE_DIR}/worker/WorkerThread.h
         ${FAASM_INCLUDE_DIR}/worker/WorkerThreadPool.h
         )
 
 set(LIB_FILES
+        worker.cpp
         WorkerMain.cpp
         WorkerThread.cpp
         WorkerThreadPool.cpp

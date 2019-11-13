@@ -25,7 +25,7 @@ set(LIB_FILES
         )
 
 faasm_private_lib(wasm "${LIB_FILES}")
-target_link_libraries(wasm state scheduler memory storage libWAVM)
+target_link_libraries(wasm state scheduler storage libWAVM)
 
 add_executable(codegen_shared_obj codegen_shared_obj.cpp)
 target_link_libraries(codegen_shared_obj wasm)

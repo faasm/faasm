@@ -1,16 +1,19 @@
 #include <catch/catch.hpp>
 
+extern "C" {
+#include <emulator/emulator_api.h>
+}
+
 #include "utils.h"
 
 #include <redis/Redis.h>
 #include <state/State.h>
 #include <scheduler/Scheduler.h>
 #include <emulator/emulator.h>
-#include <memory/MemorySnapshotRegister.h>
 #include <zygote/ZygoteRegistry.h>
 #include <storage/SharedFilesManager.h>
 #include <boost/filesystem.hpp>
-#include <emulator/emulator_api.h>
+#include <worker/worker.h>
 
 
 namespace tests {
@@ -20,6 +23,8 @@ namespace tests {
         // Clear out state
         redis::Redis::getState().flushAll();
         redis::Redis::getQueue().flushAll();
+
+        // Clear out any cached state
         state::getGlobalState().forceClearAll();
 
         // Clear shared files
@@ -35,9 +40,6 @@ namespace tests {
 
         // Clear out global message bus
         scheduler::getGlobalMessageBus().clear();
-
-        // Clear memory snapshots
-        memory::getGlobalMemorySnapshotRegister().clear();
 
         // Clear zygotes
         zygote::getZygoteRegistry().clear();

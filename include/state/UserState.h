@@ -14,6 +14,8 @@ namespace state {
 
         std::shared_ptr<StateKeyValue> getValue(const std::string &key, size_t size);
 
+        size_t getKeyCount();
+
     private:
         const std::string user;
 

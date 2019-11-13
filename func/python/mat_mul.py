@@ -1,4 +1,4 @@
-from pyfaasm.core import getFunctionIdx, getInput
+from pyfaasm.core import getFunctionIdx, getInput, setOutput
 from pyfaasm.matrix import divide_and_conquer, distributed_divide_and_conquer
 
 
@@ -10,6 +10,9 @@ def main_func():
     if idx == 0:
         print("Kicking off divide and conquer")
         divide_and_conquer()
+
+        output = "Matrix multiplication finished"
+        setOutput(output.encode("utf-8"))
     else:
         # Run the worker
         print("Running matrix multiplication worker")

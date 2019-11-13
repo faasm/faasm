@@ -190,6 +190,21 @@ namespace tests {
             redis.flushAll();
         }
 
+        SECTION("Test counts can't go below zero") {
+            message::Message msg = util::messageFactory("demo", "echo");
+
+            sch.notifyThreadFinished(msg);
+            sch.notifyThreadFinished(msg);
+            sch.notifyThreadFinished(msg);
+            REQUIRE(sch.getFunctionThreadCount(msg) == 0);
+
+            sch.notifyCallFinished(msg);
+            sch.notifyCallFinished(msg);
+            sch.notifyCallFinished(msg);
+            sch.notifyCallFinished(msg);
+            REQUIRE(sch.getFunctionInFlightCount(msg) == 0);
+        }
+
         SECTION("Node choice checks") {
             redis.sadd(GLOBAL_NODE_SET, otherNodeA);
 

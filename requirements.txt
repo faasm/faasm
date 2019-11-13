@@ -8,6 +8,7 @@ cryptography
 dulwich
 flask
 genshi
+gunicorn
 hiredis
 ibm-cos-sdk
 invoke

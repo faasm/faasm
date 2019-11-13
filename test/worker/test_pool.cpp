@@ -1,5 +1,9 @@
 #include <catch/catch.hpp>
 
+extern "C" {
+#include <emulator/emulator_api.h>
+}
+
 #include "utils.h"
 
 #include <util/environment.h>
@@ -8,7 +12,6 @@
 
 #include <worker/WorkerThreadPool.h>
 #include <worker/WorkerThread.h>
-#include <emulator/emulator_api.h>
 #include <emulator/emulator.h>
 
 using namespace worker;

@@ -16,6 +16,7 @@ else
   echo "Generating object files"
   ./bin/codegen_func sgd reuters_svm
   ./bin/codegen_func python py_func
+  ./bin/codegen_shared_obj /usr/local/faasm/runtime_root/lib/python3.7
 
   echo "Reverting function storage from local to ${ORIGINAL_FUNCTION_STORAGE}"
   export FUNCTION_STORAGE=${ORIGINAL_FUNCTION_STORAGE}

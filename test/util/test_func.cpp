@@ -126,6 +126,18 @@ namespace tests {
         REQUIRE(afterResultKey == originalResultKey);
     }
 
+    TEST_CASE("Check message with ID already set still gets result key and status key", "[util]") {
+        message::Message msg;
+        int msgId = 1234;
+        msg.set_id(msgId);
+        msg.set_statuskey("");
+        msg.set_resultkey("");
+
+        util::setMessageId(msg);
+        REQUIRE(msg.statuskey() == util::statusKeyFromMessageId(msgId));
+        REQUIRE(msg.resultkey() == util::resultKeyFromMessageId(msgId));
+    }
+
     TEST_CASE("Test creating async response") {
         message::Message msg = util::messageFactory("foo", "bar");
 

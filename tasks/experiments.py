@@ -168,20 +168,22 @@ class MatrixExperimentRunner(ExperimentRunner):
     is_python = True
     result_file_name = "NODE_0_MAT_MUL.log"
 
-    def __init__(self, mat_size, n_splits):
+    def __init__(self, n_workers, mat_size, n_splits):
         super().__init__(None)
 
+        self.n_workers = n_workers
         self.mat_size = mat_size
         self.n_splits = n_splits
 
     def get_result_dir_name(self, system):
-        folder_name = "SYSTEM_{}_MATRIX_{}_SPLITS_{}_logs".format(system, self.mat_size, self.n_splits)
+        folder_name = "SYSTEM_{}_MATRIX_{}_SPLITS_{}_WORKERS_{}_logs".format(system, self.mat_size, self.n_splits,
+                                                                             self.n_workers)
         return folder_name
 
 
 @task
-def matrix_experiment(ctx, mat_size, n_splits, native=False, nobill=False):
-    runner = MatrixExperimentRunner(mat_size, n_splits)
+def matrix_experiment(ctx, n_workers, mat_size, n_splits, native=False, nobill=False):
+    runner = MatrixExperimentRunner(n_workers, mat_size, n_splits)
     runner.run(native, nobill=nobill)
 
 

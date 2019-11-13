@@ -306,7 +306,7 @@ namespace wasm {
     }
 
     // Emulator API, should not be called from wasm but needs to be present for linking
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "setEmulatedMessageFromJson", void, setEmulatedMessageFromJson, I32 msgPtr) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "setEmulatedMessageFromJson", I32, setEmulatedMessageFromJson, I32 msgPtr) {
         util::getLogger()->debug("S - setEmulatedMessageFromJson - {}", msgPtr);
         throw std::runtime_error("Should not be calling emulator functions from wasm");
     }

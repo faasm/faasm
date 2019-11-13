@@ -90,6 +90,7 @@ from tasks.ibm import (
 from tasks.invoke import (
     invoke,
     status,
+    flush,
 )
 from tasks.knative import (
     deploy_knative,

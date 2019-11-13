@@ -7,6 +7,7 @@ from invoke import task
 from tasks.aws import invoke_lambda
 from tasks.util.config import get_faasm_config
 from tasks.util.env import HOME_DIR, STATE_S3_BUCKET, DATA_S3_BUCKET
+from tasks.util.kubernetes import get_kubernetes_upload_host
 from tasks.util.matrices import RESULT_MATRIX_KEY, SUBMATRICES_KEY_A, SUBMATRICES_KEY_B, MATRIX_CONF_STATE_KEY
 from tasks.util.matrices import get_params_file, get_mat_a_file, get_mat_b_file, get_result_file
 from tasks.util.state import upload_binary_state, upload_sparse_matrix
@@ -111,22 +112,11 @@ def reuters_prepare_aws(ctx):
         })
 
 
-def _get_upload_host(knative, host):
-    faasm_conf = get_faasm_config()
-    if knative:
-        if not faasm_conf.has_section("Kubernetes"):
-            host = host if host else "localhost"
-        else:
-            host = faasm_conf["Kubernetes"]["upload_host"]
-
-    return host
-
-
 def _do_reuters_upload(host=None, s3_bucket=None, knative=False):
     assert host or s3_bucket or knative, "Must give a host, S3 bucket or knative"
     user = "sgd"
 
-    host = _get_upload_host(knative, host)
+    host = get_kubernetes_upload_host(knative, host)
 
     # Upload the matrix data
     upload_sparse_matrix(user, "inputs", _REUTERS_DATA_DIR, host=host, s3_bucket=s3_bucket)
@@ -148,7 +138,7 @@ def _do_reuters_upload(host=None, s3_bucket=None, knative=False):
 def matrix_state_upload(ctx, mat_size, n_splits, host=None, knative=True):
     user = "python"
 
-    host = _get_upload_host(knative, host)
+    host = get_kubernetes_upload_host(knative, host)
 
     upload_binary_state(user, MATRIX_CONF_STATE_KEY, get_params_file(mat_size, n_splits), host=host)
 

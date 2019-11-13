@@ -14,6 +14,7 @@ namespace state {
 
         void forceClearAll();
 
+        size_t getKVCount();
     private:
         UserStateMap userStateMap;
         std::shared_mutex userStateMapMutex;

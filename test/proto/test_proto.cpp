@@ -47,6 +47,7 @@ namespace tests {
         funcCall.set_ispython(true);
         funcCall.set_istypescript(true);
         funcCall.set_isstatusrequest(true);
+        funcCall.set_isflushrequest(true);
 
         funcCall.set_type(message::Message_MessageType_BIND);
 
@@ -74,6 +75,7 @@ namespace tests {
         REQUIRE(newFuncCall.ispython());
         REQUIRE(newFuncCall.istypescript());
         REQUIRE(newFuncCall.isstatusrequest());
+        REQUIRE(newFuncCall.isflushrequest());
 
         // Check input/ output data
         const std::string actualStrInput = newFuncCall.inputdata();

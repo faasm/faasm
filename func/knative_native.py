@@ -1,3 +1,4 @@
+import logging
 import os
 import threading
 from decimal import Decimal
@@ -11,60 +12,61 @@ app = Flask(__name__)
 
 is_cold_start = True
 
-
-def execute_main(mod):
-    mod.main_func()
-    emulatorSetStatus(1)
+logging.basicConfig(level=logging.INFO)
 
 
-def handle_message(json_data):
-    # Set up the emulator
+def execute_main(json_data):
+    # Set up the emulator again (in case we're running in a separate thread)
     setEmulatorMessage(dumps(json_data))
 
     user = json_data["py_user"]
     func = json_data["py_func"]
     idx = json_data.get("py_idx", 0)
 
-    print("Executing {}/{} (idx {})".format(user, func, idx))
+    app.logger.info("Executing {}/{} (idx {})".format(user, func, idx))
 
     # Assume function is in the current path
     module_name = "{}.{}".format(user, func)
     mod = __import__(module_name, fromlist=[""])
 
+    mod.main_func()
+    emulatorSetStatus(1)
+
+
+@app.route('/', methods=["GET", "POST"])
+def run_func():
+    global is_cold_start
+
+    setLocalInputOutput(True)
+
+    if is_cold_start:
+        delay_str = os.environ.get("COLD_START_DELAY_MS", "1000")
+        delay_seconds = Decimal(delay_str) / 1000
+        app.logger.info("Simulating cold start for {} seconds".format(delay_seconds))
+
+        sleep(delay_seconds)
+        is_cold_start = False
+
+    json_data = request.get_json()
+    app.logger.info("Knative request: {}".format(json_data))
+
+    # Set up this main thread with the emulator
+    # Make sure to pass on the message ID for child threads
+    msgId = setEmulatorMessage(dumps(json_data))
+    json_data["id"] = msgId
+
     if json_data.get("async", False):
         # Run in background if async request
-        func_thread = threading.Thread(target=execute_main, args=[mod])
+        func_thread = threading.Thread(target=execute_main, args=[json_data])
         func_thread.start()
 
         return emulatorGetAsyncResponse()
     else:
-        # Run the function
-        mod.main_func()
-
-        # Return the output
+        # Run in main thread
+        execute_main(json_data)
         func_output = getOutput()
 
         if not func_output:
             return "Empty output"
         else:
             return func_output
-
-
-@app.route('/', methods=["GET", "POST"])
-def run_func():
-    global is_cold_start
-    if is_cold_start:
-        delay_str = os.environ.get("COLD_START_DELAY_MS", "1000")
-        delay_seconds = Decimal(delay_str) / 1000
-        print("Simulating cold start for {} seconds".format(delay_seconds))
-
-        sleep(delay_seconds)
-        is_cold_start = False
-
-    json_data = request.get_json()
-    return handle_message(json_data)
-
-
-if __name__ == "__main__":
-    setLocalInputOutput(True)
-    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))

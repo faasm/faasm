@@ -2,11 +2,16 @@
 
 #include <util/locks.h>
 #include <util/func.h>
+#include <util/config.h>
 
 namespace zygote {
     ZygoteRegistry &getZygoteRegistry() {
         static ZygoteRegistry r;
         return r;
+    }
+
+    size_t ZygoteRegistry::getTotalZygoteCount() {
+        return zygoteMap.size();
     }
 
     int ZygoteRegistry::getZygoteCount(const std::string &key) {

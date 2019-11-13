@@ -39,7 +39,7 @@ def backup_runtime_root(ctx):
     set_up_python_runtime(ctx)
 
     # Set up tensorflow data
-    set_up_tensorflow_data(ctx)
+    set_up_tensorflow_data(ctx, local_copy=True)
 
     # Create a tmp directory
     makedirs(join(FAASM_RUNTIME_ROOT, "tmp"))

@@ -1,6 +1,7 @@
 #include "SharingMessageBus.h"
 
 #include <util/logging.h>
+#include <scheduler/Scheduler.h>
 
 namespace scheduler {
     SharingMessageBus &SharingMessageBus::getInstance() {
@@ -37,5 +38,13 @@ namespace scheduler {
         std::string queueName = getSharingQueueNameForNode(nodeId);
         std::vector<uint8_t> msgBytes = util::messageToBytes(msg);
         redis.enqueueBytes(queueName, msgBytes);
+    }
+
+    void SharingMessageBus::broadcastMessage(const message::Message &msg) {
+        std::unordered_set<std::string> allOptions = redis.smembers(GLOBAL_NODE_SET);
+
+        for(auto &nodeId : allOptions) {
+            shareMessageWithNode(nodeId, msg);
+        }
     }
 }
