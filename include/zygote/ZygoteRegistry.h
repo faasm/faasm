@@ -9,6 +9,7 @@ namespace zygote {
 
         void clear();
 
+        size_t getTotalZygoteCount();
     private:
         std::shared_mutex mx;
         std::unordered_map<std::string, wasm::WasmModule> zygoteMap;

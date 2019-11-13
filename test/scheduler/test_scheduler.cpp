@@ -203,12 +203,6 @@ namespace tests {
             sch.notifyCallFinished(msg);
             sch.notifyCallFinished(msg);
             REQUIRE(sch.getFunctionInFlightCount(msg) == 0);
-
-            sch.notifyAwaiting(msg);
-            sch.notifyAwaiting(msg);
-            sch.notifyAwaiting(msg);
-            sch.notifyAwaiting(msg);
-            REQUIRE(sch.getFunctionThreadCount(msg) == 0);
         }
 
         SECTION("Node choice checks") {

@@ -10,6 +10,10 @@ namespace zygote {
         return r;
     }
 
+    size_t ZygoteRegistry::getTotalZygoteCount() {
+        return zygoteMap.size();
+    }
+
     int ZygoteRegistry::getZygoteCount(const std::string &key) {
         util::SharedLock lock(mx);
         int count = zygoteMap.count(key);

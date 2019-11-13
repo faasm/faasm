@@ -10,7 +10,6 @@ extern "C" {
 #include <state/State.h>
 #include <scheduler/Scheduler.h>
 #include <emulator/emulator.h>
-#include <memory/MemorySnapshotRegister.h>
 #include <zygote/ZygoteRegistry.h>
 #include <storage/SharedFilesManager.h>
 #include <boost/filesystem.hpp>
@@ -41,9 +40,6 @@ namespace tests {
 
         // Clear out global message bus
         scheduler::getGlobalMessageBus().clear();
-
-        // Clear memory snapshots
-        memory::getGlobalMemorySnapshotRegister().clear();
 
         // Clear zygotes
         zygote::getZygoteRegistry().clear();

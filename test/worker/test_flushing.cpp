@@ -6,6 +6,7 @@
 #include <util/config.h>
 #include <boost/filesystem.hpp>
 #include <util/files.h>
+#include <zygote/ZygoteRegistry.h>
 
 namespace tests {
     TEST_CASE("Test flushing worker clears state", "[worker]") {
@@ -41,5 +42,36 @@ namespace tests {
         // Flush and check file is gone
         worker::flushWorkerHost();
         REQUIRE(!boost::filesystem::exists(sharedPath));
+    }
+
+    TEST_CASE("Test flushing worker clears zygotes", "[worker]") {
+        const message::Message msgA = util::messageFactory("demo", "echo");
+        const message::Message msgB = util::messageFactory("demo", "dummy");
+
+        zygote::ZygoteRegistry &reg = zygote::getZygoteRegistry();
+        reg.getZygote(msgA);
+        reg.getZygote(msgB);
+
+        REQUIRE(reg.getTotalZygoteCount() == 2);
+
+        worker::flushWorkerHost();
+        REQUIRE(reg.getTotalZygoteCount() == 0);
+    }
+    
+    TEST_CASE("Test flushing worker clears scheduler", "[worker]") {
+        message::Message msgA = util::messageFactory("demo", "echo");
+        message::Message msgB = util::messageFactory("demo", "dummy");
+
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        sch.callFunction(msgA);
+        sch.callFunction(msgB);
+
+        REQUIRE(sch.getFunctionInFlightCount(msgA) == 1);
+        REQUIRE(sch.getFunctionInFlightCount(msgB) == 1);
+
+        worker::flushWorkerHost();
+
+        REQUIRE(sch.getFunctionInFlightCount(msgA) == 0);
+        REQUIRE(sch.getFunctionInFlightCount(msgB) == 0);
     }
 }
