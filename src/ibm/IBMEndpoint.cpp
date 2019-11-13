@@ -158,7 +158,7 @@ namespace ibm {
 
         // Do the actual execution
         if (responseMsg.empty()) {
-            if (callMode == "codegen") {
+            if (callMode == CODEGEN_MODE) {
                 logger->info("Handling codegen {}", util::funcToString(msg, false));
                 storage::FileLoader &loader = storage::getFileLoader();
 
@@ -169,10 +169,10 @@ namespace ibm {
                     responseMsg = "Failed running codegen";
                 }
 
-            } else if (callMode == "invoke" || callMode.empty()) {
+            } else if (callMode == INVOKE_MODE || callMode.empty()) {
                 responseMsg = executeFunction(msg);
             } else {
-                responseMsg = "Invalid call mode";
+                responseMsg = "Invalid call mode: " + callMode;
             }
         }
 

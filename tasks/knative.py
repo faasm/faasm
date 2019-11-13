@@ -99,13 +99,7 @@ def delete_knative_worker(ctx, hard=False):
     flush_cmd = "kubectl exec -n faasm redis-queue -- redis-cli flushall"
     call(flush_cmd, shell=True)
 
-    if hard:
-        _delete_knative_fn("worker")
-    else:
-        # Delete the pods (they'll respawn)
-        label = "serving.knative.dev/service=faasm-worker"
-        cmd = "kubectl -n faasm delete pods -l {} --wait=false --now".format(label)
-        call(cmd, shell=True)
+    _delete_knative_fn("worker", hard)
 
 
 @task
@@ -149,14 +143,21 @@ def deploy_knative(ctx, replicas, local=False, ibm=False):
     )
 
 
-def _delete_knative_fn(name):
-    cmd = [
-        "kn", "service", "delete", _fn_name(name), "--namespace=faasm"
-    ]
+def _delete_knative_fn(name, hard):
+    func_name = _fn_name(name)
+    if hard:
+        cmd = [
+            "kn", "service", "delete", func_name, "--namespace=faasm"
+        ]
 
-    cmd_str = " ".join(cmd)
-    print(cmd_str)
-    call(cmd_str, shell=True)
+        cmd_str = " ".join(cmd)
+        print(cmd_str)
+        call(cmd_str, shell=True)
+    else:
+        # Delete the pods (they'll respawn)
+        label = "serving.knative.dev/service={}".format(func_name)
+        cmd = "kubectl -n faasm delete pods -l {} --wait=false --now".format(label)
+        call(cmd, shell=True)
 
 
 def _deploy_knative_fn(name, image, replicas, concurrency, annotations, extra_env=None, shell_env=None):
@@ -281,13 +282,13 @@ def _do_deploy_knative_native(func_name, image_name, replicas):
 
 
 @task
-def delete_knative_native(ctx, user, function):
-    _delete_knative_fn(function)
+def delete_knative_native(ctx, user, function, hard=False):
+    _delete_knative_fn(function, hard)
 
 
 @task
-def delete_knative_native_python(ctx):
-    _delete_knative_fn("python")
+def delete_knative_native_python(ctx, hard=False):
+    _delete_knative_fn("python", hard)
 
 
 @task
