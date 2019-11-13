@@ -24,7 +24,7 @@ FAASM_ZYGOTE() {
     }
 
     // Import pyfaasm
-    PyObject* pyfaasmModule = PyImport_ImportModule("pyfaasm");
+    PyObject* pyfaasmModule = PyImport_ImportModule("pyfaasm.core");
     if(!pyfaasmModule) {
         printf("\nFailed to import pyfaasm\n");
     } else {

@@ -37,5 +37,10 @@ namespace worker {
 
         // Clear zygotes
         zygote::getZygoteRegistry().clear();
+
+        // If necessary, restore the python function
+        if(conf.pythonPreload == "on") {
+
+        }
     }
 }

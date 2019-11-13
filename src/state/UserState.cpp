@@ -14,6 +14,10 @@ namespace state {
 
     }
 
+    size_t UserState::getKeyCount() {
+        return kvMap.size();
+    }
+
     std::shared_ptr<StateKeyValue> UserState::getValue(const std::string &key, size_t size) {
         {
             util::SharedLock sharedLock(kvMapMutex);

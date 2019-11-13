@@ -47,4 +47,13 @@ namespace state {
 
         return userStateMap[user];
     }
+
+    size_t State::getKVCount() {
+        size_t total = 0;
+        for(auto &p : userStateMap) {
+            total += p.second->getKeyCount();
+        }
+
+        return total;
+    }
 }

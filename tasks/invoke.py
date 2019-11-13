@@ -21,7 +21,7 @@ def invoke(ctx, user, func,
 
 
 @task
-def status(ctx, call_id, host="127.0.0.1", port=8080):
+def status(ctx, call_id, host=None, port=None):
     k8s_host, k8s_port = get_kubernetes_host_port()
     host = host if host else k8s_host
     port = port if port else k8s_port

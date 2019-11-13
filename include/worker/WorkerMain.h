@@ -13,8 +13,6 @@ namespace worker {
 
         void startBackground();
 
-        void preparePythonRuntime();
-
         void awaitGlobalQueue();
 
         void shutdown();

@@ -25,8 +25,28 @@ namespace tests {
         redis::Redis::getState().flushAll();
         redis::Redis::getQueue().flushAll();
 
-        // Flush worker stuff
-        worker::flushWorkerHost();
+        // Clear out any cached state
+        state::getGlobalState().forceClearAll();
+
+        // Clear shared files
+        storage::getSharedFilesManager().clear();
+
+        // Nuke shared files
+        boost::filesystem::remove_all(conf.sharedFilesDir);
+
+        // Reset scheduler
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        sch.clear();
+        sch.addNodeToGlobalSet();
+
+        // Clear out global message bus
+        scheduler::getGlobalMessageBus().clear();
+
+        // Clear memory snapshots
+        memory::getGlobalMemorySnapshotRegister().clear();
+
+        // Clear zygotes
+        zygote::getZygoteRegistry().clear();
 
         // Reset system config
         conf.reset();

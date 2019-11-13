@@ -23,6 +23,8 @@ namespace worker {
         bool isShutdown();
 
         void shutdown();
+
+        void preparePythonRuntime();
     private:
         std::atomic<bool> _shutdown;
         scheduler::Scheduler &scheduler;

@@ -2,6 +2,7 @@
 
 #include <util/locks.h>
 #include <util/func.h>
+#include <util/config.h>
 
 namespace zygote {
     ZygoteRegistry &getZygoteRegistry() {
