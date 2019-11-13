@@ -92,7 +92,7 @@ namespace tests {
     TEST_CASE("Test invoking", "[ibm]") {
         cleanSystem();
 
-        Document d = createJsonRequest("demo", "echo", "invoke");
+        Document d = createJsonRequest("demo", "echo", INVOKE_MODE);
         std::string expected = "ASYNCID";
 
         SECTION("No input") {
@@ -122,20 +122,20 @@ namespace tests {
 
         SECTION("No user") {
             msg = util::messageFactory("", "echo");
-            d = createJsonRequest("", "echo", "invoke");
+            d = createJsonRequest("", "echo", INVOKE_MODE);
             expected = "User and function must be present in request";
         }
 
         SECTION("No function") {
             msg = util::messageFactory("demo", "");
-            d = createJsonRequest("demo", "", "invoke");
+            d = createJsonRequest("demo", "", INVOKE_MODE);
             expected = "User and function must be present in request";
         }
 
         SECTION("Invalid mode") {
             msg = util::messageFactory("demo", "echo");
             d = createJsonRequest("demo", "echo", "afafaf");
-            expected = "Invalid call mode";
+            expected = "Invalid call mode: afafaf";
         }
 
         checkIbmResponse(d, expected, 200);
@@ -154,7 +154,7 @@ namespace tests {
         boost::filesystem::remove(objFilePath);
 
         // Run the codegen
-        Document d = createJsonRequest("demo", "ibm_test", "codegen");
+        Document d = createJsonRequest("demo", "ibm_test", CODEGEN_MODE);
         checkIbmResponse(d, expected, 200);
 
         // Check file is now there

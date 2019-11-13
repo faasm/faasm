@@ -7,6 +7,9 @@
 #include <worker/WorkerMain.h>
 #include <scheduler/SchedulerHttpMixin.h>
 
+#define INVOKE_MODE "invoke"
+#define CODEGEN_MODE "codegen"
+
 
 namespace ibm {
     class IBMEndpoint : public endpoint::Endpoint, scheduler::SchedulerHttpMixin {

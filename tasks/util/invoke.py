@@ -31,7 +31,8 @@ def invoke_impl(user, func,
                 knative=True,
                 native=False,
                 ibm=False,
-                poll=False):
+                poll=False,
+                poll_interval_ms=1000):
     faasm_config = get_faasm_config()
 
     # Provider-specific stuff
@@ -120,7 +121,9 @@ def invoke_impl(user, func,
         count = 0
         while not result.startswith("SUCCESS") and not result.startswith("FAILED"):
             count += 1
-            sleep(2)
+
+            interval = float(poll_interval_ms) / 1000
+            sleep(interval)
 
             result = status_call_impl(call_id, host, port, quiet=True)
             print("\nPOLL {} - {}".format(count, result))
