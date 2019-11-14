@@ -4,7 +4,7 @@ set -e
 
 source toolchain/env.sh
 
-export CFLAGS="--sysroot=${WASM_SYSROOT} ${WASM_LDFLAGS}"
+export CFLAGS="${WASM_CFLAGS} ${WASM_LDFLAGS}"
 
 export CPPFLAGS="${CFLAGS} -DHAVE_UNSETENV=1 -DHAVE_PUTENV=1 -DHAVE_TIMEGM=1 -DHAVE_FORK=1"
 
