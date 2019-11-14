@@ -17,7 +17,34 @@ cd third-party/gem3-mapper
 ./native_build.sh
 ```
 
-You can then run the code normally as described in the repo.
+The repo itself then describes how to use this code.
+
+### Data and Indexing
+
+The index and reads only need to be set up once and uploaded to S3. To do this you need a native build of the indexer (described above). Then you can run:
+
+```
+# Download the data
+inv download-genome human-c-20
+inv download-reads
+
+# Run the indexing
+export LD_LIBRARY_PATH=/usr/local/lib
+./bin/gem-indexer -i ~/faasm/data/genomics/Homo_sapiens.GRCh38.dna.chromosome.20.fa -o ~/faasm/data/genomics/human_c_20_idx.gem
+
+# Do the upload
+inv genomics_upload_s3
+```
+
+### Mapping
+
+To map a reads file you can do the following:
+
+```
+./bin/gem-mapper -I data/human_c_20_idx.gem -i data/reads_1.fq -o data/my_output.sam
+```
+
+You can change threads with `-t`. Adding `-t 1` can be useful for debugging.
 
 ## WASM
 
@@ -36,36 +63,6 @@ make clean
 ```
 
 Once you've built and uploaded the function you can invoke it as normal (user is `gene` and function is called `mapper`).
-
-## Data
-
-You can download a genome with the `download_genome.py` script, e.g.
-
-```
-python3 download_genome.py human-c-20
-```
-
-You can then index it with:
-
-```
-./bin/gem-indexer -i data/Homo_sapiens.GRCh38.dna.chromosome.20.fa -o data/human_c_20_idx.gem
-```
-
-You can download reads to index using the `download_reads.py` script:
-
-```
-python3 download_reads.py
-```
-
-## Mapping
-
-To map a reads file you can do the following:
-
-```
-./bin/gem-mapper -I data/human_c_20_idx.gem -i data/reads_1.fq -o data/my_output.sam
-```
-
-You can change threads with `-t`. Adding `-t 1` can be useful for debugging.
 
 ## Misc
 
@@ -92,4 +89,3 @@ types of mapping and also live in `mapper.c`. `mapper_se_thread` is default.
 
 The mapper parameters tell each thread which files it's dealing with, which thread number
 it is etc.
-
