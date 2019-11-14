@@ -30,6 +30,9 @@ HOST_IFACE_FUNC
 void __faasm_write_state_offset(const char *key, long totalLen, long offset, const unsigned char *data, long dataLen);
 
 HOST_IFACE_FUNC
+void __faasm_write_state_from_file(const char *key, const char *filePath);
+
+HOST_IFACE_FUNC
 void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsigned char *buffer, long bufferLen);
 
 HOST_IFACE_FUNC

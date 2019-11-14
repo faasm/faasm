@@ -18,6 +18,7 @@ extern "C" {
 #include <util/json.h>
 #include <util/bytes.h>
 #include <scheduler/Scheduler.h>
+#include <util/files.h>
 
 /**
  * C++ emulation of Faasm system
@@ -187,6 +188,18 @@ void __faasm_write_state_offset(const char *key, long totalLen, long offset, con
     // util::getLogger()->debug("E - write_state_offset {} {} {} {}", key, totalLen, offset, dataLen);
     auto kv = getKv(key, totalLen);
     kv->setSegment(offset, data, dataLen);
+}
+
+void __faasm_write_state_from_file(const char *key, const char *filePath) {
+    util::getLogger()->debug("E - write_state_from_file - {} {}", key, filePath);
+
+    // Read file into bytes
+    const std::vector<uint8_t> bytes = util::readFileToBytes(filePath);
+
+    // Write to state
+    const std::string actualKey = util::keyForUser(getEmulatorUser(), key);
+    redis::Redis &redis = redis::Redis::getState();
+    redis.set(actualKey, bytes);
 }
 
 void __faasm_flag_state_dirty(const char *key, long totalLen) {

@@ -511,4 +511,9 @@ namespace tests {
         REQUIRE(!redis.sismember(warmSetName, nodeId));
     }
 
+    TEST_CASE("Test writing file to state", "[worker]") {
+        cleanSystem();
+        message::Message msg = util::messageFactory("demo", "state_file");
+        execFunction(msg);
+    }
 }
