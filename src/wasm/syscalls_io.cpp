@@ -268,8 +268,7 @@ namespace wasm {
 
         iovec *nativeIovecs = wasmIovecsToNativeIovecs(iov, iovcnt);
 
-        Iptr count = writev(STDOUT_FILENO, nativeIovecs, iovcnt);
-        fflush(stdout);
+        Iptr count = writev(fd, nativeIovecs, iovcnt);
 
         delete[] nativeIovecs;
 

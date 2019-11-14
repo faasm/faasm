@@ -9,6 +9,7 @@
 #include <redis/Redis.h>
 #include <util/state.h>
 #include <util/files.h>
+#include <storage/SharedFilesManager.h>
 
 namespace wasm {
     void faasmLink() {
@@ -151,7 +152,8 @@ namespace wasm {
         util::getLogger()->debug("S - write_state_from_file - {} {}", key, path);
 
         // Read file into bytes
-        const std::vector<uint8_t> bytes = util::readFileToBytes(path);
+        const std::string maskedPath = storage::maskPath(path);
+        const std::vector<uint8_t> bytes = util::readFileToBytes(maskedPath);
 
         // Write to state
         const std::string actualKey = util::keyForUser(getExecutingCall()->user(), key);
