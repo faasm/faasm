@@ -3,12 +3,23 @@
 #include "faasm/input.h"
 
 #include <stdio.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <cstring>
 
 /**
  * Test reading a shared file
  */
 FAASM_MAIN_FUNC() {
     const char* inputStr = faasm::getStringInput("");
+
+    // First stat the file to make sure it exists
+    struct stat64 res{};
+    int statRes = stat64(inputStr, &res);
+    if(statRes != 0) {
+        printf("Failed to stat shared file: %s\n", strerror(errno));
+        return 1;
+    }
 
     // Open the file
     char *content = faasm::readFileToString(inputStr);

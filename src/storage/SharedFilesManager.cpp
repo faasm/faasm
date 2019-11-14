@@ -5,10 +5,14 @@
 #include <boost/filesystem.hpp>
 #include <util/locks.h>
 
-#include <fcntl.h>
 #include <util/strings.h>
 #include <util/logging.h>
 #include <util/files.h>
+
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 namespace storage {
     std::string maskPath(const std::string &originalPath) {
@@ -43,6 +47,18 @@ namespace storage {
             return sf.openFile(stripped, flags, mode);
         } else {
             return openLocalFile(path, flags, mode);
+        }
+    }
+
+    int SharedFilesManager::statFile(const std::string &path, struct stat64 *statPtr) {
+        bool isShared = util::startsWith(path, SHARED_FILE_PREFIX);
+        if (isShared) {
+            std::string stripped = util::removeSubstr(path, SHARED_FILE_PREFIX);
+            SharedFile &sf = getFile(stripped);
+            return sf.statFile(stripped, statPtr);
+        } else {
+            std::string fakePath = maskPath(path);
+            return stat64(fakePath.c_str(), statPtr);
         }
     }
 
@@ -94,10 +110,8 @@ namespace storage {
     // Shared file
     // ---------------------------------
 
-    int SharedFile::openFile(const std::string &path, int flags, int mode) {
+    void SharedFile::touchFile(const std::string &path, const std::string &maskedPath) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        const std::string maskedPath = maskSharedPath(path);
 
         // If not checked, do the check and persist
         if (state == NOT_CHECKED) {
@@ -121,7 +135,7 @@ namespace storage {
                     if (bytes.empty()) {
                         logger->debug("Shared file could not be loaded {} ({})", path, maskedPath);
                         state = NOT_EXISTS;
-                        return -ENOENT;
+                        return;
                     }
 
                     // Create directories if necessary
@@ -139,6 +153,35 @@ namespace storage {
                 }
             }
         }
+    }
+
+    int SharedFile::statFile(const std::string &path, struct stat64 *statPtr) {
+        const std::string maskedPath = maskSharedPath(path);
+        touchFile(path, maskedPath);
+
+        {
+            util::SharedLock sharedLock(fileMutex);
+            if (state == NOT_EXISTS) {
+                return -ENOENT;
+            } else if (state == EXISTS) {
+                int statRes = stat64(maskedPath.c_str(), statPtr);
+                if(statRes != 0) {
+                    const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+                    logger->error("Failed to stat file natively at {}", maskedPath.c_str());
+                    throw std::runtime_error("Failed to stat existing file");
+                }
+
+                return statRes;
+            } else {
+                throw std::runtime_error("File checked but not left in non-existent or existent state");
+            }
+        }
+    }
+
+    int SharedFile::openFile(const std::string &path, int flags, int mode) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        const std::string maskedPath = maskSharedPath(path);
+        touchFile(path, maskedPath);
 
         // Shared lock for cases when file has been checked
         {
