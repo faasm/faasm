@@ -91,12 +91,6 @@ namespace wasm {
 
         Runtime::Function *getFunction(const std::string &funcName, bool strict);
 
-        int getHeapBase();
-
-        int getDataEnd();
-
-        int getStackTop();
-
         bool resolve(const std::string &moduleName,
                      const std::string &name,
                      IR::ExternType type,
@@ -142,11 +136,6 @@ namespace wasm {
         // to the lifecycle of the underlying module
         Runtime::Function *functionInstance;
         Runtime::Function *zygoteFunctionInstance;
-
-        // Main module
-        int heapBase = 0;
-        int dataEnd = 0;
-        int stackTop = 0;
 
         // Dynamic modules
         int dynamicModuleCount = 0;

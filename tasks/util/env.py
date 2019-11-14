@@ -10,6 +10,7 @@ PYTHON_USER = "python"
 PYTHON_FUNC = "py_func"
 
 FAASM_HOME = join(HOME_DIR, "faasm")
+FAASM_DATA_DIR = join(HOME_DIR, "faasm", "data")
 FAASM_LOCAL_DIR = "/usr/local/faasm"
 FAASM_RUNTIME_ROOT = join(FAASM_LOCAL_DIR, "runtime_root")
 FAASM_SHARED_ROOT = join(FAASM_LOCAL_DIR, "shared")

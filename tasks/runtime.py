@@ -5,8 +5,8 @@ from subprocess import check_output, call
 
 from invoke import task
 
+from tasks.experiment_data import tf_upload_data
 from tasks.python import set_up_python_runtime, run_python_codegen
-from tasks.tensorflow import set_up_tensorflow_data
 from tasks.util.env import FAASM_RUNTIME_ROOT, FAASM_LOCAL_DIR, MISC_S3_BUCKET, ANSIBLE_ROOT
 from tasks.util.upload_util import upload_file_to_s3, download_tar_from_s3
 
@@ -39,7 +39,7 @@ def backup_runtime_root(ctx):
     set_up_python_runtime(ctx)
 
     # Set up tensorflow data
-    set_up_tensorflow_data(ctx, local_copy=True)
+    tf_upload_data(ctx, local_copy=True)
 
     # Create a tmp directory
     makedirs(join(FAASM_RUNTIME_ROOT, "tmp"))

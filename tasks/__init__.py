@@ -129,20 +129,23 @@ from tasks.experiment_data import (
     reuters_state_upload,
     reuters_state_upload_s3,
     matrix_state_upload,
-)
-from tasks.tensorflow import (
-    set_up_tensorflow_data
+    tf_upload_data,
+    genomics_upload_s3,
+    genomics_download_s3,
+    genomics_upload_data,
 )
 from tasks.toolchain import (
     backup_toolchain,
     backup_sysroot,
     download_toolchain,
+    download_sysroot,
     run_local_codegen,
 )
 from tasks.upload import (
     upload_all,
     upload_all_s3,
     upload,
+    upload_genomics,
 )
 from tasks.wasm2wast import (
     wast
@@ -161,7 +164,10 @@ from tasks.experiments import (
     matrix_pull_results,
     matrix_parse_results,
 )
-
+from tasks.genomics_data import (
+    download_genome,
+    download_reads,
+)
 # Can only generate matrix data with things installed
 try:
     import pyfaasm

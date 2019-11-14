@@ -71,24 +71,32 @@ def backup_sysroot(ctx):
 
 
 @task
-def download_toolchain(ctx):
-    # Nuke existing toolchain and sysroot
-    if exists(TOOLCHAIN_INSTALL):
-        print("Deleting existing toolchain at {}".format(TOOLCHAIN_INSTALL))
-        check_output("rm -rf {}".format(TOOLCHAIN_INSTALL), shell=True)
+def download_sysroot(ctx):
+    if not exists(FAASM_LOCAL_DIR):
+        makedirs(FAASM_LOCAL_DIR)
 
     if exists(FAASM_SYSROOT):
         print("Deleting existing sysroot at {}".format(FAASM_SYSROOT))
         check_output("rm -rf {}".format(FAASM_SYSROOT), shell=True)
 
+    print("Downloading sysroot archive")
+    download_tar_from_s3(MISC_S3_BUCKET, SYSROOT_TAR_NAME, FAASM_LOCAL_DIR, boto=False)
+
+    print("Removing downloaded archive")
+    remove(SYSROOT_TAR_PATH)
+
+
+@task
+def download_toolchain(ctx):
+    if exists(TOOLCHAIN_INSTALL):
+        print("Deleting existing toolchain at {}".format(TOOLCHAIN_INSTALL))
+        check_output("rm -rf {}".format(TOOLCHAIN_INSTALL), shell=True)
+
     if not exists(FAASM_LOCAL_DIR):
         makedirs(FAASM_LOCAL_DIR)
 
-    # Download (note not using Boto)
-    print("Downloading archives")
+    print("Downloading toolchain archive")
     download_tar_from_s3(MISC_S3_BUCKET, TOOLCHAIN_TAR_NAME, TOOLCHAIN_ROOT, boto=False)
-    download_tar_from_s3(MISC_S3_BUCKET, SYSROOT_TAR_NAME, FAASM_LOCAL_DIR, boto=False)
 
-    print("Removing archives")
+    print("Removing downloaded archive")
     remove(TOOLCHAIN_TAR_PATH)
-    remove(SYSROOT_TAR_PATH)

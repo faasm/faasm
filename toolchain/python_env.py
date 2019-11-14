@@ -12,7 +12,7 @@ WASM_RANLIB = join(WASM_TOOLCHAIN_BIN, "llvm-ranlib")
 WASM_LD = join(WASM_TOOLCHAIN_BIN, "wasm-ld")
 WASM_LDSHARED = join(WASM_TOOLCHAIN_BIN, "wasm-ld")
 
-WASM_LDFLAGS = "-Xlinker --stack-first"
+WASM_LDFLAGS = "-Xlinker --stack-first -Xlinker --no-check-features"
 
 WASM_BUILD = "wasm32"
 WASM_HOST = "wasm32-unknown-none"

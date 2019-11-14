@@ -9,6 +9,7 @@ __faasm_append_state
 __faasm_read_appended_state
 __faasm_clear_appended_state
 __faasm_write_state_offset
+__faasm_write_state_from_file
 __faasm_flag_state_dirty
 __faasm_flag_state_offset_dirty
 __faasm_read_state_offset

@@ -147,3 +147,10 @@ def upload_all(ctx, host=None, port=None, py=False, prebuilt=False, local_copy=F
 @task
 def upload_all_s3(ctx):
     _do_upload_all(upload_s3=True)
+
+
+@task
+def upload_genomics(ctx, host="localhost"):
+    func_path = join(PROJ_ROOT, "third-party/gem3-mapper/wasm_bin/gem-mapper")
+    url = "http://{}:8002/f/gene/mapper".format(host)
+    curl_file(url, func_path)

@@ -44,7 +44,7 @@ def _do_compile_tf_lite(native):
         make_cmd.extend([
             "CFLAGS=\"{} -ftls-model=local-exec -ldlmalloc\"".format(WASM_CFLAGS),
             "CXXFLAGS=\"{} -ldlmalloc\"".format(WASM_CXXFLAGS),
-            "LDFLAGS=\"{} -Xlinker --no-check-features -Xlinker --max-memory=1073741824\"".format(WASM_LDFLAGS),
+            "LDFLAGS=\"{} -Xlinker --max-memory=1073741824\"".format(WASM_LDFLAGS),
             "MINIMAL_SRCS=",
             "TARGET={}".format(WASM_HOST),
             "BUILD_WITH_MMAP=false",

@@ -8,6 +8,8 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <redis/Redis.h>
 #include <util/state.h>
+#include <util/files.h>
+#include <storage/SharedFilesManager.h>
 
 namespace wasm {
     void faasmLink() {
@@ -142,6 +144,23 @@ namespace wasm {
         kv->setSegment(offset, data, dataLen);
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_from_file", void, __faasm_write_state_from_file,
+                                   I32 keyPtr, I32 pathPtr) {
+        const std::string key = getStringFromWasm(keyPtr);
+        const std::string path = getStringFromWasm(pathPtr);
+
+        util::getLogger()->debug("S - write_state_from_file - {} {}", key, path);
+
+        // Read file into bytes
+        const std::string maskedPath = storage::maskPath(path);
+        const std::vector<uint8_t> bytes = util::readFileToBytes(maskedPath);
+
+        // Write to state
+        const std::string actualKey = util::keyForUser(getExecutingCall()->user(), key);
+        redis::Redis &redis = redis::Redis::getState();
+        redis.set(actualKey, bytes);
+    }     
+    
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state", void, __faasm_read_state,
                                    I32 keyPtr, I32 bufferPtr, I32 bufferLen) {
         auto kv = getStateKV(keyPtr, bufferLen);

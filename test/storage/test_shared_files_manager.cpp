@@ -20,7 +20,21 @@ namespace tests {
         std::string maskedValidPath = maskPath(validPath);
         std::string invalidPath = "/foobar/123/blah";
 
-        SECTION("Valid file") {
+        SECTION("Stat valid file") {
+            // First stat the file
+            struct stat64 sfmStat{};
+            sfm.statFile(validPath, &sfmStat);
+
+            // Stat natively
+            struct stat64 nativeStat{};
+            stat64(maskedValidPath.c_str(), &nativeStat);
+
+            // Check they're equal
+            REQUIRE(sfmStat.st_size == nativeStat.st_size);
+        }
+
+        SECTION("Open valid file") {
+            // Open the file
             int fd = sfm.openFile(validPath, O_RDONLY, 0);
             REQUIRE(fd > 0);
 
@@ -36,8 +50,14 @@ namespace tests {
             REQUIRE(actual == expected);
         }
 
-        SECTION("Non-existent") {
-            std::string path = "/foobar/123/blah";
+        SECTION("Stat non-existent") {
+            struct stat64 s{};
+            int fd = sfm.statFile(invalidPath, &s);
+            bool isBlocked = (fd == -EPERM) || (fd == -ENOENT);
+            REQUIRE(isBlocked);
+        }
+
+        SECTION("Open non-existent") {
             int fd = sfm.openFile(invalidPath, O_RDONLY, 0);
             REQUIRE(fd == -ENOENT);
         }
@@ -72,8 +92,23 @@ namespace tests {
             loader.uploadSharedFile(relativePath, expectedBytes);
             valid = true;
         }
+
         SECTION("Invalid shared file") {
             valid = false;
+        }
+
+        // Stat the file with the SFM and natively
+        struct stat64 s{};
+        int statRes = sfm.statFile(sharedPath.c_str(), &s);
+
+        struct stat64 nativeS{};
+        int nativeRes = stat64(storagePath.c_str(), &nativeS);
+
+        if(valid) {
+            REQUIRE(statRes == 0);
+            REQUIRE(s.st_size == nativeS.st_size);
+        } else {
+            REQUIRE(statRes == -ENOENT);
         }
 
         // Open the shared file

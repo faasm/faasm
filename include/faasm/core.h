@@ -54,6 +54,11 @@ void faasmClearAppendedState(const char *key);
 void faasmWriteStateOffset(const char *key, long totalLen, long offset, const uint8_t *data, long dataLen);
 
 /**
+ * Writes the given file contents to a file
+ */
+void faasmWriteStateFromFile(const char* key, const char* filePath);
+
+/**
 * Mark the whole value as dirty
 */
 void faasmFlagStateDirty(const char *key, long totalLen);

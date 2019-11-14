@@ -145,25 +145,6 @@ namespace tests {
         REQUIRE(pagesAfter == initialPages);
     }
 
-    TEST_CASE("Test memory variables set up", "[wasm]") {
-        message::Message call = util::messageFactory("demo", "malloc");
-        wasm::WasmModule module;
-        module.bindToFunction(call);
-
-        module.execute(call);
-
-        // Heap base and data end must be the same (i.e. stack going first)
-        REQUIRE(module.getHeapBase() == module.getDataEnd());
-        REQUIRE(module.getStackTop() < module.getDataEnd());
-
-        // Check stack is getting set to the expected size
-        REQUIRE(module.getStackTop() == STACK_SIZE);
-
-        // Sense check that the initial memory is set to be bigger than the heap base
-        Uptr initialMemorySize = Runtime::getMemoryNumPages(module.defaultMemory)* IR::numBytesPerPage;
-        REQUIRE(initialMemorySize > (Uptr) module.getHeapBase());
-    }
-
     TEST_CASE("Test GC", "[wasm]") {
         wasm::WasmModule module;
         message::Message call = util::messageFactory("demo", "malloc");

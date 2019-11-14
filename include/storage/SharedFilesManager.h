@@ -6,6 +6,10 @@
 #include <mutex>
 #include <memory>
 #include <shared_mutex>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 
 #define SHARED_FILE_PREFIX "faasm://"
 
@@ -24,13 +28,18 @@ namespace storage {
 
         int openFile(const std::string &path, int flags, int mode);
 
+        int statFile(const std::string &path, struct stat64 *statPtr);
     private:
         std::shared_mutex fileMutex;
+
+        void touchFile(const std::string &path, const std::string &maskedPath);
     };
 
     class SharedFilesManager {
     public:
         int openFile(const std::string &path, int flags, int mode);
+
+        int statFile(const std::string &path, struct stat64 *statPtr);
 
         void clear();
 
