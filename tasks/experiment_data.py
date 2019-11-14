@@ -188,3 +188,29 @@ def tf_upload_data(ctx, host="localhost", local_copy=False):
             else:
                 shared_path = "tfdata/{}".format(filename)
                 upload_shared_file(host, file_path, shared_path)
+
+
+# -------------------------------------------------
+# GENOMICS UPLOAD
+# -------------------------------------------------
+
+@task
+def genomics_upload_data(ctx, host="localhost", local_copy=False):
+    dest_root = join(FAASM_SHARED_STORAGE_ROOT, "genomics")
+    if local_copy and not exists(dest_root):
+        makedirs(dest_root)
+
+    files = [
+        "human_c_20_idx.gem.gem",
+        "reads_1.fq",
+    ]
+
+    for f in files:
+        file_path = join(FAASM_DATA_DIR, "genomics", f)
+
+        if local_copy:
+            dest_file = join(dest_root, f)
+            call("cp {} {}".format(file_path, dest_file), shell=True)
+        else:
+            shared_path = "genomics/{}".format(f)
+            upload_shared_file(host, file_path, shared_path)

@@ -132,6 +132,7 @@ from tasks.experiment_data import (
     tf_upload_data,
     genomics_upload_s3,
     genomics_download_s3,
+    genomics_upload_data,
 )
 from tasks.toolchain import (
     backup_toolchain,
