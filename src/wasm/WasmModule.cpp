@@ -68,10 +68,6 @@ namespace wasm {
             tearDown();
         }
 
-        heapBase = other.heapBase;
-        dataEnd = other.dataEnd;
-        stackTop = other.stackTop;
-
         dynamicModuleCount = other.dynamicModuleCount;
         nextMemoryBase = other.nextMemoryBase;
         nextStackPointer = other.nextStackPointer;
@@ -332,21 +328,12 @@ namespace wasm {
         // Typescript doesn't export memory info, nor does it require
         // setting up argv/argc
         if (!boundIsTypescript) {
-            heapBase = getGlobalI32("__heap_base", executionContext);
-            dataEnd = getGlobalI32("__data_end", executionContext);
-
-            // Note that heap base and data end should be the same (provided stack-first is switched on)
-            if (heapBase != dataEnd) {
-                logger->error("Expected heap base and data end to be equal but were {} and {}", heapBase, dataEnd);
-                throw std::runtime_error("Heap base and data end are different");
-            }
-
             Uptr initialTableSize = Runtime::getTableNumElements(defaultTable);
             Uptr initialMemorySize = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
             Uptr initialMemoryPages = Runtime::getMemoryNumPages(defaultMemory);
 
-            logger->debug("heap_base={} data_end={} heap_top={} initial_pages={} initial_table={}", heapBase, dataEnd,
-                          initialMemorySize, initialMemoryPages, initialTableSize);
+            logger->debug("heap_top={} initial_pages={} initial_table={}", initialMemorySize, initialMemoryPages,
+                          initialTableSize);
 
             // Set up invoke arguments just below the top of the memory (i.e. at the top of the dynamic section)
             U32 argvStart = initialMemorySize - 20;
@@ -399,8 +386,6 @@ namespace wasm {
             if (!stackDef.type.isMutable) {
                 throw std::runtime_error("Found immutable stack top");
             }
-
-            stackTop = stackDef.initializer.i32;
         } else {
             // A dynamic module needs the same resources as a main module but we need to manually
             // create them
@@ -583,18 +568,6 @@ namespace wasm {
 
         Runtime::setTableElement(defaultTable, prevIdx, exportedFunc);
         return prevIdx;
-    }
-
-    int WasmModule::getHeapBase() {
-        return heapBase;
-    }
-
-    int WasmModule::getDataEnd() {
-        return dataEnd;
-    }
-
-    int WasmModule::getStackTop() {
-        return stackTop;
     }
 
     /**

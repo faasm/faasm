@@ -138,6 +138,7 @@ from tasks.toolchain import (
     backup_toolchain,
     backup_sysroot,
     download_toolchain,
+    download_sysroot,
     run_local_codegen,
 )
 from tasks.upload import (

@@ -4,14 +4,7 @@ set -e
 
 source toolchain/env.sh
 
-export CFLAGS="--sysroot=${WASM_SYSROOT}  \
-    -Xlinker --no-entry \
-    -Xlinker --export=main \
-    -Xlinker --max-memory=1073741824 \
-    -Xlinker --stack-first \
-    -Xlinker --threads \
-    -Wl,-z,stack-size=4194304 -Wl, \
-"
+export CFLAGS="--sysroot=${WASM_SYSROOT} ${WASM_LDFLAGS}"
 
 export CPPFLAGS="${CFLAGS} -DHAVE_UNSETENV=1 -DHAVE_PUTENV=1 -DHAVE_TIMEGM=1 -DHAVE_FORK=1"
 
