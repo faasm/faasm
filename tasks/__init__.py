@@ -144,6 +144,7 @@ from tasks.upload import (
     upload_all,
     upload_all_s3,
     upload,
+    upload_genomics,
 )
 from tasks.wasm2wast import (
     wast

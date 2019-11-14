@@ -13,8 +13,7 @@ inv install-native-tools
 One that's set up, you can run the following:
 
 ```
-cd third-party/gem3-mapper
-./native_build.sh
+./bin/build_genomics_native.sh
 ```
 
 The repo itself then describes how to use this code.
@@ -29,10 +28,12 @@ inv download-genome human-c-20
 inv download-reads
 
 # Run the indexing
+cd third-party/gem3-mapper
 export LD_LIBRARY_PATH=/usr/local/lib
 ./bin/gem-indexer -i ~/faasm/data/genomics/Homo_sapiens.GRCh38.dna.chromosome.20.fa -o ~/faasm/data/genomics/human_c_20_idx.gem
 
 # Do the upload
+cd ../..
 inv genomics_upload_s3
 ```
 
@@ -48,21 +49,19 @@ You can change threads with `-t`. Adding `-t 1` can be useful for debugging.
 
 ## WASM
 
-To build for WASM, you can run:
+To build and upload WASM, you can run:
 
 ```
-cd third-party/gem3-mapper
-
-# Set up wasm symlink for filesystem (debug)
-./wasm_filesystem.sh
-
 # Build
-make clean
-./wasm_clean.sh
-./wasm_build.sh
-```
+./bin/clean_genomics.sh
+./bin/build_genomics.sh
 
-Once you've built and uploaded the function you can invoke it as normal (user is `gene` and function is called `mapper`).
+# Upload
+inv upload-genomics
+
+# Invoke
+inv invoke gene mapper
+```
 
 ## Misc
 
