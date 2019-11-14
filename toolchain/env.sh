@@ -10,7 +10,7 @@ export WASM_RANLIB=${WASM_TOOLCHAIN_BIN}/llvm-ranlib
 export WASM_LD=${WASM_TOOLCHAIN_BIN}/wasm-ld
 export WASM_LDSHARED=${WASM_TOOLCHAIN_BIN}/wasm-ld
 
-export WASM_LDFLAGS="-Xlinker --stack-first -Xlinker --no-check-features -ldlmalloc "
+export WASM_LDFLAGS="-Xlinker --stack-first -Xlinker --no-entry -Xlinker --no-check-features -ldlmalloc"
 
 export WASM_BUILD=wasm32
 export WASM_HOST=wasm32-unknown-none
