@@ -200,10 +200,15 @@ def genomics_upload_data(ctx, host="localhost", local_copy=False):
     if local_copy and not exists(dest_root):
         makedirs(dest_root)
 
-    files = [
-        "human_c_20_idx.gem.gem",
-        "reads_1.fq",
-    ]
+    read_copies = 5
+
+    # Create list of files as tuples of (source, dest)
+    reads_source_file = "reads_1.fq"
+    files = list()
+    for idx in range(0, read_copies):
+        files.append((reads_source_file, "reads_{}.fq".format(idx)) for idx in range(0, read_copies))
+
+    files.append(("human_c_20_idx.gem.gem", "human_c_20_idx.gem.gem"))
 
     for f in files:
         file_path = join(FAASM_DATA_DIR, "genomics", f)

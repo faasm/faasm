@@ -1,8 +1,35 @@
 # Genomics Use-case
 
-If building native and wasm in the same directory, be sure to clean when switching.
+## Data
+
+You can download the genomics data then upload with:
+
+```
+inv genomics-download-s3
+
+# Use --local-copy if running locally
+inv genomics-upload-data --local-copy
+```
+
+## WASM
+
+To build and upload WASM, you can run:
+
+```
+# Build
+./bin/clean_genomics.sh
+./bin/build_genomics.sh
+
+# Upload
+inv upload-genomics
+
+# Invoke
+inv invoke gene mapper
+```
 
 ## Native
+
+Note, if you're building native and wasm in the same directory, be sure to clean when switching.
 
 First you need to install libfaasm natively:
 
@@ -24,17 +51,14 @@ The index and reads only need to be set up once and uploaded to S3. To do this y
 
 ```
 # Download the data
-inv download-genome human-c-20
 inv download-reads
+inv download-genome
 
 # Run the indexing
-cd third-party/gem3-mapper
-export LD_LIBRARY_PATH=/usr/local/lib
-./bin/gem-indexer -i ~/faasm/data/genomics/Homo_sapiens.GRCh38.dna.chromosome.20.fa -o ~/faasm/data/genomics/human_c_20_idx.gem
+inv index-genome
 
 # Do the upload
-cd ../..
-inv genomics_upload_s3
+inv genomics-upload-s3
 ```
 
 ### Mapping
@@ -46,22 +70,6 @@ To map a reads file you can do the following:
 ```
 
 You can change threads with `-t`. Adding `-t 1` can be useful for debugging.
-
-## WASM
-
-To build and upload WASM, you can run:
-
-```
-# Build
-./bin/clean_genomics.sh
-./bin/build_genomics.sh
-
-# Upload
-inv upload-genomics
-
-# Invoke
-inv invoke gene mapper
-```
 
 ## Misc
 

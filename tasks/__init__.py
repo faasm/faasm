@@ -167,6 +167,7 @@ from tasks.experiments import (
 from tasks.genomics_data import (
     download_genome,
     download_reads,
+    index_genome,
 )
 # Can only generate matrix data with things installed
 try:
