@@ -25,7 +25,10 @@ READ_URLS = [
     "https://raw.githubusercontent.com/BenLangmead/bowtie2/master/example/reads/reads_1.fq",
 ]
 
-CHROMOSOME_NUMBERS = range(1, 22)
+# Python ranges are exclusive
+CHROMOSOME_NUMBERS = [str(i) for i in range(1, 23)]
+CHROMOSOME_NUMBERS.append("X")
+CHROMOSOME_NUMBERS.append("Y")
 
 CHROMOSOME_URLS = [
     "ftp://ftp.ensembl.org/pub/release-97/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.{}.fa.gz".format(i)
@@ -72,9 +75,9 @@ def index_genome(ctx):
     if not exists(binary):
         raise RuntimeError("Expected to find executable at {}".format(binary))
 
-    for chromosome_idx in CHROMOSOME_NUMBERS:
-        input_file = join(FAASM_DATA_DIR, "genomics", "Homo_sapiens.GRCh38.dna.chromosome.{}.fa".format(chromosome_idx))
-        output_file = join(FAASM_DATA_DIR, "genomics", "index_{}".format(chromosome_idx))
+    for idx, name in enumerate(CHROMOSOME_NUMBERS):
+        input_file = join(FAASM_DATA_DIR, "genomics", "Homo_sapiens.GRCh38.dna.chromosome.{}.fa".format(name))
+        output_file = join(FAASM_DATA_DIR, "genomics", "index_{}".format(idx))
 
         cmd = [
             binary,
@@ -85,6 +88,12 @@ def index_genome(ctx):
         cmd_str = " ".join(cmd)
         print(cmd_str)
         call(cmd_str, shell=True, env=shell_env, cwd=work_dir)
+
+        # Remove unnecessary files
+        info_file = "{}.info".format(output_file)
+        remove(input_file)
+        remove(info_file)
+
 
 
 @task
