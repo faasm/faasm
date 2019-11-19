@@ -51,6 +51,8 @@ namespace tests {
     int extraFuncsPerModule = 6;
 
     TEST_CASE("Test dynamic load/ function lookup", "[wasm]") {
+        cleanSystem();
+
         // Need to force python function _not_ to load numpy up front
         util::SystemConfig &conf = util::getSystemConfig();
         std::string preloadBefore = conf.pythonPreload;

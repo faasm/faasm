@@ -10,6 +10,7 @@
 #include <rapidjson/stringbuffer.h>
 #include <util/json.h>
 #include <storage/FileLoader.h>
+#include <boost/algorithm/string/trim.hpp>
 
 
 namespace ibm {
@@ -109,6 +110,7 @@ namespace ibm {
         std::string callMode;
         try {
             callMode = getStringFromJson(requestJson, "mode");
+            boost::trim(callMode);
         } catch (util::JsonFieldNotFound &ex) {
             callMode = "";
         }

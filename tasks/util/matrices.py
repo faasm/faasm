@@ -4,37 +4,18 @@ from os.path import join, exists
 from tasks.util.env import HOME_DIR, FAASM_DATA_DIR
 
 # NOTE - THESE HAVE TO MATCH PYFAASM
-SUBMATRICES_KEY_A = "submatrices_a"
-SUBMATRICES_KEY_B = "submatrices_b"
-RESULT_MATRIX_KEY = "result_matrix"
+SUBMATRICES_KEY_A = "mat_a"
+SUBMATRICES_KEY_B = "mat_b"
 MATRIX_CONF_STATE_KEY = "matrix_state"
 
 MATRIX_DATA_DIR = join(FAASM_DATA_DIR, "matrix")
-MATRIX_A_FILE = join(MATRIX_DATA_DIR, "mat_a")
-PARAMS_FILE = join(MATRIX_DATA_DIR, "params")
-MATRIX_B_FILE = join(MATRIX_DATA_DIR, "mat_b")
-RESULT_FILE = join(MATRIX_DATA_DIR, "result")
 
 
-def _get_file(prefix, matrix_size, n_splits):
-    # Set up the problem
-    if not exists(MATRIX_DATA_DIR):
-        makedirs(MATRIX_DATA_DIR)
+def get_matrix_dir(matrix_size, n_splits):
+    dir_name = "{}x{}_{}".format(matrix_size, matrix_size, n_splits)
+    dir_path = join(MATRIX_DATA_DIR, dir_name)
 
-    return "{}_{}_{}".format(prefix, matrix_size, n_splits)
+    if not exists(dir_path):
+        makedirs(dir_path)
 
-
-def get_params_file(matrix_size, n_splits):
-    return _get_file(PARAMS_FILE, matrix_size, n_splits)
-
-
-def get_mat_a_file(matrix_size, n_splits):
-    return _get_file(MATRIX_A_FILE, matrix_size, n_splits)
-
-
-def get_mat_b_file(matrix_size, n_splits):
-    return _get_file(MATRIX_B_FILE, matrix_size, n_splits)
-
-
-def get_result_file(matrix_size, n_splits):
-    return _get_file(RESULT_FILE, matrix_size, n_splits)
+    return dir_path
