@@ -1,4 +1,5 @@
-from os import walk, makedirs
+import multiprocessing
+from os import walk, makedirs, listdir
 from os.path import join, exists
 from shutil import rmtree
 from subprocess import call
@@ -10,8 +11,7 @@ from tasks.aws import invoke_lambda
 from tasks.util.env import FUNC_DIR, FAASM_SHARED_STORAGE_ROOT
 from tasks.util.env import STATE_S3_BUCKET, DATA_S3_BUCKET, FAASM_DATA_DIR
 from tasks.util.kubernetes import get_kubernetes_upload_host
-from tasks.util.matrices import RESULT_MATRIX_KEY, SUBMATRICES_KEY_A, SUBMATRICES_KEY_B, MATRIX_CONF_STATE_KEY
-from tasks.util.matrices import get_params_file, get_mat_a_file, get_mat_b_file, get_result_file
+from tasks.util.matrices import SUBMATRICES_KEY_A, SUBMATRICES_KEY_B, MATRIX_CONF_STATE_KEY, get_matrix_dir
 from tasks.util.state import upload_binary_state, upload_sparse_matrix
 from tasks.util.state import upload_shared_file
 from tasks.util.upload_util import upload_file_to_s3, download_file_from_s3
@@ -152,18 +152,24 @@ def _do_reuters_upload(host=None, s3_bucket=None, knative=False):
 # MATRIX UPLOAD
 # -------------------------------------------------
 
+def _do_upload(data_dir, file_name, user, host):
+    print("Uploading state {}".format(file_name))
+    file_path = join(data_dir, file_name)
+    upload_binary_state(user, file_name, file_path, host=host)
+
+
 @task
 def matrix_state_upload(ctx, mat_size, n_splits, host=None, knative=True):
     user = "python"
 
     host = get_kubernetes_upload_host(knative, host)
+    data_dir = get_matrix_dir(mat_size, n_splits)
+    file_names = listdir(data_dir)
 
-    upload_binary_state(user, MATRIX_CONF_STATE_KEY, get_params_file(mat_size, n_splits), host=host)
-
-    upload_binary_state(user, SUBMATRICES_KEY_A, get_mat_a_file(mat_size, n_splits), host=host)
-    upload_binary_state(user, SUBMATRICES_KEY_B, get_mat_b_file(mat_size, n_splits), host=host)
-
-    upload_binary_state(user, RESULT_MATRIX_KEY, get_result_file(mat_size, n_splits), host=host)
+    # Multiple uploaders as there may be lots of files
+    args = [(data_dir, f, user, host) for f in file_names]
+    p = multiprocessing.Pool(multiprocessing.cpu_count() - 1)
+    p.starmap(_do_upload, args)
 
 
 # -------------------------------------------------
