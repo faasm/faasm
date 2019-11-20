@@ -12,6 +12,7 @@ services:
 branches:
   only:
     - master
+    - issue-fixes
 
 before_install:
   - "docker pull faasm/testing"
