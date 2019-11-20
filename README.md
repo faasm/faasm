@@ -32,6 +32,9 @@ docker-compose up
 docker-compose up --scale worker=3
 ```
 
+Note that the first time you run the local set-up it will generate some machine code specific to your host. This is
+stored in the `machine-code` directory in the root of the project and reused on subsequent runs.
+
 ## Compiling a C++ function
 
 C++ functions are built with CMake and held in the `func` directory. `demo/hello.cpp` is a simple hello world function.
@@ -70,6 +73,8 @@ And invoke with:
 ```bash
 inv invoke --py python hello
 ```
+
+This should give a message and the version of Python being run.
 
 # Writing functions
 

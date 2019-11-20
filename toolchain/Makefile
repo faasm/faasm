@@ -1,14 +1,17 @@
+# Project directories
 PROJ_ROOT=${CURDIR}/..
 LLVM_PROJ_DIR=$(PROJ_ROOT)/third-party/llvm-project
 TOOLCHAIN_DIR=$(PROJ_ROOT)/toolchain
 TOOLCHAIN_FILE=$(TOOLCHAIN_DIR)/FaasmToolchain.cmake
 
-CLANG_VERSION=9.0.0
-
+# Install dirs
+FAASM_LOCAL_DIR=/usr/local/faasm
+PREFIX=$(FAASM_LOCAL_DIR)/toolchain
 FAASM_SYSROOT=/usr/local/faasm/llvm-sysroot
 
+CLANG_VERSION=9.0.0
+
 BUILD_DIR=$(LLVM_PROJ_DIR)/build
-PREFIX=$(TOOLCHAIN_DIR)/install
 LLVM_CONFIG=$(BUILD_DIR)/llvm/bin/llvm-config
 AR=$(BUILD_DIR)/llvm/bin/llvm-ar
 
@@ -145,4 +148,3 @@ extras: $(BUILD_DIR)/libcxxabi.BUILT
 	cp $(TOOLCHAIN_DIR)/sysroot_extras/* $(FAASM_SYSROOT)/lib/
 
 build: $(BUILD_DIR)/llvm.BUILT $(BUILD_DIR)/libc.BUILT $(BUILD_DIR)/compiler-rt.BUILT $(BUILD_DIR)/libcxxabi.BUILT $(BUILD_DIR)/libcxx.BUILT extras
-

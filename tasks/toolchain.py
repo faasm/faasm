@@ -6,12 +6,12 @@ from subprocess import check_output
 from invoke import task
 
 from tasks.util.codegen import find_codegen_func, find_codegen_shared_lib
-from tasks.util.env import MISC_S3_BUCKET, TOOLCHAIN_ROOT, FAASM_LOCAL_DIR, FAASM_SYSROOT, FAASM_RUNTIME_ROOT
+from tasks.util.env import MISC_S3_BUCKET, FAASM_LOCAL_DIR, FAASM_SYSROOT, FAASM_RUNTIME_ROOT
 from tasks.util.upload_util import upload_file_to_s3, download_tar_from_s3
 
-TOOLCHAIN_INSTALL = join(TOOLCHAIN_ROOT, "install")
+TOOLCHAIN_INSTALL = join(FAASM_LOCAL_DIR, "toolchain")
 TOOLCHAIN_TAR_NAME = "faasm-toolchain.tar.gz"
-TOOLCHAIN_TAR_PATH = join(TOOLCHAIN_ROOT, TOOLCHAIN_TAR_NAME)
+TOOLCHAIN_TAR_PATH = join(FAASM_LOCAL_DIR, TOOLCHAIN_TAR_NAME)
 
 SYSROOT_TAR_NAME = "faasm-sysroot.tar.gz"
 SYSROOT_TAR_PATH = join(FAASM_LOCAL_DIR, SYSROOT_TAR_NAME)
@@ -42,10 +42,8 @@ def run_local_codegen(ctx):
 
 @task
 def backup_toolchain(ctx):
-    backup_sysroot(ctx)
-
     print("Creating archive of Faasm toolchain")
-    check_output("tar -cf {} install".format(TOOLCHAIN_TAR_NAME), shell=True, cwd=TOOLCHAIN_ROOT)
+    check_output("tar -cf {} toolchain".format(TOOLCHAIN_TAR_NAME), shell=True, cwd=FAASM_LOCAL_DIR)
 
     # Upload
     print("Uploading archive to S3")
@@ -96,7 +94,7 @@ def download_toolchain(ctx):
         makedirs(FAASM_LOCAL_DIR)
 
     print("Downloading toolchain archive")
-    download_tar_from_s3(MISC_S3_BUCKET, TOOLCHAIN_TAR_NAME, TOOLCHAIN_ROOT, boto=False)
+    download_tar_from_s3(MISC_S3_BUCKET, TOOLCHAIN_TAR_NAME, FAASM_LOCAL_DIR, boto=False)
 
     print("Removing downloaded archive")
     remove(TOOLCHAIN_TAR_PATH)

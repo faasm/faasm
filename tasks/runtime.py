@@ -70,6 +70,9 @@ def download_runtime_root(ctx):
     print("Downloading from S3")
     download_tar_from_s3(MISC_S3_BUCKET, RUNTIME_TAR_NAME, FAASM_LOCAL_DIR, boto=False)
 
+    # Removing tar
+    remove(RUNTIME_TAR_PATH)
+
     # Run codegen
     print("Running codegen")
     run_python_codegen(ctx)

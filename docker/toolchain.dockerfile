@@ -34,6 +34,7 @@ RUN make install
 # Download the toolchain
 WORKDIR /usr/local/code/faasm
 RUN inv download-toolchain
+RUN inv download-sysroot
 
 # Install pyfaasm
 RUN pip3 install pyfaasm

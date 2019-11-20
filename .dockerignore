@@ -22,9 +22,6 @@ wasm
 !wasm/sgd/reuters_svm/function.wasm
 !wasm/tf/image/function.wasm
 
-# Toolchain
-toolchain/install
-
 # Benchmarking
 perf
 perf.*

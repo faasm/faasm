@@ -15,11 +15,11 @@ services:
       - redis-queue
       - redis-state
     volumes:
-      - /usr/local/faasm/:/usr/local/faasm/
-      - /usr/local/code/faasm/wasm/:/usr/local/code/faasm/wasm/
+      - ./machine-code/:/usr/local/faasm/object/
+      - ./wasm/:/usr/local/code/faasm/wasm/
     environment:
-      - FUNCTION_STORAGE=fileserver
-      - LOG_LEVEL=debug
+      - FUNCTION_STORAGE=local
+      - LOG_LEVEL=info
       - REDIS_STATE_HOST=redis-state
       - REDIS_QUEUE_HOST=redis-queue
 
@@ -31,16 +31,16 @@ services:
       - "8080"
     privileged: yes
     volumes:
-      - /usr/local/faasm/object:/usr/local/faasm/object
+      - ./machine-code/:/usr/local/faasm/object/
     environment:
       - FUNCTION_STORAGE=fileserver
       - FILESERVER_URL=http://upload:8002
-      - LOG_LEVEL=debug
+      - LOG_LEVEL=info
       - CGROUP_MODE=on
       - NETNS_MODE=off
       - REDIS_STATE_HOST=redis-state
       - REDIS_QUEUE_HOST=redis-queue
-      - THREADS_PER_WORKER=5
+      - THREADS_PER_WORKER=20
       - MAX_IN_FLIGHT_RATIO=1
       - MAX_WORKERS_PER_FUNCTION=4
       - GLOBAL_MESSAGE_TIMEOUT=600000
