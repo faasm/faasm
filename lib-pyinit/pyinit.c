@@ -21,7 +21,11 @@ void setUpPyEnvironment() {
 
     // Faasm-specific
     setenv("PYTHONWASM", "1", 1);
+
 #else
+    // Switch off numpy threading
+    setenv("OPENBLAS_NUM_THREADS", "1", 1);
+    setenv("MKL_NUM_THREADS", "1", 1);
 #endif
 }
 
