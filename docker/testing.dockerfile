@@ -23,6 +23,7 @@ RUN pip3 install -r /tmp/requirements.txt
 
 # Clear out
 RUN rm -rf /tmp/*
+RUN rm -rf /usr/local/code/faasm
 
 COPY . /usr/local/code/faasm
 
@@ -30,11 +31,12 @@ COPY . /usr/local/code/faasm
 WORKDIR /usr/local/code/faasm/ansible
 RUN ansible-playbook catch.yml
 
-# Fix ownership of runtime root
+# Set up runtime root and sysroot
+WORKDIR /usr/local/code/faasm
+RUN inv download-sysroot
 RUN chown -R root:root /usr/local/faasm
 
 # Build the local tooling
-WORKDIR /usr/local/code/faasm
 RUN inv install-native-tools
 
 # Install pyfaasm

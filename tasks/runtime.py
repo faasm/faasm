@@ -11,8 +11,7 @@ from tasks.util.env import FAASM_RUNTIME_ROOT, FAASM_LOCAL_DIR, MISC_S3_BUCKET, 
 from tasks.util.upload_util import upload_file_to_s3, download_tar_from_s3
 
 RUNTIME_TAR_NAME = "faasm_runtime_root.tar.gz"
-RUNTIME_TAR_PATH = "/tmp/{}".format(RUNTIME_TAR_NAME)
-
+RUNTIME_TAR_PATH = join(FAASM_LOCAL_DIR, RUNTIME_TAR_NAME)
 BACKUP_LOCATION = join(FAASM_LOCAL_DIR, "runtime_root_backup")
 
 
@@ -64,13 +63,11 @@ def download_runtime_root(ctx):
         print("Removing existing")
         rmtree(FAASM_RUNTIME_ROOT)
 
-    makedirs(FAASM_RUNTIME_ROOT)
-
     # Download the bundle
     print("Downloading from S3")
     download_tar_from_s3(MISC_S3_BUCKET, RUNTIME_TAR_NAME, FAASM_LOCAL_DIR, boto=False)
 
-    # Removing tar
+    # Remove downloaded tar
     remove(RUNTIME_TAR_PATH)
 
     # Run codegen

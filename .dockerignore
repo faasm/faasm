@@ -1,6 +1,7 @@
 # CLion
 cmake-build-debug
 cmake-build-release
+.idea
 
 # Builds
 build
@@ -15,6 +16,7 @@ k8s
 node_modules
 typescript
 venv
+machine-code
 
 # WebAssembly - benchmark functions have special status
 wasm

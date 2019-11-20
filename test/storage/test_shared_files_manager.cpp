@@ -102,7 +102,7 @@ namespace tests {
         int statRes = sfm.statFile(sharedPath.c_str(), &s);
 
         struct stat64 nativeS{};
-        int nativeRes = stat64(storagePath.c_str(), &nativeS);
+        stat64(storagePath.c_str(), &nativeS);
 
         if(valid) {
             REQUIRE(statRes == 0);
