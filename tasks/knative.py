@@ -60,7 +60,7 @@ KNATIVE_ENV = {
     "NETNS_MODE": "off",
     "MAX_IN_FLIGHT_RATIO": "1",
     "MAX_WORKERS_PER_FUNCTION": "4",  # This limit is per-host. We only want one instance per core
-    "THREADS_PER_WORKER": "5",  # This is how many threads are available in total per host (across all functions)
+    "THREADS_PER_WORKER": "100",  # This is how many threads are available in total per host (across all functions)
     "BOUND_TIMEOUT": str(THIRTY_SECS),  # How long a bound worker sticks around for
     "UNBOUND_TIMEOUT": str(10 * ONE_MIN),  # How long an unbound worker sticks around for
     "GLOBAL_MESSAGE_TIMEOUT": str(2 * ONE_MIN),  # How long things wait for messages on global bus
