@@ -130,7 +130,7 @@ inv upload-all --py --local-copy
 To allow running the demo TensorFlow function, you need to run:
 
 ```
-inv set-up-tensorflow-data --local-copy
+inv tf-upload-data --local-copy
 ```
 
 ## Tests

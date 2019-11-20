@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.4.0)
 
-set(TOOLCHAIN_ROOT ${CMAKE_CURRENT_LIST_DIR})
-set(INSTALL_DIR ${TOOLCHAIN_ROOT}/install/bin)
-
+set(INSTALL_DIR /usr/local/faasm/toolchain/bin)
 set(FAASM_SYSROOT /usr/local/faasm/llvm-sysroot)
 
 set(EXE_SUFFIX "")
