@@ -74,6 +74,9 @@ namespace tests {
         uint8_t buffer[20];
         safeCopyToBuffer(inputBytes, buffer, 20);
 
+        // Add null-terminator
+        buffer[11] = '\0';
+
         // Check cast back to char
         REQUIRE('a' == (char)buffer[0]);
         REQUIRE('b' == (char)buffer[1]);
@@ -86,7 +89,8 @@ namespace tests {
         REQUIRE('c' == (char)buffer[8]);
         REQUIRE('o' == (char)buffer[9]);
         REQUIRE('m' == (char)buffer[10]);
-        
+        REQUIRE('\0' == (char)buffer[11]);
+
         // Check conversion back to string
         char *actualStr = reinterpret_cast<char *>(buffer);
         REQUIRE(input == actualStr);

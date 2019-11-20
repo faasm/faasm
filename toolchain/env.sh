@@ -1,5 +1,5 @@
 export WASM_SYSROOT=/usr/local/faasm/llvm-sysroot
-export WASM_TOOLCHAIN_BIN=/usr/local/code/faasm/toolchain/install/bin
+export WASM_TOOLCHAIN_BIN=/usr/local/faasm/toolchain/bin
 
 export WASM_CC=${WASM_TOOLCHAIN_BIN}/clang
 export WASM_CXX=${WASM_TOOLCHAIN_BIN}/clang++

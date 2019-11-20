@@ -3,6 +3,7 @@
 #include <util/func.h>
 #include <util/config.h>
 #include <WAVM/Runtime/Intrinsics.h>
+#include <utils.h>
 
 using namespace wasm;
 
@@ -31,6 +32,7 @@ namespace tests {
     void
     _doChecks(wasm::WasmModule &moduleA, wasm::WasmModule &moduleB, const std::string &user, const std::string &func,
               const std::string &inputA,              const std::string &inputB, bool isTypescript, bool isPython) {
+
         message::Message msgA = util::messageFactory(user, func);
         message::Message msgB = util::messageFactory(user, func);
 
@@ -41,6 +43,11 @@ namespace tests {
             convertMsgToPython(msgA);
             convertMsgToPython(msgB);
         }
+
+        // Dummy execution initially to avoid any first-time set-up differences
+        WasmModule moduleWarmUp;
+        moduleWarmUp.bindToFunction(msgA);
+        moduleWarmUp.execute(msgA);
 
         // Get the initial mem and table size
         Uptr memBeforeA = Runtime::getMemoryNumPages(moduleA.defaultMemory);

@@ -6,7 +6,7 @@ THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # LLVM
 SYSROOT=/usr/local/faasm/llvm-sysroot
-CLANG_DIR=${THIS_DIR}/../toolchain/install/bin
+CLANG_DIR=/usr/local/faasm/toolchain/bin
 
 mkdir -p ${SYSROOT}
 

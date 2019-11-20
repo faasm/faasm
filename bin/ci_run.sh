@@ -10,6 +10,8 @@ pushd /usr/local/code/faasm
 
 # Download the toolchain
 inv download-toolchain
+inv download-sysroot
+inv download-runtime-root
 
 # Set up libfake for tests
 inv compile-libfake --clean
@@ -21,7 +23,7 @@ inv run-local-codegen
 inv upload-all --py --local-copy
 
 # Set up TF data
-inv set-up-tensorflow-data --local-copy
+inv tf-upload-data --local-copy
 
 popd
 

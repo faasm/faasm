@@ -1,7 +1,7 @@
 from os.path import join
 
 WASM_SYSROOT = "/usr/local/faasm/llvm-sysroot"
-WASM_TOOLCHAIN_BIN = "/usr/local/code/faasm/toolchain/install/bin"
+WASM_TOOLCHAIN_BIN = "/usr/local/faasm/toolchain/bin"
 
 WASM_CC = join(WASM_TOOLCHAIN_BIN, "clang")
 WASM_CXX = join(WASM_TOOLCHAIN_BIN, "clang++")

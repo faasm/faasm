@@ -24,7 +24,7 @@ See the example Tensorflow function at `func/tf/image/label_image.cc`.
 This requires a number of shared files to be available, so once you have an environment running (e.g. with docker-compose), you can run:
 
 ```
-inv set-up-tensorflow-data
+inv tf-upload-data
 ```
 
 You can use the prebuilt function with:
