@@ -21,17 +21,16 @@ RUN pip3 install invoke requests
 COPY requirements.txt /tmp/requirements.txt
 RUN pip3 install -r /tmp/requirements.txt
 
-# Clear out
-RUN rm -rf /tmp/*
-RUN rm -rf /usr/local/code/faasm
-
-COPY . /usr/local/code/faasm
-
 # Set up Catch
 WORKDIR /usr/local/code/faasm/ansible
+COPY ansible/catch.yml catch.yml
 RUN ansible-playbook catch.yml
 
+# Clear out
+RUN rm -rf /tmp/*
+
 # Set up runtime root and sysroot
+COPY . /usr/local/code/faasm
 WORKDIR /usr/local/code/faasm
 RUN inv download-sysroot
 RUN chown -R root:root /usr/local/faasm

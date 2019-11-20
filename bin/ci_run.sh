@@ -23,7 +23,7 @@ inv run-local-codegen
 inv upload-all --py --local-copy
 
 # Set up TF data
-inv set-up-tensorflow-data --local-copy
+inv tf-upload-data --local-copy
 
 popd
 
