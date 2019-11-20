@@ -12,7 +12,6 @@ services:
 branches:
   only:
     - master
-    - more-tests
 
 before_install:
   - "docker pull faasm/testing"
