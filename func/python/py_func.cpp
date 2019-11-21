@@ -6,11 +6,52 @@
 #define WASM_PYTHON_FUNC_PREFIX "faasm://pyfuncs/"
 #define NATIVE_PYTHON_FUNC_PREFIX "/usr/local/code/faasm/func/"
 
+#ifdef __wasm__
+extern "C" {
+
+#define complex float
+#define doublecomplex double
+
+#include <clapack/cblas.h>
+}
+#else
+#include <cblas.h>
+#endif
+
+void forceLinkBlas() {
+    FILE *devNull = fopen("/dev/null", "w");
+
+    // BLAS
+    fprintf(devNull, "%p", cblas_sdot);
+    fprintf(devNull, "%p", cblas_ddot);
+    fprintf(devNull, "%p", cblas_cdotu_sub);
+    fprintf(devNull, "%p", cblas_zdotu_sub);
+    fprintf(devNull, "%p", cblas_cdotc_sub);
+    fprintf(devNull, "%p", cblas_zdotc_sub);
+    fprintf(devNull, "%p", cblas_daxpy);
+    fprintf(devNull, "%p", cblas_zaxpy);
+    fprintf(devNull, "%p", cblas_saxpy);
+    fprintf(devNull, "%p", cblas_caxpy);
+    fprintf(devNull, "%p", cblas_dgemm);
+    fprintf(devNull, "%p", cblas_sgemm);
+    fprintf(devNull, "%p", cblas_zgemm);
+    fprintf(devNull, "%p", cblas_cgemm);
+    fprintf(devNull, "%p", cblas_dgemv);
+    fprintf(devNull, "%p", cblas_sgemv);
+    fprintf(devNull, "%p", cblas_zgemv);
+    fprintf(devNull, "%p", cblas_cgemv);
+    fprintf(devNull, "%p", cblas_dsyrk);
+    fprintf(devNull, "%p", cblas_csyrk);
+    fprintf(devNull, "%p", cblas_zsyrk);
+    fprintf(devNull, "%p", cblas_ssyrk);
+}
+
 FAASM_ZYGOTE() {
     setUpPyEnvironment();
     Py_InitializeEx(0);
 
     setUpPyNumpy();
+    forceLinkBlas();
 
     unsigned int preloadNumpy = getConfFlag("PRELOAD_NUMPY");
     if(preloadNumpy == 1) {
