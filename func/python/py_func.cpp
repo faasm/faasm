@@ -6,17 +6,7 @@
 #define WASM_PYTHON_FUNC_PREFIX "faasm://pyfuncs/"
 #define NATIVE_PYTHON_FUNC_PREFIX "/usr/local/code/faasm/func/"
 
-#ifdef __wasm__
-extern "C" {
-
-#define complex float
-#define doublecomplex double
-
-#include <clapack/cblas.h>
-}
-#else
-#include <cblas.h>
-#endif
+#include <faasm/cblas.h>
 
 void forceLinkBlas() {
     FILE *devNull = fopen("/dev/null", "w");

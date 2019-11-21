@@ -18,10 +18,10 @@ faasm_dynamic_func(py_func py_func.cpp)
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # In wasm build we need to also link with clapack
     target_link_libraries(py_func
-            lapack
-            openblas
             pyinit
             ${PYTHON_LIBRARIES}
+            lapack
+            openblas
             )
 elseif (FAASM_BUILD_TYPE STREQUAL "knative-native")
     target_link_libraries(py_func-knative pyinit ${PYTHON_LIBRARIES} util)
