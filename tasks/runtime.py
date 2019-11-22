@@ -17,32 +17,6 @@ BACKUP_LOCATION = join(FAASM_LOCAL_DIR, "runtime_root_backup")
 
 @task
 def backup_runtime_root(ctx):
-    # Nuke the existing runtime root
-    if exists(FAASM_RUNTIME_ROOT):
-        print("Moving existing runtime root to {}".format(BACKUP_LOCATION))
-        if exists(BACKUP_LOCATION):
-            rmtree(BACKUP_LOCATION)
-
-        call("mv {} {}".format(FAASM_RUNTIME_ROOT, BACKUP_LOCATION), shell=True)
-
-    print("Creating new runtime root dir")
-    makedirs(FAASM_RUNTIME_ROOT)
-
-    # Run the Ansible set-up script
-    ret = call("ansible-playbook runtime_fs.yml", cwd=ANSIBLE_ROOT, shell=True)
-    if ret != 0:
-        print("Running ansible script failed")
-        return 1
-
-    # Set up the Python runtime
-    set_up_python_runtime(ctx)
-
-    # Set up tensorflow data
-    tf_upload_data(ctx, local_copy=True)
-
-    # Create a tmp directory
-    makedirs(join(FAASM_RUNTIME_ROOT, "tmp"))
-
     # Compress
     print("Creating archive of Faasm runtime root")
     check_output("tar -cf {} runtime_root".format(RUNTIME_TAR_PATH), shell=True, cwd=FAASM_LOCAL_DIR)

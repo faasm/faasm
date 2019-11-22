@@ -6,9 +6,6 @@ ENV LD_LIBRARY_PATH=/usr/local/lib
 
 WORKDIR /usr/local/code/faasm
 
-# Remove openblas
-RUN apt-get remove --purge openblas
-
 # Install python deps
 RUN apt-get install -y libpython3-dev \
     python3-dev \

@@ -189,11 +189,11 @@ class MatrixExperimentRunner(ExperimentRunner):
 
 @task
 def matrix_experiment_multi(ctx, n_workers, native=False, nobill=False):
-    mat_sizes = [1000, 2000, 3000, 4000, 5000]
-    n_splits_list = [3, 4]
+    sizes = [128, 512, 1024, 2048, 4096]
+    splits = [0, 1, 2, 3]
 
-    for mat_size in mat_sizes:
-        for n_splits in n_splits_list:
+    for mat_size in sizes:
+        for n_splits in splits:
             if native:
                 delete_knative_native_python(ctx, hard=False)
                 sleep(40)

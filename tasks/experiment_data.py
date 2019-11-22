@@ -166,6 +166,10 @@ def matrix_state_upload(ctx, mat_size, n_splits, host=None, knative=True):
     data_dir = get_matrix_dir(mat_size, n_splits)
     file_names = listdir(data_dir)
 
+    if len(file_names) == 0:
+        print("Invalid matrix data: {} {}".format(mat_size, n_splits))
+        exit(1)
+
     # Multiple uploaders as there may be lots of files
     args = [(data_dir, f, user, host) for f in file_names]
     p = multiprocessing.Pool(multiprocessing.cpu_count() - 1)

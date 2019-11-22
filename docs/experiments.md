@@ -32,7 +32,8 @@ Then on the client machine:
 inv matrix-download-s3
 
 # Direct SCP from local machine
-scp -r ~/faasm/data/matrix <USER>@<HOST>:/home/<USER>/faasm/data/matrix
+export HOST=<your_host>
+scp -r ~/faasm/data/matrix $USER@$HOST:/home/$USER/faasm/data/matrix
 ```
 
 ## SGD
@@ -79,7 +80,7 @@ inv delete-knative-worker --hard
 
 ```
 # Number of workers kept the same throughout
-export N_WORKERS
+export N_WORKERS=<number of workers>
 
 # -- Deploy --
 
