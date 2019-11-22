@@ -198,10 +198,14 @@ def matrix_experiment_multi(ctx, n_workers, native=False, nobill=False):
                 delete_knative_native_python(ctx, hard=False)
                 sleep(40)
             else:
+                print("\nFLUSHING\n")
                 flush(ctx)
                 sleep(30)
 
+            print("\nUPLOADING STATE - {}x{} {}\n".format(mat_size, mat_size, n_splits))
             matrix_state_upload(ctx, mat_size, n_splits)
+
+            print("\nRUNNING EXPERIMENT - {}x{} {}\n".format(mat_size, mat_size, n_splits))
             matrix_experiment(ctx, n_workers, mat_size, n_splits, native=native, nobill=nobill)
 
 
@@ -212,7 +216,7 @@ def matrix_experiment(ctx, n_workers, mat_size, n_splits, native=False, nobill=F
 
 
 @task
-def matrix_pull_results(ctx, host, user):
+def matrix_pull_results(ctx, user, host):
     MatrixExperimentRunner.clean()
     MatrixExperimentRunner.pull_results(host, user)
 

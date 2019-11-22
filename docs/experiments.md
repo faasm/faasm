@@ -11,29 +11,24 @@ Data should be generated and uploaded ahead of time.
 
 For details of the SGD experiment data see `sgd.md` notes.
 
-The matrix experiment data needs to be generated in bulk locally, uploaded to S3 then downloaded on the client machine.
-
-You must have the native tooling and pyfaasm installed to generate it up front (but this doesn't need to be done
-if it's already in S3):
+The matrix experiment data needs to be generated in bulk locally, uploaded to S3 then downloaded on the client machine
+(or directly copied with `scp`). You must have the native tooling and pyfaasm installed to generate it up front (but
+this doesn't need to be done if it's already in S3):
 
 ```
 # Generate it
 inv install-native-tools
 inv generate-all-matrix-data
 
-# Upload (note - >4GB)
-inv matrix-upload-s3
-```
-
-Then on the client machine:
-
-```
-# With S3 access
-inv matrix-download-s3
-
 # Direct SCP from local machine
 export HOST=<your_host>
-scp -r ~/faasm/data/matrix $USER@$HOST:/home/$USER/faasm/data/matrix
+scp -r ~/faasm/data/matrix $USER@$HOST:/home/$USER/faasm/data
+
+# Upload (note - >4GB)
+inv matrix-upload-s3
+
+# Download
+inv matrix-download-s3
 ```
 
 ## SGD
@@ -79,6 +74,9 @@ inv delete-knative-worker --hard
 ## Matrices
 
 ```
+# Make sure function is uploaded
+inv upload python mat_mul --py
+
 # Number of workers kept the same throughout
 export N_WORKERS=<number of workers>
 
