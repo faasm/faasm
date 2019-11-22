@@ -13,7 +13,7 @@ from tasks.util.matrices import get_matrix_dir, MATRIX_CONF_STATE_KEY, SUBMATRIC
 @task
 def generate_all_matrix_data(ctx):
     splits = [0, 1, 2, 3]
-    sizes = [128, 512, 1024, 2048, 4096]
+    sizes = [128, 512, 1024, 2048, 4096, 8192, 16384]
     for n_splits in splits:
         for matrix_size in sizes:
             generate_matrix_data(ctx, matrix_size, n_splits)

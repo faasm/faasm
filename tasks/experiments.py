@@ -189,7 +189,7 @@ class MatrixExperimentRunner(ExperimentRunner):
 
 @task
 def matrix_experiment_multi(ctx, n_workers, native=False, nobill=False):
-    sizes = [128, 512, 1024, 2048, 4096]
+    sizes = [128, 512, 1024, 2048, 4096, 8192, 16384]
     splits = [0, 1, 2, 3]
 
     for mat_size in sizes:
