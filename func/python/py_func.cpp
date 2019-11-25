@@ -14,10 +14,10 @@ void forceLinkBlas() {
     // BLAS
     fprintf(devNull, "%p", cblas_sdot);
     fprintf(devNull, "%p", cblas_ddot);
-    fprintf(devNull, "%p", cblas_cdotu_sub);
-    fprintf(devNull, "%p", cblas_zdotu_sub);
-    fprintf(devNull, "%p", cblas_cdotc_sub);
-    fprintf(devNull, "%p", cblas_zdotc_sub);
+//    fprintf(devNull, "%p", cblas_cdotu_sub);
+//    fprintf(devNull, "%p", cblas_zdotu_sub);
+//    fprintf(devNull, "%p", cblas_cdotc_sub);
+//    fprintf(devNull, "%p", cblas_zdotc_sub);
     fprintf(devNull, "%p", cblas_daxpy);
     fprintf(devNull, "%p", cblas_zaxpy);
     fprintf(devNull, "%p", cblas_saxpy);

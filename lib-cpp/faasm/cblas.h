@@ -40,15 +40,15 @@ double cblas_ddot(const int N, const double *X, const int incX,
 /*
  * Functions having prefixes Z and C only
  */
-void   cblas_cdotu_sub(const int N, const void *X, const int incX,
-                       const void *Y, const int incY, void *dotu);
-void   cblas_cdotc_sub(const int N, const void *X, const int incX,
-                       const void *Y, const int incY, void *dotc);
-
-void   cblas_zdotu_sub(const int N, const void *X, const int incX,
-                       const void *Y, const int incY, void *dotu);
-void   cblas_zdotc_sub(const int N, const void *X, const int incX,
-                       const void *Y, const int incY, void *dotc);
+//void   cblas_cdotu_sub(const int N, const void *X, const int incX,
+//                       const void *Y, const int incY, void *dotu);
+//void   cblas_cdotc_sub(const int N, const void *X, const int incX,
+//                       const void *Y, const int incY, void *dotc);
+//
+//void   cblas_zdotu_sub(const int N, const void *X, const int incX,
+//                       const void *Y, const int incY, void *dotu);
+//void   cblas_zdotc_sub(const int N, const void *X, const int incX,
+//                       const void *Y, const int incY, void *dotc);
 
 
 /*
