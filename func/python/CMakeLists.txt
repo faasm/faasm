@@ -21,7 +21,8 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
             pyinit
             ${PYTHON_LIBRARIES}
             lapack
-            openblas
+            blas
+            f2c
             )
 elseif (FAASM_BUILD_TYPE STREQUAL "knative-native")
     target_link_libraries(py_func-knative pyinit ${PYTHON_LIBRARIES} util)
