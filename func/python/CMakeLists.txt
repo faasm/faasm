@@ -22,6 +22,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
             ${PYTHON_LIBRARIES}
             lapack
             blas
+            cblas
             f2c
             )
 elseif (FAASM_BUILD_TYPE STREQUAL "knative-native")
