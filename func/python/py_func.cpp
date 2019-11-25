@@ -6,7 +6,11 @@
 #define WASM_PYTHON_FUNC_PREFIX "faasm://pyfuncs/"
 #define NATIVE_PYTHON_FUNC_PREFIX "/usr/local/code/faasm/func/"
 
-#include <faasm/cblas.h>
+#ifdef __wasm__
+#include <clapack/cblas.h>
+#else
+#include <cblas.h>
+#endif
 
 void forceLinkBlas() {
     FILE *devNull = fopen("/dev/null", "w");
