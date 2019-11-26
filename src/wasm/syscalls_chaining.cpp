@@ -41,7 +41,7 @@ namespace wasm {
 
         int returnCode = 1;
         try {
-            const message::Message result = bus.getFunctionResult(messageId, CHAINED_CALL_TIMEOUT);
+            const message::Message result = bus.getFunctionResult(messageId, CHAINED_CALL_TIMEOUT_MS);
 
             if (result.success()) {
                 returnCode = 0;

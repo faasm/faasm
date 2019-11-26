@@ -359,7 +359,7 @@ int _await_call_knative(unsigned int callId) {
     scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
     int returnCode = 1;
     try {
-        const message::Message result = bus.getFunctionResult(callId, CHAINED_CALL_TIMEOUT);
+        const message::Message result = bus.getFunctionResult(callId, CHAINED_CALL_TIMEOUT_MS);
         if (result.success()) {
             returnCode = 0;
         }

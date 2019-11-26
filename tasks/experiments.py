@@ -7,7 +7,7 @@ from time import time, sleep
 
 from invoke import task
 
-from tasks import delete_knative_native_python, matrix_state_upload, delete_knative_worker, flush
+from tasks import delete_knative_native_python, matrix_state_upload, flush
 from tasks.util.billing import start_billing, pull_billing, parse_billing
 from tasks.util.env import FAASM_HOME
 from tasks.util.invoke import invoke_impl

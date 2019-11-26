@@ -12,8 +12,8 @@
 
 #define GLOBAL_NODE_SET "available_workers"
 
-// Make this long enough for long data processing stuff
-#define CHAINED_CALL_TIMEOUT 120000
+// Make this long enough for big batches
+#define CHAINED_CALL_TIMEOUT_MS 300000
 
 
 namespace scheduler {
