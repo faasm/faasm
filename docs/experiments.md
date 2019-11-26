@@ -11,8 +11,7 @@ Data should be generated and uploaded ahead of time.
 
 For details of the SGD experiment data see `sgd.md` notes.
 
-The matrix experiment data needs to be generated in bulk locally, uploaded to S3 then downloaded on the client machine
-(or directly copied with `scp`). You must have the native tooling and pyfaasm installed to generate it up front (but
+The matrix experiment data needs to be generated in bulk locally, uploaded to S3 then downloaded on the client machine (or directly copied with `scp`). You must have the native tooling and pyfaasm installed to generate it up front (but
 this doesn't need to be done if it's already in S3):
 
 ```
@@ -22,7 +21,8 @@ inv generate-all-matrix-data
 
 # Direct SCP from local machine
 export HOST=<your_host>
-scp -r ~/faasm/data/matrix $USER@$HOST:/home/$USER/faasm/data
+export HOST_USER=<user_on_your_host>
+scp -r ~/faasm/data/matrix $HOST_USER@$HOST:/home/$HOST_USER/faasm/data
 
 # Upload (note - >4GB)
 inv matrix-upload-s3
