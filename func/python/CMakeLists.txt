@@ -16,15 +16,10 @@ include_directories(${PYTHON_INCLUDE_DIRS})
 faasm_dynamic_func(py_func py_func.cpp)
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
-    # In wasm build we need to also link with clapack
-    target_link_libraries(py_func
-            pyinit
-            ${PYTHON_LIBRARIES}
-            lapack
-            blas
-            cblas
-            f2c
-            )
+    target_link_libraries(py_func pyinit ${PYTHON_LIBRARIES})
+
+    # BLAS stuff
+    # target_link_libraries(py_func lapack blas cblas f2c)
 elseif (FAASM_BUILD_TYPE STREQUAL "knative-native")
     target_link_libraries(py_func-knative pyinit ${PYTHON_LIBRARIES} util)
 else()

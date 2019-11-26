@@ -1,11 +1,14 @@
+from copy import copy
+from os import environ
 from os.path import join, exists
 from shutil import rmtree
-from subprocess import check_output
+from subprocess import check_output, call
 
 from invoke import task
 
 from tasks.util.codegen import find_codegen_shared_lib
-from tasks.util.env import PROJ_ROOT, PYODIDE_INSTALL_DIR, FAASM_RUNTIME_ROOT, PY_RUNTIME_ROOT, PYODIDE_PACKAGES, \
+from tasks.util.download import download_proj
+from tasks.util.env import PYODIDE_INSTALL_DIR, FAASM_RUNTIME_ROOT, PY_RUNTIME_ROOT, PYODIDE_PACKAGES, \
     FAASM_SHARED_ROOT
 from tasks.util.files import glob_remove
 
