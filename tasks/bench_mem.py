@@ -212,6 +212,13 @@ def plot_proc_mem(ctx, proc_name):
     _plot_pid_mem(pid)
 
 
+@task
+def print_docker_mem(ctx):
+    pids = get_docker_parent_pids()
+    mem_total = get_total_memory_for_pids(pids)
+    mem_total.print()
+
+
 def _plot_pid_mem(pid):
     mem_total = get_total_memory_for_pid(pid)
     mem_total.plot()

@@ -33,6 +33,7 @@ from tasks.bench_mem import (
     container_count,
     kill_faasm,
     faasm_count,
+    print_docker_mem,
 )
 from tasks.bench_time import (
     bench_time,
