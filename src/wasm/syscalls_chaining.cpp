@@ -34,6 +34,7 @@ namespace wasm {
 
         scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
         scheduler::Scheduler &scheduler = scheduler::getScheduler();
+        int callTimeoutMs = util::getSystemConfig().chainedCallTimeout;
         
         // Free this thread
         message::Message *msg = getExecutingCall();
@@ -41,7 +42,7 @@ namespace wasm {
 
         int returnCode = 1;
         try {
-            const message::Message result = bus.getFunctionResult(messageId, CHAINED_CALL_TIMEOUT_MS);
+            const message::Message result = bus.getFunctionResult(messageId, callTimeoutMs);
 
             if (result.success()) {
                 returnCode = 0;
