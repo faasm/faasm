@@ -22,8 +22,6 @@ COPY . /usr/local/code/faasm
 
 # Install native dependencies
 WORKDIR /usr/local/code/faasm/ansible
-RUN ansible-playbook aws_sdk.yml
-RUN ansible-playbook aws_lambda.yml
 
 RUN ansible-playbook spdlog.yml
 

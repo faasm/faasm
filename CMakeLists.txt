@@ -17,7 +17,7 @@ set(FAASM_PYTHON_LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lib-pyinit)
 set(FAASM_WAVM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/third-party/WAVM/Lib)
 
 option(FAASM_STATIC_LIBS "Statically link Faasm libs" ON)
-option(FAASM_AWS_SUPPORT "Whether to include AWS support" ON)
+option(FAASM_AWS_SUPPORT "Whether to include AWS support" OFF)
 
 # Library type (for shared libraries)
 if(FAASM_STATIC_LIBS)
@@ -216,9 +216,12 @@ else ()
     add_subdirectory(experiment)
 
     # AWS-specific
-    add_subdirectory(src/aws)
-    add_subdirectory(src/lambda_func)
-    add_subdirectory(src/dispatch)
+    if(FAASM_AWS_SUPPORT)
+        add_subdirectory(src/aws)
+        add_subdirectory(src/lambda_func)
+        add_subdirectory(src/dispatch)
+        add_subdirectory(src/lambda)
+    endif()
 
     # Faasm runtime
     add_subdirectory(src/data)
@@ -228,7 +231,6 @@ else ()
     add_subdirectory(src/ibm)
     add_subdirectory(src/knative)
     add_subdirectory(src/knative_native)
-    add_subdirectory(src/lambda)
     add_subdirectory(src/proto)
     add_subdirectory(src/redis)
     add_subdirectory(src/runner)
