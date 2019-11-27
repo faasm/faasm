@@ -194,13 +194,12 @@ def matrix_experiment_multi(ctx, n_workers, native=False, nobill=False):
 
     for mat_size in sizes:
         for n_splits in splits:
-            if native:
-                delete_knative_native_python(ctx, hard=False)
+            delete_knative_native_python(ctx, hard=False)
+
+            if native:                
                 sleep(40)
             else:
-                print("\nFLUSHING\n")
-                flush(ctx)
-                sleep(30)
+                sleep(120)
 
             print("\nUPLOADING STATE - {}x{} {}\n".format(mat_size, mat_size, n_splits))
             matrix_state_upload(ctx, mat_size, n_splits)
