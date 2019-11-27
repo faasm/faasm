@@ -123,9 +123,7 @@ Once you've done several runs, you need to pull the results to your local machin
 ```bash
 # SGD
 inv sgd-pull-results <user> <host>
-inv sgd-parse-results
 
 # Matrices
 inv matrix-pull-results <user> <host>
-inv matrix-parse-results
 ```

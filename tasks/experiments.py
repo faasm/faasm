@@ -189,7 +189,7 @@ class MatrixExperimentRunner(ExperimentRunner):
 
 @task
 def matrix_experiment_multi(ctx, n_workers, native=False, nobill=False):
-    sizes = [4000, 5000, 6000, 7000, 8000]
+    sizes = [100, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]
     splits = [2]
 
     for mat_size in sizes:
@@ -200,7 +200,7 @@ def matrix_experiment_multi(ctx, n_workers, native=False, nobill=False):
             else:
                 delete_knative_worker(ctx, hard=False)
                 sleep_time = 130
-            
+
             print("\nUPLOADING STATE - {}x{} {}\n".format(mat_size, mat_size, n_splits))
             matrix_state_upload(ctx, mat_size, n_splits)
 
@@ -221,7 +221,4 @@ def matrix_pull_results(ctx, user, host):
     MatrixExperimentRunner.clean()
     MatrixExperimentRunner.pull_results(host, user)
 
-
-@task
-def matrix_parse_results(ctx):
     MatrixExperimentRunner.parse_results()
