@@ -10,6 +10,7 @@ from tasks.util.env import PROJ_ROOT, FUNC_DIR
 from tasks.util.files import clean_dir
 from tasks.util.ibm import get_ibm_kubeconfig
 from tasks.util.kubernetes import get_kubernetes_host_port
+from tasks.util.version import get_faasm_version
 
 K8S_DIR = join(PROJ_ROOT, "k8s")
 BARE_METAL_CONF = join(K8S_DIR, "bare-metal")
@@ -161,6 +162,9 @@ def _delete_knative_fn(name, hard):
 
 
 def _deploy_knative_fn(name, image, replicas, concurrency, annotations, extra_env=None, shell_env=None):
+    version = get_faasm_version()
+    image = "{}:{}".format(image, version)
+
     cmd = [
         "kn", "service", "create", name,
         "--image", image,
@@ -220,7 +224,8 @@ def build_knative_native(ctx, user, function, host=False, clean=False, nopush=Fa
         call(make_cmd, cwd=build_dir, shell=True)
     else:
         # Build the container
-        tag_name = _native_image_name(function)
+        version = get_faasm_version()
+        tag_name = "{}:{}".format(_native_image_name(function), version)
         cmd = [
             "docker",
             "build",
@@ -264,6 +269,9 @@ def _do_deploy_knative_native(func_name, image_name, replicas):
     if not faasm_config.has_section("Kubernetes"):
         print("Must have faasm config set up with kubernetes section")
         return 1
+
+    version = get_faasm_version()
+    image_name = "{}:{}".format(image_name, version)
 
     # Host and port required for chaining native functions
     invoke_host, invoke_port = get_kubernetes_host_port()
@@ -317,6 +325,9 @@ def knative_native_python_local(ctx, host=False):
 
 
 def _do_knative_native_local(img_name):
+    version = get_faasm_version()
+    img_name = "{}:{}".format(img_name, version)
+
     cmd = [
         "docker", "run",
         "-p 8080:8080",

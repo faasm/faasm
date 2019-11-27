@@ -4,6 +4,7 @@ from subprocess import call, check_output
 from invoke import task
 
 from tasks.util.env import PROJ_ROOT, HOME_DIR
+from tasks.util.version import get_faasm_version
 
 
 @task
@@ -20,24 +21,6 @@ def purge_images(context):
         call(cmd)
 
 
-@task
-def data(context):
-    cmd = [
-        "docker",
-        "run",
-        "-v {}:/root".format(HOME_DIR),
-        "-v {}:/work".format(PROJ_ROOT),
-        "-w /work",
-        "-it",
-        "--net=host",
-        "faasm/data",
-        "/bin/bash"
-    ]
-    cmd = " ".join(cmd)
-
-    call(cmd, shell=True, cwd=PROJ_ROOT)
-
-
 def _check_valid_containers(containers):
     for container in containers:
         dockerfile = join(PROJ_ROOT, "docker", "{}.dockerfile".format(container))
@@ -49,22 +32,21 @@ def _check_valid_containers(containers):
         return dockerfile
 
 
-def _do_push(container):
-    res = call("docker push faasm/{}".format(container), shell=True, cwd=PROJ_ROOT)
+def _do_push(container, version):
+    res = call("docker push faasm/{}:{}".format(container, version), shell=True, cwd=PROJ_ROOT)
     if res != 0:
-        raise RuntimeError("Failed docker push for {}".format(container))
+        raise RuntimeError("Failed docker push for {}:{}".format(container, version))
 
 
 @task(iterable=["c"])
-def docker_build(ctx, c, version=None, nocache=False, push=False):
+def docker_build(ctx, c, nocache=False, push=False):
     _check_valid_containers(c)
+
+    version = get_faasm_version()
 
     for container in c:
         dockerfile = join(PROJ_ROOT, "docker", "{}.dockerfile".format(container))
-        if version:
-            tag_name = "faasm/{}:{}".format(container, version)
-        else:
-            tag_name = "faasm/{}".format(container)
+        tag_name = "faasm/{}:{}".format(container, version)
 
         if nocache:
             no_cache_str = "--no-cache"
@@ -78,22 +60,26 @@ def docker_build(ctx, c, version=None, nocache=False, push=False):
             raise RuntimeError("Failed docker build for {}".format(tag_name))
 
         if push:
-            _do_push(container)
+            _do_push(container, version)
 
 
 @task(iterable=["c"])
 def docker_push(ctx, c):
+    version = get_faasm_version()
+
     _check_valid_containers(c)
 
     for container in c:
-        _do_push(container)
+        _do_push(container, version)
 
 
 @task(iterable=["c"])
 def docker_pull(ctx, c):
+    version = get_faasm_version()
+
     _check_valid_containers(c)
 
     for container in c:
-        res = call("docker pull faasm/{}".format(container), shell=True, cwd=PROJ_ROOT)
+        res = call("docker pull faasm/{}:{}".format(container, version), shell=True, cwd=PROJ_ROOT)
         if res != 0:
             raise RuntimeError("Failed docker pull for {}".format(container))

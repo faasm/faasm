@@ -8,7 +8,7 @@ services:
     image: faasm/redis
 
   upload:
-    image: faasm/upload:latest
+    image: faasm/upload:${FAASM_VERSION}
     ports:
       - "8002:8002"
     depends_on:
@@ -24,7 +24,7 @@ services:
       - REDIS_QUEUE_HOST=redis-queue
 
   worker:
-    image: faasm/knative-worker:latest
+    image: faasm/knative-worker:${FAASM_VERSION}
     depends_on:
       - upload
     expose:
