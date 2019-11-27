@@ -2,10 +2,10 @@ version: "3"
 
 services:
   redis-state:
-    image: faasm/redis
+    image: faasm/redis:${FAASM_VERSION}
 
   redis-queue:
-    image: faasm/redis
+    image: faasm/redis:${FAASM_VERSION}
 
   upload:
     image: faasm/upload:${FAASM_VERSION}

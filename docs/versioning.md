@@ -1,3 +1,7 @@
 # Versioning
 
-Version needs to be updated in the `VERSION` file at the project root, _and_ the `FAASM_VERSION` var in `.env`.
+Version needs to be updated in:
+
+- `VERSION` at the project root
+- `FAASM_VERSION` variable in `.env` file at project root
+- Any kubernetes config files in `k8s` that specify image names
