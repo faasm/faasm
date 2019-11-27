@@ -46,6 +46,7 @@ namespace util {
         int globalMessageTimeout;
         int unboundTimeout;
         int boundTimeout;
+        int chainedCallTimeout;
 
         // Filesystem storage
         std::string functionDir;

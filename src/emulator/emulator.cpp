@@ -355,11 +355,12 @@ unsigned int __faasm_chain_py(int idx, const unsigned char *buffer, long bufferL
 int _await_call_knative(unsigned int callId) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
     logger->debug("E - await_call_knative {}", callId);
-
+    int timeoutMs = util::getSystemConfig().chainedCallTimeout;
+    
     scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
     int returnCode = 1;
     try {
-        const message::Message result = bus.getFunctionResult(callId, CHAINED_CALL_TIMEOUT);
+        const message::Message result = bus.getFunctionResult(callId, timeoutMs);
         if (result.success()) {
             returnCode = 0;
         }

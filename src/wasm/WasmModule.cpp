@@ -671,7 +671,7 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         Uptr newPageCount = previousPageCount + pages;
         if (!success) {
-            logger->error("No memory for mapping (growing to {} pages)", newPageCount);
+            logger->error("No memory for mapping (growing by {} to {} pages)", pages, newPageCount);
             throw std::runtime_error("Run out of memory to map");
         }
 

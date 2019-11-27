@@ -21,6 +21,7 @@ int main(int argc, char *argv[]) {
     conf.boundTimeout = 60000;
     conf.unboundTimeout = 60000;
     conf.globalMessageTimeout = 60000;
+    conf.chainedCallTimeout = 60000;
 
     // Make sure we have enough space for chained calls
     conf.maxWorkersPerFunction = 6;

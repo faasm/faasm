@@ -8,7 +8,7 @@ from requests import get
 from tasks.util.env import FAASM_HOME
 
 
-def download_proj(url, filename, extension="tar.gz", tar_args="-xvf", extract_file=None):
+def download_proj(url, filename, extension="tar.gz", tar_args="-xf", extract_file=None):
     if not exists(FAASM_HOME):
         makedirs(FAASM_HOME)
 

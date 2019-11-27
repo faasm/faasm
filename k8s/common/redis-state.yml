@@ -11,7 +11,7 @@ metadata:
 spec:
   containers:
     - name: master
-      image: faasm/redis
+      image: faasm/redis:0.0.1
       env:
         - name: MASTER
           value: "true"

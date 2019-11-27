@@ -4,6 +4,7 @@ import numpy as np
 from invoke import task
 from numpy import int32
 from pyfaasm.config import MatrixConf
+from pyfaasm.matrix import random_matrix
 from pyfaasm.matrix_data import subdivide_matrix_into_files
 
 from tasks.util.matrices import get_matrix_dir, MATRIX_CONF_STATE_KEY, SUBMATRICES_KEY_A, SUBMATRICES_KEY_B
@@ -11,8 +12,8 @@ from tasks.util.matrices import get_matrix_dir, MATRIX_CONF_STATE_KEY, SUBMATRIC
 
 @task
 def generate_all_matrix_data(ctx):
-    splits = [3, 4]
-    sizes = [1000, 2000, 3000, 4000, 5000, 6000]
+    splits = [2]
+    sizes = [100, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]
     for n_splits in splits:
         for matrix_size in sizes:
             generate_matrix_data(ctx, matrix_size, n_splits)
@@ -34,7 +35,7 @@ def generate_matrix_data(ctx, matrix_size, n_splits):
     with open(params_path, "wb") as fh:
         fh.write(params.tobytes())
 
-    mat_a = np.random.rand(matrix_size, matrix_size)
-    mat_b = np.random.rand(matrix_size, matrix_size)
+    mat_a = random_matrix(matrix_size)
+    mat_b = random_matrix(matrix_size)
     subdivide_matrix_into_files(conf, mat_a, data_dir, SUBMATRICES_KEY_A)
     subdivide_matrix_into_files(conf, mat_b, data_dir, SUBMATRICES_KEY_B)

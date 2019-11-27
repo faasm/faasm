@@ -33,6 +33,7 @@ from tasks.bench_mem import (
     container_count,
     kill_faasm,
     faasm_count,
+    print_docker_mem,
 )
 from tasks.bench_time import (
     bench_time,
@@ -64,7 +65,6 @@ from tasks.docker import (
     docker_build,
     docker_push,
     docker_pull,
-    data,
     purge_images,
 )
 from tasks.docker_compose import (

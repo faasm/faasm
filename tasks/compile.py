@@ -38,6 +38,7 @@ def compile(context, clean=False, func=None, debug=False, user=None, ts=False):
         target = "{}_all_funcs".format(user)
 
     cmd = "make {}".format(target) if target else "make -j"
+    cmd = "VERBOSE=1 {}".format(cmd) if debug else cmd
     res = call(cmd, shell=True, cwd=FUNC_BUILD_DIR)
 
     if res != 0:

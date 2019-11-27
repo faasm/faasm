@@ -28,3 +28,6 @@
 [submodule "third-party/pyfaasm"]
 	path = third-party/pyfaasm
 	url = https://github.com/Shillaker/pyfaasm.git
+[submodule "third-party/faasm-clapack"]
+	path = third-party/faasm-clapack
+	url = git@github.com:Shillaker/faasm-clapack.git

@@ -387,7 +387,7 @@ namespace scheduler {
             return nodeId;
         }
 
-        // Now there's no warm options and we're rejecting, so check all options
+        // Now there's no warm options we're rejecting, so check all options
         std::unordered_set<std::string> allOptions = redis.smembers(GLOBAL_NODE_SET);
         allOptions.erase(nodeId);
 

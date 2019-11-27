@@ -9,8 +9,7 @@
 #include <util/logging.h>
 #include <util/json.h>
 #include <util/func.h>
-
-#define CHAINED_CALL_TIMEOUT 120000
+#include <util/config.h>
 
 
 namespace util {
@@ -34,7 +33,8 @@ namespace util {
 
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::string funcStr = util::funcToString(msg, true);
-
+        int callTimeoutMs = util::getSystemConfig().chainedCallTimeout;
+        
         void *curl = curl_easy_init();
 
         std::stringstream out;
@@ -42,7 +42,7 @@ namespace util {
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, dataCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &out);
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, CHAINED_CALL_TIMEOUT);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, callTimeoutMs);
 
         // Add header for knative calls. Unfortunately we need to replace underscores with hyphens
         std::string knativeHeader = "Host: faasm-" + cleanedFuncName + ".faasm.example.com";

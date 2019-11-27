@@ -14,8 +14,7 @@ branches:
     - master
 
 before_install:
-  - "docker pull faasm/testing"
-  - "docker pull faasm/redis"
+  - "./bin/ci_pull.sh"
 
 script:
   - "docker-compose -f docker-compose-test.yml run tester /usr/local/code/faasm/bin/ci_run.sh"
