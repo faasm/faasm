@@ -665,20 +665,41 @@ namespace wasm {
     }
 
     U32 WasmModule::mmapPages(U32 pages) {
-        Uptr previousPageCount;
-        bool success = growMemory(defaultMemory, pages, &previousPageCount);
-
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        Uptr newPageCount = previousPageCount + pages;
-        if (!success) {
-            logger->error("No memory for mapping (growing by {} to {} pages)", pages, newPageCount);
-            throw std::runtime_error("Run out of memory to map");
+        U64 maxSize = getMemoryType(defaultMemory).size.max;
+        Uptr currentPageCount = Runtime::getMemoryNumPages(defaultMemory);
+
+        Uptr newPageCount = currentPageCount + pages;
+        if (newPageCount > maxSize) {
+            logger->error("mmap would exceed max of {} pages (growing by {} from {})", maxSize, pages,
+                          currentPageCount);
+            throw std::runtime_error("Unable to commit virtual pages");
         }
 
-        logger->debug("mmap - Growing memory from {} to {} pages", previousPageCount, newPageCount);
+        Uptr pageCountOut;
+        bool success = growMemory(defaultMemory, pages, &pageCountOut);
+        if (!success) {
+            if (pageCountOut == WAVM_MEMERR_COMMIT_FAILED) {
+                logger->error("Committing new pages failed (errno={} ({})) (growing by {} from current {})",
+                              errno, strerror(errno), pages, currentPageCount);
+                throw std::runtime_error("Unable to commit virtual pages");
+            } else if (pageCountOut == WAVM_MEMERR_MAX_MEM) {
+                logger->error("No memory for mapping (growing by {} from {} pages)", pages, currentPageCount);
+                throw std::runtime_error("Run out of memory to map");
+            } else if (pageCountOut == WAVM_MEMERR_RESOURCE_QUOTA) {
+                logger->error("Memory resource quota exceeded (growing by {} from {})", pages, newPageCount);
+                throw std::runtime_error("Memory resource quota exceeded");
+            } else {
+                logger->error("Unknown memory mapping error (growing by {} from {}. Previous {})", pages, newPageCount,
+                              pageCountOut);
+                throw std::runtime_error("Unknown memory mapping error");
+            }
+        }
+
+        logger->debug("mmap - Growing memory from {} to {} pages", currentPageCount, newPageCount);
 
         // Get pointer to mapped range
-        auto mappedRangePtr = (U32) (Uptr(previousPageCount) * IR::numBytesPerPage);
+        auto mappedRangePtr = (U32) (Uptr(pageCountOut) * IR::numBytesPerPage);
 
         return mappedRangePtr;
     }

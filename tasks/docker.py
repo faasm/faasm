@@ -3,8 +3,21 @@ from subprocess import call, check_output
 
 from invoke import task
 
-from tasks.util.env import PROJ_ROOT, HOME_DIR
+from tasks.util.env import PROJ_ROOT
 from tasks.util.version import get_faasm_version
+
+# Order matters here
+RELEASE_CONTAINERS = [
+    "base",
+    "worker",
+    "upload",
+    "knative-worker",
+    "knative-native",
+    "knative-native-base",
+    "knative-native-python",
+    "toolchain",
+    "testing",
+]
 
 
 @task
@@ -36,6 +49,12 @@ def _do_push(container, version):
     res = call("docker push faasm/{}:{}".format(container, version), shell=True, cwd=PROJ_ROOT)
     if res != 0:
         raise RuntimeError("Failed docker push for {}:{}".format(container, version))
+
+
+@task
+def docker_build_release(ctx):
+    for c in RELEASE_CONTAINERS:
+        docker_build(ctx, c, nocache=True, push=True)
 
 
 @task(iterable=["c"])

@@ -16,6 +16,7 @@ matplotlib
 numpy
 performance
 psutil
+pycairo
 # Explicitly don't put pyfaasm here, install separately
 PyOpenSSL
 pywren-ibm-cloud

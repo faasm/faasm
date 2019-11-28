@@ -63,6 +63,7 @@ from tasks.config import (
 )
 from tasks.docker import (
     docker_build,
+    docker_build_release,
     docker_push,
     docker_pull,
     purge_images,
