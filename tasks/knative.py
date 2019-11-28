@@ -294,7 +294,6 @@ def _do_deploy_knative_native(func_name, image_name, replicas):
         return 1
 
     version = get_faasm_version()
-    image_name = "{}:{}".format(image_name, version)
 
     # Host and port required for chaining native functions
     invoke_host, invoke_port = get_kubernetes_host_port()
