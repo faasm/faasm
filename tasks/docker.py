@@ -14,6 +14,7 @@ RELEASE_CONTAINERS = [
     "knative-worker",
     "knative-native-base",
     "knative-native-python",
+    "redis",
     "toolchain",
     "testing",
 ]
