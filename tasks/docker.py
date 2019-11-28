@@ -53,8 +53,7 @@ def _do_push(container, version):
 
 @task
 def docker_build_release(ctx):
-    for c in RELEASE_CONTAINERS:
-        docker_build(ctx, c, nocache=True, push=True)
+    docker_build(ctx, RELEASE_CONTAINERS, nocache=True, push=True)
 
 
 @task(iterable=["c"])
