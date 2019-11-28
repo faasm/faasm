@@ -99,6 +99,7 @@ def _do_upload_all(host=None, port=None, upload_s3=False, py=False, prebuilt=Fal
         rel_path = rel_path.strip("/")
 
         path_parts = rel_path.split("/")
+        path_parts = [p for p in path_parts if p]
         if not path_parts:
             continue
 
@@ -109,7 +110,11 @@ def _do_upload_all(host=None, port=None, upload_s3=False, py=False, prebuilt=Fal
 
         for f in files:
             if f.endswith(extension):
-                func = f.replace(extension, "")
+                if prebuilt:
+                    func = path_parts[1]
+                else:
+                    func = f.replace(extension, "")
+
                 func_file = join(root, f)
 
                 if upload_s3:

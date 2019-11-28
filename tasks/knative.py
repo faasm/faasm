@@ -76,9 +76,9 @@ def _native_image_name(function):
     return "{}{}".format(NATIVE_WORKER_IMAGE_PREFIX, function)
 
 
-def _kubectl_apply(path, env=None):
+def _kubectl_cmd(path, action, env=None):
     cmd = [
-        "kubectl", "apply", "-f", path
+        "kubectl", action, "-f", path
     ]
 
     shell_env_dict = os.environ.copy()
@@ -92,6 +92,14 @@ def _kubectl_apply(path, env=None):
 
     if ret_code != 0:
         raise RuntimeError("Command failed: {}".format(cmd_str))
+
+
+def _kubectl_apply(path, env=None):
+    _kubectl_cmd(path, "apply", env=env)
+
+
+def _kubectl_delete(path, env=None):
+    _kubectl_cmd(path, "delete", env=env)
 
 
 @task
@@ -125,12 +133,11 @@ def deploy_knative(ctx, replicas, local=False, ibm=False):
     # Deploy the other K8s stuff (e.g. redis)
     _kubectl_apply(join(COMMON_CONF, "namespace.yml"), env=shell_env)
     _kubectl_apply(COMMON_CONF, env=shell_env)
+    _kubectl_apply(BARE_METAL_CONF)
 
     if local:
-        _kubectl_apply(BARE_METAL_CONF)
         _kubectl_apply(LOCAL_CONF)
     else:
-        _kubectl_apply(BARE_METAL_CONF)
         _kubectl_apply(BARE_METAL_REMOTE_CONF)
 
     _deploy_knative_fn(
@@ -142,6 +149,22 @@ def deploy_knative(ctx, replicas, local=False, ibm=False):
         extra_env=extra_env,
         shell_env=shell_env
     )
+
+
+@task
+def delete_knative_full(ctx, local=False):
+    # First hard-delete the worker
+    delete_knative_worker(ctx, hard=True)
+
+    # Delete common stuff
+    _kubectl_delete(COMMON_CONF)
+    _kubectl_delete(BARE_METAL_CONF)
+
+    # Delete env-specific stuff
+    if local:
+        _kubectl_delete(LOCAL_CONF)
+    else:
+        _kubectl_delete(BARE_METAL_REMOTE_CONF)
 
 
 def _delete_knative_fn(name, hard):

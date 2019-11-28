@@ -7,7 +7,7 @@ from time import time, sleep
 
 from invoke import task
 
-from tasks import delete_knative_native_python, matrix_state_upload, flush
+from tasks import delete_knative_native_python, delete_knative_worker, matrix_state_upload, flush
 from tasks.util.billing import start_billing, pull_billing, parse_billing
 from tasks.util.env import FAASM_HOME
 from tasks.util.invoke import invoke_impl
@@ -189,21 +189,22 @@ class MatrixExperimentRunner(ExperimentRunner):
 
 @task
 def matrix_experiment_multi(ctx, n_workers, native=False, nobill=False):
-    sizes = [128, 512, 1024, 2048, 4096, 8192, 16384]
-    splits = [0, 1, 2, 3]
+    sizes = [100, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]
+    splits = [2]
 
     for mat_size in sizes:
         for n_splits in splits:
             if native:
                 delete_knative_native_python(ctx, hard=False)
-                sleep(40)
+                sleep_time = 40
             else:
-                print("\nFLUSHING\n")
-                flush(ctx)
-                sleep(30)
+                delete_knative_worker(ctx, hard=False)
+                sleep_time = 130
 
             print("\nUPLOADING STATE - {}x{} {}\n".format(mat_size, mat_size, n_splits))
             matrix_state_upload(ctx, mat_size, n_splits)
+
+            sleep(sleep_time)
 
             print("\nRUNNING EXPERIMENT - {}x{} {}\n".format(mat_size, mat_size, n_splits))
             matrix_experiment(ctx, n_workers, mat_size, n_splits, native=native, nobill=nobill)
@@ -220,7 +221,4 @@ def matrix_pull_results(ctx, user, host):
     MatrixExperimentRunner.clean()
     MatrixExperimentRunner.pull_results(host, user)
 
-
-@task
-def matrix_parse_results(ctx):
     MatrixExperimentRunner.parse_results()

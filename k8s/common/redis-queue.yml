@@ -18,7 +18,7 @@ spec:
       ports:
         - containerPort: 6379
 #  affinity:
-#    # Use affinity to make sure this sits on a redis-only box
+#     # Use affinity to make sure this sits on a redis-only box
 #    nodeAffinity:
 #      requiredDuringSchedulingIgnoredDuringExecution:
 #        nodeSelectorTerms:

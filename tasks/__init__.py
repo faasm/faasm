@@ -63,6 +63,7 @@ from tasks.config import (
 )
 from tasks.docker import (
     docker_build,
+    docker_build_release,
     docker_push,
     docker_pull,
     purge_images,
@@ -94,6 +95,7 @@ from tasks.invoke import (
 )
 from tasks.knative import (
     deploy_knative,
+    delete_knative_full,
     delete_knative_worker,
     build_knative_native,
     knative_native_local,
@@ -158,11 +160,9 @@ from tasks.redis import (
 from tasks.experiments import (
     sgd_experiment,
     sgd_pull_results,
-    sgd_parse_results,
     matrix_experiment,
     matrix_experiment_multi,
     matrix_pull_results,
-    matrix_parse_results,
 )
 from tasks.genomics_data import (
     download_genome,

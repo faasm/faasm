@@ -38,11 +38,12 @@ else()
 endif()
 
 # Switch on WAVM stack traces in debug (potential performance gain?)
-if(CMAKE_BUILD_TYPE MATCHES Debug)
-    set(WAVM_ENABLE_UNWIND ON CACHE BOOL "WAVM unwind")
-else()
-    set(WAVM_ENABLE_UNWIND OFF CACHE BOOL "WAVM unwind")
-endif()
+set(WAVM_ENABLE_UNWIND ON CACHE BOOL "WAVM unwind")
+#if(CMAKE_BUILD_TYPE MATCHES Debug)
+#    set(WAVM_ENABLE_UNWIND ON CACHE BOOL "WAVM unwind")
+#else()
+#    set(WAVM_ENABLE_UNWIND OFF CACHE BOOL "WAVM unwind")
+#endif()
 
 # Stops WAVM compilation complaining
 add_definitions(-DDLL_EXPORT=)

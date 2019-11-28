@@ -9,7 +9,8 @@
 
 FAASM_MAIN_FUNC() {
     // Make this multiple pages not on a page boundary
-    size_t memLen = (2 * 64 * 1024) + 1234;
+    size_t nPages = 3;
+    size_t memLen = (nPages * 64 * 1024) + 1234;
 
     uint8_t outputBuf[1];
 
