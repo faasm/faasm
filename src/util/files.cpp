@@ -87,8 +87,23 @@ namespace util {
         CURLcode res = curl_easy_perform(curl);
         curl_easy_cleanup(curl);
 
-        if (res != CURLE_OK || out.str().empty()) {
-            std::string msg = std::string("Unable to get file ") + url;
+        // Check response is OK
+        if (res != CURLE_OK) {
+            std::string msg = std::string("Unable to get file due to curl error ") + url;
+            throw FileNotFoundAtUrlException(msg);
+        }
+
+        // Check response code
+        long http_code = 0;
+        curl_easy_getinfo (curl, CURLINFO_RESPONSE_CODE, &http_code);
+        if (http_code > 200) {
+            std::string msg = "Unable to get file " + url + " response code: " + std::to_string(http_code);
+            throw FileNotFoundAtUrlException(msg);
+        }
+
+        // Check there's something in the response
+        if (out.str().empty()) {
+            std::string msg = "Empty response for file " + url;
             throw FileNotFoundAtUrlException(msg);
         }
 
