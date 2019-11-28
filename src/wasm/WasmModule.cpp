@@ -673,7 +673,7 @@ namespace wasm {
         if (newPageCount > maxSize) {
             logger->error("mmap would exceed max of {} pages (growing by {} from {})", maxSize, pages,
                           currentPageCount);
-            throw std::runtime_error("Unable to commit virtual pages");
+            throw std::runtime_error("Mmap exceeding max");
         }
 
         Uptr pageCountOut;

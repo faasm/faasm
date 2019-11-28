@@ -27,11 +27,17 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # The stack-first here is really important to help detect stack overflow
     # issues. Without it the stack will overflow into the global data.
     # stack-size is also crucial to bigger functions not messing up
+    #
+    # NOTE: we set max memory here to be big to give big functions enough room to operate
+    # The value is in bytes, so we set 4GB = 4*1024*1024*1024 = 4294967296.
+    #
+    # This max memory limit can stop benchmarks working so make sure it's big and consider restricting
+    # in a more specific manner for certain functions.
     SET(CMAKE_EXE_LINKER_FLAGS "\
         -Xlinker --no-entry \
         -Xlinker --export=main \
         -Xlinker --export=_faasm_zygote \
-        -Xlinker --max-memory=1073741824 \
+        -Xlinker --max-memory=4294967296 \
         -Xlinker --stack-first \
         -Xlinker --threads \
         -Xlinker --no-check-features \

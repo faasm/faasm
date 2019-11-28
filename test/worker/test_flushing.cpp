@@ -9,6 +9,10 @@
 #include <zygote/ZygoteRegistry.h>
 
 namespace tests {
+    TEST_CASE("Test flushing empty worker", "[worker]") {
+        worker::flushWorkerHost();
+    }
+
     TEST_CASE("Test flushing worker clears state", "[worker]") {
         // Set up some state
         state::State &state = state::getGlobalState();
