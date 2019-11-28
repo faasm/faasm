@@ -12,7 +12,6 @@ RELEASE_CONTAINERS = [
     "worker",
     "upload",
     "knative-worker",
-    "knative-native",
     "knative-native-base",
     "knative-native-python",
     "toolchain",
@@ -52,8 +51,8 @@ def _do_push(container, version):
 
 
 @task
-def docker_build_release(ctx):
-    docker_build(ctx, RELEASE_CONTAINERS, nocache=True, push=True)
+def docker_build_release(ctx, nocache=False):
+    docker_build(ctx, RELEASE_CONTAINERS, nocache=nocache, push=True)
 
 
 @task(iterable=["c"])
