@@ -28,8 +28,29 @@ namespace tests {
         REQUIRE(actualBytes == expectedBytes);
     }
 
-    TEST_CASE("Test reading from an invalid URL", "[util]") {
-        std::string url = "https://www.aklskafkjdfkh.com/foo.txt";
-        REQUIRE_THROWS_AS(util::readFileFromUrl(url), util::FileNotFoundAtUrlException);
+    TEST_CASE("Test reading from bad URLs", "[util]") {
+        std::string url;
+        std::string expectedMessage;
+
+        SECTION("Invalid URL") {
+            url = "https://www.aklskafkjdfkh.com/foo.txt";
+            expectedMessage = "Unable to get file due to curl error " + url;
+        }
+        SECTION("500 error") {
+            url = "https://httpstat.us/500";
+            expectedMessage = "Unable to get file " + url + " response code: 500";
+        }
+        SECTION("203 code") {
+            url = "https://httpstat.us/203";
+            expectedMessage = "Unable to get file " + url + " response code: 203";
+        }
+
+        bool exceptionThrown = false;
+        try {
+            util::readFileFromUrl(url);
+        } catch (util::FileNotFoundAtUrlException &ex) {
+            exceptionThrown = true;
+        }
+        REQUIRE(exceptionThrown);
     }
 }

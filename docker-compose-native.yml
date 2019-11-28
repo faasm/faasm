@@ -1,0 +1,32 @@
+version: "3"
+
+services:
+  redis-state:
+    image: faasm/redis:${FAASM_VERSION}
+
+  upload:
+    image: faasm/upload:${FAASM_VERSION}
+    ports:
+      - "8002:8002"
+    depends_on:
+      - redis-state
+    volumes:
+      - ./machine-code/:/usr/local/faasm/object/
+      - ./wasm/:/usr/local/code/faasm/wasm/
+    environment:
+      - FUNCTION_STORAGE=local
+      - LOG_LEVEL=info
+      - REDIS_STATE_HOST=redis-state
+      - REDIS_QUEUE_HOST=redis-state
+
+  worker:
+    image: faasm/knative-native-python:${FAASM_VERSION}
+    depends_on:
+      - upload
+    ports:
+      - "8080:8080"
+    privileged: yes
+    environment:
+      - LOG_LEVEL=debug
+      - REDIS_STATE_HOST=redis-state
+      - REDIS_QUEUE_HOST=redis-state

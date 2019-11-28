@@ -196,7 +196,7 @@ def matrix_experiment_multi(ctx, n_workers, native=False, nobill=False):
         for n_splits in splits:
             if native:
                 delete_knative_native_python(ctx, hard=False)
-                sleep_time = 40
+                sleep_time = 60
             else:
                 delete_knative_worker(ctx, hard=False)
                 sleep_time = 130
