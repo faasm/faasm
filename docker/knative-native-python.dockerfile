@@ -20,10 +20,10 @@ RUN pip3 install -U pip
 COPY bin/build_unoptimized_numpy.sh bin/build_unoptimized_numpy.sh
 
 # Install unoptimized numpy
-# RUN bin/build_unoptimized_numpy.sh
+RUN bin/build_unoptimized_numpy.sh
 
 # Install normal numpy
-RUN pip3 install numpy
+# RUN pip3 install numpy
 
 RUN pip3 install flask \
     gunicorn \
