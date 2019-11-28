@@ -7,12 +7,12 @@
 #include <util/config.h>
 
 // Note that page size in wasm is 64kiB
-// Note also that this initial memory must be big enough to include all data, stack and dynamic
-// memory that the module will need.
 #define ONE_MB_PAGES 16
 #define ONE_GB_PAGES 1024 * ONE_MB_PAGES
-#define MAX_MEMORY_PAGES ONE_GB_PAGES
 #define MAX_TABLE_SIZE 500000
+
+// WARNING - when changing this, must also change in linker args for functions
+#define MAX_MEMORY_PAGES 4 * ONE_GB_PAGES
 
 using namespace WAVM;
 

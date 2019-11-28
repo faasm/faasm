@@ -31,6 +31,8 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # NOTE: we set max memory here to be big to give big functions enough room to operate
     # The value is in bytes, so we set 4GB = 4*1024*1024*1024 = 4294967296.
     #
+    # WARNING: the code may also set limits on the max memory size, so must be changed there too (IRModuleRegistry.h)
+    #
     # This max memory limit can stop benchmarks working so make sure it's big and consider restricting
     # in a more specific manner for certain functions.
     SET(CMAKE_EXE_LINKER_FLAGS "\

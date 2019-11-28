@@ -420,6 +420,12 @@ namespace tests {
         checkCallingFunctionGivesBoolOutput("mmap", true);
     }
 
+    TEST_CASE("Test big mmap", "[worker]") {
+        setUp();
+        message::Message msg = util::messageFactory("demo", "mmap_big");
+        execFunction(msg);
+    }
+
     TEST_CASE("Test shared state write pointers", "[worker]") {
         setUp();
 
