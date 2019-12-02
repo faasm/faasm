@@ -14,7 +14,8 @@ The build output ends up at `third-party/tensorflow/tensorflow/lite/tools/make/g
 If you need to rebuild the wasm part:
 
 ```
-rm -rf third-party/tensorflow/tensorflow/lite/tools/make/gen/wasm32-unknown-none_x86_64
+inv compile-tf-lite --clean
+rm -r third-party/tensorflow/tensorflow/lite/tools/make/gen/wasm32-unknown-none_x86_64
 ```
 
 ## Usage
@@ -46,4 +47,14 @@ Then you can invoke it with:
 inv invoke tf image
 ```
 
+## Eigen Fork
 
+To support WASM simd instructions I've hacked about with Eigen on a [fork](https://github.com/Shillaker/eigen-git-mirror). It _seems_ to work but isn't well tested. 
+
+TFLite will be compiled against the version of Eigen downloaded as part of its 3rd party deps, so if you need to change it and rebuild you'll need to run:
+
+```
+cd third-party/tensorflow/tensorflow/lite/tools/make
+rm -r downloads/eigen/
+./download_dependencies.sh
+```

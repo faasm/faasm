@@ -1,24 +1,25 @@
 from os.path import exists
 from os.path import join
-from subprocess import check_output
+from shutil import rmtree
+from subprocess import check_output, call
 
 from invoke import task
 
-from tasks.util.env import THIRD_PARTY_DIR
+from tasks.util.env import THIRD_PARTY_DIR, PROJ_ROOT
 from toolchain.python_env import WASM_HOST, BASE_CONFIG_CMD, WASM_CFLAGS, WASM_CXXFLAGS, WASM_LDFLAGS
 
 
 @task
-def compile_tf_lite(ctx):
-    _do_compile_tf_lite(False)
+def compile_tf_lite(ctx, clean=False):
+    _do_compile_tf_lite(False, clean=clean)
 
 
 @task
-def compile_tf_lite_native(ctx):
-    _do_compile_tf_lite(True)
+def compile_tf_lite_native(ctx, clean=False):
+    _do_compile_tf_lite(True, clean=clean)
 
 
-def _do_compile_tf_lite(native):
+def _do_compile_tf_lite(native, clean=False):
     tf_dir = join(THIRD_PARTY_DIR, "tensorflow")
     tf_lite_dir = join(tf_dir, "tensorflow", "lite")
     tf_make_dir = join(tf_lite_dir, "tools", "make")
@@ -38,13 +39,15 @@ def _do_compile_tf_lite(native):
             "-f tensorflow/lite/tools/make/Makefile",
         ]
 
+        clean_dir = join(tf_make_dir, "gen", "linux_x86_64")
+
     else:
         make_cmd = ["make -j 4"]
         make_cmd.extend(BASE_CONFIG_CMD)
         make_cmd.extend([
             "CFLAGS=\"{} -ftls-model=local-exec -ldlmalloc\"".format(WASM_CFLAGS),
             "CXXFLAGS=\"{} -ldlmalloc\"".format(WASM_CXXFLAGS),
-            "LDFLAGS=\"{} -Xlinker --max-memory=1073741824\"".format(WASM_LDFLAGS),
+            "LDFLAGS=\"{} -Xlinker --max-memory=4294967296\"".format(WASM_LDFLAGS),
             "MINIMAL_SRCS=",
             "TARGET={}".format(WASM_HOST),
             "BUILD_WITH_MMAP=false",
@@ -53,4 +56,11 @@ def _do_compile_tf_lite(native):
             "-f tensorflow/lite/tools/make/Makefile",
         ])
 
-    check_output(" ".join(make_cmd), shell=True, cwd=tf_lite_dir)
+        clean_dir = join(tf_make_dir, "gen", "wasm32-unknown-none_x86_64")
+
+    if clean and exists(clean_dir):
+        rmtree(clean_dir)
+
+    res = call(" ".join(make_cmd), shell=True, cwd=tf_lite_dir)
+    if res != 0:
+        raise RuntimeError("Failed to compile Tensorflow lite")
