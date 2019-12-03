@@ -1,0 +1,13 @@
+---
+
+- hosts: localhost
+  connection: local
+  gather_facts: yes
+  roles:
+    - linux
+    - llvm9
+    - protobuf
+    - perf
+    - spdlog
+    - rapidjson
+    - docker
