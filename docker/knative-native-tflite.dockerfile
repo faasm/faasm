@@ -10,3 +10,7 @@ COPY . /usr/local/code/faasm
 WORKDIR /usr/local/code/faasm
 RUN rm -r third-party/WAVM third-party/eigen third-party/malloc
 
+# Build TF Lite itself
+./bin/build_tflite_native.sh
+
+# Build the relevant target

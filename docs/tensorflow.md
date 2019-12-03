@@ -15,7 +15,6 @@ If you need to rebuild the wasm part:
 
 ```
 inv compile-tf-lite --clean
-rm -r third-party/tensorflow/tensorflow/lite/tools/make/gen/wasm32-unknown-none_x86_64
 ```
 
 ## Usage

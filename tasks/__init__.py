@@ -53,10 +53,7 @@ from tasks.compile_libs import (
     compile_libpng,
     compile_zlib,
     install_native_tools,
-)
-from tasks.compile_tensorflow import (
-    compile_tf_lite,
-    compile_tf_lite_native,
+    compile_tflite,
 )
 from tasks.config import (
     create_faasm_config

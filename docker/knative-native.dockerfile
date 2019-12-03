@@ -8,6 +8,10 @@ ENV FAASM_USER=$FAASM_USER
 # Copy function code into place
 COPY func/${FAASM_USER}/ /usr/local/code/faasm/func/${FAASM_USER}/
 
+# Build tensorflow (will skip if not required)
+WORKDIR /usr/local/code/faasm/
+RUN ./bin/build_tflite_native.sh
+
 # Build the function
 WORKDIR /faasm/build
 
