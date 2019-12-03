@@ -12,6 +12,7 @@ gunicorn
 hiredis
 ibm-cos-sdk
 invoke
+Jinja2
 matplotlib
 numpy
 performance

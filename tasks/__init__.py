@@ -66,6 +66,7 @@ from tasks.docker import (
     docker_build_release,
     docker_push,
     docker_pull,
+    docker_pull_release,
     purge_images,
 )
 from tasks.docker_compose import (

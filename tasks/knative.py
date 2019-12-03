@@ -225,10 +225,15 @@ def _deploy_knative_fn(name, image, replicas, concurrency, annotations, extra_en
 
 
 @task
-def build_knative_native(ctx, user, function, host=False, clean=False, nopush=False):
+def build_knative_native(ctx, user, func, host=False, clean=False, nopush=False):
+    # Special-case TF-lite
+    if user == "tf":
+        print("You must build the TF lite container directly, i.e. inv docker-build -c knative-native-tflite")
+        return 1
+
     if host:
         build_dir = join(PROJ_ROOT, "build", "knative_native")
-        target = "{}-knative".format(function)
+        target = "{}-knative".format(func)
 
         clean_dir(build_dir, clean)
 
@@ -248,14 +253,14 @@ def build_knative_native(ctx, user, function, host=False, clean=False, nopush=Fa
     else:
         # Build the container
         version = get_faasm_version()
-        tag_name = "{}:{}".format(_native_image_name(function), version)
+        tag_name = "{}:{}".format(_native_image_name(func), version)
         cmd = [
             "docker",
             "build",
             "--no-cache" if clean else "",
             "-t", tag_name,
             "--build-arg", "FAASM_USER={}".format(user),
-            "--build-arg", "FAASM_FUNC={}".format(function),
+            "--build-arg", "FAASM_FUNC={}".format(func),
             "-f", "docker/knative-native.dockerfile",
             "."
         ]
@@ -274,9 +279,9 @@ def build_knative_native(ctx, user, function, host=False, clean=False, nopush=Fa
 
 
 @task
-def deploy_knative_native(ctx, user, function, replicas):
-    func_name = _fn_name(function)
-    image_name = _native_image_name(function)
+def deploy_knative_native(ctx, user, func, replicas):
+    func_name = _fn_name(func)
+    image_name = _native_image_name(func)
     _do_deploy_knative_native(func_name, image_name, replicas)
 
 
@@ -313,8 +318,8 @@ def _do_deploy_knative_native(func_name, image_name, replicas):
 
 
 @task
-def delete_knative_native(ctx, user, function, hard=False):
-    _delete_knative_fn(function, hard)
+def delete_knative_native(ctx, user, func, hard=False):
+    _delete_knative_fn(func, hard)
 
 
 @task
@@ -323,8 +328,8 @@ def delete_knative_native_python(ctx, hard=False):
 
 
 @task
-def knative_native_local(ctx, user, function):
-    img_name = _native_image_name(function)
+def knative_native_local(ctx, user, func):
+    img_name = _native_image_name(func)
     _do_knative_native_local(img_name)
 
 

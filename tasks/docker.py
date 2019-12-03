@@ -1,6 +1,9 @@
+import os
+from copy import copy
 from os.path import join, exists
 from subprocess import call, check_output
 
+import jinja2
 from invoke import task
 
 from tasks.util.env import PROJ_ROOT
@@ -58,12 +61,36 @@ def docker_build_release(ctx, nocache=False):
 
 @task(iterable=["c"])
 def docker_build(ctx, c, nocache=False, push=False):
+    # -----------------------
+    # NOTE - to allow container-specific dockerignore files, we need to switch on DOCKER_BUILDKIT=1
+    # this might change in future:
+    #
+    # https://stackoverflow.com/questions/40904409/how-to-specify-different-dockerignore-files-for-different-builds-in-the-same-pr
+    # https://github.com/moby/moby/issues/12886#issuecomment-480575928
+    # -----------------------
+
+    shell_env = copy(os.environ)
+    shell_env["DOCKER_BUILDKIT"] = "1"
+
     _check_valid_containers(c)
 
     version = get_faasm_version()
 
     for container in c:
-        dockerfile = join(PROJ_ROOT, "docker", "{}.dockerfile".format(container))
+        # Check if we need to template a special dockerignore file
+        # It seems the dockerignore file needs to be at <dockerfile_path>.dockerignore
+        dockerfile = join("docker", "{}.dockerfile".format(container))
+        dockerignore_template_path = join("docker", "{}.dockerignore.j2".format(container))
+        dockerignore_target_path = "{}.dockerignore".format(dockerfile)
+
+        if exists(join(PROJ_ROOT, dockerignore_template_path)):
+            print("Templating new dockerignore file for {}".format(container))
+
+            jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(PROJ_ROOT))
+            template = jinja_env.get_template(dockerignore_template_path)
+            with open(join(PROJ_ROOT, dockerignore_target_path), "w") as fh:
+                fh.write(template.render())
+
         tag_name = "faasm/{}:{}".format(container, version)
 
         if nocache:
@@ -73,7 +100,7 @@ def docker_build(ctx, c, nocache=False, push=False):
 
         cmd = "docker build {} -t {} -f {} .".format(no_cache_str, tag_name, dockerfile)
         print(cmd)
-        res = call(cmd, shell=True, cwd=PROJ_ROOT)
+        res = call(cmd, shell=True, cwd=PROJ_ROOT, env=shell_env)
         if res != 0:
             raise RuntimeError("Failed docker build for {}".format(tag_name))
 
@@ -89,6 +116,11 @@ def docker_push(ctx, c):
 
     for container in c:
         _do_push(container, version)
+
+
+@task
+def docker_pull_release(ctx):
+    docker_pull(ctx, RELEASE_CONTAINERS)
 
 
 @task(iterable=["c"])
