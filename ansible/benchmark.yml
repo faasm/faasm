@@ -3,13 +3,13 @@
 - hosts: all
   gather_facts: yes
   pre_tasks:
-    - name: 'install python'
-      raw: 'sudo apt-get -y install python'
+    - name: "Install python"
+      raw: "sudo apt-get -y install python"
   roles:
-    - llvm
+    - linux
+    - llvm9
     - protobuf
     - perf
-    - linux
     - code
     - python
     - spdlog

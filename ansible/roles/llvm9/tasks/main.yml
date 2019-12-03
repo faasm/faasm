@@ -1,5 +1,9 @@
 ---
 
+- name: "Add LLVM GPG key"
+  become: yes
+  apt_key: url=https://apt.llvm.org/llvm-snapshot.gpg.key
+
 - name: "Add LLVM 9 repo"
   become: yes
   apt_repository:
