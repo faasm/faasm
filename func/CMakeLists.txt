@@ -147,8 +147,6 @@ add_subdirectory(sgd)
 
 # Skip certain builds with some build types
 if (FAASM_BUILD_TYPE STREQUAL "lambda-func")
-elseif (FAASM_BUILD_TYPE STREQUAL "knative-native")
-    add_subdirectory(python)
 else ()
     add_subdirectory(python)
     add_subdirectory(tf)

@@ -53,10 +53,7 @@ from tasks.compile_libs import (
     compile_libpng,
     compile_zlib,
     install_native_tools,
-)
-from tasks.compile_tensorflow import (
-    compile_tf_lite,
-    compile_tf_lite_native,
+    compile_tflite,
 )
 from tasks.config import (
     create_faasm_config
@@ -66,6 +63,7 @@ from tasks.docker import (
     docker_build_release,
     docker_push,
     docker_pull,
+    docker_pull_release,
     purge_images,
 )
 from tasks.docker_compose import (
@@ -131,6 +129,7 @@ from tasks.experiment_data import (
     reuters_state_upload,
     reuters_state_upload_s3,
     matrix_state_upload,
+    tf_state_upload,
     tf_upload_data,
     genomics_upload_s3,
     genomics_download_s3,

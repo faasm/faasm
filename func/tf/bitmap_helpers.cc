@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "label_image.h"
+#include "image.h"
 
 #include "tensorflow/lite/builtin_op_data.h"
 #include "tensorflow/lite/interpreter.h"

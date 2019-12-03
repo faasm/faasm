@@ -11,7 +11,7 @@ from tasks.aws import invoke_lambda
 from tasks.util.env import FUNC_DIR, FAASM_SHARED_STORAGE_ROOT
 from tasks.util.env import STATE_S3_BUCKET, DATA_S3_BUCKET, FAASM_DATA_DIR
 from tasks.util.kubernetes import get_kubernetes_upload_host
-from tasks.util.matrices import SUBMATRICES_KEY_A, SUBMATRICES_KEY_B, MATRIX_CONF_STATE_KEY, get_matrix_dir
+from tasks.util.matrices import get_matrix_dir
 from tasks.util.state import upload_binary_state, upload_sparse_matrix
 from tasks.util.state import upload_shared_file
 from tasks.util.upload_util import upload_file_to_s3, download_file_from_s3
@@ -152,10 +152,12 @@ def _do_reuters_upload(host=None, s3_bucket=None, knative=False):
 # MATRIX UPLOAD
 # -------------------------------------------------
 
-def _do_upload(data_dir, file_name, user, host):
+def _do_upload(data_dir, file_name, user, host, key=None):
     print("Uploading state {}".format(file_name))
     file_path = join(data_dir, file_name)
-    upload_binary_state(user, file_name, file_path, host=host)
+
+    key = key if key else file_name
+    upload_binary_state(user, key, file_path, host=host)
 
 
 @task
@@ -179,6 +181,15 @@ def matrix_state_upload(ctx, mat_size, n_splits, host=None, knative=True):
 # -------------------------------------------------
 # TENSORFLOW UPLOAD
 # -------------------------------------------------
+
+@task
+def tf_state_upload(ctx, host=None, knative=True):
+    data_dir = join(FUNC_DIR, "tf", "data")
+    model_file = "mobilenet_v1_1.0_224.tflite"
+    host = get_kubernetes_upload_host(knative, host)
+
+    _do_upload(data_dir, model_file, "tf", host, key="mobilenet_v1")
+
 
 @task
 def tf_upload_data(ctx, host="localhost", local_copy=False):

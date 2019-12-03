@@ -19,14 +19,17 @@ services:
       - REDIS_STATE_HOST=redis-state
       - REDIS_QUEUE_HOST=redis-state
 
+  # Change the image to the relevant native container
   worker:
-    image: faasm/knative-native-python:${FAASM_VERSION}
+#    image: faasm/knative-native-python:${FAASM_VERSION}
+    image: faasm/knative-native-image:${FAASM_VERSION}
     depends_on:
       - upload
     ports:
       - "8080:8080"
     privileged: yes
     environment:
+      - COLD_START_DELAY_MS=500
       - LOG_LEVEL=debug
       - REDIS_STATE_HOST=redis-state
       - REDIS_QUEUE_HOST=redis-state

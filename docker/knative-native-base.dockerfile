@@ -1,4 +1,5 @@
-FROM faasm/base
+ARG FAASM_VERSION
+FROM faasm/base:$FAASM_VERSION
 
 # Install Faasm native tools
 WORKDIR /faasm/native_tools

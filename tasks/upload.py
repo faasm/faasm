@@ -34,9 +34,7 @@ def _get_host_port(host_in, port_in):
 
 
 @task
-def upload(ctx, user, func, host=None,
-           s3=False, ibm=False, subdir=None,
-           py=False, ts=False, prebuilt=False):
+def upload(ctx, user, func, host=None, s3=False, ibm=False, py=False, ts=False, prebuilt=False):
     host, port = _get_host_port(host, None)
 
     if py:
@@ -51,9 +49,7 @@ def upload(ctx, user, func, host=None,
     else:
         base_dir = WASM_DIR if prebuilt else FUNC_BUILD_DIR
 
-        if subdir:
-            func_file = join(base_dir, user, subdir, "{}.wasm".format(func))
-        elif prebuilt:
+        if prebuilt:
             func_file = join(base_dir, user, func, "function.wasm")
         else:
             func_file = join(base_dir, user, "{}.wasm".format(func))

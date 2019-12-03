@@ -1,4 +1,5 @@
-FROM faasm/worker
+ARG FAASM_VERSION
+FROM faasm/worker:${FAASM_VERSION}
 
 # Make sure CI-related requirements exist
 RUN apt-get update

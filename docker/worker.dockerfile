@@ -1,4 +1,5 @@
-FROM faasm/base
+ARG FAASM_VERSION
+FROM faasm/base:${FAASM_VERSION}
 
 # Get the runtime root from S3
 WORKDIR /usr/local/faasm

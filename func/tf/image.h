@@ -18,7 +18,6 @@ namespace tflite {
             int loop_count = 1;
             float input_mean = 127.5f;
             float input_std = 127.5f;
-            string model_name = "./mobilenet_quant_v1_224.tflite";
             tflite::FlatBufferModel *model;
             string input_bmp_name = "./grace_hopper.bmp";
             string labels_file_name = "./labels.txt";

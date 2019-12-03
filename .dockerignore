@@ -1,3 +1,6 @@
+# NOTE - as part of the docker-build task we create custom dockerignore files on the fly
+# to change things for specific builds. See the docker/ directory for these templates
+
 # CLion
 cmake-build-debug
 cmake-build-release

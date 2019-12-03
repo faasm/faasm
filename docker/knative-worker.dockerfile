@@ -1,4 +1,5 @@
-FROM faasm/worker
+ARG FAASM_VERSION
+FROM faasm/worker:$FAASM_VERSION
 
 COPY . /usr/local/code/faasm
 

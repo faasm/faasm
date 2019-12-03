@@ -2,7 +2,7 @@
 #include "GlobalMessageBus.h"
 #include "RedisMessageBus.h"
 
-#if AWS_SUPPORT
+#if AWS_SUPPORT == 1
 #include "AWSMessageBus.h"
 #endif
 
