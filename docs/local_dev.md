@@ -1,56 +1,41 @@
 # Local Development
 
-Below are instructions for building, testing and developing.
-
-## Tools/ system deps
-
-Python, [Ansible](https://www.ansible.com/) and [Invoke](http://docs.pyinvoke.org/en/1.2/index.html) are required along with a couple of system dependencies.
-
-The easiest way to install all of them is as follows:
-
-```
-sudo pip install -U ansible
-cd ansible
-ansible-playbook local.yml --ask-become-pass
-
-sudo pip3 install invoke
-```
+This guide is only relevant for those wanting to dig deeper or make changes to Faasm itself. If you'd just like to write 
+and run functions, then the Docker set-up described in the README should be sufficient. This includes deploying to 
+Knative or other cloud providers. 
 
 ## Submodules
 
-Faasm relies on some submodules. You need to run the following:
+Assuming you've checked out this code somewhere, you'll need to make sure submodules are up to date:
 
 ```
 git submodule init
 git submodule update
 ```
 
-## Libraries from source
+## Basic local machine set-up
 
-Faasm has various library dependencies that need to be installed from source:
+Most of the local set-up is scripted with Ansible, but you need to have Python 3, [Ansible](https://www.ansible.com/) 
+and [Invoke](http://docs.pyinvoke.org/en/1.2/index.html) set up in advance.
+
+The easiest way to do this and run the local dev set-up is as follows:
 
 ```
+sudo pip install -U ansible
 cd ansible
-ansible-playbook --ask-become-pass \
-   aws_lambda.yml \
-   aws_sdk.yml \
-   catch.yml \
-   eigen.yml \
-   local.yml \
-   pistache.yml \
-   rapidjson.yml \
-   spdlog.yml
+ansible-playbook local_dev.yml --ask-become-pass
+
+sudo pip3 install invoke
 ```
+
+If you want to tweak things yourself, look inside the `local_dev.yml` playbook to see what's required.
 
 ### Protobuf
 
-Faasm depends on protobuf which can be a bit of a hassle to install. First of all you can try the task:
+Faasm depends on protobuf which should be installed with the playbook described above.
 
-```
-ansible-playbook protobuf.yml --ask-become-pass
-```
-
-If there are any issue you need to remove every trace of protobuf on your system before reinstalling.
+If there are any issue you need to remove every trace of any existing protobuf installation on your system before 
+reinstalling.
 
 You can look in the following folders and remove any reference to `libprotobuf` or `protobuf`:
 
@@ -59,6 +44,54 @@ You can look in the following folders and remove any reference to `libprotobuf` 
 - `/usr/include/google`
 
 Avoid trying to do this with `apt` as it can accidentally delete a whole load of other stuff.
+
+## Toolchain, codegen etc.
+
+The Faasm toolchain currently requires a custom build of LLVM. You can run the following to download the prebuilt 
+version:
+
+```
+inv download-toolchain
+inv download-sysroot
+```
+
+If you want to build the toolchain from scratch, you'll need to look at the `toolchain.md` doc.
+
+## Codegen and upload
+
+To run the next parts you'll need to build the following targets:
+
+- `codegen_func`
+- `codgen_shared_obj`
+- `upload` 
+
+If doing an out of tree build with CMake, put it in a new `build` subdirectory so the python scripts can find the 
+executables.
+
+Run the `upload` target to start an upload server.
+
+### Codegen for C++ functions
+
+To run codegen for all the C++ functions:
+
+```
+inv run-local-codegen
+```
+
+### Python functions
+
+You can pull down the prepackaged python runtime and required runtime files with:
+
+```
+inv download-runtime-root
+inv run-local-codegen
+```
+
+You can then put the Python functions in place with:
+
+```
+inv upload-all --py --local-copy
+```
 
 ## Networking
 
@@ -82,61 +115,4 @@ To use cgroup isolation, you'll need to run:
 
 ```
 sudo ./bin/cgroup.sh
-```
-
-## Toolchain
-
-The Faasm toolchain currently requires a custom build of LLVM. More info can be found in the `toolchain.md` file in this project. You need to run:
-
-```
-inv download-toolchain
-```
-
-## Codegen and Upload
-
-To run the next parts you'll need to build the following targets:
-
-- `codegen_func`
-- `codgen_shared_obj`
-- `upload` 
-
-If doing an out of tree build with CMake, put it in a new `build` subdirectory so the python scripts can find the executables.
-
-## Codegen for C++ functions
-
-To run the codegen for all the C++ functions:
-
-```
-inv run-local-codegen
-```
-
-## Runtime files and Python
-
-You can pull down the prepackaged python runtime and required runtime files with:
-
-```
-inv download-runtime-root
-inv run-local-codegen
-```
-
-You can then put the Python functions in place with:
-
-```
-inv upload-all --py --local-copy
-```
-
-## Tensorflow data
-
-To allow running the demo TensorFlow function, you need to run:
-
-```
-inv tf-upload-data --local-copy
-```
-
-## Tests
-
-Once everything is set up you can generate the test files and run the tests via the `tests` target:
-
-```
-inv compile-libfake
 ```

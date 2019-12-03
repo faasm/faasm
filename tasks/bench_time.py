@@ -1,5 +1,6 @@
 from decimal import Decimal
-from os.path import join
+from os import makedirs
+from os.path import join, exists
 from subprocess import call
 from tempfile import NamedTemporaryFile
 
@@ -13,6 +14,9 @@ OUTPUT_FILE = join(RESULT_DIR, "runtime-bench-time.csv")
 
 @task
 def bench_time(ctx):
+    if not exists(RESULT_DIR):
+        makedirs(RESULT_DIR)
+
     benches = [
         ("faasm", join(BENCHMARK_BUILD, "bin", "bench_time"), 10000),
         ("docker", "./bin/docker_noop_time.sh", 10),
