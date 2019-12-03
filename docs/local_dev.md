@@ -28,6 +28,8 @@ ansible-playbook local_dev.yml --ask-become-pass
 sudo pip3 install invoke
 ```
 
+If you want to tweak things yourself, look inside the `local_dev.yml` playbook to see what's required.
+
 ### Protobuf
 
 Faasm depends on protobuf which should be installed with the playbook described above.
