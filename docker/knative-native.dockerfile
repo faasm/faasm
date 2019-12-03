@@ -1,4 +1,5 @@
-FROM faasm/knative-native-base
+ARG FAASM_VERSION
+FROM faasm/knative-native-base:$FAASM_VERSION
 
 ARG FAASM_FUNC
 ARG FAASM_USER

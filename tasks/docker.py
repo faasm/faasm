@@ -98,7 +98,10 @@ def docker_build(ctx, c, nocache=False, push=False):
         else:
             no_cache_str = ""
 
-        cmd = "docker build {} -t {} -f {} .".format(no_cache_str, tag_name, dockerfile)
+        faasm_ver = get_faasm_version()
+
+        cmd = "docker build {} -t {} --build-arg FAASM_VERSION={} -f {} .".format(no_cache_str, tag_name, faasm_ver,
+                                                                                  dockerfile)
         print(cmd)
         res = call(cmd, shell=True, cwd=PROJ_ROOT, env=shell_env)
         if res != 0:

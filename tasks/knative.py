@@ -226,11 +226,6 @@ def _deploy_knative_fn(name, image, replicas, concurrency, annotations, extra_en
 
 @task
 def build_knative_native(ctx, user, func, host=False, clean=False, nopush=False):
-    # Special-case TF-lite
-    if user == "tf":
-        print("You must build the TF lite container directly, i.e. inv docker-build -c knative-native-tflite")
-        return 1
-
     if host:
         build_dir = join(PROJ_ROOT, "build", "knative_native")
         target = "{}-knative".format(func)
@@ -259,11 +254,15 @@ def build_knative_native(ctx, user, func, host=False, clean=False, nopush=False)
             "build",
             "--no-cache" if clean else "",
             "-t", tag_name,
+            "--build-arg", "FAASM_VERSION={}".format(version),
             "--build-arg", "FAASM_USER={}".format(user),
             "--build-arg", "FAASM_FUNC={}".format(func),
             "-f", "docker/knative-native.dockerfile",
             "."
         ]
+
+        env = copy(os.environ)
+        env["DOCKER_BUILDKIT"] = "1"
 
         cmd_string = " ".join(cmd)
         print(cmd_string)

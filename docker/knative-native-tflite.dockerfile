@@ -1,4 +1,5 @@
-FROM faasm/knative-native-base
+ARG FAASM_VERSION
+FROM faasm/knative-native-base:$FAASM_VERSION
 
 ENV FAASM_FUNC=tf
 ENV FAASM_USER=image
