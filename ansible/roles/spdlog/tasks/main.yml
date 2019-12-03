@@ -27,6 +27,7 @@
   when: sl_stat.stat.exists == False
 
 - name: "Clean up"
+  become: yes
   file:
     state: absent
     path: "/tmp/spdlog-1.2.1"
