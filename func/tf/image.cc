@@ -1,4 +1,8 @@
-#include "label_image.h"
+#include "image.h"
+
+#include <faasm/time.h>
+#include <faasm/input.h>
+#include <faasm/faasm.h>
 
 #include <fcntl.h>
 #include <getopt.h>
@@ -30,9 +34,6 @@
 #include "tensorflow/lite/profiling/profiler.h"
 #include "tensorflow/lite/string_util.h"
 #include "tensorflow/lite/tools/evaluation/utils.h"
-
-#include <faasm/time.h>
-#include <faasm/input.h>
 
 namespace tflite {
     namespace label_image {
@@ -78,6 +79,7 @@ FAASM_MAIN_FUNC() {
 #else
     std::string dataDir = "/usr/local/code/faasm/func/tf/data/";
 #endif
+
     std::string imagePath = dataDir + "grace_hopper.bmp";
     std::string labelsPath = dataDir + "labels.txt";
 

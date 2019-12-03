@@ -37,7 +37,7 @@ Or compile and upload yourself:
 
 ```
 inv compile --func=image
-inv upload tf image --subdir=image
+inv upload tf image
 ```
 
 Then you can invoke it with:
