@@ -5,6 +5,7 @@
   apt:
     name:
       - cmake
+      - software-properties-common
       - libz-dev
       - libboost-dev
       - libcpprest-dev

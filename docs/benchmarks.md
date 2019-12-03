@@ -19,6 +19,8 @@ To run on a remote machine, you need to set up an inventory file at `ansible/inv
 my.hostname.blah
 ```
 
+It's worth making sure the host is up to date before starting (i.e. `sudo apt-get update && sudo apt-get upgrade -y`). 
+
 You can then set up the machine with:
 
 ```
