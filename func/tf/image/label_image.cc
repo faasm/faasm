@@ -79,14 +79,14 @@ int main(int argc, char **argv) {
 #endif
     std::string imagePath = dataDir + "grace_hopper.bmp";
     std::string labelsPath = dataDir + "labels.txt";
-    std::string modelsPath = dataDir + "mobilenet_v1_1.0_224.tflite";
+
+    std::string modelKey = "mobilenet_v1";
 
     tflite::label_image::Settings s;
     s.accel = false;
     s.loop_count = 1;
     s.input_bmp_name = imagePath;
     s.labels_file_name = labelsPath;
-    s.model_name = modelsPath;
     s.number_of_threads = 1;
     s.number_of_warmup_runs = 0;
     s.allow_fp16 = true;
@@ -94,17 +94,22 @@ int main(int argc, char **argv) {
     FAASM_PROF_START(buildModel)
     std::unique_ptr<tflite::FlatBufferModel> model;
     std::unique_ptr<tflite::Interpreter> interpreter;
-    model = tflite::FlatBufferModel::BuildFromFile(s.model_name.c_str());
+
+    const size_t modelSize = 16900760;
+    auto modelBytes = new uint8_t[modelSize];
+    faasmReadState(modelKey.c_str(), modelBytes, modelSize);
+    model = tflite::FlatBufferModel::BuildFromBuffer(reinterpret_cast<char *>(modelBytes), modelSize);
+
     FAASM_PROF_END(buildModel)
 
     if (!model) {
-        printf("\nFailed to mmap model %s\n", s.model_name.c_str());
+        printf("\nFailed to load model from key %s\n", modelKey.c_str());
         exit(-1);
     }
 
     FAASM_PROF_START(getModel)
     s.model = model.get();
-    printf("Loaded model %s\n", s.model_name.c_str());
+    printf("Loaded model %s\n", modelKey.c_str());
     model->error_reporter();
     FAASM_PROF_END(getModel)
 

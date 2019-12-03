@@ -131,6 +131,7 @@ from tasks.experiment_data import (
     reuters_state_upload,
     reuters_state_upload_s3,
     matrix_state_upload,
+    tf_state_upload,
     tf_upload_data,
     genomics_upload_s3,
     genomics_download_s3,
