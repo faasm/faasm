@@ -2,6 +2,9 @@
 
 set -e
 
+sudo mkdir -p /usr/local/faasm
+sudo chown -R ${USER}:${USER} /usr/local/faasm
+
 WORKING_DIR=${HOME}/faasm/bench
 SOURCE_DIR=/usr/local/code/faasm
 

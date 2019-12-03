@@ -1,19 +1,28 @@
 ---
 
-- name: "Ensure directory exists"
+- name: "Ensure base faasm local dir exists"
+  become: yes
+  file:
+    path: "/usr/local/faasm"
+    state: directory
+    owner: "{{ ansible_env.USER }}"
+    group: "{{ ansible_env.USER }}"
+    mode: 0775
+
+- name: "Ensure runtime_root directory exists"
   file:
     path: "/usr/local/faasm/runtime_root/etc"
     state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
+    owner: "{{ ansible_env.USER }}"
+    group: "{{ ansible_env.USER }}"
     mode: 0775
 
 - name: "Put network-related files in place"
   copy:
     src: "{{ item }}"
     dest: "/usr/local/faasm/runtime_root/etc/{{ item }}"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
+    owner: "{{ ansible_env.USER }}"
+    group: "{{ ansible_env.USER }}"
     mode: 0644
   with_items:
     - "hosts"
