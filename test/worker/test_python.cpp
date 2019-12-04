@@ -35,7 +35,7 @@ namespace tests {
         checkMultipleExecutions(call, 3);
     }
 
-    TEST_CASE("Test echo", "[worker]") {
+    TEST_CASE("Test python echo", "[worker]") {
         cleanSystem();
 
         std::string input = "foobar blah blah";

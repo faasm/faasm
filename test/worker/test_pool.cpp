@@ -35,7 +35,6 @@ namespace tests {
 
     static void tearDown() {
         util::setEnvVar("NETNS_MODE", originalNsMode);
-
         cleanSystem();
     }
 
@@ -182,16 +181,16 @@ namespace tests {
         util::SystemConfig &conf = util::getSystemConfig();
         conf.boundTimeout = 1000;
         conf.unboundTimeout = 1000;
+        std::string originalPreload = conf.pythonPreload;
+        conf.pythonPreload = "off";
 
         message::Message call = util::messageFactory("demo", "chain");
         unsigned int messageId = call.id();
         setEmulatedMessage(call);
 
         // NOTE - for this test to work we have to run multiple threads.
-        // TODO - is this necessary? Any way to avoid having threaded tests?
 
-        // Set up a real worker to execute this function. Remove it from the
-        // unassigned set and add to handle this function
+        // Set up a real pool
         WorkerThreadPool pool(4);
         pool.startThreadPool();
 
@@ -224,20 +223,23 @@ namespace tests {
         pool.shutdown();
 
         tearDown();
+
+        conf.pythonPreload = originalPreload;
     }
 
-    void execFuncWithPool(message::Message &call) {
+    void execFuncWithPool(message::Message &call, bool pythonPreload) {
         setUp();
 
         util::SystemConfig &conf = util::getSystemConfig();
+        std::string originalPreload = conf.pythonPreload;
         conf.boundTimeout = 1000;
         conf.unboundTimeout = 1000;
+        conf.pythonPreload = "off";
 
         unsigned int messageId = call.id();
         setEmulatedMessage(call);
 
-        // Set up a real worker to execute this function. Remove it from the
-        // unassigned set and add to handle this function
+        // Set up a real worker pool to execute the function
         WorkerThreadPool pool(4);
         pool.startThreadPool();
 
@@ -253,11 +255,13 @@ namespace tests {
         pool.shutdown();
 
         tearDown();
+
+        conf.pythonPreload = originalPreload;
     }
 
     TEST_CASE("Test appended state", "[worker]") {
         message::Message call = util::messageFactory("demo", "state_append");
-        execFuncWithPool(call);
+        execFuncWithPool(call, false);
     }
 
     TEST_CASE("Test python chaining", "[worker]") {
@@ -266,7 +270,7 @@ namespace tests {
         call.set_pythonfunction("chain");
         call.set_ispython(true);
 
-        execFuncWithPool(call);
+        execFuncWithPool(call, true);
     }
 
     TEST_CASE("Test repeat invocation with state", "[worker]") {
