@@ -28,8 +28,11 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # issues. Without it the stack will overflow into the global data.
     # stack-size is also crucial to bigger functions not messing up
     #
-    # NOTE: we set max memory here to be big to give big functions enough room to operate
-    # The value is in bytes, so we set 4GB = 4*1024*1024*1024 = 4294967296.
+    # NOTE: we have to set the max memory here but want it to be as close to the
+    # max (4GB) as possible. If we set it to the max though, this input is ignored
+    # and the function is set with no maximum memory size.
+    # Therefore we set it to 4GB - 1 page, i.e.
+    # max-memory = (4*1024*1024*1024) - (64*1024) = 4294901760.
     #
     # WARNING: the code may also set limits on the max memory size, so must be changed there too (IRModuleRegistry.h)
     #
@@ -39,7 +42,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
         -Xlinker --no-entry \
         -Xlinker --export=main \
         -Xlinker --export=_faasm_zygote \
-        -Xlinker --max-memory=4294967296 \
+        -Xlinker --max-memory=4294901760 \
         -Xlinker --stack-first \
         -Xlinker --threads \
         -Xlinker --no-check-features \

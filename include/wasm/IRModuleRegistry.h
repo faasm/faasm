@@ -12,7 +12,9 @@
 #define MAX_TABLE_SIZE 500000
 
 // WARNING - when changing this, must also change in linker args for functions
-#define MAX_MEMORY_PAGES 4 * ONE_GB_PAGES
+// As described in the linker args, we can't set this to the actual max as it gets
+// ignored, therefore we set it to one page below the max.
+#define MAX_MEMORY_PAGES (4 * ONE_GB_PAGES) - 1
 
 using namespace WAVM;
 

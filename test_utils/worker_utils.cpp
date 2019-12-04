@@ -8,6 +8,11 @@ using namespace worker;
 namespace tests {
 
     WorkerThread execFunction(message::Message &call, const std::string &expectedOutput) {
+        // Turn off python preloading
+        util::SystemConfig &conf = util::getSystemConfig();
+        std::string originalPreload = conf.pythonPreload;
+        conf.pythonPreload = "off";
+        
         // Set up worker to listen for relevant function
         WorkerThreadPool pool(1);
         WorkerThread w(1);
@@ -44,10 +49,17 @@ namespace tests {
             REQUIRE(result.outputdata() == expectedOutput);
         }
 
+        conf.pythonPreload = originalPreload;
+
         return w;
     }
 
     std::string execFunctionWithStringResult(message::Message &call) {
+        // Turn off python preloading
+        util::SystemConfig &conf = util::getSystemConfig();
+        std::string originalPreload = conf.pythonPreload;
+        conf.pythonPreload = "off";
+
         // Set up worker to listen for relevant function
         WorkerThreadPool pool(1);
         WorkerThread w(1);
@@ -69,6 +81,8 @@ namespace tests {
             FAIL();
         }
         REQUIRE(result.success());
+
+        conf.pythonPreload = originalPreload;
 
         return result.outputdata();
     }

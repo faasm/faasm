@@ -28,6 +28,9 @@ cmake --build . --target thread_bench_time -- -j
 cmake --build . --target max_thread_experiment -- -j
 cmake --build . --target max_mem_experiment -- -j
 cmake --build . --target rlimit_experiment -- -j
+cmake --build . --target poly_bench -- -j
+cmake --build . --target python_bench -- -j
+cmake --build . --target upload -- -j
 
 # Run codegen for functions
 ./bin/codegen_func demo noop

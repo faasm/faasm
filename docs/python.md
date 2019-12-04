@@ -1,5 +1,11 @@
 # Python 
 
+## Using Python Support
+
+Note that this doc is only relevant for building the Python support from scratch. This should only be necessary if
+you plan on editing anything related. Otherwise you can just use the `local_dev.md` doc which tells you how to set 
+up the prebuilt version.
+
 ## Python 3.7
 
 We need a native version of exactly the right Python 3.7, _not_ necessarily the latest.

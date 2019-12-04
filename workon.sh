@@ -13,3 +13,4 @@ export LOG_LEVEL=debug
 export PS1="(faasm) $PS1"
 
 export FAASM_VERSION=$(cat VERSION)
+
