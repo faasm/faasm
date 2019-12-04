@@ -27,6 +27,8 @@ namespace tests {
     }
 
     TEST_CASE("Test repeated numpy execution", "[worker]") {
+        cleanSystem();
+
         message::Message call = util::messageFactory(PYTHON_USER, PYTHON_FUNC);
         call.set_pythonuser("python");
         call.set_pythonfunction("numpy_test");
