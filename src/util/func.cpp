@@ -107,6 +107,8 @@ namespace util {
         }
 
         auto path = getFunctionDir(msg, false);
+        path.append("function.wasm");
+
         bool isValid = boost::filesystem::exists(path);
         return isValid;
     }

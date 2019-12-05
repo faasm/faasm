@@ -13,7 +13,8 @@ void codegenForFunc(const std::string &user, const std::string &func) {
 
     message::Message msg = util::messageFactory(user, func);
     if (!util::isValidFunction(msg)) {
-        logger->error("Invalid function: {}/{}", user, func);
+        logger->warn("Invalid function: {}/{}", user, func);
+        return;
     }
 
     logger->info("Generating machine code for {}/{}", user, func);
