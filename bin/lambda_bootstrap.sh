@@ -17,14 +17,19 @@ if [ -z "${FAASM_COMPONENT}" ]; then
     exit 1
 fi
 
-echo "Starting Faasm component $FAASM_COMPONENT"
+if [ -z "${FAASM_VERSION}" ]; then
+    echo "Must set FAASM_VERSION env var to run"
+    exit 1
+fi
+
+echo "Starting Faasm component $FAASM_COMPONENT:$FAASM_VERSION"
 
 echo "Downloading runtime root"
 mkdir -p /usr/local/faasm
 pushd /usr/local/faasm
-wget https://s3-eu-west-1.amazonaws.com/faasm-misc/faasm_runtime_root.tar.gz
-tar --no-same-owner -xf faasm_runtime_root.tar.gz
-rm faasm_runtime_root.tar.gz
+wget https://s3-eu-west-1.amazonaws.com/faasm-misc/faasm-runtime-root-${FAASM_VERSION}.tar.gz
+tar --no-same-owner -xf faasm-runtime-root-${FAASM_VERSION}.tar.gz
+rm faasm-runtime-root-${FAASM_VERSION}.tar.gz
 
 popd
 
