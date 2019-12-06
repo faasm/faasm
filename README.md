@@ -4,21 +4,17 @@
 
 # Faasm [![Build Status](https://travis-ci.org/lsds/Faasm.svg?branch=master)](https://travis-ci.org/lsds/Faasm)
 
-Faasm is a high-performance multi-tenant serverless runtime. It is intended for integration into other serverless platforms, not as a stand-alone system.
+Faasm is a high-performance stateful serverless runtime. The goal of the project is serverless big data.
 
-By using WebAssembly to run users' code, we can combine software fault isolation with 
-standard OS tooling to provide security and resource isolation guarantees at low cost.
+Faasm provides multi-tenant isolation, but also lets functions share regions of memory. These shared memory regions give low-latency concurrent access to data, supporting high-performance distributed serverless applications.
 
-This lightweight isolation enables excellent performance and allows sharing of data between colocated functions through shared memory.
+By running WebAssembly, Faasm combines software fault isolation with standard OS tooling to provide security and resource isolation guarantees at low cost. Functions run side-by-side as threads of a single runtime process, with low overheads and fast boot times. The underlying WebAssembly execution and code generation is handled by [WAVM](https://github.com/WAVM/WAVM), an excellent server-side WebAssembly VM. 
 
-Faasm currently supports C/C++ and Python. C/C++ are compiled using the stanard LLVM WebAssembly toolchain, while Python support is offered by compiling CPython itself to WebAssembly.
+Faasm supports C/C++ natively and extends support to dynamic languages such as Python by compiling the language runtime itself to WebAssembly. The Python support is based heavily on the work of the [Pyodide](https://github.com/iodide-project/pyodide) project, with custom C-extensions and decorators in [Pyfaasm](https://github.com/Shillaker/pyfaasm).
 
-Faasm uses its own custom host interface to allow functions to interact with the runtime, as well as provide secure access to networking and state. This is not dissimilar to WASI, but the Faasm interface focuses solely on a server-side POSIX environment, thus exposes more of the underlying host functionality.
+Faasm uses a custom host interface to give functions access to state and interact with the runtime. Larger applications can be constructed by composing multiple functions together dynamically in chains. The Faasm scheduler ensures these functions execute close to their required data, reducing unnecessary duplication and overhead.
 
-The WebAssembly execution and code generation is handled by [WAVM](https://github.com/WAVM/WAVM), an excellent server-side WebAssembly VM. The Python support is thanks to the
-[Pyodide](https://github.com/iodide-project/pyodide) project.
-
-This is primarily a research project. Other serverless WebAssembly runtimes are available.
+Faasm is a runtime, intended for integration into other serverless platforms. The primary integration is with [Knative](https://knative.dev/).
 
 # Quick start
 
