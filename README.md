@@ -4,7 +4,7 @@
 
 # Faasm [![Build Status](https://travis-ci.org/lsds/Faasm.svg?branch=master)](https://travis-ci.org/lsds/Faasm)
 
-Faasm is a high-performance stateful serverless runtime. The goal of the project is serverless big data.
+Faasm is a high-performance stateful serverless runtime. The goal of the project is enabling fast, efficient serverless big data.
 
 Faasm provides multi-tenant isolation, but also lets functions share regions of memory. These shared memory regions give low-latency concurrent access to data, supporting high-performance distributed serverless applications.
 
