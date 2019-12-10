@@ -1,8 +1,17 @@
 # Genomics Use-case
 
+The genomics use-case involves multiple Faasm functions:
+
+- `gene/mapper` - the top-level entry function. This spawns a child to handle each chunk of reads data.
+- `gene/mapper_worker[1-n]` - each of these functions handles the mapping for a different chunk of the index.
+
+There will be as many `gene/mapper_worker` functions as there are chunks of the index. A basic division of the human
+genome will be into chromosomes, in this case we will have 25 `mapper_worker` functions. Each of these workers gets
+called once per chunk of reads data.
+
 ## Data
 
-You can download the genomics data then upload with:
+You can download the genomics data then upload to Faasm with:
 
 ```
 inv genomics-download-s3
@@ -13,7 +22,7 @@ inv genomics-upload-data --local-copy
 
 ## WASM
 
-To build and upload WASM, you can run:
+To build the genomics library to WASM and build the functions, you can run:
 
 ```
 # Build

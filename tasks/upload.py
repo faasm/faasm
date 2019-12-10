@@ -10,7 +10,7 @@ from tasks.util.config import get_faasm_config
 from tasks.util.env import FUNC_BUILD_DIR, PROJ_ROOT, RUNTIME_S3_BUCKET, FUNC_DIR, WASM_DIR, FAASM_SHARED_STORAGE_ROOT
 from tasks.util.upload_util import curl_file, upload_file_to_s3, upload_file_to_ibm
 
-DIRS_TO_INCLUDE = ["demo", "errors", "python", "polybench", "sgd", "tf"]
+DIRS_TO_INCLUDE = ["demo", "errors", "python", "polybench", "sgd", "tf", "gene"]
 
 PYTHON_FUNC_DIR = join(FUNC_DIR, "python")
 
@@ -153,5 +153,5 @@ def upload_all_s3(ctx):
 @task
 def upload_genomics(ctx, host="localhost"):
     func_path = join(PROJ_ROOT, "third-party/gem3-mapper/wasm_bin/gem-mapper")
-    url = "http://{}:8002/f/gene/mapper".format(host)
+    url = "http://{}:8002/f/gene/gem3mapper".format(host)
     curl_file(url, func_path)

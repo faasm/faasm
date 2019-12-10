@@ -145,6 +145,7 @@ endif ()
 add_subdirectory(errors)
 add_subdirectory(demo)
 add_subdirectory(dynlink)
+add_subdirectory(gene)
 add_subdirectory(polybench)
 add_subdirectory(sgd)
 
