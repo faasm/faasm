@@ -104,6 +104,10 @@ unsigned int faasmAwaitCall(unsigned int messageId) {
     return __faasm_await_call(messageId);
 }
 
+unsigned int faasmChainFunctionInput(const char *name, const uint8_t *inputData, long inputDataSize) {
+    return __faasm_chain_function(name, inputData, inputDataSize);
+}
+
 unsigned int faasmChainThisInput(int idx, const uint8_t *inputData, long inputDataSize) {
     return __faasm_chain_this(idx, inputData, inputDataSize);
 }
