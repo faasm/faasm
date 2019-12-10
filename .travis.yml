@@ -12,7 +12,6 @@ services:
 branches:
   only:
     - master
-    - python-fix
 
 before_install:
   - "./bin/ci_pull.sh"
