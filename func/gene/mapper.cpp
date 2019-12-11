@@ -33,14 +33,35 @@ FAASM_MAIN_FUNC() {
         faasmAwaitCall(callId);
     }
 
-    // Read in results for this read chunk in order
-    for(int i = 0; i < N_INDEX_CHUNKS; i++) {
+    // Read the lenghts of all the outputs
+    const char *lengthsKey = "output_lengths";
+    size_t lengthsSize = N_INDEX_CHUNKS * sizeof(int);
+    int lengthsArray[N_INDEX_CHUNKS];
+    faasmReadState(lengthsKey, reinterpret_cast<uint8_t *>(lengthsArray), lengthsSize);
+
+    // Read in results for this read chunk and write them to a temporary file
+    std::string tempFilePath = "/tmp/output_read_" + std::to_string(readIdx);
+    FILE *fp = fopen(tempFilePath.c_str(), "ab+");
+    for (int i = 0; i < N_INDEX_CHUNKS; i++) {
         // Build key as created by mapper function
         std::string key = "map_out_" + std::to_string(readIdx) + "_" + std::to_string(i);
 
-        // Load output and append
-        
+        // Load the output for this chunk
+        size_t thisLength = (size_t) lengthsArray[i];
+        uint8_t *resultBuf = new uint8_t[thisLength];
+        faasmReadState(key.c_str(), resultBuf, thisLength);
+
+        // Append to the output file
+        fwrite(resultBuf, 1, thisLength, fp);
+        delete[] resultBuf;
     }
+
+    // Close the open file
+    fclose(fp);
+
+    // Write the file to state
+    std::string resultKey = "output_read_" + std::to_string(readIdx);
+    faasmWriteStateFromFile(resultKey.c_str(), tempFilePath.c_str());
 
     return 0;
 }
