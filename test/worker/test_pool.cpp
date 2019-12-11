@@ -175,59 +175,7 @@ namespace tests {
         REQUIRE(w.isBound());
     }
 
-    TEST_CASE("Test function chaining", "[worker]") {
-        setUp();
-
-        util::SystemConfig &conf = util::getSystemConfig();
-        conf.boundTimeout = 1000;
-        conf.unboundTimeout = 1000;
-        std::string originalPreload = conf.pythonPreload;
-        conf.pythonPreload = "off";
-
-        message::Message call = util::messageFactory("demo", "chain");
-        unsigned int messageId = call.id();
-        setEmulatedMessage(call);
-
-        // NOTE - for this test to work we have to run multiple threads.
-
-        // Set up a real pool
-        WorkerThreadPool pool(4);
-        pool.startThreadPool();
-
-        // Make the call
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        sch.callFunction(call);
-
-        // Await the call executing successfully
-        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(messageId, 1);
-        REQUIRE(result.success());
-
-        // Check that we've scaled up to the max functions
-        REQUIRE(sch.getFunctionThreadCount(call) == 4);
-
-        // Call again
-        message::Message call2 = util::messageFactory("demo", "chain");
-        unsigned int messageId2 = call2.id();
-        setEmulatedMessage(call2);
-
-        sch.callFunction(call2);
-
-        // Await the call executing successfully
-        message::Message result2 = globalBus.getFunctionResult(messageId2, 1);
-        REQUIRE(result2.success());
-
-        // Check that we've not scaled up further
-        REQUIRE(sch.getFunctionThreadCount(call2) == 4);
-
-        pool.shutdown();
-
-        tearDown();
-
-        conf.pythonPreload = originalPreload;
-    }
-
-    void execFuncWithPool(message::Message &call, bool pythonPreload) {
+    void execFuncWithPool(message::Message &call, bool pythonPreload, int repeatCount) {
         setUp();
 
         util::SystemConfig &conf = util::getSystemConfig();
@@ -235,22 +183,28 @@ namespace tests {
         conf.boundTimeout = 1000;
         conf.unboundTimeout = 1000;
         conf.pythonPreload = "off";
-
-        unsigned int messageId = call.id();
-        setEmulatedMessage(call);
 
         // Set up a real worker pool to execute the function
         WorkerThreadPool pool(4);
         pool.startThreadPool();
 
-        // Make the call
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        sch.callFunction(call);
+        for (int i = 0; i < repeatCount; i++) {
+            // Reset call ID
+            call.set_id(0);
+            util::setMessageId(call);
 
-        // Await the call executing successfully
-        scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-        message::Message result = globalBus.getFunctionResult(messageId, 1);
-        REQUIRE(result.success());
+            unsigned int messageId = call.id();
+            setEmulatedMessage(call);
+
+            // Make the call
+            scheduler::Scheduler &sch = scheduler::getScheduler();
+            sch.callFunction(call);
+
+            // Await the call executing successfully
+            scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
+            message::Message result = globalBus.getFunctionResult(messageId, 1);
+            REQUIRE(result.success());
+        }
 
         pool.shutdown();
 
@@ -259,9 +213,19 @@ namespace tests {
         conf.pythonPreload = originalPreload;
     }
 
+    TEST_CASE("Test function chaining", "[worker]") {
+        message::Message call = util::messageFactory("demo", "chain");
+        execFuncWithPool(call, false, 2);
+    }
+
+    TEST_CASE("Test named function chaining", "[worker]") {
+        message::Message call = util::messageFactory("demo", "chain_named_a");
+        execFuncWithPool(call, false, 2);
+    }
+
     TEST_CASE("Test appended state", "[worker]") {
         message::Message call = util::messageFactory("demo", "state_append");
-        execFuncWithPool(call, false);
+        execFuncWithPool(call, false, 1);
     }
 
     TEST_CASE("Test python chaining", "[worker]") {
@@ -270,7 +234,7 @@ namespace tests {
         call.set_pythonfunction("chain");
         call.set_ispython(true);
 
-        execFuncWithPool(call, true);
+        execFuncWithPool(call, true, 1);
     }
 
     TEST_CASE("Test repeat invocation with state", "[worker]") {
