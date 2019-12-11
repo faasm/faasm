@@ -3,9 +3,9 @@
 The genomics use-case involves multiple Faasm functions:
 
 - `gene/mapper` - the top-level entry function. This spawns a child to handle each chunk of reads data.
-- `gene/mapper_index[0-n]` - each of these functions handles the mapping for a different chunk of the index.
+- `gene/mapper_index[1-n]` - each of these functions handles the mapping for a different chunk of the index.
 
-There will be as many `gene/mapper_worker` functions as there are chunks of the index. A basic division of the human genome will be into chromosomes, in this case we will have 25 `mapper_worker` functions. Each of these workers gets called once per chunk of reads data.
+There will be as many `gene/mapper_index` functions as there are chunks of the index. A basic division of the human genome will be into chromosomes, in this case we will have 24 `mapper_index` functions. These functions will _each_ get called once per chunk of reads data.
 
 ## Data
 
@@ -17,6 +17,8 @@ inv genomics-download-s3
 # Use --local-copy if running locally
 inv genomics-upload-data --local-copy
 ```
+
+The genomics data is shared via Faasm's shared files rather than directly through shared state.
 
 ## WASM
 

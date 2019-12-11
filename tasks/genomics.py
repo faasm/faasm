@@ -1,58 +1,18 @@
-from os import listdir
 from os.path import join
 from time import sleep
 
 from invoke import task
 
-from tasks.upload import _get_host_port
+from tasks.upload import get_upload_host_port
 from tasks.util.env import FAASM_DATA_DIR
+from tasks.util.genomics import get_reads_from_dir
 from tasks.util.invoke import invoke_impl, status_call_impl, STATUS_SUCCESS, STATUS_FAILED, STATUS_RUNNING
-from tasks.util.state import upload_binary_state, download_binary_state
-
-
-def _get_reads_from_dir():
-    # We expect reads data to exist at the following location and be divided up into files
-    # reads_1, reads_2, reads_3 etc.
-
-    # Iterate through the files, work out what we have
-    read_idxs = list()
-    file_paths = list()
-    reads_dir = join(FAASM_DATA_DIR, "genomics", "reads")
-    for reads_filename in listdir(reads_dir):
-        if not reads_filename.startswith("reads_"):
-            print("Skipping file {}".format(reads_filename))
-            continue
-
-        # Work out which chunk we're dealing with
-        filename_parts = reads_filename.split("_")
-        filename_parts = [f.strip() for f in filename_parts if f.strip()]
-        if len(filename_parts) != 2:
-            print("Invalid reads filename: {}".format(reads_filename))
-            continue
-
-        read_idx = int(filename_parts[1])
-        read_idxs.append(read_idx)
-
-        file_path = join(reads_dir, reads_filename)
-        file_paths.append(file_path)
-
-        print("Found reads file at {} for read chunk {}".format(file_path, read_idx))
-
-    return read_idxs, file_paths
+from tasks.util.state import download_binary_state
 
 
 @task
-def upload_reads(ctx):
-    read_idxs, file_paths = _get_reads_from_dir()
-
-    for read_idx, file_path in zip(read_idxs, file_paths):
-        print("Uploading reads file at {} for read chunk {}".format(file_path, read_idx))
-        upload_binary_state("gene", "reads_{}".format(read_idx), file_path)
-
-
-@task
-def mapping(ctx):
-    read_idxs, _ = _get_reads_from_dir()
+def genomics_mapping(ctx):
+    read_idxs, _ = get_reads_from_dir()
 
     # Iterate through and make the calls to the worker
     call_ids = list()
@@ -81,7 +41,7 @@ def mapping(ctx):
         # Download the results of this read
         state_key = "output_read_{}".format(read_idx)
         output_file = join(FAASM_DATA_DIR, "genomics_output", state_key)
-        host, port = _get_host_port(None, None)
+        host, port = get_upload_host_port(None, None)
         download_binary_state("gene", state_key, output_file, host=host, port=port)
 
         # Check if we're done

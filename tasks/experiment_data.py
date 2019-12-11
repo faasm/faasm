@@ -10,6 +10,7 @@ from invoke import task
 from tasks.aws import invoke_lambda
 from tasks.util.env import FUNC_DIR, FAASM_SHARED_STORAGE_ROOT
 from tasks.util.env import STATE_S3_BUCKET, DATA_S3_BUCKET, FAASM_DATA_DIR
+from tasks.util.genomics import INDEX_CHUNKS
 from tasks.util.kubernetes import get_kubernetes_upload_host
 from tasks.util.matrices import get_matrix_dir
 from tasks.util.state import upload_binary_state, upload_sparse_matrix
@@ -209,34 +210,3 @@ def tf_upload_data(ctx, host="localhost", local_copy=False):
             else:
                 shared_path = "tfdata/{}".format(filename)
                 upload_shared_file(host, file_path, shared_path)
-
-
-# -------------------------------------------------
-# GENOMICS UPLOAD
-# -------------------------------------------------
-
-@task
-def genomics_upload_data(ctx, host="localhost", local_copy=False):
-    dest_root = join(FAASM_SHARED_STORAGE_ROOT, "genomics")
-    if local_copy and not exists(dest_root):
-        makedirs(dest_root)
-
-    read_copies = 5
-
-    # Create list of files as tuples of (source, dest)
-    reads_source_file = "reads_1.fq"
-    files = list()
-    for idx in range(0, read_copies):
-        files.append((reads_source_file, "reads_{}.fq".format(idx)) for idx in range(0, read_copies))
-
-    files.append(("human_c_20_idx.gem.gem", "human_c_20_idx.gem.gem"))
-
-    for f in files:
-        file_path = join(FAASM_DATA_DIR, "genomics", f)
-
-        if local_copy:
-            dest_file = join(dest_root, f)
-            call("cp {} {}".format(file_path, dest_file), shell=True)
-        else:
-            shared_path = "genomics/{}".format(f)
-            upload_shared_file(host, file_path, shared_path)

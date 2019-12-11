@@ -8,6 +8,7 @@ from invoke import task
 
 from tasks.util.config import get_faasm_config
 from tasks.util.env import FUNC_BUILD_DIR, PROJ_ROOT, RUNTIME_S3_BUCKET, FUNC_DIR, WASM_DIR, FAASM_SHARED_STORAGE_ROOT
+from tasks.util.genomics import INDEX_CHUNKS
 from tasks.util.upload_util import curl_file, upload_file_to_s3, upload_file_to_ibm
 
 DIRS_TO_INCLUDE = ["demo", "errors", "python", "polybench", "sgd", "tf", "gene"]
@@ -20,7 +21,7 @@ def _get_s3_key(user, func):
     return s3_key
 
 
-def _get_host_port(host_in, port_in):
+def get_upload_host_port(host_in, port_in):
     faasm_config = get_faasm_config()
 
     if not host_in and faasm_config.has_section("Kubernetes"):
@@ -35,7 +36,7 @@ def _get_host_port(host_in, port_in):
 
 @task
 def upload(ctx, user, func, host=None, s3=False, ibm=False, py=False, ts=False, prebuilt=False):
-    host, port = _get_host_port(host, None)
+    host, port = get_upload_host_port(host, None)
 
     if py:
         func_file = join(PROJ_ROOT, "func", user, "{}.py".format(func))
@@ -141,7 +142,7 @@ def _do_upload_all(host=None, port=None, upload_s3=False, py=False, prebuilt=Fal
 
 @task
 def upload_all(ctx, host=None, port=None, py=False, prebuilt=False, local_copy=False):
-    host, port = _get_host_port(host, port)
+    host, port = get_upload_host_port(host, port)
     _do_upload_all(host=host, port=port, py=py, prebuilt=prebuilt, local_copy=local_copy)
 
 
@@ -159,12 +160,11 @@ def upload_genomics(ctx, host="localhost", port=8002):
     upload(ctx, "gene", "mapper")
 
     # Upload the worker functions (one for each index chunk)
-    index_chunks = 25
-    host, port = _get_host_port(host, port)
+    host, port = get_upload_host_port(host, port)
 
-    for i in range(index_chunks):
+    for i in INDEX_CHUNKS:
         func_name = "mapper_index{}".format(i)
-        print("Uploading function gene/{} to {}:{}", func_name, host, port)
+        print("Uploading function gene/{} to {}:{}".format(func_name, host, port))
 
         file_path = join(PROJ_ROOT, "third-party/gem3-mapper/wasm_bin/gem-mapper")
         url = "http://{}:{}/f/gene/{}".format(host, port, func_name)

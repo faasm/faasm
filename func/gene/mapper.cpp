@@ -5,7 +5,9 @@
 #include <string>
 
 // Hard-coded for human genome split into chromosomes for now
-#define N_INDEX_CHUNKS 25
+// TEMPORARY - hack to be low
+//#define N_INDEX_CHUNKS 24
+#define N_INDEX_CHUNKS 2
 
 /*
  * This function fans out the mapping for a given chunk of reads and awaits the results.
@@ -21,8 +23,9 @@ FAASM_MAIN_FUNC() {
     printf("Starting mapper for read index %i\n", readIdx);
 
     // Dispatch a call to the mapper for each index chunk and this read chunk
+    // NOTE - the range of mapper_index functions is 1-based
     unsigned int callIds[N_INDEX_CHUNKS];
-    for (int i = 0; i < N_INDEX_CHUNKS; i++) {
+    for (int i = 1; i <= N_INDEX_CHUNKS; i++) {
         int input[2] = {readIdx, i};
         auto inputBytes = (unsigned char *) input;
 
