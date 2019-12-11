@@ -1,3 +1,4 @@
+import subprocess
 from os import makedirs
 from os.path import exists
 from os.path import join
@@ -36,3 +37,22 @@ def download_proj(url, filename, extension="tar.gz", tar_args="-xf", extract_fil
         makedirs(build_dir)
 
     return extract_dir, build_dir
+
+
+def get_file(url, output_path):
+    cmd = [
+        "curl",
+        "-X", "GET",
+        url,
+        "-o", output_path
+    ]
+
+    cmd = " ".join(cmd)
+    print(cmd)
+    res = subprocess.call(cmd, shell=True)
+
+    if res == 0:
+        print("Successful GET file from {} to {}".format(url, output_path))
+    else:
+        raise RuntimeError("Failed GETting file from {} to {}".format(url, output_path))
+

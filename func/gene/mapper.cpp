@@ -11,11 +11,14 @@
  * This function fans out the mapping for a given chunk of reads and awaits the results.
  */
 FAASM_MAIN_FUNC() {
-    int readIdx = faasm::getTypedInput<int>(-1);
-    if (readIdx == -1) {
+    std::string stringInput = faasm::getStringInput("");
+    if (stringInput == "") {
         printf("Must provide function with read chunk index as input.\n");
         return 1;
     }
+
+    int readIdx = std::stoi(stringInput);
+    printf("Starting mapper for read index %i\n", readIdx);
 
     // Dispatch a call to the mapper for each index chunk and this read chunk
     unsigned int callIds[N_INDEX_CHUNKS];
