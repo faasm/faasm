@@ -6,11 +6,12 @@ from subprocess import call
 
 from invoke import task
 
-from tasks.util.config import get_faasm_config
+from tasks.util.endpoints import get_upload_host_port
 from tasks.util.env import FUNC_BUILD_DIR, PROJ_ROOT, RUNTIME_S3_BUCKET, FUNC_DIR, WASM_DIR, FAASM_SHARED_STORAGE_ROOT
+from tasks.util.genomics import INDEX_CHUNKS
 from tasks.util.upload_util import curl_file, upload_file_to_s3, upload_file_to_ibm
 
-DIRS_TO_INCLUDE = ["demo", "errors", "python", "polybench", "sgd", "tf"]
+DIRS_TO_INCLUDE = ["demo", "errors", "python", "polybench", "sgd", "tf", "gene"]
 
 PYTHON_FUNC_DIR = join(FUNC_DIR, "python")
 
@@ -20,22 +21,9 @@ def _get_s3_key(user, func):
     return s3_key
 
 
-def _get_host_port(host_in, port_in):
-    faasm_config = get_faasm_config()
-
-    if not host_in and faasm_config.has_section("Kubernetes"):
-        host = faasm_config["Kubernetes"].get("upload_host", "127.0.0.1")
-        port = faasm_config["Kubernetes"].get("upload_port", 8002)
-    else:
-        host = host_in if host_in else "127.0.0.1"
-        port = port_in if port_in else 8002
-
-    return host, port
-
-
 @task
 def upload(ctx, user, func, host=None, s3=False, ibm=False, py=False, ts=False, prebuilt=False):
-    host, port = _get_host_port(host, None)
+    host, port = get_upload_host_port(host, None)
 
     if py:
         func_file = join(PROJ_ROOT, "func", user, "{}.py".format(func))
@@ -141,7 +129,7 @@ def _do_upload_all(host=None, port=None, upload_s3=False, py=False, prebuilt=Fal
 
 @task
 def upload_all(ctx, host=None, port=None, py=False, prebuilt=False, local_copy=False):
-    host, port = _get_host_port(host, port)
+    host, port = get_upload_host_port(host, port)
     _do_upload_all(host=host, port=port, py=py, prebuilt=prebuilt, local_copy=local_copy)
 
 
@@ -151,7 +139,20 @@ def upload_all_s3(ctx):
 
 
 @task
-def upload_genomics(ctx, host="localhost"):
-    func_path = join(PROJ_ROOT, "third-party/gem3-mapper/wasm_bin/gem-mapper")
-    url = "http://{}:8002/f/gene/mapper".format(host)
-    curl_file(url, func_path)
+def upload_genomics(ctx, host="localhost", port=8002):
+    # When uploading genomics, we are uploading the mapper entrypoint as a normal
+    # function, but the worker functions are all from the same source file
+
+    # Upload the entrypoint function
+    upload(ctx, "gene", "mapper")
+
+    # Upload the worker functions (one for each index chunk)
+    host, port = get_upload_host_port(host, port)
+
+    for i in INDEX_CHUNKS:
+        func_name = "mapper_index{}".format(i)
+        print("Uploading function gene/{} to {}:{}".format(func_name, host, port))
+
+        file_path = join(PROJ_ROOT, "third-party/gem3-mapper/wasm_bin/gem-mapper")
+        url = "http://{}:{}/f/gene/{}".format(host, port, func_name)
+        curl_file(url, file_path)

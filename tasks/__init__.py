@@ -133,7 +133,6 @@ from tasks.experiment_data import (
     tf_upload_data,
     genomics_upload_s3,
     genomics_download_s3,
-    genomics_upload_data,
 )
 from tasks.toolchain import (
     backup_toolchain,
@@ -167,6 +166,10 @@ from tasks.genomics_data import (
     download_genome,
     download_reads,
     index_genome,
+    genomics_upload_data,
+)
+from tasks.genomics import (
+    genomics_mapping,
 )
 # Can only generate matrix data with things installed
 try:

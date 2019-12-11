@@ -1,5 +1,6 @@
 from os.path import join
 
+from tasks.util.download import get_file
 from tasks.util.upload_util import upload_file_to_s3, curl_file
 
 _SPARSE_MATRIX_PARTS = [
@@ -15,6 +16,13 @@ def upload_sparse_matrix(user, key, directory, host=None, s3_bucket=None):
         file_path = join(directory, f)
 
         upload_binary_state(user, this_key, file_path, host=host, s3_bucket=s3_bucket)
+
+
+def download_binary_state(user, key, output_path, host="localhost", port=8002):
+    print("Download binary state file {} for user {}".format(key, user))
+
+    url = "http://{}:{}/s/{}/{}".format(host, port, user, key)
+    get_file(url, output_path)
 
 
 def upload_binary_state(user, key, binary_file, host=None, s3_bucket=None):

@@ -1,7 +1,7 @@
 from invoke import task
 
 from tasks.util.invoke import invoke_impl, status_call_impl, flush_call_impl
-from tasks.util.kubernetes import get_kubernetes_host_port
+from tasks.util.endpoints import get_kubernetes_host_port
 
 
 @task

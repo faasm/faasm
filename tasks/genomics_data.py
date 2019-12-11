@@ -1,41 +1,15 @@
 import os
 from copy import copy
-from os import mkdir, remove
+from os import mkdir, remove, makedirs
 from os.path import join, exists
 from subprocess import check_output, call
 
 from invoke import task
 
-from tasks.util.env import FAASM_DATA_DIR, THIRD_PARTY_DIR
-
-# Reads are sequences of indexed nucleotides and are the input to the mapper
-# Not sure what the best source is so far, but have found some examples
-
-# Genome data can be found at ftp://ftp-trace.ncbi.nih.gov/genomes
-# The top-level README describes the layout (ftp://ftp.ncbi.nih.gov/genomes/README.txt)
-# In general you are looking for a file with type `.fasta` or `.fa` or `.fna`
-
-# The full human genome is here: ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/technical/reference/human_g1k_v37.fasta.gz
-# We download individual chromosomes from here: ftp://ftp.ensembl.org/pub/release-97/fasta/homo_sapiens/dna/
-#
-# A puffer fish genome can be found here:
-# ftp://ftp-trace.ncbi.nih.gov/genomes/genbank/vertebrate_other/Tetraodon_nigroviridis/representative/GCA_000180735.1_ASM18073v1/GCA_000180735.1_ASM18073v1_genomic.fna.gz
-
-READ_URLS = [
-    "https://raw.githubusercontent.com/BenLangmead/bowtie2/master/example/reads/reads_1.fq",
-]
-
-# Python ranges are exclusive
-CHROMOSOME_NUMBERS = [str(i) for i in range(1, 23)]
-CHROMOSOME_NUMBERS.append("X")
-CHROMOSOME_NUMBERS.append("Y")
-
-CHROMOSOME_URLS = [
-    "ftp://ftp.ensembl.org/pub/release-97/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.{}.fa.gz".format(i)
-    for i in CHROMOSOME_NUMBERS
-]
-
-GENOMICS_DATA_DIR = join(FAASM_DATA_DIR, "genomics")
+from tasks.util.env import FAASM_DATA_DIR, THIRD_PARTY_DIR, FAASM_SHARED_STORAGE_ROOT
+from tasks.util.genomics import GENOMICS_DATA_DIR, CHROMOSOME_URLS, CHROMOSOME_NUMBERS, READ_URLS, get_reads_from_dir, \
+    INDEX_CHUNKS
+from tasks.util.state import upload_shared_file
 
 
 @task
@@ -95,7 +69,6 @@ def index_genome(ctx):
         remove(info_file)
 
 
-
 @task
 def download_reads(ctx):
     if not exists(GENOMICS_DATA_DIR):
@@ -106,3 +79,29 @@ def download_reads(ctx):
         download_file = join(GENOMICS_DATA_DIR, filename)
         print("URL: {} -> {}\n".format(url, download_file))
         check_output("wget {} -O {}".format(url, download_file), shell=True)
+
+
+@task
+def genomics_upload_data(ctx, host="localhost", local_copy=False):
+    dest_root = join(FAASM_SHARED_STORAGE_ROOT, "genomics")
+    if local_copy and not exists(dest_root):
+        makedirs(dest_root)
+
+    files_to_upload = list()
+
+    read_idxs, file_paths = get_reads_from_dir()
+    for read_idx, file_path in zip(read_idxs, file_paths):
+        files_to_upload.append((file_path, "reads_{}.fq".format(read_idx)))
+
+    for index_chunk in INDEX_CHUNKS:
+        filename = "index_{}.gem".format(index_chunk)
+        file_path = join(FAASM_DATA_DIR, "genomics", filename)
+        files_to_upload.append((file_path, filename))
+
+    for file_path, file_name in files_to_upload:
+        if local_copy:
+            dest_file = join(dest_root, file_name)
+            call("cp {} {}".format(file_path, dest_file), shell=True)
+        else:
+            shared_path = "genomics/{}".format(file_name)
+            upload_shared_file(host, file_path, shared_path)
