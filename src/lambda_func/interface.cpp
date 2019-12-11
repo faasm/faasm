@@ -110,7 +110,7 @@ int __faasm_await_call(unsigned int messageId) {
 }
 
 unsigned int __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize) {
-    throw std::runtime_error("Not implemented self-chaining");
+    throw std::runtime_error("Not implemented named chaining");
 }
 
 unsigned int __faasm_chain_this(int idx, const unsigned char *inputData, long inputDataSize) {
