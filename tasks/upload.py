@@ -152,8 +152,13 @@ def upload_all_s3(ctx):
 
 @task
 def upload_genomics(ctx, host="localhost", port=8002):
-    # When uploading genomics, we are repeatedly uploading the same file as multiple functions.
+    # When uploading genomics, we are uploading the mapper entrypoint as a normal
+    # function, but the worker functions are all from the same source file
 
+    # Upload the entrypoint function
+    upload(ctx, "gene", "mapper")
+
+    # Upload the worker functions (one for each index chunk)
     index_chunks = 25
     host, port = _get_host_port(host, port)
 
