@@ -41,8 +41,8 @@ void faasmWriteStateOffset(const char *key, long totalLen, long offset, const ui
     __faasm_write_state_offset(key, totalLen, offset, data, dataLen);
 }
 
-void faasmWriteStateFromFile(const char* key, const char* filePath) {
-    __faasm_write_state_from_file(key, filePath);
+unsigned long faasmWriteStateFromFile(const char* key, const char* filePath) {
+    return (unsigned long) __faasm_write_state_from_file(key, filePath);
 }
 
 void faasmFlagStateDirty(const char *key, long totalLen) {
