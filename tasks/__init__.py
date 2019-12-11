@@ -168,6 +168,9 @@ from tasks.genomics_data import (
     download_reads,
     index_genome,
 )
+from tasks.genomics import (
+    mapping,
+)
 # Can only generate matrix data with things installed
 try:
     import pyfaasm

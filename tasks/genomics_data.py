@@ -95,7 +95,6 @@ def index_genome(ctx):
         remove(info_file)
 
 
-
 @task
 def download_reads(ctx):
     if not exists(GENOMICS_DATA_DIR):
