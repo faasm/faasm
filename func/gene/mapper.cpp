@@ -4,14 +4,13 @@
 #include <stdio.h>
 #include <string>
 
-#define N_READ_CHUNKS 10
+// Hard-coded for human genome split into chromosomes for now
 #define N_INDEX_CHUNKS 25
 
 /*
- * This is the function that fans out the mapping for a given chunk of reads
- * and awaits the results.
+ * This function fans out the mapping for a given chunk of reads and awaits the results.
  */
-FAASM_FUNC(read_worker, 1) {
+FAASM_MAIN_FUNC() {
     int readIdx = faasm::getTypedInput<int>(-1);
     if (readIdx == -1) {
         printf("Must provide function with read chunk index as input.\n");
@@ -34,29 +33,14 @@ FAASM_FUNC(read_worker, 1) {
         faasmAwaitCall(callId);
     }
 
-    return 0;
-}
+    // Read in results for this read chunk in order
+    for(int i = 0; i < N_INDEX_CHUNKS; i++) {
+        // Build key as created by mapper function
+        std::string key = "map_out_" + std::to_string(readIdx) + "_" + std::to_string(i);
 
-/*
- * This is the entrypoint for the genomics mapper. Its job is to fan out all the
- * mapper workers which do the real work with gem3.
- */
-FAASM_MAIN_FUNC() {
-    unsigned int callIds[N_READ_CHUNKS];
-    for (unsigned int r = 0; r < N_READ_CHUNKS; r++) {
-        // Chain the reads chunk worker for this read chunk
-        auto inputBytes = reinterpret_cast<unsigned char*>(&r);
-        unsigned int callId = faasmChainThisInput(1, inputBytes, sizeof(int));
-
-        callIds[r] = callId;
+        // Load output and append
+        
     }
-
-    // Await all finishing
-    for (auto callId : callIds) {
-        faasmAwaitCall(callId);
-    }
-
-    // TODO - aggregation
 
     return 0;
 }
