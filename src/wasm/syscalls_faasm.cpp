@@ -144,7 +144,7 @@ namespace wasm {
         kv->setSegment(offset, data, dataLen);
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_from_file", void, __faasm_write_state_from_file,
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_write_state_from_file", I32, __faasm_write_state_from_file,
                                    I32 keyPtr, I32 pathPtr) {
         const std::string key = getStringFromWasm(keyPtr);
         const std::string path = getStringFromWasm(pathPtr);
@@ -159,6 +159,8 @@ namespace wasm {
         const std::string actualKey = util::keyForUser(getExecutingCall()->user(), key);
         redis::Redis &redis = redis::Redis::getState();
         redis.set(actualKey, bytes);
+
+        return bytes.size();
     }     
     
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_read_state", void, __faasm_read_state,

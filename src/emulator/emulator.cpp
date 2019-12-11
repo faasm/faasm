@@ -190,7 +190,7 @@ void __faasm_write_state_offset(const char *key, long totalLen, long offset, con
     kv->setSegment(offset, data, dataLen);
 }
 
-void __faasm_write_state_from_file(const char *key, const char *filePath) {
+unsigned int __faasm_write_state_from_file(const char *key, const char *filePath) {
     util::getLogger()->debug("E - write_state_from_file - {} {}", key, filePath);
 
     // Read file into bytes
@@ -200,6 +200,8 @@ void __faasm_write_state_from_file(const char *key, const char *filePath) {
     const std::string actualKey = util::keyForUser(getEmulatorUser(), key);
     redis::Redis &redis = redis::Redis::getState();
     redis.set(actualKey, bytes);
+
+    return bytes.size();
 }
 
 void __faasm_flag_state_dirty(const char *key, long totalLen) {
