@@ -151,7 +151,16 @@ def upload_all_s3(ctx):
 
 
 @task
-def upload_genomics(ctx, host="localhost"):
-    func_path = join(PROJ_ROOT, "third-party/gem3-mapper/wasm_bin/gem-mapper")
-    url = "http://{}:8002/f/gene/gem3mapper".format(host)
-    curl_file(url, func_path)
+def upload_genomics(ctx, host="localhost", port=8002):
+    # When uploading genomics, we are repeatedly uploading the same file as multiple functions.
+
+    index_chunks = 25
+    host, port = _get_host_port(host, port)
+
+    for i in range(index_chunks):
+        func_name = "mapper_index{}".format(i)
+        print("Uploading function gene/{} to {}:{}", func_name, host, port)
+
+        file_path = join(PROJ_ROOT, "third-party/gem3-mapper/wasm_bin/gem-mapper")
+        url = "http://{}:{}/f/gene/{}".format(host, port, func_name)
+        curl_file(url, file_path)

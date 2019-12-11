@@ -1,6 +1,8 @@
-#include <stdio.h>
 #include <faasm/faasm.h>
 #include <faasm/input.h>
+
+#include <stdio.h>
+#include <string>
 
 #define N_READ_CHUNKS 10
 #define N_INDEX_CHUNKS 25
@@ -16,16 +18,15 @@ FAASM_FUNC(read_worker, 1) {
         return 1;
     }
 
-    // Dispatch a worker for each index chunk
+    // Dispatch a call to the mapper for each index chunk and this read chunk
     unsigned int callIds[N_INDEX_CHUNKS];
     for (int i = 0; i < N_INDEX_CHUNKS; i++) {
-//        int input[2] = {readIdx, i};
-//        auto inputBytes = (unsigned char *) input;
+        int input[2] = {readIdx, i};
+        auto inputBytes = (unsigned char *) input;
 
-        // TODO - chain call to gene/gem3mapper
-//        unsigned int callId = faasmChain(1, inputBytes, 2 * sizeof(int));
-//
-//        callIds[i] = callId;
+        std::string funcName = "mapper_index" + std::to_string(i);
+        unsigned int callId = faasmChainFunctionInput(funcName.c_str(), inputBytes, 2 * sizeof(int));
+        callIds[i] = callId;
     }
 
     // Await all finishing
@@ -37,7 +38,7 @@ FAASM_FUNC(read_worker, 1) {
 }
 
 /*
- * This is the entrpoint for the genomics mapper. Its job is to fan out all the
+ * This is the entrypoint for the genomics mapper. Its job is to fan out all the
  * mapper workers which do the real work with gem3.
  */
 FAASM_MAIN_FUNC() {
