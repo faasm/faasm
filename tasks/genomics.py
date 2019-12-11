@@ -4,8 +4,8 @@ from time import sleep
 
 from invoke import task
 
-from tasks.util.endpoints import get_kubernetes_host_port, get_worker_host_port
 from tasks.util.endpoints import get_upload_host_port
+from tasks.util.endpoints import get_worker_host_port
 from tasks.util.env import FAASM_DATA_DIR
 from tasks.util.genomics import get_reads_from_dir
 from tasks.util.invoke import invoke_impl, status_call_impl, STATUS_SUCCESS, STATUS_FAILED, STATUS_RUNNING

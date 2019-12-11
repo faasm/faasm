@@ -32,8 +32,11 @@ To build the genomics library to WASM, build and upload the functions you can ru
 # Upload
 inv upload-genomics
 
-# Invoke
-inv invoke gene mapper
+# Invoke for a single read chunk
+inv invoke gene mapper --input=1
+
+# Invoke in a loop for all read chunks
+inv genomics-mapping
 ```
 
 ## Native
