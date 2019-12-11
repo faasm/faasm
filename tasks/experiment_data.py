@@ -8,10 +8,9 @@ from subprocess import check_output
 from invoke import task
 
 from tasks.aws import invoke_lambda
+from tasks.util.endpoints import get_kubernetes_upload_host
 from tasks.util.env import FUNC_DIR, FAASM_SHARED_STORAGE_ROOT
 from tasks.util.env import STATE_S3_BUCKET, DATA_S3_BUCKET, FAASM_DATA_DIR
-from tasks.util.genomics import INDEX_CHUNKS
-from tasks.util.kubernetes import get_kubernetes_upload_host
 from tasks.util.matrices import get_matrix_dir
 from tasks.util.state import upload_binary_state, upload_sparse_matrix
 from tasks.util.state import upload_shared_file

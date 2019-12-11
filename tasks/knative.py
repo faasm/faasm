@@ -9,7 +9,7 @@ from tasks.util.config import get_faasm_config
 from tasks.util.env import PROJ_ROOT, FUNC_DIR
 from tasks.util.files import clean_dir
 from tasks.util.ibm import get_ibm_kubeconfig
-from tasks.util.kubernetes import get_kubernetes_host_port
+from tasks.util.endpoints import get_kubernetes_host_port
 from tasks.util.version import get_faasm_version
 
 K8S_DIR = join(PROJ_ROOT, "k8s")

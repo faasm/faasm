@@ -5,7 +5,7 @@ from time import sleep
 from tasks.util.config import get_faasm_config
 from tasks.util.env import PYTHON_USER, PYTHON_FUNC
 from tasks.util.http import do_post
-from tasks.util.kubernetes import get_kubernetes_host_port
+from tasks.util.endpoints import get_kubernetes_host_port
 
 STATUS_SUCCESS = "SUCCESS"
 STATUS_FAILED = "FAILED"

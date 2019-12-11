@@ -31,15 +31,16 @@ FAASM_MAIN_FUNC() {
 
         std::string funcName = "mapper_index" + std::to_string(i);
         unsigned int callId = faasmChainFunctionInput(funcName.c_str(), inputBytes, 2 * sizeof(int));
+        printf("Chained call %u\n", callId);
         callIds[i] = callId;
     }
 
     // Await all finishing
-    for (unsigned int callId : callIds) {
-        faasmAwaitCall(callId);
+    for (int i = 1; i <= N_INDEX_CHUNKS; i++) {
+        faasmAwaitCall(callIds[i]);
     }
 
-    // Read the lenghts of all the outputs
+    // Read the lengths of all the outputs
     const char *lengthsKey = "output_lengths";
     size_t lengthsSize = N_INDEX_CHUNKS * sizeof(int);
     int lengthsArray[N_INDEX_CHUNKS];
@@ -48,7 +49,7 @@ FAASM_MAIN_FUNC() {
     // Read in results for this read chunk and write them to a temporary file
     std::string tempFilePath = "/tmp/output_read_" + std::to_string(readIdx);
     FILE *fp = fopen(tempFilePath.c_str(), "ab+");
-    for (int i = 0; i < N_INDEX_CHUNKS; i++) {
+    for (int i = 1; i <= N_INDEX_CHUNKS; i++) {
         // Build key as created by mapper function
         std::string key = "map_out_" + std::to_string(readIdx) + "_" + std::to_string(i);
 

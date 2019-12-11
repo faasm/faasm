@@ -1,6 +1,28 @@
 from tasks.util.config import get_faasm_config
 
 
+def get_worker_host_port(host_in, port_in):
+    k8s_host, k8s_port = get_kubernetes_host_port()
+
+    if k8s_host:
+        return k8s_host, k8s_port
+
+    return host_in if host_in else "127.0.0.1", port_in if port_in else 8080
+
+
+def get_upload_host_port(host_in, port_in):
+    faasm_config = get_faasm_config()
+
+    if not host_in and faasm_config.has_section("Kubernetes"):
+        host = faasm_config["Kubernetes"].get("upload_host", "127.0.0.1")
+        port = faasm_config["Kubernetes"].get("upload_port", 8002)
+    else:
+        host = host_in if host_in else "127.0.0.1"
+        port = port_in if port_in else 8002
+
+    return host, port
+
+
 def get_kubernetes_host_port():
     faasm_config = get_faasm_config()
     if faasm_config.has_section("Kubernetes"):
