@@ -86,9 +86,9 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_chain_function", U32, __faasm_chain_function,
                                    I32 namePtr, I32 inputDataPtr, I32 inputDataLen) {
-        util::getLogger()->debug("S - chain_function - {} {} {}", namePtr, inputDataPtr, inputDataLen);
-
         std::string funcName = getStringFromWasm(namePtr);
+        util::getLogger()->debug("S - chain_function - {} {} {}", funcName, inputDataPtr, inputDataLen);
+
         const std::vector<uint8_t> inputData = getBytesFromWasm(inputDataPtr, inputDataLen);
 
         return _makeChainedCall(funcName, 0, 0, inputData);
