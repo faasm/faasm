@@ -211,8 +211,8 @@ void __faasm_write_state_offset(const char *key, long totalLen, long offset, con
 
 // Ignore everything from here?
 
-void __faasm_write_state_from_file(const char *key, const char *filePath) {
-
+unsigned int __faasm_write_state_from_file(const char *key, const char *filePath) {
+    return 0;
 }
 
 void __faasm_append_state(const char *key, const unsigned char *data, long dataLen) {

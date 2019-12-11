@@ -56,7 +56,7 @@ void faasmWriteStateOffset(const char *key, long totalLen, long offset, const ui
 /**
  * Writes the given file contents to a file
  */
-void faasmWriteStateFromFile(const char* key, const char* filePath);
+unsigned long faasmWriteStateFromFile(const char* key, const char* filePath);
 
 /**
 * Mark the whole value as dirty

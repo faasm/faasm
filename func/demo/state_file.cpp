@@ -19,7 +19,11 @@ FAASM_MAIN_FUNC() {
     fclose(f);
 
     // Ask for the file to be written to state
-    faasmWriteStateFromFile(key, filePath);
+    size_t nBytesWritten = faasmWriteStateFromFile(key, filePath);
+    if(nBytesWritten != contentLen) {
+        printf("Expected %li bytes to be written but got %li\n", contentLen, nBytesWritten);
+        return 1;
+    }
 
     // Read in the state
     auto buffer = new uint8_t[contentLen];
