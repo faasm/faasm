@@ -296,7 +296,8 @@ unsigned int _chain_local(int idx, int pyIdx, const unsigned char *buffer, long 
     return thisCallId;
 }
 
-unsigned int _chain_knative(int idx, int pyIdx, const unsigned char *buffer, long bufferLen) {
+unsigned int _chain_knative(const std::string &funcName, int idx, int pyIdx, const unsigned char *buffer,
+        long bufferLen) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
     logger->debug("E - chain_this_knative idx {} input len {}", idx, bufferLen);
 
@@ -311,7 +312,7 @@ unsigned int _chain_knative(int idx, int pyIdx, const unsigned char *buffer, lon
     int portInt = std::stoi(port);
 
     // Build the message to dispatch
-    message::Message msg = util::messageFactory(_emulatedCall.user(), _emulatedCall.function());
+    message::Message msg = util::messageFactory(_emulatedCall.user(), funcName);
     util::setMessageId(msg);
 
     msg.set_idx(idx);
@@ -334,10 +335,19 @@ unsigned int _chain_knative(int idx, int pyIdx, const unsigned char *buffer, lon
     return msg.id();
 }
 
+unsigned int __faasm_chain_function(const char *name, const unsigned char *inputData, long inputDataSize) {
+    util::SystemConfig &conf = util::getSystemConfig();
+    if (conf.hostType == "knative") {
+        return _chain_knative(name, 0, 0, inputData, inputDataSize);
+    } else {
+        throw std::runtime_error("Chaining by name not supported in emulator");
+    }
+}
+
 unsigned int __faasm_chain_this(int idx, const unsigned char *buffer, long bufferLen) {
     util::SystemConfig &conf = util::getSystemConfig();
     if (conf.hostType == "knative") {
-        return _chain_knative(idx, 0, buffer, bufferLen);
+        return _chain_knative(_emulatedCall.function(), idx, 0, buffer, bufferLen);
     } else {
         return _chain_local(idx, 0, buffer, bufferLen);
     }
@@ -346,7 +356,7 @@ unsigned int __faasm_chain_this(int idx, const unsigned char *buffer, long buffe
 unsigned int __faasm_chain_py(int idx, const unsigned char *buffer, long bufferLen) {
     util::SystemConfig &conf = util::getSystemConfig();
     if (conf.hostType == "knative") {
-        return _chain_knative(0, idx, buffer, bufferLen);
+        return _chain_knative(_emulatedCall.function(), 0, idx, buffer, bufferLen);
     } else {
         return _chain_local(0, idx, buffer, bufferLen);
     }

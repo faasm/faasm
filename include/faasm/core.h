@@ -124,6 +124,12 @@ void faasmGetInput(uint8_t *buffer, long bufferLen);
 void faasmSetOutput(const uint8_t *newOutput, long outputLen);
 
 /**
+ * Chains a function with the given input data
+ */
+unsigned int faasmChainFunctionInput(const char *name, const uint8_t *inputData, long inputDataSize);
+
+
+/**
  * Chains a function from this module with the given input data
  */
 unsigned int faasmChainThisInput(int idx, const uint8_t *inputData, long inputDataSize);
