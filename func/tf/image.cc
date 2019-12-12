@@ -23,6 +23,7 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+#include <emulator/emulator.h>
 
 #include "absl/memory/memory.h"
 
@@ -74,10 +75,11 @@ namespace tflite {
 
 FAASM_MAIN_FUNC() {
 
-# if __wasm__ == 1
+#ifdef __wasm__
     std::string dataDir = "faasm://tfdata/";
 #else
     std::string dataDir = "/usr/local/code/faasm/func/tf/data/";
+    setEmulatorUser("tf");
 #endif
 
     std::string imagePath = dataDir + "grace_hopper.bmp";
@@ -98,9 +100,15 @@ FAASM_MAIN_FUNC() {
     std::unique_ptr<tflite::FlatBufferModel> model;
     std::unique_ptr<tflite::Interpreter> interpreter;
 
+#ifdef __wasm__
+    // With wasm we can read directly to a pointer from shared state
+    uint8_t *modelBytes = faasmReadStatePtr(modelKey.c_str(), modelSize);
+#else
     const size_t modelSize = 16900760;
     auto modelBytes = new uint8_t[modelSize];
     faasmReadState(modelKey.c_str(), modelBytes, modelSize);
+#endif
+
     model = tflite::FlatBufferModel::BuildFromBuffer(reinterpret_cast<char *>(modelBytes), modelSize);
 
     FAASM_PROF_END(buildModel)
@@ -258,5 +266,10 @@ FAASM_MAIN_FUNC() {
     }
 
     faasm::setStringOutput(outputStr.c_str());
+
+#ifndef __wasm__
+    delete[] modelBytes;
+#endif
+
     return 0;
 }

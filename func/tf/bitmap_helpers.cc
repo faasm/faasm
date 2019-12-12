@@ -102,11 +102,14 @@ namespace tflite {
             // if height is negative, data layout is top down
             // otherwise, it's bottom up
             bool top_down = (*height < 0);
-
+            
             // Decode image, allocating tensor once the image size is known
             const uint8_t *bmp_pixels = &img_bytes[header_size];
-            return decode_bmp(bmp_pixels, row_size, *width, abs(*height), *channels,
-                              top_down);
+            const std::vector<uint8_t> result = decode_bmp(bmp_pixels, row_size, *width, abs(*height), *channels,
+                                                            top_down);
+
+            // delete[] data;
+            return result;
         }
 
         void resize(float *out, unsigned char *in, int image_height, int image_width,
