@@ -6,7 +6,7 @@ To do this, make sure you've updated all the git submodules, then you can run:
 
 ```
 source workon.sh
-inv compile-tf-lite
+inv compile-tflite
 ```
 
 The build output ends up at `third-party/tensorflow/tensorflow/lite/tools/make/gen`.
@@ -14,12 +14,12 @@ The build output ends up at `third-party/tensorflow/tensorflow/lite/tools/make/g
 If you need to rebuild the wasm part:
 
 ```
-inv compile-tf-lite --clean
+inv compile-tflite --clean
 ```
 
 ## Usage
 
-See the example Tensorflow function at `func/tf/image/label_image.cc`.
+See the example Tensorflow function at `func/tf/image.cc`.
 
 This requires a number of shared files to be available, so once you have an environment running (e.g. with docker-compose), you can run:
 
@@ -57,3 +57,4 @@ cd third-party/tensorflow/tensorflow/lite/tools/make
 rm -r downloads/eigen/
 ./download_dependencies.sh
 ```
+

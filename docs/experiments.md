@@ -28,7 +28,11 @@ ansible-playbook -i inventory/billing.yml billing_setup.yml
 
 Data should be generated and uploaded ahead of time.
 
+### SGD
+
 For details of the SGD experiment data see `sgd.md` notes.
+
+### Matrices
 
 The matrix experiment data needs to be generated in bulk locally, uploaded to S3 then downloaded on the client machine (or directly copied with `scp`). You must have the native tooling and pyfaasm installed to generate it up front (but
 this doesn't need to be done if it's already in S3):
@@ -50,7 +54,21 @@ inv matrix-upload-s3
 inv matrix-download-s3
 ```
 
-## SGD
+### Tensorflow
+
+Tensorflow data consists of the model and images. To download it (one-off) you can run:
+
+```bash
+./bin/download_tf_data.sh
+```
+
+Then to upload to your Faasm instance:
+
+```bash
+inv tf-upload-data
+```
+
+## SGD Experiment
 
 ```bash
 # -- Prepare --
@@ -90,7 +108,7 @@ inv delete-knative-native sgd reuters_svm
 inv delete-knative-worker --hard
 ```
 
-## Matrices
+## Matrices Experiment
 
 ```bash
 # Make sure function is uploaded
@@ -114,6 +132,31 @@ inv matrix-experiment-multi $N_WORKERS --native
 
 # Wasm
 inv matrix-experiment-multi $N_WORKERS
+```
+
+## Tensorflow Experiments
+
+### Latency
+
+```bash
+# Upload the function
+inv upload tf image
+
+# -- Deploy --
+
+# Native
+inv deploy-knative-native tf image 1
+
+# Wasm
+inv deploy-knative 1
+
+# -- Run experiment --
+
+# Native
+inv tflite-lat-experiment 1 --native
+
+# Wasm
+inv tflite-lat-experiment 1
 ```
 
 ## Results
