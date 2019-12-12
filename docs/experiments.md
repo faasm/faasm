@@ -5,6 +5,15 @@ that can run `kubectl` and `kn`.
 
 Everything must be cleared away between runs to make sure stuff doesn't bleed across.
 
+## Set-up
+
+To run throughput/ latency experiments you'll need to install `wrk` with:
+
+```bash
+cd ansible
+ansible-playbook wrk.yml
+```
+
 ## Billing Estimates
 
 To get resource measurements from the hosts running experiments we first need an inventory file at
@@ -156,18 +165,18 @@ inv tf-upload-state
 # -- Deploy --
 
 # Native
-inv deploy-knative-native tf image 1
+inv deploy-knative-native tf image 40
 
 # Wasm
-inv deploy-knative 1
+inv deploy-knative 10
 
 # -- Run experiment --
 
 # Native
-inv tflite-lat-experiment 1 --native
+inv tf-tpt-experiment --native
 
 # Wasm
-inv tflite-lat-experiment 1
+inv tf-tpt-experiment
 ```
 
 ## Results

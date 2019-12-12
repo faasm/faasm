@@ -1,3 +1,4 @@
+import subprocess
 from abc import abstractmethod
 from os import mkdir, listdir
 from os.path import exists, join
@@ -9,7 +10,8 @@ from invoke import task
 
 from tasks import delete_knative_native_python, delete_knative_worker, matrix_state_upload, flush
 from tasks.util.billing import start_billing, pull_billing, parse_billing
-from tasks.util.env import FAASM_HOME
+from tasks.util.endpoints import get_worker_host_port
+from tasks.util.env import FAASM_HOME, ANSIBLE_ROOT, PROJ_ROOT
 from tasks.util.invoke import invoke_impl
 
 
@@ -222,3 +224,53 @@ def matrix_pull_results(ctx, user, host):
     MatrixExperimentRunner.pull_results(host, user)
 
     MatrixExperimentRunner.parse_results()
+
+# -------------------------------------
+# Tensorflow
+# -------------------------------------
+
+
+class TensorflowExperimentRunner():
+    def __init__(self):
+        self.wrk_bin = join(FAASM_HOME, "tools", "wrk")
+        self.threads = 4
+        self.connections_per_thread = 4
+
+        self.host, self.port = get_worker_host_port(None, None)
+        self.url = "http://{}:{}/f/tf/image".format(self.host, self.port)
+
+        self.duration_secs = 30
+
+    def run_native(self):
+        script = join(PROJ_ROOT, "conf", "tf_native.lua")
+        self._run_wrk(script)
+
+    def run_wasm(self):
+        script = join(PROJ_ROOT, "conf", "tf_wasm.lua")
+        self._run_wrk(script)
+
+    def _run_wrk(self, script):
+        connections = self.threads * self.connections_per_thread
+        cmd = [
+            self.wrk_bin,
+            "-t{}".format(self.threads),
+            "-c{}".format(connections),
+            "-s {}".format(script),
+            "-d{}s".format(self.duration_secs),
+            self.url,
+        ]
+
+        cmd = " ".join(cmd)
+        print(cmd)
+
+        subprocess.call(cmd, shell=True)
+
+
+@task
+def tf_tpt_experiment(ctx, native=False):
+    runner = TensorflowExperimentRunner()
+
+    if native:
+        runner.run_native()
+    else:
+        runner.run_wasm()

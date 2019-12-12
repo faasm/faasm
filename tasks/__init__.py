@@ -161,6 +161,7 @@ from tasks.experiments import (
     matrix_experiment,
     matrix_experiment_multi,
     matrix_pull_results,
+    tf_tpt_experiment,
 )
 from tasks.genomics_data import (
     download_genome,
