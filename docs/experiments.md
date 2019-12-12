@@ -66,6 +66,7 @@ Then to upload to your Faasm instance:
 
 ```bash
 inv tf-upload-data
+inv tf-upload-state
 ```
 
 ## SGD Experiment
@@ -74,6 +75,10 @@ inv tf-upload-data
 # -- Prepare --
 # Upload data (one off)
 inv reuters-state-upload
+
+# -- Build/ upload --
+inv build-knative-native sgd reuters_svm
+inv upload sgd reuters_svm --prebuilt
 
 # -- Deploy --
 
@@ -111,7 +116,8 @@ inv delete-knative-worker --hard
 ## Matrices Experiment
 
 ```bash
-# Make sure function is uploaded
+# -- Build/ Upload --
+inv build-knative-native-python
 inv upload python mat_mul --py
 
 # Number of workers kept the same throughout
@@ -139,8 +145,13 @@ inv matrix-experiment-multi $N_WORKERS
 ### Latency
 
 ```bash
-# Upload the function
-inv upload tf image
+# -- Build/ upload --
+inv build-knative-native tf image
+inv upload tf image --prebuilt
+
+# -- Upload data (one-off)
+inv tf-data-upload
+inv tf-upload-state
 
 # -- Deploy --
 
