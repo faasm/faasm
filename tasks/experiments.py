@@ -308,8 +308,8 @@ class TensorflowExperimentRunner():
         results = [Decimal(r.strip()) for r in results.split(",") if r.strip()]
 
         # Work out throughput
-        duration = results[7] / Decimal(1000000)  # Seconds
-        requests = results[8]
+        duration = results[8] / Decimal(1000000)  # Micro seconds to seconds
+        requests = results[9]
         tpt = requests / duration
 
         # Write to summary file
@@ -323,9 +323,10 @@ class TensorflowExperimentRunner():
             fh.write("MAX {}\n".format(results[1] / Decimal(1000)))
             fh.write("MEAN {}\n".format(results[2] / Decimal(1000)))
             fh.write("STDDEV {}\n".format(results[3] / Decimal(1000)))
-            fh.write("MEDIAN {}\n".format(results[4] / Decimal(1000)))
-            fh.write("90TH {}\n".format(results[5] / Decimal(1000)))
-            fh.write("99TH {}\n".format(results[6] / Decimal(1000)))
+            fh.write("10TH {}\n".format(results[4] / Decimal(1000)))
+            fh.write("MEDIAN {}\n".format(results[5] / Decimal(1000)))
+            fh.write("90TH {}\n".format(results[6] / Decimal(1000)))
+            fh.write("99TH {}\n".format(results[7] / Decimal(1000)))
 
     @classmethod
     def pull_results(cls, user, host):

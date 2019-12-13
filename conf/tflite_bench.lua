@@ -35,6 +35,7 @@ done = function(summary, latency, requests)
         latency.max,
         latency.mean,
         latency.stdev,
+        latency:percentile(10),
         latency:percentile(50),
         latency:percentile(90),
         latency:percentile(99),
