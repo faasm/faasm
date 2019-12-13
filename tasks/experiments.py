@@ -282,6 +282,7 @@ class TensorflowExperimentRunner():
             "-c{}".format(connections),
             "-s {}".format(script),
             "-d{}s".format(self.duration_secs),
+            "--timeout=5s",
             self.url,
         ]
 
@@ -329,13 +330,14 @@ class TensorflowExperimentRunner():
 
 @task
 def tf_tpt_experiment_multi(ctx, native=False):
-    delays = [0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000]
+    duration = 20
+    delays = [0, 100, 200, 300, 400, 600, 800, 1000, 2000, 3000, 5000]
     for d in delays:
         runner = TensorflowExperimentRunner(
             threads=2,
-            connections_per_thread=3,
+            connections_per_thread=4,
             delay_ms=d,
-            duration_secs=15,
+            duration_secs=10,
         )
 
         if native:

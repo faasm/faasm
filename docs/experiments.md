@@ -74,8 +74,7 @@ Tensorflow data consists of the model and images. To download it (one-off) you c
 Then to upload to your Faasm instance:
 
 ```bash
-inv tf-upload-data
-inv tf-upload-state
+inv tf-upload-data tf-state-upload
 ```
 
 ## SGD Experiment
@@ -151,7 +150,7 @@ inv matrix-experiment-multi $N_WORKERS
 
 ## Tensorflow Experiments
 
-### Latency
+When deploying the Tensorflow experiments, we need to restrict resources to make sure we can get to a point of saturating the system.
 
 ```bash
 # -- Build/ upload --
@@ -159,17 +158,16 @@ inv build-knative-native tf image
 inv upload tf image --prebuilt
 
 # -- Upload data (one-off)
-inv tf-data-upload
-inv tf-upload-state
+inv tf-upload-data tf-state-upload
 
 # -- Deploy --
 # NOTE: need to switch off Python preload for this 
 
 # Native
-inv deploy-knative-native tf image 40
+inv deploy-knative-native tf image 16
 
 # Wasm
-inv deploy-knative 10
+inv deploy-knative 4
 
 # -- Run experiment --
 
