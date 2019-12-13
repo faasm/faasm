@@ -105,6 +105,14 @@ FAASM_MAIN_FUNC() {
     uint8_t *modelBytes = faasmReadStatePtr(modelKey.c_str(), modelSize);
 #else
     const size_t modelSize = 16900760;
+
+    // If we're being asked to cold start every time, we need to force pulling of the model
+    // Otherwise it'll just use the one it's got cached
+    char* alwaysColdStartStr = getenv("ALWAYS_COLD_START");
+    if (alwaysColdStartStr!=NULL && strcmp(alwaysColdStartStr, "on") == 0) {
+        faasmPullState(modelKey.c_str(), modelSize);
+    }
+
     auto modelBytes = new uint8_t[modelSize];
     faasmReadState(modelKey.c_str(), modelBytes, modelSize);
 #endif

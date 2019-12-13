@@ -48,7 +48,10 @@ def run_func():
 
             sleep(delay_seconds)
 
-        is_cold_start = False
+        # Switch off cold start unless we always want one
+        cold_start_str = os.environ.get("ALWAYS_COLD_START", "off")
+        if cold_start_str != "on":
+            is_cold_start = False
 
     json_data = request.get_json()
     app.logger.info("Knative request: {}".format(json_data))

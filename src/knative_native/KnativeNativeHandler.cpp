@@ -41,10 +41,16 @@ namespace knative_native {
             if (isCold) {
                 logger->info("Simulating cold start");
 
+                // Do the sleep
                 std::string coldStartStr = util::getEnvVar("COLD_START_DELAY_MS", "0");
                 long coldStartMs = std::stol(coldStartStr);
                 usleep(coldStartMs * 1000);
-                isCold = false;
+
+                // Switch off the cold start unless we always want one
+                std::string alwaysColdStartStr = util::getEnvVar("ALWAYS_COLD_START", "off");
+                if(alwaysColdStartStr != "on") {
+                    isCold = false;
+                }
             }
         } else {
             logger->info("Warm start");
