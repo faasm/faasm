@@ -23,7 +23,10 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+
+#ifndef __wasm__
 #include <emulator/emulator.h>
+#endif
 
 #include "absl/memory/memory.h"
 
@@ -47,8 +50,6 @@ namespace tflite {
         TfLiteStatus ReadLabelsFile(const string &file_name,
                                     std::vector<string> *result,
                                     size_t *found_label_count) {
-            FAASM_PROF_START(labelsFile)
-
             std::ifstream file(file_name);
             if (!file) {
                 printf("Labels file %s not found\n", file_name.c_str());
@@ -67,7 +68,6 @@ namespace tflite {
                 result->emplace_back();
             }
 
-            FAASM_PROF_END(labelsFile)
             return kTfLiteOk;
         }
     }
@@ -96,15 +96,14 @@ FAASM_MAIN_FUNC() {
     s.number_of_warmup_runs = 0;
     s.allow_fp16 = true;
 
-    FAASM_PROF_START(buildModel)
     std::unique_ptr<tflite::FlatBufferModel> model;
     std::unique_ptr<tflite::Interpreter> interpreter;
 
+    const size_t modelSize = 16900760;
 #ifdef __wasm__
     // With wasm we can read directly to a pointer from shared state
     uint8_t *modelBytes = faasmReadStatePtr(modelKey.c_str(), modelSize);
 #else
-    const size_t modelSize = 16900760;
 
     // If we're being asked to cold start every time, we need to force pulling of the model
     // Otherwise it'll just use the one it's got cached
@@ -119,33 +118,26 @@ FAASM_MAIN_FUNC() {
 
     model = tflite::FlatBufferModel::BuildFromBuffer(reinterpret_cast<char *>(modelBytes), modelSize);
 
-    FAASM_PROF_END(buildModel)
-
     if (!model) {
         printf("\nFailed to load model from key %s\n", modelKey.c_str());
         exit(-1);
     }
 
-    FAASM_PROF_START(getModel)
     s.model = model.get();
     printf("Loaded model %s\n", modelKey.c_str());
     model->error_reporter();
-    FAASM_PROF_END(getModel)
 
-    FAASM_PROF_START(buildInterpreter)
     tflite::ops::builtin::BuiltinOpResolver resolver;
     tflite::InterpreterBuilder(*model, resolver)(&interpreter);
     if (!interpreter) {
         printf("Failed to construct interpreter\n");
         exit(-1);
     }
-    FAASM_PROF_END(buildInterpreter)
 
     interpreter->UseNNAPI(false);
     interpreter->SetAllowFp16PrecisionForFp32(true);
     interpreter->SetNumThreads(1);
 
-    FAASM_PROF_START(readImage)
     int image_width = 224;
     int image_height = 224;
     int image_channels = 3;
@@ -158,7 +150,6 @@ FAASM_MAIN_FUNC() {
     );
     printf("Finished reading in image %s\n", s.input_bmp_name.c_str());
     printf("Got w, h, c: %i, %i, %i\n", image_width, image_height, image_channels);
-    FAASM_PROF_END(readImage)
 
     int input = interpreter->inputs()[0];
     const std::vector<int> inputs = interpreter->inputs();
@@ -176,7 +167,6 @@ FAASM_MAIN_FUNC() {
     int wanted_width = dims->data[2];
     int wanted_channels = dims->data[3];
 
-    FAASM_PROF_START(resizeImage)
 
     s.input_floating = true;
     tflite::label_image::resize(
@@ -191,9 +181,7 @@ FAASM_MAIN_FUNC() {
             &s
     );
 
-    FAASM_PROF_END(resizeImage)
 
-    FAASM_PROF_START(warmUpRuns)
     if (s.loop_count > 1) {
         for (int i = 0; i < s.number_of_warmup_runs; i++) {
             if (interpreter->Invoke() != kTfLiteOk) {
@@ -201,9 +189,7 @@ FAASM_MAIN_FUNC() {
             }
         }
     }
-    FAASM_PROF_END(warmUpRuns)
 
-    FAASM_PROF_START(interpreterLoop)
     printf("Invoking interpreter in a loop\n");
     for (int i = 0; i < s.loop_count; i++) {
         printf("Interpreter invoke %i\n", i);
@@ -212,7 +198,6 @@ FAASM_MAIN_FUNC() {
             printf("Failed to invoke tflite!\n");
         }
     }
-    FAASM_PROF_END(interpreterLoop)
 
     printf("Finished invoking\n");
 
@@ -227,7 +212,6 @@ FAASM_MAIN_FUNC() {
     TfLiteIntArray *output_dims = interpreter->tensor(output)->dims;
 
     // assume output dims to be something like (1, 1, ... ,size)
-    FAASM_PROF_START(getTopResults)
 
     const float threshold = 0.001f;
     std::vector<std::pair<float, int>> top_results;
@@ -242,7 +226,6 @@ FAASM_MAIN_FUNC() {
             true
     );
 
-    FAASM_PROF_END(getTopResults)
 
     if (top_results.empty()) {
         printf("No top results found\n");
@@ -254,7 +237,6 @@ FAASM_MAIN_FUNC() {
     std::vector<std::string> labels;
     size_t label_count;
 
-    FAASM_PROF_START(readLabels)
     if (tflite::label_image::ReadLabelsFile(
             s.labels_file_name,
             &labels,
@@ -263,7 +245,6 @@ FAASM_MAIN_FUNC() {
         printf("Failed reading labels file: %s\n", s.labels_file_name.c_str());
         exit(-1);
     }
-    FAASM_PROF_END(readLabels)
 
     std::string outputStr;
     for (const auto &result : top_results) {
