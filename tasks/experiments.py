@@ -234,11 +234,11 @@ def matrix_pull_results(ctx, user, host):
 
 
 class TensorflowExperimentRunner():
-    def __init__(self, threads=4, connections_per_thread=4, delay=0, duration_secs=5):
+    def __init__(self, threads=4, connections_per_thread=4, delay_ms=0, duration_secs=5):
         self.wrk_bin = join(FAASM_HOME, "tools", "wrk")
         self.threads = threads
         self.connections_per_thread = connections_per_thread
-        self.delay = delay
+        self.delay_ms = delay_ms
 
         self.host, self.port = get_worker_host_port(None, None)
         self.url = "http://{}:{}/f/tf/image".format(self.host, self.port)
@@ -258,7 +258,7 @@ class TensorflowExperimentRunner():
 
     def _run_wrk(self, bench_mode):
         result_dir = join(self.base_result_dir, "SYSTEM_{}_THREADS_{}_CONNS_{}_DELAY_{}_logs".format(
-            bench_mode, self.threads, self.connections_per_thread, self.delay
+            bench_mode, self.threads, self.connections_per_thread, self.delay_ms
         ))
 
         # Clean up and create results dir
@@ -271,7 +271,7 @@ class TensorflowExperimentRunner():
 
         # Set up Lua script
         os.environ["BENCH_MODE"] = bench_mode
-        os.environ["BENCH_DELAY_SECS"] = str(self.delay)
+        os.environ["BENCH_DELAY_MS"] = str(self.delay_ms)
         script = join(PROJ_ROOT, "conf", "tflite_bench.lua")
 
         # Run wrk
@@ -329,13 +329,13 @@ class TensorflowExperimentRunner():
 
 @task
 def tf_tpt_experiment_multi(ctx, native=False):
-    delays = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    delays = [0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000]
     for d in delays:
         runner = TensorflowExperimentRunner(
-            threads=4,
+            threads=2,
             connections_per_thread=3,
-            delay=d,
-            duration_secs=10,
+            delay_ms=d,
+            duration_secs=15,
         )
 
         if native:
@@ -347,9 +347,9 @@ def tf_tpt_experiment_multi(ctx, native=False):
 @task
 def tf_tpt_experiment(ctx, native=False):
     runner = TensorflowExperimentRunner(
-        threads=4,
+        threads=2,
         connections_per_thread=4,
-        delay=0,
+        delay_ms=0,
         duration_secs=10
     )
 

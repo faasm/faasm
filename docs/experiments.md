@@ -163,6 +163,7 @@ inv tf-data-upload
 inv tf-upload-state
 
 # -- Deploy --
+# NOTE: need to switch off Python preload for this 
 
 # Native
 inv deploy-knative-native tf image 40

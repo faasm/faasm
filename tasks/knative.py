@@ -59,6 +59,7 @@ KNATIVE_ENV = {
     "LOG_LEVEL": "trace",
     "CGROUP_MODE": "off",
     "NETNS_MODE": "off",
+    "PYTHON_PRELOAD": "off",  # Switch on/ off preloading of Python runtime
     "MAX_IN_FLIGHT_RATIO": "1",
     "MAX_WORKERS_PER_FUNCTION": "4",  # This limit is per-host. We only want one instance per core
     "THREADS_PER_WORKER": "100",  # This is how many threads are available in total per host (across all functions)

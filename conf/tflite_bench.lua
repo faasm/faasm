@@ -1,7 +1,7 @@
 bench_mode = os.getenv("BENCH_MODE")
-delay_secs = tonumber(os.getenv("BENCH_DELAY_SECS"))
+delay_ms = tonumber(os.getenv("BENCH_DELAY_MS"))
 
-print("BENCH_MODE = " .. bench_mode .. " DELAY= " .. delay_secs)
+print("BENCH_MODE = " .. bench_mode .. " DELAY= " .. delay_ms)
 
 -- Request set-up
 
@@ -19,7 +19,7 @@ end
 -- Delay function (must return ms)
 
 function delay()
-   return 1000 * delay_secs
+   return delay_ms
 end
 
 -- Output to CSV
