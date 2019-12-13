@@ -312,6 +312,7 @@ def _do_deploy_knative_native(func_name, image_name, replicas):
         NATIVE_WORKER_ANNOTATIONS,
         extra_env={
             "COLD_START_DELAY_MS": "500",
+            "ALWAYS_COLD_START": "off",
             "FAASM_INVOKE_HOST": invoke_host,
             "FAASM_INVOKE_PORT": invoke_port,
         },
