@@ -10,7 +10,7 @@ from time import time, sleep
 
 from invoke import task
 
-from tasks import delete_knative_native_python, delete_knative_worker, matrix_state_upload
+from tasks import delete_knative_native_python, delete_knative_worker, matrix_state_upload, delete_knative_native
 from tasks.util.billing import start_billing, pull_billing, parse_billing
 from tasks.util.endpoints import get_worker_host_port
 from tasks.util.env import FAASM_HOME, PROJ_ROOT
@@ -331,19 +331,32 @@ class TensorflowExperimentRunner():
 @task
 def tf_tpt_experiment_multi(ctx, native=False):
     duration = 20
-    delays = [0, 100, 200, 300, 400, 600, 800, 1000, 2000, 3000, 5000]
+    delays = [10000, 5000, 3000, 2000, 1000, 800, 600, 400, 300, 200, 100, 0]
+
     for d in delays:
         runner = TensorflowExperimentRunner(
-            threads=2,
+            threads=6,
             connections_per_thread=4,
             delay_ms=d,
-            duration_secs=10,
+            duration_secs=duration,
         )
 
         if native:
+            # Run the native experiment
             runner.run_native()
+
+            # Tidy up
+            delete_knative_native(ctx, "tf", "image", hard=False)
+            sleep_time = 40
         else:
+            # Run the wasm experiment
             runner.run_wasm()
+
+            # Tidy up
+            delete_knative_worker(ctx, hard=False)
+            sleep_time = 40
+
+        sleep(sleep_time)
 
 
 @task
