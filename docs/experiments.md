@@ -161,7 +161,7 @@ inv upload tf image --prebuilt
 inv tf-upload-data tf-state-upload
 
 # -- Deploy --
-# NOTE: need to switch off Python preload for this 
+# NOTE: need to switch off Python preload and set "NO_PRE_CODEGEN=on"
 
 # Native
 inv deploy-knative-native tf image 16
@@ -172,10 +172,10 @@ inv deploy-knative 4
 # -- Run experiment --
 
 # Native
-inv tf-tpt-experiment --native
+inv tf-tpt-experiment-multi --native
 
 # Wasm
-inv tf-tpt-experiment
+inv tf-tpt-experiment-multi
 ```
 
 ## Results

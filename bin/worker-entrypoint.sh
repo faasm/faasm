@@ -4,9 +4,11 @@ set -e
 
 pushd /faasm/build >> /dev/null
 
-# Run codegen for some functions
+# Run codegen for some functions if needed
 SGD_OBJ_FILE=/usr/local/faasm/object/sgd/reuters_svm/function.wasm.o
-if [[ -f "${SGD_OBJ_FILE}" ]]; then
+if [[ "${NO_PRE_CODEGEN}" == "on" ]]; then
+  echo "Not running codegen on entrypoint"
+elif [[ -f "${SGD_OBJ_FILE}" ]]; then
   echo "Special object files already exist"
 else
   ORIGINAL_FUNCTION_STORAGE=$FUNCTION_STORAGE
