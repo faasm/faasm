@@ -1,6 +1,8 @@
+import os
 import subprocess
 from abc import abstractmethod
-from os import mkdir, listdir
+from decimal import Decimal
+from os import mkdir, listdir, remove, makedirs
 from os.path import exists, join
 from shutil import rmtree
 from subprocess import call
@@ -8,10 +10,10 @@ from time import time, sleep
 
 from invoke import task
 
-from tasks import delete_knative_native_python, delete_knative_worker, matrix_state_upload, flush
+from tasks import delete_knative_native_python, delete_knative_worker, matrix_state_upload
 from tasks.util.billing import start_billing, pull_billing, parse_billing
 from tasks.util.endpoints import get_worker_host_port
-from tasks.util.env import FAASM_HOME, ANSIBLE_ROOT, PROJ_ROOT
+from tasks.util.env import FAASM_HOME, PROJ_ROOT
 from tasks.util.invoke import invoke_impl
 
 
@@ -225,31 +227,54 @@ def matrix_pull_results(ctx, user, host):
 
     MatrixExperimentRunner.parse_results()
 
+
 # -------------------------------------
 # Tensorflow
 # -------------------------------------
 
 
 class TensorflowExperimentRunner():
-    def __init__(self):
+    def __init__(self, threads=4, connections_per_thread=4, delay=0, duration_secs=5):
         self.wrk_bin = join(FAASM_HOME, "tools", "wrk")
-        self.threads = 4
-        self.connections_per_thread = 4
+        self.threads = threads
+        self.connections_per_thread = connections_per_thread
+        self.delay = delay
 
         self.host, self.port = get_worker_host_port(None, None)
         self.url = "http://{}:{}/f/tf/image".format(self.host, self.port)
 
-        self.duration_secs = 30
+        self.duration_secs = duration_secs
+        self.wrk_output = "/tmp/wrk_results.csv"
+
+        self.base_result_dir = join(FAASM_HOME, "tf_image")
+        if not exists(self.base_result_dir):
+            makedirs(self.base_result_dir)
 
     def run_native(self):
-        script = join(PROJ_ROOT, "conf", "tf_native.lua")
-        self._run_wrk(script)
+        self._run_wrk("NATIVE")
 
     def run_wasm(self):
-        script = join(PROJ_ROOT, "conf", "tf_wasm.lua")
-        self._run_wrk(script)
+        self._run_wrk("WASM")
 
-    def _run_wrk(self, script):
+    def _run_wrk(self, bench_mode):
+        result_dir = join(self.base_result_dir, "SYSTEM_{}_THREADS_{}_CONNS_{}_DELAY_{}".format(
+            bench_mode, self.threads, self.connections_per_thread, self.delay
+        ))
+
+        # Clean up and create results dir
+        if exists(result_dir):
+            rmtree(result_dir)
+        makedirs(result_dir)
+
+        if exists(self.wrk_output):
+            remove(self.wrk_output)
+
+        # Set up Lua script
+        os.environ["BENCH_MODE"] = bench_mode
+        os.environ["BENCH_DELAY_SECS"] = str(self.delay)
+        script = join(PROJ_ROOT, "conf", "tflite_bench.lua")
+
+        # Run wrk
         connections = self.threads * self.connections_per_thread
         cmd = [
             self.wrk_bin,
@@ -262,8 +287,44 @@ class TensorflowExperimentRunner():
 
         cmd = " ".join(cmd)
         print(cmd)
+        res = subprocess.call(cmd, shell=True)
+        if res != 0:
+            raise RuntimeError("Failed running wrk")
 
-        subprocess.call(cmd, shell=True)
+        self._parse_results(result_dir)
+
+    def _parse_results(self, result_dir):
+        with open(self.wrk_output, "r") as fh:
+            output_csv = fh.read()
+
+        # Check we've got what we expect
+        lines = output_csv.split("\n")
+        lines = [l.strip() for l in lines if l.strip()]
+        if len(lines) != 2:
+            raise RuntimeError("Unexpected wrk output (lines = {})".format(len(lines)))
+
+        results = lines[1]
+        results = [Decimal(r.strip()) for r in results.split(",") if r.strip()]
+
+        # Work out throughput
+        duration = results[7] / Decimal(1000000)  # Seconds
+        requests = results[8]
+        tpt = requests / duration
+
+        # Write to summary file
+        # Note that all times are in microseconds so we want to convert them to millis
+        result_file = join(result_dir, "latency.txt")
+        with open(result_file, "w") as fh:
+            fh.write("DURATION {}\n".format(duration))
+            fh.write("REQUESTS {}\n".format(requests))
+            fh.write("THROUGHPUT {}\n".format(tpt))
+            fh.write("MIN {}\n".format(results[0] / Decimal(1000)))
+            fh.write("MAX {}\n".format(results[1] / Decimal(1000)))
+            fh.write("MEAN {}\n".format(results[2] / Decimal(1000)))
+            fh.write("STDDEV {}\n".format(results[3] / Decimal(1000)))
+            fh.write("MEDIAN {}\n".format(results[4] / Decimal(1000)))
+            fh.write("90TH {}\n".format(results[5] / Decimal(1000)))
+            fh.write("99TH {}\n".format(results[6] / Decimal(1000)))
 
 
 @task
