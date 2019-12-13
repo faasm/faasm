@@ -257,7 +257,7 @@ class TensorflowExperimentRunner():
         self._run_wrk("WASM")
 
     def _run_wrk(self, bench_mode):
-        result_dir = join(self.base_result_dir, "SYSTEM_{}_THREADS_{}_CONNS_{}_DELAY_{}".format(
+        result_dir = join(self.base_result_dir, "SYSTEM_{}_THREADS_{}_CONNS_{}_DELAY_{}_logs".format(
             bench_mode, self.threads, self.connections_per_thread, self.delay
         ))
 
@@ -328,8 +328,30 @@ class TensorflowExperimentRunner():
 
 
 @task
+def tf_tpt_experiment_multi(ctx, native=False):
+    delays = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    for d in delays:
+        runner = TensorflowExperimentRunner(
+            threads=4,
+            connections_per_thread=3,
+            delay=d,
+            duration_secs=10,
+        )
+
+        if native:
+            runner.run_native()
+        else:
+            runner.run_wasm()
+
+
+@task
 def tf_tpt_experiment(ctx, native=False):
-    runner = TensorflowExperimentRunner()
+    runner = TensorflowExperimentRunner(
+        threads=4,
+        connections_per_thread=4,
+        delay=0,
+        duration_secs=10
+    )
 
     if native:
         runner.run_native()

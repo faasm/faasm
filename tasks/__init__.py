@@ -162,6 +162,7 @@ from tasks.experiments import (
     matrix_experiment_multi,
     matrix_pull_results,
     tf_tpt_experiment,
+    tf_tpt_experiment_multi,
 )
 from tasks.genomics_data import (
     download_genome,
