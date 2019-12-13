@@ -10,7 +10,7 @@
        update: yes
      with_items:
        - {name: "wrk", repo: "https://github.com/wg/wrk.git"}
-       - {name: "wrk2", repo: "https://github.com/giltene/wrk2"}
+       #- {name: "wrk2", repo: "https://github.com/giltene/wrk2"}
 
    - name: "Build"
      shell: "make"
@@ -18,7 +18,7 @@
        chdir: "{{ item }}"
      with_items:
        - "/tmp/wrk"
-       - "/tmp/wrk2"
+#       - "/tmp/wrk2"
 
    - name: "Create bin dir"
      file:
@@ -33,4 +33,4 @@
        mode: 0755
      with_items:
        - "wrk"
-       - "wrk2"
+ #      - "wrk2"
