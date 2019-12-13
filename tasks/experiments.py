@@ -241,7 +241,7 @@ class TensorflowExperimentRunner():
         self.delay_ms = delay_ms
 
         self.host, self.port = get_worker_host_port(None, None)
-        self.url = "http://{}:{}/f/tf/image".format(self.host, self.port)
+        self.url = "http://{}:{}".format(self.host, self.port)
 
         self.duration_secs = duration_secs
         self.wrk_output = "/tmp/wrk_results.csv"
@@ -327,6 +327,12 @@ class TensorflowExperimentRunner():
             fh.write("90TH {}\n".format(results[5] / Decimal(1000)))
             fh.write("99TH {}\n".format(results[6] / Decimal(1000)))
 
+    @classmethod
+    def pull_results(cls, user, host):
+        cmd = "scp -r {}@{}:/home/{}/faasm/tf_image {}".format(user, host, user, FAASM_HOME)
+        print(cmd)
+        call(cmd, shell=True)
+
 
 @task
 def tf_tpt_experiment_multi(ctx, native=False):
@@ -372,3 +378,8 @@ def tf_tpt_experiment(ctx, native=False):
         runner.run_native()
     else:
         runner.run_wasm()
+
+
+@task
+def tf_pull_results(ctx, user, host):
+    TensorflowExperimentRunner.pull_results(user, host)
