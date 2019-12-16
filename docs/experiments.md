@@ -154,7 +154,7 @@ You need to set the following environment variables for these experiments (throu
 
 - `COLD_START_DELAY_MS=500ms`
 - `NO_PRE_CODEGEN=on`
-- `COLD_START_EVERY` - set to `0`, `5` and `1` to vary the number of cold starts in the native workload.
+- `COLD_START_EVERY` - set to `off` and `5` to vary the number of cold starts in the native workload.
 
 
 ```bash
