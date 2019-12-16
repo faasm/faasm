@@ -396,7 +396,7 @@ def tf_tpt_experiment_multi(ctx, native=False, nobill=False):
 
             # Tidy up
             delete_knative_worker(ctx, hard=False)
-            sleep_time = 40
+            sleep_time = 30
 
         sleep(sleep_time)
 
@@ -416,3 +416,4 @@ def tf_tpt_experiment(ctx, native=False, nobill=False):
 @task
 def tf_pull_results(ctx, user, host):
     TensorflowExperimentRunner.pull_results(user, host)
+    TensorflowExperimentRunner.parse_results()
