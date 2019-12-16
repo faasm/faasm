@@ -389,7 +389,7 @@ def tf_tpt_experiment_multi(ctx, native=False, nobill=False):
 
             # Tidy up
             delete_knative_native(ctx, "tf", "image", hard=False)
-            sleep_time = 30
+            sleep_time = 40
         else:
             # Run the wasm experiment
             runner.run_wasm()

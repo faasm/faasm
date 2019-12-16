@@ -150,7 +150,12 @@ inv matrix-experiment-multi $N_WORKERS
 
 ## Tensorflow Experiment
 
-When deploying the Tensorflow experiments, we need to restrict resources to make sure we can get to a point of saturating the system.
+You need to set the following environment variables for these experiments (through the knative config):
+
+- `COLD_START_DELAY_MS=500ms`
+- `NO_PRE_CODEGEN=on`
+- `COLD_START_EVERY` - set to `0`, `5` and `1` to vary the number of cold starts in the native workload.
+
 
 ```bash
 # -- Build/ upload --
@@ -164,10 +169,10 @@ inv tf-upload-data tf-state-upload
 # NOTE: need to switch off Python preload and set "NO_PRE_CODEGEN=on"
 
 # Native
-inv deploy-knative-native tf image 16
+inv deploy-knative-native tf image 40
 
 # Wasm
-inv deploy-knative 4
+inv deploy-knative 20
 
 # -- Run experiment --
 
