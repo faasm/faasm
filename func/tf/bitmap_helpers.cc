@@ -109,7 +109,7 @@ namespace tflite {
 
         void resize(float *out, unsigned char *in, int image_height, int image_width,
                     int image_channels, int wanted_height, int wanted_width,
-                    int wanted_channels, Settings *s) {
+                    int wanted_channels) {
             int number_of_pixels = image_height * image_width * image_channels;
             std::unique_ptr<Interpreter> interpreter(new Interpreter);
 
@@ -166,8 +166,11 @@ namespace tflite {
             float *output = interpreter->typed_tensor<float>(2);
             int output_number_of_pixels = wanted_height * wanted_width * wanted_channels;
 
+            float input_mean = 127.5f;
+            float input_std = 127.5f;
+
             for (int i = 0; i < output_number_of_pixels; i++) {
-                out[i] = (output[i] - s->input_mean) / s->input_std;
+                out[i] = (output[i] - input_mean) / input_std;
             }
         }
 

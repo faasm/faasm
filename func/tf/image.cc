@@ -82,19 +82,22 @@ FAASM_MAIN_FUNC() {
     setEmulatorUser("tf");
 #endif
 
+    int loopCount = 1;
+    int warmupLoops = 0;
+    int nResults = 5;
+
     std::string imagePath = dataDir + "grace_hopper.bmp";
     std::string labelsPath = dataDir + "labels.txt";
 
     std::string modelKey = "mobilenet_v1";
 
-    tflite::label_image::Settings s;
-    s.accel = false;
-    s.loop_count = 1;
-    s.input_bmp_name = imagePath;
-    s.labels_file_name = labelsPath;
-    s.number_of_threads = 1;
-    s.number_of_warmup_runs = 0;
-    s.allow_fp16 = true;
+//    s.accel = false;
+//    s.loop_count = 1;
+//    s.input_bmp_name = imagePath;
+//    s.labels_file_name = labelsPath;
+//    s.number_of_threads = 1;
+//    s.number_of_warmup_runs = 0;
+//    s.allow_fp16 = true;
 
     std::unique_ptr<tflite::FlatBufferModel> model;
     std::unique_ptr<tflite::Interpreter> interpreter;
@@ -119,7 +122,6 @@ FAASM_MAIN_FUNC() {
         exit(-1);
     }
 
-    s.model = model.get();
     printf("Loaded model %s\n", modelKey.c_str());
     model->error_reporter();
 
@@ -139,14 +141,14 @@ FAASM_MAIN_FUNC() {
     int image_width = 224;
     int image_height = 224;
     int image_channels = 3;
-    printf("Reading in image %s\n", s.input_bmp_name.c_str());
+    printf("Reading in image %s\n", inputBmpName.c_str());
     std::vector<uint8_t> in = tflite::label_image::read_bmp(
-            s.input_bmp_name,
+            inputBmpName.c_str(),
             &image_width,
             &image_height,
             &image_channels
     );
-    printf("Finished reading in image %s\n", s.input_bmp_name.c_str());
+    printf("Finished reading in image %s\n", inputBmpName.c_str());
     printf("Got w, h, c: %i, %i, %i\n", image_width, image_height, image_channels);
     FAASM_PROF_END(imgRead)
 
@@ -169,7 +171,6 @@ FAASM_MAIN_FUNC() {
     FAASM_PROF_END(tensors)
 
     FAASM_PROF_START(imgResize)
-    s.input_floating = true;
     tflite::label_image::resize(
             interpreter->typed_tensor<float>(input),
             in.data(),
@@ -178,14 +179,13 @@ FAASM_MAIN_FUNC() {
             image_channels,
             wanted_height,
             wanted_width,
-            wanted_channels,
-            &s
+            wanted_channels
     );
     FAASM_PROF_END(imgResize)
 
     FAASM_PROF_START(interpreterLoops)
-    if (s.loop_count > 1) {
-        for (int i = 0; i < s.number_of_warmup_runs; i++) {
+    if (loopCount > 1) {
+        for (int i = 0; i < warmupLoops; i++) {
             if (interpreter->Invoke() != kTfLiteOk) {
                 printf("Failed to invoke tflite!\n");
             }
@@ -193,7 +193,7 @@ FAASM_MAIN_FUNC() {
     }
 
     printf("Invoking interpreter in a loop\n");
-    for (int i = 0; i < s.loop_count; i++) {
+    for (int i = 0; i < loopCount; i++) {
         printf("Interpreter invoke %i\n", i);
 
         if (interpreter->Invoke() != kTfLiteOk) {
@@ -224,7 +224,7 @@ FAASM_MAIN_FUNC() {
     tflite::label_image::get_top_n<float>(
             interpreter->typed_output_tensor<float>(0),
             output_size,
-            s.number_of_results,
+            nResults,
             threshold,
             &top_results,
             true
@@ -243,12 +243,13 @@ FAASM_MAIN_FUNC() {
     std::vector<std::string> labels;
     size_t label_count;
 
+    std::string labelsFileName = "./labels.txt";
     if (tflite::label_image::ReadLabelsFile(
-            s.labels_file_name,
+            labelsFileName.c_str(),
             &labels,
             &label_count
     ) != kTfLiteOk) {
-        printf("Failed reading labels file: %s\n", s.labels_file_name.c_str());
+        printf("Failed reading labels file: %s\n", labelsFileName.c_str());
         exit(-1);
     }
 
