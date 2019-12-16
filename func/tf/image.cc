@@ -91,14 +91,6 @@ FAASM_MAIN_FUNC() {
 
     std::string modelKey = "mobilenet_v1";
 
-//    s.accel = false;
-//    s.loop_count = 1;
-//    s.input_bmp_name = imagePath;
-//    s.labels_file_name = labelsPath;
-//    s.number_of_threads = 1;
-//    s.number_of_warmup_runs = 0;
-//    s.allow_fp16 = true;
-
     std::unique_ptr<tflite::FlatBufferModel> model;
     std::unique_ptr<tflite::Interpreter> interpreter;
 
@@ -141,14 +133,14 @@ FAASM_MAIN_FUNC() {
     int image_width = 224;
     int image_height = 224;
     int image_channels = 3;
-    printf("Reading in image %s\n", inputBmpName.c_str());
+    printf("Reading in image %s\n", imagePath.c_str());
     std::vector<uint8_t> in = tflite::label_image::read_bmp(
-            inputBmpName.c_str(),
+            imagePath.c_str(),
             &image_width,
             &image_height,
             &image_channels
     );
-    printf("Finished reading in image %s\n", inputBmpName.c_str());
+    printf("Finished reading in image %s\n", imagePath.c_str());
     printf("Got w, h, c: %i, %i, %i\n", image_width, image_height, image_channels);
     FAASM_PROF_END(imgRead)
 
@@ -243,13 +235,12 @@ FAASM_MAIN_FUNC() {
     std::vector<std::string> labels;
     size_t label_count;
 
-    std::string labelsFileName = "./labels.txt";
     if (tflite::label_image::ReadLabelsFile(
-            labelsFileName.c_str(),
+            labelsPath.c_str(),
             &labels,
             &label_count
     ) != kTfLiteOk) {
-        printf("Failed reading labels file: %s\n", labelsFileName.c_str());
+        printf("Failed reading labels file: %s\n", labelsPath.c_str());
         exit(-1);
     }
 
