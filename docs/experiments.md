@@ -169,7 +169,7 @@ inv tf-upload-data tf-state-upload
 # NOTE: need to switch off Python preload and set "NO_PRE_CODEGEN=on"
 
 # Native
-inv deploy-knative-native tf image 40
+inv deploy-knative-native tf image 30
 
 # Wasm
 inv deploy-knative 20
