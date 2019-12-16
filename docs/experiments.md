@@ -148,7 +148,7 @@ inv matrix-experiment-multi $N_WORKERS --native
 inv matrix-experiment-multi $N_WORKERS
 ```
 
-## Tensorflow Experiments
+## Tensorflow Experiment
 
 When deploying the Tensorflow experiments, we need to restrict resources to make sure we can get to a point of saturating the system.
 

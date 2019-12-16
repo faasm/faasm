@@ -357,15 +357,28 @@ class TensorflowExperimentRunner(WrkRunner):
 
 @task
 def tf_tpt_experiment_multi(ctx, native=False, nobill=False):
-    duration = 20
-    delays = [10000, 5000, 3000, 2000, 1000, 800, 600, 400, 300, 200, 100, 0]
+    # Runs with delay, duration
+    runs = [
+        (10000, 80),
+        (5000, 60),
+        (3000, 60),
+        (2000, 40),
+        (1000, 40),
+        (800, 40),
+        (600, 40),
+        (400, 30),
+        (300, 30),
+        (200, 30),
+        (100, 30),
+        (0, 30),
+    ]
 
-    for d in delays:
+    for delay_ms, duration_s in runs:
         runner = TensorflowExperimentRunner(
             threads=6,
             connections_per_thread=4,
-            delay_ms=d,
-            duration_secs=duration,
+            delay_ms=delay_ms,
+            duration_secs=duration_s,
         )
 
         runner.run(native, nobill=nobill)
