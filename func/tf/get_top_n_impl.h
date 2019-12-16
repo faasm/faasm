@@ -23,8 +23,6 @@ limitations under the License.
 namespace tflite {
 namespace label_image {
 
-extern bool input_floating;
-
 // Returns the top N confidence values over threshold in the provided vector,
 // sorted by confidence in descending order.
 template <class T>

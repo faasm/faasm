@@ -100,22 +100,18 @@ FAASM_MAIN_FUNC() {
     std::unique_ptr<tflite::Interpreter> interpreter;
 
     const size_t modelSize = 16900760;
+
+    FAASM_PROF_START(modelRead)
 #ifdef __wasm__
     // With wasm we can read directly to a pointer from shared state
     uint8_t *modelBytes = faasmReadStatePtr(modelKey.c_str(), modelSize);
 #else
-
-    // If we're being asked to cold start every time, we need to force pulling of the model
-    // Otherwise it'll just use the one it's got cached
-    char* alwaysColdStartStr = getenv("ALWAYS_COLD_START");
-    if (alwaysColdStartStr!=NULL && strcmp(alwaysColdStartStr, "on") == 0) {
-        faasmPullState(modelKey.c_str(), modelSize);
-    }
-
     auto modelBytes = new uint8_t[modelSize];
     faasmReadState(modelKey.c_str(), modelBytes, modelSize);
 #endif
+    FAASM_PROF_END(modelRead)
 
+    FAASM_PROF_START(modelBuild)
     model = tflite::FlatBufferModel::BuildFromBuffer(reinterpret_cast<char *>(modelBytes), modelSize);
 
     if (!model) {
@@ -135,9 +131,11 @@ FAASM_MAIN_FUNC() {
     }
 
     interpreter->UseNNAPI(false);
-    interpreter->SetAllowFp16PrecisionForFp32(true);
+    interpreter->SetAllowFp16PrecisionForFp32(false);
     interpreter->SetNumThreads(1);
+    FAASM_PROF_END(modelBuild)
 
+    FAASM_PROF_START(imgRead)
     int image_width = 224;
     int image_height = 224;
     int image_channels = 3;
@@ -150,7 +148,9 @@ FAASM_MAIN_FUNC() {
     );
     printf("Finished reading in image %s\n", s.input_bmp_name.c_str());
     printf("Got w, h, c: %i, %i, %i\n", image_width, image_height, image_channels);
+    FAASM_PROF_END(imgRead)
 
+    FAASM_PROF_START(tensors)
     int input = interpreter->inputs()[0];
     const std::vector<int> inputs = interpreter->inputs();
 
@@ -166,8 +166,9 @@ FAASM_MAIN_FUNC() {
     int wanted_height = dims->data[1];
     int wanted_width = dims->data[2];
     int wanted_channels = dims->data[3];
+    FAASM_PROF_END(tensors)
 
-
+    FAASM_PROF_START(imgResize)
     s.input_floating = true;
     tflite::label_image::resize(
             interpreter->typed_tensor<float>(input),
@@ -180,8 +181,9 @@ FAASM_MAIN_FUNC() {
             wanted_channels,
             &s
     );
+    FAASM_PROF_END(imgResize)
 
-
+    FAASM_PROF_START(interpreterLoops)
     if (s.loop_count > 1) {
         for (int i = 0; i < s.number_of_warmup_runs; i++) {
             if (interpreter->Invoke() != kTfLiteOk) {
@@ -199,8 +201,10 @@ FAASM_MAIN_FUNC() {
         }
     }
 
-    printf("Finished invoking\n");
+    FAASM_PROF_END(interpreterLoops)
 
+    FAASM_PROF_START(outputPrep)
+    printf("Finished invoking\n");
     std::vector<int> outputs = interpreter->outputs();
     unsigned long outputsSize = outputs.size();
     if (outputsSize == 0) {
@@ -233,7 +237,9 @@ FAASM_MAIN_FUNC() {
     } else {
         printf("Found %li top results\n", top_results.size());
     }
+    FAASM_PROF_END(outputPrep)
 
+    FAASM_PROF_START(labelsRead)
     std::vector<std::string> labels;
     size_t label_count;
 
@@ -255,6 +261,7 @@ FAASM_MAIN_FUNC() {
     }
 
     faasm::setStringOutput(outputStr.c_str());
+    FAASM_PROF_END(labelsRead)
 
 #ifndef __wasm__
     delete[] modelBytes;

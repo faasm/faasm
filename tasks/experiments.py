@@ -2,7 +2,7 @@ import os
 import subprocess
 from abc import abstractmethod
 from decimal import Decimal
-from os import mkdir, listdir, remove, makedirs
+from os import mkdir, listdir, remove
 from os.path import exists, join
 from shutil import rmtree
 from subprocess import call
@@ -22,8 +22,6 @@ class ExperimentRunner(object):
     func = None
     is_python = False
 
-    poll_interval = 1000
-
     result_file_name = None
     local_results_dir = None
 
@@ -32,8 +30,26 @@ class ExperimentRunner(object):
         self.no_billing = False
 
     @abstractmethod
-    def get_result_dir_name(self, system):
+    def get_result_folder_name(self, system):
         pass
+
+    @abstractmethod
+    def execute_benchmark(self):
+        pass
+
+    def get_result_dir(self, native):
+        output_dir = join(FAASM_HOME, "{}_{}".format(self.user, self.func))
+        if not exists(output_dir):
+            mkdir(output_dir)
+
+        system = "NATIVE" if native else "FAASM"
+        folder_name = self.get_result_folder_name(system)
+        result_dir = join(output_dir, folder_name)
+        if exists(result_dir):
+            rmtree(result_dir)
+        mkdir(result_dir)
+
+        return result_dir
 
     @classmethod
     def get_local_results_dir(cls):
@@ -79,17 +95,14 @@ class ExperimentRunner(object):
             # Start the billing scripts
             start_billing()
 
+        # Set up result dir up front
+        result_dir = self.get_result_dir(native)
+
         # Start the timer
         run_start = time()
 
-        # Run the request
-        success, output = invoke_impl(
-            self.user, self.func,
-            poll=True, poll_interval_ms=self.poll_interval,
-            knative=True,
-            input=self.input_data,
-            native=native, py=self.is_python,
-        )
+        # Run the actual benchmark
+        success, output = self.execute_benchmark(native)
 
         # Finish the timer
         run_time_ms = (time() - run_start) * 1000.0
@@ -100,17 +113,6 @@ class ExperimentRunner(object):
 
         if not success:
             print("FAILED on {}".format(self.input_data))
-
-        output_dir = join(FAASM_HOME, "{}_{}".format(self.user, self.func))
-        if not exists(output_dir):
-            mkdir(output_dir)
-
-        system = "NATIVE" if native else "FAASM"
-        folder_name = self.get_result_dir_name(system)
-        result_dir = join(output_dir, folder_name)
-        if exists(result_dir):
-            rmtree(result_dir)
-        mkdir(result_dir)
 
         # Write the running time
         output_file = join(result_dir, "RUN_TIME.log")
@@ -129,11 +131,121 @@ class ExperimentRunner(object):
                 raise RuntimeError("Failed to put billing files in place")
 
 
+class InvokeAndWaitRunner(ExperimentRunner):
+    poll_interval = 1000
+
+    def execute_benchmark(self, native):
+        success, output = invoke_impl(
+            self.user, self.func,
+            poll=True, poll_interval_ms=self.poll_interval,
+            knative=True,
+            input=self.input_data,
+            native=native, py=self.is_python,
+        )
+
+        return success, output
+
+
+class WrkRunner(ExperimentRunner):
+    def __init__(self, threads=4, connections_per_thread=3, delay_ms=0, duration_secs=10):
+        super().__init__(None)
+
+        self.wrk_bin = join(FAASM_HOME, "tools", "wrk")
+        self.threads = threads
+        self.connections_per_thread = connections_per_thread
+        self.delay_ms = delay_ms
+
+        self.host, self.port = get_worker_host_port(None, None)
+        self.url = "http://{}:{}".format(self.host, self.port)
+
+        self.duration_secs = duration_secs
+        self.wrk_output = "/tmp/wrk_results.csv"
+
+    @abstractmethod
+    def get_wrk_script(self):
+        pass
+
+    def get_result_folder_name(self, system):
+        folder_name = "SYSTEM_{}_THREADS_{}_CONNS_{}_DELAY_{}_logs".format(
+            system, self.threads, self.connections_per_thread, self.delay_ms
+        )
+
+        return folder_name
+
+    def execute_benchmark(self, native):
+        result_dir = self.get_result_dir(native)
+
+        if exists(self.wrk_output):
+            remove(self.wrk_output)
+
+        # Set up Lua script
+        system = "NATIVE" if native else "FAASM"
+        os.environ["BENCH_MODE"] = system
+        os.environ["BENCH_DELAY_MS"] = str(self.delay_ms)
+        script = self.get_wrk_script()
+
+        # Run wrk
+        connections = self.threads * self.connections_per_thread
+        cmd = [
+            self.wrk_bin,
+            "-t{}".format(self.threads),
+            "-c{}".format(connections),
+            "-s {}".format(script),
+            "-d{}s".format(self.duration_secs),
+            "--timeout=5s",
+            self.url,
+        ]
+
+        cmd = " ".join(cmd)
+        print(cmd)
+        res = subprocess.call(cmd, shell=True)
+        if res != 0:
+            raise RuntimeError("Failed running wrk")
+
+        self._parse_results(result_dir)
+
+        return True, "No output"
+
+    def _parse_results(self, result_dir):
+        with open(self.wrk_output, "r") as fh:
+            output_csv = fh.read()
+
+        # Check we've got what we expect
+        lines = output_csv.split("\n")
+        lines = [l.strip() for l in lines if l.strip()]
+        if len(lines) != 2:
+            raise RuntimeError("Unexpected wrk output (lines = {})".format(len(lines)))
+
+        results = lines[1]
+        results = [Decimal(r.strip()) for r in results.split(",") if r.strip()]
+
+        # Work out throughput
+        duration = results[8] / Decimal(1000000)  # Micro seconds to seconds
+        requests = results[9]
+        tpt = requests / duration
+
+        # Write to summary file
+        # Note that all times are in microseconds so we want to convert them to millis
+        result_file = join(result_dir, "latency.txt")
+        with open(result_file, "w") as fh:
+            fh.write("DURATION {}\n".format(duration))
+            fh.write("REQUESTS {}\n".format(requests))
+            fh.write("THROUGHPUT {}\n".format(tpt))
+            fh.write("MIN {}\n".format(results[0] / Decimal(1000)))
+            fh.write("MAX {}\n".format(results[1] / Decimal(1000)))
+            fh.write("MEAN {}\n".format(results[2] / Decimal(1000)))
+            fh.write("STDDEV {}\n".format(results[3] / Decimal(1000)))
+            fh.write("10TH {}\n".format(results[4] / Decimal(1000)))
+            fh.write("MEDIAN {}\n".format(results[5] / Decimal(1000)))
+            fh.write("90TH {}\n".format(results[6] / Decimal(1000)))
+            fh.write("99TH {}\n".format(results[7] / Decimal(1000)))
+
+
 # -------------------------------------
 # SGD
 # -------------------------------------
 
-class SGDExperimentRunner(ExperimentRunner):
+class SGDExperimentRunner(InvokeAndWaitRunner):
     user = "sgd"
     func = "reuters_svm"
     result_file_name = "NODE_0_SGD_LOSS.log"
@@ -144,7 +256,7 @@ class SGDExperimentRunner(ExperimentRunner):
         self.n_workers = n_workers
         self.interval = interval
 
-    def get_result_dir_name(self, system):
+    def get_result_folder_name(self, system):
         folder_name = "SYSTEM_{}_WORKERS_{}_INTERVAL_{}_logs".format(system, self.n_workers, self.interval)
         return folder_name
 
@@ -170,7 +282,7 @@ def sgd_parse_results(ctx):
 # Matrix multiplication
 # -------------------------------------
 
-class MatrixExperimentRunner(ExperimentRunner):
+class MatrixExperimentRunner(InvokeAndWaitRunner):
     user = "python"
     func = "mat_mul"
     is_python = True
@@ -185,7 +297,7 @@ class MatrixExperimentRunner(ExperimentRunner):
         self.mat_size = mat_size
         self.n_splits = n_splits
 
-    def get_result_dir_name(self, system):
+    def get_result_folder_name(self, system):
         folder_name = "SYSTEM_{}_MATRIX_{}_SPLITS_{}_WORKERS_{}_logs".format(system, self.mat_size, self.n_splits,
                                                                              self.n_workers)
         return folder_name
@@ -233,110 +345,18 @@ def matrix_pull_results(ctx, user, host):
 # -------------------------------------
 
 
-class TensorflowExperimentRunner():
-    def __init__(self, threads=4, connections_per_thread=4, delay_ms=0, duration_secs=5):
-        self.wrk_bin = join(FAASM_HOME, "tools", "wrk")
-        self.threads = threads
-        self.connections_per_thread = connections_per_thread
-        self.delay_ms = delay_ms
+class TensorflowExperimentRunner(WrkRunner):
+    user = "tf"
+    func = "image"
+    is_python = False
+    result_file_name = "NODE_0_INFERENCE.log"
 
-        self.host, self.port = get_worker_host_port(None, None)
-        self.url = "http://{}:{}".format(self.host, self.port)
-
-        self.duration_secs = duration_secs
-        self.wrk_output = "/tmp/wrk_results.csv"
-
-        self.base_result_dir = join(FAASM_HOME, "tf_image")
-        if not exists(self.base_result_dir):
-            makedirs(self.base_result_dir)
-
-    def run_native(self):
-        self._run_wrk("NATIVE")
-
-    def run_wasm(self):
-        self._run_wrk("WASM")
-
-    def _run_wrk(self, bench_mode):
-        result_dir = join(self.base_result_dir, "SYSTEM_{}_THREADS_{}_CONNS_{}_DELAY_{}_logs".format(
-            bench_mode, self.threads, self.connections_per_thread, self.delay_ms
-        ))
-
-        # Clean up and create results dir
-        if exists(result_dir):
-            rmtree(result_dir)
-        makedirs(result_dir)
-
-        if exists(self.wrk_output):
-            remove(self.wrk_output)
-
-        # Set up Lua script
-        os.environ["BENCH_MODE"] = bench_mode
-        os.environ["BENCH_DELAY_MS"] = str(self.delay_ms)
-        script = join(PROJ_ROOT, "conf", "tflite_bench.lua")
-
-        # Run wrk
-        connections = self.threads * self.connections_per_thread
-        cmd = [
-            self.wrk_bin,
-            "-t{}".format(self.threads),
-            "-c{}".format(connections),
-            "-s {}".format(script),
-            "-d{}s".format(self.duration_secs),
-            "--timeout=5s",
-            self.url,
-        ]
-
-        cmd = " ".join(cmd)
-        print(cmd)
-        res = subprocess.call(cmd, shell=True)
-        if res != 0:
-            raise RuntimeError("Failed running wrk")
-
-        self._parse_results(result_dir)
-
-    def _parse_results(self, result_dir):
-        with open(self.wrk_output, "r") as fh:
-            output_csv = fh.read()
-
-        # Check we've got what we expect
-        lines = output_csv.split("\n")
-        lines = [l.strip() for l in lines if l.strip()]
-        if len(lines) != 2:
-            raise RuntimeError("Unexpected wrk output (lines = {})".format(len(lines)))
-
-        results = lines[1]
-        results = [Decimal(r.strip()) for r in results.split(",") if r.strip()]
-
-        # Work out throughput
-        duration = results[8] / Decimal(1000000)  # Micro seconds to seconds
-        requests = results[9]
-        tpt = requests / duration
-
-        # Write to summary file
-        # Note that all times are in microseconds so we want to convert them to millis
-        result_file = join(result_dir, "latency.txt")
-        with open(result_file, "w") as fh:
-            fh.write("DURATION {}\n".format(duration))
-            fh.write("REQUESTS {}\n".format(requests))
-            fh.write("THROUGHPUT {}\n".format(tpt))
-            fh.write("MIN {}\n".format(results[0] / Decimal(1000)))
-            fh.write("MAX {}\n".format(results[1] / Decimal(1000)))
-            fh.write("MEAN {}\n".format(results[2] / Decimal(1000)))
-            fh.write("STDDEV {}\n".format(results[3] / Decimal(1000)))
-            fh.write("10TH {}\n".format(results[4] / Decimal(1000)))
-            fh.write("MEDIAN {}\n".format(results[5] / Decimal(1000)))
-            fh.write("90TH {}\n".format(results[6] / Decimal(1000)))
-            fh.write("99TH {}\n".format(results[7] / Decimal(1000)))
-
-    @classmethod
-    def pull_results(cls, user, host):
-        cmd = "scp -r {}@{}:/home/{}/faasm/tf_image {}".format(user, host, user, FAASM_HOME)
-        print(cmd)
-        call(cmd, shell=True)
+    def get_wrk_script(self):
+        return join(PROJ_ROOT, "conf", "tflite_bench.lua")
 
 
 @task
-def tf_tpt_experiment_multi(ctx, native=False):
+def tf_tpt_experiment_multi(ctx, native=False, nobill=False):
     duration = 20
     delays = [10000, 5000, 3000, 2000, 1000, 800, 600, 400, 300, 200, 100, 0]
 
@@ -347,6 +367,8 @@ def tf_tpt_experiment_multi(ctx, native=False):
             delay_ms=d,
             duration_secs=duration,
         )
+
+        runner.run(native, nobill=nobill)
 
         if native:
             # Run the native experiment
@@ -367,7 +389,7 @@ def tf_tpt_experiment_multi(ctx, native=False):
 
 
 @task
-def tf_tpt_experiment(ctx, native=False):
+def tf_tpt_experiment(ctx, native=False, nobill=False):
     runner = TensorflowExperimentRunner(
         threads=2,
         connections_per_thread=4,
@@ -375,10 +397,7 @@ def tf_tpt_experiment(ctx, native=False):
         duration_secs=10
     )
 
-    if native:
-        runner.run_native()
-    else:
-        runner.run_wasm()
+    runner.run(native, nobill=nobill)
 
 
 @task

@@ -14,7 +14,6 @@ namespace knative_native {
     private:
         const std::string user;
         const std::string func;
-        bool isCold = true;
     };
 
     void executePythonFunction();

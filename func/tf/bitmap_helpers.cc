@@ -29,26 +29,21 @@ namespace tflite {
 
                     dst_pos = (i * width + j) * channels;
 
-                    switch (channels) {
-                        case 1:
-                            output[dst_pos] = input[src_pos];
-                            break;
-                        case 3:
-                            // BGR -> RGB
-                            output[dst_pos] = input[src_pos + 2];
-                            output[dst_pos + 1] = input[src_pos + 1];
-                            output[dst_pos + 2] = input[src_pos];
-                            break;
-                        case 4:
-                            // BGRA -> RGBA
-                            output[dst_pos] = input[src_pos + 2];
-                            output[dst_pos + 1] = input[src_pos + 1];
-                            output[dst_pos + 2] = input[src_pos];
-                            output[dst_pos + 3] = input[src_pos + 3];
-                            break;
-                        default:
-                            printf("Unexpected number of channels: %i\n", channels);
-                            break;
+                    if (channels == 1) {
+                        output[dst_pos] = input[src_pos];
+                    } else if (channels == 3) {
+                        // BGR -> RGB
+                        output[dst_pos] = input[src_pos + 2];
+                        output[dst_pos + 1] = input[src_pos + 1];
+                        output[dst_pos + 2] = input[src_pos];
+                    } else if (channels == 4) {
+                        // BGRA -> RGBA
+                        output[dst_pos] = input[src_pos + 2];
+                        output[dst_pos + 1] = input[src_pos + 1];
+                        output[dst_pos + 2] = input[src_pos];
+                        output[dst_pos + 3] = input[src_pos + 3];
+                    } else {
+                        printf("Unexpected number of channels: %i\n", channels);
                     }
                 }
             }
@@ -102,11 +97,11 @@ namespace tflite {
             // if height is negative, data layout is top down
             // otherwise, it's bottom up
             bool top_down = (*height < 0);
-            
+
             // Decode image, allocating tensor once the image size is known
             const uint8_t *bmp_pixels = &img_bytes[header_size];
             const std::vector<uint8_t> result = decode_bmp(bmp_pixels, row_size, *width, abs(*height), *channels,
-                                                            top_down);
+                                                           top_down);
 
             // delete[] data;
             return result;

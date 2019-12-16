@@ -15,17 +15,17 @@ extern "C" {
 #include <shared_mutex>
 
 #include <utility>
+#include <state/State.h>
 
 
 namespace knative_native {
-    std::shared_mutex coldMx;
+    std::atomic<int> requestCount;
 
     KnativeNativeHandler::KnativeNativeHandler(
             std::string userIn,
             std::string funcIn
     ) : user(std::move(userIn)), func(std::move(funcIn)) {
 
-        isCold = true;
     }
 
     void KnativeNativeHandler::onRequest(
@@ -34,27 +34,34 @@ namespace knative_native {
     ) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Simulate cold start if this is first request
-        if (isCold) {
-            util::FullLock lock(coldMx);
+        // See if we need to cold start
+        bool coldStartRequired = false;
+        std::string coldStartFreq = util::getEnvVar("COLD_START_EVERY", "off");
+        if (coldStartFreq != "off") {
+            int coldStartInterval = std::stoi(coldStartFreq);
+            coldStartRequired = requestCount % coldStartInterval == 0;
+        }
 
-            if (isCold) {
-                logger->info("Simulating cold start");
+        // Simulate a cold start if necessary
+        if (coldStartRequired || requestCount == 0) {
+            logger->info("Simulating cold start");
 
-                // Do the sleep
-                std::string coldStartStr = util::getEnvVar("COLD_START_DELAY_MS", "0");
-                long coldStartMs = std::stol(coldStartStr);
+            // Clear out state
+            state::State &s = state::getGlobalState();
+            s.forceClearAll();
+
+            // Do the sleep
+            std::string coldStartDelayStr = util::getEnvVar("COLD_START_DELAY_MS", "0");
+            if (coldStartDelayStr != "0") {
+                long coldStartMs = std::stol(coldStartDelayStr);
                 usleep(coldStartMs * 1000);
-
-                // Switch off the cold start unless we always want one
-                std::string alwaysColdStartStr = util::getEnvVar("ALWAYS_COLD_START", "off");
-                if(alwaysColdStartStr != "on") {
-                    isCold = false;
-                }
             }
         } else {
             logger->info("Warm start");
         }
+
+        // Up the request count
+        requestCount++;
 
         // Set up the function
         const std::string requestStr = request.body();
