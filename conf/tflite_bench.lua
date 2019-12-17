@@ -2,7 +2,7 @@ bench_mode = os.getenv("BENCH_MODE")
 delay_ms = tonumber(os.getenv("BENCH_DELAY_MS"))
 cold_start_interval = os.getenv("COLD_START_INTERVAL")
 
-print("BENCH_MODE = " .. bench_mode .. " DELAY= " .. delay_ms .. " COLD_START_INTERVAL= " .. cold_start_interval)
+print("BENCH_MODE=" .. bench_mode .. " DELAY=" .. delay_ms .. " COLD_START_INTERVAL=" .. cold_start_interval)
 
 -- Request set-up
 

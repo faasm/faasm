@@ -43,3 +43,8 @@ def get_kubernetes_upload_host(knative, host):
             host = faasm_conf["Kubernetes"]["upload_host"]
 
     return host
+
+
+def is_kubernetes():
+    faasm_conf = get_faasm_config()
+    return faasm_conf.has_section("Kubernetes")

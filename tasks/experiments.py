@@ -12,7 +12,7 @@ from psutil import cpu_count
 
 from tasks import delete_knative_native_python, delete_knative_worker, matrix_state_upload, delete_knative_native
 from tasks.util.billing import start_billing, pull_billing, parse_billing
-from tasks.util.endpoints import get_worker_host_port
+from tasks.util.endpoints import get_worker_host_port, is_kubernetes
 from tasks.util.env import FAASM_HOME, PROJ_ROOT
 from tasks.util.invoke import invoke_impl
 
@@ -353,8 +353,6 @@ def tf_lat_experiment(ctx, native=False):
     total_connections = 2
     duration_s = 60
 
-    sleep_time = 5
-
     for cold_start_interval in cold_start_intervals:
         runner = TensorflowExperimentRunner(
             cold_start_interval,
@@ -366,7 +364,20 @@ def tf_lat_experiment(ctx, native=False):
 
         runner.run(native, nobill=True)
 
+        if not is_kubernetes():
+            sleep(5)
+            continue
+
+        # Tidy up
+        if native:
+            delete_knative_native(ctx, "tf", "image", hard=False)
+            sleep_time = 40
+        else:
+            delete_knative_worker(ctx, hard=False)
+            sleep_time = 30
+
         sleep(sleep_time)
+
 
 
 @task
@@ -393,7 +404,6 @@ def tf_tpt_experiment(ctx, native=False, nobill=False):
 
     threads = cpu_count()
     total_connections = 100
-    sleep_time = 10
 
     for cold_start_interval in cold_start_intervals:
         for delay_ms, duration_s in runs:
@@ -406,6 +416,18 @@ def tf_tpt_experiment(ctx, native=False, nobill=False):
             )
 
             runner.run(native, nobill=nobill)
+
+            if not is_kubernetes():
+                sleep(5)
+                continue
+
+            # Tidy up
+            if native:
+                delete_knative_native(ctx, "tf", "image", hard=False)
+                sleep_time = 40
+            else:
+                delete_knative_worker(ctx, hard=False)
+                sleep_time = 30
 
             sleep(sleep_time)
 
