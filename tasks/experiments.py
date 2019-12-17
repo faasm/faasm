@@ -1,14 +1,14 @@
 import os
 import subprocess
 from abc import abstractmethod
-from decimal import Decimal
 from os import mkdir, listdir, remove
 from os.path import exists, join
-from shutil import rmtree
+from shutil import rmtree, copy
 from subprocess import call
 from time import time, sleep
 
 from invoke import task
+from psutil import cpu_count
 
 from tasks import delete_knative_native_python, delete_knative_worker, matrix_state_upload, delete_knative_native
 from tasks.util.billing import start_billing, pull_billing, parse_billing
@@ -147,12 +147,12 @@ class InvokeAndWaitRunner(ExperimentRunner):
 
 
 class WrkRunner(ExperimentRunner):
-    def __init__(self, threads=4, connections_per_thread=3, delay_ms=0, duration_secs=10):
+    def __init__(self, threads=4, total_connections=20, delay_ms=0, duration_secs=10):
         super().__init__(None)
 
         self.wrk_bin = join(FAASM_HOME, "tools", "wrk")
         self.threads = threads
-        self.connections_per_thread = connections_per_thread
+        self.total_connections = total_connections
         self.delay_ms = delay_ms
 
         self.host, self.port = get_worker_host_port(None, None)
@@ -167,7 +167,7 @@ class WrkRunner(ExperimentRunner):
 
     def get_result_folder_name(self, system):
         folder_name = "SYSTEM_{}_THREADS_{}_CONNS_{}_DELAY_{}_logs".format(
-            system, self.threads, self.connections_per_thread, self.delay_ms
+            system, self.threads, self.total_connections, self.delay_ms
         )
 
         return folder_name
@@ -185,11 +185,10 @@ class WrkRunner(ExperimentRunner):
         script = self.get_wrk_script()
 
         # Run wrk
-        connections = self.threads * self.connections_per_thread
         cmd = [
             self.wrk_bin,
             "-t{}".format(self.threads),
-            "-c{}".format(connections),
+            "-c{}".format(self.total_connections),
             "-s {}".format(script),
             "-d{}s".format(self.duration_secs),
             "--timeout=5s",
@@ -207,38 +206,9 @@ class WrkRunner(ExperimentRunner):
         return True, "No output"
 
     def _parse_results(self, result_dir):
-        with open(self.wrk_output, "r") as fh:
-            output_csv = fh.read()
-
-        # Check we've got what we expect
-        lines = output_csv.split("\n")
-        lines = [l.strip() for l in lines if l.strip()]
-        if len(lines) != 2:
-            raise RuntimeError("Unexpected wrk output (lines = {})".format(len(lines)))
-
-        results = lines[1]
-        results = [Decimal(r.strip()) for r in results.split(",") if r.strip()]
-
-        # Work out throughput
-        duration = results[8] / Decimal(1000000)  # Micro seconds to seconds
-        requests = results[9]
-        tpt = requests / duration
-
-        # Write to summary file
-        # Note that all times are in microseconds so we want to convert them to millis
-        result_file = join(result_dir, "latency.txt")
-        with open(result_file, "w") as fh:
-            fh.write("DURATION {}\n".format(duration))
-            fh.write("REQUESTS {}\n".format(requests))
-            fh.write("THROUGHPUT {}\n".format(tpt))
-            fh.write("MIN {}\n".format(results[0] / Decimal(1000)))
-            fh.write("MAX {}\n".format(results[1] / Decimal(1000)))
-            fh.write("MEAN {}\n".format(results[2] / Decimal(1000)))
-            fh.write("STDDEV {}\n".format(results[3] / Decimal(1000)))
-            fh.write("10TH {}\n".format(results[4] / Decimal(1000)))
-            fh.write("MEDIAN {}\n".format(results[5] / Decimal(1000)))
-            fh.write("90TH {}\n".format(results[6] / Decimal(1000)))
-            fh.write("99TH {}\n".format(results[7] / Decimal(1000)))
+        # Copy wrk output into place
+        result_file = join(result_dir, "latency.csv")
+        copy(self.wrk_output, result_file)
 
 
 # -------------------------------------
@@ -351,37 +321,48 @@ class TensorflowExperimentRunner(WrkRunner):
     is_python = False
     result_file_name = "NODE_0_INFERENCE.log"
 
+    def __init__(self, cold_start_interval, threads=4, total_connections=20, delay_ms=5, duration_secs=10):
+        super().__init__(
+            threads=threads, total_connections=total_connections, delay_ms=delay_ms, duration_secs=duration_secs
+        )
+
+        self.cold_start_interval = cold_start_interval
+
+    def execute_benchmark(self, native):
+        os.environ["COLD_START_INTERVAL"] = str(self.cold_start_interval)
+
+        super().execute_benchmark(native)
+
     def get_wrk_script(self):
         return join(PROJ_ROOT, "conf", "tflite_bench.lua")
 
+    def get_result_folder_name(self, system):
+        folder_name = "SYSTEM_{}_COLD_{}_THREADS_{}_CONNS_{}_DELAY_{}_logs".format(
+            system, self.cold_start_interval, self.threads, self.total_connections, self.delay_ms
+        )
+
+        return folder_name
+
 
 @task
-def tf_tpt_experiment_multi(ctx, native=False, nobill=False):
-    # Runs with delay, duration
-    runs = [
-        (10000, 80),
-        (5000, 60),
-        (3000, 60),
-        (2000, 40),
-        (1000, 40),
-        (800, 40),
-        (600, 40),
-        (400, 30),
-        (300, 30),
-        (200, 30),
-        (100, 30),
-        (0, 30),
-    ]
+def tf_lat_experiment(ctx, native=False):
+    # Aim of this experiment is to show how latency changes at low load with varying
+    # numbers of cold starts. As a result we want two threads running a single connection each
+    cold_start_intervals = [5, 50, 100]
+    threads = 2
+    total_connections = 2
+    duration_s = 40
 
-    for delay_ms, duration_s in runs:
+    for cold_start_interval in cold_start_intervals:
         runner = TensorflowExperimentRunner(
-            threads=6,
-            connections_per_thread=4,
-            delay_ms=delay_ms,
+            cold_start_interval,
+            threads=threads,
+            total_connections=total_connections,
+            delay_ms=5,
             duration_secs=duration_s,
         )
 
-        runner.run(native, nobill=nobill)
+        runner.run(native, nobill=True)
 
         if native:
             delete_knative_native(ctx, "tf", "image", hard=False)
@@ -395,14 +376,49 @@ def tf_tpt_experiment_multi(ctx, native=False, nobill=False):
 
 @task
 def tf_tpt_experiment(ctx, native=False, nobill=False):
-    runner = TensorflowExperimentRunner(
-        threads=2,
-        connections_per_thread=4,
-        delay_ms=0,
-        duration_secs=10
-    )
+    # Runs with delay, duration
+    runs = [
+        (30000, 80),
+        (20000, 80),
+        (10000, 80),
+        (5000, 60),
+        (3000, 60),
+        (2000, 40),
+        (1000, 40),
+        (800, 40),
+        (600, 40),
+        (400, 30),
+        (200, 30),
+        (100, 30),
+        (0, 30),
+    ]
 
-    runner.run(native, nobill=nobill)
+    # Different cold start intervals
+    cold_start_intervals = [5, 50, 100]
+
+    threads = cpu_count()
+    total_connections = 100
+
+    for cold_start_interval in cold_start_intervals:
+        for delay_ms, duration_s in runs:
+            runner = TensorflowExperimentRunner(
+                cold_start_interval,
+                threads=threads,
+                total_connections=total_connections,
+                delay_ms=delay_ms,
+                duration_secs=duration_s,
+            )
+
+            runner.run(native, nobill=nobill)
+
+            if native:
+                delete_knative_native(ctx, "tf", "image", hard=False)
+                sleep_time = 40
+            else:
+                delete_knative_worker(ctx, hard=False)
+                sleep_time = 30
+
+            sleep(sleep_time)
 
 
 @task

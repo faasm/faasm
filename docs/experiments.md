@@ -154,7 +154,6 @@ You need to set the following environment variables for these experiments (throu
 
 - `COLD_START_DELAY_MS=500ms`
 - `NO_PRE_CODEGEN=on`
-- `COLD_START_EVERY` - set to `off` and `10` to vary the number of cold starts in the native workload.
 
 
 ```bash
@@ -176,11 +175,17 @@ inv deploy-knative 20
 
 # -- Run experiment --
 
-# Native
-inv tf-tpt-experiment-multi --native
+# Native throughput
+inv tf-tpt-experiment --native
 
-# Wasm
-inv tf-tpt-experiment-multi
+# Native latency
+inv tf-lat-experiment --native
+
+# Wasm throughput
+inv tf-tpt-experiment 
+
+# Wasm latency
+inv tf-lat-experiment
 ```
 
 ## Results

@@ -34,11 +34,12 @@ namespace knative_native {
     ) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // See if we need to cold start
+        // See of cold starts have been requested
         bool coldStartRequired = false;
-        std::string coldStartFreq = util::getEnvVar("COLD_START_EVERY", "off");
-        if (coldStartFreq != "off") {
-            int coldStartInterval = std::stoi(coldStartFreq);
+        const std::string requestStr = request.body();
+        std::string coldStartIntervalStr = util::getValueFromJsonString("cold_start_interval", requestStr);
+        if(!coldStartIntervalStr.empty()) {
+            int coldStartInterval = std::stoi(coldStartIntervalStr);
             coldStartRequired = requestCount % coldStartInterval == 0;
         }
 
@@ -64,7 +65,6 @@ namespace knative_native {
         requestCount++;
 
         // Set up the function
-        const std::string requestStr = request.body();
         message::Message msg = util::jsonToMessage(requestStr);
         unsigned int messageId = setEmulatedMessage(msg);
 

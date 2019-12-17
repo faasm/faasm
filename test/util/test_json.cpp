@@ -44,4 +44,15 @@ namespace tests {
 
         checkMessageEquality(msg, actual);
     }
+
+    TEST_CASE("Test get JSON property from JSON string", "[util]") {
+        // Valid lookups
+        REQUIRE(getValueFromJsonString("foo", "{\"foo\": \"bar\"}") == "bar");
+        REQUIRE(getValueFromJsonString("foo", "{\"foo\": \"bar\", \"other\": \"value\"}") == "bar");
+        REQUIRE(getValueFromJsonString("foo", "{\"other\": \"value\", \"foo\": \"abc\"}") == "abc");
+
+        // Nothing to return
+        REQUIRE(getValueFromJsonString("foo", "{\"FOO\": \"aa\", \"blah\": \"xxx\"}") == "");
+        REQUIRE(getValueFromJsonString("foo", "{\"foo\": \"\"}") == "");
+    }
 }

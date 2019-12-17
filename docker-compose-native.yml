@@ -30,7 +30,6 @@ services:
     privileged: yes
     environment:
       - COLD_START_DELAY_MS=500
-      - COLD_START_EVERY=5
       - LOG_LEVEL=debug
       - REDIS_STATE_HOST=redis-state
       - REDIS_QUEUE_HOST=redis-state

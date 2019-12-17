@@ -1,12 +1,13 @@
 bench_mode = os.getenv("BENCH_MODE")
 delay_ms = tonumber(os.getenv("BENCH_DELAY_MS"))
+cold_start_interval = os.getnev("COLD_START_INTERVAL")
 
 print("BENCH_MODE = " .. bench_mode .. " DELAY= " .. delay_ms)
 
 -- Request set-up
 
 wrk.method = "POST"
-wrk.body   = '{"user": "tf", "function": "image"}'
+wrk.body   = string.format('{"user": "tf", "function": "image", "cold_start_interval": "%s"}', cold_start_interval)
 wrk.headers["Content-Type"] = "application/json"
 
 -- Different headers for native/ wasm
@@ -17,9 +18,10 @@ else
 end
 
 -- Delay function (must return ms)
+-- To avoid bursts of requests, stagger them over this delay
 
 function delay()
-   return delay_ms
+   return math.random(0, delay_ms)
 end
 
 -- Output to CSV
