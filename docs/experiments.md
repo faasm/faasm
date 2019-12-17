@@ -154,7 +154,7 @@ You need to set the following environment variables for these experiments (throu
 
 - `COLD_START_DELAY_MS=500ms`
 - `NO_PRE_CODEGEN=on`
-
+- `PYTHON_PRELOAD=off`
 
 ```bash
 # -- Build/ upload --
@@ -165,8 +165,6 @@ inv upload tf image --prebuilt
 inv tf-upload-data tf-state-upload
 
 # -- Deploy --
-# NOTE: need to switch off Python preload and set "NO_PRE_CODEGEN=on"
-
 # Native
 inv deploy-knative-native tf image 30
 

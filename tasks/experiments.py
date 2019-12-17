@@ -331,7 +331,7 @@ class TensorflowExperimentRunner(WrkRunner):
     def execute_benchmark(self, native):
         os.environ["COLD_START_INTERVAL"] = str(self.cold_start_interval)
 
-        super().execute_benchmark(native)
+        return super().execute_benchmark(native)
 
     def get_wrk_script(self):
         return join(PROJ_ROOT, "conf", "tflite_bench.lua")
@@ -351,7 +351,9 @@ def tf_lat_experiment(ctx, native=False):
     cold_start_intervals = [5, 50, 100]
     threads = 2
     total_connections = 2
-    duration_s = 40
+    duration_s = 10
+
+    sleep_time = 5
 
     for cold_start_interval in cold_start_intervals:
         runner = TensorflowExperimentRunner(
@@ -363,13 +365,6 @@ def tf_lat_experiment(ctx, native=False):
         )
 
         runner.run(native, nobill=True)
-
-        if native:
-            delete_knative_native(ctx, "tf", "image", hard=False)
-            sleep_time = 40
-        else:
-            delete_knative_worker(ctx, hard=False)
-            sleep_time = 30
 
         sleep(sleep_time)
 
@@ -398,6 +393,7 @@ def tf_tpt_experiment(ctx, native=False, nobill=False):
 
     threads = cpu_count()
     total_connections = 100
+    sleep_time = 10
 
     for cold_start_interval in cold_start_intervals:
         for delay_ms, duration_s in runs:
@@ -410,13 +406,6 @@ def tf_tpt_experiment(ctx, native=False, nobill=False):
             )
 
             runner.run(native, nobill=nobill)
-
-            if native:
-                delete_knative_native(ctx, "tf", "image", hard=False)
-                sleep_time = 40
-            else:
-                delete_knative_worker(ctx, hard=False)
-                sleep_time = 30
 
             sleep(sleep_time)
 
