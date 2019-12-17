@@ -62,7 +62,7 @@ class ExperimentRunner(object):
             rmtree(result_dir)
 
     @classmethod
-    def pull_results(cls, host, host_user):
+    def pull_results(cls, host_user, host):
         cmd = "scp -r {}@{}:/home/{}/faasm/{}_{} {}".format(host_user, host, host_user, cls.user, cls.func, FAASM_HOME)
         print(cmd)
         call(cmd, shell=True)
@@ -268,9 +268,9 @@ def sgd_experiment(ctx, workers, interval, native=False, nobill=False):
 
 
 @task
-def sgd_pull_results(ctx, host, user):
+def sgd_pull_results(ctx, user, host):
     SGDExperimentRunner.clean()
-    SGDExperimentRunner.pull_results(host, user)
+    SGDExperimentRunner.pull_results(user, host)
 
 
 @task
@@ -335,7 +335,7 @@ def matrix_experiment(ctx, n_workers, mat_size, n_splits, native=False, nobill=F
 @task
 def matrix_pull_results(ctx, user, host):
     MatrixExperimentRunner.clean()
-    MatrixExperimentRunner.pull_results(host, user)
+    MatrixExperimentRunner.pull_results(user, host)
 
     MatrixExperimentRunner.parse_results()
 
