@@ -27,40 +27,26 @@ end
 -- Output to CSV
 
 done = function(summary, latency, requests)
-    output_file = "/tmp/wrk_results.csv"
+    output_file = "/tmp/wrk_results.txt"
     print("Writing output to " .. output_file)
 
     f = io.open(output_file, "w")
-    f:write("min,max,mean,stddev,duration,requests,bytes,5th,10th,15th,20th,25th,30th,35th,40th,45th,50th,55th,60th,65th,70th,75th,80th,85th,90th,95th,100th\n")
-    f:write(string.format("%f,%f,%f,%f, %d,%d,%d, %f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",
-        latency.min,
-        latency.max,
-        latency.mean,
-        latency.stdev,
-        summary["duration"],
-        summary["requests"],
-        summary["bytes"],
-        latency:percentile(5),
-        latency:percentile(10),
-        latency:percentile(15),
-        latency:percentile(20),
-        latency:percentile(25),
-        latency:percentile(30),
-        latency:percentile(35),
-        latency:percentile(40),
-        latency:percentile(45),
-        latency:percentile(50),
-        latency:percentile(55),
-        latency:percentile(60),
-        latency:percentile(65),
-        latency:percentile(70),
-        latency:percentile(75),
-        latency:percentile(80),
-        latency:percentile(85),
-        latency:percentile(90),
-        latency:percentile(95),
-        latency:percentile(99)
-    ))
+    f:write(string.format("MIN=%f\n", latency.min))
+    f:write(string.format("MAX=%f\n", latency.max))
+    f:write(string.format("STDDEV=%f\n", latency.stdev))
+    f:write(string.format("DURATION=%d\n", summary["duration"]))
+    f:write(string.format("REQUESTS=%d\n", summary["requests"]))
+    f:write(string.format("MEDIAN=%f\n", latency:percentile(50)))
+    f:write(string.format("90TH=%f\n", latency:percentile(90)))
+    f:write(string.format("10TH=%f\n", latency:percentile(10)))
+
+    -- Write out all latency percentiles from 0-99
+    f:write(string.format("LATENCIES="))
+    f:write(string.format("0"))
+    for pctile=1,99 do
+       f:write(string.format(",%f", latency:percentile(pctile)))
+    end
+    f:write("\n")
 
     f:close()
 end

@@ -159,7 +159,7 @@ class WrkRunner(ExperimentRunner):
         self.url = "http://{}:{}".format(self.host, self.port)
 
         self.duration_secs = duration_secs
-        self.wrk_output = "/tmp/wrk_results.csv"
+        self.wrk_output = "/tmp/wrk_results.txt"
 
     @abstractmethod
     def get_wrk_script(self):
@@ -207,7 +207,7 @@ class WrkRunner(ExperimentRunner):
 
     def _parse_results(self, result_dir):
         # Copy wrk output into place
-        result_file = join(result_dir, "latency.csv")
+        result_file = join(result_dir, "latency.txt")
         copy(self.wrk_output, result_file)
 
 
@@ -351,7 +351,7 @@ def tf_lat_experiment(ctx, native=False):
     cold_start_intervals = [5, 50, 100]
     threads = 2
     total_connections = 2
-    duration_s = 10
+    duration_s = 60
 
     sleep_time = 5
 
