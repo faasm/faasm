@@ -152,7 +152,7 @@ inv matrix-experiment-multi $N_WORKERS
 
 You need to set the following environment variables for these experiments (through the knative config):
 
-- `COLD_START_DELAY_MS=500ms`
+- `COLD_START_DELAY_MS=800`
 - `NO_PRE_CODEGEN=on`
 - `PYTHON_PRELOAD=off`
 
