@@ -299,8 +299,6 @@ def _do_deploy_knative_native(func_name, image_name, replicas):
         print("Must have faasm config set up with kubernetes section")
         return 1
 
-    version = get_faasm_version()
-
     # Host and port required for chaining native functions
     invoke_host, invoke_port = get_kubernetes_host_port()
 

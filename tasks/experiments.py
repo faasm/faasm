@@ -354,13 +354,13 @@ def tf_lat_experiment(ctx):
     for native in [True, False]:
         if native:
             runs = [
-                5, 300,
-                50, 200,
-                500, 120,
+                (5, 300),
+                (50, 200),
+                (500, 120),
             ]
         else:
             runs = [
-                500, 200,
+                (500, 200),
             ]
 
         for cold_start_interval, duration_s in runs:
