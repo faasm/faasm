@@ -401,7 +401,7 @@ def tf_lat_experiment(ctx):
 
 
 @task
-def tf_tpt_experiment(ctx, native=False, nobill=False):
+def tf_tpt_experiment(ctx, native=False, nobill=True):
     # Runs with delay, duration
     runs = [
         (30000, 180),
