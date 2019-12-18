@@ -43,7 +43,7 @@ done = function(summary, latency, requests)
     -- Write out all latency percentiles from 0-99
     f:write(string.format("LATENCIES="))
     f:write(string.format("0"))
-    for p in range(1,99) do
+    for p=1,99 do
        f:write(string.format(",%d", latency:percentile(p)))
     end
     f:write("\n")
