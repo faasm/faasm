@@ -15,6 +15,4 @@ namespace knative_native {
         const std::string user;
         const std::string func;
     };
-
-    void executePythonFunction();
 }

@@ -196,4 +196,10 @@ inv sgd-pull-results <user> <host>
 
 # Matrices
 inv matrix-pull-results <user> <host>
+
+# Inference latency
+inv tf-lat-pull-results <user> <host>
+
+# Inference throughput
+inv tf-tpt-pull-results <user> <host>
 ```

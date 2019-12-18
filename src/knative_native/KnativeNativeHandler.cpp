@@ -45,7 +45,7 @@ namespace knative_native {
 
         // Simulate a cold start if necessary
         if (coldStartRequired || requestCount == 0) {
-            logger->info("Simulating cold start");
+            logger->info("Simulating cold start ({}th request, {} interval)", requestCount, coldStartIntervalStr);
 
             // Clear out state
             state::State &s = state::getGlobalState();
@@ -58,7 +58,7 @@ namespace knative_native {
                 usleep(coldStartMs * 1000);
             }
         } else {
-            logger->info("Warm start");
+            logger->info("Warm start ({}th request, {} interval)", requestCount, coldStartIntervalStr);
         }
 
         // Up the request count

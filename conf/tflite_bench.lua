@@ -36,15 +36,15 @@ done = function(summary, latency, requests)
     f:write(string.format("STDDEV=%f\n", latency.stdev))
     f:write(string.format("DURATION=%d\n", summary["duration"]))
     f:write(string.format("REQUESTS=%d\n", summary["requests"]))
-    f:write(string.format("MEDIAN=%f\n", latency:percentile(50)))
-    f:write(string.format("90TH=%f\n", latency:percentile(90)))
-    f:write(string.format("10TH=%f\n", latency:percentile(10)))
+    f:write(string.format("MEDIAN=%d\n", latency:percentile(50)))
+    f:write(string.format("90TH=%d\n", latency:percentile(90)))
+    f:write(string.format("10TH=%d\n", latency:percentile(10)))
 
     -- Write out all latency percentiles from 0-99
     f:write(string.format("LATENCIES="))
     f:write(string.format("0"))
-    for pctile=1,99 do
-       f:write(string.format(",%f", latency:percentile(pctile)))
+    for p in range(1,99) do
+       f:write(string.format(",%d", latency:percentile(p)))
     end
     f:write("\n")
 

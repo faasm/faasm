@@ -163,7 +163,8 @@ from tasks.experiments import (
     matrix_pull_results,
     tf_lat_experiment,
     tf_tpt_experiment,
-    tf_pull_results,
+    tf_tpt_pull_results,
+    tf_lat_pull_results,
 )
 from tasks.genomics_data import (
     download_genome,

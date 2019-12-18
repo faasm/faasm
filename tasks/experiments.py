@@ -431,7 +431,13 @@ def tf_tpt_experiment(ctx, native=False, nobill=False):
 
 
 @task
-def tf_pull_results(ctx, user, host):
+def tf_lat_pull_results(ctx, user, host):
+    TensorflowExperimentRunner.pull_results(user, host)
+    # No parsing for latency results
+
+
+@task
+def tf_tpt_pull_results(ctx, user, host):
     TensorflowExperimentRunner.pull_results(user, host)
     TensorflowExperimentRunner.parse_results()
 
