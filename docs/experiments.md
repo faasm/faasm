@@ -156,6 +156,8 @@ You need to set the following environment variables for these experiments (throu
 - `NO_PRE_CODEGEN=on`
 - `PYTHON_PRELOAD=off`
 
+Preamble:
+
 ```bash
 # -- Build/ upload --
 inv build-knative-native tf image
@@ -163,7 +165,30 @@ inv upload tf image --prebuilt
 
 # -- Upload data (one-off)
 inv tf-upload-data tf-state-upload
+```
 
+Latency:
+
+```bash
+# -- Deploy (note small number of workers) --
+# Native
+inv deploy-knative-native tf image 1
+
+# Wasm
+inv deploy-knative 1
+
+# -- Run experiment --
+
+# Native 
+inv tf-lat-experiment --native
+
+# Wasm latency
+inv tf-lat-experiment
+```
+
+Throughput:
+
+```bash
 # -- Deploy --
 # Native
 inv deploy-knative-native tf image 30
@@ -173,17 +198,11 @@ inv deploy-knative 20
 
 # -- Run experiment --
 
-# Native throughput
+# Native 
 inv tf-tpt-experiment --native
 
-# Native latency
-inv tf-lat-experiment --native
-
-# Wasm throughput
-inv tf-tpt-experiment 
-
 # Wasm latency
-inv tf-lat-experiment
+inv tf-tpt-experiment
 ```
 
 ## Results

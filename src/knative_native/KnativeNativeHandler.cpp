@@ -19,13 +19,13 @@ extern "C" {
 
 
 namespace knative_native {
-    std::atomic<int> requestCount;
+    // Global request counter
+    std::atomic<int> requestCount = 0;
 
     KnativeNativeHandler::KnativeNativeHandler(
             std::string userIn,
             std::string funcIn
     ) : user(std::move(userIn)), func(std::move(funcIn)) {
-
     }
 
     void KnativeNativeHandler::onRequest(
