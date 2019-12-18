@@ -347,16 +347,17 @@ class TensorflowExperimentRunner(WrkRunner):
 @task
 def tf_lat_experiment(ctx):
     # Aim of this experiment is to show how latency changes at low load with varying
-    # numbers of cold starts. As a result we want two threads running a single connection each
-    threads = 2
-    total_connections = 2
+    # numbers of cold starts. We don't want any interference so just run one thread
+    # and one connection
+    threads = 1
+    total_connections = 1
 
     for native in [True, False]:
         if native:
             runs = [
-                (5, 300),
-                (50, 200),
-                (500, 120),
+                (5, 480),
+                (50, 300),
+                (500, 180),
             ]
         else:
             runs = [
@@ -364,6 +365,18 @@ def tf_lat_experiment(ctx):
             ]
 
         for cold_start_interval, duration_s in runs:
+            # Run a ramp-up
+            runner = TensorflowExperimentRunner(
+                 cold_start_interval,
+                 threads=threads,
+                 total_connections=total_connections,
+                 delay_ms=5,
+                 duration_secs=10,
+            )
+
+            runner.execute_benchmark(native)
+
+            # Run the full thing
             runner = TensorflowExperimentRunner(
                 cold_start_interval,
                 threads=threads,
