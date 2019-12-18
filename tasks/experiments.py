@@ -404,19 +404,19 @@ def tf_lat_experiment(ctx):
 def tf_tpt_experiment(ctx, native=False, nobill=False):
     # Runs with delay, duration
     runs = [
-        (30000, 80),
-        (20000, 80),
-        (10000, 80),
-        (5000, 60),
-        (3000, 60),
-        (2000, 40),
-        (1000, 40),
-        (800, 40),
-        (600, 40),
-        (400, 30),
-        (200, 30),
-        (100, 30),
-        (0, 30),
+        (30000, 180),
+        (20000, 160),
+        (10000, 140),
+        (5000, 120),
+        (3000, 100),
+        (2000, 100),
+        (1000, 100),
+        (800, 80),
+        (600, 80),
+        (400, 60),
+        (200, 60),
+        (100, 60),
+        (0, 60),
     ]
 
     # Different cold start intervals
@@ -443,11 +443,10 @@ def tf_tpt_experiment(ctx, native=False, nobill=False):
             # Tidy up
             if native:
                 delete_knative_native(ctx, "tf", "image", hard=False)
-                sleep_time = 40
             else:
                 delete_knative_worker(ctx, hard=False)
-                sleep_time = 30
 
+            sleep_time = 40
             sleep(sleep_time)
 
 
