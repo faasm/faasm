@@ -427,14 +427,14 @@ def tf_tpt_experiment(ctx, native=False, nobill=True):
     for cold_start_interval in cold_start_intervals:
         for delay_ms, duration_s in runs:
             # Run a ramp-up
-            runner = TensorflowExperimentRunner(
-                cold_start_interval,
-                threads=threads,
-                total_connections=20,
-                delay_ms=1000,
-                duration_secs=15,
-            )
-            runner.execute_benchmark(native)
+            # runner = TensorflowExperimentRunner(
+            #     cold_start_interval,
+            #     threads=threads,
+            #     total_connections=20,
+            #     delay_ms=delay_ms,
+            #     duration_secs=15,
+            # )
+            # runner.execute_benchmark(native)
 
             # Run the full thing
             runner = TensorflowExperimentRunner(
