@@ -350,12 +350,20 @@ def tf_lat_experiment(ctx):
     # numbers of cold starts. As a result we want two threads running a single connection each
     threads = 2
     total_connections = 2
-    duration_s = 80
 
     for native in [True, False]:
-        cold_start_intervals = [5, 50, 500] if native else [500]
+        if native:
+            runs = [
+                5, 300,
+                50, 200,
+                500, 120,
+            ]
+        else:
+            runs = [
+                500, 200,
+            ]
 
-        for cold_start_interval in cold_start_intervals:
+        for cold_start_interval, duration_s in runs:
             runner = TensorflowExperimentRunner(
                 cold_start_interval,
                 threads=threads,
