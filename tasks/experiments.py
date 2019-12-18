@@ -379,7 +379,6 @@ def tf_lat_experiment(ctx, native=False):
         sleep(sleep_time)
 
 
-
 @task
 def tf_tpt_experiment(ctx, native=False, nobill=False):
     # Runs with delay, duration
@@ -400,7 +399,10 @@ def tf_tpt_experiment(ctx, native=False, nobill=False):
     ]
 
     # Different cold start intervals
-    cold_start_intervals = [5, 50, 100]
+    if native:
+        cold_start_intervals = [5, 50, 100]
+    else:
+        cold_start_intervals = [500]
 
     threads = cpu_count()
     total_connections = 100
@@ -436,3 +438,4 @@ def tf_tpt_experiment(ctx, native=False, nobill=False):
 def tf_pull_results(ctx, user, host):
     TensorflowExperimentRunner.pull_results(user, host)
     TensorflowExperimentRunner.parse_results()
+
