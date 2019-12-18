@@ -170,19 +170,11 @@ inv tf-upload-data tf-state-upload
 Latency:
 
 ```bash
-# -- Deploy (note small number of workers) --
-# Native
+# -- Deploy both (note small number of workers) --
 inv deploy-knative-native tf image 1
-
-# Wasm
 inv deploy-knative 1
 
 # -- Run experiment --
-
-# Native 
-inv tf-lat-experiment --native
-
-# Wasm latency
 inv tf-lat-experiment
 ```
 

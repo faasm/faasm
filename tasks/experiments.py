@@ -345,38 +345,38 @@ class TensorflowExperimentRunner(WrkRunner):
 
 
 @task
-def tf_lat_experiment(ctx, native=False):
+def tf_lat_experiment(ctx):
     # Aim of this experiment is to show how latency changes at low load with varying
     # numbers of cold starts. As a result we want two threads running a single connection each
-    cold_start_intervals = [5, 10, 20, 40, 80] if native else [100]
     threads = 2
     total_connections = 2
     duration_s = 75
 
-    for cold_start_interval in cold_start_intervals:
-        runner = TensorflowExperimentRunner(
-            cold_start_interval,
-            threads=threads,
-            total_connections=total_connections,
-            delay_ms=5,
-            duration_secs=duration_s,
-        )
+    for native in [True, False]:
+        cold_start_intervals = [5, 10, 20, 40, 80] if native else [100]
 
-        runner.run(native, nobill=True)
+        for cold_start_interval in cold_start_intervals:
+            runner = TensorflowExperimentRunner(
+                cold_start_interval,
+                threads=threads,
+                total_connections=total_connections,
+                delay_ms=5,
+                duration_secs=duration_s,
+            )
 
-        if not is_kubernetes():
-            sleep(5)
-            continue
+            runner.run(native, nobill=True)
 
-        # Tidy up
-        if native:
-            delete_knative_native(ctx, "tf", "image", hard=False)
-            sleep_time = 40
-        else:
-            delete_knative_worker(ctx, hard=False)
-            sleep_time = 30
+            if not is_kubernetes():
+                sleep(5)
+                continue
 
-        sleep(sleep_time)
+            # Tidy up
+            if native:
+                delete_knative_native(ctx, "tf", "image", hard=False)
+            else:
+                delete_knative_worker(ctx, hard=False)
+
+            sleep(30)
 
 
 @task
