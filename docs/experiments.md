@@ -186,7 +186,7 @@ Throughput:
 inv deploy-knative-native tf image 30
 
 # Wasm
-inv deploy-knative 20
+inv deploy-knative 18
 
 # -- Run experiment --
 
