@@ -10,7 +10,6 @@ from pyfaasm.core import getOutput, setEmulatorMessage, emulatorSetStatus, emula
 
 app = Flask(__name__)
 
-is_cold_start = True
 request_count = 0
 
 logging.basicConfig(level=logging.INFO)
