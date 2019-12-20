@@ -401,7 +401,7 @@ def tf_lat_experiment(ctx):
 
 
 @task
-def tf_tpt_experiment(ctx, native=False, nobill=True):
+def tf_tpt_experiment(ctx, native=False, nobill=False):
     # Runs with delay, duration
     runs = [
         (30000, 180),
@@ -410,13 +410,13 @@ def tf_tpt_experiment(ctx, native=False, nobill=True):
         (5000, 120),
         (3000, 100),
         (2000, 100),
-        (1000, 100),
-        (800, 80),
-        (600, 80),
-        (400, 60),
-        (200, 60),
-        (100, 60),
-        (0, 60),
+        # (1000, 100),
+        # (800, 80),
+        # (600, 80),
+        # (400, 60),
+        # (200, 60),
+        # (100, 60),
+        # (0, 60),
     ]
 
     # Different cold start intervals
@@ -468,7 +468,9 @@ def tf_lat_pull_results(ctx, user, host):
 
 
 @task
-def tf_tpt_pull_results(ctx, user, host):
+def tf_tpt_pull_results(ctx, user, host, nobill=False):
     TensorflowExperimentRunner.pull_results(user, host)
-    TensorflowExperimentRunner.parse_results()
+
+    if not nobill:
+        TensorflowExperimentRunner.parse_results()
 
