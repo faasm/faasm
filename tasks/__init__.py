@@ -165,6 +165,7 @@ from tasks.experiments import (
     tf_tpt_experiment,
     tf_tpt_pull_results,
     tf_lat_pull_results,
+    tf_plot_billing,
 )
 from tasks.genomics_data import (
     download_genome,

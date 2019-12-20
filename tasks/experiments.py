@@ -12,6 +12,7 @@ from psutil import cpu_count
 
 from tasks import delete_knative_native_python, delete_knative_worker, matrix_state_upload, delete_knative_native
 from tasks.util.billing import start_billing, pull_billing, parse_billing
+from tasks.util.billing_data import plot_billing_data, plot_billing_data_multi
 from tasks.util.endpoints import get_worker_host_port, is_kubernetes
 from tasks.util.env import FAASM_HOME, PROJ_ROOT
 from tasks.util.invoke import invoke_impl
@@ -367,11 +368,11 @@ def tf_lat_experiment(ctx):
         for cold_start_interval, duration_s in runs:
             # Run a ramp-up
             runner = TensorflowExperimentRunner(
-                 cold_start_interval,
-                 threads=threads,
-                 total_connections=total_connections,
-                 delay_ms=5,
-                 duration_secs=10,
+                cold_start_interval,
+                threads=threads,
+                total_connections=total_connections,
+                delay_ms=5,
+                duration_secs=10,
             )
 
             runner.execute_benchmark(native)
@@ -462,6 +463,11 @@ def tf_tpt_experiment(ctx, native=False, nobill=False):
 
 
 @task
+def tf_plot_billing(ctx, result_dir):
+    plot_billing_data_multi(result_dir)
+
+
+@task
 def tf_lat_pull_results(ctx, user, host):
     TensorflowExperimentRunner.pull_results(user, host)
     # No parsing for latency results
@@ -473,4 +479,3 @@ def tf_tpt_pull_results(ctx, user, host, nobill=False):
 
     if not nobill:
         TensorflowExperimentRunner.parse_results()
-
