@@ -479,3 +479,8 @@ def tf_tpt_pull_results(ctx, user, host, nobill=False):
 
     if not nobill:
         TensorflowExperimentRunner.parse_results()
+
+
+@task
+def tf_tpt_parse_results(ctx):
+    TensorflowExperimentRunner.parse_results()
