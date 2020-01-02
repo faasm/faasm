@@ -21,19 +21,19 @@ inv compile-tflite --clean
 
 See the example Tensorflow function at `func/tf/image.cc`.
 
-This requires a number of shared files to be available, so once you have an environment running (e.g. with docker-compose), you can run:
+Executing this function requires some state data (the model) and some shared files (the image) to be available, so you can run:
 
 ```
-inv tf-upload-data
+inv tf-upload-data tf-state-upload
 ```
 
-You can use the prebuilt function with:
+You can then upload the prebuilt function with:
 
 ```
 inv upload tf image --prebuilt
 ```
 
-Or compile and upload yourself:
+Or compile and upload yourself (requires TFLite to be built locally):
 
 ```
 inv compile --func=image
