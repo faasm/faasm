@@ -64,6 +64,7 @@ from tasks.docker import (
     docker_push,
     docker_pull,
     docker_pull_release,
+    docker_push_release,
     purge_images,
 )
 from tasks.docker_compose import (
@@ -161,6 +162,12 @@ from tasks.experiments import (
     matrix_experiment,
     matrix_experiment_multi,
     matrix_pull_results,
+    tf_lat_experiment,
+    tf_tpt_experiment,
+    tf_tpt_pull_results,
+    tf_tpt_parse_results,
+    tf_lat_pull_results,
+    tf_plot_billing,
 )
 from tasks.genomics_data import (
     download_genome,

@@ -22,7 +22,7 @@
     chdir: "/tmp/spdlog-1.2.1/build"
   with_items:
     - "cmake .."
-    - "make"
+    - "make -j 3"
     - "make install"
   when: sl_stat.stat.exists == False
 

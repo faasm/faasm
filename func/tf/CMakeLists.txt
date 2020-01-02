@@ -5,6 +5,9 @@ set(TF_LITE_DIR ${TF_DIR}/tensorflow/lite)
 set(TF_LITE_DOWNLOAD_DIR ${TF_LITE_DIR}/tools/make/downloads)
 set(TF_BUILD_DIR ${TF_LITE_DIR}/tools/make/gen/)
 
+# Turn on WASM profiling
+# add_definitions(-DWASM_PROF=1)
+
 # Include TF headers and 3rd party
 include_directories(
         ${TF_DIR}

@@ -14,4 +14,6 @@ namespace util {
 
         }
     };
+
+    std::string getValueFromJsonString(const std::string &key, const std::string &jsonIn);
 }

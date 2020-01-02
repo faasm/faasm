@@ -29,26 +29,21 @@ namespace tflite {
 
                     dst_pos = (i * width + j) * channels;
 
-                    switch (channels) {
-                        case 1:
-                            output[dst_pos] = input[src_pos];
-                            break;
-                        case 3:
-                            // BGR -> RGB
-                            output[dst_pos] = input[src_pos + 2];
-                            output[dst_pos + 1] = input[src_pos + 1];
-                            output[dst_pos + 2] = input[src_pos];
-                            break;
-                        case 4:
-                            // BGRA -> RGBA
-                            output[dst_pos] = input[src_pos + 2];
-                            output[dst_pos + 1] = input[src_pos + 1];
-                            output[dst_pos + 2] = input[src_pos];
-                            output[dst_pos + 3] = input[src_pos + 3];
-                            break;
-                        default:
-                            printf("Unexpected number of channels: %i\n", channels);
-                            break;
+                    if (channels == 1) {
+                        output[dst_pos] = input[src_pos];
+                    } else if (channels == 3) {
+                        // BGR -> RGB
+                        output[dst_pos] = input[src_pos + 2];
+                        output[dst_pos + 1] = input[src_pos + 1];
+                        output[dst_pos + 2] = input[src_pos];
+                    } else if (channels == 4) {
+                        // BGRA -> RGBA
+                        output[dst_pos] = input[src_pos + 2];
+                        output[dst_pos + 1] = input[src_pos + 1];
+                        output[dst_pos + 2] = input[src_pos];
+                        output[dst_pos + 3] = input[src_pos + 3];
+                    } else {
+                        printf("Unexpected number of channels: %i\n", channels);
                     }
                 }
             }
@@ -105,13 +100,16 @@ namespace tflite {
 
             // Decode image, allocating tensor once the image size is known
             const uint8_t *bmp_pixels = &img_bytes[header_size];
-            return decode_bmp(bmp_pixels, row_size, *width, abs(*height), *channels,
-                              top_down);
+            const std::vector<uint8_t> result = decode_bmp(bmp_pixels, row_size, *width, abs(*height), *channels,
+                                                           top_down);
+
+            // delete[] data;
+            return result;
         }
 
         void resize(float *out, unsigned char *in, int image_height, int image_width,
                     int image_channels, int wanted_height, int wanted_width,
-                    int wanted_channels, Settings *s) {
+                    int wanted_channels) {
             int number_of_pixels = image_height * image_width * image_channels;
             std::unique_ptr<Interpreter> interpreter(new Interpreter);
 
@@ -168,8 +166,11 @@ namespace tflite {
             float *output = interpreter->typed_tensor<float>(2);
             int output_number_of_pixels = wanted_height * wanted_width * wanted_channels;
 
+            float input_mean = 127.5f;
+            float input_std = 127.5f;
+
             for (int i = 0; i < output_number_of_pixels; i++) {
-                out[i] = (output[i] - s->input_mean) / s->input_std;
+                out[i] = (output[i] - input_mean) / input_std;
             }
         }
 

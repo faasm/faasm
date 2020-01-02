@@ -138,7 +138,6 @@ unsigned char *__faasm_read_state_ptr(const char *key, long totalLen) {
     return kv->get();
 }
 
-
 void __faasm_read_state_offset(const char *key, long totalLen, long offset, unsigned char *buffer, long bufferLen) {
     util::getLogger()->debug("E - read_state_offset {} {} {} {}", key, totalLen, offset, bufferLen);
     auto kv = getKv(key, totalLen);

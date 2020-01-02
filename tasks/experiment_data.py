@@ -8,7 +8,7 @@ from subprocess import check_output
 from invoke import task
 
 from tasks.aws import invoke_lambda
-from tasks.util.endpoints import get_kubernetes_upload_host
+from tasks.util.endpoints import get_kubernetes_upload_host, get_upload_host_port
 from tasks.util.env import FUNC_DIR, FAASM_SHARED_STORAGE_ROOT
 from tasks.util.env import STATE_S3_BUCKET, DATA_S3_BUCKET, FAASM_DATA_DIR
 from tasks.util.matrices import get_matrix_dir
@@ -186,13 +186,15 @@ def matrix_state_upload(ctx, mat_size, n_splits, host=None, knative=True):
 def tf_state_upload(ctx, host=None, knative=True):
     data_dir = join(FUNC_DIR, "tf", "data")
     model_file = "mobilenet_v1_1.0_224.tflite"
-    host = get_kubernetes_upload_host(knative, host)
+    host, _ = get_upload_host_port(host, None)
 
     _do_upload(data_dir, model_file, "tf", host, key="mobilenet_v1")
 
 
 @task
-def tf_upload_data(ctx, host="localhost", local_copy=False):
+def tf_upload_data(ctx, host=None, local_copy=False):
+    host, port = get_upload_host_port(host, None)
+
     source_data = join(FUNC_DIR, "tf", "data")
 
     dest_root = join(FAASM_SHARED_STORAGE_ROOT, "tfdata")

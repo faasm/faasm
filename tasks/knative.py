@@ -59,6 +59,8 @@ KNATIVE_ENV = {
     "LOG_LEVEL": "trace",
     "CGROUP_MODE": "off",
     "NETNS_MODE": "off",
+    "PYTHON_PRELOAD": "off",  # Switch on/ off preloading of Python runtime
+    "NO_PRE_CODEGEN": "on",  # Switch on/ off codegen on worker entrypoint
     "MAX_IN_FLIGHT_RATIO": "1",
     "MAX_WORKERS_PER_FUNCTION": "4",  # This limit is per-host. We only want one instance per core
     "THREADS_PER_WORKER": "100",  # This is how many threads are available in total per host (across all functions)
@@ -297,8 +299,6 @@ def _do_deploy_knative_native(func_name, image_name, replicas):
         print("Must have faasm config set up with kubernetes section")
         return 1
 
-    version = get_faasm_version()
-
     # Host and port required for chaining native functions
     invoke_host, invoke_port = get_kubernetes_host_port()
 
@@ -309,7 +309,7 @@ def _do_deploy_knative_native(func_name, image_name, replicas):
         1,
         NATIVE_WORKER_ANNOTATIONS,
         extra_env={
-            "COLD_START_DELAY_MS": "500",
+            "COLD_START_DELAY_MS": "1000",
             "FAASM_INVOKE_HOST": invoke_host,
             "FAASM_INVOKE_PORT": invoke_port,
         },

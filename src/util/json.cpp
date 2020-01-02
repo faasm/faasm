@@ -110,5 +110,14 @@ namespace util {
 
         return msg;
     }
+    
+    std::string getValueFromJsonString(const std::string &key, const std::string &jsonIn) {
+        MemoryStream ms(jsonIn.c_str(), jsonIn.size());
+        Document d;
+        d.ParseStream(ms);
+
+        std::string result = getStringFromJson(d, key, "");
+        return result;
+    }
 }
 

@@ -6,6 +6,8 @@ extern "C" {
 
 #include <emulator/emulator.h>
 
+#include <random>
+
 #include <faasm/core.h>
 #include <util/logging.h>
 #include <util/json.h>
@@ -15,17 +17,22 @@ extern "C" {
 #include <shared_mutex>
 
 #include <utility>
+#include <state/State.h>
 
 
 namespace knative_native {
-    std::shared_mutex coldMx;
+    // Global request counter
+    std::atomic<int> requestCount = 0;
+
+    // Random generators
+    std::random_device rd{};
+    std::mt19937 randGenerator{rd()};
+    std::normal_distribution<double> normalDist{1.0,0.5};
 
     KnativeNativeHandler::KnativeNativeHandler(
             std::string userIn,
             std::string funcIn
     ) : user(std::move(userIn)), func(std::move(funcIn)) {
-
-        isCold = true;
     }
 
     void KnativeNativeHandler::onRequest(
@@ -34,24 +41,41 @@ namespace knative_native {
     ) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Simulate cold start if this is first request
-        if (isCold) {
-            util::FullLock lock(coldMx);
-
-            if (isCold) {
-                logger->info("Simulating cold start");
-
-                std::string coldStartStr = util::getEnvVar("COLD_START_DELAY_MS", "0");
-                long coldStartMs = std::stol(coldStartStr);
-                usleep(coldStartMs * 1000);
-                isCold = false;
-            }
-        } else {
-            logger->info("Warm start");
+        // See of cold starts have been requested
+        bool coldStartRequired = false;
+        const std::string requestStr = request.body();
+        std::string coldStartIntervalStr = util::getValueFromJsonString("cold_start_interval", requestStr);
+        if(!coldStartIntervalStr.empty()) {
+            int coldStartInterval = std::stoi(coldStartIntervalStr);
+            coldStartRequired = requestCount % coldStartInterval == 0;
         }
 
+        // Simulate a cold start if necessary
+        if (coldStartRequired || requestCount == 0) {
+            // Clear out state
+            state::State &s = state::getGlobalState();
+            s.forceClearAll();
+
+            // Do the sleep
+            std::string coldStartDelayStr = util::getEnvVar("COLD_START_DELAY_MS", "0");
+            if (coldStartDelayStr != "0") {
+                // Random cold start around requested delay
+                int maxDelay = std::stoi(coldStartDelayStr);
+                double multiplier = normalDist(randGenerator);
+                int coldStartMs = (int) std::round(multiplier * maxDelay);
+                coldStartMs = std::max(0, coldStartMs);
+
+                logger->info("Cold start {}ms ({}th request, {} interval)", coldStartMs, requestCount, coldStartIntervalStr);
+                usleep(coldStartMs * 1000);
+            }
+        } else {
+            logger->info("Warm start ({}th request, {} interval)", requestCount, coldStartIntervalStr);
+        }
+
+        // Up the request count
+        requestCount++;
+
         // Set up the function
-        const std::string requestStr = request.body();
         message::Message msg = util::jsonToMessage(requestStr);
         unsigned int messageId = setEmulatedMessage(msg);
 

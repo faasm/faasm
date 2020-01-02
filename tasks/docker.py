@@ -126,6 +126,11 @@ def docker_pull_release(ctx):
     docker_pull(ctx, RELEASE_CONTAINERS)
 
 
+@task
+def docker_push_release(ctx):
+    docker_push(ctx, RELEASE_CONTAINERS)
+
+
 @task(iterable=["c"])
 def docker_pull(ctx, c):
     version = get_faasm_version()

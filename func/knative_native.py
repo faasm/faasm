@@ -10,7 +10,7 @@ from pyfaasm.core import getOutput, setEmulatorMessage, emulatorSetStatus, emula
 
 app = Flask(__name__)
 
-is_cold_start = True
+request_count = 0
 
 logging.basicConfig(level=logging.INFO)
 
@@ -35,11 +35,21 @@ def execute_main(json_data):
 
 @app.route('/', methods=["GET", "POST"])
 def run_func():
-    global is_cold_start
-
+    global request_count
     setLocalInputOutput(True)
 
-    if is_cold_start:
+    # Get input
+    json_data = request.get_json()
+    app.logger.info("Knative request: {}".format(json_data))
+
+    # Check if we should be doing a cold start
+    is_cold_start = False
+    cold_start_interval_str = json_data.get("cold_start_interval")
+    if cold_start_interval_str:
+        cold_start_interval = int(cold_start_interval_str)
+        is_cold_start = request_count % cold_start_interval == 0
+
+    if request_count == 0 or is_cold_start:
         # Simulate cold start if necessary
         delay_str = os.environ.get("COLD_START_DELAY_MS", "0")
         if delay_str != "0":
@@ -48,10 +58,10 @@ def run_func():
 
             sleep(delay_seconds)
 
-        is_cold_start = False
+        # TODO - need to clear out state here if it's a cold start
 
-    json_data = request.get_json()
-    app.logger.info("Knative request: {}".format(json_data))
+    # Up the request count
+    request_count += 1
 
     # Set up this main thread with the emulator
     # Make sure to pass on the message ID for child threads

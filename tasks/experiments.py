@@ -1,15 +1,20 @@
+import os
+import subprocess
 from abc import abstractmethod
-from os import mkdir, listdir
+from os import mkdir, listdir, remove
 from os.path import exists, join
-from shutil import rmtree
+from shutil import rmtree, copy
 from subprocess import call
 from time import time, sleep
 
 from invoke import task
+from psutil import cpu_count
 
-from tasks import delete_knative_native_python, delete_knative_worker, matrix_state_upload, flush
+from tasks import delete_knative_native_python, delete_knative_worker, matrix_state_upload, delete_knative_native
 from tasks.util.billing import start_billing, pull_billing, parse_billing
-from tasks.util.env import FAASM_HOME
+from tasks.util.billing_data import plot_billing_data, plot_billing_data_multi
+from tasks.util.endpoints import get_worker_host_port, is_kubernetes
+from tasks.util.env import FAASM_HOME, PROJ_ROOT
 from tasks.util.invoke import invoke_impl
 
 
@@ -17,8 +22,6 @@ class ExperimentRunner(object):
     user = None
     func = None
     is_python = False
-
-    poll_interval = 1000
 
     result_file_name = None
     local_results_dir = None
@@ -28,8 +31,26 @@ class ExperimentRunner(object):
         self.no_billing = False
 
     @abstractmethod
-    def get_result_dir_name(self, system):
+    def get_result_folder_name(self, system):
         pass
+
+    @abstractmethod
+    def execute_benchmark(self):
+        pass
+
+    def get_result_dir(self, native):
+        output_dir = join(FAASM_HOME, "{}_{}".format(self.user, self.func))
+        if not exists(output_dir):
+            mkdir(output_dir)
+
+        system = "NATIVE" if native else "FAASM"
+        folder_name = self.get_result_folder_name(system)
+        result_dir = join(output_dir, folder_name)
+        if exists(result_dir):
+            rmtree(result_dir)
+        mkdir(result_dir)
+
+        return result_dir
 
     @classmethod
     def get_local_results_dir(cls):
@@ -42,7 +63,7 @@ class ExperimentRunner(object):
             rmtree(result_dir)
 
     @classmethod
-    def pull_results(cls, host, host_user):
+    def pull_results(cls, host_user, host):
         cmd = "scp -r {}@{}:/home/{}/faasm/{}_{} {}".format(host_user, host, host_user, cls.user, cls.func, FAASM_HOME)
         print(cmd)
         call(cmd, shell=True)
@@ -75,17 +96,14 @@ class ExperimentRunner(object):
             # Start the billing scripts
             start_billing()
 
+        # Set up result dir up front
+        result_dir = self.get_result_dir(native)
+
         # Start the timer
         run_start = time()
 
-        # Run the request
-        success, output = invoke_impl(
-            self.user, self.func,
-            poll=True, poll_interval_ms=self.poll_interval,
-            knative=True,
-            input=self.input_data,
-            native=native, py=self.is_python,
-        )
+        # Run the actual benchmark
+        success, output = self.execute_benchmark(native)
 
         # Finish the timer
         run_time_ms = (time() - run_start) * 1000.0
@@ -96,17 +114,6 @@ class ExperimentRunner(object):
 
         if not success:
             print("FAILED on {}".format(self.input_data))
-
-        output_dir = join(FAASM_HOME, "{}_{}".format(self.user, self.func))
-        if not exists(output_dir):
-            mkdir(output_dir)
-
-        system = "NATIVE" if native else "FAASM"
-        folder_name = self.get_result_dir_name(system)
-        result_dir = join(output_dir, folder_name)
-        if exists(result_dir):
-            rmtree(result_dir)
-        mkdir(result_dir)
 
         # Write the running time
         output_file = join(result_dir, "RUN_TIME.log")
@@ -125,11 +132,91 @@ class ExperimentRunner(object):
                 raise RuntimeError("Failed to put billing files in place")
 
 
+class InvokeAndWaitRunner(ExperimentRunner):
+    poll_interval = 1000
+
+    def execute_benchmark(self, native):
+        success, output = invoke_impl(
+            self.user, self.func,
+            poll=True, poll_interval_ms=self.poll_interval,
+            knative=True,
+            input=self.input_data,
+            native=native, py=self.is_python,
+        )
+
+        return success, output
+
+
+class WrkRunner(ExperimentRunner):
+    def __init__(self, threads=4, total_connections=20, delay_ms=0, duration_secs=10):
+        super().__init__(None)
+
+        self.wrk_bin = join(FAASM_HOME, "tools", "wrk")
+        self.threads = threads
+        self.total_connections = total_connections
+        self.delay_ms = delay_ms
+
+        self.host, self.port = get_worker_host_port(None, None)
+        self.url = "http://{}:{}".format(self.host, self.port)
+
+        self.duration_secs = duration_secs
+        self.wrk_output = "/tmp/wrk_results.txt"
+
+    @abstractmethod
+    def get_wrk_script(self):
+        pass
+
+    def get_result_folder_name(self, system):
+        folder_name = "SYSTEM_{}_THREADS_{}_CONNS_{}_DELAY_{}_logs".format(
+            system, self.threads, self.total_connections, self.delay_ms
+        )
+
+        return folder_name
+
+    def execute_benchmark(self, native):
+        result_dir = self.get_result_dir(native)
+
+        if exists(self.wrk_output):
+            remove(self.wrk_output)
+
+        # Set up Lua script
+        system = "NATIVE" if native else "FAASM"
+        os.environ["BENCH_MODE"] = system
+        os.environ["BENCH_DELAY_MS"] = str(self.delay_ms)
+        script = self.get_wrk_script()
+
+        # Run wrk
+        cmd = [
+            self.wrk_bin,
+            "-t{}".format(self.threads),
+            "-c{}".format(self.total_connections),
+            "-s {}".format(script),
+            "-d{}s".format(self.duration_secs),
+            "--timeout=5s",
+            self.url,
+        ]
+
+        cmd = " ".join(cmd)
+        print(cmd)
+        res = subprocess.call(cmd, shell=True)
+        if res != 0:
+            raise RuntimeError("Failed running wrk")
+
+        self._parse_results(result_dir)
+
+        return True, "No output"
+
+    def _parse_results(self, result_dir):
+        # Copy wrk output into place
+        result_file = join(result_dir, "latency.txt")
+        copy(self.wrk_output, result_file)
+
+
 # -------------------------------------
 # SGD
 # -------------------------------------
 
-class SGDExperimentRunner(ExperimentRunner):
+class SGDExperimentRunner(InvokeAndWaitRunner):
     user = "sgd"
     func = "reuters_svm"
     result_file_name = "NODE_0_SGD_LOSS.log"
@@ -140,7 +227,7 @@ class SGDExperimentRunner(ExperimentRunner):
         self.n_workers = n_workers
         self.interval = interval
 
-    def get_result_dir_name(self, system):
+    def get_result_folder_name(self, system):
         folder_name = "SYSTEM_{}_WORKERS_{}_INTERVAL_{}_logs".format(system, self.n_workers, self.interval)
         return folder_name
 
@@ -152,9 +239,9 @@ def sgd_experiment(ctx, workers, interval, native=False, nobill=False):
 
 
 @task
-def sgd_pull_results(ctx, host, user):
+def sgd_pull_results(ctx, user, host):
     SGDExperimentRunner.clean()
-    SGDExperimentRunner.pull_results(host, user)
+    SGDExperimentRunner.pull_results(user, host)
 
 
 @task
@@ -166,7 +253,7 @@ def sgd_parse_results(ctx):
 # Matrix multiplication
 # -------------------------------------
 
-class MatrixExperimentRunner(ExperimentRunner):
+class MatrixExperimentRunner(InvokeAndWaitRunner):
     user = "python"
     func = "mat_mul"
     is_python = True
@@ -181,7 +268,7 @@ class MatrixExperimentRunner(ExperimentRunner):
         self.mat_size = mat_size
         self.n_splits = n_splits
 
-    def get_result_dir_name(self, system):
+    def get_result_folder_name(self, system):
         folder_name = "SYSTEM_{}_MATRIX_{}_SPLITS_{}_WORKERS_{}_logs".format(system, self.mat_size, self.n_splits,
                                                                              self.n_workers)
         return folder_name
@@ -219,6 +306,181 @@ def matrix_experiment(ctx, n_workers, mat_size, n_splits, native=False, nobill=F
 @task
 def matrix_pull_results(ctx, user, host):
     MatrixExperimentRunner.clean()
-    MatrixExperimentRunner.pull_results(host, user)
+    MatrixExperimentRunner.pull_results(user, host)
 
     MatrixExperimentRunner.parse_results()
+
+
+# -------------------------------------
+# Tensorflow
+# -------------------------------------
+
+
+class TensorflowExperimentRunner(WrkRunner):
+    user = "tf"
+    func = "image"
+    is_python = False
+    result_file_name = "NODE_0_INFERENCE.log"
+
+    def __init__(self, cold_start_interval, threads=4, total_connections=20, delay_ms=5, duration_secs=10):
+        super().__init__(
+            threads=threads, total_connections=total_connections, delay_ms=delay_ms, duration_secs=duration_secs
+        )
+
+        self.cold_start_interval = cold_start_interval
+
+    def execute_benchmark(self, native):
+        os.environ["COLD_START_INTERVAL"] = str(self.cold_start_interval)
+
+        return super().execute_benchmark(native)
+
+    def get_wrk_script(self):
+        return join(PROJ_ROOT, "conf", "tflite_bench.lua")
+
+    def get_result_folder_name(self, system):
+        folder_name = "SYSTEM_{}_COLD_{}_THREADS_{}_CONNS_{}_DELAY_{}_logs".format(
+            system, self.cold_start_interval, self.threads, self.total_connections, self.delay_ms
+        )
+
+        return folder_name
+
+
+@task
+def tf_lat_experiment(ctx):
+    # Aim of this experiment is to show how latency changes at low load with varying
+    # numbers of cold starts. We don't want any interference so just run one thread
+    # and one connection
+    threads = 1
+    total_connections = 1
+
+    for native in [True, False]:
+        if native:
+            runs = [
+                (5, 480),
+                (50, 300),
+                (500, 180),
+            ]
+        else:
+            runs = [
+                (500, 200),
+            ]
+
+        for cold_start_interval, duration_s in runs:
+            # Run a ramp-up
+            runner = TensorflowExperimentRunner(
+                cold_start_interval,
+                threads=threads,
+                total_connections=total_connections,
+                delay_ms=5,
+                duration_secs=10,
+            )
+
+            runner.execute_benchmark(native)
+
+            # Run the full thing
+            runner = TensorflowExperimentRunner(
+                cold_start_interval,
+                threads=threads,
+                total_connections=total_connections,
+                delay_ms=5,
+                duration_secs=duration_s,
+            )
+
+            runner.run(native, nobill=True)
+
+            if not is_kubernetes():
+                sleep(5)
+                continue
+
+            # Tidy up
+            if native:
+                delete_knative_native(ctx, "tf", "image", hard=False)
+            else:
+                delete_knative_worker(ctx, hard=False)
+
+            sleep(30)
+
+
+@task
+def tf_tpt_experiment(ctx, native=False, nobill=False):
+    # Runs with delay, duration
+    runs = [
+        (30000, 180),
+        (20000, 160),
+        (10000, 140),
+        (5000, 120),
+        (3000, 100),
+        (2000, 100),
+        # (1000, 100),
+        # (800, 80),
+        # (600, 80),
+        # (400, 60),
+        # (200, 60),
+        # (100, 60),
+        # (0, 60),
+    ]
+
+    # Different cold start intervals
+    cold_start_intervals = [5, 10, 20, 40, 80] if native else [500]
+    threads = cpu_count()
+    total_connections = 100
+
+    for cold_start_interval in cold_start_intervals:
+        for delay_ms, duration_s in runs:
+            # Run a ramp-up
+            # runner = TensorflowExperimentRunner(
+            #     cold_start_interval,
+            #     threads=threads,
+            #     total_connections=20,
+            #     delay_ms=delay_ms,
+            #     duration_secs=15,
+            # )
+            # runner.execute_benchmark(native)
+
+            # Run the full thing
+            runner = TensorflowExperimentRunner(
+                cold_start_interval,
+                threads=threads,
+                total_connections=total_connections,
+                delay_ms=delay_ms,
+                duration_secs=duration_s,
+            )
+
+            runner.run(native, nobill=nobill)
+
+            if not is_kubernetes():
+                sleep(5)
+                continue
+
+            # Tidy up
+            if native:
+                delete_knative_native(ctx, "tf", "image", hard=False)
+            else:
+                delete_knative_worker(ctx, hard=False)
+
+            sleep_time = 40
+            sleep(sleep_time)
+
+
+@task
+def tf_plot_billing(ctx, result_dir):
+    plot_billing_data_multi(result_dir)
+
+
+@task
+def tf_lat_pull_results(ctx, user, host):
+    TensorflowExperimentRunner.pull_results(user, host)
+    # No parsing for latency results
+
+
+@task
+def tf_tpt_pull_results(ctx, user, host, nobill=False):
+    TensorflowExperimentRunner.pull_results(user, host)
+
+    if not nobill:
+        TensorflowExperimentRunner.parse_results()
+
+
+@task
+def tf_tpt_parse_results(ctx):
+    TensorflowExperimentRunner.parse_results()

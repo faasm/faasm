@@ -5,6 +5,15 @@ that can run `kubectl` and `kn`.
 
 Everything must be cleared away between runs to make sure stuff doesn't bleed across.
 
+## Set-up
+
+To run throughput/ latency experiments you'll need to install `wrk` with:
+
+```bash
+cd ansible
+ansible-playbook wrk.yml
+```
+
 ## Billing Estimates
 
 To get resource measurements from the hosts running experiments we first need an inventory file at
@@ -28,7 +37,11 @@ ansible-playbook -i inventory/billing.yml billing_setup.yml
 
 Data should be generated and uploaded ahead of time.
 
+### SGD
+
 For details of the SGD experiment data see `sgd.md` notes.
+
+### Matrices
 
 The matrix experiment data needs to be generated in bulk locally, uploaded to S3 then downloaded on the client machine (or directly copied with `scp`). You must have the native tooling and pyfaasm installed to generate it up front (but
 this doesn't need to be done if it's already in S3):
@@ -50,12 +63,30 @@ inv matrix-upload-s3
 inv matrix-download-s3
 ```
 
-## SGD
+### Tensorflow
+
+Tensorflow data consists of the model and images. To download it (one-off) you can run:
+
+```bash
+./bin/download_tf_data.sh
+```
+
+Then to upload to your Faasm instance:
+
+```bash
+inv tf-upload-data tf-state-upload
+```
+
+## SGD Experiment
 
 ```bash
 # -- Prepare --
 # Upload data (one off)
 inv reuters-state-upload
+
+# -- Build/ upload --
+inv build-knative-native sgd reuters_svm
+inv upload sgd reuters_svm --prebuilt
 
 # -- Deploy --
 
@@ -90,10 +121,11 @@ inv delete-knative-native sgd reuters_svm
 inv delete-knative-worker --hard
 ```
 
-## Matrices
+## Matrices Experiment
 
 ```bash
-# Make sure function is uploaded
+# -- Build/ Upload --
+inv build-knative-native-python
 inv upload python mat_mul --py
 
 # Number of workers kept the same throughout
@@ -116,6 +148,55 @@ inv matrix-experiment-multi $N_WORKERS --native
 inv matrix-experiment-multi $N_WORKERS
 ```
 
+## Tensorflow Experiment
+
+You need to set the following environment variables for these experiments (through the knative config):
+
+- `COLD_START_DELAY_MS=800`
+- `NO_PRE_CODEGEN=on`
+- `PYTHON_PRELOAD=off`
+
+Preamble:
+
+```bash
+# -- Build/ upload --
+inv build-knative-native tf image
+inv upload tf image --prebuilt
+
+# -- Upload data (one-off)
+inv tf-upload-data tf-state-upload
+```
+
+Latency:
+
+```bash
+# -- Deploy both (note small number of workers) --
+inv deploy-knative-native tf image 1
+inv deploy-knative 1
+
+# -- Run experiment --
+inv tf-lat-experiment
+```
+
+Throughput:
+
+```bash
+# -- Deploy --
+# Native
+inv deploy-knative-native tf image 30
+
+# Wasm
+inv deploy-knative 18
+
+# -- Run experiment --
+
+# Native 
+inv tf-tpt-experiment --native
+
+# Wasm latency
+inv tf-tpt-experiment
+```
+
 ## Results
 
 Once you've done several runs, you need to pull the results to your local machine and process:
@@ -126,4 +207,10 @@ inv sgd-pull-results <user> <host>
 
 # Matrices
 inv matrix-pull-results <user> <host>
+
+# Inference latency
+inv tf-lat-pull-results <user> <host>
+
+# Inference throughput
+inv tf-tpt-pull-results <user> <host>
 ```
