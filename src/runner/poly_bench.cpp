@@ -65,6 +65,7 @@ int main(int argc, char *argv[]) {
 
     for (auto const &b : benchmarks) {
         runner::PolybenchProfiler prof(b);
+        prof.preflightWasm();
         prof.runBenchmark(nativeIterations, wasmIterations, profOut);
     }
 
