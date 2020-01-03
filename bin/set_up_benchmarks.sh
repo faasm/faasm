@@ -20,6 +20,7 @@ cmake -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
 
 # Build benchmarks
 cmake --build . --target codegen_func -- -j
+cmake --build . --target codegen_shared_obj -- -j
 cmake --build . --target bench_mem -- -j
 cmake --build . --target bench_time -- -j
 cmake --build . --target bench_tpt -- -j

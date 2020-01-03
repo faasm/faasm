@@ -8,6 +8,7 @@ def _do_find_codegen(bin_name):
         "/faasm/build/bin/{}".format(bin_name),  # Containers
         join(PROJ_ROOT, "build/bin/{}".format(bin_name)),  # Local builds
         join(PROJ_ROOT, "cmake-build-debug/bin/{}".format(bin_name)),  # CLion
+        join(HOME_DIR, "faasm", "bench"), # Benchmark
     ]
 
     existing_binaries = [p for p in possible_binaries if exists(p)]

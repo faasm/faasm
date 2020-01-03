@@ -36,17 +36,12 @@ cd /usr/local/code/faasm
 ./bin/set_up_benchmarks.sh
 ```
 
-For Docker you need to build the `faasm/noop` image which can be done with:
-
-```
-inv docker-build -c noop
-```
-
-You'll also need to download the toolchain:
+You'll also need to download the toolchain, sysroot and runtime root:
 
 ```
 inv download-toolchain
 inv download-sysroot
+inv download-runtime-root
 ```
 
 ### Memory
@@ -80,7 +75,7 @@ docker ps -aq | xargs docker rm
 # Symlink your home dir to the root user
 sudo ln -s $HOME/faasm /root/faasm
 
-# Run the benchmark as root (symlinking your faasm home dir)
+# Run the benchmark as root
 sudo su
 source workon.sh
 inv bench-mem
@@ -170,7 +165,7 @@ pkill -f bench_mem
 inv faasm-count
 ```
 
-If there is enough memory on the box, both Faasm and Docker will eventually be limited by the     max threads in the system (`cat /proc/sys/kernel/threads-max`).
+If there is enough memory on the box, both Faasm and Docker will eventually be limited by the max threads in the system (`cat /proc/sys/kernel/threads-max`).
 
 ### Redis
 
