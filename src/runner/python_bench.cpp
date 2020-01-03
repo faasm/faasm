@@ -44,7 +44,6 @@ int main(int argc, char *argv[]) {
             "bench_spectral_norm",
             "bench_telco",
             "bench_unpack_sequence",
-            "bench_xml_etree",
     };
 
     std::vector<std::string> benchmarks;
