@@ -10,6 +10,10 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -munimplemented-simd128")
 endif()
 
+# Define the polybench data type here
+# We want to use 32-bit floats to work well with wasm
+add_definitions(-DDATA_TYPE_IS_FLOAT=1)
+
 function(polybench_func exec_name dir_path)
     add_executable(poly_${exec_name}
             ${dir_path}/${exec_name}/${exec_name}.c
