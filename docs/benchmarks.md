@@ -232,16 +232,17 @@ All python code runs in the same function which can be set up according to the `
 short this is:
 
 ```
-inv download-runtime-root
 inv run-python-codegen
 inv run-local-codegen
 ```
 
-The set of benchmarks can be run with the `python_bench` target. You can specify a specific benchmark or a single
-benchmark, along with the number of wasm and native iterations, e.g. `python_bench all 100 100` or
-`python_bench bench_float.py 200 200`. This will output to `/tmp/pybench.csv`.
+The set of benchmarks can be run with the `python_bench` target, e.g.:
 
-When running make sure you have installed everything from `requirements.txt`. 
+```bash
+~/faasm/bench/bin/python_bench all 10 10
+```
+
+Output is written to `/tmp/pybench.csv`.
 
 Each benchmark requires porting the required dependencies, so some were unfeasible and other were too much work:
 

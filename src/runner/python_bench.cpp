@@ -62,8 +62,13 @@ int main(int argc, char *argv[]) {
     profOut.open(OUTPUT_FILE);
     profOut << "benchmark,type,microseconds" << std::endl;
 
+    // Switch off Python preloading
+    util::SystemConfig &conf = util::getSystemConfig();
+    conf.pythonPreload = "off";
+
     for (auto const &b : benchmarks) {
         runner::PythonProfiler prof(b);
+        prof.preflightWasm();
         prof.runBenchmark(nativeIterations, wasmIterations, profOut);
     }
 
