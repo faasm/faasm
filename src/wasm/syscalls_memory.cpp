@@ -182,8 +182,8 @@ namespace wasm {
         Uptr expansion = targetPageCount - currentPageCount;
         logger->debug("brk - Growing memory from {} to {} pages", currentPageCount, targetPageCount);
         Uptr prevPageCount = 0;
-        bool success = growMemory(memory, expansion, &prevPageCount);
-        if (!success) {
+        Runtime::GrowResult growResult = growMemory(memory, expansion, &prevPageCount);
+        if (growResult != Runtime::GrowResult::success) {
             throw std::runtime_error("Something has gone wrong with brk logic");
         }
 

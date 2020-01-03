@@ -59,11 +59,10 @@ namespace storage {
 
         if (this->isWasm(bytes)) {
             // Handle WASM
-            Serialization::MemoryInputStream inputStream(bytes.data(), bytes.size());
             WASM::LoadError loadError;
-            bool success = WASM::loadBinaryModule(inputStream, moduleIR, &loadError);
+            bool success = WASM::loadBinaryModule(bytes.data(), bytes.size(), moduleIR, &loadError);
             if (!success) {
-                throw std::runtime_error("Failed to parse wasm binary");
+                throw std::runtime_error("Failed to parse wasm binary: " + loadError.message);
             }
         } else {
             std::vector<WAST::Error> parseErrors;

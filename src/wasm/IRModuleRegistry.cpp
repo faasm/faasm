@@ -141,9 +141,8 @@ namespace wasm {
                 module.featureSpec.simd = true;
 
                 if (functionLoader.isWasm(wasmBytes)) {
-                    Serialization::MemoryInputStream inputStream(wasmBytes.data(), wasmBytes.size());
                     WASM::LoadError loadError;
-                    WASM::loadBinaryModule(inputStream, module, &loadError);
+                    WASM::loadBinaryModule(wasmBytes.data(), wasmBytes.size(), module, &loadError);
                 } else {
                     std::vector<WAST::Error> parseErrors;
                     WAST::parseModule((const char *) wasmBytes.data(), wasmBytes.size(), module, parseErrors);
@@ -183,9 +182,8 @@ namespace wasm {
                 IR::Module &module = moduleMap[key];
                 module.featureSpec.simd = true;
 
-                Serialization::MemoryInputStream inputStream(wasmBytes.data(), wasmBytes.size());
                 WASM::LoadError loadError;
-                WASM::loadBinaryModule(inputStream, module, &loadError);
+                WASM::loadBinaryModule(wasmBytes.data(), wasmBytes.size(), module, &loadError);
 
                 // Check that the module isn't expecting to create any memories or tables
                 if (!module.tables.defs.empty()) {
