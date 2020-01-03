@@ -1,4 +1,4 @@
-from performance.benchmarks.bm_pidigits import calc_ndigits, DEFAULT_DIGITS
+from performance.benchmarks.bm_crypto_pyaes import bench_pyaes
 
 if __name__ == "__main__":
-    calc_ndigits(DEFAULT_DIGITS * 3)
+    bench_pyaes(20)

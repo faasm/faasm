@@ -197,7 +197,7 @@ To test pure computation against the native environment we can use the
 
 The code is checked into this repository and can be compiled to wasm and uploaded as follows.
 
-Note that you'll need an upload server running (i.e. using the `upload` target).
+Note that you'll need an upload server running (i.e. using the `upload` target, e.g. `~/faasm/bench/bin/upload`).
 
 ```
 # Compile to wasm
@@ -217,7 +217,7 @@ The `poly_bench` target will then run a comparison of the wasm and native versio
 be invoked with your desired number of iterations for native and wasm respectively, e.g.
 
 ```
-poly_bench all 5 5
+~/faasm/bench/bin/poly_bench all 5 5
 ```
 
 Results are currently output to `/tmp/polybench.csv`.

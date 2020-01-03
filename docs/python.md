@@ -61,19 +61,26 @@ inv upload python py_func
 
 Adding packages to Pyodide is described [in their docs](https://github.com/iodide-project/pyodide/blob/master/docs/new_packages.md). For just a pure Python package you can do the following:
 
+```
+cd third-party/pyodide
+source workon.sh
+./bin/pyodide mkpkg <pypi pkg name>
+```
+
+If this doesn't work you can do the following:
+
 - Create a new folder in `pyodide/packages`
 - Copy the `meta.yml` from another pure Python package (e.g. `perf`)
 - Add the right version, SHA and a link to the `.tar.gz` from PyPI (perf example [here](https://pypi.org/project/perf/))
 - From the `packages` directory run `../bin/pyodide buildpkg --package_abi=0 <your_pkg>/meta.yaml`
 
-You can also try their helper script which is just:
-
-```
-cd third-party/pyodide
-bin/pyodide mkpkg <pypi_pkg>
-```
-
 This will automatically create a basic `meta.yml`.
+
+You can then build it with:
+
+```
+./bin/pyodide buildpkg --package_abi=0 <pypi pkg name>/meta.yaml
+```
 
 ## Packaging the Python runtime
 
