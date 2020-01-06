@@ -226,7 +226,7 @@ _Note - we had to leave out the BLAS benchmarks as BLAS is not supported in Faas
 
 ## Python
 
-To benchmark CPython execution we use the [Python Performance Benchmark Suite](https://github.com/python/performance).
+To benchmark CPython execution we use the [Python Performance Benchmark Suite](https://github.com/python/pyperformance).
 
 All python code runs in the same function which can be set up according to the `local_dev.md` docs in this repo. In 
 short this is:
