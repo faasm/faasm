@@ -271,6 +271,20 @@ namespace tests {
 
                 REQUIRE(sch.getBestNodeForFunction(call) == otherNodeA);
             }
+            
+            SECTION("Test this node chosen when scheduler off even though warm option available") {
+                // Switch off scheduler
+                int originalNoScheduler = conf.noScheduler;
+                conf.noScheduler = 1;
+
+                // Add another node to warm 
+                const std::string warmSet = sch.getFunctionWarmSetName(call);
+                redis.sadd(warmSet, otherNodeA);
+
+                REQUIRE(sch.getBestNodeForFunction(call) == nodeId);
+
+                conf.noScheduler = originalNoScheduler;
+            }
 
             SECTION("Test other warm option *not* chosen when in no scheduler mode") {
                 conf.noScheduler = 1;
