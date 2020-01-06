@@ -1,4 +1,6 @@
 import os
+from os.path import exists
+
 import dulwich.repo
 
 
@@ -14,7 +16,10 @@ if __name__ == "__main__":
         repo_path = "/lib/python3.7/site-packages/performance/benchmarks/data/asyncio.git"
     else:
         # Native
-        repo_path = "/usr/local/code/faasm/venv/lib/python3.6/site-packages/performance/benchmarks/data/asyncio.git"
+        repo_path = "/usr/local/code/faasm/venv/lib/python3.6/site-packages/pyperformance/benchmarks/data/asyncio.git"
+        if not exists(repo_path):
+            # Remote machine
+            repo_path = "/usr/local/lib/python3.6/dist-packages/pyperformance/benchmarks/data/asyncio.git"
 
     repo = dulwich.repo.Repo(repo_path)
     head = repo.head()
