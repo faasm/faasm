@@ -66,6 +66,7 @@ KNATIVE_ENV = {
     "SGD_CODEGEN": "off",  # Switch on/ off up-front codegen for SGD
     "PYTHON_CODEGEN": "off",  # Switch on/ off up-front codegen for Python
     "MAX_IN_FLIGHT_RATIO": "1",
+    "NO_SCHEDULER": "1",  # Turn on/ off Faasm scheduler
     "MAX_WORKERS_PER_FUNCTION": "4",  # This limit is per-host. We only want one instance per core
     "THREADS_PER_WORKER": "100",  # This is how many threads are available in total per host (across all functions)
     "BOUND_TIMEOUT": str(THIRTY_SECS),  # How long a bound worker sticks around for
