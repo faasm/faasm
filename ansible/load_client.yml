@@ -1,0 +1,9 @@
+---
+
+- hosts: all
+  gather_facts: yes
+  pre_tasks:
+    - name: "Install python"
+      raw: "sudo apt-get -y install python"
+  roles:
+    - load_client

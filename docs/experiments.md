@@ -5,13 +5,13 @@ that can run `kubectl` and `kn`.
 
 Everything must be cleared away between runs to make sure stuff doesn't bleed across.
 
-## Set-up
+## Client Machine Set-up
 
-To run throughput/ latency experiments you'll need to install `wrk` with:
+To run throughput/ latency experiments you'll need to set up the client machine with (on the machine itself):
 
 ```bash
 cd ansible
-ansible-playbook wrk.yml
+ansible-playbook load_client.yml
 ```
 
 ## Billing Estimates
