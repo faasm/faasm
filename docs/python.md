@@ -79,18 +79,22 @@ This will automatically create a basic `meta.yml`.
 You can then build it with:
 
 ```
-./bin/pyodide buildpkg --package_abi=0 <pypi pkg name>/meta.yaml
+./bin/pyodide buildpkg --package_abi=0 packages/<pypi pkg name>/meta.yaml
 ```
 
-## Packaging the Python runtime
+## Adding to runtime root
 
-To package the Python runtime for use on AWS and in containers, we can run the following:
+Once added, we need to include this in the Faasm runtime root:
 
+- Open `tasks/python.py`
+- Add a new entry in the dictionary of Python packages in there
+- Make sure you use the right file path to the built package in pyodide
+
+You can then set it up with:
+
+```bash
+inv set-up-python-package <pkg name>
 ```
-inv package-python-runtime
-```
 
-_WARNING_ this nukes all the object files in your current `runtime_root` so you'll need to regenerate them and 
-run tests to make sure it's worked.
+Note that once added you'll also need to backup the runtime root.
 
-This bundles up the required runtime files and uploads them to S3.
