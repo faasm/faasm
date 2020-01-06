@@ -31,10 +31,10 @@ LEGACY_CONF = join(K8S_DIR, "legacy")
 
 FAASM_WORKER_ANNOTATIONS = [
     "autoscaling.knative.dev/enable-scale-to-zero=false",
-    "autoscaling.knative.dev/stable-window=30s",
+    "autoscaling.knative.dev/stable-window=120s",  # Longer window means fewer knative interventions
 ]
 
-FAASM_WORKER_CONCURRENCY = 100
+FAASM_WORKER_CONCURRENCY = 1000
 
 NATIVE_WORKER_ANNOTATIONS = [
     "autoscaling.knative.dev/enable-scale-to-zero=true",
