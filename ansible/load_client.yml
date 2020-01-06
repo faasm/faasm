@@ -1,6 +1,6 @@
 ---
 
-- hosts: all
+- hosts: localhost
   gather_facts: yes
   pre_tasks:
     - name: "Install python"
