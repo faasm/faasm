@@ -13,7 +13,7 @@ def iter_all_commits(repo):
 if __name__ == "__main__":
     if os.environ.get("PYTHONWASM") == "1":
         # WASM
-        repo_path = "/lib/python3.7/site-packages/performance/benchmarks/data/asyncio.git"
+        repo_path = "/lib/python3.7/site-packages/pyperformance/benchmarks/data/asyncio.git"
     else:
         # Native
         repo_path = "/usr/local/code/faasm/venv/lib/python3.6/site-packages/pyperformance/benchmarks/data/asyncio.git"
