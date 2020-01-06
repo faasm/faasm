@@ -34,7 +34,7 @@ FAASM_WORKER_ANNOTATIONS = [
     "autoscaling.knative.dev/stable-window=30s",
 ]
 
-FAASM_WORKER_CONCURRENCY = 8
+FAASM_WORKER_CONCURRENCY = 100
 
 NATIVE_WORKER_ANNOTATIONS = [
     "autoscaling.knative.dev/enable-scale-to-zero=true",
