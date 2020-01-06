@@ -188,13 +188,13 @@ def copy_release_bundles(ctx, old_ver):
     new_ver = get_faasm_version()
 
     print("Copying sysroot {} -> {}".format(old_ver, new_ver))
-    copy_object_in_s3(MISC_S3_BUCKET, _get_sysroot_tar_name(old_ver), _get_sysroot_tar_name(new_ver))
+    copy_object_in_s3(MISC_S3_BUCKET, _get_sysroot_tar_name(old_ver), _get_sysroot_tar_name(new_ver), public=True)
 
     print("Copying runtime root {} -> {}".format(old_ver, new_ver))
-    copy_object_in_s3(MISC_S3_BUCKET, _get_runtime_tar_name(old_ver), _get_runtime_tar_name(new_ver))
+    copy_object_in_s3(MISC_S3_BUCKET, _get_runtime_tar_name(old_ver), _get_runtime_tar_name(new_ver), public=True)
 
     print("Copying toolchain {} -> {}".format(old_ver, new_ver))
-    copy_object_in_s3(MISC_S3_BUCKET, _get_toolchain_tar_name(old_ver), _get_toolchain_tar_name(new_ver))
+    copy_object_in_s3(MISC_S3_BUCKET, _get_toolchain_tar_name(old_ver), _get_toolchain_tar_name(new_ver), public=True)
 
     print("\nObjects in bucket:")
     objs = list_files_s3(MISC_S3_BUCKET, "")
