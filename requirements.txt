@@ -15,7 +15,7 @@ invoke
 Jinja2
 matplotlib
 numpy
-performance
+pyperformance
 psutil
 pyaes
 pycairo
