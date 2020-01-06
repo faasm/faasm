@@ -231,15 +231,16 @@ To benchmark CPython execution we use the [Python Performance Benchmark Suite](h
 All python code runs in the same function which can be set up according to the `local_dev.md` docs in this repo. In 
 short this is:
 
-```
+```bash
 inv run-python-codegen
 inv run-local-codegen
+inv upload-all --py --local-copy
 ```
 
 The set of benchmarks can be run with the `python_bench` target, e.g.:
 
 ```bash
-~/faasm/bench/bin/python_bench all 10 10
+~/faasm/bench/bin/python_bench all 5 5
 ```
 
 Output is written to `/tmp/pybench.csv`.
