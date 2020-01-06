@@ -34,6 +34,8 @@ FAASM_WORKER_ANNOTATIONS = [
     "autoscaling.knative.dev/stable-window=30s",
 ]
 
+FAASM_WORKER_CONCURRENCY = 8
+
 NATIVE_WORKER_ANNOTATIONS = [
     "autoscaling.knative.dev/enable-scale-to-zero=true",
     "autoscaling.knative.dev/stable-window=20s",
@@ -63,7 +65,6 @@ KNATIVE_ENV = {
     "TF_CODEGEN": "on",  # Switch on/ off up-front codegen for TF
     "SGD_CODEGEN": "off",  # Switch on/ off up-front codegen for SGD
     "PYTHON_CODEGEN": "off",  # Switch on/ off up-front codegen for Python
-    "PYTHON_PRELOAD": "off",
     "MAX_IN_FLIGHT_RATIO": "1",
     "MAX_WORKERS_PER_FUNCTION": "4",  # This limit is per-host. We only want one instance per core
     "THREADS_PER_WORKER": "100",  # This is how many threads are available in total per host (across all functions)
@@ -149,7 +150,7 @@ def deploy_knative(ctx, replicas, local=False, ibm=False):
         FAASM_WORKER_NAME,
         FAASM_WORKER_IMAGE,
         replicas,
-        4,
+        FAASM_WORKER_CONCURRENCY,
         FAASM_WORKER_ANNOTATIONS,
         extra_env=extra_env,
         shell_env=shell_env
