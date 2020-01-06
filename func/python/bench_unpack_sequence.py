@@ -1,4 +1,4 @@
-from performance.benchmarks.bm_unpack_sequence import bench_tuple_unpacking, bench_list_unpacking
+from pyperformance.benchmarks.bm_unpack_sequence import bench_tuple_unpacking, bench_list_unpacking
 
 
 def bench_all(loops):

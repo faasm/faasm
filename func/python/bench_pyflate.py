@@ -1,6 +1,6 @@
 import os
 
-from performance.benchmarks.bm_pyflate import bench_pyflake
+from pyperformance.benchmarks.bm_pyflate import bench_pyflake
 
 if __name__ == "__main__":
     file_path = "/lib/python3.7/site-packages/performance/benchmarks/data/interpreter.tar.bz2"

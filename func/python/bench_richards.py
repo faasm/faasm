@@ -1,4 +1,4 @@
-from performance.benchmarks.bm_richards import Richards
+from pyperformance.benchmarks.bm_richards import Richards
 
 if __name__ == "__main__":
     richard = Richards()

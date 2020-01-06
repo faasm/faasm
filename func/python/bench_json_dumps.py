@@ -1,5 +1,5 @@
 import performance.benchmarks.bm_json_dumps as bm
-from performance.benchmarks.bm_json_dumps import CASES, bench_json_dumps
+from pyperformance.benchmarks.bm_json_dumps import CASES, bench_json_dumps
 
 if __name__ == "__main__":
     cases = CASES

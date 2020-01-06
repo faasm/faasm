@@ -1,4 +1,4 @@
-from performance.benchmarks.bm_genshi import bench_genshi, BENCHMARKS
+from pyperformance.benchmarks.bm_genshi import bench_genshi, BENCHMARKS
 
 if __name__ == "__main__":
     for bench in BENCHMARKS:
