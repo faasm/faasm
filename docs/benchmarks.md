@@ -237,6 +237,12 @@ inv run-local-codegen
 inv upload-all --py --local-copy
 ```
 
+Before running, you can check both the native and wasm python versions with:
+
+```bash
+~/faasm/bench/bin/python_bench version 1 1
+```
+
 The set of benchmarks can be run with the `python_bench` target, e.g.:
 
 ```bash
