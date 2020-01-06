@@ -34,7 +34,7 @@ FAASM_WORKER_ANNOTATIONS = [
     "autoscaling.knative.dev/stable-window=120s",  # Longer window means fewer knative interventions
 ]
 
-FAASM_WORKER_CONCURRENCY = 1000
+FAASM_WORKER_CONCURRENCY = 0
 
 NATIVE_WORKER_ANNOTATIONS = [
     "autoscaling.knative.dev/enable-scale-to-zero=true",
@@ -204,7 +204,7 @@ def _deploy_knative_fn(name, image, replicas, concurrency, annotations, extra_en
     cmd.extend({
         "--min-scale={}".format(replicas),
         "--max-scale={}".format(replicas),
-        "--concurrency-limit={}".format(concurrency),
+        "--concurrency-limit={}".format(concurrency) if concurrency else "",
     })
 
     # Add annotations
