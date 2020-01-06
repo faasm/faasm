@@ -20,6 +20,7 @@ from __future__ import print_function
 import io
 import os
 from decimal import ROUND_HALF_EVEN, ROUND_DOWN, Decimal, getcontext, Context
+from os.path import exists
 from struct import unpack
 
 import six
@@ -82,11 +83,13 @@ def bench_telco(loops, filename):
 
 
 if __name__ == "__main__":
-    file_path = "/lib/python3.7/site-packages/performance/benchmarks/data/telco-bench.b"
+    if os.environ.get("PYTHONWASM") == "1":
+        file_path = "/lib/python3.7/site-packages/pyperformance/benchmarks/data/telco-bench.b"
+    else:
+        file_path = "/usr/local/code/faasm/venv/lib/python3.6/site-packages/pyperformance/benchmarks/data/telco-bench.b"
+        if not exists(file_path):
+            file_path = "/usr/local/lib/python3.6/dist-packages/pyperformance/benchmarks/data/telco-bench.b"
 
     loops = 10
-    if not os.environ.get("PYTHONWASM") == "1":
-        # Native
-        file_path = "/usr/local/faasm/runtime_root" + file_path
 
     bench_telco(loops, file_path)

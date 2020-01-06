@@ -61,29 +61,40 @@ inv upload python py_func
 
 Adding packages to Pyodide is described [in their docs](https://github.com/iodide-project/pyodide/blob/master/docs/new_packages.md). For just a pure Python package you can do the following:
 
+```
+cd third-party/pyodide
+source workon.sh
+./bin/pyodide mkpkg <pypi pkg name>
+```
+
+If this doesn't work you can do the following:
+
 - Create a new folder in `pyodide/packages`
 - Copy the `meta.yml` from another pure Python package (e.g. `perf`)
 - Add the right version, SHA and a link to the `.tar.gz` from PyPI (perf example [here](https://pypi.org/project/perf/))
 - From the `packages` directory run `../bin/pyodide buildpkg --package_abi=0 <your_pkg>/meta.yaml`
 
-You can also try their helper script which is just:
-
-```
-cd third-party/pyodide
-bin/pyodide mkpkg <pypi_pkg>
-```
-
 This will automatically create a basic `meta.yml`.
 
-## Packaging the Python runtime
-
-To package the Python runtime for use on AWS and in containers, we can run the following:
+You can then build it with:
 
 ```
-inv package-python-runtime
+./bin/pyodide buildpkg --package_abi=0 packages/<pypi pkg name>/meta.yaml
 ```
 
-_WARNING_ this nukes all the object files in your current `runtime_root` so you'll need to regenerate them and 
-run tests to make sure it's worked.
+## Adding to runtime root
 
-This bundles up the required runtime files and uploads them to S3.
+Once added, we need to include this in the Faasm runtime root:
+
+- Open `tasks/python.py`
+- Add a new entry in the dictionary of Python packages in there
+- Make sure you use the right file path to the built package in pyodide
+
+You can then set it up with:
+
+```bash
+inv set-up-python-package <pkg name>
+```
+
+Note that once added you'll also need to backup the runtime root.
+

@@ -15,8 +15,9 @@ invoke
 Jinja2
 matplotlib
 numpy
-performance
+pyperformance
 psutil
+pyaes
 pycairo
 # Explicitly don't put pyfaasm here, install separately
 PyOpenSSL

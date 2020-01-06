@@ -1,6 +1,6 @@
 import io
 import logging
-from performance.benchmarks.bm_logging import BENCHMARKS, truncate_stream
+from pyperformance.benchmarks.bm_logging import BENCHMARKS, truncate_stream
 
 if __name__ == "__main__":
     stream = io.StringIO()

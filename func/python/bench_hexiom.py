@@ -1,4 +1,4 @@
-from performance.benchmarks.bm_hexiom import LEVELS, DESCENDING, Done, solve_file
+from pyperformance.benchmarks.bm_hexiom import LEVELS, DESCENDING, Done, solve_file
 from six.moves import StringIO
 
 level = 25

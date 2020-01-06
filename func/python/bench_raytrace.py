@@ -1,4 +1,4 @@
-from performance.benchmarks.bm_raytrace import bench_raytrace, DEFAULT_WIDTH, DEFAULT_HEIGHT
+from pyperformance.benchmarks.bm_raytrace import bench_raytrace, DEFAULT_WIDTH, DEFAULT_HEIGHT
 
 
 if __name__ == "__main__":

@@ -36,17 +36,12 @@ cd /usr/local/code/faasm
 ./bin/set_up_benchmarks.sh
 ```
 
-For Docker you need to build the `faasm/noop` image which can be done with:
-
-```
-inv docker-build -c noop
-```
-
-You'll also need to download the toolchain:
+You'll also need to download the toolchain, sysroot and runtime root:
 
 ```
 inv download-toolchain
 inv download-sysroot
+inv download-runtime-root
 ```
 
 ### Memory
@@ -80,7 +75,7 @@ docker ps -aq | xargs docker rm
 # Symlink your home dir to the root user
 sudo ln -s $HOME/faasm /root/faasm
 
-# Run the benchmark as root (symlinking your faasm home dir)
+# Run the benchmark as root
 sudo su
 source workon.sh
 inv bench-mem
@@ -170,7 +165,7 @@ pkill -f bench_mem
 inv faasm-count
 ```
 
-If there is enough memory on the box, both Faasm and Docker will eventually be limited by the     max threads in the system (`cat /proc/sys/kernel/threads-max`).
+If there is enough memory on the box, both Faasm and Docker will eventually be limited by the max threads in the system (`cat /proc/sys/kernel/threads-max`).
 
 ### Redis
 
@@ -202,7 +197,7 @@ To test pure computation against the native environment we can use the
 
 The code is checked into this repository and can be compiled to wasm and uploaded as follows.
 
-Note that you'll need an upload server running (i.e. using the `upload` target).
+Note that you'll need an upload server running (i.e. using the `upload` target, e.g. `~/faasm/bench/bin/upload`).
 
 ```
 # Compile to wasm
@@ -222,7 +217,7 @@ The `poly_bench` target will then run a comparison of the wasm and native versio
 be invoked with your desired number of iterations for native and wasm respectively, e.g.
 
 ```
-poly_bench all 5 5
+~/faasm/bench/bin/poly_bench all 5 5
 ```
 
 Results are currently output to `/tmp/polybench.csv`.
@@ -231,22 +226,30 @@ _Note - we had to leave out the BLAS benchmarks as BLAS is not supported in Faas
 
 ## Python
 
-To benchmark CPython execution we use the [Python Performance Benchmark Suite](https://github.com/python/performance).
+To benchmark CPython execution we use the [Python Performance Benchmark Suite](https://github.com/python/pyperformance).
 
 All python code runs in the same function which can be set up according to the `local_dev.md` docs in this repo. In 
 short this is:
 
-```
-inv download-runtime-root
+```bash
 inv run-python-codegen
 inv run-local-codegen
+inv upload-all --py --local-copy
 ```
 
-The set of benchmarks can be run with the `python_bench` target. You can specify a specific benchmark or a single
-benchmark, along with the number of wasm and native iterations, e.g. `python_bench all 100 100` or
-`python_bench bench_float.py 200 200`. This will output to `/tmp/pybench.csv`.
+Before running, you can check both the native and wasm python versions with:
 
-When running make sure you have installed everything from `requirements.txt`. 
+```bash
+~/faasm/bench/bin/python_bench bench_version 1 1
+```
+
+The set of benchmarks can be run with the `python_bench` target, e.g.:
+
+```bash
+~/faasm/bench/bin/python_bench all 5 5
+```
+
+Output is written to `/tmp/pybench.csv`.
 
 Each benchmark requires porting the required dependencies, so some were unfeasible and other were too much work:
 

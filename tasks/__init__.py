@@ -110,10 +110,6 @@ from tasks.python import (
     set_up_python_package,
     run_python_codegen,
 )
-from tasks.runtime import (
-    backup_runtime_root,
-    download_runtime_root,
-)
 from tasks.aws_sgd import (
     begin_aws_svm,
     deploy_sgd_wasm_lambda,
@@ -141,6 +137,9 @@ from tasks.toolchain import (
     download_toolchain,
     download_sysroot,
     run_local_codegen,
+    backup_runtime_root,
+    download_runtime_root,
+    copy_release_bundles,
 )
 from tasks.upload import (
     upload_all,

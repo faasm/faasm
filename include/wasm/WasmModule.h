@@ -76,7 +76,7 @@ namespace wasm {
 
         int dynamicLoadModule(const std::string &path, Runtime::Context *context);
 
-        Runtime::ModuleInstance *getDynamicModule(int handle);
+        Runtime::Instance *getDynamicModule(int handle);
 
         Uptr getDynamicModuleFunction(int handle, const std::string &funcName);
 
@@ -129,8 +129,8 @@ namespace wasm {
         int getDataOffsetFromGOT(const std::string &name);
 
     private:
-        Runtime::GCPointer<Runtime::ModuleInstance> envModule;
-        Runtime::GCPointer<Runtime::ModuleInstance> moduleInstance;
+        Runtime::GCPointer<Runtime::Instance> envModule;
+        Runtime::GCPointer<Runtime::Instance> moduleInstance;
 
         // Note: we don't use GCPointers for the function instances as there are tied
         // to the lifecycle of the underlying module
@@ -153,7 +153,7 @@ namespace wasm {
 
         // Map of dynamically loaded modules
         std::unordered_map<std::string, int> dynamicPathToHandleMap;
-        std::unordered_map<int, Runtime::GCPointer<Runtime::ModuleInstance>> dynamicModuleMap;
+        std::unordered_map<int, Runtime::GCPointer<Runtime::Instance>> dynamicModuleMap;
 
         // Dynamic linking tables and memories
         std::unordered_map<std::string, Uptr> globalOffsetTableMap;
@@ -166,7 +166,7 @@ namespace wasm {
 
         void addModuleToGOT(IR::Module &mod, bool isMainModule);
 
-        Runtime::ModuleInstance *createModuleInstance(
+        Runtime::Instance *createModuleInstance(
                 const std::string &name,
                 const std::string &sharedModulePath
         );

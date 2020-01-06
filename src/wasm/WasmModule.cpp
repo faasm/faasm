@@ -106,7 +106,7 @@ namespace wasm {
             // TODO - double check this works
             dynamicPathToHandleMap = other.dynamicPathToHandleMap;
             for (auto &p : other.dynamicModuleMap) {
-                Runtime::ModuleInstance *newInstance = Runtime::remapToClonedCompartment(p.second, compartment);
+                Runtime::Instance *newInstance = Runtime::remapToClonedCompartment(p.second, compartment);
                 dynamicModuleMap[p.first] = newInstance;
             }
 
@@ -353,7 +353,7 @@ namespace wasm {
         PROF_END(wasmBind)
     }
 
-    Runtime::ModuleInstance *
+    Runtime::Instance *
     WasmModule::createModuleInstance(const std::string &name, const std::string &sharedModulePath) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
@@ -403,8 +403,8 @@ namespace wasm {
                                                                       sharedModulePath);
 
             Uptr oldTableElems = 0;
-            bool success = Runtime::growTable(defaultTable, nTableElems, &oldTableElems);
-            if (!success) {
+            Runtime::GrowResult growResult = Runtime::growTable(defaultTable, nTableElems, &oldTableElems);
+            if (growResult != Runtime::GrowResult::success) {
                 throw std::runtime_error("Failed to grow main module table");
             }
             Uptr newTableElems = Runtime::getTableNumElements(defaultTable);
@@ -434,7 +434,7 @@ namespace wasm {
                                                                              sharedModulePath);
 
         logger->info("Instantiating module {}/{}  {}", boundUser, boundFunction, sharedModulePath);
-        Runtime::ModuleInstance *instance = instantiateModule(
+        Runtime::Instance *instance = instantiateModule(
                 compartment,
                 compiledModule,
                 std::move(linkResult.resolvedImports),
@@ -495,7 +495,7 @@ namespace wasm {
         std::string name = "handle_" + std::to_string(nextHandle);
 
         // Instantiate the shared module
-        Runtime::ModuleInstance *mod = createModuleInstance(name, path);
+        Runtime::Instance *mod = createModuleInstance(name, path);
 
         // Call the wasm constructor function. This allows the module to perform any relevant initialisation
         Runtime::Function *wasmCtorsFunction = asFunctionNullable(getInstanceExport(mod, "__wasm_call_ctors"));
@@ -520,12 +520,12 @@ namespace wasm {
         return nextHandle;
     }
 
-    Runtime::ModuleInstance *WasmModule::getDynamicModule(int handle) {
+    Runtime::Instance *WasmModule::getDynamicModule(int handle) {
         if (dynamicModuleMap.count(handle) == 0) {
             throw std::runtime_error("Missing dynamic module");
         }
 
-        Runtime::ModuleInstance *dynModule = dynamicModuleMap[handle];
+        Runtime::Instance *dynModule = dynamicModuleMap[handle];
         return dynModule;
     }
 
@@ -539,7 +539,7 @@ namespace wasm {
         }
 
         // If function not in table for some reason, we need to load it
-        Runtime::ModuleInstance *dynModule = dynamicModuleMap[handle];
+        Runtime::Instance *dynModule = dynamicModuleMap[handle];
         Runtime::Object *exportedFunc = getInstanceExport(dynModule, funcName);
 
         if (!exportedFunc) {
@@ -558,8 +558,8 @@ namespace wasm {
 
         // Add function to the table
         Uptr prevIdx;
-        bool success = Runtime::growTable(defaultTable, 1, &prevIdx);
-        if (!success) {
+        Runtime::GrowResult result = Runtime::growTable(defaultTable, 1, &prevIdx);
+        if (result != Runtime::GrowResult::success) {
             logger->error("Failed to grow table from {} elements to {}", prevIdx, prevIdx + 1);
             throw std::runtime_error("Failed to grow table");
         }
@@ -678,16 +678,16 @@ namespace wasm {
         }
 
         Uptr pageCountOut;
-        bool success = growMemory(defaultMemory, pages, &pageCountOut);
-        if (!success) {
-            if (pageCountOut == WAVM_MEMERR_COMMIT_FAILED) {
+        Runtime::GrowResult result = growMemory(defaultMemory, pages, &pageCountOut);
+        if (result != Runtime::GrowResult::success) {
+            if (result == Runtime::GrowResult::outOfMemory) {
                 logger->error("Committing new pages failed (errno={} ({})) (growing by {} from current {})",
                               errno, strerror(errno), pages, currentPageCount);
                 throw std::runtime_error("Unable to commit virtual pages");
-            } else if (pageCountOut == WAVM_MEMERR_MAX_MEM) {
+            } else if (result == Runtime::GrowResult::outOfMaxSize) {
                 logger->error("No memory for mapping (growing by {} from {} pages)", pages, currentPageCount);
                 throw std::runtime_error("Run out of memory to map");
-            } else if (pageCountOut == WAVM_MEMERR_RESOURCE_QUOTA) {
+            } else if (result == Runtime::GrowResult::outOfQuota) {
                 logger->error("Memory resource quota exceeded (growing by {} from {})", pages, newPageCount);
                 throw std::runtime_error("Memory resource quota exceeded");
             } else {
@@ -760,7 +760,8 @@ namespace wasm {
                 logger->debug("Resolved {}.{} to {}", moduleName, name, memOffset);
 
                 // Create a global to hold the offset value
-                Runtime::Global *gotMemoryOffset = Runtime::createGlobal(compartment, asGlobalType(type));
+                Runtime::Global *gotMemoryOffset = Runtime::createGlobal(compartment, asGlobalType(type),
+                                                                         std::string(name));
                 Runtime::initializeGlobal(gotMemoryOffset, memOffset);
                 resolved = asObject(gotMemoryOffset);
 
@@ -800,9 +801,9 @@ namespace wasm {
                 if (tableIdx == -1) {
                     // Create a new entry in the table and use this, but mark it to be filled later
                     Uptr newIdx;
-                    bool success = Runtime::growTable(defaultTable, 1, &newIdx);
+                    Runtime::GrowResult result = Runtime::growTable(defaultTable, 1, &newIdx);
 
-                    if (!success) {
+                    if (result != Runtime::GrowResult::success) {
                         throw std::runtime_error("Failed to grow table");
                     }
 
@@ -813,25 +814,29 @@ namespace wasm {
                 }
 
                 // Create a global to hold the function offset
-                Runtime::Global *gotFunctionOffset = Runtime::createGlobal(compartment, asGlobalType(type));
+                Runtime::Global *gotFunctionOffset = Runtime::createGlobal(compartment, asGlobalType(type),
+                                                                           std::string(name));
                 Runtime::initializeGlobal(gotFunctionOffset, tableIdx);
                 resolved = asObject(gotFunctionOffset);
 
             } else if (name == "__memory_base") {
                 // Memory base tells the loaded module where to start its heap
-                Runtime::Global *newMemoryBase = Runtime::createGlobal(compartment, asGlobalType(type));
+                Runtime::Global *newMemoryBase = Runtime::createGlobal(compartment, asGlobalType(type),
+                                                                       std::string(name));
                 Runtime::initializeGlobal(newMemoryBase, nextMemoryBase);
                 resolved = asObject(newMemoryBase);
 
             } else if (name == "__table_base") {
                 // Table base tells the loaded module where to start its table entries
-                Runtime::Global *newTableBase = Runtime::createGlobal(compartment, asGlobalType(type));
+                Runtime::Global *newTableBase = Runtime::createGlobal(compartment, asGlobalType(type),
+                                                                      std::string(name));
                 Runtime::initializeGlobal(newTableBase, nextTableBase);
                 resolved = asObject(newTableBase);
 
             } else if (name == "__stack_pointer") {
                 // Stack pointer is where the loaded module should put its stack
-                Runtime::Global *newStackPointer = Runtime::createGlobal(compartment, asGlobalType(type));
+                Runtime::Global *newStackPointer = Runtime::createGlobal(compartment, asGlobalType(type),
+                                                                         std::string(name));
                 Runtime::initializeGlobal(newStackPointer, nextStackPointer);
                 resolved = asObject(newStackPointer);
 

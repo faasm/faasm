@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
             "bench_spectral_norm",
             "bench_telco",
             "bench_unpack_sequence",
-            "bench_xml_etree",
+            "bench_version",
     };
 
     std::vector<std::string> benchmarks;
@@ -62,8 +62,13 @@ int main(int argc, char *argv[]) {
     profOut.open(OUTPUT_FILE);
     profOut << "benchmark,type,microseconds" << std::endl;
 
+    // Switch off Python preloading
+    util::SystemConfig &conf = util::getSystemConfig();
+    conf.pythonPreload = "off";
+
     for (auto const &b : benchmarks) {
         runner::PythonProfiler prof(b);
+        prof.preflightWasm();
         prof.runBenchmark(nativeIterations, wasmIterations, profOut);
     }
 

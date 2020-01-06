@@ -1,6 +1,6 @@
 import json
 
-from performance.benchmarks.bm_json_loads import DICT, TUPLE, DICT_GROUP, bench_json_loads
+from pyperformance.benchmarks.bm_json_loads import DICT, TUPLE, DICT_GROUP, bench_json_loads
 
 if __name__ == "__main__":
     json_dict = json.dumps(DICT)

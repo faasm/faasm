@@ -1,4 +1,4 @@
-from performance.benchmarks.bm_chaos import Spline, GVector, Chaosgame, DEFAULT_THICKNESS, DEFAULT_WIDTH, \
+from pyperformance.benchmarks.bm_chaos import Spline, GVector, Chaosgame, DEFAULT_THICKNESS, DEFAULT_WIDTH, \
     DEFAULT_HEIGHT, DEFAULT_ITERATIONS, DEFAULT_RNG_SEED
 
 if __name__ == "__main__":
