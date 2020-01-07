@@ -212,6 +212,7 @@ def compile_tflite(ctx, clean=False):
         download_script = join(tf_make_dir, "download_dependencies.sh")
         check_output(download_script, shell=True)
 
+    make_target = "lib"
     make_cmd = ["make -j 4"]
     make_cmd.extend(BASE_CONFIG_CMD)
     make_cmd.extend([
@@ -225,6 +226,8 @@ def compile_tflite(ctx, clean=False):
         "-C \"{}\"".format(tf_dir),
         "-f tensorflow/lite/tools/make/Makefile",
     ])
+
+    make_cmd.append(make_target)
 
     clean_dir = join(tf_make_dir, "gen", "wasm32-unknown-none_x86_64")
     if clean and exists(clean_dir):
