@@ -14,3 +14,4 @@ export PS1="(faasm) $PS1"
 
 export FAASM_VERSION=$(cat VERSION)
 
+alias fm="inv"

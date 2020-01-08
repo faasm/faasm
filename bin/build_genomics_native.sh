@@ -2,17 +2,14 @@
 
 set -e
 
-pushd third-party/gem3-mapper
+source toolchain/native_clang.sh
 
-export CXX=/usr/bin/clang++
-export CC=/usr/bin/clang
-export CPP=/usr/bin/clang-cpp
-export LINK=/usr/bin/clang++
+pushd third-party/gem3-mapper
 
 ./configure --enable-cuda=no
 
 # Release build
-make
+make -j
 
 # Debug build
 # make debug
