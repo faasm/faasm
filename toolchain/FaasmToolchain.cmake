@@ -45,3 +45,16 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 
 set(CMAKE_C_COMPILER_WORKS ON)
 set(CMAKE_CXX_COMPILER_WORKS ON)
+
+# -------- NOTE ----------
+# The stack-first here is really important to help detect stack overflow
+# issues. Without it the stack will overflow into the global data.
+# stack-size is also crucial to bigger functions not messing up
+
+SET(FAASM_EXE_LINKER_FLAGS "\
+        -Xlinker --no-entry \
+        -Xlinker --export=main \
+        -Xlinker --stack-first \
+        -Xlinker --threads \
+        -Xlinker --no-check-features \
+")

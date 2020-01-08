@@ -22,7 +22,7 @@ def _get_s3_key(user, func):
 
 
 @task
-def upload(ctx, user, func, host=None, s3=False, ibm=False, py=False, ts=False, prebuilt=False):
+def upload(ctx, user, func, host=None, s3=False, ibm=False, py=False, ts=False, prebuilt=False, file=None):
     host, port = get_upload_host_port(host, None)
 
     if py:
@@ -35,12 +35,15 @@ def upload(ctx, user, func, host=None, s3=False, ibm=False, py=False, ts=False, 
         url = "http://{}:{}/f/ts/{}".format(host, port, func)
         curl_file(url, func_file)
     else:
-        base_dir = WASM_DIR if prebuilt else FUNC_BUILD_DIR
-
-        if prebuilt:
-            func_file = join(base_dir, user, func, "function.wasm")
+        if file:
+            func_file = file
         else:
-            func_file = join(base_dir, user, "{}.wasm".format(func))
+            base_dir = WASM_DIR if prebuilt else FUNC_BUILD_DIR
+
+            if prebuilt:
+                func_file = join(base_dir, user, func, "function.wasm")
+            else:
+                func_file = join(base_dir, user, "{}.wasm".format(func))
 
         if s3:
             print("Uploading {}/{} to S3".format(user, func))

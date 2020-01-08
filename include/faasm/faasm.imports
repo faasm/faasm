@@ -14,6 +14,8 @@ __faasm_flag_state_dirty
 __faasm_flag_state_offset_dirty
 __faasm_read_state_offset
 __faasm_read_state_offset_ptr
+__faasm_lock_state_global
+__faasm_unlock_state_global
 __faasm_lock_state_read
 __faasm_unlock_state_read
 __faasm_lock_state_write

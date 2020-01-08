@@ -44,6 +44,20 @@ namespace wasm {
         kv->pull();
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_lock_state_global", void, __faasm_lock_state_global, I32 keyPtr) {
+        auto kv = getStateKV(keyPtr, 0);
+        util::getLogger()->debug("S - lock_state_global - {}", kv->key);
+
+        kv->lockGlobal();
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_unlock_state_global", void, __faasm_unlock_state_global, I32 keyPtr) {
+        auto kv = getStateKV(keyPtr, 0);
+        util::getLogger()->debug("S - unlock_state_global - {}", kv->key);
+
+        kv->unlockGlobal();
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasm_lock_state_read", void, __faasm_lock_state_read, I32 keyPtr) {
         auto kv = getStateKV(keyPtr, 0);
         util::getLogger()->debug("S - lock_state_read - {}", kv->key);

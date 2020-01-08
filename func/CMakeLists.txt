@@ -23,11 +23,6 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # Eigen definitions
     # add_definitions(-DEIGEN_VECTORIZE_SSE2=1)
 
-    # -------- NOTE ----------
-    # The stack-first here is really important to help detect stack overflow
-    # issues. Without it the stack will overflow into the global data.
-    # stack-size is also crucial to bigger functions not messing up
-    #
     # NOTE: we have to set the max memory here but want it to be as close to the
     # max (4GB) as possible. If we set it to the max though, this input is ignored
     # and the function is set with no maximum memory size.
@@ -38,14 +33,9 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     #
     # This max memory limit can stop benchmarks working so make sure it's big and consider restricting
     # in a more specific manner for certain functions.
-    SET(CMAKE_EXE_LINKER_FLAGS "\
-        -Xlinker --no-entry \
-        -Xlinker --export=main \
+    SET(CMAKE_EXE_LINKER_FLAGS "${FAASM_EXE_LINKER_FLAGS} \
         -Xlinker --export=_faasm_zygote \
         -Xlinker --max-memory=4294901760 \
-        -Xlinker --stack-first \
-        -Xlinker --threads \
-        -Xlinker --no-check-features \
         -Wl,-z,stack-size=4194304 -Wl, \
     ")
 

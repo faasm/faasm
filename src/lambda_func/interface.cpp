@@ -251,6 +251,14 @@ void __faasm_pull_state(const char *key, long stateLen) {
 
 }
 
+void __faasm_lock_state_global(const char *key) {
+
+}
+
+void __faasm_unlock_state_global(const char *key) {
+
+}
+
 void __faasm_lock_state_read(const char *key) {
 
 }

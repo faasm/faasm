@@ -1,6 +1,11 @@
 #ifndef FAASM_COUNTER_H
 #define FAASM_COUNTER_H
 
+#include <string>
+
+// TODO - make this per-counter
+#define COUNTER_KEY "atomic_counter"
+
 namespace faasm {
     void initCounter(const char *counterKey);
 
@@ -17,8 +22,9 @@ namespace faasm {
         int operator+=(int other);
 
         int get();
+
+        void reset();
     private:
-        std::string stateKey;
         int value;
     };
 }

@@ -529,6 +529,16 @@ namespace state {
         PROF_END(pushPartial)
     }
 
+
+    void StateKeyValue::lockGlobal() {
+        lastRemoteLockId = this->waitOnRemoteLock();
+    }
+
+    void StateKeyValue::unlockGlobal() {
+        redis::Redis &redis = redis::Redis::getState();
+        redis.releaseLock(key, lastRemoteLockId);
+    }
+
     void StateKeyValue::lockRead() {
         valueMutex.lock_shared();
     }

@@ -52,6 +52,10 @@ namespace state {
 
         void clear();
 
+        void lockGlobal();
+
+        void unlockGlobal();
+
         void lockRead();
 
         void unlockRead();
@@ -78,6 +82,8 @@ namespace state {
         bool isDirty;
 
         std::shared_mutex valueMutex;
+
+        int lastRemoteLockId = 0;
 
         size_t valueSize;
         size_t sharedMemSize;
