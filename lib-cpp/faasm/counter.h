@@ -8,7 +8,19 @@ namespace faasm {
 
     void incrementCounter(const char *counterKey);
 
-    void incrementCounter(const char *counterKey, int increment, bool globalLock);
+    int incrementCounter(const char *counterKey, int increment, bool globalLock);
+
+    class AtomicInt {
+    public:
+        AtomicInt();
+
+        int operator+=(int other);
+
+        int get();
+    private:
+        std::string stateKey;
+        int value;
+    };
 }
 
 #endif

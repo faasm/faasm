@@ -1,3 +1,4 @@
+#include "faasm/random.h"
 #include "faasm/counter.h"
 #include "faasm/core.h"
 
@@ -41,7 +42,7 @@ namespace faasm {
         faasmWriteState(counterKey, counterBytes, sizeof(int));
     }
 
-    void incrementCounter(const char *counterKey, int increment, bool globalLock) {
+    int incrementCounter(const char *counterKey, int increment, bool globalLock) {
         if(globalLock) {
             faasmLockStateWrite(counterKey);
         }
@@ -53,6 +54,22 @@ namespace faasm {
         if(globalLock) {
             faasmUnlockStateWrite(counterKey);
         }
+
+        return val;
+    }
+
+    AtomicInt::AtomicInt() {
+        int rint = randomInteger(0, 10000);
+        stateKey = "atomic_int_" + std::to_string(rint);
+    }
+
+    int AtomicInt::operator+=(int other) {
+        value = incrementCounter(stateKey.c_str(), other, true);
+        return value;
+    }
+
+    int AtomicInt::get() {
+       return getCounter(stateKey.c_str());
     }
 }
 
