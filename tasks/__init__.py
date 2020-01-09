@@ -148,7 +148,8 @@ from tasks.upload import (
     upload_genomics,
 )
 from tasks.wasm2wast import (
-    wast
+    wast,
+    wast_file,
 )
 from tasks.redis import (
     redis_clear_queue,

@@ -8,7 +8,12 @@ from tasks.util.env import PROJ_ROOT
 
 
 @task
-def wast(context, user, func_name):
+def wast_file(ctx, file_path):
+    _do_wast(file_path, "/tmp/out.wast")
+
+
+@task
+def wast(ctx, user, func_name):
     """
     Converts a function's wasm file to wast
     """
@@ -16,7 +21,10 @@ def wast(context, user, func_name):
     func_dir = join(PROJ_ROOT, "wasm", user, func_name)
     wasm_path = join(func_dir, "function.wasm")
     wast_path = join(func_dir, "function.wast")
+    _do_wast(wasm_path, wast_path)
 
+
+def _do_wast(wasm_path, wast_path, cwd=None):
     if not exists(wasm_path):
         print("Could not find wasm file at {}".format(wasm_path))
         exit(1)
@@ -31,11 +39,17 @@ def wast(context, user, func_name):
         "disassemble",
         wasm_path,
         wast_path,
-        "--enable-quoted-names"
+        "--enable simd",
     ]
 
     cmd = " ".join(cmd)
-    call(cmd, shell=True, cwd=func_dir)
+    kwargs = {
+        "shell": True,
+    }
+    if cwd:
+        kwargs["cwd"] = cwd
 
-    call("head -40 {}".format(wast_path), shell=True)
+    call(cmd, **kwargs)
+
+    # call("head -40 {}".format(wast_path), shell=True)
     print("vim {}".format(wast_path))

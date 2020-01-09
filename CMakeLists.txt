@@ -203,6 +203,9 @@ else ()
     # WAVM
     add_subdirectory(third-party/WAVM)
 
+    # Faasm demo
+    add_subdirectory(third-party/faasm-demo-c)
+
     # Faasm functions
     add_subdirectory(func)
 

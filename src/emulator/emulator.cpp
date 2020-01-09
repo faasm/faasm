@@ -425,6 +425,14 @@ int __faasm_get_py_idx() {
     return _emulatedCall.pythonidx();
 }
 
+void __faasm_lock_state_global(const char *key) {
+
+}
+
+void __faasm_unlock_state_global(const char *key) {
+
+}
+
 void __faasm_lock_state_read(const char *key) {
 
 }

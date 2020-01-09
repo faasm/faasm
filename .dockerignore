@@ -36,6 +36,7 @@ perf.*
 
 # Submodules
 third-party
+!third-party/faasm-demo-c
 !third-party/malloc
 !third-party/eigen
 !third-party/WAVM

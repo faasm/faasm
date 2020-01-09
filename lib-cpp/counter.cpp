@@ -2,8 +2,8 @@
 #include "faasm/core.h"
 
 namespace faasm {
-    void writeIntState(const char* key, int val) {
-        auto ptr = reinterpret_cast<uint8_t*>(&val);
+    void writeIntState(const char *key, int val) {
+        auto ptr = reinterpret_cast<uint8_t *>(&val);
         faasmWriteState(key, ptr, sizeof(int));
     }
 
@@ -41,18 +41,37 @@ namespace faasm {
         faasmWriteState(counterKey, counterBytes, sizeof(int));
     }
 
-    void incrementCounter(const char *counterKey, int increment, bool globalLock) {
-        if(globalLock) {
-            faasmLockStateWrite(counterKey);
+    int incrementCounter(const char *counterKey, int increment, bool globalLock) {
+        if (globalLock) {
+            faasmLockStateGlobal(counterKey);
         }
 
         int val = readIntState(counterKey);
         val += increment;
         writeIntState(counterKey, val);
 
-        if(globalLock) {
-            faasmUnlockStateWrite(counterKey);
+        if (globalLock) {
+            faasmUnlockStateGlobal(counterKey);
         }
+
+        return val;
+    }
+
+    AtomicInt::AtomicInt(): value(0) {
+
+    }
+
+    void AtomicInt::reset() {
+        initCounter(COUNTER_KEY);
+    }
+
+    int AtomicInt::operator+=(int other) {
+        value = incrementCounter(COUNTER_KEY, other, true);
+        return value;
+    }
+
+    int AtomicInt::get() {
+        value = getCounter(COUNTER_KEY);
+        return value;
     }
 }
-
