@@ -38,6 +38,8 @@ services:
       - LOG_LEVEL=info
       - CGROUP_MODE=on
       - NETNS_MODE=off
+      - PYTHON_PRELOAD=off
+      - TF_CODEGEN=on
       - REDIS_STATE_HOST=redis-state
       - REDIS_QUEUE_HOST=redis-queue
       - THREADS_PER_WORKER=20

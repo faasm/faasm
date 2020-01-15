@@ -1,0 +1,33 @@
+---
+
+- name: "Clone repos"
+  git:
+     repo: "{{ item.repo }}"
+     dest: "/tmp/{{ item.name }}"
+     update: yes
+  with_items:
+    - {name: "wrk", repo: "https://github.com/wg/wrk.git"}
+    #- {name: "wrk2", repo: "https://github.com/giltene/wrk2"}
+
+- name: "Build"
+  shell: "make"
+  args:
+    chdir: "{{ item }}"
+  with_items:
+    - "/tmp/wrk"
+#   - "/tmp/wrk2"
+
+- name: "Create bin dir"
+  file:
+    path: "{{ ansible_env.HOME }}/faasm/tools/"
+    state: directory
+
+- name: "Put executable in place"
+  copy:
+    remote_src: yes
+    src: "/tmp/{{ item }}/wrk"
+    dest: "{{ ansible_env.HOME }}/faasm/tools/{{ item }}"
+    mode: 0755
+  with_items:
+    - "wrk"
+#   - "wrk2"

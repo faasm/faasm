@@ -5,13 +5,13 @@ that can run `kubectl` and `kn`.
 
 Everything must be cleared away between runs to make sure stuff doesn't bleed across.
 
-## Set-up
+## Client Machine Set-up
 
-To run throughput/ latency experiments you'll need to install `wrk` with:
+To run throughput/ latency experiments you'll need to set up the client machine with (on the machine itself):
 
 ```bash
 cd ansible
-ansible-playbook wrk.yml
+ansible-playbook load_client.yml
 ```
 
 ## Billing Estimates
@@ -153,7 +153,9 @@ inv matrix-experiment-multi $N_WORKERS
 You need to set the following environment variables for these experiments (through the knative config):
 
 - `COLD_START_DELAY_MS=800`
-- `NO_PRE_CODEGEN=on`
+- `TF_CODEGEN=on`
+- `SGD_CODEGEN=off`
+- `PYTHON_CODEGEN=off`
 - `PYTHON_PRELOAD=off`
 
 Preamble:

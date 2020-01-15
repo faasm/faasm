@@ -31,8 +31,10 @@ LEGACY_CONF = join(K8S_DIR, "legacy")
 
 FAASM_WORKER_ANNOTATIONS = [
     "autoscaling.knative.dev/enable-scale-to-zero=false",
-    "autoscaling.knative.dev/stable-window=30s",
+    "autoscaling.knative.dev/stable-window=120s",  # Longer window means fewer knative interventions
 ]
+
+FAASM_WORKER_CONCURRENCY = 0
 
 NATIVE_WORKER_ANNOTATIONS = [
     "autoscaling.knative.dev/enable-scale-to-zero=true",
@@ -56,12 +58,15 @@ KNATIVE_ENV = {
     "REDIS_STATE_HOST": "redis-state",
     "REDIS_QUEUE_HOST": "redis-queue",
     "HOST_TYPE": "knative",
-    "LOG_LEVEL": "trace",
+    "LOG_LEVEL": "info",
     "CGROUP_MODE": "off",
     "NETNS_MODE": "off",
     "PYTHON_PRELOAD": "off",  # Switch on/ off preloading of Python runtime
-    "NO_PRE_CODEGEN": "on",  # Switch on/ off codegen on worker entrypoint
+    "TF_CODEGEN": "on",  # Switch on/ off up-front codegen for TF
+    "SGD_CODEGEN": "off",  # Switch on/ off up-front codegen for SGD
+    "PYTHON_CODEGEN": "off",  # Switch on/ off up-front codegen for Python
     "MAX_IN_FLIGHT_RATIO": "1",
+    "NO_SCHEDULER": "1",  # Turn on/ off Faasm scheduler
     "MAX_WORKERS_PER_FUNCTION": "4",  # This limit is per-host. We only want one instance per core
     "THREADS_PER_WORKER": "100",  # This is how many threads are available in total per host (across all functions)
     "BOUND_TIMEOUT": str(THIRTY_SECS),  # How long a bound worker sticks around for
@@ -146,7 +151,7 @@ def deploy_knative(ctx, replicas, local=False, ibm=False):
         FAASM_WORKER_NAME,
         FAASM_WORKER_IMAGE,
         replicas,
-        4,
+        FAASM_WORKER_CONCURRENCY,
         FAASM_WORKER_ANNOTATIONS,
         extra_env=extra_env,
         shell_env=shell_env
@@ -200,7 +205,7 @@ def _deploy_knative_fn(name, image, replicas, concurrency, annotations, extra_en
     cmd.extend({
         "--min-scale={}".format(replicas),
         "--max-scale={}".format(replicas),
-        "--concurrency-limit={}".format(concurrency),
+        "--concurrency-limit={}".format(concurrency) if concurrency else "",
     })
 
     # Add annotations
