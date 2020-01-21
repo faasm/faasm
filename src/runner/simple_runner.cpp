@@ -2,7 +2,6 @@
 
 #include <util/config.h>
 #include <util/timing.h>
-#include <runner/function.h>
 #include <util/func.h>
 #include <zygote/ZygoteRegistry.h>
 
@@ -11,14 +10,20 @@ int main(int argc, char *argv[]) {
     util::initLogging();
     const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
-    if (argc < 4) {
-        logger->error("Must provide user, function name and run count");
+    int runCount;
+    if (argc == 3) {
+        runCount = 1;
+    }
+    else if (argc == 4) {
+        runCount = std::stoi(argv[3]);
+    }
+    else {
+        logger->error("Usage: simple_runner <user> <func> [run_count]");
         return 1;
     }
 
     std::string user = argv[1];
     std::string function = argv[2];
-    int runCount = std::stoi(argv[3]);
 
     // Set up function call
     message::Message m = util::messageFactory(user, function);
