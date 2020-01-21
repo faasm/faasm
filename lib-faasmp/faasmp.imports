@@ -1,0 +1,2 @@
+__kmpc_fork_call
+omp_get_thread_num

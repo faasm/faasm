@@ -48,6 +48,7 @@ from tasks.compile_libs import (
     compile_libc,
     compile_malloc,
     compile_libfaasm,
+    compile_libfaasmp,
     compile_eigen,
     compile_libfake,
     compile_libpng,
