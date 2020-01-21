@@ -74,14 +74,24 @@ namespace wasm {
         nextStackPointer = other.nextStackPointer;
         nextTableBase = other.nextTableBase;
 
+        memoryFd = other.memoryFd;
+        memoryFdSize = other.memoryFdSize;
+
         _isBound = other._isBound;
         boundUser = other.boundUser;
         boundFunction = other.boundFunction;
         boundIsTypescript = other.boundIsTypescript;
 
         if (other._isBound) {
-            // Clone compartment and context
-            compartment = Runtime::cloneCompartment(other.compartment);
+            if (memoryFd > 0) {
+                // Clone compartment excluding memory
+                compartment = Runtime::cloneCompartment(other.compartment, "", false);
+            } else {
+                // Clone compartment including memory
+                compartment = Runtime::cloneCompartment(other.compartment);
+            }
+
+            // Clone context
             executionContext = Runtime::cloneContext(other.executionContext, compartment);
 
             // Remap parts we need specific references to
@@ -97,6 +107,11 @@ namespace wasm {
             // Extract the memory and table again
             defaultMemory = Runtime::getDefaultMemory(moduleInstance);
             defaultTable = Runtime::getDefaultTable(moduleInstance);
+
+            // Map memory contents if necessary
+            if (memoryFd > 0) {
+                mapMemoryFromFd();
+            }
 
             // TODO - double check this works
             // Reset shared memory variables
@@ -983,5 +998,32 @@ namespace wasm {
         }
 
         return globalOffsetMemoryMap[name];
+    }
+
+    void WasmModule::writeMemoryToFd(int fd) {
+        memoryFd = fd;
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Writing memory for {}/{} to fd {}", this->boundUser, this->boundFunction, memoryFd);
+
+        Uptr numPages = Runtime::getMemoryNumPages(defaultMemory);
+        Uptr numBytes = numPages * IR::numBytesPerPage;
+        U8 *memoryBase = Runtime::getMemoryBaseAddress(defaultMemory);
+
+        // Make the fd big enough
+        memoryFdSize = numBytes;
+        ftruncate(memoryFd, memoryFdSize);
+
+        // Write the data
+        write(memoryFd, memoryBase, memoryFdSize);
+    }
+
+    void WasmModule::mapMemoryFromFd() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("Mapping memory for {}/{} from fd {}", this->boundUser, this->boundFunction, memoryFd);
+
+        U8 *memoryBase = Runtime::getMemoryBaseAddress(defaultMemory);
+
+        mmap(memoryBase, memoryFdSize, PROT_WRITE, MAP_PRIVATE | MAP_FIXED, memoryFd, 0);
     }
 }

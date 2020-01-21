@@ -3,6 +3,7 @@
 #include <util/locks.h>
 #include <util/func.h>
 #include <util/config.h>
+#include <sys/mman.h>
 
 namespace zygote {
     ZygoteRegistry &getZygoteRegistry() {
@@ -38,6 +39,10 @@ namespace zygote {
 
                 // Bind to the function
                 module.bindToFunction(msg);
+
+                // Write memory to fd
+                int fd = memfd_create(key.c_str(), 0);
+                module.writeMemoryToFd(fd);
             } else {
                 logger->debug("Using cached zygote for {}", key);
             }
