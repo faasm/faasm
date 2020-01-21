@@ -201,7 +201,7 @@ Note that you'll need an upload server running (i.e. using the `upload` target, 
 
 ```
 # Compile to wasm
-inv compile --user=polybench --clean
+inv compile-user polybench --clean
 
 # Upload (must have an upload server running)
 inv upload-all

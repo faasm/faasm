@@ -7,12 +7,7 @@ from tasks.util.files import clean_dir
 from tasks.util.typescript import ASC_BINARY, TS_DIR
 
 
-@task
-def compile(context, clean=False, func=None, debug=False, user=None, ts=False):
-    # Typescript compilation
-    if ts:
-        return _ts_compile(func)
-
+def _do_compile(target, clean, debug):
     build_type = "wasm"
     cmake_build_type = "Debug" if debug else "Release"
 
@@ -31,12 +26,6 @@ def compile(context, clean=False, func=None, debug=False, user=None, ts=False):
         print("Failed to compile")
         return
 
-    target = ""
-    if func:
-        target = func
-    elif user:
-        target = "{}_all_funcs".format(user)
-
     cmd = "make {}".format(target) if target else "make -j"
     cmd = "VERBOSE=1 {}".format(cmd) if debug else cmd
     res = call(cmd, shell=True, cwd=FUNC_BUILD_DIR)
@@ -44,6 +33,22 @@ def compile(context, clean=False, func=None, debug=False, user=None, ts=False):
     if res != 0:
         print("Failed to make")
         return
+
+
+@task
+def compile(ctx, user, func, clean=False, debug=False, ts=False):
+    # Typescript compilation
+    if ts:
+        return _ts_compile(func)
+
+    target = func
+    _do_compile(target, clean, debug)
+
+
+@task
+def compile_user(ctx, user, clean=False, debug=False):
+    target = "{}_all_funcs".format(user)
+    _do_compile(target, clean, debug)
 
 
 def _ts_compile(func, optimize=True):

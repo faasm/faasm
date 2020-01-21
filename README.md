@@ -46,7 +46,7 @@ The Faasm toolchain is packaged in the `faasm/toolchain` container and can be ru
 This container has all the tooling ready to use. To compile and upload the `hello` function you an run:
 
 ```bash
-inv compile --func=hello
+inv compile demo hello
 inv upload demo hello
 ```
 

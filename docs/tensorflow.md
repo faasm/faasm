@@ -40,7 +40,7 @@ inv upload tf image --prebuilt
 Or compile and upload yourself (having compiled TF locally):
 
 ```bash
-inv compile --func=image
+inv compile tf image
 inv upload tf image
 ```
 
