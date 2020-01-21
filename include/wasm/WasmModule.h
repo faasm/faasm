@@ -50,7 +50,7 @@ namespace wasm {
 
         ~WasmModule();
 
-        void bindToFunction(const message::Message &msg);
+        void bindToFunction(const message::Message &msg, bool executeZygote = true);
 
         int execute(message::Message &msg);
 
@@ -131,6 +131,10 @@ namespace wasm {
         void writeMemoryToFd(int fd);
 
         void mapMemoryFromFd();
+
+        void snapshotCrossHost(const std::string &filePath);
+
+        void restoreCrossHost(const message::Message &msg, const std::string &filePath);
     private:
         Runtime::GCPointer<Runtime::Instance> envModule;
         Runtime::GCPointer<Runtime::Instance> moduleInstance;
