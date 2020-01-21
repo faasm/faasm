@@ -19,12 +19,12 @@ To build Typescript the `echo` function you can run:
 
 ```
 source workon.sh
-inv compile --ts --func=echo
+inv compile ts echo --ts
 ```
 
 You can then upload them to Faasm (provided an upload server is running):
 
 ```
-inv upload --ts ts echo
+inv upload ts echo --ts
 ```
 

@@ -53,7 +53,7 @@ We use a single Faasm function to execute all Python functions. This can be buil
 
 ```
 source workon.sh
-inv compile --func=py_func
+inv compile python py_func
 inv upload python py_func
 ```
 
