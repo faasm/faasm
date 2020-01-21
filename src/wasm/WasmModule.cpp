@@ -1,5 +1,10 @@
 #include "WasmModule.h"
 
+#include <sys/mman.h>
+#include <fstream>
+
+#include <cereal/archives/binary.hpp>
+
 #include <util/func.h>
 #include <util/memory.h>
 #include <util/timing.h>
@@ -7,6 +12,7 @@
 #include <util/locks.h>
 
 #include <wasm/IRModuleRegistry.h>
+#include <wasm/serialisation.h>
 
 #include <WAVM/WASM/WASM.h>
 #include <WAVM/IR/Types.h>
@@ -15,7 +21,6 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/WASTParse/WASTParse.h>
-#include <sys/mman.h>
 
 using namespace WAVM;
 
@@ -1030,10 +1035,40 @@ namespace wasm {
     }
 
     void WasmModule::snapshotCrossHost(const std::string &filePath) {
-        // Write execution state to file
+        std::ofstream outStream(filePath, std::ios::binary);
+        cereal::BinaryOutputArchive archive(outStream);
+        
+        // Serialise memory
+        Uptr numPages = Runtime::getMemoryNumPages(defaultMemory);
+        U8 *memBase = Runtime::getMemoryBaseAddress(defaultMemory);
+        U8 *memEnd = memBase + (numPages * IR::numBytesPerPage);
+
+        wasm::MemorySerialised mem;
+        mem.numPages = numPages;
+        mem.data = std::vector<uint8_t>(memBase, memEnd);
+
+        // Serialise to file
+        archive(mem);
     }
 
     void WasmModule::restoreCrossHost(const message::Message &msg, const std::string &filePath) {
         // Read execution state from file
+        std::ifstream inStream(filePath, std::ios::binary);
+        cereal::BinaryInputArchive archive(inStream);
+
+        // Read in serialised data
+        wasm::MemorySerialised mem;
+        archive(mem);
+
+        // Restore memory
+        Uptr currentNumPages = Runtime::getMemoryNumPages(defaultMemory);
+        size_t pagesRequired = mem.numPages - currentNumPages;
+        if(pagesRequired > 0) {
+            mmapPages(pagesRequired);
+        }
+        
+        U8 *memBase = Runtime::getMemoryBaseAddress(defaultMemory);
+        size_t memSize = mem.numPages * IR::numBytesPerPage;
+        memcpy(memBase, mem.data.data(), memSize);
     }
 }

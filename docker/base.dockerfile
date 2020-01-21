@@ -24,6 +24,7 @@ COPY . /usr/local/code/faasm
 WORKDIR /usr/local/code/faasm/ansible
 
 RUN ansible-playbook spdlog.yml
+RUN ansible-playbook cereal.yml
 
 RUN ansible-playbook rapidjson.yml
 RUN ansible-playbook eigen.yml

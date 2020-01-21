@@ -6,7 +6,7 @@ int main(int argc, char *argv[]) {
     const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
     std::string user = "demo";
-    std::string function = "echo";
+    std::string function = "zygote_check";
     message::Message m = util::messageFactory(user, function);
 
     std::string filePath = "/tmp/faasm_serialised";
