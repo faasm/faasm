@@ -23,8 +23,15 @@ int main(int argc, char *argv[]) {
     // Set up function call
     message::Message m = util::messageFactory(user, function);
 
-    if(user == "ts") {
+    if (user == "ts") {
         m.set_istypescript(true);
+    } else if (user == "python") {
+        m.set_ispython(true);
+        m.set_pythonfunction(function);
+        m.set_pythonuser(user);
+
+        m.set_user(PYTHON_USER);
+        m.set_function(PYTHON_FUNC);
     }
 
     // Create the module
@@ -42,7 +49,7 @@ int main(int argc, char *argv[]) {
         int result = module.execute(m);
         PROF_END(execution)
 
-        if(result != 0) {
+        if (result != 0) {
             throw std::runtime_error("Non-zero return code");
         }
 
