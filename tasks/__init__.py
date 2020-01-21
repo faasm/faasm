@@ -43,6 +43,7 @@ from tasks.bench_tpt import (
 )
 from tasks.compile import (
     compile,
+    compile_user,
 )
 from tasks.compile_libs import (
     compile_libc,
