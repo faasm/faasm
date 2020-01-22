@@ -7,19 +7,20 @@
 #include <util/environment.h>
 
 namespace wasm {
+    static thread_local int thisThreadNumber;
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_thread_num", I32, omp_get_thread_num) {
         util::getLogger()->debug("S - omp_get_thread_num");
-
-        // Just return current tid for debugging purposes now
-        auto tid = (pid_t) syscall(SYS_gettid);
-
-        return (I32) tid;
+        return thisThreadNumber;
     }
 
     /**
      * Function defined in openmp/runtime/src/kmp_csupport.cpp
      *
      * Actual implementation calls __kmp_fork_call under the hood (openmp/runtime/src/kmp_runtime.cpp)
+     *
+     * Note that microtaskPtr is a function pointer. The type of this function pointer is defined as
+     * microtask_t in kmp_csupport.
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_fork_call", void, __kmpc_fork_call, I32 locPtr, I32 argc,
                                    I32 microtaskPtr, I32 argsPtr) {
@@ -43,10 +44,13 @@ namespace wasm {
 
         // Spawn function calls in threads in a loop
         std::vector<std::thread> threads;
-        for (int i = 0; i < nCores; i++) {
+        for (int threadNum = 0; threadNum < nCores; threadNum++) {
             WasmModule *parentModule = getExecutingModule();
             message::Message *parentCall = getExecutingCall();
-            threads.emplace_back([func, funcType, contextRuntimeData, parentModule, parentCall] {
+            threads.emplace_back([threadNum, argc, argsPtr, func, funcType, contextRuntimeData, parentModule, parentCall] {
+                // Assign this thread its relevant thread number
+                thisThreadNumber = threadNum;
+
                 // Note that executing module and call are stored in TLS so need to explicitly set here
                 setExecutingModule(parentModule);
                 setExecutingCall(parentCall);
@@ -54,9 +58,17 @@ namespace wasm {
                 // Create a new context for this thread
                 auto threadContext = createContext(getCompartmentFromContextRuntimeData(contextRuntimeData));
 
-                // Execute the function as we would normally
+                // TODO - check this is correct
+                // If we have no arguments to pass to the nested function, it only expects 2.
+                // If we have more, we need to say how many and pass a pointer to them.
+                std::vector<IR::UntaggedValue> arguments;
+                if(argc > 0) {
+                    arguments = {thisThreadNumber, argc, argsPtr};
+                } else {
+                    arguments = {thisThreadNumber, 0};
+                }
+
                 IR::UntaggedValue result;
-                std::vector<IR::UntaggedValue> arguments = {0, 0};
                 Runtime::invokeFunction(threadContext, func, funcType, arguments.data(), &result);
             });
         }
