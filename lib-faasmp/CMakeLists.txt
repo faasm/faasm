@@ -11,6 +11,7 @@ set(PUBLIC_HEADERS
 
 set(LIB_FILES
         faasmp.cpp
+        mpi.cpp
         )
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
