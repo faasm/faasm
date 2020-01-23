@@ -25,7 +25,7 @@ If you don't want to keep running and restarting Faasm when you're developing, y
 execute the function using the `simple_runner` target in this project (takes a user 
 and function as arguments but must be built as you'd build any other CMake target).
 
-## Adding support for new runtime functions
+## Adding support for new OpenMP runtime functions
 
 Runtime OMP functions are implemented just like any other host interface function 
 and can be found in `src/wasm/syscalls_openmp.cpp`. 
@@ -33,3 +33,4 @@ and can be found in `src/wasm/syscalls_openmp.cpp`.
 The list of acceptable unresolved imports is in `lib-faasmp/faasmp.imports`.
 
 To add a new function you need to include it in both of these files. 
+

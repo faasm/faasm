@@ -12,7 +12,7 @@ function(omp_func exec_name dir_path)
     if (FAASM_BUILD_TYPE STREQUAL "wasm")
         target_link_libraries(${exec_name} faasmp faasm)
     else ()
-        target_link_libraries(${exec_name} pthread faasm emulator)
+        target_link_libraries(${exec_name} pthread faasm emulator mpi)
     endif ()
 endfunction(omp_func)
 

@@ -3,17 +3,20 @@
 - hosts: localhost
   gather_facts: no
   tasks:
-    - name: "Install MPI packages"
-      become: yes
-      apt:
-        name:
-          - libblacs-mpi-dev
-          - openmpi-bin
-          - openmpi-common
+    - name: "Download openmpi"
+        shell: "{{ item }}"
+        args:
+          chdir: "/tmp"
+        with_items:
+          - "https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.2.tar.gz"
+          - "tar -xf openmpi-4.0.2.tar.gz"
 
-    - name: "Symlink MPI header"
+    - name: "Make and install"
       become: yes
-      file:
-        state: link
-        src: "/usr/include/mpi/mpi.h"
-        dest: "/usr/include/mpi.h"
+      shell: "{{ item }}"
+      args:
+        chdir: "/tmp/openmpi-4.0.2"
+      with_items:
+        - "./configure"
+        - "make"
+        - "make install"
