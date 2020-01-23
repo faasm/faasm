@@ -17,6 +17,6 @@
       args:
         chdir: "/tmp/openmpi-4.0.2"
       with_items:
-        - "./configure"
+        - "./configure --prefix=/usr/faasm/open-mpi"
         - "make"
         - "make install"
