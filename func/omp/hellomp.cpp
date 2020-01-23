@@ -2,13 +2,21 @@
 #include <stdio.h>
 #include <faasm/faasm.h>
 
-FAASM_MAIN_FUNC() {
-    printf("Starting OpenMP\n");
-#pragma omp parallel default(none)
-    {
-        int id = omp_get_thread_num();
-        printf("OMP thread %d\n", id);
-    };
+void printThreadInfo(const char* label) {
+    int thisThread = omp_get_thread_num();
+    unsigned int totalThreads = omp_get_num_threads();
+    printf("%s %d of %d\n", label, thisThread, totalThreads);
+}
 
+FAASM_MAIN_FUNC() {
+    printThreadInfo("Main before");
+
+    // OMP parallel section
+    #pragma omp parallel default(none)
+    {
+        printThreadInfo("OMP thread");
+    }
+
+    printThreadInfo("Main after");
     return 0;
 }

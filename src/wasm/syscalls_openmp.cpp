@@ -7,11 +7,17 @@
 #include <util/environment.h>
 
 namespace wasm {
-    static thread_local int thisThreadNumber;
+    static thread_local int thisThreadNumber = 0;
+    static thread_local unsigned int thisSectionThreadCount = 0;
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_thread_num", I32, omp_get_thread_num) {
         util::getLogger()->debug("S - omp_get_thread_num");
         return thisThreadNumber;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_num_threads", I32, omp_get_num_threads) {
+        util::getLogger()->debug("S - omp_get_num_threads");
+        return thisSectionThreadCount;
     }
 
     /**
@@ -31,7 +37,7 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __kmpc_fork_call {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
 
-        unsigned int nCores = util::getUsableCores();
+        unsigned int numThreads = util::getUsableCores();
 
         // Retrieve the function from the table
         Runtime::Object *funcObj = Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr);
@@ -40,7 +46,7 @@ namespace wasm {
 
         // Spawn function calls in threads in a loop
         std::vector<std::thread> threads;
-        for (int threadNum = 0; threadNum < nCores; threadNum++) {
+        for (int threadNum = 0; threadNum < numThreads; threadNum++) {
             WasmModule *parentModule = getExecutingModule();
             message::Message *parentCall = getExecutingCall();
 
@@ -54,10 +60,17 @@ namespace wasm {
                 arguments = {thisThreadNumber, 0};
             }
 
-            threads.emplace_back([threadNum, arguments, func, funcType, contextRuntimeData, parentModule, parentCall] {
+            threads.emplace_back([
+                    threadNum, numThreads,
+                    func, funcType, arguments,
+                    contextRuntimeData, parentModule, parentCall
+                    ] {
                 // Note that executing module and call are stored in TLS so need to explicitly set here
                 setExecutingModule(parentModule);
                 setExecutingCall(parentCall);
+
+                // Set the thread count for this section
+                thisSectionThreadCount = numThreads;
 
                 // Assign this thread its relevant thread number
                 thisThreadNumber = threadNum;
@@ -78,6 +91,9 @@ namespace wasm {
                 t.join();
             }
         }
+
+        // Reset the thread count for this thread
+        thisSectionThreadCount = 0;
     }
 
     void ompLink() {
