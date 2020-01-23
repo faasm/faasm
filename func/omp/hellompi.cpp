@@ -1,4 +1,3 @@
-#include <omp.h>
 #include <mpi.h>
 #include <stdio.h>
 #include <faasm/faasm.h>
