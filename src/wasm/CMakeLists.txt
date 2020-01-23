@@ -16,6 +16,7 @@ set(LIB_FILES
         syscalls_io.cpp
         syscalls_maths.cpp
         syscalls_memory.cpp
+        syscalls_mpi.cpp
         syscalls_network.cpp
         syscalls_openmp.cpp
         syscalls_threads.cpp

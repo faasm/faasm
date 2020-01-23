@@ -77,6 +77,8 @@ int MPI_Comm_rank(MPI_Comm comm, int *rank);
 
 int MPI_Comm_size(MPI_Comm comm, int *size);
 
+int MPI_Abort(MPI_Comm comm, int errorcode);
+
 #ifdef __cplusplus
 }
 #endif

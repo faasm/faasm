@@ -194,6 +194,7 @@ namespace wasm {
         dynlinkLink();
         faasmLink();
         mathsLink();
+        mpiLink();
         ompLink();
     }
 }

@@ -4,6 +4,7 @@ omp_get_thread_num
 omp_get_num_threads
 
 # MPI
+MPI_Abort
 MPI_Init
 MPI_Finalize
 MPI_Send
