@@ -27,8 +27,9 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # Add imports
     install(FILES faasmp.imports DESTINATION ${CMAKE_SYSROOT}/lib RENAME libfaasmp.imports)
 
-    # Add omp.h (already present in native builds)
+    # Add omp and mpi headers (already present in native builds)
     install(FILES omp.h DESTINATION ${CMAKE_SYSROOT}/include)
+    install(FILES mpi.h DESTINATION ${CMAKE_SYSROOT}/include)
 else ()
     add_library(faasmp SHARED ${LIB_FILES})
     set_target_properties(faasmp PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")

@@ -1,0 +1,19 @@
+---
+
+- hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: "Install MPI packages"
+      become: yes
+      apt:
+        name:
+          - libblacs-mpi-dev
+          - openmpi-bin
+          - openmpi-common
+
+    - name: "Symlink MPI header"
+      become: yes
+      file:
+        state: link
+        src: "/usr/include/mpi/mpi.h"
+        dest: "/usr/include/mpi.h"
