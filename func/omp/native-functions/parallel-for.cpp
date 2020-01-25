@@ -1,13 +1,15 @@
+#include <stdio.h>
 #include <iostream>
+#include <omp.h>
 
 using namespace std;
 
 int main() {
     cout << "the begin of loop" << endl;
 
-    #pragma omp parallel for
+    #pragma omp parallel for default(none)
     for (int i = 0; i < 10; ++i) {
-        cout << i;
+        printf("%i from %i\n ", i, omp_get_thread_num());
     }
     cout << endl << "the end of loop" << endl;
 

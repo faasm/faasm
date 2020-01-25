@@ -45,7 +45,7 @@ def compile(ctx, user, func, clean=False, debug=False, ts=False, local_omp=False
 
     # Local OpenMP compilation
     if local_omp:
-        return _local_omp_compile(target, clean)
+        return _local_omp_compile(target, clean, debug)
 
     _do_compile(target, clean, debug)
 
@@ -72,7 +72,8 @@ def _local_omp_compile(target, clean, debug):
         print("Failed to compile")
         return
 
-    cmd = "VERBOSE=1 make {}".format(target) if target else "make -j"
+    cmd = "make {}".format(target)
+    cmd = "VERBOSE=1 {}".format(cmd) if debug else cmd
     res = call(cmd, shell=True, cwd=FUNC_NATIVE_BUILD_DIR)
 
     if res != 0:
