@@ -17,4 +17,5 @@ function(omp_func exec_name dir_path)
 endfunction(omp_func)
 
 omp_func(hellomp hellomp.cpp)
+omp_func(create-parallel create-parallel.cpp)
 omp_func(hellompi hellompi.cpp)

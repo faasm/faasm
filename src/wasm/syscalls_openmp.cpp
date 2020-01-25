@@ -20,6 +20,24 @@ namespace wasm {
         return thisSectionThreadCount;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_max_threads", I32, omp_get_max_threads) {
+        util::getLogger()->debug("S- omp_get_max_threads");
+        return util::getUsableCores();
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_push_num_threads", void __kmpc_push_num_threads, 
+                                   I32 loc, I32 global_tid, I32 num_threads) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - __kmpc_push_num_threads {} {}", global_tid, num_threads);
+        // TODO: save num_threads locally for next fork call
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_global_thread_num", I32, __kmpc_global_thread_num,
+                                   I32 loc) {
+        util::getLogger()->debug("S - __kmpc_global_thread_num");
+        return 0;
+    }
+
     /**
      * "Real" Function defined in openmp/runtime/src/kmp_csupport.cpp
      * Actual implementation calls __kmp_fork_call under the hood (openmp/runtime/src/kmp_runtime.cpp)
@@ -37,7 +55,7 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __kmpc_fork_call {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
 
-        unsigned int numThreads = util::getUsableCores();
+        unsigned int numThreads = util::getUsableCores(); // or fetch local num_thread
 
         // Retrieve the function from the table
         Runtime::Object *funcObj = Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr);
