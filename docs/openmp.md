@@ -34,3 +34,7 @@ The list of acceptable unresolved imports is in `lib-faasmp/faasmp.imports`.
 
 To add a new function you need to include it in both of these files. 
 
+To recompile the new libraries you can use: 
+```
+inv compile-libfaasm
+```
