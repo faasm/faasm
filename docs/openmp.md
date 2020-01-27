@@ -48,5 +48,18 @@ inv compile omp <native function> --local-omp
 inv native-run <native function> [-ltrace|-strace]
 ```
 
-The full list of native functions can be found in the [native function](func/omp/native-functions/)
-directory.
+Below is the support state of the functions. All functions can be found in the
+[native function directory](func/omp/native-functions/). The `intel-` prefix indicates
+they are coming from [Intel kernel](https://github.com/ParRes/Kernels/tree/master/OPENMP).
+
+| Function                 | Native support | Faasm support |
+|--------------------------|----------------|---------------|
+| `create-parallel.cpp`    |        y       |               |
+| `create-teams.cpp`       |        y       |               |
+| `intel-nstream.c`        |        y       |               |
+| `intel-synch-p2p.c`      |                |               |
+| `intel-transpose.c`      |        y       |               |
+| `parallel-for.cpp`       |        y       |               |
+| `reduction-average.cpp`  |        y       |               |
+| `reduction-integral.cpp` |        y       |               |
+
