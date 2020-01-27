@@ -29,8 +29,16 @@ namespace wasm {
         return executingModule;
     }
 
+    void setExecutingModule(WasmModule *other) {
+        executingModule = other;
+    }
+
     message::Message *getExecutingCall() {
         return executingCall;
+    }
+
+    void setExecutingCall(message::Message *other) {
+        executingCall = other;
     }
 
     Uptr getNumberOfPagesForBytes(U32 nBytes) {

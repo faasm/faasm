@@ -1,0 +1,29 @@
+---
+
+- hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: "Download openmpi"
+      shell: "{{ item }}"
+      args:
+        chdir: "/tmp"
+      with_items:
+        - "wget https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.2.tar.gz"
+        - "tar -xf openmpi-4.0.2.tar.gz"
+
+    - name: "Create directory for install"
+      become: yes
+      file:
+        path: "/usr/local/faasm/openmpi"
+        state: directory
+        mode: 0755
+
+    - name: "Make and install"
+      become: yes
+      shell: "{{ item }}"
+      args:
+        chdir: "/tmp/openmpi-4.0.2"
+      with_items:
+        - "./configure --prefix=/usr/local/faasm/openmpi"
+        - "make"
+        - "make install"
