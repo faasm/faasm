@@ -11,7 +11,6 @@ void printThreadInfo(const char* label) {
 FAASM_MAIN_FUNC() {
     printThreadInfo("Main before");
 
-    // OMP parallel section
     #pragma omp parallel default(none)
     {
         printThreadInfo("OMP thread");

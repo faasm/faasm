@@ -28,7 +28,7 @@ cd ansible
 ansible-playbook mpi.yml --ask-become-pass
 ```
 
-This installs it to `/usr/local/faasm/open-mpi`.
+This installs it to `/usr/local/faasm/openmpi`.
 
 Once you've built a native executable linked against this, you can then use `mpirun` on the binary e.g.
 
