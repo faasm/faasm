@@ -3,8 +3,10 @@ perf/
 work/
 download/
 build/
+faasm.ini
 perf.data
 perf.data.*
+
 
 # SPEC
 third-party/spec_cpu/
