@@ -82,14 +82,14 @@ namespace worker {
     void WorkerThread::bindToFunction(const message::Message &msg, bool force) {
         // If already bound, will be an error, unless forced to rebind to the same message
         if (_isBound) {
-            if (force &&
-                (msg.user() != boundMessage.user() || msg.function() != boundMessage.function())) {
-                throw std::runtime_error("Cannot force bind to a different function");
+            if (force) {
+                if(msg.user() != boundMessage.user() || msg.function() != boundMessage.function()) {
+                    throw std::runtime_error("Cannot force bind to a different function");
+                }
             } else {
                 throw std::runtime_error("Cannot bind worker thread more than once");
             }
         }
-
 
         boundMessage = msg;
 
