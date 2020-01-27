@@ -35,7 +35,6 @@ endfunction(omp_func)
 
 omp_func(checks checks.cpp false)
 omp_func(hellomp hellomp.cpp false)
-omp_func(create-parallel create-parallel.cpp false)
 
 # Skip MPI stuff in knative for now
 if(FAASM_BUILD_TYPE STREQUAL "knative-native")

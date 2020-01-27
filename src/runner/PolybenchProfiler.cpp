@@ -17,7 +17,8 @@ namespace runner {
 
         // TODO - is it possible to avoid system here?
         int error = system(execPath.c_str());
-        if (error != 0)
+        if (error != 0) {
             printf("Failed to execute %s", execPath.c_str());
+        }
     }
 }

@@ -28,13 +28,12 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_push_num_threads", void, __kmpc_push_num_threads, 
                                    I32 loc, I32 global_tid, I32 num_threads) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - __kmpc_push_num_threads {} {}", global_tid, num_threads);
-        // TODO: save num_threads locally for next fork call
+        logger->debug("S - __kmpc_push_num_threads {} {} {}", loc, global_tid, num_threads);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_global_thread_num", I32, __kmpc_global_thread_num,
                                    I32 loc) {
-        util::getLogger()->debug("S - __kmpc_global_thread_num");
+        util::getLogger()->debug("S - __kmpc_global_thread_num {}", loc);
         return 0;
     }
 
@@ -72,7 +71,7 @@ namespace wasm {
         Runtime::GCPointer<Runtime::Memory> &memoryPtr = getExecutingModule()->defaultMemory;
         
         // Spawn calls to the microtask in multiple threads
-        int numThreads = util::getUsableCores(); // or fetch local num_thread
+        int numThreads = util::getUsableCores();
         std::vector<std::thread> threads;
         for (int threadNum = 0; threadNum < numThreads; threadNum++) {
             WasmModule *parentModule = getExecutingModule();

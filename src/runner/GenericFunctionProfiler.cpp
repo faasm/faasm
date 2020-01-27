@@ -19,7 +19,8 @@ namespace runner {
         }
 
         int error = system(execPath.c_str());
-        if (error != 0)
+        if (error != 0) {
             printf("Failed to execute %s", execPath.c_str());
+        }
     }
 }
