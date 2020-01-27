@@ -18,5 +18,6 @@ function(omp_func exec_name dir_path)
     endif ()
 endfunction(omp_func)
 
+omp_func(checks checks.cpp)
 omp_func(hellomp hellomp.cpp)
 omp_func(hellompi hellompi.cpp)
