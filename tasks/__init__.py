@@ -180,9 +180,6 @@ from tasks.genomics_data import (
 from tasks.genomics import (
     genomics_mapping,
 )
-from tasks.native import (
-    native_run,
-)
 # Can only generate matrix data with things installed
 try:
     import pyfaasm

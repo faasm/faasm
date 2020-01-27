@@ -30,8 +30,6 @@ BENCHMARK_ENV = {
 
 FUNC_DIR = join(PROJ_ROOT, "func")
 FUNC_BUILD_DIR = join(PROJ_ROOT, "build", "func")
-FUNC_NATIVE_DIR = join(PROJ_ROOT, "func", "omp", "native-functions")
-FUNC_NATIVE_BUILD_DIR = join(PROJ_ROOT, "build", "native-functions")
 
 WASM_DIR = join(PROJ_ROOT, "wasm")
 WASM_LIB_DIR = join(PROJ_ROOT, "wasm", "lib")
