@@ -38,3 +38,15 @@ To recompile the new libraries you can use:
 ```
 inv compile-libfaasm
 ```
+
+## Native functions
+
+To study the behaviour of OpenMP code, it is possible to run it locally after applying
+the local dev set-up as follows
+```
+inv compile omp <native function> --local-omp
+inv native-run <native function> [-ltrace|-strace]
+```
+
+The full list of native functions can be found in the [native function](func/omp/native-functions/)
+directory.
