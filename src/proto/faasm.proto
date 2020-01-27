@@ -37,4 +37,6 @@ message Message {
     optional string pythonUser = 19;
     optional string pythonFunction = 20;
     optional int32 pythonIdx = 21;
+
+    optional int32 coldStartInterval = 22;
 }

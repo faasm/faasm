@@ -25,6 +25,7 @@ namespace tests {
         REQUIRE(msgA.outputdata() == msgB.outputdata());
         REQUIRE(msgA.resultkey() == msgB.resultkey());
         REQUIRE(msgA.statuskey() == msgB.statuskey());
+        REQUIRE(msgA.coldstartinterval() == msgB.coldstartinterval());
         REQUIRE(msgA.type() == msgB.type());
     }
 }
