@@ -23,7 +23,7 @@ COPY func/python/noop.py /usr/local/faasm/shared_store/pyfuncs/python/noop/funct
 
 # Set up entrypoint
 COPY bin/entrypoint_codegen.sh /entrypoint_codegen.sh
-COPY bin/upload_entrypoint.sh /entrypoint.sh
+COPY bin/entrypoint_upload.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 

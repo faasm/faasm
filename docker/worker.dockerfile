@@ -20,7 +20,7 @@ RUN cmake --build . --target codegen_func -- -j
 
 # Set up entrypoint (for cgroups, namespaces etc.)
 COPY bin/entrypoint_codegen.sh /entrypoint_codegen.sh
-COPY bin/worker_entrypoint.sh /entrypoint.sh
+COPY bin/entrypoint_worker.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Create user with dummy uid required by Python
