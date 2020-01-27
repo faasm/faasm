@@ -63,6 +63,7 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __kmpc_fork_call {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
 
+        // Retrieve the microstask function from the table
         Runtime::Object *funcObj = Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr);
         Runtime::Function *func = Runtime::asFunction(funcObj);
         IR::FunctionType funcType = Runtime::getFunctionType(func);

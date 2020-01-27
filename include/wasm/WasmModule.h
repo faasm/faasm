@@ -128,6 +128,9 @@ namespace wasm {
 
         int getDataOffsetFromGOT(const std::string &name);
 
+        void writeMemoryToFd(int fd);
+
+        void mapMemoryFromFd();
     private:
         Runtime::GCPointer<Runtime::Instance> envModule;
         Runtime::GCPointer<Runtime::Instance> moduleInstance;
@@ -142,6 +145,9 @@ namespace wasm {
         int nextMemoryBase = 0;
         int nextStackPointer = 0;
         int nextTableBase = 0;
+
+        int memoryFd = -1;
+        size_t memoryFdSize = 0;
 
         bool _isBound = false;
         std::string boundUser;
