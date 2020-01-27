@@ -102,7 +102,6 @@ if (FAASM_BUILD_TYPE STREQUAL "knative-native")
 
     add_subdirectory(func)
     add_subdirectory(lib-cpp)
-    add_subdirectory(lib-faasmp)
     add_subdirectory(lib-pyinit)
 
     add_subdirectory(src/emulator)
@@ -189,7 +188,6 @@ elseif (FAASM_BUILD_TYPE STREQUAL "native-tools")
     set(FAASM_LIB_TYPE SHARED)
 
     add_subdirectory(lib-cpp)
-    add_subdirectory(lib-faasmp)
     add_subdirectory(src/emulator)
     add_subdirectory(src/proto)
     add_subdirectory(src/redis)
