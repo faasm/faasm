@@ -33,7 +33,6 @@ function(omp_func exec_name dir_path link_mpi)
     endif()
 endfunction(omp_func)
 
-omp_func(hellompi hellompi.cpp)
 omp_func(checks checks.cpp false)
 omp_func(hellomp hellomp.cpp false)
 omp_func(create-parallel create-parallel.cpp false)

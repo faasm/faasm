@@ -134,12 +134,12 @@ namespace wasm {
         // Fake system info
         // TODO - should probably give some valid stuff here in case we break something
         wasm_utsname s{
-                .sysname="Linux",
-                .nodename="faasm",
-                .release="1.0.0",
-                .version="Faasm 123",
-                .machine="x86",   // Probably safest in 32-bit wasm env
-                .domainname="(none)"
+                { .sysname="Linux" },
+                { .nodename="faasm" },
+                { .release="1.0.0" },
+                { .version="Faasm 123" },
+                { .machine="x86" },   // Probably safest in 32-bit wasm env
+                {.domainname="(none)" }
         };
 
         // Copy fake info into place

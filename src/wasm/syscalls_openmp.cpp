@@ -25,7 +25,7 @@ namespace wasm {
         return util::getUsableCores();
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_push_num_threads", void __kmpc_push_num_threads, 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_push_num_threads", void, __kmpc_push_num_threads, 
                                    I32 loc, I32 global_tid, I32 num_threads) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __kmpc_push_num_threads {} {}", global_tid, num_threads);
@@ -63,13 +63,6 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __kmpc_fork_call {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
 
-<<<<<<< HEAD
-        unsigned int numThreads = util::getUsableCores(); // or fetch local num_thread
-
-        // Retrieve the function from the table
-=======
-        // Retrieve the microstask function from the table
->>>>>>> 928e575bb410b8bd5fa5d8aa2dcb3cbaa9f07081
         Runtime::Object *funcObj = Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr);
         Runtime::Function *func = Runtime::asFunction(funcObj);
         IR::FunctionType funcType = Runtime::getFunctionType(func);
@@ -78,7 +71,7 @@ namespace wasm {
         Runtime::GCPointer<Runtime::Memory> &memoryPtr = getExecutingModule()->defaultMemory;
         
         // Spawn calls to the microtask in multiple threads
-        unsigned int numThreads = util::getUsableCores();
+        int numThreads = util::getUsableCores(); // or fetch local num_thread
         std::vector<std::thread> threads;
         for (int threadNum = 0; threadNum < numThreads; threadNum++) {
             WasmModule *parentModule = getExecutingModule();
