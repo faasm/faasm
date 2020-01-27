@@ -12,6 +12,7 @@ services:
 branches:
   only:
     - master
+    - build-fix
 
 before_install:
   - "./bin/ci_pull.sh"
