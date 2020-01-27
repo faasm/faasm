@@ -7,12 +7,14 @@ set(OMPI_CXX ${CXX})
 set(OMPI_C ${C})
 
 function(omp_func exec_name dir_path)
-    add_executable(${exec_name} ${dir_path})
+    faasm_func(${exec_name} ${dir_path})
 
     if (FAASM_BUILD_TYPE STREQUAL "wasm")
-        target_link_libraries(${exec_name} faasmp faasm)
+        target_link_libraries(${exec_name} faasmp)
     else ()
-        target_link_libraries(${exec_name} pthread faasm emulator mpi)
+        set(MPI_LIB /usr/local/faasm/openmpi/libopenmpi)
+
+        target_link_libraries(${exec_name} pthread)
     endif ()
 endfunction(omp_func)
 
