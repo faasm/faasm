@@ -1,10 +1,12 @@
 from subprocess import call
+from os.path import join
 
 from invoke import task
 
-from tasks.util.env import FAASM_TOOLCHAIN_FILE, FUNC_BUILD_DIR, FUNC_DIR
+from tasks.util.env import FAASM_TOOLCHAIN_FILE, FUNC_BUILD_DIR, FUNC_DIR, WASM_DIR
 from tasks.util.files import clean_dir
 from tasks.util.typescript import ASC_BINARY, TS_DIR
+
 
 
 def _do_compile(target, clean, debug):
@@ -36,14 +38,20 @@ def _do_compile(target, clean, debug):
 
 
 @task
-def compile(ctx, user, func, clean=False, debug=False, ts=False):
+def compile(ctx, user, func, clean=False, debug=False, ts=False, cp=False):
     # Typescript compilation
     if ts:
         return _ts_compile(func)
 
     target = func
     _do_compile(target, clean, debug)
-
+    if cp:
+        cmd = [
+            "cp",
+            join(FUNC_BUILD_DIR, user, ".".join([func, "wasm"])),
+            join(WASM_DIR, user, func, "function.wasm"),
+        ]
+        call(" ".join(cmd), shell=True, cwd=FUNC_BUILD_DIR)
 
 @task
 def compile_user(ctx, user, clean=False, debug=False):
