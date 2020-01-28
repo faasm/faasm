@@ -69,6 +69,29 @@ namespace tests {
         checkBound(w, call, true);
     }
 
+    TEST_CASE("Test binding twice causes error unless forced", "[worker]") {
+        setUp();
+
+        message::Message callA = util::messageFactory("demo", "chain");
+        setEmulatedMessage(callA);
+
+        WorkerThreadPool pool(1);
+        WorkerThread w(1);
+
+        // Bind once
+        w.bindToFunction(callA);
+
+        // Binding twice should throw
+        REQUIRE_THROWS(w.bindToFunction(callA));
+
+        // Forcing second bind should be ok
+        w.bindToFunction(callA, true);
+
+        // Forcing bind to another function should fail
+        message::Message callB = util::messageFactory("demo", "echo");
+        REQUIRE_THROWS(w.bindToFunction(callB, true));
+    }
+
     TEST_CASE("Test fixed input with colon", "[worker]") {
         setUp();
         message::Message call = util::messageFactory("demo", "check_input");

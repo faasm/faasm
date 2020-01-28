@@ -39,6 +39,8 @@ namespace util {
         d.AddMember("result_key", Value(msg.resultkey().c_str(), msg.resultkey().size()).Move(), a);
         d.AddMember("status_key", Value(msg.statuskey().c_str(), msg.statuskey().size()).Move(), a);
 
+        d.AddMember("cold_start_interval", msg.coldstartinterval(), a);
+
         StringBuffer sb;
         Writer<StringBuffer> writer(sb);
         d.Accept(writer);
@@ -103,6 +105,8 @@ namespace util {
 
         msg.set_resultkey(getStringFromJson(d, "result_key", ""));
         msg.set_statuskey(getStringFromJson(d, "status_key", ""));
+
+        msg.set_coldstartinterval(getIntFromJson(d, "cold_start_interval", 0));
 
         msg.set_type(message::Message_MessageType_CALL);
 

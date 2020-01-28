@@ -138,6 +138,7 @@ add_subdirectory(dynlink)
 add_subdirectory(gene)
 add_subdirectory(polybench)
 add_subdirectory(sgd)
+add_subdirectory(omp)
 
 # Skip certain builds with some build types
 if (FAASM_BUILD_TYPE STREQUAL "lambda-func")

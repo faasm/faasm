@@ -211,6 +211,7 @@ else ()
 
     # Faasm libraries
     add_subdirectory(lib-cpp)
+    add_subdirectory(lib-faasmp)
     add_subdirectory(lib-pyinit)
 
     # Custom malloc

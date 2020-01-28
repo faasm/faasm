@@ -184,7 +184,11 @@ namespace wasm {
 
     WasmModule *getExecutingModule();
 
+    void setExecutingModule(WasmModule *executingModule);
+
     message::Message *getExecutingCall();
+
+    void setExecutingCall(message::Message *other);
 
     class WasmExitException : public std::exception {
     public:

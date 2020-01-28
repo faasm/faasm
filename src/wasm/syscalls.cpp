@@ -190,9 +190,11 @@ namespace wasm {
     }
 
     void linkHook() {
-        dynlinkLink();
-        mathsLink();
         chainLink();
+        dynlinkLink();
         faasmLink();
+        mathsLink();
+        mpiLink();
+        ompLink();
     }
 }

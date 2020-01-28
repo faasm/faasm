@@ -1,0 +1,16 @@
+# OpenMP
+__kmpc_fork_call
+__kmpc_global_thread_num
+__kmpc_push_num_threads
+omp_get_thread_num
+omp_get_num_threads
+omp_get_max_threads
+
+# MPI
+MPI_Abort
+MPI_Init
+MPI_Finalize
+MPI_Send
+MPI_Recv
+MPI_Comm_rank
+MPI_Comm_size

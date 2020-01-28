@@ -31,7 +31,6 @@
 [submodule "third-party/faasm-clapack"]
 	path = third-party/faasm-clapack
 	url = https://github.com/Shillaker/faasm-clapack.git
-
 [submodule "third-party/faasm-demo-c"]
 	path = third-party/faasm-demo-c
 	url = https://github.com/Shillaker/faasm-demo-c.git

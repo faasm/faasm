@@ -3,6 +3,8 @@ perf/
 work/
 download/
 build/
+ninja-build/
+faasm.ini
 perf.data
 perf.data.*
 

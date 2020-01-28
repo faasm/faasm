@@ -70,35 +70,44 @@ def install_native_tools(ctx, clean=False):
     call("sudo make install", shell=True, cwd=build_dir)
 
 
+def _build_faasm_lib(dir_name, clean):
+    work_dir = join(PROJ_ROOT, dir_name)
+    build_dir = join(PROJ_ROOT, "build", dir_name)
+
+    clean_dir(build_dir, clean)
+
+    build_cmd = [
+        "cmake",
+        "-DFAASM_BUILD_TYPE=wasm",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
+        work_dir,
+    ]
+
+    build_cmd_str = " ".join(build_cmd)
+    print(build_cmd_str)
+
+    call(build_cmd_str, shell=True, cwd=build_dir)
+    call("make", shell=True, cwd=build_dir)
+    call("make install", shell=True, cwd=build_dir)
+
+
 @task
 def compile_libfaasm(ctx, clean=False):
     """
     Build all Faasm libraries
     """
+    _build_faasm_lib("lib-cpp", clean)
+    _build_faasm_lib("lib-pyinit", clean)
+    _build_faasm_lib("lib-faasmp", clean)
 
-    def _do_lib_build(dir_name):
-        work_dir = join(PROJ_ROOT, dir_name)
-        build_dir = join(PROJ_ROOT, "build", dir_name)
 
-        clean_dir(build_dir, clean)
-
-        build_cmd = [
-            "cmake",
-            "-DFAASM_BUILD_TYPE=wasm",
-            "-DCMAKE_BUILD_TYPE=Release",
-            "-DCMAKE_TOOLCHAIN_FILE={}".format(FAASM_TOOLCHAIN_FILE),
-            work_dir,
-        ]
-
-        build_cmd_str = " ".join(build_cmd)
-        print(build_cmd_str)
-
-        call(build_cmd_str, shell=True, cwd=build_dir)
-        call("make", shell=True, cwd=build_dir)
-        call("make install", shell=True, cwd=build_dir)
-
-    _do_lib_build("lib-cpp")
-    _do_lib_build("lib-pyinit")
+@task
+def compile_libfaasmp(ctx, clean=False):
+    """
+    Build just the faasm OpenMP library
+    """
+    _build_faasm_lib("lib-faasmp", clean)
 
 
 @task

@@ -21,6 +21,8 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/WASTParse/WASTParse.h>
+#include <sys/mman.h>
+#include <sys/types.h>
 
 using namespace WAVM;
 
@@ -34,8 +36,16 @@ namespace wasm {
         return executingModule;
     }
 
+    void setExecutingModule(WasmModule *other) {
+        executingModule = other;
+    }
+
     message::Message *getExecutingCall() {
         return executingCall;
+    }
+
+    void setExecutingCall(message::Message *other) {
+        executingCall = other;
     }
 
     Uptr getNumberOfPagesForBytes(U32 nBytes) {
@@ -1019,10 +1029,16 @@ namespace wasm {
 
         // Make the fd big enough
         memoryFdSize = numBytes;
-        ftruncate(memoryFd, memoryFdSize);
+        int ferror = ftruncate(memoryFd, memoryFdSize);
+        if (ferror) {
+            logger->error("ferror call failed with error {}", ferror);
+        }
 
         // Write the data
-        write(memoryFd, memoryBase, memoryFdSize);
+        ssize_t werror = write(memoryFd, memoryBase, memoryFdSize);
+        if (werror == -1) {
+            logger->error("write call failed");
+        }
     }
 
     void WasmModule::mapMemoryFromFd() {
@@ -1037,7 +1053,7 @@ namespace wasm {
     void WasmModule::snapshotCrossHost(const std::string &filePath) {
         std::ofstream outStream(filePath, std::ios::binary);
         cereal::BinaryOutputArchive archive(outStream);
-        
+
         // Serialise memory
         Uptr numPages = Runtime::getMemoryNumPages(defaultMemory);
         U8 *memBase = Runtime::getMemoryBaseAddress(defaultMemory);
@@ -1066,7 +1082,7 @@ namespace wasm {
         if(pagesRequired > 0) {
             mmapPages(pagesRequired);
         }
-        
+
         U8 *memBase = Runtime::getMemoryBaseAddress(defaultMemory);
         size_t memSize = mem.numPages * IR::numBytesPerPage;
         memcpy(memBase, mem.data.data(), memSize);

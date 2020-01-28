@@ -28,6 +28,8 @@ namespace tests {
         msg.set_resultkey("this is a result");
         msg.set_statuskey("this is a status");
 
+        msg.set_coldstartinterval(4);
+
         SECTION("Dodgy characters") {
             msg.set_inputdata("[0], %$ 2233 9");
         }

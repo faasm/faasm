@@ -38,6 +38,6 @@ namespace util {
             throw std::runtime_error("Unable to detect number of cores");
         }
 
-        return nCores - 1;
+        return nCores;
     }
 }

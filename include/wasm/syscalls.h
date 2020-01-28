@@ -289,6 +289,8 @@ namespace wasm {
     // Hack to include other files
     void dynlinkLink();
     void mathsLink();
+    void mpiLink();
+    void ompLink();
     void chainLink();
     void faasmLink();
 }
