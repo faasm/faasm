@@ -22,7 +22,8 @@ RUN cmake --build . --target codegen_func -- -j
 COPY func/python/noop.py /usr/local/faasm/shared_store/pyfuncs/python/noop/function.py
 
 # Set up entrypoint
-COPY bin/upload-entrypoint.sh /entrypoint.sh
+COPY bin/entrypoint_codegen.sh /entrypoint_codegen.sh
+COPY bin/entrypoint_upload.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
