@@ -8,7 +8,7 @@ Knative or other cloud providers.
 
 Whether you are working remotely (see below) or locally, a lot of **default parameters** assume that the repository is
 located in `/usr/local/code/faasm`, the latter two directories _owned_ by the current user. To avoid having to set up
-environment variables in the many scripts you will use to get started, we recommend to **simlink** where you or your IDE
+environment variables in the many scripts you will use to get started, we recommend to **symlink** where you or your IDE
 (if using remote development) checked out the code to this location.
 
 Assuming you've checked out this code somewhere, you'll need to make sure submodules are up to date:
@@ -125,7 +125,7 @@ sudo ./bin/cgroup.sh
 ## Remote development using CLion
 
 The first step you should be doing when CLion uploads the code to a temporary location (e.g. `/tmp/tmp.XXX`) is to
-simlink this location to `/usr/local/code/faasm` as explained above for consistency (e.g. VM crash).
+symlink this location to `/usr/local/code/faasm` as explained above for consistency (e.g. VM crash).
 
 This can be a two step process where you first set-up the dependencies to locally on the VM then decide to edit the code
 remotely using CLion by letting the IDE re-upload the code. This works quite well as CLion will not get confused with
