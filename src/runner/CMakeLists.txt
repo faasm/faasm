@@ -21,9 +21,6 @@ target_link_libraries(func_runner bench worker_lib)
 add_executable(simple_runner simple_runner.cpp)
 target_link_libraries(simple_runner bench worker_lib)
 
-add_executable(serialisation_check serialisation_check.cpp)
-target_link_libraries(serialisation_check worker_lib)
-
 add_executable(func_sym map_symbols.cpp)
 target_link_libraries(func_sym bench)
 
