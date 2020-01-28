@@ -16,6 +16,7 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/WASTParse/WASTParse.h>
 #include <sys/mman.h>
+#include <sys/types.h>
 
 using namespace WAVM;
 
@@ -1020,10 +1021,16 @@ namespace wasm {
 
         // Make the fd big enough
         memoryFdSize = numBytes;
-        ftruncate(memoryFd, memoryFdSize);
+        int ferror = ftruncate(memoryFd, memoryFdSize);
+        if (ferror) {
+            logger->error("ferror call failed with error {}", ferror);
+        }
 
         // Write the data
-        write(memoryFd, memoryBase, memoryFdSize);
+        ssize_t werror = write(memoryFd, memoryBase, memoryFdSize);
+        if (werror == -1) {
+            logger->error("write call failed");
+        }
     }
 
     void WasmModule::mapMemoryFromFd() {

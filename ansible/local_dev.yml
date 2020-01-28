@@ -4,6 +4,7 @@
   connection: local
   gather_facts: yes
   roles:
+    - eigen
     - linux
     - llvm9
     - protobuf

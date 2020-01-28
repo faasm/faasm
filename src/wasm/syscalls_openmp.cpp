@@ -25,6 +25,18 @@ namespace wasm {
         return util::getUsableCores();
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_push_num_threads", void, __kmpc_push_num_threads, 
+                                   I32 loc, I32 global_tid, I32 num_threads) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - __kmpc_push_num_threads {} {} {}", loc, global_tid, num_threads);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_global_thread_num", I32, __kmpc_global_thread_num,
+                                   I32 loc) {
+        util::getLogger()->debug("S - __kmpc_global_thread_num {}", loc);
+        return 0;
+    }
+
     /**
      * The "real" version of this function is implemented in the openmp source at
      * openmp/runtime/src/kmp_csupport.cpp. This in turn calls __kmp_fork_call which
@@ -59,7 +71,7 @@ namespace wasm {
         Runtime::GCPointer<Runtime::Memory> &memoryPtr = getExecutingModule()->defaultMemory;
         
         // Spawn calls to the microtask in multiple threads
-        unsigned int numThreads = util::getUsableCores();
+        int numThreads = util::getUsableCores();
         std::vector<std::thread> threads;
         for (int threadNum = 0; threadNum < numThreads; threadNum++) {
             WasmModule *parentModule = getExecutingModule();

@@ -18,6 +18,9 @@ namespace runner {
             throw std::runtime_error("Could not find binary at " + execPath);
         }
 
-        system(execPath.c_str());
+        int error = system(execPath.c_str());
+        if (error != 0) {
+            printf("Failed to execute %s", execPath.c_str());
+        }
     }
 }

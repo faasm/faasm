@@ -21,4 +21,3 @@ and can be found in `src/wasm/syscalls_openmp.cpp`.
 The list of acceptable unresolved imports is in `lib-faasmp/faasmp.imports`.
 
 To add a new function you need to include it in both of these files. 
-
