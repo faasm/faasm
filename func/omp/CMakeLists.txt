@@ -1,13 +1,13 @@
 set(FAASM_USER omp)
 
-find_package(OpenMP QUIET)
-if(OPENMP_FOUND)
+if(FAASM_BUILD_TYPE STREQUAL "wasm")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+else()
+    find_package(OpenMP REQUIRED)
     include_directories(${OPENMP_INCLUDE_DIR})
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-elseif(FAASM_BUILD_TYPE STREQUAL "wasm")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 endif()
 
 set(OMPI_CXX ${CXX})
