@@ -43,6 +43,7 @@ endfunction(omp_func)
 omp_func(checks checks.cpp false)
 omp_func(header_api_support header_api_support.cpp false)
 omp_func(hellomp hellomp.cpp false)
+omp_func(simple_master simple_master.cpp false)
 
 # Skip MPI stuff in knative for now
 if(FAASM_BUILD_TYPE STREQUAL "knative-native")
