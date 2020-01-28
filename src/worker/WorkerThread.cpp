@@ -34,6 +34,9 @@ namespace worker {
         // Add this thread to the cgroup
         CGroup cgroup(BASE_CGROUP_NAME);
         cgroup.addCurrentThread();
+
+        // Zero the execution counter
+        executionCount = 0;
     }
 
     const bool WorkerThread::isBound() {
@@ -71,11 +74,21 @@ namespace worker {
         zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
         wasm::WasmModule &zygote = registry.getZygote(call);
         *module = zygote;
+
+        // Increment the execution counter
+        executionCount++;
     }
 
-    void WorkerThread::bindToFunction(const message::Message &msg) {
+    void WorkerThread::bindToFunction(const message::Message &msg, bool force) {
+        // If already bound, will be an error, unless forced to rebind to the same message
         if (_isBound) {
-            throw std::runtime_error("Cannot bind worker thread more than once");
+            if (force) {
+                if(msg.user() != boundMessage.user() || msg.function() != boundMessage.function()) {
+                    throw std::runtime_error("Cannot force bind to a different function");
+                }
+            } else {
+                throw std::runtime_error("Cannot bind worker thread more than once");
+            }
         }
 
         boundMessage = msg;
@@ -140,12 +153,25 @@ namespace worker {
             const std::string funcStr = util::funcToString(msg, false);
             logger->info("Worker {} binding to {}", id, funcStr);
 
-            try{
+            try {
                 this->bindToFunction(msg);
-            } catch(util::InvalidFunctionException &e) {
+            } catch (util::InvalidFunctionException &e) {
                 errorMessage = "Invalid function: " + funcStr;
             }
         } else {
+            int coldStartInterval = msg.coldstartinterval();
+            bool isColdStart = coldStartInterval > 0 &&
+                               executionCount > 0 &&
+                               executionCount % coldStartInterval == 0;
+
+            if (isColdStart) {
+                const std::string funcStr = util::funcToString(msg, true);
+                logger->debug("Forcing cold start of {} ({}/{})", funcStr, executionCount, coldStartInterval);
+
+                // Bind to function again
+                this->bindToFunction(msg, true);
+            }
+
             errorMessage = this->executeCall(msg);
         }
 
@@ -173,7 +199,7 @@ namespace worker {
 
         std::string errorMessage;
 
-        if(exitCode != 0) {
+        if (exitCode != 0) {
             errorMessage = "Non-zero exit code: " + std::to_string(exitCode);
         }
 

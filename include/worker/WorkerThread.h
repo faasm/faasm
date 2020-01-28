@@ -13,7 +13,7 @@ namespace worker {
     public:
         explicit WorkerThread(int threadIdx);
 
-        void bindToFunction(const message::Message &msg);
+        void bindToFunction(const message::Message &msg, bool force = false);
 
         void run();
 
@@ -34,6 +34,8 @@ namespace worker {
         std::unique_ptr<isolation::NetworkNamespace> ns;
 
         message::Message boundMessage;
+
+        int executionCount;
 
         scheduler::Scheduler &scheduler;
 
