@@ -8,7 +8,7 @@
 
 namespace wasm {
     static thread_local int thisThreadNumber = 0;
-    static thread_local unsigned int thisSectionThreadCount = 0;
+    static thread_local unsigned int thisSectionThreadCount = 1;
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_thread_num", I32, omp_get_thread_num) {
         util::getLogger()->debug("S - omp_get_thread_num");
@@ -121,7 +121,7 @@ namespace wasm {
         }
 
         // Reset the thread count for this thread
-        thisSectionThreadCount = 0;
+        thisSectionThreadCount = 1;
     }
 
     void ompLink() {

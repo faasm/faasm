@@ -10,4 +10,10 @@ namespace tests {
         message::Message msg = util::messageFactory("omp", "checks");
         execFunction(msg);
     }
+
+    TEST_CASE("Test OMP header API functions", "[wasm]") {
+        cleanSystem();
+        message::Message msg = util::messageFactory("omp", "header_api_support");
+        execFunction(msg);
+    }
 }

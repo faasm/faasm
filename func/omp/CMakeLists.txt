@@ -41,6 +41,7 @@ function(omp_func exec_name dir_path link_mpi)
 endfunction(omp_func)
 
 omp_func(checks checks.cpp false)
+omp_func(header_api_support header_api_support.cpp false)
 omp_func(hellomp hellomp.cpp false)
 
 # Skip MPI stuff in knative for now
