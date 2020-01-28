@@ -4,7 +4,12 @@ This guide is only relevant for those wanting to dig deeper or make changes to F
 and run functions, then the Docker set-up described in the README should be sufficient. This includes deploying to 
 Knative or other cloud providers. 
 
-## Submodules
+## Checking out the repo
+
+Whether you are working remotely (see below) or locally, a lot of **default parameters** assume that the repository is
+located in `/usr/local/code/faasm`, the latter two directories _owned_ by the current user. To avoid having to set up
+environment variables in the many scripts you will use to get started, we recommend to **simlink** where you or your IDE
+(if using remote development) checked out the code to this location.
 
 Assuming you've checked out this code somewhere, you'll need to make sure submodules are up to date:
 
@@ -116,3 +121,19 @@ To use cgroup isolation, you'll need to run:
 ```
 sudo ./bin/cgroup.sh
 ```
+
+## Remote development using CLion
+
+The first step you should be doing when CLion uploads the code to a temporary location (e.g. `/tmp/tmp.XXX`) is to
+simlink this location to `/usr/local/code/faasm` as explained above for consistency (e.g. VM crash).
+
+This can be a two step process where you first set-up the dependencies to locally on the VM then decide to edit the code
+remotely using CLion by letting the IDE re-upload the code. This works quite well as CLion will not get confused with
+bad local toolchains and should build the index pretty much out of the box if you have set up a remote toolchain to
+your VM and set it to be the default one - you might want to tweak `update-alternatives` for `cc` and `c++` to use
+`clang-9` however, or set the `C/CXX` cmake compiler flags manually to use `/usr/bib/clang(++)` which as defined by the
+playbook should point to the version of `clang` used by Faasm).
+
+I do **not** recommend setting a WASM/FAASM CMake profile because it will confuse your IDE a lot. To build the WASM
+functions, simply ssh in to your VM at `/usr/local/faasm/code` and run the related `inv` commands (assuming you've
+downloaded the toolchain and sysroot as described above).
