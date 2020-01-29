@@ -12,7 +12,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: "Build the testing image"
-      run: docker build . --file docker/testing.dockerfile --tag faasm/testing:${GITHUB_SHA} --build-arg FAASM_VERSION=0.0.5    
+      run: docker build . -f docker/testing.dockerfile --tag faasm/testing:${GITHUB_SHA} --build-arg FAASM_VERSION=0.0.5
+      env:
+        DOCKER_BUILDKIT=1
     - name: "Create a docker network"
       run: docker network create -d bridge test-net
     - name: "Stop redis container"

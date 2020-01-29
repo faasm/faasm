@@ -41,9 +41,9 @@ third-party
 !third-party/eigen
 !third-party/WAVM
 
-!wasm/demo/**/function.wasm
-!wasm/errors/**/function.wasm
-!wasm/omp/**/function.wasm
-!wasm/python/**/function.wasm
-!wasm/sgd/**/function.wasm
-!wasm/tf/**/function.wasm
+!wasm/demo/
+!wasm/errors/
+!wasm/omp/
+!wasm/python/
+!wasm/sgd/
+!wasm/tf/

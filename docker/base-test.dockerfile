@@ -1,6 +1,11 @@
 ARG FAASM_VERSION
 FROM faasm/base:${FAASM_VERSION}
 
+# ------------------------------------------------------
+# This image should contain everything needed for tests
+# that doesn't need to rebuilt for every run.
+# ------------------------------------------------------
+
 RUN apt-get update
 RUN apt-get install -y apt-transport-https
 RUN apt-get install -y \
@@ -32,8 +37,8 @@ RUN inv download-toolchain
 
 # Build codegen binaries
 WORKDIR /faasm/build
-RUN cmake --build . --target codegen_shared_obj -- -j
-RUN cmake --build . --target codegen_func -- -j
+RUN cmake --build . --target codegen_shared_obj
+RUN cmake --build . --target codegen_func
 
 # Clear out
 RUN rm -rf /tmp/*
