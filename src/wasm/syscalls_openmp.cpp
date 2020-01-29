@@ -13,32 +13,53 @@ namespace wasm {
     static thread_local int thisThreadNumber = 0;
     static thread_local unsigned int thisSectionThreadCount = 1;
 
+    /**
+     * @return the thread number, within its team, of the thread executing the function.
+     */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_thread_num", I32, omp_get_thread_num) {
         util::getLogger()->debug("S - omp_get_thread_num");
         return thisThreadNumber;
     }
 
+    /**
+     * @return the number of threads currently in the team executing the parallel region from
+     * which it is called.
+     */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_num_threads", I32, omp_get_num_threads) {
         util::getLogger()->debug("S - omp_get_num_threads");
         return thisSectionThreadCount;
     }
 
+    /**
+     * @return the maximum number of threads that can be used to form a new team if a parallel
+     * region without a num_threads clause is encountered.
+     */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_max_threads", I32, omp_get_max_threads) {
         util::getLogger()->debug("S - omp_get_max_threads");
         return util::getUsableCores();
     }
 
-    /* The BARRIER for a MASTER section is always explicit   */
-    /*!
-    @param loc  source location information.
-    @param global_tid  global thread number .
-    @return 1 if this thread should execute the <tt>master</tt> block, 0 otherwise.
-    */
+    /**
+     * No implied BARRIER exists on either entry to or exit from the MASTER section.
+     * @param loc  source location information.
+     * @param global_tid  global thread number.
+     * @return 1 if this thread should execute the <tt>master</tt> block, 0 otherwise.
+     *
+     * Faasm: at the moment we only ensure the MASTER section is ran only once but do
+     * not handle properly assigning to the master section. Support for better gtid and
+     * teams will come. This is called by all threads with same GTID, which is not
+     * what the native code does.
+     */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_master", I32, __kmpc_master, I32 loc, I32 global_tid) {
         util::getLogger()->debug("S - __kmpc_master {} {}", loc, global_tid);
         return thisThreadNumber == 0 ? 1 : 0;
     }
 
+    /**
+     * Only called by the thread executing the master region.
+     * @param loc  source location information.
+     * @param global_tid  global thread number .
+     */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_master", void, __kmpc_end_master, I32 loc, I32 global_tid) {
         util::getLogger()->debug("S - __kmpc_end_master {} {}", loc, global_tid);
         WAVM_ASSERT(global_tid == 0 && thisThreadNumber == 0)
