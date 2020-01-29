@@ -6,12 +6,13 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <util/environment.h>
 
-#include <mutex>
 #include <stdio.h>
 
 namespace wasm {
     static thread_local int thisThreadNumber = 0;
     static thread_local unsigned int thisSectionThreadCount = 1;
+    static int masterNumThread = -1;
+    static std::vector<std::thread> threads;
 
     /**
      * @return the thread number, within its team, of the thread executing the function.
@@ -69,12 +70,16 @@ namespace wasm {
                                    I32 loc, I32 global_tid, I32 num_threads) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __kmpc_push_num_threads {} {} {}", loc, global_tid, num_threads);
+
+        if (num_threads > 0) {
+            masterNumThread = num_threads;
+        }
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_global_thread_num", I32, __kmpc_global_thread_num,
                                    I32 loc) {
         util::getLogger()->debug("S - __kmpc_global_thread_num {}", loc);
-        return 0;
+        return thisThreadNumber;
     }
 
     /**
@@ -111,8 +116,7 @@ namespace wasm {
         Runtime::GCPointer<Runtime::Memory> &memoryPtr = getExecutingModule()->defaultMemory;
         
         // Spawn calls to the microtask in multiple threads
-        int numThreads = util::getUsableCores();
-        std::vector<std::thread> threads;
+        int numThreads = masterNumThread > 0 ? masterNumThread : util::getUsableCores();
         for (int threadNum = 0; threadNum < numThreads; threadNum++) {
             WasmModule *parentModule = getExecutingModule();
             message::Message *parentCall = getExecutingCall();
