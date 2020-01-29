@@ -41,6 +41,10 @@ namespace util {
 
         d.AddMember("cold_start_interval", msg.coldstartinterval(), a);
 
+        d.AddMember("mpi", msg.ismpi(), a);
+        d.AddMember("mpi_world_id", msg.mpiworldid(), a);
+        d.AddMember("mpi_rank", msg.mpirank(), a);
+
         StringBuffer sb;
         Writer<StringBuffer> writer(sb);
         d.Accept(writer);
@@ -109,6 +113,10 @@ namespace util {
         msg.set_coldstartinterval(getIntFromJson(d, "cold_start_interval", 0));
 
         msg.set_type(message::Message_MessageType_CALL);
+
+        msg.set_ismpi(getBoolFromJson(d, "mpi", false));
+        msg.set_mpiworldid(getBoolFromJson(d, "mpi_world_id", false));
+        msg.set_mpirank(getBoolFromJson(d, "mpi_rank", false));
 
         PROF_END(jsonDecode)
 

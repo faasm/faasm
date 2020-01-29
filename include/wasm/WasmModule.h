@@ -135,6 +135,18 @@ namespace wasm {
         void snapshotCrossHost(const std::string &filePath);
 
         void restoreCrossHost(const message::Message &msg, const std::string &filePath);
+
+        bool getIsMpi();
+
+        int getMpiWorldId();
+
+        int getMpiRank();
+
+        void setIsMpi(bool val);
+
+        void setMpiWorldId(int val);
+
+        void setMpiRank(int val);
     private:
         Runtime::GCPointer<Runtime::Instance> envModule;
         Runtime::GCPointer<Runtime::Instance> moduleInstance;
@@ -169,6 +181,11 @@ namespace wasm {
         std::unordered_map<std::string, Uptr> globalOffsetTableMap;
         std::unordered_map<std::string, int> globalOffsetMemoryMap;
         std::unordered_map<std::string, int> missingGlobalOffsetEntries;
+
+        // MPI variables
+        bool isMpi;
+        int mpiWorldId;
+        int mpiRank;
 
         void reset();
 

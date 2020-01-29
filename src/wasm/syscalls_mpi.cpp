@@ -4,22 +4,66 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
 
+#include <util/func.h>
+
 #include <faasmpi/mpi.h>
+#include <util/gids.h>
+#include <scheduler/Scheduler.h>
 
 namespace wasm {
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Set_Comm_size", I32, MPI_Set_Comm_size, I32 desiredSize) {
-        util::getLogger()->debug("S - MPI_Set_Comm_size {}", desiredSize);
-        return 0;
-    }
-
+    /**
+     * This function is responsible for setting up the MPI world
+     */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Init", I32, MPI_Init, I32 a, I32 b) {
-        util::getLogger()->debug("S - MPI_Init {} {}", a, b);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - MPI_Init {} {}", a, b);
+
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+
+        // Generate world ID
+        WasmModule *modulePtr = getExecutingModule();
+        unsigned int worldId = util::generateGid();
+        modulePtr->setIsMpi(true);
+        modulePtr->setMpiWorldId(worldId);
+        modulePtr->setMpiRank(0);
+
+        const std::string user = modulePtr->getBoundUser();
+        const std::string func = modulePtr->getBoundFunction();
+
+        // Dispatch all the chained calls
+        for (int i = 0; i < FAASM_FIXED_SIZE - 1; i++) {
+            message::Message msg = util::messageFactory(user, func);
+            msg.set_ismpi(true);
+            msg.set_mpiworldid(worldId);
+            msg.set_mpirank(i + 1);
+
+            sch.callFunction(msg);
+            logger->debug("Initialising MPI world {}:{} (master={}, node={})",
+                          worldId, i, util::getNodeId(), msg.schedulednode());
+        }
+
+        // Note - explicitly not waiting for these chained calls here
+
         return 0;
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Comm_rank", I32, MPI_Comm_rank, I32 a, I32 b) {
-        util::getLogger()->debug("S - MPI_Comm_rank {} {}", a, b);
-        return 0;
+    bool checkMpiComm(I32 wasmPtr) {
+        Runtime::GCPointer<Runtime::Memory> &memoryPtr = getExecutingModule()->defaultMemory;
+
+        faasmpi_communicator_t *hostComm = &Runtime::memoryRef<faasmpi_communicator_t>(memoryPtr, wasmPtr);
+        if (hostComm->id != FAASMPI_COMM_WORLD) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->error("Unrecognised communicator type {}", hostComm->id);
+            return false;
+        }
+
+        return true;
+    }
+
+    void writeMpiIntResult(I32 resPtr, I32 result) {
+        Runtime::GCPointer<Runtime::Memory> &memoryPtr = getExecutingModule()->defaultMemory;
+        I32 *hostResPtr = &Runtime::memoryRef<I32>(memoryPtr, resPtr);
+        *hostResPtr = result;
     }
 
     /**
@@ -29,26 +73,27 @@ namespace wasm {
      * @return success/ error
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Comm_size", I32, MPI_Comm_size, I32 comm, I32 resPtr) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - MPI_Comm_size {} {}", comm, resPtr);
+        util::getLogger()->debug("S - MPI_Comm_size {} {}", comm, resPtr);
 
-        Runtime::GCPointer<Runtime::Memory> &memoryPtr = getExecutingModule()->defaultMemory;
-
-        faasmpi_communicator_t *hostComm = &Runtime::memoryRef<faasmpi_communicator_t>(memoryPtr, comm);
-        if (hostComm->id != FAASMPI_COMM_WORLD) {
-            logger->error("Unrecognised communicator type {}", hostComm->id);
+        if(!checkMpiComm(comm)) {
             return 1;
         }
 
-        I32 *hostResPtr = &Runtime::memoryRef<I32>(memoryPtr, resPtr);
-        *hostResPtr = FAASM_FIXED_SIZE;
+        writeMpiIntResult(resPtr, FAASM_FIXED_SIZE);
 
         return MPI_SUCCESS;
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Abort", I32, MPI_Abort, I32 a, I32 b) {
-        util::getLogger()->debug("S - MPI_Abort {} {}", a, b);
-        return 0;
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Comm_rank", I32, MPI_Comm_rank, I32 comm, I32 resPtr) {
+        util::getLogger()->debug("S - MPI_Comm_rank {} {}", comm, resPtr);
+
+        if(!checkMpiComm(comm)) {
+            return 1;
+        }
+
+        writeMpiIntResult(resPtr, getExecutingModule()->getMpiRank());
+
+        return MPI_SUCCESS;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Send", I32, MPI_Send, I32 a, I32 b, I32 c, I32 d, I32 e, I32 f) {
@@ -58,6 +103,11 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Recv", I32, MPI_Recv, I32 a, I32 b, I32 c, I32 d, I32 e, I32 f, I32 g) {
         util::getLogger()->debug("S - MPI_Recv {} {}", a, b, c, d, e, f, g);
+        return 0;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Abort", I32, MPI_Abort, I32 a, I32 b) {
+        util::getLogger()->debug("S - MPI_Abort {} {}", a, b);
         return 0;
     }
 

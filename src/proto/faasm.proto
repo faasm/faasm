@@ -39,4 +39,8 @@ message Message {
     optional int32 pythonIdx = 21;
 
     optional int32 coldStartInterval = 22;
+
+    optional bool isMpi = 23;
+    optional int32 mpiWorldId = 24;
+    optional int32 mpiRank = 25;
 }
