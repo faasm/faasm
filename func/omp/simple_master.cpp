@@ -6,7 +6,7 @@ bool fail = false;
 bool accessed = false; /* racy: should be atomic bool */
 
 FAASM_MAIN_FUNC() {
-    int main_number = omp_get_thread_num();
+    int main_number = omp_get_thread_num(); // master thread index
     #pragma omp parallel default(none) shared(main_number)
     {
         #pragma omp master
@@ -18,7 +18,8 @@ FAASM_MAIN_FUNC() {
             accessed = true;
             int local_number = omp_get_thread_num();
             if (main_number != local_number) {
-                printf("Master thread index changed from %d to %d\n", main_number, local_number);
+                printf("Master section not executed by master thread. "
+                       "Got %d, expected %d\n", local_number, main_number);
                 fail = true;
             }
         }

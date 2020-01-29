@@ -12,8 +12,6 @@
 namespace wasm {
     static thread_local int thisThreadNumber = 0;
     static thread_local unsigned int thisSectionThreadCount = 1;
-    static std::mutex master_section;
-    static int master = 1;
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_thread_num", I32, omp_get_thread_num) {
         util::getLogger()->debug("S - omp_get_thread_num");
@@ -38,20 +36,12 @@ namespace wasm {
     */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_master", I32, __kmpc_master, I32 loc, I32 global_tid) {
         util::getLogger()->debug("S - __kmpc_master {} {}", loc, global_tid);
-        // Only the master thread (0 GTID for now) should execute, but all threads are reaching
-        // this section with tid == 0 unlike the native implementation which is only arriving here once
-        std::lock_guard<std::mutex> guard(master_section);
-        if (master == 1) {
-            printf("TID is 0\n");
-            master = 0;
-            return 1;
-        }
-        return master;
+        return thisThreadNumber == 0 ? 1 : 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_master", void, __kmpc_end_master, I32 loc, I32 global_tid) {
         util::getLogger()->debug("S - __kmpc_end_master {} {}", loc, global_tid);
-        WAVM_ASSERT(global_tid == 0)
+        WAVM_ASSERT(global_tid == 0 && thisThreadNumber == 0)
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_push_num_threads", void, __kmpc_push_num_threads, 
