@@ -8,6 +8,7 @@ file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/wasm/*.h")
 set(LIB_FILES
         IRModuleRegistry.cpp
         WasmModule.cpp
+        serialisation.cpp
         syscalls.cpp
         syscalls_chaining.cpp
         syscalls_dynlink.cpp

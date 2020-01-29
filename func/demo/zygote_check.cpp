@@ -16,10 +16,10 @@ FAASM_ZYGOTE() {
  */
 FAASM_MAIN_FUNC() {
     if(globalA == 5 && globalB == 102) {
-        printf("Zygote function working");
+        printf("Zygote function working\n");
         return 0;
     } else {
-        printf("Zygote function not working as expected");
+        printf("Zygote function not working as expected\n");
         return 1;
     }
 }

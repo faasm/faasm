@@ -1,5 +1,10 @@
 #include "WasmModule.h"
 
+#include <sys/mman.h>
+#include <fstream>
+
+#include <cereal/archives/binary.hpp>
+
 #include <util/func.h>
 #include <util/memory.h>
 #include <util/timing.h>
@@ -7,6 +12,7 @@
 #include <util/locks.h>
 
 #include <wasm/IRModuleRegistry.h>
+#include <wasm/serialisation.h>
 
 #include <WAVM/WASM/WASM.h>
 #include <WAVM/IR/Types.h>
@@ -291,7 +297,7 @@ namespace wasm {
         Runtime::invokeFunction(executionContext, func, funcType, arguments.data(), &result);
     }
 
-    void WasmModule::bindToFunction(const message::Message &msg) {
+    void WasmModule::bindToFunction(const message::Message &msg, bool executeZygote) {
         /*
          * NOTE - the order things happen in this function is important.
          * The zygote function may execute non-trivial code and modify the memory,
@@ -333,20 +339,22 @@ namespace wasm {
         defaultTable = Runtime::getDefaultTable(moduleInstance);
 
         // Get and execute zygote function
-        zygoteFunctionInstance = getFunction(ZYGOTE_FUNC_NAME, false);
-        if (zygoteFunctionInstance) {
-            IR::UntaggedValue result;
-            const IR::FunctionType funcType = Runtime::getFunctionType(zygoteFunctionInstance);
-            executeFunction(
-                    zygoteFunctionInstance,
-                    funcType,
-                    {},
-                    result
-            );
+        if(executeZygote) {
+            zygoteFunctionInstance = getFunction(ZYGOTE_FUNC_NAME, false);
+            if (zygoteFunctionInstance) {
+                IR::UntaggedValue result;
+                const IR::FunctionType funcType = Runtime::getFunctionType(zygoteFunctionInstance);
+                executeFunction(
+                        zygoteFunctionInstance,
+                        funcType,
+                        {},
+                        result
+                );
 
-            if (result.i32 != 0) {
-                logger->error("Zygote for {}/{} failed with return code {}", boundUser, boundFunction, result.i32);
-                throw std::runtime_error("Zygote failed");
+                if (result.i32 != 0) {
+                    logger->error("Zygote for {}/{} failed with return code {}", boundUser, boundFunction, result.i32);
+                    throw std::runtime_error("Zygote failed");
+                }
             }
         }
 
@@ -1040,5 +1048,43 @@ namespace wasm {
         U8 *memoryBase = Runtime::getMemoryBaseAddress(defaultMemory);
 
         mmap(memoryBase, memoryFdSize, PROT_WRITE, MAP_PRIVATE | MAP_FIXED, memoryFd, 0);
+    }
+
+    void WasmModule::snapshotCrossHost(const std::string &filePath) {
+        std::ofstream outStream(filePath, std::ios::binary);
+        cereal::BinaryOutputArchive archive(outStream);
+
+        // Serialise memory
+        Uptr numPages = Runtime::getMemoryNumPages(defaultMemory);
+        U8 *memBase = Runtime::getMemoryBaseAddress(defaultMemory);
+        U8 *memEnd = memBase + (numPages * IR::numBytesPerPage);
+
+        wasm::MemorySerialised mem;
+        mem.numPages = numPages;
+        mem.data = std::vector<uint8_t>(memBase, memEnd);
+
+        // Serialise to file
+        archive(mem);
+    }
+
+    void WasmModule::restoreCrossHost(const message::Message &msg, const std::string &filePath) {
+        // Read execution state from file
+        std::ifstream inStream(filePath, std::ios::binary);
+        cereal::BinaryInputArchive archive(inStream);
+
+        // Read in serialised data
+        wasm::MemorySerialised mem;
+        archive(mem);
+
+        // Restore memory
+        Uptr currentNumPages = Runtime::getMemoryNumPages(defaultMemory);
+        size_t pagesRequired = mem.numPages - currentNumPages;
+        if(pagesRequired > 0) {
+            mmapPages(pagesRequired);
+        }
+
+        U8 *memBase = Runtime::getMemoryBaseAddress(defaultMemory);
+        size_t memSize = mem.numPages * IR::numBytesPerPage;
+        memcpy(memBase, mem.data.data(), memSize);
     }
 }

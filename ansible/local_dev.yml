@@ -10,6 +10,7 @@
     - protobuf
     - perf
     - spdlog
+    - cereal
     - rapidjson
     - docker
     - runtime_fs
