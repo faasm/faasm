@@ -1,55 +1,48 @@
 ARG FAASM_VERSION
-FROM faasm/worker:${FAASM_VERSION}
+FROM faasm/base-test:${FAASM_VERSION}
 
-# Make sure CI-related requirements exist
-RUN apt-get update
-RUN apt-get install -y apt-transport-https
-RUN apt-get install -y \
-    git \
-    ssh \
-    tar \
-    gzip \
-    ca-certificates \
-    libcairo2-dev \
-    python3-dev \
-    python3-venv
+# -------------------------------------------------------
+# This image should contain everything that needs to be 
+# rebuilt on every test run, i.e. everything that depends
+# on the Faasm source (rather than 3rd party code).
+#
+# It must also generate all necessary machine code as part 
+# of this build to ensure it's correct for the machine on
+# which it's built (which will also run it).
+# -------------------------------------------------------
 
-# Set up requests
-RUN apt-get install -y python3-dev python3-pip
-RUN pip3 install invoke requests
-
-# Install other python deps
-COPY requirements.txt /tmp/requirements.txt
-RUN pip3 install -r /tmp/requirements.txt
-
-# Set up Catch
-WORKDIR /usr/local/code/faasm/ansible
-COPY ansible/catch.yml catch.yml
-RUN ansible-playbook catch.yml
-
-# Clear out
-RUN rm -rf /tmp/*
-
-# Set up runtime root and sysroot
 COPY . /usr/local/code/faasm
+
+# Build native libraries
+WORKDIR /usr/local/code/faasm
+RUN inv install-native-tools
+
+# Build the actual tests (do this early to catch failures)
+WORKDIR /faasm/build
+RUN cmake --build . --target tests
+
+# Download tools
 WORKDIR /usr/local/code/faasm
 RUN inv download-sysroot
-RUN chown -R root:root /usr/local/faasm
+RUN inv download-runtime-root --nocodegen
+RUN inv run-local-codegen
 
-# Build the local tooling
-RUN inv install-native-tools
+# Compile test library
+RUN inv compile-libfake
+
+# Fix ownership
+RUN chown -R root:root /usr/local/faasm
 
 # Install pyfaasm
 RUN pip3 install pyfaasm
 
-# Build the tests
-WORKDIR /faasm/build
-RUN cmake --build . --target tests -- -j
+# Set up Python files
+RUN inv upload-all --py --local-copy
 
-# Remove worker entrypoint
-COPY bin/noop-entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
+# Create user with dummy uid required by Python
+RUN groupadd -g 1000 faasm
+RUN useradd -u 1000 -g 1000 faasm
 
-# Command to run the tests
+# Run the tests (when container is run)
+WORKDIR /usr/local/code/faasm
 CMD /faasm/build/bin/tests

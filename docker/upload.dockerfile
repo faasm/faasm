@@ -14,9 +14,9 @@ RUN rm faasm-runtime-root-${FAASM_VERSION}.tar.gz
 
 # Build the upload and codegen targets
 WORKDIR /faasm/build
-RUN cmake --build . --target upload -- -j
-RUN cmake --build . --target codegen_shared_obj -- -j
-RUN cmake --build . --target codegen_func -- -j
+RUN cmake --build . --target upload
+RUN cmake --build . --target codegen_shared_obj
+RUN cmake --build . --target codegen_func
 
 # Put the python no-op function in place
 COPY func/python/noop.py /usr/local/faasm/shared_store/pyfuncs/python/noop/function.py

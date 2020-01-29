@@ -163,7 +163,7 @@ def backup_runtime_root(ctx):
 
 
 @task
-def download_runtime_root(ctx):
+def download_runtime_root(ctx, nocodegen=False):
     tar_name = _get_runtime_tar_name()
     tar_path = _get_runtime_tar_path()
 
@@ -180,8 +180,9 @@ def download_runtime_root(ctx):
     remove(tar_path)
 
     # Run codegen
-    print("Running codegen")
-    run_python_codegen(ctx)
+    if not nocodegen:
+        print("Running codegen")
+        run_python_codegen(ctx)
 
 
 @task

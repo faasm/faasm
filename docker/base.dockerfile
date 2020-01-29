@@ -14,6 +14,7 @@ RUN apt-get install -y ansible \
     libhiredis-dev \
     libcgroup-dev \
     libcurl4-openssl-dev \
+    ninja-build \
     cgroup-tools \
     cgroup-bin
 
@@ -36,9 +37,10 @@ WORKDIR /faasm/build
 
 # Build WAVM to avoid repetition in other dockerfiles
 RUN cmake \
+    -GNinja \
     -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
     -DCMAKE_C_COMPILER=/usr/bin/clang \
     -DCMAKE_BUILD_TYPE=Release \
     /usr/local/code/faasm
 
-RUN cmake --build . --target libWAVM -- -j
+RUN cmake --build . --target libWAVM
