@@ -5,6 +5,9 @@
 extern "C" {
 #endif
 
+// Hard-code the world size for now, need to decide when/ where to set this
+#define FAASM_FIXED_SIZE 10
+    
 #define MPI_SUCCESS 0
 #define MPI_ERR_OTHER 1
 
@@ -30,12 +33,12 @@ struct faasmpi_status_public_t {
 
 // Open MPI version: https://github.com/open-mpi/ompi/blob/master/ompi/datatype/ompi_datatype.h
 struct faasmpi_datatype_t {
-    char name[MPI_MAX_OBJECT_NAME];
+    int id;
 };
 
 // Open MPI version: https://github.com/open-mpi/ompi/blob/master/ompi/communicator/communicator.h
 struct faasmpi_communicator_t {
-    char name[MPI_MAX_OBJECT_NAME];
+    int id;
 };
 
 // Open MPI version: https://github.com/open-mpi/ompi/blob/master/ompi/message/message.h
@@ -47,11 +50,13 @@ struct faasmpi_message_t {
  * User-facing constants
  */
 // MPI_Comms
-struct faasmpi_communicator_t faasmpi_comm_world{.name="COMM_WORLD"};
+#define FAASMPI_COMM_WORLD 1
+struct faasmpi_communicator_t faasmpi_comm_world{.id=FAASMPI_COMM_WORLD};
 #define MPI_COMM_WORLD (&faasmpi_comm_world)
 
 // MPI_Datatypes
-struct faasmpi_datatype_t faasmpi_type_int{.name="int"};
+#define FAASMPI_INT 1
+struct faasmpi_datatype_t faasmpi_type_int{.id=FAASMPI_INT};
 #define MPI_INT &faasmpi_type_int
 
 // MPI_Statuses
