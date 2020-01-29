@@ -1,12 +1,9 @@
 #include "WasmModule.h"
-#include "syscalls.h"
-#include "openmp_types.h"
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <util/environment.h>
 
-#include <atomic>
 #include <condition_variable>
 #include <mutex>
 #include <stdio.h>
@@ -16,9 +13,9 @@ namespace wasm {
     static thread_local unsigned int thisSectionThreadCount = 1;
     static int masterNumThread = -1;
     static std::vector<std::thread> threads;
-    static int semaphore = -1;
-    static std::mutex m;
-    static std::condition_variable cv;
+    static int numThreadSemaphore = -1;
+    static std::mutex barrierMutex;
+    static std::condition_variable barrierCV;
 
     /**
      * @return the thread number, within its team, of the thread executing the function.
@@ -60,13 +57,11 @@ namespace wasm {
             return;
         }
         {
-            std::unique_lock<std::mutex> lk(m);
-            semaphore--;
-            cv.wait(lk, []{return semaphore == 0;});
+            std::unique_lock<std::mutex> lk(barrierMutex);
+            numThreadSemaphore--;
+            barrierCV.wait(lk, []{return numThreadSemaphore == 0;});
         }
-        cv.notify_all();
-
-//        // Reset the thread count for this thread
+        barrierCV.notify_all();
     }
 
     /**
@@ -146,7 +141,8 @@ namespace wasm {
         
         // Spawn calls to the microtask in multiple threads
         int numThreads = masterNumThread > 0 ? masterNumThread : util::getUsableCores();
-        semaphore = numThreads;
+        // Saves number of thread separately in case threads modify it before done spawning
+        numThreadSemaphore = numThreads;
         for (int threadNum = 0; threadNum < numThreads; threadNum++) {
             WasmModule *parentModule = getExecutingModule();
             message::Message *parentCall = getExecutingCall();
