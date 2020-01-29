@@ -16,4 +16,10 @@ namespace tests {
         message::Message msg = util::messageFactory("omp", "header_api_support");
         execFunction(msg);
     }
+
+    TEST_CASE("Test non-nested master pragma", "[wasm]") {
+        cleanSystem();
+        message::Message msg = util::messageFactory("omp", "simple_master");
+        execFunction(msg);
+    }
 }
