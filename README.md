@@ -2,7 +2,7 @@
 <img src="https://raw.githubusercontent.com/lsds/Faasm/master/faasm_logo.png"></img>
 </div>
 
-# Faasm [![Actions Status](https://github.com/lsds/Faasm/workflows/Tests/badge.svg)](https://github.com/lsds/Faasm) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+# Faasm [![Tests](https://github.com/lsds/Faasm/workflows/Tests/badge.svg?branch=master)](https://github.com/lsds/Faasm/actions) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 Faasm is a high-performance stateful serverless runtime. The goal of the project is enabling fast, efficient serverless big data.
 
