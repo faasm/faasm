@@ -1,55 +1,42 @@
 ARG FAASM_VERSION
-FROM faasm/worker:${FAASM_VERSION}
+FROM faasm/base-test:${FAASM_VERSION}
 
-# Make sure CI-related requirements exist
-RUN apt-get update
-RUN apt-get install -y apt-transport-https
-RUN apt-get install -y \
-    git \
-    ssh \
-    tar \
-    gzip \
-    ca-certificates \
-    libcairo2-dev \
-    python3-dev \
-    python3-venv
-
-# Set up requests
-RUN apt-get install -y python3-dev python3-pip
-RUN pip3 install invoke requests
-
-# Install other python deps
-COPY requirements.txt /tmp/requirements.txt
-RUN pip3 install -r /tmp/requirements.txt
-
-# Set up Catch
-WORKDIR /usr/local/code/faasm/ansible
-COPY ansible/catch.yml catch.yml
-RUN ansible-playbook catch.yml
-
-# Clear out
-RUN rm -rf /tmp/*
-
-# Set up runtime root and sysroot
 COPY . /usr/local/code/faasm
+
+# Build the codegen targets
+WORKDIR /faasm/build
+RUN cmake --build . --target codegen_shared_obj -- -j
+RUN cmake --build . --target codegen_func -- -j
+
+# Set up latest tools
 WORKDIR /usr/local/code/faasm
 RUN inv download-sysroot
+RUN inv download-runtime-root
+
+# Run codegen
+RUN inv run-local-codegen
+
+# Compile test library
+RUN inv compile-libfake
+
+# Fix ownership
 RUN chown -R root:root /usr/local/faasm
 
-# Build the local tooling
+# Install emulator etc.
 RUN inv install-native-tools
 
 # Install pyfaasm
 RUN pip3 install pyfaasm
 
-# Build the tests
-WORKDIR /faasm/build
+# Set up Python files
+RUN inv upload-all --py --local-copy
+
+# Build the actual tests
 RUN cmake --build . --target tests -- -j
 
-# Remove worker entrypoint
-COPY bin/noop-entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
+# Create user with dummy uid required by Python
+RUN groupadd -g 1000 faasm
+RUN useradd -u 1000 -g 1000 faasm
 
-# Command to run the tests
+# Run the tests (when container is run)
 CMD /faasm/build/bin/tests
