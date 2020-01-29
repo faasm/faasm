@@ -30,5 +30,10 @@ RUN pip3 install -r /tmp/requirements.txt
 WORKDIR /usr/local/code/faasm
 RUN inv download-toolchain
 
+# Build codegen binaries
+WORKDIR /faasm/build
+RUN cmake --build . --target codegen_shared_obj -- -j
+RUN cmake --build . --target codegen_func -- -j
+
 # Clear out
 RUN rm -rf /tmp/*
