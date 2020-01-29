@@ -1,7 +1,7 @@
 # Faasm MPI support
 
 MPI translates quite nicely to a serverless context, but compiling any existing MPI implementation
-to wasm proved tricky (see below). As a result, Faasm includes a minimal MPI implementation in `lib-faasmp`.  
+to wasm proved tricky (see below). As a result, Faasm includes a minimal MPI implementation in `lib-faasmpi`.  
 
 ## MPI Functions
 
@@ -15,9 +15,9 @@ inv invoke omp hellompi
 
 ## Extending the Faasm MPI implementation
 
-The MPI interface declarations live in `lib-faasmp` and the definitions in `src/wasm/syscalls_mpi.cpp`.
+The MPI interface declarations live in `lib-faasmpi` and the definitions in `src/wasm/syscalls_mpi.cpp`.
 
-Anything missing needs to be added in both places, along with an entry in `lib-faasmp/faasmp.imports`. 
+Anything missing needs to be added in both places, along with an entry in `lib-faasmpi/faasmpi.imports`. 
 
 ## Installing/ running locally
 

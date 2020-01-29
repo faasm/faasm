@@ -1,5 +1,5 @@
 #include "mpi.h"
-#include "faasmp/faasmp.h"
+#include "faasmpi/faasmpi.h"
 
 // Dummy function to force inclusion of some MPI calls in compilation
 void helloFaasmpi() {
