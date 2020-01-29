@@ -13,7 +13,7 @@ jobs:
   build:
     runs-on: ubuntu-18.04
     env:
-      DOCKER_BUILDKIT=1
+      DOCKER_BUILDKIT: 1
     steps:
       - uses: actions/checkout@v2
       - name: "Build the testing image"
