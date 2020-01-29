@@ -6,6 +6,9 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <util/environment.h>
 
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
 #include <stdio.h>
 
 namespace wasm {
@@ -13,6 +16,9 @@ namespace wasm {
     static thread_local unsigned int thisSectionThreadCount = 1;
     static int masterNumThread = -1;
     static std::vector<std::thread> threads;
+    static int semaphore = -1;
+    static std::mutex m;
+    static std::condition_variable cv;
 
     /**
      * @return the thread number, within its team, of the thread executing the function.
@@ -38,6 +44,29 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_max_threads", I32, omp_get_max_threads) {
         util::getLogger()->debug("S - omp_get_max_threads");
         return util::getUsableCores();
+    }
+
+    /**
+     * Synchronization point at which threads in a parallel region will not execute beyond
+     * the omp barrier until all other threads in the team complete all explicit tasks in the region.
+     * Concepts used for reductions and split barriers.
+     * @param loc
+     * @param global_tid
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_barrier", void, __kmpc_barrier, I32 loc, I32 global_tid) {
+        util::getLogger()->debug("S - __kmpc_barrier {} {}", loc, global_tid);
+
+        if (thisSectionThreadCount <= 1) {
+            return;
+        }
+        {
+            std::unique_lock<std::mutex> lk(m);
+            semaphore--;
+            cv.wait(lk, []{return semaphore == 0;});
+        }
+        cv.notify_all();
+
+//        // Reset the thread count for this thread
     }
 
     /**
@@ -117,6 +146,7 @@ namespace wasm {
         
         // Spawn calls to the microtask in multiple threads
         int numThreads = masterNumThread > 0 ? masterNumThread : util::getUsableCores();
+        semaphore = numThreads;
         for (int threadNum = 0; threadNum < numThreads; threadNum++) {
             WasmModule *parentModule = getExecutingModule();
             message::Message *parentCall = getExecutingCall();

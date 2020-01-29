@@ -4,6 +4,7 @@ __kmpc_master
 __kmpc_end_master
 __kmpc_global_thread_num
 __kmpc_push_num_threads
+__kmpc_barrier
 
 # OpenMP API
 omp_get_thread_num
