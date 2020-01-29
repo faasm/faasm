@@ -31,6 +31,3 @@ omp_func(header_api_support header_api_support.cpp)
 omp_func(hellomp hellomp.cpp)
 omp_func(simple_master simple_master.cpp)
 omp_func(simple_barrier simple_barrier.cpp)
-
-# Intel kernel tests
-omp_func(intel_nstreams intel_nstreams.c false)
