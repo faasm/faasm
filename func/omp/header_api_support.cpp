@@ -7,7 +7,7 @@ bool failed = false;
 struct ThreadInfo {
   int32_t thread_num;
   int32_t local_thread_num;
-} __attribute__ ((aligned(64)));
+} __attribute__ ((aligned(128)));
 
 FAASM_MAIN_FUNC() {
     int max = omp_get_max_threads();
