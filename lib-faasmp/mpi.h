@@ -5,6 +5,9 @@
 extern "C" {
 #endif
 
+#define MPI_SUCCESS 0
+#define MPI_ERR_OTHER 1
+
 /**
  * Custom Faasm MPI implementation
  * Official MPI spec: https://www.mpi-forum.org/docs/

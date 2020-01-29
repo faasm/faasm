@@ -3,7 +3,11 @@
 #include <faasm/faasm.h>
 
 FAASM_MAIN_FUNC() {
-    MPI_Init(NULL, NULL);
+    int res = MPI_Init(NULL, NULL);
+    if(res != MPI_SUCCESS) {
+        printf("Failed on MPI init\n");
+        return 1;
+    }
 
     int world_rank;
     int world_size;
