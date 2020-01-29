@@ -21,6 +21,7 @@
       - kcachegrind
       - redis-server
       - redis-tools
+      - ninja-build
       - python-dev
       - python-pip
       - python3-dev

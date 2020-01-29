@@ -22,6 +22,7 @@ COPY . /usr/local/code/faasm
 WORKDIR /faasm/native_tools
 COPY . /usr/local/code/faasm
 RUN cmake \
+    -GNinja \
     -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
     -DCMAKE_C_COMPILER=/usr/bin/clang \
     -DFAASM_BUILD_TYPE=native-tools \
@@ -30,8 +31,8 @@ RUN cmake \
     -DCMAKE_INSTALL_PREFIX=/usr/local \
     /usr/local/code/faasm
 
-RUN make -j
-RUN make install
+RUN ninja
+RUN ninja install
 
 # Download the toolchain
 WORKDIR /usr/local/code/faasm

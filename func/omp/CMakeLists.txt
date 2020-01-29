@@ -10,18 +10,8 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
-set(OMPI_CXX ${CXX})
-set(OMPI_C ${C})
-
-function(omp_func exec_name dir_path link_mpi)
+function(omp_func exec_name dir_path)
     faasm_func(${exec_name} ${dir_path})
-
-    if(FAASM_BUILD_TYPE STREQUAL "wasm")
-        set(MPI_LIB "")
-    else()
-        include_directories(/usr/local/faasm/openmpi/include)
-        set(MPI_LIB /usr/local/faasm/openmpi/lib/libmpi.so)
-    endif()
 
     if(FAASM_BUILD_TYPE STREQUAL "knative-native")
         set(EXEC_NAME ${exec_name}-knative)
@@ -34,23 +24,13 @@ function(omp_func exec_name dir_path link_mpi)
     else ()
         target_link_libraries(${EXEC_NAME} pthread)
     endif ()
-
-    if(link_mpi STREQUAL "true")
-        target_link_libraries(${EXEC_NAME} ${MPI_LIB})
-    endif()
 endfunction(omp_func)
 
-omp_func(checks checks.cpp false)
-omp_func(header_api_support header_api_support.cpp false)
-omp_func(hellomp hellomp.cpp false)
-omp_func(simple_master simple_master.cpp false)
-omp_func(simple_barrier simple_barrier.cpp false)
+omp_func(checks checks.cpp)
+omp_func(header_api_support header_api_support.cpp)
+omp_func(hellomp hellomp.cpp)
+omp_func(simple_master simple_master.cpp)
+omp_func(simple_barrier simple_barrier.cpp)
 
 # Intel kernel tests
 omp_func(intel_nstreams intel_nstreams.c false)
-
-# Skip MPI stuff in knative for now
-if(FAASM_BUILD_TYPE STREQUAL "knative-native")
-else()
-omp_func(hellompi hellompi.cpp true)
-endif()

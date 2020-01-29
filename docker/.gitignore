@@ -1,2 +1,0 @@
-# We template dockerignore files, so ignore them
-*.dockerignore

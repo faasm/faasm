@@ -1,0 +1,50 @@
+# NOTE - as part of the docker-build task we create custom dockerignore files on the fly
+# to change things for specific builds. See the docker/ directory for these templates
+
+# CLion
+cmake-build-debug
+cmake-build-release
+.idea
+
+# Builds
+build
+
+# Git
+.git
+
+# Misc project files
+docker
+docs
+k8s
+node_modules
+typescript
+venv
+machine-code
+
+# WebAssembly - benchmark functions have special status
+wasm
+!wasm/python/py_func/function.wasm
+!wasm/sgd/reuters_svm/function.wasm
+!wasm/tf/image/function.wasm
+
+# Benchmarking
+perf
+perf.*
+
+# Misc files
+.travis.yml
+
+# Submodules
+third-party
+!third-party/faasm-demo-c
+!third-party/malloc
+!third-party/eigen
+!third-party/WAVM
+
+!wasm/demo/
+!wasm/errors/
+!wasm/omp/
+!wasm/mpi/
+!wasm/python/
+!wasm/sgd/
+!wasm/tf/

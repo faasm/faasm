@@ -100,6 +100,7 @@ def compile_libfaasm(ctx, clean=False):
     _build_faasm_lib("lib-cpp", clean)
     _build_faasm_lib("lib-pyinit", clean)
     _build_faasm_lib("lib-faasmp", clean)
+    _build_faasm_lib("lib-faasmpi", clean)
 
 
 @task
@@ -108,6 +109,14 @@ def compile_libfaasmp(ctx, clean=False):
     Build just the faasm OpenMP library
     """
     _build_faasm_lib("lib-faasmp", clean)
+
+
+@task
+def compile_libfaasmpi(ctx, clean=False):
+    """
+    Build just the faasm MPI library
+    """
+    _build_faasm_lib("lib-faasmpi", clean)
 
 
 @task

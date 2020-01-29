@@ -9,7 +9,7 @@ COPY . /usr/local/code/faasm
 
 # Build the worker
 WORKDIR /faasm/build
-RUN cmake --build . --target worker_ibm -- -j
+RUN cmake --build . --target worker_ibm
 
 # Put the entrypoint in place
 COPY bin/ibm-worker-entrypoint.sh /entrypoint.sh

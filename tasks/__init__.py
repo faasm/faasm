@@ -50,6 +50,7 @@ from tasks.compile_libs import (
     compile_malloc,
     compile_libfaasm,
     compile_libfaasmp,
+    compile_libfaasmpi,
     compile_eigen,
     compile_libfake,
     compile_libpng,

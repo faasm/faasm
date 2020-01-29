@@ -16,9 +16,13 @@ namespace wasm {
         return 0;
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Comm_size", I32, MPI_Comm_size, I32 a, I32 b) {
-        util::getLogger()->debug("S - MPI_Comm_size {} {}", a, b);
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Comm_size", I32, MPI_Comm_size, I32 commPtr, I32 resPtr) {
+        util::getLogger()->debug("S - MPI_Comm_size {} {}", commPtr, resPtr);
+
+
+
         return 0;
+
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Abort", I32, MPI_Abort, I32 a, I32 b) {

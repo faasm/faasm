@@ -19,7 +19,6 @@ RELEASE_CONTAINERS = [
     "knative-native-python",
     "redis",
     "toolchain",
-    "testing",
 ]
 
 

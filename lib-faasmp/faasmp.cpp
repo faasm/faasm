@@ -4,5 +4,5 @@
 #include <stdio.h>
 
 void helloFaasmp() {
-        printf("Running Faasm OpenMP support\n");
+    printf("Running Faasm OpenMP support\n");
 };

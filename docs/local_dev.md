@@ -89,7 +89,6 @@ You can pull down the prepackaged python runtime and required runtime files with
 
 ```
 inv download-runtime-root
-inv run-local-codegen
 ```
 
 You can then put the Python functions in place with:
