@@ -46,6 +46,9 @@ omp_func(hellomp hellomp.cpp false)
 omp_func(simple_master simple_master.cpp false)
 omp_func(simple_barrier simple_barrier.cpp false)
 
+# Intel kernel tests
+omp_func(intel_nstreams intel_nstreams.c false)
+
 # Skip MPI stuff in knative for now
 if(FAASM_BUILD_TYPE STREQUAL "knative-native")
 else()
