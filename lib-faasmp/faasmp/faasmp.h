@@ -4,6 +4,4 @@
 // This is just a placeholder for now
 void helloFaasmp();
 
-void helloFaasmpi();
-
 #endif
