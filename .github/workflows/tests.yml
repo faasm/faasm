@@ -1,20 +1,23 @@
-name: Run tests
+name: Tests
 
 on:
   push:
     branches:
       - master
-      # - gh-actions
+  pull_request:
+    branches:
+      - master
+      - gh-actions
 
 jobs:
+  env:
+    DOCKER_BUILDKIT=1
   build:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
     - name: "Build the testing image"
       run: docker build . -f docker/testing.dockerfile --tag faasm/testing:${GITHUB_SHA} --build-arg FAASM_VERSION=0.0.5
-      env:
-        DOCKER_BUILDKIT=1
     - name: "Create a docker network"
       run: docker network create -d bridge test-net
     - name: "Stop redis container"
@@ -22,4 +25,13 @@ jobs:
     - name: "Run the redis container"
       run: docker run -d --name redis --net=test-net --rm faasm/redis:0.0.5
     - name: "Run the testing container"
-      run: docker run --privileged --net=test-net faasm/testing:${GITHUB_SHA} /usr/local/code/faasm/bin/ci_run.sh
+      run: >
+        docker run --privileged --net=test-net
+        -e CGROUP_MODE=on
+        -e HOST_TYPE=ci
+        -e REDIS_STATE_HOST=redis
+        -e REDIS_QUEUE_HOST=redis
+        -e LOG_LEVEL=info
+        -e THREADS_PER_WORKER=5
+        faasm/testing:${GITHUB_SHA}
+        /usr/local/code/faasm/bin/ci_run.sh
