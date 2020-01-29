@@ -1,40 +1,109 @@
 #include "WasmModule.h"
-#include "syscalls.h"
-#include "openmp_types.h"
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <util/environment.h>
 
+#include <condition_variable>
+#include <mutex>
+#include <stdio.h>
+
 namespace wasm {
     static thread_local int thisThreadNumber = 0;
-    static thread_local unsigned int thisSectionThreadCount = 0;
+    static thread_local unsigned int thisSectionThreadCount = 1;
+    static int masterNumThread = -1;
+    static std::vector<std::thread> threads;
+    static int numThreadSemaphore = -1;
+    static std::mutex barrierMutex;
+    static std::condition_variable barrierCV;
 
+    /**
+     * @return the thread number, within its team, of the thread executing the function.
+     */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_thread_num", I32, omp_get_thread_num) {
         util::getLogger()->debug("S - omp_get_thread_num");
         return thisThreadNumber;
     }
 
+    /**
+     * @return the number of threads currently in the team executing the parallel region from
+     * which it is called.
+     */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_num_threads", I32, omp_get_num_threads) {
         util::getLogger()->debug("S - omp_get_num_threads");
         return thisSectionThreadCount;
     }
 
+    /**
+     * @return the maximum number of threads that can be used to form a new team if a parallel
+     * region without a num_threads clause is encountered.
+     */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_max_threads", I32, omp_get_max_threads) {
         util::getLogger()->debug("S - omp_get_max_threads");
         return util::getUsableCores();
+    }
+
+    /**
+     * Synchronization point at which threads in a parallel region will not execute beyond
+     * the omp barrier until all other threads in the team complete all explicit tasks in the region.
+     * Concepts used for reductions and split barriers.
+     * @param loc
+     * @param global_tid
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_barrier", void, __kmpc_barrier, I32 loc, I32 global_tid) {
+        util::getLogger()->debug("S - __kmpc_barrier {} {}", loc, global_tid);
+
+        if (thisSectionThreadCount <= 1) {
+            return;
+        }
+        {
+            std::unique_lock<std::mutex> lk(barrierMutex);
+            numThreadSemaphore--;
+            barrierCV.wait(lk, []{return numThreadSemaphore == 0;});
+        }
+        barrierCV.notify_all();
+    }
+
+    /**
+     * No implied BARRIER exists on either entry to or exit from the MASTER section.
+     * @param loc  source location information.
+     * @param global_tid  global thread number.
+     * @return 1 if this thread should execute the <tt>master</tt> block, 0 otherwise.
+     *
+     * Faasm: at the moment we only ensure the MASTER section is ran only once but do
+     * not handle properly assigning to the master section. Support for better gtid and
+     * teams will come. This is called by all threads with same GTID, which is not
+     * what the native code does.
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_master", I32, __kmpc_master, I32 loc, I32 global_tid) {
+        util::getLogger()->debug("S - __kmpc_master {} {}", loc, global_tid);
+        return thisThreadNumber == 0 ? 1 : 0;
+    }
+
+    /**
+     * Only called by the thread executing the master region.
+     * @param loc  source location information.
+     * @param global_tid  global thread number .
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_master", void, __kmpc_end_master, I32 loc, I32 global_tid) {
+        util::getLogger()->debug("S - __kmpc_end_master {} {}", loc, global_tid);
+        WAVM_ASSERT(global_tid == 0 && thisThreadNumber == 0)
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_push_num_threads", void, __kmpc_push_num_threads, 
                                    I32 loc, I32 global_tid, I32 num_threads) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __kmpc_push_num_threads {} {} {}", loc, global_tid, num_threads);
+
+        if (num_threads > 0) {
+            masterNumThread = num_threads;
+        }
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_global_thread_num", I32, __kmpc_global_thread_num,
                                    I32 loc) {
         util::getLogger()->debug("S - __kmpc_global_thread_num {}", loc);
-        return 0;
+        return thisThreadNumber;
     }
 
     /**
@@ -71,8 +140,9 @@ namespace wasm {
         Runtime::GCPointer<Runtime::Memory> &memoryPtr = getExecutingModule()->defaultMemory;
         
         // Spawn calls to the microtask in multiple threads
-        int numThreads = util::getUsableCores();
-        std::vector<std::thread> threads;
+        int numThreads = masterNumThread > 0 ? masterNumThread : util::getUsableCores();
+        // Saves number of thread separately in case threads modify it before done spawning
+        numThreadSemaphore = numThreads;
         for (int threadNum = 0; threadNum < numThreads; threadNum++) {
             WasmModule *parentModule = getExecutingModule();
             message::Message *parentCall = getExecutingCall();
@@ -121,7 +191,7 @@ namespace wasm {
         }
 
         // Reset the thread count for this thread
-        thisSectionThreadCount = 0;
+        thisSectionThreadCount = 1;
     }
 
     void ompLink() {

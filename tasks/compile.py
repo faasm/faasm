@@ -1,5 +1,6 @@
 from subprocess import call
-from os.path import join
+from os.path import exists, join
+from os import mkdir
 
 from invoke import task
 
@@ -46,10 +47,13 @@ def compile(ctx, user, func, clean=False, debug=False, ts=False, cp=False):
     target = func
     _do_compile(target, clean, debug)
     if cp:
+        dest_folder = join(WASM_DIR, user, func)
+        if not exists(dest_folder):
+            mkdir(dest_folder)
         cmd = [
             "cp",
             join(FUNC_BUILD_DIR, user, ".".join([func, "wasm"])),
-            join(WASM_DIR, user, func, "function.wasm"),
+            join(dest_folder, "function.wasm"),
         ]
         call(" ".join(cmd), shell=True, cwd=FUNC_BUILD_DIR)
 
