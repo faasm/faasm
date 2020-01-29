@@ -22,4 +22,10 @@ namespace tests {
         message::Message msg = util::messageFactory("omp", "simple_master");
         execFunction(msg);
     }
+
+    TEST_CASE("Test non-nested barrier pragma", "[wasm]") {
+        cleanSystem();
+        message::Message msg = util::messageFactory("omp", "simple_barrier");
+        execFunction(msg);
+    }
 }
