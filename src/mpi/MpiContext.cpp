@@ -1,85 +1,50 @@
 #include "mpi/MpiContext.h"
+#include "mpi/MpiWorldRegistry.h"
 
+#include <util/gids.h>
 #include <proto/faasm.pb.h>
-#include <util/func.h>
-#include <scheduler/Scheduler.h>
 
 namespace mpi {
-    MpiContext::MpiContext() : isMpi(false), mpiWorldId(-1), mpiRank(-1), worldSize(-1) {
+    MpiContext::MpiContext() : isMpi(false), rank(-1), worldId(-1) {
 
     }
 
-    void MpiContext::create(const message::Message &call, int worldId, int size) {
+    void MpiContext::createWorld(const message::Message &msg, int worldSize) {
+        // Create the MPI world
+        worldId = (int) util::generateGid();
+        mpi::MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
+        reg.createWorld(msg, worldId, worldSize);
+
+        // Set up this context
         isMpi = true;
-        mpiWorldId = worldId;
-        mpiRank = 0;
-        worldSize = size;
-
-        user = call.user();
-        function = call.function();
-
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-
-        // Dispatch all the chained calls
-        for (int i = 0; i < worldSize - 1; i++) {
-            message::Message msg = util::messageFactory(user, function);
-            msg.set_ismpi(true);
-            msg.set_mpiworldid(worldId);
-            msg.set_mpirank(i + 1);
-
-            sch.callFunction(msg);
-        }
+        rank = 0;
     }
 
-    void MpiContext::join(const message::Message &msg) {
+    void MpiContext::joinWorld(const message::Message &msg) {
         if (!msg.ismpi()) {
             // Not an MPI call
             return;
         }
 
         isMpi = true;
-        mpiWorldId = msg.mpiworldid();
-        mpiRank = msg.mpirank();
+        worldId = msg.mpiworldid();
+        rank = msg.mpirank();
 
-        // TODO - update from global state
-
-        // TODO - broadcast joining here
+        // Register with the world
+        MpiWorldRegistry &registry = getMpiWorldRegistry();
+        MpiWorld &world = registry.getWorld(msg, worldId);
+        world.registerRank(rank);
     }
-
-    void MpiContext::destroy() {
-
-    }
-
-    void MpiContext::send() {
-
-    }
-
-    void MpiContext::receive() {
-
-    }
-
-    std::string MpiContext::getUser() {
-        return user;
-    }
-
-    std::string MpiContext::getFunction() {
-        return function;
-    }
-
 
     bool MpiContext::getIsMpi() {
         return isMpi;
     }
 
-    int MpiContext::getMpiWorldId() {
-        return mpiWorldId;
+    int MpiContext::getRank() {
+        return rank;
     }
 
-    int MpiContext::getWorldSize() {
-        return worldSize;
-    }
-
-    int MpiContext::getMpiRank() {
-        return mpiRank;
+    int MpiContext::getWorldId() {
+        return worldId;
     }
 }

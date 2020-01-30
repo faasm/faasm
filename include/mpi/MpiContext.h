@@ -1,43 +1,24 @@
 #pragma once
 
-#include <proto/faasm.pb.h>
+#include "mpi/MpiWorld.h"
 
 namespace mpi {
     class MpiContext {
     public:
         MpiContext();
 
-        void create(const message::Message &call, int worldId, int size);
+        void createWorld(const message::Message &msg, int worldSize);
 
-        void join(const message::Message &call);
-
-        void destroy();
-
-        void send();
-
-        void receive();
-
-        std::string getUser();
-
-        std::string getFunction();
-
-        int getWorldSize();
+        void joinWorld(const message::Message &msg);
 
         bool getIsMpi();
 
-        int getMpiWorldId();
+        int getWorldId();
 
-        int getMpiRank();
+        int getRank();
     private:
         bool isMpi;
-        int mpiWorldId;
-        int mpiRank;
-        int worldSize;
-
-        std::string user;
-        std::string function;
-
-        // Cached rank node mappings
-        std::unordered_map<int, int> rankNodeMap;
+        int rank;
+        int worldId;
     };
 }

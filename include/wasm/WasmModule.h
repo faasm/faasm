@@ -190,8 +190,6 @@ namespace wasm {
 
     WasmModule *getExecutingModule();
 
-    mpi::MpiContext &getExecutingMpiContext();
-
     void setExecutingModule(WasmModule *executingModule);
 
     message::Message *getExecutingCall();

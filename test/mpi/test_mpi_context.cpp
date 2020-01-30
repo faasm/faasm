@@ -6,17 +6,20 @@ using namespace mpi;
 namespace tests {
 
     TEST_CASE("Check creation", "[mpi]") {
-        MpiContext c;
+        cleanSystem();
 
         message::Message msg = util::messageFactory("mpi", "hellompi");
-
         int worldSize = 10;
+
+        MpiContext c;
         c.create(msg, 123, worldSize);
 
         REQUIRE(c.getIsMpi());
         REQUIRE(c.getMpiWorldId() == 123);
         REQUIRE(c.getMpiRank() == 0);
         REQUIRE(c.getWorldSize() == 10);
+        REQUIRE(c.getUser() == "mpi");
+        REQUIRE(c.getFunction() == "hellompi");
 
         // Check that chained function calls are made as expected
         scheduler::Scheduler &sch = scheduler::getScheduler();
@@ -32,19 +35,33 @@ namespace tests {
     }
 
     TEST_CASE("Check joining", "[mpi]") {
-        MpiContext c;
-        REQUIRE(!c.getIsMpi());
-        REQUIRE(c.getMpiWorldId() == -1);
-        REQUIRE(c.getMpiRank() == -1);
+        cleanSystem();
 
-        message::Message msg = util::messageFactory("mpi", "hellompi");
-        msg.set_ismpi(true);
-        msg.set_mpiworldid(345);
-        msg.set_mpirank(123);
-        c.join(msg);
+        message::Message msgA = util::messageFactory("mpi", "hellompi");
+        int worldSize = 6;
 
-        REQUIRE(c.getIsMpi());
-        REQUIRE(c.getMpiWorldId() == 345);
-        REQUIRE(c.getMpiRank() == 123);
+        // Use one context to create the world
+        MpiContext cA;
+        cA.create(msgA, 123, worldSize);
+
+        // Get one message
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        message::Message msgB = sch.getFunctionQueue(msgA)->dequeue();
+
+        // Create another context
+        MpiContext cB;
+        REQUIRE(!cB.getIsMpi());
+        REQUIRE(cB.getMpiWorldId() == -1);
+        REQUIRE(cB.getMpiRank() == -1);
+
+        // Join and check info propagated
+        cB.join(msgB);
+
+        REQUIRE(cB.getIsMpi());
+        REQUIRE(cB.getMpiWorldId() == 345);
+        REQUIRE(cB.getMpiRank() == 123);
+        REQUIRE(cB.getWorldSize() == worldSize);
+        REQUIRE(cB.getUser() == "mpi");
+        REQUIRE(cB.getFunction() == "hellompi");
     }
 }

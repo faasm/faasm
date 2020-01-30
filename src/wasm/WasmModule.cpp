@@ -36,10 +36,6 @@ namespace wasm {
         return executingModule;
     }
 
-    mpi::MpiContext &getExecutingMpiContext() {
-        return executingModule->getMpiContext();
-    }
-
     void setExecutingModule(WasmModule *other) {
         executingModule = other;
     }
@@ -323,7 +319,7 @@ namespace wasm {
         boundFunction = msg.function();
 
         // Join MPI context if necessary
-        mpiContext.join(msg);
+        mpiContext.joinWorld(msg);
 
         // Set up the compartment and context
         PROF_START(wasmContext)

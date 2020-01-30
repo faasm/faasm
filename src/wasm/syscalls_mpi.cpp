@@ -7,10 +7,22 @@
 #include <util/func.h>
 
 #include <faasmpi/mpi.h>
-#include <util/gids.h>
 #include <scheduler/Scheduler.h>
 
+#include <mpi/MpiWorldRegistry.h>
+
 namespace wasm {
+    
+    mpi::MpiWorld &getExecutingWorld() {
+        int worldId = getExecutingModule()->getMpiContext().getWorldId();
+        mpi::MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
+        return reg.getWorld(*getExecutingCall(), worldId);
+    }
+
+    mpi::MpiContext& getExecutingContext() {
+        return getExecutingModule()->getMpiContext();
+    }
+
     /**
      * This function is responsible for setting up the MPI world
      */
@@ -18,21 +30,9 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - MPI_Init {} {}", a, b);
 
+        // Initialise the world
         int worldSize = FAASM_FIXED_SIZE;
-
-
-
-        // Generate MPI world
-        mpi::MpiContext &mpiContext = getExecutingMpiContext();
-        int worldId = (int) util::generateGid();
-        mpiContext.create(*getExecutingCall(), worldId, worldSize);
-
-        WasmModule *modulePtr = getExecutingModule();
-        const std::string user = modulePtr->getBoundUser();
-        const std::string func = modulePtr->getBoundFunction();
-
-
-        // Note - explicitly not waiting for these chained calls here
+        getExecutingContext().createWorld(*getExecutingCall(), worldSize);
 
         return 0;
     }
@@ -69,7 +69,8 @@ namespace wasm {
             return 1;
         }
 
-        writeMpiIntResult(resPtr, getExecutingMpiContext().getWorldSize());
+        mpi::MpiWorld &world = getExecutingWorld();
+        writeMpiIntResult(resPtr, world.getWorldSize());
 
         return MPI_SUCCESS;
     }
@@ -81,7 +82,7 @@ namespace wasm {
             return 1;
         }
 
-        writeMpiIntResult(resPtr, getExecutingMpiContext().getMpiRank());
+        writeMpiIntResult(resPtr, getExecutingContext().getRank());
 
         return MPI_SUCCESS;
     }
@@ -97,8 +98,7 @@ namespace wasm {
     }
 
     int terminateMpi() {
-        getExecutingMpiContext().destroy();
-
+        getExecutingWorld().destroy();
         return MPI_SUCCESS;
     }
 
