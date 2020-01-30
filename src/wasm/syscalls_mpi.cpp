@@ -4,17 +4,14 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
 
-#include <util/func.h>
-
 #include <faasmpi/mpi.h>
 #include <scheduler/Scheduler.h>
-
-#include <mpi/MpiWorldRegistry.h>
 
 namespace wasm {
     
     mpi::MpiWorld &getExecutingWorld() {
-        int worldId = getExecutingModule()->getMpiContext().getWorldId();
+        mpi::MpiContext &ctx = getExecutingModule()->getMpiContext();
+        int worldId = ctx.getWorldId();
         mpi::MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
         return reg.getWorld(*getExecutingCall(), worldId);
     }
@@ -98,7 +95,8 @@ namespace wasm {
     }
 
     int terminateMpi() {
-        getExecutingWorld().destroy();
+        mpi::MpiWorld &world = getExecutingWorld();
+        world.destroy();
         return MPI_SUCCESS;
     }
 

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "mpi/MpiWorld.h"
+#include <mpi/MpiWorldRegistry.h>
+#include <proto/faasm.pb.h>
 
 namespace mpi {
     class MpiContext {

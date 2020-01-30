@@ -33,8 +33,8 @@ namespace mpi {
         void destroy();
 
     private:
-        int worldId;
-        int worldSize;
+        int id;
+        int size;
 
         std::string user;
         std::string function;

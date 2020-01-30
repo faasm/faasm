@@ -1,25 +1,34 @@
 #include <catch/catch.hpp>
+#include <mpi/MpiWorldRegistry.h>
 #include "utils.h"
 
 using namespace mpi;
 
 namespace tests {
 
-    TEST_CASE("Check creation", "[mpi]") {
+    TEST_CASE("Check world creation", "[mpi]") {
         cleanSystem();
 
         message::Message msg = util::messageFactory("mpi", "hellompi");
         int worldSize = 10;
 
         MpiContext c;
-        c.create(msg, 123, worldSize);
+        c.createWorld(msg, worldSize);
 
+        // Check a new world ID is created
+        int worldId = c.getWorldId();
+        REQUIRE(worldId > 0);
+
+        // Check this context is set up
         REQUIRE(c.getIsMpi());
-        REQUIRE(c.getMpiWorldId() == 123);
-        REQUIRE(c.getMpiRank() == 0);
-        REQUIRE(c.getWorldSize() == 10);
-        REQUIRE(c.getUser() == "mpi");
-        REQUIRE(c.getFunction() == "hellompi");
+        REQUIRE(c.getRank() == 0);
+        
+        // Get the world and check it is set up
+        MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
+        MpiWorld &world = reg.getWorld(msg, worldId);
+        REQUIRE(world.getWorldSize() == 10);
+        REQUIRE(world.getUser() == "mpi");
+        REQUIRE(world.getFunction() == "hellompi");
 
         // Check that chained function calls are made as expected
         scheduler::Scheduler &sch = scheduler::getScheduler();
@@ -34,7 +43,7 @@ namespace tests {
         }
     }
 
-    TEST_CASE("Check joining", "[mpi]") {
+    TEST_CASE("Check joining world", "[mpi]") {
         cleanSystem();
 
         message::Message msgA = util::messageFactory("mpi", "hellompi");
@@ -42,26 +51,26 @@ namespace tests {
 
         // Use one context to create the world
         MpiContext cA;
-        cA.create(msgA, 123, worldSize);
+        cA.createWorld(msgA, worldSize);
+        int worldId = cA.getWorldId();
 
-        // Get one message
+        // Get one message formed by world creation
         scheduler::Scheduler &sch = scheduler::getScheduler();
         message::Message msgB = sch.getFunctionQueue(msgA)->dequeue();
 
-        // Create another context
+        // Create another context and make sure it's not initialised
         MpiContext cB;
         REQUIRE(!cB.getIsMpi());
-        REQUIRE(cB.getMpiWorldId() == -1);
-        REQUIRE(cB.getMpiRank() == -1);
+        REQUIRE(cB.getWorldId() == -1);
+        REQUIRE(cB.getRank() == -1);
 
-        // Join and check info propagated
-        cB.join(msgB);
+        // Join the world
+        cB.joinWorld(msgB);
 
         REQUIRE(cB.getIsMpi());
-        REQUIRE(cB.getMpiWorldId() == 345);
-        REQUIRE(cB.getMpiRank() == 123);
-        REQUIRE(cB.getWorldSize() == worldSize);
-        REQUIRE(cB.getUser() == "mpi");
-        REQUIRE(cB.getFunction() == "hellompi");
+        REQUIRE(cB.getWorldId() == worldId);
+        REQUIRE(cB.getRank() == 1);
+
+        // TODO - check rank is registered to this node
     }
 }

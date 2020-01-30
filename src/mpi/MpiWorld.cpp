@@ -3,21 +3,21 @@
 #include "mpi/MpiWorld.h"
 
 namespace mpi {
-    MpiWorld::MpiWorld() : worldId(-1), worldSize(-1) {
+    MpiWorld::MpiWorld() : id(-1), size(-1) {
 
     }
 
     void MpiWorld::setUpStateKV() {
         if(stateKV == nullptr) {
             state::State &state = state::getGlobalState();
-            stateKey = "mpi_state_" + std::to_string(worldId);
+            stateKey = "mpi_state_" + std::to_string(id);
             stateKV = state.getKV(user, stateKey, sizeof(MpiWorldState));
         }
     }
 
-    void MpiWorld::create(const message::Message &call, int id, int size) {
-        worldId = id;
-        worldSize = size;
+    void MpiWorld::create(const message::Message &call, int worldId, int worldSize) {
+        id = worldId;
+        size = worldSize;
 
         user = call.user();
         function = call.function();
@@ -31,34 +31,38 @@ namespace mpi {
         for (int i = 0; i < worldSize - 1; i++) {
             message::Message msg = util::messageFactory(user, function);
             msg.set_ismpi(true);
-            msg.set_mpiworldid(worldId);
+            msg.set_mpiworldid(id);
             msg.set_mpirank(i + 1);
 
             sch.callFunction(msg);
         }
     }
 
-    void MpiWorld::initialiseFromState(const message::Message &msg, int id) {
-        worldId = id;
+    void MpiWorld::destroy() {
+        setUpStateKV();
+        stateKV->clear();
+    }
+
+    void MpiWorld::initialiseFromState(const message::Message &msg, int worldId) {
+        id = worldId;
         setUpStateKV();
 
         // Read from state
         MpiWorldState s{};
         stateKV->get(reinterpret_cast<uint8_t *>(&s));
-
-        worldSize = s.worldSize;
+        size = s.worldSize;
     }
 
     void MpiWorld::pushToState() {
         // Write to state
         MpiWorldState s {
-                .worldSize=this->worldSize,
+                .worldSize=this->size,
         };
 
         stateKV->set(reinterpret_cast<uint8_t *>(&s));
     }
 
-    void registerRank(int rank) {
+    void MpiWorld::registerRank(int rank) {
         const std::string nodeId = util::getNodeId();
 
         // TODO - register locally _and_ remotely
@@ -73,10 +77,10 @@ namespace mpi {
     }
 
     int MpiWorld::getWorldId() {
-        return worldId;
+        return id;
     }
 
     int MpiWorld::getWorldSize() {
-        return worldSize;
+        return size;
     }
 }

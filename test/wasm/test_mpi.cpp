@@ -18,9 +18,9 @@ namespace tests {
         m.bindToFunction(msg);
 
         // Check context now set up
-        mpi::MpiContext &ctx = wasm::getExecutingMpiContext();
+        mpi::MpiContext &ctx = m.getMpiContext();
         REQUIRE(ctx.getIsMpi());
-        REQUIRE(ctx.getMpiWorldId() == 123);
-        REQUIRE(ctx.getMpiRank()== 456);
+        REQUIRE(ctx.getWorldId() == 123);
+        REQUIRE(ctx.getRank()== 456);
     }
 }
