@@ -20,13 +20,14 @@ namespace wasm {
 
         scheduler::Scheduler &sch = scheduler::getScheduler();
 
-        // Generate world ID
-        WasmModule *modulePtr = getExecutingModule();
+        // Generate MPI world
+        mpi::MpiContext &mpiContext = getExecutingMpiContext();
         unsigned int worldId = util::generateGid();
-        modulePtr->setIsMpi(true);
-        modulePtr->setMpiWorldId(worldId);
-        modulePtr->setMpiRank(0);
+        mpiContext.setIsMpi(true);
+        mpiContext.setMpiWorldId(worldId);
+        mpiContext.setMpiRank(0);
 
+        WasmModule *modulePtr = getExecutingModule();
         const std::string user = modulePtr->getBoundUser();
         const std::string func = modulePtr->getBoundFunction();
 
@@ -91,7 +92,7 @@ namespace wasm {
             return 1;
         }
 
-        writeMpiIntResult(resPtr, getExecutingModule()->getMpiRank());
+        writeMpiIntResult(resPtr, getExecutingMpiContext().getMpiRank());
 
         return MPI_SUCCESS;
     }

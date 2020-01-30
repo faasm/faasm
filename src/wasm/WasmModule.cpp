@@ -36,6 +36,10 @@ namespace wasm {
         return executingModule;
     }
 
+    mpi::MpiContext &getExecutingMpiContext() {
+        return executingModule->getMpiContext();
+    }
+
     void setExecutingModule(WasmModule *other) {
         executingModule = other;
     }
@@ -97,9 +101,7 @@ namespace wasm {
         boundFunction = other.boundFunction;
         boundIsTypescript = other.boundIsTypescript;
 
-        isMpi = other.isMpi;
-        mpiRank = other.mpiRank;
-        mpiWorldId = other.mpiWorldId;
+        mpiContext = other.mpiContext;
 
         if (other._isBound) {
             if (memoryFd > 0) {
@@ -320,10 +322,8 @@ namespace wasm {
         boundUser = msg.user();
         boundFunction = msg.function();
 
-        // Set up MPI variables
-        isMpi = msg.ismpi();
-        mpiWorldId = msg.mpiworldid();
-        mpiRank = msg.mpirank();
+        // Set up MPI context
+        mpiContext.setFromMsg(msg);
 
         // Set up the compartment and context
         PROF_START(wasmContext)
@@ -1097,27 +1097,7 @@ namespace wasm {
         memcpy(memBase, mem.data.data(), memSize);
     }
 
-    bool WasmModule::getIsMpi() {
-        return isMpi;
-    }
-
-    int WasmModule::getMpiWorldId() {
-        return mpiWorldId;
-    }
-
-    int WasmModule::getMpiRank() {
-        return mpiRank;
-    }
-
-    void WasmModule::setIsMpi(bool val) {
-        isMpi = val;
-    }
-
-    void WasmModule::setMpiWorldId(int val) {
-        mpiWorldId = val;
-    }
-
-    void WasmModule::setMpiRank(int val){
-        mpiRank = val;
+    mpi::MpiContext &WasmModule::getMpiContext() {
+        return mpiContext;
     }
 }

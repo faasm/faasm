@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mpi/MpiContext.h>
 #include <util/logging.h>
 #include <state/State.h>
 #include <proto/faasm.pb.h>
@@ -136,17 +137,7 @@ namespace wasm {
 
         void restoreCrossHost(const message::Message &msg, const std::string &filePath);
 
-        bool getIsMpi();
-
-        int getMpiWorldId();
-
-        int getMpiRank();
-
-        void setIsMpi(bool val);
-
-        void setMpiWorldId(int val);
-
-        void setMpiRank(int val);
+        mpi::MpiContext &getMpiContext();
     private:
         Runtime::GCPointer<Runtime::Instance> envModule;
         Runtime::GCPointer<Runtime::Instance> moduleInstance;
@@ -182,10 +173,8 @@ namespace wasm {
         std::unordered_map<std::string, int> globalOffsetMemoryMap;
         std::unordered_map<std::string, int> missingGlobalOffsetEntries;
 
-        // MPI variables
-        bool isMpi;
-        int mpiWorldId;
-        int mpiRank;
+        // MPI context
+        mpi::MpiContext mpiContext;
 
         void reset();
 
@@ -200,6 +189,8 @@ namespace wasm {
     };
 
     WasmModule *getExecutingModule();
+
+    mpi::MpiContext &getExecutingMpiContext();
 
     void setExecutingModule(WasmModule *executingModule);
 
