@@ -15,9 +15,9 @@ namespace mpi {
         }
     }
 
-    void MpiWorld::create(const message::Message &call, int worldId, int worldSize) {
-        id = worldId;
-        size = worldSize;
+    void MpiWorld::create(const message::Message &call, int newId, int newSize) {
+        id = newId;
+        size = newSize;
 
         user = call.user();
         function = call.function();
@@ -28,7 +28,7 @@ namespace mpi {
 
         // Dispatch all the chained calls
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        for (int i = 0; i < worldSize - 1; i++) {
+        for (int i = 0; i < size - 1; i++) {
             message::Message msg = util::messageFactory(user, function);
             msg.set_ismpi(true);
             msg.set_mpiworldid(id);
@@ -65,7 +65,18 @@ namespace mpi {
     void MpiWorld::registerRank(int rank) {
         const std::string nodeId = util::getNodeId();
 
-        // TODO - register locally _and_ remotely
+        util::FullLock lock(worldMutex);
+        rankNodeMap[rank] = nodeId;
+
+        // TODO - register remotely
+    }
+
+    std::string MpiWorld::getNodeForRank(int rank) {
+        if(rankNodeMap.count(rank) == 0) {
+            // TODO - look up remotely
+        }
+
+        return rankNodeMap[rank];
     }
 
     std::string MpiWorld::getUser() {
@@ -76,11 +87,11 @@ namespace mpi {
         return function;
     }
 
-    int MpiWorld::getWorldId() {
+    int MpiWorld::getId() {
         return id;
     }
 
-    int MpiWorld::getWorldSize() {
+    int MpiWorld::getSize() {
         return size;
     }
 }

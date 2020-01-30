@@ -67,7 +67,7 @@ namespace wasm {
         }
 
         mpi::MpiWorld &world = getExecutingWorld();
-        writeMpiIntResult(resPtr, world.getWorldSize());
+        writeMpiIntResult(resPtr, world.getSize());
 
         return MPI_SUCCESS;
     }

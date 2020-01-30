@@ -26,7 +26,7 @@ namespace tests {
         // Get the world and check it is set up
         MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
         MpiWorld &world = reg.getWorld(msg, worldId);
-        REQUIRE(world.getWorldSize() == 10);
+        REQUIRE(world.getSize() == 10);
         REQUIRE(world.getUser() == "mpi");
         REQUIRE(world.getFunction() == "hellompi");
 
@@ -38,7 +38,7 @@ namespace tests {
             REQUIRE(actualCall.user() == "mpi");
             REQUIRE(actualCall.function() == "hellompi");
             REQUIRE(actualCall.ismpi());
-            REQUIRE(actualCall.mpiworldid() == 123);
+            REQUIRE(actualCall.mpiworldid() == worldId);
             REQUIRE(actualCall.mpirank() == i + 1);
         }
     }
