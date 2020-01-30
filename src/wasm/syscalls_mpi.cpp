@@ -20,28 +20,17 @@ namespace wasm {
 
         int worldSize = FAASM_FIXED_SIZE;
 
-        scheduler::Scheduler &sch = scheduler::getScheduler();
+
 
         // Generate MPI world
         mpi::MpiContext &mpiContext = getExecutingMpiContext();
-        unsigned int worldId = util::generateGid();
-        mpiContext.create(worldId, worldSize);
+        int worldId = (int) util::generateGid();
+        mpiContext.create(*getExecutingCall(), worldId, worldSize);
 
         WasmModule *modulePtr = getExecutingModule();
         const std::string user = modulePtr->getBoundUser();
         const std::string func = modulePtr->getBoundFunction();
 
-        // Dispatch all the chained calls
-        for (int i = 0; i < worldSize - 1; i++) {
-            message::Message msg = util::messageFactory(user, func);
-            msg.set_ismpi(true);
-            msg.set_mpiworldid(worldId);
-            msg.set_mpirank(i + 1);
-
-            sch.callFunction(msg);
-            logger->debug("Initialising MPI world {}:{} (master={}, node={})",
-                          worldId, i, util::getNodeId(), msg.schedulednode());
-        }
 
         // Note - explicitly not waiting for these chained calls here
 

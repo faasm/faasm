@@ -7,7 +7,7 @@ namespace mpi {
     public:
         MpiContext();
 
-        void create(int worldId, int size);
+        void create(const message::Message &call, int worldId, int size);
 
         void join(const message::Message &call);
 
@@ -16,6 +16,10 @@ namespace mpi {
         void send();
 
         void receive();
+
+        std::string getUser();
+
+        std::string getFunction();
 
         int getWorldSize();
 
@@ -29,6 +33,9 @@ namespace mpi {
         int mpiWorldId;
         int mpiRank;
         int worldSize;
+
+        std::string user;
+        std::string function;
 
         // Cached rank node mappings
         std::unordered_map<int, int> rankNodeMap;
