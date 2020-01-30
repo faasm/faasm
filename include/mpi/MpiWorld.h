@@ -30,9 +30,13 @@ namespace mpi {
 
         void destroy();
 
+        template<typename T>
+        void send(int sendRank, int destRank, T* buffer, int count);
+
     private:
         int id;
         int size;
+        std::string thisNodeId;
 
         std::shared_mutex worldMutex;
 

@@ -35,7 +35,7 @@ namespace wasm {
     }
 
     bool checkMpiComm(I32 wasmPtr) {
-        Runtime::GCPointer<Runtime::Memory> &memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory* memoryPtr = getExecutingModule()->defaultMemory;
 
         faasmpi_communicator_t *hostComm = &Runtime::memoryRef<faasmpi_communicator_t>(memoryPtr, wasmPtr);
         if (hostComm->id != FAASMPI_COMM_WORLD) {
@@ -48,7 +48,7 @@ namespace wasm {
     }
 
     void writeMpiIntResult(I32 resPtr, I32 result) {
-        Runtime::GCPointer<Runtime::Memory> &memoryPtr = getExecutingModule()->defaultMemory;
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         I32 *hostResPtr = &Runtime::memoryRef<I32>(memoryPtr, resPtr);
         *hostResPtr = result;
     }
@@ -84,8 +84,27 @@ namespace wasm {
         return MPI_SUCCESS;
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Send", I32, MPI_Send, I32 a, I32 b, I32 c, I32 d, I32 e, I32 f) {
-        util::getLogger()->debug("S - MPI_Send {} {}", a, b, c, d, e, f);
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Send", I32, MPI_Send,
+                                   I32 buffer, I32 count, I32 datatype, I32 destRank, I32 tag, I32 comm) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - MPI_Send {} {}", buffer, count, datatype, destRank, tag, comm);
+
+        if(!checkMpiComm(comm)) {
+            return 1;
+        }
+
+        Runtime::Memory* memoryPtr = getExecutingModule()->defaultMemory;
+
+        mpi::MpiWorld &world = getExecutingWorld();
+        faasmpi_datatype_t *hostDataType = &Runtime::memoryRef<faasmpi_datatype_t>(memoryPtr, datatype);
+        if(hostDataType->id == FAASMPI_INT) {
+            I32 *inputs = Runtime::memoryArrayPtr<I32>(memoryPtr, buffer, count);
+            world.sendArray<int>(inputs, count);
+        } else {
+            logger->error("Unrecognised datatype");
+            return 1;
+        }
+
         return 0;
     }
 

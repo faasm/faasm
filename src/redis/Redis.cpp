@@ -492,9 +492,13 @@ namespace redis {
     }
 
     void Redis::enqueueBytes(const std::string &queueName, const std::vector<uint8_t> &value) {
+        enqueueBytes(queueName, value.data(), value.size());
+    }
+
+    void Redis::enqueueBytes(const std::string &queueName, const uint8_t *buffer, size_t bufferLen) {
         // NOTE: Here we must be careful with the input and specify bytes rather than a string
         // otherwise an encoded false boolean can be treated as a string terminator
-        auto reply = (redisReply *) redisCommand(context, "RPUSH %s %b", queueName.c_str(), value.data(), value.size());
+        auto reply = (redisReply *) redisCommand(context, "RPUSH %s %b", queueName.c_str(), buffer, bufferLen);
 
         if (reply->type != REDIS_REPLY_INTEGER) {
             throw std::runtime_error("Failed to enqueue bytes. Reply type = " + std::to_string(reply->type));
@@ -504,6 +508,7 @@ namespace redis {
 
         freeReplyObject(reply);
     }
+
 
     redisReply *Redis::dequeueBase(const std::string &queueName, int timeoutMs) {
         // NOTE - we contradict the default redis behaviour here by doing a non-blocking pop when
@@ -594,5 +599,27 @@ namespace redis {
 
         return replyBytes;
     }
+
+    void Redis::dequeueBytes(const std::string &queueName, uint8_t *buffer, size_t bufferLen, int timeoutMs) {
+        bool isBlocking = timeoutMs > 0;
+        redisReply *reply = this->dequeueBase(queueName, timeoutMs);
+
+        if (isBlocking) {
+            reply = reply->element[1];
+        }
+
+        auto resultBytes = (uint8_t *) reply->str;
+        int resultLen = reply->len;
+
+        if (resultLen > bufferLen) {
+            throw std::runtime_error("Buffer not long enough for dequeue result (buffer=" +
+                                     std::to_string(bufferLen) + " len=" + std::to_string(resultLen) + ")");
+        }
+
+        memcpy(buffer, resultBytes, resultLen);
+
+        freeReplyObject(reply);
+    }
+
 }
 

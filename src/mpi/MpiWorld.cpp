@@ -1,9 +1,14 @@
+#include "mpi/MpiWorld.h"
+#include "mpi/MpiMessage.h"
+
 #include <scheduler/Scheduler.h>
 #include <state/State.h>
-#include "mpi/MpiWorld.h"
+#include <faasmpi/mpi.h>
+#include <util/gids.h>
+#include <mpi/MpiGlobalBus.h>
 
 namespace mpi {
-    MpiWorld::MpiWorld() : id(-1), size(-1) {
+    MpiWorld::MpiWorld() : id(-1), size(-1), thisNodeId(util::getNodeId()) {
 
     }
 
@@ -78,9 +83,12 @@ namespace mpi {
         util::FullLock lock(worldMutex);
         rankNodeMap[rank] = nodeId;
 
+        // TODO - Create an in-memory queue for this rank
+
         // Set the value remotely
         const std::shared_ptr<state::StateKeyValue> &kv = getRankNodeState(rank);
         kv->set(reinterpret_cast<const uint8_t *>(nodeId.c_str()));
+        kv->pushFull();
     }
 
     std::string MpiWorld::getNodeForRank(int rank) {
@@ -101,6 +109,28 @@ namespace mpi {
 
         return rankNodeMap[rank];
     }
+
+    template<typename T>
+    void MpiWorld::send(int sendRank, int destRank, T* buffer, int count) {
+        const std::string nodeId = getNodeForRank(destRank);
+        if(nodeId == thisNodeId) {
+            // TODO - place MPI call on in-memory queue
+        } else {
+            int msgId = (int)util::generateGid();
+            MpiGlobalBus &bus = mpi::getMpiGlobalBus();
+            
+            MpiMessage m{
+                .id=msgId,
+                .sender=sendRank,
+                .destination=destRank,
+                .type=FAASMPI_INT,
+                .count=count,
+            };
+            
+            bus.sendMessageToNode(nodeId, &m);
+        }
+    }
+
 
     std::string MpiWorld::getUser() {
         return user;
