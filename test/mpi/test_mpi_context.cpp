@@ -47,6 +47,8 @@ namespace tests {
     TEST_CASE("Check joining world", "[mpi]") {
         cleanSystem();
 
+        const std::string expectedNode = util::getNodeId();
+        
         message::Message msgA = util::messageFactory("mpi", "hellompi");
         int worldSize = 6;
 
@@ -72,6 +74,11 @@ namespace tests {
         REQUIRE(cB.getWorldId() == worldId);
         REQUIRE(cB.getRank() == 1);
 
-        // TODO - check rank is registered to this node
+        // Check rank is registered to this node
+        MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
+        MpiWorld &world = reg.getWorld(msgB, worldId);
+        const std::string actualNode = world.getNodeForRank(1);
+
+        REQUIRE(actualNode == expectedNode);
     }
 }
