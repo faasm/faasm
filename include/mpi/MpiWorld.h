@@ -1,9 +1,15 @@
 #pragma once
 
+#include "mpi/MpiMessage.h"
+
 #include <proto/faasm.pb.h>
 #include <state/StateKeyValue.h>
+#include <scheduler/InMemoryMessageQueue.h>
 
 namespace mpi {
+    typedef util::Queue<MpiMessage> InMemoryMpiQueue;
+    typedef std::pair<int, InMemoryMpiQueue *> MpiMessageQueuePair;
+
     struct MpiWorldState {
         int worldSize;
     };
@@ -33,6 +39,11 @@ namespace mpi {
         template<typename T>
         void send(int sendRank, int destRank, T *buffer, int dataType, int count);
 
+        template<typename T>
+        void recv(int destRank, T *buffer, int count);
+
+        std::shared_ptr<InMemoryMpiQueue> getRankQueue(int rank);
+
     private:
         int id;
         int size;
@@ -45,6 +56,8 @@ namespace mpi {
 
         std::shared_ptr<state::StateKeyValue> stateKV;
         std::unordered_map<int, std::string> rankNodeMap;
+
+        std::unordered_map<int, std::shared_ptr<InMemoryMpiQueue>> rankQueueMap;
 
         void setUpStateKV();
 
