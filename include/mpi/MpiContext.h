@@ -7,23 +7,30 @@ namespace mpi {
     public:
         MpiContext();
 
-        void setFromMsg(const message::Message &msg);
+        void create(int worldId, int size);
+
+        void join(const message::Message &call);
+
+        void destroy();
+
+        void send();
+
+        void receive();
+
+        int getWorldSize();
 
         bool getIsMpi();
 
         int getMpiWorldId();
 
         int getMpiRank();
-
-        void setIsMpi(bool val);
-
-        void setMpiWorldId(int val);
-
-        void setMpiRank(int val);
-
     private:
         bool isMpi;
         int mpiWorldId;
         int mpiRank;
+        int worldSize;
+
+        // Cached rank node mappings
+        std::unordered_map<int, int> rankNodeMap;
     };
 }

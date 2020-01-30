@@ -322,8 +322,8 @@ namespace wasm {
         boundUser = msg.user();
         boundFunction = msg.function();
 
-        // Set up MPI context
-        mpiContext.setFromMsg(msg);
+        // Join MPI context if necessary
+        mpiContext.join(msg);
 
         // Set up the compartment and context
         PROF_START(wasmContext)

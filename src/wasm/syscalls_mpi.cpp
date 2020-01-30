@@ -18,21 +18,21 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - MPI_Init {} {}", a, b);
 
+        int worldSize = FAASM_FIXED_SIZE;
+
         scheduler::Scheduler &sch = scheduler::getScheduler();
 
         // Generate MPI world
         mpi::MpiContext &mpiContext = getExecutingMpiContext();
         unsigned int worldId = util::generateGid();
-        mpiContext.setIsMpi(true);
-        mpiContext.setMpiWorldId(worldId);
-        mpiContext.setMpiRank(0);
+        mpiContext.create(worldId, worldSize);
 
         WasmModule *modulePtr = getExecutingModule();
         const std::string user = modulePtr->getBoundUser();
         const std::string func = modulePtr->getBoundFunction();
 
         // Dispatch all the chained calls
-        for (int i = 0; i < FAASM_FIXED_SIZE - 1; i++) {
+        for (int i = 0; i < worldSize - 1; i++) {
             message::Message msg = util::messageFactory(user, func);
             msg.set_ismpi(true);
             msg.set_mpiworldid(worldId);
@@ -80,7 +80,7 @@ namespace wasm {
             return 1;
         }
 
-        writeMpiIntResult(resPtr, FAASM_FIXED_SIZE);
+        writeMpiIntResult(resPtr, getExecutingMpiContext().getWorldSize());
 
         return MPI_SUCCESS;
     }
@@ -107,14 +107,20 @@ namespace wasm {
         return 0;
     }
 
+    int terminateMpi() {
+        getExecutingMpiContext().destroy();
+
+        return MPI_SUCCESS;
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Abort", I32, MPI_Abort, I32 a, I32 b) {
         util::getLogger()->debug("S - MPI_Abort {} {}", a, b);
-        return 0;
+        return terminateMpi();
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Finalize", I32, MPI_Finalize) {
         util::getLogger()->debug("S - MPI_Finalize");
-        return 0;
+        return terminateMpi();
     }
 
     void mpiLink() {

@@ -1,15 +1,46 @@
-#include <proto/faasm.pb.h>
 #include "mpi/MpiContext.h"
 
+#include <proto/faasm.pb.h>
+
 namespace mpi {
-    MpiContext::MpiContext(): isMpi(false), mpiWorldId(-1), mpiRank(-1) {
+    MpiContext::MpiContext() : isMpi(false), mpiWorldId(-1), mpiRank(-1), worldSize(-1) {
 
     }
 
-    void MpiContext::setFromMsg(const message::Message &msg) {
-        isMpi = msg.ismpi();
+    void MpiContext::create(int worldId, int size) {
+        isMpi = true;
+        mpiWorldId = worldId;
+        mpiRank = 0;
+        worldSize = size;
+
+        // TODO - initialise world in global state
+    }
+
+    void MpiContext::join(const message::Message &msg) {
+        if (!msg.ismpi()) {
+            // Not an MPI call
+            return;
+        }
+
+        isMpi = true;
         mpiWorldId = msg.mpiworldid();
         mpiRank = msg.mpirank();
+
+        // TODO - update from global state
+
+        // TODO - broadcast joining here
+    }
+
+    void MpiContext::destroy() {
+
+    }
+
+    void MpiContext::send() {
+
+    }
+
+    void MpiContext::receive() {
+
     }
 
     bool MpiContext::getIsMpi() {
@@ -20,19 +51,11 @@ namespace mpi {
         return mpiWorldId;
     }
 
+    int MpiContext::getWorldSize() {
+        return worldSize;
+    }
+
     int MpiContext::getMpiRank() {
         return mpiRank;
-    }
-
-    void MpiContext::setIsMpi(bool val) {
-        isMpi = val;
-    }
-
-    void MpiContext::setMpiWorldId(int val) {
-        mpiWorldId = val;
-    }
-
-    void MpiContext::setMpiRank(int val){
-        mpiRank = val;
     }
 }
