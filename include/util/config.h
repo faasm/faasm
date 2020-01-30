@@ -2,6 +2,8 @@
 
 #include <string>
 
+#define NODE_ID_LEN 20
+
 namespace util {
     std::string getNodeId();
 

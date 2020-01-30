@@ -10,9 +10,15 @@ namespace mpi {
     void MpiWorld::setUpStateKV() {
         if(stateKV == nullptr) {
             state::State &state = state::getGlobalState();
-            stateKey = "mpi_state_" + std::to_string(id);
+            std::string stateKey = "mpi_state_" + std::to_string(id);
             stateKV = state.getKV(user, stateKey, sizeof(MpiWorldState));
         }
+    }
+
+    std::shared_ptr<state::StateKeyValue> MpiWorld::getRankNodeState(int rank) {
+        std::string stateKey = "mpi_" + std::to_string(id) + "_" + std::to_string(rank);
+        state::State &state = state::getGlobalState();
+        return state.getKV(user, stateKey, NODE_ID_LEN);
     }
 
     void MpiWorld::create(const message::Message &call, int newId, int newSize) {
@@ -40,7 +46,11 @@ namespace mpi {
 
     void MpiWorld::destroy() {
         setUpStateKV();
-        stateKV->clear();
+        stateKV->deleteGlobal();
+        
+        for(auto &s: rankNodeMap) {
+            getRankNodeState(s.first)->deleteGlobal();
+        }
     }
 
     void MpiWorld::initialiseFromState(const message::Message &msg, int worldId) {
@@ -68,12 +78,25 @@ namespace mpi {
         util::FullLock lock(worldMutex);
         rankNodeMap[rank] = nodeId;
 
-        // TODO - register remotely
+        // Set the value remotely
+        const std::shared_ptr<state::StateKeyValue> &kv = getRankNodeState(rank);
+        kv->set(reinterpret_cast<const uint8_t *>(nodeId.c_str()));
     }
 
     std::string MpiWorld::getNodeForRank(int rank) {
+        // Pull from state if not present
         if(rankNodeMap.count(rank) == 0) {
-            // TODO - look up remotely
+            util::FullLock lock(worldMutex);
+
+            if(rankNodeMap.count(rank) == 0) {
+                auto buffer = new uint8_t[NODE_ID_LEN];
+                const std::shared_ptr<state::StateKeyValue> &kv = getRankNodeState(rank);
+                kv->get(buffer);
+
+                char* bufferChar = reinterpret_cast<char*>(buffer);
+                std::string nodeId(bufferChar, bufferChar + NODE_ID_LEN);
+                rankNodeMap[rank] = nodeId;
+            }
         }
 
         return rankNodeMap[rank];

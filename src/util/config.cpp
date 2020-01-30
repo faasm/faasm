@@ -136,7 +136,7 @@ namespace util {
             util::UniqueLock lock(nodeIdMx);
             if(nodeId.empty()) {
                 // Generate random node ID
-                nodeId = util::randomString(20);
+                nodeId = util::randomString(NODE_ID_LEN);
 
                 // Store the hash for unique ints
                 nodeIdHash = std::hash<std::string>{}(nodeId);

@@ -271,7 +271,6 @@ namespace state {
     }
 
     void StateKeyValue::clear() {
-        // Unique lock on the whole value while clearing
         FullLock lock(valueMutex);
 
         const std::shared_ptr<spdlog::logger> &logger = getLogger();
@@ -281,6 +280,16 @@ namespace state {
         _fullyAllocated = false;
         zeroDirtyMask();
         zeroAllocatedMask();
+    }
+
+    void StateKeyValue::deleteGlobal() {
+        // Clear locally
+        clear();
+
+        // Delete remote
+        FullLock lock(valueMutex);
+        redis::Redis &redis = redis::Redis::getState();
+        redis.del(key);
     }
 
     size_t StateKeyValue::size() {

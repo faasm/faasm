@@ -78,6 +78,7 @@ namespace state {
 
         std::string getSegmentKey(long offset, long length);
 
+        void deleteGlobal();
     private:
         bool isDirty;
 

@@ -39,13 +39,11 @@ namespace mpi {
         std::string user;
         std::string function;
 
-        std::string stateKey;
         std::shared_ptr<state::StateKeyValue> stateKV;
-
-        // Cached rank node mappings
         std::unordered_map<int, std::string> rankNodeMap;
 
         void setUpStateKV();
+        std::shared_ptr<state::StateKeyValue> getRankNodeState(int rank);
 
         void pushToState();
     };
