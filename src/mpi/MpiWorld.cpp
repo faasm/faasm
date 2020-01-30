@@ -26,6 +26,14 @@ namespace mpi {
         return state.getKV(user, stateKey, NODE_ID_LEN);
     }
 
+    template<typename T>
+    std::shared_ptr<state::StateKeyValue> MpiWorld::getMessageState(int messageId, int count) {
+        std::string stateKey = "mpi_msg_" + std::to_string(messageId);
+        state::State &state = state::getGlobalState();
+        size_t bufferLen = count * sizeof(T);
+        return state.getKV(user, stateKey, bufferLen);
+    }
+
     void MpiWorld::create(const message::Message &call, int newId, int newSize) {
         id = newId;
         size = newSize;
@@ -111,22 +119,36 @@ namespace mpi {
     }
 
     template<typename T>
-    void MpiWorld::send(int sendRank, int destRank, T* buffer, int count) {
+    void MpiWorld::send(int sendRank, int destRank, T* buffer, int dataType, int count) {
         const std::string nodeId = getNodeForRank(destRank);
+
+        // Generate a message ID
+        int msgId = (int)util::generateGid();
+
+        // Write the data to state
+        const std::shared_ptr<state::StateKeyValue> &kv = getMessageState<T>(msgId, count);
+        kv->set(buffer);
+
+        // Create the message
+        MpiMessage m{
+            .id=msgId,
+            .sender=sendRank,
+            .destination=destRank,
+            .type=dataType,
+            .count=count,
+        };
+
+        // Work out where we're sending it
         if(nodeId == thisNodeId) {
-            // TODO - place MPI call on in-memory queue
+            // Place on relevant in-memory queue if local
+
         } else {
-            int msgId = (int)util::generateGid();
+            // Push state if sending to another node
+            kv->pushFull();
+
+            // Send the serialised message
             MpiGlobalBus &bus = mpi::getMpiGlobalBus();
-            
-            MpiMessage m{
-                .id=msgId,
-                .sender=sendRank,
-                .destination=destRank,
-                .type=FAASMPI_INT,
-                .count=count,
-            };
-            
+
             bus.sendMessageToNode(nodeId, &m);
         }
     }

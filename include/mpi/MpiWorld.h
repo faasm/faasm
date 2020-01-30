@@ -31,7 +31,7 @@ namespace mpi {
         void destroy();
 
         template<typename T>
-        void send(int sendRank, int destRank, T* buffer, int count);
+        void send(int sendRank, int destRank, T *buffer, int dataType, int count);
 
     private:
         int id;
@@ -47,7 +47,11 @@ namespace mpi {
         std::unordered_map<int, std::string> rankNodeMap;
 
         void setUpStateKV();
+
         std::shared_ptr<state::StateKeyValue> getRankNodeState(int rank);
+
+        template<typename T>
+        std::shared_ptr<state::StateKeyValue> getMessageState(int messageId, int count);
 
         void pushToState();
     };
