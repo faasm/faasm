@@ -9,9 +9,9 @@ FAASM_MAIN_FUNC() {
         return 1;
     }
 
-    int world_rank;
+    int rank;
     int world_size;
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
     // Check how big the world is
@@ -21,7 +21,7 @@ FAASM_MAIN_FUNC() {
     }
 
     int number;
-    if (world_rank == 0) {
+    if (rank == 0) {
         number = -1;
         MPI_Send(&number, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
     }
