@@ -35,6 +35,8 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     # in a more specific manner for certain functions.
     SET(CMAKE_EXE_LINKER_FLAGS "${FAASM_EXE_LINKER_FLAGS} \
         -Xlinker --export=_faasm_zygote \
+        -Xlinker --export=__heap_base \
+        -Xlinker --export=__data_end \
         -Xlinker --max-memory=4294901760 \
         -Wl,-z,stack-size=4194304 -Wl, \
     ")
