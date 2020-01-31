@@ -194,6 +194,19 @@ namespace wasm {
         thisSectionThreadCount = 1;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_for_static_init_4", void, __kmpc_for_static_init_4,
+                                   I32 loc, I32 gtid, I32 schedule, I32 _plastiter, I32 _plower,
+                                   I32 _pupper, I32 _pstride, I32 incr, I32 chunk) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->info("S - __kmpc_for_static_init_4 {} {} {} {} {} {} {} {} {}",
+                     loc, gtid, schedule, _plastiter, _plower, _pupper, _pstride, incr, chunk);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_for_static_fini", void, __kmpc_for_static_fini,
+                                   I32 loc, I32 gtid) {
+        util::getLogger()->info("S - __kmpc_for_static_fini {} {}", loc, gtid);
+    }
+
     void ompLink() {
 
     }

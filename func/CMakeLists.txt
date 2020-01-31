@@ -38,7 +38,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
         -Xlinker --export=__heap_base \
         -Xlinker --export=__data_end \
         -Xlinker --max-memory=4294901760 \
-        -Wl,-z,stack-size=4194304 -Wl, \
+        -Wl,-z,stack-size=12582912 -Wl, \
     ")
 
     SET(CMAKE_EXECUTABLE_SUFFIX ".wasm")
