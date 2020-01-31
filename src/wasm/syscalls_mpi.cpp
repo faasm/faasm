@@ -25,11 +25,17 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Init", I32, MPI_Init, I32 a, I32 b) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - MPI_Init {} {}", a, b);
 
-        // Initialise the world
-        util::SystemConfig &conf = util::getSystemConfig();
-        getExecutingContext().createWorld(*getExecutingCall(), conf.mpiWorldSize);
+        mpi::MpiContext &ctx = getExecutingContext();
+
+        // Note - only want to initialise the world on rank zero (or when rank isn't set yet)
+        if (ctx.getRank() <= 0) {
+            logger->debug("S - MPI_Init {} {}", a, b);
+
+            // Initialise the world
+            util::SystemConfig &conf = util::getSystemConfig();
+            ctx.createWorld(*getExecutingCall(), conf.mpiWorldSize);
+        }
 
         return 0;
     }
@@ -138,8 +144,13 @@ namespace wasm {
     }
 
     int terminateMpi() {
-        mpi::MpiWorld &world = getExecutingWorld();
-        world.destroy();
+        mpi::MpiContext &ctx = getExecutingContext();
+
+        if(ctx.getRank() <= 0) {
+            mpi::MpiWorld &world = getExecutingWorld();
+            world.destroy();
+        }
+
         return MPI_SUCCESS;
     }
 

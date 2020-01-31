@@ -3,6 +3,7 @@
 
 #include <util/gids.h>
 #include <proto/faasm.pb.h>
+#include <util/logging.h>
 
 namespace mpi {
     MpiContext::MpiContext() : isMpi(false), rank(-1), worldId(-1) {
@@ -10,14 +11,23 @@ namespace mpi {
     }
 
     void MpiContext::createWorld(const message::Message &msg, int worldSize) {
-        // Create the MPI world
-        worldId = (int) util::generateGid();
-        mpi::MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
-        reg.createWorld(msg, worldId, worldSize);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Set up this context
-        isMpi = true;
-        rank = 0;
+        if (rank <= 0) {
+            worldId = (int) util::generateGid();
+            logger->debug("Initialising world {} on zero rank {}", worldId, rank);
+
+            // Create the MPI world
+            mpi::MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
+            reg.createWorld(msg, worldId, worldSize);
+
+            // Set up this context
+            isMpi = true;
+            rank = 0;
+        } else {
+            logger->error("Attempting to initialise world for non-zero rank {}", rank);
+            throw std::runtime_error("Initialising world on non-zero rank");
+        }
     }
 
     void MpiContext::joinWorld(const message::Message &msg) {

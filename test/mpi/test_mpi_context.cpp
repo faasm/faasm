@@ -32,6 +32,19 @@ namespace tests {
         REQUIRE(world.getFunction() == "hellompi");
     }
 
+    TEST_CASE("Check world cannot be created for non-zero rank", "[mpi]") {
+        cleanSystem();
+
+        // Create message with non-zero rank
+        message::Message msg = util::messageFactory("mpi", "hellompi");
+        msg.set_mpirank(2);
+
+        // Try creating world
+        MpiContext c;
+        int worldSize = 10;
+        REQUIRE_THROWS(c.createWorld(msg, worldSize));
+    }
+
     TEST_CASE("Check joining world", "[mpi]") {
         cleanSystem();
 
