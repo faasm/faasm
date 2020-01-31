@@ -7,8 +7,6 @@
 namespace util {
     std::string getNodeId();
 
-    void forceSetNodeId(const std::string &newNodeId);
-
     std::size_t getNodeIdHash();
 
     const int DEFAULT_TIMEOUT = 60000;

@@ -50,6 +50,8 @@ namespace mpi {
 
         std::shared_ptr<InMemoryMpiQueue> getRankQueue(int rank);
 
+        void overrideNodeId(const std::string &newNodeId);
+
     private:
         int id;
         int size;

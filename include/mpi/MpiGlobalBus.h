@@ -12,9 +12,9 @@ namespace mpi {
     public:
         MpiGlobalBus();
 
-        void sendMessageToNode(const std::string &nodeId, MpiMessage *msg);
+        void sendMessageToNode(const std::string &otherNodeId, MpiMessage *msg);
 
-        MpiMessage *next(const std::string &nodeId);
+        MpiMessage *next(const std::string &otherNodeId);
 
         MpiMessage *nextThisNode();
 

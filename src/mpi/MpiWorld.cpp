@@ -106,16 +106,14 @@ namespace mpi {
     }
 
     void MpiWorld::registerRank(int rank) {
-        const std::string nodeId = util::getNodeId();
-
         util::FullLock lock(worldMutex);
-        rankNodeMap[rank] = nodeId;
+        rankNodeMap[rank] = thisNodeId;
 
         // TODO - Create an in-memory queue for this rank
 
         // Set the value remotely
         const std::shared_ptr<state::StateKeyValue> &kv = getRankNodeState(rank);
-        kv->set(reinterpret_cast<const uint8_t *>(nodeId.c_str()));
+        kv->set(reinterpret_cast<const uint8_t *>(thisNodeId.c_str()));
         kv->pushFull();
     }
 
@@ -130,8 +128,8 @@ namespace mpi {
                 kv->get(buffer);
 
                 char *bufferChar = reinterpret_cast<char *>(buffer);
-                std::string nodeId(bufferChar, bufferChar + NODE_ID_LEN);
-                rankNodeMap[rank] = nodeId;
+                std::string otherNodeId(bufferChar, bufferChar + NODE_ID_LEN);
+                rankNodeMap[rank] = otherNodeId;
             }
         }
 
@@ -140,7 +138,6 @@ namespace mpi {
 
     template<typename T>
     void MpiWorld::send(int sendRank, int destRank, const T *buffer, int dataType, int count) {
-        const std::string nodeId = getNodeForRank(destRank);
 
         // Generate a message ID
         int msgId = (int) util::generateGid();
@@ -159,7 +156,8 @@ namespace mpi {
         };
 
         // Work out whether the message is sent locally or to another node
-        bool isLocal = nodeId == thisNodeId;
+        const std::string otherNodeId = getNodeForRank(destRank);
+        bool isLocal = otherNodeId == thisNodeId;
         if (isLocal) {
             // Place on relevant in-memory queue
             const std::shared_ptr<InMemoryMpiQueue> &queue = getRankQueue(destRank);
@@ -170,10 +168,13 @@ namespace mpi {
 
             // Send the message
             MpiGlobalBus &bus = mpi::getMpiGlobalBus();
-            bus.sendMessageToNode(nodeId, &m);
+            bus.sendMessageToNode(thisNodeId, &m);
         }
     }
 
+    void MpiWorld::overrideNodeId(const std::string &newNodeId) {
+        thisNodeId = newNodeId;
+    }
 
     template<typename T>
     void MpiWorld::recv(int destRank, T *buffer, int count) {

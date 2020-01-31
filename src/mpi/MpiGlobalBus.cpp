@@ -18,14 +18,14 @@ namespace mpi {
     }
 
 
-    void MpiGlobalBus::sendMessageToNode(const std::string &nodeId, MpiMessage *m) {
-        std::string queueName = getMpiQueueNameForNode(nodeId);
+    void MpiGlobalBus::sendMessageToNode(const std::string &otherNodeId, MpiMessage *m) {
+        std::string queueName = getMpiQueueNameForNode(otherNodeId);
         redis.enqueueBytes(queueName, reinterpret_cast<uint8_t *>(m), sizeof(m));
     }
 
-    MpiMessage *MpiGlobalBus::next(const std::string &nodeId) {
-        std::string queueName = getMpiQueueNameForNode(nodeId);
-        MpiMessage *m = new MpiMessage;
+    MpiMessage *MpiGlobalBus::next(const std::string &otherNodeId) {
+        std::string queueName = getMpiQueueNameForNode(otherNodeId);
+        auto m = new MpiMessage;
         redis.dequeueBytes(queueName, reinterpret_cast<uint8_t *>(m), sizeof(m), MPI_MESSAGE_TIMEOUT_MS);
 
         return m;

@@ -63,23 +63,24 @@ namespace tests {
     TEST_CASE("Test registering a rank", "[mpi]") {
         cleanSystem();
 
+        std::string nodeIdA = util::randomString(NODE_ID_LEN);
+        std::string nodeIdB = util::randomString(NODE_ID_LEN);
+
         // Create a world
         const message::Message &msg = util::messageFactory(user, func);
         mpi::MpiWorld worldA;
+        worldA.overrideNodeId(nodeIdA);
         worldA.create(msg, worldId, worldSize);
 
         // Register a rank to this node and check
         int rankA = 5;
         worldA.registerRank(5);
         const std::string actualNodeId = worldA.getNodeForRank(0);
-        const std::string nodeIdA = util::getNodeId();
         REQUIRE(actualNodeId == nodeIdA);
         
         // Create a new instance of the world with a new node ID
-        std::string nodeIdB = util::randomString(NODE_ID_LEN);
-        util::forceSetNodeId(nodeIdB);
-
         mpi::MpiWorld worldB;
+        worldB.overrideNodeId(nodeIdB);
         worldB.initialiseFromState(msg, worldId);
 
         int rankB = 4;
