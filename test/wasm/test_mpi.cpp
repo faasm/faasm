@@ -2,13 +2,14 @@
 #include <mpi/MpiContext.h>
 #include <wasm/WasmModule.h>
 
+#include "utils.h"
+
 #include <util/func.h>
 
 namespace tests {
     TEST_CASE("Test binding to MPI message sets up MPI context", "[wasm]") {
-        // Check context initially empty
-        REQUIRE(wasm::getExecutingModule() == nullptr);
-        
+        cleanSystem();
+
         message::Message msg = util::messageFactory("mpi", "hellompi");
         msg.set_ismpi(true);
         msg.set_mpiworldid(123);

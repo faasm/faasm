@@ -36,10 +36,10 @@ namespace mpi {
 
     void MpiWorld::create(const message::Message &call, int newId, int newSize) {
         id = newId;
-        size = newSize;
-
         user = call.user();
         function = call.function();
+
+        size = newSize;
 
         // Write this to state
         setUpStateKV();
@@ -68,6 +68,9 @@ namespace mpi {
 
     void MpiWorld::initialiseFromState(const message::Message &msg, int worldId) {
         id = worldId;
+        user = msg.user();
+        function = msg.function();
+
         setUpStateKV();
 
         // Read from state

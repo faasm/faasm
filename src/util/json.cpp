@@ -115,8 +115,8 @@ namespace util {
         msg.set_type(message::Message_MessageType_CALL);
 
         msg.set_ismpi(getBoolFromJson(d, "mpi", false));
-        msg.set_mpiworldid(getBoolFromJson(d, "mpi_world_id", false));
-        msg.set_mpirank(getBoolFromJson(d, "mpi_rank", false));
+        msg.set_mpiworldid(getIntFromJson(d, "mpi_world_id", -1));
+        msg.set_mpirank(getIntFromJson(d, "mpi_rank", -1));
 
         PROF_END(jsonDecode)
 
