@@ -136,7 +136,6 @@ namespace mpi {
 
     template<typename T>
     void MpiWorld::send(int senderRank, int destRank, const T *buffer, int dataType, int count) {
-
         // Generate a message ID
         int msgId = (int) util::generateGid();
 
@@ -147,6 +146,7 @@ namespace mpi {
         // Create the message
         auto m = new MpiMessage;
         m->id = msgId;
+        m->worldId = id;
         m->sender = senderRank;
         m->destination = destRank;
         m->type = dataType;
@@ -190,9 +190,11 @@ namespace mpi {
 
     template void MpiWorld::recv<int>(int destRank, int *buffer, int count);
 
-    void MpiWorld::nextFromWorldQueue() {
-        MpiGlobalBus &bus = getMpiGlobalBus();
-        MpiMessage *msg = bus.next(thisNodeId);
+    void MpiWorld::queueForRank(MpiMessage *msg) {
+        if (msg->worldId != id) {
+            util::getLogger()->error("Queueing message not meant for this world (msg={}, this={})", msg->worldId, id);
+            throw std::runtime_error("Queueing message not for this world");
+        }
 
         int destRank = msg->destination;
         getRankQueue(destRank)->enqueue(msg);

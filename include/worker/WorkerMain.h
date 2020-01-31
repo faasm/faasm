@@ -16,12 +16,7 @@ namespace worker {
         void awaitGlobalQueue();
 
         void shutdown();
-
-        void setShareWork(bool in);
-
     private:
-        bool shareWork = true;
-
         util::SystemConfig &conf;
         worker::WorkerThreadPool pool;
         scheduler::Scheduler &scheduler;

@@ -32,7 +32,7 @@ namespace mpi {
 
         // Register with the world
         MpiWorldRegistry &registry = getMpiWorldRegistry();
-        MpiWorld &world = registry.getWorld(msg, worldId);
+        MpiWorld &world = registry.getOrInitialiseWorld(msg, worldId);
         world.registerRank(rank);
     }
 

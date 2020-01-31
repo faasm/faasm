@@ -1,4 +1,6 @@
 #include "mpi/MpiGlobalBus.h"
+#include "mpi/MpiWorldRegistry.h"
+
 
 #define MPI_MESSAGE_TIMEOUT_MS 1000
 
@@ -23,17 +25,24 @@ namespace mpi {
         redis.enqueueBytes(queueName, reinterpret_cast<uint8_t *>(m), sizeof(MpiMessage));
     }
 
-    MpiMessage *MpiGlobalBus::next(const std::string &otherNodeId) {
+    MpiMessage *MpiGlobalBus::dequeueForNode(const std::string &otherNodeId) {
         std::string queueName = getMpiQueueNameForNode(otherNodeId);
         auto m = new MpiMessage;
         redis.dequeueBytes(queueName, reinterpret_cast<uint8_t *>(m), sizeof(MpiMessage), MPI_MESSAGE_TIMEOUT_MS);
-
+        
         return m;
+    }
+    
+    void MpiGlobalBus::next(const std::string &otherNodeId) {
+        MpiMessage *m = dequeueForNode(otherNodeId);
+
+        MpiWorldRegistry &registry = getMpiWorldRegistry();
+        MpiWorld &world = registry.getWorld(m->worldId);
+        world.queueForRank(m);
     }
 
     long MpiGlobalBus::getQueueSize(const std::string &otherNodeId) {
         std::string queueName = getMpiQueueNameForNode(otherNodeId);
         return redis.listLength(queueName);
     }
-
 }

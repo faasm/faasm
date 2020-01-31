@@ -25,7 +25,7 @@ namespace tests {
         
         // Get the world and check it is set up
         MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
-        MpiWorld &world = reg.getWorld(msg, worldId);
+        MpiWorld &world = reg.getOrInitialiseWorld(msg, worldId);
         REQUIRE(world.getId() == worldId);
         REQUIRE(world.getSize() == 10);
         REQUIRE(world.getUser() == "mpi");
@@ -64,7 +64,7 @@ namespace tests {
 
         // Check rank is registered to this node
         MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
-        MpiWorld &world = reg.getWorld(msgB, worldId);
+        MpiWorld &world = reg.getOrInitialiseWorld(msgB, worldId);
         const std::string actualNode = world.getNodeForRank(1);
 
         REQUIRE(actualNode == expectedNode);

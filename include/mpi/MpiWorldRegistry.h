@@ -9,7 +9,9 @@ namespace mpi {
 
         mpi::MpiWorld &createWorld(const message::Message &msg, int worldId, int size);
 
-        mpi::MpiWorld &getWorld(const message::Message &msg, int worldId);
+        mpi::MpiWorld &getOrInitialiseWorld(const message::Message &msg, int worldId);
+
+        mpi::MpiWorld &getWorld(int worldId);
 
     private:
         std::shared_mutex registryMutex;

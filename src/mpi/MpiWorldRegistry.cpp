@@ -20,7 +20,7 @@ namespace mpi {
         return worldMap[worldId];
     }
 
-    MpiWorld &MpiWorldRegistry::getWorld(const message::Message &msg, int worldId) {
+    MpiWorld &MpiWorldRegistry::getOrInitialiseWorld(const message::Message &msg, int worldId) {
         // Create world locally if not exists
         if(worldMap.count(worldId) == 0) {
             util::FullLock lock(registryMutex);
@@ -28,6 +28,14 @@ namespace mpi {
                 MpiWorld &world = worldMap[worldId];
                 world.initialiseFromState(msg, worldId);
             }
+        }
+
+        return worldMap[worldId];
+    }
+
+    MpiWorld &MpiWorldRegistry::getWorld(int worldId) {
+        if(worldMap.count(worldId) == 0) {
+            throw std::runtime_error("World not initialised: " + std::to_string(worldId));
         }
 
         return worldMap[worldId];

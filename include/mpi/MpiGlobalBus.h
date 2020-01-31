@@ -5,14 +5,15 @@
 #include <redis/Redis.h>
 
 namespace mpi {
-
     class MpiGlobalBus {
     public:
         MpiGlobalBus();
 
         void sendMessageToNode(const std::string &otherNodeId, MpiMessage *msg);
 
-        MpiMessage *next(const std::string &otherNodeId);
+        MpiMessage *dequeueForNode(const std::string &otherNodeId);
+
+        void next(const std::string &otherNodeId);
 
         long getQueueSize(const std::string &otherNodeId);
     private:
@@ -23,4 +24,5 @@ namespace mpi {
     MpiGlobalBus &getMpiGlobalBus();
 
     std::string getMpiQueueNameForNode(const std::string &nodeId);
+
 }

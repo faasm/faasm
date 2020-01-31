@@ -13,7 +13,7 @@ namespace wasm {
         mpi::MpiContext &ctx = getExecutingModule()->getMpiContext();
         int worldId = ctx.getWorldId();
         mpi::MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
-        return reg.getWorld(*getExecutingCall(), worldId);
+        return reg.getOrInitialiseWorld(*getExecutingCall(), worldId);
     }
 
     mpi::MpiContext &getExecutingContext() {

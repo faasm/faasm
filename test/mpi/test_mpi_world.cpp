@@ -97,6 +97,7 @@ namespace tests {
 
     void checkMessage(MpiMessage *actualMessage, int senderRank, int destRank, const std::vector<int> &data) {
         // Check the message contents
+        REQUIRE(actualMessage->worldId == worldId);
         REQUIRE(actualMessage->count == data.size());
         REQUIRE(actualMessage->destination == destRank);
         REQUIRE(actualMessage->sender == senderRank);
@@ -176,24 +177,26 @@ namespace tests {
         // Send a message between the ranks on different nodes
         worldA.send<int>(rankA, rankB, messageData.data(), FAASMPI_INT, messageData.size());
 
+        MpiGlobalBus &bus = mpi::getMpiGlobalBus();
+
         SECTION("Check queueing") {
             // Check it's on the right queue
             REQUIRE(worldA.getRankQueueSize(rankA) == 0);
             REQUIRE(worldB.getRankQueueSize(rankB) == 0);
 
-            MpiGlobalBus &bus = mpi::getMpiGlobalBus();
             REQUIRE(bus.getQueueSize(nodeIdA) == 0);
             REQUIRE(bus.getQueueSize(nodeIdB) == 1);
 
             // Check message content
-            MpiMessage *actualMessage = bus.next(nodeIdB);
+            MpiMessage *actualMessage = bus.dequeueForNode(nodeIdB);
             checkMessage(actualMessage, rankA, rankB, messageData);
             delete actualMessage;
         }
 
         SECTION("Check recv") {
-            // Pull the message from the world queue
-            worldB.nextFromWorldQueue();
+            // Pull message from global queue
+            MpiMessage *message = bus.dequeueForNode(nodeIdB);
+            worldB.queueForRank(message);
 
             // Receive the message for the given rank
             auto buffer = new int[messageData.size()];
