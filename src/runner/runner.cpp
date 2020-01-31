@@ -61,6 +61,11 @@ int main(int argc, char *argv[]) {
 
     // Set up a worker pool
     worker::WorkerThreadPool pool(4);
+
+    // Switch on MPI
+    pool.startMpiThread();
+
+    // Start the workers
     pool.startThreadPool();
 
     // Submit the invocation
