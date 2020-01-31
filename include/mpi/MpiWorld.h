@@ -43,7 +43,7 @@ namespace mpi {
         void destroy();
 
         template<typename T>
-        void send(int sendRank, int destRank, const T *buffer, int dataType, int count);
+        void send(int senderRank, int destRank, const T *buffer, int dataType, int count);
 
         template<typename T>
         void recv(int destRank, T *buffer, int count);

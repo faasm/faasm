@@ -48,12 +48,12 @@ struct faasmpi_message_t {
  */
 // MPI_Comms
 #define FAASMPI_COMM_WORLD 1
-struct faasmpi_communicator_t faasmpi_comm_world{.id=FAASMPI_COMM_WORLD};
+extern struct faasmpi_communicator_t faasmpi_comm_world;
 #define MPI_COMM_WORLD (&faasmpi_comm_world)
 
 // MPI_Datatypes
 #define FAASMPI_INT 1
-struct faasmpi_datatype_t faasmpi_type_int{.id=FAASMPI_INT};
+extern struct faasmpi_datatype_t faasmpi_type_int;
 #define MPI_INT &faasmpi_type_int
 
 // MPI_Statuses

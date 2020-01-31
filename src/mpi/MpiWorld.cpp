@@ -109,8 +109,6 @@ namespace mpi {
         util::FullLock lock(worldMutex);
         rankNodeMap[rank] = thisNodeId;
 
-        // TODO - Create an in-memory queue for this rank
-
         // Set the value remotely
         const std::shared_ptr<state::StateKeyValue> &kv = getRankNodeState(rank);
         kv->set(reinterpret_cast<const uint8_t *>(thisNodeId.c_str()));
@@ -137,7 +135,7 @@ namespace mpi {
     }
 
     template<typename T>
-    void MpiWorld::send(int sendRank, int destRank, const T *buffer, int dataType, int count) {
+    void MpiWorld::send(int senderRank, int destRank, const T *buffer, int dataType, int count) {
 
         // Generate a message ID
         int msgId = (int) util::generateGid();
@@ -149,7 +147,7 @@ namespace mpi {
         // Create the message
         MpiMessage m{
                 .id=msgId,
-                .sender=sendRank,
+                .sender=senderRank,
                 .destination=destRank,
                 .type=dataType,
                 .count=count,
@@ -170,10 +168,6 @@ namespace mpi {
             MpiGlobalBus &bus = mpi::getMpiGlobalBus();
             bus.sendMessageToNode(thisNodeId, &m);
         }
-    }
-
-    void MpiWorld::overrideNodeId(const std::string &newNodeId) {
-        thisNodeId = newNodeId;
     }
 
     template<typename T>
@@ -225,5 +219,9 @@ namespace mpi {
 
     int MpiWorld::getSize() {
         return size;
+    }
+
+    void MpiWorld::overrideNodeId(const std::string &newNodeId) {
+        thisNodeId = newNodeId;
     }
 }
