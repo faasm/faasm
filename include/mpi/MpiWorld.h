@@ -7,7 +7,7 @@
 #include <scheduler/InMemoryMessageQueue.h>
 
 namespace mpi {
-    typedef util::Queue<MpiMessage> InMemoryMpiQueue;
+    typedef util::Queue<MpiMessage*> InMemoryMpiQueue;
     typedef std::pair<int, InMemoryMpiQueue *> MpiMessageQueuePair;
 
     struct MpiWorldState {
@@ -42,6 +42,8 @@ namespace mpi {
 
         void destroy();
 
+        void nextFromWorldQueue();
+
         template<typename T>
         void send(int senderRank, int destRank, const T *buffer, int dataType, int count);
 
@@ -49,6 +51,8 @@ namespace mpi {
         void recv(int destRank, T *buffer, int count);
 
         std::shared_ptr<InMemoryMpiQueue> getRankQueue(int rank);
+
+        long getRankQueueSize(int rank);
 
         void overrideNodeId(const std::string &newNodeId);
 

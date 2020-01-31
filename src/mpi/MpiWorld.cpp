@@ -145,13 +145,12 @@ namespace mpi {
         kv->set(reinterpret_cast<const uint8_t *>(buffer));
 
         // Create the message
-        MpiMessage m{
-                .id=msgId,
-                .sender=senderRank,
-                .destination=destRank,
-                .type=dataType,
-                .count=count,
-        };
+        auto m = new MpiMessage;
+        m->id = msgId;
+        m->sender = senderRank;
+        m->destination = destRank;
+        m->type = dataType;
+        m->count = count;
 
         // Work out whether the message is sent locally or to another node
         const std::string otherNodeId = getNodeForRank(destRank);
@@ -166,7 +165,7 @@ namespace mpi {
 
             // Send the message
             MpiGlobalBus &bus = mpi::getMpiGlobalBus();
-            bus.sendMessageToNode(thisNodeId, &m);
+            bus.sendMessageToNode(otherNodeId, m);
         }
     }
 
@@ -176,23 +175,41 @@ namespace mpi {
 
         // Listen to the in-memory queue for this rank
         const std::shared_ptr<InMemoryMpiQueue> &queue = getRankQueue(destRank);
-        const MpiMessage m = queue->dequeue();
+        const MpiMessage *m = queue->dequeue();
 
-        if (m.count > count) {
-            logger->error("Message too long for buffer (msg={}, buffer={})", m.count, count);
+        if (m->count > count) {
+            logger->error("Message too long for buffer (msg={}, buffer={})", m->count, count);
             throw std::runtime_error("Message too long");
         }
 
-        const std::shared_ptr<state::StateKeyValue> &kv = getMessageState<T>(m.id, m.count);
+        const std::shared_ptr<state::StateKeyValue> &kv = getMessageState<T>(m->id, m->count);
         kv->get(reinterpret_cast<uint8_t *>(buffer));
     }
 
-    template void MpiWorld::send<int>(int sendRank, int destRank, const int *buffer, int dataType, int count);
+    template void MpiWorld::send<int>(int senderRank, int destRank, const int *buffer, int dataType, int count);
 
     template void MpiWorld::recv<int>(int destRank, int *buffer, int count);
 
+    void MpiWorld::nextFromWorldQueue() {
+        MpiGlobalBus &bus = getMpiGlobalBus();
+        MpiMessage *msg = bus.next(thisNodeId);
+
+        int destRank = msg->destination;
+        getRankQueue(destRank)->enqueue(msg);
+    }
 
     std::shared_ptr<InMemoryMpiQueue> MpiWorld::getRankQueue(int rank) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        // Check if we know about this rank on this node
+        if (rankNodeMap.count(rank) == 0) {
+            logger->error("No mapping found for rank {} on this node", rank);
+            throw std::runtime_error("No mapping found for rank");
+        } else if (rankNodeMap[rank] != thisNodeId) {
+            logger->error("Trying to access rank {} on {} but it's on {}", rank, thisNodeId, rankNodeMap[rank]);
+            throw std::runtime_error("Accessing in-memory queue for remote rank");
+        }
+
         if (rankQueueMap.count(rank) == 0) {
             util::FullLock lock(worldMutex);
 
@@ -203,6 +220,11 @@ namespace mpi {
         }
 
         return rankQueueMap[rank];
+    }
+
+    long MpiWorld::getRankQueueSize(int rank) {
+        const std::shared_ptr<InMemoryMpiQueue> &queue = getRankQueue(rank);
+        return queue->size();
     }
 
     std::string MpiWorld::getUser() {

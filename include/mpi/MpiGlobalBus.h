@@ -4,8 +4,6 @@
 
 #include <redis/Redis.h>
 
-#define MPI_QUEUE_PREFIX "mpi_msg_"
-
 namespace mpi {
 
     class MpiGlobalBus {
@@ -16,8 +14,7 @@ namespace mpi {
 
         MpiMessage *next(const std::string &otherNodeId);
 
-        MpiMessage *nextThisNode();
-
+        long getQueueSize(const std::string &otherNodeId);
     private:
         std::string thisNodeId;
         redis::Redis &redis;
