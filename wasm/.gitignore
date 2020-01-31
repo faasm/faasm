@@ -8,6 +8,7 @@ bench.csv
 # Include wasm files needed by tests
 !demo/**/function.wasm
 !errors/**/function.wasm
+!mpi/**/function.wasm
 !omp/**/function.wasm
 !python/**/function.wasm
 !sgd/**/function.wasm
