@@ -99,48 +99,34 @@ namespace tests {
         std::string nodeIdA = util::randomString(NODE_ID_LEN);
         std::string nodeIdB = util::randomString(NODE_ID_LEN);
 
-        // Create two instances of the same world and different node IDs
         const message::Message &msg = util::messageFactory(user, func);
         mpi::MpiWorld worldA;
         worldA.overrideNodeId(nodeIdA);
         worldA.create(msg, worldId, worldSize);
 
-        mpi::MpiWorld worldB;
-        worldB.overrideNodeId(nodeIdB);
-        worldB.initialiseFromState(msg, worldId);
-
-        // Register two ranks on each node
+        // Register two ranks
         int rankA1 = 1;
-        int rankB1 = 2;
-        int rankA2 = 3;
-        int rankB2 = 4;
+        int rankA2 = 2;
 
         worldA.registerRank(rankA1);
         worldA.registerRank(rankA2);
-        worldB.registerRank(rankB1);
-        worldB.registerRank(rankB2);
 
         // Get refs to in-memory queues
         const std::shared_ptr<InMemoryMpiQueue> &queueA1 = worldA.getRankQueue(rankA1);
         const std::shared_ptr<InMemoryMpiQueue> &queueA2 = worldA.getRankQueue(rankA2);
-        const std::shared_ptr<InMemoryMpiQueue> &queueB1 = worldA.getRankQueue(rankB1);
-        const std::shared_ptr<InMemoryMpiQueue> &queueB2 = worldA.getRankQueue(rankB2);
 
-        std::vector<int> dataA = {0, 1, 2};
-        std::vector<int> dataB = {3, 4, 5, 6};
+        std::vector<int> messageData = {0, 1, 2};
 
         // Send a message between colocated ranks
-        worldA.send(rankA1, rankA2, dataA.data(), FAASMPI_INT, dataA.size());
+        worldA.send(rankA1, rankA2, messageData.data(), FAASMPI_INT, messageData.size());
 
         // Check it's on the right queue
         REQUIRE(queueA1->size() == 0);
         REQUIRE(queueA2->size() == 1);
-        REQUIRE(queueB1->size() == 0);
-        REQUIRE(queueB2->size() == 0);
-        
+
         // Check message content
         const MpiMessage &actualMessage = queueA2->dequeue();
-        REQUIRE(actualMessage.count == dataA.size());
+        REQUIRE(actualMessage.count == messageData.size());
         REQUIRE(actualMessage.destination == rankA2);
         REQUIRE(actualMessage.sender == rankA1);
         REQUIRE(actualMessage.type == FAASMPI_INT);
@@ -149,9 +135,9 @@ namespace tests {
         const std::string messageStateKey = getMessageStateKey(actualMessage.id);
         state::State &state = state::getGlobalState();
         const std::shared_ptr<state::StateKeyValue> &kv = state.getKV(user, messageStateKey, sizeof(MpiWorldState));
-        int *actualMessageData = reinterpret_cast<int*>(kv->get());
-        std::vector<int> actualData(actualMessageData, actualMessageData + dataA.size());
+        int *actualDataPtr = reinterpret_cast<int*>(kv->get());
+        std::vector<int> actualData(actualDataPtr, actualDataPtr + messageData.size());
 
-        REQUIRE(actualData == dataA);
+        REQUIRE(actualData == messageData);
     }
 }
