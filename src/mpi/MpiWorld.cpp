@@ -12,23 +12,35 @@ namespace mpi {
 
     }
 
+    std::string getWorldStateKey(int worldId) {
+        return "mpi_world_" + std::to_string(worldId);
+    }
+
+    std::string getRankStateKey(int worldId, int rankId) {
+        return "mpi_rank_" + std::to_string(worldId) + "_" + std::to_string(rankId);
+    }
+
+    std::string getMessageStateKey(int messageId) {
+        return "mpi_msg_" + std::to_string(messageId);
+    }
+
     void MpiWorld::setUpStateKV() {
         if (stateKV == nullptr) {
             state::State &state = state::getGlobalState();
-            std::string stateKey = "mpi_state_" + std::to_string(id);
+            std::string stateKey = getWorldStateKey(id);
             stateKV = state.getKV(user, stateKey, sizeof(MpiWorldState));
         }
     }
 
     std::shared_ptr<state::StateKeyValue> MpiWorld::getRankNodeState(int rank) {
-        std::string stateKey = "mpi_" + std::to_string(id) + "_" + std::to_string(rank);
         state::State &state = state::getGlobalState();
+        std::string stateKey = getRankStateKey(id, rank);
         return state.getKV(user, stateKey, NODE_ID_LEN);
     }
 
     template<typename T>
     std::shared_ptr<state::StateKeyValue> MpiWorld::getMessageState(int messageId, int count) {
-        std::string stateKey = "mpi_msg_" + std::to_string(messageId);
+        std::string stateKey = getMessageStateKey(messageId);
         state::State &state = state::getGlobalState();
         size_t bufferLen = count * sizeof(T);
         return state.getKV(user, stateKey, bufferLen);
@@ -44,6 +56,9 @@ namespace mpi {
         // Write this to state
         setUpStateKV();
         pushToState();
+
+        // Register this as the master
+        registerRank(0);
 
         // Dispatch all the chained calls
         scheduler::Scheduler &sch = scheduler::getScheduler();
@@ -75,6 +90,7 @@ namespace mpi {
 
         // Read from state
         MpiWorldState s{};
+        stateKV->pull();
         stateKV->get(reinterpret_cast<uint8_t *>(&s));
         size = s.worldSize;
     }
@@ -86,6 +102,7 @@ namespace mpi {
         };
 
         stateKV->set(reinterpret_cast<uint8_t *>(&s));
+        stateKV->pushFull();
     }
 
     void MpiWorld::registerRank(int rank) {

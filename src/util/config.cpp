@@ -143,12 +143,16 @@ namespace util {
             util::UniqueLock lock(nodeIdMx);
             if(nodeId.empty()) {
                 // Generate random node ID
-                nodeId = util::randomString(NODE_ID_LEN);
-
-                // Store the hash for unique ints
-                nodeIdHash = std::hash<std::string>{}(nodeId);
+                std::string newNodeId = util::randomString(NODE_ID_LEN);
+                forceSetNodeId(newNodeId);
             }
         }
+    }
+
+    void forceSetNodeId(const std::string &newNodeId) {
+        // Set the node ID and store the hash for unique ints
+        nodeId = newNodeId;
+        nodeIdHash = std::hash<std::string>{}(nodeId);
     }
 
     std::string getNodeId() {

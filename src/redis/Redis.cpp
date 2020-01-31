@@ -611,7 +611,7 @@ namespace redis {
         auto resultBytes = (uint8_t *) reply->str;
         int resultLen = reply->len;
 
-        if (resultLen > bufferLen) {
+        if (resultLen > (int) bufferLen) {
             throw std::runtime_error("Buffer not long enough for dequeue result (buffer=" +
                                      std::to_string(bufferLen) + " len=" + std::to_string(resultLen) + ")");
         }

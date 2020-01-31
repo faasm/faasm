@@ -1,5 +1,5 @@
 #include <catch/catch.hpp>
-#include <mpi/MpiWorldRegistry.h>
+#include <mpi/MpiContext.h>
 #include "utils.h"
 
 using namespace mpi;
@@ -30,18 +30,6 @@ namespace tests {
         REQUIRE(world.getSize() == 10);
         REQUIRE(world.getUser() == "mpi");
         REQUIRE(world.getFunction() == "hellompi");
-
-        // Check that chained function calls are made as expected
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        std::set<int> ranksFound;
-        for(int i = 0; i < worldSize - 1; i++) {
-            message::Message actualCall = sch.getFunctionQueue(msg)->dequeue();
-            REQUIRE(actualCall.user() == "mpi");
-            REQUIRE(actualCall.function() == "hellompi");
-            REQUIRE(actualCall.ismpi());
-            REQUIRE(actualCall.mpiworldid() == worldId);
-            REQUIRE(actualCall.mpirank() == i + 1);
-        }
     }
 
     TEST_CASE("Check joining world", "[mpi]") {

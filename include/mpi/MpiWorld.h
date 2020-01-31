@@ -14,6 +14,12 @@ namespace mpi {
         int worldSize;
     };
 
+    std::string getWorldStateKey(int worldId);
+
+    std::string getRankStateKey(int worldId, int rankId);
+
+    std::string getMessageStateKey(int messageId);
+
     class MpiWorld {
     public:
         MpiWorld();

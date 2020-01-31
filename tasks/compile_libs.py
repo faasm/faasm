@@ -65,8 +65,14 @@ def install_native_tools(ctx, clean=False):
     build_cmd_str = " ".join(build_cmd)
     print(build_cmd_str)
 
-    call(build_cmd_str, shell=True, cwd=build_dir)
-    call("make -j", shell=True, cwd=build_dir)
+    res = call(build_cmd_str, shell=True, cwd=build_dir)
+    if res != 0:
+        raise RuntimeError("Failed to build native tools")
+
+    res = call("make -j", shell=True, cwd=build_dir)
+    if res != 0:
+        raise RuntimeError("Failed to make native tools")
+
     call("sudo make install", shell=True, cwd=build_dir)
 
 
