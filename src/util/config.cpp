@@ -67,7 +67,11 @@ namespace util {
         sharedFilesDir = getEnvVar("SHARED_FILES_DIR", "/usr/local/faasm/shared");
         sharedFilesStorageDir = getEnvVar("SHARED_FILES_STORAGE_DIR", "/usr/local/faasm/shared_store");
 
+        // IBM
         ibmApiKey = getEnvVar("IBM_API_KEY", "");
+
+        // MPI
+        mpiWorldSize = this->getSystemConfIntParam("MPI_WORLD_SIZE", "3");
     }
 
     int SystemConfig::getSystemConfIntParam(const char *name, const char *defaultValue) {
@@ -127,6 +131,9 @@ namespace util {
 
         logger->info("--- IBM ---");
         logger->info("IBM_API_KEY     {}", ibmApiKey);
+
+        logger->info("--- MPI ---");
+        logger->info("MPI_WORLD_SIZE  {}", mpiWorldSize);
     }
 
     void _setNodeId() {

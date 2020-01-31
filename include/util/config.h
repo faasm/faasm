@@ -60,6 +60,9 @@ namespace util {
         // IBM
         std::string ibmApiKey;
 
+        // MPI
+        int mpiWorldSize;
+
         SystemConfig();
 
         void print();

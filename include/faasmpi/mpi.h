@@ -5,9 +5,6 @@
 extern "C" {
 #endif
 
-// Hard-code the world size for now, need to decide when/ where to set this
-#define FAASM_FIXED_SIZE 10
-
 #define MPI_SUCCESS 0
 #define MPI_ERR_OTHER 1
 

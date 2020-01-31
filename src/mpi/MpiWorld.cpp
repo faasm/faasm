@@ -119,7 +119,7 @@ namespace mpi {
     }
 
     template<typename T>
-    void MpiWorld::send(int sendRank, int destRank, T *buffer, int dataType, int count) {
+    void MpiWorld::send(int sendRank, int destRank, const T *buffer, int dataType, int count) {
         const std::string nodeId = getNodeForRank(destRank);
 
         // Generate a message ID
@@ -127,7 +127,7 @@ namespace mpi {
 
         // Write the data to state
         const std::shared_ptr<state::StateKeyValue> &kv = getMessageState<T>(msgId, count);
-        kv->set(buffer);
+        kv->set(reinterpret_cast<const uint8_t *>(buffer));
 
         // Create the message
         MpiMessage m{
@@ -154,22 +154,28 @@ namespace mpi {
         }
     }
 
+
     template<typename T>
     void MpiWorld::recv(int destRank, T *buffer, int count) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        
+
         // Listen to the in-memory queue for this rank
         const std::shared_ptr<InMemoryMpiQueue> &queue = getRankQueue(destRank);
         const MpiMessage m = queue->dequeue();
 
-        if(m.count > count) {
+        if (m.count > count) {
             logger->error("Message too long for buffer (msg={}, buffer={})", m.count, count);
             throw std::runtime_error("Message too long");
         }
-        
+
         const std::shared_ptr<state::StateKeyValue> &kv = getMessageState<T>(m.id, m.count);
-        kv->get(buffer);
+        kv->get(reinterpret_cast<uint8_t *>(buffer));
     }
+
+    template void MpiWorld::send<int>(int sendRank, int destRank, const int *buffer, int dataType, int count);
+
+    template void MpiWorld::recv<int>(int destRank, int *buffer, int count);
+
 
     std::shared_ptr<InMemoryMpiQueue> MpiWorld::getRankQueue(int rank) {
         if (rankQueueMap.count(rank) == 0) {

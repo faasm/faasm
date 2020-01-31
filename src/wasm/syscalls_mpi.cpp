@@ -28,8 +28,8 @@ namespace wasm {
         logger->debug("S - MPI_Init {} {}", a, b);
 
         // Initialise the world
-        int worldSize = FAASM_FIXED_SIZE;
-        getExecutingContext().createWorld(*getExecutingCall(), worldSize);
+        util::SystemConfig &conf = util::getSystemConfig();
+        getExecutingContext().createWorld(*getExecutingCall(), conf.mpiWorldSize);
 
         return 0;
     }
