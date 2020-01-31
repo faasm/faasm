@@ -339,7 +339,7 @@ namespace wasm {
         defaultTable = Runtime::getDefaultTable(moduleInstance);
 
         // Get and execute zygote function
-        if(executeZygote) {
+        if (executeZygote) {
             zygoteFunctionInstance = getFunction(ZYGOTE_FUNC_NAME, false);
             if (zygoteFunctionInstance) {
                 IR::UntaggedValue result;
@@ -361,6 +361,15 @@ namespace wasm {
         // Typescript doesn't export memory info, nor does it require
         // setting up argv/argc
         if (!boundIsTypescript) {
+            // Check stack is at the bottom
+            I32 heapBase = getGlobalI32("__heap_base", executionContext);
+            I32 dataEnd = getGlobalI32("__data_end", executionContext);
+
+            if (heapBase > 0 && dataEnd > 0 && heapBase != dataEnd) {
+                logger->error("Appears stack is not at bottom (__heap_base={} __data_end={})", heapBase, dataEnd);
+                throw std::runtime_error("Wasm memory layout not as expected");
+            }
+
             Uptr initialTableSize = Runtime::getTableNumElements(defaultTable);
             Uptr initialMemorySize = Runtime::getMemoryNumPages(defaultMemory) * IR::numBytesPerPage;
             Uptr initialMemoryPages = Runtime::getMemoryNumPages(defaultMemory);
@@ -506,6 +515,11 @@ namespace wasm {
 
     I32 WasmModule::getGlobalI32(const std::string &globalName, Runtime::Context *context) {
         Runtime::Global *globalPtr = Runtime::asGlobal(Runtime::getInstanceExport(moduleInstance, globalName.c_str()));
+
+        if (globalPtr == nullptr) {
+            return -1;
+        }
+
         const IR::Value &value = Runtime::getGlobalValue(context, globalPtr);
         return value.i32;
     }
@@ -1079,7 +1093,7 @@ namespace wasm {
         // Restore memory
         Uptr currentNumPages = Runtime::getMemoryNumPages(defaultMemory);
         size_t pagesRequired = mem.numPages - currentNumPages;
-        if(pagesRequired > 0) {
+        if (pagesRequired > 0) {
             mmapPages(pagesRequired);
         }
 
