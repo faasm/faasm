@@ -1,4 +1,5 @@
 #include "WasmModule.h"
+#include "wasm/openmp_types.h"
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
@@ -21,7 +22,7 @@ namespace wasm {
      * @return the thread number, within its team, of the thread executing the function.
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_thread_num", I32, omp_get_thread_num) {
-        util::getLogger()->debug("S - omp_get_thread_num");
+        util::getLogger()->debug("S - omp_get_thread_num ({})", thisThreadNumber);
         return thisThreadNumber;
     }
 
@@ -59,7 +60,7 @@ namespace wasm {
         {
             std::unique_lock<std::mutex> lk(barrierMutex);
             numThreadSemaphore--;
-            barrierCV.wait(lk, []{return numThreadSemaphore == 0;});
+            barrierCV.wait(lk, [] { return numThreadSemaphore == 0; });
         }
         barrierCV.notify_all();
     }
@@ -90,7 +91,7 @@ namespace wasm {
         WAVM_ASSERT(global_tid == 0 && thisThreadNumber == 0)
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_push_num_threads", void, __kmpc_push_num_threads, 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_push_num_threads", void, __kmpc_push_num_threads,
                                    I32 loc, I32 global_tid, I32 num_threads) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __kmpc_push_num_threads {} {} {}", loc, global_tid, num_threads);
@@ -123,22 +124,24 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_fork_call", void, __kmpc_fork_call, I32 locPtr, I32 argc,
                                    I32 microtaskPtr, I32 argsPtr) {
-        // The source loc info seems useless, but can be accessed with:
-        // Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        // wasm_ident *wasmLoc = &Runtime::memoryRef<wasm_ident>(memoryPtr, locPtr);
-        // logger->debug("wasmLoc.psource = {}", wasmLoc->psource);
-
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __kmpc_fork_call {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
+
+        // The source location contains information on what sort of code is calling
+        // this fork call. These types are defined in runtime/src/kmp.h
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        wasm_ident *wasmLoc = &Runtime::memoryRef<wasm_ident>(memoryPtr, locPtr);
+
+        if(wasmLoc->flags != KMP_IDENT_WORK_LOOP) {
+            logger->error("Unsupported loc flags: {}", wasmLoc->flags);
+            throw std::runtime_error("Unsupported calling type for fork");
+        }
 
         // Retrieve the microstask function from the table
         Runtime::Object *funcObj = Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr);
         Runtime::Function *func = Runtime::asFunction(funcObj);
         IR::FunctionType funcType = Runtime::getFunctionType(func);
 
-        // Get reference to module memory
-        Runtime::GCPointer<Runtime::Memory> &memoryPtr = getExecutingModule()->defaultMemory;
-        
         // Spawn calls to the microtask in multiple threads
         int numThreads = masterNumThread > 0 ? masterNumThread : util::getUsableCores();
         // Saves number of thread separately in case threads modify it before done spawning
@@ -150,19 +153,19 @@ namespace wasm {
             // Here we need to build up the arguments for this function (one 
             // argument per non-global shared variable). 
             std::vector<IR::UntaggedValue> arguments = {thisThreadNumber, argc};
-            if(argc > 0) {
+            if (argc > 0) {
                 // Get pointer to start of arguments in host memory
                 U32 *pointers = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
-                for(int argIdx = 0; argIdx < argc; argIdx++) {
+                for (int argIdx = 0; argIdx < argc; argIdx++) {
                     arguments.push_back(pointers[argIdx]);
                 }
             }
 
             threads.emplace_back([
-                    threadNum, numThreads,
-                    func, funcType, arguments,
-                    contextRuntimeData, parentModule, parentCall
-                    ] {
+                                         threadNum, numThreads,
+                                         func, funcType, arguments,
+                                         contextRuntimeData, parentModule, parentCall
+                                 ] {
                 // Note that the executing module and call are stored in TLS so need to explicitly set here
                 setExecutingModule(parentModule);
                 setExecutingCall(parentCall);
@@ -192,6 +195,46 @@ namespace wasm {
 
         // Reset the thread count for this thread
         thisSectionThreadCount = 1;
+    }
+
+    /**
+     * Loop handling. Each thread executes chunks of the same size, except the last one.
+     * Parameters here are just saying which chunks will get executed by which threads
+     *
+     * @param contextRuntimeData
+     * @param locPtr location in code of the call
+     * @param globalTid global thread id
+     * @param sched type of scheduling
+     * @param pLastIterPtr pointer to last iteration
+     * @param pLowerPtr loop lower bound - value of lower bound of first chunk
+     * @param pUpperPtr  loop upper bound - value of upper bound of first chunk
+     * @param pStridePtr loop stride - value of stride between two successive chunks executed by the same thread
+     * @param incr increment bump
+     * @param chunk size
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_for_static_init_4", void, __kmpc_for_static_init_4,
+                                   I32 locPtr, I32 globalTid, I32 sched, I32 pLastIterPtr, I32 pLowerPtr,
+                                   I32 pUpperPtr, I32 pStridePtr, I32 incr, I32 chunk) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+
+        I32 *pLastIterHost = &Runtime::memoryRef<I32>(memoryPtr, pLastIterPtr);
+        I32 *pLowerPtrHost = &Runtime::memoryRef<I32>(memoryPtr, pLowerPtr);
+        I32 *pUpperPtrHost = &Runtime::memoryRef<I32>(memoryPtr, pUpperPtr);
+        I32 *pStridePtrHost = &Runtime::memoryRef<I32>(memoryPtr, pStridePtr);
+
+        logger->debug("S - __kmpc_for_static_init_4 {} {} {} {} {} {} {} {} {}", locPtr, globalTid, sched,
+                      *pLastIterHost, *pLowerPtrHost, *pUpperPtrHost, *pStridePtrHost, incr, chunk);
+
+
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_for_static_fini", void, __kmpc_for_static_fini,
+                                   I32 a, I32 b) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - __kmpc_for_static_fini {} {}", a, b);
+
     }
 
     void ompLink() {

@@ -11,3 +11,6 @@ struct wasm_ident {
     I32 reserved_3;
     char const *psource;
 };
+
+// Types of source locations that call fork (defined in kmp.h)
+#define KMP_IDENT_WORK_LOOP 2
