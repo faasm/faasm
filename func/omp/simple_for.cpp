@@ -1,24 +1,26 @@
 #include <omp.h>
-#include <stdio.h>
+#include <cstdio>
 #include <faasm/faasm.h>
 
-bool failed = false;
-#define ITERATIONS 1
+#include "omp_helper.h"
 
-// Use base values else than 0 or 1 because they are often reset to that
-#define BASE_VALUE 100
+bool failed = false;
 
 FAASM_MAIN_FUNC() {
-    int var = BASE_VALUE + ITERATIONS;
-
-    #pragma omp parallel for num_threads(1) default(none) shared(var)
-    for (int i = 0; i < ITERATIONS; i++) {
-        var--;
+    const int total = 10;
+    auto results = new AlignedElem[total];
+    #pragma omp parallel for num_threads(2) schedule(static, 5) default(none) shared(results)
+    for (int i = 0; i < total; i++) {
+        results[i].i = i * (1 + omp_get_thread_num());
     }
 
-    if (var != BASE_VALUE) {
-        printf("Incorrect stack variable: actual %d, expected %d\n", var, BASE_VALUE);
-        failed = true;
+    for (int i = 0; i < total; i++) {
+        int j = i < 5? i : 2 * i;
+        if (results[i].i != j) {
+            printf("Element %i falsely set to %d, expected %d\n", i, results[i].i, j);
+            failed = true;
+        }
     }
+    delete[] results;
     return failed ? EXIT_FAILURE : EXIT_SUCCESS;
 }

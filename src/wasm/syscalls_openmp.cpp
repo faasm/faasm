@@ -9,9 +9,16 @@
 #include <stdio.h>
 
 namespace wasm {
+    enum sched_type : I32 {
+        kmp_sch_lower = 32, /**< lower bound for unordered values */
+        kmp_sch_static_chunked = 33,
+        kmp_sch_static = 34, /**< static unspecialized */
+    };
+
     static thread_local int thisThreadNumber = 0;
-    static thread_local unsigned int thisSectionThreadCount = 1;
-    static int masterNumThread = -1;
+    static unsigned int thisSectionThreadCount = 1;
+    static int masterNumThread = -1; /* per team/parallel section */
+    static unsigned int userNumThread = util::getUsableCores(); /* per user/program */
     static std::vector<std::thread> threads;
     static int numThreadSemaphore = -1;
     static std::mutex barrierMutex;
@@ -90,13 +97,29 @@ namespace wasm {
         WAVM_ASSERT(global_tid == 0 && thisThreadNumber == 0)
     }
 
+    /**
+     * Has precedence on all other settings for the next parallel region this gtid starts.
+     * @param loc
+     * @param global_tid
+     * @param num_threads
+     */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_push_num_threads", void, __kmpc_push_num_threads,
                                    I32 loc, I32 global_tid, I32 num_threads) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - __kmpc_push_num_threads {} {} {}", loc, global_tid, num_threads);
-
+        util::getLogger()->debug("S - __kmpc_push_num_threads {} {} {}", loc, global_tid, num_threads);
         if (num_threads > 0) {
             masterNumThread = num_threads;
+        }
+    }
+
+    /**
+     *
+     * @param contextRuntimeData
+     * @param num_threads
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_num_threads ", void, omp_set_num_threads, I32 num_threads) {
+        util::getLogger()->debug("S - omp_set_num_threads {}", num_threads);
+        if (num_threads > 0) {
+            userNumThread = num_threads;
         }
     }
 
@@ -123,11 +146,6 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_fork_call", void, __kmpc_fork_call, I32 locPtr, I32 argc,
                                    I32 microtaskPtr, I32 argsPtr) {
-        // The source loc info seems useless, but can be accessed with:
-        // Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        // wasm_ident *wasmLoc = &Runtime::memoryRef<wasm_ident>(memoryPtr, locPtr);
-        // logger->debug("wasmLoc.psource = {}", wasmLoc->psource);
-
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __kmpc_fork_call {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
 
@@ -139,11 +157,16 @@ namespace wasm {
         // Get reference to module memory
         Runtime::GCPointer<Runtime::Memory> &memoryPtr = getExecutingModule()->defaultMemory;
 
-        // Spawn calls to the microtask in multiple threads
-        int numThreads = masterNumThread > 0 ? masterNumThread : util::getUsableCores();
-        // Saves number of thread separately in case threads modify it before done spawning
-        numThreadSemaphore = numThreads;
-        for (int threadNum = 0; threadNum < numThreads; threadNum++) {
+        // Set the thread count for this section
+        thisSectionThreadCount = masterNumThread > 0 ? masterNumThread : userNumThread;
+
+        // Saves number of thread separately in case threads modifies it before loop finished
+        numThreadSemaphore = thisSectionThreadCount;
+
+        // Resets thread count for subsequent parallel regions
+        masterNumThread = -1;
+
+        for (unsigned int threadNum = 0; threadNum < thisSectionThreadCount; threadNum++) {
             WasmModule *parentModule = getExecutingModule();
             message::Message *parentCall = getExecutingCall();
 
@@ -154,22 +177,18 @@ namespace wasm {
                 // Get pointer to start of arguments in host memory
                 U32 *pointers = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
                 for (int argIdx = 0; argIdx < argc; argIdx++) {
-                    logger->info("Arg {}", Runtime::memoryRef<I32>(memoryPtr, pointers[argIdx]));
-                    arguments.push_back(pointers[argIdx]);
+                    arguments.emplace_back(pointers[argIdx]);
                 }
             }
 
             threads.emplace_back([
-                                         threadNum, numThreads,
+                                         threadNum,
                                          func, funcType, arguments,
-                                         contextRuntimeData, parentModule, parentCall, argc, logger, memoryPtr, argsPtr
+                                         contextRuntimeData, parentModule, parentCall
                                  ] {
                 // Note that the executing module and call are stored in TLS so need to explicitly set here
                 setExecutingModule(parentModule);
                 setExecutingCall(parentCall);
-
-                // Set the thread count for this section
-                thisSectionThreadCount = numThreads;
 
                 // Assign this thread its relevant thread number
                 thisThreadNumber = threadNum;
@@ -179,15 +198,6 @@ namespace wasm {
 
                 IR::UntaggedValue result;
                 Runtime::invokeFunction(threadContext, func, funcType, arguments.data(), &result);
-
-                if (0 < argc) {
-                    // Get pointer to start of arguments in host memory
-                    U32 *pointers = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
-                    for (int argIdx = 0; argIdx < argc; argIdx++) {
-                        logger->info("Arg {}", Runtime::memoryRef<I32>(memoryPtr, pointers[argIdx]));
-                    }
-                }
-                // TODO - check the result here
             });
         }
 
@@ -198,10 +208,35 @@ namespace wasm {
             }
         }
 
-        // Reset the thread count for this thread
+        // Reset the thread count for the master thread
         thisSectionThreadCount = 1;
     }
 
+    /**
+     * @param    loc       Source code location
+     * @param    gtid      Global thread id of this thread
+     * @param    schedule  Scheduling type for the parallel loop
+     * @param    plastiter Pointer to the "last iteration" flag
+     * @param    plower    Pointer to the lower bound
+     * @param    pupper    Pointer to the upper bound of loop chunk
+     * @param    pstride   Pointer to the stride for parallel loop
+     * @param    incr      Loop increment
+     * @param    chunk     The chunk size for the parallel loop
+     *
+     * The functions compute the upper and lower bounds and strides to be used for the
+     * set of iterations to be executed by the current thread from the statically
+     * scheduled loop that is described by the initial values of the bounds, strides,
+     * increment and chunks for parallel loop and distribute constructs.
+     *
+     * See sched_type for supported scheduling.
+     *
+     * SAFETY: The implementation here is not thread safe at the moment. The pointers values, although set
+     * to the correct values for each thread right before calling this function (on native, COW, so this
+     * function's modifications to them should be thread-local but are not at the moment). This function will
+     * therefore only work if each thread's work between init and fini is mutually exclusive..
+     * TODO: Find a way to make this thread safe, the hard bit is that the compiler assumes that those
+     * variables, although at the same address, will be thread-local.
+    */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_for_static_init_4", void, __kmpc_for_static_init_4,
                                    I32 loc, I32 gtid, I32 schedule, I32 _plastiter, I32 _plower,
                                    I32 _pupper, I32 _pstride, I32 incr, I32 chunk) {
@@ -209,6 +244,7 @@ namespace wasm {
         logger->debug("S - __kmpc_for_static_init_4 {} {} {} {} {} {} {} {} {}",
                       loc, gtid, schedule, _plastiter, _plower, _pupper, _pstride, incr, chunk);
 
+        // Assumes the pointers will be valid throughout the function
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         I32 *plower = &Runtime::memoryRef<I32>(memoryPtr, _plower);
         I32 *pupper = &Runtime::memoryRef<I32>(memoryPtr, _pupper);
@@ -252,7 +288,8 @@ namespace wasm {
             case 34: { // kmp_sch_static (chunk not given)
                 // If we have fewer trip_counts than threads
                 if (trip_count < thisSectionThreadCount) {
-                    logger->warn("Small for loop trip count {} {}", trip_count, thisSectionThreadCount); // Warns for future use, not tested at scale
+                    logger->warn("Small for loop trip count {} {}", trip_count,
+                                 thisSectionThreadCount); // Warns for future use, not tested at scale
                     if (thisThreadNumber < trip_count) {
                         *pupper = *plower = *plower + thisThreadNumber * incr;
                     } else {
@@ -265,8 +302,8 @@ namespace wasm {
                     logger->debug("Ignores KMP_SCHEDULE variable, defaults to static balanced schedule");
                     U32 small_chunk = trip_count / thisSectionThreadCount;
                     U32 extras = trip_count % thisSectionThreadCount;
-                    logger->info("chunk: {}, extras: {}" ,small_chunk, extras);
-                    *plower += incr * (thisThreadNumber * small_chunk + (thisThreadNumber < extras ? thisThreadNumber : extras));
+                    *plower += incr * (thisThreadNumber * small_chunk +
+                                       (thisThreadNumber < extras ? thisThreadNumber : extras));
                     *pupper = *plower + small_chunk * incr - (thisThreadNumber < extras ? 0 : incr);
                     *plastiter = (thisThreadNumber == thisSectionThreadCount - 1);
                 }
@@ -276,14 +313,13 @@ namespace wasm {
             }
 
         }
-
 //        logger->debug("After TID{}- lower {}, upper {}, stride {}, lastiter {}", thisThreadNumber, *plower, *pupper,
 //                      *pstride, *plastiter);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_for_static_fini", void, __kmpc_for_static_fini,
                                    I32 loc, I32 gtid) {
-        util::getLogger()->info("S - __kmpc_for_static_fini {} {}", loc, gtid);
+        util::getLogger()->debug("S - __kmpc_for_static_fini {} {}", loc, gtid);
     }
 
     void ompLink() {
