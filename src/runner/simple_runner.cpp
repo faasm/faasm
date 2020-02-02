@@ -1,4 +1,4 @@
-//#include <wasm/WasmModule.h>
+#include <wasm/WasmModule.h>
 
 #include <util/config.h>
 #include <util/timing.h>
