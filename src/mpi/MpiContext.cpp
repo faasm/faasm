@@ -13,7 +13,7 @@ namespace mpi {
     void MpiContext::createWorld(const message::Message &msg, int worldSize) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        if (rank <= 0) {
+        if (msg.mpirank() <= 0) {
             worldId = (int) util::generateGid();
             logger->debug("Initialising world {} on zero rank {}", worldId, rank);
 
