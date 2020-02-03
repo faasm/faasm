@@ -117,26 +117,26 @@ namespace tests {
         cleanSystem();
 
         const message::Message &msg = util::messageFactory(user, func);
-        mpi::MpiWorld worldA;
-        worldA.create(msg, worldId, worldSize);
+        mpi::MpiWorld world;
+        world.create(msg, worldId, worldSize);
 
         // Register two ranks
         int rankA1 = 1;
         int rankA2 = 2;
-        worldA.registerRank(rankA1);
-        worldA.registerRank(rankA2);
+        world.registerRank(rankA1);
+        world.registerRank(rankA2);
 
         // Send a message between colocated ranks
         std::vector<int> messageData = {0, 1, 2};
-        worldA.send<int>(rankA1, rankA2, messageData.data(), FAASMPI_INT, messageData.size());
+        world.send<int>(rankA1, rankA2, messageData.data(), FAASMPI_INT, messageData.size());
 
         SECTION("Test queueing") {
-            // Check it's on the right queue
-            REQUIRE(worldA.getRankQueueSize(rankA1) == 0);
-            REQUIRE(worldA.getRankQueueSize(rankA2) == 1);
+            // Check the message itself is on the right queue
+            REQUIRE(world.getRankQueueSize(rankA1) == 0);
+            REQUIRE(world.getRankQueueSize(rankA2) == 1);
 
             // Check message content
-            const std::shared_ptr<InMemoryMpiQueue> &queueA2 = worldA.getRankQueue(rankA2);
+            const std::shared_ptr<InMemoryMpiQueue> &queueA2 = world.getRankQueue(rankA2);
             MpiMessage *actualMessage = queueA2->dequeue();
             checkMessage(actualMessage, rankA1, rankA2, messageData);
             delete actualMessage;
@@ -145,7 +145,7 @@ namespace tests {
         SECTION("Test recv") {
             // Receive the message
             auto buffer = new int[messageData.size()];
-            worldA.recv<int>(rankA2, buffer, messageData.size());
+            world.recv<int>(rankA2, buffer, messageData.size());
 
             std::vector<int> actual(buffer, buffer + messageData.size());
             REQUIRE(actual == messageData);

@@ -1,5 +1,7 @@
 #include <catch/catch.hpp>
 #include <mpi/MpiContext.h>
+#include <faasmpi/mpi.h>
+#include <util/random.h>
 #include "utils.h"
 
 using namespace mpi;
@@ -80,6 +82,51 @@ namespace tests {
         MpiWorld &world = reg.getOrInitialiseWorld(msgB, worldId);
         const std::string actualNode = world.getNodeForRank(1);
 
-        REQUIRE(actualNode == expectedNode);
+        // Check message sent back to master on local queue
+        const std::shared_ptr<InMemoryMpiQueue> &masterQueue = world.getRankQueue(0);
+        MpiMessage *actualMessage = masterQueue->dequeue();
+        REQUIRE(actualMessage->count == 0);
+        REQUIRE(actualMessage->type == FAASMPI_INT);
+
+        delete actualMessage;
+    }
+
+    TEST_CASE("Check awaiting world creation", "[mpi]") {
+        cleanSystem();
+
+        // Create a world from one context
+        int worldSize = 4;
+        message::Message msg = util::messageFactory("mpi", "hellompi");
+        MpiContext c0;
+        c0.createWorld(msg, worldSize);
+        int worldId = c0.getWorldId();
+
+        // Join this from several contexts
+        MpiContext c1;
+        msg.set_ismpi(true);
+        msg.set_mpiworldid(worldId);
+        msg.set_mpirank(1);
+        c1.joinWorld(msg);
+
+        MpiContext c2;
+        msg.set_mpirank(2);
+        c2.joinWorld(msg);
+
+        MpiContext c3;
+        msg.set_mpirank(3);
+        c3.joinWorld(msg);
+
+        // Check we've got the messages from the joinees
+        MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
+        MpiWorld &world = reg.getWorld(worldId);
+        REQUIRE(world.getRankQueueSize(0) == 3);
+
+        // Check that awaiting fails on non-zero rank context
+        REQUIRE_THROWS(c1.awaitWorldCreation());
+        REQUIRE_THROWS(c2.awaitWorldCreation());
+        REQUIRE_THROWS(c3.awaitWorldCreation());
+
+        // Check that awaiting succeeds
+        c0.awaitWorldCreation();
     }
 }

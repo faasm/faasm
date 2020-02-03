@@ -71,12 +71,14 @@ namespace mpi {
         registerRank(0);
 
         // Dispatch all the chained calls
+        // NOTE - with the master being rank zero, we want to spawn n-1 new functions
+        // starting with rank 1
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        for (int i = 0; i < size - 1; i++) {
+        for (int i = 1; i < size; i++) {
             message::Message msg = util::messageFactory(user, function);
             msg.set_ismpi(true);
             msg.set_mpiworldid(id);
-            msg.set_mpirank(i + 1);
+            msg.set_mpirank(i);
 
             sch.callFunction(msg);
         }
@@ -125,10 +127,6 @@ namespace mpi {
         const std::shared_ptr<state::StateKeyValue> &kv = getRankNodeState(rank);
         kv->set(reinterpret_cast<const uint8_t *>(thisNodeId.c_str()));
         kv->pushFull();
-
-        // Notify the master
-        int empty[1] = {0};
-        this->send<int>(rank, 0, empty, FAASMPI_INT, 0);
     }
 
     std::string MpiWorld::getNodeForRank(int rank) {

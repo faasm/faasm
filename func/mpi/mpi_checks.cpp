@@ -20,7 +20,7 @@ FAASM_MAIN_FUNC() {
     }
 
     // Check how big the world is
-    if (worldSize < 3) {
+    if (worldSize <= 1) {
         printf("World size must be greater than 1 (is %i)\n", worldSize);
         return 1;
     }

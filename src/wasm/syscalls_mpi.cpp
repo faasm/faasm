@@ -36,6 +36,9 @@ namespace wasm {
             // Initialise the world
             util::SystemConfig &conf = util::getSystemConfig();
             executingContext.createWorld(*call, conf.mpiWorldSize);
+
+            // Wait for all the functions to be ready
+            executingContext.awaitWorldCreation();
         } else {
             logger->debug("S - MPI_Init (join) {} {}", a, b);
 
