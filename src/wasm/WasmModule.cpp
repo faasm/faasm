@@ -97,8 +97,6 @@ namespace wasm {
         boundFunction = other.boundFunction;
         boundIsTypescript = other.boundIsTypescript;
 
-        mpiContext = other.mpiContext;
-
         if (other._isBound) {
             if (memoryFd > 0) {
                 // Clone compartment excluding memory
@@ -317,9 +315,6 @@ namespace wasm {
 
         boundUser = msg.user();
         boundFunction = msg.function();
-
-        // Join MPI context if necessary
-        mpiContext.joinWorld(msg);
 
         // Set up the compartment and context
         PROF_START(wasmContext)
@@ -1105,9 +1100,5 @@ namespace wasm {
         U8 *memBase = Runtime::getMemoryBaseAddress(defaultMemory);
         size_t memSize = mem.numPages * IR::numBytesPerPage;
         memcpy(memBase, mem.data.data(), memSize);
-    }
-
-    mpi::MpiContext &WasmModule::getMpiContext() {
-        return mpiContext;
     }
 }

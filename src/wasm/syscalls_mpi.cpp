@@ -6,18 +6,19 @@
 
 #include <faasmpi/mpi.h>
 #include <scheduler/Scheduler.h>
+#include <mpi/MpiContext.h>
 
 namespace wasm {
+    static thread_local mpi::MpiContext executingContext;
 
-    mpi::MpiWorld &getExecutingWorld() {
-        mpi::MpiContext &ctx = getExecutingModule()->getMpiContext();
-        int worldId = ctx.getWorldId();
-        mpi::MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
-        return reg.getOrInitialiseWorld(*getExecutingCall(), worldId);
+    mpi::MpiContext &getExecutingMpiContext() {
+        return executingContext;
     }
 
-    mpi::MpiContext &getExecutingContext() {
-        return getExecutingModule()->getMpiContext();
+    mpi::MpiWorld &getExecutingWorld() {
+        int worldId = executingContext.getWorldId();
+        mpi::MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
+        return reg.getOrInitialiseWorld(*getExecutingCall(), worldId);
     }
 
     /**
@@ -26,15 +27,20 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Init", I32, MPI_Init, I32 a, I32 b) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        mpi::MpiContext &ctx = getExecutingContext();
+        message::Message *call = getExecutingCall();
 
         // Note - only want to initialise the world on rank zero (or when rank isn't set yet)
-        if (ctx.getRank() <= 0) {
-            logger->debug("S - MPI_Init {} {}", a, b);
+        if (call->mpirank() <= 0) {
+            logger->debug("S - MPI_Init (create) {} {}", a, b);
 
             // Initialise the world
             util::SystemConfig &conf = util::getSystemConfig();
-            ctx.createWorld(*getExecutingCall(), conf.mpiWorldSize);
+            executingContext.createWorld(*call, conf.mpiWorldSize);
+        } else {
+            logger->debug("S - MPI_Init (join) {} {}", a, b);
+
+            // Join the world (will have been initialised elsewhere)
+            executingContext.joinWorld(*call);
         }
 
         return 0;
@@ -85,7 +91,7 @@ namespace wasm {
             return 1;
         }
 
-        writeMpiIntResult(resPtr, getExecutingContext().getRank());
+        writeMpiIntResult(resPtr, executingContext.getRank());
 
         return MPI_SUCCESS;
     }
@@ -99,7 +105,7 @@ namespace wasm {
             return 1;
         }
 
-        int thisRank = getExecutingContext().getRank();
+        int thisRank = executingContext.getRank();
         mpi::MpiWorld &world = getExecutingWorld();
 
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
@@ -126,7 +132,7 @@ namespace wasm {
             return 1;
         }
 
-        int thisRank = getExecutingContext().getRank();
+        int thisRank = executingContext.getRank();
         mpi::MpiWorld &world = getExecutingWorld();
 
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
@@ -144,9 +150,7 @@ namespace wasm {
     }
 
     int terminateMpi() {
-        mpi::MpiContext &ctx = getExecutingContext();
-
-        if(ctx.getRank() <= 0) {
+        if(executingContext.getRank() <= 0) {
             mpi::MpiWorld &world = getExecutingWorld();
             world.destroy();
         }
@@ -156,12 +160,14 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Abort", I32, MPI_Abort, I32 a, I32 b) {
         util::getLogger()->debug("S - MPI_Abort {} {}", a, b);
-        return terminateMpi();
+//        return terminateMpi();
+        return MPI_SUCCESS;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Finalize", I32, MPI_Finalize) {
         util::getLogger()->debug("S - MPI_Finalize");
-        return terminateMpi();
+//        return terminateMpi();
+        return MPI_SUCCESS;
     }
 
     void mpiLink() {

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <mpi/MpiContext.h>
 #include <util/logging.h>
 #include <state/State.h>
 #include <proto/faasm.pb.h>
@@ -136,8 +135,6 @@ namespace wasm {
         void snapshotCrossHost(const std::string &filePath);
 
         void restoreCrossHost(const message::Message &msg, const std::string &filePath);
-
-        mpi::MpiContext &getMpiContext();
     private:
         Runtime::GCPointer<Runtime::Instance> envModule;
         Runtime::GCPointer<Runtime::Instance> moduleInstance;
@@ -172,9 +169,6 @@ namespace wasm {
         std::unordered_map<std::string, Uptr> globalOffsetTableMap;
         std::unordered_map<std::string, int> globalOffsetMemoryMap;
         std::unordered_map<std::string, int> missingGlobalOffsetEntries;
-
-        // MPI context
-        mpi::MpiContext mpiContext;
 
         void reset();
 

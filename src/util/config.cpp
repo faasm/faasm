@@ -38,7 +38,7 @@ namespace util {
         netNsMode = getEnvVar("NETNS_MODE", "off");
         logLevel = getEnvVar("LOG_LEVEL", "info");
         awsLogLevel = getEnvVar("AWS_LOG_LEVEL", "off");
-        pythonPreload = getEnvVar("PYTHON_PRELOAD", "on");
+        pythonPreload = getEnvVar("PYTHON_PRELOAD", "off");
 
         // Redis
         redisStateHost = getEnvVar("REDIS_STATE_HOST", "localhost");

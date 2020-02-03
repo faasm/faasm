@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sys/socket.h>
+#include <mpi/MpiContext.h>
 
 #define FAKE_NAME "faasm"
 #define FAKE_PASSWORD  "foobar123"
@@ -14,6 +15,8 @@
 #define FAKE_N_PROCESSORS 4
 
 namespace wasm {
+    mpi::MpiContext &getExecutingMpiContext();
+
     void getBytesFromWasm(I32 dataPtr, I32 dataLen, uint8_t *buffer);
 
     std::vector<uint8_t> getBytesFromWasm(I32 dataPtr, I32 dataLen);

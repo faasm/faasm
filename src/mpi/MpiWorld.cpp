@@ -13,14 +13,23 @@ namespace mpi {
     }
 
     std::string getWorldStateKey(int worldId) {
+        if(worldId <= 0) {
+            throw std::runtime_error(fmt::format("World ID must be bigger than zero ({})", worldId));
+        }
         return "mpi_world_" + std::to_string(worldId);
     }
 
     std::string getRankStateKey(int worldId, int rankId) {
+        if(worldId <= 0 || rankId < 0) {
+            throw std::runtime_error(fmt::format("World ID must be >0 and rank ID must be >=0 ({}, {})", worldId, rankId));
+        }
         return "mpi_rank_" + std::to_string(worldId) + "_" + std::to_string(rankId);
     }
 
     std::string getMessageStateKey(int messageId) {
+        if(messageId <= 0) {
+            throw std::runtime_error(fmt::format("Message ID must be bigger than zero ({})", messageId));
+        }
         return "mpi_msg_" + std::to_string(messageId);
     }
 

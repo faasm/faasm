@@ -20,5 +20,7 @@ namespace tests {
 
     std::string execFunctionWithStringResult(message::Message &msg);
 
+    void execFuncWithPool(message::Message &call, bool pythonPreload = false, int repeatCount = 1);
+
     void checkMultipleExecutions(message::Message &msg, int nExecs);
 }

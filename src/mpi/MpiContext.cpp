@@ -15,7 +15,7 @@ namespace mpi {
 
         if (msg.mpirank() <= 0) {
             worldId = (int) util::generateGid();
-            logger->debug("Initialising world {} on zero rank {}", worldId, rank);
+            logger->debug("Initialising world {}", worldId);
 
             // Create the MPI world
             mpi::MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
@@ -25,7 +25,7 @@ namespace mpi {
             isMpi = true;
             rank = 0;
         } else {
-            logger->error("Attempting to initialise world for non-zero rank {}", rank);
+            logger->error("Attempting to initialise world for non-zero rank {}", msg.mpirank());
             throw std::runtime_error("Initialising world on non-zero rank");
         }
     }
