@@ -84,6 +84,8 @@ int MPI_Comm_size(MPI_Comm comm, int *size);
 
 int MPI_Abort(MPI_Comm comm, int errorcode);
 
+int MPI_Get_count(const MPI_Status *status, MPI_Datatype datatype, int *count);
+
 #ifdef __cplusplus
 }
 #endif

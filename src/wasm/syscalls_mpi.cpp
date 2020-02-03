@@ -125,6 +125,14 @@ namespace wasm {
         return 0;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Get_count", I32, MPI_Get_count, I32 statusPtr, I32 datatype, I32 countPtr) {
+        util::getLogger()->debug("S - MPI_Get_count {} {} {}", statusPtr, datatype, countPtr);
+
+        // TODO - implement
+
+        return MPI_SUCCESS;
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Recv", I32, MPI_Recv, I32 buffer, I32 count,
                                    I32 datatype, I32 sourceRank, I32 tag, I32 comm, I32 statusPtr) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
