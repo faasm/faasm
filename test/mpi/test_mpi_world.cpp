@@ -207,6 +207,50 @@ namespace tests {
         }
     }
 
+    TEST_CASE("Test send/recv message with no data", "[mpi]") {
+        cleanSystem();
+
+        const message::Message &msg = util::messageFactory(user, func);
+        mpi::MpiWorld world;
+        world.create(msg, worldId, worldSize);
+
+        // Register two ranks
+        int rankA1 = 1;
+        int rankA2 = 2;
+        world.registerRank(rankA1);
+        world.registerRank(rankA2);
+
+        // Check we know the number of state keys
+        state::State &state = state::getGlobalState();
+        REQUIRE(state.getKVCount() == 4);
+
+        // Send a message between colocated ranks
+        std::vector<int> messageData = {0};
+        world.send<int>(rankA1, rankA2, messageData.data(), FAASMPI_INT, 0);
+
+        SECTION("Check on queue") {
+            // Check message content
+            const std::shared_ptr<InMemoryMpiQueue> &queueA2 = world.getRankQueue(rankA2);
+            MpiMessage *actualMessage = queueA2->dequeue();
+            REQUIRE(actualMessage->count == 0);
+            REQUIRE(actualMessage->type == FAASMPI_INT);
+
+            // Check no extra data in state
+            REQUIRE(state.getKVCount() == 4);
+
+            delete actualMessage;
+        }
+
+        SECTION("Check receiving with null ptr") {
+            // Receiving with a null pointer shouldn't break
+            world.recv<int>(rankA2, nullptr, 0);
+
+            // Check no extra data in state
+            REQUIRE(state.getKVCount() == 4);
+        }
+
+    }
+
     TEST_CASE("Test can't get in-memory queue for non-local ranks", "[mpi]") {
         cleanSystem();
 

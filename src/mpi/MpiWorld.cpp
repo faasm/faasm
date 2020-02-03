@@ -6,6 +6,7 @@
 #include <util/gids.h>
 #include <mpi/MpiGlobalBus.h>
 #include <util/logging.h>
+#include <faasmpi/mpi.h>
 
 namespace mpi {
     MpiWorld::MpiWorld() : id(-1), size(-1), thisNodeId(util::getNodeId()) {
@@ -124,6 +125,10 @@ namespace mpi {
         const std::shared_ptr<state::StateKeyValue> &kv = getRankNodeState(rank);
         kv->set(reinterpret_cast<const uint8_t *>(thisNodeId.c_str()));
         kv->pushFull();
+
+        // Notify the master
+        int empty[1] = {0};
+        this->send<int>(rank, 0, empty, FAASMPI_INT, 0);
     }
 
     std::string MpiWorld::getNodeForRank(int rank) {
@@ -159,10 +164,6 @@ namespace mpi {
         // Generate a message ID
         int msgId = (int) util::generateGid();
 
-        // Write the data to state
-        const std::shared_ptr<state::StateKeyValue> &kv = getMessageState<T>(msgId, count);
-        kv->set(reinterpret_cast<const uint8_t *>(buffer));
-
         // Create the message
         auto m = new MpiMessage;
         m->id = msgId;
@@ -175,17 +176,25 @@ namespace mpi {
         // Work out whether the message is sent locally or to another node
         const std::string otherNodeId = getNodeForRank(destRank);
         bool isLocal = otherNodeId == thisNodeId;
+
+        // Dispatch the message locally or globally
         if (isLocal) {
-            // Place on relevant in-memory queue
             const std::shared_ptr<InMemoryMpiQueue> &queue = getRankQueue(destRank);
             queue->enqueue(m);
         } else {
-            // Push to global state
-            kv->pushFull();
-
-            // Send the message
             MpiGlobalBus &bus = mpi::getMpiGlobalBus();
             bus.sendMessageToNode(otherNodeId, m);
+        }
+
+        // Set up message data in state
+        if(count > 0) {
+            const std::shared_ptr<state::StateKeyValue> &kv = getMessageState<T>(msgId, count);
+            kv->set(reinterpret_cast<const uint8_t *>(buffer));
+
+            // Push to global state if not local
+            if(!isLocal) {
+                kv->pushFull();
+            }
         }
     }
 
@@ -202,8 +211,10 @@ namespace mpi {
             throw std::runtime_error("Message too long");
         }
 
-        const std::shared_ptr<state::StateKeyValue> &kv = getMessageState<T>(m->id, m->count);
-        kv->get(reinterpret_cast<uint8_t *>(buffer));
+        if(m->count > 0) {
+            const std::shared_ptr<state::StateKeyValue> &kv = getMessageState<T>(m->id, m->count);
+            kv->get(reinterpret_cast<uint8_t *>(buffer));
+        }
     }
 
     template void MpiWorld::send<int>(int senderRank, int destRank, const int *buffer, int dataType, int count);
