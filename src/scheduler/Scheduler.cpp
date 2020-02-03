@@ -228,6 +228,11 @@ namespace scheduler {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
         int maxInFlightRatio = conf.maxInFlightRatio;
+        if(msg.ismpi()) {
+            logger->debug("Overriding max in-flight ratio for MPI function ({} -> {})", maxInFlightRatio, 1);
+            maxInFlightRatio = 1;
+        }
+
         double inFlightRatio = this->getFunctionInFlightRatio(msg);
         long nThreads = this->getFunctionThreadCount(msg);
 
