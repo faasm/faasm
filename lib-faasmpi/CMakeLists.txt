@@ -5,6 +5,9 @@ project(libfaasmpi)
 
 set(CMAKE_CXX_STANDARD 17)
 
+set(PROJ_INCLUDE ${CMAKE_CURRENT_LIST_DIR}/../include/faasmpi)
+include_directories(${CMAKE_CURRENT_LIST_DIR} ${PROJ_INCLUDE})
+
 set(PUBLIC_HEADERS
         faasmpi/faasmpi.h
         )
@@ -28,7 +31,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
     install(FILES faasmpi.imports DESTINATION ${CMAKE_SYSROOT}/lib RENAME libfaasmpi.imports)
 
     # Add mpi header (already present in native builds)
-    install(FILES mpi.h DESTINATION ${CMAKE_SYSROOT}/include)
+    install(FILES ${PROJ_INCLUDE}/mpi.h DESTINATION ${CMAKE_SYSROOT}/include)
 else ()
     add_library(faasmpi SHARED ${LIB_FILES})
     set_target_properties(faasmpi PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")

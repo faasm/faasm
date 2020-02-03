@@ -550,4 +550,18 @@ namespace tests {
         std::vector<uint8_t> actual(actualBytes, actualBytes + 6);
         REQUIRE(actual == expected);
     }
+
+    TEST_CASE("Test deletion", "[state]") {
+        redis::Redis &redisState = redis::Redis::getState();
+        auto kv = setupKV(5);
+
+        // Push some data and check
+        std::vector<uint8_t> values = {0, 1, 2, 3, 4};
+        kv->set(values.data());
+        kv->pushFull();
+        REQUIRE(redisState.get(kv->key) == values);
+
+        kv->deleteGlobal();
+        redisState.get(kv->key);
+    }
 }

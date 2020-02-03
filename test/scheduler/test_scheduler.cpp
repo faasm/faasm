@@ -506,4 +506,44 @@ namespace tests {
         REQUIRE(sch.getFunctionInFlightCount(msg) == 0);
         REQUIRE(sch.getOpinion(msg) == SchedulerOpinion::YES);
     }
+    
+    TEST_CASE("Test special case scheduling of MPI functions", "[mpi]") {
+        cleanSystem();
+
+        util::SystemConfig &conf = util::getSystemConfig();
+        int originalInFlight = conf.maxInFlightRatio;
+        int originalWorkersPerFunc = conf.maxWorkersPerFunction;
+
+        // Set up known params
+        int inFlightRatio = 2;
+        int workersPerFunc = 4;
+        conf.maxInFlightRatio = inFlightRatio;
+        conf.maxWorkersPerFunction = workersPerFunc;
+
+        message::Message msg = util::messageFactory("mpi", "hellompi");
+        msg.set_ismpi(true);
+        
+        Scheduler &sch = getScheduler();
+
+        // Max in-flight ratio should be 1, hence one thread created per call
+        for(int i = 0; i < inFlightRatio; i++) {
+            sch.callFunction(msg);
+        }
+        REQUIRE(sch.getFunctionThreadCount(msg) == inFlightRatio);
+        REQUIRE(sch.getOpinion(msg) == YES);
+
+        // Saturate up to max workers
+        int remainingCalls = workersPerFunc - inFlightRatio;
+        for(int i = 0; i < remainingCalls; i++) {
+            sch.callFunction(msg);
+        }
+
+        // Check scheduler no longer accepting calls
+        REQUIRE(sch.getFunctionThreadCount(msg) == workersPerFunc);
+        REQUIRE(sch.getOpinion(msg) == NO);
+
+        // Reset conf
+        conf.maxInFlightRatio = originalInFlight;
+        conf.maxWorkersPerFunction = originalWorkersPerFunc;
+    }
 }

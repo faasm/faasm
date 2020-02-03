@@ -55,6 +55,8 @@ namespace scheduler {
 
         double getFunctionInFlightRatio(const message::Message &msg);
 
+        int getFunctionMaxInFlightRatio(const message::Message &msg);
+
         long getFunctionInFlightCount(const message::Message &msg);
 
         void addNodeToGlobalSet(const std::string &node);

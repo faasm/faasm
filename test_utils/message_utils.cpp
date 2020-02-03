@@ -27,6 +27,10 @@ namespace tests {
         REQUIRE(msgA.statuskey() == msgB.statuskey());
         REQUIRE(msgA.coldstartinterval() == msgB.coldstartinterval());
         REQUIRE(msgA.type() == msgB.type());
+
+        REQUIRE(msgA.ismpi() == msgB.ismpi());
+        REQUIRE(msgA.mpiworldid() == msgB.mpiworldid());
+        REQUIRE(msgA.mpirank() == msgB.mpirank());
     }
 }
 

@@ -1,5 +1,7 @@
 #include <catch/catch.hpp>
 #include <zygote/ZygoteRegistry.h>
+#include <emulator/emulator.h>
+#include <util/environment.h>
 
 #include "utils.h"
 
@@ -12,7 +14,7 @@ namespace tests {
         util::SystemConfig &conf = util::getSystemConfig();
         std::string originalPreload = conf.pythonPreload;
         conf.pythonPreload = "off";
-        
+
         // Set up worker to listen for relevant function
         WorkerThreadPool pool(1);
         WorkerThread w(1);
@@ -45,7 +47,7 @@ namespace tests {
         message::Message result = globalBus.getFunctionResult(call.id(), 1);
         REQUIRE(result.success());
 
-        if(!expectedOutput.empty()) {
+        if (!expectedOutput.empty()) {
             REQUIRE(result.outputdata() == expectedOutput);
         }
 
@@ -75,7 +77,7 @@ namespace tests {
 
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
         const message::Message result = globalBus.getFunctionResult(call.id(), 1);
-        if(!result.success()) {
+        if (!result.success()) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Function failed: {}", result.outputdata());
             FAIL();
@@ -93,13 +95,60 @@ namespace tests {
 
         wasm::WasmModule module(zygote);
 
-        for(int i = 0; i < nExecs; i++) {
+        for (int i = 0; i < nExecs; i++) {
             int res = module.execute(msg);
             REQUIRE(res == 0);
 
             // Reset
             module = zygote;
         }
+    }
+
+    void execFuncWithPool(message::Message &call, bool pythonPreload, int repeatCount) {
+        cleanSystem();
+
+        setEmulatedMessage(call);
+
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        sch.clear();
+        sch.addNodeToGlobalSet();
+
+        // Modify system config (network ns requires root)
+        util::SystemConfig &conf = util::getSystemConfig();
+        std::string originalNsMode = conf.netNsMode;
+        std::string originalPreload = conf.pythonPreload;
+        conf.boundTimeout = 1000;
+        conf.unboundTimeout = 1000;
+        conf.netNsMode = "off";
+        conf.pythonPreload = "off";
+
+        // Set up a real worker pool to execute the function
+        WorkerThreadPool pool(4);
+        pool.startThreadPool();
+
+        for (int i = 0; i < repeatCount; i++) {
+            // Reset call ID
+            call.set_id(0);
+            util::setMessageId(call);
+
+            unsigned int messageId = call.id();
+            setEmulatedMessage(call);
+
+            // Make the call
+            sch.callFunction(call);
+
+            // Await the call executing successfully
+            scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
+            message::Message result = globalBus.getFunctionResult(messageId, 1);
+            REQUIRE(result.success());
+        }
+
+        pool.shutdown();
+
+        conf.netNsMode = originalNsMode;
+        conf.pythonPreload = originalPreload;
+
+        cleanSystem();
     }
 }
 

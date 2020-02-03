@@ -19,9 +19,10 @@ namespace worker {
         pool.startThreadPool();
 
         // Work sharing
-        if(shareWork) {
-            pool.startSharingThread();
-        }
+        pool.startSharingThread();
+
+        // Start MPI thread in background
+        pool.startMpiThread();
     }
 
     void WorkerMain::awaitGlobalQueue() {
@@ -36,9 +37,5 @@ namespace worker {
         scheduler.clear();
 
         pool.shutdown();
-    }
-
-    void WorkerMain::setShareWork(bool in) {
-        shareWork = in;
     }
 }

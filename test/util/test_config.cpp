@@ -43,6 +43,8 @@ namespace tests {
         REQUIRE(conf.boundTimeout == 30000);
         REQUIRE(conf.unboundTimeout == 60000);
         REQUIRE(conf.chainedCallTimeout == 300000);
+
+        REQUIRE(conf.mpiWorldSize == 3);
     }
 
     TEST_CASE("Test overriding system config initialisation", "[util]") {
@@ -85,6 +87,8 @@ namespace tests {
 
         std::string ibmApi = setEnvVar("IBM_API_KEY", "ibm-123");
 
+        std::string mpiSize = setEnvVar("MPI_WORLD_SIZE", "2468");
+
         // Create new conf for test
         SystemConfig conf;
         REQUIRE(conf.threadsPerWorker == 50);
@@ -124,6 +128,8 @@ namespace tests {
 
         REQUIRE(conf.ibmApiKey == "ibm-123");
 
+        REQUIRE(conf.mpiWorldSize == 2468);
+
         // Be careful with host type
         setEnvVar("HOST_TYPE", originalHostType);
 
@@ -162,6 +168,8 @@ namespace tests {
         setEnvVar("SHARED_FILES_STORAGE_DIR", sharedStorageDir);
 
         setEnvVar("IBM_API_KEY", ibmApi);
+
+        setEnvVar("MPI_WORLD_SIZE", mpiSize);
     }
 
 }

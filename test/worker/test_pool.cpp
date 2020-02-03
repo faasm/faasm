@@ -198,44 +198,6 @@ namespace tests {
         REQUIRE(w.isBound());
     }
 
-    void execFuncWithPool(message::Message &call, bool pythonPreload, int repeatCount) {
-        setUp();
-
-        util::SystemConfig &conf = util::getSystemConfig();
-        std::string originalPreload = conf.pythonPreload;
-        conf.boundTimeout = 1000;
-        conf.unboundTimeout = 1000;
-        conf.pythonPreload = "off";
-
-        // Set up a real worker pool to execute the function
-        WorkerThreadPool pool(4);
-        pool.startThreadPool();
-
-        for (int i = 0; i < repeatCount; i++) {
-            // Reset call ID
-            call.set_id(0);
-            util::setMessageId(call);
-
-            unsigned int messageId = call.id();
-            setEmulatedMessage(call);
-
-            // Make the call
-            scheduler::Scheduler &sch = scheduler::getScheduler();
-            sch.callFunction(call);
-
-            // Await the call executing successfully
-            scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-            message::Message result = globalBus.getFunctionResult(messageId, 1);
-            REQUIRE(result.success());
-        }
-
-        pool.shutdown();
-
-        tearDown();
-
-        conf.pythonPreload = originalPreload;
-    }
-
     TEST_CASE("Test function chaining", "[worker]") {
         message::Message call = util::messageFactory("demo", "chain");
         execFuncWithPool(call, false, 2);

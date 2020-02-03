@@ -12,6 +12,8 @@ namespace worker {
 
         void startSharingThread();
 
+        void startMpiThread();
+
         void startThreadPool();
 
         void reset();
@@ -33,6 +35,7 @@ namespace worker {
         std::thread stateThread;
         std::thread globalQueueThread;
         std::thread sharingQueueThread;
+        std::thread mpiThread;
         std::thread poolThread;
         std::vector<std::thread> poolThreads;
     };

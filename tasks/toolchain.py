@@ -60,6 +60,7 @@ def run_local_codegen(ctx):
     _do_codegen_for_user("demo")
     _do_codegen_for_user("errors")
     _do_codegen_for_user("omp")
+    _do_codegen_for_user("mpi")
 
     # Run these in parallel
     p = Pool(3)
