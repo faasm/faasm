@@ -115,8 +115,10 @@ namespace mpi {
     }
 
     void MpiWorld::registerRank(int rank) {
-        util::FullLock lock(worldMutex);
-        rankNodeMap[rank] = thisNodeId;
+        {
+            util::FullLock lock(worldMutex);
+            rankNodeMap[rank] = thisNodeId;
+        }
 
         // Set the value remotely
         const std::shared_ptr<state::StateKeyValue> &kv = getRankNodeState(rank);
@@ -135,6 +137,11 @@ namespace mpi {
                 kv->get(buffer);
 
                 char *bufferChar = reinterpret_cast<char *>(buffer);
+                if(bufferChar[0] == '\0') {
+                    // No entry for other rank
+                    throw std::runtime_error(fmt::format("No node entry for rank {}", rank));
+                }
+
                 std::string otherNodeId(bufferChar, bufferChar + NODE_ID_LEN);
                 rankNodeMap[rank] = otherNodeId;
             }
@@ -145,6 +152,10 @@ namespace mpi {
 
     template<typename T>
     void MpiWorld::send(int senderRank, int destRank, const T *buffer, int dataType, int count) {
+        if(destRank > this->size) {
+            throw std::runtime_error(fmt::format("Rank {} bigger than world size {}", destRank, this->size));
+        }
+
         // Generate a message ID
         int msgId = (int) util::generateGid();
 

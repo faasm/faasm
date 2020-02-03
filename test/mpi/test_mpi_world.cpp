@@ -207,7 +207,6 @@ namespace tests {
         }
     }
 
-
     TEST_CASE("Test can't get in-memory queue for non-local ranks", "[mpi]") {
         cleanSystem();
 
@@ -239,5 +238,30 @@ namespace tests {
         // Double check even when we've retrieved the rank
         REQUIRE(worldA.getNodeForRank(rankB) == nodeIdB);
         REQUIRE_THROWS(worldA.getRankQueue(rankB));
+    }
+
+    TEST_CASE("Check sending to invalid rank", "[mpi]") {
+        cleanSystem();
+
+        const message::Message &msg = util::messageFactory(user, func);
+        mpi::MpiWorld world;
+        world.create(msg, worldId, worldSize);
+
+        std::vector<int> input = {0, 1, 2, 3};
+        int invalidRank = worldSize + 2;
+        REQUIRE_THROWS(world.send(0, invalidRank, input.data(), FAASMPI_INT, 4));
+    }
+
+    TEST_CASE("Check sending to unregistered rank", "[mpi]") {
+        cleanSystem();
+
+        const message::Message &msg = util::messageFactory(user, func);
+        mpi::MpiWorld world;
+        world.create(msg, worldId, worldSize);
+
+        // Rank hasn't yet been registered
+        int destRank = 2;
+        std::vector<int> input = {0, 1};
+        REQUIRE_THROWS(world.send(0, destRank, input.data(), FAASMPI_INT, 2));
     }
 }

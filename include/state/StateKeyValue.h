@@ -72,8 +72,6 @@ namespace state {
 
         void flagSegmentAllocated(long offset, long len);
 
-        bool empty();
-
         size_t size();
 
         std::string getSegmentKey(long offset, long length);
