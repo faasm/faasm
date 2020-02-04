@@ -25,7 +25,7 @@ FAASM_MAIN_FUNC() {
     bool *flags = new bool[nThreads];
 
     // Note the shared variables here are both local and global
-    #pragma omp parallel shared(flags, failed, nThreads)
+    #pragma omp parallel default(none) shared(flags, failed, nThreads)
     {
         int thisThreadNum = omp_get_thread_num();
         flags[thisThreadNum] = true;
