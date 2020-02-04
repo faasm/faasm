@@ -236,7 +236,7 @@ namespace wasm {
         }
 
         if (numErrors) {
-            throw std::runtime_error(fmt::format("Some threads have exited with some errors {}", numErrors));
+            throw std::runtime_error(fmt::format("{}} OMP threads have exited with errors", numErrors));
         }
 
         // Reset the master thread variables
