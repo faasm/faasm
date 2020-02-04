@@ -215,13 +215,13 @@ namespace wasm {
             return 1;
         }
 
-//        int thisRank = executingContext.getRank();
-//        mpi::MpiWorld &world = getExecutingWorld();
-//
-//        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-//        MPI_Status *status = &Runtime::memoryRef<MPI_Status>(memoryPtr, statusPtr);
+        int thisRank = executingContext.getRank();
 
-        // TODO - implement probe
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        MPI_Status *status = &Runtime::memoryRef<MPI_Status>(memoryPtr, statusPtr);
+
+        mpi::MpiWorld &world = getExecutingWorld();
+        world.probe(thisRank, status);
 
         return MPI_SUCCESS;
     }

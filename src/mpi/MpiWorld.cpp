@@ -231,6 +231,20 @@ namespace mpi {
 
     template void MpiWorld::recv<int>(int destRank, int *buffer, int count, MPI_Status *status);
 
+    void MpiWorld::probe(int destRank, MPI_Status *status) {
+        const std::shared_ptr<InMemoryMpiQueue> &queue = getRankQueue(destRank);
+        const MpiMessage *m = queue->peek();
+
+        if(m->type == FAASMPI_INT) {
+            status->bytesSize =m->count * sizeof(int);
+        } else {
+            throw std::runtime_error(fmt::format("Not yet implemented message datatype {}", m->type));
+        }
+
+        status->MPI_ERROR = 0;
+        status->MPI_SOURCE = m->sender;
+    }
+
     void MpiWorld::queueForRank(MpiMessage *msg) {
         if (msg->worldId != id) {
             util::getLogger()->error("Queueing message not meant for this world (msg={}, this={})", msg->worldId, id);

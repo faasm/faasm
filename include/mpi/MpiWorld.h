@@ -51,6 +51,8 @@ namespace mpi {
         template<typename T>
         void recv(int destRank, T *buffer, int count, MPI_Status *status);
 
+        void probe(int destRank, MPI_Status *status);
+
         std::shared_ptr<InMemoryMpiQueue> getRankQueue(int rank);
 
         long getRankQueueSize(int rank);
