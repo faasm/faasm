@@ -43,7 +43,7 @@ namespace mpi {
 
         // Await messages from world
         for(int senderRank = 1; senderRank < world.getSize(); senderRank++) {
-            world.recv<int>(0, nullptr, 0);
+            world.recv<int>(0, nullptr, 0, nullptr);
         }
 
         logger->info("Received all creation messages for {}", worldId);

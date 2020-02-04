@@ -144,11 +144,16 @@ namespace tests {
 
         SECTION("Test recv") {
             // Receive the message
+            MPI_Status status{};
             auto buffer = new int[messageData.size()];
-            world.recv<int>(rankA2, buffer, messageData.size());
+            world.recv<int>(rankA2, buffer, messageData.size(), &status);
 
             std::vector<int> actual(buffer, buffer + messageData.size());
             REQUIRE(actual == messageData);
+
+            REQUIRE(status.MPI_ERROR == MPI_SUCCESS);
+            REQUIRE(status.MPI_SOURCE == rankA1);
+            REQUIRE(status.bytesSize == messageData.size() * sizeof(int));
         }
     }
 
@@ -199,11 +204,16 @@ namespace tests {
             worldB.queueForRank(message);
 
             // Receive the message for the given rank
+            MPI_Status status{};
             auto buffer = new int[messageData.size()];
-            worldB.recv<int>(rankB, buffer, messageData.size());
+            worldB.recv<int>(rankB, buffer, messageData.size(), &status);
 
             std::vector<int> actual(buffer, buffer + messageData.size());
             REQUIRE(actual == messageData);
+
+            REQUIRE(status.MPI_SOURCE == rankA);
+            REQUIRE(status.MPI_ERROR == MPI_SUCCESS);
+            REQUIRE(status.bytesSize == messageData.size() * sizeof(int));
         }
     }
 
@@ -243,12 +253,42 @@ namespace tests {
 
         SECTION("Check receiving with null ptr") {
             // Receiving with a null pointer shouldn't break
-            world.recv<int>(rankA2, nullptr, 0);
+            MPI_Status status{};
+            world.recv<int>(rankA2, nullptr, 0, &status);
 
             // Check no extra data in state
             REQUIRE(state.getKVCount() == 4);
+            REQUIRE(status.MPI_SOURCE == rankA1);
+            REQUIRE(status.MPI_ERROR == MPI_SUCCESS);
+            REQUIRE(status.bytesSize == 0);
         }
+    }
 
+    TEST_CASE("Test recv with partial data", "[mpi]") {
+        cleanSystem();
+
+        const message::Message &msg = util::messageFactory(user, func);
+        mpi::MpiWorld world;
+        world.create(msg, worldId, worldSize);
+
+        world.registerRank(1);
+        world.registerRank(2);
+        
+        // Send a message with size less than the recipient is expecting
+        std::vector<int> messageData = {0, 1, 2, 3};
+        unsigned long actualSize = messageData.size();
+        world.send<int>(1, 2, messageData.data(), FAASMPI_INT, actualSize);
+
+        // Request to receive more values than were sent
+        MPI_Status status{};
+        unsigned long requestedSize = actualSize + 5;
+        auto buffer = new int[requestedSize];
+        world.recv<int>(2, buffer, requestedSize, &status);
+
+        // Check status reports only the values that were sent
+        REQUIRE(status.MPI_SOURCE == 1);
+        REQUIRE(status.MPI_ERROR == MPI_SUCCESS);
+        REQUIRE(status.bytesSize == actualSize * sizeof(int));
     }
 
     TEST_CASE("Test can't get in-memory queue for non-local ranks", "[mpi]") {

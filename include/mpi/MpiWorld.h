@@ -2,6 +2,7 @@
 
 #include "mpi/MpiMessage.h"
 
+#include <faasmpi/mpi.h>
 #include <proto/faasm.pb.h>
 #include <state/StateKeyValue.h>
 #include <scheduler/InMemoryMessageQueue.h>
@@ -48,7 +49,7 @@ namespace mpi {
         void send(int senderRank, int destRank, const T *buffer, int dataType, int count);
 
         template<typename T>
-        void recv(int destRank, T *buffer, int count);
+        void recv(int destRank, T *buffer, int count, MPI_Status *status);
 
         std::shared_ptr<InMemoryMpiQueue> getRankQueue(int rank);
 

@@ -26,6 +26,9 @@ struct faasmpi_status_public_t {
     int MPI_SOURCE;
     int MPI_TAG;
     int MPI_ERROR;
+
+    // These are internal
+    int bytesSize;
 };
 
 // Open MPI version: https://github.com/open-mpi/ompi/blob/master/ompi/datatype/ompi_datatype.h
