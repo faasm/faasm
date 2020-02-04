@@ -8,18 +8,18 @@ namespace tests {
     TEST_CASE("Test running MPI checks", "[wasm]") {
         cleanSystem();
         message::Message msg = util::messageFactory("mpi", "mpi_checks");
-        execFuncWithPool(msg);
+        execFuncWithPool(msg, false, 1, true);
     }
 
     TEST_CASE("Test running MPI status check", "[wasm]") {
         cleanSystem();
         message::Message msg = util::messageFactory("mpi", "mpi_status");
-        execFuncWithPool(msg);
+        execFuncWithPool(msg, false, 1, true);
     }
 
     TEST_CASE("Test running MPI probe check", "[wasm]") {
         cleanSystem();
         message::Message msg = util::messageFactory("mpi", "mpi_probe");
-        execFuncWithPool(msg);
+        execFuncWithPool(msg, false, 1, true);
     }
 }

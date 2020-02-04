@@ -104,7 +104,8 @@ namespace tests {
         }
     }
 
-    void execFuncWithPool(message::Message &call, bool pythonPreload, int repeatCount) {
+    void execFuncWithPool(message::Message &call, bool pythonPreload, int repeatCount,
+                          bool checkChained) {
         cleanSystem();
 
         setEmulatedMessage(call);
@@ -121,7 +122,7 @@ namespace tests {
         conf.boundTimeout = 1000;
         conf.unboundTimeout = 1000;
         conf.netNsMode = "off";
-        conf.pythonPreload = "off";
+        conf.pythonPreload = pythonPreload ? "on" : "off";
 
         // Set up a real worker pool to execute the function
         WorkerThreadPool pool(4);
@@ -141,24 +142,29 @@ namespace tests {
             sch.callFunction(call);
 
             // Await the result of the main function
-            message::Message result = bus.getFunctionResult(mainFuncId, 1);
+            // NOTE - this timeout needs to be long enough for the function to
+            // finish executing
+            message::Message result = bus.getFunctionResult(mainFuncId, 10000);
             REQUIRE(result.success());
         }
 
-        pool.shutdown();
-
         // Get all call statuses
-        for (auto messageId : sch.getScheduledMessageIds()) {
-            if (messageId == mainFuncId) {
-                // Already checked the main message ID
-                continue;
-            }
+        if (checkChained) {
+            for (auto messageId : sch.getScheduledMessageIds()) {
+                if (messageId == mainFuncId) {
+                    // Already checked the main message ID
+                    continue;
+                }
 
-            const message::Message &result = bus.getFunctionResult(messageId, 1);
-            if (!result.success()) {
-                FAIL(fmt::format("Message ID {} failed", messageId));
+                const message::Message &result = bus.getFunctionResult(messageId, 1);
+                if (!result.success()) {
+                    FAIL(fmt::format("Message ID {} failed", messageId));
+                }
             }
         }
+
+        // Shut down the pool
+        pool.shutdown();
 
         conf.netNsMode = originalNsMode;
         conf.pythonPreload = originalPreload;

@@ -20,7 +20,7 @@ namespace scheduler {
     }
 
     message::Message RedisMessageBus::nextMessage() {
-        return this->nextMessage(util::DEFAULT_TIMEOUT);
+        return this->nextMessage(DEFAULT_TIMEOUT);
     }
 
     message::Message RedisMessageBus::nextMessage(int timeoutMs) {
@@ -63,7 +63,7 @@ namespace scheduler {
         redis.enqueueBytes(key, inputData);
 
         // Set the result key to expire
-        redis.expire(key, util::RESULT_KEY_EXPIRY);
+        redis.expire(key, RESULT_KEY_EXPIRY);
     }
 
     message::Message RedisMessageBus::getFunctionResult(unsigned int messageId, int timeoutMs) {

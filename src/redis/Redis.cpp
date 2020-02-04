@@ -518,7 +518,9 @@ namespace redis {
         redisReply *reply;
         if (isBlocking) {
             // Note, timeouts need to be converted into seconds
-            int timeoutSecs = timeoutMs / 1000;
+            // Floor to one second
+            int timeoutSecs = std::max(timeoutMs / 1000, 1);
+
             reply = (redisReply *) redisCommand(context, "BLPOP %s %d", queueName.c_str(), timeoutSecs);
         } else {
             // LPOP is non-blocking
@@ -532,7 +534,9 @@ namespace redis {
 
         // Should get an array when doing a blpop, check it.
         if (isBlocking) {
-            if (reply->type != REDIS_REPLY_ARRAY) {
+            if (reply->type == REDIS_REPLY_ERROR) {
+                throw std::runtime_error("Failed dequeue: " + std::string(reply->str));
+            } else if (reply->type != REDIS_REPLY_ARRAY) {
                 throw std::runtime_error("Expected array response from BLPOP but got " + std::to_string(reply->type));
             }
 
@@ -620,6 +624,5 @@ namespace redis {
 
         freeReplyObject(reply);
     }
-
 }
 
