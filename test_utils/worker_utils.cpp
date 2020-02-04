@@ -104,7 +104,8 @@ namespace tests {
         }
     }
 
-    void execFuncWithPool(message::Message &call, bool pythonPreload, int repeatCount) {
+    void execFuncWithPool(message::Message &call, bool pythonPreload, int repeatCount,
+                          bool checkChained) {
         cleanSystem();
 
         setEmulatedMessage(call);
@@ -112,6 +113,7 @@ namespace tests {
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.clear();
         sch.addNodeToGlobalSet();
+        sch.setMessageIdLogging(true);
 
         // Modify system config (network ns requires root)
         util::SystemConfig &conf = util::getSystemConfig();
@@ -120,29 +122,48 @@ namespace tests {
         conf.boundTimeout = 1000;
         conf.unboundTimeout = 1000;
         conf.netNsMode = "off";
-        conf.pythonPreload = "off";
+        conf.pythonPreload = pythonPreload ? "on" : "off";
 
         // Set up a real worker pool to execute the function
         WorkerThreadPool pool(4);
         pool.startThreadPool();
 
+        unsigned int mainFuncId;
+        scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
         for (int i = 0; i < repeatCount; i++) {
             // Reset call ID
             call.set_id(0);
             util::setMessageId(call);
 
-            unsigned int messageId = call.id();
+            mainFuncId = call.id();
             setEmulatedMessage(call);
 
             // Make the call
             sch.callFunction(call);
 
-            // Await the call executing successfully
-            scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-            message::Message result = globalBus.getFunctionResult(messageId, 1);
+            // Await the result of the main function
+            // NOTE - this timeout needs to be long enough for the function to
+            // finish executing
+            message::Message result = bus.getFunctionResult(mainFuncId, 10000);
             REQUIRE(result.success());
         }
 
+        // Get all call statuses
+        if (checkChained) {
+            for (auto messageId : sch.getScheduledMessageIds()) {
+                if (messageId == mainFuncId) {
+                    // Already checked the main message ID
+                    continue;
+                }
+
+                const message::Message &result = bus.getFunctionResult(messageId, 1);
+                if (!result.success()) {
+                    FAIL(fmt::format("Message ID {} failed", messageId));
+                }
+            }
+        }
+
+        // Shut down the pool
         pool.shutdown();
 
         conf.netNsMode = originalNsMode;

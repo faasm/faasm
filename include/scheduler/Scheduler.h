@@ -69,6 +69,10 @@ namespace scheduler {
 
         void removeNodeFromWarmSet(const std::string &funcStr);
 
+        void setMessageIdLogging(bool val);
+
+        std::vector<unsigned int> getScheduledMessageIds();
+
     private:
         std::string nodeId;
 
@@ -87,6 +91,9 @@ namespace scheduler {
         std::unordered_map<std::string, SchedulerOpinion> opinionMap;
 
         SharingMessageBus &sharingBus;
+
+        bool logMessageIds = false;
+        std::vector<unsigned int> loggedMessageIds;
     };
 
     Scheduler &getScheduler();

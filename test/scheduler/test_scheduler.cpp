@@ -271,7 +271,7 @@ namespace tests {
 
                 REQUIRE(sch.getBestNodeForFunction(call) == otherNodeA);
             }
-            
+
             SECTION("Test this node chosen when scheduler off even though warm option available") {
                 // Switch off scheduler
                 int originalNoScheduler = conf.noScheduler;
@@ -491,7 +491,7 @@ namespace tests {
 
         // Saturate and make sure opinion is NO
         int nCalls = conf.maxWorkersPerFunction * conf.maxInFlightRatio;
-        for(int i = 0; i < nCalls; i++) {
+        for (int i = 0; i < nCalls; i++) {
             sch.callFunction(msg);
         }
         REQUIRE(sch.getFunctionThreadCount(msg) == conf.maxWorkersPerFunction);
@@ -499,14 +499,14 @@ namespace tests {
         REQUIRE(sch.getOpinion(msg) == SchedulerOpinion::NO);
 
         // Notify all calls finished
-        for(int i = 0; i < nCalls; i++) {
+        for (int i = 0; i < nCalls; i++) {
             sch.notifyCallFinished(msg);
         }
         REQUIRE(sch.getFunctionThreadCount(msg) == conf.maxWorkersPerFunction);
         REQUIRE(sch.getFunctionInFlightCount(msg) == 0);
         REQUIRE(sch.getOpinion(msg) == SchedulerOpinion::YES);
     }
-    
+
     TEST_CASE("Test special case scheduling of MPI functions", "[mpi]") {
         cleanSystem();
 
@@ -522,11 +522,11 @@ namespace tests {
 
         message::Message msg = util::messageFactory("mpi", "hellompi");
         msg.set_ismpi(true);
-        
+
         Scheduler &sch = getScheduler();
 
         // Max in-flight ratio should be 1, hence one thread created per call
-        for(int i = 0; i < inFlightRatio; i++) {
+        for (int i = 0; i < inFlightRatio; i++) {
             sch.callFunction(msg);
         }
         REQUIRE(sch.getFunctionThreadCount(msg) == inFlightRatio);
@@ -534,7 +534,7 @@ namespace tests {
 
         // Saturate up to max workers
         int remainingCalls = workersPerFunc - inFlightRatio;
-        for(int i = 0; i < remainingCalls; i++) {
+        for (int i = 0; i < remainingCalls; i++) {
             sch.callFunction(msg);
         }
 
@@ -545,5 +545,37 @@ namespace tests {
         // Reset conf
         conf.maxInFlightRatio = originalInFlight;
         conf.maxWorkersPerFunction = originalWorkersPerFunc;
+    }
+
+    TEST_CASE("Test logging message IDs", "[scheduler]") {
+        cleanSystem();
+
+        Scheduler &sch = scheduler::getScheduler();
+
+        message::Message msgA = util::messageFactory("demo", "echo");
+        message::Message msgB = util::messageFactory("demo", "echo");
+        message::Message msgC = util::messageFactory("demo", "echo");
+
+        SECTION("No logging") {
+            sch.setMessageIdLogging(false);
+
+            sch.callFunction(msgA);
+            sch.callFunction(msgB);
+            sch.callFunction(msgC);
+            REQUIRE(sch.getScheduledMessageIds().empty());
+        }
+
+        SECTION("Logging") {
+            sch.setMessageIdLogging(true);
+
+            sch.callFunction(msgA);
+            sch.callFunction(msgB);
+            sch.callFunction(msgC);
+
+            std::vector<unsigned int> expected = {(unsigned int) msgA.id(), (unsigned int) msgB.id(),
+                                                  (unsigned int) msgC.id()};
+            std::vector<unsigned int> actual = sch.getScheduledMessageIds();
+            REQUIRE(actual == expected);
+        }
     }
 }

@@ -155,11 +155,11 @@ namespace redis {
 
         void enqueueBytes(const std::string &queueName, const uint8_t* buffer, size_t bufferLen);
 
-        std::string dequeue(const std::string &queueName, int timeout = util::DEFAULT_TIMEOUT);
+        std::string dequeue(const std::string &queueName, int timeout = DEFAULT_TIMEOUT);
 
-        std::vector<uint8_t> dequeueBytes(const std::string &queueName, int timeout = util::DEFAULT_TIMEOUT);
+        std::vector<uint8_t> dequeueBytes(const std::string &queueName, int timeout = DEFAULT_TIMEOUT);
 
-        void dequeueBytes(const std::string &queueName, uint8_t *buffer, size_t bufferLen, int timeout = util::DEFAULT_TIMEOUT);
+        void dequeueBytes(const std::string &queueName, uint8_t *buffer, size_t bufferLen, int timeout = DEFAULT_TIMEOUT);
 
         void dequeueMultiple(const std::string &queueName, uint8_t *buff, long buffLen, long nElems);
 

@@ -273,7 +273,7 @@ namespace tests {
 
         world.registerRank(1);
         world.registerRank(2);
-        
+
         // Send a message with size less than the recipient is expecting
         std::vector<int> messageData = {0, 1, 2, 3};
         unsigned long actualSize = messageData.size();
@@ -289,6 +289,54 @@ namespace tests {
         REQUIRE(status.MPI_SOURCE == 1);
         REQUIRE(status.MPI_ERROR == MPI_SUCCESS);
         REQUIRE(status.bytesSize == actualSize * sizeof(int));
+    }
+
+    TEST_CASE("Test probe", "[mpi]") {
+        cleanSystem();
+
+        const message::Message &msg = util::messageFactory(user, func);
+        mpi::MpiWorld world;
+        world.create(msg, worldId, worldSize);
+
+        world.registerRank(1);
+        world.registerRank(2);
+
+        // Send two messages of different sizes
+        std::vector<int> messageData = {0, 1, 2, 3, 4, 5, 6};
+        unsigned long sizeA = 2;
+        unsigned long sizeB = messageData.size();
+        world.send<int>(1, 2, messageData.data(), FAASMPI_INT, sizeA);
+        world.send<int>(1, 2, messageData.data(), FAASMPI_INT, sizeB);
+
+        // Probe twice on the same message
+        MPI_Status statusA1{};
+        MPI_Status statusA2{};
+        MPI_Status statusB{};
+        world.probe(2, &statusA1);
+        world.probe(2, &statusA2);
+
+        // Check status reports only the values that were sent
+        REQUIRE(statusA1.MPI_SOURCE == 1);
+        REQUIRE(statusA1.MPI_ERROR == MPI_SUCCESS);
+        REQUIRE(statusA1.bytesSize == sizeA * sizeof(int));
+
+        REQUIRE(statusA2.MPI_SOURCE == 1);
+        REQUIRE(statusA2.MPI_ERROR == MPI_SUCCESS);
+        REQUIRE(statusA2.bytesSize == sizeA * sizeof(int));
+
+        // Receive the message
+        auto bufferA = new int[sizeA];
+        world.recv<int>(2, bufferA, sizeA * sizeof(int), nullptr);
+
+        // Probe the next message
+        world.probe(2, &statusB);
+        REQUIRE(statusB.MPI_SOURCE == 1);
+        REQUIRE(statusB.MPI_ERROR == MPI_SUCCESS);
+        REQUIRE(statusB.bytesSize == sizeB * sizeof(int));
+
+        // Receive the next message
+        auto bufferB = new int[sizeB];
+        world.recv<int>(2, bufferB, sizeB * sizeof(int), nullptr);
     }
 
     TEST_CASE("Test can't get in-memory queue for non-local ranks", "[mpi]") {

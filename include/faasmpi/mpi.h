@@ -89,6 +89,8 @@ int MPI_Abort(MPI_Comm comm, int errorcode);
 
 int MPI_Get_count(const MPI_Status *status, MPI_Datatype datatype, int *count);
 
+int MPI_Probe(int source, int tag, MPI_Comm comm, MPI_Status *status);
+
 #ifdef __cplusplus
 }
 #endif
