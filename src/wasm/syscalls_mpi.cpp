@@ -208,6 +208,24 @@ namespace wasm {
         return MPI_SUCCESS;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Probe", I32, MPI_Probe, I32 source, I32 tag, I32 comm, I32 statusPtr) {
+        util::getLogger()->debug("S - MPI_Probe {} {} {} {}", source, tag, comm, statusPtr);
+
+        if (!checkMpiComm(comm)) {
+            return 1;
+        }
+
+//        int thisRank = executingContext.getRank();
+//        mpi::MpiWorld &world = getExecutingWorld();
+//
+//        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+//        MPI_Status *status = &Runtime::memoryRef<MPI_Status>(memoryPtr, statusPtr);
+
+        // TODO - implement probe
+
+        return MPI_SUCCESS;
+    }
+
     void mpiLink() {
 
     }

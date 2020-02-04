@@ -546,4 +546,33 @@ namespace tests {
         conf.maxInFlightRatio = originalInFlight;
         conf.maxWorkersPerFunction = originalWorkersPerFunc;
     }
+    
+    TEST_CASE("Test logging message IDs", "[scheduler]") {
+        Scheduler &sch = scheduler::getScheduler();
+
+        message::Message msgA = util::messageFactory("demo", "echo");
+        message::Message msgB = util::messageFactory("demo", "echo");
+        message::Message msgC = util::messageFactory("demo", "echo");
+
+        SECTION("No logging") {
+            sch.setMessageIdLogging(false);
+            
+            sch.callFunction(msgA);
+            sch.callFunction(msgB);
+            sch.callFunction(msgC);
+            REQUIRE(sch.getScheduledMessageIds().empty());
+        }
+
+        SECTION("Logging") {
+            sch.setMessageIdLogging(true);
+
+            sch.callFunction(msgA);
+            sch.callFunction(msgB);
+            sch.callFunction(msgC);
+            
+            std::vector<int> expected = {msgA.id(), msgB.id(), msgC.id()};
+            std::vector<int> actual = sch.getScheduledMessageIds();
+            REQUIRE(actual == expected);
+        }
+    }
 }

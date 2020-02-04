@@ -7,3 +7,4 @@ MPI_Recv
 MPI_Comm_rank
 MPI_Comm_size
 MPI_Get_count
+MPI_Probe

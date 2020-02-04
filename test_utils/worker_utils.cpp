@@ -112,6 +112,7 @@ namespace tests {
         scheduler::Scheduler &sch = scheduler::getScheduler();
         sch.clear();
         sch.addNodeToGlobalSet();
+        sch.setMessageIdLogging(true);
 
         // Modify system config (network ns requires root)
         util::SystemConfig &conf = util::getSystemConfig();
@@ -126,24 +127,38 @@ namespace tests {
         WorkerThreadPool pool(4);
         pool.startThreadPool();
 
+        unsigned int mainFuncId;
+        scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
         for (int i = 0; i < repeatCount; i++) {
             // Reset call ID
             call.set_id(0);
             util::setMessageId(call);
 
-            unsigned int messageId = call.id();
+            mainFuncId = call.id();
             setEmulatedMessage(call);
 
             // Make the call
             sch.callFunction(call);
 
-            // Await the call executing successfully
-            scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
-            message::Message result = globalBus.getFunctionResult(messageId, 1);
+            // Await the result of the main function
+            message::Message result = bus.getFunctionResult(mainFuncId, 1);
             REQUIRE(result.success());
         }
 
         pool.shutdown();
+
+        // Get all call statuses
+        for (auto messageId : sch.getScheduledMessageIds()) {
+            if (messageId == mainFuncId) {
+                // Already checked the main message ID
+                continue;
+            }
+
+            const message::Message &result = bus.getFunctionResult(messageId, 1);
+            if (!result.success()) {
+                FAIL(fmt::format("Message ID {} failed", messageId));
+            }
+        }
 
         conf.netNsMode = originalNsMode;
         conf.pythonPreload = originalPreload;

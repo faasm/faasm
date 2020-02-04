@@ -16,4 +16,10 @@ namespace tests {
         message::Message msg = util::messageFactory("mpi", "mpi_status");
         execFuncWithPool(msg);
     }
+
+    TEST_CASE("Test running MPI probe check", "[wasm]") {
+        cleanSystem();
+        message::Message msg = util::messageFactory("mpi", "mpi_probe");
+        execFuncWithPool(msg);
+    }
 }

@@ -14,7 +14,8 @@ namespace scheduler {
     Scheduler::Scheduler() :
             nodeId(util::getNodeId()),
             conf(util::getSystemConfig()),
-            sharingBus(SharingMessageBus::getInstance()) {
+            sharingBus(SharingMessageBus::getInstance()),
+            logMessageIds(false) {
 
         bindQueue = std::make_shared<InMemoryMessageQueue>();
     }
@@ -52,12 +53,13 @@ namespace scheduler {
             this->removeNodeFromWarmSet(iter.first);
         }
 
-        // Clear anything in the bind queue
+        // Clear all queues and data
         bindQueue->reset();
         queueMap.clear();
         threadCountMap.clear();
         inFlightCountMap.clear();
         opinionMap.clear();
+        loggedMessageIds.clear();
 
         this->removeNodeFromGlobalSet();
     }
@@ -200,6 +202,11 @@ namespace scheduler {
         // Mark if this is the first scheduling decision made on this message
         if (msg.schedulednode().empty()) {
             msg.set_schedulednode(bestNode);
+        }
+
+        // Log this call if needed
+        if(logMessageIds) {
+            loggedMessageIds.push_back(msg.id());
         }
 
         const std::string funcStrWithId = util::funcToString(msg, true);
@@ -411,5 +418,13 @@ namespace scheduler {
                          oStr);
             return nodeId;
         }
+    }
+
+    void Scheduler::setMessageIdLogging(bool val) {
+        logMessageIds = val;
+    }
+
+    std::vector<unsigned int> Scheduler::getScheduledMessageIds() {
+        return loggedMessageIds;
     }
 }
