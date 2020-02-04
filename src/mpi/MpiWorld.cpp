@@ -197,7 +197,7 @@ namespace mpi {
     }
 
     template<typename T>
-    void MpiWorld::recv(int destRank, T *buffer, int count) {
+    void MpiWorld::recv(int destRank, T *buffer, int count, MPI_Status *status) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // Listen to the in-memory queue for this rank
@@ -213,11 +213,23 @@ namespace mpi {
             const std::shared_ptr<state::StateKeyValue> &kv = getMessageState<T>(m->id, m->count);
             kv->get(reinterpret_cast<uint8_t *>(buffer));
         }
+
+        // Set status values if required
+        if(status != nullptr) {
+            status->MPI_SOURCE = m->sender;
+            status->MPI_ERROR = MPI_SUCCESS;
+
+            // Note, take the message size here as the receive count may be larger
+            status->bytesSize = m->count * sizeof(T);
+
+            // TODO - thread through tag
+            status->MPI_TAG = -1;
+        }
     }
 
     template void MpiWorld::send<int>(int senderRank, int destRank, const int *buffer, int dataType, int count);
 
-    template void MpiWorld::recv<int>(int destRank, int *buffer, int count);
+    template void MpiWorld::recv<int>(int destRank, int *buffer, int count, MPI_Status *status);
 
     void MpiWorld::queueForRank(MpiMessage *msg) {
         if (msg->worldId != id) {

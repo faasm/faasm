@@ -62,6 +62,12 @@ namespace wasm {
         return true;
     }
 
+    bool checkIsInt(I32 wasmPtr) {
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        faasmpi_datatype_t *hostDataType = &Runtime::memoryRef<faasmpi_datatype_t>(memoryPtr, wasmPtr);
+        return hostDataType->id == FAASMPI_INT;
+    }
+
     void writeMpiIntResult(I32 resPtr, I32 result) {
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         I32 *hostResPtr = &Runtime::memoryRef<I32>(memoryPtr, resPtr);
@@ -112,17 +118,46 @@ namespace wasm {
         mpi::MpiWorld &world = getExecutingWorld();
 
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        faasmpi_datatype_t *hostDataType = &Runtime::memoryRef<faasmpi_datatype_t>(memoryPtr, datatype);
 
-        if (hostDataType->id == FAASMPI_INT) {
+        if (checkIsInt(datatype)) {
             int *inputs = Runtime::memoryArrayPtr<I32>(memoryPtr, buffer, count);
             world.send<int>(thisRank, destRank, inputs, FAASMPI_INT, count);
+        } else {
+            logger->error("Unrecognised datatype ({})", datatype);
+            return 1;
+        }
+
+        return 0;
+    }
+
+    /**
+     * Original: https://github.com/open-mpi/ompi/blob/master/ompi/mpi/c/get_count.c
+     * @param statusPtr - pointer to MPI_Status for the given message
+     * @param datatype - the datatype the user is wishing to count
+     * @param countPtr - the pointer to write the result to
+     * @return
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Get_count", I32, MPI_Get_count, I32 statusPtr, I32 datatype,
+                                   I32 countPtr) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - MPI_Get_count {} {} {}", statusPtr, datatype, countPtr);
+
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        MPI_Status *status = &Runtime::memoryRef<MPI_Status>(memoryPtr, statusPtr);
+        if (checkIsInt(datatype)) {
+            if (status->bytesSize % sizeof(int) != 0) {
+                logger->error("Incomplete message (bytes {}, datatype size {})", status->bytesSize, sizeof(int));
+                return 1;
+            }
+
+            int nVals = status->bytesSize / ((int) sizeof(int));
+            writeMpiIntResult(countPtr, nVals);
         } else {
             logger->error("Unrecognised datatype");
             return 1;
         }
 
-        return 0;
+        return MPI_SUCCESS;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Recv", I32, MPI_Recv, I32 buffer, I32 count,
@@ -139,11 +174,11 @@ namespace wasm {
         mpi::MpiWorld &world = getExecutingWorld();
 
         Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        faasmpi_datatype_t *hostDataType = &Runtime::memoryRef<faasmpi_datatype_t>(memoryPtr, datatype);
+        MPI_Status *status = &Runtime::memoryRef<MPI_Status>(memoryPtr, statusPtr);
 
-        if (hostDataType->id == FAASMPI_INT) {
+        if (checkIsInt(datatype)) {
             int *outputs = Runtime::memoryArrayPtr<I32>(memoryPtr, buffer, count);
-            world.recv<int>(thisRank, outputs, count);
+            world.recv<int>(thisRank, outputs, count, status);
         } else {
             logger->error("Unrecognised datatype");
             return 1;
@@ -153,7 +188,7 @@ namespace wasm {
     }
 
     int terminateMpi() {
-        if(executingContext.getRank() <= 0) {
+        if (executingContext.getRank() <= 0) {
             mpi::MpiWorld &world = getExecutingWorld();
             world.destroy();
         }
