@@ -14,11 +14,18 @@ FAASM_MAIN_FUNC() {
         threadNum == 0 ? x1 = 5 : x2 = 5;
 
         #pragma omp barrier
-        threadNum == 0 ? result1 = x1 + x2 : result2 = x1 * x2;
+
+        if(threadNum == 0) {
+            result1 = x1 + x2;
+        } else {
+            result2 = x1 * x2;
+        }
     }
+
     if (result1 != 10 || result2 != 25) {
         printf("Barrier failed: result1: %d, result2: %d, x1: %d, x2: %d\n", result1, result2, x1, x2);
         return EXIT_FAILURE;
     }
+
     return EXIT_SUCCESS;
 }
