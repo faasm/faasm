@@ -31,3 +31,7 @@ omp_func(header_api_support header_api_support.cpp)
 omp_func(hellomp hellomp.cpp)
 omp_func(simple_master simple_master.cpp)
 omp_func(simple_barrier simple_barrier.cpp)
+
+if(FAASM_BUILD_TYPE STREQUAL "wasm")
+    omp_func(stack_debug stack_debug.cpp)
+endif()
