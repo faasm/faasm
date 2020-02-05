@@ -1,21 +1,74 @@
 #include "WasmModule.h"
 
+#include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
+
+#include <util/barrier.h>
 #include <util/environment.h>
 
-#include <condition_variable>
-#include <mutex>
-#include <stdio.h>
-
 namespace wasm {
+    // Thread-local variables for each OMP thread
     static thread_local int thisThreadNumber = 0;
-    static thread_local unsigned int thisSectionThreadCount = 1;
-    static int masterNumThread = -1;
-    static std::vector<std::thread> threads;
-    static int numThreadSemaphore = -1;
-    static std::mutex barrierMutex;
-    static std::condition_variable barrierCV;
+
+    // Global variables controlled by master
+    static int numThreadsOverride = -1;
+    static unsigned int sectionThreadCount = 1;
+
+    // Locking/ barriers
+    static util::Barrier* activeBarrier;
+
+    // Threads currently in action
+    std::vector<WAVM::Platform::Thread *> platformThreads;
+
+    // Arguments passed to spawned threads
+    struct OMPThreadArgs {
+        int tid;
+        Runtime::ContextRuntimeData *contextRuntimeData;
+        wasm::WasmModule *parentModule;
+        message::Message *parentCall;
+        Runtime::Function *func;
+        IR::UntaggedValue *funcArgs;
+    };
+
+    void resetOpenMP() {
+        // Clear thread references and thread number override
+        platformThreads.clear();
+
+        // Reset number threads override
+        numThreadsOverride = -1;
+        sectionThreadCount = 1;
+
+        // Clear the active barrier
+        delete activeBarrier;
+    }
+
+    /**
+     * Function used to spawn OMP threads. Will be called from within a thread
+     * (hence needs to set up its own TLS)
+     */
+    I64 ompThreadEntryFunc(void *threadArgsPtr) {
+        auto threadArgs = reinterpret_cast<OMPThreadArgs *>(threadArgsPtr);
+        wasm::setExecutingModule(threadArgs->parentModule);
+        wasm::setExecutingCall(threadArgs->parentCall);
+
+        // Set up TLS
+        thisThreadNumber = threadArgs->tid;
+
+        // Create a new context for this thread
+        auto threadContext = createContext(getCompartmentFromContextRuntimeData(threadArgs->contextRuntimeData));
+
+        IR::UntaggedValue result;
+        Runtime::invokeFunction(
+                threadContext,
+                threadArgs->func,
+                Runtime::getFunctionType(threadArgs->func),
+                threadArgs->funcArgs,
+                &result
+        );
+
+        return result.i64;
+    }
 
     /**
      * @return the thread number, within its team, of the thread executing the function.
@@ -31,7 +84,7 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_num_threads", I32, omp_get_num_threads) {
         util::getLogger()->debug("S - omp_get_num_threads");
-        return thisSectionThreadCount;
+        return sectionThreadCount;
     }
 
     /**
@@ -50,18 +103,18 @@ namespace wasm {
      * @param loc
      * @param global_tid
      */
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_barrier", void, __kmpc_barrier, I32 loc, I32 global_tid) {
-        util::getLogger()->debug("S - __kmpc_barrier {} {}", loc, global_tid);
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_barrier", void, __kmpc_barrier, I32 loc, I32 globalTid) {
+        util::getLogger()->debug("S - __kmpc_barrier {} {}", loc, globalTid);
 
-        if (thisSectionThreadCount <= 1) {
+        if (sectionThreadCount <= 1) {
             return;
         }
-        {
-            std::unique_lock<std::mutex> lk(barrierMutex);
-            numThreadSemaphore--;
-            barrierCV.wait(lk, []{return numThreadSemaphore == 0;});
+
+        if(activeBarrier == nullptr) {
+            throw std::runtime_error("No active barrier");
         }
-        barrierCV.notify_all();
+
+        activeBarrier->wait();
     }
 
     /**
@@ -75,8 +128,8 @@ namespace wasm {
      * teams will come. This is called by all threads with same GTID, which is not
      * what the native code does.
      */
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_master", I32, __kmpc_master, I32 loc, I32 global_tid) {
-        util::getLogger()->debug("S - __kmpc_master {} {}", loc, global_tid);
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_master", I32, __kmpc_master, I32 loc, I32 globalTid) {
+        util::getLogger()->debug("S - __kmpc_master {} {}", loc, globalTid);
         return thisThreadNumber == 0 ? 1 : 0;
     }
 
@@ -85,23 +138,22 @@ namespace wasm {
      * @param loc  source location information.
      * @param global_tid  global thread number .
      */
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_master", void, __kmpc_end_master, I32 loc, I32 global_tid) {
-        util::getLogger()->debug("S - __kmpc_end_master {} {}", loc, global_tid);
-        WAVM_ASSERT(global_tid == 0 && thisThreadNumber == 0)
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_master", void, __kmpc_end_master, I32 loc, I32 globalTid) {
+        util::getLogger()->debug("S - __kmpc_end_master {} {}", loc, globalTid);
+        WAVM_ASSERT(globalTid == 0 && thisThreadNumber == 0)
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_push_num_threads", void, __kmpc_push_num_threads, 
-                                   I32 loc, I32 global_tid, I32 num_threads) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_push_num_threads", void, __kmpc_push_num_threads,
+                                   I32 loc, I32 globalTid, I32 numThreads) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - __kmpc_push_num_threads {} {} {}", loc, global_tid, num_threads);
+        logger->debug("S - __kmpc_push_num_threads {} {} {}", loc, globalTid, numThreads);
 
-        if (num_threads > 0) {
-            masterNumThread = num_threads;
+        if (numThreads > 0) {
+            numThreadsOverride = numThreads;
         }
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_global_thread_num", I32, __kmpc_global_thread_num,
-                                   I32 loc) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_global_thread_num", I32, __kmpc_global_thread_num, I32 loc) {
         util::getLogger()->debug("S - __kmpc_global_thread_num {}", loc);
         return thisThreadNumber;
     }
@@ -123,75 +175,74 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_fork_call", void, __kmpc_fork_call, I32 locPtr, I32 argc,
                                    I32 microtaskPtr, I32 argsPtr) {
-        // The source loc info seems useless, but can be accessed with:
-        // Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        // wasm_ident *wasmLoc = &Runtime::memoryRef<wasm_ident>(memoryPtr, locPtr);
-        // logger->debug("wasmLoc.psource = {}", wasmLoc->psource);
-
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __kmpc_fork_call {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
 
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        WasmModule *parentModule = getExecutingModule();
+        message::Message *parentCall = getExecutingCall();
+
         // Retrieve the microstask function from the table
-        Runtime::Object *funcObj = Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr);
-        Runtime::Function *func = Runtime::asFunction(funcObj);
-        IR::FunctionType funcType = Runtime::getFunctionType(func);
+        Runtime::Function *func = Runtime::asFunction(
+                Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr));
 
-        // Get reference to module memory
-        Runtime::GCPointer<Runtime::Memory> &memoryPtr = getExecutingModule()->defaultMemory;
-        
-        // Spawn calls to the microtask in multiple threads
-        int numThreads = masterNumThread > 0 ? masterNumThread : util::getUsableCores();
-        // Saves number of thread separately in case threads modify it before done spawning
-        numThreadSemaphore = numThreads;
+        // Set up number of threads
+        int numThreads = numThreadsOverride > 0 ? numThreadsOverride : util::getUsableCores();
+        sectionThreadCount = numThreads;
+
+        // Create barrier in case it's needed
+        activeBarrier = new util::Barrier(numThreads);
+
+        // Note - must ensure thread arguments are outside loop scope otherwise they do
+        // may not exist by the time the thread actually consumes them
+        std::vector<OMPThreadArgs> threadArgs;
+        threadArgs.reserve(numThreads);
+
+        std::vector<std::vector<IR::UntaggedValue>> microtaskArgs;
+        microtaskArgs.reserve(numThreads);
+
+        // Build up arguments
         for (int threadNum = 0; threadNum < numThreads; threadNum++) {
-            WasmModule *parentModule = getExecutingModule();
-            message::Message *parentCall = getExecutingCall();
-
-            // Here we need to build up the arguments for this function (one 
-            // argument per non-global shared variable). 
-            std::vector<IR::UntaggedValue> arguments = {thisThreadNumber, argc};
-            if(argc > 0) {
+            // Note - these arguments are the thread number followed by the number of
+            // shared variables, then the pointers to those shared variables
+            microtaskArgs.push_back({threadNum, argc});
+            if (argc > 0) {
                 // Get pointer to start of arguments in host memory
                 U32 *pointers = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
-                for(int argIdx = 0; argIdx < argc; argIdx++) {
-                    arguments.push_back(pointers[argIdx]);
+                for (int argIdx = 0; argIdx < argc; argIdx++) {
+                    microtaskArgs[threadNum].emplace_back(pointers[argIdx]);
                 }
             }
 
-            threads.emplace_back([
-                    threadNum, numThreads,
-                    func, funcType, arguments,
-                    contextRuntimeData, parentModule, parentCall
-                    ] {
-                // Note that the executing module and call are stored in TLS so need to explicitly set here
-                setExecutingModule(parentModule);
-                setExecutingCall(parentCall);
+            // Arguments for spawning the thread
+            // NOTE - CLion auto-format insists on this layout...
+            threadArgs.push_back({
+                                         .tid = threadNum, .contextRuntimeData = contextRuntimeData,
+                                         .parentModule = parentModule, .parentCall = parentCall,
+                                         .func = func, .funcArgs = microtaskArgs[threadNum].data()
+                                 });
+        }
 
-                // Set the thread count for this section
-                thisSectionThreadCount = numThreads;
-
-                // Assign this thread its relevant thread number
-                thisThreadNumber = threadNum;
-
-                // Create a new context for this thread
-                auto threadContext = createContext(getCompartmentFromContextRuntimeData(contextRuntimeData));
-
-                IR::UntaggedValue result;
-                Runtime::invokeFunction(threadContext, func, funcType, arguments.data(), &result);
-
-                // TODO - check the result here
-            });
+        // Create the threads themselves
+        for (int threadNum = 0; threadNum < numThreads; threadNum++) {
+            platformThreads.emplace_back(Platform::createThread(
+                    THREAD_STACK_SIZE,
+                    ompThreadEntryFunc,
+                    &threadArgs[threadNum]
+            ));
         }
 
         // Await all threads
-        for (auto &t: threads) {
-            if (t.joinable()) {
-                t.join();
-            }
+        I64 numErrors = 0;
+        for (auto t: platformThreads) {
+            numErrors += Platform::joinThread(t);
         }
 
-        // Reset the thread count for this thread
-        thisSectionThreadCount = 1;
+        if (numErrors) {
+            throw std::runtime_error(fmt::format("{}} OMP threads have exited with errors", numErrors));
+        }
+
+        resetOpenMP();
     }
 
     void ompLink() {
