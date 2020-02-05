@@ -37,6 +37,7 @@ if (FAASM_BUILD_TYPE STREQUAL "wasm")
         -Xlinker --export=_faasm_zygote \
         -Xlinker --export=__heap_base \
         -Xlinker --export=__data_end \
+        -Xlinker --export=__stack_pointer \
         -Xlinker --max-memory=4294901760 \
         -Wl,-z,stack-size=4194304 -Wl, \
     ")

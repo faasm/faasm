@@ -245,6 +245,9 @@ namespace wasm {
         resetOpenMP();
     }
 
+    /**
+     * This function is just around to debug issues with threaded access to stacks.
+     */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasmp_debug_copy", void, __faasmp_debug_copy, I32 src, I32 dest) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __faasmp_debug_copy {} {}", src, dest);
@@ -254,7 +257,7 @@ namespace wasm {
         int *hostSrc = &Runtime::memoryRef<int>(memoryPtr, src);
         int *hostDest = &Runtime::memoryRef<int>(memoryPtr, dest);
 
-        logger->debug("Debug copy {} -> {}", *hostSrc, *hostDest);
+        logger->debug("{}: copy {} -> {}", thisThreadNumber, *hostSrc, *hostDest);
 
         *hostDest = *hostSrc;
     }
