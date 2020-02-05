@@ -40,17 +40,7 @@ namespace wasm {
         Runtime::Function *func;
         IR::UntaggedValue *funcArgs;
     };
-
-    template<typename T>
-    T& ompMemoryRef(Uptr offset) {
-        // See if this is a stack or heap access
-        if(offset > 0 && offset < STACK_SIZE) {
-            // TODO - special case
-        }
-
-        return Runtime::memoryRef<T>(getExecutingModule()->defaultMemory, offset);
-    }
-
+    
     void resetOpenMP() {
         // Clear thread references and thread number override
         platformThreads.clear();
@@ -191,11 +181,11 @@ namespace wasm {
         }
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_num_threads ", void, omp_set_num_threads, I32 num_threads) {
-        util::getLogger()->debug("S - omp_set_num_threads {}", num_threads);
-        if (num_threads > 0) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_num_threads ", void, omp_set_num_threads, I32 numThreads) {
+        util::getLogger()->debug("S - omp_set_num_threads {}", numThreads);
+        if (numThreads > 0) {
             // TODO - make this user-specific
-            numThreadsOverride = num_threads;
+            numThreadsOverride = numThreads;
         }
     }
 
@@ -335,16 +325,11 @@ namespace wasm {
                       loc, gtid, schedule, lastIterPtr, lowerPtr, upperPtr, stridePtr, incr, chunk);
 
         // Get host pointers for the things we need to write
-        I32 *lastIter = &ompMemoryRef<I32>(lastIterPtr);
-        I32 *lower = &ompMemoryRef<I32>(lowerPtr);
-        I32 *upper = &ompMemoryRef<I32>(upperPtr);
-        I32 *stride = &ompMemoryRef<I32>(stridePtr);
-
-        printf("Points %i: lower %p, upper %p, lastiter %p, stride %p\n", thisThreadNumber, lower, upper,
-                      lastIter, stride);
-
-        logger->debug("Thread {}: lower {}, upper {}, lastiter {}, stride {}", thisThreadNumber, *lower, *upper,
-                      *lastIter, *stride);
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        I32 *lastIter = &Runtime::memoryRef<I32>(memoryPtr, lastIterPtr);
+        I32 *lower = &Runtime::memoryRef<I32>(memoryPtr, lowerPtr);
+        I32 *upper = &Runtime::memoryRef<I32>(memoryPtr, upperPtr);
+        I32 *stride = &Runtime::memoryRef<I32>(memoryPtr, stridePtr);
 
         if (sectionThreadCount == 1) {
             throw std::runtime_error("Not yet supported running loop with one thread");
