@@ -24,7 +24,7 @@ namespace util {
             cv.notify_one();
         }
 
-        T dequeue(long timeoutMs = 0) {
+        T doDequeue(long timeoutMs, bool pop) {
             UniqueLock lock(mx);
 
             while (mq.empty()) {
@@ -41,8 +41,19 @@ namespace util {
             }
 
             T value = mq.front();
-            mq.pop();
+            if(pop) {
+                mq.pop();
+            }
+
             return value;
+        }
+
+        T peek(long timeoutMs = 0) {
+            return doDequeue(timeoutMs, false);
+        }
+
+        T dequeue(long timeoutMs = 0) {
+            return doDequeue(timeoutMs, true);
         }
 
         long size() {

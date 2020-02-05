@@ -2,13 +2,15 @@
 
 #include <string>
 
+#define NODE_ID_LEN 20
+
+#define DEFAULT_TIMEOUT 60000
+#define RESULT_KEY_EXPIRY 30000
+
 namespace util {
     std::string getNodeId();
 
     std::size_t getNodeIdHash();
-
-    const int DEFAULT_TIMEOUT = 60000;
-    const int RESULT_KEY_EXPIRY = 30000;
 
     class SystemConfig {
 
@@ -57,6 +59,9 @@ namespace util {
 
         // IBM
         std::string ibmApiKey;
+
+        // MPI
+        int mpiWorldSize;
 
         SystemConfig();
 

@@ -29,6 +29,8 @@
 #define ZYGOTE_FUNC_NAME "_faasm_zygote"
 #define ENTRY_FUNC_NAME "main"
 
+// Threads
+#define THREAD_STACK_SIZE 2 * ONE_MB_BYTES
 
 using namespace WAVM;
 

@@ -30,6 +30,10 @@ namespace tests {
 
         msg.set_coldstartinterval(4);
 
+        msg.set_ismpi(true);
+        msg.set_mpiworldid(1234);
+        msg.set_mpirank(5678);
+
         SECTION("Dodgy characters") {
             msg.set_inputdata("[0], %$ 2233 9");
         }

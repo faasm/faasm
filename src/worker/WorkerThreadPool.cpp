@@ -5,6 +5,7 @@
 #include <scheduler/GlobalMessageBus.h>
 #include <scheduler/SharingMessageBus.h>
 #include <worker/worker.h>
+#include <mpi/MpiGlobalBus.h>
 
 namespace worker {
 
@@ -64,7 +65,7 @@ namespace worker {
                     message::Message msg = sharingBus.nextMessageForThisNode();
 
                     // Clear out this worker node if we've received a flush message
-                    if(msg.isflushrequest()) {
+                    if (msg.isflushrequest()) {
                         flushWorkerHost();
 
                         preparePythonRuntime();
@@ -82,6 +83,26 @@ namespace worker {
                     sch.callFunction(msg);
                 }
                 catch (redis::RedisNoResponseException &ex) {
+                    continue;
+                }
+            }
+
+            // Will die gracefully at this point
+        });
+    }
+
+    void WorkerThreadPool::startMpiThread() {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->info("Starting MPI queue listener");
+
+        mpiThread = std::thread([this] {
+            mpi::MpiGlobalBus &bus = mpi::getMpiGlobalBus();
+            const std::string nodeId = util::getNodeId();
+            
+            while (!this->isShutdown()) {
+                try {
+                    bus.next(nodeId);
+                } catch (redis::RedisNoResponseException &ex) {
                     continue;
                 }
             }
@@ -139,7 +160,7 @@ namespace worker {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         util::SystemConfig &conf = util::getSystemConfig();
-        if(conf.pythonPreload != "on") {
+        if (conf.pythonPreload != "on") {
             logger->info("Not preloading python runtime");
             return;
         }

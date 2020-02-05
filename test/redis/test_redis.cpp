@@ -623,4 +623,44 @@ namespace tests {
         redisQueue.get(key, actual.data(), actual.size());
         REQUIRE(actual == expected);
     }
+
+    void checkDequeueBytes(Redis &redis, const std::string &queueName, const std::vector<uint8_t> expected) {
+        unsigned long bufferLen = expected.size();
+        auto buffer = new uint8_t[bufferLen];
+        
+        redis.dequeueBytes(queueName, buffer, bufferLen);
+        
+        std::vector<uint8_t> actual(buffer, buffer + bufferLen);
+        REQUIRE(actual == expected);
+    }
+    
+    TEST_CASE("Test enqueue dequeue bytes pointers", "[redis]") {
+        Redis &redisQueue = Redis::getQueue();
+        redisQueue.flushAll();
+        
+        std::vector<uint8_t> dataA = {0, 1, 2, 3, 4, 5};
+        std::vector<uint8_t> dataB = {6, 7};
+        std::vector<uint8_t> dataC = {2, 4, 6};
+        
+        std::string queueA = "testQueueA";
+        std::string queueB = "testQueueB";
+
+        // Interleave queueing
+        redisQueue.enqueueBytes(queueA, dataA.data(), dataA.size());
+
+        redisQueue.enqueueBytes(queueB, dataB.data(), dataB.size());
+        redisQueue.enqueueBytes(queueB, dataC.data(), dataC.size());
+
+        redisQueue.enqueueBytes(queueA, dataB.data(), dataB.size());
+
+        redisQueue.enqueueBytes(queueB, dataA.data(), dataA.size());
+
+        // Check dequeueing
+        checkDequeueBytes(redisQueue, queueA, dataA);
+        checkDequeueBytes(redisQueue, queueA, dataB);
+
+        checkDequeueBytes(redisQueue, queueB, dataB);
+        checkDequeueBytes(redisQueue, queueB, dataC);
+        checkDequeueBytes(redisQueue, queueB, dataA);
+    }
 }

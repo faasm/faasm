@@ -26,16 +26,19 @@ struct faasmpi_status_public_t {
     int MPI_SOURCE;
     int MPI_TAG;
     int MPI_ERROR;
+
+    // These are internal
+    int bytesSize;
 };
 
 // Open MPI version: https://github.com/open-mpi/ompi/blob/master/ompi/datatype/ompi_datatype.h
 struct faasmpi_datatype_t {
-    char name[MPI_MAX_OBJECT_NAME];
+    int id;
 };
 
 // Open MPI version: https://github.com/open-mpi/ompi/blob/master/ompi/communicator/communicator.h
 struct faasmpi_communicator_t {
-    char name[MPI_MAX_OBJECT_NAME];
+    int id;
 };
 
 // Open MPI version: https://github.com/open-mpi/ompi/blob/master/ompi/message/message.h
@@ -47,11 +50,13 @@ struct faasmpi_message_t {
  * User-facing constants
  */
 // MPI_Comms
-struct faasmpi_communicator_t faasmpi_comm_world{.name="COMM_WORLD"};
+#define FAASMPI_COMM_WORLD 1
+extern struct faasmpi_communicator_t faasmpi_comm_world;
 #define MPI_COMM_WORLD (&faasmpi_comm_world)
 
 // MPI_Datatypes
-struct faasmpi_datatype_t faasmpi_type_int{.name="int"};
+#define FAASMPI_INT 1
+extern struct faasmpi_datatype_t faasmpi_type_int;
 #define MPI_INT &faasmpi_type_int
 
 // MPI_Statuses
@@ -81,6 +86,10 @@ int MPI_Comm_rank(MPI_Comm comm, int *rank);
 int MPI_Comm_size(MPI_Comm comm, int *size);
 
 int MPI_Abort(MPI_Comm comm, int errorcode);
+
+int MPI_Get_count(const MPI_Status *status, MPI_Datatype datatype, int *count);
+
+int MPI_Probe(int source, int tag, MPI_Comm comm, MPI_Status *status);
 
 #ifdef __cplusplus
 }

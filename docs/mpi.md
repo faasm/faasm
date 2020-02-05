@@ -33,7 +33,7 @@ This installs it to `/usr/local/faasm/openmpi`.
 Once you've built a native executable linked against this, you can then use `mpirun` on the binary e.g.
 
 ```
-mpirun -n 2 cmake-build-debug/bin/hellompi 
+/usr/local/faasm/openmpi/bin/mpirun -n 2 cmake-build-debug/bin/hellompi 
 ```
 
 ## Building Open MPI to WebAssembly

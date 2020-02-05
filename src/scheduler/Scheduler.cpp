@@ -14,7 +14,8 @@ namespace scheduler {
     Scheduler::Scheduler() :
             nodeId(util::getNodeId()),
             conf(util::getSystemConfig()),
-            sharingBus(SharingMessageBus::getInstance()) {
+            sharingBus(SharingMessageBus::getInstance()),
+            logMessageIds(false) {
 
         bindQueue = std::make_shared<InMemoryMessageQueue>();
     }
@@ -52,12 +53,13 @@ namespace scheduler {
             this->removeNodeFromWarmSet(iter.first);
         }
 
-        // Clear anything in the bind queue
+        // Clear all queues and data
         bindQueue->reset();
         queueMap.clear();
         threadCountMap.clear();
         inFlightCountMap.clear();
         opinionMap.clear();
+        loggedMessageIds.clear();
 
         this->removeNodeFromGlobalSet();
     }
@@ -89,6 +91,15 @@ namespace scheduler {
         return ((double) inFlightCount) / threadCount;
     }
 
+    int Scheduler::getFunctionMaxInFlightRatio(const message::Message &msg) {
+        int maxInFlightRatio = conf.maxInFlightRatio;
+        if (msg.ismpi()) {
+            util::getLogger()->debug("Overriding max in-flight ratio for MPI function ({} -> {})", maxInFlightRatio, 1);
+            maxInFlightRatio = 1;
+        }
+        return maxInFlightRatio;
+    }
+
     long Scheduler::getFunctionInFlightCount(const message::Message &msg) {
         return inFlightCountMap[util::funcToString(msg, false)];
     }
@@ -112,7 +123,7 @@ namespace scheduler {
 
         // Decrement the in-flight count
         const std::string funcStr = util::funcToString(msg, false);
-        inFlightCountMap[funcStr] = std::max(inFlightCountMap[funcStr] - 1 , 0L);
+        inFlightCountMap[funcStr] = std::max(inFlightCountMap[funcStr] - 1, 0L);
 
         updateOpinion(msg);
     }
@@ -122,7 +133,7 @@ namespace scheduler {
 
         {
             util::FullLock lock(mx);
-            threadCountMap[funcStr] = std::max(threadCountMap[funcStr] - 1 , 0L);
+            threadCountMap[funcStr] = std::max(threadCountMap[funcStr] - 1, 0L);
 
             updateOpinion(msg);
         }
@@ -135,7 +146,7 @@ namespace scheduler {
         // as it's doing a non-blocking wait, then we can potentially add more
         {
             util::FullLock lock(mx);
-            threadCountMap[funcStr] = std::max(threadCountMap[funcStr] - 1 , 0L);
+            threadCountMap[funcStr] = std::max(threadCountMap[funcStr] - 1, 0L);
 
             addWarmThreads(msg);
 
@@ -182,7 +193,7 @@ namespace scheduler {
 
         // Get the best node
         std::string bestNode;
-        if(forceLocal) {
+        if (forceLocal) {
             bestNode = nodeId;
         } else {
             bestNode = this->getBestNodeForFunction(msg);
@@ -191,6 +202,11 @@ namespace scheduler {
         // Mark if this is the first scheduling decision made on this message
         if (msg.schedulednode().empty()) {
             msg.set_schedulednode(bestNode);
+        }
+
+        // Log this call if needed
+        if(logMessageIds) {
+            loggedMessageIds.push_back(msg.id());
         }
 
         const std::string funcStrWithId = util::funcToString(msg, true);
@@ -227,9 +243,9 @@ namespace scheduler {
     void Scheduler::addWarmThreads(const message::Message &msg) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
-        int maxInFlightRatio = conf.maxInFlightRatio;
-        double inFlightRatio = this->getFunctionInFlightRatio(msg);
-        long nThreads = this->getFunctionThreadCount(msg);
+        int maxInFlightRatio = getFunctionMaxInFlightRatio(msg);
+        double inFlightRatio = getFunctionInFlightRatio(msg);
+        long nThreads = getFunctionThreadCount(msg);
 
         const std::string funcStr = util::funcToString(msg, false);
         logger->debug("{} IF ratio = {} (max {}) threads = {}", funcStr, inFlightRatio, maxInFlightRatio, nThreads);
@@ -237,8 +253,8 @@ namespace scheduler {
         // If we have no threads OR if we've got threads and are at or over the in-flight ratio
         // and have capacity, then we need to scale up
         bool needToScale = false;
-        needToScale |= nThreads == 0;
-        needToScale |= inFlightRatio >= maxInFlightRatio && nThreads < conf.maxWorkersPerFunction;
+        needToScale |= (nThreads == 0);
+        needToScale |= (inFlightRatio >= maxInFlightRatio && nThreads < conf.maxWorkersPerFunction);
 
         if (needToScale) {
             logger->debug("Scaling up {} to {} threads", funcStr, nThreads + 1);
@@ -283,7 +299,7 @@ namespace scheduler {
 
         // Check the in-flight ratio
         double inFlightRatio = this->getFunctionInFlightRatio(msg);
-        int maxInFlightRatio = conf.maxInFlightRatio;
+        int maxInFlightRatio = this->getFunctionMaxInFlightRatio(msg);
         bool isInFlightRatioBreached = inFlightRatio >= maxInFlightRatio;
 
         SchedulerOpinion newOpinion;
@@ -402,5 +418,13 @@ namespace scheduler {
                          oStr);
             return nodeId;
         }
+    }
+
+    void Scheduler::setMessageIdLogging(bool val) {
+        logMessageIds = val;
+    }
+
+    std::vector<unsigned int> Scheduler::getScheduledMessageIds() {
+        return loggedMessageIds;
     }
 }

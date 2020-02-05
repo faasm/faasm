@@ -7,7 +7,7 @@
 namespace tests {
     TEST_CASE("Test running OpenMP checks", "[wasm]") {
         cleanSystem();
-        message::Message msg = util::messageFactory("omp", "checks");
+        message::Message msg = util::messageFactory("omp", "omp_checks");
         execFunction(msg);
     }
 

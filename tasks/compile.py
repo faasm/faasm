@@ -9,7 +9,6 @@ from tasks.util.files import clean_dir
 from tasks.util.typescript import ASC_BINARY, TS_DIR
 
 
-
 def _do_compile(target, clean, debug):
     build_type = "wasm"
     cmake_build_type = "Debug" if debug else "Release"
@@ -26,16 +25,14 @@ def _do_compile(target, clean, debug):
 
     res = call(" ".join(build_cmd), shell=True, cwd=FUNC_BUILD_DIR)
     if res != 0:
-        print("Failed to compile")
-        return
+        raise RuntimeError("Failed on cmake for {}".format(target))
 
     cmd = "make {}".format(target) if target else "make -j"
     cmd = "VERBOSE=1 {}".format(cmd) if debug else cmd
     res = call(cmd, shell=True, cwd=FUNC_BUILD_DIR)
 
     if res != 0:
-        print("Failed to make")
-        return
+        raise RuntimeError("Failed on make for {}".format(target))
 
 
 @task
@@ -57,10 +54,12 @@ def compile(ctx, user, func, clean=False, debug=False, ts=False, cp=False):
         ]
         call(" ".join(cmd), shell=True, cwd=FUNC_BUILD_DIR)
 
+
 @task
 def compile_user(ctx, user, clean=False, debug=False):
     target = "{}_all_funcs".format(user)
     _do_compile(target, clean, debug)
+
 
 def _ts_compile(func, optimize=True):
     cmd = [

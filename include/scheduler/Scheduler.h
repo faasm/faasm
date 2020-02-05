@@ -55,6 +55,8 @@ namespace scheduler {
 
         double getFunctionInFlightRatio(const message::Message &msg);
 
+        int getFunctionMaxInFlightRatio(const message::Message &msg);
+
         long getFunctionInFlightCount(const message::Message &msg);
 
         void addNodeToGlobalSet(const std::string &node);
@@ -66,6 +68,10 @@ namespace scheduler {
         void addNodeToWarmSet(const std::string &funcStr);
 
         void removeNodeFromWarmSet(const std::string &funcStr);
+
+        void setMessageIdLogging(bool val);
+
+        std::vector<unsigned int> getScheduledMessageIds();
 
     private:
         std::string nodeId;
@@ -85,6 +91,9 @@ namespace scheduler {
         std::unordered_map<std::string, SchedulerOpinion> opinionMap;
 
         SharingMessageBus &sharingBus;
+
+        bool logMessageIds = false;
+        std::vector<unsigned int> loggedMessageIds;
     };
 
     Scheduler &getScheduler();
