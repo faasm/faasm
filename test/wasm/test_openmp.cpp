@@ -35,7 +35,7 @@ namespace tests {
         execFunction(msg);
     }
 
-TEST_CASE("Test non-nested master pragma", "[wasm]") {
+    TEST_CASE("Test non-nested master pragma", "[wasm]") {
         cleanSystem();
         message::Message msg = util::messageFactory("omp", "simple_master");
         execFunction(msg);

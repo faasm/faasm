@@ -67,7 +67,7 @@ def compile_user(ctx, user, clean=False, debug=False, cp=False):
             name, ext = splitext(func.name)
             origin = join(FUNC_BUILD_DIR, user, ".".join([name, "wasm"]))
 
-            # Ignores non targets functions that failed to compile
+            # Ignores non targets and functions that failed to compile
             if ext != ".cpp" or not exists(origin):
                 continue
             dest_folder = join(WASM_DIR, user, name)
