@@ -11,4 +11,5 @@ omp_get_thread_num
 omp_get_num_threads
 omp_get_max_threads
 
-
+# Debug functions
+__faasmp_debug_copy
