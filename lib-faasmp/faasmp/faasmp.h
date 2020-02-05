@@ -3,6 +3,15 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void __faasmp_debug_copy(int *a, int *b);
+
+#ifdef __cplusplus
+}
+#endif
 
 struct AlignedElem {
     int32_t i = 0;

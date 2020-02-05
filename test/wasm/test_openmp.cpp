@@ -34,4 +34,10 @@ namespace tests {
         message::Message msg = util::messageFactory("omp", "simple_barrier");
         execFunction(msg);
     }
+
+    TEST_CASE("Test thread stack mapping", "[wasm]") {
+        cleanSystem();
+        message::Message msg = util::messageFactory("omp", "stack_debug");
+        execFunction(msg);
+    }
 }

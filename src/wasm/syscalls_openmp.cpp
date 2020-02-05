@@ -6,6 +6,9 @@
 
 #include <util/barrier.h>
 #include <util/environment.h>
+#include <Runtime/RuntimePrivate.h>
+
+#define OMP_STACK_SIZE 2 * ONE_MB_BYTES
 
 namespace wasm {
     enum sched_type : I32 {
@@ -16,6 +19,7 @@ namespace wasm {
 
     // Thread-local variables for each OMP thread
     static thread_local int thisThreadNumber = 0;
+    static thread_local U32 thisStackBase = -1;
 
     // Global variables controlled by master
     static int numThreadsOverride = -1;
@@ -64,6 +68,8 @@ namespace wasm {
      * (hence needs to set up its own TLS)
      */
     I64 ompThreadEntryFunc(void *threadArgsPtr) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         auto threadArgs = reinterpret_cast<OMPThreadArgs *>(threadArgsPtr);
         wasm::setExecutingModule(threadArgs->parentModule);
         wasm::setExecutingCall(threadArgs->parentCall);
@@ -71,9 +77,25 @@ namespace wasm {
         // Set up TLS
         thisThreadNumber = threadArgs->tid;
 
-        // Create a new context for this thread
-        auto threadContext = createContext(getCompartmentFromContextRuntimeData(threadArgs->contextRuntimeData));
+        // Create a new region for this thread's stack
+        thisStackBase = getExecutingModule()->mmapMemory(OMP_STACK_SIZE);
+        U32 stackTop = thisStackBase + OMP_STACK_SIZE - 1;
 
+        // Create a new context for this thread
+        Runtime::Context *threadContext = createContext(
+                getCompartmentFromContextRuntimeData(threadArgs->contextRuntimeData)
+        );
+
+        // Set the stack pointer in this context
+        IR::UntaggedValue &stackGlobal = threadContext->runtimeData->mutableGlobals[0];
+        if (stackGlobal.u32 != STACK_SIZE) {
+            logger->error("Expected first mutable global in context to be stack pointer ({})", stackGlobal.u32);
+            throw std::runtime_error("Unexpected mutable global format");
+        }
+
+        threadContext->runtimeData->mutableGlobals[0] = stackTop;
+
+        // Execute the function
         IR::UntaggedValue result;
         Runtime::invokeFunction(
                 threadContext,
@@ -250,7 +272,7 @@ namespace wasm {
         // Create the threads themselves
         for (int threadNum = 0; threadNum < numThreads; threadNum++) {
             platformThreads.emplace_back(Platform::createThread(
-                    STACK_SIZE,
+                    0,
                     ompThreadEntryFunc,
                     &threadArgs[threadNum]
             ));
@@ -267,6 +289,23 @@ namespace wasm {
         }
 
         resetOpenMP();
+    }
+
+    /**
+     * This function is just around to debug issues with threaded access to stacks.
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__faasmp_debug_copy", void, __faasmp_debug_copy, I32 src, I32 dest) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - __faasmp_debug_copy {} {}", src, dest);
+
+        // Get pointers on host to both src and dest
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        int *hostSrc = &Runtime::memoryRef<int>(memoryPtr, src);
+        int *hostDest = &Runtime::memoryRef<int>(memoryPtr, dest);
+
+        logger->debug("{}: copy {} -> {}", thisThreadNumber, *hostSrc, *hostDest);
+
+        *hostDest = *hostSrc;
     }
 
     /**
