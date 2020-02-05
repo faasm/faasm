@@ -158,15 +158,12 @@ namespace wasm {
             numThreadsOverride = numThreads;
         }
     }
-    /**
-   *
-   * @param contextRuntimeData
-   * @param num_threads
-   */
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_num_threads ", void, omp_set_num_threads, I32 num_threads) {
         util::getLogger()->debug("S - omp_set_num_threads {}", num_threads);
         if (num_threads > 0) {
-            userNumThread = num_threads;
+            // TODO - make this user-specific
+            numThreadsOverride = num_threads;
         }
     }
 
@@ -279,14 +276,7 @@ namespace wasm {
      * increment and chunks for parallel loop and distribute constructs.
      *
      * See sched_type for supported scheduling.
-     *
-     * SAFETY: The implementation here is not thread safe at the moment. The pointers values, although set
-     * to the correct values for each thread right before calling this function (on native, COW, so this
-     * function's modifications to them should be thread-local but are not at the moment). This function will
-     * therefore only work if each thread's work between init and fini is mutually exclusive..
-     * TODO: Find a way to make this thread safe, the hard bit is that the compiler assumes that those
-     * variables, although at the same address, will be thread-local.
-    */
+     */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_for_static_init_4", void, __kmpc_for_static_init_4,
                                    I32 loc, I32 gtid, I32 schedule, I32 _plastiter, I32 _plower,
                                    I32 _pupper, I32 _pstride, I32 incr, I32 chunk) {
@@ -303,7 +293,7 @@ namespace wasm {
 //        logger->debug("Thread {}: lower {}, upper {}, lastiter {}, stride {}", thisThreadNumber, *plower, *pupper,
 //                      *plastiter, *pstride);
 
-        if (thisSectionThreadCount == 1) {
+        if (sectionThreadCount == 1) {
             *plastiter = true;
             *pstride = (incr > 0) ? (*pupper - *plower + 1) : (-(*plower - *pupper + 1));
             return;
@@ -329,17 +319,17 @@ namespace wasm {
                     chunk = 1;
                 }
                 span = chunk * incr;
-                *pstride = span * thisSectionThreadCount;
+                *pstride = span * sectionThreadCount;
                 *plower = *plower + (span * thisThreadNumber);
                 *pupper = *plower + span - incr;
-                *plastiter = (thisThreadNumber == ((trip_count - 1) / (unsigned int) chunk) % thisSectionThreadCount);
+                *plastiter = (thisThreadNumber == ((trip_count - 1) / (unsigned int) chunk) % sectionThreadCount);
                 break;
             }
             case 34: { // kmp_sch_static (chunk not given)
                 // If we have fewer trip_counts than threads
-                if (trip_count < thisSectionThreadCount) {
+                if (trip_count < sectionThreadCount) {
                     logger->warn("Small for loop trip count {} {}", trip_count,
-                                 thisSectionThreadCount); // Warns for future use, not tested at scale
+                                 sectionThreadCount); // Warns for future use, not tested at scale
                     if (thisThreadNumber < trip_count) {
                         *pupper = *plower = *plower + thisThreadNumber * incr;
                     } else {
@@ -350,12 +340,12 @@ namespace wasm {
                     // TODO: We only implement below kmp_sch_static_balanced, not kmp_sch_static_greedy
                     // Those are set through KMP_SCHEDULE so we would need to look out for real code setting this
                     logger->debug("Ignores KMP_SCHEDULE variable, defaults to static balanced schedule");
-                    U32 small_chunk = trip_count / thisSectionThreadCount;
-                    U32 extras = trip_count % thisSectionThreadCount;
+                    U32 small_chunk = trip_count / sectionThreadCount;
+                    U32 extras = trip_count % sectionThreadCount;
                     *plower += incr * (thisThreadNumber * small_chunk +
                                        (thisThreadNumber < extras ? thisThreadNumber : extras));
                     *pupper = *plower + small_chunk * incr - (thisThreadNumber < extras ? 0 : incr);
-                    *plastiter = (thisThreadNumber == thisSectionThreadCount - 1);
+                    *plastiter = (thisThreadNumber == sectionThreadCount - 1);
                 }
 
                 *pstride = trip_count;
@@ -363,8 +353,6 @@ namespace wasm {
             }
 
         }
-//        logger->debug("After TID{}- lower {}, upper {}, stride {}, lastiter {}", thisThreadNumber, *plower, *pupper,
-//                      *pstride, *plastiter);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_for_static_fini", void, __kmpc_for_static_fini,

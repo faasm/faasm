@@ -1,9 +1,9 @@
 #include <array>
 #include <omp.h>
 #include <cstdio>
-#include <faasm/faasm.h>
 
-#include "omp_helper.h"
+#include <faasm/faasm.h>
+#include <faasmp/faasmp.h>
 
 /**
  * Simple counting test for static and static chunk scheduling

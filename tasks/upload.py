@@ -11,7 +11,7 @@ from tasks.util.env import FUNC_BUILD_DIR, PROJ_ROOT, RUNTIME_S3_BUCKET, FUNC_DI
 from tasks.util.genomics import INDEX_CHUNKS
 from tasks.util.upload_util import curl_file, upload_file_to_s3, upload_file_to_ibm
 
-DIRS_TO_INCLUDE = ["demo", "errors", "python", "polybench", "sgd", "tf", "gene"]
+DIRS_TO_INCLUDE = ["demo", "errors", "omp", "mpi", "python", "polybench", "sgd", "tf", "gene"]
 
 PYTHON_FUNC_DIR = join(FUNC_DIR, "python")
 
