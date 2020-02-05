@@ -332,11 +332,10 @@ namespace wasm {
         I32 *stride = &Runtime::memoryRef<I32>(memoryPtr, stridePtr);
 
         if (sectionThreadCount == 1) {
-            throw std::runtime_error("Not yet supported running loop with one thread");
+            *lastIter = true;
+            *stride = (incr > 0) ? (*upper - *lower + 1) : (-(*lower - *upper + 1));
+            return;
         }
-
-        // Last iteration flag
-        *lastIter = thisThreadNumber == sectionThreadCount;
 
         unsigned int tripCount;
         if (incr == 1) {
@@ -388,6 +387,9 @@ namespace wasm {
 
                 *stride = tripCount;
                 break;
+            }
+            default: {
+                throw std::runtime_error(fmt::format("Unimplemented scheduler {}", schedule));
             }
         }
     }

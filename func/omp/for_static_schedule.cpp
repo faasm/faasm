@@ -30,7 +30,7 @@ FAASM_MAIN_FUNC() {
     int countsA[4] = {0, 0, 0, 0};
     int expectedA[4] = {3, 3, 3, 1}; // Based on native behaviour
 
-    #pragma omp parallel for schedule(static, 3) num_threads(4) default(none) shared(countsA, iterations)
+    #pragma omp parallel for schedule(static, 3) num_threads(4) default(none) shared(countsA)
     for (int i = 0; i < iterations; i++) {
         int threadNum = omp_get_thread_num();
         countsA[threadNum]++;
@@ -43,7 +43,7 @@ FAASM_MAIN_FUNC() {
     int countsB[4] = {0, 0, 0, 0};
     int expectedB[4] = {3, 3, 2, 2}; // Based on native behaviour
 
-    #pragma omp parallel for schedule(static) num_threads(4) default(none) shared(countsB, iterations)
+    #pragma omp parallel for schedule(static) num_threads(4) default(none) shared(countsB)
     for (int i = 0; i < iterations; i++) {
         int threadNum = omp_get_thread_num();
         countsB[threadNum]++;
