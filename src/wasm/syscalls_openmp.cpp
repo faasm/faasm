@@ -22,7 +22,7 @@ namespace wasm {
     static unsigned int sectionThreadCount = 1;
 
     // Locking/ barriers
-    static util::Barrier* activeBarrier;
+    static util::Barrier *activeBarrier;
 
     // Threads currently in action
     std::vector<WAVM::Platform::Thread *> platformThreads;
@@ -36,6 +36,16 @@ namespace wasm {
         Runtime::Function *func;
         IR::UntaggedValue *funcArgs;
     };
+
+    template<typename T>
+    T& ompMemoryRef(Uptr offset) {
+        // See if this is a stack or heap access
+        if(offset > 0 && offset < STACK_SIZE) {
+            // TODO - special case
+        }
+
+        return Runtime::memoryRef<T>(getExecutingModule()->defaultMemory, offset);
+    }
 
     void resetOpenMP() {
         // Clear thread references and thread number override
@@ -116,7 +126,7 @@ namespace wasm {
             return;
         }
 
-        if(activeBarrier == nullptr) {
+        if (activeBarrier == nullptr) {
             throw std::runtime_error("No active barrier");
         }
 
@@ -240,7 +250,7 @@ namespace wasm {
         // Create the threads themselves
         for (int threadNum = 0; threadNum < numThreads; threadNum++) {
             platformThreads.emplace_back(Platform::createThread(
-                    THREAD_STACK_SIZE,
+                    STACK_SIZE,
                     ompThreadEntryFunc,
                     &threadArgs[threadNum]
             ));
@@ -263,54 +273,58 @@ namespace wasm {
      * @param    loc       Source code location
      * @param    gtid      Global thread id of this thread
      * @param    schedule  Scheduling type for the parallel loop
-     * @param    plastiter Pointer to the "last iteration" flag
-     * @param    plower    Pointer to the lower bound
-     * @param    pupper    Pointer to the upper bound of loop chunk
-     * @param    pstride   Pointer to the stride for parallel loop
+     * @param    lastIterPtr Pointer to the "last iteration" flag (boolean)
+     * @param    lowerPtr    Pointer to the lower bound
+     * @param    upperPtr    Pointer to the upper bound of loop chunk
+     * @param    stridePtr   Pointer to the stride for parallel loop
      * @param    incr      Loop increment
      * @param    chunk     The chunk size for the parallel loop
      *
      * The functions compute the upper and lower bounds and strides to be used for the
-     * set of iterations to be executed by the current thread from the statically
-     * scheduled loop that is described by the initial values of the bounds, strides,
-     * increment and chunks for parallel loop and distribute constructs.
+     * set of iterations to be executed by the current thread.
+     *
+     * The guts of the implementation in openmp can be found in __kmp_for_static_init in
+     * runtime/src/kmp_sched.cpp
      *
      * See sched_type for supported scheduling.
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_for_static_init_4", void, __kmpc_for_static_init_4,
-                                   I32 loc, I32 gtid, I32 schedule, I32 _plastiter, I32 _plower,
-                                   I32 _pupper, I32 _pstride, I32 incr, I32 chunk) {
+                                   I32 loc, I32 gtid, I32 schedule, I32 lastIterPtr, I32 lowerPtr,
+                                   I32 upperPtr, I32 stridePtr, I32 incr, I32 chunk) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __kmpc_for_static_init_4 {} {} {} {} {} {} {} {} {}",
-                      loc, gtid, schedule, _plastiter, _plower, _pupper, _pstride, incr, chunk);
+                      loc, gtid, schedule, lastIterPtr, lowerPtr, upperPtr, stridePtr, incr, chunk);
 
-        // Assumes the pointers will be valid throughout the function
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        I32 *plower = &Runtime::memoryRef<I32>(memoryPtr, _plower);
-        I32 *pupper = &Runtime::memoryRef<I32>(memoryPtr, _pupper);
-        I32 *pstride = &Runtime::memoryRef<I32>(memoryPtr, _pstride);
-        I32 *plastiter = &Runtime::memoryRef<I32>(memoryPtr, _plastiter);
-//        logger->debug("Thread {}: lower {}, upper {}, lastiter {}, stride {}", thisThreadNumber, *plower, *pupper,
-//                      *plastiter, *pstride);
+        // Get host pointers for the things we need to write
+        I32 *lastIter = &ompMemoryRef<I32>(lastIterPtr);
+        I32 *lower = &ompMemoryRef<I32>(lowerPtr);
+        I32 *upper = &ompMemoryRef<I32>(upperPtr);
+        I32 *stride = &ompMemoryRef<I32>(stridePtr);
+
+        printf("Points %i: lower %p, upper %p, lastiter %p, stride %p\n", thisThreadNumber, lower, upper,
+                      lastIter, stride);
+
+        logger->debug("Thread {}: lower {}, upper {}, lastiter {}, stride {}", thisThreadNumber, *lower, *upper,
+                      *lastIter, *stride);
 
         if (sectionThreadCount == 1) {
-            *plastiter = true;
-            *pstride = (incr > 0) ? (*pupper - *plower + 1) : (-(*plower - *pupper + 1));
-            return;
+            throw std::runtime_error("Not yet supported running loop with one thread");
         }
 
-        unsigned int trip_count;
+        // Last iteration flag
+        *lastIter = thisThreadNumber == sectionThreadCount;
+
+        unsigned int tripCount;
         if (incr == 1) {
-            trip_count = *pupper - *plower + 1;
+            tripCount = *upper - *lower + 1;
         } else if (incr == -1) {
-            trip_count = *plower - *pupper + 1;
+            tripCount = *lower - *upper + 1;
         } else if (incr > 0) {
             // upper-lower can exceed the limit of signed type
-            trip_count = (int) (*pupper - *plower) / incr + 1;
+            tripCount = (int) (*upper - *lower) / incr + 1;
         } else {
-            trip_count = (int) (*plower - *pupper) / (-incr) + 1;
+            tripCount = (int) (*lower - *upper) / (-incr) + 1;
         }
-//        logger->info("Thread {}: tripcount {}, lower {}, upper {}", thisThreadNumber, trip_count, *plower, *pupper);
 
         switch (schedule) {
             case 33: { // kmp_sch_static_chunked
@@ -319,39 +333,38 @@ namespace wasm {
                     chunk = 1;
                 }
                 span = chunk * incr;
-                *pstride = span * sectionThreadCount;
-                *plower = *plower + (span * thisThreadNumber);
-                *pupper = *plower + span - incr;
-                *plastiter = (thisThreadNumber == ((trip_count - 1) / (unsigned int) chunk) % sectionThreadCount);
+                *stride = span * sectionThreadCount;
+                *lower = *lower + (span * thisThreadNumber);
+                *upper = *lower + span - incr;
+                *lastIter = (thisThreadNumber == ((tripCount - 1) / (unsigned int) chunk) % sectionThreadCount);
                 break;
             }
             case 34: { // kmp_sch_static (chunk not given)
                 // If we have fewer trip_counts than threads
-                if (trip_count < sectionThreadCount) {
-                    logger->warn("Small for loop trip count {} {}", trip_count,
+                if (tripCount < sectionThreadCount) {
+                    logger->warn("Small for loop trip count {} {}", tripCount,
                                  sectionThreadCount); // Warns for future use, not tested at scale
-                    if (thisThreadNumber < trip_count) {
-                        *pupper = *plower = *plower + thisThreadNumber * incr;
+                    if (thisThreadNumber < tripCount) {
+                        *upper = *lower = *lower + thisThreadNumber * incr;
                     } else {
-                        *plower = *pupper + incr;
+                        *lower = *upper + incr;
                     }
-                    *plastiter = (thisThreadNumber == trip_count - 1);
+                    *lastIter = (thisThreadNumber == tripCount - 1);
                 } else {
                     // TODO: We only implement below kmp_sch_static_balanced, not kmp_sch_static_greedy
                     // Those are set through KMP_SCHEDULE so we would need to look out for real code setting this
                     logger->debug("Ignores KMP_SCHEDULE variable, defaults to static balanced schedule");
-                    U32 small_chunk = trip_count / sectionThreadCount;
-                    U32 extras = trip_count % sectionThreadCount;
-                    *plower += incr * (thisThreadNumber * small_chunk +
+                    U32 small_chunk = tripCount / sectionThreadCount;
+                    U32 extras = tripCount % sectionThreadCount;
+                    *lower += incr * (thisThreadNumber * small_chunk +
                                        (thisThreadNumber < extras ? thisThreadNumber : extras));
-                    *pupper = *plower + small_chunk * incr - (thisThreadNumber < extras ? 0 : incr);
-                    *plastiter = (thisThreadNumber == sectionThreadCount - 1);
+                    *upper = *lower + small_chunk * incr - (thisThreadNumber < extras ? 0 : incr);
+                    *lastIter = (thisThreadNumber == sectionThreadCount - 1);
                 }
 
-                *pstride = trip_count;
+                *stride = tripCount;
                 break;
             }
-
         }
     }
 

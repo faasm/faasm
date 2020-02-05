@@ -5,15 +5,21 @@
 #include <util/func.h>
 
 namespace tests {
-    TEST_CASE("Test running OpenMP checks", "[wasm]") {
+    TEST_CASE("Test static for scheduling", "[wasm]") {
         cleanSystem();
-        message::Message msg = util::messageFactory("omp", "omp_checks");
+        message::Message msg = util::messageFactory("omp", "for_static_schedule");
         execFunction(msg);
     }
 
     TEST_CASE("Test OMP header API functions", "[wasm]") {
         cleanSystem();
         message::Message msg = util::messageFactory("omp", "header_api_support");
+        execFunction(msg);
+    }
+
+    TEST_CASE("Test running OpenMP checks", "[wasm]") {
+        cleanSystem();
+        message::Message msg = util::messageFactory("omp", "omp_checks");
         execFunction(msg);
     }
 
