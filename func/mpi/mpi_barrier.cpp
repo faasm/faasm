@@ -25,11 +25,13 @@ FAASM_MAIN_FUNC() {
     if (rank == 1) {
         sleep(1);
         faasmWriteState(keyA, data, 2);
+        faasmPushState(keyA);
     }
 
     if (rank == 2) {
         sleep(1);
         faasmWriteState(keyB, data, 2);
+        faasmPushState(keyB);
     }
 
     // All workers wait on the barrier
@@ -38,6 +40,8 @@ FAASM_MAIN_FUNC() {
     // Make sure everyone sees the written state
     uint8_t bufferA[2] = {0, 0};
     uint8_t bufferB[2] = {0, 0};
+    faasmPullState(keyA, 2);
+    faasmPullState(keyB, 2);
     faasmReadState(keyA, bufferA, 2);
     faasmReadState(keyB, bufferB, 2);
 
@@ -45,6 +49,9 @@ FAASM_MAIN_FUNC() {
     if (bufferA[0] != 1 || bufferA[1] != 1 || bufferB[0] != 2 || bufferB[1] != 2) {
         printf("Rank %i got unexpected buffers: [%d, %d] and [%d, %d]\n", rank,
                bufferA[0], bufferA[1], bufferB[0], bufferB[1]);
+        return 1;
+    } else if(rank == 0) {
+        printf("Barrier check successful\n");
     }
 
     MPI_Finalize();

@@ -59,7 +59,7 @@ namespace mpi {
 
         void probe(int sendRank, int recvRank, MPI_Status *status);
 
-        void barrier(int recvRank);
+        void barrier(int thisRank);
 
         std::shared_ptr<InMemoryMpiQueue> getLocalQueue(int sendRank, int recvRank);
 

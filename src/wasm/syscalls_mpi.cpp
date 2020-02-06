@@ -256,7 +256,22 @@ namespace wasm {
 
         return MPI_SUCCESS;
     }
-    
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Barrier", I32, MPI_Barrier, I32 comm) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - MPI_Barrier {}", comm);
+
+        if (!checkMpiComm(comm)) {
+            return 1;
+        }
+
+        int thisRank = executingContext.getRank();
+        mpi::MpiWorld &world = getExecutingWorld();
+        world.barrier(thisRank);
+
+        return MPI_SUCCESS;
+    }
+
     void mpiLink() {
 
     }

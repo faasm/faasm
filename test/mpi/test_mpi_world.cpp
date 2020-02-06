@@ -396,7 +396,7 @@ namespace tests {
         REQUIRE_THROWS(world.send(0, destRank, input.data(), FAASMPI_INT, 2));
     }
 
-    TEST_CASE("Test broadcast locally and across nodes", "[mpi]") {
+    TEST_CASE("Test collective messaging locally and across nodes", "[mpi]") {
         cleanSystem();
 
         std::string nodeIdA = util::randomString(NODE_ID_LEN);
@@ -426,32 +426,63 @@ namespace tests {
         worldB.registerRank(rankB1);
         worldB.registerRank(rankB2);
 
-        std::vector<int> messageData = {0, 1, 2};
-
-        // Broadcast a message
-        worldA.broadcast<int>(rankA2, messageData.data(), FAASMPI_INT, messageData.size());
-
         MpiGlobalBus &bus = mpi::getMpiGlobalBus();
 
-        // Check the node that the root is on
-        std::vector<int> actual = {-1, -1, -1};
-        worldA.recv<int>(rankA2, 0, actual.data(), 3, nullptr);
-        REQUIRE(actual == messageData);
+        SECTION("Broadcast") {
+            // Broadcast a message
+            std::vector<int> messageData = {0, 1, 2};
+            worldA.broadcast<int>(rankA2, messageData.data(), FAASMPI_INT, messageData.size());
 
-        worldA.recv<int>(rankA2, rankA1, actual.data(), 3, nullptr);
-        REQUIRE(actual == messageData);
+            // Check the node that the root is on
+            std::vector<int> actual = {-1, -1, -1};
+            worldA.recv<int>(rankA2, 0, actual.data(), 3, nullptr);
+            REQUIRE(actual == messageData);
 
-        worldA.recv<int>(rankA2, rankA3, actual.data(), 3, nullptr);
-        REQUIRE(actual == messageData);
+            worldA.recv<int>(rankA2, rankA1, actual.data(), 3, nullptr);
+            REQUIRE(actual == messageData);
 
-        // Pull both messages for the other node
-        worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
-        worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
+            worldA.recv<int>(rankA2, rankA3, actual.data(), 3, nullptr);
+            REQUIRE(actual == messageData);
 
-        worldB.recv<int>(rankA2, rankB1, actual.data(), 3, nullptr);
-        REQUIRE(actual == messageData);
+            // Pull both messages for the other node
+            worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
+            worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
 
-        worldB.recv<int>(rankA2, rankB2, actual.data(), 3, nullptr);
-        REQUIRE(actual == messageData);
+            worldB.recv<int>(rankA2, rankB1, actual.data(), 3, nullptr);
+            REQUIRE(actual == messageData);
+
+            worldB.recv<int>(rankA2, rankB2, actual.data(), 3, nullptr);
+            REQUIRE(actual == messageData);
+        }
+
+        SECTION("Barrier") {
+            // Call barrier with all the ranks
+            std::thread threadA1([&worldA, &rankA1] {worldA.barrier(rankA1);});
+            std::thread threadA2([&worldA, &rankA2] {worldA.barrier(rankA2);});
+            std::thread threadA3([&worldA, &rankA3] {worldA.barrier(rankA3);});
+
+            std::thread threadB1([&worldB, &rankB1] {worldB.barrier(rankB1);});
+            std::thread threadB2([&worldB, &rankB2] {worldB.barrier(rankB2);});
+
+            // Make sure the messages on other nodes are dequeued
+            worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
+            worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
+
+            // Call barrier with master (should not block)
+            worldA.barrier(0);
+
+            // Check messages dispatched to other ranks
+            worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
+            worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
+
+            // Join all threads
+            if(threadA1.joinable()) threadA1.join();
+            if(threadA2.joinable()) threadA2.join();
+            if(threadA3.joinable()) threadA3.join();
+            if(threadB1.joinable()) threadB1.join();
+            if(threadB2.joinable()) threadB2.join();
+        }
+
     }
+
 }

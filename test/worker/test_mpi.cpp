@@ -10,23 +10,27 @@ namespace tests {
         execFuncWithPool(msg, false, 1, true, 10);
     }
 
+    TEST_CASE("Test MPI barrier", "[wasm]") {
+        checkMpiFunc("mpi_barrier");
+    }
+
     TEST_CASE("Test MPI broadcast", "[wasm]") {
         checkMpiFunc("mpi_bcast");
     }
 
-    TEST_CASE("Test running MPI checks", "[wasm]") {
+    TEST_CASE("Test general MPI functionality", "[wasm]") {
         checkMpiFunc("mpi_checks");
     }
 
-    TEST_CASE("Test running MPI order check", "[wasm]") {
+    TEST_CASE("Test MPI message ordering", "[wasm]") {
         checkMpiFunc("mpi_order");
     }
 
-    TEST_CASE("Test running MPI probe check", "[wasm]") {
+    TEST_CASE("Test MPI probe", "[wasm]") {
         checkMpiFunc("mpi_probe");
     }
 
-    TEST_CASE("Test running MPI status check", "[wasm]") {
+    TEST_CASE("Test MPI status", "[wasm]") {
         checkMpiFunc("mpi_status");
     }
 }

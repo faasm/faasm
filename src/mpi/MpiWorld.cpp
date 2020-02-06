@@ -161,6 +161,8 @@ namespace mpi {
     template<typename T>
     void
     MpiWorld::send(int sendRank, int recvRank, const T *buffer, int dataType, int count, MpiMessageType messageType) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         if (recvRank > this->size) {
             throw std::runtime_error(fmt::format("Rank {} bigger than world size {}", recvRank, this->size));
         }
@@ -195,9 +197,15 @@ namespace mpi {
 
         // Dispatch the message locally or globally
         if (isLocal) {
-            const std::shared_ptr<InMemoryMpiQueue> &queue = getLocalQueue(sendRank, recvRank);
-            queue->enqueue(m);
+            if (messageType == MpiMessageType::BARRIER_DONE || messageType == MpiMessageType::BARRIER_JOIN) {
+                logger->trace("Local collective send {} -> {}", sendRank, recvRank);
+                getCollectiveQueue(recvRank)->enqueue(m);
+            } else {
+                logger->trace("Local standard send {} -> {}", sendRank, recvRank);
+                getLocalQueue(sendRank, recvRank)->enqueue(m);
+            }
         } else {
+            logger->trace("Remote send {} -> {}", sendRank, recvRank);
             MpiGlobalBus &bus = mpi::getMpiGlobalBus();
             bus.sendMessageToNode(otherNodeId, m);
         }
@@ -205,7 +213,7 @@ namespace mpi {
 
     template<typename T>
     void MpiWorld::broadcast(int sendRank, const T *buffer, int dataType, int count,
-            MpiMessageType messageType) {
+                             MpiMessageType messageType) {
 
         for (int r = 0; r <= size; r++) {
             // Skip this rank (it's doing the broadcasting)
@@ -278,38 +286,46 @@ namespace mpi {
         status->MPI_SOURCE = m->sender;
     }
 
-    void MpiWorld::barrier(int recvRank) {
-        if (recvRank == 0) {
+    void MpiWorld::barrier(int thisRank) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        if (thisRank == 0) {
             // We're on the root, we're the one doing the waiting
 
             // Await messages from all others
+            logger->trace("Master awaiting messages from {} others", size);
             for (int r = 1; r <= size; r++) {
-                recv<int>(r, 0, nullptr, 0, nullptr);
+                recv<int>(r, 0, nullptr, 0, nullptr, MpiMessageType::BARRIER_JOIN);
             }
 
             // Broadcast that the barrier is done
             broadcast<int>(0, nullptr, FAASMPI_INT, 0, MpiMessageType::BARRIER_DONE);
         } else {
             // Tell the root that we're waiting
-            send<int>(0, recvRank, nullptr, FAASMPI_INT, 0, MpiMessageType::BARRIER_JOIN);
+            logger->trace("Rank {} notifying master of barrier", thisRank);
+            send<int>(thisRank, 0, nullptr, FAASMPI_INT, 0, MpiMessageType::BARRIER_JOIN);
 
-            // Receive a message on the collective queue from neighbour
-            recv<int>(0, recvRank, nullptr, FAASMPI_INT, 0, MpiMessageType::BARRIER_DONE);
+            // Receive a message on the collective queue
+            recv<int>(0, thisRank, nullptr, FAASMPI_INT, nullptr, MpiMessageType::BARRIER_DONE);
         }
     }
 
     void MpiWorld::enqueueMessage(MpiMessage *msg) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         if (msg->worldId != id) {
-            util::getLogger()->error("Queueing message not meant for this world (msg={}, this={})", msg->worldId, id);
+            logger->error("Queueing message not meant for this world (msg={}, this={})", msg->worldId, id);
             throw std::runtime_error("Queueing message not for this world");
         }
 
         if (msg->messageType == MpiMessageType::BARRIER_JOIN ||
             msg->messageType == MpiMessageType::BARRIER_DONE) {
             // Collective message
+            logger->trace("Queueing collective locally {} -> {}", msg->sender, msg->destination);
             getCollectiveQueue(msg->destination)->enqueue(msg);
         } else {
             // Normal message
+            logger->trace("Queueing normal locally {} -> {}", msg->sender, msg->destination);
             getLocalQueue(msg->sender, msg->destination)->enqueue(msg);
         }
     }
