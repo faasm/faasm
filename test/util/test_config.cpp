@@ -44,7 +44,7 @@ namespace tests {
         REQUIRE(conf.unboundTimeout == 60000);
         REQUIRE(conf.chainedCallTimeout == 300000);
 
-        REQUIRE(conf.mpiWorldSize == 3);
+        REQUIRE(conf.mpiWorldSize == 5);
     }
 
     TEST_CASE("Test overriding system config initialisation", "[util]") {
