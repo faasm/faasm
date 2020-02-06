@@ -116,17 +116,23 @@ namespace tests {
         msg.set_mpirank(3);
         c3.joinWorld(msg);
 
+        MpiContext c4;
+        msg.set_mpirank(4);
+        c4.joinWorld(msg);
+
         // Check we've got the messages from the joinees
         MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
         MpiWorld &world = reg.getWorld(worldId);
         REQUIRE(world.getLocalQueueSize(1, 0) == 1);
         REQUIRE(world.getLocalQueueSize(2, 0) == 1);
         REQUIRE(world.getLocalQueueSize(3, 0) == 1);
+        REQUIRE(world.getLocalQueueSize(4, 0) == 1);
 
         // Check that awaiting fails on non-zero rank context
         REQUIRE_THROWS(c1.awaitWorldCreation());
         REQUIRE_THROWS(c2.awaitWorldCreation());
         REQUIRE_THROWS(c3.awaitWorldCreation());
+        REQUIRE_THROWS(c4.awaitWorldCreation());
 
         // Check that awaiting succeeds
         c0.awaitWorldCreation();
