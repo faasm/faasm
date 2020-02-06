@@ -10,6 +10,10 @@ namespace tests {
         execFuncWithPool(msg, false, 1, true, 10);
     }
 
+    TEST_CASE("Test MPI broadcast", "[wasm]") {
+        checkMpiFunc("mpi_bcast");
+    }
+
     TEST_CASE("Test running MPI checks", "[wasm]") {
         checkMpiFunc("mpi_checks");
     }

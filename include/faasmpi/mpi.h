@@ -93,6 +93,8 @@ int MPI_Probe(int source, int tag, MPI_Comm comm, MPI_Status *status);
 
 int MPI_Barrier(MPI_Comm comm);
 
+int MPI_Bcast(void *buffer, int count, MPI_Datatype datatype, int root, MPI_Comm comm);
+
 #ifdef __cplusplus
 }
 #endif

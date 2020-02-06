@@ -226,6 +226,37 @@ namespace wasm {
         return MPI_SUCCESS;
     }
 
+    /**
+     * NOTE - MPI_Bcast is called both to send and receive broadcast messages
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Bcast", I32, MPI_Bcast, I32 buffer, I32 count, I32 datatype, I32 root, I32 comm) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - MPI_Bcast {} {} {} {}", buffer, count, datatype, root, comm);
+
+        if (!checkMpiComm(comm)) {
+            return 1;
+        }
+
+        if (!checkIsInt(datatype)) {
+            logger->error("Unrecognised datatype ({})", datatype);
+            return 1;
+        }
+
+        int thisRank = executingContext.getRank();
+        mpi::MpiWorld &world = getExecutingWorld();
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        int *inputs = Runtime::memoryArrayPtr<I32>(memoryPtr, buffer, count);
+
+        // See if this is a send broadcast or receive broadcast
+        if(thisRank == root) {
+            world.broadcast<int>(thisRank, inputs, FAASMPI_INT, count);
+        } else {
+            world.recv(root, thisRank, inputs, count, nullptr);
+        }
+
+        return MPI_SUCCESS;
+    }
+    
     void mpiLink() {
 
     }
