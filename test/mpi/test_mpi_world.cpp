@@ -132,11 +132,13 @@ namespace tests {
 
         SECTION("Test queueing") {
             // Check the message itself is on the right queue
-            REQUIRE(world.getRankQueueSize(rankA1) == 0);
-            REQUIRE(world.getRankQueueSize(rankA2) == 1);
+            REQUIRE(world.getLocalQueueSize(rankA1, rankA2) == 1);
+            REQUIRE(world.getLocalQueueSize(rankA2, rankA1) == 0);
+            REQUIRE(world.getLocalQueueSize(rankA1, 0) == 0);
+            REQUIRE(world.getLocalQueueSize(rankA2, 0) == 0);
 
             // Check message content
-            const std::shared_ptr<InMemoryMpiQueue> &queueA2 = world.getRankQueue(rankA2);
+            const std::shared_ptr<InMemoryMpiQueue> &queueA2 = world.getLocalQueue(rankA1, rankA2);
             MpiMessage *actualMessage = queueA2->dequeue();
             checkMessage(actualMessage, rankA1, rankA2, messageData);
             delete actualMessage;
@@ -146,7 +148,7 @@ namespace tests {
             // Receive the message
             MPI_Status status{};
             auto buffer = new int[messageData.size()];
-            world.recv<int>(rankA2, buffer, messageData.size(), &status);
+            world.recv<int>(rankA1, rankA2, buffer, messageData.size(), &status);
 
             std::vector<int> actual(buffer, buffer + messageData.size());
             REQUIRE(actual == messageData);
@@ -186,9 +188,6 @@ namespace tests {
 
         SECTION("Check queueing") {
             // Check it's on the right queue
-            REQUIRE(worldA.getRankQueueSize(rankA) == 0);
-            REQUIRE(worldB.getRankQueueSize(rankB) == 0);
-
             REQUIRE(bus.getQueueSize(nodeIdA) == 0);
             REQUIRE(bus.getQueueSize(nodeIdB) == 1);
 
@@ -201,12 +200,12 @@ namespace tests {
         SECTION("Check recv") {
             // Pull message from global queue
             MpiMessage *message = bus.dequeueForNode(nodeIdB);
-            worldB.queueForRank(message);
+            worldB.enqueueMessage(message);
 
             // Receive the message for the given rank
             MPI_Status status{};
             auto buffer = new int[messageData.size()];
-            worldB.recv<int>(rankB, buffer, messageData.size(), &status);
+            worldB.recv<int>(rankA, rankB, buffer, messageData.size(), &status);
 
             std::vector<int> actual(buffer, buffer + messageData.size());
             REQUIRE(actual == messageData);
@@ -240,7 +239,7 @@ namespace tests {
 
         SECTION("Check on queue") {
             // Check message content
-            const std::shared_ptr<InMemoryMpiQueue> &queueA2 = world.getRankQueue(rankA2);
+            const std::shared_ptr<InMemoryMpiQueue> &queueA2 = world.getLocalQueue(rankA1, rankA2);
             MpiMessage *actualMessage = queueA2->dequeue();
             REQUIRE(actualMessage->count == 0);
             REQUIRE(actualMessage->type == FAASMPI_INT);
@@ -254,7 +253,7 @@ namespace tests {
         SECTION("Check receiving with null ptr") {
             // Receiving with a null pointer shouldn't break
             MPI_Status status{};
-            world.recv<int>(rankA2, nullptr, 0, &status);
+            world.recv<int>(rankA1, rankA2, nullptr, 0, &status);
 
             // Check no extra data in state
             REQUIRE(state.getKVCount() == 4);
@@ -283,7 +282,7 @@ namespace tests {
         MPI_Status status{};
         unsigned long requestedSize = actualSize + 5;
         auto buffer = new int[requestedSize];
-        world.recv<int>(2, buffer, requestedSize, &status);
+        world.recv<int>(1, 2, buffer, requestedSize, &status);
 
         // Check status reports only the values that were sent
         REQUIRE(status.MPI_SOURCE == 1);
@@ -312,8 +311,8 @@ namespace tests {
         MPI_Status statusA1{};
         MPI_Status statusA2{};
         MPI_Status statusB{};
-        world.probe(2, &statusA1);
-        world.probe(2, &statusA2);
+        world.probe(1, 2, &statusA1);
+        world.probe(1, 2, &statusA2);
 
         // Check status reports only the values that were sent
         REQUIRE(statusA1.MPI_SOURCE == 1);
@@ -326,17 +325,17 @@ namespace tests {
 
         // Receive the message
         auto bufferA = new int[sizeA];
-        world.recv<int>(2, bufferA, sizeA * sizeof(int), nullptr);
+        world.recv<int>(1, 2, bufferA, sizeA * sizeof(int), nullptr);
 
         // Probe the next message
-        world.probe(2, &statusB);
+        world.probe(1, 2, &statusB);
         REQUIRE(statusB.MPI_SOURCE == 1);
         REQUIRE(statusB.MPI_ERROR == MPI_SUCCESS);
         REQUIRE(statusB.bytesSize == sizeB * sizeof(int));
 
         // Receive the next message
         auto bufferB = new int[sizeB];
-        world.recv<int>(2, bufferB, sizeB * sizeof(int), nullptr);
+        world.recv<int>(1, 2, bufferB, sizeB * sizeof(int), nullptr);
     }
 
     TEST_CASE("Test can't get in-memory queue for non-local ranks", "[mpi]") {
@@ -361,15 +360,15 @@ namespace tests {
         worldB.registerRank(rankB);
 
         // Check we can't access unregistered rank on either
-        REQUIRE_THROWS(worldA.getRankQueue(3));
-        REQUIRE_THROWS(worldB.getRankQueue(3));
+        REQUIRE_THROWS(worldA.getLocalQueue(0, 3));
+        REQUIRE_THROWS(worldB.getLocalQueue(0, 3));
 
         // Check that we can't access rank on another node locally
-        REQUIRE_THROWS(worldA.getRankQueue(rankB));
+        REQUIRE_THROWS(worldA.getLocalQueue(0, rankB));
 
         // Double check even when we've retrieved the rank
         REQUIRE(worldA.getNodeForRank(rankB) == nodeIdB);
-        REQUIRE_THROWS(worldA.getRankQueue(rankB));
+        REQUIRE_THROWS(worldA.getLocalQueue(0, rankB));
     }
 
     TEST_CASE("Check sending to invalid rank", "[mpi]") {

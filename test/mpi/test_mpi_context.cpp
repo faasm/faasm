@@ -83,7 +83,7 @@ namespace tests {
         const std::string actualNode = world.getNodeForRank(1);
 
         // Check message sent back to master on local queue
-        const std::shared_ptr<InMemoryMpiQueue> &masterQueue = world.getRankQueue(0);
+        const std::shared_ptr<InMemoryMpiQueue> &masterQueue = world.getLocalQueue(1, 0);
         MpiMessage *actualMessage = masterQueue->dequeue();
         REQUIRE(actualMessage->count == 0);
         REQUIRE(actualMessage->type == FAASMPI_INT);
@@ -119,7 +119,9 @@ namespace tests {
         // Check we've got the messages from the joinees
         MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
         MpiWorld &world = reg.getWorld(worldId);
-        REQUIRE(world.getRankQueueSize(0) == 3);
+        REQUIRE(world.getLocalQueueSize(1, 0) == 1);
+        REQUIRE(world.getLocalQueueSize(2, 0) == 1);
+        REQUIRE(world.getLocalQueueSize(3, 0) == 1);
 
         // Check that awaiting fails on non-zero rank context
         REQUIRE_THROWS(c1.awaitWorldCreation());

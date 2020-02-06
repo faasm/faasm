@@ -42,8 +42,8 @@ namespace mpi {
         MpiWorld &world = reg.getWorld(worldId);
 
         // Await messages from world
-        for(int senderRank = 1; senderRank < world.getSize(); senderRank++) {
-            world.recv<int>(0, nullptr, 0, nullptr);
+        for(int senderRank = 1; senderRank <= world.getSize(); senderRank++) {
+            world.recv<int>(senderRank, 0, nullptr, 0, nullptr);
         }
 
         logger->info("Received all creation messages for {}", worldId);

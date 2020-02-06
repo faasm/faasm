@@ -24,7 +24,10 @@ int main(int argc, char *argv[]) {
     conf.chainedCallTimeout = 60000;
 
     // Make sure we have enough space for chained calls
-    conf.maxWorkersPerFunction = 6;
+    int nThreads = 10;
+    conf.mpiWorldSize = 5;
+    conf.threadsPerWorker = nThreads;
+    conf.maxWorkersPerFunction = nThreads;
 
     // Clear out redis
     redis::Redis &redis = redis::Redis::getQueue();
@@ -60,7 +63,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Set up a worker pool
-    worker::WorkerThreadPool pool(4);
+    worker::WorkerThreadPool pool(nThreads);
 
     // Switch on MPI
     pool.startMpiThread();

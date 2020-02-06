@@ -71,7 +71,7 @@ namespace util {
         ibmApiKey = getEnvVar("IBM_API_KEY", "");
 
         // MPI
-        mpiWorldSize = this->getSystemConfIntParam("MPI_WORLD_SIZE", "3");
+        mpiWorldSize = this->getSystemConfIntParam("MPI_WORLD_SIZE", "5");
     }
 
     int SystemConfig::getSystemConfIntParam(const char *name, const char *defaultValue) {
