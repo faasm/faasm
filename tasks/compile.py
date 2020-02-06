@@ -1,6 +1,6 @@
 from subprocess import call
-from os.path import exists, join
-from os import mkdir
+from os.path import exists, join, splitext
+from os import scandir, mkdir
 
 from invoke import task
 
@@ -56,9 +56,29 @@ def compile(ctx, user, func, clean=False, debug=False, ts=False, cp=False):
 
 
 @task
-def compile_user(ctx, user, clean=False, debug=False):
+def compile_user(ctx, user, clean=False, debug=False, cp=False):
     target = "{}_all_funcs".format(user)
     _do_compile(target, clean, debug)
+    if cp:
+        for func in scandir(join(FUNC_DIR, user)):
+            if not func.is_file():
+                continue
+
+            name, ext = splitext(func.name)
+            origin = join(FUNC_BUILD_DIR, user, ".".join([name, "wasm"]))
+
+            # Ignores non targets and functions that failed to compile
+            if ext != ".cpp" or not exists(origin):
+                continue
+            dest_folder = join(WASM_DIR, user, name)
+            if not exists(dest_folder):
+                mkdir(dest_folder)
+            cmd = [
+                "cp",
+                origin,
+                join(dest_folder, "function.wasm"),
+            ]
+            call(" ".join(cmd), shell=True, cwd=FUNC_BUILD_DIR)
 
 
 def _ts_compile(func, optimize=True):

@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
         PROF_END(execution)
 
         if (result != 0) {
-            throw std::runtime_error("Non-zero return code");
+            throw std::runtime_error(fmt::format("Non-zero return code ({})", result));
         }
 
         // Reset using zygote

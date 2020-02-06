@@ -4,7 +4,6 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
 
-#include <sys/mman.h>
 #include <util/barrier.h>
 #include <util/environment.h>
 #include <Runtime/RuntimePrivate.h>
@@ -12,6 +11,12 @@
 #define OMP_STACK_SIZE 2 * ONE_MB_BYTES
 
 namespace wasm {
+    enum sched_type : I32 {
+        kmp_sch_lower = 32, /**< lower bound for unordered values */
+        kmp_sch_static_chunked = 33,
+        kmp_sch_static = 34, /**< static unspecialized */
+    };
+
     // Thread-local variables for each OMP thread
     static thread_local int thisThreadNumber = 0;
     static thread_local U32 thisStackBase = -1;
@@ -35,7 +40,7 @@ namespace wasm {
         Runtime::Function *func;
         IR::UntaggedValue *funcArgs;
     };
-
+    
     void resetOpenMP() {
         // Clear thread references and thread number override
         platformThreads.clear();
@@ -176,6 +181,14 @@ namespace wasm {
         }
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_num_threads ", void, omp_set_num_threads, I32 numThreads) {
+        util::getLogger()->debug("S - omp_set_num_threads {}", numThreads);
+        if (numThreads > 0) {
+            // TODO - make this user-specific
+            numThreadsOverride = numThreads;
+        }
+    }
+
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_global_thread_num", I32, __kmpc_global_thread_num, I32 loc) {
         util::getLogger()->debug("S - __kmpc_global_thread_num {}", loc);
         return thisThreadNumber;
@@ -283,6 +296,107 @@ namespace wasm {
         logger->debug("{}: copy {} -> {}", thisThreadNumber, *hostSrc, *hostDest);
 
         *hostDest = *hostSrc;
+    }
+
+    /**
+     * @param    loc       Source code location
+     * @param    gtid      Global thread id of this thread
+     * @param    schedule  Scheduling type for the parallel loop
+     * @param    lastIterPtr Pointer to the "last iteration" flag (boolean)
+     * @param    lowerPtr    Pointer to the lower bound
+     * @param    upperPtr    Pointer to the upper bound of loop chunk
+     * @param    stridePtr   Pointer to the stride for parallel loop
+     * @param    incr      Loop increment
+     * @param    chunk     The chunk size for the parallel loop
+     *
+     * The functions compute the upper and lower bounds and strides to be used for the
+     * set of iterations to be executed by the current thread.
+     *
+     * The guts of the implementation in openmp can be found in __kmp_for_static_init in
+     * runtime/src/kmp_sched.cpp
+     *
+     * See sched_type for supported scheduling.
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_for_static_init_4", void, __kmpc_for_static_init_4,
+                                   I32 loc, I32 gtid, I32 schedule, I32 lastIterPtr, I32 lowerPtr,
+                                   I32 upperPtr, I32 stridePtr, I32 incr, I32 chunk) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - __kmpc_for_static_init_4 {} {} {} {} {} {} {} {} {}",
+                      loc, gtid, schedule, lastIterPtr, lowerPtr, upperPtr, stridePtr, incr, chunk);
+
+        // Get host pointers for the things we need to write
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        I32 *lastIter = &Runtime::memoryRef<I32>(memoryPtr, lastIterPtr);
+        I32 *lower = &Runtime::memoryRef<I32>(memoryPtr, lowerPtr);
+        I32 *upper = &Runtime::memoryRef<I32>(memoryPtr, upperPtr);
+        I32 *stride = &Runtime::memoryRef<I32>(memoryPtr, stridePtr);
+
+        if (sectionThreadCount == 1) {
+            *lastIter = true;
+            *stride = (incr > 0) ? (*upper - *lower + 1) : (-(*lower - *upper + 1));
+            return;
+        }
+
+        unsigned int tripCount;
+        if (incr == 1) {
+            tripCount = *upper - *lower + 1;
+        } else if (incr == -1) {
+            tripCount = *lower - *upper + 1;
+        } else if (incr > 0) {
+            // upper-lower can exceed the limit of signed type
+            tripCount = (int) (*upper - *lower) / incr + 1;
+        } else {
+            tripCount = (int) (*lower - *upper) / (-incr) + 1;
+        }
+
+        switch (schedule) {
+            case 33: { // kmp_sch_static_chunked
+                int span;
+                if (chunk < 1) {
+                    chunk = 1;
+                }
+                span = chunk * incr;
+                *stride = span * sectionThreadCount;
+                *lower = *lower + (span * thisThreadNumber);
+                *upper = *lower + span - incr;
+                *lastIter = (thisThreadNumber == ((tripCount - 1) / (unsigned int) chunk) % sectionThreadCount);
+                break;
+            }
+            case 34: { // kmp_sch_static (chunk not given)
+                // If we have fewer trip_counts than threads
+                if (tripCount < sectionThreadCount) {
+                    logger->warn("Small for loop trip count {} {}", tripCount,
+                                 sectionThreadCount); // Warns for future use, not tested at scale
+                    if (thisThreadNumber < tripCount) {
+                        *upper = *lower = *lower + thisThreadNumber * incr;
+                    } else {
+                        *lower = *upper + incr;
+                    }
+                    *lastIter = (thisThreadNumber == tripCount - 1);
+                } else {
+                    // TODO: We only implement below kmp_sch_static_balanced, not kmp_sch_static_greedy
+                    // Those are set through KMP_SCHEDULE so we would need to look out for real code setting this
+                    logger->debug("Ignores KMP_SCHEDULE variable, defaults to static balanced schedule");
+                    U32 small_chunk = tripCount / sectionThreadCount;
+                    U32 extras = tripCount % sectionThreadCount;
+                    *lower += incr * (thisThreadNumber * small_chunk +
+                                       (thisThreadNumber < extras ? thisThreadNumber : extras));
+                    *upper = *lower + small_chunk * incr - (thisThreadNumber < extras ? 0 : incr);
+                    *lastIter = (thisThreadNumber == sectionThreadCount - 1);
+                }
+
+                *stride = tripCount;
+                break;
+            }
+            default: {
+                throw std::runtime_error(fmt::format("Unimplemented scheduler {}", schedule));
+            }
+        }
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_for_static_fini", void, __kmpc_for_static_fini,
+                                   I32 loc, I32 gtid) {
+        util::getLogger()->debug("S - __kmpc_for_static_fini {} {}", loc, gtid);
     }
 
     void ompLink() {

@@ -24,14 +24,22 @@ function(omp_func exec_name dir_path)
     else ()
         target_link_libraries(${EXEC_NAME} pthread)
     endif ()
+
+    # Add to list of all funcs
+    set(ALL_OMP_FUNCS ${ALL_OMP_FUNCS} ${exec_name} PARENT_SCOPE)
 endfunction(omp_func)
 
 omp_func(omp_checks omp_checks.cpp)
 omp_func(header_api_support header_api_support.cpp)
 omp_func(hellomp hellomp.cpp)
-omp_func(simple_master simple_master.cpp)
 omp_func(simple_barrier simple_barrier.cpp)
+omp_func(simple_for simple_for.cpp)
+omp_func(for_static_schedule for_static_schedule.cpp)
+omp_func(simple_master simple_master.cpp)
 
 if(FAASM_BUILD_TYPE STREQUAL "wasm")
     omp_func(stack_debug stack_debug.cpp)
 endif()
+
+# Custom target for building all functions
+add_custom_target(omp_all_funcs DEPENDS ${ALL_OMP_FUNCS})

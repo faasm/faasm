@@ -188,6 +188,7 @@ elseif (FAASM_BUILD_TYPE STREQUAL "native-tools")
     set(FAASM_LIB_TYPE SHARED)
 
     add_subdirectory(lib-cpp)
+    add_subdirectory(lib-faasmp)
     add_subdirectory(src/emulator)
     add_subdirectory(src/proto)
     add_subdirectory(src/redis)

@@ -5,19 +5,21 @@
 bool failed = false;
 
 struct ThreadInfo {
-  int32_t thread_num;
-  int32_t local_thread_num;
+    int32_t thread_num;
+    int32_t local_thread_num;
 } __attribute__ ((aligned(64)));
 
 FAASM_MAIN_FUNC() {
     int max = omp_get_max_threads();
     auto infos = new ThreadInfo[max];
+
     #pragma omp parallel num_threads(max) default(none) shared(infos)
     {
         int thread_num = omp_get_thread_num();
         infos[thread_num].thread_num = thread_num;
-        infos[thread_num].local_thread_num  = omp_get_num_threads();
+        infos[thread_num].local_thread_num = omp_get_num_threads();
     }
+
     for (int i = 0; i < max; i++) {
         auto thread = infos[i];
         if (thread.thread_num != i) {

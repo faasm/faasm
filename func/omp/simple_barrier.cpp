@@ -14,8 +14,7 @@ FAASM_MAIN_FUNC() {
         threadNum == 0 ? x1 = 5 : x2 = 5;
 
         #pragma omp barrier
-
-        if(threadNum == 0) {
+        if (threadNum == 0) {
             result1 = x1 + x2;
         } else {
             result2 = x1 * x2;
