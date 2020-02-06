@@ -395,4 +395,63 @@ namespace tests {
         std::vector<int> input = {0, 1};
         REQUIRE_THROWS(world.send(0, destRank, input.data(), FAASMPI_INT, 2));
     }
+
+    TEST_CASE("Test broadcast locally and across nodes", "[mpi]") {
+        cleanSystem();
+
+        std::string nodeIdA = util::randomString(NODE_ID_LEN);
+        std::string nodeIdB = util::randomString(NODE_ID_LEN);
+
+        int thisWorldSize = 5;
+
+        const message::Message &msg = util::messageFactory(user, func);
+        mpi::MpiWorld worldA;
+        worldA.overrideNodeId(nodeIdA);
+        worldA.create(msg, worldId, thisWorldSize);
+
+        mpi::MpiWorld worldB;
+        worldB.overrideNodeId(nodeIdB);
+        worldB.initialiseFromState(msg, worldId);
+
+        // Register ranks on both nodes
+        int rankA1 = 1;
+        int rankA2 = 2;
+        int rankA3 = 3;
+        worldA.registerRank(rankA1);
+        worldA.registerRank(rankA2);
+        worldA.registerRank(rankA3);
+
+        int rankB1 = 4;
+        int rankB2 = 5;
+        worldB.registerRank(rankB1);
+        worldB.registerRank(rankB2);
+
+        std::vector<int> messageData = {0, 1, 2};
+
+        // Broadcast a message
+        worldA.broadcast<int>(rankA2, messageData.data(), FAASMPI_INT, messageData.size());
+
+        MpiGlobalBus &bus = mpi::getMpiGlobalBus();
+
+        // Check the node that the root is on
+        std::vector<int> actual = {-1, -1, -1};
+        worldA.recv<int>(rankA2, 0, actual.data(), 3, nullptr);
+        REQUIRE(actual == messageData);
+
+        worldA.recv<int>(rankA2, rankA1, actual.data(), 3, nullptr);
+        REQUIRE(actual == messageData);
+
+        worldA.recv<int>(rankA2, rankA3, actual.data(), 3, nullptr);
+        REQUIRE(actual == messageData);
+
+        // Pull both messages for the other node
+        worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
+        worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
+
+        worldB.recv<int>(rankA2, rankB1, actual.data(), 3, nullptr);
+        REQUIRE(actual == messageData);
+
+        worldB.recv<int>(rankA2, rankB2, actual.data(), 3, nullptr);
+        REQUIRE(actual == messageData);
+    }
 }
