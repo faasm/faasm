@@ -38,7 +38,7 @@ namespace mpi {
 
         MpiWorldRegistry &registry = getMpiWorldRegistry();
         MpiWorld &world = registry.getWorld(m->worldId);
-        world.queueForRank(m);
+        world.enqueueMessage(m);
     }
 
     long MpiGlobalBus::getQueueSize(const std::string &otherNodeId) {

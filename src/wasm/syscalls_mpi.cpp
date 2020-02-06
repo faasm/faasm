@@ -178,7 +178,7 @@ namespace wasm {
 
         if (checkIsInt(datatype)) {
             int *outputs = Runtime::memoryArrayPtr<I32>(memoryPtr, buffer, count);
-            world.recv<int>(thisRank, outputs, count, status);
+            world.recv<int>(sourceRank, thisRank, outputs, count, status);
         } else {
             logger->error("Unrecognised datatype");
             return 1;
@@ -221,7 +221,7 @@ namespace wasm {
         MPI_Status *status = &Runtime::memoryRef<MPI_Status>(memoryPtr, statusPtr);
 
         mpi::MpiWorld &world = getExecutingWorld();
-        world.probe(thisRank, status);
+        world.probe(source, thisRank, status);
 
         return MPI_SUCCESS;
     }

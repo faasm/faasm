@@ -105,7 +105,7 @@ namespace tests {
     }
 
     void execFuncWithPool(message::Message &call, bool pythonPreload, int repeatCount,
-                          bool checkChained) {
+                          bool checkChained, int nThreads) {
         cleanSystem();
 
         setEmulatedMessage(call);
@@ -125,7 +125,9 @@ namespace tests {
         conf.pythonPreload = pythonPreload ? "on" : "off";
 
         // Set up a real worker pool to execute the function
-        WorkerThreadPool pool(4);
+        conf.threadsPerWorker = nThreads;
+        conf.maxWorkersPerFunction = nThreads;
+        WorkerThreadPool pool(nThreads);
         pool.startThreadPool();
 
         unsigned int mainFuncId;

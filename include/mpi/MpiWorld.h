@@ -9,7 +9,7 @@
 
 namespace mpi {
     typedef util::Queue<MpiMessage*> InMemoryMpiQueue;
-    typedef std::pair<int, InMemoryMpiQueue *> MpiMessageQueuePair;
+    typedef std::pair<std::string, InMemoryMpiQueue *> MpiMessageQueuePair;
 
     struct MpiWorldState {
         int worldSize;
@@ -43,19 +43,19 @@ namespace mpi {
 
         void destroy();
 
-        void queueForRank(MpiMessage *msg);
+        void enqueueMessage(MpiMessage *msg);
 
         template<typename T>
-        void send(int senderRank, int destRank, const T *buffer, int dataType, int count);
+        void send(int sendRank, int recvRank, const T *buffer, int dataType, int count);
 
         template<typename T>
-        void recv(int destRank, T *buffer, int count, MPI_Status *status);
+        void recv(int sendRank, int recvRank, T *buffer, int count, MPI_Status *status);
 
-        void probe(int destRank, MPI_Status *status);
+        void probe(int sendRank, int recvRank, MPI_Status *status);
 
-        std::shared_ptr<InMemoryMpiQueue> getRankQueue(int rank);
+        std::shared_ptr<InMemoryMpiQueue> getLocalQueue(int sendRank, int recvRank);
 
-        long getRankQueueSize(int rank);
+        long getLocalQueueSize(int sendRank, int recvRank);
 
         void overrideNodeId(const std::string &newNodeId);
 
@@ -72,7 +72,7 @@ namespace mpi {
         std::shared_ptr<state::StateKeyValue> stateKV;
         std::unordered_map<int, std::string> rankNodeMap;
 
-        std::unordered_map<int, std::shared_ptr<InMemoryMpiQueue>> rankQueueMap;
+        std::unordered_map<std::string, std::shared_ptr<InMemoryMpiQueue>> localQueueMap;
 
         void setUpStateKV();
 
