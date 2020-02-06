@@ -25,6 +25,7 @@ endfunction(mpi_func)
 # Skip MPI stuff in knative for now
 if(FAASM_BUILD_TYPE STREQUAL "knative-native")
 else()
+mpi_func(mpi_barrier mpi_barrier.cpp)
 mpi_func(mpi_checks mpi_checks.cpp)
 mpi_func(mpi_order mpi_order.cpp)
 mpi_func(mpi_probe mpi_probe.cpp)

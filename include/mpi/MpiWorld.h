@@ -55,6 +55,8 @@ namespace mpi {
 
         std::shared_ptr<InMemoryMpiQueue> getLocalQueue(int sendRank, int recvRank);
 
+        std::shared_ptr<InMemoryMpiQueue> getCollectiveQueue(int recvRank);
+
         long getLocalQueueSize(int sendRank, int recvRank);
 
         void overrideNodeId(const std::string &newNodeId);
@@ -74,12 +76,21 @@ namespace mpi {
 
         std::unordered_map<std::string, std::shared_ptr<InMemoryMpiQueue>> localQueueMap;
 
+        std::unordered_map<std::string, std::shared_ptr<InMemoryMpiQueue>> collectiveQueueMap;
+
+        std::shared_ptr<InMemoryMpiQueue> getInMemoryQueue(
+                std::unordered_map<std::string, std::shared_ptr<InMemoryMpiQueue>> &queueMap,
+                const std::string &key
+                );
+
         void setUpStateKV();
 
         std::shared_ptr<state::StateKeyValue> getRankNodeState(int rank);
 
         template<typename T>
         std::shared_ptr<state::StateKeyValue> getMessageState(int messageId, int count);
+
+        void checkRankOnThisNode(int rank);
 
         void pushToState();
     };
