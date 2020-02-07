@@ -17,6 +17,9 @@ namespace tests {
     TEST_CASE("Test world creation", "[mpi]") {
         cleanSystem();
 
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        sch.setMessageIdLogging(true);
+
         // Create the world
         const message::Message &msg = util::messageFactory(user, func);
         mpi::MpiWorld world;
@@ -28,15 +31,15 @@ namespace tests {
         REQUIRE(world.getFunction() == func);
 
         // Check that chained function calls are made as expected
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        std::set<int> ranksFound;
-        for (int i = 0; i < worldSize - 1; i++) {
+        REQUIRE(sch.getScheduledMessageIds().size() == worldSize - 1);
+
+        for (int i = 1; i < worldSize; i++) {
             message::Message actualCall = sch.getFunctionQueue(msg)->dequeue();
             REQUIRE(actualCall.user() == user);
             REQUIRE(actualCall.function() == func);
             REQUIRE(actualCall.ismpi());
             REQUIRE(actualCall.mpiworldid() == worldId);
-            REQUIRE(actualCall.mpirank() == i + 1);
+            REQUIRE(actualCall.mpirank() == i);
         }
 
         // Check that this node is registered as the master
@@ -402,7 +405,7 @@ namespace tests {
         std::string nodeIdA = util::randomString(NODE_ID_LEN);
         std::string nodeIdB = util::randomString(NODE_ID_LEN);
 
-        int thisWorldSize = 5;
+        int thisWorldSize = 6;
 
         const message::Message &msg = util::messageFactory(user, func);
         mpi::MpiWorld worldA;
@@ -455,14 +458,58 @@ namespace tests {
             REQUIRE(actual == messageData);
         }
 
+        SECTION("Scatter") {
+            // Build the data
+            int nPerRank = 4;
+            int dataSize = nPerRank * worldSize;
+            std::vector<int> messageData;
+            messageData.reserve(dataSize);
+            for (int i = 0; i < dataSize; i++) {
+                messageData[i] = i;
+            }
+
+            // Do the scatter
+            std::vector<int> actual = {-1, -1, -1, -1};
+            worldA.scatter(rankA2, rankA2, messageData.data(), FAASMPI_INT, nPerRank,
+                           actual.data(), FAASMPI_INT, nPerRank);
+
+            // Check for root
+            REQUIRE(actual == std::vector<int>({8, 9, 10, 11}));
+
+            // Check for other ranks
+            worldA.scatter(rankA2, 0, (int*) nullptr, FAASMPI_INT, nPerRank,
+                           actual.data(), FAASMPI_INT, nPerRank);
+            REQUIRE(actual == std::vector<int>({0, 1, 2, 3}));
+
+            worldA.scatter(rankA2, rankA1, (int*) nullptr, FAASMPI_INT, nPerRank,
+                           actual.data(), FAASMPI_INT, nPerRank);
+            REQUIRE(actual == std::vector<int>({4, 5, 6, 7}));
+
+            worldA.scatter(rankA2, rankA3, (int*) nullptr, FAASMPI_INT, nPerRank,
+                           actual.data(), FAASMPI_INT, nPerRank);
+            REQUIRE(actual == std::vector<int>({12, 13, 14, 15}));
+
+            // Pull both messages for the other node
+            worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
+            worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
+
+            worldB.scatter(rankA2, rankB1, (int*) nullptr, FAASMPI_INT, nPerRank,
+                           actual.data(), FAASMPI_INT, nPerRank);
+            REQUIRE(actual == std::vector<int>({16, 17, 18, 19}));
+
+            worldB.scatter(rankA2, rankB2, (int*) nullptr, FAASMPI_INT, nPerRank,
+                           actual.data(), FAASMPI_INT, nPerRank);
+            REQUIRE(actual == std::vector<int>({20, 21, 22, 23}));
+        }
+
         SECTION("Barrier") {
             // Call barrier with all the ranks
-            std::thread threadA1([&worldA, &rankA1] {worldA.barrier(rankA1);});
-            std::thread threadA2([&worldA, &rankA2] {worldA.barrier(rankA2);});
-            std::thread threadA3([&worldA, &rankA3] {worldA.barrier(rankA3);});
+            std::thread threadA1([&worldA, &rankA1] { worldA.barrier(rankA1); });
+            std::thread threadA2([&worldA, &rankA2] { worldA.barrier(rankA2); });
+            std::thread threadA3([&worldA, &rankA3] { worldA.barrier(rankA3); });
 
-            std::thread threadB1([&worldB, &rankB1] {worldB.barrier(rankB1);});
-            std::thread threadB2([&worldB, &rankB2] {worldB.barrier(rankB2);});
+            std::thread threadB1([&worldB, &rankB1] { worldB.barrier(rankB1); });
+            std::thread threadB2([&worldB, &rankB2] { worldB.barrier(rankB2); });
 
             // Make sure the messages on other nodes are dequeued
             worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
@@ -476,13 +523,12 @@ namespace tests {
             worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
 
             // Join all threads
-            if(threadA1.joinable()) threadA1.join();
-            if(threadA2.joinable()) threadA2.join();
-            if(threadA3.joinable()) threadA3.join();
-            if(threadB1.joinable()) threadB1.join();
-            if(threadB2.joinable()) threadB2.join();
+            if (threadA1.joinable()) threadA1.join();
+            if (threadA2.joinable()) threadA2.join();
+            if (threadA3.joinable()) threadA3.join();
+            if (threadB1.joinable()) threadB1.join();
+            if (threadB2.joinable()) threadB2.join();
         }
-
     }
 
 }

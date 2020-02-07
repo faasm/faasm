@@ -61,6 +61,8 @@ namespace scheduler {
         opinionMap.clear();
         loggedMessageIds.clear();
 
+        setMessageIdLogging(false);
+
         this->removeNodeFromGlobalSet();
     }
 

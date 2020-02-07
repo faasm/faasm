@@ -5,6 +5,7 @@ file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/mpi/*.h")
 set(LIB_FILES
         MpiContext.cpp
         MpiGlobalBus.cpp
+        MpiMessage.cpp
         MpiWorldRegistry.cpp
         MpiWorld.cpp
         ${HEADERS}
