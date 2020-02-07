@@ -152,9 +152,9 @@ FAASM_MAIN_FUNC()
     printf("OpenMP stream triad: A = B + scalar*C\n");
 
     // Faasm: does not support arguments:
-    nthread_input = 1;
-    iterations    = 1;
-    length        = 1;
+    nthread_input = 4;
+    iterations    = 1000;
+    length        = 10000000;
     offset        = 0;
     /* FAASM, use defaults specified above
     if (argc != 5){
