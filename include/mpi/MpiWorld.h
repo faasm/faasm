@@ -57,6 +57,11 @@ namespace mpi {
         void recv(int sendRank, int recvRank, T *buffer, int count, MPI_Status *status,
                   MpiMessageType messageType = MpiMessageType::NORMAL);
 
+        template<typename T>
+        void scatter(int sendRank, int recvRank,
+                    const T* sendBuffer, int sendType, int sendCount,
+                    T* recvBuffer, int recvType, int recvCount);
+
         void probe(int sendRank, int recvRank, MPI_Status *status);
 
         void barrier(int thisRank);

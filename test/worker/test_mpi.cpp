@@ -30,6 +30,10 @@ namespace tests {
         checkMpiFunc("mpi_probe");
     }
 
+    TEST_CASE("Test MPI scatter", "[wasm]") {
+        checkMpiFunc("mpi_scatter");
+    }
+
     TEST_CASE("Test MPI status", "[wasm]") {
         checkMpiFunc("mpi_status");
     }

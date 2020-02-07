@@ -28,7 +28,7 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         message::Message *call = getExecutingCall();
-        
+
         // Note - only want to initialise the world on rank zero (or when rank isn't set yet)
         if (call->mpirank() <= 0) {
             logger->debug("S - MPI_Init (create) {} {}", a, b);
@@ -42,7 +42,7 @@ namespace wasm {
             // Join the world
             executingContext.joinWorld(*call);
         }
-        
+
         // We want to synchronise everyone here on a barrier
         int thisRank = getExecutingMpiContext().getRank();
         mpi::MpiWorld &world = getExecutingWorld();
@@ -231,7 +231,8 @@ namespace wasm {
     /**
      * NOTE - MPI_Bcast is called both to send and receive broadcast messages
      */
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Bcast", I32, MPI_Bcast, I32 buffer, I32 count, I32 datatype, I32 root, I32 comm) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Bcast", I32, MPI_Bcast, I32 buffer, I32 count,
+                                   I32 datatype, I32 root, I32 comm) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - MPI_Bcast {} {} {} {}", buffer, count, datatype, root, comm);
 
@@ -250,7 +251,7 @@ namespace wasm {
         int *inputs = Runtime::memoryArrayPtr<I32>(memoryPtr, buffer, count);
 
         // See if this is a send broadcast or receive broadcast
-        if(thisRank == root) {
+        if (thisRank == root) {
             world.broadcast<int>(thisRank, inputs, FAASMPI_INT, count);
         } else {
             world.recv(root, thisRank, inputs, count, nullptr);
@@ -270,6 +271,38 @@ namespace wasm {
         int thisRank = executingContext.getRank();
         mpi::MpiWorld &world = getExecutingWorld();
         world.barrier(thisRank);
+
+        return MPI_SUCCESS;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Scatter", I32, MPI_Scatter,
+                                   I32 sendBuf, I32 sendCount, I32 sendType,
+                                   I32 recvBuf, I32 recvCount, I32 recvType,
+                                   I32 root, I32 comm) {
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - MPI_Scatter {} {} {} {} {} {} {} {}",
+                      sendBuf, sendCount, sendType, recvBuf, recvCount, recvType, root, comm);
+
+        if (!checkMpiComm(comm)) {
+            return 1;
+        }
+
+        int thisRank = executingContext.getRank();
+        mpi::MpiWorld &world = getExecutingWorld();
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+
+        if (checkIsInt(sendType) && checkIsInt(recvType)) {
+            int *hostSendBuffer = Runtime::memoryArrayPtr<I32>(memoryPtr, sendBuf, sendCount);
+            int *hostRecvBuffer = Runtime::memoryArrayPtr<I32>(memoryPtr, recvBuf, recvCount);
+
+            world.scatter(root, thisRank,
+                          hostSendBuffer, FAASMPI_INT, sendCount,
+                          hostRecvBuffer, FAASMPI_INT, recvCount
+            );
+        } else {
+            throw std::runtime_error("Scatter not implemented for non-ints");
+        }
 
         return MPI_SUCCESS;
     }

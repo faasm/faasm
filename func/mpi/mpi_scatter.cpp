@@ -38,7 +38,7 @@ FAASM_MAIN_FUNC() {
 
     if (actual[0] != expected[0] || actual[1] != expected[1] ||
         actual[2] != expected[2] || actual[3] != expected[3]) {
-        printf("Rank %i not as expected: got [%i, %i, %i, %i], expected [%i, %i, %i, %i]",
+        printf("Scatter %i not as expected: got [%i, %i, %i, %i], expected [%i, %i, %i, %i]\n",
                rank,
                actual[0], actual[1], actual[2], actual[3],
                expected[0], expected[1], expected[2], expected[3]);
@@ -47,10 +47,7 @@ FAASM_MAIN_FUNC() {
         printf("Scatter %i: [%i, %i, %i, %i]\n", rank, actual[0], actual[1], actual[2], actual[3]);
     }
 
-    if (rank == 2) {
-        delete[] allData;
-    }
-
+    delete[] allData;
     delete[] actual;
     delete[] expected;
 

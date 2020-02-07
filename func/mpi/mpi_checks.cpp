@@ -27,21 +27,21 @@ FAASM_MAIN_FUNC() {
 
     if (rank == 0) {
         // Send messages out to rest of world
-        for (int recipientRank = 1; recipientRank <= worldSize; recipientRank++) {
+        for (int recipientRank = 1; recipientRank < worldSize; recipientRank++) {
             int sentNumber = -100 - recipientRank;
             MPI_Send(&sentNumber, 1, MPI_INT, recipientRank, 0, MPI_COMM_WORLD);
         }
 
         // Wait for their responses
         int responseCount = 0;
-        for (int r = 1; r <= worldSize; r++) {
+        for (int r = 1; r < worldSize; r++) {
             int receivedNumber;
             MPI_Recv(&receivedNumber, 1, MPI_INT, r, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             responseCount++;
         }
 
         // Check response count (although will have hung if it's wrong)
-        if (responseCount != worldSize) {
+        if (responseCount != worldSize - 1) {
             printf("Did not get enough responses back to master (got %i)\n", responseCount);
             return 1;
         } else {

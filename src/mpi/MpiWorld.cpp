@@ -73,10 +73,10 @@ namespace mpi {
         registerRank(0);
 
         // Dispatch all the chained calls
-        // NOTE - with the master being rank zero, we want to spawn n new
-        // functions starting with rank 1
+        // NOTE - with the master being rank zero, we want to spawn
+        // (size - 1) new functions starting with rank 1
         scheduler::Scheduler &sch = scheduler::getScheduler();
-        for (int i = 1; i <= size; i++) {
+        for (int i = 1; i < size; i++) {
             message::Message msg = util::messageFactory(user, function);
             msg.set_ismpi(true);
             msg.set_mpiworldid(id);
@@ -163,7 +163,7 @@ namespace mpi {
     MpiWorld::send(int sendRank, int recvRank, const T *buffer, int dataType, int count, MpiMessageType messageType) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        if (recvRank > this->size) {
+        if (recvRank > this->size - 1) {
             throw std::runtime_error(fmt::format("Rank {} bigger than world size {}", recvRank, this->size));
         }
 
@@ -197,7 +197,7 @@ namespace mpi {
 
         // Dispatch the message locally or globally
         if (isLocal) {
-            if (messageType == MpiMessageType::BARRIER_DONE || messageType == MpiMessageType::BARRIER_JOIN) {
+            if (isCollectiveMessage(m)) {
                 logger->trace("MPI - send collective {} -> {}", sendRank, recvRank);
                 getCollectiveQueue(recvRank)->enqueue(m);
             } else {
@@ -217,7 +217,7 @@ namespace mpi {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->trace("MPI - bcast {} -> all", sendRank);
 
-        for (int r = 0; r <= size; r++) {
+        for (int r = 0; r < size; r++) {
             // Skip this rank (it's doing the broadcasting)
             if (r == sendRank) {
                 continue;
@@ -228,6 +228,40 @@ namespace mpi {
         }
     }
 
+
+    template<typename T>
+    void MpiWorld::scatter(int sendRank, int recvRank, const T *sendBuffer, int sendType, int sendCount,
+                           T *recvBuffer, int recvType, int recvCount) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        if (sendType != recvType && sendCount == recvCount) {
+            logger->error("Must match type/ count (send {}:{}, recv {}:{})",
+                          sendType, sendCount, recvType, recvCount);
+            throw std::runtime_error("Mismatching send/ recv on scatter");
+        }
+
+        // If we're the sender, do the sending
+        if (recvRank == sendRank) {
+            logger->trace("MPI - scatter {} -> all", sendRank);
+
+            for (int r = 0; r < size; r++) {
+                // Work out buffer region
+                const T *startPtr = sendBuffer + (r * sendCount);
+
+                if (r == sendRank) {
+                    // Copy data directly if this is the send rank
+                    const T *endPtr = startPtr + sendCount;
+                    std::copy(startPtr, endPtr, recvBuffer);
+                } else {
+                    send<T>(sendRank, r, startPtr, sendType, sendCount, MpiMessageType::SCATTER);
+                }
+            }
+        } else {
+            // Do the receiving
+            recv<T>(sendRank, recvRank, recvBuffer, recvCount, nullptr, MpiMessageType::SCATTER);
+        }
+    }
+
     template<typename T>
     void MpiWorld::recv(int sendRank, int recvRank, T *buffer, int count, MPI_Status *status,
                         MpiMessageType messageType) {
@@ -235,8 +269,7 @@ namespace mpi {
 
         // Listen to the in-memory queue for this rank and message type
         const MpiMessage *m;
-        if (messageType == MpiMessageType::BARRIER_JOIN ||
-            messageType == MpiMessageType::BARRIER_DONE) {
+        if (isCollectiveMessage(messageType)) {
             logger->trace("MPI - recv collective {} -> {}", sendRank, recvRank);
             m = getCollectiveQueue(recvRank)->dequeue();
         } else {
@@ -267,6 +300,7 @@ namespace mpi {
         }
     }
 
+    // Concrete template types
     template void MpiWorld::send<int>(int sendRank, int recvRank, const int *buffer, int dataType, int count,
                                       MpiMessageType messageType);
 
@@ -275,6 +309,10 @@ namespace mpi {
 
     template void MpiWorld::recv<int>(int sendRank, int recvRank, int *buffer, int count, MPI_Status *status,
                                       MpiMessageType messageType);
+
+    template void MpiWorld::scatter<int>(int sendRank, int recvRank,
+                                         const int *sendBuffer, int sendType, int sendCount,
+                                         int *recvBuffer, int recvType, int recvCount);
 
     void MpiWorld::probe(int sendRank, int recvRank, MPI_Status *status) {
         const std::shared_ptr<InMemoryMpiQueue> &queue = getLocalQueue(sendRank, recvRank);
@@ -297,7 +335,7 @@ namespace mpi {
             // This is the root, hence just does the waiting
 
             // Await messages from all others
-            for (int r = 1; r <= size; r++) {
+            for (int r = 1; r < size; r++) {
                 MPI_Status s{};
                 recv<int>(r, 0, nullptr, 0, &s, MpiMessageType::BARRIER_JOIN);
                 logger->trace("MPI - recv barrier join {}", s.MPI_SOURCE);
@@ -324,8 +362,7 @@ namespace mpi {
             throw std::runtime_error("Queueing message not for this world");
         }
 
-        if (msg->messageType == MpiMessageType::BARRIER_JOIN ||
-            msg->messageType == MpiMessageType::BARRIER_DONE) {
+        if (isCollectiveMessage(msg)) {
             // Collective message
             logger->trace("Queueing collective locally {} -> {}", msg->sender, msg->destination);
             getCollectiveQueue(msg->destination)->enqueue(msg);
