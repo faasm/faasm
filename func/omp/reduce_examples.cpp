@@ -5,9 +5,20 @@
 
 constexpr int ITERATIONS = 400;
 
+//asm(".data"
+//    ".comm .gomp_critical_user_,32,8"
+//    ".data"
+//    "ALIGN 8"
+//    ".global __kmp_unnamed_critical_addr"
+//    "__kmp_unnamed_critical_addr:"
+//    ".8byte .gomp_critical_user_"
+//    ".type __kmp_unnamed_critical_addr,@object"
+//    ".size __kmp_unnamed_critical_addr,8"
+//);
+
 FAASM_MAIN_FUNC() {
     int count = 0;
-    #pragma omp parallel for num_threads(4) default(none) reduction(+:count)
+#pragma omp parallel for num_threads(4) default(none) reduction(+:count)
     for (int i = 0; i < ITERATIONS; i++) {
         count += omp_get_thread_num() + 1;
     }
