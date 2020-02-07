@@ -39,6 +39,7 @@ omp_func(simple_master simple_master.cpp)
 
 # Intel OMP files
 omp_func(intel_nstreams intel_nstreams.cpp)
+omp_func(intel_synch_p2p intel_synch_p2p.cpp)
 
 if(FAASM_BUILD_TYPE STREQUAL "wasm")
     omp_func(stack_debug stack_debug.cpp)
