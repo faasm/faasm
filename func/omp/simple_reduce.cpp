@@ -3,16 +3,16 @@
 #include <faasm/faasm.h>
 #include <random>
 
-constexpr int ITERATIONS = 10000000;
+constexpr int ITERATIONS = 100000;
 
 FAASM_MAIN_FUNC() {
     int count = 0;
-    #pragma omp parallel num_threads(4) default(none) shared(count)
+    #pragma omp parallel num_threads(4) default(none) reduction(+:count)
     {
         std::uniform_real_distribution<double> unif(0, 1);
         std::mt19937 generator(omp_get_thread_num());
         double x, y;
-        #pragma omp for reduction(+:count)
+        #pragma omp for
         for (int i = 0; i < ITERATIONS; i++) {
             x = unif(generator);
             y = unif(generator);

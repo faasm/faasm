@@ -10,6 +10,12 @@ __kmpc_barrier
 __kmpc_for_static_init_4
 __kmpc_for_static_fini
 
+# OpenMP reduce
+__kmpc_reduce
+__kmpc_end_reduce
+__kmpc_reduce_nowait
+__kmpc_end_reduce_nowait
+
 # OpenMP API
 omp_get_thread_num
 omp_get_num_threads

@@ -35,6 +35,7 @@ omp_func(hellomp hellomp.cpp)
 omp_func(simple_barrier simple_barrier.cpp)
 omp_func(simple_for simple_for.cpp)
 omp_func(for_static_schedule for_static_schedule.cpp)
+omp_func(reduce_examples reduce_examples.cpp)
 omp_func(simple_master simple_master.cpp)
 omp_func(simple_reduce simple_reduce.cpp)
 
