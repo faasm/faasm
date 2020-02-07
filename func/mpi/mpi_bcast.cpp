@@ -1,6 +1,7 @@
 #include <mpi.h>
 #include <stdio.h>
 #include <faasm/faasm.h>
+#include <cstring>
 
 
 FAASM_MAIN_FUNC() {
@@ -17,21 +18,24 @@ FAASM_MAIN_FUNC() {
     }
 
     int root = 2;
+    int expected[4] = {0, 1, 2, 3};
+    int actual[4] = {-1, -1, -1, -1};
 
     if(rank == root) {
-        // Broadcast from the root rank
-        int data[4] = {0, 1, 2, 3};
-        MPI_Bcast(data, 4, MPI_INT, root, MPI_COMM_WORLD);
-    } else {
-        // Check others see the message
-        int actual[4] = {0, 0, 0, 0};
-        MPI_Bcast(actual, 4, MPI_INT, root, MPI_COMM_WORLD);
+        memcpy(actual, expected, 4 * sizeof(int));
+    }
 
-        if(actual[0] != 0 || actual[1] != 1 || actual[2] != 2 || actual[3] != 3) {
-            printf("Broadcast failed (expected [0, 1, 2, 3], got [%i, %i, %i, %i])\n",
-                    actual[0], actual[1], actual[2], actual[3]);
-            return 1;
-        }
+    // Broadcast from the root rank
+    MPI_Bcast(actual, 4, MPI_INT, root, MPI_COMM_WORLD);
+
+    if (actual[0] != expected[0] || actual[1] != expected[1] ||
+        actual[2] != expected[2] || actual[3] != expected[3]) {
+        printf("Broadcast failed (expected [%i, %i, %i, %i], got [%i, %i, %i, %i])\n",
+               expected[0], expected[1], expected[2], expected[3],
+               actual[0], actual[1], actual[2], actual[3]);
+        return 1;
+    } else if(rank == 0) {
+        printf("Broadcast succeeded\n");
     }
 
     MPI_Finalize();

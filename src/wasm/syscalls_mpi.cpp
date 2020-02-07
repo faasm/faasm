@@ -28,7 +28,7 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         message::Message *call = getExecutingCall();
-
+        
         // Note - only want to initialise the world on rank zero (or when rank isn't set yet)
         if (call->mpirank() <= 0) {
             logger->debug("S - MPI_Init (create) {} {}", a, b);
@@ -36,15 +36,17 @@ namespace wasm {
             // Initialise the world
             util::SystemConfig &conf = util::getSystemConfig();
             executingContext.createWorld(*call, conf.mpiWorldSize);
-
-            // Wait for all the functions to be ready
-            executingContext.awaitWorldCreation();
         } else {
             logger->debug("S - MPI_Init (join) {} {}", a, b);
 
-            // Join the world (will have been initialised elsewhere)
+            // Join the world
             executingContext.joinWorld(*call);
         }
+        
+        // We want to synchronise everyone here on a barrier
+        int thisRank = getExecutingMpiContext().getRank();
+        mpi::MpiWorld &world = getExecutingWorld();
+        world.barrier(thisRank);
 
         return 0;
     }

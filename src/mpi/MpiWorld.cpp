@@ -198,14 +198,14 @@ namespace mpi {
         // Dispatch the message locally or globally
         if (isLocal) {
             if (messageType == MpiMessageType::BARRIER_DONE || messageType == MpiMessageType::BARRIER_JOIN) {
-                logger->trace("Local collective send {} -> {}", sendRank, recvRank);
+                logger->trace("MPI - send collective {} -> {}", sendRank, recvRank);
                 getCollectiveQueue(recvRank)->enqueue(m);
             } else {
-                logger->trace("Local standard send {} -> {}", sendRank, recvRank);
+                logger->trace("MPI - send {} -> {}", sendRank, recvRank);
                 getLocalQueue(sendRank, recvRank)->enqueue(m);
             }
         } else {
-            logger->trace("Remote send {} -> {}", sendRank, recvRank);
+            logger->trace("MPI - send remote {} -> {}", sendRank, recvRank);
             MpiGlobalBus &bus = mpi::getMpiGlobalBus();
             bus.sendMessageToNode(otherNodeId, m);
         }
@@ -214,6 +214,8 @@ namespace mpi {
     template<typename T>
     void MpiWorld::broadcast(int sendRank, const T *buffer, int dataType, int count,
                              MpiMessageType messageType) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->trace("MPI - bcast {} -> all", sendRank);
 
         for (int r = 0; r <= size; r++) {
             // Skip this rank (it's doing the broadcasting)
@@ -235,8 +237,10 @@ namespace mpi {
         const MpiMessage *m;
         if (messageType == MpiMessageType::BARRIER_JOIN ||
             messageType == MpiMessageType::BARRIER_DONE) {
+            logger->trace("MPI - recv collective {} -> {}", sendRank, recvRank);
             m = getCollectiveQueue(recvRank)->dequeue();
         } else {
+            logger->trace("MPI - recv {} -> {}", sendRank, recvRank);
             m = getLocalQueue(sendRank, recvRank)->dequeue();
         }
 
@@ -290,23 +294,25 @@ namespace mpi {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         if (thisRank == 0) {
-            // We're on the root, we're the one doing the waiting
+            // This is the root, hence just does the waiting
 
             // Await messages from all others
-            logger->trace("Master awaiting messages from {} others", size);
             for (int r = 1; r <= size; r++) {
-                recv<int>(r, 0, nullptr, 0, nullptr, MpiMessageType::BARRIER_JOIN);
+                MPI_Status s{};
+                recv<int>(r, 0, nullptr, 0, &s, MpiMessageType::BARRIER_JOIN);
+                logger->trace("MPI - recv barrier join {}", s.MPI_SOURCE);
             }
 
             // Broadcast that the barrier is done
             broadcast<int>(0, nullptr, FAASMPI_INT, 0, MpiMessageType::BARRIER_DONE);
         } else {
             // Tell the root that we're waiting
-            logger->trace("Rank {} notifying master of barrier", thisRank);
+            logger->trace("MPI - barrier join {}", thisRank);
             send<int>(thisRank, 0, nullptr, FAASMPI_INT, 0, MpiMessageType::BARRIER_JOIN);
 
-            // Receive a message on the collective queue
+            // Receive a message saying the barrier is done
             recv<int>(0, thisRank, nullptr, FAASMPI_INT, nullptr, MpiMessageType::BARRIER_DONE);
+            logger->trace("MPI - barrier done {}", thisRank);
         }
     }
 

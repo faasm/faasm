@@ -10,8 +10,6 @@ namespace mpi {
 
         void createWorld(const message::Message &msg, int worldSize);
 
-        void awaitWorldCreation();
-
         void joinWorld(const message::Message &msg);
 
         bool getIsMpi();
