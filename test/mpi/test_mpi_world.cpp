@@ -458,6 +458,50 @@ namespace tests {
             REQUIRE(actual == messageData);
         }
 
+        SECTION("Scatter") {
+            // Build the data
+            int nPerRank = 4;
+            int dataSize = nPerRank * worldSize;
+            std::vector<int> messageData;
+            messageData.reserve(dataSize);
+            for (int i = 0; i < dataSize; i++) {
+                messageData[i] = i;
+            }
+
+            // Do the scatter
+            std::vector<int> actual = {-1, -1, -1, -1};
+            worldA.scatter(rankA2, rankA2, messageData.data(), FAASMPI_INT, nPerRank,
+                           actual.data(), FAASMPI_INT, nPerRank);
+
+            // Check for root
+            REQUIRE(actual == std::vector<int>({8, 9, 10, 11}));
+
+            // Check for other ranks
+            worldA.scatter(rankA2, 0, (int*) nullptr, FAASMPI_INT, nPerRank,
+                           actual.data(), FAASMPI_INT, nPerRank);
+            REQUIRE(actual == std::vector<int>({0, 1, 2, 3}));
+
+            worldA.scatter(rankA2, rankA1, (int*) nullptr, FAASMPI_INT, nPerRank,
+                           actual.data(), FAASMPI_INT, nPerRank);
+            REQUIRE(actual == std::vector<int>({4, 5, 6, 7}));
+
+            worldA.scatter(rankA2, rankA3, (int*) nullptr, FAASMPI_INT, nPerRank,
+                           actual.data(), FAASMPI_INT, nPerRank);
+            REQUIRE(actual == std::vector<int>({12, 13, 14, 15}));
+
+            // Pull both messages for the other node
+            worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
+            worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
+
+            worldB.scatter(rankA2, rankB1, (int*) nullptr, FAASMPI_INT, nPerRank,
+                           actual.data(), FAASMPI_INT, nPerRank);
+            REQUIRE(actual == std::vector<int>({16, 17, 18, 19}));
+
+            worldB.scatter(rankA2, rankB2, (int*) nullptr, FAASMPI_INT, nPerRank,
+                           actual.data(), FAASMPI_INT, nPerRank);
+            REQUIRE(actual == std::vector<int>({20, 21, 22, 23}));
+        }
+
         SECTION("Barrier") {
             // Call barrier with all the ranks
             std::thread threadA1([&worldA, &rankA1] { worldA.barrier(rankA1); });
@@ -485,7 +529,6 @@ namespace tests {
             if (threadB1.joinable()) threadB1.join();
             if (threadB2.joinable()) threadB2.join();
         }
-
     }
 
 }
