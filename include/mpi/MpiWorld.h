@@ -8,7 +8,7 @@
 #include <scheduler/InMemoryMessageQueue.h>
 
 namespace mpi {
-    typedef util::Queue<MpiMessage*> InMemoryMpiQueue;
+    typedef util::Queue<MpiMessage *> InMemoryMpiQueue;
     typedef std::pair<std::string, InMemoryMpiQueue *> MpiMessageQueuePair;
 
     struct MpiWorldState {
@@ -46,14 +46,24 @@ namespace mpi {
         void enqueueMessage(MpiMessage *msg);
 
         template<typename T>
-        void send(int sendRank, int recvRank, const T *buffer, int dataType, int count);
+        void send(int sendRank, int recvRank, const T *buffer, int dataType, int count,
+                  MpiMessageType messageType = MpiMessageType::NORMAL);
 
         template<typename T>
-        void recv(int sendRank, int recvRank, T *buffer, int count, MPI_Status *status);
+        void broadcast(int sendRank, const T *buffer, int dataType, int count,
+                       MpiMessageType messageType = MpiMessageType::NORMAL);
+
+        template<typename T>
+        void recv(int sendRank, int recvRank, T *buffer, int count, MPI_Status *status,
+                  MpiMessageType messageType = MpiMessageType::NORMAL);
 
         void probe(int sendRank, int recvRank, MPI_Status *status);
 
+        void barrier(int thisRank);
+
         std::shared_ptr<InMemoryMpiQueue> getLocalQueue(int sendRank, int recvRank);
+
+        std::shared_ptr<InMemoryMpiQueue> getCollectiveQueue(int recvRank);
 
         long getLocalQueueSize(int sendRank, int recvRank);
 
@@ -74,12 +84,21 @@ namespace mpi {
 
         std::unordered_map<std::string, std::shared_ptr<InMemoryMpiQueue>> localQueueMap;
 
+        std::unordered_map<std::string, std::shared_ptr<InMemoryMpiQueue>> collectiveQueueMap;
+
+        std::shared_ptr<InMemoryMpiQueue> getInMemoryQueue(
+                std::unordered_map<std::string, std::shared_ptr<InMemoryMpiQueue>> &queueMap,
+                const std::string &key
+        );
+
         void setUpStateKV();
 
         std::shared_ptr<state::StateKeyValue> getRankNodeState(int rank);
 
         template<typename T>
         std::shared_ptr<state::StateKeyValue> getMessageState(int messageId, int count);
+
+        void checkRankOnThisNode(int rank);
 
         void pushToState();
     };

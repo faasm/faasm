@@ -28,7 +28,7 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         message::Message *call = getExecutingCall();
-
+        
         // Note - only want to initialise the world on rank zero (or when rank isn't set yet)
         if (call->mpirank() <= 0) {
             logger->debug("S - MPI_Init (create) {} {}", a, b);
@@ -36,15 +36,17 @@ namespace wasm {
             // Initialise the world
             util::SystemConfig &conf = util::getSystemConfig();
             executingContext.createWorld(*call, conf.mpiWorldSize);
-
-            // Wait for all the functions to be ready
-            executingContext.awaitWorldCreation();
         } else {
             logger->debug("S - MPI_Init (join) {} {}", a, b);
 
-            // Join the world (will have been initialised elsewhere)
+            // Join the world
             executingContext.joinWorld(*call);
         }
+        
+        // We want to synchronise everyone here on a barrier
+        int thisRank = getExecutingMpiContext().getRank();
+        mpi::MpiWorld &world = getExecutingWorld();
+        world.barrier(thisRank);
 
         return 0;
     }
@@ -222,6 +224,52 @@ namespace wasm {
 
         mpi::MpiWorld &world = getExecutingWorld();
         world.probe(source, thisRank, status);
+
+        return MPI_SUCCESS;
+    }
+
+    /**
+     * NOTE - MPI_Bcast is called both to send and receive broadcast messages
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Bcast", I32, MPI_Bcast, I32 buffer, I32 count, I32 datatype, I32 root, I32 comm) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - MPI_Bcast {} {} {} {}", buffer, count, datatype, root, comm);
+
+        if (!checkMpiComm(comm)) {
+            return 1;
+        }
+
+        if (!checkIsInt(datatype)) {
+            logger->error("Unrecognised datatype ({})", datatype);
+            return 1;
+        }
+
+        int thisRank = executingContext.getRank();
+        mpi::MpiWorld &world = getExecutingWorld();
+        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
+        int *inputs = Runtime::memoryArrayPtr<I32>(memoryPtr, buffer, count);
+
+        // See if this is a send broadcast or receive broadcast
+        if(thisRank == root) {
+            world.broadcast<int>(thisRank, inputs, FAASMPI_INT, count);
+        } else {
+            world.recv(root, thisRank, inputs, count, nullptr);
+        }
+
+        return MPI_SUCCESS;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Barrier", I32, MPI_Barrier, I32 comm) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - MPI_Barrier {}", comm);
+
+        if (!checkMpiComm(comm)) {
+            return 1;
+        }
+
+        int thisRank = executingContext.getRank();
+        mpi::MpiWorld &world = getExecutingWorld();
+        world.barrier(thisRank);
 
         return MPI_SUCCESS;
     }

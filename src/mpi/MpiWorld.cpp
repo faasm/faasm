@@ -93,6 +93,9 @@ namespace mpi {
         for (auto &s: rankNodeMap) {
             getRankNodeState(s.first)->deleteGlobal();
         }
+
+        localQueueMap.clear();
+        collectiveQueueMap.clear();
     }
 
     void MpiWorld::initialiseFromState(const message::Message &msg, int worldId) {
@@ -156,7 +159,10 @@ namespace mpi {
     }
 
     template<typename T>
-    void MpiWorld::send(int sendRank, int recvRank, const T *buffer, int dataType, int count) {
+    void
+    MpiWorld::send(int sendRank, int recvRank, const T *buffer, int dataType, int count, MpiMessageType messageType) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         if (recvRank > this->size) {
             throw std::runtime_error(fmt::format("Rank {} bigger than world size {}", recvRank, this->size));
         }
@@ -172,21 +178,13 @@ namespace mpi {
         m->destination = recvRank;
         m->type = dataType;
         m->count = count;
+        m->messageType = messageType;
 
         // Work out whether the message is sent locally or to another node
         const std::string otherNodeId = getNodeForRank(recvRank);
         bool isLocal = otherNodeId == thisNodeId;
 
-        // Dispatch the message locally or globally
-        if (isLocal) {
-            const std::shared_ptr<InMemoryMpiQueue> &queue = getLocalQueue(sendRank, recvRank);
-            queue->enqueue(m);
-        } else {
-            MpiGlobalBus &bus = mpi::getMpiGlobalBus();
-            bus.sendMessageToNode(otherNodeId, m);
-        }
-
-        // Set up message data in state
+        // Set up message data in state (must obviously be done before dispatching)
         if (count > 0) {
             const std::shared_ptr<state::StateKeyValue> &kv = getMessageState<T>(msgId, count);
             kv->set(reinterpret_cast<const uint8_t *>(buffer));
@@ -196,15 +194,55 @@ namespace mpi {
                 kv->pushFull();
             }
         }
+
+        // Dispatch the message locally or globally
+        if (isLocal) {
+            if (messageType == MpiMessageType::BARRIER_DONE || messageType == MpiMessageType::BARRIER_JOIN) {
+                logger->trace("MPI - send collective {} -> {}", sendRank, recvRank);
+                getCollectiveQueue(recvRank)->enqueue(m);
+            } else {
+                logger->trace("MPI - send {} -> {}", sendRank, recvRank);
+                getLocalQueue(sendRank, recvRank)->enqueue(m);
+            }
+        } else {
+            logger->trace("MPI - send remote {} -> {}", sendRank, recvRank);
+            MpiGlobalBus &bus = mpi::getMpiGlobalBus();
+            bus.sendMessageToNode(otherNodeId, m);
+        }
     }
 
     template<typename T>
-    void MpiWorld::recv(int sendRank, int recvRank, T *buffer, int count, MPI_Status *status) {
+    void MpiWorld::broadcast(int sendRank, const T *buffer, int dataType, int count,
+                             MpiMessageType messageType) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->trace("MPI - bcast {} -> all", sendRank);
+
+        for (int r = 0; r <= size; r++) {
+            // Skip this rank (it's doing the broadcasting)
+            if (r == sendRank) {
+                continue;
+            }
+
+            // Send to the other ranks
+            send<T>(sendRank, r, buffer, dataType, count, messageType);
+        }
+    }
+
+    template<typename T>
+    void MpiWorld::recv(int sendRank, int recvRank, T *buffer, int count, MPI_Status *status,
+                        MpiMessageType messageType) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        // Listen to the in-memory queue for this rank
-        const std::shared_ptr<InMemoryMpiQueue> &queue = getLocalQueue(sendRank, recvRank);
-        const MpiMessage *m = queue->dequeue();
+        // Listen to the in-memory queue for this rank and message type
+        const MpiMessage *m;
+        if (messageType == MpiMessageType::BARRIER_JOIN ||
+            messageType == MpiMessageType::BARRIER_DONE) {
+            logger->trace("MPI - recv collective {} -> {}", sendRank, recvRank);
+            m = getCollectiveQueue(recvRank)->dequeue();
+        } else {
+            logger->trace("MPI - recv {} -> {}", sendRank, recvRank);
+            m = getLocalQueue(sendRank, recvRank)->dequeue();
+        }
 
         if (m->count > count) {
             logger->error("Message too long for buffer (msg={}, buffer={})", m->count, count);
@@ -229,9 +267,14 @@ namespace mpi {
         }
     }
 
-    template void MpiWorld::send<int>(int sendRank, int recvRank, const int *buffer, int dataType, int count);
+    template void MpiWorld::send<int>(int sendRank, int recvRank, const int *buffer, int dataType, int count,
+                                      MpiMessageType messageType);
 
-    template void MpiWorld::recv<int>(int sendRank, int recvRank, int *buffer, int count, MPI_Status *status);
+    template void MpiWorld::broadcast<int>(int sendRank, const int *buffer, int dataType, int count,
+                                           MpiMessageType messageType);
+
+    template void MpiWorld::recv<int>(int sendRank, int recvRank, int *buffer, int count, MPI_Status *status,
+                                      MpiMessageType messageType);
 
     void MpiWorld::probe(int sendRank, int recvRank, MPI_Status *status) {
         const std::shared_ptr<InMemoryMpiQueue> &queue = getLocalQueue(sendRank, recvRank);
@@ -247,45 +290,98 @@ namespace mpi {
         status->MPI_SOURCE = m->sender;
     }
 
+    void MpiWorld::barrier(int thisRank) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        if (thisRank == 0) {
+            // This is the root, hence just does the waiting
+
+            // Await messages from all others
+            for (int r = 1; r <= size; r++) {
+                MPI_Status s{};
+                recv<int>(r, 0, nullptr, 0, &s, MpiMessageType::BARRIER_JOIN);
+                logger->trace("MPI - recv barrier join {}", s.MPI_SOURCE);
+            }
+
+            // Broadcast that the barrier is done
+            broadcast<int>(0, nullptr, FAASMPI_INT, 0, MpiMessageType::BARRIER_DONE);
+        } else {
+            // Tell the root that we're waiting
+            logger->trace("MPI - barrier join {}", thisRank);
+            send<int>(thisRank, 0, nullptr, FAASMPI_INT, 0, MpiMessageType::BARRIER_JOIN);
+
+            // Receive a message saying the barrier is done
+            recv<int>(0, thisRank, nullptr, FAASMPI_INT, nullptr, MpiMessageType::BARRIER_DONE);
+            logger->trace("MPI - barrier done {}", thisRank);
+        }
+    }
+
     void MpiWorld::enqueueMessage(MpiMessage *msg) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
         if (msg->worldId != id) {
-            util::getLogger()->error("Queueing message not meant for this world (msg={}, this={})", msg->worldId, id);
+            logger->error("Queueing message not meant for this world (msg={}, this={})", msg->worldId, id);
             throw std::runtime_error("Queueing message not for this world");
         }
 
-        int recvRank = msg->destination;
-        int sendRank = msg->sender;
-        getLocalQueue(sendRank, recvRank)->enqueue(msg);
+        if (msg->messageType == MpiMessageType::BARRIER_JOIN ||
+            msg->messageType == MpiMessageType::BARRIER_DONE) {
+            // Collective message
+            logger->trace("Queueing collective locally {} -> {}", msg->sender, msg->destination);
+            getCollectiveQueue(msg->destination)->enqueue(msg);
+        } else {
+            // Normal message
+            logger->trace("Queueing normal locally {} -> {}", msg->sender, msg->destination);
+            getLocalQueue(msg->sender, msg->destination)->enqueue(msg);
+        }
     }
 
     std::shared_ptr<InMemoryMpiQueue> MpiWorld::getLocalQueue(int sendRank, int recvRank) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        checkRankOnThisNode(recvRank);
+
         std::string key = std::to_string(sendRank) + "_" + std::to_string(recvRank);
+        return getInMemoryQueue(localQueueMap, key);
+    }
 
-        // Check if we know about this rank on this node
-        if (rankNodeMap.count(recvRank) == 0) {
-            logger->error("No mapping found for rank {} on this node", recvRank);
-            throw std::runtime_error("No mapping found for rank");
-        } else if (rankNodeMap[recvRank] != thisNodeId) {
-            logger->error("Trying to access rank {} on {} but it's on {}", recvRank, thisNodeId, rankNodeMap[recvRank]);
-            throw std::runtime_error("Accessing in-memory queue for remote rank");
-        }
+    std::shared_ptr<InMemoryMpiQueue> MpiWorld::getCollectiveQueue(int recvRank) {
+        checkRankOnThisNode(recvRank);
 
-        if (localQueueMap.count(key) == 0) {
+        std::string key = "collective_" + std::to_string(recvRank);
+        return getInMemoryQueue(collectiveQueueMap, key);
+    }
+
+    std::shared_ptr<InMemoryMpiQueue> MpiWorld::getInMemoryQueue(
+            std::unordered_map<std::string, std::shared_ptr<InMemoryMpiQueue>> &queueMap,
+            const std::string &key
+    ) {
+        if (queueMap.count(key) == 0) {
             util::FullLock lock(worldMutex);
 
-            if (localQueueMap.count(key) == 0) {
+            if (queueMap.count(key) == 0) {
                 auto mq = new InMemoryMpiQueue();
-                localQueueMap.emplace(MpiMessageQueuePair(key, mq));
+                queueMap.emplace(MpiMessageQueuePair(key, mq));
             }
         }
 
-        return localQueueMap[key];
+        return queueMap[key];
     }
 
     long MpiWorld::getLocalQueueSize(int sendRank, int recvRank) {
         const std::shared_ptr<InMemoryMpiQueue> &queue = getLocalQueue(sendRank, recvRank);
         return queue->size();
+    }
+
+    void MpiWorld::checkRankOnThisNode(int rank) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        // Check if we know about this rank on this node
+        if (rankNodeMap.count(rank) == 0) {
+            logger->error("No mapping found for rank {} on this node", rank);
+            throw std::runtime_error("No mapping found for rank");
+        } else if (rankNodeMap[rank] != thisNodeId) {
+            logger->error("Trying to access rank {} on {} but it's on {}", rank, thisNodeId, rankNodeMap[rank]);
+            throw std::runtime_error("Accessing in-memory queue for remote rank");
+        }
     }
 
     std::string MpiWorld::getUser() {
