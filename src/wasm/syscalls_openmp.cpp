@@ -181,7 +181,7 @@ namespace wasm {
         }
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_num_threads ", void, omp_set_num_threads, I32 numThreads) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_num_threads", void, omp_set_num_threads, I32 numThreads) {
         util::getLogger()->debug("S - omp_set_num_threads {}", numThreads);
         if (numThreads > 0) {
             // TODO - make this user-specific

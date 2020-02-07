@@ -37,6 +37,9 @@ omp_func(simple_for simple_for.cpp)
 omp_func(for_static_schedule for_static_schedule.cpp)
 omp_func(simple_master simple_master.cpp)
 
+# Intel OMP files
+omp_func(intel_nstreams intel_nstreams.cpp)
+
 if(FAASM_BUILD_TYPE STREQUAL "wasm")
     omp_func(stack_debug stack_debug.cpp)
 endif()
