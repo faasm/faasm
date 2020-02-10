@@ -231,7 +231,7 @@ namespace wasm {
         if (ctx.rank == root) {
             ctx.world.broadcast<int>(ctx.rank, inputs, FAASMPI_INT, count);
         } else {
-            ctx.world.recv(root, ctx.rank, inputs, count, nullptr);
+            ctx.world.recv<int>(root, ctx.rank, inputs, count, nullptr);
         }
 
         return MPI_SUCCESS;
@@ -261,9 +261,9 @@ namespace wasm {
             int *hostSendBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, sendBuf, sendCount);
             int *hostRecvBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, recvBuf, recvCount);
 
-            ctx.world.scatter(root, ctx.rank,
-                              hostSendBuffer, FAASMPI_INT, sendCount,
-                              hostRecvBuffer, FAASMPI_INT, recvCount
+            ctx.world.scatter<int>(root, ctx.rank,
+                                   hostSendBuffer, FAASMPI_INT, sendCount,
+                                   hostRecvBuffer, FAASMPI_INT, recvCount
             );
         } else {
             throw std::runtime_error("Scatter not implemented for non-ints");
@@ -285,9 +285,9 @@ namespace wasm {
             int *hostSendBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, sendBuf, sendCount);
             int *hostRecvBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, recvBuf, recvCount);
 
-            ctx.world.gather(root, ctx.rank,
-                              hostSendBuffer, FAASMPI_INT, sendCount,
-                              hostRecvBuffer, FAASMPI_INT, recvCount
+            ctx.world.gather<int>(ctx.rank, root,
+                                  hostSendBuffer, FAASMPI_INT, sendCount,
+                                  hostRecvBuffer, FAASMPI_INT, recvCount
             );
         } else {
             throw std::runtime_error("Gather not implemented for non-ints");

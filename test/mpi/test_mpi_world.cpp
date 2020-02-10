@@ -476,14 +476,14 @@ namespace tests {
             // Check for root
             REQUIRE(actual == std::vector<int>({8, 9, 10, 11}));
 
-            // Check for other ranks
-            worldA.scatter(rankA2, 0, (int *) nullptr, FAASMPI_INT, nPerRank,
-                           actual.data(), FAASMPI_INT, nPerRank);
-            REQUIRE(actual == std::vector<int>({0, 1, 2, 3}));
-
+            // Check for other ranks out of order
             worldA.scatter(rankA2, rankA1, (int *) nullptr, FAASMPI_INT, nPerRank,
                            actual.data(), FAASMPI_INT, nPerRank);
             REQUIRE(actual == std::vector<int>({4, 5, 6, 7}));
+
+            worldA.scatter(rankA2, 0, (int *) nullptr, FAASMPI_INT, nPerRank,
+                           actual.data(), FAASMPI_INT, nPerRank);
+            REQUIRE(actual == std::vector<int>({0, 1, 2, 3}));
 
             worldA.scatter(rankA2, rankA3, (int *) nullptr, FAASMPI_INT, nPerRank,
                            actual.data(), FAASMPI_INT, nPerRank);
@@ -493,13 +493,13 @@ namespace tests {
             worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
             worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
 
-            worldB.scatter(rankA2, rankB1, (int *) nullptr, FAASMPI_INT, nPerRank,
-                           actual.data(), FAASMPI_INT, nPerRank);
-            REQUIRE(actual == std::vector<int>({16, 17, 18, 19}));
-
             worldB.scatter(rankA2, rankB2, (int *) nullptr, FAASMPI_INT, nPerRank,
                            actual.data(), FAASMPI_INT, nPerRank);
             REQUIRE(actual == std::vector<int>({20, 21, 22, 23}));
+
+            worldB.scatter(rankA2, rankB1, (int *) nullptr, FAASMPI_INT, nPerRank,
+                           actual.data(), FAASMPI_INT, nPerRank);
+            REQUIRE(actual == std::vector<int>({16, 17, 18, 19}));
         }
 
         SECTION("Gather") {
@@ -523,11 +523,8 @@ namespace tests {
                 actual.push_back(-1);
             }
 
-            // Call gather for each rank other than the root
+            // Call gather for each rank other than the root (out of order)
             int root = rankA3;
-            worldA.gather<int>(0, root,
-                               rankData[0].data(), FAASMPI_INT, nPerRank,
-                               (int *) nullptr, FAASMPI_INT, nPerRank);
 
             worldA.gather<int>(rankA1, root,
                                rankData[rankA1].data(), FAASMPI_INT, nPerRank,
@@ -537,12 +534,16 @@ namespace tests {
                                rankData[rankA2].data(), FAASMPI_INT, nPerRank,
                                (int *) nullptr, FAASMPI_INT, nPerRank);
 
-            worldB.gather<int>(rankB1, root,
-                               rankData[rankB1].data(), FAASMPI_INT, nPerRank,
-                               (int *) nullptr, FAASMPI_INT, nPerRank);
-
             worldB.gather<int>(rankB2, root,
                                rankData[rankB2].data(), FAASMPI_INT, nPerRank,
+                               (int *) nullptr, FAASMPI_INT, nPerRank);
+
+            worldA.gather<int>(0, root,
+                               rankData[0].data(), FAASMPI_INT, nPerRank,
+                               (int *) nullptr, FAASMPI_INT, nPerRank);
+
+            worldB.gather<int>(rankB1, root,
+                               rankData[rankB1].data(), FAASMPI_INT, nPerRank,
                                (int *) nullptr, FAASMPI_INT, nPerRank);
 
             // Ensure remote messages have been processed
