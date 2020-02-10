@@ -40,7 +40,7 @@ namespace wasm {
         Runtime::Function *func;
         IR::UntaggedValue *funcArgs;
     };
-    
+
     void resetOpenMP() {
         // Clear thread references and thread number override
         platformThreads.clear();
@@ -146,6 +146,22 @@ namespace wasm {
     }
 
     /**
+     * The omp flush directive identifies a point at which the compiler ensures that all threads in a parallel region
+     * have the same view of specified objects in memory. Like clang here we use a fence, but this semantic might
+     * not be suited for multitenancy.
+     * @param loc Source location info
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_flush", void, __kmpc_flush, I32 loc) {
+        util::getLogger()->debug("S - __kmpc_flush{}", loc);
+
+        // Full memory fence, a bit overkill maybe for Wasm
+        __sync_synchronize();
+
+        // Prevent busy waiting like while(flag) #pragma omp flush(flag)
+        WAVM::Platform::yieldToAnotherThread();
+    }
+
+    /**
      * No implied BARRIER exists on either entry to or exit from the MASTER section.
      * @param loc  source location information.
      * @param global_tid  global thread number.
@@ -181,7 +197,7 @@ namespace wasm {
         }
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_num_threads ", void, omp_set_num_threads, I32 numThreads) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_num_threads", void, omp_set_num_threads, I32 numThreads) {
         util::getLogger()->debug("S - omp_set_num_threads {}", numThreads);
         if (numThreads > 0) {
             // TODO - make this user-specific
@@ -380,7 +396,7 @@ namespace wasm {
                     U32 small_chunk = tripCount / sectionThreadCount;
                     U32 extras = tripCount % sectionThreadCount;
                     *lower += incr * (thisThreadNumber * small_chunk +
-                                       (thisThreadNumber < extras ? thisThreadNumber : extras));
+                                      (thisThreadNumber < extras ? thisThreadNumber : extras));
                     *upper = *lower + small_chunk * incr - (thisThreadNumber < extras ? 0 : incr);
                     *lastIter = (thisThreadNumber == sectionThreadCount - 1);
                 }
