@@ -6,6 +6,7 @@ namespace mpi {
         BARRIER_JOIN,
         BARRIER_DONE,
         SCATTER,
+        GATHER,
     };
 
     struct MpiMessage {

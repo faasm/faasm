@@ -11,3 +11,4 @@ MPI_Comm_size
 MPI_Get_count
 MPI_Probe
 MPI_Scatter
+MPI_Gather

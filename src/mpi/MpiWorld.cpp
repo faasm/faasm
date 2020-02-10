@@ -228,24 +228,27 @@ namespace mpi {
         }
     }
 
+    void checkSendRecvMatch(int sendType, int sendCount, int recvType, int recvCount){
+        if (sendType != recvType && sendCount == recvCount) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->error("Must match type/ count (send {}:{}, recv {}:{})",
+                          sendType, sendCount, recvType, recvCount);
+            throw std::runtime_error("Mismatching send/ recv on scatter");
+        }
+    }
 
     template<typename T>
     void MpiWorld::scatter(int sendRank, int recvRank, const T *sendBuffer, int sendType, int sendCount,
                            T *recvBuffer, int recvType, int recvCount) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        if (sendType != recvType && sendCount == recvCount) {
-            logger->error("Must match type/ count (send {}:{}, recv {}:{})",
-                          sendType, sendCount, recvType, recvCount);
-            throw std::runtime_error("Mismatching send/ recv on scatter");
-        }
+        checkSendRecvMatch(sendType, sendCount, recvType, recvCount);
 
         // If we're the sender, do the sending
         if (recvRank == sendRank) {
             logger->trace("MPI - scatter {} -> all", sendRank);
 
             for (int r = 0; r < size; r++) {
-                // Work out buffer region
+                // Work out the chunk of the send buffer to send to this rank
                 const T *startPtr = sendBuffer + (r * sendCount);
 
                 if (r == sendRank) {
@@ -259,6 +262,34 @@ namespace mpi {
         } else {
             // Do the receiving
             recv<T>(sendRank, recvRank, recvBuffer, recvCount, nullptr, MpiMessageType::SCATTER);
+        }
+    }
+
+    template<typename T>
+    void MpiWorld::gather(int sendRank, int recvRank,
+                const T* sendBuffer, int sendType, int sendCount,
+                T* recvBuffer, int recvType, int recvCount) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        checkSendRecvMatch(sendType, sendCount, recvType, recvCount);
+
+        // If we're the receiver, do the gathering
+        if (sendRank == recvRank) {
+            logger->trace("MPI - gather all -> {}", recvRank);
+
+            for (int r = 0; r < size; r++) {
+                // Work out where in the receive buffer this rank's data goes
+                T *recvChunk = recvBuffer + (r * recvCount);
+
+                if (r == recvRank) {
+                    // Copy data directly if this is the send rank
+                    std::copy(sendBuffer, sendBuffer + sendCount, recvChunk);
+                } else {
+                    recv<T>(r, recvRank, recvChunk, recvCount, nullptr, MpiMessageType::GATHER);
+                }
+            }
+        } else {
+            // Do the sending
+            send<T>(sendRank, recvRank, sendBuffer, sendType, sendCount, MpiMessageType::GATHER);
         }
     }
 
@@ -311,6 +342,10 @@ namespace mpi {
                                       MpiMessageType messageType);
 
     template void MpiWorld::scatter<int>(int sendRank, int recvRank,
+                                         const int *sendBuffer, int sendType, int sendCount,
+                                         int *recvBuffer, int recvType, int recvCount);
+
+    template void MpiWorld::gather<int>(int sendRank, int recvRank,
                                          const int *sendBuffer, int sendType, int sendCount,
                                          int *recvBuffer, int recvType, int recvCount);
 

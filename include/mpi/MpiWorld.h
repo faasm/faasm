@@ -62,6 +62,11 @@ namespace mpi {
                     const T* sendBuffer, int sendType, int sendCount,
                     T* recvBuffer, int recvType, int recvCount);
 
+        template<typename T>
+        void gather(int sendRank, int recvRank,
+                     const T* sendBuffer, int sendType, int sendCount,
+                     T* recvBuffer, int recvType, int recvCount);
+
         void probe(int sendRank, int recvRank, MPI_Status *status);
 
         void barrier(int thisRank);
