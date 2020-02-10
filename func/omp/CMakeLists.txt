@@ -20,7 +20,6 @@ function(omp_func exec_name dir_path)
     endif()
 
     if (FAASM_BUILD_TYPE STREQUAL "wasm")
-#        target_sources(/home/mfournial/faasm.old/third-party/llvm-project/openmp/runtime/src/z_Linux_asm.S)
         target_link_libraries(${exec_name} faasmp)
     else ()
         target_link_libraries(${exec_name} pthread)
