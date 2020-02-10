@@ -7,6 +7,7 @@ namespace mpi {
         BARRIER_DONE,
         SCATTER,
         GATHER,
+        ALLGATHER,
     };
 
     struct MpiMessage {

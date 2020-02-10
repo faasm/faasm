@@ -294,6 +294,31 @@ namespace mpi {
     }
 
     template<typename T>
+    void MpiWorld::allGather(int rank, const T* sendBuffer, int sendType, int sendCount,
+                          T* recvBuffer, int recvType, int recvCount) {
+        checkSendRecvMatch(sendType, sendCount, recvType, recvCount);
+
+        // Note that sendCount and recvCount here are per-rank, so
+        // we need to work out the full buffer size
+        int fullCount = recvCount * size;
+
+        // Rank 0 coordinates the allgather operation
+        if(rank == 0) {
+            // Await the incoming messages from all (like a normal gather)
+            gather<T>(0, 0, sendBuffer, sendType, sendCount, recvBuffer, recvType, recvCount);
+
+            // Broadcast the result
+            broadcast<T>(0, recvBuffer, recvType, fullCount, MpiMessageType::ALLGATHER);
+        } else {
+            // Send the gather message (recv buffer can be null as it's not needed)
+            gather<T>(rank, 0, sendBuffer, sendType, sendCount, nullptr, recvType, recvCount);
+
+            // Await the broadcast from the master
+            recv<T>(0, rank, recvBuffer, fullCount, nullptr, MpiMessageType::ALLGATHER);
+        }
+    }
+
+    template<typename T>
     void MpiWorld::recv(int sendRank, int recvRank, T *buffer, int count, MPI_Status *status,
                         MpiMessageType messageType) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
@@ -348,6 +373,9 @@ namespace mpi {
     template void MpiWorld::gather<int>(int sendRank, int recvRank,
                                          const int *sendBuffer, int sendType, int sendCount,
                                          int *recvBuffer, int recvType, int recvCount);
+
+    template void MpiWorld::allGather<int>(int rank, const int *sendBuffer, int sendType, int sendCount,
+                                        int *recvBuffer, int recvType, int recvCount);
 
     void MpiWorld::probe(int sendRank, int recvRank, MPI_Status *status) {
         const std::shared_ptr<InMemoryMpiQueue> &queue = getLocalQueue(sendRank, recvRank);

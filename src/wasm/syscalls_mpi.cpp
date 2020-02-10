@@ -296,6 +296,28 @@ namespace wasm {
         return MPI_SUCCESS;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Allgather", I32, MPI_Allgather,
+                                   I32 sendBuf, I32 sendCount, I32 sendType,
+                                   I32 recvBuf, I32 recvCount, I32 recvType,
+                                   I32 comm) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - MPI_Allgather {} {} {} {} {} {} {}",
+                      sendBuf, sendCount, sendType, recvBuf, recvCount, recvType, comm);
+
+        ContextWrapper ctx(comm);
+        if (ctx.checkIsInt(sendType) && ctx.checkIsInt(recvType)) {
+            int *hostSendBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, sendBuf, sendCount);
+            int *hostRecvBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, recvBuf, recvCount);
+
+            ctx.world.allGather<int>(ctx.rank, hostSendBuffer, FAASMPI_INT, sendCount,
+                                     hostRecvBuffer, FAASMPI_INT, recvCount);
+        } else {
+            throw std::runtime_error("Allgather not implemented for non-ints");
+        }
+
+        return MPI_SUCCESS;
+    }
+
     void mpiLink() {
 
     }
