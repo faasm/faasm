@@ -429,6 +429,10 @@ namespace tests {
         worldB.registerRank(rankB1);
         worldB.registerRank(rankB2);
 
+        // Ranks deliberately out of order
+        std::vector<int> worldARanks = {rankA2, rankA3, rankA1, 0};
+        std::vector<int> worldBRanks = {rankB2, rankB1};
+
         MpiGlobalBus &bus = mpi::getMpiGlobalBus();
 
         SECTION("Broadcast") {
@@ -437,25 +441,21 @@ namespace tests {
             worldA.broadcast<int>(rankA2, messageData.data(), FAASMPI_INT, messageData.size());
 
             // Check the node that the root is on
-            std::vector<int> actual = {-1, -1, -1};
-            worldA.recv<int>(rankA2, 0, actual.data(), 3, nullptr);
-            REQUIRE(actual == messageData);
+            for (int rank : worldARanks) {
+                if (rank == rankA2) continue;
 
-            worldA.recv<int>(rankA2, rankA1, actual.data(), 3, nullptr);
-            REQUIRE(actual == messageData);
+                std::vector<int> actual(3, -1);
+                worldA.recv<int>(rankA2, rank, actual.data(), 3, nullptr);
+                REQUIRE(actual == messageData);
+            }
 
-            worldA.recv<int>(rankA2, rankA3, actual.data(), 3, nullptr);
-            REQUIRE(actual == messageData);
-
-            // Pull both messages for the other node
             worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
             worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
 
-            worldB.recv<int>(rankA2, rankB1, actual.data(), 3, nullptr);
-            REQUIRE(actual == messageData);
-
-            worldB.recv<int>(rankA2, rankB2, actual.data(), 3, nullptr);
-            REQUIRE(actual == messageData);
+            for (int rank : worldBRanks) {
+                std::vector<int> actual(3, -1);
+                worldB.recv<int>(rankA2, rank, actual.data(), 3, nullptr);
+            }
         }
 
         SECTION("Scatter") {
@@ -469,7 +469,7 @@ namespace tests {
             }
 
             // Do the scatter
-            std::vector<int> actual = {-1, -1, -1, -1};
+            std::vector<int> actual(nPerRank, -1);
             worldA.scatter(rankA2, rankA2, messageData.data(), FAASMPI_INT, nPerRank,
                            actual.data(), FAASMPI_INT, nPerRank);
 
@@ -502,7 +502,7 @@ namespace tests {
             REQUIRE(actual == std::vector<int>({16, 17, 18, 19}));
         }
 
-        SECTION("Gather") {
+        SECTION("Gather and allgather") {
             // Build the data for each rank
             int nPerRank = 4;
             std::vector<std::vector<int>> rankData;
@@ -515,49 +515,100 @@ namespace tests {
                 rankData.push_back(thisRankData);
             }
 
-            // Build the expectation and actual
+            // Build the expectation
             std::vector<int> expected;
-            std::vector<int> actual;
             for (int i = 0; i < thisWorldSize * nPerRank; i++) {
                 expected.push_back(i);
-                actual.push_back(-1);
             }
 
-            // Call gather for each rank other than the root (out of order)
-            int root = rankA3;
+            SECTION("Gather") {
+                std::vector<int> actual(thisWorldSize * nPerRank, -1);
 
-            worldA.gather<int>(rankA1, root,
-                               rankData[rankA1].data(), FAASMPI_INT, nPerRank,
-                               (int *) nullptr, FAASMPI_INT, nPerRank);
+                // Call gather for each rank other than the root (out of order)
+                int root = rankA3;
+                for (int rank : worldARanks) {
+                    if (rank == root) continue;
+                    worldA.gather<int>(rank, root,
+                                       rankData[rank].data(), FAASMPI_INT, nPerRank,
+                                       (int *) nullptr, FAASMPI_INT, nPerRank);
+                }
 
-            worldA.gather<int>(rankA2, root,
-                               rankData[rankA2].data(), FAASMPI_INT, nPerRank,
-                               (int *) nullptr, FAASMPI_INT, nPerRank);
+                for (int rank : worldBRanks) {
+                    worldB.gather<int>(rank, root,
+                                       rankData[rank].data(), FAASMPI_INT, nPerRank,
+                                       (int *) nullptr, FAASMPI_INT, nPerRank);
+                }
 
-            worldB.gather<int>(rankB2, root,
-                               rankData[rankB2].data(), FAASMPI_INT, nPerRank,
-                               (int *) nullptr, FAASMPI_INT, nPerRank);
+                // Ensure remote messages have been processed
+                worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
+                worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
 
-            worldA.gather<int>(0, root,
-                               rankData[0].data(), FAASMPI_INT, nPerRank,
-                               (int *) nullptr, FAASMPI_INT, nPerRank);
+                // Call gather for root
+                worldA.gather<int>(root, root,
+                                   rankData[root].data(), FAASMPI_INT, nPerRank,
+                                   actual.data(), FAASMPI_INT, nPerRank
+                );
 
-            worldB.gather<int>(rankB1, root,
-                               rankData[rankB1].data(), FAASMPI_INT, nPerRank,
-                               (int *) nullptr, FAASMPI_INT, nPerRank);
+                // Check data
+                REQUIRE(actual == expected);
+            }
 
-            // Ensure remote messages have been processed
-            worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
-            worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
+            SECTION("Allgather") {
+                int fullSize = nPerRank * thisWorldSize;
 
-            // Call gather for root
-            worldA.gather<int>(root, root,
-                               rankData[root].data(), FAASMPI_INT, nPerRank,
-                               actual.data(), FAASMPI_INT, nPerRank
-            );
+                // Call allgather for ranks on the first world
+                std::vector<std::thread> threads;
+                for (int rank : worldARanks) {
+                    if (rank == 0) {
+                        continue;
+                    }
 
-            // Check data
-            REQUIRE(actual == expected);
+                    threads.emplace_back([&, rank] {
+                        std::vector actual(fullSize, -1);
+
+                        worldA.allGather<int>(rank, rankData[rank].data(), FAASMPI_INT, nPerRank,
+                                              actual.data(), FAASMPI_INT, nPerRank);
+
+                        REQUIRE(actual == expected);
+                    });
+                }
+
+                // Call allgather for the threads in the other world
+                for (int rank : worldBRanks) {
+                    threads.emplace_back([&, rank] {
+                        std::vector actual(fullSize, -1);
+
+                        worldB.allGather<int>(rank, rankData[rank].data(), FAASMPI_INT, nPerRank,
+                                              actual.data(), FAASMPI_INT, nPerRank);
+
+                        REQUIRE(actual == expected);
+                    });
+                }
+
+                // Make sure messages from other world have been queued
+                worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
+                worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
+
+                // Now call allgather in the root rank
+                threads.emplace_back([&] {
+                    std::vector actual(fullSize, -1);
+                    worldA.allGather<int>(0, rankData[0].data(), FAASMPI_INT, nPerRank,
+                                          actual.data(), FAASMPI_INT, nPerRank);
+
+                    REQUIRE(actual == expected);
+                });
+
+                // Make sure messages to other world have been queued
+                worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
+                worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
+
+                // All threads should now be able to resolve themselves
+                for(auto &t: threads) {
+                    if(t.joinable()) {
+                        t.join();
+                    }
+                }
+            }
         }
 
         SECTION("Barrier") {
@@ -588,5 +639,4 @@ namespace tests {
             if (threadB2.joinable()) threadB2.join();
         }
     }
-
 }
