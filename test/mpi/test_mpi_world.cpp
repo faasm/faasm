@@ -477,15 +477,15 @@ namespace tests {
             REQUIRE(actual == std::vector<int>({8, 9, 10, 11}));
 
             // Check for other ranks
-            worldA.scatter(rankA2, 0, (int*) nullptr, FAASMPI_INT, nPerRank,
+            worldA.scatter(rankA2, 0, (int *) nullptr, FAASMPI_INT, nPerRank,
                            actual.data(), FAASMPI_INT, nPerRank);
             REQUIRE(actual == std::vector<int>({0, 1, 2, 3}));
 
-            worldA.scatter(rankA2, rankA1, (int*) nullptr, FAASMPI_INT, nPerRank,
+            worldA.scatter(rankA2, rankA1, (int *) nullptr, FAASMPI_INT, nPerRank,
                            actual.data(), FAASMPI_INT, nPerRank);
             REQUIRE(actual == std::vector<int>({4, 5, 6, 7}));
 
-            worldA.scatter(rankA2, rankA3, (int*) nullptr, FAASMPI_INT, nPerRank,
+            worldA.scatter(rankA2, rankA3, (int *) nullptr, FAASMPI_INT, nPerRank,
                            actual.data(), FAASMPI_INT, nPerRank);
             REQUIRE(actual == std::vector<int>({12, 13, 14, 15}));
 
@@ -493,13 +493,70 @@ namespace tests {
             worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
             worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
 
-            worldB.scatter(rankA2, rankB1, (int*) nullptr, FAASMPI_INT, nPerRank,
+            worldB.scatter(rankA2, rankB1, (int *) nullptr, FAASMPI_INT, nPerRank,
                            actual.data(), FAASMPI_INT, nPerRank);
             REQUIRE(actual == std::vector<int>({16, 17, 18, 19}));
 
-            worldB.scatter(rankA2, rankB2, (int*) nullptr, FAASMPI_INT, nPerRank,
+            worldB.scatter(rankA2, rankB2, (int *) nullptr, FAASMPI_INT, nPerRank,
                            actual.data(), FAASMPI_INT, nPerRank);
             REQUIRE(actual == std::vector<int>({20, 21, 22, 23}));
+        }
+
+        SECTION("Gather") {
+            // Build the data for each rank
+            int nPerRank = 4;
+            std::vector<std::vector<int>> rankData;
+            for (int i = 0; i < thisWorldSize; i++) {
+                std::vector<int> thisRankData;
+                for (int j = 0; j < nPerRank; j++) {
+                    thisRankData.push_back((i * nPerRank) + j);
+                }
+
+                rankData.push_back(thisRankData);
+            }
+
+            // Build the expectation and actual
+            std::vector<int> expected;
+            std::vector<int> actual;
+            for (int i = 0; i < thisWorldSize * nPerRank; i++) {
+                expected.push_back(i);
+                actual.push_back(-1);
+            }
+
+            // Call gather for each rank other than the root
+            int root = rankA3;
+            worldA.gather<int>(0, root,
+                               rankData[0].data(), FAASMPI_INT, nPerRank,
+                               (int *) nullptr, FAASMPI_INT, nPerRank);
+
+            worldA.gather<int>(rankA1, root,
+                               rankData[rankA1].data(), FAASMPI_INT, nPerRank,
+                               (int *) nullptr, FAASMPI_INT, nPerRank);
+
+            worldA.gather<int>(rankA2, root,
+                               rankData[rankA2].data(), FAASMPI_INT, nPerRank,
+                               (int *) nullptr, FAASMPI_INT, nPerRank);
+
+            worldB.gather<int>(rankB1, root,
+                               rankData[rankB1].data(), FAASMPI_INT, nPerRank,
+                               (int *) nullptr, FAASMPI_INT, nPerRank);
+
+            worldB.gather<int>(rankB2, root,
+                               rankData[rankB2].data(), FAASMPI_INT, nPerRank,
+                               (int *) nullptr, FAASMPI_INT, nPerRank);
+
+            // Ensure remote messages have been processed
+            worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
+            worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
+
+            // Call gather for root
+            worldA.gather<int>(root, root,
+                               rankData[root].data(), FAASMPI_INT, nPerRank,
+                               actual.data(), FAASMPI_INT, nPerRank
+            );
+
+            // Check data
+            REQUIRE(actual == expected);
         }
 
         SECTION("Barrier") {

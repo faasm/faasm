@@ -248,7 +248,7 @@ namespace mpi {
             logger->trace("MPI - scatter {} -> all", sendRank);
 
             for (int r = 0; r < size; r++) {
-                // Work out buffer region
+                // Work out the chunk of the send buffer to send to this rank
                 const T *startPtr = sendBuffer + (r * sendCount);
 
                 if (r == sendRank) {
@@ -277,20 +277,19 @@ namespace mpi {
             logger->trace("MPI - gather all -> {}", recvRank);
 
             for (int r = 0; r < size; r++) {
-                // Work out buffer region to receive the data
-                const T *startPtr = recvBuffer + (r * recvCount);
+                // Work out where in the receive buffer this rank's data goes
+                T *recvChunk = recvBuffer + (r * recvCount);
 
                 if (r == recvRank) {
                     // Copy data directly if this is the send rank
-                    const T *endPtr = startPtr + recvCount;
-                    std::copy(startPtr, endPtr, sendBuffer);
+                    std::copy(sendBuffer, sendBuffer + sendCount, recvChunk);
                 } else {
-                    recv<T>(sendRank, r, startPtr, sendType, sendCount, MpiMessageType::GATHER);
+                    recv<T>(r, recvRank, recvChunk, recvCount, nullptr, MpiMessageType::GATHER);
                 }
             }
         } else {
             // Do the sending
-            send<T>(sendRank, recvRank, recvBuffer, recvCount, nullptr, MpiMessageType::GATHER);
+            send<T>(sendRank, recvRank, sendBuffer, sendType, sendCount, MpiMessageType::GATHER);
         }
     }
 
@@ -343,6 +342,10 @@ namespace mpi {
                                       MpiMessageType messageType);
 
     template void MpiWorld::scatter<int>(int sendRank, int recvRank,
+                                         const int *sendBuffer, int sendType, int sendCount,
+                                         int *recvBuffer, int recvType, int recvCount);
+
+    template void MpiWorld::gather<int>(int sendRank, int recvRank,
                                          const int *sendBuffer, int sendType, int sendCount,
                                          int *recvBuffer, int recvType, int recvCount);
 
