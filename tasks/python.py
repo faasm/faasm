@@ -23,9 +23,6 @@ _PACKAGES_INCLUDED = {
     "numpy": {
         "path": "numpy/build/numpy-1.15.1/install/lib/python3.7/site-packages/numpy",
     },
-    "pyperf": {
-        "path": "pyperf/build/pyperf-1.7.0/install/lib/python3.7/site-packages/pyperf"
-    },
     "pyperformance": {
         "path": "pyperformance/build/pyperformance-1.0.0/install/lib/python3.7/site-packages/pyperformance",
     },

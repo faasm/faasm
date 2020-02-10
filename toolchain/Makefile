@@ -9,7 +9,7 @@ FAASM_LOCAL_DIR=/usr/local/faasm
 PREFIX=$(FAASM_LOCAL_DIR)/toolchain
 FAASM_SYSROOT=/usr/local/faasm/llvm-sysroot
 
-CLANG_VERSION=9.0.0
+CLANG_VERSION=9.0.1
 
 BUILD_DIR=$(LLVM_PROJ_DIR)/build
 LLVM_CONFIG=$(BUILD_DIR)/llvm/bin/llvm-config
