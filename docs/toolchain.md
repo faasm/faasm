@@ -107,4 +107,4 @@ When updating the underlying LLVM version of the toolchain you'll need to do the
 - Set up the runtime root (see Python docs and Ansible `runtime_fs.yml` playbook)
 - Make sure all the tests run
 - Backup the sysroot, runtime root and toolchain using the relevant `inv backup-xxx` tasks
- 
+- Rebuild all Docker images (see `docs/versioning.md`)
