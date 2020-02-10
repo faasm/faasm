@@ -8,6 +8,7 @@ namespace mpi {
     bool isCollectiveMessage(MpiMessageType t) {
         return t == MpiMessageType::BARRIER_JOIN ||
                t == MpiMessageType::BARRIER_DONE ||
-               t == MpiMessageType::SCATTER;
+               t == MpiMessageType::SCATTER ||
+               t == MpiMessageType::GATHER;
     }
 }

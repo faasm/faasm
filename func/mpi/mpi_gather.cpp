@@ -1,17 +1,8 @@
 #include <mpi.h>
 #include <stdio.h>
 #include <faasm/faasm.h>
+#include <faasm/print.h>
 
-void printArray(int *data, size_t size) {
-    printf("[");
-    for (int i = 0; i < size; i++) {
-        printf("%i", data[i]);
-        if (i < size - 1) {
-            printf(",");
-        }
-    }
-    printf("]");
-}
 
 FAASM_MAIN_FUNC() {
     MPI_Init(NULL, NULL);
@@ -25,35 +16,38 @@ FAASM_MAIN_FUNC() {
     int nPerRank = 4;
     int n = worldSize * nPerRank;
 
-    // Set up expectation in root
+    // Set up containers in root
     int *expected = nullptr;
+    int *actual = nullptr;
     int root = 2;
     if (rank == root) {
         expected = new int[n];
         for (int i = 0; i < n; i++) {
             expected[i] = i;
         }
+
+        actual = new int[n];
     }
 
-    // Build the send data for this rank
+    // Build the data chunk for this rank
     int startIdx = rank * nPerRank;
     int *thisChunk = new int[nPerRank];
     for (int i = 0; i < nPerRank; i++) {
         thisChunk[i] = startIdx + i;
     }
 
-    // Do the gather
-    int *actual = new int[n];
     MPI_Gather(thisChunk, nPerRank, MPI_INT, actual, nPerRank, MPI_INT, root, MPI_COMM_WORLD);
 
     if (rank == root) {
         for (int i = 0; i < n; i++) {
             if (actual[i] != expected[i]) {
                 printf("Actual not as expected. Actual: ");
-                printArray(actual, n);
+                faasm::printArray(actual, n);
                 printf(" Expected: ");
-                printArray(actual, n);
+                faasm::printArray(expected, n);
                 printf("\n");
+
+                return 1;
             }
         }
 

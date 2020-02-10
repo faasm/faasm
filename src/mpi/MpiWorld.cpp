@@ -228,17 +228,20 @@ namespace mpi {
         }
     }
 
+    void checkSendRecvMatch(int sendType, int sendCount, int recvType, int recvCount){
+        if (sendType != recvType && sendCount == recvCount) {
+            const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+            logger->error("Must match type/ count (send {}:{}, recv {}:{})",
+                          sendType, sendCount, recvType, recvCount);
+            throw std::runtime_error("Mismatching send/ recv on scatter");
+        }
+    }
 
     template<typename T>
     void MpiWorld::scatter(int sendRank, int recvRank, const T *sendBuffer, int sendType, int sendCount,
                            T *recvBuffer, int recvType, int recvCount) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
-        if (sendType != recvType && sendCount == recvCount) {
-            logger->error("Must match type/ count (send {}:{}, recv {}:{})",
-                          sendType, sendCount, recvType, recvCount);
-            throw std::runtime_error("Mismatching send/ recv on scatter");
-        }
+        checkSendRecvMatch(sendType, sendCount, recvType, recvCount);
 
         // If we're the sender, do the sending
         if (recvRank == sendRank) {
@@ -259,6 +262,35 @@ namespace mpi {
         } else {
             // Do the receiving
             recv<T>(sendRank, recvRank, recvBuffer, recvCount, nullptr, MpiMessageType::SCATTER);
+        }
+    }
+
+    template<typename T>
+    void MpiWorld::gather(int sendRank, int recvRank,
+                const T* sendBuffer, int sendType, int sendCount,
+                T* recvBuffer, int recvType, int recvCount) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        checkSendRecvMatch(sendType, sendCount, recvType, recvCount);
+
+        // If we're the receiver, do the gathering
+        if (sendRank == recvRank) {
+            logger->trace("MPI - gather all -> {}", recvRank);
+
+            for (int r = 0; r < size; r++) {
+                // Work out buffer region to receive the data
+                const T *startPtr = recvBuffer + (r * recvCount);
+
+                if (r == recvRank) {
+                    // Copy data directly if this is the send rank
+                    const T *endPtr = startPtr + recvCount;
+                    std::copy(startPtr, endPtr, sendBuffer);
+                } else {
+                    recv<T>(sendRank, r, startPtr, sendType, sendCount, MpiMessageType::GATHER);
+                }
+            }
+        } else {
+            // Do the sending
+            send<T>(sendRank, recvRank, recvBuffer, recvCount, nullptr, MpiMessageType::GATHER);
         }
     }
 
