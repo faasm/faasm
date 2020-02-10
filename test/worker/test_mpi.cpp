@@ -10,6 +10,10 @@ namespace tests {
         execFuncWithPool(msg, false, 1, true, 10);
     }
 
+    TEST_CASE("Test MPI allgather", "[wasm]") {
+        checkMpiFunc("mpi_allgather");
+    }
+
     TEST_CASE("Test MPI barrier", "[wasm]") {
         checkMpiFunc("mpi_barrier");
     }

@@ -12,3 +12,4 @@ MPI_Get_count
 MPI_Probe
 MPI_Scatter
 MPI_Gather
+MPI_Allgather
