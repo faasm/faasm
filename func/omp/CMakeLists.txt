@@ -34,13 +34,13 @@ omp_func(header_api_support header_api_support.cpp)
 omp_func(hellomp hellomp.cpp)
 omp_func(omp_checks omp_checks.cpp)
 omp_func(simple_barrier simple_barrier.cpp)
-omp_func(simple_flush simple_flush.cpp)
+#omp_func(simple_flush simple_flush.cpp)
 omp_func(simple_for simple_for.cpp)
 omp_func(simple_master simple_master.cpp)
 
 # Intel OMP files
-omp_func(intel_nstreams intel_nstreams.cpp)
-omp_func(intel_synch_p2p intel_synch_p2p.cpp)
+#omp_func(intel_nstreams intel_nstreams.cpp)
+#omp_func(intel_synch_p2p intel_synch_p2p.cpp)
 
 if(FAASM_BUILD_TYPE STREQUAL "wasm")
     omp_func(stack_debug stack_debug.cpp)
