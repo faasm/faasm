@@ -15,8 +15,6 @@
 #define FAKE_N_PROCESSORS 4
 
 namespace wasm {
-    mpi::MpiContext &getExecutingMpiContext();
-
     void getBytesFromWasm(I32 dataPtr, I32 dataLen, uint8_t *buffer);
 
     std::vector<uint8_t> getBytesFromWasm(I32 dataPtr, I32 dataLen);

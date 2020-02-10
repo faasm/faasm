@@ -22,6 +22,10 @@ namespace tests {
         checkMpiFunc("mpi_checks");
     }
 
+    TEST_CASE("Test MPI gather", "[wasm]") {
+        checkMpiFunc("mpi_gather");
+    }
+
     TEST_CASE("Test MPI message ordering", "[wasm]") {
         checkMpiFunc("mpi_order");
     }
