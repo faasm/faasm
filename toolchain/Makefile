@@ -56,7 +56,7 @@ $(BUILD_DIR)/llvm.BUILT:
 	touch $(BUILD_DIR)/llvm.BUILT
 
 $(BUILD_DIR)/libc.BUILT: $(BUILD_DIR)/llvm.BUILT
-	cd $(PROJ_ROOT); ./bin/build_musl.sh llvm
+	cd $(PROJ_ROOT); bash bin/build_musl.sh llvm
 	cd $(FAASM_SYSROOT)/lib; $(AR) rc libpthread.a
 	cd $(FAASM_SYSROOT)/lib; $(AR) rc libdl.a
 	touch $(BUILD_DIR)/libc.BUILT
