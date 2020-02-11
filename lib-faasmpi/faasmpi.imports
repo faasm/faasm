@@ -13,3 +13,5 @@ MPI_Probe
 MPI_Scatter
 MPI_Gather
 MPI_Allgather
+MPI_Reduce
+MPI_Allreduce

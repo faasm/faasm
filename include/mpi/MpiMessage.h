@@ -8,6 +8,8 @@ namespace mpi {
         SCATTER,
         GATHER,
         ALLGATHER,
+        REDUCE,
+        ALLREDUCE,
     };
 
     struct MpiMessage {

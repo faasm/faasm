@@ -14,6 +14,10 @@ namespace tests {
         checkMpiFunc("mpi_allgather");
     }
 
+    TEST_CASE("Test MPI allreduce", "[wasm]") {
+        checkMpiFunc("mpi_allreduce");
+    }
+
     TEST_CASE("Test MPI barrier", "[wasm]") {
         checkMpiFunc("mpi_barrier");
     }
@@ -36,6 +40,10 @@ namespace tests {
 
     TEST_CASE("Test MPI probe", "[wasm]") {
         checkMpiFunc("mpi_probe");
+    }
+
+    TEST_CASE("Test MPI reduce", "[wasm]") {
+        checkMpiFunc("mpi_reduce");
     }
 
     TEST_CASE("Test MPI scatter", "[wasm]") {

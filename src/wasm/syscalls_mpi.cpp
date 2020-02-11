@@ -51,6 +51,11 @@ namespace wasm {
             return hostDataType->id == FAASMPI_INT;
         }
 
+        int convertToOp(I32 wasmOp) {
+            faasmpi_op_t *hostOpType = &Runtime::memoryRef<faasmpi_op_t>(memory, wasmOp);
+            return hostOpType->id;
+        }
+
         void writeMpiIntResult(I32 resPtr, I32 result) {
             I32 *hostResPtr = &Runtime::memoryRef<I32>(memory, resPtr);
             *hostResPtr = result;
@@ -314,6 +319,50 @@ namespace wasm {
         } else {
             throw std::runtime_error("Allgather not implemented for non-ints");
         }
+
+        return MPI_SUCCESS;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Reduce", I32, MPI_Reduce,
+                                   I32 sendBuf, I32 recvBuf, I32 count, I32 datatype,
+                                   I32 op, I32 root, I32 comm) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - MPI_Reduce {} {} {} {} {} {} {}",
+                sendBuf, recvBuf, count, datatype, op, root, comm);
+
+        ContextWrapper ctx(comm);
+
+        if(!ctx.checkIsInt(datatype)) {
+            throw std::runtime_error("Reduce not implemented for non-ints");
+        }
+
+        int *hostSendBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, sendBuf, count);
+        int *hostRecvBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, recvBuf, count);
+        int faasmOp = ctx.convertToOp(op);
+
+        ctx.world.reduce<int>(ctx.rank, root, hostSendBuffer, hostRecvBuffer, datatype, count, faasmOp);
+
+        return MPI_SUCCESS;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Allreduce", I32, MPI_Allreduce,
+                                   I32 sendBuf, I32 recvBuf, I32 count, I32 datatype,
+                                   I32 op, I32 comm) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - MPI_Allreduce {} {} {} {} {} {} {}",
+                      sendBuf, recvBuf, count, datatype, op, comm);
+
+        ContextWrapper ctx(comm);
+
+        if(!ctx.checkIsInt(datatype)) {
+            throw std::runtime_error("Allreduce not implemented for non-ints");
+        }
+
+        int *hostSendBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, sendBuf, count);
+        int *hostRecvBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, recvBuf, count);
+        int faasmOp = ctx.convertToOp(op);
+
+        ctx.world.allReduce<int>(ctx.rank, hostSendBuffer, hostRecvBuffer, datatype, count, faasmOp);
 
         return MPI_SUCCESS;
     }

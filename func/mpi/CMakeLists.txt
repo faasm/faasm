@@ -29,14 +29,17 @@ endfunction(mpi_func)
 if(FAASM_BUILD_TYPE STREQUAL "knative-native")
 else()
 mpi_func(mpi_allgather mpi_allgather.cpp)
+mpi_func(mpi_allreduce mpi_allreduce.cpp)
 mpi_func(mpi_barrier mpi_barrier.cpp)
 mpi_func(mpi_bcast mpi_bcast.cpp)
 mpi_func(mpi_checks mpi_checks.cpp)
+mpi_func(mpi_gather mpi_gather.cpp)
 mpi_func(mpi_order mpi_order.cpp)
 mpi_func(mpi_probe mpi_probe.cpp)
+mpi_func(mpi_reduce mpi_reduce.cpp)
 mpi_func(mpi_scatter mpi_scatter.cpp)
-mpi_func(mpi_gather mpi_gather.cpp)
 mpi_func(mpi_status mpi_status.cpp)
+
 mpi_func(hellompi hellompi.cpp)
 
 # Custom target for building all functions
