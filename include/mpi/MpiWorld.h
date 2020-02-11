@@ -59,17 +59,21 @@ namespace mpi {
 
         template<typename T>
         void scatter(int sendRank, int recvRank,
-                    const T* sendBuffer, int sendType, int sendCount,
-                    T* recvBuffer, int recvType, int recvCount);
+                     const T *sendBuffer, int sendType, int sendCount,
+                     T *recvBuffer, int recvType, int recvCount);
 
         template<typename T>
         void gather(int sendRank, int recvRank,
-                     const T* sendBuffer, int sendType, int sendCount,
-                     T* recvBuffer, int recvType, int recvCount);
+                    const T *sendBuffer, int sendType, int sendCount,
+                    T *recvBuffer, int recvType, int recvCount);
 
         template<typename T>
-        void allGather(int rank, const T* sendBuffer, int sendType, int sendCount,
-                    T* recvBuffer, int recvType, int recvCount);
+        void allGather(int rank, const T *sendBuffer, int sendType, int sendCount,
+                       T *recvBuffer, int recvType, int recvCount);
+
+        template<typename T>
+        void reduce(int sendRank, int recvRank, T *sendBuffer, T *recvBuffer,
+                    int datatype, int count, int operation);
 
         void probe(int sendRank, int recvRank, MPI_Status *status);
 

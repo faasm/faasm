@@ -356,6 +356,46 @@ namespace mpi {
         }
     }
 
+    template<typename T>
+    void MpiWorld::reduce(int sendRank, int recvRank, T *sendBuffer, T *recvBuffer,
+                int datatype, int count, int operation) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+
+        // If we're the receiver, await inputs
+        if (sendRank == recvRank) {
+            logger->trace("MPI - reduce ({}) all -> {}", operation, recvRank);
+
+            // Ensure the receive buffer is zeroed
+            memset(reinterpret_cast<void*>(recvBuffer), 0, sizeof(T) * count);
+
+            for (int r = 0; r < size; r++) {
+                // Create an intermediate for holding the intermediate result
+                T* resultBuffer = new T[count];
+
+                // Copy directly or receive from others
+                if (r == recvRank) {
+                    std::copy(sendBuffer, sendBuffer + count, resultBuffer);
+                } else {
+                    recv<T>(r, recvRank, resultBuffer, count, nullptr, MpiMessageType::REDUCE);
+                }
+
+                if(operation == FAASMPI_OP_SUM) {
+                    for(int i = 0; i < count; i++) {
+                        recvBuffer[i] += resultBuffer[i];
+                    }
+                } else {
+                    throw std::runtime_error("Not yet implemented reduce operation");
+                }
+
+                delete[] resultBuffer;
+            }
+
+        } else {
+            // Do the sending
+            send<T>(sendRank, recvRank, sendBuffer, datatype, count, MpiMessageType::REDUCE);
+        }
+    }
+
     // Concrete template types
     template void MpiWorld::send<int>(int sendRank, int recvRank, const int *buffer, int dataType, int count,
                                       MpiMessageType messageType);
@@ -376,6 +416,9 @@ namespace mpi {
 
     template void MpiWorld::allGather<int>(int rank, const int *sendBuffer, int sendType, int sendCount,
                                         int *recvBuffer, int recvType, int recvCount);
+
+    template void MpiWorld::reduce(int sendRank, int recvRank, int *sendBuffer, int *recvBuffer,
+                                   int datatype, int count, int operation);
 
     void MpiWorld::probe(int sendRank, int recvRank, MPI_Status *status) {
         const std::shared_ptr<InMemoryMpiQueue> &queue = getLocalQueue(sendRank, recvRank);
