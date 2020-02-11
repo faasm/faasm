@@ -318,6 +318,17 @@ namespace wasm {
         return MPI_SUCCESS;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Reduce", I32, MPI_Reduce,
+                                   I32 sendBuf, I32 recvBuf, I32 count, I32 datatype,
+                                   I32 op, I32 root, I32 comm) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - MPI_Reduce {} {} {} {} {} {} {}",
+                sendBuf, recvBuf, count, datatype, op, root, comm);
+
+
+        return MPI_SUCCESS;
+    }
+
     void mpiLink() {
 
     }
