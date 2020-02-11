@@ -15,3 +15,4 @@ MPI_Gather
 MPI_Allgather
 MPI_Reduce
 MPI_Allreduce
+MPI_Alltoall

@@ -1,6 +1,7 @@
 #include <mpi.h>
 #include <stdio.h>
 #include <faasm/faasm.h>
+#include <faasm/compare.h>
 
 
 FAASM_MAIN_FUNC() {
@@ -36,16 +37,11 @@ FAASM_MAIN_FUNC() {
     int *actual = new int[nPerRank];
     MPI_Scatter(allData, nPerRank, MPI_INT, actual, nPerRank, MPI_INT, root, MPI_COMM_WORLD);
 
-    if (actual[0] != expected[0] || actual[1] != expected[1] ||
-        actual[2] != expected[2] || actual[3] != expected[3]) {
-        printf("Scatter %i not as expected: got [%i, %i, %i, %i], expected [%i, %i, %i, %i]\n",
-               rank,
-               actual[0], actual[1], actual[2], actual[3],
-               expected[0], expected[1], expected[2], expected[3]);
+    if (!faasm::compareIntArrays(actual, expected, nPerRank)) {
         return 1;
-    } else {
-        printf("Scatter %i: [%i, %i, %i, %i]\n", rank, actual[0], actual[1], actual[2], actual[3]);
     }
+
+    printf("Scatter %i: [%i, %i, %i, %i]\n", rank, actual[0], actual[1], actual[2], actual[3]);
 
     delete[] allData;
     delete[] actual;

@@ -1,8 +1,8 @@
 #include <mpi.h>
 #include <stdio.h>
 #include <faasm/faasm.h>
-#include <faasm/print.h>
 #include <string.h>
+#include <faasm/compare.h>
 
 
 FAASM_MAIN_FUNC() {
@@ -23,7 +23,7 @@ FAASM_MAIN_FUNC() {
     if (rank == root) {
         // Build expectation
         expected = new int[3];
-        memset(expected, 0, 3*sizeof(int));
+        memset(expected, 0, 3 * sizeof(int));
 
         for (int r = 0; r < worldSize; r++) {
             expected[0] += r;
@@ -40,15 +40,11 @@ FAASM_MAIN_FUNC() {
 
     if (rank == root) {
         // Check vs. expectation
-        if (result[0] != expected[0] || result[1] != expected[1] || result[2] != expected[2]) {
-            printf("Did not get expected reduce result. Expected ");
-            faasm::printArray(expected, 3);
-            printf(" Actual ");
-            faasm::printArray(result, 3);
-            printf("\n");
-        } else {
-            printf("Reduce as expected\n");
+        if (!faasm::compareIntArrays(result, expected, 3)) {
+            return 1;
         }
+
+        printf("Reduce as expected\n");
     }
 
     MPI_Finalize();

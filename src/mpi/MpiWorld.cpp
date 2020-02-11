@@ -414,6 +414,41 @@ namespace mpi {
         }
     }
 
+    template<typename T>
+    void MpiWorld::allToAll(int rank, T *sendBuffer, int sendType, int sendCount,
+                            T *recvBuffer, int recvType, int recvCount) {
+        checkSendRecvMatch(sendType, sendCount, recvType, recvCount);
+
+        // Send out messages for this rank
+        for (int r = 0; r < size; r++) {
+            // Work out what data to send to this rank
+            int rankOffset = r * sendCount;
+            T *sendChunk = sendBuffer + rankOffset;
+
+            if (r == rank) {
+                // Copy directly
+                std::copy(sendChunk, sendChunk + sendCount, recvBuffer + rankOffset);
+            } else {
+                // Send message to other rank
+                send<T>(rank, r, sendChunk, sendType, sendCount, MpiMessageType::ALLTOALL);
+            }
+        }
+
+        // Await incoming messages from others
+        for (int r = 0; r < size; r++) {
+            if(r == rank) {
+                continue;
+            }
+            
+            // Work out where to place the result from this rank
+            T *recvChunk = recvBuffer + (r * sendCount);
+
+            // Do the receive
+            recv<T>(r, rank, recvChunk, recvCount, nullptr, MpiMessageType::ALLTOALL);
+        }
+    }
+
+
     // Concrete template types
     template void MpiWorld::send<int>(int sendRank, int recvRank, const int *buffer, int dataType, int count,
                                       MpiMessageType messageType);
@@ -441,6 +476,8 @@ namespace mpi {
     template void MpiWorld::allReduce<int>(int rank, int *sendBuffer, int *recvBuffer, int datatype,
                                            int count, int operation);
 
+    template void MpiWorld::allToAll<int>(int rank, int *sendBuffer, int sendType, int sendCount,
+                                          int *recvBuffer, int recvType, int recvCount);
 
     void MpiWorld::probe(int sendRank, int recvRank, MPI_Status *status) {
         const std::shared_ptr<InMemoryMpiQueue> &queue = getLocalQueue(sendRank, recvRank);

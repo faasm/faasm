@@ -10,6 +10,7 @@ namespace mpi {
         ALLGATHER,
         REDUCE,
         ALLREDUCE,
+        ALLTOALL,
     };
 
     struct MpiMessage {

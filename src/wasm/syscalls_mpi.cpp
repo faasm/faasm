@@ -328,11 +328,11 @@ namespace wasm {
                                    I32 op, I32 root, I32 comm) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - MPI_Reduce {} {} {} {} {} {} {}",
-                sendBuf, recvBuf, count, datatype, op, root, comm);
+                      sendBuf, recvBuf, count, datatype, op, root, comm);
 
         ContextWrapper ctx(comm);
 
-        if(!ctx.checkIsInt(datatype)) {
+        if (!ctx.checkIsInt(datatype)) {
             throw std::runtime_error("Reduce not implemented for non-ints");
         }
 
@@ -354,7 +354,7 @@ namespace wasm {
 
         ContextWrapper ctx(comm);
 
-        if(!ctx.checkIsInt(datatype)) {
+        if (!ctx.checkIsInt(datatype)) {
             throw std::runtime_error("Allreduce not implemented for non-ints");
         }
 
@@ -363,6 +363,29 @@ namespace wasm {
         int faasmOp = ctx.convertToOp(op);
 
         ctx.world.allReduce<int>(ctx.rank, hostSendBuffer, hostRecvBuffer, datatype, count, faasmOp);
+
+        return MPI_SUCCESS;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Alltoall", I32, MPI_Alltoall,
+                                   I32 sendBuf, I32 sendCount, I32 sendType,
+                                   I32 recvBuf, I32 recvCount, I32 recvType,
+                                   I32 comm) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - MPI_Alltoall {} {} {} {} {} {} {}",
+                      sendBuf, sendCount, sendType, recvBuf, recvCount, recvType, comm);
+
+        ContextWrapper ctx(comm);
+
+        if (!ctx.checkIsInt(sendType) || !ctx.checkIsInt(recvType)) {
+            throw std::runtime_error("Alltoall not implemented for non-ints");
+        }
+
+        int *hostSendBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, sendBuf, sendCount);
+        int *hostRecvBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, recvBuf, recvCount);
+
+        ctx.world.allToAll<int>(ctx.rank, hostSendBuffer, FAASMPI_INT, sendCount,
+                                hostRecvBuffer, FAASMPI_INT, recvCount);
 
         return MPI_SUCCESS;
     }
