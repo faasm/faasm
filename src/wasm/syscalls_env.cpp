@@ -65,35 +65,6 @@ namespace wasm {
         return 0;
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "getpwuid", I32, getpwuid, I32 uid) {
-        util::getLogger()->debug("S - _getpwuid - {}", uid);
-
-        WasmModule *module = getExecutingModule();
-        Runtime::Memory *memoryPtr = module->defaultMemory;
-
-        // Provision a new segment of memory big enough to hold the strings and the struct
-        size_t memSize = strlen(FAKE_NAME) + strlen(FAKE_PASSWORD) + strlen(FAKE_HOME) + sizeof(wasm_passwd);
-        U32 newMem = module->mmapMemory(memSize);
-        char *hostNewMem = Runtime::memoryArrayPtr<char>(memoryPtr, newMem, memSize);
-
-        // Copy the strings into place
-        std::strcpy(hostNewMem, FAKE_NAME);
-        std::strcpy(hostNewMem + strlen(FAKE_NAME), FAKE_PASSWORD);
-        std::strcpy(hostNewMem + strlen(FAKE_NAME) + strlen(FAKE_PASSWORD), FAKE_HOME);
-
-        // Get a pointer to it
-        I32 structOffset = (I32) memSize - sizeof(wasm_passwd);
-        wasm_passwd *wasmPasswd = &Runtime::memoryRef<wasm_passwd>(memoryPtr, structOffset);
-
-        wasmPasswd->pw_name = newMem;
-        wasmPasswd->pw_passwd = newMem + strlen(FAKE_NAME);
-        wasmPasswd->pw_uid = FAKE_UID;
-        wasmPasswd->pw_gid = FAKE_GID;
-        wasmPasswd->pw_dir = newMem + strlen(FAKE_NAME) + strlen(FAKE_PASSWORD);
-
-        return structOffset;
-    }
-
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "abort", void, abort) {
         util::getLogger()->debug("S - abort");
         throw (wasm::WasmExitException(0));

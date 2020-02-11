@@ -9,7 +9,7 @@ FAASM_LOCAL_DIR=/usr/local/faasm
 PREFIX=$(FAASM_LOCAL_DIR)/toolchain
 FAASM_SYSROOT=/usr/local/faasm/llvm-sysroot
 
-CLANG_VERSION=9.0.0
+CLANG_VERSION=9.0.1
 
 BUILD_DIR=$(LLVM_PROJ_DIR)/build
 LLVM_CONFIG=$(BUILD_DIR)/llvm/bin/llvm-config
@@ -56,7 +56,7 @@ $(BUILD_DIR)/llvm.BUILT:
 	touch $(BUILD_DIR)/llvm.BUILT
 
 $(BUILD_DIR)/libc.BUILT: $(BUILD_DIR)/llvm.BUILT
-	cd $(PROJ_ROOT); ./bin/build_musl.sh llvm
+	cd $(PROJ_ROOT); bash bin/build_musl.sh llvm
 	cd $(FAASM_SYSROOT)/lib; $(AR) rc libpthread.a
 	cd $(FAASM_SYSROOT)/lib; $(AR) rc libdl.a
 	touch $(BUILD_DIR)/libc.BUILT

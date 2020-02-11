@@ -95,3 +95,16 @@ You will need to set this target explicitly the relevant CMake/ Makefile (as the
 
 SIMD support is also in flux but possible to switch on with `-msimd128` and `-munimplemented-simd128`.
 
+## Toolchain Updates
+
+When updating the underlying LLVM version of the toolchain you'll need to do the following:
+
+- Bump up the Faasm version (see `docs/versioning.md`)
+- Rebuild the toolchain itself (based on instructions above)
+- Rebuild the basic sysroot (`inv compile-libc compile-eigen compile-libfaasm`)
+- Rebuild 3rd party libraries (Pyodide and Tensorflow, see relevant docs)
+- Rebuild and upload _all_ wasm functions (all those under `funcs`)
+- Set up the runtime root (see Python docs and Ansible `runtime_fs.yml` playbook)
+- Make sure all the tests run
+- Backup the sysroot, runtime root and toolchain using the relevant `inv backup-xxx` tasks
+- Rebuild all Docker images (see `docs/versioning.md`)

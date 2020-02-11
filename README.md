@@ -18,7 +18,7 @@ Faasm is a runtime, intended for integration into other serverless platforms. Th
 
 # Quick start
 
-You can start a simple Faasm runtime using the `docker-compose.yml` file in the root of the project. This creates a couple of worker instances as well as an upload endpoint for receiving function data and state. There is also a Redis container used for communication between the workers.
+You can start a simple Faasm runtime using the `docker-compose.yml` file in the root of the project. This creates a couple of worker instances as well as an upload endpoint for receiving functions and state. There is also a Redis container used for communication between the workers.
 
 You can start it by running:
 
