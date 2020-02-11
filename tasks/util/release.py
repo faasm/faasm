@@ -7,6 +7,12 @@ from tasks.util.version import get_faasm_version
 TOOLCHAIN_INSTALL = join(FAASM_LOCAL_DIR, "toolchain")
 
 
+def _get_artifact_url(name, version=None):
+    version = version if version else get_faasm_version()
+    url = "https://github.com/lsds/Faasm/releases/download/v{}/{}".format(version, name)
+    return url
+
+
 def get_sysroot_tar_name(version=None):
     version = version if version else get_faasm_version()
     return "faasm-sysroot-{}.tar.gz".format(version)
@@ -15,6 +21,11 @@ def get_sysroot_tar_name(version=None):
 def get_sysroot_tar_path():
     tar_name = get_sysroot_tar_name()
     return join(FAASM_LOCAL_DIR, tar_name)
+
+
+def get_sysroot_url(version=None):
+    tar_name = get_sysroot_tar_name(version=version)
+    return _get_artifact_url(tar_name, version=version)
 
 
 def get_toolchain_tar_name(version=None):
@@ -27,6 +38,11 @@ def get_toolchain_tar_path():
     return join(FAASM_LOCAL_DIR, tar_name)
 
 
+def get_toolchain_url(version=None):
+    tar_name = get_toolchain_tar_name(version=version)
+    return _get_artifact_url(tar_name, version=version)
+
+
 def get_runtime_tar_name(version=None):
     version = version if version else get_faasm_version()
     return "faasm-runtime-root-{}.tar.gz".format(version)
@@ -35,6 +51,11 @@ def get_runtime_tar_name(version=None):
 def get_runtime_tar_path():
     tar_name = get_runtime_tar_name()
     return join(FAASM_LOCAL_DIR, tar_name)
+
+
+def get_runtime_url(version=None):
+    tar_name = get_runtime_tar_name(version=version)
+    return _get_artifact_url(tar_name, version=version)
 
 
 def tar_toolchain():

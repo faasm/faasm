@@ -16,8 +16,14 @@ Then:
 ## Release artifacts
 
 Be careful that your local sysroot, toolchain and runtime root reflect what should go into the 
-release. To do this you can download the versions from the _last_ release, then apply 
-any changes for this release. 
+release. To do this you can download the versions from the _last_ release, then apply any 
+changes for this release (if there are any), i.e.:
+
+```bash
+inv download-toolchain
+inv download-sysroot
+inv download-runtime-root
+``` 
 
 Your local versions will get bundled up and included in the new release.
 

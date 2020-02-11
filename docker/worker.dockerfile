@@ -6,7 +6,7 @@ ARG FAASM_VERSION
 
 # Get the runtime root from S3
 WORKDIR /usr/local/faasm
-RUN wget -q https://s3-eu-west-1.amazonaws.com/faasm-misc/faasm-runtime-root-${FAASM_VERSION}.tar.gz
+RUN wget -q https://github.com/lsds/Faasm/releases/download/v${FAASM_VERSION}/faasm-runtime-root-${FAASM_VERSION}.tar.gz
 RUN tar --no-same-owner -xf faasm-runtime-root-${FAASM_VERSION}.tar.gz
 RUN rm faasm-runtime-root-${FAASM_VERSION}.tar.gz
 
