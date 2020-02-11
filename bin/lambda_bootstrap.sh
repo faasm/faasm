@@ -27,7 +27,7 @@ echo "Starting Faasm component $FAASM_COMPONENT:$FAASM_VERSION"
 echo "Downloading runtime root"
 mkdir -p /usr/local/faasm
 pushd /usr/local/faasm
-wget https://s3-eu-west-1.amazonaws.com/faasm-misc/faasm-runtime-root-${FAASM_VERSION}.tar.gz
+wget https://github.com/lsds/Faasm/releases/download/v${FAASM_VERSION}/faasm-runtime-root-${FAASM_VERSION}.tar.gz
 tar --no-same-owner -xf faasm-runtime-root-${FAASM_VERSION}.tar.gz
 rm faasm-runtime-root-${FAASM_VERSION}.tar.gz
 
