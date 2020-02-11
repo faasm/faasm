@@ -439,7 +439,7 @@ namespace mpi {
             if(r == rank) {
                 continue;
             }
-            
+
             // Work out where to place the result from this rank
             T *recvChunk = recvBuffer + (r * sendCount);
 

@@ -18,6 +18,10 @@ namespace tests {
         checkMpiFunc("mpi_allreduce");
     }
 
+    TEST_CASE("Test MPI alltoall", "[wasm]") {
+        checkMpiFunc("mpi_alltoall");
+    }
+
     TEST_CASE("Test MPI barrier", "[wasm]") {
         checkMpiFunc("mpi_barrier");
     }
