@@ -603,8 +603,8 @@ namespace tests {
                 worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
 
                 // All threads should now be able to resolve themselves
-                for(auto &t: threads) {
-                    if(t.joinable()) {
+                for (auto &t: threads) {
+                    if (t.joinable()) {
                         t.join();
                     }
                 }
@@ -649,7 +649,7 @@ namespace tests {
         world.create(msg, worldId, thisWorldSize);
 
         // Register the ranks (zero already registered by default
-        for(int r = 1; r < thisWorldSize; r++) {
+        for (int r = 1; r < thisWorldSize; r++) {
             world.registerRank(r);
         }
 
@@ -659,34 +659,49 @@ namespace tests {
         int reduceOp;
         int root = 3;
 
-        SECTION("Reduce") {
-            SECTION("Sum operator") {
-                reduceOp = FAASMPI_OP_SUM;
+        SECTION("Sum operator") {
+            reduceOp = FAASMPI_OP_SUM;
 
+            for (int r = 0; r < thisWorldSize; r++) {
+                rankData[r][0] = r;
+                rankData[r][1] = r * 10;
+                rankData[r][2] = r * 100;
+
+                expected[0] += rankData[r][0];
+                expected[1] += rankData[r][1];
+                expected[2] += rankData[r][2];
+            }
+
+            SECTION("Reduce") {
+                // Call on all but the root first
+                for (int r = 0; r < thisWorldSize; r++) {
+                    if (r == root) continue;
+                    world.reduce<int>(r, root, rankData[r], nullptr, FAASMPI_INT, 3, reduceOp);
+                }
+
+                // Call on root to finish off and check
+                std::vector<int> actual(3, 0);
+                world.reduce<int>(root, root, rankData[root], actual.data(), FAASMPI_INT, 3, reduceOp);
+                REQUIRE(actual == expected);
+            }
+
+            SECTION("Allreduce") {
+                // Run all as threads
+                std::vector<std::thread> threads;
                 for(int r = 0; r < thisWorldSize; r++) {
-                    rankData[r][0] = r;
-                    rankData[r][1] = r * 10;
-                    rankData[r][2] = r * 100;
-
-                    expected[0] += rankData[r][0];
-                    expected[1] += rankData[r][1];
-                    expected[2] += rankData[r][2];
-                }
-            }
-
-            // Call on all but the root first
-            for(int r = 0; r < thisWorldSize; r++) {
-                if (r == root) {
-                    continue;
+                    threads.emplace_back([&, r] {
+                        std::vector<int> actual(3, 0);
+                        world.allReduce(r, rankData[r], actual.data(), FAASMPI_INT, 3, reduceOp);
+                        REQUIRE(actual == expected);
+                    });
                 }
 
-                world.reduce<int>(r, root, rankData[r], nullptr, FAASMPI_INT, 3, reduceOp);
+                for(auto &t : threads) {
+                    if(t.joinable()) {
+                        t.join();
+                    }
+                }
             }
-
-            // Call on root to finish off and check
-            std::vector<int> actual(3, 0);
-            world.reduce<int>(root, root, rankData[root], actual.data(), FAASMPI_INT, 3, reduceOp);
-            REQUIRE(actual == expected);
         }
     }
 }
