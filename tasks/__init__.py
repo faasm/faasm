@@ -78,6 +78,7 @@ from tasks.docker_compose import (
 from tasks.github import (
     gh_print_repos,
     gh_create_release,
+    gh_upload_artifacts,
 )
 from tasks.ibm import (
     ibm_codegen,
