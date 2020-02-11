@@ -345,6 +345,28 @@ namespace wasm {
         return MPI_SUCCESS;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Allreduce", I32, MPI_Allreduce,
+                                   I32 sendBuf, I32 recvBuf, I32 count, I32 datatype,
+                                   I32 op, I32 comm) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - MPI_Allreduce {} {} {} {} {} {} {}",
+                      sendBuf, recvBuf, count, datatype, op, comm);
+
+        ContextWrapper ctx(comm);
+
+        if(!ctx.checkIsInt(datatype)) {
+            throw std::runtime_error("Allreduce not implemented for non-ints");
+        }
+
+        int *hostSendBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, sendBuf, count);
+        int *hostRecvBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, recvBuf, count);
+        int faasmOp = ctx.convertToOp(op);
+
+        ctx.world.allReduce<int>(ctx.rank, hostSendBuffer, hostRecvBuffer, datatype, count, faasmOp);
+
+        return MPI_SUCCESS;
+    }
+
     void mpiLink() {
 
     }

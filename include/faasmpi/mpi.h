@@ -150,6 +150,9 @@ int MPI_Allgather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
 int MPI_Reduce(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
                MPI_Op op, int root, MPI_Comm comm);
 
+int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
+               MPI_Op op, MPI_Comm comm);
+
 #ifdef __cplusplus
 }
 #endif

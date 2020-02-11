@@ -228,7 +228,7 @@ namespace mpi {
         }
     }
 
-    void checkSendRecvMatch(int sendType, int sendCount, int recvType, int recvCount){
+    void checkSendRecvMatch(int sendType, int sendCount, int recvType, int recvCount) {
         if (sendType != recvType && sendCount == recvCount) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Must match type/ count (send {}:{}, recv {}:{})",
@@ -267,8 +267,8 @@ namespace mpi {
 
     template<typename T>
     void MpiWorld::gather(int sendRank, int recvRank,
-                const T* sendBuffer, int sendType, int sendCount,
-                T* recvBuffer, int recvType, int recvCount) {
+                          const T *sendBuffer, int sendType, int sendCount,
+                          T *recvBuffer, int recvType, int recvCount) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         checkSendRecvMatch(sendType, sendCount, recvType, recvCount);
 
@@ -294,8 +294,8 @@ namespace mpi {
     }
 
     template<typename T>
-    void MpiWorld::allGather(int rank, const T* sendBuffer, int sendType, int sendCount,
-                          T* recvBuffer, int recvType, int recvCount) {
+    void MpiWorld::allGather(int rank, const T *sendBuffer, int sendType, int sendCount,
+                             T *recvBuffer, int recvType, int recvCount) {
         checkSendRecvMatch(sendType, sendCount, recvType, recvCount);
 
         // Note that sendCount and recvCount here are per-rank, so
@@ -303,7 +303,7 @@ namespace mpi {
         int fullCount = recvCount * size;
 
         // Rank 0 coordinates the allgather operation
-        if(rank == 0) {
+        if (rank == 0) {
             // Await the incoming messages from all (like a normal gather)
             gather<T>(0, 0, sendBuffer, sendType, sendCount, recvBuffer, recvType, recvCount);
 
@@ -358,7 +358,7 @@ namespace mpi {
 
     template<typename T>
     void MpiWorld::reduce(int sendRank, int recvRank, T *sendBuffer, T *recvBuffer,
-                int datatype, int count, int operation) {
+                          int datatype, int count, int operation) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         // If we're the receiver, await inputs
@@ -366,11 +366,11 @@ namespace mpi {
             logger->trace("MPI - reduce ({}) all -> {}", operation, recvRank);
 
             // Ensure the receive buffer is zeroed
-            memset(reinterpret_cast<void*>(recvBuffer), 0, sizeof(T) * count);
+            memset(reinterpret_cast<void *>(recvBuffer), 0, sizeof(T) * count);
 
             for (int r = 0; r < size; r++) {
                 // Create an intermediate for holding the intermediate result
-                T* resultBuffer = new T[count];
+                T *resultBuffer = new T[count];
 
                 // Copy directly or receive from others
                 if (r == recvRank) {
@@ -379,8 +379,8 @@ namespace mpi {
                     recv<T>(r, recvRank, resultBuffer, count, nullptr, MpiMessageType::REDUCE);
                 }
 
-                if(operation == FAASMPI_OP_SUM) {
-                    for(int i = 0; i < count; i++) {
+                if (operation == FAASMPI_OP_SUM) {
+                    for (int i = 0; i < count; i++) {
                         recvBuffer[i] += resultBuffer[i];
                     }
                 } else {
@@ -393,6 +393,24 @@ namespace mpi {
         } else {
             // Do the sending
             send<T>(sendRank, recvRank, sendBuffer, datatype, count, MpiMessageType::REDUCE);
+        }
+    }
+
+    template<typename T>
+    void MpiWorld::allReduce(int rank, T *sendBuffer, T *recvBuffer, int datatype, int count, int operation) {
+        // Rank 0 coordinates the allreduce operation
+        if (rank == 0) {
+            // Run the standard reduce
+            reduce<T>(0, 0, sendBuffer, recvBuffer, datatype, count, operation);
+
+            // Broadcast the result
+            broadcast<T>(0, recvBuffer, datatype, count, MpiMessageType::ALLREDUCE);
+        } else {
+            // Run the standard reduce
+            reduce<T>(rank, 0, sendBuffer, nullptr, datatype, count, operation);
+
+            // Await the broadcast from the master
+            recv<T>(0, rank, recvBuffer, count, nullptr, MpiMessageType::ALLREDUCE);
         }
     }
 
@@ -411,14 +429,18 @@ namespace mpi {
                                          int *recvBuffer, int recvType, int recvCount);
 
     template void MpiWorld::gather<int>(int sendRank, int recvRank,
-                                         const int *sendBuffer, int sendType, int sendCount,
-                                         int *recvBuffer, int recvType, int recvCount);
-
-    template void MpiWorld::allGather<int>(int rank, const int *sendBuffer, int sendType, int sendCount,
+                                        const int *sendBuffer, int sendType, int sendCount,
                                         int *recvBuffer, int recvType, int recvCount);
 
-    template void MpiWorld::reduce(int sendRank, int recvRank, int *sendBuffer, int *recvBuffer,
-                                   int datatype, int count, int operation);
+    template void MpiWorld::allGather<int>(int rank, const int *sendBuffer, int sendType, int sendCount,
+                                           int *recvBuffer, int recvType, int recvCount);
+
+    template void MpiWorld::reduce<int>(int sendRank, int recvRank, int *sendBuffer, int *recvBuffer,
+                                        int datatype, int count, int operation);
+
+    template void MpiWorld::allReduce<int>(int rank, int *sendBuffer, int *recvBuffer, int datatype,
+                                           int count, int operation);
+
 
     void MpiWorld::probe(int sendRank, int recvRank, MPI_Status *status) {
         const std::shared_ptr<InMemoryMpiQueue> &queue = getLocalQueue(sendRank, recvRank);

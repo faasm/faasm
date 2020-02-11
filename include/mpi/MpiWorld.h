@@ -75,6 +75,9 @@ namespace mpi {
         void reduce(int sendRank, int recvRank, T *sendBuffer, T *recvBuffer,
                     int datatype, int count, int operation);
 
+        template<typename T>
+        void allReduce(int rank, T *sendBuffer, T *recvBuffer, int datatype, int count, int operation);
+
         void probe(int sendRank, int recvRank, MPI_Status *status);
 
         void barrier(int thisRank);
