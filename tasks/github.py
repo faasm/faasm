@@ -38,12 +38,22 @@ def gh_create_release(ctx):
     b = r.get_branch(branch="master")
     head = b.commit
 
+    # version = get_faasm_version()
+    version = "0.0.5"
+
     # Create a tag from the head
-    version = get_faasm_version()
-    git_tag = "v{}".format(version)
-    r.create_git_tag(
-        git_tag,
+    tag_name = "v{}".format(version)
+    tag = r.create_git_tag(
+        tag_name,
         "Release {}\n".format(version),
         head.sha,
         "commit",
     )
+
+    r.create_git_release(
+        tag_name,
+        "Faasm {}".format(version),
+        "Release {}\n".format(version),
+        draft=True
+    )
+
