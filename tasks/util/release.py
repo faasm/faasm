@@ -48,11 +48,14 @@ def tar_toolchain():
 
 
 def tar_runtime_root():
+    tar_name = get_runtime_tar_name()
     tar_path = get_runtime_tar_path()
 
     # Compress
     print("Creating archive of Faasm runtime root")
     check_output("tar -cf {} runtime_root".format(tar_path), shell=True, cwd=FAASM_LOCAL_DIR)
+
+    return tar_name, tar_path
 
 
 def tar_sysroot():

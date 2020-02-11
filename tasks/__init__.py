@@ -79,6 +79,7 @@ from tasks.github import (
     gh_print_repos,
     gh_create_release,
     gh_upload_artifacts,
+    gh_publish_release,
 )
 from tasks.ibm import (
     ibm_codegen,

@@ -7,8 +7,24 @@ from tasks.util.version import get_faasm_version
 
 REPO_NAME = "lsds/Faasm"
 
+
 def _tag_name(version):
     return "v{}".format(version)
+
+
+def _get_release():
+    version = get_faasm_version()
+    r = _get_repo()
+    rels = r.get_releases()
+    tag_name = _tag_name(version)
+
+    rel = rels[0]
+    if rel.tag_name != tag_name:
+        print("Expected latest release to have tag {} but had {}".format(tag_name, rel.tag_name))
+        exit(1)
+
+    return rel
+
 
 def _get_github_instance():
     conf = get_faasm_config()
@@ -45,7 +61,7 @@ def gh_create_release(ctx):
 
     # Create a tag from the head
     tag_name = _tag_name(version)
-    tag = r.create_git_tag(
+    r.create_git_tag(
         tag_name,
         "Release {}\n".format(version),
         head.sha,
@@ -62,17 +78,7 @@ def gh_create_release(ctx):
 
 @task
 def gh_upload_artifacts(ctx):
-    r = _get_repo()
-    rels = r.get_releases()
-    version = get_faasm_version()
-    tag_name = _tag_name(version)
-
-    print(rels)
-
-    rel = rels[0]
-    if rel.tag_name != tag_name:
-        print("Expected latest release to have tag {} but had {}".format(tag_name, rel.tag_name))
-        exit(1)
+    rel = _get_release()
 
     # Zip the relevant artifacts
     toolchain_name, toolchain_path = tar_toolchain()
@@ -80,7 +86,17 @@ def gh_upload_artifacts(ctx):
     runtime_name, runtime_path = tar_runtime_root()
 
     # Upload assets
-    rel.upload_asset(toolchain_path, toolchain_name)
-    rel.upload_asset(sysroot_path, sysroot_name)
-    rel.upload_asset(runtime_path, runtime_name)
+    print("Uploading toolchain to GH")
+    rel.upload_asset(toolchain_path, label=toolchain_name)
 
+    print("Uploading sysroot to GH")
+    rel.upload_asset(sysroot_path, label=sysroot_name)
+
+    print("Uploading runtime root to GH")
+    rel.upload_asset(runtime_path, label=runtime_name)
+
+
+@task
+def gh_publish_release(ctx):
+    rel = _get_release()
+    rel.update_release(rel.title, rel.raw_data["body"], draft=False)
