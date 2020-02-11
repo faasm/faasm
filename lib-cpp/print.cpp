@@ -5,6 +5,7 @@
 namespace faasm {
     /**
      * Horrible hack to get around a bug in the wasm backend which breaks printing of floats
+     * 11/02/2020 - is this still necessary?
      */
     char *floatToStr(float f) {
         // Print to 3 decimal places

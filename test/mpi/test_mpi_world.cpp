@@ -688,7 +688,7 @@ namespace tests {
             SECTION("Allreduce") {
                 // Run all as threads
                 std::vector<std::thread> threads;
-                for(int r = 0; r < thisWorldSize; r++) {
+                for (int r = 0; r < thisWorldSize; r++) {
                     threads.emplace_back([&, r] {
                         std::vector<int> actual(3, 0);
                         world.allReduce(r, rankData[r], actual.data(), FAASMPI_INT, 3, reduceOp);
@@ -696,12 +696,59 @@ namespace tests {
                     });
                 }
 
-                for(auto &t : threads) {
-                    if(t.joinable()) {
+                for (auto &t : threads) {
+                    if (t.joinable()) {
                         t.join();
                     }
                 }
             }
         }
+    }
+
+    TEST_CASE("Test all-to-all", "[mpi]") {
+        cleanSystem();
+
+        const message::Message &msg = util::messageFactory(user, func);
+        mpi::MpiWorld world;
+        int thisWorldSize = 4;
+        world.create(msg, worldId, thisWorldSize);
+
+        // Register the ranks
+        for (int r = 1; r < thisWorldSize; r++) {
+            world.registerRank(r);
+        }
+
+        // Build inputs and expected
+        int inputs[4][8] = {
+                {0, 1, 2, 3, 4, 5, 6, 7},
+                {10, 11, 12, 13, 14, 15, 16, 17},
+                {20, 21, 22, 23, 24, 25, 26, 27},
+                {30, 31, 32, 33, 34, 35, 36, 37},
+        };
+
+        int expected[4][8] = {
+            {0, 1, 10, 11, 20, 21, 30, 31},
+            {2, 3, 12, 13, 22, 23, 32, 33},
+            {4, 5, 14, 15, 24, 25, 34, 35},
+            {6, 7, 16, 17, 26, 27, 36, 37},
+        };
+
+        std::vector<std::thread> threads;
+        for(int r = 0; r < thisWorldSize; r++) {
+            threads.emplace_back([&, r] {
+                std::vector<int> actual(8, 0);
+                world.allToAll<int>(r, inputs[r], FAASMPI_INT, 2, actual.data(), FAASMPI_INT, 2);
+
+                std::vector<int> thisExpected(expected[r], expected[r] + 8);
+                REQUIRE(actual == thisExpected);
+            });
+        }
+
+        for(auto &t : threads) {
+            if(t.joinable()) {
+                t.join();
+            }
+        }
+
     }
 }

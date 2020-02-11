@@ -1,7 +1,7 @@
 #include <mpi.h>
 #include <stdio.h>
 #include <faasm/faasm.h>
-#include <faasm/print.h>
+#include <faasm/compare.h>
 
 
 FAASM_MAIN_FUNC() {
@@ -31,16 +31,8 @@ FAASM_MAIN_FUNC() {
 
     MPI_Allgather(thisChunk, nPerRank, MPI_INT, actual, nPerRank, MPI_INT, MPI_COMM_WORLD);
 
-    for (int i = 0; i < n; i++) {
-        if (actual[i] != expected[i]) {
-            printf("Rank %i: Actual not as expected. Actual: ", rank);
-            faasm::printArray(actual, n);
-            printf(" Expected: ");
-            faasm::printArray(expected, n);
-            printf("\n");
-
-            return 1;
-        }
+    if(!faasm::compareIntArrays(actual, expected, n)) {
+        return 1;
     }
 
     printf("Rank %i: gather as expected\n", rank);

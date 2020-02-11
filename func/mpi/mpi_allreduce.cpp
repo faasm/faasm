@@ -1,8 +1,8 @@
 #include <mpi.h>
 #include <stdio.h>
 #include <faasm/faasm.h>
-#include <faasm/print.h>
 #include <string.h>
+#include <faasm/compare.h>
 
 
 FAASM_MAIN_FUNC() {
@@ -30,15 +30,11 @@ FAASM_MAIN_FUNC() {
     MPI_Allreduce(numsThisProc, result, 3, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
     // Check vs. expectation
-    if (result[0] != expected[0] || result[1] != expected[1] || result[2] != expected[2]) {
-        printf("Rank %i - Allreduce failed: Expected ", rank);
-        faasm::printArray(expected, 3);
-        printf(" Actual ");
-        faasm::printArray(result, 3);
-        printf("\n");
-    } else {
-        printf("Rank %i - Allreduce as expected\n", rank);
+    if(!faasm::compareIntArrays(result, expected, 3)) {
+        return 1;
     }
+
+    printf("Rank %i: Allreduce as expected\n", rank);
 
     MPI_Finalize();
 
