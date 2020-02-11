@@ -25,7 +25,7 @@ RUN ansible-playbook catch.yml
 
 # Set up requests
 RUN apt-get install -y python3-dev python3-pip
-RUN pip3 install invoke requests
+RUN pip3 install invoke requests PyGithub
 
 # Install other python deps
 COPY requirements.txt /tmp/requirements.txt
