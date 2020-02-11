@@ -185,7 +185,7 @@ namespace faasm {
 
         // Create fake training data as dot product of the matrix of training input data and the real weight vector
         Eigen::MatrixXd realWeights = randomDenseMatrix(1, params.nWeights);
-        Eigen::SparseMatrix<double> inputs = randomSparseMatrix(params.nWeights, params.nTrain, 0.1);
+        Eigen::SparseMatrix<double> inputs = randomSparseMatrix(params.nWeights, params.nTrain, 0.5);
         Eigen::MatrixXd outputs = realWeights * inputs;
 
         // Initialise a random set of weights that we'll train (i.e. these should get close to the real weights)

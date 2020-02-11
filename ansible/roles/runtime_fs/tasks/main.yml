@@ -11,11 +11,15 @@
 
 - name: "Ensure runtime_root directory exists"
   file:
-    path: "/usr/local/faasm/runtime_root/etc"
+    path: "/usr/local/faasm/runtime_root/{{ item }}"
     state: directory
     owner: "{{ ansible_env.USER }}"
     group: "{{ ansible_env.USER }}"
     mode: 0775
+  with_items:
+    - "etc"
+    - "tmp"
+    - "share"
 
 - name: "Put network-related files in place"
   copy:

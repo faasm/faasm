@@ -20,6 +20,9 @@ function(mpi_func exec_name dir_path)
     endif ()
 
     target_link_libraries(${exec_name} ${MPI_LIB})
+
+    # Add to list of all funcs
+    set(ALL_MPI_FUNCS ${ALL_MPI_FUNCS} ${exec_name} PARENT_SCOPE)
 endfunction(mpi_func)
 
 # Skip MPI stuff in knative for now
@@ -35,4 +38,7 @@ mpi_func(mpi_scatter mpi_scatter.cpp)
 mpi_func(mpi_gather mpi_gather.cpp)
 mpi_func(mpi_status mpi_status.cpp)
 mpi_func(hellompi hellompi.cpp)
+
+# Custom target for building all functions
+add_custom_target(mpi_all_funcs DEPENDS ${ALL_MPI_FUNCS})
 endif()

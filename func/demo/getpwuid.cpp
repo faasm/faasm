@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <pwd.h>
 #include <unistd.h>
+#include <cstring>
 
 FAASM_MAIN_FUNC() {
     uid_t uid = getuid();
@@ -18,6 +19,14 @@ FAASM_MAIN_FUNC() {
     printf("Gecos:    %s\n", pwdPtr->pw_gecos);
     printf("Home:     %s\n", pwdPtr->pw_dir);
     printf("Shell:    %s\n", pwdPtr->pw_shell);
+
+    if(strcmp(pwdPtr->pw_name, "faasm") != 0) {
+        return 1;
+    }
+
+    if(pwdPtr->pw_uid != 1000) {
+        return 1;
+    }
 
     return 0;
 }
