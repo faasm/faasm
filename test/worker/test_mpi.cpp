@@ -14,6 +14,10 @@ namespace tests {
         checkMpiFunc("mpi_allgather");
     }
 
+    TEST_CASE("Test MPI allreduce", "[wasm]") {
+        checkMpiFunc("mpi_allreduce");
+    }
+
     TEST_CASE("Test MPI barrier", "[wasm]") {
         checkMpiFunc("mpi_barrier");
     }
