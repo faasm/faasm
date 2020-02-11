@@ -18,7 +18,6 @@ numpy
 pyperformance
 psutil
 pyaes
-PyGithub
 pycairo
 # Explicitly don't put pyfaasm here, install separately
 PyOpenSSL
