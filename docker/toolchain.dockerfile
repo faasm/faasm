@@ -19,6 +19,10 @@ RUN pip3 install -r /tmp/requirements.txt
 # Copy code into place
 COPY . /usr/local/code/faasm
 
+# Build the wavm binary
+WORKDIR /faasm/build
+RUN cmake --build . --target wavm
+
 # Install Faasm native tools
 WORKDIR /faasm/native_tools
 COPY . /usr/local/code/faasm
