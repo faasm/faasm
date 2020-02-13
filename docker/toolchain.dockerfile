@@ -7,6 +7,7 @@ SHELL ["/bin/bash", "-c"]
 RUN apt-get install -y libpython3-dev \
     python3-dev \
     python3-pip \
+    python3-venv \
     libcairo2-dev \
     python3-cairo \
     vim

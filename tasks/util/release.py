@@ -1,7 +1,7 @@
 from os.path import join
 from subprocess import check_output
 
-from tasks.util.env import FAASM_LOCAL_DIR
+from tasks.util.env import FAASM_LOCAL_DIR, FAASM_TOOLCHAIN_FILE
 from tasks.util.version import get_faasm_version
 
 TOOLCHAIN_INSTALL = join(FAASM_LOCAL_DIR, "toolchain")
