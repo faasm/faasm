@@ -34,3 +34,6 @@
 [submodule "third-party/faasm-demo-c"]
 	path = third-party/faasm-demo-c
 	url = https://github.com/Shillaker/faasm-demo-c.git
+[submodule "third-party/mpi-benchmarks"]
+	path = third-party/mpi-benchmarks
+	url = git@github.com:Shillaker/mpi-benchmarks.git
