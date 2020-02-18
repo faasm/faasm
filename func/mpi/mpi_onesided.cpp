@@ -67,21 +67,21 @@ FAASM_MAIN_FUNC() {
     // Get data from another rank's shared memory
     int actual[NUM_ELEMENT];
     MPI_Win_fence(0, window);
-    if(rank < 3) {
+    if (rank < 3) {
         MPI_Get(actual, NUM_ELEMENT, MPI_INT, getRank, 0, NUM_ELEMENT, MPI_INT, window);
     }
     MPI_Win_fence(0, window);
 
     // Check we've got the data we expected
-    if(rank < 3 && !faasm::compareIntArrays(actual, expectedGetData, NUM_ELEMENT)) {
+    if (rank < 3 && !faasm::compareIntArrays(actual, expectedGetData, NUM_ELEMENT)) {
         return 1;
-    } else {
+    } else if (rank < 3) {
         printf("Rank %i - MPI_Get as expected\n", rank);
     }
 
     // Put values to another rank
     MPI_Win_fence(0, window);
-    if(rank < 3) {
+    if (rank < 3) {
         MPI_Put(putData, NUM_ELEMENT, MPI_INT, putRank, 0, NUM_ELEMENT, MPI_INT, window);
     }
     MPI_Win_fence(0, window);
@@ -89,7 +89,7 @@ FAASM_MAIN_FUNC() {
     // Check we've had the expected data put in our memory
     if (rank < 3 && !faasm::compareIntArrays(sharedData, expectedPutData, NUM_ELEMENT)) {
         return 1;
-    } else {
+    } else if (rank < 3) {
         printf("Rank %i - MPI_Put as expected\n", rank);
     }
 
