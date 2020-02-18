@@ -16,6 +16,8 @@ from toolchain.python_env import WASM_HOST, BASE_CONFIG_CMD, WASM_CFLAGS, WASM_C
 from toolchain.python_env import WASM_SYSROOT, WASM_BUILD, \
     BASE_CONFIG_FLAGS
 
+PRK_DIR = join(THIRD_PARTY_DIR, "ParResKernels")
+
 
 @task
 def compile_libc(ctx):
@@ -261,6 +263,17 @@ def compile_tflite(ctx, clean=False):
     res = call(" ".join(make_cmd), shell=True, cwd=tf_lite_dir)
     if res != 0:
         raise RuntimeError("Failed to compile Tensorflow lite")
+
+
+@task
+def compile_prk_mpi(ctx, clean=False):
+    make_target = "allmpi1"
+
+    make_cmd = "make {}".format(make_target)
+    res = call(make_cmd, shell=True, cwd=PRK_DIR)
+    if res != 0:
+        print("Making PRK failed")
+        exit(1)
 
 
 @task

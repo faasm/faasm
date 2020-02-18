@@ -1,6 +1,9 @@
 #
-# Currently used for pyodide and polybench builds
+# IMPORTANT: this file is used by lots of submodules/
+# projects so be careful **NOT** to set any global variables
+# like CC/CXX. Keep it generic
 #
+
 export WASM_SYSROOT=/usr/local/faasm/llvm-sysroot
 export WASM_TOOLCHAIN_BIN=/usr/local/faasm/toolchain/bin
 
