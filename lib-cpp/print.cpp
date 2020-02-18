@@ -29,7 +29,7 @@ namespace faasm {
         for (size_t i = 0; i < size; i++) {
             printf("%i", data[i]);
             if (i < size - 1) {
-                printf(",");
+                printf(", ");
             }
         }
         printf("]");
