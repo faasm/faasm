@@ -1,6 +1,8 @@
 #ifndef FAASM_MPI_H
 #define FAASM_MPI_H
 
+#include <cstddef>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -46,7 +48,19 @@ struct faasmpi_message_t {
     int id;
 };
 
+// Open MPI version: https://github.com/open-mpi/ompi/blob/master/ompi/win/win.h
+struct faasmpi_win_t {
+    int id;
+    int rank;
+    int wasmPtr;
+    int size;
+};
+
 struct faasmpi_op_t {
+    int id;
+};
+
+struct faasmpi_info_t {
     int id;
 };
 
@@ -56,12 +70,20 @@ struct faasmpi_op_t {
 // MPI_Comms
 #define FAASMPI_COMM_WORLD 1
 extern struct faasmpi_communicator_t faasmpi_comm_world;
-#define MPI_COMM_WORLD (&faasmpi_comm_world)
+#define MPI_COMM_WORLD &faasmpi_comm_world
 
 // MPI_Datatypes
 #define FAASMPI_INT 1
 extern struct faasmpi_datatype_t faasmpi_type_int;
 #define MPI_INT &faasmpi_type_int
+
+// MPI_Infos
+#define FAASMPI_INFO_NULL 1
+extern struct faasmpi_info_t faasmpi_info_null;
+#define MPI_INFO_NULL &faasmpi_info_null
+
+// Misc limits
+#define MPI_MAX_PROCESSOR_NAME 256
 
 // MPI_Ops
 #define FAASMPI_OP_MAX    1
@@ -97,7 +119,6 @@ extern struct faasmpi_op_t faasmpi_op_minloc;
 #define MPI_MAXLOC &faasmpi_op_maxloc
 #define MPI_MINLOC &faasmpi_op_minloc
 
-
 // MPI_Statuses
 #define MPI_STATUS_IGNORE (static_cast<MPI_Status *> (0))
 
@@ -109,6 +130,9 @@ typedef struct faasmpi_communicator_t *MPI_Comm;
 typedef struct faasmpi_datatype_t *MPI_Datatype;
 typedef struct faasmpi_status_public_t MPI_Status;
 typedef struct faasmpi_message_t *MPI_Message;
+typedef struct faasmpi_info_t *MPI_Info;
+typedef struct faasmpi_win_t *MPI_Win;
+typedef ptrdiff_t MPI_Aint;
 
 /*
  * User-facing functions
@@ -156,6 +180,28 @@ int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count, MPI_Datatype da
 int MPI_Alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                  void *recvbuf, int recvcount, MPI_Datatype recvtype,
                  MPI_Comm comm);
+
+int MPI_Type_size(MPI_Datatype type, int *size);
+
+int MPI_Alloc_mem(MPI_Aint size, MPI_Info info, void *baseptr);
+
+int MPI_Win_fence(int assert, MPI_Win win);
+
+int MPI_Get(void *origin_addr, int origin_count,
+            MPI_Datatype origin_datatype, int target_rank,
+            MPI_Aint target_disp, int target_count,
+            MPI_Datatype target_datatype, MPI_Win win);
+
+int MPI_Put(const void *origin_addr, int origin_count, MPI_Datatype origin_datatype,
+            int target_rank, MPI_Aint target_disp, int target_count,
+            MPI_Datatype target_datatype, MPI_Win win);
+
+int MPI_Win_free(MPI_Win *win);
+
+int MPI_Win_create(void *base, MPI_Aint size, int disp_unit,
+                   MPI_Info info, MPI_Comm comm, MPI_Win *win);
+
+int MPI_Get_processor_name(char *name, int *resultlen);
 
 #ifdef __cplusplus
 }
