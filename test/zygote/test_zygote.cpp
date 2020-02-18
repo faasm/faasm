@@ -15,7 +15,7 @@ namespace tests {
         // Want to check things with chained calls, so need to fake up input to a chained func
         msgA.set_idx(1);
         int input[3] = {1, 2, 3};
-        msgA.set_inputdata(reinterpret_cast<uint8_t *>(input), 3 * sizeof(int));
+        msgA.set_inputdata(BYTES(input), 3 * sizeof(int));
 
         zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
         wasm::WasmModule &moduleA = registry.getZygote(msgA);

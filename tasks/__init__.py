@@ -58,6 +58,7 @@ from tasks.compile_libs import (
     install_native_tools,
     compile_tflite,
     compile_mpi_bench,
+    compile_prk_mpi,
 )
 from tasks.config import (
     create_faasm_config

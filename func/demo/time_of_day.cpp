@@ -11,7 +11,7 @@ FAASM_MAIN_FUNC() {
     char str[strLen];
     sprintf(str, "Seconds: %li", tv.tv_sec);
 
-    auto output = reinterpret_cast<uint8_t *>(str);
+    auto output = BYTES(str);
     faasmSetOutput(output, strLen);
 
     return 0;

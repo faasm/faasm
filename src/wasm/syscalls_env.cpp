@@ -9,6 +9,7 @@
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
+#include <util/macros.h>
 
 namespace wasm {
     I32 s__gettid() {
@@ -115,7 +116,7 @@ namespace wasm {
 
         // Copy fake info into place
         size_t structSize = sizeof(wasm_utsname);
-        auto structPtr = reinterpret_cast<uint8_t *>(&s);
+        auto structPtr = BYTES(&s);
         std::copy(structPtr, structPtr + structSize, hostBufPtr);
 
         return 0;

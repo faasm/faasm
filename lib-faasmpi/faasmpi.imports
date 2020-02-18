@@ -16,3 +16,12 @@ MPI_Allgather
 MPI_Reduce
 MPI_Allreduce
 MPI_Alltoall
+
+MPI_Type_size
+MPI_Alloc_mem
+MPI_Win_fence
+MPI_Get
+MPI_Put
+MPI_Win_free
+MPI_Win_create
+MPI_Get_processor_name

@@ -27,7 +27,7 @@ namespace faasm {
         }
 
         SgdParams s{};
-        faasmReadState(keyName, reinterpret_cast<uint8_t *>(&s), nBytes);
+        faasmReadState(keyName, BYTES(&s), nBytes);
 
         return s;
     }
@@ -138,7 +138,7 @@ namespace faasm {
 
     void writeHingeError(const SgdParams &sgdParams, const MatrixXd &actual, const MatrixXd &prediction) {
         double err = calculateHingeError(prediction, actual);
-        auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&err);
+        auto squaredErrorBytes = BYTES(&err);
 
         faasmAppendState(
                 ERRORS_KEY,
@@ -157,7 +157,7 @@ namespace faasm {
 
         faasmReadAppendedState(
                 ERRORS_KEY,
-                reinterpret_cast<uint8_t *>(errors),
+                BYTES(errors),
                 sizeErrors,
                 sgdParams.nBatches
         );

@@ -1,3 +1,4 @@
+#include <util/macros.h>
 #include "mpi/MpiGlobalBus.h"
 #include "mpi/MpiWorldRegistry.h"
 
@@ -22,13 +23,13 @@ namespace mpi {
 
     void MpiGlobalBus::sendMessageToNode(const std::string &otherNodeId, MpiMessage *m) {
         std::string queueName = getMpiQueueNameForNode(otherNodeId);
-        redis.enqueueBytes(queueName, reinterpret_cast<uint8_t *>(m), sizeof(MpiMessage));
+        redis.enqueueBytes(queueName, BYTES(m), sizeof(MpiMessage));
     }
 
     MpiMessage *MpiGlobalBus::dequeueForNode(const std::string &otherNodeId) {
         std::string queueName = getMpiQueueNameForNode(otherNodeId);
         auto m = new MpiMessage;
-        redis.dequeueBytes(queueName, reinterpret_cast<uint8_t *>(m), sizeof(MpiMessage), MPI_MESSAGE_TIMEOUT_MS);
+        redis.dequeueBytes(queueName, BYTES(m), sizeof(MpiMessage), MPI_MESSAGE_TIMEOUT_MS);
         
         return m;
     }

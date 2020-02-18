@@ -14,6 +14,7 @@
 #include <WAVM/Runtime/Intrinsics.h>
 #include <storage/FileLoader.h>
 #include <storage/SharedFilesManager.h>
+#include <util/macros.h>
 
 
 namespace wasm {
@@ -149,7 +150,7 @@ namespace wasm {
                     std::copy(d->d_name, d->d_name + nameLen, dWasm.d_name);
 
                     // Copy the wasm dirent into place in wasm memory
-                    auto dWasmBytes = reinterpret_cast<uint8_t *>(&dWasm);
+                    auto dWasmBytes = BYTES(&dWasm);
                     std::copy(dWasmBytes, dWasmBytes + wasmDirentSize, hostWasmDirentBuf + wasmBytesRead);
 
                     // Move offsets along

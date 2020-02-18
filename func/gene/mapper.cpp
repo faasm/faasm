@@ -44,7 +44,7 @@ FAASM_MAIN_FUNC() {
     const char *lengthsKey = "output_lengths";
     size_t lengthsSize = N_INDEX_CHUNKS * sizeof(int);
     int lengthsArray[N_INDEX_CHUNKS];
-    faasmReadState(lengthsKey, reinterpret_cast<uint8_t *>(lengthsArray), lengthsSize);
+    faasmReadState(lengthsKey, BYTES(lengthsArray), lengthsSize);
 
     // Read in results for this read chunk and write them to a temporary file
     std::string tempFilePath = "/tmp/output_read_" + std::to_string(readIdx);

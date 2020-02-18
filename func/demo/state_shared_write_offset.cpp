@@ -24,6 +24,6 @@ FAASM_MAIN_FUNC() {
     success &= chunkB[1] == 7;
     success &= chunkB[2] == 8;
 
-    faasmSetOutput(reinterpret_cast<uint8_t *>(&success), 1);
+    faasmSetOutput(BYTES(&success), 1);
     return 0;
 }

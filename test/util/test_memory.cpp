@@ -2,6 +2,7 @@
 #include <util/memory.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <util/macros.h>
 
 using namespace util;
 
@@ -36,8 +37,8 @@ namespace tests {
         // Create two larger memory regions not yet writeable
         void *regionAVoid = mmap(nullptr, 3 * memSize, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         void *regionBVoid = mmap(nullptr, 3 * memSize, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-        uint8_t *regionABytes = reinterpret_cast<uint8_t *>(regionAVoid);
-        uint8_t *regionBBytes = reinterpret_cast<uint8_t *>(regionBVoid);
+        uint8_t *regionABytes = BYTES(regionAVoid);
+        uint8_t *regionBBytes = BYTES(regionBVoid);
 
         // Allow writing to the middle segment of both
         mprotect(regionABytes + memSize, memSize, PROT_WRITE);

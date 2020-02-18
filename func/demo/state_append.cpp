@@ -63,7 +63,7 @@ FAASM_FUNC(appender, 1) {
     }
 
     for (long i = 0; i < appendCount; i++) {
-        faasmAppendState(APPEND_KEY, reinterpret_cast<uint8_t *>(&i), sizeof(long));
+        faasmAppendState(APPEND_KEY, BYTES(&i), sizeof(long));
     }
 
     return 0;
