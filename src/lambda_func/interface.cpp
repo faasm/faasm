@@ -89,7 +89,7 @@ long __faasm_read_input(unsigned char *buffer, long bufferLen) {
         return 0;
     }
 
-    auto inputBytes = reinterpret_cast<uint8_t *>(faasm::input.data());
+    auto inputBytes = BYTES(faasm::input.data());
     std::copy(inputBytes, inputBytes + faasm::input.size(), buffer);
 
     return bufferLen;

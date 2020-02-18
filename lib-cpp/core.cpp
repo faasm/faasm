@@ -126,13 +126,13 @@ int faasmGetCurrentIdx() {
 
 char* faasmGetPythonUser() {
     char* user = new char[20];
-     __faasm_get_py_user(reinterpret_cast<uint8_t *>(user), 20);
+     __faasm_get_py_user(BYTES(user), 20);
      return user;
 }
 
 char* faasmGetPythonFunc() {
     char* funcName = new char[20];
-     __faasm_get_py_func(reinterpret_cast<uint8_t *>(funcName), 20);
+     __faasm_get_py_func(BYTES(funcName), 20);
      return funcName;
 }
 

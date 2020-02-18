@@ -11,7 +11,7 @@ namespace faasm {
         }
 
         T inputBuff;
-        faasmGetInput(reinterpret_cast<uint8_t *>(&inputBuff), sizeof(T));
+        faasmGetInput(BYTES(&inputBuff), sizeof(T));
         return inputBuff;
     }
 

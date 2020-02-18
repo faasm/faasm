@@ -217,7 +217,7 @@ namespace tests {
 
         // Also check redis
         std::vector<double> actualFromRedis(nDoubles);
-        redisState.get(key, reinterpret_cast<uint8_t *>(actualFromRedis.data()), nBytes);
+        redisState.get(key, BYTES(actualFromRedis.data()), nBytes);
         REQUIRE(expected == actualFromRedis);
     }
 
@@ -313,7 +313,7 @@ namespace tests {
         };
 
         std::vector<uint8_t> actualValue2 = redisState.get(kvData->key);
-        auto expectedBytePtr = reinterpret_cast<uint8_t *>(expected.data());
+        auto expectedBytePtr = BYTES(expected.data());
         std::vector<uint8_t> expectedBytes(expectedBytePtr, expectedBytePtr + stateSize);
     }
 

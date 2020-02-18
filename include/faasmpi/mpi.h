@@ -36,6 +36,7 @@ struct faasmpi_status_public_t {
 // Open MPI version: https://github.com/open-mpi/ompi/blob/master/ompi/datatype/ompi_datatype.h
 struct faasmpi_datatype_t {
     int id;
+    int size;
 };
 
 // Open MPI version: https://github.com/open-mpi/ompi/blob/master/ompi/communicator/communicator.h

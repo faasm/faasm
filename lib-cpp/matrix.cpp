@@ -117,7 +117,7 @@ namespace faasm {
         sizes.outerLen = nOuterBytes;
         sizes.nonZeroLen = nNonZeroBytes;
 
-        sizeBytes = reinterpret_cast<uint8_t *>(&sizes);
+        sizeBytes = BYTES(&sizes);
         nSizeBytes = sizeof(SparseSizes);
     }
 
@@ -329,7 +329,7 @@ namespace faasm {
      */
     void readMatrixFromState(const char *key, double *buffer, long rows, long cols, bool pull) {
         size_t nBytes = rows * cols * sizeof(double);
-        auto byteBuffer = reinterpret_cast<uint8_t *>(buffer);
+        auto byteBuffer = BYTES(buffer);
 
         if (pull) {
             faasmPullState(key, nBytes);
@@ -358,7 +358,7 @@ namespace faasm {
         long byteIdx = matrixByteIndex(row, col, matrix.rows());
 
         double value = matrix.coeff(row, col);
-        auto byteValue = reinterpret_cast<uint8_t *>(&value);
+        auto byteValue = BYTES(&value);
         size_t nBytes = sizeof(double);
 
         faasmWriteStateOffset(key, totalBytes, (size_t) byteIdx, byteValue, nBytes);

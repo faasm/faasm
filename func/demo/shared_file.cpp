@@ -30,7 +30,7 @@ FAASM_MAIN_FUNC() {
 
     // Write file content as output
     long length = faasm::getFileLength(inputStr);
-    faasmSetOutput(reinterpret_cast<uint8_t *>(content), length);
+    faasmSetOutput(BYTES(content), length);
 
     return 0;
 }

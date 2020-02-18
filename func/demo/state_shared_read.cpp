@@ -12,6 +12,6 @@ FAASM_MAIN_FUNC() {
         valuesMatch &= (actual[i] == expected[i]);
     }
 
-    faasmSetOutput(reinterpret_cast<uint8_t *>(&valuesMatch), 1);
+    faasmSetOutput(BYTES(&valuesMatch), 1);
     return 0;
 }

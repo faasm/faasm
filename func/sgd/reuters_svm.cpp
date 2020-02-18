@@ -92,7 +92,7 @@ FAASM_MAIN_FUNC() {
             int inputData[4] = {w, startIdx, endIdx, thisEpoch};
             unsigned int workerCallId = faasmChainThisInput(
                     1,
-                    reinterpret_cast<uint8_t *>(inputData),
+                    BYTES(inputData),
                     4 * sizeof(int)
             );
             printf("Worker %i [%i-%i] with ID %i\n", w, startIdx, endIdx, workerCallId);
@@ -148,7 +148,7 @@ FAASM_FUNC(step, 1) {
     // Read in input
     long inputSize = 4 * sizeof(int);
     auto inputBuffer = new int[4];
-    faasmGetInput(reinterpret_cast<uint8_t *>(inputBuffer), inputSize);
+    faasmGetInput(BYTES(inputBuffer), inputSize);
 
     int batchNumber = inputBuffer[0];
     int startIdx = inputBuffer[1];

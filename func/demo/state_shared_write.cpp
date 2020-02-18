@@ -27,7 +27,7 @@ FAASM_MAIN_FUNC() {
     }
 
     // Check that pointers are also equal
-    faasmSetOutput(reinterpret_cast<uint8_t *>(&success), 1);
+    faasmSetOutput(BYTES(&success), 1);
 
     return 0;
 }

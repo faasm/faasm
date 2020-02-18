@@ -3,26 +3,26 @@
 
 namespace faasm {
     void writeIntState(const char *key, int val) {
-        auto ptr = reinterpret_cast<uint8_t *>(&val);
+        auto ptr = BYTES(&val);
         faasmWriteState(key, ptr, sizeof(int));
     }
 
     int readIntState(const char *key) {
         int val;
-        auto buf = reinterpret_cast<uint8_t *>(&val);
+        auto buf = BYTES(&val);
         faasmReadState(key, buf, sizeof(int));
         return val;
     }
 
     void initCounter(const char *counterKey) {
         int counterBuffer[] = {0};
-        auto counterBytes = reinterpret_cast<uint8_t *>(counterBuffer);
+        auto counterBytes = BYTES(counterBuffer);
         faasmWriteState(counterKey, counterBytes, sizeof(int));
     }
 
     int getCounter(const char *counterKey) {
         int counterBuffer[1];
-        auto counterBytes = reinterpret_cast<uint8_t *>(counterBuffer);
+        auto counterBytes = BYTES(counterBuffer);
         faasmReadState(counterKey, counterBytes, sizeof(int));
 
         int count = counterBuffer[0];
@@ -36,7 +36,7 @@ namespace faasm {
 
         int counterBuffer[1];
         counterBuffer[0] = count;
-        auto counterBytes = reinterpret_cast<uint8_t *>(counterBuffer);
+        auto counterBytes = BYTES(counterBuffer);
 
         faasmWriteState(counterKey, counterBytes, sizeof(int));
     }

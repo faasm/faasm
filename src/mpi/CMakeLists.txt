@@ -12,4 +12,4 @@ set(LIB_FILES
         )
 
 faasm_private_lib(mpi "${LIB_FILES}")
-target_link_libraries(mpi scheduler state)
+target_link_libraries(mpi scheduler state faasmpi)

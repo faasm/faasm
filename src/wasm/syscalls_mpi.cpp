@@ -49,14 +49,14 @@ namespace wasm {
             return true;
         }
 
-        bool checkIsInt(I32 wasmPtr) {
+        faasmpi_datatype_t *getFaasmDataType(I32 wasmPtr) {
             faasmpi_datatype_t *hostDataType = &Runtime::memoryRef<faasmpi_datatype_t>(memory, wasmPtr);
-            return hostDataType->id == FAASMPI_INT;
+            return hostDataType;
         }
 
-        int convertToOp(I32 wasmOp) {
+        faasmpi_op_t *getFaasmOp(I32 wasmOp) {
             faasmpi_op_t *hostOpType = &Runtime::memoryRef<faasmpi_op_t>(memory, wasmOp);
-            return hostOpType->id;
+            return hostOpType;
         }
 
         void writeMpiIntResult(I32 resPtr, I32 result) {
@@ -131,13 +131,9 @@ namespace wasm {
         logger->debug("S - MPI_Send {} {} {} {} {} {}", buffer, count, datatype, destRank, tag, comm);
 
         ContextWrapper ctx(comm);
-        if (ctx.checkIsInt(datatype)) {
-            int *inputs = Runtime::memoryArrayPtr<I32>(ctx.memory, buffer, count);
-            ctx.world.send<int>(ctx.rank, destRank, inputs, FAASMPI_INT, count);
-        } else {
-            logger->error("Unrecognised datatype ({})", datatype);
-            return 1;
-        }
+        faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
+        auto inputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
+        ctx.world.send(ctx.rank, destRank, inputs, hostDtype, count);
 
         return 0;
     }
@@ -152,18 +148,14 @@ namespace wasm {
         ContextWrapper ctx;
 
         MPI_Status *status = &Runtime::memoryRef<MPI_Status>(ctx.memory, statusPtr);
-        if (ctx.checkIsInt(datatype)) {
-            if (status->bytesSize % sizeof(int) != 0) {
-                logger->error("Incomplete message (bytes {}, datatype size {})", status->bytesSize, sizeof(int));
-                return 1;
-            }
-
-            int nVals = status->bytesSize / ((int) sizeof(int));
-            ctx.writeMpiIntResult(countPtr, nVals);
-        } else {
-            logger->error("Unrecognised datatype");
+        faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
+        if (status->bytesSize % hostDtype->size != 0) {
+            logger->error("Incomplete message (bytes {}, datatype size {})", status->bytesSize, hostDtype->size);
             return 1;
         }
+
+        int nVals = status->bytesSize / hostDtype->size;
+        ctx.writeMpiIntResult(countPtr, nVals);
 
         return MPI_SUCCESS;
     }
@@ -179,14 +171,9 @@ namespace wasm {
 
         ContextWrapper ctx;
         MPI_Status *status = &Runtime::memoryRef<MPI_Status>(ctx.memory, statusPtr);
-
-        if (ctx.checkIsInt(datatype)) {
-            int *outputs = Runtime::memoryArrayPtr<I32>(ctx.memory, buffer, count);
-            ctx.world.recv<int>(sourceRank, ctx.rank, outputs, count, status);
-        } else {
-            logger->error("Unrecognised datatype");
-            return 1;
-        }
+        faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
+        auto outputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
+        ctx.world.recv(sourceRank, ctx.rank, outputs, hostDtype, count, status);
 
         return 0;
     }
@@ -233,18 +220,14 @@ namespace wasm {
         logger->debug("S - MPI_Bcast {} {} {} {}", buffer, count, datatype, root, comm);
         ContextWrapper ctx(comm);
 
-        if (!ctx.checkIsInt(datatype)) {
-            logger->error("Unrecognised datatype ({})", datatype);
-            return 1;
-        }
-
-        int *inputs = Runtime::memoryArrayPtr<I32>(ctx.memory, buffer, count);
+        faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
+        auto inputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count * hostDtype->size);
 
         // See if this is a send broadcast or receive broadcast
         if (ctx.rank == root) {
-            ctx.world.broadcast<int>(ctx.rank, inputs, FAASMPI_INT, count);
+            ctx.world.broadcast(ctx.rank, inputs, hostDtype, count);
         } else {
-            ctx.world.recv<int>(root, ctx.rank, inputs, count, nullptr);
+            ctx.world.recv(root, ctx.rank, inputs, hostDtype, count, nullptr);
         }
 
         return MPI_SUCCESS;
@@ -276,17 +259,16 @@ namespace wasm {
                       sendBuf, sendCount, sendType, recvBuf, recvCount, recvType, root, comm);
         ContextWrapper ctx(comm);
 
-        if (ctx.checkIsInt(sendType) && ctx.checkIsInt(recvType)) {
-            int *hostSendBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, sendBuf, sendCount);
-            int *hostRecvBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, recvBuf, recvCount);
+        faasmpi_datatype_t *hostSendDtype = ctx.getFaasmDataType(sendType);
+        faasmpi_datatype_t *hostRecvDtype = ctx.getFaasmDataType(recvType);
 
-            ctx.world.scatter<int>(root, ctx.rank,
-                                   hostSendBuffer, FAASMPI_INT, sendCount,
-                                   hostRecvBuffer, FAASMPI_INT, recvCount
-            );
-        } else {
-            throw std::runtime_error("Scatter not implemented for non-ints");
-        }
+        auto hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, sendBuf, sendCount * hostSendDtype->size);
+        auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuf, recvCount * hostRecvDtype->size);
+
+        ctx.world.scatter(root, ctx.rank,
+                          hostSendBuffer, hostSendDtype, sendCount,
+                          hostRecvBuffer, hostRecvDtype, recvCount
+        );
 
         return MPI_SUCCESS;
     }
@@ -303,17 +285,16 @@ namespace wasm {
                       sendBuf, sendCount, sendType, recvBuf, recvCount, recvType, root, comm);
 
         ContextWrapper ctx(comm);
-        if (ctx.checkIsInt(sendType) && ctx.checkIsInt(recvType)) {
-            int *hostSendBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, sendBuf, sendCount);
-            int *hostRecvBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, recvBuf, recvCount);
+        faasmpi_datatype_t *hostSendDtype = ctx.getFaasmDataType(sendType);
+        faasmpi_datatype_t *hostRecvDtype = ctx.getFaasmDataType(recvType);
 
-            ctx.world.gather<int>(ctx.rank, root,
-                                  hostSendBuffer, FAASMPI_INT, sendCount,
-                                  hostRecvBuffer, FAASMPI_INT, recvCount
-            );
-        } else {
-            throw std::runtime_error("Gather not implemented for non-ints");
-        }
+        auto hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, sendBuf, sendCount * hostSendDtype->size);
+        auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuf, recvCount * hostRecvDtype->size);
+
+        ctx.world.gather(ctx.rank, root,
+                         hostSendBuffer, hostSendDtype, sendCount,
+                         hostRecvBuffer, hostRecvDtype, recvCount
+        );
 
         return MPI_SUCCESS;
     }
@@ -330,15 +311,15 @@ namespace wasm {
                       sendBuf, sendCount, sendType, recvBuf, recvCount, recvType, comm);
 
         ContextWrapper ctx(comm);
-        if (ctx.checkIsInt(sendType) && ctx.checkIsInt(recvType)) {
-            int *hostSendBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, sendBuf, sendCount);
-            int *hostRecvBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, recvBuf, recvCount);
 
-            ctx.world.allGather<int>(ctx.rank, hostSendBuffer, FAASMPI_INT, sendCount,
-                                     hostRecvBuffer, FAASMPI_INT, recvCount);
-        } else {
-            throw std::runtime_error("Allgather not implemented for non-ints");
-        }
+        faasmpi_datatype_t *hostSendDtype = ctx.getFaasmDataType(sendType);
+        faasmpi_datatype_t *hostRecvDtype = ctx.getFaasmDataType(recvType);
+
+        auto hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, sendBuf, sendCount * hostSendDtype->size);
+        auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuf, recvCount * hostRecvDtype->size);
+
+        ctx.world.allGather(ctx.rank, hostSendBuffer, hostSendDtype, sendCount,
+                            hostRecvBuffer, hostRecvDtype, recvCount);
 
         return MPI_SUCCESS;
     }
@@ -355,15 +336,12 @@ namespace wasm {
 
         ContextWrapper ctx(comm);
 
-        if (!ctx.checkIsInt(datatype)) {
-            throw std::runtime_error("Reduce not implemented for non-ints");
-        }
+        faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
+        auto hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, sendBuf, count * hostDtype->size);
+        auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuf, count * hostDtype->size);
+        faasmpi_op_t *hostOp = ctx.getFaasmOp(op);
 
-        int *hostSendBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, sendBuf, count);
-        int *hostRecvBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, recvBuf, count);
-        int faasmOp = ctx.convertToOp(op);
-
-        ctx.world.reduce<int>(ctx.rank, root, hostSendBuffer, hostRecvBuffer, datatype, count, faasmOp);
+        ctx.world.reduce(ctx.rank, root, hostSendBuffer, hostRecvBuffer, hostDtype, count, hostOp);
 
         return MPI_SUCCESS;
     }
@@ -381,15 +359,12 @@ namespace wasm {
 
         ContextWrapper ctx(comm);
 
-        if (!ctx.checkIsInt(datatype)) {
-            throw std::runtime_error("Allreduce not implemented for non-ints");
-        }
+        faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
+        faasmpi_op_t *hostOp = ctx.getFaasmOp(op);
+        auto hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, sendBuf, count);
+        auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuf, count);
 
-        int *hostSendBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, sendBuf, count);
-        int *hostRecvBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, recvBuf, count);
-        int faasmOp = ctx.convertToOp(op);
-
-        ctx.world.allReduce<int>(ctx.rank, hostSendBuffer, hostRecvBuffer, datatype, count, faasmOp);
+        ctx.world.allReduce(ctx.rank, hostSendBuffer, hostRecvBuffer, hostDtype, count, hostOp);
 
         return MPI_SUCCESS;
     }
@@ -407,15 +382,13 @@ namespace wasm {
 
         ContextWrapper ctx(comm);
 
-        if (!ctx.checkIsInt(sendType) || !ctx.checkIsInt(recvType)) {
-            throw std::runtime_error("Alltoall not implemented for non-ints");
-        }
+        faasmpi_datatype_t *hostSendDtype = ctx.getFaasmDataType(sendType);
+        faasmpi_datatype_t *hostRecvDtype = ctx.getFaasmDataType(recvType);
+        auto hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, sendBuf, sendCount * hostSendDtype->size);
+        auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuf, recvCount * hostRecvDtype->size);
 
-        int *hostSendBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, sendBuf, sendCount);
-        int *hostRecvBuffer = Runtime::memoryArrayPtr<I32>(ctx.memory, recvBuf, recvCount);
-
-        ctx.world.allToAll<int>(ctx.rank, hostSendBuffer, FAASMPI_INT, sendCount,
-                                hostRecvBuffer, FAASMPI_INT, recvCount);
+        ctx.world.allToAll(ctx.rank, hostSendBuffer, hostSendDtype, sendCount,
+                           hostRecvBuffer, hostRecvDtype, recvCount);
 
         return MPI_SUCCESS;
     }
