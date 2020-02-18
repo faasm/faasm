@@ -24,14 +24,6 @@ inv download-runtime-root
 
 # Building
 
-## Building runtime
-
-To build, package and upload the runtime root, you can run:
-
-```
-inv backup-runtime-root
-```
-
 ## Building Toolchain
 
 To build from scratch you just need to be in the `toolchain` directory, then run:
@@ -65,16 +57,6 @@ make clean-all
 make
 ```
 
-## Updating the Toolchain
-
-If you've built a new toolchain and need to update the remote version:
-
-```
-inv backup-toolchain
-```
-
-Note that this will copy your local version of the sysroot too.
-
 ## Troubleshooting the build
 
 If a given project fails you need to go to the build dir (e.g. for `libcxx` this would be `third-party/llvm-project/build/libcxx`) then look at `CMakeFiles/CMakeError.log` and `CMakeFiles/CMakeOutput.log`.
@@ -106,5 +88,5 @@ When updating the underlying LLVM version of the toolchain you'll need to do the
 - Rebuild and upload _all_ wasm functions (all those under `funcs`)
 - Set up the runtime root (see Python docs and Ansible `runtime_fs.yml` playbook)
 - Make sure all the tests run
-- Backup the sysroot, runtime root and toolchain using the relevant `inv backup-xxx` tasks
-- Rebuild all Docker images (see `docs/versioning.md`)
+- Create a new Github release (see `docs/releases.md`)
+- Rebuild all Docker images for this new release (see `docs/versioning.md`)

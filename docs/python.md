@@ -96,5 +96,6 @@ You can then set it up with:
 inv set-up-python-package <pkg name>
 ```
 
-Note that once added you'll also need to backup the runtime root.
+Note that this modifies the runtime root bundle included in a release, so changes here will need to 
+be reflected in a new release.
 
