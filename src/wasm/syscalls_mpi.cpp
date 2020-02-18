@@ -390,6 +390,55 @@ namespace wasm {
         return MPI_SUCCESS;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Get_processor_name", I32, MPI_Get_processor_name, I32 buf, I32 bufLen) {
+        util::getLogger()->debug("S - MPI_Get_processor_name {} {}", buf, bufLen);
+        return MPI_SUCCESS;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Type_size", I32, MPI_Type_size, I32 typePtr, I32 res) {
+        util::getLogger()->debug("S - MPI_Type_size {} {}", typePtr, res);
+
+        return MPI_SUCCESS;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Alloc_mem", I32, MPI_Alloc_mem, I32 memSize, I32 info, I32 resPtrPtr) {
+        util::getLogger()->debug("S - MPI_Alloc_mem {} {} {}", memSize, info, resPtrPtr);
+
+        return MPI_SUCCESS;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Win_create", I32, MPI_Win_create, I32 basePtr, I32 size, I32 unit,
+                                   I32 info, I32 comm, I32 winPtr) {
+        util::getLogger()->debug("S - MPI_Win_create {} {} {} {} {} {}", basePtr, size, unit, info, comm, winPtr);
+        return MPI_SUCCESS;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Win_fence", I32, MPI_Win_fence, I32 assert, I32 winPtr) {
+        util::getLogger()->debug("S - MPI_Win_fence {} {}", assert, winPtr);
+        return MPI_SUCCESS;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Get", I32, MPI_Get, I32 recvBuff, I32 recvCount, I32 recvDatatype,
+                                   I32 sendRank, I32 sendOffset, I32 sendCount, I32 sendDatatype, I32 winPtr) {
+        util::getLogger()->debug("S - MPI_Get {} {} {} {} {} {} {} {}", recvBuff, recvCount, recvDatatype,
+                                 sendRank, sendOffset, sendCount, sendDatatype, winPtr);
+
+        return MPI_SUCCESS;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Put", I32, MPI_Put, I32 sendBuff, I32 sendCount, I32 sendDatatype,
+                                   I32 recvRank, I32 recvOffset, I32 recvCount, I32 recvDatatype, I32 winPtr) {
+        util::getLogger()->debug("S - MPI_Put {} {} {} {} {} {} {} {}", sendBuff, sendCount, sendDatatype,
+                                 recvRank, recvOffset, recvCount, recvDatatype, winPtr);
+        return MPI_SUCCESS;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Win_free", I32, MPI_Win_free, I32 winPtr) {
+        util::getLogger()->debug("S - MPI_Win_free {}", winPtr);
+
+        return MPI_SUCCESS;
+    }
+
     void mpiLink() {
 
     }
