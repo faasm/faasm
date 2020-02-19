@@ -67,6 +67,7 @@ FAASM_MAIN_FUNC() {
     // Get data from another rank's shared memory
     int actual[NUM_ELEMENT];
     MPI_Win_fence(0, window);
+
     if (rank < 3) {
         MPI_Get(actual, NUM_ELEMENT, MPI_INT, getRank, 0, NUM_ELEMENT, MPI_INT, window);
     }
@@ -80,7 +81,6 @@ FAASM_MAIN_FUNC() {
     }
 
     // Put values to another rank
-    MPI_Win_fence(0, window);
     if (rank < 3) {
         MPI_Put(putData, NUM_ELEMENT, MPI_INT, putRank, 0, NUM_ELEMENT, MPI_INT, window);
     }

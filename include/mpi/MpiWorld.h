@@ -93,9 +93,9 @@ namespace mpi {
 
         void overrideNodeId(const std::string &newNodeId);
 
-        void createWindow(const faasmpi_win_t *window, const uint8_t* initialData);
+        void createWindow(const faasmpi_win_t *window, uint8_t* windowPtr);
 
-        void synchronizeRmaWrite(const MpiMessage *msg);
+        void synchronizeRmaWrite(const MpiMessage *msg, bool isRemote);
     private:
         int id;
         int size;
@@ -108,6 +108,8 @@ namespace mpi {
 
         std::shared_ptr<state::StateKeyValue> stateKV;
         std::unordered_map<int, std::string> rankNodeMap;
+
+        std::unordered_map<std::string, uint8_t *> windowPointerMap;
 
         std::unordered_map<std::string, std::shared_ptr<InMemoryMpiQueue>> localQueueMap;
 

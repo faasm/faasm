@@ -805,7 +805,10 @@ namespace tests {
             // Resolve the notification
             worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
 
-            // Get from another world and make sure it's been updated
+            // Make sure it's been copied to the memory location
+            REQUIRE(dataA1 == putData);
+
+            // Check that getting still works
             std::vector<int> actual = {0, 0, 0, 0};
             worldA.rmaGet(rankA1, MPI_INT, dataCount, BYTES(actual.data()), MPI_INT, dataCount);
             REQUIRE(actual == putData);

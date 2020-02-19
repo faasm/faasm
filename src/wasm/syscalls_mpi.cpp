@@ -227,8 +227,7 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Bcast", I32, MPI_Bcast, I32 buffer, I32 count,
                                    I32 datatype, I32 root, I32 comm) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - MPI_Bcast {} {} {} {}", buffer, count, datatype, root, comm);
+        util::getLogger()->debug("S - MPI_Bcast {} {} {} {}", buffer, count, datatype, root, comm);
         ContextWrapper ctx(comm);
 
         faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
@@ -248,8 +247,7 @@ namespace wasm {
      * Barrier between all ranks in the given communicator. Called by every rank in the communicator.
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Barrier", I32, MPI_Barrier, I32 comm) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - MPI_Barrier {}", comm);
+        util::getLogger()->debug("S - MPI_Barrier {}", comm);
         ContextWrapper ctx(comm);
 
         ctx.world.barrier(ctx.rank);
@@ -265,9 +263,8 @@ namespace wasm {
                                    I32 recvBuf, I32 recvCount, I32 recvType,
                                    I32 root, I32 comm) {
 
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - MPI_Scatter {} {} {} {} {} {} {} {}",
-                      sendBuf, sendCount, sendType, recvBuf, recvCount, recvType, root, comm);
+        util::getLogger()->debug("S - MPI_Scatter {} {} {} {} {} {} {} {}",
+                                 sendBuf, sendCount, sendType, recvBuf, recvCount, recvType, root, comm);
         ContextWrapper ctx(comm);
 
         faasmpi_datatype_t *hostSendDtype = ctx.getFaasmDataType(sendType);
@@ -291,9 +288,8 @@ namespace wasm {
                                    I32 sendBuf, I32 sendCount, I32 sendType,
                                    I32 recvBuf, I32 recvCount, I32 recvType,
                                    I32 root, I32 comm) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - MPI_Gather {} {} {} {} {} {} {} {}",
-                      sendBuf, sendCount, sendType, recvBuf, recvCount, recvType, root, comm);
+        util::getLogger()->debug("S - MPI_Gather {} {} {} {} {} {} {} {}",
+                                 sendBuf, sendCount, sendType, recvBuf, recvCount, recvType, root, comm);
 
         ContextWrapper ctx(comm);
         faasmpi_datatype_t *hostSendDtype = ctx.getFaasmDataType(sendType);
@@ -317,9 +313,8 @@ namespace wasm {
                                    I32 sendBuf, I32 sendCount, I32 sendType,
                                    I32 recvBuf, I32 recvCount, I32 recvType,
                                    I32 comm) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - MPI_Allgather {} {} {} {} {} {} {}",
-                      sendBuf, sendCount, sendType, recvBuf, recvCount, recvType, comm);
+        util::getLogger()->debug("S - MPI_Allgather {} {} {} {} {} {} {}",
+                                 sendBuf, sendCount, sendType, recvBuf, recvCount, recvType, comm);
 
         ContextWrapper ctx(comm);
 
@@ -341,9 +336,8 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Reduce", I32, MPI_Reduce,
                                    I32 sendBuf, I32 recvBuf, I32 count, I32 datatype,
                                    I32 op, I32 root, I32 comm) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - MPI_Reduce {} {} {} {} {} {} {}",
-                      sendBuf, recvBuf, count, datatype, op, root, comm);
+        util::getLogger()->debug("S - MPI_Reduce {} {} {} {} {} {} {}",
+                                 sendBuf, recvBuf, count, datatype, op, root, comm);
 
         ContextWrapper ctx(comm);
 
@@ -364,9 +358,8 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Allreduce", I32, MPI_Allreduce,
                                    I32 sendBuf, I32 recvBuf, I32 count, I32 datatype,
                                    I32 op, I32 comm) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - MPI_Allreduce {} {} {} {} {} {} {}",
-                      sendBuf, recvBuf, count, datatype, op, comm);
+        util::getLogger()->debug("S - MPI_Allreduce {} {} {} {} {} {} {}",
+                                 sendBuf, recvBuf, count, datatype, op, comm);
 
         ContextWrapper ctx(comm);
 
@@ -387,9 +380,8 @@ namespace wasm {
                                    I32 sendBuf, I32 sendCount, I32 sendType,
                                    I32 recvBuf, I32 recvCount, I32 recvType,
                                    I32 comm) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - MPI_Alltoall {} {} {} {} {} {} {}",
-                      sendBuf, sendCount, sendType, recvBuf, recvCount, recvType, comm);
+        util::getLogger()->debug("S - MPI_Alltoall {} {} {} {} {} {} {}",
+                                 sendBuf, sendCount, sendType, recvBuf, recvCount, recvType, comm);
 
         ContextWrapper ctx(comm);
 

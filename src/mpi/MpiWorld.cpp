@@ -200,9 +200,9 @@ namespace mpi {
 
         // Dispatch the message locally or globally
         if (isLocal) {
-            if(messageType == MpiMessageType::RMA_WRITE) {
+            if (messageType == MpiMessageType::RMA_WRITE) {
                 logger->trace("MPI - local RMA write {} -> {}", sendRank, recvRank);
-                // Don't need to do anything for RMA writes locally (already written to state)
+                synchronizeRmaWrite(m, false);
             } else {
                 logger->trace("MPI - send {} -> {}", sendRank, recvRank);
                 getLocalQueue(sendRank, recvRank)->enqueue(m);
@@ -333,7 +333,7 @@ namespace mpi {
         logger->trace("MPI - recv {} -> {}", sendRank, recvRank);
         m = getLocalQueue(sendRank, recvRank)->dequeue();
 
-        if(messageType != m->messageType) {
+        if (messageType != m->messageType) {
             logger->error("Message types mismatched (expected={}, got={})", messageType, m->messageType);
             throw std::runtime_error("Mismatched message types");
         }
@@ -513,7 +513,7 @@ namespace mpi {
 
         if (msg->messageType == MpiMessageType::RMA_WRITE) {
             // NOTE - RMA notifications must be processed synchronously to ensure ordering
-            synchronizeRmaWrite(msg);
+            synchronizeRmaWrite(msg, true);
         } else {
             logger->trace("Queueing message locally {} -> {}", msg->sender, msg->destination);
             getLocalQueue(msg->sender, msg->destination)->enqueue(msg);
@@ -585,14 +585,23 @@ namespace mpi {
         send(sendRank, recvRank, nullptr, MPI_INT, sendCount, MpiMessageType::RMA_WRITE);
     }
 
-    void MpiWorld::synchronizeRmaWrite(const MpiMessage *msg) {
+    void MpiWorld::synchronizeRmaWrite(const MpiMessage *msg, bool isRemote) {
         faasmpi_datatype_t *datatype = getFaasmDatatypeFromId(msg->type);
         int winSize = msg->count * datatype->size;
         const std::string key = getWindowStateKey(id, msg->destination, winSize);
 
-        // Pull the state related to the window
+        // Get the state KV
         state::State &state = state::getGlobalState();
-        state.getKV(user, key, winSize)->pull();
+        const std::shared_ptr<state::StateKeyValue> &kv = state.getKV(user, key, winSize);
+
+        // If remote, pull the state related to the window
+        if (isRemote) {
+            kv->pull();
+        }
+
+        // Write the state to the pointer
+        uint8_t *windowPtr = windowPointerMap[key];
+        kv->get(windowPtr);
     }
 
     long MpiWorld::getLocalQueueSize(int sendRank, int recvRank) {
@@ -613,15 +622,20 @@ namespace mpi {
         }
     }
 
-    void MpiWorld::createWindow(const faasmpi_win_t *window, const uint8_t *initialData) {
+    void MpiWorld::createWindow(const faasmpi_win_t *window, uint8_t *windowPtr) {
         const std::string key = getWindowStateKey(id, window->rank, window->size);
-
         state::State &state = state::getGlobalState();
         const std::shared_ptr<state::StateKeyValue> windowKv = state.getKV(user, key, window->size);
 
         // Set initial value
-        windowKv->set(initialData);
+        windowKv->set(windowPtr);
         windowKv->pushFull();
+
+        // Add pointer to map
+        {
+            util::FullLock lock(worldMutex);
+            windowPointerMap[key] = windowPtr;
+        }
     }
 
     std::string MpiWorld::getUser() {
