@@ -81,14 +81,21 @@ namespace mpi {
 
         void barrier(int thisRank);
 
-        std::shared_ptr<InMemoryMpiQueue> getLocalQueue(int sendRank, int recvRank);
+        void rmaGet(int sendRank, faasmpi_datatype_t *sendType, int sendCount,
+                uint8_t* recvBuffer, faasmpi_datatype_t *recvType, int recvCount);
 
-        std::shared_ptr<InMemoryMpiQueue> getCollectiveQueue(int recvRank);
+        void rmaPut(uint8_t* sendBuffer, faasmpi_datatype_t *sendType, int sendCount,
+                    int recvRank, faasmpi_datatype_t *recvType, int recvCount);
+
+        std::shared_ptr<InMemoryMpiQueue> getLocalQueue(int sendRank, int recvRank);
 
         long getLocalQueueSize(int sendRank, int recvRank);
 
         void overrideNodeId(const std::string &newNodeId);
 
+        void createWindow(const faasmpi_win_t *window, const uint8_t* initialData);
+
+        void synchronizeRmaWrite(const MpiMessage *msg);
     private:
         int id;
         int size;
@@ -103,8 +110,6 @@ namespace mpi {
         std::unordered_map<int, std::string> rankNodeMap;
 
         std::unordered_map<std::string, std::shared_ptr<InMemoryMpiQueue>> localQueueMap;
-
-        std::unordered_map<std::string, std::shared_ptr<InMemoryMpiQueue>> collectiveQueueMap;
 
         std::shared_ptr<InMemoryMpiQueue> getInMemoryQueue(
                 std::unordered_map<std::string, std::shared_ptr<InMemoryMpiQueue>> &queueMap,

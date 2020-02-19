@@ -11,6 +11,7 @@ namespace mpi {
         REDUCE,
         ALLREDUCE,
         ALLTOALL,
+        RMA_WRITE,
     };
 
     struct MpiMessage {
@@ -20,10 +21,7 @@ namespace mpi {
         int destination;
         int type;
         int count;
+
         MpiMessageType messageType;
     };
-
-    bool isCollectiveMessage(MpiMessage *m);
-
-    bool isCollectiveMessage(MpiMessageType t);
 }

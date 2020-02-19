@@ -7,6 +7,7 @@
 #include <faasmpi/mpi.h>
 #include <scheduler/Scheduler.h>
 #include <mpi/MpiContext.h>
+#include <util/gids.h>
 
 
 namespace wasm {
@@ -52,6 +53,16 @@ namespace wasm {
         faasmpi_datatype_t *getFaasmDataType(I32 wasmPtr) {
             faasmpi_datatype_t *hostDataType = &Runtime::memoryRef<faasmpi_datatype_t>(memory, wasmPtr);
             return hostDataType;
+        }
+
+        faasmpi_info_t *getFaasmInfoType(I32 wasmPtr) {
+            faasmpi_info_t *hostInfoType = &Runtime::memoryRef<faasmpi_info_t>(memory, wasmPtr);
+            return hostInfoType;
+        }
+
+        faasmpi_win_t *getFaasmWindow(I32 wasmPtr) {
+            faasmpi_win_t *hostWin = &Runtime::memoryRef<faasmpi_win_t>(memory, wasmPtr);
+            return hostWin;
         }
 
         faasmpi_op_t *getFaasmOp(I32 wasmOp) {
@@ -412,7 +423,9 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Type_size", I32, MPI_Type_size, I32 typePtr, I32 res) {
         util::getLogger()->debug("S - MPI_Type_size {} {}", typePtr, res);
 
-        // TODO - switch on types
+        ContextWrapper ctx;
+        faasmpi_datatype_t *hostType = ctx.getFaasmDataType(typePtr);
+        ctx.writeMpiIntResult(res, hostType->size);
 
         return MPI_SUCCESS;
     }
@@ -423,7 +436,20 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Alloc_mem", I32, MPI_Alloc_mem, I32 memSize, I32 info, I32 resPtrPtr) {
         util::getLogger()->debug("S - MPI_Alloc_mem {} {} {}", memSize, info, resPtrPtr);
 
-        // TODO - call normal mmap
+        ContextWrapper ctx;
+        faasmpi_info_t *hostInfo = ctx.getFaasmInfoType(info);
+        if (hostInfo->id != FAASMPI_INFO_NULL) {
+            throw std::runtime_error("Non-null info not supported");
+        }
+
+        // Create the new memory region
+        WasmModule *module = getExecutingModule();
+        U32 mappedWasmPtr = module->mmapMemory(memSize);
+
+        // Write the result to the wasm memory (note that the argument passed to the
+        // function is a pointer to a pointer
+        I32 *hostResPtr = &Runtime::memoryRef<I32>(module->defaultMemory, resPtrPtr);
+        *hostResPtr = mappedWasmPtr;
 
         return MPI_SUCCESS;
     }
@@ -431,28 +457,38 @@ namespace wasm {
     /**
      * Creates a shared memory region (i.e. a chunk of Faasm state)
      */
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Win_create", I32, MPI_Win_create, I32 basePtr, I32 size, I32 unit,
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Win_create", I32, MPI_Win_create, I32 basePtr, I32 size, I32 dispUnit,
                                    I32 info, I32 comm, I32 winPtr) {
-        util::getLogger()->debug("S - MPI_Win_create {} {} {} {} {} {}", basePtr, size, unit, info, comm, winPtr);
+        util::getLogger()->debug("S - MPI_Win_create {} {} {} {} {} {}", basePtr, size, dispUnit, info, comm, winPtr);
 
-        // TODO - create state region
+        ContextWrapper ctx(comm);
+
+        // Set up the window object in the wasm memory
+        faasmpi_win_t *win = ctx.getFaasmWindow(winPtr);
+        win->worldId = ctx.world.getId();
+        win->size = size;
+        win->dispUnit = dispUnit;
+        win->rank = ctx.rank;
+        win->wasmPtr = basePtr;
+
+        U8 *hostPtr = &Runtime::memoryRef<U8>(getExecutingModule()->defaultMemory, basePtr);
+        ctx.world.createWindow(win, hostPtr);
 
         return MPI_SUCCESS;
     }
 
     /**
-     * A one-sided communication barrier. Ensures all RMA calls have completed before things proceed.
-     * Works as follows:
-     *   - Communicate that this rank has reached the fence
-     *   - Await notification from the root that the epoch has finished
-     *   - Resolve any pending notifications on collective queue before continuing
+     * Special type of barrier invoked to ensure all RMA operations have completed.
+     * In our case, colocated RMA is done instantly so we don't need to worry.
+     * RMA on another host is always followed with a notification on the same queue
+     * that handles barrier messages, therefore will always have been resolved before
+     * the barrier completes. For this reason we can just use the normal barrier.
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Win_fence", I32, MPI_Win_fence, I32 assert, I32 winPtr) {
         util::getLogger()->debug("S - MPI_Win_fence {} {}", assert, winPtr);
 
-        // TODO - initial barrier
-
-        // TODO - check for messages
+        ContextWrapper ctx;
+        ctx.world.barrier(ctx.rank);
 
         return MPI_SUCCESS;
     }
@@ -461,12 +497,19 @@ namespace wasm {
      * Pulls from remote state to a shared buffer. Just looks like a pull from Faasm
      * global state with the window specifying the key.
      */
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Get", I32, MPI_Get, I32 recvBuff, I32 recvCount, I32 recvDatatype,
-                                   I32 sendRank, I32 sendOffset, I32 sendCount, I32 sendDatatype, I32 winPtr) {
-        util::getLogger()->debug("S - MPI_Get {} {} {} {} {} {} {} {}", recvBuff, recvCount, recvDatatype,
-                                 sendRank, sendOffset, sendCount, sendDatatype, winPtr);
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Get", I32, MPI_Get, I32 recvBuff, I32 recvCount, I32 recvType,
+                                   I32 sendRank, I32 sendOffset, I32 sendCount, I32 sendType, I32 winPtr) {
+        util::getLogger()->debug("S - MPI_Get {} {} {} {} {} {} {} {}", recvBuff, recvCount, recvType,
+                                 sendRank, sendOffset, sendCount, sendType, winPtr);
 
-        // TODO - Pull from state for this window
+        // TODO - check ignoring the window here is ok
+
+        ContextWrapper ctx;
+        faasmpi_datatype_t *hostRecvDtype = ctx.getFaasmDataType(recvType);
+        faasmpi_datatype_t *hostSendDtype = ctx.getFaasmDataType(sendType);
+        auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuff, recvCount * hostRecvDtype->size);
+
+        ctx.world.rmaGet(sendRank, hostSendDtype, sendCount, hostRecvBuffer, hostRecvDtype, recvCount);
 
         return MPI_SUCCESS;
     }
@@ -479,14 +522,19 @@ namespace wasm {
      *  This notification message will then be resolved at the end of the
      *  epoch (if epoch is open).
      */
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Put", I32, MPI_Put, I32 sendBuff, I32 sendCount, I32 sendDatatype,
-                                   I32 recvRank, I32 recvOffset, I32 recvCount, I32 recvDatatype, I32 winPtr) {
-        util::getLogger()->debug("S - MPI_Put {} {} {} {} {} {} {} {}", sendBuff, sendCount, sendDatatype,
-                                 recvRank, recvOffset, recvCount, recvDatatype, winPtr);
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Put", I32, MPI_Put, I32 sendBuff, I32 sendCount, I32 sendType,
+                                   I32 recvRank, I32 recvOffset, I32 recvCount, I32 recvType, I32 winPtr) {
+        util::getLogger()->debug("S - MPI_Put {} {} {} {} {} {} {} {}", sendBuff, sendCount, sendType,
+                                 recvRank, recvOffset, recvCount, recvType, winPtr);
 
-        // TODO - Write to state
+        // TODO - check ignoring the window here is ok
 
-        // TODO - Send message re. Put
+        ContextWrapper ctx;
+        faasmpi_datatype_t *hostRecvDtype = ctx.getFaasmDataType(recvType);
+        faasmpi_datatype_t *hostSendDtype = ctx.getFaasmDataType(sendType);
+        auto hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, sendBuff, sendCount * hostSendDtype->size);
+
+        ctx.world.rmaPut(hostSendBuffer, hostSendDtype, sendCount, recvRank, hostRecvDtype, recvCount);
 
         return MPI_SUCCESS;
     }

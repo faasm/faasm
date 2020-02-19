@@ -4,10 +4,9 @@
 
 struct faasmpi_communicator_t faasmpi_comm_world{.id=FAASMPI_COMM_WORLD};
 
-struct faasmpi_datatype_t faasmpi_type_int{
-    .id=FAASMPI_INT,
-    .size=sizeof(int)
-};
+struct faasmpi_datatype_t faasmpi_type_int{.id=FAASMPI_INT, .size=sizeof(int)};
+struct faasmpi_datatype_t faasmpi_type_long{.id=FAASMPI_LONG, .size=sizeof(long)};
+struct faasmpi_datatype_t faasmpi_type_float{.id=FAASMPI_FLOAT, .size=sizeof(float)};
 
 struct faasmpi_info_t faasmpi_info_null{.id=FAASMPI_INFO_NULL};
 
@@ -22,4 +21,15 @@ struct faasmpi_op_t faasmpi_op_bor{.id=FAASMPI_OP_BOR};
 struct faasmpi_op_t faasmpi_op_maxloc{.id=FAASMPI_OP_MAXLOC};
 struct faasmpi_op_t faasmpi_op_minloc{.id=FAASMPI_OP_MINLOC};
 
-
+faasmpi_datatype_t *getFaasmDatatypeFromId(int datatypeId) {
+    switch (datatypeId) {
+        case FAASMPI_INT:
+            return MPI_INT;
+        case FAASMPI_LONG:
+            return MPI_LONG;
+        case FAASMPI_FLOAT:
+            return MPI_FLOAT;
+        default:
+            throw std::runtime_error("Unrecognised datatype ID: " + std::to_string(datatypeId));
+    }
+}

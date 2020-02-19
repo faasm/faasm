@@ -22,6 +22,9 @@ extern "C" {
 /*
  * Behind the scenes structs (some parts of which are defined in the MPI specification)
  * Each can be extended with private fields as necessary
+ *
+ * NOTE - be careful when passing this structs to and from WebAssembly. Any datatypes
+ * with *different* sizes in 32-/64-bit space need to be translated carefully
  */
 struct faasmpi_status_public_t {
     // These MPI_XXX fields are defined in the spec
@@ -50,11 +53,13 @@ struct faasmpi_message_t {
 };
 
 // Open MPI version: https://github.com/open-mpi/ompi/blob/master/ompi/win/win.h
+// TODO - can we globally uniquely identify a window from its world, rank and size?
 struct faasmpi_win_t {
-    int id;
+    int worldId;
     int rank;
-    int wasmPtr;
     int size;
+    int wasmPtr;
+    int dispUnit;
 };
 
 struct faasmpi_op_t {
@@ -75,8 +80,16 @@ extern struct faasmpi_communicator_t faasmpi_comm_world;
 
 // MPI_Datatypes
 #define FAASMPI_INT 1
+#define FAASMPI_LONG 2
+#define FAASMPI_FLOAT 3
 extern struct faasmpi_datatype_t faasmpi_type_int;
+extern struct faasmpi_datatype_t faasmpi_type_long;
+extern struct faasmpi_datatype_t faasmpi_type_float;
 #define MPI_INT &faasmpi_type_int
+#define MPI_LONG &faasmpi_type_long
+#define MPI_FLOAT &faasmpi_type_float
+
+faasmpi_datatype_t* getFaasmDatatypeFromId(int datatypeId);
 
 // MPI_Infos
 #define FAASMPI_INFO_NULL 1

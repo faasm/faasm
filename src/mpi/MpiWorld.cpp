@@ -37,6 +37,10 @@ namespace mpi {
         return "mpi_msg_" + std::to_string(messageId);
     }
 
+    std::string getWindowStateKey(int worldId, int rank, size_t size) {
+        return "mpi_win_" + std::to_string(worldId) + "_" + std::to_string(rank) + "_" + std::to_string(size);
+    }
+
     void MpiWorld::setUpStateKV() {
         if (stateKV == nullptr) {
             state::State &state = state::getGlobalState();
@@ -96,7 +100,6 @@ namespace mpi {
         }
 
         localQueueMap.clear();
-        collectiveQueueMap.clear();
     }
 
     void MpiWorld::initialiseFromState(const message::Message &msg, int worldId) {
@@ -197,13 +200,8 @@ namespace mpi {
 
         // Dispatch the message locally or globally
         if (isLocal) {
-            if (isCollectiveMessage(m)) {
-                logger->trace("MPI - send collective {} -> {}", sendRank, recvRank);
-                getCollectiveQueue(recvRank)->enqueue(m);
-            } else {
-                logger->trace("MPI - send {} -> {}", sendRank, recvRank);
-                getLocalQueue(sendRank, recvRank)->enqueue(m);
-            }
+            logger->trace("MPI - send {} -> {}", sendRank, recvRank);
+            getLocalQueue(sendRank, recvRank)->enqueue(m);
         } else {
             logger->trace("MPI - send remote {} -> {}", sendRank, recvRank);
             MpiGlobalBus &bus = mpi::getMpiGlobalBus();
@@ -327,13 +325,8 @@ namespace mpi {
 
         // Listen to the in-memory queue for this rank and message type
         const MpiMessage *m;
-        if (isCollectiveMessage(messageType)) {
-            logger->trace("MPI - recv collective {} -> {}", sendRank, recvRank);
-            m = getCollectiveQueue(recvRank)->dequeue();
-        } else {
-            logger->trace("MPI - recv {} -> {}", sendRank, recvRank);
-            m = getLocalQueue(sendRank, recvRank)->dequeue();
-        }
+        logger->trace("MPI - recv {} -> {}", sendRank, recvRank);
+        m = getLocalQueue(sendRank, recvRank)->dequeue();
 
         if (m->count > count) {
             logger->error("Message too long for buffer (msg={}, buffer={})", m->count, count);
@@ -384,9 +377,9 @@ namespace mpi {
                 }
 
                 if (operation->id == faasmpi_op_sum.id) {
-                    if(datatype->id == FAASMPI_INT) {
-                        auto recvInts = reinterpret_cast<int*>(recvBuffer);
-                        auto resultInts = reinterpret_cast<int*>(resultBuffer);
+                    if (datatype->id == FAASMPI_INT) {
+                        auto recvInts = reinterpret_cast<int *>(recvBuffer);
+                        auto resultInts = reinterpret_cast<int *>(resultBuffer);
 
                         for (int i = 0; i < count; i++) {
                             recvInts[i] += resultInts[i];
@@ -508,13 +501,11 @@ namespace mpi {
             throw std::runtime_error("Queueing message not for this world");
         }
 
-        if (isCollectiveMessage(msg)) {
-            // Collective message
-            logger->trace("Queueing collective locally {} -> {}", msg->sender, msg->destination);
-            getCollectiveQueue(msg->destination)->enqueue(msg);
+        if (msg->messageType == MpiMessageType::RMA_WRITE) {
+            // NOTE - RMA notifications must be processed synchronously to ensure ordering
+            synchronizeRmaWrite(msg);
         } else {
-            // Normal message
-            logger->trace("Queueing normal locally {} -> {}", msg->sender, msg->destination);
+            logger->trace("Queueing message locally {} -> {}", msg->sender, msg->destination);
             getLocalQueue(msg->sender, msg->destination)->enqueue(msg);
         }
     }
@@ -524,13 +515,6 @@ namespace mpi {
 
         std::string key = std::to_string(sendRank) + "_" + std::to_string(recvRank);
         return getInMemoryQueue(localQueueMap, key);
-    }
-
-    std::shared_ptr<InMemoryMpiQueue> MpiWorld::getCollectiveQueue(int recvRank) {
-        checkRankOnThisNode(recvRank);
-
-        std::string key = "collective_" + std::to_string(recvRank);
-        return getInMemoryQueue(collectiveQueueMap, key);
     }
 
     std::shared_ptr<InMemoryMpiQueue> MpiWorld::getInMemoryQueue(
@@ -549,6 +533,54 @@ namespace mpi {
         return queueMap[key];
     }
 
+    void MpiWorld::rmaGet(int sendRank, faasmpi_datatype_t *sendType, int sendCount,
+                          uint8_t *recvBuffer, faasmpi_datatype_t *recvType, int recvCount) {
+        checkSendRecvMatch(sendType, sendCount, recvType, recvCount);
+
+        // Get the state value that relates to this window
+        int buffLen = sendType->size * sendCount;
+        const std::string stateKey = getWindowStateKey(id, sendRank, buffLen);
+        state::State &state = state::getGlobalState();
+        const std::shared_ptr<state::StateKeyValue> &kv = state.getKV(user, stateKey, buffLen);
+
+        // If it's remote, do a pull too
+        if (getNodeForRank(sendRank) != thisNodeId) {
+            kv->pull();
+        }
+
+        // Do the read
+        kv->get(recvBuffer);
+    }
+
+    void MpiWorld::rmaPut(uint8_t *sendBuffer, faasmpi_datatype_t *sendType, int sendCount,
+                          int recvRank, faasmpi_datatype_t *recvType, int recvCount) {
+        checkSendRecvMatch(sendType, sendCount, recvType, recvCount);
+
+        // Get the state value for the window to write to
+        int buffLen = sendType->size * sendCount;
+        const std::string stateKey = getWindowStateKey(id, recvRank, buffLen);
+        state::State &state = state::getGlobalState();
+        const std::shared_ptr<state::StateKeyValue> &kv = state.getKV(user, stateKey, buffLen);
+
+        // Do the write
+        kv->set(sendBuffer);
+
+        // If it's remote, do a push too
+        if (getNodeForRank(recvRank) != thisNodeId) {
+            kv->pushFull();
+        }
+    }
+
+    void MpiWorld::synchronizeRmaWrite(const MpiMessage *msg) {
+        faasmpi_datatype_t *datatype = getFaasmDatatypeFromId(msg->type);
+        int winSize = msg->count * datatype->size;
+        const std::string &key = getWindowStateKey(id, msg->destination, winSize);
+
+        // Pull the state related to the window
+        state::State &state = state::getGlobalState();
+        state.getKV(user, key, winSize)->pull();
+    }
+
     long MpiWorld::getLocalQueueSize(int sendRank, int recvRank) {
         const std::shared_ptr<InMemoryMpiQueue> &queue = getLocalQueue(sendRank, recvRank);
         return queue->size();
@@ -565,6 +597,17 @@ namespace mpi {
             logger->error("Trying to access rank {} on {} but it's on {}", rank, thisNodeId, rankNodeMap[rank]);
             throw std::runtime_error("Accessing in-memory queue for remote rank");
         }
+    }
+
+    void MpiWorld::createWindow(const faasmpi_win_t *window, const uint8_t *initialData) {
+        const std::string key = getWindowStateKey(id, window->rank, window->size);
+
+        state::State &state = state::getGlobalState();
+        const std::shared_ptr<state::StateKeyValue> windowKv = state.getKV(user, key, window->size);
+
+        // Set initial value
+        windowKv->set(initialData);
+        windowKv->pushFull();
     }
 
     std::string MpiWorld::getUser() {
