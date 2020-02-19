@@ -200,8 +200,13 @@ namespace mpi {
 
         // Dispatch the message locally or globally
         if (isLocal) {
-            logger->trace("MPI - send {} -> {}", sendRank, recvRank);
-            getLocalQueue(sendRank, recvRank)->enqueue(m);
+            if(messageType == MpiMessageType::RMA_WRITE) {
+                logger->trace("MPI - local RMA write {} -> {}", sendRank, recvRank);
+                // Don't need to do anything for RMA writes locally (already written to state)
+            } else {
+                logger->trace("MPI - send {} -> {}", sendRank, recvRank);
+                getLocalQueue(sendRank, recvRank)->enqueue(m);
+            }
         } else {
             logger->trace("MPI - send remote {} -> {}", sendRank, recvRank);
             MpiGlobalBus &bus = mpi::getMpiGlobalBus();
@@ -327,6 +332,11 @@ namespace mpi {
         const MpiMessage *m;
         logger->trace("MPI - recv {} -> {}", sendRank, recvRank);
         m = getLocalQueue(sendRank, recvRank)->dequeue();
+
+        if(messageType != m->messageType) {
+            logger->error("Message types mismatched (expected={}, got={})", messageType, m->messageType);
+            throw std::runtime_error("Mismatched message types");
+        }
 
         if (m->count > count) {
             logger->error("Message too long for buffer (msg={}, buffer={})", m->count, count);
