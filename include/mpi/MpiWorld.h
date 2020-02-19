@@ -84,7 +84,7 @@ namespace mpi {
         void rmaGet(int sendRank, faasmpi_datatype_t *sendType, int sendCount,
                 uint8_t* recvBuffer, faasmpi_datatype_t *recvType, int recvCount);
 
-        void rmaPut(uint8_t* sendBuffer, faasmpi_datatype_t *sendType, int sendCount,
+        void rmaPut(int sendRank, uint8_t* sendBuffer, faasmpi_datatype_t *sendType, int sendCount,
                     int recvRank, faasmpi_datatype_t *recvType, int recvCount);
 
         std::shared_ptr<InMemoryMpiQueue> getLocalQueue(int sendRank, int recvRank);

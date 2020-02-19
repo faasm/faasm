@@ -188,7 +188,7 @@ namespace mpi {
         bool isLocal = otherNodeId == thisNodeId;
 
         // Set up message data in state (must obviously be done before dispatching)
-        if (count > 0) {
+        if (count > 0 && buffer != nullptr) {
             const std::shared_ptr<state::StateKeyValue> &kv = getMessageState(msgId, dataType, count);
             kv->set(buffer);
 
@@ -552,7 +552,7 @@ namespace mpi {
         kv->get(recvBuffer);
     }
 
-    void MpiWorld::rmaPut(uint8_t *sendBuffer, faasmpi_datatype_t *sendType, int sendCount,
+    void MpiWorld::rmaPut(int sendRank, uint8_t *sendBuffer, faasmpi_datatype_t *sendType, int sendCount,
                           int recvRank, faasmpi_datatype_t *recvType, int recvCount) {
         checkSendRecvMatch(sendType, sendCount, recvType, recvCount);
 
@@ -569,12 +569,16 @@ namespace mpi {
         if (getNodeForRank(recvRank) != thisNodeId) {
             kv->pushFull();
         }
+
+        // Notify the receiver of the push
+        // NOTE - must specify a count here to say how big the change is
+        send(sendRank, recvRank, nullptr, MPI_INT, sendCount, MpiMessageType::RMA_WRITE);
     }
 
     void MpiWorld::synchronizeRmaWrite(const MpiMessage *msg) {
         faasmpi_datatype_t *datatype = getFaasmDatatypeFromId(msg->type);
         int winSize = msg->count * datatype->size;
-        const std::string &key = getWindowStateKey(id, msg->destination, winSize);
+        const std::string key = getWindowStateKey(id, msg->destination, winSize);
 
         // Pull the state related to the window
         state::State &state = state::getGlobalState();

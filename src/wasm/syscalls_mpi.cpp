@@ -534,7 +534,7 @@ namespace wasm {
         faasmpi_datatype_t *hostSendDtype = ctx.getFaasmDataType(sendType);
         auto hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, sendBuff, sendCount * hostSendDtype->size);
 
-        ctx.world.rmaPut(hostSendBuffer, hostSendDtype, sendCount, recvRank, hostRecvDtype, recvCount);
+        ctx.world.rmaPut(ctx.rank, hostSendBuffer, hostSendDtype, sendCount, recvRank, hostRecvDtype, recvCount);
 
         return MPI_SUCCESS;
     }

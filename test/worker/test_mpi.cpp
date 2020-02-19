@@ -42,6 +42,10 @@ namespace tests {
         checkMpiFunc("mpi_order");
     }
 
+    TEST_CASE("Test MPI one-sided comms", "[wasm]") {
+        checkMpiFunc("mpi_onesided");
+    }
+
     TEST_CASE("Test MPI probe", "[wasm]") {
         checkMpiFunc("mpi_probe");
     }
