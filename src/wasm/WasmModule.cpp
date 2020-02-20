@@ -377,18 +377,35 @@ namespace wasm {
             logger->debug("heap_top={} initial_pages={} initial_table={}", initialMemorySize, initialMemoryPages,
                           initialTableSize);
 
-            // Set up invoke arguments just below the top of the memory (i.e. at the top of the dynamic section)
-            U32 argvStart = initialMemorySize - 20;
-            U32 argc = 0;
+            // Here we set up the arguments to main(), i.e. argc and argv
+            // We allow passing of arbitrary commandline arguments via the invocation message.
+            // These are passed as a string with a space separating each argument.
+            const std::vector<std::string> argv = util::getArgvForMessage(msg);
+            U32 argc = argv.size();
+            size_t argvSize = argv.size() * sizeof(U32);
 
-            // Copy the function name into argv[0]
-//            U32 argv0 = argvStart + sizeof(U32);
-//            char *argv0Host = &Runtime::memoryRef<char>(defaultMemory, argv0);
-//            strcpy(argv0Host, "function.wasm");
-//
-//            // Copy the offset of argv[0] into position
-//            Runtime::memoryRef<U32>(defaultMemory, argvStart) = argv0;
-            invokeArgs = {argc, argvStart};
+            // Create a new page for argv and its values to live in. At the start we put the array of
+            // char pointers (i.e. the actual argv char* array), then above that we place the actual
+            // strings.
+            U32 argvPointersOffset = mmapMemory(1);
+            U32 argvValuesOffset = argvPointersOffset + argvSize + 10;
+            U32 *argvPointersHost = &Runtime::memoryRef<U32>(defaultMemory, argvPointersOffset);
+            char *argvValuesHost = &Runtime::memoryRef<char>(defaultMemory, argvValuesOffset);
+
+            for(int i = 0; i < argv.size(); i++) {
+                const std::string thisArgv = argv[i];
+
+                // Write this string to memory and record its pointer
+                std::copy(thisArgv.begin(), thisArgv.end(), argvValuesHost);
+                argvPointersHost[i] = argvValuesOffset;
+
+                // Move both pointers and values offset along
+                argvValuesHost += thisArgv.size();
+                argvValuesOffset += thisArgv.size();
+            }
+
+            // Create the vector with argc and the pointer to argv
+            invokeArgs = {argc, argvPointersOffset};
         }
 
         PROF_END(wasmBind)

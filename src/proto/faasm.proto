@@ -43,4 +43,6 @@ message Message {
     optional bool isMpi = 23;
     optional int32 mpiWorldId = 24;
     optional int32 mpiRank = 25;
+
+    optional string cmdline = 26;
 }

@@ -268,4 +268,18 @@ namespace util {
         k += std::to_string(mid);
         return k;
     }
+
+    std::vector<std::string> getArgvForMessage(const message::Message &msg) {
+        // We always have some arbitrary script name as argv[0]
+        std::vector<std::string> argv = {"function.wasm"};
+
+        if (msg.cmdline().empty()) {
+            return argv;
+        }
+
+        const std::vector<std::string> extraArgs = util::tokeniseString(msg.cmdline(), ' ');
+        argv.insert(argv.end(), extraArgs.begin(), extraArgs.end());
+
+        return argv;
+    }
 }
