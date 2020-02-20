@@ -614,7 +614,15 @@ namespace wasm {
 
         return MPI_SUCCESS;
     }
-    
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Wtime", F64, MPI_Wtime) {
+        util::getLogger()->debug("S - MPI_Wtime");
+
+        ContextWrapper ctx;
+        double t = ctx.world.getWTime();
+        return (F64) t;
+    }
+
     void mpiLink() {
 
     }
