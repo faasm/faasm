@@ -30,6 +30,6 @@ faasmpi_datatype_t *getFaasmDatatypeFromId(int datatypeId) {
         case FAASMPI_FLOAT:
             return MPI_FLOAT;
         default:
-            throw std::runtime_error("Unrecognised datatype ID: " + std::to_string(datatypeId));
+            throw std::runtime_error("Unrecognised datatype ID\n");
     }
 }

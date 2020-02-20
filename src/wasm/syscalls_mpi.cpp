@@ -60,7 +60,8 @@ namespace wasm {
             return hostInfoType;
         }
 
-        faasmpi_win_t *getFaasmWindow(I32 wasmPtr) {
+        faasmpi_win_t *getFaasmWindowFromPointer(I32 wasmPtrPtr) {
+            I32 wasmPtr = Runtime::memoryRef<I32>(memory, wasmPtrPtr);
             faasmpi_win_t *hostWin = &Runtime::memoryRef<faasmpi_win_t>(memory, wasmPtr);
             return hostWin;
         }
@@ -448,15 +449,17 @@ namespace wasm {
 
     /**
      * Creates a shared memory region (i.e. a chunk of Faasm state)
+     * NOTE - we are passed a pointer to an MPI_Win which is itself a pointer.
+     * Therefore we have a pointer to a pointer.
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Win_create", I32, MPI_Win_create, I32 basePtr, I32 size, I32 dispUnit,
-                                   I32 info, I32 comm, I32 winPtr) {
-        util::getLogger()->debug("S - MPI_Win_create {} {} {} {} {} {}", basePtr, size, dispUnit, info, comm, winPtr);
+                                   I32 info, I32 comm, I32 winPtrPtr) {
+        util::getLogger()->debug("S - MPI_Win_create {} {} {} {} {} {}", basePtr, size, dispUnit, info, comm, winPtrPtr);
 
         ContextWrapper ctx(comm);
 
         // Set up the window object in the wasm memory
-        faasmpi_win_t *win = ctx.getFaasmWindow(winPtr);
+        faasmpi_win_t *win = ctx.getFaasmWindowFromPointer(winPtrPtr);
         win->worldId = ctx.world.getId();
         win->size = size;
         win->dispUnit = dispUnit;

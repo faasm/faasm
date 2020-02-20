@@ -50,6 +50,10 @@ namespace tests {
         checkMpiFunc("mpi_probe");
     }
 
+    TEST_CASE("Test MPI put", "[wasm]") {
+        checkMpiFunc("mpi_put");
+    }
+
     TEST_CASE("Test MPI reduce", "[wasm]") {
         checkMpiFunc("mpi_reduce");
     }
@@ -60,5 +64,13 @@ namespace tests {
 
     TEST_CASE("Test MPI status", "[wasm]") {
         checkMpiFunc("mpi_status");
+    }
+
+    TEST_CASE("Test MPI type sizes", "[wasm]") {
+        checkMpiFunc("mpi_typesize");
+    }
+
+    TEST_CASE("Test MPI window creation", "[wasm]") {
+        checkMpiFunc("mpi_wincreate");
     }
 }
