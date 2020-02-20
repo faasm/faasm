@@ -173,7 +173,7 @@ namespace wasm {
 
         void addModuleToGOT(IR::Module &mod, bool isMainModule);
 
-        std::vector<IR::UntaggedValue> setArgcArgv(const message::Message &msg);
+        std::vector<IR::UntaggedValue> getArgcArgv(const message::Message &msg);
 
         Runtime::Instance *createModuleInstance(
                 const std::string &name,

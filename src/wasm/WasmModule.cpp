@@ -380,7 +380,12 @@ namespace wasm {
         PROF_END(wasmBind)
     }
 
-    std::vector<IR::UntaggedValue> WasmModule::setArgcArgv(const message::Message &msg) {
+    std::vector<IR::UntaggedValue> WasmModule::getArgcArgv(const message::Message &msg) {
+        if(msg.cmdline().empty()) {
+            // Return argc=0 argv=NULL if no commandline args specified
+            return {0, 0};
+        }
+
         // Here we set up the arguments to main(), i.e. argc and argv
         // We allow passing of arbitrary commandline arguments via the invocation message.
         // These are passed as a string with a space separating each argument.
@@ -659,7 +664,7 @@ namespace wasm {
         int exitCode = 0;
 
         // Set up arguments
-        std::vector<IR::UntaggedValue> invokeArgs = setArgcArgv(msg);
+        std::vector<IR::UntaggedValue> invokeArgs = getArgcArgv(msg);
 
         try {
             // Call the function
