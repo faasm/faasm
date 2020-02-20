@@ -50,7 +50,7 @@ FAASM_MAIN_FUNC() {
     for (int i = 0; i < NUM_ELEMENT; i++) {
         // Populate the existing shared mem along with a copy
         sharedData[i] = 10 * rank + i;
-        putData[i]  10 * rank + i;
+        putData[i] = 10 * rank + i;
 
         // Data we expect to get from one rank and have put into our shared mem by another
         expectedGetData[i] = 10 * getRank + i;
