@@ -23,7 +23,7 @@ namespace tests {
         message::Message msg = util::messageFactory("demo", "getdents");
 
         const std::string result = execFunctionWithStringResult(msg);
-        std::vector<std::string> actual = util::tokeniseString(result, ',');
+        std::vector<std::string> actual = util::splitString(result, ',');
 
         // Check we have a sensible number
         REQUIRE(actual.size() > 3);

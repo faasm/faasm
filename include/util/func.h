@@ -57,6 +57,8 @@ namespace util {
 
     std::vector<uint8_t> messageToBytes(const message::Message &msg);
 
+    std::vector<std::string> getArgvForMessage(const message::Message &msg);
+
     class InvalidFunctionException : public util::FaasmException {
     public:
         explicit InvalidFunctionException(std::string message): FaasmException(std::move(message)) {

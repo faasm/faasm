@@ -34,6 +34,8 @@ namespace tests {
         msg.set_mpiworldid(1234);
         msg.set_mpirank(5678);
 
+        msg.set_cmdline("some cmdline");
+
         SECTION("Dodgy characters") {
             msg.set_inputdata("[0], %$ 2233 9");
         }

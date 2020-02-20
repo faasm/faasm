@@ -24,8 +24,8 @@ namespace tests {
         std::vector<std::string> expectedA = {"one", "string"};
         std::vector<std::string> expectedB = {"another", "string", "with", "other", "stuff"};
 
-        REQUIRE(tokeniseString(strA, ' ') == expectedA);
-        REQUIRE(tokeniseString(strB, ' ') == expectedB);
+        REQUIRE(splitString(strA, ' ') == expectedA);
+        REQUIRE(splitString(strB, ' ') == expectedB);
     }
 
     TEST_CASE("Test is all whitespace", "[util]") {

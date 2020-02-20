@@ -4,7 +4,7 @@
 #include <vector>
 
 namespace util {
-    std::vector<std::string> tokeniseString(const std::string &input, char delimiter);
+    std::vector<std::string> splitString(const std::string &input, char delimiter);
 
     bool isAllWhitespace(const std::string &input);
 

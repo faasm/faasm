@@ -32,6 +32,8 @@ namespace tests {
         std::vector<uint8_t> inputData = createInput(0, 100);
         std::vector<uint8_t> outputData = createInput(120, 50);
 
+        std::string cmdline = "some cmdline args";
+
         funcCall.set_user(user);
         funcCall.set_function(func);
         funcCall.set_resultkey(resultKey);
@@ -50,6 +52,8 @@ namespace tests {
         funcCall.set_isflushrequest(true);
 
         funcCall.set_type(message::Message_MessageType_BIND);
+
+        funcCall.set_cmdline(cmdline);
 
         REQUIRE(funcCall.type() == message::Message_MessageType_BIND);
         REQUIRE(user == funcCall.user());
@@ -76,6 +80,8 @@ namespace tests {
         REQUIRE(newFuncCall.istypescript());
         REQUIRE(newFuncCall.isstatusrequest());
         REQUIRE(newFuncCall.isflushrequest());
+
+        REQUIRE(cmdline == newFuncCall.cmdline());
 
         // Check input/ output data
         const std::string actualStrInput = newFuncCall.inputdata();
