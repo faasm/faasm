@@ -42,8 +42,16 @@ namespace tests {
         checkMpiFunc("mpi_order");
     }
 
+    TEST_CASE("Test MPI one-sided comms", "[wasm]") {
+        checkMpiFunc("mpi_onesided");
+    }
+
     TEST_CASE("Test MPI probe", "[wasm]") {
         checkMpiFunc("mpi_probe");
+    }
+
+    TEST_CASE("Test MPI put", "[wasm]") {
+        checkMpiFunc("mpi_put");
     }
 
     TEST_CASE("Test MPI reduce", "[wasm]") {
@@ -56,5 +64,13 @@ namespace tests {
 
     TEST_CASE("Test MPI status", "[wasm]") {
         checkMpiFunc("mpi_status");
+    }
+
+    TEST_CASE("Test MPI type sizes", "[wasm]") {
+        checkMpiFunc("mpi_typesize");
+    }
+
+    TEST_CASE("Test MPI window creation", "[wasm]") {
+        checkMpiFunc("mpi_wincreate");
     }
 }

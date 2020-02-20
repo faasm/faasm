@@ -9,9 +9,7 @@ FAASM_MAIN_FUNC() {
     MPI_Init(NULL, NULL);
 
     int rank;
-    int worldSize;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &worldSize);
 
     // Get name of host
     char name[MPI_MAX_PROCESSOR_NAME];
@@ -39,14 +37,13 @@ FAASM_MAIN_FUNC() {
     }
 
     // Generate some data
-    int dataSize;
+    int dataSize = sizeof(int);
     MPI_Type_size(MPI_INT, &dataSize);
     MPI_Aint memSize = NUM_ELEMENT * dataSize;
     int *sharedData;
     MPI_Alloc_mem(memSize, MPI_INFO_NULL, &sharedData);
 
     int putData[NUM_ELEMENT];
-
     int expectedGetData[NUM_ELEMENT];
     int expectedPutData[NUM_ELEMENT];
 
@@ -62,11 +59,11 @@ FAASM_MAIN_FUNC() {
 
     // Create a window on the shared data
     MPI_Win window;
-    MPI_Win_create(sharedData, NUM_ELEMENT * dataSize, dataSize, MPI_INFO_NULL, MPI_COMM_WORLD, &window);
+    MPI_Win_create(sharedData, NUM_ELEMENT * dataSize, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &window);
+    MPI_Win_fence(0, window);
 
     // Get data from another rank's shared memory
     int actual[NUM_ELEMENT];
-    MPI_Win_fence(0, window);
     if (rank < 3) {
         MPI_Get(actual, NUM_ELEMENT, MPI_INT, getRank, 0, NUM_ELEMENT, MPI_INT, window);
     }
@@ -80,17 +77,20 @@ FAASM_MAIN_FUNC() {
     }
 
     // Put values to another rank
-    MPI_Win_fence(0, window);
     if (rank < 3) {
         MPI_Put(putData, NUM_ELEMENT, MPI_INT, putRank, 0, NUM_ELEMENT, MPI_INT, window);
     }
     MPI_Win_fence(0, window);
 
     // Check we've had the expected data put in our memory
-    if (rank < 3 && !faasm::compareIntArrays(sharedData, expectedPutData, NUM_ELEMENT)) {
-        return 1;
-    } else if (rank < 3) {
-        printf("Rank %i - MPI_Put as expected\n", rank);
+    if(rank < 3) {
+        bool putDataEqual = faasm::compareIntArrays(sharedData, expectedPutData, NUM_ELEMENT);
+
+        if (!putDataEqual) {
+            return 1;
+        } else if (rank < 3) {
+            printf("Rank %i - MPI_Put as expected\n", rank);
+        }
     }
 
     MPI_Win_free(&window);

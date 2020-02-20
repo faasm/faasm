@@ -38,9 +38,12 @@ mpi_func(mpi_gather mpi_gather.cpp)
 mpi_func(mpi_onesided mpi_onesided.cpp)
 mpi_func(mpi_order mpi_order.cpp)
 mpi_func(mpi_probe mpi_probe.cpp)
+mpi_func(mpi_put mpi_put.cpp)
 mpi_func(mpi_reduce mpi_reduce.cpp)
 mpi_func(mpi_scatter mpi_scatter.cpp)
 mpi_func(mpi_status mpi_status.cpp)
+mpi_func(mpi_typesize mpi_typesize.cpp)
+mpi_func(mpi_wincreate mpi_wincreate.cpp)
 
 mpi_func(hellompi hellompi.cpp)
 

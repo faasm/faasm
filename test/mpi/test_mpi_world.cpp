@@ -751,4 +751,67 @@ namespace tests {
         }
 
     }
+
+    TEST_CASE("Test RMA across nodes", "[mpi]") {
+        cleanSystem();
+        std::string nodeIdA = util::randomString(NODE_ID_LEN);
+        std::string nodeIdB = util::randomString(NODE_ID_LEN);
+
+        const message::Message &msg = util::messageFactory(user, func);
+        mpi::MpiWorld worldA;
+        worldA.overrideNodeId(nodeIdA);
+        worldA.create(msg, worldId, worldSize);
+
+        mpi::MpiWorld worldB;
+        worldB.overrideNodeId(nodeIdB);
+        worldB.initialiseFromState(msg, worldId);
+
+        // Register four ranks
+        int rankA1 = 1;
+        int rankA2 = 2;
+        int rankB1 = 3;
+        int rankB2 = 4;
+        worldA.registerRank(rankA1);
+        worldA.registerRank(rankA2);
+        worldB.registerRank(rankB1);
+        worldB.registerRank(rankB2);
+
+        std::vector<int> dataA1 = {0, 1, 2, 3};
+        int dataCount = (int) dataA1.size();
+        int bufferSize = dataCount * sizeof(int);
+
+        MpiGlobalBus &bus = mpi::getMpiGlobalBus();
+
+        // Create a window
+        faasmpi_win_t winA1{
+                .worldId=worldA.getId(),
+                .size = bufferSize,
+                .rank = rankA1,
+        };
+        worldA.createWindow(&winA1, BYTES(dataA1.data()));
+
+        SECTION("RMA Get from another world") {
+            // Get the window on another node
+            std::vector<int> actual = {0, 0, 0, 0};
+            worldB.rmaGet(rankA1, MPI_INT, dataCount, BYTES(actual.data()), MPI_INT, dataCount);
+            REQUIRE(actual == dataA1);
+        }
+
+        SECTION("RMA Put to another world") {
+            // Do the put
+            std::vector<int> putData = {10, 11, 12, 13};
+            worldB.rmaPut(rankB1, BYTES(putData.data()), MPI_INT, dataCount, rankA1, MPI_INT, dataCount);
+
+            // Resolve the notification
+            worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
+
+            // Make sure it's been copied to the memory location
+            REQUIRE(dataA1 == putData);
+
+            // Check that getting still works
+            std::vector<int> actual = {0, 0, 0, 0};
+            worldA.rmaGet(rankA1, MPI_INT, dataCount, BYTES(actual.data()), MPI_INT, dataCount);
+            REQUIRE(actual == putData);
+        }
+    }
 }
