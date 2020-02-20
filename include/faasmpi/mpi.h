@@ -1,7 +1,7 @@
 #ifndef FAASM_MPI_H
 #define FAASM_MPI_H
 
-#include <cstddef>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -89,7 +89,7 @@ extern struct faasmpi_datatype_t faasmpi_type_float;
 #define MPI_LONG &faasmpi_type_long
 #define MPI_FLOAT &faasmpi_type_float
 
-faasmpi_datatype_t* getFaasmDatatypeFromId(int datatypeId);
+struct faasmpi_datatype_t* getFaasmDatatypeFromId(int datatypeId);
 
 // MPI_Infos
 #define FAASMPI_INFO_NULL 1
