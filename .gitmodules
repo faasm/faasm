@@ -34,3 +34,6 @@
 [submodule "third-party/faasm-demo-c"]
 	path = third-party/faasm-demo-c
 	url = https://github.com/Shillaker/faasm-demo-c.git
+[submodule "third-party/ParResKernels"]
+	path = third-party/ParResKernels
+	url = https://github.com/Shillaker/Kernels

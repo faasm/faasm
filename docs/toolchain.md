@@ -24,14 +24,6 @@ inv download-runtime-root
 
 # Building
 
-## Building runtime
-
-To build, package and upload the runtime root, you can run:
-
-```
-inv backup-runtime-root
-```
-
 ## Building Toolchain
 
 To build from scratch you just need to be in the `toolchain` directory, then run:
@@ -65,16 +57,6 @@ make clean-all
 make
 ```
 
-## Updating the Toolchain
-
-If you've built a new toolchain and need to update the remote version:
-
-```
-inv backup-toolchain
-```
-
-Note that this will copy your local version of the sysroot too.
-
 ## Troubleshooting the build
 
 If a given project fails you need to go to the build dir (e.g. for `libcxx` this would be `third-party/llvm-project/build/libcxx`) then look at `CMakeFiles/CMakeError.log` and `CMakeFiles/CMakeOutput.log`.
@@ -95,3 +77,16 @@ You will need to set this target explicitly the relevant CMake/ Makefile (as the
 
 SIMD support is also in flux but possible to switch on with `-msimd128` and `-munimplemented-simd128`.
 
+## Toolchain Updates
+
+When updating the underlying LLVM version of the toolchain you'll need to do the following:
+
+- Bump up the Faasm version (see `docs/versioning.md`)
+- Rebuild the toolchain itself (based on instructions above)
+- Rebuild the basic sysroot (`inv compile-libc compile-eigen compile-libfaasm`)
+- Rebuild 3rd party libraries (Pyodide and Tensorflow, see relevant docs)
+- Rebuild and upload _all_ wasm functions (all those under `funcs`)
+- Set up the runtime root (see Python docs and Ansible `runtime_fs.yml` playbook)
+- Make sure all the tests run
+- Create a new Github release (see `docs/releases.md`)
+- Rebuild all Docker images for this new release (see `docs/versioning.md`)

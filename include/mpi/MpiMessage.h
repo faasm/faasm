@@ -5,6 +5,12 @@ namespace mpi {
         NORMAL,
         BARRIER_JOIN,
         BARRIER_DONE,
+        SCATTER,
+        GATHER,
+        ALLGATHER,
+        REDUCE,
+        ALLREDUCE,
+        ALLTOALL,
     };
 
     struct MpiMessage {
@@ -16,4 +22,8 @@ namespace mpi {
         int count;
         MpiMessageType messageType;
     };
+
+    bool isCollectiveMessage(MpiMessage *m);
+
+    bool isCollectiveMessage(MpiMessageType t);
 }

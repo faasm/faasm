@@ -18,6 +18,16 @@ namespace knative {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("Knative handler received request");
 
+        // Very permissive CORS
+        response.headers().add<Pistache::Http::Header::AccessControlAllowOrigin>("*");
+        response.headers().add<Pistache::Http::Header::AccessControlAllowMethods>("GET,POST,PUT,OPTIONS");
+        response.headers().add<Pistache::Http::Header::AccessControlAllowHeaders>("User-Agent,Content-Type");
+
+        // Text response type
+        response.headers().add<Pistache::Http::Header::ContentType>(
+                Pistache::Http::Mime::MediaType("text/plain")
+        );
+
         PROF_START(knativeRoundTrip)
 
         // Set response timeout
@@ -37,10 +47,10 @@ namespace knative {
             responseStr = "Empty request";
         } else {
             message::Message msg = util::jsonToMessage(requestStr);
-            if(msg.isstatusrequest()) {
+            if (msg.isstatusrequest()) {
                 scheduler::GlobalMessageBus &msgBus = scheduler::getGlobalMessageBus();
                 responseStr = msgBus.getMessageStatus(msg.id());
-            } else if(msg.isflushrequest()) {
+            } else if (msg.isflushrequest()) {
                 const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
                 logger->debug("Broadcasting flush request");
 

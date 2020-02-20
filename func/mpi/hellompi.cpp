@@ -14,21 +14,19 @@ FAASM_MAIN_FUNC() {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
-    // Check how big the world is
-    if (world_size < 2) {
-        printf("World size must be greater than 1\n");
-        MPI_Abort(MPI_COMM_WORLD, 1);
+    if(rank == 0) {
+        printf("MPI world size %i\n", world_size);
     }
 
-    int number;
-    if (rank == 0) {
-        number = -1;
-        MPI_Send(&number, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
+    int message;
+    if(rank == 0) {
+        message = 123;
+    } else {
+        message = -1;
     }
-//    else if (world_rank == 1) {
-//        MPI_Recv(&number, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-//        printf("Process 1 received number %d from process 0\n", number);
-//    }
+
+    MPI_Bcast(&message, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    printf("Rank %i got message %i\n", rank, message);
 
     MPI_Finalize();
 

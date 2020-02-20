@@ -12,6 +12,12 @@
 
 
 namespace edge {
+    void setPermissiveHeaders(http_response &response) {
+        response.headers().add(U("Access-Control-Allow-Origin"), U("*"));
+        response.headers().add(U("Access-Control-Allow-Methods"), U("GET, POST, PUT, OPTIONS"));
+        response.headers().add(U("Access-Control-Allow-Headers"), U("Accept,Content-Type"));
+    }
+
     std::string getHeaderFromRequest(const http_request &request, const std::string &key) {
         http_headers headers = request.headers();
         if (headers.has(key)) {
@@ -64,6 +70,8 @@ namespace edge {
 
         listener.support(methods::GET, UploadServer::handleGet);
 
+        listener.support(methods::OPTIONS, UploadServer::handleOptions);
+
         listener.support(methods::PUT, UploadServer::handlePut);
 
         listener.open().wait();
@@ -114,9 +122,11 @@ namespace edge {
         if (returnBytes.empty()) {
             http_response response(status_codes::InternalError);
             response.set_body(EMPTY_FILE_RESPONSE);
+            setPermissiveHeaders(response);
             request.reply(response);
         } else {
             http_response response(status_codes::OK);
+            setPermissiveHeaders(response);
             response.set_body(returnBytes);
             request.reply(response);
         }
@@ -137,6 +147,15 @@ namespace edge {
         } else {
             handleFunctionUpload(request);
         }
+    }
+
+    void UploadServer::handleOptions(const http_request &request) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("OPTIONS request to {}", request.absolute_uri().to_string());
+
+        http_response response(status_codes::OK);
+        setPermissiveHeaders(response);
+        request.reply(response);
     }
 
     std::vector<uint8_t> UploadServer::getState(const http_request &request) {
@@ -179,7 +198,10 @@ namespace edge {
 
         }).wait();
 
-        request.reply(status_codes::OK, "State upload complete\n");
+        http_response response(status_codes::OK);
+        setPermissiveHeaders(response);
+        response.set_body("State upload complete\n");
+        request.reply(response);
     }
 
     void UploadServer::handlePythonFunctionUpload(const http_request &request) {

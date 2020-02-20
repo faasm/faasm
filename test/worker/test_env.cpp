@@ -55,4 +55,11 @@ namespace tests {
         message::Message msg = util::messageFactory("demo", "uname");
         execFunction(msg);
     }
+
+    TEST_CASE("Test getpwuid", "[worker]") {
+        cleanSystem();
+
+        message::Message msg = util::messageFactory("demo", "getpwuid");
+        execFunction(msg);
+    }
 }

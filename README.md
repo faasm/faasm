@@ -2,7 +2,7 @@
 <img src="https://raw.githubusercontent.com/lsds/Faasm/master/faasm_logo.png"></img>
 </div>
 
-# Faasm [![Tests](https://github.com/lsds/Faasm/workflows/Tests/badge.svg?branch=master)](https://github.com/lsds/Faasm/actions) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+# Faasm [![Tests](https://github.com/lsds/Faasm/workflows/Tests/badge.svg?branch=master)](https://github.com/lsds/Faasm/actions)  [![License](https://img.shields.io/github/license/lsds/Faasm.svg)](https://github.com/lsds/Faasm/blob/master/LICENSE.md)  [![Release](https://img.shields.io/github/release/lsds/Faasm.svg)](https://github.com/lsds/Faasm/releases/)  [![Contributors](https://img.shields.io/github/contributors/lsds/Faasm.svg)](https://github.com/lsds/Faasm/graphs/contributors/)
 
 Faasm is a high-performance stateful serverless runtime. The goal of the project is enabling fast, efficient serverless big data.
 
@@ -18,7 +18,7 @@ Faasm is a runtime, intended for integration into other serverless platforms. Th
 
 # Quick start
 
-You can start a simple Faasm runtime using the `docker-compose.yml` file in the root of the project. This creates a couple of worker instances as well as an upload endpoint for receiving function data and state. There is also a Redis container used for communication between the workers.
+You can start a simple Faasm runtime using the `docker-compose.yml` file in the root of the project. This creates a couple of worker instances as well as an upload endpoint for receiving functions and state. There is also a Redis container used for communication between the workers.
 
 You can start it by running:
 

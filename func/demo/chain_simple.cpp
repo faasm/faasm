@@ -22,7 +22,7 @@ FAASM_MAIN_FUNC() {
 
 FAASM_FUNC(chainOne, 1) {
     int input = 0;
-    faasmGetInput(reinterpret_cast<uint8_t *>(&input), sizeof(int));
+    faasmGetInput(BYTES(&input), sizeof(int));
 
     if (input == INPUT_VAL) {
         printf("Got expected chained input of %i\n", input);

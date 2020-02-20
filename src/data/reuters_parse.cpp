@@ -94,7 +94,7 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
 
     // Write categories to file
     long nCatBytes = categories.size() * sizeof(double);
-    auto catPtr = reinterpret_cast<uint8_t *>(categories.data());
+    auto catPtr = BYTES(categories.data());
 
     path catFile = outputDir;
     catFile.append("outputs");
@@ -104,7 +104,7 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
 
     // Write feature counts to file
     long nFeatureCountBytes = featureCounts.size() * sizeof(int);
-    auto featureCountsPtr = reinterpret_cast<uint8_t *>(featureCounts.data());
+    auto featureCountsPtr = BYTES(featureCounts.data());
 
     path featureCountsFile = outputDir;
     featureCountsFile.append("feature_counts");

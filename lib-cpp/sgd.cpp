@@ -27,7 +27,7 @@ namespace faasm {
         }
 
         SgdParams s{};
-        faasmReadState(keyName, reinterpret_cast<uint8_t *>(&s), nBytes);
+        faasmReadState(keyName, BYTES(&s), nBytes);
 
         return s;
     }
@@ -138,7 +138,7 @@ namespace faasm {
 
     void writeHingeError(const SgdParams &sgdParams, const MatrixXd &actual, const MatrixXd &prediction) {
         double err = calculateHingeError(prediction, actual);
-        auto squaredErrorBytes = reinterpret_cast<uint8_t *>(&err);
+        auto squaredErrorBytes = BYTES(&err);
 
         faasmAppendState(
                 ERRORS_KEY,
@@ -157,7 +157,7 @@ namespace faasm {
 
         faasmReadAppendedState(
                 ERRORS_KEY,
-                reinterpret_cast<uint8_t *>(errors),
+                BYTES(errors),
                 sizeErrors,
                 sgdParams.nBatches
         );
@@ -185,7 +185,7 @@ namespace faasm {
 
         // Create fake training data as dot product of the matrix of training input data and the real weight vector
         Eigen::MatrixXd realWeights = randomDenseMatrix(1, params.nWeights);
-        Eigen::SparseMatrix<double> inputs = randomSparseMatrix(params.nWeights, params.nTrain, 0.1);
+        Eigen::SparseMatrix<double> inputs = randomSparseMatrix(params.nWeights, params.nTrain, 0.5);
         Eigen::MatrixXd outputs = realWeights * inputs;
 
         // Initialise a random set of weights that we'll train (i.e. these should get close to the real weights)

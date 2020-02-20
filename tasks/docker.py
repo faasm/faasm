@@ -12,6 +12,7 @@ from tasks.util.version import get_faasm_version
 # Order matters here
 RELEASE_CONTAINERS = [
     "base",
+    "base-test",
     "worker",
     "upload",
     "knative-worker",

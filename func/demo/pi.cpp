@@ -24,7 +24,7 @@ FAASM_MAIN_FUNC() {
     // Dispatch chained calls in a loop
     std::vector<unsigned int> callIds;
     for (int i = 0; i < nWorkers; i++) {
-        auto inputData = reinterpret_cast<uint8_t *>(&chunkSize);
+        auto inputData = BYTES(&chunkSize);
         unsigned int callId = faasmChainThisInput(1, inputData, sizeof(int));
         callIds.push_back(callId);
     }

@@ -94,7 +94,7 @@ namespace tests {
         // Set up some dummy feature counts
         std::vector<int> featureCounts(4);
         std::fill(featureCounts.begin(), featureCounts.end(), 1);
-        uint8_t *featureBytes = reinterpret_cast<uint8_t *>(featureCounts.data());
+        uint8_t *featureBytes = BYTES(featureCounts.data());
         faasmWriteState(FEATURE_COUNTS_KEY, featureBytes, 4 * sizeof(int));
         faasmPushState(FEATURE_COUNTS_KEY);
 

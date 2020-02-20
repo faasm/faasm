@@ -17,6 +17,9 @@ namespace tests {
     TEST_CASE("Test world creation", "[mpi]") {
         cleanSystem();
 
+        scheduler::Scheduler &sch = scheduler::getScheduler();
+        sch.setMessageIdLogging(true);
+
         // Create the world
         const message::Message &msg = util::messageFactory(user, func);
         mpi::MpiWorld world;
@@ -28,15 +31,15 @@ namespace tests {
         REQUIRE(world.getFunction() == func);
 
         // Check that chained function calls are made as expected
-        scheduler::Scheduler &sch = scheduler::getScheduler();
-        std::set<int> ranksFound;
-        for (int i = 0; i < worldSize - 1; i++) {
+        REQUIRE(sch.getScheduledMessageIds().size() == worldSize - 1);
+
+        for (int i = 1; i < worldSize; i++) {
             message::Message actualCall = sch.getFunctionQueue(msg)->dequeue();
             REQUIRE(actualCall.user() == user);
             REQUIRE(actualCall.function() == func);
             REQUIRE(actualCall.ismpi());
             REQUIRE(actualCall.mpiworldid() == worldId);
-            REQUIRE(actualCall.mpirank() == i + 1);
+            REQUIRE(actualCall.mpirank() == i);
         }
 
         // Check that this node is registered as the master
@@ -128,7 +131,7 @@ namespace tests {
 
         // Send a message between colocated ranks
         std::vector<int> messageData = {0, 1, 2};
-        world.send<int>(rankA1, rankA2, messageData.data(), FAASMPI_INT, messageData.size());
+        world.send(rankA1, rankA2, BYTES(messageData.data()), MPI_INT, messageData.size());
 
         SECTION("Test queueing") {
             // Check the message itself is on the right queue
@@ -148,7 +151,7 @@ namespace tests {
             // Receive the message
             MPI_Status status{};
             auto buffer = new int[messageData.size()];
-            world.recv<int>(rankA1, rankA2, buffer, messageData.size(), &status);
+            world.recv(rankA1, rankA2, BYTES(buffer), MPI_INT, messageData.size(), &status);
 
             std::vector<int> actual(buffer, buffer + messageData.size());
             REQUIRE(actual == messageData);
@@ -182,7 +185,7 @@ namespace tests {
         std::vector<int> messageData = {0, 1, 2};
 
         // Send a message between the ranks on different nodes
-        worldA.send<int>(rankA, rankB, messageData.data(), FAASMPI_INT, messageData.size());
+        worldA.send(rankA, rankB, BYTES(messageData.data()), MPI_INT, messageData.size());
 
         MpiGlobalBus &bus = mpi::getMpiGlobalBus();
 
@@ -205,7 +208,7 @@ namespace tests {
             // Receive the message for the given rank
             MPI_Status status{};
             auto buffer = new int[messageData.size()];
-            worldB.recv<int>(rankA, rankB, buffer, messageData.size(), &status);
+            worldB.recv(rankA, rankB, BYTES(buffer), MPI_INT, messageData.size(), &status);
 
             std::vector<int> actual(buffer, buffer + messageData.size());
             REQUIRE(actual == messageData);
@@ -235,7 +238,7 @@ namespace tests {
 
         // Send a message between colocated ranks
         std::vector<int> messageData = {0};
-        world.send<int>(rankA1, rankA2, messageData.data(), FAASMPI_INT, 0);
+        world.send(rankA1, rankA2, BYTES(messageData.data()), MPI_INT, 0);
 
         SECTION("Check on queue") {
             // Check message content
@@ -253,7 +256,7 @@ namespace tests {
         SECTION("Check receiving with null ptr") {
             // Receiving with a null pointer shouldn't break
             MPI_Status status{};
-            world.recv<int>(rankA1, rankA2, nullptr, 0, &status);
+            world.recv(rankA1, rankA2, nullptr, MPI_INT, 0, &status);
 
             // Check no extra data in state
             REQUIRE(state.getKVCount() == 4);
@@ -276,13 +279,13 @@ namespace tests {
         // Send a message with size less than the recipient is expecting
         std::vector<int> messageData = {0, 1, 2, 3};
         unsigned long actualSize = messageData.size();
-        world.send<int>(1, 2, messageData.data(), FAASMPI_INT, actualSize);
+        world.send(1, 2, BYTES(messageData.data()), MPI_INT, actualSize);
 
         // Request to receive more values than were sent
         MPI_Status status{};
         unsigned long requestedSize = actualSize + 5;
         auto buffer = new int[requestedSize];
-        world.recv<int>(1, 2, buffer, requestedSize, &status);
+        world.recv(1, 2, BYTES(buffer), MPI_INT, requestedSize, &status);
 
         // Check status reports only the values that were sent
         REQUIRE(status.MPI_SOURCE == 1);
@@ -304,8 +307,8 @@ namespace tests {
         std::vector<int> messageData = {0, 1, 2, 3, 4, 5, 6};
         unsigned long sizeA = 2;
         unsigned long sizeB = messageData.size();
-        world.send<int>(1, 2, messageData.data(), FAASMPI_INT, sizeA);
-        world.send<int>(1, 2, messageData.data(), FAASMPI_INT, sizeB);
+        world.send(1, 2, BYTES(messageData.data()), MPI_INT, sizeA);
+        world.send(1, 2, BYTES(messageData.data()), MPI_INT, sizeB);
 
         // Probe twice on the same message
         MPI_Status statusA1{};
@@ -325,7 +328,7 @@ namespace tests {
 
         // Receive the message
         auto bufferA = new int[sizeA];
-        world.recv<int>(1, 2, bufferA, sizeA * sizeof(int), nullptr);
+        world.recv(1, 2, BYTES(bufferA), MPI_INT, sizeA * sizeof(int), nullptr);
 
         // Probe the next message
         world.probe(1, 2, &statusB);
@@ -335,7 +338,7 @@ namespace tests {
 
         // Receive the next message
         auto bufferB = new int[sizeB];
-        world.recv<int>(1, 2, bufferB, sizeB * sizeof(int), nullptr);
+        world.recv(1, 2, BYTES(bufferB), MPI_INT, sizeB * sizeof(int), nullptr);
     }
 
     TEST_CASE("Test can't get in-memory queue for non-local ranks", "[mpi]") {
@@ -380,7 +383,7 @@ namespace tests {
 
         std::vector<int> input = {0, 1, 2, 3};
         int invalidRank = worldSize + 2;
-        REQUIRE_THROWS(world.send(0, invalidRank, input.data(), FAASMPI_INT, 4));
+        REQUIRE_THROWS(world.send(0, invalidRank, BYTES(input.data()), MPI_INT, 4));
     }
 
     TEST_CASE("Check sending to unregistered rank", "[mpi]") {
@@ -393,7 +396,7 @@ namespace tests {
         // Rank hasn't yet been registered
         int destRank = 2;
         std::vector<int> input = {0, 1};
-        REQUIRE_THROWS(world.send(0, destRank, input.data(), FAASMPI_INT, 2));
+        REQUIRE_THROWS(world.send(0, destRank, BYTES(input.data()), MPI_INT, 2));
     }
 
     TEST_CASE("Test collective messaging locally and across nodes", "[mpi]") {
@@ -402,7 +405,7 @@ namespace tests {
         std::string nodeIdA = util::randomString(NODE_ID_LEN);
         std::string nodeIdB = util::randomString(NODE_ID_LEN);
 
-        int thisWorldSize = 5;
+        int thisWorldSize = 6;
 
         const message::Message &msg = util::messageFactory(user, func);
         mpi::MpiWorld worldA;
@@ -426,43 +429,196 @@ namespace tests {
         worldB.registerRank(rankB1);
         worldB.registerRank(rankB2);
 
+        // Ranks deliberately out of order
+        std::vector<int> worldARanks = {rankA2, rankA3, rankA1, 0};
+        std::vector<int> worldBRanks = {rankB2, rankB1};
+
         MpiGlobalBus &bus = mpi::getMpiGlobalBus();
 
         SECTION("Broadcast") {
             // Broadcast a message
             std::vector<int> messageData = {0, 1, 2};
-            worldA.broadcast<int>(rankA2, messageData.data(), FAASMPI_INT, messageData.size());
+            worldA.broadcast(rankA2, BYTES(messageData.data()), MPI_INT, messageData.size());
 
             // Check the node that the root is on
-            std::vector<int> actual = {-1, -1, -1};
-            worldA.recv<int>(rankA2, 0, actual.data(), 3, nullptr);
-            REQUIRE(actual == messageData);
+            for (int rank : worldARanks) {
+                if (rank == rankA2) continue;
 
-            worldA.recv<int>(rankA2, rankA1, actual.data(), 3, nullptr);
-            REQUIRE(actual == messageData);
+                std::vector<int> actual(3, -1);
+                worldA.recv(rankA2, rank, BYTES(actual.data()), MPI_INT, 3, nullptr);
+                REQUIRE(actual == messageData);
+            }
 
-            worldA.recv<int>(rankA2, rankA3, actual.data(), 3, nullptr);
-            REQUIRE(actual == messageData);
+            worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
+            worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
+
+            for (int rank : worldBRanks) {
+                std::vector<int> actual(3, -1);
+                worldB.recv(rankA2, rank, BYTES(actual.data()), MPI_INT, 3, nullptr);
+            }
+        }
+
+        SECTION("Scatter") {
+            // Build the data
+            int nPerRank = 4;
+            int dataSize = nPerRank * worldSize;
+            std::vector<int> messageData;
+            messageData.reserve(dataSize);
+            for (int i = 0; i < dataSize; i++) {
+                messageData[i] = i;
+            }
+
+            // Do the scatter
+            std::vector<int> actual(nPerRank, -1);
+            worldA.scatter(rankA2, rankA2, BYTES(messageData.data()), MPI_INT, nPerRank,
+                           BYTES(actual.data()), MPI_INT, nPerRank);
+
+            // Check for root
+            REQUIRE(actual == std::vector<int>({8, 9, 10, 11}));
+
+            // Check for other ranks out of order
+            worldA.scatter(rankA2, rankA1, nullptr, MPI_INT, nPerRank,
+                           BYTES(actual.data()), MPI_INT, nPerRank);
+            REQUIRE(actual == std::vector<int>({4, 5, 6, 7}));
+
+            worldA.scatter(rankA2, 0, nullptr, MPI_INT, nPerRank,
+                           BYTES(actual.data()), MPI_INT, nPerRank);
+            REQUIRE(actual == std::vector<int>({0, 1, 2, 3}));
+
+            worldA.scatter(rankA2, rankA3, nullptr, MPI_INT, nPerRank,
+                           BYTES(actual.data()), MPI_INT, nPerRank);
+            REQUIRE(actual == std::vector<int>({12, 13, 14, 15}));
 
             // Pull both messages for the other node
             worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
             worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
 
-            worldB.recv<int>(rankA2, rankB1, actual.data(), 3, nullptr);
-            REQUIRE(actual == messageData);
+            worldB.scatter(rankA2, rankB2, nullptr, MPI_INT, nPerRank,
+                           BYTES(actual.data()), MPI_INT, nPerRank);
+            REQUIRE(actual == std::vector<int>({20, 21, 22, 23}));
 
-            worldB.recv<int>(rankA2, rankB2, actual.data(), 3, nullptr);
-            REQUIRE(actual == messageData);
+            worldB.scatter(rankA2, rankB1, nullptr, MPI_INT, nPerRank,
+                           BYTES(actual.data()), MPI_INT, nPerRank);
+            REQUIRE(actual == std::vector<int>({16, 17, 18, 19}));
+        }
+
+        SECTION("Gather and allgather") {
+            // Build the data for each rank
+            int nPerRank = 4;
+            std::vector<std::vector<int>> rankData;
+            for (int i = 0; i < thisWorldSize; i++) {
+                std::vector<int> thisRankData;
+                for (int j = 0; j < nPerRank; j++) {
+                    thisRankData.push_back((i * nPerRank) + j);
+                }
+
+                rankData.push_back(thisRankData);
+            }
+
+            // Build the expectation
+            std::vector<int> expected;
+            for (int i = 0; i < thisWorldSize * nPerRank; i++) {
+                expected.push_back(i);
+            }
+
+            SECTION("Gather") {
+                std::vector<int> actual(thisWorldSize * nPerRank, -1);
+
+                // Call gather for each rank other than the root (out of order)
+                int root = rankA3;
+                for (int rank : worldARanks) {
+                    if (rank == root) continue;
+                    worldA.gather(rank, root,
+                                  BYTES(rankData[rank].data()), MPI_INT, nPerRank,
+                                  nullptr, MPI_INT, nPerRank);
+                }
+
+                for (int rank : worldBRanks) {
+                    worldB.gather(rank, root,
+                                  BYTES(rankData[rank].data()), MPI_INT, nPerRank,
+                                  nullptr, MPI_INT, nPerRank);
+                }
+
+                // Ensure remote messages have been processed
+                worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
+                worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
+
+                // Call gather for root
+                worldA.gather(root, root,
+                              BYTES(rankData[root].data()), MPI_INT, nPerRank,
+                              BYTES(actual.data()), MPI_INT, nPerRank
+                );
+
+                // Check data
+                REQUIRE(actual == expected);
+            }
+
+            SECTION("Allgather") {
+                int fullSize = nPerRank * thisWorldSize;
+
+                // Call allgather for ranks on the first world
+                std::vector<std::thread> threads;
+                for (int rank : worldARanks) {
+                    if (rank == 0) {
+                        continue;
+                    }
+
+                    threads.emplace_back([&, rank] {
+                        std::vector actual(fullSize, -1);
+
+                        worldA.allGather(rank, BYTES(rankData[rank].data()), MPI_INT, nPerRank,
+                                         BYTES(actual.data()), MPI_INT, nPerRank);
+
+                        REQUIRE(actual == expected);
+                    });
+                }
+
+                // Call allgather for the threads in the other world
+                for (int rank : worldBRanks) {
+                    threads.emplace_back([&, rank] {
+                        std::vector actual(fullSize, -1);
+
+                        worldB.allGather(rank, BYTES(rankData[rank].data()), MPI_INT, nPerRank,
+                                         BYTES(actual.data()), MPI_INT, nPerRank);
+
+                        REQUIRE(actual == expected);
+                    });
+                }
+
+                // Make sure messages from other world have been queued
+                worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
+                worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
+
+                // Now call allgather in the root rank
+                threads.emplace_back([&] {
+                    std::vector actual(fullSize, -1);
+                    worldA.allGather(0, BYTES(rankData[0].data()), MPI_INT, nPerRank,
+                                     BYTES(actual.data()), MPI_INT, nPerRank);
+
+                    REQUIRE(actual == expected);
+                });
+
+                // Make sure messages to other world have been queued
+                worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
+                worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
+
+                // All threads should now be able to resolve themselves
+                for (auto &t: threads) {
+                    if (t.joinable()) {
+                        t.join();
+                    }
+                }
+            }
         }
 
         SECTION("Barrier") {
             // Call barrier with all the ranks
-            std::thread threadA1([&worldA, &rankA1] {worldA.barrier(rankA1);});
-            std::thread threadA2([&worldA, &rankA2] {worldA.barrier(rankA2);});
-            std::thread threadA3([&worldA, &rankA3] {worldA.barrier(rankA3);});
+            std::thread threadA1([&worldA, &rankA1] { worldA.barrier(rankA1); });
+            std::thread threadA2([&worldA, &rankA2] { worldA.barrier(rankA2); });
+            std::thread threadA3([&worldA, &rankA3] { worldA.barrier(rankA3); });
 
-            std::thread threadB1([&worldB, &rankB1] {worldB.barrier(rankB1);});
-            std::thread threadB2([&worldB, &rankB2] {worldB.barrier(rankB2);});
+            std::thread threadB1([&worldB, &rankB1] { worldB.barrier(rankB1); });
+            std::thread threadB2([&worldB, &rankB2] { worldB.barrier(rankB2); });
 
             // Make sure the messages on other nodes are dequeued
             worldA.enqueueMessage(bus.dequeueForNode(nodeIdA));
@@ -476,13 +632,123 @@ namespace tests {
             worldB.enqueueMessage(bus.dequeueForNode(nodeIdB));
 
             // Join all threads
-            if(threadA1.joinable()) threadA1.join();
-            if(threadA2.joinable()) threadA2.join();
-            if(threadA3.joinable()) threadA3.join();
-            if(threadB1.joinable()) threadB1.join();
-            if(threadB2.joinable()) threadB2.join();
+            if (threadA1.joinable()) threadA1.join();
+            if (threadA2.joinable()) threadA2.join();
+            if (threadA3.joinable()) threadA3.join();
+            if (threadB1.joinable()) threadB1.join();
+            if (threadB2.joinable()) threadB2.join();
+        }
+    }
+
+    TEST_CASE("Test reduce", "[mpi]") {
+        cleanSystem();
+
+        const message::Message &msg = util::messageFactory(user, func);
+        mpi::MpiWorld world;
+        int thisWorldSize = 5;
+        world.create(msg, worldId, thisWorldSize);
+
+        // Register the ranks (zero already registered by default
+        for (int r = 1; r < thisWorldSize; r++) {
+            world.registerRank(r);
+        }
+
+        // Prepare inputs
+        int rankData[thisWorldSize][3];
+        std::vector<int> expected(3, 0);
+        faasmpi_op_t *reduceOp;
+        int root = 3;
+
+        SECTION("Sum operator") {
+            reduceOp = MPI_SUM;
+
+            for (int r = 0; r < thisWorldSize; r++) {
+                rankData[r][0] = r;
+                rankData[r][1] = r * 10;
+                rankData[r][2] = r * 100;
+
+                expected[0] += rankData[r][0];
+                expected[1] += rankData[r][1];
+                expected[2] += rankData[r][2];
+            }
+
+            SECTION("Reduce") {
+                // Call on all but the root first
+                for (int r = 0; r < thisWorldSize; r++) {
+                    if (r == root) continue;
+                    world.reduce(r, root, BYTES(rankData[r]), nullptr, MPI_INT, 3, reduceOp);
+                }
+
+                // Call on root to finish off and check
+                std::vector<int> actual(3, 0);
+                world.reduce(root, root, BYTES(rankData[root]), BYTES(actual.data()), MPI_INT, 3, reduceOp);
+                REQUIRE(actual == expected);
+            }
+
+            SECTION("Allreduce") {
+                // Run all as threads
+                std::vector<std::thread> threads;
+                for (int r = 0; r < thisWorldSize; r++) {
+                    threads.emplace_back([&, r] {
+                        std::vector<int> actual(3, 0);
+                        world.allReduce(r, BYTES(rankData[r]), BYTES(actual.data()), MPI_INT, 3, reduceOp);
+                        REQUIRE(actual == expected);
+                    });
+                }
+
+                for (auto &t : threads) {
+                    if (t.joinable()) {
+                        t.join();
+                    }
+                }
+            }
+        }
+    }
+
+    TEST_CASE("Test all-to-all", "[mpi]") {
+        cleanSystem();
+
+        const message::Message &msg = util::messageFactory(user, func);
+        mpi::MpiWorld world;
+        int thisWorldSize = 4;
+        world.create(msg, worldId, thisWorldSize);
+
+        // Register the ranks
+        for (int r = 1; r < thisWorldSize; r++) {
+            world.registerRank(r);
+        }
+
+        // Build inputs and expected
+        int inputs[4][8] = {
+                {0,  1,  2,  3,  4,  5,  6,  7},
+                {10, 11, 12, 13, 14, 15, 16, 17},
+                {20, 21, 22, 23, 24, 25, 26, 27},
+                {30, 31, 32, 33, 34, 35, 36, 37},
+        };
+
+        int expected[4][8] = {
+                {0, 1, 10, 11, 20, 21, 30, 31},
+                {2, 3, 12, 13, 22, 23, 32, 33},
+                {4, 5, 14, 15, 24, 25, 34, 35},
+                {6, 7, 16, 17, 26, 27, 36, 37},
+        };
+
+        std::vector<std::thread> threads;
+        for (int r = 0; r < thisWorldSize; r++) {
+            threads.emplace_back([&, r] {
+                std::vector<int> actual(8, 0);
+                world.allToAll(r, BYTES(inputs[r]), MPI_INT, 2, BYTES(actual.data()), MPI_INT, 2);
+
+                std::vector<int> thisExpected(expected[r], expected[r] + 8);
+                REQUIRE(actual == thisExpected);
+            });
+        }
+
+        for (auto &t : threads) {
+            if (t.joinable()) {
+                t.join();
+            }
         }
 
     }
-
 }

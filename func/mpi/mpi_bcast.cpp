@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <faasm/faasm.h>
 #include <cstring>
+#include <faasm/compare.h>
 
 
 FAASM_MAIN_FUNC() {
@@ -21,22 +22,18 @@ FAASM_MAIN_FUNC() {
     int expected[4] = {0, 1, 2, 3};
     int actual[4] = {-1, -1, -1, -1};
 
-    if(rank == root) {
+    if (rank == root) {
         memcpy(actual, expected, 4 * sizeof(int));
     }
 
-    // Broadcast from the root rank
+    // Broadcast (all should subsequently agree)
     MPI_Bcast(actual, 4, MPI_INT, root, MPI_COMM_WORLD);
 
-    if (actual[0] != expected[0] || actual[1] != expected[1] ||
-        actual[2] != expected[2] || actual[3] != expected[3]) {
-        printf("Broadcast failed (expected [%i, %i, %i, %i], got [%i, %i, %i, %i])\n",
-               expected[0], expected[1], expected[2], expected[3],
-               actual[0], actual[1], actual[2], actual[3]);
+    if (!faasm::compareIntArrays(actual, expected, 4)) {
         return 1;
-    } else if(rank == 0) {
-        printf("Broadcast succeeded\n");
     }
+
+    printf("Broadcast succeeded\n");
 
     MPI_Finalize();
 

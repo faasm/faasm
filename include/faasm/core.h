@@ -8,6 +8,8 @@
 extern "C" {
 #endif
 
+#define BYTES(arr) reinterpret_cast<uint8_t*>(arr)
+
 /**
 * Reads the full state at the given key
 */

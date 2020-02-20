@@ -11,9 +11,12 @@ from tasks.util.codegen import find_codegen_shared_lib
 from tasks.util.env import PROJ_ROOT, FAASM_TOOLCHAIN_FILE, FAASM_SYSROOT, FAASM_INSTALL_DIR, \
     FAASM_RUNTIME_ROOT
 from tasks.util.env import THIRD_PARTY_DIR
-from toolchain.python_env import WASM_HOST, BASE_CONFIG_CMD, WASM_CFLAGS, WASM_CXXFLAGS, WASM_LDFLAGS
+from toolchain.python_env import WASM_HOST, BASE_CONFIG_CMD, WASM_CFLAGS, WASM_CXXFLAGS, WASM_LDFLAGS, WASM_CC, \
+    WASM_CXX, WASM_RANLIB, WASM_AR, WASM_LD
 from toolchain.python_env import WASM_SYSROOT, WASM_BUILD, \
     BASE_CONFIG_FLAGS
+
+PRK_DIR = join(THIRD_PARTY_DIR, "ParResKernels")
 
 
 @task
@@ -260,3 +263,38 @@ def compile_tflite(ctx, clean=False):
     res = call(" ".join(make_cmd), shell=True, cwd=tf_lite_dir)
     if res != 0:
         raise RuntimeError("Failed to compile Tensorflow lite")
+
+
+@task
+def compile_prk_mpi(ctx, clean=False):
+    make_target = "allmpi1"
+
+    make_cmd = "make {}".format(make_target)
+    res = call(make_cmd, shell=True, cwd=PRK_DIR)
+    if res != 0:
+        print("Making PRK failed")
+        exit(1)
+
+
+@task
+def compile_mpi_bench(ctx, clean=False):
+    bench_dir = join(THIRD_PARTY_DIR, "mpi-benchmarks")
+    make_target = "IMB-MPI1"
+
+    if clean:
+        call("make clean", shell=True, cwd=bench_dir)
+
+    make_cmd = "make -j 4 {}".format(make_target)
+    res = call(make_cmd, shell=True, cwd=bench_dir, env={
+        "CC": WASM_CC,
+        "CXX": WASM_CXX,
+        "CFLAGS": WASM_CFLAGS,
+        "CXXFLAGS": WASM_CXXFLAGS,
+        "AR": WASM_AR,
+        "RANLIB": WASM_RANLIB,
+        "LD": WASM_LD,
+        "LDFLAGS": "{} -lmpi".format(WASM_LDFLAGS),
+    })
+
+    if res != 0:
+        raise RuntimeError("Failed to compile MPI benchmarks")

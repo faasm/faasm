@@ -57,6 +57,8 @@ from tasks.compile_libs import (
     compile_zlib,
     install_native_tools,
     compile_tflite,
+    compile_mpi_bench,
+    compile_prk_mpi,
 )
 from tasks.config import (
     create_faasm_config
@@ -74,6 +76,12 @@ from tasks.docker_compose import (
     docker_start_all,
     docker_stop_all,
     docker_restart_all
+)
+from tasks.github import (
+    gh_print_repos,
+    gh_create_release,
+    gh_upload_artifacts,
+    gh_publish_release,
 )
 from tasks.ibm import (
     ibm_codegen,
@@ -135,14 +143,10 @@ from tasks.experiment_data import (
     genomics_download_s3,
 )
 from tasks.toolchain import (
-    backup_toolchain,
-    backup_sysroot,
     download_toolchain,
     download_sysroot,
-    run_local_codegen,
-    backup_runtime_root,
     download_runtime_root,
-    copy_release_bundles,
+    run_local_codegen,
 )
 from tasks.upload import (
     upload_all,

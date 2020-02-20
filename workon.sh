@@ -1,5 +1,10 @@
 #!/bin/bash
 
+THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+echo "Setting up Faasm environment at ${THIS_DIR}"
+
+pushd ${THIS_DIR} >> /dev/null
+
 if [ ! -d "venv" ]; then
     python3 -m venv venv
 fi
@@ -18,3 +23,5 @@ export FAASM_CMAKE_TOOLCHAIN=$FAASM_ROOT/toolchain/FaasmToolchain.cmake
 export FAASM_BASH_TOOLCHAIN=$FAASM_ROOT/toolchain/env.sh
 
 alias fm="inv"
+
+popd >> /dev/null

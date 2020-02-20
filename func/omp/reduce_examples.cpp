@@ -1,19 +1,27 @@
 #include <omp.h>
 #include <cstdio>
 #include <faasm/faasm.h>
+#include <random>
+
+constexpr int ITERATIONS = 100000;
 
 FAASM_MAIN_FUNC() {
     int count = 0;
-    #pragma omp parallel for num_threads(4) default(none) reduction(+:count)
-    for (int i = 0; i < 400; i++) {
-        count += omp_get_thread_num() + 1;
+    #pragma omp parallel num_threads(4) default(none) reduction(+:count)
+    {
+        std::uniform_real_distribution<double> unif(0, 1);
+        std::mt19937 generator(omp_get_thread_num());
+        double x, y;
+        #pragma omp for
+        for (int i = 0; i < ITERATIONS; i++) {
+            x = unif(generator);
+            y = unif(generator);
+            if (x * x + y * y <= 1.0) {
+                count++;
+            }
+        }
     }
-
-    constexpr int expected = 1 * 100 + 2 * 100 + 3 * 100 + 4 * 100;
-    if (count != expected) {
-        printf("Failed reduce: expected %d, got %d\n", expected, count);
-        return EXIT_FAILURE;
-    }
-    return EXIT_SUCCESS;
+    printf("Pi: %f\n", 4.0 * count / ITERATIONS); // 3.14159...
+    return 0;
 }
 

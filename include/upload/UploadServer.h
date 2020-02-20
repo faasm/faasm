@@ -18,6 +18,8 @@ namespace edge {
 
         static void handlePut(const http_request &request);
 
+        static void handleOptions(const http_request &request);
+
         static message::Message buildMessageFromRequest(const http_request &request);
 
         static std::vector<std::string> getPathParts(const http_request &request);

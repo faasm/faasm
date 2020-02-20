@@ -45,17 +45,37 @@ namespace mpi {
 
         void enqueueMessage(MpiMessage *msg);
 
-        template<typename T>
-        void send(int sendRank, int recvRank, const T *buffer, int dataType, int count,
+        void send(int sendRank, int recvRank,
+                  const uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
                   MpiMessageType messageType = MpiMessageType::NORMAL);
 
-        template<typename T>
-        void broadcast(int sendRank, const T *buffer, int dataType, int count,
+        void broadcast(int sendRank,
+                       const uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
                        MpiMessageType messageType = MpiMessageType::NORMAL);
 
-        template<typename T>
-        void recv(int sendRank, int recvRank, T *buffer, int count, MPI_Status *status,
-                  MpiMessageType messageType = MpiMessageType::NORMAL);
+        void recv(int sendRank, int recvRank,
+                  uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
+                  MPI_Status *status, MpiMessageType messageType = MpiMessageType::NORMAL);
+
+        void scatter(int sendRank, int recvRank,
+                     const uint8_t *sendBuffer, faasmpi_datatype_t *sendType, int sendCount,
+                     uint8_t *recvBuffer, faasmpi_datatype_t *recvType, int recvCount);
+
+        void gather(int sendRank, int recvRank,
+                    const uint8_t *sendBuffer, faasmpi_datatype_t *sendType, int sendCount,
+                    uint8_t *recvBuffer, faasmpi_datatype_t *recvType, int recvCount);
+
+        void allGather(int rank, const uint8_t *sendBuffer, faasmpi_datatype_t *sendType, int sendCount,
+                       uint8_t *recvBuffer, faasmpi_datatype_t *recvType, int recvCount);
+
+        void reduce(int sendRank, int recvRank, uint8_t *sendBuffer, uint8_t *recvBuffer,
+                    faasmpi_datatype_t *datatype, int count, faasmpi_op_t *operation);
+
+        void allReduce(int rank, uint8_t *sendBuffer, uint8_t *recvBuffer, faasmpi_datatype_t *datatype, int count,
+                       faasmpi_op_t * operation);
+
+        void allToAll(int rank, uint8_t *sendBuffer, faasmpi_datatype_t *sendType, int sendCount,
+                      uint8_t *recvBuffer, faasmpi_datatype_t *recvType, int recvCount);
 
         void probe(int sendRank, int recvRank, MPI_Status *status);
 
@@ -95,8 +115,7 @@ namespace mpi {
 
         std::shared_ptr<state::StateKeyValue> getRankNodeState(int rank);
 
-        template<typename T>
-        std::shared_ptr<state::StateKeyValue> getMessageState(int messageId, int count);
+        std::shared_ptr<state::StateKeyValue> getMessageState(int messageId, faasmpi_datatype_t *datatype, int count);
 
         void checkRankOnThisNode(int rank);
 

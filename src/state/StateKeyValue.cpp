@@ -8,6 +8,7 @@
 #include <util/timing.h>
 
 #include <sys/mman.h>
+#include <util/macros.h>
 
 using namespace util;
 
@@ -42,7 +43,7 @@ namespace state {
 
     bool StateKeyValue::isSegmentAllocated(long offset, size_t length) {
         // TODO - more efficient way of checking this
-        auto allocatedMaskBytes = reinterpret_cast<uint8_t *>(allocatedMask);
+        auto allocatedMaskBytes = BYTES(allocatedMask);
         for (size_t i = 0; i < length; i++) {
             if (allocatedMaskBytes[offset + i] == 0) {
                 return false;
@@ -319,7 +320,7 @@ namespace state {
         FullLock lock(valueMutex);
 
         // Remap the relevant pages of shared memory onto the new region
-        auto sharedMemoryBytes = reinterpret_cast<uint8_t *>(sharedMemory);
+        auto sharedMemoryBytes = BYTES(sharedMemory);
         void *result = mremap(sharedMemoryBytes + offset, 0, length, MREMAP_FIXED | MREMAP_MAYMOVE, destination);
         if (result == MAP_FAILED) {
             logger->error("Failed mapping for {} at {} with size {}. errno: {} ({})",
@@ -364,7 +365,7 @@ namespace state {
         long alignedOffset = util::alignOffsetDown(offset);
         long alignedLength = (offset - alignedOffset) + (long) length;
 
-        auto memBytes = reinterpret_cast<uint8_t *>(sharedMemory);
+        auto memBytes = BYTES(sharedMemory);
         int res = mprotect(memBytes + alignedOffset, alignedLength, PROT_WRITE);
         if (res != 0) {
             logger->debug("Mmapping of storage size {} failed. errno: {}", sharedMemSize, errno);
@@ -462,7 +463,7 @@ namespace state {
     }
 
     void StateKeyValue::pushPartial() {
-        auto dirtyMaskBytes = reinterpret_cast<uint8_t *>(dirtyMask);
+        auto dirtyMaskBytes = BYTES(dirtyMask);
         doPushPartial(dirtyMaskBytes);
     }
 
@@ -488,7 +489,7 @@ namespace state {
             return;
         }
         // Iterate through and pipeline the dirty segments
-        auto sharedMemoryBytes = reinterpret_cast<uint8_t *>(sharedMemory);
+        auto sharedMemoryBytes = BYTES(sharedMemory);
         long updateCount = 0;
         long startIdx = 0;
         bool isOn = false;

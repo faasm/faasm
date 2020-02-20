@@ -2,7 +2,7 @@
 
 #include <time.h>
 #include <stdio.h>
-#include <zconf.h>
+#include <unistd.h>
 
 FAASM_MAIN_FUNC() {
     // Time with direct syscall

@@ -7,7 +7,7 @@ import requests
 from invoke import task
 
 from tasks.util.config import get_faasm_config
-from tasks.util.env import RUNTIME_S3_BUCKET, STATE_S3_BUCKET, MISC_S3_BUCKET, DATA_S3_BUCKET, TEST_S3_BUCKET, \
+from tasks.util.env import RUNTIME_S3_BUCKET, STATE_S3_BUCKET, DATA_S3_BUCKET, TEST_S3_BUCKET, \
     ANSIBLE_ROOT
 from tasks.util.ibm import get_ibm_kubeconfig
 
@@ -48,7 +48,6 @@ def ibm_create_buckets(ctx):
     bucket_names = [
         RUNTIME_S3_BUCKET,
         STATE_S3_BUCKET,
-        MISC_S3_BUCKET,
         DATA_S3_BUCKET,
         TEST_S3_BUCKET,
     ]
