@@ -42,7 +42,6 @@ mpi_func(mpi_put mpi_put.cpp)
 mpi_func(mpi_reduce mpi_reduce.cpp)
 mpi_func(mpi_scatter mpi_scatter.cpp)
 mpi_func(mpi_status mpi_status.cpp)
-mpi_func(mpi_types mpi_types.cpp)
 mpi_func(mpi_typesize mpi_typesize.cpp)
 mpi_func(mpi_wincreate mpi_wincreate.cpp)
 
