@@ -5,7 +5,7 @@
 #include "files.h"
 #include "json.h"
 #include "random.h"
-#include "strings.h"
+#include "util/strings.h"
 
 #include <iomanip>
 #include <sstream>
@@ -278,7 +278,7 @@ namespace util {
             return argv;
         }
 
-        const std::vector<std::string> extraArgs = util::tokeniseString(msg.cmdline(), ' ');
+        std::vector<std::string> extraArgs = tokeniseString(msg.cmdline(), ' ');
         argv.insert(argv.end(), extraArgs.begin(), extraArgs.end());
 
         return argv;
