@@ -110,7 +110,6 @@ namespace wasm {
             executionContext = Runtime::cloneContext(other.executionContext, compartment);
 
             // Remap parts we need specific references to
-            invokeArgs = other.invokeArgs;
             envModule = Runtime::remapToClonedCompartment(other.envModule, compartment);
             moduleInstance = Runtime::remapToClonedCompartment(other.moduleInstance, compartment);
 
@@ -376,39 +375,42 @@ namespace wasm {
 
             logger->debug("heap_top={} initial_pages={} initial_table={}", initialMemorySize, initialMemoryPages,
                           initialTableSize);
-
-            // Here we set up the arguments to main(), i.e. argc and argv
-            // We allow passing of arbitrary commandline arguments via the invocation message.
-            // These are passed as a string with a space separating each argument.
-            const std::vector<std::string> argv = util::getArgvForMessage(msg);
-            U32 argc = argv.size();
-            size_t argvSize = argv.size() * sizeof(U32);
-
-            // Create a new page for argv and its values to live in. At the start we put the array of
-            // char pointers (i.e. the actual argv char* array), then above that we place the actual
-            // strings.
-            U32 argvPointersOffset = mmapMemory(1);
-            U32 argvValuesOffset = argvPointersOffset + argvSize + 10;
-            U32 *argvPointersHost = &Runtime::memoryRef<U32>(defaultMemory, argvPointersOffset);
-            char *argvValuesHost = &Runtime::memoryRef<char>(defaultMemory, argvValuesOffset);
-
-            for(int i = 0; i < argv.size(); i++) {
-                const std::string thisArgv = argv[i];
-
-                // Write this string to memory and record its pointer
-                std::copy(thisArgv.begin(), thisArgv.end(), argvValuesHost);
-                argvPointersHost[i] = argvValuesOffset;
-
-                // Move both pointers and values offset along
-                argvValuesHost += thisArgv.size();
-                argvValuesOffset += thisArgv.size();
-            }
-
-            // Create the vector with argc and the pointer to argv
-            invokeArgs = {argc, argvPointersOffset};
         }
 
         PROF_END(wasmBind)
+    }
+
+    std::vector<IR::UntaggedValue> WasmModule::setArgcArgv(const message::Message &msg) {
+        // Here we set up the arguments to main(), i.e. argc and argv
+        // We allow passing of arbitrary commandline arguments via the invocation message.
+        // These are passed as a string with a space separating each argument.
+        const std::vector<std::string> argv = util::getArgvForMessage(msg);
+        U32 argc = argv.size();
+        size_t argvSize = argv.size() * sizeof(U32);
+
+        // Create a new page for argv and its values to live in. At the start we put the array of
+        // char pointers (i.e. the actual argv char* array), then above that we place the actual
+        // strings.
+        U32 argvPointersOffset = mmapMemory(1);
+        U32 argvValuesOffset = argvPointersOffset + argvSize + 10;
+        U32 *argvPointersHost = &Runtime::memoryRef<U32>(defaultMemory, argvPointersOffset);
+        char *argvValuesHost = &Runtime::memoryRef<char>(defaultMemory, argvValuesOffset);
+
+        for(int i = 0; i < argv.size(); i++) {
+            const std::string thisArgv = argv[i];
+
+            // Write this string to memory and record its pointer
+            std::copy(thisArgv.begin(), thisArgv.end(), argvValuesHost);
+            argvPointersHost[i] = argvValuesOffset;
+
+            // Move both pointers and values offset along
+            // (allowing space for a null terminator on the string)
+            argvValuesHost += thisArgv.size() + 1;
+            argvValuesOffset += thisArgv.size() + 1;
+        }
+
+        // Create the vector with argc and the pointer to argv
+        return {argc, argvPointersOffset};
     }
 
     Runtime::Instance *
@@ -655,10 +657,14 @@ namespace wasm {
         executingCall = &msg;
 
         int exitCode = 0;
+
+        // Set up arguments
+        std::vector<IR::UntaggedValue> invokeArgs = setArgcArgv(msg);
+
         try {
             // Call the function
 
-            Runtime::catchRuntimeExceptions([this, &exitCode, &logger] {
+            Runtime::catchRuntimeExceptions([this, &invokeArgs, &exitCode, &logger] {
                 IR::UntaggedValue result;
 
                 // Different function signature for different languages
@@ -675,6 +681,7 @@ namespace wasm {
                     );
                 } else {
                     logger->debug("Invoking C/C++ function");
+
                     executeFunction(
                             functionInstance,
                             IR::FunctionType(

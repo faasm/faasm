@@ -1,17 +1,14 @@
 #include "func.h"
 
-#include "bytes.h"
-#include "environment.h"
-#include "files.h"
-#include "json.h"
-#include "random.h"
-#include "util/strings.h"
-
 #include <iomanip>
 #include <sstream>
 #include <boost/filesystem.hpp>
+
+#include <util/environment.h>
+#include <util/random.h>
 #include <util/gids.h>
 #include <util/config.h>
+#include <boost/algorithm/string.hpp>
 
 
 namespace util {
@@ -274,13 +271,20 @@ namespace util {
         // We always have some arbitrary script name as argv[0]
         std::vector<std::string> argv = {"function.wasm"};
 
-        if (msg.cmdline().empty()) {
+        std::string cmdlineArgs = msg.cmdline();
+        if (cmdlineArgs.empty()) {
             return argv;
         }
 
-        std::vector<std::string> extraArgs = tokeniseString(msg.cmdline(), ' ');
+        // Split the extra args
+        std::vector<std::string> extraArgs;
+        std::string copy(msg.cmdline());
+        boost::split(extraArgs, copy, [](char c) { return c == ' '; });
+
+        // Build the final list
         argv.insert(argv.end(), extraArgs.begin(), extraArgs.end());
 
         return argv;
     }
 }
+
