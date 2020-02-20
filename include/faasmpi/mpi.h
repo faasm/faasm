@@ -23,7 +23,7 @@ extern "C" {
  * Behind the scenes structs (some parts of which are defined in the MPI specification)
  * Each can be extended with private fields as necessary
  *
- * NOTE - be careful when passing this structs to and from WebAssembly. Any datatypes
+ * NOTE - be careful when passing these structs to and from WebAssembly. Any datatypes
  * with *different* sizes in 32-/64-bit space need to be translated carefully
  */
 struct faasmpi_status_public_t {

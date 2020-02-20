@@ -440,7 +440,7 @@ namespace wasm {
         U32 mappedWasmPtr = module->mmapMemory(memSize);
 
         // Write the result to the wasm memory (note that the argument passed to the
-        // function is a pointer to a pointer
+        // function is a pointer to a pointer)
         I32 *hostResPtr = &Runtime::memoryRef<I32>(module->defaultMemory, resPtrPtr);
         *hostResPtr = mappedWasmPtr;
 
@@ -449,8 +449,8 @@ namespace wasm {
 
     /**
      * Creates a shared memory region (i.e. a chunk of Faasm state)
-     * NOTE - we are passed a pointer to an MPI_Win which is itself a pointer.
-     * Therefore we have a pointer to a pointer.
+     * NOTE - the final argument is a pointer to an MPI_Win which *is itself a pointer*,
+     * thus this is actually a pointer to a pointer for the underlying struct.
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Win_create", I32, MPI_Win_create, I32 basePtr, I32 size, I32 dispUnit,
                                    I32 info, I32 comm, I32 winPtrPtr) {
@@ -497,7 +497,7 @@ namespace wasm {
         util::getLogger()->debug("S - MPI_Get {} {} {} {} {} {} {} {}", recvBuff, recvCount, recvType,
                                  sendRank, sendOffset, sendCount, sendType, winPtr);
 
-        // TODO - check ignoring the window here is ok
+        // TODO - check window
 
         ContextWrapper ctx;
         faasmpi_datatype_t *hostRecvDtype = ctx.getFaasmDataType(recvType);
@@ -522,7 +522,7 @@ namespace wasm {
         util::getLogger()->debug("S - MPI_Put {} {} {} {} {} {} {} {}", sendBuff, sendCount, sendType,
                                  recvRank, recvOffset, recvCount, recvType, winPtr);
 
-        // TODO - check ignoring the window here is ok
+        // TODO - check window
 
         ContextWrapper ctx;
         faasmpi_datatype_t *hostRecvDtype = ctx.getFaasmDataType(recvType);

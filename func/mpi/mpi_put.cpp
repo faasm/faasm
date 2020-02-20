@@ -15,9 +15,8 @@ FAASM_MAIN_FUNC() {
 
     size_t elemSize = sizeof(int);
 
-    //    int *sharedData;
-//    MPI_Alloc_mem(elemSize * NUM_ELEMENT, MPI_INFO_NULL, &sharedData);
-    int sharedData[NUM_ELEMENT];
+    int *sharedData;
+    MPI_Alloc_mem(elemSize * NUM_ELEMENT, MPI_INFO_NULL, &sharedData);
 
     MPI_Win window;
     MPI_Win_create(sharedData, NUM_ELEMENT * elemSize, 1, MPI_INFO_NULL, MPI_COMM_WORLD, &window);
