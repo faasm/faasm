@@ -60,10 +60,17 @@ namespace wasm {
             return hostInfoType;
         }
 
-        faasmpi_win_t *getFaasmWindowFromPointer(I32 wasmPtrPtr) {
-            I32 wasmPtr = Runtime::memoryRef<I32>(memory, wasmPtrPtr);
+        faasmpi_win_t *getFaasmWindow(I32 wasmPtr) {
             faasmpi_win_t *hostWin = &Runtime::memoryRef<faasmpi_win_t>(memory, wasmPtr);
             return hostWin;
+        }
+
+        /**
+         * This function is used for pointers-to-pointers for the window
+         */
+        faasmpi_win_t *getFaasmWindowFromPointer(I32 wasmPtrPtr) {
+            I32 wasmPtr = Runtime::memoryRef<I32>(memory, wasmPtrPtr);
+            return getFaasmWindow(wasmPtr);
         }
 
         faasmpi_op_t *getFaasmOp(I32 wasmOp) {
@@ -71,8 +78,9 @@ namespace wasm {
             return hostOpType;
         }
 
-        void writeMpiIntResult(I32 resPtr, I32 result) {
-            I32 *hostResPtr = &Runtime::memoryRef<I32>(memory, resPtr);
+        template<typename T>
+        void writeMpiResult(I32 resPtr, T result) {
+            T *hostResPtr = &Runtime::memoryRef<T>(memory, resPtr);
             *hostResPtr = result;
         }
 
@@ -118,7 +126,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Comm_size", I32, MPI_Comm_size, I32 comm, I32 resPtr) {
         util::getLogger()->debug("S - MPI_Comm_size {} {}", comm, resPtr);
         ContextWrapper ctx(comm);
-        ctx.writeMpiIntResult(resPtr, ctx.world.getSize());
+        ctx.writeMpiResult<int>(resPtr, ctx.world.getSize());
 
         return MPI_SUCCESS;
     }
@@ -129,7 +137,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Comm_rank", I32, MPI_Comm_rank, I32 comm, I32 resPtr) {
         util::getLogger()->debug("S - MPI_Comm_rank {} {}", comm, resPtr);
         ContextWrapper ctx(comm);
-        ctx.writeMpiIntResult(resPtr, ctx.rank);
+        ctx.writeMpiResult<int>(resPtr, ctx.rank);
 
         return MPI_SUCCESS;
     }
@@ -167,7 +175,7 @@ namespace wasm {
         }
 
         int nVals = status->bytesSize / hostDtype->size;
-        ctx.writeMpiIntResult(countPtr, nVals);
+        ctx.writeMpiResult<int>(countPtr, nVals);
 
         return MPI_SUCCESS;
     }
@@ -418,7 +426,7 @@ namespace wasm {
 
         ContextWrapper ctx;
         faasmpi_datatype_t *hostType = ctx.getFaasmDataType(typePtr);
-        ctx.writeMpiIntResult(res, hostType->size);
+        ctx.writeMpiResult<int>(res, hostType->size);
 
         return MPI_SUCCESS;
     }
@@ -454,7 +462,8 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Win_create", I32, MPI_Win_create, I32 basePtr, I32 size, I32 dispUnit,
                                    I32 info, I32 comm, I32 winPtrPtr) {
-        util::getLogger()->debug("S - MPI_Win_create {} {} {} {} {} {}", basePtr, size, dispUnit, info, comm, winPtrPtr);
+        util::getLogger()->debug("S - MPI_Win_create {} {} {} {} {} {}", basePtr, size, dispUnit, info, comm,
+                                 winPtrPtr);
 
         ContextWrapper ctx(comm);
 
@@ -534,10 +543,53 @@ namespace wasm {
         return MPI_SUCCESS;
     }
 
+    /**
+     * Cleans up the given window
+     */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Win_free", I32, MPI_Win_free, I32 winPtr) {
         util::getLogger()->debug("S - MPI_Win_free {}", winPtr);
 
         // TODO - delete the state related to this window
+
+        return MPI_SUCCESS;
+    }
+
+    /**
+     * Returns the value for a given attribute of a window.
+     *
+     * The results can be of different types, so writing the result
+     * must be done carefully and will depend on the attribute requested.
+     *
+     * Some notes here on sizes:
+     * https://github.com/open-mpi/ompi/blob/master/ompi/attribute/attribute_predefined.c
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Win_get_attr", I32, MPI_Win_get_attr, I32 winPtr, I32 attrKey,
+                                   I32 attrResPtrPtr, I32 flagResPtr) {
+        util::getLogger()->debug("S - MPI_Win_get_attr {} {} {} {}", winPtr, attrKey, attrResPtrPtr, flagResPtr);
+
+        ContextWrapper ctx;
+        faasmpi_win_t *window = ctx.getFaasmWindow(winPtr);
+
+        // This flag must be 1 if the attribute is set (which we always assume it is)
+        ctx.writeMpiResult<int>(flagResPtr, 1);
+
+        // MPI_WIN_BASE is special as we're passing back a pointer
+        if (attrKey == MPI_WIN_BASE) {
+            ctx.writeMpiResult<int>(attrResPtrPtr, window->wasmPtr);
+        } else {
+            // The result is a pointer to a pointer, so for everything other than MPI_WIN_BASE
+            // we need to doubly translate it
+            Runtime::GCPointer<Runtime::Memory> &memPtr = getExecutingModule()->defaultMemory;
+            I32 attrResPtr = Runtime::memoryRef<I32>(memPtr, attrResPtrPtr);
+
+            if (attrKey == MPI_WIN_SIZE) {
+                ctx.writeMpiResult<I32>(attrResPtr, window->size);
+            } else if (attrKey == MPI_WIN_DISP_UNIT) {
+                ctx.writeMpiResult<I32>(attrResPtr, window->dispUnit);
+            } else {
+                throw std::runtime_error("Unrecognised window attribute type " + std::to_string(attrKey));
+            }
+        }
 
         return MPI_SUCCESS;
     }

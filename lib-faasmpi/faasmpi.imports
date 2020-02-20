@@ -25,3 +25,4 @@ MPI_Put
 MPI_Win_free
 MPI_Win_create
 MPI_Get_processor_name
+MPI_Win_get_attr

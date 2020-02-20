@@ -1,7 +1,7 @@
 #ifndef FAASM_MPI_H
 #define FAASM_MPI_H
 
-#include <cstddef>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -89,7 +89,7 @@ extern struct faasmpi_datatype_t faasmpi_type_float;
 #define MPI_LONG &faasmpi_type_long
 #define MPI_FLOAT &faasmpi_type_float
 
-faasmpi_datatype_t* getFaasmDatatypeFromId(int datatypeId);
+struct faasmpi_datatype_t *getFaasmDatatypeFromId(int datatypeId);
 
 // MPI_Infos
 #define FAASMPI_INFO_NULL 1
@@ -135,6 +135,13 @@ extern struct faasmpi_op_t faasmpi_op_minloc;
 
 // MPI_Statuses
 #define MPI_STATUS_IGNORE (static_cast<MPI_Status *> (0))
+
+// Window attributes
+#define MPI_WIN_BASE 1
+#define MPI_WIN_SIZE 2
+#define MPI_WIN_DISP_UNIT 3
+#define MPI_WIN_CREATE_FLAVOR 4
+#define MPI_WIN_MODEL 5
 
 /*
  * User-facing types
@@ -189,7 +196,7 @@ int MPI_Reduce(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datat
                MPI_Op op, int root, MPI_Comm comm);
 
 int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
-               MPI_Op op, MPI_Comm comm);
+                  MPI_Op op, MPI_Comm comm);
 
 int MPI_Alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                  void *recvbuf, int recvcount, MPI_Datatype recvtype,
@@ -216,6 +223,8 @@ int MPI_Win_create(void *base, MPI_Aint size, int disp_unit,
                    MPI_Info info, MPI_Comm comm, MPI_Win *win);
 
 int MPI_Get_processor_name(char *name, int *resultlen);
+
+int MPI_Win_get_attr(MPI_Win win, int win_keyval, void *attribute_val, int *flag);
 
 #ifdef __cplusplus
 }
