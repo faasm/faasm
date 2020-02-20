@@ -46,4 +46,10 @@ namespace tests {
         message::Message msg = util::messageFactory("omp", "stack_debug");
         execFunction(msg);
     }
+
+    TEST_CASE("Test simple reduction function", "[wasm]") {
+        cleanSystem();
+        message::Message msg = util::messageFactory("omp", "simple_reduce");
+        execFunction(msg);
+    }
 }

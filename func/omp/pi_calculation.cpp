@@ -3,7 +3,7 @@
 #include <faasm/faasm.h>
 #include <random>
 
-constexpr int ITERATIONS = 100000;
+constexpr int ITERATIONS = 1000000000;
 
 FAASM_MAIN_FUNC() {
     int count = 0;
@@ -22,6 +22,7 @@ FAASM_MAIN_FUNC() {
         }
     }
     printf("Pi: %f\n", 4.0 * count / ITERATIONS); // 3.14159...
-    return 0;
+
+    return EXIT_SUCCESS;
 }
 
