@@ -2,23 +2,37 @@
 #include <omp.h>
 #include <faasm/faasm.h>
 
-void avg();
+double avg_round_robin();
+double avg_reduction();
 
-void avg_reduction();
+bool checkVal(const char *string, double val);
+
+const int N = 600000000;
+const double expected = 299999999.5;
 
 FAASM_MAIN_FUNC() {
-//    avg();
-    avg_reduction();
-    return 0;
+    bool failed = false;
+    failed |= checkVal("Round robin with atomics", avg_round_robin());
+    failed |= checkVal("Reduction construct", avg_reduction());
+    if (failed) {
+        return EXIT_FAILURE;
+    }
+    return EXIT_SUCCESS;
 }
 
+bool checkVal(const char *fun, double val) {
+    if (expected - val >= 0.000001) {
+        printf("Function %s failed: Expected %f but got %f \n", fun, expected, val);
+        return true;
+    }
+    return false;
+}
 
-void avg_round_robin() {
-    const int N = 600000000;
+double avg_round_robin() {
     double tavg = 0;
 
-    double timer_start = omp_get_wtime();
-    omp_set_num_threads(16);
+//    double timer_start = omp_get_wtime();
+    omp_set_num_threads(10);
     #pragma omp parallel default(none) shared(tavg)
     {
         double avg;
@@ -31,30 +45,29 @@ void avg_round_robin() {
         #pragma omp atomic
         tavg += avg;
     }
-    double timer_elapsed = omp_get_wtime() - timer_start;
+//    double timer_elapsed = omp_get_wtime() - timer_start;
     tavg = tavg / N;
+    return tavg;
 
-    std::cout << tavg << " took " << timer_elapsed << std::endl;
+//    std::cout << tavg << " took " << timer_elapsed << std::endl;
     //     1 threads took 2.1
     //     4 threads took 0.7
     //    48 threads took 0.65
 }
 
-void avg_reduction() {
-    const int N = 600000000;
-    int j = 0;
+double avg_reduction() {
     double tavg = 0;
 
 //    double timer_start = omp_get_wtime();
     omp_set_num_threads(48);
-
     #pragma omp parallel for default(none) reduction(+:tavg) shared(N)
-    for (j = 0; j < N; ++j) {
+    for (int j = 0; j < N; ++j) {
         tavg += j;
     }
 
 //    double timer_elapsed = omp_get_wtime() - timer_start;
     tavg = tavg / N;
+    return tavg;
 
 //    std::cout << tavg << " took " << timer_elapsed << std::endl;
     //     1 threads took 2.1
