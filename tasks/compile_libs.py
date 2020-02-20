@@ -266,7 +266,7 @@ def compile_tflite(ctx, clean=False):
 
 
 @task
-def compile_prk_mpi(ctx, clean=False):
+def compile_prk(ctx, clean=False):
     # Pairs of (directory, make target). See top-level ParResKernels
     # Makefile for more examples
     make_targets = [

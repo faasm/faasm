@@ -16,8 +16,6 @@ bool checkTypeSize(MPI_Datatype dt, int expected, const char* name) {
 FAASM_MAIN_FUNC() {
     MPI_Init(NULL, NULL);
 
-    MPI_UINT64_T
-
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 

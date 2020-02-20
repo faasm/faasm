@@ -58,12 +58,13 @@ def upload(ctx, user, func, host=None, s3=False, ibm=False, py=False, ts=False, 
             curl_file(url, func_file)
 
 
-def _do_upload_all(host=None, port=None, upload_s3=False, py=False, prebuilt=False, local_copy=False):
+def _do_upload_all(host=None, port=None, upload_s3=False, py=False, prebuilt=False, local_copy=False,
+                   dir_to_walk=None):
     to_upload = []
 
-    if py:
+    if not dir_to_walk and py:
         dir_to_walk = FUNC_DIR
-    else:
+    elif not dir_to_walk:
         dir_to_walk = WASM_DIR if prebuilt else FUNC_BUILD_DIR
 
     extension = ".py" if py else ".wasm"
@@ -158,4 +159,23 @@ def upload_genomics(ctx, host="localhost", port=8002):
 
         file_path = join(PROJ_ROOT, "third-party/gem3-mapper/wasm_bin/gem-mapper")
         url = "http://{}:{}/f/gene/{}".format(host, port, func_name)
+        curl_file(url, file_path)
+
+
+@task
+def upload_prk(ctx, host=None, port=None):
+    user = "prk"
+    wasm_dir = join(PROJ_ROOT, "third-party", "ParResKernels", "wasm")
+
+    host, port = get_upload_host_port(host, port)
+
+    for file_name in os.listdir(wasm_dir):
+        if not file_name.endswith(".wasm"):
+            continue
+
+        func_name = file_name.replace(".wasm", "")
+
+        print("Uploading function {}/{} to {}:{}".format(user, func_name, host, port))
+        file_path = join(wasm_dir, file_name)
+        url = "http://{}:{}/f/{}/{}".format(host, port, user, func_name)
         curl_file(url, file_path)
