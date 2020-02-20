@@ -5,6 +5,7 @@
 #include "files.h"
 #include "json.h"
 #include "random.h"
+#include "strings.h"
 
 #include <iomanip>
 #include <sstream>
