@@ -62,4 +62,12 @@ namespace tests {
         message::Message msg = util::messageFactory("demo", "getpwuid");
         execFunction(msg);
     }
+
+    TEST_CASE("Test argc/argv", "[worker]") {
+        cleanSystem();
+        message::Message msg = util::messageFactory("demo", "argc_argv_test");
+        msg.set_cmdline("alpha B_eta G$mma d3-lt4");
+
+        execFunction(msg);
+    }
 }

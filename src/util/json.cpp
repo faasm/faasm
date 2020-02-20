@@ -45,6 +45,8 @@ namespace util {
         d.AddMember("mpi_world_id", msg.mpiworldid(), a);
         d.AddMember("mpi_rank", msg.mpirank(), a);
 
+        d.AddMember("cmdline", Value(msg.cmdline().c_str(), msg.cmdline().size()).Move(), a);
+
         StringBuffer sb;
         Writer<StringBuffer> writer(sb);
         d.Accept(writer);
@@ -117,6 +119,8 @@ namespace util {
         msg.set_ismpi(getBoolFromJson(d, "mpi", false));
         msg.set_mpiworldid(getIntFromJson(d, "mpi_world_id", -1));
         msg.set_mpirank(getIntFromJson(d, "mpi_rank", -1));
+
+        msg.set_cmdline(getStringFromJson(d, "cmdline", ""));
 
         PROF_END(jsonDecode)
 

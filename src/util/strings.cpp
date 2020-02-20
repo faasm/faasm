@@ -1,10 +1,10 @@
-#include "strings.h"
+#include <util/strings.h>
 
 #include <string>
 #include <boost/algorithm/string.hpp>
 
 namespace util {
-    std::vector<std::string> tokeniseString(const std::string &input, char delimiter) {
+    std::vector<std::string> splitString(const std::string &input, char delimiter) {
         std::vector<std::string> results;
 
         // Create a trimmed copy

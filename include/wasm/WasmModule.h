@@ -59,8 +59,6 @@ namespace wasm {
 
         Runtime::GCPointer<Runtime::Context> executionContext;
 
-        std::vector<IR::UntaggedValue> invokeArgs;
-
         Runtime::GCPointer<Runtime::Compartment> compartment;
 
         const bool isBound();
@@ -174,6 +172,8 @@ namespace wasm {
         void clone(const WasmModule &other);
 
         void addModuleToGOT(IR::Module &mod, bool isMainModule);
+
+        std::vector<IR::UntaggedValue> getArgcArgv(const message::Message &msg);
 
         Runtime::Instance *createModuleInstance(
                 const std::string &name,

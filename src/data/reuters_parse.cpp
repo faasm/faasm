@@ -37,7 +37,7 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
         std::string line;
         while (getline(input, line)) {
             // Split up the line
-            const std::vector<std::string> lineTokens = util::tokeniseString(line, ' ');
+            const std::vector<std::string> lineTokens = util::splitString(line, ' ');
 
             // Note, we're treating categories as doubles here to ease serialisation/ deserialisation
             double cat = std::stod(lineTokens[0]);
@@ -51,7 +51,7 @@ void parseReutersData(const path &downloadDir, const path &outputDir) {
                 }
 
                 // Split up index:value part
-                const std::vector<std::string> valueTokens = util::tokeniseString(thisToken, ':');
+                const std::vector<std::string> valueTokens = util::splitString(thisToken, ':');
                 int feature = std::stoi(valueTokens[0]);
                 double weight = std::stod(valueTokens[1]);
 
