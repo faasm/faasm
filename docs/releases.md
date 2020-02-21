@@ -33,6 +33,8 @@ Version needs to be updated in:
 - `FAASM_VERSION` variable in `.env` file at project root
 - Any kubernetes config files in `k8s` that specify image names
 
+This can usually be done with a find-and-replace on the current version number.
+
 ## 3. Create the Github release
 
 Run the following to create the new release in Github (this will bundle up the sysroot,
