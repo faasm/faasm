@@ -26,8 +26,6 @@ function(mpi_func exec_name dir_path)
 endfunction(mpi_func)
 
 # Skip MPI stuff in knative for now
-if(FAASM_BUILD_TYPE STREQUAL "knative-native")
-else()
 mpi_func(mpi_allgather mpi_allgather.cpp)
 mpi_func(mpi_allreduce mpi_allreduce.cpp)
 mpi_func(mpi_alltoall mpi_alltoall.cpp)
@@ -50,4 +48,3 @@ mpi_func(hellompi hellompi.cpp)
 
 # Custom target for building all functions
 add_custom_target(mpi_all_funcs DEPENDS ${ALL_MPI_FUNCS})
-endif()

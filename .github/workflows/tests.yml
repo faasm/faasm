@@ -17,13 +17,13 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: "Build the testing image"
-        run: docker build . -f docker/testing.dockerfile --tag faasm/testing:${GITHUB_SHA} --build-arg FAASM_VERSION=0.0.6
+        run: docker build . -f docker/testing.dockerfile --tag faasm/testing:${GITHUB_SHA} --build-arg FAASM_VERSION=0.0.7
       - name: "Create a docker network"
         run: docker network create -d bridge test-net
       - name: "Stop redis container"
         run: docker stop redis | true
       - name: "Run the redis container"
-        run: docker run -d --name redis --net=test-net --rm faasm/redis:0.0.6
+        run: docker run -d --name redis --net=test-net --rm faasm/redis:0.0.7
       - name: "Run the testing container"
         run: >
           docker run --privileged --net=test-net

@@ -140,10 +140,15 @@ add_subdirectory(dynlink)
 add_subdirectory(gene)
 add_subdirectory(polybench)
 add_subdirectory(sgd)
-add_subdirectory(omp)
-add_subdirectory(mpi)
 
-# Skip certain builds with some build types
+# Skip some builds for Knative native
+if(FAASM_BUILD_TYPE STREQUAL "knative-native")
+else()
+    add_subdirectory(omp)
+    add_subdirectory(mpi)
+endif()
+
+# Skip some builds for lambda builds
 if (FAASM_BUILD_TYPE STREQUAL "lambda-func")
 else ()
     add_subdirectory(python)
