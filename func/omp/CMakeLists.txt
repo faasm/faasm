@@ -1,23 +1,49 @@
 set(FAASM_USER omp)
 
-if(FAASM_BUILD_TYPE STREQUAL "wasm")
+if (FAASM_BUILD_TYPE STREQUAL "wasm")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
-else()
+else ()
     find_package(OpenMP REQUIRED)
     include_directories(${OPENMP_INCLUDE_DIR})
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-endif()
+endif ()
+
+function(lulesh_target)
+
+    if (NOT FAASM_BUILD_TYPE STREQUAL "wasm")
+        message("TODO - Run LULESH CMakeFile")
+        return()
+    endif ()
+
+    add_definitions("-DUSE_MPI=0")
+
+    set(lulesh_exec lulesh)
+    set(lulesh_files
+            ../../third-party/LULESH/lulesh-comm.cc
+            ../../third-party/LULESH/lulesh-init.cc
+            ../../third-party/LULESH/lulesh-util.cc
+            ../../third-party/LULESH/lulesh.cc
+            )
+    add_executable(${lulesh_exec} ${lulesh_files})
+    target_link_libraries(${lulesh_exec} faasm faasmp dlmalloc)
+
+    #set(ALL_OMP_FUNCS ${ALL_OMP_FUNCS} ${lulush_exec} PARENT_SCOPE)
+endfunction(lulesh_target)
+
+lulesh_target()
+
+# Add to list of all funcs
 
 function(omp_func exec_name dir_path)
     faasm_func(${exec_name} ${dir_path})
 
-    if(FAASM_BUILD_TYPE STREQUAL "knative-native")
+    if (FAASM_BUILD_TYPE STREQUAL "knative-native")
         set(EXEC_NAME ${exec_name}-knative)
-    else()
+    else ()
         set(EXEC_NAME ${exec_name})
-    endif()
+    endif ()
 
     if (FAASM_BUILD_TYPE STREQUAL "wasm")
         target_link_libraries(${exec_name} faasmp)
@@ -49,9 +75,9 @@ omp_func(intel_nstreams intel_nstreams.cpp)
 omp_func(intel_synch_p2p intel_synch_p2p.cpp)
 omp_func(intel_transpose intel_transpose.cpp)
 
-if(FAASM_BUILD_TYPE STREQUAL "wasm")
+if (FAASM_BUILD_TYPE STREQUAL "wasm")
     omp_func(stack_debug stack_debug.cpp)
-endif()
+endif ()
 
 # Custom target for building all functions
 add_custom_target(omp_all_funcs DEPENDS ${ALL_OMP_FUNCS})
