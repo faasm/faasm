@@ -1,23 +1,18 @@
 # Faasm Releases
 
-## Versioning
+## 0. Create a branch
 
-Version needs to be updated in:
+Create a new branch for this release, but _not_ a PR.
 
-- `VERSION` at the project root
-- `FAASM_VERSION` variable in `.env` file at project root
-- Any kubernetes config files in `k8s` that specify image names
+See what's going into the release in the [Compare view](https://github.com/lsds/Faasm/compare).
 
-Then:
+## 1. Prepare release artifacts
 
-- Update the versioned runtime root, sysroot and toolchain bundles (see below)
-- Rebuild all Docker images (`inv docker-build-release`) 
+The sysroot, toolchain and runtime root are all tied to a given release. You must create the 
+release versions locally before proceeding. 
 
-## Release artifacts
-
-Be careful that your local sysroot, toolchain and runtime root reflect what should go into the 
-release. To do this you can download the versions from the _last_ release, then apply any 
-changes for this release (if there are any), i.e.:
+To do this, you can download the versions from the current release, then apply any changes 
+for this release (if there are any), i.e.:
 
 ```bash
 inv download-toolchain
@@ -25,14 +20,23 @@ inv download-sysroot
 inv download-runtime-root
 ``` 
 
-Your local versions will get bundled up and included in the new release.
+To check things are working properly you can run the tests locally with the new versions.
 
 It's worth reading through the `docs/toolchain.md` notes if you need to change the 
 toolchain/ core libraries themselves.
 
-## Commands
+## 2. Update version
 
-Note: you must make sure you've _already_ updated the versions where necessary.
+Version needs to be updated in:
+
+- `VERSION` at the project root
+- `FAASM_VERSION` variable in `.env` file at project root
+- Any kubernetes config files in `k8s` that specify image names
+
+## 3. Create the Github release
+
+Run the following to create the new release in Github (this will bundle up the sysroot,
+toolchain and runtime root too).
 
 ```bash
 inv gh-create-release
@@ -45,10 +49,23 @@ Now check the draft release. If it's ok:
 inv gh-publish-release
 ```
 
+## 4. Rebuild Docker containers
+
+You can rebuild all the containers for the given release with:
+
+```bash
+inv docker-build-release
+```
+
+## 5. Create a PR
+
+Create a PR from your branch, this will then run through the tests for the new
+release. If it's green, you can merge it into master.
+
 ## Github config
 
-You'll need to create a public access token with the relevant permissions and 
-add it to `~/faasm/faasm.ini`:
+If this is your first time releasing, you'll need to create a public access token with 
+the relevant permissions and add it to `~/faasm/faasm.ini`:
 
 ```ini
 [Github]
