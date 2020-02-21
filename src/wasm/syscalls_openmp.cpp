@@ -1,5 +1,7 @@
 #include "WasmModule.h"
 
+#include <mutex>
+
 #include <WAVM/Platform/Thread.h>
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
@@ -17,6 +19,14 @@ namespace wasm {
         kmp_sch_static = 34, /**< static unspecialized */
     };
 
+    enum _reduction_method {
+        reduction_method_not_defined = 0,
+        critical_reduce_block = (1 << 8),
+        atomic_reduce_block = (2 << 8),
+        tree_reduce_block = (3 << 8),
+        empty_reduce_block = (4 << 8)
+    };
+
     // Thread-local variables for each OMP thread
     static thread_local int thisThreadNumber = 0;
     static thread_local U32 thisStackBase = -1;
@@ -25,8 +35,10 @@ namespace wasm {
     static int numThreadsOverride = -1;
     static unsigned int sectionThreadCount = 1;
 
+    // Team constructs
     // Locking/ barriers
     static util::Barrier *activeBarrier;
+    static std::mutex reduceMutex;
 
     // Threads currently in action
     std::vector<WAVM::Platform::Thread *> platformThreads;
@@ -413,6 +425,115 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_for_static_fini", void, __kmpc_for_static_fini,
                                    I32 loc, I32 gtid) {
         util::getLogger()->debug("S - __kmpc_for_static_fini {} {}", loc, gtid);
+    }
+
+    /**
+     * There exists many reduction methods, implementing everything as a reduce block
+     */
+    _reduction_method determineReductionMethod() {
+        if (sectionThreadCount == 1) {
+            return empty_reduce_block;
+        }
+        return critical_reduce_block;
+    }
+
+    /**
+     *  When reaching the end of the reduction loop, the threads need to synchronise to operate the
+     *  reduction function. In the multi-machine case, this
+     */
+    int runReduction() {
+        int retVal = 0;
+
+        switch(determineReductionMethod()) {
+            case critical_reduce_block:
+                util::getLogger()->debug("Thread {} reduction locking", thisThreadNumber);
+                reduceMutex.lock();
+                retVal = 1;
+                break;
+            case empty_reduce_block:
+                retVal = 1;
+                break;
+            case atomic_reduce_block:
+                retVal = 2;
+                break;
+            case reduction_method_not_defined:
+            case tree_reduce_block:
+                std::runtime_error("Unsupported reduce operation");
+        }
+        return retVal;
+    }
+
+    /**
+     *  Called immediately after running the reduction section before exiting the `reduce` construct.
+     */
+    void endReduction() {
+        // Unlocking not owned mutex is UB
+        if (sectionThreadCount > 1) {
+            util::getLogger()->debug("Thread {} unlocking reduction", thisThreadNumber);
+            reduceMutex.unlock();
+        }
+    }
+
+    /**
+     * A blocking reduce that includes an implicit barrier.
+     * @param loc source location information
+     * @param gtid global thread id
+     * @param num_vars number of items (variables) to be reduced
+     * @param reduce_size size of data in bytes to be reduced
+     * @param reduce_data pointer to data to be reduced
+     * @param reduce_func callback function providing reduction operation on two operands and returning result of reduction in lhs_data. Of type void(∗)(void ∗lhs data, void ∗rhs data)
+     * @param lck pointer to the unique lock data structure
+     * @return 1 for the master thread, 0 for all other team threads, 2 for all team threads if atomic reduction needed
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_reduce", I32, __kmpc_reduce, I32 loc, I32 gtid, I32 num_vars,
+                                   I32 reduce_size, I32 reduce_data, I32 reduce_func, I32 lck) {
+
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - __kmpc_reduce {} {} {} {} {} {} {}", loc, gtid, num_vars, reduce_size,
+                      reduce_data, reduce_func, lck);
+        return runReduction();
+    }
+
+    /**
+     * The nowait version is used for a reduce clause with the nowait argument. Or direct exit of parallel section.
+     * @param loc source location information
+     * @param gtid global thread id
+     * @param num_vars number of items (variables) to be reduced
+     * @param reduce_size size of data in bytes to be reduced
+     * @param reduce_data pointer to data to be reduced
+     * @param reduce_func callback function providing reduction operation on two operands and returning result of reduction in lhs_data. Of type void(∗)(void ∗lhs data, void ∗rhs data)
+     * @param lck pointer to the unique lock data structure
+     * @return 1 for the master thread, 0 for all other team threads, 2 for all team threads if atomic reduction needed
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_reduce_nowait", I32, __kmpc_reduce_nowait, I32 loc, I32 gtid,
+                                   I32 num_vars, I32 reduce_size, I32 reduce_data, I32 reduce_func, I32 lck) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - __kmpc_reduce_nowait {} {} {} {} {} {} {}", loc, gtid, num_vars, reduce_size, reduce_data,
+                     reduce_func, lck);
+        return runReduction();
+    }
+
+    /**
+     * Finish the execution of a blocking reduce. The lck pointer must be the same as that used in the corresponding start function.
+     * @param loc location info
+     * @param gtid global thread id
+     * @param lck kmp_critical_name* to the critical section.
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_reduce", void, __kmpc_end_reduce, I32 loc, I32 gtid, I32 lck) {
+        util::getLogger()->debug("S - __kmpc_end_reduce {} {} {}", loc, gtid, lck);
+        endReduction();
+    }
+
+    /**
+     * Arguments similar to __kmpc_end_reduce. Finish the execution of a reduce_nowait.
+     * @param loc
+     * @param gtid
+     * @param lck
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_reduce_nowait", void, __kmpc_end_reduce_nowait, I32 loc, I32 gtid,
+                                   I32 lck) {
+        util::getLogger()->debug("S - __kmpc_end_reduce_nowait {} {} {}", loc, gtid, lck);
+        endReduction();
     }
 
     void ompLink() {

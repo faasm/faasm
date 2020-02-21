@@ -20,9 +20,9 @@ function(omp_func exec_name dir_path)
     endif()
 
     if (FAASM_BUILD_TYPE STREQUAL "wasm")
-        target_link_libraries(${EXEC_NAME} faasmp)
+        target_link_libraries(${exec_name} faasmp)
     else ()
-        target_link_libraries(${EXEC_NAME} pthread)
+        target_link_libraries(${exec_name} pthread)
     endif ()
 
     # Add to list of all funcs
@@ -33,14 +33,19 @@ omp_func(for_static_schedule for_static_schedule.cpp)
 omp_func(header_api_support header_api_support.cpp)
 omp_func(hellomp hellomp.cpp)
 omp_func(omp_checks omp_checks.cpp)
+omp_func(pi_calculation pi_calculation.cpp)
+omp_func(reduction_average reduction_average.cpp)
+omp_func(reduction_integral reduction_integral.cpp)
 omp_func(simple_barrier simple_barrier.cpp)
 omp_func(simple_flush simple_flush.cpp)
 omp_func(simple_for simple_for.cpp)
 omp_func(simple_master simple_master.cpp)
+omp_func(simple_reduce simple_reduce.cpp)
 
 # Intel OMP files
 omp_func(intel_nstreams intel_nstreams.cpp)
 omp_func(intel_synch_p2p intel_synch_p2p.cpp)
+omp_func(intel_transpose intel_transpose.cpp)
 
 if(FAASM_BUILD_TYPE STREQUAL "wasm")
     omp_func(stack_debug stack_debug.cpp)

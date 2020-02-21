@@ -14,6 +14,10 @@ set(LIB_FILES
         )
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
+    set(LIBOMP_ASMFILES "z_Linux_asm.S")
+    set_source_files_properties(${LIBOMP_ASMFILES} PROPERTIES LANGUAGE C)
+    set(LIB_FILES ${LIBOMP_ASMFILES} ${LIB_FILES})
+
     add_library(faasmp STATIC ${LIB_FILES})
     set_target_properties(faasmp PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
