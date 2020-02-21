@@ -47,7 +47,7 @@ To install the latest Open MPI locally you can use the following Ansible playboo
  
 ```
 cd ansible
-ansible-playbook mpi.yml --ask-become-pass
+ansible-playbook openmpi.yml --ask-become-pass
 ```
 
 This installs it to `/usr/local/faasm/openmpi`.
@@ -57,3 +57,33 @@ Once you've built a native executable linked against this, you can then use `mpi
 ```
 /usr/local/faasm/openmpi/bin/mpirun -n 2 <your native mpi func> 
 ```
+
+# Benchmarks
+
+We benchmark Faasm against OpenMPI by running both on the same set of bare metal
+machines or VMs. The steps to do this are as follows.
+
+## 1. Set up the VMs
+
+The set-up is done with Ansible. You need to create a file in this directory at 
+`ansible/inventory/mpi.yml` containing the hostnames of the machines you want to 
+use, e.g.
+
+```ini
+[all]
+my_host1
+my_host2
+my_host3
+...
+```
+
+You can then run the set-up on all the machines with:
+
+```bash
+cd ansible
+ansible-playbook -i inventory/mpi.yml benchmark.yml
+```
+
+## 2. Check MPI works
+
+TBC

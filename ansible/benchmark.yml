@@ -17,3 +17,4 @@
     - docker
     - capacity
     - runtime_fs
+    - openmpi
