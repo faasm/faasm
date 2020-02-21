@@ -8,9 +8,11 @@
 #include <util/logging.h>
 #include <faasmpi/mpi.h>
 #include <util/macros.h>
+#include <util/timing.h>
+
 
 namespace mpi {
-    MpiWorld::MpiWorld() : id(-1), size(-1), thisNodeId(util::getNodeId()) {
+    MpiWorld::MpiWorld() : id(-1), size(-1), thisNodeId(util::getNodeId()), creationTime(util::startTimer()) {
 
     }
 
@@ -636,6 +638,11 @@ namespace mpi {
             util::FullLock lock(worldMutex);
             windowPointerMap[key] = windowPtr;
         }
+    }
+
+    double MpiWorld::getWTime() {
+        double t = util::getTimeDiffMillis(creationTime);
+        return t / 1000.0;
     }
 
     std::string MpiWorld::getUser() {

@@ -594,6 +594,35 @@ namespace wasm {
         return MPI_SUCCESS;
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Free_mem", I32, MPI_Free_mem, I32 basePtr) {
+        util::getLogger()->debug("S - MPI_Free_mem {}", basePtr);
+
+        // Can ignore freeing memory (as we do with munmap etc.)
+
+        return MPI_SUCCESS;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Type_contiguous", I32, MPI_Type_contiguous, I32 count,
+                                   I32 oldDatatypePtr, I32 newDatatypePtrPtr) {
+        util::getLogger()->debug("S - MPI_Type_contiguous {} {} {}", count, oldDatatypePtr, newDatatypePtrPtr);
+
+        return MPI_SUCCESS;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Type_commit", I32, MPI_Type_commit, I32 datatypePtrPtr) {
+        util::getLogger()->debug("S - MPI_Type_commit {}", datatypePtrPtr);
+
+        return MPI_SUCCESS;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Wtime", F64, MPI_Wtime) {
+        util::getLogger()->debug("S - MPI_Wtime");
+
+        ContextWrapper ctx;
+        double t = ctx.world.getWTime();
+        return (F64) t;
+    }
+
     void mpiLink() {
 
     }

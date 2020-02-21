@@ -266,13 +266,40 @@ def compile_tflite(ctx, clean=False):
 
 
 @task
-def compile_prk_mpi(ctx, clean=False):
-    make_target = "allmpi1"
+def compile_prk(ctx, clean=False):
+    # Pairs of (directory, make target). See top-level ParResKernels
+    # Makefile for more examples
+    make_targets = [
+        ("MPI1/Synch_global", "global"),
+        ("MPI1/Synch_p2p", "p2p"),
+        ("MPI1/Sparse", "sparse"),
+        ("MPI1/Transpose", "transpose"),
+        ("MPI1/Stencil", "stencil"),
+        ("MPI1/DGEMM", "dgemm"),
+        ("MPI1/Nstream", "nstream"),
+        ("MPI1/Reduce", "reduce"),
+        ("MPI1/Random", "random"),
+        # ("MPI1/PIC-static", "pic"),
+        # ("MPI1/AMR", "amr"),
+    ]
 
-    make_cmd = "make {}".format(make_target)
-    res = call(make_cmd, shell=True, cwd=PRK_DIR)
-    if res != 0:
-        print("Making PRK failed")
+    if clean:
+        call("make clean", shell=True, cwd=PRK_DIR)
+
+    has_failed = False
+    for subdir, make_target in make_targets:
+        make_cmd = "make {}".format(make_target)
+        make_dir = join(PRK_DIR, subdir)
+        res = call(make_cmd, shell=True, cwd=make_dir)
+
+        if res != 0:
+            print("Making kernel in {} with target {} failed".format(subdir, make_target))
+            has_failed = True
+
+        print("Built kernel {}".format(make_target))
+
+    if has_failed:
+        print("At least one kernel failed")
         exit(1)
 
 

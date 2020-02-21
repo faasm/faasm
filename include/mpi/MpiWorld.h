@@ -96,10 +96,13 @@ namespace mpi {
         void createWindow(const faasmpi_win_t *window, uint8_t* windowPtr);
 
         void synchronizeRmaWrite(const MpiMessage *msg, bool isRemote);
+
+        double getWTime();
     private:
         int id;
         int size;
         std::string thisNodeId;
+        util::TimePoint creationTime;
 
         std::shared_mutex worldMutex;
 

@@ -1,23 +1,46 @@
 # Faasm MPI support
 
-MPI translates quite nicely to a serverless context, but compiling any existing MPI implementation
-to wasm proved tricky (see below). As a result, Faasm includes a minimal MPI implementation in `lib-faasmpi`.  
+Faasm provides a custom MPI implementation to execute existing unmodified MPI 
+applications in a serverless context. 
+
+The Faasm MPI implementation is minimal but covers the majority of commonplace MPI
+functionality (point-to-point, collective, one-sided, custom datatypes).   
 
 ## MPI Functions
 
-A demo MPI function is found at `func/omp/hellompi.cpp`. You can compile, upload and invoke it with the following:
+A number of MPI functions can be found at `func/mpi`. You can compile, upload and invoke 
+`hellompi` with the following:
 
 ```
-inv compile omp hellompi
-inv upload omp hellompi
-inv invoke omp hellompi
+inv compile mpi hellompi
+inv upload mpi hellompi
+inv invoke mpi hellompi
+```
+
+## ParRes Kernels
+
+We can benchmark Faasm's MPI implementation using the [ParRes Kernels](https://github.com/ParRes/Kernels)
+modified slightly in the fork found in `third-party/ParResKernels`.
+
+To compile and upload you can run the following:
+
+```bash
+inv compile-prk
+inv upload-prk
+```
+
+This uploads a number of the kernels written for MPI, e.g. `nstreams`. These can be invoked like 
+normal functions:
+
+```bash
+inv invoke prk nstreams
 ```
 
 ## Extending the Faasm MPI implementation
 
 The MPI interface declarations live in `lib-faasmpi` and the definitions in `src/wasm/syscalls_mpi.cpp`.
 
-Anything missing needs to be added in both places, along with an entry in `lib-faasmpi/faasmpi.imports`. 
+Any new functions need to be included in `lib-faasmpi/faasmpi.imports`. 
 
 ## Installing/ running locally
 
@@ -33,20 +56,5 @@ This installs it to `/usr/local/faasm/openmpi`.
 Once you've built a native executable linked against this, you can then use `mpirun` on the binary e.g.
 
 ```
-/usr/local/faasm/openmpi/bin/mpirun -n 2 cmake-build-debug/bin/hellompi 
+/usr/local/faasm/openmpi/bin/mpirun -n 2 <your native mpi func> 
 ```
-
-## Building Open MPI to WebAssembly
-
-It should be possible to compile some of Open MPI to WebAssembly, but I couldn't quite get it to work.
-To get the source you can add Open MPI as a submodule of this project at `third-party/ompi` and make 
-sure you pin it to a specific release (e.g. `cd third-party/ompi && git checkout v4.0.2`).
-
-Building Open MPI from source is described [here](https://github.com/Shillaker/ompi/blob/master/HACKING).
-You need to make sure you have relatively up to date versions of `m4`, `autoconf`, `automake` and `libtool`
-as listed [here](https://www.open-mpi.org/source/building.php) (on Ubuntu 18.04 mine were ok by default).
-
-You can then run the `autogen.pl` script to generate the `configure` file and end up with a standard 
-configure/ make process. You can build this as we build other configure/ make projects, by setting 
-the relevant environment variables to invoke the Faasm toolchain (`CC`, `CXX`, `CFLAGS` etc.).
-

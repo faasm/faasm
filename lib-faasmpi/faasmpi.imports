@@ -16,6 +16,7 @@ MPI_Allgather
 MPI_Reduce
 MPI_Allreduce
 MPI_Alltoall
+MPI_Alltoallv
 
 MPI_Type_size
 MPI_Alloc_mem
@@ -26,3 +27,18 @@ MPI_Win_free
 MPI_Win_create
 MPI_Get_processor_name
 MPI_Win_get_attr
+MPI_Free_mem
+MPI_Type_contiguous
+MPI_Type_commit
+MPI_Wtime
+
+MPI_Isend
+MPI_Irecv
+MPI_Wait
+
+MPI_Comm_create
+MPI_Comm_group
+MPI_Group_incl
+
+# Temporary hack
+posix_memalign
