@@ -64,4 +64,16 @@ namespace tests {
         message::Message msg = util::messageFactory("omp", "reduction_integral");
         execFunction(msg);
     }
+
+    TEST_CASE("Test critical section", "[wasm]") {
+        cleanSystem();
+        message::Message msg = util::messageFactory("omp", "simple_critical");
+        execFunction(msg);
+    }
+
+    TEST_CASE("Test custom reduction function", "[wasm]") {
+        cleanSystem();
+        message::Message msg = util::messageFactory("omp", "custom_reduce");
+        execFunction(msg);
+    }
 }
