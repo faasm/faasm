@@ -29,11 +29,10 @@ inv compile-prk
 inv upload-prk
 ```
 
-This uploads a number of the kernels written for MPI, e.g. `nstreams`. These can be invoked like 
-normal functions:
+This uploads a number of the kernels written for MPI, e.g. `nstream`. These can be invoked using:
 
 ```bash
-inv invoke prk nstreams
+inv invoke-prk nstream
 ```
 
 ## Extending the Faasm MPI implementation

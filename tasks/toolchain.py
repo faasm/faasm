@@ -19,6 +19,11 @@ from tasks.util.upload_util import download_tar_from_url
 TOOLCHAIN_INSTALL = join(FAASM_LOCAL_DIR, "toolchain")
 
 
+@task
+def codegen_for_user(ctx, user):
+    _do_codegen_for_user(user)
+
+
 def _do_codegen_for_user(user):
     print("Running codegen for user {}".format(user))
 

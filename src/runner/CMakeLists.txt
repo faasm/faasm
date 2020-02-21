@@ -15,7 +15,7 @@ set(LIB_FILES
 faasm_private_lib(bench "${LIB_FILES}")
 target_link_libraries(bench wasm util zygote)
 
-add_executable(func_runner runner.cpp)
+add_executable(func_runner func_runner.cpp)
 target_link_libraries(func_runner bench worker_lib)
 
 add_executable(simple_runner simple_runner.cpp)
@@ -48,3 +48,6 @@ target_link_libraries(thread_bench_mem util)
 
 add_executable(thread_bench_time thread_bench_time.cpp)
 target_link_libraries(thread_bench_time util)
+
+add_executable(prk_local prk_local.cpp)
+target_link_libraries(prk_local bench worker_lib)

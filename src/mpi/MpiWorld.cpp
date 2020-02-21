@@ -390,14 +390,39 @@ namespace mpi {
 
                 if (operation->id == faasmpi_op_sum.id) {
                     if (datatype->id == FAASMPI_INT) {
-                        auto recvInts = reinterpret_cast<int *>(recvBuffer);
-                        auto resultInts = reinterpret_cast<int *>(resultBuffer);
+                        auto finalResults = reinterpret_cast<int *>(recvBuffer);
+                        auto thisResults = reinterpret_cast<int *>(resultBuffer);
 
-                        for (int i = 0; i < count; i++) {
-                            recvInts[i] += resultInts[i];
+                        for (int slot = 0; slot < count; slot++) {
+                            finalResults[slot] += thisResults[slot];
+                        }
+                    } else if(datatype->id == FAASMPI_DOUBLE) {
+                        auto finalResults = reinterpret_cast<double *>(recvBuffer);
+                        auto thisResults = reinterpret_cast<double *>(resultBuffer);
+
+                        for (int slot = 0; slot < count; slot++) {
+                            finalResults[slot] += thisResults[slot];
                         }
                     } else {
                         throw std::runtime_error("Unsupported type for sum reduction");
+                    }
+                } else if (operation->id == faasmpi_op_max.id) {
+                    if (datatype->id == FAASMPI_INT) {
+                        auto finalResults = reinterpret_cast<int *>(recvBuffer);
+                        auto thisResults = reinterpret_cast<int *>(resultBuffer);
+
+                        for (int slot = 0; slot < count; slot++) {
+                            finalResults[slot] = std::max(finalResults[slot], thisResults[slot]);
+                        }
+                    } else if(datatype->id == FAASMPI_DOUBLE) {
+                        auto finalResults = reinterpret_cast<double *>(recvBuffer);
+                        auto thisResults = reinterpret_cast<double *>(resultBuffer);
+
+                        for (int slot = 0; slot < count; slot++) {
+                            finalResults[slot] = std::max(finalResults[slot], thisResults[slot]);
+                        }
+                    } else {
+                        throw std::runtime_error("Unsupported type for max reduction");
                     }
                 } else {
                     throw std::runtime_error("Not yet implemented reduce operation");
@@ -469,12 +494,8 @@ namespace mpi {
         const std::shared_ptr<InMemoryMpiQueue> &queue = getLocalQueue(sendRank, recvRank);
         const MpiMessage *m = queue->peek();
 
-        if (m->type == FAASMPI_INT) {
-            status->bytesSize = m->count * sizeof(int);
-        } else {
-            throw std::runtime_error(fmt::format("Not yet implemented message datatype {}", m->type));
-        }
-
+        faasmpi_datatype_t *datatype = getFaasmDatatypeFromId(m->type);
+        status->bytesSize = m->count * datatype->size;
         status->MPI_ERROR = 0;
         status->MPI_SOURCE = m->sender;
     }

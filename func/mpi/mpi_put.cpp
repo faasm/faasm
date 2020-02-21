@@ -41,7 +41,7 @@ FAASM_MAIN_FUNC() {
             expected[i] = 10 + i;
         }
 
-        bool asExpected = faasm::compareIntArrays(sharedData, expected, NUM_ELEMENT);
+        bool asExpected = faasm::compareArrays<int>(sharedData, expected, NUM_ELEMENT);
         if (!asExpected) {
             return 1;
         } else {

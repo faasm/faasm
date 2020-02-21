@@ -14,10 +14,11 @@ def invoke(ctx, user, func,
            knative=True,
            native=False,
            ibm=False,
-           poll=False
+           poll=False,
+           cmdline=None,
            ):
     invoke_impl(user, func, host=host, port=port, input=input, py=py, async=async,
-                knative=knative, native=native, ibm=ibm, poll=poll)
+                knative=knative, native=native, ibm=ibm, poll=poll, cmdline=cmdline)
 
 
 @task

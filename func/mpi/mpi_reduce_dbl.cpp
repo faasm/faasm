@@ -13,34 +13,33 @@ FAASM_MAIN_FUNC() {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &worldSize);
 
-    // Create an array of three numbers on this process
-    int numsThisProc[3] = {rank, 10 * rank, 100 * rank};
+    // Create an array of three values on this process
+    double numsThisProc[3] = {1.0 * rank, 10.0 * rank, 100.0 * rank};
 
     int root = 1;
-    int *expected = nullptr;
-    int *result = nullptr;
+    double *expected = nullptr;
+    double *result = nullptr;
 
     if (rank == root) {
         // Build expectation
-        expected = new int[3];
-        memset(expected, 0, 3 * sizeof(int));
+        expected = new double[3];
+        memset(expected, 0, 3 * sizeof(double));
 
         for (int r = 0; r < worldSize; r++) {
             expected[0] += r;
-            expected[1] += 10 * r;
-            expected[2] += 100 * r;
+            expected[1] += 10.0 * r;
+            expected[2] += 100.0 * r;
         }
 
-        // Get the result on the root
-        result = new int[3];
+        result = new double[3];
     }
 
     // Call the reduce
-    MPI_Reduce(numsThisProc, result, 3, MPI_INT, MPI_SUM, root, MPI_COMM_WORLD);
+    MPI_Reduce(numsThisProc, result, 3, MPI_DOUBLE, MPI_SUM, root, MPI_COMM_WORLD);
 
     if (rank == root) {
         // Check vs. expectation
-        if (!faasm::compareArrays<int>(result, expected, 3)) {
+        if (!faasm::compareArrays<double>(result, expected, 3)) {
             return 1;
         }
 
