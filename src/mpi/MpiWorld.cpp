@@ -390,22 +390,36 @@ namespace mpi {
 
                 if (operation->id == faasmpi_op_sum.id) {
                     if (datatype->id == FAASMPI_INT) {
-                        auto recvInts = reinterpret_cast<int *>(recvBuffer);
-                        auto resultInts = reinterpret_cast<int *>(resultBuffer);
+                        auto finalResults = reinterpret_cast<int *>(recvBuffer);
+                        auto thisResults = reinterpret_cast<int *>(resultBuffer);
 
                         for (int slot = 0; slot < count; slot++) {
-                            recvInts[slot] += resultInts[slot];
+                            finalResults[slot] += thisResults[slot];
+                        }
+                    } else if(datatype->id == FAASMPI_DOUBLE) {
+                        auto finalResults = reinterpret_cast<double *>(recvBuffer);
+                        auto thisResults = reinterpret_cast<double *>(resultBuffer);
+
+                        for (int slot = 0; slot < count; slot++) {
+                            finalResults[slot] += thisResults[slot];
                         }
                     } else {
                         throw std::runtime_error("Unsupported type for sum reduction");
                     }
                 } else if (operation->id == faasmpi_op_max.id) {
-                    if(datatype->id == FAASMPI_INT) {
-                        auto recvInts = reinterpret_cast<int *>(recvBuffer);
-                        auto resultInts = reinterpret_cast<int *>(resultBuffer);
+                    if (datatype->id == FAASMPI_INT) {
+                        auto finalResults = reinterpret_cast<int *>(recvBuffer);
+                        auto thisResults = reinterpret_cast<int *>(resultBuffer);
 
                         for (int slot = 0; slot < count; slot++) {
-                            recvInts[slot] = std::max(recvInts[slot], resultInts[slot]);
+                            finalResults[slot] = std::max(finalResults[slot], thisResults[slot]);
+                        }
+                    } else if(datatype->id == FAASMPI_DOUBLE) {
+                        auto finalResults = reinterpret_cast<double *>(recvBuffer);
+                        auto thisResults = reinterpret_cast<double *>(resultBuffer);
+
+                        for (int slot = 0; slot < count; slot++) {
+                            finalResults[slot] = std::max(finalResults[slot], thisResults[slot]);
                         }
                     } else {
                         throw std::runtime_error("Unsupported type for max reduction");
