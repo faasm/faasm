@@ -37,7 +37,7 @@ FAASM_MAIN_FUNC() {
     int *actual = new int[nPerRank];
     MPI_Scatter(allData, nPerRank, MPI_INT, actual, nPerRank, MPI_INT, root, MPI_COMM_WORLD);
 
-    if (!faasm::compareIntArrays(actual, expected, nPerRank)) {
+    if (!faasm::compareArrays<int>(actual, expected, nPerRank)) {
         return 1;
     }
 

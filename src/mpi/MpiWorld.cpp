@@ -494,12 +494,8 @@ namespace mpi {
         const std::shared_ptr<InMemoryMpiQueue> &queue = getLocalQueue(sendRank, recvRank);
         const MpiMessage *m = queue->peek();
 
-        if (m->type == FAASMPI_INT) {
-            status->bytesSize = m->count * sizeof(int);
-        } else {
-            throw std::runtime_error(fmt::format("Not yet implemented message datatype {}", m->type));
-        }
-
+        faasmpi_datatype_t *datatype = getFaasmDatatypeFromId(m->type);
+        status->bytesSize = m->count * datatype->size;
         status->MPI_ERROR = 0;
         status->MPI_SOURCE = m->sender;
     }

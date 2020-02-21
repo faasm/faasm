@@ -31,7 +31,7 @@ FAASM_MAIN_FUNC() {
 
     MPI_Allgather(thisChunk, nPerRank, MPI_INT, actual, nPerRank, MPI_INT, MPI_COMM_WORLD);
 
-    if(!faasm::compareIntArrays(actual, expected, n)) {
+    if(!faasm::compareArrays<int>(actual, expected, n)) {
         return 1;
     }
 

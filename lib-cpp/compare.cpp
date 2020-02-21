@@ -1,13 +1,14 @@
 #include "faasm/compare.h"
 
 namespace faasm {
-    bool compareIntArrays(int *a, int *b, int len) {
+    template<typename T>
+    bool compareArrays(T *a, T *b, int len) {
         for (int i = 0; i < len; i++) {
             if (a[i] != b[i]) {
                 printf("Arrays not equal: A=");
-                faasm::printArray(a, len);
+                faasm::printArray<T>(a, len);
                 printf(" B=");
-                faasm::printArray(b, len);
+                faasm::printArray<T>(b, len);
                 printf("\n");
 
                 return false;
@@ -16,4 +17,8 @@ namespace faasm {
 
         return true;
     }
+
+    template bool compareArrays<int>(int *a, int *b, int len);
+
+    template bool compareArrays<double>(double *a, double *b, int len);
 }

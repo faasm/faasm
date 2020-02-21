@@ -30,7 +30,7 @@ FAASM_MAIN_FUNC() {
     MPI_Allreduce(numsThisProc, result, 3, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
     // Check vs. expectation
-    if(!faasm::compareIntArrays(result, expected, 3)) {
+    if(!faasm::compareArrays<int>(result, expected, 3)) {
         return 1;
     }
 
