@@ -393,11 +393,22 @@ namespace mpi {
                         auto recvInts = reinterpret_cast<int *>(recvBuffer);
                         auto resultInts = reinterpret_cast<int *>(resultBuffer);
 
-                        for (int i = 0; i < count; i++) {
-                            recvInts[i] += resultInts[i];
+                        for (int slot = 0; slot < count; slot++) {
+                            recvInts[slot] += resultInts[slot];
                         }
                     } else {
                         throw std::runtime_error("Unsupported type for sum reduction");
+                    }
+                } else if (operation->id == faasmpi_op_max.id) {
+                    if(datatype->id == FAASMPI_INT) {
+                        auto recvInts = reinterpret_cast<int *>(recvBuffer);
+                        auto resultInts = reinterpret_cast<int *>(resultBuffer);
+
+                        for (int slot = 0; slot < count; slot++) {
+                            recvInts[slot] = std::max(recvInts[slot], resultInts[slot]);
+                        }
+                    } else {
+                        throw std::runtime_error("Unsupported type for max reduction");
                     }
                 } else {
                     throw std::runtime_error("Not yet implemented reduce operation");
