@@ -1,0 +1,5 @@
+# Hostfile templated by Ansible deployment process
+
+{% for host in play_hosts %}
+{{ hostvars[host]['inventory_hostname'] }}  slots={{ hostvars[host]['ansible_processor_vcpus'] }}
+{% endfor %}
