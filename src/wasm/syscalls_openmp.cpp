@@ -39,6 +39,7 @@ namespace wasm {
     // Locking/ barriers
     static util::Barrier *activeBarrier;
     static std::mutex reduceMutex;
+    static std::mutex criticalSection;
 
     // Threads currently in action
     std::vector<WAVM::Platform::Thread *> platformThreads;
@@ -156,6 +157,34 @@ namespace wasm {
 
         activeBarrier->wait();
     }
+
+    /**
+     * Enter code protected by a `critical` construct. This function blocks until the thread can enter the critical section.
+     * @param loc  source location information.
+     * @param global_tid  global thread number.
+     * @param crit identity of the critical section. This could be a pointer to a lock
+        associated with the critical section, or some other suitably unique value.
+        The lock is not used because Faasm needs to control the locking mechanism for the team.
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_critical", void, __kmpc_critical, I32 loc, I32 globalTid, I32 crit) {
+        util::getLogger()->debug("S - __kmpc_critical {} {} {}", loc, globalTid, crit);
+        if (sectionThreadCount > 1) {
+            criticalSection.lock();
+        }
+    }
+
+    /**
+     * Exits code protected by a `critical` construct, releasing the held lock. This function blocks until the thread can enter the critical section.
+     * @param loc  source location information.
+     * @param global_tid  global thread number.
+     * @param crit compiler lock. See __kmpc_critical for more information
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_critical", void, __kmpc_end_critical, I32 loc, I32 globalTid, I32 crit) {
+        util::getLogger()->debug("S - __kmpc_end_critical {} {} {}", loc, globalTid, crit);
+        if (sectionThreadCount > 1) {
+            criticalSection.unlock();
+        }
+     }
 
     /**
      * The omp flush directive identifies a point at which the compiler ensures that all threads in a parallel region
