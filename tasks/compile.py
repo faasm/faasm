@@ -59,26 +59,29 @@ def compile(ctx, user, func, clean=False, debug=False, ts=False, cp=False):
 def compile_user(ctx, user, clean=False, debug=False, cp=False):
     target = "{}_all_funcs".format(user)
     _do_compile(target, clean, debug)
+
+    # Copies all existing wasm files for the user to wasm/func/<user>/<func>/function.wasm
     if cp:
-        for func in scandir(join(FUNC_DIR, user)):
-            if not func.is_file():
-                continue
-
+        for func in filter(lambda entry: entry.is_file(), scandir(join(FUNC_BUILD_DIR, user))):
             name, ext = splitext(func.name)
-            origin = join(FUNC_BUILD_DIR, user, ".".join([name, "wasm"]))
 
-            # Ignores non targets and functions that failed to compile
-            if ext != ".cpp" or not exists(origin):
+            # Ignores non targets
+            if ext != ".wasm":
                 continue
+
             dest_folder = join(WASM_DIR, user, name)
             if not exists(dest_folder):
+                if debug:
+                    print("Creating {}".format(dest_folder))
                 mkdir(dest_folder)
-            cmd = [
+            cmd = " ".join([
                 "cp",
-                origin,
+                func.path,
                 join(dest_folder, "function.wasm"),
-            ]
-            call(" ".join(cmd), shell=True, cwd=FUNC_BUILD_DIR)
+            ])
+            if debug:
+                print(cmd)
+            call(cmd, shell=True, cwd=FUNC_BUILD_DIR)
 
 
 def _ts_compile(func, optimize=True):
