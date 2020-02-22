@@ -95,14 +95,6 @@ namespace wasm {
         IR::UntaggedValue *funcArgs;
     };
 
-    // Device level variable
-//    int deviceMaxActiveLevel = 1; // Default device level, can *only* be modified in a non OMP thread
-
-
-    // Level specific constructs
-    // Locking/ barriers
-//    static util::Barrier *activeBarrier;
-
     /**
      * Function used to spawn OMP threads. Will be called from within a thread
      * (hence needs to set up its own TLS)
