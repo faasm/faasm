@@ -3,15 +3,37 @@ set(FAASM_USER mpi)
 set(OMPI_CXX ${CXX})
 set(OMPI_C ${C})
 
+function(lulesh_mpi_target)
+    set(lulesh_exec lulesh_mpi)
+
+    if (NOT FAASM_BUILD_TYPE STREQUAL "wasm")
+        message("Native compilation of ${lulesh_exec} target is handled by the cmake file in the LULESH repo")
+        return()
+    endif ()
+
+    add_definitions("-DUSE_MPI=1")
+
+    set(lulesh_files
+            ../../third-party/LULESH/lulesh-comm.cc
+            ../../third-party/LULESH/lulesh-init.cc
+            ../../third-party/LULESH/lulesh-util.cc
+            ../../third-party/LULESH/lulesh.cc
+            )
+    add_executable(${lulesh_exec} ${lulesh_files})
+    target_link_libraries(${lulesh_exec} faasm faasmpi dlmalloc)
+
+    #set(ALL_OMP_FUNCS ${ALL_OMP_FUNCS} ${lulush_exec} PARENT_SCOPE)
+endfunction(lulesh_mpi_target)
+
 function(mpi_func exec_name dir_path)
     faasm_func(${exec_name} ${dir_path})
 
-    if(FAASM_BUILD_TYPE STREQUAL "wasm")
+    if (FAASM_BUILD_TYPE STREQUAL "wasm")
         set(MPI_LIB "")
-    else()
+    else ()
         include_directories(/usr/local/faasm/openmpi/include)
         set(MPI_LIB /usr/local/faasm/openmpi/lib/libmpi.so)
-    endif()
+    endif ()
 
     if (FAASM_BUILD_TYPE STREQUAL "wasm")
         target_link_libraries(${exec_name} faasmpi)
@@ -25,28 +47,33 @@ function(mpi_func exec_name dir_path)
     set(ALL_MPI_FUNCS ${ALL_MPI_FUNCS} ${exec_name} PARENT_SCOPE)
 endfunction(mpi_func)
 
+if (FAASM_BUILD_TYPE STREQUAL "wasm")
+    # Commented out because if fails at the moment
+#    lulesh_mpi_target()
+endif ()
+
 # Skip MPI stuff in knative for now
-if(FAASM_BUILD_TYPE STREQUAL "knative-native")
-else()
-mpi_func(mpi_allgather mpi_allgather.cpp)
-mpi_func(mpi_allreduce mpi_allreduce.cpp)
-mpi_func(mpi_alltoall mpi_alltoall.cpp)
-mpi_func(mpi_barrier mpi_barrier.cpp)
-mpi_func(mpi_bcast mpi_bcast.cpp)
-mpi_func(mpi_checks mpi_checks.cpp)
-mpi_func(mpi_gather mpi_gather.cpp)
-mpi_func(mpi_onesided mpi_onesided.cpp)
-mpi_func(mpi_order mpi_order.cpp)
-mpi_func(mpi_probe mpi_probe.cpp)
-mpi_func(mpi_put mpi_put.cpp)
-mpi_func(mpi_reduce mpi_reduce.cpp)
-mpi_func(mpi_scatter mpi_scatter.cpp)
-mpi_func(mpi_status mpi_status.cpp)
-mpi_func(mpi_typesize mpi_typesize.cpp)
-mpi_func(mpi_wincreate mpi_wincreate.cpp)
+if (FAASM_BUILD_TYPE STREQUAL "knative-native")
+else ()
+    mpi_func(mpi_allgather mpi_allgather.cpp)
+    mpi_func(mpi_allreduce mpi_allreduce.cpp)
+    mpi_func(mpi_alltoall mpi_alltoall.cpp)
+    mpi_func(mpi_barrier mpi_barrier.cpp)
+    mpi_func(mpi_bcast mpi_bcast.cpp)
+    mpi_func(mpi_checks mpi_checks.cpp)
+    mpi_func(mpi_gather mpi_gather.cpp)
+    mpi_func(mpi_onesided mpi_onesided.cpp)
+    mpi_func(mpi_order mpi_order.cpp)
+    mpi_func(mpi_probe mpi_probe.cpp)
+    mpi_func(mpi_put mpi_put.cpp)
+    mpi_func(mpi_reduce mpi_reduce.cpp)
+    mpi_func(mpi_scatter mpi_scatter.cpp)
+    mpi_func(mpi_status mpi_status.cpp)
+    mpi_func(mpi_typesize mpi_typesize.cpp)
+    mpi_func(mpi_wincreate mpi_wincreate.cpp)
 
-mpi_func(hellompi hellompi.cpp)
+    mpi_func(hellompi hellompi.cpp)
 
-# Custom target for building all functions
-add_custom_target(mpi_all_funcs DEPENDS ${ALL_MPI_FUNCS})
-endif()
+    # Custom target for building all functions
+    add_custom_target(mpi_all_funcs DEPENDS ${ALL_MPI_FUNCS})
+endif ()
