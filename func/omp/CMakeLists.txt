@@ -30,7 +30,6 @@ function(omp_func exec_name dir_path)
 endfunction(omp_func)
 
 omp_func(custom_reduce custom_reduce.cpp)
-#omp_func(device_dot_product device_dot_product.cpp)
 omp_func(for_static_schedule for_static_schedule.cpp)
 omp_func(header_api_support header_api_support.cpp)
 omp_func(hellomp hellomp.cpp)
@@ -46,7 +45,6 @@ omp_func(simple_master simple_master.cpp)
 omp_func(simple_reduce simple_reduce.cpp)
 omp_func(nested_levels_test nested_levels_test.cpp)
 omp_func(nested_parallel nested_parallel.cpp)
-#omp_func(team_management team_management.cpp)
 
 # Intel OMP files
 omp_func(intel_nstreams intel_nstreams.cpp)

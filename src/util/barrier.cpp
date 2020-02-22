@@ -1,6 +1,5 @@
 #include "util/barrier.h"
 #include "util/locks.h"
-#include<cstdio>
 
 namespace util {
     Barrier::Barrier(int count): threadCount(count), slotCount(count), uses(0) {
