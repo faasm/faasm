@@ -10,26 +10,40 @@
 #include <util/environment.h>
 #include <Runtime/RuntimePrivate.h>
 
-#define OMP_STACK_SIZE 2 * ONE_MB_BYTES
+#define OMP_STACK_SIZE (2 * ONE_MB_BYTES)
 
 namespace wasm {
-    enum sched_type : I32 {
-        kmp_sch_lower = 32, /**< lower bound for unordered values */
-        kmp_sch_static_chunked = 33,
-        kmp_sch_static = 34, /**< static unspecialized */
-    };
 
-    enum _reduction_method {
-        reduction_method_not_defined = 0,
-        critical_reduce_block = (1 << 8),
-        atomic_reduce_block = (2 << 8),
-        tree_reduce_block = (3 << 8),
-        empty_reduce_block = (4 << 8)
+    // Namespace in accordance with Clang's OpenMP implementation
+    namespace kmp {
+        enum sched_type : I32 {
+            sch_lower = 32, /**< lower bound for unordered values */
+            sch_static_chunked = 33,
+            sch_static = 34, /**< static unspecialized */
+        };
+
+        enum _reduction_method {
+            reduction_method_not_defined = 0,
+            critical_reduce_block = (1 << 8),
+            atomic_reduce_block = (2 << 8),
+            tree_reduce_block = (3 << 8),
+            empty_reduce_block = (4 << 8)
+        };
+    }
+
+    // Arguments passed to spawned threads
+    struct OMPThreadArgs {
+        int tid;
+        Runtime::ContextRuntimeData *contextRuntimeData;
+        wasm::WasmModule *parentModule;
+        message::Message *parentCall;
+        Runtime::Function *func;
+        IR::UntaggedValue *funcArgs;
     };
 
     // Thread-local variables for each OMP thread
-    static thread_local int thisThreadNumber = 0;
-    static thread_local U32 thisStackBase = -1;
+    thread_local int thisThreadNumber = 0;
+    thread_local U32 thisStackBase = -1;
 
     // Global variables controlled by master
     static int numThreadsOverride = -1;
@@ -43,16 +57,6 @@ namespace wasm {
 
     // Threads currently in action
     std::vector<WAVM::Platform::Thread *> platformThreads;
-
-    // Arguments passed to spawned threads
-    struct OMPThreadArgs {
-        int tid;
-        Runtime::ContextRuntimeData *contextRuntimeData;
-        wasm::WasmModule *parentModule;
-        message::Message *parentCall;
-        Runtime::Function *func;
-        IR::UntaggedValue *funcArgs;
-    };
 
     void resetOpenMP() {
         // Clear thread references and thread number override
@@ -135,6 +139,21 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_max_threads", I32, omp_get_max_threads) {
         util::getLogger()->debug("S - omp_get_max_threads");
         return util::getUsableCores();
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_level", I32, omp_get_level) {
+        util::getLogger()->debug("S - omp_get_level");
+        throw std::runtime_error("Not implemented");
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_max_active_levels", I32, omp_get_max_active_levels) {
+        util::getLogger()->debug("S - omp_get_max_active_levels");
+        throw std::runtime_error("Not implemented");
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_max_active_levels", void, omp_set_max_active_levels, I32 level) {
+        util::getLogger()->debug("S - omp_set_max_active_levels {}", level);
+        throw std::runtime_error("Not implemented");
     }
 
     /**
@@ -407,7 +426,7 @@ namespace wasm {
         }
 
         switch (schedule) {
-            case 33: { // kmp_sch_static_chunked
+            case kmp::sch_static_chunked: {
                 int span;
                 if (chunk < 1) {
                     chunk = 1;
@@ -419,7 +438,7 @@ namespace wasm {
                 *lastIter = (thisThreadNumber == ((tripCount - 1) / (unsigned int) chunk) % sectionThreadCount);
                 break;
             }
-            case 34: { // kmp_sch_static (chunk not given)
+            case kmp::sch_static: { // (chunk not given)
                 // If we have fewer trip_counts than threads
                 if (tripCount < sectionThreadCount) {
                     logger->warn("Small for loop trip count {} {}", tripCount,
@@ -459,11 +478,11 @@ namespace wasm {
     /**
      * There exists many reduction methods, implementing everything as a reduce block
      */
-    _reduction_method determineReductionMethod() {
+    kmp::_reduction_method determineReductionMethod() {
         if (sectionThreadCount == 1) {
-            return empty_reduce_block;
+            return kmp::empty_reduce_block;
         }
-        return critical_reduce_block;
+        return kmp::critical_reduce_block;
     }
 
     /**
@@ -474,19 +493,19 @@ namespace wasm {
         int retVal = 0;
 
         switch(determineReductionMethod()) {
-            case critical_reduce_block:
+            case kmp::critical_reduce_block:
                 util::getLogger()->debug("Thread {} reduction locking", thisThreadNumber);
                 reduceMutex.lock();
                 retVal = 1;
                 break;
-            case empty_reduce_block:
+            case kmp::empty_reduce_block:
                 retVal = 1;
                 break;
-            case atomic_reduce_block:
+            case kmp::atomic_reduce_block:
                 retVal = 2;
                 break;
-            case reduction_method_not_defined:
-            case tree_reduce_block:
+            case kmp::reduction_method_not_defined:
+            case kmp::tree_reduce_block:
                 std::runtime_error("Unsupported reduce operation");
         }
         return retVal;

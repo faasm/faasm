@@ -24,6 +24,9 @@ omp_get_thread_num
 omp_get_num_threads
 omp_get_max_threads
 omp_set_num_threads
+omp_get_level
+omp_get_max_active_levels
+omp_set_max_active_levels
 
 # Debug functions
 __faasmp_debug_copy
