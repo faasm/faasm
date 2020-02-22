@@ -31,9 +31,63 @@ namespace wasm {
         };
     }
 
-    // Arguments passed to spawned threads
+    // Global variables controlled by level master
+    class OMPLevel {
+    public:
+        const int depth; // Number of nested OpenMP constructs, 0 for serial code
+        const int effective_depth; // Number of parallel regions (> 1 thread) above this level
+        int max_active_level; // Max number of effective parallel regions allowed from the top
+        const int num_threads; // Number of threads of this level
+        int wanted_num_threads; // Next level desired number of thread by the user
+        util::Barrier *barrier = nullptr; // Only needed if num_threads > 1
+        std::mutex reduceMutex; // Mutex used for reduction data
+        // TODO - This implementation limits to one lock for all critical sections at a level.
+        // Mention in report (could it be fixed looking at the lck address and doing a lookup on it though?)
+        std::mutex criticalSection; // Mutex used in critical sections.
+
+        // Defaults set to mimic Clang 9.0.1 behaviour
+        OMPLevel() : depth(0), effective_depth(0), max_active_level(1), num_threads(1), wanted_num_threads(-1) {}
+
+        OMPLevel(const OMPLevel *parent, int num_threads) : depth(parent->depth + 1),
+                                                            effective_depth(
+                                                                    num_threads > 1 ? parent->effective_depth + 1
+                                                                                    : parent->effective_depth),
+                                                            max_active_level(parent->max_active_level),
+                                                            num_threads(num_threads),
+                                                            wanted_num_threads(-1) {
+            if (num_threads > 1) {
+                barrier = new util::Barrier(num_threads);
+            }
+        }
+
+        ~OMPLevel() {
+            if (num_threads > 1) {
+                delete barrier;
+            }
+        }
+    };
+
+    OMPLevel deviceSequentialLevel = {};
+    thread_local OMPLevel *thisLevel = &deviceSequentialLevel;
+
+    int get_next_level_num_threads(OMPLevel *currentLevel) {
+        // Limits to one thread if we have exceeded maximum parallelism depth
+        if (currentLevel->effective_depth >= currentLevel->max_active_level) {
+            return 1;
+        }
+
+        // Returns user preference if set or device's maximum
+        return currentLevel->wanted_num_threads > 0 ? currentLevel->wanted_num_threads : util::getUsableCores();
+    }
+
+    // Thread-local variables for each OMP thread
+    thread_local U32 thisStackBase = -1;
+    thread_local int thisThreadNumber = 0;
+
+    // Arguments passed to spawned threads. Shared at by the level apart from tid
     struct OMPThreadArgs {
         int tid;
+        OMPLevel *newLevel;
         Runtime::ContextRuntimeData *contextRuntimeData;
         wasm::WasmModule *parentModule;
         message::Message *parentCall;
@@ -41,34 +95,13 @@ namespace wasm {
         IR::UntaggedValue *funcArgs;
     };
 
-    // Thread-local variables for each OMP thread
-    thread_local int thisThreadNumber = 0;
-    thread_local U32 thisStackBase = -1;
+    // Device level variable
+//    int deviceMaxActiveLevel = 1; // Default device level, can *only* be modified in a non OMP thread
 
-    // Global variables controlled by master
-    static int numThreadsOverride = -1;
-    static unsigned int sectionThreadCount = 1;
 
-    // Team constructs
+    // Level specific constructs
     // Locking/ barriers
-    static util::Barrier *activeBarrier;
-    static std::mutex reduceMutex;
-    static std::mutex criticalSection;
-
-    // Threads currently in action
-    std::vector<WAVM::Platform::Thread *> platformThreads;
-
-    void resetOpenMP() {
-        // Clear thread references and thread number override
-        platformThreads.clear();
-
-        // Reset number threads override
-        numThreadsOverride = -1;
-        sectionThreadCount = 1;
-
-        // Clear the active barrier
-        delete activeBarrier;
-    }
+//    static util::Barrier *activeBarrier;
 
     /**
      * Function used to spawn OMP threads. Will be called from within a thread
@@ -80,6 +113,9 @@ namespace wasm {
         auto threadArgs = reinterpret_cast<OMPThreadArgs *>(threadArgsPtr);
         wasm::setExecutingModule(threadArgs->parentModule);
         wasm::setExecutingCall(threadArgs->parentCall);
+
+        // Set up OMP Level
+        thisLevel = threadArgs->newLevel;
 
         // Set up TLS
         thisThreadNumber = threadArgs->tid;
@@ -129,7 +165,7 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_num_threads", I32, omp_get_num_threads) {
         util::getLogger()->debug("S - omp_get_num_threads");
-        return sectionThreadCount;
+        return thisLevel->num_threads;
     }
 
     /**
@@ -143,17 +179,22 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_level", I32, omp_get_level) {
         util::getLogger()->debug("S - omp_get_level");
-        throw std::runtime_error("Not implemented");
+        return thisLevel->depth;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_max_active_levels", I32, omp_get_max_active_levels) {
         util::getLogger()->debug("S - omp_get_max_active_levels");
-        throw std::runtime_error("Not implemented");
+        return thisLevel->max_active_level;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_max_active_levels", void, omp_set_max_active_levels, I32 level) {
-        util::getLogger()->debug("S - omp_set_max_active_levels {}", level);
-        throw std::runtime_error("Not implemented");
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - omp_set_max_active_levels {}", level);
+        if (level < 0) {
+            logger->warn("Trying to set active level with a negative number {}", level);
+            return;
+        }
+        thisLevel->max_active_level = level;
     }
 
     /**
@@ -166,15 +207,11 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_barrier", void, __kmpc_barrier, I32 loc, I32 globalTid) {
         util::getLogger()->debug("S - __kmpc_barrier {} {}", loc, globalTid);
 
-        if (sectionThreadCount <= 1) {
+        if (thisLevel->num_threads <= 1) {
             return;
         }
 
-        if (activeBarrier == nullptr) {
-            throw std::runtime_error("No active barrier");
-        }
-
-        activeBarrier->wait();
+        thisLevel->barrier->wait();
     }
 
     /**
@@ -187,8 +224,8 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_critical", void, __kmpc_critical, I32 loc, I32 globalTid, I32 crit) {
         util::getLogger()->debug("S - __kmpc_critical {} {} {}", loc, globalTid, crit);
-        if (sectionThreadCount > 1) {
-            criticalSection.lock();
+        if (thisLevel->num_threads > 1) {
+            thisLevel->criticalSection.lock();
         }
     }
 
@@ -198,12 +235,13 @@ namespace wasm {
      * @param global_tid  global thread number.
      * @param crit compiler lock. See __kmpc_critical for more information
      */
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_critical", void, __kmpc_end_critical, I32 loc, I32 globalTid, I32 crit) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_end_critical", void, __kmpc_end_critical, I32 loc, I32 globalTid,
+                                   I32 crit) {
         util::getLogger()->debug("S - __kmpc_end_critical {} {} {}", loc, globalTid, crit);
-        if (sectionThreadCount > 1) {
-            criticalSection.unlock();
+        if (thisLevel->num_threads > 1) {
+            thisLevel->criticalSection.unlock();
         }
-     }
+    }
 
     /**
      * The omp flush directive identifies a point at which the compiler ensures that all threads in a parallel region
@@ -249,25 +287,27 @@ namespace wasm {
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_push_num_threads", void, __kmpc_push_num_threads,
                                    I32 loc, I32 globalTid, I32 numThreads) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - __kmpc_push_num_threads {} {} {}", loc, globalTid, numThreads);
-
+        util::getLogger()->debug("S - __kmpc_push_num_threads {} {} {}", loc, globalTid, numThreads);
         if (numThreads > 0) {
-            numThreadsOverride = numThreads;
+            thisLevel->wanted_num_threads = numThreads;
         }
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_set_num_threads", void, omp_set_num_threads, I32 numThreads) {
         util::getLogger()->debug("S - omp_set_num_threads {}", numThreads);
         if (numThreads > 0) {
-            // TODO - make this user-specific
-            numThreadsOverride = numThreads;
+            thisLevel->wanted_num_threads = numThreads;
         }
     }
 
+    /**
+     * If the runtime is called once, equivalent of calling get_thread_num() at the deepest
+     * @param loc The usual...
+     * @return
+     */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_global_thread_num", I32, __kmpc_global_thread_num, I32 loc) {
         util::getLogger()->debug("S - __kmpc_global_thread_num {}", loc);
-        return thisThreadNumber;
+        return thisThreadNumber; // Might be wrong if called at depth 1 while another thread at depths 1 has forked
     }
 
     /**
@@ -298,23 +338,25 @@ namespace wasm {
         Runtime::Function *func = Runtime::asFunction(
                 Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr));
 
-        // Set up number of threads
-        int numThreads = numThreadsOverride > 0 ? numThreadsOverride : util::getUsableCores();
-        sectionThreadCount = numThreads;
+        // Set up number of threads for next level
+        int nextNumThreads = get_next_level_num_threads(thisLevel);
 
-        // Create barrier in case it's needed
-        activeBarrier = new util::Barrier(numThreads);
+        // Sets up new level
+        OMPLevel *nextLevel = new OMPLevel(thisLevel, nextNumThreads);
 
         // Note - must ensure thread arguments are outside loop scope otherwise they do
         // may not exist by the time the thread actually consumes them
         std::vector<OMPThreadArgs> threadArgs;
-        threadArgs.reserve(numThreads);
+        threadArgs.reserve(nextNumThreads);
 
         std::vector<std::vector<IR::UntaggedValue>> microtaskArgs;
-        microtaskArgs.reserve(numThreads);
+        microtaskArgs.reserve(nextNumThreads);
+
+        std::vector<WAVM::Platform::Thread *> platformThreads;
+        platformThreads.reserve(nextNumThreads);
 
         // Build up arguments
-        for (int threadNum = 0; threadNum < numThreads; threadNum++) {
+        for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
             // Note - these arguments are the thread number followed by the number of
             // shared variables, then the pointers to those shared variables
             microtaskArgs.push_back({threadNum, argc});
@@ -329,14 +371,15 @@ namespace wasm {
             // Arguments for spawning the thread
             // NOTE - CLion auto-format insists on this layout...
             threadArgs.push_back({
-                                         .tid = threadNum, .contextRuntimeData = contextRuntimeData,
+                                         .tid = threadNum, .newLevel = nextLevel,
+                                         .contextRuntimeData = contextRuntimeData,
                                          .parentModule = parentModule, .parentCall = parentCall,
                                          .func = func, .funcArgs = microtaskArgs[threadNum].data()
                                  });
         }
 
         // Create the threads themselves
-        for (int threadNum = 0; threadNum < numThreads; threadNum++) {
+        for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
             platformThreads.emplace_back(Platform::createThread(
                     0,
                     ompThreadEntryFunc,
@@ -354,7 +397,7 @@ namespace wasm {
             throw std::runtime_error(fmt::format("{}} OMP threads have exited with errors", numErrors));
         }
 
-        resetOpenMP();
+        delete nextLevel;
     }
 
     /**
@@ -407,7 +450,7 @@ namespace wasm {
         I32 *upper = &Runtime::memoryRef<I32>(memoryPtr, upperPtr);
         I32 *stride = &Runtime::memoryRef<I32>(memoryPtr, stridePtr);
 
-        if (sectionThreadCount == 1) {
+        if (thisLevel->num_threads == 1) {
             *lastIter = true;
             *stride = (incr > 0) ? (*upper - *lower + 1) : (-(*lower - *upper + 1));
             return;
@@ -432,17 +475,17 @@ namespace wasm {
                     chunk = 1;
                 }
                 span = chunk * incr;
-                *stride = span * sectionThreadCount;
+                *stride = span * thisLevel->num_threads;
                 *lower = *lower + (span * thisThreadNumber);
                 *upper = *lower + span - incr;
-                *lastIter = (thisThreadNumber == ((tripCount - 1) / (unsigned int) chunk) % sectionThreadCount);
+                *lastIter = (thisThreadNumber == ((tripCount - 1) / (unsigned int) chunk) % thisLevel->num_threads);
                 break;
             }
             case kmp::sch_static: { // (chunk not given)
                 // If we have fewer trip_counts than threads
-                if (tripCount < sectionThreadCount) {
+                if (tripCount < thisLevel->num_threads) {
                     logger->warn("Small for loop trip count {} {}", tripCount,
-                                 sectionThreadCount); // Warns for future use, not tested at scale
+                                 thisLevel->num_threads); // Warns for future use, not tested at scale
                     if (thisThreadNumber < tripCount) {
                         *upper = *lower = *lower + thisThreadNumber * incr;
                     } else {
@@ -453,12 +496,12 @@ namespace wasm {
                     // TODO: We only implement below kmp_sch_static_balanced, not kmp_sch_static_greedy
                     // Those are set through KMP_SCHEDULE so we would need to look out for real code setting this
                     logger->debug("Ignores KMP_SCHEDULE variable, defaults to static balanced schedule");
-                    U32 small_chunk = tripCount / sectionThreadCount;
-                    U32 extras = tripCount % sectionThreadCount;
+                    U32 small_chunk = tripCount / thisLevel->num_threads;
+                    U32 extras = tripCount % thisLevel->num_threads;
                     *lower += incr * (thisThreadNumber * small_chunk +
                                       (thisThreadNumber < extras ? thisThreadNumber : extras));
                     *upper = *lower + small_chunk * incr - (thisThreadNumber < extras ? 0 : incr);
-                    *lastIter = (thisThreadNumber == sectionThreadCount - 1);
+                    *lastIter = (thisThreadNumber == thisLevel->num_threads - 1);
                 }
 
                 *stride = tripCount;
@@ -479,7 +522,7 @@ namespace wasm {
      * There exists many reduction methods, implementing everything as a reduce block
      */
     kmp::_reduction_method determineReductionMethod() {
-        if (sectionThreadCount == 1) {
+        if (thisLevel->num_threads == 1) {
             return kmp::empty_reduce_block;
         }
         return kmp::critical_reduce_block;
@@ -492,10 +535,10 @@ namespace wasm {
     int runReduction() {
         int retVal = 0;
 
-        switch(determineReductionMethod()) {
+        switch (determineReductionMethod()) {
             case kmp::critical_reduce_block:
                 util::getLogger()->debug("Thread {} reduction locking", thisThreadNumber);
-                reduceMutex.lock();
+                thisLevel->reduceMutex.lock();
                 retVal = 1;
                 break;
             case kmp::empty_reduce_block:
@@ -516,9 +559,9 @@ namespace wasm {
      */
     void endReduction() {
         // Unlocking not owned mutex is UB
-        if (sectionThreadCount > 1) {
+        if (thisLevel->num_threads > 1) {
             util::getLogger()->debug("Thread {} unlocking reduction", thisThreadNumber);
-            reduceMutex.unlock();
+            thisLevel->reduceMutex.unlock();
         }
     }
 
@@ -557,7 +600,7 @@ namespace wasm {
                                    I32 num_vars, I32 reduce_size, I32 reduce_data, I32 reduce_func, I32 lck) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __kmpc_reduce_nowait {} {} {} {} {} {} {}", loc, gtid, num_vars, reduce_size, reduce_data,
-                     reduce_func, lck);
+                      reduce_func, lck);
         return runReduction();
     }
 

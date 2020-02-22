@@ -76,4 +76,16 @@ namespace tests {
         message::Message msg = util::messageFactory("omp", "custom_reduce");
         execFunction(msg);
     }
+
+    TEST_CASE("Test similar nested API than Clang 9.0.1", "[wasm]") {
+        cleanSystem();
+        message::Message msg = util::messageFactory("omp", "nested_levels_test");
+        execFunction(msg);
+    }
+
+    TEST_CASE("Test nested parallel region support", "[wasm]") {
+        cleanSystem();
+        message::Message msg = util::messageFactory("omp", "nested_parallel");
+        execFunction(msg);
+    }
 }
