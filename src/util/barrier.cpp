@@ -1,5 +1,6 @@
 #include "util/barrier.h"
 #include "util/locks.h"
+#include<cstdio>
 
 namespace util {
     Barrier::Barrier(int count): threadCount(count), slotCount(count), uses(0) {
@@ -14,6 +15,10 @@ namespace util {
             slotCount--;
             if(slotCount == 0) {
                 uses++;
+                // Checks for overflow
+                if (uses < 0) {
+                    throw std::runtime_error("Barrier was used too many times");
+                }
                 slotCount = threadCount;
                 cv.notify_all();
             } else {
