@@ -10,16 +10,18 @@ else ()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif ()
 
-function(lulesh_target)
+function(lulesh_omp_target)
+    set(lulesh_exec lulesh_omp)
 
+    # Native compilation is handled by the cmake file in the LULESH repo
     if (NOT FAASM_BUILD_TYPE STREQUAL "wasm")
-        message("TODO - Run LULESH CMakeFile")
+        message("Native compilation of ${lulesh_exec} target is handled by the cmake file in the LULESH repo")
         return()
     endif ()
 
+    # Needed by the preprocessor to select non-MPI code
     add_definitions("-DUSE_MPI=0")
 
-    set(lulesh_exec lulesh)
     set(lulesh_files
             ../../third-party/LULESH/lulesh-comm.cc
             ../../third-party/LULESH/lulesh-init.cc
@@ -29,12 +31,9 @@ function(lulesh_target)
     add_executable(${lulesh_exec} ${lulesh_files})
     target_link_libraries(${lulesh_exec} faasm faasmp dlmalloc)
 
-    #set(ALL_OMP_FUNCS ${ALL_OMP_FUNCS} ${lulush_exec} PARENT_SCOPE)
-endfunction(lulesh_target)
-
-lulesh_target()
-
-# Add to list of all funcs
+    # Compilation support
+    set(ALL_OMP_FUNCS ${ALL_OMP_FUNCS} ${lulush_exec} PARENT_SCOPE)
+endfunction(lulesh_omp_target)
 
 function(omp_func exec_name dir_path)
     faasm_func(${exec_name} ${dir_path})
@@ -77,6 +76,7 @@ omp_func(intel_transpose intel_transpose.cpp)
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     omp_func(stack_debug stack_debug.cpp)
+    lulesh_omp_target()
 endif ()
 
 # Custom target for building all functions
