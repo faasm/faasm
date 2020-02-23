@@ -14,7 +14,7 @@
 
 namespace wasm {
 
-    // Namespace in accordance with Clang's OpenMP implementation
+    // Types in accordance with Clang's OpenMP implementation
     namespace kmp {
         enum sched_type : I32 {
             sch_lower = 32, /**< lower bound for unordered values */
@@ -39,10 +39,10 @@ namespace wasm {
         int max_active_level; // Max number of effective parallel regions allowed from the top
         const int num_threads; // Number of threads of this level
         int wanted_num_threads; // Next level desired number of thread by the user
-        util::Barrier *barrier = nullptr; // Only needed if num_threads > 1
+        std::unique_ptr<util::Barrier> barrier= {}; // Only needed if num_threads > 1
         std::mutex reduceMutex; // Mutex used for reduction data
         // TODO - This implementation limits to one lock for all critical sections at a level.
-        // Mention in report (could it be fixed looking at the lck address and doing a lookup on it though?)
+        // Mention in report (maybe fix looking at the lck address and doing a lookup on it though?)
         std::mutex criticalSection; // Mutex used in critical sections.
 
         // Defaults set to mimic Clang 9.0.1 behaviour
@@ -56,13 +56,7 @@ namespace wasm {
                                                             num_threads(num_threads),
                                                             wanted_num_threads(-1) {
             if (num_threads > 1) {
-                barrier = new util::Barrier(num_threads);
-            }
-        }
-
-        ~OMPLevel() {
-            if (num_threads > 1) {
-                delete barrier;
+                barrier = std::make_unique<util::Barrier>(num_threads);
             }
         }
     };
@@ -199,7 +193,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_barrier", void, __kmpc_barrier, I32 loc, I32 globalTid) {
         util::getLogger()->debug("S - __kmpc_barrier {} {}", loc, globalTid);
 
-        if (thisLevel->num_threads <= 1) {
+        if (!thisLevel->barrier || thisLevel->num_threads <= 1) {
             return;
         }
 
