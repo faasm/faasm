@@ -38,15 +38,17 @@ namespace wasm {
         const int effective_depth; // Number of parallel regions (> 1 thread) above this level
         int max_active_level; // Max number of effective parallel regions allowed from the top
         const int num_threads; // Number of threads of this level
-        int wanted_num_threads; // Next level desired number of thread by the user
-        std::unique_ptr<util::Barrier> barrier= {}; // Only needed if num_threads > 1
+        int wanted_num_threads; // Desired number of thread set by omp_set_num_threads for all future levels
+        int pushed_num_threads; // Num threads pushed by compiler, valid for one parallel section, overrides wanted
+        std::unique_ptr<util::Barrier> barrier = {}; // Only needed if num_threads > 1
         std::mutex reduceMutex; // Mutex used for reduction data
         // TODO - This implementation limits to one lock for all critical sections at a level.
         // Mention in report (maybe fix looking at the lck address and doing a lookup on it though?)
         std::mutex criticalSection; // Mutex used in critical sections.
 
         // Defaults set to mimic Clang 9.0.1 behaviour
-        OMPLevel() : depth(0), effective_depth(0), max_active_level(1), num_threads(1), wanted_num_threads(-1) {}
+        OMPLevel() : depth(0), effective_depth(0), max_active_level(1), num_threads(1), wanted_num_threads(-1),
+                     pushed_num_threads(-1) {}
 
         OMPLevel(const OMPLevel *parent, int num_threads) : depth(parent->depth + 1),
                                                             effective_depth(
@@ -54,7 +56,8 @@ namespace wasm {
                                                                                     : parent->effective_depth),
                                                             max_active_level(parent->max_active_level),
                                                             num_threads(num_threads),
-                                                            wanted_num_threads(-1) {
+                                                            wanted_num_threads(-1),
+                                                            pushed_num_threads(-1) {
             if (num_threads > 1) {
                 barrier = std::make_unique<util::Barrier>(num_threads);
             }
@@ -64,14 +67,18 @@ namespace wasm {
     OMPLevel deviceSequentialLevel = {};
     thread_local OMPLevel *thisLevel = &deviceSequentialLevel;
 
-    int get_next_level_num_threads(OMPLevel *currentLevel) {
+    int get_next_level_num_threads(const OMPLevel *currentLevel) {
         // Limits to one thread if we have exceeded maximum parallelism depth
         if (currentLevel->effective_depth >= currentLevel->max_active_level) {
             return 1;
         }
 
+        // Extracts user preference unless compiler has overridden it for this parallel section
+        int nextWanted = currentLevel->pushed_num_threads > 0 ? currentLevel->pushed_num_threads
+                                                              : currentLevel->wanted_num_threads;
+
         // Returns user preference if set or device's maximum
-        return currentLevel->wanted_num_threads > 0 ? currentLevel->wanted_num_threads : util::getUsableCores();
+        return nextWanted > 0 ? nextWanted : util::getUsableCores();
     }
 
     // Thread-local variables for each OMP thread
@@ -160,7 +167,7 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_max_threads", I32, omp_get_max_threads) {
         util::getLogger()->debug("S - omp_get_max_threads");
-        return util::getUsableCores();
+        return get_next_level_num_threads(thisLevel);
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_level", I32, omp_get_level) {
@@ -275,7 +282,7 @@ namespace wasm {
                                    I32 loc, I32 globalTid, I32 numThreads) {
         util::getLogger()->debug("S - __kmpc_push_num_threads {} {} {}", loc, globalTid, numThreads);
         if (numThreads > 0) {
-            thisLevel->wanted_num_threads = numThreads;
+            thisLevel->pushed_num_threads = numThreads;
         }
     }
 
@@ -326,8 +333,9 @@ namespace wasm {
 
         // Set up number of threads for next level
         int nextNumThreads = get_next_level_num_threads(thisLevel);
+        thisLevel->pushed_num_threads = -1; // Resets for next push
 
-        // Sets up new level
+        // Set up new level
         OMPLevel *nextLevel = new OMPLevel(thisLevel, nextNumThreads);
 
         // Note - must ensure thread arguments are outside loop scope otherwise they do

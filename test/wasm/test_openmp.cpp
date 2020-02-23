@@ -88,4 +88,10 @@ namespace tests {
         message::Message msg = util::messageFactory("omp", "nested_parallel");
         execFunction(msg);
     }
+
+    TEST_CASE("Test proper handling of getting and setting next level num threads", "[wasm]") {
+        cleanSystem();
+        message::Message msg = util::messageFactory("omp", "setting_num_threads");
+        execFunction(msg);
+    }
 }
