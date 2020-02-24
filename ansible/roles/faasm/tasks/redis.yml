@@ -1,0 +1,19 @@
+---
+
+# Re. "save" see docs on switching off redis persistence: https://redis.io/topics/persistence
+- name: "Tweak Redis config"
+  become: yes
+  lineinfile:
+    path: /etc/redis/redis.conf
+    regexp: "{{ item.rx }}"
+    line: "{{ item.value }}"
+  with_items:
+    - { "rx": "^bind ", "value": "bind 0.0.0.0" }
+    - { "rx": "^maxclients", "value": "maxclients 10000" }
+    - { "rx": "^save ", "value": 'save ""' }
+
+- name: "Restart redis"
+  become: yes
+  service:
+    name: redis
+    state: restarted

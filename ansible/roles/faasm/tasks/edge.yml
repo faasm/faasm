@@ -1,0 +1,32 @@
+---
+
+- name: "Install nginx"
+  become: yes
+  apt:
+    name:
+      - nginx
+
+- name: "Template nginx app config"
+  become: yes
+  template:
+    src: "nginx.conf.j2"
+    dest: "/etc/nginx/sites-available/faasm"
+
+- name: "Symlink nginx app"
+  become: yes
+  file:
+    src: "/etc/nginx/sites-available/faasm"
+    dest: "/etc/nginx/sites-enabled/faasm"
+    state: link
+
+- name: "Enable nginx service"
+  become: yes
+  service:
+    name: nginx
+    enabled: yes
+
+- name: "Restart nginx"
+  become: yes
+  service:
+    name: nginx
+    state: restarted

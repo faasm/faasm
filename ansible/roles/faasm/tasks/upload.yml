@@ -1,0 +1,12 @@
+---
+
+- name: "Run upload build on upload"
+  shell: "cmake --build . --target upload"
+  args:
+    chdir: "/usr/local/code/faasm/build"
+
+- name: "Create supervisor file"
+  become: yes
+  template:
+    src: "upload.conf.j2"
+    dest: "/etc/supervisor/conf.d/faasm_upload.conf"

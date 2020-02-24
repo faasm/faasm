@@ -1,0 +1,9 @@
+[program:faasm_upload]
+command=/usr/local/code/faasm/build/bin/upload
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/faasm_upload.log
+stdout_logfile=/var/log/faasm_upload.log
+environment=LOG_LEVEL=info,
+  REDIS_STATE_HOST="{{ groups['redis'][0] }}",
+  REDIS_QUEUE_HOST="{{ groups['redis'][0] }}"
