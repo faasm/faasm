@@ -106,15 +106,31 @@ ansible-playbook -i inventory/mpi.yml faasm_bare.yml
 ansible-playbook -i inventory/mpi.yml mpi_benchmark.yml
 ```
 
-## 2. Build native code
+## 2. Run native code
 
-SSH onto your `upload` host and run the following:
+The Ansible set-up process will create a hostfile at `~/mpi_hostfile` according to your inventory.
+
+To run a command with this, SSH onto one of your hosts and run:
 
 ```bash
-cd /usr/local/code/faasm
-./bin/build_prk_native.sh
+/usr/local/faasm/openmpi/bin/mpirun \
+   -hostfile mpi_hostfile \
+   ~/faasm/ParResKernels/MPI1/Nstream/nstream 10 1000 0
 ```
 
-To check things have worked, you can then run:
+## Troubleshooting Native MPI
 
+Remember that all machines must be able to SSH onto each other with no prompts (passwords or confirmations).
+
+Machines with multiple network interfaces may sometimes need to specify which interfaces to use, e.g.:
+
+```bash
+mpirun ... -mca btl_tcp_if_include eth1 ...
+```
+
+You can also specify CIDR address ranges:
+
+```bash
+mpirun ... -mca btl_tcp_if_include 192.168.0.0/16 ...
+```
 
