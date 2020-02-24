@@ -15,33 +15,24 @@ int main(int argc, char *argv[]) {
 
     int runCount;
     std::string user;
-    std::string function = {};
-    if (argc == 2) {
+    std::string function = argv[2];
+
+    if (argc == 3) {
         runCount = 1;
-    }
-    else if (argc == 3) {
-        try {
-            runCount = std::stoi(argv[2]);
-        } catch (std::invalid_argument&) {
-            function =  argv[2];
-            runCount = 1;
-        }
-    }
-    else if (argc == 4) {
-        function = argv[2];
+    } else if (argc == 4) {
         runCount = std::stoi(argv[3]);
-    }
-    else {
-        logger->error("Usage: simple_runner <user> [func] [run_count]");
+    } else {
+        logger->error("Usage: simple_runner <user> <func|\"all\"> [run_count]");
         return 1;
     }
 
+    function = argv[2];
     user = argv[1];
 
-    if (function.empty()) {
-        util::SystemConfig &conf = util::getSystemConfig();
-        logger->info("Running codegen for user {} on dir {} with {} runs", user, conf.functionDir, runCount);
+    std::vector<std::string> functions;
 
+    if (function == "all") {
+        util::SystemConfig &conf = util::getSystemConfig();
         boost::filesystem::path path(conf.functionDir);
         path.append(user);
 
@@ -52,16 +43,19 @@ int main(int argc, char *argv[]) {
 
         for (boost::filesystem::directory_iterator iter(path), end; iter != end; iter++) {
             boost::filesystem::directory_entry subPath(iter->path().string());
-            std::string functionName = subPath.path().filename().string();
-            int failed = runFunction(user, functionName, runCount);
-            if (failed) {
-                throw std::runtime_error(fmt::format("Function {}/{} returned non-zero exit code {}", user, function, failed));
-            }
+            functions.push_back(subPath.path().filename().string());
         }
     } else {
-        int failed = runFunction(user, function, runCount);
+        functions.push_back(function);
+    }
+
+    for (auto &f : functions) {
+        logger->info("Running {}/{} for {} runs", user, f, runCount);
+        int failed = runFunction(user, f, runCount);
         if (failed) {
-            throw std::runtime_error(fmt::format("Function {}/{} returned non-zero exit code {}", user, function, failed));
+            throw std::runtime_error(fmt::format(
+                    "Function {}/{} returned non-zero exit code {}", user, f, failed)
+            );
         }
     }
 
@@ -69,7 +63,6 @@ int main(int argc, char *argv[]) {
 }
 
 int runFunction(std::string &user, std::string &function, int runCount) {
-
     const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
     // Set up function call
@@ -105,12 +98,11 @@ int runFunction(std::string &user, std::string &function, int runCount) {
 
         if (result != 0) {
             logger->error("Non-zero return code ({})", result);
-            res = 0;
+            res = result;
         }
 
         // Reset using zygote
         module = zygote;
-
         logger->info("DONE Run {} - {}/{} ", i, user, function);
     }
 

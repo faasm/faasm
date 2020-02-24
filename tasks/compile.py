@@ -1,6 +1,6 @@
-from subprocess import call
-from os.path import exists, join, splitext
 from os import scandir, mkdir
+from os.path import exists, join, splitext
+from subprocess import call
 
 from invoke import task
 
@@ -54,8 +54,9 @@ def compile(ctx, user, func, clean=False, debug=False, ts=False, cp=False):
         ]
         call(" ".join(cmd), shell=True, cwd=FUNC_BUILD_DIR)
 
+
 @task
-def compile_user(ctx, user, clean=False, debug=False, cp=False, run=False):
+def compile_user(ctx, user, clean=False, debug=False, cp=False):
     target = "{}_all_funcs".format(user)
     _do_compile(target, clean, debug)
     if cp:
@@ -78,9 +79,6 @@ def compile_user(ctx, user, clean=False, debug=False, cp=False, run=False):
                 join(dest_folder, "function.wasm"),
             ]
             call(" ".join(cmd), shell=True, cwd=FUNC_BUILD_DIR)
-        if run:
-            _codegen_user(user, debug)
-            _simple_run_user(user, debug)
 
 
 def _ts_compile(func, optimize=True):
@@ -101,22 +99,3 @@ def _ts_compile(func, optimize=True):
     cmd_string = " ".join(cmd)
     print(cmd_string)
     call(cmd_string, cwd=TS_DIR, shell=True)
-
-def _codegen_user(user, debug):
-    cmd = " ".join([
-        "codegen_func", # Requires to have bin dir in PATH
-        user,
-    ])
-    if debug:
-        print("Calling {}".format(cmd))
-    call(cmd, shell=True)
-
-def _simple_run_user(user, debug, num_runs=1):
-    cmd = " ".join([
-        "simple_runner", # Requires to have bin dir in PATH
-        user,
-        str(num_runs),
-    ])
-    if debug:
-        print("Calling {}".format(cmd))
-    call(cmd, shell=True)
