@@ -70,7 +70,7 @@ FAASM_MAIN_FUNC() {
     MPI_Win_fence(0, window);
 
     // Check we've got the data we expected
-    if (rank < 3 && !faasm::compareIntArrays(actual, expectedGetData, NUM_ELEMENT)) {
+    if (rank < 3 && !faasm::compareArrays<int>(actual, expectedGetData, NUM_ELEMENT)) {
         return 1;
     } else if (rank < 3) {
         printf("Rank %i - MPI_Get as expected\n", rank);
@@ -84,7 +84,7 @@ FAASM_MAIN_FUNC() {
 
     // Check we've had the expected data put in our memory
     if(rank < 3) {
-        bool putDataEqual = faasm::compareIntArrays(sharedData, expectedPutData, NUM_ELEMENT);
+        bool putDataEqual = faasm::compareArrays<int>(sharedData, expectedPutData, NUM_ELEMENT);
 
         if (!putDataEqual) {
             return 1;

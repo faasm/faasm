@@ -6,7 +6,8 @@
 namespace faasm {
     char *floatToStr(float f);
 
-    void printArray(int *data, size_t size);
+    template <typename T>
+    void printArray(T *data, size_t size);
 }
 
 #endif

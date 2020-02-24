@@ -46,7 +46,7 @@ FAASM_MAIN_FUNC() {
 
     // Check that the memory has not been corrupted (happens when pointer to MPI_Win is handled wrongly)
     if (rank < 3) {
-        bool putDataEqual = faasm::compareIntArrays(sharedData, expectedPutData, NUM_ELEMENT);
+        bool putDataEqual = faasm::compareArrays<int>(sharedData, expectedPutData, NUM_ELEMENT);
 
         if (!putDataEqual) {
             printf("Rank %i - stack corrupted by win_create\n", rank);

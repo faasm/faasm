@@ -29,7 +29,7 @@ FAASM_MAIN_FUNC() {
     // Broadcast (all should subsequently agree)
     MPI_Bcast(actual, 4, MPI_INT, root, MPI_COMM_WORLD);
 
-    if (!faasm::compareIntArrays(actual, expected, 4)) {
+    if (!faasm::compareArrays<int>(actual, expected, 4)) {
         return 1;
     }
 

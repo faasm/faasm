@@ -14,6 +14,10 @@ namespace util {
             slotCount--;
             if(slotCount == 0) {
                 uses++;
+                // Checks for overflow
+                if (uses < 0) {
+                    throw std::runtime_error("Barrier was used too many times");
+                }
                 slotCount = threadCount;
                 cv.notify_all();
             } else {

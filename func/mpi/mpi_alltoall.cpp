@@ -32,7 +32,7 @@ FAASM_MAIN_FUNC() {
 
     MPI_Alltoall(sendBuf, chunkSize, MPI_INT, actual, chunkSize, MPI_INT, MPI_COMM_WORLD);
 
-    if(!faasm::compareIntArrays(actual, expected, fullSize)) {
+    if(!faasm::compareArrays<int>(actual, expected, fullSize)) {
         return 1;
     }
 

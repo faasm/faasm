@@ -36,6 +36,7 @@ def invoke_impl(user, func,
                 native=False,
                 ibm=False,
                 poll=False,
+                cmdline=None,
                 poll_interval_ms=1000):
     faasm_config = get_faasm_config()
 
@@ -77,6 +78,9 @@ def invoke_impl(user, func,
 
     if input:
         msg["input_data"] = input
+
+    if cmdline:
+        msg["cmdline"] = cmdline
 
     # IBM-specific message format
     if ibm:

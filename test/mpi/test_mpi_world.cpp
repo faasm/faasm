@@ -640,6 +640,48 @@ namespace tests {
         }
     }
 
+    template<typename T>
+    void doReduceTest(mpi::MpiWorld &world, int root, MPI_Op op, MPI_Datatype datatype,
+                      std::vector<std::vector<T>> rankData,
+                      std::vector<T> &expected) {
+        int thisWorldSize = world.getSize();
+
+        // ---- Reduce ----
+        // Call on all but the root first
+        for (int r = 0; r < thisWorldSize; r++) {
+            if (r == root) continue;
+            world.reduce(r, root, BYTES(rankData[r].data()), nullptr, datatype, 3, op);
+        }
+
+        // Call on root to finish off and check
+        std::vector<T> actual(3, 0);
+        world.reduce(root, root, BYTES(rankData[root].data()), BYTES(actual.data()), datatype, 3, op);
+        REQUIRE(actual == expected);
+
+        // ---- Allreduce ----
+        // Run all as threads
+        std::vector<std::thread> threads;
+        for (int r = 0; r < thisWorldSize; r++) {
+            threads.emplace_back([&, r] {
+                std::vector<T> actual(3, 0);
+                world.allReduce(r, BYTES(rankData[r].data()), BYTES(actual.data()), datatype, 3, op);
+                REQUIRE(actual == expected);
+            });
+        }
+
+        for (auto &t : threads) {
+            if (t.joinable()) {
+                t.join();
+            }
+        }
+    }
+
+    template void doReduceTest<int>(mpi::MpiWorld &world, int root, MPI_Op op, MPI_Datatype datatype,
+                                    std::vector<std::vector<int>> rankData, std::vector<int> &expected);
+
+    template void doReduceTest<double>(mpi::MpiWorld &world, int root, MPI_Op op, MPI_Datatype datatype,
+                                       std::vector<std::vector<double>> rankData, std::vector<double> &expected);
+
     TEST_CASE("Test reduce", "[mpi]") {
         cleanSystem();
 
@@ -654,53 +696,65 @@ namespace tests {
         }
 
         // Prepare inputs
-        int rankData[thisWorldSize][3];
-        std::vector<int> expected(3, 0);
-        faasmpi_op_t *reduceOp;
         int root = 3;
 
-        SECTION("Sum operator") {
-            reduceOp = MPI_SUM;
+        SECTION("Integers") {
+            std::vector<std::vector<int>> rankData(thisWorldSize, std::vector<int>(3));
+            std::vector<int> expected(3, 0);
 
+            // Prepare rank data
             for (int r = 0; r < thisWorldSize; r++) {
                 rankData[r][0] = r;
                 rankData[r][1] = r * 10;
                 rankData[r][2] = r * 100;
-
-                expected[0] += rankData[r][0];
-                expected[1] += rankData[r][1];
-                expected[2] += rankData[r][2];
             }
 
-            SECTION("Reduce") {
-                // Call on all but the root first
+            SECTION("Sum operator") {
                 for (int r = 0; r < thisWorldSize; r++) {
-                    if (r == root) continue;
-                    world.reduce(r, root, BYTES(rankData[r]), nullptr, MPI_INT, 3, reduceOp);
+                    expected[0] += rankData[r][0];
+                    expected[1] += rankData[r][1];
+                    expected[2] += rankData[r][2];
                 }
 
-                // Call on root to finish off and check
-                std::vector<int> actual(3, 0);
-                world.reduce(root, root, BYTES(rankData[root]), BYTES(actual.data()), MPI_INT, 3, reduceOp);
-                REQUIRE(actual == expected);
+                doReduceTest<int>(world, root, MPI_SUM, MPI_INT, rankData, expected);
             }
 
-            SECTION("Allreduce") {
-                // Run all as threads
-                std::vector<std::thread> threads;
+            SECTION("Max operator") {
+                expected[0] = (thisWorldSize - 1);
+                expected[1] = (thisWorldSize - 1) * 10;
+                expected[2] = (thisWorldSize - 1) * 100;
+
+                doReduceTest<int>(world, root, MPI_MAX, MPI_INT, rankData, expected);
+            }
+        }
+
+        SECTION("Doubles") {
+            std::vector<std::vector<double>> rankData(thisWorldSize, std::vector<double>(3));
+            std::vector<double> expected(3, 0);
+
+            // Prepare rank data
+            for (int r = 0; r < thisWorldSize; r++) {
+                rankData[r][0] = 2.5 + r;
+                rankData[r][1] = (2.5 + r) * 10;
+                rankData[r][2] = (2.5 + r) * 100;
+            }
+
+            SECTION("Sum operator") {
                 for (int r = 0; r < thisWorldSize; r++) {
-                    threads.emplace_back([&, r] {
-                        std::vector<int> actual(3, 0);
-                        world.allReduce(r, BYTES(rankData[r]), BYTES(actual.data()), MPI_INT, 3, reduceOp);
-                        REQUIRE(actual == expected);
-                    });
+                    expected[0] += rankData[r][0];
+                    expected[1] += rankData[r][1];
+                    expected[2] += rankData[r][2];
                 }
 
-                for (auto &t : threads) {
-                    if (t.joinable()) {
-                        t.join();
-                    }
-                }
+                doReduceTest<double>(world, root, MPI_SUM, MPI_DOUBLE, rankData, expected);
+            }
+
+            SECTION("Max operator") {
+                expected[0] = (2.5 + thisWorldSize - 1);
+                expected[1] = (2.5 + thisWorldSize - 1) * 10;
+                expected[2] = (2.5 + thisWorldSize - 1) * 100;
+
+                doReduceTest<double>(world, root, MPI_MAX, MPI_DOUBLE, rankData, expected);
             }
         }
     }
