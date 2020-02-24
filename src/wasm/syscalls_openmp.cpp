@@ -10,7 +10,7 @@
 #include <util/environment.h>
 #include <Runtime/RuntimePrivate.h>
 
-#define OMP_STACK_SIZE (2 * ONE_MB_BYTES)
+#define OMP_STACK_SIZE (32* 1024)
 
 namespace wasm {
 

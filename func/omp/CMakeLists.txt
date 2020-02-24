@@ -54,7 +54,6 @@ omp_func(intel_transpose intel_transpose.cpp)
 
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     omp_func(stack_debug stack_debug.cpp)
-    lulesh_omp_target()
 endif ()
 
 # Custom target for building all functions

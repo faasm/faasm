@@ -233,7 +233,7 @@ def compile_lulesh(ctx, mpi=False, omp=False, clean=True, debug=False, cp=False)
 
         cmd = " ".join([
             "cp",
-            target,
+            "{}.wasm".format(target),
             join(dest_dir, "function.wasm"),
         ])
         if debug:
