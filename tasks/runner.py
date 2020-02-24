@@ -15,10 +15,7 @@ def run_user(ctx, user, repeats=1):
 def run(ctx, user, function, repeats=1):
     runner = find_command("simple_runner", POSSIBLE_BUILD_BINS)
 
-    cmd = [runner, user]
-
-    if function:
-        cmd.append(function)
+    cmd = [runner, user, function]
 
     if repeats:
         cmd.append(str(repeats))

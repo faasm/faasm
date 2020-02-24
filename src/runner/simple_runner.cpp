@@ -26,8 +26,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    function = argv[2];
     user = argv[1];
+    function = argv[2];
 
     std::vector<std::string> functions;
 
