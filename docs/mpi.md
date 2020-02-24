@@ -63,6 +63,11 @@ Once you've built a native executable linked against this, you can then use `mpi
 We benchmark Faasm against OpenMPI by running both on the same set of bare metal
 machines or VMs. The steps to do this are as follows.
 
+## 0. Check SSH
+
+Note that all the machines must be able to SSH to each other without any 
+prompt or passwords. 
+
 ## 1. Set up the VMs
 
 The set-up is done with Ansible. You need to create a file in this directory at 
