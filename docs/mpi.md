@@ -66,15 +66,30 @@ machines or VMs. The steps to do this are as follows.
 ## 1. Set up the VMs
 
 The set-up is done with Ansible. You need to create a file in this directory at 
-`ansible/inventory/mpi.yml` containing the hostnames of the machines you want to 
-use, e.g.
+`ansible/inventory/mpi.yml` which groups the machines into their roles in Faasm.
 
 ```ini
 [all]
-my_host1
-my_host2
-my_host3
-...
+host1  mpi_host=<hostname/ IP for MPI>
+host2  mpi_host=<...>
+host3  mpi_host=<...>
+host4  mpi_host=<...>
+
+[worker]
+host1
+host2
+
+# One host
+[upload]
+host3
+
+# One host
+[redis]
+host3
+
+# One host
+[edge]
+host4
 ```
 
 You can then run the set-up on all the machines with:
@@ -82,8 +97,19 @@ You can then run the set-up on all the machines with:
 ```bash
 cd ansible
 ansible-playbook -i inventory/mpi.yml benchmark.yml
+ansible-playbook -i inventory/mpi.yml faasm_bare.yml
+ansible-playbook -i inventory/mpi.yml mpi_benchmark.yml
 ```
 
-## 2. Check MPI works
+## 2. Build native code
 
-TBC
+SSH onto your `upload` host and run the following:
+
+```bash
+cd /usr/local/code/faasm
+./bin/build_prk_native.sh
+```
+
+To check things have worked, you can then run:
+
+
