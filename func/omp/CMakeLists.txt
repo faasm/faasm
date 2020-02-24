@@ -10,31 +10,6 @@ else ()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif ()
 
-function(lulesh_omp_target)
-    set(lulesh_exec lulesh_omp)
-
-    # Native compilation is handled by the cmake file in the LULESH repo
-    if (NOT FAASM_BUILD_TYPE STREQUAL "wasm")
-        message("Native compilation of ${lulesh_exec} target is handled by the cmake file in the LULESH repo")
-        return()
-    endif ()
-
-    # Needed by the preprocessor to select non-MPI code
-    add_definitions("-DUSE_MPI=0")
-
-    set(lulesh_files
-            ../../third-party/LULESH/lulesh-comm.cc
-            ../../third-party/LULESH/lulesh-init.cc
-            ../../third-party/LULESH/lulesh-util.cc
-            ../../third-party/LULESH/lulesh.cc
-            )
-    add_executable(${lulesh_exec} ${lulesh_files})
-    target_link_libraries(${lulesh_exec} faasm faasmp dlmalloc)
-
-    # Compilation support
-    set(ALL_OMP_FUNCS ${ALL_OMP_FUNCS} ${lulush_exec} PARENT_SCOPE)
-endfunction(lulesh_omp_target)
-
 function(omp_func exec_name dir_path)
     faasm_func(${exec_name} ${dir_path})
 

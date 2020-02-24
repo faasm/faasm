@@ -3,28 +3,6 @@ set(FAASM_USER mpi)
 set(OMPI_CXX ${CXX})
 set(OMPI_C ${C})
 
-function(lulesh_mpi_target)
-    set(lulesh_exec lulesh_mpi)
-
-    if (NOT FAASM_BUILD_TYPE STREQUAL "wasm")
-        message("Native compilation of ${lulesh_exec} target is handled by the cmake file in the LULESH repo")
-        return()
-    endif ()
-
-    add_definitions("-DUSE_MPI=1")
-
-    set(lulesh_files
-            ../../third-party/LULESH/lulesh-comm.cc
-            ../../third-party/LULESH/lulesh-init.cc
-            ../../third-party/LULESH/lulesh-util.cc
-            ../../third-party/LULESH/lulesh.cc
-            )
-    add_executable(${lulesh_exec} ${lulesh_files})
-    target_link_libraries(${lulesh_exec} faasm faasmpi dlmalloc)
-
-    #set(ALL_OMP_FUNCS ${ALL_OMP_FUNCS} ${lulush_exec} PARENT_SCOPE)
-endfunction(lulesh_mpi_target)
-
 function(mpi_func exec_name dir_path)
     faasm_func(${exec_name} ${dir_path})
 
@@ -46,11 +24,6 @@ function(mpi_func exec_name dir_path)
     # Add to list of all funcs
     set(ALL_MPI_FUNCS ${ALL_MPI_FUNCS} ${exec_name} PARENT_SCOPE)
 endfunction(mpi_func)
-
-if (FAASM_BUILD_TYPE STREQUAL "wasm")
-    # Commented out because if fails at the moment
-#    lulesh_mpi_target()
-endif ()
 
 # Skip MPI stuff in knative for now
 if (FAASM_BUILD_TYPE STREQUAL "knative-native")
