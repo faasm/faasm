@@ -3,6 +3,7 @@ from os.path import join
 from invoke import task
 
 from tasks import invoke
+from tasks.util.endpoints import get_invoke_host_port
 from tasks.util.env import FAASM_HOME
 from tasks.util.mpi import mpi_run
 
@@ -33,5 +34,5 @@ def invoke_prk(ctx, func, native=False, interface=None):
         executable = PRK_NATIVE_EXECUTABLES[func]
         mpi_run(executable, interface=interface, cmdline=cmdline)
     else:
-        invoke(ctx, FAASM_USER, func, cmdline=cmdline)
-
+        host, port = get_invoke_host_port()
+        invoke(ctx, FAASM_USER, func, cmdline=cmdline, host=host, port=port)
