@@ -1,0 +1,5 @@
+# Hostfile templated by Ansible deployment process
+
+{% for host in groups['worker'] %}
+{{ hostvars[host]['mpi_host'] }}  slots={{ hostvars[host]['ansible_processor_vcpus'] }}
+{% endfor %}

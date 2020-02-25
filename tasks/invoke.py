@@ -1,7 +1,7 @@
 from invoke import task
 
 from tasks.util.invoke import invoke_impl, status_call_impl, flush_call_impl
-from tasks.util.endpoints import get_kubernetes_host_port
+from tasks.util.endpoints import get_invoke_host_port
 
 
 @task
@@ -23,7 +23,7 @@ def invoke(ctx, user, func,
 
 @task
 def status(ctx, call_id, host=None, port=None):
-    k8s_host, k8s_port = get_kubernetes_host_port()
+    k8s_host, k8s_port = get_invoke_host_port()
     host = host if host else k8s_host
     port = port if port else k8s_port
 
@@ -32,7 +32,7 @@ def status(ctx, call_id, host=None, port=None):
 
 @task
 def flush(ctx):
-    host, port = get_kubernetes_host_port()
+    host, port = get_invoke_host_port()
     host = host if host else "127.0.0.1"
     port = port if port else 8080
 

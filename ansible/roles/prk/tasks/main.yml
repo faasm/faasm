@@ -1,0 +1,6 @@
+---
+
+- name: "Build PRK native"
+  shell: "./bin/build_prk_native.sh"
+  args:
+    chdir: "/usr/local/code/faasm"

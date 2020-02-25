@@ -12,6 +12,9 @@ def find_command(bin_name, dirs):
     possible_files = [join(d, bin_name) for d in dirs]
     found_cmds = [b for b in possible_files if exists(b)]
 
+    if len(found_cmds) == 0:
+        raise RuntimeError("Could not find command for {}".format(bin_name))
+
     found_cmd = found_cmds[0]
     if len(found_cmds) > 1:
         print("WARNING: found multiple candidates for {}, taking {}".format(bin_name, found_cmd))

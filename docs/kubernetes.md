@@ -32,7 +32,7 @@ To avoid typing in hostnames and ports over and over, you can populate a section
 To get the values, run `./bin/knative_route.sh` which should print out something like:
 
 ```
-[Kubernetes]
+[Faasm]
 invoke_host = ...   # Usually the IP of your master node
 inoke_port = ...    # E.g. 31380
 upload_host = ...   # IP of the upload service

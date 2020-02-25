@@ -1,0 +1,7 @@
+# Templated by Ansible deployment process
+
+[Faasm]
+invoke_host = {{ groups['edge'][0] }}
+invoke_port = 8080
+upload_host = {{ groups['upload'][0] }}
+upload_port = 8002

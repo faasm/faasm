@@ -1,7 +1,7 @@
-from os import makedirs
+from os import makedirs, mkdir
 from os.path import exists
 from os.path import join
-from shutil import rmtree
+from shutil import rmtree, copy
 from subprocess import check_output, call
 
 from invoke import task
@@ -9,7 +9,7 @@ from invoke import task
 from tasks.compile import clean_dir
 from tasks.util.codegen import find_codegen_shared_lib
 from tasks.util.env import PROJ_ROOT, FAASM_TOOLCHAIN_FILE, FAASM_SYSROOT, FAASM_INSTALL_DIR, \
-    FAASM_RUNTIME_ROOT
+    FAASM_RUNTIME_ROOT, WASM_DIR
 from tasks.util.env import THIRD_PARTY_DIR
 from toolchain.python_env import WASM_HOST, BASE_CONFIG_CMD, WASM_CFLAGS, WASM_CXXFLAGS, WASM_LDFLAGS, WASM_CC, \
     WASM_CXX, WASM_RANLIB, WASM_AR, WASM_LD
@@ -301,6 +301,21 @@ def compile_prk(ctx, clean=False):
     if has_failed:
         print("At least one kernel failed")
         exit(1)
+
+    # Make sure wasm dir exists
+    prk_wasm_dest = join(WASM_DIR, "prk")
+    if not exists(prk_wasm_dest):
+        mkdir(prk_wasm_dest)
+
+    # Copy the functions into place
+    prk_wasm_src = join(PRK_DIR, "wasm")
+    for target in [t[1] for t in make_targets]:
+        wasm_src = join(prk_wasm_src, "{}.wasm".format(target))
+        wasm_dest = join(prk_wasm_dest, target)
+        if not exists(wasm_dest):
+            mkdir(wasm_dest)
+
+        copy(wasm_src, join(wasm_dest, "function.wasm"))
 
 
 @task

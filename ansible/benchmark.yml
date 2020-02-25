@@ -13,7 +13,10 @@
     - code
     - python
     - spdlog
+    - eigen
+    - cereal
+    - capacity
+    - pistache
     - rapidjson
     - docker
-    - capacity
     - runtime_fs

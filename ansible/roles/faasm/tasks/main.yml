@@ -1,0 +1,55 @@
+---
+
+# Common tasks
+- name: "Install supervisord"
+  become: yes
+  apt:
+    name:
+      - supervisor
+
+- name: "Create build dir"
+  file:
+    path: "/usr/local/code/faasm/build"
+    state: directory
+    owner: "{{ ansible_env.USER }}"
+    group: "{{ ansible_env.USER }}"
+    mode: 0775
+
+- name: "Prepare out-of-tree build"
+  shell: >
+    cmake
+    -GNinja
+    -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+    -DCMAKE_C_COMPILER=/usr/bin/clang \
+    -DCMAKE_BUILD_TYPE=Release \
+    ..
+  args:
+    chdir: "/usr/local/code/faasm/build"
+
+- name: "Create faasm home dir"
+  file:
+    path: "{{ ansible_env.HOME }}/faasm"
+
+- name: "Put Faasm config in place"
+  template:
+    src: "faasm.ini.j2"
+    dest: "{{ ansible_env.HOME }}/faasm/faasm.ini"
+
+- include_tasks: "worker.yml"
+  when: "'worker' in group_names"
+
+- include_tasks: "upload.yml"
+  when: "'upload' in group_names"
+
+- include_tasks: "edge.yml"
+  when: "'edge' in group_names"
+
+- include_tasks: "redis.yml"
+  when: "'redis' in group_names"
+
+- name: "Reload supervisor"
+  become: yes
+  shell: "supervisorctl {{ item }}"
+  with_items:
+   - reread
+   - update
