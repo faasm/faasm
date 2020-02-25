@@ -23,10 +23,6 @@ FAASM_MAIN_FUNC() {
 
     #pragma omp parallel for num_threads(4) default(none) reduction(MyReducer:sum) shared(a)
     for (int i = 0; i < iterations; i++) {
-        #pragma omp critical
-        {
-            printf("i=%d: thread #%d\n", i, omp_get_thread_num());
-        }
         Reducer val(i * 2 + a[i].x);
         sum += val;
     }
