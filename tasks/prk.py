@@ -17,7 +17,7 @@ PRK_CMDLINE = {
 
 PRK_NATIVE_BUILD = join(FAASM_HOME, "ParResKernels")
 PRK_NATIVE_EXECUTABLES = {
-    "nstream": join(PRK_NATIVE_BUILD, "MP1", "Nstream", "nstream")
+    "nstream": join(PRK_NATIVE_BUILD, "MPI1", "Nstream", "nstream")
 }
 
 
@@ -34,3 +34,4 @@ def invoke_prk(ctx, func, native=False, interface=None):
         mpi_run(executable, interface=interface, cmdline=cmdline)
     else:
         invoke(ctx, FAASM_USER, func, cmdline=cmdline)
+

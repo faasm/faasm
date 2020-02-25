@@ -20,10 +20,10 @@ def mpi_run(executable, interface=None, hostfile=FAASM_HOSTFILE, cmdline=None):
     if interface:
         mpi_cmd.append("-mca btl_tcp_if_include {}".format(interface))
 
+    mpi_cmd.append(executable)
+    
     if cmdline:
         mpi_cmd.append(cmdline)
-
-    mpi_cmd.append(executable)
 
     mpi_cmd = " ".join(mpi_cmd)
     print(mpi_cmd)
