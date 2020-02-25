@@ -12,8 +12,8 @@ from psutil import cpu_count
 
 from tasks import delete_knative_native_python, delete_knative_worker, matrix_state_upload, delete_knative_native
 from tasks.util.billing import start_billing, pull_billing, parse_billing
-from tasks.util.billing_data import plot_billing_data, plot_billing_data_multi
-from tasks.util.endpoints import get_worker_host_port, is_kubernetes
+from tasks.util.billing_data import plot_billing_data_multi
+from tasks.util.endpoints import is_kubernetes, get_invoke_host_port
 from tasks.util.env import FAASM_HOME, PROJ_ROOT
 from tasks.util.invoke import invoke_impl
 
@@ -156,7 +156,7 @@ class WrkRunner(ExperimentRunner):
         self.total_connections = total_connections
         self.delay_ms = delay_ms
 
-        self.host, self.port = get_worker_host_port(None, None)
+        self.host, self.port = get_invoke_host_port()
         self.url = "http://{}:{}".format(self.host, self.port)
 
         self.duration_secs = duration_secs

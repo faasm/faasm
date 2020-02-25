@@ -9,7 +9,7 @@ from tasks.util.config import get_faasm_config
 from tasks.util.env import PROJ_ROOT, FUNC_DIR
 from tasks.util.files import clean_dir
 from tasks.util.ibm import get_ibm_kubeconfig
-from tasks.util.endpoints import get_kubernetes_host_port
+from tasks.util.endpoints import get_invoke_host_port
 from tasks.util.version import get_faasm_version
 
 K8S_DIR = join(PROJ_ROOT, "k8s")
@@ -300,12 +300,12 @@ def deploy_knative_native_python(ctx, replicas):
 
 def _do_deploy_knative_native(func_name, image_name, replicas):
     faasm_config = get_faasm_config()
-    if not faasm_config.has_section("Kubernetes"):
-        print("Must have faasm config set up with kubernetes section")
+    if not faasm_config.has_section("Faasm"):
+        print("Must have faasm config set up with Faasm section")
         return 1
 
     # Host and port required for chaining native functions
-    invoke_host, invoke_port = get_kubernetes_host_port()
+    invoke_host, invoke_port = get_invoke_host_port()
 
     _deploy_knative_fn(
         func_name,

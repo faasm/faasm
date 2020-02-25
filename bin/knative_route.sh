@@ -26,7 +26,7 @@ echo "curl -X PUT http://${UPLOAD_IP}:${UPLOAD_PORT}/f/<user>/<func> -T <wasm_fi
 echo ""
 echo "-----       INI file       -----"
 echo ""
-echo "[Kubernetes]"
+echo "[Faasm]"
 echo "invoke_host = ${ISTIO_IP}"
 echo "invoke_port = ${ISTIO_PORT}"
 echo "upload_host = ${UPLOAD_IP}"

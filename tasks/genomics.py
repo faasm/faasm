@@ -4,8 +4,7 @@ from time import sleep
 
 from invoke import task
 
-from tasks.util.endpoints import get_upload_host_port
-from tasks.util.endpoints import get_worker_host_port
+from tasks.util.endpoints import get_upload_host_port, get_invoke_host_port
 from tasks.util.env import FAASM_DATA_DIR
 from tasks.util.genomics import get_reads_from_dir
 from tasks.util.invoke import invoke_impl, status_call_impl, STATUS_SUCCESS, STATUS_FAILED, STATUS_RUNNING
@@ -25,7 +24,7 @@ def genomics_mapping(ctx):
 
     # Poll for completion of each read
     completed_read_idxs = list()
-    host, port = get_worker_host_port(None, None)
+    host, port = get_invoke_host_port()
     print("Polling workers...")
 
     while len(completed_read_idxs) < len(read_idxs):

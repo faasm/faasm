@@ -26,6 +26,15 @@
   args:
     chdir: "/usr/local/code/faasm/build"
 
+- name: "Create faasm home dir"
+  file:
+    path: "{{ ansible_env.HOME }}/faasm"
+
+- name: "Put Faasm config in place"
+  template:
+    src: "faasm.ini.j2"
+    dest: "{{ ansible_env.HOME }}/faasm/faasm.ini"
+
 - include_tasks: "worker.yml"
   when: "'worker' in group_names"
 
