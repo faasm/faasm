@@ -54,6 +54,13 @@ FAASM_SYSROOT = join(FAASM_LOCAL_DIR, "llvm-sysroot")
 
 LATEST_CMAKE = "/usr/local/lib/cmake-3.15/bin/cmake"
 
+POSSIBLE_BUILD_BINS = [
+    "/faasm/build/bin/",  # Containers
+    join(PROJ_ROOT, "build", "bin"),  # Local builds
+    join(PROJ_ROOT, "cmake-build-debug", "bin"),  # CLion
+    join(HOME_DIR, "faasm", "bench", "bin"),  # Benchmark
+]
+
 
 def get_wasm_func_path(user, func_name):
     func_dir = join(WASM_DIR, user, func_name)

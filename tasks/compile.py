@@ -1,6 +1,6 @@
-from subprocess import call
-from os.path import exists, join, splitext
 from os import scandir, mkdir
+from os.path import exists, join, splitext
+from subprocess import call
 
 from invoke import task
 

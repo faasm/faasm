@@ -147,7 +147,7 @@ from tasks.toolchain import (
     download_sysroot,
     download_runtime_root,
     run_local_codegen,
-    codegen_for_user,
+    codegen_user,
 )
 from tasks.upload import (
     upload_all,
@@ -189,6 +189,10 @@ from tasks.genomics import (
 )
 from tasks.prk import (
     invoke_prk,
+)
+from tasks.runner import (
+    run,
+    run_user,
 )
 # Can only generate matrix data with things installed
 try:
