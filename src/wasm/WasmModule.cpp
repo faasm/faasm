@@ -401,7 +401,7 @@ namespace wasm {
         U32 *argvPointersHost = &Runtime::memoryRef<U32>(defaultMemory, argvPointersOffset);
         char *argvValuesHost = &Runtime::memoryRef<char>(defaultMemory, argvValuesOffset);
 
-        for(int i = 0; i < argv.size(); i++) {
+        for(uint i = 0; i < argv.size(); i++) {
             const std::string thisArgv = argv[i];
 
             // Write this string to memory and record its pointer
