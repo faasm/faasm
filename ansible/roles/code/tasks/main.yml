@@ -19,3 +19,12 @@
     repo: "https://github.com/lsds/Faasm.git"
     dest: /usr/local/code/faasm
     update: yes
+
+- name: "Directory ownership"
+  become: yes
+  file:
+    path: "/usr/local/code/faasm"
+    state: directory
+    owner: "{{ ansible_env.USER }}"
+    group: "{{ ansible_env.USER }}"
+    mode: 0755
