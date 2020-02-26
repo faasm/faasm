@@ -9,6 +9,7 @@
 #include <sys/uio.h>
 #include <sys/ioctl.h>
 #include <sys/unistd.h>
+#include <sys/mman.h>
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
@@ -29,7 +30,7 @@ namespace wasm {
 
         // NOTE: virtual filesystem will return the negative errno associated
         // with any failed operations
-        if(fd > 0) {
+        if (fd > 0) {
             WasmModule *module = getExecutingModule();
             module->addFdForThisThread(fd);
         }
@@ -265,11 +266,20 @@ namespace wasm {
     I32 s__writev(I32 fd, I32 iov, I32 iovcnt) {
         util::getLogger()->debug("S - writev - {} {} {}", fd, iov, iovcnt);
 
-        getExecutingModule()->checkThreadOwnsFd(fd);
+        WasmModule *module = getExecutingModule();
+        module->checkThreadOwnsFd(fd);
 
         iovec *nativeIovecs = wasmIovecsToNativeIovecs(iov, iovcnt);
 
-        Iptr count = writev(fd, nativeIovecs, iovcnt);
+        util::SystemConfig &conf = util::getSystemConfig();
+
+        // Catpure stdout if necessary, otherwise write as normal
+        Iptr count;
+        if (fd == STDOUT_FILENO && conf.captureStdout == "on") {
+            count = module->captureStdout(nativeIovecs, iovcnt);
+        } else {
+            count = writev(fd, nativeIovecs, iovcnt);
+        }
 
         delete[] nativeIovecs;
 
@@ -452,10 +462,19 @@ namespace wasm {
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "puts", I32, puts, I32 strPtr) {
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
-        char *str = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
+        util::getLogger()->debug("S - puts - {}", strPtr);
+        WasmModule *module = getExecutingModule();
+        Runtime::Memory *memoryPtr = module->defaultMemory;
+        char *hostStr = &Runtime::memoryRef<char>(memoryPtr, (Uptr) strPtr);
 
-        printf("%s\n", str);
+        // Capture stdout if necessary
+        util::SystemConfig &conf = util::getSystemConfig();
+        if (conf.captureStdout == "on") {
+            size_t stringLen = strlen(hostStr);
+            module->captureStdout(hostStr, stringLen);
+        } else {
+            printf("%s\n", hostStr);
+        }
 
         return 0;
     }

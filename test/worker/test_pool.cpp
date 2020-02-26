@@ -92,30 +92,6 @@ namespace tests {
         REQUIRE_THROWS(w.bindToFunction(callB, true));
     }
 
-    TEST_CASE("Test fixed input with colon", "[worker]") {
-        setUp();
-        message::Message call = util::messageFactory("demo", "check_input");
-        call.set_inputdata("http://www.foobar.com");
-        setEmulatedMessage(call);
-
-        execFunction(call);
-        tearDown();
-    }
-
-    TEST_CASE("Test execution of echo function", "[worker]") {
-        setUp();
-        message::Message call = util::messageFactory("demo", "echo");
-        std::string inputData = "http://www.testinput/foo.com";
-        call.set_inputdata(inputData.c_str());
-        setEmulatedMessage(call);
-
-        // Run the execution
-        const std::string actual = execFunctionWithStringResult(call);
-        REQUIRE(actual == inputData);
-
-        tearDown();
-    }
-
     TEST_CASE("Test execution of empty echo function", "[worker]") {
         setUp();
         message::Message call = util::messageFactory("demo", "echo");

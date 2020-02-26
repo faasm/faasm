@@ -27,17 +27,17 @@ namespace tests {
         REQUIRE(outputBytes[3] == 3);
     }
 
-//    TEST_CASE("Test printf doesn't fail", "[wasm]") {
-//        message::Message call;
-//        call.set_user("demo");
-//        call.set_function("print");
-//
-//        wasm::WasmModule module;
-//        module.bindToFunction(call);
-//
-//        int result = module.execute(call);
-//        REQUIRE(result == 0);
-//    }
+    TEST_CASE("Test printf doesn't fail", "[wasm]") {
+        message::Message call;
+        call.set_user("demo");
+        call.set_function("print");
+
+        wasm::WasmModule module;
+        module.bindToFunction(call);
+
+        int result = module.execute(call);
+        REQUIRE(result == 0);
+    }
 
     void executeX2(wasm::WasmModule &module) {
         message::Message call;

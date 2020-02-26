@@ -23,6 +23,7 @@
 #include <WAVM/WASTParse/WASTParse.h>
 #include <sys/mman.h>
 #include <sys/types.h>
+#include <sys/uio.h>
 
 using namespace WAVM;
 
@@ -55,7 +56,9 @@ namespace wasm {
         return pageCount;
     }
 
-    WasmModule::WasmModule() = default;
+    WasmModule::WasmModule() : stdoutMemFd(0), stdoutSize(0) {
+
+    }
 
     WasmModule &WasmModule::operator=(const WasmModule &other) {
         PROF_START(wasmAssignOp)
@@ -96,6 +99,10 @@ namespace wasm {
         boundUser = other.boundUser;
         boundFunction = other.boundFunction;
         boundIsTypescript = other.boundIsTypescript;
+
+        // Do not copy over any captured stdout
+        stdoutMemFd = 0;
+        stdoutSize = 0;
 
         if (other._isBound) {
             if (memoryFd > 0) {
@@ -381,7 +388,7 @@ namespace wasm {
     }
 
     std::vector<IR::UntaggedValue> WasmModule::getArgcArgv(const message::Message &msg) {
-        if(msg.cmdline().empty()) {
+        if (msg.cmdline().empty()) {
             // Return argc=0 argv=NULL if no commandline args specified
             return {0, 0};
         }
@@ -401,7 +408,7 @@ namespace wasm {
         U32 *argvPointersHost = &Runtime::memoryRef<U32>(defaultMemory, argvPointersOffset);
         char *argvValuesHost = &Runtime::memoryRef<char>(defaultMemory, argvValuesOffset);
 
-        for(uint i = 0; i < argv.size(); i++) {
+        for (uint i = 0; i < argv.size(); i++) {
             const std::string thisArgv = argv[i];
 
             // Write this string to memory and record its pointer
@@ -1129,5 +1136,62 @@ namespace wasm {
         U8 *memBase = Runtime::getMemoryBaseAddress(defaultMemory);
         size_t memSize = mem.numPages * IR::numBytesPerPage;
         memcpy(memBase, mem.data.data(), memSize);
+    }
+
+    int WasmModule::getStdoutFd() {
+        if (stdoutMemFd == 0) {
+            stdoutMemFd = memfd_create(std::to_string(getExecutingCall()->id()).c_str(), 0);
+        }
+
+        return stdoutMemFd;
+    }
+
+    ssize_t WasmModule::captureStdout(const struct iovec *iovecs, int iovecCount) {
+        int memFd = getStdoutFd();
+        ssize_t writtenSize = writev(memFd, iovecs, iovecCount);
+
+        if (writtenSize < 0) {
+            util::getLogger()->error("Failed capturing stdout: {}", strerror(errno));
+            throw std::runtime_error("Failed capturing stdout");
+        }
+
+        util::getLogger()->debug("Captured {} bytes of formatted stdout", writtenSize);
+        stdoutSize += writtenSize;
+        return writtenSize;
+    }
+
+    ssize_t WasmModule::captureStdout(const void *buffer, size_t bufferLen) {
+        int memFd = getStdoutFd();
+        ssize_t writtenSize = write(memFd, buffer, bufferLen);
+
+        if (writtenSize < 0) {
+            util::getLogger()->error("Failed capturing stdout: {}", strerror(errno));
+            throw std::runtime_error("Failed capturing stdout");
+        }
+
+        util::getLogger()->debug("Captured {} bytes of unformatted stdout", writtenSize);
+        stdoutSize += writtenSize;
+        return writtenSize;
+    }
+
+    std::string WasmModule::getCapturedStdout() {
+        if (stdoutSize == 0) {
+            return "";
+        }
+
+        // Go back to start
+        int memFd = getStdoutFd();
+        lseek(memFd, 0, SEEK_SET);
+
+        // Read in and return
+        char *buf = new char[stdoutSize];
+        read(memFd, buf, stdoutSize);
+        return std::string(buf, stdoutSize);
+    }
+
+    void WasmModule::clearCapturedStdout() {
+        close(stdoutMemFd);
+        stdoutMemFd = 0;
+        stdoutSize = 0;
     }
 }

@@ -132,6 +132,15 @@ namespace wasm {
         void snapshotCrossHost(const std::string &filePath);
 
         void restoreCrossHost(const message::Message &msg, const std::string &filePath);
+
+        ssize_t captureStdout(const struct iovec *iovecs, int iovecCount);
+
+        ssize_t captureStdout(const void* buffer, size_t bufferLen);
+
+        std::string getCapturedStdout();
+
+        void clearCapturedStdout();
+
     private:
         Runtime::GCPointer<Runtime::Instance> envModule;
         Runtime::GCPointer<Runtime::Instance> moduleInstance;
@@ -166,6 +175,11 @@ namespace wasm {
         std::unordered_map<std::string, Uptr> globalOffsetTableMap;
         std::unordered_map<std::string, int> globalOffsetMemoryMap;
         std::unordered_map<std::string, int> missingGlobalOffsetEntries;
+
+        // Output buffer
+        int stdoutMemFd;
+        ssize_t stdoutSize;
+        int getStdoutFd();
 
         void reset();
 
