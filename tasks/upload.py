@@ -1,13 +1,11 @@
-import multiprocessing
-import os
-from os import makedirs
+from os import makedirs, listdir
 from os.path import join, exists
-from subprocess import call
+from shutil import copy
 
 from invoke import task
 
 from tasks.util.endpoints import get_upload_host_port
-from tasks.util.env import FUNC_BUILD_DIR, PROJ_ROOT, RUNTIME_S3_BUCKET, FUNC_DIR, WASM_DIR, FAASM_SHARED_STORAGE_ROOT
+from tasks.util.env import PROJ_ROOT, RUNTIME_S3_BUCKET, FUNC_DIR, WASM_DIR, FAASM_SHARED_STORAGE_ROOT
 from tasks.util.genomics import INDEX_CHUNKS
 from tasks.util.upload_util import curl_file, upload_file_to_s3, upload_file_to_ibm
 
@@ -21,11 +19,19 @@ def _get_s3_key(user, func):
     return s3_key
 
 
-@task
-def upload(ctx, user, func, host=None, s3=False, ibm=False, py=False, ts=False, prebuilt=False, file=None):
-    host, port = get_upload_host_port(host, None)
+def _upload_function(user, func, port=None, host=None, s3=False, ibm=False, py=False, ts=False, file=None,
+                     local_copy=False):
+    host, port = get_upload_host_port(host, port)
 
-    if py:
+    if py and local_copy:
+        storage_dir = join(FAASM_SHARED_STORAGE_ROOT, "pyfuncs", user, func)
+        if not exists(storage_dir):
+            makedirs(storage_dir)
+
+        src_file = join(FUNC_DIR, user, "{}.py".format(func))
+        dest_file = join(storage_dir, "function.py")
+        copy(src_file, dest_file)
+    elif py:
         func_file = join(PROJ_ROOT, "func", user, "{}.py".format(func))
 
         url = "http://{}:{}/p/{}/{}".format(host, port, user, func)
@@ -38,12 +44,7 @@ def upload(ctx, user, func, host=None, s3=False, ibm=False, py=False, ts=False, 
         if file:
             func_file = file
         else:
-            base_dir = WASM_DIR if prebuilt else FUNC_BUILD_DIR
-
-            if prebuilt:
-                func_file = join(base_dir, user, func, "function.wasm")
-            else:
-                func_file = join(base_dir, user, "{}.wasm".format(func))
+            func_file = join(WASM_DIR, user, func, "function.wasm")
 
         if s3:
             print("Uploading {}/{} to S3".format(user, func))
@@ -58,92 +59,27 @@ def upload(ctx, user, func, host=None, s3=False, ibm=False, py=False, ts=False, 
             curl_file(url, func_file)
 
 
-def _do_upload_all(host=None, port=None, upload_s3=False, py=False, prebuilt=False, local_copy=False,
-                   dir_to_walk=None):
-    to_upload = []
-
-    if not dir_to_walk and py:
-        dir_to_walk = FUNC_DIR
-    elif not dir_to_walk:
-        dir_to_walk = WASM_DIR if prebuilt else FUNC_BUILD_DIR
-
-    extension = ".py" if py else ".wasm"
-    url_part = "p" if py else "f"
-
-    if upload_s3 and py:
-        raise RuntimeError("Not yet implemented python and S3 upload")
-
-    if local_copy and not py:
-        raise RuntimeError("Not yet implemented local copy for non-python")
+@task
+def upload_user(ctx, user, host=None, py=False, local_copy=False):
+    if py:
+        funcs = listdir(join(FUNC_DIR, user))
+        funcs = [f for f in funcs if f.endswith(".py")]
+        funcs = [f.replace(".py", "") for f in funcs]
     else:
-        storage_dir = join(FAASM_SHARED_STORAGE_ROOT, "pyfuncs")
-        if not exists(storage_dir):
-            makedirs(storage_dir)
+        funcs = listdir(join(WASM_DIR, user))
 
-    # Walk the function directory tree
-    for root, dirs, files in os.walk(dir_to_walk):
-        # Strip original dir from root
-        rel_path = root.replace(dir_to_walk, "")
-        rel_path = rel_path.strip("/")
-
-        path_parts = rel_path.split("/")
-        path_parts = [p for p in path_parts if p]
-        if not path_parts:
-            continue
-
-        if path_parts[0] not in DIRS_TO_INCLUDE:
-            continue
-
-        user = path_parts[0]
-
-        for f in files:
-            if f.endswith(extension):
-                if prebuilt:
-                    func = path_parts[1]
-                else:
-                    func = f.replace(extension, "")
-
-                func_file = join(root, f)
-
-                if upload_s3:
-                    print("Uploading {}/{} to S3".format(user, func))
-                    s3_key = _get_s3_key(user, func)
-                    upload_file_to_s3(func_file, RUNTIME_S3_BUCKET, s3_key)
-                elif local_copy:
-                    # Copy files directly into place
-                    func_storage_dir = join(storage_dir, user, func)
-                    if not exists(func_storage_dir):
-                        makedirs(func_storage_dir)
-
-                    dest_file = join(func_storage_dir, "function.py")
-                    call("cp {} {}".format(func_file, dest_file), shell=True)
-                else:
-                    print("Uploading {}/{} to host {}".format(user, func, host))
-                    url = "http://{}:{}/{}/{}/{}".format(host, port, url_part, user, func)
-                    to_upload.append((url, func_file))
-
-    # Drop out if already done local copy
-    if local_copy:
-        return
-
-    # Pool of uploaders
-    p = multiprocessing.Pool(multiprocessing.cpu_count() - 1)
-    p.starmap(curl_file, to_upload)
+    # TODO - use multiprocessing to avoid this being super slow
+    for func in funcs:
+        _upload_function(user, func, host=host, py=py, local_copy=local_copy)
 
 
 @task
-def upload_all(ctx, host=None, port=None, py=False, prebuilt=False, local_copy=False):
-    host, port = get_upload_host_port(host, port)
-    _do_upload_all(host=host, port=port, py=py, prebuilt=prebuilt, local_copy=local_copy)
+def upload(ctx, user, func, host=None, s3=False, ibm=False, py=False, ts=False, file=None, local_copy=False):
+    _upload_function(user, func, host=host, s3=s3, ibm=ibm, py=py, ts=ts, file=file, local_copy=local_copy)
 
 
 @task
-def upload_all_s3(ctx):
-    _do_upload_all(upload_s3=True)
-
-
-@task
-def upload_genomics(ctx, host="localhost", port=8002):
+def upload_genomics(ctx, host="localhost", port=None):
     # When uploading genomics, we are uploading the mapper entrypoint as a normal
     # function, but the worker functions are all from the same source file
 
@@ -159,23 +95,4 @@ def upload_genomics(ctx, host="localhost", port=8002):
 
         file_path = join(PROJ_ROOT, "third-party/gem3-mapper/wasm_bin/gem-mapper")
         url = "http://{}:{}/f/gene/{}".format(host, port, func_name)
-        curl_file(url, file_path)
-
-
-@task
-def upload_prk(ctx, host=None, port=None):
-    user = "prk"
-    wasm_dir = join(PROJ_ROOT, "third-party", "ParResKernels", "wasm")
-
-    host, port = get_upload_host_port(host, port)
-
-    for file_name in os.listdir(wasm_dir):
-        if not file_name.endswith(".wasm"):
-            continue
-
-        func_name = file_name.replace(".wasm", "")
-
-        print("Uploading function {}/{} to {}:{}".format(user, func_name, host, port))
-        file_path = join(wasm_dir, file_name)
-        url = "http://{}:{}/f/{}/{}".format(host, port, user, func_name)
         curl_file(url, file_path)

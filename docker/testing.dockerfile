@@ -37,7 +37,7 @@ RUN chown -R root:root /usr/local/faasm
 RUN pip3 install pyfaasm
 
 # Set up Python files
-RUN inv upload-all --py --local-copy
+RUN inv upload-user python --py --local-copy
 
 # Create user with dummy uid required by Python
 RUN groupadd -g 1000 faasm

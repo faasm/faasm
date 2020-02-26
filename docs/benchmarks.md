@@ -204,7 +204,7 @@ Note that you'll need an upload server running (i.e. using the `upload` target, 
 inv compile-user polybench --clean
 
 # Upload (must have an upload server running)
-inv upload-all
+inv upload-user polybench
 ```
 
 We can compile the same functions natively as follows:
@@ -234,7 +234,7 @@ short this is:
 ```bash
 inv run-python-codegen
 inv run-local-codegen
-inv upload-all --py --local-copy
+inv upload-user python --py --local-copy
 ```
 
 Before running, you can check both the native and wasm python versions with:

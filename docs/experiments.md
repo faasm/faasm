@@ -86,7 +86,7 @@ inv reuters-state-upload
 
 # -- Build/ upload --
 inv build-knative-native sgd reuters_svm
-inv upload sgd reuters_svm --prebuilt
+inv upload sgd reuters_svm
 
 # -- Deploy --
 
@@ -163,7 +163,7 @@ Preamble:
 ```bash
 # -- Build/ upload --
 inv build-knative-native tf image
-inv upload tf image --prebuilt
+inv upload tf image
 
 # -- Upload data (one-off)
 inv tf-upload-data tf-state-upload

@@ -49,11 +49,10 @@ Once you have the upload URL you can upload functions using the tasks in this re
 source workon.sh
 
 # C++ functions
-# Note, --prebuilt uses the functions checked into the repo
-inv upload --prebuilt <user> <func>
+inv upload <user> <func>
 
 # All Python functions
-inv upload-all --py
+inv upload-user <user> --py
 ```
 
 ## Invoking functions
