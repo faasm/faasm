@@ -69,9 +69,9 @@ namespace worker {
             if(!moduleStdout.empty()) {
                 std::string newOutput = moduleStdout + "\n" + call.outputdata();
                 call.set_outputdata(newOutput);
-            }
 
-            module->clearCapturedStdout();
+                module->clearCapturedStdout();
+            }
         }
 
         // Notify the scheduler *before* setting the result
