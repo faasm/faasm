@@ -274,12 +274,11 @@ namespace wasm {
         util::SystemConfig &conf = util::getSystemConfig();
 
         // Catpure stdout if necessary, otherwise write as normal
-        Iptr count;
         if (fd == STDOUT_FILENO && conf.captureStdout == "on") {
-            count = module->captureStdout(nativeIovecs, iovcnt);
-        } else {
-            count = writev(fd, nativeIovecs, iovcnt);
+            module->captureStdout(nativeIovecs, iovcnt);
         }
+
+        Iptr count = writev(fd, nativeIovecs, iovcnt);
 
         delete[] nativeIovecs;
 
@@ -472,10 +471,9 @@ namespace wasm {
         if (conf.captureStdout == "on") {
             size_t stringLen = strlen(hostStr);
             module->captureStdout(hostStr, stringLen);
-        } else {
-            printf("%s\n", hostStr);
         }
 
+        printf("%s\n", hostStr);
         return 0;
     }
 
