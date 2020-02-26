@@ -3,4 +3,5 @@
 - hosts: all
   gather_facts: yes
   roles:
+    - code
     - faasm

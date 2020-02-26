@@ -18,4 +18,4 @@
   git:
     repo: "https://github.com/lsds/Faasm.git"
     dest: /usr/local/code/faasm
-    update: no
+    update: yes
