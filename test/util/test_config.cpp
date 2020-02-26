@@ -31,6 +31,8 @@ namespace tests {
         REQUIRE(conf.queueName == "faasm-messages");
         REQUIRE(conf.netNsMode == "off");
         REQUIRE(conf.awsLogLevel == "off");
+        REQUIRE(conf.pythonPreload == "off");
+        REQUIRE(conf.captureStdout == "off");
 
         REQUIRE(conf.redisPort == "6379");
 
@@ -62,6 +64,8 @@ namespace tests {
         std::string cgMode = setEnvVar("CGROUP_MODE", "off");
         std::string nsMode = setEnvVar("NETNS_MODE", "on");
         std::string awsLog = setEnvVar("AWS_LOG_LEVEL", "debug");
+        std::string pythonPre = setEnvVar("PYTHON_PRELOAD", "on");
+        std::string captureStdout = setEnvVar("CAPTURE_STDOUT", "on");
 
         std::string redisState = setEnvVar("REDIS_STATE_HOST", "not-localhost");
         std::string redisQueue = setEnvVar("REDIS_QUEUE_HOST", "other-host");
@@ -103,6 +107,8 @@ namespace tests {
         REQUIRE(conf.cgroupMode == "off");
         REQUIRE(conf.netNsMode == "on");
         REQUIRE(conf.awsLogLevel == "debug");
+        REQUIRE(conf.pythonPreload == "on");
+        REQUIRE(conf.captureStdout == "on");
 
         REQUIRE(conf.redisStateHost == "not-localhost");
         REQUIRE(conf.redisQueueHost == "other-host");
@@ -144,6 +150,8 @@ namespace tests {
         setEnvVar("CGROUP_MODE", cgMode);
         setEnvVar("NETNS_MODE", nsMode);
         setEnvVar("AWS_LOG_LEVEL", awsLog);
+        setEnvVar("PYTHON_PRELOAD", pythonPre);
+        setEnvVar("CAPTURE_STDOUT", captureStdout);
 
         setEnvVar("REDIS_STATE_HOST", redisState);
         setEnvVar("REDIS_QUEUE_HOST", redisQueue);

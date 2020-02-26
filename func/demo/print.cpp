@@ -1,5 +1,4 @@
 #include "faasm/faasm.h"
-#include "faasm/print.h"
 
 #include <stdio.h>
 
@@ -11,12 +10,10 @@ FAASM_MAIN_FUNC() {
     printf("i: %i\n", i);
 
     float f = 7.89;
-    char *fStr = faasm::floatToStr(f);
-    printf("f: %s\n", fStr);
+    printf("f: %.2f\n", f);
 
     double d = 4.56;
-    char *dStr = faasm::floatToStr(d);
-    printf("d: %s\n", dStr);
+    printf("d: %.2f\n", d);
 
     return 0;
 }

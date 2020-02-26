@@ -4,8 +4,6 @@
 #include <stdio.h>
 
 namespace faasm {
-    char *floatToStr(float f);
-
     template <typename T>
     void printArray(T *data, size_t size);
 }

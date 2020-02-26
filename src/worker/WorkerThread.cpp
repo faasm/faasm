@@ -62,6 +62,18 @@ namespace worker {
             call.set_outputdata(errorMsg);
         }
 
+        // Add captured stdout if necessary
+        util::SystemConfig &conf = util::getSystemConfig();
+        if (conf.captureStdout == "on") {
+            std::string moduleStdout = module->getCapturedStdout();
+            if(!moduleStdout.empty()) {
+                std::string newOutput = moduleStdout + "\n" + call.outputdata();
+                call.set_outputdata(newOutput);
+
+                module->clearCapturedStdout();
+            }
+        }
+
         // Notify the scheduler *before* setting the result
         scheduler.notifyCallFinished(call);
 
@@ -83,7 +95,7 @@ namespace worker {
         // If already bound, will be an error, unless forced to rebind to the same message
         if (_isBound) {
             if (force) {
-                if(msg.user() != boundMessage.user() || msg.function() != boundMessage.function()) {
+                if (msg.user() != boundMessage.user() || msg.function() != boundMessage.function()) {
                     throw std::runtime_error("Cannot force bind to a different function");
                 }
             } else {
