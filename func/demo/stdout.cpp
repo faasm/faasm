@@ -11,8 +11,10 @@ FAASM_MAIN_FUNC() {
 
     const char* strOut = "I am output";
     printf("Out: %s\n", strOut);
+    fflush(stdout);
 
     printf("Unformatted output\n");
+    fflush(stdout);
 
     faasm::setStringOutput("Normal Faasm output");
 
