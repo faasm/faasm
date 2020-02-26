@@ -20,6 +20,12 @@ TOOLCHAIN_INSTALL = join(FAASM_LOCAL_DIR, "toolchain")
 
 
 @task
+def codegen(ctx, user, function):
+    binary = find_codegen_func()
+    check_output("{} {} {}".format(binary, user, function), shell=True)
+
+
+@task
 def codegen_user(ctx, user):
     _do_codegen_user(user)
 

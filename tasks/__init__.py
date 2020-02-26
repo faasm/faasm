@@ -147,6 +147,7 @@ from tasks.toolchain import (
     download_sysroot,
     download_runtime_root,
     run_local_codegen,
+    codegen,
     codegen_user,
 )
 from tasks.upload import (
