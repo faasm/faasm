@@ -270,15 +270,15 @@ namespace wasm {
         module->checkThreadOwnsFd(fd);
 
         iovec *nativeIovecs = wasmIovecsToNativeIovecs(iov, iovcnt);
-
-        util::SystemConfig &conf = util::getSystemConfig();
+        Iptr count = writev(fd, nativeIovecs, iovcnt);
 
         // Catpure stdout if necessary, otherwise write as normal
+        util::SystemConfig &conf = util::getSystemConfig();
         if (fd == STDOUT_FILENO && conf.captureStdout == "on") {
-            module->captureStdout(nativeIovecs, iovcnt);
+            iovec *nativeIovecsCopy = wasmIovecsToNativeIovecs(iov, iovcnt);
+            module->captureStdout(nativeIovecsCopy, iovcnt);
         }
 
-        Iptr count = writev(fd, nativeIovecs, iovcnt);
 
         delete[] nativeIovecs;
 
@@ -469,8 +469,7 @@ namespace wasm {
         // Capture stdout if necessary
         util::SystemConfig &conf = util::getSystemConfig();
         if (conf.captureStdout == "on") {
-            size_t stringLen = strlen(hostStr);
-            module->captureStdout(hostStr, stringLen);
+            module->captureStdout(hostStr);
         }
 
         printf("%s\n", hostStr);

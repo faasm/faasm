@@ -1160,9 +1160,10 @@ namespace wasm {
         return writtenSize;
     }
 
-    ssize_t WasmModule::captureStdout(const void *buffer, size_t bufferLen) {
+    ssize_t WasmModule::captureStdout(const void *buffer) {
         int memFd = getStdoutFd();
-        ssize_t writtenSize = write(memFd, buffer, bufferLen);
+
+        ssize_t writtenSize = dprintf(memFd, "%s\n", reinterpret_cast<const char*>(buffer));
 
         if (writtenSize < 0) {
             util::getLogger()->error("Failed capturing stdout: {}", strerror(errno));
