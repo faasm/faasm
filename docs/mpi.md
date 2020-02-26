@@ -26,7 +26,7 @@ To compile and upload you can run the following:
 
 ```bash
 inv compile-prk
-inv upload-prk
+inv upload-user prk
 ```
 
 This uploads a number of the kernels written for MPI, e.g. `nstream`. These can be invoked using:
@@ -73,12 +73,16 @@ prompt or passwords.
 The set-up is done with Ansible. You need to create a file in this directory at 
 `ansible/inventory/mpi.yml` which groups the machines into their roles in Faasm.
 
+Note that you must explicitly provide the hostname/ IP to be used by MPI with 
+`mpi_host=...`. If the machines only have a single network interface, this is just 
+the machine's hostname or IP.
+
 ```ini
 [all]
-host1  mpi_host=<hostname/ IP for MPI>
-host2  mpi_host=<...>
-host3  mpi_host=<...>
-host4  mpi_host=<...>
+host1  mpi_host=<hostname/ IP>
+host2  mpi_host=<hostname/ IP>
+host3  mpi_host=<hostname/ IP>
+host4  mpi_host=<hostname/ IP>
 
 [worker]
 host1
@@ -106,17 +110,37 @@ ansible-playbook -i inventory/mpi.yml faasm_bare.yml
 ansible-playbook -i inventory/mpi.yml mpi_benchmark.yml
 ```
 
-## 2. Run native code
+## 2. Check the Faasm environment
 
-The Ansible set-up process will create a hostfile at `~/mpi_hostfile` according to your inventory.
-
-To run a command with this, SSH onto one of your hosts and run:
+To check that Faasm is set up properly (and to run any subsequent Faasm commands):
 
 ```bash
-/usr/local/faasm/openmpi/bin/mpirun \
-   -hostfile mpi_hostfile \
-   ~/faasm/ParResKernels/MPI1/Nstream/nstream 10 1000 0
+cd /usr/local/code/faasm
+source workon.sh
+
+inv upload demo hello
+inv invoke demo hello --input="hello!"
 ```
+
+## 3. Run native code
+
+The Ansible set-up process will create a hostfile at `~/mpi_hostfile` according to your inventory.
+This is automatically used by the underlying scripts to run the benchmarks.
+
+To check the native code works, you can run:
+
+```bash
+inv invoke-prk nstream --native
+```
+
+## 4. Run wasm code
+
+Faasm functions using MPI can be run as with any others. To check this works you can run:
+
+```bash
+inv upload-user prk
+inv invoke-prk nstream --native
+``` 
 
 ## Troubleshooting Native MPI
 
@@ -133,4 +157,3 @@ You can also specify CIDR address ranges:
 ```bash
 mpirun ... -mca btl_tcp_if_include 192.168.0.0/16 ...
 ```
-

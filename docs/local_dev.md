@@ -109,7 +109,7 @@ inv download-runtime-root
 You can then put the Python functions in place with:
 
 ```
-inv upload-all --py --local-copy
+inv upload-user python --py --local-copy
 ```
 
 ## Networking

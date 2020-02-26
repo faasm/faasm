@@ -151,11 +151,9 @@ from tasks.toolchain import (
     codegen_user,
 )
 from tasks.upload import (
-    upload_all,
-    upload_all_s3,
     upload,
+    upload_user,
     upload_genomics,
-    upload_prk,
 )
 from tasks.wasm2wast import (
     wast,
