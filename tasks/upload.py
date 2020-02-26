@@ -1,3 +1,5 @@
+import multiprocessing
+from functools import partial
 from os import makedirs, listdir
 from os.path import join, exists
 from shutil import copy
@@ -8,8 +10,6 @@ from tasks.util.endpoints import get_upload_host_port
 from tasks.util.env import PROJ_ROOT, RUNTIME_S3_BUCKET, FUNC_DIR, WASM_DIR, FAASM_SHARED_STORAGE_ROOT
 from tasks.util.genomics import INDEX_CHUNKS
 from tasks.util.upload_util import curl_file, upload_file_to_s3, upload_file_to_ibm
-
-DIRS_TO_INCLUDE = ["demo", "errors", "omp", "mpi", "python", "polybench", "sgd", "tf", "gene"]
 
 PYTHON_FUNC_DIR = join(FUNC_DIR, "python")
 
@@ -62,15 +62,19 @@ def _upload_function(user, func, port=None, host=None, s3=False, ibm=False, py=F
 @task
 def upload_user(ctx, user, host=None, py=False, local_copy=False):
     if py:
+        # Get all Python funcs
         funcs = listdir(join(FUNC_DIR, user))
         funcs = [f for f in funcs if f.endswith(".py")]
         funcs = [f.replace(".py", "") for f in funcs]
     else:
         funcs = listdir(join(WASM_DIR, user))
 
-    # TODO - use multiprocessing to avoid this being super slow
-    for func in funcs:
-        _upload_function(user, func, host=host, py=py, local_copy=local_copy)
+        # Filter in only functions that exist
+        funcs = [f for f in funcs if exists(join(WASM_DIR, user, f, "function.wasm"))]
+
+    upload_partial = partial(_upload_function, user, host=host, py=py, local_copy=local_copy)
+    p = multiprocessing.Pool(multiprocessing.cpu_count() - 1)
+    p.starmap(upload_partial, [(f,) for f in funcs])
 
 
 @task
