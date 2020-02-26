@@ -26,7 +26,7 @@ The easiest way to do this is as follows:
 
 ```bash
 # Python stuff
-sudo pip install python3-dev python3-pip
+sudo apt install python3-dev python3-pip
 sudo pip3 install -U pip
 
 # Ansible
