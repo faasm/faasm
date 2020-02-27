@@ -249,13 +249,26 @@ namespace wasm {
     }
 
     I32 s__ioctl(I32 fd, I32 request, I32 argPtr, I32 d, I32 e, I32 f) {
-        util::getLogger()->debug("S - ioctl - {} {} {} {} {} {}", fd, request, argPtr, d, e, f);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - ioctl - {} {} {} {} {} {}", fd, request, argPtr, d, e, f);
 
-        auto hostArgPtr = &Runtime::memoryRef<U8>(getExecutingModule()->defaultMemory, (Uptr) argPtr);
-
+        // Check ownership of fd
         getExecutingModule()->checkThreadOwnsFd(fd);
 
-        int res = ioctl(fd, request, hostArgPtr);
+        // Get pointer to args
+        auto hostArgPtr = &Runtime::memoryRef<U8>(getExecutingModule()->defaultMemory, (Uptr) argPtr);
+
+        int res;
+        if(request == TIOCGWINSZ) {
+            // Getting the window size (isatty function)
+            return ENOTTY;
+        } else {
+            logger->warn("Unknown ioctl request: {}", request);
+
+            // TODO - is it ok just to call through to the host ioctl?
+            res = ioctl(fd, request, hostArgPtr);
+        }
+
 
         return res;
     }
