@@ -100,7 +100,8 @@ namespace wasm {
             // Create a native iovec from the wasm one
             U8 *outputPtr = &Runtime::memoryRef<U8>(memoryPtr, wasmIovec.iov_base);
             U32 outputLen = wasmIovec.iov_len;
-            printf("WRITEV %s (%i)\n", reinterpret_cast<char *>(outputPtr), outputLen);
+            std::string outputStr(reinterpret_cast<char*>(outputPtr), outputLen);
+            printf("WRITEV %s (%i)\n", outputStr.c_str(), outputLen);
 
             iovec nativeIovec{
                     .iov_base = outputPtr,
