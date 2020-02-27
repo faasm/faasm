@@ -16,6 +16,8 @@ FAASM_MAIN_FUNC() {
     float fB = faasm::randomFloat();
     printf("FloatA=%.3f FloatB=%.3f stdout\n", fA, fB);
 
+    fflush(stdout);
+
     const char* strOut = "I am output";
     printf("Out: %s\n", strOut);
     printf("Unformatted stdout\n");

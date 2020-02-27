@@ -39,13 +39,14 @@ services:
       - CGROUP_MODE=on
       - NETNS_MODE=off
       - PYTHON_PRELOAD=off
-      - TF_CODEGEN=on
+      - TF_CODEGEN=off
       - REDIS_STATE_HOST=redis-state
       - REDIS_QUEUE_HOST=redis-queue
       - THREADS_PER_WORKER=20
       - MAX_IN_FLIGHT_RATIO=1
       - MAX_WORKERS_PER_FUNCTION=4
       - GLOBAL_MESSAGE_TIMEOUT=600000
+      - CAPTURE_STDOUT=on
 
   nginx:
     image: nginx:latest
