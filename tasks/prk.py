@@ -57,7 +57,13 @@ def _parse_prk_out(func, cmd_out):
 
     for stat in stats:
         spilt_str = "{}: ".format(stat)
-        stat_val = cmd_out.split(spilt_str)[1]
+
+        stat_val = [c for c in cmd_out.split(spilt_str) if c.strip()]
+        if not stat_val:
+            print("{} = MISSING".format(stat))
+            continue
+
+        stat_val = stat_val[1]
         stat_val = stat_val.split(" ")[0]
         stat_val = float(stat_val)
 
