@@ -264,7 +264,7 @@ namespace wasm {
      * Writing is ok provided the function owns the file descriptor
      */
     I32 s__writev(I32 fd, I32 iov, I32 iovcnt) {
-        util::getLogger()->debug("S - writev - {} {} {}", fd, iov, iovcnt);
+//        util::getLogger()->debug("S - writev - {} {} {}", fd, iov, iovcnt);
 
         WasmModule *module = getExecutingModule();
         module->checkThreadOwnsFd(fd);

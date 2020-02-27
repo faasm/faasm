@@ -1156,11 +1156,12 @@ namespace wasm {
         ssize_t writtenSize = writev(memFd, iovecs, iovecCount);
 
         if (writtenSize < 0) {
-            util::getLogger()->error("Failed capturing stdout: {}", strerror(errno));
-            throw std::runtime_error("Failed capturing stdout");
+//            util::getLogger()->error("Failed capturing stdout: {}", strerror(errno));
+            throw std::runtime_error(std::string("Failed capturing stdout: ")
+                                     + strerror(errno));
         }
 
-        util::getLogger()->debug("Captured {} bytes of formatted stdout", writtenSize);
+//        util::getLogger()->debug("Captured {} bytes of formatted stdout", writtenSize);
         stdoutSize += writtenSize;
         return writtenSize;
     }

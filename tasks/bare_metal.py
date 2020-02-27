@@ -8,6 +8,24 @@ from tasks.util.env import ANSIBLE_ROOT
 DEFAULT_INVENTORY = join(ANSIBLE_ROOT, "inventory", "mpi.yml")
 
 
+def _call_ansible_command(cmd):
+    shell_cmd = " ".join(cmd)
+    print(shell_cmd)
+    res = call(shell_cmd, shell=True, cwd=ANSIBLE_ROOT)
+    if res != 0:
+        print("Ansible command failed")
+        exit(1)
+
+
+def _ansible_playbook_command(playbook, inventory=DEFAULT_INVENTORY):
+    shell_cmd = [
+        "ansible-playbook",
+        "-i", inventory,
+        playbook
+    ]
+    _call_ansible_command(shell_cmd)
+
+
 def _ansible_command(host_group, cmd, inventory=DEFAULT_INVENTORY):
     shell_cmd = [
         "ansible",
@@ -15,13 +33,12 @@ def _ansible_command(host_group, cmd, inventory=DEFAULT_INVENTORY):
         host_group,
         "-a", "\"{}\"".format(cmd)
     ]
+    _call_ansible_command(shell_cmd)
 
-    shell_cmd = " ".join(shell_cmd)
-    print(shell_cmd)
-    res = call(shell_cmd, shell=True, cwd=ANSIBLE_ROOT)
-    if res != 0:
-        print("Failed Ansible command")
-        exit(1)
+
+@task
+def bm_deploy(ctx):
+    _ansible_playbook_command("faasm_bare.yml")
 
 
 @task

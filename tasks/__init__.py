@@ -194,6 +194,7 @@ from tasks.runner import (
     run_user,
 )
 from tasks.bare_metal import (
+    bm_deploy,
     bm_restart_workers,
     bm_restart,
 )
