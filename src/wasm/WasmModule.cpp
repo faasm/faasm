@@ -1140,7 +1140,12 @@ namespace wasm {
 
     int WasmModule::getStdoutFd() {
         if (stdoutMemFd == 0) {
-            stdoutMemFd = memfd_create(std::to_string(getExecutingCall()->id()).c_str(), 0);
+            message::Message *call = getExecutingCall();
+            const std::string fdName = std::to_string(call->id());
+            stdoutMemFd = memfd_create(fdName.c_str(), 0);
+
+            util::getLogger()->debug("Capturing stdout: fd={},{} for {}", fdName, stdoutMemFd,
+                                     util::funcToString(*call, true));
         }
 
         return stdoutMemFd;
@@ -1163,7 +1168,7 @@ namespace wasm {
     ssize_t WasmModule::captureStdout(const void *buffer) {
         int memFd = getStdoutFd();
 
-        ssize_t writtenSize = dprintf(memFd, "%s\n", reinterpret_cast<const char*>(buffer));
+        ssize_t writtenSize = dprintf(memFd, "%s\n", reinterpret_cast<const char *>(buffer));
 
         if (writtenSize < 0) {
             util::getLogger()->error("Failed capturing stdout: {}", strerror(errno));
@@ -1187,7 +1192,10 @@ namespace wasm {
         // Read in and return
         char *buf = new char[stdoutSize];
         read(memFd, buf, stdoutSize);
-        return std::string(buf, stdoutSize);
+        std::string stdoutString(buf, stdoutSize);
+        util::getLogger()->debug("Read stdout length {}:\n{}", stdoutSize, stdoutString);
+
+        return stdoutString;
     }
 
     void WasmModule::clearCapturedStdout() {
