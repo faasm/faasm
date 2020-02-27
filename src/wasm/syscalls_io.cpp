@@ -275,8 +275,7 @@ namespace wasm {
         // Catpure stdout if necessary, otherwise write as normal
         util::SystemConfig &conf = util::getSystemConfig();
         if (fd == STDOUT_FILENO && conf.captureStdout == "on") {
-            iovec *nativeIovecsCopy = wasmIovecsToNativeIovecs(iov, iovcnt);
-            module->captureStdout(nativeIovecsCopy, iovcnt);
+            module->captureStdout(nativeIovecs, iovcnt);
         }
 
 
