@@ -1020,16 +1020,17 @@ namespace wasm {
 
     void WasmModule::checkThreadOwnsFd(int fd) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
-        bool isNotOwned = openFds.find(fd) == openFds.end();
 
         if (fd == STDIN_FILENO) {
             logger->warn("Process interacting with stdin");
-        } else if (fd == STDOUT_FILENO) {
-            // Can allow stdout/ stderr through
-            // logger->debug("Process interacting with stdout", fd);
-        } else if (fd == STDERR_FILENO) {
-            // logger->debug("Process interacting with stderr", fd);
-        } else if (isNotOwned) {
+            return;
+        } else if (fd == STDOUT_FILENO || fd == STDERR_FILENO) {
+            // Allow stdout/ stderr
+            return;
+        }
+
+        bool isNotOwned = openFds.find(fd) == openFds.end();
+        if(isNotOwned) {
             logger->error("fd not owned by this thread {}", fd);
             throw std::runtime_error("fd not owned by this function");
         }
@@ -1156,12 +1157,12 @@ namespace wasm {
         ssize_t writtenSize = writev(memFd, iovecs, iovecCount);
 
         if (writtenSize < 0) {
-//            util::getLogger()->error("Failed capturing stdout: {}", strerror(errno));
+            util::getLogger()->error("Failed capturing stdout: {}", strerror(errno));
             throw std::runtime_error(std::string("Failed capturing stdout: ")
                                      + strerror(errno));
         }
 
-//        util::getLogger()->debug("Captured {} bytes of formatted stdout", writtenSize);
+        util::getLogger()->debug("Captured {} bytes of formatted stdout", writtenSize);
         stdoutSize += writtenSize;
         return writtenSize;
     }
