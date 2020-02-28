@@ -24,15 +24,15 @@ FAASM_USER = "prk"
 # $MPIRUN -np $NUMPROCS MPI1/Transpose/transpose       $NUMITERS 50000 64;       echo $SEPLINE
 #
 PRK_CMDLINE = {
-    "dgemm": "{} -50000 32 1".format(ITERATIONS),  # iterations, matrix order, outer block size (?)
-    "nstream": "{} 10000000 0".format(ITERATIONS),  # iterations, vector length, offset
-    "random": "{} 32".format(ITERATIONS),  # iterations, update ratio
-    "reduce": "{} 10000000".format(ITERATIONS),  # iterations, vector length
-    "sparse": "{} 13 7".format(ITERATIONS),  # iterations, log2 grid size, stencil radius
-    "stencil": "{} 50000".format(ITERATIONS),  # iterations, array dimension
-    "global": "{} 10000000".format(ITERATIONS),  # iterations, scramble string length
-    "p2p": "{} 30000 30000".format(ITERATIONS),  # iterations, 1st array dimension, 2nd array dimension
-    "transpose": "{} 25000 64".format(ITERATIONS),  # iterations, matrix order, tile size
+    "dgemm": "{} 500 32 1".format(ITERATIONS),  # iterations, matrix order, outer block size (?)
+    "nstream": "{} 2000000 0".format(ITERATIONS),  # iterations, vector length, offset
+    "random": "{} 16".format(ITERATIONS),  # iterations, update ratio
+    "reduce": "{} 2000000".format(ITERATIONS),  # iterations, vector length
+    "sparse": "{} 10 4".format(ITERATIONS),  # iterations, log2 grid size, stencil radius
+    "stencil": "{} 1000".format(ITERATIONS),  # iterations, array dimension
+    "global": "{} 10000".format(ITERATIONS),  # iterations, scramble string length
+    "p2p": "{} 1000 100".format(ITERATIONS),  # iterations, 1st array dimension, 2nd array dimension
+    "transpose": "{} 2000 64".format(ITERATIONS),  # iterations, matrix order, tile size
 }
 
 PRK_NATIVE_BUILD = join(FAASM_HOME, "ParResKernels")
@@ -50,7 +50,7 @@ PRK_NATIVE_EXECUTABLES = {
 }
 
 PRK_STATS = {
-    "dgemm": (),
+    "dgemm": ("Avg time (s)", "Rate (MFlops/s)"),
     "nstream": ("Avg time (s)", "Rate (MB/s)"),
     "random": (),
     "reduce": (),
