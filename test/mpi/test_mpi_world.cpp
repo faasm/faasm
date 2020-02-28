@@ -783,6 +783,60 @@ namespace tests {
         }
     }
 
+    TEST_CASE("Test gather", "[mpi]") {
+        cleanSystem();
+
+        const message::Message &msg = util::messageFactory(user, func);
+        mpi::MpiWorld world;
+        int thisWorldSize = 5;
+        int root = 3;
+
+        bool isInPlace;
+        SECTION("In place") {
+            isInPlace = true;
+        }SECTION("Not in place") {
+            isInPlace = false;
+        }
+
+        world.create(msg, worldId, thisWorldSize);
+
+        // Register the ranks (zero already registered by default
+        for (int r = 1; r < thisWorldSize; r++) {
+            world.registerRank(r);
+        }
+
+        // Build up per-rank data and expectation
+        int nPerRank = 3;
+        int gatheredSize = nPerRank * thisWorldSize;
+        std::vector<std::vector<int>> rankData(thisWorldSize, std::vector<int>(nPerRank));
+        std::vector<int> expected(gatheredSize, 0);
+        for (int i = 0; i < gatheredSize; i++) {
+            int thisRank = i / nPerRank;
+            expected[i] = i;
+            rankData[thisRank][i % nPerRank] = i;
+        }
+
+        // Run gather on all non-root ranks
+        for (int r = 0; r < thisWorldSize; r++) {
+            if (r == root) {
+                continue;
+            }
+            world.gather(r, root, BYTES(rankData[r].data()), MPI_INT, nPerRank, nullptr, MPI_INT, nPerRank);
+        }
+
+        // Run gather on the root
+        if (isInPlace) {
+            world.gather(root, root, BYTES(rankData[root].data()), MPI_INT, nPerRank, BYTES(rankData[root].data()),
+                         MPI_INT, nPerRank);
+            REQUIRE(rankData[root] == expected);
+        } else {
+            std::vector<int> actual(gatheredSize, 0);
+            world.gather(root, root, BYTES(rankData[root].data()), MPI_INT, nPerRank, BYTES(actual.data()), MPI_INT,
+                         nPerRank);
+            REQUIRE(actual == expected);
+        }
+    }
+
     TEST_CASE("Test all-to-all", "[mpi]") {
         cleanSystem();
 
