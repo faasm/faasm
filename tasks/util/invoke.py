@@ -37,6 +37,7 @@ def invoke_impl(user, func,
                 ibm=False,
                 poll=False,
                 cmdline=None,
+                mpi_world_size=None,
                 poll_interval_ms=1000):
     faasm_config = get_faasm_config()
 
@@ -81,6 +82,9 @@ def invoke_impl(user, func,
 
     if cmdline:
         msg["cmdline"] = cmdline
+
+    if mpi_world_size:
+        msg["mpi_world_size"] = mpi_world_size
 
     # IBM-specific message format
     if ibm:
