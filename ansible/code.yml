@@ -4,4 +4,3 @@
   gather_facts: yes
   roles:
     - code
-    - faasm

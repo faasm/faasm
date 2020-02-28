@@ -135,7 +135,7 @@ namespace wasm {
 
         ssize_t captureStdout(const struct iovec *iovecs, int iovecCount);
 
-        ssize_t captureStdout(const void* buffer, size_t bufferLen);
+        ssize_t captureStdout(const void* buffer);
 
         std::string getCapturedStdout();
 

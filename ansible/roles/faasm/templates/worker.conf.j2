@@ -4,6 +4,7 @@ autostart=true
 autorestart=true
 stderr_logfile=/var/log/faasm_worker.log
 stdout_logfile=/var/log/faasm_worker.log
+user={{ ansible_env.USER }}
 environment=LOG_LEVEL=debug,
   FUNCTION_STORAGE=fileserver,
   FILESERVER_URL="http://{{ groups['upload'][0] }}:8002",
@@ -16,4 +17,6 @@ environment=LOG_LEVEL=debug,
   CGROUP_MODE=on,
   NETNS_MODE=off,
   REDIS_STATE_HOST="{{ groups['redis'][0] }}",
-  REDIS_QUEUE_HOST="{{ groups['redis'][0] }}"
+  REDIS_QUEUE_HOST="{{ groups['redis'][0] }}",
+  CAPTURE_STDOUT=on
+
