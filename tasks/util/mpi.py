@@ -9,7 +9,7 @@ OMPI_INSTALL = "/usr/local/faasm/openmpi"
 MPI_RUN = join(OMPI_INSTALL, "bin", "mpirun")
 
 
-def mpi_run(executable, iface=None, hostfile=FAASM_HOSTFILE, cmdline=None):
+def mpi_run(executable, iface=None, hostfile=FAASM_HOSTFILE, cmdline=None, np=None):
     mpi_cmd = [
         MPI_RUN,
     ]
@@ -19,6 +19,9 @@ def mpi_run(executable, iface=None, hostfile=FAASM_HOSTFILE, cmdline=None):
 
     if iface:
         mpi_cmd.append("-mca btl_tcp_if_include {}".format(iface))
+
+    if np:
+        mpi_cmd.append("-np {}".format(np))
 
     mpi_cmd.append(executable)
 

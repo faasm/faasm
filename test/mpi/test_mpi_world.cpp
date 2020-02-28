@@ -646,6 +646,15 @@ namespace tests {
                       std::vector<T> &expected) {
         int thisWorldSize = world.getSize();
 
+        bool inPlace;
+        SECTION("In place") {
+            inPlace = true;
+        }
+
+        SECTION("Not in place") {
+            inPlace = false;
+        }
+
         // ---- Reduce ----
         // Call on all but the root first
         for (int r = 0; r < thisWorldSize; r++) {
@@ -654,18 +663,33 @@ namespace tests {
         }
 
         // Call on root to finish off and check
-        std::vector<T> actual(3, 0);
-        world.reduce(root, root, BYTES(rankData[root].data()), BYTES(actual.data()), datatype, 3, op);
-        REQUIRE(actual == expected);
+        std::vector<T> rootRankData = rankData[root];
+        if (inPlace) {
+            // In-place uses the same buffer for send and receive
+            world.reduce(root, root, BYTES(rootRankData.data()), BYTES(rootRankData.data()), datatype, 3, op);
+            REQUIRE(rootRankData == expected);
+        } else {
+            // Not in-place uses a separate buffer for send and receive
+            std::vector<T> actual(3, 0);
+            world.reduce(root, root, BYTES(rootRankData.data()), BYTES(actual.data()), datatype, 3, op);
+            REQUIRE(actual == expected);
+        }
 
         // ---- Allreduce ----
         // Run all as threads
         std::vector<std::thread> threads;
         for (int r = 0; r < thisWorldSize; r++) {
-            threads.emplace_back([&, r] {
-                std::vector<T> actual(3, 0);
-                world.allReduce(r, BYTES(rankData[r].data()), BYTES(actual.data()), datatype, 3, op);
-                REQUIRE(actual == expected);
+            threads.emplace_back([&, r, inPlace] {
+                std::vector<T> thisRankData = rankData[r];
+                if (inPlace) {
+                    // In-place uses the same buffer for send and receive on _all_ hosts
+                    world.allReduce(r, BYTES(thisRankData.data()), BYTES(thisRankData.data()), datatype, 3, op);
+                    REQUIRE(thisRankData == expected);
+                } else {
+                    std::vector<T> actual(3, 0);
+                    world.allReduce(r, BYTES(thisRankData.data()), BYTES(actual.data()), datatype, 3, op);
+                    REQUIRE(actual == expected);
+                }
             });
         }
 
