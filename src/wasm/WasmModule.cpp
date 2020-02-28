@@ -1020,16 +1020,17 @@ namespace wasm {
 
     void WasmModule::checkThreadOwnsFd(int fd) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
-        bool isNotOwned = openFds.find(fd) == openFds.end();
 
         if (fd == STDIN_FILENO) {
             logger->warn("Process interacting with stdin");
-        } else if (fd == STDOUT_FILENO) {
-            // Can allow stdout/ stderr through
-            // logger->debug("Process interacting with stdout", fd);
-        } else if (fd == STDERR_FILENO) {
-            // logger->debug("Process interacting with stderr", fd);
-        } else if (isNotOwned) {
+            return;
+        } else if (fd == STDOUT_FILENO || fd == STDERR_FILENO) {
+            // Allow stdout/ stderr
+            return;
+        }
+
+        bool isNotOwned = openFds.find(fd) == openFds.end();
+        if(isNotOwned) {
             logger->error("fd not owned by this thread {}", fd);
             throw std::runtime_error("fd not owned by this function");
         }
@@ -1140,7 +1141,12 @@ namespace wasm {
 
     int WasmModule::getStdoutFd() {
         if (stdoutMemFd == 0) {
-            stdoutMemFd = memfd_create(std::to_string(getExecutingCall()->id()).c_str(), 0);
+            message::Message *call = getExecutingCall();
+            const std::string fdName = std::to_string(call->id());
+            stdoutMemFd = memfd_create(fdName.c_str(), 0);
+
+            util::getLogger()->debug("Capturing stdout: fd={},{} for {}", fdName, stdoutMemFd,
+                                     util::funcToString(*call, true));
         }
 
         return stdoutMemFd;
@@ -1152,7 +1158,8 @@ namespace wasm {
 
         if (writtenSize < 0) {
             util::getLogger()->error("Failed capturing stdout: {}", strerror(errno));
-            throw std::runtime_error("Failed capturing stdout");
+            throw std::runtime_error(std::string("Failed capturing stdout: ")
+                                     + strerror(errno));
         }
 
         util::getLogger()->debug("Captured {} bytes of formatted stdout", writtenSize);
@@ -1160,9 +1167,10 @@ namespace wasm {
         return writtenSize;
     }
 
-    ssize_t WasmModule::captureStdout(const void *buffer, size_t bufferLen) {
+    ssize_t WasmModule::captureStdout(const void *buffer) {
         int memFd = getStdoutFd();
-        ssize_t writtenSize = write(memFd, buffer, bufferLen);
+
+        ssize_t writtenSize = dprintf(memFd, "%s\n", reinterpret_cast<const char *>(buffer));
 
         if (writtenSize < 0) {
             util::getLogger()->error("Failed capturing stdout: {}", strerror(errno));
@@ -1186,7 +1194,10 @@ namespace wasm {
         // Read in and return
         char *buf = new char[stdoutSize];
         read(memFd, buf, stdoutSize);
-        return std::string(buf, stdoutSize);
+        std::string stdoutString(buf, stdoutSize);
+        util::getLogger()->debug("Read stdout length {}:\n{}", stdoutSize, stdoutString);
+
+        return stdoutString;
     }
 
     void WasmModule::clearCapturedStdout() {

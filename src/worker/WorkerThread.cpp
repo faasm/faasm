@@ -74,6 +74,8 @@ namespace worker {
             }
         }
 
+        fflush(stdout);
+
         // Notify the scheduler *before* setting the result
         scheduler.notifyCallFinished(call);
 

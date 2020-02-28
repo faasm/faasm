@@ -193,6 +193,11 @@ from tasks.runner import (
     run,
     run_user,
 )
+from tasks.bare_metal import (
+    bm_deploy,
+    bm_restart_workers,
+    bm_restart,
+)
 # Can only generate matrix data with things installed
 try:
     import pyfaasm

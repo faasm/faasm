@@ -97,8 +97,9 @@ namespace wasm {
             wasm_iovec wasmIovec = wasmIovecs[i];
 
             // Create a native iovec from the wasm one
+            U8 *outputPtr = &Runtime::memoryRef<U8>(memoryPtr, wasmIovec.iov_base);
             iovec nativeIovec{
-                    .iov_base = Runtime::memoryArrayPtr<U8>(memoryPtr, wasmIovec.iov_base, wasmIovec.iov_len),
+                    .iov_base = outputPtr,
                     .iov_len = wasmIovec.iov_len,
             };
 

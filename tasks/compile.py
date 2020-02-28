@@ -73,7 +73,7 @@ def compile_user(ctx, user, clean=False, debug=False):
     # Work out all the functions for this user (that we assume will have been built)
     for func_file in listdir(join(FUNC_BUILD_DIR, user)):
         name, ext = splitext(func_file)
-        if ext != "wasm":
+        if ext != ".wasm":
             continue
 
         _copy_built_function(user, name)

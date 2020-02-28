@@ -27,7 +27,7 @@ PRK_STATS = {
 
 
 @task
-def invoke_prk(ctx, func, native=False, interface=None):
+def invoke_prk(ctx, func, native=False, iface=None):
     if func not in PRK_CMDLINE:
         print("Invalid PRK function {}".format(func))
         return 1
@@ -36,7 +36,7 @@ def invoke_prk(ctx, func, native=False, interface=None):
 
     if native:
         executable = PRK_NATIVE_EXECUTABLES[func]
-        cmd_out = mpi_run(executable, interface=interface, cmdline=cmdline)
+        cmd_out = mpi_run(executable, iface=iface, cmdline=cmdline)
         cmd_out = cmd_out.decode()
         print(cmd_out)
     else:
@@ -57,7 +57,13 @@ def _parse_prk_out(func, cmd_out):
 
     for stat in stats:
         spilt_str = "{}: ".format(stat)
-        stat_val = cmd_out.split(spilt_str)[1]
+
+        stat_val = [c for c in cmd_out.split(spilt_str) if c.strip()]
+        if not stat_val:
+            print("{} = MISSING".format(stat))
+            continue
+
+        stat_val = stat_val[1]
         stat_val = stat_val.split(" ")[0]
         stat_val = float(stat_val)
 

@@ -151,6 +151,17 @@ namespace wasm {
         char domainname[65];
     };
 
+    /**
+     * Found in ioctl.h
+     * Used to communicate size of the window we're operating in
+     */
+    struct wasm_winsize {
+        U16 ws_row;
+        U16 ws_col;
+        U16 ws_xpixel;
+        U16 ws_ypixel;
+    };
+
     // Sockets/ network
     enum SocketCalls : U32 {
         sc_socket = 1,

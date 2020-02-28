@@ -248,16 +248,38 @@ namespace wasm {
         return pollRes;
     }
 
-    I32 s__ioctl(I32 fd, I32 request, I32 argPtr, I32 d, I32 e, I32 f) {
-        util::getLogger()->debug("S - ioctl - {} {} {} {} {} {}", fd, request, argPtr, d, e, f);
+    /**
+     * Note that ioctl gets called in different ways. If it's called through the top-level
+     * ioctl() function (as defined in ioctl.c), argsPtr will be a varargs array.
+     *
+     * Other places will call ioctl directly with syscall(SYS_ioctl, ...), in this case the
+     * arguments may be direct pointers to arguments.
+     *
+     * We need to be careful which one we assume (you can check by inspecting the request flag,
+     * and looking into the musl source).
+     */
+    I32 s__ioctl(I32 fd, I32 request, I32 argsPtr, I32 d, I32 e, I32 f) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - ioctl - {} {} {} {} {} {}", fd, request, argsPtr, d, e, f);
 
-        auto hostArgPtr = &Runtime::memoryRef<U8>(getExecutingModule()->defaultMemory, (Uptr) argPtr);
-
+        // Check ownership of fd
         getExecutingModule()->checkThreadOwnsFd(fd);
 
-        int res = ioctl(fd, request, hostArgPtr);
+        if (request == TIOCGWINSZ) {
+            // Getting the window size, importantly we assume this is call from isatty
+            // where the argsPtr is a direct pointer to the winsize struct.
+            auto ws = &Runtime::memoryRef<wasm_winsize>(getExecutingModule()->defaultMemory, argsPtr);
+            ws->ws_col = 10;
+            ws->ws_row = 11;
+            ws->ws_xpixel = 100;
+            ws->ws_ypixel = 101;
 
-        return res;
+        } else {
+            logger->warn("Unknown ioctl request: {}", request);
+            throw std::runtime_error("Unknown ioctl request");
+        }
+
+        return 0;
     }
 
     /**
@@ -270,16 +292,14 @@ namespace wasm {
         module->checkThreadOwnsFd(fd);
 
         iovec *nativeIovecs = wasmIovecsToNativeIovecs(iov, iovcnt);
-
-        util::SystemConfig &conf = util::getSystemConfig();
+        Iptr count = writev(fd, nativeIovecs, iovcnt);
 
         // Catpure stdout if necessary, otherwise write as normal
-        Iptr count;
+        util::SystemConfig &conf = util::getSystemConfig();
         if (fd == STDOUT_FILENO && conf.captureStdout == "on") {
-            count = module->captureStdout(nativeIovecs, iovcnt);
-        } else {
-            count = writev(fd, nativeIovecs, iovcnt);
+            module->captureStdout(nativeIovecs, iovcnt);
         }
+
 
         delete[] nativeIovecs;
 
@@ -461,6 +481,9 @@ namespace wasm {
         return 0;
     }
 
+    /**
+     * Note here that we assume puts is called on a null-terminated string
+     */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "puts", I32, puts, I32 strPtr) {
         util::getLogger()->debug("S - puts - {}", strPtr);
         WasmModule *module = getExecutingModule();
@@ -470,12 +493,10 @@ namespace wasm {
         // Capture stdout if necessary
         util::SystemConfig &conf = util::getSystemConfig();
         if (conf.captureStdout == "on") {
-            size_t stringLen = strlen(hostStr);
-            module->captureStdout(hostStr, stringLen);
-        } else {
-            printf("%s\n", hostStr);
+            module->captureStdout(hostStr);
         }
 
+        printf("%s\n", hostStr);
         return 0;
     }
 
