@@ -2,20 +2,27 @@
 
 #include "mpi/MpiWorldRegistry.h"
 
+#define DEFAULT_WORLD_SIZE 5
+
 namespace mpi {
     MpiWorldRegistry &getMpiWorldRegistry() {
         static MpiWorldRegistry r;
         return r;
     }
 
-    mpi::MpiWorld &MpiWorldRegistry::createWorld(const message::Message &msg, int worldId, int size) {
+    mpi::MpiWorld &MpiWorldRegistry::createWorld(const message::Message &msg, int worldId) {
         if(worldMap.count(worldId) > 0) {
             throw std::runtime_error("World already exists");
         }
 
+        int worldSize = msg.mpiworldsize();
+        if(worldSize == 0) {
+            worldSize = DEFAULT_WORLD_SIZE;
+        }
+
         util::FullLock lock(registryMutex);
         MpiWorld &world = worldMap[worldId];
-        world.create(msg, worldId, size);
+        world.create(msg, worldId, worldSize);
 
         return worldMap[worldId];
     }
