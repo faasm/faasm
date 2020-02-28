@@ -5,6 +5,7 @@ from invoke import task
 from tasks.util.endpoints import get_invoke_host_port
 from tasks.util.env import FAASM_HOME
 from tasks.util.invoke import invoke_impl
+from tasks.util.maths import is_power_of_two
 from tasks.util.mpi import mpi_run
 
 ITERATIONS = 20
@@ -26,7 +27,7 @@ FAASM_USER = "prk"
 PRK_CMDLINE = {
     "dgemm": "{} 500 32 1".format(ITERATIONS),  # iterations, matrix order, outer block size (?)
     "nstream": "{} 2000000 0".format(ITERATIONS),  # iterations, vector length, offset
-    "random": "{} 16".format(ITERATIONS),  # iterations, update ratio
+    "random": "16 16",  # update ratio, table size
     "reduce": "{} 2000000".format(ITERATIONS),  # iterations, vector length
     "sparse": "{} 10 4".format(ITERATIONS),  # iterations, log2 grid size, stencil radius
     "stencil": "{} 1000".format(ITERATIONS),  # iterations, array dimension
@@ -52,13 +53,13 @@ PRK_NATIVE_EXECUTABLES = {
 PRK_STATS = {
     "dgemm": ("Avg time (s)", "Rate (MFlops/s)"),
     "nstream": ("Avg time (s)", "Rate (MB/s)"),
-    "random": (),
-    "reduce": (),
-    "sparse": (),
-    "stencil": (),
-    "global": (),
-    "p2p": (),
-    "transpose": (),
+    "random": ("Rate (GUPS/s)", "Time (s)"),
+    "reduce": ("Rate (MFlops/s)", "Avg time (s)"),
+    "sparse": ("Rate (MFlops/s)", "Avg time (s)"),
+    "stencil": ("Rate (MFlops/s)", "Avg time (s)"),
+    "global": ("Rate (synch/s)", "time (s)"),
+    "p2p": ("Rate (MFlops/s)", "Avg time (s)"),
+    "transpose": ("Rate (MB/s)", "Avg time (s)"),
 }
 
 
@@ -69,6 +70,10 @@ def invoke_prk(ctx, func, native=False, iface=None, np=10):
         return 1
 
     cmdline = PRK_CMDLINE[func]
+
+    if func == "random" and not is_power_of_two(np):
+        print("Must have a power of two number of processes for random")
+        exit(1)
 
     if native:
         executable = PRK_NATIVE_EXECUTABLES[func]
@@ -101,6 +106,7 @@ def _parse_prk_out(func, cmd_out):
 
         stat_val = stat_val[1]
         stat_val = stat_val.split(" ")[0]
+        stat_val = stat_val.rstrip(",")
         stat_val = float(stat_val)
 
         print("{} = {}".format(stat, stat_val))
