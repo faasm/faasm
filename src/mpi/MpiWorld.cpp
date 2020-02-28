@@ -280,6 +280,8 @@ namespace mpi {
         size_t sendOffset = sendCount * sendType->size;
         size_t recvOffset = recvCount * recvType->size;
 
+        bool isInPlace = sendBuffer == recvBuffer;
+
         // If we're the receiver, do the gathering
         if (sendRank == recvRank) {
             logger->trace("MPI - gather all -> {}", recvRank);
@@ -288,7 +290,10 @@ namespace mpi {
                 // Work out where in the receive buffer this rank's data goes
                 uint8_t *recvChunk = recvBuffer + (r * recvOffset);
 
-                if (r == recvRank) {
+                if(r == recvRank && isInPlace) {
+                    // If operating in-place, data for this rank is already in position
+                    continue;
+                } else if (r == recvRank) {
                     // Copy data directly if this is the send rank
                     std::copy(sendBuffer, sendBuffer + sendOffset, recvChunk);
                 } else {
@@ -317,8 +322,8 @@ namespace mpi {
             // Broadcast the result
             broadcast(0, recvBuffer, recvType, fullCount, MpiMessageType::ALLGATHER);
         } else {
-            // Send the gather message (recv buffer can be null as it's not needed)
-            gather(rank, 0, sendBuffer, sendType, sendCount, nullptr, recvType, recvCount);
+            // Send the gather message
+            gather(rank, 0, sendBuffer, sendType, sendCount, recvBuffer, recvType, recvCount);
 
             // Await the broadcast from the master
             recv(0, rank, recvBuffer, recvType, fullCount, nullptr, MpiMessageType::ALLGATHER);
@@ -458,7 +463,7 @@ namespace mpi {
             broadcast(0, recvBuffer, datatype, count, MpiMessageType::ALLREDUCE);
         } else {
             // Run the standard reduce
-            reduce(rank, 0, sendBuffer, nullptr, datatype, count, operation);
+            reduce(rank, 0, sendBuffer, recvBuffer, datatype, count, operation);
 
             // Await the broadcast from the master
             recv(0, rank, recvBuffer, datatype, count, nullptr, MpiMessageType::ALLREDUCE);
