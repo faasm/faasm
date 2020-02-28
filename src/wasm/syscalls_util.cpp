@@ -93,7 +93,6 @@ namespace wasm {
 
         // Build vector of iovecs
         auto nativeIovecs = new iovec[wasmIovecCount];
-        printf("WRITEV count - %i\n", wasmIovecCount);
         for (int i = 0; i < wasmIovecCount; i++) {
             wasm_iovec wasmIovec = wasmIovecs[i];
 
@@ -101,7 +100,6 @@ namespace wasm {
             U8 *outputPtr = &Runtime::memoryRef<U8>(memoryPtr, wasmIovec.iov_base);
             U32 outputLen = wasmIovec.iov_len;
             std::string outputStr(reinterpret_cast<char*>(outputPtr), outputLen);
-            printf("WRITEV %s (%i)\n", outputStr.c_str(), outputLen);
 
             iovec nativeIovec{
                     .iov_base = outputPtr,
