@@ -481,6 +481,9 @@ namespace wasm {
         return 0;
     }
 
+    /**
+     * Note here that we assume puts is called on a null-terminated string
+     */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "puts", I32, puts, I32 strPtr) {
         util::getLogger()->debug("S - puts - {}", strPtr);
         WasmModule *module = getExecutingModule();
