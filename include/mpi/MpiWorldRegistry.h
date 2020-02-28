@@ -7,7 +7,7 @@ namespace mpi {
     public:
         MpiWorldRegistry() = default;
 
-        mpi::MpiWorld &createWorld(const message::Message &msg, int worldId, int size);
+        mpi::MpiWorld &createWorld(const message::Message &msg, int worldId);
 
         mpi::MpiWorld &getOrInitialiseWorld(const message::Message &msg, int worldId);
 

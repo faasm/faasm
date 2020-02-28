@@ -103,8 +103,7 @@ namespace wasm {
             logger->debug("S - MPI_Init (create) {} {}", a, b);
 
             // Initialise the world
-            util::SystemConfig &conf = util::getSystemConfig();
-            executingContext.createWorld(*call, conf.mpiWorldSize);
+            executingContext.createWorld(*call);
         } else {
             logger->debug("S - MPI_Init (join) {} {}", a, b);
 

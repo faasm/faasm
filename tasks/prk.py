@@ -27,7 +27,7 @@ PRK_STATS = {
 
 
 @task
-def invoke_prk(ctx, func, native=False, iface=None):
+def invoke_prk(ctx, func, native=False, iface=None, np=10):
     if func not in PRK_CMDLINE:
         print("Invalid PRK function {}".format(func))
         return 1
@@ -41,7 +41,7 @@ def invoke_prk(ctx, func, native=False, iface=None):
         print(cmd_out)
     else:
         host, port = get_invoke_host_port()
-        cmd_out = invoke_impl(FAASM_USER, func, cmdline=cmdline, host=host, port=port)
+        cmd_out = invoke_impl(FAASM_USER, func, cmdline=cmdline, host=host, port=port, mpi_world_size=np)
 
     _parse_prk_out(func, cmd_out)
 

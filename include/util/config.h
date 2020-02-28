@@ -62,7 +62,7 @@ namespace util {
         std::string ibmApiKey;
 
         // MPI
-        int mpiWorldSize;
+        int defaultMpiWorldSize;
 
         SystemConfig();
 

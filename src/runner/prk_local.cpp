@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
     // Set up config
     util::SystemConfig &conf = util::getSystemConfig();
     int nThreads = 6;
-    conf.mpiWorldSize = 5;
+    conf.defaultMpiWorldSize = 5;
     conf.threadsPerWorker = nThreads;
     conf.maxWorkersPerFunction = nThreads;
     conf.boundTimeout = 60000;

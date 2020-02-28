@@ -44,6 +44,7 @@ namespace util {
         d.AddMember("mpi", msg.ismpi(), a);
         d.AddMember("mpi_world_id", msg.mpiworldid(), a);
         d.AddMember("mpi_rank", msg.mpirank(), a);
+        d.AddMember("mpi_world_size", msg.mpiworldsize(), a);
 
         d.AddMember("cmdline", Value(msg.cmdline().c_str(), msg.cmdline().size()).Move(), a);
 
@@ -119,6 +120,7 @@ namespace util {
         msg.set_ismpi(getBoolFromJson(d, "mpi", false));
         msg.set_mpiworldid(getIntFromJson(d, "mpi_world_id", -1));
         msg.set_mpirank(getIntFromJson(d, "mpi_rank", -1));
+        msg.set_mpiworldsize(getIntFromJson(d, "mpi_world_size", -1));
 
         msg.set_cmdline(getStringFromJson(d, "cmdline", ""));
 

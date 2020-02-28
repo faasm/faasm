@@ -33,6 +33,7 @@ namespace tests {
         msg.set_ismpi(true);
         msg.set_mpiworldid(1234);
         msg.set_mpirank(5678);
+        msg.set_mpiworldsize(33);
 
         msg.set_cmdline("some cmdline");
 

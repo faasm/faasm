@@ -72,7 +72,7 @@ namespace util {
         ibmApiKey = getEnvVar("IBM_API_KEY", "");
 
         // MPI
-        mpiWorldSize = this->getSystemConfIntParam("MPI_WORLD_SIZE", "5");
+        defaultMpiWorldSize = this->getSystemConfIntParam("DEFAULT_MPI_WORLD_SIZE", "5");
     }
 
     int SystemConfig::getSystemConfIntParam(const char *name, const char *defaultValue) {
@@ -135,7 +135,7 @@ namespace util {
         logger->info("IBM_API_KEY     {}", ibmApiKey);
 
         logger->info("--- MPI ---");
-        logger->info("MPI_WORLD_SIZE  {}", mpiWorldSize);
+        logger->info("DEFAULT_MPI_WORLD_SIZE  {}", defaultMpiWorldSize);
     }
 
     void _setNodeId() {
