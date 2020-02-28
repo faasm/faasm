@@ -46,6 +46,7 @@ namespace tests {
         SECTION("Capture on") {
             conf.captureStdout = "on";
             expected = "i=7 s=8 f=7.89\n"
+                       "FloatA=1.234 FloatB=7.891\n"
                        "Out: I am output\n"
                        "Unformatted output\n\n"
                        "Normal Faasm output";
