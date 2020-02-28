@@ -47,7 +47,7 @@ namespace tests {
             conf.captureStdout = "on";
             expected = "i=7 s=8 f=7.89\n"
                        "Out: I am output\n"
-                       "Unformatted output\n"
+                       "Unformatted output\n\n"
                        "Normal Faasm output";
         }
 
