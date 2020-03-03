@@ -12,7 +12,7 @@ Faasm's Python support should be possible and on the to-do list.
 ## Compiling TensorFlow Lite to WebAssembly
 
 To do this, make sure you've checked out this project and updated all the git submodules, 
-then, from the [Faasm CLI](cli.md):
+then, from the Faasm CLI:
 
 ```bash
 inv compile-tflite

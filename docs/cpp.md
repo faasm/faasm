@@ -4,7 +4,7 @@ C++ functions are built with CMake and held in the [func](../func) directory.
 
 A simple hello world function exists at [hello.cpp](../func/demo/hello.cpp).
 
-From the [Faasm CLI](cli.md), you can compile, upload and invoke the `hello.cpp` 
+From the Faasm CLI, you can compile, upload and invoke the `hello.cpp` 
 function with:
 
 ```bash

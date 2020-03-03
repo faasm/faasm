@@ -24,7 +24,7 @@ to 30s.
 ## Running a Python function
 
 An example Python function is found at `func/python/hello.py`. This can be uploaded 
-and invoked from the [Faasm CLI](cli.md) with:
+and invoked from the Faasm CLI with:
 
 ```bash
 inv upload python hello --py
