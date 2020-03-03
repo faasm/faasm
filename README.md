@@ -22,28 +22,31 @@ the same goal as [WASI](https://wasi.dev/), but in a serverless-specific context
 
 ## Features
 
-- [Distributed state](docs/state.md) and [scheduling](docs/scheduling.md)
-- [Faasm host interface](docs/host_interface.md)
-- [Snapshot and restore with Proto-Faaslets](docs/proto_faaslets.md)
-- [Kubernetes and Knative integration](docs/kubernetes.md)  
-- [Tensorflow Lite](docs/tensorflow.md)
-- [MPI and OpenMP](docs/openmp.md)  
-- [C/C++ functions](docs/cpp.md)
-- [Python functions](docs/python.md)
-- [Browser offloading with Faasm.js](https://github.com/Shillaker/faasmjs)
-- [REST API](docs/api.md)
+More detail on some key features and implementations can be found below: 
+
+- [C/C++ functions](docs/cpp.md) - writing and deploying Faasm functions in C/C++.
+- [Python functions](docs/python.md) - isolating and executing functions in Python.
+- [Faasm host interface](docs/host_interface.md) - the serverless-specific interface between functions and the underlying host.
+- [Distributed state](docs/state.md) and [scheduling](docs/scheduling.md) - sharing state and function executions between distributed Faasm instances.
+- [Kubernetes and Knative integration](docs/kubernetes.md)- deploying Faasm as part of a full serverless platform.
+- [Tensorflow Lite](docs/tensorflow.md) - performing inference in Faasm functions with TFLite.  
+- [MPI and OpenMP](docs/openmp.md) - executing existing MPI and OpenMP applications in Faasm.
+- [Browser offloading with Faasm.js](https://github.com/Shillaker/faasmjs) - executing Faasm functions in the browser and on the server. 
+- [API](docs/api.md) - invoking and managing functions and state through Faasm's HTTP API.
+- [Snapshot and restore with Proto-Faaslets](docs/proto_faaslets.md) - cutting down cold starts with execute-once initialisation. 
 
 # Quick start
 
-You can start a simple Faasm runtime using the `docker-compose.yml` file in the root of the project. 
-This creates a couple of worker instances as well as an upload endpoint for receiving functions and state.
-There is also a Redis container used for communication between the workers.
-
-You can start it by running:
+You can start a Faasm cluster locally using the `docker-compose.yml` file in the root of the project:
 
 ```bash
 docker-compose up --scale worker=3
 ```
 
+This creates three Faasm instances as well as an upload endpoint for receiving functions and state, 
+plus a Redis instance for communication and storage.
+
 Note that the first time you run the local set-up it will generate some machine code specific to your host. This is
 stored in the `machine-code` directory in the root of the project and reused on subsequent runs.
+
+See the docs linked above for more info on writing and deploying functions.
