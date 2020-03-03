@@ -1,8 +1,6 @@
 #!/bin/bash
 
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-echo "Setting up Faasm environment at ${THIS_DIR}"
-
 pushd ${THIS_DIR} >> /dev/null
 
 if [ ! -d "venv" ]; then
@@ -23,5 +21,13 @@ export FAASM_CMAKE_TOOLCHAIN=$FAASM_ROOT/toolchain/FaasmToolchain.cmake
 export FAASM_BASH_TOOLCHAIN=$FAASM_ROOT/toolchain/env.sh
 
 alias fm="inv"
+
+echo ""
+echo "----------------------------------"
+echo "Faasm CLI"
+echo "Version: ${FAASM_VERSION}"
+echo "Project root: ${THIS_DIR}"
+echo "----------------------------------"
+echo ""
 
 popd >> /dev/null

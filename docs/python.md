@@ -1,10 +1,65 @@
 # Python 
 
-## Using Python Support
+Faasm executes functions compiled to WebAssembly, which therefore rules out 
+languages that cannot be compiled to WebAssembly. However, we can support 
+dynamic languages like Python by compiling _the language runtime_ to WebAssembly. 
 
-Note that this doc is only relevant for building the Python support from scratch. This should only be necessary if
-you plan on editing anything related. Otherwise you can just use the `local_dev.md` doc which tells you how to set 
-up the prebuilt version.
+In Faasm we do this with Python based on the excellent [Pyodide](https://github.com/iodide-project/pyodide) 
+project, with a set of custom C-extensions and decorators to support the 
+[Faasm host interface](host_interface.md) provided in [Pyfaasm](https://github.com/Shillaker/pyfaasm).
+
+## Enabling Python support
+
+Python support is **not enabled by default**. To enable the Python runtime you must set up the relevant
+environment variables:
+
+```bash
+# On the "upload" container/ endpoint
+PYTHON_CODEGEN=on
+```
+
+The first time the system runs it will generate the relevant machine code, which can take up 
+to 30s. 
+
+## Running a Python function
+
+An example Python function is found at `func/python/hello.py`. This can be uploaded 
+and invoked from the Faasm CLI with:
+
+```bash
+inv upload python hello --py
+inv invoke python hello --py
+```
+
+This should give a message and the version of Python being run.
+
+## Python API
+
+A simple example of chaining Python functions in Faasm looks like:
+
+```python
+from pyfaasm.code import await_call, chain_this, faasm_func, faasm_main
+
+@faasm_func(1)
+def func_one():
+    pass
+
+@faasm_func(2)
+def func_two():
+    pass
+
+@faasm_main
+def main_func():
+    call_one = chain_this(1)
+    call_two = chain_this(2)
+
+    await_call(call_one)
+    await_call(call_two)
+```
+
+# Building CPython
+
+Note that this is only relevant for building the Python support from scratch.
 
 ## Python 3.7
 
@@ -37,24 +92,7 @@ make clean && make
 Once this is all built we can put the relevant files in place _in a new terminal session_ at the root of the project:
 
 ```
-source workon.sh
 inv set-up-python-runtime
-```
-
-We then need to generate machine code for this with:
-
-```
-inv run-python-codegen
-```
-
-## Compiling the Python function
-
-We use a single Faasm function to execute all Python functions. This can be built as follows:
-
-```
-source workon.sh
-inv compile python py_func
-inv upload python py_func
 ```
 
 ## Adding packages
