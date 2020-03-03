@@ -23,6 +23,7 @@
 #include <WAVM/WASTParse/WASTParse.h>
 #include <sys/mman.h>
 #include <sys/types.h>
+#include <sys/uio.h>
 
 using namespace WAVM;
 
@@ -55,7 +56,9 @@ namespace wasm {
         return pageCount;
     }
 
-    WasmModule::WasmModule() = default;
+    WasmModule::WasmModule() : stdoutMemFd(0), stdoutSize(0) {
+
+    }
 
     WasmModule &WasmModule::operator=(const WasmModule &other) {
         PROF_START(wasmAssignOp)
@@ -96,6 +99,10 @@ namespace wasm {
         boundUser = other.boundUser;
         boundFunction = other.boundFunction;
         boundIsTypescript = other.boundIsTypescript;
+
+        // Do not copy over any captured stdout
+        stdoutMemFd = 0;
+        stdoutSize = 0;
 
         if (other._isBound) {
             if (memoryFd > 0) {
@@ -381,7 +388,7 @@ namespace wasm {
     }
 
     std::vector<IR::UntaggedValue> WasmModule::getArgcArgv(const message::Message &msg) {
-        if(msg.cmdline().empty()) {
+        if (msg.cmdline().empty()) {
             // Return argc=0 argv=NULL if no commandline args specified
             return {0, 0};
         }
@@ -401,7 +408,7 @@ namespace wasm {
         U32 *argvPointersHost = &Runtime::memoryRef<U32>(defaultMemory, argvPointersOffset);
         char *argvValuesHost = &Runtime::memoryRef<char>(defaultMemory, argvValuesOffset);
 
-        for(int i = 0; i < argv.size(); i++) {
+        for (uint i = 0; i < argv.size(); i++) {
             const std::string thisArgv = argv[i];
 
             // Write this string to memory and record its pointer
@@ -1013,16 +1020,17 @@ namespace wasm {
 
     void WasmModule::checkThreadOwnsFd(int fd) {
         const std::shared_ptr<spdlog::logger> logger = util::getLogger();
-        bool isNotOwned = openFds.find(fd) == openFds.end();
 
         if (fd == STDIN_FILENO) {
             logger->warn("Process interacting with stdin");
-        } else if (fd == STDOUT_FILENO) {
-            // Can allow stdout/ stderr through
-            // logger->debug("Process interacting with stdout", fd);
-        } else if (fd == STDERR_FILENO) {
-            // logger->debug("Process interacting with stderr", fd);
-        } else if (isNotOwned) {
+            return;
+        } else if (fd == STDOUT_FILENO || fd == STDERR_FILENO) {
+            // Allow stdout/ stderr
+            return;
+        }
+
+        bool isNotOwned = openFds.find(fd) == openFds.end();
+        if(isNotOwned) {
             logger->error("fd not owned by this thread {}", fd);
             throw std::runtime_error("fd not owned by this function");
         }
@@ -1129,5 +1137,72 @@ namespace wasm {
         U8 *memBase = Runtime::getMemoryBaseAddress(defaultMemory);
         size_t memSize = mem.numPages * IR::numBytesPerPage;
         memcpy(memBase, mem.data.data(), memSize);
+    }
+
+    int WasmModule::getStdoutFd() {
+        if (stdoutMemFd == 0) {
+            message::Message *call = getExecutingCall();
+            const std::string fdName = std::to_string(call->id());
+            stdoutMemFd = memfd_create(fdName.c_str(), 0);
+
+            util::getLogger()->debug("Capturing stdout: fd={},{} for {}", fdName, stdoutMemFd,
+                                     util::funcToString(*call, true));
+        }
+
+        return stdoutMemFd;
+    }
+
+    ssize_t WasmModule::captureStdout(const struct iovec *iovecs, int iovecCount) {
+        int memFd = getStdoutFd();
+        ssize_t writtenSize = writev(memFd, iovecs, iovecCount);
+
+        if (writtenSize < 0) {
+            util::getLogger()->error("Failed capturing stdout: {}", strerror(errno));
+            throw std::runtime_error(std::string("Failed capturing stdout: ")
+                                     + strerror(errno));
+        }
+
+        util::getLogger()->debug("Captured {} bytes of formatted stdout", writtenSize);
+        stdoutSize += writtenSize;
+        return writtenSize;
+    }
+
+    ssize_t WasmModule::captureStdout(const void *buffer) {
+        int memFd = getStdoutFd();
+
+        ssize_t writtenSize = dprintf(memFd, "%s\n", reinterpret_cast<const char *>(buffer));
+
+        if (writtenSize < 0) {
+            util::getLogger()->error("Failed capturing stdout: {}", strerror(errno));
+            throw std::runtime_error("Failed capturing stdout");
+        }
+
+        util::getLogger()->debug("Captured {} bytes of unformatted stdout", writtenSize);
+        stdoutSize += writtenSize;
+        return writtenSize;
+    }
+
+    std::string WasmModule::getCapturedStdout() {
+        if (stdoutSize == 0) {
+            return "";
+        }
+
+        // Go back to start
+        int memFd = getStdoutFd();
+        lseek(memFd, 0, SEEK_SET);
+
+        // Read in and return
+        char *buf = new char[stdoutSize];
+        read(memFd, buf, stdoutSize);
+        std::string stdoutString(buf, stdoutSize);
+        util::getLogger()->debug("Read stdout length {}:\n{}", stdoutSize, stdoutString);
+
+        return stdoutString;
+    }
+
+    void WasmModule::clearCapturedStdout() {
+        close(stdoutMemFd);
+        stdoutMemFd = 0;
+        stdoutSize = 0;
     }
 }

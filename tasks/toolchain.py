@@ -20,11 +20,17 @@ TOOLCHAIN_INSTALL = join(FAASM_LOCAL_DIR, "toolchain")
 
 
 @task
-def codegen_for_user(ctx, user):
-    _do_codegen_for_user(user)
+def codegen(ctx, user, function):
+    binary = find_codegen_func()
+    check_output("{} {} {}".format(binary, user, function), shell=True)
 
 
-def _do_codegen_for_user(user):
+@task
+def codegen_user(ctx, user):
+    _do_codegen_user(user)
+
+
+def _do_codegen_user(user):
     print("Running codegen for user {}".format(user))
 
     binary = find_codegen_func()
@@ -33,15 +39,15 @@ def _do_codegen_for_user(user):
 
 @task
 def run_local_codegen(ctx):
-    _do_codegen_for_user("demo")
-    _do_codegen_for_user("errors")
-    _do_codegen_for_user("omp")
-    _do_codegen_for_user("mpi")
+    _do_codegen_user("demo")
+    _do_codegen_user("errors")
+    _do_codegen_user("omp")
+    _do_codegen_user("mpi")
 
     # Run these in parallel
     p = Pool(3)
     users = ["python", "sgd", "tf"]
-    p.map(_do_codegen_for_user, users)
+    p.map(_do_codegen_user, users)
 
     print("Running codegen on python shared objects")
     binary = find_codegen_shared_lib()

@@ -1,0 +1,35 @@
+---
+
+- name: "Clone Pistache"
+  git:
+    repo: "https://github.com/oktal/pistache.git"
+    dest: "/tmp/pistache"
+    version: "2ef937c434810858e05d446e97acbdd6cc1a5a36"
+
+- name: "Set up build"
+  shell: "{{ item }}"
+  args:
+    chdir: "/tmp/pistache"
+  with_items:
+    - "git submodule update --init"
+    - "mkdir -p build"
+
+- name: "Build"
+  shell: "{{ item }}"
+  args:
+    chdir: "/tmp/pistache/build"
+  with_items:
+    - 'cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..'
+    - "make"
+
+- name: "Install"
+  become: yes
+  shell: "{{ item }}"
+  args:
+    chdir: "/tmp/pistache/build"
+  with_items:
+    - "sudo make install"
+    - "ldconfig"
+
+- name: "Clean up"
+  shell: "rm -rf /tmp/pistache"

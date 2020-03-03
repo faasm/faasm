@@ -1,7 +1,7 @@
-from os import makedirs
+from os import makedirs, mkdir
 from os.path import exists
 from os.path import join
-from shutil import rmtree
+from shutil import rmtree, copy
 from subprocess import check_output, call
 
 from invoke import task
@@ -374,6 +374,21 @@ def compile_prk(ctx, clean=False):
     if has_failed:
         print("At least one kernel failed")
         exit(1)
+
+    # Make sure wasm dir exists
+    prk_wasm_dest = join(WASM_DIR, "prk")
+    if not exists(prk_wasm_dest):
+        mkdir(prk_wasm_dest)
+
+    # Copy the functions into place
+    prk_wasm_src = join(PRK_DIR, "wasm")
+    for target in [t[1] for t in make_targets]:
+        wasm_src = join(prk_wasm_src, "{}.wasm".format(target))
+        wasm_dest = join(prk_wasm_dest, target)
+        if not exists(wasm_dest):
+            mkdir(wasm_dest)
+
+        copy(wasm_src, join(wasm_dest, "function.wasm"))
 
 
 @task

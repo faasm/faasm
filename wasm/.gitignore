@@ -10,6 +10,7 @@ bench.csv
 !errors/**/function.wasm
 !mpi/**/function.wasm
 !omp/**/function.wasm
+!prk/**/function.wasm
 !python/**/function.wasm
 !sgd/**/function.wasm
 !tf/**/function.wasm

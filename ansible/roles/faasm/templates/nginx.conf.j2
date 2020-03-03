@@ -1,0 +1,13 @@
+upstream faasm {
+    {% for worker_host in groups['worker'] %}
+    server {{ worker_host }}:8080;
+    {% endfor %}
+}
+
+server {
+    listen 8080;
+
+    location / {
+        proxy_pass http://faasm;
+    }
+}

@@ -39,6 +39,7 @@ namespace util {
         logLevel = getEnvVar("LOG_LEVEL", "info");
         awsLogLevel = getEnvVar("AWS_LOG_LEVEL", "off");
         pythonPreload = getEnvVar("PYTHON_PRELOAD", "off");
+        captureStdout = getEnvVar("CAPTURE_STDOUT", "off");
 
         // Redis
         redisStateHost = getEnvVar("REDIS_STATE_HOST", "localhost");
@@ -71,7 +72,7 @@ namespace util {
         ibmApiKey = getEnvVar("IBM_API_KEY", "");
 
         // MPI
-        mpiWorldSize = this->getSystemConfIntParam("MPI_WORLD_SIZE", "5");
+        defaultMpiWorldSize = this->getSystemConfIntParam("DEFAULT_MPI_WORLD_SIZE", "5");
     }
 
     int SystemConfig::getSystemConfIntParam(const char *name, const char *defaultValue) {
@@ -100,6 +101,7 @@ namespace util {
         logger->info("LOG_LEVEL                  {}", logLevel);
         logger->info("AWS_LOG_LEVEL              {}", awsLogLevel);
         logger->info("PYTHON_PRELOAD             {}", pythonPreload);
+        logger->info("CAPTURE_STDOUT             {}", captureStdout);
 
         logger->info("--- Redis ---");
         logger->info("REDIS_STATE_HOST           {}", redisStateHost);
@@ -133,7 +135,7 @@ namespace util {
         logger->info("IBM_API_KEY     {}", ibmApiKey);
 
         logger->info("--- MPI ---");
-        logger->info("MPI_WORLD_SIZE  {}", mpiWorldSize);
+        logger->info("DEFAULT_MPI_WORLD_SIZE  {}", defaultMpiWorldSize);
     }
 
     void _setNodeId() {

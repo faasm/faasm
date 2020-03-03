@@ -5,7 +5,7 @@ from time import sleep
 from tasks.util.config import get_faasm_config
 from tasks.util.env import PYTHON_USER, PYTHON_FUNC
 from tasks.util.http import do_post
-from tasks.util.endpoints import get_kubernetes_host_port
+from tasks.util.endpoints import get_invoke_host_port
 
 STATUS_SUCCESS = "SUCCESS"
 STATUS_FAILED = "FAILED"
@@ -37,6 +37,7 @@ def invoke_impl(user, func,
                 ibm=False,
                 poll=False,
                 cmdline=None,
+                mpi_world_size=None,
                 poll_interval_ms=1000):
     faasm_config = get_faasm_config()
 
@@ -45,7 +46,7 @@ def invoke_impl(user, func,
         host = faasm_config["IBM"]["k8s_subdomain"]
         port = 8080
     elif knative:
-        host, port = get_kubernetes_host_port()
+        host, port = get_invoke_host_port()
 
     # Defaults
     host = host if host else "127.0.0.1"
@@ -81,6 +82,9 @@ def invoke_impl(user, func,
 
     if cmdline:
         msg["cmdline"] = cmdline
+
+    if mpi_world_size:
+        msg["mpi_world_size"] = mpi_world_size
 
     # IBM-specific message format
     if ibm:

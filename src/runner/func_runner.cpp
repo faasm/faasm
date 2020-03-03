@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
 
     // Make sure we have enough space for chained calls
     int nThreads = 10;
-    conf.mpiWorldSize = 5;
+    conf.defaultMpiWorldSize = 5;
     conf.threadsPerWorker = nThreads;
     conf.maxWorkersPerFunction = nThreads;
 

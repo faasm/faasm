@@ -28,6 +28,7 @@ namespace util {
         std::string logLevel;
         std::string awsLogLevel;
         std::string pythonPreload;
+        std::string captureStdout;
 
         // Redis
         std::string redisStateHost;
@@ -61,7 +62,7 @@ namespace util {
         std::string ibmApiKey;
 
         // MPI
-        int mpiWorldSize;
+        int defaultMpiWorldSize;
 
         SystemConfig();
 

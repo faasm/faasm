@@ -367,59 +367,67 @@ namespace mpi {
                           faasmpi_datatype_t *datatype, int count, faasmpi_op_t *operation) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
-        size_t sendOffset = count * datatype->size;
-
         // If we're the receiver, await inputs
         if (sendRank == recvRank) {
             logger->trace("MPI - reduce ({}) all -> {}", operation->id, recvRank);
 
-            // Ensure the receive buffer is zeroed
             size_t bufferSize = datatype->size * count;
-            memset(recvBuffer, 0, bufferSize);
+
+            // Zero the receive buffer if we're not operating in-place
+            bool isInPlace = sendBuffer == recvBuffer;
+            if (!isInPlace) {
+                memset(recvBuffer, 0, bufferSize);
+            }
 
             for (int r = 0; r < size; r++) {
-                // Create an intermediate for holding the data for this rank
-                auto resultBuffer = new uint8_t[bufferSize];
-
-                // Copy directly (if this rank) or receive from others
-                if (r == recvRank) {
-                    std::copy(sendBuffer, sendBuffer + sendOffset, resultBuffer);
+                // Work out the data for this rank
+                uint8_t *rankData;
+                if (r == recvRank && isInPlace) {
+                    // If we're receiving from ourselves and in-place, our work is already done
+                    // and the results are written in the recv buffer
+                    continue;
+                } else if(r == recvRank) {
+                    // If we're receiving from ourselves not in-place, the data for this rank
+                    // is just the send buffer
+                    rankData = sendBuffer;
                 } else {
-                    recv(r, recvRank, resultBuffer, datatype, count, nullptr, MpiMessageType::REDUCE);
+                    // If we're receiving from another rank, call recv
+                    rankData = new uint8_t[bufferSize];
+                    recv(r, recvRank, rankData, datatype, count, nullptr, MpiMessageType::REDUCE);
                 }
 
                 if (operation->id == faasmpi_op_sum.id) {
                     if (datatype->id == FAASMPI_INT) {
-                        auto finalResults = reinterpret_cast<int *>(recvBuffer);
-                        auto thisResults = reinterpret_cast<int *>(resultBuffer);
+                        auto recvBufferCast = reinterpret_cast<int *>(recvBuffer);
+                        auto rankDataCast = reinterpret_cast<int *>(rankData);
 
                         for (int slot = 0; slot < count; slot++) {
-                            finalResults[slot] += thisResults[slot];
+                            recvBufferCast[slot] += rankDataCast[slot];
                         }
-                    } else if(datatype->id == FAASMPI_DOUBLE) {
-                        auto finalResults = reinterpret_cast<double *>(recvBuffer);
-                        auto thisResults = reinterpret_cast<double *>(resultBuffer);
+                    } else if (datatype->id == FAASMPI_DOUBLE) {
+                        auto recvBufferCast = reinterpret_cast<double *>(recvBuffer);
+                        auto rankDataCast = reinterpret_cast<double *>(rankData);
 
                         for (int slot = 0; slot < count; slot++) {
-                            finalResults[slot] += thisResults[slot];
+                            recvBufferCast[slot] += rankDataCast[slot];
                         }
                     } else {
                         throw std::runtime_error("Unsupported type for sum reduction");
                     }
                 } else if (operation->id == faasmpi_op_max.id) {
                     if (datatype->id == FAASMPI_INT) {
-                        auto finalResults = reinterpret_cast<int *>(recvBuffer);
-                        auto thisResults = reinterpret_cast<int *>(resultBuffer);
+                        auto recvBufferCast = reinterpret_cast<int *>(recvBuffer);
+                        auto rankDataCast = reinterpret_cast<int *>(rankData);
 
                         for (int slot = 0; slot < count; slot++) {
-                            finalResults[slot] = std::max(finalResults[slot], thisResults[slot]);
+                            recvBufferCast[slot] = std::max(recvBufferCast[slot], rankDataCast[slot]);
                         }
-                    } else if(datatype->id == FAASMPI_DOUBLE) {
-                        auto finalResults = reinterpret_cast<double *>(recvBuffer);
-                        auto thisResults = reinterpret_cast<double *>(resultBuffer);
+                    } else if (datatype->id == FAASMPI_DOUBLE) {
+                        auto recvBufferCast = reinterpret_cast<double *>(recvBuffer);
+                        auto rankDataCast = reinterpret_cast<double *>(rankData);
 
                         for (int slot = 0; slot < count; slot++) {
-                            finalResults[slot] = std::max(finalResults[slot], thisResults[slot]);
+                            recvBufferCast[slot] = std::max(recvBufferCast[slot], rankDataCast[slot]);
                         }
                     } else {
                         throw std::runtime_error("Unsupported type for max reduction");
@@ -428,7 +436,9 @@ namespace mpi {
                     throw std::runtime_error("Not yet implemented reduce operation");
                 }
 
-                delete[] resultBuffer;
+                if (r != recvRank) {
+                    delete[] rankData;
+                }
             }
 
         } else {

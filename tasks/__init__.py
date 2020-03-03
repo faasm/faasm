@@ -148,14 +148,13 @@ from tasks.toolchain import (
     download_sysroot,
     download_runtime_root,
     run_local_codegen,
-    codegen_for_user,
+    codegen,
+    codegen_user,
 )
 from tasks.upload import (
-    upload_all,
-    upload_all_s3,
     upload,
+    upload_user,
     upload_genomics,
-    upload_prk,
 )
 from tasks.wasm2wast import (
     wast,
@@ -190,6 +189,15 @@ from tasks.genomics import (
 )
 from tasks.prk import (
     invoke_prk,
+)
+from tasks.runner import (
+    run,
+    run_user,
+)
+from tasks.bare_metal import (
+    bm_deploy,
+    bm_restart_workers,
+    bm_restart,
 )
 # Can only generate matrix data with things installed
 try:

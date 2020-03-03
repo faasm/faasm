@@ -10,7 +10,7 @@ namespace mpi {
 
     }
 
-    void MpiContext::createWorld(const message::Message &msg, int worldSize) {
+    void MpiContext::createWorld(const message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         if(msg.mpirank() > 0) {
@@ -23,7 +23,7 @@ namespace mpi {
 
         // Create the MPI world
         mpi::MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
-        reg.createWorld(msg, worldId, worldSize);
+        reg.createWorld(msg, worldId);
 
         // Set up this context
         isMpi = true;

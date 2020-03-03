@@ -1,12 +1,27 @@
-from subprocess import call
+from os import mkdir, listdir
 from os.path import exists, join, splitext
-from os import scandir, mkdir
+from shutil import copy
+from subprocess import call
 
 from invoke import task
 
-from tasks.util.env import FAASM_TOOLCHAIN_FILE, FUNC_BUILD_DIR, FUNC_DIR, WASM_DIR
+from tasks.util.env import FAASM_TOOLCHAIN_FILE, FUNC_DIR, WASM_DIR, PROJ_ROOT
 from tasks.util.files import clean_dir
 from tasks.util.typescript import ASC_BINARY, TS_DIR
+
+FUNC_BUILD_DIR = join(PROJ_ROOT, "build", "func")
+
+
+def _copy_built_function(user, func):
+    dest_folder = join(WASM_DIR, user, func)
+
+    if not exists(dest_folder):
+        mkdir(dest_folder)
+
+    src_file = join(FUNC_BUILD_DIR, user, ".".join([func, "wasm"]))
+    dest_file = join(dest_folder, "function.wasm")
+
+    copy(src_file, dest_file)
 
 
 def _do_compile(target, clean, debug):
@@ -36,53 +51,32 @@ def _do_compile(target, clean, debug):
 
 
 @task
-def compile(ctx, user, func, clean=False, debug=False, ts=False, cp=False):
+def compile(ctx, user, func, clean=False, debug=False, ts=False):
     # Typescript compilation
     if ts:
         return _ts_compile(func)
 
+    # Build the function (gets written to the build dir)
+    # Will fail if compilation fails
     target = func
     _do_compile(target, clean, debug)
-    if cp:
-        dest_folder = join(WASM_DIR, user, func)
-        if not exists(dest_folder):
-            mkdir(dest_folder)
-        cmd = [
-            "cp",
-            join(FUNC_BUILD_DIR, user, ".".join([func, "wasm"])),
-            join(dest_folder, "function.wasm"),
-        ]
-        call(" ".join(cmd), shell=True, cwd=FUNC_BUILD_DIR)
+
+    _copy_built_function(user, func)
 
 
 @task
-def compile_user(ctx, user, clean=False, debug=False, cp=False):
+def compile_user(ctx, user, clean=False, debug=False):
+    # Build all funcs for this user (will fail if any builds fail)
     target = "{}_all_funcs".format(user)
     _do_compile(target, clean, debug)
 
-    # Copies all existing wasm files for the user to wasm/func/<user>/<func>/function.wasm
-    if cp:
-        for func in filter(lambda entry: entry.is_file(), scandir(join(FUNC_BUILD_DIR, user))):
-            name, ext = splitext(func.name)
+    # Work out all the functions for this user (that we assume will have been built)
+    for func_file in listdir(join(FUNC_BUILD_DIR, user)):
+        name, ext = splitext(func_file)
+        if ext != ".wasm":
+            continue
 
-            # Ignores non targets
-            if ext != ".wasm":
-                continue
-
-            dest_folder = join(WASM_DIR, user, name)
-            if not exists(dest_folder):
-                if debug:
-                    print("Creating {}".format(dest_folder))
-                mkdir(dest_folder)
-            cmd = " ".join([
-                "cp",
-                func.path,
-                join(dest_folder, "function.wasm"),
-            ])
-            if debug:
-                print(cmd)
-            call(cmd, shell=True, cwd=FUNC_BUILD_DIR)
-
+        _copy_built_function(user, name)
 
 def _ts_compile(func, optimize=True):
     cmd = [

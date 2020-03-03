@@ -48,6 +48,3 @@ target_link_libraries(thread_bench_mem util)
 
 add_executable(thread_bench_time thread_bench_time.cpp)
 target_link_libraries(thread_bench_time util)
-
-add_executable(prk_local prk_local.cpp)
-target_link_libraries(prk_local bench worker_lib)

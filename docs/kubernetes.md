@@ -32,7 +32,7 @@ To avoid typing in hostnames and ports over and over, you can populate a section
 To get the values, run `./bin/knative_route.sh` which should print out something like:
 
 ```
-[Kubernetes]
+[Faasm]
 invoke_host = ...   # Usually the IP of your master node
 inoke_port = ...    # E.g. 31380
 upload_host = ...   # IP of the upload service
@@ -49,11 +49,10 @@ Once you have the upload URL you can upload functions using the tasks in this re
 source workon.sh
 
 # C++ functions
-# Note, --prebuilt uses the functions checked into the repo
-inv upload --prebuilt <user> <func>
+inv upload <user> <func>
 
 # All Python functions
-inv upload-all --py
+inv upload-user <user> --py
 ```
 
 ## Invoking functions

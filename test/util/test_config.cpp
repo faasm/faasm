@@ -31,6 +31,8 @@ namespace tests {
         REQUIRE(conf.queueName == "faasm-messages");
         REQUIRE(conf.netNsMode == "off");
         REQUIRE(conf.awsLogLevel == "off");
+        REQUIRE(conf.pythonPreload == "off");
+        REQUIRE(conf.captureStdout == "off");
 
         REQUIRE(conf.redisPort == "6379");
 
@@ -44,7 +46,7 @@ namespace tests {
         REQUIRE(conf.unboundTimeout == 60000);
         REQUIRE(conf.chainedCallTimeout == 300000);
 
-        REQUIRE(conf.mpiWorldSize == 5);
+        REQUIRE(conf.defaultMpiWorldSize == 5);
     }
 
     TEST_CASE("Test overriding system config initialisation", "[util]") {
@@ -62,6 +64,8 @@ namespace tests {
         std::string cgMode = setEnvVar("CGROUP_MODE", "off");
         std::string nsMode = setEnvVar("NETNS_MODE", "on");
         std::string awsLog = setEnvVar("AWS_LOG_LEVEL", "debug");
+        std::string pythonPre = setEnvVar("PYTHON_PRELOAD", "on");
+        std::string captureStdout = setEnvVar("CAPTURE_STDOUT", "on");
 
         std::string redisState = setEnvVar("REDIS_STATE_HOST", "not-localhost");
         std::string redisQueue = setEnvVar("REDIS_QUEUE_HOST", "other-host");
@@ -87,7 +91,7 @@ namespace tests {
 
         std::string ibmApi = setEnvVar("IBM_API_KEY", "ibm-123");
 
-        std::string mpiSize = setEnvVar("MPI_WORLD_SIZE", "2468");
+        std::string mpiSize = setEnvVar("DEFAULT_MPI_WORLD_SIZE", "2468");
 
         // Create new conf for test
         SystemConfig conf;
@@ -103,6 +107,8 @@ namespace tests {
         REQUIRE(conf.cgroupMode == "off");
         REQUIRE(conf.netNsMode == "on");
         REQUIRE(conf.awsLogLevel == "debug");
+        REQUIRE(conf.pythonPreload == "on");
+        REQUIRE(conf.captureStdout == "on");
 
         REQUIRE(conf.redisStateHost == "not-localhost");
         REQUIRE(conf.redisQueueHost == "other-host");
@@ -128,7 +134,7 @@ namespace tests {
 
         REQUIRE(conf.ibmApiKey == "ibm-123");
 
-        REQUIRE(conf.mpiWorldSize == 2468);
+        REQUIRE(conf.defaultMpiWorldSize == 2468);
 
         // Be careful with host type
         setEnvVar("HOST_TYPE", originalHostType);
@@ -144,6 +150,8 @@ namespace tests {
         setEnvVar("CGROUP_MODE", cgMode);
         setEnvVar("NETNS_MODE", nsMode);
         setEnvVar("AWS_LOG_LEVEL", awsLog);
+        setEnvVar("PYTHON_PRELOAD", pythonPre);
+        setEnvVar("CAPTURE_STDOUT", captureStdout);
 
         setEnvVar("REDIS_STATE_HOST", redisState);
         setEnvVar("REDIS_QUEUE_HOST", redisQueue);
@@ -169,7 +177,7 @@ namespace tests {
 
         setEnvVar("IBM_API_KEY", ibmApi);
 
-        setEnvVar("MPI_WORLD_SIZE", mpiSize);
+        setEnvVar("DEFAULT_MPI_WORLD_SIZE", mpiSize);
     }
 
 }

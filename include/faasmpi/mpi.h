@@ -114,9 +114,14 @@ extern struct faasmpi_datatype_t faasmpi_type_uint64;
 
 struct faasmpi_datatype_t *getFaasmDatatypeFromId(int datatypeId);
 
-// Special markers
-#define MPI_BOTTOM ((void *) 0)
-#define MPI_IN_PLACE ((void *) 1)
+// MPI flags
+// These are special pointers passed in place of normal buffers to signify
+// special operations (e.g. in-place manipulations). We make the pointers
+// themselves equal to a specific integer so that they can be identified.
+#define FAASMPI_BOTTOM 1
+#define FAASMPI_IN_PLACE 2
+#define MPI_BOTTOM (void*) FAASMPI_BOTTOM
+#define MPI_IN_PLACE (void*) FAASMPI_IN_PLACE
 
 // MPI_Infos
 #define FAASMPI_INFO_NULL 1

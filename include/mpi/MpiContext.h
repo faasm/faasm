@@ -8,7 +8,7 @@ namespace mpi {
     public:
         MpiContext();
 
-        void createWorld(const message::Message &msg, int worldSize);
+        void createWorld(const message::Message &msg);
 
         void joinWorld(const message::Message &msg);
 

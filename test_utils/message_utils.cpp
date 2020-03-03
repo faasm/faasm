@@ -31,6 +31,7 @@ namespace tests {
         REQUIRE(msgA.ismpi() == msgB.ismpi());
         REQUIRE(msgA.mpiworldid() == msgB.mpiworldid());
         REQUIRE(msgA.mpirank() == msgB.mpirank());
+        REQUIRE(msgA.mpiworldsize() == msgB.mpiworldsize());
 
         REQUIRE(msgA.cmdline() == msgB.cmdline());
     }

@@ -12,10 +12,10 @@ namespace tests {
         cleanSystem();
 
         message::Message msg = util::messageFactory("mpi", "hellompi");
-        int worldSize = 10;
+        msg.set_mpiworldsize(10);
 
         MpiContext c;
-        c.createWorld(msg, worldSize);
+        c.createWorld(msg);
 
         // Check a new world ID is created
         int worldId = c.getWorldId();
@@ -40,11 +40,11 @@ namespace tests {
         // Create message with non-zero rank
         message::Message msg = util::messageFactory("mpi", "hellompi");
         msg.set_mpirank(2);
+        msg.set_mpiworldsize(10);
 
         // Try creating world
         MpiContext c;
-        int worldSize = 10;
-        REQUIRE_THROWS(c.createWorld(msg, worldSize));
+        REQUIRE_THROWS(c.createWorld(msg));
     }
 
     TEST_CASE("Check joining world", "[mpi]") {
@@ -54,10 +54,11 @@ namespace tests {
         
         message::Message msgA = util::messageFactory("mpi", "hellompi");
         int worldSize = 6;
+        msgA.set_mpiworldsize(worldSize);
 
         // Use one context to create the world
         MpiContext cA;
-        cA.createWorld(msgA, worldSize);
+        cA.createWorld(msgA);
         int worldId = cA.getWorldId();
 
         // Get one message formed by world creation

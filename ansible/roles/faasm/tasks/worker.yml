@@ -1,0 +1,12 @@
+---
+
+- name: "Run worker build"
+  shell: "cmake --build . --target worker_knative"
+  args:
+    chdir: "/usr/local/code/faasm/build"
+
+- name: "Create supervisor file"
+  become: yes
+  template:
+    src: "worker.conf.j2"
+    dest: "/etc/supervisor/conf.d/faasm_worker.conf"

@@ -29,7 +29,7 @@ BENCHMARK_ENV = {
 }
 
 FUNC_DIR = join(PROJ_ROOT, "func")
-FUNC_BUILD_DIR = join(PROJ_ROOT, "build", "func")
+
 
 WASM_DIR = join(PROJ_ROOT, "wasm")
 WASM_LIB_DIR = join(PROJ_ROOT, "wasm", "lib")
@@ -53,6 +53,13 @@ FAASM_TOOLCHAIN_FILE = join(PROJ_ROOT, "toolchain", "FaasmToolchain.cmake")
 FAASM_SYSROOT = join(FAASM_LOCAL_DIR, "llvm-sysroot")
 
 LATEST_CMAKE = "/usr/local/lib/cmake-3.15/bin/cmake"
+
+POSSIBLE_BUILD_BINS = [
+    "/faasm/build/bin/",  # Containers
+    join(PROJ_ROOT, "build", "bin"),  # Local builds
+    join(PROJ_ROOT, "cmake-build-debug", "bin"),  # CLion
+    join(HOME_DIR, "faasm", "bench", "bin"),  # Benchmark
+]
 
 
 def get_wasm_func_path(user, func_name):

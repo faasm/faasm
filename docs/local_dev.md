@@ -20,17 +20,25 @@ git submodule update
 
 ## Basic local machine set-up
 
-Most of the local set-up is scripted with Ansible, but you need to have Python 3, [Ansible](https://www.ansible.com/) 
-and [Invoke](http://docs.pyinvoke.org/en/1.2/index.html) set up in advance.
+Most of the local set-up is scripted with Ansible, but you need to have Python 3 and [Ansible](https://www.ansible.com/) set up in advance.
 
-The easiest way to do this and run the local dev set-up is as follows:
+The easiest way to do this is as follows:
 
-```
+```bash
+# Python stuff
+sudo apt install python3-dev python3-pip
+sudo pip3 install -U pip
+
+# Ansible
 sudo pip install -U ansible
+
+# Faasm python env 
+source workon.sh
+pip install -r requirements.txt
+
+# Faasm playbook
 cd ansible
 ansible-playbook local_dev.yml --ask-become-pass
-
-sudo pip3 install invoke
 ```
 
 If you want to tweak things yourself, look inside the `local_dev.yml` playbook to see what's required.
@@ -50,12 +58,12 @@ You can look in the following folders and remove any reference to `libprotobuf` 
 
 Avoid trying to do this with `apt` as it can accidentally delete a whole load of other stuff.
 
-## Toolchain, codegen etc.
+## Toolchain and Runtime Root
 
-The Faasm toolchain currently requires a custom build of LLVM. You can run the following to download the prebuilt 
-version:
+The Faasm toolchain and runtime require some prebuilt files which can be downloaded with:
 
-```
+```bash
+source workon.sh
 inv download-toolchain
 inv download-sysroot
 ```
@@ -64,16 +72,23 @@ If you want to build the toolchain from scratch, you'll need to look at the `too
 
 ## Codegen and upload
 
-To run the next parts you'll need to build the following targets:
+To run the next parts you'll need to build the following targets with CMake:
 
 - `codegen_func`
 - `codgen_shared_obj`
-- `upload` 
 
-If doing an out of tree build with CMake, put it in a new `build` subdirectory so the python scripts can find the 
-executables.
+Once finished, you need to add the resulting `bin` dir to your `$PATH`.
 
-Run the `upload` target to start an upload server.
+You can do this via your chosen IDE or with something like:
+
+```bash
+mkdir -p build/faasm && cd build/faasm
+cmake -GNinja -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ ../..
+cmake --build . --target codegen_func
+cmake --build . --target codegen_shared_obj
+
+export PATH=$(pwd)/bin:$PATH
+```
 
 ### Codegen for C++ functions
 
@@ -94,7 +109,7 @@ inv download-runtime-root
 You can then put the Python functions in place with:
 
 ```
-inv upload-all --py --local-copy
+inv upload-user python --py --local-copy
 ```
 
 ## Networking

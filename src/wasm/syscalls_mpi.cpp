@@ -13,6 +13,10 @@
 namespace wasm {
     static thread_local mpi::MpiContext executingContext;
 
+    bool isInPlace(U8 wasmPtr) {
+        return wasmPtr == FAASMPI_IN_PLACE;
+    }
+
     mpi::MpiWorld &getExecutingWorld() {
         int worldId = executingContext.getWorldId();
         mpi::MpiWorldRegistry &reg = mpi::getMpiWorldRegistry();
@@ -103,8 +107,7 @@ namespace wasm {
             logger->debug("S - MPI_Init (create) {} {}", a, b);
 
             // Initialise the world
-            util::SystemConfig &conf = util::getSystemConfig();
-            executingContext.createWorld(*call, conf.mpiWorldSize);
+            executingContext.createWorld(*call);
         } else {
             logger->debug("S - MPI_Init (join) {} {}", a, b);
 
@@ -349,10 +352,20 @@ namespace wasm {
                                  sendBuf, recvBuf, count, datatype, op, root, comm);
 
         ContextWrapper ctx(comm);
-
         faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
-        auto hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, sendBuf, count * hostDtype->size);
-        auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuf, count * hostDtype->size);
+
+        uint8_t *hostSendBuffer;
+        uint8_t *hostRecvBuffer;
+
+        // Check if we're doing an in-place reduce
+        if(isInPlace(sendBuf)) {
+            hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuf, count * hostDtype->size);
+            hostSendBuffer = hostRecvBuffer;
+        } else {
+            hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, sendBuf, count * hostDtype->size);
+            hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuf, count * hostDtype->size);
+        }
+
         faasmpi_op_t *hostOp = ctx.getFaasmOp(op);
 
         ctx.world.reduce(ctx.rank, root, hostSendBuffer, hostRecvBuffer, hostDtype, count, hostOp);
@@ -374,8 +387,17 @@ namespace wasm {
 
         faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
         faasmpi_op_t *hostOp = ctx.getFaasmOp(op);
-        auto hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, sendBuf, count);
-        auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuf, count);
+
+        uint8_t *hostSendBuffer;
+        uint8_t *hostRecvBuffer;
+
+        if(isInPlace(sendBuf)) {
+            hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuf, count);
+            hostSendBuffer = hostRecvBuffer;
+        } else {
+            hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, sendBuf, count);
+            hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuf, count);
+        }
 
         ctx.world.allReduce(ctx.rank, hostSendBuffer, hostRecvBuffer, hostDtype, count, hostOp);
 
