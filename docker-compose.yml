@@ -22,6 +22,8 @@ services:
       - LOG_LEVEL=info
       - REDIS_STATE_HOST=redis-state
       - REDIS_QUEUE_HOST=redis-queue
+      - TF_CODEGEN=off
+      - PYTHON_CODEGEN=off
 
   worker:
     image: faasm/knative-worker:${FAASM_VERSION}
@@ -38,8 +40,6 @@ services:
       - LOG_LEVEL=info
       - CGROUP_MODE=on
       - NETNS_MODE=off
-      - PYTHON_PRELOAD=off
-      - TF_CODEGEN=off
       - REDIS_STATE_HOST=redis-state
       - REDIS_QUEUE_HOST=redis-queue
       - THREADS_PER_WORKER=20
