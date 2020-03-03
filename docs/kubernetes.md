@@ -1,3 +1,9 @@
+
+# Integrations
+
+Faasm's recommended integration is with [KNative](https://cloud.google.com/knative/), although it also works with AWS Lambda and IBM Cloud Functions. For more information consult the `docs` folder.
+
+
 # Set-up and usage
 
 Faasm can be deployed to Kubernetes and Knative to create a distributed set-up. The configuration files are found in the `k8s` directory.

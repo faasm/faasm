@@ -5,6 +5,51 @@ the language runtime itself to WebAssembly. [Faasm Python support](docs/python.m
 [Pyodide](https://github.com/iodide-project/pyodide), with custom C-extensions and decorators in 
 [Pyfaasm](https://github.com/Shillaker/pyfaasm).
 
+
+## Running a Python function
+
+An example Python function is found at `func/python/hello.py`. This can be uploaded with:
+
+```bash
+inv upload --py python hello
+```
+
+And invoke with:
+
+```bash
+inv invoke --py python hello
+```
+
+This should give a message and the version of Python being run.
+
+## Python API
+
+Python functions interact with the Faasm API via [pyfaasm](https://github.com/Shillaker/pyfaasm), a module with a C-extension providing the relevant bindings to the C++ API.
+
+
+In Python this looks like:
+
+```python
+from pyfaasm.code import await_call, chain_this, faasm_func, faasm_main
+
+@faasm_func(1)
+def func_one():
+    pass
+
+@faasm_func(2)
+def func_two():
+    pass
+
+@faasm_main
+def main_func():
+    call_one = chain_this(1)
+    call_two = chain_this(2)
+
+    await_call(call_one)
+    await_call(call_two)
+```
+
+
 ## Using Python Support
 
 Note that this doc is only relevant for building the Python support from scratch. This should only be necessary if
