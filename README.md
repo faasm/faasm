@@ -56,7 +56,7 @@ More detail on some key features and implementations can be found below:
 - [Distributed state](docs/state.md) and [scheduling](docs/scheduling.md) - sharing state and function executions between distributed Faasm instances.
 - [Kubernetes and Knative integration](docs/kubernetes.md)- deploying Faasm as part of a full serverless platform.
 - [Tensorflow Lite](docs/tensorflow.md) - performing inference in Faasm functions with TF Lite.  
-- [MPI and OpenMP](docs/openmp.md) - executing existing MPI and OpenMP applications in Faasm.
+- [MPI](docs/mpi.md) and [OpenMP](docs/openmp.md) - executing existing MPI and OpenMP applications in Faasm.
 - [Browser offloading with Faasm.js](https://github.com/Shillaker/faasmjs) - executing Faasm functions in the browser and on the server. 
 - [API](docs/api.md) - invoking and managing functions and state through Faasm's HTTP API.
 - [Snapshot and restore with Proto-Faaslets](docs/proto_faaslets.md) - cutting down cold starts with execute-once initialisation. 
