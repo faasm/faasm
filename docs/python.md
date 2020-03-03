@@ -1,5 +1,10 @@
 # Python 
 
+Faasm supports C/C++ natively and extends support to dynamic languages such as Python by compiling 
+the language runtime itself to WebAssembly. [Faasm Python support](docs/python.md) is based on 
+[Pyodide](https://github.com/iodide-project/pyodide), with custom C-extensions and decorators in 
+[Pyfaasm](https://github.com/Shillaker/pyfaasm).
+
 ## Using Python Support
 
 Note that this doc is only relevant for building the Python support from scratch. This should only be necessary if

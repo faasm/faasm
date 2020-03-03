@@ -4,21 +4,38 @@
 
 # Faasm [![Tests](https://github.com/lsds/Faasm/workflows/Tests/badge.svg?branch=master)](https://github.com/lsds/Faasm/actions)  [![License](https://img.shields.io/github/license/lsds/Faasm.svg)](https://github.com/lsds/Faasm/blob/master/LICENSE.md)  [![Release](https://img.shields.io/github/release/lsds/Faasm.svg)](https://github.com/lsds/Faasm/releases/)  [![Contributors](https://img.shields.io/github/contributors/lsds/Faasm.svg)](https://github.com/lsds/Faasm/graphs/contributors/)
 
-Faasm is a high-performance stateful serverless runtime. The goal of the project is enabling fast, efficient serverless big data.
+Faasm is a high-performance stateful serverless runtime. 
 
-Faasm provides multi-tenant isolation, but also lets functions share regions of memory. These shared memory regions give low-latency concurrent access to data, supporting high-performance distributed serverless applications.
+Faasm provides multi-tenant isolation, but also lets functions share regions of memory. 
+These shared memory regions give low-latency concurrent access to data, and are synchronised 
+globally to support large-scale parallelism.
 
-By running WebAssembly, Faasm combines software fault isolation with standard OS tooling to provide security and resource isolation guarantees at low cost. Functions run side-by-side as threads of a single runtime process, with low overheads and fast boot times. The underlying WebAssembly execution and code generation is handled by [WAVM](https://github.com/WAVM/WAVM), an excellent server-side WebAssembly VM. 
+Faasm combines software fault isolation from WebAssembly with standard Linux tools to isolate functions
+in Faaslets, which provide security and resource isolation at low cost. Faaslets run side-by-side as threads 
+of a single runtime process, with low overheads and fast boot times. The underlying WebAssembly
+execution and code generation is handled by [WAVM](https://github.com/WAVM/WAVM). 
 
-Faasm supports C/C++ natively and extends support to dynamic languages such as Python by compiling the language runtime itself to WebAssembly. The Python support is based heavily on the work of the [Pyodide](https://github.com/iodide-project/pyodide) project, with custom C-extensions and decorators in [Pyfaasm](https://github.com/Shillaker/pyfaasm).
+Faasm defines a custom [host interface](docs/host_interface.md) which lets functions perform 
+serverless-specific tasks (e.g. invoking other functions and managing state), as well as interacting 
+with the underlying host (e.g. using the filesystem and networking). The Faasm host interface achieves
+the same goal as [WASI](https://wasi.dev/), but in a serverless-specific context.
 
-Faasm uses a custom host interface to give functions access to state and interact with the runtime. Larger applications can be constructed by composing multiple functions together dynamically in chains. The Faasm scheduler ensures these functions execute close to their required data, reducing unnecessary duplication and overhead.
+## Features
 
-Faasm is a runtime, intended for integration into other serverless platforms. The primary integration is with [Knative](https://knative.dev/).
+- [Distributed state and scheduling](docs/scheduling.md)   
+- [Snapshot and restore with Proto-Faaslets](docs/proto_faaslets.md)
+- [Kubernetes and Knative integration](docs/kubernetes.md)  
+- [Tensorflow Lite](docs/tensorflow.md)
+- [MPI and OpenMP](docs/openmp.md)  
+- [C/C++ functions](docs/cpp.md)
+- [Python functions](docs/python.md)
+- [Browser offloading with Faasm.js](https://github.com/Shillaker/faasmjs)
 
 # Quick start
 
-You can start a simple Faasm runtime using the `docker-compose.yml` file in the root of the project. This creates a couple of worker instances as well as an upload endpoint for receiving functions and state. There is also a Redis container used for communication between the workers.
+You can start a simple Faasm runtime using the `docker-compose.yml` file in the root of the project. 
+This creates a couple of worker instances as well as an upload endpoint for receiving functions and state.
+There is also a Redis container used for communication between the workers.
 
 You can start it by running:
 
