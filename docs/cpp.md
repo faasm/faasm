@@ -1,37 +1,28 @@
 ## Compiling a C++ function
 
-C++ functions are built with CMake and held in the `func` directory. `demo/hello.cpp` is a simple hello world function.
+C++ functions are built with CMake and held in the [func](../func) directory. 
 
-The Faasm toolchain is packaged in the `faasm/toolchain` container and can be run with the `bin/toolchain.sh` script, i.e.:
+A simple hello world function exists at [hello.cpp](../func/demo/hello.cpp).
 
-```bash
-./bin/toolchain.sh
-```
-
-This container has all the tooling ready to use. To compile and upload the `hello` function you an run:
+From the [Faasm CLI](cli.md), you can compile, upload and invoke the `hello.cpp` 
+function with:
 
 ```bash
 inv compile demo hello
 inv upload demo hello
-```
-
-You can invoke the function as follows:
-
-```bash
 inv invoke demo hello
 ```
 
 You should then see the response `Hello faasm!`.
 
-
-
 # Writing functions
 
-Faasm aims to be uninvasive, allowing code to run natively _and_ in a serverless context. This is important for local development and testing as well as porting existing applications.
+Faasm aims to be uninvasive, allowing code to run natively _and_ in a serverless context. 
+To do this in C/ C++ functions we use a set of Faasm macros. These macros allow code to 
+be compiled with a standard toolchain and run natively, and with the Faasm toolchain, 
+and run in a serverless context.
 
-## C++
-
-In C++ functions make use of the Faasm macros. These macros mean the code can be compiled with a standard toolchain and run natively, but when compiled with the Faasm toolchain, will run in a serverless context.
+The outline of this looks like:
 
 ```c++
 #include "faasm/faasm.h"
@@ -43,14 +34,12 @@ FAASM_MAIN_FUNC() {
 }
 ```
 
-Some example functions can be found in the `func/demo` directory.
-
+Although for very simple functions, a standard `int main()` will also still work.
 
 ## C++ API
 
-Faasm allows users functions to interact with the underlying system to accomplish a number of things e.g. accessing input and output, interacting with distributed state, and invoking other functions.
-
-Some of the methods include:
+Faasm provides a simple C++ wrapper library around the [Faasm host interface](host_interface.md).
+Some of the methods in this wrapper are:
 
 - `faasmGetInput()` - allows functions to retrieve their input data
 - `faasmSetOutput()` - this allows functions to return output data to the caller
@@ -59,10 +48,11 @@ Some of the methods include:
 - `faasmReadState()` and `writeState()` - allows functions to read/ write key/value state
 - `faasmReadStateOffset()` and `faasmWriteStateOffset()` - allows functions to read/ write at specific points in existing state (e.g. updating a subsection of an array)
 
-
 ## Chaining
 
-"Chaining" is when one function makes a call to another function (which must be owned by the same user). There are two supported methods of chaining, one for invoking totally separate Faasm functions, the other for automatically parallelising functions in the same piece of code (useful for porting legacy applications).
+"Chaining" is when one function makes a call to another function (which must be owned by the same user). 
+There are two supported methods of chaining, one for invoking totally separate Faasm functions, the 
+other for automatically parallelising functions in the same piece of code (useful for porting legacy applications).
 
 ### Chaining a function
 
@@ -96,7 +86,6 @@ FAASM_MAIN_FUNC() {
 }
 ```
 
-
 Chaining can also be done across functions defined separately, e.g. in C++:
 
 ```c++
@@ -110,3 +99,7 @@ FAASM_MAIN_FUNC() {
     return 0;
 }
 ```
+
+## OpenMP and MPI
+
+See the [OpenMP](openmp.md) and [MPI](mpi.md) docs for further C/C++ APIs.
