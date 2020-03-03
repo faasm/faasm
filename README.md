@@ -49,7 +49,6 @@ on subsequent runs.
 
 More detail on some key features and implementations can be found below: 
 
-- [Set-up and CLI](docs/set_up.md) - setting up and running Faasm
 - [C/C++ functions](docs/cpp.md) - writing and deploying Faasm functions in C/C++.
 - [Python functions](docs/python.md) - isolating and executing functions in Python.
 - [Faasm host interface](docs/host_interface.md) - the serverless-specific interface between functions and the underlying host.
