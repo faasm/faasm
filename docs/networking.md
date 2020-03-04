@@ -1,6 +1,7 @@
-## Network Isolation
+# Network Isolation
 
-To isolate networking we can user a combination of network namespaces, virtual interfaces and standard Linux traffic shaping tools. 
+To isolate networking we can user a combination of network namespaces, 
+virtual interfaces and standard Linux traffic shaping tools. 
 
 Each function (the `N`th on the system):
 
