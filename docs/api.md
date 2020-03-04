@@ -85,16 +85,77 @@ the function's status.
 
 ### JSON Format
 
-All Faasm invoke API calls use the same JSON message format. The following 
-fields are shared by all calls:
+All Faasm invoke API calls use the same JSON message format. Possible  
+fields are as follows:
 
-| Field | Type | Purpose |
-|---|---|---|
-| `user` | string | User associated with the function | 
-| `function` | string | The function name |
-| `id` | int | The call ID, used for async calls |
-| `async` | bool | Flag for asynchronous calls |
-| `input_data` | bool | Input data for the function call |
+| Field | Type | Description | Use |
+|---|---|---|---|
+| `user` | string | User associated with the function | Invoking | 
+| `function` | string | The function name | Invoking |
+| `async` | bool | Flag for asynchronous calls | Invoking |
+| `input_data` | bool | Input data for the function call | Invoking |
+| `status` | bool | Flag to indicate a status call | Polling |
+| `id` | int | The call ID, used for async calls | Polling |
+| `python` | bool | Flag to indicate a Python function | Python |
+| `py_user` | string | Python user (`user` must be `python`) | Python |
+| `py_func` | string | Python function (`function` must be `py_func`) | Python |
+| `mpi` | bool | Flag to indicate an MPI call | MPI |
+| `mpi_world_size` | int | How big to make the MPI world | MPI |
 
-### Invoke functions
+### Example - synchronous invocation
 
+An example of synchronously invoking a function from Python is shown below:
+
+```python
+import requests
+
+endpoint = "http://localhost:8080"
+
+json_data = {
+    "user": "demo",
+    "function": "echo",
+    "input_data": "Hello API",
+}
+
+requests.post(endpoint, json=json_data)
+```
+
+The response will contain the function output as well as any captured stdout.
+
+### Example - asynchronous invocation
+
+An example of asynchronously invoking a function from Python is shown below:
+
+```python
+import requests
+from time import sleep
+
+endpoint = "http://localhost:8080"
+
+invoke_json = {
+    "user": "demo",
+    "function": "echo",
+    "input_data": "Hello API",
+    "async": True
+}
+
+res = requests.post(endpoint, json=invoke_json)
+call_id = res.content.decode()
+print("Async call {}".format(call_id))
+
+status_json = {
+    "id": int(call_id),
+    "status": True,
+}
+
+str_res = ""
+count = 0
+while not str_res.startswith("SUCCESS") and count < 5:
+    res = requests.post(endpoint, json=status_json)
+    str_res = res.content.decode()
+    count+=1
+
+    sleep(0.2)
+
+print(str_res)
+```
