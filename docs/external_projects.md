@@ -1,14 +1,16 @@
 # Using Faasm with External Projects
 
-To compile projects outside the Faasm source tree you need to install the Faasm library and emulator to your system. This allows you to compile and run natively.
+To compile projects outside the Faasm source tree you need to install the Faasm 
+library and emulator to your system. This allows you to compile and run natively.
 
 ```
 inv install-native-tools
 ```
 
-This installs to `/usr/local/faasm/install/`. You can link to `libfaasm` and `libemulator` from there, e.g. with a file at `hello.cpp`:
+This installs to `/usr/local/faasm/install/`. You can link to `libfaasm` and 
+`libemulator` from there, e.g. with a file at `hello.cpp`:
 
-```
+```cpp
 #include <faasm/faasm.h>
 #include <stdio.h>
 
@@ -20,7 +22,7 @@ FAASM_MAIN_FUNC() {
 
 You can do:
 
-```
+```bash
 clang++ hello.cpp -I /usr/local/faasm/install/include -L/usr/local/faasm/install/lib -lfaasm -lemulator
 ./a.out
 ```

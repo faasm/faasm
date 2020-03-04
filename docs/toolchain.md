@@ -79,14 +79,15 @@ SIMD support is also in flux but possible to switch on with `-msimd128` and `-mu
 
 ## Toolchain Updates
 
-When updating the underlying LLVM version of the toolchain you'll need to do the following:
+When updating the underlying LLVM version of the toolchain you'll need to create a 
+[new release](releases.md). The steps should be something like:
 
-- Bump up the Faasm version (see `docs/versioning.md`)
+- Bump up the Faasm version (as outlined in [release docs](releases.md))
 - Rebuild the toolchain itself (based on instructions above)
-- Rebuild the basic sysroot (`inv compile-libc compile-eigen compile-libfaasm`)
+- Rebuild the basic sysroot libraries (`inv compile-libc compile-eigen compile-libfaasm`)
 - Rebuild 3rd party libraries (Pyodide and Tensorflow, see relevant docs)
 - Rebuild and upload _all_ wasm functions (all those under `funcs`)
 - Set up the runtime root (see Python docs and Ansible `runtime_fs.yml` playbook)
 - Make sure all the tests run
-- Create a new Github release (see `docs/releases.md`)
-- Rebuild all Docker images for this new release (see `docs/versioning.md`)
+- Create a new [release](releases.md)
+- Rebuild all Docker images for this release

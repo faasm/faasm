@@ -18,7 +18,6 @@ The Typescript functions live at `typescript/assembly`.
 To build Typescript the `echo` function you can run:
 
 ```
-source workon.sh
 inv compile ts echo --ts
 ```
 

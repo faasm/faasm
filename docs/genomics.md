@@ -1,5 +1,7 @@
 # Genomics Use-case
 
+**Note 04/03/2020 - this needs updating**
+
 The genomics use-case involves multiple Faasm functions:
 
 - `gene/mapper` - the top-level entry function. This spawns a child to handle each chunk of reads data.
