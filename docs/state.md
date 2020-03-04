@@ -38,20 +38,3 @@ For example, if I have an array of 100 bytes stored in memory, I can read bytes 
 update them separately.
 
 This can be useful for implementing distributed iterative algorithms.
-
-### Uploading state
-
-If you need to prepopulate state for your functions you can use the state upload endpoint. This can be called with:
-
-```bash
-# Format /s/<username>/<key>
-curl http://localhost:8002/s/user123/my_key -X PUT -d "your data"
-```
-
-This state can then be accessed in your functions using the specified key. For larger state, you can also upload a file:
-
-```bash
-curl http://localhost:8002/s/user123/my_key -X PUT -T /tmp/my_state_file
-```
-
-Where `/tmp/my_state_file` contains binary data you wish to be inserted at your specified key.

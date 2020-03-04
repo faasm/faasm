@@ -49,19 +49,19 @@ on subsequent runs.
 
 More detail on some key features and implementations can be found below: 
 
+- [Usage and set-up](docs/setup.md) - using the CLI and other features.
 - [C/C++ functions](docs/cpp.md) - writing and deploying Faasm functions in C/C++.
 - [Python functions](docs/python.md) - isolating and executing functions in Python.
 - [Faasm host interface](docs/host_interface.md) - the serverless-specific interface between functions and the underlying host.
 - [Kubernetes and Knative integration](docs/kubernetes.md)- deploying Faasm as part of a full serverless platform.
 - [Tensorflow Lite](docs/tensorflow.md) - performing inference in Faasm functions with TF Lite.  
+- [API](docs/api.md) - invoking and managing functions and state through Faasm's HTTP API.
 - [MPI](docs/mpi.md) and [OpenMP](docs/openmp.md) - executing existing MPI and OpenMP applications in Faasm.
-- [Browser offloading with Faasm.js](https://github.com/Shillaker/faasmjs) - executing Faasm functions in the browser and on the server. 
+- [Local development](docs/local_dev.md) - developing and modifying Faasm.
+- [Faasm.js](https://github.com/Shillaker/faasmjs) - executing Faasm functions in the browser and on the server. 
+- [Proto-Faaslets](docs/proto_faaslets.md) - rapid snapshot-and-restore initialisation to cut down cold starts.
  
 <!---
 Docs to be written/ completed:
-
 - [Distributed state](docs/state.md) and [scheduling](docs/scheduling.md) - sharing state and function executions between distributed Faasm instances.)
-- [API](docs/api.md) - invoking and managing functions and state through Faasm's HTTP API.
-- [Snapshot and restore with Proto-Faaslets](docs/proto_faaslets.md) - cutting down cold starts with execute-once initialisation.
-
 -->
