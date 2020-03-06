@@ -32,7 +32,7 @@ then:
 
 ```bash
 # Upload files and state
-inv tf-upload-data tf-state-upload
+inv data.tf-upload data.tf-state
 
 # Upload (takes a few seconds)
 inv upload tf image

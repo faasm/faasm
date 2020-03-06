@@ -6,16 +6,16 @@ from tasks.util.env import PROJ_ROOT
 
 
 @task
-def docker_start_all(ctx):
+def start(ctx):
     call("docker-compose up -d", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def docker_stop_all(ctx):
+def stop(ctx):
     call("docker-compose stop", shell=True, cwd=PROJ_ROOT)
 
 
 @task
-def docker_restart_all(ctx):
+def restart(ctx):
     call("docker-compose stop", shell=True, cwd=PROJ_ROOT)
     call("docker-compose up -d", shell=True, cwd=PROJ_ROOT)

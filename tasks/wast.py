@@ -8,11 +8,11 @@ from tasks.util.env import PROJ_ROOT
 
 
 @task
-def wast_file(ctx, file_path):
+def file(ctx, file_path):
     _do_wast(file_path, "/tmp/out.wast")
 
 
-@task
+@task(default=True)
 def wast(ctx, user, func_name):
     """
     Converts a function's wasm file to wast

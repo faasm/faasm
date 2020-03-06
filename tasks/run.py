@@ -7,11 +7,11 @@ from tasks.util.shell import find_command
 
 
 @task
-def run_user(ctx, user, repeats=1):
+def user(ctx, user, repeats=1):
     run(ctx, user, "all", repeats=repeats)
 
 
-@task
+@task(default=True)
 def run(ctx, user, function, repeats=1):
     runner = find_command("simple_runner", POSSIBLE_BUILD_BINS)
 

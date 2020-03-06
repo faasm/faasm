@@ -92,7 +92,7 @@ make clean && make
 Once this is all built we can put the relevant files in place _in a new terminal session_ at the root of the project:
 
 ```
-inv set-up-python-runtime
+inv python.set-up-runtime
 ```
 
 ## Adding packages
@@ -131,7 +131,7 @@ Once added, we need to include this in the Faasm runtime root:
 You can then set it up with:
 
 ```bash
-inv set-up-python-package <pkg name>
+inv python.set-up-package <pkg name>
 ```
 
 Note that this modifies the runtime root bundle included in a release, so changes here will need to 

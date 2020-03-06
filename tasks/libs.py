@@ -20,13 +20,13 @@ PRK_DIR = join(THIRD_PARTY_DIR, "ParResKernels")
 
 
 @task
-def compile_libc(ctx):
+def libc(ctx):
     check_output("./bin/build_musl.sh", shell=True, cwd=PROJ_ROOT)
-    compile_malloc(ctx, clean=True)
+    malloc(ctx, clean=True)
 
 
 @task
-def compile_malloc(ctx, clean=False):
+def malloc(ctx, clean=False):
     work_dir = join(PROJ_ROOT, "third-party", "malloc")
     build_dir = join(PROJ_ROOT, "build", "malloc")
 
@@ -48,7 +48,7 @@ def compile_malloc(ctx, clean=False):
 
 
 @task
-def install_native_tools(ctx, clean=False):
+def native(ctx, clean=False):
     if not exists(FAASM_INSTALL_DIR):
         makedirs(FAASM_INSTALL_DIR)
 
@@ -102,7 +102,7 @@ def _build_faasm_lib(dir_name, clean):
 
 
 @task
-def compile_libfaasm(ctx, clean=False):
+def faasm(ctx, clean=False):
     """
     Build all Faasm libraries
     """
@@ -113,7 +113,7 @@ def compile_libfaasm(ctx, clean=False):
 
 
 @task
-def compile_libfaasmp(ctx, clean=False):
+def faasmp(ctx, clean=False):
     """
     Build just the faasm OpenMP library
     """
@@ -121,7 +121,7 @@ def compile_libfaasmp(ctx, clean=False):
 
 
 @task
-def compile_libfaasmpi(ctx, clean=False):
+def faasmpi(ctx, clean=False):
     """
     Build just the faasm MPI library
     """
@@ -129,7 +129,7 @@ def compile_libfaasmpi(ctx, clean=False):
 
 
 @task
-def compile_libfake(ctx, clean=False):
+def fake(ctx, clean=False):
     work_dir = join(PROJ_ROOT, "func", "dynlink")
     build_dir = join(PROJ_ROOT, "build", "libfake")
 
@@ -171,7 +171,7 @@ def compile_libfake(ctx, clean=False):
 
 
 @task
-def compile_eigen(ctx):
+def eigen(ctx):
     work_dir = join(THIRD_PARTY_DIR, "eigen")
     build_dir = join(PROJ_ROOT, "build", "eigen")
 
@@ -194,7 +194,7 @@ def compile_eigen(ctx):
 
 
 @task
-def compile_libpng(ctx):
+def png(ctx):
     workdir = join(PROJ_ROOT, "third-party", "libpng")
 
     config_cmd = BASE_CONFIG_CMD
@@ -212,7 +212,7 @@ def compile_libpng(ctx):
 
 
 @task
-def compile_zlib(ctx):
+def zlib(ctx):
     workdir = join(PROJ_ROOT, "third-party", "zlib")
 
     config_cmd = BASE_CONFIG_CMD
@@ -229,7 +229,7 @@ def compile_zlib(ctx):
 
 
 @task
-def compile_tflite(ctx, clean=False):
+def tflite(ctx, clean=False):
     tf_dir = join(THIRD_PARTY_DIR, "tensorflow")
     tf_lite_dir = join(tf_dir, "tensorflow", "lite")
     tf_make_dir = join(tf_lite_dir, "tools", "make")
@@ -266,7 +266,7 @@ def compile_tflite(ctx, clean=False):
 
 
 @task
-def compile_prk(ctx, clean=False):
+def prk(ctx, clean=False):
     # Pairs of (directory, make target). See top-level ParResKernels
     # Makefile for more examples
     make_targets = [
@@ -319,7 +319,7 @@ def compile_prk(ctx, clean=False):
 
 
 @task
-def compile_mpi_bench(ctx, clean=False):
+def mpi_bench(ctx, clean=False):
     bench_dir = join(THIRD_PARTY_DIR, "mpi-benchmarks")
     make_target = "IMB-MPI1"
 

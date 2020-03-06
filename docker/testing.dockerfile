@@ -15,7 +15,7 @@ COPY . /usr/local/code/faasm
 
 # Build native libraries
 WORKDIR /usr/local/code/faasm
-RUN inv install-native-tools
+RUN inv libs.native
 
 # Build the actual tests (do this early to catch failures)
 WORKDIR /faasm/build
@@ -23,12 +23,12 @@ RUN cmake --build . --target tests
 
 # Download tools
 WORKDIR /usr/local/code/faasm
-RUN inv download-sysroot
-RUN inv download-runtime-root --nocodegen
-RUN inv run-local-codegen
+RUN inv toolchain.download-sysroot
+RUN inv toolchain.download-runtime --nocodegen
+RUN inv codegen.local
 
 # Compile test library
-RUN inv compile-libfake
+RUN inv libs.fake
 
 # Fix ownership
 RUN chown -R root:root /usr/local/faasm
@@ -37,7 +37,7 @@ RUN chown -R root:root /usr/local/faasm
 RUN pip3 install pyfaasm
 
 # Set up Python files
-RUN inv upload-user python --py --local-copy
+RUN inv upload.user python --py --local-copy
 
 # Create user with dummy uid required by Python
 RUN groupadd -g 1000 faasm

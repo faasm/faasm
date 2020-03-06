@@ -4,7 +4,7 @@ from tasks.util.invoke import invoke_impl, status_call_impl, flush_call_impl
 from tasks.util.endpoints import get_invoke_host_port
 
 
-@task
+@task(default=True)
 def invoke(ctx, user, func,
            host=None,
            port=None,

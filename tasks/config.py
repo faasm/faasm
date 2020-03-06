@@ -6,12 +6,12 @@ from tasks.util.env import FAASM_CONFIG_FILE
 
 
 @task
-def create_faasm_config(ctx):
+def create(ctx):
     get_faasm_config()
 
 
 @task
-def generate_aws_config(ctx):
+def aws(ctx):
     config = get_faasm_config()
 
     config["AWS"]["redis_state"] = get_elasticache_url("faasm-redis-state")

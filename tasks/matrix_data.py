@@ -11,16 +11,16 @@ from tasks.util.matrices import get_matrix_dir, MATRIX_CONF_STATE_KEY, SUBMATRIC
 
 
 @task
-def generate_all_matrix_data(ctx):
+def generate_all(ctx):
     splits = [2]
     sizes = [100, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]
     for n_splits in splits:
         for matrix_size in sizes:
-            generate_matrix_data(ctx, matrix_size, n_splits)
+            generate(ctx, matrix_size, n_splits)
 
 
 @task
-def generate_matrix_data(ctx, matrix_size, n_splits):
+def generate(ctx, matrix_size, n_splits):
     matrix_size = int(matrix_size)
     n_splits = int(n_splits)
     data_dir = get_matrix_dir(matrix_size, n_splits)

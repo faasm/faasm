@@ -7,7 +7,7 @@ We need to build a custom LLVM toolchain with a modified musl and libcxx and lib
 To download the built toolchain you can run:
 
 ```
-inv download-toolchain
+inv toolchain.download-toolchain
 ```
 
 This also includes the relevant sysroot files (which will be placed at `/usr/local/faasm/llvm-sysroot`).
@@ -19,7 +19,7 @@ A CMake toolchain file exists at `toolchain/FaasmToolchain.cmake`.
 Certain files need to be in place at runtime, to download these:
 
 ```
-inv download-runtime-root
+inv toolchain.download-runtime
 ```
 
 # Building
@@ -84,7 +84,7 @@ When updating the underlying LLVM version of the toolchain you'll need to create
 
 - Bump up the Faasm version (as outlined in [release docs](releases.md))
 - Rebuild the toolchain itself (based on instructions above)
-- Rebuild the basic sysroot libraries (`inv compile-libc compile-eigen compile-libfaasm`)
+- Rebuild the basic sysroot libraries (`inv libs.libc libs.eigen libs.faasm`)
 - Rebuild 3rd party libraries (Pyodide and Tensorflow, see relevant docs)
 - Rebuild and upload _all_ wasm functions (all those under `funcs`)
 - Set up the runtime root (see Python docs and Ansible `runtime_fs.yml` playbook)

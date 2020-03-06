@@ -111,12 +111,12 @@ def _do_s3_download(tar_path, tar_dir, tar_name):
 # -------------------------------------------------
 
 @task
-def reuters_state_upload(ctx, host=None, knative=True):
+def reuters_state(ctx, host=None, knative=True):
     _do_reuters_upload(host=host, knative=knative)
 
 
 @task
-def reuters_state_upload_s3(ctx):
+def reuters_state_s3(ctx):
     _do_reuters_upload(s3_bucket=STATE_S3_BUCKET)
 
 
@@ -161,7 +161,7 @@ def _do_upload(data_dir, file_name, user, host, key=None):
 
 
 @task
-def matrix_state_upload(ctx, mat_size, n_splits, host=None, knative=True):
+def matrix_state(ctx, mat_size, n_splits, host=None, knative=True):
     user = "python"
 
     host = get_kubernetes_upload_host(knative, host)
@@ -183,7 +183,7 @@ def matrix_state_upload(ctx, mat_size, n_splits, host=None, knative=True):
 # -------------------------------------------------
 
 @task
-def tf_state_upload(ctx, host=None, knative=True):
+def tf_state(ctx, host=None, knative=True):
     data_dir = join(FUNC_DIR, "tf", "data")
     model_file = "mobilenet_v1_1.0_224.tflite"
     host, _ = get_upload_host_port(host, None)
@@ -192,7 +192,7 @@ def tf_state_upload(ctx, host=None, knative=True):
 
 
 @task
-def tf_upload_data(ctx, host=None, local_copy=False):
+def tf_upload(ctx, host=None, local_copy=False):
     host, port = get_upload_host_port(host, None)
 
     source_data = join(FUNC_DIR, "tf", "data")

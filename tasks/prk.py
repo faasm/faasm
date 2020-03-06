@@ -64,7 +64,7 @@ PRK_STATS = {
 
 
 @task
-def invoke_prk(ctx, func, native=False, iface=None, np=10):
+def invoke(ctx, func, native=False, iface=None, np=10):
     if func not in PRK_CMDLINE:
         print("Invalid PRK function {}".format(func))
         return 1

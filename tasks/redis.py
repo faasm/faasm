@@ -43,16 +43,16 @@ def _do_redis_command(sub_cmd, local, docker, knative, ibm):
 
 
 @task
-def redis_clear_queue(ctx, local=False, docker=False, knative=True, ibm=False):
+def clear_queue(ctx, local=False, docker=False, knative=True, ibm=False):
     _do_redis_command("flushall", local, docker, knative, ibm)
 
 
 @task
-def redis_all_workers(ctx, local=False, docker=False, knative=True, ibm=False):
+def all_workers(ctx, local=False, docker=False, knative=True, ibm=False):
     _do_redis_command("smembers available_workers", local, docker, knative, ibm)
 
 
 @task
-def redis_func_workers(ctx, user, func, local=False, docker=False, knative=True, ibm=False):
+def func_workers(ctx, user, func, local=False, docker=False, knative=True, ibm=False):
     worker_set_name = "w_{}/{}".format(user, func)
     _do_redis_command("smembers {}".format(worker_set_name), local, docker, knative, ibm)

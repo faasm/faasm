@@ -50,7 +50,7 @@ def _do_compile(target, clean, debug):
         raise RuntimeError("Failed on make for {}".format(target))
 
 
-@task
+@task(default=True, name="compile")
 def compile(ctx, user, func, clean=False, debug=False, ts=False):
     # Typescript compilation
     if ts:
@@ -65,7 +65,7 @@ def compile(ctx, user, func, clean=False, debug=False, ts=False):
 
 
 @task
-def compile_user(ctx, user, clean=False, debug=False):
+def user(ctx, user, clean=False, debug=False):
     # Build all funcs for this user (will fail if any builds fail)
     target = "{}_all_funcs".format(user)
     _do_compile(target, clean, debug)

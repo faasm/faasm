@@ -48,8 +48,8 @@ this doesn't need to be done if it's already in S3):
 
 ```bash
 # Generate it
-inv install-native-tools
-inv generate-all-matrix-data
+inv libs.native
+inv matrix-data.generate-all
 
 # Direct SCP from local machine
 export HOST=<your_host>
@@ -57,10 +57,10 @@ export HOST_USER=<user_on_your_host>
 scp -r ~/faasm/data/matrix $HOST_USER@$HOST:/home/$HOST_USER/faasm/data
 
 # Upload (note - >4GB)
-inv matrix-upload-s3
+inv data.matrix-upload-s3
 
 # Download
-inv matrix-download-s3
+inv data.matrix-download-s3
 ```
 
 ### Tensorflow
@@ -74,7 +74,7 @@ Tensorflow data consists of the model and images. To download it (one-off) you c
 Then to upload to your Faasm instance:
 
 ```bash
-inv tf-upload-data tf-state-upload
+inv data.tf-upload data.tf-state
 ```
 
 ## SGD Experiment
@@ -82,10 +82,10 @@ inv tf-upload-data tf-state-upload
 ```bash
 # -- Prepare --
 # Upload data (one off)
-inv reuters-state-upload
+inv data.reuters-state
 
 # -- Build/ upload --
-inv build-knative-native sgd reuters_svm
+inv knative.build-native sgd reuters_svm
 inv upload sgd reuters_svm
 
 # -- Deploy --
@@ -94,10 +94,10 @@ inv upload sgd reuters_svm
 export N_WORKERS=10
 
 # Native containers
-inv deploy-knative-native sgd reuters_svm $N_WORKERS
+inv knative.deploy-native sgd reuters_svm $N_WORKERS
 
 # Wasm
-inv deploy-knative $N_WORKERS
+inv knative.deploy $N_WORKERS
 
 # -- Wait --
 
@@ -107,25 +107,24 @@ watch kubectl -n faasm get pods
 # -- Run experiment --
 
 # Native SGD
-inv sgd-experiment --native $N_WORKERS 60000
+inv experiments.sgd --native $N_WORKERS 60000
 
 # Wasm SGD
-inv sgd-experiment $N_WORKERS 60000
+inv experiments.sgd $N_WORKERS 60000
 
 # -- Clean up --
 
 # Native SGD
-inv delete-knative-native sgd reuters_svm
+inv knative.delete-native sgd reuters_svm
 
 # Wasm
-inv delete-knative-worker --hard
+inv knative.delete-worker --hard
 ```
 
 ## Matrices Experiment
 
 ```bash
 # -- Build/ Upload --
-inv build-knative-native-python
 inv upload python mat_mul --py
 
 # Number of workers kept the same throughout
@@ -134,18 +133,18 @@ export N_WORKERS=<number of workers>
 # -- Deploy --
 
 # Native
-inv deploy-knative-native-python $N_WORKERS
+inv knative.deploy-native-python $N_WORKERS
 
 # Wasm
-inv deploy-knative $N_WORKERS
+inv knative.deploy $N_WORKERS
 
 # -- Run experiment --
 
 # Native
-inv matrix-experiment-multi $N_WORKERS --native
+inv experiments.matrix-multi $N_WORKERS --native
 
 # Wasm
-inv matrix-experiment-multi $N_WORKERS
+inv experiments.matrix-multi $N_WORKERS
 ```
 
 ## Tensorflow Experiment
@@ -162,22 +161,22 @@ Preamble:
 
 ```bash
 # -- Build/ upload --
-inv build-knative-native tf image
+inv knative.build-native tf image
 inv upload tf image
 
 # -- Upload data (one-off)
-inv tf-upload-data tf-state-upload
+inv data.tf-upload data.tf-state
 ```
 
 Latency:
 
 ```bash
 # -- Deploy both (note small number of workers) --
-inv deploy-knative-native tf image 1
-inv deploy-knative 1
+inv knative.deploy-native tf image 1
+inv knative.deploy 1
 
 # -- Run experiment --
-inv tf-lat-experiment
+inv experiments.tf-lat
 ```
 
 Throughput:
@@ -185,18 +184,18 @@ Throughput:
 ```bash
 # -- Deploy --
 # Native
-inv deploy-knative-native tf image 30
+inv knative.deploy-native tf image 30
 
 # Wasm
-inv deploy-knative 18
+inv knative.deploy 18
 
 # -- Run experiment --
 
 # Native 
-inv tf-tpt-experiment --native
+inv experiments.tf-tpt --native
 
 # Wasm latency
-inv tf-tpt-experiment
+inv experiments.tf-tpt
 ```
 
 ## Results
@@ -205,14 +204,14 @@ Once you've done several runs, you need to pull the results to your local machin
 
 ```bash
 # SGD
-inv sgd-pull-results <user> <host>
+inv experiments.sgd-pull-results <user> <host>
 
 # Matrices
-inv matrix-pull-results <user> <host>
+inv experiments.matrix-pull-results <user> <host>
 
 # Inference latency
-inv tf-lat-pull-results <user> <host>
+inv experiments.tf-lat-pull-results <user> <host>
 
 # Inference throughput
-inv tf-tpt-pull-results <user> <host>
+inv experiments.tf-tpt-pull-results <user> <host>
 ```
