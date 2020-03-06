@@ -52,6 +52,7 @@ More detail on some key features and implementations can be found below:
 - [Usage and set-up](docs/setup.md) - using the CLI and other features.
 - [C/C++ functions](docs/cpp.md) - writing and deploying Faasm functions in C/C++.
 - [Python functions](docs/python.md) - isolating and executing functions in Python.
+- [Distributed state](docs/state.md) - sharing state between functions.
 - [Faasm host interface](docs/host_interface.md) - the serverless-specific interface between functions and the underlying host.
 - [Kubernetes and Knative integration](docs/kubernetes.md)- deploying Faasm as part of a full serverless platform.
 - [Tensorflow Lite](docs/tensorflow.md) - performing inference in Faasm functions with TF Lite.  
