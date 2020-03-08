@@ -1,3 +1,5 @@
+__println
+
 # OpenMP implementations
 __kmpc_fork_call
 __kmpc_critical
