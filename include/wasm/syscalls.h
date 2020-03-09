@@ -256,6 +256,8 @@ namespace wasm {
 
     I32 s__mmap(I32 addr, I32 length, I32 prot, I32 flags, I32 fd, I32 offset);
 
+    I32 s__mprotect(I32 addrPtr, I32 len, I32 prot);
+
     I32 s__munmap(I32 addr, I32 length);
 
     I32 s__nanosleep(I32 reqPtr, I32 remPtr);
