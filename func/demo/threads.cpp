@@ -1,34 +1,30 @@
 #include <pthread.h>
 #include <stdio.h>
 
-void *inc_x(void *x_void_ptr) {
-    int *x_ptr = (int *) x_void_ptr;
-    while (++(*x_ptr) < 200);
+void *threadFunc(void *arg) {
+    // Increment input variable
+    int *intArg = (int *) arg;
+    while (++(*intArg) < 200);
 
-    printf("x increment finished\n");
-
-    return NULL;
+    return 0;
 }
 
 int main() {
     int x = 0, y = 0;
-    printf("x: %d, y: %d\n", x, y);
 
-    pthread_t inc_x_thread;
-
-    int ret = pthread_create(&inc_x_thread, NULL, inc_x, &x);
+    pthread_t t;
+    int ret = pthread_create(&t, NULL, threadFunc, &x);
     if (ret != 0) {
         fprintf(stderr, "Error creating thread (%i)\n", ret);
         return 1;
     }
 
-    // Loop to increment y in first thread
+    // Loop to increment y in main thread
     while (++y < 100);
-    printf("y increment finished\n");
 
-    if (pthread_join(inc_x_thread, NULL)) {
+    if (pthread_join(t, NULL)) {
         fprintf(stderr, "Error joining thread\n");
-        return 2;
+        return 1;
     }
 
     if(y != 100 || x != 200) {
@@ -36,6 +32,5 @@ int main() {
         return 1;
     }
 
-    printf("x: %d, y: %d\n", x, y);
     return 0;
 }
