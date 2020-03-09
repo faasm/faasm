@@ -44,6 +44,9 @@ def _get_repo():
 
 @task
 def create_release(ctx):
+    """
+    Create a draft release on Github
+    """
     # Get the head of master
     r = _get_repo()
     b = r.get_branch(branch="master")
@@ -70,6 +73,9 @@ def create_release(ctx):
 
 @task
 def upload_artifacts(ctx):
+    """
+    Upload release artifacts
+    """
     rel = _get_release()
 
     # Zip the relevant artifacts
@@ -90,5 +96,8 @@ def upload_artifacts(ctx):
 
 @task
 def publish_release(ctx):
+    """
+    Publish the draft release
+    """
     rel = _get_release()
     rel.update_release(rel.title, rel.raw_data["body"], draft=False)

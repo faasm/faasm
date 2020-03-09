@@ -30,16 +30,25 @@ def _exec_cmd(cmd_str):
 
 @task
 def spawn_containers(ctx, n_containers, network="host"):
+    """
+    Memory benchmark - spawn a number of containers
+    """
     _start_docker_mem(int(n_containers), network)
 
 
 @task
 def kill_containers(ctx):
+    """
+    Memory benchmark - kill running containers
+    """
     _stop_docker_mem()
 
 
 @task
 def container_count(ctx):
+    """
+    Memory benchmark - get container count
+    """
     res = check_output("docker ps -q", shell=True).decode("utf-8")
     ids = res.split("\n")
     ids = [i for i in ids if i]
@@ -49,17 +58,26 @@ def container_count(ctx):
 
 @task
 def kill_faasm(ctx):
+    """
+    Memory benchmark - kill Faasm instances
+    """
     remove(FAASM_LOCK_FILE)
 
 
 @task
 def faasm_count(ctx):
+    """
+    Memory benchmark - count Faasm instances
+    """
     threads = count_threads_for_name("bench_mem", exact=True, exclude_main=True)
     print("Faasm threads = {}".format(threads))
 
 
 @task
 def bench_mem(ctx, runtime=None):
+    """
+    Run memory benchmark
+    """
     if not exists(RESULT_DIR):
         makedirs(RESULT_DIR)
 
@@ -190,30 +208,45 @@ def _stop_docker_mem():
 
 @task
 def pid_mem(ctx, pid):
+    """
+    Show the memory usage for the given PID
+    """
     pid = int(pid)
     _print_pid_mem(pid)
 
 
 @task
 def plot_pid_mem(ctx, pid):
+    """
+    Plot a PID's memory usage
+    """
     pid = int(pid)
     _plot_pid_mem(pid)
 
 
 @task
 def proc_mem(ctx, proc_name):
+    """
+    Show the memory usage for the given process name
+    """
     pid = get_pid_for_name(proc_name)
     _print_pid_mem(pid)
 
 
 @task
 def plot_proc_mem(ctx, proc_name):
+    """
+    Plot the memory usage for the given process name
+    """
     pid = get_pid_for_name(proc_name)
     _plot_pid_mem(pid)
 
 
 @task
 def print_docker_mem(ctx):
+    """
+    Print the memory used by Docker
+    """
     pids = get_docker_parent_pids()
     mem_total = get_total_memory_for_pids(pids)
     mem_total.print()

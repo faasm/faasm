@@ -21,12 +21,18 @@ PRK_DIR = join(THIRD_PARTY_DIR, "ParResKernels")
 
 @task
 def libc(ctx):
+    """
+    Compile and install libc
+    """
     check_output("./bin/build_musl.sh", shell=True, cwd=PROJ_ROOT)
     malloc(ctx, clean=True)
 
 
 @task
 def malloc(ctx, clean=False):
+    """
+    Compile and install dlmalloc
+    """
     work_dir = join(PROJ_ROOT, "third-party", "malloc")
     build_dir = join(PROJ_ROOT, "build", "malloc")
 
@@ -49,6 +55,9 @@ def malloc(ctx, clean=False):
 
 @task
 def native(ctx, clean=False):
+    """
+    Compile and install Faasm native tools
+    """
     if not exists(FAASM_INSTALL_DIR):
         makedirs(FAASM_INSTALL_DIR)
 
@@ -104,7 +113,7 @@ def _build_faasm_lib(dir_name, clean):
 @task
 def faasm(ctx, clean=False):
     """
-    Build all Faasm libraries
+    Compile and install all Faasm libraries
     """
     _build_faasm_lib("lib-cpp", clean)
     _build_faasm_lib("lib-pyinit", clean)
@@ -115,7 +124,7 @@ def faasm(ctx, clean=False):
 @task
 def faasmp(ctx, clean=False):
     """
-    Build just the faasm OpenMP library
+    Compile and install the Faasm OpenMP library
     """
     _build_faasm_lib("lib-faasmp", clean)
 
@@ -123,13 +132,16 @@ def faasmp(ctx, clean=False):
 @task
 def faasmpi(ctx, clean=False):
     """
-    Build just the faasm MPI library
+    Compile and install the Faasm MPI library
     """
     _build_faasm_lib("lib-faasmpi", clean)
 
 
 @task
 def fake(ctx, clean=False):
+    """
+    Compile and install the fake library used for testing
+    """
     work_dir = join(PROJ_ROOT, "func", "dynlink")
     build_dir = join(PROJ_ROOT, "build", "libfake")
 
@@ -172,6 +184,9 @@ def fake(ctx, clean=False):
 
 @task
 def eigen(ctx):
+    """
+    Compile and install Eigen
+    """
     work_dir = join(THIRD_PARTY_DIR, "eigen")
     build_dir = join(PROJ_ROOT, "build", "eigen")
 
@@ -195,6 +210,9 @@ def eigen(ctx):
 
 @task
 def png(ctx):
+    """
+    Compile and install libpng
+    """
     workdir = join(PROJ_ROOT, "third-party", "libpng")
 
     config_cmd = BASE_CONFIG_CMD
@@ -213,6 +231,9 @@ def png(ctx):
 
 @task
 def zlib(ctx):
+    """
+    Compile and install zlib
+    """
     workdir = join(PROJ_ROOT, "third-party", "zlib")
 
     config_cmd = BASE_CONFIG_CMD
@@ -230,6 +251,9 @@ def zlib(ctx):
 
 @task
 def tflite(ctx, clean=False):
+    """
+    Compile and install Tensorflow Lite
+    """
     tf_dir = join(THIRD_PARTY_DIR, "tensorflow")
     tf_lite_dir = join(tf_dir, "tensorflow", "lite")
     tf_make_dir = join(tf_lite_dir, "tools", "make")
@@ -267,6 +291,10 @@ def tflite(ctx, clean=False):
 
 @task
 def prk(ctx, clean=False):
+    """
+    Compile and install the ParRes Kernels
+    """
+
     # Pairs of (directory, make target). See top-level ParResKernels
     # Makefile for more examples
     make_targets = [
@@ -320,6 +348,9 @@ def prk(ctx, clean=False):
 
 @task
 def mpi_bench(ctx, clean=False):
+    """
+    Compile and install the Intel MPI benchmarks
+    """
     bench_dir = join(THIRD_PARTY_DIR, "mpi-benchmarks")
     make_target = "IMB-MPI1"
 

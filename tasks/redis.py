@@ -44,15 +44,24 @@ def _do_redis_command(sub_cmd, local, docker, knative, ibm):
 
 @task
 def clear_queue(ctx, local=False, docker=False, knative=True, ibm=False):
+    """
+    Clear the message queue in Redis
+    """
     _do_redis_command("flushall", local, docker, knative, ibm)
 
 
 @task
 def all_workers(ctx, local=False, docker=False, knative=True, ibm=False):
+    """
+    List all available Faasm instances
+    """
     _do_redis_command("smembers available_workers", local, docker, knative, ibm)
 
 
 @task
 def func_workers(ctx, user, func, local=False, docker=False, knative=True, ibm=False):
+    """
+    List all warm Faasm instances
+    """
     worker_set_name = "w_{}/{}".format(user, func)
     _do_redis_command("smembers {}".format(worker_set_name), local, docker, knative, ibm)

@@ -51,12 +51,18 @@ def _remove_runtime_dir(dir_name):
 
 @task
 def clear_runtime_pyc(ctx):
+    """
+    Clear out runtime .pyc files
+    """
     print("Clearing out runtime pyc files")
     _clear_pyc_files(FAASM_RUNTIME_ROOT)
 
 
 @task
 def set_up_package(ctx, pkg_name):
+    """
+    Set up a given Python package
+    """
     _do_set_up_python_packages([pkg_name])
 
     # Run codegen for just this package
@@ -85,6 +91,9 @@ def _do_set_up_python_packages(package_names):
 
 @task
 def set_up_runtime(ctx):
+    """
+    Set up the Python runtime
+    """
     print("Clearing out pyc files")
     _clear_pyc_files(PYODIDE_INSTALL_DIR)
     _clear_pyc_files(PYODIDE_PACKAGES)
@@ -117,5 +126,8 @@ def set_up_runtime(ctx):
 
 @task
 def codegen(ctx):
+    """
+    Run Python codegen
+    """
     binary = tasks.util.codegen.find_codegen_shared_lib()
     check_output("{} {}".format(binary, PY_RUNTIME_ROOT), shell=True)

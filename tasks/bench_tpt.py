@@ -68,6 +68,9 @@ def _write_tpt_lat(run_num, runtime_name, target_tpt, csv_out, tolerance=0):
 
 @task
 def bench_tpt(ctx, runtime=None):
+    """
+    Run container throughput benchmark
+    """
     repeats = 3
 
     if not exists(RESULT_DIR):

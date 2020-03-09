@@ -14,6 +14,9 @@ OUTPUT_FILE = join(RESULT_DIR, "runtime-bench-time.csv")
 
 @task
 def bench_time(ctx):
+    """
+    Run timing benchmark
+    """
     if not exists(RESULT_DIR):
         makedirs(RESULT_DIR)
 

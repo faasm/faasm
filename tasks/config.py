@@ -7,10 +7,13 @@ from tasks.util.env import FAASM_CONFIG_FILE
 
 @task
 def create(ctx):
+    """
+    Set up skeleton Faasm config
+    """
     get_faasm_config()
 
 
-@task
+# @task
 def aws(ctx):
     config = get_faasm_config()
 

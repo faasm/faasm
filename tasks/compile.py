@@ -52,6 +52,10 @@ def _do_compile(target, clean, debug):
 
 @task(default=True, name="compile")
 def compile(ctx, user, func, clean=False, debug=False, ts=False):
+    """
+    Compile a function
+    """
+
     # Typescript compilation
     if ts:
         return _ts_compile(func)
@@ -66,6 +70,10 @@ def compile(ctx, user, func, clean=False, debug=False, ts=False):
 
 @task
 def user(ctx, user, clean=False, debug=False):
+    """
+    Compile all functions belonging to the given user
+    """
+
     # Build all funcs for this user (will fail if any builds fail)
     target = "{}_all_funcs".format(user)
     _do_compile(target, clean, debug)

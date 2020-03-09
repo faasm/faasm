@@ -19,6 +19,9 @@ def codegen(ctx, user, function):
 
 @task
 def user(ctx, user):
+    """
+    Generates machine for all the functions belonging to the given user
+    """
     _do_codegen_user(user)
 
 
@@ -32,7 +35,7 @@ def _do_codegen_user(user):
 @task
 def local(ctx):
     """
-    Run local codegen on selected important functions
+    Runs codegen on functions used in tests
     """
     _do_codegen_user("demo")
     _do_codegen_user("errors")

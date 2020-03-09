@@ -81,6 +81,6 @@ cd /usr/local/code/hogwild
 ./bin/reuters_parse
 
 # Upload data from ~/faasm/data/reuters
-inv reuters-upload-s3
+inv data.reuters-upload-s3
 ```
 

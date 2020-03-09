@@ -15,7 +15,7 @@ To do this, make sure you've checked out this project and updated all the git su
 then, from the Faasm CLI:
 
 ```bash
-inv compile-tflite
+inv libs.tflite
 ```
 
 The build output ends up at `third-party/tensorflow/tensorflow/lite/tools/make/gen`.

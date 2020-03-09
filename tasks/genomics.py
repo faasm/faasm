@@ -18,6 +18,9 @@ from tasks.util.state import upload_shared_file
 
 @task
 def mapping(ctx):
+    """
+    Run genomics mapping
+    """
     read_idxs, _ = get_reads_from_dir()
 
     # Iterate through and make the calls to the worker
@@ -67,6 +70,9 @@ def mapping(ctx):
 
 @task
 def download_genome(ctx):
+    """
+    Download genome data
+    """
     if not exists(GENOMICS_DATA_DIR):
         mkdir(GENOMICS_DATA_DIR)
 
@@ -94,6 +100,9 @@ def download_genome(ctx):
 
 @task
 def index_genome(ctx):
+    """
+    Run indexing
+    """
     work_dir = join(THIRD_PARTY_DIR, "gem3-mapper")
     shell_env = copy(os.environ)
     shell_env["LD_LIBRARY_PATH"] = "/usr/local/lib:{}".format(shell_env.get("LD_LIBRARY_PATH", ""))
@@ -124,6 +133,9 @@ def index_genome(ctx):
 
 @task
 def download_reads(ctx):
+    """
+    Download reads data
+    """
     if not exists(GENOMICS_DATA_DIR):
         mkdir(GENOMICS_DATA_DIR)
 
@@ -136,6 +148,9 @@ def download_reads(ctx):
 
 @task
 def upload_data(ctx, host="localhost", local_copy=False):
+    """
+    Upload index and reads data
+    """
     dest_root = join(FAASM_SHARED_STORAGE_ROOT, "genomics")
     if local_copy and not exists(dest_root):
         makedirs(dest_root)

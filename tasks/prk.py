@@ -65,6 +65,9 @@ PRK_STATS = {
 
 @task
 def invoke(ctx, func, native=False, iface=None, np=10):
+    """
+    Invoke one of the ParRes Kernels functions
+    """
     if func not in PRK_CMDLINE:
         print("Invalid PRK function {}".format(func))
         return 1

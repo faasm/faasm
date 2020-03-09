@@ -38,16 +38,25 @@ def _ansible_command(host_group, cmd, inventory=DEFAULT_INVENTORY):
 
 @task
 def deploy(ctx):
+    """
+    Run bare metal deploy
+    """
     _ansible_playbook_command("faasm_bare.yml")
 
 
 @task
 def restart_workers(ctx):
+    """
+    Restart bare metal workers
+    """
     _ansible_command("worker", "sudo supervisorctl restart faasm_worker")
 
 
 @task
 def restart(ctx):
+    """
+    Restart whole bare metal deployment
+    """
     _ansible_command("redis", "redis-cli flushall")
     _ansible_command("worker", "sudo supervisorctl restart faasm_worker")
     _ansible_command("upload", "sudo supervisorctl restart faasm_upload")

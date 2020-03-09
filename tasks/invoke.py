@@ -17,12 +17,18 @@ def invoke(ctx, user, func,
            poll=False,
            cmdline=None,
            ):
+    """
+    Invoke a function
+    """
     invoke_impl(user, func, host=host, port=port, input=input, py=py, async=async,
                 knative=knative, native=native, ibm=ibm, poll=poll, cmdline=cmdline)
 
 
 @task
 def status(ctx, call_id, host=None, port=None):
+    """
+    Get the status of an async function call
+    """
     k8s_host, k8s_port = get_invoke_host_port()
     host = host if host else k8s_host
     port = port if port else k8s_port
@@ -32,6 +38,9 @@ def status(ctx, call_id, host=None, port=None):
 
 @task
 def flush(ctx):
+    """
+    Flush workers
+    """
     host, port = get_invoke_host_port()
     host = host if host else "127.0.0.1"
     port = port if port else 8080

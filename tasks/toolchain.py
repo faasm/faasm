@@ -19,6 +19,9 @@ TOOLCHAIN_INSTALL = join(FAASM_LOCAL_DIR, "toolchain")
 
 @task
 def download_sysroot(ctx):
+    """
+    Download the sysroot for the Faasm toolchain
+    """
     url = get_sysroot_url()
     tar_name = get_sysroot_tar_name()
     tar_path = get_sysroot_tar_path()
@@ -39,6 +42,9 @@ def download_sysroot(ctx):
 
 @task
 def download_toolchain(ctx):
+    """
+    Download the Faasm toolchain
+    """
     url = get_toolchain_url()
     tar_name = get_toolchain_tar_name()
     tar_path = get_toolchain_tar_path()
@@ -59,6 +65,9 @@ def download_toolchain(ctx):
 
 @task
 def download_runtime(ctx, nocodegen=False):
+    """
+    Download the Faasm runtime files
+    """
     url = get_runtime_url()
     tar_name = get_runtime_tar_name()
     tar_path = get_runtime_tar_path()

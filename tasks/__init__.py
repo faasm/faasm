@@ -10,7 +10,6 @@ import tasks.bench_tpt
 import tasks.codegen
 import tasks.compile
 import tasks.config
-import tasks.docker_compose
 import tasks.data
 import tasks.docker
 import tasks.experiments
@@ -53,7 +52,6 @@ ns = Collection(
 
 # Custom names
 ns.add_collection(ns.from_module(tasks.bare_metal), name="bm")
-ns.add_collection(ns.from_module(tasks.docker_compose), name="dc")
 
 # Benchmarking
 bench_ns = Collection("bench")

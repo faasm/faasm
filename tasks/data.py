@@ -7,7 +7,6 @@ from subprocess import check_output
 
 from invoke import task
 
-from tasks.aws import invoke_lambda
 from tasks.util.endpoints import get_kubernetes_upload_host, get_upload_host_port
 from tasks.util.env import FUNC_DIR, FAASM_SHARED_STORAGE_ROOT
 from tasks.util.env import STATE_S3_BUCKET, DATA_S3_BUCKET, FAASM_DATA_DIR
@@ -48,16 +47,25 @@ _ALL_REUTERS_STATE_KEYS = [
 
 @task
 def reuters_upload_s3(ctx):
+    """
+    Upload data for the reuters experiment to S3
+    """
     _do_s3_upload(_REUTERS_TAR_PATH, _REUTERS_TAR_DIR_NAME, _REUTERS_TAR_NAME)
 
 
 @task
 def matrix_upload_s3(ctx):
+    """
+    Upload data for the matrix experiment to S3
+    """
     _do_s3_upload(_MATRIX_TAR_PATH, _MATRIX_TAR_DIR_NAME, _MATRIX_TAR_NAME)
 
 
 @task
 def genomics_upload_s3(ctx):
+    """
+    Upload data for the genomics experiment to S3
+    """
     _do_s3_upload(_GENOMICS_TAR_PATH, _GENOMICS_TAR_DIR_NAME, _GENOMICS_TAR_NAME)
 
 
@@ -77,16 +85,25 @@ def _do_s3_upload(tar_path, tar_dir, tar_name):
 
 @task
 def reuters_download_s3(ctx):
+    """
+    Download data for the reuters experiment from S3
+    """
     _do_s3_download(_REUTERS_TAR_PATH, _REUTERS_TAR_DIR_NAME, _REUTERS_TAR_NAME)
 
 
 @task
 def matrix_download_s3(ctx):
+    """
+    Download data for the matrix experiment from S3
+    """
     _do_s3_download(_MATRIX_TAR_PATH, _MATRIX_TAR_DIR_NAME, _MATRIX_TAR_NAME)
 
 
 @task
 def genomics_download_s3(ctx):
+    """
+    Download data for the genomics experiment from S3
+    """
     _do_s3_download(_GENOMICS_TAR_PATH, _GENOMICS_TAR_DIR_NAME, _GENOMICS_TAR_NAME)
 
 
@@ -112,22 +129,18 @@ def _do_s3_download(tar_path, tar_dir, tar_name):
 
 @task
 def reuters_state(ctx, host=None, knative=True):
+    """
+    Upload reuters experiment state
+    """
     _do_reuters_upload(host=host, knative=knative)
 
 
 @task
 def reuters_state_s3(ctx):
+    """
+    Upload reuters experiment state to S3
+    """
     _do_reuters_upload(s3_bucket=STATE_S3_BUCKET)
-
-
-@task
-def reuters_prepare_aws(ctx):
-    for state_key in _ALL_REUTERS_STATE_KEYS:
-        # Note, hack here where we pass state key as "function"
-        invoke_lambda(ctx, "faasm-state", payload={
-            "user": "sgd",
-            "function": state_key,
-        })
 
 
 def _do_reuters_upload(host=None, s3_bucket=None, knative=False):
@@ -162,6 +175,9 @@ def _do_upload(data_dir, file_name, user, host, key=None):
 
 @task
 def matrix_state(ctx, mat_size, n_splits, host=None, knative=True):
+    """
+    Upload matrix experiment state
+    """
     user = "python"
 
     host = get_kubernetes_upload_host(knative, host)
@@ -184,6 +200,9 @@ def matrix_state(ctx, mat_size, n_splits, host=None, knative=True):
 
 @task
 def tf_state(ctx, host=None, knative=True):
+    """
+    Upload TF experiment state
+    """
     data_dir = join(FUNC_DIR, "tf", "data")
     model_file = "mobilenet_v1_1.0_224.tflite"
     host, _ = get_upload_host_port(host, None)
@@ -193,6 +212,9 @@ def tf_state(ctx, host=None, knative=True):
 
 @task
 def tf_upload(ctx, host=None, local_copy=False):
+    """
+    Upload TF experiment data
+    """
     host, port = get_upload_host_port(host, None)
 
     source_data = join(FUNC_DIR, "tf", "data")

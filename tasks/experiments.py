@@ -235,18 +235,27 @@ class SGDExperimentRunner(InvokeAndWaitRunner):
 
 @task
 def sgd(ctx, workers, interval, native=False, nobill=False):
+    """
+    Run SGD experiment
+    """
     runner = SGDExperimentRunner(workers, interval)
     runner.run(native, nobill=nobill)
 
 
 @task
 def sgd_pull_results(ctx, user, host):
+    """
+    Pull SGD experiment results
+    """
     SGDExperimentRunner.clean()
     SGDExperimentRunner.pull_results(user, host)
 
 
 @task
 def sgd_parse_results(ctx):
+    """
+    Parse SGD experiment results
+    """
     SGDExperimentRunner.parse_results()
 
 
@@ -277,6 +286,9 @@ class MatrixExperimentRunner(InvokeAndWaitRunner):
 
 @task
 def matrix_multi(ctx, n_workers, native=False, nobill=False):
+    """
+    Run multiple matrix experiment configurations
+    """
     sizes = [100, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]
     splits = [2]
 
@@ -300,12 +312,18 @@ def matrix_multi(ctx, n_workers, native=False, nobill=False):
 
 @task
 def matrix(ctx, n_workers, mat_size, n_splits, native=False, nobill=False):
+    """
+    Run matrix experiment
+    """
     runner = MatrixExperimentRunner(n_workers, mat_size, n_splits)
     runner.run(native, nobill=nobill)
 
 
 @task
 def matrix_pull_results(ctx, user, host):
+    """
+    Pull matrix experiment results
+    """
     MatrixExperimentRunner.clean()
     MatrixExperimentRunner.pull_results(user, host)
 
@@ -348,6 +366,10 @@ class TensorflowExperimentRunner(WrkRunner):
 
 @task
 def tf_lat(ctx):
+    """
+    Run TF latency experiment
+    """
+
     # Aim of this experiment is to show how latency changes at low load with varying
     # numbers of cold starts. We don't want any interference so just run one thread
     # and one connection
@@ -404,6 +426,10 @@ def tf_lat(ctx):
 
 @task
 def tf_tpt(ctx, native=False, nobill=False):
+    """
+    Run TF throughput experiment
+    """
+
     # Runs with delay, duration
     runs = [
         (30000, 180),
@@ -465,17 +491,26 @@ def tf_tpt(ctx, native=False, nobill=False):
 
 @task
 def tf_plot_billing(ctx, result_dir):
+    """
+    Plot billing data from TF experiment
+    """
     plot_billing_data_multi(result_dir)
 
 
 @task
 def tf_lat_pull_results(ctx, user, host):
+    """
+    Pull results for TF latency experiment
+    """
     TensorflowExperimentRunner.pull_results(user, host)
     # No parsing for latency results
 
 
 @task
 def tf_tpt_pull_results(ctx, user, host, nobill=False):
+    """
+    Pull results for TF throughput experiment
+    """
     TensorflowExperimentRunner.pull_results(user, host)
 
     if not nobill:
@@ -484,4 +519,7 @@ def tf_tpt_pull_results(ctx, user, host, nobill=False):
 
 @task
 def tf_tpt_parse_results(ctx):
+    """
+    Parse results for TF throughput experiment
+    """
     TensorflowExperimentRunner.parse_results()
