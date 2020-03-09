@@ -62,7 +62,7 @@ def release(ctx, nocache=False):
     """
     Build containers for a release
     """
-    docker_build(ctx, RELEASE_CONTAINERS, nocache=nocache, push=True)
+    build(ctx, RELEASE_CONTAINERS, nocache=nocache, push=True)
 
 
 @task(iterable=["c"])
