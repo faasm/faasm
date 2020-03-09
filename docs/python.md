@@ -4,9 +4,9 @@ Faasm executes functions compiled to WebAssembly, which therefore rules out
 languages that cannot be compiled to WebAssembly. However, we can support 
 dynamic languages like Python by compiling _the language runtime_ to WebAssembly. 
 
-In Faasm we do this with Python based on the excellent [Pyodide](https://github.com/iodide-project/pyodide) 
-project, with a set of custom C-extensions and decorators to support the 
-[Faasm host interface](host_interface.md) provided in [Pyfaasm](https://github.com/Shillaker/pyfaasm).
+In Faasm we do this with Python via a set of custom C-extensions and decorators to support the 
+[Faasm host interface](host_interface.md) provided in [Pyfaasm](https://github.com/Shillaker/pyfaasm),
+and use CPython compiled to WebAssembly with [Pyodide](https://github.com/iodide-project/pyodide).
 
 ## Enabling Python support
 
@@ -14,12 +14,12 @@ Python support is **not enabled by default**. To enable the Python runtime you m
 environment variables:
 
 ```bash
-# On the "upload" container/ endpoint
+# On the "upload" container/ endpoint (see docker-compose.yml locally)
 PYTHON_CODEGEN=on
 ```
 
-The first time the system runs it will generate the relevant machine code, which can take up 
-to 30s. 
+The first time the system runs it will generate machine code for CPython and all the 
+Python C-extensions. This can take around a minute. 
 
 ## Running a Python function
 
