@@ -32,13 +32,19 @@ namespace wasm {
     // the highest level (i.e. pthread_create, pthread_join etc.)
     // ---------------------------------------
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_create", I32, pthread_create, I32 pthreadPtr, I32 attrPtr, I32 entryFunc, I32 argsPtr) {
-
+        util::getLogger()->debug("S - pthread_create - {} {} {} {}", pthreadPtr, attrPtr, entryFunc, argsPtr);
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_join", I32, pthread_join, I32 pthreadPtr, I32 resPtrPtr) {
+        util::getLogger()->debug("S - pthread_join - {} {}", pthreadPtr, resPtrPtr);
 
         return 0;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_exit", void, pthread_exit, I32 code) {
+        util::getLogger()->debug("S - pthread_exit - {}", code);
+
     }
 
 //    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_destroy", I32, pthread_cond_destroy, I32 a) {
