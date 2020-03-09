@@ -11,7 +11,7 @@ These shared memory regions give low-latency concurrent access to data, and are 
 globally to support large-scale parallelism.
 
 Faasm combines software fault isolation from WebAssembly with standard Linux tools, to provide 
-serucity and resource isolatation at low cost. Faasm runs functions side-by-side as threads 
+security and resource isolatation at low cost. Faasm runs functions side-by-side as threads 
 of a single runtime process, with low overheads and fast boot times. The underlying WebAssembly
 execution and code generation is handled by [WAVM](https://github.com/WAVM/WAVM). 
 
