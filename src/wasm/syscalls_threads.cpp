@@ -67,8 +67,13 @@ namespace wasm {
                                    I32 entryFunc, I32 argsPtr) {
         util::getLogger()->debug("S - pthread_create - {} {} {} {}", pthreadPtr, attrPtr, entryFunc, argsPtr);
 
-        // Look up the entry function
+        // Set the bits we care about on the pthread struct
+        // NOTE - setting the initial pointer is crucial
         WasmModule *thisModule = getExecutingModule();
+        wasm_pthread *pthreadHost = &Runtime::memoryRef<wasm_pthread>(thisModule->defaultMemory, pthreadPtr);
+        pthreadHost->selfPtr = pthreadPtr;
+        
+        // Look up the entry function
         Runtime::Object *funcObj = Runtime::getTableElement(thisModule->defaultTable, entryFunc);
         Runtime::Function *func = Runtime::asFunction(funcObj);
 

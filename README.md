@@ -10,8 +10,8 @@ Faasm provides multi-tenant isolation, but also lets functions share regions of 
 These shared memory regions give low-latency concurrent access to data, and are synchronised 
 globally to support large-scale parallelism.
 
-Faasm combines software fault isolation from WebAssembly with standard Linux tools to isolate functions
-in Faaslets, which provide security and resource isolation at low cost. Faaslets run side-by-side as threads 
+Faasm combines software fault isolation from WebAssembly with standard Linux tools, to provide 
+serucity and resource isolatation at low cost. Faasm runs functions side-by-side as threads 
 of a single runtime process, with low overheads and fast boot times. The underlying WebAssembly
 execution and code generation is handled by [WAVM](https://github.com/WAVM/WAVM). 
 
@@ -60,6 +60,7 @@ More detail on some key features and implementations can be found below:
 - [MPI](docs/mpi.md) and [OpenMP](docs/openmp.md) - executing existing MPI and OpenMP applications in Faasm.
 - [Local development](docs/local_dev.md) - developing and modifying Faasm.
 - [Faasm.js](https://github.com/Shillaker/faasmjs) - executing Faasm functions in the browser and on the server. 
+- [Distributed threading](docs/threads.md) - executing multi-threaded applications as distributed serverless ones.
 - [Proto-Faaslets](docs/proto_faaslets.md) - rapid snapshot-and-restore initialisation to cut down cold starts.
  
 <!---
