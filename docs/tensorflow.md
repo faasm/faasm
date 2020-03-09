@@ -27,14 +27,14 @@ A function implementing image classification is included
 [example in the TF Lite repo](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/examples/label_image). 
 The data and model for the example are stored in [this repo](../func/tf/data).
 
-To run the function, you need to run a local Faasm cluster (as described in the [README](../README.md)), 
+To run the example function, you need to run a local Faasm cluster (as described in the [README](../README.md)), 
 then:
 
 ```bash
 # Upload files and state
 inv data.tf-upload data.tf-state
 
-# Upload (takes a few seconds)
+# Upload the function (takes a few seconds)
 inv upload tf image
 
 # Invoke

@@ -65,13 +65,8 @@ inv data.matrix-download-s3
 
 ### Tensorflow
 
-Tensorflow data consists of the model and images. To download it (one-off) you can run:
-
-```bash
-./bin/download_tf_data.sh
-```
-
-Then to upload to your Faasm instance:
+Tensorflow data consists of the model and images. These need to be 
+uploaded to your Faasm instance:
 
 ```bash
 inv data.tf-upload data.tf-state
