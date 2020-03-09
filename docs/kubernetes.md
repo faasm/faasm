@@ -21,10 +21,10 @@ To deploy, you can run:
 
 ```
 # Local
-inv k8s-deploy --local
+inv knative.deploy --local
 
 # Remote bare-metal (must be run on master node)
-inv k8s-deploy --bare-metal
+inv knative.deploy
 ```
 
 Once everything has started up, you can get the relevant URLs as follows (on the master node), 
@@ -61,7 +61,7 @@ inv invoke demo hello
 When workers die or are killed, you'll need to clear the queue:
 
 ```
-inv redis-clear-queue --knative
+inv redis.clear-queue --knative
 ```
 
 ## Uploading and running native functions
@@ -72,7 +72,7 @@ For benchmarking we need to run the functions in a more "normal" serverless way 
 in a container). To build the relevant container:
 
 ```
-inv build-knative-native <user> <function>
+inv knative.build-native <user> <function>
 ```
 
 This will use a parameterised Dockerfile to create a container that runs the given function 
@@ -80,19 +80,19 @@ natively. You can test locally with:
 
 ```
 # Build the container
-inv build-knative-native <user> <function> --nopush
+inv knative.build-native <user> <function> --nopush
 
 # Start the container
-inv knative-native-local <user> <function>
+inv knative.native-local <user> <function>
 
 # Submit a request
-inv invoke user function --native
+inv invoke <user> <function> --native
 ```
 
 Once you're happy you can run the following on your machine with knative access:
 
 ```
-inv deploy-knative-native <user> <function>
+inv knative.deploy-native <user> <function>
 
 inv invoke --native <user> <function>
 ```
@@ -110,20 +110,20 @@ To run Python functions natively we use pyfaasm and a standard Flask-based knati
 executor. This can be found at `func/knative_native.py`. We can build the container with:
 
 ```
-inv docker-build -c knative-native-python --push
+inv docker.build -c knative-native-python --push
 ```
 
 To check things locally:
 
 ```
-inv knative-native-python-local
+inv knative.native-python-local
 inv invoke python hello --py
 ```
 
 To deploy, from the machine with k8s access:
 
 ```
-inv deploy-knative-native-python
+inv knative.deploy-native-python
 ```
 
 ## Troubleshooting

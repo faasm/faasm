@@ -25,14 +25,14 @@ modified slightly in the fork found in `third-party/ParResKernels`.
 To compile and upload you can run the following:
 
 ```bash
-inv compile-prk
-inv upload-user prk
+inv libs.prk
+inv upload.user prk
 ```
 
 This uploads a number of the kernels written for MPI, e.g. `nstream`. These can be invoked using:
 
 ```bash
-inv invoke-prk nstream
+inv prk.invoke nstream
 ```
 
 ## Extending the Faasm MPI implementation
@@ -130,7 +130,7 @@ This is automatically used by the underlying scripts to run the benchmarks.
 To check the native code works, you can run:
 
 ```bash
-inv invoke-prk nstream --native
+inv prk.invoke nstream --native
 ```
 
 ## 4. Run wasm code
@@ -138,8 +138,8 @@ inv invoke-prk nstream --native
 Faasm functions using MPI can be run as with any others. To check this works you can run:
 
 ```bash
-inv upload-user prk
-inv invoke-prk nstream --native
+inv upload.user prk
+inv prk.invoke nstream --native
 ``` 
 
 ## Troubleshooting Native MPI

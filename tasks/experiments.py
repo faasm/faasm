@@ -10,7 +10,8 @@ from time import time, sleep
 from invoke import task
 from psutil import cpu_count
 
-from tasks import delete_knative_native_python, delete_knative_worker, matrix_state_upload, delete_knative_native
+import tasks.data
+import tasks.knative
 from tasks.util.billing import start_billing, pull_billing, parse_billing
 from tasks.util.billing_data import plot_billing_data_multi
 from tasks.util.endpoints import is_kubernetes, get_invoke_host_port
@@ -233,19 +234,28 @@ class SGDExperimentRunner(InvokeAndWaitRunner):
 
 
 @task
-def sgd_experiment(ctx, workers, interval, native=False, nobill=False):
+def sgd(ctx, workers, interval, native=False, nobill=False):
+    """
+    Run SGD experiment
+    """
     runner = SGDExperimentRunner(workers, interval)
     runner.run(native, nobill=nobill)
 
 
 @task
 def sgd_pull_results(ctx, user, host):
+    """
+    Pull SGD experiment results
+    """
     SGDExperimentRunner.clean()
     SGDExperimentRunner.pull_results(user, host)
 
 
 @task
 def sgd_parse_results(ctx):
+    """
+    Parse SGD experiment results
+    """
     SGDExperimentRunner.parse_results()
 
 
@@ -275,36 +285,45 @@ class MatrixExperimentRunner(InvokeAndWaitRunner):
 
 
 @task
-def matrix_experiment_multi(ctx, n_workers, native=False, nobill=False):
+def matrix_multi(ctx, n_workers, native=False, nobill=False):
+    """
+    Run multiple matrix experiment configurations
+    """
     sizes = [100, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]
     splits = [2]
 
     for mat_size in sizes:
         for n_splits in splits:
             if native:
-                delete_knative_native_python(ctx, hard=False)
+                tasks.knative.delete_native_python(ctx, hard=False)
                 sleep_time = 60
             else:
-                delete_knative_worker(ctx, hard=False)
+                tasks.knative.delete_worker(ctx, hard=False)
                 sleep_time = 130
 
             print("\nUPLOADING STATE - {}x{} {}\n".format(mat_size, mat_size, n_splits))
-            matrix_state_upload(ctx, mat_size, n_splits)
+            tasks.data.matrix_state(ctx, mat_size, n_splits)
 
             sleep(sleep_time)
 
             print("\nRUNNING EXPERIMENT - {}x{} {}\n".format(mat_size, mat_size, n_splits))
-            matrix_experiment(ctx, n_workers, mat_size, n_splits, native=native, nobill=nobill)
+            matrix(ctx, n_workers, mat_size, n_splits, native=native, nobill=nobill)
 
 
 @task
-def matrix_experiment(ctx, n_workers, mat_size, n_splits, native=False, nobill=False):
+def matrix(ctx, n_workers, mat_size, n_splits, native=False, nobill=False):
+    """
+    Run matrix experiment
+    """
     runner = MatrixExperimentRunner(n_workers, mat_size, n_splits)
     runner.run(native, nobill=nobill)
 
 
 @task
 def matrix_pull_results(ctx, user, host):
+    """
+    Pull matrix experiment results
+    """
     MatrixExperimentRunner.clean()
     MatrixExperimentRunner.pull_results(user, host)
 
@@ -346,7 +365,11 @@ class TensorflowExperimentRunner(WrkRunner):
 
 
 @task
-def tf_lat_experiment(ctx):
+def tf_lat(ctx):
+    """
+    Run TF latency experiment
+    """
+
     # Aim of this experiment is to show how latency changes at low load with varying
     # numbers of cold starts. We don't want any interference so just run one thread
     # and one connection
@@ -394,15 +417,19 @@ def tf_lat_experiment(ctx):
 
             # Tidy up
             if native:
-                delete_knative_native(ctx, "tf", "image", hard=False)
+                tasks.knative.delete_native(ctx, "tf", "image", hard=False)
             else:
-                delete_knative_worker(ctx, hard=False)
+                tasks.knative.delete_worker(ctx, hard=False)
 
             sleep(30)
 
 
 @task
-def tf_tpt_experiment(ctx, native=False, nobill=False):
+def tf_tpt(ctx, native=False, nobill=False):
+    """
+    Run TF throughput experiment
+    """
+
     # Runs with delay, duration
     runs = [
         (30000, 180),
@@ -454,9 +481,9 @@ def tf_tpt_experiment(ctx, native=False, nobill=False):
 
             # Tidy up
             if native:
-                delete_knative_native(ctx, "tf", "image", hard=False)
+                tasks.knative.delete_native(ctx, "tf", "image", hard=False)
             else:
-                delete_knative_worker(ctx, hard=False)
+                tasks.knative.delete_worker(ctx, hard=False)
 
             sleep_time = 40
             sleep(sleep_time)
@@ -464,17 +491,26 @@ def tf_tpt_experiment(ctx, native=False, nobill=False):
 
 @task
 def tf_plot_billing(ctx, result_dir):
+    """
+    Plot billing data from TF experiment
+    """
     plot_billing_data_multi(result_dir)
 
 
 @task
 def tf_lat_pull_results(ctx, user, host):
+    """
+    Pull results for TF latency experiment
+    """
     TensorflowExperimentRunner.pull_results(user, host)
     # No parsing for latency results
 
 
 @task
 def tf_tpt_pull_results(ctx, user, host, nobill=False):
+    """
+    Pull results for TF throughput experiment
+    """
     TensorflowExperimentRunner.pull_results(user, host)
 
     if not nobill:
@@ -483,4 +519,7 @@ def tf_tpt_pull_results(ctx, user, host, nobill=False):
 
 @task
 def tf_tpt_parse_results(ctx):
+    """
+    Parse results for TF throughput experiment
+    """
     TensorflowExperimentRunner.parse_results()

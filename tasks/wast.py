@@ -8,14 +8,17 @@ from tasks.util.env import PROJ_ROOT
 
 
 @task
-def wast_file(ctx, file_path):
+def file(ctx, file_path):
+    """
+    Generate .wast file from a .wasm file
+    """
     _do_wast(file_path, "/tmp/out.wast")
 
 
-@task
+@task(default=True)
 def wast(ctx, user, func_name):
     """
-    Converts a function's wasm file to wast
+    Generate .wast file for a given function
     """
 
     func_dir = join(PROJ_ROOT, "wasm", user, func_name)

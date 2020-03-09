@@ -7,12 +7,18 @@ from tasks.util.shell import find_command
 
 
 @task
-def run_user(ctx, user, repeats=1):
+def user(ctx, user, repeats=1):
+    """
+    Execute all the functions for the given user
+    """
     run(ctx, user, "all", repeats=repeats)
 
 
-@task
+@task(default=True)
 def run(ctx, user, function, repeats=1):
+    """
+    Execute a specific function
+    """
     runner = find_command("simple_runner", POSSIBLE_BUILD_BINS)
 
     cmd = [runner, user, function]

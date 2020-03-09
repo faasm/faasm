@@ -4,7 +4,7 @@ To compile projects outside the Faasm source tree you need to install the Faasm
 library and emulator to your system. This allows you to compile and run natively.
 
 ```
-inv install-native-tools
+inv libs.native
 ```
 
 This installs to `/usr/local/faasm/install/`. You can link to `libfaasm` and 
