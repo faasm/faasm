@@ -20,6 +20,7 @@
 #include <WAVM/IR/Module.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Runtime/Runtime.h>
+#include <Runtime/RuntimePrivate.h>
 #include <WAVM/WASTParse/WASTParse.h>
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -1204,5 +1205,41 @@ namespace wasm {
         close(stdoutMemFd);
         stdoutMemFd = 0;
         stdoutSize = 0;
+    }
+
+    I64 WasmModule::executeThread(WasmThreadSpec &spec) {
+        // Set up TLS for this thread
+        setExecutingModule(spec.parentModule);
+        setExecutingCall(spec.parentCall);
+
+        // Create a new region for this thread's stack
+        U32 thisStackBase = getExecutingModule()->mmapMemory(spec.stackSize);
+        U32 stackTop = thisStackBase + spec.stackSize - 1;
+
+        // Create a new context for this thread
+        Runtime::Context *threadContext = createContext(
+                getCompartmentFromContextRuntimeData(spec.contextRuntimeData)
+        );
+
+        // Set the stack pointer in this context
+        IR::UntaggedValue &stackGlobal = threadContext->runtimeData->mutableGlobals[0];
+        if (stackGlobal.u32 != STACK_SIZE) {
+            util::getLogger()->error("Expected first mutable global in context to be stack pointer ({})", stackGlobal.u32);
+            throw std::runtime_error("Unexpected mutable global format");
+        }
+
+        threadContext->runtimeData->mutableGlobals[0] = stackTop;
+
+        // Execute the function
+        IR::UntaggedValue result;
+        Runtime::invokeFunction(
+                threadContext,
+                spec.func,
+                Runtime::getFunctionType(spec.func),
+                spec.funcArgs,
+                &result
+        );
+
+        return result.i32;
     }
 }

@@ -5,11 +5,29 @@
 
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
+#include <WAVM/Platform/Thread.h>
+
+
+#define PTHREAD_STACK_SIZE (2 * ONE_MB_BYTES)
 
 namespace wasm {
+    // Record of the threads spawned so far.
+    static thread_local std::unordered_map<I32, WAVM::Platform::Thread *> activeThreads;
+
     I32 s__fork() {
         util::getLogger()->debug("S - fork");
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
+    }
+
+    I64 createPthread(void *threadSpecPtr) {
+        auto threadSpec = reinterpret_cast<WasmThreadSpec *>(threadSpecPtr);
+        I64 res = getExecutingModule()->executeThread(*threadSpec);
+
+        // Delete the spec, no longer needed
+        delete[] threadSpec->funcArgs;
+        delete threadSpec;
+
+        return res;
     }
 
     // ---------------------------------------
@@ -31,13 +49,56 @@ namespace wasm {
     // We stub out a lot of the standard guts of pthread to intercept at
     // the highest level (i.e. pthread_create, pthread_join etc.)
     // ---------------------------------------
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_create", I32, pthread_create, I32 pthreadPtr, I32 attrPtr, I32 entryFunc, I32 argsPtr) {
+
+    /**
+     * We intercept the pthread API at a high level, hence we control the whole
+     * lifecycle. For this reason, we mostly ignore the contents of the pthread struct
+     * and pthread attrs.
+     *
+     * We just use the int value of the pthread pointer to act as its ID (to be passed
+     * around the different pthread functions).
+     *
+     * @param pthreadPtr - pointer to the pthread struct
+     * @param attrPtr - pointer to the pthread attr struct
+     * @param entryFunc - function table index for the entrypoint
+     * @param argsPtr - args pointer for the function
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_create", I32, pthread_create, I32 pthreadPtr, I32 attrPtr,
+                                   I32 entryFunc, I32 argsPtr) {
         util::getLogger()->debug("S - pthread_create - {} {} {} {}", pthreadPtr, attrPtr, entryFunc, argsPtr);
+
+        // Look up the entry function
+        WasmModule *thisModule = getExecutingModule();
+        Runtime::Object *funcObj = Runtime::getTableElement(thisModule->defaultTable, entryFunc);
+        Runtime::Function *func = Runtime::asFunction(funcObj);
+
+        // Note that the spec needs to outlast the scope of this function, so
+        // nothing can be created on the stack
+        auto threadArgs = new IR::UntaggedValue[1];
+        threadArgs[0] = argsPtr;
+
+        WasmThreadSpec *spec = new WasmThreadSpec();
+        spec->contextRuntimeData=contextRuntimeData;
+        spec->parentModule = thisModule;
+        spec->parentCall = getExecutingCall();
+        spec->func=func;
+        spec->funcArgs=threadArgs;
+        spec->stackSize = PTHREAD_STACK_SIZE;
+
+        activeThreads.insert({pthreadPtr, Platform::createThread(0, createPthread, spec)});
+
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_join", I32, pthread_join, I32 pthreadPtr, I32 resPtrPtr) {
         util::getLogger()->debug("S - pthread_join - {} {}", pthreadPtr, resPtrPtr);
+
+        Platform::Thread *thread = activeThreads[pthreadPtr];
+        int res = Platform::joinThread(thread);
+
+        if(res != 0) {
+            throw std::runtime_error("Joined failed pthread");
+        }
 
         return 0;
     }
