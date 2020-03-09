@@ -23,7 +23,7 @@ services:
       - REDIS_STATE_HOST=redis-state
       - REDIS_QUEUE_HOST=redis-queue
       - TF_CODEGEN=off
-      - PYTHON_CODEGEN=on
+      - PYTHON_CODEGEN=off
 
   worker:
     image: faasm/knative-worker:${FAASM_VERSION}
