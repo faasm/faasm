@@ -23,7 +23,7 @@ COPY . /usr/local/code/faasm
 WORKDIR /faasm/build
 RUN cmake --build . --target wavm
 RUN cmake --build . --target simple_runner
-RUN cmake --build . --target codegen_user
+RUN cmake --build . --target codegen_func
 RUN cmake --build . --target codegen_shared_obj
 
 # Install Faasm native tools
