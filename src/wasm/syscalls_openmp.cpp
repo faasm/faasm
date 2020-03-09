@@ -81,6 +81,8 @@ namespace wasm {
         return nextWanted > 0 ? nextWanted : util::getUsableCores();
     }
 
+    std::atomic<int> mike = {0};
+
     // Thread-local variables for each OMP thread
     thread_local U32 thisStackBase = -1;
     thread_local int thisThreadNumber = 0;
@@ -114,7 +116,7 @@ namespace wasm {
         thisThreadNumber = threadArgs->tid;
 
         // Create a new region for this thread's stack
-        thisStackBase = getExecutingModule()->mmapMemory(OMP_STACK_SIZE);
+//        thisStackBase = getExecutingModule()->mmapMemory(OMP_STACK_SIZE);
         U32 stackTop = thisStackBase + OMP_STACK_SIZE - 1;
 
         // Create a new context for this thread
@@ -322,9 +324,11 @@ namespace wasm {
                                    I32 microtaskPtr, I32 argsPtr) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __kmpc_fork_call {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
+//        mike++;
+//        logger->info("Called {}", mike);
 
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         WasmModule *parentModule = getExecutingModule();
+        Runtime::Memory *memoryPtr = parentModule->defaultMemory;
         message::Message *parentCall = getExecutingCall();
 
         // Retrieve the microstask function from the table
@@ -333,11 +337,55 @@ namespace wasm {
 
         // Set up number of threads for next level
         int nextNumThreads = get_next_level_num_threads(thisLevel);
+//        int nextNumThreads = 1;
         thisLevel->pushed_num_threads = -1; // Resets for next push
 
         // Set up new level
         OMPLevel *nextLevel = new OMPLevel(thisLevel, nextNumThreads);
 
+        if (nextNumThreads <= -1) {
+            logger->warn("Skipping something");
+            OMPLevel *toRestore = thisLevel;
+            int oldNumber = thisThreadNumber;
+            thisLevel = nextLevel;
+            std::vector<IR::UntaggedValue> mta;
+            if (argc > 0) {
+                U32 *pointers = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
+                // Get pointer to start of arguments in host memory
+                for (int argIdx = 0; argIdx < argc; argIdx++) {
+                    mta.emplace_back(pointers[argIdx]);
+                }
+            }
+            thisThreadNumber = 1;
+            thisStackBase = getExecutingModule()->mmapMemory(OMP_STACK_SIZE);
+            U32 stackTop = thisStackBase + OMP_STACK_SIZE - 1;
+            Runtime::Context *threadContext = createContext(
+                    getCompartmentFromContextRuntimeData(contextRuntimeData)
+            );
+            IR::UntaggedValue &stackGlobal = threadContext->runtimeData->mutableGlobals[0];
+            if (stackGlobal.u32 != STACK_SIZE) {
+                logger->error("Expected first mutable global in context to be stack pointer ({})", stackGlobal.u32);
+                throw std::runtime_error("Unexpected mutable global format");
+            }
+            threadContext->runtimeData->mutableGlobals[0] = stackTop;
+
+            // Execute the function
+            IR::UntaggedValue result;
+            Runtime::invokeFunction(
+                    threadContext,
+                    func,
+                    Runtime::getFunctionType(func),
+                    mta.data(),
+                    &result
+            );
+
+            logger->warn("After");
+            thisThreadNumber = oldNumber;
+            thisLevel = toRestore;
+            return;
+        } else if (thisLevel->depth > 1){
+            logger->error("FSJKD");
+        }
         // Note - must ensure thread arguments are outside loop scope otherwise they do
         // may not exist by the time the thread actually consumes them
         std::vector<OMPThreadArgs> threadArgs;
@@ -375,17 +423,26 @@ namespace wasm {
         // Create the threads themselves
         for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
             platformThreads.emplace_back(Platform::createThread(
-                    0,
+                    16 * 1024 * 1024,
+//                    0,
                     ompThreadEntryFunc,
                     &threadArgs[threadNum]
             ));
         }
+
+//        for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
+//           std::thread(
+//                    ompThreadEntryFunc,
+//                    &threadArgs[threadNum]
+//            ).join();
+//        }
 
         // Await all threads
         I64 numErrors = 0;
         for (auto t: platformThreads) {
             numErrors += Platform::joinThread(t);
         }
+//        logger->info("joined {}", mike);
 
         if (numErrors) {
             throw std::runtime_error(fmt::format("{}} OMP threads have exited with errors", numErrors));

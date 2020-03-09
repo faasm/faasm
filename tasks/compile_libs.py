@@ -170,7 +170,7 @@ def compile_libfake(ctx, clean=False):
         check_output("{} {}".format(binary, so), shell=True)
 
 @task
-def compile_lulesh(ctx, mpi=False, omp=False, clean=True, debug=False, cp=False):
+def compile_lulesh(ctx, mpi=False, omp=False, clean=True, debug=False, cp=True):
     work_dir = join(THIRD_PARTY_DIR, "LULESH")
 
     if omp and mpi:
@@ -241,7 +241,6 @@ def compile_lulesh(ctx, mpi=False, omp=False, clean=True, debug=False, cp=False)
         res = call(cmd, shell=True, cwd=build_dir)
         if res != 0:
             raise RuntimeError("Failed to copy {}".format(target))
-
 
 @task
 def compile_eigen(ctx):
