@@ -18,7 +18,7 @@
 
 // Note: this is *not* controlling the size provisioned by the linker, that is hard-coded in the build.
 // This variable is just here for reference and must be updated to match the value in the build.
-#define STACK_SIZE 1 * ONE_MB_BYTES
+#define STACK_SIZE 4 * ONE_MB_BYTES
 
 // Properties of dynamic modules - NOTE - these MUST be passed when compiling the modules themselves
 // Heap size must be wasm-module-page-aligned. One page is 64kB so 480 pages is 30MB
