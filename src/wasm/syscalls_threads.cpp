@@ -19,6 +19,26 @@ namespace wasm {
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
     }
 
+    // ---------------------------------------
+    // Signals
+    //
+    // The runtime itself will handle thread creation/ deletion etc.
+    // So we don't worry about signal-related calls
+    // ---------------------------------------
+
+//    I32 s__rt_sigprocmask(I32 how, I32 sigSetPtr, I32 oldSetPtr, I32 sigsetsize) {
+//        util::getLogger()->debug("S - rt_sigprocmask - {} {} {} {}", how, sigSetPtr, oldSetPtr, sigsetsize);
+//
+//        return 0;
+//    }
+
+    // ---------------------------------------
+    // pthreads
+    //
+    // We stub out a lot of the standard guts of pthread to intercept at
+    // the highest level (i.e. pthread_create, pthread_join etc.)
+    // ---------------------------------------
+
     I64 createPthread(void *threadSpecPtr) {
         auto threadSpec = reinterpret_cast<WasmThreadSpec *>(threadSpecPtr);
         I64 res = getExecutingModule()->executeThread(*threadSpec);
@@ -29,26 +49,6 @@ namespace wasm {
 
         return res;
     }
-
-    // ---------------------------------------
-    // Signals
-    //
-    // The runtime itself will handle thread creation/ deletion etc.
-    // So we don't worry about signal-related calls
-    // ---------------------------------------
-
-    I32 s__rt_sigprocmask(I32 how, I32 sigSetPtr, I32 oldSetPtr, I32 sigsetsize) {
-        util::getLogger()->debug("S - rt_sigprocmask - {} {} {} {}", how, sigSetPtr, oldSetPtr, sigsetsize);
-
-        return 0;
-    }
-
-    // ---------------------------------------
-    // pthreads
-    //
-    // We stub out a lot of the standard guts of pthread to intercept at
-    // the highest level (i.e. pthread_create, pthread_join etc.)
-    // ---------------------------------------
 
     /**
      * We intercept the pthread API at a high level, hence we control the whole
@@ -72,7 +72,7 @@ namespace wasm {
         WasmModule *thisModule = getExecutingModule();
         wasm_pthread *pthreadHost = &Runtime::memoryRef<wasm_pthread>(thisModule->defaultMemory, pthreadPtr);
         pthreadHost->selfPtr = pthreadPtr;
-        
+
         // Look up the entry function
         Runtime::Object *funcObj = Runtime::getTableElement(thisModule->defaultTable, entryFunc);
         Runtime::Function *func = Runtime::asFunction(funcObj);
@@ -82,12 +82,12 @@ namespace wasm {
         auto threadArgs = new IR::UntaggedValue[1];
         threadArgs[0] = argsPtr;
 
-        WasmThreadSpec *spec = new WasmThreadSpec();
-        spec->contextRuntimeData=contextRuntimeData;
+        auto spec = new WasmThreadSpec();
+        spec->contextRuntimeData = contextRuntimeData;
         spec->parentModule = thisModule;
         spec->parentCall = getExecutingCall();
-        spec->func=func;
-        spec->funcArgs=threadArgs;
+        spec->func = func;
+        spec->funcArgs = threadArgs;
         spec->stackSize = PTHREAD_STACK_SIZE;
 
         activeThreads.insert({pthreadPtr, Platform::createThread(0, createPthread, spec)});
@@ -101,7 +101,7 @@ namespace wasm {
         Platform::Thread *thread = activeThreads[pthreadPtr];
         int res = Platform::joinThread(thread);
 
-        if(res != 0) {
+        if (res != 0) {
             throw std::runtime_error("Joined failed pthread");
         }
 

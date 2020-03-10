@@ -1031,7 +1031,7 @@ namespace wasm {
         }
 
         bool isNotOwned = openFds.find(fd) == openFds.end();
-        if(isNotOwned) {
+        if (isNotOwned) {
             logger->error("fd not owned by this thread {}", fd);
             throw std::runtime_error("fd not owned by this function");
         }
@@ -1224,7 +1224,8 @@ namespace wasm {
         // Set the stack pointer in this context
         IR::UntaggedValue &stackGlobal = threadContext->runtimeData->mutableGlobals[0];
         if (stackGlobal.u32 != STACK_SIZE) {
-            util::getLogger()->error("Expected first mutable global in context to be stack pointer ({})", stackGlobal.u32);
+            util::getLogger()->error("Expected first mutable global in context to be stack pointer ({})",
+                                     stackGlobal.u32);
             throw std::runtime_error("Unexpected mutable global format");
         }
 
