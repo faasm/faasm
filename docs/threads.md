@@ -1,15 +1,16 @@
 # Faasm and Threading
 
 Serverless applications benefit most from the parallelism of many small functions
-distributed across hosts. This makes it hard to port monolithic applications that 
-rely on shared memory and multi-threading.
+distributed across hosts. This makes the role of threads unclear, and makes it hard 
+to port monolithic applications that rely on shared memory and multi-threading.
 
-To support these kinds of applications, Faasm includes implementations of pthreads 
-and a subset of [OpenMP](openmp.md). 
+To support these kinds of applications, Faasm provides mechanisms to transparently
+distribute threaded applications across multiple hosts. These are accessed through 
+subsets of pthreads and [OpenMP](openmp.md). 
 
-Under the hood, Faasm converts threading operations to serverless-specific ones. 
-For example, spawning a thread may result in the creation of a new function invocation 
-on another host. 
+Under the hood, Faasm converts threads into new serverless functions, handling 
+shared data through [shared state](state.md) and duplicating memory through 
+[proto-functions](proto_faaslets.md).
 
 ## pthreads
  
@@ -25,17 +26,17 @@ are supported, the attributes themselves may be ignored in a Faasm context.
 
 ## Migrating threads across hosts
 
-Faasm handles migration across hosts using [proto-functions](proto_faaslets.md), which 
-duplicate a function's state on another host. This means that the memory a thread sees on 
-its new host is the same as on the original, however, writes obviously don't persist. 
-
-## Shared data
-
-The main challenge in distributing threads in a serverless context is handling writes on
-shared data. These must be handled with using Faasm's [shared state](state.md) which,
-with minimal changes, lets the code work normally.
+Threads are migrated across hosts using a version of [proto-functions](proto_faaslets.md), 
+which duplicate a function's memory and execution state on another host. While the thread 
+initially sees the same memory as its parent, writes to this memory are not propagated 
+across hosts. Writes to shared data are handled with Faasm's [shared state](state.md).
 
 An example of a distributed threaded application can be found [in the examples](../func/demo/threads_dist.cpp).
+
+## Wasm threads
+
+Faasm doesn't yet support the [Wasm threading proposal](https://github.com/WebAssembly/threads), 
+but its implementation would look a lot like the support for pthreads. 
 
 ## WIP
 
