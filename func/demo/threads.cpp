@@ -6,7 +6,7 @@ void *threadFunc(void *arg) {
     int *intArg = (int *) arg;
     while (++(*intArg) < 200);
 
-    return 0;
+    return nullptr;
 }
 
 int main() {
@@ -22,7 +22,7 @@ int main() {
     // Loop to increment y in main thread
     while (++y < 100);
 
-    if (pthread_join(t, NULL)) {
+    if (pthread_join(t, nullptr)) {
         fprintf(stderr, "Error joining thread\n");
         return 1;
     }

@@ -23,6 +23,20 @@ are supported, the attributes themselves may be ignored in a Faasm context.
 | `void pthread_exit(...)` | Exit the current thread |
 | `void pthread_attr_XXX` | All attr-related calls |
 
+## Migrating threads across hosts
+
+Faasm handles migration across hosts using [proto-functions](proto_faaslets.md), which 
+duplicate a function's state on another host. This means that the memory a thread sees on 
+its new host is the same as on the original, however, writes obviously don't persist. 
+
+## Shared data
+
+The main challenge in distributing threads in a serverless context is handling writes on
+shared data. These must be handled with using Faasm's [shared state](state.md) which,
+with minimal changes, lets the code work normally.
+
+An example of a distributed threaded application can be found [in the examples](../func/demo/threads_dist.cpp).
+
 ## WIP
 
 _This is a work in progress, more docs to come._
