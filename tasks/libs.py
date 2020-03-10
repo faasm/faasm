@@ -181,8 +181,12 @@ def fake(ctx, clean=False):
         print("Running codegen for {}".format(so))
         check_output("{} {}".format(binary, so), shell=True)
 
+
 @task
-def compile_lulesh(ctx, mpi=False, omp=False, clean=True, debug=False, cp=True):
+def lulesh(ctx, mpi=False, omp=False, clean=True, debug=False, cp=True):
+    """
+    Compile and install the LULESH code
+    """
     work_dir = join(THIRD_PARTY_DIR, "LULESH")
 
     if omp and mpi:
@@ -253,6 +257,7 @@ def compile_lulesh(ctx, mpi=False, omp=False, clean=True, debug=False, cp=True):
         res = call(cmd, shell=True, cwd=build_dir)
         if res != 0:
             raise RuntimeError("Failed to copy {}".format(target))
+
 
 @task
 def eigen(ctx):

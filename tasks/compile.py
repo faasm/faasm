@@ -86,6 +86,7 @@ def user(ctx, user, clean=False, debug=False):
 
         _copy_built_function(user, name)
 
+
 def _ts_compile(func, optimize=True):
     cmd = [
         ASC_BINARY,
