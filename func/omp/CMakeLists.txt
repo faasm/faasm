@@ -59,6 +59,9 @@ else ()
     omp_func(intel_transpose intel_transpose.cpp)
 endif ()
 
+# Target files
+omp_func(target_integral target_integral.cpp)
+
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     omp_func(stack_debug stack_debug.cpp)
 endif ()

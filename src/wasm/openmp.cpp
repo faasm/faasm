@@ -117,8 +117,75 @@ namespace wasm {
         std::runtime_error("Unimplemented OMP function");
     }
 
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_fork_teams", void, __kmpc_fork_teams, I32 loc, I32 argc, I32 microtask) {
-        util::getLogger()->debug("S - __kmpc_fork_teams {} {} {}", loc, argc, microtask);
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_fork_teams", void, __kmpc_fork_teams, I32 locPtr, I32 argc, I32 microtaskPtr, I32 argsPtr) {
+        util::getLogger()->info("S - __kmpc_fork_teams {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
+        // std::runtime_error("Unimplemented OMP function");
+
+        WasmModule *parentModule = getExecutingModule();
+        Runtime::Memory *memoryPtr = parentModule->defaultMemory;
+        message::Message *parentCall = getExecutingCall();
+
+        // Retrieve the microstask function from the table
+        Runtime::Function *func = Runtime::asFunction(
+                Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr));
+
+        // TODO - Fork team shouldn't create threads we should not worry about level here
+        // Should be separate from fork mechanism (different thread init functions) or do like
+        // clang and combine level and team information in a giant mess
+        int nextNumThreads = 1;
+        thisLevel->pushed_num_threads = -1; // Resets for next push
+
+        std::vector<OMPThreadArgs> threadArgs;
+        threadArgs.reserve(nextNumThreads);
+
+        std::vector<std::vector<IR::UntaggedValue>> microtaskArgs;
+        microtaskArgs.reserve(nextNumThreads);
+
+        std::vector<WAVM::Platform::Thread *> platformThreads;
+        platformThreads.reserve(nextNumThreads);
+
+        // Build up arguments
+        for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
+            // Note - these arguments are the thread number followed by the number of
+            // shared variables, then the pointers to those shared variables
+            microtaskArgs.push_back({threadNum, argc});
+            if (argc > 0) {
+                // Get pointer to start of arguments in host memory
+                U32 *pointers = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
+                for (int argIdx = 0; argIdx < argc; argIdx++) {
+                    microtaskArgs[threadNum].emplace_back(pointers[argIdx]);
+                }
+            }
+
+            // Arguments for spawning the thread
+            // NOTE - CLion auto-format insists on this layout...
+            threadArgs.push_back({
+                                         .tid = threadNum, .newLevel = thisLevel,
+                                         .spec.contextRuntimeData = contextRuntimeData,
+                                         .spec.parentModule = parentModule, .spec.parentCall = parentCall,
+                                         .spec.func = func, .spec.funcArgs = microtaskArgs[threadNum].data(),
+                                         .spec.stackSize = OMP_STACK_SIZE
+                                 });
+        }
+
+        // Create the threads themselves
+        for (int threadNum = 0; threadNum < nextNumThreads; threadNum++) {
+            platformThreads.emplace_back(Platform::createThread(
+                    0,
+                    ompThreadEntryFunc,
+                    &threadArgs[threadNum]
+            ));
+        }
+
+        // Await all threads
+        I64 numErrors = 0;
+        for (auto t: platformThreads) {
+            numErrors += Platform::joinThread(t);
+        }
+
+        if (numErrors) {
+            throw std::runtime_error(fmt::format("{} OMP threads have exited with errors", numErrors));
+        }
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__tgt_target_teams", I32, __tgt_target_teams, I64 device_id, I32 host_ptr,
@@ -321,7 +388,7 @@ namespace wasm {
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_fork_call", void, __kmpc_fork_call, I32 locPtr, I32 argc,
                                    I32 microtaskPtr, I32 argsPtr) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - __kmpc_fork_call {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
+        logger->info("S - __kmpc_fork_call {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
 
         WasmModule *parentModule = getExecutingModule();
         Runtime::Memory *memoryPtr = parentModule->defaultMemory;
