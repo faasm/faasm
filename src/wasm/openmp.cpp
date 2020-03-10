@@ -105,6 +105,38 @@ namespace wasm {
         return getExecutingModule()->executeThread(threadArgs->spec);
     }
 
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "omp_get_wtime", F64, omp_get_wtime) {
+        util::getLogger()->debug("S - omp_get_wtime");
+        return 0.0;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_push_target_tripcount", void, __kmpc_push_target_tripcount, I64 device_id, U64 loop_tripcount) {
+        util::getLogger()->debug("S - __kmpc_push_target_tripcount {} {}", device_id, loop_tripcount);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__kmpc_fork_teams", void, __kmpc_fork_teams, I32 loc, I32 argc, I32 microtask) {
+        util::getLogger()->debug("S - __kmpc_fork_teams {} {} {}", loc, argc, microtask);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__tgt_target_teams", I32, __tgt_target_teams, I64 device_id, I32 host_ptr,
+            I32 arg_num, I32 args_base, I32 args, I64 arg_sizes,
+            I64 arg_types, I32 team_num, I32 thread_limit) {
+        util::getLogger()->debug("S - __tgt_target_teams {} {} {} .....", device_id, host_ptr, thread_limit);
+        return 0;
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__tgt_bin_desc ", void, __tgt_bin_desc, I32 desc) {
+        util::getLogger()->debug("S - __tgt_bin_desc {}", desc);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__tgt_register_lib", void, __tgt_register_lib, I32 desc) {
+        util::getLogger()->debug("S - __tgt_register_lib {}", desc);
+    }
+
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "__tgt_unregister_lib", void, __tgt_unregister_lib, I32 desc) {
+        util::getLogger()->debug("S - __tgt_unregister_lib {}", desc);
+    }
+
     /**
      * @return the thread number, within its team, of the thread executing the function.
      */

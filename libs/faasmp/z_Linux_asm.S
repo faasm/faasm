@@ -34,3 +34,22 @@
 .gomp_critical_user_.var:
 	.int64	42                      # 0x2a
 	.size	.gomp_critical_user_.var, 8
+
+// GPU stuff
+	.hidden .omp_offloading.entries_begin
+	.type	.omp_offloading.entries_begin,@object
+	.section	.data..omp_offloading.entries_begin,"",@
+	.globl	.omp_offloading.entries_begin
+	.p2align	4
+.omp_offloading.entries_begin:
+	.int64	42                      # 0x2a
+	.size	.omp_offloading.entries_begin, 8
+
+	.hidden .omp_offloading.entries_end
+	.type	.omp_offloading.entries_end,@object
+	.section	.data..omp_offloading.entries_end,"",@
+	.globl	.omp_offloading.entries_end
+	.p2align	4
+.omp_offloading.entries_end:
+	.int64	42                      # 0x2a
+	.size	.omp_offloading.entries_end, 8
