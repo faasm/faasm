@@ -133,7 +133,11 @@ namespace wasm {
 
         void snapshotCrossHost(const std::string &filePath);
 
+        std::vector<uint8_t> snapshotCrossHostToMemory();
+
         void restoreCrossHost(const message::Message &msg, const std::string &filePath);
+
+        void restoreCrossHostFromMemory(const message::Message &msg, const std::vector<uint8_t> &data);
 
         ssize_t captureStdout(const struct iovec *iovecs, int iovecCount);
 
@@ -183,6 +187,10 @@ namespace wasm {
         int stdoutMemFd;
         ssize_t stdoutSize;
         int getStdoutFd();
+
+        void doSnapshotCrossHost(std::ostream &outStream);
+
+        void doRestoreCrossHost(const message::Message &msg, std::istream &inStream);
 
         void reset();
 

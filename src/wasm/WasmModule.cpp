@@ -1104,6 +1104,19 @@ namespace wasm {
 
     void WasmModule::snapshotCrossHost(const std::string &filePath) {
         std::ofstream outStream(filePath, std::ios::binary);
+        doSnapshotCrossHost(outStream);
+    }
+
+    std::vector<uint8_t> WasmModule::snapshotCrossHostToMemory() {
+        std::ostringstream outStream;
+        doSnapshotCrossHost(outStream);
+
+        std::string outStr = outStream.str();
+
+        return std::vector<uint8_t>(outStr.begin(), outStr.end());
+    }
+
+    void WasmModule::doSnapshotCrossHost(std::ostream &outStream) {
         cereal::BinaryOutputArchive archive(outStream);
 
         // Serialise memory
@@ -1122,6 +1135,15 @@ namespace wasm {
     void WasmModule::restoreCrossHost(const message::Message &msg, const std::string &filePath) {
         // Read execution state from file
         std::ifstream inStream(filePath, std::ios::binary);
+        doRestoreCrossHost(msg, inStream);
+    }
+
+    void WasmModule::restoreCrossHostFromMemory(const message::Message &msg, const std::vector<uint8_t> &data) {
+        std::istringstream inStream(std::string(reinterpret_cast<const char *>(data.data()), data.size()));
+        doRestoreCrossHost(msg, inStream);
+    }
+
+    void WasmModule::doRestoreCrossHost(const message::Message &msg, std::istream &inStream) {
         cereal::BinaryInputArchive archive(inStream);
 
         // Read in serialised data
