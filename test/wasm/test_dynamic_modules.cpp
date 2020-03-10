@@ -43,7 +43,7 @@ namespace tests {
     std::string mainData = "PyBool_Type";
     std::string dataA = "PyArray_API";
     std::string dataB = "PyUFunc_API";
-    int mainDataOffset = 6438720;
+    int mainDataOffset = 6438704;
     int dataAOffset = 42049184;
     int dataBOffset = 73334784;
 

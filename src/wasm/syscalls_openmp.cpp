@@ -84,18 +84,13 @@ namespace wasm {
     std::atomic<int> mike = {0};
 
     // Thread-local variables for each OMP thread
-    thread_local U32 thisStackBase = -1;
     thread_local int thisThreadNumber = 0;
 
     // Arguments passed to spawned threads. Shared at by the level apart from tid
     struct OMPThreadArgs {
         int tid;
         OMPLevel *newLevel;
-        Runtime::ContextRuntimeData *contextRuntimeData;
-        wasm::WasmModule *parentModule;
-        message::Message *parentCall;
-        Runtime::Function *func;
-        IR::UntaggedValue *funcArgs;
+        struct WasmThreadSpec spec;
     };
 
     /**
@@ -103,47 +98,13 @@ namespace wasm {
      * (hence needs to set up its own TLS)
      */
     I64 ompThreadEntryFunc(void *threadArgsPtr) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-
         auto threadArgs = reinterpret_cast<OMPThreadArgs *>(threadArgsPtr);
-        wasm::setExecutingModule(threadArgs->parentModule);
-        wasm::setExecutingCall(threadArgs->parentCall);
 
-        // Set up OMP Level
+        // Set up OMP TLS
         thisLevel = threadArgs->newLevel;
-
-        // Set up TLS
         thisThreadNumber = threadArgs->tid;
 
-        // Create a new region for this thread's stack
-//        thisStackBase = getExecutingModule()->mmapMemory(OMP_STACK_SIZE);
-        U32 stackTop = thisStackBase + OMP_STACK_SIZE - 1;
-
-        // Create a new context for this thread
-        Runtime::Context *threadContext = createContext(
-                getCompartmentFromContextRuntimeData(threadArgs->contextRuntimeData)
-        );
-
-        // Set the stack pointer in this context
-        IR::UntaggedValue &stackGlobal = threadContext->runtimeData->mutableGlobals[0];
-        if (stackGlobal.u32 != STACK_SIZE) {
-            logger->error("Expected first mutable global in context to be stack pointer ({})", stackGlobal.u32);
-            throw std::runtime_error("Unexpected mutable global format");
-        }
-
-        threadContext->runtimeData->mutableGlobals[0] = stackTop;
-
-        // Execute the function
-        IR::UntaggedValue result;
-        Runtime::invokeFunction(
-                threadContext,
-                threadArgs->func,
-                Runtime::getFunctionType(threadArgs->func),
-                threadArgs->funcArgs,
-                &result
-        );
-
-        return result.i64;
+        return getExecutingModule()->executeThread(threadArgs->spec);
     }
 
     /**
@@ -357,7 +318,7 @@ namespace wasm {
                 }
             }
             thisThreadNumber = 1;
-            thisStackBase = getExecutingModule()->mmapMemory(OMP_STACK_SIZE);
+            U32 thisStackBase = getExecutingModule()->mmapMemory(OMP_STACK_SIZE);
             U32 stackTop = thisStackBase + OMP_STACK_SIZE - 1;
             Runtime::Context *threadContext = createContext(
                     getCompartmentFromContextRuntimeData(contextRuntimeData)
@@ -414,9 +375,10 @@ namespace wasm {
             // NOTE - CLion auto-format insists on this layout...
             threadArgs.push_back({
                                          .tid = threadNum, .newLevel = nextLevel,
-                                         .contextRuntimeData = contextRuntimeData,
-                                         .parentModule = parentModule, .parentCall = parentCall,
-                                         .func = func, .funcArgs = microtaskArgs[threadNum].data()
+                                         .spec.contextRuntimeData = contextRuntimeData,
+                                         .spec.parentModule = parentModule, .spec.parentCall = parentCall,
+                                         .spec.func = func, .spec.funcArgs = microtaskArgs[threadNum].data(),
+                                         .spec.stackSize = OMP_STACK_SIZE
                                  });
         }
 

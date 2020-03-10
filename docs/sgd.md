@@ -12,7 +12,7 @@ From there it must be uploaded into the relevant state storage for running the a
 To download the pre-processed data from S3, run the following:
 
 ```
-inv reuters-download-s3
+inv data.reuters-download-s3
 ```
 
 If running on a remote host you can then move the files:
@@ -27,14 +27,14 @@ This can put into the relevant state store:
 
 ```
 # Locally (make sure containers are running)
-inv reuters-state-upload localhost
+inv data.reuters-state-upload localhost
 
 # K8s
-inv reuters-state-upload <k8s_service_host>
+inv data.reuters-state-upload <k8s_service_host>
 
 # AWS - load into S3, then into Redis via Lambda function
-inv reuters-state-upload-s3
-inv reuters-prepare-aws
+inv data.reuters-state-upload-s3
+inv data.reuters-prepare-aws
 ```
 
 ## Invoking the function
@@ -48,7 +48,7 @@ inv upload sgd reuters_svm --prebuilt
 Clear the worker set if you've restarted the application:
 
 ```
-inv redis-clear-queue
+inv redis.clear-queue
 ```
 
 Invoke the process with:
@@ -81,6 +81,6 @@ cd /usr/local/code/hogwild
 ./bin/reuters_parse
 
 # Upload data from ~/faasm/data/reuters
-inv reuters-upload-s3
+inv data.reuters-upload-s3
 ```
 

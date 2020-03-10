@@ -1,15 +1,14 @@
 # Local Development
 
-This guide is only relevant for those wanting to dig deeper or make changes to Faasm itself. If you'd just like to write 
-and run functions, then the Docker set-up described in the README should be sufficient. This includes deploying to 
-Knative or other cloud providers. 
+This guide is only relevant for those wanting to dig deeper or make changes to Faasm itself. 
+If you'd just like to write and run functions, you can refer to the [set-up](setup.md) instructions. 
 
 ## Checking out the repo
 
-Whether you are working remotely (see below) or locally, a lot of **default parameters** assume that the repository is
-located in `/usr/local/code/faasm`, the latter two directories _owned_ by the current user. To avoid having to set up
-environment variables in the many scripts you will use to get started, we recommend to **symlink** where you or your IDE
-(if using remote development) checked out the code to this location.
+For now, many locations rely on the code being located at `/usr/local/code/faasm`, with the latter 
+two directories _owned_ by the current user. This is something that will be removed in future. 
+
+You can either set this directory up directly, or just symlink it.
 
 Assuming you've checked out this code somewhere, you'll need to make sure submodules are up to date:
 
@@ -20,7 +19,8 @@ git submodule update
 
 ## Basic local machine set-up
 
-Most of the local set-up is scripted with Ansible, but you need to have Python 3 and [Ansible](https://www.ansible.com/) set up in advance.
+Most of the local set-up is scripted with Ansible, but you need to have Python 3 and 
+[Ansible](https://www.ansible.com/) set up in advance.
 
 The easiest way to do this is as follows:
 
@@ -64,8 +64,8 @@ The Faasm toolchain and runtime require some prebuilt files which can be downloa
 
 ```bash
 source workon.sh
-inv download-toolchain
-inv download-sysroot
+inv toolchain.download-toolchain
+inv toolchain.download-sysroot
 ```
 
 If you want to build the toolchain from scratch, you'll need to look at the `toolchain.md` doc.
@@ -95,7 +95,7 @@ export PATH=$(pwd)/bin:$PATH
 To run codegen for all the C++ functions:
 
 ```
-inv run-local-codegen
+inv codegen.local
 ```
 
 ### Python functions
@@ -103,13 +103,13 @@ inv run-local-codegen
 You can pull down the prepackaged python runtime and required runtime files with:
 
 ```
-inv download-runtime-root
+inv toolchain.download-runtime
 ```
 
 You can then put the Python functions in place with:
 
 ```
-inv upload-user python --py --local-copy
+inv upload.user python --py --local-copy
 ```
 
 ## Networking
@@ -138,16 +138,15 @@ sudo ./bin/cgroup.sh
 
 ## Remote development using CLion
 
-The first step you should be doing when CLion uploads the code to a temporary location (e.g. `/tmp/tmp.XXX`) is to
-symlink this location to `/usr/local/code/faasm` as explained above for consistency (e.g. VM crash).
+CLion supports [remote development](https://www.jetbrains.com/help/clion/remote-development.html) which 
+can be useful for developing Faasm inside a VM (or some other remote location). CLion will upload the 
+code to a temporary location in the remote environment (`/tmp/tmp.XXX`), which you must then symlink 
+to `/usr/local/code/faasm` as described above. 
 
-This can be a two step process where you first set-up the dependencies to locally on the VM then decide to edit the code
-remotely using CLion by letting the IDE re-upload the code. This works quite well as CLion will not get confused with
-bad local toolchains and should build the index pretty much out of the box if you have set up a remote toolchain to
-your VM and set it to be the default one - you might want to tweak `update-alternatives` for `cc` and `c++` to use
-`clang-9` however, or set the `C/CXX` cmake compiler flags manually to use `/usr/bib/clang(++)` which as defined by the
-playbook should point to the version of `clang` used by Faasm).
+Ensure the toolchain within CLion is pointing at the correct remote version of Clang that is installed 
+as part of the Faasm Ansible playbook (i.e. `/usr/bib/clang(++)`
 
-I do **not** recommend setting a WASM/FAASM CMake profile because it will confuse your IDE a lot. To build the WASM
-functions, simply ssh in to your VM at `/usr/local/faasm/code` and run the related `inv` commands (assuming you've
-downloaded the toolchain and sysroot as described above).
+I do **not** recommend setting a WASM/FAASM CMake profile because it will confuse your IDE a lot. 
+
+Assuming you've gone through the steps outlined above _within the VM_, you should be able to call the 
+`inv` commands as normal (rather than needing to use the Faasm CLI container within the VM).

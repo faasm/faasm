@@ -110,7 +110,10 @@ def _kubectl_delete(path, env=None):
 
 
 @task
-def delete_knative_worker(ctx, hard=False):
+def delete_worker(ctx, hard=False):
+    """
+    Delete the Faasm worker pod
+    """
     # Clear redis queue
     flush_cmd = "kubectl exec -n faasm redis-queue -- redis-cli flushall"
     call(flush_cmd, shell=True)
@@ -119,7 +122,10 @@ def delete_knative_worker(ctx, hard=False):
 
 
 @task
-def deploy_knative(ctx, replicas, local=False, ibm=False):
+def deploy(ctx, replicas, local=False, ibm=False):
+    """
+    Deploy Faasm to knative
+    """
     faasm_conf = get_faasm_config()
 
     shell_env = {}
@@ -159,9 +165,12 @@ def deploy_knative(ctx, replicas, local=False, ibm=False):
 
 
 @task
-def delete_knative_full(ctx, local=False):
+def delete_full(ctx, local=False):
+    """
+    Fully delete Faasm from Knative
+    """
     # First hard-delete the worker
-    delete_knative_worker(ctx, hard=True)
+    delete_worker(ctx, hard=True)
 
     # Delete common stuff
     _kubectl_delete(COMMON_CONF)
@@ -232,7 +241,10 @@ def _deploy_knative_fn(name, image, replicas, concurrency, annotations, extra_en
 
 
 @task
-def build_knative_native(ctx, user, func, host=False, clean=False, nopush=False):
+def build_native(ctx, user, func, host=False, clean=False, nopush=False):
+    """
+    Build a native Knative container for the given function
+    """
     if host:
         build_dir = join(PROJ_ROOT, "build", "knative_native")
         target = "{}-knative".format(func)
@@ -285,14 +297,20 @@ def build_knative_native(ctx, user, func, host=False, clean=False, nopush=False)
 
 
 @task
-def deploy_knative_native(ctx, user, func, replicas):
+def deploy_native(ctx, user, func, replicas):
+    """
+    Deploy a native Knative pod for the given function
+    """
     func_name = _fn_name(func)
     image_name = _native_image_name(func)
     _do_deploy_knative_native(func_name, image_name, replicas)
 
 
 @task
-def deploy_knative_native_python(ctx, replicas):
+def deploy_native_python(ctx, replicas):
+    """
+    Deploy the native Python Knative pod
+    """
     func_name = KNATIVE_NATIVE_PY_NAME
     image_name = KNATIVE_NATIVE_PY_IMAGE
     _do_deploy_knative_native(func_name, image_name, replicas)
@@ -322,23 +340,35 @@ def _do_deploy_knative_native(func_name, image_name, replicas):
 
 
 @task
-def delete_knative_native(ctx, user, func, hard=False):
+def delete_native(ctx, user, func, hard=False):
+    """
+    Delete the native Knative pod for the given function
+    """
     _delete_knative_fn(func, hard)
 
 
 @task
-def delete_knative_native_python(ctx, hard=False):
+def delete_native_python(ctx, hard=False):
+    """
+    Delete the native Python Knative pod
+    """
     _delete_knative_fn("python", hard)
 
 
 @task
-def knative_native_local(ctx, user, func):
+def native_local(ctx, user, func):
+    """
+    Run the given native Knative container locally
+    """
     img_name = _native_image_name(func)
     _do_knative_native_local(img_name)
 
 
 @task
-def knative_native_python_local(ctx, host=False):
+def native_python_local(ctx, host=False):
+    """
+    Run the native Python knative container locally
+    """
     if host:
         working_dir = FUNC_DIR
         env = copy(os.environ)

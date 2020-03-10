@@ -222,4 +222,12 @@ namespace wasm {
             return currentBreak;
         }
     }
+
+    // mprotect is usually called as part of thread creation, in which
+    // case we can ignore it.
+    I32 s__mprotect(I32 addrPtr, I32 len, I32 prot) {
+        util::getLogger()->debug("S - mprotect - {} {} {}", addrPtr, len, prot);
+
+        return 0;
+    }
 }

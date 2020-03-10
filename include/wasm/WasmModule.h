@@ -39,6 +39,8 @@ namespace wasm {
 
     Uptr getNumberOfPagesForBytes(U32 nBytes);
 
+    struct WasmThreadSpec;
+
     class WasmModule final : Runtime::Resolver {
     public:
         WasmModule();
@@ -141,6 +143,7 @@ namespace wasm {
 
         void clearCapturedStdout();
 
+        I64 executeThread(WasmThreadSpec &spec);
     private:
         Runtime::GCPointer<Runtime::Instance> envModule;
         Runtime::GCPointer<Runtime::Instance> moduleInstance;
@@ -210,5 +213,14 @@ namespace wasm {
         }
 
         int exitCode;
+    };
+
+    struct WasmThreadSpec {
+        Runtime::ContextRuntimeData *contextRuntimeData;
+        wasm::WasmModule *parentModule;
+        message::Message *parentCall;
+        Runtime::Function *func;
+        IR::UntaggedValue *funcArgs;
+        size_t stackSize;
     };
 }
