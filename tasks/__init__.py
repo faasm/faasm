@@ -11,6 +11,7 @@ import tasks.codegen
 import tasks.compile
 import tasks.config
 import tasks.data
+import tasks.disas
 import tasks.docker
 import tasks.experiments
 import tasks.genomics
@@ -34,6 +35,7 @@ ns = Collection(
     tasks.compile,
     tasks.config,
     tasks.data,
+    tasks.disas,
     tasks.docker,
     tasks.experiments,
     tasks.genomics,

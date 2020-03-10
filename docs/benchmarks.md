@@ -288,10 +288,12 @@ perf inject -i perf.data -j -o perf.data.wasm
 perf report -i perf.data.wasm
 ```
 
-Note that for wasm code the output of the perf reports will be funciton names like `functionDef123`.
-To generate the mapping of these names to the actual functions you can run the `func_sym` executable
-e.g.
+Note that for wasm code the output of the perf reports will be function names like `functionDef123`.
+To generate the mapping of these names to the actual functions you can run:
 
 ```
-func_sym polybench 3mm
+inv disas.symbols <user> <func>
+
+# For example
+inv disas.symbols polybench 3mm
 ```

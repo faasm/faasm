@@ -11,10 +11,9 @@ instructions and that Faasm's built executables are on your `PATH`.
 ### Symbols
 
 To understand the output of gdb we will need the function symbols available, which we can do with
-the `func_sym` executable built with the `func_sym` CMake target:
 
 ```
-func_sym <user> <func>
+inv disas.symbols <user> <func>
 ```
 
 This will output the mapping from things like `functionDef123` to the names of functions as they 
