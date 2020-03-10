@@ -120,7 +120,7 @@ You can then build it with:
 ./bin/pyodide buildpkg --package_abi=0 packages/<pypi pkg name>/meta.yaml
 ```
 
-## Adding to runtime root
+### Adding the new package to the runtime root
 
 Once added, we need to include this in the Faasm runtime root:
 

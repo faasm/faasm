@@ -66,8 +66,10 @@ release. If it's green, you can merge it into master.
 
 ## Github config
 
-If this is your first time releasing, you'll need to create a public access token with 
-the relevant permissions and add it to `~/faasm/faasm.ini`:
+If this is your first time releasing, you'll need to 
+[create a public access token](https://github.com/settings/tokens) 
+with the relevant permissions (just `public_repo`) and add it to 
+`~/faasm/faasm.ini`:
 
 ```ini
 [Github]
