@@ -6,6 +6,8 @@ message Message {
     optional string user = 1;
     optional string function = 2;
     optional int32 idx = 3;
+    optional int32 zygote = 4;
+    optional int32 funcPtr = 5;
 
     enum MessageType {
         BIND = 1;
@@ -14,36 +16,36 @@ message Message {
         EMPTY = 4;
     }
 
-    optional MessageType type = 4 [default = CALL];
+    optional MessageType type = 6 [default = CALL];
 
-    optional int32 id = 5;
-    optional string resultKey = 6;
-    optional string statusKey = 7;
+    optional int32 id = 7;
+    optional string resultKey = 8;
+    optional string statusKey = 9;
 
-    optional string scheduledNode = 8;
-    optional int32 hops = 9;
-    optional string executedNode = 10;
+    optional string scheduledNode = 10;
+    optional int32 hops = 11;
+    optional string executedNode = 12;
 
-    optional bool success = 11;
-    optional bool isAsync = 12;
-    optional bool isPython = 13;
-    optional bool isTypescript = 14;
-    optional bool isStatusRequest = 15;
-    optional bool isFlushRequest = 16;
+    optional bool success = 13;
+    optional bool isAsync = 14;
+    optional bool isPython = 15;
+    optional bool isTypescript = 16;
+    optional bool isStatusRequest = 17;
+    optional bool isFlushRequest = 18;
 
-    optional bytes inputData = 17;
-    optional bytes outputData = 18;
+    optional bytes inputData = 19;
+    optional bytes outputData = 20;
 
-    optional string pythonUser = 19;
-    optional string pythonFunction = 20;
-    optional int32 pythonIdx = 21;
+    optional string pythonUser = 21;
+    optional string pythonFunction = 22;
+    optional int32 pythonIdx = 23;
 
-    optional int32 coldStartInterval = 22;
+    optional int32 coldStartInterval = 24;
 
-    optional bool isMpi = 23;
-    optional int32 mpiWorldId = 24;
-    optional int32 mpiRank = 25;
-    optional int32 mpiWorldSize = 26;
+    optional bool isMpi = 25;
+    optional int32 mpiWorldId = 26;
+    optional int32 mpiRank = 27;
+    optional int32 mpiWorldSize = 28;
 
-    optional string cmdline = 27;
+    optional string cmdline = 29;
 }

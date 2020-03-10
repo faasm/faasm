@@ -4,11 +4,11 @@
 #include <faasm/compare.h>
 
 #define N_THREADS 100
-
+#define ARRAY_KEY "shared_array"
 
 void *threadIncrement(void *voidArgs) {
     auto threadNo = (int *) voidArgs;
-    faasm::AsyncArray<int> vals("shared_array", N_THREADS);
+    faasm::AsyncArray<int> vals(ARRAY_KEY, N_THREADS);
 
     // Do the update
     vals.pull();
@@ -20,7 +20,7 @@ void *threadIncrement(void *voidArgs) {
 FAASM_MAIN_FUNC() {
     int nThreads = 100;
 
-    faasm::AsyncArray<int> vals("shared_array", N_THREADS);
+    faasm::AsyncArray<int> vals(ARRAY_KEY, N_THREADS);
     vals.init();
 
     pthread_t threads[nThreads];
