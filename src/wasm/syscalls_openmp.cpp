@@ -284,8 +284,8 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         logger->debug("S - __kmpc_fork_call {} {} {} {}", locPtr, argc, microtaskPtr, argsPtr);
 
-        Runtime::Memory *memoryPtr = getExecutingModule()->defaultMemory;
         WasmModule *parentModule = getExecutingModule();
+        Runtime::Memory *memoryPtr = parentModule->defaultMemory;
         message::Message *parentCall = getExecutingCall();
 
         // Retrieve the microstask function from the table
@@ -298,6 +298,53 @@ namespace wasm {
 
         // Set up new level
         OMPLevel *nextLevel = new OMPLevel(thisLevel, nextNumThreads);
+
+        // --------------------------------------------------------------------------
+        // NOTE - 10/03/2020 - commenting out experiment code from @mfournial from
+        // https://github.com/lsds/Faasm/pull/176 in case it needs to be resurrected
+        // --------------------------------------------------------------------------
+        //
+        //if (nextNumThreads <= -1) {
+        //    logger->warn("Skipping something");
+        //    OMPLevel *toRestore = thisLevel;
+        //    int oldNumber = thisThreadNumber;
+        //    thisLevel = nextLevel;
+        //    std::vector<IR::UntaggedValue> mta;
+        //    if (argc > 0) {
+        //        U32 *pointers = Runtime::memoryArrayPtr<U32>(memoryPtr, argsPtr, argc);
+        //        // Get pointer to start of arguments in host memory
+        //        for (int argIdx = 0; argIdx < argc; argIdx++) {
+        //            mta.emplace_back(pointers[argIdx]);
+        //        }
+        //    }
+        //    thisThreadNumber = 1;
+        //    U32 thisStackBase = getExecutingModule()->mmapMemory(OMP_STACK_SIZE);
+        //    U32 stackTop = thisStackBase + OMP_STACK_SIZE - 1;
+        //    Runtime::Context *threadContext = createContext(
+        //            getCompartmentFromContextRuntimeData(contextRuntimeData)
+        //    );
+        //    IR::UntaggedValue &stackGlobal = threadContext->runtimeData->mutableGlobals[0];
+        //    if (stackGlobal.u32 != STACK_SIZE) {
+        //        logger->error("Expected first mutable global in context to be stack pointer ({})", stackGlobal.u32);
+        //        throw std::runtime_error("Unexpected mutable global format");
+        //    }
+        //    threadContext->runtimeData->mutableGlobals[0] = stackTop;
+        //
+        //    // Execute the function
+        //    IR::UntaggedValue result;
+        //    Runtime::invokeFunction(
+        //            threadContext,
+        //            func,
+        //            Runtime::getFunctionType(func),
+        //            mta.data(),
+        //            &result
+        //    );
+        //
+        //    logger->warn("After");
+        //    thisThreadNumber = oldNumber;
+        //    thisLevel = toRestore;
+        //    return;
+        //}
 
         // Note - must ensure thread arguments are outside loop scope otherwise they do
         // may not exist by the time the thread actually consumes them
