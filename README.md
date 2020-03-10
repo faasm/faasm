@@ -60,7 +60,7 @@ More detail on some key features and implementations can be found below:
 - [MPI](docs/mpi.md) and [OpenMP](docs/openmp.md) - executing existing MPI and OpenMP applications in Faasm.
 - [Local development](docs/local_dev.md) - developing and modifying Faasm.
 - [Faasm.js](https://github.com/Shillaker/faasmjs) - executing Faasm functions in the browser and on the server. 
-- [Distributed threading](docs/threads.md) - executing multi-threaded applications as distributed functions.
+- [Threading](docs/threads.md) - executing multi-threaded applications.
 - [Proto-Faaslets](docs/proto_faaslets.md) - rapid snapshot-and-restore initialisation to cut down cold starts.
  
 <!---
