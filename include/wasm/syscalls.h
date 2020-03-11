@@ -25,6 +25,12 @@ namespace wasm {
 
     std::string getMaskedPathFromWasm(I32 strPtr);
 
+    int awaitChainedCall(unsigned int messageId);
+
+    int makeChainedCall(const std::string &functionName, int idx, int pyIdx, const std::vector<uint8_t> &inputData);
+
+    int makeThreadedCall(const std::string &zygoteKey, size_t zygoteSize, int funcPtr);
+
     // ---------------------------
     // System-related structs
     // ---------------------------

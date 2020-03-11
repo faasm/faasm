@@ -28,8 +28,8 @@ namespace zygote {
 
     std::string ZygoteRegistry::getZygoteKey(const message::Message &msg) {
         std::string key;
-        if (msg.zygote()) {
-            return std::to_string(msg.zygote());
+        if (!msg.zygotekey().empty()) {
+            return msg.zygotekey();
         } else {
             return getBaseZygoteKey(msg);
         }

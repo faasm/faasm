@@ -676,7 +676,6 @@ namespace wasm {
 
         try {
             // Call the function
-
             Runtime::catchRuntimeExceptions([this, &invokeArgs, &exitCode, &logger] {
                 IR::UntaggedValue result;
 

@@ -13,7 +13,7 @@ namespace tests {
         REQUIRE(msgA.idx() == msgB.idx());
         REQUIRE(msgA.hops() == msgB.hops());
 
-        REQUIRE(msgA.zygote() == msgB.zygote());
+        REQUIRE(msgA.zygotekey() == msgB.zygotekey());
         REQUIRE(msgA.zygotesize() == msgB.zygotesize());
         REQUIRE(msgA.funcptr() == msgB.funcptr());
 

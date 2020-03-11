@@ -23,7 +23,7 @@ namespace util {
         d.AddMember("index", msg.idx(), a);
         d.AddMember("hops", msg.hops(), a);
 
-        d.AddMember("zygote", msg.zygote(), a);
+        d.AddMember("zygote_key", Value(msg.zygotekey().c_str(), msg.zygotekey().size(), a).Move(), a);
         d.AddMember("zygote_size", msg.zygotesize(), a);
         d.AddMember("func_ptr", msg.funcptr(), a);
 
@@ -101,7 +101,7 @@ namespace util {
         msg.set_idx(getIntFromJson(d, "index", 0));
         msg.set_hops(getIntFromJson(d, "hops", 0));
 
-        msg.set_zygote(getIntFromJson(d, "zygote", 0));
+        msg.set_zygotekey(getStringFromJson(d, "zygote_key", ""));
         msg.set_zygotesize(getIntFromJson(d, "zygote_size", 0));
         msg.set_funcptr(getIntFromJson(d, "func_ptr", 0));
 

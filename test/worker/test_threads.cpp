@@ -5,7 +5,7 @@
 #include <util/func.h>
 
 namespace tests {
-    void checkThreadedFunction(const char* threadMode, const char* threadFunc) {
+    void checkThreadedFunction(const char *threadMode, const char *threadFunc, bool runPool) {
         cleanSystem();
 
         // Set the thread mode
@@ -15,17 +15,26 @@ namespace tests {
 
         // Run the function
         message::Message msg = util::messageFactory("demo", threadFunc);
-        execFunction(msg);
+
+        if (runPool) {
+            execFuncWithPool(msg, false, 1, true, 4, false);
+        } else {
+            execFunction(msg);
+        }
 
         // Reset the thread mode
         conf.threadMode = initialMode;
     }
-    
+
     TEST_CASE("Test local-only threading", "[worker]") {
-        checkThreadedFunction("local", "threads_local");
+        checkThreadedFunction("local", "threads_local", false);
     }
 
-    TEST_CASE("Test threading", "[worker]") {
-        checkThreadedFunction("local", "threads_check");
+    TEST_CASE("Run thread checks locally", "[worker]") {
+        checkThreadedFunction("local", "threads_check", false);
+    }
+
+    TEST_CASE("Run thread checks with chaining", "[worker]") {
+        checkThreadedFunction("chain", "threads_check", true);
     }
 }

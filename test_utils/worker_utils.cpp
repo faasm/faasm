@@ -105,8 +105,10 @@ namespace tests {
     }
 
     void execFuncWithPool(message::Message &call, bool pythonPreload, int repeatCount,
-                          bool checkChained, int nThreads) {
-        cleanSystem();
+                          bool checkChained, int nThreads, bool clean) {
+        if(clean) {
+            cleanSystem();
+        }
 
         setEmulatedMessage(call);
 
