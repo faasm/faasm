@@ -58,14 +58,18 @@ inv knative.deploy --replicas=4
 inv knative.deploy --local
 ```
 
+This might take a couple of minutes depending on the underlying cluster.
+
 ## Config file
 
-Once everything has started up, you can get the relevant URLs as follows (on the master node), 
-then populate your `~/faasm/faasm.ini` file as described below.
+Once everything has started up, you can populate your `~/faasm/faasm.ini` file to avoid
+typing in hostnames all the time. To do this, run:
 
-To avoid typing in hostnames and ports over and over, you can populate a section of your 
-`~/faasm/faasm.ini` file. To get the values, run `./bin/knative_route.sh` which should print out 
-something like:
+```
+./bin/knative_route.sh
+```
+
+Which should print out something like:
 
 ```
 [Faasm]
@@ -75,7 +79,7 @@ upload_host = ...   # IP of the upload service
 upload_port = ...   # Usually 8002
 ```
 
-You can then copy-paste this.
+You can then copy-paste this into `~/faasm/faasm.ini`.
 
 ## Uploading functions
 

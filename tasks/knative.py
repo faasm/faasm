@@ -125,7 +125,7 @@ def delete_worker(ctx, hard=False):
 
 
 @task
-def deploy(ctx, replicas=DEFAULT_REPLICAS, local=False, ibm=False):
+def deploy(ctx, replicas=DEFAULT_REPLICAS, local=False, ibm=False, gke=False):
     """
     Deploy Faasm to knative
     """
