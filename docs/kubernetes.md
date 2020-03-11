@@ -7,7 +7,7 @@ All of Faasm's Kubernetes and Knative configuration can be found in the
 [k8s](../k8s) directory, and the relevant parts of the Faasm CLI can be 
 found in the [Knative tasks](../tasks/knative.py).  
 
-These steps generally assumes that you have 
+These steps generally assume that you have 
 [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) 
 and [`kn`](https://knative.dev/docs/install/install-kn/) installed
 and these are able to connect to your cluster.
@@ -21,8 +21,9 @@ To set up Faasm on [GKE](https://console.cloud.google.com/kubernetes) you can do
 - Set up an account and the [Cloud SDK](https://cloud.google.com/sdk) ([Ubuntu quick start](https://cloud.google.com/sdk/docs/quickstart-debian-ubuntu))
 - Create a Kubernetes cluster **with Istio enabled and version >=v1.15**
 - Aim for >=4 nodes with more than one vCPU
-- Set up your local `kubectl` to connect to your GKE cluster (via the "Connect" button)
+- Set up your local `kubectl` to connect to your cluster (click the "Connect" button in the web interface)
 - Check things are working by running `kubectl get nodes`
+- Install Knative serving as described below
 
 ### Bare metal
 

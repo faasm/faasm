@@ -20,6 +20,8 @@ COMMON_CONF = join(K8S_DIR, "common")
 IBM_CONF = join(K8S_DIR, "ibm")
 LEGACY_CONF = join(K8S_DIR, "legacy")
 
+KNATIVE_VERSION = "0.13.0"
+
 # Number of replicas in the Faasm worker pod
 DEFAULT_REPLICAS = 4
 
@@ -409,6 +411,11 @@ def _do_knative_native_local(img_name):
 
 @task
 def install(ctx):
-    _kubectl_apply("https://github.com/knative/serving/releases/download/v0.13.0/serving-crds.yaml")
-    _kubectl_apply("https://github.com/knative/serving/releases/download/v0.13.0/serving-core.yaml")
-    _kubectl_apply("https://github.com/knative/serving/releases/download/v0.13.0/serving-istio.yaml")
+    specs = [
+        "serving-crds.yaml",
+        "serving-core.yaml",
+        "serving-istio.yaml",
+    ]
+
+    for s in specs:
+        _kubectl_apply("https://github.com/knative/serving/releases/download/v{}/{}".format(KNATIVE_VERSION, s))
