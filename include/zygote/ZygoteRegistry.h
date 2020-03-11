@@ -16,6 +16,8 @@ namespace zygote {
 
         std::string getZygoteKey(const message::Message &msg);
 
+        std::string getBaseZygoteKey(const message::Message &msg);
+
         int getZygoteCount(const std::string &key);
     };
 

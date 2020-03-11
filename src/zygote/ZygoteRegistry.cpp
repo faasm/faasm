@@ -21,36 +21,75 @@ namespace zygote {
         return count;
     }
 
-    std::string ZygoteRegistry::getZygoteKey(const message::Message &msg) {
+    std::string ZygoteRegistry::getBaseZygoteKey(const message::Message &msg) {
         std::string key = msg.user() + "/" + msg.function();
         return key;
     }
 
+    std::string ZygoteRegistry::getZygoteKey(const message::Message &msg) {
+        std::string key;
+        if (msg.zygote()) {
+            return std::to_string(msg.zygote());
+        } else {
+            return getBaseZygoteKey(msg);
+        }
+    }
+
+    /**
+     * There are two kinds of zygote here, the "base" zygote, i.e. the default
+     * defined in the function (shared by all instances), or one of many "special"
+     * zygotes, snapshots captured at arbitrary points (e.g. when spawning a
+     * thread).
+     */
     wasm::WasmModule &ZygoteRegistry::getZygote(const message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        const std::string key = getZygoteKey(msg);
 
-        if (getZygoteCount(key) == 0) {
+        // Get the keys for both types of zygote
+        const std::string baseKey = getBaseZygoteKey(msg);
+        const std::string specialKey = getZygoteKey(msg);
+
+        // Check for the base zygote
+        if (getZygoteCount(baseKey) == 0) {
             util::FullLock lock(mx);
-            if (zygoteMap.count(key) == 0) {
-                logger->debug("Creating new zygote for {}", key);
-                // Instantiate the module
-                wasm::WasmModule &module = zygoteMap[key];
-
-                // Bind to the function
+            if (zygoteMap.count(baseKey) == 0) {
+                // Instantiate the base zygote
+                logger->debug("Creating new base zygote: {}", baseKey);
+                wasm::WasmModule &module = zygoteMap[baseKey];
                 module.bindToFunction(msg);
 
-                // Write memory to fd
-                int fd = memfd_create(key.c_str(), 0);
+                // Write memory to fd (to allow copy-on-write cloning)
+                int fd = memfd_create(baseKey.c_str(), 0);
                 module.writeMemoryToFd(fd);
-            } else {
-                logger->debug("Using cached zygote for {}", key);
             }
-        } else {
-            logger->debug("Using cached zygote for {}", key);
         }
 
-        return zygoteMap[key];
+        // Stop now if we're just looking for the base zygote
+        if(specialKey == baseKey) {
+            return zygoteMap[baseKey];
+        }
+
+        // See if we already have the special zygote
+        if (getZygoteCount(specialKey) == 0) {
+            util::FullLock lock(mx);
+            if (zygoteMap.count(specialKey) == 0) {
+                // Get the base module and the special module
+                logger->debug("Creating new special zygote: {}", specialKey);
+                wasm::WasmModule &baseModule = zygoteMap[baseKey];
+                wasm::WasmModule &specialModule = zygoteMap[specialKey];
+
+                // Clone the special module from the base one
+                specialModule = baseModule;
+
+                // Restore the special module
+                specialModule.restoreFromState(specialKey, msg.zygotesize());
+
+                // Write memory to fd
+                int fd = memfd_create(specialKey.c_str(), 0);
+                specialModule.writeMemoryToFd(fd);
+            }
+        }
+
+        return zygoteMap[specialKey];
     }
 
     void ZygoteRegistry::clear() {
