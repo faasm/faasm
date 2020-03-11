@@ -5,9 +5,36 @@
 #include <util/func.h>
 
 namespace tests {
-    TEST_CASE("Test pthreads", "[worker]") {
+    void checkThreadedFunction(const char *threadMode, const char *threadFunc, bool runPool) {
         cleanSystem();
-        message::Message msg = util::messageFactory("demo", "threads");
-        execFunction(msg);
+
+        // Set the thread mode
+        util::SystemConfig &conf = util::getSystemConfig();
+        std::string initialMode = conf.threadMode;
+        conf.threadMode = threadMode;
+
+        // Run the function
+        message::Message msg = util::messageFactory("demo", threadFunc);
+
+        if (runPool) {
+            execFuncWithPool(msg, false, 1, true, 4, false);
+        } else {
+            execFunction(msg);
+        }
+
+        // Reset the thread mode
+        conf.threadMode = initialMode;
     }
+
+    TEST_CASE("Test local-only threading", "[worker]") {
+        checkThreadedFunction("local", "threads_local", false);
+    }
+
+    TEST_CASE("Run thread checks locally", "[worker]") {
+        checkThreadedFunction("local", "threads_check", false);
+    }
+
+//    TEST_CASE("Run thread checks with chaining", "[worker]") {
+//        checkThreadedFunction("chain", "threads_check", true);
+//    }
 }

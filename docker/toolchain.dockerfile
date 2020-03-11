@@ -25,6 +25,7 @@ RUN cmake --build . --target wavm
 RUN cmake --build . --target simple_runner
 RUN cmake --build . --target codegen_func
 RUN cmake --build . --target codegen_shared_obj
+RUN cmake --build . --target func_sym
 
 # Install Faasm native tools
 WORKDIR /faasm/native_tools

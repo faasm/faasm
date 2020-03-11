@@ -44,6 +44,7 @@ namespace util {
         int noScheduler;
         int maxInFlightRatio;
         int maxWorkersPerFunction;
+        std::string threadMode;
 
         // Worker-related timeouts
         int globalMessageTimeout;

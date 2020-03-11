@@ -21,7 +21,7 @@ target_link_libraries(func_runner bench worker_lib)
 add_executable(simple_runner simple_runner.cpp)
 target_link_libraries(simple_runner bench worker_lib)
 
-add_executable(func_sym map_symbols.cpp)
+add_executable(func_sym func_sym.cpp)
 target_link_libraries(func_sym bench)
 
 include_directories(${PYTHON_INCLUDE_DIRS})

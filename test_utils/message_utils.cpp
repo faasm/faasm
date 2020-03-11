@@ -12,6 +12,11 @@ namespace tests {
         REQUIRE(msgA.function() == msgB.function());
         REQUIRE(msgA.idx() == msgB.idx());
         REQUIRE(msgA.hops() == msgB.hops());
+
+        REQUIRE(msgA.zygotekey() == msgB.zygotekey());
+        REQUIRE(msgA.zygotesize() == msgB.zygotesize());
+        REQUIRE(msgA.funcptr() == msgB.funcptr());
+
         REQUIRE(msgA.pythonuser() == msgB.pythonuser());
         REQUIRE(msgA.pythonfunction() == msgB.pythonfunction());
         REQUIRE(msgA.pythonidx() == msgB.pythonidx());
@@ -20,9 +25,12 @@ namespace tests {
         REQUIRE(msgA.istypescript() == msgB.istypescript());
         REQUIRE(msgA.isstatusrequest() == msgB.isstatusrequest());
         REQUIRE(msgA.isflushrequest() == msgB.isflushrequest());
+
         REQUIRE(msgA.success() == msgB.success());
+
         REQUIRE(msgA.inputdata() == msgB.inputdata());
         REQUIRE(msgA.outputdata() == msgB.outputdata());
+
         REQUIRE(msgA.resultkey() == msgB.resultkey());
         REQUIRE(msgA.statuskey() == msgB.statuskey());
         REQUIRE(msgA.coldstartinterval() == msgB.coldstartinterval());

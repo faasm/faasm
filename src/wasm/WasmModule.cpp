@@ -676,7 +676,6 @@ namespace wasm {
 
         try {
             // Call the function
-
             Runtime::catchRuntimeExceptions([this, &invokeArgs, &exitCode, &logger] {
                 IR::UntaggedValue result;
 
@@ -1031,7 +1030,7 @@ namespace wasm {
         }
 
         bool isNotOwned = openFds.find(fd) == openFds.end();
-        if(isNotOwned) {
+        if (isNotOwned) {
             logger->error("fd not owned by this thread {}", fd);
             throw std::runtime_error("fd not owned by this function");
         }
@@ -1102,8 +1101,38 @@ namespace wasm {
         mmap(memoryBase, memoryFdSize, PROT_WRITE, MAP_PRIVATE | MAP_FIXED, memoryFd, 0);
     }
 
-    void WasmModule::snapshotCrossHost(const std::string &filePath) {
+    void WasmModule::snapshotToFile(const std::string &filePath) {
         std::ofstream outStream(filePath, std::ios::binary);
+        doSnapshot(outStream);
+    }
+
+    std::vector<uint8_t> WasmModule::snapshotToMemory() {
+        std::ostringstream outStream;
+        doSnapshot(outStream);
+
+        std::string outStr = outStream.str();
+
+        return std::vector<uint8_t>(outStr.begin(), outStr.end());
+    }
+
+    size_t WasmModule::snapshotToState(const std::string &stateKey) {
+        const std::vector<uint8_t> snapData = snapshotToMemory();
+        unsigned long stateSize = snapData.size();
+
+        state::State &state = state::getGlobalState();
+        const std::shared_ptr<state::StateKeyValue> &stateKv = state.getKV(
+                getExecutingCall()->user(),
+                stateKey,
+                stateSize
+        );
+
+        stateKv->set(snapData.data());
+        stateKv->pushFull();
+
+        return stateSize;
+    }
+
+    void WasmModule::doSnapshot(std::ostream &outStream) {
         cereal::BinaryOutputArchive archive(outStream);
 
         // Serialise memory
@@ -1119,9 +1148,32 @@ namespace wasm {
         archive(mem);
     }
 
-    void WasmModule::restoreCrossHost(const message::Message &msg, const std::string &filePath) {
+    void WasmModule::restoreFromFile(const std::string &filePath) {
         // Read execution state from file
         std::ifstream inStream(filePath, std::ios::binary);
+        doRestore(inStream);
+    }
+
+    void WasmModule::restoreFromMemory(const std::vector<uint8_t> &data) {
+        std::istringstream inStream(std::string(reinterpret_cast<const char *>(data.data()), data.size()));
+        doRestore(inStream);
+    }
+
+    void WasmModule::restoreFromState(const std::string &stateKey, size_t stateSize) {
+        state::State &state = state::getGlobalState();
+        const std::shared_ptr<state::StateKeyValue> &stateKv = state.getKV(
+                getExecutingCall()->user(),
+                stateKey,
+                stateSize
+        );
+
+        stateKv->pull();
+        uint8_t *snapPtr = stateKv->get();
+        const std::vector<uint8_t> snapData = std::vector<uint8_t>(snapPtr, snapPtr + stateSize);
+        restoreFromMemory(snapData);
+    }
+
+    void WasmModule::doRestore(std::istream &inStream) {
         cereal::BinaryInputArchive archive(inStream);
 
         // Read in serialised data
@@ -1224,7 +1276,8 @@ namespace wasm {
         // Set the stack pointer in this context
         IR::UntaggedValue &stackGlobal = threadContext->runtimeData->mutableGlobals[0];
         if (stackGlobal.u32 != STACK_SIZE) {
-            util::getLogger()->error("Expected first mutable global in context to be stack pointer ({})", stackGlobal.u32);
+            util::getLogger()->error("Expected first mutable global in context to be stack pointer ({})",
+                                     stackGlobal.u32);
             throw std::runtime_error("Unexpected mutable global format");
         }
 

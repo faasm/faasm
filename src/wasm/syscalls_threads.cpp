@@ -3,6 +3,8 @@
 
 #include <linux/futex.h>
 
+#include <util/config.h>
+
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Platform/Thread.h>
@@ -11,23 +13,19 @@
 #define PTHREAD_STACK_SIZE (2 * ONE_MB_BYTES)
 
 namespace wasm {
-    // Record of the threads spawned so far.
-    static thread_local std::unordered_map<I32, WAVM::Platform::Thread *> activeThreads;
+    // Map of tid to pointer to local thread
+    static thread_local std::unordered_map<I32, WAVM::Platform::Thread *> localThreads;
+
+    // Map of tid to message ID for chained calls
+    static thread_local std::unordered_map<I32, unsigned int> chainedThreads;
+
+    // Flag to say whether we've spawned a thread
+    static std::string threadZygoteKey;
+    static size_t threadZygoteSize;
 
     I32 s__fork() {
         util::getLogger()->debug("S - fork");
         throwException(Runtime::ExceptionTypes::calledUnimplementedIntrinsic);
-    }
-
-    I64 createPthread(void *threadSpecPtr) {
-        auto threadSpec = reinterpret_cast<WasmThreadSpec *>(threadSpecPtr);
-        I64 res = getExecutingModule()->executeThread(*threadSpec);
-
-        // Delete the spec, no longer needed
-        delete[] threadSpec->funcArgs;
-        delete threadSpec;
-
-        return res;
     }
 
     // ---------------------------------------
@@ -50,6 +48,17 @@ namespace wasm {
     // the highest level (i.e. pthread_create, pthread_join etc.)
     // ---------------------------------------
 
+    I64 createPthread(void *threadSpecPtr) {
+        auto threadSpec = reinterpret_cast<WasmThreadSpec *>(threadSpecPtr);
+        I64 res = getExecutingModule()->executeThread(*threadSpec);
+
+        // Delete the spec, no longer needed
+        delete[] threadSpec->funcArgs;
+        delete threadSpec;
+
+        return res;
+    }
+
     /**
      * We intercept the pthread API at a high level, hence we control the whole
      * lifecycle. For this reason, we mostly ignore the contents of the pthread struct
@@ -65,45 +74,77 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_create", I32, pthread_create, I32 pthreadPtr, I32 attrPtr,
                                    I32 entryFunc, I32 argsPtr) {
-        util::getLogger()->debug("S - pthread_create - {} {} {} {}", pthreadPtr, attrPtr, entryFunc, argsPtr);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - pthread_create - {} {} {} {}", pthreadPtr, attrPtr, entryFunc, argsPtr);
 
         // Set the bits we care about on the pthread struct
-        // NOTE - setting the initial pointer is crucial
+        // NOTE - setting the initial pointer is crucial for interopration with existing C code
         WasmModule *thisModule = getExecutingModule();
         wasm_pthread *pthreadHost = &Runtime::memoryRef<wasm_pthread>(thisModule->defaultMemory, pthreadPtr);
         pthreadHost->selfPtr = pthreadPtr;
-        
-        // Look up the entry function
-        Runtime::Object *funcObj = Runtime::getTableElement(thisModule->defaultTable, entryFunc);
-        Runtime::Function *func = Runtime::asFunction(funcObj);
 
-        // Note that the spec needs to outlast the scope of this function, so
-        // nothing can be created on the stack
-        auto threadArgs = new IR::UntaggedValue[1];
-        threadArgs[0] = argsPtr;
+        util::SystemConfig &conf = util::getSystemConfig();
+        if (conf.threadMode == "local") {
+            // Spawn a local thread
+            Runtime::Object *funcObj = Runtime::getTableElement(thisModule->defaultTable, entryFunc);
+            Runtime::Function *func = Runtime::asFunction(funcObj);
 
-        WasmThreadSpec *spec = new WasmThreadSpec();
-        spec->contextRuntimeData=contextRuntimeData;
-        spec->parentModule = thisModule;
-        spec->parentCall = getExecutingCall();
-        spec->func=func;
-        spec->funcArgs=threadArgs;
-        spec->stackSize = PTHREAD_STACK_SIZE;
+            // Note that the spec needs to outlast the scope of this function, so
+            // nothing can be created on the stack
+            auto threadArgs = new IR::UntaggedValue[1];
+            threadArgs[0] = argsPtr;
 
-        activeThreads.insert({pthreadPtr, Platform::createThread(0, createPthread, spec)});
+            auto spec = new WasmThreadSpec();
+            spec->contextRuntimeData = contextRuntimeData;
+            spec->parentModule = thisModule;
+            spec->parentCall = getExecutingCall();
+            spec->func = func;
+            spec->funcArgs = threadArgs;
+            spec->stackSize = PTHREAD_STACK_SIZE;
 
+            localThreads.insert({pthreadPtr, Platform::createThread(0, createPthread, spec)});
+        } else if (conf.threadMode == "chain") {
+            // TODO - work out how to do different zygotes efficiently
+            if (threadZygoteKey.empty()) {
+                threadZygoteKey = "pthread_zygote_key";
+                threadZygoteSize = thisModule->snapshotToState(threadZygoteKey);
+            }
+
+            // Chain the threaded call
+            int chainedCallId = makeThreadedCall(threadZygoteKey, threadZygoteSize, entryFunc);
+
+            // Record this thread -> call ID
+            chainedThreads.insert({pthreadPtr, chainedCallId});
+        } else {
+            logger->error("Unsupported threading mode: {}", conf.threadMode);
+            throw std::runtime_error("Unsupported threading mode");
+        }
         return 0;
     }
 
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_join", I32, pthread_join, I32 pthreadPtr, I32 resPtrPtr) {
-        util::getLogger()->debug("S - pthread_join - {} {}", pthreadPtr, resPtrPtr);
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - pthread_join - {} {}", pthreadPtr, resPtrPtr);
 
-        Platform::Thread *thread = activeThreads[pthreadPtr];
-        int res = Platform::joinThread(thread);
-
-        if(res != 0) {
-            throw std::runtime_error("Joined failed pthread");
+        util::SystemConfig &conf = util::getSystemConfig();
+        int returnValue;
+        if (conf.threadMode == "local") {
+            // Rejoin the local thread
+            Platform::Thread *thread = localThreads[pthreadPtr];
+            returnValue = Platform::joinThread(thread);
+        } else if (conf.threadMode == "chain") {
+            // Await the remotely chained thread
+            unsigned int callId = chainedThreads[pthreadPtr];
+            returnValue = awaitChainedCall(callId);
+        } else {
+            logger->error("Unsupported threading mode: {}", conf.threadMode);
+            throw std::runtime_error("Unsupported threading mode");
         }
+
+        // This function is passed a pointer to a pointer for the result,
+        // so we dereference it once and are writing an integer (i.e. a wasm pointer)
+        auto resPtr = &Runtime::memoryRef<I32>(getExecutingModule()->defaultMemory, resPtrPtr);
+        *resPtr = returnValue;
 
         return 0;
     }
