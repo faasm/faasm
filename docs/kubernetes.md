@@ -3,34 +3,65 @@
 Faasm is a runtime designed to be integrated into other serverless platforms.
 The recommended integration is with [Knative](https://knative.dev/).
 
-All Kubernetes and Knative configuration can be found in the [k8s](../k8s) 
-directory, and the [Knative tasks](../tasks/knative.py).
+All of Faasm's Kubernetes and Knative configuration can be found in the 
+[k8s](../k8s) directory, and the relevant parts of the Faasm CLI can be 
+found in the [Knative tasks](../tasks/knative.py).  
 
-## Knative Set-up
+These steps generally assumes that you have 
+[`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) 
+and [`kn`](https://knative.dev/docs/install/install-kn/) installed
+and these are able to connect to your cluster.
 
-Provided you have an accessible Kubernetes cluster (cloud provider, local Minikube, 
-bare metal etc.) with Knative installed, you can deploy Faasm as follows.
+## Cluster Set-up
+
+### Google Kubernetes Engine
+
+To set up Faasm on [GKE](https://console.cloud.google.com/kubernetes) you can do the following:
+
+- Set up an account and the [Cloud SDK](https://cloud.google.com/sdk) ([Ubuntu quick start](https://cloud.google.com/sdk/docs/quickstart-debian-ubuntu))
+- Create a Kubernetes cluster **with Istio enabled and version >=v1.15**
+- Aim for >=4 nodes with more than one vCPU
+- Set up your local `kubectl` to connect to your GKE cluster (via the "Connect" button)
+- Check things are working by running `kubectl get nodes`
+
+### Bare metal
 
 If you're deploying on a bare-metal cluster then you need to update the `externalIPs` 
 field in the `upload-service.yml` file to match your k8s master node. 
 
-On a cloud provider you should be provided with an endpoint which will handle the external 
-connectivity.
+You also need to install Istio as described in [the Knative docs](https://knative.dev/docs/install/any-kubernetes-cluster/).
 
-To deploy, you can run:
+## Installation
 
-```
+### Knative
+
+Faasm requires a minimal install of [Knative serving](https://knative.dev/docs/install/any-kubernetes-cluster/).
+If your cluster doesn't already have Knative installed, you can run:
+
+```bash
+# Install
+inv knative.install
+
+# Check
+kubectl get pods -n knative-serving
+```  
+
+### Faasm
+
+You can then run the Faasm deploy (where `replicas` is the number of replicas in the Faasm pod):
+
+```bash 
+# Bare-metal/ GKE
+inv knative.deploy --replicas=4
+
 # Local
 inv knative.deploy --local
-
-# Remote bare-metal (must be run on master node)
-inv knative.deploy
 ```
+
+## Config file
 
 Once everything has started up, you can get the relevant URLs as follows (on the master node), 
 then populate your `~/faasm/faasm.ini` file as described below.
-
-## Config file
 
 To avoid typing in hostnames and ports over and over, you can populate a section of your 
 `~/faasm/faasm.ini` file. To get the values, run `./bin/knative_route.sh` which should print out 

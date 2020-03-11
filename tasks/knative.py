@@ -20,6 +20,9 @@ COMMON_CONF = join(K8S_DIR, "common")
 IBM_CONF = join(K8S_DIR, "ibm")
 LEGACY_CONF = join(K8S_DIR, "legacy")
 
+# Number of replicas in the Faasm worker pod
+DEFAULT_REPLICAS = 4
+
 #
 # Notes on Knative client
 # https://github.com/knative/client/blob/master/docs/cmd/kn_service_create.md
@@ -122,7 +125,7 @@ def delete_worker(ctx, hard=False):
 
 
 @task
-def deploy(ctx, replicas, local=False, ibm=False):
+def deploy(ctx, replicas=DEFAULT_REPLICAS, local=False, ibm=False):
     """
     Deploy Faasm to knative
     """
@@ -297,7 +300,7 @@ def build_native(ctx, user, func, host=False, clean=False, nopush=False):
 
 
 @task
-def deploy_native(ctx, user, func, replicas):
+def deploy_native(ctx, user, func, replicas=DEFAULT_REPLICAS):
     """
     Deploy a native Knative pod for the given function
     """
@@ -307,7 +310,7 @@ def deploy_native(ctx, user, func, replicas):
 
 
 @task
-def deploy_native_python(ctx, replicas):
+def deploy_native_python(ctx, replicas=DEFAULT_REPLICAS):
     """
     Deploy the native Python Knative pod
     """
@@ -402,3 +405,9 @@ def _do_knative_native_local(img_name):
     cmd_string = " ".join(cmd)
     print(cmd_string)
     call(cmd_string, shell=True, cwd=PROJ_ROOT)
+
+
+@task
+def install(ctx):
+    _kubectl_apply("https://github.com/knative/serving/releases/download/v0.13.0/serving-crds.yaml")
+    _kubectl_apply("https://github.com/knative/serving/releases/download/v0.13.0/serving-core.yaml")
