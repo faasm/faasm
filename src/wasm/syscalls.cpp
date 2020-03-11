@@ -143,6 +143,8 @@ namespace wasm {
                 return s__poll(a, b, c);
             case 174:
                 return s__sigaction(a, b, c);
+            case 175:
+                return s__rt_sigprocmask(a, b, c, d);
             case 183:
                 return s__getcwd(a, b);
             case 186:

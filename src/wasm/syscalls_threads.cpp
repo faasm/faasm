@@ -26,11 +26,11 @@ namespace wasm {
     // So we don't worry about signal-related calls
     // ---------------------------------------
 
-//    I32 s__rt_sigprocmask(I32 how, I32 sigSetPtr, I32 oldSetPtr, I32 sigsetsize) {
-//        util::getLogger()->debug("S - rt_sigprocmask - {} {} {} {}", how, sigSetPtr, oldSetPtr, sigsetsize);
-//
-//        return 0;
-//    }
+    I32 s__rt_sigprocmask(I32 how, I32 sigSetPtr, I32 oldSetPtr, I32 sigsetsize) {
+        util::getLogger()->debug("S - rt_sigprocmask - {} {} {} {}", how, sigSetPtr, oldSetPtr, sigsetsize);
+
+        return 0;
+    }
 
     // ---------------------------------------
     // pthreads
