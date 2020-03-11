@@ -10,7 +10,7 @@ subsets of pthreads and [OpenMP](openmp.md).
 
 Under the hood, Faasm converts threads into new serverless functions, handling 
 shared data through [shared state](state.md) and duplicating memory through 
-[proto-functions](proto_faaslets.md).
+[proto-functions](proto_functions.md).
 
 ## pthreads
  
@@ -26,7 +26,7 @@ are supported, the attributes themselves may be ignored in a Faasm context.
 
 ## Migrating threads across hosts
 
-Threads are migrated across hosts using a version of [proto-functions](proto_faaslets.md), 
+Threads are migrated across hosts using a version of [proto-functions](proto_functions.md), 
 which duplicate a function's memory and execution state on another host. While the thread 
 initially sees the same memory as its parent, writes to this memory are not propagated 
 across hosts. Writes to shared data are handled with Faasm's [shared state](state.md).

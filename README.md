@@ -61,7 +61,7 @@ More detail on some key features and implementations can be found below:
 - [Local development](docs/local_dev.md) - developing and modifying Faasm.
 - [Faasm.js](https://github.com/Shillaker/faasmjs) - executing Faasm functions in the browser and on the server. 
 - [Threading](docs/threads.md) - executing multi-threaded applications.
-- [Proto-Faaslets](docs/proto_faaslets.md) - rapid snapshot-and-restore initialisation to cut down cold starts.
+- [Proto-Faaslets](docs/proto_functions.md) - rapid snapshot-and-restore initialisation to cut down cold starts.
  
 <!---
 Docs to be written/ completed:
