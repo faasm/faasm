@@ -192,9 +192,9 @@ namespace wasm {
         ssize_t stdoutSize;
         int getStdoutFd();
 
-        void doSnapshotCrossHost(std::ostream &outStream);
+        void doSnapshot(std::ostream &outStream);
 
-        void doRestoreCrossHost(std::istream &inStream);
+        void doRestore(std::istream &inStream);
 
         void reset();
 

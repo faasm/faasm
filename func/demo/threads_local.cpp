@@ -1,17 +1,23 @@
 #include <pthread.h>
 #include <stdio.h>
 
-void *threadFunc(void *arg) {
-    // Increment input variable
-    int *intArg = (int *) arg;
-    while (++(*intArg) < 200);
+/**
+ * This function uses a thread that modifies a value on the stack
+ * of the main thread, hence will only work when running in local
+ * threading mode.
+ */
 
+void *threadFunc(void *arg) {
+    // Write to the variable passed in
+    int *intArg = (int *) arg;
+    *intArg = 200;
     return nullptr;
 }
 
 int main() {
-    int x = 0, y = 0;
+    int x = 0;
 
+    // Spawn a thread
     pthread_t t;
     int ret = pthread_create(&t, NULL, threadFunc, &x);
     if (ret != 0) {
@@ -19,16 +25,15 @@ int main() {
         return 1;
     }
 
-    // Loop to increment y in main thread
-    while (++y < 100);
-
+    // Join the thread
     if (pthread_join(t, nullptr)) {
         fprintf(stderr, "Error joining thread\n");
         return 1;
     }
 
-    if(y != 100 || x != 200) {
-        printf("Thread invocation failed (got x=%i, y=%i)\n", x, y);
+    // Check stack variable
+    if(x != 200) {
+        printf("Thread invocation failed (expected 200 but got %i)\n", x);
         return 1;
     }
 
