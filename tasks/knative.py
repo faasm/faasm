@@ -411,3 +411,4 @@ def _do_knative_native_local(img_name):
 def install(ctx):
     _kubectl_apply("https://github.com/knative/serving/releases/download/v0.13.0/serving-crds.yaml")
     _kubectl_apply("https://github.com/knative/serving/releases/download/v0.13.0/serving-core.yaml")
+    _kubectl_apply("https://github.com/knative/serving/releases/download/v0.13.0/serving-istio.yaml")
