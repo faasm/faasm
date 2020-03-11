@@ -6,12 +6,12 @@ set(OMPI_C ${C})
 function(mpi_func exec_name dir_path)
     faasm_func(${exec_name} ${dir_path})
 
-    if(FAASM_BUILD_TYPE STREQUAL "wasm")
+    if (FAASM_BUILD_TYPE STREQUAL "wasm")
         set(MPI_LIB "")
-    else()
+    else ()
         include_directories(/usr/local/faasm/openmpi/include)
         set(MPI_LIB /usr/local/faasm/openmpi/lib/libmpi.so)
-    endif()
+    endif ()
 
     if (FAASM_BUILD_TYPE STREQUAL "wasm")
         target_link_libraries(${exec_name} faasmpi)
@@ -25,7 +25,6 @@ function(mpi_func exec_name dir_path)
     set(ALL_MPI_FUNCS ${ALL_MPI_FUNCS} ${exec_name} PARENT_SCOPE)
 endfunction(mpi_func)
 
-# Skip MPI stuff in knative for now
 mpi_func(mpi_allgather mpi_allgather.cpp)
 mpi_func(mpi_allreduce mpi_allreduce.cpp)
 mpi_func(mpi_alltoall mpi_alltoall.cpp)
