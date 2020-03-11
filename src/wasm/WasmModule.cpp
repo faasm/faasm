@@ -1102,18 +1102,35 @@ namespace wasm {
         mmap(memoryBase, memoryFdSize, PROT_WRITE, MAP_PRIVATE | MAP_FIXED, memoryFd, 0);
     }
 
-    void WasmModule::snapshotCrossHost(const std::string &filePath) {
+    void WasmModule::snapshotToFile(const std::string &filePath) {
         std::ofstream outStream(filePath, std::ios::binary);
         doSnapshotCrossHost(outStream);
     }
 
-    std::vector<uint8_t> WasmModule::snapshotCrossHostToMemory() {
+    std::vector<uint8_t> WasmModule::snapshotToMemory() {
         std::ostringstream outStream;
         doSnapshotCrossHost(outStream);
 
         std::string outStr = outStream.str();
 
         return std::vector<uint8_t>(outStr.begin(), outStr.end());
+    }
+
+    size_t WasmModule::snapshotToState(const std::string &stateKey) {
+        const std::vector<uint8_t> snapData = snapshotToMemory();
+        unsigned long stateSize = snapData.size();
+
+        state::State &state = state::getGlobalState();
+        const std::shared_ptr<state::StateKeyValue> &stateKv = state.getKV(
+                getExecutingCall()->user(),
+                stateKey,
+                stateSize
+        );
+
+        stateKv->set(snapData.data());
+        stateKv->pushFull();
+
+        return stateSize;
     }
 
     void WasmModule::doSnapshotCrossHost(std::ostream &outStream) {
@@ -1132,18 +1149,32 @@ namespace wasm {
         archive(mem);
     }
 
-    void WasmModule::restoreCrossHost(const message::Message &msg, const std::string &filePath) {
+    void WasmModule::restoreFromFile(const std::string &filePath) {
         // Read execution state from file
         std::ifstream inStream(filePath, std::ios::binary);
-        doRestoreCrossHost(msg, inStream);
+        doRestoreCrossHost(inStream);
     }
 
-    void WasmModule::restoreCrossHostFromMemory(const message::Message &msg, const std::vector<uint8_t> &data) {
+    void WasmModule::restoreFromMemory(const std::vector<uint8_t> &data) {
         std::istringstream inStream(std::string(reinterpret_cast<const char *>(data.data()), data.size()));
-        doRestoreCrossHost(msg, inStream);
+        doRestoreCrossHost(inStream);
     }
 
-    void WasmModule::doRestoreCrossHost(const message::Message &msg, std::istream &inStream) {
+    void WasmModule::restoreFromState(const std::string &stateKey, size_t stateSize) {
+        state::State &state = state::getGlobalState();
+        const std::shared_ptr<state::StateKeyValue> &stateKv = state.getKV(
+                getExecutingCall()->user(),
+                stateKey,
+                stateSize
+        );
+
+        stateKv->pull();
+        uint8_t *snapPtr = stateKv->get();
+        const std::vector<uint8_t> snapData = std::vector<uint8_t>(snapPtr, snapPtr + stateSize);
+        restoreFromMemory(snapData);
+    }
+
+    void WasmModule::doRestoreCrossHost(std::istream &inStream) {
         cereal::BinaryInputArchive archive(inStream);
 
         // Read in serialised data

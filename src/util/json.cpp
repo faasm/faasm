@@ -24,7 +24,8 @@ namespace util {
         d.AddMember("hops", msg.hops(), a);
 
         d.AddMember("zygote", msg.zygote(), a);
-        d.AddMember("funcPtr", msg.funcptr(), a);
+        d.AddMember("zygote_size", msg.zygotesize(), a);
+        d.AddMember("func_ptr", msg.funcptr(), a);
 
         d.AddMember("py_user", Value(msg.pythonuser().c_str(), msg.pythonuser().size(), a).Move(), a);
         d.AddMember("py_func", Value(msg.pythonfunction().c_str(), msg.pythonfunction().size(), a).Move(), a);
@@ -101,6 +102,7 @@ namespace util {
         msg.set_hops(getIntFromJson(d, "hops", 0));
 
         msg.set_zygote(getIntFromJson(d, "zygote", 0));
+        msg.set_zygotesize(getIntFromJson(d, "zygote_size", 0));
         msg.set_funcptr(getIntFromJson(d, "func_ptr", 0));
 
         msg.set_pythonuser(getStringFromJson(d, "py_user", ""));

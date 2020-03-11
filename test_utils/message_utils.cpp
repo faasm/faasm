@@ -14,6 +14,7 @@ namespace tests {
         REQUIRE(msgA.hops() == msgB.hops());
 
         REQUIRE(msgA.zygote() == msgB.zygote());
+        REQUIRE(msgA.zygotesize() == msgB.zygotesize());
         REQUIRE(msgA.funcptr() == msgB.funcptr());
 
         REQUIRE(msgA.pythonuser() == msgB.pythonuser());

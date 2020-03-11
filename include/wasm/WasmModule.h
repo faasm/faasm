@@ -131,13 +131,17 @@ namespace wasm {
 
         void mapMemoryFromFd();
 
-        void snapshotCrossHost(const std::string &filePath);
+        void snapshotToFile(const std::string &filePath);
 
-        std::vector<uint8_t> snapshotCrossHostToMemory();
+        std::vector<uint8_t> snapshotToMemory();
 
-        void restoreCrossHost(const message::Message &msg, const std::string &filePath);
+        size_t snapshotToState(const std::string &stateKey);
 
-        void restoreCrossHostFromMemory(const message::Message &msg, const std::vector<uint8_t> &data);
+        void restoreFromFile(const std::string &filePath);
+
+        void restoreFromMemory(const std::vector<uint8_t> &data);
+
+        void restoreFromState(const std::string &stateKey, size_t stateSize);
 
         ssize_t captureStdout(const struct iovec *iovecs, int iovecCount);
 
@@ -190,7 +194,7 @@ namespace wasm {
 
         void doSnapshotCrossHost(std::ostream &outStream);
 
-        void doRestoreCrossHost(const message::Message &msg, std::istream &inStream);
+        void doRestoreCrossHost(std::istream &inStream);
 
         void reset();
 
