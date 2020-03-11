@@ -65,7 +65,3 @@ More detail on some key features and implementations can be found below:
 - [Threading](docs/threads.md) - executing multi-threaded applications.
 - [Proto-Faaslets](docs/proto_faaslets.md) - rapid snapshot-and-restore initialisation to cut down cold starts.
  
-<!---
-Docs to be written/ completed:
-- [Distributed state](docs/state.md) and [scheduling](docs/scheduling.md) - sharing state and function executions between distributed Faasm instances.)
--->
