@@ -20,6 +20,8 @@ serverless-specific tasks (e.g. invoking other functions and managing state), as
 with the underlying host (e.g. using the filesystem and networking). The Faasm host interface achieves
 the same goal as [WASI](https://wasi.dev/), but in a serverless-specific context.
 
+A preprint of our paper on Faasm can be found [here](https://arxiv.org/abs/2002.09344).
+
 # Quick start
 
 You can start a Faasm cluster locally using the `docker-compose.yml` file in the root of the project:
