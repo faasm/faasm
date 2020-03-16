@@ -161,76 +161,7 @@ namespace wasm {
         util::getLogger()->debug("S - pthread_exit - {}", code);
 
     }
-
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_destroy", I32, pthread_cond_destroy, I32 a) {
-//        util::getLogger()->debug("S - pthread_cond_destroy - {}", a);
-//
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_init", I32, pthread_cond_init, I32 a, I32 b) {
-//        util::getLogger()->debug("S - pthread_cond_init - {} {}", a, b);
-//
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_signal", I32, pthread_cond_signal, I32 a) {
-//        util::getLogger()->debug("S - pthread_cond_signal - {}", a);
-//
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_getspecific", I32, pthread_getspecific, I32 a) {
-//        util::getLogger()->debug("S - pthread_getspecific - {}", a);
-//
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_key_create", I32, pthread_key_create, I32 keyPtr, I32 destructor) {
-//        util::getLogger()->debug("S - pthread_key_create - {} {}", keyPtr, destructor);
-//
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_key_delete", I32, pthread_key_delete, I32 a) {
-//        util::getLogger()->debug("S - pthread_key_delete - {}", a);
-//
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_destroy", I32, pthread_mutex_destroy, I32 a) {
-//        util::getLogger()->debug("S - pthread_mutex_destroy - {}", a);
-//
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_init", I32, pthread_mutex_init, I32 a, I32 b) {
-//        util::getLogger()->debug("S - pthread_mutex_init - {} {}", a, b);
-//
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_lock", I32, pthread_mutex_lock, I32 a) {
-//        util::getLogger()->debug("S - pthread_mutex_lock - {}", a);
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_unlock", I32, pthread_mutex_unlock, I32 a) {
-//        util::getLogger()->debug("S - pthread_mutex_unlock - {}", a);
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_trylock", I32, pthread_mutex_trylock, I32 a) {
-//        util::getLogger()->debug("S - pthread_mutex_trylock - {}", a);
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_setspecific", I32, pthread_setspecific, I32 a, I32 b) {
-//        util::getLogger()->debug("S - pthread_setspecific - {} {}", a, b);
-//
-//        return 0;
-//    }
-
+    
     I32 s__futex(I32 uaddrPtr, I32 futex_op, I32 val, I32 timeoutPtr, I32 uaddr2Ptr, I32 other) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         std::string opStr;
