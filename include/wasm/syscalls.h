@@ -27,8 +27,6 @@ namespace wasm {
 
     int awaitChainedCall(unsigned int messageId);
 
-    std::string getChainedCallResult(unsigned int messageId);
-
     int makeChainedCall(const std::string &functionName, int idx, int pyIdx, const std::vector<uint8_t> &inputData);
 
     int makeThreadedCall(const std::string &zygoteKey, size_t zygoteSize, int funcPtr, int argsPtr);

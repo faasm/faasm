@@ -34,7 +34,7 @@ namespace tests {
         scheduler::GlobalMessageBus &messageQueue = scheduler::getGlobalMessageBus();
 
         message::Message result = messageQueue.getFunctionResult(call.id(), 1);
-        REQUIRE(!result.success());
+        REQUIRE(result.returnvalue() > 0);
 
         if(expectedMsg.empty()) {
             return;
@@ -47,7 +47,7 @@ namespace tests {
         }
 
         if (!messageIsFound) {
-            std::cout << expectedMsg << " not found in " << actualOutput.c_str() << std::endl;
+            printf("%s not found in %s\n", expectedMsg.c_str(), actualOutput.c_str());
         }
 
         REQUIRE(messageIsFound);

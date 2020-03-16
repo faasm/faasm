@@ -59,6 +59,7 @@ namespace worker {
 
         bool isSuccess = errorMsg.empty();
         if (!isSuccess) {
+            call.set_returnvalue(1);
             call.set_outputdata(errorMsg);
         }
 
@@ -81,7 +82,7 @@ namespace worker {
 
         // Set result
         logger->debug("Setting function result for {}", funcStr);
-        globalBus.setFunctionResult(call, isSuccess);
+        globalBus.setFunctionResult(call);
 
         // Restore from zygote
         logger->debug("Resetting module {} from zygote", funcStr);
@@ -211,9 +212,9 @@ namespace worker {
         logger->info("WorkerThread executing {}", funcStr);
 
         // Create and execute the module
-        int exitCode = 0;
+        bool success;
         try {
-            exitCode = module->execute(call);
+            success = module->execute(call);
         }
         catch (const std::exception &e) {
             std::string errorMessage = "Error: " + std::string(e.what());
@@ -225,8 +226,8 @@ namespace worker {
 
         std::string errorMessage;
 
-        if (exitCode != 0) {
-            errorMessage = "Non-zero exit code: " + std::to_string(exitCode);
+        if (!success) {
+            errorMessage = "Execution failed: " + std::to_string(call.returnvalue());
         }
 
         this->finishCall(call, errorMessage);

@@ -143,21 +143,7 @@ namespace wasm {
         } else if (conf.threadMode == "chain") {
             // Await the remotely chained thread
             unsigned int callId = chainedThreads[pthreadPtr];
-            int chainedCallExitCode = awaitChainedCall(callId);
-            if (chainedCallExitCode != 0) {
-                // TODO - handle error
-                logger->error("Non-zero return code from chained call {} ({})", callId, chainedCallExitCode);
-                return chainedCallExitCode;
-            }
-
-            // The actual returned value is passed in the call output data
-            const std::string chainedCallResult = getChainedCallResult(callId);
-            if(!chainedCallResult.empty()) {
-                returnValue = std::stoi(chainedCallResult);
-            } else {
-                returnValue = 0;
-            }
-
+            returnValue = awaitChainedCall(callId);
         } else {
             logger->error("Unsupported threading mode: {}", conf.threadMode);
             throw std::runtime_error("Unsupported threading mode");

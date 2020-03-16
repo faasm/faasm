@@ -53,7 +53,7 @@ namespace wasm {
 
         void bindToFunction(const message::Message &msg, bool executeZygote = true);
 
-        int execute(message::Message &msg);
+        bool execute(message::Message &msg);
 
         Runtime::GCPointer<Runtime::Memory> defaultMemory;
 

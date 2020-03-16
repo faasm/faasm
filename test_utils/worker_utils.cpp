@@ -45,7 +45,7 @@ namespace tests {
         // Check success
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
         message::Message result = globalBus.getFunctionResult(call.id(), 1);
-        REQUIRE(result.success());
+        REQUIRE(result.returnvalue() == 0);
 
         if (!expectedOutput.empty()) {
             REQUIRE(result.outputdata() == expectedOutput);
@@ -77,12 +77,12 @@ namespace tests {
 
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
         const message::Message result = globalBus.getFunctionResult(call.id(), 1);
-        if (!result.success()) {
+        if (result.returnvalue() != 0) {
             const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
             logger->error("Function failed: {}", result.outputdata());
             FAIL();
         }
-        REQUIRE(result.success());
+        REQUIRE(result.returnvalue() == 0);
 
         conf.pythonPreload = originalPreload;
 
@@ -96,8 +96,8 @@ namespace tests {
         wasm::WasmModule module(zygote);
 
         for (int i = 0; i < nExecs; i++) {
-            int res = module.execute(msg);
-            REQUIRE(res == 0);
+            bool success = module.execute(msg);
+            REQUIRE(success);
 
             // Reset
             module = zygote;
@@ -149,7 +149,7 @@ namespace tests {
             // NOTE - this timeout needs to be long enough for the function to
             // finish executing
             message::Message result = bus.getFunctionResult(mainFuncId, 10000);
-            REQUIRE(result.success());
+            REQUIRE(result.returnvalue() == 0);
         }
 
         // Get all call statuses
@@ -161,7 +161,7 @@ namespace tests {
                 }
 
                 const message::Message &result = bus.getFunctionResult(messageId, 1);
-                if (!result.success()) {
+                if (result.returnvalue() != 0) {
                     FAIL(fmt::format("Message ID {} failed", messageId));
                 }
             }

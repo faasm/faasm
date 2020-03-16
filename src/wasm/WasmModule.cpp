@@ -639,7 +639,7 @@ namespace wasm {
     /**
      * Executes the given function call
      */
-    int WasmModule::execute(message::Message &msg) {
+    bool WasmModule::execute(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         if (!_isBound) {
@@ -655,8 +655,6 @@ namespace wasm {
 
         executingModule = this;
         executingCall = &msg;
-
-        int returnValue = 0;
 
         // Run a specific function if requested
         int funcPtr = msg.funcptr();
@@ -695,8 +693,10 @@ namespace wasm {
             );
         }
 
+        // Call the function
+        int returnValue = 0;
+        bool success = true;
         try {
-            // Call the function
             Runtime::catchRuntimeExceptions([this, &funcInstance, &funcType, &invokeArgs, &returnValue, &logger] {
                 logger->debug("Invoking C/C++ function");
 
@@ -709,25 +709,22 @@ namespace wasm {
                 );
 
                 returnValue = result.i32;
-            }, [&logger, &returnValue](Runtime::Exception *ex) {
+            }, [&logger, &success, &returnValue](Runtime::Exception *ex) {
                 logger->error("Runtime exception: {}", Runtime::describeException(ex).c_str());
                 Runtime::destroyException(ex);
+                success = false;
                 returnValue = 1;
             });
-
-            // With a function pointer invocation we assume the output is a single integer,
-            // which must be returned using the message output data (and return a zero return code
-            // to indicate success)
-            if(funcPtr > 0) {
-                msg.set_outputdata(std::to_string(returnValue));
-                returnValue = 0;
-            }
         }
         catch (wasm::WasmExitException &e) {
+            logger->debug("Caught wasm exit exception (code {})", e.exitCode);
             returnValue = e.exitCode;
+            success = e.exitCode == 0;
         }
 
-        return returnValue;
+        // Record the return value
+        msg.set_returnvalue(returnValue);
+        return success;
     }
 
     U32 WasmModule::mmapFile(U32 fd, U32 length) {

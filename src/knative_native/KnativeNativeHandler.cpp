@@ -95,7 +95,7 @@ namespace knative_native {
 
                 // Run it
                 exec(msg.idx());
-                emulatorSetCallStatus(1);
+                emulatorSetCallStatus(true);
             });
 
             t.detach();

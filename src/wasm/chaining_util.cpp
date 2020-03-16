@@ -18,10 +18,7 @@ namespace wasm {
         int returnCode = 1;
         try {
             const message::Message result = bus.getFunctionResult(messageId, callTimeoutMs);
-
-            if (result.success()) {
-                returnCode = 0;
-            }
+            returnCode = result.returnvalue();
         } catch (redis::RedisNoResponseException &ex) {
             util::getLogger()->error("Timed out waiting for chained call: {}", messageId);
         } catch (std::exception &ex) {
@@ -31,14 +28,6 @@ namespace wasm {
         scheduler.notifyFinishedAwaiting(*msg);
 
         return returnCode;
-    }
-
-    std::string getChainedCallResult(unsigned int messageId) {
-        scheduler::GlobalMessageBus &bus = scheduler::getGlobalMessageBus();
-
-        // Should have completed already, hence no timeout
-        message::Message result = bus.getFunctionResult(messageId, 0);
-        return result.outputdata();
     }
 
     int makeChainedCall(const std::string &functionName, int idx, int pyIdx, const std::vector<uint8_t> &inputData) {
