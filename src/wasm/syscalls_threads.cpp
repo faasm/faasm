@@ -8,6 +8,8 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Platform/Thread.h>
+#include <util/macros.h>
+#include <util/bytes.h>
 
 
 #define PTHREAD_STACK_SIZE (2 * ONE_MB_BYTES)
@@ -78,7 +80,7 @@ namespace wasm {
         logger->debug("S - pthread_create - {} {} {} {}", pthreadPtr, attrPtr, entryFunc, argsPtr);
 
         // Set the bits we care about on the pthread struct
-        // NOTE - setting the initial pointer is crucial for interopration with existing C code
+        // NOTE - setting the initial pointer is crucial for inter-operation with existing C code
         WasmModule *thisModule = getExecutingModule();
         wasm_pthread *pthreadHost = &Runtime::memoryRef<wasm_pthread>(thisModule->defaultMemory, pthreadPtr);
         pthreadHost->selfPtr = pthreadPtr;
@@ -90,7 +92,7 @@ namespace wasm {
             Runtime::Function *func = Runtime::asFunction(funcObj);
 
             // Note that the spec needs to outlast the scope of this function, so
-            // nothing can be created on the stack
+            // nothing can be created on the stack (this is deleted once the thread is finished)
             auto threadArgs = new IR::UntaggedValue[1];
             threadArgs[0] = argsPtr;
 
@@ -102,16 +104,22 @@ namespace wasm {
             spec->funcArgs = threadArgs;
             spec->stackSize = PTHREAD_STACK_SIZE;
 
+            // Spawn the thread
             localThreads.insert({pthreadPtr, Platform::createThread(0, createPthread, spec)});
+
         } else if (conf.threadMode == "chain") {
-            // TODO - work out how to do different zygotes efficiently
+            /**
+             * TODO - sharing the same key here isn't a good idea. Perhaps use the message ID
+             * would be more appropriate. We need a way to avoid duplicating the zygote _every_
+             * time, but equally want to share it where possible.
+             */
             if (threadZygoteKey.empty()) {
                 threadZygoteKey = "pthread_zygote_key";
                 threadZygoteSize = thisModule->snapshotToState(threadZygoteKey);
             }
 
             // Chain the threaded call
-            int chainedCallId = makeThreadedCall(threadZygoteKey, threadZygoteSize, entryFunc);
+            int chainedCallId = makeThreadedCall(threadZygoteKey, threadZygoteSize, entryFunc, argsPtr);
 
             // Record this thread -> call ID
             chainedThreads.insert({pthreadPtr, chainedCallId});
@@ -135,7 +143,21 @@ namespace wasm {
         } else if (conf.threadMode == "chain") {
             // Await the remotely chained thread
             unsigned int callId = chainedThreads[pthreadPtr];
-            returnValue = awaitChainedCall(callId);
+            int chainedCallExitCode = awaitChainedCall(callId);
+            if (chainedCallExitCode != 0) {
+                // TODO - handle error
+                logger->error("Non-zero return code from chained call {} ({})", callId, chainedCallExitCode);
+                return chainedCallExitCode;
+            }
+
+            // The actual returned value is passed in the call output data
+            const std::string chainedCallResult = getChainedCallResult(callId);
+            if(!chainedCallResult.empty()) {
+                returnValue = std::stoi(chainedCallResult);
+            } else {
+                returnValue = 0;
+            }
+
         } else {
             logger->error("Unsupported threading mode: {}", conf.threadMode);
             throw std::runtime_error("Unsupported threading mode");

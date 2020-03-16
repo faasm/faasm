@@ -34,7 +34,7 @@ namespace tests {
         checkThreadedFunction("local", "threads_check", false);
     }
 
-//    TEST_CASE("Run thread checks with chaining", "[worker]") {
-//        checkThreadedFunction("chain", "threads_check", true);
-//    }
+    TEST_CASE("Run thread checks with chaining", "[worker]") {
+        checkThreadedFunction("chain", "threads_check", true);
+    }
 }

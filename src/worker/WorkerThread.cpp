@@ -204,7 +204,7 @@ namespace worker {
         return errorMessage;
     }
 
-    const std::string WorkerThread::executeCall(message::Message &call) {
+    std::string WorkerThread::executeCall(message::Message &call) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         const std::string funcStr = util::funcToString(call, true);

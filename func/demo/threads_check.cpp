@@ -19,6 +19,8 @@ void *threadFunc(void *arg) {
     if (globalVar != 30) {
         printf("Expected thread to see 30 but got %i\n", globalVar);
         return FAILURE;
+    } else {
+        printf("Threads sees %i as expected\n", globalVar);
     }
 
     return SUCCESS;

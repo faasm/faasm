@@ -9,6 +9,7 @@ message Message {
     optional string zygoteKey = 4;
     optional int32 zygoteSize = 5;
     optional int32 funcPtr = 6;
+    optional int32 returnValue = 7;
 
     enum MessageType {
         BIND = 1;
@@ -17,17 +18,16 @@ message Message {
         EMPTY = 4;
     }
 
-    optional MessageType type = 7 [default = CALL];
+    optional MessageType type = 8 [default = CALL];
 
-    optional int32 id = 8;
-    optional string resultKey = 9;
-    optional string statusKey = 10;
+    optional int32 id = 9;
+    optional string resultKey = 10;
+    optional string statusKey = 11;
 
-    optional string scheduledNode = 11;
-    optional int32 hops = 12;
-    optional string executedNode = 13;
+    optional string scheduledNode = 12;
+    optional int32 hops = 13;
+    optional string executedNode = 14;
 
-    optional bool success = 14;
     optional bool isAsync = 15;
     optional bool isPython = 16;
     optional bool isTypescript = 17;

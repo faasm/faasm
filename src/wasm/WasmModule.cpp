@@ -25,6 +25,8 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/uio.h>
+#include <util/bytes.h>
+#include <util/macros.h>
 
 using namespace WAVM;
 
@@ -654,64 +656,78 @@ namespace wasm {
         executingModule = this;
         executingCall = &msg;
 
-        int exitCode = 0;
+        int returnValue = 0;
 
         // Run a specific function if requested
         int funcPtr = msg.funcptr();
         std::vector<IR::UntaggedValue> invokeArgs;
         Runtime::Function *funcInstance;
-        if(funcPtr) {
-            // TODO - set up the function args
-            funcInstance = getFunctionFromPtr(msg.funcptr());
+        IR::FunctionType funcType;
+        if (funcPtr > 0) {
+            funcInstance = getFunctionFromPtr(funcPtr);
+
+            // NOTE - when we've got a function pointer, we assume the args are a single integer
+            // held in the input data (resulting from a chained thread invocation)
+            if(msg.inputdata().empty()) {
+                invokeArgs = {0};
+            } else {
+                int intArg = std::stoi(msg.inputdata());
+                invokeArgs = {intArg};
+            }
+
+            funcType = IR::FunctionType(
+                    {IR::ValueType::i32},
+                    {IR::ValueType::i32}
+            );
+        } else if (boundIsTypescript) {
+            // Different function signature for typescript
+            funcType = IR::FunctionType(
+                    {IR::ValueType::i32},
+                    {}
+            );
         } else {
             // Set up main args
             invokeArgs = getArgcArgv(msg);
             funcInstance = getMainFunction();
+            funcType = IR::FunctionType(
+                    {IR::ValueType::i32},
+                    {IR::ValueType::i32, IR::ValueType::i32}
+            );
         }
 
         try {
             // Call the function
-            Runtime::catchRuntimeExceptions([this, &funcInstance, &invokeArgs, &exitCode, &logger] {
+            Runtime::catchRuntimeExceptions([this, &funcInstance, &funcType, &invokeArgs, &returnValue, &logger] {
+                logger->debug("Invoking C/C++ function");
+
                 IR::UntaggedValue result;
+                executeFunction(
+                        funcInstance,
+                        funcType,
+                        invokeArgs,
+                        result
+                );
 
-                // Different function signature for different languages
-                if (boundIsTypescript) {
-                    logger->debug("Invoking typescript function");
-                    executeFunction(
-                            funcInstance,
-                            IR::FunctionType(
-                                    {IR::ValueType::i32},
-                                    {}
-                            ),
-                            {},
-                            result
-                    );
-                } else {
-                    logger->debug("Invoking C/C++ function");
-
-                    executeFunction(
-                            funcInstance,
-                            IR::FunctionType(
-                                    {IR::ValueType::i32},
-                                    {IR::ValueType::i32, IR::ValueType::i32}
-                            ),
-                            invokeArgs,
-                            result
-                    );
-                }
-
-                exitCode = result.i32;
-            }, [&logger, &exitCode](Runtime::Exception *ex) {
+                returnValue = result.i32;
+            }, [&logger, &returnValue](Runtime::Exception *ex) {
                 logger->error("Runtime exception: {}", Runtime::describeException(ex).c_str());
                 Runtime::destroyException(ex);
-                exitCode = 1;
+                returnValue = 1;
             });
+
+            // With a function pointer invocation we assume the output is a single integer,
+            // which must be returned using the message output data (and return a zero return code
+            // to indicate success)
+            if(funcPtr > 0) {
+                msg.set_outputdata(std::to_string(returnValue));
+                returnValue = 0;
+            }
         }
         catch (wasm::WasmExitException &e) {
-            exitCode = e.exitCode;
+            returnValue = e.exitCode;
         }
 
-        return exitCode;
+        return returnValue;
     }
 
     U32 WasmModule::mmapFile(U32 fd, U32 length) {
@@ -1157,7 +1173,7 @@ namespace wasm {
     void WasmModule::restoreFromState(const std::string &stateKey, size_t stateSize) {
         state::State &state = state::getGlobalState();
         const std::shared_ptr<state::StateKeyValue> &stateKv = state.getKV(
-                getExecutingCall()->user(),
+                boundUser,
                 stateKey,
                 stateSize
         );
@@ -1292,11 +1308,12 @@ namespace wasm {
     }
 
     Runtime::Function *WasmModule::getMainFunction() {
-        // Get main entrypoint function
         std::string mainFuncName(ENTRY_FUNC_NAME);
+
         if (boundIsTypescript) {
             mainFuncName = "_asMain";
         }
+
         return getFunction(mainFuncName, true);
     }
 

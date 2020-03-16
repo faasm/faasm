@@ -288,7 +288,7 @@ namespace wasm {
         Runtime::Memory *memoryPtr = parentModule->defaultMemory;
         message::Message *parentCall = getExecutingCall();
 
-        // Retrieve the microstask function from the table
+        // Retrieve the microtask function from the table
         Runtime::Function *func = Runtime::asFunction(
                 Runtime::getTableElement(getExecutingModule()->defaultTable, microtaskPtr));
 
