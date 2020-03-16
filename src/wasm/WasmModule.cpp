@@ -121,11 +121,6 @@ namespace wasm {
             envModule = Runtime::remapToClonedCompartment(other.envModule, compartment);
             moduleInstance = Runtime::remapToClonedCompartment(other.moduleInstance, compartment);
 
-            // NOTE: although we are using the remapping functions here, the function
-            // variables are just pointers (and are returned directly)
-            functionInstance = Runtime::remapToClonedCompartment(other.functionInstance, compartment);
-            zygoteFunctionInstance = Runtime::remapToClonedCompartment(other.zygoteFunctionInstance, compartment);
-
             // Extract the memory and table again
             defaultMemory = Runtime::getDefaultMemory(moduleInstance);
             defaultTable = Runtime::getDefaultTable(moduleInstance);
@@ -178,9 +173,6 @@ namespace wasm {
         defaultMemory = nullptr;
         defaultTable = nullptr;
         moduleInstance = nullptr;
-
-        functionInstance = nullptr;
-        zygoteFunctionInstance = nullptr;
 
         envModule = nullptr;
 
@@ -334,25 +326,18 @@ namespace wasm {
 
         PROF_START(wasmBind)
 
-        // Get main entrypoint function
-        std::string mainFuncName(ENTRY_FUNC_NAME);
-        if (boundIsTypescript) {
-            mainFuncName = "_asMain";
-        }
-        functionInstance = getFunction(mainFuncName, true);
-
         // Keep reference to memory and table
         defaultMemory = Runtime::getDefaultMemory(moduleInstance);
         defaultTable = Runtime::getDefaultTable(moduleInstance);
 
         // Get and execute zygote function
         if (executeZygote) {
-            zygoteFunctionInstance = getFunction(ZYGOTE_FUNC_NAME, false);
-            if (zygoteFunctionInstance) {
+            Runtime::Function *zygoteFunc = getDefaultZygoteFunction();
+            if (zygoteFunc) {
                 IR::UntaggedValue result;
-                const IR::FunctionType funcType = Runtime::getFunctionType(zygoteFunctionInstance);
+                const IR::FunctionType funcType = Runtime::getFunctionType(zygoteFunc);
                 executeFunction(
-                        zygoteFunctionInstance,
+                        zygoteFunc,
                         funcType,
                         {},
                         result
@@ -671,19 +656,29 @@ namespace wasm {
 
         int exitCode = 0;
 
-        // Set up arguments
-        std::vector<IR::UntaggedValue> invokeArgs = getArgcArgv(msg);
+        // Run a specific function if requested
+        int funcPtr = msg.funcptr();
+        std::vector<IR::UntaggedValue> invokeArgs;
+        Runtime::Function *funcInstance;
+        if(funcPtr) {
+            // TODO - set up the function args
+            funcInstance = getFunctionFromPtr(msg.funcptr());
+        } else {
+            // Set up main args
+            invokeArgs = getArgcArgv(msg);
+            funcInstance = getMainFunction();
+        }
 
         try {
             // Call the function
-            Runtime::catchRuntimeExceptions([this, &invokeArgs, &exitCode, &logger] {
+            Runtime::catchRuntimeExceptions([this, &funcInstance, &invokeArgs, &exitCode, &logger] {
                 IR::UntaggedValue result;
 
                 // Different function signature for different languages
                 if (boundIsTypescript) {
                     logger->debug("Invoking typescript function");
                     executeFunction(
-                            functionInstance,
+                            funcInstance,
                             IR::FunctionType(
                                     {IR::ValueType::i32},
                                     {}
@@ -695,7 +690,7 @@ namespace wasm {
                     logger->debug("Invoking C/C++ function");
 
                     executeFunction(
-                            functionInstance,
+                            funcInstance,
                             IR::FunctionType(
                                     {IR::ValueType::i32},
                                     {IR::ValueType::i32, IR::ValueType::i32}
@@ -1295,4 +1290,23 @@ namespace wasm {
 
         return result.i32;
     }
+
+    Runtime::Function *WasmModule::getMainFunction() {
+        // Get main entrypoint function
+        std::string mainFuncName(ENTRY_FUNC_NAME);
+        if (boundIsTypescript) {
+            mainFuncName = "_asMain";
+        }
+        return getFunction(mainFuncName, true);
+    }
+
+    Runtime::Function *WasmModule::getDefaultZygoteFunction() {
+        return getFunction(ZYGOTE_FUNC_NAME, false);
+    }
+
+    Runtime::Function *WasmModule::getFunctionFromPtr(int funcPtr) {
+        Runtime::Object *funcObj = Runtime::getTableElement(defaultTable, funcPtr);
+        return Runtime::asFunction(funcObj);
+    }
+
 }

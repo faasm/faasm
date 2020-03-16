@@ -90,6 +90,12 @@ namespace wasm {
 
         Runtime::Function *getFunction(const std::string &funcName, bool strict);
 
+        Runtime::Function *getMainFunction();
+
+        Runtime::Function *getDefaultZygoteFunction();
+
+        Runtime::Function *getFunctionFromPtr(int funcPtr);
+
         bool resolve(const std::string &moduleName,
                      const std::string &name,
                      IR::ExternType type,
@@ -155,11 +161,6 @@ namespace wasm {
     private:
         Runtime::GCPointer<Runtime::Instance> envModule;
         Runtime::GCPointer<Runtime::Instance> moduleInstance;
-
-        // Note: we don't use GCPointers for the function instances as there are tied
-        // to the lifecycle of the underlying module
-        Runtime::Function *functionInstance;
-        Runtime::Function *zygoteFunctionInstance;
 
         // Dynamic modules
         int dynamicModuleCount = 0;

@@ -185,6 +185,18 @@ namespace worker {
                 // Bind to function again
                 this->bindToFunction(msg, true);
             }
+            
+            // Check if we need to restore from a different zygote
+            const std::string zygoteKey = msg.zygotekey();
+            if(!zygoteKey.empty()) {
+                PROF_START(zygoteOverride)
+
+                zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
+                wasm::WasmModule &zygote = registry.getZygote(msg);
+                module = std::make_unique<wasm::WasmModule>(zygote);
+
+                PROF_END(zygoteOverride)
+            }
 
             errorMessage = this->executeCall(msg);
         }
