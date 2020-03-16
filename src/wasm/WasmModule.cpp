@@ -1129,7 +1129,7 @@ namespace wasm {
 
         state::State &state = state::getGlobalState();
         const std::shared_ptr<state::StateKeyValue> &stateKv = state.getKV(
-                getExecutingCall()->user(),
+                boundUser,
                 stateKey,
                 stateSize
         );
@@ -1168,6 +1168,10 @@ namespace wasm {
     }
 
     void WasmModule::restoreFromState(const std::string &stateKey, size_t stateSize) {
+        if(!isBound()) {
+            throw std::runtime_error("Module must be bound before restoring from state");
+        }
+
         state::State &state = state::getGlobalState();
         const std::shared_ptr<state::StateKeyValue> &stateKv = state.getKV(
                 boundUser,
