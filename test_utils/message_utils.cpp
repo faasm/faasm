@@ -13,8 +13,8 @@ namespace tests {
         REQUIRE(msgA.idx() == msgB.idx());
         REQUIRE(msgA.hops() == msgB.hops());
 
-        REQUIRE(msgA.zygotekey() == msgB.zygotekey());
-        REQUIRE(msgA.zygotesize() == msgB.zygotesize());
+        REQUIRE(msgA.snapshotkey() == msgB.snapshotkey());
+        REQUIRE(msgA.snapshotsize() == msgB.snapshotsize());
         REQUIRE(msgA.funcptr() == msgB.funcptr());
 
         REQUIRE(msgA.pythonuser() == msgB.pythonuser());

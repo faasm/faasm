@@ -4,7 +4,7 @@
 #include <util/func.h>
 #include <util/files.h>
 
-#include <wasm/IRModuleRegistry.h>
+#include <ir_cache/IRModuleCache.h>
 #include <storage/FileLoader.h>
 
 namespace tests {
@@ -16,7 +16,7 @@ namespace tests {
     }
 
     TEST_CASE("Test main module caching", "[wasm]") {
-        wasm::IRModuleRegistry &registry = wasm::getIRModuleRegistry();
+        wasm::IRModuleCache &registry = wasm::getIRModuleCache();
 
         // Two valid functions
         std::string user = "demo";
@@ -68,7 +68,7 @@ namespace tests {
     }
 
     TEST_CASE("Test shared library caching", "[wasm]") {
-        wasm::IRModuleRegistry &registry = wasm::getIRModuleRegistry();
+        wasm::IRModuleCache &registry = wasm::getIRModuleCache();
 
         std::string user = "demo";
         std::string func = "echo";

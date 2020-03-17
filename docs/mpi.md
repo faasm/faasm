@@ -37,7 +37,7 @@ inv prk.invoke nstream
 
 ## Extending the Faasm MPI implementation
 
-The MPI interface declarations live in `lib-faasmpi` and the definitions in `src/wasm/syscalls_mpi.cpp`.
+The MPI interface declarations live in `lib-faasmpi` and the definitions in `src/wasm/mpi.cpp`.
 
 Any new functions need to be included in `lib-faasmpi/faasmpi.imports`. 
 

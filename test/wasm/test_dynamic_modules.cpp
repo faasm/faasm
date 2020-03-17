@@ -1,7 +1,7 @@
 #include <catch/catch.hpp>
 #include "utils.h"
 #include <wasm/WasmModule.h>
-#include <wasm/IRModuleRegistry.h>
+#include <ir_cache/IRModuleCache.h>
 #include <storage/SharedFilesManager.h>
 
 namespace tests {
@@ -58,7 +58,7 @@ namespace tests {
         std::string preloadBefore = conf.pythonPreload;
         conf.pythonPreload = "off";
 
-        wasm::IRModuleRegistry &registry = wasm::getIRModuleRegistry();
+        wasm::IRModuleCache &registry = wasm::getIRModuleCache();
 
         // Bind to Python function
         message::Message msg = util::messageFactory(PYTHON_USER, PYTHON_FUNC);

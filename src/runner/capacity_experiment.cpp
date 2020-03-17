@@ -1,5 +1,5 @@
 #include <util/config.h>
-#include "WasmModule.h"
+#include <wasm/WasmModule.h>
 #include <iostream>
 
 int main() {

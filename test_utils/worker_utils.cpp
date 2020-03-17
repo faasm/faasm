@@ -1,5 +1,5 @@
 #include <catch/catch.hpp>
-#include <zygote/ZygoteRegistry.h>
+#include <module_cache/WasmModuleCache.h>
 #include <emulator/emulator.h>
 #include <util/environment.h>
 
@@ -90,17 +90,17 @@ namespace tests {
     }
 
     void checkMultipleExecutions(message::Message &msg, int nExecs) {
-        zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
-        wasm::WasmModule &zygote = registry.getZygote(msg);
+        module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
+        wasm::WasmModule &cachedModule = registry.getCachedModule(msg);
 
-        wasm::WasmModule module(zygote);
+        wasm::WasmModule module(cachedModule);
 
         for (int i = 0; i < nExecs; i++) {
             bool success = module.execute(msg);
             REQUIRE(success);
 
             // Reset
-            module = zygote;
+            module = cachedModule;
         }
     }
 

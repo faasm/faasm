@@ -3,7 +3,7 @@
 #include <util/config.h>
 #include <util/timing.h>
 #include <util/func.h>
-#include <zygote/ZygoteRegistry.h>
+#include <module_cache/WasmModuleCache.h>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 
@@ -80,11 +80,11 @@ bool runFunction(std::string &user, std::string &function, int runCount) {
     }
 
     // Create the module
-    zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
-    wasm::WasmModule &zygote = registry.getZygote(m);
+    module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
+    wasm::WasmModule &cachedModule = registry.getCachedModule(m);
 
-    // Create new module from zygote
-    wasm::WasmModule module(zygote);
+    // Create new module from cache
+    wasm::WasmModule module(cachedModule);
 
     // Run repeated executions
     bool success = true;
@@ -100,8 +100,8 @@ bool runFunction(std::string &user, std::string &function, int runCount) {
             break;
         }
 
-        // Reset using zygote
-        module = zygote;
+        // Reset using cached module
+        module = cachedModule;
         logger->info("DONE Run {} - {}/{} ", i, user, function);
     }
 

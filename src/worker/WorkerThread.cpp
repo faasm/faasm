@@ -6,7 +6,7 @@
 #include <scheduler/Scheduler.h>
 #include <util/config.h>
 #include <util/timing.h>
-#include <zygote/ZygoteRegistry.h>
+#include <module_cache/WasmModuleCache.h>
 
 using namespace isolation;
 
@@ -84,9 +84,9 @@ namespace worker {
 
         // Restore from zygote
         logger->debug("Resetting module {} from zygote", funcStr);
-        zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
-        wasm::WasmModule &zygote = registry.getZygote(call);
-        *module = zygote;
+        module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
+        wasm::WasmModule &cachedModule = registry.getCachedModule(call);
+        *module = cachedModule;
 
         // Increment the execution counter
         executionCount++;
@@ -109,14 +109,14 @@ namespace worker {
         // Get queue from the scheduler
         currentQueue = scheduler.getFunctionQueue(msg);
 
-        // Instantiate the module from its zygote
-        PROF_START(zygoteCreate)
+        // Instantiate the module from its snapshot
+        PROF_START(snapshotCreate)
 
-        zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
-        wasm::WasmModule &zygote = registry.getZygote(msg);
-        module = std::make_unique<wasm::WasmModule>(zygote);
+        module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
+        wasm::WasmModule &snapshot = registry.getCachedModule(msg);
+        module = std::make_unique<wasm::WasmModule>(snapshot);
 
-        PROF_END(zygoteCreate)
+        PROF_END(snapshotCreate)
 
         _isBound = true;
     }
@@ -185,16 +185,16 @@ namespace worker {
                 this->bindToFunction(msg, true);
             }
 
-            // Check if we need to restore from a different zygote
-            const std::string zygoteKey = msg.zygotekey();
-            if (!zygoteKey.empty()) {
-                PROF_START(zygoteOverride)
+            // Check if we need to restore from a different snapshot
+            const std::string snapshotKey = msg.snapshotkey();
+            if (!snapshotKey.empty()) {
+                PROF_START(snapshotOverride)
 
-                zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
-                wasm::WasmModule &zygote = registry.getZygote(msg);
-                module = std::make_unique<wasm::WasmModule>(zygote);
+                module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
+                wasm::WasmModule &snapshot = registry.getCachedModule(msg);
+                module = std::make_unique<wasm::WasmModule>(snapshot);
 
-                PROF_END(zygoteOverride)
+                PROF_END(snapshotOverride)
             }
 
             errorMessage = this->executeCall(msg);

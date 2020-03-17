@@ -6,8 +6,8 @@ message Message {
     optional string user = 1;
     optional string function = 2;
     optional int32 idx = 3;
-    optional string zygoteKey = 4;
-    optional int32 zygoteSize = 5;
+    optional string snapshotKey = 4;
+    optional int32 snapshotSize = 5;
     optional int32 funcPtr = 6;
     optional int32 returnValue = 7;
 

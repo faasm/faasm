@@ -19,9 +19,9 @@
 using namespace WAVM;
 
 namespace wasm {
-    class IRModuleRegistry {
+    class IRModuleCache {
     public:
-        IRModuleRegistry();
+        IRModuleCache();
 
         IR::Module &getModule(const std::string &user, const std::string &func, const std::string &path);
 
@@ -53,5 +53,5 @@ namespace wasm {
                 const std::string &path);
     };
 
-    IRModuleRegistry &getIRModuleRegistry();
+    IRModuleCache &getIRModuleCache();
 }
