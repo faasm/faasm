@@ -55,16 +55,16 @@ namespace wasm {
         return call.id();
     }
 
-    int spawnChainedThread(const std::string &zygoteKey, size_t zygoteSize, int funcPtr, int argsPtr) {
+    int spawnChainedThread(const std::string &snapshotKey, size_t snapshotSize, int funcPtr, int argsPtr) {
         scheduler::Scheduler &sch = scheduler::getScheduler();
 
         message::Message *originalCall = getExecutingCall();
         message::Message call = util::messageFactory(originalCall->user(), originalCall->function());
         call.set_isasync(true);
 
-        // Zygote details
-        call.set_zygotekey(zygoteKey);
-        call.set_zygotesize(zygoteSize);
+        // Snapshot details
+        call.set_snapshotkey(snapshotKey);
+        call.set_snapshotsize(snapshotSize);
 
         // Function pointer and args
         // NOTE - with a pthread interface we only ever pass the function a single pointer argument,

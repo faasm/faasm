@@ -9,7 +9,7 @@
 
 #include <fstream>
 #include <util/environment.h>
-#include <zygote/ZygoteRegistry.h>
+#include <module_cache/WasmModuleCache.h>
 
 namespace runner {
     Profiler::Profiler(const std::string userIn, const std::string funcNameIn, const std::string inputDataIn) : user(
@@ -20,8 +20,8 @@ namespace runner {
     void Profiler::preflightWasm() {
         message::Message call = util::messageFactory(this->user, this->funcName);
 
-        zygote::ZygoteRegistry &zygoteReg = zygote::getZygoteRegistry();
-        zygoteReg.getZygote(call);
+        module_cache::WasmModuleCache &moduleCache = module_cache::getWasmModuleCache();
+        moduleCache.getCachedModule(call);
     }
 
     void Profiler::runWasm(int nIterations, std::ofstream &profOut) {
@@ -35,8 +35,8 @@ namespace runner {
         call.set_pythonfunction(this->pythonFunction);
         call.set_inputdata(this->inputData);
 
-        zygote::ZygoteRegistry &zygoteReg = zygote::getZygoteRegistry();
-        wasm::WasmModule &zygote = zygoteReg.getZygote(call);
+        module_cache::WasmModuleCache &moduleCache = module_cache::getWasmModuleCache();
+        wasm::WasmModule &cachedModule = moduleCache.getCachedModule(call);
 
         logger->info("Running benchmark in WASM");
         for (int i = 0; i < nIterations; i++) {
@@ -45,14 +45,14 @@ namespace runner {
             const util::TimePoint wasmTp = util::startTimer();
 
             // Create module
-            wasm::WasmModule module(zygote);
+            wasm::WasmModule module(cachedModule);
             util::logEndTimer("WASM initialisation", tpInit);
 
             // Exec the function
             module.execute(call);
 
             // Reset
-            module = zygote;
+            module = cachedModule;
 
             long wasmTime = util::getTimeDiffMicros(wasmTp);
             profOut << this->outputName << ",wasm," << wasmTime << std::endl;

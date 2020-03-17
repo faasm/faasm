@@ -2,7 +2,7 @@
 #include "utils.h"
 
 #include <util/func.h>
-#include <zygote/ZygoteRegistry.h>
+#include <module_cache/WasmModuleCache.h>
 
 
 namespace tests {
@@ -17,9 +17,9 @@ namespace tests {
         int input[3] = {1, 2, 3};
         msgA.set_inputdata(BYTES(input), 3 * sizeof(int));
 
-        zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
-        wasm::WasmModule &moduleA = registry.getZygote(msgA);
-        wasm::WasmModule &moduleB = registry.getZygote(msgB);
+        module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
+        wasm::WasmModule &moduleA = registry.getCachedModule(msgA);
+        wasm::WasmModule &moduleB = registry.getCachedModule(msgB);
 
         // Check modules are the same
         REQUIRE(std::addressof(moduleA) == std::addressof(moduleB));

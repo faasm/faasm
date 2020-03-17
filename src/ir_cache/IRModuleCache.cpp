@@ -1,4 +1,4 @@
-#include "IRModuleRegistry.h"
+#include "IRModuleCache.h"
 
 #include <util/locks.h>
 #include <util/logging.h>
@@ -14,12 +14,12 @@
 using namespace WAVM;
 
 namespace wasm {
-    IRModuleRegistry::IRModuleRegistry() : conf(util::getSystemConfig()) {
+    IRModuleCache::IRModuleCache() : conf(util::getSystemConfig()) {
 
     }
 
-    IRModuleRegistry &getIRModuleRegistry() {
-        static IRModuleRegistry r;
+    IRModuleCache &getIRModuleCache() {
+        static IRModuleCache r;
         return r;
     }
 
@@ -28,17 +28,17 @@ namespace wasm {
         return key;
     }
 
-    int IRModuleRegistry::getModuleCount(const std::string &key) {
+    int IRModuleCache::getModuleCount(const std::string &key) {
         util::SharedLock lock(registryMutex);
         return moduleMap.count(key);
     }
 
-    int IRModuleRegistry::getCompiledModuleCount(const std::string &key) {
+    int IRModuleCache::getCompiledModuleCount(const std::string &key) {
         util::SharedLock lock(registryMutex);
         return compiledModuleMap.count(key);
     }
 
-    IR::Module &IRModuleRegistry::getModule(const std::string &user, const std::string &func, const std::string &path) {
+    IR::Module &IRModuleCache::getModule(const std::string &user, const std::string &func, const std::string &path) {
         /*
          * Note that shared modules are currently only shared in memory across instances of the *same* function.
          * If two different functions both load shared module A, it will be loaded into memory twice.
@@ -56,7 +56,7 @@ namespace wasm {
         }
     }
 
-    Runtime::ModuleRef IRModuleRegistry::getCompiledModule(const std::string &user, const std::string &func,
+    Runtime::ModuleRef IRModuleCache::getCompiledModule(const std::string &user, const std::string &func,
                                                            const std::string &path) {
         if (path.empty()) {
             return this->getCompiledMainModule(user, func);
@@ -65,13 +65,13 @@ namespace wasm {
         }
     }
 
-    U64 IRModuleRegistry::getSharedModuleTableSize(const std::string &user, const std::string &func,
+    U64 IRModuleCache::getSharedModuleTableSize(const std::string &user, const std::string &func,
                                                    const std::string &path) {
         const std::string key = getModuleKey(user, func, path);
         return originalTableSizes[key];
     }
 
-    Runtime::ModuleRef IRModuleRegistry::getCompiledMainModule(const std::string &user, const std::string &func) {
+    Runtime::ModuleRef IRModuleCache::getCompiledMainModule(const std::string &user, const std::string &func) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::string key = getModuleKey(user, func, "");
 
@@ -98,7 +98,7 @@ namespace wasm {
         return compiledModuleMap[key];
     }
 
-    Runtime::ModuleRef IRModuleRegistry::getCompiledSharedModule(const std::string &user, const std::string &func,
+    Runtime::ModuleRef IRModuleCache::getCompiledSharedModule(const std::string &user, const std::string &func,
                                                                  const std::string &path) {
         std::string key = getModuleKey(user, func, path);
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
@@ -122,7 +122,7 @@ namespace wasm {
         return compiledModuleMap[key];
     }
 
-    IR::Module &IRModuleRegistry::getMainModule(const std::string &user, const std::string &func) {
+    IR::Module &IRModuleCache::getMainModule(const std::string &user, const std::string &func) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::string key = getModuleKey(user, func, "");
 
@@ -164,7 +164,7 @@ namespace wasm {
         return moduleMap[key];
     }
 
-    IR::Module &IRModuleRegistry::getSharedModule(const std::string &user, const std::string &func,
+    IR::Module &IRModuleCache::getSharedModule(const std::string &user, const std::string &func,
                                                   const std::string &path) {
         std::string key = getModuleKey(user, func, path);
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();

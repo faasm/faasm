@@ -11,7 +11,7 @@
 #include <util/config.h>
 #include <util/locks.h>
 
-#include <wasm/IRModuleRegistry.h>
+#include <ir_cache/IRModuleCache.h>
 #include <wasm/serialisation.h>
 
 #include <WAVM/WASM/WASM.h>
@@ -418,7 +418,7 @@ namespace wasm {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         PROF_START(wasmCreateModule)
-        IRModuleRegistry &moduleRegistry = wasm::getIRModuleRegistry();
+        IRModuleCache &moduleRegistry = wasm::getIRModuleCache();
         bool isMainModule = sharedModulePath.empty();
 
         // Warning: be very careful here to stick to *references* to the same shared modules
@@ -977,7 +977,7 @@ namespace wasm {
     std::map<std::string, std::string> WasmModule::buildDisassemblyMap() {
         std::map<std::string, std::string> output;
 
-        IRModuleRegistry &moduleRegistry = wasm::getIRModuleRegistry();
+        IRModuleCache &moduleRegistry = wasm::getIRModuleCache();
         IR::Module &module = moduleRegistry.getModule(boundUser, boundFunction, "");
 
         IR::DisassemblyNames disassemblyNames;

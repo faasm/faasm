@@ -22,8 +22,8 @@ namespace wasm {
     static thread_local std::unordered_map<I32, unsigned int> chainedThreads;
 
     // Flag to say whether we've spawned a thread
-    static std::string activeZygoteKey;
-    static size_t threadZygoteSize;
+    static std::string activeSnapshotKey;
+    static size_t threadSnapshotSize;
 
     I32 s__fork() {
         util::getLogger()->debug("S - fork");
@@ -113,14 +113,14 @@ namespace wasm {
 
         } else if (conf.threadMode == "chain") {
             // Create a new zygote if one isn't already active
-            if (activeZygoteKey.empty()) {
+            if (activeSnapshotKey.empty()) {
                 int callId = getExecutingCall()->id();
-                activeZygoteKey = std::string("pthread_zygote_") + std::to_string(callId);
-                threadZygoteSize = thisModule->snapshotToState(activeZygoteKey);
+                activeSnapshotKey = std::string("pthread_snapshot_") + std::to_string(callId);
+                threadSnapshotSize = thisModule->snapshotToState(activeSnapshotKey);
             }
 
             // Chain the threaded call
-            int chainedCallId = spawnChainedThread(activeZygoteKey, threadZygoteSize, entryFunc, argsPtr);
+            int chainedCallId = spawnChainedThread(activeSnapshotKey, threadSnapshotSize, entryFunc, argsPtr);
 
             // Record this thread -> call ID
             chainedThreads.insert({pthreadPtr, chainedCallId});
@@ -154,7 +154,7 @@ namespace wasm {
 
             // If this is the last active thread, reset the zygote key
             if (chainedThreads.empty()) {
-                activeZygoteKey = "";
+                activeSnapshotKey = "";
             }
         } else {
             logger->error("Unsupported threading mode: {}", conf.threadMode);

@@ -4,7 +4,7 @@
 #include <wasm/WasmModule.h>
 #include <system/NetworkNamespace.h>
 #include <system/CGroup.h>
-#include <zygote/ZygoteRegistry.h>
+#include <module_cache/WasmModuleCache.h>
 #include <util/config.h>
 
 

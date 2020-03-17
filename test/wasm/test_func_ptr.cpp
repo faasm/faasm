@@ -32,17 +32,17 @@ namespace tests {
 
         // Create zygote from which to restore
         std::string stateKey = "test_func_ptr_zygote";
-        size_t zygoteSize = module.snapshotToState(stateKey);
+        size_t snapshotSize = module.snapshotToState(stateKey);
 
         // Set up call with a specific function pointer and zygote in state
-        call.set_zygotekey(stateKey);
+        call.set_snapshotkey(stateKey);
         call.set_funcptr(1);
         
         // Restore from the zygote and execute the function (expect it to succeed)
         wasm::WasmModule moduleB;
         moduleB.bindToFunction(call);
 
-        moduleB.restoreFromState(stateKey, zygoteSize);
+        moduleB.restoreFromState(stateKey, snapshotSize);
         bool success = moduleB.execute(call);
         REQUIRE(success);
 

@@ -3,7 +3,7 @@
 #include <util/bytes.h>
 #include <util/func.h>
 #include <util/config.h>
-#include <zygote/ZygoteRegistry.h>
+#include <module_cache/WasmModuleCache.h>
 
 namespace tests {
 
@@ -77,22 +77,22 @@ namespace tests {
         call.set_user("demo");
         call.set_function("x2");
 
-        zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
-        wasm::WasmModule &zygote = registry.getZygote(call);
+        module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
+        wasm::WasmModule &cachedModule = registry.getCachedModule(call);
         
-        wasm::WasmModule module(zygote);
+        wasm::WasmModule module(cachedModule);
 
         // Perform first execution
         executeX2(module);
 
         // Reset
-        module = zygote;
+        module = cachedModule;
 
         // Perform repeat executions on same module
         executeX2(module);
 
         // Reset
-        module = zygote;
+        module = cachedModule;
 
         executeX2(module);
     }
@@ -129,17 +129,17 @@ namespace tests {
     TEST_CASE("Test reclaiming memory", "[wasm]") {
         message::Message call = util::messageFactory("demo", "heap");
 
-        zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
-        wasm::WasmModule &zygote = registry.getZygote(call);
+        module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
+        wasm::WasmModule &cachedModule = registry.getCachedModule(call);
         
-        wasm::WasmModule module(zygote);
+        wasm::WasmModule module(cachedModule);
 
         Uptr initialPages = Runtime::getMemoryNumPages(module.defaultMemory);
 
         // Run it (knowing memory will grow during execution)
         module.execute(call);
         
-        module = zygote;
+        module = cachedModule;
 
         Uptr pagesAfter = Runtime::getMemoryNumPages(module.defaultMemory);
         REQUIRE(pagesAfter == initialPages);
