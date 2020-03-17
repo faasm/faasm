@@ -29,7 +29,7 @@ namespace wasm {
 
     int makeChainedCall(const std::string &functionName, int idx, int pyIdx, const std::vector<uint8_t> &inputData);
 
-    int makeThreadedCall(const std::string &zygoteKey, size_t zygoteSize, int funcPtr, int argsPtr);
+    int spawnChainedThread(const std::string &zygoteKey, size_t zygoteSize, int funcPtr, int argsPtr);
 
     // ---------------------------
     // System-related structs

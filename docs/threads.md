@@ -1,15 +1,18 @@
 # Faasm and Threading
 
 Serverless applications benefit most from the parallelism of many small functions
-distributed across hosts. This makes the role of threads unclear, and makes it hard 
-to port monolithic applications that rely on shared memory and multi-threading.
+distributed across hosts. Spawning one or two threads to do background work still 
+makes sense, but using threading and shared memory to parallelise a larger application 
+is not necessarily effective in a serverless context.
 
-To support these kinds of applications, Faasm provides mechanisms to transparently
-distribute threaded applications across multiple hosts. These are accessed through 
-subsets of pthreads and [OpenMP](openmp.md). 
+To support larger multi-threaded applications, Faasm can transparently distribute 
+threads across multiple serverless functions, thus allowing them to take advantage 
+of serverless parallelism. 
 
-Under the hood, Faasm converts threads into new serverless functions, handling 
-shared data through [shared state](state.md) and duplicating memory through 
+This functionality is accessed in C/C++ through subsets of pthreads and [OpenMP](openmp.md). 
+Faasm intercepts normal threading calls and chains a new serverless function to execute
+the thread, potentially on another host. Shared data is managed with 
+[shared state](state.md) and the process memory is migrated across hosts with
 [proto-functions](proto_functions.md).
 
 ## pthreads
@@ -24,20 +27,29 @@ are supported, the attributes themselves may be ignored in a Faasm context.
 | `void pthread_exit(...)` | Exit the current thread |
 | `void pthread_attr_XXX` | All attr-related calls |
 
-## Migrating threads across hosts
+## OpenMP
+
+Faasm OpenMP support has [separate docs](openmp.md).
+
+## Threading modes
+
+Faasm has two threading modes, `local` and `chain`, which are configured with the 
+`THREAD_MODE` environment variable. In `local` mode, threads are spawned locally,  
+operating on the same Wasm module memory as per the 
+[Wasm threading proposal](https://github.com/WebAssembly/threads) and using 
+WAVM's underlying implementation.
+
+In `chain` mode, Faasm spawns all new threads as chained function calls, which 
+may or may not execute on the same host.
+
+### Migrating threads across hosts
 
 Threads are migrated across hosts using a version of [proto-functions](proto_functions.md), 
-which duplicate a function's memory and execution state on another host. While the thread 
-initially sees the same memory as its parent, writes to this memory are not propagated 
-across hosts. Writes to shared data are handled with Faasm's [shared state](state.md).
+which duplicate a function's memory and execution state on another host. This provides
+the function on the other host with a copy of the heap, stack and data from its parent 
+function, thus letting it continue thread-like execution and read any shared data. 
+
+Writes to global variables and shared memory are _not_ propagated across distributed 
+threads automatically, and must be handled explicitly with Faasm's [shared state](state.md).
 
 An example of a distributed threaded application can be found [in the examples](../func/demo/threads_dist.cpp).
-
-## Wasm threads
-
-Faasm doesn't yet support the [Wasm threading proposal](https://github.com/WebAssembly/threads), 
-but its implementation would look a lot like the support for pthreads. 
-
-## WIP
-
-_This is a work in progress, more docs to come._

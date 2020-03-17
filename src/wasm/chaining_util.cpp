@@ -55,7 +55,7 @@ namespace wasm {
         return call.id();
     }
 
-    int makeThreadedCall(const std::string &zygoteKey, size_t zygoteSize, int funcPtr, int argsPtr) {
+    int spawnChainedThread(const std::string &zygoteKey, size_t zygoteSize, int funcPtr, int argsPtr) {
         scheduler::Scheduler &sch = scheduler::getScheduler();
 
         message::Message *originalCall = getExecutingCall();

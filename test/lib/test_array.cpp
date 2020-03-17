@@ -19,7 +19,6 @@ namespace tests {
 
         const char *key = "test_array";
         int arraySize = 10;
-        size_t bytesSize = arraySize * sizeof(int);
         faasm::AsyncArray<int> arrayA(key, arraySize);
         arrayA.zero();
 

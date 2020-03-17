@@ -120,7 +120,7 @@ namespace wasm {
             }
 
             // Chain the threaded call
-            int chainedCallId = makeThreadedCall(activeZygoteKey, threadZygoteSize, entryFunc, argsPtr);
+            int chainedCallId = spawnChainedThread(activeZygoteKey, threadZygoteSize, entryFunc, argsPtr);
 
             // Record this thread -> call ID
             chainedThreads.insert({pthreadPtr, chainedCallId});
