@@ -62,7 +62,7 @@ namespace tests {
     }
 
     TEST_CASE("Test non-zero return code is error", "[wasm]") {
-        checkError("ret_one", "Non-zero exit code: 1");
+        checkError("ret_one", "Call failed (return value=1)");
     }
 
 //    TEST_CASE("Test munmapped memory not usable", "[wasm]") {

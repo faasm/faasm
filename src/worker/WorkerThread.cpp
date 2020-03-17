@@ -52,14 +52,12 @@ namespace worker {
         }
     }
 
-    void WorkerThread::finishCall(message::Message &call, const std::string &errorMsg) {
+    void WorkerThread::finishCall(message::Message &call, bool success, const std::string &errorMsg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::string funcStr = util::funcToString(call, true);
         logger->info("Finished {}", funcStr);
 
-        bool isSuccess = errorMsg.empty();
-        if (!isSuccess) {
-            call.set_returnvalue(1);
+        if (!success) {
             call.set_outputdata(errorMsg);
         }
 
@@ -67,7 +65,7 @@ namespace worker {
         util::SystemConfig &conf = util::getSystemConfig();
         if (conf.captureStdout == "on") {
             std::string moduleStdout = module->getCapturedStdout();
-            if(!moduleStdout.empty()) {
+            if (!moduleStdout.empty()) {
                 std::string newOutput = moduleStdout + "\n" + call.outputdata();
                 call.set_outputdata(newOutput);
 
@@ -186,10 +184,10 @@ namespace worker {
                 // Bind to function again
                 this->bindToFunction(msg, true);
             }
-            
+
             // Check if we need to restore from a different zygote
             const std::string zygoteKey = msg.zygotekey();
-            if(!zygoteKey.empty()) {
+            if (!zygoteKey.empty()) {
                 PROF_START(zygoteOverride)
 
                 zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
@@ -213,24 +211,23 @@ namespace worker {
 
         // Create and execute the module
         bool success;
+        std::string errorMessage;
+
         try {
             success = module->execute(call);
         }
         catch (const std::exception &e) {
-            std::string errorMessage = "Error: " + std::string(e.what());
+            errorMessage = "Error: " + std::string(e.what());
             logger->error(errorMessage);
-
-            this->finishCall(call, errorMessage);
-            return errorMessage;
+            success = false;
+            call.set_returnvalue(1);
         }
 
-        std::string errorMessage;
-
-        if (!success) {
-            errorMessage = "Execution failed: " + std::to_string(call.returnvalue());
+        if (!success && errorMessage.empty()) {
+            errorMessage = "Call failed (return value=" + std::to_string(call.returnvalue()) + ")";
         }
 
-        this->finishCall(call, errorMessage);
+        this->finishCall(call, success, errorMessage);
         return errorMessage;
     }
 }
