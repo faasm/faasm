@@ -43,8 +43,8 @@ namespace worker {
 
         scheduler::GlobalMessageBus &globalBus;
 
-        const std::string executeCall(message::Message &msg);
+        std::string executeCall(message::Message &msg);
 
-        void finishCall(message::Message &msg, const std::string &errorMsg);
+        void finishCall(message::Message &msg, bool success, const std::string &errorMsg);
     };
 }

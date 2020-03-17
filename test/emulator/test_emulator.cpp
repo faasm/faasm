@@ -109,10 +109,10 @@ namespace tests {
         std::string originalHostType = conf.hostType;
         conf.hostType = "knative";
 
-        int inputVal = 0;
+        bool success = 0;
         bool useJson = false;
         SECTION("Failure") {
-            inputVal = 0;
+            success = false;
 
             SECTION("Failure and JSON") {
                 useJson = true;
@@ -123,7 +123,7 @@ namespace tests {
         }
 
         SECTION("Success") {
-            inputVal = 1;
+            success = true;
 
             SECTION("Success and JSON") {
                 useJson = true;
@@ -142,12 +142,12 @@ namespace tests {
         }
 
         REQUIRE(messageId > 0);
-        emulatorSetCallStatus(inputVal);
+        emulatorSetCallStatus(success);
 
         // Call the await call function directly
         int resultCode = __faasm_await_call(call.id());
 
-        if(inputVal == 1) {
+        if(success) {
             REQUIRE(resultCode == 0);
         } else {
             REQUIRE(resultCode == 1);

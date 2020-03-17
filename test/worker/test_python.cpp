@@ -75,6 +75,6 @@ namespace tests {
         // Check success
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
         message::Message result = globalBus.getFunctionResult(readCall.id(), 1);
-        REQUIRE(result.success());
+        REQUIRE(result.returnvalue() == 0);
     }
 }

@@ -67,10 +67,10 @@ namespace tests {
         }
 
         // Execute both
-        int exitCodeA = moduleA.execute(m);
-        REQUIRE(exitCodeA == 0);
+        bool successA = moduleA.execute(m);
+        REQUIRE(successA);
 
-        int exitCodeB = moduleB.execute(m);
-        REQUIRE(exitCodeB == 0);
+        bool successB = moduleB.execute(m);
+        REQUIRE(successB);
     }
 }

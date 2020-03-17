@@ -60,7 +60,7 @@ namespace scheduler {
         throw std::runtime_error("Not implemented");
     }
 
-    void AWSMessageBus::setFunctionResult(message::Message &msg, bool success) {
+    void AWSMessageBus::setFunctionResult(message::Message &msg) {
         // TODO - avoid writing output data in status?
         // Write status
         const std::string &statusKey = msg.statuskey();

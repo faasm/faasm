@@ -8,6 +8,8 @@
 #include <WAVM/Runtime/Runtime.h>
 #include <WAVM/Runtime/Intrinsics.h>
 #include <WAVM/Platform/Thread.h>
+#include <util/macros.h>
+#include <util/bytes.h>
 
 
 #define PTHREAD_STACK_SIZE (2 * ONE_MB_BYTES)
@@ -20,7 +22,7 @@ namespace wasm {
     static thread_local std::unordered_map<I32, unsigned int> chainedThreads;
 
     // Flag to say whether we've spawned a thread
-    static std::string threadZygoteKey;
+    static std::string activeZygoteKey;
     static size_t threadZygoteSize;
 
     I32 s__fork() {
@@ -67,6 +69,10 @@ namespace wasm {
      * We just use the int value of the pthread pointer to act as its ID (to be passed
      * around the different pthread functions).
      *
+     * In the "chain" threading mode, we spawn threads as chained function calls, which
+     * may get executed on another host. To enable this we create a zygote from which
+     * these "thread" calls can be spawned on another host.
+     *
      * @param pthreadPtr - pointer to the pthread struct
      * @param attrPtr - pointer to the pthread attr struct
      * @param entryFunc - function table index for the entrypoint
@@ -78,7 +84,7 @@ namespace wasm {
         logger->debug("S - pthread_create - {} {} {} {}", pthreadPtr, attrPtr, entryFunc, argsPtr);
 
         // Set the bits we care about on the pthread struct
-        // NOTE - setting the initial pointer is crucial for interopration with existing C code
+        // NOTE - setting the initial pointer is crucial for inter-operation with existing C code
         WasmModule *thisModule = getExecutingModule();
         wasm_pthread *pthreadHost = &Runtime::memoryRef<wasm_pthread>(thisModule->defaultMemory, pthreadPtr);
         pthreadHost->selfPtr = pthreadPtr;
@@ -90,7 +96,7 @@ namespace wasm {
             Runtime::Function *func = Runtime::asFunction(funcObj);
 
             // Note that the spec needs to outlast the scope of this function, so
-            // nothing can be created on the stack
+            // nothing can be created on the stack (this is deleted once the thread is finished)
             auto threadArgs = new IR::UntaggedValue[1];
             threadArgs[0] = argsPtr;
 
@@ -102,16 +108,19 @@ namespace wasm {
             spec->funcArgs = threadArgs;
             spec->stackSize = PTHREAD_STACK_SIZE;
 
+            // Spawn the thread
             localThreads.insert({pthreadPtr, Platform::createThread(0, createPthread, spec)});
+
         } else if (conf.threadMode == "chain") {
-            // TODO - work out how to do different zygotes efficiently
-            if (threadZygoteKey.empty()) {
-                threadZygoteKey = "pthread_zygote_key";
-                threadZygoteSize = thisModule->snapshotToState(threadZygoteKey);
+            // Create a new zygote if one isn't already active
+            if (activeZygoteKey.empty()) {
+                int callId = getExecutingCall()->id();
+                activeZygoteKey = std::string("pthread_zygote_") + std::to_string(callId);
+                threadZygoteSize = thisModule->snapshotToState(activeZygoteKey);
             }
 
             // Chain the threaded call
-            int chainedCallId = makeThreadedCall(threadZygoteKey, threadZygoteSize, entryFunc);
+            int chainedCallId = spawnChainedThread(activeZygoteKey, threadZygoteSize, entryFunc, argsPtr);
 
             // Record this thread -> call ID
             chainedThreads.insert({pthreadPtr, chainedCallId});
@@ -129,13 +138,24 @@ namespace wasm {
         util::SystemConfig &conf = util::getSystemConfig();
         int returnValue;
         if (conf.threadMode == "local") {
-            // Rejoin the local thread
+            // Get the local thread and remove it from the local map
             Platform::Thread *thread = localThreads[pthreadPtr];
+            localThreads.erase(pthreadPtr);
+
+            // Join it
             returnValue = Platform::joinThread(thread);
         } else if (conf.threadMode == "chain") {
             // Await the remotely chained thread
             unsigned int callId = chainedThreads[pthreadPtr];
             returnValue = awaitChainedCall(callId);
+
+            // Remove record for the remote thread
+            chainedThreads.erase(pthreadPtr);
+
+            // If this is the last active thread, reset the zygote key
+            if (chainedThreads.empty()) {
+                activeZygoteKey = "";
+            }
         } else {
             logger->error("Unsupported threading mode: {}", conf.threadMode);
             throw std::runtime_error("Unsupported threading mode");
@@ -153,75 +173,6 @@ namespace wasm {
         util::getLogger()->debug("S - pthread_exit - {}", code);
 
     }
-
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_destroy", I32, pthread_cond_destroy, I32 a) {
-//        util::getLogger()->debug("S - pthread_cond_destroy - {}", a);
-//
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_init", I32, pthread_cond_init, I32 a, I32 b) {
-//        util::getLogger()->debug("S - pthread_cond_init - {} {}", a, b);
-//
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_cond_signal", I32, pthread_cond_signal, I32 a) {
-//        util::getLogger()->debug("S - pthread_cond_signal - {}", a);
-//
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_getspecific", I32, pthread_getspecific, I32 a) {
-//        util::getLogger()->debug("S - pthread_getspecific - {}", a);
-//
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_key_create", I32, pthread_key_create, I32 keyPtr, I32 destructor) {
-//        util::getLogger()->debug("S - pthread_key_create - {} {}", keyPtr, destructor);
-//
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_key_delete", I32, pthread_key_delete, I32 a) {
-//        util::getLogger()->debug("S - pthread_key_delete - {}", a);
-//
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_destroy", I32, pthread_mutex_destroy, I32 a) {
-//        util::getLogger()->debug("S - pthread_mutex_destroy - {}", a);
-//
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_init", I32, pthread_mutex_init, I32 a, I32 b) {
-//        util::getLogger()->debug("S - pthread_mutex_init - {} {}", a, b);
-//
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_lock", I32, pthread_mutex_lock, I32 a) {
-//        util::getLogger()->debug("S - pthread_mutex_lock - {}", a);
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_unlock", I32, pthread_mutex_unlock, I32 a) {
-//        util::getLogger()->debug("S - pthread_mutex_unlock - {}", a);
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_mutex_trylock", I32, pthread_mutex_trylock, I32 a) {
-//        util::getLogger()->debug("S - pthread_mutex_trylock - {}", a);
-//        return 0;
-//    }
-//
-//    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "pthread_setspecific", I32, pthread_setspecific, I32 a, I32 b) {
-//        util::getLogger()->debug("S - pthread_setspecific - {} {}", a, b);
-//
-//        return 0;
-//    }
 
     I32 s__futex(I32 uaddrPtr, I32 futex_op, I32 val, I32 timeoutPtr, I32 uaddr2Ptr, I32 other) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();

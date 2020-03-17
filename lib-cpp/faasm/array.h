@@ -11,35 +11,37 @@ namespace faasm {
     template<typename T>
     class AsyncArray {
     public:
-        AsyncArray(const char *keyIn, size_t sizeIn) : key(keyIn), size(sizeIn) {
-            contents = new T[size];
+        AsyncArray(const char *keyIn, size_t nElemsIn) :
+                key(keyIn),
+                nElems(nElemsIn),
+                bytesSize(nElems * sizeof(T)),
+                contents(nullptr) {
         }
 
-        ~AsyncArray() {
-            delete[] contents;
+        void zero() {
+            faasm::zeroState(key, bytesSize);
+            pullLazy();
         }
 
-        void init() {
-            faasm::zeroState(key, size * sizeof(T));
-        }
-
-        void set(int idx, T val) {
+        T &operator[](int idx) {
+            // Assume any accessed data is dirty
             size_t offset = idx * sizeof(T);
-            faasmWriteStateOffset(key, size * sizeof(T), offset, BYTES(&val), sizeof(T));
+            faasmFlagStateOffsetDirty(key, bytesSize, offset, sizeof(T));
 
-            contents[idx] = val;
-        }
-
-        T get(int idx) {
             return contents[idx];
         }
 
+        void pullLazy() {
+            contents = reinterpret_cast<T *>(faasmReadStatePtr(key, bytesSize));
+        }
+
         void pull() {
-            faasmReadState(key, BYTES(contents), size * sizeof(T));
+            faasmPullState(key, bytesSize);
+            pullLazy();
         }
 
         void push() {
-            faasmPushState(key);
+            faasmPushStatePartial(key);
         }
 
         T *data() {
@@ -48,7 +50,8 @@ namespace faasm {
 
     private:
         const char *key;
-        size_t size;
+        size_t nElems;
+        size_t bytesSize;
         T *contents;
     };
 

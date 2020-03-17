@@ -14,8 +14,8 @@ namespace tests {
         module.bindToFunction(call);
 
         // Execute the function
-        int result = module.execute(call);
-        REQUIRE(result == 0);
+        bool success = module.execute(call);
+        REQUIRE(success);
 
         std::string outputData = call.outputdata();
         const std::vector<uint8_t> outputBytes = util::stringToBytes(outputData);
@@ -35,8 +35,8 @@ namespace tests {
         wasm::WasmModule module;
         module.bindToFunction(call);
 
-        int result = module.execute(call);
-        REQUIRE(result == 0);
+        bool success = module.execute(call);
+        REQUIRE(success);
     }
 
     void executeX2(wasm::WasmModule &module) {
@@ -49,8 +49,8 @@ namespace tests {
         call.set_inputdata(inputValues, 10);
 
         // Make the call
-        int result = module.execute(call);
-        REQUIRE(result == 0);
+        bool success = module.execute(call);
+        REQUIRE(success);
 
         std::string outputData = call.outputdata();
         const std::vector<uint8_t> outputBytes = util::stringToBytes(outputData);

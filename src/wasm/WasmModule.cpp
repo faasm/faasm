@@ -25,6 +25,8 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/uio.h>
+#include <util/bytes.h>
+#include <util/macros.h>
 
 using namespace WAVM;
 
@@ -121,11 +123,6 @@ namespace wasm {
             envModule = Runtime::remapToClonedCompartment(other.envModule, compartment);
             moduleInstance = Runtime::remapToClonedCompartment(other.moduleInstance, compartment);
 
-            // NOTE: although we are using the remapping functions here, the function
-            // variables are just pointers (and are returned directly)
-            functionInstance = Runtime::remapToClonedCompartment(other.functionInstance, compartment);
-            zygoteFunctionInstance = Runtime::remapToClonedCompartment(other.zygoteFunctionInstance, compartment);
-
             // Extract the memory and table again
             defaultMemory = Runtime::getDefaultMemory(moduleInstance);
             defaultTable = Runtime::getDefaultTable(moduleInstance);
@@ -178,9 +175,6 @@ namespace wasm {
         defaultMemory = nullptr;
         defaultTable = nullptr;
         moduleInstance = nullptr;
-
-        functionInstance = nullptr;
-        zygoteFunctionInstance = nullptr;
 
         envModule = nullptr;
 
@@ -334,25 +328,18 @@ namespace wasm {
 
         PROF_START(wasmBind)
 
-        // Get main entrypoint function
-        std::string mainFuncName(ENTRY_FUNC_NAME);
-        if (boundIsTypescript) {
-            mainFuncName = "_asMain";
-        }
-        functionInstance = getFunction(mainFuncName, true);
-
         // Keep reference to memory and table
         defaultMemory = Runtime::getDefaultMemory(moduleInstance);
         defaultTable = Runtime::getDefaultTable(moduleInstance);
 
         // Get and execute zygote function
         if (executeZygote) {
-            zygoteFunctionInstance = getFunction(ZYGOTE_FUNC_NAME, false);
-            if (zygoteFunctionInstance) {
+            Runtime::Function *zygoteFunc = getDefaultZygoteFunction();
+            if (zygoteFunc) {
                 IR::UntaggedValue result;
-                const IR::FunctionType funcType = Runtime::getFunctionType(zygoteFunctionInstance);
+                const IR::FunctionType funcType = Runtime::getFunctionType(zygoteFunc);
                 executeFunction(
-                        zygoteFunctionInstance,
+                        zygoteFunc,
                         funcType,
                         {},
                         result
@@ -652,7 +639,7 @@ namespace wasm {
     /**
      * Executes the given function call
      */
-    int WasmModule::execute(message::Message &msg) {
+    bool WasmModule::execute(message::Message &msg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         if (!_isBound) {
@@ -669,54 +656,75 @@ namespace wasm {
         executingModule = this;
         executingCall = &msg;
 
-        int exitCode = 0;
+        // Run a specific function if requested
+        int funcPtr = msg.funcptr();
+        std::vector<IR::UntaggedValue> invokeArgs;
+        Runtime::Function *funcInstance;
+        IR::FunctionType funcType;
+        if (funcPtr > 0) {
+            funcInstance = getFunctionFromPtr(funcPtr);
 
-        // Set up arguments
-        std::vector<IR::UntaggedValue> invokeArgs = getArgcArgv(msg);
+            // NOTE - when we've got a function pointer, we assume the args are a single integer
+            // held in the input data (resulting from a chained thread invocation)
+            if(msg.inputdata().empty()) {
+                invokeArgs = {0};
+            } else {
+                int intArg = std::stoi(msg.inputdata());
+                invokeArgs = {intArg};
+            }
 
+            funcType = IR::FunctionType(
+                    {IR::ValueType::i32},
+                    {IR::ValueType::i32}
+            );
+        } else if (boundIsTypescript) {
+            // Different function signature for typescript
+            funcType = IR::FunctionType(
+                    {IR::ValueType::i32},
+                    {}
+            );
+        } else {
+            // Set up main args
+            invokeArgs = getArgcArgv(msg);
+            funcInstance = getMainFunction();
+            funcType = IR::FunctionType(
+                    {IR::ValueType::i32},
+                    {IR::ValueType::i32, IR::ValueType::i32}
+            );
+        }
+
+        // Call the function
+        int returnValue = 0;
+        bool success = true;
         try {
-            // Call the function
-            Runtime::catchRuntimeExceptions([this, &invokeArgs, &exitCode, &logger] {
+            Runtime::catchRuntimeExceptions([this, &funcInstance, &funcType, &invokeArgs, &returnValue, &logger] {
+                logger->debug("Invoking C/C++ function");
+
                 IR::UntaggedValue result;
+                executeFunction(
+                        funcInstance,
+                        funcType,
+                        invokeArgs,
+                        result
+                );
 
-                // Different function signature for different languages
-                if (boundIsTypescript) {
-                    logger->debug("Invoking typescript function");
-                    executeFunction(
-                            functionInstance,
-                            IR::FunctionType(
-                                    {IR::ValueType::i32},
-                                    {}
-                            ),
-                            {},
-                            result
-                    );
-                } else {
-                    logger->debug("Invoking C/C++ function");
-
-                    executeFunction(
-                            functionInstance,
-                            IR::FunctionType(
-                                    {IR::ValueType::i32},
-                                    {IR::ValueType::i32, IR::ValueType::i32}
-                            ),
-                            invokeArgs,
-                            result
-                    );
-                }
-
-                exitCode = result.i32;
-            }, [&logger, &exitCode](Runtime::Exception *ex) {
+                returnValue = result.i32;
+            }, [&logger, &success, &returnValue](Runtime::Exception *ex) {
                 logger->error("Runtime exception: {}", Runtime::describeException(ex).c_str());
                 Runtime::destroyException(ex);
-                exitCode = 1;
+                success = false;
+                returnValue = 1;
             });
         }
         catch (wasm::WasmExitException &e) {
-            exitCode = e.exitCode;
+            logger->debug("Caught wasm exit exception (code {})", e.exitCode);
+            returnValue = e.exitCode;
+            success = e.exitCode == 0;
         }
 
-        return exitCode;
+        // Record the return value
+        msg.set_returnvalue(returnValue);
+        return success;
     }
 
     U32 WasmModule::mmapFile(U32 fd, U32 length) {
@@ -1121,7 +1129,7 @@ namespace wasm {
 
         state::State &state = state::getGlobalState();
         const std::shared_ptr<state::StateKeyValue> &stateKv = state.getKV(
-                getExecutingCall()->user(),
+                boundUser,
                 stateKey,
                 stateSize
         );
@@ -1160,9 +1168,13 @@ namespace wasm {
     }
 
     void WasmModule::restoreFromState(const std::string &stateKey, size_t stateSize) {
+        if(!isBound()) {
+            throw std::runtime_error("Module must be bound before restoring from state");
+        }
+
         state::State &state = state::getGlobalState();
         const std::shared_ptr<state::StateKeyValue> &stateKv = state.getKV(
-                getExecutingCall()->user(),
+                boundUser,
                 stateKey,
                 stateSize
         );
@@ -1295,4 +1307,24 @@ namespace wasm {
 
         return result.i32;
     }
+
+    Runtime::Function *WasmModule::getMainFunction() {
+        std::string mainFuncName(ENTRY_FUNC_NAME);
+
+        if (boundIsTypescript) {
+            mainFuncName = "_asMain";
+        }
+
+        return getFunction(mainFuncName, true);
+    }
+
+    Runtime::Function *WasmModule::getDefaultZygoteFunction() {
+        return getFunction(ZYGOTE_FUNC_NAME, false);
+    }
+
+    Runtime::Function *WasmModule::getFunctionFromPtr(int funcPtr) {
+        Runtime::Object *funcObj = Runtime::getTableElement(defaultTable, funcPtr);
+        return Runtime::asFunction(funcObj);
+    }
+
 }

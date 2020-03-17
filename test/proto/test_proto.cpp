@@ -24,6 +24,7 @@ namespace tests {
         std::string user = "foobar user";
         std::string func = "foobar func";
         std::string resultKey = "dummy result";
+        int returnValue = 123;
 
         std::string pyUser = "python user";
         std::string pyFunc = "python func";
@@ -37,6 +38,7 @@ namespace tests {
         funcCall.set_user(user);
         funcCall.set_function(func);
         funcCall.set_resultkey(resultKey);
+        funcCall.set_returnvalue(returnValue);
 
         funcCall.set_pythonuser(pyUser);
         funcCall.set_pythonfunction(pyFunc);
@@ -59,6 +61,7 @@ namespace tests {
         REQUIRE(user == funcCall.user());
         REQUIRE(func == funcCall.function());
         REQUIRE(resultKey == funcCall.resultkey());
+        REQUIRE(returnValue == funcCall.returnvalue());
 
         // Check serialisation round trip
         std::string serialised = funcCall.SerializeAsString();

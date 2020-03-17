@@ -17,7 +17,7 @@ namespace tests {
         message::Message msg = util::messageFactory("demo", threadFunc);
 
         if (runPool) {
-            execFuncWithPool(msg, false, 1, true, 4, false);
+            execFuncWithPool(msg, false, 1, false, 4, false);
         } else {
             execFunction(msg);
         }
@@ -34,7 +34,11 @@ namespace tests {
         checkThreadedFunction("local", "threads_check", false);
     }
 
-//    TEST_CASE("Run thread checks with chaining", "[worker]") {
-//        checkThreadedFunction("chain", "threads_check", true);
-//    }
+    TEST_CASE("Run thread checks with chaining", "[worker]") {
+        checkThreadedFunction("chain", "threads_check", true);
+    }
+
+    TEST_CASE("Run distributed threading check", "[worker]") {
+        checkThreadedFunction("chain", "threads_dist", true);
+    }
 }

@@ -52,13 +52,12 @@ namespace worker {
         }
     }
 
-    void WorkerThread::finishCall(message::Message &call, const std::string &errorMsg) {
+    void WorkerThread::finishCall(message::Message &call, bool success, const std::string &errorMsg) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         const std::string funcStr = util::funcToString(call, true);
         logger->info("Finished {}", funcStr);
 
-        bool isSuccess = errorMsg.empty();
-        if (!isSuccess) {
+        if (!success) {
             call.set_outputdata(errorMsg);
         }
 
@@ -66,7 +65,7 @@ namespace worker {
         util::SystemConfig &conf = util::getSystemConfig();
         if (conf.captureStdout == "on") {
             std::string moduleStdout = module->getCapturedStdout();
-            if(!moduleStdout.empty()) {
+            if (!moduleStdout.empty()) {
                 std::string newOutput = moduleStdout + "\n" + call.outputdata();
                 call.set_outputdata(newOutput);
 
@@ -81,7 +80,7 @@ namespace worker {
 
         // Set result
         logger->debug("Setting function result for {}", funcStr);
-        globalBus.setFunctionResult(call, isSuccess);
+        globalBus.setFunctionResult(call);
 
         // Restore from zygote
         logger->debug("Resetting module {} from zygote", funcStr);
@@ -186,38 +185,49 @@ namespace worker {
                 this->bindToFunction(msg, true);
             }
 
+            // Check if we need to restore from a different zygote
+            const std::string zygoteKey = msg.zygotekey();
+            if (!zygoteKey.empty()) {
+                PROF_START(zygoteOverride)
+
+                zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
+                wasm::WasmModule &zygote = registry.getZygote(msg);
+                module = std::make_unique<wasm::WasmModule>(zygote);
+
+                PROF_END(zygoteOverride)
+            }
+
             errorMessage = this->executeCall(msg);
         }
 
         return errorMessage;
     }
 
-    const std::string WorkerThread::executeCall(message::Message &call) {
+    std::string WorkerThread::executeCall(message::Message &call) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
 
         const std::string funcStr = util::funcToString(call, true);
         logger->info("WorkerThread executing {}", funcStr);
 
         // Create and execute the module
-        int exitCode = 0;
-        try {
-            exitCode = module->execute(call);
-        }
-        catch (const std::exception &e) {
-            std::string errorMessage = "Error: " + std::string(e.what());
-            logger->error(errorMessage);
-
-            this->finishCall(call, errorMessage);
-            return errorMessage;
-        }
-
+        bool success;
         std::string errorMessage;
 
-        if (exitCode != 0) {
-            errorMessage = "Non-zero exit code: " + std::to_string(exitCode);
+        try {
+            success = module->execute(call);
+        }
+        catch (const std::exception &e) {
+            errorMessage = "Error: " + std::string(e.what());
+            logger->error(errorMessage);
+            success = false;
+            call.set_returnvalue(1);
         }
 
-        this->finishCall(call, errorMessage);
+        if (!success && errorMessage.empty()) {
+            errorMessage = "Call failed (return value=" + std::to_string(call.returnvalue()) + ")";
+        }
+
+        this->finishCall(call, success, errorMessage);
         return errorMessage;
     }
 }

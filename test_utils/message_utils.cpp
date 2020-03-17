@@ -26,7 +26,7 @@ namespace tests {
         REQUIRE(msgA.isstatusrequest() == msgB.isstatusrequest());
         REQUIRE(msgA.isflushrequest() == msgB.isflushrequest());
 
-        REQUIRE(msgA.success() == msgB.success());
+        REQUIRE(msgA.returnvalue() == msgB.returnvalue());
 
         REQUIRE(msgA.inputdata() == msgB.inputdata());
         REQUIRE(msgA.outputdata() == msgB.outputdata());
