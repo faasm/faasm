@@ -37,4 +37,8 @@ namespace tests {
     TEST_CASE("Run thread checks with chaining", "[worker]") {
         checkThreadedFunction("chain", "threads_check", true);
     }
+
+    TEST_CASE("Run distributed threading check", "[worker]") {
+        checkThreadedFunction("chain", "threads_dist", true);
+    }
 }

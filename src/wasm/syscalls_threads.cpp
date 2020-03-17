@@ -22,7 +22,7 @@ namespace wasm {
     static thread_local std::unordered_map<I32, unsigned int> chainedThreads;
 
     // Flag to say whether we've spawned a thread
-    static std::string threadZygoteKey;
+    static std::string activeZygoteKey;
     static size_t threadZygoteSize;
 
     I32 s__fork() {
@@ -69,6 +69,10 @@ namespace wasm {
      * We just use the int value of the pthread pointer to act as its ID (to be passed
      * around the different pthread functions).
      *
+     * In the "chain" threading mode, we spawn threads as chained function calls, which
+     * may get executed on another host. To enable this we create a zygote from which
+     * these "thread" calls can be spawned on another host.
+     *
      * @param pthreadPtr - pointer to the pthread struct
      * @param attrPtr - pointer to the pthread attr struct
      * @param entryFunc - function table index for the entrypoint
@@ -108,18 +112,15 @@ namespace wasm {
             localThreads.insert({pthreadPtr, Platform::createThread(0, createPthread, spec)});
 
         } else if (conf.threadMode == "chain") {
-            /**
-             * TODO - sharing the same key here isn't a good idea. Perhaps use the message ID
-             * would be more appropriate. We need a way to avoid duplicating the zygote _every_
-             * time, but equally want to share it where possible.
-             */
-            if (threadZygoteKey.empty()) {
-                threadZygoteKey = "pthread_zygote_key";
-                threadZygoteSize = thisModule->snapshotToState(threadZygoteKey);
+            // Create a new zygote if one isn't already active
+            if (activeZygoteKey.empty()) {
+                int callId = getExecutingCall()->id();
+                activeZygoteKey = std::string("pthread_zygote_") + std::to_string(callId);
+                threadZygoteSize = thisModule->snapshotToState(activeZygoteKey);
             }
 
             // Chain the threaded call
-            int chainedCallId = makeThreadedCall(threadZygoteKey, threadZygoteSize, entryFunc, argsPtr);
+            int chainedCallId = makeThreadedCall(activeZygoteKey, threadZygoteSize, entryFunc, argsPtr);
 
             // Record this thread -> call ID
             chainedThreads.insert({pthreadPtr, chainedCallId});
@@ -137,13 +138,24 @@ namespace wasm {
         util::SystemConfig &conf = util::getSystemConfig();
         int returnValue;
         if (conf.threadMode == "local") {
-            // Rejoin the local thread
+            // Get the local thread and remove it from the local map
             Platform::Thread *thread = localThreads[pthreadPtr];
+            localThreads.erase(pthreadPtr);
+
+            // Join it
             returnValue = Platform::joinThread(thread);
         } else if (conf.threadMode == "chain") {
             // Await the remotely chained thread
             unsigned int callId = chainedThreads[pthreadPtr];
             returnValue = awaitChainedCall(callId);
+
+            // Remove record for the remote thread
+            chainedThreads.erase(pthreadPtr);
+
+            // If this is the last active thread, reset the zygote key
+            if (chainedThreads.empty()) {
+                activeZygoteKey = "";
+            }
         } else {
             logger->error("Unsupported threading mode: {}", conf.threadMode);
             throw std::runtime_error("Unsupported threading mode");
@@ -161,7 +173,7 @@ namespace wasm {
         util::getLogger()->debug("S - pthread_exit - {}", code);
 
     }
-    
+
     I32 s__futex(I32 uaddrPtr, I32 futex_op, I32 val, I32 timeoutPtr, I32 uaddr2Ptr, I32 other) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
         std::string opStr;
