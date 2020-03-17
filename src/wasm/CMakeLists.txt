@@ -8,21 +8,21 @@ file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/wasm/*.h")
 set(LIB_FILES
         WasmModule.cpp
         chaining_util.cpp
+        chaining.cpp
+        dynlink.cpp
+        env.cpp
+        faasm.cpp
+        io.cpp
+        maths.cpp
+        memory.cpp
+        mpi.cpp
+        network.cpp
+        openmp.cpp
         syscalls.cpp
-        syscalls_chaining.cpp
-        syscalls_dynlink.cpp
-        syscalls_env.cpp
-        syscalls_faasm.cpp
-        syscalls_io.cpp
-        syscalls_maths.cpp
-        syscalls_memory.cpp
-        syscalls_mpi.cpp
-        syscalls_network.cpp
-        syscalls_openmp.cpp
-        syscalls_threads.cpp
-        syscalls_unsupported.cpp
-        syscalls_util.cpp
-        ts_syscalls.cpp
+        threads.cpp
+        typescript.cpp
+        unsupported.cpp
+        util.cpp
         ${HEADERS}
         )
 

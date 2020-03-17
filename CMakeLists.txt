@@ -152,6 +152,7 @@ elseif (FAASM_BUILD_TYPE STREQUAL "lambda-worker")
     add_subdirectory(third-party/WAVM)
 
     add_subdirectory(src/aws)
+    add_subdirectory(src/codegen)
     add_subdirectory(src/ir_cache)
     add_subdirectory(src/lambda)
     add_subdirectory(src/module_cache)
@@ -232,6 +233,7 @@ else ()
     endif()
 
     # Faasm runtime
+    add_subdirectory(src/codegen)
     add_subdirectory(src/data)
     add_subdirectory(src/edge)
     add_subdirectory(src/emulator)
