@@ -162,6 +162,41 @@ namespace tests {
         }
     }
 
+    TEST_CASE("Test async send and recv", "[mpi]") {
+        cleanSystem();
+
+        const message::Message &msg = util::messageFactory(user, func);
+        mpi::MpiWorld world;
+        world.create(msg, worldId, worldSize);
+
+        // Register two ranks
+        int rankA = 1;
+        int rankB = 2;
+        world.registerRank(rankA);
+        world.registerRank(rankB);
+
+        // Send a couple of async messages (from both to each other)
+        std::vector<int> messageDataA = {0, 1, 2};
+        std::vector<int> messageDataB = {3, 4, 5, 6};
+        int sendIdA = world.isend(rankA, rankB, BYTES(messageDataA.data()), MPI_INT, messageDataA.size());
+        int sendIdB = world.isend(rankB, rankA, BYTES(messageDataB.data()), MPI_INT, messageDataB.size());
+
+        // Asynchronously do the receives
+        std::vector<int> actualA(messageDataA.size(), 0);
+        std::vector<int> actualB(messageDataB.size(), 0);
+        int recvIdA = world.irecv(rankA, rankB, BYTES(actualA.data()), MPI_INT, actualA.size());
+        int recvIdB = world.irecv(rankB, rankA, BYTES(actualB.data()), MPI_INT, actualB.size());
+
+        // Await the results out of order (they should all complete)
+        world.awaitAsyncRequest(recvIdB);
+        world.awaitAsyncRequest(sendIdA);
+        world.awaitAsyncRequest(recvIdA);
+        world.awaitAsyncRequest(sendIdB);
+
+        REQUIRE(actualA == messageDataA);
+        REQUIRE(actualB == messageDataB);
+    }
+
     TEST_CASE("Test send across nodes", "[mpi]") {
         cleanSystem();
         std::string nodeIdA = util::randomString(NODE_ID_LEN);
