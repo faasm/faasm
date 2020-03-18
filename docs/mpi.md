@@ -17,6 +17,23 @@ inv upload mpi hellompi
 inv invoke mpi hellompi
 ```
 
+## Running code locally
+
+To install the latest Open MPI locally you can use the following Ansible playbook:
+ 
+```
+cd ansible
+ansible-playbook openmpi.yml --ask-become-pass
+```
+
+This installs it to `/usr/local/faasm/openmpi`.
+
+Once you've built a native executable linked against this, you can then use `mpirun` on the binary e.g.
+
+```
+/usr/local/faasm/openmpi/bin/mpirun -n 2 <your native mpi func> 
+```
+
 ## ParRes Kernels
 
 We can benchmark Faasm's MPI implementation using the [ParRes Kernels](https://github.com/ParRes/Kernels)
@@ -33,29 +50,6 @@ This uploads a number of the kernels written for MPI, e.g. `nstream`. These can 
 
 ```bash
 inv prk.invoke nstream
-```
-
-## Extending the Faasm MPI implementation
-
-The MPI interface declarations live in `lib-faasmpi` and the definitions in `src/wasm/mpi.cpp`.
-
-Any new functions need to be included in `lib-faasmpi/faasmpi.imports`. 
-
-## Installing/ running locally
-
-To install the latest Open MPI locally you can use the following Ansible playbook:
- 
-```
-cd ansible
-ansible-playbook openmpi.yml --ask-become-pass
-```
-
-This installs it to `/usr/local/faasm/openmpi`.
-
-Once you've built a native executable linked against this, you can then use `mpirun` on the binary e.g.
-
-```
-/usr/local/faasm/openmpi/bin/mpirun -n 2 <your native mpi func> 
 ```
 
 # Benchmarks
@@ -157,3 +151,9 @@ You can also specify CIDR address ranges:
 ```bash
 mpirun ... -mca btl_tcp_if_include 192.168.0.0/16 ...
 ```
+
+## Extending the Faasm MPI implementation
+
+The MPI interface declarations live in `lib-faasmpi` and the definitions in `src/wasm/mpi.cpp`.
+
+Any new functions need to be included in `lib-faasmpi/faasmpi.imports`. 

@@ -44,7 +44,7 @@ namespace tests {
 
         REQUIRE(conf.globalMessageTimeout == 60000);
         REQUIRE(conf.boundTimeout == 30000);
-        REQUIRE(conf.unboundTimeout == 60000);
+        REQUIRE(conf.unboundTimeout == 300000);
         REQUIRE(conf.chainedCallTimeout == 300000);
 
         REQUIRE(conf.defaultMpiWorldSize == 5);
