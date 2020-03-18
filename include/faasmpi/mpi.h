@@ -71,8 +71,24 @@ struct faasmpi_info_t {
     int id;
 };
 
+enum faasmpi_async_t {
+    ISEND,
+    IRECV
+};
+
 struct faasmpi_request_t {
+    faasmpi_async_t type;
+
     int id;
+    int sendRank;
+    int recvRank;
+
+    const uint8_t *sendBuffer;
+    uint8_t *recvBuffer;
+    int count;
+    faasmpi_datatype_t *dataType;
+
+    bool completed;
 };
 
 struct faasmpi_group_t {

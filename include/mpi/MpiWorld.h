@@ -9,7 +9,7 @@
 
 namespace mpi {
     typedef util::Queue<MpiMessage *> InMemoryMpiQueue;
-    typedef std::pair<std::string, InMemoryMpiQueue *> MpiMessageQueuePair;
+    typedef util::Queue<int> InMemoryIntQueue;
 
     struct MpiWorldState {
         int worldSize;
@@ -49,6 +49,10 @@ namespace mpi {
                   const uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
                   MpiMessageType messageType = MpiMessageType::NORMAL);
 
+        void isend(int sendRank, int recvRank,
+                   const uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
+                   faasmpi_request_t *request);
+
         void broadcast(int sendRank,
                        const uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
                        MpiMessageType messageType = MpiMessageType::NORMAL);
@@ -56,6 +60,12 @@ namespace mpi {
         void recv(int sendRank, int recvRank,
                   uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
                   MPI_Status *status, MpiMessageType messageType = MpiMessageType::NORMAL);
+
+        void irecv(int sendRank, int recvRank,
+                   uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
+                   faasmpi_request_t *request);
+
+        void awaitAsyncRequest(faasmpi_request_t *request);
 
         void scatter(int sendRank, int recvRank,
                      const uint8_t *sendBuffer, faasmpi_datatype_t *sendType, int sendCount,
@@ -72,7 +82,7 @@ namespace mpi {
                     faasmpi_datatype_t *datatype, int count, faasmpi_op_t *operation);
 
         void allReduce(int rank, uint8_t *sendBuffer, uint8_t *recvBuffer, faasmpi_datatype_t *datatype, int count,
-                       faasmpi_op_t * operation);
+                       faasmpi_op_t *operation);
 
         void allToAll(int rank, uint8_t *sendBuffer, faasmpi_datatype_t *sendType, int sendCount,
                       uint8_t *recvBuffer, faasmpi_datatype_t *recvType, int recvCount);
@@ -82,22 +92,25 @@ namespace mpi {
         void barrier(int thisRank);
 
         void rmaGet(int sendRank, faasmpi_datatype_t *sendType, int sendCount,
-                uint8_t* recvBuffer, faasmpi_datatype_t *recvType, int recvCount);
+                    uint8_t *recvBuffer, faasmpi_datatype_t *recvType, int recvCount);
 
-        void rmaPut(int sendRank, uint8_t* sendBuffer, faasmpi_datatype_t *sendType, int sendCount,
+        void rmaPut(int sendRank, uint8_t *sendBuffer, faasmpi_datatype_t *sendType, int sendCount,
                     int recvRank, faasmpi_datatype_t *recvType, int recvCount);
 
         std::shared_ptr<InMemoryMpiQueue> getLocalQueue(int sendRank, int recvRank);
+
+        std::shared_ptr<InMemoryIntQueue> getLocalAsyncQueue(int sendRank, int recvRank);
 
         long getLocalQueueSize(int sendRank, int recvRank);
 
         void overrideNodeId(const std::string &newNodeId);
 
-        void createWindow(const faasmpi_win_t *window, uint8_t* windowPtr);
+        void createWindow(const faasmpi_win_t *window, uint8_t *windowPtr);
 
         void synchronizeRmaWrite(const MpiMessage *msg, bool isRemote);
 
         double getWTime();
+
     private:
         int id;
         int size;
@@ -115,11 +128,8 @@ namespace mpi {
         std::unordered_map<std::string, uint8_t *> windowPointerMap;
 
         std::unordered_map<std::string, std::shared_ptr<InMemoryMpiQueue>> localQueueMap;
-
-        std::shared_ptr<InMemoryMpiQueue> getInMemoryQueue(
-                std::unordered_map<std::string, std::shared_ptr<InMemoryMpiQueue>> &queueMap,
-                const std::string &key
-        );
+        std::unordered_map<std::string, std::shared_ptr<util::Queue<int>>> localAsyncQueueMap;
+        std::unordered_map<int, faasmpi_request_t *> pendingAsyncRequests;
 
         void setUpStateKV();
 
@@ -128,6 +138,9 @@ namespace mpi {
         std::shared_ptr<state::StateKeyValue> getMessageState(int messageId, faasmpi_datatype_t *datatype, int count);
 
         void checkRankOnThisNode(int rank);
+
+        void doISendRecv(int sendRank, int recvRank, const uint8_t *sendBuffer, uint8_t *recvBuffer,
+                         faasmpi_datatype_t *dataType, int count, faasmpi_request_t *request);
 
         void pushToState();
     };

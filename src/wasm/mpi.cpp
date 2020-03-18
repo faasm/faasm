@@ -59,6 +59,11 @@ namespace wasm {
             return hostDataType;
         }
 
+        faasmpi_request_t *getFaasmRequest(I32 wasmPtr) {
+            faasmpi_request_t *hostRequest = &Runtime::memoryRef<faasmpi_request_t>(memory, wasmPtr);
+            return hostRequest;
+        }
+
         faasmpi_info_t *getFaasmInfoType(I32 wasmPtr) {
             faasmpi_info_t *hostInfoType = &Runtime::memoryRef<faasmpi_info_t>(memory, wasmPtr);
             return hostInfoType;
@@ -162,6 +167,24 @@ namespace wasm {
     }
 
     /**
+    * Sends a single async point-to-point message
+    */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Isend", I32, MPI_Isend,
+                                   I32 buffer, I32 count, I32 datatype, I32 destRank, I32 tag, I32 comm, I32 request) {
+        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
+        logger->debug("S - MPI_Isend {} {} {} {} {} {} {}", buffer, count, datatype, destRank, tag, comm, request);
+
+        ContextWrapper ctx(comm);
+        faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
+        faasmpi_request_t *hostRequest = ctx.getFaasmRequest(request);
+
+        auto inputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
+        ctx.world.isend(ctx.rank, destRank, inputs, hostDtype, count, hostRequest);
+
+        return MPI_SUCCESS;
+    }
+
+    /**
      * Returns the number of elements the given MPI_Status corresponds to.
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Get_count", I32, MPI_Get_count, I32 statusPtr, I32 datatype,
@@ -188,9 +211,8 @@ namespace wasm {
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Recv", I32, MPI_Recv, I32 buffer, I32 count,
                                    I32 datatype, I32 sourceRank, I32 tag, I32 comm, I32 statusPtr) {
-        const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - MPI_Recv {} {} {} {} {} {} {}",
-                      buffer, count, datatype, sourceRank, tag, comm, statusPtr);
+        util::getLogger()->debug("S - MPI_Recv {} {} {} {} {} {} {}",
+                                 buffer, count, datatype, sourceRank, tag, comm, statusPtr);
 
         ContextWrapper ctx;
         MPI_Status *status = &Runtime::memoryRef<MPI_Status>(ctx.memory, statusPtr);
@@ -201,11 +223,41 @@ namespace wasm {
         return 0;
     }
 
+    /**
+     * Receives a single asynchronous point-to-point message.
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Irecv", I32, MPI_Irecv, I32 buffer, I32 count,
+                                   I32 datatype, I32 sourceRank, I32 tag, I32 comm, I32 request) {
+
+        util::getLogger()->debug("S - MPI_Irecv {} {} {} {} {} {} {}",
+                                 buffer, count, datatype, sourceRank, tag, comm, request);
+
+        ContextWrapper ctx;
+        faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
+        faasmpi_request_t *hostRequest = ctx.getFaasmRequest(request);
+
+        auto outputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
+        ctx.world.irecv(sourceRank, ctx.rank, outputs, hostDtype, count, hostRequest);
+
+        return MPI_SUCCESS;
+    }
+
     int terminateMpi() {
         if (executingContext.getRank() <= 0) {
             mpi::MpiWorld &world = getExecutingWorld();
             world.destroy();
         }
+
+        return MPI_SUCCESS;
+    }
+
+    /**
+     * Waits for the asynchronous request to complete
+     */
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Wait", I32, MPI_Wait, I32 request, I32 status) {
+        ContextWrapper ctx;
+        faasmpi_request_t *hostRequest = ctx.getFaasmRequest(request);
+        ctx.world.awaitAsyncRequest(hostRequest);
 
         return MPI_SUCCESS;
     }
@@ -309,7 +361,7 @@ namespace wasm {
 
         auto hostRecvBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, recvBuf, recvCount * hostRecvDtype->size);
         uint8_t *hostSendBuffer;
-        if(isInPlace(sendBuf)) {
+        if (isInPlace(sendBuf)) {
             hostSendBuffer = hostRecvBuffer;
         } else {
             hostSendBuffer = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, sendBuf, sendCount * hostSendDtype->size);

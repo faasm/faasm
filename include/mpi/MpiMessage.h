@@ -11,7 +11,7 @@ namespace mpi {
         REDUCE,
         ALLREDUCE,
         ALLTOALL,
-        RMA_WRITE,
+        RMA_WRITE
     };
 
     struct MpiMessage {

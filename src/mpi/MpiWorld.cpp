@@ -164,6 +164,52 @@ namespace mpi {
         return rankNodeMap[rank];
     }
 
+    void MpiWorld::isend(int sendRank, int recvRank, const uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
+                         faasmpi_request_t *request) {
+        doISendRecv(sendRank, recvRank, buffer, nullptr, dataType, count, request);
+    }
+
+    void MpiWorld::doISendRecv(int sendRank, int recvRank, const uint8_t *sendBuffer, uint8_t *recvBuffer,
+                               faasmpi_datatype_t *dataType, int count, faasmpi_request_t *request) {
+
+        bool isSend = sendBuffer != nullptr;
+
+        // Create the pending request object
+        request->id = (int) util::generateGid();
+        request->sendRank = sendRank;
+        request->recvRank = recvRank;
+        request->count = count;
+        request->dataType = dataType;
+
+        if (isSend) {
+            request->sendBuffer = sendBuffer;
+            request->type = faasmpi_async_t::ISEND;
+        } else {
+            request->recvBuffer = recvBuffer;
+            request->type = faasmpi_async_t::IRECV;
+        }
+
+        // Record this request
+        pendingAsyncRequests.insert({request->id, request});
+
+        // Spawn a thread to do the work
+        std::thread t([&] {
+            // Do the operation (synchronous send/ receive)
+            if (isSend) {
+                send(request->sendRank, request->recvRank, request->sendBuffer, request->dataType, request->count);
+            } else {
+                recv(request->sendRank, request->recvRank, request->recvBuffer, request->dataType, request->count,
+                     nullptr);
+            }
+
+            // Mark the request as completed and notify on the queue
+            request->completed = true;
+            getLocalAsyncQueue(request->sendRank, request->recvRank)->enqueue(request->id);
+        });
+
+        t.detach();
+    }
+
     void MpiWorld::send(int sendRank, int recvRank, const uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
                         MpiMessageType messageType) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
@@ -339,6 +385,11 @@ namespace mpi {
         }
     }
 
+    void MpiWorld::irecv(int sendRank, int recvRank, uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
+                         faasmpi_request_t *request) {
+        doISendRecv(sendRank, recvRank, nullptr, buffer, dataType, count, request);
+    }
+
     void MpiWorld::recv(int sendRank, int recvRank,
                         uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
                         MPI_Status *status, MpiMessageType messageType) {
@@ -375,6 +426,21 @@ namespace mpi {
 
             // TODO - thread through tag
             status->MPI_TAG = -1;
+        }
+    }
+
+    void MpiWorld::awaitAsyncRequest(faasmpi_request_t *request) {
+        // Check if the request is already completed
+        bool isCompleted = request->completed;
+
+        // We need to keep dequeueing messages from the async queue until we get
+        // to the one we want.
+        // Note that we can guarantee this is the only thread _dequeueing_ on this queue
+        while (!isCompleted) {
+            int msgId = getLocalAsyncQueue(request->sendRank, request->recvRank)->dequeue();
+            if (msgId == request->id) {
+                isCompleted = true;
+            }
         }
     }
 
@@ -572,23 +638,33 @@ namespace mpi {
         checkRankOnThisNode(recvRank);
 
         std::string key = std::to_string(sendRank) + "_" + std::to_string(recvRank);
-        return getInMemoryQueue(localQueueMap, key);
-    }
-
-    std::shared_ptr<InMemoryMpiQueue> MpiWorld::getInMemoryQueue(
-            std::unordered_map<std::string, std::shared_ptr<InMemoryMpiQueue>> &queueMap,
-            const std::string &key
-    ) {
-        if (queueMap.count(key) == 0) {
+        if (localQueueMap.count(key) == 0) {
             util::FullLock lock(worldMutex);
 
-            if (queueMap.count(key) == 0) {
+            if (localQueueMap.count(key) == 0) {
                 auto mq = new InMemoryMpiQueue();
-                queueMap.emplace(MpiMessageQueuePair(key, mq));
+                localQueueMap.emplace(std::pair<std::string, InMemoryMpiQueue *>(key, mq));
             }
         }
 
-        return queueMap[key];
+        return localQueueMap[key];
+    }
+
+    std::shared_ptr<InMemoryIntQueue> MpiWorld::getLocalAsyncQueue(int sendRank, int recvRank) {
+        checkRankOnThisNode(recvRank);
+
+        std::string key = std::to_string(sendRank) + "_" + std::to_string(recvRank);
+
+        if (localAsyncQueueMap.count(key) == 0) {
+            util::FullLock lock(worldMutex);
+
+            if (localAsyncQueueMap.count(key) == 0) {
+                auto mq = new InMemoryIntQueue();
+                localAsyncQueueMap.emplace(std::pair<std::string, InMemoryIntQueue *>(key, mq));
+            }
+        }
+
+        return localAsyncQueueMap[key];
     }
 
     void MpiWorld::rmaGet(int sendRank, faasmpi_datatype_t *sendType, int sendCount,

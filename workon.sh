@@ -47,6 +47,9 @@ if [[ -d /faasm/build ]]; then
   export PATH=/faasm/build/bin:$PATH
 fi
 
+# Native MPI
+export PATH=/usr/local/faasm/openmpi/bin:$PATH
+
 echo ""
 echo "----------------------------------"
 echo "Faasm CLI"
