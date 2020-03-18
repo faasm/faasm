@@ -294,9 +294,10 @@ namespace mpi {
                     // If operating in-place, data for this rank is already in position
                     continue;
                 } else if (r == recvRank) {
-                    // Copy data directly if this is the send rank
+                    // Copy data locally if possible
                     std::copy(sendBuffer, sendBuffer + sendOffset, recvChunk);
                 } else {
+                    // Receive data from other rank
                     recv(r, recvRank, recvChunk, recvType, recvCount, nullptr, MpiMessageType::GATHER);
                 }
             }

@@ -794,7 +794,9 @@ namespace tests {
         bool isInPlace;
         SECTION("In place") {
             isInPlace = true;
-        }SECTION("Not in place") {
+        }
+
+        SECTION("Not in place") {
             isInPlace = false;
         }
 
@@ -825,14 +827,19 @@ namespace tests {
         }
 
         // Run gather on the root
+        std::vector<int> actual(gatheredSize, 0);
         if (isInPlace) {
-            world.gather(root, root, BYTES(rankData[root].data()), MPI_INT, nPerRank, BYTES(rankData[root].data()),
+            // With in-place gather we assume that the root's data is in the correct place in the
+            // recv buffer already.
+            std::copy(rankData[root].begin(), rankData[root].end(), actual.data() + (root * nPerRank));
+
+            world.gather(root, root, BYTES(actual.data()), MPI_INT, nPerRank, BYTES(actual.data()),
                          MPI_INT, nPerRank);
-            REQUIRE(rankData[root] == expected);
+
+            REQUIRE(actual == expected);
         } else {
-            std::vector<int> actual(gatheredSize, 0);
-            world.gather(root, root, BYTES(rankData[root].data()), MPI_INT, nPerRank, BYTES(actual.data()), MPI_INT,
-                         nPerRank);
+            world.gather(root, root, BYTES(rankData[root].data()), MPI_INT, nPerRank, BYTES(actual.data()),
+                         MPI_INT, nPerRank);
             REQUIRE(actual == expected);
         }
     }
