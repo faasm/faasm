@@ -282,28 +282,40 @@ namespace mpi {
 
         bool isInPlace = sendBuffer == recvBuffer;
 
-        // If we're the receiver, do the gathering
+        // If we're the root, do the gathering
         if (sendRank == recvRank) {
             logger->trace("MPI - gather all -> {}", recvRank);
 
+            // Iterate through each rank
             for (int r = 0; r < size; r++) {
                 // Work out where in the receive buffer this rank's data goes
                 uint8_t *recvChunk = recvBuffer + (r * recvOffset);
 
-                if(r == recvRank && isInPlace) {
-                    // If operating in-place, data for this rank is already in position
+                if ((r == recvRank) && isInPlace) {
+                    // If operating in-place, data for the root rank is already in position
                     continue;
                 } else if (r == recvRank) {
-                    // Copy data locally if possible
+                    // Copy data locally on root
                     std::copy(sendBuffer, sendBuffer + sendOffset, recvChunk);
                 } else {
-                    // Receive data from other rank
+                    // Receive data from rank if it's not the root
                     recv(r, recvRank, recvChunk, recvType, recvCount, nullptr, MpiMessageType::GATHER);
                 }
             }
         } else {
-            // Do the sending
-            send(sendRank, recvRank, sendBuffer, sendType, sendCount, MpiMessageType::GATHER);
+            if (isInPlace) {
+                // A non-root rank running gather "in place" happens as part of an allgather
+                // operation. In this case, the send and receive buffer are the same, and the
+                // rank is eventually expecting a broadcast of the gather result into this buffer.
+                // This means that this buffer is big enough for the whole gather result, with this
+                // rank's data already in place. Therefore we need to send _only_ the part of the send
+                // buffer relating to this rank.
+                const uint8_t *sendChunk = sendBuffer + (sendRank * sendOffset);
+                send(sendRank, recvRank, sendChunk, sendType, sendCount, MpiMessageType::GATHER);
+            } else {
+                // Normal sending
+                send(sendRank, recvRank, sendBuffer, sendType, sendCount, MpiMessageType::GATHER);
+            }
         }
     }
 
@@ -311,23 +323,19 @@ namespace mpi {
                              uint8_t *recvBuffer, faasmpi_datatype_t *recvType, int recvCount) {
         checkSendRecvMatch(sendType, sendCount, recvType, recvCount);
 
-        // Note that sendCount and recvCount here are per-rank, so
-        // we need to work out the full buffer size
+        int root = 0;
+
+        // Do a gather with a hard-coded root
+        gather(rank, root, sendBuffer, sendType, sendCount, recvBuffer, recvType, recvCount);
+
+        // Note that sendCount and recvCount here are per-rank, so we need to work out the full buffer size
         int fullCount = recvCount * size;
-
-        // Rank 0 coordinates the allgather operation
-        if (rank == 0) {
-            // Await the incoming messages from all (like a normal gather)
-            gather(0, 0, sendBuffer, sendType, sendCount, recvBuffer, recvType, recvCount);
-
+        if (rank == root) {
             // Broadcast the result
-            broadcast(0, recvBuffer, recvType, fullCount, MpiMessageType::ALLGATHER);
+            broadcast(root, recvBuffer, recvType, fullCount, MpiMessageType::ALLGATHER);
         } else {
-            // Send the gather message
-            gather(rank, 0, sendBuffer, sendType, sendCount, recvBuffer, recvType, recvCount);
-
             // Await the broadcast from the master
-            recv(0, rank, recvBuffer, recvType, fullCount, nullptr, MpiMessageType::ALLGATHER);
+            recv(root, rank, recvBuffer, recvType, fullCount, nullptr, MpiMessageType::ALLGATHER);
         }
     }
 
@@ -342,7 +350,8 @@ namespace mpi {
         m = getLocalQueue(sendRank, recvRank)->dequeue();
 
         if (messageType != m->messageType) {
-            logger->error("Message types mismatched (expected={}, got={})", messageType, m->messageType);
+            logger->error("Message types mismatched on {}->{} (expected={}, got={})", sendRank, recvRank, messageType,
+                          m->messageType);
             throw std::runtime_error("Mismatched message types");
         }
 
@@ -392,7 +401,7 @@ namespace mpi {
                     // If we're receiving from ourselves and in-place, our work is already done
                     // and the results are written in the recv buffer
                     continue;
-                } else if(r == recvRank) {
+                } else if (r == recvRank) {
                     // If we're receiving from ourselves not in-place, the data for this rank
                     // is just the send buffer
                     rankData = sendBuffer;

@@ -783,22 +783,13 @@ namespace tests {
         }
     }
 
-    TEST_CASE("Test gather", "[mpi]") {
+    TEST_CASE("Test gather and allgather", "[mpi]") {
         cleanSystem();
 
         const message::Message &msg = util::messageFactory(user, func);
         mpi::MpiWorld world;
         int thisWorldSize = 5;
         int root = 3;
-
-        bool isInPlace;
-        SECTION("In place") {
-            isInPlace = true;
-        }
-
-        SECTION("Not in place") {
-            isInPlace = false;
-        }
 
         world.create(msg, worldId, thisWorldSize);
 
@@ -818,30 +809,74 @@ namespace tests {
             rankData[thisRank][i % nPerRank] = i;
         }
 
-        // Run gather on all non-root ranks
-        for (int r = 0; r < thisWorldSize; r++) {
-            if (r == root) {
-                continue;
-            }
-            world.gather(r, root, BYTES(rankData[r].data()), MPI_INT, nPerRank, nullptr, MPI_INT, nPerRank);
-        }
-
-        // Run gather on the root
+        // Prepare result buffer
         std::vector<int> actual(gatheredSize, 0);
-        if (isInPlace) {
-            // With in-place gather we assume that the root's data is in the correct place in the
-            // recv buffer already.
-            std::copy(rankData[root].begin(), rankData[root].end(), actual.data() + (root * nPerRank));
 
-            world.gather(root, root, BYTES(actual.data()), MPI_INT, nPerRank, BYTES(actual.data()),
-                         MPI_INT, nPerRank);
+        SECTION("Gather") {
+            // Run gather on all non-root ranks
+            for (int r = 0; r < thisWorldSize; r++) {
+                if (r == root) {
+                    continue;
+                }
+                world.gather(r, root, BYTES(rankData[r].data()), MPI_INT, nPerRank, nullptr, MPI_INT, nPerRank);
+            }
 
-            REQUIRE(actual == expected);
-        } else {
-            world.gather(root, root, BYTES(rankData[root].data()), MPI_INT, nPerRank, BYTES(actual.data()),
-                         MPI_INT, nPerRank);
-            REQUIRE(actual == expected);
+            SECTION("In place") {
+                // With in-place gather we assume that the root's data is in the correct place in the
+                // recv buffer already.
+                std::copy(rankData[root].begin(), rankData[root].end(), actual.data() + (root * nPerRank));
+
+                world.gather(root, root, BYTES(actual.data()), MPI_INT, nPerRank, BYTES(actual.data()),
+                             MPI_INT, nPerRank);
+
+                REQUIRE(actual == expected);
+            }
+
+            SECTION("Not in place") {
+                world.gather(root, root, BYTES(rankData[root].data()), MPI_INT, nPerRank, BYTES(actual.data()),
+                             MPI_INT, nPerRank);
+
+                REQUIRE(actual == expected);
+            }
         }
+
+        SECTION("Allgather") {
+            bool isInPlace;
+
+            SECTION("In place") {
+                isInPlace = true;
+            }
+
+            SECTION("Not in place") {
+                isInPlace = false;
+            }
+
+            // Run allgather in threads
+            std::vector<std::thread> threads;
+            for (int r = 0; r < thisWorldSize; r++) {
+                threads.emplace_back([&, r, isInPlace] {
+                    if (isInPlace) {
+                        // Put this rank's data in place in the recv buffer as expected
+                        std::copy(rankData[r].begin(), rankData[r].end(), actual.data() + (r * nPerRank));
+
+                        world.allGather(r, BYTES(actual.data()), MPI_INT, nPerRank,
+                                        BYTES(actual.data()), MPI_INT, nPerRank);
+                    } else {
+                        world.allGather(r, BYTES(rankData[r].data()), MPI_INT, nPerRank,
+                                        BYTES(actual.data()), MPI_INT, nPerRank);
+                    }
+
+                    REQUIRE(actual == expected);
+                });
+            }
+
+            for (auto &t : threads) {
+                if (t.joinable()) {
+                    t.join();
+                }
+            }
+        }
+
     }
 
     TEST_CASE("Test all-to-all", "[mpi]") {

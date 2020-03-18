@@ -13,7 +13,8 @@ ITERATIONS = 20
 FAASM_USER = "prk"
 
 # Sparse requires grid size to be a multiple of the number of processes.
-# Grid size is expressed as n = log2(grid_size) (i.e. 10 for a 1024 grid)
+# The script expects the grid size to be passed as its log2, hence
+# we must pass n = log2(grid_size) (i.e. 10 for a 1024 grid).
 SPARSE_GRID_SIZE_2LOG = 10
 SPARSE_GRID_SIZE = pow(2, SPARSE_GRID_SIZE_2LOG)
 
@@ -84,7 +85,8 @@ def invoke(ctx, func, native=False, iface=None, np=10):
         print("Must have a power of two number of processes for random")
         exit(1)
     elif func == "sparse" and not (SPARSE_GRID_SIZE % np == 0):
-        print("Grid size for sparse must be a multiple of the number of processes")
+        print("To run sparse, grid size must be a multiple of --np (currently grid_size={} and np={})"
+              .format(SPARSE_GRID_SIZE, np))
         exit(1)
 
     if native:
