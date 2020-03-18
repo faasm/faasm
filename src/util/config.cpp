@@ -60,7 +60,7 @@ namespace util {
         globalMessageTimeout = this->getSystemConfIntParam("GLOBAL_MESSAGE_TIMEOUT", "60000");
         boundTimeout = this->getSystemConfIntParam("BOUND_TIMEOUT", "30000");
         unboundTimeout = this->getSystemConfIntParam("UNBOUND_TIMEOUT", "300000");
-        chainedCallTimeout = this->getSystemConfIntParam("CHAINED_CALL_TIMEOUT", "120000");
+        chainedCallTimeout = this->getSystemConfIntParam("CHAINED_CALL_TIMEOUT", "300000");
 
         // Filesystem storage
         functionDir = getEnvVar("FUNC_DIR", "/usr/local/code/faasm/wasm");
