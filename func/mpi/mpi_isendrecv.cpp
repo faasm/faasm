@@ -11,31 +11,33 @@ FAASM_MAIN_FUNC() {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &worldSize);
 
-    // Send messages asynchronously in a ring
+    // Send and receive messages asynchronously in a ring
     int right = (rank + 1) % worldSize;
-    int left = rank - 1;
-    if (left < 0) {
-        left = worldSize - 1;
-    }
+    int maxRank = worldSize - 1;
+    int left = rank > 0 ? rank - 1 : maxRank;
 
-    // Asynchronously receive
-    size_t msgSize = 10;
+    // Asynchronously receive from the left
+    int recvValue = -1;
     MPI_Request recvRequest;
-    int bufferA[msgSize];
-    MPI_Irecv(bufferA, msgSize, MPI_INT, left, 123, MPI_COMM_WORLD, &recvRequest);
+    MPI_Irecv(&recvValue, 1, MPI_INT, left, 0, MPI_COMM_WORLD, &recvRequest);
 
-    // Asynchronously send
+    // Asynchronously send to the right
+    int sendValue = rank;
     MPI_Request sendRequest;
-    int bufferB[msgSize];
-    MPI_Isend(bufferB, msgSize, MPI_INT, right, 123, MPI_COMM_WORLD, &sendRequest);
+    MPI_Isend(&sendValue, 1, MPI_INT, right, 0, MPI_COMM_WORLD, &sendRequest);
 
     // Wait for both
     MPI_Wait(&recvRequest, MPI_STATUS_IGNORE);
     MPI_Wait(&sendRequest, MPI_STATUS_IGNORE);
 
-    MPI_Finalize();
+    // Check the received value is as expected
+    if (recvValue != left) {
+        printf("Rank %i - async not working properly (got %i expected %i)\n", rank, recvValue, left);
+    } else {
+        printf("Rank %i - async working properly\n", rank);
+    }
 
-    printf("MPI async working properly");
+    MPI_Finalize();
 
     return 0;
 }

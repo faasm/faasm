@@ -59,10 +59,20 @@ namespace wasm {
             return hostDataType;
         }
 
-        faasmpi_request_t *getFaasmRequestFromPointer(I32 wasmPtrPtr) {
-            I32 wasmPtr = Runtime::memoryRef<I32>(memory, wasmPtrPtr);
-            faasmpi_request_t *hostRequest = &Runtime::memoryRef<faasmpi_request_t>(memory, wasmPtr);
-            return hostRequest;
+        /**
+         * We use a trick here to avoid allocating extra memory. Rather than create an actual
+         * struct for the MPI_Request, we just use the pointer to hold the value of its ID
+         */
+        void writeFaasmRequestId(I32 requestPtrPtr, I32 requestId) {
+            writeMpiResult<int>(requestPtrPtr, requestId);
+        }
+
+        /**
+         * This uses the same trick, where we read the value of the pointer as the request ID.
+         */
+        I32 getFaasmRequestId(I32 requestPtrPtr) {
+            I32 requestId = Runtime::memoryRef<I32>(getExecutingModule()->defaultMemory, requestPtrPtr);
+            return requestId;
         }
 
         faasmpi_info_t *getFaasmInfoType(I32 wasmPtr) {
@@ -177,10 +187,11 @@ namespace wasm {
 
         ContextWrapper ctx(comm);
         faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
-        faasmpi_request_t *hostRequest = ctx.getFaasmRequestFromPointer(requestPtrPtr);
 
         auto inputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
-        ctx.world.isend(ctx.rank, destRank, inputs, hostDtype, count, hostRequest);
+        int requestId = ctx.world.isend(ctx.rank, destRank, inputs, hostDtype, count);
+
+        ctx.writeFaasmRequestId(requestPtrPtr, requestId);
 
         return MPI_SUCCESS;
     }
@@ -235,10 +246,10 @@ namespace wasm {
 
         ContextWrapper ctx;
         faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
-        faasmpi_request_t *hostRequest = ctx.getFaasmRequestFromPointer(requestPtrPtr);
-
         auto outputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
-        ctx.world.irecv(sourceRank, ctx.rank, outputs, hostDtype, count, hostRequest);
+        int requestId = ctx.world.irecv(sourceRank, ctx.rank, outputs, hostDtype, count);
+
+        ctx.writeFaasmRequestId(requestPtrPtr, requestId);
 
         return MPI_SUCCESS;
     }
@@ -259,8 +270,8 @@ namespace wasm {
         util::getLogger()->debug("S - MPI_Wait {} {}", requestPtrPtr, status);
 
         ContextWrapper ctx;
-        faasmpi_request_t *hostRequest = ctx.getFaasmRequestFromPointer(requestPtrPtr);
-        ctx.world.awaitAsyncRequest(hostRequest);
+        int requestId = ctx.getFaasmRequestId(requestPtrPtr);
+        ctx.world.awaitAsyncRequest(requestId);
 
         return MPI_SUCCESS;
     }

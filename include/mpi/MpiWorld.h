@@ -2,6 +2,7 @@
 
 #include "mpi/MpiMessage.h"
 
+#include <thread>
 #include <proto/faasm.pb.h>
 #include <state/StateKeyValue.h>
 #include <scheduler/InMemoryMessageQueue.h>
@@ -48,9 +49,8 @@ namespace mpi {
                   const uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
                   MpiMessageType messageType = MpiMessageType::NORMAL);
 
-        void isend(int sendRank, int recvRank,
-                   const uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
-                   faasmpi_request_t *request);
+        int isend(int sendRank, int recvRank,
+                   const uint8_t *buffer, faasmpi_datatype_t *dataType, int count);
 
         void broadcast(int sendRank,
                        const uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
@@ -60,11 +60,10 @@ namespace mpi {
                   uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
                   MPI_Status *status, MpiMessageType messageType = MpiMessageType::NORMAL);
 
-        void irecv(int sendRank, int recvRank,
-                   uint8_t *buffer, faasmpi_datatype_t *dataType, int count,
-                   faasmpi_request_t *request);
+        int irecv(int sendRank, int recvRank,
+                   uint8_t *buffer, faasmpi_datatype_t *dataType, int count);
 
-        void awaitAsyncRequest(faasmpi_request_t *request);
+        void awaitAsyncRequest(int requestId);
 
         void scatter(int sendRank, int recvRank,
                      const uint8_t *sendBuffer, faasmpi_datatype_t *sendType, int sendCount,
@@ -98,8 +97,6 @@ namespace mpi {
 
         std::shared_ptr<InMemoryMpiQueue> getLocalQueue(int sendRank, int recvRank);
 
-        std::shared_ptr<InMemoryIntQueue> getLocalAsyncQueue(int sendRank, int recvRank);
-
         long getLocalQueueSize(int sendRank, int recvRank);
 
         void overrideNodeId(const std::string &newNodeId);
@@ -127,8 +124,7 @@ namespace mpi {
         std::unordered_map<std::string, uint8_t *> windowPointerMap;
 
         std::unordered_map<std::string, std::shared_ptr<InMemoryMpiQueue>> localQueueMap;
-        std::unordered_map<std::string, std::shared_ptr<util::Queue<int>>> localAsyncQueueMap;
-        std::unordered_set<int> completedAsyncRequests;
+        std::unordered_map<int, std::thread> asyncThreadMap;
 
         void setUpStateKV();
 
@@ -138,8 +134,8 @@ namespace mpi {
 
         void checkRankOnThisNode(int rank);
 
-        void doISendRecv(int sendRank, int recvRank, const uint8_t *sendBuffer, uint8_t *recvBuffer,
-                         faasmpi_datatype_t *dataType, int count, faasmpi_request_t *request);
+        int doISendRecv(int sendRank, int recvRank, const uint8_t *sendBuffer, uint8_t *recvBuffer,
+                         faasmpi_datatype_t *dataType, int count);
 
         void pushToState();
     };

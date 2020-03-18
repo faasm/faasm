@@ -72,9 +72,7 @@ struct faasmpi_info_t {
 };
 
 struct faasmpi_request_t {
-    int id;
-    int sendRank;
-    int recvRank;
+    int _unused;
 };
 
 struct faasmpi_group_t {
