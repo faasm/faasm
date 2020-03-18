@@ -1,35 +1,76 @@
-# Set-up and usage
+# Faasm Kubernetes/ Knative integration
 
-Faasm can be deployed to Kubernetes and Knative to create a distributed set-up. The configuration files are found in the `k8s` directory.
+Faasm is a runtime designed to be integrated into other serverless platforms.
+The recommended integration is with [Knative](https://knative.dev/).
 
-## Knative Set-up
+All of Faasm's Kubernetes and Knative configuration can be found in the 
+[k8s](../k8s) directory, and the relevant parts of the Faasm CLI can be 
+found in the [Knative tasks](../tasks/knative.py).  
 
-Provided you have an accessible Kubernetes cluster (cloud provider, local Minikube, bare metal etc.) with Knative installed, you can deploy Faasm as follows.
+These steps generally assume that you have 
+[`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) 
+and [`kn`](https://knative.dev/docs/install/install-kn/) installed
+and these are able to connect to your cluster.
 
-If you're deploying on a bare-metal cluster then you need to update the `externalIPs` field in the `upload-service.yml` file to match your k8s master node. 
+## Cluster Set-up
 
-On a cloud provider you should be provided with an endpoint which will handle the external connectivity.
+### Google Kubernetes Engine
 
-To deploy, you can run:
+To set up Faasm on [GKE](https://console.cloud.google.com/kubernetes) you can do the following:
 
-```
+- Set up an account and the [Cloud SDK](https://cloud.google.com/sdk) ([Ubuntu quick start](https://cloud.google.com/sdk/docs/quickstart-debian-ubuntu))
+- Create a Kubernetes cluster **with Istio enabled and version >=v1.15**
+- Aim for >=4 nodes with more than one vCPU
+- Set up your local `kubectl` to connect to your cluster (click the "Connect" button in the web interface)
+- Check things are working by running `kubectl get nodes`
+- Install Knative serving as described below
+
+### Bare metal
+
+If you're deploying on a bare-metal cluster then you need to update the `externalIPs` 
+field in the `upload-service.yml` file to match your k8s master node. 
+
+You also need to install Istio as described in [the Knative docs](https://knative.dev/docs/install/any-kubernetes-cluster/).
+
+## Installation
+
+### Knative
+
+Faasm requires a minimal install of [Knative serving](https://knative.dev/docs/install/any-kubernetes-cluster/).
+If your cluster doesn't already have Knative installed, you can run:
+
+```bash
+# Install
+inv knative.install
+
+# Check
+kubectl get pods -n knative-serving
+```  
+
+### Faasm
+
+You can then run the Faasm deploy (where `replicas` is the number of replicas in the Faasm pod):
+
+```bash 
+# Bare-metal/ GKE
+inv knative.deploy --replicas=4
+
 # Local
-inv k8s-deploy --local
-
-# Remote bare-metal (must be run on master node)
-inv k8s-deploy --bare-metal
-
-# IBM Cloud
-inv k8s-deploy --ibm
+inv knative.deploy --local
 ```
 
-Once everything has started up, you can get the relevant URLs as follows (on the master node), then populate your
-`~/faasm/faasm.ini` file as described below.
+This might take a couple of minutes depending on the underlying cluster.
 
 ## Config file
 
-To avoid typing in hostnames and ports over and over, you can populate a section of your `~/faasm/faasm.ini` file.
-To get the values, run `./bin/knative_route.sh` which should print out something like:
+Once everything has started up, you can populate your `~/faasm/faasm.ini` file to avoid
+typing in hostnames all the time. To do this, run:
+
+```
+./bin/knative_route.sh
+```
+
+Which should print out something like:
 
 ```
 [Faasm]
@@ -39,28 +80,16 @@ upload_host = ...   # IP of the upload service
 upload_port = ...   # Usually 8002
 ```
 
-You can then copy-paste this.
+You can then copy-paste this into `~/faasm/faasm.ini`.
 
 ## Uploading functions
 
-Once you have the upload URL you can upload functions using the tasks in this repo.
+Once you have configured your `~/faasm/faasm.ini` file, you can use the Faasm 
+CLI as normal, e.g.
 
 ```
-source workon.sh
-
-# C++ functions
-inv upload <user> <func>
-
-# All Python functions
-inv upload-user <user> --py
-```
-
-## Invoking functions
-
-To invoke functions you need to provide the relevant host and port:
-
-```
-inv invoke <user> <func>
+inv upload demo hello
+inv invoke demo hello
 ```
 
 ## Flushing Redis
@@ -68,43 +97,44 @@ inv invoke <user> <func>
 When workers die or are killed, you'll need to clear the queue:
 
 ```
-inv redis-clear-queue --knative
+inv redis.clear-queue --knative
 ```
 
 ## Uploading and running native functions
 
 ### C++
 
-For benchmarking we need to run the functions in a more "normal" serverless way (i.e. natively in a container).
-To build the relevant container:
+For benchmarking we need to run the functions in a more "normal" serverless way (i.e. natively 
+in a container). To build the relevant container:
 
 ```
-inv build-knative-native <user> <function>
+inv knative.build-native <user> <function>
 ```
 
-This will use a parameterised Dockerfile to create a container that runs the given function natively. You can test locally with:
+This will use a parameterised Dockerfile to create a container that runs the given function 
+natively. You can test locally with:
 
 ```
 # Build the container
-inv build-knative-native <user> <function> --nopush
+inv knative.build-native <user> <function> --nopush
 
 # Start the container
-inv knative-native-local <user> <function>
+inv knative.native-local <user> <function>
 
 # Submit a request
-inv invoke user function --native
+inv invoke <user> <function> --native
 ```
 
 Once you're happy you can run the following on your machine with knative access:
 
 ```
-inv deploy-knative-native <user> <function>
+inv knative.deploy-native <user> <function>
 
 inv invoke --native <user> <function>
 ```
 
-**Note** For anything that requires chaining we must run it asynchronously so that things don't get clogged up.
-To do this:
+**Note** For anything that requires chaining we must run it asynchronously so that things 
+don't get clogged up. To do this:
 
 ```
 inv invoke --native --poll <user> <function>
@@ -112,23 +142,24 @@ inv invoke --native --poll <user> <function>
 
 ### Python
 
-To run Python functions natively we use pyfaasm and a standard Flask-based knative Python executor. This can be found at `func/knative_native.py`. We can build the container with:
+To run Python functions natively we use pyfaasm and a standard Flask-based knative Python 
+executor. This can be found at `func/knative_native.py`. We can build the container with:
 
 ```
-inv docker-build -c knative-native-python --push
+inv docker.build -c knative-native-python --push
 ```
 
 To check things locally:
 
 ```
-inv knative-native-python-local
+inv knative.native-python-local
 inv invoke python hello --py
 ```
 
 To deploy, from the machine with k8s access:
 
 ```
-inv deploy-knative-native-python
+inv knative.deploy-native-python
 ```
 
 ## Troubleshooting
@@ -152,18 +183,23 @@ kubectl -n faasm logs --tail=100000 -c user-container -l serving.knative.dev/ser
 
 # Isolation and privileges
 
-Faasm uses namespaces and cgroups to achieve isolation, therefore containers running Faasm workers need privileges
-that they don't otherwise have. The current solution to this is to run containers in `privileged` mode. This may not
-be available on certain clusters, in which case you'll need to set `CGROUP_MODE=off` and `NETNS_MODE=off` in the
-container config.
+Faasm uses namespaces and cgroups to achieve isolation, therefore containers running 
+Faasm workers need privileges that they don't otherwise have. The current solution to 
+this is to run containers in `privileged` mode. This may not be available on certain 
+clusters, in which case you'll need to set the following environment vars:
+ 
+```
+CGROUP_MODE=off
+NETNS_MODE=off
+```
 
 ## Redis-related set-up
 
 There are a couple of tweaks required to handle running Redis, as detailed in the
 [Redis admin docs](https://redis.io/topics/admin).
 
-First you can turn off transparent huge pages (add `transparent_hugepage=never` to `GRUB_CMDLINE_LINUX`
-in `/etc/default/grub` and run `sudo update-grub`).
+First you can turn off transparent huge pages (add `transparent_hugepage=never` 
+to `GRUB_CMDLINE_LINUX` in `/etc/default/grub` and run `sudo update-grub`).
 
 Then if testing under very high throughput you can set the following in `etc/sysctl.conf`:
 
@@ -177,9 +213,3 @@ net.core.somaxconn = 65535
 # Memory-related
 vm.overcommit_memory=1
 ```
-
-# Links/ Notes
-
-- Knative tutorial - https://github.com/meteatamel/knative-tutorial
-- Samples in different languages at: https://knative.dev/docs/serving/samples/
-

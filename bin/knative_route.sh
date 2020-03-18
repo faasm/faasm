@@ -4,13 +4,26 @@ FUNC_HEADER=faasm-worker.faasm.example.com
 
 set -e
 
+function service_ip {
+    local svc_ns=$1
+    local svc_name=$2
+
+    # Try getting public IP
+    local ip_res=$(kubectl get -n ${svc_ns} service ${svc_name} -o 'jsonpath={.status.loadBalancer.ingress[0].ip}')
+
+    # Get private IP if failed
+    if [[ -z "$ip_res" ]]; then
+        ip_res=$(kubectl get -n ${svc_ns} service ${svc_name} -o 'jsonpath={.spec.clusterIP}')
+    fi
+
+    echo $ip_res
+}
+
 # Get invoke details
-ISTIO_IP=$(kubectl get svc istio-ingressgateway --namespace istio-system --output 'jsonpath={.spec.clusterIP}')
-#ISTIO_PORT=$(kubectl get svc istio-ingressgateway --namespace istio-system   --output 'jsonpath={.spec.ports[?(@.port==80)].nodePort}')
+ISTIO_IP=$(service_ip istio-system istio-ingressgateway)
 ISTIO_PORT=80
 
-# Get upload details
-UPLOAD_IP=$(kubectl get --namespace=faasm service upload  --output 'jsonpath={.spec.clusterIP}')
+UPLOAD_IP=$(service_ip faasm upload)
 UPLOAD_PORT=8002
 
 echo ""

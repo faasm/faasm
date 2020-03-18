@@ -127,7 +127,7 @@ namespace tests {
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
         message::Message resultA = globalBus.getFunctionResult(call.id(), 1);
         REQUIRE(resultA.outputdata() == "first input");
-        REQUIRE(resultA.success());
+        REQUIRE(resultA.returnvalue() == 0);
 
         // Execute again
         call.set_inputdata("second input");
@@ -142,7 +142,7 @@ namespace tests {
         // Check output from second invocation
         message::Message resultB = globalBus.getFunctionResult(call.id(), 1);
         REQUIRE(resultB.outputdata() == "second input");
-        REQUIRE(resultB.success());
+        REQUIRE(resultB.returnvalue() == 0);
 
         tearDown();
     }
@@ -219,7 +219,7 @@ namespace tests {
         // Check result
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
         message::Message resultA = globalBus.getFunctionResult(call.id(), 1);
-        REQUIRE(resultA.success());
+        REQUIRE(resultA.returnvalue() == 0);
         REQUIRE(resultA.outputdata() == "Counter: 001");
 
         // Call the function a second time, the state should have been incremented
@@ -231,7 +231,7 @@ namespace tests {
         w.processNextMessage();
 
         message::Message resultB = globalBus.getFunctionResult(call.id(), 1);
-        REQUIRE(resultB.success());
+        REQUIRE(resultB.returnvalue() == 0);
         REQUIRE(resultB.outputdata() == "Counter: 002");
     }
 
@@ -257,7 +257,7 @@ namespace tests {
         // Check result
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
         message::Message result = globalBus.getFunctionResult(call.id(), 1);
-        REQUIRE(result.success());
+        REQUIRE(result.returnvalue() == 0);
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
 
         REQUIRE(outputBytes == expectedOutput);
@@ -329,7 +329,7 @@ namespace tests {
         // Check output is true
         scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
         message::Message result = globalBus.getFunctionResult(call.id(), 1);
-        REQUIRE(result.success());
+        REQUIRE(result.returnvalue() == 0);
         std::vector<uint8_t> outputBytes = util::stringToBytes(result.outputdata());
 
         std::vector<uint8_t> expectedOutput;

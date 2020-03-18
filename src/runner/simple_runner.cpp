@@ -3,11 +3,11 @@
 #include <util/config.h>
 #include <util/timing.h>
 #include <util/func.h>
-#include <zygote/ZygoteRegistry.h>
+#include <module_cache/WasmModuleCache.h>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 
-int runFunction(std::string &user, std::string &function, int runCount);
+bool runFunction(std::string &user, std::string &function, int runCount);
 
 int main(int argc, char *argv[]) {
     util::initLogging();
@@ -51,10 +51,10 @@ int main(int argc, char *argv[]) {
 
     for (auto &f : functions) {
         logger->info("Running {}/{} for {} runs", user, f, runCount);
-        int failed = runFunction(user, f, runCount);
-        if (failed) {
+        bool success = runFunction(user, f, runCount);
+        if (!success) {
             throw std::runtime_error(fmt::format(
-                    "Function {}/{} returned non-zero exit code {}", user, f, failed)
+                    "Function {}/{} returned non-zero exit code {}", user, f)
             );
         }
     }
@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-int runFunction(std::string &user, std::string &function, int runCount) {
+bool runFunction(std::string &user, std::string &function, int runCount) {
     const std::shared_ptr<spdlog::logger> logger = util::getLogger();
 
     // Set up function call
@@ -80,31 +80,30 @@ int runFunction(std::string &user, std::string &function, int runCount) {
     }
 
     // Create the module
-    zygote::ZygoteRegistry &registry = zygote::getZygoteRegistry();
-    wasm::WasmModule &zygote = registry.getZygote(m);
+    module_cache::WasmModuleCache &registry = module_cache::getWasmModuleCache();
+    wasm::WasmModule &cachedModule = registry.getCachedModule(m);
 
-    // Create new module from zygote
-    wasm::WasmModule module(zygote);
-
-    int res = 0;
+    // Create new module from cache
+    wasm::WasmModule module(cachedModule);
 
     // Run repeated executions
+    bool success = true;
     for (int i = 0; i < runCount; i++) {
         logger->info("Run {} - {}/{} ", i, user, function);
 
         PROF_START(execution)
-        int result = module.execute(m);
+        success = module.execute(m);
         PROF_END(execution)
 
-        if (result != 0) {
-            logger->error("Non-zero return code ({})", result);
-            res = result;
+        if (!success) {
+            logger->error("Execution failed");
+            break;
         }
 
-        // Reset using zygote
-        module = zygote;
+        // Reset using cached module
+        module = cachedModule;
         logger->info("DONE Run {} - {}/{} ", i, user, function);
     }
 
-    return res;
+    return success;
 }

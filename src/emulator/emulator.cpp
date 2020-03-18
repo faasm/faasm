@@ -71,21 +71,22 @@ char *emulatorGetAsyncResponse() {
     return responseData;
 }
 
-void emulatorSetCallStatus(int success) {
+void emulatorSetCallStatus(bool success) {
     const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-    bool isSuccess = success == 1;
     message::Message resultMsg = _emulatedCall;
 
     const std::string funcStr = util::funcToString(resultMsg, true);
-    if (isSuccess) {
+    if (success) {
         logger->debug("Setting success status for {}", funcStr);
+        resultMsg.set_returnvalue(0);
     } else {
         logger->debug("Setting failed status for {}", funcStr);
+        resultMsg.set_returnvalue(1);
     }
 
     scheduler::GlobalMessageBus &globalBus = scheduler::getGlobalMessageBus();
     resultMsg.set_outputdata(getEmulatorOutputDataString());
-    globalBus.setFunctionResult(resultMsg, isSuccess);
+    globalBus.setFunctionResult(resultMsg);
 }
 
 unsigned int setEmulatedMessageFromJson(const char *messageJson) {
@@ -372,9 +373,7 @@ int _await_call_knative(unsigned int callId) {
     int returnCode = 1;
     try {
         const message::Message result = bus.getFunctionResult(callId, timeoutMs);
-        if (result.success()) {
-            returnCode = 0;
-        }
+        returnCode = result.returnvalue();
     } catch (redis::RedisNoResponseException &ex) {
         logger->error("Timed out waiting for chained call: {}", callId);
     } catch (std::exception &ex) {

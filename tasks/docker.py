@@ -24,7 +24,10 @@ RELEASE_CONTAINERS = [
 
 
 @task
-def purge_images(context):
+def purge(context):
+    """
+    Purge docker images
+    """
     images_cmd = ["docker", "images", "-q", "-f", "dangling=true"]
     image_list = check_output(images_cmd)
 
@@ -55,12 +58,19 @@ def _do_push(container, version):
 
 
 @task
-def docker_build_release(ctx, nocache=False):
-    docker_build(ctx, RELEASE_CONTAINERS, nocache=nocache, push=True)
+def release(ctx, nocache=False):
+    """
+    Build containers for a release
+    """
+    build(ctx, RELEASE_CONTAINERS, nocache=nocache, push=True)
 
 
 @task(iterable=["c"])
-def docker_build(ctx, c, nocache=False, push=False):
+def build(ctx, c, nocache=False, push=False):
+    """
+    Build container images
+    """
+
     # -----------------------
     # NOTE - to allow container-specific dockerignore files, we need to switch on DOCKER_BUILDKIT=1
     # this might change in future:
@@ -112,7 +122,11 @@ def docker_build(ctx, c, nocache=False, push=False):
 
 
 @task(iterable=["c"])
-def docker_push(ctx, c):
+def push(ctx, c):
+    """
+    Push container images
+    """
+
     version = get_faasm_version()
 
     _check_valid_containers(c)
@@ -121,18 +135,12 @@ def docker_push(ctx, c):
         _do_push(container, version)
 
 
-@task
-def docker_pull_release(ctx):
-    docker_pull(ctx, RELEASE_CONTAINERS)
-
-
-@task
-def docker_push_release(ctx):
-    docker_push(ctx, RELEASE_CONTAINERS)
-
-
 @task(iterable=["c"])
-def docker_pull(ctx, c):
+def pull(ctx, c):
+    """
+    Pull container images
+    """
+
     version = get_faasm_version()
 
     _check_valid_containers(c)
@@ -141,3 +149,21 @@ def docker_pull(ctx, c):
         res = call("docker pull faasm/{}:{}".format(container, version), shell=True, cwd=PROJ_ROOT)
         if res != 0:
             raise RuntimeError("Failed docker pull for {}".format(container))
+
+
+@task
+def pull_release(ctx):
+    """
+    Pull container images for a release
+    """
+
+    pull(ctx, RELEASE_CONTAINERS)
+
+
+@task
+def push_release(ctx):
+    """
+    Push container images for a release
+    """
+
+    push(ctx, RELEASE_CONTAINERS)

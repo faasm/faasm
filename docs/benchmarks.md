@@ -39,9 +39,9 @@ cd /usr/local/code/faasm
 You'll also need to download the toolchain, sysroot and runtime root:
 
 ```
-inv download-toolchain
-inv download-sysroot
-inv download-runtime-root
+inv toolchain.download-toolchain
+inv toolchain.download-sysroot
+inv toolchain.download-runtime
 ```
 
 ### Memory
@@ -61,7 +61,7 @@ The Faasm memory footprint is quite a lot larger than standard threads running t
 The timing and CPU measurements can be taken by running:
 
 ```
-inv bench-time
+inv bench.time
 ```
 
 Results are written to `~/faasm/results/runtime-bench-time.csv`.
@@ -78,7 +78,7 @@ sudo ln -s $HOME/faasm /root/faasm
 # Run the benchmark as root
 sudo su
 source workon.sh
-inv bench-mem
+inv bench.mem
 ```
 
 Results are written to `/root/faasm/results/runtime-bench-mem.csv` (assuming your root home is `/root`).
@@ -93,7 +93,7 @@ Spawning lots of Docker containers at once can lead to big memory/ CPU spikes, s
 
 ```
 # Spawn 100 containers
-inv spawn-docker-containers 100
+inv bench.spawn-containers 100
 ```
 
 We can only have 1023 Docker containers on a single Docker network (due to the limit on virtual bridges), so we can either run them all on the `host` network, or create a couple of bigger networks, e.g.
@@ -104,13 +104,13 @@ docker network create bench-1
 docker network create bench-2
 
 # Spawn 600 on each
-inv spawn-docker-containers 600 --network=bench-1
-inv spawn-docker-containers 600 --network=bench-2
+inv bench.spawn-containers 600 --network=bench-1
+inv bench.spawn-containers 600 --network=bench-2
 
 # Check resource levels
 
 # Finish
-inv kill-containers
+inv bench.kill-containers
 ```
 
 Docker may also be limited by the `TasksMax` parameter in `/lib/systemd/system/docker.service` (or equivalent). This can be set to `infinity`.
@@ -129,7 +129,7 @@ The most likely will be limits on the max number of threads, which you can test 
 # Note, ulimit will fail if your hard limit is too low
 ulimit -u 120000
 
-inv max-threads
+inv bench.max-threads
 ```
 
 This will show both the system max and what you can currently reach. If this is low you can do the following:
@@ -156,13 +156,13 @@ source workon.sh
 ./bin/spawn_faasm.sh 65000
 
 # Print thread count
-inv faasm-count
+inv bench.faasm-count
 
 # Check resources
 
 # Kill and check
 pkill -f bench_mem
-inv faasm-count
+inv bench.faasm-count
 ```
 
 If there is enough memory on the box, both Faasm and Docker will eventually be limited by the max threads in the system (`cat /proc/sys/kernel/threads-max`).
@@ -185,7 +185,7 @@ To run the throughput benchmark you can run:
 
 ```
 source workon.sh
-inv bench-tpt
+inv bench.tpt
 ```
 
 The results will be output at `~/faasm/results/runtime-bench-tpt.csv`.
@@ -201,10 +201,10 @@ Note that you'll need an upload server running (i.e. using the `upload` target, 
 
 ```
 # Compile to wasm
-inv compile-user polybench --clean
+inv compile.user polybench --clean
 
 # Upload (must have an upload server running)
-inv upload-user polybench
+inv upload.user polybench
 ```
 
 We can compile the same functions natively as follows:
@@ -232,9 +232,9 @@ All python code runs in the same function which can be set up according to the `
 short this is:
 
 ```bash
-inv run-python-codegen
-inv run-local-codegen
-inv upload-user python --py --local-copy
+inv python.codegen
+inv codegen.local
+inv upload.user python --py --local-copy
 ```
 
 Before running, you can check both the native and wasm python versions with:
@@ -288,10 +288,12 @@ perf inject -i perf.data -j -o perf.data.wasm
 perf report -i perf.data.wasm
 ```
 
-Note that for wasm code the output of the perf reports will be funciton names like `functionDef123`.
-To generate the mapping of these names to the actual functions you can run the `func_sym` executable
-e.g.
+Note that for wasm code the output of the perf reports will be function names like `functionDef123`.
+To generate the mapping of these names to the actual functions you can run:
 
 ```
-func_sym polybench 3mm
+inv disas.symbols <user> <func>
+
+# For example
+inv disas.symbols polybench 3mm
 ```

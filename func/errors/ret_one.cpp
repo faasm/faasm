@@ -1,5 +1,7 @@
 #include "faasm/faasm.h"
 
+#include <cstdlib>
+
 FAASM_MAIN_FUNC() {
-    return 1;
+    exit(1);
 }

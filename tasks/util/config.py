@@ -7,7 +7,7 @@ from tasks.util.env import FAASM_CONFIG_FILE, FAASM_HOME
 
 def get_faasm_config():
     if not exists(FAASM_HOME):
-        makedirs(FAASM_HOME)
+        makedirs(FAASM_HOME, exist_ok=True)
 
     config = configparser.ConfigParser()
 

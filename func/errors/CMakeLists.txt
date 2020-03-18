@@ -8,8 +8,6 @@ faasm_func(ret_one ret_one.cpp)
 faasm_func(socket socket.cpp)
 faasm_func(stdin_poll stdin_poll.cpp)
 
-faasm_func(pthread_creation pthread_creation.cpp)
-
 if (FAASM_BUILD_TYPE STREQUAL "wasm")
     faasm_func(stackoverflow stackoverflow.cpp)
 endif()

@@ -83,8 +83,8 @@ namespace tests {
         REQUIRE(baseA != baseB);
 
         // Execute the function with the first module and check it works
-        int retCodeA = moduleA.execute(msgA);
-        REQUIRE(retCodeA == 0);
+        bool successA = moduleA.execute(msgA);
+        REQUIRE(successA);
 
         if (func == "echo") {
             REQUIRE(msgA.outputdata() == inputA);
@@ -117,8 +117,8 @@ namespace tests {
         }
 
         // Execute with second module
-        int retCodeB = moduleB.execute(msgB);
-        REQUIRE(retCodeB == 0);
+        bool successB = moduleB.execute(msgB);
+        REQUIRE(successB);
 
         if (func == "echo") {
             REQUIRE(msgB.outputdata() == inputB);

@@ -60,7 +60,10 @@ def _upload_function(user, func, port=None, host=None, s3=False, ibm=False, py=F
 
 
 @task
-def upload_user(ctx, user, host=None, py=False, local_copy=False):
+def user(ctx, user, host=None, py=False, local_copy=False):
+    """
+    Upload all functions for the given user
+    """
     if py:
         # Get all Python funcs
         funcs = listdir(join(FUNC_DIR, user))
@@ -77,13 +80,20 @@ def upload_user(ctx, user, host=None, py=False, local_copy=False):
     p.starmap(upload_partial, [(f,) for f in funcs])
 
 
-@task
+@task(default=True)
 def upload(ctx, user, func, host=None, s3=False, ibm=False, py=False, ts=False, file=None, local_copy=False):
+    """
+    Upload a function
+    """
     _upload_function(user, func, host=host, s3=s3, ibm=ibm, py=py, ts=ts, file=file, local_copy=local_copy)
 
 
 @task
-def upload_genomics(ctx, host="localhost", port=None):
+def genomics(ctx, host="localhost", port=None):
+    """
+    Upload all the genomics functions
+    """
+
     # When uploading genomics, we are uploading the mapper entrypoint as a normal
     # function, but the worker functions are all from the same source file
 
