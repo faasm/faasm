@@ -2,7 +2,6 @@
 
 #include "mpi/MpiMessage.h"
 
-#include <faasmpi/mpi.h>
 #include <proto/faasm.pb.h>
 #include <state/StateKeyValue.h>
 #include <scheduler/InMemoryMessageQueue.h>
@@ -129,7 +128,7 @@ namespace mpi {
 
         std::unordered_map<std::string, std::shared_ptr<InMemoryMpiQueue>> localQueueMap;
         std::unordered_map<std::string, std::shared_ptr<util::Queue<int>>> localAsyncQueueMap;
-        std::unordered_map<int, faasmpi_request_t *> pendingAsyncRequests;
+        std::unordered_set<int> completedAsyncRequests;
 
         void setUpStateKV();
 

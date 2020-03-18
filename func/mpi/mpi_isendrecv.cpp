@@ -1,5 +1,6 @@
 #include <mpi.h>
 #include <faasm/faasm.h>
+#include <stdio.h>
 
 
 FAASM_MAIN_FUNC() {
@@ -33,6 +34,8 @@ FAASM_MAIN_FUNC() {
     MPI_Wait(&sendRequest, MPI_STATUS_IGNORE);
 
     MPI_Finalize();
+
+    printf("MPI async working properly");
 
     return 0;
 }

@@ -59,7 +59,8 @@ namespace wasm {
             return hostDataType;
         }
 
-        faasmpi_request_t *getFaasmRequest(I32 wasmPtr) {
+        faasmpi_request_t *getFaasmRequestFromPointer(I32 wasmPtrPtr) {
+            I32 wasmPtr = Runtime::memoryRef<I32>(memory, wasmPtrPtr);
             faasmpi_request_t *hostRequest = &Runtime::memoryRef<faasmpi_request_t>(memory, wasmPtr);
             return hostRequest;
         }
@@ -170,13 +171,13 @@ namespace wasm {
     * Sends a single async point-to-point message
     */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Isend", I32, MPI_Isend,
-                                   I32 buffer, I32 count, I32 datatype, I32 destRank, I32 tag, I32 comm, I32 request) {
+                                   I32 buffer, I32 count, I32 datatype, I32 destRank, I32 tag, I32 comm, I32 requestPtrPtr) {
         const std::shared_ptr<spdlog::logger> &logger = util::getLogger();
-        logger->debug("S - MPI_Isend {} {} {} {} {} {} {}", buffer, count, datatype, destRank, tag, comm, request);
+        logger->debug("S - MPI_Isend {} {} {} {} {} {} {}", buffer, count, datatype, destRank, tag, comm, requestPtrPtr);
 
         ContextWrapper ctx(comm);
         faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
-        faasmpi_request_t *hostRequest = ctx.getFaasmRequest(request);
+        faasmpi_request_t *hostRequest = ctx.getFaasmRequestFromPointer(requestPtrPtr);
 
         auto inputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
         ctx.world.isend(ctx.rank, destRank, inputs, hostDtype, count, hostRequest);
@@ -227,14 +228,14 @@ namespace wasm {
      * Receives a single asynchronous point-to-point message.
      */
     WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Irecv", I32, MPI_Irecv, I32 buffer, I32 count,
-                                   I32 datatype, I32 sourceRank, I32 tag, I32 comm, I32 request) {
+                                   I32 datatype, I32 sourceRank, I32 tag, I32 comm, I32 requestPtrPtr) {
 
         util::getLogger()->debug("S - MPI_Irecv {} {} {} {} {} {} {}",
-                                 buffer, count, datatype, sourceRank, tag, comm, request);
+                                 buffer, count, datatype, sourceRank, tag, comm, requestPtrPtr);
 
         ContextWrapper ctx;
         faasmpi_datatype_t *hostDtype = ctx.getFaasmDataType(datatype);
-        faasmpi_request_t *hostRequest = ctx.getFaasmRequest(request);
+        faasmpi_request_t *hostRequest = ctx.getFaasmRequestFromPointer(requestPtrPtr);
 
         auto outputs = Runtime::memoryArrayPtr<uint8_t>(ctx.memory, buffer, count);
         ctx.world.irecv(sourceRank, ctx.rank, outputs, hostDtype, count, hostRequest);
@@ -254,9 +255,11 @@ namespace wasm {
     /**
      * Waits for the asynchronous request to complete
      */
-    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Wait", I32, MPI_Wait, I32 request, I32 status) {
+    WAVM_DEFINE_INTRINSIC_FUNCTION(env, "MPI_Wait", I32, MPI_Wait, I32 requestPtrPtr, I32 status) {
+        util::getLogger()->debug("S - MPI_Wait {} {}", requestPtrPtr, status);
+
         ContextWrapper ctx;
-        faasmpi_request_t *hostRequest = ctx.getFaasmRequest(request);
+        faasmpi_request_t *hostRequest = ctx.getFaasmRequestFromPointer(requestPtrPtr);
         ctx.world.awaitAsyncRequest(hostRequest);
 
         return MPI_SUCCESS;

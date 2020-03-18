@@ -1,5 +1,7 @@
 #pragma once
 
+#include <faasmpi/mpi.h>
+
 namespace mpi {
     enum MpiMessageType {
         NORMAL,

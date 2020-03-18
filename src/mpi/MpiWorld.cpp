@@ -6,7 +6,6 @@
 #include <util/gids.h>
 #include <mpi/MpiGlobalBus.h>
 #include <util/logging.h>
-#include <faasmpi/mpi.h>
 #include <util/macros.h>
 #include <util/timing.h>
 
@@ -172,39 +171,26 @@ namespace mpi {
     void MpiWorld::doISendRecv(int sendRank, int recvRank, const uint8_t *sendBuffer, uint8_t *recvBuffer,
                                faasmpi_datatype_t *dataType, int count, faasmpi_request_t *request) {
 
-        bool isSend = sendBuffer != nullptr;
+        int requestId = (int) util::generateGid();
 
-        // Create the pending request object
-        request->id = (int) util::generateGid();
+        // Set up the struct in memory
+        request->id = requestId;
         request->sendRank = sendRank;
         request->recvRank = recvRank;
-        request->count = count;
-        request->dataType = dataType;
-
-        if (isSend) {
-            request->sendBuffer = sendBuffer;
-            request->type = faasmpi_async_t::ISEND;
-        } else {
-            request->recvBuffer = recvBuffer;
-            request->type = faasmpi_async_t::IRECV;
-        }
-
-        // Record this request
-        pendingAsyncRequests.insert({request->id, request});
 
         // Spawn a thread to do the work
-        std::thread t([&] {
-            // Do the operation (synchronous send/ receive)
+        std::thread t([this, requestId, sendRank, recvRank, sendBuffer, recvBuffer, dataType, count] {
+            bool isSend = recvBuffer == nullptr;
+
+            // Do the operation (i.e. the underlying synchronous send/ receive)
             if (isSend) {
-                send(request->sendRank, request->recvRank, request->sendBuffer, request->dataType, request->count);
+                this->send(sendRank, recvRank, sendBuffer, dataType, count);
             } else {
-                recv(request->sendRank, request->recvRank, request->recvBuffer, request->dataType, request->count,
-                     nullptr);
+                this->recv(sendRank, recvRank, recvBuffer, dataType, count, nullptr);
             }
 
             // Mark the request as completed and notify on the queue
-            request->completed = true;
-            getLocalAsyncQueue(request->sendRank, request->recvRank)->enqueue(request->id);
+            getLocalAsyncQueue(sendRank, recvRank)->enqueue(requestId);
         });
 
         t.detach();
@@ -431,13 +417,15 @@ namespace mpi {
 
     void MpiWorld::awaitAsyncRequest(faasmpi_request_t *request) {
         // Check if the request is already completed
-        bool isCompleted = request->completed;
+        bool isCompleted = completedAsyncRequests.count(request->id) > 0;
 
         // We need to keep dequeueing messages from the async queue until we get
         // to the one we want.
         // Note that we can guarantee this is the only thread _dequeueing_ on this queue
         while (!isCompleted) {
             int msgId = getLocalAsyncQueue(request->sendRank, request->recvRank)->dequeue();
+            completedAsyncRequests.insert(msgId);
+
             if (msgId == request->id) {
                 isCompleted = true;
             }
